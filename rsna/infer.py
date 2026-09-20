@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from rsna.data import StudyDataset
 from rsna.model import StudyNet
 from rsna.preprocess import Source, cache_series
-from rsna.schema import TARGETS
+from rsna.schema import CACHE_VERSION, TARGETS
 from rsna.train import predict
 
 
@@ -54,6 +54,8 @@ def main() -> None:
     checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=True)
     if checkpoint["targets"] != list(TARGETS):
         raise ValueError("Checkpoint target order mismatch")
+    if checkpoint.get("cache_version") != CACHE_VERSION:
+        raise ValueError("Checkpoint cache transform version differs")
     series = pd.read_csv(args.series)
     if args.template:
         template = pd.read_csv(args.template)
@@ -98,6 +100,9 @@ def main() -> None:
             "inference_studies_per_second": len(studies)
             / max(elapsed - preprocessing_seconds, 1e-9),
             "evaluation_source": "sample_or_hidden_test" if args.template else args.split,
+            "cache_version": CACHE_VERSION,
+            "cache_side": dataset.cache_side,
+            "cache_source_revision": dataset.source_revision,
         }
     )
     args.output.with_suffix(".metrics.json").write_text(json.dumps(metrics, indent=2))

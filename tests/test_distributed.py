@@ -19,16 +19,21 @@ def check_rank(rank: int, rendezvous: str) -> None:
     mask[2, :9] = 1
     mask[3, :11] = 1
     reference = nn.Linear(3, 12)
-    masked_bce(reference(inputs), labels, mask).backward()
+    expected_loss = masked_bce(reference(inputs), labels, mask)
+    expected_loss.backward()
     dist.init_process_group("gloo", init_method=rendezvous, world_size=2, rank=rank)
     try:
         model = nn.Linear(3, 12)
         model.load_state_dict(reference.state_dict())
         wrapped = DistributedDataParallel(model)
         section = slice(rank * 2, rank * 2 + 2)
-        masked_bce(wrapped(inputs[section]), labels[section], mask[section]).backward()
+        loss = masked_bce(wrapped(inputs[section]), labels[section], mask[section])
+        loss.backward()
         torch.testing.assert_close(model.weight.grad, reference.weight.grad)
         torch.testing.assert_close(model.bias.grad, reference.bias.grad)
+        mean_loss = loss.detach().clone()
+        dist.all_reduce(mean_loss)
+        torch.testing.assert_close(mean_loss / 2, expected_loss.detach())
     finally:
         dist.destroy_process_group()
 

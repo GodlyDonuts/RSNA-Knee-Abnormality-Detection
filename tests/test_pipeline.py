@@ -324,6 +324,7 @@ def test_offline_train_resume_predict_pipeline(
         ("run_config", {**actual["run_config"], "seed": 1}, "targets or training settings"),
         ("cache_side", 64, "cache preprocessing"),
         ("cache_source_revision", "different-source", "cache preprocessing"),
+        ("cache_version", "incompatible", "cache transform version"),
     ]:
         torch.save({**actual, field: value}, altered)
         with pytest.raises(ValueError, match=message):

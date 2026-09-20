@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 
 from rsna.data import StudyDataset
 from rsna.model import StudyNet, auc_metrics, masked_bce
-from rsna.schema import TARGETS
+from rsna.schema import CACHE_VERSION, TARGETS
 
 
 def seed_worker(worker_id: int) -> None:
@@ -156,6 +156,8 @@ def main() -> None:
             raise ValueError("Resume model/data configuration differs")
         if checkpoint["targets"] != list(TARGETS) or checkpoint["run_config"] != run_config:
             raise ValueError("Resume targets or training settings differ")
+        if checkpoint.get("cache_version") != CACHE_VERSION:
+            raise ValueError("Resume cache transform version differs")
         if (checkpoint["cache_side"], checkpoint["cache_source_revision"]) != (
             training_data.cache_side,
             training_data.source_revision,
@@ -201,13 +203,16 @@ def main() -> None:
             step += 1
             if args.max_steps is not None and step >= args.max_steps:
                 break
+        totals = torch.tensor([loss_sum, batches], dtype=torch.float64, device=device)
+        if world > 1:
+            dist.all_reduce(totals)
         if rank == 0:
             predictions, metrics = predict(model, val_loader, device)
             metrics.update(
                 {
                     "epoch": epoch,
                     "step": step,
-                    "training_loss": loss_sum / max(1, batches),
+                    "training_loss": float(totals[0] / totals[1].clamp_min(1)),
                     "elapsed_seconds": time.monotonic() - started,
                     "evaluation_source": "weak_report_validation",
                 }
@@ -233,6 +238,7 @@ def main() -> None:
                 "cuda_rng": torch.cuda.get_rng_state_all() if device.type == "cuda" else [],
                 "epoch_complete": batches == len(loader),
                 "cache_side": training_data.cache_side,
+                "cache_version": CACHE_VERSION,
                 "cache_source_revision": training_data.source_revision,
             }
             temporary = args.output / "checkpoint.partial"
