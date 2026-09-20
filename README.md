@@ -101,6 +101,7 @@ GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/datasets/GodlyDonuts/RSNA
 python -m rsna.inventory \
   --repo "$HOME/rsna-hf-repo" \
   --revision 52f995f4568e36bfa5fbbaf69a89af41226b4f5d \
+  --metadata-root "$HOME/rsna-hf-repo" \
   --original-paths data/zip_files.txt --output data/inventory/dicom_inventory.parquet
 python -m rsna.preprocess \
   --manifest data/inventory/dicom_inventory.parquet --output data/cache256 \

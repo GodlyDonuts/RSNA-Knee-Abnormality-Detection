@@ -9,6 +9,35 @@ from pathlib import Path
 import pandas as pd
 
 
+def validate_metadata(inventory: pd.DataFrame, root: Path) -> dict:
+    if set(inventory.split) != {"train_series", "test_series"}:
+        raise ValueError("Unexpected source splits")
+    if inventory.path.duplicated().any() or inventory.sop_uid.duplicated().any():
+        raise ValueError("Duplicate source paths or SOP identities")
+    if inventory.groupby("series_uid").study_uid.nunique().gt(1).any():
+        raise ValueError("A series belongs to multiple studies")
+    summary = {}
+    for split in ("train", "test"):
+        studies = pd.read_csv(root / f"{split}.csv")
+        series = pd.read_csv(root / f"{split}_series.csv")
+        rows = inventory[inventory.split.eq(f"{split}_series")]
+        if (
+            studies.StudyInstanceUID.duplicated().any()
+            or series.SeriesInstanceUID.duplicated().any()
+        ):
+            raise ValueError(f"Duplicate metadata identities: {split}")
+        expected = set(
+            series[["StudyInstanceUID", "SeriesInstanceUID"]].itertuples(index=False, name=None)
+        )
+        actual = set(rows[["study_uid", "series_uid"]].itertuples(index=False, name=None))
+        if expected != actual or set(studies.StudyInstanceUID) != set(rows.study_uid):
+            raise ValueError(
+                f"Source inventory differs from original study/series metadata: {split}"
+            )
+        summary[split] = {"studies": len(studies), "series": len(series), "dicoms": len(rows)}
+    return summary
+
+
 def build_inventory(repo: Path, revision: str) -> pd.DataFrame:
     tree = subprocess.check_output(["git", "ls-tree", "-r", "-z", revision], cwd=repo).split(b"\0")
     entries = []
@@ -44,6 +73,8 @@ def build_inventory(repo: Path, revision: str) -> pd.DataFrame:
                 sha256 = values["oid"].removeprefix("sha256:")
                 size = int(values["size"])
             parts = Path(path).parts
+            if len(parts) != 4 or parts[0] not in ("train_series", "test_series"):
+                raise ValueError(f"Unexpected DICOM path: {path}")
             rows.append(
                 {
                     "split": parts[0],
@@ -65,6 +96,7 @@ def main() -> None:
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--original-paths", type=Path, required=True)
+    parser.add_argument("--metadata-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     inventory = build_inventory(args.repo, args.revision)
@@ -72,6 +104,7 @@ def main() -> None:
     actual = set(inventory.path)
     if expected != actual or inventory.path.duplicated().any():
         raise ValueError("Inventory does not match original archive DICOM paths")
+    split_counts = validate_metadata(inventory, args.metadata_root)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     inventory.to_parquet(args.output, index=False)
     summary = {
@@ -81,6 +114,7 @@ def main() -> None:
         "storage": inventory.storage.value_counts().to_dict(),
         "unique_studies": int(inventory.study_uid.nunique()),
         "unique_series": int(inventory.series_uid.nunique()),
+        "splits": split_counts,
         "duplicate_content_files": int(inventory.sha256.duplicated(keep=False).sum()),
         "cross_study_duplicate_hashes": int(
             (inventory.groupby("sha256").study_uid.nunique() > 1).sum()
