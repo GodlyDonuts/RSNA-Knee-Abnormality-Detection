@@ -1,0 +1,14 @@
+numpy>=1.26
+pandas>=2.1
+pydicom>=3.0
+scikit-learn>=1.4
+torch>=2.2
+torchvision>=0.17
+# Transformers 5.x currently requires newer torch.distributed DTensor APIs
+# than common CUDA 12.4 / PyTorch 2.4 competition images provide.
+transformers>=4.56,<5.0
+Pillow>=10.0
+
+# Optional compressed-DICOM codecs, depending on the mounted corpus:
+# pylibjpeg>=2.0
+# pylibjpeg-libjpeg>=2.3
