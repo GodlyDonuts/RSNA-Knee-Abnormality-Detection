@@ -108,6 +108,13 @@ def main() -> None:
     if any(train[f"{t}__provenance"].eq("official_gold").any() for t in TARGETS):
         raise ValueError("Gold labels cannot enter weak training")
     config = {"slices": args.slices, "side": args.side, "max_series": args.max_series}
+    run_config = {
+        "seed": args.seed,
+        "batch_size": args.batch_size,
+        "workers": args.workers,
+        "world_size": world,
+        "lr": args.lr,
+    }
     training_data = StudyDataset(train, series, args.cache, augment=True, **config)
     validation_data = StudyDataset(validation, series, args.cache, **config)
     if (training_data.cache_side, training_data.source_revision) != (
@@ -147,6 +154,13 @@ def main() -> None:
             raise ValueError("Resume data differs from checkpoint")
         if checkpoint["config"] != config or checkpoint["width"] != args.width:
             raise ValueError("Resume model/data configuration differs")
+        if checkpoint["targets"] != list(TARGETS) or checkpoint["run_config"] != run_config:
+            raise ValueError("Resume targets or training settings differ")
+        if (checkpoint["cache_side"], checkpoint["cache_source_revision"]) != (
+            training_data.cache_side,
+            training_data.source_revision,
+        ):
+            raise ValueError("Resume cache preprocessing differs")
         model.load_state_dict(checkpoint["model"])
         optimizer.load_state_dict(checkpoint["optimizer"])
         scaler.load_state_dict(checkpoint["scaler"])
@@ -209,6 +223,7 @@ def main() -> None:
                 "step": step,
                 "width": args.width,
                 "config": config,
+                "run_config": run_config,
                 "targets": list(TARGETS),
                 "manifest_sha256": manifest_hash,
                 "series_sha256": series_hash,

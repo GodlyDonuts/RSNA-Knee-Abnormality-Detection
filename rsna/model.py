@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import torch.distributed as dist
 from sklearn.metrics import roc_auc_score
 from torch import Tensor, nn
 from torch.nn import functional as F
@@ -52,11 +53,15 @@ def masked_bce(logits: Tensor, labels: Tensor, mask: Tensor) -> Tensor:
     if not (mask >= 0).all() or not ((labels >= 0) & (labels <= 1)).all():
         raise ValueError("Invalid label or supervision weight")
     observed = mask.sum(dim=0)
+    world = 1
+    if dist.is_initialized():
+        dist.all_reduce(observed)
+        world = dist.get_world_size()
     losses = (F.binary_cross_entropy_with_logits(logits, labels, reduction="none") * mask).sum(
         dim=0
     )
     return (
-        (losses / observed.clamp_min(1))[observed > 0].mean()
+        world * (losses / observed.clamp_min(1))[observed > 0].mean()
         if (observed > 0).any()
         else logits.sum() * 0
     )

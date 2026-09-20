@@ -313,6 +313,21 @@ def test_offline_train_resume_predict_pipeline(
     )
     infer.main()
     assert pd.read_csv(predictions).StudyInstanceUID.tolist() == ["e", "f"]
+    altered = tmp_path / "altered.pt"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        base + ["--epochs", "3", "--output", str(resumed), "--resume", str(altered)],
+    )
+    for field, value, message in [
+        ("targets", list(reversed(TARGETS)), "targets or training settings"),
+        ("run_config", {**actual["run_config"], "seed": 1}, "targets or training settings"),
+        ("cache_side", 64, "cache preprocessing"),
+        ("cache_source_revision", "different-source", "cache preprocessing"),
+    ]:
+        torch.save({**actual, field: value}, altered)
+        with pytest.raises(ValueError, match=message):
+            train.main()
 
 
 def test_hub_retry_obeys_quota_reset() -> None:

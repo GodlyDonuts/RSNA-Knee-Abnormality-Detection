@@ -183,6 +183,8 @@ reproducibility and throughput require measurement on the target hardware.
 For multiple GPUs, run the same command with
 `torchrun --standalone --nproc-per-node=4 -m rsna.train ...`.
 Rank zero writes checkpoints and evaluates the full weak-validation split.
+Masked target counts are reduced across ranks so missing labels do not change
+the per-target weighting between single-process and distributed training.
 
 ## Offline Kaggle inference
 
