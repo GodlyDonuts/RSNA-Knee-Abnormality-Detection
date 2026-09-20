@@ -112,7 +112,10 @@ python -m rsna.audit \
 ```
 
 `zip_files.txt` is the original Kaggle ZIP member-name inventory, one path per line;
-obtain it from the validated HF release or independently enumerate the source ZIP.
+obtain it from the [verified source inventory](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/86df08e5be2149aef0dc855f0ebffd376e164a19/audits/source-inventory-52f995f)
+or independently enumerate the source ZIP. That folder also contains the pinned
+DICOM inventory, original study/series coverage counts, and artifact checksums.
+It is a source-inventory milestone; the reviewed-label release is still pending.
 Without it, the original-archive path equality check cannot run.
 The inventory records SHA-256, byte size, storage type, and UID/path identity for
 every DICOM. HF downloads use LFS object batches with verified size and hashes;
