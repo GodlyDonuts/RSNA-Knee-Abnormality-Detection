@@ -38,10 +38,10 @@ def decode_slice(data: bytes, study_uid: str, series_uid: str, sop_uid: str) -> 
     slope = float(ds.get("RescaleSlope", 1))
     intercept = float(ds.get("RescaleIntercept", 0))
     pixels = pixels * slope + intercept
-    if not np.isfinite(pixels).all():
-        raise ValueError("Non-finite pixel values")
     if photo == "MONOCHROME1":
         pixels = pixels.max() + pixels.min() - pixels
+    if not np.isfinite(pixels).all():
+        raise ValueError("Non-finite pixel values")
     return Slice(
         sop_uid=sop_uid,
         pixels=pixels,
@@ -57,6 +57,8 @@ def decode_slice(data: bytes, study_uid: str, series_uid: str, sop_uid: str) -> 
 def order_slices(slices: list[Slice]) -> tuple[list[Slice], str, list[str]]:
     if not slices:
         raise ValueError("Empty series")
+    if any(not np.isfinite(s.position + s.orientation + s.spacing).all() for s in slices):
+        raise ValueError("Non-finite DICOM geometry")
     warnings = []
     reference = slices[0]
     geometric = len(reference.orientation) == 6 and all(

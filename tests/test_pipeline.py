@@ -105,6 +105,13 @@ def test_cache_resume_detects_corruption_and_orphan(tmp_path: Path) -> None:
         cache_series(Source(source), paths, output, 32, "fixture")
 
 
+def test_nonfinite_geometry_cannot_silently_define_slice_order() -> None:
+    item = decode_slice(dicom_bytes(1, 0), "1.2", "1.2.3", "1.2.3.1")
+    item.position = (0.0, 0.0, float("nan"))
+    with pytest.raises(ValueError, match="Non-finite DICOM geometry"):
+        order_slices([item])
+
+
 def review_row(uid: str, state: str) -> dict:
     result = {"study_uid": uid}
     for target in TARGETS:

@@ -42,6 +42,9 @@ def audit_cache(inventory: pd.DataFrame, cache: Path, revision: str, output: Pat
             raise ValueError(f"Cache provenance mismatch: {file}")
         if (meta["split"], meta["study_uid"], meta["series_uid"]) != keys:
             raise ValueError(f"Metadata identity mismatch: {file}")
+        geometry = [meta["orientation"], meta["pixel_spacing"], *meta["positions"]]
+        if any(not np.isfinite(values).all() for values in geometry):
+            raise ValueError(f"Non-finite DICOM geometry: {file}")
         if hashlib.sha256(file.read_bytes()).hexdigest() != meta["cache_sha256"]:
             raise ValueError(f"Cache checksum mismatch: {file}")
         if len(set(meta["sop_uids"])) != len(frame):
