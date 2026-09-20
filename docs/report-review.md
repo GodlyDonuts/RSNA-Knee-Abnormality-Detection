@@ -25,6 +25,12 @@ labels. Run it through Devin's `run_workflow`, not plain Python: `agent`, `log`,
    evidence. Missing or invalid records must be corrected by rereading the source,
    never filled with automatic negatives.
 
+Archive every completed output in GitHub immediately using
+[the archive procedure](archive-maintenance.md), even while other batches are
+running. The source reports and all blinded batch inputs are already under
+`initiative/`. Preserve original bytes, completion notes, and session/agent IDs.
+The generated review index makes incomplete coverage visible to future sessions.
+
 The complete target rubric is embedded in the workflow to keep agent prompts
 self-contained and replayable. Key distinctions: ligament identity, tear versus
 meniscal degeneration, compartment-specific OA versus isolated chondromalacia,

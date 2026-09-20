@@ -1,8 +1,11 @@
 # Data and code release procedure
 
-GitHub contains executable code, tests, and procedures. Hugging Face
+GitHub contains executable code, tests, procedures, source reports/metadata,
+review inputs and outputs, provenance, inventories, and audit evidence in
+[`initiative/`](../initiative/README.md). Hugging Face
 [`GodlyDonuts/RSNA-Data`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data)
-contains the original competition data and versioned derived artifacts.
+contains large source images/caches/weights and versioned derived artifacts.
+Keep GitHub-suitable artifacts in both the initiative archive and the HF release.
 
 ## Required release contents
 
@@ -25,8 +28,10 @@ Use a new `releases/<version>/` directory in HF for each release:
   known limitations.
 
 Never include credentials, authorization headers, temporary signed URLs, or
-Devin-private attachment links in the public release. Upload the actual annotation
-files and retain public HF paths; retain internal workflow metadata privately.
+Devin-private attachment links in the public release. Archive the actual annotation
+files, workflow and session IDs, output hashes, and agent completion notes in
+GitHub. Use repository-relative artifact paths in public provenance. Retrieval
+responses containing authenticated attachment locations remain local.
 
 ## Acceptance gates
 

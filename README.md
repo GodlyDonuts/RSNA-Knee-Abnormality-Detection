@@ -3,9 +3,19 @@
 Reproducible report annotation, DICOM auditing, study-level training, and offline
 Kaggle inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Code and procedures live here. Data, labels, inventories, and release artifacts
-live in [GodlyDonuts/RSNA-Data](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data).**
-Do not put DICOMs, reports, credentials, caches, or checkpoints in GitHub.
+**Start with [the initiative archive](initiative/README.md) and
+[the continuation guide](docs/continuation.md).** GitHub contains source reports,
+metadata, blinded batch inputs, actual agent annotations/reviews, provenance,
+inventories, audit evidence, decisions, and recovery instructions alongside the
+code. [GodlyDonuts/RSNA-Data](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data)
+holds the large DICOMs, caches, model weights, and mirrored versioned releases.
+Credentials and temporary authenticated URLs must stay outside both repositories.
+
+For a new session, check out the PR branch while
+[PR #1](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/pull/1)
+remains unmerged. `initiative/reviews/index.json` records precisely which batches
+are archived and valid; a missing reviewed artifact means that stage is unfinished
+or has not yet been collected. Run `python -m rsna.archive` to verify the archive.
 
 ## Status
 
