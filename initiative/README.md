@@ -5,10 +5,15 @@ session. A new agent can recover the report-review work and source inventory
 from a clone of this repository.
 
 **The corrected training release is unfinished.** Read
-[`reviews/index.json`](reviews/index.json) for exact per-batch availability and
+[`reviews-v2/index.json`](reviews-v2/index.json) for current per-batch availability and
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
+
+The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and
+[agent procedure](../protocols/agent_tasks.md). The `reviews/` outputs and index
+preserve the historical v1 run; its blinded `inputs/` are reused unchanged.
+Verified milestones go directly to main under the owner's explicit authorization.
 
 ## Contents
 
@@ -25,6 +30,7 @@ readiness.
 | `reviews/reviewed/` | Original independent-review outputs, added as they complete |
 | `reviews/provenance.json` | Agent/session/workflow IDs, study counts, completion notes, paths, and SHA-256 hashes |
 | `reviews/index.json` | Exact batch coverage, evidence-validation results, and unfinished stages |
+| `reviews-v2/` | Current drafts, independent reviews, source-first prereads, bound provenance, and progress index |
 | `audits/` | Measured code/data validation and explicitly partial progress snapshots |
 | `provenance/` | Source revisions, original workflow, original published checksums, external artifact catalog |
 | `legacy/` | Earlier label exports, intermediate NLI/rule outputs, transfer scripts, and historical reference code |
@@ -38,8 +44,8 @@ for exact equality. The original single-file hash is recorded separately.
 
 ```bash
 python -m rsna.archive
-# This deliberately fails until both passes cover every report with valid evidence:
-python -m rsna.archive --require-complete
+# Current v2 completion gate; deliberately fails while either pass is missing:
+python -m rsna.review_progress --inputs initiative/reviews/inputs --root initiative/reviews-v2 --rubric protocols/report_weak_v2.md --require-complete
 ```
 
 The default check allows an explicitly recorded incomplete archive; it does not
@@ -65,10 +71,10 @@ workflow for newly completed batches and archive them using
 
 ## Navigation
 
-- [New-session continuation guide](../docs/continuation.md)
+- [Current continuation guide](../docs/codex-continuation.md)
 - [Decisions, corrections, and limitations](../docs/decisions.md)
 - [Report review protocol](../docs/report-review.md)
 - [Release gates](../docs/releases.md)
 - [Historical artifacts and their limitations](legacy/README.md)
-- [Current PR](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/pull/1)
+- [Main repository](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/main)
 - [Hugging Face data](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data)

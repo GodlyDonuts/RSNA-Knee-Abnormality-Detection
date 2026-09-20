@@ -1,5 +1,10 @@
 # Report review
 
+The active run uses [frozen protocol v2](../protocols/report_weak_v2.md), the
+[provider-neutral agent procedure](../protocols/agent_tasks.md), and
+`initiative/reviews-v2/`. The workflow below is the historical v1 implementation;
+its target definitions must not be used for corrected competition labels.
+
 The historical workflow below used an obsolete rubric that included trace effusion
 and did not enforce the competition's ligament severity thresholds. Preserve its
 outputs for provenance. Corrected competition supervision uses the frozen

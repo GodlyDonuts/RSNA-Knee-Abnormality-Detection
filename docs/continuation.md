@@ -1,5 +1,10 @@
 # Continue from a new session
 
+This file preserves the originating session's recovery instructions. PR #1 has
+since merged, and the corrected rubric/cache run is documented in
+[Codex continuation](codex-continuation.md). Use that guide for current work;
+recover the old workflow only when collecting historical evidence.
+
 ## 1. Get the correct code and evidence
 
 The working branch is `devin/1789934150-training-readiness`, in

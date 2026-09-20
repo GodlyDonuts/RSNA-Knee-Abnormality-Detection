@@ -66,8 +66,9 @@ python -m pytest -q
 
 The runtime includes `pydicom` and JPEG/JPEG2000 decoders. No report language model,
 API call, pretrained-weight download, or internet access is needed during training
-or inference. The report workflow itself uses Devin and is a separate preparation
-stage.
+or inference. Report annotation is a separate preparation stage governed by the
+[current provider-neutral procedure](protocols/agent_tasks.md); the originating
+Devin workflow is preserved as historical evidence.
 
 ## Data contract
 

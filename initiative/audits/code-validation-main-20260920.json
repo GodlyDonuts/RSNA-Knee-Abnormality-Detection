@@ -1,0 +1,43 @@
+{
+  "checked_at": "2026-09-20T23:14:38.638568+00:00",
+  "scope": "Current code and provenance smoke runner before direct main integration",
+  "checks": [
+    {
+      "command": "ruff check .",
+      "result": "pass"
+    },
+    {
+      "command": "ruff format --check .",
+      "result": "pass",
+      "files_formatted": 24
+    },
+    {
+      "command": "mypy rsna",
+      "result": "pass",
+      "source_files": 14
+    },
+    {
+      "command": "python -m pytest -q",
+      "result": "pass",
+      "tests_passed": 69,
+      "seconds": 7.41
+    }
+  ],
+  "source_hashes": {
+    "rsna/__init__.py": "ecf9ff9807f088bffd497458b28d2163c74d8c8d0b3ce5a84948ade85067622e",
+    "rsna/archive.py": "9ae68183576b349bec5d5d9b4988aa2c8d0473c66587d4a948c1ab4266022a1e",
+    "rsna/audit.py": "f284e48c266245c0969358559626390c5d4a89fddd48e5aed8010c5a432d81ca",
+    "rsna/data.py": "7ad3e0028ec3ead5aa236a85c3df646ff43c815f54b3f4a4002fd7947bac8ebf",
+    "rsna/dicom.py": "a26a16d296fc913a1c3f1f33e8c4d8b38d73c5fb9718e663242e6c7ec077b269",
+    "rsna/infer.py": "a2589f86a2dd17b3601a295c481b9c4c3f45791373dff74179bb15e14f02fbf4",
+    "rsna/inventory.py": "b0667bbe2add42f92fe180973a8906b5b87e83b28d426a7ef5ef56c606be1c4e",
+    "rsna/labels.py": "8e8eae8b0fefe296c8e829d1d13e686624e2a9309356c448e0c6bce3d432cde7",
+    "rsna/model.py": "f62331039151a26f94474ecce0251bbe995f47330ed8a5d5fa002b41b1551aa9",
+    "rsna/preflight.py": "eb7200f9938372d956afa12d0700e8a2987f01105b23d5d155e38859c9c8570f",
+    "rsna/preprocess.py": "07da6625045099b085d2afd76d49203fe15826dc40a00b881b1080aaa8b6ae22",
+    "rsna/review_progress.py": "d48597eca9759e46d7ab3296e43c95e837600b3773e06d61cfa4c7520d9ca8bf",
+    "rsna/schema.py": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948",
+    "rsna/train.py": "7b6baccadf92951eb122668fd1dd24f68c934fec4165159b575980b7a534905a"
+  },
+  "smoke_runner_sha256": "dc16e8cdfb8dcbb78a20870a5c41ce8f68343095c33faad5f56dcdb972244ad8"
+}

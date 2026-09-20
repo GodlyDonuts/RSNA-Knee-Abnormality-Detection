@@ -1,5 +1,18 @@
 # Decisions, corrections, and unresolved work
 
+## Current corrective run
+
+The owner authorized direct main integration and a monorepo on 2026-09-20.
+Use `protocols/report_weak_v2.md`, `protocols/agent_tasks.md`, and
+`initiative/reviews-v2/`; the previous rubric was too permissive about severity.
+The current decoder/cache version is `series-u16-v3`. Fresh authenticated Kaggle
+metadata now matches the archived source byte for byte. All 4,410 sampled study
+headers have distinct pseudonymous PatientIDs, which does not prove real patient
+disjointness. Read `docs/codex-continuation.md` for current progress and gates.
+The public HF mirror is not an authorized destination for new restricted data;
+keep new artifacts local or in the private GitHub monorepo. Historical access
+and publication plans below describe the previous run, not current permission.
+
 ## Objective and scope
 
 The owner wants a dependable RSNA Knee Abnormality Detection training package

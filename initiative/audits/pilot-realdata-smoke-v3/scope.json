@@ -1,0 +1,33 @@
+{
+  "scope": "Pipeline diagnostic on independently reviewed batches 000..002 only",
+  "training_ready": false,
+  "competition_weights": false,
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "pilot_studies": 150,
+  "splits": {
+    "train": 132,
+    "weak_validation": 15,
+    "gold_evaluation": 3
+  },
+  "global_source_studies_checked_for_report_holdout": 4407,
+  "limitations": [
+    "Full decoded-pixel duplicate graph is unfinished; cross-pilot matches unknown.",
+    "Pseudonymous PatientIDs do not establish true patient disjointness.",
+    "Small CPU model tests the pipeline, not diagnostic performance.",
+    "Gold agreement is not inspected; this run cannot tune the frozen rubric.",
+    "Final released manifests require another smoke run after all release gates."
+  ],
+  "input_hashes": {
+    "initiative/source/train.csv": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+    "initiative/source/train_series.csv": "573c1d80772bf41211c91b149c95677385a1c22d63f485c347f1b46c0177aef3",
+    "initiative/source/test_series.csv": "d8b0402ccd4d1383bf8b154b781e53f156a5438778fadca04fca3c64592f4f2d",
+    "initiative/source/sample_submission.csv": "bf96706cfea74f089b0450290206e659bf5ee2a17a8d732774e1f2a5bcac53e4",
+    "initiative/audits/pilot-realdata-v3/dicom_audit.json": "ac2b1941e3ba54189d950ed67316ec0f742d29244ebedae47568c1e7405a5bfc",
+    "initiative/audits/pilot-realdata-v3/pilot_inventory.parquet": "43cf35e39ad84f250f90c8fa78233d96a9ebc38395dd09da2e75199d17d93ee5",
+    "initiative/audits/pilot-realdata-smoke-v3/pilot_studies.parquet": "28103088ee57eec060d1b53a65621c32c3c97c35309319d4ffa759179c5bbe10",
+    "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/recovered/initiative/provenance/pilot_realdata_smoke.py": "dc16e8cdfb8dcbb78a20870a5c41ce8f68343095c33faad5f56dcdb972244ad8",
+    "initiative/reviews-v2/reviewed/batch-000-reviewed.jsonl": "a6afb2d83c08cba80091408666827706c9bf99498dcc262c8e5313cfece1e7d3",
+    "initiative/reviews-v2/reviewed/batch-001-reviewed.jsonl": "09bb69953a17e1989d7b5450e00c1e6c09745567246bf5bdebecf65d51b434dc",
+    "initiative/reviews-v2/reviewed/batch-002-reviewed.jsonl": "9a1e0bb86497c45aef76bec491353c1edb43347c9c2fc30412a39dadc020ffa6"
+  }
+}
