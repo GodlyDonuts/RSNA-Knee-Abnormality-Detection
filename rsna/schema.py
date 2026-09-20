@@ -13,4 +13,4 @@ TARGETS = (
     "Fracture",
 )
 STATES = ("positive", "negative", "uncertain", "not_mentioned")
-CACHE_VERSION = "series-u16-v2"
+CACHE_VERSION = "series-u16-v3"

@@ -1,0 +1,99 @@
+{
+  "checked_at_utc": "2026-09-20T22:31:15.559243+00:00",
+  "scope": "Source metadata and inventory consistency; not decoded pixels or report-label correctness",
+  "source_metadata_valid": true,
+  "training_ready": false,
+  "required_remaining_gates": [
+    "complete_independent_reviews_under_current_rubric",
+    "full_current_version_image_audit",
+    "leakage_safe_label_release",
+    "real_data_training_resume_and_inference_smoke"
+  ],
+  "checks": {
+    "training_columns": true,
+    "test_has_no_reports": true,
+    "submission_columns": true,
+    "train_unique_nonempty_studies": true,
+    "train_series_schema": true,
+    "train_series_identity": true,
+    "train_series_coverage": true,
+    "train_series_no_missing": true,
+    "train_Fluid_Sensitive_binary": true,
+    "train_Fat_Suppression_binary": true,
+    "train_known_planes": true,
+    "train_inventory_series_coverage": true,
+    "test_unique_nonempty_studies": true,
+    "test_series_schema": true,
+    "test_series_identity": true,
+    "test_series_coverage": true,
+    "test_series_no_missing": true,
+    "test_Fluid_Sensitive_binary": true,
+    "test_Fat_Suppression_binary": true,
+    "test_known_planes": true,
+    "test_inventory_series_coverage": true,
+    "train_test_uid_disjoint": true,
+    "template_test_order": true,
+    "nonempty_reports": true,
+    "official_label_domain": true,
+    "official_label_rows_all_or_none": true,
+    "inventory_unique_paths": true,
+    "inventory_unique_sops": true,
+    "inventory_known_splits": true,
+    "inventory_positive_sizes": true,
+    "inventory_valid_sha256": true,
+    "inventory_storage": true,
+    "inventory_path_identity": true,
+    "current_train.csv_matches": true,
+    "current_train_series.csv_matches": true,
+    "current_test.csv_matches": true,
+    "current_test_series.csv_matches": true,
+    "current_sample_submission.csv_matches": true
+  },
+  "files": [
+    {
+      "file": "train.csv",
+      "source_sha256": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+      "bytes": 5690007,
+      "current_sha256": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+      "byte_equal": true
+    },
+    {
+      "file": "train_series.csv",
+      "source_sha256": "573c1d80772bf41211c91b149c95677385a1c22d63f485c347f1b46c0177aef3",
+      "bytes": 3458834,
+      "current_sha256": "573c1d80772bf41211c91b149c95677385a1c22d63f485c347f1b46c0177aef3",
+      "byte_equal": true
+    },
+    {
+      "file": "test.csv",
+      "source_sha256": "7539466fe487069345c233352b2632edeec1dd24128b08eda318de99ff7650ff",
+      "bytes": 212,
+      "current_sha256": "7539466fe487069345c233352b2632edeec1dd24128b08eda318de99ff7650ff",
+      "byte_equal": true
+    },
+    {
+      "file": "test_series.csv",
+      "source_sha256": "d8b0402ccd4d1383bf8b154b781e53f156a5438778fadca04fca3c64592f4f2d",
+      "bytes": 2213,
+      "current_sha256": "d8b0402ccd4d1383bf8b154b781e53f156a5438778fadca04fca3c64592f4f2d",
+      "byte_equal": true
+    },
+    {
+      "file": "sample_submission.csv",
+      "source_sha256": "bf96706cfea74f089b0450290206e659bf5ee2a17a8d732774e1f2a5bcac53e4",
+      "bytes": 470,
+      "current_sha256": "bf96706cfea74f089b0450290206e659bf5ee2a17a8d732774e1f2a5bcac53e4",
+      "byte_equal": true
+    }
+  ],
+  "training_studies": 4407,
+  "official_evaluation_studies": 58,
+  "sample_test_studies": 3,
+  "series": 24386,
+  "dicom_records": 819635,
+  "source_bytes": 569754741408,
+  "duplicate_report_groups": 54,
+  "studies_in_duplicate_report_groups": 204,
+  "cross_study_identical_file_hashes": 0,
+  "patient_disjointness": "Not established by deidentified study UIDs; decoded patient metadata not audited here"
+}

@@ -34,6 +34,15 @@ unfinished work, not permissions to synthesize missing labels.
 
 ## 2. Recover the review work
 
+The recovery instructions below preserve the original workflow and its evidence.
+Its rubric has since been found inconsistent with the competition's severity
+thresholds; recovered outputs do not qualify as corrected competition labels.
+New report passes must follow `protocols/report_weak_v2.md` and be stored under
+`initiative/reviews-v2/`. Keep the original files immutable. Each new draft and
+review provenance record must bind `rubric_sha256` to the frozen rubric and
+`source_reports_sha256` to `rsna.labels.source_reports_fingerprint` of all original
+blinded reports. Reader and reviewer must have different agent and session IDs.
+
 - Parent session: https://app.devin.ai/sessions/96aa9aa1ea7d4b3d9dd152915b9d4efc
 - Workflow: `wfr-b7eeba0fae7f4af18b2f5a869214114c`
 - Executable portable workflow: `workflows/report_review.py`
@@ -79,7 +88,9 @@ original session's working cache is:
 ```
 
 That is an optional same-VM resume location, not a dependency available in another
-session. Its process was started in shell `d4b057`; shell IDs are session-local.
+session. It contains the historical v2 transform; current `series-u16-v3` preparation
+must use a new output directory and rebuild those series. Its process was started
+in shell `d4b057`; shell IDs are session-local.
 Check whether it is still running before starting another writer. Inspect
 `progress.jsonl` and disk space, then reuse verified cache pairs. Do not point
 two cache processes at the same output directory.
@@ -90,11 +101,11 @@ On a fresh machine, use a persistent directory with enough space:
 mkdir -p "$HOME/rsna-readiness"
 python -m rsna.preprocess \
   --manifest initiative/source/inventory \
-  --output "$HOME/rsna-readiness/cache256-v2" \
+  --output "$HOME/rsna-readiness/cache256-v3" \
   --source-revision 52f995f4568e36bfa5fbbaf69a89af41226b4f5d
 python -m rsna.audit \
   --inventory initiative/source/inventory \
-  --cache "$HOME/rsna-readiness/cache256-v2" \
+  --cache "$HOME/rsna-readiness/cache256-v3" \
   --revision 52f995f4568e36bfa5fbbaf69a89af41226b4f5d \
   --output "$HOME/rsna-readiness/dicom-audit"
 ```
@@ -131,13 +142,23 @@ revision instead.
 ## 4. Finish labels and real-data verification
 
 ```bash
-python -m rsna.archive --require-complete
+# Verify historical evidence; this is not corrected-label approval:
+python -m rsna.archive
 python -m rsna.labels \
   --train initiative/source/train.csv \
-  --drafts initiative/reviews/drafts --reviews initiative/reviews/reviewed \
+  --drafts initiative/reviews-v2/drafts --reviews initiative/reviews-v2/reviewed \
+  --review-provenance initiative/reviews-v2/provenance.json \
+  --rubric protocols/report_weak_v2.md \
+  --inventory initiative/source/inventory \
+  --source-revision 52f995f4568e36bfa5fbbaf69a89af41226b4f5d \
   --dicom-audit "$HOME/rsna-readiness/dicom-audit/dicom_audit.json" \
   --output "$HOME/rsna-readiness/release"
 ```
+
+The label command fails until the new two-pass review is complete and bound to the
+source/rubric hashes and the complete current-version DICOM audit matches its source
+inventory and series index. Do not manufacture provenance or repoint old outputs to
+the new rubric.
 
 Then check target distributions, observed coverage, blinded gold agreement,
 reviewer changes, report/pixel duplicates, quarantine, and split disjointness.

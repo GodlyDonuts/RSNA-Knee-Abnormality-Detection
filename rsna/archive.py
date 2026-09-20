@@ -46,6 +46,11 @@ def import_artifacts(root: Path, imports: list[dict]) -> None:
             key: record[key]
             for key in ("session_id", "agent_id", "workflow_run_id", "n_studies", "notes")
         }
+        for field in ("rubric_sha256", "source_reports_sha256", "parent_artifact_sha256"):
+            if field in record:
+                if not re.fullmatch(r"[a-f0-9]{64}", record[field]):
+                    raise ValueError(f"Invalid {field}")
+                metadata[field] = record[field]
         metadata["sha256"] = sha256(source)
         metadata["path"] = str(path.relative_to(root))
         existing = provenance.get(batch, {}).get(phase)
@@ -129,6 +134,9 @@ def review_index(root: Path, create_inputs: bool = False) -> dict:
                 raise ValueError(f"Provenance path differs from actual artifact: {path}")
             if metadata["n_studies"] != len(expected):
                 raise ValueError(f"Agent count differs from batch: {path}")
+            for field in ("session_id", "agent_id", "workflow_run_id", "notes"):
+                if not isinstance(metadata.get(field), str) or not metadata[field].strip():
+                    raise ValueError(f"Missing review identity/completion provenance: {path}")
             try:
                 read_reviews(path.parent, reports, f"{name}-{phase}")
                 batch[phase] = {"status": "valid", "path": str(path.relative_to(root))}
@@ -138,6 +146,16 @@ def review_index(root: Path, create_inputs: bool = False) -> dict:
                     "path": str(path.relative_to(root)),
                     "error": str(error),
                 }
+        phases = provenance.get(name, {})
+        if set(phases) == {"draft", "reviewed"} and any(
+            phases["draft"][field] == phases["reviewed"][field]
+            for field in ("session_id", "agent_id")
+        ):
+            batch["reviewed"] = {
+                "status": "invalid",
+                "path": f"reviews/reviewed/{name}-reviewed.jsonl",
+                "error": "Reviewer must have a separate agent and session identity",
+            }
         batches.append(batch)
     actual_paths = set((root / "reviews/drafts").glob("*.jsonl")) | set(
         (root / "reviews/reviewed").glob("*.jsonl")

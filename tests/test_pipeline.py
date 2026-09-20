@@ -57,8 +57,12 @@ def test_dicom_rescale_inversion_and_uid_check() -> None:
     normal = decode_slice(dicom_bytes(1, 0), "1.2", "1.2.3", "1.2.3.1")
     inverted = decode_slice(dicom_bytes(1, 0, "MONOCHROME1"), "1.2", "1.2.3", "1.2.3.1")
     assert normal.pixels[0, 0] == -10
-    np.testing.assert_array_equal(
-        inverted.pixels, normal.pixels.max() + normal.pixels.min() - normal.pixels
+    # Stored modality values remain comparable across slices; invert at volume level.
+    np.testing.assert_array_equal(inverted.pixels, normal.pixels)
+    normal_volume, _ = make_volume([normal], 32)
+    inverted_volume, _ = make_volume([inverted], 32)
+    np.testing.assert_allclose(
+        inverted_volume.astype(float), 65535 - normal_volume.astype(float), atol=1
     )
     with pytest.raises(ValueError, match="UID mismatch"):
         decode_slice(dicom_bytes(1, 0), "9.9", "1.2.3", "1.2.3.1")

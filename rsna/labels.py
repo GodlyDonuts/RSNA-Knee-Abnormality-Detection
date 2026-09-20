@@ -9,7 +9,22 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from rsna.schema import STATES, TARGETS
+from rsna.schema import CACHE_VERSION, STATES, TARGETS
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def source_reports_fingerprint(reports: dict[str, str]) -> str:
+    """Bind blinded report input without inspecting or including official targets."""
+    records = [{"study_uid": uid, "report": reports[uid]} for uid in sorted(reports)]
+    data = json.dumps(records, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
 def report_group(report: str) -> str:
@@ -18,18 +33,40 @@ def report_group(report: str) -> str:
 
 
 def read_reviews(folder: Path, reports: dict[str, str], suffix: str) -> pd.DataFrame:
+    if not reports or any(
+        not isinstance(uid, str)
+        or not uid.strip()
+        or not isinstance(report, str)
+        or not report.strip()
+        for uid, report in reports.items()
+    ):
+        raise ValueError("Source reports require nonempty string study IDs and reports")
     records = []
     seen: set[str] = set()
     for file in sorted(folder.glob(f"*{suffix}.jsonl")):
         for line in file.read_text().splitlines():
             row = json.loads(line)
+            if not isinstance(row, dict) or set(row) != {
+                "study_uid",
+                "states",
+                "evidence",
+                "notes",
+            }:
+                raise ValueError(f"Invalid annotation fields: {file.name}")
             uid = row["study_uid"]
-            if uid in seen or uid not in reports:
+            if not isinstance(uid, str) or uid in seen or uid not in reports:
                 raise ValueError(f"Duplicate/unknown study: {uid}")
             seen.add(uid)
             states, evidence = row["states"], row["evidence"]
-            if len(states) != len(TARGETS) or len(evidence) != len(TARGETS):
+            if (
+                not isinstance(states, list)
+                or not isinstance(evidence, list)
+                or len(states) != len(TARGETS)
+                or len(evidence) != len(TARGETS)
+            ):
                 raise ValueError(f"Wrong target count: {uid}")
+            if not isinstance(row["notes"], str):
+                raise ValueError(f"Invalid annotation notes: {uid}")
             for state, quote in zip(states, evidence):
                 if state not in STATES or not isinstance(quote, str):
                     raise ValueError(f"Invalid annotation: {uid}")
@@ -48,17 +85,149 @@ def read_reviews(folder: Path, reports: dict[str, str], suffix: str) -> pd.DataF
     return pd.DataFrame(records).sort_values("study_uid").reset_index(drop=True)
 
 
+def validate_review_provenance(
+    provenance_path: Path,
+    reports: dict[str, str],
+    drafts: pd.DataFrame,
+    reviews: pd.DataFrame,
+    drafts_folder: Path,
+    reviews_folder: Path,
+    rubric_path: Path,
+) -> dict:
+    """Require two source-bound, separately identified passes for every fixed batch."""
+    provenance = json.loads(provenance_path.read_text())
+    expected_uids = sorted(reports)
+    expected_batches = {
+        f"batch-{start // 50:03d}": expected_uids[start : start + 50]
+        for start in range(0, len(expected_uids), 50)
+    }
+    if not isinstance(provenance, dict) or set(provenance) != set(expected_batches):
+        raise ValueError("Review provenance must cover exactly the source batches")
+    rubric_hash = file_sha256(rubric_path)
+    source_hash = source_reports_fingerprint(reports)
+    for batch, uids in expected_batches.items():
+        phases = provenance[batch]
+        if not isinstance(phases, dict) or set(phases) != {"draft", "reviewed"}:
+            raise ValueError(f"Both independently identified review stages are required: {batch}")
+        for phase, frame, folder in (
+            ("draft", drafts, drafts_folder),
+            ("reviewed", reviews, reviews_folder),
+        ):
+            metadata = phases[phase]
+            filename = f"{batch}-{phase}.jsonl"
+            path = folder / filename
+            if set(frame.loc[frame.artifact.eq(filename), "study_uid"]) != set(uids):
+                raise ValueError(f"Review batch membership differs from source: {filename}")
+            if not isinstance(metadata, dict) or any(
+                not isinstance(metadata.get(field), str) or not metadata[field].strip()
+                for field in ("agent_id", "session_id", "workflow_run_id", "notes")
+            ):
+                raise ValueError(f"Missing review identity/completion provenance: {filename}")
+            if metadata.get("n_studies") != len(uids) or isinstance(metadata["n_studies"], bool):
+                raise ValueError(f"Review provenance count mismatch: {filename}")
+            if metadata.get("sha256") != file_sha256(path):
+                raise ValueError(f"Review artifact checksum mismatch: {filename}")
+            if metadata.get("rubric_sha256") != rubric_hash:
+                raise ValueError(f"Review rubric is unbound or mismatched: {filename}")
+            if metadata.get("source_reports_sha256") != source_hash:
+                raise ValueError(f"Review source reports are unbound or mismatched: {filename}")
+        if phases["reviewed"].get("parent_artifact_sha256") != phases["draft"]["sha256"]:
+            raise ValueError(f"Reviewed artifact is not bound to its exact draft: {batch}")
+        if any(
+            phases["draft"][field] == phases["reviewed"][field]
+            for field in ("agent_id", "session_id")
+        ):
+            raise ValueError(f"Reviewer must have a separate agent and session identity: {batch}")
+    return {
+        "rubric_sha256": rubric_hash,
+        "source_reports_sha256": source_hash,
+        "review_provenance_sha256": file_sha256(provenance_path),
+        "independent_review_batches": len(expected_batches),
+    }
+
+
+def validate_dicom_audit(
+    audit_path: Path, inventory: pd.DataFrame, train_uids: set[str], source_revision: str
+) -> list[tuple[str, str]]:
+    from rsna.audit import inventory_fingerprint
+
+    audit = json.loads(audit_path.read_text())
+    if audit.get("audit_schema_version") != 2 or audit.get("complete") is not True:
+        raise ValueError("A complete versioned DICOM audit is required for release")
+    if (
+        audit.get("cache_version") != CACHE_VERSION
+        or audit.get("source_revision") != source_revision
+    ):
+        raise ValueError("DICOM audit preprocessing/source revision mismatch")
+    if audit.get("inventory_fingerprint_sha256") != inventory_fingerprint(inventory):
+        raise ValueError("DICOM audit does not match the supplied source inventory")
+    expected_counts = {
+        "studies": inventory.study_uid.nunique(),
+        "series": len(inventory[["split", "study_uid", "series_uid"]].drop_duplicates()),
+        "decoded_slices": len(inventory),
+        "source_bytes": int(inventory.bytes.sum()),
+    }
+    if any(audit.get(key) != value for key, value in expected_counts.items()):
+        raise ValueError("DICOM audit coverage/counts differ from source inventory")
+    by_split = {
+        split: sorted(frame.study_uid.unique().tolist())
+        for split, frame in inventory.groupby("split")
+    }
+    if (
+        set(by_split) - {"train_series", "test_series"}
+        or set(by_split.get("train_series", [])) != train_uids
+    ):
+        raise ValueError("DICOM training study coverage differs from report metadata")
+    if set(by_split.get("train_series", [])) & set(by_split.get("test_series", [])):
+        raise ValueError("Source study identities overlap train and test")
+    if audit.get("study_uids_by_split") != by_split:
+        raise ValueError("DICOM audit study identities differ from inventory")
+    index_path = audit_path.parent / "series_cache_index.parquet"
+    if not index_path.is_file() or audit.get("series_cache_index_sha256") != file_sha256(
+        index_path
+    ):
+        raise ValueError("DICOM audit series index is missing or changed")
+    if audit.get("train_test_duplicate_pairs") != []:
+        raise ValueError("Train/test image duplicates require review before release")
+    pairs = audit.get("cross_study_pixel_duplicate_pairs")
+    if not isinstance(pairs, list):
+        raise ValueError("Missing DICOM duplicate assessment")
+    known_uids = set(inventory.study_uid)
+    training_pairs = []
+    for pair in pairs:
+        if (
+            not isinstance(pair, list)
+            or len(pair) != 2
+            or any(not isinstance(uid, str) or uid not in known_uids for uid in pair)
+            or pair[0] == pair[1]
+        ):
+            raise ValueError("Invalid DICOM duplicate pair")
+        left, right = pair
+        if (left in train_uids) != (right in train_uids):
+            raise ValueError("Train/test image duplicates require review before release")
+        if left in train_uids:
+            training_pairs.append((left, right))
+    return training_pairs
+
+
 def build_studies(
     train: pd.DataFrame,
     reviews: pd.DataFrame,
     duplicate_pairs: list[tuple[str, str]] | None = None,
 ) -> pd.DataFrame:
+    if train.empty or any(
+        not isinstance(uid, str) or not uid.strip() for uid in train.StudyInstanceUID
+    ):
+        raise ValueError("Study IDs must be nonempty strings")
     if train.StudyInstanceUID.duplicated().any() or reviews.study_uid.duplicated().any():
         raise ValueError("Study IDs must be unique")
     if set(train.StudyInstanceUID) != set(reviews.study_uid):
         raise ValueError("Review coverage does not match training metadata")
-    if train.Report.isna().any() or train.Report.str.strip().eq("").any():
+    if any(not isinstance(report, str) or not report.strip() for report in train.Report):
         raise ValueError("Missing report")
+    for target in TARGETS:
+        if not reviews[f"{target}__state"].isin(STATES).all():
+            raise ValueError(f"Invalid annotation state: {target}")
     train = train.rename(columns={"StudyInstanceUID": "study_uid"})
     studies = train.merge(reviews, on="study_uid", validate="one_to_one")
     gold = studies[list(TARGETS)].notna().all(axis=1)
@@ -103,10 +272,9 @@ def build_studies(
         studies.loc[~gold, target] = state[~gold].eq("positive").astype(float)
         studies.loc[gold, f"{target}__mask"] = 1.0
         studies.loc[gold, f"{target}__provenance"] = "official_gold"
-    if studies.groupby("report_group").split.nunique().max() > 1:
-        nonquarantine = studies[studies.split != "quarantine"]
-        if nonquarantine.groupby("report_group").split.nunique().max() > 1:
-            raise ValueError("Report duplicates cross active splits")
+    nonquarantine = studies[studies.split != "quarantine"]
+    if nonquarantine.groupby("leakage_group").split.nunique().max() > 1:
+        raise ValueError("Report/pixel duplicates cross active splits")
     return studies.sort_values("study_uid").reset_index(drop=True)
 
 
@@ -158,21 +326,42 @@ def main() -> None:
     parser.add_argument("--drafts", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--dicom-audit", type=Path, required=True)
+    parser.add_argument("--inventory", type=Path, required=True)
+    parser.add_argument("--source-revision", required=True)
+    parser.add_argument("--review-provenance", type=Path, required=True)
+    parser.add_argument("--rubric", type=Path, required=True)
     args = parser.parse_args()
     train = pd.read_csv(args.train)
+    if train.StudyInstanceUID.duplicated().any():
+        raise ValueError("Study IDs must be unique")
     reports = dict(zip(train.StudyInstanceUID, train.Report))
     reviews = read_reviews(args.reviews, reports, "-reviewed")
     drafts = read_reviews(args.drafts, reports, "-draft")
-    dicom_audit = json.loads(args.dicom_audit.read_text())
-    if dicom_audit["train_test_duplicate_pairs"]:
-        raise ValueError("Train/test image duplicates require review before release")
-    pairs = [tuple(pair) for pair in dicom_audit["cross_study_pixel_duplicate_pairs"]]
+    provenance = validate_review_provenance(
+        args.review_provenance,
+        reports,
+        drafts,
+        reviews,
+        args.drafts,
+        args.reviews,
+        args.rubric,
+    )
+    pairs = validate_dicom_audit(
+        args.dicom_audit, pd.read_parquet(args.inventory), set(reports), args.source_revision
+    )
     studies = build_studies(train, reviews, pairs)
     args.output.mkdir(parents=True, exist_ok=True)
     studies.to_parquet(args.output / "studies.parquet", index=False)
     reviews.to_parquet(args.output / "report_annotations.parquet", index=False)
     studies.drop(columns=["Report"]).to_csv(args.output / "study_labels.csv", index=False)
     report = audit_labels(studies, drafts)
+    report["release_inputs"] = {
+        **provenance,
+        "train_sha256": file_sha256(args.train),
+        "dicom_audit_sha256": file_sha256(args.dicom_audit),
+        "source_revision": args.source_revision,
+        "cache_version": CACHE_VERSION,
+    }
     (args.output / "label_audit.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
 

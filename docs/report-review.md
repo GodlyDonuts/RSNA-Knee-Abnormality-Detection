@@ -1,5 +1,14 @@
 # Report review
 
+The historical workflow below used an obsolete rubric that included trace effusion
+and did not enforce the competition's ligament severity thresholds. Preserve its
+outputs for provenance. Corrected competition supervision uses the frozen
+[`report_weak_v2.md`](../protocols/report_weak_v2.md) and new artifacts under
+`initiative/reviews-v2/`, never overwritten historical files. Both passes need
+distinct agent/session identities, artifact hashes, the frozen `rubric_sha256`, and
+`source_reports_sha256` from `rsna.labels.source_reports_fingerprint` over the full
+blinded source report dictionary. These are mandatory label-release checks.
+
 `workflows/report_review.py` is the executable workflow used for the replacement
 labels. Run it through Devin's `run_workflow`, not plain Python: `agent`, `log`, and
 `register_workflow` are injected by the workflow runtime.

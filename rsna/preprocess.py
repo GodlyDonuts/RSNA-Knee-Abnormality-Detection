@@ -73,26 +73,25 @@ class Source:
         if self.lfs_objects is None:
             return [self.read(path) for path in paths]
         objects = [self.lfs_objects[path] for path in paths]
-        response = HTTP.session.post(
-            f"https://huggingface.co/datasets/{self.repo_id}.git/info/lfs/objects/batch",
-            headers={
-                "Accept": "application/vnd.git-lfs+json",
-                "Content-Type": "application/vnd.git-lfs+json",
-                **self.hf_headers,
-            },
-            json={
-                "operation": "download",
-                "transfers": ["basic"],
-                "objects": [
-                    {"oid": o["sha256"], "size": o["bytes"]}
-                    for o in objects
-                    if o["storage"] == "lfs"
-                ],
-            },
-            timeout=120,
-        )
-        response.raise_for_status()
-        actions = {o["oid"]: o for o in response.json()["objects"]}
+        lfs_batch = [
+            {"oid": obj["sha256"], "size": obj["bytes"]}
+            for obj in objects
+            if obj["storage"] == "lfs"
+        ]
+        actions = {}
+        if lfs_batch:
+            response = HTTP.session.post(
+                f"https://huggingface.co/datasets/{self.repo_id}.git/info/lfs/objects/batch",
+                headers={
+                    "Accept": "application/vnd.git-lfs+json",
+                    "Content-Type": "application/vnd.git-lfs+json",
+                    **self.hf_headers,
+                },
+                json={"operation": "download", "transfers": ["basic"], "objects": lfs_batch},
+                timeout=120,
+            )
+            response.raise_for_status()
+            actions = {obj["oid"]: obj for obj in response.json()["objects"]}
 
         def download(item: tuple[str, dict]) -> bytes:
             path, obj = item
@@ -162,9 +161,23 @@ def cache_series(
     output: Path,
     side: int,
     source_revision: str,
+    min_free_gib: float = 3.0,
 ) -> dict:
+    if not np.isfinite(min_free_gib) or min_free_gib < 3:
+        raise ValueError("Disk reserve must be at least 3 GiB")
+    if not paths or len(set(paths)) != len(paths):
+        raise ValueError("A cache series requires nonempty unique source paths")
     first = Path(paths[0]).parts
+    if len(first) != 4 or first[0] not in {"train_series", "test_series"}:
+        raise ValueError("Invalid DICOM source path")
     split, study_uid, series_uid = first[:3]
+    if any(
+        Path(path).parts[:3] != first[:3]
+        or len(Path(path).parts) != 4
+        or Path(path).suffix != ".dcm"
+        for path in paths
+    ):
+        raise ValueError("Source paths do not identify a single DICOM series")
     folder = output / split / study_uid
     folder.mkdir(parents=True, exist_ok=True)
     destination = folder / f"{series_uid}.npz"
@@ -179,16 +192,25 @@ def cache_series(
             and meta["side"] == side
             and meta["path_fingerprint"] == fingerprint
             and meta["source_revision"] == source_revision
+            and (meta["split"], meta["study_uid"], meta["series_uid"])
+            == (split, study_uid, series_uid)
+            and meta["n_slices"] == len(paths)
+            and set(meta["sop_uids"]) == {Path(path).stem for path in paths}
+            and meta["cache_bytes"] == destination.stat().st_size
             and hashlib.sha256(destination.read_bytes()).hexdigest() == meta["cache_sha256"]
         ):
             return meta
         raise ValueError(f"Stale/corrupted cache: {destination}; use a fresh output directory")
-    if shutil.disk_usage(output).free < 3 * 1024**3:
-        raise OSError("Less than 3 GiB free: pause rather than filling the disk")
+    if shutil.disk_usage(output).free < min_free_gib * 1024**3:
+        raise OSError(f"Less than {min_free_gib:g} GiB free: pause rather than filling the disk")
+    source_data = source.read_series(paths)
+    if len(source_data) != len(paths):
+        raise ValueError("Downloaded series has incomplete source coverage")
     slices = [
         decode_slice(data, study_uid, series_uid, Path(path).stem)
-        for path, data in zip(paths, source.read_series(paths))
+        for path, data in zip(paths, source_data)
     ]
+    del source_data
     volume, info = make_volume(slices, side)
     temporary = destination.with_suffix(".partial")
     with temporary.open("wb") as handle:
@@ -226,7 +248,14 @@ def main() -> None:
     parser.add_argument("--study-csv", type=Path)
     parser.add_argument("--source", choices=["kaggle", "hf"], default="hf")
     parser.add_argument("--series-workers", type=int, default=4)
+    parser.add_argument("--min-free-gib", type=float, default=3.0)
     args = parser.parse_args()
+    if args.series_workers < 1:
+        raise ValueError("--series-workers must be positive")
+    if args.limit_series is not None and args.limit_series < 1:
+        raise ValueError("--limit-series must be positive")
+    if not np.isfinite(args.min_free_gib) or args.min_free_gib < 3:
+        raise ValueError("--min-free-gib must be at least 3")
     torch.set_num_threads(2)
     manifest = pd.read_parquet(args.manifest)
     if args.study_csv:
@@ -257,6 +286,7 @@ def main() -> None:
                 args.output,
                 args.side,
                 args.source_revision,
+                args.min_free_gib,
             )
             if len(pending) < args.series_workers * 2 and index < len(groups) - 1:
                 continue

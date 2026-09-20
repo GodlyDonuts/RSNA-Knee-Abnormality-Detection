@@ -1,0 +1,50 @@
+{
+  "assessed_at_utc": "2026-09-20T22:45:24.400553+00:00",
+  "scope": "Assistant visual comparison of six mid-series source/cache slice pairs; three anatomical planes; not full volumes or diagnostic image labels",
+  "pairs_reviewed": 6,
+  "source_sizes": [
+    [
+      560,
+      560
+    ],
+    [
+      640,
+      640
+    ],
+    [
+      576,
+      576
+    ],
+    [
+      560,
+      560
+    ],
+    [
+      512,
+      512
+    ],
+    [
+      640,
+      640
+    ]
+  ],
+  "observations": [
+    "Visible anatomy and gross orientation preserved in each examined source/cache pair",
+    "No blank image, gross crop or contrast inversion observed in these six examples",
+    "Downsampling to256 visibly softens fine structure; native source remains authoritative for image review and future higher-resolution training",
+    "Peripheral slice quality, complete volume continuity and subtle pathology not established by these mid-slice examples"
+  ],
+  "label_changes_from_images": 0,
+  "contact_sheet": "source-vs-cache-contact-sheet.png",
+  "continuity_review": {
+    "series": 6,
+    "cached_slices_visually_sampled": 48,
+    "observations": [
+      "Coarse anterior/posterior or medial/lateral anatomy progression is plausible in the six sampled series; no obvious shuffled-plane jump is visible across sampled positions",
+      "The first peripheral axial slice of the second series is very dark; subsequent slices contain useful anatomy. Low-contrast peripheral slices are retained, not automatically discarded as missing/corrupt",
+      "No gross blank-image or encoding artifacts observed in the other sampled tiles"
+    ],
+    "limitations": "Eight evenly spaced slices per series do not verify every adjacent slice or establish diagnostic labels",
+    "contact_sheet": "slice-continuity-contact-sheet.png"
+  }
+}

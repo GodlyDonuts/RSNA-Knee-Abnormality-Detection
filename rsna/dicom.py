@@ -22,6 +22,17 @@ class Slice:
     instance: int
     sha256: str
     transfer_syntax: str
+    photometric: str = "MONOCHROME2"
+    pixel_sha256: str = ""
+    constant_pixels: bool = False
+
+
+def pixel_fingerprint(pixels: npt.NDArray) -> str:
+    """Hash decoded numeric samples and shape, independently of DICOM encoding."""
+    digest = hashlib.sha256()
+    digest.update(np.asarray(pixels.shape, dtype="<i8").tobytes())
+    digest.update(np.asarray(pixels, dtype="<f8").tobytes(order="C"))
+    return digest.hexdigest()
 
 
 def decode_slice(data: bytes, study_uid: str, series_uid: str, sop_uid: str) -> Slice:
@@ -29,7 +40,8 @@ def decode_slice(data: bytes, study_uid: str, series_uid: str, sop_uid: str) -> 
     actual = (str(ds.StudyInstanceUID), str(ds.SeriesInstanceUID), str(ds.SOPInstanceUID))
     if actual != (study_uid, series_uid, sop_uid):
         raise ValueError(f"DICOM UID mismatch: expected {(study_uid, series_uid, sop_uid)}")
-    pixels = ds.pixel_array.astype(np.float32)
+    raw_pixels = ds.pixel_array
+    pixels = raw_pixels.astype(np.float32)
     if pixels.ndim != 2 or pixels.size == 0:
         raise ValueError("Only single-frame grayscale slices are supported")
     photo = str(ds.get("PhotometricInterpretation", ""))
@@ -37,9 +49,9 @@ def decode_slice(data: bytes, study_uid: str, series_uid: str, sop_uid: str) -> 
         raise ValueError(f"Unsupported photometric interpretation: {photo}")
     slope = float(ds.get("RescaleSlope", 1))
     intercept = float(ds.get("RescaleIntercept", 0))
+    if not np.isfinite([slope, intercept]).all() or slope == 0:
+        raise ValueError("Invalid DICOM rescale parameters")
     pixels = pixels * slope + intercept
-    if photo == "MONOCHROME1":
-        pixels = pixels.max() + pixels.min() - pixels
     if not np.isfinite(pixels).all():
         raise ValueError("Non-finite pixel values")
     return Slice(
@@ -51,6 +63,9 @@ def decode_slice(data: bytes, study_uid: str, series_uid: str, sop_uid: str) -> 
         instance=int(ds.get("InstanceNumber", 0)),
         sha256=hashlib.sha256(data).hexdigest(),
         transfer_syntax=str(ds.file_meta.TransferSyntaxUID),
+        photometric=photo,
+        pixel_sha256=pixel_fingerprint(raw_pixels),
+        constant_pixels=bool(np.ptp(raw_pixels) == 0),
     )
 
 
@@ -59,6 +74,19 @@ def order_slices(slices: list[Slice]) -> tuple[list[Slice], str, list[str]]:
         raise ValueError("Empty series")
     if any(not np.isfinite(s.position + s.orientation + s.spacing).all() for s in slices):
         raise ValueError("Non-finite DICOM geometry")
+    for item in slices:
+        if len(item.position) not in (0, 3) or len(item.orientation) not in (0, 6):
+            raise ValueError("Malformed DICOM position/orientation")
+        if len(item.spacing) not in (0, 2) or any(x <= 0 for x in item.spacing):
+            raise ValueError("Invalid DICOM pixel spacing")
+        if item.orientation:
+            row, column = np.asarray(item.orientation).reshape(2, 3)
+            if not (
+                np.isclose(np.linalg.norm(row), 1, atol=1e-3, rtol=0)
+                and np.isclose(np.linalg.norm(column), 1, atol=1e-3, rtol=0)
+                and np.isclose(np.dot(row, column), 0, atol=1e-3, rtol=0)
+            ):
+                raise ValueError("Invalid image orientation vectors")
     warnings = []
     reference = slices[0]
     geometric = len(reference.orientation) == 6 and all(
@@ -93,14 +121,22 @@ def make_volume(slices: list[Slice], side: int) -> tuple[npt.NDArray[np.uint16],
     shapes = {s.pixels.shape for s in ordered}
     if len(shapes) != 1:
         raise ValueError("Mixed pixel matrix dimensions within series")
+    if len({s.photometric for s in ordered}) != 1:
+        raise ValueError("Mixed photometric interpretation within series")
     volume = np.stack([s.pixels for s in ordered])
     low, high = float(volume.min()), float(volume.max())
     if high <= low:
         raise ValueError("Constant-intensity series")
     normalized = (volume - low) / (high - low)
+    # Display inversion must use the same intensity range for every slice.
+    if ordered[0].photometric == "MONOCHROME1":
+        normalized = 1 - normalized
     height, width = volume.shape[1:]
     spacing = ordered[0].spacing
-    if any(s.spacing != spacing for s in ordered):
+    if any(
+        len(s.spacing) != len(spacing) or not np.allclose(s.spacing, spacing, rtol=1e-5, atol=1e-6)
+        for s in ordered
+    ):
         raise ValueError("Mixed pixel spacing within series")
     if len(spacing) == 2 and all(x > 0 for x in spacing):
         physical_height, physical_width = height * spacing[0], width * spacing[1]
@@ -132,7 +168,13 @@ def make_volume(slices: list[Slice], side: int) -> tuple[npt.NDArray[np.uint16],
         "positions": [list(s.position) for s in ordered],
         "orientation": list(ordered[0].orientation),
         "slice_sha256": [s.sha256 for s in ordered],
-        "pixel_sha256": [hashlib.sha256(s.pixels.tobytes()).hexdigest() for s in ordered],
+        "pixel_sha256": [s.pixel_sha256 or pixel_fingerprint(s.pixels) for s in ordered],
+        "pixel_hash_definition": "shape_i64le_and_decoded_samples_f64le_before_rescale",
+        "pixel_nonconstant": [
+            not s.constant_pixels if s.pixel_sha256 else bool(np.ptp(s.pixels) != 0)
+            for s in ordered
+        ],
+        "photometric_interpretation": ordered[0].photometric,
         "transfer_syntaxes": sorted({s.transfer_syntax for s in ordered}),
         "constant_slices": sum(float(s.pixels.max()) == float(s.pixels.min()) for s in ordered),
     }

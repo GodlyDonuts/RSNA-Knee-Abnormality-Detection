@@ -3,6 +3,8 @@
 Reproducible report annotation, DICOM auditing, study-level training, and offline
 Kaggle inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
+**Current corrective run: [Codex continuation](docs/codex-continuation.md).**
+
 **Start with [the initiative archive](initiative/README.md) and
 [the continuation guide](docs/continuation.md).** GitHub contains source reports,
 metadata, blinded batch inputs, actual agent annotations/reviews, provenance,
@@ -29,6 +31,14 @@ Earlier `rsna_pseudo_labels*`, `rsna_custom_labels*`, `rsna_manual_labels*`, and
 image-row metadata exports are historical experimental artifacts, not the corrected
 release. Their calibration also used the 58 gold studies. These legacy results
 must not be presented as independent evaluation of those studies.
+
+The original report rubric counted trace effusion and insufficiently graded
+ligament injuries as positive, which does not match the official severity thresholds.
+Those drafts remain historical evidence. Corrected annotation must use the frozen
+[`protocols/report_weak_v2.md`](protocols/report_weak_v2.md), with new outputs under
+`initiative/reviews-v2/` and separate provenance for both passes. The
+[verified competition contract](docs/competition-contract-20260920.md) records the
+official thresholds and the limitations of report-derived supervision.
 
 The replacement release requires every report to be read and independently
 reviewed, all DICOMs to pass the technical audit, and a real-data training/inference
@@ -142,6 +152,8 @@ falls back to unique InstanceNumber only when geometry is incomplete; warnings
 remain in metadata. Geometry is used for ordering, not full physical-space
 resampling or canonical anatomical reorientation.
 
+The current cache version is `series-u16-v3`. Older cache pairs require rebuilding;
+their prior validation cannot establish the current image-integrity checks.
 Each cache has an atomic `.npz`/`.json` pair with source revision, path fingerprint,
 transform version, content checksum, source slice hashes, and decoded pixel hashes.
 Reruns reuse verified pairs; incompatible or corrupt pairs are rejected. Move an
@@ -153,12 +165,20 @@ For the annotation stage, see [the review procedure](docs/report-review.md). Aft
 all batches and the DICOM audit complete:
 
 ```bash
-python -m rsna.labels --train data/train.csv \
-  --reviews data/reviews --drafts data/drafts \
+python -m rsna.labels --train initiative/source/train.csv \
+  --reviews initiative/reviews-v2/reviewed --drafts initiative/reviews-v2/drafts \
+  --review-provenance initiative/reviews-v2/provenance.json \
+  --rubric protocols/report_weak_v2.md \
+  --inventory initiative/source/inventory \
+  --source-revision 52f995f4568e36bfa5fbbaf69a89af41226b4f5d \
   --dicom-audit data/audit/dicom_audit.json --output data/release
 ```
 
-The command requires exact study coverage and verbatim evidence quotes and writes
+The command requires exact study coverage, verbatim evidence, distinct reader/reviewer
+identities, and provenance hashes binding both passes to the frozen rubric and exact
+blinded reports. It also checks the full image-audit inventory, revision, cache version,
+study identities, counts, and series-index checksum. A partial audit or copied draft
+cannot satisfy release gates. It writes
 `studies.parquet`, `study_labels.csv`, `report_annotations.parquet`, and
 `label_audit.json`. Keep the draft and reviewed JSONL files for provenance.
 
