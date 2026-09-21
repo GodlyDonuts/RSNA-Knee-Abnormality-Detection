@@ -1,0 +1,54 @@
+{
+  "stage": "local_preparation_checkpoint_validation",
+  "checked_at_utc": "2026-09-21T12:01:41.858419+00:00",
+  "reviewed_batches": 76,
+  "reviewed_reports": 3757,
+  "target_decisions": 45084,
+  "tests_passed": 246,
+  "checks": [
+    {
+      "command": [
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.061,
+      "output": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.016,
+      "output": "35 files already formatted\n"
+    },
+    {
+      "command": [
+        "mypy",
+        "rsna"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.17,
+      "output": "Success: no issues found in 19 source files\n"
+    },
+    {
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 11.102,
+      "output": "........................................................................ [ 29%]\n........................................................................ [ 58%]\n........................................................................ [ 87%]\n..............................                                           [100%]\n246 passed in 9.79s\n/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/pytest_asyncio/plugin.py:247: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+    }
+  ],
+  "validator_sha256": "b060bf7c5a5d4d4b9f8b7f0414b57bc8a9a14e4d58fc8da7fb650125ca51ce2b",
+  "scope": "Required local code checks and exact source-bound preread validation. Archive refresh/verification and exact-commit remote CI follow separately. Does not certify training readiness.",
+  "training_ready": false
+}

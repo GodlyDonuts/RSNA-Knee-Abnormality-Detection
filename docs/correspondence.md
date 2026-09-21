@@ -35,6 +35,8 @@ exclusion or named-side correction.
 
 The independently reviewed 052:01/17 bilateral report aggregates require withholding report supervision because their image-to-report-block correspondence remains unresolved. Their 245 source memberships, 12 complete cache volumes and 36 sampled views are preserved in `initiative/audits/correspondence-052001-017-cache-v1/`; adding their final registry policies remains pending.
 
+The newly preserved001:39/007:16 bilateral source/cache investigations and062:21 dual Greek report investigation likewise require withholding supervision while report-block correspondence remains unresolved. Their final registry policies are pending; the four enforced whole-study exclusions above are still the complete current policy set. See `technical-tier4-bilateral-001007-cache-v1/` and `correspondence-055058060062063-v1/`. Other cases in the latter audit retain individual adjudication needs, including explicit performed-side clarification at063:35; no blanket exclusion was inferred from the group.
+
 These controls do not certify completion of report review, semantic QA or the
 remaining technical correspondence queue. Final manifests and actual final-data
 training, resume and inference validation remain release requirements.

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "stage": "existing_endpoint_cache_geometry_comparison",
+  "agent_id": "/root/image_pipeline_audit",
+  "script": {
+    "path": "annotation-staging/technical-tier4-bilateral-001007-cache-v1/compare_geometry.py",
+    "sha256": "ece2d546eba6b6aea307d0a61eaf6acaddd0b2931dc2c42372a58dcfdd066a9d",
+    "bytes": 4950
+  },
+  "summary": {
+    "path": "annotation-staging/technical-tier4-bilateral-001007-cache-v1/technical-evidence/summary.json",
+    "sha256": "199c3ab8bb2a862990abd9143dead78bf5efa0e4ce75e8aac9b8353a32ee4346",
+    "bytes": 8995
+  },
+  "endpoint_geometry_shape_checks_passed": 18,
+  "cases": [
+    {
+      "case": "001:39",
+      "study_uid": "1.2.826.0.1.3680043.8.498.10252121617380434672930525780360219531",
+      "repeated_description_pairs": []
+    },
+    {
+      "case": "007:16",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11057883757434391643878168168845592475",
+      "repeated_description_pairs": []
+    }
+  ],
+  "scope": "All 18 selected endpoint positions matched their own source SOP's full-cache position exactly; orientation, spacing and native dimensions also exactly matched. Pair displacements compare recorded image origins, not aligned anatomical centers. Different anonymized FrameOfReferenceUIDs prevent asserting one shared patient coordinate frame. No image anatomy, side or target labels inferred."
+}

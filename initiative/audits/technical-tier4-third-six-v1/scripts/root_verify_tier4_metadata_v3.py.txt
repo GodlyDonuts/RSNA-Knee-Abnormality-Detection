@@ -1,0 +1,65 @@
+"""Independent metadata-only replay of six source-first technical triage cases."""
+import datetime,hashlib,json
+from pathlib import Path
+import numpy as np
+import pandas as pd
+P=Path(__file__).resolve().parent;W=P.parent;R=W/'recovered';G=P/'technical-tier4-third-six-v1';OUT=G/'root-source-header-replay.json';assert not OUT.exists()
+def read(p):return json.loads(p.read_text())
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1048576),b''):h.update(b)
+ return h.hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+checked={}
+def refs(v):
+ if isinstance(v,dict):
+  if {'path','sha256','bytes'}<=v.keys() and 'sop_uid' not in v and 'storage' not in v:
+   p=W/v['path'];assert p.resolve().is_relative_to(W.resolve());assert p.stat().st_size==v['bytes']
+   if str(p) not in checked:checked[str(p)]=sha(p)
+   assert checked[str(p)]==v['sha256']
+  for x in v.values():refs(x)
+ elif isinstance(v,list):
+  for x in v:refs(x)
+summary=read(G/'technical-evidence/summary.json');triage=read(G/'source-header-triage.json');pre=read(G/'source-only-preread.json');independent=P/'technical-tier4-third-six-independent-reader-v1/independent-source-structure-assessment.json';assert sha(independent)=='2e1a6f78f2ed5e16009e4b723276b0d594c685d2c107baffea766e7a59e00516';root=read(independent)
+for o in [summary,triage,pre,root,read(G/'geometry-comparison.json'),read(G/'candidate-trigger-bindings.json'),read(G/'validation.json'),read(G/'joint-source-comparison.json'),read(G/'root-exposure-disclosure-record.json')]:refs(o)
+originals={o['study_uid']:o for o in pre['records']};root_by_uid={o['study_uid']:o for o in root['records']};assert len(originals)==len(root_by_uid)==6 and originals.keys()==root_by_uid.keys();studies=set(originals)
+for uid,o in originals.items():
+ p=W/o['input_batch']['path'];batch=read(p);assert batch[o['source_batch_index_zero_based']]['study_uid']==uid;report=batch[o['source_batch_index_zero_based']]['report'];assert report==o['report'];other=root_by_uid[uid];assert other['source_path']==str(p.relative_to(R)) and other['source_index']==o['source_batch_index_zero_based'];assert other['source_batch_sha256']==sha(p);assert hashlib.sha256(report.encode()).hexdigest()==o['source_report_sha256']==other['source_sha256'];assert all(q in report for q in o['exact_structure_quotes']+[q for x in other['observations'] for q in x['source_evidence']])
+for p in [R/'initiative/source/train.csv',W/'kaggle_current/train.csv']:
+ assert sha(p)=='8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33';csv=pd.read_csv(p,usecols=['StudyInstanceUID','Report'],keep_default_na=False).set_index('StudyInstanceUID');assert csv.index.is_unique
+ for uid,o in originals.items():assert csv.loc[uid,'Report']==o['report']
+ip=W/'cache256-v3-official-recovery-v1/inventory_effective.parquet';assert sha(ip)=='68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537';inv=pd.read_parquet(ip,filters=[('study_uid','in',sorted(studies))]);assert len(inv)==inv.sop_uid.nunique()==1441 and inv.series_uid.nunique()==42
+assert read(G/'technical-evidence/inventory-six-cases.json')==inv.to_dict('records');by_path=inv.set_index('path').to_dict('index')
+epfile=W/'header-endpoint-full-v1/endpoint-headers.jsonl';assert sha(epfile)=='d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3';endpoints=[]
+with epfile.open() as f:
+ for l in f:
+  e=json.loads(l)
+  if e['study_uid'] in studies:endpoints.append(e)
+assert endpoints==[json.loads(l) for l in (G/'technical-evidence/endpoints.jsonl').read_text().splitlines()];assert len(endpoints)==len({e['sop_uid'] for e in endpoints})==84
+expected_ep=set()
+for _,frame in inv.groupby('series_uid'):expected_ep.update(frame.sort_values('sop_uid').iloc[[0,-1]].path)
+assert {e['source_path'] for e in endpoints}==expected_ep
+for e in endpoints:
+ row=by_path[e['source_path']];assert all(e[k]==row[k] for k in ['study_uid','series_uid','sop_uid','storage']);assert e['source_sha256']==row['sha256'] and e['source_bytes']==row['bytes'] and e['reached_pixel_data_header'] is True
+lp=W/'cache256-v3-official-recovery-v1/cache_recovery_lineage.jsonl';assert sha(lp)=='506ca8e3aa8f10a36fbdc96bc853b1a4dfcbec8f55949aac3bf26701c5642934';lineage={}
+with lp.open() as f:
+ for l in f:
+  o=json.loads(l)
+  if o['study_uid'] in studies:assert o['series_uid'] not in lineage;lineage[o['series_uid']]=o
+ap=W/'dicom-audit-v3-official-recovery-v1/series_cache_index.parquet';assert sha(ap)=='0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81';audit=pd.read_parquet(ap).set_index('series_uid')
+centers_expected={x['case']:x for x in read(G/'derived-series-image-centers.json')['cases']};cases=[];seen=set()
+for t in triage['records']:
+ case=read(W/t['case_metadata']['path']);uid=case['study_uid'];assert uid==t['study_uid'] and originals[uid]['case']==t['case'];ordered=sorted(case['series'],key=lambda s:int(s['header_endpoint_values']['SeriesNumber'][0]));centers=[];details=[]
+ for s in ordered:
+  suid=s['series_uid'];assert suid not in seen;seen.add(suid);mp=W/s['cache_metadata']['path'];m=read(mp);bound=lineage[suid]['new_metadata'];assert sha(mp)==bound['sha256'] and mp.stat().st_size==bound['bytes'];assert m['study_uid']==uid and m['series_uid']==suid and m['source_revision']=='0b5e410288232f570c69ba4f44723356e6ae6ab7' and m['cache_version']=='series-u16-v3'
+  frame=inv[inv.series_uid==suid];assert len(frame)==m['n_slices']==audit.loc[suid,'n_slices'];assert len(set(m['sop_uids']))==m['n_slices'];assert dict(zip(m['sop_uids'],m['slice_sha256']))==dict(zip(frame.sop_uid,frame.sha256));assert m['path_fingerprint']==hashlib.sha256('\n'.join(sorted(frame.path)).encode()).hexdigest();assert m['cache_sha256']==audit.loc[suid,'cache_sha256'] and m['cache_bytes']==audit.loc[suid,'cache_bytes']
+  for key,mkey in [('cache_positions','positions'),('cache_orientation','orientation'),('cache_original_shape','original_shape'),('cache_pixel_spacing','pixel_spacing')]:assert s[key]==m[mkey]
+  eps=[e for e in endpoints if e['series_uid']==suid];assert len(eps)==2;fields={k:sorted({e['header_fields'].get(k,'') for e in eps}) for k in eps[0]['header_fields']};assert fields==s['header_endpoint_values']
+  for e in eps:
+   f=e['header_fields'];i=m['sop_uids'].index(e['sop_uid']);assert json.loads(f['ImagePositionPatient'])==m['positions'][i] and json.loads(f['ImageOrientationPatient'])==m['orientation'] and json.loads(f['PixelSpacing'])==m['pixel_spacing'] and [int(f['Rows']),int(f['Columns'])]==m['original_shape'][1:]
+  iop=np.array(m['orientation']);spacing=m['pixel_spacing'];shape=m['original_shape'];center=np.mean(m['positions'],0)+iop[:3]*(shape[2]-1)/2*spacing[1]+iop[3:]*(shape[1]-1)/2*spacing[0];plane=['Sagittal','Coronal','Axial'][int(np.argmax(np.abs(np.cross(iop[:3],iop[3:]))))];assert plane==s['iop_dominant_axis_plane_technical_only'];centers.append({'series_uid':suid,'series_number':fields['SeriesNumber'][0],'literal_laterality':fields['Laterality'][0],'plane':plane,'mean_slice_image_center_xyz_mm':center.tolist()});details.append({'series_number':fields['SeriesNumber'],'literal_laterality':fields['Laterality'],'description':fields['SeriesDescription'],'source_slices':m['n_slices'],'plane':plane})
+ assert centers==centers_expected[case['case']]['series'];cases.append({'case':t['case'],'study_uid':uid,'source_slices':case['slices'],'series':details,'next_action':t['pixels_needed']})
+assert len(seen)==42
+result={'stage':'independent_root_source_header_metadata_replay','agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified','cases':cases,'sources':1441,'series_metadata':42,'endpoint_geometries':84,'file_bindings_verified':len(checked),'bindings':[ref(Path(__file__)),ref(independent),ref(G/'joint-source-comparison.json'),ref(G/'root-exposure-disclosure-record.json'),ref(G/'source-only-preread.json'),ref(G/'source-header-triage.json')],'root_disposition':'Two independent full-source assessments by image_pipeline_audit and competition_contract agree; root previously saw the image agent source observations and makes no independent root-source claim. Exact exposure and independent replacement records are preserved.017:27 needs a targeted broad-field101/reference201 cached coverage check.021:44 needs all-nine-series bounded coverage review for its Right heading versus final both-knee wording. The other four have missing tags with no opposing filled-side set and require no immediate pixel escalation from those gaps alone. Preserve source wording, literal tags and nonstandard abbreviations. No automatic exclusion, named-side correction or clinical-target assignment; metadata compatibility does not prove clinical correspondence.','limits':['No cache arrays, native pixels or network opened in this replay.','No named side, anatomy, patient/site identity or clinical target inference.','Source-report supervision and final global QA remain separate gates.'],'training_ready':False}
+OUT.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'status':'verified','sources':1441,'series':42,'endpoints':84,'sha256':sha(OUT)}))

@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "stage": "explicit_parent_authorized_selected_series_plan",
+  "agent_id": "/root/image_pipeline_audit",
+  "cases": [
+    {
+      "case": "010:15",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11504079342934513987748646905909982588",
+      "whole_study_series": 4,
+      "whole_study_source_memberships": 143,
+      "selection": "all",
+      "selected_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.36303855961491708673005160427821546170",
+          "series_number": 4,
+          "slices": 33
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.70674724726413128502777455189020011759",
+          "series_number": 6,
+          "slices": 35
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.83661754057304113572066158751101730432",
+          "series_number": 5,
+          "slices": 35
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.90502033596554560541227317362264911254",
+          "series_number": 3,
+          "slices": 40
+        }
+      ]
+    },
+    {
+      "case": "012:20",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11799272823743145498601173910069737855",
+      "whole_study_series": 10,
+      "whole_study_source_memberships": 510,
+      "selection": "literal SeriesNumber in [101, 201]",
+      "selected_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.11605720713022045758347463845571203520",
+          "series_number": 201,
+          "slices": 40
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.58251476315631547552847138880737817644",
+          "series_number": 101,
+          "slices": 200
+        }
+      ]
+    },
+    {
+      "case": "012:25",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11812607848520072826145426247813670653",
+      "whole_study_series": 7,
+      "whole_study_source_memberships": 400,
+      "selection": "literal SeriesNumber in [101, 201]",
+      "selected_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.68745329426797900119745170516653245129",
+          "series_number": 201,
+          "slices": 44
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.85407847697620587030669139334864710338",
+          "series_number": 101,
+          "slices": 200
+        }
+      ]
+    },
+    {
+      "case": "015:30",
+      "study_uid": "1.2.826.0.1.3680043.8.498.12273356591019341319494035708698721367",
+      "whole_study_series": 5,
+      "whole_study_source_memberships": 327,
+      "selection": "literal SeriesNumber in [101, 201]",
+      "selected_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.11930387877137044779889933968468592879",
+          "series_number": 201,
+          "slices": 35
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.82244179458701501947613155384596080837",
+          "series_number": 101,
+          "slices": 200
+        }
+      ]
+    },
+    {
+      "case": "016:37",
+      "study_uid": "1.2.826.0.1.3680043.8.498.12408933790879905193765468926022393696",
+      "whole_study_series": 6,
+      "whole_study_source_memberships": 169,
+      "selection": "all",
+      "selected_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.11852485293457601081821731783158498131",
+          "series_number": 701,
+          "slices": 11
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.25943734652983877999713267376156006481",
+          "series_number": 501,
+          "slices": 32
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.26328441626088546126013552290976921102",
+          "series_number": 601,
+          "slices": 29
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.28819100881071765109474574119548166956",
+          "series_number": 201,
+          "slices": 33
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.43501173635498296671950614403286208443",
+          "series_number": 301,
+          "slices": 32
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.64599211287228407360040470705414652990",
+          "series_number": 401,
+          "slices": 32
+        }
+      ]
+    }
+  ],
+  "whole_study_metadata_series": 32,
+  "whole_study_source_memberships": 1549,
+  "selected_series": 16,
+  "selected_source_memberships": 1031,
+  "selected_samples": 48,
+  "reason": "Parent authorizes all series for 010:15 and 016:37, but only literal 101 and 201 for 012:20, 012:25 and 015:30. Preserve whole-study metadata, clearly limit pixel review to these selected series.",
+  "prior_technical_summary": {
+    "path": "annotation-staging/technical-tier4-second-six-v1/technical-evidence/summary.json",
+    "sha256": "e75789c225580db2e1737f7264c4a93dfa7c15bb361272870e2d5bb74fcf4843",
+    "bytes": 24757
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "stage": "preserved_root_caption_count_reconciliation",
+  "agent_id": "/root/image_pipeline_audit",
+  "case": "007:16",
+  "root_original": {
+    "path": "annotation-staging/technical-tier4-bilateral-001007-cache-v1/cache-panels/case-007-16/root-visual-freeze.json",
+    "sha256": "9c72a2ad630fe7dadc0181962f23beafc3d934ef1d3690d881be48b6b77b45f5",
+    "bytes": 3513
+  },
+  "manifest": {
+    "path": "annotation-staging/technical-tier4-bilateral-001007-cache-v1/cache-panels/case-007-16/panel-manifest.json",
+    "sha256": "afd608e1c29ac37be2098995ad23b64123501c65e8c479b84cce79e322d00b63",
+    "bytes": 35045
+  },
+  "facts": [
+    {
+      "series_number": "4",
+      "series_uid": "1.2.826.0.1.3680043.8.498.54153288740241648388569372794588164901",
+      "root_original_stated_count": 19,
+      "caption_zero_based_maximum_index": 19,
+      "correct_source_slice_count": 20,
+      "cache_metadata": {
+        "path": "cache256-v3-official-recovery-v1/cache/train_series/1.2.826.0.1.3680043.8.498.11057883757434391643878168168845592475/1.2.826.0.1.3680043.8.498.54153288740241648388569372794588164901.json",
+        "sha256": "997da4b856bb7cc4a8a495d5a888efc463d93d496d1cde7eec89a5a31527ae82",
+        "bytes": 6569
+      }
+    },
+    {
+      "series_number": "5",
+      "series_uid": "1.2.826.0.1.3680043.8.498.42336455299410288049765595714665192973",
+      "root_original_stated_count": 15,
+      "caption_zero_based_maximum_index": 15,
+      "correct_source_slice_count": 16,
+      "cache_metadata": {
+        "path": "cache256-v3-official-recovery-v1/cache/train_series/1.2.826.0.1.3680043.8.498.11057883757434391643878168168845592475/1.2.826.0.1.3680043.8.498.42336455299410288049765595714665192973.json",
+        "sha256": "73c4cb6e7f46b17fb285f63651e0b8b029c3a721fded8a8cd1ef42da8a585c9b",
+        "bytes": 5502
+      }
+    }
+  ],
+  "reason": "Caption index i/(n-1) denominator is the zero-based maximum, not the source slice count. Original root visual freeze and all source/cache bytes remain unchanged. This counting correction does not change shared visual conclusions.",
+  "original_modified": false
+}

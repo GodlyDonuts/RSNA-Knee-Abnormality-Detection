@@ -1,0 +1,186 @@
+"""Replay exact displayed matrices and full corrected-inventory membership."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from collect_technical import ROOT, WORK, ref, require, save, sha
+from PIL import Image
+
+
+def main() -> None:
+    output = ROOT / "cache-panels/display-source-integrity.json"
+    require(not output.exists(), "Verification output must be new")
+    index_path = ROOT / "cache-panels/index.json"
+    index = json.loads(index_path.read_text())
+    require(len(index["cases"]) == 5, "Exactly five panel manifests required")
+    inventory_path = (
+        WORK / "cache256-v3-official-recovery-v1/inventory_effective.parquet"
+    )
+    require(
+        sha(inventory_path)
+        == "68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537",
+        "Corrected inventory changed",
+    )
+    manifests = []
+    studies = []
+    for entry in index["cases"]:
+        path = WORK / entry["manifest"]["path"]
+        require(ref(path) == entry["manifest"], "Panel manifest changed")
+        manifest = json.loads(path.read_text())
+        manifests.append((path, manifest))
+        studies.append(manifest["study_uid"])
+    source = pd.read_parquet(inventory_path, filters=[("study_uid", "in", studies)])
+    require(
+        len(source) == 1549
+        and source.series_uid.nunique() == 32
+        and source.study_uid.nunique() == 5,
+        "Source scope changed",
+    )
+    plan_path = ROOT / "selection-plan.json"
+    require(sha(plan_path) == "fdc5cee39def713848363177a5c7ff328c52fdb6541d8f23fca53b9ed1242b4c", "Selection plan changed")
+    plan = json.loads(plan_path.read_text())
+    require(set(m["case"] for _, m in manifests) == set(r["case"] for r in plan["cases"]), "Case selection differs")
+    by_sop = source.set_index("sop_uid").to_dict("index")
+    checked_cache = {}
+    evidence = {}
+    counts = []
+    for path, manifest in manifests:
+        choice = next(r for r in plan["cases"] if r["case"] == manifest["case"])
+        selected_ids = {r["series_uid"] for r in choice["selected_series"]}
+        require(manifest["study_uid"] == choice["study_uid"], "Selected study differs")
+        require(manifest["selected_series_uids"] == sorted(selected_ids) and {r["series_uid"] for r in manifest["panels"]} == selected_ids, "Displayed selection differs")
+        require(manifest["whole_study_series_metadata_verified"] == choice["whole_study_series"] and manifest["whole_study_source_membership_verified_from_metadata"] == choice["whole_study_source_memberships"], "Whole-study counts differ")
+        require(manifest["series_sampled"] == len(selected_ids) and manifest["selected_source_membership_verified"] == sum(r["slices"] for r in choice["selected_series"]), "Selected coverage differs")
+        for selected in choice["selected_series"]:
+            pp = [r for r in manifest["panels"] if r["series_uid"] == selected["series_uid"]]
+            require(len(pp) == 3 and [r["ordered_index"] for r in pp] == [int((selected["slices"] - 1) * f) for f in [.25,.5,.75]], "Exact sampled indices differ")
+            require(all(r["series_number"] == selected["series_number"] for r in pp), "Series number differs")
+        for field in [
+            "script",
+            "selection_plan",
+            "source_metadata_collector",
+            "technical_summary",
+            "case_metadata",
+            "source_inventory_subset",
+        ]:
+            item = manifest[field]
+            require(ref(WORK / item["path"]) == item, "Source/render reference changed")
+            evidence[item["path"]] = item
+        images = []
+        for item in manifest["images"]:
+            image_path = WORK / item["path"]
+            require(ref(image_path) == item, "Display sheet changed")
+            with Image.open(image_path) as image:
+                require(image.mode == "L", "Display mode differs")
+                images.append(np.asarray(image).copy())
+            evidence[item["path"]] = item
+        for panel in manifest["panels"]:
+            metadata_path = WORK / panel["cache_metadata"]["path"]
+            cache_path = WORK / panel["cache"]["path"]
+            if str(cache_path) not in checked_cache:
+                require(
+                    ref(metadata_path) == panel["cache_metadata"], "Metadata changed"
+                )
+                require(ref(cache_path) == panel["cache"], "Cache bytes changed")
+                meta = json.loads(metadata_path.read_text())
+                require(
+                    meta["cache_sha256"] == panel["cache"]["sha256"],
+                    "Cache hash mismatch",
+                )
+                with np.load(cache_path, allow_pickle=False) as archive:
+                    volume = archive["volume"]
+                require(
+                    volume.dtype == np.uint16
+                    and volume.shape == (meta["n_slices"], 256, 256),
+                    "Volume shape or dtype changed",
+                )
+                rows = source.loc[source.series_uid == meta["series_uid"]]
+                require(
+                    len(rows) == meta["n_slices"]
+                    and rows.study_uid.unique().tolist() == [meta["study_uid"]]
+                    and dict(zip(meta["sop_uids"], meta["slice_sha256"], strict=True))
+                    == dict(zip(rows.sop_uid, rows.sha256, strict=True)),
+                    "Full source identity/hash membership changed",
+                )
+                checked_cache[str(cache_path)] = (meta, volume)
+                evidence[panel["cache"]["path"]] = panel["cache"]
+                evidence[panel["cache_metadata"]["path"]] = panel["cache_metadata"]
+            meta, volume = checked_cache[str(cache_path)]
+            i = panel["ordered_index"]
+            sop = meta["sop_uids"][i]
+            require(
+                panel["source"] == {"sop_uid": sop, **by_sop[sop]}, "Source row differs"
+            )
+            require(
+                panel["source_position"] == meta["positions"][i]
+                and panel["source_orientation"] == meta["orientation"]
+                and panel["source_pixel_spacing"] == meta["pixel_spacing"]
+                and panel["original_native_shape"] == meta["original_shape"][1:]
+                and panel["source_native_pixel_sha256_from_bound_metadata"]
+                == meta["pixel_sha256"][i],
+                "Panel geometry/native fingerprint differs",
+            )
+            require(
+                hashlib.sha256(volume[i].tobytes()).hexdigest()
+                == panel["cached_slice_bytes_sha256"],
+                "Cached sampled slice changed",
+            )
+            expected = np.rint(volume[i].astype(np.float64) * (255.0 / 65535.0)).astype(
+                np.uint8
+            )
+            x, y, width, height = panel["display_box_xywh"]
+            actual = images[panel["page"]][y : y + height, x : x + width]
+            require(np.array_equal(actual, expected), "Pasted display matrix differs")
+            require(
+                hashlib.sha256(actual.tobytes()).hexdigest()
+                == panel["display_pixel_bytes_sha256"],
+                "Display pixel hash differs",
+            )
+        counts.append(
+            {
+                "case": manifest["case"],
+                "study_uid": manifest["study_uid"],
+                "manifest": ref(path),
+                "full_cache_arrays": manifest["series_sampled"],
+                "source_membership": manifest["selected_source_membership_verified"],
+                "exact_displayed_matrices": len(manifest["panels"]),
+                "source_geometry_native_fingerprint_bindings": len(manifest["panels"]),
+            }
+        )
+    require(len(checked_cache) == 16 and sum(len(v[1]) for v in checked_cache.values()) == 1031, "Selected full-volume scope differs")
+    require(sum(r["exact_displayed_matrices"] for r in counts) == 48, "Selected display count differs")
+    save(
+        output,
+        {
+            "schema_version": 1,
+            "stage": "cache_panel_source_and_exact_display_integrity_replay",
+            "agent_id": "/root/image_pipeline_audit",
+            "script": ref(Path(__file__).resolve()),
+            "index": ref(index_path),
+            "corrected_inventory": ref(inventory_path),
+            "cases": counts,
+            "evidence_references_checked": list(evidence.values()),
+            "full_cache_arrays_verified": len(checked_cache),
+            "whole_study_inventory_rows_verified": len(source),
+            "whole_study_series_metadata_scope": 32,
+            "selected_source_inventory_rows_verified": 1031,
+            "unselected_series_arrays_opened": 0,
+            "selection_plan": ref(plan_path),
+            "exact_displayed_matrices_verified": sum(
+                r["exact_displayed_matrices"] for r in counts
+            ),
+            "status": "passed",
+            "new_native_decodes_or_network": 0,
+            "scope": "Exact selected cached matrices and displayed uint8 pixels, selected full NPZ bytes, all 1031 selected source memberships, all 1549 whole-study inventory memberships and preserved metadata geometry/native fingerprints. Only 16 of 32 whole-study series arrays read; 48 sparse samples displayed. This is not an independent full native source decode or a new clinical/image interpretation.",
+        },
+    )
+    print(json.dumps(ref(output)))
+
+
+if __name__ == "__main__":
+    main()

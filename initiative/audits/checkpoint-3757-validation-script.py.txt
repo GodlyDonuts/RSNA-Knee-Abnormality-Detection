@@ -1,0 +1,9 @@
+"""Run required local checkpoint checks and preserve their measured results."""
+import datetime,hashlib,json,subprocess,time
+from pathlib import Path
+W=Path(__file__).resolve().parent;R=W/'recovered';V=W.parent/'.venv/bin';results=[]
+for args in [[str(V/'ruff'),'check','.'],[str(V/'ruff'),'format','--check','.'],[str(V/'mypy'),'rsna'],[str(V/'python'),'-m','pytest','-q']]:
+ start=time.monotonic();r=subprocess.run(args,cwd=R,text=True,capture_output=True);results.append({'command':[Path(args[0]).name,*args[1:]],'exit_code':r.returncode,'elapsed_seconds':round(time.monotonic()-start,3),'output':r.stdout+r.stderr});print(args[1:],r.returncode,flush=True);assert r.returncode==0,r.stdout+r.stderr
+assert '246 passed' in results[-1]['output']
+pr=json.loads((R/'initiative/audits/independent-preread-validation-v2.json').read_text());assert pr['batches']==76 and pr['reports']==3757 and pr['targets']==45084
+out=R/'initiative/audits/checkpoint-3757-validation.json';assert not out.exists();out.write_text(json.dumps({'stage':'local_preparation_checkpoint_validation','checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'reviewed_batches':76,'reviewed_reports':3757,'target_decisions':45084,'tests_passed':246,'checks':results,'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'scope':'Required local code checks and exact source-bound preread validation. Archive refresh/verification and exact-commit remote CI follow separately. Does not certify training readiness.','training_ready':False},indent=2)+'\n');print('Local milestone checks passed',flush=True)

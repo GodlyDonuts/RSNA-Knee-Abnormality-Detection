@@ -1,0 +1,30 @@
+from pathlib import Path
+import json
+from datetime import datetime,timezone
+from collect_technical import ROOT,WORK,ref,sha,save,require
+P=ROOT;ap=P/'source-only-preread.json';bp=WORK/'annotation-staging/technical-tier4-third-six-independent-reader-v1/independent-source-structure-assessment.json'
+require(sha(ap)=='4c20be3e494d8b7a408213387b6fb25eb1071abdcddbec859e63d32deb7ae9c7','Agent freeze changed')
+require(sha(bp)=='2e1a6f78f2ed5e16009e4b723276b0d594c685d2c107baffea766e7a59e00516','Independent reader freeze changed')
+a=json.loads(ap.read_text());b=json.loads(bp.read_text());require(a['agent_id']!=b['agent_id'],'Distinct identities required')
+manual={
+'017:27':'Both identify one unsided report and conclusion, with old injury as a local qualifier rather than a prior-exam boundary. Literal AT FL versus ACL wording remains unexpanded and cannot establish intended anatomy or image correspondence.',
+'018:06':'Both identify one unsided compartment-organized report followed by a summary, without a separate contralateral or temporal block. Repeated findings do not establish duplicate report aggregation.',
+'019:01':'Both identify one compact unsided Spanish technique/results/impression report, with findings repeated in the impression. No temporal or second-report boundary is present; brevity alone does not establish truncation.',
+'020:27':'Both identify one unsided Bulgarian MRI findings/conclusion narrative. Medial anatomy does not name a second knee and no temporal comparison block is present.',
+'021:33':'Both identify one unsided Croatian narrative, with a focal equivocal post-fracture parenthesis rather than a distinct dated report. No bilateral or second-exam structure is established.',
+'021:44':'Both identify one Right-knee-headed report with a final both-knee sentence and no separate left report. Its unilateral/bilateral scope remains unresolved. Literal zero-valued tendon entries remain preserved without expansion or reconstruction.'}
+rows=[]
+for ar in a['records']:
+ br=next(x for x in b['records'] if x['study_uid']==ar['study_uid']);p=WORK/ar['input_batch']['path'];require(ref(p)==ar['input_batch'],'Batch changed');source=json.loads(p.read_text())[ar['source_batch_index_zero_based']]
+ require(source['study_uid']==ar['study_uid'] and source['report']==ar['report'],'Original changed')
+ require(br['source_sha256']==ar['source_report_sha256'] and br['source_batch_sha256']==ar['input_batch']['sha256'],'Source hashes differ')
+ require(int(br['source_batch'])==int(ar['case'].split(':')[0]) and br['source_index']==ar['source_batch_index_zero_based'],'Case index mismatch')
+ require(all(q in ar['report'] for q in ar['exact_structure_quotes']),'Agent quote differs')
+ for obs in br['observations']:require(all(q in ar['report'] for q in obs['source_evidence']),'Independent quote differs')
+ rows.append({'case':ar['case'],'study_uid':ar['study_uid'],'source_report_sha256':ar['source_report_sha256'],'source_batch':ar['input_batch'],'shared_source_structure':manual[ar['case']],'differences_or_limits':'No substantive structural disagreement. Each original retains its own wording, quote choices and prior-exposure disclosure. Source-only agreement does not establish acquisition anatomy, timing, named image side or clinical-label correctness.','prior_exposure_agent':ar['prior_exposure_disclosure'],'prior_exposure_independent_reader':br['prior_exposure']})
+require(len(rows)==6 and len({r['study_uid'] for r in rows})==6,'Case coverage mismatch')
+dp=P/'root-exposure-disclosure-record.json';require(not dp.exists(),'Exposure record exists')
+save(dp,{'schema_version':1,'stage':'reported_root_source_exposure_disclosure','recorded_by':'/root/image_pipeline_audit','reported_by':'/root','recorded_at_utc':datetime.now(timezone.utc).isoformat(),'source':'Parent collaboration message in this task, received before independent reader comparison. This is a contemporaneous relay record, not an independently timed application access log.','reported_event':'Root mistakenly opened the full third-six source-only-preread.json, including agent observations, while intending to read neutral originals. Root disclosed exposure before any independent root source freeze for this package.','consequence':'No independent blinded root-source claim is made. Root may corroborate with disclosed exposure. The separate independent comparison is between /root/image_pipeline_audit and /root/competition_contract, whose bound assessment reports no access to the technical package or other assessor observations.','exposed_artifact':ref(ap),'originals_modified':False})
+p=P/'joint-source-comparison.json';require(not p.exists(),'Joint exists')
+save(p,{'schema_version':1,'stage':'joint_independent_source_structure_comparison','agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'independent_assessors':[a['agent_id'],b['agent_id']],'source_assessments':[ref(ap),ref(bp)],'root_exposure_disclosure':ref(dp),'comparison_script':ref(Path(__file__).resolve()),'n_cases':6,'records':rows,'exact_source_identity_and_all_quotes_verified':True,'no_independent_root_source_claim':True,'scope':'Two independent current structural assessments of exact original sources, with prior personal source exposure disclosed. No technical metadata agreement is attributed to the source-only reader, and no new clinical-target reannotation or image review is performed.','originals_modified':False,'training_ready':False})
+print(json.dumps({'joint':ref(p),'exposure':ref(dp)},indent=2))

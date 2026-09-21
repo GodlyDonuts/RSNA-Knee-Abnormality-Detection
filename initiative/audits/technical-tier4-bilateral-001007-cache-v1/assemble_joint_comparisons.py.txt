@@ -1,0 +1,29 @@
+from pathlib import Path
+import json,hashlib
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[1]
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+def load(p):return json.loads(p.read_text())
+sp=P/'source-only-preread.json';ss=load(sp)
+for bind in ss['independent_source_freezes']:assert ref(W/bind['path'])==bind
+manual={
+'001:39':('5196d52a0069159f507adc9860422b1ac4b25fa80f93a3d454bcfa0dda0d88f1','Both observers found a coherent bounded main protocol: coronal 4001/7001 fibular anatomy toward viewer-left, compatible sagittal 5001/6001 despite 36/24 source counts, and compatible axial 3001 with insufficiently decisive independent fibular-side evidence. No opposing set is demonstrated.','No substantive difference. Both preserve sparse sampling, unmatched fractional slice positions and lack of named-side proof.','One integrated bilateral MRI narrative, with comparative right prominence and same-day ultrasound confirmation. A single sampled knee set does not establish image correspondence for this combined narrative.'),
+'007:16':('9c72a2ad630fe7dadc0181962f23beafc3d934ef1d3690d881be48b6b77b45f5','Both observers found compatible axial 3, coronal 4/5 with fibular-region anatomy toward viewer-left, and one coherent sagittal 8 row. The bounded images favor one main knee protocol without an opposing set demonstrated.','Root described coronal counts as 19 and 15; these are the zero-based maximum indices in the captions. Exact source/cache counts are 20 and 16, respectively, confirmed by bound metadata. The original root freeze remains unchanged and the count reconciliation is separate. Both observers agree nominal fractions are not equal anatomical positions. The agent also records darker/textured sagittal appearance without a defect or clinical-adequacy claim.','Two complete Greek reports explicitly name right then left with a bilateral delimiter. One sampled RIGHT-tagged protocol does not select one report block or establish correspondence for both.')}
+for case,(rh,shared,diff,structure) in manual.items():
+ C=P/'cache-panels'/('case-'+case.replace(':','-'));ap=C/'independent-cache-visual-assessment.json';vp=C/'root-visual-freeze.json';mp=C/'panel-manifest.json';a=load(ap);r=load(vp);m=load(mp)
+ assert ref(vp)['sha256']==rh and a['panel_manifest']==r['panel_manifest']==ref(mp) and a['images']==r['images']==m['images']
+ for x in m['images']:assert ref(W/x['path'])==x
+ s=next(z for z in ss['records'] if z['case']==case);rp=W/r['root_source_preread']['path'];assert ref(rp)==r['root_source_preread'];rr=next(z for z in load(rp)['records'] if z['case']==case)
+ assert s['report']==rr['report'] and s['source_report_sha256']==rr['source_report_sha256'] and s['study_uid']==rr['study_uid']==a['study_uid']==r['study_uid']==m['study_uid']
+ tp=P/f'technical-evidence/case-{case.replace(":","-")}.json';tech=load(tp)
+ for z in tech['series']:
+  h=z['header_endpoint_values'];assert r['literal_tags_read_from_panel_captions'][h['SeriesNumber'][0]]=='/'.join(h['Laterality'])
+ paths=[ap,vp,mp,sp,rp,P/'technical-evidence/summary.json',tp,P/'geometry-comparison.json',P/'cache-panels/display-source-integrity.json',P/'cache-panels/numeric-handoff.json',Path(__file__).resolve()]
+ if case=='007:16':
+  facts=[]
+  for number,incorrect,correct in [('4',19,20),('5',15,16)]:
+   z=next(z for z in tech['series'] if z['header_endpoint_values']['SeriesNumber']==[number]);bp=W/z['cache_metadata']['path'];meta=load(bp);assert ref(bp)==z['cache_metadata'] and meta['n_slices']==correct
+   facts.append({'series_number':number,'series_uid':z['series_uid'],'root_original_stated_count':incorrect,'caption_zero_based_maximum_index':correct-1,'correct_source_slice_count':correct,'cache_metadata':ref(bp)})
+  cp=C/'root-caption-count-reconciliation.json';assert not cp.exists();cp.write_text(json.dumps({'schema_version':1,'stage':'preserved_root_caption_count_reconciliation','agent_id':'/root/image_pipeline_audit','case':case,'root_original':ref(vp),'manifest':ref(mp),'facts':facts,'reason':'Caption index i/(n-1) denominator is the zero-based maximum, not the source slice count. Original root visual freeze and all source/cache bytes remain unchanged. This counting correction does not change shared visual conclusions.','original_modified':False},indent=2)+'\n');paths.append(cp)
+ o={'schema_version':1,'stage':'independent_visual_comparison_source_header_cache_handoff','agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'case':case,'study_uid':m['study_uid'],'source_report_sha256':s['source_report_sha256'],'bindings':[ref(p) for p in paths],'samples':len(m['panels']),'series':m['series_sampled'],'source_membership':m['all_source_membership_verified'],'shared_observations':shared,'preserved_observer_differences_and_limits':diff,'source_structure_agreement':structure,'technical_disposition':'Preserve original reports, annotations, side tags and complete caches. Record unresolved bilateral report-to-acquisition correspondence without automatic block selection, clinical target assignment or named-side correction.','verification':'Source records, both independent source/visual freezes, exact manifests/images and literal endpoint tags are bound. Agent source/cache/display checks passed; independent root numeric replay remains a separate artifact.','global_limits':['Only three existing normalized 256-pixel samples per series; no new native or all-slice anatomical reread.','No patient/site identity, named anatomical side, absence of upstream mirroring, exact series equivalence or clinical-label validity established.'],'originals_modified':False,'clinical_target_states_inferred':False,'training_ready':False}
+ dp=C/'joint-source-header-cache-handoff.json';assert not dp.exists();dp.write_text(json.dumps(o,indent=2)+'\n');print(json.dumps(ref(dp)))

@@ -1,0 +1,26 @@
+from pathlib import Path
+import hashlib,json,shutil
+from datetime import datetime,timezone
+W=Path(__file__).resolve().parent;P=W/'annotation-staging/technical-tier4-second-targeted-cache-v1';assert not P.exists();P.mkdir()
+S=W/'annotation-staging/technical-tier4-second-six-v1'
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+assert ref(S/'source-only-preread.json')['sha256']=='6198b9e7c6a1b37594cbabea03c163bd9b01024a97ea53cf95887ccd0a7ba9fb'
+assert ref(S/'root-source-preread.json')['sha256']=='1b136a02813b67d01d4fea113bfad858e06525af7e98b0aac025e32b437445f9'
+records=[r for r in json.loads((S/'source-only-preread.json').read_text())['records'] if r['case']!='015:32'];assert len(records)==5
+rs=json.loads((S/'root-source-preread.json').read_text())['records']
+for r in records:
+ batch=json.loads((W/r['input_batch']['path']).read_text()); a=batch[r['source_batch_index_zero_based']]; root=next(z for z in rs if z['case']==r['case'])
+ assert a['study_uid']==root['study_uid']==r['study_uid'] and a['report']==root['report']==r['report']
+new={'schema_version':1,'stage':'preserved_source_preread_subset_for_authorized_selected_cache_review','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'order':'Exact subset of the completed source-first six-case agent freeze, binding the independent root source freeze. Both complete original source assessments preceded technical materials and are preserved unchanged. Source/header conclusions were subsequently shared. This is source reuse, not a new blinded source assessment; cached image interpretation remains independently frozen before root image findings. Prior exposure remains explicit in each source record.','n_cases':5,'independent_source_freezes':[ref(S/'source-only-preread.json'),ref(S/'root-source-preread.json')],'records':records,'clinical_annotations_or_gold_opened':False}
+(P/'source-only-preread.json').write_text(json.dumps(new,indent=2,ensure_ascii=False)+'\n')
+s=(S/'collect_technical.py').read_text().replace('6198b9e7c6a1b37594cbabea03c163bd9b01024a97ea53cf95887ccd0a7ba9fb',ref(P/'source-only-preread.json')['sha256']).replace('len(preread) == 6','len(preread) == 5').replace('len(studies) == 6','len(studies) == 5').replace('six','five').replace('Six','Five')
+(P/'collect_technical.py').write_text(s)
+shutil.copy2(Path(__file__),P/'prepare_package.py')
+selection={'010-15':None,'012-20':[101,201],'012-25':[101,201],'015-30':[101,201],'016-37':None}
+rows=[]
+for c,nums in selection.items():
+ o=json.loads((S/f'technical-evidence/case-{c}.json').read_text()); selected=[r for r in o['series'] if nums is None or int(r['header_endpoint_values']['SeriesNumber'][0]) in nums]
+ rows.append({'case':c.replace('-',':'),'study_uid':o['study_uid'],'whole_study_series':o['series_count'],'whole_study_source_memberships':o['slices'],'selection':'all' if nums is None else 'literal SeriesNumber in '+str(nums),'selected_series':[{'series_uid':r['series_uid'],'series_number':int(r['header_endpoint_values']['SeriesNumber'][0]),'slices':r['cache_original_shape'][0]} for r in selected]})
+assert sum(len(r['selected_series']) for r in rows)==16
+plan={'schema_version':1,'stage':'explicit_parent_authorized_selected_series_plan','agent_id':'/root/image_pipeline_audit','cases':rows,'whole_study_metadata_series':sum(r['whole_study_series'] for r in rows),'whole_study_source_memberships':sum(r['whole_study_source_memberships'] for r in rows),'selected_series':16,'selected_source_memberships':sum(s['slices'] for r in rows for s in r['selected_series']),'selected_samples':48,'reason':'Parent authorizes all series for 010:15 and 016:37, but only literal 101 and 201 for 012:20, 012:25 and 015:30. Preserve whole-study metadata, clearly limit pixel review to these selected series.','prior_technical_summary':ref(S/'technical-evidence/summary.json')}
+(P/'selection-plan.json').write_text(json.dumps(plan,indent=2)+'\n');print(json.dumps({k:v for k,v in plan.items() if k!='cases'},indent=2))

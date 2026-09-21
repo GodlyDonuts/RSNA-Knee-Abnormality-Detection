@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "stage": "preserved_source_preread_subset_for_authorized_cache_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T11:04:10.780524+00:00",
+  "order": "The two source records below are exact derivatives of the prior source-first agent freeze, independently reread in full from that bound text before this cache review. Both prior independent source freezes are bound. This is source reuse, not a new claim of blinded clinical or technical assessment. The parent source conclusions were already disclosed after both source freezes; neither party has viewed new cached panels for this package.",
+  "n_cases": 2,
+  "independent_source_freezes": [
+    {
+      "path": "annotation-staging/technical-tier4-first-six-v1/source-only-preread.json",
+      "sha256": "d74ee567d4d373ac5c01212b8a097f81dfd9b65291aacae65b393ce74a9c90b8",
+      "bytes": 17469
+    },
+    {
+      "path": "annotation-staging/technical-tier4-first-six-v1/root-source-preread.json",
+      "sha256": "9a0e03e1310b42737f144cca5731e521ca3d5831d375f421a948b2d0f5cf2ca4",
+      "bytes": 14325
+    }
+  ],
+  "source_record_reuse_exact": true,
+  "clinical_annotations_or_gold_opened": false,
+  "records": [
+    {
+      "case": "001:39",
+      "source_batch_index_zero_based": 39,
+      "study_uid": "1.2.826.0.1.3680043.8.498.10252121617380434672930525780360219531",
+      "report": "MRI knee The following sequences were applied combined with a multichannell phased array coil, in a 3Tesla Scanner: T1, FS PD, T2* and contrast-enhanced FS T1. FIndings Joint effusion is shown on both knee joints, extending into the suprapatellar joint space. Enhancing synovitis is shown on both knee joints, more prominent on the right side. Menisci, ligamentous structures, bone marrow and articular cartilage do not show any abnormalities. Conclusion The findings suggest bilateral inflammatory arthritis. PS. The findings were confirmed with Ultrasound examination, performed on the same day, which showed the effusion and the synovitis, without however significant hyperemia.",
+      "source_report_sha256": "83936e2ff5f617ac5a90153b5a1bd183955952972e86c5f3f74c6896e6a3d4a9",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-001.json",
+        "sha256": "5e1f99ac8a97e73bfa43cf1840ddf4f6f48ba68fdb3e0357a5f04b950f26077e",
+        "bytes": 67784
+      },
+      "source_structure": "One integrated English MRI report explicitly describes both knee joints and compares prominence on the right. The conclusion explicitly says bilateral. A postscript states that same-day ultrasound confirmed the findings; this is another modality confirmation, not a second side-specific MRI report or a longitudinal replacement. No separate left/right report headings occur.",
+      "exact_structure_quotes": [
+        "Joint effusion is shown on both knee joints",
+        "Enhancing synovitis is shown on both knee joints, more prominent on the right side.",
+        "Conclusion The findings suggest bilateral inflammatory arthritis.",
+        "Ultrasound examination, performed on the same day"
+      ],
+      "completeness_limit": "Current integrated bilateral wording requires report-to-acquisition coverage assessment. The source ends in a complete postscript. Do not infer that every finding has per-knee image correspondence.",
+      "report_blocks": 1,
+      "explicit_report_sides": [
+        "both knees",
+        "right comparative prominence"
+      ],
+      "prior_exposure_disclosure": "I previously performed the full batch-001 clinical review, so this exact original report has prior clinical/source exposure. I have not reopened its annotations, drafts, review, flags or gold during this task; current structural reading is directly from the complete original source."
+    },
+    {
+      "case": "007:16",
+      "source_batch_index_zero_based": 16,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11057883757434391643878168168845592475",
+      "report": "MT ∆ΕΞΙΟΥ ΓΟΝΑΤΟΣ TEXNIKH: Η εξέταση πραγµατοποιήθηκε µε ακολουθίες Τ1, pd fs και Τ2me2d. ΕΥΡΗΜΑΤΑ - Φυσιολογικά ελέγχονται οι µηνίσκοι, οι πλάγιοι και οι χιαστοί σύνδεσµοι. - Εντός του φυσιολογικού ελέγχεται ο αρθρικός χόνδρος. - Χωρίς ενδαρθρική συλλογή υγρού. - Με σήµα εντός του φυσιολογικού ελέγχεται ο οστικός µυελός. - Από τον έλεγχο του εκτατικού µηχανισµού σηµειώνεται υποπλαστική έσω µηριαία τροχιλία χωρίς ευρήµατα δυσλειτουργίας / εξαρθρήµατος\n\n[BILATERAL NOTE: two reports filed under this study]\n\nMT ΑΡΙΣΤΕΡΟΥ ΓΟΝΑΤΟΣ TEXNIKH: Η εξέταση πραγµατοποιήθηκε µε ακολουθίες Τ1, pd fs και Τ2me2d. ΕΥΡΗΜΑΤΑ - Φυσιολογικά ελέγχονται οι µηνίσκοι, οι πλάγιοι και οι χιαστοί σύνδεσµοι. - Εντός του φυσιολογικού ελέγχεται ο αρθρικός χόνδρος. - Χωρίς ενδαρθρική συλλογή υγρού. - Με σήµα εντός του φυσιολογικού ελέγχεται ο οστικός µυελός. - Από τον έλεγχο του εκτατικού µηχανισµού δεν αναγνωρίζονται ευρήµατα δυσλειτουργίας.",
+      "source_report_sha256": "37899fa13481f88c4794e5266aec9f1a965c1d892dadb1a647f2437c527f7975",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-007.json",
+        "sha256": "8c616054ec576fc5fa2519fbd68bcdb6b900267ed3326e7f4d2cb080fb0c5ba9",
+        "bytes": 65079
+      },
+      "source_structure": "Two Greek current knee MRI reports are explicitly headed right then left, each with its own technique and findings. The literal bilateral note separates the blocks. This is side-separated report content rather than a medial/lateral anatomical distinction, previous examination or mere clinical history.",
+      "exact_structure_quotes": [
+        "MT ∆ΕΞΙΟΥ ΓΟΝΑΤΟΣ",
+        "[BILATERAL NOTE: two reports filed under this study]",
+        "MT ΑΡΙΣΤΕΡΟΥ ΓΟΝΑΤΟΣ"
+      ],
+      "completeness_limit": "Both side blocks contain complete examination narratives; lack of a period before the bilateral separator is not grounds to reconstruct text. The source does not map acquisition series to each side.",
+      "report_blocks": 2,
+      "explicit_report_sides": [
+        "right",
+        "left"
+      ],
+      "prior_exposure_disclosure": "I previously worked on a different batch-007 case, index48, concerning source terminology. I do not recall a prior reading of this exact index16 report; no first-ever-exposure guarantee is made across the long task history. No clinical annotations or other assessor findings opened."
+    }
+  ]
+}

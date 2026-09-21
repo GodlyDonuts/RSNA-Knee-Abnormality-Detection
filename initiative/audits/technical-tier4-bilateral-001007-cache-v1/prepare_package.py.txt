@@ -1,0 +1,23 @@
+from pathlib import Path
+import hashlib,json,shutil
+from datetime import datetime,timezone
+W=Path(__file__).resolve().parent
+P=W/'annotation-staging/technical-tier4-bilateral-001007-cache-v1'; assert not P.exists() or not any(P.iterdir()); P.mkdir(exist_ok=True)
+S=W/'annotation-staging/technical-tier4-first-six-v1'
+T=W/'annotation-staging/correspondence-052001-017-cache-v1'
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+assert ref(S/'source-only-preread.json')['sha256']=='d74ee567d4d373ac5c01212b8a097f81dfd9b65291aacae65b393ce74a9c90b8'
+assert ref(S/'root-source-preread.json')['sha256']=='9a0e03e1310b42737f144cca5731e521ca3d5831d375f421a948b2d0f5cf2ca4'
+original=json.loads((S/'source-only-preread.json').read_text()); records=[r for r in original['records'] if r['case'] in ['001:39','007:16']];assert len(records)==2
+root=json.loads((S/'root-source-preread.json').read_text()); print('Root record keys:',root['records'][0].keys())
+for r in records:
+ batch=json.loads((W/r['input_batch']['path']).read_text()); actual=batch[r['source_batch_index_zero_based']]
+ assert actual['study_uid']==r['study_uid'] and actual['report']==r['report']
+ assert any(z['case']==r['case'] for z in root['records'])
+new={'schema_version':1,'stage':'preserved_source_preread_subset_for_authorized_cache_review','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'order':'The two source records below are exact derivatives of the prior source-first agent freeze, independently reread in full from that bound text before this cache review. Both prior independent source freezes are bound. This is source reuse, not a new claim of blinded clinical or technical assessment. The parent source conclusions were already disclosed after both source freezes; neither party has viewed new cached panels for this package.','n_cases':2,'independent_source_freezes':[ref(S/'source-only-preread.json'),ref(S/'root-source-preread.json')],'source_record_reuse_exact':True,'clinical_annotations_or_gold_opened':False,'records':records}
+(P/'source-only-preread.json').write_text(json.dumps(new,indent=2,ensure_ascii=False)+'\n')
+h=ref(P/'source-only-preread.json')['sha256']
+code=(T/'collect_technical.py').read_text().replace('9066d18c7c5bd5e65a558193d94a7595d7965779a6110d0905ac0f37108804af',h)
+(P/'collect_technical.py').write_text(code)
+shutil.copy2(Path(__file__),P/'prepare_package.py')
+print(json.dumps({'preread':ref(P/'source-only-preread.json'),'free_gib':shutil.disk_usage(P).free/2**30},indent=2))
