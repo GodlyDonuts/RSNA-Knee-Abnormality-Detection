@@ -1,0 +1,29 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T03:25:38.166173+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.12946789387115203718210904958275579544",
+  "source_batch_path": "initiative/reviews/inputs/batch-020.json",
+  "source_batch_sha256": "0e773afc8c4ae0c13591eaa208121a6a038ea2db848f9e4c601b801a9145401a",
+  "source_report_sha256": "b6b84bc3e019d6c64af3b0e8eb27db0c3a4e4dca54a7a75fc97cd8166f976c74",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-020-reviewed.jsonl",
+  "review_artifact_sha256": "0edf875588f63e6d0284c64edd1e2559b4a021ec9adb584e95c1174b23c273d6",
+  "decision": "Retain all study report masks:10informative uncertain, synovitis/fracture unmentioned. Preserve complete original right/left report blocks and images. No automatic right-block selection, invented left images or virtual-unit split.",
+  "findings": "Official source contains explicit right and left reports. All10lexical endpoint headers spanning5series/93slices contain literalRIGHT and one sequence set, suggesting right acquisition at metadata level. No native anatomical confirmation, middle-slice coverage, report timing or intended target-side proof.",
+  "root_verification": "Read complete source and independent source/header assessment; verified all input file hashes/sizes, header counts/literal side value, exact source side quotes/report identity and all12current review masks. This is technical corroboration after receiving source/header flag summaries, not claimed independently blinded discovery.",
+  "limits": [
+    "Two lexical endpoints per series are not all-slice coverage; middle-slice side or PatientID variation remains possible.",
+    "No native pixels visually inspected or decoded in this task; side identity is not anatomically confirmed.",
+    "LiteralRIGHT is not canonical Laterality R; truthful orientation/anatomical checks are needed before a side-aware derivative.",
+    "All5 inventory series are present in survey, but source report fidelity and header coverage do not prove whether left-knee images were ever available upstream.",
+    "Existing current official train copy used; no fresh metadata/network retrieval performed by this agent.",
+    "Patient and FrameOfReference identifiers are hashed; no dates or clinical findings used to infer target labels."
+  ],
+  "evidence_files": {
+    "endpoint-headers.jsonl": "ea4926cf75617825d21502fc470f56816b99ba74cde69b242cfd953900c01410",
+    "independent-header-review.json": "7ae496896b50b06cd8297f3927670774ec2eaec6322394dab582186c726f7d29",
+    "independent-source-preread.json": "0142c39f13172b82f0bfd78cc3c04d01437e7af3003fb80f25b52c45ef87cc8f",
+    "source-copy-assessment.json": "f7acaf428562f233390b1720c8157989080b0ee3c0f1f445a648c567679287ef",
+    "source-inventory.json": "536eaf92e82d74cdc8678234f65a6a50abc049db7badeeaf8db3913361096a41"
+  },
+  "training_ready": false
+}
