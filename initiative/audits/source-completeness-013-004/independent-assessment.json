@@ -1,0 +1,56 @@
+{
+  "stage": "independent_source_completeness_and_copy_comparison",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "created_utc": "2026-09-21T02:37:51.563845+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.11912618147674655465071922267060032851",
+  "source_batch_index": 4,
+  "source_path": "initiative/reviews/inputs/batch-013.json",
+  "source_sha256": "5fa2fb6c909bf7b7b5e73fc687e92a7d7d3f99fe3eb34b34e63de87fadd00e97",
+  "source_report_utf8_sha256": "6aa764515cd0095e5ebaca298f5a7cabb511fd168dadc985dcc3247519cd35b0",
+  "report_character_count": 313,
+  "report_utf8_byte_count": 313,
+  "source_quotes": {
+    "side_header": "MR Knie Links 15ch AA",
+    "clinical_question": "Diagnostische vraagstellling : Voorste kruisband letsel ?",
+    "findings_and_end": "Bevindingen: -Status na doorgemaakte patellaluxatie met hooggradige sprain"
+  },
+  "file_comparison": {
+    "archived_path": "recovered/initiative/source/train.csv",
+    "current_kaggle_copy_path": "kaggle_current/train.csv",
+    "file_sizes_identical": true,
+    "file_bytes_identical": true,
+    "file_size_each": 5690007,
+    "sha256_each": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+    "selected_uid_rows_per_file": 1,
+    "selected_report_strings_equal_each_other_and_batch": true,
+    "columns_materialized": [
+      "StudyInstanceUID",
+      "Report"
+    ],
+    "gold_target_values_materialized": false
+  },
+  "independence": "Personally read complete blinded batch013 index4, then independently compared only StudyInstanceUID/Report columns from the archived train.csv and parent-provided current Kaggle copy. No013 annotations or gold target values were inspected. Whole CSV hashing/equality treated all bytes as opaque; no target columns were materialized. This audit used the existing kaggle_current copy and did not itself perform a new authenticated download.",
+  "findings": [
+    "The313-character source has one explicit left-knee MRI heading, a clinical question and sequence protocol, followed by a short findings fragment. The findings end immediately after an unlocalized high-grade sprain phrase, without a named injured structure or completed descriptive conclusion.",
+    "The phrase about possible ACL injury is in the diagnostic question and remains a question, not a current finding. The ending does not establish which ligament or structure the high-grade sprain describes. No missing content can be reconstructed from surrounding clinical context.",
+    "The exact short report is present in both CSV copies and the blinded batch. The entire archived train.csv is byte-identical to the current Kaggle copy with matching SHA256. Therefore the observed source incompleteness was not introduced while producing this blinded batch or by this recovery copying step.",
+    "Given the parent-provided copy provenance, the same incomplete field exists in the current competition source snapshot. This does not identify where before that snapshot the apparent truncation occurred, prove that a longer original report exists, or distinguish an upstream export cut from an intentionally incomplete dictated note."
+  ],
+  "recommendation": {
+    "disposition": "preserve_exact_source_and_flag_incomplete_report",
+    "actions": [
+      "Retain the source fragment and its identity binding unchanged.",
+      "Keep any target lacking sufficient anatomically localized source evidence masked; this technical audit assigns no clinical states.",
+      "Seek an authenticated longer report or verified upstream correction only if available; do not append guessed text, use the diagnostic question as a finding, or infer the missing structure.",
+      "Record source incompleteness separately from local aggregation corruption and from image decoding quality."
+    ]
+  },
+  "clinical_state_changes_proposed": 0,
+  "limitations": [
+    "This establishes exact identity across the two supplied CSV copies and batch text, not completeness of the original clinical report.",
+    "No image/header inspection or clinical interpretation was performed for this source-completeness audit."
+  ]
+}

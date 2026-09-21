@@ -1,0 +1,66 @@
+{
+  "stage": "independent_source_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "created_utc": "2026-09-21T02:36:03.365097+00:00",
+  "source_path": "initiative/reviews/inputs/batch-013.json",
+  "source_batch_index": 36,
+  "study_uid": "1.2.826.0.1.3680043.8.498.12005327370242618323737652892230673473",
+  "source_sha256": "5fa2fb6c909bf7b7b5e73fc687e92a7d7d3f99fe3eb34b34e63de87fadd00e97",
+  "source_report_utf8_sha256": "4c3e368ed77e770d027ed64cd747f237d6b624a310bf46ae5cf5b9825170f3b4",
+  "context_known_before_source": "Parent flagged this report for correspondence/laterality review. No clinical target states, published013 annotations, gold values, or another detailed case assessment were inspected. Personally read the complete original blinded report before writing this assessment.",
+  "scope": "Report-to-image correspondence and laterality only. No twelve-target clinical annotations or medical diagnoses are assigned or changed.",
+  "source_quotes": {
+    "first_side": "MRI ΔΕΞΙΟΥ ΓΟΝΑΤΟΣ",
+    "first_technique": "ΤΕΧΝΙΚΗ Η εξέταση έγινε με ακολουθίες παλμών Τ1, πυκνότητας πρωτονίων με καταστολή του σήματος του λίπους και STIR.",
+    "followup": "Επανελέγχεται η κάκωση ολικής ρήξης του πρόσθιου χιαστού συνδέσμου.",
+    "comparison_language": "Δεν παρατηρούνται πλέον οι εστίες οστικού μώλωπα που είχαν παρατηρηθεί στην περιοχή του άπω μηριαίου και της εγγύς κνήμης.",
+    "healing_language": "Παρατηρείται πώρωση του κατάγματος της έξω κεφαλής της περόνης με ήπια αλλοίωση της άνω επιφάνειας (malunion).",
+    "editorial_separator": "[BILATERAL NOTE: two reports filed under this study]",
+    "second_technique": "ΤΕΧΝΙΚΗ: Η εξέταση πραγµατοποιήθηκε µε ακολουθίες Τ2, Τ2 me2d, pd fs.",
+    "second_both_ligaments": "των εγγύς ινών αµφοτέρων των χιαστών συνδεσµων",
+    "second_both_condyles": "σε αµφότερους του µηριαίους και κνηιαίους κονδύλους",
+    "second_residual_language": "στο πλαίσιο υπολειµατικού οστικού οιδήµατος.",
+    "second_fibula_description": "Σηµειώνεται αποσπαστικό κάταγµα κεφαλής περόνης µε απόσπαση έως 5 mm.",
+    "second_postoperative_language": "καθώς και των λοιπών µετεγχειρητικών πράξεων."
+  },
+  "report_structure": {
+    "separate_report_blocks": 2,
+    "independent_technique_sections": 2,
+    "independent_findings_sections": 2,
+    "explicit_knee_sides_in_clinical_text": [
+      "right"
+    ],
+    "first_block_side": "explicit right knee",
+    "second_block_side": "not specified",
+    "explicit_left_knee_section": false,
+    "bracketed_separator_claim": "BILATERAL NOTE: two reports filed under this study",
+    "bracket_claim_independently_established": false
+  },
+  "findings": [
+    "The source field contains two separately introduced MRI technique/findings blocks, with an explicit editorial separator saying that two reports were filed under one study. This is a concrete multi-report correspondence issue; treating the entire field as one contemporaneous single-knee report is unsupported.",
+    "The first report explicitly names the right knee. The second report does not name left or right. Its references to both cruciate ligaments and both femoral/tibial condyles concern structures within a knee, and do not establish both knees. The bracketed BILATERAL label alone is not anatomical laterality evidence.",
+    "The first report explicitly uses re-examination, improvement/disappearance, and healing language. The second has its own technique/findings, describes residual injury and postoperative context, and contains a different description of the fibular-head injury. These features make longitudinal reports of the same right knee plausible. They do not prove report chronology, acquisition date, or whether the second block describes the same side.",
+    "The first block includes a redacted DATE token; the second lacks a visible date. The second is not explicitly introduced as a dated historical comparison quotation. Its standalone report structure should not be silently reclassified as history merely because a longitudinal explanation seems plausible.",
+    "From the archived text alone, one can establish two report blocks, one explicit right side, and one unspecified side. One cannot establish two different knees, two different patients, or an error introduced specifically by the current local aggregation code."
+  ],
+  "required_evidence_to_resolve": [
+    "Compare the exact original Kaggle report field and StudyInstanceUID with the archived source bytes, then trace any available upstream per-report identifiers or join/concatenation record. Determine whether the separator and both blocks are already upstream or were introduced by earlier aggregation. A byte match locates provenance but does not itself resolve correspondence.",
+    "Inspect the study inventory and header endpoint survey, then inspect every relevant series/header if endpoint candidates or missing tags arise. Bind Study/Series/SOP UIDs, hashed PatientID and frame identifiers, per-series Laterality/ImageLaterality, sequence descriptions and acquisition identifiers. Distinguish duplicated acquisitions from actual report-to-study mismatches.",
+    "Where side tags are absent or conflicting, use native coronal/axial anatomy together with recorded IOP and an inspected nonflipping renderer. A fibular anatomical lateral landmark plus patient-coordinate direction can support side; missing Laterality must never be converted to right. Exact pixel nonoverlap alone cannot distinguish one knee imaged twice from two different knees.",
+    "To select a single report block for training, obtain independent evidence that the block corresponds to the imaged side and examination/time. If dates are unavailable or anonymization prevents a reliable acquisition/report link, preserve uncertainty rather than selecting the first, second, most detailed, or apparently latest block.",
+    "If the image set includes two knees or distinct examinations, an explicit reviewed series-to-side/examination partition and report binding is required before using single-knee training units. Any same-patient derived units must remain grouped for leakage control."
+  ],
+  "recommendation": {
+    "disposition": "quarantine_for_single_knee_training_until_report_image_binding_resolved",
+    "reason": "The current source field joins two standalone report blocks whose side/examination relationship is not proven. Preserve both originals and the editorial marker; do not collapse differing findings, infer bilateral anatomy from the marker, or assign clinical target states from this technical assessment."
+  },
+  "limitations": [
+    "No013 image, header result, source re-download, or other annotation was inspected for this source-only pass.",
+    "A plausible same-knee follow-up explanation is explicitly an inference, not established chronology.",
+    "Two report blocks do not necessarily imply two image examinations or two knees."
+  ],
+  "clinical_state_changes_proposed": 0
+}

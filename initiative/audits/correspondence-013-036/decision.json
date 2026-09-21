@@ -1,0 +1,61 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T03:01:28.490327+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.12005327370242618323737652892230673473",
+  "source_batch_sha256": "5fa2fb6c909bf7b7b5e73fc687e92a7d7d3f99fe3eb34b34e63de87fadd00e97",
+  "report_utf8_sha256": "4c3e368ed77e770d027ed64cd747f237d6b624a310bf46ae5cf5b9825170f3b4",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-013-reviewed.jsonl",
+  "review_artifact_sha256": "371d6f161ddbb77dad34365b9ecda28985fd1ab1a311a59dd61050eb893069e3",
+  "decision": "Quarantine undivided report supervision for single-knee training until report-block to imaged examination binding is established; all12 targets remain masked. Preserve raw report, images and official gold unchanged.",
+  "established": "Two independent source assessments identify two standalone reports: first explicitly right knee, second unsided. Both blocks and literal BILATERAL note already exist in the current official CSV.",
+  "not_established": "Two different knees or patients, temporal order, and which report matches the image examination remain unproven. Neither shared PatientID nor absence of endpoint flags resolves correspondence.",
+  "header_fields": {
+    "Laterality": [
+      ""
+    ],
+    "ImageLaterality": [
+      ""
+    ],
+    "FrameLaterality": [
+      ""
+    ],
+    "SeriesTime": [
+      ""
+    ],
+    "AcquisitionTime": [
+      ""
+    ],
+    "Manufacturer": [
+      "SIEMENS"
+    ],
+    "ManufacturerModelName": [
+      "SonataVision"
+    ],
+    "SeriesDescription": [
+      "pd_tse_fs_cor_np",
+      "pd_tse_fs_sag_np",
+      "pd_tse_fs_tra_np",
+      "t1_se_cor_384",
+      "t2_me2d_sag"
+    ]
+  },
+  "endpoint_count": 10,
+  "series_count": 5,
+  "patient_id_hash_count": 1,
+  "full_file_sha256_verified_count": 0,
+  "limits": [
+    "Lexical first/last SOP UIDs are not spatial endpoints and do not exhaust within-series variation.",
+    "Prefix hashes authenticate the received prefix locally, not the full LFS object. Source OID, expected size, transport range and all three UIDs are bound; complete-file SHA verified only when entire small file was received.",
+    "Missing laterality never implies right; repeated sequence descriptions may be ordinary repeat acquisitions. Candidate flags do not establish bilateral anatomy, diagnostic labels, or training inclusion.",
+    "Whitelisted header fields are read only before PixelData; fields after PixelData, enhanced per-frame nested metadata and unselected middle slices are outside coverage. No pixel arrays decoded or stored."
+  ],
+  "evidence_files": {
+    "endpoint-headers.jsonl": "c4dd591dc0bcdd8858d3b91ccfde2ba661f8a11b3c4de4f1193ee50d7059dbef",
+    "independent-source-assessment.json": "b61c2adf0fe00be31028a4c996b52a593fae2d7c6a715e6036b3aa3ab98c762d",
+    "manifest.json": "5d7a9909c1160f7240d871fafca7189e7621b251a0e0e2096bbc752569cbffc1",
+    "official-source-copy-check.json": "aaa98bf0a75b25da5db91f1aa48c89169db5f0492fd796d6788573914a731851",
+    "root-source-assessment.json": "9d08498b601189e72d43778d131cbd242d2f6af8e7cd9b800192763f13c411a0",
+    "summary.json": "c6fe8707e447ef81ae10d0bc8f3169d309dce1b5cabef67a7feee8b145f5d923"
+  },
+  "training_ready": false
+}
