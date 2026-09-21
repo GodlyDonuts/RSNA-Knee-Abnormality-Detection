@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "stage": "independent_cached_pixel_visual_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T10:34:38.333096+00:00",
+  "case": "001:18",
+  "study_uid": "1.2.826.0.1.3680043.8.498.10189392162056736163704940747328177364",
+  "panel_manifest": {
+    "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-001-18/panel-manifest.json",
+    "sha256": "d2cd3164561a8b6b05c4f0739ef70cb6579e92514ff2b82c897448414b6ddf01",
+    "bytes": 75850
+  },
+  "source_preread": {
+    "path": "annotation-staging/repeated-temporal-001021064-v1/source-only-preread.json",
+    "sha256": "3b663ea1174778c9df30d2484270afbc1b0d074f3bf06473140f50ec3918e68c",
+    "bytes": 13543
+  },
+  "source_header_plan": {
+    "path": "annotation-staging/repeated-temporal-001021064-v1/source-header-assessment-and-review-plan.json",
+    "sha256": "edcc6c2e4f9fbe8e8277074e9ff0b2f6daaf37750e99b05c28ae7725bdda2b01",
+    "bytes": 8381
+  },
+  "geometry_comparison": {
+    "path": "annotation-staging/repeated-temporal-001021064-v1/geometry-comparison.json",
+    "sha256": "5a533321bceaafb7b30aa80146107526291429b8bdd3cc23e9f444b1b9171deb",
+    "bytes": 17465
+  },
+  "exact_display_proof": {
+    "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/display-source-integrity.json",
+    "sha256": "d4744f8758581b70bc836b1b4bb02d97c50e3f1bcb8a2f2e256e35284194b738",
+    "bytes": 26413
+  },
+  "images_personally_viewed": [
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-001-18/cache-series-page-00.png",
+      "sha256": "0fd8df221006565017aa9ab4e2d7ad09bd12e7c8d6f3fa7acc848f905fc7c2a7",
+      "bytes": 263831
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-001-18/cache-series-page-01.png",
+      "sha256": "58deec551fb3ffb772316123df6fbf85cf305bfb02a392be25fa17e5a1d361e6",
+      "bytes": 291756
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-001-18/cache-series-page-02.png",
+      "sha256": "8c4fe1708c15c99fac2a072ccd343eb7f6bc8e42ddf52bfa2c3597bcccefe025",
+      "bytes": 300348
+    }
+  ],
+  "series_sampled": 9,
+  "matrices_personally_viewed": 27,
+  "observations": [
+    "All 27 sampled matrices show knee anatomy. Axial 9/10 have corresponding gross anatomy and viewer-right fibula in inferior samples. Coronal 11/12/13 show compatible anatomy and viewer-right fibular head; repeat 12/13 differs visibly in presentation despite identical recorded geometry.",
+    "Sagittal 14/15/16/17 show compatible gross knee anatomy. The three repeated T2 descriptions show differing signal and slight apparent positional/presentation differences, while retaining the same general anatomy. No second opposing knee set is visible in the selected matrices."
+  ],
+  "technical_interpretation": "The selected views favor a coherent main knee protocol with repeat acquisitions or image variants. Exact native fingerprints are different, so visual similarity and identical geometry do not justify deleting series, declaring exact duplicates, or asserting why repeats exist. No named anatomical side or true patient identity is proven.",
+  "limits": [
+    "Three native-order cached slices per series; not all-slice or native-resolution anatomical review.",
+    "Complete cache bytes, source identity membership and selected display pixels were verified, but no new original DICOM reads, native decodes or official source comparison occurred.",
+    "All source side tags and original reports remain unchanged. Displayed fibular side is not mapped automatically to named patient side.",
+    "One hashed identifier per study and distinct frame hashes do not establish real patient identity, institution or one registered coordinate system.",
+    "Earlier source/clinical exposure is disclosed in the source preread. Current visual interpretation was frozen before any root findings for these cases."
+  ],
+  "root_findings_seen_before_freeze": false
+}

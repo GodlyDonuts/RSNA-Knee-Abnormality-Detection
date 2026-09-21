@@ -1,0 +1,41 @@
+{
+  "agent_id": "/root",
+  "session_id": "/root",
+  "at_utc": "2026-09-21T18:57:46.367586+00:00",
+  "stage": "root_native_and_alternative_window_visual_assessment",
+  "proof": {
+    "path": "annotation-staging/quality-native-064014-v1/native-replay-and-display-inspection.json",
+    "sha256": "628747aecced0cbb3f564c46c1b177b60713ff8375cdd59f4f248051c83a2ccb",
+    "bytes": 34062
+  },
+  "figures_personally_viewed_original_resolution": [
+    {
+      "path": "annotation-staging/quality-native-064014-v1/series-05-display-comparison.png",
+      "sha256": "b96820786dde9a3b8da71502cbbc16a6c02a6ea36503641fdd25f12647e14d7d",
+      "bytes": 1974828
+    },
+    {
+      "path": "annotation-staging/quality-native-064014-v1/series-06-display-comparison.png",
+      "sha256": "00d243ae4ba7986e5c2f270583439204747107f3f8e768c3391e548aed1345df",
+      "bytes": 1723909
+    },
+    {
+      "path": "annotation-staging/quality-native-064014-v1/series-11-display-comparison.png",
+      "sha256": "604f60fb62598f41f485b301739d3e59c09b868bc18de74b44379edcf44ddce7",
+      "bytes": 1488361
+    },
+    {
+      "path": "annotation-staging/quality-native-064014-v1/series-12-display-comparison.png",
+      "sha256": "1092c6422b3996d33a952ac6cbec7585c4698835a589e03971fa43a097907745",
+      "bytes": 1526971
+    }
+  ],
+  "findings": {
+    "series5": "The same gross anatomy is visible under stored DICOM and percentile windows, with pronounced graininess throughout the selected joint samples and poorer separation of fine structures than in12. The full-series min-max display accentuates darkness, but alternative windows reveal underlying noise rather than restoring the clearer appearance of12. The downloaded native samples reproduce cached matrices exactly.",
+    "series6": "The superior-to-inferior brightness imbalance persists in native images under stored DICOM and percentile windows. Alternative windows brighten the joint but also saturate the already bright inferior region. This spatial intensity variation precedes caching in the selected sources. Series11 has more even selected joint presentation.",
+    "series11_12": "All six selected native samples show clearer anatomy under each display mapping than their respective earlier same-description series6/5. Geometry differs between repeats; they are not asserted to be exact substitutes for every slice.",
+    "scope": "No native-to-cache corruption was found in these12 selected slices. Source acquisition quality and the chosen global intensity display both contribute to appearance. Exact acquisition cause, coil fault, complete clinical interpretability and every unsampled native pixel remain unproven."
+  },
+  "decision": "Preserve all data and production transforms. Carry a targeted preference/exclusion assessment for5/6 versus12/11 into final training-series selection, with source-quality evidence bound. Do not claim the alternatives are clinically equivalent or change global normalization from one case.",
+  "training_ready": false
+}

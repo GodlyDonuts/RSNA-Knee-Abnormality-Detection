@@ -1,0 +1,187 @@
+"""Read 12 pinned source slices and compare numerical display mappings.
+
+This creates scientific inspection figures from decoded measurements. It never
+rewrites source pixels, the training cache, labels, or the production transform.
+"""
+import datetime
+import hashlib
+import io
+import json
+import shutil
+import signal
+import sys
+from pathlib import Path
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pydicom
+import requests
+import torch
+import torch.nn.functional as F
+from dotenv import dotenv_values
+from pydicom.pixels import apply_windowing
+
+WORK = Path(__file__).resolve().parent
+W = WORK.parent
+R = WORK / "recovered"
+sys.path.insert(0, str(R))
+from rsna.dicom import decode_slice
+
+G = WORK / "annotation-staging/quality-native-064014-v1"
+PRIOR = WORK / "annotation-staging/repeated-temporal-001021064-v1"
+REVISION = "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def save_new(path, value):
+    with path.open("x") as stream:
+        stream.write(json.dumps(value, indent=2) + "\n")
+
+
+def ref(path):
+    return dict(path=str(path.relative_to(WORK)), sha256=sha(path), bytes=path.stat().st_size)
+
+
+def main():
+    G.mkdir(exist_ok=False)
+    (G / "native").mkdir()
+    manifest_path = PRIOR / "cache-panels/case-064-14/panel-manifest.json"
+    assert sha(manifest_path) == "60bbce676813382f9b9e0d94a17789f99b1428e6fa6cbf63f80f4274d33eb12f"
+    manifest = json.loads(manifest_path.read_text())
+    selected = [p for p in manifest["panels"] if p["series_number"] in {5, 6, 11, 12}]
+    assert len(selected) == 12
+    assert shutil.disk_usage(W).free - sum(p["source"]["bytes"] for p in selected) - 32 * 2**20 > 20 * 2**30
+    save_new(G / "selection-plan.json", dict(
+        stage="bounded_source_inspection_plan", agent_id="/root", session_id="/root",
+        source_revision=REVISION, panel_manifest=ref(manifest_path),
+        root_visual_freeze=ref(PRIOR / "root-visual-preread.json"),
+        selected_panels=selected, script=ref(Path(__file__)),
+        source_origin="Corrected pinned private HF source; not a fresh Kaggle comparison.",
+        scope="Three already-selected ordered indices in each of four series. Check native fingerprints and exactly reproduce stored cache slices; inspect native/full-volume, native/header-VOI, native/percentile and current-cache display mappings. No diagnosis or training transform change.",
+    ))
+    token = dotenv_values(W / ".env")["HF_TOKEN"]
+    session = requests.Session()
+    session.headers["Authorization"] = "Bearer " + token
+    rows = []
+    display_rows = {}
+    torch.set_num_threads(2)
+    for index, panel in enumerate(selected):
+        source = panel["source"]
+        url = f"https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/resolve/{REVISION}/{source['path']}"
+        try:
+            response = session.get(url, timeout=(15, 45))
+        except requests.RequestException as exc:
+            # Never log a redirected/signed URL, credential or exception body.
+            raise RuntimeError("Source request failed: " + type(exc).__name__) from None
+        if response.status_code != 200:
+            raise RuntimeError(f"Source HTTP status {response.status_code}; stopped without retry")
+        data = response.content
+        assert len(data) == source["bytes"] and hashlib.sha256(data).hexdigest() == source["sha256"]
+        native_path = G / "native" / f"{source['sop_uid']}.dcm"
+        with native_path.open("xb") as stream:
+            stream.write(data)
+        decoded = decode_slice(data, source["study_uid"], source["series_uid"], source["sop_uid"])
+        meta_path = WORK / panel["cache_metadata"]["path"]
+        assert ref(meta_path) == panel["cache_metadata"]
+        meta = json.loads(meta_path.read_text())
+        cache_path = WORK / panel["cache"]["path"]
+        assert ref(cache_path) == panel["cache"]
+        with np.load(cache_path, allow_pickle=False) as array:
+            cached = array["volume"][panel["ordered_index"]].copy()
+        i = panel["ordered_index"]
+        assert decoded.sop_uid == meta["sop_uids"][i]
+        assert decoded.sha256 == meta["slice_sha256"][i]
+        assert decoded.pixel_sha256 == meta["pixel_sha256"][i]
+        assert list(decoded.position) == meta["positions"][i]
+        assert list(decoded.orientation) == meta["orientation"]
+        assert list(decoded.spacing) == meta["pixel_spacing"]
+        assert list(decoded.pixels.shape) == meta["original_shape"][1:]
+        native_linear = (decoded.pixels - meta["intensity_min"]) / (meta["intensity_max"] - meta["intensity_min"])
+        if decoded.photometric == "MONOCHROME1":
+            native_linear = 1 - native_linear
+        resized = F.interpolate(torch.from_numpy(native_linear[None, None]),
+                                size=tuple(meta["resized_shape"]), mode="bilinear",
+                                align_corners=False, antialias=True)[0, 0]
+        height, width = meta["resized_shape"]
+        left, top = (256 - width) // 2, (256 - height) // 2
+        padded = F.pad(resized, (left, 256 - width - left, top, 256 - height - top))
+        rebuilt = np.rint(padded.numpy().clip(0, 1) * 65535).astype(np.uint16)
+        assert np.array_equal(rebuilt, cached), "Native-to-cache replay mismatch"
+        ds = pydicom.dcmread(io.BytesIO(data))
+        header_window = None
+        window_fields = {name: str(ds.get(name, "")) for name in
+                         ["WindowCenter", "WindowWidth", "VOILUTFunction", "BitsStored", "PixelRepresentation", "RescaleSlope", "RescaleIntercept", "PhotometricInterpretation"]}
+        if "WindowCenter" in ds and "WindowWidth" in ds:
+            assert not ds.get("ModalityLUTSequence")
+            assert float(ds.get("RescaleSlope", 1)) > 0
+            mapped = apply_windowing(decoded.pixels, ds, index=0)
+            low = 0 if ds.PixelRepresentation == 0 else -(2 ** (ds.BitsStored - 1))
+            high = 2 ** ds.BitsStored - 1 if ds.PixelRepresentation == 0 else 2 ** (ds.BitsStored - 1) - 1
+            if "RescaleSlope" in ds and "RescaleIntercept" in ds:
+                low = low * float(ds.RescaleSlope) + float(ds.RescaleIntercept)
+                high = high * float(ds.RescaleSlope) + float(ds.RescaleIntercept)
+            header_window = (mapped - low) / (high - low)
+            if decoded.photometric == "MONOCHROME1":
+                header_window = 1 - header_window
+        plow, phigh = np.percentile(decoded.pixels, [1, 99.5])
+        assert phigh > plow
+        percentile_window = np.clip((decoded.pixels - plow) / (phigh - plow), 0, 1)
+        if decoded.photometric == "MONOCHROME1":
+            percentile_window = 1 - percentile_window
+        row = dict(series_number=panel["series_number"], ordered_index=i, source=source,
+                   native=ref(native_path), cache_metadata=panel["cache_metadata"], cache=panel["cache"],
+                   native_fingerprint_verified=True, native_geometry_verified=True,
+                   exact_uint16_cache_slice_reproduced=True,
+                   cached_slice_bytes_sha256=hashlib.sha256(cached.tobytes()).hexdigest(),
+                   header_window_fields=window_fields,
+                   native_percentile_levels=[0, 1, 50, 90, 99, 99.5, 100],
+                   native_percentiles=np.percentile(decoded.pixels, [0, 1, 50, 90, 99, 99.5, 100]).tolist(),
+                   series_intensity_range=[meta["intensity_min"], meta["intensity_max"]],
+                   display_percentile_range=[float(plow), float(phigh)])
+        rows.append(row)
+        display_rows.setdefault(panel["series_number"], []).append(
+            (i, native_linear, header_window, percentile_window, cached.astype(float) / 65535))
+        with (G / "events.jsonl").open("a") as stream:
+            stream.write(json.dumps(dict(verified_source=index+1, series=panel["series_number"], index=i, sha256=source["sha256"])) + "\n")
+        print(json.dumps(dict(verified_source=index+1, series=panel["series_number"])), flush=True)
+    figures = []
+    for number, values in display_rows.items():
+        fig, axes = plt.subplots(3, 4, figsize=(16, 12), dpi=120, facecolor="black")
+        fig.suptitle(f"064:14 | series {number} | measured display comparisons, no data changes", color="white")
+        for rindex, (slice_index, *arrays) in enumerate(values):
+            for cindex, (array, label) in enumerate(zip(arrays, ["Native / series min-max", "Native / stored DICOM window", "Native / slice p1-p99.5", "Cache / fixed full scale"], strict=True)):
+                ax = axes[rindex, cindex]
+                ax.set_facecolor("black")
+                if array is not None:
+                    ax.imshow(array, cmap="gray", vmin=0, vmax=1, interpolation="nearest")
+                else:
+                    ax.text(.5, .5, "No stored window", color="white", ha="center")
+                ax.set_title(f"index {slice_index}: {label}", color="white", fontsize=9)
+                ax.axis("off")
+        fig.tight_layout(rect=[0, 0, 1, .97])
+        path = G / f"series-{number:02d}-display-comparison.png"
+        fig.savefig(path, facecolor=fig.get_facecolor())
+        plt.close(fig)
+        figures.append(ref(path))
+    save_new(G / "native-replay-and-display-inspection.json", dict(
+        schema_version=1, stage="pinned_native_replay_and_measured_display_comparison",
+        agent_id="/root", session_id="/root", completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        source_revision=REVISION, sources=rows, figures=figures,
+        source_count=len(rows), exact_cache_slices_reproduced=len(rows),
+        script=ref(Path(__file__)), decoder=ref(R / "rsna/dicom.py"),
+        pydicom_version=pydicom.__version__, torch_version=torch.__version__,
+        limits="12 selected native slices only, from pinned HF rather than fresh Kaggle files. Alternative windows are inspection displays, not proposed production normalization or clinical diagnoses. Full cache remains unchanged.",
+        training_ready=False,
+    ))
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(TimeoutError("Bounded native inspection runtime expired")))
+    signal.alarm(600)
+    main()
+    signal.alarm(0)

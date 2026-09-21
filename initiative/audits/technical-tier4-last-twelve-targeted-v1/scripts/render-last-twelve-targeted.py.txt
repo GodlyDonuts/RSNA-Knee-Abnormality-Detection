@@ -1,0 +1,140 @@
+"""Render the frozen final12-case selection from source-bound cache measurements."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from PIL import Image, ImageDraw, ImageFont
+
+WORK = Path(__file__).resolve().parent
+G = WORK / "annotation-staging/technical-tier4-last-twelve-targeted-v1"
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1048576), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def ref(path):
+    return dict(path=str(path.relative_to(WORK)), sha256=sha(path), bytes=path.stat().st_size)
+
+
+def save(path, value):
+    with path.open("x") as stream:
+        stream.write(json.dumps(value, indent=2) + "\n")
+
+
+def main():
+    plan_path = G / "selection-plan.json"
+    plan = json.loads(plan_path.read_text())
+    assert plan["selected_series"] == 50 and len(plan["cases"]) == 12
+    inventory_path = WORK / "cache256-v3-official-recovery-v1/inventory_effective.parquet"
+    assert sha(inventory_path) == "68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537"
+    inventory = pd.read_parquet(inventory_path, filters=[("study_uid", "in", [c["study_uid"] for c in plan["cases"]])])
+    assert len(inventory) == 2127 and inventory.series_uid.nunique() == 65
+    assert not inventory.sop_uid.duplicated().any()
+    by_sop = inventory.set_index("sop_uid").to_dict("index")
+    output = G / "cache-panels"
+    output.mkdir(exist_ok=False)
+    font = ImageFont.load_default(size=13)
+    entries = []
+    selected_sources = 0
+    for case in plan["cases"]:
+        assert shutil.disk_usage(WORK).free > 20 * 2**30 + 32 * 2**20
+        for key in ["case_metadata", "root_disposition", "root_source_freeze", "other_source_freeze"]:
+            assert ref(WORK / case[key]["path"]) == case[key]
+        metadata = json.loads((WORK / case["case_metadata"]["path"]).read_text())
+        current = inventory.loc[inventory.study_uid == case["study_uid"]]
+        assert len(current) == case["whole_study_sources"]
+        assert set(current.series_uid) == {s["series_uid"] for s in metadata["series"]}
+        folder = output / ("case-" + case["case"].replace(":", "-"))
+        folder.mkdir()
+        panels, canvases, expected_matrices = [], [], []
+        for series_index, chosen in enumerate(case["selected_series"]):
+            source_meta = next(s for s in metadata["series"] if s["series_uid"] == chosen["series_uid"])
+            meta_path = WORK / chosen["cache_metadata"]["path"]
+            assert ref(meta_path) == chosen["cache_metadata"] == source_meta["cache_metadata"]
+            m = json.loads(meta_path.read_text())
+            assert m["study_uid"] == case["study_uid"] and m["series_uid"] == chosen["series_uid"]
+            assert m["cache_version"] == "series-u16-v3" and m["source_revision"] == "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+            subset = current.loc[current.series_uid == chosen["series_uid"]]
+            assert dict(zip(m["sop_uids"], m["slice_sha256"], strict=True)) == dict(zip(subset.sop_uid, subset.sha256, strict=True))
+            assert len(subset) == m["n_slices"] == chosen["slices"]
+            selected_sources += len(subset)
+            cache_path = meta_path.with_suffix(".npz")
+            assert sha(cache_path) == m["cache_sha256"] and cache_path.stat().st_size == m["cache_bytes"]
+            with np.load(cache_path, allow_pickle=False) as archive:
+                assert archive.files == ["volume"]
+                volume = archive["volume"]
+            assert volume.dtype == np.uint16 and volume.shape == (m["n_slices"], 256, 256)
+            assert int(source_meta["header_endpoint_values"]["SeriesNumber"][0]) == chosen["series_number"]
+            if series_index % 3 == 0:
+                rows = min(3, len(case["selected_series"]) - series_index)
+                canvas = Image.new("L", (832, 44 + 308 * rows), 16)
+                ImageDraw.Draw(canvas).text((12, 8), f"{case['case']} | source-bound 256px cache | 25/50/75% slices", font=font, fill=255)
+                canvases.append(canvas)
+            canvas = canvases[-1]
+            y = 44 + (series_index % 3) * 308
+            side = "/".join(source_meta["header_endpoint_values"]["Laterality"])
+            description = "/".join(source_meta["header_endpoint_values"]["SeriesDescription"])
+            ImageDraw.Draw(canvas).text((12, y), f"Series {chosen['series_number']} | literal side {side or '(blank)'} | {description}", font=font, fill=255)
+            indices = [int((m["n_slices"] - 1) * fraction) for fraction in [.25, .5, .75]]
+            assert len(set(indices)) == 3
+            for column, i in enumerate(indices):
+                display = np.rint(volume[i].astype(float) / 65535 * 255).astype(np.uint8)
+                x = 12 + column * 276
+                canvas.paste(Image.fromarray(display), (x, y + 22))
+                ImageDraw.Draw(canvas).text((x, y + 282), f"index {i} | {m['n_slices']} slices total", font=font, fill=230)
+                sop = m["sop_uids"][i]
+                panels.append(dict(
+                    case=case["case"], study_uid=m["study_uid"], series_uid=m["series_uid"],
+                    series_number=chosen["series_number"], literal_laterality=side, series_description=description,
+                    official_plane=source_meta["official_series_features"]["Anatomical_Plane"],
+                    source=dict(sop_uid=sop, **by_sop[sop]), cache=ref(cache_path), cache_metadata=ref(meta_path),
+                    ordered_index=i, n_slices=m["n_slices"],
+                    cached_slice_bytes_sha256=hashlib.sha256(volume[i].tobytes()).hexdigest(),
+                    display_pixel_bytes_sha256=hashlib.sha256(display.tobytes()).hexdigest(),
+                    source_native_pixel_sha256_from_bound_metadata=m["pixel_sha256"][i],
+                    original_native_shape=m["original_shape"][1:], cached_shape=[256, 256],
+                    source_position=m["positions"][i], source_orientation=m["orientation"],
+                    source_pixel_spacing=m["pixel_spacing"], page=len(canvases) - 1,
+                    display_box_xywh=[x, y + 22, 256, 256],
+                ))
+                expected_matrices.append(display)
+        images = []
+        for page, canvas in enumerate(canvases):
+            path = folder / f"cache-series-page-{page:02d}.png"
+            canvas.save(path)
+            images.append(ref(path))
+        for panel, expected in zip(panels, expected_matrices, strict=True):
+            with Image.open(WORK / images[panel["page"]]["path"]) as image:
+                x, y, width, height = panel["display_box_xywh"]
+                actual = np.asarray(image)[y:y+height, x:x+width]
+                assert np.array_equal(actual, expected)
+        manifest_path = folder / "panel-manifest.json"
+        save(manifest_path, dict(
+            schema_version=1, agent_id="/root", session_id="/root", stage="bound_targeted_cached_matrix_display",
+            case=case["case"], study_uid=case["study_uid"], script=ref(Path(__file__)),
+            selection_plan=ref(plan_path), case_metadata=case["case_metadata"],
+            corrected_inventory=ref(inventory_path), source_freezes=[case["root_source_freeze"], case["other_source_freeze"]],
+            series_sampled=len(case["selected_series"]), cached_panels=len(panels),
+            whole_study_series=case["whole_study_series"], whole_study_source_memberships=len(current),
+            selected_source_memberships=sum(s["slices"] for s in case["selected_series"]),
+            unselected_series_arrays_opened=0, images=images, panels=panels,
+            display="Exact256x256 measured cache slices mapped to uint8 and pasted unchanged. No geometric transform or additional resizing. Source laterality captions remain literal. Indices are zero-based; captions explicitly give total slice counts.",
+            scope="Three representative slices per selected series. All selected NPZs fully hashed, source-SOP membership checked against the pinned full inventory. Other series are covered only by previous metadata evidence. A renderer is not visual interpretation or clinical diagnosis.",
+        ))
+        entries.append(dict(case=case["case"], manifest=ref(manifest_path), images=images))
+        print(json.dumps(dict(case=case["case"], selected_series=len(case["selected_series"]), samples=len(panels))), flush=True)
+    save(output / "index.json", dict(cases=entries, selected_series=50, displayed_samples=150,
+                                     selected_source_memberships=selected_sources, whole_study_series=65,
+                                     whole_study_source_memberships=2127, training_ready=False))
+
+
+if __name__ == "__main__":
+    main()

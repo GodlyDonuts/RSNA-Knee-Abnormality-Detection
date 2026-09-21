@@ -41,7 +41,11 @@ def bundle(tmp_path):
         dest.write_bytes(src.read_bytes())
         return read(dest)
 
-    registry = read(overlay / m.REGISTRY_PATH)
+    # Preserve this historical v4 regression; live registry coverage is tested
+    # by the temporal-policy tests as subsequent policies are added.
+    registry = read(
+        ROOT / "initiative/audits/correspondence-extension-v4/overlay" / m.REGISTRY_PATH
+    )
     write(tmp_path / m.REGISTRY_PATH, registry)
     for ref in registry["policies"]:
         policy = copy(ref)

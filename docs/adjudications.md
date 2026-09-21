@@ -78,13 +78,20 @@ registered case path to its checksum. A new or changed reviewed batch or correct
 case invalidates that scope binding and requires further assessment.
 
 The present registry retains cartilage consistency, a focused bone-terminology
-check, and qualified-negation/duplicate consistency as separate pending issues.
-The latter binds the all4,407-report inspection and root's seven unaccepted
-proposals across six studies. A distinct source assessor is still required;
-these proposals are not registered correction cases and do not alter labels.
-The early focused audits and retained decisions do not certify all future report
-batches. Preserve their dispositions as evidence while completing that broader
-scope.
+check, and qualified-negation/duplicate consistency as three separate pending
+issues. A distinct assessor has now frozen all 108 target decisions for the nine
+neutral source reports before opening root's per-case proposals and original
+clinical rows. Required project instructions had disclosed aggregate proposal
+categories; that exposure is preserved explicitly. The assessor independently
+accepted all seven changes across six studies: four Effusion negatives become
+uncertain, and one Contusion plus two Fracture uncertain states become
+not_mentioned. These form a separately registered correction case, with the
+original assessment, reviews, source text and proposal preserved unchanged under
+[`duplicate-consistency-adjudication-v1/`](../initiative/audits/duplicate-consistency-adjudication-v1/).
+The registry now contains 34 accepted target corrections. No effective label
+release was performed. This bounded acceptance does not resolve qualified
+negation outside the nine reports or either other global semantic issue; all
+three gates remain pending against the complete final review scope.
 
 ## Release outputs
 

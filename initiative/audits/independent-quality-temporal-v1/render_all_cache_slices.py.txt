@@ -1,0 +1,74 @@
+"""Reproducible technical contact sheets; source/cache arrays are read-only."""
+import datetime
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[3]
+OUT = Path(__file__).resolve().parent
+INPUT = ROOT / "work/annotation-staging/quality-native-064014-v1/selection-plan.json"
+
+def bind(path):
+    return {"path": str(path.relative_to(ROOT)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "bytes": path.stat().st_size}
+
+def main():
+    free_before = shutil.disk_usage(ROOT).free
+    assert free_before > 20 * 1024**3 + 50 * 1024**2
+    plan = json.loads(INPUT.read_text())
+    chosen = {s["series_number"]: s for s in plan["selected_panels"]}
+    selection = {
+        "stage": "all_cache_slice_display_plan_before_rendering",
+        "created_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "agent_id": "/root/quality_temporal_review", "session_id": "/root/quality_temporal_review",
+        "inputs": [s["cache"] for s in chosen.values()], "selection": "Every ordered slice of series 5, 6, 11, 12; no slice sampling.",
+        "displays": {"fixed": "uint16 full scale 0..65535", "percentile": "Per-slice p1..p99.5 display only, clipped to [0,1]. Does not change source or cache normalization."},
+        "scope": "All slices of four existing 256x256 cache arrays; broader native-resolution acquisition review is not implied.",
+        "free_before_bytes": free_before,
+    }
+    plan_path = OUT / "all-cache-display-plan.json"
+    with plan_path.open("x") as f: json.dump(selection, f, indent=2); f.write("\n")
+    series = []
+    for number, s in sorted(chosen.items()):
+        cache_path = ROOT / "work" / s["cache"]["path"]
+        meta_path = ROOT / "work" / s["cache_metadata"]["path"]
+        assert bind(cache_path)["sha256"] == s["cache"]["sha256"]
+        assert bind(meta_path)["sha256"] == s["cache_metadata"]["sha256"]
+        meta = json.loads(meta_path.read_text())
+        with np.load(cache_path) as z: volume = z["volume"]
+        assert volume.dtype == np.uint16 and volume.shape == (meta["n_slices"],256,256)
+        stats = []
+        for idx, a in enumerate(volume):
+            stats.append({"ordered_index": idx, "sop_uid": meta["sop_uids"][idx], "cached_slice_bytes_sha256": hashlib.sha256(a.tobytes()).hexdigest(), "percentiles_1_50_99_995": np.percentile(a,[1,50,99,99.5]).tolist()})
+        figures = []
+        for mode in ("fixed", "percentile"):
+            fig, axes = plt.subplots(4, 5, figsize=(13.5,11.8), dpi=100, facecolor="black")
+            fig.suptitle(f"064:14 | series {number} | ALL {len(volume)} cache slices | {mode} display\nTechnical presentation only; unchanged cache; zero-based ordered indices",color="white",fontsize=13)
+            for idx, ax in enumerate(axes.flat):
+                ax.set_facecolor("black"); ax.set_axis_off()
+                if idx >= len(volume): continue
+                a=volume[idx].astype(np.float64)
+                lo,hi=(0.,65535.) if mode=="fixed" else np.percentile(a,[1,99.5])
+                if hi<=lo: hi=lo+1
+                ax.imshow(a,cmap="gray",vmin=lo,vmax=hi,interpolation="nearest",aspect="equal")
+                ax.set_title(f"index {idx} | {lo:.1f}..{hi:.1f}",color="white",fontsize=10)
+            fig.subplots_adjust(left=.01,right=.99,bottom=.01,top=.93,wspace=.03,hspace=.13)
+            dest=OUT/f"series-{number:02d}-all-slices-{mode}.png"
+            fig.savefig(dest,dpi=100,facecolor="black",metadata={"Software":"matplotlib scientific cache display"}); plt.close(fig)
+            figures.append(bind(dest))
+        assert bind(cache_path)["sha256"] == s["cache"]["sha256"]
+        assert bind(meta_path)["sha256"] == s["cache_metadata"]["sha256"]
+        series.append({"series_number": number, "series_uid": s["series_uid"], "cache":bind(cache_path), "metadata":bind(meta_path), "shape":list(volume.shape), "cache_version":meta["cache_version"], "source_revision":meta["source_revision"], "intensity_min":meta["intensity_min"],"intensity_max":meta["intensity_max"],"figures":figures,"slices":stats})
+    free_after=shutil.disk_usage(ROOT).free
+    assert free_after >= 20*1024**3
+    result={"stage":"complete_cache_display_numeric_manifest", "created_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),"agent_id":"/root/quality_temporal_review","session_id":"/root/quality_temporal_review","plan":bind(plan_path),"script":bind(Path(__file__)),"input_selection_plan":bind(INPUT),"series":series,"total_cache_slices":sum(s["shape"][0] for s in series),"source_cache_unchanged":True,"free_before_bytes":free_before,"free_after_bytes":free_after}
+    dest=OUT/"all-cache-display-manifest.json"
+    dest.write_text(json.dumps(result,indent=2)+"\n")
+    print(json.dumps({"manifest":bind(dest),"total_slices":result["total_cache_slices"],"figures":8,"free_after_gib":free_after/1024**3}))
+
+if __name__ == "__main__": main()

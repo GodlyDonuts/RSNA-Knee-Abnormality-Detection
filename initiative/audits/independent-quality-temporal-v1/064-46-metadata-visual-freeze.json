@@ -1,0 +1,77 @@
+{
+  "stage": "independent_064046_metadata_and_visual_freeze_before_proposal",
+  "created_at_utc": "2026-09-21T19:32:26.917169+00:00",
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "source_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/source-first-freeze.json",
+    "sha256": "b8fcef79d3c3913569f567d2617779ff9ff83268ad788181d49279d78c549081",
+    "bytes": 6933
+  },
+  "case": "064:46",
+  "study_uid": "1.2.826.0.1.3680043.8.498.69495014653333523580255444915082056825",
+  "technical_metadata": {
+    "path": "work/annotation-staging/repeated-temporal-001021064-v1/technical-evidence/case-064-46.json",
+    "sha256": "df8964d44c5d89e465c2e3be81ce3f525b188d37de769262eb10a7b9542d2fc8",
+    "bytes": 27120
+  },
+  "panel_manifest": {
+    "path": "work/annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-064-46/panel-manifest.json",
+    "sha256": "cfbf2157efa8ef017daa03f1533aeb78a28b96e8f224c0611cebad295c5dc6ca",
+    "bytes": 34941
+  },
+  "images_viewed": [
+    {
+      "path": "work/annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-064-46/cache-series-page-00.png",
+      "sha256": "4fbaf3c0a5ac797b9f0581334635135999f0b68d9d294e5bb81628f5e18461a5",
+      "bytes": 211592
+    },
+    {
+      "path": "work/annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-064-46/cache-series-page-01.png",
+      "sha256": "24a7f6346419d5ff40ce80586d27f7b758b1b902946d12a67292c793a013e81a",
+      "bytes": 85788
+    }
+  ],
+  "all_12_matrices_viewed": true,
+  "sample_indices": {
+    "201": [
+      7,
+      14,
+      21
+    ],
+    "301": [
+      7,
+      14,
+      21
+    ],
+    "401": [
+      8,
+      17,
+      25
+    ],
+    "501": [
+      8,
+      17,
+      25
+    ]
+  },
+  "root_proposal_read": false,
+  "observations": [
+    "All 12 samples show coherent knee anatomy within each stated plane. No gross blank matrix, wrong body part, mirrored mixed-knee field or conspicuous decoding failure is evident in these samples.",
+    "Series 401 and 501 show corresponding sagittal positions with different visible contrast. They cannot be called duplicate pixel series from repeated geometry alone.",
+    "Four series provide axial, coronal and sagittal coverage; such coverage neither dates the examination nor proves both original and recall series are present.",
+    "Metadata records 130 source slices, four series, eight endpoint headers, one hashed patient identifier, four frame-of-reference hashes, blank literal side/time fields and placeholder descriptions. Acquisition numbers 2..5 and series numbers 201..501 do not map them to the two report sections. Multiple frame identifiers are not evidence of separate patients or dates."
+  ],
+  "independent_recommendation_before_proposal": {
+    "correspondence": "exclude whole-study non-gold report supervision while the initial/recall linkage remains unresolved; this is a conservative report-to-image eligibility action, not a declaration that the images contradict the report",
+    "rationale": "The exact report includes findings from an initial examination and a later recall. No supplied technical evidence identifies which examination generated these four image series or establishes that the initial findings can supervise them. Since the current policy mechanism is whole-study correspondence masking, preserving the aggregate report while masking its non-gold loss avoids unsupported temporal binding.",
+    "image_handling": "retain all four cache series and source images; no quality exclusion supported by these 12 samples",
+    "gold": "preserve official gold and its evaluation masks; no gold values read",
+    "revisit_condition": "an exact source-bound series/examination linkage that resolves the initial-versus-recall association"
+  },
+  "scope_limits": [
+    "Three existing 256x256 cache samples per series, not full-volume or native-resolution clinical reading.",
+    "No inference that the four series are recall-only, initial-only, or two separate image examinations.",
+    "No invented date, side, acquisition cause, diagnosis or target correction."
+  ]
+}

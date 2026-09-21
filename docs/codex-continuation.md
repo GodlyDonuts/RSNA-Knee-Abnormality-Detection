@@ -5,8 +5,8 @@
 This archive contains all 89 first-reader batches and all 89 independently reviewed
 batches: 4,407 reports and 52,884 target decisions. Report-review coverage is
 complete; global semantic QA, correspondence and final release checks remain
-unfinished. All 390 tests, Ruff and mypy pass. The required correspondence
-registry enforces 16 whole-study report-supervision exclusions. The v4 extension
+unfinished. All412 tests, Ruff and mypy pass. The required correspondence registry now
+enforces17 whole-study report-supervision exclusions, including064:46 under v5. The v4 extension
 adds 048:09, 048:38 and 053:47 from previously completed source and image evidence.
 Original clinical artifacts, reports, images and official gold are preserved.
 
@@ -75,21 +75,29 @@ The full-coverage duplicate consistency inspection is preserved under
 `post-review-consistency4407-v1/`. Of54 identical normalized-report groups
 covering204 studies, four have differing target states. Three group differences
 affect observed supervision; no positive-versus-negative pair was found.
-Root read all nine complete sources before opening discrepancy details and
-froze108 assessments, with historical exposure disclosed. Seven corrections
-across six studies are proposed, not accepted: four qualified-effusion masks,
-one Contusion and two Fracture uncertainty-to-unmentioned clarifications.
-The two Fracture proposals concern existing duplicate agreement, illustrating
-that agreement alone does not establish semantic validity. A distinct assessor
-must review the neutral sources before the proposals. Original reviews and gold
-remain unchanged. The required registry now has three pending semantic gates:
-cartilage, bone terminology, and qualified-negation/duplicate consistency.
+Root and a distinct assessor each read all nine complete sources and froze108
+assessments before proposal access, with prior documentation exposure disclosed.
+Seven independently accepted corrections are now registered: four Effusion
+negative-to-uncertain masks and three already-masked Contusion/Fracture
+uncertainty-to-unmentioned clarifications. This brings the registered total to34.
+All277 protected source/review/rubric/prior-case/QA artifacts remain unchanged.
+The bounded adjudication and all27 focused tests passed. See
+`duplicate-consistency-adjudication-v1/`. The three global semantic QA gates remain
+pending: cartilage, bone terminology and qualified-negation/duplicate consistency.
 
 The tenth through thirteenth metadata groups now have two frozen source readings
 and root replay of 5,361 source memberships, 167 series metadata records and
 334 endpoint geometries. Root also recomputed physical fields and slice-origin
-extents. Twelve cases need bounded cache follow-up; twelve need no immediate
-pixels from the examined triggers alone. The original agent replay failed
+extents. The remaining twelve targeted cases now have two separately frozen visual passes
+on150 representative matrices from50 selected arrays. Root replay checked all1698
+selected source memberships and each exact displayed matrix. Whole-study metadata
+covers65 series/2127 sources;15 unselected arrays/429 sources remain outside pixel
+scope. Eight source correspondence issues remain unresolved, despite compatible
+sampled main protocols. Case084:27 includes a peripheral second limb in broad
+series101; its series-selection decision remains separate. See
+`technical-tier4-last-twelve-targeted-v1/` and `last-twelve-independent-visual-v1/`.
+The other twelve metadata cases needed no immediate pixels from their examined
+triggers alone. The original agent replay failed
 because it read the wrong candidate-queue field; that script and all four failed
 outputs are preserved alongside the corrected, successful root replay.
 
@@ -103,11 +111,11 @@ with its explicit correction. These bounded checks do not justify a new
 exclusion or assign a named side from anatomy alone. Four unselected 058:04
 series retain metadata-only scope.
 
-All three subagents stopped at the account usage limit. Their completed and
-partial work is preserved; root completed the remaining independent report
-reviews. Root continues global semantic QA, correspondence, final leakage-safe
-manifests and actual final-data training/resume/inference validation. The final
-training release and private Hugging Face refresh remain unfinished.
+Fresh distinct agents are active again. Their completed source/image assessments
+are preserved with actual canonical identities; earlier usage-limited agents are
+historical context. The full final training release remains unfinished. GitHub
+milestones and private Hugging Face preparation checkpoints are published after
+validation; the HF revision above is the last verified published snapshot.
 
 The user authorized direct main integration on 2026-09-20 and requested one monorepo without a PR workflow. The corrective pipeline commit is integrated into main at `423733e`; both prior PRs are integrated. The active worktree uses local branch `codex/data-readiness-audit`, tracking `origin/main`. Push verified milestones with `git push origin HEAD:main`.
 The legacy archive remains unchanged. Its rubric accepted low-severity findings that do not satisfy the organizer criteria. Continue the new versioned review run, `codex-20260920-rubric-v2`, under `protocols/report_weak_v2.md`; do not resume the old rubric as a corrected-label workflow.
@@ -126,18 +134,32 @@ The original 48,772-record endpoint survey is valid against the corrected invent
 
 The three latest preserved correspondence audits are `initiative/audits/repeated-protocol-six-v1/`, `correspondence-native-075-014-v1/` and `correspondence-shoulder-report-052-020-v1/`. For075:14 all337fresh official sources and11series have root-replayed native fingerprints, dimensions, IPP/IOP/spacing, source hashes/CRCs/UIDs,15recorded source geometry/encoding fields, and33pixel-exact panels. Opposing fibular morphology has concordant source IOP direction. Preserve the no-upstream-mirroring caveat; do not assign a named side from blanks. Prior dark display artifacts remain preserved with explicit native-window-v2 supersession.
 
-The required `initiative/audits/correspondence-release-registry.json` binds the preserved study-level policies. `rsna.labels` now validates exact policy membership, original source identity and verified proof bindings before exporting. All twelve report loss masks are zeroed for excluded non-gold rows; original annotations, official gold evaluation and duplicate groups remain unchanged. Excluded reports are omitted from report-versus-gold agreement. Native proof identity wrappers make the original source-handoff study binding explicit without rewriting the underlying observations. See `docs/correspondence.md`. Whole-study exclusions now cover16cases; the exact registry and docs/correspondence.md list them. This does not certify the remaining correspondence queue or compile a final manifest.
+The required `initiative/audits/correspondence-release-registry.json` binds the preserved study-level policies. `rsna.labels` now validates exact policy membership, original source identity and verified proof bindings before exporting. All twelve report loss masks are zeroed for excluded non-gold rows; original annotations, official gold evaluation and duplicate groups remain unchanged. Excluded reports are omitted from report-versus-gold agreement. Native proof identity wrappers make the original source-handoff study binding explicit without rewriting the underlying observations. See `docs/correspondence.md`. Whole-study exclusions now cover17cases; the exact registry and docs/correspondence.md list them. This does not certify the remaining correspondence queue or compile a final manifest.
 
 Native checks for048:12 and086:13 now include root replay of all659sources,15recorded geometry/encoding fields and60pixel-exact displayed samples. Both independently frozen visual readings support opposing knee protocols compatible with their integrated bilateral reports. The source origins remain83retained official originals and576corrected pinned HF files. Fresh official whole-byte confirmation is deferred for those576 after Kaggle429responses; no claim that all659were freshly downloaded from Kaggle. All sources, source-origin journals, partial-attempt records and explicit deferred list are preserved in `correspondence-native-048-012-v1/` and `correspondence-native-086-013-v1/`. Root independently verified all940files and166original-source aliases in the two native and first two mixed-tag archives.
 
-Twenty-five mixed-tag candidates now have complete bounded reviews across eight preserved audit groups: 011013014, 016021022, 030036042, 042044045, 048052056, 057059062, 065067071 and 075079081. Root independently verified all 3,783 source memberships, 280 endpoint headers, 140 full cache volumes and 420 exact displayed samples, and personally viewed every sample before reading the other visual assessment. Original source texts and literal tags were checked separately. These samples favor coherent main protocols; preserve tag conflicts without named-side correction or automatic bilateral exclusion. Oblique and broad-coverage series retain their stated limits. A root caption-reading mistake for 045:38 is preserved with a separate correction; no source tag or display was changed. The final mixed-tag group preserves a separate correction to a generic agent display sentence: 075:28 has an oblique supplement and 079:31 has none. Six further correspondence cases now have root-replayed numeric and independent visual evidence: 1,105 source memberships, 31 cache volumes and 93 displayed samples. The combined Greek reports at062:21 now have enforced report-supervision exclusion under v3. The explicit performed/requested-side clarification at063:35 remains distinct from unresolved contradictory report blocks; no blanket disposition was applied. Four repeated/temporal cases still await root review. Their staged packages are not accepted technical dispositions.
+Twenty-five mixed-tag candidates now have complete bounded reviews across eight preserved audit groups: 011013014, 016021022, 030036042, 042044045, 048052056, 057059062, 065067071 and 075079081. Root independently verified all 3,783 source memberships, 280 endpoint headers, 140 full cache volumes and 420 exact displayed samples, and personally viewed every sample before reading the other visual assessment. Original source texts and literal tags were checked separately. These samples favor coherent main protocols; preserve tag conflicts without named-side correction or automatic bilateral exclusion. Oblique and broad-coverage series retain their stated limits. A root caption-reading mistake for 045:38 is preserved with a separate correction; no source tag or display was changed. The final mixed-tag group preserves a separate correction to a generic agent display sentence: 075:28 has an oblique supplement and 079:31 has none. Six further correspondence cases now have root-replayed numeric and independent visual evidence: 1,105 source memberships, 31 cache volumes and 93 displayed samples. The combined Greek reports at062:21 now have enforced report-supervision exclusion under v3. The explicit performed/requested-side clarification at063:35 remains distinct from unresolved contradictory report blocks; no blanket disposition was applied. Four repeated/temporal cases now have root source/visual freezes and successful
+replay of29 arrays,791 source memberships and87 displayed matrices. Cases001:18
+and021:03 show no new gross mismatch from their triggers alone. Native follow-up
+for064:14 reproduced12 selected cache slices bit-exact from pinned corrected
+source DICOMs. Four multi-window native figures and the independent all71-slice
+cache inspection support a preference for11/12 over6/5 in their repeated roles,
+without discarding originals or claiming equal coverage. Source064:46 joins an
+initial examination and explicit recall; root and the distinct assessor accept
+whole-study non-gold report-supervision exclusion pending exact temporal linkage.
+The v5 policy validates this exact accepted exclusion against all4407 blinded
+reports and preserves gold masks;22 new tests reject altered evidence and actions. The original root visual freeze
+accidentally stored a PNG hash in its source-preread field; an explicit bound
+correction preserves the original and identifies the correct source freeze. It
+does not prove historical access order. See `repeated-temporal-001021064-v1/`,
+`quality-native-064014-v1/` and `independent-quality-temporal-v1/`.
 
 Thirteen metadata triage groups now preserve 78 cases, 19,351 source memberships,
 564 series metadata records and 1,128 endpoint geometries. Forty-six cases need no
 immediate pixels from the examined triggers alone; 32 require bounded follow-up.
 Twenty have completed bounded source/visual/numeric checks, including all 14
 from the first six groups, four seventh-group cases and two eighth-group cases.
-Twelve later cases await targeted follow-up.
+The twelve later targeted cases now have the bounded two-reader visual and numeric checks described above; their open source-eligibility decisions remain explicit.
 These counts concern the original technical tail, not every newly flagged report.
 Recompute the final crosswalk after all queues. Root dispositions for the latest
 24 cases are in `tier4-tenth-thirteenth-metadata-crosscheck-v1/root-run-001/`.
@@ -151,7 +173,7 @@ and orientation overstatements are retained beside independently verified correc
 
 The preceding 3,757-report checkpoint passed 246 tests, including 46 correspondence regressions, plus Ruff and mypy. The initial independent code review found two gaps in policy membership and source identity binding; both were fixed and independently rechecked. Final code hashes, source-only validation of all 4,407 reports against the four exclusions, review history and image-preservation receipts are in `initiative/audits/correspondence-enforcement-v1/`. Root independently reviewed the recovery and inference changes, ran 26 recovery tests and 35 inference/pipeline tests, and verified every reused metadata hash and revision-only semantic delta. Held-out inference now binds the exact training series table, study manifest and cache source revision; separate test inputs record their own provenance. See `docs/source-recovery.md` and `docs/inference-bindings.md`.
 
-Reports042:14 and042:41 explicitly combine both knees. Independent correspondence adjudication accepted 16 additional eligibility masks; the immutable original extractions and both readings remain preserved. These are report-to-image correspondence masks, not claims that the imaged studies contain both knees. The registry now contains 27 accepted target changes, while mandatory global cartilage and bone terminology QA remain pending. No original clinical artifact is overwritten.
+Reports042:14 and042:41 explicitly combine both knees. Independent correspondence adjudication accepted 16 additional eligibility masks; the immutable original extractions and both readings remain preserved. These are report-to-image correspondence masks, not claims that the imaged studies contain both knees. That milestone brought the registry to27 accepted target changes; the latest independent duplicate-consistency adjudication brings it to34. Mandatory global cartilage, bone terminology and qualified-negation/duplicate QA remain pending. No original clinical artifact is overwritten.
 
 GitHub and Hugging Face are private checkpoint destinations. HF source revision `0b5e410288232f570c69ba4f44723356e6ae6ab7` replaces exactly two invalid mirror encodings with verified official Kaggle files; the original pinned `52f995f4568e36bfa5fbbaf69a89af41226b4f5d` remains preserved. A verified private preparation snapshot of GitHub `2359718669fa7dc22d394af7b0682f3e5aaf5026` is pinned at HF `a36928407109e9d23ccb694a57765606b792fbc6`, including3,057reviewed reports, the337official075:14sources and shoulder-report correspondence evidence. Its receipt is preserved under `initiative/audits/hf-preparation-checkpoint-2359718/`; root independently streamed all1,843package members and verified exact hashes/membership after60remote object checks. The subsequent 3,207-report milestone at GitHub `1bdcfcc059c036002e15b1ebe64a81a92392d574` was verified privately at HF `d6557ffc2aadc9be050ab4668a1a24ef9b9d8414`. Its preserved receipt under `initiative/audits/hf-preparation-checkpoint-1bdcfcc/` binds 214 verified remote objects and 2,919 independently rechecked package members. The 3,507-report GitHub milestone `88edbf46772d3eaf94e2ec8693b3840528f301d8` is verified at HF `492b1eb363680fe593087f84e9627b1de4ee8680`, with 365 remote objects and 3,268 independently rechecked package members. Its receipt is preserved under `hf-preparation-checkpoint-88edbf4/`. The 3,607-report milestone at GitHub `6f2d07d06111d6170b22cdac1f3b27b4d41f4d38` passed exact-commit CI run35592976831. Its original Hugging Face upload stalled in the transfer client and was stopped with a preserved receipt. Recovery reuses the exact frozen 490-object operation and 873,998,824-byte package with bounded HTTP transport and fresh private-HEAD reconciliation. The successful recovery is now pinned at HF `76a4c0dab20fd49ffd0590a4344eac5b67d8be1f`; its complete verification receipt is preserved as described above. The current 4,407-report archive is a later GitHub preparation checkpoint. No finished training release has been published; checkpoints remain explicitly incomplete until all gates pass.
 

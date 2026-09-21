@@ -1,0 +1,73 @@
+{
+  "status": "frozen_independent_source_first_assessment",
+  "created_at_utc": "2026-09-21T19:27:15.172638+00:00",
+  "assessor": {
+    "agent_id": "/root/quality_temporal_review",
+    "session_id": "01a0c56e-b990-7ff1-b343-d3472d1a96cd",
+    "identity_source": "canonical multi-agent task name supplied by orchestration; environment CODEX_THREAD_ID if present",
+    "independent_from": "/root"
+  },
+  "read_order": {
+    "full_original_reports_read": [
+      "064:14",
+      "064:46"
+    ],
+    "before_proposals_or_image_assessments": true,
+    "not_read": [
+      "root-native-visual-assessment.json",
+      "064-46-correspondence-followup-proposal.json",
+      "other reader conclusions for these two cases"
+    ]
+  },
+  "source_container": {
+    "path": "work/annotation-staging/repeated-temporal-001021064-v1/root-neutral-sources.json",
+    "sha256": "3968f922c2603c703249c3561aad86a822a2eddcb7d9ace52c71932d3b822ae3"
+  },
+  "cases": [
+    {
+      "batch": "064",
+      "index": 14,
+      "study_uid": "1.2.826.0.1.3680043.8.498.68593524008570334427931338225473487643",
+      "report": "TEXNIKH: Η εξέταση πραγµαοτποιήθηκε µε ακολουθίες τ1, pd fs, T2med2d. ΕΥΡΗΜΑΤΑ - Χωρίς ενδαρθρική συλλογή υγρού. - Φυσιολογικά ελέγχονται οι µηνίσκοι, καθώς και οι χιαστοί και πλάγιοι σύνδεσµοι. - Με σήµα εντός του φυσιολογικού ελέγχεται ο οστικός µυελός. - Χωρίς παθολογικά ευρήµατα από τον αρθρικό χόνδρο. - Αναγνωρίζεται υψηλή θέση της επιγονατίδας µε δείκτη Insall - Salvati ~1.9. Συνυπάρχει µικρής έκτασης παθολογικό σήµα στο ανώτερο - έξω υποεπιγονατιδικό λιπώδες σώµα (Hoffa). Κλινική συνεκτίµηση για το ενδεχόµενο επώδυνου συνδρόµου. Χωρίς άλλα ευρήµατα δυσλειτουργίας του εκτατικού µηχανισµού.",
+      "source_path": "initiative/reviews/inputs/batch-064.json",
+      "source_sha256": "f7064be1ca6e30c600fa525dae8858045602634273f9a0b6254cbf873abcba01",
+      "report_sha256": "474d1be9501710c885b33dffaa3ba75bb79b7ee8faa80b7185c89be03cd1c3fd",
+      "assessment": {
+        "source_assessment": "The single Greek report describes one examination and its technique. It contains neither a named side nor a second examination/report block, recall, explicit repeat acquisition, or bilateral aggregate. The technique names T1, PD FS and T2med2d; these names alone cannot identify which repeated same-description series the author interpreted. Source text itself supplies no basis for a whole-study report-supervision correspondence exclusion. Technical quality and training-series selection remain separate, image-dependent questions.",
+        "literal_quotes": [
+          "TEXNIKH: Η εξέταση πραγµαοτποιήθηκε µε ακολουθίες τ1, pd fs, T2med2d.",
+          "ΕΥΡΗΜΑΤΑ - Χωρίς ενδαρθρική συλλογή υγρού."
+        ],
+        "provisional_correspondence_action": "retain_pending_technical_quality_review",
+        "remaining_questions": [
+          "Does the bound image study form one knee examination?",
+          "Are repeated series technically limited, and if so across what slice coverage?"
+        ],
+        "no_diagnostic_reread": true
+      }
+    },
+    {
+      "batch": "064",
+      "index": 46,
+      "study_uid": "1.2.826.0.1.3680043.8.498.69495014653333523580255444915082056825",
+      "report": "Findings:  Small suprapatellar knee joint effusion. No sinister bone marrow changes. Small 10 mm x 3 mm intra-articular retropatellar soft tissue focus.  Intact cruciate and collateral ligaments.  Intact medial meniscus. Horizontal tear of the posterior horn of the lateral meniscus which breaches the inferior meniscal surface. Radial fraying of the inner free edge of the anterior horn and body of the lateral meniscus.  Normal appearance of the pes anserine tendons, popliteus tendon, distal biceps femoris tendon and distal iliotibial band.  Intact extensor mechanism. No evidence of fat pad impingement.  Minor fibrillation of the hyaline articular cartilage in the lateral tibiofemoral compartment. Otherwise well maintained tricompartmental hyaline articular cartilage.  \nConclusion:  Horizontal tear of the posterior horn of the lateral meniscus which breaches the inferior meniscal surface. Radial fraying of the inner free edge of the anterior horn and body of the lateral meniscus. Small 10 mm x 3 mm intra-articular retropatellar soft tissue focus. Possibly represents a small focus of PVNS - patient will be recalled for dedicated sequences.\nExam performed: MR Recall of [DATE]:  Findings:  The previously described small intra-articular retropatellar soft tissue focus cannot be readily appreciated on the current scan. There are no intra-articular soft tissue foci which demonstrate blooming artefact to suggest PVNS.",
+      "source_path": "initiative/reviews/inputs/batch-064.json",
+      "source_sha256": "f7064be1ca6e30c600fa525dae8858045602634273f9a0b6254cbf873abcba01",
+      "report_sha256": "f3a8053941140bdd791c5480bf0fdae68dc332ecad34bdce0fbcf003f232a7a8",
+      "assessment": {
+        "source_assessment": "The text explicitly concatenates an initial examination, its conclusion planning a recall, and an MR recall findings section. The recall revisits a previously described focus and says it cannot readily be appreciated; the initial block also contains structure-specific findings not repeated in the recall block. The report does not identify exact supplied series or make an unambiguous series-to-examination mapping. Initial versus recall linkage must therefore be established before treating all aggregate report statements as supervision for every supplied image. The source alone proves two temporal report sections, not that the image study contains only recall sequences or mixed examinations.",
+        "literal_quotes": [
+          "Possibly represents a small focus of PVNS - patient will be recalled for dedicated sequences.",
+          "Exam performed: MR Recall of [DATE]:",
+          "The previously described small intra-articular retropatellar soft tissue focus cannot be readily appreciated on the current scan."
+        ],
+        "provisional_correspondence_action": "unresolved_initial_recall_linkage_requires_metadata_and_image_review",
+        "remaining_questions": [
+          "Which supplied series belong to the initial examination versus the recall?",
+          "Can a technical binding establish coverage of initial-report supervision without inferring clinical findings?"
+        ],
+        "no_diagnostic_reread": true
+      }
+    }
+  ]
+}

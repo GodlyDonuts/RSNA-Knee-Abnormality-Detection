@@ -18,6 +18,8 @@ from rsna.schema import TARGETS
 
 REGISTRY_PATH = Path("initiative/audits/correspondence-release-registry.json")
 MULTI_ASSESSOR_STAGE = "verified_multi_assessor_correspondence_source_binding"
+TEMPORAL_STAGE = "verified_temporal_multi_assessor_correspondence_binding"
+TEMPORAL_ACTION = "exclude_whole_study_report_supervision_non_gold"
 
 # Exact historical dispositions, not keyword-based inference from arbitrary notes.
 # These originals predate the explicit boolean used by the later cache reviews.
@@ -346,6 +348,304 @@ def _validate_multi_assessor_proof(record: dict, proof: dict, artifact_root: Pat
         raise ValueError("Unknown multi-assessor correspondence proof kind")
 
 
+def _temporal_check(condition: bool, context: str) -> None:
+    if not condition:
+        raise ValueError("Temporal correspondence evidence " + context)
+
+
+def _temporal_time(document: dict, key: str) -> datetime:
+    try:
+        value = datetime.fromisoformat(document[key])
+        if value.tzinfo is not None and value.utcoffset() is not None:
+            return value
+    except (KeyError, TypeError, ValueError):
+        pass
+    raise ValueError("Temporal correspondence evidence has invalid recorded chronology")
+
+
+def _validate_temporal_proof(record: dict, proof: dict, artifact_root: Path) -> None:
+    """Authenticate actual temporal-review formats, without rerunning image review.
+
+    These records preserve separate per-reader chronology, including an explicit
+    correction of a historical source-link typo. They cannot prove past access order.
+    """
+    refs = proof.get("evidence")
+    _temporal_check(isinstance(refs, dict), "requires bound evidence references")
+    assert isinstance(refs, dict)
+    keys = {
+        "source_packet",
+        "root_source",
+        "root_visual",
+        "root_lineage_correction",
+        "root_numeric",
+        "root_proposal",
+        "root_acceptance",
+        "independent_source",
+        "independent_visual",
+        "independent_numeric",
+        "independent_policy",
+        "independent_acceptance",
+        "panel_manifest",
+        "technical_metadata",
+        "before_registry",
+    }
+    _temporal_check(set(refs) == keys, "has missing or unexpected evidence roles")
+    docs = {
+        key: _object(_bound_path(refs[key], artifact_root))
+        for key in keys
+        if key != "source_packet"
+    }
+    source_ref = {"path": record["source_path"], "sha256": record["source_batch_sha256"]}
+    batch = _json(_bound_path(source_ref, artifact_root))
+    index = proof.get("source_index")
+    _temporal_check(
+        type(proof.get("schema_version")) is int
+        and proof["schema_version"] == 1
+        and proof.get("source_batch") == source_ref
+        and proof.get("source_report_sha256") == record["source_report_sha256"]
+        and type(index) is int
+        and isinstance(batch, list)
+        and 0 <= index < len(batch)
+        and batch[index].get("study_uid") == record["study_uid"],
+        "differs from the exact original source",
+    )
+    assert isinstance(batch, list) and isinstance(index, int)
+    report = batch[index]["report"]
+    batch_number = Path(record["source_path"]).stem.removeprefix("batch-")
+    _temporal_check(record["case"] == f"{batch_number}:{index:02d}", "has wrong source index")
+    quotes = proof.get("source_evidence")
+    _temporal_check(
+        isinstance(quotes, list)
+        and len(quotes) >= 2
+        and all(isinstance(q, str) and q and q in report for q in quotes),
+        "has changed source quotations",
+    )
+
+    def linked(document: dict, field: str, role: str) -> bool:
+        ref = document.get(field)
+        return isinstance(ref, dict) and ref.get("sha256") == refs[role]["sha256"]
+
+    def case_matches(document: dict) -> bool:
+        return (
+            document.get("case") == record["case"]
+            and document.get("study_uid") == record["study_uid"]
+        )
+
+    root = docs["root_acceptance"]
+    accepted = docs["independent_acceptance"]
+    independent = docs["independent_policy"]
+    for key, stage in {
+        "root_visual": "independent_root_visual_assessment_frozen_before_other_visual_findings",
+        "root_numeric": "completed_bounded_root_source_visual_numeric_crosscheck_with_open_followups",
+        "independent_visual": "independent_064046_metadata_and_visual_freeze_before_proposal",
+        "panel_manifest": "bound_cached_representative_side_consistency_panels",
+    }.items():
+        _temporal_check(
+            docs[key].get("stage") == stage, "has an unsupported original evidence format"
+        )
+    agent = _assessor_id(independent.get("agent_id"))
+    _temporal_check(
+        agent != "/root" and _assessor_id(proof.get("agent_id")) == agent,
+        "requires distinct root and independent assessors",
+    )
+    for key in (
+        "root_source",
+        "root_visual",
+        "root_numeric",
+        "root_proposal",
+        "root_acceptance",
+        "root_lineage_correction",
+    ):
+        _temporal_check(
+            _assessor_id(docs[key].get("agent_id")) == "/root", "has wrong root assessor"
+        )
+    for key in ("independent_visual", "independent_numeric", "independent_acceptance"):
+        _temporal_check(
+            _assessor_id(docs[key].get("agent_id")) == agent, "has wrong independent assessor"
+        )
+    source = docs["independent_source"]
+    _temporal_check(
+        _assessor_id(_selected(source, "/assessor/agent_id")) == agent,
+        "has wrong independent source assessor",
+    )
+    _temporal_check(
+        root.get("stage")
+        == "root_accepted_temporal_correspondence_exclusion_after_independent_assessment"
+        and root.get("status") == "accepted"
+        and case_matches(root)
+        and root.get("action") == TEMPORAL_ACTION
+        and root.get("preserve_original_reports_annotations_images_and_gold") is True
+        and root.get("source_index") == index
+        and root.get("source_report_sha256") == record["source_report_sha256"]
+        and root.get("source_batch", {}).get("path") == "recovered/" + record["source_path"]
+        and root.get("source_batch", {}).get("sha256") == record["source_batch_sha256"]
+        and root.get("independent_agent_id") == agent,
+        "lacks the actual accepted root action",
+    )
+    for field, role in {
+        "proposal": "root_proposal",
+        "root_source_freeze": "root_source",
+        "root_visual_freeze": "root_visual",
+        "root_numeric_comparison": "root_numeric",
+        "independent_source_freeze": "independent_source",
+        "independent_metadata_visual_freeze": "independent_visual",
+        "independent_policy_assessment": "independent_policy",
+    }.items():
+        _temporal_check(linked(root, field, role), "has altered root acceptance lineage")
+    _temporal_check(
+        accepted.get("stage") == "independent_accepted_temporal_correspondence_exclusion"
+        and accepted.get("status") == "accepted"
+        and case_matches(accepted)
+        and accepted.get("action") == TEMPORAL_ACTION
+        and accepted.get("required_report_loss_mask") == [False] * len(TARGETS)
+        and all(v is False for v in accepted["required_report_loss_mask"])
+        and linked(accepted, "root_acceptance", "root_acceptance")
+        and linked(accepted, "independent_policy_assessment", "independent_policy")
+        and independent.get("stage")
+        == "independent_policy_assessment_complete_for_root_integration"
+        and case_matches(independent)
+        and _selected(independent, "/assessment_of_root_proposal/supported") is True
+        and _selected(
+            independent,
+            "/assessment_of_root_proposal/proposed_action/report_derived_training_supervision_allowed",
+        )
+        is False
+        and linked(independent, "source_first_freeze", "independent_source")
+        and linked(independent, "independent_metadata_visual_freeze", "independent_visual")
+        and linked(independent, "numeric_and_exact_before_policy_context", "independent_numeric"),
+        "lacks the actual independent accepted action and policy content",
+    )
+    packet = _json(_bound_path(refs["source_packet"], artifact_root))
+    selected_packet = _selected(packet, proof.get("source_packet_selector"))
+    root_source = _selected(docs["root_source"], proof.get("root_source_selector"))
+    independent_source = _selected(source, proof.get("independent_source_selector"))
+    _temporal_check(
+        all(isinstance(v, dict) for v in (selected_packet, root_source, independent_source)),
+        "has invalid source selectors",
+    )
+    assert isinstance(selected_packet, dict)
+    assert isinstance(root_source, dict)
+    assert isinstance(independent_source, dict)
+    for item in (selected_packet, root_source, independent_source):
+        _temporal_check(
+            item.get("study_uid") == record["study_uid"]
+            and item.get("index") == index
+            and item.get("batch") == batch_number
+            and item.get("source_sha256") == record["source_batch_sha256"],
+            "source selector identifies another record",
+        )
+    _temporal_check(
+        selected_packet.get("report") == report
+        and independent_source.get("report") == report
+        and independent_source.get("report_sha256") == record["source_report_sha256"]
+        and docs["root_source"].get("source_packet_sha256") == refs["source_packet"]["sha256"]
+        and source.get("status") == "frozen_independent_source_first_assessment"
+        and docs["root_source"].get("stage") == "source_first_technical_correspondence_freeze",
+        "full source freeze differs from original report",
+    )
+    frozen_quotes = _selected(independent_source, "/assessment/literal_quotes")
+    _temporal_check(frozen_quotes == quotes, "quotes differ from independent source freeze")
+    root_visual = docs["root_visual"]
+    correction = docs["root_lineage_correction"]
+    _temporal_check(
+        correction.get("stage") == "explicit_recorded_hash_binding_correction"
+        and correction.get("status") == "accepted_record_correction"
+        and correction.get("field") == "/source_preread_sha256"
+        and linked(correction, "unchanged_original_visual_freeze", "root_visual")
+        and linked(correction, "intended_unchanged_source_freeze", "root_source")
+        and correction.get("recorded_wrong_sha256") == root_visual.get("source_preread_sha256")
+        and correction.get("corrected_sha256") == refs["root_source"]["sha256"]
+        and isinstance(correction.get("access_order_limit"), str)
+        and bool(correction["access_order_limit"]),
+        "lacks the explicit historical source-link correction",
+    )
+    visual = docs["independent_visual"]
+    root_visual_case = _selected(root_visual, proof.get("root_visual_selector"))
+    panel = docs["panel_manifest"]
+    metadata = docs["technical_metadata"]
+    numeric = docs["independent_numeric"]
+    _temporal_check(
+        isinstance(root_visual_case, dict)
+        and case_matches(root_visual_case)
+        and root_visual_case.get("manifest_sha256") == refs["panel_manifest"]["sha256"]
+        and root_visual_case.get("panels_viewed") == 12
+        and case_matches(visual)
+        and visual.get("all_12_matrices_viewed") is True
+        and visual.get("root_proposal_read") is False
+        and linked(visual, "source_freeze", "independent_source")
+        and linked(visual, "panel_manifest", "panel_manifest")
+        and linked(visual, "technical_metadata", "technical_metadata")
+        and case_matches(panel)
+        and panel.get("cached_panels") == 12
+        and panel.get("series_sampled") == 4
+        and panel.get("all_source_membership_verified") == 130
+        and case_matches(metadata)
+        and metadata.get("series_count") == 4
+        and metadata.get("slices") == 130
+        and numeric.get("stage") == "independent_numeric_binding_checks_passed"
+        and _selected(numeric, "/064_46/source_memberships") == 130
+        and _selected(numeric, "/064_46/panel_manifest/sha256") == refs["panel_manifest"]["sha256"],
+        "has inconsistent technical sample/metadata evidence",
+    )
+    checks = _selected(numeric, "/064_46/sample_matrices")
+    _temporal_check(
+        isinstance(checks, list)
+        and len(checks) == 12
+        and all(
+            isinstance(c, dict)
+            and c.get("cache_bytes_and_png_crop_equal") is True
+            and c.get("source_sop_and_stored_native_fingerprint_bound") is True
+            for c in checks
+        ),
+        "lacks exact numeric display checks",
+    )
+    _temporal_check(
+        linked(docs["root_numeric"], "root_source_preread", "root_source")
+        and linked(docs["root_numeric"], "root_visual_freeze", "root_visual"),
+        "has changed root numeric lineage",
+    )
+    before = _selected(numeric, "/before_policy")
+    _temporal_check(
+        isinstance(before, dict)
+        and before.get("064_46_present") is False
+        and before.get("enforced_exclusions") == 16
+        and docs["before_registry"].get("target_order") == list(TARGETS)
+        and any(
+            isinstance(v, dict)
+            and v.get("snapshot", {}).get("sha256") == refs["before_registry"]["sha256"]
+            for v in before.get("bound_files", [])
+        ),
+        "does not bind the exact before-policy context",
+    )
+    root_times = [
+        _temporal_time(docs[k], field)
+        for k, field in (
+            ("root_source", "at_utc"),
+            ("root_visual", "at_utc"),
+            ("root_numeric", "at_utc"),
+        )
+    ]
+    independent_times = [
+        _temporal_time(docs[k], "created_at_utc")
+        for k in (
+            "independent_source",
+            "independent_visual",
+            "independent_numeric",
+            "independent_policy",
+        )
+    ]
+    accepted_time = _temporal_time(root, "completed_at_utc")
+    _temporal_check(
+        root_times == sorted(root_times)
+        and independent_times == sorted(independent_times)
+        and max(root_times + independent_times)
+        <= accepted_time
+        <= _temporal_time(accepted, "created_at_utc")
+        <= _temporal_time(proof, "created_at_utc"),
+        "has malformed recorded source/visual/acceptance ordering",
+    )
+
+
 def _validate_proof(record: dict, artifact_root: Path) -> None:
     proof_path = _bound_path(record.get("verified_technical_proof"), artifact_root)
     proof = _object(proof_path)
@@ -358,6 +658,8 @@ def _validate_proof(record: dict, artifact_root: Path) -> None:
         raise ValueError("Correspondence proof is unverified or identifies another case/study")
     if proof.get("stage") == MULTI_ASSESSOR_STAGE:
         _validate_multi_assessor_proof(record, proof, artifact_root)
+    if proof.get("stage") == TEMPORAL_STAGE:
+        _validate_temporal_proof(record, proof, artifact_root)
     if proof.get("stage") == "root_verified_correspondence_source_identity_binding":
         review_path = _bound_path(proof.get("verified_review"), artifact_root)
         handoff_path = _bound_path(proof.get("source_handoff"), artifact_root)
@@ -421,7 +723,7 @@ def inspect_correspondence(reports: dict[str, str], artifact_root: Path) -> dict
         ):
             raise ValueError("Invalid correspondence policy schema or target order")
         binding_version = policy.get("proof_binding_version", 1)
-        if type(binding_version) is not int or binding_version not in {1, 2}:
+        if type(binding_version) is not int or binding_version not in {1, 2, 3}:
             raise ValueError("Unsupported correspondence proof binding version")
         for record in policy["records"]:
             if not isinstance(record, dict):
@@ -473,6 +775,10 @@ def inspect_correspondence(reports: dict[str, str], artifact_root: Path) -> dict
                     raise ValueError(
                         "Correspondence policy requires a multi-assessor source binding"
                     )
+            if binding_version == 3:
+                proof = _object(_bound_path(record.get("verified_technical_proof"), artifact_root))
+                if proof.get("stage") != TEMPORAL_STAGE:
+                    raise ValueError("Correspondence policy requires a temporal source binding")
             _validate_proof(record, artifact_root)
             decisions.append({**record, "policy": reference})
     return {

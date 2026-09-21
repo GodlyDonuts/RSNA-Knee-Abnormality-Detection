@@ -9,6 +9,10 @@ from a clone of this repository.
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
+ The latest audit additions preserve34 registered report-target corrections,
+150 independently inspected samples from the final12 targeted cases, and bounded
+native/display evidence for repeat-acquisition quality. Three global semantic QA
+issues and final correspondence/selection/release checks remain open.
 
 The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and
 [agent procedure](../protocols/agent_tasks.md). The `reviews/` outputs and index

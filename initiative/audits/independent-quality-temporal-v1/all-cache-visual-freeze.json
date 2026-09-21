@@ -1,0 +1,126 @@
+{
+  "stage": "frozen_independent_all_cache_visual_assessment",
+  "created_at_utc": "2026-09-21T19:31:25.524377+00:00",
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "case": "064:14",
+  "study_uid": "1.2.826.0.1.3680043.8.498.68593524008570334427931338225473487643",
+  "source_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/source-first-freeze.json",
+    "sha256": "b8fcef79d3c3913569f567d2617779ff9ff83268ad788181d49279d78c549081",
+    "bytes": 6933
+  },
+  "sampled_native_display_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/native-display-freeze.json",
+    "sha256": "922bb3b946d2a444ab15b519b1fdd671162297f8f98caaed8c0c0282651fe4be",
+    "bytes": 4473
+  },
+  "numeric_manifest": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/all-cache-display-manifest.json",
+    "sha256": "6d7edabfc06746d60f90f806571182b31b5b8321f646a9cfd845d7bff18715a7",
+    "bytes": 35436
+  },
+  "all_eight_contact_sheets_viewed": true,
+  "coverage": {
+    "5": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ],
+    "6": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "11": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "12": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ]
+  },
+  "all_71_cache_slices_viewed_in_both_displays": true,
+  "root_native_visual_assessment_read": false,
+  "observations": {
+    "5": "Marked darkness under the existing full-scale display extends across all 19 slices. Per-slice percentile displays restore broad contours but retain conspicuous grain and poorer fine structure separation throughout the array, including central joint slices. No blank or grossly misdecoded matrix is present.",
+    "6": "All 17 slices preserve gross coronal anatomy. The upper region is consistently dark relative to the inferior region through the central joint slices; percentile windowing does not correct this unevenness and reveals grain. This is materially less even presentation than series 11, though series 6 remains anatomically informative.",
+    "11": "All 16 cache slices progress coherently through coronal coverage. Central structures remain visibly separated under the existing full-scale display; signal is more even than series 6 with some inferior shading still present. No blank or grossly misdecoded matrix is evident.",
+    "12": "All 19 sagittal cache slices progress coherently with broad anatomy visible under the existing display. Central joint structures are more distinctly separated and far less obscured by grain than series 5. No blank or grossly misdecoded matrix is evident."
+  },
+  "recommendation": {
+    "study_report_supervision": "retain; no whole-study correspondence exclusion supported by this source and quality review",
+    "source_and_cache": "retain all unchanged",
+    "training_series_selection": "prefer series 11 for the compared T1 coronal role and series 12 for the compared PD FS sagittal role; if a bounded deterministic selector needs one series per repeated role, choose 11/12 over 6/5",
+    "hard_series_exclusion": "not recommended as a statement that series 5/6 are entirely unusable; they preserve anatomy and exact coverage equivalence has not been established",
+    "normalization": "unchanged; percentile windows are inspection-only",
+    "supported_scope": "technical preference among these four exact bound 256x256 cache arrays, supported by every cached slice plus three native replayed samples per series; no generic scanner/acquisition rule or full-native-volume quality certification"
+  },
+  "limits": [
+    "The cause of uneven signal or grain is not established.",
+    "Different field geometry/coverage and the 17-versus-16 coronal slice counts prevent calling series 11 an exact pixel/coverage replacement for series 6.",
+    "No clinical diagnoses, target-state edits, label edits, gold inspection or production selection change occurred."
+  ]
+}

@@ -1,0 +1,48 @@
+"""Preserve completed bounded image evidence without rewriting original artifacts."""
+import datetime
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+from dotenv import dotenv_values
+
+W = Path(__file__).resolve().parent
+R = W / 'recovered'
+secrets = [v.encode() for k,v in dotenv_values(W.parent/'.env').items() if k in {'HF_TOKEN','KAGGLE_API_TOKEN'} and v]
+assert len(secrets) == 2
+jobs = {
+    'repeated-temporal-001021064-v1': [],
+    'quality-native-064014-v1': ['inspect-quality-064014-native.py','quality-native-064014-console.log'],
+    'technical-tier4-last-twelve-targeted-v1': ['render-last-twelve-targeted.py','verify-last-twelve-targeted.py','last-twelve-render-console.log'],
+    'last-twelve-independent-visual-v1': [],
+}
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+for name, helpers in jobs.items():
+    src = W/'annotation-staging'/name
+    target = R/'initiative/audits'/name
+    assert not target.exists(), name
+    files = [(p,p.relative_to(src)) for p in sorted(src.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and not p.name.endswith(('.lock','.pyc'))]
+    files += [(W/p,Path('scripts')/p) for p in helpers]
+    files += [(Path(__file__),Path('scripts')/Path(__file__).name)]
+    assert shutil.disk_usage(W).free - sum(p.stat().st_size for p,_ in files) > 20*2**30+2**20
+    entries = []
+    for p,rel in files:
+        assert not p.is_symlink()
+        data = p.read_bytes()
+        assert len(data)<100_000_000 and all(s not in data for s in secrets)
+        out = target/rel
+        if out.suffix == '.py':
+            out = out.with_suffix('.py.txt')
+        out.parent.mkdir(parents=True,exist_ok=True)
+        with out.open('xb') as f:f.write(data)
+        assert sha(p)==sha(out)
+        entries.append(dict(original_path=str(p.relative_to(W)),archived_path=str(out.relative_to(R)),sha256=sha(out),bytes=len(data)))
+    payload=dict(stage='root_verified_byte_preservation',agent_id='/root',session_id='/root',at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),files=entries,excluded='Generated Python bytecode and lock files only. Scripts receive a .txt suffix; original bytes unchanged. Cache arrays remain at their pinned external/local paths; this package preserves their exact references and measured samples.',training_ready=False)
+    with (target/'preservation.json').open('x') as f:json.dump(payload,f,indent=2);f.write('\n')
+    print(json.dumps(dict(archive=name,files=len(entries),bytes=sum(x['bytes'] for x in entries),preservation_sha256=sha(target/'preservation.json'))))

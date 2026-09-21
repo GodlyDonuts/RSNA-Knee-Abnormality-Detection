@@ -106,7 +106,8 @@ Historical outputs and in-progress drafts are not a corrected release.
 ## Remaining acceptance gates
 
 1. All4,407 reports have two archived review passes with validated evidence and
-   IDs. Resolve the remaining cartilage, bone terminology, and qualified-negation/
+   IDs. There are34 independently accepted target corrections; the latest seven
+   have exact original/source bindings and preserve all prior artifacts. Resolve the remaining cartilage, bone terminology, and qualified-negation/
    duplicate semantic gates against the exact final artifacts and corrections.
 2. Finish remaining technical correspondence checks and incorporate the complete
    image audit and verified duplicate edges into final leakage isolation.

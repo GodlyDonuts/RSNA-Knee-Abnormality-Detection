@@ -24,10 +24,11 @@ The release exports `correspondence_trace.json`, includes that trace in
 changed or incomplete registry, wrong source identity, unverified proof or partial
 mask fails before the command writes a new release.
 
-The current policies enforce 16 whole-study report-supervision exclusions:
+The current policies enforce 17 whole-study report-supervision exclusions:
 052:20, 075:14, 048:12, 086:13, 017:07, 018:19, 038:37, 067:37,
-052:01, 052:17, 001:39, 007:16, 062:21, 048:09, 048:38 and 053:47. They cover a shoulder report,
-unresolved two-knee acquisitions and explicitly bilateral report aggregates.
+052:01, 052:17, 001:39, 007:16, 062:21, 048:09, 048:38, 053:47 and 064:46. They cover a shoulder report,
+unresolved two-knee acquisitions, explicitly bilateral report aggregates and
+unresolved initial-versus-recall examination linkage.
 Literal side tags alone never cause an exclusion.
 
 The v3 policy adds nine previously verified cases using proof binding version 2.
@@ -63,7 +64,23 @@ The original staged markers and initial failed integration tests are retained
 with the later root promotion and successful live-validation receipts.
 
 Other correspondence and semantic flags remain individually reviewable; the
-16 enforced exclusions do not close the remaining queue.
+17 enforced exclusions do not close the remaining queue.
+
+The v5 policy adds only 064:46. Its report joins initial findings to a later MR
+recall, while the four bound image series cannot be assigned to either examination
+from the available metadata. Both assessors accepted whole-study non-gold report
+supervision exclusion; all images and original target states remain unchanged.
+Proof binding version 3 validates the actual temporal evidence formats, source
+selectors, literal quotations, distinct identities, explicit accepted actions,
+recorded chronology, twelve displayed cache checks and the exact prior registry.
+The earlier root visual record contains a mistaken source hash pointing to a PNG;
+its original bytes remain intact beside an explicit, required correction. Neither
+that correction nor chronology validation proves historical access order or reruns
+the MRI review. The independent technical review of all 71 cached slices in
+064:14's four compared series supports a preference for series 11/12 when selecting
+among those repeated roles; no production series-selection or normalization change
+is included. See `initiative/audits/independent-quality-temporal-v1/` and
+`initiative/audits/repeated-temporal-001021064-v1/`.
 
 These controls do not certify completion of report review, semantic QA or the
 remaining technical correspondence queue. Final manifests and actual final-data

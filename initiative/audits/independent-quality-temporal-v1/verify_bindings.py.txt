@@ -1,0 +1,101 @@
+"""Independent source/cache/display bindings and immutable policy-before copy."""
+import datetime
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parents[3]
+OUT = Path(__file__).resolve().parent
+WORK = ROOT / "work"
+REPO = WORK / "recovered"
+GROUP = WORK / "annotation-staging/repeated-temporal-001021064-v1"
+
+def digest(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p): return {"path": str(p.relative_to(ROOT)), "sha256": digest(p), "bytes": p.stat().st_size}
+def checked(ref):
+    p=WORK/ref["path"]
+    assert digest(p)==ref["sha256"]
+    assert p.stat().st_size==ref["bytes"]
+    return p
+
+def main():
+    result={"stage":"independent_numeric_binding_checks_passed", "created_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),"agent_id":"/root/quality_temporal_review","session_id":"/root/quality_temporal_review","script":bind(Path(__file__))}
+    source_freeze=json.loads((OUT/"source-first-freeze.json").read_text())
+    original=REPO/"initiative/reviews/inputs/batch-064.json"
+    batch=json.loads(original.read_text())
+    for c in source_freeze["cases"]:
+        assert digest(original)==c["source_sha256"]
+        assert batch[c["index"]]=={"study_uid":c["study_uid"],"report":c["report"]}
+    result["original_report_identity_verified"]={"source":bind(original),"zero_based_indices":[14,46],"source_freeze":bind(OUT/"source-first-freeze.json")}
+    manifest_path=GROUP/"cache-panels/case-064-46/panel-manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    checked(manifest["case_metadata"])
+    inv=json.loads(checked(manifest["source_inventory_subset"]).read_text())
+    inv=[s for s in inv if s["study_uid"]==manifest["study_uid"]]
+    assert len(inv)==130
+    images=[np.asarray(Image.open(checked(r)).convert("L")) for r in manifest["images"]]
+    volumes={}; metadata={}; series_checks=[]; sample_checks=[]
+    for p in manifest["panels"]:
+        uid=p["series_uid"]
+        if uid not in volumes:
+            cache_path=checked(p["cache"]); meta_path=checked(p["cache_metadata"])
+            m=json.loads(meta_path.read_text()); metadata[uid]=m
+            assert m["study_uid"]==manifest["study_uid"] and m["series_uid"]==uid
+            with np.load(cache_path) as z: volumes[uid]=z["volume"]
+            a=volumes[uid]
+            assert a.dtype==np.uint16 and list(a.shape)==[m["n_slices"],256,256]
+            members=[s for s in inv if s["series_uid"]==uid]
+            assert set(m["sop_uids"])=={s["sop_uid"] for s in members}
+            assert len(m["sop_uids"])==len(members)
+            series_checks.append({"series_number":p["series_number"],"series_uid":uid,"cache":bind(cache_path),"metadata":bind(meta_path),"slices":len(a),"source_membership_exact":True})
+        m=metadata[uid]; a=volumes[uid][p["ordered_index"]]
+        assert m["sop_uids"][p["ordered_index"]]==p["source"]["sop_uid"]
+        assert p["source"] in inv
+        assert hashlib.sha256(a.tobytes()).hexdigest()==p["cached_slice_bytes_sha256"]
+        display=np.rint(a.astype(float)/65535*255).astype(np.uint8)
+        assert hashlib.sha256(display.tobytes()).hexdigest()==p["display_pixel_bytes_sha256"]
+        x,y,w,h=p["display_box_xywh"]
+        assert np.array_equal(images[p["page"]][y:y+h,x:x+w],display)
+        assert m["pixel_sha256"][p["ordered_index"]]==p["source_native_pixel_sha256_from_bound_metadata"]
+        sample_checks.append({"series_number":p["series_number"],"ordered_index":p["ordered_index"],"cache_bytes_and_png_crop_equal":True,"source_sop_and_stored_native_fingerprint_bound":True})
+    ordered=list(volumes)
+    pairs=[]
+    for i,uid in enumerate(ordered):
+        for other in ordered[i+1:]:
+            pairs.append({"series_uids":[uid,other],"shared_stored_native_fingerprints":len(set(metadata[uid]["pixel_sha256"])&set(metadata[other]["pixel_sha256"]))})
+    result["064_46"]={"case_metadata":manifest["case_metadata"],"panel_manifest":bind(manifest_path),"source_memberships":130,"series":series_checks,"sample_matrices":sample_checks,"pairs":pairs,"native_decode_performed":False}
+    native_proof_path=WORK/"annotation-staging/quality-native-064014-v1/native-replay-and-display-inspection.json"
+    native_proof=json.loads(native_proof_path.read_text())
+    for s in native_proof["sources"]:
+        checked(s["native"]); checked(s["cache"]); checked(s["cache_metadata"])
+        assert s["native_fingerprint_verified"] and s["native_geometry_verified"] and s["exact_uint16_cache_slice_reproduced"]
+    for r in native_proof["figures"]: checked(r)
+    result["064_14_native_proof"]={"proof":bind(native_proof_path),"native_files_and_cache_metadata_and_four_figures_hash_verified":True,"source_count":12,"reported_exact_cache_reproductions":12,"independent_native_redecode_performed":False}
+    snap=OUT/"before-policy"
+    snap.mkdir(exist_ok=False)
+    files=[REPO/"initiative/audits/correspondence-release-registry.json",*sorted((REPO/"initiative/audits").glob("correspondence-release-dispositions-v*.json")),REPO/"docs/correspondence.md",REPO/"protocols/report_weak_v2.md",REPO/"rsna/correspondence.py"]
+    copied=[]
+    for p in files:
+        dest=snap/p.name; shutil.copyfile(p,dest)
+        assert digest(p)==digest(dest)
+        copied.append({"original":bind(p),"snapshot":bind(dest)})
+    registry=json.loads(files[0].read_text()); records=[]
+    for r in registry["policies"]:
+        p=REPO/r["path"]; assert digest(p)==r["sha256"]
+        records.extend(json.loads(p.read_text())["records"])
+    assert len(records)==16 and len({r["study_uid"] for r in records})==16
+    target="1.2.826.0.1.3680043.8.498.69495014653333523580255444915082056825"
+    assert not any(r["study_uid"]==target for r in records)
+    result["before_policy"]={"bound_files":copied,"registry_policy_hashes_verified":True,"policy_count":4,"enforced_exclusions":16,"cases":[r["case"] for r in records],"064_46_present":False,"existing_semantics":"Current correspondence exclusions zero all twelve report-derived loss masks only for non-gold studies; preserve report/target states/evidence/values/split/leakage group and official gold/evaluation masks.","proposal_would_add_one_exclusion_without_changing_existing_16":True}
+    result["production_changes"]=False
+    result["free_gib"]=shutil.disk_usage(ROOT).free/1024**3
+    assert result["free_gib"]>=20
+    dest=OUT/"independent-numeric-and-before-policy.json"
+    dest.write_text(json.dumps(result,indent=2)+"\n")
+    print(json.dumps(bind(dest)))
+
+if __name__=="__main__": main()

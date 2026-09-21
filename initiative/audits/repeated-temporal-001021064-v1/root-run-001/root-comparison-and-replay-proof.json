@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root",
+  "session_id": "/root",
+  "at_utc": "2026-09-21T18:45:23.060579+00:00",
+  "stage": "completed_bounded_root_source_visual_numeric_crosscheck_with_open_followups",
+  "source_reports": 4,
+  "series": 29,
+  "source_memberships": 791,
+  "endpoints": 58,
+  "displayed_samples": 87,
+  "root_source_preread": {
+    "path": "annotation-staging/repeated-temporal-001021064-v1/root-source-correspondence-preread.json",
+    "sha256": "d118643ebd239838e4dfca87063129cc155771c38d5258559ab0b4e914bcc0ca",
+    "bytes": 3457
+  },
+  "root_visual_freeze": {
+    "path": "annotation-staging/repeated-temporal-001021064-v1/root-visual-preread.json",
+    "sha256": "08af0f6a886cc7c963c5c9a4a89fa090321dda58cc65720510e5b4f2684c036a",
+    "bytes": 8407
+  },
+  "other_source_preread": {
+    "path": "annotation-staging/repeated-temporal-001021064-v1/source-only-preread.json",
+    "sha256": "3b663ea1174778c9df30d2484270afbc1b0d074f3bf06473140f50ec3918e68c",
+    "bytes": 13543
+  },
+  "other_visual_assessments": [
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-001-18/independent-cache-visual-assessment.json",
+      "sha256": "4141d0fff91443ee4bede687311fceace0f78bb46ed01376a5b466939c70d5a8",
+      "bytes": 4079
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-021-03/independent-cache-visual-assessment.json",
+      "sha256": "0c6da9c58591183a8df7257b5ec906c27659d2bf2560a32e6445b4ea3a48245c",
+      "bytes": 4247
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-064-14/independent-cache-visual-assessment.json",
+      "sha256": "5600b8b534f5327ffedc59ec1c8de01123ab21f555edaff73d634c3a8e19e615",
+      "bytes": 4253
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/cache-panels/case-064-46/independent-cache-visual-assessment.json",
+      "sha256": "5b214c33b8fa7a5a33a03ef6f58db11537d46f5c81cd1aa7a1c2872d57efcac8",
+      "bytes": 3667
+    }
+  ],
+  "root_replays": [
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/root-run-001/technical-evidence/summary.json",
+      "sha256": "8ff4d49df66bd086555c0c63fe748fcd14ad89a9eaf337eb5d837022675b9fec",
+      "bytes": 19847
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/root-run-001/display-source-integrity.json",
+      "sha256": "483630ad0c95d1ffa9c7e3a014dbd2afdf50e9c41680acc95d7d0d2f04721042",
+      "bytes": 26397
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/root-run-001/geometry-comparison.json",
+      "sha256": "7e26e33ac06f4e0c620025bbf8648dab9a7a099204792c3942e11ad9fd63ca21",
+      "bytes": 17449
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/root-run-001/image-centers.log",
+      "sha256": "22f836b2dc253087d7ee2f67304e81d671fd436121ebff895974c851f6fe6fc1",
+      "bytes": 60
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/root-run-001/064-14-intensity-statistics.json",
+      "sha256": "61137455dd33559c794bf76ff3d622ee5e4190df222a3c7d7c12833fae9960ce",
+      "bytes": 15055
+    },
+    {
+      "path": "annotation-staging/repeated-temporal-001021064-v1/root-run-001/replay-plan.json",
+      "sha256": "b9de39dab5480d8b6649d1d7674915792afcdadc0928da53ab40128790947649",
+      "bytes": 2066
+    }
+  ],
+  "comparison": "Both source readings and both bounded visual readings agree on compatible repeated main protocols, variable image quality for064:14 and unresolved initial/recall source correspondence for064:46. Root repeated the inspected source-membership, metadata, geometry, complete cache and exact display verifiers with redirected outputs and its own identity; reproduced case metadata files byte for byte. No new native DICOM decode or downloaded source comparison.",
+  "caption_correction": "Root original visual freeze calls021:03series801 ten slices. Authoritative metadata and full-array replay show11; image caption denominator10 is a maximum zero-based index. Original mistaken sentence preserved with this correction.",
+  "dispositions": [
+    {
+      "case": "001:18",
+      "status": "bounded_repeat_protocol_check_complete_no_new_exclusion",
+      "limits": "Named side not independently established; exact native fingerprints differ, so repeated descriptions are not exact duplicates."
+    },
+    {
+      "case": "021:03",
+      "status": "bounded_repeat_protocol_check_complete_no_new_exclusion",
+      "limits": "Blank laterality, sparse supplementary coverage and observed striping preserved; no automatic exclusion."
+    },
+    {
+      "case": "064:14",
+      "status": "bounded_correspondence_check_complete_quality_followup_pending",
+      "limits": "Very dark sagittal5 and nonuniform coronal6 versus clearer12/11. Full-array statistics preserved; native/display cause and training input handling unresolved."
+    },
+    {
+      "case": "064:46",
+      "status": "bounded_visual_check_complete_temporal_supervision_followup_pending",
+      "limits": "Four series cannot be assigned to initial versus recalled examination from redacted source date, empty endpoint times and placeholder descriptions. Similar anatomy does not supply chronology."
+    }
+  ],
+  "training_ready": false
+}

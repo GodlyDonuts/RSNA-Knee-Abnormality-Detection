@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "stage": "independent_policy_assessment_complete_for_root_integration",
+  "created_at_utc": "2026-09-21T19:36:43.179311+00:00",
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "identity_disclosure": {
+    "canonical_assessor_identity": "/root/quality_temporal_review",
+    "root_assessor_identity": "/root",
+    "desktop_thread_id": "01a0c56e-b990-7ff1-b343-d3472d1a96cd",
+    "note": "The canonical orchestration task is the independent reader identity and is used as session grouping in staged records. The environment desktop thread identifier recorded in the source freeze is contextual, not a claim of an additional independent reader."
+  },
+  "source_first_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/source-first-freeze.json",
+    "sha256": "b8fcef79d3c3913569f567d2617779ff9ff83268ad788181d49279d78c549081",
+    "bytes": 6933
+  },
+  "case": "064:46",
+  "study_uid": "1.2.826.0.1.3680043.8.498.69495014653333523580255444915082056825",
+  "source": {
+    "path": "work/recovered/initiative/reviews/inputs/batch-064.json",
+    "sha256": "f7064be1ca6e30c600fa525dae8858045602634273f9a0b6254cbf873abcba01",
+    "index_zero_based": 46,
+    "report_sha256": "f3a8053941140bdd791c5480bf0fdae68dc332ecad34bdce0fbcf003f232a7a8"
+  },
+  "source_quotes": [
+    "Possibly represents a small focus of PVNS - patient will be recalled for dedicated sequences.",
+    "Exam performed: MR Recall of [DATE]:",
+    "The previously described small intra-articular retropatellar soft tissue focus cannot be readily appreciated on the current scan."
+  ],
+  "independent_metadata_visual_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/064-46-metadata-visual-freeze.json",
+    "sha256": "b130b2369933c6d33f27e9251474a6f23251da275031807599e9f80502128ffd",
+    "bytes": 4155
+  },
+  "numeric_and_exact_before_policy_context": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/independent-numeric-and-before-policy.json",
+    "sha256": "35b999479dd083e236ee20f1558948ea750b89917eab271eb02067e628aa9224",
+    "bytes": 14436
+  },
+  "root_proposal": {
+    "path": "work/annotation-staging/repeated-temporal-001021064-v1/root-run-001/064-46-correspondence-followup-proposal.json",
+    "sha256": "21fea52969d57c880f122f0aeabc4595d041fa9a6afe6dd5f75ea0396eb1db52",
+    "bytes": 3491
+  },
+  "root_numeric_proof": {
+    "path": "work/annotation-staging/repeated-temporal-001021064-v1/root-run-001/root-comparison-and-replay-proof.json",
+    "sha256": "c933624999550659982a1e497e76d4b722bbdbd9336bc5504fbf34b3ff628463",
+    "bytes": 5315
+  },
+  "read_order": [
+    "Full original064:14 and064:46 reports, source freeze",
+    "064:14 measured numerical proof and all four comparison PNGs, native observation freeze",
+    "All71 cached slices in four exact bound arrays, all-cache observation freeze",
+    "064:46 technical metadata and all12 sampled matrices, metadata/visual freeze with independent exclusion recommendation",
+    "Root064:46proposal and root064:14native assessment",
+    "Independent numeric verification and exact before-policy snapshot",
+    "This comparison and recommendation"
+  ],
+  "assessment_of_root_proposal": {
+    "supported": true,
+    "agreement": "The root proposal and independent pre-proposal freeze both support conservative whole-study non-gold report-supervision masking while initial/recall linkage remains unresolved. This does not require assuming that the supplied images are recall-only or that pathology changed.",
+    "reason": "The report explicitly joins an initial findings/conclusion block to MR Recall findings. Existing endpoint metadata have blank acquisition and series times and all four descriptions are placeholders. The four bound series and twelve visual samples do not establish which examination generated the supplied pixels. Initial-source supervision therefore lacks verified temporal correspondence.",
+    "source_structure_sensitivity": "The target-bearing initial block is not repeated as current findings in the recall block; no unchanged-pathology assumption should bridge that gap.",
+    "proposed_action": {
+      "status": "independently_recommended_not_applied",
+      "report_derived_training_supervision_allowed": false,
+      "required_report_loss_mask": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "whole-study report-derived training loss only for this non-gold study",
+      "preserve": [
+        "original report",
+        "source images",
+        "cache arrays and metadata",
+        "target states",
+        "target evidence",
+        "target values",
+        "split",
+        "leakage group",
+        "official gold labels and evaluation masks"
+      ],
+      "revisit": "Reassess if source-bound evidence resolves image-series membership in the initial or recall examination."
+    },
+    "policy_context": "An exact staging snapshot binds the current registry and four policies, with16 unique exclusions and064:46absent. Existing whole-study non-gold loss-mask semantics are appropriate for this unresolved correspondence action; this artifact adds no production record.",
+    "disagreements": [],
+    "not_claimed": [
+      "Images are from the recall only",
+      "Clinical diagnoses independently confirmed or refuted",
+      "An acquisition date or named side established",
+      "Frame-of-reference differences prove two examinations",
+      "Whole-study image exclusion required",
+      "Root acceptance or production integration already occurred"
+    ]
+  },
+  "numeric_verification_summary": {
+    "series_count": 4,
+    "source_memberships_exact": 130,
+    "sample_matrices_and_png_crops_exact": 12,
+    "pairwise_shared_stored_native_pixel_fingerprints": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "no_fresh_native_decode": true
+  },
+  "training_ready": false,
+  "production_changes": false
+}

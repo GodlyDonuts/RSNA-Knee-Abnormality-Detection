@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "stage": "independent_quality_assessment_complete_for_root_integration",
+  "created_at_utc": "2026-09-21T19:36:43.180395+00:00",
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "case": "064:14",
+  "study_uid": "1.2.826.0.1.3680043.8.498.68593524008570334427931338225473487643",
+  "source_first_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/source-first-freeze.json",
+    "sha256": "b8fcef79d3c3913569f567d2617779ff9ff83268ad788181d49279d78c549081",
+    "bytes": 6933
+  },
+  "native_display_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/native-display-freeze.json",
+    "sha256": "922bb3b946d2a444ab15b519b1fdd671162297f8f98caaed8c0c0282651fe4be",
+    "bytes": 4473
+  },
+  "all_cache_visual_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/all-cache-visual-freeze.json",
+    "sha256": "d79dd2c04fca250622dedb66db39231943b7420f9ae11c3d9bdc5e30ec78a360",
+    "bytes": 4465
+  },
+  "all_cache_numeric_manifest": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/all-cache-display-manifest.json",
+    "sha256": "6d7edabfc06746d60f90f806571182b31b5b8321f646a9cfd845d7bff18715a7",
+    "bytes": 35436
+  },
+  "numeric_checks": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/independent-numeric-and-before-policy.json",
+    "sha256": "35b999479dd083e236ee20f1558948ea750b89917eab271eb02067e628aa9224",
+    "bytes": 14436
+  },
+  "root_native_visual_assessment_read_only_after_independent_freezes": {
+    "path": "work/annotation-staging/quality-native-064014-v1/root-native-visual-assessment.json",
+    "sha256": "4bf58be526e8c400583f00768359d4a64357af5f50268a90ffcb100d54331695",
+    "bytes": 2996
+  },
+  "comparison": {
+    "agreement": "Both independent and root observations identify persistent grain in series5 and spatial signal imbalance in series6 beyond simple global-display darkness; series12/11 offer clearer sampled technical presentation. Exact native/cache reconstruction is bound for12 sampled slices. The independent all-cache review extends the scope to every71 cached slices and corroborates the preference.",
+    "refinement": "Select a preference policy, not an unconditional declaration that5/6are unusable. They retain informative anatomy, the coronal slice counts differ, and exact physical coverage equivalence is not established. The root left preference/exclusion open, so this is a resolved recommendation rather than a hidden disagreement.",
+    "material_disagreements": []
+  },
+  "recommended_action": {
+    "study_report_supervision": "retain",
+    "source_and_cache": "retain unchanged",
+    "training_series_preference": {
+      "T1_coronal": {
+        "prefer_series_number": 11,
+        "over_series_number": 6
+      },
+      "PD_FS_sagittal": {
+        "prefer_series_number": 12,
+        "over_series_number": 5
+      }
+    },
+    "selection_scope": "When choosing one of these bound repeated-role series for the existing256x256training representation, prefer11and12. This does not authorize dropping any other series or claiming whole-volume native equivalence.",
+    "hard_image_series_exclusion": "not independently recommended",
+    "normalization_change": "none; alternative percentile windows are display-only",
+    "production_action": "none performed"
+  },
+  "supported_coverage": {
+    "native_slices_replayed_by_bound_proof": 12,
+    "measured_comparison_pngs_personally_viewed": 4,
+    "all_cache_slices_personally_viewed": 71,
+    "all_cache_contact_sheets_personally_viewed": 8,
+    "series_slice_counts": {
+      "5": 19,
+      "6": 17,
+      "11": 16,
+      "12": 19
+    }
+  },
+  "limits": [
+    "No clinical target state or diagnosis inferred.",
+    "No specific acquisition cause identified.",
+    "The full native acquisitions were not visually inspected; all-slice extension is existing cached256x256data.",
+    "The twelve native source files are pinned HF bytes, not a fresh Kaggle comparison."
+  ],
+  "training_ready": false,
+  "production_changes": false
+}

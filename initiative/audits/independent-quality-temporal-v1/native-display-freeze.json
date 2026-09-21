@@ -1,0 +1,58 @@
+{
+  "stage": "independent_measured_native_display_observation_freeze",
+  "created_at_utc": "2026-09-21T19:28:46.156007+00:00",
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "source_freeze": {
+    "path": "work/annotation-staging/independent-quality-temporal-v1/source-first-freeze.json",
+    "sha256": "b8fcef79d3c3913569f567d2617779ff9ff83268ad788181d49279d78c549081",
+    "bytes": 6933
+  },
+  "selection_plan": {
+    "path": "work/annotation-staging/quality-native-064014-v1/selection-plan.json",
+    "sha256": "456fe675f397cbc17d7a81a3e16c84b78490fb90d43a5a7ca1e072364ccb077a",
+    "bytes": 33368
+  },
+  "numerical_evidence": {
+    "path": "work/annotation-staging/quality-native-064014-v1/native-replay-and-display-inspection.json",
+    "sha256": "628747aecced0cbb3f564c46c1b177b60713ff8375cdd59f4f248051c83a2ccb",
+    "bytes": 34062
+  },
+  "figures_viewed": [
+    {
+      "path": "work/annotation-staging/quality-native-064014-v1/series-05-display-comparison.png",
+      "sha256": "b96820786dde9a3b8da71502cbbc16a6c02a6ea36503641fdd25f12647e14d7d",
+      "bytes": 1974828
+    },
+    {
+      "path": "work/annotation-staging/quality-native-064014-v1/series-06-display-comparison.png",
+      "sha256": "00d243ae4ba7986e5c2f270583439204747107f3f8e768c3391e548aed1345df",
+      "bytes": 1723909
+    },
+    {
+      "path": "work/annotation-staging/quality-native-064014-v1/series-11-display-comparison.png",
+      "sha256": "604f60fb62598f41f485b301739d3e59c09b868bc18de74b44379edcf44ddce7",
+      "bytes": 1488361
+    },
+    {
+      "path": "work/annotation-staging/quality-native-064014-v1/series-12-display-comparison.png",
+      "sha256": "1092c6422b3996d33a952ac6cbec7585c4698835a589e03971fa43a097907745",
+      "bytes": 1526971
+    }
+  ],
+  "root_native_visual_assessment_read": false,
+  "observations": {
+    "series_5": "All three selected sagittal slices are markedly dark under full-volume display. Header and percentile windows increase anatomical visibility but also reveal strong grain and reduced fine structure separation. The effect exists at native resolution and cannot be attributed entirely to cache downsampling or full-scale darkness. No acquisition cause is identified.",
+    "series_6": "All three selected coronal slices retain broad structure and contours, with pronounced superior-to-inferior signal nonuniformity; the inferior region is much brighter while the upper region remains dark or grainy. Header and percentile windows brighten the image but do not remove that distribution. This is visible natively and in cache.",
+    "series_11": "The three selected coronal slices have clearer internal structure separation and more even signal across the joint than series 6 in the compared fields. Some inferior darkening remains. Cache images soften fine detail while preserving gross contours.",
+    "series_12": "The three selected sagittal slices show substantially clearer internal structure separation than series 5 under both the original display and native alternative windows. No corresponding severe global grain obscures the anatomy in these sampled panels."
+  },
+  "numerical_interpretation": "Twelve pinned-HF native files match the source/fingerprint/geometry bindings and the measured proof reports exact reproduction of all twelve selected uint16 cache matrices. This supports faithful cache derivation at the selected indices, not a statement about all native slices. Full-volume scales compress sampled series 5 values (p99.5 308-372 versus series max 1482), but window adjustment leaves visible source-domain limitations.",
+  "provisional_recommendation": "Retain sources/cache. Prefer series 11 over 6 for the compared coronal role and 12 over 5 for the compared sagittal role if complete-volume cache inspection corroborates the sampled observation. Do not yet convert three-slice comparisons into unconditional whole-series exclusions.",
+  "next_step": "Render and inspect every ordered slice of the four bound existing cache arrays at unchanged full-scale display, with an explicitly labeled per-slice percentile display-only comparison. No production normalization change.",
+  "limits": [
+    "Technical image presentation review only; no diagnoses or new target labels.",
+    "No fresh Kaggle/native-byte comparison beyond the supplied pinned-HF replay evidence.",
+    "Three native slices per series; all-volume follow-up will use existing 256x256 cache arrays."
+  ]
+}

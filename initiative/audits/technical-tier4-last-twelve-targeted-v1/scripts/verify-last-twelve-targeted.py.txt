@@ -1,0 +1,122 @@
+"""Independently replay the final twelve cached display/source bindings."""
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from PIL import Image
+
+W = Path(__file__).resolve().parent
+G = W / 'annotation-staging/technical-tier4-last-twelve-targeted-v1'
+
+
+def digest(path):
+    h = hashlib.sha256()
+    with path.open('rb') as f:
+        for chunk in iter(lambda: f.read(1048576), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def ref(path):
+    return dict(path=str(path.relative_to(W)), sha256=digest(path), bytes=path.stat().st_size)
+
+
+def verify(reference):
+    path = W / reference['path']
+    assert ref(path) == reference, reference['path']
+    return path
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def main():
+    index_path = G / 'cache-panels/index.json'
+    plan_path = G / 'selection-plan.json'
+    index, plan = read(index_path), read(plan_path)
+    neutral = read(G / 'neutral-source-packet.json')
+    inventory_path = W / 'cache256-v3-official-recovery-v1/inventory_effective.parquet'
+    assert digest(inventory_path) == '68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537'
+    inventory = pd.read_parquet(inventory_path, filters=[('study_uid', 'in', [c['study_uid'] for c in plan['cases']])])
+    assert len(inventory) == 2127 and inventory.series_uid.nunique() == 65
+    results = []
+    arrays = samples = memberships = images = 0
+    for entry, selected, source in zip(index['cases'], plan['cases'], neutral, strict=True):
+        assert entry['case'] == selected['case'] == source['case']
+        source_batch = read(verify(source['source_batch']))
+        exact = [s for s in source_batch if s['study_uid'] == source['study_uid']]
+        assert len(exact) == 1 and exact[0]['report'] == source['report']
+        for key in ('case_metadata', 'root_disposition', 'root_source_freeze', 'other_source_freeze'):
+            verify(selected[key])
+        manifest = read(verify(entry['manifest']))
+        verify(manifest['script'])
+        assert manifest['selection_plan'] == ref(plan_path)
+        assert manifest['corrected_inventory'] == ref(inventory_path)
+        assert manifest['images'] == entry['images']
+        pages = [np.array(Image.open(verify(i))) for i in entry['images']]
+        images += len(pages)
+        assert all(p.dtype == np.uint8 and p.shape[1] == 832 for p in pages)
+        selected_ids = {s['series_uid'] for s in selected['selected_series']}
+        assert {p['series_uid'] for p in manifest['panels']} == selected_ids
+        case_memberships = case_samples = 0
+        for chosen in selected['selected_series']:
+            panels = [p for p in manifest['panels'] if p['series_uid'] == chosen['series_uid']]
+            assert len(panels) == 3
+            m = read(verify(chosen['cache_metadata']))
+            assert m['source_revision'] == '0b5e410288232f570c69ba4f44723356e6ae6ab7'
+            assert m['cache_version'] == 'series-u16-v3'
+            assert m['study_uid'] == source['study_uid'] and m['series_uid'] == chosen['series_uid']
+            subset = inventory.loc[inventory.series_uid == chosen['series_uid']]
+            assert set(subset.study_uid) == {source['study_uid']}
+            assert len(subset) == len(m['sop_uids']) == m['n_slices'] == chosen['slices']
+            assert len(set(m['sop_uids'])) == m['n_slices']
+            rows = subset.set_index('sop_uid').to_dict('index')
+            assert dict(zip(m['sop_uids'], m['slice_sha256'], strict=True)) == dict(zip(subset.sop_uid, subset.sha256, strict=True))
+            cache = verify(panels[0]['cache'])
+            assert cache.stem == chosen['series_uid'] and digest(cache) == m['cache_sha256']
+            assert cache.stat().st_size == m['cache_bytes']
+            with np.load(cache, allow_pickle=False) as f:
+                assert f.files == ['volume']
+                v = f['volume']
+            assert v.dtype == np.uint16 and v.shape == (m['n_slices'],256,256)
+            assert [p['ordered_index'] for p in panels] == [int((len(v)-1)*q) for q in (.25,.5,.75)]
+            for panel in panels:
+                k = panel['ordered_index']
+                assert panel['cache_metadata'] == chosen['cache_metadata']
+                assert panel['cache'] == panels[0]['cache']
+                assert panel['n_slices'] == len(v) and panel['series_number'] == chosen['series_number']
+                sop = m['sop_uids'][k]
+                assert panel['source'] == dict(sop_uid=sop, **rows[sop])
+                assert panel['source_position'] == m['positions'][k]
+                assert panel['source_orientation'] == m['orientation']
+                assert panel['source_pixel_spacing'] == m['pixel_spacing']
+                assert panel['source_native_pixel_sha256_from_bound_metadata'] == m['pixel_sha256'][k]
+                assert hashlib.sha256(v[k].tobytes()).hexdigest() == panel['cached_slice_bytes_sha256']
+                expected = np.rint(v[k].astype(np.float64)/65535*255).astype(np.uint8)
+                assert hashlib.sha256(expected.tobytes()).hexdigest() == panel['display_pixel_bytes_sha256']
+                x,y,width,height = panel['display_box_xywh']
+                assert (width,height) == (256,256)
+                actual = pages[panel['page']][y:y+height,x:x+width]
+                assert np.array_equal(actual,expected)
+            arrays += 1
+            case_memberships += len(v)
+            case_samples += len(panels)
+        assert manifest['cached_panels'] == case_samples
+        assert manifest['selected_source_memberships'] == case_memberships
+        samples += case_samples
+        memberships += case_memberships
+        results.append(dict(case=entry['case'], manifest=entry['manifest'], verified_arrays=len(selected_ids), verified_display_matrices=case_samples, verified_source_memberships=case_memberships))
+    assert (arrays,samples,memberships,images) == (50,150,1698,20)
+    proof = dict(agent_id='/root',session_id='/root',stage='separate_numeric_replay_of_bound_cached_displays',status='passed',completed_utc=datetime.now(timezone.utc).isoformat(),script=ref(Path(__file__)),panel_index=ref(index_path),selection_plan=ref(plan_path),root_visual_freeze=ref(G/'root-visual-preread-freeze.json'),corrected_inventory=ref(inventory_path),cases=results,verified_arrays=arrays,verified_display_matrices=samples,verified_source_memberships=memberships,verified_contact_sheets=images,whole_study_series=65,whole_study_source_memberships=2127,unselected_arrays_opened=0,native_sources_redownloaded=0,scope='Full selected-array and metadata hashes, full selected source-SOP memberships, exact selected matrices and PNG placement replayed. This does not independently reconstruct all cached pixels from native DICOMs or establish report-image correspondence.',training_ready=False)
+    output = G/'root-numeric-replay-proof.json'
+    with output.open('x') as f:
+        json.dump(proof,f,indent=2); f.write('\n')
+    print(json.dumps(ref(output)))
+
+
+if __name__ == '__main__':
+    main()

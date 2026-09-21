@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "stage": "independent_accepted_temporal_correspondence_exclusion",
+  "status": "accepted",
+  "created_at_utc": "2026-09-21T19:43:59.839270+00:00",
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "case": "064:46",
+  "study_uid": "1.2.826.0.1.3680043.8.498.69495014653333523580255444915082056825",
+  "action": "exclude_whole_study_report_supervision_non_gold",
+  "required_report_loss_mask": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "source_batch": {
+    "path": "initiative/reviews/inputs/batch-064.json",
+    "sha256": "f7064be1ca6e30c600fa525dae8858045602634273f9a0b6254cbf873abcba01"
+  },
+  "source_index": 46,
+  "source_report_sha256": "f3a8053941140bdd791c5480bf0fdae68dc332ecad34bdce0fbcf003f232a7a8",
+  "root_acceptance": {
+    "path": "initiative/audits/repeated-temporal-001021064-v1/root-run-001/064-46-root-policy-acceptance.json",
+    "sha256": "78549c2c3f2faf62f729460ec739450551aac49472d10f292d5e999fb9b8f42a"
+  },
+  "independent_policy_assessment": {
+    "path": "initiative/audits/independent-quality-temporal-v1/064-46-independent-policy-assessment.json",
+    "sha256": "8bad5df3312c2c589438aef730bff3eb286d170a899134c7e6fcf2a318c0829f"
+  },
+  "reason": "I independently accept whole-study non-gold report-supervision exclusion based on unresolved initial/recall linkage, after source-first and visual freezes and numerical binding. This accepts the exact eligibility action recommended before inspecting root proposal; it does not infer acquisition date, side, clinical change, or poor image quality.",
+  "preserve_original_reports_annotations_images_and_gold": true,
+  "root_binding_correction": {
+    "path": "initiative/audits/repeated-temporal-001021064-v1/root-source-freeze-binding-correction.json",
+    "sha256": "78641f6eafd298cf83be463d107d3c72b98c18a623c551e965a765fe7e694d47"
+  },
+  "correction_assessment": "The original root visual source_preread_sha256 field points to a PNG. The explicit correction binds the intended unchanged source freeze. I accept this as a recorded link correction only, not independent proof of historical access order.",
+  "training_ready": false
+}
