@@ -1,0 +1,71 @@
+"""Read source-bound series endpoint headers for one conflicted report."""
+import hashlib
+import io
+import json
+import sys
+from pathlib import Path
+
+import pandas as pd
+import pydicom
+from dotenv import load_dotenv
+
+base = Path(__file__).resolve().parent
+repo = base / "recovered"
+sys.path.insert(0, str(repo))
+from rsna.preprocess import Source
+
+load_dotenv(base.parent / ".env")
+source_batch = repo / "initiative/reviews/inputs/batch-010.json"
+report = json.loads(source_batch.read_text())[26]
+inventory = pd.read_parquet(
+    repo / "initiative/source/inventory",
+    filters=[("study_uid", "==", report["study_uid"])],
+)
+selected = pd.concat([
+    inventory.sort_values("path").groupby("series_uid").head(1),
+    inventory.sort_values("path").groupby("series_uid").tail(1),
+]).drop_duplicates("sop_uid").sort_values(["series_uid", "path"])
+source = Source(
+    None, selected.set_index("path")[["sha256", "bytes", "storage"]].to_dict("index"),
+    revision="52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+)
+fields = ["Laterality", "ImageLaterality", "FrameLaterality", "PatientPosition",
+          "BodyPartExamined", "SeriesDescription", "ProtocolName", "StudyDescription"]
+records = []
+try:
+    # At most two downloads together; the full image job retains priority.
+    for start in range(0, len(selected), 2):
+        block = selected.iloc[start:start+2]
+        for row, raw in zip(block.itertuples(), source.read_series(block.path.tolist())):
+            dataset = pydicom.dcmread(io.BytesIO(raw), stop_before_pixels=True)
+            assert (str(dataset.StudyInstanceUID), str(dataset.SeriesInstanceUID), str(dataset.SOPInstanceUID)) == (row.study_uid, row.series_uid, row.sop_uid)
+            assert hashlib.sha256(raw).hexdigest() == row.sha256
+            records.append({
+                "study_uid": row.study_uid, "series_uid": row.series_uid,
+                "sop_uid": row.sop_uid, "source_path": row.path,
+                "source_sha256": row.sha256,
+                "header_fields": {key: str(dataset.get(key, "")).strip() for key in fields},
+                "header_fields_present": {key: key in dataset for key in fields},
+            })
+        print(f"Verified laterality headers: {len(records)}/{len(selected)}", flush=True)
+finally:
+    source.downloads.shutdown()
+
+out = base / "laterality-010-026"
+out.mkdir(exist_ok=True)
+p = out / "header-probe.jsonl"
+assert not p.exists()
+p.write_text("".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records))
+summary = {
+    "schema_version": 1, "study_uid": report["study_uid"],
+    "source_batch_sha256": hashlib.sha256(source_batch.read_bytes()).hexdigest(),
+    "source_revision": source.revision,
+    "n_series": int(inventory.series_uid.nunique()), "n_source_slices": len(inventory),
+    "n_headers_checked": len(records),
+    "sampling": "First and last lexically listed SOP path in each series, deduplicated; not every header or anatomical slice order.",
+    "field_values": {key: sorted({record["header_fields"][key] for record in records}) for key in fields},
+    "header_probe_sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
+    "interpretation_limit": "Acquisition metadata can inform source correspondence. It alone does not certify which side the contradictory report findings describe; no annotation changed.",
+}
+(out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
+print(json.dumps(summary, ensure_ascii=False, indent=2))
