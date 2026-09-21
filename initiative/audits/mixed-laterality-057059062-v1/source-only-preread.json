@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_only_correspondence_preread",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T09:51:48.179590+00:00",
+  "order": "All three complete original reports personally read before case-specific metadata or pixels. Assignment disclosed case identities and mixed-tag status only. No clinical drafts, reviews, flags or gold opened. Earlier057 reader exposure disclosed per record.",
+  "records": [
+    {
+      "case": "057:13",
+      "source_batch_index_zero_based": 13,
+      "study_uid": "1.2.826.0.1.3680043.8.498.58811528407321581206563412079643094538",
+      "report": "Technique: MRI of the knee. Results: Hoffa’s fat pad impingement. Impression: Hoffa’s fat pad impingement\n",
+      "source_report_sha256": "2c4f92859c22f9757009916362ea8cd28b55f9966a964a684e98825778a2dcde",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-057.json",
+        "sha256": "253315cc755bc02d2e4d77049fad3c969042b65e4aa6efcac02e86d369d3b7ce",
+        "bytes": 58295
+      },
+      "source_structure": "One short English unsided knee MRI report with Technique, Results and Impression. The impression repeats the result; it is not a second full report or a separate side-specific block. No named side, bilateral statement, prior examination/date or longitudinal comparison.",
+      "exact_structure_quotes": [
+        "Technique: MRI of the knee.",
+        "Results: Hoffa’s fat pad impingement.",
+        "Impression: Hoffa’s fat pad impingement"
+      ],
+      "completeness_limit": "The final impression is a complete phrase with a trailing newline and no final period. This formatting does not establish truncation or missing content.",
+      "prior_exposure_disclosure": "This agent previously served as reader of all batch057 reports, including this source, earlier in the run. The present pass reread the complete original before technical metadata without reopening clinical annotations, drafts, reviews, flags or gold. This is not claimed as first-ever source exposure."
+    },
+    {
+      "case": "059:29",
+      "source_batch_index_zero_based": 29,
+      "study_uid": "1.2.826.0.1.3680043.8.498.62420632149863295140175740643640707423",
+      "report": "Findings:  There is a mild knee effusion. Normal medial and lateral menisci. No evidence of tears.  Normal ACL, PCL, MCL and LCL. Normal extensor mechanism.  The tibiofemoral and patellofemoral articular cartilage is normal. Normal visualized bones and surrounding soft tissues.  The previous site of excision in the region of the lateral aspect of vastus intermedius is noted. No evidence of recurrence.  \nConclusion: No significant abnormality identified.",
+      "source_report_sha256": "b3bdd0f0953748b31e6fe20548fb8811e9162465da1274a13c6b2f3e6f3d8729",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-059.json",
+        "sha256": "cd6560faf16b9cbe50c01f1802317b0a0bd520d71264ef427066441a69c8bca7",
+        "bytes": 56053
+      },
+      "source_structure": "One English knee report with Findings and Conclusion. The mention of a previous excision site is surgical history within the current narrative, not a separately dated prior MRI or second full report. No explicit right or left knee, bilateral declaration, or split report blocks. Lateral and medial terms refer to anatomical structures.",
+      "exact_structure_quotes": [
+        "Findings:  There is a mild knee effusion.",
+        "The previous site of excision in the region of the lateral aspect of vastus intermedius is noted. No evidence of recurrence.",
+        "Conclusion: No significant abnormality identified."
+      ],
+      "completeness_limit": "The source ends in a complete conclusion sentence. No positive source marker of truncation or omitted second report.",
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. No clinical drafts, reviews, flags or gold opened."
+    },
+    {
+      "case": "062:18",
+      "source_batch_index_zero_based": 18,
+      "study_uid": "1.2.826.0.1.3680043.8.498.66210455934011506415244876770725282769",
+      "report": "Técnica: RMN de la rodilla. Resultados: Desgarro parcial del LCA y LCM. Derrame. Impresión: Desgarro parcial del LCA y LCM. Derrame.",
+      "source_report_sha256": "d4467d31a4ec406c51368d3641e5547ef73fe7ee7350c0b4c6d738bf0b6bc95d",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-062.json",
+        "sha256": "3ccea9bbec6152ace8e29918a7790f93210ad866148255b2cb8dc4bdbee6a317",
+        "bytes": 68559
+      },
+      "source_structure": "One short Spanish unsided knee MRI report with Técnica, Resultados and Impresión. The impression repeats the same result sentences; no separate second report, named side, explicit bilateral declaration, previous examination/date or longitudinal comparison.",
+      "exact_structure_quotes": [
+        "Técnica: RMN de la rodilla.",
+        "Resultados: Desgarro parcial del LCA y LCM. Derrame.",
+        "Impresión: Desgarro parcial del LCA y LCM. Derrame."
+      ],
+      "completeness_limit": "The impression ends with a complete sentence. Short source length alone is not evidence of truncation.",
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. No clinical drafts, reviews, flags or gold opened."
+    }
+  ],
+  "clinical_target_states_inferred": false,
+  "source_annotations_modified": false
+}

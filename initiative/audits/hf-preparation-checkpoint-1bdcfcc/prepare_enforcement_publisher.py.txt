@@ -1,0 +1,62 @@
+from pathlib import Path
+W=Path(__file__).resolve().parent
+s=(W/'publish_correspondence_checkpoint.py').read_text()
+def replace(old,new):
+ global s
+ assert old in s,old[:80]
+ s=s.replace(old,new)
+replace("==62 and report_count==3057","==65 and report_count==3207")
+replace("'tests_passed':200","'tests_passed':validation['tests_passed']")
+replace("after 200 tests","after 246 tests")
+replace("info.sha=='39a16012c4e84059e1e7b9abb36d4b9b6c477988'","info.sha=='a36928407109e9d23ccb694a57765606b792fbc6'")
+replace("index=json.loads(blob('initiative/reviews-v2/index.json'));assert index['training_ready'] is False", "index=json.loads(blob('initiative/reviews-v2/index.json'));assert index['training_ready'] is False\nvalidation=json.loads(blob('initiative/audits/correspondence-enforcement-v1/validation.json'));assert validation['tests_passed']==246 and validation['whole_study_report_exclusions']==4")
+newroots=['correspondence-native-048-012-v1','correspondence-native-086-013-v1','mixed-laterality-011013014-v1','mixed-laterality-016021022-v1','mixed-laterality-030036042-v1','correspondence-source-bindings-v1','correspondence-enforcement-v1']
+replace("files=[p for p in files if", "new_audits="+repr(newroots)+"\nroots+=tuple('initiative/audits/'+name+'/' for name in new_audits)\nfiles=[p for p in files if")
+extra="""
+manifest['correspondence_enforcement']={'validation':validation,'registry_sha256':hashlib.sha256(blob('initiative/audits/correspondence-release-registry.json')).hexdigest(),'whole_study_report_exclusions':4,'source_annotations_and_official_gold_preserved':True}
+manifest['correspondence_reviews'].update({
+ '048:12':{'source_files':359,'retained_official_source_files':83,'pinned_mirror_source_files':276,'series':10,'native_sample_panels':30,'root_proof_sha256':'c1b93a71068be94cb8a19d86f9155bcf9328158d41eb9e7382287683cd46a7ac','required_report_supervision_mask_all':True},
+ '086:13':{'source_files':300,'retained_official_source_files':0,'pinned_mirror_source_files':300,'series':10,'native_sample_panels':30,'root_proof_sha256':'aa3f03b172eff2f1fc82af05d36c53686211132134be5b998bf8d70c88d7b3e0','required_report_supervision_mask_all':True}})
+manifest['mixed_tag_reviews']={'studies':9,'source_memberships':1413,'endpoint_records':104,'complete_npz_volumes':52,'sampled_panels':156,'conclusion':'Bounded samples favor coherent single protocols. Preserve conflicting literal tags without automatic bilateral exclusion or named-side correction.'}
+manifest['fresh_official_byte_confirmation_deferred']=576
+manifest['scope']+=' All659 sources and60native panels from048:12/086:13 are included with explicit origins:83retained official and576pinned mirror files. Nine mixed-tag cases preserve52complete cache volumes,156bound cached samples and all independent review/source proofs. Required correspondence policies, identity bindings and enforcement tests are preserved.'
+"""
+replace("(out/'manifest.json').write_text",extra+"\n(out/'manifest.json').write_text")
+extra_uploads="""
+for name in new_audits:
+ base='initiative/audits/'+name+'/'
+ # Complete binary evidence is in the immutable tar; direct audit browsing keeps
+ # proofs and visual panels without duplicating each source or complete volume.
+ selected=[p[len(base):] for p in files if p.startswith(base) and Path(p).suffix in {'.json','.md','.png','.txt'} and not any(part in {'native','cache-metadata','complete-cache','evidence','technical-evidence'} for part in Path(p[len(base):]).parts)]
+ extra_audits[name]=selected
+for filename in ['correspondence-release-registry.json','correspondence-release-dispositions-v2.json']:
+ path='initiative/audits/'+filename;assert (R/path).read_bytes()==blob(path);files_to_upload['audits/'+filename]=R/path
+"""
+replace("for name,names in extra_audits.items():",extra_uploads+"\nfor name,names in extra_audits.items():")
+start=s.index("addition=f'''\n")
+end=s.index("\n'''\ncard=",start)+4
+card="""addition=f'''
+## Enforced correspondence checkpoint — September 21, 2026
+
+The newest private [preparation checkpoint]({prefix}) preserves GitHub `{commit}` with **3,207 independently reviewed reports**, **38,484 target decisions** and **246 passing tests**. It remains **incomplete and not training-ready**. Older sections below describe historical checkpoints.
+
+The corrected source remains pinned at `{source_revision}`. The complete technical audit covers 819,635 slices, 24,386 series and 4,410 studies with zero cache warnings. Training selection retains all 4,407 studies and 24,338 series after excluding 33 fully equivalent model slots; all 15 released test series remain. Original sources are preserved.
+
+The label exporter now requires the [correspondence registry](audits/correspondence-release-registry.json) and verifies every preserved policy, original report and proof identity before export. All report-derived supervision is masked for four excluded studies: the unsided two-knee study 075:14, shoulder report with knee images 052:20, and integrated bilateral aggregates 048:12 and 086:13. Official gold labels, original annotations and duplicate groups remain intact. [Enforcement validation](audits/correspondence-enforcement-v1/validation.json) includes 46 dedicated regressions and independent review of the corrected policy-membership and identity-binding defects.
+
+Root independently replayed all 659 native sources and 60 exact displayed samples for [048:12](audits/correspondence-native-048-012-v1) and [086:13](audits/correspondence-native-086-013-v1). Two separately frozen visual reviews support opposing knee protocols compatible with their combined bilateral reports. Source origins remain explicit: 83 retained official Kaggle files and 576 corrected pinned mirror files. Fresh official whole-byte confirmation for those 576 remains deferred after rate limiting. No claim is made that all 659 were freshly downloaded from Kaggle.
+
+Nine additional mixed-tag investigations preserve 52 complete cache volumes, 1,413 source memberships, 104 endpoint records and 156 exact displayed samples. The bounded visual evidence favors coherent single protocols; literal tag conflicts are retained without named-side correction or automatic bilateral exclusion. No institution or real-world patient identity is inferred.
+
+The package also preserves all 337 official 075:14 source files, three selected 052:20 cache volumes, all 288 official duplicate-study sources, full image recovery evidence and immutable review history. The full local 82.6 GB cache is represented by exact per-series hashes and rebuild instructions.
+
+Full report review, global semantic and correspondence adjudication, the remaining technical candidate checks, final transitive leakage-isolated manifests and final-data training/resume/inference validation remain required. Technical image inspection and report extraction are not expert diagnostic MRI rereads.
+'''"""
+s=s[:start]+card+s[end:]
+replace("commit_message='Preserve report-image correspondence proof and3057-report checkpoint'", "commit_message='Enforce correspondence exclusions and preserve3207-report checkpoint'")
+start=s.index("commit_description='Verified337official-source")
+end=s.index("',num_threads=3)",start)
+s=s[:start]+"commit_description='Required exclusions preserve original reports and gold labels. Includes659new native sources with explicit official/mirror origins, nine mixed-tag investigations and3207reviewed reports. All246tests and exact-commit CI passed. Preparation remains incomplete pending review, correspondence, semantic QA, final leakage manifests and final training checks."+s[end:]
+compile(s,'publish_enforcement_checkpoint.py','exec')
+out=W/'publish_enforcement_checkpoint.py';assert not out.exists();out.write_text(s)
+print('Prepared guarded publisher; no external write performed.')

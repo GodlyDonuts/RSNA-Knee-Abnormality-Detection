@@ -1,0 +1,10 @@
+import datetime, hashlib, json
+from pathlib import Path
+p=Path(__file__).parent;c=p/'cache-panels/case-067-45'
+sha=lambda f:hashlib.sha256(f.read_bytes()).hexdigest()
+ref=lambda f:dict(path=str(f.relative_to(p.parent.parent)),sha256=sha(f),bytes=f.stat().st_size)
+s=json.loads((p/'root-source-preread.json').read_text())['source_observations'][1]
+meta=dict(schema_version=1,stage='independent_root_cached_visual_freeze',agent_id='/root',created_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),case='067:45',study_uid=s['study_uid'],order='Full original source frozen before both neutral sheets, each personally viewed at original image resolution before assessor findings.',panel_manifest=ref(c/'panel-manifest.json'),viewed_images=[ref(c/f'cache-series-page-{i:02}.png') for i in range(2)],series_personally_viewed=5,samples_personally_viewed=15,
+literal_tags_read_from_panel_captions={'201':'R','301':'R','401':'R','501':'L','601':'R'},
+observations=['All 15 samples personally viewed. Sagittal 201/301 are concordant in gross contours and sampling progression.', 'Coronal 501 L and 601 R are concordant, with fibular anatomy toward viewer left in their posterior samples. Axial 401 lower sample also shows fibula toward viewer left.', 'Samples favor one coherent knee protocol despite the opposite coronal tags. No named anatomical side is assigned.'],source_structure=s['root_source_observation'],limits=['Three existing normalized 256-pixel samples per series only; no full-source anatomy sweep or clinical diagnosis.', 'Numeric source/cache/geometry/display replay remains separate; no real-world patient identity or upstream-mirroring exclusion.', 'No source, cache, tag or annotation changes.'],clinical_annotations_or_gold_accessed=False,training_ready=False)
+out=c/'root-visual-freeze.json';assert not out.exists();out.write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n');print(sha(out))

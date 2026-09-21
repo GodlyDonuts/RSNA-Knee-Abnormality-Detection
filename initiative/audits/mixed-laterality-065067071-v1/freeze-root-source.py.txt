@@ -1,0 +1,14 @@
+import datetime, hashlib, json
+from pathlib import Path
+p=Path(__file__).parent
+notes={
+    (65,14): 'Complete short Spanish report with findings repeated as impression; no explicit named knee side, second examination, bilateral marker or temporal replacement. Individual medial/lateral anatomical compartments are not left/right knee identity. No clinical label decisions inferred for this structural review.',
+    (67,45): 'Complete short Spanish report with findings repeated as impression; no explicit named knee side or evidence of two reports, opposite knees, or a temporal addendum. No report-to-image side assignment is possible from text alone.',
+    (71,45): 'Continuous Croatian knee report. No explicit named left/right knee, second protocol/report delimiter or temporal replacement. The prior-distension possibility concerns a focal meniscotibial ligament finding within this one report, not an additional examination. Anatomical medial/lateral wording does not name knee side.'}
+rows=[]
+for (b,i),note in notes.items():
+    src=Path(f'initiative/reviews/inputs/batch-{b:03}.json');row=json.loads(src.read_text())[i]
+    rows.append(dict(case=f'{b:03}:{i:02}',source_index=i,source_path=str(src),source_sha256=hashlib.sha256(src.read_bytes()).hexdigest(),study_uid=row['study_uid'],report=row['report'],report_sha256=hashlib.sha256(row['report'].encode()).hexdigest(),root_source_observation=note))
+out=p/'root-source-preread.json';assert not out.exists()
+out.write_text(json.dumps(dict(stage='independent_full_original_source_preread',agent_id='/root',frozen_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),source_observations=rows,other_assessor_findings_accessed=False,clinical_labels_inferred=False,notes='Read every complete original source before neutral panels or this group technical/visual/source conclusions. Source CSV identity and cache geometry will be independently replayed after visual freeze.'),ensure_ascii=False,indent=2)+'\n')
+print(hashlib.sha256(out.read_bytes()).hexdigest())

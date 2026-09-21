@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_header_geometry_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "bindings": [
+    {
+      "path": "annotation-staging/mixed-laterality-065067071-v1/source-only-preread.json",
+      "sha256": "766ed1b77883551f75533c3a8f938e81220f94cc6dcbc731be71f638cbff394a",
+      "bytes": 6601
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-065067071-v1/technical-evidence/summary.json",
+      "sha256": "1f053d6a325f98651d4b209858bf27075adb9efe1646f20362c0c6ea2f93d617",
+      "bytes": 13091
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-065067071-v1/geometry-comparison.json",
+      "sha256": "241f34f12ef6ec88a4ac563a4fccbc5de9229330d2edfb26ee6c858acf57efbb",
+      "bytes": 2457
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-065067071-v1/derived-series-image-centers.json",
+      "sha256": "d4ae14f15d9e60171c2df2c960e819d786dd6add30ead95cda5564d1339ad1c2",
+      "bytes": 7153
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-065067071-v1/verify_image_centers.py",
+      "sha256": "0046c6167e6baa5aa42fea8660ba31353e30b1ed5443f6b6a33c64af413897e0",
+      "bytes": 1830
+    }
+  ],
+  "cases": [
+    {
+      "case": "065:14",
+      "study_uid": "1.2.826.0.1.3680043.8.498.70124572708965486791612654433965515063",
+      "source_report_sha256": "da741e2721549dfb099f93a2561cce5751c33759d971ceeec19447b493d2838a",
+      "source_structure": "One Spanish unsided knee MRI report with Técnica, Resultados and Impresión. The impression repeats the result phrases within one report; no separate full report, named side, bilateral declaration, previous examination/date or longitudinal comparison. Lateral and external anatomical descriptors identify compartments/structures rather than another knee.",
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. No clinical drafts, reviews, flags or gold opened.",
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/mixed-laterality-065067071-v1/technical-evidence/case-065-14.json",
+        "sha256": "1fb80a7cf5183afe40a6dbc248b4287eddf0e3e63fa8c149d7e935d94606586c",
+        "bytes": 33257
+      },
+      "series_count": 6,
+      "slices": 126,
+      "endpoints": 12,
+      "source_bytes": 213113770,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 6,
+      "laterality_values": {
+        "Laterality": [
+          "L",
+          "R"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 20.717590801085322,
+      "technical_interpretation": "Six series form sagittal 201/301, axial 401, coronal 501/601 and supplementary oblique sagittal 701 (SAG LCA). Only 501 is L; all other tags are R. Coronal 501/601 share IOP, 21 slices and nearly identical field centers with different native matrices. Oblique701 has 15 slices and different orientation with nearby field center. No second full protocol or native fingerprint overlap.",
+      "review_plan": "Three cached samples from every series; compare opposite-tag coronal anatomy, main-plane consistency and the oblique sagittal supplementary series without direct equivalence assumptions.",
+      "pixel_review_reason": "Literal tag conflict requires bounded anatomical compatibility review; geometry alone cannot establish named side or clinical report correspondence.",
+      "limits": "Different frame identities preclude asserted registration. Coordinate signs, source language, descriptions and blank tags do not identify side, patient or site."
+    },
+    {
+      "case": "067:45",
+      "study_uid": "1.2.826.0.1.3680043.8.498.73215265387578908341609746559916587894",
+      "source_report_sha256": "5d50ed61939483ded104b34e4bc5854ed67c390817e5398238900c41f7b1d501",
+      "source_structure": "One short Spanish unsided knee MRI report with Técnica, Resultados and Impresión. The three impression phrases repeat the results; they do not create a second side-specific report. No named side, bilateral declaration, previous examination/date or longitudinal comparison.",
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. Separate case067:37 was previously technically audited; no clinical annotations or gold for067:45 were opened.",
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/mixed-laterality-065067071-v1/technical-evidence/case-067-45.json",
+        "sha256": "1b3a9b3e56df6666edbe02f72f19f5ac0e0e51d24a59df3635641286425a3fb6",
+        "bytes": 28635
+      },
+      "series_count": 5,
+      "slices": 113,
+      "endpoints": 10,
+      "source_bytes": 189350308,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 5,
+      "laterality_values": {
+        "Laterality": [
+          "L",
+          "R"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 19.32555467820376,
+      "technical_interpretation": "Five series form sagittal 201/301, axial 401 and coronal 501/601. Only 501 is L; the other tags are R. Coronal pair has identical IOP, 22 slices each, near-equal field centers and native matrices 960/640. No second full protocol or native fingerprint overlap.",
+      "review_plan": "Three cached samples per all five series, focusing on coronal counterparts and corresponding sagittal/axial morphology.",
+      "pixel_review_reason": "Literal tag conflict requires bounded anatomical compatibility review; geometry alone cannot establish named side or clinical report correspondence.",
+      "limits": "Different frame identities preclude asserted registration. Coordinate signs, source language, descriptions and blank tags do not identify side, patient or site."
+    },
+    {
+      "case": "071:45",
+      "study_uid": "1.2.826.0.1.3680043.8.498.78119223228067919465880137763593966456",
+      "source_report_sha256": "7633d54db6ffd625dae707b0e3cd07521d42ac426b6bb12b036b22bbff7fb9bf",
+      "source_structure": "One continuous Croatian knee narrative progressing through bone/cartilage, ligaments, menisci, tendon insertions, popliteal and patellofemoral structures. No named right or left knee, explicit bilateral statement, repeated full report block, prior examination/date or longitudinal comparison. A state-after-distension phrase describes history within the single narrative, not another examination.",
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. No clinical drafts, reviews, flags or gold opened.",
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/mixed-laterality-065067071-v1/technical-evidence/case-071-45.json",
+        "sha256": "99c797bb1e1310863c952be00e1ce79a86fae50b0401453a18098cfa89e86209",
+        "bytes": 37957
+      },
+      "series_count": 6,
+      "slices": 171,
+      "endpoints": 12,
+      "source_bytes": 90351910,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 6,
+      "laterality_values": {
+        "Laterality": [
+          "L",
+          "R"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 21.206266816818847,
+      "technical_interpretation": "Six series form sagittal 301/401 (R), coronal 501/601 (L), axial701 (R) and supplementary oblique801 (R). Standard coronal pair shares IOP, 30 slices, native dimensions and full positions. Sagittal pair shares IOP and 33 slices but different native matrices. Oblique801 has 15 slices and a tilted orientation. Different plane-level tags occur within one candidate main protocol rather than two separated full sets. No native fingerprint overlap.",
+      "review_plan": "Three cached samples from all six series; assess consistency between main planes and the oblique sequence. No inference that a tag difference itself proves a second knee.",
+      "pixel_review_reason": "Literal tag conflict requires bounded anatomical compatibility review; geometry alone cannot establish named side or clinical report correspondence.",
+      "limits": "Different frame identities preclude asserted registration. Coordinate signs, source language, descriptions and blank tags do not identify side, patient or site."
+    }
+  ],
+  "totals": {
+    "studies": 3,
+    "series": 17,
+    "slices": 410,
+    "endpoints": 34,
+    "native_fingerprint_overlap_groups": 0
+  },
+  "official_plane_vs_iop_dominant_axis": "All 17 agree; no plane relabeling or clinical interpretation.",
+  "source_scope": "Complete source reports match archive and current official CSV exactly. Only StudyInstanceUID and Report columns read. Existing endpoints and full cache metadata bind to corrected inventory and recovery lineage; no new source fetch.",
+  "geometry_scope": "All 34 selected endpoints match their corresponding cache positions, IOP, spacing and native dimensions. All 410 source memberships and 17 metadata hashes checked; no NPZ pixels read at this frozen stage.",
+  "clinical_labels_or_gold_opened": false,
+  "source_tags_changed": false,
+  "publication_hold": true,
+  "training_ready": false
+}

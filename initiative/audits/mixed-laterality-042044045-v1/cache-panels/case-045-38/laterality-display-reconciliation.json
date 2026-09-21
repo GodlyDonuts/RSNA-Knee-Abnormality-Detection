@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "stage": "preserved_root_observation_metadata_display_reconciliation",
+  "agent_id": "/root/image_pipeline_audit",
+  "case": "045:38",
+  "study_uid": "1.2.826.0.1.3680043.8.498.42396216793489016293032290339618185275",
+  "series_uid": "1.2.826.0.1.3680043.8.498.23837845959000429243461967134083788003",
+  "series_number": 501,
+  "created_at_utc": "2026-09-21T09:46:36.981374+00:00",
+  "root_frozen_observation": {
+    "path": "annotation-staging/mixed-laterality-042044045-v1/cache-panels/case-045-38/root-visual-freeze.json",
+    "sha256": "298d8d800deef5379975459934ec2087df13ed31ab7c42a2914d62eab7b41148",
+    "bytes": 2418
+  },
+  "bindings": [
+    {
+      "path": "annotation-staging/mixed-laterality-042044045-v1/technical-evidence/endpoints.jsonl",
+      "sha256": "46487888f6e636ab66de042705acba3ddfc9fb1b2938c948fc539f92d57ffd05",
+      "bytes": 70737
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-042044045-v1/technical-evidence/case-045-38.json",
+      "sha256": "75bf314b2def3643069cb1e107962585b36a74d9d261a23a939d69ca9abfab73",
+      "bytes": 31547
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-042044045-v1/technical-evidence/summary.json",
+      "sha256": "b69b4bc835d16fa34c838cbb163620e6ccb6b5e00d7fc78ac0a3880e4381a27d",
+      "bytes": 12815
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-042044045-v1/cache-panels/case-045-38/panel-manifest.json",
+      "sha256": "ec099ca55e2a6d36bd8e9f63b9e5b25002f9062d57e336fc7b78220b3255c554",
+      "bytes": 43094
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-042044045-v1/cache-panels/case-045-38/cache-series-page-00.png",
+      "sha256": "4a39e605370432a282b56d4620d1006abf1441641c77483b1528785cc843e13c",
+      "bytes": 259177
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-042044045-v1/render_cache_sets.py",
+      "sha256": "e38d99a119fbb3b066a897ffa9ac55cf02a485984a654e29f7317dbf1db9263f",
+      "bytes": 8914
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-042044045-v1/cache-panels/display-source-integrity.json",
+      "sha256": "448d70682f25ff1611945053ebe5a8d5eebe5c5109b429c2a0f39f3bfa569245",
+      "bytes": 16090
+    }
+  ],
+  "question": "Root frozen narrative said all displayed headers were L including501; compare exact source/manifest/display evidence without rewriting that freeze.",
+  "endpoint_evidence": [
+    {
+      "source_path": "train_series/1.2.826.0.1.3680043.8.498.42396216793489016293032290339618185275/1.2.826.0.1.3680043.8.498.23837845959000429243461967134083788003/1.2.826.0.1.3680043.8.498.11417174881288688825577524110023574824.dcm",
+      "sop_uid": "1.2.826.0.1.3680043.8.498.11417174881288688825577524110023574824",
+      "source_sha256": "e414dc687369af3a6caff94c48f5969b658285f18cde5dae3227a739cfb34499",
+      "source_bytes": 559326,
+      "prefix_sha256": "a97019ebbe44103836347dd9b3fc4c02cc7a5d91c8ebd0ff5df3fef76c6a91cb",
+      "prefix_bytes": 65536,
+      "verification_scope": "range_transport_and_uid_binding_only",
+      "Laterality": "R",
+      "ImageLaterality": "",
+      "FrameLaterality": ""
+    },
+    {
+      "source_path": "train_series/1.2.826.0.1.3680043.8.498.42396216793489016293032290339618185275/1.2.826.0.1.3680043.8.498.23837845959000429243461967134083788003/1.2.826.0.1.3680043.8.498.98963557038469416085819387721537394257.dcm",
+      "sop_uid": "1.2.826.0.1.3680043.8.498.98963557038469416085819387721537394257",
+      "source_sha256": "9f61f27a19a18fa1f24c2835b9c680777475acde9ad2f2ffea70a90763782a88",
+      "source_bytes": 559326,
+      "prefix_sha256": "5fcb6351ec2edd1f41f2376930f59749241da02b218e763e5930cff2f24c0376",
+      "prefix_bytes": 65536,
+      "verification_scope": "range_transport_and_uid_binding_only",
+      "Laterality": "R",
+      "ImageLaterality": "",
+      "FrameLaterality": ""
+    }
+  ],
+  "rendered_record_values": [
+    {
+      "ordered_index": 3,
+      "literal_laterality": "R",
+      "page": 0,
+      "source_sop_uid": "1.2.826.0.1.3680043.8.498.66912509958074540076364225290830813744"
+    },
+    {
+      "ordered_index": 7,
+      "literal_laterality": "R",
+      "page": 0,
+      "source_sop_uid": "1.2.826.0.1.3680043.8.498.50685101634242315755670538212605991555"
+    },
+    {
+      "ordered_index": 10,
+      "literal_laterality": "R",
+      "page": 0,
+      "source_sop_uid": "1.2.826.0.1.3680043.8.498.39305640032452103161832202323299290236"
+    }
+  ],
+  "display_header_text_personally_read": "Series 501 | literal side R | T2W_BONDORF",
+  "conclusion": "The frozen metadata, manifest and visible page header consistently record R for501. Blank ImageLaterality/FrameLaterality were not interpreted or substituted. The contrary all-L statement is a root display-reading discrepancy, not a discovered change in source bytes or renderer output; root confirmation remains separate.",
+  "scope": "Existing two lexical endpoint headers only, provenance verified to corrected inventory by the preserved metadata collector. No new raw DICOM header read, all-slice laterality survey or named anatomical side inference.",
+  "original_artifacts_modified": false
+}
