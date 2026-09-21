@@ -1,0 +1,513 @@
+{
+  "schema_version": 1,
+  "stage": "independent_technical_header_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "study_uid": "1.2.826.0.1.3680043.8.498.13073387272228394257811861905056479438",
+  "source_batch_index": 12,
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "source_batch_sha256": "93d67ef5e11595428d05138a06b07dc0ab6c28e2d251be4a1fac78464b4284cc",
+  "source_report_sha256": "e22ccbe6f69d3199d1f1c3de4e43e21584bab20eb2714a7b3379db6ce2b9521c",
+  "input_bindings": [
+    {
+      "path": "recovered/initiative/reviews/inputs/batch-021.json",
+      "sha256": "93d67ef5e11595428d05138a06b07dc0ab6c28e2d251be4a1fac78464b4284cc",
+      "n_bytes": 66961
+    },
+    {
+      "path": "annotation-staging/bilateral02112-source-preread.json",
+      "sha256": "c7224ddd3af0a145ca865f227532f3a539f4941f5226cb575b7991acffdb6539",
+      "n_bytes": 4214
+    },
+    {
+      "path": "annotation-staging/bilateral02112-source-copy-assessment.json",
+      "sha256": "acebeadef34c9d8e2b683ce69f5b981b4020f47bdff96fc3f44e7f809274cef6",
+      "n_bytes": 986
+    },
+    {
+      "path": "annotation-staging/bilateral02112-source-inventory.json",
+      "sha256": "dd4646032f4d803d52fb07f9f55a16b1731af0a1c3f5d3508918a56ff64a3aa3",
+      "n_bytes": 62169
+    },
+    {
+      "path": "annotation-staging/header-extract-021012.jsonl",
+      "sha256": "e0c43b67a58a826e11d104b0a6335bb77f7e266b33ff750008f1601287cb4616",
+      "n_bytes": 20957
+    },
+    {
+      "path": "annotation-staging/bilateral02112-series-headers.json",
+      "sha256": "8cdc420c7f6e793a52c511cb767e74315c09c9c702591095f722ed34875479dc",
+      "n_bytes": 9415
+    },
+    {
+      "path": "header-endpoint-full-v1/manifest.json",
+      "sha256": "7aa80f9ca6043d55b1fdab4e008739877e96273b5d9c2111114f5c10b2ed4c7a",
+      "n_bytes": 9513965
+    },
+    {
+      "path": "header_endpoint_survey.py",
+      "sha256": "206d82db7ddb7a3239119b022fe39150621673899f8757a8553b5ff6fce161ea",
+      "n_bytes": 26956
+    },
+    {
+      "path": "annotation-staging/bilateral02112-extract.py",
+      "sha256": "308db9d3a1c13328b4adff9fca51e025b6c3b05ac4c12afb21f07ba2491c228a",
+      "n_bytes": 4195
+    }
+  ],
+  "independence": "Complete original source personally read and preread frozen before headers or annotations. Parent disclosed an explicit-bilateral candidate only. No021 draft/review/gold opened. No native images inspected or clinical target decisions made.",
+  "source_result": "One integrated current report explicitly describes both knees, including separate right/left angle values and multiple bilateral current findings. It is not a bilateral-history-only mention. The exact report field and full train.csv file are byte-identical in archived and existing root-obtained current authenticated Kaggle source, so no recovery corruption was found.",
+  "header_coverage": {
+    "n_expected_series": 5,
+    "n_series_with_both_endpoints": 5,
+    "n_expected_slices": 98,
+    "n_header_samples": 10,
+    "n_pixel_header_boundaries_reached": 10,
+    "n_full_dicom_files_verified": 0,
+    "n_native_pixel_decodes": 0,
+    "n_patient_id_hashes": 1,
+    "n_frame_of_reference_hashes": 5,
+    "expected_full_source_bytes": 42707562,
+    "transport_scope": "Checksummed survey payloads extracted read-only; source UID/size/LFS OID bindings and exact lexical first/last selection verified against pinned inventory. Endpoint prefix hashes remain prefix hashes, not independent full-file verification. All ten reached the PixelData header. No raw image pixels retained by this audit."
+  },
+  "series_records": [
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.11072522293527069439770688811820020741",
+      "n_inventory_slices": 16,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "640"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.98781357616015, -0.1556416999191, -3.86639594e-009, 0.00557189625247, 0.03536326466448, -0.9993589912961]"
+        ],
+        "ImagePositionPatient": [
+          "[-159.7484790894, -95.402886922797, 69.1925150079]",
+          "[-160.55730172123, -100.53622585102, 69.006357781337]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "SIEMENS"
+        ],
+        "ManufacturerModelName": [
+          "SonataVision"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.25, 0.25]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "640"
+        ],
+        "SeriesDescription": [
+          "t1_se_cor_384"
+        ],
+        "SeriesNumber": [
+          "5"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "4"
+        ],
+        "SoftwareVersions": [
+          "syngo MR A40 4VA40A"
+        ],
+        "SpacingBetweenSlices": [
+          "5.2"
+        ]
+      },
+      "patient_id_sha256": [
+        "649966c8ff22046f8c0f098d962b9d6f1887f5cc27ecb0589e3bc98a35917aef"
+      ],
+      "frame_of_reference_sha256": [
+        "df7a4c6b4de49c16d51f5d303cc0a6b25541b8fadb82a3f544bfe1cb64bcb324"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.12567915175272257829005899730335229137",
+      "n_inventory_slices": 20,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "384"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.98781357616015, -0.1556416999191, -3.86639594e-009, 0.00557189625247, 0.03536326466448, -0.9993589912961]"
+        ],
+        "ImagePositionPatient": [
+          "[-139.93257401737, -66.012162938921, 55.333395720721]",
+          "[-144.7232615784, -96.417321935503, 54.230769873858]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "SIEMENS"
+        ],
+        "ManufacturerModelName": [
+          "SonataVision"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.33854166666667, 0.33854166666667]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "384"
+        ],
+        "SeriesDescription": [
+          "pd_tse_fs_cor_np"
+        ],
+        "SeriesNumber": [
+          "4"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "4"
+        ],
+        "SoftwareVersions": [
+          "syngo MR A40 4VA40A"
+        ],
+        "SpacingBetweenSlices": [
+          "4.4"
+        ]
+      },
+      "patient_id_sha256": [
+        "649966c8ff22046f8c0f098d962b9d6f1887f5cc27ecb0589e3bc98a35917aef"
+      ],
+      "frame_of_reference_sha256": [
+        "3c5c53695a1c8a5a2060b1987495125249650e8e2a106ba52e90aa6773918573"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.40936048782480894276386907111545767326",
+      "n_inventory_slices": 20,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "384"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.99999099010093, -5.64639605e-005, 0.00424458817572, 2.060109164e-010, 0.99991153311105, 0.01330135149176]"
+        ],
+        "ImagePositionPatient": [
+          "[-133.32365292134, -137.10695078781, -14.204745851797]",
+          "[-133.41194790425, -137.38361552169, 6.5932268273412]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "SIEMENS"
+        ],
+        "ManufacturerModelName": [
+          "SonataVision"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.36458333333333, 0.36458333333333]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "384"
+        ],
+        "SeriesDescription": [
+          "pd_tse_fs_tra_np"
+        ],
+        "SeriesNumber": [
+          "3"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "4"
+        ],
+        "SoftwareVersions": [
+          "syngo MR A40 4VA40A"
+        ],
+        "SpacingBetweenSlices": [
+          "5.2"
+        ]
+      },
+      "patient_id_sha256": [
+        "649966c8ff22046f8c0f098d962b9d6f1887f5cc27ecb0589e3bc98a35917aef"
+      ],
+      "frame_of_reference_sha256": [
+        "6444692b0334cfcce135abe49e51e4645ffaea868865c6f8b0a2e6dd683a4e13"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.60893370578618234818013890971652440165",
+      "n_inventory_slices": 23,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.05049559933805, 0.99872428349745, 2.041538594e-008, -0.0319386479242, 0.00161484165407, -0.9994885267251]"
+        ],
+        "ImagePositionPatient": [
+          "[-39.652696275443, -153.94876085714, 75.273837470345]",
+          "[-67.952047013969, -152.51794039205, 76.180454634956]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "SIEMENS"
+        ],
+        "ManufacturerModelName": [
+          "SonataVision"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.3515625, 0.3515625]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          "t2_me2d_sag"
+        ],
+        "SeriesNumber": [
+          "7"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "syngo MR A40 4VA40A"
+        ],
+        "SpacingBetweenSlices": [
+          "4.05"
+        ]
+      },
+      "patient_id_sha256": [
+        "649966c8ff22046f8c0f098d962b9d6f1887f5cc27ecb0589e3bc98a35917aef"
+      ],
+      "frame_of_reference_sha256": [
+        "3791d13d2c04454432e235e16dd789f7e81dc2fc65ebddde1cb6b65194fd7386"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.82329733572189389756224735983332914535",
+      "n_inventory_slices": 19,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "384"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.05049559933805, 0.99872428349745, 2.041538594e-008, -0.0319386479242, 0.00161484165407, -0.9994885267251]"
+        ],
+        "ImagePositionPatient": [
+          "[-51.932657530379, -128.43290891854, 50.596506976602]",
+          "[-87.069773008895, -126.65637006966, 51.722184085367]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "SIEMENS"
+        ],
+        "ManufacturerModelName": [
+          "SonataVision"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.33854166666667, 0.33854166666667]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "384"
+        ],
+        "SeriesDescription": [
+          "pd_tse_fs_sag_np"
+        ],
+        "SeriesNumber": [
+          "6"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "4"
+        ],
+        "SoftwareVersions": [
+          "syngo MR A40 4VA40A"
+        ],
+        "SpacingBetweenSlices": [
+          "4.4"
+        ]
+      },
+      "patient_id_sha256": [
+        "649966c8ff22046f8c0f098d962b9d6f1887f5cc27ecb0589e3bc98a35917aef"
+      ],
+      "frame_of_reference_sha256": [
+        "06b00b0cdce26b777dc5b6a15a723e3f672418011c116bd25aaaf7a6c4886d2a"
+      ]
+    }
+  ],
+  "candidate_flags": {
+    "mixed_explicit_laterality": false,
+    "all_laterality_fields_missing": true,
+    "mixed_patient_id": false,
+    "repeated_acquisition_set_candidate": false,
+    "bilateral_source_correspondence_unresolved": true
+  },
+  "header_assessment": "Five distinct descriptions form one coherent acquisition set: axial PD FS, coronal PD FS, coronal T1, sagittal PD FS and sagittal T2, with consecutive SeriesNumbers3 through7 and AcquisitionNumber1. Corresponding coronal and sagittal orientations agree across contrast sequences. All endpoint Laterality/ImageLaterality/FrameLaterality fields are blank. There is one hashed patient identifier and five frame-of-reference hashes. No endpoint evidence of repeated/mixed side sets was found; absence of this candidate is not proof that all images represent one knee.",
+  "geometry_limits": "IOP/IPP and130-180mm nominal in-plane fields are retained for future review, but coordinates across distinct hashed frames of reference do not by themselves establish left/right identity. Lexical endpoints are not guaranteed geometric extremes. Blank laterality never implies right. Full native anatomy and all-slice metadata have not been checked for this case.",
+  "native_followup": {
+    "launched": false,
+    "reason": "The assigned conditional trigger was metadata suggesting repeated or mixed side acquisition sets. Five endpoint-complete coherent series showed neither. No additional full-study download/visual audit was launched. Root can extend the scope if native anatomy is required to resolve the remaining source mismatch."
+  },
+  "recommendation": "Keep the whole study excluded from single-knee weak-label training or retain all informative masks until a separately reviewed source-to-series correspondence contract resolves the bilateral report. Do not assign a side from absent tags, assume missing left/right images, or infer concordant clinical labels as permission to reuse the report.",
+  "clinical_annotations_changed": 0,
+  "source_or_runtime_code_modified": false
+}

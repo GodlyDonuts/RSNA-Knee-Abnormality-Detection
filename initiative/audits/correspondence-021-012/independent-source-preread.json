@@ -1,0 +1,34 @@
+{
+  "stage": "independent_technical_source_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "source_path": "initiative/reviews/inputs/batch-021.json",
+  "source_batch_index": 12,
+  "source_batch_sha256": "93d67ef5e11595428d05138a06b07dc0ab6c28e2d251be4a1fac78464b4284cc",
+  "study_uid": "1.2.826.0.1.3680043.8.498.13073387272228394257811861905056479438",
+  "report_sha256": "e22ccbe6f69d3199d1f1c3de4e43e21584bab20eb2714a7b3379db6ce2b9521c",
+  "full_source_report": "ΤΕΧΝΙΚΗ Πραγµατοποιήθηκαν ακολουθίες PD, T1, T2. ΕΥΡΗΜΑΤΑ - Από τον έλεγχο του εκτατικού µηχανισµού σηµειώνεται µορφολογία αµφοτέρων των επιγονατίδων Wiberg type II, στο πλαισιο ανατοµικής παραλλαγής. Συγγενώς παρατηρείται ρηχότητα στις µηριαίες τροχιλίες (sulcus angle 160 δεξιά και 165 αριστερά). o o Aµφοτερόπλευρα παρατηρείται ήπιο προς τα έξω υπεξαρθρηµα των επιγονατίδων. Ο αρθρικοί χόνδροι ελέγχονται φυσιολογικοί αµφοτερόπλευρα, χωρίς να παρατηρούνται στοιχεία συµβατά µε χονδροπάθεια της επιγονατίδας. (κλινικό ερώτηµα) - ∆εν σηµειώνονται παθολογικά ευρήµατα από τους χιαστούς συνδέσµους και τους πλάγιους συνδέσµους. - Φυσιολογική απεικόνιση των µηνίσκων. - ∆εν αναγνωρίζεται παθολογικό σήµα από τον έλεγχο του οστικού µυελού. Παρουσία επικουρικών οσταρίων αµφοτερόπλευρα (os Fabella). Συµπέρασµα Ευρήµατα ενδεικτικά δυσλειτουργίας του εκτατικού µηχανισµού (patella maltracking). ",
+  "context": "Personally read the complete original blinded report before accessing published021 annotations, any header records, or any native images for this case. Task notification disclosed an explicit-bilateral candidate but no source-specific anatomical conclusion. No gold or target values accessed.",
+  "report_structure": {
+    "n_integrated_current_reports": 1,
+    "n_separate_side_specific_report_blocks": 0,
+    "bilateral_note_marker": false,
+    "explicit_current_both_knees": true,
+    "evidence": [
+      "µορφολογία αµφοτέρων των επιγονατίδων Wiberg type II",
+      "(sulcus angle 160 δεξιά και 165 αριστερά)",
+      "Ο αρθρικοί χόνδροι ελέγχονται φυσιολογικοί αµφοτερόπλευρα",
+      "Παρουσία επικουρικών οσταρίων αµφοτερόπλευρα (os Fabella)."
+    ]
+  },
+  "assessment": "This is one integrated current bilateral knee report, not merely a bilateral symptom/history statement. It explicitly discusses both patellae, assigns separate right/left trochlear-angle measurements, and repeats bilateral current observations. It does not establish whether the archived study contains both knees, one knee with an overbroad report, or limited bilateral comparison sequences. Source-to-series single-knee correspondence requires technical review.",
+  "required_proof": [
+    "Compare exact official/source report bytes to distinguish upstream wording from recovery corruption.",
+    "Inspect both endpoint headers of every series, including literal laterality values, hashed PatientID, sequence identities, IOP/IPP/FoR, and acquisition-set repetition.",
+    "If mixed/repeated acquisitions suggest both knees, validate every native DICOM and compare rendered anatomy with orientation; absent laterality must never imply right.",
+    "No clinical-target reassignment or arbitrary report/series exclusion from metadata alone."
+  ],
+  "clinical_annotations_changed": 0
+}

@@ -1,0 +1,32 @@
+from pathlib import Path
+import json,hashlib,sqlite3
+import pandas as pd
+repo=Path.cwd();base=repo.parent;stage=base/'annotation-staging';r=json.loads((repo/'initiative/reviews/inputs/batch-021.json').read_text())[12];uid=r['study_uid'];sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def write(name,a):
+ p=stage/name;assert not p.exists();p.write_text(json.dumps(a,ensure_ascii=False,indent=2)+'\n');return p
+copies=[]
+for p in [repo/'initiative/source/train.csv',base/'kaggle_current/train.csv']:
+ d=pd.read_csv(p,usecols=['StudyInstanceUID','Report'],dtype=str,keep_default_na=False);f=d[d.StudyInstanceUID==uid]
+ assert len(f)==1 and f.iloc[0].Report==r['report']
+ copies.append({'path':str(p.relative_to(base)),'sha256':sha(p),'n_bytes':p.stat().st_size,'n_matching_uid_rows':len(f),'report_exact_match':True})
+assert copies[0]['sha256']==copies[1]['sha256']
+write('bilateral02112-source-copy-assessment.json',{'study_uid':uid,'source_report_sha256':hashlib.sha256(r['report'].encode()).hexdigest(),'source_copies':copies,'scope':'Existing root-obtained authenticated current Kaggle copy compared with archived train.csv and blinded batch. This agent did not redownload train.csv. Only UID and Report columns materialized; no gold values opened. Integrated bilateral wording is exact source content, not recovery corruption.'})
+inv=pd.read_parquet(repo/'initiative/source/inventory',filters=[('study_uid','==',uid)])
+fields=['study_uid','series_uid','sop_uid','path','sha256','bytes','storage'];records=inv.sort_values(['series_uid','sop_uid'])[fields].to_dict('records')
+write('bilateral02112-source-inventory.json',{'source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d','study_uid':uid,'n_slices':len(inv),'n_series':inv.series_uid.nunique(),'source_bytes':int(inv.bytes.sum()),'records':records})
+lookup={x['path']:x for x in records};db=sqlite3.connect('file:'+str(base/'header-endpoint-full-v1/checkpoint.sqlite3')+'?mode=ro',uri=True)
+rr=db.execute('SELECT path,payload,sha256 FROM records WHERE path LIKE ? ORDER BY path',('train_series/'+uid+'/%',)).fetchall();db.close();headers=[]
+for path,payload,digest in rr:
+ assert hashlib.sha256(payload.encode()).hexdigest()==digest
+ x=json.loads(payload);v=lookup[path];assert x['source_path']==path
+ for a,b in [('study_uid','study_uid'),('series_uid','series_uid'),('sop_uid','sop_uid'),('source_sha256','sha256'),('source_bytes','bytes'),('storage','storage')]:assert x[a]==v[b],(a,path)
+ assert x['reached_pixel_data_header'] and x['full_file_sha256_verified'] is False
+ headers.append(x)
+p=stage/'header-extract-021012.jsonl';assert not p.exists();p.write_text(''.join(payload+'\n' for _,payload,_ in rr))
+series=[]
+for sid,g in inv.groupby('series_uid',sort=True):
+ hs=[x for x in headers if x['series_uid']==sid];expected={g.sop_uid.min(),g.sop_uid.max()};assert {x['sop_uid'] for x in hs}==expected
+ keys=sorted(hs[0]['header_fields']);series.append({'series_uid':sid,'n_inventory_slices':len(g),'n_endpoint_headers':len(hs),'endpoint_selection':'exact lexical first and last SOP','header_fields':{k:sorted({h['header_fields'][k] for h in hs}) for k in keys},'patient_id_sha256':sorted({h['patient_id_sha256'] for h in hs}),'frame_of_reference_sha256':sorted({h['frame_of_reference_sha256'] for h in hs})})
+write('bilateral02112-series-headers.json',series)
+print(json.dumps({'n_slices':len(inv),'n_series':len(series),'n_endpoints':len(headers),'n_patient_hashes':len({h['patient_id_sha256'] for h in headers}),'n_frame_hashes':len({h['frame_of_reference_sha256'] for h in headers}),'source_bytes':int(inv.bytes.sum()),'files':[{'name':n,'sha256':sha(stage/n)} for n in ['bilateral02112-source-copy-assessment.json','bilateral02112-source-inventory.json','header-extract-021012.jsonl','bilateral02112-series-headers.json']]},indent=2))
+for s in series:print(json.dumps({'series_uid':s['series_uid'],'n_slices':s['n_inventory_slices'],**{k:v for k,v in s['header_fields'].items() if k in ['Laterality','ImageLaterality','FrameLaterality','SeriesDescription','SeriesNumber','AcquisitionNumber','ImageOrientationPatient','ImagePositionPatient','PatientPosition','Rows','Columns','PixelSpacing']}},ensure_ascii=False))
