@@ -1,0 +1,29 @@
+{
+  "created_utc": "2026-09-21T04:21:31.376182+00:00",
+  "assessor": "/root",
+  "reason": "Preserve frozen audit scripts as text evidence, consistent with other standalone audit scripts in initiative. They use local staging paths and are not runtime modules. Their accidental .py archival caused repository lint to apply to immutable evidence; no runtime code failed. Original handoff/input bindings remain immutable and refer to original filenames.",
+  "files": [
+    {
+      "original_handoff_name": "build_review_queue.py",
+      "archive_name": "build_review_queue.py.txt",
+      "sha256_unchanged": "37e94dd77790d1baeb359bf95f942a70f038e09ac013d4ccd827df059978f25a"
+    },
+    {
+      "original_handoff_name": "compare_full_references.py",
+      "archive_name": "compare_full_references.py.txt",
+      "sha256_unchanged": "397f4ffde7d261aa9ca0ff4bba0e0031252442b68c15b06185816417a019214b"
+    },
+    {
+      "original_handoff_name": "test_validate.py",
+      "archive_name": "test_validate.py.txt",
+      "sha256_unchanged": "c1ccc6e1a095a4d7ba64d9879abb90b5ec8d4a61de3e33968942099f4f58fd7c"
+    },
+    {
+      "original_handoff_name": "validate.py",
+      "archive_name": "validate.py.txt",
+      "sha256_unchanged": "73a5614640088f758aa505de3120b1ed17429e139a7d9e0d8e43f5735f6094d2"
+    }
+  ],
+  "reproduction": "Copy these four .py.txt files into a separate work directory under their original .py names before running the documented commands. Source bytes/checksums are unchanged.",
+  "previous_ci_failure": 35560405934
+}
