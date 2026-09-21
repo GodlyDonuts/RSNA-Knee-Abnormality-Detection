@@ -24,18 +24,38 @@ The release exports `correspondence_trace.json`, includes that trace in
 changed or incomplete registry, wrong source identity, unverified proof or partial
 mask fails before the command writes a new release.
 
-The current policies cover the shoulder report at 052:20, the unsided report
-with two knee protocols at 075:14, and the integrated bilateral aggregates at
-048:12 and 086:13. The latter two retain explicit source-origin limits: 83 files
-came from fresh Kaggle downloads; fresh official whole-byte confirmation remains
-deferred for 576 corrected pinned mirror files. Original files and reports are
-preserved. The 25 completed mixed-tag investigations favor coherent single
-protocols; conflicting tags remain recorded and do not automatically cause an
-exclusion or named-side correction.
+The current policies enforce 13 whole-study report-supervision exclusions:
+052:20, 075:14, 048:12, 086:13, 017:07, 018:19, 038:37, 067:37,
+052:01, 052:17, 001:39, 007:16 and 062:21. They cover a shoulder report,
+unresolved two-knee acquisitions and explicitly bilateral report aggregates.
+Literal side tags alone never cause an exclusion.
 
-The independently reviewed 052:01/17 bilateral report aggregates require withholding report supervision because their image-to-report-block correspondence remains unresolved. Their 245 source memberships, 12 complete cache volumes and 36 sampled views are preserved in `initiative/audits/correspondence-052001-017-cache-v1/`; adding their final registry policies remains pending.
+The v3 policy adds nine previously verified cases using proof binding version 2.
+Each immutable wrapper links the exact original report/index/hash, literal source
+quotes, original root exclusion decision and a distinct independent assessment.
+Cache cases also bind their original source handoff. The validator rejects
+wrong selectors, altered decisions, noncanonical assessor identities and a bare
+verified status substituted for evidence. Original v1/v2 policies remain unchanged.
+See `initiative/audits/correspondence-extension-v3/` for the independent review,
+negative tests and validation against all 4,407 blinded source reports.
 
-The newly preserved001:39/007:16 bilateral source/cache investigations and062:21 dual Greek report investigation likewise require withholding supervision while report-block correspondence remains unresolved. Their final registry policies are pending; the four enforced whole-study exclusions above are still the complete current policy set. See `technical-tier4-bilateral-001007-cache-v1/` and `correspondence-055058060062063-v1/`. Other cases in the latter audit retain individual adjudication needs, including explicit performed-side clarification at063:35; no blanket exclusion was inferred from the group.
+Runtime verification checks the original root decision, independent assessment
+and joint handoff. It does not rerun the historical image review or recursively
+validate earlier source-first reading order; the preserved root verification
+artifacts remain the evidence for that work. No official gold columns were used
+to develop or test the extension; mask tests use fabricated targets and splits.
+
+The 048:12/086:13 evidence retains its source-origin limit: 83 files came from
+fresh Kaggle downloads; fresh official whole-byte confirmation remains deferred
+for 576 corrected pinned mirror files. Original files and reports are preserved.
+The 25 completed mixed-tag investigations do not justify blanket exclusions or
+named-side corrections.
+
+Three further bilateral sources, 048:09, 048:38 and 053:47, now have independently
+frozen source/visual findings and root-replayed cache evidence. They require
+whole-study report-supervision exclusion, but their final policy integration is
+still pending. Other correspondence and semantic flags remain individually
+reviewable; the 13 enforced exclusions do not close the remaining queue.
 
 These controls do not certify completion of report review, semantic QA or the
 remaining technical correspondence queue. Final manifests and actual final-data

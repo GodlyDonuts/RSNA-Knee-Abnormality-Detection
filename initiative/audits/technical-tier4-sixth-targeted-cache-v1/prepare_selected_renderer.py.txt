@@ -1,0 +1,12 @@
+"""Adapt reviewed cached-display mechanics to15selectedarrays/45samples."""
+from pathlib import Path
+import hashlib
+P=Path(__file__).resolve().parent;T=P.parent/'technical-tier4-third-fourth-targeted-cache-v1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+sm=sha(P/'technical-evidence/summary.json');pl=sha(P/'selection-plan.json')
+for f in ['compare_geometry.py','render_cache_sets.py','verify_cache_panels.py']:
+ s=(T/f).read_text().replace('0f8daef2857d720bf41d17ff4aac762d8bd76f75f5430fa7b418840fbcc8de23',sm).replace('966e11b5647413a18a31aac2fe29fed465986417a4105c67eb018c70852321d1',pl)
+ replacements={'All 42 selected endpoint':'All 38 selected endpoint','plan["selected_series"] == 13':'plan["selected_series"] == 15','len(source) == 1050':'len(source) == 658','source.series_uid.nunique() == 21':'source.series_uid.nunique() == 19','len(checked_cache) == 13':'len(checked_cache) == 15','== 802':'== 534','== 39':'== 45','"whole_study_series_metadata_scope": 21':'"whole_study_series_metadata_scope": 19','"selected_source_inventory_rows_verified": 802':'"selected_source_inventory_rows_verified": 534','all 802 selected source memberships, all 1050 whole-study inventory memberships':'all 534 selected source memberships, all 658 whole-study inventory memberships','Only 13 of 21 whole-study series arrays read; 39 sparse samples displayed.':'Only 15 of 19 whole-study series arrays read; 45 sparse samples displayed.'}
+ for a,b in replacements.items():s=s.replace(a,b)
+ assert not(P/f).exists();(P/f).write_text(s)
+print(sm,pl)

@@ -1,0 +1,90 @@
+"""Bind independently frozen expanded observations, preserving correction history."""
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+P=Path(__file__).resolve().parent
+W=P.parents[1]
+def ref(p):
+ p=Path(p); h=hashlib.sha256()
+ with p.open('rb') as f:
+  for block in iter(lambda:f.read(1024*1024),b''):h.update(block)
+ return {'path':str(p.relative_to(W)),'sha256':h.hexdigest(),'bytes':p.stat().st_size}
+def verify(r):
+ assert ref(W/r['path'])==r, f"Changed binding {r['path']}"
+def save(p,v):
+ assert not p.exists(), f'Existing artifact {p}'
+ p.write_text(json.dumps(v,indent=2,ensure_ascii=False)+'\n')
+root_hashes={'038:44':'c7a0f24a88f35ca03ea68d5685c21b9ef8cbf9534d6d229d4665a6292a6f0b63','045:15':'37f498b2a1cac1d2b9e77bab5182c88363fd943b83a9082590c96ac5cec9f008'}
+outputs=[]
+for case,direction in [('038:44','viewer-right'),('045:15','viewer-left')]:
+ C=P/'cache-panels'/('case-'+case.replace(':','-'))
+ ap=C/'independent-all-slice-visual-assessment.json';rp=C/'root-all-slice-visual-freeze.json';mp=C/'panel-manifest.json'
+ a=json.loads(ap.read_text());r=json.loads(rp.read_text());m=json.loads(mp.read_text())
+ assert ref(rp)['sha256']==root_hashes[case]
+ assert a['case']==r['case']==m['case']==case and a['study_uid']==r['study_uid']==m['study_uid']
+ assert a['manifest']==r['manifest']==ref(mp)
+ assert a['images']==r['images']==m['images'] and len(m['images'])==6
+ assert a['matrices_personally_viewed']==r['personally_viewed_matrices']==m['cached_matrices']==66
+ assert {x['series_number'] for x in m['panels']}=={401,501,601}
+ for s,n in [(401,24),(501,21),(601,21)]:
+  xs=[x for x in m['panels']if x['series_number']==s]
+  assert len(xs)==n and {x['ordered_index']for x in xs}==set(range(n))
+ assert a['explicit_revision_of_prior_reassessment']['all_slice_reassessed_coronal_fibular_direction']==direction
+ assert r['explicit_root_correction']['corrected_root_coronal_direction']==direction
+ history={
+  'agent_original_sparse':a['original_sparse_agent_freeze'],
+  'root_original_sparse':a['original_sparse_root_freeze'],
+  'agent_intervening_post_disagreement_reassessment':a['prior_post_disagreement_reassessment'],
+  'root_intervening_sparse_reinspection':r['explicit_root_correction']['previous_root_reinspection'],
+  'prior_unresolved_sparse_joint':a['prior_unresolved_sparse_joint'],
+  'agent_new_complete_selected_slices':ref(ap),
+  'root_new_complete_selected_slices':ref(rp)
+ }
+ for x in list(history.values())+m['images']+[m['prior_source_reuse'],m['prior_technical_summary'],m['case_metadata'],m['source_inventory_subset'],a['display_integrity']]:verify(x)
+ previous=json.loads((W/a['prior_unresolved_sparse_joint']['path']).read_text())
+ lineage=previous['source_review_lineage']
+ for x in lineage['source_assessments']+[lineage['root_source_neutral_extraction'],lineage['independent_source_comparison']]:verify(x)
+ source=json.loads((W/m['prior_source_reuse']['path']).read_text())
+ sr=next(x for x in source['records']if x['case']==case)
+ result={
+  'schema_version':1,'stage':'joint_expanded_selected_cache_slice_handoff',
+  'agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),
+  'case':case,'study_uid':m['study_uid'],'source_report_sha256':sr['source_report_sha256'],
+  'assessor_ids':['/root/image_pipeline_audit','/root'],
+  'source_review_lineage':lineage,'source_reuse':m['prior_source_reuse'],
+  'assessment_order':'Both assessors knew the earlier sparse disagreement and then personally inspected all 66 new selected cached matrices before exchanging expanded observations. This is independent new-evidence assessment with disclosed prior exposure, not first-ever blinding.',
+  'complete_correction_history':history,
+  'history_interpretation':[
+   f'The original agent sparse coronal observation identified {direction}; the original root observation identified the opposite displayed side.',
+   'After the first disagreement, the agent published an intervening sparse reassessment that adopted the opposite coronal location. Root separately repeated its original sparse coronal location. The prior joint preserved unresolved cross-plane identification rather than asserting concordance.',
+   f'Following the fibular shaft/head through all adjacent selected slices, both expanded freezes now identify {direction} in axial 401 and both coronal 501/601. The agent explicitly withdraws its intervening correction; root explicitly corrects its original and repeated sparse coronal claims.',
+   'This new joint supersedes only the earlier landmark-direction uncertainty within these three completely viewed cached series. Every original freeze, reassessment and unresolved joint remains unchanged; agreement is not retroactively attributed to the sparse independent pass.'
+  ],
+  'shared_observations':[
+   f'Axial 401 ordered indices 0 through 7 show contiguous fibular shaft/head anatomy {direction} of the tibia.',
+   f'Coronal 501 and 601 show separately identifiable proximal fibular head/shaft {direction}, particularly around indices 12 and 13. Full adjacent-slice context distinguishes the landmark from posterior contours around the former sparse index 15.',
+   'The three selected cached series show compatible displayed lateral-landmark direction. All 66 matrices per case were viewed; no clinical abnormality is adjudicated.'
+  ],
+  'material_expanded_visual_disagreement':False,
+  'attributed_detail':'The agent explicitly relates the displayed landmark direction to positive-X first IOP vectors and unchanged display geometry; root independently describes the contiguous anatomy. Neither statement authenticates upstream patient orientation or assigns a named side.',
+  'manifest':ref(mp),'images':m['images'],'neutral_handoff':ref(P/'neutral-handoff.json'),
+  'display_integrity':a['display_integrity'],'renderer':m['script'],
+  'case_metadata':m['case_metadata'],'source_inventory_subset':m['source_inventory_subset'],
+  'selected_series_numbers':[401,501,601],'selected_series':3,
+  'complete_selected_source_memberships':66,'complete_selected_cached_matrices':66,
+  'whole_study_series_metadata':m['whole_study_series_metadata'],
+  'whole_study_source_memberships':m['whole_study_source_memberships'],
+  'unselected_arrays_opened_for_this_extension':0,
+  'limits':[
+   'Normalized 256-pixel cache data only; no new native decoding or fresh authoritative source-byte comparison.',
+   'Other series retain their earlier sparse scope. Focused supplementary views and full report-to-image correspondence are not resolved by this three-series comparison.',
+   'Displayed geometry and source metadata bindings are preserved, conditional on trustworthy original geometry; named patient side and absence of upstream mirroring are not proven.',
+   'No patient/site identity, cross-study pixel equivalence, disease diagnosis, target-state change or training-readiness conclusion.'
+  ],
+  'root_numeric_replay_status':'pending_separate_root_artifact',
+  'bounded_disposition':'Preserve every original series and literal tag. Close the three-series cross-plane landmark-direction uncertainty on expanded cached evidence, while retaining the separate correspondence and focused-view limits.',
+  'originals_modified':False,'source_tags_annotations_or_cache_modified':False,'training_ready':False
+ }
+ out=C/'joint-all-slice-visual-handoff.json';save(out,result);outputs.append(ref(out))
+print(json.dumps(outputs,indent=2))

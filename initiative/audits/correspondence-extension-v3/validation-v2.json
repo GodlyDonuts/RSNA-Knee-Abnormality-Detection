@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "stage": "focused_extension_validation",
+  "agent_id": "/root/competition_contract",
+  "tests": {
+    "command": "RSNA_CORRESPONDENCE_OVERLAY=\"$PWD/../annotation-staging/correspondence-extension-v3/overlay\" python3 -m pytest -q tests/test_correspondence.py tests/test_correspondence_extension.py",
+    "passed": 78,
+    "failed": 0,
+    "elapsed_seconds": 2.65,
+    "uses_official_gold_values": false
+  },
+  "checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed (2 files already formatted)",
+    "mypy_correspondence": "passed; existing ../../.venv/bin/python used because system Python lacks mypy",
+    "current_registry_inspection": "passed; 2 policies / 4 studies; no production overlay applied",
+    "overlay_integration": "passed; 3 policies / 13 studies; exactly 9 additions"
+  },
+  "production_registry_unchanged_sha256": "1ac3245bbf444d5aaaf009ee2a065ab1c7285b6700a20219355f7e0c85861412",
+  "candidate_registry_sha256": "c6351e190465475f9454ca76e73ac5d0ebfc704fe9485593322baaa8914fdb3d",
+  "candidate_policy_sha256": "a2bcb734d22b8dce0c5989ca17105089527f47f842f7907b0327ae9329d5a83e",
+  "runtime_sha256": "dc4998fc98d991c1b61526b81537cbf565978f42e81c9dd2d11c5873f81ef91a",
+  "test_sha256": "1a02c38d1a268d7ad32103a2dd49eb52584977724a2c458c328035908f944b6b",
+  "production_patch_sha256": "289746b6f43e6f17c94c09949a719957e28c038c816384089ee4edd5ffb9add5",
+  "dedicated_tests_patch_sha256": "63ce55bed9b376fe93e18121990fba309b696205ec41354b079d84ea448df1ca",
+  "new_initiative_files_published": false,
+  "git_or_hf_mutations": false,
+  "root_review_pending": true,
+  "supersedes_validation_sha256": "7a265a9d843866b18403d9bf940e20346a1705fc897f8b5babf2e80399b05b12",
+  "cache_proof_scope": "Checks root decision, selected case, independent assessment and joint source handoff with exact roles/source/hash bindings. Does not recursively open root frozen visual, source-first prereads, panel files or handoff nested role/order references. Preserved proof records assert those prior checks."
+}

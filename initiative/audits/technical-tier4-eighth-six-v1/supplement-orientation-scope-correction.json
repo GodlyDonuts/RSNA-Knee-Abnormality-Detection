@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "stage": "supplement_orientation_verification_and_explicit_scope_correction",
+  "agent_id": "/root/image_pipeline_audit",
+  "script": {
+    "path": "annotation-staging/technical-tier4-eighth-six-v1/verify_supplement_orientations.py",
+    "sha256": "5507f6fbcd4a6679069318b44076bec09c23392f976ab1a12cc0fa972603675f",
+    "bytes": 2223
+  },
+  "original_triage": {
+    "path": "annotation-staging/technical-tier4-eighth-six-v1/source-header-triage.json",
+    "sha256": "088911cd468b6d6a7ac89089a5aeab25aa492d2f05d27a2579ef7123e80c9e4f",
+    "bytes": 12182
+  },
+  "records": [
+    {
+      "case": "055:00",
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eighth-six-v1/technical-evidence/case-055-00.json",
+        "sha256": "d79929f032bbeb3088e510d5e4a942012bf91c44a0c24c05aa0cfd28b9c46747",
+        "bytes": 66029
+      },
+      "blank_series_number": 1201,
+      "comparison_series_number": 601,
+      "blank_iop": [
+        0.9938541650772,
+        -0.0341916717588,
+        -0.1052845865488,
+        0.03413167968392,
+        0.99941450357437,
+        -0.0023720653261
+      ],
+      "main_iop": [
+        0.9938541650772,
+        -0.0341916717588,
+        -0.1052845865488,
+        0.03413167968392,
+        0.99941450357437,
+        -0.0023720653261
+      ],
+      "iop_exact_equal": true,
+      "maximum_component_difference": 0.0,
+      "normal_angle_degrees": 8.537736462515939e-07
+    },
+    {
+      "case": "057:18",
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eighth-six-v1/technical-evidence/case-057-18.json",
+        "sha256": "6ae9cbaf4be43874a5b6c1823ff2d5b8875fda83a276a254e58da8dad85dd4ca",
+        "bytes": 66623
+      },
+      "blank_series_number": 1201,
+      "comparison_series_number": 501,
+      "blank_iop": [
+        0.99367523193359,
+        0.05626561492681,
+        -0.0971786230802,
+        -0.0526433289051,
+        0.99783396720886,
+        0.03944659978151
+      ],
+      "main_iop": [
+        0.99435639381408,
+        0.02975781634449,
+        -0.1018325462937,
+        -0.0282441228628,
+        0.99946856498718,
+        0.01627454906702
+      ],
+      "iop_exact_equal": false,
+      "maximum_component_difference": 0.026507798582320004,
+      "normal_angle_degrees": 1.2033441356012469
+    },
+    {
+      "case": "057:42",
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eighth-six-v1/technical-evidence/case-057-42.json",
+        "sha256": "a6d752d8e47a86b8d49a884cc9cd084b36122f74991e0e7b5ebef52568618a15",
+        "bytes": 61693
+      },
+      "blank_series_number": 1101,
+      "comparison_series_number": 601,
+      "blank_iop": [
+        0.97659611701965,
+        -0.1977051794528,
+        0.08469142019748,
+        0.19460098445415,
+        0.97991549968719,
+        0.04354385286569
+      ],
+      "main_iop": [
+        0.97659611701965,
+        -0.1977051794528,
+        0.08469142019748,
+        0.19460098445415,
+        0.97991549968719,
+        0.04354385286569
+      ],
+      "iop_exact_equal": true,
+      "maximum_component_difference": 0.0,
+      "normal_angle_degrees": 0.0
+    },
+    {
+      "case": "058:19",
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eighth-six-v1/technical-evidence/case-058-19.json",
+        "sha256": "869290a951bf891ad3cefb9f6991dc2a0f99ab55101adc2db854222a7c2f4bc6",
+        "bytes": 66606
+      },
+      "blank_series_number": 701,
+      "comparison_series_number": 501,
+      "blank_iop": [
+        0.9985139966011,
+        0.02694954536855,
+        -0.0473660305142,
+        -0.0271202102303,
+        0.99962776899337,
+        -0.0029640556313
+      ],
+      "main_iop": [
+        0.9985139966011,
+        0.02694954536855,
+        -0.0473660305142,
+        -0.0271202102303,
+        0.99962776899337,
+        -0.0029640556313
+      ],
+      "iop_exact_equal": true,
+      "maximum_component_difference": 0.0,
+      "normal_angle_degrees": 0.0
+    }
+  ],
+  "correction": {
+    "case": "057:18",
+    "original_text": "sharing main axial IOP",
+    "corrected_text": "The blank supplementary1201 is axial with a slightly different orientation from main501/601; exactIOPequality does not hold.",
+    "cause": "The initial manual triage overgeneralized the supplementary-series pattern before the explicit pairwise numeric comparison. Full source, metadata and original triage remain unchanged.",
+    "disposition": "An isolated limited blank-tag axial supplement with this small orientation difference still does not, by itself, establish another knee or justify immediate pixels. Retain unknown side and preserve the orientation difference; no anatomical equivalence is claimed."
+  },
+  "originals_modified": false,
+  "training_ready": false
+}

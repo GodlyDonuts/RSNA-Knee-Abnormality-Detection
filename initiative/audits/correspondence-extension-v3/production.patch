@@ -1,0 +1,212 @@
+diff --git a/rsna/correspondence.py b/rsna/correspondence.py
+index 0234a7a..84a5e6f 100644
+--- a/rsna/correspondence.py
++++ b/rsna/correspondence.py
+@@ -16,6 +16,175 @@ from rsna.labels import file_sha256, source_reports_fingerprint
+ from rsna.schema import TARGETS
+ 
+ REGISTRY_PATH = Path("initiative/audits/correspondence-release-registry.json")
++MULTI_ASSESSOR_STAGE = "verified_multi_assessor_correspondence_source_binding"
++
++# Exact historical dispositions, not keyword-based inference from arbitrary notes.
++# These originals predate the explicit boolean used by the later cache reviews.
++_NATIVE_MASK_DECISIONS = {
++    "Keep whole-study report supervision fully masked in the current single-knee training pipeline. Preserve original source/images/official gold. Any later side-specific derivative requires validated series-to-side/report binding and parent patient grouping for leakage control; no arbitrary side selection or label cloning.",
++    "Retain whole-study report supervision fully masked for current single-knee training. Preserve raw source, images and official gold unchanged. Any later derived side-specific unit requires a separately validated series-to-side/report binding and parent-patient leakage grouping; no arbitrary selection, label cloning or automatic virtual split.",
++    "Keep all10 informative report targets uncertain/masked and2unmentioned. Preserve whole source, raw side tags, caches and gold. Any later per-side derivative needs verified series-to-side/report binding and shared parent grouping. No clinical labels or arbitrary side selection from technical images.",
++}
++_ASSESSMENT_CLAIMS = {
++    "independent_technical_correspondence_assessment": "/conclusion/single_knee_training_recommendation",
++    "independent_native_technical_correspondence_visual_review": "/single_knee_training_recommendation",
++    "independent_technical_visual_assessment": "/training_recommendation/disposition",
++    "independent_cached_representative_visual_assessment": "/assessment",
++    "independent_cached_pixel_visual_assessment": "/technical_interpretation",
++}
++
++
++def _selected(document: object, pointer: object) -> object:
++    """Resolve explicit JSON pointers; never search for a similar case or UID."""
++    if not isinstance(pointer, str) or (pointer and not pointer.startswith("/")):
++        raise ValueError("Invalid correspondence proof selector")
++    value = document
++    for token in pointer.split("/")[1:]:
++        key = token.replace("~1", "/").replace("~0", "~")
++        if isinstance(value, list) and key.isdigit() and str(int(key)) == key:
++            index = int(key)
++            if index >= len(value):
++                raise ValueError("Correspondence proof selector is outside its document")
++            value = value[index]
++        elif isinstance(value, dict) and key in value:
++            value = value[key]
++        else:
++            raise ValueError("Correspondence proof selector does not identify evidence")
++    return value
++
++
++def _claim(document: dict, claim: object) -> object:
++    if not isinstance(claim, dict) or set(claim) != {"pointer", "value"}:
++        raise ValueError("Invalid correspondence evidence claim")
++    actual = _selected(document, claim["pointer"])
++    if type(actual) is not type(claim["value"]) or actual != claim["value"]:
++        raise ValueError("Correspondence claim differs from its preserved proof")
++    return actual
++
++
++def _validate_multi_assessor_proof(record: dict, proof: dict, artifact_root: Path) -> None:
++    source_ref = {"path": record["source_path"], "sha256": record["source_batch_sha256"]}
++    batch = _json(_bound_path(source_ref, artifact_root))
++    index = proof.get("source_index")
++    if (
++        type(proof.get("schema_version")) is not int
++        or proof["schema_version"] != 1
++        or proof.get("source_batch") != source_ref
++        or proof.get("source_report_sha256") != record["source_report_sha256"]
++        or type(index) is not int
++        or not isinstance(batch, list)
++        or not 0 <= index < len(batch)
++        or batch[index].get("study_uid") != record["study_uid"]
++    ):
++        raise ValueError("Multi-assessor proof differs from the exact source record")
++    batch_number = Path(record["source_path"]).stem.removeprefix("batch-")
++    if record["case"] != f"{batch_number}:{index:02d}":
++        raise ValueError("Correspondence case differs from the bound source index")
++    quotes = proof.get("source_evidence")
++    if (
++        not isinstance(quotes, list)
++        or not quotes
++        or any(not isinstance(q, str) or not q or q not in batch[index]["report"] for q in quotes)
++    ):
++        raise ValueError("Correspondence source quotation is absent or changed")
++    root_ref = proof.get("root_decision")
++    independent_ref = proof.get("independent_assessment")
++    if not isinstance(root_ref, dict) or not isinstance(independent_ref, dict):
++        raise ValueError("Correspondence proof requires preserved assessor references")
++    root = _object(_bound_path(root_ref, artifact_root))
++    independent = _object(_bound_path(independent_ref, artifact_root))
++    root_agent = root.get("agent_id", root.get("assessor"))
++    independent_agent = independent.get("agent_id")
++    if (
++        root_agent != "/root"
++        or not isinstance(independent_agent, str)
++        or independent_agent in {root_agent, proof.get("agent_id")}
++        or not independent_agent.startswith("/root/")
++        or independent.get("study_uid") != record["study_uid"]
++        or independent.get("case", independent.get("source_case", record["case"])) != record["case"]
++        or independent.get("source_batch_index", index) != index
++        or independent.get("source_batch_sha256", record["source_batch_sha256"])
++        != record["source_batch_sha256"]
++        or any(
++            independent.get(key, record["source_report_sha256"]) != record["source_report_sha256"]
++            for key in ("source_report_sha256", "source_report_utf8_sha256")
++        )
++    ):
++        raise ValueError("Correspondence proof lacks distinct bound root/independent assessors")
++    independent_claim = _claim(independent, proof.get("independent_claim"))
++    independent_stage = independent.get("stage")
++    if (
++        not isinstance(independent_claim, str)
++        or not independent_claim.strip()
++        or not isinstance(independent_stage, str)
++        or proof["independent_claim"]["pointer"] != _ASSESSMENT_CLAIMS.get(independent_stage)
++    ):
++        raise ValueError("Correspondence proof lacks independent assessment content")
++    selection = proof.get("root_selector")
++    selected = _selected(root, selection)
++    if not isinstance(selected, dict) or selected.get("study_uid") != record["study_uid"]:
++        raise ValueError("Root correspondence decision identifies another study")
++    disposition = _claim(selected, proof.get("root_disposition"))
++    kind = proof.get("proof_kind")
++    if kind == "reviewed_cache_aggregate":
++        if (
++            not isinstance(selection, str)
++            or not selection.startswith("/cases/")
++            or selection.count("/") != 2
++            or root.get("stage") != "independent_root_source_header_cache_display_replay"
++            or root.get("status") != "verified"
++            or selected.get("case") != record["case"]
++            or proof["root_disposition"]["pointer"] != "/required_report_supervision_mask_all"
++            or disposition is not True
++            or selected.get("agent_visual", {}).get("sha256") != independent_ref["sha256"]
++        ):
++            raise ValueError("Cache proof lacks an explicit bound whole-study exclusion")
++        handoff_ref = proof.get("source_handoff")
++        if not isinstance(handoff_ref, dict):
++            raise ValueError("Cache correspondence proof requires its original source handoff")
++        handoff = _object(_bound_path(handoff_ref, artifact_root))
++        if (
++            selected.get("joint_handoff", {}).get("sha256") != handoff_ref["sha256"]
++            or handoff.get("agent_id") != independent_agent
++            or handoff.get("case") != record["case"]
++            or handoff.get("study_uid") != record["study_uid"]
++            or handoff.get("source_report_sha256") != record["source_report_sha256"]
++        ):
++            raise ValueError("Cache proof handoff is not bound to the original source")
++    elif kind == "reviewed_native_aggregate":
++        if selection != "" or root.get("case", record["case"]) != record["case"]:
++            raise ValueError("Native proof selector/case differs from its original decision")
++        if "source_batch" in root:
++            source_matches = (
++                root["source_batch"] == source_ref and root.get("source_index") == index
++            )
++            root_binding = root.get("independent_visual_assessment", {}).get("sha256")
++            exclusion = (
++                root.get("stage") == "independently_supported_source_correspondence_quarantine"
++                and root.get("single_knee_inclusion_status") == "quarantined_undivided_study"
++                and proof["root_disposition"]["pointer"] == "/report_supervision_action"
++                and disposition == "retain_all12_target_masks; zero confident report targets"
++                and independent.get("source_report_utf8_sha256") == record["source_report_sha256"]
++            )
++        else:
++            source_matches = (
++                root.get("source_batch_path") == record["source_path"]
++                and root.get("source_batch_sha256") == record["source_batch_sha256"]
++                and root.get("source_report_sha256") == record["source_report_sha256"]
++            )
++            root_binding = root.get("evidence_files", {}).get(Path(independent_ref["path"]).name)
++            for binding in root.get("archived_bindings", []):
++                if binding.get("archived_path") == independent_ref["path"]:
++                    root_binding = binding.get("sha256")
++            exclusion = (
++                proof["root_disposition"]["pointer"] == "/decision"
++                and isinstance(disposition, str)
++                and disposition in _NATIVE_MASK_DECISIONS
++            )
++        if not source_matches or root_binding != independent_ref["sha256"] or not exclusion:
++            raise ValueError("Native proof lacks the original source-bound exclusion decision")
++    else:
++        raise ValueError("Unknown multi-assessor correspondence proof kind")
+ 
+ 
+ def _validate_proof(record: dict, artifact_root: Path) -> None:
+@@ -28,6 +197,8 @@ def _validate_proof(record: dict, artifact_root: Path) -> None:
+         or proof.get("status") not in {"verified", "verified_body_region_correspondence_failure"}
+     ):
+         raise ValueError("Correspondence proof is unverified or identifies another case/study")
++    if proof.get("stage") == MULTI_ASSESSOR_STAGE:
++        _validate_multi_assessor_proof(record, proof, artifact_root)
+     if proof.get("stage") == "root_verified_correspondence_source_identity_binding":
+         review_path = _bound_path(proof.get("verified_review"), artifact_root)
+         handoff_path = _bound_path(proof.get("source_handoff"), artifact_root)
+@@ -87,6 +258,9 @@ def inspect_correspondence(reports: dict[str, str], artifact_root: Path) -> dict
+             or not isinstance(policy.get("records"), list)
+         ):
+             raise ValueError("Invalid correspondence policy schema or target order")
++        binding_version = policy.get("proof_binding_version", 1)
++        if type(binding_version) is not int or binding_version not in {1, 2}:
++            raise ValueError("Unsupported correspondence proof binding version")
+         for record in policy["records"]:
+             if not isinstance(record, dict):
+                 raise ValueError("Invalid correspondence decision")
+@@ -128,6 +302,12 @@ def inspect_correspondence(reports: dict[str, str], artifact_root: Path) -> dict
+                 != hashlib.sha256(reports[uid].encode()).hexdigest()
+             ):
+                 raise ValueError("Correspondence source differs from release reports")
++            if binding_version == 2:
++                proof = _object(_bound_path(record.get("verified_technical_proof"), artifact_root))
++                if proof.get("stage") != MULTI_ASSESSOR_STAGE:
++                    raise ValueError(
++                        "Correspondence policy requires a multi-assessor source binding"
++                    )
+             _validate_proof(record, artifact_root)
+             decisions.append({**record, "policy": reference})
+     return {

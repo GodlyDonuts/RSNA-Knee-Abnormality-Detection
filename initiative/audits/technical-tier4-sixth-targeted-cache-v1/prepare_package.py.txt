@@ -1,0 +1,22 @@
+"""Reuse source freezes and select exactly15arrays across three studies."""
+from pathlib import Path
+import json,hashlib,shutil
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[1];T=P.parent/'technical-tier4-sixth-six-v1'
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+assert shutil.disk_usage(P).free>20*2**30
+for p,h in [(T/'source-only-preread.json','eeec9bde82a4e2dec6f5b491aab4c720ec836d53744ff0f0d8c11f66f01b5ff0'),(T/'root-source-preread.json','36b071b1503ccf267c51580c69e3bb1ce683d0dde5ead23eac53f867670f04d8')]:assert ref(p)['sha256']==h
+records=[];lineage=[];choices=[]
+for case,numbers in [('038:44',None),('039:34',[101,201]),('045:15',None)]:
+ r=next(r for r in json.loads((T/'source-only-preread.json').read_text())['records']if r['case']==case);other=next(r2 for r2 in json.loads((T/'root-source-preread.json').read_text())['records']if r2['case']==case);bp=W/r['input_batch']['path'];original=json.loads(bp.read_text())[r['source_batch_index_zero_based']]
+ assert original['study_uid']==r['study_uid']==other['study_uid']and original['report']==r['report']==other['report']and ref(bp)==r['input_batch']==other['source_batch'];records.append(r)
+ lineage.append({'case':case,'independent_assessors':['/root/image_pipeline_audit','/root'],'source_assessments':[ref(T/'source-only-preread.json'),ref(T/'root-source-preread.json')],'root_source_neutral_extraction':ref(T/'neutral-source-reports.json'),'independent_source_comparison':ref(T/'joint-source-comparison.json'),'root_source_independence_available':True})
+ c=json.loads((T/f'technical-evidence/case-{case.replace(":","-")}.json').read_text());selected=[s for s in c['series']if numbers is None or int(s['header_endpoint_values']['SeriesNumber'][0])in numbers]
+ choices.append({'case':case,'study_uid':r['study_uid'],'whole_study_series':c['series_count'],'whole_study_source_memberships':c['slices'],'selection':'all'if numbers is None else'literal SeriesNumber in [101, 201]','selected_series':[{'series_uid':s['series_uid'],'series_number':int(s['header_endpoint_values']['SeriesNumber'][0]),'slices':s['cache_original_shape'][0]}for s in selected],'prior_technical_metadata':ref(T/f'technical-evidence/case-{case.replace(":","-")}.json')})
+pre={'schema_version':1,'stage':'preserved_source_preread_subset_for_authorized_selected_cache_review','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'order':'Exact originals reused from the existing independent source-first freezes. Shared source/header triage and text similarity observations are already known. This is source reuse, not a new blinded source read. Earlier reader045source exposure stays disclosed. No clinical annotations/gold opened; new visual findings will be independently frozen before root image findings.','n_cases':3,'case_source_review_lineage':lineage,'records':records,'clinical_annotations_or_gold_opened':False}
+p=P/'source-only-preread.json';assert not p.exists();p.write_text(json.dumps(pre,indent=2,ensure_ascii=False)+'\n')
+plan={'schema_version':1,'stage':'explicit_parent_authorized_selected_series_plan','agent_id':'/root/image_pipeline_audit','cases':choices,'whole_study_metadata_series':19,'whole_study_source_memberships':658,'selected_series':15,'selected_source_memberships':534,'selected_samples':45,'reason':'Parent authorizes all7series038:44, only101/201for039:34 and all6series045:15. Four unselected039:34arrays remain metadata-only. Preserve original description/side fields and source-text similarity without identity inference.'}
+assert sum(c['whole_study_series']for c in choices)==19 and sum(c['whole_study_source_memberships']for c in choices)==658 and sum(len(c['selected_series'])for c in choices)==15 and sum(s['slices']for c in choices for s in c['selected_series'])==534
+p=P/'selection-plan.json';assert not p.exists();p.write_text(json.dumps(plan,indent=2)+'\n')
+s=(T/'collect_technical.py').read_text().replace('eeec9bde82a4e2dec6f5b491aab4c720ec836d53744ff0f0d8c11f66f01b5ff0',ref(P/'source-only-preread.json')['sha256']).replace('len(preread) == 6','len(preread) == 3').replace('len(studies) == 6','len(studies) == 3').replace('six','three').replace('Six','Three');(P/'collect_technical.py').write_text(s)
+print(json.dumps({'source_reuse':ref(P/'source-only-preread.json'),'selection_plan':ref(P/'selection-plan.json'),'free_gib':shutil.disk_usage(P).free/2**30},indent=2))

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "stage": "verified_multi_assessor_correspondence_source_binding",
+  "agent_id": "/root/competition_contract",
+  "session_id": "/root/competition_contract",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "case": "001:39",
+  "study_uid": "1.2.826.0.1.3680043.8.498.10252121617380434672930525780360219531",
+  "status": "verified",
+  "proof_kind": "reviewed_cache_aggregate",
+  "source_batch": {
+    "path": "initiative/reviews/inputs/batch-001.json",
+    "sha256": "5e1f99ac8a97e73bfa43cf1840ddf4f6f48ba68fdb3e0357a5f04b950f26077e"
+  },
+  "source_index": 39,
+  "source_report_sha256": "83936e2ff5f617ac5a90153b5a1bd183955952972e86c5f3f74c6896e6a3d4a9",
+  "source_evidence": [
+    "Joint effusion is shown on both knee joints, extending into the suprapatellar joint space.",
+    "Enhancing synovitis is shown on both knee joints, more prominent on the right side."
+  ],
+  "root_decision": {
+    "path": "initiative/audits/technical-tier4-bilateral-001007-cache-v1/root-source-geometry-display-review.json",
+    "sha256": "70bccf3304913f6e826d4e9c257f064210f1f447d44e83daf274751ed89f10b8"
+  },
+  "root_selector": "/cases/0",
+  "root_disposition": {
+    "pointer": "/required_report_supervision_mask_all",
+    "value": true
+  },
+  "independent_assessment": {
+    "path": "initiative/audits/technical-tier4-bilateral-001007-cache-v1/cache-panels/case-001-39/independent-cache-visual-assessment.json",
+    "sha256": "21d1c9da2b0e848a6c67a9654ca1f01db94de8b63c890c85020ade427428e070"
+  },
+  "independent_claim": {
+    "pointer": "/assessment",
+    "value": "The bounded samples favor one coherent main knee protocol without demonstrating a second opposing knee set. They do not resolve the integrated bilateral narrative."
+  },
+  "interpretation": "The original report explicitly concerns both knees. Preserved independent source and bounded cache-anatomy reviews leave report-block-to-acquisition correspondence unresolved, and the root case decision explicitly requires all report supervision masked. Do not select a report block from literal side tags or infer a missing examination.",
+  "notes": "Mechanical normalization of existing authoritative root decisions and distinct independent assessments, prepared for root review. This is not a new blinded image reread and does not alter clinical states, source text, headers or gold. Original paths inside preserved proofs may name former staging locations; these references bind byte-identical archived evidence by SHA-256.",
+  "training_ready": false,
+  "source_handoff": {
+    "path": "initiative/audits/technical-tier4-bilateral-001007-cache-v1/cache-panels/case-001-39/joint-source-header-cache-handoff.json",
+    "sha256": "c939b491b1b75007579199d51edb38ba1939fcbce71952fb662796c642a2e805"
+  }
+}

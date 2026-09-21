@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "stage": "verified_multi_assessor_correspondence_source_binding",
+  "agent_id": "/root/competition_contract",
+  "session_id": "/root/competition_contract",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "case": "018:19",
+  "study_uid": "1.2.826.0.1.3680043.8.498.12632129640405661298623288977632682289",
+  "status": "verified",
+  "proof_kind": "reviewed_native_aggregate",
+  "source_batch": {
+    "path": "initiative/reviews/inputs/batch-018.json",
+    "sha256": "4b2997b587eb4d30bb5245685c38a2465cf9b10a84157912ec0f983a430b725a"
+  },
+  "source_index": 19,
+  "source_report_sha256": "f93db6aa92712f84b6362cae5757923d4b74e1e77cd08bd0e705aed9250ce139",
+  "source_evidence": [
+    "Лява колянна става:",
+    "Дясна колянна става:"
+  ],
+  "root_decision": {
+    "path": "initiative/audits/bilateral-018-019/decision.json",
+    "sha256": "687dd3c38a3f36e2ca736d4dbbf0d6438c222640d9a60d37a6cc2c0161e3281e"
+  },
+  "root_selector": "",
+  "root_disposition": {
+    "pointer": "/decision",
+    "value": "Retain whole-study report supervision fully masked for current single-knee training. Preserve raw source, images and official gold unchanged. Any later derived side-specific unit requires a separately validated series-to-side/report binding and parent-patient leakage grouping; no arbitrary selection, label cloning or automatic virtual split."
+  },
+  "independent_assessment": {
+    "path": "initiative/audits/bilateral-018-019/independent-image-review.json",
+    "sha256": "956740f75995f933bb3575e965dad4b58df81f3dfe47e2d5cf4f0f8f28ed15f0"
+  },
+  "independent_claim": {
+    "pointer": "/conclusion/single_knee_training_recommendation",
+    "value": "Quarantine the whole study from current single-knee training/keep all report masks until a separately reviewed side-aware series-to-report contract exists. Do not combine both groups into one knee volume or arbitrarily choose L as the study target. If future splitting is authorized, preserve parentStudyUID and independent per-side source/evidence bindings; no automatic label cloning."
+  },
+  "interpretation": "Preserved independent native anatomy/orientation reviews support two knee acquisition sets within this study, and its original report has distinct right/left sections. No validated single-knee training-unit/report binding has been established; retain whole-study report exclusion.",
+  "notes": "Mechanical normalization of existing authoritative root decisions and distinct independent assessments, prepared for root review. This is not a new blinded image reread and does not alter clinical states, source text, headers or gold. Original paths inside preserved proofs may name former staging locations; these references bind byte-identical archived evidence by SHA-256.",
+  "training_ready": false
+}

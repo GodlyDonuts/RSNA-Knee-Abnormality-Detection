@@ -1,0 +1,38 @@
+"""Prepare source-only assessment serialization after personal complete reading."""
+from pathlib import Path
+P=Path(__file__).resolve().parent
+T=P.parent/'technical-tier4-eighth-six-v1/freeze_sources.py'
+manual={
+'058:34':(
+ 'One continuous unsided knee findings narrative in Croatian, covering bone, compartments, ligaments, tendons and the patellofemoral region. Medial and lateral words describe structures or compartments within the narrative. No separately sided report, second technique, bilateral marker, dated comparison or recall is stated. The early no-effusion sentence and later regional effusion wording are within the same unheaded narrative; their tension is not evidence of a second report.',
+ ['Nema izljeva.', 'Veća količina izljeva femoropatelarno, suprapatelarno i u lateralnom recesusu.', 'Edem potkožnog masnog tkiva anteromedijalno.'],
+ 'The report ends with a complete sentence and newline. Internal finding wording is preserved without clinical adjudication or reconstruction.',1,[],
+ 'I previously examined other batch058 sources, including index12 in technical correspondence work and indices04/19 in the preceding metadata group. No exact index34 review recalled, but first-ever exposure is not guaranteed. No clinical draft/review/flags/target values or gold opened for this pass.'),
+'058:45':(
+ 'One unsided English knee findings narrative ending with an unheaded sentence repeating one finding as a summary. No explicit knee side, bilateral marker, separately dated examination, second technique or recall. The final repetition does not introduce a new examination.',
+ ['Normal knee joint alignment.', 'Quadriceps and patellar tendons are preserved.  Small peripheral vertical tear at posterior horn of the medial meniscus.'],
+ 'Complete final sentence; spacing is irregular but no source-only evidence of truncation.',1,[],
+ 'Prior technical exposure to other batch058 sources is disclosed as above; no exact index45 reading recalled. No first-ever-exposure guarantee and no clinical annotations or gold accessed.'),
+'060:25':(
+ 'One unsided English report organized into medial, lateral, patellofemoral and intercondylar sections, followed by unheaded summary lines that repeat findings. References to numbered images and series appear within this one examination, not as temporal comparisons or separate reports. No named knee side, bilateral marker, dated comparator or recall. Literal intact-prefixed measurement tokens and other unusual wording remain unresolved source text.',
+ ['In the medial compartment,', 'Patellofemoral joint', 'arrow in image 33serie 401, image 11 and 13serie 701', 'intact75 cm in maximal thickness', 'intact59 cm in maximal thickness and discontinuous of fiber', 'No evidence of osteochondral defect.'],
+ 'The concluding sentence is complete and ends with newline. Literal measurement tokens cannot be expanded into guessed numeric values or repaired from this source.',1,[],
+ 'I previously technically reviewed batch060 index28. I do not recall this exact index25; no first-ever-exposure guarantee. No clinical drafts/reviews/flags or gold opened.'),
+'061:42':(
+ 'One Bulgarian MR findings paragraph followed by an explicit conclusion. The conclusion names the RIGHT knee. The knee and adjacent fibular anatomy appear in one continuous examination narrative, with no opposite-sided block, bilateral note, dated comparison, separate technique or recall.',
+ ['МР находка:', 'Заключение:', 'Не се намират други патологични изменения в дясното коляно.'],
+ 'Complete concluding sentence; no missing tail is evident from the original text.',1,['right'],
+ 'No exact source review of this index42 is recalled. I have longstanding exposure to the corpus and do not claim first-ever blinding. No clinical annotations/reviews/drafts/flags or gold opened for this structural pass.'),
+'063:42':(
+ 'One unsided English knee findings narrative with short unheaded summary lines repeating findings near the end. Compartment and anatomic position words do not designate separate examinations. No explicit knee side, bilateral marker, dated prior study, separate technique or recall.',
+ ['The study reveals normal knee joint alignment, no definite fracture line noted.', 'Quadriceps and patellar tendons are intact.', 'Proximal FCL sprain'],
+ 'The final summary phrase lacks terminal punctuation but is a complete short item; that alone does not establish truncation. Irregular spacing and concatenated words are preserved.',1,[],
+ 'I previously technically reviewed batch063 index35. No exact index42 reading recalled; no first-ever-exposure guarantee. No clinical annotations/drafts/reviews/flags/gold or another assessor findings opened.'),
+'065:28':(
+ 'One English report organized by knee compartments and supporting structures, followed by a conclusion explicitly naming the RIGHT knee. No left-knee block, bilateral note, separately dated examination, second technique or recall. Omitted punctuation joins some sentences but does not create a second report.',
+ ['In the medial compartment,', 'In the intercondylar notch,', 'Normal MR examination of the right knee.', 'Specifically, there is no evidence of meniscal, ligamentous, or articular cartilage abnormality.'],
+ 'Complete conclusion with final punctuation and newline. Preserve irregular punctuation without reconstruction.',1,['right'],
+ 'I previously technically reviewed batch065 index14. No exact index28 reading recalled; first-ever exposure is not guaranteed. No clinical target annotations/reviews/drafts/flags/gold opened.')
+}
+s=T.read_text();start=s.index('manual=');end=s.index('\nnp=P/',start);s=s[:start]+'manual='+repr(manual)+s[end:]
+out=P/'freeze_sources.py';assert not out.exists();out.write_text(s)

@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "stage": "exact_source_terminal_byte_scope_correction",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T13:46:31.672610+00:00",
+  "script": {
+    "path": "annotation-staging/technical-tier4-ninth-six-v1/verify_terminal_bytes.py",
+    "sha256": "499da42c14e26538c3a4e2c89a5df8c243a40cd1c484ee00e5904e956cb343f4",
+    "bytes": 3898
+  },
+  "original_source_freeze": {
+    "path": "annotation-staging/technical-tier4-ninth-six-v1/source-only-preread.json",
+    "sha256": "74e68dec9bbee8b89074d52a66c780e3d90b87b881b5f397ef48d3d798213cb6",
+    "bytes": 18643
+  },
+  "neutral_source_bundle": {
+    "path": "annotation-staging/technical-tier4-ninth-six-v1/neutral-source-reports.json",
+    "sha256": "fd8992acc121b9f58cbbf1333c6e9fe4dd270c438bd6bab26c4d173a2cd5e19b",
+    "bytes": 10696
+  },
+  "reason": "The assessor incorrectly inferred trailing newlines from rendered command output. Exact UTF-8 bytes contradict three completeness-limit clauses in this group. This separate record supersedes only those terminal-whitespace clauses; all original source and assessment files remain unchanged.",
+  "records": [
+    {
+      "case": "058:34",
+      "study_uid": "1.2.826.0.1.3680043.8.498.60965286164497194740320124904525623873",
+      "source_report_sha256": "430b47b09088bbc11ef06c37a3ee73672c32806266d8e15c7388a52dec07b4d0",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-058.json",
+        "sha256": "1dca5187f32055acc9bde20513782aababfae12fbd2d5c64f85fba6b71ae98bd",
+        "bytes": 64928
+      },
+      "terminal_24_utf8_bytes_hex": "6720746b69766120616e7465726f6d6564696a616c6e6f2e",
+      "terminal_40_characters_repr": "' potkožnog masnog tkiva anteromedijalno.'",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": false,
+      "trailing_ascii_whitespace_bytes_hex": "",
+      "original_completeness_limit": "The report ends with a complete sentence and newline. Internal finding wording is preserved without clinical adjudication or reconstruction.",
+      "corrected_completeness_limit": "The report ends with a complete sentence and a final period byte, without a trailing newline. Internal finding wording is preserved without clinical adjudication or reconstruction.",
+      "correction_required": true
+    },
+    {
+      "case": "058:45",
+      "study_uid": "1.2.826.0.1.3680043.8.498.61333047594780344399535845209036589563",
+      "source_report_sha256": "94c3691954ffb7138fe71e22d692ebf4841a1173929dbba4834e70e419609a8a",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-058.json",
+        "sha256": "1dca5187f32055acc9bde20513782aababfae12fbd2d5c64f85fba6b71ae98bd",
+        "bytes": 64928
+      },
+      "terminal_24_utf8_bytes_hex": "206f6620746865206d656469616c206d656e69736375732e",
+      "terminal_40_characters_repr": "'t posterior horn of the medial meniscus.'",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": false,
+      "trailing_ascii_whitespace_bytes_hex": "",
+      "original_completeness_limit": "Complete final sentence; spacing is irregular but no source-only evidence of truncation.",
+      "corrected_completeness_limit": "Complete final sentence; spacing is irregular but no source-only evidence of truncation.",
+      "correction_required": false
+    },
+    {
+      "case": "060:25",
+      "study_uid": "1.2.826.0.1.3680043.8.498.63564058504808107209753434989270686941",
+      "source_report_sha256": "83e8440193a327ae583437ebd42fb644dbf3806281ea4c8e6a660dea0b254328",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-060.json",
+        "sha256": "088bd5a55a61a07f296008c432503b230d2929a16bfd1d6f81d9c06b8101ec5d",
+        "bytes": 65651
+      },
+      "terminal_24_utf8_bytes_hex": "66206f7374656f63686f6e6472616c206465666563742e20",
+      "terminal_40_characters_repr": "'\\n  No evidence of osteochondral defect. '",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": true,
+      "trailing_ascii_whitespace_bytes_hex": "20",
+      "original_completeness_limit": "The concluding sentence is complete and ends with newline. Literal measurement tokens cannot be expanded into guessed numeric values or repaired from this source.",
+      "corrected_completeness_limit": "The concluding sentence is complete and ends with a period followed by one ASCII space, without a trailing newline. Literal measurement tokens cannot be expanded into guessed numeric values or repaired from this source.",
+      "correction_required": true
+    },
+    {
+      "case": "061:42",
+      "study_uid": "1.2.826.0.1.3680043.8.498.65607807464576681752987746458209389847",
+      "source_report_sha256": "8f00ac981e7e543a2381059e0e41beb3750b41da6e0d715d7c72ec2045f078cc",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-061.json",
+        "sha256": "8f83feb40f2cb2e8cee7d2fb2b2d6a391fbcecb09798e42f3ff1a93798fe9adb",
+        "bytes": 64432
+      },
+      "terminal_24_utf8_bytes_hex": "81d0bdd0bed182d0be20d0bad0bed0bbd18fd0bdd0be2e20",
+      "terminal_40_characters_repr": "'патологични изменения в дясното коляно. '",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": true,
+      "trailing_ascii_whitespace_bytes_hex": "20",
+      "original_completeness_limit": "Complete concluding sentence; no missing tail is evident from the original text.",
+      "corrected_completeness_limit": "Complete concluding sentence; no missing tail is evident from the original text.",
+      "correction_required": false
+    },
+    {
+      "case": "063:42",
+      "study_uid": "1.2.826.0.1.3680043.8.498.68158735450883179427440578190038002606",
+      "source_report_sha256": "5b4fdbfa3f5defa861813239b8c68d307721c31284e5d3abf4061df9fc9a8010",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-063.json",
+        "sha256": "53bb6a445352a1dcf9cbeb824bad30c8dee6756983567e9a7ccc4f185e8f40cc",
+        "bytes": 71197
+      },
+      "terminal_24_utf8_bytes_hex": "202020202050726f78696d616c2046434c2073707261696e",
+      "terminal_40_characters_repr": "'dial meniscus  \\n     Proximal FCL sprain'",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": false,
+      "trailing_ascii_whitespace_bytes_hex": "",
+      "original_completeness_limit": "The final summary phrase lacks terminal punctuation but is a complete short item; that alone does not establish truncation. Irregular spacing and concatenated words are preserved.",
+      "corrected_completeness_limit": "The final summary phrase lacks terminal punctuation but is a complete short item; that alone does not establish truncation. Irregular spacing and concatenated words are preserved.",
+      "correction_required": false
+    },
+    {
+      "case": "065:28",
+      "study_uid": "1.2.826.0.1.3680043.8.498.70464717849928808075676221329034929056",
+      "source_report_sha256": "887d870b80ef35d6205acdb75b0738849e846caaf3f7a2e2ebec641d7e93aac9",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-065.json",
+        "sha256": "849cc0bcf7a6b95af6264b0bd739682bc78a764e0d0fe35b47a897394aeb9fa8",
+        "bytes": 70367
+      },
+      "terminal_24_utf8_bytes_hex": "2063617274696c6167652061626e6f726d616c6974792e20",
+      "terminal_40_characters_repr": "'us, or articular cartilage abnormality. '",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": true,
+      "trailing_ascii_whitespace_bytes_hex": "20",
+      "original_completeness_limit": "Complete conclusion with final punctuation and newline. Preserve irregular punctuation without reconstruction.",
+      "corrected_completeness_limit": "The conclusion ends with a period followed by one ASCII space, without a trailing newline. Preserve irregular punctuation without reconstruction.",
+      "correction_required": true
+    }
+  ],
+  "changed_completeness_clauses": 3,
+  "source_structure_or_clinical_state_changed": false,
+  "originals_modified": false,
+  "training_ready": false,
+  "preserved_source_joint": {
+    "path": "annotation-staging/technical-tier4-ninth-six-v1/joint-source-comparison.json",
+    "sha256": "7ad1c950a51a27b83ae3fe2e7b40535bf9e1c2c467af0a24412b4d3efa61e350",
+    "bytes": 6204
+  }
+}

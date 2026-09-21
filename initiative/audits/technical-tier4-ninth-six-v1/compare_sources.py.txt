@@ -1,0 +1,24 @@
+"""Append an exact-source-bound comparison after both independent freezes."""
+import json
+from datetime import datetime, timezone
+from collect_technical import ROOT, WORK, ref, save, require, sha
+P=ROOT;own=json.loads((P/'source-only-preread.json').read_text());rp=P/'root-source-preread.json'
+require(sha(rp)=='f452ba48d7e946c2a4f38dd065c99168290c23c2851baa2417c86660ee7c8954','Root changed')
+root=json.loads(rp.read_text());neutral=json.loads((P/'neutral-source-reports.json').read_text())
+require(root['neutral_source_sha256']==sha(P/'neutral-source-reports.json'),'Neutral changed')
+comparison={
+ '058:34':'Both identify one unsided continuous knee narrative and preserve conflicting fluid wording within that report. Neither invents an examination boundary, assigns targets or reconstructs source text.',
+ '058:45':'Both identify one unsided report with a repeated unheaded final summary sentence rather than a second examination.',
+ '060:25':'Both identify one unsided structured report with repeated image/series locators and unresolved intact-prefixed numeric tokens. The locators are not temporal boundaries. Root additionally records attachment of clinical descriptors to particular structures; those details remain attributed and no target extraction is performed in this technical joint.',
+ '061:42':'Both identify one Bulgarian findings/conclusion report explicitly naming the right knee at the end. Root additionally notes differing scopes of specific body findings and a broad concluding phrase; preserve that source-semantic concern without changing states or inventing a second report.',
+ '063:42':'Both identify one unsided narrative and unheaded summary ending in a coherent unpunctuated phrase. Root additionally records structure-specific qualifier scope, preserved as attributed source detail without clinical-state extraction here.',
+ '065:28':'Both identify one compartment narrative and right-knee conclusion, preserving missing punctuation without a second sided or temporal block.'
+}
+records=[]
+for r in own['records']:
+ matches=[x for x in root['records']if x['case']==r['case']];require(len(matches)==1,'Case mismatch');rr=matches[0];n=next(x for x in neutral if x['case']==r['case'])
+ require(rr['study_uid']==r['study_uid']==n['study_uid'] and rr['report']==r['report']==n['report'] and rr['source_report_sha256']==r['source_report_sha256']==n['source_report_sha256'],'Source mismatch')
+ require(rr['source_batch']==r['input_batch']==n['source_batch'],'Batch mismatch');require(all(q in r['report']for q in rr['exact_source_quotes']),'Quote mismatch')
+ records.append({'case':r['case'],'study_uid':r['study_uid'],'source_report_sha256':r['source_report_sha256'],'source_structure_agreement':comparison[r['case']],'material_structural_disagreement':False,'prior_exposure':r['prior_exposure_disclosure']})
+o={'schema_version':1,'stage':'separate_independent_source_structure_comparison','agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'own_source_freeze':ref(P/'source-only-preread.json'),'root_source_freeze':ref(rp),'neutral_bundle':ref(P/'neutral-source-reports.json'),'root_independence':root['independence'],'comparison_order':'Both source freezes and agent metadata triage were complete before the agent opened root observations. Root read the strict neutral sources before its freeze. Prior corpus exposure remains disclosed; no first-ever source independence claim.','records':records,'originals_modified':False,'clinical_target_states_inferred':False,'training_ready':False}
+p=P/'joint-source-comparison.json';require(not p.exists(),'Joint exists');save(p,o);print(json.dumps(ref(p)))

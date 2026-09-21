@@ -1,0 +1,28 @@
+"""Append exact terminal-byte corrections without changing original source freezes."""
+import hashlib
+import json
+from pathlib import Path
+from datetime import datetime, timezone
+P=Path(__file__).resolve().parent;W=P.parents[1]
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+replacements={
+'ninth':{
+ '058:34':'The report ends with a complete sentence and a final period byte, without a trailing newline. Internal finding wording is preserved without clinical adjudication or reconstruction.',
+ '060:25':'The concluding sentence is complete and ends with a period followed by one ASCII space, without a trailing newline. Literal measurement tokens cannot be expanded into guessed numeric values or repaired from this source.',
+ '065:28':'The conclusion ends with a period followed by one ASCII space, without a trailing newline. Preserve irregular punctuation without reconstruction.'},
+ 'tenth':{
+ '069:10':'The report ends with a complete concluding sentence, a period and one ASCII space, without a trailing newline; no missing tail is evident.',
+ '072:12':'The concluding sentence ends with a period and one ASCII space, without a trailing newline; no source-only truncation evidence.',
+ '072:29':'The complete multi-sentence conclusion ends with a period and one ASCII space, without a trailing newline. Typographical anomalies and local repeated punctuation remain unchanged.'}}
+for group,changes in replacements.items():
+ D=P.parent/f'technical-tier4-{group}-six-v1';pp=D/'source-only-preread.json';np=D/'neutral-source-reports.json'
+ pre=json.loads(pp.read_text());neutral=json.loads(np.read_text());records=[]
+ for r in pre['records']:
+  n=next(x for x in neutral if x['case']==r['case']);b,i=map(int,r['case'].split(':'));bp=W/f'recovered/initiative/reviews/inputs/batch-{b:03}.json';original=json.loads(bp.read_text())[i]
+  assert ref(bp)==r['input_batch']==n['source_batch'] and original['study_uid']==r['study_uid']==n['study_uid']
+  assert original['report']==r['report']==n['report'];data=r['report'].encode();assert hashlib.sha256(data).hexdigest()==r['source_report_sha256']
+  if r['case']in changes:assert not data.endswith(b'\n')and'newline'in r['completeness_limit']
+  records.append({'case':r['case'],'study_uid':r['study_uid'],'source_report_sha256':r['source_report_sha256'],'source_batch':r['input_batch'],'terminal_24_utf8_bytes_hex':data[-24:].hex(),'terminal_40_characters_repr':repr(r['report'][-40:]),'ends_with_lf':data.endswith(b'\n'),'ends_with_cr':data.endswith(b'\r'),'ends_with_ascii_space':data.endswith(b' '),'trailing_ascii_whitespace_bytes_hex':data[len(data.rstrip(b' \t\r\n')):].hex(),'original_completeness_limit':r['completeness_limit'],'corrected_completeness_limit':changes.get(r['case'],r['completeness_limit']),'correction_required':r['case']in changes})
+ out={'schema_version':1,'stage':'exact_source_terminal_byte_scope_correction','agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'script':ref(Path(__file__).resolve()),'original_source_freeze':ref(pp),'neutral_source_bundle':ref(np),'reason':'The assessor incorrectly inferred trailing newlines from rendered command output. Exact UTF-8 bytes contradict three completeness-limit clauses in this group. This separate record supersedes only those terminal-whitespace clauses; all original source and assessment files remain unchanged.','records':records,'changed_completeness_clauses':len(changes),'source_structure_or_clinical_state_changed':False,'originals_modified':False,'training_ready':False}
+ if(D/'joint-source-comparison.json').exists():out['preserved_source_joint']=ref(D/'joint-source-comparison.json')
+ op=D/'terminal-byte-scope-correction.json';assert not op.exists();op.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n');print(json.dumps(ref(op)))

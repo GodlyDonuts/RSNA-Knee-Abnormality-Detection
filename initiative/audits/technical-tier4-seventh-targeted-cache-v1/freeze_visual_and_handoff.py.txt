@@ -1,0 +1,82 @@
+"""Record personally inspected 48 selected cached views and neutral handoff."""
+import json
+import shutil
+from datetime import datetime, timezone
+from collect_technical import ROOT, WORK, ref, save, require
+P = ROOT
+source = json.loads((P/'source-only-preread.json').read_text())
+plan = json.loads((P/'selection-plan.json').read_text())
+proof = json.loads((P/'cache-panels/display-source-integrity.json').read_text())
+require(proof['status']=='passed' and proof['full_cache_arrays_verified']==16 and proof['selected_source_inventory_rows_verified']==631 and proof['whole_study_inventory_rows_verified']==753 and proof['exact_displayed_matrices_verified']==48, 'Coverage differs')
+observations = {
+ '048:09': [
+  'The selected transverse series 3001 includes an inferior knee/proximal tibia view with a separate fibular-head region toward viewer-right. The posterior selected coronal 4001 and 5001 views likewise show a fibular head below and lateral to the tibia toward viewer-right. Their overall contours are grossly compatible across contrast differences.',
+  'The three sagittal 6001 samples show coherent knee contours. The twelve samples collectively favor one grossly compatible sampled multiplanar set; they do not demonstrate a complete opposing-knee protocol.',
+  'Literal LEFT captions are preserved. These sparse views do not prove that the named LEFT tag is correct, choose which of the two sided source report blocks belongs to the sampled anatomy, or establish complete whole-study unilateral coverage.'
+ ],
+ '048:31': [
+  'The three broad blank-tag 201 samples show a primary leg/knee cross-section occupying a small part of the field toward center-left at successive leg levels. A cropped peripheral body- or limb-shaped soft-tissue contour is also visible at the far viewer-right edge in each selected view, smallest in the first and larger in the middle and final samples.',
+  'That peripheral contour is incomplete and does not identify a complete second knee. The samples therefore neither establish bilateral knee coverage nor certify a wholly unilateral field. No named anatomical side or acquisition phase is assigned from the blank tag or broad field.',
+  'The closer R-captioned 301 transverse samples show grossly compatible primary knee/contiguous-leg anatomy across different levels, framing and contrast. Equal sampling fractions are not registered anatomical positions. Only 201 and 301 were visually inspected; the other four arrays remain metadata-only.'
+ ],
+ '048:38': [
+  'The selected coronal 4001 and 5001 posterior samples show the fibular-head region toward viewer-left below the tibial plateau, clearest in the T1-weighted sample. Their knee contours are grossly compatible across contrasts and slightly different sampled levels. The inferior transverse 3001 sample is compatible with a viewer-left fibular region, though its peripheral coverage is limited.',
+  'The two sagittal sets 6001 and 7001 show grossly compatible knee contours across contrasts and sampling positions. All fifteen selected views are compatible with one sampled knee protocol; no complete opposing-knee protocol is demonstrated by these views.',
+  'The literal RIGHT captions and the separately sided source report blocks are preserved. Sparse anatomical compatibility does not identify the true named side or resolve which report block corresponds to the pixels.'
+ ],
+ '053:47': [
+  'The selected posterior coronal series 4 and 5 views show a fibular-head region toward viewer-left below the lateral tibial plateau, clearest in the T1-weighted view. The two sets have grossly compatible knee contours across contrasts and slightly different sampling positions.',
+  'The axial 3 and sagittal 6 and 7 samples show coherent knee-region anatomy and grossly compatible primary contours. The inferior axial peripheral bone is only partially represented, so these samples do not independently establish a precise cross-plane fibular-direction claim or exact duplicate relation.',
+  'All fifteen views favor one grossly compatible sampled protocol. Literal RIGHT captions remain source metadata; neither those tags nor sparse views select between the RIGHT and LEFT source report blocks or prove whole-study unilateral coverage.'
+ ]
+}
+interpretations = {
+ '048:09': 'Gross compatibility of the sampled four-series set does not resolve the two-sided source-report correspondence. Preserve the original source and every tag; no clinical acceptance or named-side correction follows.',
+ '048:31': 'Preserve the broad series and the explicit cropped peripheral-contour uncertainty. The selected pair shows a grossly compatible primary leg, without certifying unilateral coverage or identifying a second knee. Four arrays remain uninspected.',
+ '048:38': 'Gross compatibility of the sampled five-series set does not resolve the separately sided source reports. Preserve source and tags without assigning named side or image-derived target states.',
+ '053:47': 'Gross compatibility of the sampled five-series set does not establish linkage to either sided report block. Preserve source, literal tags and correspondence uncertainty.'
+}
+entries = []
+for c in plan['cases']:
+ case = c['case']; C = P/'cache-panels'/('case-'+case.replace(':','-'))
+ m = json.loads((C/'panel-manifest.json').read_text())
+ sr = next(r for r in source['records'] if r['case']==case)
+ line = next(r for r in source['case_source_review_lineage'] if r['case']==case)
+ require(m['study_uid']==sr['study_uid']==c['study_uid'], 'Study differs')
+ require({p['series_uid'] for p in m['panels']}=={s['series_uid'] for s in c['selected_series']}, 'Selection differs')
+ for x in m['images']+line['source_assessments']:
+  require(ref(WORK/x['path'])==x, 'Binding changed')
+ n = len(c['selected_series']); ns = sum(s['slices'] for s in c['selected_series'])
+ require(len(m['panels'])==3*n, 'Panel count differs')
+ o = {
+  'schema_version':1, 'stage':'independent_selected_cached_representative_visual_assessment',
+  'agent_id':'/root/image_pipeline_audit', 'session_id':'/root/image_pipeline_audit',
+  'created_at_utc':datetime.now(timezone.utc).isoformat(), 'case':case, 'study_uid':m['study_uid'],
+  'source_report_sha256':sr['source_report_sha256'],
+  'independence':'Both previously frozen independent source assessments are reused, and source/header findings were already exchanged. Prior exposure remains disclosed in those immutable source records; this is not a new blinded source read. No clinical annotations or gold were opened for this technical review. I personally viewed all selected matrices on every neutral sheet at original resolution before this freeze and before any root image findings for this package.',
+  'source_review_lineage':line, 'panel_manifest':ref(C/'panel-manifest.json'), 'images':m['images'],
+  'selection_plan':ref(P/'selection-plan.json'), 'source_preread_reuse':ref(P/'source-only-preread.json'),
+  'geometry_comparison':ref(P/'geometry-comparison.json'), 'exact_display_integrity':ref(P/'cache-panels/display-source-integrity.json'),
+  'whole_study_series_metadata':c['whole_study_series'], 'whole_study_source_memberships':c['whole_study_source_memberships'],
+  'selected_series_personally_viewed':n, 'selected_source_membership_verified':ns,
+  'matrices_personally_viewed':n*3, 'unselected_series_arrays_opened':0,
+  'observations':observations[case], 'technical_interpretation':interpretations[case],
+  'limits':[
+   'Three normalized 256-pixel cached samples per selected series; no fresh native decoding or complete all-slice anatomical review.',
+   'Full metadata scope and selected-array scope are separate. The four unselected 048:31 arrays were not opened.',
+   'Selected full NPZ hashes, source memberships and exact pasted matrices were verified; native fingerprints derive from bound metadata rather than fresh source decodes.',
+   'No named anatomical side, patient/site identity, upstream mirror transformation, clinical target state or training readiness is established.',
+   'Original reports, tags, annotations, cache arrays and metadata remain unchanged. Root independent visual/numeric review is separate.'
+  ],
+  'clinical_target_states_inferred':False, 'source_or_tags_modified':False, 'training_ready':False
+ }
+ p = C/'independent-cache-visual-assessment.json'; require(not p.exists(), 'Freeze exists'); save(p,o)
+ entries.append({'case':case,'manifest':ref(C/'panel-manifest.json'),'images':m['images'],'selected_series':n,'selected_source_memberships':ns,'whole_study_series_metadata':c['whole_study_series'],'whole_study_source_memberships':c['whole_study_source_memberships'],'displayed_samples':n*3})
+require(len(entries)==4 and sum(x['selected_series'] for x in entries)==16 and sum(x['selected_source_memberships'] for x in entries)==631 and sum(x['whole_study_series_metadata'] for x in entries)==20 and sum(x['whole_study_source_memberships'] for x in entries)==753 and sum(x['displayed_samples'] for x in entries)==48, 'Aggregate mismatch')
+readme = P/'README.md'; require(not readme.exists(), 'Readme exists')
+readme.write_text('Four-case selected cached visual package\n\n048:09 all four series; 048:31 only 201 and 301; 048:38 all five; 053:47 all five. Full metadata covers 20 series, 753 source memberships and 40 endpoint geometries. Selected full-array verification covers 16 NPZ files, 631 source memberships and 32 endpoints; 48 exact displayed matrices appear on seven sheets. Four unselected 048:31 arrays were not opened.\n\nThe corrected parent selection plan and independent root admission are bound. The earlier aggregate 21/42 error remains preserved in its original plan; this package uses verified 20/40 metadata totals. Both prior independent source freezes are reused with their original exposure disclosures. This is not a new blinded source reading.\n\nThe image agent personally viewed every displayed matrix at original sheet resolution and froze observations separately. Root should use only the neutral index, manifests and images until its independent visual freeze. No array copies, network requests, native decodes or initiative writes occurred. Sparse normalized-cache review does not certify named side, clinical labels or training readiness.\n')
+refs = [ref(P/x) for x in ['source-only-preread.json','selection-plan.json','prepare_package.py','collect_technical.py','compare_geometry.py','render_cache_sets.py','verify_cache_panels.py','prepare_selected_renderer.py','freeze_visual_and_handoff.py','technical-evidence/summary.json','geometry-comparison.json','cache-panels/display-source-integrity.json','README.md']]
+h = {'schema_version':1,'stage':'neutral_targeted_cache_review_handoff','agent_id':'/root/image_pipeline_audit','cases':entries,'whole_study_metadata_cases':4,'whole_study_metadata_series':20,'whole_study_source_memberships':753,'whole_study_endpoint_geometries':40,'selected_complete_arrays_verified':16,'selected_source_memberships_verified':631,'selected_endpoint_geometries':32,'exact_displayed_matrices_verified':48,'sheets':7,'unselected_arrays_opened':0,'case_source_review_lineage':source['case_source_review_lineage'],'evidence':refs,'findings_frozen_separately_and_withheld':True,'source_reuse_not_new_blinded_source_read':True,'new_network_or_native_decodes':0,'npz_copies':0,'free_disk_gib':shutil.disk_usage(P).free/2**30,'initiative_writes':False,'training_ready':False}
+require(h['free_disk_gib']>20,'Disk floor unavailable')
+p=P/'cache-panels/numeric-handoff.json'; require(not p.exists(),'Handoff exists'); save(p,h)
+print(json.dumps({'handoff':ref(p),'index':ref(P/'cache-panels/index.json'),'free_gib':h['free_disk_gib']},indent=2))

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "stage": "focused_extension_validation",
+  "agent_id": "/root/competition_contract",
+  "tests": {
+    "command": "RSNA_CORRESPONDENCE_OVERLAY=\"$PWD/../annotation-staging/correspondence-extension-v3/overlay\" python3 -m pytest -q tests/test_correspondence.py tests/test_correspondence_extension.py",
+    "passed": 70,
+    "failed": 0,
+    "elapsed_seconds": 2.25,
+    "uses_official_gold_values": false
+  },
+  "checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed (2 files already formatted)",
+    "mypy_correspondence": "passed; existing ../../.venv/bin/python used because system Python lacks mypy",
+    "current_registry_inspection": "passed; 2 policies / 4 studies; no production overlay applied",
+    "overlay_integration": "passed; 3 policies / 13 studies; exactly 9 additions"
+  },
+  "production_registry_unchanged_sha256": "1ac3245bbf444d5aaaf009ee2a065ab1c7285b6700a20219355f7e0c85861412",
+  "candidate_registry_sha256": "c6351e190465475f9454ca76e73ac5d0ebfc704fe9485593322baaa8914fdb3d",
+  "candidate_policy_sha256": "a2bcb734d22b8dce0c5989ca17105089527f47f842f7907b0327ae9329d5a83e",
+  "runtime_sha256": "3a0e4f8de833ad26c892914eb11df2bc77da00d2c51c25195f69cdb619889486",
+  "test_sha256": "21fa09f51fd4d5fd991e32910dc38b3e37054546f2ff94efea936565ae772715",
+  "production_patch_sha256": "8da289ab708393f82e310cddcaa4515b629ff6b54e9820537bf248f9141bad14",
+  "dedicated_tests_patch_sha256": "ebfe01113ca7e412919efa242abd4cd12c4565c5194458d7bef1eee3bf132fe3",
+  "new_initiative_files_published": false,
+  "git_or_hf_mutations": false,
+  "root_review_pending": true
+}

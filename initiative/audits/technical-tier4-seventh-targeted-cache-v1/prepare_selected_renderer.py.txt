@@ -1,0 +1,12 @@
+"""Adapt frozen display mechanics with explicit4-case/16array/48sample scope."""
+from pathlib import Path
+import hashlib
+P=Path(__file__).resolve().parent;T=P.parent/'technical-tier4-sixth-targeted-cache-v1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+sm=sha(P/'technical-evidence/summary.json');pl=sha(P/'selection-plan.json')
+for name in ['compare_geometry.py','render_cache_sets.py','verify_cache_panels.py']:
+ s=(T/name).read_text().replace('b1e9d97f85ddbecae3b18e629e9eaf37bb20fa207b20d0725e603220f4fb4f7d',sm).replace('f686f1bca6614302003edb7964bda125df4ce6f5036ba58aba2104dacc23df39',pl)
+ repl={'All 38 selected endpoint':'All 40 selected endpoint','len(summary["cases"]) == 3':'len(summary["cases"]) == 4','len(plan["cases"]) == 3':'len(plan["cases"]) == 4','len(index["cases"]) == 3':'len(index["cases"]) == 4','Exactly three':'Exactly four','inventory-three-cases':'inventory-four-cases','plan["selected_series"] == 15':'plan["selected_series"] == 16','len(source) == 658':'len(source) == 753','source.series_uid.nunique() == 19':'source.series_uid.nunique() == 20','source.study_uid.nunique() == 3':'source.study_uid.nunique() == 4','len(checked_cache) == 15':'len(checked_cache) == 16','== 534':'== 631','== 45':'== 48','"whole_study_series_metadata_scope": 19':'"whole_study_series_metadata_scope": 20','"selected_source_inventory_rows_verified": 534':'"selected_source_inventory_rows_verified": 631','all 534 selected source memberships, all 658 whole-study inventory memberships':'all 631 selected source memberships, all 753 whole-study inventory memberships','Only 15 of 19 whole-study series arrays read; 45 sparse samples displayed.':'Only 16 of 20 whole-study series arrays read; 48 sparse samples displayed.'}
+ for a,b in repl.items():s=s.replace(a,b)
+ assert not(P/name).exists();(P/name).write_text(s)
+print(sm,pl)

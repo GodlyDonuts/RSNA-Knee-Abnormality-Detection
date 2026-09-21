@@ -1,0 +1,12 @@
+"""Preserve original plan and correct only its two whole-study aggregate counts."""
+from pathlib import Path
+import json,copy
+from datetime import datetime,timezone
+from collect_technical import ROOT,WORK,ref,save,require,sha
+P=ROOT;original=P/'targeted-cache-followup-plan.json';require(sha(original)=='e20adee7fe2d4ae75314a226e86cafc65476dc1cbb15c163f644e1c56aba7e84','Original plan changed');before=json.loads(original.read_text());after=copy.deepcopy(before)
+for c in after['cases']:
+ p=WORK/c['case_metadata']['path'];require(ref(p)==c['case_metadata'],'Case metadata changed');m=json.loads(p.read_text());require(c['whole_study_series']==m['series_count']and c['whole_study_source_memberships']==m['slices'],'Case scope changed')
+n=sum(c['whole_study_series']for c in after['cases']);require(n==20,'Whole count differs');require(sum(c['whole_study_source_memberships']for c in after['cases'])==753,'Whole source count');require(sum(len(c['selected_series'])for c in after['cases'])==16,'Selected count');require(sum(sum(s['slices']for s in c['selected_series'])for c in after['cases'])==631,'Selected sources');require(sum(c['proposed_samples']for c in after['cases'])==48,'Samples')
+after['whole_study_series_metadata']=n;after['whole_study_endpoint_geometries']=n*2
+require({k for k in before if before[k]!=after[k]}=={'whole_study_series_metadata','whole_study_endpoint_geometries'},'Unexpected plan change')
+after['supersedes_original_plan']=ref(original);after['aggregate_count_correction']={'identified_by':'/root','previous_whole_series':21,'corrected_whole_series':20,'previous_whole_endpoints':42,'corrected_whole_endpoints':40,'basis':'4+6+5+5series; two selected lexical endpoint records per complete series. Selected16arrays/631sources/48samples and whole753sources remain unchanged.','corrected_at_utc':datetime.now(timezone.utc).isoformat(),'correction_script':ref(Path(__file__).resolve())};p=P/'targeted-cache-followup-plan-corrected.json';require(not p.exists(),'Corrected plan exists');save(p,after);print(json.dumps(ref(p)))

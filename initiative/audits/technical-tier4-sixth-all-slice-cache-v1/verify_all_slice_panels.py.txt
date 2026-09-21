@@ -1,0 +1,22 @@
+"""Independently replay all132displayed cache matrices and original source bindings."""
+from pathlib import Path
+import json,hashlib,shutil
+import numpy as np
+from PIL import Image
+from render_all_slices import P,W,S,ref,sha,require,save
+index=json.loads((P/'cache-panels/index.json').read_text());summary=json.loads((S/'technical-evidence/summary.json').read_text())
+for field in ['input_bindings','cache_metadata_bindings','evidence_bindings','official_archive_csv_copies']:
+ for r in summary[field]:require(ref(W/r['path'])=={k:r[k]for k in['path','sha256','bytes']},'Changed original binding')
+source={r['sop_uid']:r for r in json.loads((S/'technical-evidence/inventory-three-cases.json').read_text())};total=0;volumes=0;seen=set();bindings=[]
+for entry in index['cases']:
+ mp=W/entry['manifest']['path'];require(ref(mp)==entry['manifest'],'Manifest changed');m=json.loads(mp.read_text());images={}
+ for r in m['images']:require(ref(W/r['path'])==r,'Sheet changed');images[r['path']]=np.asarray(Image.open(W/r['path']).convert('L'))
+ for row in m['selected_series_bindings']:
+  npz=W/row['cache']['path'];jp=W/row['metadata']['path'];require(ref(npz)==row['cache']and ref(jp)==row['metadata'],'Selected cache changed');meta=json.loads(jp.read_text())
+  with np.load(npz,allow_pickle=False)as archive:require(archive.files==['volume'],'Arraykeys');volume=archive['volume']
+  require(volume.dtype==np.uint16 and list(volume.shape)==[meta['n_slices'],256,256],'Arraycontract');records=sorted([r for r in m['panels']if r['series_uid']==meta['series_uid']],key=lambda r:r['ordered_index']);require([r['ordered_index']for r in records]==list(range(meta['n_slices'])),'Missing/duplicate matrix')
+  for r in records:
+   i=r['ordered_index'];sop=meta['sop_uids'][i];require(sop not in seen,'DuplicateSOP');seen.add(sop);require(r['source']==source[sop]and r['source']['sha256']==meta['slice_sha256'][i],'Sourcebinding');require(r['source_native_pixel_sha256_from_bound_metadata']==meta['pixel_sha256'][i]and r['source_position']==meta['positions'][i]and r['source_orientation']==meta['orientation']and r['source_pixel_spacing']==meta['pixel_spacing'],'Geometry/fingerprint');require(hashlib.sha256(volume[i].tobytes()).hexdigest()==r['cached_slice_bytes_sha256'],'Fullcache slice hash')
+   expected=np.rint(volume[i].astype(np.float64)*(255.0/65535.0)).astype(np.uint8);x,y,w,h=r['display_box_xywh'];actual=images[r['image_path']][y:y+h,x:x+w];require(w==h==256 and np.array_equal(actual,expected),'Exactdisplay');require(hashlib.sha256(actual.tobytes()).hexdigest()==r['display_pixel_bytes_sha256'],'Displayhash');total+=1
+  volumes+=1;bindings.extend([row['cache'],row['metadata']])
+require(total==len(seen)==132 and volumes==6,'Totals');o={'schema_version':1,'stage':'independent_all_selected_cache_matrix_display_binding_replay','agent_id':'/root/image_pipeline_audit','status':'passed','script':ref(Path(__file__).resolve()),'index':ref(P/'cache-panels/index.json'),'selected_full_npz_reverified':6,'complete_source_memberships_reverified':132,'every_ordered_cache_matrix_verified':132,'exact_sheet_matrices_verified':132,'unchanged_selected_geometry_and_native_fingerprint_metadata_verified':True,'selected_cache_bindings':bindings,'new_network_native_decodes':0,'unselected_arrays_opened':0,'npz_copies':0,'free_gib':shutil.disk_usage(P).free/2**30,'training_ready':False};require(o['free_gib']>20,'Diskfloor');save(P/'display-source-integrity.json',o);print(json.dumps(ref(P/'display-source-integrity.json')))

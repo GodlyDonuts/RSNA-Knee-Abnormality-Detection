@@ -1,0 +1,196 @@
+"""Root replay of the six complete displayed cache stacks; no native redecoding."""
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import shutil
+
+import numpy as np
+import pandas as pd
+from PIL import Image
+
+P = Path(__file__).resolve().parent
+W = P.parent
+G = P / 'technical-tier4-sixth-all-slice-cache-v1'
+S = P / 'technical-tier4-sixth-targeted-cache-v1'
+OUT = G / 'root-all-slice-source-display-replay.json'
+assert not OUT.exists()
+
+def read(path):
+    return json.loads(path.read_text())
+
+def sha(path):
+    h = hashlib.sha256()
+    with path.open('rb') as f:
+        for block in iter(lambda: f.read(1048576), b''):
+            h.update(block)
+    return h.hexdigest()
+
+def ref(path):
+    return {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+
+checked = {}
+def bindings(value):
+    if isinstance(value, dict):
+        if {'path', 'sha256', 'bytes'} <= value.keys() and 'sop_uid' not in value and 'storage' not in value:
+            path = W / value['path']
+            assert path.resolve().is_relative_to(W.resolve())
+            assert path.stat().st_size == value['bytes']
+            if str(path) not in checked:
+                checked[str(path)] = sha(path)
+            assert checked[str(path)] == value['sha256'], value['path']
+        for child in value.values():
+            bindings(child)
+    elif isinstance(value, list):
+        for child in value:
+            bindings(child)
+
+prior = S / 'root-source-geometry-display-review.json'
+assert sha(prior) == '75c0afed79ee4ded4815a323234eaa94f722213e3c640473f9122dfa263500b0'
+assert read(prior)['status'] == 'verified'
+assert sha(G / 'cache-panels/index.json') == '27c5d1b06e1d1b946ff4525112d9947e8bf99b6292bab7abaaa41a7296e5cc97'
+index = read(G / 'cache-panels/index.json')
+bindings(index)
+manifests = [read(W / entry['manifest']['path']) for entry in index['cases']]
+assert {m['case'] for m in manifests} == {'038:44', '045:15'}
+studies = sorted(m['study_uid'] for m in manifests)
+ip = W / 'cache256-v3-official-recovery-v1/inventory_effective.parquet'
+assert sha(ip) == '68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537'
+inventory = pd.read_parquet(ip, filters=[('study_uid', 'in', studies)])
+assert len(inventory) == 293 and inventory.sop_uid.nunique() == 293 and inventory.series_uid.nunique() == 13
+by_sop = {r['sop_uid']: r for r in inventory.to_dict('records')}
+subset = [r for r in read(S / 'technical-evidence/inventory-three-cases.json') if r['study_uid'] in studies]
+assert {r['sop_uid']: r for r in subset} == by_sop
+lp = W / 'cache256-v3-official-recovery-v1/cache_recovery_lineage.jsonl'
+assert sha(lp) == '506ca8e3aa8f10a36fbdc96bc853b1a4dfcbec8f55949aac3bf26701c5642934'
+lineage = {}
+with lp.open() as f:
+    for line in f:
+        row = json.loads(line)
+        if row['study_uid'] in studies:
+            assert row['series_uid'] not in lineage
+            lineage[row['series_uid']] = row
+cp = W / 'dicom-audit-v3-official-recovery-v1/series_cache_index.parquet'
+assert sha(cp) == '0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81'
+cache_index = pd.read_parquet(cp).set_index('series_uid')
+ep = W / 'header-endpoint-full-v1/endpoint-headers.jsonl'
+assert sha(ep) == 'd5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3'
+endpoints = []
+with ep.open() as f:
+    for line in f:
+        row = json.loads(line)
+        if row['study_uid'] in studies:
+            endpoints.append(row)
+assert len(endpoints) == 26
+seen_series, seen_sops, seen_boxes = set(), set(), set()
+cases = []
+for m in manifests:
+    bindings(m)
+    folder = G / 'cache-panels' / ('case-' + m['case'].replace(':', '-'))
+    root_path = folder / 'root-all-slice-visual-freeze.json'
+    agent_path = folder / 'independent-all-slice-visual-assessment.json'
+    joint_path = folder / 'joint-all-slice-visual-handoff.json'
+    root, agent, joint = map(read, [root_path, agent_path, joint_path])
+    for obj in [root, agent, joint]:
+        bindings(obj)
+        assert obj['study_uid'] == m['study_uid'] and obj['case'] == m['case']
+    assert root['agent_id'] == '/root' and agent['agent_id'] == '/root/image_pipeline_audit'
+    assert joint['assessor_ids'] == ['/root/image_pipeline_audit', '/root']
+    assert joint['material_expanded_visual_disagreement'] is False
+    assert joint['complete_correction_history']['root_new_complete_selected_slices'] == ref(root_path)
+    assert joint['complete_correction_history']['agent_new_complete_selected_slices'] == ref(agent_path)
+    assert root['personally_viewed_matrices'] == agent['matrices_personally_viewed'] == 66
+    assert [r['series_number'] for r in m['selected_series_bindings']] == [401, 501, 601]
+    assert len(m['panels']) == m['cached_matrices'] == m['selected_complete_source_memberships'] == 66
+    assert m['unselected_arrays_opened'] == 0
+    sheets = {}
+    for image_ref in m['images']:
+        with Image.open(W / image_ref['path']) as im:
+            assert im.mode == 'L'
+            sheets[image_ref['path']] = np.asarray(im).copy()
+    assert len(sheets) == 6
+    count = 0
+    for series in m['selected_series_bindings']:
+        meta_path = W / series['metadata']['path']
+        meta = read(meta_path)
+        uid = meta['series_uid']
+        assert uid not in seen_series
+        seen_series.add(uid)
+        assert meta['study_uid'] == m['study_uid'] and meta['cache_version'] == 'series-u16-v3'
+        assert meta['source_revision'] == '0b5e410288232f570c69ba4f44723356e6ae6ab7'
+        assert sha(meta_path) == lineage[uid]['new_metadata']['sha256']
+        assert meta_path.stat().st_size == lineage[uid]['new_metadata']['bytes']
+        assert series['cache']['sha256'] == meta['cache_sha256'] == cache_index.loc[uid, 'cache_sha256']
+        assert series['cache']['bytes'] == meta['cache_bytes'] == cache_index.loc[uid, 'cache_bytes']
+        frame = inventory[inventory.series_uid == uid]
+        assert len(frame) == meta['n_slices'] == cache_index.loc[uid, 'n_slices']
+        assert len(set(meta['sop_uids'])) == len(frame)
+        assert dict(zip(meta['sop_uids'], meta['slice_sha256'])) == dict(zip(frame.sop_uid, frame.sha256))
+        assert meta['path_fingerprint'] == hashlib.sha256('\n'.join(sorted(frame.path)).encode()).hexdigest()
+        expected_ep = [e for e in endpoints if e['series_uid'] == uid]
+        assert series['endpoint_records'] == expected_ep and len(expected_ep) == 2
+        for e in expected_ep:
+            src = by_sop[e['sop_uid']]
+            assert e['source_path'] == src['path'] and e['source_sha256'] == src['sha256'] and e['source_bytes'] == src['bytes']
+            f = e['header_fields']; pos = meta['sop_uids'].index(e['sop_uid'])
+            assert int(f['SeriesNumber']) == series['series_number']
+            assert json.loads(f['ImagePositionPatient']) == meta['positions'][pos]
+            assert json.loads(f['ImageOrientationPatient']) == meta['orientation']
+            assert json.loads(f['PixelSpacing']) == meta['pixel_spacing']
+            assert [int(f['Rows']), int(f['Columns'])] == meta['original_shape'][1:]
+        with np.load(W / series['cache']['path'], allow_pickle=False) as archive:
+            assert archive.files == ['volume']
+            volume = archive['volume']
+        assert volume.dtype == np.uint16 and list(volume.shape) == [len(frame), 256, 256]
+        records = sorted((r for r in m['panels'] if r['series_uid'] == uid), key=lambda r: r['ordered_index'])
+        assert [r['ordered_index'] for r in records] == list(range(len(frame)))
+        for i, panel in enumerate(records):
+            sop = meta['sop_uids'][i]
+            assert sop not in seen_sops
+            seen_sops.add(sop)
+            assert panel['source'] == by_sop[sop]
+            assert panel['series_number'] == series['series_number']
+            assert panel['study_uid'] == m['study_uid'] and panel['case'] == m['case']
+            assert panel['cache'] == series['cache'] and panel['cache_metadata'] == series['metadata']
+            assert panel['source_native_pixel_sha256_from_bound_metadata'] == meta['pixel_sha256'][i]
+            assert panel['source_position'] == meta['positions'][i] and panel['source_orientation'] == meta['orientation']
+            assert panel['source_pixel_spacing'] == meta['pixel_spacing'] and panel['original_native_shape'] == meta['original_shape'][1:]
+            assert hashlib.sha256(volume[i].tobytes()).hexdigest() == panel['cached_slice_bytes_sha256']
+            display = np.rint(volume[i].astype(np.float64) * (255.0 / 65535.0)).astype(np.uint8)
+            page, slot = divmod(i, 12)
+            expected_name = f'series-{series["series_number"]}-all-page-{page:02d}.png'
+            assert Path(panel['image_path']).name == expected_name
+            x, y, width, height = panel['display_box_xywh']
+            assert [x, y, width, height] == [12 + (slot % 4) * 272, 58 + (slot // 4) * 286, 256, 256]
+            box = (panel['image_path'], x, y)
+            assert box not in seen_boxes
+            seen_boxes.add(box)
+            actual = sheets[panel['image_path']][y:y+height, x:x+width]
+            assert np.array_equal(actual, display)
+            assert hashlib.sha256(actual.tobytes()).hexdigest() == panel['display_pixel_bytes_sha256']
+            count += 1
+    assert count == 66
+    cases.append({'case': m['case'], 'study_uid': m['study_uid'], 'selected_complete_arrays': 3,
+                  'source_memberships': count, 'display_matrices': count,
+                  'root_visual_freeze': ref(root_path), 'independent_visual_freeze': ref(agent_path),
+                  'joint_handoff': ref(joint_path), 'correction_history_preserved': True,
+                  'disposition': 'Selected axial/coronal landmark uncertainty resolved; no named-side or whole-study correspondence acceptance.'})
+assert len(seen_series) == 6 and len(seen_sops) == len(seen_boxes) == 132
+assert shutil.disk_usage(W).free > 20 * 2**30
+result = {'stage': 'root_all_selected_cache_matrices_source_geometry_display_replay', 'agent_id': '/root',
+          'completed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'status': 'verified',
+          'script': ref(Path(__file__).resolve()), 'prior_sparse_root_numeric_proof': ref(prior),
+          'index': ref(G / 'cache-panels/index.json'), 'source_inventory': ref(ip),
+          'lineage': ref(lp), 'cache_index': ref(cp), 'endpoint_survey': ref(ep),
+          'complete_npz_arrays_verified': 6, 'source_memberships_verified': 132,
+          'all_display_matrices_verified': 132, 'selected_endpoint_geometry_records': 12,
+          'root_personally_viewed_matrices_before_agent_expanded_findings': 132,
+          'cases': cases, 'unchanged_file_references_verified': len(checked),
+          'limits': ['No new native decoding or fresh external source-byte confirmation.',
+                     'Stored native fingerprints are metadata bindings, not newly computed native fingerprints.',
+                     'Only three complete selected cached series per case; other sequences retain their earlier sparse scope.',
+                     'All earlier incorrect root and intervening agent landmark claims remain preserved and explicitly corrected.',
+                     'No clinical label changes, named-side assignments, site/patient identity or training-ready conclusion.'],
+          'unselected_arrays_opened': 0, 'npz_copies': 0, 'new_network_requests': 0, 'training_ready': False}
+OUT.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+print(json.dumps(ref(OUT)))

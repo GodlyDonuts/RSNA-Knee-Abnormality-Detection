@@ -1,0 +1,41 @@
+"""Append source comparison and count-derived bounded follow-up proposal."""
+import json
+import shutil
+from datetime import datetime, timezone
+from collect_technical import ROOT, WORK, ref, save, require, sha
+P=ROOT
+own=json.loads((P/'source-only-preread.json').read_text())
+rp=P/'root-source-preread.json'
+require(sha(rp)=='26673fe7ddfd580ce69e0ba30ad39cfc517faa3422305013920e99cdf4ad9439','Root freeze differs')
+root=json.loads(rp.read_text()); neutral=json.loads((P/'neutral-source-reports.json').read_text())
+require(root['neutral_source_sha256']==sha(P/'neutral-source-reports.json'),'Neutral binding differs')
+agreement={
+ '055:00':'Both identify one English compartment narrative with an unheaded summary and explicit right-knee wording, without a separate left-knee or dated examination. The agent additionally preserves the incomplete about cm measurement phrase; root also records finding-scope detail without target extraction.',
+ '056:16':'Both identify one unsided Findings/Conclusion report. Repeated summary information does not define a second examination.',
+ '057:18':'Both identify one unsided compartment narrative and short summary. Literal TNC/NAW and numeral-zero tokens remain unexpanded source text, not evidence of another examination or institution.',
+ '057:42':'Both identify one unsided structured narrative with repeated summary and malformed intact-prefixed numeric expressions. Neither reconstructs their values. Root additionally distinguishes the literal LCL wording from MCL; that source-specific distinction is preserved as attributed detail, not a clinical-state adjudication here.',
+ '058:04':'Both identify one unsided Findings/Conclusion pair without a bilateral marker or second examination. Different statements about structures within one compartment do not imply separate knees.',
+ '058:19':'Both identify one unsided compartment narrative and a repeated summary. Both preserve the first-sentence probable-tear/is-not-torn contradiction and malformed intact-prefixed measurements. This is within-report source wording, not evidence permitting an invented second report or numeric repair.'
+}
+rows=[]
+for r in own['records']:
+ rr=[x for x in root['records'] if x['case']==r['case']]; require(len(rr)==1,'Root case count');rr=rr[0]
+ nn=next(x for x in neutral if x['case']==r['case'])
+ require(rr['study_uid']==r['study_uid']==nn['study_uid'] and rr['report']==r['report']==nn['report'] and rr['source_report_sha256']==r['source_report_sha256']==nn['source_report_sha256'],'Source mismatch')
+ require(rr['source_batch']==r['input_batch']==nn['source_batch'],'Batch mismatch')
+ require(all(q in r['report'] for q in rr['exact_source_quotes']),'Root quote mismatch')
+ rows.append({'case':r['case'],'study_uid':r['study_uid'],'source_report_sha256':r['source_report_sha256'],'source_structure_agreement':agreement[r['case']],'material_structural_disagreement':False,'prior_exposure':r['prior_exposure_disclosure']})
+j={'schema_version':1,'stage':'separate_independent_source_structure_comparison','agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'own_source_freeze':ref(P/'source-only-preread.json'),'root_source_freeze':ref(rp),'neutral_bundle':ref(P/'neutral-source-reports.json'),'root_independence':root['independence'],'comparison_order':'Both source freezes and the agent metadata triage were complete before the agent opened root observations. Root independently read the neutral originals before its freeze. Earlier reader057 source exposure is explicit in the agent freeze; independence is not a first-ever exposure claim.','records':rows,'originals_modified':False,'clinical_target_states_inferred':False,'training_ready':False}
+jp=P/'joint-source-comparison.json';require(not jp.exists(),'Joint exists');save(jp,j)
+selection={'056:16':None,'058:04':{101,201}};cases=[]
+for case,numbers in selection.items():
+ cp=P/f'technical-evidence/case-{case.replace(":","-")}.json';c=json.loads(cp.read_text());series=sorted(c['series'],key=lambda x:int(x['header_endpoint_values']['SeriesNumber'][0]))
+ selected=[r for r in series if numbers is None or int(r['header_endpoint_values']['SeriesNumber'][0]) in numbers]
+ require(len(selected)=={'056:16':7,'058:04':2}[case],'Selected series differ')
+ cases.append({'case':case,'study_uid':c['study_uid'],'whole_study_series':c['series_count'],'whole_study_source_memberships':c['slices'],'case_metadata':ref(cp),'selection':'all' if numbers is None else 'literal SeriesNumber 101 and 201 only','selected_series':[{'series_uid':r['series_uid'],'series_number':int(r['header_endpoint_values']['SeriesNumber'][0]),'slices':r['n_slices'],'cache_metadata':r['cache_metadata']} for r in selected],'proposed_samples':3*len(selected),'rationale':'Compare the early blank-tag multiplanar group with later R-tagged coronal/sagittal series and broader fields; metadata alone does not certify matching anatomy.' if numbers is None else 'Compare broad blank-tag 101 with main L-tagged axial 201 for primary and peripheral coverage; other four arrays remain unopened.'})
+whole_series=sum(c['whole_study_series']for c in cases);whole_members=sum(c['whole_study_source_memberships']for c in cases)
+selected_series=sum(len(c['selected_series'])for c in cases);selected_members=sum(sum(s['slices']for s in c['selected_series'])for c in cases);samples=sum(c['proposed_samples']for c in cases)
+require((whole_series,whole_members,selected_series,selected_members,samples)==(13,574,9,442,27),'Derived scope differs')
+plan={'schema_version':1,'stage':'proposed_bounded_selected_cached_followup_pending_root_review','agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'cases':cases,'case_count':len(cases),'whole_study_series_metadata':whole_series,'whole_study_source_memberships':whole_members,'whole_study_endpoint_geometries':2*whole_series,'selected_arrays':selected_series,'selected_source_memberships':selected_members,'selected_endpoint_geometries':2*selected_series,'selected_samples':samples,'source_assessments':[ref(P/'source-only-preread.json'),ref(rp)],'joint_source_comparison':ref(jp),'triage':ref(P/'source-header-triage.json'),'triage_scope_correction':ref(P/'supplement-orientation-scope-correction.json'),'metadata_validation':ref(P/'validation.json'),'deferred_without_immediate_pixels':['055:00','057:18','057:42','058:19'],'limits':['No eighth-group arrays have been opened or images rendered. Root reviews this plan before execution.','Use existing immutable corrected arrays only and reference them without NPZ copies. No native/network; preserve 20 GiB free.','Exactly three source-order normalized cached samples per selected series. Whole-study metadata and selected-array/sparse-anatomy coverage remain distinct.','Preserve all literal tags and anomalous original text. No named pixel side, clinical target state, patient/site identity or report correspondence is inferred.','The original 057:18 supplement exact-IOP wording is superseded by its immutable orientation-scope correction, not silently rewritten.'],'free_disk_gib':shutil.disk_usage(P).free/2**30,'training_ready':False}
+require(plan['free_disk_gib']>20,'Disk floor');pp=P/'targeted-cache-followup-plan.json';require(not pp.exists(),'Plan exists');save(pp,plan)
+print(json.dumps({'joint':ref(jp),'proposed_plan':ref(pp),'scope':{'whole_series':whole_series,'whole_members':whole_members,'whole_endpoints':whole_series*2,'selected_arrays':selected_series,'selected_members':selected_members,'samples':samples}},indent=2))

@@ -1,0 +1,279 @@
+diff --git a/tests/test_correspondence_extension.py b/tests/test_correspondence_extension.py
+new file mode 100644
+index 0000000..8f9b772
+--- /dev/null
++++ b/tests/test_correspondence_extension.py
+@@ -0,0 +1,273 @@
++"""Exercise the real nine-case extension with synthetic (never official) targets.
++
++Before promotion, set RSNA_CORRESPONDENCE_OVERLAY to the staged overlay directory.
++After promotion these tests use the repository's immutable policy and proofs.
++"""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++from pathlib import Path
++
++import pandas as pd
++import pytest
++
++from rsna.correspondence import REGISTRY_PATH, apply_correspondence, inspect_correspondence
++from rsna.labels import file_sha256
++from rsna.schema import TARGETS
++
++ROOT = Path(__file__).resolve().parents[1]
++POLICY = Path("initiative/audits/correspondence-release-dispositions-v3.json")
++CASES = {"017:07", "018:19", "038:37", "067:37", "052:01", "052:17", "001:39", "007:16", "062:21"}
++
++
++def read(path: Path) -> dict:
++    return json.loads(path.read_text())
++
++
++def write(path: Path, obj: object) -> None:
++    path.parent.mkdir(parents=True, exist_ok=True)
++    path.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
++
++
++@pytest.fixture
++def extension(tmp_path: Path) -> dict:
++    overlay = Path(os.environ.get("RSNA_CORRESPONDENCE_OVERLAY", str(ROOT)))
++    if not (overlay / POLICY).exists():
++        pytest.skip("Nine-case policy has not been promoted; provide its staged overlay explicitly")
++
++    def copy_reference(reference: dict) -> dict:
++        relative = Path(reference["path"])
++        source = overlay / relative if (overlay / relative).is_file() else ROOT / relative
++        assert file_sha256(source) == reference["sha256"]
++        destination = tmp_path / relative
++        destination.parent.mkdir(parents=True, exist_ok=True)
++        destination.write_bytes(source.read_bytes())
++        return read(destination)
++
++    registry = read(overlay / REGISTRY_PATH)
++    write(tmp_path / REGISTRY_PATH, registry)
++    for reference in registry["policies"]:
++        policy = copy_reference(reference)
++        for record in policy["records"]:
++            copy_reference({"path": record["source_path"], "sha256": record["source_batch_sha256"]})
++            proof = copy_reference(record["verified_technical_proof"])
++            for key in (
++                "verified_review",
++                "source_handoff",
++                "root_decision",
++                "independent_assessment",
++            ):
++                if key in proof:
++                    copy_reference(proof[key])
++    reports = {}
++    for path in (ROOT / "initiative/reviews/inputs").glob("batch-*.json"):
++        for record in json.loads(path.read_text()):
++            assert record["study_uid"] not in reports
++            reports[record["study_uid"]] = record["report"]
++    return {"root": tmp_path, "reports": reports, "policy": read(tmp_path / POLICY)}
++
++
++def record_for(bundle: dict, case: str) -> dict:
++    return next(record for record in bundle["policy"]["records"] if record["case"] == case)
++
++
++def proof_for(bundle: dict, case: str) -> tuple[Path, dict]:
++    path = bundle["root"] / record_for(bundle, case)["verified_technical_proof"]["path"]
++    return path, read(path)
++
++
++def rebind(bundle: dict, case: str, path: Path, proof: dict) -> None:
++    """Rebind outer hashes so rejection tests exercise inner semantic constraints."""
++    write(path, proof)
++    record_for(bundle, case)["verified_technical_proof"]["sha256"] = file_sha256(path)
++    write(bundle["root"] / POLICY, bundle["policy"])
++    registry_path = bundle["root"] / REGISTRY_PATH
++    registry = read(registry_path)
++    for reference in registry["policies"]:
++        if reference["path"] == str(POLICY):
++            reference["sha256"] = file_sha256(bundle["root"] / POLICY)
++    write(registry_path, registry)
++
++
++def test_real_extension_binds_exactly_nine_new_cases_and_keeps_existing_policies(
++    extension: dict,
++) -> None:
++    trace = inspect_correspondence(extension["reports"], extension["root"])
++    assert trace["policy_count"] == 3
++    assert trace["study_count"] == 13
++    assert {record["case"] for record in extension["policy"]["records"]} == CASES
++    for record in extension["policy"]["records"]:
++        assert (
++            record["source_report_sha256"]
++            == hashlib.sha256(extension["reports"][record["study_uid"]].encode()).hexdigest()
++        )
++        assert record["required_report_loss_mask"] == [False] * 12
++
++
++def test_real_exclusions_zero_all_report_masks_without_changing_labels_or_gold(
++    extension: dict,
++) -> None:
++    # Deliberately fabricated targets and split; no official target columns are opened.
++    gold_uid = record_for(extension, "052:01")["study_uid"]
++    rows = []
++    for uid, report in extension["reports"].items():
++        rows.append(
++            {
++                "study_uid": uid,
++                "Report": report,
++                "split": "gold_evaluation" if uid == gold_uid else "train",
++                "group_id": f"unchanged-{uid}",
++                **{target: 0.25 for target in TARGETS},
++                **{f"{target}__mask": 1.0 for target in TARGETS},
++                **{f"{target}__state": "synthetic_test_state" for target in TARGETS},
++                **{f"{target}__evidence": "synthetic_test_evidence" for target in TARGETS},
++                **{f"{target}__provenance": "synthetic_test_input" for target in TARGETS},
++            }
++        )
++    original = pd.DataFrame(rows)
++    before = original.copy(deep=True)
++    effective, trace = apply_correspondence(original, extension["reports"], extension["root"])
++    pd.testing.assert_frame_equal(original, before)
++    excluded = set(record["study_uid"] for record in trace["decisions"])
++    masked = effective.study_uid.isin(excluded - {gold_uid})
++    assert masked.sum() == 12
++    assert effective.loc[masked, [f"{t}__mask" for t in TARGETS]].eq(0).all().all()
++    assert effective.loc[~masked, [f"{t}__mask" for t in TARGETS]].eq(1).all().all()
++    mutable = {f"{t}__{suffix}" for t in TARGETS for suffix in ("mask", "provenance")}
++    unchanged = [column for column in original.columns if column not in mutable]
++    pd.testing.assert_frame_equal(effective[unchanged], original[unchanged])
++    assert trace["official_gold_preserved_studies"] == [gold_uid]
++    assert len(trace["report_masked_studies"]) == 12
++
++
++@pytest.mark.parametrize(
++    "mutation",
++    [
++        "source_index",
++        "source_hash",
++        "source_quote",
++        "case",
++        "wrapper_stage",
++        "root_selector",
++        "proof_kind",
++        "identity_as_claim",
++        "missing_root_reference",
++    ],
++)
++def test_source_and_selector_mutations_fail_even_after_outer_rebinding(
++    extension: dict, mutation: str
++) -> None:
++    case = "052:01"
++    path, proof = proof_for(extension, case)
++    if mutation == "source_index":
++        proof["source_index"] = 17
++    elif mutation == "source_hash":
++        proof["source_report_sha256"] = "0" * 64
++    elif mutation == "source_quote":
++        proof["source_evidence"] = ["An invented bilateral report heading."]
++    elif mutation == "case":
++        proof["case"] = "052:17"
++    elif mutation == "wrapper_stage":
++        proof["stage"] = "bare_verified_assertion"
++    elif mutation == "root_selector":
++        proof["root_selector"] = "/cases/1"
++    elif mutation == "proof_kind":
++        proof["proof_kind"] = "unreviewed_flags"
++    elif mutation == "identity_as_claim":
++        proof["independent_claim"] = {"pointer": "/agent_id", "value": "/root/image_pipeline_audit"}
++    else:
++        del proof["root_decision"]
++    rebind(extension, case, path, proof)
++    with pytest.raises(ValueError):
++        inspect_correspondence(extension["reports"], extension["root"])
++
++
++@pytest.mark.parametrize("case", ["017:07", "018:19", "038:37", "067:37", "052:01", "062:21"])
++def test_verified_status_cannot_replace_explicit_root_decision(extension: dict, case: str) -> None:
++    path, proof = proof_for(extension, case)
++    root_path = extension["root"] / proof["root_decision"]["path"]
++    root = read(root_path)
++    if proof["root_selector"]:
++        selected = root["cases"][int(proof["root_selector"].split("/")[-1])]
++        selected["required_report_supervision_mask_all"] = False
++        proof["root_disposition"]["value"] = False
++    else:
++        key = proof["root_disposition"]["pointer"].removeprefix("/")
++        root[key] = "Verified technical status only; no exclusion decision."
++        proof["root_disposition"]["value"] = root[key]
++    root["status"] = "verified"
++    write(root_path, root)
++    proof["root_decision"]["sha256"] = file_sha256(root_path)
++    rebind(extension, case, path, proof)
++    with pytest.raises(ValueError):
++        inspect_correspondence(extension["reports"], extension["root"])
++
++
++@pytest.mark.parametrize(
++    "mutation", ["same_assessor", "wrong_root", "wrong_uid", "altered_claim", "unbound_independent"]
++)
++def test_independent_proof_must_be_distinct_bound_and_case_specific(
++    extension: dict, mutation: str
++) -> None:
++    case = "052:01"
++    path, proof = proof_for(extension, case)
++    key = "root_decision" if mutation == "wrong_root" else "independent_assessment"
++    evidence_path = extension["root"] / proof[key]["path"]
++    evidence = read(evidence_path)
++    if mutation == "same_assessor":
++        evidence["agent_id"] = "/root"
++    elif mutation == "wrong_root":
++        evidence["agent_id"] = "/root/image_pipeline_audit"
++    elif mutation == "wrong_uid":
++        evidence["study_uid"] = record_for(extension, "052:17")["study_uid"]
++    elif mutation == "altered_claim":
++        proof["independent_claim"]["value"] = "Unsupported replacement interpretation."
++    else:
++        evidence["extra_unbound_change"] = True
++    write(evidence_path, evidence)
++    proof[key]["sha256"] = file_sha256(evidence_path)
++    rebind(extension, case, path, proof)
++    with pytest.raises(ValueError):
++        inspect_correspondence(extension["reports"], extension["root"])
++
++
++def test_cache_handoff_source_hash_is_checked_beyond_its_outer_digest(extension: dict) -> None:
++    case = "062:21"
++    path, proof = proof_for(extension, case)
++    handoff_path = extension["root"] / proof["source_handoff"]["path"]
++    handoff = read(handoff_path)
++    handoff["source_report_sha256"] = "0" * 64
++    write(handoff_path, handoff)
++    proof["source_handoff"]["sha256"] = file_sha256(handoff_path)
++    root_path = extension["root"] / proof["root_decision"]["path"]
++    root = read(root_path)
++    selected = root["cases"][int(proof["root_selector"].split("/")[-1])]
++    selected["joint_handoff"]["sha256"] = proof["source_handoff"]["sha256"]
++    write(root_path, root)
++    proof["root_decision"]["sha256"] = file_sha256(root_path)
++    rebind(extension, case, path, proof)
++    with pytest.raises(ValueError):
++        inspect_correspondence(extension["reports"], extension["root"])
++
++
++def test_native_independent_report_hash_must_match_even_when_all_digests_rebound(
++    extension: dict,
++) -> None:
++    case = "017:07"
++    path, proof = proof_for(extension, case)
++    independent_path = extension["root"] / proof["independent_assessment"]["path"]
++    independent = read(independent_path)
++    independent["source_report_sha256"] = "0" * 64
++    write(independent_path, independent)
++    proof["independent_assessment"]["sha256"] = file_sha256(independent_path)
++    root_path = extension["root"] / proof["root_decision"]["path"]
++    root = read(root_path)
++    root["evidence_files"][independent_path.name] = file_sha256(independent_path)
++    write(root_path, root)
++    proof["root_decision"]["sha256"] = file_sha256(root_path)
++    rebind(extension, case, path, proof)
++    with pytest.raises(ValueError):
++        inspect_correspondence(extension["reports"], extension["root"])

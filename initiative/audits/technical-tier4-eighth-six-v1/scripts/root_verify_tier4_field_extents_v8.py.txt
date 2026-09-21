@@ -1,0 +1,20 @@
+"""Independent metadata field and slice-origin extent checks for triage groups."""
+from pathlib import Path
+import datetime, hashlib, json
+import numpy as np
+P=Path(__file__).resolve().parent; W=P.parent
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ref=lambda p:{'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+for name,n in [('technical-tier4-eighth-six-v1',52)]:
+ G=P/name;out=G/'root-field-extent-verification.json';assert not out.exists()
+ proof=json.loads((G/'root-source-header-replay.json').read_text());assert proof['status']=='verified' and proof['series_metadata']==n
+ metrics=json.loads((G/'field-and-extent-metrics.json').read_text());assert len(metrics['series'])==n
+ seen=set();checked=[]
+ for r in metrics['series']:
+  uid=r['series_uid'];assert uid not in seen;seen.add(uid)
+  mp=W/r['metadata']['path'];assert ref(mp)==r['metadata'];m=json.loads(mp.read_text());assert m['series_uid']==uid
+  height,width=m['original_shape'][1:];spacing=m['pixel_spacing'];field=[height*spacing[0],width*spacing[1]];assert field==r['field_height_width_mm']
+  o=np.asarray(m['orientation'],dtype=float);normal=np.cross(o[:3],o[3:]);normal=normal/np.linalg.norm(normal);projected=np.asarray(m['positions'])@normal;extent=float(max(projected)-min(projected));assert abs(extent-r['ordered_position_normal_extent_mm'])<1e-10
+  checked.append({'case':r['case'],'series_uid':uid,'series_number':r['series_number'],'field_height_width_mm':field,'slice_origin_extent_mm':extent,'metadata':ref(mp)})
+ result={'stage':'independent_root_field_extent_verification','agent_id':'/root','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified','series':n,'checks':checked,'bindings':[ref(Path(__file__)),ref(G/'root-source-header-replay.json'),ref(G/'field-and-extent-metrics.json')],'limits':'Metadata-derived field sizes and projected slice-origin extent, not anatomical coverage or common cross-frame registration. No images, labels or source bytes changed.','training_ready':False}
+ out.write_text(json.dumps(result,indent=2)+'\n');print(name,sha(out))

@@ -1,0 +1,53 @@
+from pathlib import Path
+import hashlib,json,datetime
+ROOT=Path('work/recovered');STAGE=Path('work/annotation-staging/correspondence-extension-v3');OVER=STAGE/'overlay';A='initiative/audits/'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def read(path):return json.loads((ROOT/path).read_text())
+def ref(path):return {'path':path,'sha256':sha(ROOT/path)}
+def write(path,obj):
+ p=OVER/path;p.parent.mkdir(parents=True,exist_ok=True);assert not p.exists();p.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+'\n');return {'path':path,'sha256':sha(p)}
+# Explicitly chosen source quotations and proof selectors, following full source/proof inspection.
+specs=[
+ (17,7,'bilateral-017-007','native','independent-image-review.json','/conclusion/single_knee_training_recommendation',['Дясна колянна става:','Лява колянна става:']),
+ (18,19,'bilateral-018-019','native','independent-image-review.json','/conclusion/single_knee_training_recommendation',['Лява колянна става:','Дясна колянна става:']),
+ (38,37,'bilateral-038-037','native','image-review.json','/single_knee_training_recommendation',['Лява колянна става:','Дясна колянна става:']),
+ (67,37,'bilateral-067-037','native','independent-image-review.json','/training_recommendation/disposition',['Дясна колянна става:','Лява колянна става:']),
+ (52,1,'correspondence-052001-017-cache-v1','cache','independent-cache-visual-assessment.json','/assessment',['ΑΡΙΣΤΕΡΟ ΓΟΝΑΤΟ','∆ΕΞΙΟ ΓΟΝΑΤΟ']),
+ (52,17,'correspondence-052001-017-cache-v1','cache','independent-cache-visual-assessment.json','/assessment',['MRI ΑΡΙΣΤΕΡΟΥ ΓΟΝΑΤΟΣ','MRI ∆ΕΞΙΟΥ ΓΟΝΑΤΟΣ']),
+ (1,39,'technical-tier4-bilateral-001007-cache-v1','cache','independent-cache-visual-assessment.json','/assessment',['Joint effusion is shown on both knee joints, extending into the suprapatellar joint space.','Enhancing synovitis is shown on both knee joints, more prominent on the right side.']),
+ (7,16,'technical-tier4-bilateral-001007-cache-v1','cache','independent-cache-visual-assessment.json','/assessment',['MT ∆ΕΞΙΟΥ ΓΟΝΑΤΟΣ','MT ΑΡΙΣΤΕΡΟΥ ΓΟΝΑΤΟΣ']),
+ (62,21,'correspondence-055058060062063-v1','cache','independent-cache-visual-assessment.json','/technical_interpretation',['ΜΑΓΝΗΤΙΚΗ ΤΟΜΟΓΡΑΦΙΑ ∆ΕΞΙΟΥ ΓΟΝΑΤΟΣ','ΜΑΓΝΗΤΙΚΗ ΤΟΜΟΓΡΑΦΙΑ ΑΡΙΣΤΕΡΟΥ ΓΟΝΑΤΟΣ']),
+]
+def pointer(obj,p):
+ for k in p.split('/')[1:]:obj=obj[int(k)] if isinstance(obj,list) else obj[k]
+ return obj
+records=[];anchors=[]
+for batch,index,directory,kind,indfile,claimpointer,quotes in specs:
+ case=f'{batch:03}:{index:02}'; src=f'initiative/reviews/inputs/batch-{batch:03}.json'; row=read(src)[index]; reportsha=hashlib.sha256(row['report'].encode()).hexdigest()
+ assert all(q in row['report'] for q in quotes)
+ if kind=='native':
+  rootpath=A+directory+'/decision.json';indpath=A+directory+'/'+indfile;selector='';rootobj=read(rootpath);selected=rootobj
+  decisionpointer='/report_supervision_action' if batch==67 else '/decision'
+  reason='Preserved independent native anatomy/orientation reviews support two knee acquisition sets within this study, and its original report has distinct right/left sections. No validated single-knee training-unit/report binding has been established; retain whole-study report exclusion.'
+ else:
+  rootpath=A+directory+'/root-source-geometry-display-review.json';rootobj=read(rootpath)
+  matches=[(i,c) for i,c in enumerate(rootobj['cases']) if c['case']==case];assert len(matches)==1
+  caseindex,selected=matches[0];selector=f'/cases/{caseindex}';assert selected['required_report_supervision_mask_all'] is True
+  indpath=A+directory+f'/cache-panels/case-{batch:03}-{index:02}/'+indfile;decisionpointer='/required_report_supervision_mask_all'
+  reason='The original report explicitly concerns both knees. Preserved independent source and bounded cache-anatomy reviews leave report-block-to-acquisition correspondence unresolved, and the root case decision explicitly requires all report supervision masked. Do not select a report block from literal side tags or infer a missing examination.'
+ assert selected['study_uid']==row['study_uid']
+ independent=read(indpath);assert independent['study_uid']==row['study_uid'];assert independent['agent_id']=='/root/image_pipeline_audit'
+ proof={'schema_version':1,'stage':'verified_multi_assessor_correspondence_source_binding','agent_id':'/root/competition_contract','session_id':'/root/competition_contract','workflow_run_id':'codex-20260920-rubric-v2','case':case,'study_uid':row['study_uid'],'status':'verified','proof_kind':'reviewed_'+kind+'_aggregate','source_batch':ref(src),'source_index':index,'source_report_sha256':reportsha,'source_evidence':quotes,'root_decision':ref(rootpath),'root_selector':selector,'root_disposition':{'pointer':decisionpointer,'value':pointer(selected,decisionpointer)},'independent_assessment':ref(indpath),'independent_claim':{'pointer':claimpointer,'value':pointer(independent,claimpointer)},'interpretation':reason,'notes':'Mechanical normalization of existing authoritative root decisions and distinct independent assessments, prepared for root review. This is not a new blinded image reread and does not alter clinical states, source text, headers or gold. Original paths inside preserved proofs may name former staging locations; these references bind byte-identical archived evidence by SHA-256.','training_ready':False}
+ if kind=='cache':
+  hp=A+directory+f'/cache-panels/case-{batch:03}-{index:02}/joint-source-header-cache-handoff.json';proof['source_handoff']=ref(hp);assert read(hp)['source_report_sha256']==reportsha
+  assert selected['joint_handoff']['sha256']==proof['source_handoff']['sha256'];assert selected['agent_visual']['sha256']==proof['independent_assessment']['sha256']
+ proofref=write(A+f'correspondence-source-bindings-v3/case-{batch:03}-{index:03}.json',proof)
+ records.append({'case':case,'study_uid':row['study_uid'],'source_path':src,'source_batch_sha256':sha(ROOT/src),'source_report_sha256':reportsha,'status':'unresolved_bilateral_report_to_image_correspondence','report_derived_training_supervision_allowed':False,'required_report_loss_mask':[False]*12,'scope':'Whole original study aggregate report-derived training supervision. Preserve clinical states, evidence, label values, original report/images, duplicate/leakage groups, splits and official gold evaluation. No virtual splitting or source-side assignment.','reason':reason,'verified_technical_proof':proofref})
+ anchors.append({'case':case,'study_uid':row['study_uid'],'source_report_sha256':reportsha,'root_decision':ref(rootpath),'root_selector':selector,'independent_assessment':ref(indpath),'wrapper':proofref})
+targets=read('initiative/audits/correspondence-release-registry.json')['target_order']
+policy={'schema_version':1,'proof_binding_version':2,'stage':'root_verified_correspondence_release_requirements','agent_id':'/root/competition_contract','decision_authority':'Exact preserved /root decisions and independent technical assessments; normalized by /root/competition_contract for review.','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'target_order':targets,'records':records,'original_source_or_annotation_changes':False,'publication_status':'staged_for_root_review_not_promoted','training_ready':False}
+policyref=write(A+'correspondence-release-dispositions-v3.json',policy)
+registry=read(A+'correspondence-release-registry.json');assert len(registry['policies'])==2;registry['policies'].append(policyref)
+registryref=write(A+'correspondence-release-registry.json',registry)
+summary={'schema_version':1,'stage':'prepared_correspondence_extension_for_root_review','agent_id':'/root/competition_contract','base_registry':ref(A+'correspondence-release-registry.json'),'candidate_registry':registryref,'candidate_policy':policyref,'new_study_count':9,'existing_study_count':4,'candidate_total_study_count':13,'anchors':anchors,'production_initiative_changed':False,'limits':'All evidence is preserved prior work, not a new native/cache reread. No literal side tag alone causes exclusion. Runtime enforcement and tests validate original explicit decisions, source membership/text hashes, selectors and distinct assessor roles.'}
+(STAGE/'preparation.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n');print(json.dumps({'policy':policyref,'registry':registryref,'records':len(records)}))
