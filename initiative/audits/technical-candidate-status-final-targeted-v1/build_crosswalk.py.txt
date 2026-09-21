@@ -1,0 +1,285 @@
+"""Consolidate preserved technical evidence; do not read gold or change policy."""
+import hashlib,json,os,re
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+OUT=Path(__file__).resolve().parent
+WORK=OUT.parents[1]; REPO=WORK/'recovered'; AUD=REPO/'initiative/audits'
+REFS={};ALIASES={}
+def ref(p):
+ p=Path(p).resolve();rel=str(p.relative_to(WORK));assert p.is_file(),p
+ assert '/reviews-v2/' not in str(p) and '/legacy/' not in str(p)
+ x={'path':rel,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+ if rel in REFS:assert REFS[rel]==x,('input mutated',rel)
+ REFS[rel]=x;return x
+
+def read(p):ref(p);return json.loads(Path(p).read_text())
+def choose(path,expected=None):
+ p=WORK/path
+ candidates=ALIASES.get(path,[])
+ if path.startswith('annotation-staging/'):
+  candidates=[AUD/Path(path).relative_to('annotation-staging'),*candidates]
+ for q in candidates:
+  if q.is_file() and (expected is None or hashlib.sha256(q.read_bytes()).hexdigest()==expected):return q
+ assert p.is_file(),p
+ if expected:assert hashlib.sha256(p.read_bytes()).hexdigest()==expected
+ return p
+
+def bound(x):return ref(choose(x['path'],x.get('sha256')))
+def addref(row,p,role):
+ r={**ref(p),'role':role};row['latest_evidence'][r['path']]=r;return r
+
+def action(row,kind,text):
+ item={'kind':kind,'action':text}
+ if item not in row['remaining_actions']:row['remaining_actions'].append(item)
+
+def case_folder(s):
+ m=re.search(r'(\d{3})-(\d{2,3})$',s);assert m,s;return f'{m[1]}:{int(m[2]):02d}'
+# Map preserved exact originals to their archive copies. No substantive source data opened.
+for p in AUD.glob('*/preservation*.json'):
+ try:d=json.loads(p.read_text())
+ except (ValueError,OSError):continue
+ for item in d.get('files',[]):
+  if isinstance(item,dict) and 'source_path'in item and 'archive_path'in item:
+   ap=Path(item['archive_path']);ap=ap if ap.is_absolute() else REPO/ap
+   ALIASES.setdefault(item['source_path'],[]).append(ap)
+priorp=WORK/'annotation-staging/technical-candidate-status-v1/status-crosswalk.json';prior=read(priorp)
+qp=AUD/'header-endpoint-full-v1/independent/candidate-review-queue.json';qdoc=read(qp)
+queue={f"{Path(x['source_batch_path']).stem.split('-')[-1]}:{x['source_batch_index']:02d}":x for x in qdoc['queue']}
+assert len(queue)==qdoc['n_candidate_studies']==129
+oldrows=prior['original_candidates']+prior['additional_report_correspondence_and_source_cases'];assert len(oldrows)==148
+rows={}
+for old in oldrows:
+ c=old['case'];assert c not in rows
+ bp=REPO/f'initiative/reviews/inputs/batch-{c[:3]}.json';batch=read(bp);idx=int(c.split(':')[1]);s=batch[idx];assert s['study_uid']==old['study_uid']
+ row={'case':c,'study_uid':old['study_uid'],'cohort':'original_129_candidate_queue' if c in queue else 'additional_19_source_correspondence_cases','original_trigger':queue.get(c),'source_identity':{'batch':ref(bp),'index_zero_based':idx,'study_uid':s['study_uid'],'report_utf8_sha256':hashlib.sha256(s['report'].encode()).hexdigest()},'prior_snapshot':{'crosswalk':ref(priorp),'workflow_status':old['workflow_status'],'evidence_status_is_historical':True},'metadata_scope':None,'pixel_review_tracks':[],'source_structure_evidence':[],'latest_evidence':{},'remaining_actions':[],'bounded_technical_status':'unclassified','source_correspondence_status':'not_positively_established_by_technical_check','runtime_report_policy':{'status':'no_case_entry_in_bound_registry_snapshot'},'training_ready':False,'new_clinical_labels_or_named_sides_inferred':False}
+ if c in queue:assert queue[c]['study_uid']==row['study_uid'];assert queue[c]['source_batch_sha256']==ref(bp)['sha256']
+ oldrefs={e['path']:e for e in old['evidence']}
+ for t in old['tracks']:
+  for path in t['proof_paths']:
+   e=oldrefs[path];ap=choose(path,e['sha256']);addref(row,ap,'historical_track_evidence_preserved')
+ row['prior_snapshot']['tracks']=old['tracks'];rows[c]=row
+assert len({r['study_uid'] for r in rows.values()})==148
+# Historical plane/native/source-header/completeness decisions, which remain current within their scope.
+for p in sorted(AUD.glob('*/decision.json')):
+ name=p.parent.name
+ if not name.startswith(('anatomical-plane-','bilateral-','correspondence-','source-completeness-')):continue
+ try:c=case_folder(name)
+ except AssertionError:continue
+ if c not in rows:continue
+ d=read(p);r=rows[c];assert d.get('study_uid',r['study_uid'])==r['study_uid'];addref(r,p,'archived_case_decision')
+ if name.startswith('anatomical-plane-'):
+  r['bounded_technical_status']='bounded_native_or_cached_visual_check_complete'
+  r['pixel_review_tracks'].append({'kind':'native_plane_routing','proof':ref(p),'numeric_native_slices':d.get('n_native_slices_verified'),'series':d.get('n_series'),'matrices_personally_viewed_per_assessor':d.get('n_panels_each_assessor'),'disposition':d.get('decision'),'limits':d.get('correspondence'),'complete_clinical_review':False})
+ elif name.startswith('bilateral-'):
+  r['bounded_technical_status']='bounded_native_or_cached_visual_check_complete';scope=d.get('verified_scope',{})
+  r['pixel_review_tracks'].append({'kind':'native_bilateral_correspondence','proof':ref(p),'recorded_scope':scope,'matrices_personally_viewed_per_assessor':scope.get('panels_per_assessor'),'disposition':d.get('decision'),'limits':d.get('limitations'),'complete_clinical_review':False})
+ elif name.startswith('source-completeness-'):
+  r['bounded_technical_status']='source_completeness_identity_check_complete'
+  r['original_trigger']={'kind':'source_incompleteness_outside_original_candidate_queue','recorded_decision':d['decision'],'proof':ref(p)}
+  r['source_structure_evidence'].append({'proof':ref(p),'recorded_decision':d['decision']});r['source_correspondence_status']='source_fragment_authenticated_no_missing_text_reconstructed'
+  action(r,'source_integrity','Keep source fragment and existing masks; no reconstruction of absent findings. Final semantic/export validation remains separate.')
+ elif name.startswith('correspondence-'):
+  if r['bounded_technical_status']=='unclassified':r['bounded_technical_status']='source_header_only_review_complete_correspondence_open'
+  r['metadata_scope']={'kind':'source_bound_endpoint_headers','series':d.get('series_count'),'endpoint_headers':d.get('endpoint_count'),'proof':ref(p),'limits':d.get('limits'),'pixels_in_this_track':0}
+  r['source_structure_evidence'].append({'proof':ref(p),'recorded_decision':d.get('decision'),'recorded_findings':d.get('findings',d.get('established')),'recorded_unestablished':d.get('not_established')})
+  r['source_correspondence_status']='unresolved_source_block_or_exam_assignment'
+  action(r,'source_correspondence','Reconcile preserved source-block/examination ambiguity and existing report masks with mandatory export policy; no arbitrary block selection. Determine whether further pixels could resolve the specific missing linkage.')
+  if c not in queue:r['original_trigger']={'kind':'source_report_correspondence_flag_outside_original_candidate_queue','proof':ref(p),'preserved_source_context':d.get('findings',d.get('established'))}
+# 78 technical-tail cases: full metadata coverage, including later corrected root dispositions.
+metadata_cases=set();meta_escalated=set()
+for p in sorted(AUD.glob('technical-tier4-*-six-v1/source-header-triage.json')):
+ d=read(p);group=p.parent.name;name=group.removeprefix('technical-tier4-').removesuffix('-six-v1')
+ rp=p.parent/'root-source-header-replay.json'
+ if rp.exists():rd=read(rp);rb={x['case']:x for x in rd['cases']}
+ else:
+  rp=AUD/f'tier4-tenth-thirteenth-metadata-crosscheck-v1/root-run-001/{name}-root-dispositions.json';rd=read(rp);rb={x['case']:x for x in rd['records']}
+ for m in d['records']:
+  c=m['case'];r=rows[c];assert r['study_uid']==m['study_uid'];assert c not in metadata_cases;metadata_cases.add(c);rr=rb[c]
+  r['metadata_scope']={'kind':'all_series_metadata_source_membership_and_two_endpoints_per_series','series':m['series'],'source_memberships':m['source_slices'],'endpoint_geometries':2*m['series'],'metadata_proof':ref(rp),'case_metadata':bound(m['case_metadata']),'native_pixels_reviewed_in_metadata_track':0}
+  addref(r,p,'source_header_triage');addref(r,rp,'root_metadata_replay_or_disposition');r['latest_evidence'][r['metadata_scope']['case_metadata']['path']]={**r['metadata_scope']['case_metadata'],'role':'complete_case_metadata'}
+  r['source_structure_evidence'].append({'proof':ref(p),'original_trigger_text':m['trigger'],'source_relation':m['source_relation'],'prior_pixel_plan':m['pixels_needed'],'prior_proposal':m['proposal'],'root_case_disposition':{k:v for k,v in rr.items() if k in ('next_action','root_comparison','material_source_structure_disagreement')}})
+  escalated=m['pixels_needed']!='not_required_by_current_trigger_alone'
+  if escalated:meta_escalated.add(c);r['bounded_technical_status']='metadata_complete_targeted_pixels_pending'
+  else:r['bounded_technical_status']='metadata_review_complete_no_immediate_pixels_from_trigger';r['source_correspondence_status']='no_new_source_aggregation_trigger_in_recorded_metadata_review'
+  for correction in p.parent.glob('*correction*.json'):addref(r,correction,'preserved_scope_or_source_correction')
+  for correction in p.parent.glob('*clarification*.json'):addref(r,correction,'preserved_scope_clarification')
+assert len(metadata_cases)==78 and len(meta_escalated)==32
+# Current root-replayed cache groups, with selected arrays distinct from complete study metadata.
+proofs=list(AUD.glob('mixed-laterality-*/root-source-geometry-display-review.json'))+list(AUD.glob('technical-tier4-*/root-source-geometry-display-review.json'))+[AUD/'correspondence-052001-017-cache-v1/root-source-geometry-display-review.json',AUD/'correspondence-055058060062063-v1/root-source-geometry-display-review.json']
+for p in sorted(proofs):
+ d=read(p);assert d['status']=='verified'
+ for x in d['cases']:
+  c=x['case'];r=rows[c];assert x['study_uid']==r['study_uid'];addref(r,p,'root_source_geometry_cache_display_replay')
+  members=x.get('whole_study_source_membership',x.get('complete_source_membership'));series=x.get('whole_study_series_metadata',x.get('complete_cache_volumes'))
+  selected=x.get('selected_source_membership',x.get('complete_source_membership'))
+  r['metadata_scope']={'kind':'whole_study_source_membership_and_series_endpoint_metadata','series':series,'source_memberships':members,'endpoint_geometries':x.get('whole_study_source_endpoint_headers',x.get('source_endpoint_headers')),'proof':ref(p),'native_pixels_reviewed_in_metadata_track':0}
+  track={'kind':'representative_cached_matrices','proof':ref(p),'arrays_numerically_verified':x['complete_cache_volumes'],'selected_array_source_memberships':selected,'matrices_personally_viewed_per_assessor':x['displayed_samples'],'unselected_arrays_outside_this_pixel_track':series-x['complete_cache_volumes'],'unselected_source_memberships_outside_this_pixel_track':members-selected,'source_membership_count_is_not_visual_slice_count':True,'recorded_source_correspondence_status':x.get('source_correspondence_status'),'recorded_export_action':x.get('required_export_action'),'complete_clinical_review':False}
+  r['pixel_review_tracks'].append(track);r['bounded_technical_status']='bounded_native_or_cached_visual_check_complete'
+  for key in ('frozen_root_visual','agent_visual','joint_handoff'):
+   if key in x:
+    bp=choose(x[key]['path'],x[key]['sha256']);addref(r,bp,key)
+    if key=='joint_handoff':
+     j=read(bp);r['source_structure_evidence'].append({'proof':ref(bp),**{k:v for k,v in j.items() if k in ('source_structure_agreement','source_correspondence','source_report_structure','technical_disposition','preserved_observer_differences_and_limits','shared_observations','source_relationship','source_disposition')}})
+  # Bound current panel manifest for exact selected series/sample indices and all literal tags.
+  mp=p.parent/f"cache-panels/case-{c.replace(':','-')}/panel-manifest.json"
+  if mp.exists():
+   m=read(mp);addref(r,mp,'source_bound_panel_manifest');track['panel_manifest']=ref(mp)
+   track['selected_series_numbers']=sorted({v.get('series_number') for v in m.get('panels',[]) if v.get('series_number') is not None},key=str)
+  if x.get('source_correspondence_status'):r['source_correspondence_status']=x['source_correspondence_status']
+# Native follow-ups for three current candidates, archive aliases carry immutable study identity.
+for c in ('075:14','048:12','086:13'):
+ r=rows[c];proof_candidates=[Path(WORK/k) for k in r['latest_evidence'] if k.endswith('root-numeric-display-review.json')]
+ for p in proof_candidates:
+  d=read(p);r['pixel_review_tracks'].append({'kind':'bounded_native_source_display_replay','proof':ref(p),'recorded_counts':{k:v for k,v in d.items() if isinstance(v,(int,float)) and not isinstance(v,bool)},'limits':d.get('limits',d.get('scope')),'complete_clinical_review':False})
+ r['bounded_technical_status']='bounded_native_or_cached_visual_check_complete'
+# Body-region source mismatch current proof.
+r=rows['052:20'];p=AUD/'correspondence-shoulder-report-052-020-v1/root-source-display-review.json'
+if not p.exists():p=choose('annotation-staging/correspondence-052020-v1/root-source-display-review.json')
+d=read(p);addref(r,p,'root_body_region_source_display_proof');r['bounded_technical_status']='bounded_native_or_cached_visual_check_complete';r['pixel_review_tracks'].append({'kind':'body_region_representative_cached_review','proof':ref(p),'recorded_counts':{k:v for k,v in d.items() if isinstance(v,(int,float)) and not isinstance(v,bool)},'complete_clinical_review':False})
+# Two report-header cases whose original proof is grouped rather than decision.json.
+for c in ('042:14','042:41'):
+ p=AUD/f"correspondence-042-014-041/{c.replace(':','')}-technical-assessment.json";d=read(p);r=rows[c];addref(r,p,'source_header_correspondence_assessment');r['bounded_technical_status']='source_header_only_review_complete_correspondence_open';r['source_correspondence_status']='explicit_bilateral_source_aggregate_no_series_block_binding';r['source_structure_evidence'].append({'proof':ref(p),'recorded_source_and_metadata':{k:v for k,v in d.items() if k not in ('bindings','source_report','report')}});action(r,'source_correspondence','Preserve bilateral source scope; ensure already adjudicated correspondence masks are enforced by final export. No proof of per-series block assignment is supplied by header review.')
+# Expanded selected-stack reviews supersede historical sparse landmark uncertainty, not all prior scope.
+for group in ('sixth','eighth'):
+ p=AUD/f'technical-tier4-{group}-all-slice-cache-v1/root-all-slice-source-display-replay.json';d=read(p)
+ for x in d['cases']:
+  r=rows[x['case']];addref(r,p,'root_expanded_all_selected_slice_replay')
+  r['pixel_review_tracks'].append({'kind':'all_cached_slices_in_selected_arrays','proof':ref(p),'arrays_numerically_verified':x['selected_complete_arrays'],'selected_array_source_memberships':x['source_memberships'],'matrices_personally_viewed_per_assessor':x['display_matrices'],'disposition':x['disposition'],'other_arrays_keep_prior_scope':True,'complete_clinical_review':False})
+  r['source_correspondence_status']='sparse_landmark_question_resolved_by_expanded_selected_stacks_no_named_side_or_whole_study_acceptance'
+  for key in ('joint_handoff','root_comparison_of_frozen_assessments','root_visual_freeze','independent_visual_freeze'):
+   if key in x:addref(r,choose(x[key]['path'],x[key]['sha256']),key)
+# Final twelve: use individually compared frozen conclusions, after root numerical replay.
+p=AUD/'last-twelve-independent-visual-v1/post-freeze-root-comparison.json';last=read(p)
+np=AUD/'technical-tier4-last-twelve-targeted-v1/root-numeric-replay-proof.json';nd=read(np)
+for x in last['comparisons']:
+ r=rows[x['case']];assert x['study_uid']==r['study_uid'];s=x['shared_pixel_scope'];addref(r,p,'post_freeze_root_independent_case_comparison');addref(r,np,'root_final_twelve_numeric_replay')
+ mp=AUD/f"technical-tier4-last-twelve-targeted-v1/cache-panels/case-{x['case'].replace(':','-')}/panel-manifest.json";m=read(mp);addref(r,mp,'source_bound_final_twelve_panel_manifest')
+ r['pixel_review_tracks'].append({'kind':'representative_cached_matrices','proof':ref(np),'comparison':ref(p),'panel_manifest':ref(mp),'arrays_numerically_verified':s['selected_arrays'],'selected_array_source_memberships':s['selected_source_memberships'],'matrices_personally_viewed_per_assessor':s['displayed_matrices'],'unselected_arrays_outside_this_pixel_track':s['unselected_arrays_outside_pixel_scope'],'unselected_source_memberships_outside_this_pixel_track':s['unselected_source_memberships_outside_pixel_scope'],'selected_series_numbers':sorted({v['series_number'] for v in m['panels']}),'source_membership_count_is_not_visual_slice_count':True,'complete_clinical_review':False})
+ r['bounded_technical_status']='bounded_native_or_cached_visual_check_complete';r['source_correspondence_status']=x['source_correspondence_status'];r['latest_case_disposition']={'proof':ref(p),'agreement':x['agreement'],'scope_differences':x['differences_in_specificity_scope_or_emphasis'],'source_correspondence_limitations':x['source_correspondence_limitations']}
+ if 'unresolved' in x['source_correspondence_status']:action(r,'source_correspondence',x['source_correspondence_limitations']+' Complete explicit export eligibility adjudication; compatible sparse anatomy does not clear this source issue.')
+ if x['case']=='084:27':action(r,'series_selection','Separately decide training eligibility of wide-field101 with peripheral second-limb inclusion; no automatic study exclusion or crop follows from three samples.')
+# Four repeated/temporal cases: prior awaiting-root status is stale.
+p=AUD/'repeated-temporal-001021064-v1/root-run-001/root-comparison-and-replay-proof.json';rd=read(p)
+for x in rd['dispositions']:
+ c=x['case'];r=rows[c];addref(r,p,'root_repeated_temporal_source_visual_numeric_crosscheck')
+ mp=AUD/f"repeated-temporal-001021064-v1/cache-panels/case-{c.replace(':','-')}/panel-manifest.json";m=read(mp);addref(r,mp,'source_bound_repeated_temporal_panel_manifest')
+ r['pixel_review_tracks'].append({'kind':'representative_cached_matrices','proof':ref(p),'panel_manifest':ref(mp),'arrays_numerically_verified':m['series_sampled'],'selected_array_source_memberships':m['all_source_membership_verified'],'matrices_personally_viewed_per_assessor':m['cached_panels'],'complete_clinical_review':False,'disposition':x['status'],'limits':x['limits']})
+ r['metadata_scope']={'kind':'all_series_endpoint_metadata_and_source_membership','series':m['series_sampled'],'source_memberships':m['all_source_membership_verified'],'endpoint_geometries':2*m['series_sampled'],'proof':ref(p)};r['bounded_technical_status']='bounded_native_or_cached_visual_check_complete';r['source_correspondence_status']=x['status'];r['latest_case_disposition']={'proof':ref(p),'status':x['status'],'limits':x['limits']}
+# Case-specific open issues supported by archived joint summaries.
+for c,text in {
+ '016:37':'Resolve single-report left opening/conclusion versus right soft-tissue sentence; literal L tags and compatible samples cannot correct source wording.',
+ '021:44':'Resolve explicit right-knee heading versus both-knee sentence within one narrative; compatible images do not assign source scope.',
+ '055:10':'Resolve left soft-tissue wording versus right conclusion within the same current report; no new clinical label or automatic side correction.',
+ '058:12':'Adjudicate a continuous report mentioning both knee joints against the sampled single main protocol; no per-knee source assignment established.',
+ '060:28':'Preserve comparison dates and incidentally captured right-sided statement; this does not assign the dominant unsided report to an opposite knee. Broad-field peripheral coverage remains bounded.',
+ '062:02':'Resolve predominantly left report with a right impression item; coherent images cannot silently repair the source.',
+}.items():
+ r=rows[c];r['source_correspondence_status']='case_specific_source_scope_or_side_adjudication_open';action(r,'source_correspondence',text+' Reconcile final supervision eligibility with preserved source evidence.')
+rows['063:35']['source_correspondence_status']='performed_requested_left_vs_indication_right_explicitly_distinguished_no_automatic_conflict_exclusion'
+# Quality evidence is separate from correspondence and production selection.
+p=AUD/'quality-native-064014-v1/root-native-visual-assessment.json';d=read(p);r=rows['064:14'];addref(r,p,'root_native_quality_display_assessment');r['source_correspondence_status']='bounded_repeated_protocol_correspondence_no_new_source_exclusion'
+r['quality_assessment']={'proof':ref(p),'findings':d['findings'],'recorded_decision':d['decision'],'production_selection_changed_by_this_crosswalk':False}
+qp=AUD/'independent-quality-temporal-v1/064-14-independent-quality-assessment.json'
+if not qp.exists():qp=WORK/'annotation-staging/independent-quality-temporal-v1/064-14-independent-quality-assessment.json'
+qd=read(qp);addref(r,qp,'independent_quality_assessment')
+r['quality_assessment']['independent_assessment']=ref(qp);r['quality_assessment']['independent_current_fields']={k:v for k,v in qd.items() if k in ('recommended_action','supported_coverage','comparison','production_changes','limits')}
+action(r,'quality_series_selection','Keep source/cache and report supervision. Record any preference for11over6 and12over5 only among repeated roles, without asserting full clinical equivalence; production selection remains a separate validated change.')
+rp=AUD/'independent-quality-temporal-v1/all-cache-visual-freeze.json'
+if not rp.exists():rp=WORK/'annotation-staging/independent-quality-temporal-v1/all-cache-visual-freeze.json'
+if rp.exists():
+ addref(r,rp,'independent_all_71_selected_cache_slices_freeze');vd=read(rp)
+ r['pixel_review_tracks'].append({'kind':'independent_all_cached_slices_quality_review','proof':ref(rp),'assessor':'/root/quality_temporal_review','selected_series_numbers':[int(k)for k in vd['coverage']],'selected_arrays':len(vd['coverage']),'unique_cached_slices_personally_viewed':sum(len(v)for v in vd['coverage'].values()),'contact_sheets':8,'each_slice_viewed_in_two_display_mappings':vd['all_71_cache_slices_viewed_in_both_displays'],'coverage':vd['coverage'],'limits':vd['limits'],'complete_clinical_review':False})
+ r['pixel_review_tracks'].append({'kind':'selected_native_quality_display_review','proof':ref(p),'selected_series_numbers':[5,6,11,12],'native_slices_numerically_replayed':qd['supported_coverage']['native_slices_replayed_by_bound_proof'],'unique_native_slices_personally_viewed_per_assessor':12,'comparison_pngs_personally_viewed_per_assessor':4,'assessors':['/root','/root/quality_temporal_review'],'limits':qd['limits'],'complete_clinical_review':False})
+p=AUD/'repeated-temporal-001021064-v1/root-run-001/064-46-root-policy-acceptance.json';d=read(p);r=rows['064:46'];addref(r,p,'root_accepted_temporal_correspondence_exclusion');r['source_correspondence_status']='initial_vs_recall_exam_assignment_unresolved_accepted_report_supervision_exclusion';r['accepted_policy_decision']={'proof':ref(p),'action':d['action'],'registration_status_at_acceptance':d['registration_status'],'rationale':d['rationale']}
+# Read the actually installed policy registry at this snapshot; accepted decisions are not assumed enforced.
+regp=AUD/'correspondence-release-registry.json';registry=read(regp);registered={}
+for entry in registry['policies']:
+ pp=REPO/entry['path'];pd=read(pp);assert ref(pp)['sha256']==entry['sha256']
+ for x in pd['records']:
+  assert x['case'] not in registered;registered[x['case']]=(x,pp)
+for c,(x,p) in registered.items():
+ if c not in rows:continue
+ r=rows[c];assert x['study_uid']==r['study_uid'];addref(r,p,'registered_runtime_correspondence_policy');r['runtime_report_policy']={'status':'registered_whole_study_non_gold_report_supervision_exclusion','registry':ref(regp),'policy':ref(p),'reason':x['reason'],'source_correspondence_status':x['status']};r['source_correspondence_status']='unresolved_correspondence_controlled_by_registered_report_supervision_exclusion';r['remaining_actions']=[x for x in r['remaining_actions'] if x['kind']!='source_correspondence'];action(r,'enforce_registered_correspondence_policy','Carry registered non-gold report-loss exclusion into final manifest/export and validate exact source/proof bindings. Underlying report-to-examination linkage remains unresolved; originals and evaluation remain unchanged.')
+if '064:46' not in registered:action(rows['064:46'],'accepted_policy_runtime_registration','Register and validate the accepted whole-study non-gold exclusion using exact evidence adapter/proof bindings; acceptance alone is not runtime enforcement.')
+# Avoid stale selection/landmark actions by binding later accepted technical evidence.
+ep=AUD/'series-equivalence-v1'
+if ep.exists():
+ for p in ep.rglob('*.json'):
+  if p.name in ('root-review.json','real-pair-results.json','review-and-implementation-handoff.json'):
+   for c in ('077:22','042:40'):addref(rows[c],p,'later_exact_series_selection_evidence')
+for c in ('077:22','042:40'):
+ rows[c]['later_selection_note']='Exact-series selection evidence supersedes the historical plane-decision pending-selection wording: 077:22 matching pair shares one model slot; distinct042:40 pair remains. Preserve source series and later full export bindings.'
+selp=AUD/'full-image-recovery-v1/train-selection/series_selection_plan.json';sela=AUD/'full-image-recovery-v1/train-selection/series_selection_audit.json'
+sel=read(selp);sa=read(sela);assert sa['status']=='validated_selection_export' and sa['plan_sha256']==ref(selp)['sha256']
+for c in ('077:22','042:40','045:14'):
+ r=rows[c];addref(r,selp,'validated_training_series_selection_plan');addref(r,sela,'validated_training_series_selection_audit')
+ sr=[{k:v for k,v in x.items()if k in ('series_uid','study_uid','retained','reason','representative_series_uid','group_id','source_row')}for x in sel['series']if x['study_uid']==r['study_uid']]
+ r['later_validated_selection']={'plan':ref(selp),'audit':ref(sela),'study_series':sr,'global_input_series':sa['n_input_series'],'global_retained_series':sa['n_retained_series'],'global_excluded_exact_equivalents':sa['n_excluded_series'],'clinical_eligibility_established':False}
+sp=AUD/'report-similarity-registry.json'
+if sp.exists():
+ for c in ('038:44','045:15'):addref(rows[c],sp,'mandatory_report_similarity_leakage_registry');action(rows[c],'leakage_grouping','Carry the accepted038:44/045:15 source-report similarity edge into final transitive leakage grouping; no patient or image identity is inferred.')
+# Normalize older proof schemas without turning source-member counts into viewed slices.
+for p in sorted(AUD.glob('*/decision.json')):
+ name=p.parent.name
+ try:c=case_folder(name)
+ except AssertionError:continue
+ if c not in rows or not name.startswith(('anatomical-plane-','bilateral-','correspondence-','source-completeness-')):continue
+ r=rows[c];d=read(p)
+ if name.startswith('anatomical-plane-'):
+  n=d.get('n_native_slices_verified');ns=d.get('n_series');nv=d.get('n_panels_each_assessor')
+  if n is None:
+   sump=p.parent/'summary.json';su=read(sump);addref(r,sump,'full_native_plane_numeric_scope');n=su['n_slices'];ns=su['n_series'];nv=sum(x['n_panels']for x in su['figures'])
+  r['metadata_scope']={'kind':'full_native_source_membership_headers_and_cache_comparison','series':ns,'source_memberships':n,'proof':ref(p),'visual_coverage_separate':True}
+  tr=next(x for x in r['pixel_review_tracks']if x['kind']=='native_plane_routing');tr.update(numeric_native_slices=n,series=ns,matrices_personally_viewed_per_assessor=nv)
+ elif name.startswith('bilateral-'):
+  sc=d.get('verified_scope',{});n=sc.get('full_native_slices_hash_uid_finite_decode',sc.get('full_native_sources'));ns=sc.get('series');nv=sc.get('panels_per_assessor',sc.get('native_panels_each_assessor'))
+  if c=='067:37':
+   sump=p.parent/'full-study/summary.json';su=read(sump);addref(r,sump,'full_native_bilateral_numeric_scope');n=sum(x['slices']for x in d['series_groups']);ns=sum(len(x['series_uids'])for x in d['series_groups']);nv=30
+  r['metadata_scope']={'kind':'full_native_source_membership_headers_and_cache_comparison','series':ns,'source_memberships':n,'proof':ref(p),'visual_coverage_separate':True}
+  tr=next(x for x in r['pixel_review_tracks']if x['kind']=='native_bilateral_correspondence');tr.update(numeric_native_slices=n,series=ns,matrices_personally_viewed_per_assessor=nv)
+ elif name.startswith('correspondence-'):
+  ip=p.parent/'source-inventory.json'
+  if ip.exists() and r['metadata_scope']['kind']=='source_bound_endpoint_headers':
+   inv=read(ip);addref(r,ip,'source_inventory_identity_and_counts');r['metadata_scope'].update(series=inv['n_series'],source_memberships=inv['n_slices'],endpoint_headers=2*inv['n_series'],source_inventory=ref(ip))
+ elif name.startswith('source-completeness-'):
+  r['metadata_scope']={'kind':'source_text_identity_and_completeness_only','proof':ref(p),'case_specific_DICOM_metadata_review':False,'case_specific_pixels':0,'limits':'No additional source-header or image examination is established by this source-completeness decision.'}
+for c in ('075:14','048:12','086:13'):
+ r=rows[c];tr=next(x for x in r['pixel_review_tracks']if x['kind']=='bounded_native_source_display_replay');d=read(WORK/tr['proof']['path'])
+ tr.update(arrays_numerically_verified=d['series_sampled'],selected_array_source_memberships=d['source_files_full_sha_size_crc_uid_decode_verified'],matrices_personally_viewed_per_assessor=d['native_panels_pixel_exact_at_displayed_position'])
+ r['metadata_scope']={'kind':'full_native_source_membership_headers_and_cache_comparison','series':d['series_sampled'],'source_memberships':d['source_files_full_sha_size_crc_uid_decode_verified'],'proof':tr['proof'],'visual_coverage_separate':True}
+ if d.get('fresh_official_byte_confirmation_deferred'):action(r,'source_origin_limit','Preserve pinned mirror versus retained official source origins; fresh official whole-byte confirmation remains deferred for '+str(d['fresh_official_byte_confirmation_deferred'])+' mirror-only source files. Existing CRC/native/cache bindings do not imply a fresh official fetch.')
+for c in ('042:14','042:41'):
+ p=AUD/f"correspondence-042-014-041/{c.replace(':','')}-technical-assessment.json";d=read(p);rows[c]['metadata_scope']={'kind':'all_series_source_membership_and_lexical_endpoint_metadata','series':d['n_series'],'source_memberships':d['n_inventory_slices'],'endpoint_headers':d['n_endpoint_headers'],'proof':ref(p),'pixels_personally_viewed_in_this_track':0,'limits':d['scope']}
+p=AUD/'correspondence-shoulder-report-052-020-v1/root-source-display-review.json';d=read(p);r=rows['052:20'];r['metadata_scope']={'kind':'all_series_source_membership_and_lexical_endpoint_metadata','series':d['series_source_membership_verified'],'source_memberships':d['source_inventory_slices_verified'],'endpoint_headers':d['endpoint_geometry_bindings_verified'],'proof':ref(p),'visual_coverage_separate':True}
+r['original_trigger']={'kind':'body_region_report_image_correspondence_failure_outside_original_queue','source_assessment':d['source_assessment'],'technical_conclusion':d['technical_conclusion'],'proof':ref(p)}
+r['pixel_review_tracks'][0].update(arrays_numerically_verified=d['full_npz_hashes_and_arrays_verified'],matrices_personally_viewed_per_assessor=d['displayed_cache_panels_pixel_exact'],unselected_arrays_outside_this_pixel_track=d['series_source_membership_verified']-d['full_npz_hashes_and_arrays_verified'],limits=d['limits'])
+r=rows['064:46'];r['original_trigger']={'kind':'initial_examination_and_explicit_recall_temporal_correspondence_outside_original_queue','source_context':r['accepted_policy_decision']['rationale'],'proof':r['accepted_policy_decision']['proof']}
+for name in ('064-46-temporal-correspondence-binding.json','064-46-independent-acceptance.json','064-46-independent-policy-assessment.json'):
+ addref(r,AUD/'independent-quality-temporal-v1'/name,'latest_independent_temporal_policy_evidence')
+# Finalize rows and explicitly account for pixels not reviewed and extra-case triggers.
+for c,r in rows.items():
+ assert r['bounded_technical_status']!='unclassified',c
+ assert r['metadata_scope'] is not None,c
+ if r['original_trigger'] is None:
+  se=[x for x in r['source_structure_evidence'] if x.get('source_structure_agreement')]
+  assert se,c
+  r['original_trigger']={'kind':'additional_source_correspondence_review_outside_original_queue','evidence':[x['proof']for x in se],'source_structure_summary':[x['source_structure_agreement']for x in se]}
+ if not r['pixel_review_tracks']:r['pixel_scope_summary']={'pixel_review_recorded':False,'matrices_personally_viewed_in_recorded_case_specific_tracks':0,'note':'Full-corpus technical cache decode is separate and is not personal visual inspection.'}
+ else:r['pixel_scope_summary']={'pixel_review_recorded':True,'review_tracks':len(r['pixel_review_tracks']),'note':'Track counts may overlap; do not add repeated representative/expanded views as unique source slices. Full-array numerical verification is distinct from matrices personally viewed.'}
+ if r['bounded_technical_status']=='metadata_review_complete_no_immediate_pixels_from_trigger':action(r,'retain_metadata_limits','No immediate pixels from the examined trigger alone. Preserve missing/noncanonical tags, original source wording and any source-semantic flags in the referenced disposition; this is not training eligibility or whole-study anatomical certification.')
+ if not r['remaining_actions']:action(r,'retain_bounded_scope','Retain the accepted bounded technical disposition and exact source/evidence bindings in final export; correspondence outside its scope and global semantic/release gates remain separate.')
+ r['latest_evidence']=sorted(r['latest_evidence'].values(),key=lambda x:x['path'])
+current=[rows[c] for c in sorted(queue)];extra=[rows[c] for c in sorted(set(rows)-set(queue))]
+assert len(current)==129 and len(extra)==19
+assert not (set(queue)&{x['case']for x in extra});assert len({x['study_uid'] for x in current+extra})==148
+assert all(rows[c]['pixel_review_tracks'] for c in meta_escalated)
+status=Counter(x['bounded_technical_status'] for x in current);additional=Counter(x['bounded_technical_status'] for x in extra)
+# Recheck every actual input digest/size after construction to bind one stable snapshot.
+for rr in list(REFS.values()):
+ p=WORK/rr['path'];assert p.stat().st_size==rr['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==rr['sha256'],('input changed while building',rr['path'])
+result={'schema_version':2,'stage':'final_targeted_technical_candidate_evidence_crosswalk','snapshot_at_utc':datetime.now(timezone.utc).isoformat(),'agent_id':'/root/last_twelve_visual_review','session_identity':{'CODEX_THREAD_ID':os.environ.get('CODEX_THREAD_ID'),'CODEX_SESSION_ID':os.environ.get('CODEX_SESSION_ID')},'source_queue':ref(AUD/'header-endpoint-full-v1/independent/candidate-review-queue.json'),'prior_status_snapshot':ref(priorp),'script':ref(Path(__file__)),'terminology':'129 original queue candidates plus19 additional disjoint source/correspondence cases. The19 are valid additional case references, not duplicate or invalid stale identities. Earlier status labels can be stale.','original_candidate_count':129,'additional_case_count':19,'unique_studies':148,'original_status_counts':dict(status),'additional_status_counts':dict(additional),'tier4_tail':{'metadata_reviewed_cases':78,'metadata_only_no_immediate_pixels':46,'escalated_cases_with_completed_targeted_review':32,'unstarted_targeted_pixel_cases':[]},'runtime_registry_snapshot':ref(regp),'registered_exclusion_count':len(registered),'original_candidates':current,'additional_report_correspondence_and_source_cases':extra,'input_artifact_bindings':sorted(REFS.values(),key=lambda x:x['path']),'limits':['Evidence consolidation only; no new gold read, clinical extraction, native decode or visual assessment.','No source, original evidence, cache, label, runtime policy, production series selection, shared documentation, archive or publication was modified.','Completed metadata or selected-pixel checks do not certify clinical adequacy, all-source visual coverage, named laterality, identity or complete training eligibility.','Personal representative views, selected full-stack views, full-array numeric checks and whole-study metadata are separate fields.','Every unresolved action is preserved alongside accepted controls; registered masking does not resolve the underlying source linkage.'],'training_ready':False}
+(OUT/'status-crosswalk.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+summary={'snapshot_at_utc':result['snapshot_at_utc'],'original_candidates':129,'additional_cases':19,'unique_studies':148,'original_status_counts':dict(status),'additional_status_counts':dict(additional),'tier4_tail':result['tier4_tail'],'registered_exclusion_count':len(registered),'cases_with_source_correspondence_actions':[c for c,r in rows.items() if any(x['kind']=='source_correspondence' for x in r['remaining_actions'])],'accepted_policy_registration_actions':[c for c,r in rows.items() if any(x['kind']=='accepted_policy_runtime_registration'for x in r['remaining_actions'])],'quality_or_selection_actions':[c for c,r in rows.items() if any(x['kind']in ('quality_series_selection','series_selection')for x in r['remaining_actions'])],'registered_control_cases':sorted(registered),'training_ready':False}
+(OUT/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps(summary,indent=2))

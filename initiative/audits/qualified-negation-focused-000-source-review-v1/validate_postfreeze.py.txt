@@ -1,0 +1,99 @@
+"""Read-only source/annotation checks, then write a staged validation receipt."""
+import hashlib
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[2] / 'work/recovered'
+sys.path.insert(0, str(REPO))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import read_reviews
+from rsna.schema import TARGETS
+
+def read(path):
+    return json.loads(path.read_text())
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+neutral = read(HERE/'neutral-full-source-packet.json')
+reports = {r['study_uid']: r['report'] for r in neutral}
+frame = read_reviews(HERE, reports, 'source-assessment-frozen')
+assert len(frame) == 50
+bindings = read(HERE/'originals-source-provenance-bindings.json')
+freeze_receipt = read(HERE/'source-freeze-receipt.json')
+for file, digest in freeze_receipt['files'].items():
+    assert sha(HERE/file) == digest
+for ref in bindings['files']:
+    assert sha(REPO/ref['original_path']) == ref['sha256']
+    assert sha(HERE/ref['archived_path']) == ref['sha256']
+all_reports = {}
+for path in sorted((REPO/'initiative/reviews/inputs').glob('batch-*.json')):
+    for row in read(path):
+        assert row['study_uid'] not in all_reports
+        all_reports[row['study_uid']] = row['report']
+assert len(all_reports) == 4407
+inspection = inspect_adjudications(all_reports, REPO/'initiative/reviews-v2/reviewed',
+                                  REPO/'protocols/report_weak_v2.md', REPO)
+prior_inspection = read(HERE/'current-adjudications-inspection.json')
+assert inspection == prior_inspection
+assert inspection['n_changes'] == 34 and len(inspection['pending_semantic_qa']) == 3
+corrections = {(r['study_uid'],r['target']): r for r in inspection['changes']}
+originals = {}
+for row in bindings['studies']:
+    original = next(json.loads(line) for line in (REPO/row['original_review_path']).read_text().splitlines()
+                    if json.loads(line)['study_uid'] == row['study_uid'])
+    assert original == row['original_review_row']
+    originals[row['study_uid']] = original
+    assert reports[row['study_uid']] == all_reports[row['study_uid']]
+comparison = read(HERE/'full-target-comparison.json')['records']
+assert len(comparison) == 600
+for row in comparison:
+    uid, target = row['study_uid'], row['target']
+    index = TARGETS.index(target)
+    original = originals[uid]
+    assert (row['original_state'],row['original_evidence']) == (original['states'][index],original['evidence'][index])
+    after = corrections.get((uid,target),{}).get('after',{'state':row['original_state'],'evidence':row['original_evidence']})
+    assert (row['effective_state'],row['effective_evidence']) == (after['state'],after['evidence'])
+proposal = read(HERE/'proposed-errata.json')
+seen = set()
+for row in proposal['proposed_errata']:
+    key = row['study_uid'],row['target']
+    assert key not in seen and key not in corrections
+    seen.add(key)
+    index = TARGETS.index(row['target'])
+    original = originals[row['study_uid']]
+    assert row['before_state'] == original['states'][index]
+    assert row['before_evidence'] == original['evidence'][index]
+    assert sha(REPO/row['source_path']) == row['source_sha256']
+    assert sha(REPO/row['artifact_path']) == row['artifact_sha256']
+    if row['proposed_state'] == 'not_mentioned':
+        assert row['source_quote'] == ''
+    else:
+        assert row['source_quote'].strip() and row['source_quote'] in reports[row['study_uid']]
+    assert row['report_weak_mask_before'] == int(row['before_state'] in ('positive','negative'))
+    assert row['report_weak_mask_after'] == int(row['proposed_state'] in ('positive','negative'))
+assert len(seen) == 74
+out = dict(schema_version=1, agent_id='/root/duplicate_consistency_review',
+           session_id='/root/duplicate_consistency_review',
+           validated_at_utc=datetime.now(timezone.utc).isoformat(),
+           source_reports_sha256=inspection['source_reports_sha256'],
+           rubric_sha256=inspection['rubric_sha256'],
+           adjudication_registry_sha256=inspection['registry_sha256'],
+           frozen50_read_reviews='passed', all4407_inspect_adjudications='passed',
+           current_inspection_equals_bound_previous_inspection=True,
+           all600_original_and_effective_cells_match_current_files=True,
+           all74_proposals_unique_and_disjoint_from_existing34=True,
+           all74_before_annotations_and_proposed_quotes_valid=True,
+           source_freeze_and_all115_original_archives_hash_verified=True,
+           n_reports=50,n_target_cells=600,n_proposals=74,
+           registered_corrections=34, pending_semantic_qa=inspection['pending_semantic_qa'],
+           clinical_acceptance_inferred=False,gold_accessed=False,
+           original_annotations_or_registries_changed=False,
+           second_assessor_source_judgments_accessed=False)
+path = HERE/'actual-validator-receipt.json'
+assert not path.exists()
+path.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'validation':'passed','reports':50,'targets':600,'proposals':74,'registered_corrections':34,'pending_qa':3}))

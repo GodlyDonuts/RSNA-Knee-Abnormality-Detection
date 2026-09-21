@@ -1,0 +1,33 @@
+"""Root-card checks use metadata only and never contact an external service."""
+from pathlib import Path
+import importlib.util
+from types import SimpleNamespace as NS
+import pytest
+
+spec = importlib.util.spec_from_file_location("readonly_check", Path(__file__).with_name("inspect_remote.py"))
+r = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(r)
+
+
+@pytest.mark.parametrize("damage", [None, "missing", "duplicate", "wrong_path", "bad_oid"])
+def test_root_card_identity_requires_exact_named_git_blob(damage):
+    rows = [NS(path="README.md", blob_id="a" * 40)]
+    if damage == "missing":
+        rows = []
+    elif damage == "duplicate":
+        rows *= 2
+    elif damage == "wrong_path":
+        rows[0].path = "other.md"
+    elif damage == "bad_oid":
+        rows[0].blob_id = "invalid"
+    calls = []
+    def metadata(repo, **kwargs):
+        calls.append((repo, kwargs))
+        return rows
+    api = NS(get_paths_info=metadata)
+    if damage:
+        with pytest.raises(r.m.GuardError, match="root_card"):
+            r.root_card_identity(api, r.m.PARENT)
+    else:
+        assert r.root_card_identity(api, r.m.PARENT) == {"path": "README.md", "git_blob": "a" * 40}
+    assert calls == [(r.m.HF_REPO, {"paths": ["README.md"], "repo_type": "dataset", "revision": r.m.PARENT})]

@@ -207,19 +207,25 @@ plane before filling with additional fluid-sensitive sequences. This is an
 auditable baseline, not a tuned competition-winning architecture. Do not interpret
 smoke-run metrics as evidence of model quality.
 
+After the final label-release gates pass, rebuild the
+[reviewed sampling table](docs/series-preferences.md). It preserves exact-series
+deduplication and reviewed plane metadata while preferring clearer or more focused
+acquisitions within a limited series budget. Use the same exported CSV throughout
+training, resume and heldout inference.
+
 ```bash
 python -m rsna.train --studies data/release/studies.parquet \
-  --series data/train_series.csv --cache data/cache256 \
+  --series data/series-sampling/series_sampling.csv --cache data/cache256 \
   --output runs/baseline --epochs 20 --device cuda \
   --side 224 --slices 16 --max-series 6 --batch-size 2 --workers 4
 python -m rsna.train --studies data/release/studies.parquet \
-  --series data/train_series.csv --cache data/cache256 \
+  --series data/series-sampling/series_sampling.csv --cache data/cache256 \
   --output runs/baseline --epochs 30 --device cuda \
   --side 224 --slices 16 --max-series 6 --batch-size 2 --workers 4 \
   --resume runs/baseline/checkpoint.pt
 python -m rsna.infer --checkpoint runs/baseline/checkpoint.pt \
   --studies data/release/studies.parquet --split gold_evaluation \
-  --series data/train_series.csv --cache data/cache256 \
+  --series data/series-sampling/series_sampling.csv --cache data/cache256 \
   --output runs/baseline/gold_predictions.csv --device cuda
 ```
 

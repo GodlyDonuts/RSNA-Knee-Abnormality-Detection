@@ -1,0 +1,96 @@
+"""Rebuild the reviewed sampling-tier table without removing series or editing cache."""
+from pathlib import Path
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import io
+import json
+import pandas as pd
+
+
+def digest(path):
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def bound(root, reference):
+    p = (root / reference["path"]).resolve()
+    assert p.is_relative_to(root.resolve()), "evidence path escape"
+    assert digest(p) == reference["sha256"] and p.stat().st_size == reference["bytes"], "changed evidence"
+    return p
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--repo", type=Path, required=True)
+    ap.add_argument("--cache", type=Path, required=True)
+    ap.add_argument("--policy", type=Path, required=True)
+    ap.add_argument("--expected-policy-sha", required=True)
+    ap.add_argument("--output", type=Path, required=True)
+    args = ap.parse_args()
+    assert digest(args.policy) == args.expected_policy_sha, "changed policy"
+    policy = json.loads(args.policy.read_text())
+    assert policy["schema_version"] == 1 and policy["stage"] == "root_accepted_reviewed_series_sampling_preferences"
+    assert policy["agent_id"] == "/root" and policy["training_ready"] is False
+    source = bound(args.repo, policy["source_series"])
+    original = pd.read_csv(io.BytesIO(source.read_bytes()), dtype=str, keep_default_na=False)
+    assert "Selection_Tier" not in original and original.SeriesInstanceUID.is_unique
+    for reference in policy["evidence"]:
+        bound(args.repo, reference)
+    rows = original.set_index("SeriesInstanceUID").to_dict("index")
+    penalties = set()
+    preferred = set()
+    caches = []
+    for record in policy["records"]:
+        assert record["action"] == "sampling_preference_preserve_all_series"
+        assert type(record["deprioritized_tier"]) is int and record["deprioritized_tier"] == 1
+        a, b = record["preferred_series_uid"], record["deprioritized_series_uid"]
+        assert a != b and b not in penalties and a in rows and b in rows
+        assert rows[a]["StudyInstanceUID"] == rows[b]["StudyInstanceUID"] == record["study_uid"]
+        assert rows[a]["Anatomical_Plane"] == rows[b]["Anatomical_Plane"]
+        metadata = json.loads(bound(args.repo, record["technical_metadata"]).read_text())
+        assert metadata["study_uid"] == record["study_uid"]
+        observed = {s["series_uid"]: s for s in metadata["series"]}
+        for sid, number in [(a, record["preferred_series_number"]), (b, record["deprioritized_series_number"])]:
+            s = observed[sid]
+            assert s["header_endpoint_values"]["SeriesNumber"] == [number]
+            for key in ("Anatomical_Plane", "Fluid_Sensitive", "Fat_Suppression"):
+                assert str(s["official_series_features"][key]) == rows[sid][key]
+            npz = args.cache / "train_series" / record["study_uid"] / (sid + ".npz")
+            mp = npz.with_suffix(".json")
+            m = json.loads(mp.read_text())
+            assert m["study_uid"] == record["study_uid"] and m["series_uid"] == sid
+            assert m["source_revision"] == policy["source_revision"] and m["cache_version"] == "series-u16-v3"
+            assert m["n_slices"] == s["n_slices"] and not m["warnings"]
+            assert digest(npz) == m["cache_sha256"] and npz.stat().st_size == m["cache_bytes"]
+            caches.append({"case": record["case"], "series_uid": sid, "metadata_sha256": digest(mp),
+                           "cache_sha256": m["cache_sha256"], "n_slices": m["n_slices"]})
+        penalties.add(b)
+        preferred.add(a)
+    assert not penalties & preferred, "cyclic or conflicting preferences"
+    effective = original.copy(deep=True)
+    effective["Selection_Tier"] = effective.SeriesInstanceUID.isin(penalties).astype(int)
+    assert effective.drop(columns="Selection_Tier").equals(original)
+    assert int(effective.Selection_Tier.sum()) == len(policy["records"])
+    payload = effective.to_csv(index=False).encode()
+    replayed = pd.read_csv(io.BytesIO(payload), dtype=str, keep_default_na=False)
+    assert replayed.drop(columns="Selection_Tier").equals(original)
+    assert set(replayed.SeriesInstanceUID) == set(original.SeriesInstanceUID)
+    args.output.mkdir(parents=True, exist_ok=False)
+    (args.output / "series_sampling.csv").write_bytes(payload)
+    audit = {"stage": "verified_reviewed_series_preference_export", "at_utc": datetime.now(timezone.utc).isoformat(),
+             "policy_sha256": args.expected_policy_sha, "source_series": policy["source_series"],
+             "script_sha256": digest(Path(__file__)), "source_revision": policy["source_revision"],
+             "input_series": len(original), "output_series": len(effective), "output_studies": effective.StudyInstanceUID.nunique(),
+             "deprioritized_series": len(penalties), "rows_removed": 0, "original_columns_and_order_exactly_preserved": True,
+             "series_csv_sha256": hashlib.sha256(payload).hexdigest(), "series_csv_bytes": len(payload), "bound_cache_checks": caches,
+             "clinical_labels_or_gold_read": False, "source_and_cache_modified": False, "training_ready": False}
+    (args.output / "selection_audit.json").write_text(json.dumps(audit, indent=2) + "\n")
+    print(json.dumps({k: audit[k] for k in ("stage", "input_series", "output_series", "output_studies", "deprioritized_series", "rows_removed", "series_csv_sha256")}))
+
+
+if __name__ == "__main__":
+    main()

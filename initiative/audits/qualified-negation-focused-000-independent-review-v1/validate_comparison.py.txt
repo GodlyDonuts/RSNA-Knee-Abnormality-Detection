@@ -1,0 +1,136 @@
+"""Independently validate the frozen comparison's bindings and full-cell coverage."""
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent
+WORKSPACE = BASE.parents[2]
+OUT = BASE / "postfreeze-comparison-v1"
+FIRST = BASE.parent / "qualified-negation-focused-000-source-review-v1"
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def verify(reference):
+    path = WORKSPACE / reference["path"]
+    assert sha(path) == reference["sha256"], reference["path"]
+    if "bytes" in reference:
+        assert path.stat().st_size == reference["bytes"]
+
+
+own_freeze = read(BASE / "source-freeze.json")
+assert sha(BASE / "source-freeze.json") == "e518455800874e4601dcc9a26792a73cab44d52427466462600509d74d29b227"
+freeze = read(OUT / "disposition-freeze.json")
+assert sha(OUT / "disposition-freeze.json") == "be7eb9906d7a000a2b6e439daf07d15f6620e7dc6da57d855e499d20868f33fb"
+for key in ["rubric", "source_packet", "judgments", "validation_receipt", "start_record", "authored_judgment_assembler", "freeze_validator"]:
+    verify(own_freeze[key])
+for key in ["rubric", "source_packet", "own_source_freeze", "first_source_freeze", "first_manifest", "first_dispositions", "first_proposals", "verified_comparison", "neutral_root_packets", "authored_disposition_assembler"]:
+    verify(freeze[key])
+for reference in freeze["files"]:
+    verify(reference)
+first_manifest = read(FIRST / "artifact-manifest.json")
+for name, digest in first_manifest["files"].items():
+    assert sha(FIRST / name) == digest
+first_source = read(FIRST / "source-assessment-frozen.json")
+assert first_source["agent_id"] != freeze["assessor_agent_id"]
+assert first_source["session_id"] != freeze["assessor_session_id"]
+assert first_source["rubric_sha256"] == freeze["rubric"]["sha256"]
+assert first_source["neutral_packet_sha256"] == freeze["source_packet"]["sha256"]
+assert first_source["historical_exposure"] and own_freeze["prior_exposure_disclosure"]
+source_rows = read(WORKSPACE / freeze["source_packet"]["path"])
+source = {row["study_uid"]: row for row in source_rows}
+own_rows = [json.loads(line) for line in (BASE / "independent-source-judgments.jsonl").read_text().splitlines()]
+targets = own_freeze["target_order"]
+own = {(row["study_uid"], target): (row["states"][index], row["evidence"][index]) for row in own_rows for index, target in enumerate(targets)}
+first = {(row["study_uid"], cell["target"]): (cell["state"], cell["evidence"]) for row in first_source["records"] for cell in row["decisions"]}
+post = read(OUT / "independent-postfreeze-dispositions.json")["records"]
+post_by_key = {(row["study_uid"], row["target"]): row for row in post}
+assert len(own) == len(first) == len(post) == len(post_by_key) == 600
+assert set(own) == set(first) == set(post_by_key)
+changed = []
+for key, row in post_by_key.items():
+    assert (row["independent_frozen_state"], row["independent_frozen_evidence"]) == own[key]
+    assert (row["first_frozen_state"], row["first_frozen_evidence"]) == first[key]
+    assert row["runtime_annotation_changed"] is False and row["root_adjudication_performed"] is False
+    state, quote = row["independent_postfreeze_state"], row["independent_postfreeze_evidence"]
+    assert state in {"positive", "negative", "uncertain", "not_mentioned"}
+    assert (quote == "") if state == "not_mentioned" else (isinstance(quote, str) and quote and quote in source[key[0]]["report"])
+    actual_change = state != row["independent_frozen_state"]
+    assert actual_change == row["independent_reconsidered_from_source_freeze"]
+    if actual_change:
+        changed.append(key)
+    assert row["independent_postfreeze_reason"]
+    assert row["frozen_reader_state_agreement"] == (own[key][0] == first[key][0])
+    assert row["postfreeze_reader_state_agreement"] == (state == row["first_postfreeze_state"])
+reconsider = read(OUT / "independent-reconsiderations.json")["records"]
+assert {(row["study_uid"], row["target"]) for row in reconsider} == set(changed)
+assert len(changed) == 27
+concurrences = read(OUT / "proposal-concurrences-pending-root.json")["concurrences"]
+first_proposals = read(FIRST / "proposed-errata.json")["proposed_errata"]
+assert len(concurrences) == len(first_proposals) == 74
+first_proposal_by_key = {(row["study_uid"], row["target"]): row for row in first_proposals}
+assert {(row["study_uid"], row["target"]) for row in concurrences} == set(first_proposal_by_key)
+for row in concurrences:
+    key = row["study_uid"], row["target"]
+    original_proposal = first_proposal_by_key[key]
+    for field in ["before_state", "before_evidence", "proposed_state", "source_quote", "artifact_path", "artifact_sha256", "source_path", "source_sha256", "kind"]:
+        assert row[field] == original_proposal[field]
+    cell = post_by_key[key]
+    assert row["independent_postfreeze_state"] == row["proposed_state"] == cell["first_postfreeze_state"]
+    assert row["registered"] is False and row["root_accepted"] is False
+    assert row["first_proposer_agent_id"] != row["independent_assessor_agent_id"]
+    assert row["independent_reason"] and row["source_first_exposure_caveat"]
+unresolved = read(OUT / "unresolved-disagreements-pending-root.json")["records"]
+assert len(unresolved) == 13
+assert not {(row["study_uid"], row["target"]) for row in unresolved} & set(first_proposal_by_key)
+assert sum(not row["postfreeze_reader_state_agreement"] for row in unresolved) == 10
+assert sum(row["postfreeze_reader_state_agreement"] for row in unresolved) == 3
+neutral_manifest = read(OUT / "neutral-root-packet-manifest.json")
+seen = []
+for reference in neutral_manifest["packets"]:
+    verify(reference)
+    packet = read(WORKSPACE / reference["path"])
+    assert 1 <= len(packet) <= 10 and len(packet) == reference["n_reports"]
+    for row in packet:
+        assert set(row) == {"study_uid", "report", "batch", "index", "source_path", "source_sha256"}
+        assert row == source[row["study_uid"]]
+        seen.append(row["study_uid"])
+expected = {row["study_uid"] for row in post if row["selected_for_neutral_root_packet"]}
+assert len(seen) == len(set(seen)) == 48 and set(seen) == expected
+comparison = read(OUT / "verified-full-target-comparison.json")
+for reference in comparison["original_review_bindings"]:
+    verify(reference)
+registry = WORKSPACE / "work/recovered/initiative/reviews-v2/adjudications/registry.json"
+assert sha(registry) == freeze["registry_sha256"]
+receipt = {
+    "schema_version": 1, "validated_at_utc": datetime.now(timezone.utc).isoformat(),
+    "validator_agent_id": "/root/quality_temporal_review", "status": "passed",
+    "own_source_freeze_sha256": sha(BASE / "source-freeze.json"),
+    "disposition_freeze_sha256": sha(OUT / "disposition-freeze.json"),
+    "validation_script_sha256": sha(Path(__file__)),
+    "both_frozen_source_judgments_and_all_bound_first_artifacts_unchanged": True,
+    "all_600_postfreeze_cells_cover_both_frozen_passes_exactly": True,
+    "all_postfreeze_nonmissing_quotes_exact_contiguous_source_substrings": True,
+    "all_27_reconsiderations_explicit_and_source_freezes_preserved": True,
+    "all_74_concurrences_bind_exact_first_proposals_and_current_before_evidence": True,
+    "unresolved_cells": 13, "unresolved_postfreeze_state_disagreements": 10,
+    "unresolved_state_agreements_without_joint_proposal": 3,
+    "neutral_packets_exact_source_only_and_max_ten_reports": True,
+    "neutral_packet_report_count": 48, "neutral_packet_count": 5,
+    "effective_registry_unchanged": True, "registered_corrections": 34,
+    "gold_accessed_or_changed": False, "runtime_or_shared_repository_modified": False,
+    "root_acceptance_or_clinical_accuracy_inferred": False,
+    "limitations": "The script verifies provenance, identity, scope, evidence and preservation. It does not independently certify the authored clinical extraction judgments or resolve pending root adjudication/global QA.",
+}
+path = OUT / "comparison-validation-and-preservation.json"
+with path.open("x", encoding="utf-8") as handle:
+    json.dump(receipt, handle, ensure_ascii=False, indent=2)
+    handle.write("\n")
+print(json.dumps({"receipt": str(path.relative_to(WORKSPACE)), "sha256": sha(path), "status": "passed"}))

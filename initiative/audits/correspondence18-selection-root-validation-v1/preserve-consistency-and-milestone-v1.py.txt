@@ -1,0 +1,140 @@
+"""Preserve completed evidence, without inspecting or adopting clinical proposals."""
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from dotenv import dotenv_values
+
+T = Path(__file__).resolve().parent
+W = T.parent
+R = T / "recovered"
+sys.path.insert(0, str(R))
+from rsna.correspondence import inspect_correspondence
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def bind(p):
+    return {"path": str(p.relative_to(R)), "sha256": sha(p), "bytes": p.stat().st_size}
+
+secrets = [v.encode() for k, v in dotenv_values(W / ".env").items()
+           if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+assert len(secrets) == 2
+proofs = []
+for rel, expected in [
+    ("initiative/audits/correspondence-source-header-v1/final-file-list.json", "d09655905e6fb0f859e5d6d83926a233b024e60a024c007b7825868764b15f10"),
+    ("initiative/audits/series-preference-independent-code-review-v1/archive-file-list.json", "42737a4147b4e64e788eb7ce5d2b04a0eb41de050070db6b0429e2cb03c89d6e")
+]:
+    p = R / rel
+    assert sha(p) == expected
+    obj = json.loads(p.read_text())
+    for ref in obj["files"]:
+        q = R / ref["path"]
+        assert sha(q) == ref["sha256"] and q.stat().st_size == ref["bytes"]
+    if "archive_directories" in obj:
+        roots = [R / path for path in obj["archive_directories"]]
+    else:
+        roots = [p.parent]
+    actual = {q.resolve() for folder in roots for q in folder.rglob("*") if q.is_file()}
+    listed = {(R / ref["path"]).resolve() for ref in obj["files"]}
+    listed = {q for q in listed if any(q.is_relative_to(root) for root in roots)}
+    assert actual == listed | {p.resolve()}
+    proofs.append({**bind(p), "replayed_member_count": len(obj["files"]), "exact_archive_membership": True})
+
+for version in range(1, 6):
+    rel = f"initiative/audits/correspondence-release-dispositions-v{version}.json"
+    old = subprocess.check_output(["git", "show", f"HEAD:{rel}"], cwd=R)
+    assert old == (R / rel).read_bytes()
+protected = ["initiative/reviews/inputs", "initiative/reviews-v2", "initiative/source", "protocols/report_weak_v2.md"]
+assert subprocess.check_output(["git", "diff", "HEAD", "--name-only", "--", *protected], cwd=R) == b""
+reports = {}
+for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+    for source in json.loads(p.read_text()):
+        assert source["study_uid"] not in reports
+        reports[source["study_uid"]] = source["report"]
+assert len(reports) == 4407
+result = inspect_correspondence(reports, R)
+assert result["policy_count"] == 6 and result["study_count"] == 18
+
+stages = [
+    ("qualified-negation-all4407-candidates-v1", "603c4f7fc9cfb48dd87b45691eef677ddb16bf33c6d4b19a89b583015b6c6e3c"),
+    ("qualified-negation-focused-000-source-review-v1", "9b1e9ae3e463c5ea4ff930eb74f797abaa521bf3d7e2774dc06f3ed3051610f2"),
+    ("qualified-negation-focused-000-independent-review-v1", None),
+    ("qualified-negation-focused-000-root-review-v1", None),
+]
+archived = []
+for name, expected_manifest in stages:
+    source = T / "annotation-staging" / name
+    target = R / "initiative/audits" / name
+    assert not target.exists()
+    paths = sorted(p for p in source.rglob("*") if p.is_file() and "__pycache__" not in p.parts and not p.name.endswith((".pyc", ".lock")))
+    if expected_manifest:
+        manifest = source / "artifact-manifest.json"
+        assert sha(manifest) == expected_manifest
+        entries = json.loads(manifest.read_text())["files"]
+        assert {str(p.relative_to(source)) for p in paths} == set(entries) | {"artifact-manifest.json"}
+        for rel, ref in entries.items():
+            assert sha(source / rel) == (ref if isinstance(ref, str) else ref["sha256"])
+    if name.endswith("independent-review-v1"):
+        for rel, expected in [
+            ("source-freeze.json", "e518455800874e4601dcc9a26792a73cab44d52427466462600509d74d29b227"),
+            ("postfreeze-comparison-v1/disposition-freeze.json", "be7eb9906d7a000a2b6e439daf07d15f6620e7dc6da57d855e499d20868f33fb"),
+            ("postfreeze-comparison-v1/neutral-root-packet-manifest.json", "a610cb0bab0add3844b184c058b416dea3fcd9b7c8398fc8be058cbbbcb2faee")
+        ]:
+            assert sha(source / rel) == expected
+    if name.endswith("root-review-v1"):
+        assert sha(source / "packet-000-source-assessment.json") == "b29f4b77a8190e5733e0f43d76e007c433376607f4bf86f28c300531bbc23040"
+    total = sum(p.stat().st_size for p in paths)
+    assert shutil.disk_usage(W).free - total > 20 * 2**30 + 32 * 2**20
+    entries = []
+    for p in paths:
+        assert not p.is_symlink()
+        data = p.read_bytes()
+        assert len(data) < 100_000_000 and all(secret not in data for secret in secrets)
+        dest = target / p.relative_to(source)
+        if dest.suffix == ".py":
+            dest = dest.with_suffix(".py.txt")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with dest.open("xb") as f:
+            f.write(data)
+        assert sha(p) == sha(dest)
+        entries.append({"original_path": str(p.relative_to(W)), **bind(dest)})
+    receipt = {
+        "stage": "root_verified_byte_preservation_pending_clinical_adjudication", "agent_id": "/root",
+        "at_utc": datetime.now(timezone.utc).isoformat(), "files": entries,
+        "scope": "Completed candidate discovery and/or separately frozen source/comparison artifacts. Root's stage has only the first 10 of 48 adjudication reports completed. No case-specific proposed correction was inspected by root during this byte-preservation operation. No new correction is accepted or registered. Preserve historical source readings, reconsiderations and pending disagreements; all three global QA gates remain pending.",
+        "helper_naming": "Original Python helper bytes preserved with .py.txt suffix; all original files untouched.",
+        "training_ready": False
+    }
+    (target / "preservation.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    archived.append({"name": name, "files": len(entries), "bytes": total, "preservation": bind(target / "preservation.json")})
+
+target = R / "initiative/audits/correspondence18-selection-root-validation-v1"
+target.mkdir(exist_ok=False)
+for p in [Path(__file__), T / "correspondence18-selection-full-tests.log", T / "technical-candidate-crosswalk-root-replay.json", T / "all4407-state-coverage-after34-inspection.json"]:
+    dest = target / (p.name + ".txt" if p.suffix == ".py" else p.name)
+    data = p.read_bytes()
+    assert all(secret not in data for secret in secrets)
+    dest.write_bytes(data)
+    assert sha(p) == sha(dest)
+assert "462 passed" in (target / "correspondence18-selection-full-tests.log").read_text()
+code = [R / p for p in ["rsna/data.py", "rsna/correspondence.py", "tests/test_series_quality_selection.py", "tests/test_correspondence_source_header.py", "tests/test_correspondence_temporal.py"]]
+proof = {
+    "stage": "root_combined_correspondence_and_sampling_milestone_validation", "agent_id": "/root",
+    "at_utc": datetime.now(timezone.utc).isoformat(), "baseline_git": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=R, text=True).strip(),
+    "code_and_tests": [bind(p) for p in code], "replayed_manifests": proofs,
+    "live_correspondence": {key: result[key] for key in ["registry_sha256", "source_reports_sha256", "policy_count", "study_count"]},
+    "source_reports": len(reports), "full_suite": {"passed": 462, "seconds": 20.09},
+    "checks": {"ruff_check": "passed", "ruff_format": "42 files already formatted", "mypy": "no issues in 20 source files", "git_diff_check": "passed"},
+    "prior_five_policy_files_byte_identical_to_git_baseline": True,
+    "original_reports_reviews_adjudications_official_sources_rubric_have_no_git_changes": True,
+    "registered_clinical_corrections": 34, "new_clinical_corrections": 0,
+    "remaining_unresolved_correspondence_cases_requiring_final_zero_mask_check": 24,
+    "clinical_archives": archived, "training_ready": False,
+    "remaining": "Three global semantic QA gates; final exact leakage/group/gold isolation and mask checks, manifests and actual training/resume/inference. Root has not adjudicated either focused reader's case-specific proposals."
+}
+(target / "validation.json").write_text(json.dumps(proof, indent=2) + "\n")
+print(json.dumps({"clinical_archives": [{k: x[k] for k in ["name", "files", "bytes"]} for x in archived], "root_validation": bind(target / "validation.json"), "live_policy_count": 6, "live_exclusions": 18}))

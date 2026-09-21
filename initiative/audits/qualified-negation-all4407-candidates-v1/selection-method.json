@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "stage": "lexical_candidate_discovery_not_clinical_adjudication",
+  "normalization": "Each original character is casefolded and NFKD decomposed; combining marks are removed for retrieval only. An offset map preserves exact original-language source substrings. Original reports are unchanged.",
+  "rules": [
+    {
+      "id": "qualified_significance",
+      "pattern": "\\b(?:signific\\w*|noteworthy|substantial\\w*|appreciable|relevan\\w*|rilevan\\w*|wesentlich\\w*|nennenswert\\w*|notable\\w*|notabil\\w*|αξιολογ\\w*|αξιοσημειω\\w*|σημαντικ\\w*|ουσιωδ\\w*|belirgin\\w*|onemli\\w*)\\b|\\bαξια\\s+λογου\\b|\\bkayda\\s+deger\\b",
+      "targets": [
+        "ACL",
+        "MCL",
+        "Medial Meniscus",
+        "Lateral Meniscus",
+        "Medial OA",
+        "Lateral OA",
+        "PF OA",
+        "Effusion",
+        "Synovitis",
+        "Baker's",
+        "Contusion",
+        "Fracture"
+      ],
+      "purpose": "Clinical-significance qualifiers, in positive or negative wording; exact negation and scope require source reading."
+    },
+    {
+      "id": "qualified_definiteness_or_gross_normality",
+      "pattern": "\\b(?:no|without|not)\\s+(?:(?:any|a|an)\\s+)?(?:definite|definitive|obvious|clear|convincing|overt|gross)\\b|\\b(?:grossly|essentially|largely|mostly|relatively|virtually)\\s+(?:normal|intact|preserved|maintained|unremarkable)\\b|\\b(?:sin|sans)\\s+(?:clara\\w*|evidente\\w*|franche\\w*)\\b|\\bχωρισ\\s+σαφ\\w*|\\b(?:keine?\\s+)(?:eindeutig\\w*|hohergradig\\w*)\\b",
+      "targets": [
+        "ACL",
+        "MCL",
+        "Medial Meniscus",
+        "Lateral Meniscus",
+        "Medial OA",
+        "Lateral OA",
+        "PF OA",
+        "Effusion",
+        "Synovitis",
+        "Baker's",
+        "Contusion",
+        "Fracture"
+      ],
+      "purpose": "Qualified absence/normality or exclusion of only higher-grade findings; does not itself decide absence or thresholds."
+    },
+    {
+      "id": "cartilage_preservation_qualifier",
+      "pattern": "\\b(?:well|fairly|relatively|grossly|largely|mostly|partially|satisfactorily)\\s+(?:preserved|maintained)\\b|\\b(?:satisfactory|ικανοποιητικ\\w*|satisfaisant\\w*|relativement\\s+preserve\\w*|parcialmente\\s+conservad\\w*)\\b",
+      "targets": [
+        "Medial OA",
+        "Lateral OA",
+        "PF OA"
+      ],
+      "purpose": "Potentially qualified cartilage preservation; all OA compartments are retrieval candidates until anatomy is independently read."
+    },
+    {
+      "id": "cartilage_diagnosis_or_grade",
+      "pattern": "\\b(?:chondromal\\w*|chondropat\\w*|chondrosis|chondrose|kondromal\\w*|χονδροπαθ\\w*|icrs|outerbridge)\\b|\\b(?:grade|grado|grad|βαθμου|derece\\w*)\\s*[-:]?\\s*(?:[1-4]|[iv]{1,3})\\b",
+      "targets": [
+        "Medial OA",
+        "Lateral OA",
+        "PF OA"
+      ],
+      "purpose": "Cartilage diagnoses/grades can omit depth, extent, or compartment; tokens only identify material to assess."
+    },
+    {
+      "id": "cartilage_loss_extent_language",
+      "pattern": "\\b(?:thinn\\w*|full[- ]thickness|partial[- ]thickness|high[- ]grade|low[- ]grade|focal|diffuse\\w*|superficial\\w*|deep|denud\\w*|loss|defect\\w*|fissur\\w*|ulcer\\w*|aminciss\\w*|perte|adelgaz\\w*|perdida|ausdunn\\w*|knorpeldefekt\\w*|λεπτυν\\w*|διαβρω\\w*|απωλει\\w*|incel\\w*|kayb\\w*)\\b",
+      "targets": [
+        "Medial OA",
+        "Lateral OA",
+        "PF OA"
+      ],
+      "purpose": "Retrieve cartilage depth/extent language when linked by exact existing evidence or local cartilage terms. It may fully support the existing label."
+    },
+    {
+      "id": "fluid_amount_or_distention",
+      "pattern": "\\b(?:trace|minimal\\w*|small|mild|minor|moderate\\w*|large|massive|slight\\w*|scant\\w*|physiolog\\w*|distend\\w*|distens\\w*|increas\\w*|excess\\w*|pequen\\w*|leve\\w*|moderad\\w*|abundante\\w*|escas\\w*|petit\\w*|faible\\w*|modere\\w*|important\\w*|gering\\w*|massig\\w*|vermehr\\w*|ausgepragt\\w*|ελαχιστ\\w*|μικρ\\w*|μετρι\\w*|αυξη\\w*|hafif\\w*|minimal\\w*|orta|fazla|artm\\w*|az)\\b",
+      "targets": [
+        "Effusion",
+        "Baker's"
+      ],
+      "purpose": "Fluid quantity vocabulary; collection identity, location, comparison, and true amount remain semantic questions."
+    },
+    {
+      "id": "ligament_partial_or_sprain_grade",
+      "pattern": "\\b(?:partial\\w*|partiel\\w*|parcial\\w*|partiell\\w*|parsiyel\\w*|μερικ\\w*|sprain\\w*|strain\\w*|entorse\\w*|distors\\w*|esguince\\w*|low[- ]grade|high[- ]grade)\\b|\\b(?:grade|grado)\\s*(?:[1-3]|[iv]{1,3})\\b",
+      "targets": [
+        "ACL",
+        "MCL"
+      ],
+      "purpose": "ACL/MCL partial tears and sprains need qualifying severity/acuity, which this lexical hit does not establish."
+    }
+  ],
+  "anatomical_anchor_patterns": {
+    "ACL": "\\bacl\\b|\\banterior\\s+cruciate\\b|\\bcruciate\\s+ligaments\\b|\\bcroise\\s+anterieur\\b|\\bcruzado\\s+anterior\\b|\\bπροσθι\\w*\\s+χιαστ\\w*|\\bvorder\\w*\\s+kreuzband\\w*|\\bon\\s+capraz\\b",
+    "MCL": "\\bmcl\\b|\\bmedial\\s+collateral\\b|\\bcollateral\\s+medial\\b|\\bcollateral\\s+ligaments\\b|\\bcollateral\\s+medial\\b|\\bcollateral\\s+interne\\b|\\bεσω\\s+πλαγι\\w*|\\bmedial\\w*\\s+kollateral\\w*|\\binnenband\\w*|\\bic\\s+yan\\s+bag\\b",
+    "Medial Meniscus": "\\bmedial\\s+menisc\\w*|\\bmenisc\\w*\\s+(?:medial\\w*|intern\\w*)|\\bεσω\\s+μηνισκ\\w*|\\binnenmenisk\\w*|\\bmenisci\\b",
+    "Lateral Meniscus": "\\blateral\\s+menisc\\w*|\\bmenisc\\w*\\s+(?:lateral\\w*|extern\\w*)|\\bεξω\\s+μηνισκ\\w*|\\baussenmenisk\\w*|\\bmenisci\\b",
+    "Medial OA": "\\b(?:cartilag\\w*|chondr\\w*|chondrom\\w*|kondrom\\w*|knorpel\\w*|χονδρ\\w*|kıkırdak\\w*|kikirdak\\w*|kartilaj\\w*|osteoarthr\\w*|osteoartro\\w*|οστεοαρθρ\\w*)\\b",
+    "Lateral OA": "\\b(?:cartilag\\w*|chondr\\w*|chondrom\\w*|kondrom\\w*|knorpel\\w*|χονδρ\\w*|kıkırdak\\w*|kikirdak\\w*|kartilaj\\w*|osteoarthr\\w*|osteoartro\\w*|οστεοαρθρ\\w*)\\b",
+    "PF OA": "\\b(?:cartilag\\w*|chondr\\w*|chondrom\\w*|kondrom\\w*|knorpel\\w*|χονδρ\\w*|kıkırdak\\w*|kikirdak\\w*|kartilaj\\w*|osteoarthr\\w*|osteoartro\\w*|οστεοαρθρ\\w*)\\b",
+    "Effusion": "\\b(?:effusion\\w*|epanchement\\w*|derrame\\w*|fluid\\w*|liquide\\w*|liquido\\w*|gelenkerguss\\w*|erguss\\w*|υγρ\\w*|συλλογ\\w*|sıvı\\w*|sivi\\w*|efuzyon\\w*)\\b",
+    "Synovitis": "\\b(?:synovit\\w*|sinovit\\w*|synovial\\w*|υμενιτ\\w*|συνοβι\\w*)\\b",
+    "Baker's": "\\bbaker\\w*|\\b(?:popliteal|poplite|popliteo)\\s+(?:cyst\\w*|kyst\\w*|kist\\w*)|\\b(?:kyste|cyste|cyst)\\s+poplit\\w*",
+    "Contusion": "\\b(?:contusion\\w*|marrow|medula|moelle|knochenmark\\w*|bones?|osseous)\\b|\\bbone\\s+bruis\\w*|\\bοστ\\w*.{0,24}μυελ\\w*|\\bkemik\\s+ilig\\w*",
+    "Fracture": "\\b(?:fractur\\w*|fraktur\\w*|καταγ\\w*|kırık\\w*|kirik\\w*|cortical\\w*|cortex|osseous|bones?)\\b"
+  },
+  "target_association": "A trigger associates with a target only if it overlaps one of that target's exact inspection-effective source-evidence occurrences, or if its bounded source excerpt also contains a target-family lexical anchor. OA family anchors deliberately nominate all three compartments; this is not inferred compartment localization. Fluid proximity does not prove joint versus bursal/cyst location.",
+  "excerpt_boundaries": "At most 180 original characters on each side of the match, reduced to nearby period, semicolon, exclamation, question mark, or newline boundaries. These locators are not sufficient clinical context; full reports are supplied separately.",
+  "additional_screens": [
+    {
+      "id": "all_observed_positive_OA_threshold_screen",
+      "selection": "All currently observed-positive OA targets, regardless of wording; direct exact existing evidence is supplied, with no claim that it is wrong."
+    },
+    {
+      "id": "observed_positive_fluid_no_grade_token_in_evidence",
+      "selection": "Observed-positive Effusion/Baker targets whose exact evidence has no match to the bounded grade vocabulary; no synonym-completeness claim.",
+      "grade_token_pattern": "\\b(?:moderate\\w*|large|massive|distend\\w*|moderad\\w*|abundante\\w*|modere\\w*|volumineu\\w*|massig\\w*|ausgepragt\\w*|μετρι\\w*|μεγαλ\\w*|orta|fazla|buyuk)\\b"
+    }
+  ],
+  "priority_order": {
+    "P1_observed_direct_evidence_or_positive_threshold_screen": "Current positive/negative state and direct exact evidence overlap or one of the additional positive-state screens.",
+    "P2_observed_source_proximity": "Current positive/negative state linked only by bounded lexical source proximity.",
+    "P3_currently_masked": "Current uncertain/not_mentioned target; no new observed supervision proposed."
+  },
+  "excluded_pattern": "\\b(?:no\\s+relevant\\s+prior\\s+(?:studies|study|imaging|examination)|no\\s+relevant\\s+comparison)\\b",
+  "exclusion_scope": "Only exact no-relevant-prior-comparison phrasing is excluded, and every such exclusion retains its exact source locator separately.",
+  "known_limits": [
+    "The lexicon covers observed English, French, Spanish, German, Greek and Turkish wording plus some cognates. It is not exhaustive language identification or semantic analysis.",
+    "Substrings, compound words, misspellings, unusual synonyms, and local excerpt boundaries can cause misses or false positives. Complete artifact scanning does not prove complete semantic coverage.",
+    "Literal quantities or diagnoses may already support the label; a hit is never a proposed correction.",
+    "History/indication, comparison, negation scope, laterality, postoperative status, and target identity must be determined from each full report by an independent reader.",
+    "The existing review state and evidence are used only for audit association and priority. No source-first blindness is claimed for this discovery task.",
+    "Source packet membership discloses that a lexical or positive-state screen fired. Readers must freeze all source decisions before opening candidate details."
+  ]
+}

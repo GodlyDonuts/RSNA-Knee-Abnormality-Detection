@@ -1,0 +1,62 @@
+{
+  "stage": "independent_staged_crosswalk_membership_scope_and_binding_validation",
+  "agent_id": "/root/last_twelve_visual_review",
+  "validated_at_utc": "2026-09-21T19:58:14.507151+00:00",
+  "status": "passed",
+  "crosswalk": {
+    "path": "annotation-staging/technical-candidate-status-final-targeted-v1/status-crosswalk.json",
+    "sha256": "de96d44ce371a27e9159d337566ed1002a6626df6f6118d05b62901d7b813796",
+    "bytes": 1385268
+  },
+  "summary": {
+    "path": "annotation-staging/technical-candidate-status-final-targeted-v1/summary.json",
+    "sha256": "997edebf34ec687e8e0d8e87e94e5ac4f469f1be6d9a970b0891afc8b6b21ca1",
+    "bytes": 1676
+  },
+  "validator": {
+    "path": "annotation-staging/technical-candidate-status-final-targeted-v1/validate_crosswalk.py",
+    "sha256": "719f59d7d2245e5dad9dcc943f311e61bdce9b8272f0e1c7b03f76dabc6e0b27",
+    "bytes": 9033
+  },
+  "checks": {
+    "original_queue_records_exact_preserved": 129,
+    "additional_prior_cases_exact_preserved_and_disjoint": 19,
+    "unique_cases_and_studies_exact_blinded_batch_bound": 148,
+    "direct_input_file_sha256_and_sizes_reverified": 554,
+    "bounded_visual_cases": 87,
+    "metadata_only_cases": 46,
+    "source_header_only_cases": 13,
+    "source_completeness_only_cases": 2,
+    "tier4_metadata_series": 564,
+    "tier4_metadata_source_memberships": 19351,
+    "tier4_endpoint_geometries": 1128,
+    "tier4_escalated_completed": 32,
+    "final_twelve": {
+      "cases": 12,
+      "selected_arrays": 50,
+      "selected_source_memberships": 1698,
+      "viewed_matrices_per_assessor": 150,
+      "unselected_arrays": 15,
+      "unselected_source_memberships": 429
+    },
+    "repeated_temporal_four": {
+      "arrays": 29,
+      "source_memberships": 791,
+      "viewed_matrices_per_assessor": 87
+    },
+    "registered_policies": 5,
+    "registered_exclusions": 17,
+    "specific_source_correspondence_reconciliation_cases": 28,
+    "quality_or_selection_followups": [
+      "064:14",
+      "084:27"
+    ],
+    "no_complete_training_eligibility_claim": true
+  },
+  "limits": [
+    "This validates evidence consolidation, not new source-image clinical correspondence or personal visual inspection.",
+    "Historical nested claims remain limited by their original proofs; direct input hashes are freshly rechecked.",
+    "No gold or clinical annotations were opened. No originals, runtime policy, cache, production selection or publication were modified."
+  ],
+  "training_ready": false
+}

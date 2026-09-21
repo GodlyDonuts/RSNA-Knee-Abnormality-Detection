@@ -1,0 +1,84 @@
+"""After the source freeze, classify only whether existing states mask all targets."""
+import ast
+import hashlib
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+WORK = OUT.parents[1]
+REPO = WORK / 'recovered'
+
+def binding(p):
+    return {'path': str(p.relative_to(WORK)), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'bytes': p.stat().st_size}
+
+def read(p):
+    return json.loads(p.read_text())
+
+freeze_path = OUT / 'source-packet-freeze.json'
+assert binding(freeze_path)['sha256'] == '1a2d466fc30a34e7a9498ff01af5daad5b3367846e81b454fa5f2be657f36e36'
+freeze = read(freeze_path)
+for e in freeze['files']:
+    assert binding(WORK / e['path']) == e
+assert freeze['current_clinical_annotations_opened_before_this_freeze'] is False
+index_path = REPO / 'initiative/reviews-v2/index.json'
+idx = read(index_path)
+batch_index = {x['batch']: x for x in idx['batches']}
+schema_path = REPO / 'rsna/schema.py'
+constants = {s.targets[0].id: ast.literal_eval(s.value) for s in ast.parse(schema_path.read_text()).body if isinstance(s, ast.Assign)}
+targets = constants['TARGETS']
+states = constants['STATES']
+assert len(targets) == 12 and set(states) == {'positive', 'negative', 'uncertain', 'not_mentioned'}
+records = []
+inputs = {}
+for pp in sorted(OUT.glob('source-packet-0?.json')):
+    for c in read(pp)['cases']:
+        batch_name = Path(c['source_batch']['path']).stem
+        ap = REPO / f'initiative/reviews-v2/reviewed/{batch_name}-reviewed.jsonl'
+        b = binding(ap)
+        assert b['sha256'] == batch_index[batch_name]['reviewed']['sha256']
+        assert batch_index[batch_name]['reviewed']['status'] == 'valid'
+        inputs[b['path']] = b
+        lines = ap.read_bytes().splitlines(keepends=True)
+        assert len(lines) == batch_index[batch_name]['n_studies']
+        raw_record = lines[c['source_batch_index_zero_based']]
+        reviewed = json.loads(raw_record)
+        assert reviewed['study_uid'] == c['study_uid']
+        assert isinstance(reviewed['states'], list) and len(reviewed['states']) == len(targets)
+        assert set(reviewed['states']) <= set(states)
+        all_masked = all(s in ('uncertain', 'not_mentioned') for s in reviewed['states'])
+        records.append({
+            'case': c['case'], 'study_uid': c['study_uid'],
+            'source_packet': binding(pp), 'source_report_utf8_sha256': c['report_utf8_sha256'],
+            'reviewed_annotation_file': b,
+            'reviewed_record_line_number_one_based': c['source_batch_index_zero_based'] + 1,
+            'reviewed_record_exact_line_bytes_sha256': hashlib.sha256(raw_record).hexdigest(),
+            'all_12_report_targets_already_masked_by_current_annotations': all_masked,
+            'classification': 'all_report_targets_already_masked' if all_masked else 'at_least_one_report_target_not_masked',
+            'inferred_new_labels': False,
+        })
+assert len(records) == len({r['case'] for r in records}) == len({r['study_uid'] for r in records}) == 28
+for b in inputs.values():
+    assert binding(WORK / b['path']) == b
+all_masked = [r['case'] for r in records if r['all_12_report_targets_already_masked_by_current_annotations']]
+some_unmasked = [r['case'] for r in records if not r['all_12_report_targets_already_masked_by_current_annotations']]
+result = {
+    'stage': 'separate_current_annotation_all_targets_masked_inventory',
+    'created_at_utc': datetime.now(timezone.utc).isoformat(),
+    'agent_id': '/root/last_twelve_visual_review',
+    'session_identity': {'CODEX_THREAD_ID': os.environ.get('CODEX_THREAD_ID'), 'CODEX_SESSION_ID': os.environ.get('CODEX_SESSION_ID')},
+    'source_packets_frozen_first': binding(freeze_path),
+    'current_annotation_index': binding(index_path),
+    'state_schema': binding(schema_path), 'existing_mask_rule_code': binding(REPO / 'rsna/labels.py'),
+    'classification_rule': 'Apply the existing annotation-only rule: a target is masked when its current stored state is uncertain or not_mentioned; positive/negative are observed. Output only whether all12 are masked. No source text is interpreted to recalculate states.',
+    'case_count': 28,
+    'all_report_targets_already_masked_cases': all_masked,
+    'at_least_one_report_target_not_masked_cases': some_unmasked,
+    'records': records,
+    'input_annotation_file_bindings': sorted(inputs.values(), key=lambda x: x['path']),
+    'limits': ['No per-target states, diagnoses or target recommendations are emitted.', 'Annotation-state masking is separate from runtime correspondence exclusions, semantic corrections and effective final export eligibility.', 'No official gold data or evaluation membership was opened. No label, exclusion, policy, runtime or original artifact was changed.', 'Neutral source packets and source-first assessments must remain separate from this derived inventory.'],
+    'training_ready': False,
+}
+(OUT / 'annotation-mask-inventory.json').write_text(json.dumps(result, indent=2) + '\n')
+print(json.dumps({'all_masked': all_masked, 'some_unmasked': some_unmasked, 'inventory': binding(OUT / 'annotation-mask-inventory.json')}, indent=2))

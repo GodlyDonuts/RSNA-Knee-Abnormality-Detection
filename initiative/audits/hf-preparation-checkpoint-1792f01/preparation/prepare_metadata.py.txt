@@ -1,0 +1,95 @@
+"""Freeze publication metadata only after measured Git membership and exact CI success."""
+from pathlib import Path
+import importlib.util
+import json
+
+STAGE = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location("checkpoint_publisher", STAGE / "publish_checkpoint.py")
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+
+def local_ref(path):
+    return {**m.file_ref(path), "path": str(path.relative_to(m.WORK.parent))}
+
+
+def main():
+    measurement = json.loads((STAGE / "pinned-package-measurement.json").read_text())
+    m.require(measurement["github_commit"] == m.COMMIT, "measurement_commit_mismatch")
+    selected = m.selected_files()
+    m.require(
+        {r["path"]: (r["git_blob"], r["bytes"]) for r in selected}
+        == {r["path"]: (r["git_blob"], r["bytes"]) for r in measurement["files"]},
+        "measurement_pinned_membership_mismatch",
+    )
+    m.require(len(measurement["files"]) == m.EXPECTED_MEMBERS, "measured_member_count")
+    ci = m.ci_guard()
+    disk = m.disk_guard(measurement["package"]["bytes"])
+    m.require(not m.PACKAGE.exists(), "checkpoint_package_directory_exists")
+    m.PACKAGE.mkdir(parents=True, exist_ok=False)
+    manifest = {
+        "schema_version": 1, "stage": "immutable_git_preparation_checkpoint",
+        "github_commit": m.COMMIT, "github_ci_run": m.CI_RUN,
+        "github_ci_conclusion": ci["conclusion"],
+        "github_ci_url": f"https://github.com/{m.GH_REPO}/actions/runs/{m.CI_RUN}",
+        "effective_source_revision": m.SOURCE, "reviewed_batches": 89,
+        "reviewed_reports": 4407, "reported_exact_commit_test_count": 412,
+        "accepted_target_corrections": 34, "enforced_correspondence_exclusions": 17,
+        "remaining_global_qa_gates": 3, "training_ready": False,
+        "package": measurement["package"], "files": measurement["files"],
+        "selection": {"roots": list(m.ROOTS), "top": sorted(m.TOP), "policy": "All selected regular Git blobs from the pinned commit only; no worktree file is used as payload."},
+        "preservation_scope": "Full selected pinned audit files, including binary evidence, reside inside the immutable tar. No mutable audit path, source tree, official source CSV or dataset-root README is overwritten.",
+        "full_report_coverage_gate_passed": True,
+    }
+    m.write_new_json(m.PACKAGE / "manifest.json", manifest)
+    readme = f"""# Private preparation checkpoint: targeted QA after all 4,407 report reviews
+
+This immutable checkpoint preserves Git `{m.COMMIT}`: all 89 independent review batches and 52,884 report target decisions, 34 accepted target corrections, and 17 enforced whole-study report-supervision exclusions. All 412 tests and exact-commit CI run {m.CI_RUN} passed.
+
+**Training readiness remains false.** Three global QA gates and final leakage-safe manifests, actual final-data training/resume/inference and final release verification remain unfinished. Uncertain and unmentioned targets remain masked. Official gold is evaluation-only. No competitive score is established.
+
+The deterministic package contains {m.EXPECTED_MEMBERS:,} selected pinned Git files, including code, tests, protocols, blinded reports, both report readings, source-bound review evidence and complete selected audit artifacts. Package SHA-256: `{measurement['package']['sha256']}`; bytes: {measurement['package']['bytes']}. The manifest records every selected member's SHA-256 and original Git blob identity. Uncommitted files are excluded.
+
+Original dataset source trees and the five official source CSVs remain pinned to corrected source revision `{m.SOURCE}`. This checkpoint adds only three objects under its immutable prefix. The original dataset-root card remains unchanged.
+"""
+    with (m.PACKAGE / "README.md").open("x") as f:
+        f.write(readme)
+    refs = [{"path": m.PREFIX + "checkpoint.tar.gz", **measurement["package"]}]
+    refs.extend({**m.file_ref(m.PACKAGE / name), "path": m.PREFIX + name} for name in ("manifest.json", "README.md"))
+    m.validate_refs(refs, 3)
+    operation = {
+        "schema_version": 1, "stage": "prepared_private_checkpoint_publication",
+        "github_commit": m.COMMIT, "github_ci_run": m.CI_RUN,
+        "repo_id": m.HF_REPO, "repo_type": "dataset", "private_required": True,
+        "parent_commit": m.PARENT, "effective_source_revision": m.SOURCE,
+        "uploaded_files": refs, "upload_threads": 2, "xet_enabled": False,
+        "training_ready": False, "immutable_prefix_only": True,
+        "idempotency": "Changed HEAD only permits exact complete object/source verification. It never authorizes another commit.",
+    }
+    m.write_new_json(m.PACKAGE / "publication-operation.json", operation)
+    bindings = [local_ref(p) for p in (
+        STAGE / "publish_checkpoint.py", STAGE / "build_package.py",
+        STAGE / "pinned-package-measurement.json", m.PACKAGE / "manifest.json",
+        m.PACKAGE / "README.md", m.PACKAGE / "publication-operation.json",
+    )]
+    plan = {
+        "schema_version": 1, "stage": "reviewable_private_checkpoint_preparation",
+        "agent_id": "/root/quality_temporal_review", "created_at_utc": m.now(),
+        "github_commit": m.COMMIT, "github_ci_run": m.CI_RUN, "github_ci_verified": ci,
+        "expected_parent": m.PARENT, "exact_pinned_member_count": m.EXPECTED_MEMBERS,
+        "bindings": bindings, "readonly_verifier": local_ref(STAGE / "inspect_remote.py"),
+        "preparation_script": local_ref(Path(__file__)), "training_ready": False,
+        "remote_writes_performed": 0, "publication_requires_root_review": True,
+        "operation_scope": "Three immutable checkpoint-prefix objects only; original source trees, five official CSVs and root card stay unchanged.",
+    }
+    m.write_new_json(STAGE / "review-plan.json", plan)
+    m.write_new_json(STAGE / "metadata-preparation-receipt.json", {
+        "stage": "metadata_prepared_without_tar_build_or_remote_write", "agent_id": "/root/quality_temporal_review",
+        "at_utc": m.now(), "ci": ci, "review_plan": local_ref(STAGE / "review-plan.json"),
+        "disk_before": disk, "disk_after": m.disk_guard(), "remote_writes": 0,
+    })
+    print(json.dumps({"review_plan": local_ref(STAGE / "review-plan.json"), "package": str(m.PACKAGE), "tar_built": False, "remote_writes": 0}))
+
+
+if __name__ == "__main__":
+    main()

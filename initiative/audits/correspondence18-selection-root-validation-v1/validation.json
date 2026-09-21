@@ -1,0 +1,115 @@
+{
+  "stage": "root_combined_correspondence_and_sampling_milestone_validation",
+  "agent_id": "/root",
+  "at_utc": "2026-09-21T20:46:53.561390+00:00",
+  "baseline_git": "1792f01ed3daab757c5ddb9bf5733ffe8d999f91",
+  "code_and_tests": [
+    {
+      "path": "rsna/data.py",
+      "sha256": "3e9a7f87ae2a956b04fcfcaf755e17f92c1f78ddb6c9a2ca534b621d982a4833",
+      "bytes": 6626
+    },
+    {
+      "path": "rsna/correspondence.py",
+      "sha256": "b5de41060bfc922007947551ce7229d07de36efee5e306470106f2663cb0111c",
+      "bytes": 54941
+    },
+    {
+      "path": "tests/test_series_quality_selection.py",
+      "sha256": "8f110d5ab186a7976f82774182cd2c6a6bcb977436fd90f7cc5dd92975bab108",
+      "bytes": 2910
+    },
+    {
+      "path": "tests/test_correspondence_source_header.py",
+      "sha256": "7f015f29cbb6ea60e4383ba1a7c8a7a54a307067e9c16c732bdeabee520ea0bd",
+      "bytes": 9179
+    },
+    {
+      "path": "tests/test_correspondence_temporal.py",
+      "sha256": "60a460d9bb4513c9feeeff80b6ab84b866b95563ee4a588b6eaafb932b1d4e8a",
+      "bytes": 7680
+    }
+  ],
+  "replayed_manifests": [
+    {
+      "path": "initiative/audits/correspondence-source-header-v1/final-file-list.json",
+      "sha256": "d09655905e6fb0f859e5d6d83926a233b024e60a024c007b7825868764b15f10",
+      "bytes": 21357,
+      "replayed_member_count": 95,
+      "exact_archive_membership": true
+    },
+    {
+      "path": "initiative/audits/series-preference-independent-code-review-v1/archive-file-list.json",
+      "sha256": "42737a4147b4e64e788eb7ce5d2b04a0eb41de050070db6b0429e2cb03c89d6e",
+      "bytes": 1342,
+      "replayed_member_count": 5,
+      "exact_archive_membership": true
+    }
+  ],
+  "live_correspondence": {
+    "registry_sha256": "4e7435c2b947a651391ca00c96893295e449e5931cbba5205830d08d49243399",
+    "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+    "policy_count": 6,
+    "study_count": 18
+  },
+  "source_reports": 4407,
+  "full_suite": {
+    "passed": 462,
+    "seconds": 20.09
+  },
+  "checks": {
+    "ruff_check": "passed",
+    "ruff_format": "42 files already formatted",
+    "mypy": "no issues in 20 source files",
+    "git_diff_check": "passed"
+  },
+  "prior_five_policy_files_byte_identical_to_git_baseline": true,
+  "original_reports_reviews_adjudications_official_sources_rubric_have_no_git_changes": true,
+  "registered_clinical_corrections": 34,
+  "new_clinical_corrections": 0,
+  "remaining_unresolved_correspondence_cases_requiring_final_zero_mask_check": 24,
+  "clinical_archives": [
+    {
+      "name": "qualified-negation-all4407-candidates-v1",
+      "files": 92,
+      "bytes": 48352895,
+      "preservation": {
+        "path": "initiative/audits/qualified-negation-all4407-candidates-v1/preservation.json",
+        "sha256": "0ac5114efa9f313f5bfeb1094373ebc9cd72c1ece962ac5f718e4bbd7db5fd51",
+        "bytes": 32809
+      }
+    },
+    {
+      "name": "qualified-negation-focused-000-source-review-v1",
+      "files": 134,
+      "bytes": 15849874,
+      "preservation": {
+        "path": "initiative/audits/qualified-negation-focused-000-source-review-v1/preservation.json",
+        "sha256": "08519e442d5592f87e2c9a2142900c9de603f9605b46fee1209ece99755cdd80",
+        "bytes": 60376
+      }
+    },
+    {
+      "name": "qualified-negation-focused-000-independent-review-v1",
+      "files": 22,
+      "bytes": 4701130,
+      "preservation": {
+        "path": "initiative/audits/qualified-negation-focused-000-independent-review-v1/preservation.json",
+        "sha256": "bc505089668676e988386531beb6ad3936acaa6411db10cf52168ade108880f3",
+        "bytes": 9616
+      }
+    },
+    {
+      "name": "qualified-negation-focused-000-root-review-v1",
+      "files": 2,
+      "bytes": 40120,
+      "preservation": {
+        "path": "initiative/audits/qualified-negation-focused-000-root-review-v1/preservation.json",
+        "sha256": "39bc25b5975f8c5e5c2750bfb9c00402c0a99948122d0d35b8ed814a2659aa8b",
+        "bytes": 1449
+      }
+    }
+  ],
+  "training_ready": false,
+  "remaining": "Three global semantic QA gates; final exact leakage/group/gold isolation and mask checks, manifests and actual training/resume/inference. Root has not adjudicated either focused reader's case-specific proposals."
+}

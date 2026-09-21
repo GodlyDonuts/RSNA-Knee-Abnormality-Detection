@@ -5,10 +5,34 @@
 This archive contains all 89 first-reader batches and all 89 independently reviewed
 batches: 4,407 reports and 52,884 target decisions. Report-review coverage is
 complete; global semantic QA, correspondence and final release checks remain
-unfinished. All412 tests, Ruff and mypy pass. The required correspondence registry now
-enforces17 whole-study report-supervision exclusions, including064:46 under v5. The v4 extension
+unfinished. All 462 tests, Ruff and mypy pass. The required correspondence registry now
+enforces 18 whole-study report-supervision exclusions, including 069:10 under v6
+and 064:46 under v5. The v4 extension
 adds 048:09, 048:38 and 053:47 from previously completed source and image evidence.
 Original clinical artifacts, reports, images and official gold are preserved.
+
+The consolidated 28-case correspondence queue has four cases with observed
+report targets. Root and a distinct assessor separately read their full sources
+and accepted retaining current supervision for 021:44, 042:14 and 042:41, subject
+to semantic QA. Case 069:10 has a RIGHT report and five explicitly L-tagged
+series; the sixth series is unsided. Both accepted whole-study non-gold report
+supervision exclusion. Root replay verified all 24 series, 699 source memberships
+and 48 endpoint bindings across these four cases. No new pixel or named-side
+diagnosis is claimed. The other 24 cases already have all twelve report targets
+masked; their identity questions remain unresolved and their zero masks must be
+checked again on the final export. See `correspondence-source-header-v1/` and
+`docs/correspondence.md`.
+
+The reviewed sampling table preserves all 24,338 retained series and prefers
+series 11/12 over 6/5 in 064:14 and series 201 over the broad series 101 in 084:27.
+The latter decision uses the previously bounded visual review, not inspection of
+all 200 slices in series 101. The loader retains plane coverage and lower-priority
+alternatives when capacity permits. All 4,405 unaffected studies preserve the
+previous selected order and RNG state in the recorded comparison; eight actual
+cache-loader passes returned finite arrays. See `reviewed-series-preferences-v1/`
+and `docs/series-preferences.md` for the immutable policy, complete table, hashes,
+rebuild command and validation scope. This is a sampling preference, not removal
+of images or a change in clinical labels.
 
 Batch085 completes independent report-review coverage. Root read all 50 original
 reports and froze 600 personally reasoned decisions before clinical draft access;
@@ -59,14 +83,17 @@ gold-neighbor quarantine. Read `docs/report-similarity.md`. The complete final
 label export remains unfinished.
 
 The latest verified private Hugging Face snapshot contains all 4,407 reviewed reports,
-at `046466739c134be9287ef7c5471968b704467cfd`, corresponding to Git
-`6bcf6bbc6b49b1627ca257b892881b8bd693b750` (CI run35636602111 passed).
-Root checked all 5,404 archive members against their pinned Git contents. The
-1,308,014,492-byte package was verified remotely against its Hub SHA-256 identity
+at `54949cd5a575ea7027a4a57916e772936a98d38b`, corresponding to Git
+`1792f01ed3daab757c5ddb9bf5733ffe8d999f91` (CI run 35647456612 passed).
+Root checked all 5,657 archive members against their pinned Git contents. The
+1,335,583,564-byte package was verified remotely against its Hub SHA-256 identity
 and size; the manifest and README were downloaded and fully hashed. All three
 objects are under an immutable preparation-checkpoint prefix. Original source
 trees and all five official metadata blobs remain unchanged. The receipt and
-review evidence are preserved under `hf-preparation-checkpoint-6bcf6bb/`.
+review evidence are preserved under `hf-preparation-checkpoint-1792f01/`.
+That published checkpoint contains 34 clinical corrections and 17 correspondence
+exclusions. The later v6 exclusion and sampling preference are newer Git work;
+they must not be described as already present in this pinned HF revision.
 The archive also preserves proof that547 staged DICOM copies now share their
 byte-identical archived files' physical storage. All paths and bytes remain
 unchanged; never write through those shared inodes. The full cache is untouched.
@@ -85,6 +112,27 @@ The bounded adjudication and all27 focused tests passed. See
 `duplicate-consistency-adjudication-v1/`. The three global semantic QA gates remain
 pending: cartilage, bone terminology and qualified-negation/duplicate consistency.
 
+The subsequent full-coverage mechanical candidate inventory is preserved under
+`qualified-negation-all4407-candidates-v1/`: after the 34 corrections, all 54 exact
+normalized-report groups have consistent target states. Its focused wording
+queue contains 539 target candidates across 331 reports; candidate membership is
+not a finding of error. For its first 50-report batch, two distinct agents have
+frozen all 600 source judgments and preserved their separate post-comparison
+reconsiderations. Their source freezes agree on 584 states and differ on 16.
+Neither their proposed corrections nor their agreements have been registered.
+Read the separate `qualified-negation-focused-000-source-review-v1/` and
+`qualified-negation-focused-000-independent-review-v1/` scopes before use.
+
+Root adjudication is in progress: only the first ten of 48 neutral source reports
+have been personally reread and frozen (120 decisions), preserved under
+`qualified-negation-focused-000-root-review-v1/`. The remaining four neutral
+packets must be read and independently assessed before root opens the two
+readers' case-specific findings. Root's prior original-run and aggregate wording
+exposure is explicitly disclosed. Preserve every frozen reading; any later
+reconsideration needs a separate record. The next 50-report batch and a full
+cartilage candidate inventory are in progress outside this archived snapshot.
+These stages add no accepted label corrections and close no global QA gate.
+
 The tenth through thirteenth metadata groups now have two frozen source readings
 and root replay of 5,361 source memberships, 167 series metadata records and
 334 endpoint geometries. Root also recomputed physical fields and slice-origin
@@ -94,7 +142,7 @@ selected source memberships and each exact displayed matrix. Whole-study metadat
 covers65 series/2127 sources;15 unselected arrays/429 sources remain outside pixel
 scope. Eight source correspondence issues remain unresolved, despite compatible
 sampled main protocols. Case084:27 includes a peripheral second limb in broad
-series101; its series-selection decision remains separate. See
+series101; the later sampling preference above preserves its originals. See
 `technical-tier4-last-twelve-targeted-v1/` and `last-twelve-independent-visual-v1/`.
 The other twelve metadata cases needed no immediate pixels from their examined
 triggers alone. The original agent replay failed
@@ -134,7 +182,7 @@ The original 48,772-record endpoint survey is valid against the corrected invent
 
 The three latest preserved correspondence audits are `initiative/audits/repeated-protocol-six-v1/`, `correspondence-native-075-014-v1/` and `correspondence-shoulder-report-052-020-v1/`. For075:14 all337fresh official sources and11series have root-replayed native fingerprints, dimensions, IPP/IOP/spacing, source hashes/CRCs/UIDs,15recorded source geometry/encoding fields, and33pixel-exact panels. Opposing fibular morphology has concordant source IOP direction. Preserve the no-upstream-mirroring caveat; do not assign a named side from blanks. Prior dark display artifacts remain preserved with explicit native-window-v2 supersession.
 
-The required `initiative/audits/correspondence-release-registry.json` binds the preserved study-level policies. `rsna.labels` now validates exact policy membership, original source identity and verified proof bindings before exporting. All twelve report loss masks are zeroed for excluded non-gold rows; original annotations, official gold evaluation and duplicate groups remain unchanged. Excluded reports are omitted from report-versus-gold agreement. Native proof identity wrappers make the original source-handoff study binding explicit without rewriting the underlying observations. See `docs/correspondence.md`. Whole-study exclusions now cover17cases; the exact registry and docs/correspondence.md list them. This does not certify the remaining correspondence queue or compile a final manifest.
+The required `initiative/audits/correspondence-release-registry.json` binds the preserved study-level policies. `rsna.labels` now validates exact policy membership, original source identity and verified proof bindings before exporting. All twelve report loss masks are zeroed for excluded non-gold rows; original annotations, official gold evaluation and duplicate groups remain unchanged. Excluded reports are omitted from report-versus-gold agreement. Native proof identity wrappers make the original source-handoff study binding explicit without rewriting the underlying observations. See `docs/correspondence.md`. Whole-study exclusions now cover 18 cases; the exact registry and docs/correspondence.md list them. This does not certify the remaining correspondence queue or compile a final manifest.
 
 Native checks for048:12 and086:13 now include root replay of all659sources,15recorded geometry/encoding fields and60pixel-exact displayed samples. Both independently frozen visual readings support opposing knee protocols compatible with their integrated bilateral reports. The source origins remain83retained official originals and576corrected pinned HF files. Fresh official whole-byte confirmation is deferred for those576 after Kaggle429responses; no claim that all659were freshly downloaded from Kaggle. All sources, source-origin journals, partial-attempt records and explicit deferred list are preserved in `correspondence-native-048-012-v1/` and `correspondence-native-086-013-v1/`. Root independently verified all940files and166original-source aliases in the two native and first two mixed-tag archives.
 

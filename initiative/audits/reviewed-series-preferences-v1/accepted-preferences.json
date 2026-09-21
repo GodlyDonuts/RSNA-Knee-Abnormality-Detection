@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "stage": "root_accepted_reviewed_series_sampling_preferences",
+  "agent_id": "/root",
+  "at_utc": "2026-09-21T20:22:25.514572+00:00",
+  "source_series": {
+    "path": "initiative/audits/full-image-recovery-v1/train-selection/series_selected.csv",
+    "sha256": "35fcf7333b7b4cc91180ca282afdf462c3bdbe101639c3184c11b30cfe823d97",
+    "bytes": 6860204
+  },
+  "source_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7",
+  "evidence": [
+    {
+      "path": "initiative/audits/independent-quality-temporal-v1/064-14-independent-quality-assessment.json",
+      "sha256": "e63d6a2881f606e6d70c5e07ba6a9c653394dd8198b9b7f6c59fb64d72539165",
+      "bytes": 4127
+    },
+    {
+      "path": "initiative/audits/quality-native-064014-v1/root-native-visual-assessment.json",
+      "sha256": "4bf58be526e8c400583f00768359d4a64357af5f50268a90ffcb100d54331695",
+      "bytes": 2996
+    },
+    {
+      "path": "initiative/audits/technical-tier4-last-twelve-targeted-v1/root-visual-observations.json",
+      "sha256": "ace0c86aaf45ba6062331a4b2b381dc8ce9e9c4b8aa4dc27444bbaef7db17a5f",
+      "bytes": 8120
+    },
+    {
+      "path": "initiative/audits/last-twelve-independent-visual-v1/visual-assessment.json",
+      "sha256": "c061ea931c8df88bc501009c113c7e700d5d918d311f059aa78cc458d4c95757",
+      "bytes": 68228
+    },
+    {
+      "path": "initiative/audits/technical-tier4-last-twelve-targeted-v1/root-post-freeze-comparison.json",
+      "sha256": "69320e2376484410a4c1424e6a36cde0e626bfba3e811266529f0004f002349c",
+      "bytes": 10593
+    },
+    {
+      "path": "initiative/audits/repeated-temporal-001021064-v1/technical-evidence/case-064-14.json",
+      "sha256": "4387d92f32a5f49338a790762a84c177cbd380774b523d6402bfd52e5e842e01",
+      "bytes": 41708
+    },
+    {
+      "path": "initiative/audits/technical-tier4-thirteenth-six-v1/technical-evidence/case-084-27.json",
+      "sha256": "54bb4c6b94881e35363cd2fa447ca695a2aba44d3814d5352a1e7aa0026bf6fe",
+      "bytes": 58343
+    }
+  ],
+  "records": [
+    {
+      "case": "064:14",
+      "study_uid": "1.2.826.0.1.3680043.8.498.68593524008570334427931338225473487643",
+      "preferred_series_uid": "1.2.826.0.1.3680043.8.498.12973302737091268453301710188951510591",
+      "preferred_series_number": "11",
+      "deprioritized_series_uid": "1.2.826.0.1.3680043.8.498.55169397215287133523326292836756124722",
+      "deprioritized_series_number": "6",
+      "deprioritized_tier": 1,
+      "reason": "Clearer T1 coronal presentation in the independent all71cached-slice review, corroborated by sampled native/cache comparison; different physical coverage remains preserved.",
+      "technical_metadata": {
+        "path": "initiative/audits/repeated-temporal-001021064-v1/technical-evidence/case-064-14.json",
+        "sha256": "4387d92f32a5f49338a790762a84c177cbd380774b523d6402bfd52e5e842e01",
+        "bytes": 41708
+      },
+      "action": "sampling_preference_preserve_all_series"
+    },
+    {
+      "case": "064:14",
+      "study_uid": "1.2.826.0.1.3680043.8.498.68593524008570334427931338225473487643",
+      "preferred_series_uid": "1.2.826.0.1.3680043.8.498.43955196536339826808737516240630568188",
+      "preferred_series_number": "12",
+      "deprioritized_series_uid": "1.2.826.0.1.3680043.8.498.43379025446875214272088597443050962675",
+      "deprioritized_series_number": "5",
+      "deprioritized_tier": 1,
+      "reason": "Clearer repeated PD fat-suppressed sagittal presentation in independent full-cache review and root sampled native comparison; retain darker acquisition as an alternative.",
+      "technical_metadata": {
+        "path": "initiative/audits/repeated-temporal-001021064-v1/technical-evidence/case-064-14.json",
+        "sha256": "4387d92f32a5f49338a790762a84c177cbd380774b523d6402bfd52e5e842e01",
+        "bytes": 41708
+      },
+      "action": "sampling_preference_preserve_all_series"
+    },
+    {
+      "case": "084:27",
+      "study_uid": "1.2.826.0.1.3680043.8.498.95351925765761617117057799846763403963",
+      "preferred_series_uid": "1.2.826.0.1.3680043.8.498.10048713072268890750198666318760216140",
+      "preferred_series_number": "201",
+      "deprioritized_series_uid": "1.2.826.0.1.3680043.8.498.68547278990366168272004289944361631728",
+      "deprioritized_series_number": "101",
+      "deprioritized_tier": 1,
+      "reason": "Both previous visual assessors saw the focused main-knee view in201 and a smaller main knee plus cropped peripheral second limb in all3sampled101views. Prefer the focused axial acquisition when slots are limited; retain101as an auxiliary view if capacity allows. This is a technical sampling choice, not a claim that all200slices of101 were personally inspected or clinically equivalent to201.",
+      "technical_metadata": {
+        "path": "initiative/audits/technical-tier4-thirteenth-six-v1/technical-evidence/case-084-27.json",
+        "sha256": "54bb4c6b94881e35363cd2fa447ca695a2aba44d3814d5352a1e7aa0026bf6fe",
+        "bytes": 58343
+      },
+      "action": "sampling_preference_preserve_all_series"
+    }
+  ],
+  "selection_contract": {
+    "default_tier": 0,
+    "deprioritized_tier": 1,
+    "rank": "stable tier-first candidate ordering after existing deterministic/random within-tier order; preserve plane coverage",
+    "full_budget": "retain all available alternatives when max_series permits",
+    "model_features": "unchanged; tier is never a model input",
+    "clinical_values_and_masks": "unchanged",
+    "source_cache_and_baseline_metadata": "unchanged",
+    "source_or_series_exclusions": false,
+    "crop_or_normalization_changes": false
+  },
+  "assessment_scope": "Root accepts documented06414independent quality recommendations. Root chooses08427preference using previously independently inspected source-bound samples; no claim of a new third diagnostic or full-volume review.",
+  "training_ready": false
+}

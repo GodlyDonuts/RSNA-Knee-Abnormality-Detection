@@ -1,0 +1,300 @@
+"""Source-bound lexical discovery only. Never infer or write clinical labels."""
+from __future__ import annotations
+
+import collections
+import copy
+import hashlib
+import json
+import re
+import sys
+import unicodedata
+from datetime import datetime, timezone
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+REPO = OUT.parents[1] / "recovered"
+sys.path.insert(0, str(REPO))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import read_reviews, report_group, source_reports_fingerprint
+from rsna.schema import TARGETS
+
+IDENTITY = "/root/duplicate_consistency_review"
+OA = ["Medial OA", "Lateral OA", "PF OA"]
+OBSERVED = {"positive", "negative"}
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def write(name, value):
+    with (OUT / name).open("x") as f:
+        json.dump(value, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+def jsonl(name, records):
+    with (OUT / name).open("x") as f:
+        for r in records:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+def normalize(text):
+    # Preserve original character offsets through per-character normalization.
+    result, positions = [], []
+    for i, c in enumerate(text):
+        for folded in unicodedata.normalize("NFKD", c.casefold()):
+            if not unicodedata.combining(folded):
+                result.append(folded)
+                positions.append(i)
+    return "".join(result), positions
+
+def original_span(positions, start, end):
+    return positions[start], positions[end - 1] + 1
+
+def context_span(text, start, end):
+    left, right = max(0, start - 180), min(len(text), end + 180)
+    before = list(re.finditer(r"[.;!?\n]", text[left:start]))
+    after = re.search(r"[.;!?\n]", text[end:right])
+    if before:
+        left += before[-1].end()
+    if after:
+        right = end + after.end()
+    return left, right
+
+def all_occurrences(text, quote):
+    result = []
+    if not quote:
+        return result
+    start = 0
+    while True:
+        offset = text.find(quote, start)
+        if offset < 0:
+            return result
+        result.append((offset, offset + len(quote)))
+        start = offset + 1
+
+def overlaps(a, b):
+    return a[0] < b[1] and b[0] < a[1]
+
+# Patterns are authored lexical retrieval rules. They are NOT rules for labels.
+rules = [
+    {
+        "id": "qualified_significance",
+        "pattern": r"\b(?:signific\w*|noteworthy|substantial\w*|appreciable|relevan\w*|rilevan\w*|wesentlich\w*|nennenswert\w*|notable\w*|notabil\w*|αξιολογ\w*|αξιοσημειω\w*|σημαντικ\w*|ουσιωδ\w*|belirgin\w*|onemli\w*)\b|\bαξια\s+λογου\b|\bkayda\s+deger\b",
+        "targets": list(TARGETS),
+        "purpose": "Clinical-significance qualifiers, in positive or negative wording; exact negation and scope require source reading.",
+    },
+    {
+        "id": "qualified_definiteness_or_gross_normality",
+        "pattern": r"\b(?:no|without|not)\s+(?:(?:any|a|an)\s+)?(?:definite|definitive|obvious|clear|convincing|overt|gross)\b|\b(?:grossly|essentially|largely|mostly|relatively|virtually)\s+(?:normal|intact|preserved|maintained|unremarkable)\b|\b(?:sin|sans)\s+(?:clara\w*|evidente\w*|franche\w*)\b|\bχωρισ\s+σαφ\w*|\b(?:keine?\s+)(?:eindeutig\w*|hohergradig\w*)\b",
+        "targets": list(TARGETS),
+        "purpose": "Qualified absence/normality or exclusion of only higher-grade findings; does not itself decide absence or thresholds.",
+    },
+    {
+        "id": "cartilage_preservation_qualifier",
+        "pattern": r"\b(?:well|fairly|relatively|grossly|largely|mostly|partially|satisfactorily)\s+(?:preserved|maintained)\b|\b(?:satisfactory|ικανοποιητικ\w*|satisfaisant\w*|relativement\s+preserve\w*|parcialmente\s+conservad\w*)\b",
+        "targets": OA,
+        "purpose": "Potentially qualified cartilage preservation; all OA compartments are retrieval candidates until anatomy is independently read.",
+    },
+    {
+        "id": "cartilage_diagnosis_or_grade",
+        "pattern": r"\b(?:chondromal\w*|chondropat\w*|chondrosis|chondrose|kondromal\w*|χονδροπαθ\w*|icrs|outerbridge)\b|\b(?:grade|grado|grad|βαθμου|derece\w*)\s*[-:]?\s*(?:[1-4]|[iv]{1,3})\b",
+        "targets": OA,
+        "purpose": "Cartilage diagnoses/grades can omit depth, extent, or compartment; tokens only identify material to assess.",
+    },
+    {
+        "id": "cartilage_loss_extent_language",
+        "pattern": r"\b(?:thinn\w*|full[- ]thickness|partial[- ]thickness|high[- ]grade|low[- ]grade|focal|diffuse\w*|superficial\w*|deep|denud\w*|loss|defect\w*|fissur\w*|ulcer\w*|aminciss\w*|perte|adelgaz\w*|perdida|ausdunn\w*|knorpeldefekt\w*|λεπτυν\w*|διαβρω\w*|απωλει\w*|incel\w*|kayb\w*)\b",
+        "targets": OA,
+        "purpose": "Retrieve cartilage depth/extent language when linked by exact existing evidence or local cartilage terms. It may fully support the existing label.",
+    },
+    {
+        "id": "fluid_amount_or_distention",
+        "pattern": r"\b(?:trace|minimal\w*|small|mild|minor|moderate\w*|large|massive|slight\w*|scant\w*|physiolog\w*|distend\w*|distens\w*|increas\w*|excess\w*|pequen\w*|leve\w*|moderad\w*|abundante\w*|escas\w*|petit\w*|faible\w*|modere\w*|important\w*|gering\w*|massig\w*|vermehr\w*|ausgepragt\w*|ελαχιστ\w*|μικρ\w*|μετρι\w*|αυξη\w*|hafif\w*|minimal\w*|orta|fazla|artm\w*|az)\b",
+        "targets": ["Effusion", "Baker's"],
+        "purpose": "Fluid quantity vocabulary; collection identity, location, comparison, and true amount remain semantic questions.",
+    },
+    {
+        "id": "ligament_partial_or_sprain_grade",
+        "pattern": r"\b(?:partial\w*|partiel\w*|parcial\w*|partiell\w*|parsiyel\w*|μερικ\w*|sprain\w*|strain\w*|entorse\w*|distors\w*|esguince\w*|low[- ]grade|high[- ]grade)\b|\b(?:grade|grado)\s*(?:[1-3]|[iv]{1,3})\b",
+        "targets": ["ACL", "MCL"],
+        "purpose": "ACL/MCL partial tears and sprains need qualifying severity/acuity, which this lexical hit does not establish.",
+    },
+]
+
+cartilage = r"\b(?:cartilag\w*|chondr\w*|chondrom\w*|kondrom\w*|knorpel\w*|χονδρ\w*|kıkırdak\w*|kikirdak\w*|kartilaj\w*|osteoarthr\w*|osteoartro\w*|οστεοαρθρ\w*)\b"
+anchors = {
+    "ACL": r"\bacl\b|\banterior\s+cruciate\b|\bcruciate\s+ligaments\b|\bcroise\s+anterieur\b|\bcruzado\s+anterior\b|\bπροσθι\w*\s+χιαστ\w*|\bvorder\w*\s+kreuzband\w*|\bon\s+capraz\b",
+    "MCL": r"\bmcl\b|\bmedial\s+collateral\b|\bcollateral\s+medial\b|\bcollateral\s+ligaments\b|\bcollateral\s+medial\b|\bcollateral\s+interne\b|\bεσω\s+πλαγι\w*|\bmedial\w*\s+kollateral\w*|\binnenband\w*|\bic\s+yan\s+bag\b",
+    "Medial Meniscus": r"\bmedial\s+menisc\w*|\bmenisc\w*\s+(?:medial\w*|intern\w*)|\bεσω\s+μηνισκ\w*|\binnenmenisk\w*|\bmenisci\b",
+    "Lateral Meniscus": r"\blateral\s+menisc\w*|\bmenisc\w*\s+(?:lateral\w*|extern\w*)|\bεξω\s+μηνισκ\w*|\baussenmenisk\w*|\bmenisci\b",
+    "Medial OA": cartilage,
+    "Lateral OA": cartilage,
+    "PF OA": cartilage,
+    "Effusion": r"\b(?:effusion\w*|epanchement\w*|derrame\w*|fluid\w*|liquide\w*|liquido\w*|gelenkerguss\w*|erguss\w*|υγρ\w*|συλλογ\w*|sıvı\w*|sivi\w*|efuzyon\w*)\b",
+    "Synovitis": r"\b(?:synovit\w*|sinovit\w*|synovial\w*|υμενιτ\w*|συνοβι\w*)\b",
+    "Baker's": r"\bbaker\w*|\b(?:popliteal|poplite|popliteo)\s+(?:cyst\w*|kyst\w*|kist\w*)|\b(?:kyste|cyste|cyst)\s+poplit\w*",
+    "Contusion": r"\b(?:contusion\w*|marrow|medula|moelle|knochenmark\w*|bones?|osseous)\b|\bbone\s+bruis\w*|\bοστ\w*.{0,24}μυελ\w*|\bkemik\s+ilig\w*",
+    "Fracture": r"\b(?:fractur\w*|fraktur\w*|καταγ\w*|kırık\w*|kirik\w*|cortical\w*|cortex|osseous|bones?)\b",
+}
+compiled = [(rule, re.compile(rule["pattern"])) for rule in rules]
+anchor_rx = {target: re.compile(pattern) for target, pattern in anchors.items()}
+negation = re.compile(r"\b(?:no|not|without|absent|pas|aucun\w*|sans|sin|ningun\w*|kein\w*|ohne|δεν|χωρισ|yok|izlenmedi|saptanmadi|nao|non)\b")
+nonclinical_comparison = re.compile(r"\b(?:no\s+relevant\s+prior\s+(?:studies|study|imaging|examination)|no\s+relevant\s+comparison)\b")
+fluid_positive_grade_tokens = re.compile(r"\b(?:moderate\w*|large|massive|distend\w*|moderad\w*|abundante\w*|modere\w*|volumineu\w*|massig\w*|ausgepragt\w*|μετρι\w*|μεγαλ\w*|orta|fazla|buyuk)\b")
+
+sources, reviews, source_bindings, review_bindings = {}, {}, {}, {}
+index_path = REPO / "initiative/reviews-v2/index.json"
+index = json.loads(index_path.read_text())
+index_batches = {r["batch"]: r for r in index["batches"]}
+for p in sorted((REPO / "initiative/reviews/inputs").glob("batch-*.json")):
+    digest = sha(p)
+    source_bindings[str(p.relative_to(REPO))] = digest
+    rows = json.loads(p.read_text())
+    assert len(rows) == index_batches[p.stem]["n_studies"]
+    for i, r in enumerate(rows):
+        assert set(r) == {"study_uid", "report"} and r["study_uid"] not in sources
+        sources[r["study_uid"]] = dict(r, batch=p.stem, index=i, source_path=str(p.relative_to(REPO)), source_sha256=digest)
+for p in sorted((REPO / "initiative/reviews-v2/reviewed").glob("*-reviewed.jsonl")):
+    digest = sha(p)
+    review_bindings[str(p.relative_to(REPO))] = digest
+    batch = p.name.removesuffix("-reviewed.jsonl")
+    assert index_batches[batch]["reviewed"] == {"status": "valid", "sha256": digest}
+    for line in p.read_text().splitlines():
+        r = json.loads(line)
+        assert r["study_uid"] not in reviews
+        reviews[r["study_uid"]] = r
+assert len(source_bindings) == len(review_bindings) == 89
+assert len(sources) == len(reviews) == 4407 and set(sources) == set(reviews)
+reports = {u: s["report"] for u, s in sources.items()}
+read_reviews(REPO / "initiative/reviews-v2/reviewed", reports, "-reviewed")
+source_hash = source_reports_fingerprint(reports)
+rubric_path = REPO / "protocols/report_weak_v2.md"
+assert sha(rubric_path) == "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+assert source_hash == "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3"
+inspection = inspect_adjudications(reports, REPO / "initiative/reviews-v2/reviewed", rubric_path, REPO)
+assert inspection["n_changes"] == 34 and len(inspection["pending_semantic_qa"]) == 3
+effective = copy.deepcopy(reviews)
+correction_by_key = {}
+for change in inspection["changes"]:
+    uid, target = change["study_uid"], change["target"]
+    j = TARGETS.index(target)
+    assert {"state": effective[uid]["states"][j], "evidence": effective[uid]["evidence"][j]} == change["before"]
+    effective[uid]["states"][j] = change["after"]["state"]
+    effective[uid]["evidence"][j] = change["after"]["evidence"]
+    correction_by_key[uid, target] = change["case_id"]
+write("adjudications-inspection.json", inspection)
+
+groups = collections.defaultdict(list)
+for uid, source in sources.items():
+    groups[report_group(source["report"])].append(uid)
+duplicates = {g: sorted(uids) for g, uids in groups.items() if len(uids) > 1}
+duplicate_uids = {u for uids in duplicates.values() for u in uids}
+duplicate_records, conflicts = [], []
+for group, uids in sorted(duplicates.items()):
+    target_states = {target: sorted({effective[u]["states"][j] for u in uids}) for j, target in enumerate(TARGETS)}
+    differing = {target: states for target, states in target_states.items() if len(states) > 1}
+    record = {"report_group": group, "study_uids": uids, "effective_target_state_sets": target_states, "differing_targets": differing}
+    duplicate_records.append(record)
+    if differing:
+        conflicts.append(record)
+previous_path = REPO / "initiative/audits/post-review-consistency4407-v1/duplicate-consistency-candidates.json"
+previous = json.loads(previous_path.read_text())
+duplicate_result = {"stage": "readonly_effective_duplicate_consistency_after_34_registered_corrections", "reports": 4407, "normalization": "production rsna.labels.report_group: Unicode NFKC, casefold, collapse whitespace", "duplicate_groups": len(duplicates), "duplicate_studies": len(duplicate_uids), "conflicting_groups": len(conflicts), "conflicting_group_targets": sum(len(r["differing_targets"]) for r in conflicts), "opposite_polarity_group_targets": sum({"positive", "negative"}.issubset(s) for r in conflicts for s in r["differing_targets"].values()), "accepted_corrections_used_for_comparison": 34, "adjudication_registry_sha256": inspection["registry_sha256"], "prior_audit_path": str(previous_path.relative_to(REPO)), "prior_audit_sha256": sha(previous_path), "prior_audit_conflicting_groups": previous["conflicting_groups"], "groups": duplicate_records, "conflicts": conflicts, "limitation": "No conflicting normalized-duplicate states, if observed, does not establish semantic correctness. Corrections exist only in this inspection copy; no effective label export or write to original reviews occurred."}
+write("effective-duplicate-consistency.json", duplicate_result)
+
+candidates, unassigned, excluded, scan_rows = [], [], [], []
+rule_hits = collections.Counter()
+family_state = collections.defaultdict(lambda: collections.Counter())
+all_hits = []
+for uid in sorted(sources):
+    source = sources[uid]
+    text = source["report"]
+    normalized, positions = normalize(text)
+    evidence_spans = {target: all_occurrences(text, effective[uid]["evidence"][j]) for j, target in enumerate(TARGETS)}
+    target_hits = collections.defaultdict(list)
+    report_hits = 0
+    for rule, rx in compiled:
+        for m in rx.finditer(normalized):
+            start, end = original_span(positions, m.start(), m.end())
+            left, right = context_span(text, start, end)
+            excerpt = text[left:right]
+            folded_excerpt, excerpt_positions = normalize(excerpt)
+            if rule["id"] == "qualified_significance" and nonclinical_comparison.search(folded_excerpt):
+                excluded.append({"study_uid": uid, "batch": source["batch"], "index": source["index"], "rule_id": rule["id"], "matched_text": text[start:end], "source_excerpt": excerpt, "source_excerpt_start": left, "source_excerpt_end": right, "reason": "Exact lexical nonclinical prior-comparison phrase; does not assert a current target finding."})
+                continue
+            report_hits += 1
+            rule_hits[rule["id"]] += 1
+            cue = {"cue_id": f"{uid}:{rule['id']}:{start}:{end}", "rule_id": rule["id"], "matched_text": text[start:end], "matched_start": start, "matched_end": end, "source_excerpt": excerpt, "excerpt_start": left, "excerpt_end": right, "lexical_negation_cue_in_excerpt": bool(negation.search(folded_excerpt))}
+            assert text[start:end] == cue["matched_text"] and text[left:right] == excerpt
+            associated = []
+            for target in rule["targets"]:
+                direct = any(overlaps((start, end), span) for span in evidence_spans[target])
+                anchor = anchor_rx[target].search(folded_excerpt)
+                if not direct and not anchor:
+                    continue
+                hit = dict(cue, association="overlaps_exact_effective_evidence" if direct else "same_bounded_excerpt_contains_target_family_anchor", lexical_anchor=anchor.group() if anchor else None)
+                target_hits[target].append(hit)
+                associated.append(target)
+            if not associated and rule["id"] in {"qualified_significance", "qualified_definiteness_or_gross_normality"}:
+                unassigned.append(dict(cue, study_uid=uid, batch=source["batch"], index=source["index"], reason="Qualifier found, but no target-family anchor or exact current-evidence overlap in bounded excerpt. Retained for scope review; no label inference."))
+            all_hits.append(dict(cue, study_uid=uid, associated_target_candidates=associated))
+
+    # Additional explicit retrieval screens use current states only to prioritize
+    # needed source reading, never to supply an after-state or correction.
+    for j, target in enumerate(TARGETS):
+        state = effective[uid]["states"][j]
+        quote = effective[uid]["evidence"][j]
+        normalized_quote, _ = normalize(quote)
+        screen = None
+        if state == "positive" and target in OA:
+            screen = ("all_observed_positive_OA_threshold_screen", "Every observed-positive OA target is retained for future independent depth/extent/localization review; no automated claim of deficiency.")
+        elif state == "positive" and target in {"Effusion", "Baker's"} and not fluid_positive_grade_tokens.search(normalized_quote):
+            screen = ("observed_positive_fluid_no_grade_token_in_evidence", "Existing positive fluid evidence lacks tokens in the explicitly bounded moderate/large vocabulary. Synonyms or full-source context may still establish the criterion.")
+        if screen:
+            start, end = evidence_spans[target][0]
+            target_hits[target].append({"cue_id": f"{uid}:{screen[0]}:{target}", "rule_id": screen[0], "matched_text": quote, "matched_start": start, "matched_end": end, "source_excerpt": quote, "excerpt_start": start, "excerpt_end": end, "lexical_negation_cue_in_excerpt": bool(negation.search(normalized_quote)), "association": "existing_positive_state_review_screen", "reason": screen[1]})
+            rule_hits[screen[0]] += 1
+    for j, target in enumerate(TARGETS):
+        hits = target_hits.get(target)
+        if not hits:
+            continue
+        state = effective[uid]["states"][j]
+        direct = any(h["association"] in {"overlaps_exact_effective_evidence", "existing_positive_state_review_screen"} for h in hits)
+        priority = "P1_observed_direct_evidence_or_positive_threshold_screen" if state in OBSERVED and direct else "P2_observed_source_proximity" if state in OBSERVED else "P3_currently_masked"
+        artifact_path = "initiative/reviews-v2/reviewed/" + source["batch"] + "-reviewed.jsonl"
+        row = {"study_uid": uid, "batch": source["batch"], "index": source["index"], "target": target, "priority": priority, "source_path": source["source_path"], "source_sha256": source["source_sha256"], "reviewed_artifact_path": artifact_path, "reviewed_artifact_sha256": review_bindings[artifact_path], "original_state": reviews[uid]["states"][j], "original_evidence": reviews[uid]["evidence"][j], "inspection_effective_state": state, "inspection_effective_evidence": effective[uid]["evidence"][j], "existing_correction_case": correction_by_key.get((uid, target)), "in_normalized_duplicate_group": uid in duplicate_uids, "rule_ids": sorted({h["rule_id"] for h in hits}), "source_excerpts": hits, "disposition": "candidate_only_requires_full_source_independent_reading_no_new_state_proposed"}
+        candidates.append(row)
+        for rule_id in row["rule_ids"]:
+            family_state[rule_id, target][state] += 1
+    scan_rows.append({"study_uid": uid, "batch": source["batch"], "index": source["index"], "source_path": source["source_path"], "source_sha256": source["source_sha256"], "source_report_sha256": hashlib.sha256(text.encode()).hexdigest(), "reviewed_artifact_path": "initiative/reviews-v2/reviewed/" + source["batch"] + "-reviewed.jsonl", "reviewed_artifact_sha256": review_bindings["initiative/reviews-v2/reviewed/" + source["batch"] + "-reviewed.jsonl"], "n_source_rule_hits": report_hits, "candidate_targets": sorted(target_hits, key=TARGETS.index), "n_targets_checked": 12})
+
+candidate_uids = {r["study_uid"] for r in candidates} | {r["study_uid"] for r in unassigned}
+priority_counts = collections.Counter(r["priority"] for r in candidates)
+target_counts = collections.Counter(r["target"] for r in candidates)
+state_counts = collections.Counter(r["inspection_effective_state"] for r in candidates)
+priority_uids = {priority: sorted({r["study_uid"] for r in candidates if r["priority"] == priority}) for priority in sorted(priority_counts)}
+jsonl("candidate-details.jsonl", sorted(candidates, key=lambda r: (r["priority"], r["study_uid"], TARGETS.index(r["target"]))))
+jsonl("unassigned-qualified-source-cues.jsonl", unassigned)
+jsonl("excluded-nonclinical-comparison-cues.jsonl", excluded)
+jsonl("full-coverage-scan.jsonl", scan_rows)
+write("family-target-state-distributions.json", [{"rule_id": rule_id, "target": target, "inspection_effective_state_counts": dict(sorted(counts.items())), "observed_and_masked_states_both_present": bool(set(counts) & OBSERVED) and bool(set(counts) - OBSERVED), "limitation": "A heterogeneous rule family is not a clinical disagreement; compare complete sources."} for (rule_id, target), counts in sorted(family_state.items())])
+
+neutral = [sources[uid] for uid in sorted(candidate_uids)]
+write("neutral-full-report-packet.json", neutral)
+shards = OUT / "neutral-batches"
+shards.mkdir()
+neutral_index = []
+for start in range(0, len(neutral), 50):
+    rows = neutral[start:start + 50]
+    name = f"neutral-batches/batch-{start // 50:03d}.json"
+    write(name, rows)
+    neutral_index.append({"path": name, "sha256": sha(OUT / name), "n_reports": len(rows), "study_uids": [r["study_uid"] for r in rows]})
+write("neutral-packet-index.json", {"schema_version": 1, "scope": "Source-only complete report packet. No candidate reason, annotation state/evidence, priority, or suggested label is included in these files. Selection membership reflects lexical discovery and must be disclosed.", "n_reports": len(neutral), "packet_sha256": sha(OUT / "neutral-full-report-packet.json"), "batches": neutral_index})
+
+method = {"schema_version": 1, "agent_id": IDENTITY, "session_id": IDENTITY, "stage": "lexical_candidate_discovery_not_clinical_adjudication", "normalization": "Each original character is casefolded and NFKD decomposed; combining marks are removed for retrieval only. An offset map preserves exact original-language source substrings. Original reports are unchanged.", "rules": rules, "anatomical_anchor_patterns": anchors, "target_association": "A trigger associates with a target only if it overlaps one of that target's exact inspection-effective source-evidence occurrences, or if its bounded source excerpt also contains a target-family lexical anchor. OA family anchors deliberately nominate all three compartments; this is not inferred compartment localization. Fluid proximity does not prove joint versus bursal/cyst location.", "excerpt_boundaries": "At most 180 original characters on each side of the match, reduced to nearby period, semicolon, exclamation, question mark, or newline boundaries. These locators are not sufficient clinical context; full reports are supplied separately.", "additional_screens": [{"id": "all_observed_positive_OA_threshold_screen", "selection": "All currently observed-positive OA targets, regardless of wording; direct exact existing evidence is supplied, with no claim that it is wrong."}, {"id": "observed_positive_fluid_no_grade_token_in_evidence", "selection": "Observed-positive Effusion/Baker targets whose exact evidence has no match to the bounded grade vocabulary; no synonym-completeness claim.", "grade_token_pattern": fluid_positive_grade_tokens.pattern}], "priority_order": {"P1_observed_direct_evidence_or_positive_threshold_screen": "Current positive/negative state and direct exact evidence overlap or one of the additional positive-state screens.", "P2_observed_source_proximity": "Current positive/negative state linked only by bounded lexical source proximity.", "P3_currently_masked": "Current uncertain/not_mentioned target; no new observed supervision proposed."}, "excluded_pattern": nonclinical_comparison.pattern, "exclusion_scope": "Only exact no-relevant-prior-comparison phrasing is excluded, and every such exclusion retains its exact source locator separately.", "known_limits": ["The lexicon covers observed English, French, Spanish, German, Greek and Turkish wording plus some cognates. It is not exhaustive language identification or semantic analysis.", "Substrings, compound words, misspellings, unusual synonyms, and local excerpt boundaries can cause misses or false positives. Complete artifact scanning does not prove complete semantic coverage.", "Literal quantities or diagnoses may already support the label; a hit is never a proposed correction.", "History/indication, comparison, negation scope, laterality, postoperative status, and target identity must be determined from each full report by an independent reader.", "The existing review state and evidence are used only for audit association and priority. No source-first blindness is claimed for this discovery task.", "Source packet membership discloses that a lexical or positive-state screen fired. Readers must freeze all source decisions before opening candidate details."]}
+write("selection-method.json", method)
+summary = {"schema_version": 1, "agent_id": IDENTITY, "session_id": IDENTITY, "completed_at_utc": datetime.now(timezone.utc).isoformat(), "stage": "readonly_all_release_qualified_negation_and_severity_candidate_audit", "source_reports_sha256": source_hash, "rubric_sha256": sha(rubric_path), "review_index_sha256": sha(index_path), "adjudication_registry_sha256": inspection["registry_sha256"], "source_artifact_count": len(source_bindings), "reviewed_artifact_count": len(review_bindings), "source_report_count": len(sources), "target_cells_covered": len(sources) * len(TARGETS), "source_artifact_bindings": source_bindings, "reviewed_artifact_bindings": review_bindings, "registered_corrections_in_inspection_copy": 34, "candidate_report_count": len(candidate_uids), "candidate_report_count_outside_normalized_duplicate_groups": len(candidate_uids - duplicate_uids), "candidate_target_count": len(candidates), "priority_target_counts": dict(sorted(priority_counts.items())), "priority_report_counts": {p: len(uids) for p, uids in priority_uids.items()}, "target_candidate_counts": dict(sorted(target_counts.items())), "candidate_effective_state_counts": dict(sorted(state_counts.items())), "source_rule_match_counts": dict(sorted(rule_hits.items())), "unassigned_qualified_source_cue_count": len(unassigned), "excluded_prior_comparison_cue_count": len(excluded), "neutral_packet_reports": len(neutral), "neutral_packet_batches": len(neutral_index), "duplicate_consistency": {k: duplicate_result[k] for k in ["duplicate_groups", "duplicate_studies", "conflicting_groups", "conflicting_group_targets", "opposite_polarity_group_targets"]}, "pending_semantic_qa": inspection["pending_semantic_qa"], "clinical_decisions_changed": False, "gold_values_inspected": False, "global_semantic_qa_closed": False, "training_ready": False, "notes": "All 89 final reviewed batches were structurally/source-evidence validated and hashed; all 4407 reports were lexically scanned. This is complete artifact processing, not personal clinical reading of all reports or a proof of exhaustive candidate discovery. Candidate details and source-only full-report packets are separate. No reviewed source, state, registry, manifest, documentation, or effective training labels were changed."}
+write("audit-summary.json", summary)
+for path, expected in {**source_bindings, **review_bindings}.items():
+    assert sha(REPO / path) == expected
+assert sha(REPO / "initiative/reviews-v2/adjudications/registry.json") == inspection["registry_sha256"]
+print(json.dumps({k: v for k, v in summary.items() if not isinstance(v, (list, dict))}, indent=2))
+print(json.dumps({"priority_target_counts": dict(priority_counts), "priority_report_counts": summary["priority_report_counts"], "duplicate_consistency": summary["duplicate_consistency"]}, indent=2))

@@ -1,0 +1,52 @@
+"""Preserve completed publication receipts and reviewed acquisition preferences."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import json
+import shutil
+from dotenv import dotenv_values
+
+W = Path(__file__).resolve().parent
+R = W / "recovered"
+tokens = [v.encode() for k, v in dotenv_values(W.parent / ".env").items() if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+assert len(tokens) == 2
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def files(folder, prefix=Path()):
+    return [(p, prefix / p.relative_to(folder)) for p in sorted(folder.rglob("*"))
+            if p.is_file() and "__pycache__" not in p.parts and not p.name.endswith((".lock", ".pyc"))]
+
+
+jobs = {
+    "hf-preparation-checkpoint-1792f01": files(W / "annotation-staging/hf-targeted4407-preparation-v1", Path("preparation")) + [
+        (W / "hf-preparation-checkpoints/1792f01ed3daab757c5ddb9bf5733ffe8d999f91" / n, Path("package-metadata") / n)
+        for n in ("manifest.json", "README.md", "publication-operation.json")
+    ],
+    "reviewed-series-preferences-v1": files(W / "annotation-staging/reviewed-series-preferences-v1"),
+}
+for name, mappings in jobs.items():
+    target = R / "initiative/audits" / name
+    assert not target.exists(), name
+    mappings = mappings + [(Path(__file__), Path("scripts") / Path(__file__).name)]
+    assert shutil.disk_usage(W).free - sum(p.stat().st_size for p, _ in mappings) > 20 * 2**30 + 32 * 2**20
+    refs = []
+    for p, rel in mappings:
+        assert not p.is_symlink()
+        data = p.read_bytes()
+        assert len(data) < 100_000_000 and all(token not in data for token in tokens)
+        out = target / rel
+        if out.suffix == ".py":
+            out = out.with_suffix(".py.txt")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with out.open("xb") as stream:
+            stream.write(data)
+        assert sha(p) == sha(out)
+        refs.append({"original_path": str(p.relative_to(W)), "archived_path": str(out.relative_to(R)), "sha256": sha(out), "bytes": len(data)})
+    proof = {"stage": "root_verified_byte_preservation", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(),
+             "files": refs, "excluded": "Python bytecode and lock files; the HF package remains externally pinned rather than duplicated in Git. Source helper bytes preserved with .py.txt suffix.", "training_ready": False}
+    (target / "preservation.json").write_text(json.dumps(proof, indent=2) + "\n")
+    print(json.dumps({"archive": name, "files": len(refs), "bytes": sum(r["bytes"] for r in refs), "preservation_sha256": sha(target / "preservation.json")}))

@@ -1,0 +1,804 @@
+"""Assemble 600 personally reasoned decisions after reading all 50 full reports.
+
+Every state below is manually assigned. q() only copies an explicitly selected
+contiguous source quotation; it never selects states or predicts annotations.
+"""
+import hashlib
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+REPO = OUT.parents[1] / "recovered"
+PACKET = OUT.parent / "qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-000.json"
+sources = json.loads(PACKET.read_text())
+targets = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA", "PF OA", "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
+rows = {}
+current = None
+
+def use(i):
+    global current
+    current = sources[i]["report"]
+
+def q(start, end=None):
+    a = current.index(start)
+    b = a + len(start) if end is None else current.index(end, a) + len(end)
+    return current[a:b]
+
+def d(state, quote, reason):
+    assert quote and quote in current
+    return {"state": state, "evidence": quote, "reason": reason}
+
+def n(quote, reason): return d("negative", quote, reason)
+def u(quote, reason): return d("uncertain", quote, reason)
+def p(quote, reason): return d("positive", quote, reason)
+def m(reason): return {"state": "not_mentioned", "evidence": "", "reason": reason}
+
+use(0)
+rows[0] = [
+ n(q("Ligamentos cruzados", "normales."), "explicit_absence: normal cruciates include ACL."),
+ n(q("Ligamentos cruzados", "normales."), "explicit_absence: normal collaterals include MCL."),
+ n(q("Aumento de señal del cuerno posterior", "rotura."), "below_threshold: internal medial signal without articular-surface contact or tear characteristics."),
+ n(q("Menisco lateral", "rotura."), "explicit_absence: lateral morphology/signal preserved and tear denied."),
+ u(q("Condropatía con lesiones grado 2 y 3", "medial."), "Mixed grades 2/3 and reparative medial lesions lack qualifying loss extent."),
+ n(q("El resto de los cartílagos femorotibiales", "alteraciones."), "explicit_absence: remaining femorotibial cartilage, including lateral compartment, is normal."),
+ n(q("Condropatía lesiones grado 2 de la rótula."), "below_threshold: grade 2 patellar loss; trochlear cartilage separately normal."),
+ u(q("No hay evidente derrame articular ni quistes poplíteos."), "No evident effusion is qualified, without explicit absent/small volume."),
+ m("No synovial-lining finding; tendon and friction edema are different structures."),
+ n(q("No hay evidente derrame articular ni quistes poplíteos."), "explicit_absence: ni quistes poplíteos directly denies cysts; singular evidente modifies derrame, not the separate plural cyst phrase."),
+ u(q("No hay alteraciones en significativas de la médula ósea."), "Qualified marrow negation leaves lesser abnormalities unspecified; no impact criterion is established."),
+ m("No fracture/line/cortical-disruption assertion; marrow qualification alone is not a fracture mention."),
+]
+use(1)
+rows[1] = [
+ n(q("Ligament croisé antérieur : Normal."), "explicit_absence: ACL normal."),
+ n(q("Ligament collatéral médial", "bas grade."), "below_threshold: old low-grade MCL sprain, not acute high-grade fiber injury."),
+ n(q("Pas de déchirure méniscale."), "explicit_absence: final unqualified denial of meniscal tear resolves garbled degenerative medial wording."),
+ n(q("Ménisque latéral : Normal."), "explicit_absence: lateral meniscus normal."),
+ n(q("Chondropatie légère des surfaces portantes", "profonde."), "below_threshold: mild medial chondropathy without deep fissuring."),
+ n(q("Chondropatie légère des surfaces portantes", "profonde."), "below_threshold: mild lateral chondropathy without deep fissuring."),
+ u(q("Chondropatie rétropatellaire modérée", "[grade 4]."), "Deep/grade 4 patellar lesions are described, but qualifying surface extent is not established."),
+ u(q("Épanchement articulaire : Pas de liquide significatif."), "Significance qualification does not state absence or a below-threshold fluid amount."),
+ m("No synovial lining or synovitis finding."),
+ n(q("Kyste de Baker : Aucun."), "explicit_absence: no Baker cyst."),
+ n(q("Chondropatie rétropatellaire modérée", "Par ailleurs normal."), "below_threshold/explicit_absence: marrow edema is explicitly reactive to cartilage disease and remaining marrow is normal; no traumatic marrow abnormality described."),
+ n(q("Fractures :\nAucune."), "explicit_absence: fractures directly denied."),
+]
+use(2)
+rows[2] = [
+ u(q("The contour of anterior cruciate ligament", "sprain"), "ACL sprain is ungraded; straight contour alone does not quantify injured fibers."),
+ n(q("Normal appearance of medial and lateral collateral ligaments"), "explicit_absence: normal MCL within named collateral list."),
+ u(q("No definite tear of medial or lateral meniscus in this study"), "Qualified tear negation without a separate normal medial description."),
+ u(q("No definite tear of medial or lateral meniscus in this study"), "Qualified tear negation without a separate normal lateral description."),
+ m("No medial cartilage assessment."), m("No lateral cartilage assessment."), m("No PF cartilage assessment."),
+ n(q("Minimal joint effusion"), "below_threshold: minimal fluid."),
+ m("No synovial finding; ACL-adjacent ganglion is not synovitis."),
+ m("ACL-adjacent possible ganglion does not identify a Baker cyst."),
+ u(q("No significant bone marrow edema", "this study."), "Marrow edema denial is qualified by significance."),
+ m("No fracture/line assertion. Denial of active cortical destruction is not a statement about a fracture line; do not create a fracture diagnosis from it."),
+]
+use(3)
+rows[3] = [
+ n(q("Ligamentos cruzados y colaterales sin alteraciones."), "explicit_absence: cruciates normal; nearby nonspecific fat edema is not ACL disruption."),
+ n(q("Ligamentos cruzados y colaterales sin alteraciones."), "explicit_absence: collaterals normal."),
+ n(q("Meniscos impresionan de morfología", "categórica."), "explicit_absence: meniscal morphology and signal are described as preserved; this supplies structural evidence beyond the qualified tear phrase."),
+ n(q("Meniscos impresionan de morfología", "categórica."), "explicit_absence: broad preserved meniscal morphology/signal includes lateral meniscus."),
+ n(q("El resto de los cartílagos femorotibiales", "alteraciones."), "explicit_absence: remaining femorotibial cartilage includes normal medial compartment."),
+ n(q("Condropatía superficial de platillo tibial lateral."), "below_threshold: superficial lateral cartilage disease."),
+ n(q("Condropatía lesiones grado 1 y 2 de la rótula."), "below_threshold: patellar grades 1/2."),
+ n(q("No hay derrame articular ni quistes poplíteos."), "explicit_absence: effusion unqualifiedly absent."),
+ m("No synovitis/lining finding; intercruciate fat edema is not lining inflammation."),
+ n(q("No hay derrame articular ni quistes poplíteos."), "explicit_absence: popliteal cysts absent."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Significance-qualified marrow absence does not establish a reliable negative."),
+ m("No fracture finding or explicit fracture negation."),
+]
+use(4)
+rows[4] = [
+ n(q("Grade 1 injury of ACL."), "below_threshold: explicitly grade 1 ACL injury."),
+ n(q("Both medial & lateral collateral ligaments appear to be within normal."), "explicit_absence: MCL normal."),
+ n(q("Linear signal intensity in posterior horn of medial meniscus", "contusion."), "below_threshold: specifically grade 2 intrasubstance medial signal, not merely an ungraded equivocal tear; meniscal contusion is not bone contusion."),
+ m("No lateral-meniscus finding."), m("No medial cartilage assessment."), m("No lateral cartilage assessment."), m("No PF cartilage assessment."),
+ u(q("Lipohemarthrosis of left knee and suprapatellar bursitis", "bursitis."), "Joint blood/fat fluid is present, but amount/distention is unspecified; extra-articular bursal amounts do not grade the joint."),
+ m("No synovial lining assessment; bursitis is anatomically separate."),
+ m("No Baker cyst; other bursae do not supply it."),
+ p(q("Left tibial intercondylar eminence fracture", "patella."), "Definite patellar bone-contusion diagnosis, separately named from tibial fracture."),
+ p(q("Fracture of posterior aspect", "muscular region."), "Current displaced avulsion fracture with adjacent marrow edema, lipohemarthrosis and generalized traumatic swelling jointly support acute injury; this is not subtype-only inference."),
+]
+use(5)
+rows[5] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: ACL in normal cruciate group."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: MCL in normal collateral group."),
+ n(q("Menisco medial de morfología", "rotura."), "explicit_absence: medial morphology/signal preserved; no tear."),
+ p(q("Amputación marginal del cuerpo del menisco lateral."), "Definite marginal tissue truncation is abnormal meniscal morphology."),
+ n(q("Cartílagos de los compartimentos femorotibiales sin alteraciones."), "explicit_absence: medial tibiofemoral cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales sin alteraciones."), "explicit_absence: lateral tibiofemoral cartilage normal."),
+ u(q("Fina úlcera condral focal", "secundarios."), "Full-thickness focal trochlear ulcer lacks a maximum extent; fina/focal does not provide a centimeter measurement."),
+ n(q("Leve derrame articular."), "below_threshold: mild effusion."),
+ m("No lining/synovitis mention."),
+ u(q("No hay quistes poplíteos patológicos."), "Only pathological cysts are denied; this qualifier does not explicitly establish absence or the moderate/large size threshold."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation; small secondary degenerative bone findings do not supply a global traumatic-contusion negative."),
+ m("No fracture mention; focal cartilage loss is not a fracture assertion."),
+]
+use(6)
+rows[6] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ n(q("Meniscos impresionan de morfología", "rotura."), "explicit_absence: preserved meniscal morphology/signal with no tear signs."),
+ n(q("Meniscos impresionan de morfología", "rotura."), "explicit_absence: same broad meniscal statement includes lateral structure."),
+ n(q("El resto de los", "alteraciones."), "explicit_absence: nonlateral tibiofemoral cartilage, including medial, normal."),
+ u(q("Condropatía lesiones grado 2 y 3 del platillo tibial lateral."), "Mixed partial/deeper lateral lesions lack qualifying extent."),
+ n(q("Condropatía con lesiones grado 2 de la rótula."), "below_threshold: patellar grade 2; trochlea separately normal."),
+ u(q("No hay significativo derrame articular ni quistes poplíteos."), "Significant qualifier modifies fluid amount; threshold not explicit."),
+ m("No synovial lining finding; reactive fat edema is separate."),
+ n(q("No hay significativo derrame articular ni quistes poplíteos."), "explicit_absence: separate ni quistes poplíteos phrase is unqualified; singular significativo modifies derrame."),
+ u(q("Alteración de señal de la médula ósea", "médula ósea."), "Marrow lesion is highly suggestive of infarct rather than a definite impact contusion; causal/diagnostic uncertainty remains in the named marrow finding."),
+ m("No fracture assertion; suspected bone infarct is not fracture."),
+]
+use(7)
+rows[7] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ n(q("Meniscos de morfología", "categórica."), "explicit_absence: direct preserved morphology/signal beyond qualified categorical-tear language."),
+ n(q("Meniscos de morfología", "categórica."), "explicit_absence: broad preserved meniscal finding covers lateral meniscus."),
+ u(q("Condropatía lesiones grado 2 - 3", "medial."), "Medial mixed grade 2/3 lacks qualifying extent."),
+ n(q("El resto de los cartílagos femorotibiales", "alteraciones."), "explicit_absence: remaining/lateral tibiofemoral cartilage normal."),
+ n(q("Condropatía\nrotuliana superficial difusa."), "below_threshold: superficial PF cartilage disease despite diffuse extent."),
+ n(q("No hay derrame articular ni quistes poplíteos patológicos."), "explicit_absence: joint effusion is unqualifiedly denied; superficial bursal liquid is not joint fluid."),
+ m("No synovial lining assessment; prepatellar bursitis is separate."),
+ u(q("No hay derrame articular ni quistes poplíteos patológicos."), "Pathological qualifier applies to cysts; no explicit absence of every cyst or size grade."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation; indication of bone edema is not a current finding."),
+ m("No fracture finding."),
+]
+use(8)
+rows[8] = [
+ n(q("Anterior cruciate ligament (ACL): Normal with both bundles intact."), "explicit_absence: both ACL bundles intact."),
+ n(q("Medial collateral ligament (MCL): Normal."), "explicit_absence: MCL normal."),
+ p(q("Medial meniscus:", "identified."), "Definite oblique undersurface medial tear, corroborated in impression."),
+ u(q("Lateral meniscus:", "identified."), "Degenerative signal alone would be negative, but borderline extrusion and qualified no-tear language leave morphology/tear status ambiguous rather than isolated internal degeneration."),
+ n(q("Medial compartment cartilage: No focal cartilage defects."), "explicit_absence: medial cartilage defects denied."),
+ n(q("Lateral compartment cartilage:", "notch."), "below_threshold: mild lateral thinning, corroborated as low-grade in impression."),
+ n(q("Low-grade patellofemoral/lateral compartment chondrosis."), "below_threshold: explicit low-grade PF chondrosis qualifies the partial-thickness findings."),
+ n(q("No joint effusion."), "explicit_absence: no joint effusion."),
+ m("No synovial lining finding."),
+ n(q("Trace Baker's cyst."), "below_threshold: trace cyst."),
+ u(q("No suspicious marrow signal abnormality."), "Suspicious is a qualified marrow exclusion rather than unqualified normal marrow; fall is history, not a current contusion diagnosis."),
+ n(q("No fracture."), "explicit_absence: current fracture absent despite clinical question."),
+]
+use(9)
+rows[9] = [
+ n(q("Normal ACL, PCL, MCL and LCL."), "explicit_absence: named normal ACL."),
+ n(q("Normal ACL, PCL, MCL and LCL."), "explicit_absence: named normal MCL."),
+ n(q("Conclusion:", "No evidence of tears."), "below_threshold/explicit_absence: medial myxoid degeneration with final unqualified denial of tears resolves earlier no-definite wording."),
+ n(q("Normal lateral meniscus."), "explicit_absence: lateral meniscus normal."),
+ n(q("Normal tibiofemoral and patellofemoral articular cartilage."), "explicit_absence: medial tibiofemoral cartilage normal."),
+ n(q("Normal tibiofemoral and patellofemoral articular cartilage."), "explicit_absence: lateral tibiofemoral cartilage normal."),
+ n(q("Normal tibiofemoral and patellofemoral articular cartilage."), "explicit_absence: PF cartilage normal."),
+ n(q("There is a mild knee effusion."), "below_threshold: mild fluid."),
+ m("No synovial lining assessment."), m("No Baker/posterior collection assessment."),
+ n(q("Normal visualized bones and surrounding soft tissues ."), "explicit_absence: direct normal bones support contusion absence."),
+ n(q("Normal visualized bones and surrounding soft tissues ."), "explicit_absence: direct normal bones support fracture absence."),
+]
+use(10)
+rows[10] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ p(q("Rotura compleja del cuerpo", "asociado."), "Definite complex/radial nearly complete medial tear."),
+ u(q("Menisco lateral de morfología parcialmente discoide, sin criterios de rotura."), "Partial discoid morphology is described while tear criteria are denied; whether this variant meets abnormal-morphology target needs adjudication rather than an inferred tear or normal morphology."),
+ n(q("Cartílagos de los compartimentos femorotibiales", "alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales", "alteraciones."), "explicit_absence: lateral cartilage normal."),
+ u(q("Úlcera\ncondral focal de espesor total de la faceta medial de la rótula."), "Full-thickness finding conflicts with final grade 2/3 characterization and has no qualifying size."),
+ u(q("No hay significativo derrame articular ni quistes poplíteos."), "Qualified fluid absence, without explicit amount."),
+ m("No synovial lining assessment."),
+ n(q("No hay significativo derrame articular ni quistes poplíteos."), "explicit_absence: ni quistes poplíteos is separately unqualified; the parameniscal cyst is another entity."),
+ m("No informative marrow/contusion finding; reactive fat edema is extraosseous."),
+ m("No fracture mention."),
+]
+use(11)
+rows[11] = [
+ n(q("Normal ACL, PCL, MCL and LCL."), "explicit_absence: ACL normal."),
+ n(q("Normal ACL, PCL, MCL and LCL."), "explicit_absence: MCL normal."),
+ u(q("Conclusion:", "No evidence of tears."), "Definite undersurface fraying extends beyond isolated internal degeneration, while final no-tear language denies a tear; morphology-target interpretation remains ambiguous."),
+ n(q("Normal lateral meniscus."), "explicit_absence: lateral meniscus normal."),
+ n(q("Mild thinning of the medial compartment articular cartilage is noted."), "below_threshold: mild thinning."),
+ n(q("Normal lateral tibiofemoral and patellofemoral articular cartilage."), "explicit_absence: lateral cartilage normal."),
+ n(q("Normal lateral tibiofemoral and patellofemoral articular cartilage."), "explicit_absence: PF cartilage normal."),
+ n(q("There is a minor knee effusion."), "below_threshold: minor fluid."),
+ m("No synovial lining finding."), m("No Baker cyst assessment."),
+ n(q("Normal visualized bones and surrounding soft tissues."), "explicit_absence: bones normal."),
+ n(q("Normal visualized bones and surrounding soft tissues."), "explicit_absence: bones normal."),
+]
+use(12)
+rows[12] = [
+ n(q("Ligamentos cruzados y colateral lateral sin alteraciones."), "explicit_absence: normal cruciates include ACL."),
+ u(q("Aumento de señal con engrosamiento del componente superficial", "sus fibras."), "Superficial and deep MCL partial fiber disruption with fluid, diagnosed grade II, lacks a high-grade/>50% statement."),
+ u(q("Leve aumento de señal del meniscocapsular", "alteraciones."), "Meniscocapsular signal has qualified no-tear interpretation; not a definite isolated internal-degeneration diagnosis."),
+ n(q("Menisco lateral de morfología", "rotura."), "explicit_absence: normal morphology/signal and no tear."),
+ u(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones significativas."), "Medial cartilage absence qualified by significance."),
+ u(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones significativas."), "Lateral cartilage absence qualified by significance."),
+ u(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones significativas."), "PF cartilage absence qualified by significance."),
+ n(q("Mínimo derrame articular."), "below_threshold: minimum/mild fluid descriptions agree."),
+ m("No lining inflammation finding; Hoffa edema is separate."),
+ n(q("Pequeño quiste poplíteo con probable rotura."), "below_threshold: explicitly small cyst; possible rupture does not establish a currently moderate/large collection."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(13)
+rows[13] = [
+ p(q("Chronic complete tear of the anterior cruciate ligament", "7 mm."), "Complete current ACL disruption qualifies even though chronic; ACL target does not require acute timing."),
+ n(q("The medial collateral ligament is intact."), "explicit_absence: MCL intact."),
+ p(q("Inferiorly surfacing oblique tear posterior horn medial meniscus extending into the body."), "Definite surfacing oblique medial tear."),
+ n(q("The lateral meniscus and tibiofemoral cartilage are intact."), "explicit_absence: lateral meniscus intact."),
+ u(q("The medial tibiofemoral cartilage is grossly preserved."), "Gross preservation is qualified and does not state loss depth/extent or unequivocal normal cartilage."),
+ n(q("The lateral meniscus and tibiofemoral cartilage are intact."), "explicit_absence: lateral cartilage intact."),
+ n(q("The patellofemoral cartilage is intact."), "explicit_absence: PF cartilage intact."),
+ n(q("Trace joint fluid."), "below_threshold: trace fluid."),
+ m("No synovial lining assessment."),
+ n(q("No Baker's cyst."), "explicit_absence: Baker cyst denied; parameniscal cyst is separate."),
+ n(q("No abnormal bone marrow edema or bone contusions."), "explicit_absence: explicit bone-contusion denial."),
+ m("No fracture assertion; absence of marrow edema does not alone exclude a fracture."),
+]
+use(14)
+rows[14] = [
+ n(q("The anterior cruciate ligament, posterior cruciate ligament", "intact and unremarkable."), "explicit_absence: ACL individually named intact."),
+ n(q("The anterior cruciate ligament, posterior cruciate ligament", "intact and unremarkable."), "explicit_absence: MCL individually named intact."),
+ n(q("The medial meniscus is intact."), "explicit_absence: medial meniscus intact."),
+ n(q("The lateral meniscus is intact."), "explicit_absence: lateral meniscus intact."),
+ n(q("The articular cartilage of the medial joint compartment is well-maintained."), "explicit_absence: medial cartilage well maintained, with no described loss."),
+ n(q("The articular cartilage of lateral joint compartment is well-maintained."), "explicit_absence: lateral cartilage well maintained."),
+ n(q("Articular cartilage of the patellofemoral joint is well-maintained."), "below_threshold/explicit_absence: PF cartilage preserved with only mild overlying chondrosis; the 1 cm dorsal-defect variant is not a 1 cm deep cartilage-loss region."),
+ u(q("No significant knee effusion is demonstrated."), "Qualified effusion absence."),
+ m("No synovial lining finding."),
+ n(q("There is a trace Baker's cyst demonstrated."), "below_threshold: trace Baker cyst."),
+ n(q("Within the lateral femoral condyle", "No other bone infarcts are seen within field-of-view."), "below_threshold/explicit_absence: described osseous lesions are a normal dorsal-defect variant and typical infarct; remaining marrow explicitly normal, without a traumatic contusion finding."),
+ m("No fracture assertion; no articular/cortical collapse and a normal variant do not themselves describe a fracture line."),
+]
+use(15)
+rows[15] = [
+ n(q("Autrement le ligament croisé antérieur", "sans particularité."), "explicit_absence: named ACL unremarkable."),
+ n(q("Autrement le ligament croisé antérieur", "sans particularité."), "explicit_absence: named internal collateral ligament unremarkable."),
+ n(q("Autrement le ligament croisé antérieur", "sans particularité."), "explicit_absence: internal meniscus unremarkable."),
+ n(q("Autrement le ligament croisé antérieur", "sans particularité."), "explicit_absence: external meniscus unremarkable."),
+ n(q("Le cartilage articulaire est préservé."), "explicit_absence: unqualified broad articular-cartilage preservation includes medial compartment."),
+ n(q("Le cartilage articulaire est préservé."), "explicit_absence: broad normal cartilage includes lateral compartment."),
+ n(q("Le cartilage articulaire est préservé."), "explicit_absence: broad normal cartilage includes PF compartment."),
+ u(q("Il n'y a pas d'épanchement significatif ou de kyste poplité."), "Significant qualifier explicitly modifies effusion; amount unresolved."),
+ m("No synovial assessment."),
+ n(q("Il n'y a pas d'épanchement significatif ou de kyste poplité."), "explicit_absence: ou de kyste poplité is a separately unqualified noun phrase; significatif belongs to épanchement."),
+ n(q("Le signal de la moelle osseuse est normal."), "explicit_absence: marrow normal."),
+ m("No fracture/cortical finding; normal marrow alone is not a direct fracture assessment."),
+]
+use(16)
+rows[16] = [
+ n(q("Ο πρόσθιος χιαστός σύνδεσµος παρουσιάζει µυξοειδή εκφύλιση."), "below_threshold: ACL myxoid degeneration without reported disruption."),
+ n(q("Ο οπίσθιος χιαστός και οι πλάγιοι σύνδεσµοι απεικονίζονται εντός του φυσιολογικού."), "explicit_absence: collateral ligaments normal."),
+ p(q("Στο έσω διαµέρισµα παρατηρείται", "αρθροσκόπηση)."), "Definite current degenerative medial tear and reduced meniscal mass; unknown past arthroscopy does not negate the current explicit tear diagnosis."),
+ u(q("Στο έξω διαµέρισµα δεν παρατηρούνται αξιόλογα παθολογικά ευρήµατα."), "Lateral compartment is addressed only through qualified noteworthy-abnormality negation; meniscal normality not explicit."),
+ u(q("Επιπλέον συνυπάρχουν", "(ICRS grade IV)"), "Full-thickness medial loss at both surfaces, but no explicit qualifying region extent."),
+ u(q("Στο έξω διαµέρισµα δεν παρατηρούνται αξιόλογα παθολογικά ευρήµατα."), "Lateral-compartment cartilage absence is qualified."),
+ m("Anterior-compartment alignment and congenital shallow trochlea do not describe PF cartilage loss or preservation."),
+ p(q("Ενδαρθρικά παρατηρείται µετρία συλλογή υγρού."), "Explicit moderate intra-articular fluid."),
+ m("No synovitis/lining finding."), m("No Baker cyst finding."),
+ u(q("ενώ παρατηρείται επιπλέον εστίες οστεοµυελικού οιδήµατος", "έσω εγγύς κνήµη."), "Marrow edema accompanies degenerative/insufficiency-fracture interpretation; impact causation is not established."),
+ u(q("Συνολικά τα ευρήµατα", "έσω εγγύς κνήµη."), "Insufficiency microtrabecular fracture is diagnosed without explicit acute timing; subtype alone does not establish acuity."),
+]
+use(17)
+rows[17] = [
+ n(q("Kreuzbänder intakt."), "explicit_absence: cruciates intact."),
+ n(q("LCL und MCL intakt."), "explicit_absence: MCL intact."),
+ u(q("Diskrete lineare Signalanhebung am IM", "Signalalteration."), "Medial signal reaches inferior edge on one sequence without correlation elsewhere; possible mucoid change remains equivocal."),
+ n(q("Keine Rissbildung am AM."), "explicit_absence: lateral meniscal tear denied."),
+ n(q("Oberflächliche Chondropathie", "(5/22, 6/11)."), "below_threshold: superficial medial chondropathy."),
+ n(q("Lateral und femoropatellar keine tiefgreifende Chondropathie."), "below_threshold: explicit exclusion of deep cartilage disease laterally."),
+ n(q("Lateral und femoropatellar keine tiefgreifende Chondropathie."), "below_threshold: explicit exclusion of deep PF cartilage disease."),
+ u(q("Kein relevanter Gelenkerguss."), "Relevant is a significance qualifier, not an absent/trace/small amount."),
+ m("No synovial lining finding."), m("No Baker cyst finding."),
+ n(q("Homogenes Knochenmarksignal, kein Knochenödem."), "explicit_absence: homogeneous marrow and no bone edema."),
+ m("No fracture assertion; no edema does not itself exclude fracture."),
+]
+use(18)
+rows[18] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ n(q("Aumento de señal central", "rotura."), "below_threshold: central medial signal not reaching articular surface and without tear characteristics."),
+ n(q("El menisco lateral impresiona", "rotura."), "explicit_absence: preserved lateral morphology/signal and no tear signs."),
+ n(q("Condropatía con\nlesiones grado 2 del cóndilo femoral medial."), "below_threshold: medial grade 2."),
+ u(q("Condropatía con lesiones grado 2 y 3 del compartimento femorotibial lateral."), "Mixed lateral grade 2/3 lacks qualifying extent."),
+ u(q("Condropatía lesiones grado 4 de la rótula."), "Patellar grade 4 lacks qualifying loss extent."),
+ u(q("No hay signos que sugieran significativo derrame articular o quistes poplíteos."), "Effusion significance is qualified; no explicit volume."),
+ m("No synovial lining assessment."),
+ n(q("No hay signos que sugieran significativo derrame articular o quistes poplíteos."), "explicit_absence: no signs of popliteal cysts; singular significativo qualifies derrame, not the separate plural cyst phrase."),
+ m("Secondary osseous cartilage changes do not explicitly mention marrow edema or contusion."),
+ m("No fracture finding; full-thickness cartilage ulcers are not fractures."),
+]
+use(19)
+rows[19] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ n(q("Aumento de señal central", "rotura."), "below_threshold: central medial signal does not contact articular surface and lacks tear features."),
+ n(q("El menisco lateral es", "rotura."), "explicit_absence: lateral morphology/signal preserved."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: lateral cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: PF cartilage normal."),
+ u(q("No hay\nsignificativo derrame articular ni quistes poplíteos."), "Qualified fluid absence."),
+ m("No synovial lining assessment."),
+ n(q("No hay\nsignificativo derrame articular ni quistes poplíteos."), "explicit_absence: ni quistes poplíteos separately denies cysts without a plural significance qualifier."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(20)
+rows[20] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ u(q("Probable rotura periférica del menisco medial."), "Medial tear explicitly probable, not definite."),
+ p(q("Rotura a nivel de la unión", "menisco lateral."), "Definite displaced lateral meniscal tear/abnormal morphology."),
+ n(q("Condropatía lesiones grado 2", "medial."), "below_threshold: medial grade 2."),
+ u(q("Cartílagos del compartimento femorotibial lateral sin alteraciones significativas."), "Lateral cartilage negation qualified by significance."),
+ u(q("Condropatía lesiones focales grado 3 y 4 de la tróclea\nfemoral."), "Deep focal trochlear lesions lack qualifying extent."),
+ u(q("Leve a moderado derrame articular con discreta sinovitis difusa."), "Mild-to-moderate spans below and at the fluid threshold."),
+ p(q("Leve a moderado derrame articular con discreta sinovitis difusa."), "Definite current diffuse synovitis diagnosis; no minimum synovitis severity required."),
+ m("No Baker cyst finding."),
+ u(q("No hay alteraciones en significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(21)
+rows[21] = [
+ n(q("Normal ACL, PCL, MCL and LCL."), "explicit_absence: ACL normal."),
+ n(q("Normal ACL, PCL, MCL and LCL."), "explicit_absence: MCL normal."),
+ n(q("Minor myxoid degeneration", "no evidence of tear."), "below_threshold/explicit_absence: medial myxoid degeneration without tear."),
+ n(q("Normal lateral meniscus."), "explicit_absence: lateral meniscus normal."),
+ n(q("The year tibiofemoral and patellofemoral articular cartilage is well preserved."), "explicit_absence: tibiofemoral cartilage preserved; stray word year does not change named anatomy."),
+ n(q("The year tibiofemoral and patellofemoral articular cartilage is well preserved."), "explicit_absence: preserved lateral tibiofemoral cartilage."),
+ n(q("The year tibiofemoral and patellofemoral articular cartilage is well preserved."), "explicit_absence: PF cartilage preserved."),
+ n(q("There is a mild knee effusion."), "below_threshold: mild/minor fluid."),
+ m("No synovial finding."), m("No Baker cyst finding."),
+ n(q("Normal visualized bones and surrounding soft tissues."), "explicit_absence: visualized bones normal."),
+ n(q("Normal visualized bones and surrounding soft tissues."), "explicit_absence: normal bones support fracture absence."),
+]
+use(22)
+rows[22] = [
+ n(q("Mild interstitial increased signal intensity of ACL", "degeneration."), "below_threshold: ACL degeneration without described discontinuity."),
+ n(q("PCL, medial & lateral collateral ligaments appear to be within normal."), "explicit_absence: MCL normal."),
+ n(q("Linear signal intensity in posterior horn of medial meniscus", "vascularity."), "below_threshold: expressly grade 2 intrasubstance medial signal despite qualified surface wording."),
+ m("No lateral meniscal finding."),
+ u(q("Some osteophytes and irregular thining", "osteoarthritis"), "General knee cartilage thinning/OA is unlocalized and lacks depth/extent; no reliable medial state."),
+ u(q("Some osteophytes and irregular thining", "osteoarthritis"), "General knee cartilage thinning/OA is unlocalized and lacks depth/extent; no reliable lateral state."),
+ u(q("Wearing of articular cartilage", "chondromalacia"), "Grade 3/4 patellar cartilage wear is focal without qualifying extent."),
+ u(q("Joint effusion and suprapatellar bursitis", "synovitis."), "Joint fluid is ungraded; bursal fluid does not establish its amount."),
+ p(q("Joint effusion and suprapatellar bursitis", "synovitis."), "Synovial hypertrophy and explicit synovitis diagnosis."),
+ n(q("Small Baker's cyst and popliteus bursitis."), "below_threshold: Baker cyst specifically small; other posterior bursae not combined into its size."),
+ m("Subchondral cyst is not a marrow edema/contusion assertion."),
+ m("No fracture finding."),
+]
+use(23)
+rows[23] = [
+ n(q("Normal ACL orientation with intact ligament fiber is observed."), "explicit_absence: ACL fibers intact."),
+ n(q("MCL is intact."), "explicit_absence: MCL intact."),
+ n(q("Normal shape with preserved signal of medial meniscus is observed."), "explicit_absence: explicit normal morphology/signal resolves global qualified tear phrase."),
+ n(q("Lateral meniscus is not torn."), "explicit_absence: unqualified lateral tear denial."),
+ u(q("No definite cartilagenous lesion."), "General cartilage assessment is qualified; no separate definitive medial cartilage description."),
+ u(q("No definite cartilagenous lesion."), "General cartilage assessment is qualified; no separate definitive lateral cartilage description."),
+ n(q("Normal appearance of articular cartilage", "is detected."), "explicit_absence: patellar-facet cartilage directly called normal despite garbled repeated wording and generic qualified conclusion."),
+ n(q("Minimal PF joint effusion is seen."), "below_threshold: minimal joint fluid."),
+ m("No synovial lining finding."), m("No Baker cyst finding."),
+ n(q("No fracture or bone contusion is seen."), "explicit_absence: bone contusion directly denied."),
+ n(q("No fracture or bone contusion is seen."), "explicit_absence: fracture directly denied."),
+]
+use(24)
+rows[24] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ u(q("Aumento de señal del meniscocapsular", "significativas."), "Possible partial meniscocapsular lesion, with qualified remaining-medial assessment, does not state a definite named meniscal tear."),
+ n(q("El menisco lateral es de morfología", "rotura."), "explicit_absence: definite preserved morphology/signal supplies normal structure beyond categorical-tear qualification."),
+ n(q("Cartílagos los compartimentos femorotibiales", "alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos los compartimentos femorotibiales", "alteraciones."), "explicit_absence: lateral cartilage normal."),
+ u(q("Úlceras condrales de espesor total", "rótula."), "Full-thickness patellar lesions/grade 4 lack qualifying extent."),
+ u(q("No hay evidente derrame articular ni quistes poplíteos patológicos."), "Evident qualifier does not specify fluid absence or amount."),
+ m("No synovial lining finding."),
+ u(q("No hay evidente derrame articular ni quistes poplíteos patológicos."), "Cyst denial is explicitly restricted to pathological cysts, without a size threshold."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture assertion; cartilage ulcers are not fracture mentions."),
+]
+use(25)
+rows[25] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ n(q("Meniscos de morfología y señal conservada, sin signos de rotura."), "explicit_absence: medial morphology/signal preserved; no tear signs."),
+ n(q("Meniscos de morfología y señal conservada, sin signos de rotura."), "explicit_absence: lateral morphology/signal preserved; no tear signs."),
+ n(q("Cartílagos de los compartimentos femorotibiales", "alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales", "alteraciones."), "explicit_absence: lateral cartilage normal."),
+ n(q("Condropatía rotuliana superficial difusa."), "below_threshold: superficial patellar disease; trochlea normal."),
+ u(q("No hay significativo derrame articular ni quistes poplíteos."), "Qualified fluid absence."),
+ m("No synovial finding; extra-articular tendon-adjacent fluid is not synovitis."),
+ n(q("No hay significativo derrame articular ni quistes poplíteos."), "explicit_absence: ni quistes poplíteos separately denies cysts, without a plural size qualifier."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(26)
+rows[26] = [
+ n(q("Otherwise the anterior cruciate ligament", "unremarkable."), "explicit_absence: individually named ACL unremarkable."),
+ n(q("Otherwise the anterior cruciate ligament", "unremarkable."), "explicit_absence: individually named MCL unremarkable."),
+ n(q("Otherwise the anterior cruciate ligament", "unremarkable."), "explicit_absence: medial meniscus unremarkable."),
+ n(q("Otherwise the anterior cruciate ligament", "unremarkable."), "explicit_absence: lateral meniscus unremarkable."),
+ n(q("The articular cartilage is preserved."), "explicit_absence: unqualified broad cartilage preservation includes medial compartment."),
+ n(q("The articular cartilage is preserved."), "explicit_absence: broad preserved cartilage includes lateral compartment."),
+ n(q("The articular cartilage is preserved."), "explicit_absence: broad preserved cartilage includes PF compartment."),
+ u(q("There is no significant knee joint effusion or popliteal cyst."), "Significance-qualified fluid absence."),
+ m("No synovial lining assessment."),
+ u(q("There is no significant knee joint effusion or popliteal cyst."), "English shared modifier significant can scope both coordinated nouns; no separately unqualified cyst absence or size statement."),
+ n(q("There is normal bone marrow signal intensity."), "explicit_absence: marrow normal."),
+ m("No fracture/cortical finding; normal marrow alone does not directly describe fracture."),
+]
+use(27)
+rows[27] = [
+ n(q("Mild cystic changes within the tibial eminence", "Posterior cruciate ligament intact."), "below_threshold: mild ACL signal attributed to beginning mucoid degeneration, without a high-grade disruption finding."),
+ n(q("Medial collateral ligament intact."), "explicit_absence: MCL intact."),
+ u(q("Presence of a small meniscal flounce", "interface intact."), "Flounce may be a normal configuration, but the source does not establish unequivocal normal morphology and uses qualified no-definitive-tear wording; retain morphology ambiguity for review."),
+ u(q("Lateral compartment:", "tear."), "No significant meniscal tear is qualified and no separate normal lateral meniscal finding resolves it."),
+ n(q("Medial compartment:\nMild chondrosis."), "below_threshold: mild medial cartilage disease."),
+ n(q("Lateral compartment:\nMild chondrosis"), "below_threshold: mild lateral cartilage disease."),
+ n(q("Overall mildly chondrosis", "thickness."), "below_threshold: expressly less than 50% patellar thickness despite broader mild-to-moderate impression."),
+ u(q("No significant effusion."), "Qualified fluid absence."),
+ m("No synovitis/lining finding."), m("No Baker cyst finding."),
+ m("Sclerosis and small eminence cysts do not assert marrow edema/contusion."),
+ m("No fracture finding."),
+]
+use(28)
+rows[28] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ n(q("Aumento de señal central", "rotura."), "below_threshold: internal medial signal explicitly does not reach articular surface or show tear characteristics."),
+ n(q("El menisco lateral es de morfología y señal", "rotura."), "explicit_absence: lateral morphology/signal preserved."),
+ n(q("Cartílagos de los compartimentos femorotibiales sin alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales sin alteraciones."), "explicit_absence: lateral cartilage normal."),
+ n(q("Condropatía superficial periférica de la lateral de la tróclea femoral.", "rótula."), "below_threshold: superficial trochlear and grade 2 patellar disease; no current delamination."),
+ n(q("Mínimo derrame articular en receso suprapatelar."), "below_threshold: minimum fluid."),
+ m("No synovial lining finding."),
+ u(q("No hay quistes poplíteos patológicos."), "Cyst denial limited to pathological cysts; qualifying size not explicit."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(29)
+rows[29] = [
+ n(q("VKB intakt."), "explicit_absence: ACL intact; complete tear concerns PCL/HKB."),
+ p(q("Proximale, komplette Ruptur des MCL", "Kniegelenk, lateral betont."), "Complete proximal MCL/capsule disruption with hemarthrosis and surrounding hemorrhage supplies acute traumatic context, not merely chronic injury."),
+ n(q("Innen- und Außenmeniskus ohne Anhalt für eine Rissbildung."), "explicit_absence: no medial meniscal tear evidence."),
+ n(q("Innen- und Außenmeniskus ohne Anhalt für eine Rissbildung."), "explicit_absence: no lateral meniscal tear evidence."),
+ u(q("Keine höhergradige Chondropathie."), "Only higher-grade disease is excluded; no explicit loss-depth boundary or medial localization."),
+ u(q("Keine höhergradige Chondropathie."), "Only higher-grade disease is excluded; no explicit loss-depth boundary or lateral localization."),
+ u(q("Keine höhergradige Chondropathie."), "Only higher-grade disease is excluded; no explicit loss-depth boundary or PF localization."),
+ u(q("Deutlicher Hämarthros."), "Marked/obvious hemarthrosis is present but not explicitly graded moderate/large or distending."),
+ m("No synovitis/lining finding."), m("No Baker cyst finding."),
+ p(q("Bone Bruise-Areale", "Femurkondyle (4/19)."), "Current definite bone-bruise areas are diagnosed; contusional mechanism is considered in the setting of major ligament trauma."),
+ m("No fracture/line assertion; normal remaining osseous structures does not exclude fracture in bruised regions."),
+]
+use(30)
+rows[30] = [
+ n(q("The anterior cruciate ligament is intact and appears unremarkable."), "explicit_absence: ACL intact."),
+ n(q("There is edema around the proximal and mid fibers", "sprain."), "below_threshold: explicitly low-grade MCL sprain/tear; MPFL high-grade injury is a different ligament."),
+ n(q("The medial meniscus is intact."), "explicit_absence: medial meniscus intact."),
+ n(q("The lateral meniscus is intact."), "explicit_absence: lateral meniscus intact."),
+ n(q("The articular cartilage of the medial joint compartment is well-maintained."), "explicit_absence: medial cartilage maintained."),
+ n(q("The articular cartilage of the lateral joint compartment appears to be well maintained."), "explicit_absence: lateral cartilage maintained."),
+ u(q("Articular cartilage of the patella", "well-maintained."), "Patellar fraying and moderate chondromalacia lack qualifying depth/extent; reasonably preserved trochlea does not resolve patellar disease."),
+ u(q("There is a small to moderate knee effusion."), "Small-to-moderate crosses the observed-fluid threshold."),
+ m("No synovial lining finding; plica/retinacular anatomy is separate."),
+ n(q("There is no Baker's cyst demonstrated."), "explicit_absence: Baker cyst absent."),
+ p(q("Torn medial patellofemoral ligament associated", "patellofemoral joint."), "Explicit bone-contusion diagnosis associated with transient patellar dislocation; retain alongside separately diagnosed osteochondral fractures."),
+ p(q("There is intraosseous edema", "lateral femoral condyle."), "Current impaction with edema/contour flattening and dislocation mechanism, corroborated as osteochondral fracturing in impression, supports acute injury rather than subtype alone."),
+]
+use(31)
+rows[31] = [
+ n(q("Intaktes vorderes und hinteres Kreuzband."), "explicit_absence: ACL intact."),
+ n(q("Intaktes mediales und laterales Kollateralband."), "explicit_absence: MCL intact."),
+ n(q("Unauffällige Darstellung des medialen und lateralen Meniskus", "Signalintensität."), "explicit_absence: medial meniscal shape/signal normal."),
+ n(q("Unauffällige Darstellung des medialen und lateralen Meniskus", "Signalintensität."), "explicit_absence: lateral meniscal shape/signal normal."),
+ u(q("Keine wesentliche Chondropathie femoro-tibial", "retropatellar."), "Medial chondropathy denial qualified by substantial/significant."),
+ u(q("Keine wesentliche Chondropathie femoro-tibial", "retropatellar."), "Lateral chondropathy denial qualified by substantial/significant."),
+ u(q("Gering streifige hypointense Signalveränderungen", "(5/15, 4/19 + 6/20)."), "Trochlear suspected focal osteochondral lesion lacks cartilage depth/extent; normal retropatellar cartilage cannot negate it."),
+ n(q("Gering Gelenkerguss"), "below_threshold: small/minor effusion."),
+ m("No synovial lining finding."), m("No Baker cyst finding."),
+ u(q("Gering streifige hypointense Signalveränderungen", "(5/15, 4/19 + 6/20)."), "Subchondral edema accompanies an equivocal osteochondral lesion without an impact mechanism."),
+ m("No fracture/line assertion; generic suspected osteochondral lesion is not a fracture mention."),
+]
+use(32)
+rows[32] = [
+ n(q("Kreuzbänder intakt."), "explicit_absence: cruciates intact."),
+ n(q("Signalanhebung der tiefen Anteile des MCL", "abzugrenzen."), "below_threshold: signal/adjacent fluid but explicitly continuously delineated ligament structure without described fiber break."),
+ u(q("Am Innenmeniskus in der Pars intermedia", "(4/23)."), "Medial signal increase lacks surface relation or definite isolated degeneration/tear characterization."),
+ n(q("Der Außenmeniskus morphologisch unauffällig mit unauffälliger Signalgebung."), "explicit_absence: lateral morphology and signal normal."),
+ n(q("Ansonsten unauffälliger Knorpelbelag."), "explicit_absence: remaining cartilage normal outside specifically described PF lesions, including medial tibiofemoral surface."),
+ n(q("Ansonsten unauffälliger Knorpelbelag."), "explicit_absence: remaining cartilage normal, including lateral tibiofemoral surface."),
+ u(q("An der medialen Facette der Trochlea", "(z. B. 7/12 oder 6/22)."), "Deep focal small trochlear lesion has no size proving the approximately 1 cm extent; superficial patellar fibrillation does not grade it."),
+ n(q("Etwas akzentuierte Gelenkflüssigkeit. Kein relevanter Erguss."), "below_threshold: slightly accentuated fluid supplies an amount qualifier beyond the subsequent no-relevant phrase."),
+ m("No synovial lining finding."),
+ n(q("Winzige Baker-Zyste."), "below_threshold: tiny Baker cyst."),
+ n(q("Altersentsprechendes Knochenmarkssignal ohne Nachweis eines intraossären Ödems."), "explicit_absence: age-appropriate marrow with no intraosseous edema."),
+ m("No fracture assessment; bipartite patella explicitly an anatomical variant, not fracture."),
+]
+use(33)
+rows[33] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ m("No medial-meniscus finding; no assumption from normal ligaments/cartilage."),
+ m("No lateral-meniscus finding."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones."), "explicit_absence: lateral cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones."), "explicit_absence: PF cartilage normal."),
+ u(q("No hay significativo derrame articular ni quistes poplíteos patológicos."), "Qualified effusion absence."),
+ m("No lining finding; Hoffa/prefemoral edema is not synovitis."),
+ u(q("No hay significativo derrame articular ni quistes poplíteos patológicos."), "Only pathological cysts excluded; no qualifying cyst size or unqualified absence."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified current marrow negation; clinical indication of knee contusion is not a current bone-contusion diagnosis."),
+ m("No fracture finding."),
+]
+use(34)
+rows[34] = [
+ n(q("Ön çapraz bağ sinyali", "dejenerasyon)"), "below_threshold: ACL mild diffuse signal expressly myxoid degeneration."),
+ n(q("Medial kollateral ligamen çevresinde", "grade I sprain )."), "below_threshold: MCL specifically grade I; grade II applies to lateral collateral ligament."),
+ p(q("Medial menisküste grade III", "hafif ekstrude görünümdedir."), "Definite horizontal medial tear with volume loss/extrusion."),
+ p(q("Lateral menisküs posterior hornda", "kompleks yırtık mevcuttur."), "Definite complex lateral tear with maceration and loss of tissue volume."),
+ u(q("Diz eklemini oluşturan kemik yapılarda", "artrit)."), "General degenerative arthritis/cartilage integrity loss lacks qualifying depth/extent and compartment-specific medial detail."),
+ u(q("Diz eklemini oluşturan kemik yapılarda", "artrit)."), "Lateral adjacent marrow/sclerosis and cartilage loss still lack qualifying loss depth/extent."),
+ u(q("Diz eklemini oluşturan kemik yapılarda", "artrit)."), "General knee degeneration/cartilage-loss statement has no reliable PF localization or threshold."),
+ u(q("Suprapatellar bursada", "sıvı artışları izlendi."), "Widespread increased joint/suprapatellar fluid does not explicitly grade distention/amount moderate or large."),
+ m("No synovial thickening/inflammation diagnosis."),
+ p(q("Popliteal fossada 80x25 mm", "baker kisti izlendi."), "Named Baker cyst in characteristic location measures 80 by 25 mm, explicitly a large collection."),
+ u(q("Femur lateral kondil", "bulgular izlendi."), "Marrow edema accompanies degenerative subchondral sclerosis; impact cause is not established."),
+ m("No fracture finding."),
+]
+use(35)
+rows[35] = [
+ m("No ACL assessment."), m("No MCL assessment."),
+ n(q("Linear signal intensity in posterior horn of medial meniscus", "vascularity"), "below_threshold: specifically grade 2 intrasubstance signal/degeneration, despite qualified surface wording."),
+ m("No lateral meniscal finding."), m("No medial cartilage assessment."), m("No lateral cartilage assessment."),
+ n(q("Mild fraying articular cartilage of patella, in favor of grade 2 chondromalacia."), "below_threshold: mild fraying/grade 2 patellar chondromalacia."),
+ n(q("Mild joint effusion of left knee"), "below_threshold: mild fluid."),
+ m("Infrapatellar mass/tendon-sheath tumor differential is not an inflamed synovial-lining finding."),
+ m("No Baker cyst; infrapatellar mass is another structure."),
+ u(q("No significant bone marrow edema of distal femur and proximal tibia and patella."), "Qualified marrow edema absence."),
+ m("No fracture assertion."),
+]
+use(36)
+rows[36] = [
+ n(q("The continuity and alignment of the anterior cruciate ligament (ACL) are preserved."), "explicit_absence: ACL continuity preserved; PCL signal finding does not relabel ACL."),
+ n(q("The medial and lateral collateral ligaments", "knee MR examination."), "explicit_absence: MCL expressly intact; the later without-definite-abnormalities qualification does not negate structural intactness."),
+ u(q("PD hyperintensities are detected in the posterior horn of the medial meniscus.", "degenerative tear."), "More in favor of medial degenerative tear is equivocal, not a definite tear diagnosis."),
+ n(q("The lateral meniscus is intact without tear."), "explicit_absence: lateral meniscus intact with no tear."),
+ u(q("Osteoarthric change of right knee. Grossly preserved joint space and alignment."), "Bare knee OA/grossly preserved space lacks medial cartilage threshold/localization."),
+ u(q("Osteoarthric change of right knee. Grossly preserved joint space and alignment."), "Bare knee OA/grossly preserved space lacks lateral tibiofemoral cartilage threshold/localization."),
+ u(q("Subchondral erosions, subcortical cysts, and cartilage thinning", "favored."), "PF advanced chondromalacia is favored but depth and qualifying surface extent are unspecified."),
+ n(q("Normal joint effusion."), "below_threshold: fluid is explicitly called normal/physiologic despite awkward wording; infrapatellar bursal fluid is separate."),
+ m("Subcutaneous inflammation and bursitis do not assert synovial lining inflammation."),
+ m("No Baker cyst finding."),
+ m("Subchondral erosions/cysts and a focus termed tendinitis do not explicitly mention marrow edema or contusion."),
+ m("No fracture finding."),
+]
+use(37)
+rows[37] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ p(q("Rotura horizontal oblicuo", "segmentos."), "Definite surfacing horizontal-oblique medial tear."),
+ n(q("Menisco lateral de morfología", "rotura."), "explicit_absence: lateral morphology/signal normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: lateral cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: PF cartilage normal."),
+ n(q("Mínimo derrame articular."), "below_threshold: minimal fluid."),
+ m("No synovial lining finding."),
+ u(q("No hay quistes poplíteos patológicos."), "Pathological-only cyst exclusion does not state size or unqualified absence."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(38)
+rows[38] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ u(q("Aumento de señal de la unión meniscocapsular", "regional."), "Possible partial medial meniscocapsular lesion remains equivocal despite separate internal signal not reaching the articular surface."),
+ n(q("El menisco lateral es de morfología", "rotura."), "explicit_absence: lateral morphology/signal preserved."),
+ n(q("Cartílagos femorotibiales y de la tróclea femoral sin alteraciones."), "explicit_absence: medial tibiofemoral cartilage normal."),
+ n(q("Cartílagos femorotibiales y de la tróclea femoral sin alteraciones."), "explicit_absence: lateral tibiofemoral cartilage normal."),
+ u(q("Condropatía lesiones grado dos y tres de la rótula."), "Mixed patellar grades 2/3 lack qualifying extent."),
+ u(q("Leve a moderado derrame articular con discreta sinovitis difusa."), "Mild-to-moderate fluid crosses the threshold."),
+ p(q("Leve a moderado derrame articular con discreta sinovitis difusa."), "Definite current diffuse synovitis diagnosis."),
+ m("No Baker cyst finding."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(39)
+rows[39] = [
+ u(q("Ligamentos cruzados y colaterales sin alteraciones significativas."), "ACL normality only asserted with a significance qualification."),
+ u(q("Ligamentos cruzados y colaterales sin alteraciones significativas."), "MCL normality only asserted with a significance qualification."),
+ p(q("Rotura de predominio marginal", "segmentos."), "Definite marginal medial tear."),
+ p(q("Rotura compleja del cuerno anterior, cuerpo y cuerno posterior del menisco lateral."), "Definite complex lateral tear; possible displaced fragment does not make the tear itself equivocal."),
+ u(q("Condropatía lesiones grado 2", "rótula."), "Medial focal grade 4 in impression conflicts with lateral localization in findings; depth/extent and side remain unresolved."),
+ u(q("Úlceras condrales de espesor parcial", "secundarios."), "Full-thickness focal lesion is lateral in findings but medial in impression; no qualifying extent and conflicting compartment."),
+ u(q("Úlcera condral focal de espesor total del vértice de la rótula."), "Full-thickness focal patellar lesion lacks qualifying extent."),
+ u(q("Leve a moderado derrame articular con sinovitis difusa."), "Mild-to-moderate fluid straddles threshold."),
+ p(q("Leve a moderado derrame articular con sinovitis difusa."), "Definite diffuse synovitis diagnosis."),
+ u(q("No hay quistes poplíteos patológicos."), "Pathological-only cyst denial without explicit size/absence."),
+ u(q("No hay alteraciones significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(40)
+rows[40] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ u(q("Aumento de señal central", "rotura."), "Medial central signal plus no categorical tear lacks explicit intrasubstance confinement or definite degeneration; tear certainty unresolved."),
+ p(q("Rotura del cuerno anterior", "meniscal."), "Definite lateral tear with extrusion; fragment displacement alone is equivocal."),
+ n(q("Cartílagos los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: lateral cartilage normal."),
+ n(q("Cartílagos los compartimentos femorotibiales y patelofemorales sin alteraciones."), "explicit_absence: PF cartilage normal."),
+ n(q("Leve derrame articular."), "below_threshold: mild effusion."),
+ m("No synovial lining finding; perimeniscal edema is separate."),
+ u(q("No hay quistes poplíteos patológicos."), "Only pathological cysts denied, without size or unqualified absence."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation."),
+ m("No fracture finding."),
+]
+use(41)
+rows[41] = [
+ p(q("ACL: High grade partial tear"), "Explicit high-grade partial ACL tear."),
+ u(q("MCL: Partial tear at the femoral side"), "MCL partial tear lacks high-grade amount and explicit acute/edema qualification."),
+ p(q("Medial meniscus: horizontal tear at posterior horn, combined with  contusion"), "Definite horizontal medial tear; accompanying meniscal contusion is not bone contusion."),
+ u(q("Lateral meniscus: contusion at posterior horn; without definite tear"), "Meniscal contusion with qualified no-tear finding; not unequivocal isolated internal degeneration or normal morphology."),
+ n(q("No osteochondral defect is shown."), "explicit_absence: unqualified broad cartilage/osteochondral-defect denial in the osseous/articular-cartilage section includes medial compartment."),
+ n(q("No osteochondral defect is shown."), "explicit_absence: broad defect denial includes lateral cartilage."),
+ n(q("No osteochondral defect is shown."), "explicit_absence: broad defect denial includes PF cartilage."),
+ u(q("Joint effusion"), "Effusion stated without amount or distention."),
+ m("Plicae are mentioned without inflamed/thickened lining or synovitis."),
+ n(q("No Baker's cyst is seen."), "explicit_absence: Baker cyst denied."),
+ m("Contusion wording is explicitly meniscal, not bone/marrow contusion; no osseous edema finding."),
+ u(q("No gross fracture or osseous destruction."), "Gross-fracture denial is qualified and does not exclude smaller acute fracture evidence."),
+]
+use(42)
+rows[42] = [
+ n(q("The contour of ACL & PCL", "noted."), "explicit_absence: ACL normal contour and signal."),
+ n(q("Both medial & lateral collateral ligaments appear to be within normal."), "explicit_absence: MCL normal."),
+ n(q("Linear signal intensity in posterior horn of medial and lateral meniscus", "degeneration."), "below_threshold: explicit grade 2 medial intrasubstance degeneration; qualified surface wording alone does not overturn it."),
+ u(q("Linear signal intensity in anterior  horn of lateral meniscus", "tear."), "Lateral anterior signal reaches surface but tear is explicitly R/O; final impression retains uncertainty."),
+ u(q("Wearing of articular cartilage", "degeneration."), "Medial cartilage wear lacks depth/extent."),
+ m("Specific cartilage wear is medial; broad OA impression does not establish a separate lateral-compartment finding."),
+ m("No PF cartilage finding beyond an unlocalized OA impression."),
+ m("Fluid described at pes anserinus/Baker region is not an informative joint-effusion statement."),
+ m("No synovial lining finding."),
+ p(q("A lobulated cystic lesion in medial popliteal fossa", "length."), "Named 7 cm Baker collection in characteristic location, corroborated by definitive impression."),
+ n(q("No evidence of bone contusion is noted."), "explicit_absence: bone contusion directly denied despite degenerative medial marrow edema."),
+ m("No fracture finding."),
+]
+use(43)
+rows[43] = [
+ n(q("Normal ACL, PCL, MCL and LCL."), "explicit_absence: ACL normal."),
+ n(q("Normal ACL, PCL, MCL and LCL."), "explicit_absence: MCL normal."),
+ p(q("There is complex tearing", "posterior root."), "Definite complex medial tear with parameniscal cyst."),
+ n(q("Normal lateral meniscus."), "explicit_absence: lateral meniscus normal."),
+ n(q("Mild fraying of the medial compartment articular cartilage is noted."), "below_threshold: mild superficial-type fraying without deep loss."),
+ n(q("Normal lateral tibiofemoral and patellofemoral articulation."), "explicit_absence: broad normal lateral articulation includes cartilage in this compartmental assessment."),
+ n(q("Normal lateral tibiofemoral and patellofemoral articulation."), "explicit_absence: PF articulation normal."),
+ u(q("There is no significant knee effusion."), "Qualified fluid absence."),
+ m("No synovial lining finding."),
+ m("Parameniscal cyst is not a Baker cyst; no Baker assessment."),
+ m("No marrow/contusion assessment."), m("No fracture assessment."),
+]
+use(44)
+rows[44] = [
+ n(q("Interstitial hyperintensity in the ACL, in favor of grade 1 injury"), "below_threshold: described ACL abnormality is expressly grade 1, even though the injury interpretation is tentative."),
+ m("No MCL assessment; lateral retinacular injury is not MCL injury."),
+ n(q("Linear signal intensity in posterior horn of medial meniscus", "degeneration."), "below_threshold: specific grade 2 intrasubstance signal without surface extension, despite tentative degeneration impression."),
+ m("No lateral meniscal finding."),
+ u(q("Wearing cartilage in the knee joint", "Osteoarthritis noted"), "General knee/posterior plateau cartilage wear lacks precise medial localization, depth and extent."),
+ u(q("Wearing cartilage in the knee joint", "Osteoarthritis noted"), "General knee/posterior plateau cartilage wear lacks precise lateral localization, depth and extent."),
+ u(q("Hyperintensity and wearing the cartilage of patellofemoral joint", "osteoarthritis."), "PF wear and spurs lack qualifying depth/extent."),
+ u(q("Joint effusion and medial and lateral patellar plicae."), "Effusion ungraded; plicae do not supply volume."),
+ m("Plicae and subcutaneous changes do not assert synovitis/lining thickening."),
+ m("No Baker cyst finding."), m("No bone/marrow contusion finding."), m("No fracture finding."),
+]
+use(45)
+rows[45] = [
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: cruciates normal."),
+ n(q("Ligamentos cruzados y colaterales", "normales."), "explicit_absence: collaterals normal."),
+ n(q("Meniscos de morfología y señal conservada, sin signos de rotura."), "explicit_absence: medial morphology/signal normal; no tear."),
+ n(q("Meniscos de morfología y señal conservada, sin signos de rotura."), "explicit_absence: lateral morphology/signal normal; no tear."),
+ n(q("Cartílagos de los compartimentos femorotibiales", "alteraciones."), "explicit_absence: medial cartilage normal."),
+ n(q("Cartílagos de los compartimentos femorotibiales", "alteraciones."), "explicit_absence: lateral cartilage normal."),
+ u(q("Fina\núlcera condral focal de espesor total", "secundarios."), "Thin focal full-thickness patellar ulcer has no dimension establishing qualifying region extent."),
+ n(q("No hay signos que sugieran derrame articular o sinovitis."), "explicit_absence: no signs of effusion, without severity qualifier."),
+ n(q("No hay signos que sugieran derrame articular o sinovitis."), "explicit_absence: synovitis specifically denied; surrounding fat edema does not contradict it."),
+ n(q("No hay quistes poplíteos."), "explicit_absence: popliteal cysts absent."),
+ u(q("No hay alteraciones de señal significativas de la médula ósea."), "Qualified marrow negation; secondary osseous-change qualifier is also not unqualified normal marrow."),
+ m("No fracture finding."),
+]
+use(46)
+rows[46] = [
+ n(q("Intacte voorste kruisband."), "explicit_absence: anterior cruciate intact."),
+ u(q("Bulging van het mediaal collateraal ligament."), "MCL bulging is described without fiber status, severity or acute diagnosis; no automatic tear or negative inference."),
+ p(q("Horizontale scheur in het corpus", "mediale gutter."), "Definite horizontal medial tear and displaced flap."),
+ n(q("Intacte laterale meniscus."), "explicit_absence: lateral meniscus intact."),
+ u(q("Meerdere parti ële tot volledige dikte kraakbeendefecten op de mediale femurcondyl."), "Multiple partial-to-full thickness medial defects lack qualifying region extent; final grade 2/3 does not add size."),
+ u(q("Geen majeure kraakbeendefecten lateraal femorotibiaal."), "Only major lateral cartilage defects are excluded, without an explicit thickness/extent boundary."),
+ u(q("Parti ële dikte kraakbeendefect centraal trochleair", "12\\~mm."), "Trochlear defect has 12 mm extent but only partial thickness; grade 2/3 range does not establish >50% loss."),
+ u(q("Geen significant hydrops."), "Significance-qualified fluid absence."),
+ m("No synovial lining finding."),
+ p(q("Grote bakercyste met tekens van lekkage."), "Explicit large Baker cyst, with leakage."),
+ m("No marrow/contusion finding."), m("No fracture finding."),
+]
+use(47)
+rows[47] = [
+ u(q("Ligamentos cruzados y colaterales sin alteraciones significativas."), "ACL addressed only by qualified significance negation."),
+ u(q("Ligamentos cruzados y colaterales sin alteraciones significativas."), "MCL addressed only by qualified significance negation."),
+ n(q("Aumento de señal central", "rotura."), "below_threshold: central medial signal not reaching surface, without tear characteristics."),
+ m("No lateral meniscus finding; cartilage findings do not supply it."),
+ n(q("Cartílagos del compartimento femorotibial medial sin\nalteraciones."), "explicit_absence: medial cartilage normal."),
+ u(q("Condropatía lesiones grado 3 de la zona de carga", "lateral."), "Lateral grade 3 cartilage lesions lack qualifying extent."),
+ u(q("Condropatía con lesiones grado 3 y 4 de la tróclea femoral."), "Trochlear grade 3/4 focal lesions lack qualifying extent; superficial patellar disease does not negate them."),
+ n(q("Leve derrame articular con sinovitis difusa."), "below_threshold: mild joint fluid."),
+ p(q("Leve derrame articular con sinovitis difusa."), "Definite diffuse synovitis diagnosis."),
+ n(q("No hay quistes poplíteos."), "explicit_absence: popliteal cysts absent."),
+ u(q("No hay alteraciones en significativas de la médula ósea."), "Qualified marrow negation; bilateral pain in indication is not a bilateral report aggregation."),
+ m("No fracture finding; report findings form a singular unsided knee account despite bilateral pain history."),
+]
+use(48)
+rows[48] = [
+ n(q("Ligamentos cruzados y colateral lateral sin alteraciones."), "explicit_absence: cruciates normal."),
+ u(q("Engrosamiento y aumento de señal del componente superficial", "normales."), "Superficial partial fiber loss with edema and grade I-II impression lacks >50%/high-grade severity; grade I deep component does not grade superficial injury."),
+ u(q("Probable rotura periférica del menisco medial, correlacionar con clínica."), "Medial tear explicitly probable."),
+ n(q("El menisco lateral es de morfología y señal conservada, sin signos categóricos de rotura."), "explicit_absence: direct preserved lateral shape/signal supports negative beyond qualified categorical-tear wording."),
+ n(q("El resto de los cartílagos femorotibiales", "alteraciones."), "explicit_absence: remaining/medial cartilage normal."),
+ n(q("Condropatía con lesiones grado 2 de platillo tibial lateral y de la rótula."), "below_threshold: lateral plateau grade 2."),
+ n(q("Condropatía con lesiones grado 2 de platillo tibial lateral y de la rótula."), "below_threshold: patellar grade 2; trochlear cartilage normal."),
+ u(q("No hay significativo derrame articular y quistes poplíteos."), "Qualified effusion absence; preserve unusual coordination instead of repairing source."),
+ m("No synovial lining finding."),
+ u(q("No hay significativo derrame articular y quistes poplíteos."), "Atypical y coordination leaves cyst negation scope ambiguous; do not silently replace it with ni or invent a size grade."),
+ u(q("Alteración de señal significativas de la médula ósea."), "Literal source asserts marrow signal alteration, without No. Its cause is unspecified; do not insert negation from similar reports."),
+ m("No fracture finding."),
+]
+use(49)
+rows[49] = [
+ m("No ACL assessment."), m("No MCL assessment."),
+ p(q("Από τον έλεγχο του έσω διαµερίσµατος", "µηνίσκου,"), "Definite meniscal subluxation is abnormal medial morphology, in addition to degeneration."),
+ n(q("Στο έξω µεσάρθριο διάστηµα", "αρθρικού χόνδρου."), "below_threshold: isolated lateral meniscal degeneration; no tear or abnormal meniscal morphology described."),
+ u(q("κατά τόπους λέπτυνση του αρθρικού χόνδρου", "οστεοαρθρίτιδα."), "Medial grade III thinning is patchy with unspecified qualifying extent."),
+ u(q("Στο έξω µεσάρθριο διάστηµα", "αρθρικού χόνδρου."), "Lateral OA is mild but cartilage absence is qualified as no substantial thinning/erosion, not a defined thickness/extent boundary."),
+ u(q("Από τον έλεγχο του πρόσθιου διαµερίσµατος", "(αποφλοίωση)."), "Deep patellar delamination has width 4.5 mm but no maximum second extent; a width alone does not prove or exclude a roughly 1 cm loss region."),
+ u(q("Ενδαρθρικά παρατηρείται συλλογή υγρού", "(συνοβιακή χονδροµάτωση)."), "Intra-articular fluid is ungraded."),
+ u(q("Ενδαρθρικά παρατηρείται συλλογή υγρού", "(συνοβιακή χονδροµάτωση)."), "Synovitis is localized grammatically to the communicating Baker cyst; whether this establishes the intended joint lining target remains anatomically ambiguous."),
+ n(q("µικρή συνοβιακή κύστη Baker"), "below_threshold: explicitly small Baker cyst despite communication/inflammation."),
+ m("No marrow edema/impact-contusion finding."), m("No fracture finding."),
+]
+
+assert set(rows) == set(range(50))
+assert all(len(row) == 12 for row in rows.values())
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+assert sha(REPO / "protocols/report_weak_v2.md") == "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+
+# Personally visible discovery-stage clinical states were limited to these
+# output snippets. The discovery code itself processed all original/effective
+# states; it is not claimed that this same assessor is fresh or source-blind.
+state_exposure = {("batch-000", 2), ("batch-000", 4), ("batch-000", 6), ("batch-000", 11), ("batch-000", 20), ("batch-000", 29), ("batch-000", 34), ("batch-001", 3), ("batch-001", 7)}
+source_excerpt_exposure = state_exposure | {("batch-001", 10), ("batch-001", 18), ("batch-001", 19), ("batch-001", 20), ("batch-001", 26), ("batch-001", 34), ("batch-001", 37), ("batch-002", 26), ("batch-002", 47), ("batch-003", 2), ("batch-003", 12), ("batch-003", 29), ("batch-003", 33), ("batch-004", 1), ("batch-004", 11), ("batch-004", 41), ("batch-006", 12)}
+records, annotations = [], []
+for i, source in enumerate(sources):
+    source_path = REPO / source["source_path"]
+    assert sha(source_path) == source["source_sha256"]
+    assert json.loads(source_path.read_text())[source["index"]] == {"study_uid": source["study_uid"], "report": source["report"]}
+    decisions = [dict(target=target, **entry) for target, entry in zip(targets, rows[i])]
+    for entry in decisions:
+        assert entry["state"] in {"positive", "negative", "uncertain", "not_mentioned"}
+        assert (entry["evidence"] == "") if entry["state"] == "not_mentioned" else entry["evidence"] in source["report"]
+    key = (source["batch"], source["index"])
+    exposure = "Personally saw some candidate states/evidence during discovery" if key in state_exposure else "Personally saw source-only discovery excerpt(s), without this report's clinical states" if key in source_excerpt_exposure else "No specifically identified per-case text/state display recalled before this full-source pass; discovery scripts nevertheless processed this report and its annotations"
+    records.append(dict(source, packet_index=i, source_report_sha256=hashlib.sha256(source["report"].encode()).hexdigest(), prior_exposure=exposure, decisions=decisions))
+    annotations.append({"study_uid": source["study_uid"], "states": [r["state"] for r in decisions], "evidence": [r["evidence"] for r in decisions], "notes": " ".join(r["target"] + ": " + r["reason"] for r in decisions)})
+
+identity = "/root/duplicate_consistency_review"
+frozen_at = datetime.now(timezone.utc).isoformat()
+assessment = {"schema_version": 1, "stage": "first_source_assessor_frozen_before_new_batch_candidate_comparison", "agent_id": identity, "session_id": identity, "identity_kind": "codex_agent_task", "runtime_session_id": os.environ.get("CODEX_SESSION_ID"), "runtime_thread_id": os.environ.get("CODEX_THREAD_ID"), "frozen_at_utc": frozen_at, "rubric_version": "report-weak-v2.0", "rubric_sha256": sha(REPO / "protocols/report_weak_v2.md"), "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3", "neutral_packet_path": str(PACKET.relative_to(OUT.parents[2])), "neutral_packet_sha256": sha(PACKET), "n_reports": 50, "n_target_decisions": 600, "target_order": targets, "historical_exposure": {"role": "First source assessor, not a distinct independent reviewer of own discovery work; not newly blind to all sources or prior states.", "all_report_machine_processing": "This same agent authored discovery scripts that read all 89 final review batches and 34 registered corrections, generated current-state candidate detail files, and selected this source packet. Code processed every report's states; no claim that this was clinical rereading of all 4407 reports.", "personally_displayed_state_examples": sorted([f"{b}:{i:02d}" for b, i in state_exposure]), "personally_displayed_source_excerpt_examples_in_this_packet": sorted([f"{b}:{i:02d}" for b, i in source_excerpt_exposure]), "aggregate_exposure": "Saw all-release counts, selection rules/priorities, 60 mixed-state exact-wording buckets and displayed high-count quoted phrases with negative/uncertain state sets. Such aggregate wording may identify familiar source phrases even for cases without a displayed individual state. Earlier independent nine-report correction work was also visible; none of its nine case UIDs belongs to this focused packet.", "current_pass_order": "Reread the frozen rubric and personally read every complete source in five displayed groups of ten. All 600 decisions below were authored from those full sources before opening this batch's candidate-detail subset or rereading its original/effective clinical rows in this task. Earlier discovery exposure remains explicitly disclosed.", "no_independence_overclaim": "A separate assessor/source freeze is required before any proposed correction can be accepted. This file is not an independently adjudicated correction or an all-release QA resolution."}, "method": "Manual per-target state selection after full-source reading. q() copies explicitly selected contiguous source substrings; helper functions only assemble authored choices and validate exact evidence. No regex, model inference, prior-state default filling, or source correction was used to choose states.", "scope": "Only focused neutral batch000's 50 reports, all 12 targets. Findings are report-derived weak-supervision assessments, not diagnostic MRI rereads.", "gold_values_inspected": False, "original_artifacts_changed": False, "records": records}
+for name, value in [("source-assessment-frozen.json", assessment), ("neutral-full-source-packet.json", sources)]:
+    with (OUT / name).open("x") as f:
+        json.dump(value, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+with (OUT / "source-assessment-frozen.jsonl").open("x") as f:
+    for row in annotations:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+receipt = {"schema_version": 1, "stage": "source_freeze_before_new_candidate_or_effective_annotation_comparison", "agent_id": identity, "session_id": identity, "frozen_at_utc": frozen_at, "n_reports": 50, "n_target_decisions": 600, "prior_discovery_exposure_disclosed": True, "fresh_source_blinding_claimed": False, "files": {name: sha(OUT / name) for name in ["author_source_assessment.py", "source-assessment-frozen.json", "source-assessment-frozen.jsonl", "neutral-full-source-packet.json"]}, "rubric_sha256": assessment["rubric_sha256"], "source_reports_sha256": assessment["source_reports_sha256"], "source_packet_sha256": sha(PACKET), "source_evidence_and_exact_batch_bindings": "passed"}
+with (OUT / "source-freeze-receipt.json").open("x") as f:
+    json.dump(receipt, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+print(json.dumps(receipt, indent=2))

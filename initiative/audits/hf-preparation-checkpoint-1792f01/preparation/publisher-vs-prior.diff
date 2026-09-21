@@ -1,0 +1,44 @@
+--- work/annotation-staging/hf-review4407-preparation-v1/publish_checkpoint.py	2026-09-21 14:16:41
++++ work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py	2026-09-21 15:53:20
+@@ -26,10 +26,10 @@
+ STAGE = Path(__file__).resolve().parent
+ WORK = STAGE.parents[1]
+ REPO = WORK / "recovered"
+-COMMIT = "6bcf6bbc6b49b1627ca257b892881b8bd693b750"
+-PARENT = "2b1a8df36c2543f9f3b31af136f1cf83831eeae3"
++COMMIT = "1792f01ed3daab757c5ddb9bf5733ffe8d999f91"
++PARENT = "046466739c134be9287ef7c5471968b704467cfd"
+ SOURCE = "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+-CI_RUN = 35636602111
++CI_RUN = 35647456612
+ HF_REPO = "GodlyDonuts/RSNA-Data"
+ GH_REPO = "GodlyDonuts/RSNA-Knee-Abnormality-Detection"
+ ENDPOINT = "https://huggingface.co"
+@@ -55,12 +55,13 @@
+     "utils/_runtime.py": "19527f0edeb2ff8f13656974ba2f723dd5bc33baea19b9511b252a29a5f1902a",
+     "hf_api.py": "25fbb6d83c486094c6d97420efe03dd239bd9d4750f0dda418122e97276f5542",
+ }
+-MESSAGE = "Preserve pinned 4407-report preparation checkpoint"
++MESSAGE = "Preserve targeted QA 4407-report preparation checkpoint"
+ DESCRIPTION = (
+-    "Immutable Git 6bcf6bb snapshot: 89 independently reviewed batches / 4407 reports; "
+-    "390 tests and exact-commit CI passed. Full pinned code, protocols, blinded inputs, "
+-    "review artifacts and audit evidence are preserved in the package. Uncommitted "
+-    "work is excluded. This is a preparation checkpoint; training readiness is false."
++    "Immutable Git 1792f01 snapshot: 89 independently reviewed batches / 4407 reports; "
++    "34 accepted target corrections and 17 enforced correspondence exclusions. "
++    "412 tests and exact-commit CI passed. Full pinned code, protocols, blinded inputs, "
++    "review artifacts and audit evidence are preserved. Three global QA gates and "
++    "final-data release validation remain pending. Training readiness is false."
+ )
+ FLOOR_BYTES = 20 * 2**30
+ OVERHEAD_BYTES = 32 * 2**20
+@@ -83,7 +84,7 @@
+ }
+ EXPECTED_REVIEWED = 4407
+ EXPECTED_BATCHES = 89
+-EXPECTED_MEMBERS = 5404
++EXPECTED_MEMBERS = 5657
+ 
+ 
+ class GuardError(Exception):

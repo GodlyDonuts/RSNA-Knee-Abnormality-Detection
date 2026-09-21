@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "status": "accepted",
+  "original_artifacts_preserved": true,
+  "proposer_agent_id": "/root",
+  "proposer_session_id": "/root",
+  "adjudicator_agent_id": "/root/image_pipeline_audit",
+  "adjudicator_session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "rubric_version": "report-weak-v2.0",
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+  "proposal_sha256": "ba3ef1ea1e9debdd375584aa01b5fe721df2afa956e6eeb9057c52b9f1964ff4",
+  "independent_assessment_sha256": "05a53d955ec38488339cff9c412fa12e795f6ce52a99f30dec8e6148c33830d1",
+  "original_frozen_assessment_sha256": "f21010e31138faf7d60b0ac375c26dc4dbfde8c5d47e03652d890ca45a2f296e",
+  "proposal_file": "batch-033-013-proposal.json",
+  "independent_assessment_file": "batch-033-013-assessment-normalized.json",
+  "original_frozen_assessment_file": "independent-source-assessment.json",
+  "source_batch": {
+    "path": "initiative/reviews/inputs/batch-033.json",
+    "sha256": "7a5e91e516994581adc6889cdf322ae3caa0e25cb43feeda07eb8c9300dc5d9b"
+  },
+  "base_review": {
+    "path": "initiative/reviews-v2/reviewed/batch-033-reviewed.jsonl",
+    "sha256": "42998a5478fa78e9375d5ceef7175d6cd47af023b8bc0b6c632b7d4d6f3550dd"
+  },
+  "accepted_changes": [
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.26351577824204863242390892891061594387",
+      "target": "Contusion",
+      "source_path": "initiative/reviews/inputs/batch-033.json",
+      "source_sha256": "7a5e91e516994581adc6889cdf322ae3caa0e25cb43feeda07eb8c9300dc5d9b",
+      "source_index": 13,
+      "original_review_path": "initiative/reviews-v2/reviewed/batch-033-reviewed.jsonl",
+      "original_review_sha256": "42998a5478fa78e9375d5ceef7175d6cd47af023b8bc0b6c632b7d4d6f3550dd",
+      "original_review_agent_id": "/root/label_pipeline_audit",
+      "original_review_session_id": "/root/label_pipeline_audit",
+      "before_state": "negative",
+      "before_evidence": "Από τον έλεγχο των χιαστών και πλαγίων συνδέσµων, του έσω µηνίσκου, του αρθρικού χόνδρου και του οστικού µυελού δεν παρατηρούνται αξιόλογα ευρήµατα.",
+      "after_state": "uncertain",
+      "after_evidence": "Από τον έλεγχο των χιαστών και πλαγίων συνδέσµων, του έσω µηνίσκου, του αρθρικού χόνδρου και του οστικού µυελού δεν παρατηρούνται αξιόλογα ευρήµατα.",
+      "independent_source_state": "uncertain",
+      "source_evidence": "Από τον έλεγχο των χιαστών και πλαγίων συνδέσµων, του έσω µηνίσκου, του αρθρικού χόνδρου και του οστικού µυελού δεν παρατηρούνται αξιόλογα ευρήµατα.",
+      "reason": "Accepted after the complete independent source-only pass, frozen before proposal/review access, assigned the same uncertain state. The source qualifies marrow findings as not noteworthy and contains no unqualified normal-marrow or no-contusion/edema statement. Because the frozen Contusion target has no minimum clinical-significance threshold, small impact-related marrow injury is not reliably excluded. Mask the target; preserve exact source evidence and original review."
+    }
+  ],
+  "n_changes": 1,
+  "notes": "Explicit independent acceptance of only the Contusion negative-to-uncertain proposal. No medial-meniscus correction accepted or proposed by this artifact. All12 original source decisions remain frozen; a separate medial-meniscus rationale retains the original negative. Original draft/review/assessment/proposal files must never be rewritten. Full semantic QA and release integration remain separate. Registry supporting_evidence must bind original_frozen_assessment_sha256 to the preserved original assessment."
+}

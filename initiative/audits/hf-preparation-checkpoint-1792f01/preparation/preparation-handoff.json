@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "stage": "prepared_for_root_build_and_publication_review",
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "created_at_utc": "2026-09-21T19:58:57.936812+00:00",
+  "github_commit": "1792f01ed3daab757c5ddb9bf5733ffe8d999f91",
+  "github_ci_run": 35647456612,
+  "github_ci_status": "completed_success_exact_commit",
+  "hf_parent": "046466739c134be9287ef7c5471968b704467cfd",
+  "private_repo_verified": true,
+  "review_plan": {
+    "path": "work/annotation-staging/hf-targeted4407-preparation-v1/review-plan.json",
+    "sha256": "ccdc12a77eacc95260991f2a1f40627dd2102481fe7b5184f75934cf57281709",
+    "bytes": 2550
+  },
+  "readonly_preflight": {
+    "path": "work/annotation-staging/hf-targeted4407-preparation-v1/readonly-preflight.json",
+    "sha256": "c71dffb9e26878a3f0a637583062cf3b80f708edd51042cbb37c377217cbb688",
+    "bytes": 1739
+  },
+  "measured_package": {
+    "sha256": "10206b752cce97cb671de607291785eef10d7fd9154c4dd4a0612b6686327271",
+    "bytes": 1335583564
+  },
+  "measured_members": 5657,
+  "offline_tests": {
+    "inherited_publisher_builder_tests": 48,
+    "root_card_metadata_tests": 5,
+    "all_passed": true,
+    "network_used_in_tests": false
+  },
+  "prior_scripts_and_package_unchanged": true,
+  "publisher_adaptation": "Only COMMIT, PARENT, CI_RUN, MESSAGE, DESCRIPTION and exact measured EXPECTED_MEMBERS constants changed; transport and write behavior unchanged.",
+  "diff": {
+    "path": "work/annotation-staging/hf-targeted4407-preparation-v1/publisher-vs-prior.diff",
+    "sha256": "822c24a54ab722319b33ae44b3597cf18ed4241651d8dafdc70c6a6719632be5",
+    "bytes": 2101
+  },
+  "builder_byte_identical_to_prior": true,
+  "root_card_scope": "Separate read-only inspector binds root README Git blob identity at exact parent and rechecks after publication. Publisher remains limited to3immutable prefix objects.",
+  "source_gold_scope": "No source or gold contents opened for review. Pinned selected archive blobs handled opaquely except structural weak-review counts; remote original trees/5CSVs/rootcard checked by metadata identity only.",
+  "tar_built": false,
+  "remote_writes": 0,
+  "disk_free_bytes": 23858851840,
+  "disk_floor_bytes": 21474836480,
+  "bound_metadata": [
+    {
+      "path": "work/hf-preparation-checkpoints/1792f01ed3daab757c5ddb9bf5733ffe8d999f91/manifest.json",
+      "sha256": "5f879ae740356e21ff5ed4c34fa31daf1cce4b5ffa9dafdd044a0658b9ad850b",
+      "bytes": 1865355
+    },
+    {
+      "path": "work/hf-preparation-checkpoints/1792f01ed3daab757c5ddb9bf5733ffe8d999f91/README.md",
+      "sha256": "d4ebdb4386b9ad20b8bf78045d22f1e9f2d75ea4a00547f551580b712e6947bc",
+      "bytes": 1391
+    },
+    {
+      "path": "work/hf-preparation-checkpoints/1792f01ed3daab757c5ddb9bf5733ffe8d999f91/publication-operation.json",
+      "sha256": "fe389711eafe5b9ee580cda574819010eccdd7badc8ebfef0c7aa8e78f9a9fce",
+      "bytes": 1311
+    }
+  ],
+  "root_commands": {
+    "build": ".venv/bin/python work/annotation-staging/hf-targeted4407-preparation-v1/build_package.py --expected-plan-sha ccdc12a77eacc95260991f2a1f40627dd2102481fe7b5184f75934cf57281709",
+    "check_local": ".venv/bin/python work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py --check-local --expected-plan-sha ccdc12a77eacc95260991f2a1f40627dd2102481fe7b5184f75934cf57281709 --output /Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/annotation-staging/hf-targeted4407-preparation-v1/runs/root-local-001",
+    "execute_only_after_root_review": ".venv/bin/python work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py --execute --expected-plan-sha ccdc12a77eacc95260991f2a1f40627dd2102481fe7b5184f75934cf57281709 --output /Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/annotation-staging/hf-targeted4407-preparation-v1/runs/root-publish-001 --max-runtime-seconds 1800",
+    "post_publication_readonly": ".venv/bin/python work/annotation-staging/hf-targeted4407-preparation-v1/inspect_remote.py --expected-plan-sha ccdc12a77eacc95260991f2a1f40627dd2102481fe7b5184f75934cf57281709 --agent-id /root --post-publication-revision <verified_hf_revision> --expected-preflight-sha c71dffb9e26878a3f0a637583062cf3b80f708edd51042cbb37c377217cbb688"
+  },
+  "training_ready": false
+}

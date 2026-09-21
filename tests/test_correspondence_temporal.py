@@ -101,7 +101,7 @@ def install_policy(bundle):
     )
 
 
-def test_live_registry_binds_all_4407_reports_and_seventeen_exclusions():
+def test_live_registry_binds_all_4407_reports_and_eighteen_exclusions():
     reports = {
         row["study_uid"]: row["report"]
         for path in (ROOT / "initiative/reviews/inputs").glob("batch-*.json")
@@ -109,7 +109,7 @@ def test_live_registry_binds_all_4407_reports_and_seventeen_exclusions():
     }
     audit = m.inspect_correspondence(reports, ROOT)
     assert len(reports) == 4407
-    assert audit["policy_count"] == 5 and audit["study_count"] == 17
+    assert audit["policy_count"] == 6 and audit["study_count"] == 18
     assert [r["case"] for r in audit["decisions"] if r["policy"]["path"] == str(POLICY)] == [
         "064:46"
     ]

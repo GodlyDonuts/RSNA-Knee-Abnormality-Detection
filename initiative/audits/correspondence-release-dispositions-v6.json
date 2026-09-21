@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "proof_binding_version": 4,
+  "stage": "root_verified_correspondence_release_requirements",
+  "agent_id": "/root/last_twelve_visual_review",
+  "created_at_utc": "2026-09-21T20:23:48.177122+00:00",
+  "decision_authority": "Actual preserved root acceptance after distinct root and independent full-source/header assessments; independent accepted action is separately preserved.",
+  "target_order": [
+    "ACL",
+    "MCL",
+    "Medial Meniscus",
+    "Lateral Meniscus",
+    "Medial OA",
+    "Lateral OA",
+    "PF OA",
+    "Effusion",
+    "Synovitis",
+    "Baker's",
+    "Contusion",
+    "Fracture"
+  ],
+  "records": [
+    {
+      "case": "069:10",
+      "study_uid": "1.2.826.0.1.3680043.8.498.74864145321761783409935288797327597738",
+      "source_path": "initiative/reviews/inputs/batch-069.json",
+      "source_batch_sha256": "12bc78f11bfb12420c3e58324c6342e715356bdf67421250489811079380c0c1",
+      "source_report_sha256": "d5b6e979fa74088c045b47ebfde858f13164b0f48a5081767471a7383e75e736",
+      "status": "accepted_unresolved_explicit_report_side_vs_literal_header_correspondence",
+      "report_derived_training_supervision_allowed": false,
+      "required_report_loss_mask": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "scope": "Whole-study non-gold report-derived training loss only. Preserve original clinical states/evidence/values, reports, images, cache, splits, leakage groups and official gold evaluation.",
+      "reason": "The complete single report explicitly names right knee; five main series have literal L endpoint tags and a sixth is blank. Neither source correction nor exact examination linkage resolves this conflict. No named pixel side or incorrect clinical target is inferred.",
+      "verified_technical_proof": {
+        "path": "initiative/audits/correspondence-source-header-v1/069-10-source-header-binding.json",
+        "sha256": "457988f50469f9ac09cfdc91fd1bf427962a69a433709887ed522370b4975a04"
+      }
+    }
+  ],
+  "original_source_or_annotation_changes": false,
+  "training_ready": false
+}

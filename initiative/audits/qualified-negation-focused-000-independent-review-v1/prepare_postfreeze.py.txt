@@ -1,0 +1,182 @@
+"""Verify frozen evidence and prepare neutral root packets; infer no labels."""
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+BASE = Path(__file__).resolve().parent
+WORKSPACE = BASE.parents[2]
+REPO = WORKSPACE / "work/recovered"
+FIRST = BASE.parent / "qualified-negation-focused-000-source-review-v1"
+OUT = BASE / "postfreeze-comparison-v1"
+sys.path.insert(0, str(REPO))
+from rsna.adjudications import inspect_adjudications
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def write(path, value):
+    with path.open("x", encoding="utf-8") as handle:
+        json.dump(value, handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
+
+
+def main():
+    assert not OUT.exists()
+    own_freeze = read(BASE / "source-freeze.json")
+    assert sha(BASE / "source-freeze.json") == "e518455800874e4601dcc9a26792a73cab44d52427466462600509d74d29b227"
+    for key in ["rubric", "source_packet", "judgments", "validation_receipt", "start_record", "authored_judgment_assembler", "freeze_validator"]:
+        reference = own_freeze[key]
+        assert sha(WORKSPACE / reference["path"]) == reference["sha256"]
+    expected_first = {
+        "artifact-manifest.json": "9b1e9ae3e463c5ea4ff930eb74f797abaa521bf3d7e2774dc06f3ed3051610f2",
+        "source-assessment-frozen.json": "596a0bbf2cad8219ac8c357941ea48f07ad46b47cffea26327aed1be12533318",
+        "proposed-errata.json": "6df326618716d57ddacfe83061865d649ab4c0705619df08d2ba605e1fbf7962",
+    }
+    for name, digest in expected_first.items():
+        assert sha(FIRST / name) == digest
+    first_manifest = read(FIRST / "artifact-manifest.json")
+    for name, digest in first_manifest["files"].items():
+        assert sha(FIRST / name) == digest
+    first = read(FIRST / "source-assessment-frozen.json")
+    assert first["agent_id"] != own_freeze["assessor"]["agent_id"]
+    assert first["session_id"] != own_freeze["assessor"]["session_id"]
+    assert first["rubric_sha256"] == own_freeze["rubric"]["sha256"]
+    assert first["neutral_packet_sha256"] == own_freeze["source_packet"]["sha256"]
+    targets = own_freeze["target_order"]
+    assert first["target_order"] == targets
+    source = read(WORKSPACE / own_freeze["source_packet"]["path"])
+    own = [json.loads(line) for line in (BASE / "independent-source-judgments.jsonl").read_text().splitlines()]
+    assert len(first["records"]) == len(source) == len(own) == 50
+    sources = {row["study_uid"]: row for row in source}
+    first_cells = {}
+    for index, (row, ours, theirs) in enumerate(zip(source, own, first["records"])):
+        assert row["study_uid"] == ours["study_uid"] == theirs["study_uid"]
+        assert row["report"] == theirs["report"]
+        assert theirs["source_report_sha256"] == ours["source_report_sha256"]
+        assert [cell["target"] for cell in theirs["decisions"]] == targets
+        for target_index, cell in enumerate(theirs["decisions"]):
+            first_cells[(row["study_uid"], cell["target"])] = cell
+            for state, quote in [(cell["state"], cell["evidence"]), (ours["states"][target_index], ours["evidence"][target_index])]:
+                assert state in {"positive", "negative", "uncertain", "not_mentioned"}
+                assert (quote == "") if state == "not_mentioned" else (quote and quote in row["report"])
+    all_reports = {}
+    for path in sorted((REPO / "initiative/reviews/inputs").glob("batch-*.json")):
+        for row in read(path):
+            assert row["study_uid"] not in all_reports
+            all_reports[row["study_uid"]] = row["report"]
+    assert len(all_reports) == 4407
+    inspection = inspect_adjudications(all_reports, REPO / "initiative/reviews-v2/reviewed", REPO / "protocols/report_weak_v2.md", REPO)
+    assert inspection == read(FIRST / "current-adjudications-inspection.json")
+    assert inspection["n_changes"] == 34 and len(inspection["pending_semantic_qa"]) == 3
+    corrections = {(row["study_uid"], row["target"]): row for row in inspection["changes"]}
+    proposals = read(FIRST / "proposed-errata.json")["proposed_errata"]
+    proposal_by_key = {(row["study_uid"], row["target"]): row for row in proposals}
+    assert len(proposal_by_key) == len(proposals) == 74
+    dispositions = read(FIRST / "postfreeze-disposition-assessment.json")
+    disposition_by_key = {(row["study_uid"], row["target"]): row for row in dispositions["state_difference_records"]}
+    first_comparison = read(FIRST / "full-target-comparison.json")["records"]
+    prior_by_key = {(row["study_uid"], row["target"]): row for row in first_comparison}
+    originals = {}
+    source_bindings = {}
+    for row in source:
+        source_path = REPO / row["source_path"]
+        assert sha(source_path) == row["source_sha256"]
+        assert all_reports[row["study_uid"]] == row["report"]
+        path = REPO / f'initiative/reviews-v2/reviewed/{row["batch"]}-reviewed.jsonl'
+        if path not in source_bindings:
+            source_bindings[path] = bind(path)
+            for original in [json.loads(line) for line in path.read_text().splitlines()]:
+                originals[original["study_uid"]] = original
+    cells = []
+    candidates = set()
+    counts = Counter()
+    for packet_index, row in enumerate(source):
+        uid = row["study_uid"]
+        original = originals[uid]
+        for target_index, target in enumerate(targets):
+            key = uid, target
+            original_state, original_quote = original["states"][target_index], original["evidence"][target_index]
+            correction = corrections.get(key)
+            effective = correction["after"] if correction else {"state": original_state, "evidence": original_quote}
+            prior = prior_by_key[key]
+            assert (prior["original_state"], prior["original_evidence"]) == (original_state, original_quote)
+            assert (prior["effective_state"], prior["effective_evidence"]) == (effective["state"], effective["evidence"])
+            for state, quote in [(original_state, original_quote), (effective["state"], effective["evidence"])]:
+                assert quote == "" if state == "not_mentioned" else quote and quote in row["report"]
+            theirs = first_cells[key]
+            disposition = disposition_by_key.get(key)
+            first_final = disposition["final_first_assessor_state"] if disposition else theirs["state"]
+            our_state, our_quote = own[packet_index]["states"][target_index], own[packet_index]["evidence"][target_index]
+            proposal = proposal_by_key.get(key)
+            if proposal:
+                assert (proposal["before_state"], proposal["before_evidence"]) == (effective["state"], effective["evidence"])
+                assert proposal["proposed_state"] == first_final
+                quote = proposal["source_quote"]
+                assert quote == "" if proposal["proposed_state"] == "not_mentioned" else quote and quote in row["report"]
+            counts["frozen_reader_state_agreements" if our_state == theirs["state"] else "frozen_reader_state_disagreements"] += 1
+            counts["independent_frozen_agrees_effective" if our_state == effective["state"] else "independent_frozen_differs_effective"] += 1
+            selected = bool(proposal) or len({our_state, theirs["state"], first_final, effective["state"]}) > 1
+            if selected:
+                candidates.add(packet_index)
+            cells.append({
+                "packet_index": packet_index, "study_uid": uid, "batch": row["batch"], "index": row["index"], "target": target,
+                "source_path": row["source_path"], "source_sha256": row["source_sha256"], "source_report_sha256": own[packet_index]["source_report_sha256"],
+                "original_review_path": prior["original_review_path"], "original_review_sha256": prior["original_review_sha256"],
+                "original_state": original_state, "original_evidence": original_quote, "original_notes": original["notes"],
+                "existing_correction": correction, "effective_state": effective["state"], "effective_evidence": effective["evidence"],
+                "independent_frozen_state": our_state, "independent_frozen_evidence": our_quote, "independent_frozen_notes": own[packet_index]["notes"],
+                "first_frozen_state": theirs["state"], "first_frozen_evidence": theirs["evidence"], "first_frozen_reason": theirs["reason"],
+                "first_postfreeze_state": first_final, "first_postfreeze_disposition": disposition["disposition"] if disposition else "source_state_agrees_effective",
+                "first_postfreeze_reason": disposition["postfreeze_reason"] if disposition else None,
+                "first_proposal": proposal, "selected_for_neutral_root_packet": selected,
+            })
+    OUT.mkdir()
+    packet_dir = OUT / "neutral-root-source-packets"
+    packet_dir.mkdir()
+    neutral_bindings = []
+    ordered = sorted(candidates)
+    for number, start in enumerate(range(0, len(ordered), 10)):
+        selected = [source[index] for index in ordered[start:start + 10]]
+        # Only neutral original source fields; no target/state/proposal clues.
+        packet = [{key: row[key] for key in ("study_uid", "report", "batch", "index", "source_path", "source_sha256")} for row in selected]
+        path = packet_dir / f"batch-{number:03d}.json"
+        write(path, packet)
+        neutral_bindings.append({**bind(path), "n_reports": len(packet)})
+    packet_manifest = {
+        "schema_version": 1, "prepared_at_utc": datetime.now(timezone.utc).isoformat(),
+        "prepared_by": "/root/quality_temporal_review", "source_packet": own_freeze["source_packet"],
+        "n_reports": len(ordered), "max_reports_per_packet": 10, "packets": neutral_bindings,
+        "neutrality": "Only complete original reports, identifiers, source paths and source hashes. No target names, states, proposals, reasons, or other-reader findings added.",
+        "root_instruction": "Read each complete source and freeze your own 12-target assessments before opening the separate comparison/disposition artifacts. Root is the additional source assessor/adjudicator, not retroactively a reader of an earlier packet.",
+    }
+    write(OUT / "neutral-root-packet-manifest.json", packet_manifest)
+    write(OUT / "verified-full-target-comparison.json", {
+        "schema_version": 1, "assessor": "/root/quality_temporal_review", "prepared_at_utc": datetime.now(timezone.utc).isoformat(),
+        "own_source_freeze": bind(BASE / "source-freeze.json"), "first_source_freeze": bind(FIRST / "source-assessment-frozen.json"),
+        "first_manifest": bind(FIRST / "artifact-manifest.json"), "first_dispositions": bind(FIRST / "postfreeze-disposition-assessment.json"), "first_proposals": bind(FIRST / "proposed-errata.json"),
+        "rubric": own_freeze["rubric"], "source_packet": own_freeze["source_packet"], "registry_sha256": inspection["registry_sha256"],
+        "registered_corrections": 34, "pending_semantic_qa": inspection["pending_semantic_qa"], "counts": dict(counts),
+        "all_600_current_original_and_effective_cells_verified": True, "both_frozen_600_quotes_verified": True,
+        "first_manifest_all_bound_files_verified": len(first_manifest["files"]), "distinct_assessor_identities_verified": True,
+        "source_reading_exposure_limitations": "Use each actual source freeze's historical exposure disclosures. Distinct readers do not imply both were historically unexposed to every source or state.",
+        "original_review_bindings": list(source_bindings.values()), "records": cells,
+        "status": "Mechanical comparison only; independent postfreeze dispositions and root adjudication remain separate.",
+    })
+    print(json.dumps({"neutral_manifest": bind(OUT / "neutral-root-packet-manifest.json"), "reports": len(ordered), "packets": neutral_bindings, "counts": dict(counts)}))
+
+
+if __name__ == "__main__":
+    main()

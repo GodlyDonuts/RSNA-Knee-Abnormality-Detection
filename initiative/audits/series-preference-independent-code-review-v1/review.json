@@ -1,0 +1,61 @@
+{
+  "stage": "independent_review_of_optional_series_selection_preferences",
+  "agent_id": "/root/last_twelve_visual_review",
+  "at_utc": "2026-09-21T20:36:51.661213+00:00",
+  "reviewed_files": [
+    {
+      "path": "rsna/data.py",
+      "sha256": "3e9a7f87ae2a956b04fcfcaf755e17f92c1f78ddb6c9a2ca534b621d982a4833",
+      "bytes": 6626
+    },
+    {
+      "path": "tests/test_series_quality_selection.py",
+      "sha256": "8f110d5ab186a7976f82774182cd2c6a6bcb977436fd90f7cc5dd92975bab108",
+      "bytes": 2910
+    },
+    {
+      "path": "initiative/audits/reviewed-series-preferences-v1/accepted-preferences.json",
+      "sha256": "65e5516c1209c71659227c2358f5bf2f988f0a9de960954511e77c13de3229ca",
+      "bytes": 5876
+    },
+    {
+      "path": "initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv",
+      "sha256": "14eb050d081abe9fce638f5dcfb2cedc688fdac5ace9a62bf9b1cf152421eada",
+      "bytes": 6908895
+    },
+    {
+      "path": "initiative/audits/reviewed-series-preferences-v1/export-001/selection_audit.json",
+      "sha256": "223bac6cc59722f12a8f131f84a9644ef7b57a0b29c8c92ecf9a418e1e487e5d",
+      "bytes": 2984
+    },
+    {
+      "path": "initiative/audits/reviewed-series-preferences-v1/root-loader-verification.json",
+      "sha256": "00325eaa63fffc5c1d93f548729033299956ba9e9e0bf88d5afd2877ddadaee5",
+      "bytes": 10178
+    },
+    {
+      "path": "initiative/audits/reviewed-series-preferences-v1/export_preferences.py.txt",
+      "sha256": "595a64131707aeb98393f95a9c18feddee997f57387385a3fa59cdc84db0cebe",
+      "bytes": 5607
+    },
+    {
+      "path": "initiative/audits/reviewed-series-preferences-v1/preservation.json",
+      "sha256": "274e1a51ec92d7a261195622753314d3cba0e68e40013c8b355b655c52f0e66b",
+      "bytes": 2290
+    }
+  ],
+  "previous_full_loader_sha256": "7ad3e0028ec3ead5aa236a85c3df646ff43c815f54b3f4a4002fd7947bac8ebf",
+  "source_rows_preserved": 24338,
+  "source_columns_and_order_preserved": true,
+  "affected_studies": 2,
+  "tier1_series": 3,
+  "actual_previous_vs_no_tier_order_and_rng_checks": 8814,
+  "actual_previous_vs_zero_tier_unaffected_order_and_rng_checks": 8810,
+  "pair_preference_and_plane_coverage_checks": 950,
+  "full_capacity_all_alternatives_retained_checks": 300,
+  "test_scope": "Production loader selection prefix and actual selected-series metadata; no repeated image review or clinical label interpretation. Root recorded 8 real cache-loader passes and their bound proof was read and hash-verified, not rerun by this assessor.",
+  "findings": [],
+  "conclusion": "No concrete code concern found. The optional tier changes candidate order, keeps deterministic/random within-tier order and random draw consumption, chooses a candidate for every present plane before filling remaining slots, and retains all alternatives at full capacity. The three exact same-plane pair preferences hold across all checked budgets and seeds. Default/no-tier behavior matches the actual previous code on all 4407 studies.",
+  "scope_limits": "Pair preferences do not guarantee that preferred T1 coronal series11 is sampled at a three-series budget when another tier0 coronal series wins the historical feature or random order. This matches preference only when selecting among repeated roles, not a required-series contract. Tier metadata affects sampling and is absent from the five model features. No hard source exclusion, clinical equivalence assertion, label change, or training readiness is established.",
+  "originals_code_cache_or_labels_modified": false
+}

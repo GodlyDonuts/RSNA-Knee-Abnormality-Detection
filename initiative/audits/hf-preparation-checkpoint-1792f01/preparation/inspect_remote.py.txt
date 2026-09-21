@@ -1,0 +1,77 @@
+"""Read-only exact-pin/private/source/root-card preflight and post-publication check."""
+from pathlib import Path
+import argparse
+import importlib.util
+import json
+import sys
+
+STAGE = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location("checkpoint_publisher", STAGE / "publish_checkpoint.py")
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+
+def root_card_identity(api, revision):
+    entries = api.get_paths_info(m.HF_REPO, paths=["README.md"], repo_type="dataset", revision=revision)
+    m.require(len(entries) == 1 and entries[0].path == "README.md", "root_card_missing_or_ambiguous")
+    oid = getattr(entries[0], "blob_id", None)
+    m.require(isinstance(oid, str) and m.REVISION.fullmatch(oid), "root_card_blob_identity_invalid")
+    return {"path": "README.md", "git_blob": oid}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--expected-plan-sha", required=True)
+    parser.add_argument("--agent-id", required=True)
+    parser.add_argument("--post-publication-revision")
+    parser.add_argument("--expected-preflight-sha")
+    args = parser.parse_args()
+    try:
+        m.require(args.agent_id == "/root" or args.agent_id == "/root/quality_temporal_review", "assessor_identity_invalid")
+        plan = m.load_plan(args.expected_plan_sha)
+        m.verify_file(Path(__file__), plan["readonly_verifier"])
+        ci = m.ci_guard()
+        hub = m.configure_hub()
+        from dotenv import dotenv_values
+        token = dotenv_values(m.WORK.parent / ".env").get("HF_TOKEN")
+        m.require(isinstance(token, str) and bool(token), "hf_token_missing")
+        api = hub.HfApi(token=token, endpoint=m.ENDPOINT)
+        head = m.private_head(api)
+        expected = args.post_publication_revision or m.PARENT
+        m.require(m.REVISION.fullmatch(expected) and head == expected, "unexpected_private_head")
+        source = m.verify_source_unchanged(api, head)
+        card = root_card_identity(api, head)
+        parent_card = root_card_identity(api, m.PARENT)
+        m.require(card == parent_card, "root_card_changed_from_parent")
+        if args.post_publication_revision:
+            m.require(isinstance(args.expected_preflight_sha, str), "preflight_digest_required")
+            before_path = STAGE / "readonly-preflight.json"
+            m.verify_file(before_path, {"sha256": args.expected_preflight_sha})
+            before = json.loads(before_path.read_text())
+            m.require(before["parent"] == m.PARENT and before["root_card_identity"] == card, "root_card_changed_since_preflight")
+            disk = m.disk_guard()
+            name = "readonly-post-publication.json"
+        else:
+            m.require(args.expected_preflight_sha is None, "unexpected_preflight_digest")
+            disk = m.disk_guard(json.loads((STAGE / "pinned-package-measurement.json").read_text())["package"]["bytes"])
+            name = "readonly-preflight.json"
+        m.require(m.private_head(api) == head, "head_changed")
+        proof = {
+            "stage": "readonly_exact_plan_post_publication_verified" if args.post_publication_revision else "readonly_exact_plan_remote_preflight_passed",
+            "agent_id": args.agent_id, "at_utc": m.now(),
+            "github_commit": m.COMMIT, "github_ci": ci, "review_plan_sha256": args.expected_plan_sha,
+            "hf_repo": m.HF_REPO, "private": True, "parent": m.PARENT, "head": head,
+            "source_tree_and_official_metadata_identities": source, "root_card_identity": card,
+            "root_card_unchanged_from_parent": True, "disk": disk,
+            "remote_writes": 0, "source_or_gold_contents_read": False, "training_ready": False,
+        }
+        m.write_new_json(STAGE / name, proof)
+        print(json.dumps({"stage": proof["stage"], "head": head, "private": True, "root_card_unchanged": True, "remote_writes": 0}))
+        return 0
+    except BaseException as error:
+        print(json.dumps({"stage": "readonly_preflight_stopped", "error_code": error.args[0] if type(error) is m.GuardError else "external_or_unexpected_error", "error_type": type(error).__name__, "remote_writes": 0}))
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

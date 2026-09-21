@@ -1,0 +1,321 @@
+"""Assemble personally authored post-freeze dispositions; no clinical inference."""
+import json
+import hashlib
+import shutil
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+WORKSPACE = HERE.parents[2]
+REPO = WORKSPACE / 'work/recovered'
+DISCOVERY = HERE.parent / 'qualified-negation-all4407-candidates-v1'
+AGENT = '/root/duplicate_consistency_review'
+
+def read(path):
+    return json.loads(path.read_text())
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def write(name, value):
+    path = HERE / name
+    assert not path.exists(), f'Refusing overwrite: {name}'
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+
+freeze = read(HERE / 'source-assessment-frozen.json')
+receipt = read(HERE / 'source-freeze-receipt.json')
+for name, sha in receipt['files'].items():
+    assert digest(HERE / name) == sha
+neutral = read(HERE / 'neutral-full-source-packet.json')
+source_by_uid = {r['study_uid']: r for r in neutral}
+comparison = read(HERE / 'full-target-comparison.json')['records']
+differences = read(HERE / 'state-differences.json')['records']
+evidence_differences = read(HERE / 'same-state-evidence-differences.json')['records']
+inspection = read(HERE / 'current-adjudications-inspection.json')
+assert len(comparison) == 600 and len(differences) == 111
+registered = {(r['study_uid'], r['target']): r for r in inspection['changes']}
+assert len(registered) == 34 and len(inspection['pending_semantic_qa']) == 3
+base = dict(schema_version=1, agent_id=AGENT, session_id=AGENT,
+            identity_kind='codex_agent_task', rubric_version=freeze['rubric_version'],
+            rubric_sha256=freeze['rubric_sha256'],
+            source_reports_sha256=freeze['source_reports_sha256'],
+            source_assessment_sha256=digest(HERE / 'source-assessment-frozen.json'),
+            source_freeze_receipt_sha256=digest(HERE / 'source-freeze-receipt.json'),
+            neutral_packet_sha256=digest(HERE / 'neutral-full-source-packet.json'),
+            adjudication_registry_sha256=inspection['registry_sha256'])
+
+# Every numbered entry was selected by this assessor after reading the full
+# reports. These integers refer to immutable state-differences.json order.
+dispositions = {}
+def assign(indices, disposition, reason):
+    for i in indices:
+        assert i not in dispositions
+        dispositions[i] = (disposition, reason)
+
+assign([1,3,14,20,29,31,34,36,37,46,49,51,57,70,95,100,106], 'propose',
+       'The full report supplies only a qualified denial of joint fluid for this target, without a separate unqualified absence or explicit trace/small/minimal amount. Significant, relevant or evident is not a frozen moderate/large threshold. Keep the addressed but insufficiently graded target masked; do not infer an image negative from missing report evidence.')
+assign([2,7,10,12,16,18,27,38,41,48,50,60,72,76,80,81,85,88,98,103], 'propose',
+       'The marrow statement excludes only significant or suspicious abnormality. No independent unqualified marrow-normal statement or explicit exclusion of impact-related edema settles this target in the full report. The frozen criterion has no significance-size exception for contusion; uncertain preserves the qualification without inventing a positive injury.')
+assign([5,6], 'propose',
+       'No definite tear is an explicitly qualified tear assessment. The full report does not separately establish normal morphology or isolated internal degeneration for this named meniscus. Equivocal report evidence must remain uncertain.')
+assign([11,15,47,59,71,79,84,87], 'propose',
+       'Only pathological popliteal cysts are denied. That adjective does not explicitly establish absence of all relevant collections or a below-moderate size under the frozen Baker criterion. No separate qualifying size or unqualified cyst denial is supplied; retain uncertainty rather than infer a severity convention.')
+assign([23], 'propose',
+       'The abnormal medial meniscocapsular signal is said not to appear to represent a tear. The rest-of-meniscus normality excludes other locations but does not resolve this focus. It is not described as isolated intrasubstance degeneration, and the tear conclusion remains qualified.')
+assign([24,25,26,28,33,40,44,45,66,67,99,109], 'propose',
+       'This compartment has only significance/majority/gross-preservation/definiteness-qualified cartilage normality. The full report supplies neither an unqualified normal cartilage assessment for it nor a stated loss depth/extent that demonstrably excludes the frozen threshold. Mild OA wording alone does not grade the cartilage-loss criterion; retain uncertain with the exact qualifier.')
+assign([32], 'propose',
+       'The lateral compartment is described only as without noteworthy pathological findings. Its scope includes the lateral meniscus, but the significance qualification does not independently establish normal meniscal morphology or definite absence of a tear. No more specific lateral meniscal assessment resolves it.')
+assign([52], 'propose',
+       'In the English coordination, significant may qualify both knee joint effusion and popliteal cyst. The full report has no independent cyst absence or size statement. Preserve the unresolved modifier scope rather than infer that this second noun has an unqualified negative.')
+assign([54], 'propose',
+       'Lateral meniscal tearing is denied only as significant in findings and discrete in the shared conclusion. Neither passage separately describes normal lateral meniscal morphology or isolated internal degeneration. These qualified denials do not establish a reliable report-derived negative.')
+assign([68], 'propose',
+       'The suspected focal osteochondral lesion and adjacent degenerative/subchondral changes do not mention a fracture line, cortical disruption, fracture diagnosis or acute traumatic event. Generic osteochondral terminology is not itself an informative fracture assertion. Fracture is not_mentioned with empty evidence; both states remain masked.')
+assign([69], 'propose',
+       'The medial meniscus has signal elevation, but the report does not describe confinement within its substance, surface relation, normal morphology or a definitive degeneration diagnosis. Signal alone cannot supply the missing tear criterion or its explicit exclusion.')
+assign([82,83,101,102], 'propose',
+       'The only statement for the named ligament is a broad significance-qualified normality statement. It establishes anatomical scope but supplies neither unqualified intact/normal fibers nor an explicitly low-grade injury assessment. Severity-qualified ligament targets remain uncertain when the qualifying evidence is absent.')
+assign([89], 'propose',
+       'The lateral meniscus is described as contused and without definite tear. Meniscal contusion does not itself establish a bone contusion and is not an explicit isolated intrasubstance degeneration diagnosis. The qualified tear assessment leaves this meniscal target uncertain.')
+assign([93], 'propose',
+       'The report denies gross fracture rather than every acute fracture line or cortical disruption. The full report does not supply a separate unqualified fracture denial. Grossness is not an exclusion threshold in the frozen fracture definition, so the negative is insufficiently supported.')
+assign([107], 'propose',
+       'The source literally coordinates a qualified effusion statement and cysts using y. Its abnormal grammar leaves whether cyst absence is asserted unresolved. Do not silently replace y with ni or repair the report; no separate cyst assessment settles the scope, so preserve uncertainty.')
+
+# Reconsiderations retain the source freeze and show why this assessor now
+# withdraws an initial alternative after examining the bound originals.
+assign([0,9,13,35,39,58,104,105], 'reconsider_keep_effective',
+       'I withdraw my automatic grade-2 below-threshold inference. The report does not name a grading convention or state a depth fraction that excludes >50% loss. The original/effective uncertainty is defensible; existing accepted corrections are not reopened or reversed.')
+assign([22,55,56], 'reconsider_keep_effective',
+       'I withdraw my initial conversion of mild cartilage thinning/chondrosis into a definite below-threshold negative. The report lacks a sufficient depth/extent description for that conversion, and the frozen rubric does not authorize a universal mild-to-depth mapping. Keep the effective uncertain state.')
+assign([42,43,73,74,77,78,96,97], 'reconsider_keep_effective',
+       'I withdraw the initial uncertain state assigned from generic or other-compartment OA wording. The target compartment is not informatively localized. Reading rule 4 forbids inferring an unmentioned compartment; keep not_mentioned with empty evidence.')
+assign([75,94], 'reconsider_keep_effective',
+       'I withdraw the initial Baker positive based solely on numerical dimensions. The frozen protocol contains no validated numeric-to-moderate/large mapping, and the full source does not supply that qualitative grade. Keep uncertain rather than silently introduce a size rule.')
+assign([65], 'reconsider_keep_effective',
+       'I withdraw the initial contusion positive: the named bone contusions occur at the same patellar/femoral sites as the osteochondral fractures. The full report does not separately establish an impact-edema site without a discrete fracture line. The current uncertainty preserves the separate contusion requirement.')
+assign([90,91,92], 'reconsider_keep_effective',
+       'I withdraw the initial compartment negative inferred from no osteochondral defect. The statement is narrower than an unqualified assessment of purely chondral loss and does not establish the severity/extent of each cartilage compartment. Preserve current uncertainty.')
+assign([4], 'reconsider_keep_effective',
+       'I withdraw the initial contusion negative based on reactive edema plus otherwise normal marrow. Otherwise normal settles other locations but not a possible coexisting impact component at the reported reactive-edema site. Preserve the effective causal uncertainty.')
+assign([8], 'reconsider_keep_effective',
+       'The original reviewer explicitly treated active cortical destruction as an incomplete assessment of cortical injury. This is narrower than an acute fracture denial but still addresses a relevant bony feature. I no longer propose deleting that informative uncertainty; retain the current masked state.')
+
+assign([17], 'defer_disagreement',
+       'The full source combines likely intrasubstance degeneration, no definite tear and borderline extrusion. Whether this is isolated below-threshold degeneration versus unresolved abnormal morphology needs adjudication; no concrete correction is proposed here.')
+assign([19], 'defer_disagreement',
+       'Partly discoid meniscal morphology is described without tear criteria. The frozen abnormal-morphology wording does not explicitly settle how this anatomical variant should be treated. Preserve the disagreement for targeted adjudication without manufacturing a morphology exception.')
+assign([21], 'defer_disagreement',
+       'The source reports undersurface fraying with myxoid degeneration but gives an unqualified no-evidence-of-tears conclusion. Whether this fraying establishes target abnormal morphology remains unresolved. Do not turn this into an automatic qualifier-based correction.')
+assign([30], 'defer_disagreement',
+       'A bone infarct plus otherwise normal marrow could support the initial negative, while the preserved review treated contusion as unmentioned. The relationship between this broad normality and the explicitly nontraumatic lesion requires adjudication before creating a newly observed negative.')
+assign([53], 'defer_disagreement',
+       'Meniscal flounce is paired with without definitive tear and an intact capsular interface; the conclusion also denies discrete tears. Whether flounce here is informative abnormal morphology or a normal folding variant is not settled by the frozen report rubric. Preserve both readings.')
+assign([61,62,63], 'defer_disagreement',
+       'No higher-grade chondropathy might constitute an explicit below-threshold description, but its relation to the frozen >50%-loss criterion is not stated. The initial uncertainty and effective negative are both preserved for adjudication; do not decide this by keyword alone.')
+assign([64], 'defer_disagreement',
+       'Deutlicher Hämarthros can express conspicuous/marked hemarthrosis. Whether this provides adequate amount evidence for moderate/large distending fluid is a translation/severity question that needs adjudication. Preserve the positive-versus-masked disagreement without proposing an automatic change.')
+assign([86], 'defer_disagreement',
+       'Central meniscal signal without categorical tear criteria may indicate isolated internal degeneration, as the existing reviewer reasoned. The source does not expressly discuss surface contact. Preserve the competing readings rather than propose a definite correction from the qualifier alone.')
+assign([108], 'defer_disagreement',
+       'Definite meniscal subluxation is abnormal morphology, supporting the initial positive literally, but no tear is directly diagnosed and the original reviewer retained uncertainty. This report-level morphology mapping needs separate adjudication before adding an observed positive.')
+assign([110], 'defer_disagreement',
+       'The 4.5 mm width of deep patellar delamination could express a sub-centimeter lesion, while an unreported second dimension could leave total extent unresolved. The initial and original extent readings remain different. Do not infer a new size convention or automatically change the negative.')
+assert set(dispositions) == set(range(111)), sorted(set(range(111)) - set(dispositions))
+
+def proposal_record(r, reason, kind):
+    uid, target = r['study_uid'], r['target']
+    assert (uid, target) not in registered
+    assert r['original_state'] == r['effective_state']
+    assert r['original_evidence'] == r['effective_evidence']
+    state, quote = r['first_assessor_state'], r['first_assessor_evidence']
+    assert quote in source_by_uid[uid]['report'] if state != 'not_mentioned' else quote == ''
+    before_mask = int(r['effective_state'] in ('negative', 'positive'))
+    after_mask = int(state in ('negative', 'positive'))
+    return dict(study_uid=uid, target=target, batch=r['batch'], index=r['index'],
+                packet_index=r['packet_index'], source_path=r['source_path'],
+                source_sha256=r['source_sha256'], artifact_path=r['original_review_path'],
+                artifact_sha256=r['original_review_sha256'],
+                before_state=r['original_state'], before_evidence=r['original_evidence'],
+                proposed_state=state, source_quote=quote, reason=reason,
+                kind=kind, report_weak_mask_before=before_mask,
+                report_weak_mask_after=after_mask,
+                mask_impact=('observed_to_masked' if before_mask and not after_mask else
+                             'masked_to_masked' if not before_mask and not after_mask else
+                             'observed_unchanged'),
+                gold_value_or_mask_changes='none; evaluation labels were not accessed',
+                status='proposed_pending_distinct_assessment_and_adjudication')
+
+proposals, disposition_records = [], []
+for i, r in enumerate(differences):
+    disposition, reason = dispositions[i]
+    record = dict(r, difference_index=i, disposition=disposition,
+                  postfreeze_reason=reason,
+                  final_first_assessor_state=(r['effective_state'] if disposition == 'reconsider_keep_effective' else r['first_assessor_state']),
+                  effective_annotation_changed=False)
+    disposition_records.append(record)
+    if disposition == 'propose':
+        proposals.append(proposal_record(r, reason, 'state_correction'))
+
+# Exact-evidence changes are selected individually, not every quote mismatch.
+evidence_reasons = {
+    8: 'The negative state is supported by the unqualified no-evidence-of-tears conclusion. Replace the weaker no-definite-tear draft quotation with that exact contiguous conclusion so the evidence itself supplies the basis for the observed negative.',
+    25: 'The full source explicitly describes slightly accentuated fluid before denying a relevant effusion. Preserve the negative based on the small amount, but expand the exact quote to include that amount instead of relying on relevant alone.'
+}
+evidence_dispositions = []
+for i, r in enumerate(evidence_differences):
+    if i in evidence_reasons:
+        proposals.append(proposal_record(r, evidence_reasons[i], 'evidence_context_correction'))
+        disposition, reason = 'propose_evidence_context', evidence_reasons[i]
+    else:
+        disposition = 'retain_original_evidence'
+        reason = 'Both quotations are exact source text and the current quotation adequately supports the agreed state; a different excerpt preference is not itself a concrete erratum.'
+    evidence_dispositions.append(dict(r, evidence_difference_index=i, disposition=disposition, postfreeze_reason=reason))
+
+details_path = DISCOVERY / 'focused-qualified-candidate-details.json'
+details = read(details_path)
+candidate_rows = [r for r in details['records'] if r['study_uid'] in source_by_uid]
+assert len(candidate_rows) == 84
+comparison_by_key = {(r['study_uid'], r['target']): r for r in comparison}
+disposition_by_key = {(r['study_uid'], r['target']): r for r in disposition_records}
+proposal_by_key = {(r['study_uid'], r['target']): r for r in proposals}
+assert len(proposal_by_key) == len(proposals)
+candidate_results = []
+for row in candidate_rows:
+    key = row['study_uid'], row['target']
+    current = comparison_by_key[key]
+    assert row['inspection_effective_state'] == current['effective_state']
+    assert row['inspection_effective_evidence'] == current['effective_evidence']
+    result = dict(row)
+    result['first_assessor_state'] = current['first_assessor_state']
+    result['first_assessor_reason'] = current['first_assessor_reason']
+    result['disposition_after_source_reading'] = (
+        proposal_by_key[key]['kind'] if key in proposal_by_key else
+        disposition_by_key[key]['disposition'] if key in disposition_by_key else
+        'no_state_erratum_source_judgment_agrees_with_current_effective')
+    candidate_results.append(result)
+write('batch-candidate-details-postfreeze.json', dict(base,
+      candidate_source_path=str(details_path.relative_to(WORKSPACE)),
+      candidate_source_sha256=digest(details_path), n_reports=50, n_candidates=84,
+      source_freeze_preceded_new_access=True, records=candidate_results))
+
+# Archive exact input bytes; extracted per-study records below reference them.
+paths = {'protocols/report_weak_v2.md', 'initiative/reviews/provenance.json',
+         'initiative/reviews-v2/provenance.json', 'initiative/reviews-v2/adjudications/registry.json'}
+provenance_by_batch = {}
+for batch in sorted({r['batch'] for r in neutral}):
+    paths.update([f'initiative/reviews/inputs/{batch}.json',
+                  f'initiative/reviews-v2/drafts/{batch}-draft.jsonl',
+                  f'initiative/reviews-v2/reviewed/{batch}-reviewed.jsonl',
+                  f'initiative/reviews-v2/provenance/{batch}-draft.json',
+                  f'initiative/reviews-v2/provenance/{batch}-reviewed.json'])
+    provenance_by_batch[batch] = {}
+    for stage in ['draft', 'reviewed']:
+        ref = f'initiative/reviews-v2/provenance/{batch}-{stage}.json'
+        provenance_by_batch[batch][stage] = read(REPO / ref)
+
+# Hash-bind all registered cases and their evidence without clinical re-reading.
+def collect_references(value):
+    if isinstance(value, dict):
+        if set(value) >= {'path', 'sha256'} and isinstance(value['path'], str):
+            path = REPO / value['path']
+            if path.is_file():
+                assert digest(path) == value['sha256'], value['path']
+                paths.add(value['path'])
+        for sub in value.values():
+            collect_references(sub)
+    elif isinstance(value, list):
+        for sub in value:
+            collect_references(sub)
+collect_references(inspection)
+archive_manifest = []
+for relative in sorted(paths):
+    origin = REPO / relative
+    target = HERE / 'bound-originals' / relative
+    assert not target.exists()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(origin, target)
+    assert origin.read_bytes() == target.read_bytes()
+    archive_manifest.append(dict(original_path=relative, archived_path=str(target.relative_to(HERE)),
+                                 sha256=digest(origin), bytes=origin.stat().st_size))
+archive_by_path = {r['original_path']: r for r in archive_manifest}
+study_bindings = []
+for packet_index, source in enumerate(neutral):
+    batch = source['batch']
+    records = read(REPO / source['source_path'])
+    assert records[source['index']]['study_uid'] == source['study_uid']
+    assert records[source['index']]['report'] == source['report']
+    assert digest(REPO / source['source_path']) == source['source_sha256']
+    review_path = f'initiative/reviews-v2/reviewed/{batch}-reviewed.jsonl'
+    review = next(json.loads(line) for line in (REPO / review_path).read_text().splitlines()
+                  if json.loads(line)['study_uid'] == source['study_uid'])
+    study_bindings.append(dict(packet_index=packet_index, study_uid=source['study_uid'],
+        batch=batch, index=source['index'], source_path=source['source_path'],
+        source_sha256=source['source_sha256'],
+        report_utf8_sha256=hashlib.sha256(source['report'].encode()).hexdigest(),
+        original_review_path=review_path, original_review_sha256=digest(REPO/review_path),
+        original_review_row=review,
+        draft_provenance_sha256=archive_by_path[f'initiative/reviews-v2/provenance/{batch}-draft.json']['sha256'],
+        reviewed_provenance_sha256=archive_by_path[f'initiative/reviews-v2/provenance/{batch}-reviewed.json']['sha256'],
+        original_reader_agent_id=provenance_by_batch[batch]['draft']['agent_id'],
+        original_reviewer_agent_id=provenance_by_batch[batch]['reviewed']['agent_id'],
+        existing_corrections=[r for r in inspection['changes'] if r['study_uid'] == source['study_uid']]))
+write('originals-source-provenance-bindings.json', dict(base,
+      stage='postfreeze_unchanged_original_bindings', n_reports=50, n_source_batches=7,
+      n_registered_corrections=34,
+      n_selected_registered_corrections=sum(len(r['existing_corrections']) for r in study_bindings),
+      byte_preserving_archive=True, files=archive_manifest, studies=study_bindings))
+
+write('postfreeze-disposition-assessment.json', dict(base,
+      status='first_assessor_comparison_not_independent_adjudication',
+      completed_at_utc=datetime.now(timezone.utc).isoformat(),
+      historical_exposure=freeze['historical_exposure'],
+      second_assessor_judgments_accessed=False,
+      method='Personally examined source and exact current rows after source freeze; indexed dispositions are authored judgments, not lexical label rules. Keyword candidates discover targets only.',
+      scope='All 600 targets in the exact 50-report neutral packet; candidate-specific conclusions withheld from root until the distinct source freeze.',
+      n_reports=50, n_target_decisions=600, n_initial_state_agreements=489,
+      n_initial_state_differences=111,
+      difference_disposition_counts=dict(Counter(r['disposition'] for r in disposition_records)),
+      n_same_state_quote_differences=38,
+      state_difference_records=disposition_records,
+      evidence_difference_records=evidence_dispositions,
+      pending_semantic_qa=inspection['pending_semantic_qa'],
+      labels_or_registries_changed=False, gold_values_inspected=False))
+write('proposed-errata.json', dict(base,
+      status='proposed_pending_distinct_source_assessment_and_adjudication',
+      proposer_agent_id=AGENT, proposer_session_id=AGENT,
+      n_reports=50, n_targets_assessed=600, n_changes=len(proposals),
+      n_studies_with_proposals=len({r['study_uid'] for r in proposals}),
+      kind_counts=dict(Counter(r['kind'] for r in proposals)),
+      mask_impact_counts=dict(Counter(r['mask_impact'] for r in proposals)),
+      target_counts=dict(Counter(r['target'] for r in proposals)),
+      proposed_errata=proposals,
+      no_acceptance_metadata_created=True, no_registry_changes=True,
+      scope='First assessor proposals only. No accepted decision, no effective release, no gold changes and no all-release QA closure. Original source freeze and every original annotation remain unchanged.'))
+
+for name, sha in receipt['files'].items():
+    assert digest(HERE / name) == sha
+assert digest(REPO/'initiative/reviews-v2/adjudications/registry.json') == inspection['registry_sha256']
+for r in archive_manifest:
+    assert digest(REPO/r['original_path']) == r['sha256']
+write('postfreeze-validation-receipt.json', dict(base,
+      validated_at_utc=datetime.now(timezone.utc).isoformat(),
+      source_freeze_unchanged=True, neutral_packet_unchanged=True,
+      all600_comparison_cells_retained=True, all111_disagreements_disposed=True,
+      all38_quote_disagreements_disposed=True, all84_candidates_crosschecked=True,
+      proposed_keys_unique=True, proposals_disjoint_from_existing34_corrections=True,
+      all_proposal_before_annotations_exact_originals=True,
+      all_proposal_quotes_exact_contiguous_source=True,
+      selected_source_text_exact_current_originals=True,
+      byte_preserving_original_archive_verified=True,
+      registered_changes_still34=True, global_semantic_gates_still_pending=3,
+      second_assessor_judgments_accessed=False,
+      clinical_correctness_certified=False, gold_accessed=False,
+      n_proposals=len(proposals), n_archived_files=len(archive_manifest)))
+print(json.dumps({'n_proposals':len(proposals),
+                  'kinds':dict(Counter(r['kind'] for r in proposals)),
+                  'dispositions':dict(Counter(r['disposition'] for r in disposition_records)),
+                  'mask_impact':dict(Counter(r['mask_impact'] for r in proposals)),
+                  'files_archived':len(archive_manifest)},indent=2))

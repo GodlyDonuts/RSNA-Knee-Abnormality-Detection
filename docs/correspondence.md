@@ -24,11 +24,12 @@ The release exports `correspondence_trace.json`, includes that trace in
 changed or incomplete registry, wrong source identity, unverified proof or partial
 mask fails before the command writes a new release.
 
-The current policies enforce 17 whole-study report-supervision exclusions:
+The current policies enforce 18 whole-study report-supervision exclusions:
 052:20, 075:14, 048:12, 086:13, 017:07, 018:19, 038:37, 067:37,
-052:01, 052:17, 001:39, 007:16, 062:21, 048:09, 048:38, 053:47 and 064:46. They cover a shoulder report,
+052:01, 052:17, 001:39, 007:16, 062:21, 048:09, 048:38, 053:47, 064:46 and 069:10. They cover a shoulder report,
 unresolved two-knee acquisitions, explicitly bilateral report aggregates and
-unresolved initial-versus-recall examination linkage.
+unresolved initial-versus-recall examination linkage and an unresolved explicit
+report/header side conflict.
 Literal side tags alone never cause an exclusion.
 
 The v3 policy adds nine previously verified cases using proof binding version 2.
@@ -64,7 +65,7 @@ The original staged markers and initial failed integration tests are retained
 with the later root promotion and successful live-validation receipts.
 
 Other correspondence and semantic flags remain individually reviewable; the
-17 enforced exclusions do not close the remaining queue.
+18 enforced exclusions do not establish every remaining case's identity.
 
 The v5 policy adds only 064:46. Its report joins initial findings to a later MR
 recall, while the four bound image series cannot be assigned to either examination
@@ -82,6 +83,30 @@ among those repeated roles; no production series-selection or normalization chan
 is included. See `initiative/audits/independent-quality-temporal-v1/` and
 `initiative/audits/repeated-temporal-001021064-v1/`.
 
-These controls do not certify completion of report review, semantic QA or the
-remaining technical correspondence queue. Final manifests and actual final-data
-training, resume and inference validation remain release requirements.
+The v6 policy adds only 069:10. Its single RIGHT report conflicts with literal L
+tags in five series; the sixth has no side tag. Root and the distinct assessor
+separately froze source readings and policy decisions, then accepted exclusion.
+Proof binding version 4 verifies exact full-source selectors and quotations,
+source/header membership and literal fields, separately bound decisions, actual
+identities, accepted twelve-mask actions and recorded chronology. These are
+source and metadata checks; no new pixel interpretation or named-side correction
+is asserted. All prior five policies and seventeen exclusions remain unchanged.
+See `initiative/audits/correspondence-source-header-v1/`.
+
+The consolidated 28-case follow-up records three accepted retain decisions:
+021:44, 042:14 and 042:41. Their complete source wording and metadata do not
+justify a whole-study exclusion; their clinical states remain subject to semantic
+QA. After excluding 069:10, the remaining 24 reports already have no observed
+target supervision. The consolidated closure binds their exact original sources
+and effective annotation states. Their anatomical or temporal identity remains
+unresolved. Before final release, verify all twelve masks are still zero for
+every one of these 24 cases after applying all final adjudications; stop release
+if any becomes observed without a separately accepted correspondence decision.
+
+The later [sampling preference](series-preferences.md) applies the reviewed
+064:14 acquisition preferences and a bounded 084:27 preference while preserving
+all original images. It does not change these report-supervision dispositions.
+
+These controls do not complete global semantic QA or produce final manifests.
+Final leakage checks and actual final-data training, resume and inference
+validation remain release requirements.

@@ -1,0 +1,193 @@
+"""Build the already measured canonical tar from pinned Git blobs only."""
+
+from __future__ import annotations
+
+import argparse
+import gzip
+import hashlib
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tarfile
+
+STAGE = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location(
+    "checkpoint_publisher", STAGE / "publish_checkpoint.py"
+)
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+
+class GuardedWriter:
+    def __init__(self, stream, expected_size):
+        self.stream = stream
+        self.expected_size = expected_size
+        self.size = 0
+        self.digest = hashlib.sha256()
+
+    def write(self, data):
+        m.require(
+            self.size + len(data) <= self.expected_size,
+            "compressed_size_exceeds_measurement",
+        )
+        m.disk_guard(len(data))
+        result = self.stream.write(data)
+        self.size += result
+        self.digest.update(data[:result])
+        return result
+
+    def flush(self):
+        self.stream.flush()
+
+
+def build(expected_plan_sha):
+    m.load_plan(expected_plan_sha)
+    measurement = json.loads((STAGE / "pinned-package-measurement.json").read_text())
+    files = m.selected_files()
+    expected = {r["path"]: r for r in measurement["files"]}
+    m.require(
+        {r["path"]: r["git_blob"] for r in files}
+        == {k: v["git_blob"] for k, v in expected.items()},
+        "measurement_git_selection_mismatch",
+    )
+    target = m.PACKAGE / "checkpoint.tar.gz"
+    partial = m.PACKAGE / "checkpoint.tar.gz.partial"
+    m.require(
+        not target.exists() and not partial.exists(),
+        "package_or_partial_already_exists",
+    )
+    disk = m.disk_guard(measurement["package"]["bytes"])
+    secrets = m.load_secret_values()
+    proc = subprocess.Popen(
+        ["git", "archive", "--format=tar", m.COMMIT, *[r["path"] for r in files]],
+        cwd=m.REPO,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    m.require(proc.stdout is not None, "git_archive_pipe_missing")
+    seen = set()
+    modes = {r["path"]: r["mode"] for r in files}
+    try:
+        with partial.open("xb") as raw:
+            sink = GuardedWriter(raw, measurement["package"]["bytes"])
+            with (
+                gzip.GzipFile(filename="", mode="wb", fileobj=sink, mtime=0) as gz,
+                tarfile.open(fileobj=gz, mode="w|") as result,
+                tarfile.open(fileobj=proc.stdout, mode="r|") as source,
+            ):
+                for member in source:
+                    if member.isdir():
+                        continue
+                    m.require(
+                        member.isfile()
+                        and member.name in expected
+                        and member.name not in seen,
+                        "unexpected_or_duplicate_git_archive_member",
+                    )
+                    seen.add(member.name)
+                    stream = source.extractfile(member)
+                    m.require(stream is not None, "missing_git_payload")
+                    data = stream.read()
+                    ref = expected[member.name]
+                    m.require(
+                        len(data) == ref["bytes"]
+                        and hashlib.sha256(data).hexdigest() == ref["sha256"],
+                        "measurement_payload_mismatch",
+                    )
+                    oid = hashlib.sha1(
+                        b"blob " + str(len(data)).encode() + b"\0" + data
+                    ).hexdigest()
+                    m.require(
+                        oid == ref["git_blob"], "git_archive_payload_not_original_blob"
+                    )
+                    m.reject_secret_payload(data, secrets)
+                    info = tarfile.TarInfo(member.name)
+                    info.size = len(data)
+                    info.mode = modes[member.name]
+                    info.mtime = 0
+                    result.addfile(info, io.BytesIO(data))
+            m.require(
+                proc.wait(timeout=60) == 0 and seen == set(expected),
+                "incomplete_git_archive",
+            )
+            m.require(
+                sink.size == measurement["package"]["bytes"]
+                and sink.digest.hexdigest() == measurement["package"]["sha256"],
+                "compressed_measurement_mismatch",
+            )
+            raw.flush()
+            os.fsync(raw.fileno())
+        m.verify_file(partial, measurement["package"])
+        refs = [
+            {k: r[k] for k in ("path", "sha256", "bytes")} for r in measurement["files"]
+        ]
+        proof = m.validate_tar(partial, refs, files, secrets)
+        m.require(not target.exists(), "package_appeared_during_build")
+        partial.rename(target)
+        m.write_new_json(
+            STAGE / "build-receipt.json",
+            {
+                "schema_version": 1,
+                "stage": "locally_verified_pinned_package",
+                "at_utc": m.now(),
+                "github_commit": m.COMMIT,
+                "review_plan_sha256": expected_plan_sha,
+                "package": m.file_ref(target),
+                "source": "git archive of exact immutable commit; every file verified against Git blob identity",
+                "validation": proof,
+                "initial_disk": disk,
+                "final_disk": m.disk_guard(),
+                "remote_writes": 0,
+                "worktree_payloads_used": False,
+            },
+        )
+        print(
+            json.dumps(
+                {
+                    "stage": "package_built_and_verified",
+                    "package": m.file_ref(target),
+                    "remote_writes": 0,
+                }
+            ),
+            flush=True,
+        )
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--expected-plan-sha", required=True)
+    args = parser.parse_args()
+    try:
+        build(args.expected_plan_sha)
+        return 0
+    except BaseException as error:
+        code = (
+            error.args[0]
+            if type(error) is m.GuardError
+            else "external_or_unexpected_error"
+        )
+        print(
+            json.dumps(
+                {
+                    "stage": "build_stopped",
+                    "error_code": code,
+                    "error_type": type(error).__name__,
+                    "partial_preserved_if_present": True,
+                    "remote_writes": 0,
+                }
+            ),
+            flush=True,
+        )
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,122 @@
+"""Construct source-only packets before reading annotation status."""
+import hashlib
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+WORK = OUT.parents[1]
+AUD = WORK / 'recovered/initiative/audits'
+XDIR = WORK / 'annotation-staging/technical-candidate-status-final-targeted-v1'
+
+def binding(p):
+    return {'path': str(p.relative_to(WORK)), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'bytes': p.stat().st_size}
+
+def read(p):
+    assert '/reviews-v2/' not in str(p) and '/legacy/' not in str(p)
+    return json.loads(p.read_text())
+
+crosswalk = read(XDIR / 'status-crosswalk.json')
+summary = read(XDIR / 'summary.json')
+assert binding(XDIR / 'status-crosswalk.json')['sha256'] == 'de96d44ce371a27e9159d337566ed1002a6626df6f6118d05b62901d7b813796'
+rows = {r['case']: r for r in crosswalk['original_candidates'] + crosswalk['additional_report_correspondence_and_source_cases']}
+cases = sorted(summary['cases_with_source_correspondence_actions'])
+assert len(cases) == len(set(cases)) == 28
+records = []
+for c in cases:
+    r = rows[c]
+    b = r['source_identity']['batch']
+    bp = WORK / b['path']
+    assert binding(bp) == b
+    index = r['source_identity']['index_zero_based']
+    src = read(bp)[index]
+    assert src['study_uid'] == r['study_uid']
+    report = src['report']
+    encoded = report.encode('utf-8')
+    assert hashlib.sha256(encoded).hexdigest() == r['source_identity']['report_utf8_sha256']
+    refs = {}
+    for e in r['latest_evidence']:
+        ep = WORK / e['path']
+        if '/technical-evidence/case-' in str(ep) and ep.suffix == '.json':
+            assert read(ep)['study_uid'] == r['study_uid']
+            refs[str(ep)] = {**binding(ep), 'kind': 'case_specific_source_membership_and_endpoint_metadata', 'selector': {'study_uid': r['study_uid']}}
+        if ep.name == 'panel-manifest.json':
+            # Extract only the raw metadata binding; do not copy or follow assessor/source-freeze refs.
+            pm = read(ep)
+            assert pm['study_uid'] == r['study_uid']
+            if 'case_metadata' in pm:
+                m = pm['case_metadata']
+                mp = AUD / Path(m['path']).relative_to('annotation-staging') if m['path'].startswith('annotation-staging/') else WORK / m['path']
+                assert binding(mp)['sha256'] == m['sha256']
+                assert read(mp)['study_uid'] == r['study_uid']
+                refs[str(mp)] = {**binding(mp), 'kind': 'case_specific_source_membership_and_endpoint_metadata', 'selector': {'study_uid': r['study_uid']}}
+    plain = AUD / f"correspondence-{c[:3]}-{int(c.split(':')[1]):03d}"
+    for name, kind in [('source-inventory.json', 'case_source_inventory'), ('endpoint-headers.jsonl', 'lexical_endpoint_headers')]:
+        p = plain / name
+        if p.exists():
+            refs[str(p)] = {**binding(p), 'kind': kind, 'selector': {'study_uid': r['study_uid']}}
+    if c in ('042:14', '042:41'):
+        for suffix, kind in [('inventory.json', 'case_source_inventory'), ('endpoint-headers.jsonl', 'lexical_endpoint_headers'), ('series-technical-metadata.json', 'series_endpoint_metadata')]:
+            p = AUD / f"correspondence-042-014-041/{c.replace(':','')}-{suffix}"
+            refs[str(p)] = {**binding(p), 'kind': kind, 'selector': {'study_uid': r['study_uid']}}
+    if c == '025:21':
+        for name, kind in [('source-inventory.json', 'case_source_inventory'), ('endpoint-headers.jsonl', 'lexical_endpoint_headers'), ('all-slice-headers-and-pixels.jsonl', 'all_native_source_header_and_pixel_fingerprint_records')]:
+            p = AUD / 'anatomical-plane-025-021' / name
+            refs[str(p)] = {**binding(p), 'kind': kind, 'selector': {'study_uid': r['study_uid']}}
+    assert refs, c
+    for e in refs.values():
+        assert not any(term in e['path'] for term in ('assessment', 'decision', 'handoff', 'preread', 'freeze', 'reviewed', 'triage'))
+    report_path = OUT / 'reports' / f"case-{c.replace(':','-')}.txt"
+    report_path.parent.mkdir(exist_ok=True)
+    report_path.write_bytes(encoded)
+    records.append({
+        'case': c, 'study_uid': r['study_uid'],
+        'source_batch': b, 'source_batch_index_zero_based': index,
+        'source_json_fields': {'identity': 'study_uid', 'full_text': 'report'},
+        'report_utf8_sha256': hashlib.sha256(encoded).hexdigest(),
+        'report_utf8_bytes': len(encoded), 'report_unicode_codepoints': len(report),
+        'full_report_text': report, 'exact_report_text_file': binding(report_path),
+        'technical_evidence_references': sorted(refs.values(), key=lambda e: e['path']),
+        'reference_limits': 'Raw source/metadata references only. Endpoint records cover lexical endpoints, not every anatomical slice. Full source membership is not visual inspection. Literal side tags and deidentified identifiers are preserved without correction or identity inference.',
+    })
+
+sizes = [6, 6, 6, 5, 5]
+cursor = 0
+batches = []
+for number, size in enumerate(sizes, 1):
+    selected = records[cursor:cursor + size]
+    cursor += size
+    packet = {
+        'schema_version': 1, 'stage': 'neutral_full_original_source_and_technical_reference_packet',
+        'batch_id': f'correspondence28-{number:02d}', 'case_count': size,
+        'reader_order': 'First read and freeze a full-source assessment of report structure, stated sides, temporal relationships and source ambiguity. Then inspect the bound raw technical metadata. Existing annotation-mask inventory and prior conclusions are separate and should remain unopened until that source assessment is frozen.',
+        'scope': 'No target labels, prior assessor conclusions, proposed exclusion, source interpretation or priority reason is included. Preserve complete original text and whitespace; do not infer clinical MRI diagnoses or assign named pixel laterality.',
+        'cases': selected,
+    }
+    pp = OUT / f'source-packet-{number:02d}.json'
+    pp.write_text(json.dumps(packet, ensure_ascii=False, indent=2) + '\n')
+    batches.append({'batch_id': packet['batch_id'], 'cases': [x['case'] for x in selected], 'packet': binding(pp)})
+assert cursor == 28
+index = {
+    'stage': 'neutral_source_packet_index', 'created_at_utc': datetime.now(timezone.utc).isoformat(),
+    'agent_id': '/root/last_twelve_visual_review', 'session_identity': {'CODEX_THREAD_ID': os.environ.get('CODEX_THREAD_ID'), 'CODEX_SESSION_ID': os.environ.get('CODEX_SESSION_ID')},
+    'case_count': 28, 'unique_studies': len({r['study_uid'] for r in records}),
+    'partition': 'Ascending case/index order; five disjoint packets of 6,6,6,5,5.', 'batches': batches,
+    'preparer_exposure_disclosure': 'The preparer authored the earlier technical status consolidation and has seen prior technical/source summaries. This is a mechanically exact neutral source packet, not a claim that the preparer is an independently blinded assessor. No current clinical annotations were opened during packet construction.',
+    'packet_limits': 'Metadata references do not establish clinical adequacy, target correctness, named anatomical side, real identity or report-to-examination linkage. Clinical-mask classification will be kept in a separate later artifact.',
+}
+(OUT / 'source-packet-index.json').write_text(json.dumps(index, indent=2) + '\n')
+source_files = [p for p in sorted(OUT.rglob('*')) if p.is_file() and p.name != 'source-packet-freeze.json']
+freeze = {
+    'stage': 'source_packets_frozen_before_annotation_mask_inventory', 'frozen_at_utc': datetime.now(timezone.utc).isoformat(),
+    'agent_id': '/root/last_twelve_visual_review', 'session_identity': index['session_identity'],
+    'membership_source': binding(XDIR / 'status-crosswalk.json'),
+    'current_clinical_annotations_opened_before_this_freeze': False,
+    'source_packet_case_count': 28, 'unique_studies': 28,
+    'source_text_exact_utf8_and_whitespace_verified': True,
+    'files': [binding(p) for p in source_files],
+    'no_label_policy_gold_source_or_runtime_mutations': True,
+}
+(OUT / 'source-packet-freeze.json').write_text(json.dumps(freeze, indent=2) + '\n')
+print(json.dumps({'batches': batches, 'freeze': binding(OUT / 'source-packet-freeze.json')}, indent=2))

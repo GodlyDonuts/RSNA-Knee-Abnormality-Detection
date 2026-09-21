@@ -1,0 +1,101 @@
+{
+  "stage": "validated_source_header_correspondence_policy_v6_integration",
+  "at_utc": "2026-09-21T20:34:52.385884+00:00",
+  "agent_id": "/root/last_twelve_visual_review",
+  "source_report_count": 4407,
+  "policy_count": 6,
+  "non_gold_report_loss_exclusion_count": 18,
+  "new_case": "069:10",
+  "prior_five_policy_files_and_seventeen_records_byte_preserved": true,
+  "source_evidence_files_byte_preserved": 71,
+  "historical_helpers_renamed_py_txt_without_content_changes": true,
+  "new_policy": {
+    "path": "initiative/audits/correspondence-release-dispositions-v6.json",
+    "sha256": "4afcefeb8f2b2eaf4d109a18204a80764ce08314372d356fea82265e97e748d3",
+    "bytes": 2205
+  },
+  "current_registry": {
+    "path": "initiative/audits/correspondence-release-registry.json",
+    "sha256": "4e7435c2b947a651391ca00c96893295e449e5931cbba5205830d08d49243399",
+    "bytes": 1318
+  },
+  "source_header_proof": {
+    "path": "initiative/audits/correspondence-source-header-v1/069-10-source-header-binding.json",
+    "sha256": "457988f50469f9ac09cfdc91fd1bf427962a69a433709887ed522370b4975a04",
+    "bytes": 4222
+  },
+  "consolidated_closure": {
+    "path": "initiative/audits/correspondence-source-header-v1/correspondence28-consolidated-closure.json",
+    "sha256": "5921ded7a9bcb71e7739839be8e57d67323edbe744a5e4e1644f8e884c7332d4",
+    "bytes": 183264
+  },
+  "new_runtime_proof_binding_version": 4,
+  "proof_scope": "Full original report plus exact DICOM/header endpoint evidence and separately authored root/peer source and policy lineage; no new image or clinical-diagnosis claim. Recorded chronology is checked for consistency and does not prove historical access order.",
+  "independent_prior_exposure_disclosed": true,
+  "remaining_masked_source_correspondence_cases": 24,
+  "remaining24_exact_final_export_zero_mask_verification_required": true,
+  "remaining24_administrative_or_anatomical_identity_resolved": false,
+  "accepted_retain_current_supervision_cases": [
+    "021:44",
+    "042:14",
+    "042:41"
+  ],
+  "relevant_tests": {
+    "count": 202,
+    "command": "python3 -m pytest -q tests/test_correspondence_source_header.py tests/test_correspondence_temporal.py tests/test_correspondence_actions.py tests/test_correspondence_extension.py tests/test_correspondence.py tests/test_label_release.py",
+    "log": {
+      "path": "initiative/audits/correspondence-source-header-v1/relevant-tests.log",
+      "sha256": "52a2dfb365f36e690f049da0696311e3283b6a8498a82cc35732171b54ab1547",
+      "bytes": 260
+    }
+  },
+  "lint": {
+    "path": "initiative/audits/correspondence-source-header-v1/lint.log",
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "bytes": 19
+  },
+  "format": {
+    "path": "initiative/audits/correspondence-source-header-v1/format.log",
+    "sha256": "eee76f865de5a9f2456950f710ae5d5f9b5bd0ea02aa54f614c5eed6642a0bfd",
+    "bytes": 26
+  },
+  "type_check": {
+    "command": "uv tool run --with numpy==2.2.1 --with pandas-stubs==2.2.3.250308 --with types-requests==2.32.0.20250306 mypy==1.15.0 rsna/correspondence.py",
+    "log": {
+      "path": "initiative/audits/correspondence-source-header-v1/mypy.log",
+      "sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e",
+      "bytes": 42
+    }
+  },
+  "validation_coverage": [
+    "Exact source/index/quotes and distinct actual identity checks",
+    "Rehashed evidence DAG tampering of actions, lineage, metadata, report text, accepted masks and chronology rejected",
+    "Prior policy bytes and registry entries invariant",
+    "Synthetic gold branch unchanged; non-gold report loss masks only plus provenance; clinical values, states, evidence, reports, splits, groups and unrelated rows unchanged"
+  ],
+  "implementation_files": [
+    {
+      "path": "rsna/correspondence.py",
+      "sha256": "b5de41060bfc922007947551ce7229d07de36efee5e306470106f2663cb0111c",
+      "bytes": 54941
+    },
+    {
+      "path": "tests/test_correspondence_source_header.py",
+      "sha256": "7f015f29cbb6ea60e4383ba1a7c8a7a54a307067e9c16c732bdeabee520ea0bd",
+      "bytes": 9179
+    },
+    {
+      "path": "tests/test_correspondence_temporal.py",
+      "sha256": "60a460d9bb4513c9feeeff80b6ab84b866b95563ee4a588b6eaafb932b1d4e8a",
+      "bytes": 7680
+    }
+  ],
+  "global_semantic_qa_status_unchanged": [
+    "cartilage-consistency-all-release-reviews",
+    "bone-terminology-all-release-reviews",
+    "duplicate-qualified-negation-consistency-all-release-reviews"
+  ],
+  "new_clinical_annotation_changes": 0,
+  "original_source_images_cache_gold_splits_groups_unchanged": true,
+  "training_ready": false
+}

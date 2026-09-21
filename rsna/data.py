@@ -15,6 +15,30 @@ from rsna.schema import CACHE_VERSION, TARGETS
 PLANES = {"Sagittal": 0, "Coronal": 1, "Axial": 2}
 
 
+def select_series(candidates: list[dict], max_series: int, augment: bool) -> list[dict]:
+    """Preserve plane coverage, with reviewed tier-1 alternatives selected last.
+
+    Tiers affect sampling order only. They are not model features, source edits,
+    or claims of equivalent clinical coverage. Stable sorting preserves the
+    previous ordering and RNG consumption when every tier is zero or absent.
+    """
+    candidates = list(candidates)
+    if augment:
+        candidates = [candidates[i] for i in torch.randperm(len(candidates)).tolist()]
+    else:
+        candidates.sort(
+            key=lambda r: (-r["Fluid_Sensitive"], -r["Fat_Suppression"], r["SeriesInstanceUID"])
+        )
+    candidates.sort(key=lambda r: r.get("Selection_Tier", 0))
+    selected = []
+    for plane in PLANES:
+        match = next((r for r in candidates if r["Anatomical_Plane"] == plane), None)
+        if match is not None:
+            selected.append(match)
+    selected.extend(r for r in candidates if r not in selected)
+    return selected[:max_series]
+
+
 class StudyDataset(Dataset):
     def __init__(
         self,
@@ -33,6 +57,11 @@ class StudyDataset(Dataset):
             raise ValueError("Study sampling requires unique study IDs")
         if series.SeriesInstanceUID.duplicated().any():
             raise ValueError("Series IDs must be unique")
+        if "Selection_Tier" in series and (
+            not pd.api.types.is_integer_dtype(series.Selection_Tier.dtype)
+            or not series.Selection_Tier.isin([0, 1]).all()
+        ):
+            raise ValueError("Selection_Tier must contain integer 0 or 1 for every series")
         self.studies = studies.reset_index(drop=True)
         self.cache = cache
         self.slices = slices
@@ -73,20 +102,7 @@ class StudyDataset(Dataset):
     def __getitem__(self, index: int) -> dict[str, Tensor | str]:
         row = self.studies.iloc[index]
         uid = row.study_uid
-        candidates = list(self.series[uid])
-        if self.augment:
-            candidates = [candidates[i] for i in torch.randperm(len(candidates)).tolist()]
-        else:
-            candidates.sort(
-                key=lambda r: (-r["Fluid_Sensitive"], -r["Fat_Suppression"], r["SeriesInstanceUID"])
-            )
-        selected = []
-        for plane in PLANES:
-            match = next((r for r in candidates if r["Anatomical_Plane"] == plane), None)
-            if match is not None:
-                selected.append(match)
-        selected.extend(r for r in candidates if r not in selected)
-        selected = selected[: self.max_series]
+        selected = select_series(self.series[uid], self.max_series, self.augment)
         images = torch.zeros(self.max_series, self.slices, 1, self.side, self.side)
         features = torch.zeros(self.max_series, 5)
         series_mask = torch.zeros(self.max_series, dtype=torch.bool)

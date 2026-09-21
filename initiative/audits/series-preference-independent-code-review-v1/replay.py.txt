@@ -1,0 +1,141 @@
+"""Independent table/order replay against the actual pre-change loader prefix."""
+import ast
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+from types import SimpleNamespace
+
+import pandas as pd
+import torch
+
+STAGE = Path(__file__).resolve().parent
+ROOT = STAGE.parents[1] / 'recovered'
+sys.path.insert(0, str(ROOT))
+from rsna.data import PLANES, select_series
+
+
+def read(p):
+    return json.loads(p.read_text())
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def ref(p):
+    return {'path': str(p.relative_to(ROOT)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+
+def ids(rows):
+    return [r['SeriesInstanceUID'] for r in rows]
+
+
+audit = ROOT / 'initiative/audits/reviewed-series-preferences-v1'
+policy = read(audit / 'accepted-preferences.json')
+original_path = ROOT / policy['source_series']['path']
+derived_path = audit / 'export-001/series_sampling.csv'
+assert sha(original_path) == policy['source_series']['sha256']
+source_strings = pd.read_csv(original_path, dtype=str, keep_default_na=False)
+derived_strings = pd.read_csv(derived_path, dtype=str, keep_default_na=False)
+assert derived_strings.drop(columns='Selection_Tier').equals(source_strings)
+assert len(source_strings) == 24338
+assert int(derived_strings.Selection_Tier.astype(int).sum()) == 3
+assert derived_strings.SeriesInstanceUID.is_unique
+export = read(audit / 'export-001/selection_audit.json')
+root_proof = read(audit / 'root-loader-verification.json')
+assert export['series_csv_sha256'] == root_proof['derived_csv_sha256'] == sha(derived_path)
+assert export['policy_sha256'] == root_proof['policy_sha256'] == sha(audit / 'accepted-preferences.json')
+assert root_proof['production_loader_sha256'] == sha(ROOT / 'rsna/data.py')
+assert export['script_sha256'] == sha(audit / 'export_preferences.py.txt')
+for reference in policy['evidence']:
+    assert ref(ROOT / reference['path']) == reference
+for entry in read(audit / 'preservation.json')['files']:
+    a, b = ROOT.parent / entry['original_path'], ROOT / entry['archived_path']
+    assert a.read_bytes() == b.read_bytes() and sha(b) == entry['sha256']
+
+# Compile the actual previous selection statements, before image/cache loading.
+previous_bytes = subprocess.check_output(['git', 'show', 'HEAD:rsna/data.py'], cwd=ROOT)
+tree = ast.parse(previous_bytes)
+cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'StudyDataset')
+method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '__getitem__')
+stop = next(i for i, n in enumerate(method.body) if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'images' for t in n.targets))
+method.body = method.body[:stop] + [ast.Return(value=ast.Name(id='selected', ctx=ast.Load()))]
+method.name = 'previous_select'
+method.returns = None
+for arg in method.args.args:
+    arg.annotation = None
+module = ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[]))
+namespace = {'torch': torch, 'PLANES': PLANES}
+exec(compile(module, '<pre-change-selection-prefix>', 'exec'), namespace)
+previous_select = namespace['previous_select']
+dummy = SimpleNamespace(studies=SimpleNamespace(iloc=[SimpleNamespace(study_uid='study')]))
+original = pd.read_csv(original_path)
+derived = pd.read_csv(derived_path)
+groups = {uid: frame.sort_values('SeriesInstanceUID').to_dict('records') for uid, frame in original.groupby('StudyInstanceUID')}
+effective = {uid: frame.sort_values('SeriesInstanceUID').to_dict('records') for uid, frame in derived.groupby('StudyInstanceUID')}
+affected = {r['study_uid'] for r in policy['records']}
+baseline_checks = unaffected_checks = preference_checks = full_capacity_checks = 0
+for uid, rows in groups.items():
+    for augment in (False, True):
+        dummy.series = {'study': rows}
+        dummy.max_series = 4
+        dummy.augment = augment
+        torch.manual_seed(61)
+        old = previous_select(dummy, 0)
+        old_rng = torch.get_rng_state()
+        torch.manual_seed(61)
+        new = select_series(rows, 4, augment)
+        assert ids(old) == ids(new) and torch.equal(old_rng, torch.get_rng_state())
+        baseline_checks += 1
+        if uid not in affected:
+            torch.manual_seed(61)
+            tiered = select_series(effective[uid], 4, augment)
+            assert ids(old) == ids(tiered) and torch.equal(old_rng, torch.get_rng_state())
+            unaffected_checks += 1
+
+for record in policy['records']:
+    rows = effective[record['study_uid']]
+    indexed = {r['SeriesInstanceUID']: r for r in rows}
+    preferred, alternative = record['preferred_series_uid'], record['deprioritized_series_uid']
+    assert indexed[preferred]['Selection_Tier'] == 0 and indexed[alternative]['Selection_Tier'] == 1
+    assert indexed[preferred]['Anatomical_Plane'] == indexed[alternative]['Anatomical_Plane']
+    metadata = read(ROOT / record['technical_metadata']['path'])
+    observed = {s['series_uid']: s for s in metadata['series']}
+    assert observed[preferred]['header_endpoint_values']['SeriesNumber'] == [record['preferred_series_number']]
+    assert observed[alternative]['header_endpoint_values']['SeriesNumber'] == [record['deprioritized_series_number']]
+    for augment in (False, True):
+        for seed in range(25):
+            for budget in range(3, len(rows) + 2):
+                torch.manual_seed(seed)
+                selected = select_series(rows, budget, augment)
+                selected_ids = ids(selected)
+                assert {r['Anatomical_Plane'] for r in selected} == {r['Anatomical_Plane'] for r in rows}
+                if alternative in selected_ids:
+                    assert preferred in selected_ids and selected_ids.index(preferred) < selected_ids.index(alternative)
+                if budget >= len(rows):
+                    assert set(selected_ids) == set(ids(rows))
+                    full_capacity_checks += 1
+                preference_checks += 1
+
+result = {
+    'stage': 'independent_review_of_optional_series_selection_preferences',
+    'agent_id': '/root/last_twelve_visual_review', 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'reviewed_files': [ref(ROOT / 'rsna/data.py'), ref(ROOT / 'tests/test_series_quality_selection.py'), ref(audit / 'accepted-preferences.json'), ref(derived_path), ref(audit / 'export-001/selection_audit.json'), ref(audit / 'root-loader-verification.json'), ref(audit / 'export_preferences.py.txt'), ref(audit / 'preservation.json')],
+    'previous_full_loader_sha256': hashlib.sha256(previous_bytes).hexdigest(),
+    'source_rows_preserved': len(source_strings), 'source_columns_and_order_preserved': True,
+    'affected_studies': 2, 'tier1_series': 3,
+    'actual_previous_vs_no_tier_order_and_rng_checks': baseline_checks,
+    'actual_previous_vs_zero_tier_unaffected_order_and_rng_checks': unaffected_checks,
+    'pair_preference_and_plane_coverage_checks': preference_checks,
+    'full_capacity_all_alternatives_retained_checks': full_capacity_checks,
+    'test_scope': 'Production loader selection prefix and actual selected-series metadata; no repeated image review or clinical label interpretation. Root recorded 8 real cache-loader passes and their bound proof was read and hash-verified, not rerun by this assessor.',
+    'findings': [],
+    'conclusion': 'No concrete code concern found. The optional tier changes candidate order, keeps deterministic/random within-tier order and random draw consumption, chooses a candidate for every present plane before filling remaining slots, and retains all alternatives at full capacity. The three exact same-plane pair preferences hold across all checked budgets and seeds. Default/no-tier behavior matches the actual previous code on all 4407 studies.',
+    'scope_limits': 'Pair preferences do not guarantee that preferred T1 coronal series11 is sampled at a three-series budget when another tier0 coronal series wins the historical feature or random order. This matches preference only when selecting among repeated roles, not a required-series contract. Tier metadata affects sampling and is absent from the five model features. No hard source exclusion, clinical equivalence assertion, label change, or training readiness is established.',
+    'originals_code_cache_or_labels_modified': False,
+}
+(STAGE / 'review.json').write_text(json.dumps(result, indent=2) + '\n')
+print(json.dumps({k: result[k] for k in ['source_rows_preserved', 'actual_previous_vs_no_tier_order_and_rng_checks', 'actual_previous_vs_zero_tier_unaffected_order_and_rng_checks', 'pair_preference_and_plane_coverage_checks', 'full_capacity_all_alternatives_retained_checks', 'findings']}))

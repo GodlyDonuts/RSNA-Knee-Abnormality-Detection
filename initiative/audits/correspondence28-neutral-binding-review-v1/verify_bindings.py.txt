@@ -1,0 +1,67 @@
+from pathlib import Path
+import json,hashlib,datetime
+BASE=Path.cwd();WORK=BASE/'work';AUD=WORK/'recovered/initiative/audits';OUT=WORK/'annotation-staging/correspondence28-neutral-binding-review-v1'
+refs={}
+def ref(p):
+ p=Path(p);b=p.read_bytes();r={'path':str(p.relative_to(WORK)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)};refs[r['path']]=r;return r
+def read(p):
+ ref(p);return json.loads(Path(p).read_text())
+def jsonl(p):
+ ref(p);return [json.loads(s) for s in Path(p).read_text().splitlines() if s.strip()]
+CROSS=WORK/'annotation-staging/technical-candidate-status-final-targeted-v1/status-crosswalk.json';SUM=CROSS.with_name('summary.json')
+x=read(CROSS);s=read(SUM);wanted=s['cases_with_source_correspondence_actions'];rows={r['case']:r for r in x['original_candidates']+x['additional_report_correspondence_and_source_cases']};assert len(wanted)==28 and len(set(wanted))==28
+headeronly=['013:36','020:15','021:12','023:09','024:02','026:21','026:39','030:27','030:49','031:24','032:35']
+groups={'016:37':'technical-tier4-second-six-v1','021:44':'technical-tier4-third-six-v1','068:38':'technical-tier4-tenth-six-v1','069:10':'technical-tier4-tenth-six-v1','073:44':'technical-tier4-eleventh-six-v1','074:30':'technical-tier4-eleventh-six-v1','077:02':'technical-tier4-eleventh-six-v1','079:34':'technical-tier4-twelfth-six-v1','082:38':'technical-tier4-twelfth-six-v1','085:14':'technical-tier4-thirteenth-six-v1',**{c:'correspondence-055058060062063-v1' for c in ['055:10','058:12','060:28','062:02']}}
+result=[]
+for case in wanted:
+ r=rows[case];ident=r['source_identity'];bp=WORK/ident['batch']['path'];br=ref(bp);assert br==ident['batch'];batch=read(bp);i=ident['index_zero_based'];sr=batch[i];uid=sr['study_uid'];assert uid==r['study_uid']==ident['study_uid'];assert i==int(case.split(':')[1]);assert bp.name==f"batch-{case.split(':')[0]}.json";rh=hashlib.sha256(sr['report'].encode()).hexdigest();assert rh==ident['report_utf8_sha256']
+ e=[];inventory=None;metadata=None;manifest=None
+ if case in headeronly:
+  b,n=case.split(':');d=AUD/f'correspondence-{b}-{int(n):03d}';ep=d/'endpoint-headers.jsonl'
+  ip=d/'source-inventory.json'
+  if ip.exists():
+   iv=read(ip);inventory=iv['records'];assert iv['study_uid']==uid;e.append({'kind':'source_inventory',**ref(ip),'study_selector':uid})
+  else:
+   mp=d/'manifest.json';manifest=read(mp);assert all(t['study_uid']==uid for t in manifest['selected_series']);e.append({'kind':'endpoint_survey_manifest',**ref(mp),'study_selector':uid})
+  sp=d/'series-headers.json'
+  if sp.exists():e.append({'kind':'series_headers',**ref(sp),'study_selector':uid})
+ elif case=='025:21':
+  d=AUD/'anatomical-plane-025-021';ip=d/'source-inventory.json';iv=read(ip);inventory=iv['records'] if isinstance(iv,dict) else iv;e.append({'kind':'source_inventory',**ref(ip),'study_selector':uid});ep=d/'endpoint-headers.jsonl'
+  for name,kind in [('series-summary.json','all_slice_series_metadata'),('all-slice-headers-and-pixels.jsonl','all_slice_header_and_pixel_hash_records')]:e.append({'kind':kind,**ref(d/name),'study_selector':uid})
+ elif case.startswith('042:'):
+  n=case.replace(':','');d=AUD/'correspondence-042-014-041';ip=d/f'{n}-inventory.json';iv=read(ip);inventory=iv['records'] if isinstance(iv,dict) and 'records' in iv else iv;e.append({'kind':'source_inventory',**ref(ip),'study_selector':uid});ep=d/f'{n}-endpoint-headers.jsonl';e.append({'kind':'series_technical_metadata',**ref(d/f'{n}-series-technical-metadata.json'),'study_selector':uid})
+ else:
+  d=AUD/groups[case]/'technical-evidence';mp=d/f"case-{case.replace(':','-')}.json";metadata=read(mp);assert metadata['case']==case and metadata['study_uid']==uid;e.append({'kind':'case_metadata',**ref(mp),'study_selector':uid});ip=d/'inventory-six-cases.json';iv=read(ip);inventory=[v for v in iv if v['study_uid']==uid];e.append({'kind':'multi_case_source_inventory',**ref(ip),'study_selector':uid});ep=d/'endpoints.jsonl'
+ endpoints=[v for v in jsonl(ep) if v['study_uid']==uid];assert endpoints; assert len(set(v['sop_uid'] for v in endpoints))==len(endpoints);e.append({'kind':'endpoint_headers',**ref(ep),'study_selector':uid,'selected_records':len(endpoints)})
+ if inventory is not None:
+  assert isinstance(inventory,list),type(inventory)
+  inventory=[v for v in inventory if v['study_uid']==uid];assert inventory
+  recs={v['sop_uid']:v for v in inventory};assert len(recs)==len(inventory)
+  ser=set(v['series_uid'] for v in inventory)
+  for v in endpoints:
+   z=recs[v['sop_uid']];assert v['series_uid']==z['series_uid'];assert v['source_path']==z['path'];assert v['source_sha256']==z['sha256'];assert v['source_bytes']==z['bytes']
+  assert set(v['series_uid'] for v in endpoints)==ser
+  assert len(endpoints)==2*len(ser)
+  scope={'source_memberships':len(inventory),'series':len(ser),'endpoint_headers':len(endpoints),'endpoint_source_path_sha_size_membership_checks':'passed'}
+  if metadata:
+   assert metadata['series_count']==len(ser) and metadata['slices']==len(inventory) and metadata['endpoint_count']==len(endpoints)
+   assert set(v['series_uid'] for v in metadata['series'])==ser
+  if r['metadata_scope'].get('source_memberships') is not None:assert r['metadata_scope']['source_memberships']==len(inventory)
+ else:
+  ser=set(v['series_uid'] for v in endpoints);ms={v['series_uid']:v for v in manifest['selected_series']};assert ser==set(ms);assert len(endpoints)==2*len(ser)
+  for v in endpoints:assert v['sop_uid'] in [ms[v['series_uid']]['first_sop_uid'],ms[v['series_uid']]['last_sop_uid']]
+  scope={'source_memberships_from_manifest':sum(v['n_slices'] for v in ms.values()),'series':len(ser),'endpoint_headers':len(endpoints),'endpoint_manifest_sop_membership_checks':'passed','full_source_inventory_membership_check':'not_replayed; this archive preserves survey manifest rather than per-study full inventory'}
+ if r['metadata_scope'].get('series') is not None:assert r['metadata_scope']['series']==len(ser)
+ result.append({'case':case,'study_uid':uid,'source_identity':ident,'identity_check':{'batch_sha_size_match':True,'zero_based_index_case_match':True,'study_uid_match':True,'report_utf8_sha256_match':True,'report_utf8_bytes':len(sr['report'].encode()),'report_characters':len(sr['report'])},'neutral_evidence':e,'header_binding_checks':scope,'limit':'Headers, inventories and cache metadata do not establish diagnostic or report-to-image correspondence. Lexical first/last SOP endpoints are not spatial extremes or all-slice verification. This check does not download/decode/view pixels or inspect clinical annotations/gold.'})
+assert len(set(v['study_uid'] for v in result))==28
+for r in refs.values():assert ref(WORK/r['path'])==r
+out={'schema_version':1,'stage':'correspondence28-neutral-binding-review-v1','created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'agent_id':'/root/last_twelve_visual_review/packet_binding_review','session_identity':'codex-20260921-packet-binding-review','frozen_case_selection':ref(SUM),'frozen_crosswalk':ref(CROSS),'read_scope':'Frozen summary/crosswalk, exact blinded input records, neutral inventory/manifest/endpoint/case metadata only; no clinical annotation JSONL, gold, labels, decisions or prior assessor outputs opened. Crosswalk metadata limits were visible as selection context. Panel manifests omitted from neutral map to prevent incidental prior-assessor references.','case_count':28,'unique_studies':28,'identity_checks_passed':28,'full_inventory_endpoint_membership_checks_passed':27,'survey_manifest_endpoint_membership_checks_passed':1,'cases':result,'input_bindings':list(refs.values()),'originals_or_runtime_modified':False,'training_ready':False}
+(OUT/'neutral-evidence-map.json').write_text(json.dumps(out,indent=2)+'\n')
+lines=['# Neutral correspondence evidence bindings','',f'All 28 exact blinded batch/index/study/report bindings passed. 27 full per-case inventory endpoint checks passed; 013:36 was checked against its preserved endpoint-survey manifest (five series, 10 endpoints), without replaying all source inventory records.','', 'No clinical annotation JSONL, gold, labels or prior assessor outputs were opened. No images were decoded or viewed. No source, runtime or policy files changed.','', '| Case | Neutral evidence folder | Series | Source members | Endpoint headers |','| --- | --- | ---: | ---: | ---: |']
+for z in result:
+ sc=z['header_binding_checks'];folder=str(Path(z['neutral_evidence'][0]['path']).parent);lines.append(f"| {z['case']} | `{folder}` | {sc['series']} | {sc.get('source_memberships',sc.get('source_memberships_from_manifest'))} | {sc['endpoint_headers']} |")
+lines+=['','The JSON map supplies exact paths, hashes, sizes and study selectors. Multi-case inventory and endpoint files must be filtered by the exact study UID. Source/header evidence does not itself resolve report-to-image correspondence.']
+(OUT/'README.md').write_text('\n'.join(lines)+'\n')
+files=[ref(OUT/n) for n in ['verify_bindings.py','neutral-evidence-map.json','README.md']]
+(OUT/'final-file-list.json').write_text(json.dumps({'stage':out['stage'],'agent_id':out['agent_id'],'case_count':28,'files':files},indent=2)+'\n')
+print(json.dumps({'case_count':28,'identity_checks':28,'inventory_checks':27,'manifest_checks':1,'files':files,'final_file_list':ref(OUT/'final-file-list.json')},indent=2))

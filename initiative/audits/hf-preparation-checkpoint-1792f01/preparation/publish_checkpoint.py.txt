@@ -1,0 +1,790 @@
+"""Publish one reviewed immutable Git preparation checkpoint.
+
+Import and --check-local do not contact remote services. Only --execute writes
+to HF, using a reviewed plan digest, exact parent and complete verification.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import fcntl
+import hashlib
+import importlib.util
+import json
+import logging
+import math
+import os
+from pathlib import Path, PurePosixPath
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import threading
+
+STAGE = Path(__file__).resolve().parent
+WORK = STAGE.parents[1]
+REPO = WORK / "recovered"
+COMMIT = "1792f01ed3daab757c5ddb9bf5733ffe8d999f91"
+PARENT = "046466739c134be9287ef7c5471968b704467cfd"
+SOURCE = "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+CI_RUN = 35647456612
+HF_REPO = "GodlyDonuts/RSNA-Data"
+GH_REPO = "GodlyDonuts/RSNA-Knee-Abnormality-Detection"
+ENDPOINT = "https://huggingface.co"
+PACKAGE = WORK / "hf-preparation-checkpoints" / COMMIT
+PREFIX = "preparation-checkpoints/" + COMMIT + "/"
+SHA256 = re.compile(r"[0-9a-f]{64}")
+REVISION = re.compile(r"[0-9a-f]{40}")
+SOURCE_TREES = ("train_series", "test_series")
+SOURCE_CSVS = (
+    "train.csv",
+    "test.csv",
+    "train_series.csv",
+    "test_series.csv",
+    "sample_submission.csv",
+)
+HTTP_TIMEOUTS = {"connect": 15.0, "read": 120.0, "write": 120.0, "pool": 30.0}
+HUB_FILES = {
+    "__init__.py": "0b1f5516aaff6c2624ffe20ff2c097b4edd3eba6ecabc32f570641668206e92f",
+    "constants.py": "2675bde3e37cec267d08936f7e1362159139b474fe86078b4d0d038214d25174",
+    "_commit_api.py": "95748add989fa476725368ec6b79b3a6b5f0b62ebe1062314d1888ee48410238",
+    "lfs.py": "9fadb0ef78e20a3ea7ef82a5ee467f522b1429faa816aa322d8cb35da5b2ec67",
+    "utils/_http.py": "4824cc7998ca33d6a06067d57d18ed4ff79728c34af6ed7e4424b30627ffa23b",
+    "utils/_runtime.py": "19527f0edeb2ff8f13656974ba2f723dd5bc33baea19b9511b252a29a5f1902a",
+    "hf_api.py": "25fbb6d83c486094c6d97420efe03dd239bd9d4750f0dda418122e97276f5542",
+}
+MESSAGE = "Preserve targeted QA 4407-report preparation checkpoint"
+DESCRIPTION = (
+    "Immutable Git 1792f01 snapshot: 89 independently reviewed batches / 4407 reports; "
+    "34 accepted target corrections and 17 enforced correspondence exclusions. "
+    "412 tests and exact-commit CI passed. Full pinned code, protocols, blinded inputs, "
+    "review artifacts and audit evidence are preserved. Three global QA gates and "
+    "final-data release validation remain pending. Training readiness is false."
+)
+FLOOR_BYTES = 20 * 2**30
+OVERHEAD_BYTES = 32 * 2**20
+ROOT_RESERVE_BYTES = 1 * 2**20
+ROOTS = (
+    "rsna/",
+    "tests/",
+    "docs/",
+    "protocols/",
+    "initiative/reviews-v2/",
+    "initiative/reviews/inputs/",
+    "initiative/audits/",
+)
+TOP = {
+    "README.md",
+    "AGENTS.md",
+    "pyproject.toml",
+    "requirements.txt",
+    "requirements-dev.txt",
+}
+EXPECTED_REVIEWED = 4407
+EXPECTED_BATCHES = 89
+EXPECTED_MEMBERS = 5657
+
+
+class GuardError(Exception):
+    """Only a fixed, nonsensitive code may be used as the exception argument."""
+
+
+def require(value, code):
+    if not value:
+        raise GuardError(code)
+
+
+def now():
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
+def digest_stream(stream):
+    h = hashlib.sha256()
+    size = 0
+    for block in iter(lambda: stream.read(1024 * 1024), b""):
+        h.update(block)
+        size += len(block)
+    return h.hexdigest(), size
+
+
+def file_ref(path):
+    with path.open("rb") as stream:
+        digest, size = digest_stream(stream)
+    return {"path": path.name, "sha256": digest, "bytes": size}
+
+
+def verify_file(path, expected):
+    require(path.is_file() and not path.is_symlink(), "local_missing_or_symlink")
+    ref = file_ref(path)
+    require(ref["sha256"] == expected["sha256"], "local_sha256_mismatch")
+    if "bytes" in expected:
+        require(ref["bytes"] == expected["bytes"], "local_size_mismatch")
+    return ref
+
+
+def safe_remote_path(value):
+    require(isinstance(value, str), "remote_path_type")
+    p = PurePosixPath(value)
+    require(
+        not p.is_absolute()
+        and str(p) == value
+        and all(part not in {".", ".."} for part in p.parts)
+        and "\\" not in value,
+        "remote_path_unsafe",
+    )
+    return p
+
+
+def validate_refs(refs, expected_count=None):
+    require(isinstance(refs, list) and bool(refs), "refs_not_nonempty_list")
+    paths = []
+    for ref in refs:
+        require(
+            isinstance(ref, dict) and set(ref) == {"path", "sha256", "bytes"},
+            "ref_schema",
+        )
+        safe_remote_path(ref["path"])
+        require(
+            isinstance(ref["sha256"], str) and SHA256.fullmatch(ref["sha256"]),
+            "ref_digest",
+        )
+        require(type(ref["bytes"]) is int and ref["bytes"] >= 0, "ref_size")
+        paths.append(ref["path"])
+    require(len(paths) == len(set(paths)), "duplicate_remote_path")
+    if expected_count is not None:
+        require(len(paths) == expected_count, "remote_object_count")
+
+
+def git_blob(name):
+    return subprocess.check_output(
+        ["git", "show", COMMIT + ":" + name],
+        cwd=REPO,
+        timeout=30,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def bounded_request(request):
+    """Clamp even explicit timeout=None passed by repo_info and redirects."""
+    prior = request.extensions.get("timeout", {})
+    bounded = {}
+    for key, cap in HTTP_TIMEOUTS.items():
+        value = prior.get(key)
+        bounded[key] = (
+            min(float(value), cap)
+            if isinstance(value, (int, float)) and math.isfinite(value) and value > 0
+            else cap
+        )
+    request.extensions["timeout"] = bounded
+
+
+def configure_hub():
+    # No Hub imports are allowed before these environment values are fixed.
+    require("huggingface_hub.constants" not in sys.modules, "hub_already_imported")
+    os.environ.update(
+        {
+            "HF_HUB_DISABLE_XET": "1",
+            "HF_HUB_DISABLE_PROGRESS_BARS": "1",
+            "HF_HUB_DISABLE_TELEMETRY": "1",
+            "HF_DEBUG": "0",
+            "HF_HUB_DOWNLOAD_TIMEOUT": "120",
+            "HF_HUB_ETAG_TIMEOUT": "30",
+        }
+    )
+    for name in ("huggingface_hub", "httpx", "httpcore", "hf_xet"):
+        logging.getLogger(name).setLevel(logging.CRITICAL)
+    spec = importlib.util.find_spec("huggingface_hub")
+    require(spec is not None and spec.origin is not None, "hub_missing")
+    hub_root = Path(spec.origin).parent
+    for name, sha in HUB_FILES.items():
+        verify_file(hub_root / name, {"sha256": sha})
+    import httpx
+    import huggingface_hub as hub
+    from huggingface_hub import constants
+    from huggingface_hub.utils._http import hf_request_event_hook
+    from huggingface_hub.utils._runtime import is_xet_available
+
+    require(
+        hub.__version__ == "1.18.0"
+        and constants.HF_HUB_DISABLE_XET
+        and not is_xet_available()
+        and constants.ENDPOINT == ENDPOINT,
+        "unreviewed_hub_transport_configuration",
+    )
+
+    def factory():
+        return httpx.Client(
+            follow_redirects=True,
+            timeout=httpx.Timeout(**HTTP_TIMEOUTS),
+            limits=httpx.Limits(max_connections=4, max_keepalive_connections=2),
+            event_hooks={"request": [bounded_request, hf_request_event_hook]},
+        )
+
+    hub.set_client_factory(factory)
+    return hub
+
+
+def ci_guard():
+    result = subprocess.check_output(
+        [
+            "gh",
+            "run",
+            "view",
+            str(CI_RUN),
+            "--repo",
+            GH_REPO,
+            "--json",
+            "conclusion,headSha,status",
+        ],
+        text=True,
+        timeout=60,
+        stderr=subprocess.DEVNULL,
+    )
+    ci = json.loads(result)
+    require(
+        ci == {"conclusion": "success", "headSha": COMMIT, "status": "completed"},
+        "exact_commit_ci_not_success",
+    )
+    return ci
+
+
+def private_head(api):
+    info = api.repo_info(
+        HF_REPO,
+        repo_type="dataset",
+        revision="main",
+        timeout=30,
+        expand=["sha", "private"],
+    )
+    require(
+        info.private is True and REVISION.fullmatch(info.sha), "repository_not_private"
+    )
+    return info.sha
+
+
+def source_identity(api, revision):
+    wanted = set(SOURCE_TREES + SOURCE_CSVS)
+    entries = {}
+    for entry in api.list_repo_tree(HF_REPO, repo_type="dataset", revision=revision):
+        if entry.path in wanted:
+            require(entry.path not in entries, "duplicate_source_entry")
+            attr = "tree_id" if entry.path in SOURCE_TREES else "blob_id"
+            value = getattr(entry, attr, None)
+            require(
+                isinstance(value, str) and REVISION.fullmatch(value),
+                "source_entry_identity",
+            )
+            entries[entry.path] = {attr: value}
+    require(set(entries) == wanted, "source_entries_missing")
+    return entries
+
+
+def verify_source_unchanged(api, revision):
+    before = source_identity(api, SOURCE)
+    require(source_identity(api, PARENT) == before, "original_parent_changed_source")
+    require(source_identity(api, revision) == before, "publication_changed_source")
+    return before
+
+
+def verify_remote(api, hub, token, revision, refs, progress=lambda *_, **__: None):
+    """Every LFS OID+size; every ordinary file's full streamed SHA-256+size."""
+    from huggingface_hub.utils._http import get_session
+
+    entries = {}
+    for start in range(0, len(refs), 100):
+        chunk = refs[start : start + 100]
+        found = api.get_paths_info(
+            HF_REPO,
+            paths=[r["path"] for r in chunk],
+            repo_type="dataset",
+            revision=revision,
+        )
+        for entry in found:
+            require(entry.path not in entries, "duplicate_remote_entry")
+            entries[entry.path] = entry
+    require(set(entries) == {r["path"] for r in refs}, "remote_membership_mismatch")
+    verified = []
+    for index, ref in enumerate(refs):
+        entry = entries[ref["path"]]
+        require(getattr(entry, "size", None) == ref["bytes"], "remote_size_mismatch")
+        if getattr(entry, "lfs", None):
+            require(entry.lfs.sha256 == ref["sha256"], "remote_lfs_oid_mismatch")
+            method = "hub_lfs_sha256_and_size"
+        else:
+            url = hub.hf_hub_url(
+                HF_REPO, ref["path"], repo_type="dataset", revision=revision
+            )
+            h = hashlib.sha256()
+            size = 0
+            with get_session().stream(
+                "GET", url, headers={"Authorization": "Bearer " + token}
+            ) as response:
+                response.raise_for_status()
+                for chunk in response.iter_bytes(1024 * 1024):
+                    size += len(chunk)
+                    require(size <= ref["bytes"], "remote_stream_exceeds_size")
+                    h.update(chunk)
+            require(
+                size == ref["bytes"] and h.hexdigest() == ref["sha256"],
+                "remote_full_sha256_mismatch",
+            )
+            method = "full_http_bytes_sha256_and_size"
+        verified.append({**ref, "verification": method})
+        if (index + 1) % 25 == 0 or index + 1 == len(refs):
+            progress(
+                "remote_verification_progress", verified=index + 1, total=len(refs)
+            )
+    return verified
+
+
+def choose_action(head, verify_existing):
+    if head == PARENT:
+        return "commit_from_original_parent", None
+    require(REVISION.fullmatch(head), "invalid_head")
+    # A different HEAD never authorizes a new commit, even if only one file differs.
+    # Exact current object/source equality proves existing publication content;
+    # it does not by itself prove which process authored it or its Git parent.
+    return "verify_existing_exact_operation", verify_existing(head)
+
+
+def write_new_json(path, value):
+    with path.open("x", encoding="utf-8") as stream:
+        json.dump(value, stream, indent=2)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+class RunJournal:
+    def __init__(self, output):
+        self.path = output / "events.jsonl"
+        self.lock = threading.Lock()
+        self.stage = "starting"
+        self.revision = None
+
+    def record(self, stage, **fields):
+        with self.lock:
+            self.stage = stage
+            event = {"at_utc": now(), "stage": stage, **fields}
+            with self.path.open("a", encoding="utf-8") as stream:
+                stream.write(json.dumps(event) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            print(json.dumps({"stage": stage, **fields}), flush=True)
+
+
+def local_path(remote, package=None):
+    safe_remote_path(remote)
+    require(
+        remote
+        in {PREFIX + n for n in ("checkpoint.tar.gz", "manifest.json", "README.md")},
+        "remote_path_outside_frozen_mapping",
+    )
+    return (PACKAGE if package is None else package) / remote.rsplit("/", 1)[1]
+
+
+def selected_files():
+    """Select only regular blobs from the pinned Git tree, never the worktree."""
+    result = []
+    raw = subprocess.check_output(
+        ["git", "ls-tree", "-rl", COMMIT],
+        cwd=REPO,
+        text=True,
+        timeout=60,
+        stderr=subprocess.DEVNULL,
+    )
+    for line in raw.splitlines():
+        metadata, path = line.split("\t", 1)
+        mode, kind, oid, size = metadata.split()
+        if path.startswith(ROOTS) or path in TOP:
+            safe_remote_path(path)
+            require(
+                kind == "blob" and mode in {"100644", "100755"},
+                "unsupported_git_member",
+            )
+            require(
+                not any(p.startswith(".env") for p in PurePosixPath(path).parts),
+                "secret_file_selected",
+            )
+            result.append(
+                {
+                    "path": path,
+                    "git_blob": oid,
+                    "bytes": int(size),
+                    "mode": int(mode, 8) & 0o777,
+                }
+            )
+    require(len(result) == EXPECTED_MEMBERS, "pinned_member_count")
+    return result
+
+
+def disk_guard(additional_bytes=0):
+    free = shutil.disk_usage(WORK).free
+    required = FLOOR_BYTES + OVERHEAD_BYTES + ROOT_RESERVE_BYTES + additional_bytes
+    require(free >= required, "disk_floor_would_be_breached")
+    return {
+        "free_bytes": free,
+        "floor_bytes": FLOOR_BYTES,
+        "metadata_reserve_bytes": OVERHEAD_BYTES,
+        "root_reserve_bytes": ROOT_RESERVE_BYTES,
+        "additional_bytes": additional_bytes,
+    }
+
+
+def load_secret_values():
+    # Values stay in memory. They are never included in exceptions or artifacts.
+    from dotenv import dotenv_values
+
+    values = dotenv_values(WORK.parent / ".env")
+    return [
+        v.encode()
+        for k, v in values.items()
+        if isinstance(v, str)
+        and len(v) >= 12
+        and any(word in k.upper() for word in ("TOKEN", "KEY", "SECRET", "PASSWORD"))
+    ]
+
+
+def reject_secret_payload(data, secrets):
+    require(not any(value in data for value in secrets), "secret_value_detected")
+    require(
+        re.search(rb"(?:hf_[A-Za-z0-9]{25,}|KGAT_[A-Za-z0-9]{25,})", data) is None,
+        "credential_pattern_detected",
+    )
+
+
+def validate_tar(path, refs, pinned=None, secrets=()):
+    validate_refs(refs)
+    expected = {r["path"]: r for r in refs}
+    git_files = {r["path"]: r for r in (selected_files() if pinned is None else pinned)}
+    require(set(expected) == set(git_files), "manifest_not_exact_pinned_selection")
+    seen = set()
+    reviewed = reports = 0
+    with tarfile.open(path, "r|gz") as archive:
+        for member in archive:
+            require(
+                member.isfile() and member.name in expected, "unexpected_tar_member"
+            )
+            require(member.name not in seen, "duplicate_tar_member")
+            seen.add(member.name)
+            stream = archive.extractfile(member)
+            require(stream is not None, "missing_tar_payload")
+            with stream:
+                data = stream.read()
+            ref = expected[member.name]
+            git = git_files[member.name]
+            require(
+                len(data) == member.size == ref["bytes"] == git["bytes"],
+                "tar_member_size",
+            )
+            require(
+                hashlib.sha256(data).hexdigest() == ref["sha256"], "tar_member_sha256"
+            )
+            oid = hashlib.sha1(
+                b"blob " + str(len(data)).encode() + b"\0" + data
+            ).hexdigest()
+            require(oid == git["git_blob"], "tar_payload_not_pinned_git_blob")
+            require(
+                member.mode == git["mode"] and member.mtime == 0,
+                "tar_canonical_metadata",
+            )
+            reject_secret_payload(data, secrets)
+            if member.name.startswith(
+                "initiative/reviews-v2/reviewed/"
+            ) and member.name.endswith(".jsonl"):
+                rows = [json.loads(line) for line in data.splitlines()]
+                require(
+                    all(len(row["states"]) == 12 for row in rows),
+                    "review_target_coverage",
+                )
+                reviewed += 1
+                reports += len(rows)
+    require(seen == set(expected), "missing_tar_members")
+    require(
+        reviewed == EXPECTED_BATCHES and reports == EXPECTED_REVIEWED,
+        "review_report_coverage",
+    )
+    return {
+        "members": len(seen),
+        "reviewed_batches": reviewed,
+        "reviewed_reports": reports,
+        "all_member_git_blobs_verified": True,
+        "secret_scan_passed": True,
+    }
+
+
+def load_plan(expected_sha):
+    require(
+        isinstance(expected_sha, str) and SHA256.fullmatch(expected_sha),
+        "plan_digest_required",
+    )
+    path = STAGE / "review-plan.json"
+    verify_file(path, {"sha256": expected_sha})
+    plan = json.loads(path.read_text())
+    require(
+        plan["github_commit"] == COMMIT and plan["training_ready"] is False,
+        "review_plan_identity",
+    )
+    for ref in plan["bindings"]:
+        safe_remote_path(ref["path"])
+        path = (WORK.parent / ref["path"]).resolve()
+        require(path.is_relative_to(WORK.resolve()), "plan_path_escape")
+        verify_file(path, ref)
+    require(
+        {r["path"] for r in plan["bindings"]}
+        == {
+            str(p.relative_to(WORK.parent))
+            for p in (
+                Path(__file__),
+                STAGE / "build_package.py",
+                STAGE / "pinned-package-measurement.json",
+                PACKAGE / "manifest.json",
+                PACKAGE / "README.md",
+                PACKAGE / "publication-operation.json",
+            )
+        },
+        "review_plan_binding_set",
+    )
+    return plan
+
+
+def local_preflight():
+    operation = json.loads((PACKAGE / "publication-operation.json").read_text())
+    manifest = json.loads((PACKAGE / "manifest.json").read_text())
+    require(
+        operation["stage"] == "prepared_private_checkpoint_publication"
+        and operation["github_commit"] == COMMIT
+        and operation["parent_commit"] == PARENT
+        and operation["effective_source_revision"] == SOURCE
+        and operation["training_ready"] is False,
+        "operation_identity",
+    )
+    require(
+        manifest["github_commit"] == COMMIT
+        and manifest["github_ci_run"] == CI_RUN
+        and manifest["github_ci_conclusion"] == "success"
+        and manifest["effective_source_revision"] == SOURCE
+        and manifest["training_ready"] is False
+        and manifest["reviewed_reports"] == EXPECTED_REVIEWED
+        and manifest["reviewed_batches"] == EXPECTED_BATCHES,
+        "manifest_identity",
+    )
+    refs = operation["uploaded_files"]
+    validate_refs(refs, 3)
+    require(
+        {r["path"] for r in refs}
+        == {
+            PREFIX + name
+            for name in ("checkpoint.tar.gz", "manifest.json", "README.md")
+        },
+        "operation_mapping",
+    )
+    secrets = load_secret_values()
+    for ref in refs:
+        path = local_path(ref["path"])
+        verify_file(path, ref)
+        if path.name != "checkpoint.tar.gz":
+            reject_secret_payload(path.read_bytes(), secrets)
+    tar_ref = next(ref for ref in refs if ref["path"].endswith("/checkpoint.tar.gz"))
+    require(
+        {k: tar_ref[k] for k in ("sha256", "bytes")} == manifest["package"],
+        "package_manifest_binding",
+    )
+    members = [
+        {k: r[k] for k in ("path", "sha256", "bytes")} for r in manifest["files"]
+    ]
+    pinned = selected_files()
+    require(
+        {r["path"]: r["git_blob"] for r in manifest["files"]}
+        == {r["path"]: r["git_blob"] for r in pinned},
+        "manifest_git_blob_binding",
+    )
+    tar_proof = validate_tar(PACKAGE / "checkpoint.tar.gz", members, pinned, secrets)
+    proof = {
+        "at_utc": now(),
+        "github_commit": COMMIT,
+        "operation": file_ref(PACKAGE / "publication-operation.json"),
+        "manifest": file_ref(PACKAGE / "manifest.json"),
+        "package": tar_ref,
+        "tar_validation": tar_proof,
+        "disk": disk_guard(),
+        "remote_writes": 0,
+    }
+    return operation, proof
+
+
+def publish(api, hub, token, operation, journal, output):
+    refs = operation["uploaded_files"]
+    operation_ref = file_ref(PACKAGE / "publication-operation.json")
+    ci = ci_guard()
+    head = private_head(api)
+    source_ids = verify_source_unchanged(api, head)
+
+    def existing(revision):
+        return verify_remote(api, hub, token, revision, refs, journal.record)
+
+    action, verification = choose_action(head, existing)
+    journal.record("remote_preflight_passed", head=head, action=action)
+    if action == "commit_from_original_parent":
+        ci = ci_guard()
+        require(private_head(api) == PARENT, "head_changed_before_commit")
+        operations = []
+        for ref in refs:
+            path = local_path(ref["path"])
+            verify_file(path, ref)
+            add = hub.CommitOperationAdd(path_in_repo=ref["path"], path_or_fileobj=path)
+            require(
+                add.upload_info.size == ref["bytes"]
+                and add.upload_info.sha256.hex() == ref["sha256"],
+                "upload_info_mismatch",
+            )
+            operations.append(add)
+        disk_guard()
+        require(private_head(api) == PARENT, "head_changed_after_upload_preparation")
+        journal.record(
+            "commit_call_starting", parent_commit=PARENT, objects=len(operations)
+        )
+        result = api.create_commit(
+            repo_id=HF_REPO,
+            repo_type="dataset",
+            revision="main",
+            parent_commit=PARENT,
+            operations=operations,
+            commit_message=MESSAGE,
+            commit_description=DESCRIPTION,
+            num_threads=2,
+        )
+        revision = result.oid
+        require(
+            REVISION.fullmatch(revision) and revision != PARENT,
+            "commit_result_revision",
+        )
+        journal.revision = revision
+        journal.record("committed_remote_verification_pending", revision=revision)
+        verification = existing(revision)
+    else:
+        revision = head
+        journal.revision = revision
+    source_ids = verify_source_unchanged(api, revision)
+    require(private_head(api) == revision, "head_changed_during_verification")
+    for ref in refs:
+        verify_file(local_path(ref["path"]), ref)
+    verify_file(PACKAGE / "publication-operation.json", operation_ref)
+    require(len(verification) == 3, "incomplete_remote_verification")
+    receipt = {
+        "schema_version": 1,
+        "status": "verified_private_preparation_checkpoint",
+        "publication_action": action,
+        "completed_at_utc": now(),
+        "repo_id": HF_REPO,
+        "private": True,
+        "github_commit": COMMIT,
+        "github_ci_run": CI_RUN,
+        "github_ci_result": ci,
+        "hf_publication_revision": revision,
+        "hf_parent_revision": PARENT
+        if action == "commit_from_original_parent"
+        else None,
+        "expected_hf_parent_revision": PARENT,
+        "parent_binding_scope": "Expected parent for a new commit; reconciliation proves exact content without inferring author or parent.",
+        "effective_source_revision": SOURCE,
+        "operation": operation_ref,
+        "manifest": file_ref(PACKAGE / "manifest.json"),
+        "publisher": file_ref(Path(__file__)),
+        "uploaded_files": refs,
+        "remote_verifications": verification,
+        "remote_objects_verified": True,
+        "source_tree_and_official_metadata_unchanged": True,
+        "source_tree_and_official_metadata_identities": source_ids,
+        "xet_enabled": False,
+        "http_timeouts_seconds": HTTP_TIMEOUTS,
+        "upload_threads": 2,
+        "training_ready": False,
+    }
+    write_new_json(output / "publication-receipt.json", receipt)
+    journal.record("verified", revision=revision, objects=3, training_ready=False)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--check-local", action="store_true")
+    mode.add_argument("--execute", action="store_true")
+    parser.add_argument("--expected-plan-sha", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--max-runtime-seconds", type=int, default=1800)
+    args = parser.parse_args()
+    journal = None
+    done = threading.Event()
+    lock = None
+    try:
+        require(60 <= args.max_runtime_seconds <= 3600, "runtime_bound_invalid")
+        output = args.output.resolve()
+        require(
+            output.is_relative_to(STAGE / "runs") and not output.exists(),
+            "output_not_new_run",
+        )
+        load_plan(args.expected_plan_sha)
+        lock = (STAGE / "publisher.lock").open("a")
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        operation, proof = local_preflight()
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.mkdir(exist_ok=False)
+        write_new_json(output / "local-preflight.json", proof)
+        journal = RunJournal(output)
+        if args.check_local:
+            journal.record(
+                "offline_local_check_passed", objects=3, tar_members=EXPECTED_MEMBERS
+            )
+            return 0
+
+        def deadline():
+            if not done.wait(args.max_runtime_seconds):
+                try:
+                    journal.record(
+                        "deadline_exceeded_remote_outcome_may_be_uncertain",
+                        last_known_revision=journal.revision,
+                    )
+                finally:
+                    os._exit(124)
+
+        threading.Thread(target=deadline, daemon=True).start()
+        hub = configure_hub()
+        from dotenv import dotenv_values
+
+        token = dotenv_values(WORK.parent / ".env").get("HF_TOKEN")
+        require(isinstance(token, str) and bool(token), "hf_token_missing")
+        api = hub.HfApi(token=token, endpoint=ENDPOINT)
+        journal.record(
+            "guarded_publication_started", max_runtime_seconds=args.max_runtime_seconds
+        )
+        publish(api, hub, token, operation, journal, output)
+        return 0
+    except BaseException as error:
+        code = (
+            error.args[0]
+            if type(error) is GuardError
+            else "external_or_unexpected_error"
+        )
+        info = {
+            "error_code": code,
+            "error_type": type(error).__name__,
+            "remote_outcome_may_be_uncertain": bool(
+                journal and journal.stage != "starting"
+            ),
+        }
+        if journal is not None:
+            journal.record("stopped_without_success_claim", **info)
+        else:
+            print(json.dumps({"stage": "preflight_blocked", **info}), flush=True)
+        return 1
+    finally:
+        done.set()
+        if lock is not None:
+            lock.close()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

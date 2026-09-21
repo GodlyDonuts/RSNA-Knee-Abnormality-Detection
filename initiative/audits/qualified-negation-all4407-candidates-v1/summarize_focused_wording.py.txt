@@ -1,0 +1,47 @@
+"""Prioritize exact-evidence qualifier hits without assigning clinical decisions."""
+import collections
+import hashlib
+import json
+import unicodedata
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+IDENTITY = "/root/duplicate_consistency_review"
+QUALIFIED = {"qualified_significance", "qualified_definiteness_or_gross_normality", "cartilage_preservation_qualifier"}
+rows = [json.loads(line) for line in (OUT / "candidate-details.jsonl").read_text().splitlines()]
+sources = {r["study_uid"]: r for r in json.loads((OUT / "neutral-full-report-packet.json").read_text())}
+direct = [r for r in rows if any(h["rule_id"] in QUALIFIED and h["association"] == "overlaps_exact_effective_evidence" for h in r["source_excerpts"])]
+observed = [r for r in direct if r["inspection_effective_state"] in {"positive", "negative"}]
+
+def write(name, obj):
+    with (OUT / name).open("x") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+def fold(text):
+    return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+groups = collections.defaultdict(list)
+for row in direct:
+    groups[row["target"], fold(row["inspection_effective_evidence"])].append(row)
+conflicts = []
+for (target, quote), members in sorted(groups.items()):
+    states = sorted({r["inspection_effective_state"] for r in members})
+    if len(states) < 2:
+        continue
+    conflicts.append({"target": target, "normalized_exact_evidence": quote, "normalized_evidence_sha256": hashlib.sha256(quote.encode()).hexdigest(), "inspection_effective_states": states, "n_reports": len(members), "n_reports_outside_normalized_duplicate_groups": sum(not r["in_normalized_duplicate_group"] for r in members), "includes_observed_state": bool(set(states) & {"positive", "negative"}), "opposite_observed_polarities": {"positive", "negative"}.issubset(states), "records": [{k: r[k] for k in ["study_uid", "batch", "index", "source_path", "source_sha256", "reviewed_artifact_path", "reviewed_artifact_sha256", "original_state", "original_evidence", "inspection_effective_state", "inspection_effective_evidence", "existing_correction_case"]} for r in members], "disposition": "lexical_cross_report_candidate_only; identical evidence quotations can have different full-report context and do not establish an error"})
+focus_uids = sorted({r["study_uid"] for r in observed})
+conflict_uids = sorted({r["study_uid"] for g in conflicts for r in g["records"]})
+write("focused-qualified-candidate-details.json", {"schema_version": 1, "agent_id": IDENTITY, "session_id": IDENTITY, "selection": "Existing positive/negative target with qualified_significance, qualified_definiteness_or_gross_normality, or cartilage_preservation_qualifier overlapping its exact effective evidence. This is a deterministic subset of candidate-details.jsonl, not a proposed correction list.", "n_reports": len(focus_uids), "n_target_candidates": len(observed), "target_counts": dict(collections.Counter(r["target"] for r in observed)), "records": observed})
+write("focused-neutral-full-report-packet.json", [sources[u] for u in focus_uids])
+write("exact-wording-state-consistency-candidates.json", {"schema_version": 1, "agent_id": IDENTITY, "session_id": IDENTITY, "selection": "Within direct exact-evidence qualifier hits, group by target and production-style NFKC/casefold/whitespace normalization of the complete existing evidence quotation. Retain groups containing more than one inspection-effective state.", "n_qualified_direct_targets": len(direct), "n_qualified_direct_reports": len({r["study_uid"] for r in direct}), "n_distinct_target_evidence_groups": len(groups), "n_mixed_state_groups": len(conflicts), "n_reports_in_mixed_groups": len(conflict_uids), "n_mixed_groups_with_observed_state": sum(g["includes_observed_state"] for g in conflicts), "n_opposite_observed_polarity_groups": sum(g["opposite_observed_polarities"] for g in conflicts), "groups": conflicts, "scope_limit": "Cross-report lexical consistency candidates only. No finding is adjudicated; complete reports may explain differing target states."})
+write("exact-wording-neutral-full-report-packet.json", [sources[u] for u in conflict_uids])
+(OUT / "focused-neutral-batches").mkdir()
+parts = []
+for start in range(0, len(focus_uids), 50):
+    members = focus_uids[start:start + 50]
+    filename = f"focused-neutral-batches/batch-{start // 50:03d}.json"
+    write(filename, [sources[u] for u in members])
+    parts.append({"path": filename, "sha256": hashlib.sha256((OUT / filename).read_bytes()).hexdigest(), "n_reports": len(members), "study_uids": members})
+write("focused-neutral-packet-index.json", {"schema_version": 1, "n_reports": len(focus_uids), "scope": "Source-only priority packet. No state, target, candidate reason, evidence annotation, or suggested correction is included. Selection membership is disclosed separately and is not a random/blind sample.", "batches": parts})
+print(json.dumps({"focused_reports": len(focus_uids), "focused_observed_target_candidates": len(observed), "focused_neutral_batches": len(parts), "exact_wording_mixed_state_groups": len(conflicts), "exact_wording_mixed_state_reports": len(conflict_uids), "opposite_observed_polarity_groups": sum(g["opposite_observed_polarities"] for g in conflicts)}, indent=2))

@@ -1,0 +1,41 @@
+"""Measure a deterministic pinned Git package without writing the tar to disk."""
+from pathlib import Path
+import gzip,hashlib,io,json,subprocess,tarfile,shutil,datetime
+STAGE=Path(__file__).resolve().parent;WORK=STAGE.parents[1];REPO=WORK/'recovered';COMMIT='1792f01ed3daab757c5ddb9bf5733ffe8d999f91'
+ROOTS=('rsna/','tests/','docs/','protocols/','initiative/reviews-v2/','initiative/reviews/inputs/','initiative/audits/')
+TOP={'README.md','AGENTS.md','pyproject.toml','requirements.txt','requirements-dev.txt'}
+class Counter:
+ def __init__(self):self.size=0;self.digest=hashlib.sha256()
+ def write(self,data):self.size+=len(data);self.digest.update(data);return len(data)
+ def flush(self):pass
+
+def selected_files():
+ result=[]
+ for line in subprocess.check_output(['git','ls-tree','-rl',COMMIT],cwd=REPO,text=True,timeout=60).splitlines():
+  metadata,path=line.split('\t',1);mode,kind,oid,size=metadata.split()
+  if path.startswith(ROOTS) or path in TOP:
+   assert kind=='blob' and mode in {'100644','100755'}
+   result.append({'path':path,'git_blob':oid,'bytes':int(size),'mode':int(mode,8)&0o777})
+ return result
+
+def stream_package(dest,files):
+ p=subprocess.Popen(['git','archive','--format=tar',COMMIT,*[x['path']for x in files]],cwd=REPO,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+ assert p.stdout;refs=[];expected={x['path']:x for x in files};reviewed=reports=0
+ try:
+  with gzip.GzipFile(filename='',mode='wb',fileobj=dest,mtime=0)as gz,tarfile.open(fileobj=gz,mode='w|')as result,tarfile.open(fileobj=p.stdout,mode='r|')as source:
+   for member in source:
+    if not member.isfile():continue
+    assert member.name in expected;inp=source.extractfile(member);assert inp;data=inp.read();assert len(data)==expected[member.name]['bytes']
+    if member.name.startswith('initiative/reviews-v2/reviewed/') and member.name.endswith('.jsonl'):
+     rows=[json.loads(line)for line in data.splitlines()];assert all(len(x['states'])==12 for x in rows);reviewed+=1;reports+=len(rows)
+    info=tarfile.TarInfo(member.name);info.size=len(data);info.mode=expected[member.name]['mode'];info.mtime=0;result.addfile(info,io.BytesIO(data));refs.append({'path':member.name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'git_blob':expected[member.name]['git_blob']})
+  assert p.wait(timeout=60)==0;assert {x['path']for x in refs}==set(expected);assert len(refs)==len(expected);assert reviewed==89 and reports==4407
+  return refs
+ finally:
+  if p.poll() is None:p.kill();p.wait()
+
+def main():
+ files=selected_files();sink=Counter();refs=stream_package(sink,files);free=shutil.disk_usage(WORK).free;reserve=150*2**20;overhead=32*2**20
+ obj={'schema_version':1,'stage':'compressed_size_measurement_without_package_write','github_commit':COMMIT,'at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'files':refs,'package':{'sha256':sink.digest.hexdigest(),'bytes':sink.size},'disk':{'free_bytes':free,'floor_bytes':20*2**30,'root_reserved_bytes':reserve,'metadata_and_operations_reserve_bytes':overhead,'can_build_now':free>=20*2**30+reserve+overhead+sink.size},'reviewed_batches':89,'reviewed_reports':4407,'writes_package':False}
+ out=STAGE/'pinned-package-measurement.json';assert not out.exists();out.write_text(json.dumps(obj,indent=2)+'\n');print(json.dumps({'members':len(refs),'package':obj['package'],'disk':obj['disk']}),flush=True)
+if __name__=='__main__':main()

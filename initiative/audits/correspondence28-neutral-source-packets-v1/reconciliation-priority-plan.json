@@ -1,0 +1,103 @@
+{
+  "stage": "post_source_freeze_reconciliation_priority_plan",
+  "created_at_utc": "2026-09-21T20:09:01.063216+00:00",
+  "agent_id": "/root/last_twelve_visual_review",
+  "source_packet_freeze": {
+    "path": "annotation-staging/correspondence28-neutral-source-packets-v1/source-packet-freeze.json",
+    "sha256": "1a2d466fc30a34e7a9498ff01af5daad5b3367846e81b454fa5f2be657f36e36",
+    "bytes": 8519
+  },
+  "separate_mask_inventory": {
+    "path": "annotation-staging/correspondence28-neutral-source-packets-v1/annotation-mask-inventory.json",
+    "sha256": "431ff31c96dd47de52977e9f2c4574d8ac7584668f10e2bd97d6004c5156c5f9",
+    "bytes": 36779
+  },
+  "independent_neutral_binding_review": {
+    "path": "annotation-staging/correspondence28-neutral-binding-review-v1/neutral-evidence-map.json",
+    "sha256": "f691b2722847bfd099a9f5f176f85929389d8fc7248efb535978dbc3d23de00f",
+    "bytes": 92466
+  },
+  "independent_packet_crosscheck": {
+    "path": "annotation-staging/correspondence28-neutral-binding-review-v1/source-packet-crosscheck.json",
+    "sha256": "e5ef0cad102c0c51f87a0503454de914dd5882c281f152894bed21b87fecfc32",
+    "bytes": 13637
+  },
+  "first_batch_packet": {
+    "path": "annotation-staging/correspondence28-neutral-source-packets-v1/source-packet-priority-01.json",
+    "sha256": "ebb8bc3663a09e9e16e0ed64a566dc33b1f796e95793a5e4145c2b729390b568",
+    "bytes": 16006
+  },
+  "selection_basis": "Prioritize the four unresolved technical/source cases for which the existing reviewed annotation states do not already mask every report target. This is a triage choice, not acceptance of an exclusion or a label correction.",
+  "cases": [
+    {
+      "case": "021:44",
+      "study_uid": "1.2.826.0.1.3680043.8.498.13135567399913958681613600650440761032",
+      "full_source_packet": {
+        "path": "annotation-staging/correspondence28-neutral-source-packets-v1/source-packet-01.json",
+        "sha256": "3b7e4c9bfaae671464b48f525e8a904c76ee299dba77da5d6e804a6f4136b849",
+        "bytes": 28464
+      },
+      "question_for_independent_reconciliation": "Single report has an explicit right-knee heading and a both-knee sentence. Reconcile the scope of that wording and its relation to the bound acquisition without correcting either source phrase."
+    },
+    {
+      "case": "042:14",
+      "study_uid": "1.2.826.0.1.3680043.8.498.38095098835657518803781210111463995296",
+      "full_source_packet": {
+        "path": "annotation-staging/correspondence28-neutral-source-packets-v1/source-packet-03.json",
+        "sha256": "a3ae28060ea503567a53ad9a717155a929ece576c394df0a2686b6790be843e1",
+        "bytes": 28614
+      },
+      "question_for_independent_reconciliation": "The complete source explicitly reports two studies jointly and contains bilateral statements. Reconcile whether and how those shared statements correspond to the single stored study; review earlier accepted source/eligibility reasoning only after an independent source freeze."
+    },
+    {
+      "case": "042:41",
+      "study_uid": "1.2.826.0.1.3680043.8.498.38628165743951175602803204505216754926",
+      "full_source_packet": {
+        "path": "annotation-staging/correspondence28-neutral-source-packets-v1/source-packet-03.json",
+        "sha256": "a3ae28060ea503567a53ad9a717155a929ece576c394df0a2686b6790be843e1",
+        "bytes": 28614
+      },
+      "question_for_independent_reconciliation": "The complete source explicitly names right/left knees and uses bilateral wording with side-specific measurements. Reconcile shared versus side-specific examination scope against the bound study; existing observed targets are not presumed erroneous."
+    },
+    {
+      "case": "069:10",
+      "study_uid": "1.2.826.0.1.3680043.8.498.74864145321761783409935288797327597738",
+      "full_source_packet": {
+        "path": "annotation-staging/correspondence28-neutral-source-packets-v1/source-packet-04.json",
+        "sha256": "2de70b808ee48df08b227cae31b63275aea8c80e40d33df10b6c0f8d1d897c5b",
+        "bytes": 17513
+      },
+      "question_for_independent_reconciliation": "The source explicitly names the right knee while complete case metadata retains literal L and blank Laterality values. Reconcile this exact source/tag conflict; compatible sparse anatomy does not establish named image side or authorize a source correction."
+    }
+  ],
+  "remaining_already_all_masked_cases": [
+    "013:36",
+    "016:37",
+    "020:15",
+    "021:12",
+    "023:09",
+    "024:02",
+    "025:21",
+    "026:21",
+    "026:39",
+    "030:27",
+    "030:49",
+    "031:24",
+    "032:35",
+    "055:10",
+    "058:12",
+    "060:28",
+    "062:02",
+    "068:38",
+    "073:44",
+    "074:30",
+    "077:02",
+    "079:34",
+    "082:38",
+    "085:14"
+  ],
+  "remaining_action": "For the other24, preserve existing annotation masks while reconciling the documented source-to-examination limits and whether an explicit export control is needed. Existing masks do not resolve the underlying correspondence.",
+  "separation": "The original five packets and28textfiles were frozen before annotation access. The priority subset was mechanically copied after classification; its report and metadata fields are exact copies of those frozen packets and contain no classification or prior opinion.",
+  "scope": "Independent reviewers may assess source structure and correspondence eligibility, but this preparation accepts no new exclusion, clinical label or runtime policy. No gold data or evaluation membership was opened.",
+  "training_ready": false
+}

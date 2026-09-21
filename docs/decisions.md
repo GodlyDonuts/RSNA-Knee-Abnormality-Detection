@@ -2,6 +2,21 @@
 
 ## Current corrective run
 
+The required correspondence registry enforces 18 whole-study report-supervision
+exclusions. The latest is 069:10, accepted independently from its full RIGHT
+report and conflicting literal L header fields; no new image interpretation is
+claimed. Three other source/header cases retain their current supervision,
+subject to semantic QA. Twenty-four unresolved cases already have all twelve
+report targets masked and require an exact final-export zero-mask check.
+All original clinical artifacts and the prior seventeen exclusions are preserved.
+
+The reviewed sampling preference retains every original series and gives lower
+priority to three alternatives in two studies. The loader preserves plane
+coverage and existing ordering/RNG behavior for all unaffected studies. See
+[the policy, complete table and validation](series-preferences.md). This preference
+does not certify equivalent coverage or alter clinical labels. The combined
+462-test suite, Ruff and mypy pass; global semantic QA remains unfinished.
+
 A required source-bound report-similarity registry now augments the exact-report/pixel leakage graph before gold quarantine. The first accepted edge covers038:44/045:15, whose only difference is a redundant full stop and space. No source text, clinical annotation, patient or hospital identity is inferred or changed. See [the policy and validation](report-similarity.md).
 
 The owner authorized direct main integration and a monorepo on 2026-09-20.
@@ -109,8 +124,9 @@ Historical outputs and in-progress drafts are not a corrected release.
    IDs. There are34 independently accepted target corrections; the latest seven
    have exact original/source bindings and preserve all prior artifacts. Resolve the remaining cartilage, bone terminology, and qualified-negation/
    duplicate semantic gates against the exact final artifacts and corrections.
-2. Finish remaining technical correspondence checks and incorporate the complete
-   image audit and verified duplicate edges into final leakage isolation.
+2. Recheck zero report loss masks for all 24 administratively unresolved
+   correspondence cases after final adjudication. Incorporate the complete image
+   audit, accepted exclusions and verified duplicate edges into final isolation.
 3. Generate disjoint corrected manifests, coverage, distributions, and gold
    comparison without training or calibrating on the gold evaluation set.
 4. Complete real-data smoke training, exact resume, gold inference, and exact

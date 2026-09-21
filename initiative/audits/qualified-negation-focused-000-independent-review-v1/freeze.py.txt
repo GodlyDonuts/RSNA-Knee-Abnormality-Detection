@@ -1,0 +1,164 @@
+"""Validate and freeze this actual independent source-reading pass once."""
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import runpy
+
+BASE = Path(__file__).resolve().parent
+WORKSPACE = BASE.parents[2]
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def binding(path):
+    return {
+        "path": str(path.relative_to(WORKSPACE)),
+        "sha256": sha(path),
+        "bytes": path.stat().st_size,
+    }
+
+
+def write_once(name, obj):
+    target = BASE / name
+    with target.open("x", encoding="utf-8") as handle:
+        json.dump(obj, handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
+    return target
+
+
+def main():
+    namespace = runpy.run_path(str(BASE / "assemble.py"))
+    rows = namespace["ROWS"]
+    judgments = namespace["OUT"]
+    targets = namespace["TARGETS"]
+    source = namespace["SOURCE"]
+    rubric = WORKSPACE / "work/recovered/protocols/report_weak_v2.md"
+    start = json.loads((BASE / "start.json").read_text())
+    assert sha(source) == start["source_packet"]["sha256"]
+    assert sha(rubric) == start["rubric"]["sha256"]
+    assert len(rows) == len(judgments) == 50
+    assert len({row["study_uid"] for row in rows}) == 50
+    assert len(targets) == 12
+    counts = Counter()
+    quotation_count = 0
+    for index, (source_row, judgment) in enumerate(zip(rows, judgments)):
+        assert judgment["packet_index"] == index
+        assert judgment["study_uid"] == source_row["study_uid"]
+        assert judgment["source_index"] == source_row["index"]
+        assert judgment["source_path"] == source_row["source_path"]
+        assert judgment["source_batch_sha256"] == source_row["source_sha256"]
+        assert judgment["source_report_sha256"] == hashlib.sha256(
+            source_row["report"].encode()
+        ).hexdigest()
+        assert len(judgment["states"]) == len(judgment["evidence"]) == 12
+        assert len(judgment["negative_evidence_basis"]) == 12
+        assert judgment["notes"]
+        for state, evidence, basis in zip(
+            judgment["states"],
+            judgment["evidence"],
+            judgment["negative_evidence_basis"],
+        ):
+            assert state in {"positive", "negative", "uncertain", "not_mentioned"}
+            counts[state] += 1
+            if state == "not_mentioned":
+                assert evidence == ""
+            else:
+                assert evidence and evidence in source_row["report"]
+                quotation_count += 1
+            assert (basis in {"explicit_absence", "below_threshold"}) == (
+                state == "negative"
+            )
+    assert sum(counts.values()) == 600
+    output = BASE / "independent-source-judgments.jsonl"
+    assert not any((BASE / name).exists() for name in (
+        "independent-source-judgments.jsonl", "validation-receipt.json", "source-freeze.json"
+    )), "Frozen output already exists; preserve it and make a separate follow-up."
+    with output.open("x", encoding="utf-8") as handle:
+        for judgment in judgments:
+            handle.write(json.dumps(judgment, ensure_ascii=False) + "\n")
+    frozen_at = datetime.now(timezone.utc).isoformat()
+    validation = write_once("validation-receipt.json", {
+        "schema_version": 1,
+        "validated_at_utc": frozen_at,
+        "validator_identity": "/root/quality_temporal_review",
+        "source_packet": binding(source),
+        "rubric": binding(rubric),
+        "judgments": binding(output),
+        "full_report_count": 50,
+        "unique_uid_count": 50,
+        "target_count_per_report": 12,
+        "total_target_judgments": 600,
+        "state_counts": dict(sorted(counts.items())),
+        "exact_contiguous_quotations_verified": quotation_count,
+        "all_not_mentioned_quotes_empty": True,
+        "source_membership_order_and_report_hashes_verified": True,
+        "all_negative_evidence_bases_explicit": True,
+        "source_and_rubric_unchanged_since_start": True,
+        "scope_limit": "Checks establish coverage and evidence traceability, not clinical correctness or agreement with another reader.",
+    })
+    freeze = write_once("source-freeze.json", {
+        "schema_version": 1,
+        "stage": "independent_full_source_12_target_judgments_frozen_before_comparison",
+        "frozen_at_utc": frozen_at,
+        "started_at_utc": start["created_at_utc"],
+        "assessor": {
+            "agent_id": "/root/quality_temporal_review",
+            "session_id": "/root/quality_temporal_review",
+            "desktop_thread_id": start["desktop_thread_id"],
+            "role": "Independent AI reviewer extracting evidence from complete original reports under the frozen weak-label rubric; not an MRI diagnostic reread or a claim of MSK-reader credentials.",
+        },
+        "rubric_version": "report-weak-v2.0",
+        "rubric": binding(rubric),
+        "source_packet": binding(source),
+        "judgments": binding(output),
+        "validation_receipt": binding(validation),
+        "start_record": binding(BASE / "start.json"),
+        "authored_judgment_assembler": binding(BASE / "assemble.py"),
+        "freeze_validator": binding(BASE / "freeze.py"),
+        "target_order": targets,
+        "exact_ordered_uids": [row["study_uid"] for row in rows],
+        "scope": {
+            "full_reports_read": 50,
+            "all_targets_per_report": 12,
+            "total_independent_judgments": 600,
+            "supplemental_semantic_qa_pass": True,
+            "historical_two_reader_outputs_preserved": True,
+        },
+        "source_first_attestation": {
+            "basis": "Actual assessor self-report of reading order; not a claim of independently instrumented historical access logging.",
+            "all_complete_reports_read_before_freeze": True,
+            "own_judgments_and_quotes_authored_before_comparison": True,
+            "current_effective_annotations_opened_for_this_packet_before_freeze": False,
+            "candidate_details_opened_before_freeze": False,
+            "current_duplicate_reader_judgments_or_proposals_opened_before_freeze": False,
+            "current_root_case_findings_opened_before_freeze": False,
+            "gold_opened": False,
+            "root_is_claimed_as_second_clinical_reader": False,
+        },
+        "prior_exposure_disclosure": {
+            "aggregate_discovery": "Task instructions disclosed aggregate discovery of 331 reports and 539 targets; candidate-level discovery details were not opened.",
+            "earlier_report_exposure": "Earlier technical work in this same agent reviewed full original 064:14 and 064:46 reports. Later correspondence integration exposed root's 064:46 proposal excerpts with eight existing target states. Neither original is a member of this 50-report packet.",
+            "packet_overlap": "Packet index 12 is original 001:18. A brief root technical source summary for 001:18 was seen during earlier correspondence integration before this task. That prior exposure is also recorded in its judgment notes. No claim of complete historical amnesia is made.",
+            "other_inherited_context": "Inherited project history may contain other report-related exposure. The independent claim concerns this fresh complete-source pass without opening the current effective annotations or current other-reader case findings before this freeze.",
+            "parent_status_only": "Before freezing, root disclosed that the separate first reader had frozen 600 judgments and completed a later comparison, but disclosed no candidate-specific findings to this assessor.",
+        },
+        "preservation_and_use": {
+            "originals_changed": False,
+            "gold_changed": False,
+            "historical_annotations_changed": False,
+            "runtime_or_shared_repository_changed_by_this_pass": False,
+            "remote_writes_by_this_pass": False,
+            "comparison_status": "Not performed. Preserve this freeze and wait for root instruction before opening the other frozen pass or current annotations.",
+            "root_handoff": "Initially send only this freeze path, SHA-256, and completion/scope. Hold case findings until root confirms both independent freezes and authorizes comparison.",
+            "acceptance_status": "Independent judgments only; no agreement, adjudication, training eligibility, or clinical diagnostic accuracy is claimed.",
+        },
+    })
+    print(json.dumps({"freeze": binding(freeze), "reports": 50, "judgments": 600}))
+
+
+if __name__ == "__main__":
+    main()

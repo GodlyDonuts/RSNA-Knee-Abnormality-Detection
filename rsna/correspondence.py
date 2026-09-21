@@ -20,6 +20,7 @@ REGISTRY_PATH = Path("initiative/audits/correspondence-release-registry.json")
 MULTI_ASSESSOR_STAGE = "verified_multi_assessor_correspondence_source_binding"
 TEMPORAL_STAGE = "verified_temporal_multi_assessor_correspondence_binding"
 TEMPORAL_ACTION = "exclude_whole_study_report_supervision_non_gold"
+SOURCE_HEADER_STAGE = "verified_source_header_multi_assessor_correspondence_binding"
 
 # Exact historical dispositions, not keyword-based inference from arbitrary notes.
 # These originals predate the explicit boolean used by the later cache reviews.
@@ -646,6 +647,313 @@ def _validate_temporal_proof(record: dict, proof: dict, artifact_root: Path) -> 
     )
 
 
+def _validate_source_header_proof(record: dict, proof: dict, artifact_root: Path) -> None:
+    """Bind the actual source/header formats and recorded review chronology.
+
+    This authenticates preserved decisions, not image interpretation or past access
+    order. Historical exposure disclosures remain part of the bound source records.
+    """
+
+    def check(condition: bool, context: str) -> None:
+        if not condition:
+            raise ValueError("Source/header correspondence evidence " + context)
+
+    stages = {
+        "root_source": "root_three_additional_full_source_structure_assessments",
+        "root_metadata": "root_four_case_corrected_source_header_cache_identity_replay",
+        "root_proposal": "root_source_metadata_correspondence_proposals_before_peer_policy_comparison",
+        "root_acceptance": "root_accepted_four_case_source_metadata_correspondence_dispositions",
+        "independent_source": "independent_four_case_full_source_structure_freeze",
+        "independent_source_freeze": "source_only_before_new_raw_technical_and_policy_review",
+        "independent_metadata": "post_source_freeze_raw_technical_metadata_read_and_binding_check",
+        "independent_policy": "independent_post_source_freeze_correspondence_policy_suggestions",
+        "independent_acceptance": "independent_accepted_source_header_correspondence_exclusion",
+    }
+    roles = set(stages) | {
+        "source_packet",
+        "independent_source_packet",
+        "technical_metadata",
+        "root_replay_script",
+    }
+    refs = proof.get("evidence")
+    check(isinstance(refs, dict) and set(refs) == roles, "has invalid evidence roles")
+    assert isinstance(refs, dict)
+    paths = {key: _bound_path(refs[key], artifact_root) for key in roles}
+    docs = {key: _object(path) for key, path in paths.items() if key != "root_replay_script"}
+    for key, stage in stages.items():
+        check(docs[key].get("stage") == stage, "has an unsupported original evidence format")
+    agent = _assessor_id(docs["independent_policy"].get("agent_id"))
+    check(
+        agent != "/root" and _assessor_id(proof.get("agent_id")) == agent,
+        "lacks distinct assessors",
+    )
+    for key in stages:
+        check(
+            _assessor_id(docs[key].get("agent_id"))
+            == ("/root" if key.startswith("root_") else agent),
+            "has changed assessor identity",
+        )
+
+    source_ref = {"path": record["source_path"], "sha256": record["source_batch_sha256"]}
+    batch = _json(_bound_path(source_ref, artifact_root))
+    index = proof.get("source_index")
+    check(
+        type(proof.get("schema_version")) is int
+        and proof["schema_version"] == 1
+        and proof.get("source_batch") == source_ref
+        and proof.get("source_report_sha256") == record["source_report_sha256"]
+        and isinstance(batch, list)
+        and type(index) is int
+        and 0 <= index < len(batch)
+        and batch[index].get("study_uid") == record["study_uid"],
+        "differs from the exact source/index",
+    )
+    assert isinstance(batch, list) and isinstance(index, int)
+    report = batch[index]["report"]
+    batch_number = Path(record["source_path"]).stem.removeprefix("batch-")
+    check(
+        record["case"] == f"{batch_number}:{index:02d}"
+        and hashlib.sha256(report.encode()).hexdigest() == record["source_report_sha256"],
+        "has changed full source identity",
+    )
+
+    def linked(document: dict, field: str, role: str) -> bool:
+        ref = document.get(field)
+        return isinstance(ref, dict) and ref.get("sha256") == refs[role]["sha256"]
+
+    def identity(item: dict) -> bool:
+        return item.get("case") == record["case"] and item.get("study_uid") == record["study_uid"]
+
+    selectors = proof.get("selectors")
+    selected_roles = set(stages) - {"independent_source_freeze", "independent_acceptance"}
+    selected_roles |= {"source_packet", "independent_source_packet"}
+    check(isinstance(selectors, dict) and set(selectors) == selected_roles, "has invalid selectors")
+    assert isinstance(selectors, dict)
+    selected = {}
+    for role in selected_roles:
+        item = _selected(docs[role], selectors[role])
+        check(isinstance(item, dict) and identity(item), "selector identifies another case/study")
+        assert isinstance(item, dict)
+        selected[role] = item
+    for role, item in selected.items():
+        if role == "independent_metadata":
+            continue
+        index_key = (
+            "source_index_zero_based"
+            if role.startswith("root_")
+            else "source_batch_index_zero_based"
+        )
+        check(
+            item.get(index_key) == index
+            and type(item.get(index_key)) is int
+            and item.get("source_batch", {}).get("path") == "recovered/" + record["source_path"]
+            and item.get("source_batch", {}).get("sha256") == record["source_batch_sha256"]
+            and item.get("report_utf8_sha256") == record["source_report_sha256"],
+            "source lineage identifies another original report",
+        )
+    for role in ("source_packet", "independent_source_packet"):
+        check(selected[role].get("full_report_text") == report, "full packet source was changed")
+    check(
+        selected["root_source"].get("complete_source_read") is True
+        and selected["root_source"].get("packet_sha256") == refs["source_packet"]["sha256"]
+        and selected["independent_source"].get("complete_source_personally_read_this_stage") is True
+        and linked(docs["independent_source"], "source_packet", "independent_source_packet")
+        and linked(docs["independent_source_freeze"], "assessment", "independent_source")
+        and linked(docs["independent_source_freeze"], "source_packet", "independent_source_packet")
+        and isinstance(docs["root_source"].get("prior_exposure"), str)
+        and bool(docs["root_source"]["prior_exposure"])
+        and isinstance(docs["independent_source"].get("prior_exposure_disclosure"), list)
+        and bool(docs["independent_source"]["prior_exposure_disclosure"]),
+        "lacks the recorded full source freezes and exposure lineage",
+    )
+    for role, key in (
+        ("root_source", "exact_source_quotes"),
+        ("independent_source", "source_quotes"),
+    ):
+        quotes = selected[role].get(key)
+        check(
+            isinstance(quotes, list)
+            and bool(quotes)
+            and all(isinstance(q, str) and q and q in report for q in quotes),
+            "has changed exact source quotations",
+        )
+    check(
+        proof.get("source_evidence") == selected["independent_source"]["source_quotes"],
+        "quotes differ from the independent source freeze",
+    )
+    for role in ("root_metadata", "root_proposal", "root_acceptance"):
+        check(
+            any(
+                isinstance(ref, dict) and ref.get("sha256") == refs["root_source"]["sha256"]
+                for ref in docs[role].get("root_source_freezes", [])
+            ),
+            "has changed root source lineage",
+        )
+    check(linked(docs["root_metadata"], "script", "root_replay_script"), "has changed replay code")
+    for role in ("root_proposal", "root_acceptance"):
+        check(
+            linked(docs[role], "root_metadata_replay", "root_metadata"),
+            "has changed root metadata lineage",
+        )
+    for field, role in {
+        "root_proposals": "root_proposal",
+        "independent_source": "independent_source",
+        "independent_source_freeze": "independent_source_freeze",
+        "independent_policy": "independent_policy",
+        "independent_raw_technical_review": "independent_metadata",
+    }.items():
+        check(linked(docs["root_acceptance"], field, role), "has changed accepted evidence lineage")
+    for document, fields in (
+        (
+            "independent_metadata",
+            {
+                "source_freeze": "independent_source_freeze",
+                "source_assessment": "independent_source",
+            },
+        ),
+        (
+            "independent_policy",
+            {
+                "source_first_freeze": "independent_source_freeze",
+                "source_first_assessment": "independent_source",
+                "raw_technical_review": "independent_metadata",
+            },
+        ),
+        (
+            "independent_acceptance",
+            {
+                "root_acceptance": "root_acceptance",
+                "independent_policy_assessment": "independent_policy",
+            },
+        ),
+    ):
+        for field, role in fields.items():
+            check(linked(docs[document], field, role), "has changed independent evidence lineage")
+    accepted = docs["independent_acceptance"]
+    check(
+        selected["root_proposal"].get("proposed_action") == TEMPORAL_ACTION
+        and selected["root_acceptance"].get("accepted_action") == TEMPORAL_ACTION
+        and selected["root_acceptance"].get("accepted") is True
+        and selected["root_acceptance"].get("independent_assessor") == agent
+        and selected["root_acceptance"].get("independent_policy_selector")
+        == selectors["independent_policy"]
+        and selected["independent_policy"].get("policy_suggestion")
+        == "propose_whole_study_non_gold_report_supervision_exclusion_pending_exact_correspondence_binding"
+        and identity(accepted)
+        and accepted.get("status") == "accepted"
+        and accepted.get("action") == TEMPORAL_ACTION
+        and accepted.get("source_batch") == source_ref
+        and accepted.get("source_index") == index
+        and accepted.get("source_report_sha256") == record["source_report_sha256"]
+        and accepted.get("required_report_loss_mask") == [False] * len(TARGETS)
+        and all(v is False for v in accepted["required_report_loss_mask"]),
+        "lacks actual distinct accepted exclusion actions",
+    )
+    metadata = docs["technical_metadata"]
+    check(identity(metadata), "technical metadata identifies another study")
+    check(
+        linked(selected["root_metadata"], "technical_evidence", "technical_metadata")
+        and any(
+            ref.get("sha256") == refs["technical_metadata"]["sha256"]
+            for ref in selected["independent_metadata"].get("metadata_files", [])
+        )
+        and any(
+            ref.get("sha256") == refs["technical_metadata"]["sha256"]
+            for ref in selected["independent_policy"].get("metadata_proofs", [])
+        )
+        and docs["root_metadata"].get("status") == "passed",
+        "does not bind both metadata assessments",
+    )
+    series = metadata.get("series")
+    check(isinstance(series, list) and bool(series), "lacks raw technical series records")
+    assert isinstance(series, list)
+    root_series = selected["root_metadata"].get("series", [])
+    peer_series = selected["independent_metadata"].get("series", [])
+    check(
+        len(series) == len(root_series) == len(peer_series) == metadata.get("series_count")
+        and len({s["series_uid"] for s in series}) == len(series),
+        "has inconsistent series membership",
+    )
+    for source_series in series:
+        uid = source_series["series_uid"]
+        roots = [s for s in root_series if s.get("series_uid") == uid]
+        peers = [s for s in peer_series if s.get("series_uid") == uid]
+        check(len(roots) == len(peers) == 1, "has changed assessed series membership")
+        root_row, peer_row = roots[0], peers[0]
+        fields = source_series["header_endpoint_values"]
+        check(
+            root_row.get("n_sources")
+            == peer_row.get("source_member_count")
+            == source_series["n_slices"]
+            and root_row.get("header_endpoints") == 2
+            and peer_row.get("header_endpoint_values") == fields
+            and root_row.get("literal_fields")
+            == {
+                key: fields[key]
+                for key in (
+                    "SeriesNumber",
+                    "SeriesDescription",
+                    "Laterality",
+                    "ImageLaterality",
+                    "FrameLaterality",
+                    "SeriesTime",
+                    "AcquisitionTime",
+                )
+            },
+            "has altered literal headers or source membership counts",
+        )
+    scope = (len(series), sum(s["n_slices"] for s in series), 2 * len(series))
+    for role in ("root_metadata", "root_proposal", "root_acceptance"):
+        check(
+            tuple(selected[role].get(k) for k in ("n_series", "n_sources", "n_endpoints")) == scope,
+            "has inconsistent root technical scope",
+        )
+    check(
+        tuple(
+            selected["independent_metadata"].get(k)
+            for k in ("series_count", "source_memberships", "lexical_endpoint_header_count")
+        )
+        == scope
+        and tuple(
+            selected["independent_policy"].get("technical_scope", {}).get(k)
+            for k in ("series", "source_memberships", "lexical_endpoints")
+        )
+        == scope
+        and metadata.get("slices") == scope[1]
+        and metadata.get("endpoint_count") == scope[2],
+        "has inconsistent independent technical scope",
+    )
+
+    def time(role: str) -> datetime:
+        try:
+            value = datetime.fromisoformat((proof if role == "proof" else docs[role])["at_utc"])
+            if value.tzinfo is not None and value.utcoffset() is not None:
+                return value
+        except (KeyError, TypeError, ValueError):
+            pass
+        raise ValueError("Source/header correspondence evidence has invalid recorded chronology")
+
+    root_times = [time(role) for role in ("root_source", "root_metadata", "root_proposal")]
+    peer_times = [
+        time(role)
+        for role in (
+            "independent_source",
+            "independent_source_freeze",
+            "independent_metadata",
+            "independent_policy",
+        )
+    ]
+    check(
+        root_times == sorted(root_times)
+        and peer_times == sorted(peer_times)
+        and max(root_times + peer_times)
+        <= time("root_acceptance")
+        <= time("independent_acceptance")
+        <= time("proof"),
+        "has malformed recorded source/metadata/acceptance ordering",
+    )
+
+
 def _validate_proof(record: dict, artifact_root: Path) -> None:
     proof_path = _bound_path(record.get("verified_technical_proof"), artifact_root)
     proof = _object(proof_path)
@@ -660,6 +968,8 @@ def _validate_proof(record: dict, artifact_root: Path) -> None:
         _validate_multi_assessor_proof(record, proof, artifact_root)
     if proof.get("stage") == TEMPORAL_STAGE:
         _validate_temporal_proof(record, proof, artifact_root)
+    if proof.get("stage") == SOURCE_HEADER_STAGE:
+        _validate_source_header_proof(record, proof, artifact_root)
     if proof.get("stage") == "root_verified_correspondence_source_identity_binding":
         review_path = _bound_path(proof.get("verified_review"), artifact_root)
         handoff_path = _bound_path(proof.get("source_handoff"), artifact_root)
@@ -723,7 +1033,7 @@ def inspect_correspondence(reports: dict[str, str], artifact_root: Path) -> dict
         ):
             raise ValueError("Invalid correspondence policy schema or target order")
         binding_version = policy.get("proof_binding_version", 1)
-        if type(binding_version) is not int or binding_version not in {1, 2, 3}:
+        if type(binding_version) is not int or binding_version not in {1, 2, 3, 4}:
             raise ValueError("Unsupported correspondence proof binding version")
         for record in policy["records"]:
             if not isinstance(record, dict):
@@ -779,6 +1089,10 @@ def inspect_correspondence(reports: dict[str, str], artifact_root: Path) -> dict
                 proof = _object(_bound_path(record.get("verified_technical_proof"), artifact_root))
                 if proof.get("stage") != TEMPORAL_STAGE:
                     raise ValueError("Correspondence policy requires a temporal source binding")
+            if binding_version == 4:
+                proof = _object(_bound_path(record.get("verified_technical_proof"), artifact_root))
+                if proof.get("stage") != SOURCE_HEADER_STAGE:
+                    raise ValueError("Correspondence policy requires a source/header binding")
             _validate_proof(record, artifact_root)
             decisions.append({**record, "policy": reference})
     return {

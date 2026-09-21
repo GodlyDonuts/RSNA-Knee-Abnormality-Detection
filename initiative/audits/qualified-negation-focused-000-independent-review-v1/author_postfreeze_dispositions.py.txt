@@ -1,0 +1,268 @@
+"""Record this assessor's authored post-freeze decisions without altering freezes."""
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent
+WORKSPACE = BASE.parents[2]
+OUT = BASE / "postfreeze-comparison-v1"
+FIRST = BASE.parent / "qualified-negation-focused-000-source-review-v1"
+TARGETS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA", "PF OA", "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def binding(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def write(name, value):
+    with (OUT / name).open("x", encoding="utf-8") as handle:
+        json.dump(value, handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
+
+
+source = read(WORKSPACE / read(BASE / "source-freeze.json")["source_packet"]["path"])
+comparison = read(OUT / "verified-full-target-comparison.json")
+cells = comparison["records"]
+by_key = {(cell["packet_index"], TARGETS.index(cell["target"])): cell for cell in cells}
+
+# Each keyed choice is personally authored after complete-source reading and
+# the permitted comparison; none is selected by a lexical classifier.
+RECONSIDERATIONS = {}
+
+
+def reconsider(keys, new_state, reason):
+    for key in keys:
+        assert key not in RECONSIDERATIONS
+        cell = by_key[key]
+        assert cell["independent_frozen_state"] != new_state
+        RECONSIDERATIONS[key] = {"state": new_state, "reason": reason}
+
+
+reconsider([(0,6),(3,6),(6,6),(18,4),(20,4),(28,6),(48,5),(48,6)], "uncertain",
+    "I withdraw my initial automatic grade 2 below-threshold mapping. These complete reports do not bind that grade to a named convention or a depth fraction excluding >50% cartilage loss; accompanying partial-thickness language does not settle the fraction. The frozen rubric requires the specific cartilage threshold, so the effective uncertainty is defensible. This is an actual post-comparison reconsideration, not a change to the source freeze or a reversal of an accepted correction.")
+reconsider([(11,4),(27,4),(27,5)], "uncertain",
+    "I withdraw my initial conversion of mild cartilage thinning/chondrosis into a definite below-threshold negative. Unlike an explicit <50% depth statement, mild alone does not specify the required depth and region extent. The complete report supplies no separate measurement that settles these compartments. Retain the current uncertainty.")
+reconsider([(22,4),(22,5),(34,4),(34,6),(36,4),(36,5),(42,5),(42,6),(44,4),(44,5)], "not_mentioned",
+    "I withdraw my initial uncertain state inferred from a general knee-OA statement or a different named compartment. This target compartment is not informatively localized in the complete report. Reading rule 4 forbids inferring an unmentioned compartment. Keep not_mentioned with empty evidence; no negative or affected compartment is inferred.")
+reconsider([(34,9),(42,9)], "uncertain",
+    "I withdraw my initial Baker positive inferred solely from the numerical dimensions. The complete source supplies dimensions and location but not an explicit moderate/large grade, and the frozen protocol contains no validated numerical dimension-to-size-class rule. Keep uncertainty rather than introduce that rule silently. The original positive judgment and dimensional evidence remain preserved in my source freeze.")
+reconsider([(1,10)], "uncertain",
+    "I withdraw the negative supported only by otherwise normal marrow. That statement settles the remaining marrow, but the report also has reactive edema at the cartilage lesion; it does not independently exclude a coexisting impact component at that site. The frozen target requires causal discrimination, so preserve the existing uncertain state rather than infer complete contusion absence.")
+reconsider([(30,10)], "uncertain",
+    "I withdraw my initial contusion positive. On complete-source reconsideration the named marrow contusions and osteochondral fractures share the medial patellar and lateral femoral sites. The report does not separately establish impact edema without a fracture line at another site. The direct fracture diagnosis remains distinct; keep current contusion uncertainty under its separate no-fracture-line criterion.")
+reconsider([(48,9)], "uncertain",
+    "I withdraw my initial unqualified cyst-negative reading. The literal source uses y after the singular qualified effusion phrase. That malformed coordination leaves the scope of absence unclear; reading it as a clean separate cyst denial effectively repairs the text. No other cyst sentence resolves this. Preserve the original wording and support the first reader's uncertainty proposal after this explicit reconsideration.")
+reconsider([(49,8)], "uncertain",
+    "I withdraw the initial synovitis positive. The Greek relative clause localizes focal synovitis to the communicating Baker cyst. Communication with the joint does not by itself establish inflamed intra-articular synovial lining. The complete report leaves the intended joint-lining target anatomically unresolved, so retain current uncertainty without relabeling cyst-wall inflammation as definite joint synovitis.")
+assert len(RECONSIDERATIONS) == 27
+
+# Explicit individually reviewed state-correction proposals. This is agreement
+# with another assessor's proposal, not registration or root adjudication.
+STATE_PROPOSAL_KEYS = [
+ (0,7),(0,10),(1,7),(2,2),(2,3),(2,10),(3,10),(5,9),(5,10),(6,7),
+ (7,9),(7,10),(8,10),(10,7),(12,2),(12,4),(12,5),(12,6),(12,10),(13,4),
+ (14,7),(15,7),(16,3),(16,5),(17,7),(18,7),(19,7),(19,10),(20,5),(20,10),
+ (23,4),(23,5),(24,7),(24,9),(24,10),(25,7),(25,10),(26,7),(26,9),(27,3),
+ (27,7),(28,9),(28,10),(31,4),(31,5),(31,11),(32,2),(33,7),(33,9),(33,10),
+ (35,10),(37,9),(37,10),(38,10),(39,0),(39,1),(39,9),(39,10),(40,9),(40,10),
+ (41,3),(41,11),(43,7),(45,10),(46,5),(46,7),(47,0),(47,1),(47,10),(48,7),
+ (48,9),(49,5),
+]
+EVIDENCE_PROPOSAL_KEYS = [(9,2),(32,7)]
+assert len(STATE_PROPOSAL_KEYS) == len(set(STATE_PROPOSAL_KEYS)) == 72
+
+UNRESOLVED = {
+ (2,11): "I retain not_mentioned for fracture: active cortical destruction is a destructive-bone assessment, without an acute fracture line, disruption diagnosis, or injury-specific denial. The first reader reconsidered to current uncertain because cortical integrity was viewed as informative. This remains a masked-to-masked interpretive disagreement; no deletion or correction is jointly accepted.",
+ (8,3): "I retain negative based on the explicitly characterized lateral intrasubstance degeneration and failure to meet MR tear criteria. Borderline extrusion is a position observation rather than definite tear morphology in my reading. The first reader keeps uncertainty because degeneration is likely and extrusion could be abnormal morphology. Preserve both readings for root; no morphology exception is declared established.",
+ (10,3): "I retain negative because partially discoid shape is accompanied by an unqualified statement that tear criteria are absent. The first reader retains uncertainty over how the frozen abnormal-morphology criterion applies to this shape. This distinction between a shape variant and tear morphology needs explicit adjudication; neither reading is overwritten.",
+ (11,2): "I retain negative because the complete report ends with an unqualified no-evidence-of-tears conclusion accompanying myxoid degeneration and undersurface fraying. The first reader retains uncertainty about whether that fraying itself supplies target abnormal morphology. The finding-versus-conclusion interpretation remains unresolved, without automatic acceptance of a correction.",
+ (14,10): "Both source freezes support negative from a definite nontraumatic infarct/anatomic variant and otherwise normal marrow, whereas the effective annotation is not_mentioned. I retain my negative reading, but the first reader explicitly deferred rather than jointly proposing a newly observed negative. Agreement on an alternative state is not an accepted correction; root must adjudicate its scope.",
+ (27,2): "Both source freezes retain uncertainty for meniscal flounce with no definitive/discrete tear. I retain uncertainty because the intact capsular interface does not resolve the meniscal focus; the first reader deferred whether this is ordinary folding versus abnormal morphology. This is state agreement against the effective negative without a jointly finalized correction proposal.",
+ (29,4): "I retain negative because no higher-grade chondropathy is an explicit cartilage-severity denial in this complete source. The first reader retains uncertainty because the term is not tied to the >50% depth criterion. Preserve this language-to-severity disagreement for root rather than impose either conversion as a settled rule.",
+ (29,5): "I retain negative because no higher-grade chondropathy is an explicit cartilage-severity denial in this complete source. The first reader retains uncertainty because the term is not tied to the >50% depth criterion. Preserve this language-to-severity disagreement for root rather than impose either conversion as a settled rule.",
+ (29,6): "I retain negative because no higher-grade chondropathy is an explicit cartilage-severity denial in this complete source. The first reader retains uncertainty because the term is not tied to the >50% depth criterion. Preserve this language-to-severity disagreement for root rather than impose either conversion as a settled rule.",
+ (29,7): "I retain positive because Deutlicher Hämarthros reads as marked hemarthrosis in this traumatic report, giving more than a bare presence statement. The first reader retains uncertainty over whether conspicuous blood explicitly establishes moderate/large distending fluid. Root should resolve the translation/amount question; the frozen interpretations remain separate.",
+ (40,2): "Both source freezes retain uncertainty for central medial meniscal signal without categorical tear criteria, whereas the effective reviewer read internal degeneration. I retain uncertainty because confinement and surface relationship are not stated. The first reader deferred the alternative rather than finalized a proposal, so this agreement on a state still awaits root adjudication.",
+ (49,2): "I retain uncertainty: degeneration with subluxation establishes an abnormal position but not a definite tear diagnosis or unequivocal tear morphology. The first reader's frozen positive treats subluxation as qualifying abnormal morphology and was explicitly deferred. Preserve this difference without assuming a universal position-to-tear mapping.",
+ (49,6): "I retain negative based on the reported 4.5 mm width/extent of deep patellar delamination, below the approximately 1 cm region criterion. The first reader retains uncertainty because a second unreported dimension may affect the region extent. This size interpretation remains unresolved; neither a one-axis nor a two-axis size rule is silently installed.",
+}
+assert len(UNRESOLVED) == 13
+
+
+def independent_reason(cell, key):
+    if key in RECONSIDERATIONS:
+        return RECONSIDERATIONS[key]["reason"]
+    target = cell["target"]
+    if target == "Effusion":
+        return "The complete report has only a qualified denial of this joint-fluid target, with no separate unqualified absence or explicitly below-threshold amount. Significant/relevant/evident is not a defined moderate/large cutoff. I independently support masking this insufficiently graded report evidence."
+    if target == "Contusion":
+        return "The complete report supplies only significance- or suspicion-qualified marrow normality, without a separate unqualified normal-marrow statement or definite exclusion of impact edema. The frozen contusion criterion has no significance exception. I independently support uncertain, without asserting a traumatic diagnosis."
+    if target == "Baker's":
+        return ("In this English coordination significant can govern both effusion and popliteal cyst. No separate cyst absence/size statement resolves the modifier scope; I independently support uncertainty." if key == (26,9) else
+                "The source denies pathological popliteal cysts, without an unqualified cyst absence or explicitly below-moderate amount. Pathological is not a defined size cutoff in the frozen rubric. I independently support uncertainty.")
+    if target in {"Medial OA", "Lateral OA", "PF OA"}:
+        return "The exact compartment has only qualified cartilage preservation/absence, without an unqualified normal statement or a depth/extent measurement excluding the threshold. A significance/majority/grossness/definiteness qualifier or mild OA diagnosis cannot supply the omitted cartilage-loss criterion. I independently support uncertainty."
+    if target in {"ACL", "MCL"}:
+        return "The full report provides only significance-qualified ligament normality, without an explicit intact-fiber statement or a below-threshold injury grade. Anatomical scope is clear but severity is not established or excluded. I independently support uncertain."
+    if key == (31,11):
+        return "A suspected focal osteochondral lesion does not itself mention a fracture line, cortical disruption, acute injury or fracture diagnosis. Fracture is not informatively mentioned; I independently support not_mentioned with empty evidence, preserving masking."
+    if key == (41,11):
+        return "No gross fracture is narrower than absence of every acute fracture line or cortical disruption, and the full source has no separate unqualified fracture denial. I independently support uncertain."
+    if key == (12,2):
+        return "The abnormal medial meniscocapsular focus is only thought not to represent a tear. Normal remainder does not resolve that specific focus, and it is not isolated intrasubstance degeneration. I independently support uncertain."
+    if key == (16,3):
+        return "The lateral-compartment statement excludes only noteworthy pathology and does not separately establish normal lateral meniscal structure or no tear. I independently support uncertainty rather than infer a normal meniscus from a qualified aggregate."
+    if key == (32,2):
+        return "Uncharacterized medial meniscal signal elevation does not state surface relation, normal morphology, or a definite isolated-degeneration explanation. I independently support uncertainty."
+    if key == (41,3):
+        return "Lateral meniscal contusion with no definite tear is equivocal for this meniscal target. Meniscal contusion is not itself a bone contusion or an explicit isolated-degeneration finding. I independently support uncertainty."
+    if key in {(2,2),(2,3),(27,3)}:
+        return "The named meniscus has only a definite/significant/discrete-qualified tear denial and no independent normal morphology or isolated-degeneration description that resolves it. I independently support uncertainty."
+    raise AssertionError((key, target))
+
+
+post_records = []
+concurrences = []
+reconsideration_records = []
+unresolved_records = []
+for cell in cells:
+    key = cell["packet_index"], TARGETS.index(cell["target"])
+    reconsidered = RECONSIDERATIONS.get(key)
+    final_state = reconsidered["state"] if reconsidered else cell["independent_frozen_state"]
+    final_quote = cell["independent_frozen_evidence"]
+    if final_state == "not_mentioned":
+        final_quote = ""
+    elif key == (1,10):
+        full = source[key[0]]["report"]
+        a = full.index("Changements dégénératifs :")
+        b = full.index("Par ailleurs normal.", a) + len("Par ailleurs normal.")
+        final_quote = full[a:b]
+    assert final_quote == "" if final_state == "not_mentioned" else final_quote and final_quote in source[key[0]]["report"]
+    if key in STATE_PROPOSAL_KEYS:
+        proposal = cell["first_proposal"]
+        assert proposal and proposal["kind"] == "state_correction"
+        assert final_state == proposal["proposed_state"] != cell["effective_state"]
+        assert cell["existing_correction"] is None
+        disposition = "concur_with_first_state_correction_pending_root_adjudication"
+        reason = independent_reason(cell, key)
+    elif key in EVIDENCE_PROPOSAL_KEYS:
+        proposal = cell["first_proposal"]
+        assert proposal and proposal["kind"] == "evidence_context_correction"
+        assert final_state == proposal["proposed_state"] == cell["effective_state"]
+        disposition = "concur_with_first_evidence_context_correction_pending_root_adjudication"
+        reason = ("I independently used the unqualified no-evidence-of-tears conclusion in my source freeze. The current shorter no-definite-tear quote does not itself provide that basis. The proposed exact conclusion quote preserves the negative while making its support explicit." if key == (9,2) else
+                  "I independently used the complete slightly-accentuated-fluid plus no-relevant-effusion passage. The current quote omits the explicit small amount and relies on relevant alone. The proposed expanded exact quote supports the unchanged negative without inventing a relevance threshold.")
+    elif key in UNRESOLVED:
+        assert not cell["first_proposal"]
+        disposition = "unresolved_pending_root_source_adjudication"
+        reason = UNRESOLVED[key]
+    elif reconsidered:
+        assert final_state == cell["effective_state"]
+        disposition = "reconsider_own_frozen_judgment_keep_effective"
+        reason = reconsidered["reason"]
+    else:
+        assert final_state == cell["effective_state"], (key, final_state, cell["effective_state"])
+        assert cell["first_postfreeze_state"] == final_state
+        disposition = "retain_effective_state_no_concrete_erratum"
+        reason = "The complete source and frozen rubric support retaining the effective state. Differences between exact excerpts do not alone require an evidence correction. The two original source freezes and any first-reader reconsideration remain preserved."
+    record = {
+        **cell,
+        "independent_postfreeze_state": final_state,
+        "independent_postfreeze_evidence": final_quote,
+        "independent_reconsidered_from_source_freeze": bool(reconsidered),
+        "independent_postfreeze_disposition": disposition,
+        "independent_postfreeze_reason": reason,
+        "frozen_reader_state_agreement": cell["independent_frozen_state"] == cell["first_frozen_state"],
+        "postfreeze_reader_state_agreement": final_state == cell["first_postfreeze_state"],
+        "root_adjudication_performed": False,
+        "runtime_annotation_changed": False,
+    }
+    post_records.append(record)
+    if reconsidered:
+        reconsideration_records.append(record)
+    if key in UNRESOLVED:
+        unresolved_records.append(record)
+    if key in STATE_PROPOSAL_KEYS + EVIDENCE_PROPOSAL_KEYS:
+        proposal = cell["first_proposal"]
+        concurrences.append({
+            **proposal,
+            "status": "two_distinct_assessor_proposal_concurrence_pending_root_source_adjudication",
+            "first_proposer_agent_id": "/root/duplicate_consistency_review",
+            "independent_assessor_agent_id": "/root/quality_temporal_review",
+            "independent_assessor_session_id": "/root/quality_temporal_review",
+            "independent_reason": reason,
+            "independent_frozen_state": cell["independent_frozen_state"],
+            "independent_frozen_evidence": cell["independent_frozen_evidence"],
+            "independent_postfreeze_state": final_state,
+            "independent_postfreeze_evidence": final_quote,
+            "independent_reconsideration_required": bool(reconsidered),
+            "both_frozen_states_already_equal_proposal": cell["independent_frozen_state"] == cell["first_frozen_state"] == proposal["proposed_state"],
+            "source_first_exposure_caveat": "Both actual source freezes and their historical exposures are bound. The first reader authored discovery; neither record is relabeled as a fully historically blind clinical read.",
+            "registered": False, "root_accepted": False,
+        })
+assert len(post_records) == 600
+assert len(concurrences) == 74
+assert len(reconsideration_records) == 27
+assert len(unresolved_records) == 13
+assert { (r["study_uid"],r["target"]) for r in concurrences } == {
+    (r["study_uid"],r["target"]) for r in read(FIRST / "proposed-errata.json")["proposed_errata"]
+}
+
+context = {
+    "schema_version": 1,
+    "assessor_agent_id": "/root/quality_temporal_review",
+    "assessor_session_id": "/root/quality_temporal_review",
+    "completed_at_utc": datetime.now(timezone.utc).isoformat(),
+    "rubric_version": "report-weak-v2.0",
+    "rubric": comparison["rubric"], "source_packet": comparison["source_packet"],
+    "own_source_freeze": comparison["own_source_freeze"],
+    "first_source_freeze": comparison["first_source_freeze"],
+    "first_manifest": comparison["first_manifest"],
+    "first_dispositions": comparison["first_dispositions"],
+    "first_proposals": comparison["first_proposals"],
+    "verified_comparison": binding(OUT / "verified-full-target-comparison.json"),
+    "neutral_root_packets": binding(OUT / "neutral-root-packet-manifest.json"),
+    "authored_disposition_assembler": binding(BASE / "author_postfreeze_dispositions.py"),
+    "registry_sha256": comparison["registry_sha256"], "registered_corrections": 34,
+    "pending_semantic_qa": comparison["pending_semantic_qa"],
+    "access_order": "Both source freezes preceded this comparison. This record explicitly follows exposure to the first reader's frozen judgments, postfreeze dispositions/proposals, and exact effective reviews. Reconsiderations are not represented as new blind source judgments.",
+    "scope": "50 complete reports and all 600 targets. Additional semantic QA, not a replacement of historical reviews or an all-release QA resolution.",
+    "preservation": "Original sources, gold, both source freezes, historical reviews, effective registry, runtime and shared repository unchanged by this pass. No external publication.",
+    "root_status": "Neutral packets provided; root source assessment and adjudication pending. No root acceptance or fabricated second-reader history is claimed.",
+}
+counts = {
+    "reports": 50, "target_cells": 600,
+    "frozen_reader_state_agreements": sum(r["frozen_reader_state_agreement"] for r in post_records),
+    "frozen_reader_state_disagreements": sum(not r["frozen_reader_state_agreement"] for r in post_records),
+    "postfreeze_reader_state_agreements": sum(r["postfreeze_reader_state_agreement"] for r in post_records),
+    "postfreeze_reader_state_disagreements": sum(not r["postfreeze_reader_state_agreement"] for r in post_records),
+    "independent_reconsiderations": len(reconsideration_records),
+    "proposal_concurrences": len(concurrences),
+    "state_correction_concurrences": 72,
+    "evidence_context_concurrences": 2,
+    "proposal_concurrences_already_matching_both_source_freezes": sum(r["both_frozen_states_already_equal_proposal"] for r in concurrences),
+    "unresolved_target_cells": len(unresolved_records),
+    "unresolved_with_postfreeze_state_agreement_but_no_joint_proposal": sum(r["postfreeze_reader_state_agreement"] for r in unresolved_records),
+    "candidate_reports_in_neutral_root_packets": 48,
+    "disposition_counts": dict(Counter(r["independent_postfreeze_disposition"] for r in post_records)),
+}
+write("independent-postfreeze-dispositions.json", {**context, "counts": counts, "records": post_records})
+write("independent-reconsiderations.json", {**context, "count": len(reconsideration_records), "records": reconsideration_records})
+write("proposal-concurrences-pending-root.json", {**context, "count": len(concurrences), "concurrences": concurrences})
+write("unresolved-disagreements-pending-root.json", {**context, "count": len(unresolved_records), "records": unresolved_records})
+write("disposition-freeze.json", {
+    **context, "status": "independent_postfreeze_comparison_complete_pending_root_source_freeze_and_adjudication", "counts": counts,
+    "files": [binding(OUT / name) for name in ["independent-postfreeze-dispositions.json", "independent-reconsiderations.json", "proposal-concurrences-pending-root.json", "unresolved-disagreements-pending-root.json"]],
+    "initial_handoff_rule": "Share aggregate counts and neutral packet paths/hashes only; withhold case-specific states until root confirms its source freeze.",
+})
+print(json.dumps({"freeze": binding(OUT / "disposition-freeze.json"), "counts": counts}))

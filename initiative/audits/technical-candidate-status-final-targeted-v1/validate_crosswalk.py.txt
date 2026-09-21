@@ -1,0 +1,144 @@
+"""Read-only membership, evidence and scope validation of the staged crosswalk."""
+import hashlib
+import json
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+WORK = OUT.parents[1]
+AUD = WORK / 'recovered/initiative/audits'
+
+def digest(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def binding(p):
+    return {'path': str(p.relative_to(WORK)), 'sha256': digest(p), 'bytes': p.stat().st_size}
+
+def read(p):
+    return json.loads(p.read_text())
+
+p = OUT / 'status-crosswalk.json'
+d = read(p)
+summary = read(OUT / 'summary.json')
+queue = read(AUD / 'header-endpoint-full-v1/independent/candidate-review-queue.json')['queue']
+prior = read(WORK / 'annotation-staging/technical-candidate-status-v1/status-crosswalk.json')
+queue_by_case = {f"{Path(x['source_batch_path']).stem.split('-')[-1]}:{x['source_batch_index']:02d}": x for x in queue}
+original = d['original_candidates']
+additional = d['additional_report_correspondence_and_source_cases']
+rows = {x['case']: x for x in original + additional}
+assert len(original) == len(queue) == len(queue_by_case) == 129
+assert len(additional) == 19 and len(rows) == len(original + additional) == 148
+assert set(x['case'] for x in original) == set(queue_by_case)
+assert set(x['case'] for x in additional) == set(x['case'] for x in prior['additional_report_correspondence_and_source_cases'])
+assert not set(x['case'] for x in original) & set(x['case'] for x in additional)
+assert len({x['study_uid'] for x in rows.values()}) == 148
+for c, r in rows.items():
+    source = r['source_identity']
+    batch = read(WORK / source['batch']['path'])
+    item = batch[source['index_zero_based']]
+    assert source['index_zero_based'] == int(c.split(':')[1])
+    assert item['study_uid'] == r['study_uid'] == source['study_uid']
+    assert hashlib.sha256(item['report'].encode()).hexdigest() == source['report_utf8_sha256']
+    if c in queue_by_case:
+        assert r['original_trigger'] == queue_by_case[c]
+    else:
+        assert r['original_trigger'] and r['original_trigger']['kind']
+    assert r['metadata_scope'] and r['latest_evidence'] and r['remaining_actions']
+    assert r['training_ready'] is False and r['new_clinical_labels_or_named_sides_inferred'] is False
+    assert bool(r['pixel_review_tracks']) == r['pixel_scope_summary']['pixel_review_recorded']
+    if r['bounded_technical_status'] == 'bounded_native_or_cached_visual_check_complete':
+        assert r['pixel_review_tracks']
+        for t in r['pixel_review_tracks']:
+            count = t.get('matrices_personally_viewed_per_assessor', t.get('unique_cached_slices_personally_viewed', t.get('unique_native_slices_personally_viewed_per_assessor')))
+            assert isinstance(count, int) and count > 0, (c, t)
+    else:
+        assert not r['pixel_review_tracks']
+
+assert Counter(x['bounded_technical_status'] for x in original) == d['original_status_counts'] == summary['original_status_counts']
+assert Counter(x['bounded_technical_status'] for x in additional) == d['additional_status_counts'] == summary['additional_status_counts']
+assert sum(bool(x['pixel_review_tracks']) for x in rows.values()) == 87
+assert len([r for r in rows.values() if r['bounded_technical_status'] == 'source_header_only_review_complete_correspondence_open']) == 13
+assert len([r for r in rows.values() if r['bounded_technical_status'] == 'source_completeness_identity_check_complete']) == 2
+
+metadata = []
+for mp in AUD.glob('technical-tier4-*-six-v1/source-header-triage.json'):
+    metadata += read(mp)['records']
+assert len(metadata) == len({m['case'] for m in metadata}) == 78
+assert sum(m['series'] for m in metadata) == 564
+assert sum(m['source_slices'] for m in metadata) == 19351
+escalated = [m['case'] for m in metadata if m['pixels_needed'] != 'not_required_by_current_trigger_alone']
+assert len(escalated) == 32 and all(rows[c]['pixel_review_tracks'] for c in escalated)
+assert len(metadata) - len(escalated) == 46
+
+last_cases = [x['case'] for x in read(AUD / 'last-twelve-independent-visual-v1/post-freeze-root-comparison.json')['comparisons']]
+last_tracks = [next(t for t in rows[c]['pixel_review_tracks'] if 'root-numeric-replay-proof.json' in t['proof']['path']) for c in last_cases]
+assert len(last_cases) == 12
+assert sum(t['arrays_numerically_verified'] for t in last_tracks) == 50
+assert sum(t['selected_array_source_memberships'] for t in last_tracks) == 1698
+assert sum(t['matrices_personally_viewed_per_assessor'] for t in last_tracks) == 150
+assert sum(t['unselected_arrays_outside_this_pixel_track'] for t in last_tracks) == 15
+assert sum(t['unselected_source_memberships_outside_this_pixel_track'] for t in last_tracks) == 429
+temporal_cases = ['001:18', '021:03', '064:14', '064:46']
+temporal_tracks = [next(t for t in rows[c]['pixel_review_tracks'] if 'root-comparison-and-replay-proof.json' in t['proof']['path']) for c in temporal_cases]
+assert sum(t['arrays_numerically_verified'] for t in temporal_tracks) == 29
+assert sum(t['selected_array_source_memberships'] for t in temporal_tracks) == 791
+assert sum(t['matrices_personally_viewed_per_assessor'] for t in temporal_tracks) == 87
+quality = rows['064:14']['quality_assessment']['independent_current_fields']
+assert quality['supported_coverage']['all_cache_slices_personally_viewed'] == 71
+assert quality['supported_coverage']['native_slices_replayed_by_bound_proof'] == 12
+assert quality['production_changes'] is False
+for c, (arrays, slices) in {'038:44': (3, 66), '045:15': (3, 66), '056:16': (5, 146)}.items():
+    t = next(t for t in rows[c]['pixel_review_tracks'] if t['kind'] == 'all_cached_slices_in_selected_arrays')
+    assert (t['arrays_numerically_verified'], t['matrices_personally_viewed_per_assessor']) == (arrays, slices)
+
+registry = read(AUD / 'correspondence-release-registry.json')
+policies = []
+for e in registry['policies']:
+    pp = WORK / 'recovered' / e['path']
+    assert digest(pp) == e['sha256']
+    policies += read(pp)['records']
+assert len(registry['policies']) == 5 and len(policies) == 17
+assert {x['case'] for x in policies} == set(summary['registered_control_cases'])
+assert rows['064:46']['runtime_report_policy']['status'] == 'registered_whole_study_non_gold_report_supervision_exclusion'
+assert not summary['accepted_policy_registration_actions']
+assert len(summary['cases_with_source_correspondence_actions']) == 28
+assert set(summary['quality_or_selection_actions']) == {'064:14', '084:27'}
+for c in summary['registered_control_cases']:
+    assert not any(a['kind'] == 'source_correspondence' for a in rows[c]['remaining_actions'])
+    assert any(a['kind'] == 'enforce_registered_correspondence_policy' for a in rows[c]['remaining_actions'])
+
+bindings = d['input_artifact_bindings']
+assert len({b['path'] for b in bindings}) == len(bindings)
+for b in bindings:
+    bp = WORK / b['path']
+    assert binding(bp) == b, ('input changed', b['path'])
+    assert '/reviews-v2/' not in b['path'] and '/legacy/' not in b['path']
+
+report = {
+    'stage': 'independent_staged_crosswalk_membership_scope_and_binding_validation',
+    'agent_id': '/root/last_twelve_visual_review',
+    'validated_at_utc': datetime.now(timezone.utc).isoformat(),
+    'status': 'passed',
+    'crosswalk': binding(p), 'summary': binding(OUT / 'summary.json'), 'validator': binding(Path(__file__)),
+    'checks': {
+        'original_queue_records_exact_preserved': 129,
+        'additional_prior_cases_exact_preserved_and_disjoint': 19,
+        'unique_cases_and_studies_exact_blinded_batch_bound': 148,
+        'direct_input_file_sha256_and_sizes_reverified': len(bindings),
+        'bounded_visual_cases': 87, 'metadata_only_cases': 46,
+        'source_header_only_cases': 13, 'source_completeness_only_cases': 2,
+        'tier4_metadata_series': 564, 'tier4_metadata_source_memberships': 19351, 'tier4_endpoint_geometries': 1128,
+        'tier4_escalated_completed': 32,
+        'final_twelve': {'cases': 12, 'selected_arrays': 50, 'selected_source_memberships': 1698, 'viewed_matrices_per_assessor': 150, 'unselected_arrays': 15, 'unselected_source_memberships': 429},
+        'repeated_temporal_four': {'arrays': 29, 'source_memberships': 791, 'viewed_matrices_per_assessor': 87},
+        'registered_policies': 5, 'registered_exclusions': 17,
+        'specific_source_correspondence_reconciliation_cases': 28,
+        'quality_or_selection_followups': ['064:14', '084:27'],
+        'no_complete_training_eligibility_claim': True,
+    },
+    'limits': ['This validates evidence consolidation, not new source-image clinical correspondence or personal visual inspection.', 'Historical nested claims remain limited by their original proofs; direct input hashes are freshly rechecked.', 'No gold or clinical annotations were opened. No originals, runtime policy, cache, production selection or publication were modified.'],
+    'training_ready': False,
+}
+(OUT / 'validation.json').write_text(json.dumps(report, indent=2) + '\n')
+print(json.dumps(report, indent=2))

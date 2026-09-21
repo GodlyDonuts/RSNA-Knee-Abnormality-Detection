@@ -1,0 +1,145 @@
+"""Audit accepted correspondence dispositions without releasing clinical labels."""
+import copy
+import hashlib
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+WORK = STAGE.parents[1]
+ROOT = WORK / 'recovered'
+AUDIT = ROOT / 'initiative/audits'
+OUT = AUDIT / 'correspondence-source-header-v1'
+sys.path.insert(0, str(ROOT))
+from rsna.adjudications import inspect_adjudications
+from rsna.correspondence import inspect_correspondence
+from rsna.schema import TARGETS
+
+
+def read(p):
+    return json.loads(p.read_text())
+
+
+def digest(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def ref(p):
+    return {'path': str(p.relative_to(ROOT)), 'sha256': digest(p), 'bytes': p.stat().st_size}
+
+
+def annotation_hash(row):
+    content = {k: row[k] for k in ('study_uid', 'states', 'evidence')}
+    return hashlib.sha256(json.dumps(content, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+reports = {r['study_uid']: r['report'] for p in (ROOT / 'initiative/reviews/inputs').glob('batch-*.json') for r in read(p)}
+registry_path = ROOT / 'initiative/reviews-v2/adjudications/registry.json'
+registry_before = ref(registry_path)
+plan = inspect_adjudications(reports, ROOT / 'initiative/reviews-v2/reviewed', ROOT / 'protocols/report_weak_v2.md', ROOT)
+assert ref(registry_path) == registry_before
+runtime = inspect_correspondence(reports, ROOT)
+assert runtime['policy_count'] == 6 and runtime['study_count'] == 18
+inventory_path = AUDIT / 'correspondence28-neutral-source-packets-v1/annotation-mask-inventory.json'
+inventory = read(inventory_path)
+remaining = set(inventory['all_report_targets_already_masked_cases'])
+assert len(remaining) == 24
+root_acceptance_path = AUDIT / 'correspondence28-root-source-01-v1/root-four-case-acceptance.json'
+root_acceptance = read(root_acceptance_path)
+accepted = {r['case']: (i, r) for i, r in enumerate(root_acceptance['cases'])}
+crosswalk_path = AUDIT / 'technical-candidate-status-final-targeted-v1/status-crosswalk.json'
+crosswalk = read(crosswalk_path)
+prior = {r['case']: r for r in crosswalk['original_candidates'] + crosswalk['additional_report_correspondence_and_source_cases']}
+packet_index = read(AUDIT / 'correspondence28-neutral-source-packets-v1/source-packet-index.json')
+packets = {}
+for entry in packet_index['batches']:
+    p = AUDIT / 'correspondence28-neutral-source-packets-v1' / Path(entry['packet']['path']).name
+    assert digest(p) == entry['packet']['sha256']
+    for r in read(p)['cases']:
+        packets[r['case']] = (p, r)
+records = []
+relevant_changes = []
+for item in inventory['records']:
+    case = item['case']
+    path = WORK / item['reviewed_annotation_file']['path']
+    assert digest(path) == item['reviewed_annotation_file']['sha256']
+    lines = path.read_bytes().splitlines(keepends=True)
+    line = lines[item['reviewed_record_line_number_one_based'] - 1]
+    assert hashlib.sha256(line).hexdigest() == item['reviewed_record_exact_line_bytes_sha256']
+    base = json.loads(line)
+    assert base['study_uid'] == item['study_uid']
+    effective = copy.deepcopy(base)
+    changes = [x for x in plan['changes'] if x['study_uid'] == item['study_uid']]
+    relevant_changes.extend(changes)
+    for change in changes:
+        index = list(TARGETS).index(change['target'])
+        assert {field: effective[field + 's' if field == 'state' else field][index] for field in ('state', 'evidence')} == change['before']
+        effective['states'][index] = change['after']['state']
+        effective['evidence'][index] = change['after']['evidence']
+    masked = all(s in ('uncertain', 'not_mentioned') for s in effective['states'])
+    packet_path, source = packets[case]
+    source_path = WORK / source['source_batch']['path']
+    assert digest(source_path) == source['source_batch']['sha256']
+    assert reports[item['study_uid']] == source['full_report_text']
+    r = {
+        'case': case, 'study_uid': item['study_uid'],
+        'source_batch': ref(source_path), 'source_batch_index_zero_based': source['source_batch_index_zero_based'],
+        'report_utf8_sha256': source['report_utf8_sha256'], 'source_packet': ref(packet_path),
+        'base_review': ref(path), 'reviewed_record_line_number_one_based': item['reviewed_record_line_number_one_based'],
+        'reviewed_record_exact_line_bytes_sha256': item['reviewed_record_exact_line_bytes_sha256'],
+        'base_annotation_states_evidence_sha256': annotation_hash(base),
+        'effective_annotation_states_evidence_sha256': annotation_hash(effective),
+        'effective_annotation_hash_encoding': 'UTF-8 canonical JSON of study_uid/states/evidence, ensure_ascii=False, sort_keys=True, separators comma/colon.',
+        'registered_correction_records': changes,
+        'all12_current_effective_annotation_states_masked': masked,
+        'clinical_states_or_evidence_modified': False,
+        'prior_crosswalk_status': prior[case]['source_correspondence_status'],
+    }
+    if case in remaining:
+        assert masked and not changes
+        r.update(
+            consolidated_status='source_examination_linkage_unresolved_existing_all12_masks_preserved',
+            administrative_or_anatomical_identity_resolved=False,
+            required_final_export_non_gold_report_loss_mask=[False] * len(TARGETS),
+            final_export_requirement='Revalidate exact source/effective-annotation bindings and assert all12 non-gold report-loss masks remain zero before export. Current train.py excludes training rows with zero mask sum; preserve splits and grouping.',
+            new_pixel_check_required_to_keep_already_unlabeled_case_excluded=False,
+            new_runtime_exclusion_registered=False,
+        )
+    else:
+        i, a = accepted[case]
+        assert a['accepted'] is True and a['study_uid'] == item['study_uid']
+        r.update(root_acceptance=ref(root_acceptance_path), root_acceptance_selector=f'/cases/{i}', accepted_action=a['accepted_action'])
+        if case == '069:10':
+            decision = next(x for x in runtime['decisions'] if x['case'] == case)
+            r.update(consolidated_status='accepted_unresolved_correspondence_report_loss_exclusion_registered', administrative_or_anatomical_identity_resolved=False, runtime_policy=decision['policy'], runtime_proof=decision['verified_technical_proof'], required_final_export_non_gold_report_loss_mask=[False] * len(TARGETS))
+        else:
+            r.update(consolidated_status='retain_current_shared_or_single_report_supervision_subject_to_semantic_release_gates', new_runtime_exclusion_registered=False, clinical_target_correctness_or_full_training_eligibility_established=False)
+    records.append(r)
+assert len(records) == len({r['case'] for r in records}) == 28
+before = read(OUT / 'before-policy-bindings.json')
+for p in before['policies']:
+    assert ref(ROOT / p['path']) == p
+for e in read(OUT / 'archive-preservation.json')['files']:
+    source, archived = WORK / e['source_path'], ROOT / e['archive_path']
+    assert digest(source) == digest(archived) == e['sha256']
+    assert source.stat().st_size == archived.stat().st_size == e['bytes']
+closure = {
+    'stage': 'consolidated_correspondence28_supervision_dispositions_with_unresolved_identity_preserved',
+    'at_utc': datetime.now(timezone.utc).isoformat(), 'agent_id': '/root/last_twelve_visual_review',
+    'archived_frozen_crosswalk': ref(crosswalk_path), 'archived_source_packet_index': ref(AUDIT / 'correspondence28-neutral-source-packets-v1/source-packet-index.json'),
+    'archived_base_mask_inventory': ref(inventory_path), 'current_annotation_index': ref(ROOT / 'initiative/reviews-v2/index.json'),
+    'current_adjudication_registry': registry_before, 'accepted_annotation_correction_count': plan['n_changes'],
+    'remaining24_accepted_correction_count': 0, 'effective_projection_is_mask_audit_only_not_a_label_release': True,
+    'pending_global_semantic_qa_unchanged': plan['pending_semantic_qa'],
+    'correspondence_registry': ref(ROOT / 'initiative/audits/correspondence-release-registry.json'),
+    'runtime_policy_count': runtime['policy_count'], 'runtime_exclusion_count': runtime['study_count'],
+    'training_filter_code': ref(ROOT / 'rsna/train.py'), 'current_adjudication_validation_code': ref(ROOT / 'rsna/adjudications.py'),
+    'summary': {'cases': 28, 'existing_all12_masked_linkage_unresolved': 24, 'accepted_retain_current_supervision': 3, 'new_registered_non_gold_report_loss_exclusion': 1},
+    'records': records,
+    'no_new_accepted_clinical_changes_or_global_qa_closure': True,
+    'original_source_annotations_images_gold_splits_groups_unchanged': True,
+    'training_ready': False,
+}
+(OUT / 'correspondence28-consolidated-closure.json').write_text(json.dumps(closure, ensure_ascii=False, indent=2) + '\n')
+print(json.dumps({'closure': ref(OUT / 'correspondence28-consolidated-closure.json'), 'summary': closure['summary'], 'relevant28_accepted_corrections': len(relevant_changes), 'pending_global_qa': plan['pending_semantic_qa']}, indent=2))
