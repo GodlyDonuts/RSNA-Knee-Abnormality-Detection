@@ -1,0 +1,91 @@
+{
+  "survey_version": 1,
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "inventory_series": 24386,
+  "inventory_slices": 819635,
+  "selected_series": 10,
+  "selected_endpoints": 20,
+  "successful_endpoints": 20,
+  "complete_endpoint_coverage": true,
+  "full_slice_header_coverage": false,
+  "full_pixel_audit": false,
+  "prefix_bytes_downloaded_for_successes": 1310720,
+  "successful_prefix_size_counts": {
+    "65536": 20
+  },
+  "endpoints_with_full_file_sha256_verified": 0,
+  "series_endpoint_mismatches": [],
+  "study_candidates": [
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.73070182506490199787361298167985971577",
+      "nonempty_side_values": [
+        "L"
+      ],
+      "mixed_nonempty_side_values": false,
+      "patient_id_sha256_values": [
+        "c8d454d8bfc70373b9683b4c6f6eca70c67e97e64b3d0bfd10c9b260de11b2c5"
+      ],
+      "mixed_nonempty_patient_ids": false,
+      "patient_id_blank_and_filled": false,
+      "laterality_blank_and_filled": true,
+      "side_tag_values": {
+        "Laterality": [
+          "",
+          "L"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "side_tags_blank_and_filled": [
+        "Laterality"
+      ],
+      "nonunilateral_or_unrecognized_side_values": [],
+      "repeated_acquisition_set_candidate": true,
+      "repeated_sequence_descriptions": {
+        "PDW_TSE_Sag": [
+          "1.2.826.0.1.3680043.8.498.11343531028236723298620561336997812508",
+          "1.2.826.0.1.3680043.8.498.25377335743713847654967046430618190250"
+        ],
+        "PDW_TSE_SPAIR_Cor": [
+          "1.2.826.0.1.3680043.8.498.11345030916585262812472936117995401179",
+          "1.2.826.0.1.3680043.8.498.33433380048714714310300019244884130120"
+        ],
+        "PDW_TSE_SPAIR_Tra": [
+          "1.2.826.0.1.3680043.8.498.11692020830178070858461307718851646169",
+          "1.2.826.0.1.3680043.8.498.33213853653515877268223602716587869460"
+        ],
+        "PDW_TSE_SPAIR_Sag": [
+          "1.2.826.0.1.3680043.8.498.11809354913653326221794865797132843494",
+          "1.2.826.0.1.3680043.8.498.12766632011970832281103524873927679328"
+        ],
+        "T1W_TSE_Cor": [
+          "1.2.826.0.1.3680043.8.498.70723594464298027885849633227957834661",
+          "1.2.826.0.1.3680043.8.498.96054398545437337674825559944475213195"
+        ]
+      },
+      "candidate_only_requires_source_geometry_review": true
+    }
+  ],
+  "limits": [
+    "Lexical first/last SOP UIDs are not spatial endpoints and do not exhaust within-series variation.",
+    "Prefix hashes authenticate the received prefix locally, not the full LFS object. Source OID, expected size, transport range and all three UIDs are bound; complete-file SHA verified only when entire small file was received.",
+    "Missing laterality never implies right; repeated sequence descriptions may be ordinary repeat acquisitions. Candidate flags do not establish bilateral anatomy, diagnostic labels, or training inclusion.",
+    "Whitelisted header fields are read only before PixelData; fields after PixelData, enhanced per-frame nested metadata and unselected middle slices are outside coverage. No pixel arrays decoded or stored."
+  ],
+  "failures": [],
+  "endpoint_artifact_sha256": "98a20e925bfee6d97e6bec6d98432acdc51b9bdacc3bdc9aba7af1946069c725",
+  "manifest_sha256": "bf3c5d90d64de1f88de7abfab19ee07e7cbdf66b091d0fd1a6bbf1c2a8ff1a49",
+  "pilot_comparison": {
+    "reference_path": "../bilateral-067037/all-slice-headers-and-pixels.jsonl",
+    "reference_sha256": "08221986b5d6d7ee5afa551d60a3fc6d761062cd8ed45e7faaaf3c727519d734",
+    "selected_endpoints_compared": 20,
+    "exact_selected_field_matches": 20,
+    "mismatches": [],
+    "scope": "All whitelisted technical fields, three UIDs, source LFS SHA and PatientID/FoR hashes match full-file reference. Prefix SHA is not compared to full-file/pixel SHA, which describe different bytes."
+  },
+  "pilot_validation_passed": true
+}

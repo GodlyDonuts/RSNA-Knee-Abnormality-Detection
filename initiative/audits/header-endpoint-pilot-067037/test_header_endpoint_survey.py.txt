@@ -1,0 +1,283 @@
+import io
+import json
+import sqlite3
+from types import SimpleNamespace
+
+import header_endpoint_survey as survey
+import pyarrow as pa
+import pyarrow.parquet as pq
+import pydicom
+import pytest
+from pydicom.dataset import FileDataset, FileMetaDataset
+
+
+def make_dicom(private_size=0):
+    expected = {"study_uid": "1.2.3", "series_uid": "1.2.3.4", "sop_uid": "1.2.3.4.5"}
+    meta = FileMetaDataset()
+    meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+    meta.MediaStorageSOPClassUID = pydicom.uid.MRImageStorage
+    meta.MediaStorageSOPInstanceUID = expected["sop_uid"]
+    ds = FileDataset(None, {}, file_meta=meta, preamble=b"\0" * 128)
+    ds.SOPClassUID = pydicom.uid.MRImageStorage
+    ds.SOPInstanceUID = expected["sop_uid"]
+    ds.StudyInstanceUID = expected["study_uid"]
+    ds.SeriesInstanceUID = expected["series_uid"]
+    ds.PatientID = "SYNTHETIC-TECHNICAL-TEST"
+    ds.FrameOfReferenceUID = "1.2.3.99"
+    ds.Laterality = "L"
+    ds.SeriesDescription = "PDW_TSE_Cor"
+    ds.Rows = ds.Columns = 1024
+    ds.SamplesPerPixel = 1
+    ds.PhotometricInterpretation = "MONOCHROME2"
+    ds.BitsAllocated = ds.BitsStored = 16
+    ds.HighBit = 15
+    ds.PixelRepresentation = 0
+    if private_size:
+        ds.add_new((0x7777, 0x0010), "OB", b"X" * private_size)
+    ds.PixelData = b"\0" * (2 * 1024 * 1024)
+    stream = io.BytesIO()
+    pydicom.dcmwrite(stream, ds, enforce_file_format=True)
+    data = stream.getvalue()
+    expected.update(
+        path="train_series/1.2.3/1.2.3.4/1.2.3.4.5.dcm",
+        sha256=survey.digest(data),
+        bytes=len(data),
+        storage="lfs",
+    )
+    return data, expected
+
+
+def test_requires_actual_pixel_header_without_retaining_pixels():
+    data, expected = make_dicom()
+    parsed = survey.parse_prefix(data[:65536], expected)
+    offset = parsed["pixel_data_header"]["value_offset"]
+    assert parsed["reached_pixel_data_header"] and offset < 65536
+    assert parsed["header_fields"]["Laterality"] == "L"
+    assert parsed["patient_id_sha256"] == survey.digest(b"SYNTHETIC-TECHNICAL-TEST")
+    assert "PixelData" not in parsed and "SYNTHETIC-TECHNICAL-TEST" not in json.dumps(parsed)
+    with pytest.raises(survey.PrefixIncomplete):
+        survey.parse_prefix(data[: offset - 1], expected)
+    with pytest.raises(survey.PrefixIncomplete):
+        survey.parse_prefix(data[:200], expected)
+
+
+def test_large_skipped_private_value_still_requires_complete_prefix():
+    data, expected = make_dicom(private_size=100000)
+    with pytest.raises(survey.PrefixIncomplete):
+        survey.parse_prefix(data[:65536], expected)
+    assert survey.parse_prefix(data[:262144], expected)["reached_pixel_data_header"]
+
+
+def test_uid_mismatch_is_rejected():
+    data, expected = make_dicom()
+    expected["series_uid"] = "1.2.99"
+    with pytest.raises(survey.SurveyError, match="series_uid_mismatch"):
+        survey.parse_prefix(data[:65536], expected)
+
+
+class FakeResponse:
+    def __init__(self, body, status=206, headers=None):
+        self.status_code = status
+        self.headers = headers or {
+            "Content-Range": f"bytes 0-{len(body) - 1}/100000",
+            "Content-Length": str(len(body)),
+        }
+        self.raw = io.BytesIO(body)
+
+
+def test_range_total_status_encoding_and_body_bounds():
+    assert survey.read_range_response(FakeResponse(b"1234"), 100000, 4) == b"1234"
+    for response in [
+        FakeResponse(b"1234", status=200),
+        FakeResponse(b"1234", headers={"Content-Range": "bytes 1-4/100000"}),
+        FakeResponse(b"1234", headers={"Content-Range": "bytes 0-3/99999"}),
+        FakeResponse(
+            b"1234", headers={"Content-Range": "bytes 0-3/100000", "Content-Encoding": "gzip"}
+        ),
+        FakeResponse(b"12345", headers={"Content-Range": "bytes 0-3/100000"}),
+    ]:
+        with pytest.raises(survey.SurveyError):
+            survey.read_range_response(response, 100000, 4)
+
+
+def test_inventory_selection_is_lexical_not_input_order(tmp_path):
+    rows = []
+    for sop in ["1.2.9", "1.2.10", "1.2.5"]:
+        rows.append(
+            {
+                "path": f"train_series/1.2/1.2.3/{sop}.dcm",
+                "study_uid": "1.2",
+                "series_uid": "1.2.3",
+                "sop_uid": sop,
+                "sha256": "a" * 64,
+                "bytes": 100,
+                "storage": "lfs",
+            }
+        )
+    pq.write_table(pa.Table.from_pylist(rows), tmp_path / "part.parquet")
+    endpoints, info = survey.inventory_endpoints(tmp_path, None)
+    assert [row["sop_uid"] for row in endpoints] == ["1.2.10", "1.2.9"]
+    assert info["inventory_slices"] == 3 and info["inventory_series"] == 1
+
+
+def test_resume_reuses_only_valid_bound_records(tmp_path, monkeypatch):
+    data, expected = make_dicom()
+    record = {
+        **survey.parse_prefix(data[:65536], expected),
+        "source_path": expected["path"],
+        "study_uid": expected["study_uid"],
+        "series_uid": expected["series_uid"],
+        "sop_uid": expected["sop_uid"],
+        "source_sha256": expected["sha256"],
+        "source_bytes": expected["bytes"],
+        "prefix_bytes": 65536,
+        "prefix_sha256": survey.digest(data[:65536]),
+        "full_file_sha256_verified": False,
+        "prefix_attempts": [{"prefix_bytes": 65536, "prefix_sha256": survey.digest(data[:65536])}],
+    }
+    info = {
+        "inventory_series": 1,
+        "inventory_slices": 1,
+        "selected_series": [
+            {"study_uid": expected["study_uid"], "series_uid": expected["series_uid"]}
+        ],
+        "inventory_files_fingerprint": "x",
+    }
+    monkeypatch.setattr(survey, "inventory_endpoints", lambda *a: ([expected], info))
+    monkeypatch.setattr(survey, "actions_for", lambda *a: {expected["path"]: {}})
+    calls = []
+    monkeypatch.setattr(survey, "fetch_endpoint", lambda *a: (calls.append(1) or record))
+    args = SimpleNamespace(
+        workers=1,
+        source_revision="a" * 40,
+        repo_id="x/y",
+        inventory=tmp_path,
+        study_uid=None,
+        output=tmp_path / "out",
+        compare_full_headers=None,
+    )
+    assert survey.run(args)["complete_endpoint_coverage"]
+    assert survey.run(args)["complete_endpoint_coverage"] and len(calls) == 1
+    db = sqlite3.connect(args.output / "checkpoint.sqlite3")
+    db.execute("UPDATE records SET payload='{}'")
+    db.commit()
+    db.close()
+    with pytest.raises(survey.SurveyError, match="resume_record_checksum"):
+        survey.run(args)
+
+
+def test_missing_side_is_not_right_and_mixed_candidates_are_not_decisions():
+    data, expected = make_dicom()
+    base = survey.parse_prefix(data[:65536], expected)
+    records = []
+    for i in range(6):
+        r = json.loads(json.dumps(base))
+        r.update(
+            study_uid="1.2",
+            series_uid=str(i),
+            prefix_bytes=65536,
+            full_file_sha256_verified=False,
+            prefix_attempts=[{"prefix_bytes": 65536}],
+        )
+        r["header_fields"]["Laterality"] = "L" if i < 3 else ""
+        r["header_fields"]["SeriesDescription"] = f"seq{i % 3}"
+        records.append(r)
+    summary = survey.summarize(
+        records,
+        {
+            "source_revision": "a" * 40,
+            "inventory_series": 6,
+            "inventory_slices": 180,
+            "selected_series": list(range(6)),
+            "n_endpoints": 12,
+        },
+    )
+    flag = summary["study_candidates"][0]
+    assert flag["nonempty_side_values"] == ["L"] and not flag["mixed_nonempty_side_values"]
+    assert flag["laterality_blank_and_filled"] and flag["repeated_acquisition_set_candidate"]
+    assert not summary["complete_endpoint_coverage"] and not summary["full_slice_header_coverage"]
+
+
+def test_fetch_escalates_prefix_and_keeps_hash_scope_honest(monkeypatch):
+    data, expected = make_dicom(private_size=100000)
+    requests_seen = []
+
+    class ContextResponse(FakeResponse):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    class Session:
+        def get(self, url, headers, **kwargs):
+            count = int(headers["Range"].split("-")[1]) + 1
+            requests_seen.append(count)
+            return ContextResponse(
+                data[:count],
+                headers={
+                    "Content-Range": f"bytes 0-{count - 1}/{len(data)}",
+                    "Content-Length": str(count),
+                },
+            )
+
+    monkeypatch.setattr(survey.HTTP, "session", Session())
+    record = survey.fetch_endpoint(expected, {"href": "https://example.invalid/test"})
+    assert requests_seen == [65536, 262144]
+    assert record["prefix_sha256"] == survey.digest(data[:262144])
+    assert record["source_sha256"] == survey.digest(data)
+    assert not record["full_file_sha256_verified"]
+    assert record["verification_scope"] == "range_transport_and_uid_binding_only"
+    assert record["pixel_data_header"]["value_offset"] > 65536
+
+
+def test_deflated_transfer_syntax_rejected_before_dataset_inflation():
+    data, expected = make_dicom()
+    original = pydicom.uid.ExplicitVRLittleEndian.encode()
+    replacement = pydicom.uid.DeflatedExplicitVRLittleEndian.encode()
+    # Construct just a legitimate meta header with deflated TS; no compressed
+    # dataset is needed because the survey must reject before decompression.
+    meta = FileMetaDataset()
+    meta.TransferSyntaxUID = pydicom.uid.DeflatedExplicitVRLittleEndian
+    meta.MediaStorageSOPClassUID = pydicom.uid.MRImageStorage
+    meta.MediaStorageSOPInstanceUID = expected["sop_uid"]
+    ds = FileDataset(None, {}, file_meta=meta, preamble=b"\0" * 128)
+    ds.SOPInstanceUID = expected["sop_uid"]
+    output = io.BytesIO()
+    pydicom.dcmwrite(output, ds, enforce_file_format=True)
+    with pytest.raises(survey.SurveyError, match="deflated_transfer_syntax"):
+        survey.parse_prefix(output.getvalue(), expected)
+    assert original != replacement and len(data) > 0
+
+
+def test_secondary_side_tag_and_missing_patient_id_are_visible():
+    data, expected = make_dicom()
+    base = survey.parse_prefix(data[:65536], expected)
+    records = []
+    for i in range(2):
+        r = json.loads(json.dumps(base))
+        r.update(
+            study_uid="1.2",
+            series_uid="1.2.3",
+            prefix_bytes=65536,
+            full_file_sha256_verified=False,
+            prefix_attempts=[{"prefix_bytes": 65536}],
+        )
+        r["header_fields"]["Laterality"] = ""
+        r["header_fields"]["ImageLaterality"] = "L" if i == 0 else ""
+        r["patient_id_present"] = i == 0
+        records.append(r)
+    summary = survey.summarize(
+        records,
+        {
+            "source_revision": "a" * 40,
+            "inventory_series": 1,
+            "inventory_slices": 10,
+            "selected_series": [1],
+            "n_endpoints": 2,
+        },
+    )
+    flag = summary["study_candidates"][0]
+    assert flag["side_tags_blank_and_filled"] == ["ImageLaterality"]
+    assert flag["patient_id_blank_and_filled"] and not flag["mixed_nonempty_patient_ids"]
+    assert summary["series_endpoint_mismatches"][0]["differences"]["patient_id_blank_and_filled"]

@@ -1,0 +1,18 @@
+{
+  "reviewer": "/root",
+  "created_at_utc": "2026-09-21T02:35:03.217669+00:00",
+  "scope": "Independent implementation and pilot-evidence review; no diagnostic image labels. Root previously reviewed full300native study and independent anatomical-side review.",
+  "script_sha256": "206d82db7ddb7a3239119b022fe39150621673899f8757a8553b5ff6fce161ea",
+  "pilot_summary_sha256": "f222cc95f04961abb608767c782b50e9df132982ff38b4711edcad3a7c366399",
+  "findings": [
+    "Complete final script read: bounded four-worker range requests; strict206/content-range/size/encoding; explicit proof of reached PixelData and no retained pixel field; all3UIDs and inventory objects bound.",
+    "Prefix SHA is explicitly distinguished from source full-file SHA; full-file proof count0 for this pilot. Deflated data/prefix overflow/errors fail visibly.",
+    "Checkpoint binds script/inventory/membership and individual record content; source/candidate scopes are correctly limited.",
+    "All20selected endpoints across10series match full300-slice reference for all whitelisted metadata and ID hashes. Repeated sequences plus L/blank candidate detected without inventing R.",
+    "Potential omissions remain explicit: middle slices, fields after PixelData, enhanced nested metadata and actual anatomy require separate review."
+  ],
+  "decision": "Launch same immutable implementation acrossall24386series with4workers, fresh resumable output outside archive. Candidate findings require source/anatomy review; no automatic labels or side reassignment.",
+  "full_survey_status": "launched; results pending",
+  "full_survey_run": "header-endpoint-full-v1",
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+}
