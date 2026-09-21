@@ -1,0 +1,50 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T03:20:16.175733+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.12482482491088588051076210158062455084",
+  "source_batch_path": "initiative/reviews/inputs/batch-017.json",
+  "source_batch_sha256": "b2433ad44f8ab49540f56fbc28ba61092909221c9762317cc459b5d7b120c81c",
+  "source_report_sha256": "b31b75ef8fa55cecdea6bfe39a27b6ac7b7af4ec0ca290e93428f156293b2b46",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-017-reviewed.jsonl",
+  "review_artifact_sha256": "370f7bf2f8a5911f2514641f0a0ce7f88d76b8308e0f9356f01d744c7cd8892a",
+  "finding": "Strong evidence of two knees within one study, corroborated by original right/left report sections, repeated acquisition groups, and two independent30-panel native anatomical/orientation assessments.",
+  "decision": "Keep whole-study report supervision fully masked in the current single-knee training pipeline. Preserve original source/images/official gold. Any later side-specific derivative requires validated series-to-side/report binding and parent patient grouping for leakage control; no arbitrary side selection or label cloning.",
+  "verified_scope": {
+    "full_native_slices_hash_uid_finite_decode": 308,
+    "series": 10,
+    "left_tag_slices": 154,
+    "blank_tag_slices": 154,
+    "independent_visual_assessors": 2,
+    "panels_per_assessor": 30,
+    "endpoint_full_metadata_source_matches": 20,
+    "endpoint_prefix_digests_recomputed_from_full_source": 20,
+    "exact_cross_series_pixel_duplicate_groups": 0
+  },
+  "limitations": [
+    "Only30 representative slices visually inspected; all308 slices fully hash/size/UID verified and decoded with finite2D arrays. No image pathology interpretation.",
+    "Exact pixel nonoverlap does not alone distinguish repeated same-knee scans from both knees.",
+    "All10 FrameOfReference IDs differ; absolute coordinate origin and acquisition numbers are supporting grouping signals, not independent absolute side proof.",
+    "No acquisition dates/times establish chronology; source fidelity does not establish organizer intended target side for the combinedUID.",
+    "Absolute side depends on DICOM orientation truthfulness and correct anatomical landmark recognition; independent visual confirmation remains required before any side-aware training derivative.",
+    "All20 prefix digests are explicitly65536-byte digests, independently matched to full source prefixes; only the separately verified full-source hashes authenticate whole files."
+  ],
+  "root_verification": "Personally viewed both montages, checked renderer diff and all coronal IOPs, froze independent anatomical assessment before other visual conclusions, then read full source and independent assessment; verified all recorded input hashes and20metadata/prefix matches. No clinical image labels used.",
+  "evidence_files": {
+    "all-slice-headers-and-pixels.jsonl": "d5079cfb68f1cabffb03993ac374ad282b25d20b30b652ca5d2a5dd545e44353",
+    "cross-series-exact-pixel-groups.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "endpoint-full-comparison.json": "a7164b3877e7daf4e10e6503eac875065c0ea9fafad0d76d165f3868c327b35e",
+    "endpoint-headers.jsonl": "c7ccf0a62a690643e3cea4c186cd7f4b05ee6459e1ea07d1c90408c7154c4d27",
+    "independent-image-review.json": "1d2ce53a15fd14ec84d727f48cc8072f71428cd8dc4e8c8c691a4698152fc6c6",
+    "independent-source-preread.json": "b7e91f8f2142fee346cc82f582691e8ae473325d1cf7347994df2df2ed8717ac",
+    "native-comparison.py.txt": "e42120f05daa1fa80c1cd2e5e491613c31b42973d9759b96abb6e1411462f6fd",
+    "native-tag-L.png": "11c4b3207fc97b4d396f8309f33f0fe5344482080be318d4be5b4a0a0249b883",
+    "native-tag-blank.png": "2e85a51854765896f556a1416c90d15bc7cd1fd5786e40802695615a5e2d3620",
+    "root-image-review.json": "4cdab7ad6eca593f522c3052ad88be4da159123ae8cbd96289b94eedd9a04109",
+    "series-summary.json": "5254663abe51b7bcb37c374ad0ed17dc0f8205d36bff0d66cc7b3ea10710ca66",
+    "source-copy-assessment.json": "d3ae827047baf6d4a8933329315b3b4374169d1f609df8232436f233fdb3409b",
+    "source-inventory.json": "5d6411f075560c0c23211e11cdb25566130d4bcfa570c7670dbbdfa00e751634",
+    "summary.json": "9a8c4b4ed584fd27ec8a35883af707d1c6c70afcb7e5b18525de31e5571f25e7",
+    "validate.py.txt": "79d112a13f73112fa40cfdc4684fffda1db43a0913699f0083b50d381bddb3a5"
+  },
+  "training_ready": false
+}

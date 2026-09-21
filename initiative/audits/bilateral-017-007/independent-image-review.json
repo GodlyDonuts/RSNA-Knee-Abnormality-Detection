@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "stage": "independent_technical_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "study_uid": "1.2.826.0.1.3680043.8.498.12482482491088588051076210158062455084",
+  "source_batch_index": 7,
+  "source_batch_sha256": "b2433ad44f8ab49540f56fbc28ba61092909221c9762317cc459b5d7b120c81c",
+  "source_report_sha256": "b31b75ef8fa55cecdea6bfe39a27b6ac7b7af4ec0ca290e93428f156293b2b46",
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "independence": "Personally read complete original017:7 source and froze technical source assessment before017 annotation/header/image access. Parent disclosed only existence of bilateral source and current masks. No017 clinical annotations/flags or gold values opened. Then inspected all-series endpoint headers, ran full native technical audit, personally viewed30 representative panels and inspected renderer/IOPs. No root visual conclusion received before this freeze. No pathology diagnoses or target changes from images.",
+  "input_bindings": [
+    {
+      "path": "recovered/initiative/reviews/inputs/batch-017.json",
+      "sha256": "b2433ad44f8ab49540f56fbc28ba61092909221c9762317cc459b5d7b120c81c",
+      "n_bytes": 67729
+    },
+    {
+      "path": "annotation-staging/bilateral01707-source-preread.json",
+      "sha256": "b7e91f8f2142fee346cc82f582691e8ae473325d1cf7347994df2df2ed8717ac",
+      "n_bytes": 1961
+    },
+    {
+      "path": "annotation-staging/header-extract-017007.jsonl",
+      "sha256": "c7ccf0a62a690643e3cea4c186cd7f4b05ee6459e1ea07d1c90408c7154c4d27",
+      "n_bytes": 44363
+    },
+    {
+      "path": "annotation-staging/bilateral01707-source-copy-assessment.json",
+      "sha256": "d3ae827047baf6d4a8933329315b3b4374169d1f609df8232436f233fdb3409b",
+      "n_bytes": 1033
+    },
+    {
+      "path": "annotation-staging/bilateral01707-source-inventory.json",
+      "sha256": "5d6411f075560c0c23211e11cdb25566130d4bcfa570c7670dbbdfa00e751634",
+      "n_bytes": 194921
+    },
+    {
+      "path": "bilateral_017007.py",
+      "sha256": "e42120f05daa1fa80c1cd2e5e491613c31b42973d9759b96abb6e1411462f6fd",
+      "n_bytes": 6961
+    },
+    {
+      "path": "annotation-staging/bilateral01707-validate.py",
+      "sha256": "79d112a13f73112fa40cfdc4684fffda1db43a0913699f0083b50d381bddb3a5",
+      "n_bytes": 3334
+    },
+    {
+      "path": "bilateral-017007/summary.json",
+      "sha256": "9a8c4b4ed584fd27ec8a35883af707d1c6c70afcb7e5b18525de31e5571f25e7",
+      "n_bytes": 1116
+    },
+    {
+      "path": "bilateral-017007/series-summary.json",
+      "sha256": "5254663abe51b7bcb37c374ad0ed17dc0f8205d36bff0d66cc7b3ea10710ca66",
+      "n_bytes": 39227
+    },
+    {
+      "path": "bilateral-017007/all-slice-headers-and-pixels.jsonl",
+      "sha256": "d5079cfb68f1cabffb03993ac374ad282b25d20b30b652ca5d2a5dd545e44353",
+      "n_bytes": 565959
+    },
+    {
+      "path": "bilateral-017007/cross-series-exact-pixel-groups.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "n_bytes": 3
+    },
+    {
+      "path": "bilateral-017007/endpoint-full-comparison.json",
+      "sha256": "a7164b3877e7daf4e10e6503eac875065c0ea9fafad0d76d165f3868c327b35e",
+      "n_bytes": 17435
+    },
+    {
+      "path": "bilateral-017007/native-tag-L.png",
+      "sha256": "11c4b3207fc97b4d396f8309f33f0fe5344482080be318d4be5b4a0a0249b883",
+      "n_bytes": 1871058
+    },
+    {
+      "path": "bilateral-017007/native-tag-blank.png",
+      "sha256": "2e85a51854765896f556a1416c90d15bc7cd1fd5786e40802695615a5e2d3620",
+      "n_bytes": 1894009
+    }
+  ],
+  "source_structure": {
+    "n_explicit_knee_sections": 2,
+    "n_report_fields": 1,
+    "side_order": [
+      "right",
+      "left"
+    ],
+    "headings": [
+      "Дясна колянна става:",
+      "Лява колянна става:"
+    ],
+    "conclusion_explicitly_bilateral": true,
+    "note": "Two current side-specific findings sections and a bilateral comparative conclusion, not opposite-side history or medial/lateral compartments of one knee. Exact report matches both archived train.csv and existing root-obtained current official Kaggle copy; both full train files SHA8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33. No fresh train download by this agent, no reconstruction."
+  },
+  "technical_coverage": {
+    "n_inventory_slices": 308,
+    "n_series": 10,
+    "n_full_dicom_size_sha_and_three_uid_checks": 308,
+    "all_native_arrays_2d_finite": true,
+    "n_raw_source_bytes": 245471088,
+    "max_simultaneous_slice_requests": 4,
+    "n_full_headers": 308,
+    "n_endpoint_full_metadata_matches": 20,
+    "n_endpoint_prefix_digests_recomputed_from_full_source": 20,
+    "endpoint_selection_exact_lexical_first_last_verified": true,
+    "n_selected_visual_slices": 30,
+    "n_visual_montages": 2,
+    "n_cross_series_exact_pixel_duplicate_groups": 0,
+    "one_patient_id_hash": true,
+    "n_frame_of_reference_hashes": 10,
+    "raw_dicom_and_full_native_volumes_retained": false
+  },
+  "header_observations": {
+    "left_tag_group_series_indices": [
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "blank_tag_group_series_indices": [
+      0,
+      1,
+      3,
+      8,
+      9
+    ],
+    "left_tag_slices": 154,
+    "blank_tag_slices": 154,
+    "explicit_right_tags": 0,
+    "image_and_frame_laterality": "blank throughout all308 instances",
+    "within_series_laterality_mixture": false,
+    "repeated_sequences": [
+      "PDW_TSE_SPAIR_Cor",
+      "PDW_TSE_SPAIR_Sag",
+      "PDW_TSE_SPAIR_Tra",
+      "PDW_TSE_Sag",
+      "T1W_TSE_Cor"
+    ],
+    "left_acquisition_numbers": [
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "blank_acquisition_numbers": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "patient_position": "FFS throughout",
+    "interpretation": "Two five-sequence acquisition groups, one taggedL and one untagged, with opposed patient-coordinate locations. Ten distinct FrameOfReference hashes mean absolute coordinate comparison alone is not used as side proof. Missing laterality never implies right."
+  },
+  "personal_visual_observations": [
+    {
+      "image": "bilateral-017007/native-tag-L.png",
+      "series_indices": [
+        7,
+        6
+      ],
+      "specific_views": "Series7 coronal slice23/30 and series6 T1 coronal slice23/30",
+      "observation": "Proximal fibula lies on display right beside the tibia in both coronal sequences. Each sampled image contains a single knee; repeated coronal landmark confirms lateral anatomical side."
+    },
+    {
+      "image": "bilateral-017007/native-tag-blank.png",
+      "series_indices": [
+        9,
+        8
+      ],
+      "specific_views": "Series9 coronal slice23/30 and series8 T1 coronal slice23/30",
+      "observation": "Proximal fibula lies on display left beside the tibia in both coronal sequences, opposite the L-tag group. Each sampled image contains a single knee. Coronal fibular position, not any pathology appearance, is the anatomical side discriminator."
+    }
+  ],
+  "orientation_reasoning": {
+    "reference": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.2.html",
+    "rendering": "Native2D arrays are shown via imshow with no flip, transpose, or anatomical reorientation. Percentile contrast changes intensity only; increasing column moves right in each displayed panel.",
+    "coronal_left_iop": [
+      0.98360196559027,
+      0.18031185467776,
+      0.00384816184744,
+      0.00439338867273,
+      -0.0026245322559,
+      -0.9999869048974
+    ],
+    "coronal_blank_iop": [
+      0.99965596893007,
+      -0.0183508376527,
+      -0.0187400784393,
+      -0.0187454255427,
+      -0.0001193986202,
+      -0.9998242819441
+    ],
+    "reason": "For biped DICOM patient coordinates,+x is patient left and first IOP triplet maps increasing column. Both coronal column directions have positive x near+1. Thus lateral fibula at display right in L group lies toward patient left, consistent with left knee; lateral fibula at display left in blank group lies toward patient right, consistent with right knee. Small coronal obliquity does not reverse left-right direction. This reasoning requires truthful IOP and no upstream unrecorded mirroring."
+  },
+  "conclusion": {
+    "both_knees_supported": true,
+    "confidence_description": "Strong technical evidence from fibular anatomical position consistently repeated in both coronal sequences of each group and recorded IOP, corroborated by two explicit source sides and two full acquisition sets.",
+    "provisional_group_mapping": [
+      {
+        "side": "left",
+        "series_indices": [
+          2,
+          4,
+          5,
+          6,
+          7
+        ],
+        "series_uids": [
+          "1.2.826.0.1.3680043.8.498.18283480528640137818987238003153468143",
+          "1.2.826.0.1.3680043.8.498.48905061383666741894040759880755128190",
+          "1.2.826.0.1.3680043.8.498.61211392146660088367464868284932003355",
+          "1.2.826.0.1.3680043.8.498.66795986381932183855969248427425214963",
+          "1.2.826.0.1.3680043.8.498.78837692422695491042173266705970505002"
+        ],
+        "basis": "L tags throughout and coronal fibula/IOP concordance."
+      },
+      {
+        "side": "right",
+        "series_indices": [
+          0,
+          1,
+          3,
+          8,
+          9
+        ],
+        "series_uids": [
+          "1.2.826.0.1.3680043.8.498.12998890517338350488146486681583721992",
+          "1.2.826.0.1.3680043.8.498.14852634347378027776462319542357336061",
+          "1.2.826.0.1.3680043.8.498.41070943233117177088897683304845236340",
+          "1.2.826.0.1.3680043.8.498.83883398276204540794961343318292949715",
+          "1.2.826.0.1.3680043.8.498.88856290322452706696026233189379574013"
+        ],
+        "basis": "Opposite coronal fibular side under positive-x IOP, with coherent blank-tag five-sequence group; never inferred from blank tag alone."
+      }
+    ],
+    "single_knee_training_recommendation": "Retain whole-study quarantine/masked report labels for the current single-knee loader. Do not pool both groups or select one side arbitrarily. Any later side-aware derivative requires a separately reviewed series-to-report contract preserving parentStudyUID and per-side evidence; no label cloning.",
+    "clinical_label_changes": 0
+  },
+  "limits": [
+    "Only30 representative slices visually inspected; all308 slices fully hash/size/UID verified and decoded with finite2D arrays. No image pathology interpretation.",
+    "Exact pixel nonoverlap does not alone distinguish repeated same-knee scans from both knees.",
+    "All10 FrameOfReference IDs differ; absolute coordinate origin and acquisition numbers are supporting grouping signals, not independent absolute side proof.",
+    "No acquisition dates/times establish chronology; source fidelity does not establish organizer intended target side for the combinedUID.",
+    "Absolute side depends on DICOM orientation truthfulness and correct anatomical landmark recognition; independent visual confirmation remains required before any side-aware training derivative.",
+    "All20 prefix digests are explicitly65536-byte digests, independently matched to full source prefixes; only the separately verified full-source hashes authenticate whole files."
+  ]
+}

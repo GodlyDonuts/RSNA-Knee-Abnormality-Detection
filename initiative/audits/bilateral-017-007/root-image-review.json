@@ -1,0 +1,59 @@
+{
+  "assessor": "/root",
+  "stage": "independent_native_anatomical_correspondence_review",
+  "created_utc": "2026-09-21T03:18:42.766178+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.12482482491088588051076210158062455084",
+  "context_before_view": "Knew source017:7 has explicit right/left reports and metadata repeated5L/5blank groups. No imageagent visual conclusions/detailed assessment or017clinical annotations read before freeze.",
+  "images_personally_viewed": [
+    "native-tag-L.png",
+    "native-tag-blank.png"
+  ],
+  "panels_personally_viewed": 30,
+  "image_sha256": {
+    "native-tag-L.png": "11c4b3207fc97b4d396f8309f33f0fe5344482080be318d4be5b4a0a0249b883",
+    "native-tag-blank.png": "2e85a51854765896f556a1416c90d15bc7cd1fd5786e40802695615a5e2d3620"
+  },
+  "renderer_sha256": "e42120f05daa1fa80c1cd2e5e491613c31b42973d9759b96abb6e1411462f6fd",
+  "renderer_checked": "Reviewed exact diff from fully inspected018019 renderer: only study/output selectors, expected counts and added source-prefix hash changed. Native2D imshow renderer, percentile windows and physical-projection slice selection unchanged; no array flip/transpose/reorientation.",
+  "observations": [
+    {
+      "series_indices": [
+        7,
+        6
+      ],
+      "native_panels": "L-tagged coronal and T1 coronal third panels, slice23/30",
+      "finding": "Proximal fibula/fibular head visible to display-right of tibia."
+    },
+    {
+      "series_indices": [
+        9,
+        8
+      ],
+      "native_panels": "Blank-tagged coronal and T1 coronal third panels, slice23/30",
+      "finding": "Proximal fibula/fibular head visible to display-left of tibia."
+    },
+    {
+      "series_indices": [
+        7,
+        6,
+        9,
+        8
+      ],
+      "geometry": "All coronal first IOP vectors point predominantly patient-positiveX: L~0.98360, blank~0.99966. Increasing column points to patient left in both groups, so opposite fibular display sides are not an introduced rendering flip."
+    }
+  ],
+  "inference": "Strong anatomy/orientation evidence of opposite knees: L-tagged group left; blank-tagged group right. Missing Laterality alone is not used to infer right. Distinct positions/acquisitions/pixels alone would be insufficient.",
+  "technical_counts_from_verified_artifacts": {
+    "slices": 308,
+    "series": 10,
+    "laterality_slice_counts": {
+      "": 154,
+      "L": 154
+    },
+    "distinct_patient_id_hashes": 1,
+    "exact_cross_series_pixel_groups": 0
+  },
+  "full_header_pixel_sha256": "d5079cfb68f1cabffb03993ac374ad282b25d20b30b652ca5d2a5dd545e44353",
+  "decision": "Keep undivided-study report supervision masked pending separately validated side/report binding and parent leakage grouping. Preserve all originals and gold. No image-derived clinical target changes.",
+  "limits": "All308 decoded/hash-checked by inspected script; root personally viewed30selectednativepanels. Side inference assumes correct DICOM orientation and no unrecorded upstream mirroring. Does not certify diseases or true patient/exam chronology."
+}
