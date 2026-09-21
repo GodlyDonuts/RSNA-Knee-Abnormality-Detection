@@ -1,0 +1,23 @@
+"""Record exact metadata comparisons for case-specific tag/repeat questions."""
+import json
+from pathlib import Path
+import numpy as np
+from collect_technical import ROOT, WORK, ref, save, require
+pairs={'073:44': [(4, 6)], '074:30': [(4, 6)], '075:48': [(501, 701)], '077:02': [(4, 5)], '077:37': [(201, 401)], '078:33': [(101, 201), (301, 501), (401, 601)]}
+records=[]
+for case,nums in pairs.items():
+ path=ROOT/f'technical-evidence/case-{case.replace(":","-")}.json';c=json.loads(path.read_text())
+ rows={int(x['header_endpoint_values']['SeriesNumber'][0]):x for x in c['series']}
+ for a,b in nums:
+  l,r=rows[a],rows[b];lp=np.asarray(l['cache_positions']);rp=np.asarray(r['cache_positions'])
+  lm=json.loads((WORK/l['cache_metadata']['path']).read_text());rm=json.loads((WORK/r['cache_metadata']['path']).read_text())
+  lo=np.asarray(l['cache_orientation']);ro=np.asarray(r['cache_orientation'])
+  records.append({'case':case,'case_metadata':ref(path),'series_numbers':[a,b],'series_uids':[l['series_uid'],r['series_uid']], 'metadata':[l['cache_metadata'],r['cache_metadata']],
+   'n_slices':[l['n_slices'],r['n_slices']],'literal_laterality':[l['header_endpoint_values']['Laterality'],r['header_endpoint_values']['Laterality']],
+   'same_native_shape':l['cache_original_shape']==r['cache_original_shape'],'same_pixel_spacing':l['cache_pixel_spacing']==r['cache_pixel_spacing'],
+   'same_iop':np.array_equal(lo,ro),'max_abs_iop_component_difference':float(np.max(np.abs(lo-ro))),
+   'same_all_ordered_origins':np.array_equal(lp,rp),'native_fingerprint_lists_equal':lm['pixel_sha256']==rm['pixel_sha256'],
+   'native_fingerprint_intersection':len(set(lm['pixel_sha256'])&set(rm['pixel_sha256'])),
+   'frame_hash_sets_equal':l['frame_of_reference_hashes']==r['frame_of_reference_hashes']})
+for r in records:r['same_iop']=bool(r['same_iop']);r['same_all_ordered_origins']=bool(r['same_all_ordered_origins'])
+out=ROOT/'specific-pair-metadata.json';require(not out.exists(),'Existing output');save(out,{'schema_version':1,'agent_id':'/root/image_pipeline_audit','script':ref(Path(__file__).resolve()),'records':records,'scope':'Recorded metadata comparisons only; differing frame hashes do not establish common registered patient anatomy. Native fingerprints are previously decoded metadata, not new pixel reads. Same orientation, positions or descriptions do not establish pixel equality; missing side tags remain unknown.'});print(json.dumps(ref(out)));print(json.dumps(records,indent=2))

@@ -52,7 +52,14 @@ def extension(tmp_path: Path) -> dict:
         destination.write_bytes(source.read_bytes())
         return read(destination)
 
-    registry = read(overlay / REGISTRY_PATH)
+    # Keep the v3 regression fixed to its immutable three-policy release.
+    # Current-registry coverage, including later exclusions, lives in action tests.
+    registry_path = ROOT / "initiative/audits/correspondence-extension-v3/overlay" / REGISTRY_PATH
+    assert (
+        file_sha256(registry_path)
+        == "c6351e190465475f9454ca76e73ac5d0ebfc704fe9485593322baaa8914fdb3d"
+    )
+    registry = read(registry_path)
     write(tmp_path / REGISTRY_PATH, registry)
     for reference in registry["policies"]:
         policy = copy_reference(reference)

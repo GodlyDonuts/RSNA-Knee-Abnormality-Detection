@@ -1,0 +1,49 @@
+"""Record individually reasoned source/metadata dispositions; no pixel inference."""
+from pathlib import Path
+import json
+P=Path(__file__).resolve().parent
+rows={
+'073:44':[
+ 'All five series have literal RIGHT; original trigger is noncanonical side spelling.',
+ 'Five series, 98 slices: axial 3, coronal 4/6 and sagittal 5/7. Coronal contrasts share IOP with different ordered origins; no repeated complete protocol or native fingerprint overlap appears.',
+ 'Two unsided technique/findings reports are explicitly separated by the bilateral note. Near-repeated text and one literal-side imaging set do not establish block-to-image correspondence.',
+ 'bounded_cached_protocol_coverage_check_recommended',
+ 'After root source freeze, propose all five series with three cached samples each. Preserve both report blocks and literal RIGHT; no named anatomical side or clinical acceptance follows from any coherent sparse set.',
+ 'targeted_multiple_report_single_tag_protocol'],
+'074:30':[
+ 'All five series have literal LEFT; original trigger is noncanonical side spelling.',
+ 'Five series, 96 slices: axial 3, coronal 4/6, sagittal 5/7. Coronal IOPs agree but sampling differs. No repeated full protocol or native fingerprint overlap.',
+ 'Two unsided technique/findings/conclusion reports with materially differing narratives and explicit bilateral separator. Metadata does not establish which report applies to the single literal LEFT set.',
+ 'bounded_cached_protocol_coverage_check_recommended',
+ 'After root source freeze, propose all five series, three cache samples each, for gross coverage only. Do not choose a report block or assign named pixel side; preserve all originals.',
+ 'targeted_multiple_report_single_tag_protocol'],
+'075:48':[
+ 'Nine L-tagged series plus blank axial 701; original trigger is blank/filled Laterality.',
+ 'Ten series, 329 slices. Blank 3D_WATSc 701 has 56 slices, 150 mm field and 82.5 mm extent versus main axial 501/601 at 160 mm and 128.7 mm. Its IOP differs from main axial, maximum component difference 0.0904176757. No native fingerprint overlap or opposite filled tag.',
+ 'One report explicitly names left structures; internal medial-versus-lateral heading wording and zero tokens remain source-semantic issues within that one narrative.',
+ 'not_required_by_current_trigger_alone',
+ 'Defer pixels for this isolated blank supplementary tag. Preserve its differing orientation and unknown side, source anomalies and all arrays; no numeric repair or target changes.',
+ 'defer_pixel_escalation'],
+'077:02':[
+ 'All five series have literal RIGHT; original trigger is noncanonical side spelling.',
+ 'Five series, 98 slices: axial 3, coronal 4/5 and sagittal 6/7. Coronal IOP matches across contrast while ordered origins differ. No repeated complete protocol or native fingerprint overlap.',
+ 'Explicit RIGHT then LEFT reports with bilateral separator. Repeat-examination wording within each block does not settle current aggregate linkage or turn the opposite-sided block into a same-knee prior.',
+ 'bounded_cached_protocol_coverage_check_recommended',
+ 'After root source freeze, propose all five series and three samples each for gross protocol coverage. Preserve both source blocks and temporal wording, with no named-side or report selection.',
+ 'targeted_explicit_bilateral_source_single_tag_protocol'],
+'077:37':[
+ 'Nine L-tagged series and blank axial 401; original trigger is blank/filled Laterality.',
+ 'Ten series, 346 slices. Blank 3D_WATSc 401 has 67 slices, 150 mm field and 99 mm extent; main axial 201/301 has 40 slices, 160 mm field and 128.7 mm extent. Its IOP equals main axial but origins/sampling differ. No native fingerprint overlap or opposing filled side.',
+ 'One narrative and repeated summary explicitly mention left semimembranosus tendon; malformed intact-prefixed dimensions remain source-authentic, not a second report.',
+ 'not_required_by_current_trigger_alone',
+ 'Retain 401 unknown and defer immediate pixels from the isolated missing supplementary tag. Do not impute left, repair measurements or infer a clinical target.',
+ 'defer_pixel_escalation'],
+'078:33':[
+ 'Blank initial axial 101 and five R-tagged main series; all descriptions are DummySeriesDesc!. Original trigger is blank/filled Laterality.',
+ 'Six series, 357 slices. Blank 101 has 200 slices, 300 mm field and about 238.8 mm extent versus main axial 201 with 35 slices, 200 mm field and 112.2 mm extent. IOP differs, maximum component difference 0.0851990506. Main coronal pair and sagittal pair have matching within-plane IOP, not exact pixel equality.',
+ 'One unsided findings/conclusion report; placeholder names, field width and missing tag do not identify acquisition phase, patient side or another knee.',
+ 'bounded_cached_coverage_check_recommended',
+ 'After root source freeze, propose only 101/201 with three cache samples each for primary and peripheral coverage. Keep four other arrays outside selected scope, no cropping or native download.',
+ 'targeted_broad_field_coverage_check']}
+keys=['trigger','technical','source_relation','pixels_needed','proposal','priority'];out={'cases':list(rows),'expected_scope':[41,1324,82],'records':{c:dict(zip(keys,v))for c,v in rows.items()}}
+p=P/'manual-triage-notes.json';assert not p.exists();p.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n')

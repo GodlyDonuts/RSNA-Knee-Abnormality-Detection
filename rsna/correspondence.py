@@ -7,6 +7,7 @@ policies are explicit reviewed decisions; this module never infers correspondenc
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -31,7 +32,9 @@ _ASSESSMENT_CLAIMS = {
     "independent_technical_visual_assessment": "/training_recommendation/disposition",
     "independent_cached_representative_visual_assessment": "/assessment",
     "independent_cached_pixel_visual_assessment": "/technical_interpretation",
+    "independent_selected_cached_representative_visual_assessment": "/technical_interpretation",
 }
+_CACHE_EXCLUSION_ACTION = "exclude_whole_study_report_supervision_preserve_originals_and_gold"
 
 
 def _assessor_id(value: object) -> str:
@@ -77,8 +80,128 @@ def _claim(document: dict, claim: object) -> object:
     return actual
 
 
+def _validate_cache_action_lineage(
+    record: dict,
+    proof: dict,
+    root: dict,
+    selected: dict,
+    independent: dict,
+    handoff: dict,
+    report: str,
+    artifact_root: Path,
+) -> None:
+    """Verify preserved source/visual freezes; do not rerun image interpretation."""
+    visual_ref = proof.get("root_visual_assessment")
+    if not isinstance(visual_ref, dict):
+        raise ValueError("Cache action proof requires its root visual reference")
+    visual = _object(_bound_path(visual_ref, artifact_root))
+    visual_claim = _claim(visual, proof.get("root_visual_claim"))
+    if (
+        selected.get("frozen_root_visual", {}).get("sha256") != visual_ref["sha256"]
+        or handoff.get("original_root_visual_assessment", {}).get("sha256") != visual_ref["sha256"]
+        or handoff.get("original_independent_visual_assessment", {}).get("sha256")
+        != proof["independent_assessment"]["sha256"]
+        or _assessor_id(visual.get("agent_id")) != "/root"
+        or visual.get("stage") != "root_independent_selected_cache_visual_assessment"
+        or visual.get("case") != record["case"]
+        or visual.get("study_uid") != record["study_uid"]
+        or proof["root_visual_claim"]["pointer"] != "/bounded_disposition"
+        or not isinstance(visual_claim, str)
+        or not visual_claim.strip()
+        or not isinstance(visual.get("observations"), list)
+        or not visual["observations"]
+        or any(not isinstance(item, str) or not item.strip() for item in visual["observations"])
+    ):
+        raise ValueError("Cache action proof lacks its original root visual freeze")
+    sources = []
+    for role, stage, batch_key, text_key, quote_key in (
+        (
+            "root",
+            "root_independent_complete_source_structure_preread",
+            "source_batch",
+            "root_observations",
+            "exact_source_quotes",
+        ),
+        (
+            "independent",
+            "independent_source_only_correspondence_preread",
+            "input_batch",
+            "source_structure",
+            "exact_structure_quotes",
+        ),
+    ):
+        reference = proof.get(f"{role}_source_assessment")
+        source = _object(_bound_path(reference, artifact_root))
+        pointer = proof.get(f"{role}_source_selector")
+        source_record = _selected(source, pointer)
+        quotes = source_record.get(quote_key) if isinstance(source_record, dict) else None
+        if (
+            not isinstance(pointer, str)
+            or not pointer.startswith("/records/")
+            or pointer.count("/") != 2
+            or source.get("stage") != stage
+            or _assessor_id(source.get("agent_id"))
+            != ("/root" if role == "root" else independent["agent_id"])
+            or not isinstance(source_record, dict)
+            or source_record.get("case") != record["case"]
+            or source_record.get("study_uid") != record["study_uid"]
+            or source_record.get("source_report_sha256") != record["source_report_sha256"]
+            or source_record.get("report") != report
+            or source_record.get(batch_key, {}).get("sha256") != record["source_batch_sha256"]
+            or source_record.get(batch_key, {}).get("path") != "recovered/" + record["source_path"]
+            or not isinstance(source_record.get(text_key), str)
+            or not source_record[text_key].strip()
+            or not isinstance(quotes, list)
+            or not quotes
+            or any(not isinstance(q, str) or not q or q not in report for q in quotes)
+        ):
+            raise ValueError("Cache action source freeze differs from its original full report")
+        sources.append(source)
+    expected_hashes = {
+        proof[f"{role}_source_assessment"]["sha256"] for role in ("root", "independent")
+    }
+    for document in (independent, handoff):
+        lineage = document.get("source_review_lineage", {})
+        if not isinstance(lineage, dict):
+            raise ValueError("Cache action source lineage must be an object")
+        refs = lineage.get("source_assessments", [])
+        if (
+            lineage.get("case") != record["case"]
+            or not isinstance(refs, list)
+            or len(refs) != 2
+            or any(not isinstance(ref, dict) for ref in refs)
+            or {ref.get("sha256") for ref in refs} != expected_hashes
+            or {_assessor_id(agent) for agent in lineage.get("independent_assessors", [])}
+            != {"/root", independent["agent_id"]}
+        ):
+            raise ValueError("Cache action handoff does not bind both full source freezes")
+    try:
+        source_times = [datetime.fromisoformat(item["created_at_utc"]) for item in sources]
+        visual_times = [
+            datetime.fromisoformat(item["created_at_utc"]) for item in (visual, independent)
+        ]
+        handoff_time = datetime.fromisoformat(handoff["created_at_utc"])
+        replay_time = datetime.fromisoformat(root["completed_at_utc"])
+        times = source_times + visual_times + [handoff_time, replay_time]
+        ordered = (
+            all(t.tzinfo is not None and t.utcoffset() is not None for t in times)
+            and max(source_times)
+            <= min(visual_times)
+            <= max(visual_times)
+            <= handoff_time
+            <= replay_time
+        )
+    except (KeyError, TypeError, ValueError):
+        ordered = False
+    if not ordered:
+        raise ValueError("Cache action source/visual freezes are not ordered before joint replay")
+
+
 def _validate_multi_assessor_proof(record: dict, proof: dict, artifact_root: Path) -> None:
-    source_ref = {"path": record["source_path"], "sha256": record["source_batch_sha256"]}
+    source_ref = {
+        "path": record["source_path"],
+        "sha256": record["source_batch_sha256"],
+    }
     batch = _json(_bound_path(source_ref, artifact_root))
     index = proof.get("source_index")
     if (
@@ -140,7 +263,19 @@ def _validate_multi_assessor_proof(record: dict, proof: dict, artifact_root: Pat
         raise ValueError("Root correspondence decision identifies another study")
     disposition = _claim(selected, proof.get("root_disposition"))
     kind = proof.get("proof_kind")
-    if kind == "reviewed_cache_aggregate":
+    if kind in {"reviewed_cache_aggregate", "reviewed_cache_action_aggregate"}:
+        action_based = kind == "reviewed_cache_action_aggregate"
+        exclusion = (
+            (
+                proof["root_disposition"]["pointer"] == "/required_export_action"
+                and disposition == _CACHE_EXCLUSION_ACTION
+            )
+            if action_based
+            else (
+                proof["root_disposition"]["pointer"] == "/required_report_supervision_mask_all"
+                and disposition is True
+            )
+        )
         if (
             not isinstance(selection, str)
             or not selection.startswith("/cases/")
@@ -148,8 +283,7 @@ def _validate_multi_assessor_proof(record: dict, proof: dict, artifact_root: Pat
             or root.get("stage") != "independent_root_source_header_cache_display_replay"
             or root.get("status") != "verified"
             or selected.get("case") != record["case"]
-            or proof["root_disposition"]["pointer"] != "/required_report_supervision_mask_all"
-            or disposition is not True
+            or not exclusion
             or selected.get("agent_visual", {}).get("sha256") != independent_ref["sha256"]
         ):
             raise ValueError("Cache proof lacks an explicit bound whole-study exclusion")
@@ -165,6 +299,17 @@ def _validate_multi_assessor_proof(record: dict, proof: dict, artifact_root: Pat
             or handoff.get("source_report_sha256") != record["source_report_sha256"]
         ):
             raise ValueError("Cache proof handoff is not bound to the original source")
+        if action_based:
+            _validate_cache_action_lineage(
+                record,
+                proof,
+                root,
+                selected,
+                independent,
+                handoff,
+                batch[index]["report"],
+                artifact_root,
+            )
     elif kind == "reviewed_native_aggregate":
         if selection != "" or root.get("case", record["case"]) != record["case"]:
             raise ValueError("Native proof selector/case differs from its original decision")
@@ -217,7 +362,10 @@ def _validate_proof(record: dict, artifact_root: Path) -> None:
         review_path = _bound_path(proof.get("verified_review"), artifact_root)
         handoff_path = _bound_path(proof.get("source_handoff"), artifact_root)
         review, handoff = _object(review_path), _object(handoff_path)
-        source = {"path": record["source_path"], "sha256": record["source_batch_sha256"]}
+        source = {
+            "path": record["source_path"],
+            "sha256": record["source_batch_sha256"],
+        }
         if (
             proof.get("source_batch") != source
             or proof.get("source_report_sha256") != record["source_report_sha256"]
@@ -295,7 +443,10 @@ def inspect_correspondence(reports: dict[str, str], artifact_root: Path) -> dict
             ):
                 raise ValueError("Missing correspondence decision context")
             source_path = _bound_path(
-                {"path": record.get("source_path"), "sha256": record.get("source_batch_sha256")},
+                {
+                    "path": record.get("source_path"),
+                    "sha256": record.get("source_batch_sha256"),
+                },
                 artifact_root,
             )
             batch = _json(source_path)

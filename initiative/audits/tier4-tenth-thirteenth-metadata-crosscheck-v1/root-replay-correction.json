@@ -1,0 +1,44 @@
+{
+  "stage": "root_metadata_replay_script_correction",
+  "agent_id": "/root",
+  "created_at_utc": "2026-09-21T15:29:58.743528+00:00",
+  "cause": "Original script extracted records or candidates; the immutable candidate queue stores its 129 studies under queue. The empty fallback led to KeyError for the first study in each group after earlier metadata checks.",
+  "changes": [
+    "Read the actual queue field; validate declared length, uniqueness and all selected studies.",
+    "Preserve all original agent outputs, write root results into fresh root-run-001, identify root as executor.",
+    "Exit nonzero when any result is not verified."
+  ],
+  "original_script": {
+    "path": "annotation-staging/tier4-tenth-thirteenth-metadata-crosscheck-v1/replay_metadata.py",
+    "sha256": "a44cdbc74844d1b5b1fe1ae0b4b7d5fee195b6dac32efb69fab0652190ea07ee",
+    "bytes": 31180
+  },
+  "original_results": [
+    {
+      "path": "annotation-staging/tier4-tenth-thirteenth-metadata-crosscheck-v1/tenth-metadata-replay.json",
+      "sha256": "62755badc8c1503a243e5f3b36d03f8e887d384bc720cf59a0099dec2f0d0d73",
+      "bytes": 310
+    },
+    {
+      "path": "annotation-staging/tier4-tenth-thirteenth-metadata-crosscheck-v1/eleventh-metadata-replay.json",
+      "sha256": "5984b07225256d6a6cfbbf819ec41b301b2581bbdda4d593b895c72869443274",
+      "bytes": 313
+    },
+    {
+      "path": "annotation-staging/tier4-tenth-thirteenth-metadata-crosscheck-v1/twelfth-metadata-replay.json",
+      "sha256": "ca4773c43a52b11cbb12d1a33413f52e5a4595c400c304379e3c4da158e1fec5",
+      "bytes": 312
+    },
+    {
+      "path": "annotation-staging/tier4-tenth-thirteenth-metadata-crosscheck-v1/thirteenth-metadata-replay.json",
+      "sha256": "666bb779bad19da55cba386cc02925dc1e7573a119e6e6ef10198d15fd2a5a6b",
+      "bytes": 315
+    }
+  ],
+  "corrected_script": {
+    "path": "annotation-staging/tier4-tenth-thirteenth-metadata-crosscheck-v1/root-replay-v1.py",
+    "sha256": "d1d27dd82615db1af8cd1942df772334b5a74c03dccaa8e0f18419565344e0a2",
+    "bytes": 31661
+  },
+  "training_ready": false
+}

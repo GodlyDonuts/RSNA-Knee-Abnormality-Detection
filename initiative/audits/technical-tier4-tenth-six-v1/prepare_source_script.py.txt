@@ -1,0 +1,38 @@
+"""Serialize personal complete-original structural reading before technical materials."""
+from pathlib import Path
+P=Path(__file__).resolve().parent
+T=P.parent/'technical-tier4-ninth-six-v1/freeze_sources.py'
+manual={
+'068:38':(
+ 'Two explicitly sided Greek current-knee report blocks, LEFT first and RIGHT second, separated by the literal bilateral note. A technique paragraph precedes the LEFT block; both side blocks have their own conclusion and differing regional descriptions. No dated prior-examination or temporal boundary explains the second report. The complete original aggregate does not establish how either side block maps to the study images.',
+ ['ΤΕΧΝΙΚΗ', 'ΑΡΙΣΤΕΡΟ ΓΟΝΑΤΟ', '[BILATERAL NOTE: two reports filed under this study]', '∆ΕΞΙΟ ΓΟΝΑΤΟ', 'Συµπέρασµα: Εξέταση χωρίς αξιόλογα παθολογικά ευρήµατα.', 'Συµπέρασµα: Ορογονοθυλακίτις προεπιγονατιδικού θυλάκου.'],
+ 'Both report blocks end with complete conclusions. Preserve their explicit side boundaries; do not merge, reconstruct or select one block from source text alone.',2,['left','right'],
+ 'No exact prior review of this case is recalled; prior corpus exposure exists, so no first-ever-blinding guarantee. No clinical drafts/reviews/flags, target values, gold or other assessor findings opened for this structural pass.'),
+'069:10':(
+ 'One Bulgarian MR findings narrative followed by a conclusion. The opening explicitly names the RIGHT knee. The conclusion repeats a finding from the same narrative, with no separate LEFT block, bilateral marker, dated comparator or recall.',
+ ['МР находка:', 'Костите, формиращи дясната колянна става', 'Заключение:'],
+ 'The report ends with a complete concluding sentence and newline; no missing tail is evident.',1,['right'],
+ 'I previously reviewed native technical plane evidence for batch069 index11, not index10 to my recollection. No exact-case first-ever guarantee; no clinical annotations or gold opened.'),
+'070:43':(
+ 'One structured English RIGHT-knee MRI report explicitly performed without and with contrast in a single examination. A prior RIGHT-knee radiograph is listed as comparison using date placeholders; that is not a second current MRI report. The indication gives a one-week symptom history. Findings discuss age-indeterminate and probable chronic components within this current examination. Four numbered impressions and a redacted signature end the report. No left-knee or bilateral block.',
+ ['Exam Type: MRI KNEE RIGHT W WO CONTRAST', 'Comparison: Radiograph of the right knee dated [DATE]', 'without and with intravenous contrast.', 'Contrast: 4 mL of Gadavist', 'age-indeterminate with a probable chronic component', 'Signed By: [NAME]', 'Signed On: [DATE]'],
+ 'Complete numbered impression and signature/date placeholders. Unusual phrases such as and a patella remain original text; no reconstruction or actual-date inference.',1,['right'],
+ 'No exact previous review of this report is recalled. General corpus exposure is disclosed; no first-ever-blinding claim. No clinical drafts/reviews/flags/gold or other assessor observations accessed.'),
+'072:12':(
+ 'One unsided Bulgarian MR findings paragraph followed by conclusion. Medial/lateral structure references are within one knee narrative. No separately named knee side, bilateral marker, second technique, dated comparison or recall. The source contains different descriptive and concluding terminology within this one examination; structural review does not adjudicate clinical meaning.',
+ ['МР находка:', 'Латерален менискус - нормално изобразяване.', 'Заключение:', 'Малък ставен излив.'],
+ 'Complete concluding sentence and newline; no source-only truncation evidence.',1,[],
+ 'No exact source review is recalled. Prior corpus exposure prevents a first-ever-blinding guarantee. No clinical annotations/drafts/reviews/flags or gold accessed.'),
+'072:26':(
+ 'One Bulgarian MR findings paragraph and conclusion, explicitly naming the LEFT knee in the opening. The repeated words for joint effusion appear within one sentence, not a separate report. Post-traumatic wording in the conclusion does not identify a distinct prior examination or dated comparison. No opposite-sided block or bilateral note.',
+ ['Няма данни за ставен излив ставен излив.', 'Костите, формиращи лявата колянна става', 'Заключение:', 'Посттравматичен костномозъчен едем на тибията.'],
+ 'Complete final sentence. Duplicate phrase and original spelling are preserved without repair.',1,['left'],
+ 'No exact source review is recalled. General corpus exposure is disclosed; no first-ever-blinding claim. No clinical annotations/drafts/reviews/flags/gold accessed.'),
+'072:29':(
+ 'One unsided Bulgarian MR findings narrative followed by a conclusion that repeats the same examination findings. The phrase с давност characterizes the age of a described finding, not a separate dated MRI report. No named knee side, bilateral separator, second technique or explicit comparator. Medial/lateral anatomy and additional cyst descriptions remain within one narrative.',
+ ['МР находка:', 'находка предполагаща частично, минимално скъсване с давност.', 'Заключение:', 'Малка Бекерова киста.'],
+ 'Complete multi-sentence conclusion and newline. Typographical anomalies and local repeated punctuation remain unchanged.',1,[],
+ 'No exact case review is recalled. General prior corpus exposure is acknowledged, without first-ever-blinding claims. No clinical annotations/drafts/reviews/flags/gold or other assessor findings opened.')
+}
+s=T.read_text();a=s.index('manual=');b=s.index('\nnp=P/',a);s=s[:a]+'manual='+repr(manual)+s[b:]
+out=P/'freeze_sources.py';assert not out.exists();out.write_text(s)

@@ -1,0 +1,78 @@
+{
+  "stage": "root_correspondence_extension_live_verified",
+  "agent_id": "/root",
+  "at_utc": "2026-09-21T15:34:53.344245+00:00",
+  "base_git_commit": "13c224a7c301f225e9fef56861de7c6b3fa0c10e",
+  "status": "verified",
+  "policy_count": 4,
+  "excluded_studies": 16,
+  "new_cases": [
+    "048:09",
+    "048:38",
+    "053:47"
+  ],
+  "full_source_reports_validated": 4407,
+  "tests_passed": 390,
+  "initial_live_test_result": "2 failed, 388 passed. Legacy v3 fixture accidentally copied the new v4 registry without its new evidence and retained v3 assertions.",
+  "root_integration_corrections": [
+    "V3 regression fixture now binds its immutable original v3 registry hash; dedicated new tests exercise all16 live exclusions.",
+    "Import-group blank lines comply with repository Ruff configuration; AST equality against candidate runtime and new action tests verified."
+  ],
+  "runtime_files": [
+    {
+      "path": "recovered/rsna/correspondence.py",
+      "sha256": "e74fae9d0f2156387280431745d230423882b3e4aa1b481f3c080cb765c7b091",
+      "bytes": 26225
+    },
+    {
+      "path": "recovered/tests/test_correspondence_actions.py",
+      "sha256": "7dc4003a3a478b3c14dc45cd9d913b73955657b9de08a8a01ce5a80ce411e503",
+      "bytes": 12996
+    },
+    {
+      "path": "recovered/tests/test_correspondence_extension.py",
+      "sha256": "96b062b14abc242f6be3c1e61cd0593507f7ef90e2657ae8b69d379ed5883bfc",
+      "bytes": 13864
+    },
+    {
+      "path": "recovered/initiative/audits/correspondence-release-registry.json",
+      "sha256": "a8ac8d81d5b1552b0dcf038339fe4710ce908b77e2cbca38cf4f55cea4221bcc",
+      "bytes": 968
+    },
+    {
+      "path": "recovered/initiative/audits/correspondence-release-dispositions-v4.json",
+      "sha256": "87478bb7eb6ee46fbe78136b29916e79f9c25bff6b2b601775d3ea38695c11c8",
+      "bytes": 5735
+    }
+  ],
+  "evidence": [
+    {
+      "path": "annotation-staging/correspondence-extension-v4/root-promotion.json",
+      "sha256": "b6c9623eec788fc70a2df55072ba30dd9387d74bb12ee35287ab70ce561146a6",
+      "bytes": 2409
+    },
+    {
+      "path": "annotation-staging/correspondence-extension-v4/root-live-source-validation.json",
+      "sha256": "7321b7a9eb29af7ecbc39e72fec8b135e21b66ab8791d9c5cb0a493b046bb6db",
+      "bytes": 30476
+    },
+    {
+      "path": "annotation-staging/correspondence-extension-v4/root-initial-live-pytest.log",
+      "sha256": "d6f9f68f4520a751984dc46157e0f6071b9fb9ab72936d0880ad39162dafd5b8",
+      "bytes": 7098
+    },
+    {
+      "path": "annotation-staging/correspondence-extension-v4/root-final-live-pytest.log",
+      "sha256": "4ba1cea504996bfa5d6cd72326f28a762fa258e1fc83337642d3313f41e17842",
+      "bytes": 501
+    },
+    {
+      "path": "annotation-staging/correspondence-extension-v4/root-v3-fixture-fix.patch",
+      "sha256": "d14ae582dd2f3fbb18b40ee980e3692bba3dd53227249464385560cc76a64701",
+      "bytes": 974
+    }
+  ],
+  "historical_staging_markers": "Candidate creation-time markers remain intact; this later live validation records integration.",
+  "official_gold_opened": false,
+  "training_ready": false
+}

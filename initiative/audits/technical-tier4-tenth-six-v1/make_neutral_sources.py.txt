@@ -1,0 +1,15 @@
+"""Extract six complete original reports without any assessor observations."""
+from pathlib import Path
+import hashlib,json
+P=Path(__file__).resolve().parent;W=P.parents[1]
+cases=[(68,38),(69,10),(70,43),(72,12),(72,26),(72,29)]
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+rows=[]
+for b,i in cases:
+ p=W/f'recovered/initiative/reviews/inputs/batch-{b:03}.json';r=json.loads(p.read_text())[i]
+ rows.append({'case':f'{b:03}:{i:02}','study_uid':r['study_uid'],'report':r['report'],'source_batch':ref(p),'source_report_sha256':hashlib.sha256(r['report'].encode()).hexdigest()})
+assert len(rows)==6 and len({r['study_uid']for r in rows})==6
+assert all(set(r)=={'case','study_uid','report','source_batch','source_report_sha256'}for r in rows)
+p=P/'neutral-source-reports.json'
+with p.open('x')as f:f.write(json.dumps(rows,indent=2,ensure_ascii=False)+'\n')
+print(json.dumps(ref(p)))

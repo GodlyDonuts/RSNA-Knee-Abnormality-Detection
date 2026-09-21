@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "stage": "exact_source_terminal_byte_scope_correction",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T13:46:31.675432+00:00",
+  "script": {
+    "path": "annotation-staging/technical-tier4-ninth-six-v1/verify_terminal_bytes.py",
+    "sha256": "499da42c14e26538c3a4e2c89a5df8c243a40cd1c484ee00e5904e956cb343f4",
+    "bytes": 3898
+  },
+  "original_source_freeze": {
+    "path": "annotation-staging/technical-tier4-tenth-six-v1/source-only-preread.json",
+    "sha256": "3fbe26d09fd56176cfd8a2a13aaa7c0bb8ec24f2fd1dabd174addf29a3d96da3",
+    "bytes": 24015
+  },
+  "neutral_source_bundle": {
+    "path": "annotation-staging/technical-tier4-tenth-six-v1/neutral-source-reports.json",
+    "sha256": "c487106878d6c5f624fadec4e194623cd8ff10aa2fd1fdad390a78922165071d",
+    "bytes": 15629
+  },
+  "reason": "The assessor incorrectly inferred trailing newlines from rendered command output. Exact UTF-8 bytes contradict three completeness-limit clauses in this group. This separate record supersedes only those terminal-whitespace clauses; all original source and assessment files remain unchanged.",
+  "records": [
+    {
+      "case": "068:38",
+      "study_uid": "1.2.826.0.1.3680043.8.498.74222284584657051737421776919599206132",
+      "source_report_sha256": "58270786554a1c89b3dce3b0ab484b7b6451959406fa40304d54ea5c1bd82855",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-068.json",
+        "sha256": "b0ad0f7e00fea0e5042c01e8d1abeb969f2ce0ba280acabd8e69cf8b9da81182",
+        "bytes": 69120
+      },
+      "terminal_24_utf8_bytes_hex": "ceb9cebacebfcf8d20ceb8cf85cebbceaccebacebfcf852e",
+      "terminal_40_characters_repr": "'γονοθυλακίτις προεπιγονατιδικού θυλάκου.'",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": false,
+      "trailing_ascii_whitespace_bytes_hex": "",
+      "original_completeness_limit": "Both report blocks end with complete conclusions. Preserve their explicit side boundaries; do not merge, reconstruct or select one block from source text alone.",
+      "corrected_completeness_limit": "Both report blocks end with complete conclusions. Preserve their explicit side boundaries; do not merge, reconstruct or select one block from source text alone.",
+      "correction_required": false
+    },
+    {
+      "case": "069:10",
+      "study_uid": "1.2.826.0.1.3680043.8.498.74864145321761783409935288797327597738",
+      "source_report_sha256": "d5b6e979fa74088c045b47ebfde858f13164b0f48a5081767471a7383e75e736",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-069.json",
+        "sha256": "12bc78f11bfb12420c3e58324c6342e715356bdf67421250489811079380c0c1",
+        "bytes": 72983
+      },
+      "terminal_24_utf8_bytes_hex": "bdd0b8d18f20d0bcd0b5d0bdd0b8d181d0bad183d1812e20",
+      "terminal_40_characters_repr": "'ени в задния рог на медиалния менискус. '",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": true,
+      "trailing_ascii_whitespace_bytes_hex": "20",
+      "original_completeness_limit": "The report ends with a complete concluding sentence and newline; no missing tail is evident.",
+      "corrected_completeness_limit": "The report ends with a complete concluding sentence, a period and one ASCII space, without a trailing newline; no missing tail is evident.",
+      "correction_required": true
+    },
+    {
+      "case": "070:43",
+      "study_uid": "1.2.826.0.1.3680043.8.498.77155817997584903787597001328868124855",
+      "source_report_sha256": "739a02797ee74d10e562a2566722a430c0e7ff196f9af866d8983eefc67ca802",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-070.json",
+        "sha256": "30159914271d3ebe59de35aaab116802235de4240a8732f21f691f97d3d6962c",
+        "bytes": 73116
+      },
+      "terminal_24_utf8_bytes_hex": "414d455d200a205369676e6564204f6e3a205b444154455d",
+      "terminal_40_characters_repr": "'.\\n\\nSigned By: [NAME] \\n Signed On: [DATE]'",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": false,
+      "trailing_ascii_whitespace_bytes_hex": "",
+      "original_completeness_limit": "Complete numbered impression and signature/date placeholders. Unusual phrases such as and a patella remain original text; no reconstruction or actual-date inference.",
+      "corrected_completeness_limit": "Complete numbered impression and signature/date placeholders. Unusual phrases such as and a patella remain original text; no reconstruction or actual-date inference.",
+      "correction_required": false
+    },
+    {
+      "case": "072:12",
+      "study_uid": "1.2.826.0.1.3680043.8.498.78667999747216717251638754803697959701",
+      "source_report_sha256": "bc976be749e3de633e340957c3f9ffb8e10849ba58b8aa6251d98cccb01ae31d",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-072.json",
+        "sha256": "e9e906770f71d4c5a068fdfbdbcdc41b5f334cdded272df4f6ef8b535a3d45fc",
+        "bytes": 56535
+      },
+      "terminal_24_utf8_bytes_hex": "81d182d0b0d0b2d0b5d0bd20d0b8d0b7d0bbd0b8d0b22e20",
+      "terminal_40_characters_repr": "'нискус – 2в степен. Малък ставен излив. '",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": true,
+      "trailing_ascii_whitespace_bytes_hex": "20",
+      "original_completeness_limit": "Complete concluding sentence and newline; no source-only truncation evidence.",
+      "corrected_completeness_limit": "The concluding sentence ends with a period and one ASCII space, without a trailing newline; no source-only truncation evidence.",
+      "correction_required": true
+    },
+    {
+      "case": "072:26",
+      "study_uid": "1.2.826.0.1.3680043.8.498.79080521163097116147379189510104170611",
+      "source_report_sha256": "5acd28e3cd896e7911bb2db5e498c1c2b09cc6a35284daeed04fb65254454bc4",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-072.json",
+        "sha256": "e9e906770f71d4c5a068fdfbdbcdc41b5f334cdded272df4f6ef8b535a3d45fc",
+        "bytes": 56535
+      },
+      "terminal_24_utf8_bytes_hex": "b5d0bc20d0bdd0b020d182d0b8d0b1d0b8d18fd182d0b02e",
+      "terminal_40_characters_repr": "'авматичен костномозъчен едем на тибията.'",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": false,
+      "trailing_ascii_whitespace_bytes_hex": "",
+      "original_completeness_limit": "Complete final sentence. Duplicate phrase and original spelling are preserved without repair.",
+      "corrected_completeness_limit": "Complete final sentence. Duplicate phrase and original spelling are preserved without repair.",
+      "correction_required": false
+    },
+    {
+      "case": "072:29",
+      "study_uid": "1.2.826.0.1.3680043.8.498.79122189963582241618519333445055548347",
+      "source_report_sha256": "b713ff97ec95240610ac8912b9c68dd10625c1139c79b186690ceec328769220",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-072.json",
+        "sha256": "e9e906770f71d4c5a068fdfbdbcdc41b5f334cdded272df4f6ef8b535a3d45fc",
+        "bytes": 56535
+      },
+      "terminal_24_utf8_bytes_hex": "bad0b5d180d0bed0b2d0b020d0bad0b8d181d182d0b02e20",
+      "terminal_40_characters_repr": "'лък ставен излив. Малка Бекерова киста. '",
+      "ends_with_lf": false,
+      "ends_with_cr": false,
+      "ends_with_ascii_space": true,
+      "trailing_ascii_whitespace_bytes_hex": "20",
+      "original_completeness_limit": "Complete multi-sentence conclusion and newline. Typographical anomalies and local repeated punctuation remain unchanged.",
+      "corrected_completeness_limit": "The complete multi-sentence conclusion ends with a period and one ASCII space, without a trailing newline. Typographical anomalies and local repeated punctuation remain unchanged.",
+      "correction_required": true
+    }
+  ],
+  "changed_completeness_clauses": 3,
+  "source_structure_or_clinical_state_changed": false,
+  "originals_modified": false,
+  "training_ready": false
+}

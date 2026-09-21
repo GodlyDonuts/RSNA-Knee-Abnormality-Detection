@@ -1,0 +1,719 @@
+"""Independent replay of preserved metadata; never open image payloads or network."""
+
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import itertools
+import json
+import shutil
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+STAGE = Path(__file__).resolve().parent
+WORK = STAGE.parents[1]
+REPO = WORK / "recovered"
+ASSESSOR = "/root/competition_contract"
+GROUPS = ("tenth", "eleventh", "twelfth", "thirteenth")
+FLOOR = 20 * 2**30
+PINS = {
+    "cache256-v3-official-recovery-v1/inventory_effective.parquet": "68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537",
+    "header-endpoint-full-v1/endpoint-headers.jsonl": "d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3",
+    "cache256-v3-official-recovery-v1/cache_recovery_lineage.jsonl": "506ca8e3aa8f10a36fbdc96bc853b1a4dfcbec8f55949aac3bf26701c5642934",
+    "dicom-audit-v3-official-recovery-v1/series_cache_index.parquet": "0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81",
+    "recovered/initiative/source/train.csv": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+    "kaggle_current/train.csv": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+    "recovered/initiative/source/train_series.csv": "573c1d80772bf41211c91b149c95677385a1c22d63f485c347f1b46c0177aef3",
+}
+CHECKED = {}
+
+
+class Mismatch(Exception):
+    pass
+
+
+def require(condition, message):
+    if not condition:
+        raise Mismatch(message)
+
+
+def same(actual, expected, context):
+    if actual != expected:
+
+        def short(value):
+            encoded = json.dumps(value, sort_keys=True, default=str)
+            return (
+                value
+                if len(encoded) < 300
+                else {
+                    "serialized_sha256": hashlib.sha256(encoded.encode()).hexdigest(),
+                    "characters": len(encoded),
+                }
+            )
+
+        raise Mismatch({"check": context, "actual": short(actual), "expected": short(expected)})
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def sha(path):
+    path = path.resolve()
+    require(path.is_relative_to(WORK.resolve()), "Reference escapes workspace")
+    require(
+        path.suffix.lower() not in {".npz", ".npy", ".dcm", ".png", ".jpg", ".jpeg"},
+        "Payload/image access forbidden",
+    )
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def ref(path):
+    path = path.resolve()
+    return {"path": str(path.relative_to(WORK)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def refs(value):
+    if isinstance(value, dict):
+        if (
+            {"path", "sha256", "bytes"} <= value.keys()
+            and "sop_uid" not in value
+            and "storage" not in value
+        ):
+            path = (WORK / value["path"]).resolve()
+            require(path.is_relative_to(WORK.resolve()), "Reference escapes workspace")
+            same(path.stat().st_size, value["bytes"], "Referenced size: " + value["path"])
+            key = str(path.relative_to(WORK))
+            if key not in CHECKED:
+                CHECKED[key] = sha(path)
+            same(CHECKED[key], value["sha256"], "Referenced hash: " + key)
+        for item in value.values():
+            refs(item)
+    elif isinstance(value, list):
+        for item in value:
+            refs(item)
+
+
+def write_new(path, obj):
+    payload = (json.dumps(obj, ensure_ascii=False, indent=2) + "\n").encode()
+    require(
+        shutil.disk_usage(WORK).free >= FLOOR + len(payload) + 2**20,
+        "20 GiB floor would be breached",
+    )
+    require(path.parent == STAGE, "Output must remain in crosscheck staging")
+    with path.open("xb") as stream:
+        stream.write(payload)
+
+
+def terminal_checks(report, source, root, correction):
+    raw = report.encode()
+    same(root.get("terminal_utf8_bytes_hex"), raw[-16:].hex(), "Root terminal 16 bytes")
+    if "source_terminal_bytes" in source:
+        expected = {
+            "last_24_utf8_bytes_hex": raw[-24:].hex(),
+            "last_40_characters_repr": repr(report[-40:]),
+            "trailing_whitespace_repr": repr(report[len(report.rstrip()) :]),
+            "ends_with_lf": report.endswith("\n"),
+        }
+        same(source["source_terminal_bytes"], expected, "Independent terminal byte record")
+    if correction:
+        same(
+            correction["source_report_sha256"],
+            hashlib.sha256(raw).hexdigest(),
+            "Correction source digest",
+        )
+        expected = {
+            "terminal_24_utf8_bytes_hex": raw[-24:].hex(),
+            "terminal_40_characters_repr": repr(report[-40:]),
+            "ends_with_lf": raw.endswith(b"\n"),
+            "ends_with_cr": raw.endswith(b"\r"),
+            "ends_with_ascii_space": raw.endswith(b" "),
+            "trailing_ascii_whitespace_bytes_hex": raw[len(raw.rstrip(b" \t\r\n\v\f")) :].hex(),
+        }
+        for key, value in expected.items():
+            same(correction[key], value, "Preserved correction: " + key)
+        same(
+            correction["original_completeness_limit"],
+            source["completeness_limit"],
+            "Correction binds original clause",
+        )
+        same(
+            correction["correction_required"],
+            correction["original_completeness_limit"] != correction["corrected_completeness_limit"],
+            "Correction declaration",
+        )
+
+
+def pair_values(left, right, lm, rm):
+    lf, rf = left["header_endpoint_values"], right["header_endpoint_values"]
+    return {
+        "series_numbers": [int(lf["SeriesNumber"][0]), int(rf["SeriesNumber"][0])],
+        "series_uids": [left["series_uid"], right["series_uid"]],
+        "n_slices": [lm["n_slices"], rm["n_slices"]],
+        "literal_laterality": [lf["Laterality"], rf["Laterality"]],
+        "same_native_shape": lm["original_shape"] == rm["original_shape"],
+        "same_pixel_spacing": lm["pixel_spacing"] == rm["pixel_spacing"],
+        "same_iop": lm["orientation"] == rm["orientation"],
+        "max_abs_iop_component_difference": float(
+            np.max(np.abs(np.asarray(lm["orientation"]) - np.asarray(rm["orientation"])))
+        ),
+        "same_all_ordered_origins": lm["positions"] == rm["positions"],
+        "native_fingerprint_lists_equal": lm["pixel_sha256"] == rm["pixel_sha256"],
+        "native_fingerprint_intersection": len(set(lm["pixel_sha256"]) & set(rm["pixel_sha256"])),
+        "frame_hash_sets_equal": left["frame_of_reference_hashes"]
+        == right["frame_of_reference_hashes"],
+    }
+
+
+def replay_group(name, inventory, all_endpoints, lineage, audit, official_series, report_tables):
+    group = WORK / "annotation-staging" / f"technical-tier4-{name}-six-v1"
+    input_names = [
+        "technical-evidence/summary.json",
+        "source-header-triage.json",
+        "source-only-preread.json",
+        "root-source-preread.json",
+        "geometry-comparison.json",
+        "candidate-trigger-bindings.json",
+        "validation.json",
+        "specific-pair-metadata.json",
+        "derived-series-image-centers.json",
+        "field-and-extent-metrics.json",
+        "neutral-source-reports.json",
+    ]
+    input_names += [p.name for p in group.glob("*correction*.json")]
+    input_names += [p.name for p in group.glob("joint-source-comparison.json")]
+    documents = {name: read(group / name) for name in input_names}
+    for value in documents.values():
+        refs(value)
+    original = documents["source-only-preread.json"]
+    root = documents["root-source-preread.json"]
+    require(
+        original["agent_id"] == "/root/image_pipeline_audit" and root["agent_id"] == "/root",
+        "Unexpected preserved assessor identity",
+    )
+    originals = {row["study_uid"]: row for row in original["records"]}
+    root_by_uid = {row["study_uid"]: row for row in root["records"]}
+    require(
+        len(originals) == len(root_by_uid) == 6 and originals.keys() == root_by_uid.keys(),
+        "Full source membership differs",
+    )
+    same(
+        root["neutral_source_sha256"],
+        sha(group / "neutral-source-reports.json"),
+        "Root neutral source binding",
+    )
+    corrections = documents.get("terminal-byte-scope-correction.json", {}).get("records", [])
+    by_correction = {row["study_uid"]: row for row in corrections}
+    for uid, source in originals.items():
+        batch = read(WORK / source["input_batch"]["path"])
+        index = source["source_batch_index_zero_based"]
+        report = batch[index]["report"]
+        same(batch[index]["study_uid"], uid, "Source index/UID")
+        same(report, source["report"], "Original source text")
+        same(report, root_by_uid[uid]["report"], "Root source text")
+        for row in (source, root_by_uid[uid]):
+            same(
+                hashlib.sha256(report.encode()).hexdigest(),
+                row["source_report_sha256"],
+                "Source report digest",
+            )
+        require(
+            all(
+                q and q in report
+                for q in source["exact_structure_quotes"] + root_by_uid[uid]["exact_source_quotes"]
+            ),
+            "Source quotation differs",
+        )
+        terminal_checks(report, source, root_by_uid[uid], by_correction.get(uid))
+        for table in report_tables:
+            same(table.loc[uid, "Report"], report, "Pinned official report copy")
+    if corrections:
+        same(
+            documents["terminal-byte-scope-correction.json"]["changed_completeness_clauses"],
+            sum(c["correction_required"] for c in corrections),
+            "Correction count",
+        )
+    studies = set(originals)
+    inv = inventory[inventory.study_uid.isin(studies)]
+    require(len(inv) == inv.sop_uid.nunique(), "Duplicate source SOP")
+    same(
+        read(group / "technical-evidence/inventory-six-cases.json"),
+        inv.to_dict("records"),
+        "Declared full source inventory",
+    )
+    endpoints = [row for row in all_endpoints if row["study_uid"] in studies]
+    same(
+        endpoints,
+        [
+            json.loads(line)
+            for line in (group / "technical-evidence/endpoints.jsonl").read_text().splitlines()
+        ],
+        "Declared endpoint records",
+    )
+    expected_ep = set()
+    for _, frame in inv.groupby("series_uid"):
+        expected_ep.update(frame.sort_values("sop_uid").iloc[[0, -1]].path)
+    same({e["source_path"] for e in endpoints}, expected_ep, "Lexical endpoint membership")
+    require(
+        len(endpoints) == len({e["sop_uid"] for e in endpoints}) == 2 * inv.series_uid.nunique(),
+        "Endpoint coverage/count",
+    )
+    by_path = inv.set_index("path").to_dict("index")
+    for endpoint in endpoints:
+        row = by_path[endpoint["source_path"]]
+        for key in ("study_uid", "series_uid", "sop_uid", "storage"):
+            same(endpoint[key], row[key], "Endpoint inventory identity " + key)
+        same(endpoint["source_sha256"], row["sha256"], "Endpoint source digest")
+        same(endpoint["source_bytes"], row["bytes"], "Endpoint source length")
+        require(endpoint["reached_pixel_data_header"] is True, "Incomplete endpoint header")
+    series_uids = set(inv.series_uid)
+    same(
+        set(audit[audit.study_uid.isin(studies)].index),
+        series_uids,
+        "Authoritative cache index membership",
+    )
+    same(
+        {uid for uid, row in lineage.items() if row["study_uid"] in studies},
+        series_uids,
+        "Authoritative recovery lineage membership",
+    )
+    centers_by_case = {
+        row["case"]: row["series"]
+        for row in documents["derived-series-image-centers.json"]["cases"]
+    }
+    case_rows = {}
+    metas = {}
+    series_rows = {}
+    case_outputs = []
+    overlaps = []
+    geometry_cases = []
+    for triage in documents["source-header-triage.json"]["records"]:
+        case = read(WORK / triage["case_metadata"]["path"])
+        refs(case)
+        uid = case["study_uid"]
+        same(uid, triage["study_uid"], "Triage study identity")
+        same(case["case"], originals[uid]["case"], "Triage original case")
+        same(
+            triage["source_report_sha256"],
+            originals[uid]["source_report_sha256"],
+            "Triage report digest",
+        )
+        frame = inv[inv.study_uid == uid]
+        eps = [e for e in endpoints if e["study_uid"] == uid]
+        summary_fields = {
+            "series_count": int(frame.series_uid.nunique()),
+            "slices": len(frame),
+            "source_bytes": int(frame.bytes.sum()),
+            "endpoint_count": len(eps),
+            "patient_id_hashes": sorted({e["patient_id_sha256"] for e in eps}),
+            "frame_of_reference_hashes": sorted({e["frame_of_reference_sha256"] for e in eps}),
+            "laterality_values": {
+                key: sorted({e["header_fields"].get(key, "") for e in eps})
+                for key in ("Laterality", "ImageLaterality", "FrameLaterality")
+            },
+        }
+        for key, value in summary_fields.items():
+            same(case[key], value, case["case"] + " case summary " + key)
+        same(triage["series"], summary_fields["series_count"], "Triage series count")
+        same(triage["source_slices"], len(frame), "Triage source slice count")
+        require(len(case["series"]) == frame.series_uid.nunique(), "Declared case series coverage")
+        for series in case["series"]:
+            suid = series["series_uid"]
+            require(suid not in metas, "Duplicate declared series")
+            metadata_path = WORK / series["cache_metadata"]["path"]
+            m = read(metadata_path)
+            bound = lineage[suid]["new_metadata"]
+            same(sha(metadata_path), bound["sha256"], "Pinned lineage metadata digest")
+            same(metadata_path.stat().st_size, bound["bytes"], "Pinned lineage metadata bytes")
+            require(
+                m["study_uid"] == uid
+                and m["series_uid"] == suid
+                and m["source_revision"] == "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+                and m["cache_version"] == "series-u16-v3",
+                "Metadata identity/version differs",
+            )
+            sf = frame[frame.series_uid == suid]
+            same(m["n_slices"], len(sf), "Metadata slice membership")
+            same(audit.loc[suid, "n_slices"], len(sf), "Cache index slice count")
+            require(
+                len(m["sop_uids"])
+                == len(set(m["sop_uids"]))
+                == len(m["pixel_sha256"])
+                == len(m["slice_sha256"])
+                == len(sf),
+                "Metadata ordered list coverage",
+            )
+            same(
+                dict(zip(m["sop_uids"], m["slice_sha256"])),
+                dict(zip(sf.sop_uid, sf.sha256)),
+                "Ordered source digest membership",
+            )
+            same(
+                m["path_fingerprint"],
+                hashlib.sha256("\n".join(sorted(sf.path)).encode()).hexdigest(),
+                "Source path fingerprint",
+            )
+            same(
+                m["cache_sha256"],
+                audit.loc[suid, "cache_sha256"],
+                "Previously verified cache digest binding",
+            )
+            same(
+                m["cache_bytes"],
+                audit.loc[suid, "cache_bytes"],
+                "Previously verified cache length binding",
+            )
+            same(series["n_slices"], len(sf), "Declared series slices")
+            same(series["source_bytes"], int(sf.bytes.sum()), "Declared series bytes")
+            for skey, mkey in (
+                ("cache_positions", "positions"),
+                ("cache_orientation", "orientation"),
+                ("cache_original_shape", "original_shape"),
+                ("cache_pixel_spacing", "pixel_spacing"),
+                ("cache_ordering", "ordering"),
+            ):
+                same(series[skey], m[mkey], "Declared metadata " + mkey)
+            native_list_hash = hashlib.sha256(
+                json.dumps(m["pixel_sha256"], separators=(",", ":")).encode()
+            ).hexdigest()
+            same(
+                series["native_pixel_fingerprint_list_sha256"],
+                native_list_hash,
+                "Native fingerprint list binding",
+            )
+            se = [e for e in eps if e["series_uid"] == suid]
+            require(len(se) == 2, "Series endpoints absent")
+            fields = {
+                key: sorted({e["header_fields"].get(key, "") for e in se})
+                for key in se[0]["header_fields"]
+            }
+            same(fields, series["header_endpoint_values"], "Every declared endpoint header field")
+            same(
+                series["patient_id_hashes"],
+                sorted({e["patient_id_sha256"] for e in se}),
+                "Series patient hash values",
+            )
+            same(
+                series["frame_of_reference_hashes"],
+                sorted({e["frame_of_reference_sha256"] for e in se}),
+                "Series frame hash values",
+            )
+            for e in se:
+                f = e["header_fields"]
+                position = m["sop_uids"].index(e["sop_uid"])
+                same(
+                    json.loads(f["ImagePositionPatient"]),
+                    m["positions"][position],
+                    "Endpoint ordered origin",
+                )
+                same(
+                    json.loads(f["ImageOrientationPatient"]),
+                    m["orientation"],
+                    "Endpoint orientation",
+                )
+                same(json.loads(f["PixelSpacing"]), m["pixel_spacing"], "Endpoint spacing")
+                same(
+                    [int(f["Rows"]), int(f["Columns"])],
+                    m["original_shape"][1:],
+                    "Endpoint dimensions",
+                )
+            official = official_series.loc[suid].to_dict()
+            same(official, series["official_series_features"], "Every official series feature")
+            same(official["StudyInstanceUID"], uid, "Official series study identity")
+            orientation = np.asarray(m["orientation"])
+            plane = ["Sagittal", "Coronal", "Axial"][
+                int(np.argmax(np.abs(np.cross(orientation[:3], orientation[3:]))))
+            ]
+            same(
+                series["iop_dominant_axis_plane_technical_only"],
+                plane,
+                "Orientation dominant plane",
+            )
+            metas[suid] = m
+            series_rows[suid] = series
+        same(
+            {s["series_uid"] for s in case["series"]},
+            set(frame.series_uid),
+            "Complete case series identities",
+        )
+        counts = Counter(
+            tuple(s["header_endpoint_values"]["SeriesDescription"]) for s in case["series"]
+        )
+        same(
+            case["repeated_descriptions"],
+            [
+                {"description_values": list(key), "n_series": n}
+                for key, n in counts.items()
+                if n > 1
+            ],
+            "Repeated description set",
+        )
+        centers = []
+        for series in sorted(
+            case["series"], key=lambda s: int(s["header_endpoint_values"]["SeriesNumber"][0])
+        ):
+            m = metas[series["series_uid"]]
+            o = np.asarray(m["orientation"])
+            shape = m["original_shape"]
+            spacing = m["pixel_spacing"]
+            center = (
+                np.mean(m["positions"], axis=0)
+                + o[:3] * (shape[2] - 1) / 2 * spacing[1]
+                + o[3:] * (shape[1] - 1) / 2 * spacing[0]
+            )
+            fields = series["header_endpoint_values"]
+            centers.append(
+                {
+                    "series_uid": series["series_uid"],
+                    "series_number": fields["SeriesNumber"][0],
+                    "literal_laterality": fields["Laterality"][0],
+                    "plane": series["iop_dominant_axis_plane_technical_only"],
+                    "mean_slice_image_center_xyz_mm": center.tolist(),
+                }
+            )
+        same(centers, centers_by_case[case["case"]], "Every derived image center")
+        repeated = []
+        for left, right in itertools.combinations(case["series"], 2):
+            lm, rm = metas[left["series_uid"]], metas[right["series_uid"]]
+            intersection = set(lm["pixel_sha256"]) & set(rm["pixel_sha256"])
+            if intersection:
+                overlaps.append(
+                    {
+                        "study_uid": uid,
+                        "left_series_uid": left["series_uid"],
+                        "right_series_uid": right["series_uid"],
+                        "shared_native_hash_count": len(intersection),
+                        "complete_ordered_fingerprints_equal": lm["pixel_sha256"]
+                        == rm["pixel_sha256"],
+                    }
+                )
+            lf, rf = left["header_endpoint_values"], right["header_endpoint_values"]
+            if lf["SeriesDescription"] == rf["SeriesDescription"]:
+                repeated.append(
+                    {
+                        "left_series_uid": left["series_uid"],
+                        "right_series_uid": right["series_uid"],
+                        "series_numbers": [lf["SeriesNumber"], rf["SeriesNumber"]],
+                        "description": lf["SeriesDescription"],
+                        "laterality_values": [lf["Laterality"], rf["Laterality"]],
+                        "same_native_shape": lm["original_shape"] == rm["original_shape"],
+                        "exact_same_orientation": lm["orientation"] == rm["orientation"],
+                        "exact_same_pixel_spacing": lm["pixel_spacing"] == rm["pixel_spacing"],
+                        "exact_same_all_ordered_positions": lm["positions"] == rm["positions"],
+                        "mean_image_origin_displacement_xyz_mm": (
+                            np.mean(rm["positions"], 0) - np.mean(lm["positions"], 0)
+                        ).tolist(),
+                        "native_fingerprint_list_equal": lm["pixel_sha256"] == rm["pixel_sha256"],
+                    }
+                )
+        geometry_cases.append(
+            {"case": case["case"], "study_uid": uid, "repeated_description_pairs": repeated}
+        )
+        case_rows[case["case"]] = case
+        case_outputs.append(
+            {
+                "case": case["case"],
+                "study_uid": uid,
+                "source_report_sha256": originals[uid]["source_report_sha256"],
+                "source_slices": len(frame),
+                "series": len(case["series"]),
+                "endpoint_geometries": len(eps),
+                "source_terminal_bytes_verified": True,
+                "existing_next_action": triage["pixels_needed"],
+            }
+        )
+    same(set(metas), series_uids, "All declared series verified")
+    same(
+        overlaps,
+        read(group / "technical-evidence/native-fingerprint-overlaps.json"),
+        "Every native fingerprint overlap pair",
+    )
+    same(
+        sorted(geometry_cases, key=lambda c: c["case"]),
+        documents["geometry-comparison.json"]["cases"],
+        "Every repeated-description geometry pair",
+    )
+    verified_pairs = []
+    for pair in documents["specific-pair-metadata.json"]["records"]:
+        left, right = [series_rows[uid] for uid in pair["series_uids"]]
+        require(
+            all(
+                metas[series["series_uid"]]["study_uid"] == case_rows[pair["case"]]["study_uid"]
+                for series in (left, right)
+            ),
+            "Specific pair crosses case",
+        )
+        actual = pair_values(left, right, metas[left["series_uid"]], metas[right["series_uid"]])
+        for key, value in actual.items():
+            same(pair[key], value, pair["case"] + " specific pair " + key)
+        same(
+            pair["metadata"],
+            [left["cache_metadata"], right["cache_metadata"]],
+            "Specific pair metadata bindings",
+        )
+        verified_pairs.append({"case": pair["case"], **actual})
+    summary = documents["technical-evidence/summary.json"]
+    same(
+        summary["cases"],
+        [
+            {k: v for k, v in case_rows[row["case"]].items() if k != "series"}
+            for row in summary["cases"]
+        ],
+        "Collector case summaries",
+    )
+    same(summary["series_metadata_verified"], len(metas), "Collector series count")
+    same(summary["source_inventory_slice_membership_verified"], len(inv), "Collector source count")
+    same(summary["endpoint_records_verified"], len(endpoints), "Collector endpoint count")
+    same(
+        documents["geometry-comparison.json"]["endpoint_geometry_shape_checks_passed"],
+        len(endpoints),
+        "Geometry endpoint count",
+    )
+    validation = documents["validation.json"]
+    for key, value in {
+        "cases": 6,
+        "series_metadata": len(metas),
+        "source_inventory_memberships": len(inv),
+        "endpoint_geometries": len(endpoints),
+    }.items():
+        same(validation[key], value, "Declared validation counts")
+    trigger = documents["candidate-trigger-bindings.json"]
+    queue = read(WORK / trigger["original_queue"]["path"])
+    queue_rows = queue["records"] if isinstance(queue, dict) and "records" in queue else queue
+    if isinstance(queue_rows, dict):
+        queue_rows = queue_rows.get("candidates", [])
+    require(isinstance(queue_rows, list), "Unrecognized preserved candidate queue")
+    queue_by_uid = {row["study_uid"]: row for row in queue_rows}
+    for row in trigger["records"]:
+        original_row = queue_by_uid[row["study_uid"]]
+        for key, value in row.items():
+            if key not in {"case"}:
+                same(original_row[key], value, "Specific original trigger " + key)
+    return {
+        "schema_version": 1,
+        "stage": "independent_contract_source_header_metadata_replay",
+        "agent_id": ASSESSOR,
+        "status": "verified",
+        "group": name,
+        "completed_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "cases": case_outputs,
+        "source_memberships": len(inv),
+        "series_metadata": len(metas),
+        "endpoint_geometries": len(endpoints),
+        "specific_pairs": verified_pairs,
+        "native_fingerprint_overlap_pairs": len(overlaps),
+        "preserved_correction_records_verified": len(corrections),
+        "preserved_corrected_clauses": sum(row["correction_required"] for row in corrections),
+        "bindings": [ref(group / name) for name in input_names],
+        "script": ref(Path(__file__)),
+        "limits": [
+            "Independent reproducible metadata execution by /root/competition_contract; original root and image-assessor records are referenced, not impersonated.",
+            "No cache arrays, images, native source payloads, network, clinical annotation files or gold target values opened. Official report CSV reads select StudyInstanceUID and Report only.",
+            "Native fingerprints and cache identities are authenticated through pinned existing metadata, lineage and audit index; no new pixel decoding or payload hash was performed.",
+            "No anatomy, named side, source-center, patient identity, clinical state or training readiness inferred. Root review and any image follow-up remain separate.",
+        ],
+        "training_ready": False,
+    }
+
+
+def main():
+    require(
+        shutil.disk_usage(WORK).free > FLOOR + 2**20, "Insufficient reserved disk before replay"
+    )
+    for name, expected in PINS.items():
+        actual = sha(WORK / name)
+        same(actual, expected, "Pinned original " + name)
+        CHECKED[name] = actual
+    groups = [WORK / "annotation-staging" / f"technical-tier4-{name}-six-v1" for name in GROUPS]
+    studies = {
+        row["study_uid"]
+        for group in groups
+        for row in read(group / "source-only-preread.json")["records"]
+    }
+    require(len(studies) == 24, "Expected 24 unique source studies")
+    inventory = pd.read_parquet(
+        WORK / "cache256-v3-official-recovery-v1/inventory_effective.parquet",
+        filters=[("study_uid", "in", sorted(studies))],
+    )
+    endpoints = []
+    with (WORK / "header-endpoint-full-v1/endpoint-headers.jsonl").open() as stream:
+        for line in stream:
+            row = json.loads(line)
+            if row["study_uid"] in studies:
+                endpoints.append(row)
+    lineage = {}
+    with (WORK / "cache256-v3-official-recovery-v1/cache_recovery_lineage.jsonl").open() as stream:
+        for line in stream:
+            row = json.loads(line)
+            if row["study_uid"] in studies:
+                require(row["series_uid"] not in lineage, "Duplicate lineage series")
+                lineage[row["series_uid"]] = row
+    audit = pd.read_parquet(
+        WORK / "dicom-audit-v3-official-recovery-v1/series_cache_index.parquet"
+    ).set_index("series_uid")
+    official = pd.read_csv(REPO / "initiative/source/train_series.csv").set_index(
+        "SeriesInstanceUID"
+    )
+    report_tables = [
+        pd.read_csv(
+            WORK / name, usecols=["StudyInstanceUID", "Report"], keep_default_na=False
+        ).set_index("StudyInstanceUID")
+        for name in ("recovered/initiative/source/train.csv", "kaggle_current/train.csv")
+    ]
+    require(
+        all(table.index.is_unique for table in report_tables), "Duplicate official report study"
+    )
+    outputs = []
+    for name in GROUPS:
+        try:
+            result = replay_group(
+                name, inventory, endpoints, lineage, audit, official, report_tables
+            )
+        except (Mismatch, KeyError, ValueError, TypeError, OSError) as error:
+            result = {
+                "schema_version": 1,
+                "stage": "independent_contract_metadata_replay_mismatch",
+                "agent_id": ASSESSOR,
+                "group": name,
+                "status": "mismatch",
+                "error_type": type(error).__name__,
+                "details": error.args[0] if error.args else "unspecified",
+                "training_ready": False,
+            }
+        path = STAGE / f"{name}-metadata-replay.json"
+        write_new(path, result)
+        outputs.append(ref(path))
+        print(
+            json.dumps({"group": name, "status": result["status"], "result": outputs[-1]}),
+            flush=True,
+        )
+    write_new(
+        STAGE / "metadata-replay-index.json",
+        {
+            "schema_version": 1,
+            "stage": "independent_contract_metadata_crosscheck_index",
+            "agent_id": ASSESSOR,
+            "results": outputs,
+            "unique_file_bindings_verified": len(CHECKED),
+            "checked_file_bindings": CHECKED,
+            "pinned_originals": PINS,
+            "adapted_from": [
+                ref(WORK / "annotation-staging/root_verify_tier4_metadata_v9.py"),
+                ref(WORK / "annotation-staging/root_verify_tier4_field_extents_v9.py"),
+            ],
+            "free_bytes_after": shutil.disk_usage(WORK).free,
+            "required_floor_bytes": FLOOR,
+            "training_ready": False,
+        },
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_header_technical_triage",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T14:04:40.956346+00:00",
+  "n_cases": 6,
+  "complete_series": 41,
+  "source_memberships": 1324,
+  "endpoint_geometries": 82,
+  "source_preread": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/source-only-preread.json",
+    "sha256": "2563d0506555090f4d41fe84e33851fdd4f501e565c3f21c818d59989b103c47",
+    "bytes": 29280
+  },
+  "neutral_source_extraction": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/neutral-source-reports.json",
+    "sha256": "ffc5525acf5d2008b025ffca56672109a54d82942ec7431286fdb1fb91b62e59",
+    "bytes": 19531
+  },
+  "candidate_triggers": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/candidate-trigger-bindings.json",
+    "sha256": "0dc3e9eb8f518a9a7e4cd69f3535279f1edab51d046b93c2879e35816ebce998",
+    "bytes": 8177
+  },
+  "technical_summary": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/technical-evidence/summary.json",
+    "sha256": "437828eeb802d25647696b4cd73c5f170973c149906e34427804c79b91b657d1",
+    "bytes": 25163
+  },
+  "geometry": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/geometry-comparison.json",
+    "sha256": "78330a29f1bb5559df96bb114f0d4c670cd440af3fcb6ada34b7aa047379744a",
+    "bytes": 16332
+  },
+  "image_field_centers": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/derived-series-image-centers.json",
+    "sha256": "c4e8a89c135a67b9f373ee1be414b03a3504a93561f4fe89e0bde2a2a0aad6aa",
+    "bytes": 16393
+  },
+  "field_and_extent_metrics": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/field-and-extent-metrics.json",
+    "sha256": "e5a37b837c0d347eb4bf55cd35f76263643adb41561a57d99db733ea9c00d9a4",
+    "bytes": 26618
+  },
+  "specific_pair_metadata": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/specific-pair-metadata.json",
+    "sha256": "2a80f2ed4d130525bcd5f36e706253cc91c272e84b1820238d2c12958b2ce785",
+    "bytes": 14313
+  },
+  "manual_notes": {
+    "path": "annotation-staging/technical-tier4-eleventh-six-v1/manual-triage-notes.json",
+    "sha256": "eae66a0c57d91b48bd7b0e3d63cd5763dce6bbda80f541d19a2bfe190615cd66",
+    "bytes": 5782
+  },
+  "records": [
+    {
+      "case": "073:44",
+      "study_uid": "1.2.826.0.1.3680043.8.498.80758336123908522542787716219939751704",
+      "source_report_sha256": "35e3357010f072ac14af310e816c801e945231b7f0c1ef5329d441a3a09105dd",
+      "series": 5,
+      "source_slices": 98,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eleventh-six-v1/technical-evidence/case-073-44.json",
+        "sha256": "948f4de532ebd3a68d134b202e7a33e2b1625cfa646a4a5b071a6d0b3e4d5f4f",
+        "bytes": 26742
+      },
+      "trigger": "All five series have literal RIGHT; original trigger is noncanonical side spelling.",
+      "technical": "Five series, 98 slices: axial 3, coronal 4/6 and sagittal 5/7. Coronal contrasts share IOP with different ordered origins; no repeated complete protocol or native fingerprint overlap appears.",
+      "source_relation": "Two unsided technique/findings reports are explicitly separated by the bilateral note. Near-repeated text and one literal-side imaging set do not establish block-to-image correspondence.",
+      "pixels_needed": "bounded_cached_protocol_coverage_check_recommended",
+      "proposal": "After root source freeze, propose all five series with three cached samples each. Preserve both report blocks and literal RIGHT; no named anatomical side or clinical acceptance follows from any coherent sparse set.",
+      "priority": "targeted_multiple_report_single_tag_protocol"
+    },
+    {
+      "case": "074:30",
+      "study_uid": "1.2.826.0.1.3680043.8.498.81738571920712657790861120957086010772",
+      "source_report_sha256": "efe50f748f8b2ad06d2e3382e40c9503c06503894a517d2d5cc95964ccb5288a",
+      "series": 5,
+      "source_slices": 96,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eleventh-six-v1/technical-evidence/case-074-30.json",
+        "sha256": "eab8542f4d5f411d5833783f4243784bd8b2d8a4c4ad72395275a5ec92c218e3",
+        "bytes": 26478
+      },
+      "trigger": "All five series have literal LEFT; original trigger is noncanonical side spelling.",
+      "technical": "Five series, 96 slices: axial 3, coronal 4/6, sagittal 5/7. Coronal IOPs agree but sampling differs. No repeated full protocol or native fingerprint overlap.",
+      "source_relation": "Two unsided technique/findings/conclusion reports with materially differing narratives and explicit bilateral separator. Metadata does not establish which report applies to the single literal LEFT set.",
+      "pixels_needed": "bounded_cached_protocol_coverage_check_recommended",
+      "proposal": "After root source freeze, propose all five series, three cache samples each, for gross coverage only. Do not choose a report block or assign named pixel side; preserve all originals.",
+      "priority": "targeted_multiple_report_single_tag_protocol"
+    },
+    {
+      "case": "075:48",
+      "study_uid": "1.2.826.0.1.3680043.8.498.83691358175810149975084604975065122220",
+      "source_report_sha256": "52ed76457ecff1995e9e7d0ae2313c8a91872b702397ca7c1146f6163870e284",
+      "series": 10,
+      "source_slices": 329,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eleventh-six-v1/technical-evidence/case-075-48.json",
+        "sha256": "68d2aff91de133ef8a89b09e5b1abe4b4e9e6bd2192d282ca6ca54539c1d801c",
+        "bytes": 67233
+      },
+      "trigger": "Nine L-tagged series plus blank axial 701; original trigger is blank/filled Laterality.",
+      "technical": "Ten series, 329 slices. Blank 3D_WATSc 701 has 56 slices, 150 mm field and 82.5 mm extent versus main axial 501/601 at 160 mm and 128.7 mm. Its IOP differs from main axial, maximum component difference 0.0904176757. No native fingerprint overlap or opposite filled tag.",
+      "source_relation": "One report explicitly names left structures; internal medial-versus-lateral heading wording and zero tokens remain source-semantic issues within that one narrative.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Defer pixels for this isolated blank supplementary tag. Preserve its differing orientation and unknown side, source anomalies and all arrays; no numeric repair or target changes.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "077:02",
+      "study_uid": "1.2.826.0.1.3680043.8.498.85566900782101872452970957532250214590",
+      "source_report_sha256": "433881958457d843509a50c80782b205043e013af9237b111a1cf9fcfc8de1b3",
+      "series": 5,
+      "source_slices": 98,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eleventh-six-v1/technical-evidence/case-077-02.json",
+        "sha256": "9fc3b0fd6ca410b2431d8ad6484b10d49d51912cbddc69688a09acf973eaafce",
+        "bytes": 26503
+      },
+      "trigger": "All five series have literal RIGHT; original trigger is noncanonical side spelling.",
+      "technical": "Five series, 98 slices: axial 3, coronal 4/5 and sagittal 6/7. Coronal IOP matches across contrast while ordered origins differ. No repeated complete protocol or native fingerprint overlap.",
+      "source_relation": "Explicit RIGHT then LEFT reports with bilateral separator. Repeat-examination wording within each block does not settle current aggregate linkage or turn the opposite-sided block into a same-knee prior.",
+      "pixels_needed": "bounded_cached_protocol_coverage_check_recommended",
+      "proposal": "After root source freeze, propose all five series and three samples each for gross protocol coverage. Preserve both source blocks and temporal wording, with no named-side or report selection.",
+      "priority": "targeted_explicit_bilateral_source_single_tag_protocol"
+    },
+    {
+      "case": "077:37",
+      "study_uid": "1.2.826.0.1.3680043.8.498.86263264208309369957750915520115390972",
+      "source_report_sha256": "9f7d71e961b64b141058d849a8d34a50f5621e865e70af669953ff78842ece6c",
+      "series": 10,
+      "source_slices": 346,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eleventh-six-v1/technical-evidence/case-077-37.json",
+        "sha256": "753590f74c543f42744540e00aa9bd7e33899d3b010c9c89b181c6bfd03749cd",
+        "bytes": 68957
+      },
+      "trigger": "Nine L-tagged series and blank axial 401; original trigger is blank/filled Laterality.",
+      "technical": "Ten series, 346 slices. Blank 3D_WATSc 401 has 67 slices, 150 mm field and 99 mm extent; main axial 201/301 has 40 slices, 160 mm field and 128.7 mm extent. Its IOP equals main axial but origins/sampling differ. No native fingerprint overlap or opposing filled side.",
+      "source_relation": "One narrative and repeated summary explicitly mention left semimembranosus tendon; malformed intact-prefixed dimensions remain source-authentic, not a second report.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Retain 401 unknown and defer immediate pixels from the isolated missing supplementary tag. Do not impute left, repair measurements or infer a clinical target.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "078:33",
+      "study_uid": "1.2.826.0.1.3680043.8.498.87465202523430400780596885230492167155",
+      "source_report_sha256": "662c56515c3a2ad17b4214f956bc8f50097f46a0bb932ed6990c8619ab13a6a2",
+      "series": 6,
+      "source_slices": 357,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-eleventh-six-v1/technical-evidence/case-078-33.json",
+        "sha256": "6256360c33f283ee6559b269a6099aa68a5a2256397649a7d0cac3a2eec65077",
+        "bytes": 55515
+      },
+      "trigger": "Blank initial axial 101 and five R-tagged main series; all descriptions are DummySeriesDesc!. Original trigger is blank/filled Laterality.",
+      "technical": "Six series, 357 slices. Blank 101 has 200 slices, 300 mm field and about 238.8 mm extent versus main axial 201 with 35 slices, 200 mm field and 112.2 mm extent. IOP differs, maximum component difference 0.0851990506. Main coronal pair and sagittal pair have matching within-plane IOP, not exact pixel equality.",
+      "source_relation": "One unsided findings/conclusion report; placeholder names, field width and missing tag do not identify acquisition phase, patient side or another knee.",
+      "pixels_needed": "bounded_cached_coverage_check_recommended",
+      "proposal": "After root source freeze, propose only 101/201 with three cache samples each for primary and peripheral coverage. Keep four other arrays outside selected scope, no cropping or native download.",
+      "priority": "targeted_broad_field_coverage_check"
+    }
+  ],
+  "common_scope": "All 82 lexical endpoint geometries match their source-SOP cache metadata. All 41 official planes agree with dominant IOP axes as separately checked. Each case has one hashed PatientID and distinct per-series frame hashes; neither proves identity or shared registered anatomy. No within-study native fingerprint overlap appears in preserved metadata. Exact official/archive reports, full inventory membership, recovery lineage and full-audit metadata are bound. No NPZ bytes/arrays, native sources or new network were read.",
+  "root_source_findings_seen": false,
+  "clinical_annotations_gold_or_targets_accessed": false,
+  "source_cache_initiative_modified": false,
+  "training_ready": false
+}

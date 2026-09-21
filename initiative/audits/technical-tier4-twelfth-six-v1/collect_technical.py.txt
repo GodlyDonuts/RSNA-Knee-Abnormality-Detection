@@ -1,0 +1,309 @@
+"""Bind six source-only prereads to complete existing endpoint and cache metadata.
+
+No network, native/cached pixel reads, clinical annotations or gold values.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import itertools
+import json
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parent
+WORK = ROOT.parents[1]
+REPO = WORK / "recovered"
+REVISION = "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+
+
+def require(value: bool, message: str) -> None:
+    if not value:
+        raise ValueError(message)
+
+
+def sha(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def ref(path: Path) -> dict:
+    return {"path": str(path.relative_to(WORK)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def save(path: Path, value: object) -> None:
+    path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n")
+
+
+def main() -> None:
+    output = ROOT / "technical-evidence"
+    require(not output.exists(), "Output must be new")
+    preread_path = ROOT / "source-only-preread.json"
+    require(
+        sha(preread_path) == "6e0aa2d4a838e3101354f08ddd584a12c47e16f766c1173e1fd59f0e5ef76756",
+        "Independent preread changed",
+    )
+    preread = json.loads(preread_path.read_text())["records"]
+    require(len(preread) == 6, "Exactly six source prereads required")
+    studies = {r["study_uid"] for r in preread}
+    require(len(studies) == 6, "Six distinct source studies required")
+    inventory_path = WORK / "cache256-v3-official-recovery-v1/inventory_effective.parquet"
+    require(
+        sha(inventory_path) == "68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537",
+        "Corrected inventory changed",
+    )
+    inventory = pd.read_parquet(inventory_path, filters=[("study_uid", "in", sorted(studies))])
+    endpoint_path = WORK / "header-endpoint-full-v1/endpoint-headers.jsonl"
+    require(
+        sha(endpoint_path) == "d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3",
+        "Endpoint survey changed",
+    )
+    endpoints = []
+    with endpoint_path.open() as f:
+        for line in f:
+            row = json.loads(line)
+            if row["study_uid"] in studies:
+                endpoints.append(row)
+    require(len(endpoints) == 2 * inventory.series_uid.nunique(), "Endpoint coverage differs")
+    require(len({r["source_path"] for r in endpoints}) == len(endpoints), "Duplicate endpoint")
+    expected_endpoints = set()
+    for _, frame in inventory.groupby("series_uid"):
+        ordered = frame.sort_values("sop_uid")
+        expected_endpoints.update(ordered.iloc[[0, -1]].path)
+    require({r["source_path"] for r in endpoints} == expected_endpoints, "Lexical endpoints differ")
+    indexed = inventory.set_index("path")
+    for row in endpoints:
+        expected = indexed.loc[row["source_path"]]
+        require(
+            all(row[k] == expected[k] for k in ("study_uid", "series_uid", "sop_uid", "storage")),
+            "Endpoint identity differs",
+        )
+        require(
+            row["source_sha256"] == expected.sha256 and row["source_bytes"] == expected.bytes,
+            "Endpoint source binding differs",
+        )
+        require(row["reached_pixel_data_header"] is True, "Endpoint is incomplete")
+    csv_paths = [REPO / "initiative/source/train.csv", WORK / "kaggle_current/train.csv"]
+    copies = []
+    for path in csv_paths:
+        require(
+            sha(path) == "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+            "Official/archive source CSV differs",
+        )
+        reports = pd.read_csv(path, usecols=["StudyInstanceUID", "Report"], keep_default_na=False)
+        for original in preread:
+            row = reports.loc[reports.StudyInstanceUID == original["study_uid"]]
+            require(
+                len(row) == 1 and row.iloc[0].Report == original["report"], "Source report differs"
+            )
+        copies.append(
+            {
+                **ref(path),
+                "all_selected_reports_exact_match": True,
+                "only_columns_read": ["StudyInstanceUID", "Report"],
+            }
+        )
+    index_path = WORK / "dicom-audit-v3-official-recovery-v1/series_cache_index.parquet"
+    require(
+        sha(index_path) == "0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81",
+        "Full audit index differs",
+    )
+    index = pd.read_parquet(index_path)
+    index = index.loc[index.study_uid.isin(studies)].set_index("series_uid")
+    require(set(index.index) == set(inventory.series_uid), "Cache series membership differs")
+    lineage_path = WORK / "cache256-v3-official-recovery-v1/cache_recovery_lineage.jsonl"
+    require(
+        sha(lineage_path) == "506ca8e3aa8f10a36fbdc96bc853b1a4dfcbec8f55949aac3bf26701c5642934",
+        "Recovery lineage differs",
+    )
+    lineage = {}
+    with lineage_path.open() as f:
+        for line in f:
+            row = json.loads(line)
+            if row["study_uid"] in studies:
+                lineage[row["series_uid"]] = row
+    official_series_path = REPO / "initiative/source/train_series.csv"
+    require(
+        sha(official_series_path)
+        == "573c1d80772bf41211c91b149c95677385a1c22d63f485c347f1b46c0177aef3",
+        "Official series metadata differs",
+    )
+    official_series = pd.read_csv(official_series_path).set_index("SeriesInstanceUID")
+    summaries, metadata_refs, overlaps = [], [], []
+    output.mkdir()
+    for original in preread:
+        uid = original["study_uid"]
+        frame = inventory.loc[inventory.study_uid == uid]
+        study_endpoints = [r for r in endpoints if r["study_uid"] == uid]
+        series_rows, metas = [], {}
+        for series_uid, series_frame in frame.groupby("series_uid"):
+            cache_index = index.loc[series_uid]
+            path = (
+                WORK
+                / "cache256-v3-official-recovery-v1/cache"
+                / Path(cache_index.cache_path).with_suffix(".json")
+            )
+            bound = lineage[series_uid]["new_metadata"]
+            require(
+                sha(path) == bound["sha256"] and path.stat().st_size == bound["bytes"],
+                "Cache metadata hash differs",
+            )
+            meta = json.loads(path.read_text())
+            require(
+                meta["study_uid"] == uid
+                and meta["series_uid"] == series_uid
+                and meta["source_revision"] == REVISION,
+                "Cache metadata identity differs",
+            )
+            require(
+                meta["n_slices"] == len(series_frame) == cache_index.n_slices,
+                "Cache slice count differs",
+            )
+            require(
+                dict(zip(meta["sop_uids"], meta["slice_sha256"]))
+                == dict(zip(series_frame.sop_uid, series_frame.sha256)),
+                "Cache source hash membership differs",
+            )
+            require(
+                meta["path_fingerprint"]
+                == hashlib.sha256("\n".join(sorted(series_frame.path)).encode()).hexdigest(),
+                "Cache source paths differ",
+            )
+            require(
+                meta["cache_sha256"] == cache_index.cache_sha256
+                and meta["cache_bytes"] == cache_index.cache_bytes,
+                "Cache audit reference differs",
+            )
+            metas[series_uid] = meta
+            metadata_refs.append(ref(path))
+            ep = sorted(
+                [r for r in study_endpoints if r["series_uid"] == series_uid],
+                key=lambda r: r["sop_uid"],
+            )
+            fields = {}
+            for key in ep[0]["header_fields"]:
+                fields[key] = sorted({r["header_fields"].get(key, "") for r in ep})
+            orientation = np.array(meta["orientation"], dtype=float)
+            normal = np.cross(orientation[:3], orientation[3:])
+            dominant_plane = ["Sagittal", "Coronal", "Axial"][int(np.argmax(np.abs(normal)))]
+            official = official_series.loc[series_uid]
+            require(official.StudyInstanceUID == uid, "Official series membership differs")
+            series_rows.append(
+                {
+                    "series_uid": series_uid,
+                    "n_slices": len(series_frame),
+                    "source_bytes": int(series_frame.bytes.sum()),
+                    "header_endpoint_values": fields,
+                    "patient_id_hashes": sorted({r["patient_id_sha256"] for r in ep}),
+                    "frame_of_reference_hashes": sorted(
+                        {r["frame_of_reference_sha256"] for r in ep}
+                    ),
+                    "cache_metadata": ref(path),
+                    "cache_original_shape": meta["original_shape"],
+                    "cache_orientation": meta["orientation"],
+                    "cache_pixel_spacing": meta["pixel_spacing"],
+                    "cache_positions": meta["positions"],
+                    "cache_ordering": meta["ordering"],
+                    "iop_dominant_axis_plane_technical_only": dominant_plane,
+                    "official_series_features": {
+                        k: (v.item() if hasattr(v, "item") else v)
+                        for k, v in official.to_dict().items()
+                    },
+                    "native_pixel_fingerprint_list_sha256": hashlib.sha256(
+                        json.dumps(meta["pixel_sha256"], separators=(",", ":")).encode()
+                    ).hexdigest(),
+                }
+            )
+        for (left, lm), (right, rm) in itertools.combinations(metas.items(), 2):
+            overlap = set(lm["pixel_sha256"]) & set(rm["pixel_sha256"])
+            if overlap:
+                overlaps.append(
+                    {
+                        "study_uid": uid,
+                        "left_series_uid": left,
+                        "right_series_uid": right,
+                        "shared_native_hash_count": len(overlap),
+                        "complete_ordered_fingerprints_equal": lm["pixel_sha256"]
+                        == rm["pixel_sha256"],
+                    }
+                )
+        descriptions = Counter(
+            r["header_fields"].get("SeriesDescription", "") for r in study_endpoints[::2]
+        )
+        # Rebuild by series explicitly, independent of source JSONL ordering.
+        descriptions = Counter(
+            tuple(r["header_endpoint_values"]["SeriesDescription"]) for r in series_rows
+        )
+        summary = {
+            "case": original["case"],
+            "study_uid": uid,
+            "series_count": len(series_rows),
+            "slices": len(frame),
+            "source_bytes": int(frame.bytes.sum()),
+            "endpoint_count": len(study_endpoints),
+            "patient_id_hashes": sorted({r["patient_id_sha256"] for r in study_endpoints}),
+            "frame_of_reference_hashes": sorted(
+                {r["frame_of_reference_sha256"] for r in study_endpoints}
+            ),
+            "laterality_values": {
+                key: sorted({r["header_fields"].get(key, "") for r in study_endpoints})
+                for key in ("Laterality", "ImageLaterality", "FrameLaterality")
+            },
+            "repeated_descriptions": [
+                {"description_values": list(k), "n_series": v}
+                for k, v in descriptions.items()
+                if v > 1
+            ],
+            "series": series_rows,
+        }
+        save(output / f"case-{original['case'].replace(':', '-')}.json", summary)
+        summaries.append({k: v for k, v in summary.items() if k != "series"})
+    (output / "endpoints.jsonl").write_text(
+        "".join(json.dumps(r, sort_keys=True) + "\n" for r in endpoints)
+    )
+    save(output / "inventory-six-cases.json", inventory.to_dict("records"))
+    save(output / "native-fingerprint-overlaps.json", overlaps)
+    evidence = sorted(output.glob("*"))
+    result = {
+        "schema_version": 1,
+        "stage": "existing_source_endpoint_cache_metadata_binding",
+        "agent_id": "/root/image_pipeline_audit",
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "script": ref(Path(__file__).resolve()),
+        "preread": ref(preread_path),
+        "input_bindings": [
+            ref(p)
+            for p in [inventory_path, endpoint_path, index_path, lineage_path, official_series_path]
+        ],
+        "official_archive_csv_copies": copies,
+        "cache_metadata_bindings": metadata_refs,
+        "evidence_bindings": [ref(p) for p in evidence],
+        "cases": summaries,
+        "endpoint_records_verified": len(endpoints),
+        "series_metadata_verified": len(metadata_refs),
+        "source_inventory_slice_membership_verified": len(inventory),
+        "new_network_requests": 0,
+        "new_native_decodes": 0,
+        "cached_pixel_arrays_read": 0,
+        "clinical_annotations_or_gold_values_accessed": False,
+        "scope": "Complete inventory/series and existing lexical first/last header coverage for six studies. Existing full-cache metadata checked against frozen recovery lineage and source membership; no new whole-source or NPZ byte check, native decoding or anatomical inspection. Missing laterality remains unknown. IOP dominant-axis grouping is technical, not an automatic anatomical or clinical label.",
+    }
+    save(output / "summary.json", result)
+    print(
+        json.dumps(
+            {"result": ref(output / "summary.json"), "cases": summaries},
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

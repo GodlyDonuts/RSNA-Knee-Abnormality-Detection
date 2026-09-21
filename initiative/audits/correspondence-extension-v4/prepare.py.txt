@@ -1,0 +1,38 @@
+"""Normalize three existing explicit root actions; never edit live artifacts."""
+from pathlib import Path
+import hashlib,json,datetime
+ROOT=Path('work/recovered');STAGE=Path('work/annotation-staging/correspondence-extension-v4');OVER=STAGE/'overlay';A='initiative/audits/'
+BASE='13c224a7c301f225e9fef56861de7c6b3fa0c10e'
+C=A+'technical-tier4-seventh-targeted-cache-v1/'
+S=A+'technical-tier4-seventh-six-v1/'
+ACTION='exclude_whole_study_report_supervision_preserve_originals_and_gold'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p):return json.loads((ROOT/p).read_text())
+def ref(p):return {'path':p,'sha256':sha(ROOT/p)}
+def write(p,obj):
+ path=OVER/p;path.parent.mkdir(parents=True,exist_ok=True);assert not path.exists();path.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+'\n');return {'path':p,'sha256':sha(path)}
+def find(doc,case,key='records'):
+ matches=[(i,r)for i,r in enumerate(doc[key])if r['case']==case];assert len(matches)==1;return matches[0]
+rootpath=C+'root-source-geometry-display-review.json';root=read(rootpath)
+assert root['agent_id']=='/root' and root['status']=='verified'
+records=[];anchors=[]
+for b,i,quotes in [(48,9,['ΜRI ΑΡ. ΓΟΝΑΤΟΣ','ΜΤ ∆ΕΞΙΟΥ ΓΟΝΑΤΟΣ']),(48,38,['∆ΕΞΙΟ ΓΟΝΑΤΟ','ΑΡΙΣΤΕΡΟ ΓΟΝΑΤΟ']),(53,47,['∆ΕΞΙΟ ΓΟΝΑΤΟ','ΑΡΙΣΤΕΡΟ ΓΟΝΑΤΟ'])]:
+ case=f'{b:03}:{i:02}';src=f'initiative/reviews/inputs/batch-{b:03}.json';row=read(src)[i];reportsha=hashlib.sha256(row['report'].encode()).hexdigest();assert all(q in row['report']for q in quotes)
+ selected_index,selected=find(root,case,'cases');assert selected['required_export_action']==ACTION and selected['study_uid']==row['study_uid'];assert 'required_report_supervision_mask_all' not in selected
+ prefix=C+f'cache-panels/case-{b:03}-{i:02}/';ind=prefix+'independent-cache-visual-assessment.json';handoff=prefix+'joint-source-header-cache-handoff.json';visual=prefix+'root-visual-freeze.json'
+ indobj=read(ind);v=read(visual);h=read(handoff)
+ assert selected['agent_visual']['sha256']==sha(ROOT/ind) and selected['joint_handoff']['sha256']==sha(ROOT/handoff) and selected['frozen_root_visual']['sha256']==sha(ROOT/visual)
+ assert h['source_report_sha256']==indobj['source_report_sha256']==reportsha
+ root_source=S+'root-source-preread.json';ind_source=S+'source-only-preread.json'
+ rsi,rs=find(read(root_source),case);isi,ins=find(read(ind_source),case)
+ assert rs['report']==ins['report']==row['report'];assert rs['source_report_sha256']==ins['source_report_sha256']==reportsha
+ reason='The preserved root numeric replay explicitly requires whole-study report-supervision exclusion. The complete original source has distinct right/left report blocks; bounded independent and root cache reviews leave their linkage to the study unresolved. Preserve source, clinical states, every literal tag and official gold; do not select a block from side metadata or sparse gross anatomy.'
+ proof={'schema_version':1,'stage':'verified_multi_assessor_correspondence_source_binding','agent_id':'/root/competition_contract','session_id':'/root/competition_contract','workflow_run_id':'codex-20260920-rubric-v2','case':case,'study_uid':row['study_uid'],'status':'verified','proof_kind':'reviewed_cache_action_aggregate','source_batch':ref(src),'source_index':i,'source_report_sha256':reportsha,'source_evidence':quotes,'root_decision':ref(rootpath),'root_selector':f'/cases/{selected_index}','root_disposition':{'pointer':'/required_export_action','value':ACTION},'independent_assessment':ref(ind),'independent_claim':{'pointer':'/technical_interpretation','value':indobj['technical_interpretation']},'source_handoff':ref(handoff),'root_visual_assessment':ref(visual),'root_visual_claim':{'pointer':'/bounded_disposition','value':v['bounded_disposition']},'root_source_assessment':ref(root_source),'root_source_selector':f'/records/{rsi}','independent_source_assessment':ref(ind_source),'independent_source_selector':f'/records/{isi}','interpretation':reason,'notes':'Mechanical source-bound proposal from preserved explicit root actions; not a new blinded source or image reread. Original action strings are retained verbatim, with no boolean added to any root attestation. Archived source/visual freeze hashes and recorded chronology are checked; this does not rerun image interpretation, pixel authenticity or the numeric replay. Prior clinical reader exposure of this normalizer is not independent technical evidence.','publication_status':'staged_for_root_review_not_integrated','training_ready':False}
+ proofref=write(A+f'correspondence-source-bindings-v4/case-{b:03}-{i:03}.json',proof)
+ records.append({'case':case,'study_uid':row['study_uid'],'source_path':src,'source_batch_sha256':sha(ROOT/src),'source_report_sha256':reportsha,'status':'unresolved_bilateral_report_to_image_correspondence','report_derived_training_supervision_allowed':False,'required_report_loss_mask':[False]*12,'scope':'Whole original study aggregate report-derived training supervision only. Preserve original reports/images/headers, clinical states, evidence, labels, splits, leakage groups and official gold evaluation. No source-side assignment, deletion, virtual split or label cloning.','reason':reason,'verified_technical_proof':proofref})
+ anchors.append({'case':case,'study_uid':row['study_uid'],'source_report_sha256':reportsha,'root_decision':ref(rootpath),'root_selector':proof['root_selector'],'root_action':proof['root_disposition'],'wrapper':proofref,'root_visual':ref(visual),'independent_visual':ref(ind),'root_source':ref(root_source),'independent_source':ref(ind_source),'handoff':ref(handoff)})
+registry=read(A+'correspondence-release-registry.json');assert len(registry['policies'])==3
+policy={'schema_version':1,'proof_binding_version':2,'stage':'root_verified_correspondence_release_requirements','agent_id':'/root/competition_contract','decision_authority':'Exact preserved /root required_export_action fields; original full-source and independent/root technical assessments retained unchanged.','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'target_order':registry['target_order'],'records':records,'original_source_or_annotation_changes':False,'publication_status':'staged_for_root_review_not_integrated','training_ready':False}
+pref=write(A+'correspondence-release-dispositions-v4.json',policy);registry['policies'].append(pref);rref=write(A+'correspondence-release-registry.json',registry)
+summary={'schema_version':1,'stage':'proposed_correspondence_extension_not_integrated','agent_id':'/root/competition_contract','base_git_commit':BASE,'base_registry':ref(A+'correspondence-release-registry.json'),'candidate_registry':rref,'candidate_policy':pref,'new_study_count':3,'existing_study_count':13,'candidate_total_study_count':16,'anchors':anchors,'excluded_from_proposal':{'case':'048:31','root_action':find(root,'048:31','cases')[1]['required_export_action'],'reason':'Original root decision explicitly does not require exclusion for this trigger.'},'new_root_adjudication_needed':False,'original_attestations_rewritten':False,'production_initiative_changed':False}
+(STAGE/'preparation.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n');print(json.dumps({'policy':pref,'registry':rref,'records':len(records)}))

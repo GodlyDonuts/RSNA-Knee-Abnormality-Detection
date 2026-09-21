@@ -1,0 +1,24 @@
+"""Append an exact-source-bound comparison after both independent freezes."""
+import json
+from datetime import datetime, timezone
+from collect_technical import ROOT, WORK, ref, save, require, sha
+P=ROOT;own=json.loads((P/'source-only-preread.json').read_text());rp=P/'root-source-preread.json'
+require(sha(rp)=='39786c633f737c21d543af8693f7d5f5d12438cda1724be73ca78336a182f9c1','Root changed')
+root=json.loads(rp.read_text());neutral=json.loads((P/'neutral-source-reports.json').read_text())
+require(root['neutral_source_sha256']==sha(P/'neutral-source-reports.json'),'Neutral changed')
+comparison={
+ '068:38':'Both identify explicit LEFT then RIGHT complete Greek blocks separated by the bilateral aggregation note. Neither treats the LEFT block as mere history inside the RIGHT report or assigns report blocks from side tags.',
+ '069:10':'Both identify one Bulgarian report explicitly naming RIGHT knee, without a second temporal or sided block. Root additionally preserves degeneration-versus-tear wording; no clinical states are adjudicated in this technical comparison.',
+ '070:43':'Both identify one RIGHT knee MRI without/with contrast, with comparison to a radiograph and one impression/signature. The comparison and uncertain chronicity are contextual, not another MRI report. Root adds source-specific marrow/cartilage caution without target changes here.',
+ '072:12':'Both identify one unsided Bulgarian report with findings/conclusion and no separate examination. Root explicitly flags body-tear versus literal2в conclusion tension for semantic QA; original source remains intact.',
+ '072:26':'Both identify one LEFT-knee Bulgarian report; duplicated words in the opening negation do not form a second report. Root additionally distinguishes source anatomy and trauma wording without new target extraction.',
+ '072:29':'Both identify one unsided findings/conclusion report with historical/chronic wording inside the current examination. Root preserves distinctions between meniscal and Baker cysts and grade scope. No additional report or ACL severity is inferred.'
+}
+records=[]
+for r in own['records']:
+ matches=[x for x in root['records']if x['case']==r['case']];require(len(matches)==1,'Case mismatch');rr=matches[0];n=next(x for x in neutral if x['case']==r['case'])
+ require(rr['study_uid']==r['study_uid']==n['study_uid'] and rr['report']==r['report']==n['report'] and rr['source_report_sha256']==r['source_report_sha256']==n['source_report_sha256'],'Source mismatch')
+ require(rr['source_batch']==r['input_batch']==n['source_batch'],'Batch mismatch');require(all(q in r['report']for q in rr['exact_source_quotes']),'Quote mismatch')
+ records.append({'case':r['case'],'study_uid':r['study_uid'],'source_report_sha256':r['source_report_sha256'],'source_structure_agreement':comparison[r['case']],'material_structural_disagreement':False,'prior_exposure':r['prior_exposure_disclosure']})
+o={'schema_version':1,'stage':'separate_independent_source_structure_comparison','agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'own_source_freeze':ref(P/'source-only-preread.json'),'root_source_freeze':ref(rp),'neutral_bundle':ref(P/'neutral-source-reports.json'),'root_independence':root['independence'],'comparison_order':'Both source freezes and agent metadata triage were complete before the agent opened root observations. Root read the strict neutral sources before its freeze. Prior corpus exposure remains disclosed; no first-ever source independence claim.','records':records,'terminal_byte_scope_correction':ref(P/'terminal-byte-scope-correction.json'),'terminal_scope_note':'Original own-freeze newline overstatements for069:10,072:12,072:29 are corrected separately against exact UTF8 bytes; both original freeze and correction remain preserved. Structural agreement does not reinstate those statements.','originals_modified':False,'clinical_target_states_inferred':False,'training_ready':False}
+p=P/'joint-source-comparison.json';require(not p.exists(),'Joint exists');save(p,o);print(json.dumps(ref(p)))

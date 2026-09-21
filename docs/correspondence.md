@@ -24,9 +24,9 @@ The release exports `correspondence_trace.json`, includes that trace in
 changed or incomplete registry, wrong source identity, unverified proof or partial
 mask fails before the command writes a new release.
 
-The current policies enforce 13 whole-study report-supervision exclusions:
+The current policies enforce 16 whole-study report-supervision exclusions:
 052:20, 075:14, 048:12, 086:13, 017:07, 018:19, 038:37, 067:37,
-052:01, 052:17, 001:39, 007:16 and 062:21. They cover a shoulder report,
+052:01, 052:17, 001:39, 007:16, 062:21, 048:09, 048:38 and 053:47. They cover a shoulder report,
 unresolved two-knee acquisitions and explicitly bilateral report aggregates.
 Literal side tags alone never cause an exclusion.
 
@@ -51,11 +51,19 @@ for 576 corrected pinned mirror files. Original files and reports are preserved.
 The 25 completed mixed-tag investigations do not justify blanket exclusions or
 named-side corrections.
 
-Three further bilateral sources, 048:09, 048:38 and 053:47, now have independently
-frozen source/visual findings and root-replayed cache evidence. They require
-whole-study report-supervision exclusion, but their final policy integration is
-still pending. Other correspondence and semantic flags remain individually
-reviewable; the 13 enforced exclusions do not close the remaining queue.
+The v4 policy adds 048:09, 048:38 and 053:47 using the exact exclusion action
+in each preserved root cache-review record. It binds both full-source freezes,
+both visual assessments, the joint handoff and completed root numerical review.
+Distinct assessor identities and recorded source/visual/handoff chronology are
+validated. These checks authenticate recorded evidence; they do not prove past
+access order or rerun the image interpretation. Case048:31 has an explicit retain
+action and is not added. All 4,407 blinded source reports pass live validation;
+390 full-suite tests pass. See `initiative/audits/correspondence-extension-v4/`.
+The original staged markers and initial failed integration tests are retained
+with the later root promotion and successful live-validation receipts.
+
+Other correspondence and semantic flags remain individually reviewable; the
+16 enforced exclusions do not close the remaining queue.
 
 These controls do not certify completion of report review, semantic QA or the
 remaining technical correspondence queue. Final manifests and actual final-data

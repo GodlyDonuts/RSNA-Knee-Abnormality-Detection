@@ -1,0 +1,19 @@
+from pathlib import Path
+import json,hashlib
+import numpy as np
+from collect_technical import ROOT,WORK,ref,save,require
+P=ROOT
+cases=[];metrics=[]
+for path in sorted((P/'technical-evidence').glob('case-*.json')):
+ c=json.loads(path.read_text());series=[]
+ for r in sorted(c['series'],key=lambda r:int(r['header_endpoint_values']['SeriesNumber'][0])):
+  o=np.array(r['cache_orientation']);ps=np.array(r['cache_pixel_spacing']);shape=r['cache_original_shape'];pos=np.array(r['cache_positions']);center=pos.mean(0)+o[:3]*(shape[2]-1)/2*ps[1]+o[3:]*(shape[1]-1)/2*ps[0]
+  series.append({'series_uid':r['series_uid'],'series_number':r['header_endpoint_values']['SeriesNumber'][0],'literal_laterality':r['header_endpoint_values']['Laterality'][0],'plane':r['iop_dominant_axis_plane_technical_only'],'mean_slice_image_center_xyz_mm':center.tolist()})
+  normal=np.cross(o[:3],o[3:]);normal/=np.linalg.norm(normal)
+  metrics.append({'case':c['case'],'series_uid':r['series_uid'],'series_number':r['header_endpoint_values']['SeriesNumber'][0],'field_height_width_mm':[float(shape[1]*ps[0]),float(shape[2]*ps[1])],'ordered_position_normal_extent_mm':float(np.ptp(pos@normal)),'metadata':r['cache_metadata']})
+  require(r['iop_dominant_axis_plane_technical_only']==r['official_series_features']['Anatomical_Plane'],'Official/IOP mismatch')
+ cases.append({'case':c['case'],'study_uid':c['study_uid'],'series':series})
+require(len(cases)==6 and sum(len(c['series']) for c in cases)==41,'Unexpected scope')
+require(json.loads((P/'technical-evidence/native-fingerprint-overlaps.json').read_text())==[],'Unexpected overlap requires separate triage')
+for out,value in [('derived-series-image-centers.json',{'schema_version':1,'agent_id':'/root/image_pipeline_audit','script':ref(Path(__file__).resolve()),'cases':cases,'scope':'Mathematical image-field centers from bound per-series IOP/spacing/native shape/positions, not cross-frame registered anatomy or patient identity.'}),('field-and-extent-metrics.json',{'schema_version':1,'agent_id':'/root/image_pipeline_audit','script':ref(Path(__file__).resolve()),'series':metrics,'scope':'Field dimensions use pixel counts times spacing; extent is maximum-minus-minimum projected slice-origin coordinate, not anatomical extent.'})]:
+ p=P/out;require(not p.exists(),'Output exists');save(p,value);print(json.dumps(ref(p)))

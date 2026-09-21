@@ -1,0 +1,32 @@
+"""Run staged code and proposed tests without modifying the production checkout."""
+
+import importlib.util
+import os
+import sys
+from pathlib import Path
+
+import pytest
+
+STAGE = Path(__file__).resolve().parent
+ROOT = STAGE.parents[1] / "recovered"
+sys.path.insert(0, str(ROOT))
+os.environ["RSNA_CORRESPONDENCE_BASE"] = str(ROOT)
+os.environ["RSNA_CORRESPONDENCE_OVERLAY"] = str(STAGE / "overlay")
+spec = importlib.util.spec_from_file_location(
+    "rsna.correspondence", STAGE / "overlay/rsna/correspondence.py"
+)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+# Existing v3 tests use the production registry, while the proposed tests use the
+# explicit overlay. Run them in separate calls to preserve each fixture scope.
+first = pytest.main(["-q", str(STAGE / "overlay/tests/test_correspondence_actions.py")])
+os.environ.pop("RSNA_CORRESPONDENCE_OVERLAY")
+second = pytest.main(
+    [
+        "-q",
+        str(ROOT / "tests/test_correspondence.py"),
+        str(ROOT / "tests/test_correspondence_extension.py"),
+    ]
+)
+sys.exit(first or second)

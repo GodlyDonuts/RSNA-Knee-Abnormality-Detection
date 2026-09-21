@@ -1,0 +1,53 @@
+"""Prepare personally reasoned tenth metadata dispositions, preserving source corrections."""
+from pathlib import Path
+P=Path(__file__).resolve().parent;S=P.parent/'technical-tier4-ninth-six-v1'
+manual={
+'068:38':(
+ 'All four series carry literal LEFT rather than canonical L; the original queue trigger is noncanonical side spelling, with no mixed filled side or blank tag.',
+ 'Four series, 76 slices: axial 3, coronal 4/5, sagittal 6. Coronal 4/5 share exact IOP with different 130/160 mm fields and similar 79.2/81.6 mm extents. No repeated complete protocol or native fingerprint overlap appears in metadata. One patient hash and distinct frame hashes do not prove anatomy or identity.',
+ 'The source explicitly contains separate LEFT and RIGHT Greek current report blocks with a literal bilateral separator. One literal LEFT protocol does not resolve the aggregate or license selection of one source block.',
+ 'bounded_cached_protocol_coverage_check_recommended',
+ 'After independent root source review, propose three existing cached samples from all four series for gross protocol and coverage inspection. Preserve literal LEFT and both complete reports; do not normalize source tags, assign named side or infer clinical targets. A coherent sampled set would still not establish report linkage.',
+ 'targeted_explicit_bilateral_source_single_tag_protocol'),
+'069:10':(
+ 'Five series carry L, while sagittal 401 is blank. The original queue trigger is blank/filled Laterality; source review additionally identifies an explicit RIGHT-knee narrative.',
+ 'Six series, 179 slices. Sagittal 201/301/401 have exact equal IOP and recorded mean centers, with about 160 mm fields and 92.4 mm extents. The 201/401 repeated description is not a native pixel duplicate. Coronal 501/601 and axial 701 carry L, with no opposite filled header tag and no native fingerprint overlap.',
+ 'The single current report explicitly names the right knee, whereas the nonempty endpoint Laterality fields are L. This literal source/header conflict is unresolved; neither the report nor tags can be declared erroneous from metadata alone.',
+ 'bounded_cached_protocol_consistency_check_recommended',
+ 'After independent root source freeze, propose all six series with three cache samples each to inspect gross protocol coherence and repeated sagittal coverage. Preserve the explicit right-versus-L conflict even if images are coherent. No automatic report-side selection, tag correction, identity inference or clinical label change.',
+ 'targeted_explicit_report_header_side_conflict'),
+'070:43':(
+ 'Initial axial 301 has blank Laterality; the remaining eight series carry R. Original trigger is blank/filled Laterality.',
+ 'Nine series, 268 slices. Blank 301 and R 401 have identical native shape, spacing, IOP and all ordered origins, but disjoint native fingerprints. AX_T1W_PRE 901 and AX_T1W_POST 1001 also share exact geometry but differ in pixels. Coronal POST 1101 shares main coronal IOP, with different native sampling. No repeated opposite-side protocol or native fingerprint overlap.',
+ 'One explicit RIGHT-knee current MRI without and with contrast, with a prior radiograph as comparator. The named PRE/POST sequences are compatible with that stated acquisition context, not evidence of two current MRI reports. Actual timing and contrast phase are not independently authenticated from names alone.',
+ 'not_required_by_current_trigger_alone',
+ 'Retain all sequences, including both same-geometry pre/post series, and leave 301 unknown. Defer pixels from isolated missing tag and source-consistent sequence context; no automatic duplicate exclusion, phase assignment or named-side inference.',
+ 'defer_pixel_escalation_preserve_distinct_contrasts'),
+'072:12':(
+ 'Five main series carry L and limited sagittal 701 has blank Laterality; original trigger is blank/filled Laterality.',
+ 'Six series, 163 slices. Blank 701 has 11 slices and 22.5 mm extent versus main sagittal 601 with 29 slices and 92.4 mm extent; both fields are 160 mm. Their IOPs differ, with maximum component difference 0.0928827590. Shared PDW_TSE_Sag description does not establish duplicate geometry or images. No native fingerprint overlap.',
+ 'One unsided findings/conclusion report, without a second examination or bilateral marker. The narrow supplementary sagittal coverage does not itself identify another knee.',
+ 'not_required_by_current_trigger_alone',
+ 'Keep 701 unknown and preserve its actual tilt and restricted extent. Defer immediate pixels from a missing limited-series tag alone; no inference about a special structure, clinical state or correct named side.',
+ 'defer_pixel_escalation'),
+'072:26':(
+ 'Five main series carry L and limited sagittal 701 is blank; original trigger is blank/filled Laterality.',
+ 'Six series, 166 slices. Blank 701 has 11 slices and 22.5 mm extent versus main sagittal 301 with 29 slices and 92.4 mm extent, both 160 mm fields. IOPs differ, with maximum component difference 0.1958022254; positions and shape also differ. No native fingerprint overlap or second complete multiplanar set.',
+ 'One report explicitly names the LEFT knee. Literal main L tags match its wording but do not authenticate anatomical side or fill the unknown supplementary tag. The duplicated fluid phrase remains source text.',
+ 'not_required_by_current_trigger_alone',
+ 'Preserve 701 unknown and do not treat the shared sagittal name as exact geometry or duplication. No immediate image escalation is warranted by the isolated missing limited-series tag alone.',
+ 'defer_pixel_escalation'),
+'072:29':(
+ 'Five main series carry L and limited sagittal 701 is blank; original trigger is blank/filled Laterality.',
+ 'Six series, 195 slices. Blank 701 has 15 slices and 31.5 mm extent versus main sagittal 601 with 34 slices and 108.9 mm extent; fields are 160 mm. IOPs differ, with maximum component difference 0.1060315503. Repeated sagittal description is not exact geometry or a native pixel duplicate.',
+ 'One unsided report with findings and repeated conclusion. The source chronicity phrase belongs to a finding, not a separate prior dated examination. No bilateral boundary or second protocol is established.',
+ 'not_required_by_current_trigger_alone',
+ 'Keep the limited series and blank tag unchanged. Defer immediate pixels for the isolated missing supplementary tag, preserving orientation differences and the absence of a source-to-image side determination.',
+ 'defer_pixel_escalation')
+}
+s=(S/'assemble_triage.py').read_text();a=s.index('manual=');b=s.index('\nrows=[]',a);s=s[:a]+'manual='+repr(manual)+s[b:]
+s=s.replace('(53,1763,106)','(37,1047,74)').replace("'complete_series':53,'source_memberships':1763,'endpoint_geometries':106","'complete_series':37,'source_memberships':1047,'endpoint_geometries':74").replace('All 106 original selected endpoint','All 74 original selected endpoint').replace('All 53 official planes','All 37 official planes')
+s=s.replace("'specific_pair_metadata':ref(P/'specific-pair-metadata.json'),", "'specific_pair_metadata':ref(P/'specific-pair-metadata.json'),'terminal_byte_scope_correction':ref(P/'terminal-byte-scope-correction.json'),")
+(P/'assemble_triage.py').write_text(s)
+s=(S/'validate_triage.py').read_text().replace("{'058:34', '058:45', '060:25', '061:42', '063:42', '065:28'}", "{'068:38', '069:10', '070:43', '072:12', '072:26', '072:29'}").replace('1763','1047').replace('== 53','== 37').replace('== 106','== 74').replace("'series_metadata': 53","'series_metadata': 37").replace("'endpoint_geometries': 106","'endpoint_geometries': 74").replace("'field_and_extent_metrics', 'specific_pair_metadata'", "'field_and_extent_metrics', 'specific_pair_metadata', 'terminal_byte_scope_correction'")
+(P/'validate_triage.py').write_text(s)

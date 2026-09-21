@@ -1,0 +1,34 @@
+"""Replay physical fields and slice-origin extents from authenticated metadata."""
+from pathlib import Path
+import datetime, hashlib, json, shutil
+import numpy as np
+BASE=Path(__file__).resolve().parent
+WORK=BASE.parents[1]
+OUT=BASE/'root-run-001'
+def ref(p):
+    assert p.resolve().is_relative_to(WORK.resolve())
+    return {'path':str(p.relative_to(WORK)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+assert shutil.disk_usage(WORK).free > 20*2**30 + 2**20
+for ordinal,n in [('tenth',37),('eleventh',41),('twelfth',45),('thirteenth',44)]:
+    g=WORK/'annotation-staging'/f'technical-tier4-{ordinal}-six-v1'
+    dest=OUT/f'{ordinal}-field-extent-replay.json';assert not dest.exists()
+    proofpath=OUT/f'{ordinal}-metadata-replay.json';proof=json.loads(proofpath.read_text())
+    assert proof['status']=='verified' and proof['series_metadata']==n
+    metricspath=g/'field-and-extent-metrics.json';metrics=json.loads(metricspath.read_text())
+    assert len(metrics['series'])==n
+    assert ref(metricspath) in proof['bindings']
+    case_counts={r['case']:r['series'] for r in proof['cases']}
+    seen=set();checked=[];actual_counts={case:0 for case in case_counts}
+    for row in metrics['series']:
+        uid=row['series_uid'];assert uid not in seen;seen.add(uid)
+        p=WORK/row['metadata']['path'];assert ref(p)==row['metadata'];m=json.loads(p.read_text());assert m['series_uid']==uid
+        h,w=m['original_shape'][1:];spacing=m['pixel_spacing'];field=[h*spacing[0],w*spacing[1]]
+        assert field==row['field_height_width_mm']
+        o=np.asarray(m['orientation'],dtype=float);normal=np.cross(o[:3],o[3:]);assert np.linalg.norm(normal)>0
+        normal/=np.linalg.norm(normal);projected=np.asarray(m['positions'])@normal;extent=float(max(projected)-min(projected))
+        assert np.isfinite(extent) and abs(extent-row['ordered_position_normal_extent_mm'])<1e-10
+        actual_counts[row['case']]+=1
+        checked.append({'case':row['case'],'series_uid':uid,'series_number':row['series_number'],'field_height_width_mm':field,'slice_origin_extent_mm':extent,'metadata':ref(p)})
+    assert actual_counts==case_counts
+    result={'stage':'root_field_extent_verification','agent_id':'/root','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified','group':ordinal,'series':n,'checks':checked,'bindings':[ref(Path(__file__)),ref(proofpath),ref(metricspath)],'adapted_from':ref(WORK/'annotation-staging/root_verify_tier4_field_extents_v9.py'),'limits':'Metadata-derived physical field sizes and projected slice-origin extent, not anatomical coverage or common cross-frame registration. No images, labels or source bytes changed.','training_ready':False}
+    dest.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'group':ordinal,'status':'verified','series':n,'result':ref(dest)}))

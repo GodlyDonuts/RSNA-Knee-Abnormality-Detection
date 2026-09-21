@@ -1,0 +1,18 @@
+from pathlib import Path
+import importlib.util,json,subprocess,hashlib
+STAGE=Path(__file__).resolve().parent;WORK=STAGE.parents[1];REPO=WORK/'recovered'
+PREVIOUS=WORK/'annotation-staging/hf-review3607-recovery-v1/recover_checkpoint_compact_head.py'
+def main():
+ spec=importlib.util.spec_from_file_location('prior_compact_transport',PREVIOUS);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ hub=module.configure_hub()
+ from dotenv import dotenv_values
+ token=dotenv_values(WORK.parent/'.env').get('HF_TOKEN');module.require(isinstance(token,str)and bool(token),'hf_token_missing')
+ api=hub.HfApi(token=token,endpoint=module.ENDPOINT)
+ ci=json.loads(subprocess.check_output(['gh','run','view','35604527490','--repo',module.GH_REPO,'--json','conclusion,headSha,status'],text=True,timeout=60,stderr=subprocess.DEVNULL));module.require(ci=={'conclusion':'success','headSha':'94fed05d353d180e30c968bc0561e05c00ae6880','status':'completed'},'ci_identity')
+ head=module.private_head(api);module.require(head=='76a4c0dab20fd49ffd0590a4344eac5b67d8be1f','unexpected_private_parent');source=module.verify_source_unchanged(api,head)
+ d=REPO/'initiative/audits/hf-preparation-checkpoint-88edbf4';receipt=json.loads((d/'publication-receipt.json').read_text());preservation=json.loads((d/'preservation.json').read_text());ref=preservation['package'];local=WORK/'hf-preparation-checkpoints/88edbf46772d3eaf94e2ec8693b3840528f301d8/checkpoint.tar.gz';actual=module.file_ref(local);module.require(actual['sha256']==ref['sha256']and actual['bytes']==ref['bytes'],'eviction_candidate_identity');remote='preparation-checkpoints/88edbf46772d3eaf94e2ec8693b3840528f301d8/checkpoint.tar.gz';expected={'path':remote,'sha256':ref['sha256'],'bytes':ref['bytes']};module.require(expected in receipt['uploaded_files'],'receipt_candidate_missing');module.require(receipt['status']=='verified_private_preparation_checkpoint'and receipt['remote_objects_verified'] is True,'prior_receipt_unverified');verified=module.verify_remote(api,hub,token,head,[expected]);module.require(module.private_head(api)==head,'head_changed')
+ obj={'schema_version':1,'stage':'readonly_remote_and_eviction_candidate_preflight','checked_at_utc':module.now(),'github_commit':ci['headSha'],'github_ci_run':35604527490,'github_ci_result':ci,'hf_repo':module.HF_REPO,'private':True,'hf_parent_revision':head,'effective_source_revision':module.SOURCE,'source_tree_and_five_official_csv_identities':source,'previous_transport_script':module.file_ref(PREVIOUS),'eviction_candidate':{'local_file':actual,'remote_file':expected,'verified_at_revision':head,'verification':verified,'prior_receipt':module.file_ref(d/'publication-receipt.json'),'preservation':module.file_ref(d/'preservation.json'),'deleted':False},'remote_writes':0,'secrets_recorded':False}
+ p=STAGE/'readonly-preflight.json';module.write_new_json(p,obj);print(json.dumps({'private':True,'head':head,'ci':'success','candidate_bytes':ref['bytes'],'candidate_sha256':ref['sha256'],'remote_writes':0}),flush=True)
+if __name__=='__main__':
+ try:main()
+ except BaseException as e:print(json.dumps({'status':'blocked','error_type':type(e).__name__}),flush=True);raise SystemExit(1)

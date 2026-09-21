@@ -1,0 +1,108 @@
+........................................................................ [ 18%]
+.........................................FF............................. [ 36%]
+........................................................................ [ 55%]
+........................................................................ [ 73%]
+........................................................................ [ 92%]
+..............................                                           [100%]
+=================================== FAILURES ===================================
+_ test_real_extension_binds_exactly_nine_new_cases_and_keeps_existing_policies _
+
+extension = {'policy': {'agent_id': '/root/competition_contract', 'created_at_utc': '2026-09-21T13:38:32.865858+00:00', 'decision_...private/var/folders/gc/b14m271j6t3b0v6n73zqx5q80000gn/T/pytest-of-sairamen/pytest-71/test_real_extension_binds_exac0')}
+
+    def test_real_extension_binds_exactly_nine_new_cases_and_keeps_existing_policies(
+        extension: dict,
+    ) -> None:
+>       trace = inspect_correspondence(extension["reports"], extension["root"])
+
+tests/test_correspondence_extension.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+rsna/correspondence.py:475: in inspect_correspondence
+    _validate_proof(record, artifact_root)
+rsna/correspondence.py:359: in _validate_proof
+    _validate_multi_assessor_proof(record, proof, artifact_root)
+rsna/correspondence.py:302: in _validate_multi_assessor_proof
+    _validate_cache_action_lineage(
+rsna/correspondence.py:96: in _validate_cache_action_lineage
+    visual = _object(_bound_path(visual_ref, artifact_root))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+reference = {'path': 'initiative/audits/technical-tier4-seventh-targeted-cache-v1/cache-panels/case-048-09/root-visual-freeze.json', 'sha256': 'b07701f49701c99941f31bf4685f293fcdfc2a68d20e702fa14433b1e0a12206'}
+artifact_root = PosixPath('/private/var/folders/gc/b14m271j6t3b0v6n73zqx5q80000gn/T/pytest-of-sairamen/pytest-71/test_real_extension_binds_exac0')
+
+    def _bound_path(reference: object, artifact_root: Path) -> Path:
+        if not isinstance(reference, dict) or set(reference) != {"path", "sha256"}:
+            raise ValueError("Evidence references require path and sha256")
+        name, digest = reference["path"], reference["sha256"]
+        if not isinstance(name, str) or not name or Path(name).is_absolute():
+            raise ValueError("Evidence paths must be relative to the artifact root")
+        path = (artifact_root / name).resolve()
+        if not path.is_relative_to(artifact_root.resolve()):
+            raise ValueError("Evidence path escapes the artifact root")
+        if not path.is_file() or digest != file_sha256(path):
+>           raise ValueError(f"Missing or changed evidence checksum: {name}")
+E           ValueError: Missing or changed evidence checksum: initiative/audits/technical-tier4-seventh-targeted-cache-v1/cache-panels/case-048-09/root-visual-freeze.json
+
+rsna/adjudications.py:48: ValueError
+__ test_real_exclusions_zero_all_report_masks_without_changing_labels_or_gold __
+
+extension = {'policy': {'agent_id': '/root/competition_contract', 'created_at_utc': '2026-09-21T13:38:32.865858+00:00', 'decision_...private/var/folders/gc/b14m271j6t3b0v6n73zqx5q80000gn/T/pytest-of-sairamen/pytest-71/test_real_exclusions_zero_all_0')}
+
+    def test_real_exclusions_zero_all_report_masks_without_changing_labels_or_gold(
+        extension: dict,
+    ) -> None:
+        # Deliberately fabricated targets and split; no official target columns are opened.
+        gold_uid = record_for(extension, "052:01")["study_uid"]
+        rows = []
+        for uid, report in extension["reports"].items():
+            rows.append(
+                {
+                    "study_uid": uid,
+                    "Report": report,
+                    "split": "gold_evaluation" if uid == gold_uid else "train",
+                    "group_id": f"unchanged-{uid}",
+                    **{target: 0.25 for target in TARGETS},
+                    **{f"{target}__mask": 1.0 for target in TARGETS},
+                    **{f"{target}__state": "synthetic_test_state" for target in TARGETS},
+                    **{f"{target}__evidence": "synthetic_test_evidence" for target in TARGETS},
+                    **{f"{target}__provenance": "synthetic_test_input" for target in TARGETS},
+                }
+            )
+        original = pd.DataFrame(rows)
+        before = original.copy(deep=True)
+>       effective, trace = apply_correspondence(original, extension["reports"], extension["root"])
+
+tests/test_correspondence_extension.py:137: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+rsna/correspondence.py:499: in apply_correspondence
+    audit = inspect_correspondence(reports, artifact_root)
+rsna/correspondence.py:475: in inspect_correspondence
+    _validate_proof(record, artifact_root)
+rsna/correspondence.py:359: in _validate_proof
+    _validate_multi_assessor_proof(record, proof, artifact_root)
+rsna/correspondence.py:302: in _validate_multi_assessor_proof
+    _validate_cache_action_lineage(
+rsna/correspondence.py:96: in _validate_cache_action_lineage
+    visual = _object(_bound_path(visual_ref, artifact_root))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+reference = {'path': 'initiative/audits/technical-tier4-seventh-targeted-cache-v1/cache-panels/case-048-09/root-visual-freeze.json', 'sha256': 'b07701f49701c99941f31bf4685f293fcdfc2a68d20e702fa14433b1e0a12206'}
+artifact_root = PosixPath('/private/var/folders/gc/b14m271j6t3b0v6n73zqx5q80000gn/T/pytest-of-sairamen/pytest-71/test_real_exclusions_zero_all_0')
+
+    def _bound_path(reference: object, artifact_root: Path) -> Path:
+        if not isinstance(reference, dict) or set(reference) != {"path", "sha256"}:
+            raise ValueError("Evidence references require path and sha256")
+        name, digest = reference["path"], reference["sha256"]
+        if not isinstance(name, str) or not name or Path(name).is_absolute():
+            raise ValueError("Evidence paths must be relative to the artifact root")
+        path = (artifact_root / name).resolve()
+        if not path.is_relative_to(artifact_root.resolve()):
+            raise ValueError("Evidence path escapes the artifact root")
+        if not path.is_file() or digest != file_sha256(path):
+>           raise ValueError(f"Missing or changed evidence checksum: {name}")
+E           ValueError: Missing or changed evidence checksum: initiative/audits/technical-tier4-seventh-targeted-cache-v1/cache-panels/case-048-09/root-visual-freeze.json
+
+rsna/adjudications.py:48: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_correspondence_extension.py::test_real_extension_binds_exactly_nine_new_cases_and_keeps_existing_policies
+FAILED tests/test_correspondence_extension.py::test_real_exclusions_zero_all_report_masks_without_changing_labels_or_gold
+2 failed, 388 passed in 15.57s
