@@ -1,0 +1,23 @@
+{
+  "agent_id": "/root/image_pipeline_audit",
+  "code_sha256": {
+    "rsna/correspondence.py": "44fabae953290f0997eee4c546074ff4cdad1aac7833bbf08b1c34f7e7146bb8",
+    "rsna/labels.py": "d6bd2d88dfd75b5daaf69fe6436f777ce43839ec4718a2448efe6fdc188549ea",
+    "tests/test_correspondence.py": "2fdde4875a7b1e1a11c934c7830b46adba4feea44b695ca05fe43acc3fa9f54f"
+  },
+  "synthetic_fixtures_only": true,
+  "results": [
+    {
+      "scenario": "existing_policy_silently_removed_from_registry",
+      "baseline_studies": 2,
+      "accepted_studies_after_omission": 0,
+      "policy_file_still_exists": true
+    },
+    {
+      "scenario": "proof_without_study_uid_reassigned_to_different_report",
+      "proof_case": "bad",
+      "accepted_study_uid": "safe",
+      "original_proof_file_name": "proof-bad.json"
+    }
+  ]
+}

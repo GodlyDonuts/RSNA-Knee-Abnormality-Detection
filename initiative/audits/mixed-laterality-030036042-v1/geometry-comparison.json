@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "stage": "existing_endpoint_cache_geometry_comparison",
+  "agent_id": "/root/image_pipeline_audit",
+  "script": {
+    "path": "annotation-staging/mixed-laterality-030036042-v1/compare_geometry.py",
+    "sha256": "2e99f74e0a9b529f205d4c9d289747a4ecd704a166b094d7efe1131c8b196772",
+    "bytes": 4950
+  },
+  "summary": {
+    "path": "annotation-staging/mixed-laterality-030036042-v1/technical-evidence/summary.json",
+    "sha256": "20b929f660a3f2f6bd30dead4bf481f750e399f73693e302d0439c0be62458a0",
+    "bytes": 13764
+  },
+  "endpoint_geometry_shape_checks_passed": 38,
+  "cases": [
+    {
+      "case": "030:18",
+      "study_uid": "1.2.826.0.1.3680043.8.498.22407175411826914385667795929161924645",
+      "repeated_description_pairs": []
+    },
+    {
+      "case": "036:17",
+      "study_uid": "1.2.826.0.1.3680043.8.498.30248682294786626375369374249874501600",
+      "repeated_description_pairs": []
+    },
+    {
+      "case": "042:11",
+      "study_uid": "1.2.826.0.1.3680043.8.498.38056024157303576597111203925091929489",
+      "repeated_description_pairs": []
+    }
+  ],
+  "scope": "All 38 selected endpoint positions matched their own source SOP's full-cache position exactly; orientation, spacing and native dimensions also exactly matched. Pair displacements compare recorded image origins, not aligned anatomical centers. Different anonymized FrameOfReferenceUIDs prevent asserting one shared patient coordinate frame. No image anatomy, side or target labels inferred."
+}

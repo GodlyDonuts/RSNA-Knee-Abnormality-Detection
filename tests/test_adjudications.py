@@ -620,8 +620,13 @@ def test_labels_cli_exports_effective_original_and_correction_lineage(
     bundle: dict, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from rsna import labels
+    from rsna.correspondence import REGISTRY_PATH
 
     root, paths = bundle["root"], bundle["paths"]
+    write(
+        root / REGISTRY_PATH,
+        {"schema_version": 1, "target_order": list(TARGETS), "policies": []},
+    )
     train_path = root / "train.csv"
     pd.DataFrame(
         [

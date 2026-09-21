@@ -1,0 +1,37 @@
+"""Prepare a new immutable publisher from the previously verified implementation."""
+from pathlib import Path
+W=Path(__file__).resolve().parent;src=W/'publish_official_duplicate_checkpoint.py';dst=W/'publish_correspondence_checkpoint.py';assert not dst.exists();t=src.read_text()
+old="'initiative/audits/endpoint-source-reuse-v1/')";assert old in t;t=t.replace(old,"'initiative/audits/endpoint-source-reuse-v1/','initiative/audits/repeated-protocol-six-v1/','initiative/audits/correspondence-native-075-014-v1/','initiative/audits/correspondence-shoulder-report-052-020-v1/')")
+t=t.replace('==58 and report_count==2857','==62 and report_count==3057').replace('2,857','3,057').replace('34,284','36,684').replace('2857-report','3057-report').replace('2857reviewed','3057reviewed')
+t=t.replace("info.sha=='3c572475723dfcc64d6b2ffcece73ca5322f2733'","info.sha=='39a16012c4e84059e1e7b9abb36d4b9b6c477988'")
+t=t.replace('and the corrected-source endpoint reuse proof. The82.6GB','the corrected-source endpoint reuse proof, all337official075:14 source images,33bound native panels, three preserved052:20cached volumes and body-region mismatch evidence. The82.6GB')
+needle="for name,names in extra_audits.items():";assert needle in t
+t=t.replace(needle,"""extra_audits.update({
+ 'repeated-protocol-six-v1':['README.md','root-triage-review.json','source-header-assessment-and-native-plan.json','preservation.json'],
+ 'correspondence-native-075-014-v1':['source-geometry-visual-handoff.json','root-numeric-display-review.json','root-visual-freeze.json','independent-visual-assessment.json','native-verification.json','panel-manifest-native-window-v2.json','panel-window-supersession.json','preservation.json','panels-native-window-v2/native-series-page-00.png','panels-native-window-v2/native-series-page-01.png','panels-native-window-v2/native-series-page-02.png','panels-native-window-v2/native-series-page-03.png'],
+ 'correspondence-shoulder-report-052-020-v1':['source-header-cache-visual-handoff.json','root-source-display-review.json','source-only-preread.json','independent-cache-visual-assessment.json','cache-panels/root-visual-freeze.json','cache-panels/panel-manifest.json','cache-panels/three-verified-cache-mid-slices.png','preservation.json']})
+disposition_path='initiative/audits/correspondence-release-dispositions-v1.json';assert (R/disposition_path).read_bytes()==blob(disposition_path);files_to_upload['audits/correspondence-release-dispositions-v1.json']=R/disposition_path
+for name,names in extra_audits.items():""")
+start=t.index("addition=f'''");end=t.index("\ncard=card.replace",start)
+t=t[:start]+'''addition=f''' + "'''" + '''
+## Report correspondence checkpoint — September 21, 2026
+
+The newest private [preparation checkpoint]({prefix}) preserves GitHub `{commit}` with **3,057 independently reviewed reports**, 36,684 target decisions and 200 passing tests. It remains **incomplete and not training-ready**.
+
+The corrected source stays pinned at `{source_revision}`. Its complete technical audit covers 819,635 slices, 24,386 series and 4,410 studies with zero cache warnings. The selected training table retains all 4,407 studies and 24,338 series after excluding 33 fully equivalent slots; all 15 released test series remain. [Full image evidence]({audit_prefix}) and the [official duplicate-study proof](audits/cross-study-official-duplicate-v1) are preserved.
+
+Two report-to-image problems now have independently reviewed evidence:
+
+- [075:14](audits/correspondence-native-075-014-v1): two opposing knee protocols with a short unsided report. Root independently replayed all 337 official-source hashes, CRCs, UIDs, native fingerprints and geometry, plus exact displayed pixels for 33 sampled panels. Both assessors independently observed opposing knee morphology. The report cannot be assigned safely to either group. Source IOP validity and absence of upstream mirroring remain stated assumptions.
+- [052:20](audits/correspondence-shoulder-report-052-020-v1): the complete original official report describes a shoulder, while all three bound cached samples show knee anatomy. Two independent visual observations and root source/display verification agree. This was three samples from three of six series, not a diagnostic reread of all 169 images.
+
+The [release dispositions](audits/correspondence-release-dispositions-v1.json) require masking all report-derived supervision for these two studies. Original reports, images and gold evaluation assignments remain unchanged. All 337 official 075:14 files and the three selected 052:20 cache volumes are included in the checkpoint package with exact hashes. No patient identity or institution is inferred.
+
+Full report review, global semantic and correspondence adjudication, remaining technical candidate checks, the final transitive leakage-isolated manifest and final training/resume/inference checks remain required. Native work for 048:12 and 086:13 is still staged for root numerical review; 576 mirrored source files await fresh official byte confirmation after rate limiting. This package does not claim that work is complete. Older sections below are historical checkpoints.
+''' + "'''" + t[end:]
+needle="(out/'manifest.json').write_text";assert needle in t
+t=t.replace(needle,"""manifest['correspondence_reviews']={'075:14':{'official_source_files':337,'series':11,'native_sample_panels':33,'root_proof_sha256':'48e949fb1002407cd3fa49b6b9ec52c012707b3728e49a0598e2ab8f207dafc3','required_report_supervision_mask_all':True},'052:20':{'source_inventory_slices':169,'series':6,'cached_sample_panels':3,'full_npz_files_preserved':3,'root_proof_sha256':'9e112010d518851b9f9868a513e7131564b12b25a32d956aeffde9aa7a190c3f','required_report_supervision_mask_all':True}}
+(out/'manifest.json').write_text""")
+t=t.replace("commit_message='Preserve official duplicate-source proof and3057-report checkpoint'","commit_message='Preserve report-image correspondence proof and3057-report checkpoint'")
+t=t.replace('All288official files independently verified,144native image pairs identical, endpoint-source reuse proof and3057reviewed reports.','Verified337official-source two-knee study, shoulder-report/knee-image mismatch, and3057reviewed reports. Earlier288official duplicate-study files and full recovery evidence preserved.')
+dst.write_text(t);compile(t,str(dst),'exec');print('Prepared immutable correspondence checkpoint publisher; no remote mutation yet.')

@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "stage": "mixed_literal_laterality_source_header_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T08:53:42.888825+00:00",
+  "bindings": [
+    {
+      "path": "annotation-staging/mixed-laterality-016021022-v1/source-only-preread.json",
+      "sha256": "edb2648847f54ea9e21cf9656cd99a51cd831ba8a51183817dbde64ccdde7b4b",
+      "bytes": 6131
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-016021022-v1/technical-evidence/summary.json",
+      "sha256": "d0108f76fcbe39d189e7f05f536b893770814511273cf9949b4321a5f45d700a",
+      "bytes": 12708
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-016021022-v1/geometry-comparison.json",
+      "sha256": "56321047ebda5e1e52478946a796df3de7eac1e4a30210ae1eaf0a60d44ef9e6",
+      "bytes": 2455
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-016021022-v1/derived-series-image-centers.json",
+      "sha256": "bda58d11578b056fdc6e44fb7698d834b7b613960fd07e8b7d9e3bbb04790402",
+      "bytes": 6730
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-016021022-v1/collect_technical.py",
+      "sha256": "46f70966daf82effc3cc59012e6cd2c28aa95314ddf9c74f6e1449149893677c",
+      "bytes": 13542
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-016021022-v1/compare_geometry.py",
+      "sha256": "5723e1e128087f84370b1dc2fe5ac070104dcd4a8a9b648a598b0e3d3aaa96d6",
+      "bytes": 4950
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-016021022-v1/verify_image_centers.py",
+      "sha256": "0046c6167e6baa5aa42fea8660ba31353e30b1ed5443f6b6a33c64af413897e0",
+      "bytes": 1830
+    }
+  ],
+  "records": [
+    {
+      "case": "016:06",
+      "study_uid": "1.2.826.0.1.3680043.8.498.12333996498811456012744466468462396081",
+      "source_report_sha256": "5ffdaa963857634ec765ddfbd5de73d45017f6e3cfeaa11bc980da3bd6ae3b0d",
+      "source_report_structure": "One short Spanish knee MRI narrative with Técnica, Resultados and Impresión. Findings and impression repeat the same statement. No explicit right/left side, both-knee declaration, second report block, prior examination/date or temporal comparison.",
+      "official_archive_source_text_exact_match": true,
+      "series": 5,
+      "slices": 119,
+      "source_bytes": 220075752,
+      "endpoints": 10,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.32376822456909015666885360106431481179",
+          "series_number": "201",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -89.58510543823154,
+            -46.821662902829814,
+            15.120452919007889
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.64397550837394550973627521940538609589",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -89.58510543823165,
+            -46.8216629028303,
+            15.120452919008002
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.97696656566643469391502249705489898870",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            -89.87650299071981,
+            -45.3808900451572,
+            15.27519773483743
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.33994302602647933128707045029806574972",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -90.73821258543583,
+            -66.67497253417713,
+            11.481492096732694
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.98530197935627119211464312365440645027",
+          "series_number": "601",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -90.73821258543717,
+            -66.67497253417707,
+            11.481492096734186
+          ]
+        }
+      ],
+      "image_center_max_pairwise_distance_mm": 21.646540022446967,
+      "paired_physical_field_center_comparisons": [
+        {
+          "series_numbers": [
+            201,
+            301
+          ],
+          "image_center_displacement_mm": 5.092167858483923e-13
+        },
+        {
+          "series_numbers": [
+            501,
+            601
+          ],
+          "image_center_displacement_mm": 2.0035289322962074e-12
+        }
+      ],
+      "classification": "single_protocol_with_opposite_literal_tags_in_paired_coronal_acquisitions_candidate",
+      "metadata_observation": "Five sequential series201..601 comprise sagittal201/301(R), axial401(R), coronal501(L) and coronal601(R). Coronal501/601 have exactly the same recorded IOP, 22 slices each, and matching physical image-field centers despite different native matrices (1024 vs720) and slightly shifted image origins. There is one complete protocol, not two separated full acquisition sets. All centers cluster near X-90mm.",
+      "key_pair_series_numbers": [
+        501,
+        601
+      ],
+      "next_step": "Prioritize bound cached coronal501/601 contrast-pair comparison, with sagittal/axial context, before deciding whether full-native escalation is useful. Opposite literal tags alone do not warrant source relabeling or bilateral exclusion.",
+      "full_native_download_started": false
+    },
+    {
+      "case": "021:01",
+      "study_uid": "1.2.826.0.1.3680043.8.498.13030662056306690969977140713179461363",
+      "source_report_sha256": "d4fd9238a0d907c9f5e8096a5038257ba07ee33e53750bd7d7bb0dacdca64ab2",
+      "source_report_structure": "One continuous Croatian knee report covering knee bones, medial/lateral tibiofemoral compartments, menisci, ligaments and patellofemoral articulation. No explicit named right/left knee, bilateral declaration, second report, prior examination/date or longitudinal comparison. Medial/lateral compartments and FT/FP refer to structures within a knee and do not themselves imply two knees.",
+      "official_archive_source_text_exact_match": true,
+      "series": 6,
+      "slices": 171,
+      "source_bytes": 90351914,
+      "endpoints": 12,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.12708310131711134223325269050452147528",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -114.36992645262539,
+            -43.78652954101062,
+            7.683438402240952
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.13343335005280674432151597070745675665",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -114.36992645262505,
+            -43.786529541010246,
+            7.683438286644218
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.61573382429891583248566517726172307372",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -115.22527313231726,
+            -54.32069772083802,
+            7.730724334724343
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.18346027510082693033940605554171909746",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -115.22527313231726,
+            -54.32069772083802,
+            7.730724334724343
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.50715694066537496356614507007355830539",
+          "series_number": "701",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            -112.82198333739865,
+            -46.50506973265465,
+            7.218193113807145
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.11876786729672065930957409970502140077",
+          "series_number": "801",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -116.99795532225588,
+            -36.40698585509523,
+            -2.701920763640956
+          ]
+        }
+      ],
+      "image_center_max_pairwise_distance_mm": 20.805853952765915,
+      "paired_physical_field_center_comparisons": [
+        {
+          "series_numbers": [
+            301,
+            401
+          ],
+          "image_center_displacement_mm": 1.155967339638916e-07
+        },
+        {
+          "series_numbers": [
+            501,
+            601
+          ],
+          "image_center_displacement_mm": 0.0
+        }
+      ],
+      "classification": "single_protocol_with_cross_plane_literal_tag_conflict_candidate",
+      "metadata_observation": "Six-series protocol301..801: sagittal301/401(R), coronal501/601(L), axial701(R), additional narrow oblique-coronal801(R). Coronal contrast pair has identical IOP, spacing and all ordered positions. Recorded image-field centers stay near X-113to-117mm; no second complete protocol. The duplicated PDW_SPAIR description spans coronal501 and axial701 and does not mean a repeated same-plane series.",
+      "key_pair_series_numbers": [
+        501,
+        601,
+        701,
+        801
+      ],
+      "next_step": "Bound representative cached plane families plus oblique801 can check one-knee consistency. Do not transfer anatomical conclusions from the similar prior tag pattern or infer institutional origin.",
+      "full_native_download_started": false
+    },
+    {
+      "case": "022:40",
+      "study_uid": "1.2.826.0.1.3680043.8.498.13242536312535334908597493894251783308",
+      "source_report_sha256": "853a125095b63eb55f8f46143c4118b10d9f29ea437f714785ecbb62942a0369",
+      "source_report_structure": "One short Spanish knee MRI record with Técnica, Resultados and Impresión. Results and impression both state no abnormalities. No named side, both-knee declaration, separate report, prior study/date or temporal comparison.",
+      "official_archive_source_text_exact_match": true,
+      "series": 5,
+      "slices": 119,
+      "source_bytes": 192907406,
+      "endpoints": 10,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.11362645941562353234152333408026635306",
+          "series_number": "201",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            121.8226260376077,
+            -54.91722488403403,
+            -6.796297073356342
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.63569580625730516676366238400914084333",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            121.82262603760755,
+            -54.917224884031505,
+            -6.79629707335782
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.76895999304274125546345657770099365334",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            119.49762725830094,
+            -47.30735015869048,
+            -16.66481592344291
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.52425995352921691791654659570002187778",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            123.68636322021386,
+            -63.97826758674893,
+            -11.942245514491205
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.72011431883477457970706483326473766089",
+          "series_number": "601",
+          "literal_laterality": "",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            123.68636322021098,
+            -63.97826758674996,
+            -11.942245514488476
+          ]
+        }
+      ],
+      "image_center_max_pairwise_distance_mm": 17.82603904739658,
+      "paired_physical_field_center_comparisons": [
+        {
+          "series_numbers": [
+            201,
+            301
+          ],
+          "image_center_displacement_mm": 2.9276861303038544e-12
+        },
+        {
+          "series_numbers": [
+            501,
+            601
+          ],
+          "image_center_displacement_mm": 4.102219889537289e-12
+        }
+      ],
+      "classification": "single_protocol_with_opposite_and_missing_literal_side_tags_candidate",
+      "metadata_observation": "Five-series protocol201..601: sagittal201/301(R), axial401(R), coronal501(L), coronal601(blank). Coronal501/601 have the same recorded IOP, 23 slices each and matching physical image-field centers despite different native matrices (768 vs640). All centers cluster near X119to124mm with modest Y/Z differences. No second complete acquisition set; blank601 is unknown, not a named side.",
+      "key_pair_series_numbers": [
+        501,
+        601
+      ],
+      "next_step": "Prioritize cached coronal501/601 pair with sagittal/axial context. Do not derive named laterality from blank tags or the sign of image coordinates, and do not treat the brief source as truncated without additional evidence.",
+      "full_native_download_started": false
+    }
+  ],
+  "total_scope": {
+    "studies": 3,
+    "series": 16,
+    "source_inventory_slices": 409,
+    "selected_endpoint_headers": 32,
+    "source_bytes": 503335072,
+    "all_source_report_copies_exact": true,
+    "all32endpoint_geometry_checks_exact": true,
+    "all16image_centers_reproduced": true,
+    "native_hash_overlap_pairs": 0,
+    "new_network_requests": 0,
+    "new_native_or_cached_pixel_reads": 0
+  },
+  "identity_scope": "Each study has one consistent hashed PatientID across selected endpoints, with distinct hashes between these three studies. Each series has a distinct frame hash. These are pseudonymous technical identifiers and do not establish real-world identity, global registration or institution.",
+  "limits": [
+    "Source/header-only technical assessment. No new images were viewed or downloaded for these three cases.",
+    "Exactly two lexical endpoints per series; complete source membership and slice positions come from bound existing full-decode cache metadata, not fresh all-slice headers.",
+    "Physical image-field centers account for native matrix and pixel spacing. Similar centers support a same-protocol candidate, not anatomical proof or named-side assignment across different frame IDs.",
+    "No clinical annotations/gold read, target decisions inferred, source/cache/runtime changes or automatic clinical eligibility disposition."
+  ],
+  "training_ready": false
+}

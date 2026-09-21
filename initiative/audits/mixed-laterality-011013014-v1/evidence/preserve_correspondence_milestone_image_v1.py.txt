@@ -1,0 +1,378 @@
+"""Copy four verified packages into new immutable audit directories.
+
+No Git, archive manifest, source, cache or clinical annotation modification.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+WORK = Path(__file__).resolve().parent
+REPO = WORK / "recovered"
+AUDITS = REPO / "initiative/audits"
+STAGING = WORK / "annotation-staging"
+NATIVE = STAGING / "repeated-protocol-native-v1"
+MIN_FREE = 20 * 1024**3
+
+
+def require(ok: bool, message: str) -> None:
+    if not ok:
+        raise ValueError(message)
+
+
+def sha(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def ref(path: Path) -> dict:
+    return {"path": str(path.relative_to(WORK)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def collect(root: Path) -> list[Path]:
+    return [
+        path
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+        and "__pycache__" not in path.parts
+        and not path.name.endswith((".pyc", ".partial", ".part", ".tmp"))
+    ]
+
+
+def bound(item: dict) -> Path:
+    path = WORK / item["path"]
+    require(path.is_file() and not path.is_symlink(), "Evidence file missing or symlink")
+    require(sha(path) == item["sha256"] and path.stat().st_size == item["bytes"], "Binding differs")
+    return path
+
+
+def add(plan: dict[Path, Path], source: Path, relative: Path) -> None:
+    require(source.is_file() and not source.is_symlink(), "Source file missing or symlink")
+    if source in plan:
+        return
+    if relative.suffix == ".py":
+        relative = relative.with_suffix(".py.txt")
+    require(not relative.is_absolute() and ".." not in relative.parts, "Unsafe output path")
+    require(relative not in plan.values(), "Duplicate destination")
+    plan[source] = relative
+
+
+def add_evidence(plan: dict[Path, Path], path: Path) -> None:
+    add(plan, path, Path("evidence") / path.relative_to(WORK))
+
+
+def make_native(case: str, name: str, root_hash: str, count: int, official: int) -> dict:
+    source = NATIVE / f"case-{case}-mirror-v1"
+    proof_path = source / "root-numeric-display-review.json"
+    require(sha(proof_path) == root_hash, "Independent native proof changed")
+    proof = json.loads(proof_path.read_text())
+    require(proof["status"] == "verified", "Native proof is incomplete")
+    require(
+        proof["source_files_full_sha_size_crc_uid_decode_verified"] == count, "Source count differs"
+    )
+    require(
+        proof["fresh_official_byte_confirmation_deferred"] == count - official,
+        "Source origin differs",
+    )
+    require(
+        proof["source_origin_counts"].get("retained_fresh_official_Kaggle_attempt", 0) == official,
+        "Official count differs",
+    )
+    require(
+        proof["source_origin_counts"].get("corrected_pinned_Hugging_Face_mirror", 0)
+        == count - official,
+        "Mirror count differs",
+    )
+    require(len(proof["source_files"]) == count, "Native source list incomplete")
+    expected_native = {bound(item) for item in proof["source_files"]}
+    require(
+        expected_native == set(collect(source / "native")), "Native source tree membership differs"
+    )
+    for item in proof["bindings"]:
+        bound(item)
+    plan: dict[Path, Path] = {}
+    for path in collect(source):
+        add(plan, path, path.relative_to(source))
+    shared = [
+        "audit_native.py",
+        "audit_native_v2.py",
+        "audit_native_paced_v3.py",
+        "audit_native_mirror_v1.py",
+        "verify_retained_mixed_sources.py",
+        "root_verify_mixed_native.py",
+        "assemble_joint_handoffs.py",
+        "mixed-source-integrity.json",
+        "mixed-source-numeric-handoff.json",
+        "deferred-official-source-confirmation.json",
+        "MIXED-SOURCE-REVIEW.md",
+    ]
+    for filename in shared:
+        add_evidence(plan, NATIVE / filename)
+    for directory in ["case-048-12", "case-048-12-paced-v1"]:
+        for path in collect(NATIVE / directory):
+            if "native" not in path.relative_to(NATIVE / directory).parts:
+                add_evidence(plan, path)
+    for path in collect(STAGING / "repeated-protocol-six-v1"):
+        add_evidence(plan, path)
+    for path in [
+        STAGING / "cross-study-pixel-edge-v1/verify_official.py",
+        STAGING / "cross-study-pixel-edge-v1/characterize.py",
+        WORK / "source-byte-failures-v1/hf-source-correction-receipt.json",
+        Path(__file__).resolve(),
+    ]:
+        add_evidence(plan, path)
+    technical = json.loads(
+        (STAGING / f"repeated-protocol-six-v1/technical-evidence/case-{case}.json").read_text()
+    )
+    require(len(technical["series"]) == 10, "Native series metadata count differs")
+    for series in technical["series"]:
+        path = bound(series["cache_metadata"])
+        add(plan, path, Path("cache-metadata") / path.name)
+    records = [
+        json.loads(line) for line in (source / "source-records.jsonl").read_text().splitlines()
+    ]
+    require(
+        len(records) == count and all(r["status"] == "source_file_decoded" for r in records),
+        "Native journal incomplete",
+    )
+    aliases = []
+    for record in records:
+        origin = record["source_origin"]
+        if origin["kind"] != "retained_fresh_official_Kaggle_attempt":
+            continue
+        original = bound(origin["source"])
+        bound(origin["journal"])
+        canonical = source / record["source_local_path"]
+        require(ref(original)["sha256"] == ref(canonical)["sha256"], "Official alias bytes differ")
+        aliases.append({"original": ref(original), "destination_relative": str(plan[canonical])})
+        paced = NATIVE / "case-048-12-paced-v1" / record["source_local_path"]
+        if paced.is_file():
+            require(sha(paced) == sha(canonical), "Prior paced official bytes differ")
+            aliases.append({"original": ref(paced), "destination_relative": str(plan[canonical])})
+    return {
+        "name": name,
+        "source": source,
+        "plan": plan,
+        "root_proof": ref(proof_path),
+        "aliases": aliases,
+        "counts": {
+            "native_source_files": count,
+            "native_series": 10,
+            "cache_metadata_files": 10,
+            "official_source_files": official,
+            "mirror_source_files": count - official,
+            "fresh_official_confirmation_deferred": count - official,
+            "displayed_native_samples": 30,
+        },
+        "notes": "All complete native sources and both independent visual freezes preserved. Root full-source/native/geometry/exact-display replay is bound. Source-origin journals and plans retain83official versus576mirror files across the paired packages. Historical pending-status records remain unchanged; later root proof records completed verification. Shared evidence references the paired native package. Original official83file paths and paced copies map to byte-identical preserved canonical files via explicit source_aliases. No named-side or clinical target assignment.",
+    }
+
+
+def make_mixed(group: str, root_hash: str, volumes: int, slices: int, panels: int) -> dict:
+    source = STAGING / f"mixed-laterality-{group}-v1"
+    proof_path = source / "root-source-geometry-display-review.json"
+    require(sha(proof_path) == root_hash, "Independent mixed-cache proof changed")
+    proof = json.loads(proof_path.read_text())
+    require(proof["status"] == "verified", "Root mixed proof is incomplete")
+    require(
+        (
+            proof["complete_source_membership"],
+            proof["full_npz_hashes_and_arrays"],
+            proof["exact_pasted_display_matrices"],
+        )
+        == (slices, volumes, panels),
+        "Mixed coverage differs",
+    )
+    plan: dict[Path, Path] = {}
+    for path in collect(source):
+        add(plan, path, path.relative_to(source))
+    for item in proof["bindings"]:
+        add_evidence(plan, bound(item))
+    add_evidence(plan, Path(__file__).resolve())
+    caches, metadata = set(), set()
+    manifest_paths = sorted((source / "cache-panels").glob("case-*/panel-manifest.json"))
+    require(len(manifest_paths) == 3, "Case manifest coverage differs")
+    total_panels = 0
+    for manifest_path in manifest_paths:
+        manifest = json.loads(manifest_path.read_text())
+        total_panels += len(manifest["panels"])
+        for panel in manifest["panels"]:
+            cache_path = bound(panel["cache"])
+            metadata_path = bound(panel["cache_metadata"])
+            caches.add(cache_path)
+            metadata.add(metadata_path)
+            add(plan, cache_path, Path("complete-cache") / cache_path.name)
+            add(plan, metadata_path, Path("complete-cache") / metadata_path.name)
+    require(
+        len(caches) == len(metadata) == volumes and total_panels == panels,
+        "Complete cache coverage differs",
+    )
+    return {
+        "name": source.name,
+        "source": source,
+        "plan": plan,
+        "root_proof": ref(proof_path),
+        "aliases": [],
+        "counts": {
+            "studies": 3,
+            "complete_cache_volumes": volumes,
+            "cache_metadata_files": volumes,
+            "source_memberships": slices,
+            "displayed_cache_samples": panels,
+        },
+        "notes": "All completed staging evidence, every referenced full NPZ and JSON, render/verifier scripts and independent root replay preserved. Limited views favor coherent protocols with literal tag conflicts; no tag rewrite, named-side assignment or clinical label inference. Historical pending-status records remain unchanged and later root proof supplies completion. No fresh native decode or network comparison claimed.",
+    }
+
+
+def preserve(spec: dict, expected: dict[Path, dict]) -> dict:
+    target = AUDITS / spec["name"]
+    require(not target.exists(), "Output directory must be new")
+    target.mkdir()
+    entries = []
+    for source, relative in sorted(spec["plan"].items(), key=lambda item: str(item[1])):
+        original = expected[source]
+        require(
+            shutil.disk_usage(AUDITS).free - original["bytes"] > MIN_FREE, "20GiB reserve guard"
+        )
+        require(ref(source) == original, "Source changed after preflight")
+        destination = target / relative
+        require(not destination.exists(), "Destination collision")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+        require(
+            sha(destination) == original["sha256"]
+            and destination.stat().st_size == original["bytes"],
+            "Copied bytes differ",
+        )
+        entries.append(
+            {
+                "source_path": original["path"],
+                "archive_path": str(destination.relative_to(REPO)),
+                "sha256": original["sha256"],
+                "bytes": original["bytes"],
+            }
+        )
+    aliases = []
+    for entry in spec["aliases"]:
+        destination = target / entry["destination_relative"]
+        require(
+            sha(destination) == entry["original"]["sha256"]
+            and destination.stat().st_size == entry["original"]["bytes"],
+            "Source alias differs",
+        )
+        aliases.append(
+            {
+                "source_path": entry["original"]["path"],
+                "archive_path": str(destination.relative_to(REPO)),
+                "sha256": entry["original"]["sha256"],
+                "bytes": entry["original"]["bytes"],
+                "relationship": "exact_byte_identical_original_official_source_alias",
+            }
+        )
+    receipt = target / "preservation.json"
+    value = {
+        "schema_version": 1,
+        "stage": "verified_audit_evidence_preservation",
+        "agent_id": "/root/image_pipeline_audit",
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "source_root": str(spec["source"].relative_to(WORK)),
+        "root_verified_proof": spec["root_proof"],
+        "n_files": len(entries),
+        "bytes": sum(e["bytes"] for e in entries),
+        "coverage": spec["counts"],
+        "notes": spec["notes"],
+        "files": entries,
+        "source_aliases": aliases,
+        "preservation_script": ref(Path(__file__).resolve()),
+        "free_bytes_after_copy": shutil.disk_usage(AUDITS).free,
+        "python_sources_preserved_as": ".py.txt with unchanged bytes",
+        "source_cache_gold_modified": False,
+        "git_index_manifest_modified": False,
+        "training_ready": False,
+    }
+    receipt.write_text(json.dumps(value, indent=2) + "\n")
+    require(
+        {str(p.relative_to(REPO)) for p in collect(target)}
+        == {e["archive_path"] for e in entries} | {str(receipt.relative_to(REPO))},
+        "Archive file membership differs",
+    )
+    result = {
+        "archive": spec["name"],
+        "files": len(entries),
+        "bytes": value["bytes"],
+        "coverage": spec["counts"],
+        "preservation": ref(receipt),
+    }
+    print(json.dumps(result), flush=True)
+    return result
+
+
+def main() -> None:
+    specs = [
+        make_native(
+            "048-12",
+            "correspondence-native-048-012-v1",
+            "c1b93a71068be94cb8a19d86f9155bcf9328158d41eb9e7382287683cd46a7ac",
+            359,
+            83,
+        ),
+        make_native(
+            "086-13",
+            "correspondence-native-086-013-v1",
+            "aa3f03b172eff2f1fc82af05d36c53686211132134be5b998bf8d70c88d7b3e0",
+            300,
+            0,
+        ),
+        make_mixed(
+            "011013014",
+            "be8ff875d87a2f287660c114d6c8b8a796d38ae1fa505adefa3ce2b2ee5510b8",
+            17,
+            497,
+            51,
+        ),
+        make_mixed(
+            "016021022",
+            "06311d8acca6977d1a22054a873c2dee398f22a080db10326c265f73d171cabf",
+            16,
+            409,
+            48,
+        ),
+    ]
+    require(
+        all(not (AUDITS / spec["name"]).exists() for spec in specs),
+        "One or more output directories already exist",
+    )
+    expected = {path: ref(path) for spec in specs for path in spec["plan"]}
+    total = sum(expected[path]["bytes"] for spec in specs for path in spec["plan"])
+    require(
+        shutil.disk_usage(AUDITS).free - total - 16 * 1024**2 > MIN_FREE,
+        "Insufficient free space for all copies and20GiB reserve",
+    )
+    results = [preserve(spec, expected) for spec in specs]
+    output = WORK / "correspondence-image-preservation-v1.json"
+    require(not output.exists(), "Overall receipt must be new")
+    output.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "agent_id": "/root/image_pipeline_audit",
+                "packages": results,
+                "free_bytes_after": shutil.disk_usage(AUDITS).free,
+                "git_index_manifest_modified": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    print(json.dumps({"receipt": ref(output)}))
+
+
+if __name__ == "__main__":
+    main()

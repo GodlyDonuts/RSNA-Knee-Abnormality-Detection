@@ -1,0 +1,332 @@
+"""Bounded official native audit for three independently preread repeat candidates."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import logging
+import shutil
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pydicom
+from dotenv import load_dotenv
+from PIL import Image, ImageDraw, ImageFont
+
+ROOT = Path(__file__).resolve().parent
+WORK = ROOT.parents[1]
+PRIOR = WORK / "annotation-staging/repeated-protocol-six-v1"
+HELPERS = WORK / "annotation-staging/cross-study-pixel-edge-v1"
+sys.path.insert(0, str(HELPERS))
+from characterize import binding, require, sha  # noqa: E402
+from verify_official import download_and_decode, geometry  # noqa: E402
+
+
+def save(path: Path, value: dict) -> None:
+    partial = path.with_suffix(".partial.json")
+    partial.write_text(json.dumps(value, indent=2) + "\n")
+    partial.replace(path)
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def run(case: str) -> dict:
+    require(case in {"075-14", "048-12", "086-13"}, "Case not authorized")
+    output = ROOT / f"case-{case}"
+    require(not output.exists(), "Native output must be new; preserve previous attempts")
+    handoff_path = PRIOR / "handoff.json"
+    require(
+        sha(handoff_path) == "8dd246aeb64fa7709129473c9f136688576a0ffcafc5f9e5c8558b86ba64cea8",
+        "Prior six-case handoff changed",
+    )
+    for item in json.loads(handoff_path.read_text())["files"]:
+        require(
+            sha(WORK / item["path"]) == item["sha256"], "Prior source/technical evidence changed"
+        )
+    require(
+        sha(HELPERS / "verify_official.py")
+        == "679e4345515214a8eacf261eaa6ac26419ffb03fd6770db58b2a83f3143fbbb5",
+        "Authoritative fetch helper changed",
+    )
+    technical_path = PRIOR / f"technical-evidence/case-{case}.json"
+    technical = json.loads(technical_path.read_text())
+    study = technical["study_uid"]
+    inv = pd.DataFrame(
+        json.loads((PRIOR / "technical-evidence/inventory-six-cases.json").read_text())
+    )
+    inv = inv.loc[inv.study_uid == study].sort_values("path")
+    require(
+        len(inv) == technical["slices"] and int(inv.bytes.sum()) == technical["source_bytes"],
+        "Complete source membership differs",
+    )
+    require(
+        shutil.disk_usage(WORK).free - int(inv.bytes.sum()) > 20 * 1024**3,
+        "Disk reserve insufficient",
+    )
+    zip_path = WORK / "source-byte-failures-v1/kaggle-official-zip-index.parquet"
+    require(
+        sha(zip_path) == "92daae7822bbfca3c440dbb85a47731ef11347b7b4c4c9c00aee988d653684da",
+        "Official ZIP index changed",
+    )
+    zip_index = pd.read_parquet(zip_path).set_index("path")
+    expected = {}
+    meta_by_series = {}
+    for series in technical["series"]:
+        ref = series["cache_metadata"]
+        path = WORK / ref["path"]
+        require(sha(path) == ref["sha256"], "Cache metadata changed")
+        meta = json.loads(path.read_text())
+        meta_by_series[series["series_uid"]] = meta
+        for i, sop in enumerate(meta["sop_uids"]):
+            expected[sop] = {
+                "native_pixel_sha256": meta["pixel_sha256"][i],
+                "native_shape": meta["original_shape"][1:],
+                "position": meta["positions"][i],
+                "orientation": meta["orientation"],
+                "pixel_spacing": meta["pixel_spacing"],
+                "ordered_index": i,
+            }
+    require(set(inv.sop_uid) == set(expected), "Cache native source membership differs")
+    for row in inv.itertuples(index=False):
+        require(
+            int(zip_index.loc[row.path, "bytes"]) == row.bytes, "Official ZIP source size differs"
+        )
+    load_dotenv(WORK.parent / ".env")
+    output.mkdir(parents=True)
+    native = output / "native"
+    native.mkdir()
+    plan = {
+        "schema_version": 1,
+        "stage": "bounded_official_repeat_candidate_native_audit",
+        "case": case,
+        "study_uid": study,
+        "agent_id": "/root/image_pipeline_audit",
+        "started_at_utc": now(),
+        "expected_series": technical["series_count"],
+        "expected_files": len(inv),
+        "expected_bytes": int(inv.bytes.sum()),
+        "workers": 2,
+        "minimum_free_bytes": 20 * 1024**3,
+        "initial_free_bytes": shutil.disk_usage(WORK).free,
+        "bindings": [
+            binding(p, WORK)
+            for p in [
+                Path(__file__).resolve(),
+                HELPERS / "verify_official.py",
+                HELPERS / "characterize.py",
+                handoff_path,
+                technical_path,
+                zip_path,
+            ]
+        ],
+        "source_provider": "fresh_authenticated_official_Kaggle_competition_download_file_API",
+    }
+    save(output / "fetch-plan.json", plan)
+    records = []
+    checks = [
+        "source_hash_matches_corrected_inventory",
+        "source_size_matches_corrected_inventory",
+        "source_crc_matches_official_archive_index",
+        "uid_triplet_matches_corrected_inventory",
+        "native_fingerprint_matches_mirrored_decode",
+        "native_shape_matches_mirrored_decode",
+        "position_matches_mirrored_decode",
+        "orientation_matches_mirrored_decode",
+        "pixel_spacing_matches_mirrored_decode",
+    ]
+    with (
+        (output / "official-source-records.jsonl").open("x") as journal,
+        ThreadPoolExecutor(max_workers=2) as pool,
+    ):
+
+        def fetch(row):
+            record, pixels = download_and_decode(
+                row, native, expected[row["sop_uid"]], zip_index.loc[row["path"]].to_dict()
+            )
+            if pixels is not None:
+                exp = expected[row["sop_uid"]]
+                record["ordered_index"] = exp["ordered_index"]
+                record["orientation_matches_mirrored_decode"] = (
+                    record["geometry"]["orientation"] == exp["orientation"]
+                )
+                record["pixel_spacing_matches_mirrored_decode"] = (
+                    record["geometry"]["pixel_spacing"] == exp["pixel_spacing"]
+                )
+            return record
+
+        for record in pool.map(fetch, inv.to_dict("records")):
+            journal.write(json.dumps(record, sort_keys=True) + "\n")
+            journal.flush()
+            records.append(record)
+            if len(records) % 50 == 0 or len(records) == len(inv):
+                status = {
+                    "status": "fetching_and_verifying",
+                    "received": len(records),
+                    "expected": len(inv),
+                    "failures": sum(not all(r.get(k) is True for k in checks) for r in records),
+                }
+                save(output / "status.json", status)
+                print(json.dumps(status), flush=True)
+    failures = [
+        r["requested_source_path"] for r in records if not all(r.get(k) is True for k in checks)
+    ]
+    result = {
+        "schema_version": 1,
+        "stage": "complete_authoritative_native_candidate_verification",
+        "case": case,
+        "study_uid": study,
+        "agent_id": "/root/image_pipeline_audit",
+        "completed_at_utc": now(),
+        "status": "verified" if not failures else "failed_preserve_all_sources",
+        "expected_files": len(inv),
+        "official_files_received": len(records),
+        "official_source_bytes": sum(r.get("official_bytes", 0) for r in records),
+        "complete_series": len(meta_by_series),
+        "verification_counts": {k: sum(r.get(k) is True for r in records) for k in checks},
+        "nonconstant_slices": sum(r.get("nonconstant") is True for r in records),
+        "failures": failures,
+        "plan": binding(output / "fetch-plan.json", WORK),
+        "source_records": binding(output / "official-source-records.jsonl", WORK),
+        "free_bytes_after_native": shutil.disk_usage(WORK).free,
+        "clinical_annotations_or_gold_read": False,
+        "source_cache_modified": False,
+        "scope": "Every selected-study source freshly downloaded from official Kaggle and fully decoded. Each complete native fingerprint, shape and per-slice IPP/IOP/pixel spacing checked against previously bound cache metadata. Other geometry/encoding values are recorded for all slices. No image diagnosis or laterality assignment.",
+    }
+    save(output / "native-verification.json", result)
+    require(not failures, "Native source verification failed; retained evidence")
+    panels_dir = output / "panels"
+    panels_dir.mkdir()
+    font = ImageFont.load_default(size=18)
+    by_sop = {r["sop_uid"]: r for r in records}
+    series_order = sorted(
+        technical["series"], key=lambda s: int(s["header_endpoint_values"]["SeriesNumber"][0])
+    )
+    all_panels, sheets = [], []
+    for page_start in range(0, len(series_order), 3):
+        page_series = series_order[page_start : page_start + 3]
+        cell = max(max(s["cache_original_shape"][1:]) for s in page_series)
+        sheet = Image.new("L", (3 * (cell + 16) + 16, len(page_series) * (cell + 82) + 42), 16)
+        draw = ImageDraw.Draw(sheet)
+        draw.text(
+            (12, 10),
+            f"Official native | {case} | three selected slices per series",
+            font=font,
+            fill=255,
+        )
+        for ri, series in enumerate(page_series):
+            meta = meta_by_series[series["series_uid"]]
+            n = meta["n_slices"]
+            selected = sorted({int(round((n - 1) * v)) for v in [0.25, 0.5, 0.75]})
+            require(len(selected) == 3, "Need three distinct native sample slices")
+            num = series["header_endpoint_values"]["SeriesNumber"][0]
+            side = series["header_endpoint_values"]["Laterality"][0] or "blank"
+            for ci, si in enumerate(selected):
+                source = by_sop[meta["sop_uids"][si]]
+                path = output / source["official_local_path"]
+                require(sha(path) == source["official_sha256"], "Panel source changed")
+                ds = pydicom.dcmread(path)
+                pixels = ds.pixel_array
+                native_rows = [r for r in records if r["series_uid"] == series["series_uid"]]
+                low = min(r["native_min"] for r in native_rows)
+                high = max(r["native_max"] for r in native_rows)
+                require(high > low, "Constant full series cannot be displayed")
+                display = np.rint(
+                    np.clip((pixels.astype(float) - low) / (high - low), 0, 1) * 255
+                ).astype(np.uint8)
+                x, y = 16 + ci * (cell + 16), 42 + ri * (cell + 82)
+                sheet.paste(
+                    Image.fromarray(display),
+                    (x + (cell - pixels.shape[1]) // 2, y + (cell - pixels.shape[0]) // 2),
+                )
+                draw.text(
+                    (x, y + cell + 2),
+                    f"Series {num} | tag {side} | index {si}/{n - 1}",
+                    font=font,
+                    fill=255,
+                )
+                draw.text(
+                    (x, y + cell + 25),
+                    f"Native {pixels.shape[0]}x{pixels.shape[1]} | no spatial transform",
+                    font=font,
+                    fill=230,
+                )
+                all_panels.append(
+                    {
+                        "page_index": page_start // 3,
+                        "row": ri,
+                        "column": ci,
+                        "series_uid": series["series_uid"],
+                        "series_number": num,
+                        "literal_laterality": side,
+                        "ordered_index": si,
+                        "source": binding(path, WORK),
+                        "sop_uid": source["sop_uid"],
+                        "native_shape": list(pixels.shape),
+                        "native_matrix_bytes_sha256": hashlib.sha256(
+                            pixels.tobytes(order="C")
+                        ).hexdigest(),
+                        "geometry": geometry(ds),
+                        "display_min": low,
+                        "display_max": high,
+                        "display": "linear whole-series native min/max to uint8; centered native pixels, no resize/crop/rotate/flip",
+                    }
+                )
+        page = panels_dir / f"native-series-page-{page_start // 3:02d}.png"
+        sheet.save(page)
+        sheets.append(binding(page, WORK))
+    manifest = {
+        "schema_version": 1,
+        "stage": "native_contact_sample_manifest",
+        "case": case,
+        "study_uid": study,
+        "agent_id": "/root/image_pipeline_audit",
+        "source_verification": binding(output / "native-verification.json", WORK),
+        "render_script": binding(Path(__file__).resolve(), WORK),
+        "series_sampled": len(series_order),
+        "native_panels": len(all_panels),
+        "new_render_decodes": len(all_panels),
+        "images": sheets,
+        "panels": all_panels,
+        "scope": "Three ordered slice samples at approximately25/50/75 percent per series; all source slices were numerically checked but only these panels are presented for visual review. No anatomical side or clinical label assigned.",
+    }
+    save(output / "panel-manifest.json", manifest)
+    save(
+        output / "status.json",
+        {
+            "status": "complete_native_verification_and_panels",
+            "official_files": len(records),
+            "native_panels": len(all_panels),
+            "images": sheets,
+        },
+    )
+    return {
+        "case": case,
+        "verification": binding(output / "native-verification.json", WORK),
+        "manifest": binding(output / "panel-manifest.json", WORK),
+        "images": sheets,
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--case", required=True)
+    args = parser.parse_args()
+    logging.getLogger("kaggle").setLevel(logging.ERROR)
+    try:
+        result = run(args.case)
+    except Exception as exc:
+        print(
+            json.dumps(
+                {"status": "stopped_preserve_partial_evidence", "error_type": type(exc).__name__}
+            ),
+            flush=True,
+        )
+        raise SystemExit(1) from None
+    print(json.dumps(result, indent=2), flush=True)

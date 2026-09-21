@@ -1,0 +1,475 @@
+"""Bounded official native audit for three independently preread repeat candidates."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import io
+import json
+import logging
+import os
+import shutil
+import sys
+import zlib
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pydicom
+import requests
+from dotenv import load_dotenv
+from PIL import Image, ImageDraw, ImageFont
+
+ROOT = Path(__file__).resolve().parent
+WORK = ROOT.parents[1]
+PRIOR = WORK / "annotation-staging/repeated-protocol-six-v1"
+HELPERS = WORK / "annotation-staging/cross-study-pixel-edge-v1"
+sys.path.insert(0, str(HELPERS))
+from characterize import binding, require, sha  # noqa: E402
+from verify_official import geometry  # noqa: E402
+
+
+def save(path: Path, value: dict) -> None:
+    partial = path.with_suffix(".partial.json")
+    partial.write_text(json.dumps(value, indent=2) + "\n")
+    partial.replace(path)
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def run(case: str) -> dict:
+    require(case in {"075-14", "048-12", "086-13"}, "Case not authorized")
+    output = ROOT / f"case-{case}-mirror-v1"
+    require(not output.exists(), "Native output must be new; preserve previous attempts")
+    handoff_path = PRIOR / "handoff.json"
+    require(
+        sha(handoff_path) == "8dd246aeb64fa7709129473c9f136688576a0ffcafc5f9e5c8558b86ba64cea8",
+        "Prior six-case handoff changed",
+    )
+    for item in json.loads(handoff_path.read_text())["files"]:
+        require(
+            sha(WORK / item["path"]) == item["sha256"], "Prior source/technical evidence changed"
+        )
+    require(
+        sha(HELPERS / "verify_official.py")
+        == "679e4345515214a8eacf261eaa6ac26419ffb03fd6770db58b2a83f3143fbbb5",
+        "Authoritative fetch helper changed",
+    )
+    technical_path = PRIOR / f"technical-evidence/case-{case}.json"
+    technical = json.loads(technical_path.read_text())
+    study = technical["study_uid"]
+    inv = pd.DataFrame(
+        json.loads((PRIOR / "technical-evidence/inventory-six-cases.json").read_text())
+    )
+    inv = inv.loc[inv.study_uid == study].sort_values("path")
+    require(
+        len(inv) == technical["slices"] and int(inv.bytes.sum()) == technical["source_bytes"],
+        "Complete source membership differs",
+    )
+    require(
+        shutil.disk_usage(WORK).free - int(inv.bytes.sum()) > 20 * 1024**3,
+        "Disk reserve insufficient",
+    )
+    zip_path = WORK / "source-byte-failures-v1/kaggle-official-zip-index.parquet"
+    require(
+        sha(zip_path) == "92daae7822bbfca3c440dbb85a47731ef11347b7b4c4c9c00aee988d653684da",
+        "Official ZIP index changed",
+    )
+    zip_index = pd.read_parquet(zip_path).set_index("path")
+    expected = {}
+    meta_by_series = {}
+    for series in technical["series"]:
+        ref = series["cache_metadata"]
+        path = WORK / ref["path"]
+        require(sha(path) == ref["sha256"], "Cache metadata changed")
+        meta = json.loads(path.read_text())
+        meta_by_series[series["series_uid"]] = meta
+        for i, sop in enumerate(meta["sop_uids"]):
+            expected[sop] = {
+                "native_pixel_sha256": meta["pixel_sha256"][i],
+                "native_shape": meta["original_shape"][1:],
+                "position": meta["positions"][i],
+                "orientation": meta["orientation"],
+                "pixel_spacing": meta["pixel_spacing"],
+                "ordered_index": i,
+            }
+    require(set(inv.sop_uid) == set(expected), "Cache native source membership differs")
+    for row in inv.itertuples(index=False):
+        require(
+            int(zip_index.loc[row.path, "bytes"]) == row.bytes, "Official ZIP source size differs"
+        )
+    load_dotenv(WORK.parent / ".env")
+    output.mkdir(parents=True)
+    native = output / "native"
+    native.mkdir()
+    plan = {
+        "schema_version": 1,
+        "stage": "bounded_corrected_mirror_repeat_candidate_native_audit",
+        "case": case,
+        "study_uid": study,
+        "agent_id": "/root/image_pipeline_audit",
+        "started_at_utc": now(),
+        "expected_series": technical["series_count"],
+        "expected_files": len(inv),
+        "expected_bytes": int(inv.bytes.sum()),
+        "workers": 2,
+        "minimum_free_bytes": 20 * 1024**3,
+        "initial_free_bytes": shutil.disk_usage(WORK).free,
+        "bindings": [
+            binding(p, WORK)
+            for p in [
+                Path(__file__).resolve(),
+                HELPERS / "verify_official.py",
+                HELPERS / "characterize.py",
+                handoff_path,
+                technical_path,
+                zip_path,
+            ]
+        ],
+        "source_provider": "corrected_pinned_HF_plus_retained_official_sources_as_explicitly_recorded",
+    }
+    save(output / "fetch-plan.json", plan)
+    receipt_path = WORK / "source-byte-failures-v1/hf-source-correction-receipt.json"
+    require(
+        sha(receipt_path) == "2c88c4f53cb3d2332e8079e1cd353eede5a601172febf0ab0b74ce8161f9fbb4",
+        "Corrected source receipt changed",
+    )
+    receipt = json.loads(receipt_path.read_text())
+    require(
+        receipt["corrected_source_revision"] == "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+        and receipt["private"] is True
+        and receipt["remote_objects_verified"] is True,
+        "Invalid corrected source receipt",
+    )
+    prior_journal = ROOT / "case-048-12/official-source-records.jsonl"
+    prior_rows = {}
+    if case == "048-12":
+        require(
+            sha(prior_journal)
+            == "2d643c1d3deceaf906b4cc0e5437e064356dc9154b575a03d8495dc6de758c20",
+            "Original official attempt changed",
+        )
+        prior_rows = {
+            r["requested_source_path"]: r
+            for r in map(json.loads, prior_journal.read_text().splitlines())
+            if r["status"] == "official_file_decoded"
+        }
+        require(len(prior_rows) == 83, "Prior official file coverage changed")
+    needed = [r for r in inv.to_dict("records") if r["path"] not in prior_rows]
+    headers = {
+        "Authorization": "Bearer " + os.environ["HF_TOKEN"],
+        "Accept": "application/vnd.git-lfs+json",
+        "Content-Type": "application/vnd.git-lfs+json",
+    }
+    response = requests.post(
+        f"https://huggingface.co/datasets/{receipt['repo_id']}.git/info/lfs/objects/batch",
+        headers=headers,
+        json={
+            "operation": "download",
+            "transfers": ["basic"],
+            "objects": [{"oid": r["sha256"], "size": r["bytes"]} for r in needed],
+        },
+        timeout=120,
+    )
+    response.raise_for_status()
+    actions = {o["oid"]: o["actions"]["download"] for o in response.json()["objects"]}
+    require(set(actions) == {r["sha256"] for r in needed}, "Missing LFS object actions")
+    save(
+        output / "source-origin-plan.json",
+        {
+            "schema_version": 1,
+            "source_revision": receipt["corrected_source_revision"],
+            "receipt": binding(receipt_path, WORK),
+            "fresh_official_source_confirmation": len(prior_rows),
+            "corrected_pinned_HF_source_files_requested": len(needed),
+            "fresh_Kaggle_requests_in_this_run": 0,
+            "scope": "Mixed source origin: retained verified official files are preserved explicitly, remaining full bytes fetched from corrected pinned mirror with inventory SHA/size/UID/CRC/native checks. Direct official byte confirmation deferred for mirror-only objects.",
+        },
+    )
+    records = []
+    checks = [
+        "source_hash_matches_corrected_inventory",
+        "source_size_matches_corrected_inventory",
+        "source_crc_matches_official_archive_index",
+        "uid_triplet_matches_corrected_inventory",
+        "native_fingerprint_matches_mirrored_decode",
+        "native_shape_matches_mirrored_decode",
+        "position_matches_mirrored_decode",
+        "orientation_matches_mirrored_decode",
+        "pixel_spacing_matches_mirrored_decode",
+    ]
+    with (
+        (output / "source-records.jsonl").open("x") as journal,
+        ThreadPoolExecutor(max_workers=2) as pool,
+    ):
+
+        def fetch(row):
+            target = native / row["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if row["path"] in prior_rows:
+                previous = prior_rows[row["path"]]
+                p = ROOT / "case-048-12" / previous["official_local_path"]
+                require(
+                    sha(p) == previous["official_sha256"] == row["sha256"]
+                    and p.stat().st_size == row["bytes"],
+                    "Preserved official original changed",
+                )
+                os.link(p, target)
+                origin = {
+                    "kind": "retained_fresh_official_Kaggle_attempt",
+                    "source": binding(p, WORK),
+                    "journal": binding(prior_journal, WORK),
+                }
+                data = target.read_bytes()
+            else:
+                require(shutil.disk_usage(WORK).free > 20 * 1024**3 + row["bytes"], "Disk reserve")
+                action = actions[row["sha256"]]
+                response = requests.get(
+                    action["href"], headers=action.get("header", {}), timeout=120
+                )
+                response.raise_for_status()
+                data = response.content
+                require(
+                    len(data) == row["bytes"] and hashlib.sha256(data).hexdigest() == row["sha256"],
+                    "Mirror source hash/size mismatch",
+                )
+                with target.open("xb") as handle:
+                    handle.write(data)
+                origin = {
+                    "kind": "corrected_pinned_Hugging_Face_mirror",
+                    "source_revision": receipt["corrected_source_revision"],
+                    "fresh_official_Kaggle_byte_confirmation": False,
+                }
+            ds = pydicom.dcmread(io.BytesIO(data))
+            pixels = ds.pixel_array
+            exp = expected[row["sop_uid"]]
+            coords = geometry(ds)
+            native_hash = hashlib.sha256(
+                np.asarray(pixels.shape, dtype="<i8").tobytes()
+                + np.asarray(pixels, dtype="<f8").tobytes(order="C")
+            ).hexdigest()
+            uid = [str(ds.StudyInstanceUID), str(ds.SeriesInstanceUID), str(ds.SOPInstanceUID)]
+            actual_sha = hashlib.sha256(data).hexdigest()
+            crc = f"{zlib.crc32(data) & 0xFFFFFFFF:08x}"
+            record = {
+                "requested_source_path": row["path"],
+                "study_uid": row["study_uid"],
+                "series_uid": row["series_uid"],
+                "sop_uid": row["sop_uid"],
+                "source_origin": origin,
+                "status": "source_file_decoded",
+                "source_local_path": str(target.relative_to(output)),
+                "source_sha256": actual_sha,
+                "source_bytes": len(data),
+                "source_crc32": crc,
+                "expected_source_sha256": row["sha256"],
+                "expected_source_bytes": row["bytes"],
+                "expected_native_pixel_sha256": exp["native_pixel_sha256"],
+                "official_archive_crc32": zip_index.loc[row["path"], "crc32"],
+                "actual_uid_triplet": uid,
+                "native_pixel_sha256": native_hash,
+                "native_shape": list(pixels.shape),
+                "native_dtype": str(pixels.dtype),
+                "native_min": float(pixels.min()),
+                "native_max": float(pixels.max()),
+                "nonconstant": bool(pixels.max() != pixels.min()),
+                "geometry": coords,
+                "ordered_index": exp["ordered_index"],
+                "patient_id_sha256": hashlib.sha256(
+                    str(ds.get("PatientID", "")).encode()
+                ).hexdigest(),
+                "frame_of_reference_sha256": hashlib.sha256(
+                    str(ds.get("FrameOfReferenceUID", "")).encode()
+                ).hexdigest(),
+                "source_hash_matches_corrected_inventory": actual_sha == row["sha256"],
+                "source_size_matches_corrected_inventory": len(data) == row["bytes"],
+                "source_crc_matches_official_archive_index": crc
+                == zip_index.loc[row["path"], "crc32"],
+                "uid_triplet_matches_corrected_inventory": uid
+                == [row[k] for k in ["study_uid", "series_uid", "sop_uid"]],
+                "native_fingerprint_matches_mirrored_decode": native_hash
+                == exp["native_pixel_sha256"],
+                "native_shape_matches_mirrored_decode": list(pixels.shape) == exp["native_shape"],
+                "position_matches_mirrored_decode": coords["position"] == exp["position"],
+                "orientation_matches_mirrored_decode": coords["orientation"] == exp["orientation"],
+                "pixel_spacing_matches_mirrored_decode": coords["pixel_spacing"]
+                == exp["pixel_spacing"],
+            }
+            return record
+
+        for record in pool.map(fetch, inv.to_dict("records")):
+            journal.write(json.dumps(record, sort_keys=True) + "\n")
+            journal.flush()
+            records.append(record)
+            if len(records) % 50 == 0 or len(records) == len(inv):
+                status = {
+                    "status": "fetching_and_verifying",
+                    "received": len(records),
+                    "expected": len(inv),
+                    "failures": sum(not all(r.get(k) is True for k in checks) for r in records),
+                }
+                save(output / "status.json", status)
+                print(json.dumps(status), flush=True)
+    failures = [
+        r["requested_source_path"] for r in records if not all(r.get(k) is True for k in checks)
+    ]
+    result = {
+        "schema_version": 1,
+        "stage": "complete_corrected_source_native_candidate_verification",
+        "case": case,
+        "study_uid": study,
+        "agent_id": "/root/image_pipeline_audit",
+        "completed_at_utc": now(),
+        "status": "verified" if not failures else "failed_preserve_all_sources",
+        "expected_files": len(inv),
+        "source_files_received": len(records),
+        "retained_official_sources": len(prior_rows),
+        "mirror_only_sources": len(needed),
+        "fresh_Kaggle_requests_in_this_run": 0,
+        "source_bytes": sum(r["source_bytes"] for r in records),
+        "complete_series": len(meta_by_series),
+        "verification_counts": {k: sum(r.get(k) is True for r in records) for k in checks},
+        "nonconstant_slices": sum(r.get("nonconstant") is True for r in records),
+        "failures": failures,
+        "plan": binding(output / "fetch-plan.json", WORK),
+        "source_records": binding(output / "source-records.jsonl", WORK),
+        "free_bytes_after_native": shutil.disk_usage(WORK).free,
+        "clinical_annotations_or_gold_read": False,
+        "source_cache_modified": False,
+        "scope": "Every selected-study source fully decoded. Source-origin records distinguish retained verified official files from newly fetched corrected pinned HF mirror files; fresh official byte confirmation remains deferred for mirror-only files. Each complete native fingerprint, shape and per-slice IPP/IOP/pixel spacing checked against previously bound cache metadata. Other geometry/encoding values are recorded for all slices. No image diagnosis or laterality assignment.",
+    }
+    save(output / "native-verification.json", result)
+    require(not failures, "Native source verification failed; retained evidence")
+    panels_dir = output / "panels"
+    panels_dir.mkdir()
+    font = ImageFont.load_default(size=18)
+    by_sop = {r["sop_uid"]: r for r in records}
+    series_order = sorted(
+        technical["series"], key=lambda s: int(s["header_endpoint_values"]["SeriesNumber"][0])
+    )
+    all_panels, sheets = [], []
+    for page_start in range(0, len(series_order), 3):
+        page_series = series_order[page_start : page_start + 3]
+        cell = max(max(s["cache_original_shape"][1:]) for s in page_series)
+        sheet = Image.new("L", (3 * (cell + 16) + 16, len(page_series) * (cell + 82) + 42), 16)
+        draw = ImageDraw.Draw(sheet)
+        draw.text(
+            (12, 10),
+            f"Corrected source | {case} | three selected slices per series",
+            font=font,
+            fill=255,
+        )
+        for ri, series in enumerate(page_series):
+            meta = meta_by_series[series["series_uid"]]
+            n = meta["n_slices"]
+            selected = sorted({int(round((n - 1) * v)) for v in [0.25, 0.5, 0.75]})
+            require(len(selected) == 3, "Need three distinct native sample slices")
+            num = series["header_endpoint_values"]["SeriesNumber"][0]
+            side = series["header_endpoint_values"]["Laterality"][0] or "blank"
+            for ci, si in enumerate(selected):
+                source = by_sop[meta["sop_uids"][si]]
+                path = output / source["source_local_path"]
+                require(sha(path) == source["source_sha256"], "Panel source changed")
+                ds = pydicom.dcmread(path)
+                pixels = ds.pixel_array
+                native_rows = [r for r in records if r["series_uid"] == series["series_uid"]]
+                low = min(r["native_min"] for r in native_rows)
+                high = max(r["native_max"] for r in native_rows)
+                require(high > low, "Constant full series cannot be displayed")
+                display = np.rint(
+                    np.clip((pixels.astype(float) - low) / (high - low), 0, 1) * 255
+                ).astype(np.uint8)
+                x, y = 16 + ci * (cell + 16), 42 + ri * (cell + 82)
+                sheet.paste(
+                    Image.fromarray(display),
+                    (x + (cell - pixels.shape[1]) // 2, y + (cell - pixels.shape[0]) // 2),
+                )
+                draw.text(
+                    (x, y + cell + 2),
+                    f"Series {num} | tag {side} | index {si}/{n - 1}",
+                    font=font,
+                    fill=255,
+                )
+                draw.text(
+                    (x, y + cell + 25),
+                    f"Native {pixels.shape[0]}x{pixels.shape[1]} | no spatial transform",
+                    font=font,
+                    fill=230,
+                )
+                all_panels.append(
+                    {
+                        "page_index": page_start // 3,
+                        "row": ri,
+                        "column": ci,
+                        "series_uid": series["series_uid"],
+                        "series_number": num,
+                        "literal_laterality": side,
+                        "ordered_index": si,
+                        "source": binding(path, WORK),
+                        "sop_uid": source["sop_uid"],
+                        "native_shape": list(pixels.shape),
+                        "native_matrix_bytes_sha256": hashlib.sha256(
+                            pixels.tobytes(order="C")
+                        ).hexdigest(),
+                        "geometry": geometry(ds),
+                        "display_min": low,
+                        "display_max": high,
+                        "display": "linear whole-series native min/max to uint8; centered native pixels, no resize/crop/rotate/flip",
+                    }
+                )
+        page = panels_dir / f"native-series-page-{page_start // 3:02d}.png"
+        sheet.save(page)
+        sheets.append(binding(page, WORK))
+    manifest = {
+        "schema_version": 1,
+        "stage": "native_contact_sample_manifest",
+        "case": case,
+        "study_uid": study,
+        "agent_id": "/root/image_pipeline_audit",
+        "source_verification": binding(output / "native-verification.json", WORK),
+        "render_script": binding(Path(__file__).resolve(), WORK),
+        "series_sampled": len(series_order),
+        "native_panels": len(all_panels),
+        "new_render_decodes": len(all_panels),
+        "images": sheets,
+        "panels": all_panels,
+        "scope": "Three ordered slice samples at approximately25/50/75 percent per series; all source slices were numerically checked but only these panels are presented for visual review. No anatomical side or clinical label assigned.",
+    }
+    save(output / "panel-manifest.json", manifest)
+    save(
+        output / "status.json",
+        {
+            "status": "complete_native_verification_and_panels",
+            "source_files": len(records),
+            "native_panels": len(all_panels),
+            "images": sheets,
+        },
+    )
+    return {
+        "case": case,
+        "verification": binding(output / "native-verification.json", WORK),
+        "manifest": binding(output / "panel-manifest.json", WORK),
+        "images": sheets,
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--case", required=True)
+    args = parser.parse_args()
+    logging.getLogger("kaggle").setLevel(logging.ERROR)
+    try:
+        result = run(args.case)
+    except Exception as exc:
+        print(
+            json.dumps(
+                {"status": "stopped_preserve_partial_evidence", "error_type": type(exc).__name__}
+            ),
+            flush=True,
+        )
+        raise SystemExit(1) from None
+    print(json.dumps(result, indent=2), flush=True)

@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "stage": "source_header_correspondence_assessment_and_prioritized_native_plan",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T07:57:44.515369+00:00",
+  "inputs": [
+    {
+      "path": "annotation-staging/repeated-protocol-six-v1/source-only-preread.json",
+      "sha256": "291457b4a223b06c629ce5fc4de904232fa789401b203f0569ac1ed828dbde18",
+      "bytes": 15633
+    },
+    {
+      "path": "annotation-staging/repeated-protocol-six-v1/technical-evidence/summary.json",
+      "sha256": "24433639e8798b7efdb2c538e9405f8d877fa1198f23f79453603e73da0a9d54",
+      "bytes": 33832
+    },
+    {
+      "path": "annotation-staging/repeated-protocol-six-v1/geometry-comparison.json",
+      "sha256": "c7d98f944160982e73c58a3d779ca1780f8921153a563c98b0201ce66cdfe099",
+      "bytes": 28267
+    }
+  ],
+  "complete_scope": {
+    "studies": 6,
+    "series": 56,
+    "selected_endpoints": 112,
+    "inventory_slices": 1657,
+    "all_six_exact_source_copy_matches": true,
+    "all_112_endpoint_geometry_checks_passed": true,
+    "within_study_repeated_series_native_hash_overlaps": 0,
+    "new_network_requests": 0,
+    "new_native_or_cached_pixel_decodes": 0
+  },
+  "records": [
+    {
+      "case": "075:14",
+      "study_uid": "1.2.826.0.1.3680043.8.498.82579118531566493365068788437906656162",
+      "series": 11,
+      "slices": 337,
+      "bounded_raw_bytes": 274262744,
+      "endpoint_count": 22,
+      "patient_id_hash_groups": 1,
+      "frame_of_reference_hash_groups": 11,
+      "technical_evidence": {
+        "path": "annotation-staging/repeated-protocol-six-v1/technical-evidence/case-075-14.json",
+        "sha256": "decddba22c58aada7b6e5c160bdff5afc6c52e837957fe546c1169188dd2cb64",
+        "bytes": 72012
+      },
+      "priority": 1,
+      "native_escalation": "recommended_bounded_full_study_after_root_coordination",
+      "acquisition_groups": [
+        {
+          "series_numbers": [
+            201,
+            301,
+            401,
+            501,
+            601,
+            701
+          ],
+          "literal_laterality": "blank",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.13082240725119578824146129355496579526",
+            "1.2.826.0.1.3680043.8.498.10143582080669478742449088132005011355",
+            "1.2.826.0.1.3680043.8.498.33646824303433278299040293185014867638",
+            "1.2.826.0.1.3680043.8.498.18584792792478252219435548310068647490",
+            "1.2.826.0.1.3680043.8.498.65846205558905086603234144567486705979",
+            "1.2.826.0.1.3680043.8.498.10519322535702571987089314750289501577"
+          ]
+        },
+        {
+          "series_numbers": [
+            901,
+            1001,
+            1101,
+            1201,
+            1301
+          ],
+          "literal_laterality": "L",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.20592783803090482943565396175172183063",
+            "1.2.826.0.1.3680043.8.498.96065878551187998788439686515109831191",
+            "1.2.826.0.1.3680043.8.498.64764189639949965778528043120399288143",
+            "1.2.826.0.1.3680043.8.498.34082265790297123564700633659272938005",
+            "1.2.826.0.1.3680043.8.498.72002523255022635198252484212519346131"
+          ]
+        }
+      ],
+      "assessment": "Short unsided source gives no bilateral explanation, while metadata contains a six-series initial protocol (including repeated sagittal acquisition) and a separate complete five-series L-tagged protocol. All corresponding plane families shift strongly in recorded X coordinate; sagittal mean image-origin X is about -113 mm versus +131 mm. This is a strong two-location candidate but does not establish anatomical laterality because series have distinct anonymized frame IDs.",
+      "native_question": "Determine from complete source-verified geometry and unchanged native views whether the two acquisition sets represent opposite knees or repeated/repositioned one-knee imaging. A confirmed two-knee study would leave source-to-side correspondence unresolved for this unsided report. No clinical inference."
+    },
+    {
+      "case": "048:12",
+      "study_uid": "1.2.826.0.1.3680043.8.498.46051119885630602872050329412008545893",
+      "series": 10,
+      "slices": 359,
+      "bounded_raw_bytes": 302931850,
+      "endpoint_count": 20,
+      "patient_id_hash_groups": 1,
+      "frame_of_reference_hash_groups": 10,
+      "technical_evidence": {
+        "path": "annotation-staging/repeated-protocol-six-v1/technical-evidence/case-048-12.json",
+        "sha256": "5f67ff72b8bf82621f61fc7bd84fb5991e20dd84ab24988d13371cb60a7e8e6e",
+        "bytes": 71167
+      },
+      "priority": 2,
+      "native_escalation": "recommended_bounded_full_study_after_root_coordination",
+      "acquisition_groups": [
+        {
+          "series_numbers": [
+            201,
+            301,
+            401,
+            501,
+            601
+          ],
+          "literal_laterality": "blank",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.12857563385674397274902034273096732424",
+            "1.2.826.0.1.3680043.8.498.83519009836331791328880127949875169045",
+            "1.2.826.0.1.3680043.8.498.29329969014954540795962427003756739196",
+            "1.2.826.0.1.3680043.8.498.13193887684795951337152256963472393219",
+            "1.2.826.0.1.3680043.8.498.11878321781274509625920460709000314871"
+          ]
+        },
+        {
+          "series_numbers": [
+            801,
+            901,
+            1001,
+            1101,
+            1201
+          ],
+          "literal_laterality": "blank",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.46554394390257961530658404166488973936",
+            "1.2.826.0.1.3680043.8.498.71818139177298912809715777930247053937",
+            "1.2.826.0.1.3680043.8.498.34534043901782974603120885178054468882",
+            "1.2.826.0.1.3680043.8.498.33274876298860841271481928261135035238",
+            "1.2.826.0.1.3680043.8.498.77532766938753411068872012730491712164"
+          ]
+        }
+      ],
+      "assessment": "Source explicitly integrates current right and left knee content. Five sequence types each repeat in two complete protocol sets. All side tags are blank. Corresponding sagittal mean image-origin X is about -87 mm versus +62 mm, with coherent group-specific orientations and corresponding coronal/axial displacement. This supports a bilateral candidate requiring image/geometry confirmation; blank laterality is not assigned to either side.",
+      "native_question": "Confirm whether the two complete unsided protocols show opposite knees in native images, with orientation-grounded morphology across all planes. Do not infer report clinical targets from images."
+    },
+    {
+      "case": "086:13",
+      "study_uid": "1.2.826.0.1.3680043.8.498.97500632594529766269369977508352975364",
+      "series": 10,
+      "slices": 300,
+      "bounded_raw_bytes": 238906448,
+      "endpoint_count": 20,
+      "patient_id_hash_groups": 1,
+      "frame_of_reference_hash_groups": 10,
+      "technical_evidence": {
+        "path": "annotation-staging/repeated-protocol-six-v1/technical-evidence/case-086-13.json",
+        "sha256": "e3eefeb2ebda8aca027b1b7b47ba92aafcf60fbcc8646c021b3d12b35d672d6b",
+        "bytes": 65002
+      },
+      "priority": 3,
+      "native_escalation": "recommended_bounded_full_study_after_root_coordination",
+      "acquisition_groups": [
+        {
+          "series_numbers": [
+            201,
+            301,
+            401,
+            501,
+            601
+          ],
+          "literal_laterality": "L",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.74782449174332382847106689090155381542",
+            "1.2.826.0.1.3680043.8.498.53619594992091125169855932861198577223",
+            "1.2.826.0.1.3680043.8.498.54449704104675415974120334089881685670",
+            "1.2.826.0.1.3680043.8.498.81025631491762594029282064476408146801",
+            "1.2.826.0.1.3680043.8.498.11760052569097250250382418592171955208"
+          ]
+        },
+        {
+          "series_numbers": [
+            801,
+            901,
+            1001,
+            1101,
+            1201
+          ],
+          "literal_laterality": "blank",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.10209726568234009935051464275771080333",
+            "1.2.826.0.1.3680043.8.498.13115249201544999166524459450098729467",
+            "1.2.826.0.1.3680043.8.498.96968081012141222980874487337508614427",
+            "1.2.826.0.1.3680043.8.498.76340467848998951978471641511398937962",
+            "1.2.826.0.1.3680043.8.498.69069335890887725339986921094978280088"
+          ]
+        }
+      ],
+      "assessment": "Source explicitly integrates both current knees. Two complete five-sequence protocols occupy separated recorded coordinates; first is L-tagged and second blank. Sagittal mean image-origin X is about +120 mm versus -121 mm. Header/geometry evidence strongly warrants opposite-knee confirmation, but the blank group is not assumed right.",
+      "native_question": "Verify anatomical correspondence of L-tagged versus blank sets with native geometry and independent image review; preserve missing-side uncertainty until supported."
+    },
+    {
+      "case": "001:18",
+      "study_uid": "1.2.826.0.1.3680043.8.498.10189392162056736163704940747328177364",
+      "series": 9,
+      "slices": 282,
+      "bounded_raw_bytes": 83035438,
+      "endpoint_count": 18,
+      "patient_id_hash_groups": 1,
+      "frame_of_reference_hash_groups": 9,
+      "technical_evidence": {
+        "path": "annotation-staging/repeated-protocol-six-v1/technical-evidence/case-001-18.json",
+        "sha256": "02410a70b59a2a1d01072532f7f5b663cb85c43f9ef5b00dea44a7b0ab37611b",
+        "bytes": 58640
+      },
+      "priority": 4,
+      "native_escalation": "defer_full_native_download_initial_metadata_does_not_show_a_second_protocol_location",
+      "acquisition_groups": [
+        {
+          "series_numbers": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "literal_laterality": "L",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.10052052142602846814375429051826138830",
+            "1.2.826.0.1.3680043.8.498.13004271707800051019447459105429030272",
+            "1.2.826.0.1.3680043.8.498.52710783141305348594589811722326619927",
+            "1.2.826.0.1.3680043.8.498.11740732272602659379392281696328258247",
+            "1.2.826.0.1.3680043.8.498.78910369798973604758665202721907587098",
+            "1.2.826.0.1.3680043.8.498.35320024245044005696259306061920440242",
+            "1.2.826.0.1.3680043.8.498.10857715131994138598011004110668996188",
+            "1.2.826.0.1.3680043.8.498.21136908711942090200259674453458982637",
+            "1.2.826.0.1.3680043.8.498.12818455133084961897818112107732732981"
+          ]
+        }
+      ],
+      "assessment": "One unsided source report and all nine series explicitly L-tagged. Repeated axial 9/10, coronal 12/13 and sagittal 15/16/17 have identical full ordered geometry within each repeat family. The series comprise one coherent plane set with repeated acquisitions, without a separate shifted protocol. Repeated series are not exact pixel duplicates: no native fingerprints overlap.",
+      "native_question": "If later QA raises a concern, inspect matching native slices of repeat families for motion or acquisition differences; full bilateral workup is not currently justified by this metadata alone."
+    },
+    {
+      "case": "021:03",
+      "study_uid": "1.2.826.0.1.3680043.8.498.13035632998746261521316395720102873141",
+      "series": 8,
+      "slices": 231,
+      "bounded_raw_bytes": 179783174,
+      "endpoint_count": 16,
+      "patient_id_hash_groups": 1,
+      "frame_of_reference_hash_groups": 8,
+      "technical_evidence": {
+        "path": "annotation-staging/repeated-protocol-six-v1/technical-evidence/case-021-03.json",
+        "sha256": "4429284394449cfd524a9ebe48e804ca716c0ede24aa0696ffa28c6150ad3cad",
+        "bytes": 50929
+      },
+      "priority": 5,
+      "native_escalation": "defer_full_native_download_initial_metadata_favors_repeats_and_targeted_oblique_sequence",
+      "acquisition_groups": [
+        {
+          "series_numbers": [
+            201,
+            301,
+            401,
+            501,
+            601,
+            701,
+            801,
+            901
+          ],
+          "literal_laterality": "blank",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.70023403105377432174962470255148010943",
+            "1.2.826.0.1.3680043.8.498.57690554036415847168399266572017846579",
+            "1.2.826.0.1.3680043.8.498.49919812297784190640478343835881829111",
+            "1.2.826.0.1.3680043.8.498.26599108015020079164799742712274705560",
+            "1.2.826.0.1.3680043.8.498.17694761818943864091871127651569902764",
+            "1.2.826.0.1.3680043.8.498.71277255827564248598430207710906385013",
+            "1.2.826.0.1.3680043.8.498.59736094069189138158569559355029762388",
+            "1.2.826.0.1.3680043.8.498.31199299811468265897229786865570943232"
+          ]
+        }
+      ],
+      "assessment": "One unsided source report. Initial five-series protocol followed by another axial acquisition with adjusted orientation, an 11-slice narrower sagittal acquisition, and a repeated coronal acquisition. Coronal 401/901 full ordered geometry is exact; axial repeat remains in the same broad recorded region and narrower sagittal stack overlaps the first sagittal range. No complete second shifted protocol. All side tags blank and all repeated image fingerprints distinct.",
+      "native_question": "Optional targeted views could confirm one-knee repetition/oblique acquisition if release QA requires it; absence of explicit tags alone does not justify a bilateral claim."
+    },
+    {
+      "case": "064:14",
+      "study_uid": "1.2.826.0.1.3680043.8.498.68593524008570334427931338225473487643",
+      "series": 8,
+      "slices": 148,
+      "bounded_raw_bytes": 65747012,
+      "endpoint_count": 16,
+      "patient_id_hash_groups": 1,
+      "frame_of_reference_hash_groups": 8,
+      "technical_evidence": {
+        "path": "annotation-staging/repeated-protocol-six-v1/technical-evidence/case-064-14.json",
+        "sha256": "4387d92f32a5f49338a790762a84c177cbd380774b523d6402bfd52e5e842e01",
+        "bytes": 41708
+      },
+      "priority": 6,
+      "native_escalation": "defer_full_native_download_initial_metadata_favors_repeats_or_repositioning",
+      "acquisition_groups": [
+        {
+          "series_numbers": [
+            3,
+            4,
+            5,
+            6,
+            9,
+            10,
+            11,
+            12
+          ],
+          "literal_laterality": "blank",
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.87444172817171251962483343610045817706",
+            "1.2.826.0.1.3680043.8.498.13094809319194150034176903123094560290",
+            "1.2.826.0.1.3680043.8.498.43379025446875214272088597443050962675",
+            "1.2.826.0.1.3680043.8.498.55169397215287133523326292836756124722",
+            "1.2.826.0.1.3680043.8.498.15359841889396539818549307849899008631",
+            "1.2.826.0.1.3680043.8.498.85503731083633113725703261114876089947",
+            "1.2.826.0.1.3680043.8.498.12973302737091268453301710188951510591",
+            "1.2.826.0.1.3680043.8.498.43955196536339826808737516240630568188"
+          ]
+        }
+      ],
+      "assessment": "One unsided technique/findings report. Axial 3/10 full geometry is identical; later coronal and sagittal repeats change angle/coverage by roughly 15\u201323 mm in mean image-origin X, remaining in overlapping recorded ranges. Added sagittal T2 and later adjusted sagittal share orientation. This is compatible with repeat/repositioning and does not show the large separated complete protocol sets of the first three candidates. No shared native fingerprints; no automatic exclusion.",
+      "native_question": "Optional matched native repeat views if further evidence is needed; current source/header evidence does not justify priority bilateral downloads."
+    }
+  ],
+  "native_review_execution_plan": [
+    "Review one study at a time in priority order 075:14, 048:12, 086:13, after root coordinates resources.",
+    "Preflight complete study raw byte count and preserve at least 20 GiB disk reserve. Use at most two requests concurrently. Fetch exact corrected-revision sources or authenticated official sources with origin stated; bind every full source SHA, size and Study/Series/SOP UID.",
+    "Decode every slice of each selected complete study strictly. Compare native fingerprints and full geometry to preserved cache/source metadata; retain originals.",
+    "Render representative native slices across every series with original pixels, no spatial transforms, explicit source/IOP bindings. Freeze own technical observations privately and send panel paths before conclusions so root can independently inspect.",
+    "Use consistent recorded IOP plus visible morphology across repeated plane/contrast sets to distinguish opposite knees from repeat acquisitions. Do not assign blank laterality from tags alone, infer diagnosis, or alter clinical labels.",
+    "Keep 001:18, 021:03 and 064:14 as lower-priority repeat/repositioning assessments unless new evidence warrants targeted native views."
+  ],
+  "limits": [
+    "Two lexical SOP endpoints per series are not all-slice header review or necessarily spatial endpoints. All-slice positions referenced here are existing strict-decoder cache metadata, not fresh source redecoding.",
+    "Distinct per-series anonymized FrameOfReferenceUID hashes mean coordinate displacements are candidate evidence rather than proof of one globally registered patient frame.",
+    "A single consistent hashed PatientID within each study does not prove real-world patient identity or report correspondence.",
+    "All 56 official plane labels match dominant IOP axis, but no new native anatomical plane validation or routing correction is asserted.",
+    "No clinical drafts, review target states or gold values read. Existing authenticated official train.csv was reused for exact text comparison; no fresh CSV download in this task."
+  ],
+  "originals_preserved": true,
+  "training_ready": false
+}

@@ -163,16 +163,18 @@ orphaned pair aside and rerun that series after investigating the interruption.
 included in a release. Reserve sufficient storage; caching stops below 3 GiB free.
 
 For the annotation stage, see [the review procedure](docs/report-review.md). After
-all batches and the DICOM audit complete:
+all batches and the DICOM audit complete, use the corrected inventory and audit
+from [source recovery](docs/source-recovery.md):
 
 ```bash
 python -m rsna.labels --train initiative/source/train.csv \
   --reviews initiative/reviews-v2/reviewed --drafts initiative/reviews-v2/drafts \
   --review-provenance initiative/reviews-v2/provenance.json \
   --rubric protocols/report_weak_v2.md \
-  --inventory initiative/source/inventory \
-  --source-revision 52f995f4568e36bfa5fbbaf69a89af41226b4f5d \
-  --dicom-audit data/audit/dicom_audit.json --output data/release
+  --inventory ../cache256-v3-official-recovery-v1/inventory_effective.parquet \
+  --source-revision 0b5e410288232f570c69ba4f44723356e6ae6ab7 \
+  --dicom-audit ../dicom-audit-v3-official-recovery-v1/dicom_audit.json \
+  --output data/release
 ```
 
 The command requires exact study coverage, verbatim evidence, distinct reader/reviewer
@@ -181,14 +183,21 @@ blinded reports. It also checks the full image-audit inventory, revision, cache 
 study identities, counts, and series-index checksum. A partial audit or copied draft
 cannot satisfy release gates. It writes
 `studies.parquet`, `study_labels.csv`, `report_annotations.parquet`,
-`report_annotations_original.parquet`, `adjudication_trace.json`, and
-`label_audit.json`. Keep the draft and reviewed JSONL files for provenance.
+`report_annotations_original.parquet`, `adjudication_trace.json`,
+`correspondence_trace.json`, and `label_audit.json`. Keep the draft and reviewed
+JSONL files for provenance.
 The fixed adjacent `reviews-v2/adjudications/registry.json` is also required,
 including when explicitly empty. Registered corrections must match preserved
 independent decisions and exact source/review hashes; pending semantic QA blocks
 release. Effective annotations preserve original states/evidence and per-target
 correction traces, while gold remains authoritative. See the
 [correction procedure](docs/adjudications.md).
+
+The fixed `initiative/audits/correspondence-release-registry.json` must also
+cover every preserved correspondence policy. Excluded reports receive zero loss
+masks while original annotations, official gold labels and duplicate groups stay
+intact. Missing, changed or omitted evidence blocks export. See the
+[correspondence procedure](docs/correspondence.md).
 
 ## Train and evaluate
 

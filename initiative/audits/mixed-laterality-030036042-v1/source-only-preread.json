@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_only_correspondence_preread",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T09:00:56.483581+00:00",
+  "order": "Personally read all three full original blinded reports and froze source observations before opening case-specific endpoint/cache metadata. Assignment identified mixed-tag candidates but supplied no case-specific source or image interpretation. Clinical drafts/reviews, reader flags and official targets not opened.",
+  "records": [
+    {
+      "case": "030:18",
+      "source_batch_index_zero_based": 18,
+      "study_uid": "1.2.826.0.1.3680043.8.498.22407175411826914385667795929161924645",
+      "report": "Técnica: RMN de la rodilla. Resultados: Condropatía patelofemoral. Pinzamiento de la almohadilla grasa de Hoffa. Encondroma femoral. Derrame leve. Impresión: Condropatía patelofemoral. Pinzamiento de la almohadilla grasa de Hoffa. Encondroma femoral. Derrame leve.",
+      "source_report_sha256": "be0e96b946400b6d1e5e217ec951a2b2fc40b6b897bf54814bdb66fd5dbc2934",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-030.json",
+        "sha256": "0e8a14fccda9082cc3a2a98c11cb2d5af2c452da0ff2a3dcea0cd5c8bf35b68f",
+        "bytes": 72634
+      },
+      "source_structure": "One short Spanish unsided knee MRI report with Técnica, Resultados and Impresión. The impression repeats the listed results within a single report structure. No explicit named right/left side, bilateral declaration, second full report or prior/current study comparison.",
+      "exact_structure_quotes": [
+        "Técnica: RMN de la rodilla.",
+        "Resultados:",
+        "Impresión:"
+      ],
+      "completeness_limit": "The brief text contains complete section headings and complete final sentences; no source-based truncation inference. Repetition between findings and impression is not a second examination."
+    },
+    {
+      "case": "036:17",
+      "source_batch_index_zero_based": 17,
+      "study_uid": "1.2.826.0.1.3680043.8.498.30248682294786626375369374249874501600",
+      "report": " In the medial compartment, there is radial tear at the posterior horn of the medial meniscus. There is displaced meniscal fragment into the medial gutter. There is focal subchondral bone sclerosis combining with extensive marrow edema at weightbaring medial femoral condyle (about 1.6*2.3 cm). \n  \n The lateral compartment, the lateral meniscus is not torn. The articular cartilage appears normal.  \n  \n The patellofemoral joint, there is diffuse low grade and high grade chondrosis (less than and more than 50% thickness cartilage loss) along medial, lateral patellar facets, medial and lateral trochleas. The medial patellofemoral ligament is intact.  \n  \n In the intercondylar notch, the anterior and posterior cruciate ligaments are intact. There is no tibial translation. \n  \n The medial collateral ligament complexes are intact. The posteromedial oblique ligament is intact.  \n  \n The lateral collateral ligament complexes are intact. The popliteofibular ligament is intact. The meniscopopliteal fascicles are intact.  \n  \n The extensor mechanism is normal.  \n  \n Large amount of left knee effusion with synovitis is present. The surrounding musculature is normal.   Patellofemoral compartmental osteoarthritis of left knee by evidence of chondrosis and osteophytes. \n  Focal subchondral bone sclerosis (early insufficiency fracture) combining with extensive marrow edema at weightbaring medial femoral condyle (about 1.6*2.3 cm). \n  Radial tear at the posterior horn of the medial meniscus. (note: meniscal extrusion into the medial gutter). \n  Large amount of left knee effusion with synovitis.",
+      "source_report_sha256": "22762edc951cc23a9257873a78e1e6199a6ace46c5027f2fa00fd1358458b792",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-036.json",
+        "sha256": "7eab649b17b08aafe029c3f72ca0bd6e960d8640622647fc62d2d4cff98a7f29",
+        "bytes": 67503
+      },
+      "source_structure": "One English knee report with compartment-based findings followed by a summary repeating the findings. Explicit left knee appears in the effusion and concluding summary. No right-knee block, bilateral examination declaration, different date or prior/current study comparison. Medial and lateral facets/trochleas are structures of the reported knee, not two report sides.",
+      "exact_structure_quotes": [
+        "In the medial compartment,",
+        "Large amount of left knee effusion with synovitis is present.",
+        "Patellofemoral compartmental osteoarthritis of left knee",
+        "Large amount of left knee effusion with synovitis."
+      ],
+      "completeness_limit": "Although no explicit impression heading is present, the final repeated summary is continuous and refers to the same named left knee. There is no apparent interrupted sentence or missing report reconstruction to perform."
+    },
+    {
+      "case": "042:11",
+      "source_batch_index_zero_based": 11,
+      "study_uid": "1.2.826.0.1.3680043.8.498.38056024157303576597111203925091929489",
+      "report": "Técnica: RMN de la rodilla. Resultados: Condropatía rotuliana. Impresión: Condropatía rotuliana.",
+      "source_report_sha256": "05250673a2d63325108eb03cd93567e893e5205225d335c6bd40a03171cfe128",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-042.json",
+        "sha256": "fcdbd76463c1797628c561ad356da3c9e21bd3a53c0604dea3599323ae69d1df",
+        "bytes": 73120
+      },
+      "source_structure": "One very short Spanish unsided knee MRI report with complete Técnica, Resultados and Impresión. The same statement appears in results and impression. No named right/left side, bilateral declaration, second full report or temporal comparison.",
+      "exact_structure_quotes": [
+        "Técnica: RMN de la rodilla.",
+        "Resultados: Condropatía rotuliana.",
+        "Impresión: Condropatía rotuliana."
+      ],
+      "completeness_limit": "Short length does not establish truncation; the final impression is a complete sentence. No clinical target states inferred from this technical source assessment."
+    }
+  ],
+  "clinical_target_states_inferred": false,
+  "source_annotations_modified": false
+}

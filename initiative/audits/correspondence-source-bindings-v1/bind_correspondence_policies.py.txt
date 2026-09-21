@@ -1,0 +1,27 @@
+"""Bind preserved native correspondence proofs to explicit report/study identities."""
+import datetime,hashlib,json,shutil
+from pathlib import Path
+W=Path(__file__).resolve().parent;R=W/'recovered';A=R/'initiative/audits';D=A/'correspondence-source-bindings-v1';assert not D.exists()
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(R)),'sha256':sha(p)}
+old_policy=A/'correspondence-release-dispositions-v1.json';assert sha(old_policy)=='e48e3aba30da8192fc003edd71106d514c061b348a9a0a3553bd590f91163a17';v1=read(old_policy);records=[];prepared=[]
+configs=[('075',14,'correspondence-native-075-014-v1','48e949fb1002407cd3fa49b6b9ec52c012707b3728e49a0598e2ab8f207dafc3'),('048',12,'correspondence-native-048-012-v1','c1b93a71068be94cb8a19d86f9155bcf9328158d41eb9e7382287683cd46a7ac'),('086',13,'correspondence-native-086-013-v1','aa3f03b172eff2f1fc82af05d36c53686211132134be5b998bf8d70c88d7b3e0')]
+for batch,index,archive,root_digest in configs:
+ case=f'{batch}:{index:02d}';source=R/f'initiative/reviews/inputs/batch-{batch}.json';row=read(source)[index];report_sha=hashlib.sha256(row['report'].encode()).hexdigest();review_path=A/archive/'root-numeric-display-review.json';handoff_path=A/archive/'source-geometry-visual-handoff.json';assert sha(review_path)==root_digest;review=read(review_path);handoff=read(handoff_path);assert review['case']==handoff['case']==case and handoff['study_uid']==row['study_uid'];assert review['status']=='verified';assert any(x.get('sha256')==sha(handoff_path) for x in review['bindings']);p=D/f'case-{batch}-{index:03d}.json'
+ wrapper={'schema_version':1,'stage':'root_verified_correspondence_source_identity_binding','agent_id':'/root','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'case':case,'study_uid':row['study_uid'],'source_batch':ref(source),'source_report_sha256':report_sha,'verified_review':ref(review_path),'source_handoff':ref(handoff_path),'status':'verified','notes':'The original complete numeric proof remains unchanged. Its bound handoff identifies this study, and the exact blinded source batch identifies this report. This wrapper makes those existing identity bindings explicit for runtime validation. No disease target or named blank side is inferred.','training_ready':False}
+ prepared.append((p,wrapper))
+ if batch!='075':
+  records.append({'case':case,'study_uid':row['study_uid'],'source_path':str(source.relative_to(R)),'source_batch_sha256':sha(source),'source_report_sha256':report_sha,'status':'confirmed_two_knee_aggregate_report','report_derived_training_supervision_allowed':False,'required_report_loss_mask':[False]*12,'scope':'Whole original study aggregate report-derived supervision. Preserve original images/reports, duplicate memberships and official gold evaluation assignments.','reason':'The integrated report describes both knees and two independently frozen image reviews plus native source/display replay support two opposing knee protocols. No per-series side-specific clinical target mapping has been established; mask whole-study report supervision.','verified_technical_proof':{'path':str(p.relative_to(R)),'sha256':None},'source_origin_limit':f"{review['source_origin_counts'].get('retained_fresh_official_Kaggle_attempt',0)} retained fresh official files; {review['fresh_official_byte_confirmation_deferred']} corrected pinned mirror files await fresh official whole-byte confirmation. Matching official ZIP CRC alone is not that confirmation."})
+D.mkdir();shutil.copy2(old_policy,D/'policy-before-identity-binding.json')
+for p,x in prepared:p.write_text(json.dumps(x,indent=2)+'\n')
+for record in records:record['verified_technical_proof']['sha256']=sha(R/record['verified_technical_proof']['path'])
+for record in v1['records']:
+ if record['case']=='075:14':
+  record['verified_technical_proof']=ref(D/'case-075-014.json')
+  record['identity_binding_note']='Original numeric proof and policy snapshot remain preserved; this pointer now uses a verified explicit source-identity wrapper.'
+old_policy.write_text(json.dumps(v1,indent=2)+'\n')
+v2=A/'correspondence-release-dispositions-v2.json';assert not v2.exists();v2.write_text(json.dumps({'schema_version':1,'stage':'root_verified_correspondence_release_requirements','agent_id':'/root','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'target_order':v1['target_order'],'records':records,'release_requirement':'Enforce these whole-study report masks in addition to target decisions, existing exclusions and gold/leakage isolation. The required registry is enforced by rsna.labels; final full-corpus release remains pending.','original_source_or_annotation_changes':False,'training_ready':False},indent=2)+'\n')
+registry=A/'correspondence-release-registry.json';registry.write_text(json.dumps({'schema_version':1,'target_order':v1['target_order'],'policies':[ref(old_policy),ref(v2)]},indent=2)+'\n')
+shutil.copy2(Path(__file__),D/'bind_correspondence_policies.py.txt')
+print(json.dumps({'wrappers':3,'required_study_masks':4,'registry_sha256':sha(registry),'v1_sha256':sha(old_policy),'v2_sha256':sha(v2)}))

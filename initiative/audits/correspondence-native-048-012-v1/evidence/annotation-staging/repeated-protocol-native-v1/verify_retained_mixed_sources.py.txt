@@ -1,0 +1,154 @@
+"""Recheck all659 retained mixed-origin source files and exact remaining official scope."""
+
+from __future__ import annotations
+
+import json
+import zlib
+from collections import Counter
+from pathlib import Path
+
+import pydicom
+from audit_native_mirror_v1 import PRIOR, ROOT, WORK, binding, require, save, sha
+
+
+def main() -> None:
+    output = ROOT / "mixed-source-integrity.json"
+    require(not output.exists(), "Integrity output must be new")
+    inv_path = PRIOR / "technical-evidence/inventory-six-cases.json"
+    inventory = {r["path"]: r for r in json.loads(inv_path.read_text())}
+    results = []
+    pending = []
+    for case, expected_files, expected_official, proof_sha in [
+        ("048-12", 359, 83, "f6eccc6ce6ba1a504f3ad2748549c4758d59b5a4ae275d8e705f865a6dc45f64"),
+        ("086-13", 300, 0, "4804d602d6a5cb89fc3b4ae28d4a2953ca8e136669caa9b523eb164a5aee9858"),
+    ]:
+        directory = ROOT / f"case-{case}-mirror-v1"
+        proof_path = directory / "native-verification.json"
+        require(sha(proof_path) == proof_sha, "Completed native proof changed")
+        proof = json.loads(proof_path.read_text())
+        row_ref = proof["source_records"]
+        require(sha(WORK / row_ref["path"]) == row_ref["sha256"], "Source records changed")
+        records = [json.loads(line) for line in (WORK / row_ref["path"]).read_text().splitlines()]
+        require(
+            len(records) == len({r["requested_source_path"] for r in records}) == expected_files,
+            "Source count/membership differs",
+        )
+        patient_hashes = set()
+        frame_by_series = {}
+        files = []
+        for row in records:
+            inv = inventory[row["requested_source_path"]]
+            path = directory / row["source_local_path"]
+            require(
+                path.relative_to(directory / "native").as_posix() == inv["path"],
+                "Retained source path routing differs",
+            )
+            data = path.read_bytes()
+            require(
+                sha(path) == row["source_sha256"] == inv["sha256"]
+                and len(data) == row["source_bytes"] == inv["bytes"],
+                "Retained source hash/size differs",
+            )
+            require(
+                f"{zlib.crc32(data) & 0xFFFFFFFF:08x}"
+                == row["source_crc32"]
+                == row["official_archive_crc32"],
+                "Retained source CRC differs",
+            )
+            ds = pydicom.dcmread(path, stop_before_pixels=True)
+            require(
+                [str(ds.StudyInstanceUID), str(ds.SeriesInstanceUID), str(ds.SOPInstanceUID)]
+                == row["actual_uid_triplet"]
+                == [inv[k] for k in ("study_uid", "series_uid", "sop_uid")],
+                "Retained UID differs",
+            )
+            origin = row["source_origin"]
+            if origin["kind"] == "retained_fresh_official_Kaggle_attempt":
+                for item in [origin["source"], origin["journal"]]:
+                    require(
+                        sha(WORK / item["path"]) == item["sha256"],
+                        "Prior official evidence changed",
+                    )
+                require(
+                    origin["source"]["sha256"] == inv["sha256"], "Prior official source differs"
+                )
+            else:
+                require(
+                    origin["kind"] == "corrected_pinned_Hugging_Face_mirror"
+                    and origin["source_revision"] == "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+                    and origin["fresh_official_Kaggle_byte_confirmation"] is False,
+                    "Unknown source origin",
+                )
+                pending.append(
+                    {
+                        "case": case,
+                        "study_uid": inv["study_uid"],
+                        "series_uid": inv["series_uid"],
+                        "sop_uid": inv["sop_uid"],
+                        "path": inv["path"],
+                        "sha256": inv["sha256"],
+                        "bytes": inv["bytes"],
+                        "status": "fresh_official_Kaggle_byte_confirmation_deferred",
+                    }
+                )
+            patient_hashes.add(row["patient_id_sha256"])
+            frame_by_series.setdefault(row["series_uid"], set()).add(
+                row["frame_of_reference_sha256"]
+            )
+            files.append(binding(path, WORK))
+        origins = Counter(r["source_origin"]["kind"] for r in records)
+        require(
+            origins["retained_fresh_official_Kaggle_attempt"] == expected_official,
+            "Official coverage differs",
+        )
+        results.append(
+            {
+                "case": case,
+                "native_proof": binding(proof_path, WORK),
+                "source_origin_plan": binding(directory / "source-origin-plan.json", WORK),
+                "source_files": files,
+                "files_rechecked_sha_size_crc_uid": len(files),
+                "source_bytes": sum(r["bytes"] for r in files),
+                "origin_counts": dict(origins),
+                "all_slice_patient_hash_count": len(patient_hashes),
+                "all_slice_distinct_frame_hash_count": len(set().union(*frame_by_series.values())),
+                "within_series_frame_hash_count": {
+                    s: len(v) for s, v in sorted(frame_by_series.items())
+                },
+            }
+        )
+    pending_path = ROOT / "deferred-official-source-confirmation.json"
+    require(not pending_path.exists(), "Pending source list must be new")
+    save(
+        pending_path,
+        {
+            "schema_version": 1,
+            "stage": "explicit_deferred_authoritative_byte_confirmation",
+            "agent_id": "/root/image_pipeline_audit",
+            "n_sources": len(pending),
+            "records": pending,
+            "reason": "KaggleHTTP429; parent authorized corrected pinnedHF source for technical native review. No new Kaggle requests attempted.",
+        },
+    )
+    save(
+        output,
+        {
+            "schema_version": 1,
+            "stage": "retained_source_integrity_and_source_origin_scope",
+            "agent_id": "/root/image_pipeline_audit",
+            "script": binding(Path(__file__).resolve(), WORK),
+            "cases": results,
+            "source_files_rechecked": 659,
+            "prior_official_files": 83,
+            "mirror_only_files": 576,
+            "deferred_official_sources": binding(pending_path, WORK),
+            "new_network_requests": 0,
+            "new_native_pixel_decodes": 0,
+            "scope": "Rehashes all retained full bytes and parses all UID headers again. Exhaustive native pixel/geometry verification remains the unchanged bound completed proofs. Patient/frame counts derive from all-slice preserved decode records, not real-world identity inference.",
+        },
+    )
+    print(json.dumps(binding(output, WORK)))
+
+
+if __name__ == "__main__":
+    main()

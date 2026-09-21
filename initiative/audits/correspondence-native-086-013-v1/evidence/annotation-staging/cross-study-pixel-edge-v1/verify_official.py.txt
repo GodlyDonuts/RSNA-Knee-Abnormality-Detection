@@ -1,0 +1,440 @@
+"""Fetch and compare all 288 authoritative Kaggle source files for one pixel edge.
+
+Credentials come from environment/.env only. No authenticated URLs, credentials,
+raw PatientIDs, report text or clinical labels are logged or retained.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import io
+import json
+import logging
+import shutil
+import threading
+import time
+import zlib
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pydicom
+from dotenv import load_dotenv
+from kaggle.api.kaggle_api_extended import KaggleApi
+
+from characterize import INVENTORY_SHA256, STUDIES, binding, require, sha
+
+COMPETITION = "rsna-knee-abnormality-detection"
+FROZEN_SHA256 = "bff6ee0cf2f243aa0c3c6cdc7cbd10b56379de8d1d77100e9b157aa05e49e68b"
+LOCAL = threading.local()
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def atomic_json(path: Path, value: dict) -> None:
+    temporary = path.with_suffix(".partial.json")
+    temporary.write_text(json.dumps(value, indent=2) + "\n")
+    temporary.replace(path)
+
+
+def api() -> KaggleApi:
+    if not hasattr(LOCAL, "api"):
+        LOCAL.api = KaggleApi()
+        LOCAL.api.authenticate()
+    return LOCAL.api
+
+
+def geometry(dataset) -> dict:
+    return {
+        "position": [float(v) for v in dataset.ImagePositionPatient],
+        "orientation": [float(v) for v in dataset.ImageOrientationPatient],
+        "pixel_spacing": [float(v) for v in dataset.PixelSpacing],
+        "slice_thickness": str(dataset.get("SliceThickness", "")),
+        "spacing_between_slices": str(dataset.get("SpacingBetweenSlices", "")),
+        "rows": int(dataset.Rows),
+        "columns": int(dataset.Columns),
+        "samples_per_pixel": int(dataset.SamplesPerPixel),
+        "bits_allocated": int(dataset.BitsAllocated),
+        "bits_stored": int(dataset.BitsStored),
+        "high_bit": int(dataset.HighBit),
+        "pixel_representation": int(dataset.PixelRepresentation),
+        "photometric_interpretation": str(dataset.PhotometricInterpretation),
+        "rescale_slope": str(dataset.get("RescaleSlope", "")),
+        "rescale_intercept": str(dataset.get("RescaleIntercept", "")),
+    }
+
+
+def download_and_decode(
+    row: dict, native: Path, expected: dict, zip_row: dict
+) -> tuple[dict, np.ndarray | None]:
+    target = native / row["path"]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "requested_source_path": row["path"],
+        "study_uid": row["study_uid"],
+        "series_uid": row["series_uid"],
+        "sop_uid": row["sop_uid"],
+        "expected_source_sha256": row["sha256"],
+        "expected_source_bytes": row["bytes"],
+        "expected_native_pixel_sha256": expected["native_pixel_sha256"],
+        "official_archive_crc32": zip_row["crc32"],
+        "attempts": 0,
+    }
+    for attempt in range(1, 4):
+        record["attempts"] = attempt
+        try:
+            if shutil.disk_usage(native).free < 20 * 1024**3 + int(row["bytes"]):
+                raise OSError("Disk reserve")
+            require(not target.exists(), "Existing source is not a fresh official fetch")
+            api().competition_download_file(
+                COMPETITION, row["path"], path=str(target.parent), force=True, quiet=True
+            )
+            require(target.is_file(), "Official download did not produce the expected file")
+            break
+        except Exception as exc:
+            # Preserve partial files; never overwrite an uncertain official source.
+            if target.exists() or attempt == 3:
+                record.update(
+                    status="official_fetch_failed",
+                    error_type=type(exc).__name__,
+                    completed_at_utc=now(),
+                )
+                return record, None
+            time.sleep(2 * attempt)
+    data = target.read_bytes()
+    record.update(
+        status="official_file_received",
+        completed_at_utc=now(),
+        official_local_path=str(target.relative_to(native.parent)),
+        official_sha256=hashlib.sha256(data).hexdigest(),
+        official_bytes=len(data),
+        official_crc32=f"{zlib.crc32(data) & 0xFFFFFFFF:08x}",
+    )
+    record["source_hash_matches_corrected_inventory"] = record["official_sha256"] == row["sha256"]
+    record["source_size_matches_corrected_inventory"] = len(data) == row["bytes"]
+    record["source_crc_matches_official_archive_index"] = (
+        record["official_crc32"] == zip_row["crc32"]
+    )
+    try:
+        dataset = pydicom.dcmread(io.BytesIO(data))
+        actual = [
+            str(dataset.StudyInstanceUID),
+            str(dataset.SeriesInstanceUID),
+            str(dataset.SOPInstanceUID),
+        ]
+        record["official_uid_triplet"] = actual
+        record["uid_triplet_matches_corrected_inventory"] = actual == [
+            row[k] for k in ["study_uid", "series_uid", "sop_uid"]
+        ]
+        pixels = dataset.pixel_array
+        # Independent implementation of the preserved canonical native definition.
+        native_hash = hashlib.sha256(
+            np.asarray(pixels.shape, dtype="<i8").tobytes()
+            + np.asarray(pixels, dtype="<f8").tobytes(order="C")
+        ).hexdigest()
+        record.update(
+            status="official_file_decoded",
+            native_pixel_sha256=native_hash,
+            native_shape=list(pixels.shape),
+            native_dtype=str(pixels.dtype),
+            native_min=float(pixels.min()),
+            native_max=float(pixels.max()),
+            nonconstant=bool(pixels.min() != pixels.max()),
+            geometry=geometry(dataset),
+            patient_id_sha256=hashlib.sha256(
+                str(dataset.get("PatientID", "")).encode()
+            ).hexdigest(),
+            frame_of_reference_sha256=hashlib.sha256(
+                str(dataset.get("FrameOfReferenceUID", "")).encode()
+            ).hexdigest(),
+        )
+        record["native_fingerprint_matches_mirrored_decode"] = (
+            native_hash == expected["native_pixel_sha256"]
+        )
+        record["native_shape_matches_mirrored_decode"] = (
+            list(pixels.shape) == expected["native_shape"]
+        )
+        record["position_matches_mirrored_decode"] = (
+            record["geometry"]["position"] == expected["position"]
+        )
+        return record, pixels
+    except Exception as exc:
+        record.update(status="official_decode_failed", error_type=type(exc).__name__)
+        return record, None
+
+
+def run(work: Path, output: Path, workers: int, env_file: Path) -> dict:
+    require(not output.exists(), "Official verification output must be a new directory")
+    require(workers in {1, 2}, "Use one or two download workers")
+    frozen_root = Path(__file__).resolve().parent
+    frozen_path = frozen_root / "cache-characterization-handoff.json"
+    require(sha(frozen_path) == FROZEN_SHA256, "Cache/source-identity characterization changed")
+    frozen = json.loads(frozen_path.read_text())
+    for reference in frozen["files"]:
+        require(
+            sha(work / reference["path"]) == reference["sha256"], "A frozen prerequisite changed"
+        )
+    inventory_path = work / "cache256-v3-official-recovery-v1/inventory_effective.parquet"
+    require(sha(inventory_path) == INVENTORY_SHA256, "Corrected inventory changed")
+    inventory = pd.read_parquet(inventory_path, filters=[("study_uid", "in", STUDIES)])
+    require(
+        len(inventory) == 288 and inventory.series_uid.nunique() == 10,
+        "Expected two complete five-series studies",
+    )
+    expected_bytes = int(inventory.bytes.sum())
+    require(expected_bytes == 50996372, "Bounded expected byte count changed")
+    require(
+        shutil.disk_usage(work).free - expected_bytes >= 20 * 1024**3,
+        "Insufficient disk reserve for the complete bounded fetch",
+    )
+    expected = {}
+    with (frozen_root / "evidence/all-source-slice-bindings.jsonl").open() as handle:
+        for line in handle:
+            row = json.loads(line)
+            expected[row["source_path"]] = row
+    require(set(expected) == set(inventory.path), "Frozen source membership changed")
+    zip_path = work / "source-byte-failures-v1/kaggle-official-zip-index.parquet"
+    zip_index = pd.read_parquet(zip_path).set_index("path")
+    for row in inventory.itertuples(index=False):
+        require(
+            int(zip_index.loc[row.path, "bytes"]) == row.bytes,
+            "Official archive size differs from bounded inventory",
+        )
+    inputs = [
+        binding(p, work) for p in [frozen_path, inventory_path, zip_path, Path(__file__).resolve()]
+    ]
+    load_dotenv(env_file)
+    output.mkdir(parents=True)
+    native = output / "native"
+    native.mkdir()
+    plan = {
+        "schema_version": 1,
+        "stage": "bounded_authoritative_kaggle_duplicate_pair_verification",
+        "agent_id": "/root/image_pipeline_audit",
+        "started_at_utc": now(),
+        "competition": COMPETITION,
+        "source_provider": "authenticated_official_Kaggle_competition_download_file_API",
+        "expected_files": 288,
+        "expected_source_bytes": expected_bytes,
+        "workers": workers,
+        "minimum_free_bytes": 20 * 1024**3,
+        "initial_free_bytes": shutil.disk_usage(work).free,
+        "input_bindings": inputs,
+        "credential_values_or_authenticated_urls_recorded": False,
+    }
+    atomic_json(output / "fetch-plan.json", plan)
+    status = {
+        "status": "in_progress",
+        "received": 0,
+        "decoded": 0,
+        "files_expected": 288,
+        "failures": 0,
+        "source_hash_mismatches": 0,
+        "source_bytes_received": 0,
+    }
+    atomic_json(output / "status.json", status)
+    rows = inventory.sort_values("path").to_dict("records")
+    records, arrays = [], {}
+    with (
+        ThreadPoolExecutor(max_workers=workers) as executor,
+        (output / "official-source-records.jsonl").open("x") as journal,
+    ):
+        futures = [
+            executor.submit(
+                download_and_decode,
+                row,
+                native,
+                expected[row["path"]],
+                zip_index.loc[row["path"]].to_dict(),
+            )
+            for row in rows
+        ]
+        for future in futures:
+            record, pixels = future.result()
+            records.append(record)
+            journal.write(json.dumps(record, sort_keys=True) + "\n")
+            journal.flush()
+            status["received"] += int("official_sha256" in record)
+            status["decoded"] += int(record["status"] == "official_file_decoded")
+            status["failures"] += int(
+                record["status"] in {"official_fetch_failed", "official_decode_failed"}
+            )
+            status["source_hash_mismatches"] += int(
+                record.get("source_hash_matches_corrected_inventory") is False
+            )
+            status["source_bytes_received"] += record.get("official_bytes", 0)
+            if pixels is not None:
+                arrays[record["requested_source_path"]] = pixels
+            if len(records) % 12 == 0:
+                atomic_json(output / "status.json", status)
+                print(json.dumps(status), flush=True)
+    by_path = {r["requested_source_path"]: r for r in records}
+    comparisons = []
+    with (frozen_root / "evidence/shared-native-hash-groups.jsonl").open() as handle:
+        for line in handle:
+            group = json.loads(line)
+            require(len(group["owners"]) == 2, "Expected two native hash owners")
+            owners = sorted(group["owners"], key=lambda r: r["study_uid"])
+            left, right = [row["source_path"] for row in owners]
+            if left not in arrays or right not in arrays:
+                comparisons.append(
+                    {
+                        "left_path": left,
+                        "right_path": right,
+                        "status": "not_compared_due_to_source_failure",
+                    }
+                )
+                continue
+            first, second = arrays[left], arrays[right]
+            comparisons.append(
+                {
+                    "left_path": left,
+                    "right_path": right,
+                    "left_series_uid": owners[0]["series_uid"],
+                    "right_series_uid": owners[1]["series_uid"],
+                    "status": "complete_native_matrices_compared",
+                    "full_decoded_matrix_equal": bool(np.array_equal(first, second)),
+                    "dtype_equal": first.dtype == second.dtype,
+                    "shape_equal": first.shape == second.shape,
+                    "full_recorded_geometry_and_encoding_equal": by_path[left]["geometry"]
+                    == by_path[right]["geometry"],
+                    "official_left_sha256": by_path[left]["official_sha256"],
+                    "official_right_sha256": by_path[right]["official_sha256"],
+                }
+            )
+    (output / "official-full-matrix-comparisons.jsonl").write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in comparisons)
+    )
+    flags = [
+        "source_hash_matches_corrected_inventory",
+        "source_size_matches_corrected_inventory",
+        "source_crc_matches_official_archive_index",
+        "uid_triplet_matches_corrected_inventory",
+        "native_fingerprint_matches_mirrored_decode",
+        "native_shape_matches_mirrored_decode",
+        "position_matches_mirrored_decode",
+        "nonconstant",
+    ]
+    checks = {flag: sum(row.get(flag) is True for row in records) for flag in flags}
+    complete_files = len(records) == 288 and all(value == 288 for value in checks.values())
+    complete_matrices = len(comparisons) == 144 and all(
+        row.get("status") == "complete_native_matrices_compared"
+        and all(
+            row.get(k) is True
+            for k in [
+                "full_decoded_matrix_equal",
+                "dtype_equal",
+                "shape_equal",
+                "full_recorded_geometry_and_encoding_equal",
+            ]
+        )
+        for row in comparisons
+    )
+    for record in records:
+        if "official_local_path" in record:
+            require(
+                sha(output / record["official_local_path"]) == record["official_sha256"],
+                "An official source file changed during comparison",
+            )
+    for reference in inputs:
+        require(
+            sha(work / reference["path"]) == reference["sha256"],
+            "A prerequisite changed during official verification",
+        )
+    result = {
+        "schema_version": 1,
+        "stage": "complete_authoritative_source_duplicate_pair_comparison",
+        "agent_id": "/root/image_pipeline_audit",
+        "completed_at_utc": now(),
+        "status": "verified_official_complete_image_content_duplication"
+        if complete_files and complete_matrices
+        else "verification_incomplete_or_source_mismatch_requires_review",
+        "source_provider": plan["source_provider"],
+        "studies": STUDIES,
+        "expected_source_files": 288,
+        "official_source_files_received": status["received"],
+        "official_unique_files_decoded": status["decoded"],
+        "official_source_bytes_received": status["source_bytes_received"],
+        "verification_counts": checks,
+        "native_full_matrix_pairs_compared": sum(
+            row["status"] == "complete_native_matrices_compared" for row in comparisons
+        ),
+        "native_full_matrix_pairs_equal": sum(
+            row.get("full_decoded_matrix_equal") is True for row in comparisons
+        ),
+        "native_full_geometry_encoding_pairs_equal": sum(
+            row.get("full_recorded_geometry_and_encoding_equal") is True for row in comparisons
+        ),
+        "full_matching_series": 5 if complete_files and complete_matrices else None,
+        "failures": [row for row in records if row["status"] != "official_file_decoded"],
+        "source_mismatch_paths": [
+            row["requested_source_path"]
+            for row in records
+            if any(row.get(k) is not True for k in flags)
+        ],
+        "input_bindings": inputs,
+        "evidence_bindings": [
+            binding(p, work)
+            for p in [
+                output / "fetch-plan.json",
+                output / "official-source-records.jsonl",
+                output / "official-full-matrix-comparisons.jsonl",
+            ]
+        ],
+        "final_free_bytes": shutil.disk_usage(work).free,
+        "source_cache_clinical_annotations_modified": False,
+        "scope": [
+            "Fresh authenticated official API downloads, full source SHA256/size/CRC/UID checks and all 288 native decodes; not merely official path/size equality.",
+            "All 144 corresponding full native matrices and per-slice geometry/encoding fields are compared directly, with preserved source and cache/fingerprint bindings.",
+            "If all checks pass, this pair's duplicated image content is present in the authoritative Kaggle sources, not introduced only by this mirror/cache. This does not identify the original upstream duplication process or a real-world patient.",
+            "Both original studies and all leakage edges remain preserved. No clinical annotation or gold values are accessed or changed.",
+        ],
+        "training_ready": False,
+    }
+    atomic_json(output / "official-verification.json", result)
+    status.update(status=result["status"], completed_at_utc=result["completed_at_utc"])
+    atomic_json(output / "status.json", status)
+    return {
+        k: result[k]
+        for k in [
+            "status",
+            "official_source_files_received",
+            "official_unique_files_decoded",
+            "official_source_bytes_received",
+            "native_full_matrix_pairs_equal",
+            "source_mismatch_paths",
+        ]
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--work-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--env-file", type=Path)
+    args = parser.parse_args()
+    logging.getLogger("kaggle").setLevel(logging.ERROR)
+    work_root = args.work_root.resolve()
+    try:
+        result = run(
+            work_root,
+            args.output.resolve(),
+            args.workers,
+            args.env_file or work_root.parent / ".env",
+        )
+    except Exception as error:
+        # Signed download URLs may occur in library exception messages.
+        print(
+            json.dumps(
+                {"status": "stopped_preserve_partial_evidence", "error_type": type(error).__name__}
+            ),
+            flush=True,
+        )
+        raise SystemExit(1) from None
+    print(json.dumps(result, indent=2), flush=True)

@@ -1,0 +1,25 @@
+"""Independently replay exact preservation membership, bytes and source aliases."""
+import datetime,hashlib,json,shutil
+from pathlib import Path
+W=Path(__file__).resolve().parent;R=W/'recovered';A=R/'initiative/audits';out=W/'correspondence-image-preservation-root-v1.json';assert not out.exists()
+expected={'correspondence-native-048-012-v1':'9badd319c3e7e53304e5ee51841cdc1e98c4fd347196d60f6d8a1c6596768327','correspondence-native-086-013-v1':'c6cc144b28ec7001418c5994555ec4b1754e42bce4d1195e26a387a4a7962572','mixed-laterality-011013014-v1':'228c6768ef4592a8508e05265855ea2b90523209581c35a0fb80931831acce10','mixed-laterality-016021022-v1':'1d7e4de1a30eefed688c25daa18381ea0392379c84c15d0e33dd12208a87667e'}
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1048576),b''):h.update(b)
+ return h.hexdigest()
+results=[];n=na=0
+for name,digest in expected.items():
+ d=A/name;p=d/'preservation.json';assert sha(p)==digest;x=json.loads(p.read_text());seen=set();sources=set();nbytes=0
+ for e in x['files']:
+  src=W/e['source_path'];dst=R/e['archive_path'];assert dst.resolve().is_relative_to(d.resolve()) and src.resolve().is_relative_to(W.resolve());assert not src.is_symlink() and not dst.is_symlink();assert str(dst) not in seen and str(src) not in sources;seen.add(str(dst));sources.add(str(src));assert src.stat().st_size==dst.stat().st_size==e['bytes'];assert sha(src)==sha(dst)==e['sha256'];nbytes+=e['bytes'];n+=1
+ assert {str(f) for f in d.rglob('*') if f.is_file()}==seen|{str(p)};assert nbytes==x['bytes'] and len(seen)==x['n_files']
+ for e in x['source_aliases']:
+  src=W/e['source_path'];dst=R/e['archive_path'];assert str(dst) in seen;assert src.stat().st_size==dst.stat().st_size==e['bytes'] and sha(src)==sha(dst)==e['sha256'];na+=1
+ proof=x['root_verified_proof'];assert sha(W/proof['path'])==proof['sha256'];assert proof['path'] in {e['source_path'] for e in x['files']}
+ native=list((d/'native').rglob('*.dcm')) if (d/'native').exists() else []
+ if native:assert len(native)==x['coverage']['native_source_files'] and len(list((d/'cache-metadata').glob('*.json')))==10
+ else:assert len(list((d/'complete-cache').glob('*.npz')))==x['coverage']['complete_cache_volumes'] and len(list((d/'complete-cache').glob('*.json')))==x['coverage']['cache_metadata_files']
+ results.append({'archive':name,'preservation_sha256':digest,'files':len(seen),'bytes':nbytes,'source_aliases':len(x['source_aliases']),'coverage':x['coverage']})
+assert n==940 and na==166 and shutil.disk_usage(W).free>20*1024**3
+value={'stage':'independent_root_preservation_review','agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified','files':n,'source_aliases':na,'packages':results,'script_sha256':sha(Path(__file__)),'scope':'All copied files independently rehashed against preserved source and receipt; exact destination membership and official-source aliases verified. Existing reviewed source/display proofs remain unchanged.','training_ready':False};out.write_text(json.dumps(value,indent=2)+'\n');print(json.dumps({'status':'verified','files':n,'aliases':na,'sha256':sha(out)}))

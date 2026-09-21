@@ -1,0 +1,91 @@
+"""Independent offline native-source, origin and display replay for048/086."""
+import collections,datetime,hashlib,io,json,zlib,sys
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import pydicom
+from PIL import Image
+
+CASE=sys.argv[1];assert CASE in {'048-12','086-13'}
+EXPECTED=359 if CASE=='048-12' else 300
+EXPECTED_OFFICIAL=83 if CASE=='048-12' else 0
+CORONAL={301,501,901,1101} if CASE=='048-12' else {401,501,1001,1101}
+P=Path(__file__).resolve().parent;W=P.parents[1];C=W/'cache256-v3-official-recovery-v1';N=P/f'case-{CASE}-mirror-v1';T=W/'annotation-staging/repeated-protocol-six-v1';OUT=N/'root-numeric-display-review.json'
+assert not OUT.exists()
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def read(p):return json.loads(p.read_text())
+def binding(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+assert sha(N/'source-geometry-visual-handoff.json')==({'048-12':'3d62f3f655ca46ce4fcd6c2ce6265df974fbd08e7164a771975b3313c7bca713','086-13':'f9559862fb0fd2c15a4f54ce38c4bf0a9e21730608c9f5cf4ae573fe5739cc9d'}[CASE])
+assert sha(T/'root-triage-review.json')=='9a7dad10fa18fe6ca62174b9347d7fdb06838d7c01563f4f4553cf766dc6b2fd'
+h=read(N/'source-geometry-visual-handoff.json');proof=read(N/'native-verification.json');panel=read(N/'panel-manifest.json');tech=read(T/f'technical-evidence/case-{CASE}.json')
+refs={}
+def checkrefs(v):
+ if isinstance(v,dict):
+  if {'path','sha256','bytes'}<=v.keys():
+   p=W/v['path'];assert p.resolve().is_relative_to(W.resolve());assert p.stat().st_size==v['bytes'];assert sha(p)==v['sha256'];refs[str(p)]=v['sha256']
+  for value in v.values():checkrefs(value)
+ elif isinstance(v,list):
+  for value in v:checkrefs(value)
+for obj in [h,proof,panel,read(N/'fetch-plan.json'),read(N/'source-origin-plan.json'),read(N/'independent-visual-assessment.json'),read(N/'root-visual-freeze.json')]:checkrefs(obj)
+study=h['study_uid'];assert study==tech['study_uid']==proof['study_uid']==panel['study_uid']
+assert sha(C/'inventory_effective.parquet')=='68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537'
+inv=pd.read_parquet(C/'inventory_effective.parquet',filters=[('study_uid','==',study)]).set_index('path');assert len(inv)==EXPECTED and inv.sop_uid.nunique()==EXPECTED and inv.series_uid.nunique()==10
+zipfile=W/'source-byte-failures-v1/kaggle-official-zip-index.parquet';assert sha(zipfile)=='92daae7822bbfca3c440dbb85a47731ef11347b7b4c4c9c00aee988d653684da'
+zipindex=pd.read_parquet(zipfile);zipindex=zipindex.loc[zipindex.path.isin(inv.index)].set_index('path');assert set(zipindex.index)==set(inv.index)
+meta={};owners={};numbers={};ranges={};native={};geometries={};laterality={};files=[]
+for s in tech['series']:
+ ref=s['cache_metadata'];p=W/ref['path'];checkrefs(ref);m=read(p);uid=s['series_uid'];meta[uid]=m;numbers[uid]=int(s['header_endpoint_values']['SeriesNumber'][0]);rows=inv[inv.series_uid==uid]
+ assert len(rows)==m['n_slices'];assert set(rows.sop_uid)==set(m['sop_uids']);assert dict(zip(rows.sop_uid,rows.sha256))==dict(zip(m['sop_uids'],m['slice_sha256']))
+ for i,sop in enumerate(m['sop_uids']):assert sop not in owners;owners[sop]=(uid,i)
+records=[json.loads(line) for line in (N/'source-records.jsonl').read_text().splitlines()];assert len(records)==EXPECTED and {r['requested_source_path'] for r in records}==set(inv.index)
+deferred=read(P/'deferred-official-source-confirmation.json');assert sha(P/'deferred-official-source-confirmation.json')=='d305959505d2f30e526799967b4b514b9c0a76a14c22d8fe670bd32cc9d2ebc2'
+assert deferred['n_sources']==len(deferred['records'])==576
+drows=[x for x in deferred['records'] if x['case']==CASE];dmap={x['path']:x for x in drows};assert len(dmap)==len(drows)==EXPECTED-EXPECTED_OFFICIAL
+official_journal={};origin_counts=collections.Counter();mirror_paths=set()
+for r in records:
+ checkrefs(r['source_origin']);origin=r['source_origin'];kind=origin['kind'];origin_counts[kind]+=1
+ if kind=='retained_fresh_official_Kaggle_attempt':
+  jpath=W/origin['journal']['path']
+  if str(jpath) not in official_journal:
+   jall=[json.loads(x) for x in jpath.read_text().splitlines()];assert collections.Counter(x['status'] for x in jall)=={'official_file_decoded':83,'official_fetch_failed':42};jrows=[x for x in jall if x['status']=='official_file_decoded'];official_journal[str(jpath)]={x['requested_source_path']:x for x in jrows};assert len(jrows)==len(official_journal[str(jpath)])==83
+  previous=official_journal[str(jpath)][r['requested_source_path']]
+  assert previous['official_sha256']==r['source_sha256'] and previous['official_bytes']==r['source_bytes'] and previous['official_crc32']==r['source_crc32']
+  assert origin['source']['sha256']==r['source_sha256'] and origin['source']['bytes']==r['source_bytes']
+ elif kind=='corrected_pinned_Hugging_Face_mirror':
+  assert origin['source_revision']=='0b5e410288232f570c69ba4f44723356e6ae6ab7' and origin['fresh_official_Kaggle_byte_confirmation'] is False
+  mirror_paths.add(r['requested_source_path']);dr=dmap[r['requested_source_path']]
+  assert [dr[k] for k in ['study_uid','series_uid','sop_uid','sha256','bytes']]==[r[k] for k in ['study_uid','series_uid','sop_uid','source_sha256','source_bytes']]
+  assert dr['status']=='fresh_official_Kaggle_byte_confirmation_deferred'
+ else:raise AssertionError(kind)
+ path=r['requested_source_path'];row=inv.loc[path];f=N/r['source_local_path'];assert f==N/'native'/path;b=f.read_bytes();digest=hashlib.sha256(b).hexdigest();assert digest==r['source_sha256']==row.sha256
+ assert len(b)==r['source_bytes']==row.bytes==zipindex.loc[path,'bytes'];assert f'{zlib.crc32(b)&0xffffffff:08x}'==r['source_crc32']==zipindex.loc[path,'crc32']
+ ds=pydicom.dcmread(io.BytesIO(b));assert [str(ds.get(k)) for k in ['StudyInstanceUID','SeriesInstanceUID','SOPInstanceUID']]==[study,row.series_uid,row.sop_uid]
+ uid,i=owners[row.sop_uid];assert uid==row.series_uid and i==r['ordered_index'];m=meta[uid];a=ds.pixel_array;assert a.ndim==2 and list(a.shape)==m['original_shape'][1:]==r['native_shape'];assert str(a.dtype)==r['native_dtype']
+ fingerprint=hashlib.sha256(np.asarray(a.shape,dtype='<i8').tobytes()+a.astype('<f8').tobytes(order='C')).hexdigest();assert fingerprint==m['pixel_sha256'][i]==r['native_pixel_sha256'];assert float(a.min())==r['native_min'] and float(a.max())==r['native_max'] and a.min()!=a.max()
+ g={'position':list(map(float,ds.ImagePositionPatient)),'orientation':list(map(float,ds.ImageOrientationPatient)),'pixel_spacing':list(map(float,ds.PixelSpacing))}
+ for name,tag in [('slice_thickness','SliceThickness'),('spacing_between_slices','SpacingBetweenSlices'),('photometric_interpretation','PhotometricInterpretation'),('rescale_slope','RescaleSlope'),('rescale_intercept','RescaleIntercept')]:g[name]=str(ds.get(tag,''))
+ for name,tag in [('rows','Rows'),('columns','Columns'),('samples_per_pixel','SamplesPerPixel'),('bits_allocated','BitsAllocated'),('bits_stored','BitsStored'),('high_bit','HighBit'),('pixel_representation','PixelRepresentation')]:g[name]=int(ds.get(tag))
+ assert g==r['geometry'];assert g['position']==m['positions'][i];assert g['orientation']==m['orientation'];assert g['pixel_spacing']==m['pixel_spacing'];assert int(ds.SeriesNumber)==numbers[uid]
+ side=str(ds.get('Laterality',''));assert side in tech['laterality_values']['Laterality'];laterality.setdefault(uid,set()).add(side);native[row.sop_uid]=a;geometries[row.sop_uid]=g;old=ranges.setdefault(uid,[float(a.min()),float(a.max())]);old[0]=min(old[0],float(a.min()));old[1]=max(old[1],float(a.max()));files.append(binding(f))
+assert len(native)==EXPECTED
+assert origin_counts['retained_fresh_official_Kaggle_attempt']==EXPECTED_OFFICIAL and origin_counts['corrected_pinned_Hugging_Face_mirror']==EXPECTED-EXPECTED_OFFICIAL and mirror_paths==set(dmap)
+ordered=sorted(meta,key=lambda uid:numbers[uid]);sheets=[np.asarray(Image.open(W/ref['path'])) for ref in panel['images']];assert len(sheets)==4
+assert len(panel['panels'])==30 and len({x['sop_uid'] for x in panel['panels']})==30
+seen_samples=collections.defaultdict(set)
+for p in panel['panels']:
+ uid=p['series_uid'];page,ri,ci=p['page_index'],p['row'],p['column'];assert ordered[page*3+ri]==uid;selected=sorted({round((meta[uid]['n_slices']-1)*x) for x in [.25,.5,.75]});assert selected[ci]==p['ordered_index'];assert meta[uid]['sop_uids'][p['ordered_index']]==p['sop_uid'];seen_samples[uid].add(p['ordered_index'])
+ a=native[p['sop_uid']];assert p['native_matrix_bytes_sha256']==hashlib.sha256(a.tobytes(order='C')).hexdigest();assert p['geometry']==geometries[p['sop_uid']];assert p['series_number']==str(numbers[uid]);assert laterality[uid]=={'' if p['literal_laterality']=='blank' else p['literal_laterality']}
+ lo,hi=ranges[uid];assert [lo,hi]==[p['display_min'],p['display_max']];expected=np.rint(np.clip((a.astype(float)-lo)/(hi-lo),0,1)*255).astype(np.uint8)
+ cell=max(max(meta[u]['original_shape'][1:]) for u in ordered[page*3:page*3+3]);x=16+ci*(cell+16)+(cell-a.shape[1])//2;y=42+ri*(cell+82)+(cell-a.shape[0])//2
+ actual=sheets[page][y:y+a.shape[0],x:x+a.shape[1]];assert actual.shape==expected.shape and np.array_equal(actual,expected)
+assert set(seen_samples)==set(meta) and all(len(x)==3 for x in seen_samples.values())
+coronal=[]
+for uid in ordered:
+ if numbers[uid] in CORONAL:
+  assert all(geometries[sop]['orientation'][0]>.97 for sop in meta[uid]['sop_uids']);coronal.append({'series_number':numbers[uid],'iop_first_x':meta[uid]['orientation'][0],'literal_laterality':sorted(laterality[uid])})
+result={'stage':'independent_root_complete_native_source_and_display_review','case':CASE.replace('-',':'),'agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified','unique_bound_evidence_files':len(refs),'source_files_full_sha_size_crc_uid_decode_verified':EXPECTED,'source_origin_counts':dict(origin_counts),'fresh_official_byte_confirmation_deferred':len(mirror_paths),'source_bytes':sum(r['bytes'] for r in files),'cache_ordered_native_fingerprints_and_IPP_IOP_pixelspacing_verified':EXPECTED,'all15_recorded_geometry_encoding_fields_equal_to_source':True,'native_panels_pixel_exact_at_displayed_position':30,'series_sampled':10,'coronal_orientation_direction':coronal,'source_files':files,'bindings':[binding(Path(__file__)),binding(N/'source-geometry-visual-handoff.json'),binding(N/'root-visual-freeze.json'),binding(N/'independent-visual-assessment.json'),binding(T/'root-triage-review.json')],'technical_conclusion':'Independently frozen opposing fibular anatomy is displayed without spatial transformation and both coronal protocol groups have positive source first IOP X. This supports two knees conditional on source IOP validity and no upstream mirroring. The integrated bilateral report is compatible with two knees, but individual side-specific targets have not been assigned to series.','limits':['Source origins distinguish retained official fetches from corrected pinned HF files. Root replay is offline; official whole-byte confirmation is deferred for mirror-only files despite matching official archive CRC.','Visual review30samples per case; numerical replay covers all retained sources in each study, no clinical diagnosis.','No real patient/site/named blank side inferred. Distinct anonymized frame IDs prohibit assuming one registered coordinate frame.','No source/cache/gold/clinical annotations changed. Weak-supervision eligibility disposition is separate.'],'training_ready':False}
+OUT.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'status':'verified','source_files':EXPECTED,'panels':30,'references':len(refs),'sha256':sha(OUT)},indent=2))

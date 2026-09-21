@@ -1,0 +1,114 @@
+"""Bind preserved independent visual freezes after both reviewers completed them."""
+
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+WORK = ROOT.parents[1]
+
+
+def ref(path):
+    return {
+        "path": str(path.relative_to(WORK)),
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "bytes": path.stat().st_size,
+    }
+
+
+def main():
+    expected = {
+        "048-12": (
+            "6c06f62881a0ffe7149186ca9a5ec3db375d8c3ec45d2f62005b5d2a28a47a81",
+            "019c2fa167b2fa870bcab4c3beeea072d76d45b2e5d031dc0c7e7a6b80299271",
+        ),
+        "086-13": (
+            "4616193dda4a30fcd8578d101c3212cc459bcb2e9c216990e462ecad8b9172b2",
+            "00a4a2faafb2a840de5a65ee1699a262203853df98baaabc620199e50123001f",
+        ),
+    }
+    for case, (own_hash, root_hash) in expected.items():
+        directory = ROOT / f"case-{case}-mirror-v1"
+        output = directory / "source-geometry-visual-handoff.json"
+        if output.exists():
+            raise ValueError("Joint handoff must be new")
+        own_path = directory / "independent-visual-assessment.json"
+        root_path = directory / "root-visual-freeze.json"
+        if ref(own_path)["sha256"] != own_hash or ref(root_path)["sha256"] != root_hash:
+            raise ValueError("Independent frozen assessment changed")
+        own = json.loads(own_path.read_text())
+        root = json.loads(root_path.read_text())
+        proof = json.loads((directory / "native-verification.json").read_text())
+        manifest = json.loads((directory / "panel-manifest.json").read_text())
+        manifest_ref = ref(directory / "panel-manifest.json")
+        if not (
+            own["panel_manifest"]["sha256"]
+            == root["panel_manifest_sha256"]
+            == manifest_ref["sha256"]
+        ):
+            raise ValueError("Reviewers viewed different panel manifests")
+        for image in manifest["images"]:
+            if ref(WORK / image["path"]) != image:
+                raise ValueError("Bound displayed image changed")
+        binding_paths = [
+            directory / name
+            for name in [
+                "fetch-plan.json",
+                "source-origin-plan.json",
+                "source-records.jsonl",
+                "native-verification.json",
+                "panel-manifest.json",
+                "independent-visual-assessment.json",
+                "root-visual-freeze.json",
+            ]
+        ] + [
+            ROOT / "audit_native_mirror_v1.py",
+            ROOT / "mixed-source-integrity.json",
+            ROOT / "mixed-source-numeric-handoff.json",
+            ROOT / "deferred-official-source-confirmation.json",
+            WORK
+            / "annotation-staging/repeated-protocol-six-v1/source-header-assessment-and-native-plan.json",
+            Path(__file__).resolve(),
+        ]
+        result = {
+            "schema_version": 1,
+            "stage": "joint_native_technical_correspondence_handoff",
+            "case": case.replace("-", ":"),
+            "study_uid": proof["study_uid"],
+            "agent_id": "/root/image_pipeline_audit",
+            "created_at_utc": datetime.now(timezone.utc).isoformat(),
+            "independent_reviewers": ["/root", "/root/image_pipeline_audit"],
+            "order": "Both visual assessments were frozen before comparison. This separate handoff preserves the numerical handoff and both original visual assessments unchanged.",
+            "bindings": [ref(path) for path in binding_paths] + manifest["images"],
+            "complete_series": proof["complete_series"],
+            "complete_native_source_decodes": proof["source_files_received"],
+            "source_bytes": proof["source_bytes"],
+            "retained_official_files": proof["retained_official_sources"],
+            "mirror_files_with_official_confirmation_deferred": proof[
+                "mirror_only_sources"
+            ],
+            "verification_counts": proof["verification_counts"],
+            "sampled_visual_panels": manifest["native_panels"],
+            "independent_visual_observations": own["observations"],
+            "joint_visual_agreement": "Root and agent independently observed opposing fibular-side morphology in the two coronal protocol groups, concordant across contrasts and accompanied by corresponding opposing axial morphology. Both sets contain coherent knee anatomy. Recorded coronal first IOP X directions have the same positive sign and the renderer applies no spatial flip or rotation. This supports two knees conditional on trusted source IOP and no upstream mirroring.",
+            "source_correspondence": "Both current official and archived report copies match exactly and contain integrated current bilateral findings. The visual result is compatible with that structure. It does not itself assign side-specific report targets to individual series.",
+            "named_side_assignment": "No named right/left side is inferred from blank tags. All original literal tags are preserved.",
+            "display_scope": own["display_scope"],
+            "numeric_review_status": "Complete agent source checks and retained-source recheck passed; root independent numeric/display replay was pending at its preserved visual freeze. This handoff does not claim that replay has completed.",
+            "limits": [
+                "Only 30 selected slices per study were visually inspected; every source slice was numerically verified against the bound corrected inventory and cache.",
+                "Fresh whole-file official-source confirmation is limited to 83 retained files in 048:12 and zero in 086:13. Remaining sources are from the corrected pinned HF mirror. Matching CRC to the official ZIP index is not fresh official whole-byte comparison.",
+                "Exhaustive geometry checks concern native dimensions, IPP, IOP and PixelSpacing. Other geometry/encoding fields are recorded but are not all asserted equal to cache, which does not retain every field.",
+                "No clinical diagnoses, target states, real-world patient identity, institution or shared global registration inferred. No automatic exclusions or source/tag rewrites.",
+            ],
+            "new_network_requests_in_this_handoff": 0,
+            "source_cache_annotations_modified": False,
+            "training_ready": False,
+        }
+        output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+        print(json.dumps(ref(output)))
+
+
+if __name__ == "__main__":
+    main()

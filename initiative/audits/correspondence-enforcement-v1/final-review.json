@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "stage": "independent_final_correspondence_code_re_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_identity": "/root/image_pipeline_audit",
+  "created_at": "2026-09-21T09:39:14.384603+00:00",
+  "status": "accepted_after_verified_fixes",
+  "code_and_tests": [
+    {
+      "path": "recovered/rsna/correspondence.py",
+      "sha256": "1de6112d7d88ab3cb382c21bb854ecc89681dccc5a509567edbc1f727ca5efe0",
+      "bytes": 8465
+    },
+    {
+      "path": "recovered/rsna/labels.py",
+      "sha256": "d6bd2d88dfd75b5daaf69fe6436f777ce43839ec4718a2448efe6fdc188549ea",
+      "bytes": 19002
+    },
+    {
+      "path": "recovered/tests/test_correspondence.py",
+      "sha256": "2d91c300b53d23b07f4642fef18a59099dc155262fbaa1aa5289f8dbf59d0a8a",
+      "bytes": 23567
+    }
+  ],
+  "initial_review": {
+    "path": "annotation-staging/correspondence-code-review-v1/review.json",
+    "sha256": "02578c66eb8886f7cc7d59f004930835060262f7448a1b804c7f1995eea58417",
+    "bytes": 3138
+  },
+  "initial_reproductions": {
+    "path": "annotation-staging/correspondence-code-review-v1/reproductions.json",
+    "sha256": "5e5982c63602bf297ebf1757a05e68f01d929669762e753b90ffa1fc1c6b3243",
+    "bytes": 812
+  },
+  "resolved_findings": [
+    {
+      "original_finding": "Registry can omit existing required policy.",
+      "resolution": "Registry membership must exactly match preserved fixed-directory versioned policy files. Empty is accepted only when no such files exist.",
+      "regressions": [
+        "test_registry_cannot_omit_or_replace_preserved_policies",
+        "test_explicit_empty_registry_only_without_policy_files",
+        "test_all_preserved_policy_versions_are_enforced",
+        "test_cli_enforces_policy_before_export"
+      ]
+    },
+    {
+      "original_finding": "UID-less proof inherits policy UID and permits reassociation.",
+      "resolution": "Top-level proof must explicitly identify the policy study. Historical UID-less native reviews remain immutable and require a source/report/UID-bound wrapper whose preserved review binds the exact handoff content.",
+      "regressions": [
+        "test_uidless_proof_never_inherits_policy_study",
+        "test_identity_wrapper_preserves_original_uidless_review",
+        "test_identity_wrapper_rejects_broken_source_or_review_chain",
+        "test_cli_enforces_policy_before_export"
+      ]
+    }
+  ],
+  "additional_verified_behaviors": [
+    "Excluded quarantine neighbor remains quarantined with the same leakage group and preserved annotations while report masks are zero.",
+    "Official gold values, masks, provenance and split remain intact for excluded and eligible rows.",
+    "Report-versus-gold metrics count only eligible reports; mixed eligible/ineligible fixture retains the eligible true negative and suppresses excluded false positive.",
+    "Broken policy membership or source/report wrapper binding rejects before output directory creation."
+  ],
+  "verification": {
+    "command": "../../.venv/bin/python -m pytest -q tests/test_correspondence.py",
+    "passed": 46,
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "scope": "Synthetic fixtures only. No real gold labels or clinical annotations inspected. Parent reported full suite success separately; this acceptance records personally executed targeted regression verification."
+  },
+  "unresolved_concrete_defects": [],
+  "limitations": [
+    "This is code and synthetic regression acceptance, not a new acceptance of clinical labels or every real policy/evidence artifact.",
+    "No runtime or policy files changed during re-review; only assigned test file was edited previously."
+  ],
+  "original_artifacts_preserved": true
+}

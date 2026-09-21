@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "stage": "mixed_literal_laterality_source_header_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T08:33:18.414770+00:00",
+  "input_bindings": [
+    {
+      "path": "annotation-staging/mixed-laterality-011013014-v1/source-only-preread.json",
+      "sha256": "e0f8bab99682bfe0e8287c8d9f7830dd2ff8e138a459e71d0dea8cf3a71542c4",
+      "bytes": 8470
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-011013014-v1/technical-evidence/summary.json",
+      "sha256": "1a0d049e2489ffd7605c4b8c101504724e1f5298c0361e0ce686e309803f8119",
+      "bytes": 13336
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-011013014-v1/geometry-comparison.json",
+      "sha256": "09a82848ca42b19166a2ac6a0b19e86eaab5e8c14f4d9e4698ab569a3f45ec26",
+      "bytes": 6250
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-011013014-v1/derived-series-image-centers.json",
+      "sha256": "3009e113ffee545d7d23281a7744b8382f35104641ba5785dc1246a84b0dfefb",
+      "bytes": 7270
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-011013014-v1/verify_image_centers.py",
+      "sha256": "0046c6167e6baa5aa42fea8660ba31353e30b1ed5443f6b6a33c64af413897e0",
+      "bytes": 1830
+    }
+  ],
+  "records": [
+    {
+      "case": "011:03",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11596665780617412984766822528862741584",
+      "series": 6,
+      "slices": 170,
+      "endpoints": 12,
+      "source_bytes": 97519770,
+      "source_report_structure": "one continuous unsided current knee narrative; no explicit bilateral report content, second block or temporal study comparison",
+      "official_archive_source_text_exact_match": true,
+      "classification": "one_protocol_with_conflicting_literal_side_tags_candidate",
+      "metadata_observation": "Six-series protocol: series301/401 sagittal,501/601 coronal and701axial taggedL; only the15-slice oblique-coronal T2W_BONDORF801 is taggedR. All recorded image-field centers cluster aroundX119mm. No separated second protocol; the exceptional tag is in an added oblique acquisition.",
+      "image_center_max_pairwise_distance_mm": 15.541200530481714,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.11169158928779880798108509329821926091",
+          "series_number": "301",
+          "literal_laterality": "L",
+          "plane": "Sagittal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.54905273408354012316096050699797114264",
+          "series_number": "401",
+          "literal_laterality": "L",
+          "plane": "Sagittal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.65590817503651821760355311756205713840",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.39152307419633661089647444778009505833",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Coronal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.59737098021306262062080408528674327977",
+          "series_number": "701",
+          "literal_laterality": "L",
+          "plane": "Axial"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.10639884401600325010872465044892259231",
+          "series_number": "801",
+          "literal_laterality": "R",
+          "plane": "Coronal"
+        }
+      ],
+      "next_step": "Targeted low-resource representative review of standard coronal/axial/sagittal plus the R-tagged oblique series is warranted to check anatomy/orientation consistency. Do not automatically rewrite801Laterality or launch a whole bilateral source download from tags alone.",
+      "full_native_download_authorized_or_started": false
+    },
+    {
+      "case": "013:11",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11924999889245769866426422681253524920",
+      "series": 5,
+      "slices": 156,
+      "endpoints": 10,
+      "source_bytes": 81961960,
+      "source_report_structure": "one continuous unsided current knee narrative; no explicit bilateral report content, second block or temporal study comparison",
+      "official_archive_source_text_exact_match": true,
+      "classification": "one_protocol_with_conflicting_literal_side_tags_candidate",
+      "metadata_observation": "Five-series protocol: sagittal301/401 andaxial701 taggedR, coronal501/601 taggedL. All image-field centers are within about6mm, aroundX-108mm. Different generic PDW_SPAIR labels span planes, not two full repeated protocols. This is a within-protocol tag conflict candidate.",
+      "image_center_max_pairwise_distance_mm": 5.527986199443453,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.35474234697460412322408273670781642868",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.74002872999569953084975734172590388602",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Sagittal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.24241741434894675073965091412145418330",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.81634461208339171808958130816896175957",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Coronal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.13308545092523025146507120149148250355",
+          "series_number": "701",
+          "literal_laterality": "R",
+          "plane": "Axial"
+        }
+      ],
+      "next_step": "Prioritize a bound sagittal/coronal/axial representative set to establish whether all plane families show one coherent knee. Full native escalation only if anatomy/geometry disagrees; preserve literal source tags regardless until reviewed disposition.",
+      "full_native_download_authorized_or_started": false
+    },
+    {
+      "case": "014:19",
+      "study_uid": "1.2.826.0.1.3680043.8.498.12130868132537772155475981935868588761",
+      "series": 6,
+      "slices": 171,
+      "endpoints": 12,
+      "source_bytes": 90351912,
+      "source_report_structure": "one continuous unsided current knee narrative; no explicit bilateral report content, second block or temporal study comparison",
+      "official_archive_source_text_exact_match": true,
+      "classification": "one_protocol_with_conflicting_literal_side_tags_candidate",
+      "metadata_observation": "Six-series protocol: sagittal301/401, axial701 and15-slice oblique801 taggedR, coronal501/601 taggedL. Recorded centers stay aroundX-82to-86mm with modestY/Z differences. No second complete acquisition set. The same tag split across plane families as01311 is an observed technical pattern, not evidence of a shared institution or cause.",
+      "image_center_max_pairwise_distance_mm": 19.293556177071324,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.83817125439473147280383559232008298358",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.37556080528108124864681705742678770834",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Sagittal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.67959499144143571885439856641643498631",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.57250678761408366098875733912347695362",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Coronal"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.20392459991569726270179997653951048141",
+          "series_number": "701",
+          "literal_laterality": "R",
+          "plane": "Axial"
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.66248812479345470219742331413479704155",
+          "series_number": "801",
+          "literal_laterality": "R",
+          "plane": "Coronal"
+        }
+      ],
+      "next_step": "Bound representative views from sagittal/coronal/axial and oblique801 can test one-knee consistency. Do not assume tagging convention, named anatomical side or report linkage without that review; no automatic full-study download is required from present metadata.",
+      "full_native_download_authorized_or_started": false
+    }
+  ],
+  "total_scope": {
+    "studies": 3,
+    "series": 17,
+    "inventory_slices": 497,
+    "selected_endpoint_headers": 34,
+    "all_source_report_copies_exact": true,
+    "all34endpoint_geometry_checks_exact": true,
+    "all17image_center_calculations_reproduced": true,
+    "new_network_requests": 0,
+    "new_native_or_cached_pixel_reads": 0
+  },
+  "limitations": [
+    "Two lexicalSOPendpoint headers per series, with all-slice positions from existing strict-decoder metadata; not fresh all-slice source header verification.",
+    "Image-field centers are derived from recorded per-series coordinates and are not anatomical landmarks. Distinct anonymized frame IDs mean numerical proximity supports a candidate, not proof of registered same-knee anatomy.",
+    "PDW_SPAIR description reuse across different actual planes is not by itself a repeated acquisition set.",
+    "No laterality inferred from missing tags; all17series carry explicit L orR values. No institution inferred from language or metadata-pattern similarity.",
+    "Clinical drafts/reviews/gold not opened, no target states or source side tags changed."
+  ],
+  "training_ready": false
+}

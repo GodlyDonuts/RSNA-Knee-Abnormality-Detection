@@ -293,6 +293,8 @@ def audit_labels(studies: pd.DataFrame, drafts: pd.DataFrame) -> dict:
         original_state = studies.get(f"{target}__original_state", studies[f"{target}__state"])
         state = gold[f"{target}__state"]
         observed = state.isin(["positive", "negative"])
+        if "report_supervision_allowed" in gold:
+            observed &= gold.report_supervision_allowed
         predictions = state[observed].eq("positive").astype(int)
         actual = gold.loc[observed, target].astype(int)
         tp = int(((predictions == 1) & (actual == 1)).sum())
@@ -327,6 +329,7 @@ def audit_labels(studies: pd.DataFrame, drafts: pd.DataFrame) -> dict:
 
 def main() -> None:
     from rsna.adjudications import apply_adjudications
+    from rsna.correspondence import apply_correspondence
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", type=Path, required=True)
@@ -368,6 +371,7 @@ def main() -> None:
         args.dicom_audit, pd.read_parquet(args.inventory), set(reports), args.source_revision
     )
     studies = build_studies(train, reviews, pairs)
+    studies, correspondence = apply_correspondence(studies, reports, args.artifact_root)
     args.output.mkdir(parents=True, exist_ok=True)
     studies.to_parquet(args.output / "studies.parquet", index=False)
     reviews.to_parquet(args.output / "report_annotations.parquet", index=False)
@@ -375,9 +379,13 @@ def main() -> None:
     (args.output / "adjudication_trace.json").write_text(
         json.dumps(adjudications, ensure_ascii=False, indent=2) + "\n"
     )
+    (args.output / "correspondence_trace.json").write_text(
+        json.dumps(correspondence, ensure_ascii=False, indent=2) + "\n"
+    )
     studies.drop(columns=["Report"]).to_csv(args.output / "study_labels.csv", index=False)
     report = audit_labels(studies, drafts)
     report["adjudications"] = adjudications
+    report["correspondence"] = correspondence
     report["release_inputs"] = {
         **provenance,
         "train_sha256": file_sha256(args.train),
@@ -385,6 +393,7 @@ def main() -> None:
         "source_revision": args.source_revision,
         "cache_version": CACHE_VERSION,
         "adjudication_registry_sha256": adjudications["registry_sha256"],
+        "correspondence_registry_sha256": correspondence["registry_sha256"],
     }
     (args.output / "label_audit.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))

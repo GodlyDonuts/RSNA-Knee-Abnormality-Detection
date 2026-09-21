@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "stage": "independent_read_only_code_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "reviewed_code_sha256": {
+    "rsna/correspondence.py": "44fabae953290f0997eee4c546074ff4cdad1aac7833bbf08b1c34f7e7146bb8",
+    "rsna/labels.py": "d6bd2d88dfd75b5daaf69fe6436f777ce43839ec4718a2448efe6fdc188549ea",
+    "tests/test_correspondence.py": "2fdde4875a7b1e1a11c934c7830b46adba4feea44b695ca05fe43acc3fa9f54f"
+  },
+  "findings": [
+    {
+      "priority": "P1",
+      "file": "rsna/correspondence.py",
+      "line": 36,
+      "issue": "Registry membership can omit an existing required policy while export succeeds with no exclusions.",
+      "reproduction": "Synthetic existing two-study policy remains on disk; replacing registry policies with[] returnsstudy_count0.",
+      "proposed_fix": "Exact membership against fixed policy filenames, with empty registry accepted only when no policy files exist."
+    },
+    {
+      "priority": "P1",
+      "file": "rsna/correspondence.py",
+      "line": 95,
+      "issue": "Missing proof studyUID defaults to the incoming policy UID, permitting reassociation with another source report.",
+      "reproduction": "Synthetic proof casebad with no study_uid accepted for recordsafe after its valid source/reporthash is substituted. Real075rootproof also lacks a top-levelstudy_uid.",
+      "proposed_fix": "Require proven UID/case/source binding; preserve old native proofs and use bound immutable identity wrappers if necessary."
+    }
+  ],
+  "successful_contracts_observed": [
+    "Complete twelve-target masks are applied to report-supervised excluded rows after build_studies and before output directory creation.",
+    "Officialgold targets/masks/provenance and all split/leakage memberships remain intact. Original source annotations are preserved separately.",
+    "Gold/report comparison observation masks suppress excluded report supervision without suppressing officialgold evaluation labels.",
+    "Referenced missing/changed policy, source or proof hashes fail; duplicateJSON fields, duplicateUIDs and nonboolean mask values reject."
+  ],
+  "tests_executed": {
+    "command": "python -m pytest tests/test_correspondence.py -q",
+    "passed": 15,
+    "limitations": "Existing tests did not cover either reproduced gap. Synthetic fixtures only, no real official labels inspected."
+  },
+  "additional_high_value_tests": [
+    "Excluded quarantined report row still masks while retaining leakage group and quarantine split.",
+    "Mixed eligible/ineligible gold rows: report agreement is computed only from eligible rows while all officialgold masks remain1.",
+    "Wrapper with wrongUID, source batch, reporthash, handoffhash or a handoff notboundby originalrootreview must fail before export."
+  ],
+  "parent_response": "Parent acknowledged both as real gaps and is implementing fixed-directory membership and immutable nativeproof identity wrappers. This review does not claim those subsequent edits are validated.",
+  "code_tests_source_annotations_modified": false,
+  "reproductions_sha256": "5e5982c63602bf297ebf1757a05e68f01d929669762e753b90ffa1fc1c6b3243"
+}

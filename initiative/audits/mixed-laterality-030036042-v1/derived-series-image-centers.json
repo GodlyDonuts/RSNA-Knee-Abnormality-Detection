@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "stage": "derived_recorded_image_field_centers",
+  "agent_id": "/root/image_pipeline_audit",
+  "formula": "mean(IPP over all ordered slices) + IOP[:3]*(Columns-1)/2*PixelSpacing[1] + IOP[3:]*(Rows-1)/2*PixelSpacing[0]",
+  "scope": "Recorded image-field centers, not anatomical landmarks or proof of common registered coordinates across distinct frame identifiers.",
+  "cases": [
+    {
+      "case": "030:18",
+      "study_uid": "1.2.826.0.1.3680043.8.498.22407175411826914385667795929161924645",
+      "series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.74368606250009360116849917558220814456",
+          "series_number": "201",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            114.93022918701872,
+            -43.66468429565177,
+            29.25558090210484
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.48182290657297836144331138513279555031",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            114.9302291870187,
+            -43.66468429565128,
+            29.255580902103716
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.12690821683624657980577065785155918516",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            110.44111633300706,
+            -41.31042090705239,
+            17.815180071021132
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.48531891317577362079185282914670007862",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            106.47276306152138,
+            -60.94060464338825,
+            26.010391235353737
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.13138486775571230585276087000203802683",
+          "series_number": "601",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            106.47276306151937,
+            -60.940604643388525,
+            26.010391235355726
+          ]
+        }
+      ]
+    },
+    {
+      "case": "036:17",
+      "study_uid": "1.2.826.0.1.3680043.8.498.30248682294786626375369374249874501600",
+      "series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.29110460382510589832788877561974664771",
+          "series_number": "201",
+          "literal_laterality": "L",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            102.43388366699136,
+            -47.995273590084835,
+            -7.815628196299015
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.15138103164892668700835246228249400720",
+          "series_number": "301",
+          "literal_laterality": "L",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            102.43388366699219,
+            -47.995273590084295,
+            -7.815628196298979
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.33951773710885948227873329754709076586",
+          "series_number": "401",
+          "literal_laterality": "L",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            102.50502027314101,
+            -48.00140762328978,
+            -3.607206344601366
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.80576732188579728258826717399630371727",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            102.50502027314097,
+            -48.00140762328948,
+            -3.6072063446014937
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.33409471063014066720897499555508159257",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            102.50502027314138,
+            -48.00140762328702,
+            -3.6072063446033695
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.92139942785919610552771792048237854520",
+          "series_number": "701",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            99.9739303588869,
+            -55.81652062733818,
+            -0.008107995978463123
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.37506324766169923490859273540289152730",
+          "series_number": "801",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            99.97393035888611,
+            -55.816520436603575,
+            -0.00810799970291498
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.95573664511603134635385639762920311555",
+          "series_number": "901",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            100.25925445557165,
+            -51.41088843344998,
+            -9.611235529175971
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.64855176383354920769001074001309032230",
+          "series_number": "1001",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            99.97393035888516,
+            -55.8165207095428,
+            -0.008107990016256394
+          ]
+        }
+      ]
+    },
+    {
+      "case": "042:11",
+      "study_uid": "1.2.826.0.1.3680043.8.498.38056024157303576597111203925091929489",
+      "series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.80105575159193880261797234483575077562",
+          "series_number": "201",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -124.03987091062798,
+            -56.603687286375965,
+            -4.2634086608816375
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.10587391702302335750652411177813729076",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -124.03987091062817,
+            -56.60368728637649,
+            -4.263408660881311
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.22090691320480212878631977338382661215",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            -122.63346099852717,
+            -54.82567214965715,
+            -17.659517841338253
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.10013256123553319041990966901203362989",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -123.61962127685102,
+            -73.8238905993358,
+            -10.534561205980879
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.59583296032063039783036802461420697474",
+          "series_number": "601",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -123.61962127685302,
+            -73.82389059933655,
+            -10.534561205978576
+          ]
+        }
+      ]
+    }
+  ]
+}

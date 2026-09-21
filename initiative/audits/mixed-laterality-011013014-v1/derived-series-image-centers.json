@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "stage": "technical_image_center_calculation",
+  "agent_id": "/root/image_pipeline_audit",
+  "formula": "mean(ImagePositionPatient over complete cached series) + first IOP triplet*(Columns-1)/2*PixelSpacing[1] + second IOP triplet*(Rows-1)/2*PixelSpacing[0]",
+  "units": "mm in each series recorded coordinate frame",
+  "cases": [
+    {
+      "case": "011:03",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11596665780617412984766822528862741584",
+      "series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.11169158928779880798108509329821926091",
+          "series_number": "301",
+          "literal_laterality": "L",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            118.46777292888694,
+            -43.13483428954191,
+            -33.67084884642806
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.54905273408354012316096050699797114264",
+          "series_number": "401",
+          "literal_laterality": "L",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            118.46777292888694,
+            -43.13483428954191,
+            -33.67084884642806
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.65590817503651821760355311756205713840",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            119.81879425048825,
+            -51.39261207580426,
+            -31.715875689184458
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.39152307419633661089647444778009505833",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            119.81879425048825,
+            -51.39261207580426,
+            -31.715875689184458
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.59737098021306262062080408528674327977",
+          "series_number": "701",
+          "literal_laterality": "L",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            119.5533905029271,
+            -41.29794692993151,
+            -37.583606806810515
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.10639884401600325010872465044892259231",
+          "series_number": "801",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            119.46039581298746,
+            -38.04949213662909,
+            -39.675876617414815
+          ]
+        }
+      ]
+    },
+    {
+      "case": "013:11",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11924999889245769866426422681253524920",
+      "series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.35474234697460412322408273670781642868",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -106.95880901452,
+            -54.811397552483726,
+            10.122510938942142
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.74002872999569953084975734172590388602",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -106.95880693377592,
+            -54.81139755248377,
+            10.122510866694256
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.24241741434894675073965091412145418330",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -107.56055450438615,
+            -59.012741025279276,
+            13.128524780281097
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.81634461208339171808958130816896175957",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -107.56055450438615,
+            -59.012741025279276,
+            13.128524780281097
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.13308545092523025146507120149148250355",
+          "series_number": "701",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            -109.03845214843466,
+            -58.3930473327578,
+            13.78386199078045
+          ]
+        }
+      ]
+    },
+    {
+      "case": "014:19",
+      "study_uid": "1.2.826.0.1.3680043.8.498.12130868132537772155475981935868588761",
+      "series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.83817125439473147280383559232008298358",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -81.72394590665635,
+            -59.13232433434354,
+            19.118881225588723
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.37556080528108124864681705742678770834",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -81.72394590665672,
+            -59.13232410314973,
+            19.118881225588922
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.67959499144143571885439856641643498631",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -85.93569183348575,
+            -56.12969183921787,
+            23.90111160279234
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.57250678761408366098875733912347695362",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -85.93569183348575,
+            -56.12969183921787,
+            23.90111160279234
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.20392459991569726270179997653951048141",
+          "series_number": "701",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            -82.3311996459892,
+            -59.11368179320891,
+            34.7055097480622
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.66248812479345470219742331413479704155",
+          "series_number": "801",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -84.6088180541918,
+            -42.80931447346772,
+            24.64462655386005
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": "Image-field centers are not anatomical landmarks. Distinct anonymized frame IDs prevent asserting registration across series; proximity is candidate evidence only. No named side or clinical label inference."
+}

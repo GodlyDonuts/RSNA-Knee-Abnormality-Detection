@@ -1,0 +1,640 @@
+{
+  "schema_version": 1,
+  "stage": "mixed_literal_laterality_source_header_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T09:03:01.732164+00:00",
+  "bindings": [
+    {
+      "path": "annotation-staging/mixed-laterality-030036042-v1/source-only-preread.json",
+      "sha256": "65f178ba332eb3083219d68260c64e73f627135a6719abad5e94d879d7b19fee",
+      "bytes": 6365
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-030036042-v1/technical-evidence/summary.json",
+      "sha256": "20b929f660a3f2f6bd30dead4bf481f750e399f73693e302d0439c0be62458a0",
+      "bytes": 13764
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-030036042-v1/geometry-comparison.json",
+      "sha256": "11f5fff214781e52876125ac8691335059b7a660f9427e6901f06c8ae674f426",
+      "bytes": 1505
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-030036042-v1/derived-series-image-centers.json",
+      "sha256": "892bddba6771f0f697b000374b7b0423228f551cc4d752c80562f47bd8194c91",
+      "bytes": 7847
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-030036042-v1/collect_technical.py",
+      "sha256": "34901e723a58901016fcde8278d67bd1984cd0690d9a32b1ee53d27d02224d28",
+      "bytes": 13542
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-030036042-v1/compare_geometry.py",
+      "sha256": "2e99f74e0a9b529f205d4c9d289747a4ecd704a166b094d7efe1131c8b196772",
+      "bytes": 4950
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-030036042-v1/verify_image_centers.py",
+      "sha256": "0046c6167e6baa5aa42fea8660ba31353e30b1ed5443f6b6a33c64af413897e0",
+      "bytes": 1830
+    }
+  ],
+  "records": [
+    {
+      "case": "030:18",
+      "study_uid": "1.2.826.0.1.3680043.8.498.22407175411826914385667795929161924645",
+      "source_report_sha256": "be0e96b946400b6d1e5e217ec951a2b2fc40b6b897bf54814bdb66fd5dbc2934",
+      "source_report_structure": "One short Spanish unsided knee MRI report with Técnica, Resultados and Impresión. The impression repeats the listed results within a single report structure. No explicit named right/left side, bilateral declaration, second full report or prior/current study comparison.",
+      "official_archive_source_text_exact_match": true,
+      "series": 5,
+      "slices": 113,
+      "endpoints": 10,
+      "source_bytes": 189350310,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.74368606250009360116849917558220814456",
+          "series_number": "201",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            114.93022918701872,
+            -43.66468429565177,
+            29.25558090210484
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.48182290657297836144331138513279555031",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            114.9302291870187,
+            -43.66468429565128,
+            29.255580902103716
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.12690821683624657980577065785155918516",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            110.44111633300706,
+            -41.31042090705239,
+            17.815180071021132
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.48531891317577362079185282914670007862",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            106.47276306152138,
+            -60.94060464338825,
+            26.010391235353737
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.13138486775571230585276087000203802683",
+          "series_number": "601",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            106.47276306151937,
+            -60.940604643388525,
+            26.010391235355726
+          ]
+        }
+      ],
+      "image_field_center_max_pairwise_distance_mm": 21.639164199147736,
+      "paired_geometry": [
+        {
+          "series_numbers": [
+            201,
+            301
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.74368606250009360116849917558220814456",
+            "1.2.826.0.1.3680043.8.498.48182290657297836144331138513279555031"
+          ],
+          "source_laterality_values": [
+            [
+              "R"
+            ],
+            [
+              "R"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              23,
+              1008,
+              1008
+            ],
+            [
+              23,
+              1024,
+              1024
+            ]
+          ],
+          "image_field_center_displacement_mm": 1.225372098449854e-12,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        },
+        {
+          "series_numbers": [
+            501,
+            601
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.48531891317577362079185282914670007862",
+            "1.2.826.0.1.3680043.8.498.13138486775571230585276087000203802683"
+          ],
+          "source_laterality_values": [
+            [
+              "L"
+            ],
+            [
+              "R"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              22,
+              960,
+              960
+            ],
+            [
+              22,
+              640,
+              640
+            ]
+          ],
+          "image_field_center_displacement_mm": 2.8372372706754208e-12,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        }
+      ],
+      "classification": "single_protocol_with_opposite_literal_coronal_tags_candidate",
+      "metadata_observation": "Five sequential series201..601: sagittal201/301 and axial401 taggedR, paired coronal501 taggedL and601 taggedR. The coronal pair has the same recorded IOP and22slices, with matching physical image-field center despite native960versus640matrices. Other series centers remain in a compact cluster; no second full acquisition set.",
+      "source_side": "unspecified",
+      "next_step": "When assigned, compare all-series representative cached slices with priority on the opposite-tag coronal contrast pair; no new native/network escalation from this metadata alone.",
+      "new_pixel_reads": 0,
+      "new_network_requests": 0
+    },
+    {
+      "case": "036:17",
+      "study_uid": "1.2.826.0.1.3680043.8.498.30248682294786626375369374249874501600",
+      "source_report_sha256": "22762edc951cc23a9257873a78e1e6199a6ace46c5027f2fa00fd1358458b792",
+      "source_report_structure": "One English knee report with compartment-based findings followed by a summary repeating the findings. Explicit left knee appears in the effusion and concluding summary. No right-knee block, bilateral examination declaration, different date or prior/current study comparison. Medial and lateral facets/trochleas are structures of the reported knee, not two report sides.",
+      "official_archive_source_text_exact_match": true,
+      "series": 9,
+      "slices": 275,
+      "endpoints": 18,
+      "source_bytes": 207105600,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.29110460382510589832788877561974664771",
+          "series_number": "201",
+          "literal_laterality": "L",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            102.43388366699136,
+            -47.995273590084835,
+            -7.815628196299015
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.15138103164892668700835246228249400720",
+          "series_number": "301",
+          "literal_laterality": "L",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            102.43388366699219,
+            -47.995273590084295,
+            -7.815628196298979
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.33951773710885948227873329754709076586",
+          "series_number": "401",
+          "literal_laterality": "L",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            102.50502027314101,
+            -48.00140762328978,
+            -3.607206344601366
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.80576732188579728258826717399630371727",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            102.50502027314097,
+            -48.00140762328948,
+            -3.6072063446014937
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.33409471063014066720897499555508159257",
+          "series_number": "601",
+          "literal_laterality": "L",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            102.50502027314138,
+            -48.00140762328702,
+            -3.6072063446033695
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.92139942785919610552771792048237854520",
+          "series_number": "701",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            99.9739303588869,
+            -55.81652062733818,
+            -0.008107995978463123
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.37506324766169923490859273540289152730",
+          "series_number": "801",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            99.97393035888611,
+            -55.816520436603575,
+            -0.00810799970291498
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.95573664511603134635385639762920311555",
+          "series_number": "901",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            100.25925445557165,
+            -51.41088843344998,
+            -9.611235529175971
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.64855176383354920769001074001309032230",
+          "series_number": "1001",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            99.97393035888516,
+            -55.8165207095428,
+            -0.008107990016256394
+          ]
+        }
+      ],
+      "image_field_center_max_pairwise_distance_mm": 11.3216892976807,
+      "paired_geometry": [
+        {
+          "series_numbers": [
+            201,
+            301
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.29110460382510589832788877561974664771",
+            "1.2.826.0.1.3680043.8.498.15138103164892668700835246228249400720"
+          ],
+          "source_laterality_values": [
+            [
+              "L"
+            ],
+            [
+              "L"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              40,
+              704,
+              704
+            ],
+            [
+              40,
+              640,
+              640
+            ]
+          ],
+          "image_field_center_displacement_mm": 9.860172640059735e-13,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        },
+        {
+          "series_numbers": [
+            401,
+            501
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.33951773710885948227873329754709076586",
+            "1.2.826.0.1.3680043.8.498.80576732188579728258826717399630371727"
+          ],
+          "source_laterality_values": [
+            [
+              "L"
+            ],
+            [
+              "L"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              29,
+              800,
+              800
+            ],
+            [
+              29,
+              432,
+              432
+            ]
+          ],
+          "image_field_center_displacement_mm": 3.274669388077573e-13,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        },
+        {
+          "series_numbers": [
+            401,
+            601
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.33951773710885948227873329754709076586",
+            "1.2.826.0.1.3680043.8.498.33409471063014066720897499555508159257"
+          ],
+          "source_laterality_values": [
+            [
+              "L"
+            ],
+            [
+              "L"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              29,
+              800,
+              800
+            ],
+            [
+              29,
+              512,
+              512
+            ]
+          ],
+          "image_field_center_displacement_mm": 3.428116503318804e-12,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        },
+        {
+          "series_numbers": [
+            701,
+            801
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.92139942785919610552771792048237854520",
+            "1.2.826.0.1.3680043.8.498.37506324766169923490859273540289152730"
+          ],
+          "source_laterality_values": [
+            [
+              "L"
+            ],
+            [
+              "L"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              30,
+              640,
+              640
+            ],
+            [
+              30,
+              704,
+              704
+            ]
+          ],
+          "image_field_center_displacement_mm": 1.9077096322229464e-07,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        },
+        {
+          "series_numbers": [
+            701,
+            1001
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.92139942785919610552771792048237854520",
+            "1.2.826.0.1.3680043.8.498.64855176383354920769001074001309032230"
+          ],
+          "source_laterality_values": [
+            [
+              "L"
+            ],
+            [
+              "R"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              30,
+              640,
+              640
+            ],
+            [
+              32,
+              384,
+              384
+            ]
+          ],
+          "image_field_center_displacement_mm": 8.24205541932084e-08,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        }
+      ],
+      "classification": "named_left_report_and_main_protocol_with_single_conflicting_supplementary_coronal_tag_candidate",
+      "metadata_observation": "Nine sequential series201..1001. Eight series201..901 are taggedL and have LT-prefixed descriptions across axial/sagittal/coronal plus targeted oblique coverage. Final COR_T2W_TSE1001 is taggedR and lacks the LTprefix. Its orientation and physical image-field center match the main L-tagged coronal701/801 pair;1001has32slices versus30for701/801 and a different native384matrix. No separate complete right-knee protocol is present.",
+      "source_side": "explicit left knee",
+      "next_step": "Highest correspondence priority among these three: representative cache comparison of1001versus701/801 plus main-plane context, because source and primary header set explicitly name left while1001is taggedR. Preserve all literal tags. Matching recorded field centers do not by themselves prove the supplementary series is the same named knee.",
+      "new_pixel_reads": 0,
+      "new_network_requests": 0
+    },
+    {
+      "case": "042:11",
+      "study_uid": "1.2.826.0.1.3680043.8.498.38056024157303576597111203925091929489",
+      "source_report_sha256": "05250673a2d63325108eb03cd93567e893e5205225d335c6bd40a03171cfe128",
+      "source_report_structure": "One very short Spanish unsided knee MRI report with complete Técnica, Resultados and Impresión. The same statement appears in results and impression. No named right/left side, bilateral declaration, second full report or temporal comparison.",
+      "official_archive_source_text_exact_match": true,
+      "series": 5,
+      "slices": 119,
+      "endpoints": 10,
+      "source_bytes": 226424090,
+      "side_by_series": [
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.80105575159193880261797234483575077562",
+          "series_number": "201",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -124.03987091062798,
+            -56.603687286375965,
+            -4.2634086608816375
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.10587391702302335750652411177813729076",
+          "series_number": "301",
+          "literal_laterality": "R",
+          "plane": "Sagittal",
+          "mean_slice_image_center_xyz_mm": [
+            -124.03987091062817,
+            -56.60368728637649,
+            -4.263408660881311
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.22090691320480212878631977338382661215",
+          "series_number": "401",
+          "literal_laterality": "R",
+          "plane": "Axial",
+          "mean_slice_image_center_xyz_mm": [
+            -122.63346099852717,
+            -54.82567214965715,
+            -17.659517841338253
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.10013256123553319041990966901203362989",
+          "series_number": "501",
+          "literal_laterality": "L",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -123.61962127685102,
+            -73.8238905993358,
+            -10.534561205980879
+          ]
+        },
+        {
+          "series_uid": "1.2.826.0.1.3680043.8.498.59583296032063039783036802461420697474",
+          "series_number": "601",
+          "literal_laterality": "R",
+          "plane": "Coronal",
+          "mean_slice_image_center_xyz_mm": [
+            -123.61962127685302,
+            -73.82389059933655,
+            -10.534561205978576
+          ]
+        }
+      ],
+      "image_field_center_max_pairwise_distance_mm": 20.314276344778868,
+      "paired_geometry": [
+        {
+          "series_numbers": [
+            201,
+            301
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.80105575159193880261797234483575077562",
+            "1.2.826.0.1.3680043.8.498.10587391702302335750652411177813729076"
+          ],
+          "source_laterality_values": [
+            [
+              "R"
+            ],
+            [
+              "R"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              25,
+              1024,
+              1024
+            ],
+            [
+              25,
+              1024,
+              1024
+            ]
+          ],
+          "image_field_center_displacement_mm": 6.46086159671842e-13,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        },
+        {
+          "series_numbers": [
+            501,
+            601
+          ],
+          "series_uids": [
+            "1.2.826.0.1.3680043.8.498.10013256123553319041990966901203362989",
+            "1.2.826.0.1.3680043.8.498.59583296032063039783036802461420697474"
+          ],
+          "source_laterality_values": [
+            [
+              "L"
+            ],
+            [
+              "R"
+            ]
+          ],
+          "exact_IOP_equal": true,
+          "ordered_native_shapes": [
+            [
+              22,
+              1024,
+              1024
+            ],
+            [
+              22,
+              720,
+              720
+            ]
+          ],
+          "image_field_center_displacement_mm": 3.1435875367544257e-12,
+          "note": "Physical image-field centers account for matrix dimensions and pixel spacing; this is not image registration or direct anatomy equivalence."
+        }
+      ],
+      "classification": "single_protocol_with_opposite_literal_coronal_tags_candidate",
+      "metadata_observation": "Five sequential series201..601: sagittal201/301 and axial401 taggedR, coronal501taggedL and601taggedR. The paired coronal series have the same IOP,22slices and matching physical image-field centers despite1024versus720native matrices. Remaining plane centers are compact and no second complete set appears.",
+      "source_side": "unspecified",
+      "next_step": "When assigned, compare representative cached coronal501/601 and sagittal/axial context. No automatic tag repair, side assignment, bilateral exclusion or full-native escalation.",
+      "new_pixel_reads": 0,
+      "new_network_requests": 0
+    }
+  ],
+  "total_scope": {
+    "studies": 3,
+    "series": 19,
+    "source_inventory_slices": 507,
+    "selected_endpoint_headers": 38,
+    "source_bytes": 622880000,
+    "all_source_report_copies_exact": true,
+    "all38endpoint_geometry_checks_exact": true,
+    "all19image_field_centers_reproduced": true,
+    "all19official_planes_match_dominant_IOP_axis_technical_only": true,
+    "native_hash_overlap_pairs": 0,
+    "new_pixel_arrays_read": 0,
+    "new_native_decodes": 0,
+    "new_network_requests": 0
+  },
+  "identity_scope": "Each case has one hashed PatientID across the selected endpoints and one distinct frame hash per series. The three PatientID hashes differ. These are technical pseudonymous fields, not proof of real-world patient identity, site/institution or globally registered anatomical coordinates.",
+  "limits": [
+    "Source/header-only review. Exactly two lexical source endpoints per series plus complete existing cache-source membership and recorded positions; no fresh all-slice headers or pixel inspection.",
+    "Metadata points to single protocols with conflicting tags, not conclusive anatomy or named-side proof. Absolute coordinate signs are not used to assign laterality.",
+    "Source036:17 explicitly says left, but the supplementary R-tagged series cannot be adjudicated by report language or majority of tags alone.",
+    "No clinical drafts/reviews/flags/gold accessed, target states inferred, source/cache/runtime changes or automatic exclusions."
+  ],
+  "training_ready": false
+}

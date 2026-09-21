@@ -1,0 +1,107 @@
+"""Check endpoint/cache geometry agreement and describe repeated-series positions."""
+
+from __future__ import annotations
+
+import itertools
+import json
+from pathlib import Path
+
+import numpy as np
+from collect_technical import ROOT, WORK, ref, require, save, sha
+
+
+def main() -> None:
+    output = ROOT / "geometry-comparison.json"
+    require(not output.exists(), "Geometry comparison output must be new")
+    summary_path = ROOT / "technical-evidence/summary.json"
+    require(
+        sha(summary_path) == "1a0d049e2489ffd7605c4b8c101504724e1f5298c0361e0ce686e309803f8119",
+        "Technical evidence changed",
+    )
+    summary = json.loads(summary_path.read_text())
+    for item in summary["cache_metadata_bindings"] + summary["evidence_bindings"]:
+        path = WORK / item["path"]
+        require(
+            sha(path) == item["sha256"] and path.stat().st_size == item["bytes"],
+            "Evidence reference differs",
+        )
+    endpoints = [
+        json.loads(line)
+        for line in (ROOT / "technical-evidence/endpoints.jsonl").read_text().splitlines()
+    ]
+    cases = []
+    for path in sorted((ROOT / "technical-evidence").glob("case-*.json")):
+        case = json.loads(path.read_text())
+        repeated_pairs = []
+        for series in case["series"]:
+            meta = json.loads((WORK / series["cache_metadata"]["path"]).read_text())
+            for endpoint in endpoints:
+                if endpoint["series_uid"] != series["series_uid"]:
+                    continue
+                fields = endpoint["header_fields"]
+                index = meta["sop_uids"].index(endpoint["sop_uid"])
+                require(
+                    json.loads(fields["ImagePositionPatient"]) == meta["positions"][index],
+                    "Endpoint/source-order position differs",
+                )
+                require(
+                    json.loads(fields["ImageOrientationPatient"]) == meta["orientation"],
+                    "Endpoint orientation differs",
+                )
+                require(
+                    json.loads(fields["PixelSpacing"]) == meta["pixel_spacing"],
+                    "Endpoint spacing differs",
+                )
+                require(
+                    [int(fields["Rows"]), int(fields["Columns"])] == meta["original_shape"][1:],
+                    "Endpoint dimensions differ",
+                )
+        for left, right in itertools.combinations(case["series"], 2):
+            lf, rf = left["header_endpoint_values"], right["header_endpoint_values"]
+            if lf["SeriesDescription"] != rf["SeriesDescription"]:
+                continue
+            lp, rp = np.array(left["cache_positions"]), np.array(right["cache_positions"])
+            repeated_pairs.append(
+                {
+                    "left_series_uid": left["series_uid"],
+                    "right_series_uid": right["series_uid"],
+                    "series_numbers": [lf["SeriesNumber"], rf["SeriesNumber"]],
+                    "description": lf["SeriesDescription"],
+                    "laterality_values": [lf["Laterality"], rf["Laterality"]],
+                    "same_native_shape": left["cache_original_shape"]
+                    == right["cache_original_shape"],
+                    "exact_same_orientation": left["cache_orientation"]
+                    == right["cache_orientation"],
+                    "exact_same_pixel_spacing": left["cache_pixel_spacing"]
+                    == right["cache_pixel_spacing"],
+                    "exact_same_all_ordered_positions": bool(np.array_equal(lp, rp)),
+                    "mean_image_origin_displacement_xyz_mm": (rp.mean(0) - lp.mean(0)).tolist(),
+                    "native_fingerprint_list_equal": left["native_pixel_fingerprint_list_sha256"]
+                    == right["native_pixel_fingerprint_list_sha256"],
+                }
+            )
+        cases.append(
+            {
+                "case": case["case"],
+                "study_uid": case["study_uid"],
+                "repeated_description_pairs": repeated_pairs,
+            }
+        )
+    save(
+        output,
+        {
+            "schema_version": 1,
+            "stage": "existing_endpoint_cache_geometry_comparison",
+            "agent_id": "/root/image_pipeline_audit",
+            "script": ref(Path(__file__).resolve()),
+            "summary": ref(summary_path),
+            "endpoint_geometry_shape_checks_passed": len(endpoints),
+            "cases": cases,
+            "scope": "All 34 selected endpoint positions matched their own source SOP's full-cache position exactly; orientation, spacing and native dimensions also exactly matched. Pair displacements compare recorded image origins, not aligned anatomical centers. Different anonymized FrameOfReferenceUIDs prevent asserting one shared patient coordinate frame. No image anatomy, side or target labels inferred.",
+        },
+    )
+    print(json.dumps(ref(output)))
+
+
+if __name__ == "__main__":
+    main()

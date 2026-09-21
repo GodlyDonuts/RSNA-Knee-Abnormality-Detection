@@ -1,0 +1,46 @@
+"""Independently verify the published package and preserve its signed-off receipt."""
+import collections,datetime,hashlib,json,shutil,tarfile
+from pathlib import Path
+W=Path(__file__).resolve().parent;R=W/'recovered';commit='2359718669fa7dc22d394af7b0682f3e5aaf5026';base=W/'hf-preparation-checkpoints'/commit
+read=lambda p:json.loads(p.read_text())
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1048576),b''):h.update(b)
+ return h.hexdigest()
+receipt=read(base/'publication-receipt.json');manifest=read(base/'manifest.json')
+assert receipt['status']=='verified_private_preparation_checkpoint' and receipt['private'] and receipt['remote_objects_verified'] and receipt['source_tree_and_official_metadata_unchanged']
+assert manifest['github_commit']==receipt['github_commit']==commit
+assert receipt['hf_publication_revision']=='a36928407109e9d23ccb694a57765606b792fbc6' and receipt['github_ci_run']==35579790961
+package=base/'checkpoint.tar.gz';assert sha(package)==manifest['package']['sha256'] and package.stat().st_size==manifest['package']['bytes']
+expected={x['path']:x for x in manifest['files']};assert len(expected)==len(manifest['files']);seen=set();counts=collections.Counter()
+with tarfile.open(package,'r:gz') as tar:
+ for item in tar:
+  assert item.isfile(),item.name
+  assert item.name not in seen;seen.add(item.name);f=tar.extractfile(item);h=hashlib.sha256();size=0;data=[]
+  for b in iter(lambda:f.read(1048576),b''):
+   h.update(b);size+=len(b)
+   if item.name.startswith('initiative/reviews-v2/reviewed/') and item.name.endswith('.jsonl'):data.append(b)
+  r=expected[item.name];assert size==r['bytes'] and h.hexdigest()==r['sha256']
+  if item.name.startswith('initiative/audits/cross-study-official-duplicate-v1/') and item.name.endswith('.dcm'):counts['duplicate_official_sources']+=1
+  if item.name.startswith('initiative/audits/correspondence-native-075-014-v1/') and item.name.endswith('.dcm'):counts['075_official_sources']+=1
+  if item.name.startswith('initiative/audits/correspondence-shoulder-report-052-020-v1/') and item.name.endswith('.npz'):counts['shoulder_review_cache_volumes']+=1
+  if data:counts['reviewed_batches']+=1;counts['reviewed_reports']+=len(b''.join(data).splitlines())
+assert seen==set(expected)
+assert counts=={'duplicate_official_sources':288,'075_official_sources':337,'shoulder_review_cache_volumes':3,'reviewed_batches':62,'reviewed_reports':3057},counts
+assert len(receipt['uploaded_files'])==60
+D=R/'initiative/audits/hf-preparation-checkpoint-2359718';assert not D.exists();D.mkdir();refs=[]
+for src in [base/n for n in ['manifest.json','publication-operation.json','publication-receipt.json','README.md','dataset-card.md']]+[W/'publish_correspondence_checkpoint.py',W/'prepare_correspondence_checkpoint_publisher.py',Path(__file__)]:
+ dst=D/(src.name+'.txt' if src.suffix=='.py' else src.name);shutil.copy2(src,dst);assert sha(src)==sha(dst);refs.append({'source_path':str(src),'archive_path':str(dst.relative_to(R)),'sha256':sha(dst),'bytes':dst.stat().st_size})
+proof={'stage':'verified_private_checkpoint_receipt_preservation','github_commit':commit,'github_ci_run':35579790961,'hf_revision':receipt['hf_publication_revision'],'files':refs,'package':manifest['package'],'package_local_path':str(package),'package_hf_path':f'preparation-checkpoints/{commit}/checkpoint.tar.gz','local_package_members_reverified':len(seen),'counts':dict(counts),'remote_objects_verified':60,'training_ready':False,'notes':'Root independently streamed every packaged member and verified SHA, size and exact membership after successful remote verification. The archive is a preparation checkpoint; final report, correspondence, leakage and runtime gates remain pending.'}
+(D/'preservation.json').write_text(json.dumps(proof,indent=2)+'\n')
+s=read(W/'session_state.json');s.update(code_commit=commit,latest_verified_main=commit,original_checkout_main=commit,updated_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),latest_ci={'id':35579790961,'head_sha':commit,'conclusion':'success'},huggingface_publication={**receipt,'local_receipt_path':str(base/'publication-receipt.json'),'archive_receipt_path':str(D/'publication-receipt.json')})
+s['completed_review_batches']=sorted(x.name.split('-')[1] for x in (R/'initiative/reviews-v2/reviewed').glob('batch-*-reviewed.jsonl'));s['completed_draft_batches']=sorted(x.name.split('-')[1] for x in (R/'initiative/reviews-v2/drafts').glob('batch-*-draft.jsonl'))
+s['latest_completed_root_reviews']['049']={'review_sha256':'1c53118b65ed7f8bb49e1848f01c8b0a37560d0f1fb2df7126192982e69c7dd8','preread_sha256':'328f41ce75cceedcf5b9cb165c0e7a92bd6a1c6b160f23744fbd1c5bcd52eaca','n_targets':600,'exact_quotes':446,'differences':72,'reread_reports':37,'preread_changes':1,'draft_changes':71}
+s['current_assignments']={'root':'048/086 full native numeric replay; mixed-tag011/013/014 root numerical review and016/021/022 independent visual pass; final release gates pending','competition_contract':'060 source-only reader;059 published locally','label_pipeline_audit':'058 source-only review;056 reviewed published locally','image_pipeline_audit':'016/021/022 cached visual assessments frozen awaiting root;030/036/042 source/header triage'}
+s['next_actions']=['Complete048/086 independent native source/display replays and preserve explicit576mirror-only deferred official confirmation','Complete mixed-laterality cached visual and numeric root reviews','Finish all89 report two-pass reviews and global semantic/correspondence QA','Enforce study correspondence dispositions and final transitive report/pixel groups with gold-neighbor quarantine','Verify actual final manifest train/resume/inference and publish verified private training release'];s['next_action']=s['next_actions'][0]
+s['recent_technical_findings']['075_two_knees']={'root_review_sha256':'48e949fb1002407cd3fa49b6b9ec52c012707b3728e49a0598e2ab8f207dafc3','sources':337,'native_panels':33,'main_commit':commit,'report_training_mask_required':True}
+s['recent_technical_findings']['052_shoulder_report']={'root_review_sha256':'9e112010d518851b9f9868a513e7131564b12b25a32d956aeffde9aa7a190c3f','cached_views':3,'series':6,'main_commit':commit,'report_training_mask_required':True}
+s['publication_snapshot']={'github_commit':commit,'hf_revision':receipt['hf_publication_revision'],'reviewed_reports':3057,'reviewed_batches':62,'target_decisions':36684,'training_ready':False}
+(W/'session_state.json').write_text(json.dumps(s,indent=2)+'\n')
+print(json.dumps({'package_bytes':package.stat().st_size,'package_members':len(seen),'counts':dict(counts),'hf_revision':receipt['hf_publication_revision'],'preservation_sha256':sha(D/'preservation.json')},indent=2))

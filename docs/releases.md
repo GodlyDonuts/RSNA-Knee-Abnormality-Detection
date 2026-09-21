@@ -12,7 +12,8 @@ Keep GitHub-suitable artifacts in both the initiative archive and the HF release
 Use a new `releases/<version>/` directory in HF for each release:
 
 - `studies.parquet`, `study_labels.csv`, `report_annotations.parquet`,
-  `report_annotations_original.parquet`, `adjudication_trace.json`, `label_audit.json`;
+  `report_annotations_original.parquet`, `adjudication_trace.json`,
+  `correspondence_trace.json`, `label_audit.json`;
 - source `train.csv`, `train_series.csv`, `test_series.csv`,
   `sample_submission.csv`, and original `zip_files.txt`, or pinned references;
 - `dicom_inventory.parquet`, `dicom_inventory.json`, `dicom_audit.json`,
@@ -44,6 +45,8 @@ responses containing authenticated attachment locations remain local.
    Include the fixed adjacent [adjudication registry](adjudications.md), preserve
    all original decisions, apply every accepted correction, and resolve semantic
    QA against the exact reviewed artifacts and correction cases being released.
+   Enforce the required [correspondence registry](correspondence.md) and all
+   preserved study-level report exclusions without changing official gold labels.
 4. Check report/image duplicate groups, official-gold isolation, target state
    distributions, masked coverage, and gold comparison. Investigate class collapse.
    Unknowns remain unknown even when coverage is low.

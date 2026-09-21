@@ -1,0 +1,32 @@
+"""Preserve verified local audit evidence as immutable monorepo artifacts."""
+import datetime,hashlib,json,shutil
+from pathlib import Path
+W=Path(__file__).resolve().parent;R=W/'recovered';A=R/'initiative/audits'
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def collect(root):return [p for p in sorted(root.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and not p.name.endswith(('.pyc','.partial'))]
+def preserve(name,root,extra,required,notes):
+ target=A/name;assert not target.exists();sources=collect(root);pairs=[(p,p.relative_to(root)) for p in sources]+extra
+ for rel,digest in required.items():assert sha(root/rel)==digest
+ entries=[];target.mkdir()
+ for src,relative in pairs:
+  dest=target/relative
+  if dest.suffix=='.py':dest=dest.with_suffix('.py.txt')
+  assert not dest.exists();dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(src,dest);digest=sha(src);assert sha(dest)==digest
+  entries.append({'source_path':str(src.relative_to(W)),'archive_path':str(dest.relative_to(R)),'sha256':digest,'bytes':src.stat().st_size})
+ result={'schema_version':1,'stage':'verified_audit_evidence_preservation','agent_id':'/root','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source_root':str(root.relative_to(W)),'n_files':len(entries),'bytes':sum(x['bytes'] for x in entries),'notes':notes,'files':entries,'source_cache_gold_modified':False,'training_ready':False}
+ p=target/'preservation.json';p.write_text(json.dumps(result,indent=2)+'\n');assert {str(f.relative_to(R)) for f in collect(target)}=={x['archive_path'] for x in entries}|{str(p.relative_to(R))}
+ print(json.dumps({'archive':name,'files':len(entries),'bytes':result['bytes'],'preservation_sha256':sha(p)}))
+ return target
+
+G=W/'annotation-staging/mixed-laterality-030036042-v1';extra=[(W/'annotation-staging/root_verify_mixed_cache_v2.py',Path('scripts/root_verify_mixed_cache_v2.py'))];seen=set()
+for m in sorted((G/'cache-panels').glob('case-*/panel-manifest.json')):
+ for panel in json.loads(m.read_text())['panels']:
+  for key in ['cache','cache_metadata']:
+   ref=panel[key];path=W/ref['path'];assert sha(path)==ref['sha256'] and path.stat().st_size==ref['bytes']
+   if path not in seen:seen.add(path);extra.append((path,Path('complete-cache')/path.name))
+assert len(seen)==38
+preserve('mixed-laterality-030036042-v1',G,extra,{'root-source-geometry-display-review.json':'6a299d2086dd03a7cdb3ea1786e6e8441ba30d0caecc812b69150d08eac2159b'},'Three original reports,507source members,38endpoint records,19complete cache volumes and57displayed samples independently replayed. Both visual freezes favor coherent single protocols with literal side-tag conflicts; no named-side corrections or automatic bilateral exclusions. Supplementary036coronal1001 is compatible with main set; oblique901 retains sample/angle limits. No fresh native decoding/network or clinical target inference.')

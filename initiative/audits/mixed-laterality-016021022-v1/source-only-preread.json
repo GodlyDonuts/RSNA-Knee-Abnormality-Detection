@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_only_correspondence_preread",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T08:51:18.950413+00:00",
+  "order": "Personally read all three complete blinded source reports before opening any case-specific endpoint/cache metadata or clinical annotation. Parent assigned these case identities without new source-content or image conclusions. No official targets or clinical drafts/reviews opened.",
+  "records": [
+    {
+      "case": "016:06",
+      "source_batch_index_zero_based": 6,
+      "study_uid": "1.2.826.0.1.3680043.8.498.12333996498811456012744466468462396081",
+      "report": "Técnica: RMN de la rodilla. Resultados: Síndrome de fricción de la banda iliotibial. Impresión: Síndrome de fricción de la banda iliotibial.",
+      "source_report_sha256": "5ffdaa963857634ec765ddfbd5de73d45017f6e3cfeaa11bc980da3bd6ae3b0d",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-016.json",
+        "sha256": "c59b064165ae68f20a2c9013eac429193979417ac3afbe5e880fe964429ac58d",
+        "bytes": 67716
+      },
+      "source_structure": "One short Spanish knee MRI narrative with Técnica, Resultados and Impresión. Findings and impression repeat the same statement. No explicit right/left side, both-knee declaration, second report block, prior examination/date or temporal comparison.",
+      "exact_structure_quotes": [
+        "Técnica: RMN de la rodilla.",
+        "Resultados:",
+        "Impresión:"
+      ],
+      "completeness_limit": "Very brief but contains technique/results/impression and ends a completed impression. Brevity alone is insufficient evidence of truncation or fabricated source. No missing text is reconstructed."
+    },
+    {
+      "case": "021:01",
+      "source_batch_index_zero_based": 1,
+      "study_uid": "1.2.826.0.1.3680043.8.498.13030662056306690969977140713179461363",
+      "report": "Primjeren je intenzitet signala prikazanog dijela femura, tibije i fibule. Rubne koštane apozicije u\nsklopu osteoartroze FT i FP zgloba.\nGotovo potpuni gubitak hrskavice u medijalnom dijelu tibiofemoralnog zglobnog prostora koji je\nreducirane širine zglobnog prostora. Hondromalacija III stupnja u lateralnom dijelu.\nUmjereni izljev u zglobu.\nPrednji križni ligament urednog je signala te se prati u kontinuitetu.\nStražnji križni ligament urednog je signala te se prati u kontinuitetu.\nMedijalni menisk: kompleksna ruptura na prijelazu stražnjeg roga u trup meniska s horizontalnom\nkomponentnom koja se širi u stražnji rog. Trup je meniska degeneriran i u cijelosti ekstrudiran\nizvan zglobnog prostora. Blaža mukoidna degeneracija prednjeg i stražnjeg roga.\nLateralni menisk: blaža mukoidna degeneracija prednjeg i stražnjeg roga. Moguća manja\ndegenerativna ruptura prednjeg roga s gornje artikulacijske strane.\nLateralni i medijalni kolateralni ligamenti urednog su signala te se prate u kontinuitetu.\nBlaža tendinoza pri hvatištu lig. patele. Tetiva kvadricepsa pri hvatištu zadebljana i povišenog\nintenziteta signala u smislu tendinoze.\nSitna poplitealna cista, oko 13 mm u kraniokaudalnom promjeru.\nNekoliko manjih parameniscealnih cista uz stražnji rog lateralnog meniska ili zavlačenje\nintraartikularnog izljeva.\nUredna je kongruencija zglobnih tijela femoropatelarnog zgloba. Izrazito stanjena hrskavica\nlateralne fasete patele te potpuni gubitak hrskavice medijalne fasete sa zonama subhondralne\ncistične degeneracije - hondromalacija IV stupnja.\nLamele slobodne tekućine u mekim tkivima.",
+      "source_report_sha256": "d4fd9238a0d907c9f5e8096a5038257ba07ee33e53750bd7d7bb0dacdca64ab2",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-021.json",
+        "sha256": "93d67ef5e11595428d05138a06b07dc0ab6c28e2d251be4a1fac78464b4284cc",
+        "bytes": 66961
+      },
+      "source_structure": "One continuous Croatian knee report covering knee bones, medial/lateral tibiofemoral compartments, menisci, ligaments and patellofemoral articulation. No explicit named right/left knee, bilateral declaration, second report, prior examination/date or longitudinal comparison. Medial/lateral compartments and FT/FP refer to structures within a knee and do not themselves imply two knees.",
+      "exact_structure_quotes": [
+        "Primjeren je intenzitet signala prikazanog dijela femura, tibije i fibule.",
+        "Medijalni menisk:",
+        "Lateralni menisk:",
+        "Lamele slobodne tekućine u mekim tkivima."
+      ],
+      "completeness_limit": "Narrative ends in a complete sentence after the remaining soft-tissue statement; no explicit truncation marker. Technical report-to-image correspondence still needs metadata/visual evidence."
+    },
+    {
+      "case": "022:40",
+      "source_batch_index_zero_based": 40,
+      "study_uid": "1.2.826.0.1.3680043.8.498.13242536312535334908597493894251783308",
+      "report": "Técnica: RMN de la rodilla. Resultados: Sin anomalías. Impresión: Sin anomalías",
+      "source_report_sha256": "853a125095b63eb55f8f46143c4118b10d9f29ea437f714785ecbb62942a0369",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-022.json",
+        "sha256": "1aded0a4cc7980900e93a0c0c946c147e0e1cc61323704231906c7290af6b6ee",
+        "bytes": 54132
+      },
+      "source_structure": "One short Spanish knee MRI record with Técnica, Resultados and Impresión. Results and impression both state no abnormalities. No named side, both-knee declaration, separate report, prior study/date or temporal comparison.",
+      "exact_structure_quotes": [
+        "Técnica: RMN de la rodilla.",
+        "Resultados: Sin anomalías.",
+        "Impresión: Sin anomalías"
+      ],
+      "completeness_limit": "The final impression lacks terminal punctuation but is linguistically complete. Short length and missing final period are not evidence of lost text. No reconstruction or clinical target inference."
+    }
+  ],
+  "source_annotations_modified": false,
+  "clinical_target_states_inferred": false
+}

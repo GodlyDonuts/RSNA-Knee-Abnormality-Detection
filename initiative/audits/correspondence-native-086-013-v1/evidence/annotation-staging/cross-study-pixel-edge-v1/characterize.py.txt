@@ -1,0 +1,467 @@
+"""Characterize the complete cross-study edge using preserved native fingerprints.
+
+No source downloads, native DICOM redecoding, clinical annotations, gold labels,
+or source/cache modifications. Cached arrays are read and compared in full.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from collections import Counter, defaultdict
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+STUDIES = [
+    "1.2.826.0.1.3680043.8.498.99725523560254732094432244556623376711",
+    "1.2.826.0.1.3680043.8.498.99926624968240681772735102303531613209",
+]
+REVISION = "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+INVENTORY_SHA256 = "68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537"
+INVENTORY_FINGERPRINT = "5bdaa5fa06a61a914d92c7fa3b82159b2af89c8228fdc78c1a8e91305a2e5395"
+ENDPOINT_SHA256 = "d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3"
+MODEL_FIELDS = ["Anatomical_Plane", "Fluid_Sensitive", "Fat_Suppression"]
+GEOMETRY_FIELDS = ["original_shape", "orientation", "pixel_spacing", "positions", "ordering"]
+PIXEL_DEFINITION = "shape_i64le_and_decoded_samples_f64le_before_rescale"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
+def sha(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def binding(path: Path, work: Path) -> dict:
+    return {"path": str(path.relative_to(work)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def canonical(value: object) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+
+
+def run(work: Path, output: Path) -> dict:
+    require(not output.exists(), "Output must be a new directory")
+    repo = work / "recovered"
+    recovery = work / "cache256-v3-official-recovery-v1"
+    cache = recovery / "cache"
+    inventory_path = recovery / "inventory_effective.parquet"
+    audit_path = work / "dicom-audit-v3-official-recovery-v1/dicom_audit.json"
+    index_path = audit_path.with_name("series_cache_index.parquet")
+    endpoints_path = work / "header-endpoint-full-v1/endpoint-headers.jsonl"
+    official_series_path = repo / "initiative/source/train_series.csv"
+    recovery_status_path = recovery / "source_recovery_status.json"
+    recovery_lineage_path = recovery / "cache_recovery_lineage.jsonl"
+    require(sha(inventory_path) == INVENTORY_SHA256, "Wrong corrected inventory")
+    audit = json.loads(audit_path.read_text())
+    require(
+        audit["complete"] is True
+        and audit["source_revision"] == REVISION
+        and audit["cache_version"] == "series-u16-v3",
+        "Audit not complete/current",
+    )
+    require(
+        audit["inventory_fingerprint_sha256"] == INVENTORY_FINGERPRINT
+        and audit["decoded_slices"] == 819635,
+        "Full audit inventory mismatch",
+    )
+    require(
+        audit["cross_study_pixel_duplicate_pairs"] == [STUDIES]
+        and audit["train_test_duplicate_pairs"] == [],
+        "Unexpected cross-study graph",
+    )
+    require(sha(index_path) == audit["series_cache_index_sha256"], "Audit series index changed")
+    recovery_status = json.loads(recovery_status_path.read_text())
+    require(
+        recovery_status["status"] == "cache_recovery_complete_full_audit_required"
+        and recovery_status["corrected_source_revision"] == REVISION,
+        "Recovery lineage is incomplete",
+    )
+    require(
+        sha(recovery_lineage_path) == recovery_status["lineage"]["sha256"]
+        and recovery_lineage_path.stat().st_size == recovery_status["lineage"]["bytes"],
+        "Recovery lineage binding changed",
+    )
+    recovery_rows = {}
+    with recovery_lineage_path.open() as handle:
+        for line in handle:
+            row = json.loads(line)
+            if row["study_uid"] in STUDIES:
+                require(row["series_uid"] not in recovery_rows, "Duplicate recovery lineage series")
+                recovery_rows[row["series_uid"]] = row
+    require(len(recovery_rows) == 10, "Pair recovery lineage coverage mismatch")
+    inventory = pd.read_parquet(inventory_path, filters=[("study_uid", "in", STUDIES)])
+    index = pd.read_parquet(index_path, filters=[("study_uid", "in", STUDIES)])
+    require(
+        len(inventory) == 288
+        and inventory.series_uid.nunique() == 10
+        and inventory.sop_uid.nunique() == 288,
+        "Unexpected pair inventory coverage",
+    )
+    require(
+        set(inventory.split) == {"train_series"} and set(inventory.study_uid) == set(STUDIES),
+        "Unexpected study/split membership",
+    )
+    series_table = pd.read_csv(official_series_path)
+    series_table = series_table.loc[series_table.StudyInstanceUID.isin(STUDIES)].copy()
+    require(
+        len(series_table) == 10
+        and set(series_table.SeriesInstanceUID) == set(inventory.series_uid),
+        "Official series table membership differs",
+    )
+    evidence = [
+        binding(p, work)
+        for p in [
+            inventory_path,
+            audit_path,
+            index_path,
+            official_series_path,
+            recovery_status_path,
+            recovery_lineage_path,
+            Path(__file__).resolve(),
+        ]
+    ]
+    metadata, arrays, source_rows, series_summaries = {}, {}, [], []
+    native_hash_owners = defaultdict(list)
+    counters = {uid: Counter() for uid in STUDIES}
+    for (study, series), frame in inventory.groupby(["study_uid", "series_uid"]):
+        path = cache / "train_series" / study / f"{series}.npz"
+        meta_path = path.with_suffix(".json")
+        meta = json.loads(meta_path.read_text())
+        lineage = recovery_rows[series]
+        require(
+            sha(meta_path) == lineage["new_metadata"]["sha256"]
+            and meta_path.stat().st_size == lineage["new_metadata"]["bytes"],
+            "Cache metadata differs from frozen recovery lineage",
+        )
+        baseline_meta_path = Path(lineage["baseline_metadata"]["path"])
+        require(
+            sha(baseline_meta_path) == lineage["baseline_metadata"]["sha256"],
+            "Baseline metadata differs from recovery lineage",
+        )
+        baseline_meta = json.loads(baseline_meta_path.read_text())
+        require(
+            meta == {**baseline_meta, "source_revision": REVISION},
+            "Recovered metadata changed beyond the accepted revision rebase",
+        )
+        evidence.append(binding(baseline_meta_path, work))
+        require(
+            (meta["study_uid"], meta["series_uid"], meta["split"], meta["source_revision"])
+            == (study, series, "train_series", REVISION),
+            "Cache identity/revision mismatch",
+        )
+        require(
+            meta["cache_version"] == audit["cache_version"]
+            and meta["cache_path"] == str(path.relative_to(cache)),
+            "Cache transform/path mismatch",
+        )
+        require(
+            meta["n_slices"] == len(frame)
+            and len(meta["sop_uids"]) == len(frame) == len(set(meta["sop_uids"])),
+            "Cache SOP coverage mismatch",
+        )
+        require(
+            len(meta["slice_sha256"]) == len(frame)
+            and dict(zip(meta["sop_uids"], meta["slice_sha256"]))
+            == dict(zip(frame.sop_uid, frame.sha256)),
+            "Cache source hash membership mismatch",
+        )
+        require(
+            meta["path_fingerprint"]
+            == hashlib.sha256("\n".join(sorted(frame.path)).encode()).hexdigest(),
+            "Cache source path fingerprint mismatch",
+        )
+        require(
+            meta["pixel_hash_definition"] == PIXEL_DEFINITION, "Wrong native fingerprint definition"
+        )
+        require(
+            len(meta["pixel_sha256"])
+            == len(frame)
+            == len(meta["pixel_nonconstant"])
+            == len(meta["positions"]),
+            "Native fingerprint/geometry coverage mismatch",
+        )
+        require(
+            all(meta["pixel_nonconstant"]) and meta["constant_slices"] == 0,
+            "Unexpected constant source slice in pair",
+        )
+        require(
+            meta["warnings"] == [] and meta["ordering"] == "patient_geometry",
+            "Unexpected geometry warning/ordering",
+        )
+        require(
+            path.stat().st_size == meta["cache_bytes"] and sha(path) == meta["cache_sha256"],
+            "Cache bytes fail verification",
+        )
+        index_row = index.loc[index.series_uid == series].iloc[0]
+        require(
+            index_row.study_uid == study
+            and index_row.n_slices == len(frame)
+            and index_row.cache_sha256 == meta["cache_sha256"]
+            and index_row.cache_bytes == meta["cache_bytes"],
+            "Audit index series binding mismatch",
+        )
+        with np.load(path, allow_pickle=False) as archive:
+            array = archive["volume"]
+        require(
+            array.dtype == np.uint16 and array.shape == (len(frame), 256, 256),
+            "Cache array shape/dtype mismatch",
+        )
+        require(
+            np.isfinite(np.asarray(meta["positions"], dtype=float)).all(),
+            "Nonfinite source positions",
+        )
+        metadata[series], arrays[series] = meta, array
+        evidence.extend([binding(path, work), binding(meta_path, work)])
+        table_row = series_table.loc[series_table.SeriesInstanceUID == series].iloc[0]
+        model_fields = {
+            k: table_row[k].item() if hasattr(table_row[k], "item") else table_row[k]
+            for k in MODEL_FIELDS
+        }
+        series_summaries.append(
+            {
+                "study_uid": study,
+                "series_uid": series,
+                "n_slices": len(frame),
+                "model_metadata": model_fields,
+                "cache_sha256": meta["cache_sha256"],
+                "cache_bytes": meta["cache_bytes"],
+                "cache_metadata_sha256": sha(meta_path),
+                "geometry": {k: meta[k] for k in GEOMETRY_FIELDS},
+                "native_hash_order_sha256": hashlib.sha256(
+                    canonical(meta["pixel_sha256"])
+                ).hexdigest(),
+                "nonconstant_native_slices": sum(meta["pixel_nonconstant"]),
+                "pixel_hash_definition": PIXEL_DEFINITION,
+            }
+        )
+        by_sop = frame.set_index("sop_uid")
+        for position, (sop, source_sha, pixel_sha) in enumerate(
+            zip(meta["sop_uids"], meta["slice_sha256"], meta["pixel_sha256"])
+        ):
+            row = by_sop.loc[sop].to_dict()
+            row["sop_uid"] = sop
+            require(source_sha == row["sha256"], "Ordered source membership mismatch")
+            record = {
+                "study_uid": study,
+                "series_uid": series,
+                "sop_uid": sop,
+                "source_path": row["path"],
+                "source_sha256": source_sha,
+                "source_bytes": int(row["bytes"]),
+                "storage": row["storage"],
+                "native_pixel_sha256": pixel_sha,
+                "nonconstant": True,
+                "ordered_slice_index": position,
+                "position": meta["positions"][position],
+                "native_shape": meta["original_shape"][1:],
+                "cache_slice_sha256": hashlib.sha256(
+                    array[position].tobytes(order="C")
+                ).hexdigest(),
+            }
+            source_rows.append(record)
+            native_hash_owners[pixel_sha].append(record)
+            counters[study][pixel_sha] += 1
+    matrix, matches = [], []
+    left_series = sorted(s for s, m in metadata.items() if m["study_uid"] == STUDIES[0])
+    right_series = sorted(s for s, m in metadata.items() if m["study_uid"] == STUDIES[1])
+    for left in left_series:
+        for right in right_series:
+            first, second = metadata[left], metadata[right]
+            common = Counter(first["pixel_sha256"]) & Counter(second["pixel_sha256"])
+            model_left = next(
+                r["model_metadata"] for r in series_summaries if r["series_uid"] == left
+            )
+            model_right = next(
+                r["model_metadata"] for r in series_summaries if r["series_uid"] == right
+            )
+            row = {
+                "left_series_uid": left,
+                "right_series_uid": right,
+                "left_slices": first["n_slices"],
+                "right_slices": second["n_slices"],
+                "shared_distinct_native_hashes": len(common),
+                "shared_native_hash_multiplicity": sum(common.values()),
+                "ordered_native_hash_lists_equal": first["pixel_sha256"] == second["pixel_sha256"],
+                "geometry_fields_equal": {k: first[k] == second[k] for k in GEOMETRY_FIELDS},
+                "cache_npz_sha256_equal": first["cache_sha256"] == second["cache_sha256"],
+                "full_cache_array_equal": bool(np.array_equal(arrays[left], arrays[right])),
+                "model_metadata_equal": model_left == model_right,
+                "model_metadata_left": model_left,
+                "model_metadata_right": model_right,
+            }
+            matrix.append(row)
+            if (
+                row["ordered_native_hash_lists_equal"]
+                and all(row["geometry_fields_equal"].values())
+                and row["full_cache_array_equal"]
+                and row["model_metadata_equal"]
+            ):
+                row["metadata_fields_different"] = [k for k in first if first[k] != second[k]]
+                matches.append(row)
+    require(
+        len(matches) == 5
+        and {r["left_series_uid"] for r in matches} == set(left_series)
+        and {r["right_series_uid"] for r in matches} == set(right_series),
+        "Pair is not a five-series complete bijection",
+    )
+    require(
+        counters[STUDIES[0]] == counters[STUDIES[1]] and sum(counters[STUDIES[0]].values()) == 144,
+        "Native study fingerprint multiplicities differ",
+    )
+    require(
+        all(row["shared_native_hash_multiplicity"] == 0 for row in matrix if row not in matches),
+        "Unexpected off-diagonal native overlap",
+    )
+    common_hashes = sorted(set(counters[STUDIES[0]]) & set(counters[STUDIES[1]]))
+    source_sops = {
+        uid: set(inventory.loc[inventory.study_uid == uid, "sop_uid"]) for uid in STUDIES
+    }
+    source_hashes = {
+        uid: set(inventory.loc[inventory.study_uid == uid, "sha256"]) for uid in STUDIES
+    }
+    require(not source_sops[STUDIES[0]] & source_sops[STUDIES[1]], "Unexpected shared SOP UID")
+    require(
+        not source_hashes[STUDIES[0]] & source_hashes[STUDIES[1]],
+        "Unexpected whole DICOM byte identity",
+    )
+    require(sha(endpoints_path) == ENDPOINT_SHA256, "Historical endpoint survey changed")
+    endpoint_rows = []
+    inventory_by_path = inventory.set_index("path", drop=False)
+    with endpoints_path.open() as handle:
+        for line in handle:
+            record = json.loads(line)
+            if record["study_uid"] not in STUDIES:
+                continue
+            row = inventory_by_path.loc[record["source_path"]]
+            require(
+                (
+                    record["sop_uid"],
+                    record["series_uid"],
+                    record["source_sha256"],
+                    record["source_bytes"],
+                )
+                == (row.sop_uid, row.series_uid, row.sha256, row.bytes),
+                "Endpoint source identity differs from corrected inventory",
+            )
+            endpoint_rows.append(record)
+    require(
+        len(endpoint_rows) == 20 and len({r["series_uid"] for r in endpoint_rows}) == 10,
+        "Pair endpoint coverage differs",
+    )
+    evidence.append(binding(endpoints_path, work))
+    technical_identifiers = []
+    for study in STUDIES:
+        rows = [r for r in endpoint_rows if r["study_uid"] == study]
+        technical_identifiers.append(
+            {
+                "study_uid": study,
+                "n_endpoint_records": len(rows),
+                "patient_id_sha256_values": sorted({r["patient_id_sha256"] for r in rows}),
+                "frame_of_reference_sha256_values": sorted(
+                    {r["frame_of_reference_sha256"] for r in rows}
+                ),
+                "literal_laterality_values": sorted(
+                    {r["header_fields"]["Laterality"] for r in rows}
+                ),
+                "series_descriptions": sorted(
+                    {r["header_fields"]["SeriesDescription"] for r in rows}
+                ),
+            }
+        )
+    for item in evidence:
+        require(
+            sha(work / item["path"]) == item["sha256"], "An input changed during characterization"
+        )
+    output.mkdir(parents=True)
+    outputs = {
+        "inventory-pair.json": inventory.to_dict("records"),
+        "series-summary.json": series_summaries,
+        "series-overlap-matrix.json": matrix,
+        "complete-series-matches.json": matches,
+        "technical-endpoint-identifiers.json": technical_identifiers,
+    }
+    for name, value in outputs.items():
+        (output / name).write_text(json.dumps(value, indent=2) + "\n")
+    for name, records in [
+        ("all-source-slice-bindings.jsonl", source_rows),
+        (
+            "shared-native-hash-groups.jsonl",
+            [
+                {"native_pixel_sha256": pixel_hash, "owners": native_hash_owners[pixel_hash]}
+                for pixel_hash in common_hashes
+            ],
+        ),
+        ("endpoint-headers.jsonl", endpoint_rows),
+        ("recovery-lineage-pair.jsonl", [recovery_rows[k] for k in sorted(recovery_rows)]),
+    ]:
+        (output / name).write_text(
+            "".join(json.dumps(row, sort_keys=True) + "\n" for row in records)
+        )
+    result = {
+        "schema_version": 1,
+        "stage": "independent_complete_cross_study_pixel_edge_characterization",
+        "agent_id": "/root/image_pipeline_audit",
+        "source_revision": REVISION,
+        "studies": STUDIES,
+        "classification": "complete_five_series_study_image_content_duplication",
+        "series_each": 5,
+        "slices_each": 144,
+        "complete_one_to_one_series_matches": 5,
+        "shared_distinct_nonconstant_native_hashes": len(common_hashes),
+        "shared_native_hash_multiplicity_each_study": 144,
+        "unmatched_slices_each_study": 0,
+        "off_diagonal_series_pixel_overlap": 0,
+        "matched_series_all_ordered_native_fingerprints_equal": True,
+        "matched_series_all_native_shapes_and_all_recorded_positions_equal": True,
+        "matched_series_all_full_cache_arrays_and_npz_bytes_equal": True,
+        "matched_series_all_model_metadata_equal": True,
+        "shared_source_sop_uids": [],
+        "shared_whole_source_file_sha256": [],
+        "source_file_bindings_verified": 288,
+        "cache_files_fully_hashed_and_arrays_read": 10,
+        "existing_endpoint_records_bound_to_corrected_inventory": 20,
+        "input_bindings": evidence,
+        "output_bindings": [binding(p, work) for p in sorted(output.iterdir())],
+        "action": "Preserve both source studies and every cross-study edge. Keep this pair in one leakage component; apply evaluation/weak-label isolation through existing release gates, not deletion.",
+        "scope": [
+            "All source-native fingerprints were produced by the original complete strict decoder and are now bound through the corrected inventory, cache metadata and full corrected audit. This characterization does not claim a second native DICOM decode.",
+            "Every cached array was independently read in full and every NPZ byte hash verified. Matching series have identical full ordered native hashes, shapes, all recorded positions, orientation, spacing and model metadata.",
+            "Distinct DICOM source hashes and SOP/study/series identities remain preserved. Image-content duplication is not whole-file DICOM identity and does not identify a real-world patient.",
+            "Existing endpoint hashes/metadata retain their historical partial-prefix limitations; no new header fetch or native image download occurred.",
+            "No report text, clinical review labels, or gold annotations were read. No study, source, label, runtime module, or cache was edited.",
+            "No visual interpretation was needed for the complete numerical equivalence result; no clinical image diagnosis is asserted.",
+        ],
+        "clinical_annotations_accessed_or_changed": False,
+        "new_native_decodes": 0,
+        "network_requests": 0,
+        "training_ready": False,
+    }
+    (output / "edge-characterization.json").write_text(json.dumps(result, indent=2) + "\n")
+    return {
+        k: result[k]
+        for k in [
+            "classification",
+            "complete_one_to_one_series_matches",
+            "shared_distinct_nonconstant_native_hashes",
+            "source_file_bindings_verified",
+            "unmatched_slices_each_study",
+        ]
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--work-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    print(json.dumps(run(args.work_root.resolve(), args.output.resolve()), indent=2))

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "stage": "root_verified_correspondence_release_requirements",
+  "agent_id": "/root",
+  "created_at_utc": "2026-09-21T08:42:45.980630+00:00",
+  "target_order": [
+    "ACL",
+    "MCL",
+    "Medial Meniscus",
+    "Lateral Meniscus",
+    "Medial OA",
+    "Lateral OA",
+    "PF OA",
+    "Effusion",
+    "Synovitis",
+    "Baker's",
+    "Contusion",
+    "Fracture"
+  ],
+  "records": [
+    {
+      "case": "075:14",
+      "study_uid": "1.2.826.0.1.3680043.8.498.82579118531566493365068788437906656162",
+      "source_path": "initiative/reviews/inputs/batch-075.json",
+      "source_batch_sha256": "6fad1eb48452aa15e01240bf6b8a5e52d64b149127218ec61ee7ad3829e235dc",
+      "source_report_sha256": "5ac775d3326b2a3e628845510933c81f26874531ee076a55b6f1280029152dec",
+      "status": "two_knee_protocols_unsided_report_unresolved",
+      "report_derived_training_supervision_allowed": false,
+      "required_report_loss_mask": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "scope": "Whole original study aggregate report-derived supervision. Preserve images/report, duplicate memberships and official gold evaluation assignments. No clinical target values inferred.",
+      "reason": "Two opposing knee protocols are supported by independently frozen native views and source/display replay; source report is one short unsided narrative. Do not assign it to either protocol.",
+      "verified_technical_proof": {
+        "path": "initiative/audits/correspondence-native-075-014-v1/root-numeric-display-review.json",
+        "sha256": "48e949fb1002407cd3fa49b6b9ec52c012707b3728e49a0598e2ab8f207dafc3"
+      }
+    },
+    {
+      "case": "052:20",
+      "study_uid": "1.2.826.0.1.3680043.8.498.52010826440192227660457107121818389761",
+      "source_path": "initiative/reviews/inputs/batch-052.json",
+      "source_batch_sha256": "c6f8ad5f0b16b8389fc41201ab0bed72e1bb30ffd68b67618782dc57fa817946",
+      "source_report_sha256": "320650a24b78193b8e82c1cd81e53fec5e7bd9942570c55a3cc2563ad41f9923",
+      "status": "shoulder_report_knee_image_correspondence_failure",
+      "report_derived_training_supervision_allowed": false,
+      "required_report_loss_mask": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "scope": "Whole original study aggregate report-derived supervision. Preserve images/report, duplicate memberships and official gold evaluation assignments. No clinical target values inferred.",
+      "reason": "Complete original official report describes shoulder anatomy while all three bound representative images show knees. No intended replacement knee report can be inferred.",
+      "verified_technical_proof": {
+        "path": "initiative/audits/correspondence-shoulder-report-052-020-v1/root-source-display-review.json",
+        "sha256": "9e112010d518851b9f9868a513e7131564b12b25a32d956aeffde9aa7a190c3f"
+      },
+      "existing_review_sha256": "755bef0e9e8ba5b1b626b5b7a228f2dd27c09b3099889fadb70c264bec0dc71f",
+      "all_existing_report_targets_already_masked": true
+    }
+  ],
+  "release_requirement": "Final manifest builder must explicitly enforce these study-level report-supervision masks in addition to target adjudications and gold/leakage isolation. This declarative preparation evidence is not yet a compiled training manifest.075 source clinical two-pass review is still pending.",
+  "original_source_or_annotation_changes": false,
+  "training_ready": false
+}

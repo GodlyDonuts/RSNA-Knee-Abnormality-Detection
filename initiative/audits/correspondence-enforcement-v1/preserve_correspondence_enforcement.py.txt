@@ -1,0 +1,29 @@
+"""Preserve independently checked correspondence enforcement and image receipts."""
+import datetime, hashlib, json, shutil
+from pathlib import Path
+import pandas as pd
+from rsna.correspondence import inspect_correspondence
+W=Path(__file__).resolve().parent; R=W/'recovered'; A=R/'initiative/audits/correspondence-enforcement-v1'
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
+ return h.hexdigest()
+def reference(p):return {'path':str(p.relative_to(R)), 'sha256':sha(p), 'bytes':p.stat().st_size}
+assert not A.exists()
+log=W/'correspondence-final-tests.log'; assert '246 passed in 11.55s' in log.read_text()
+review=W/'annotation-staging/correspondence-code-review-v1/final-review.json'; assert review.is_file()
+frame=pd.read_csv(R/'initiative/source/train.csv',usecols=['StudyInstanceUID','Report'],keep_default_na=False,dtype=str)
+reports=dict(zip(frame.StudyInstanceUID,frame.Report));assert len(reports)==4407
+inspection=inspect_correspondence(reports,R);assert inspection['policy_count']==2 and inspection['study_count']==4
+assert {v['case'] for v in inspection['decisions']}=={'075:14','052:20','048:12','086:13'}
+paths=[log, review, W/'annotation-staging/correspondence-code-review-v1/review.json', W/'annotation-staging/correspondence-code-review-v1/reproductions.json',W/'correspondence-image-preservation-root-v1.json', W/'correspondence-image-preservation-v1.json',W/'verify_correspondence_preservation_root.py',W/'preserve_correspondence_milestone_image_v1.py',W/'preserve_mixed_030_checkpoint.py',W/'bind_correspondence_policies.py',Path(__file__)]
+A.mkdir();copied=[]
+for p in paths:
+ name=p.name+('.txt' if p.suffix=='.py' else ''); dest=A/name; assert not dest.exists();shutil.copy2(p,dest);assert sha(p)==sha(dest);copied.append(reference(dest))
+(A/'source-registry-inspection.json').write_text(json.dumps(inspection,indent=2)+'\n')
+code=[reference(R/p) for p in ['rsna/correspondence.py','rsna/labels.py','tests/test_correspondence.py','tests/test_adjudications.py']]
+validation={'schema_version':1,'stage':'verified_correspondence_enforcement_checkpoint','status':'verified','agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'tests_passed':246,'full_suite_seconds':11.55,'correspondence_regression_tests':46,'ruff_check':'passed','ruff_format_files':35,'mypy_source_files':19,'root_review':'Read final runtime changes and all46 correspondence tests. Initial policy-omission and UID-less proof reassignment defects corrected; exact registry membership and explicit source-bound identity wrappers enforced.','source_report_count':4407,'policy_count':2,'whole_study_report_exclusions':4,'code_bindings':code,'source_registry_inspection':reference(A/'source-registry-inspection.json'),'preserved_evidence':copied,'limitations':['Source-only policy inspection does not compile the unfinished full training manifest.','Official gold values were not read for this inspection.','Complete report review, global semantic/correspondence QA, final leakage grouping and final-data training/resume/inference remain required.'],'training_ready':False}
+(A/'validation.json').write_text(json.dumps(validation,indent=2)+'\n')
+(A/'README.md').write_text('# Verified correspondence enforcement\n\nThe label builder requires all preserved correspondence policies and exact source/proof bindings before export. It masks all report-derived supervision for four excluded studies while retaining original annotations, gold evaluation labels and duplicate groups. The initial independent code review found policy omission and proof reassignment defects; their reproductions, fixes and final independent re-review are preserved here.\n\nAll 246 tests passed, including 46 correspondence regressions. Root read the runtime changes and complete regression suite; source-only inspection bound both real policies to all 4,407 original reports. This is a preparation checkpoint, not a full training release.\n\nThe image-preservation receipts verify 940 copied evidence files and 166 source aliases for the first four new image audit packages. The separate third mixed-tag package preserves 81 files with its own exact-copy receipt. Original source and observation files remain unchanged.\n')
+print(json.dumps({'status':'verified','validation_sha256':sha(A/'validation.json'),'files':len(list(A.iterdir()))}))
