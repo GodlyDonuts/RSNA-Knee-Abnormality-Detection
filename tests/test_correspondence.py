@@ -487,8 +487,10 @@ def test_cli_enforces_policy_before_export(
     bundle: dict, monkeypatch: pytest.MonkeyPatch, failure: str | None
 ) -> None:
     from rsna import adjudications, labels
+    from rsna.report_similarity import REGISTRY_PATH as SIMILARITY_REGISTRY
 
     root = bundle["root"]
+    write(root / SIMILARITY_REGISTRY, {"schema_version": 1, "policies": []})
     bundle["train"].to_csv(root / "train.csv", index=False)
     for phase in ["draft", "reviewed"]:
         d = root / phase

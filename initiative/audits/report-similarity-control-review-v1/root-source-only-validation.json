@@ -1,0 +1,100 @@
+{
+  "stage": "root_blinded_source_only_report_similarity_validation",
+  "agent_id": "/root",
+  "created_at_utc": "2026-09-21T13:10:23.847021+00:00",
+  "status": "verified",
+  "reports": 4407,
+  "exact_normalized_duplicate_groups": 54,
+  "exact_normalized_duplicate_studies": 204,
+  "pixel_edges": 1,
+  "additional_report_similarity_edges": 1,
+  "source_only_combined_component_members": [
+    "1.2.826.0.1.3680043.8.498.33880013318702285028756482543453984598",
+    "1.2.826.0.1.3680043.8.498.41717437729988689273718049162153247404"
+  ],
+  "audit": {
+    "schema_version": 1,
+    "registry_path": "initiative/audits/report-similarity-registry.json",
+    "registry_sha256": "7b9b4de409cf35701719782e41ff8d1f52f6d43d8d04a480b21f16fef9070c4b",
+    "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+    "policy_count": 1,
+    "edge_count": 1,
+    "decisions": [
+      {
+        "relation": "single_redundant_full_stop",
+        "left": {
+          "study_uid": "1.2.826.0.1.3680043.8.498.33880013318702285028756482543453984598",
+          "source_batch": {
+            "path": "initiative/reviews/inputs/batch-038.json",
+            "sha256": "73fe39a7c57cb049de558ce291aaf4d6d5df936f37e527a01d2f4905c75ac1fa"
+          },
+          "source_report_sha256": "c96bd80ccb259d3e6cdab7eba70ea25ccecab02dfaa8f6bd12cc4c4e87ce9f0c"
+        },
+        "right": {
+          "study_uid": "1.2.826.0.1.3680043.8.498.41717437729988689273718049162153247404",
+          "source_batch": {
+            "path": "initiative/reviews/inputs/batch-045.json",
+            "sha256": "3ac727db5c5e3c339373ef525c3368c55a2fb272e3d0c008d9031c95e40d4a14"
+          },
+          "source_report_sha256": "08053408efea01cb2500c178db7d0eacf6eafb36c2b1523b2861284e82694477"
+        },
+        "source_assessments": {
+          "root": {
+            "path": "initiative/audits/technical-tier4-sixth-six-v1/root-source-preread.json",
+            "sha256": "36b071b1503ccf267c51580c69e3bb1ce683d0dde5ead23eac53f867670f04d8"
+          },
+          "independent": {
+            "path": "initiative/audits/technical-tier4-sixth-six-v1/source-only-preread.json",
+            "sha256": "eeec9bde82a4e2dec6f5b491aab4c720ec836d53744ff0f0d8c11f66f01b5ff0"
+          }
+        },
+        "difference_proof": {
+          "path": "initiative/audits/technical-tier4-sixth-six-v1/root-report-similarity-leakage-followup.json",
+          "sha256": "2a7c7f8b5d56a3f551fdc6161f907ae68a84981e773f89bc100fc8fd61512438"
+        },
+        "joint_source_comparison": {
+          "path": "initiative/audits/technical-tier4-sixth-six-v1/joint-source-comparison.json",
+          "sha256": "39140621fa803723bae44c070717732096875726c20661d9466c95596a1fdfc5"
+        },
+        "status": "accepted",
+        "source_assessment_order": {
+          "root": "full_sources_before_other_assessor_findings",
+          "independent": "full_sources_before_other_assessor_findings"
+        },
+        "policy": {
+          "path": "initiative/audits/report-similarity-dispositions-v1.json",
+          "sha256": "1d32e6387e77bb8201722579845baf95d778528f8d54b067354374788a036b7e"
+        },
+        "assessor_ids": {
+          "root": "/root",
+          "independent": "/root/image_pipeline_audit"
+        }
+      }
+    ],
+    "scope": "Additional report-similarity leakage edges; no clinical, patient, site or pixel identity inference."
+  },
+  "bindings": [
+    {
+      "path": "recovered/rsna/report_similarity.py",
+      "sha256": "728cf2faba14900e3d6477c47b2a9b6ab8c28c8ff5cdaf6006c1f6e5312fb764",
+      "bytes": 11256
+    },
+    {
+      "path": "recovered/rsna/labels.py",
+      "sha256": "bf9d99579481cc2fb13dc80ed4465bf5563e005194cff23d96221c648b9d0a3e",
+      "bytes": 19578
+    },
+    {
+      "path": "recovered/tests/test_report_similarity.py",
+      "sha256": "4943dc54a42c9a505e8e8dcf48ecfcf2446a55a1746aa7e5403fee0b7ead0453",
+      "bytes": 23815
+    },
+    {
+      "path": "recovered/initiative/audits/full-image-recovery-v1/audit/dicom_audit.json",
+      "sha256": "dd2b482452df616675222dd9766c774d2abbab06fec44b5e8e0c1c2c7061a347",
+      "bytes": 327630
+    }
+  ],
+  "scope": "Original blinded reports and pinned completed DICOM edge audit only. No clinical annotations or official target columns inspected. Component membership verified before final gold quarantine; final complete label export remains pending.",
+  "training_ready": false
+}

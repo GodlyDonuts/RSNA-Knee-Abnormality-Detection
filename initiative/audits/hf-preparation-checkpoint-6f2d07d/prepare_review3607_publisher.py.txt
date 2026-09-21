@@ -1,0 +1,22 @@
+from pathlib import Path
+W=Path(__file__).resolve().parent;s=(W/'publish_review3507_checkpoint.py').read_text()
+def replace(a,b):
+ global s
+ assert a in s,a[:100];s=s.replace(a,b)
+replace('==71 and report_count==3507','==73 and report_count==3607')
+replace("info.sha=='d6557ffc2aadc9be050ab4668a1a24ef9b9d8414'","info.sha=='492b1eb363680fe593087f84e9627b1de4ee8680'")
+replace("'mixed-laterality-065067071-v1']","'mixed-laterality-065067071-v1', 'mixed-laterality-075079081-v1', 'technical-tier4-first-six-v1', 'technical-tier4-second-six-v1', 'correspondence-052001-017-cache-v1']")
+replace("'studies':21,'source_memberships':3257,'endpoint_records':234,'complete_npz_volumes':117,'sampled_panels':351","'studies':25,'source_memberships':3783,'endpoint_records':280,'complete_npz_volumes':140,'sampled_panels':420")
+replace('Twenty-one mixed-tag cases preserve 117 complete cache volumes, 351 bound cached samples','Twenty-five mixed-tag cases preserve 140 complete cache volumes, 420 bound cached samples')
+replace('**3,507 independently reviewed reports**, **42,084 target decisions**','**3,607 independently reviewed reports**, **43,284 target decisions**')
+replace('Twenty-one mixed-tag investigations preserve 117 complete cache volumes, 3,257 source memberships, 234 endpoint records and 351 exact displayed samples. The new groups cover 042/044/045, 048/052/056, 057/059/062 and 065/067/071. Original independent observations and a separately recorded caption-reading correction for 045:38 are preserved.','Twenty-five mixed-tag investigations preserve 140 complete cache volumes, 3,783 source memberships, 280 endpoint records and 420 exact displayed samples. The final group covers 075/079/081. Both independent observations and separate corrections to caption-reading or overgeneralized display wording remain preserved.')
+replace("commit_message='Preserve 3507 independently reviewed reports and 21 mixed-tag audits'","commit_message='Preserve 3607 reviewed reports and expanded correspondence evidence'")
+replace('21 mixed-tag investigations and 3507 reviewed reports.','25 mixed-tag investigations, 12 additional metadata triages, two bilateral-report cache audits and 3607 reviewed reports.')
+anchor="manifest['fresh_official_byte_confirmation_deferred']=576"
+replace(anchor,"""manifest['pending_correspondence_policy_integration']={'cases':['052:01','052:17'],'required_report_supervision_mask_all':True,'policy_integrated':False,'source_memberships':245,'complete_npz_volumes':12,'sampled_panels':36,'root_proof_sha256':'1feddba305e363392467810964daf2808995d76e2f8078c154b5af32d41d376f','reason':'Two explicitly bilateral report aggregates have unresolved report-block correspondence despite coherent sampled image protocols.'}
+manifest['metadata_triage']={'cases':12,'source_memberships':3076,'series_metadata':84,'endpoint_geometries':168,'no_immediate_pixel_escalation_cases':5,'further_bounded_views_cases':7,'pixel_arrays_read_for_this_triage':0}
+"""+anchor)
+replace('The package also preserves all 337 official 075:14 source files,','Two further bilateral report aggregates, 052:01 and 052:17, preserve 245 source memberships, 12 complete cache volumes and 36 independently viewed samples. Both sampled protocols are coherent, but combined-report correspondence remains unresolved; their required report-supervision exclusions still need final policy integration. Twelve additional source/header triages preserve 3,076 memberships and 84 series metadata without pixel-reading claims. Seven warrant targeted views; five tag-gap-only cases do not warrant immediate escalation.\n\nThe package also preserves all 337 official 075:14 source files,')
+replace("manifest['scope']+=' All659", "manifest['scope']+=' The two052bilateral report audits include12complete cache volumes and36sampled panels; their required supervision exclusions remain pending policy integration. Twelve metadata triages preserve84series records without pixel claims. All659")
+compile(s,'publish_review3607_checkpoint.py','exec');p=W/'publish_review3607_checkpoint.py';assert not p.exists();p.write_text(s)
+print('Prepared guarded3607publisher; no external writes.')

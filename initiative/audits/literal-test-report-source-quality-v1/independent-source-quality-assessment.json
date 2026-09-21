@@ -1,0 +1,399 @@
+{
+  "stage": "independent_source_quality_assessment",
+  "agent_id": "/root/competition_contract",
+  "session_id": "/root/competition_contract",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "n_studies": 9,
+  "study_uids": [
+    "1.2.826.0.1.3680043.8.498.10502440129091559437492859441158882078",
+    "1.2.826.0.1.3680043.8.498.13460268079835549295338279322112693785",
+    "1.2.826.0.1.3680043.8.498.58280111882249056715877316026191844548",
+    "1.2.826.0.1.3680043.8.498.68106879690636836695681159513106553666",
+    "1.2.826.0.1.3680043.8.498.77215476384973989055525592556183934827",
+    "1.2.826.0.1.3680043.8.498.77933128806366660573360274958258917742",
+    "1.2.826.0.1.3680043.8.498.87404730020015145302086817782843205171",
+    "1.2.826.0.1.3680043.8.498.88466268868654468582661984391239692466",
+    "1.2.826.0.1.3680043.8.498.89350648596674998203116057439419132072"
+  ],
+  "records": [
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10502440129091559437492859441158882078",
+      "source_batch": "003",
+      "source_index": 31,
+      "source_path": "initiative/reviews/inputs/batch-003.json",
+      "source_sha256": "e13893cdab8515c162c445d4b77c93c93febfcf78a4fc0974e35af3c94054969",
+      "source_batch_sha256": "6360e2d5166d0613b59beec6beba362dba7dfb24e96684984598ce012c1fcc2e",
+      "prior_exposure": "Previously independently reviewed batch003 after a source-first pass; this original report was previously seen. This is a fresh structure/quality assessment, independent of current root triage. No earlier annotation, flags or technical conclusions reopened.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "The report explicitly contains Results: Test report. before clinical prose.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "One Technique / Results / Impression sequence; the impression summarizes selected earlier findings, not a distinct second examination.",
+          "source_evidence": [
+            "Technique: MRI of the knee.",
+            "Impression: Mucoid degeneration of posterior horn of medial meniscus, ganglion cyst next to the ACL, incipient chondromalacia of both tibial compartments."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "No explicit right/left designation, date or comparison boundary. Both tibial compartments refers intra-knee anatomy, not two knee reports.",
+          "source_evidence": [
+            "MRI of the knee.",
+            "both tibial compartments."
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "Text has a terminal complete impression and no obvious cut-off sentence, but this compact selective summary is not evidence that the full clinical source was preserved. Spelling errors are visible and should remain verbatim.",
+          "source_evidence": [
+            "Incipient chondromalacia of medial and lateral comparments. Patelofemoral cartialge normal."
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.13460268079835549295338279322112693785",
+      "source_batch": "024",
+      "source_index": 2,
+      "source_path": "initiative/reviews/inputs/batch-024.json",
+      "source_sha256": "ee6d9f0668e8f5b0538d866eaf731541ccd013466acfd0489b30c8a40c3ee721",
+      "source_batch_sha256": "e201eedc131a65120f5bbfcf9b1a2e993ddec590553e0aa9c533038ecc472f06",
+      "prior_exposure": "Previously authored reader batch024 and read this source; prior exposure disclosed. No original annotations or technical-source flags reopened.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "Test report appears in the first report block; the second block lacks that exact marker.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "Two complete Technique-to-summary sequences separated by an explicit bilateral aggregation note. Their descriptive contents differ; the note does not identify which findings belong to which knee.",
+          "source_evidence": [
+            "[BILATERAL NOTE: two reports filed under this study]",
+            "Impression: Medial meniscus tear. Chondromalacia of medial compartment. . Intraatricular loose body in posterior recessus.",
+            "Conclusion: Medial meniscus tear. OA of all three compartments. Pes anserinus bursitis."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "Both blocks use unspecified knee; no individual right/left label or exam/comparison date establishes a one-to-one mapping.",
+          "source_evidence": [
+            "Technique: MRI of the knee.",
+            "[BILATERAL NOTE: two reports filed under this study]"
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "Both blocks reach a summary, but source completeness and provenance of the inserted bilateral note cannot be authenticated from this text. Double punctuation/spelling are visible source artifacts.",
+          "source_evidence": [
+            "Chondromalacia of medial compartment. . Intraatricular loose body in posterior recessus."
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.58280111882249056715877316026191844548",
+      "source_batch": "056",
+      "source_index": 38,
+      "source_path": "initiative/reviews/inputs/batch-056.json",
+      "source_sha256": "de6524656d07fd5b6a6c314bcd3a61bb3f3569cb3b3be010658319f9c98ac9ab",
+      "source_batch_sha256": "d60c22d7b3a1a64c207ea54be710aedf6c437e48b0ba687b8077dc94af8be137",
+      "prior_exposure": "Previously authored reader batch056 and read this original source. No reader/reviewer/technical artifacts reopened.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "Explicit Test report marker precedes assessment prose.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "One Technique / Results / Impression sequence with selected findings repeated in the impression.",
+          "source_evidence": [
+            "Technique: MRI of the knee.",
+            "Impression:  Medial meniscus linear area of PD FS hyperintensity, no definite extension to the articular surface (grade 2). Lateral compartment chondromalacia grade 1."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "Knee is not assigned a side; no date, comparison or second report boundary appears.",
+          "source_evidence": [
+            "MRI of the knee."
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "Terminal impression is grammatically complete; compact selective reporting is not itself truncation proof, and no original source length/authorship evidence is supplied. Technical-sequence language remains a textual claim, not proof of acquisition correspondence.",
+          "source_evidence": [
+            "Medial meniscus linear area of PD FS hyperintensity, no definite extension to the articular surface (grade 2)."
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.68106879690636836695681159513106553666",
+      "source_batch": "063",
+      "source_index": 38,
+      "source_path": "initiative/reviews/inputs/batch-063.json",
+      "source_sha256": "c66d66ac94e3777db75f201ef33437dade5bf651dd3a26af44023691cacf754b",
+      "source_batch_sha256": "53bb6a445352a1dcf9cbeb824bad30c8dee6756983567e9a7ccc4f185e8f40cc",
+      "prior_exposure": "Previously authored reader batch063 and read this source. No prior notes, flags or technical conclusions reopened.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "Explicit Test report marker precedes clinical statements.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "Single Technique / Results / Impression sequence; impression summarizes current body.",
+          "source_evidence": [
+            "Technique: MRI of the right knee.",
+            "Impression: Medial meniscus tear. Chondromalatia of all three compartments."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "Right knee explicitly stated; no contradictory side or date/comparison block. Text alone cannot establish actual image laterality.",
+          "source_evidence": [
+            "MRI of the right knee."
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "Complete terminating impression; terse source omits detailed narrative and source-authentication identifiers. Misspelled diagnostic word occurs in body and impression, preserved verbatim.",
+          "source_evidence": [
+            "Chondromalatia of all three compartments."
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.77215476384973989055525592556183934827",
+      "source_batch": "070",
+      "source_index": 46,
+      "source_path": "initiative/reviews/inputs/batch-070.json",
+      "source_sha256": "9d8ad2882dea8c764531ef5f55eb70836684af4a7afc7a1dd51a0088ff6905a4",
+      "source_batch_sha256": "30159914271d3ebe59de35aaab116802235de4240a8732f21f691f97d3d6962c",
+      "prior_exposure": "Previously authored reader batch070 and read this source. Its literal marker is also known from my own source work; no archived annotation/flags or root triage accessed for this fresh assessment.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "Explicit Results: Test report. marker.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "Single right-knee Technique / Results / Impression sequence. Conclusion condenses earlier findings; no new exam introduced.",
+          "source_evidence": [
+            "Technique: MRI of the right knee.",
+            "Impression: Medial meniscus tear, ACL tear, severe chondromalacia of medial compartment (grade IV) and chondromalacia of lateral and patelofemoral compartment."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "Explicit right laterality but no dates, comparisons or temporal boundaries.",
+          "source_evidence": [
+            "MRI of the right knee."
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "Text ends with a complete impression; its compactness does not prove completeness of the original report. Grade labels have no named classification in this text, a documentation limitation only; no clinical labels are changed in this task.",
+          "source_evidence": [
+            "Cartilages: chondromalacia medial compartment grade IV, chondromalacia of lateral compartment and patelofemoral compartment grade III."
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.77933128806366660573360274958258917742",
+      "source_batch": "071",
+      "source_index": 38,
+      "source_path": "initiative/reviews/inputs/batch-071.json",
+      "source_sha256": "4e28247b31bb2448e27e87dc8d356a3375cfd4fe16b5e4995ee37b00600f24d4",
+      "source_batch_sha256": "b398e74e9db2cdb875b31c491a4cb9569d8f360ea228f49d8131951efcafcd39",
+      "prior_exposure": "Previously authored reader batch071 and read this source, including literal marker. No earlier annotations or technical conclusions reopened.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "Explicit Test report marker.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "One Technique / Results / Impression sequence. Impression repeats the stated anatomical features, with no separate examination.",
+          "source_evidence": [
+            "Technique: MRI of the knee.",
+            "Impression: Patella alta, hypoplastic trochlea."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "No right/left knee designation or dated comparison.",
+          "source_evidence": [
+            "MRI of the knee."
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "A complete short impression follows coherent short source sentences; this does not establish that all original sections were retained or that the report was clinically authenticated.",
+          "source_evidence": [
+            "Patella alta, hypoplastic trochlea. Cartilage normal. No baker's cyst."
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.87404730020015145302086817782843205171",
+      "source_batch": "078",
+      "source_index": 30,
+      "source_path": "initiative/reviews/inputs/batch-078.json",
+      "source_sha256": "4c2153071938f0b02cae1292bb5e29afae72a6b41f5b492497ae662593ae7df7",
+      "source_batch_sha256": "081dc856a27983e20297ad6804ccb8699315aa0900c131a09f3bea9526788365",
+      "prior_exposure": "No known previous personal reading/authorship of this source before this task. This task creates prior exposure that must be disclosed if I later annotate/review batch078. No reader/reviewer/machine/technical artifacts accessed.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "Explicit Results: Test report. marker.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "One right-knee Technique / Results / Impression sequence, with a compact summary at the end.",
+          "source_evidence": [
+            "Technique: MRI of the right knee.",
+            "Impression: Medial meniscus degenerative changes grade 2. Mild chondromalacia of medial compartments."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "Right knee stated, no second knee or date/comparison boundary. Medial compartments plural in impression does not establish bilateral knees.",
+          "source_evidence": [
+            "MRI of the right knee.",
+            "Mild chondromalacia of medial compartments."
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "Complete terminal sentence; singular compartment body versus plural compartments impression is a small language inconsistency, preserved rather than silently corrected. Completeness relative to original clinical dictation remains unknown.",
+          "source_evidence": [
+            "Mild chondromalacia of medial compartment.",
+            "Mild chondromalacia of medial compartments."
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.88466268868654468582661984391239692466",
+      "source_batch": "079",
+      "source_index": 14,
+      "source_path": "initiative/reviews/inputs/batch-079.json",
+      "source_sha256": "d3cf82e05767dd0d60d05e04d556e0d16a87ae59fb05b33fd8d1bea8c61f717e",
+      "source_batch_sha256": "5c57ffa417993f1d7d9e67bbff59739b6187fdb3961970d325aea21275f93ef9",
+      "prior_exposure": "No known prior reading/authorship of this report. This source-only quality task creates prior exposure for any later batch079 clinical assignment. No annotations/technical conclusions accessed.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "Explicit Test report marker.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "One right-knee Technique / Results / Impression block, with selected findings summarized.",
+          "source_evidence": [
+            "Technique: MRI of the right knee.",
+            "Impression: Medial meniscus tear. Chondromalacia of all three compartments."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "Right knee explicitly stated, no comparison or separate temporal examination.",
+          "source_evidence": [
+            "MRI of the right knee."
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "A complete terminating impression is present. Selective abbreviated coverage is visible but does not prove omitted text or fraud; original-source authentication and completeness are unknown.",
+          "source_evidence": [
+            "Minimal effusion. Medial meniscus tear. Lateral meniscus normal.  Chondromalacia medial, lateral and patelofemoral compartment."
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.89350648596674998203116057439419132072",
+      "source_batch": "080",
+      "source_index": 7,
+      "source_path": "initiative/reviews/inputs/batch-080.json",
+      "source_sha256": "b79cadf81f031e29f8beeb8e7721b23b46f2df4bcc8ce23f1aa95a32ba43ca56",
+      "source_batch_sha256": "4893be62b2959b00608224dcdddadfa15a3e09026b21fc209fbd549a8f8ec789",
+      "prior_exposure": "No known previous personal reading/authorship of this source before this task. No annotations, flags, technical conclusions or gold accessed.",
+      "observations": [
+        {
+          "kind": "literal_marker",
+          "observation": "Explicit Test report marker.",
+          "source_evidence": [
+            "Results: Test report."
+          ]
+        },
+        {
+          "kind": "structure",
+          "observation": "One Technique / Results / Impression sequence. Impression adds characterization of the same MCL finding, not a second report.",
+          "source_evidence": [
+            "Technique: MRI of the knee.",
+            "Impression: MCL: proximal part thickened sugestive of chronic posttraumatic changes, no signs of acute rupture."
+          ]
+        },
+        {
+          "kind": "laterality_temporal",
+          "observation": "No right/left designation. Chronic posttraumatic qualification belongs to the described MCL finding; it is not a dated comparison or separate old examination.",
+          "source_evidence": [
+            "MRI of the knee.",
+            "chronic posttraumatic changes, no signs of acute rupture."
+          ]
+        },
+        {
+          "kind": "completeness",
+          "observation": "Complete terminal impression, with visible spelling error. No author, original date, accession or original report-length evidence establishes clinical authenticity or completeness.",
+          "source_evidence": [
+            "proximal part thickened sugestive of chronic posttraumatic changes"
+          ]
+        }
+      ],
+      "authenticity_limit": "The literal Test report marker is a source-quality flag, not proof of synthetic/fabricated content or incorrect medical claims. This source-only pass cannot authenticate clinical authorship, original full-report completeness, acquisition correspondence, or whether the marker arose in reporting, templating, translation or aggregation. No source or annotation was altered."
+    }
+  ],
+  "notes": "Personally read all nine complete supplied canonical report strings before freezing observations. Independent of root literal-test-report-source-triage-v1, all existing flags/reviews/drafts/technical conclusions and gold: none opened. Prior clinical source exposure disclosed honestly per record; not represented as first sight of previously authored/reviewed reports. All exact evidence quotes validated as contiguous original-language source substrings. No 12-target reannotation, source edits, eligibility decisions or automatic invalidation. The nine sources share a literal textual marker; shared wording alone does not identify origin or prove synthetic content. Source SHA256 hashes UTF-8 report bytes; batch hash binds canonical input file. Recommendations for future authentication require independent original-source/image evidence and are outside this bounded assessment."
+}

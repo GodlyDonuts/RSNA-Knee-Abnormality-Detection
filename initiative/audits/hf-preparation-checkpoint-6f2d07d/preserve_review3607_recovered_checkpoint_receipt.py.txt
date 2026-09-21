@@ -1,0 +1,54 @@
+"""Independently replay every packaged member and preserve publication evidence."""
+import collections,datetime,hashlib,json,shutil,tarfile
+from pathlib import Path
+W=Path(__file__).resolve().parent;R=W/'recovered';commit='6f2d07d06111d6170b22cdac1f3b27b4d41f4d38';B=W/'hf-preparation-checkpoints'/commit
+G=W/'annotation-staging/hf-review3607-recovery-v1';REC=G/'runs/attempt-002/publication-recovery-receipt.json'
+read=lambda p:json.loads(p.read_text())
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for c in iter(lambda:f.read(1048576),b''):h.update(c)
+ return h.hexdigest()
+x=read(REC);m=read(B/'manifest.json')
+assert x['hf_publication_revision']=='76a4c0dab20fd49ffd0590a4344eac5b67d8be1f' and x['recovery_action']=='commit_from_original_parent'
+assert x['recovery_script']['sha256']==sha(G/'recover_checkpoint_compact_head.py')=='cd6268fd5683b98503557fb9226d3ffaa56d46140b98a903fe8f689392275ddc'
+assert x['operation']['sha256']==sha(B/'publication-operation.json') and x['manifest']['sha256']==sha(B/'manifest.json')
+assert x['uploaded_files']==read(B/'publication-operation.json')['uploaded_files']
+expected_remote={v['path']:v for v in x['uploaded_files']};assert len(expected_remote)==len(x['remote_verifications'])==490
+assert {v['path'] for v in x['remote_verifications']}==set(expected_remote)
+for v in x['remote_verifications']:
+ assert {k:v[k] for k in ['path','sha256','bytes']}==expected_remote[v['path']] and v['verification'] in ['hub_lfs_sha256_and_size','full_http_bytes_sha256_and_size']
+assert x['status']=='verified_private_preparation_checkpoint' and x['private'] and x['remote_objects_verified'] and x['source_tree_and_official_metadata_unchanged']
+assert x['github_commit']==m['github_commit']==commit and x['github_ci_run']==35592976831
+assert x['hf_parent_revision']=='492b1eb363680fe593087f84e9627b1de4ee8680' and x['effective_source_revision']=='0b5e410288232f570c69ba4f44723356e6ae6ab7'
+p=B/'checkpoint.tar.gz';assert sha(p)==m['package']['sha256'] and p.stat().st_size==m['package']['bytes']
+expected={i['path']:i for i in m['files']};assert len(expected)==len(m['files']);seen=set();counts=collections.Counter()
+with tarfile.open(p,'r:gz') as tar:
+ for t in tar:
+  assert t.isfile() and t.name not in seen and t.name in expected;seen.add(t.name);h=hashlib.sha256();size=0;data=[];review=t.name.startswith('initiative/reviews-v2/reviewed/') and t.name.endswith('.jsonl');f=tar.extractfile(t);assert f
+  for c in iter(lambda:f.read(1048576),b''):
+   h.update(c);size+=len(c)
+   if review:data.append(c)
+  e=expected[t.name];assert size==e['bytes'] and h.hexdigest()==e['sha256']
+  if review:counts['reviewed_batches']+=1;counts['reviewed_reports']+=len(b''.join(data).splitlines())
+  for prefix,key,ext in [('cross-study-official-duplicate-v1/','duplicate_official_sources','.dcm'),('correspondence-native-075-014-v1/','075_official_sources','.dcm'),('correspondence-native-048-012-v1/','048_native_sources','.dcm'),('correspondence-native-086-013-v1/','086_native_sources','.dcm'),('correspondence-shoulder-report-052-020-v1/','shoulder_cache_volumes','.npz'),('correspondence-052001-017-cache-v1/','052_correspondence_cache_volumes','.npz')]:
+   if t.name.startswith('initiative/audits/'+prefix) and t.name.endswith(ext):counts[key]+=1
+  if any(t.name.startswith('initiative/audits/mixed-laterality-'+g+'-v1/') for g in ['011013014','016021022','030036042','042044045','048052056','057059062','065067071','075079081']) and t.name.endswith('.npz'):counts['mixed_tag_cache_volumes']+=1
+assert seen==set(expected)
+assert counts=={'reviewed_batches':73,'reviewed_reports':3607,'duplicate_official_sources':288,'075_official_sources':337,'048_native_sources':359,'086_native_sources':300,'shoulder_cache_volumes':3,'mixed_tag_cache_volumes':140,'052_correspondence_cache_volumes':12},counts
+D=R/'initiative/audits/hf-preparation-checkpoint-6f2d07d';assert not D.exists();D.mkdir();refs=[]
+for src in [B/n for n in ['manifest.json','publication-operation.json','README.md','dataset-card.md']]+[REC,W/'publish_review3607_checkpoint.py',W/'prepare_review3607_publisher.py',W/'hf-review3607-stalled-attempt-stop.json',W/'hf-review3607-compact-head-tests.log',Path(__file__)]:
+ dst=D/(src.name+'.txt' if src.suffix=='.py' else src.name);shutil.copy2(src,dst);assert sha(src)==sha(dst);refs.append({'source_path':str(src),'archive_path':str(dst.relative_to(R)),'sha256':sha(dst),'bytes':dst.stat().st_size})
+for src in sorted(G.rglob('*')):
+ if not src.is_file() or '__pycache__' in src.parts or src.name.endswith(('.pyc','.lock')):continue
+ dst=D/'recovery-evidence'/src.relative_to(G)
+ if dst.suffix=='.py':dst=dst.with_suffix('.py.txt')
+ assert not dst.exists();dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(src,dst);assert sha(src)==sha(dst);refs.append({'source_path':str(src),'archive_path':str(dst.relative_to(R)),'sha256':sha(dst),'bytes':dst.stat().st_size})
+proof={'stage':'verified_private_checkpoint_receipt_preservation','github_commit':commit,'github_ci_run':35592976831,'hf_revision':x['hf_publication_revision'],'files':refs,'package':m['package'],'package_hf_path':f'preparation-checkpoints/{commit}/checkpoint.tar.gz','local_package_members_reverified':len(seen),'counts':dict(counts),'remote_objects_verified':len(x['uploaded_files']),'training_ready':False,'notes':'Root independently streamed all members and checked exact membership, bytes and SHA256 after remote verification. Source trees and official CSV blobs unchanged. The latest package retains659native sources with83official/576pinned-mirror origins and 25 bounded mixed-tag audits, two pending052 bilateral policy cases and12 metadata triages. All final release gates remain required.'}
+(D/'preservation.json').write_text(json.dumps(proof,indent=2)+'\n')
+s=read(W/'session_state.json');s.update(updated_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),huggingface_publication={**x,'local_receipt_path':str(REC),'archive_receipt_path':str(D/'publication-recovery-receipt.json')})
+s['publication_in_progress']={'state':'verified','github_commit':commit,'hf_revision':x['hf_publication_revision'],'recovery_session_id':38281,'remote_objects':490}
+s['publication_snapshot']={'github_commit':commit,'hf_revision':x['hf_publication_revision'],'reviewed_reports':3607,'reviewed_batches':73,'target_decisions':43284,'tests_passed':246,'training_ready':False}
+s['completed_review_batches']=sorted(p.name.split('-')[1] for p in (R/'initiative/reviews-v2/reviewed').glob('batch-*-reviewed.jsonl'));s['completed_draft_batches']=sorted(p.name.split('-')[1] for p in (R/'initiative/reviews-v2/drafts').glob('batch-*-draft.jsonl'));s['current_assignments']=s['active_assignments'];s['next_actions']=['Finish all89 report two-pass reviews and global semantic/correspondence QA','Finish remaining endpoint candidate and report-image correspondence checks','Compile final transitive report/pixel groups with gold-neighbor quarantine and all mandatory exclusions','Verify actual final manifests with training/resume/inference and publish a verified private training release'];s['next_action']=s['next_actions'][0]
+(W/'session_state.json').write_text(json.dumps(s,indent=2)+'\n')
+print(json.dumps({'package_bytes':(B/'checkpoint.tar.gz').stat().st_size,'members':len(seen),'counts':dict(counts),'hf_revision':x['hf_publication_revision'],'remote_objects':len(x['uploaded_files']),'preservation_sha256':sha(D/'preservation.json')}))

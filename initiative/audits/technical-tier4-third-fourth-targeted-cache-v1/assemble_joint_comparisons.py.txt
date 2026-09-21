@@ -1,0 +1,144 @@
+"""Append three source/visual comparisons after both independent freezes exist."""
+
+import datetime
+import hashlib
+import json
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent
+WORK = BASE.parents[1]
+ROOT_HASHES = {
+    "017:27": "35a5a802ce60aefbcbed0e5193a62b6feffae39a15804a116f33e365bcc367b8",
+    "021:44": "027cbd03f36d3ad4c5e81925ada971f008df1a35d88a043ec03ba001388146c5",
+    "029:15": "467562e64e44d385cc7a5d58e9949351c5dab50e29ecc55f10cd9031ff0045ec",
+}
+COMPARISONS = {
+    "017:27": {
+        "shared_observations": "Both observers saw one dominant limb through the selected broad 101 knee/contiguous-leg cross-sections and a separate partly cropped peripheral soft-tissue contour at the viewer-left boundary, most evident in middle/final selected samples. Closer 201 transverse knee views are grossly compatible across differing field, contrast and levels. The clipped peripheral structure is not identifiable as a second complete knee protocol.",
+        "preserved_observer_differences_and_limits": "Root additionally describes a viewer-right inferior-101 fibular cross-section; the agent did not make that finer orientation statement. Preserve that attribution without claiming jointly established side equivalence. Both explicitly reject wholly unilateral or absent-peripheral-anatomy certification. Only 101/201 were viewed; the other four arrays and all 200 slices of 101 were not anatomically inspected.",
+        "source_structure_scope": "The independently assessed source is one unsided report. It does not resolve the scope or anatomical identity of partially included peripheral tissue. Source independence belongs to image_pipeline_audit and competition_contract; root's prior source-observation exposure remains disclosed.",
+        "disposition": "Keep broad 101's original field, description and missing side intact. Record partial peripheral coverage for subsequent source/coverage QA. These six sparse samples do not justify cropping, automatic exclusion, a named-side correction or a clinical target decision.",
+    },
+    "021:44": {
+        "shared_observations": "Both observers saw compatible main knee anatomy in all 27 selected matrices across all nine series. Sagittal 301/401/501 and coronal 801/901/1001 show concordant gross contours across contrast; posterior coronal fibular-region anatomy is toward viewer-left. Axial 601/701 and blank 1101 supplement have compatible gross transverse knee contours with different contrast and source coverage. No complete opposing knee protocol is demonstrated by these selected views.",
+        "preserved_observer_differences_and_limits": "There is no material disagreement in the frozen observations. Both retain limited independent fibular-side evidence in the selected axial levels, differing sampling/counts and the absence of a pixel-equivalence conclusion. All series received three samples, but neither observer performed a full-volume anatomical reread.",
+        "source_structure_scope": "The preserved Right-knee heading and final both-knee sentence remain unresolved. The R-tagged main protocol and grossly compatible blank supplement cannot choose the intended source scope. Source independence belongs to image_pipeline_audit and competition_contract; root's prior source-observation exposure remains disclosed.",
+        "disposition": "Preserve the source ambiguity and all literal tags. Sparse main-protocol compatibility does not establish full report-to-image correspondence or authorize a named-side correction, target disposition or automatic exclusion.",
+    },
+    "029:15": {
+        "shared_observations": "Both observers saw one clearly visible limb cross-section per selected broad blank-101 sample within a mostly dark large field and closer transverse knee anatomy in 201. Gross primary contours are compatible across field, contrast and differing levels. No second limb is discernible in these six selected matrices.",
+        "preserved_observer_differences_and_limits": "Root additionally describes a viewer-right inferior-101 fibular cross-section; the agent kept its observations at gross anatomy and coverage. Preserve that attribution without claiming jointly established side equivalence. Neither observer certifies all 200 slices of 101 or the four unselected series.",
+        "source_structure_scope": "One unsided source report was independently read by image_pipeline_audit and root before their source findings were exchanged. The missing 101 tag and placeholder description do not establish named side, phase or chronology.",
+        "disposition": "Preserve all source text, tags and caches. Bounded 101/201 gross-coverage compatibility supports no automatic exclusion, phase assignment, named-side correction or clinical target decision. Remaining four arrays have metadata-only coverage in this package.",
+    },
+}
+
+
+def ref(path):
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(block)
+    return {"path": str(path.relative_to(WORK)), "sha256": h.hexdigest(), "bytes": path.stat().st_size}
+
+
+def references(value):
+    if isinstance(value, dict):
+        if {"path", "sha256", "bytes"} <= value.keys():
+            yield {k: value[k] for k in ("path", "sha256", "bytes")}
+        for item in value.values():
+            yield from references(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from references(item)
+
+
+def main():
+    prepared = []
+    verified_refs = {}
+    for case in ROOT_HASHES:
+        case_dir = BASE / "cache-panels" / ("case-" + case.replace(":", "-"))
+        agent_path = case_dir / "independent-cache-visual-assessment.json"
+        root_path = case_dir / "root-visual-freeze.json"
+        manifest_path = case_dir / "panel-manifest.json"
+        agent = json.loads(agent_path.read_text())
+        root = json.loads(root_path.read_text())
+        manifest = json.loads(manifest_path.read_text())
+        assert ref(root_path)["sha256"] == ROOT_HASHES[case]
+        assert agent["case"] == root["case"] == manifest["case"] == case
+        assert agent["study_uid"] == root["study_uid"] == manifest["study_uid"]
+        assert agent["source_report_sha256"] == root["source_report_sha256"]
+        assert agent["agent_id"] == "/root/image_pipeline_audit" and root["agent_id"] == "/root"
+        assert agent["created_at_utc"] < root["created_at_utc"]
+        assert agent["panel_manifest"] == root["panel_manifest"] == ref(manifest_path)
+        assert agent["images"] == root["images"]
+        assert agent["selected_series_personally_viewed"] == root["series_personally_viewed"] == manifest["series_sampled"]
+        assert agent["matrices_personally_viewed"] == root["samples_personally_viewed"] == manifest["cached_panels"]
+        captions = {}
+        for panel in manifest["panels"]:
+            number = str(panel["series_number"])
+            assert number not in captions or captions[number] == panel["literal_laterality"]
+            captions[number] = panel["literal_laterality"]
+        assert captions == root["literal_tags_read_from_panel_captions"]
+        source_lineage = agent["source_review_lineage"]
+        if case in {"017:27", "021:44"}:
+            assert source_lineage["no_independent_root_source_claim"] is True
+            assert set(source_lineage["independent_assessors"]) == {"/root/image_pipeline_audit", "/root/competition_contract"}
+        else:
+            assert source_lineage["root_source_independence_available"] is True
+        bindings = [ref(p) for p in (
+            agent_path, root_path, manifest_path, BASE / "source-only-preread.json",
+            BASE / "selection-plan.json", BASE / "technical-evidence/summary.json",
+            BASE / "technical-evidence" / (case_dir.name + ".json"),
+            BASE / "geometry-comparison.json", BASE / "cache-panels/display-source-integrity.json",
+            BASE / "cache-panels/numeric-handoff.json", Path(__file__),
+        )]
+        bindings.extend(references(source_lineage))
+        bindings.append(root["source_batch"])
+        # Verify all direct source/freeze/panel/lineage references without opening
+        # any unselected array or changing either original assessment.
+        for binding in [*bindings, *references(agent), *references(root)]:
+            path = WORK / binding["path"]
+            if binding["path"] not in verified_refs:
+                verified_refs[binding["path"]] = ref(path)
+            assert verified_refs[binding["path"]] == binding
+        value = {
+            "schema_version": 1,
+            "stage": "independent_selected_visual_comparison_source_header_cache_handoff",
+            "agent_id": "/root/image_pipeline_audit",
+            "created_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "case": case, "study_uid": agent["study_uid"],
+            "source_report_sha256": agent["source_report_sha256"],
+            "bindings": bindings, "source_review_lineage": source_lineage,
+            "root_source_exposure": root["source_exposure"],
+            "root_visual_independence": root["visual_order"],
+            "whole_study_series_metadata": agent["whole_study_series_metadata"],
+            "whole_study_source_memberships_from_metadata": agent["whole_study_source_memberships"],
+            "selected_series_verified_and_viewed": agent["selected_series_personally_viewed"],
+            "selected_source_memberships_verified": agent["selected_source_membership_verified"],
+            "selected_sparse_samples": agent["matrices_personally_viewed"],
+            "unselected_series_arrays_opened": 0,
+            **COMPARISONS[case],
+            "verification_scope": "Existing agent proof covers full selected NPZ bytes, selected source membership and exact displayed matrices. Whole-study metadata is separately bound. Root's independent numerical replay remains a separate record; this comparison does not infer that it has completed.",
+            "global_limits": [
+                "Three normalized 256-pixel samples per selected series; no new native or all-slice anatomical reread.",
+                "017:27 and 029:15 cover only 101/201 arrays; four other series each have metadata-only coverage. 021:44 covers all nine arrays but only 27 sparse views.",
+                "No named anatomical side, patient/site identity, upstream mirror absence, clinical target validity or training readiness inferred.",
+            ],
+            "originals_modified": False, "clinical_target_states_inferred": False,
+            "training_ready": False,
+        }
+        destination = case_dir / "joint-source-header-cache-handoff.json"
+        assert not destination.exists()
+        prepared.append((destination, value))
+    assert sum(j["selected_series_verified_and_viewed"] for _, j in prepared) == 13
+    assert sum(j["selected_sparse_samples"] for _, j in prepared) == 39
+    assert sum(j["selected_source_memberships_verified"] for _, j in prepared) == 802
+    for destination, value in prepared:
+        with destination.open("x") as stream:
+            stream.write(json.dumps(value, indent=2) + "\n")
+        print(json.dumps({"case": value["case"], "output": ref(destination)}))
+
+
+if __name__ == "__main__":
+    main()

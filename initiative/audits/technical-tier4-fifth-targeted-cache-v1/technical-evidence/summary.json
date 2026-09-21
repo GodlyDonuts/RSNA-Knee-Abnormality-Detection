@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "stage": "existing_source_endpoint_cache_metadata_binding",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T12:31:19.041756+00:00",
+  "script": {
+    "path": "annotation-staging/technical-tier4-fifth-targeted-cache-v1/collect_technical.py",
+    "sha256": "08274e657df4fe6fbb02258bb66f4dc9988acacaa7165ffd89b575b353a51ec9",
+    "bytes": 13677
+  },
+  "preread": {
+    "path": "annotation-staging/technical-tier4-fifth-targeted-cache-v1/source-only-preread.json",
+    "sha256": "3b380a9b88215ff7030c9f0713df03585fa529b350b1acca60c8d07cf27d6e08",
+    "bytes": 3788
+  },
+  "input_bindings": [
+    {
+      "path": "cache256-v3-official-recovery-v1/inventory_effective.parquet",
+      "sha256": "68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537",
+      "bytes": 121268763
+    },
+    {
+      "path": "header-endpoint-full-v1/endpoint-headers.jsonl",
+      "sha256": "d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3",
+      "bytes": 105453219
+    },
+    {
+      "path": "dicom-audit-v3-official-recovery-v1/series_cache_index.parquet",
+      "sha256": "0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81",
+      "bytes": 3960525
+    },
+    {
+      "path": "cache256-v3-official-recovery-v1/cache_recovery_lineage.jsonl",
+      "sha256": "506ca8e3aa8f10a36fbdc96bc853b1a4dfcbec8f55949aac3bf26701c5642934",
+      "bytes": 37564415
+    },
+    {
+      "path": "recovered/initiative/source/train_series.csv",
+      "sha256": "573c1d80772bf41211c91b149c95677385a1c22d63f485c347f1b46c0177aef3",
+      "bytes": 3458834
+    }
+  ],
+  "official_archive_csv_copies": [
+    {
+      "path": "recovered/initiative/source/train.csv",
+      "sha256": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+      "bytes": 5690007,
+      "all_selected_reports_exact_match": true,
+      "only_columns_read": [
+        "StudyInstanceUID",
+        "Report"
+      ]
+    },
+    {
+      "path": "kaggle_current/train.csv",
+      "sha256": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+      "bytes": 5690007,
+      "all_selected_reports_exact_match": true,
+      "only_columns_read": [
+        "StudyInstanceUID",
+        "Report"
+      ]
+    }
+  ],
+  "cache_metadata_bindings": [
+    {
+      "path": "cache256-v3-official-recovery-v1/cache/train_series/1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211/1.2.826.0.1.3680043.8.498.10099231781303174010006408777590646905.json",
+      "sha256": "315d0e635a96a10b16784665f147f9d672a32982659bba8d9665650aae9d1ee2",
+      "bytes": 10338
+    },
+    {
+      "path": "cache256-v3-official-recovery-v1/cache/train_series/1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211/1.2.826.0.1.3680043.8.498.12026683701110779868063049196966321765.json",
+      "sha256": "3e37d3987d7c3d61dff200af0b80e2eabe5a72a81cc91e4a88a5cccf937b4bdb",
+      "bytes": 10603
+    },
+    {
+      "path": "cache256-v3-official-recovery-v1/cache/train_series/1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211/1.2.826.0.1.3680043.8.498.12715211551947485275927848748971469433.json",
+      "sha256": "d5bcb129b1b1c15830e67b21839e8220f5a516f03f6ba0d7d542cec66e4b339b",
+      "bytes": 52786
+    },
+    {
+      "path": "cache256-v3-official-recovery-v1/cache/train_series/1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211/1.2.826.0.1.3680043.8.498.28307510470778401166765726885731055319.json",
+      "sha256": "19f1031f671d13b4749666a672957a2232f50b6391e5385caa56b29468b2bcf5",
+      "bytes": 8726
+    },
+    {
+      "path": "cache256-v3-official-recovery-v1/cache/train_series/1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211/1.2.826.0.1.3680043.8.498.81756564566876084705240449374884767561.json",
+      "sha256": "1531fd6bbd0e19cff5a912c00d8bfc2b80ee0a00eb1f660fff35c837933408d0",
+      "bytes": 9260
+    },
+    {
+      "path": "cache256-v3-official-recovery-v1/cache/train_series/1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211/1.2.826.0.1.3680043.8.498.90276339389404321306902775106620683722.json",
+      "sha256": "813a1b5b79e0566520ddb75026d459fadcbce753c01647b942f1d1512696a789",
+      "bytes": 10335
+    }
+  ],
+  "evidence_bindings": [
+    {
+      "path": "annotation-staging/technical-tier4-fifth-targeted-cache-v1/technical-evidence/case-034-02.json",
+      "sha256": "56eae2907810e7d41e2e7c4334e844fe384d5c9a9056839bbeb71defa1cbe533",
+      "bytes": 56019
+    },
+    {
+      "path": "annotation-staging/technical-tier4-fifth-targeted-cache-v1/technical-evidence/endpoints.jsonl",
+      "sha256": "873be888b29df277106a194370a352038ec874ee571a58b6a222218f3d4d111f",
+      "bytes": 26419
+    },
+    {
+      "path": "annotation-staging/technical-tier4-fifth-targeted-cache-v1/technical-evidence/inventory-one-case.json",
+      "sha256": "874454d1d760992701a84617ec0fd70b8a3866067b4f332fa800b37c7bf3b051",
+      "bytes": 232126
+    },
+    {
+      "path": "annotation-staging/technical-tier4-fifth-targeted-cache-v1/technical-evidence/native-fingerprint-overlaps.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    }
+  ],
+  "cases": [
+    {
+      "case": "034:02",
+      "study_uid": "1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211",
+      "series_count": 6,
+      "slices": 361,
+      "source_bytes": 113584926,
+      "endpoint_count": 12,
+      "patient_id_hashes": [
+        "588d45733ccc999706a512dfd98f86c372d1fc7060b41fe01e12b9e11c6df608"
+      ],
+      "frame_of_reference_hashes": [
+        "1403b2ca60a53f5c3694c729c743b13307474f93b1ed1c774db7a2bc9eb8489c",
+        "3cf2e82079c9b90752f58505ae824739f82e593e9f0c35a00d746cae1857c628",
+        "5211478e911ac690c3122389c10cb64c8edf49631ee5d67369ca40fb3862ba24",
+        "92487b78092f02500e5ab3696b0d06fc567250733ecb70020f1b9b11027e610d",
+        "a691d984266e9216251b68e64ee6b003c4773950df73e633862b8c8e6ad7737e",
+        "fc0484379748dde128d28af8e05327f98ef41142922c0e4a2023900ad4ffdb90"
+      ],
+      "laterality_values": {
+        "Laterality": [
+          "",
+          "R"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "repeated_descriptions": [
+        {
+          "description_values": [
+            "DummySeriesDesc!"
+          ],
+          "n_series": 6
+        }
+      ]
+    }
+  ],
+  "endpoint_records_verified": 12,
+  "series_metadata_verified": 6,
+  "source_inventory_slice_membership_verified": 361,
+  "new_network_requests": 0,
+  "new_native_decodes": 0,
+  "cached_pixel_arrays_read": 0,
+  "clinical_annotations_or_gold_values_accessed": false,
+  "scope": "Complete inventory/series and existing lexical first/last header coverage for one studies. Existing full-cache metadata checked against frozen recovery lineage and source membership; no new whole-source or NPZ byte check, native decoding or anatomical inspection. Missing laterality remains unknown. IOP dominant-axis grouping is technical, not an automatic anatomical or clinical label."
+}

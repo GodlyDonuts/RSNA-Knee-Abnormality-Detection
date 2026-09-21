@@ -1,0 +1,160 @@
+{
+  "stage": "literal_source_marker_candidate_triage",
+  "agent_id": "/root",
+  "created_at_utc": "2026-09-21T11:51:33.226634+00:00",
+  "selection": "Case-insensitive literal text search only, followed by personal reading of all nine complete original reports. No clinical state extraction or automated annotation.",
+  "source_identity_checks": [
+    {
+      "path": "recovered/initiative/source/train.csv",
+      "sha256": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+      "bytes": 5690007
+    },
+    {
+      "path": "kaggle_current/train.csv",
+      "sha256": "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33",
+      "bytes": 5690007
+    }
+  ],
+  "independence": "Root knew two recently reviewed cases had this marker; this is source-quality triage, not a blinded clinical reread. Findings were not sent to readers of unfinished batches.",
+  "records": [
+    {
+      "case": "003:31",
+      "study_uid": "1.2.826.0.1.3680043.8.498.10502440129091559437492859441158882078",
+      "report": "Technique: MRI of the knee. Results: Test report. MCL normal. ACL normal. Medial meniscus: mucoid degeneration of posterior horn. Lateral meniscus normal. Ganglion cyst adjacent to the proximal part of ACL. Incipient chondromalacia of medial and lateral comparments. Patelofemoral cartialge normal. No baker's cyst. Impression: Mucoid degeneration of posterior horn of medial meniscus, ganglion cyst next to the ACL, incipient chondromalacia of both tibial compartments.",
+      "source_report_sha256": "e13893cdab8515c162c445d4b77c93c93febfcf78a4fc0974e35af3c94054969",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-003.json",
+        "sha256": "6360e2d5166d0613b59beec6beba362dba7dfb24e96684984598ce012c1fcc2e",
+        "bytes": 78994
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "One current report narrative; no explicit separate second report block identified in this source triage."
+    },
+    {
+      "case": "024:02",
+      "study_uid": "1.2.826.0.1.3680043.8.498.13460268079835549295338279322112693785",
+      "report": "Technique: MRI of the knee. Results: Test report. MCL normal. ACL normal. Medial meniscus tear. Lateral meniscus mucoid degeneration. Chondromalacia of medial compartment. No baker's cyst. No effusion. Next to the tendon of popliteal muscle there is ganglion cyst. Intraatricular loose body in posterior recessus with signs of secondary synovial chondromatosis. Impression: Medial meniscus tear. Chondromalacia of medial compartment. . Intraatricular loose body in posterior recessus.\n\n[BILATERAL NOTE: two reports filed under this study]\n\nTechnique: MRI of the knee. ACL normal. MCL normal. Medial meniscus tear. Lateral meniscus normal. OA of all three compartments. No baker's cyst. No effusion. Pes anserinus bursitis. Conclusion: Medial meniscus tear. OA of all three compartments. Pes anserinus bursitis.",
+      "source_report_sha256": "ee6d9f0668e8f5b0538d866eaf731541ccd013466acfd0489b30c8a40c3ee721",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-024.json",
+        "sha256": "e201eedc131a65120f5bbfcf9b1a2e993ddec590553e0aa9c533038ecc472f06",
+        "bytes": 74994
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "Explicit bilateral delimiter separates two report narratives; image correspondence remains a separate unresolved gate."
+    },
+    {
+      "case": "056:38",
+      "study_uid": "1.2.826.0.1.3680043.8.498.58280111882249056715877316026191844548",
+      "report": "Technique: MRI of the knee. Results: Test report. MCL normal. Minimal effusion. Medial meniscus linear area of PD FS hyperintensity, no definite extension to the articular surface (grade 2). Lateral meniscus normal.  Lateral compartment chondromalacia grade 1.  No baker's cyst. Impression:  Medial meniscus linear area of PD FS hyperintensity, no definite extension to the articular surface (grade 2). Lateral compartment chondromalacia grade 1.",
+      "source_report_sha256": "de6524656d07fd5b6a6c314bcd3a61bb3f3569cb3b3be010658319f9c98ac9ab",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-056.json",
+        "sha256": "d60c22d7b3a1a64c207ea54be710aedf6c437e48b0ba687b8077dc94af8be137",
+        "bytes": 57364
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "One current report narrative; no explicit separate second report block identified in this source triage."
+    },
+    {
+      "case": "063:38",
+      "study_uid": "1.2.826.0.1.3680043.8.498.68106879690636836695681159513106553666",
+      "report": "Technique: MRI of the right knee. Results: Test report. MCL normal. ACL mucoid degeneration. Medial meniscus tear. Lateral meniscus normal. Chondromalatia of all three compartments.  No baker's cyst. Impression: Medial meniscus tear. Chondromalatia of all three compartments.",
+      "source_report_sha256": "c66d66ac94e3777db75f201ef33437dade5bf651dd3a26af44023691cacf754b",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-063.json",
+        "sha256": "53bb6a445352a1dcf9cbeb824bad30c8dee6756983567e9a7ccc4f185e8f40cc",
+        "bytes": 71197
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "One current report narrative; no explicit separate second report block identified in this source triage."
+    },
+    {
+      "case": "070:46",
+      "study_uid": "1.2.826.0.1.3680043.8.498.77215476384973989055525592556183934827",
+      "report": "Technique: MRI of the right knee. Results: Test report. ACL complete tear. Medial meniscus tear. Lateral meniscus normal.  Cartilages: chondromalacia medial compartment grade IV, chondromalacia of lateral compartment and patelofemoral compartment grade III.  Impression: Medial meniscus tear, ACL tear, severe chondromalacia of medial compartment (grade IV) and chondromalacia of lateral and patelofemoral compartment.",
+      "source_report_sha256": "9d8ad2882dea8c764531ef5f55eb70836684af4a7afc7a1dd51a0088ff6905a4",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-070.json",
+        "sha256": "30159914271d3ebe59de35aaab116802235de4240a8732f21f691f97d3d6962c",
+        "bytes": 73116
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "One current report narrative; no explicit separate second report block identified in this source triage."
+    },
+    {
+      "case": "071:38",
+      "study_uid": "1.2.826.0.1.3680043.8.498.77933128806366660573360274958258917742",
+      "report": "Technique: MRI of the knee. Results: Test report. MCL normal. ACL normal. Medial meniscus normal. Lateral meniscus normal. Patella alta, hypoplastic trochlea. Cartilage normal. No baker's cyst. Impression: Patella alta, hypoplastic trochlea.",
+      "source_report_sha256": "4e28247b31bb2448e27e87dc8d356a3375cfd4fe16b5e4995ee37b00600f24d4",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-071.json",
+        "sha256": "b398e74e9db2cdb875b31c491a4cb9569d8f360ea228f49d8131951efcafcd39",
+        "bytes": 60052
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "One current report narrative; no explicit separate second report block identified in this source triage."
+    },
+    {
+      "case": "078:30",
+      "study_uid": "1.2.826.0.1.3680043.8.498.87404730020015145302086817782843205171",
+      "report": "Technique: MRI of the right knee. Results: Test report. MCL normal. ACL normal. Medial meniscus degenerative changes grade 2. Lateral meniscus normal. Mild chondromalacia of medial compartment.  No baker's cyst. Impression: Medial meniscus degenerative changes grade 2. Mild chondromalacia of medial compartments.",
+      "source_report_sha256": "4c2153071938f0b02cae1292bb5e29afae72a6b41f5b492497ae662593ae7df7",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-078.json",
+        "sha256": "081dc856a27983e20297ad6804ccb8699315aa0900c131a09f3bea9526788365",
+        "bytes": 57256
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "One current report narrative; no explicit separate second report block identified in this source triage."
+    },
+    {
+      "case": "079:14",
+      "study_uid": "1.2.826.0.1.3680043.8.498.88466268868654468582661984391239692466",
+      "report": "Technique: MRI of the right knee. Results: Test report. Minimal effusion. Medial meniscus tear. Lateral meniscus normal.  Chondromalacia medial, lateral and patelofemoral compartment. No baker's cyst. Impression: Medial meniscus tear. Chondromalacia of all three compartments.",
+      "source_report_sha256": "d3cf82e05767dd0d60d05e04d556e0d16a87ae59fb05b33fd8d1bea8c61f717e",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-079.json",
+        "sha256": "5c57ffa417993f1d7d9e67bbff59739b6187fdb3961970d325aea21275f93ef9",
+        "bytes": 66006
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "One current report narrative; no explicit separate second report block identified in this source triage."
+    },
+    {
+      "case": "080:07",
+      "study_uid": "1.2.826.0.1.3680043.8.498.89350648596674998203116057439419132072",
+      "report": "Technique: MRI of the knee. Results: Test report. MCL: proximal part thickened. ACL normal. Medial meniscus normal. Lateral meniscus normal. Cartilage normal. No baker's cyst. Impression: MCL: proximal part thickened sugestive of chronic posttraumatic changes, no signs of acute rupture.",
+      "source_report_sha256": "b79cadf81f031e29f8beeb8e7721b23b46f2df4bcc8ce23f1aa95a32ba43ca56",
+      "source_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-080.json",
+        "sha256": "4893be62b2959b00608224dcdddadfa15a3e09026b21fc209fbd549a8f8ec789",
+        "bytes": 67882
+      },
+      "literal_marker": "Results: Test report.",
+      "root_complete_source_read": true,
+      "root_source_observation": "The marker is followed by substantive knee findings and an impression, not an empty placeholder-only report. Its role and authenticity cannot be established from the marker alone. The entire source is preserved for semantic/correspondence QA.",
+      "additional_structure": "One current report narrative; no explicit separate second report block identified in this source triage."
+    }
+  ],
+  "assessment": "Repeated marker and wording identify a source-template question, not proof that reports are fabricated or that their clinical findings are false. No institution or upstream cause established. Do not automatically mask or unmask labels on this string alone; resolve alongside existing clinical/technical source-correspondence flags.",
+  "required_followup": "Independent source-quality assessment and final explicit supervision disposition. Preserve the separate bilateral issue in024:02.",
+  "clinical_annotations_or_gold_modified": false,
+  "training_ready": false
+}

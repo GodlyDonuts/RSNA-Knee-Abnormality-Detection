@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "stage": "preserved_source_preread_subset_for_authorized_selected_cache_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T12:31:17.067324+00:00",
+  "order": "Exact original034:02 source record reused from the prior source-first freeze. Independent root source read and shared metadata assessment are already complete. This is exact source reuse, not a new blinded source reading. Earlier agent clinical-source exposure from reader034 stays disclosed; no clinical target annotations/gold opened. New visual findings will be frozen independently before root image findings.",
+  "n_cases": 1,
+  "case_source_review_lineage": [
+    {
+      "case": "034:02",
+      "independent_assessors": [
+        "/root/image_pipeline_audit",
+        "/root"
+      ],
+      "source_assessments": [
+        {
+          "path": "annotation-staging/technical-tier4-fifth-six-v1/source-only-preread.json",
+          "sha256": "6026160a792d57718f14045654f16b6e8317605ccc070bf79b3fe8d0ce70a16a",
+          "bytes": 19070
+        },
+        {
+          "path": "annotation-staging/technical-tier4-fifth-six-v1/root-source-preread.json",
+          "sha256": "dfd846b00d8b354eb4c4f1b1b0b099961d7c4fdaa4ff0497994e9c7af7fdcdac",
+          "bytes": 15877
+        }
+      ],
+      "root_source_neutral_extraction": {
+        "path": "annotation-staging/technical-tier4-fifth-six-v1/neutral-source-reports.json",
+        "sha256": "e7d5f1d5b47584977cbf15ff06c1128def4cf09e8f52304e0151dab40644b534",
+        "bytes": 11546
+      },
+      "independent_source_comparison": {
+        "path": "annotation-staging/technical-tier4-fifth-six-v1/joint-source-comparison.json",
+        "sha256": "7182f2a4e7cdfda3b07ce38f21a4f0859c4c72626dd4ad33aa09d8ba47638475",
+        "bytes": 7279
+      },
+      "root_source_independence_available": true
+    }
+  ],
+  "records": [
+    {
+      "case": "034:02",
+      "source_batch_index_zero_based": 2,
+      "study_uid": "1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211",
+      "report": "Findings: There is a minor knee effusion. Normal medial and lateral menisci. No evidence of tears.  Normal ACL, PCL, MCL and LCL. Normal extensor mechanism.  Normal tibiofemoral articular cartilage. There is mild thinning and fraying of the patellar ridge articular cartilage with mild underlying bony change. Normal trochlear articular cartilage.  \nConclusion: Mild patellar chondropathy. No meniscal tears.",
+      "source_report_sha256": "76a92e04d0f561b7c3e0c6c10f0c8cb8fec70a980660d612b0532decb3c20ffe",
+      "input_batch": {
+        "path": "recovered/initiative/reviews/inputs/batch-034.json",
+        "sha256": "c4cb1a4a791659030bcca1f336912f6ee8d2f3f41820d6001dd231f6a82e4dbb",
+        "bytes": 70833
+      },
+      "source_structure": "One short English findings/conclusion report, unsided. The conclusion summarizes the same knee findings; there is no bilateral phrase, second examination, comparison date or recall. Medial/lateral wording denotes anatomy within a knee.",
+      "exact_structure_quotes": [
+        "Findings:",
+        "Conclusion: Mild patellar chondropathy. No meniscal tears."
+      ],
+      "completeness_limit": "Complete concluding sentences; brevity alone is not evidence of truncation.",
+      "report_blocks": 1,
+      "explicit_report_sides": [],
+      "prior_exposure_disclosure": "I previously read all batch-034 sources as a clinical reader, including this exact report. This prior clinical-source exposure is disclosed. I did not reopen any clinical draft/review/flags, target states or gold; the current structural freeze follows a new complete original-source reading."
+    }
+  ],
+  "clinical_annotations_or_gold_opened": false
+}

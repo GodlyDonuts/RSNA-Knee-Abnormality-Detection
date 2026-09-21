@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "stage": "independent_report_similarity_control_final_code_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T13:04:42.947240+00:00",
+  "status": "accepted",
+  "scope": "Read full new module and labels integration, designed and implemented synthetic adversarial tests, read real source-bound policy and verified it using only4407blinded reports. No clinical review/gold access, production edits or publication.",
+  "implementation": [
+    {
+      "path": "recovered/rsna/report_similarity.py",
+      "sha256": "728cf2faba14900e3d6477c47b2a9b6ab8c28c8ff5cdaf6006c1f6e5312fb764",
+      "bytes": 11256
+    },
+    {
+      "path": "recovered/rsna/labels.py",
+      "sha256": "bf9d99579481cc2fb13dc80ed4465bf5563e005194cff23d96221c648b9d0a3e",
+      "bytes": 19578
+    },
+    {
+      "path": "recovered/tests/test_report_similarity.py",
+      "sha256": "4943dc54a42c9a505e8e8dcf48ecfcf2446a55a1746aa7e5403fee0b7ead0453",
+      "bytes": 23815
+    }
+  ],
+  "acceptance_design": {
+    "path": "annotation-staging/report-similarity-control-review-v1/acceptance-criteria.json",
+    "sha256": "e6f3a68cb66bd6b5f037c53faf4b059d60c0e3bc36f9e5723842782dfce29153",
+    "bytes": 5420
+  },
+  "real_registry_validation": {
+    "path": "annotation-staging/report-similarity-control-review-v1/real-registry-validation.json",
+    "sha256": "a29ee085292110becacc19fc0495a5d5c0144ff166034a53f4db3121bf1e36c9",
+    "bytes": 20870
+  },
+  "verified_fixes": [
+    {
+      "initial_finding": "Joint top-level hash links previously admitted missing, unrelated or disagreeing pair records.",
+      "resolution": "Requires exactly one record per pair UID, matching source report hash and explicit false material disagreement. Rehashed missing/wrong/duplicate/disagreement tests pass."
+    },
+    {
+      "initial_finding": "Whitespace aliases could make copied assessor IDs appear distinct.",
+      "resolution": "Blank or untrimmed identity is rejected and exact identities must differ; whitespace-alias tests pass."
+    },
+    {
+      "initial_finding": "Source-first and acceptance admission needed structured representation rather than interpretation of arbitrary prose.",
+      "resolution": "Requires accepted status and exact two-role source-first attestation, with preserved source disclosure lineage. Missing/contrary admission tests pass."
+    }
+  ],
+  "tests": {
+    "command": "../../.venv/bin/python -m pytest -q tests/test_report_similarity.py --tb=short",
+    "cwd": "recovered",
+    "passed": 75,
+    "failed": 0,
+    "seconds": 1.03,
+    "scope": "Entire new file, synthetic labels and sources. CLI tests mock unrelated validation gates while exercising real similarity inspection, union/quarantine and export.",
+    "ruff_check": "passed",
+    "ruff_format": "passed"
+  },
+  "remaining_limitations": [
+    "Source-first admission is an explicit evidence-bound attestation, not proof obtained from arbitrary prose or authentication of real-world identity.",
+    "Only registered exact single redundant full-stop relations are supported; no fuzzy or global punctuation matching.",
+    "Source similarity is leakage control only, not shared patient/site/pixel identity or clinical correspondence.",
+    "Whole repository suite, archive consistency and publication remain root responsibilities."
+  ],
+  "actionable_findings_remaining": [],
+  "training_ready": false
+}

@@ -1,0 +1,29 @@
+{
+  "stage": "source_bound_report_similarity_edge_for_final_leakage_QA",
+  "assessor": "/root",
+  "created_at_utc": "2026-09-21T12:42:50.182458+00:00",
+  "cases": [
+    "038:44",
+    "045:15"
+  ],
+  "study_uids": [
+    "1.2.826.0.1.3680043.8.498.33880013318702285028756482543453984598",
+    "1.2.826.0.1.3680043.8.498.41717437729988689273718049162153247404"
+  ],
+  "source_report_sha256": [
+    "c96bd80ccb259d3e6cdab7eba70ea25ccecab02dfaa8f6bd12cc4c4e87ce9f0c",
+    "08053408efea01cb2500c178db7d0eacf6eafb36c2b1523b2861284e82694477"
+  ],
+  "existing_normalized_report_groups": [
+    "129f881abb72853776d0bf95aea14be324dc462d4e41ce4e599253787d151c6b",
+    "c0c65678b69f5df651802119e18469d6e257eba5fdfdb7278ca33625716104a4"
+  ],
+  "exact_text_difference": "038:44 inserts one additional full stop and adjacent space between the first Hoffa sentence and Impresi\u00f3n. All remaining report bytes match after that single explicit replacement.",
+  "root_source_freeze_sha256": "36b071b1503ccf267c51580c69e3bb1ce683d0dde5ead23eac53f867670f04d8",
+  "independent_source_freeze_sha256": "eeec9bde82a4e2dec6f5b491aab4c720ec836d53744ff0f0d8c11f66f01b5ff0",
+  "joint_source_comparison_sha256": "39140621fa803723bae44c070717732096875726c20661d9466c95596a1fdfc5",
+  "required_release_action": "Join both reports into one final leakage component, transitively with their exact-report and pixel-neighbor groups, using a separately source-bound report-similarity edge. Existing whitespace/case normalization alone does not join this pair. Keep sources and annotations unchanged; apply ordinary gold-neighbor quarantine only after grouping, without inspecting gold to choose the edge.",
+  "pipeline_edge_enforced": false,
+  "no_patient_site_or_pixel_identity_inference": true,
+  "training_ready": false
+}

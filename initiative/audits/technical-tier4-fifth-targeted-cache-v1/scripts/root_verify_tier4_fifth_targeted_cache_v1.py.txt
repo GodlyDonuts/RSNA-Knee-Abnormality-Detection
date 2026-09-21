@@ -1,0 +1,109 @@
+"""Independent source, endpoint geometry, cache and exact display replay.
+
+No network, native decoding, clinical target inference, or source modification.
+"""
+import collections, datetime, hashlib, itertools, json, sys
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from PIL import Image
+P=Path(__file__).resolve().parent; W=P.parent; R=W/'recovered'
+GROUP='tier4-fifth-targeted'
+G=P/'technical-tier4-fifth-targeted-cache-v1'; OUT=G/'root-source-geometry-display-review.json'; assert not OUT.exists()
+NS,NV,NP=361,6,6
+SELECTED_NV,SELECTED_NS=2,235
+def read(p):return json.loads(p.read_text())
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1048576),b''):h.update(b)
+ return h.hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+checked={}
+def refs(v):
+ if isinstance(v,dict):
+  if {'path','sha256','bytes'}<=v.keys() and 'sop_uid' not in v and 'storage' not in v:
+   p=W/v['path'];assert p.resolve().is_relative_to(W.resolve());assert p.stat().st_size==v['bytes']
+   if str(p) not in checked:checked[str(p)]=sha(p)
+   assert checked[str(p)]==v['sha256']
+  for value in v.values():refs(value)
+ elif isinstance(v,list):
+  for value in v:refs(value)
+preread=read(G/'source-only-preread.json');summary=read(G/'technical-evidence/summary.json');index=read(G/'cache-panels/index.json');refs(summary);refs(index)
+for name in ['geometry-comparison.json','cache-panels/display-source-integrity.json']:refs(read(G/name))
+refs(preread)
+lineages={x['case']:x for x in preread['case_source_review_lineage']};assert len(lineages)==1
+for original in preread['records']:
+ lineage=lineages[original['case']];assert len(lineage['source_assessments'])==2
+ first=read(W/lineage['source_assessments'][0]['path']);assert original==next(x for x in first['records'] if x['case']==original['case'])
+ second=read(W/lineage['source_assessments'][1]['path'])
+ assert original['case']=='034:02' and lineage['independent_assessors']==['/root/image_pipeline_audit','/root'] and lineage['root_source_independence_available'] is True
+ second_row=next(x for x in second['records'] if x['case']==original['case']);assert second_row['study_uid']==original['study_uid'] and second_row['report']==original['report']
+originals=preread['records']; studies={r['study_uid'] for r in originals};assert len(studies)==len(originals)==1
+for o in originals:
+ batch=W/o['input_batch']['path'];refs(o['input_batch']);rows=[x for x in read(batch) if x['study_uid']==o['study_uid']];assert len(rows)==1 and rows[0]['report']==o['report'];assert hashlib.sha256(o['report'].encode()).hexdigest()==o['source_report_sha256'];assert all(q in o['report'] for q in o['exact_structure_quotes'])
+for p in [R/'initiative/source/train.csv',W/'kaggle_current/train.csv']:
+ assert sha(p)=='8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33';csv=pd.read_csv(p,usecols=['StudyInstanceUID','Report'],keep_default_na=False).set_index('StudyInstanceUID');assert csv.index.is_unique
+ for o in originals:assert csv.loc[o['study_uid'],'Report']==o['report']
+inventory_path=W/'cache256-v3-official-recovery-v1/inventory_effective.parquet';assert sha(inventory_path)=='68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537';inv=pd.read_parquet(inventory_path,filters=[('study_uid','in',sorted(studies))]);assert len(inv)==NS and inv.sop_uid.nunique()==NS and inv.series_uid.nunique()==NV
+by_sop=inv.set_index('sop_uid').to_dict('index');by_path=inv.set_index('path').to_dict('index');assert read(G/'technical-evidence/inventory-one-case.json')==inv.to_dict('records')
+epfile=W/'header-endpoint-full-v1/endpoint-headers.jsonl';assert sha(epfile)=='d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3'
+endpoints=[]
+with epfile.open() as f:
+ for line in f:
+  e=json.loads(line)
+  if e['study_uid'] in studies:endpoints.append(e)
+assert endpoints==[json.loads(x) for x in (G/'technical-evidence/endpoints.jsonl').read_text().splitlines()];assert len(endpoints)==len({e['sop_uid'] for e in endpoints})==2*NV
+expected_ep=set()
+for uid,frame in inv.groupby('series_uid'):expected_ep.update(frame.sort_values('sop_uid').iloc[[0,-1]].path)
+assert {e['source_path'] for e in endpoints}==expected_ep
+for e in endpoints:
+ row=by_path[e['source_path']];assert all(e[k]==row[k] for k in ['study_uid','series_uid','sop_uid','storage']);assert e['source_sha256']==row['sha256'] and e['source_bytes']==row['bytes'] and e['reached_pixel_data_header'] is True
+lineage_path=W/'cache256-v3-official-recovery-v1/cache_recovery_lineage.jsonl';assert sha(lineage_path)=='506ca8e3aa8f10a36fbdc96bc853b1a4dfcbec8f55949aac3bf26701c5642934';lineage={}
+with lineage_path.open() as f:
+ for l in f:
+  x=json.loads(l)
+  if x['study_uid'] in studies:assert x['series_uid'] not in lineage;lineage[x['series_uid']]=x
+cache_index_path=W/'dicom-audit-v3-official-recovery-v1/series_cache_index.parquet';assert sha(cache_index_path)=='0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81';audit=pd.read_parquet(cache_index_path).set_index('series_uid')
+metas={};cases=[];total_panels=0;selected_uids_checked=set();selected_source_count=0
+plan=read(G/'selection-plan.json');assert sha(G/'selection-plan.json')=='ca51d2d9ba973cd42d13c914d09cedf6f500e392feb19bc547ba7a5841da533d';refs(plan)
+choices={x['case']:x for x in plan['cases']};assert set(choices)=={'034:02'}
+for entry in index['cases']:
+ manifest_path=W/entry['manifest']['path'];manifest=read(manifest_path);refs(manifest)
+ d=manifest_path.parent;refs(read(d/'root-visual-freeze.json'));refs(read(d/'independent-cache-visual-assessment.json'));refs(read(d/'joint-source-header-cache-handoff.json'))
+ case=read(W/manifest['case_metadata']['path']);assert case['study_uid']==manifest['study_uid'];all_ordered=sorted(case['series'],key=lambda s:int(s['header_endpoint_values']['SeriesNumber'][0]));choice=choices[case['case']];assert choice['study_uid']==case['study_uid']
+ assert choice['whole_study_series']==manifest['whole_study_series_metadata_verified']==len(all_ordered) and choice['whole_study_source_memberships']==manifest['whole_study_source_membership_verified_from_metadata']==case['slices']
+ ordered=[s for s in all_ordered if int(s['header_endpoint_values']['SeriesNumber'][0]) in {101,201}];selected_ids={s['series_uid'] for s in ordered}
+ assert len(ordered)==manifest['series_sampled'] and sorted(selected_ids)==manifest['selected_series_uids'] and selected_ids=={s['series_uid'] for s in choice['selected_series']}
+ assert manifest['unselected_series_arrays_opened']==0
+ for c in choice['selected_series']:
+  ss=next(z for z in ordered if z['series_uid']==c['series_uid']);assert c['series_number']==int(ss['header_endpoint_values']['SeriesNumber'][0]) and c['slices']==ss['cache_original_shape'][0]
+ assert manifest['selected_source_membership_verified']==sum(c['slices'] for c in choice['selected_series'])
+ arrays={};centers=[];series_details=[]
+ for series in all_ordered:
+  uid=series['series_uid'];p=W/series['cache_metadata']['path'];m=read(p);refs(series['cache_metadata']);bound=lineage[uid]['new_metadata'];assert sha(p)==bound['sha256'] and p.stat().st_size==bound['bytes'];assert m['study_uid']==case['study_uid'] and m['series_uid']==uid and m['source_revision']=='0b5e410288232f570c69ba4f44723356e6ae6ab7' and m['cache_version']=='series-u16-v3'
+  frame=inv[inv.series_uid==uid];assert len(frame)==m['n_slices']==audit.loc[uid,'n_slices'];assert len(set(m['sop_uids']))==len(m['sop_uids'])==m['n_slices'];assert dict(zip(m['sop_uids'],m['slice_sha256']))==dict(zip(frame.sop_uid,frame.sha256));assert m['path_fingerprint']==hashlib.sha256('\n'.join(sorted(frame.path)).encode()).hexdigest()
+  metas[uid]=m;assert m['cache_sha256']==audit.loc[uid,'cache_sha256'] and m['cache_bytes']==audit.loc[uid,'cache_bytes']
+  if uid in selected_ids:
+   assert uid not in selected_uids_checked;selected_uids_checked.add(uid);selected_source_count+=m['n_slices'];cp=p.with_suffix('.npz');assert sha(cp)==m['cache_sha256'] and cp.stat().st_size==m['cache_bytes']
+   with np.load(cp,allow_pickle=False) as z:assert z.files==['volume'];a=z['volume']
+   assert a.dtype==np.uint16 and list(a.shape)==[m['n_slices'],256,256];arrays[uid]=a
+  for key,mkey in [('cache_positions','positions'),('cache_orientation','orientation'),('cache_original_shape','original_shape'),('cache_pixel_spacing','pixel_spacing')]:assert series[key]==m[mkey]
+  eps=[e for e in endpoints if e['series_uid']==uid];assert len(eps)==2;fields={k:sorted({e['header_fields'].get(k,'') for e in eps}) for k in eps[0]['header_fields']};assert fields==series['header_endpoint_values']
+  for e in eps:
+   f=e['header_fields'];i=m['sop_uids'].index(e['sop_uid']);assert json.loads(f['ImagePositionPatient'])==m['positions'][i];assert json.loads(f['ImageOrientationPatient'])==m['orientation'];assert json.loads(f['PixelSpacing'])==m['pixel_spacing'];assert [int(f['Rows']),int(f['Columns'])]==m['original_shape'][1:]
+  iop=np.array(m['orientation']);spacing=m['pixel_spacing'];shape=m['original_shape'];center=np.mean(m['positions'],0)+iop[:3]*(shape[2]-1)/2*spacing[1]+iop[3:]*(shape[1]-1)/2*spacing[0];plane=['Sagittal','Coronal','Axial'][int(np.argmax(np.abs(np.cross(iop[:3],iop[3:]))))];assert plane==series['iop_dominant_axis_plane_technical_only']
+  centers.append({'series_uid':uid,'series_number':fields['SeriesNumber'][0],'literal_laterality':fields['Laterality'][0],'plane':plane,'mean_slice_image_center_xyz_mm':center.tolist()});series_details.append({'series_uid':uid,'series_number':fields['SeriesNumber'][0],'literal_laterality_values':fields['Laterality'],'source_orientation':m['orientation'],'n_slices':m['n_slices']})
+ assert len(centers)==len(all_ordered);sheets=[]
+ for im in manifest['images']:
+  with Image.open(W/im['path']) as sheet:assert sheet.mode=='L';sheets.append(np.asarray(sheet).copy())
+ assert len(manifest['panels'])==3*len(ordered);seen=set()
+ for si,series in enumerate(ordered):
+  uid=series['series_uid'];m=metas[uid];a=arrays[uid]
+  for ci,fraction in enumerate([.25,.5,.75]):
+   p=manifest['panels'][si*3+ci];i=int((m['n_slices']-1)*fraction);assert (uid,i) not in seen;seen.add((uid,i));assert p['series_uid']==uid and p['ordered_index']==i and p['page']==si//3 and p['display_box_xywh']==[12+ci*276,66+(si%3)*308,256,256];assert p['series_number']==int(series['header_endpoint_values']['SeriesNumber'][0]);assert p['literal_laterality']=='/'.join(series['header_endpoint_values']['Laterality']);assert p['source']=={'sop_uid':m['sop_uids'][i],**by_sop[m['sop_uids'][i]]}
+   assert p['source_position']==m['positions'][i] and p['source_orientation']==m['orientation'] and p['source_pixel_spacing']==m['pixel_spacing'] and p['original_native_shape']==m['original_shape'][1:] and p['source_native_pixel_sha256_from_bound_metadata']==m['pixel_sha256'][i];assert p['cached_slice_bytes_sha256']==hashlib.sha256(a[i].tobytes()).hexdigest()
+   expected=np.rint(a[i].astype(np.float64)*255/65535).astype(np.uint8);x,y,ww,hh=p['display_box_xywh'];actual=sheets[p['page']][y:y+hh,x:x+ww];assert np.array_equal(actual,expected);assert hashlib.sha256(actual.tobytes()).hexdigest()==p['display_pixel_bytes_sha256'];total_panels+=1
+ cases.append({'case':case['case'],'study_uid':case['study_uid'],'whole_study_source_membership':case['slices'],'whole_study_series_metadata':len(all_ordered),'selected_source_membership':manifest['selected_source_membership_verified'],'complete_cache_volumes':len(ordered),'displayed_samples':len(seen),'whole_study_source_endpoint_headers':2*len(all_ordered),'source_correspondence_status':'bounded_selected_main_coverage_compatible_peripheral_sliver_unidentified','series_orientation_and_literal_tags':series_details,'independently_computed_image_centers':centers,'frozen_root_visual':ref(d/'root-visual-freeze.json'),'agent_visual':ref(d/'independent-cache-visual-assessment.json'),'joint_handoff':ref(d/'joint-source-header-cache-handoff.json')})
+assert len(metas)==NV and total_panels==NP and len(selected_uids_checked)==SELECTED_NV and selected_source_count==SELECTED_NS
+result={'stage':'independent_root_source_header_cache_display_replay','agent_id':'/root','group':GROUP,'completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified','source_report_copies_exact':1,'whole_study_source_membership':NS,'whole_study_series_metadata':NV,'selected_source_membership':SELECTED_NS,'full_selected_npz_hashes_and_arrays':SELECTED_NV,'unselected_arrays_opened':0,'endpoint_geometry_records':2*NV,'exact_pasted_display_matrices':NP,'references_verified':len(checked),'cases':cases,'bindings':[ref(Path(__file__)),ref(G/'source-only-preread.json'),ref(G/'cache-panels/display-source-integrity.json')],'technical_disposition':'034:02 selected101/201 independently viewed and numerically replayed:361full-study source memberships,6seriesmetadata,12endpoints;2selectedNPZvolumes235sources6exactdisplayedmatrices. Both independent observers retain a very thin peripheral sliver in last101sample without identifying a second knee or certifying unilateral full-volume coverage. Gross main-limb anatomy compatible; root more specific201fibular observation remains separately attributed. Preserve original sources/tags and no automatic cropping, exclusion, named-side or clinical-target decision.','limits':['No new network or native decoding.','Only2selectedarrays inspected;4unselectedseriesmetadata only.','Three normalized256px samples per selected series do not establish full200slice anatomy, exact side equivalence or no upstream mirroring.','Full source and both visual freezes were independent before respective other observations.','Final source/clinical/correspondenceQA remains required.'],'training_ready':False};OUT.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'status':'verified','whole_study_sources':NS,'metadata_series':NV,'selected_sources':SELECTED_NS,'selected_caches':SELECTED_NV,'panels':NP,'sha256':sha(OUT)},indent=2))

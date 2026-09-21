@@ -1,0 +1,19 @@
+"""Validate real report-similarity policy using only blinded original reports."""
+from pathlib import Path
+import json,hashlib,sys
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[1];R=W/'recovered';sys.path.insert(0,str(R))
+from rsna.report_similarity import inspect_report_similarity,similarity_pairs
+
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+reports={};inputs=[]
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ rows=json.loads(p.read_text());assert all(set(r)=={'study_uid','report'}for r in rows)
+ for r in rows:assert r['study_uid']not in reports;reports[r['study_uid']]=r['report']
+ inputs.append(ref(p))
+a=inspect_report_similarity(reports,R);assert len(reports)==4407 and a['edge_count']==a['policy_count']==1
+expected=['1.2.826.0.1.3680043.8.498.33880013318702285028756482543453984598','1.2.826.0.1.3680043.8.498.41717437729988689273718049162153247404'];assert similarity_pairs(a)==[tuple(expected)]
+for r in a['decisions']:
+ assert r['assessor_ids']=={'root':'/root','independent':'/root/image_pipeline_audit'}
+o={'schema_version':1,'stage':'independent_real_similarity_registry_source_only_validation','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'status':'passed','report_count':len(reports),'blinded_batch_count':len(inputs),'source_inputs':inputs,'implementation':[ref(R/'rsna/report_similarity.py'),ref(R/'rsna/labels.py')],'registry':ref(R/'initiative/audits/report-similarity-registry.json'),'policy':ref(R/'initiative/audits/report-similarity-dispositions-v1.json'),'validated_trace':a,'clinical_annotations_or_gold_opened':False,'actual_training_splits_inspected':False,'source_first_provenance_limit':'Structured source-first admission is an explicit reviewed attestation bound to preserved source freezes, not proof inferred by parsing free text or a claim of first-ever exposure.','training_ready':False}
+p=P/'real-registry-validation.json';assert not p.exists();p.write_text(json.dumps(o,indent=2,ensure_ascii=False)+'\n');print(json.dumps({'result':ref(p),'reports':len(reports),'policy_count':a['policy_count'],'edge_count':a['edge_count']}))

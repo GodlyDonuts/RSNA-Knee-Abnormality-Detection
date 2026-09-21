@@ -330,6 +330,11 @@ def audit_labels(studies: pd.DataFrame, drafts: pd.DataFrame) -> dict:
 def main() -> None:
     from rsna.adjudications import apply_adjudications
     from rsna.correspondence import apply_correspondence
+    from rsna.report_similarity import (
+        bind_similarity_splits,
+        inspect_report_similarity,
+        similarity_pairs,
+    )
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", type=Path, required=True)
@@ -345,7 +350,7 @@ def main() -> None:
         "--artifact-root",
         type=Path,
         default=Path("."),
-        help="Repository root for relative adjudication evidence paths (default: current directory)",
+        help="Repository root for required release policies and evidence (default: current directory)",
     )
     args = parser.parse_args()
     train = pd.read_csv(args.train)
@@ -367,11 +372,13 @@ def main() -> None:
     reviews, adjudications = apply_adjudications(
         reviews, reports, args.reviews, args.rubric, args.artifact_root
     )
-    pairs = validate_dicom_audit(
+    pixel_pairs = validate_dicom_audit(
         args.dicom_audit, pd.read_parquet(args.inventory), set(reports), args.source_revision
     )
-    studies = build_studies(train, reviews, pairs)
+    similarity = inspect_report_similarity(reports, args.artifact_root)
+    studies = build_studies(train, reviews, pixel_pairs + similarity_pairs(similarity))
     studies, correspondence = apply_correspondence(studies, reports, args.artifact_root)
+    similarity = bind_similarity_splits(similarity, studies)
     args.output.mkdir(parents=True, exist_ok=True)
     studies.to_parquet(args.output / "studies.parquet", index=False)
     reviews.to_parquet(args.output / "report_annotations.parquet", index=False)
@@ -382,10 +389,14 @@ def main() -> None:
     (args.output / "correspondence_trace.json").write_text(
         json.dumps(correspondence, ensure_ascii=False, indent=2) + "\n"
     )
+    (args.output / "report_similarity_trace.json").write_text(
+        json.dumps(similarity, ensure_ascii=False, indent=2) + "\n"
+    )
     studies.drop(columns=["Report"]).to_csv(args.output / "study_labels.csv", index=False)
     report = audit_labels(studies, drafts)
     report["adjudications"] = adjudications
     report["correspondence"] = correspondence
+    report["report_similarity"] = similarity
     report["release_inputs"] = {
         **provenance,
         "train_sha256": file_sha256(args.train),
@@ -394,6 +405,7 @@ def main() -> None:
         "cache_version": CACHE_VERSION,
         "adjudication_registry_sha256": adjudications["registry_sha256"],
         "correspondence_registry_sha256": correspondence["registry_sha256"],
+        "report_similarity_registry_sha256": similarity["registry_sha256"],
     }
     (args.output / "label_audit.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))

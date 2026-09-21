@@ -621,8 +621,10 @@ def test_labels_cli_exports_effective_original_and_correction_lineage(
 ) -> None:
     from rsna import labels
     from rsna.correspondence import REGISTRY_PATH
+    from rsna.report_similarity import REGISTRY_PATH as SIMILARITY_REGISTRY
 
     root, paths = bundle["root"], bundle["paths"]
+    write(root / SIMILARITY_REGISTRY, {"schema_version": 1, "policies": []})
     write(
         root / REGISTRY_PATH,
         {"schema_version": 1, "target_order": list(TARGETS), "policies": []},

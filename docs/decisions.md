@@ -2,6 +2,8 @@
 
 ## Current corrective run
 
+A required source-bound report-similarity registry now augments the exact-report/pixel leakage graph before gold quarantine. The first accepted edge covers038:44/045:15, whose only difference is a redundant full stop and space. No source text, clinical annotation, patient or hospital identity is inferred or changed. See [the policy and validation](report-similarity.md).
+
 The owner authorized direct main integration and a monorepo on 2026-09-20.
 Use `protocols/report_weak_v2.md`, `protocols/agent_tasks.md`, and
 `initiative/reviews-v2/`; the previous rubric was too permissive about severity.

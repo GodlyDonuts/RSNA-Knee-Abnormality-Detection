@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "status": "prepared_for_root_review_not_executed",
+  "at_utc": "2026-09-21T12:08:11.606961+00:00",
+  "agent_id": "/root/image_pipeline_audit",
+  "original_publisher": {
+    "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/publish_review3607_checkpoint.py",
+    "sha256": "4ad65b2d7c00d14f6ae5be019cde797aca822d6c723a4698e64ac79788cc693a",
+    "bytes": 21836
+  },
+  "original_process_sample": {
+    "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/hf-review3607-process-sample.txt",
+    "sha256": "d5caa76760af8ee8135b985af6ff880128bdb763a2dceefeff61a6f241f36457",
+    "bytes": 91085
+  },
+  "root_stop_record": {
+    "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/hf-review3607-stalled-attempt-stop.json",
+    "sha256": "80f9ec95e8d62b9160b6364254cc7aabc990ba7d7c31e215108d29903b5beaa2",
+    "bytes": 749
+  },
+  "read_client_version": "1.18.0",
+  "read_client_sources": [
+    {
+      "path": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/huggingface_hub/__init__.py",
+      "sha256": "0b1f5516aaff6c2624ffe20ff2c097b4edd3eba6ecabc32f570641668206e92f",
+      "bytes": 59078
+    },
+    {
+      "path": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/huggingface_hub/constants.py",
+      "sha256": "2675bde3e37cec267d08936f7e1362159139b474fe86078b4d0d038214d25174",
+      "bytes": 12492
+    },
+    {
+      "path": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/huggingface_hub/_commit_api.py",
+      "sha256": "95748add989fa476725368ec6b79b3a6b5f0b62ebe1062314d1888ee48410238",
+      "bytes": 42993
+    },
+    {
+      "path": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/huggingface_hub/lfs.py",
+      "sha256": "9fadb0ef78e20a3ea7ef82a5ee467f522b1429faa816aa322d8cb35da5b2ec67",
+      "bytes": 14853
+    },
+    {
+      "path": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/huggingface_hub/utils/_http.py",
+      "sha256": "4824cc7998ca33d6a06067d57d18ed4ff79728c34af6ed7e4424b30627ffa23b",
+      "bytes": 42652
+    },
+    {
+      "path": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/huggingface_hub/utils/_runtime.py",
+      "sha256": "19527f0edeb2ff8f13656974ba2f723dd5bc33baea19b9511b252a29a5f1902a",
+      "bytes": 13493
+    },
+    {
+      "path": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/huggingface_hub/hf_api.py",
+      "sha256": "25fbb6d83c486094c6d97420efe03dd239bd9d4750f0dda418122e97276f5542",
+      "bytes": 633097
+    }
+  ],
+  "observations": [
+    "Runtime is_xet_available checks the import-time HF_HUB_DISABLE_XET constant.",
+    "_commit_api._upload_files offers basic/multipart only when that runtime check is false.",
+    "Basic and multipart uploads use http_backoff and shared httpx get_session; the reviewed default factory has timeout=None.",
+    "Installed retries may wait for rate limits; the separate recovery process deadline bounds the remote stage.",
+    "Stall cause cannot be proven from a semaphore sample alone; no claim of source corruption or remote commit failure."
+  ],
+  "prepared_files": [
+    {
+      "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/annotation-staging/hf-review3607-recovery-v1/recover_checkpoint.py",
+      "sha256": "9aa6592c79c232a6c5ec86f00e9e3a66c69be36dc4a299edc5f54e166e87fee8",
+      "bytes": 26655
+    },
+    {
+      "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/annotation-staging/hf-review3607-recovery-v1/test_recover_checkpoint.py",
+      "sha256": "1eecb73ecbc467a59921de57f707f788e9fdee9417525a9d3e5c17d35dd153d2",
+      "bytes": 16009
+    },
+    {
+      "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/annotation-staging/hf-review3607-recovery-v1/README.md",
+      "sha256": "0892949446c44da696d6c19cf6ec2912d6c2aec3c4ac5198b054fddf15a49ba9",
+      "bytes": 6489
+    },
+    {
+      "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/annotation-staging/hf-review3607-recovery-v1/preparation-local-preflight.json",
+      "sha256": "4d827565105659bf38cbca5e92b2616bef5f0daaabe052d9faa23381c51fea31",
+      "bytes": 375073
+    },
+    {
+      "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/annotation-staging/hf-review3607-recovery-v1/mutable-policy-snapshot.json",
+      "sha256": "ddb49e70381b77a15fa945ebe68a1243ec977e5a96e091e4ae831df032388cb4",
+      "bytes": 2929
+    },
+    {
+      "path": "/Users/sairamen/projects/2026-09-20/huggingface-hf-iivsdoulopajsqnyxtptnjfjgrnksvfmke-kaggle-kgat-602b62c54ad97cd119/work/annotation-staging/hf-review3607-recovery-v1/preparation-validation.json",
+      "sha256": "db5999c85b392a6967f72921293223ec86e5434559e480840a65f19499a3c6e6",
+      "bytes": 2311
+    }
+  ],
+  "object_count": 490,
+  "tar_members": 3610,
+  "tar_rebuilt": false,
+  "remote_calls": 0,
+  "remote_write_authorized_for_this_subtask": false,
+  "next_step": "Root reviews script, confirms original publisher absent, then dispatches explicit execution separately."
+}

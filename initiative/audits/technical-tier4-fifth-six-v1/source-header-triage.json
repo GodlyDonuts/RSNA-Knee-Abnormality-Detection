@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_header_technical_triage",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T12:24:23.960703+00:00",
+  "n_cases": 6,
+  "complete_series": 40,
+  "source_memberships": 1364,
+  "endpoint_geometries": 80,
+  "source_preread": {
+    "path": "annotation-staging/technical-tier4-fifth-six-v1/source-only-preread.json",
+    "sha256": "6026160a792d57718f14045654f16b6e8317605ccc070bf79b3fe8d0ce70a16a",
+    "bytes": 19070
+  },
+  "neutral_source_extraction": {
+    "path": "annotation-staging/technical-tier4-fifth-six-v1/neutral-source-reports.json",
+    "sha256": "e7d5f1d5b47584977cbf15ff06c1128def4cf09e8f52304e0151dab40644b534",
+    "bytes": 11546
+  },
+  "candidate_triggers": {
+    "path": "annotation-staging/technical-tier4-fifth-six-v1/candidate-trigger-bindings.json",
+    "sha256": "fcb7712b24882eef34d3e927abd1b9a3c1c3dc0deada31693c1bb8878e9c778e",
+    "bytes": 8246
+  },
+  "technical_summary": {
+    "path": "annotation-staging/technical-tier4-fifth-six-v1/technical-evidence/summary.json",
+    "sha256": "c53dd81d3c8962ce74d2cd91e21d8f0c8dd6e38b3f9be1f5a0eed9a0c358c6a6",
+    "bytes": 25144
+  },
+  "geometry": {
+    "path": "annotation-staging/technical-tier4-fifth-six-v1/geometry-comparison.json",
+    "sha256": "0726d855a5c4d5252b8687f8b7aa1a9af8ecfe2998b3ecb5c33dd7c3c52f7aa7",
+    "bytes": 21025
+  },
+  "image_field_centers": {
+    "path": "annotation-staging/technical-tier4-fifth-six-v1/derived-series-image-centers.json",
+    "sha256": "1a0e0cef0f0bb695ec2fdde9a9a1bc0ee27d44e4d615e45e27c7315f30bafec8",
+    "bytes": 16019
+  },
+  "field_and_extent_metrics": {
+    "path": "annotation-staging/technical-tier4-fifth-six-v1/field-and-extent-metrics.json",
+    "sha256": "d79a3c27c6a87f7c05a22886c426d6141793995c0b0b998f647955e4e3b07a94",
+    "bytes": 26309
+  },
+  "records": [
+    {
+      "case": "033:22",
+      "study_uid": "1.2.826.0.1.3680043.8.498.26619973716086136503589916868066348957",
+      "source_report_sha256": "925c75c1fcd934877760bee003cfe35265c64ccd11be6db327c9b69b27d5bb58",
+      "series": 5,
+      "source_slices": 186,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-fifth-six-v1/technical-evidence/case-033-22.json",
+        "sha256": "6684677c398fd305e3cb90d595b58fd9956c1d3948bbad3d498ef455323cb513",
+        "bytes": 36242
+      },
+      "trigger": "Four L-tagged series and blank coronal 801; the original queue trigger is blank/filled Laterality only.",
+      "technical": "Five series, 186 slices. Sagittal 301/901 share IOP; axial 701 is L. Blank coronal 801 and L-tagged coronal 1001 have approximately 160mm fields and 112.2/108.9mm slice-origin normal extents, with a small orientation difference. No opposite filled side or native fingerprint overlap.",
+      "source_relation": "One unsided current report and conclusion; no separate bilateral or temporal examination. The blank coronal tag alone does not establish a separate knee or source correspondence failure.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Preserve unknown 801 laterality. Its field, plane and extent are compatible with the other recorded coronal series, without anatomical-side proof. No immediate pixels are required by this isolated missing tag. If a new coverage concern arises, sparse 801/1001 views can be compared under explicit geometric limits; no source change or native fetch.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "033:29",
+      "study_uid": "1.2.826.0.1.3680043.8.498.26843088620128166809417361066548447201",
+      "source_report_sha256": "68b648bf475418a2674123401be93d6a2f0c55ce703b449852c2ef11bf2170c9",
+      "series": 7,
+      "source_slices": 190,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-fifth-six-v1/technical-evidence/case-033-29.json",
+        "sha256": "389858f0c199c6fe32ffd095c5f8e26d447d311499dc7443b3f973f2615478c6",
+        "bytes": 43345
+      },
+      "trigger": "Six L-tagged series and blank sagittal 701; original trigger is blank/filled Laterality only.",
+      "technical": "Seven series, 190 slices. Blank 701 is an 11-slice oblique sagittal supplement with 22.5mm normal extent; the main sagittal rows have 29 slices and 92.4mm extent. L-tagged 301/801 share all ordered positions, IOP, spacing, shape and description, but their complete native fingerprint lists differ and share no native hashes. Other planes are consistently L.",
+      "source_relation": "One unsided current report with injury-related and degenerative wording, no dated or separate report. One repeated sagittal acquisition and an oblique supplement do not establish two complete knee protocols.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Preserve 301 and 801 separately: matched metadata does not establish duplicate pixels. Preserve blank 701. No immediate pixel escalation follows from this tag pattern alone; if additional concern appears, bounded 301/801/701 comparison can assess repeat and oblique coverage. No deduplication, tag imputation or native download.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "034:02",
+      "study_uid": "1.2.826.0.1.3680043.8.498.27319908980978184820438244981035567211",
+      "source_report_sha256": "76a92e04d0f561b7c3e0c6c10f0c8cb8fec70a980660d612b0532decb3c20ffe",
+      "series": 6,
+      "source_slices": 361,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-fifth-six-v1/technical-evidence/case-034-02.json",
+        "sha256": "56eae2907810e7d41e2e7c4334e844fe384d5c9a9056839bbeb71defa1cbe533",
+        "bytes": 56019
+      },
+      "trigger": "Blank initial axial 101 and five R-tagged series; original trigger is blank/filled Laterality only.",
+      "technical": "Six series, 361 slices, all descriptions DummySeriesDesc!. Blank 101 has 200x256x256 source shape, 1.171875mm spacing, 300mm field and 238.7994mm normal extent. R-tagged main axial 201 has 35 slices, approximately175.651mm field and112.20mm extent; coronal301/501 and sagittal401/601 complete the tagged set.",
+      "source_relation": "One short unsided findings/conclusion report. Prior clinical-source reading is disclosed; no clinical states were reopened. Placeholder descriptions and the broader initial field do not identify its anatomy, side or phase.",
+      "pixels_needed": "bounded_cached_coverage_check_recommended",
+      "proposal": "After root source review, compare three existing cache samples each from101 and201 for gross body-region/coverage. Preserve all metadata and limit scope to these two arrays; do not infer a second knee from broad field, fill R, label phases, change clinical targets or download native sources.",
+      "priority": "targeted_broad_field_coverage_check"
+    },
+    {
+      "case": "036:45",
+      "study_uid": "1.2.826.0.1.3680043.8.498.30942874102560162331831960649006411381",
+      "source_report_sha256": "320dfe070ab8bfc2653a6c723b57c3de19341f6b71a3f02368824e911d894707",
+      "series": 6,
+      "source_slices": 161,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-fifth-six-v1/technical-evidence/case-036-45.json",
+        "sha256": "2fa4bdddd91da77b25f5af7594c1e7912364f3ee5825474d23452c593e514492",
+        "bytes": 37026
+      },
+      "trigger": "Five L-tagged main series and blank sagittal701; original trigger is blank/filled Laterality only.",
+      "technical": "Six series,161 slices. Main sagittal201/301 share IOP; coronal401/501 and axial601 are L. Blank701 repeats301 description but has11slices, changed obliquity and22.5mm normal extent versus29slices/92.4mm for301. No opposing filled side or native fingerprint overlap.",
+      "source_relation": "One explicitly left-knee findings/conclusion report. No right-knee statement or separate temporal exam. Main L metadata is compatible with source wording but does not prove named image side or authorize filling701.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Keep supplementary laterality unknown. No immediate pixels are required by the isolated blank field and limited oblique coverage alone. Optional701/main sagittal comparison only if additional concerns arise; no tag, source, annotation or native changes.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "037:42",
+      "study_uid": "1.2.826.0.1.3680043.8.498.32265622493980668732317541941196894795",
+      "source_report_sha256": "5f23df9a99beff1eb3afb863153cd478b002c5eebc4f0fea243e2e0f18392e21",
+      "series": 6,
+      "source_slices": 161,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-fifth-six-v1/technical-evidence/case-037-42.json",
+        "sha256": "aae58fd31eba36908431f1faffca04d0bc3a80c3f705bc3b909b76cca655f1f1",
+        "bytes": 37089
+      },
+      "trigger": "Five L-tagged main series and blank sagittal801; original trigger is blank/filled Laterality only.",
+      "technical": "Six series,161 slices. Main sagittal301/401, coronal501/601 and axial701 are L. Blank801 repeats301 description with11slices, changed obliquity and22.5mm normal extent versus29slices/92.4mm for301. No opposing filled side or native fingerprint overlap.",
+      "source_relation": "One explicitly left-knee current report. Post-traumatic wording stays within that report and is not a separate dated comparison or recall. Missing supplementary side is not a source-side contradiction.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Retain blank801 and all original source wording. No automatic pixel escalation from this isolated field. Optional801/main sagittal sparse comparison only on further concern, with oblique limits; no named-side assignment or native fetching.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "038:22",
+      "study_uid": "1.2.826.0.1.3680043.8.498.33215387283623093392227819856970670071",
+      "source_report_sha256": "082ecc88ce2e698e4d63350a1254dddd39c2dc2f96c78254703830adcdbf42b9",
+      "series": 10,
+      "source_slices": 305,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-fifth-six-v1/technical-evidence/case-038-22.json",
+        "sha256": "f102044cddb3cdbb1c1012d54d329f98859b2ddedcd8c5a804c4659e64408add",
+        "bytes": 64810
+      },
+      "trigger": "Nine L-tagged series and blank axial701; original trigger is blank/filled Laterality only.",
+      "technical": "Ten series,305 slices. Main sagittal201/301/401, axial501/601 and coronal801/901/1001 are L; oblique coronal1101 is also L. Blank32-slice AX T2W_FFE701 has the exact same IOP and approximately160mm field as40-slice axial501/601, with102.3mm normal extent versus128.7mm. No opposing filled side or native fingerprint overlap.",
+      "source_relation": "One unsided report followed by unheaded summary lines. Repeated cyst wording and a final line without a full stop are not enough to establish aggregation or truncation. A blank axial contrast sequence does not change source scope.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Preserve unknown701 and the original LT. descriptions elsewhere. No immediate pixels are required by the missing side field alone because its recorded field, plane and extent fit the main axial set. Optional701/501/601 sparse comparison if new concerns appear; no phase claims, tag filling or native downloads.",
+      "priority": "defer_pixel_escalation"
+    }
+  ],
+  "common_scope": "All 80 original selected endpoint positions, IOP, spacing and native dimensions exactly match their own source-SOP cache metadata. All 40 official planes agree with dominant IOP axes. Each case has one hashed PatientID and distinct per-series frame hashes; neither proves identity or registration. No within-study native fingerprint overlap appears in the bound metadata. Exact archived/current official report copies, full corrected inventory membership, recovery lineage and full-audit metadata are verified. No pixel array, full NPZ recheck, native decode or new source bytes were read.",
+  "root_source_findings_seen": false,
+  "clinical_annotations_gold_or_targets_accessed": false,
+  "new_network_or_native_decodes": 0,
+  "source_cache_initiative_modified": false,
+  "training_ready": false
+}

@@ -1,0 +1,13 @@
+from pathlib import Path
+import hashlib
+P=Path(__file__).resolve().parent;T=P.parent/'technical-tier4-second-targeted-cache-v1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+sm=sha(P/'technical-evidence/summary.json');pl=sha(P/'selection-plan.json')
+for f in ['compare_geometry.py','render_cache_sets.py','verify_cache_panels.py']:
+ s=(T/f).read_text().replace('5ee927cbc8dfbd9f58ac1acc623b467d06bf6256d28a565949da30b1394eab1a',sm).replace('fdc5cee39def713848363177a5c7ff328c52fdb6541d8f23fca53b9ed1242b4c',pl)
+ s=s.replace('All 64 selected endpoint','All 42 selected endpoint').replace('inventory-five-cases.json','inventory-three-cases.json').replace('len(summary["cases"]) == 5','len(summary["cases"]) == 3').replace('len(plan["cases"]) == 5','len(plan["cases"]) == 3').replace('Exactly five case','Exactly three case').replace('plan["selected_series"] == 16','plan["selected_series"] == 13')
+ s=s.replace('len(index["cases"]) == 5','len(index["cases"]) == 3').replace('Exactly five panel','Exactly three panel').replace('len(source) == 1549','len(source) == 1050').replace('source.series_uid.nunique() == 32','source.series_uid.nunique() == 21').replace('source.study_uid.nunique() == 5','source.study_uid.nunique() == 3')
+ s=s.replace('len(checked_cache) == 16','len(checked_cache) == 13').replace('== 1031','== 802').replace('== 48','== 39').replace('"whole_study_series_metadata_scope": 32','"whole_study_series_metadata_scope": 21').replace('"selected_source_inventory_rows_verified": 1031','"selected_source_inventory_rows_verified": 802')
+ s=s.replace('all 1031 selected source memberships, all 1549 whole-study inventory memberships','all 802 selected source memberships, all 1050 whole-study inventory memberships').replace('Only 16 of 32 whole-study series arrays read; 48 sparse samples displayed.','Only 13 of 21 whole-study series arrays read; 39 sparse samples displayed.')
+ assert not (P/f).exists();(P/f).write_text(s)
+print(sm,pl)

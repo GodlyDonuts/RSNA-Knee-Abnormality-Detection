@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "stage": "root_verified_correspondence_release_requirements",
+  "agent_id": "/root",
+  "created_at_utc": "2026-09-21T09:25:00.586242+00:00",
+  "target_order": [
+    "ACL",
+    "MCL",
+    "Medial Meniscus",
+    "Lateral Meniscus",
+    "Medial OA",
+    "Lateral OA",
+    "PF OA",
+    "Effusion",
+    "Synovitis",
+    "Baker's",
+    "Contusion",
+    "Fracture"
+  ],
+  "records": [
+    {
+      "case": "048:12",
+      "study_uid": "1.2.826.0.1.3680043.8.498.46051119885630602872050329412008545893",
+      "source_path": "initiative/reviews/inputs/batch-048.json",
+      "source_batch_sha256": "aa48e87ab9ae37f96fa89aae410ea6b0efad241b521db6162b56eead4e6937e7",
+      "source_report_sha256": "e6863a25a165bc48b478753fa892ad5d04cedeeb999eba26a04eead6e504462f",
+      "status": "confirmed_two_knee_aggregate_report",
+      "report_derived_training_supervision_allowed": false,
+      "required_report_loss_mask": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "scope": "Whole original study aggregate report-derived supervision. Preserve original images/reports, duplicate memberships and official gold evaluation assignments.",
+      "reason": "The integrated report describes both knees and two independently frozen image reviews plus native source/display replay support two opposing knee protocols. No per-series side-specific clinical target mapping has been established; mask whole-study report supervision.",
+      "verified_technical_proof": {
+        "path": "initiative/audits/correspondence-source-bindings-v1/case-048-012.json",
+        "sha256": "bf7a9d47be00369c19cb7fbde4907dff5d5abca4dd2b4ee834417c8953f8f938"
+      },
+      "source_origin_limit": "83 retained fresh official files; 276 corrected pinned mirror files await fresh official whole-byte confirmation. Matching official ZIP CRC alone is not that confirmation."
+    },
+    {
+      "case": "086:13",
+      "study_uid": "1.2.826.0.1.3680043.8.498.97500632594529766269369977508352975364",
+      "source_path": "initiative/reviews/inputs/batch-086.json",
+      "source_batch_sha256": "289cf15787edb37ce4e1570354968c80b5154ece5fe881b824caaf642f197932",
+      "source_report_sha256": "bc26e50a701939f6856451db2f259e1cb3c2b32ce73946bebf7526522a131865",
+      "status": "confirmed_two_knee_aggregate_report",
+      "report_derived_training_supervision_allowed": false,
+      "required_report_loss_mask": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "scope": "Whole original study aggregate report-derived supervision. Preserve original images/reports, duplicate memberships and official gold evaluation assignments.",
+      "reason": "The integrated report describes both knees and two independently frozen image reviews plus native source/display replay support two opposing knee protocols. No per-series side-specific clinical target mapping has been established; mask whole-study report supervision.",
+      "verified_technical_proof": {
+        "path": "initiative/audits/correspondence-source-bindings-v1/case-086-013.json",
+        "sha256": "e63c21778d6bfcd39a66fb296e35396dbd54883f2ede7cc3c01fbfad172c7cdc"
+      },
+      "source_origin_limit": "0 retained fresh official files; 300 corrected pinned mirror files await fresh official whole-byte confirmation. Matching official ZIP CRC alone is not that confirmation."
+    }
+  ],
+  "release_requirement": "Enforce these whole-study report masks in addition to target decisions, existing exclusions and gold/leakage isolation. The required registry is enforced by rsna.labels; final full-corpus release remains pending.",
+  "original_source_or_annotation_changes": false,
+  "training_ready": false
+}

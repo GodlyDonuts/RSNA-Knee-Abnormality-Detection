@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "stage": "independent_adversarial_acceptance_design",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T12:56:55.174260+00:00",
+  "inputs": [
+    {
+      "path": "recovered/rsna/labels.py",
+      "sha256": "d6bd2d88dfd75b5daaf69fe6436f777ce43839ec4718a2448efe6fdc188549ea",
+      "bytes": 19002
+    },
+    {
+      "path": "annotation-staging/technical-tier4-sixth-six-v1/neutral-source-reports.json",
+      "sha256": "eb378007cc5916d1c1746f7791c158977a9ec5c82a25744b786d5f97f8dea222",
+      "bytes": 6782
+    },
+    {
+      "path": "annotation-staging/technical-tier4-sixth-six-v1/source-only-preread.json",
+      "sha256": "eeec9bde82a4e2dec6f5b491aab4c720ec836d53744ff0f0d8c11f66f01b5ff0",
+      "bytes": 13852
+    },
+    {
+      "path": "annotation-staging/technical-tier4-sixth-six-v1/root-source-preread.json",
+      "sha256": "36b071b1503ccf267c51580c69e3bb1ce683d0dde5ead23eac53f867670f04d8",
+      "bytes": 10647
+    },
+    {
+      "path": "annotation-staging/technical-tier4-sixth-six-v1/joint-source-comparison.json",
+      "sha256": "39140621fa803723bae44c070717732096875726c20661d9466c95596a1fdfc5",
+      "bytes": 7227
+    },
+    {
+      "path": "annotation-staging/technical-tier4-sixth-six-v1/root-report-similarity-leakage-followup.json",
+      "sha256": "2a7c7f8b5d56a3f551fdc6161f907ae68a84981e773f89bc100fc8fd61512438",
+      "bytes": 1789
+    }
+  ],
+  "source_only_reproduction": {
+    "cases": [
+      "038:44",
+      "045:15"
+    ],
+    "study_uids": [
+      "1.2.826.0.1.3680043.8.498.33880013318702285028756482543453984598",
+      "1.2.826.0.1.3680043.8.498.41717437729988689273718049162153247404"
+    ],
+    "report_hashes": [
+      "c96bd80ccb259d3e6cdab7eba70ea25ccecab02dfaa8f6bd12cc4c4e87ce9f0c",
+      "08053408efea01cb2500c178db7d0eacf6eafb36c2b1523b2861284e82694477"
+    ],
+    "current_normalized_groups": [
+      "129f881abb72853776d0bf95aea14be324dc462d4e41ce4e599253787d151c6b",
+      "c0c65678b69f5df651802119e18469d6e257eba5fdfdb7278ca33625716104a4"
+    ],
+    "exact_single_explicit_replacement_verified": true,
+    "longer_bytes_minus_shorter_bytes": 2
+  },
+  "acceptance_criteria": [
+    {
+      "id": "required_registry_coverage",
+      "expectation": "Missing required registry or omitted discovered fixed policy must reject before export. Explicit empty is allowed only with no discovered policies. Duplicate JSON keys, duplicate policy IDs/refs and duplicate or reversed pair edges must reject."
+    },
+    {
+      "id": "original_source_bindings",
+      "expectation": "Policy pair must contain two distinct known train-study UIDs; raw report bytes and hashes bind current source and referenced blinded batch. Unknown/self UID, changed report, changed batch index or missing member rejects. Sources with merely equal declared hashes but different actual text reject."
+    },
+    {
+      "id": "independent_source_assessors",
+      "expectation": "Two distinct independently identified source-first assessments each contain exactly one matching record for BOTH edge endpoints. Copied identities, missing one endpoint, swapped source records, altered text/hash and wrong frozen-stage/exposure lineage reject. Preserve actual prior exposure instead of claiming first-ever blinding."
+    },
+    {
+      "id": "proof_linkage",
+      "expectation": "The accepted source-similarity proof must identify the same pair and exact two source-assessment artifacts, and reference their exact checksums. Unrelated otherwise valid proof, swapped pair, rehashed tampered links and changed evidence bytes reject. Timestamps do not alone prove source-first reasoning."
+    },
+    {
+      "id": "narrow_relation",
+      "expectation": "Accept the actual single redundant period with adjacent space between an existing sentence terminator and the next heading. Reject arbitrary inserted periods, decimal-point changes, word/negation changes, more than one independent punctuation edit and broad punctuation normalization. Preserve originals and existing normalized-report groups."
+    },
+    {
+      "id": "graph_before_quarantine",
+      "expectation": "Synthetic chain A(similarity)B(exact-report)C(pixel)D(gold) must become one component; A/B/C quarantine and D remains official gold. Correspondence-excluded bridge remains in graph. No removal based on masks. Ungold chain remains in one active split. Permutation of row/edge order produces same component/splits."
+    },
+    {
+      "id": "gold_independence",
+      "expectation": "Validated similarity edges and components are unchanged when synthetic gold values or reviewed states change; only ordinary split/quarantine consequences may differ with gold membership. Official gold values/masks and source clinical states/evidence remain untouched."
+    },
+    {
+      "id": "release_trace",
+      "expectation": "Final manifest/audit records registry hash, policy/assessor/proof/source hashes, explicit additional pair edges and group membership lineage. Missing or corrupt policy blocks before writing any release output. No patient/site or same-image inference from the edge."
+    }
+  ],
+  "scope": "Read-only review design before root identifies stable implementation. No clinical annotation or gold values read; future adversarial integration data must be synthetic. No implementation acceptance claimed.",
+  "training_ready": false
+}

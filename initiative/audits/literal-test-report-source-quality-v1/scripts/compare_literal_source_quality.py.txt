@@ -1,0 +1,57 @@
+"""Bind two preserved source-only assessments; no clinical label changes."""
+from pathlib import Path
+import datetime
+import hashlib
+import json
+
+W = Path(__file__).resolve().parent
+R = W / 'recovered'
+G = W / 'annotation-staging/literal-test-report-source-triage-v1'
+A = W / 'annotation-staging/literal-source-quality-independent-v1/independent-source-quality-assessment.json'
+B = G / 'root-full-source-assessment.json'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(A) == '56d090b3cca979c48495bf2c724b8b672666e8593aa693e6c654935eadc7d1bc'
+assert sha(B) == 'a5076fbc49ccefd66382496def3147b4c45664afdca1a81362b3388ef6ba520d'
+a, b = json.loads(A.read_text()), json.loads(B.read_text())
+assert a['agent_id'] != b['agent_id'] and a['n_studies'] == 9
+aa = {x['study_uid']: x for x in a['records']}
+bb = {x['study_uid']: x for x in b['records']}
+assert len(aa) == len(bb) == 9 and set(aa) == set(bb)
+quotes = 0
+bindings = []
+for uid, x in aa.items():
+    y = bb[uid]
+    p = R / x['source_path']
+    assert sha(p) == x['source_batch_sha256'] == y['source_batch']['sha256']
+    source = json.loads(p.read_text())[x['source_index']]
+    assert source['study_uid'] == uid and source['report'] == y['report']
+    report = source['report']
+    assert hashlib.sha256(report.encode()).hexdigest() == x['source_sha256'] == y['source_report_sha256']
+    assert 'Results: Test report.' in report
+    for obs in x['observations']:
+        for quote in obs['source_evidence']:
+            assert quote and quote in report
+            quotes += 1
+    bindings.append({'case': y['case'], 'study_uid': uid, 'source_report_sha256': x['source_sha256'], 'source_batch_sha256': x['source_batch_sha256']})
+record = {
+    'stage': 'root_comparison_of_independent_source_quality_assessments',
+    'compared_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'reviewer': '/root',
+    'root_assessment_sha256': sha(B),
+    'independent_assessment_sha256': sha(A),
+    'verification_script_sha256': sha(Path(__file__)),
+    'root_read_complete_independent_assessment_after_both_freezes': True,
+    'source_binding_checks_passed': True,
+    'exact_quotes_verified': quotes,
+    'records': bindings,
+    'comparison': 'Both source readings find substantive findings and a terminal summary after the marker in all nine cases. Eight contain one apparent current report sequence. Case024:02 explicitly contains two unsided report sequences separated by a bilateral note. Its correspondence issue remains a separate release gate. The independent reading adds spelling/abbreviation and missing-source-provenance limits without materially contradicting root observations.',
+    'source_quality_disposition': 'Preserve the original text and marker as an unresolved provenance flag. The literal marker alone supplies no justified clinical-state change, automatic inclusion or automatic exclusion. Normal clinical review and correspondence gates still apply to every case. Do not infer a named institution, author, fabrication or upstream cause from shared wording.',
+    'independence_scope': 'Both readers disclosed prior source exposure. The independent assessor did not open root triage or existing annotation/technical conclusions before freezing. This is independent source-quality assessment, not nine first-ever source exposures or a new clinical diagnostic reread.',
+    'remaining': ['Finish clinical review where pending', 'Resolve024:02 image-to-report correspondence', 'Carry the provenance flag and explicit disposition into final release QA'],
+    'clinical_annotations_or_gold_modified': False,
+    'training_ready': False,
+}
+p = G / 'root-independent-source-comparison.json'
+assert not p.exists()
+p.write_text(json.dumps(record, indent=2) + '\n')
+print(json.dumps({'reports': 9, 'exact_quotes': quotes, 'comparison_sha256': sha(p), 'status': 'passed'}))
