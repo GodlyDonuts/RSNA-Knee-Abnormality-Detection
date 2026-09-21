@@ -1,0 +1,32 @@
+{
+  "stage": "independent_technical_source_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "source_path": "initiative/reviews/inputs/batch-024.json",
+  "source_batch_index": 2,
+  "source_batch_sha256": "e201eedc131a65120f5bbfcf9b1a2e993ddec590553e0aa9c533038ecc472f06",
+  "study_uid": "1.2.826.0.1.3680043.8.498.13460268079835549295338279322112693785",
+  "report_sha256": "ee6d9f0668e8f5b0538d866eaf731541ccd013466acfd0489b30c8a40c3ee721",
+  "full_source_report": "Technique: MRI of the knee. Results: Test report. MCL normal. ACL normal. Medial meniscus tear. Lateral meniscus mucoid degeneration. Chondromalacia of medial compartment. No baker's cyst. No effusion. Next to the tendon of popliteal muscle there is ganglion cyst. Intraatricular loose body in posterior recessus with signs of secondary synovial chondromatosis. Impression: Medial meniscus tear. Chondromalacia of medial compartment. . Intraatricular loose body in posterior recessus.\n\n[BILATERAL NOTE: two reports filed under this study]\n\nTechnique: MRI of the knee. ACL normal. MCL normal. Medial meniscus tear. Lateral meniscus normal. OA of all three compartments. No baker's cyst. No effusion. Pes anserinus bursitis. Conclusion: Medial meniscus tear. OA of all three compartments. Pes anserinus bursitis.",
+  "context": "Complete original source personally read before case headers/native images or any024 draft/review/flags. Parent disclosed two reports, bilateral-note marker and Test report prefix only. No gold values opened. This is a technical source-correspondence assessment, not clinical target annotation.",
+  "n_current_report_blocks": 2,
+  "side_localization": [
+    "not specified",
+    "not specified"
+  ],
+  "evidence": [
+    "Technique: MRI of the knee. Results: Test report.",
+    "[BILATERAL NOTE: two reports filed under this study]",
+    "Technique: MRI of the knee. ACL normal. MCL normal."
+  ],
+  "assessment": "Two distinct complete examination/result/conclusion blocks share a study, separated by the literal bilateral-note marker. Neither names left or right. They could represent two sides, duplicate/longitudinal documentation or mispaired records; wording does not identify which. Test report is a source-authenticity flag to compare with official bytes, not proof that clinical content is fabricated. No report should be discarded or selected from this phrase alone.",
+  "required_proof": [
+    "Exact official/archive/batch report correspondence.",
+    "Both lexical endpoints for every series from pinned inventory, source object size/UID/OID bindings, hashed patient/FoR and literal laterality fields.",
+    "If repeated/mixed acquisition sets are observed, every native DICOM verified and anatomy compared with recorded orientation before assigning any side.",
+    "Missing laterality never implies right. No clinical target changes from image diagnosis."
+  ],
+  "clinical_annotations_changed": 0
+}

@@ -1,0 +1,28 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T04:15:59.079093+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.15468179600399954478612037548577772269",
+  "source_batch_path": "initiative/reviews/inputs/batch-025.json",
+  "source_batch_sha256": "4f26619c75a598ce1c1773be65af081f715b0874e5e9f429218b877a90a05ed9",
+  "source_report_sha256": "cc98ac585b3b66fe0d526fdf1f9bea74a25143df80eb97b8edcf4187aee32d29",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-025-reviewed.jsonl",
+  "review_artifact_sha256": "17995e7b72beadeba68e50166232a68e457867b0d4d5eabb4da1d1e37a1e367a",
+  "decision": "Retain all 9 informative targets as uncertain and all other targets as unmentioned. No automatic report selection, label duplication or virtual study splitting. Raw source and gold unchanged.",
+  "findings": "Two complete current reports explicitly label right then left. The report field and entire train.csv are byte-identical in the archived source and existing root-obtained current authenticated Kaggle copy; no recovery corruption found. Six series form one coherent single-side-tagged acquisition set: axial PD FS, coronal PD FS, sagittal T2, sagittal PD FS, coronal T1 and an additional T1 sequence. All twelve sampled Laterality values are literal RIGHT; ImageLaterality and FrameLaterality are blank. SeriesNumbers3 through8, AcquisitionNumber1, one hashed PatientID, six hashed frames of reference. The two t1_se_cor_384 descriptions do not define two matching acquisitions: SeriesNumber6 has sagittal IOP agreeing with the other sagittal sequences, while SeriesNumber8 has coronal IOP. This is a description-orientation discrepancy, not proof of a second knee. No repeated full acquisition sets or mixed side tags are present.",
+  "root_verification": "Personally read full original source and independent technical assessment including every series record. Verified all bound file sizes/SHA, source identity, exact series/header counts, side fields and current twelve report masks. Previous source/header flags were disclosed, so this is not a blinded discovery.",
+  "limits": [
+    "RIGHT is preserved literally rather than silently normalized to the DICOM R value, and is header evidence rather than anatomical confirmation. Six separate frame-of-reference hashes limit direct cross-series coordinate comparison. Only lexical endpoint samples have been inspected; they are not necessarily geometric extremes, and unsampled slices could differ. No full-file source digest or native anatomy verified in this follow-up.",
+    "No native image viewing or anatomical laterality confirmation for this case. Absence of a repeated-set candidate does not prove one knee.",
+    "Existing current Kaggle source copy was obtained previously; no new download here."
+  ],
+  "evidence_files": {
+    "independent-header-review.json": "c75072726bb57f73ebcd34793451e96eab62f0cde13b82998b873086692c812d",
+    "independent-source-preread.json": "6ff1a18c0a185271b83c6d8a253b0dca8e194b8a691b95cbd02826cfd46196d9",
+    "source-copy-assessment.json": "724911df57f98098d38ef27c3b28076dcec503c2b8f4fcbdfb4a98bf9246aeb4",
+    "source-inventory.json": "279bc12f5a2510430f03bea059d09a89c8ca118cb304db6bb317032ac9207dcb",
+    "endpoint-headers.jsonl": "25b44088ea701559fe9fa6cfe69511605ff2c3eb6ac193127abe970dde7e3774",
+    "series-headers.json": "74439b8c757be14ff4966ebe3397bbaa2e24c4d8d0d0027ac57d214f147ed5e4",
+    "extract.py.txt": "3b86ba9bccebf66d726e7bc8428e38cb0de8ba8c5868510281e6e53cce384790"
+  },
+  "training_ready": false
+}

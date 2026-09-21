@@ -1,0 +1,688 @@
+{
+  "schema_version": 1,
+  "stage": "independent_technical_header_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "study_uid": "1.2.826.0.1.3680043.8.498.13460268079835549295338279322112693785",
+  "source_batch_index": 2,
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "source_batch_sha256": "e201eedc131a65120f5bbfcf9b1a2e993ddec590553e0aa9c533038ecc472f06",
+  "source_report_sha256": "ee6d9f0668e8f5b0538d866eaf731541ccd013466acfd0489b30c8a40c3ee721",
+  "input_bindings": [
+    {
+      "path": "recovered/initiative/reviews/inputs/batch-024.json",
+      "sha256": "e201eedc131a65120f5bbfcf9b1a2e993ddec590553e0aa9c533038ecc472f06",
+      "n_bytes": 74994
+    },
+    {
+      "path": "annotation-staging/bilateral02402-source-preread.json",
+      "sha256": "4af9164d127ac2d7a9a7fea93d3c0d217b8005fbc9840a06dd2cfdc3ef6fcd57",
+      "n_bytes": 3052
+    },
+    {
+      "path": "annotation-staging/bilateral02402-source-copy-assessment.json",
+      "sha256": "10d34e930115dbeddb8c1dcec36d06a6ab68dbb1bedff03fb20f2a5da20dd245",
+      "n_bytes": 976
+    },
+    {
+      "path": "annotation-staging/bilateral02402-source-inventory.json",
+      "sha256": "09661dbe9107655eb2b95dda4fd56fbc29dded616963cd8d3b0aae3272376721",
+      "n_bytes": 115890
+    },
+    {
+      "path": "annotation-staging/header-extract-024002.jsonl",
+      "sha256": "f0fa0db022f51da177e97b8b0772c7b7c7582b5375dde3169848567708cbe558",
+      "n_bytes": 28620
+    },
+    {
+      "path": "annotation-staging/bilateral02402-series-headers.json",
+      "sha256": "64934b1858bcbd77a5127630a15d48a12f8778967d321c097aaef1e8e048b92c",
+      "n_bytes": 12958
+    },
+    {
+      "path": "header-endpoint-full-v1/manifest.json",
+      "sha256": "7aa80f9ca6043d55b1fdab4e008739877e96273b5d9c2111114f5c10b2ed4c7a",
+      "n_bytes": 9513965
+    },
+    {
+      "path": "header_endpoint_survey.py",
+      "sha256": "206d82db7ddb7a3239119b022fe39150621673899f8757a8553b5ff6fce161ea",
+      "n_bytes": 26956
+    },
+    {
+      "path": "annotation-staging/bilateral02402-extract.py",
+      "sha256": "374e304d650e733222e82e31951be786699bc4030c1a92c82fc2f942dfad0f4e",
+      "n_bytes": 4184
+    }
+  ],
+  "independence": "Complete original024 source personally read and technical preread frozen before headers/native images or any024 annotations. Parent disclosed source-structure flags only. No024 draft/review, gold or clinical-target states consulted. No native images viewed or clinical annotations changed.",
+  "source_result": "Two complete unlocalized report blocks separated by the literal bilateral-note marker match the archived/current official report exactly. The full archived/current train.csv bytes also match. The first block contains literal Test report.; this is upstream source wording, not recovery corruption, and does not justify discarding the report as fabricated.",
+  "header_coverage": {
+    "n_expected_series": 7,
+    "n_series_with_both_endpoints": 7,
+    "n_expected_slices": 183,
+    "n_header_samples": 14,
+    "n_pixel_header_boundaries_reached": 14,
+    "n_full_dicom_files_verified": 0,
+    "n_native_pixel_decodes": 0,
+    "n_patient_id_hashes": 1,
+    "n_frame_of_reference_hashes": 7,
+    "expected_full_source_bytes": 96195584,
+    "transport_scope": "Checksummed survey payloads extracted read-only; source UID/size/LFS OID bindings and exact lexical first/last selection verified against pinned inventory. Prefix hashes are not independent full-file digests. No full raw DICOM/pixel downloads by this audit."
+  },
+  "series_records": [
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.10215254483285389434699913098277254104",
+      "n_inventory_slices": 27,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.993456, -0.105715, -0.0432441, 0.109593, 0.988929, 0.10004]",
+          "[0.993456, -0.105715, -0.0432442, 0.109593, 0.988929, 0.10004]"
+        ],
+        "ImagePositionPatient": [
+          "[-31.1675, -72.6594, 45.8159]",
+          "[-34.5003, -61.8811, -57.0674]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "GE MEDICAL SYSTEMS"
+        ],
+        "ManufacturerModelName": [
+          "SIGNA EXCITE"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3516, 0.3516]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          ""
+        ],
+        "SeriesNumber": [
+          "7"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3.5"
+        ],
+        "SoftwareVersions": [
+          "['12', 'LX', 'MR Software release:12.0_M5B_0846.d']"
+        ],
+        "SpacingBetweenSlices": [
+          "4.5"
+        ]
+      },
+      "patient_id_sha256": [
+        "f8c40d9506ff58747e8774f7bdc3a3ab8a2659f1d55a620bdd2d76d590c2fe74"
+      ],
+      "frame_of_reference_sha256": [
+        "3b891ff621b0d7148b050c7bddcf62d187245f1398f8f143b3ad008040aad15b"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.47123395599170166434705820763512813026",
+      "n_inventory_slices": 27,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.957766, -0.285105, -0.0374159, -0.0127569, 0.087925, -0.996045]"
+        ],
+        "ImagePositionPatient": [
+          "[-18.1298, 5.48065, 90.1238]",
+          "[-3.19195, 55.1123, 94.3133]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "GE MEDICAL SYSTEMS"
+        ],
+        "ManufacturerModelName": [
+          "SIGNA EXCITE"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3516, 0.3516]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          ""
+        ],
+        "SeriesNumber": [
+          "6"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['12', 'LX', 'MR Software release:12.0_M5B_0846.d']"
+        ],
+        "SpacingBetweenSlices": [
+          "4"
+        ]
+      },
+      "patient_id_sha256": [
+        "f8c40d9506ff58747e8774f7bdc3a3ab8a2659f1d55a620bdd2d76d590c2fe74"
+      ],
+      "frame_of_reference_sha256": [
+        "127368f822feffed7dacba09827031f2b4c1d31ea9f622106e2b7e6588f3ab73"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.48900108950423597673145391859397003145",
+      "n_inventory_slices": 27,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.957766, -0.285105, -0.0374159, -0.0127569, 0.0879249, -0.996045]",
+          "[0.957766, -0.285105, -0.0374159, -0.0127569, 0.087925, -0.996045]"
+        ],
+        "ImagePositionPatient": [
+          "[-14.6826, 16.9341, 91.0906]",
+          "[-29.6204, -32.6976, 86.901]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "GE MEDICAL SYSTEMS"
+        ],
+        "ManufacturerModelName": [
+          "SIGNA EXCITE"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3516, 0.3516]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          ""
+        ],
+        "SeriesNumber": [
+          "3"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['12', 'LX', 'MR Software release:12.0_M5B_0846.d']"
+        ],
+        "SpacingBetweenSlices": [
+          "4"
+        ]
+      },
+      "patient_id_sha256": [
+        "f8c40d9506ff58747e8774f7bdc3a3ab8a2659f1d55a620bdd2d76d590c2fe74"
+      ],
+      "frame_of_reference_sha256": [
+        "832c8a978c8757e44bd2e8a09c9c71dbb8ffb02f4214f0b85b380e3e90e5b4be"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.62390065207864135058159367747705940540",
+      "n_inventory_slices": 27,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.993456, -0.105715, -0.0432441, 0.109593, 0.988929, 0.10004]"
+        ],
+        "ImagePositionPatient": [
+          "[-32.4716, -68.4418, 5.55726]",
+          "[-34.6452, -61.4124, -61.5405]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "GE MEDICAL SYSTEMS"
+        ],
+        "ManufacturerModelName": [
+          "SIGNA EXCITE"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3516, 0.3516]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          ""
+        ],
+        "SeriesNumber": [
+          "8"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3.5"
+        ],
+        "SoftwareVersions": [
+          "['12', 'LX', 'MR Software release:12.0_M5B_0846.d']"
+        ],
+        "SpacingBetweenSlices": [
+          "4.5"
+        ]
+      },
+      "patient_id_sha256": [
+        "f8c40d9506ff58747e8774f7bdc3a3ab8a2659f1d55a620bdd2d76d590c2fe74"
+      ],
+      "frame_of_reference_sha256": [
+        "1fa9bcc86208292b43ca4a98de97c203421481842fcd3a3c220ec39bb704c009"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.64097085960416918228305920834693079589",
+      "n_inventory_slices": 24,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.200473, 0.979692, -0.00363163, -0.0432141, 0.00512712, -0.999053]",
+          "[0.200473, 0.979692, -0.00363163, -0.0432142, 0.00512712, -0.999053]"
+        ],
+        "ImagePositionPatient": [
+          "[111.578, -91.8177, 95.0667]",
+          "[95.9183, -88.6106, 95.7608]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "GE MEDICAL SYSTEMS"
+        ],
+        "ManufacturerModelName": [
+          "SIGNA EXCITE"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3516, 0.3516]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          ""
+        ],
+        "SeriesNumber": [
+          "2"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['12', 'LX', 'MR Software release:12.0_M5B_0846.d']"
+        ],
+        "SpacingBetweenSlices": [
+          "4"
+        ]
+      },
+      "patient_id_sha256": [
+        "f8c40d9506ff58747e8774f7bdc3a3ab8a2659f1d55a620bdd2d76d590c2fe74"
+      ],
+      "frame_of_reference_sha256": [
+        "24454ac1ded9d1d38f5343c09a0702762246c6cd67a7f1db4e867f65746c12e4"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.66386686775701547745538907266652789270",
+      "n_inventory_slices": 24,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.200473, 0.979692, -0.00363163, -0.0432142, 0.00512712, -0.999053]"
+        ],
+        "ImagePositionPatient": [
+          "[111.578, -91.8177, 95.0667]",
+          "[115.493, -92.6195, 94.8932]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "GE MEDICAL SYSTEMS"
+        ],
+        "ManufacturerModelName": [
+          "SIGNA EXCITE"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3516, 0.3516]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          ""
+        ],
+        "SeriesNumber": [
+          "5"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['12', 'LX', 'MR Software release:12.0_M5B_0846.d']"
+        ],
+        "SpacingBetweenSlices": [
+          "4"
+        ]
+      },
+      "patient_id_sha256": [
+        "f8c40d9506ff58747e8774f7bdc3a3ab8a2659f1d55a620bdd2d76d590c2fe74"
+      ],
+      "frame_of_reference_sha256": [
+        "db732041d15f5e35bf842ce23076513148f515322d512dc83d5746df09c95db0"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.82569189050563393890210481562695236315",
+      "n_inventory_slices": 27,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.993456, -0.105715, -0.0432441, 0.109593, 0.988929, 0.10004]",
+          "[0.993456, -0.105715, -0.0432442, 0.109593, 0.988929, 0.10004]"
+        ],
+        "ImagePositionPatient": [
+          "[-33.0512, -66.5673, -12.3355]",
+          "[-33.341, -65.6301, -21.2819]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "GE MEDICAL SYSTEMS"
+        ],
+        "ManufacturerModelName": [
+          "SIGNA EXCITE"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3516, 0.3516]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          ""
+        ],
+        "SeriesNumber": [
+          "4"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3.5"
+        ],
+        "SoftwareVersions": [
+          "['12', 'LX', 'MR Software release:12.0_M5B_0846.d']"
+        ],
+        "SpacingBetweenSlices": [
+          "4.5"
+        ]
+      },
+      "patient_id_sha256": [
+        "f8c40d9506ff58747e8774f7bdc3a3ab8a2659f1d55a620bdd2d76d590c2fe74"
+      ],
+      "frame_of_reference_sha256": [
+        "25d942d123608c11d804397dff3de8ee3f573bb154f8153fa434d63b7d27c298"
+      ]
+    }
+  ],
+  "candidate_flags": {
+    "mixed_explicit_laterality": false,
+    "all_laterality_fields_missing": true,
+    "mixed_patient_id": false,
+    "repeated_complete_acquisition_set_candidate": false,
+    "source_correspondence_unresolved": true,
+    "all_series_descriptions_missing": true,
+    "literal_Test_report_upstream_source": true,
+    "multiple_sequences_per_plane_without_contrast_description": true
+  },
+  "header_assessment": "Seven endpoint-complete series have consecutive SeriesNumbers2 through8, AcquisitionNumber1, one hashed PatientID and seven frame-of-reference hashes. All three laterality fields and every SeriesDescription are blank. Recorded IOP groups are coherent across two sagittal series(2,5), two coronal series(3,6) and three axial series(4,7,8), with only rounding differences. Some corresponding endpoint IPPs are identical between the sagittal series. These repeated planes plausibly represent multiple contrasts/repeats in one acquisition protocol; missing descriptions prevent assigning contrasts. There are no distinct opposed-orientation side groups, mixed laterality values or duplicate complete acquisition sets demonstrable from these headers. Thus no bilateral image candidate is established solely by the seven-series count.",
+  "geometry_limits": "Blank tags never imply right. Matching orientations alone do not prove one knee, particularly with separate frame-of-reference hashes and missing sequence descriptions. Repeated planes may be different contrasts or repeated acquisitions; endpoint metadata cannot distinguish all possibilities. Lexical endpoints are not necessarily geometric extremes. No full-file source digest or native anatomy verified in this follow-up.",
+  "native_followup": {
+    "launched": false,
+    "reason": "No repeated complete acquisition sets or mixed/opposed side groups established in endpoint headers. Coherent protocol and missing/noncanonical tags leave source correspondence unresolved; assigned conditional full-pixel trigger not met."
+  },
+  "recommendation": "Preserve both unlocalized source reports and retain informative masks/whole-study exclusion from single-knee weak-label training until a reviewed correspondence decision resolves side or report chronology. Do not choose the second report, infer laterality or discard the first based on Test report. alone.",
+  "clinical_annotations_changed": 0,
+  "source_or_runtime_code_modified": false
+}

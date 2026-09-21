@@ -1,0 +1,657 @@
+"""Bounded, resumable endpoint-header survey. Never writes image pixel bytes."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import io
+import json
+import logging
+import os
+import re
+import sqlite3
+import threading
+import time
+import warnings
+from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+import pyarrow.dataset as pads
+import pydicom
+import requests
+from pydicom.datadict import tag_for_keyword
+from pydicom.filereader import _read_file_meta_info, read_partial, read_preamble
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+VERSION = 1
+PREFIX_SIZES = (65536, 262144, 1048576)
+PIXEL_TAGS = {0x7FE00010, 0x7FE00008, 0x7FE00009}
+FIELDS = [
+    "Laterality",
+    "ImageLaterality",
+    "FrameLaterality",
+    "SeriesDescription",
+    "SeriesNumber",
+    "AcquisitionNumber",
+    "SeriesTime",
+    "AcquisitionTime",
+    "PatientPosition",
+    "ImagePositionPatient",
+    "ImageOrientationPatient",
+    "PixelSpacing",
+    "SliceThickness",
+    "SpacingBetweenSlices",
+    "Manufacturer",
+    "ManufacturerModelName",
+    "SoftwareVersions",
+    "Rows",
+    "Columns",
+    "PhotometricInterpretation",
+    "PixelRepresentation",
+    "RescaleSlope",
+    "RescaleIntercept",
+]
+UID_FIELDS = ("StudyInstanceUID", "SeriesInstanceUID", "SOPInstanceUID")
+INVENTORY_COLUMNS = ["path", "study_uid", "series_uid", "sop_uid", "sha256", "bytes", "storage"]
+
+
+class SurveyError(Exception):
+    """Only controlled, nonsecret error codes are recorded."""
+
+
+class PrefixIncomplete(SurveyError):
+    pass
+
+
+class StrictPrefix(io.BytesIO):
+    """Prevent a skipped/truncated value from masquerading as parsed header."""
+
+    def __init__(self, data: bytes):
+        super().__init__(data)
+        self.size = len(data)
+
+    def read(self, size: int = -1) -> bytes:
+        if size >= 0 and self.tell() + size > self.size:
+            raise PrefixIncomplete("prefix_ends_before_requested_value")
+        return super().read(size)
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        destination = (
+            offset if whence == 0 else self.tell() + offset if whence == 1 else self.size + offset
+        )
+        if destination < 0 or destination > self.size:
+            raise PrefixIncomplete("seek_beyond_prefix")
+        return super().seek(offset, whence)
+
+
+def digest(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def canonical(value: object) -> bytes:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+
+
+def file_hash(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def parse_prefix(data: bytes, expected: dict) -> dict:
+    # read_partial inflates an entire deflated dataset. Reject that transfer syntax
+    # before invoking it; no unbounded decompression or fallback full download.
+    check = StrictPrefix(data)
+    read_preamble(check, force=False)
+    meta = _read_file_meta_info(check)
+    syntax = str(meta.get("TransferSyntaxUID", ""))
+    if not syntax:
+        raise SurveyError("missing_transfer_syntax")
+    if syntax == str(pydicom.uid.DeflatedExplicitVRLittleEndian):
+        raise SurveyError("deflated_transfer_syntax_requires_separate_review")
+    stream = StrictPrefix(data)
+    reached = {}
+
+    def stop_when(tag, vr, length):
+        if int(tag) in PIXEL_TAGS:
+            reached.update(
+                tag=f"{int(tag):08x}",
+                vr=vr,
+                declared_length=int(length),
+                value_offset=stream.tell(),
+            )
+            return True
+        return False
+
+    tags = [tag_for_keyword(k) for k in [*FIELDS, *UID_FIELDS, "PatientID", "FrameOfReferenceUID"]]
+    selected_tags = [int(tag) for tag in tags if tag is not None]
+    ds = read_partial(stream, stop_when=stop_when, specific_tags=selected_tags, force=False)
+    if not reached:
+        raise PrefixIncomplete("pixel_data_header_not_reached")
+    if any(int(tag) in ds for tag in PIXEL_TAGS):
+        raise SurveyError("pixel_data_retained_unexpectedly")
+    for keyword, column in zip(UID_FIELDS, ("study_uid", "series_uid", "sop_uid")):
+        if str(ds.get(keyword, "")) != expected[column]:
+            raise SurveyError(f"{column}_mismatch")
+    patient = str(ds.get("PatientID", ""))
+    frame = str(ds.get("FrameOfReferenceUID", ""))
+    return {
+        "header_fields": {key: str(ds.get(key, "")) for key in FIELDS},
+        "patient_id_sha256": digest(patient.encode()),
+        "patient_id_present": bool(patient),
+        "frame_of_reference_sha256": digest(frame.encode()),
+        "frame_of_reference_present": bool(frame),
+        "transfer_syntax_uid": syntax,
+        "pixel_data_header": reached,
+        "reached_pixel_data_header": True,
+    }
+
+
+class ThreadSessions(threading.local):
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.mount(
+            "https://",
+            HTTPAdapter(
+                max_retries=Retry(
+                    total=3,
+                    backoff_factor=1,
+                    status_forcelist=[429, 500, 502, 503, 504],
+                    allowed_methods=["GET", "POST"],
+                    respect_retry_after_header=True,
+                )
+            ),
+        )
+
+
+HTTP = ThreadSessions()
+
+
+def read_range_response(response, total: int, count: int) -> bytes:
+    if response.status_code != 206:
+        raise SurveyError(f"range_status_{response.status_code}")
+    if response.headers.get("Content-Encoding", "identity").lower() not in ("identity", ""):
+        raise SurveyError("nonidentity_content_encoding")
+    match = re.fullmatch(r"bytes (\d+)-(\d+)/(\d+)", response.headers.get("Content-Range", ""))
+    if not match or tuple(map(int, match.groups())) != (0, count - 1, total):
+        raise SurveyError("content_range_mismatch")
+    length = response.headers.get("Content-Length")
+    if length is not None and length != str(count):
+        raise SurveyError("content_length_mismatch")
+    response.raw.decode_content = False
+    value = response.raw.read(count + 1)
+    if len(value) != count:
+        raise SurveyError("range_body_length_mismatch")
+    return value
+
+
+def fetch_endpoint(expected: dict, action: dict) -> dict:
+    history = []
+    attempted = set()
+    for cap in PREFIX_SIZES:
+        count = min(cap, int(expected["bytes"]))
+        if count in attempted:
+            continue
+        attempted.add(count)
+        headers = {
+            **action.get("header", {}),
+            "Range": f"bytes=0-{count - 1}",
+            "Accept-Encoding": "identity",
+        }
+        # Never print or persist signed action URLs, authorization or raw exceptions.
+        with HTTP.session.get(
+            action["href"], headers=headers, timeout=(20, 60), stream=True
+        ) as response:
+            data = read_range_response(response, int(expected["bytes"]), count)
+        prefix_sha = digest(data)
+        if count == int(expected["bytes"]) and prefix_sha != expected["sha256"]:
+            raise SurveyError("complete_small_file_sha256_mismatch")
+        history.append({"prefix_bytes": count, "prefix_sha256": prefix_sha})
+        try:
+            parsed = parse_prefix(data, expected)
+        except PrefixIncomplete:
+            continue
+        return {
+            "source_path": expected["path"],
+            "study_uid": expected["study_uid"],
+            "series_uid": expected["series_uid"],
+            "sop_uid": expected["sop_uid"],
+            "source_sha256": expected["sha256"],
+            "source_bytes": int(expected["bytes"]),
+            "storage": expected["storage"],
+            "prefix_bytes": count,
+            "prefix_sha256": prefix_sha,
+            "full_file_sha256_verified": count == int(expected["bytes"]),
+            "verification_scope": "complete_file_sha256"
+            if count == int(expected["bytes"])
+            else "range_transport_and_uid_binding_only",
+            "prefix_attempts": history,
+            **parsed,
+        }
+    raise SurveyError("header_exceeds_prefix_budget_or_file_incomplete")
+
+
+def inventory_endpoints(root: Path, study_uid: str | None) -> tuple[list[dict], dict]:
+    files = sorted(root.rglob("*.parquet")) if root.is_dir() else [root]
+    if not files:
+        raise SurveyError("inventory_files_missing")
+    bindings = [
+        {
+            "path": str(p.relative_to(root)) if root.is_dir() else p.name,
+            "bytes": p.stat().st_size,
+            "sha256": file_hash(p),
+        }
+        for p in files
+    ]
+    dataset = pads.dataset(root, format="parquet")
+    per_series = {}
+    counts = Counter()
+    for batch in dataset.scanner(columns=INVENTORY_COLUMNS, batch_size=4096).to_batches():
+        for row in batch.to_pylist():
+            counts["inventory_slices"] += 1
+            key = (row["study_uid"], row["series_uid"])
+            parts = Path(row["path"]).parts
+            if (
+                len(parts) != 4
+                or parts[0] not in {"train_series", "test_series"}
+                or parts[1:3] != key
+                or Path(parts[3]).stem != row["sop_uid"]
+                or not row["path"].endswith(".dcm")
+            ):
+                raise SurveyError("inventory_uid_path_mismatch")
+            if (
+                not re.fullmatch("[0-9a-f]{64}", row["sha256"])
+                or row["bytes"] <= 0
+                or row["storage"] not in {"lfs", "git"}
+            ):
+                raise SurveyError("invalid_inventory_object_binding")
+            if key not in per_series:
+                per_series[key] = {"first": row, "last": row, "n_slices": 1}
+            else:
+                item = per_series[key]
+                item["n_slices"] += 1
+                if row["sop_uid"] < item["first"]["sop_uid"]:
+                    item["first"] = row
+                if row["sop_uid"] > item["last"]["sop_uid"]:
+                    item["last"] = row
+    endpoints = []
+    selected_series = []
+    for (study, series), item in sorted(per_series.items()):
+        if study_uid is not None and study != study_uid:
+            continue
+        selected_series.append(
+            {
+                "study_uid": study,
+                "series_uid": series,
+                "n_slices": item["n_slices"],
+                "first_sop_uid": item["first"]["sop_uid"],
+                "last_sop_uid": item["last"]["sop_uid"],
+            }
+        )
+        endpoints.append(item["first"])
+        if item["last"]["sop_uid"] != item["first"]["sop_uid"]:
+            endpoints.append(item["last"])
+    if not endpoints:
+        raise SurveyError("no_selected_endpoints")
+    counts["inventory_series"] = len(per_series)
+    counts["inventory_studies"] = len({key[0] for key in per_series})
+    return endpoints, {
+        "inventory_files": bindings,
+        "inventory_files_fingerprint": digest(canonical(bindings)),
+        **counts,
+        "selected_series": selected_series,
+    }
+
+
+def actions_for(rows: list[dict], repo_id: str, revision: str) -> dict:
+    token = os.environ.get("HF_TOKEN")
+    auth = {"Authorization": f"Bearer {token}"} if token else {}
+    objects = {
+        r["sha256"]: {"oid": r["sha256"], "size": int(r["bytes"])}
+        for r in rows
+        if r["storage"] == "lfs"
+    }
+    actions = {}
+    if objects:
+        with HTTP.session.post(
+            f"https://huggingface.co/datasets/{repo_id}.git/info/lfs/objects/batch",
+            headers={
+                **auth,
+                "Accept": "application/vnd.git-lfs+json",
+                "Content-Type": "application/vnd.git-lfs+json",
+            },
+            json={
+                "operation": "download",
+                "transfers": ["basic"],
+                "objects": list(objects.values()),
+            },
+            timeout=(20, 60),
+        ) as response:
+            if response.status_code != 200:
+                raise SurveyError(f"lfs_batch_status_{response.status_code}")
+            payload = response.json()
+        for obj in payload.get("objects", []):
+            oid = obj.get("oid")
+            if oid not in objects or obj.get("size") != objects[oid]["size"] or "error" in obj:
+                raise SurveyError("lfs_batch_object_binding_mismatch")
+            action = obj.get("actions", {}).get("download", {})
+            if not action.get("href", "").startswith("https://"):
+                raise SurveyError("invalid_download_action")
+            actions[oid] = action
+        if set(actions) != set(objects):
+            raise SurveyError("lfs_batch_membership_mismatch")
+    return {
+        r["path"]: actions[r["sha256"]]
+        if r["storage"] == "lfs"
+        else {
+            "href": f"https://huggingface.co/datasets/{repo_id}/resolve/{revision}/{r['path']}",
+            "header": auth,
+        }
+        for r in rows
+    }
+
+
+def save_json(path: Path, value: object) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    temporary.replace(path)
+
+
+def summarize(records: list[dict], manifest: dict) -> dict:
+    by_series = defaultdict(list)
+    by_study = defaultdict(list)
+    for record in records:
+        by_series[record["series_uid"]].append(record)
+        by_study[record["study_uid"]].append(record)
+    series_mismatches = []
+    for uid, group in sorted(by_series.items()):
+        differences = {}
+        for key in ["Laterality", "ImageLaterality", "FrameLaterality"]:
+            values = sorted({r["header_fields"][key] for r in group})
+            if len(values) > 1:
+                differences[key] = values
+        ids = sorted({r["patient_id_sha256"] for r in group if r["patient_id_present"]})
+        if len(ids) > 1:
+            differences["patient_id_sha256"] = ids
+        if len({r["patient_id_present"] for r in group}) > 1:
+            differences["patient_id_blank_and_filled"] = True
+        if differences:
+            series_mismatches.append(
+                {"series_uid": uid, "study_uid": group[0]["study_uid"], "differences": differences}
+            )
+    study_flags = []
+    for uid, group in sorted(by_study.items()):
+        sides = sorted(
+            {
+                r["header_fields"][k]
+                for r in group
+                for k in ["Laterality", "ImageLaterality", "FrameLaterality"]
+                if r["header_fields"][k]
+            }
+        )
+        patient_ids = sorted({r["patient_id_sha256"] for r in group if r["patient_id_present"]})
+        laterality = sorted({r["header_fields"]["Laterality"] for r in group})
+        patient_id_blank_and_filled = len({r["patient_id_present"] for r in group}) > 1
+        side_tag_values = {
+            key: sorted({r["header_fields"][key] for r in group})
+            for key in ["Laterality", "ImageLaterality", "FrameLaterality"]
+        }
+        side_tags_blank_and_filled = [
+            key for key, values in side_tag_values.items() if "" in values and len(values) > 1
+        ]
+        nonunilateral_values = [value for value in sides if value not in {"L", "R"}]
+        descriptions = defaultdict(set)
+        for r in group:
+            if r["header_fields"]["SeriesDescription"]:
+                descriptions[r["header_fields"]["SeriesDescription"]].add(r["series_uid"])
+        repeated = {key: sorted(values) for key, values in descriptions.items() if len(values) > 1}
+        repeated_set_candidate = len(repeated) >= 3
+        if (
+            len(sides) > 1
+            or len(patient_ids) > 1
+            or patient_id_blank_and_filled
+            or side_tags_blank_and_filled
+            or nonunilateral_values
+            or repeated_set_candidate
+        ):
+            study_flags.append(
+                {
+                    "study_uid": uid,
+                    "nonempty_side_values": sides,
+                    "mixed_nonempty_side_values": len(sides) > 1,
+                    "patient_id_sha256_values": patient_ids,
+                    "mixed_nonempty_patient_ids": len(patient_ids) > 1,
+                    "patient_id_blank_and_filled": patient_id_blank_and_filled,
+                    "laterality_blank_and_filled": "" in laterality and len(laterality) > 1,
+                    "side_tag_values": side_tag_values,
+                    "side_tags_blank_and_filled": side_tags_blank_and_filled,
+                    "nonunilateral_or_unrecognized_side_values": nonunilateral_values,
+                    "repeated_acquisition_set_candidate": repeated_set_candidate,
+                    "repeated_sequence_descriptions": repeated,
+                    "candidate_only_requires_source_geometry_review": True,
+                }
+            )
+    return {
+        "survey_version": VERSION,
+        "source_revision": manifest["source_revision"],
+        "inventory_series": manifest["inventory_series"],
+        "inventory_slices": manifest["inventory_slices"],
+        "selected_series": len(manifest["selected_series"]),
+        "selected_endpoints": manifest["n_endpoints"],
+        "successful_endpoints": len(records),
+        "complete_endpoint_coverage": len(records) == manifest["n_endpoints"],
+        "full_slice_header_coverage": False,
+        "full_pixel_audit": False,
+        "prefix_bytes_downloaded_for_successes": sum(
+            sum(x["prefix_bytes"] for x in r["prefix_attempts"]) for r in records
+        ),
+        "successful_prefix_size_counts": dict(Counter(str(r["prefix_bytes"]) for r in records)),
+        "endpoints_with_full_file_sha256_verified": sum(
+            r["full_file_sha256_verified"] for r in records
+        ),
+        "series_endpoint_mismatches": series_mismatches,
+        "study_candidates": study_flags,
+        "limits": [
+            "Lexical first/last SOP UIDs are not spatial endpoints and do not exhaust within-series variation.",
+            "Prefix hashes authenticate the received prefix locally, not the full LFS object. Source OID, expected size, transport range and all three UIDs are bound; complete-file SHA verified only when entire small file was received.",
+            "Missing laterality never implies right; repeated sequence descriptions may be ordinary repeat acquisitions. Candidate flags do not establish bilateral anatomy, diagnostic labels, or training inclusion.",
+            "Whitelisted header fields are read only before PixelData; fields after PixelData, enhanced per-frame nested metadata and unselected middle slices are outside coverage. No pixel arrays decoded or stored.",
+        ],
+    }
+
+
+def pilot_compare(records: list[dict], reference: Path) -> dict:
+    expected = {
+        row["source_path"]: row
+        for line in reference.read_text().splitlines()
+        if (row := json.loads(line))
+    }
+    mismatches = []
+    for row in records:
+        base = expected.get(row["source_path"])
+        if base is None:
+            mismatches.append({"source_path": row["source_path"], "field": "missing_reference"})
+            continue
+        for key in [
+            "study_uid",
+            "series_uid",
+            "sop_uid",
+            "source_sha256",
+            "header_fields",
+            "patient_id_sha256",
+            "frame_of_reference_sha256",
+        ]:
+            if row[key] != base[key]:
+                mismatches.append({"source_path": row["source_path"], "field": key})
+    return {
+        "reference_path": str(reference),
+        "reference_sha256": file_hash(reference),
+        "selected_endpoints_compared": len(records),
+        "exact_selected_field_matches": len(records) - len({m["source_path"] for m in mismatches}),
+        "mismatches": mismatches,
+        "scope": "All whitelisted technical fields, three UIDs, source LFS SHA and PatientID/FoR hashes match full-file reference. Prefix SHA is not compared to full-file/pixel SHA, which describe different bytes.",
+    }
+
+
+def run(args) -> dict:
+    if not 1 <= args.workers <= 8:
+        raise SurveyError("workers_must_be_1_to_8")
+    if not re.fullmatch("[0-9a-f]{40}", args.source_revision):
+        raise SurveyError("source_revision_must_be_pinned_commit")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", args.repo_id):
+        raise SurveyError("invalid_repo_id")
+    endpoints, inventory = inventory_endpoints(args.inventory, args.study_uid)
+    manifest = {
+        **inventory,
+        "survey_version": VERSION,
+        "source_revision": args.source_revision,
+        "repo_id": args.repo_id,
+        "script_sha256": file_hash(Path(__file__)),
+        "pydicom_version": pydicom.__version__,
+        "prefix_sizes": list(PREFIX_SIZES),
+        "selection": {"kind": "lexical_first_and_last_sop_per_series", "study_uid": args.study_uid},
+        "n_endpoints": len(endpoints),
+        "endpoints_sha256": digest(canonical(endpoints)),
+        "fields": FIELDS,
+    }
+    args.output.mkdir(parents=True, exist_ok=True)
+    manifest_path = args.output / "manifest.json"
+    if manifest_path.exists():
+        if json.loads(manifest_path.read_text()) != manifest:
+            raise SurveyError("resume_manifest_binding_mismatch_use_fresh_output")
+    else:
+        if (args.output / "checkpoint.sqlite3").exists():
+            raise SurveyError("checkpoint_without_manifest")
+        save_json(manifest_path, manifest)
+    db = sqlite3.connect(args.output / "checkpoint.sqlite3")
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS records (path TEXT PRIMARY KEY, payload TEXT NOT NULL, sha256 TEXT NOT NULL)"
+    )
+    db.execute("CREATE TABLE IF NOT EXISTS failures (path TEXT PRIMARY KEY, code TEXT NOT NULL)")
+    complete = {}
+    lookup = {r["path"]: r for r in endpoints}
+    for path, payload, sha in db.execute("SELECT path,payload,sha256 FROM records"):
+        if digest(payload.encode()) != sha or path not in lookup:
+            raise SurveyError("resume_record_checksum_or_membership_mismatch")
+        record = json.loads(payload)
+        binding = lookup[path]
+        if (
+            any(
+                record[key] != binding[column]
+                for key, column in [
+                    ("source_sha256", "sha256"),
+                    ("source_bytes", "bytes"),
+                    ("study_uid", "study_uid"),
+                    ("series_uid", "series_uid"),
+                    ("sop_uid", "sop_uid"),
+                ]
+            )
+            or not record["reached_pixel_data_header"]
+        ):
+            raise SurveyError("resume_source_binding_mismatch")
+        complete[path] = record
+    remaining = [r for r in endpoints if r["path"] not in complete]
+    start = time.monotonic()
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        for offset in range(0, len(remaining), 64):
+            block = remaining[offset : offset + 64]
+            actions = actions_for(block, args.repo_id, args.source_revision)
+            futures = [
+                (row, pool.submit(fetch_endpoint, row, actions[row["path"]])) for row in block
+            ]
+            for row, future in futures:
+                try:
+                    record = future.result()
+                except Exception as exc:
+                    code = str(exc) if isinstance(exc, SurveyError) else type(exc).__name__
+                    db.execute("INSERT OR REPLACE INTO failures VALUES (?,?)", (row["path"], code))
+                    db.commit()
+                else:
+                    payload = canonical(record).decode()
+                    db.execute(
+                        "INSERT INTO records VALUES (?,?,?)",
+                        (row["path"], payload, digest(payload.encode())),
+                    )
+                    db.execute("DELETE FROM failures WHERE path=?", (row["path"],))
+                    db.commit()
+                    complete[row["path"]] = record
+            print(
+                json.dumps(
+                    {
+                        "completed_endpoints": len(complete),
+                        "selected_endpoints": len(endpoints),
+                        "elapsed_seconds": round(time.monotonic() - start, 1),
+                    }
+                ),
+                flush=True,
+            )
+    records = [complete[path] for path in sorted(complete)]
+    summary = summarize(records, manifest)
+    summary["failures"] = [
+        {"source_path": path, "code": code}
+        for path, code in db.execute("SELECT path,code FROM failures ORDER BY path")
+    ]
+    db.close()
+    output = args.output / "endpoint-headers.jsonl"
+    temporary = output.with_suffix(".jsonl.tmp")
+    temporary.write_text(
+        "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in records)
+    )
+    temporary.replace(output)
+    summary["endpoint_artifact_sha256"] = file_hash(output)
+    summary["manifest_sha256"] = file_hash(manifest_path)
+    if args.compare_full_headers:
+        summary["pilot_comparison"] = pilot_compare(records, args.compare_full_headers)
+        if summary["pilot_comparison"]["mismatches"]:
+            summary["pilot_validation_passed"] = False
+        else:
+            summary["pilot_validation_passed"] = summary["complete_endpoint_coverage"]
+    save_json(args.output / "summary.json", summary)
+    return summary
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--inventory", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--source-revision", required=True)
+    parser.add_argument("--repo-id", default="GodlyDonuts/RSNA-Data")
+    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--study-uid")
+    parser.add_argument("--compare-full-headers", type=Path)
+    parser.add_argument("--env-file", type=Path)
+    args = parser.parse_args()
+    if args.env_file:
+        from dotenv import load_dotenv
+
+        load_dotenv(args.env_file)
+    logging.getLogger("pydicom").setLevel(logging.CRITICAL)
+    logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+    warnings.filterwarnings("ignore", module=r"pydicom(\..*)?")
+    try:
+        summary = run(args)
+    except Exception as exc:
+        code = str(exc) if isinstance(exc, SurveyError) else type(exc).__name__
+        print(json.dumps({"fatal_error_code": code}), flush=True)
+        raise SystemExit(2) from None
+    print(
+        json.dumps(
+            {
+                "complete_endpoint_coverage": summary["complete_endpoint_coverage"],
+                "successful_endpoints": summary["successful_endpoints"],
+                "failures": len(summary["failures"]),
+                "pilot_validation_passed": summary.get("pilot_validation_passed"),
+            }
+        ),
+        flush=True,
+    )
+    if not summary["complete_endpoint_coverage"] or summary.get("pilot_validation_passed") is False:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

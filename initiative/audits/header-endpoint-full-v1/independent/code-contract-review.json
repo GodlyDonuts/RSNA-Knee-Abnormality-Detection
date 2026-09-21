@@ -1,0 +1,43 @@
+{
+  "stage": "independent_survey_code_contract_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "survey_script_sha256": "206d82db7ddb7a3239119b022fe39150621673899f8757a8553b5ff6fce161ea",
+  "manifest_sha256": "7aa80f9ca6043d55b1fdab4e008739877e96273b5d9c2111114f5c10b2ed4c7a",
+  "validator_sha256": "73a5614640088f758aa505de3120b1ed17429e139a7d9e0d8e43f5735f6094d2",
+  "validator_test_sha256": "c1ccc6e1a095a4d7ba64d9879abb90b5ec8d4a61de3e33968942099f4f58fd7c",
+  "focused_tests_passed": 18,
+  "final_endpoint_validation_status": "pending_final_artifacts",
+  "inventory_validation_sha256": "51dab61c530c27b9b111ceee00f2d7c146d19e418308a318733903b5636a0387",
+  "findings": [
+    {
+      "topic": "Bounded transport and header termination",
+      "result": "Strict206 response, exact Content-Range start/end/total, expected Content-Length when supplied, byte count and identity encoding enforced. Strict stream prevents skipping past received prefix and records a stop at PixelData. Deflated transfer syntax is explicitly rejected before decompression."
+    },
+    {
+      "topic": "Source/object identity",
+      "result": "All three UIDs checked in parsed headers; pinned inventory supplies expected full size and SHA256/LFS OID, with LFS batch object membership/size checked. Full-file SHA is checked only if complete small object received."
+    },
+    {
+      "topic": "Resumption and final summary",
+      "result": "Manifest binds selection, inventory hashes, revision and code. Checkpoint payload digests are verified on resume; final summary count alone is insufficient independent membership proof, so separate validator checks unique exact inventory endpoints and full success/failure partition against checkpoint."
+    },
+    {
+      "topic": "Additional independent metadata checks",
+      "result": "Original summary handles within-series side/PatientID differences and within-study candidates. Independent validation additionally joins hashed PatientID across studies, checks source-sized pixel boundary feasibility, flags description/IOP plane disagreements and selected header geometry variations. These are candidate signals, not automatic conclusions."
+    },
+    {
+      "topic": "Unavoidable stored-evidence limits",
+      "result": "Raw prefix bytes are discarded. Final audit can verify file/checkpoint integrity and recorded prefix-history consistency, but cannot recompute most prefix digests or authenticate unreceived full-file suffixes. Top-level whitelist excludes nested per-frame metadata, post-PixelData fields and middle slices."
+    }
+  ],
+  "geometry_reference": {
+    "title": "DICOM PS3.3 2026d C.7.6.2 Image Plane Module",
+    "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.2.html",
+    "reviewed_date": "2026-09-21",
+    "use": "Row/column direction cosines define the image plane; unit/orthogonality constraints and vector cross product determine plane normal. Independent0.90 dominance and0.002 numeric tolerances are conservative candidate-extraction choices, not a DICOM classification standard."
+  },
+  "live_job_or_script_modified": false,
+  "clinical_values_accessed": false
+}

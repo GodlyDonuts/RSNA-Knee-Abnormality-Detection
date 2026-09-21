@@ -1,0 +1,28 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T04:15:59.090806+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.13460268079835549295338279322112693785",
+  "source_batch_path": "initiative/reviews/inputs/batch-024.json",
+  "source_batch_sha256": "e201eedc131a65120f5bbfcf9b1a2e993ddec590553e0aa9c533038ecc472f06",
+  "source_report_sha256": "ee6d9f0668e8f5b0538d866eaf731541ccd013466acfd0489b30c8a40c3ee721",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-024-reviewed.jsonl",
+  "review_artifact_sha256": "7e992de6b4d974343d9199b30a4ea26a54f145c368ad878e917a20c05244357b",
+  "decision": "Retain all 10 informative targets as uncertain and all other targets as unmentioned. No automatic report selection, label duplication or virtual study splitting. Raw source and gold unchanged.",
+  "findings": "Two complete unlocalized report blocks separated by the literal bilateral-note marker match the archived/current official report exactly. The full archived/current train.csv bytes also match. The first block contains literal Test report.; this is upstream source wording, not recovery corruption, and does not justify discarding the report as fabricated. Seven endpoint-complete series have consecutive SeriesNumbers2 through8, AcquisitionNumber1, one hashed PatientID and seven frame-of-reference hashes. All three laterality fields and every SeriesDescription are blank. Recorded IOP groups are coherent across two sagittal series(2,5), two coronal series(3,6) and three axial series(4,7,8), with only rounding differences. Some corresponding endpoint IPPs are identical between the sagittal series. These repeated planes plausibly represent multiple contrasts/repeats in one acquisition protocol; missing descriptions prevent assigning contrasts. There are no distinct opposed-orientation side groups, mixed laterality values or duplicate complete acquisition sets demonstrable from these headers. Thus no bilateral image candidate is established solely by the seven-series count.",
+  "root_verification": "Personally read full original source and independent technical assessment including every series record. Verified all bound file sizes/SHA, source identity, exact series/header counts, side fields and current twelve report masks. Previous source/header flags were disclosed, so this is not a blinded discovery.",
+  "limits": [
+    "Blank tags never imply right. Matching orientations alone do not prove one knee, particularly with separate frame-of-reference hashes and missing sequence descriptions. Repeated planes may be different contrasts or repeated acquisitions; endpoint metadata cannot distinguish all possibilities. Lexical endpoints are not necessarily geometric extremes. No full-file source digest or native anatomy verified in this follow-up.",
+    "No native image viewing or anatomical laterality confirmation for this case. Absence of a repeated-set candidate does not prove one knee.",
+    "Existing current Kaggle source copy was obtained previously; no new download here."
+  ],
+  "evidence_files": {
+    "independent-header-review.json": "406b51e3ba2d69de7c5b96a4f6308cf75201de2173e09c38969f9897b2618fc1",
+    "independent-source-preread.json": "4af9164d127ac2d7a9a7fea93d3c0d217b8005fbc9840a06dd2cfdc3ef6fcd57",
+    "source-copy-assessment.json": "10d34e930115dbeddb8c1dcec36d06a6ab68dbb1bedff03fb20f2a5da20dd245",
+    "source-inventory.json": "09661dbe9107655eb2b95dda4fd56fbc29dded616963cd8d3b0aae3272376721",
+    "endpoint-headers.jsonl": "f0fa0db022f51da177e97b8b0772c7b7c7582b5375dde3169848567708cbe558",
+    "series-headers.json": "64934b1858bcbd77a5127630a15d48a12f8778967d321c097aaef1e8e048b92c",
+    "extract.py.txt": "374e304d650e733222e82e31951be786699bc4030c1a92c82fc2f942dfad0f4e"
+  },
+  "training_ready": false
+}

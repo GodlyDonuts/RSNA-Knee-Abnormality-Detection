@@ -1,0 +1,35 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T04:16:00.321458+00:00",
+  "scope": "Root code review, evidence binding checks, focused validator tests and lossless archival compression; independent complete survey validation performed by image_pipeline_audit.",
+  "root_code_read": [
+    "validate.py",
+    "test_validate.py",
+    "compare_full_references.py",
+    "build_review_queue.py"
+  ],
+  "focused_tests": {
+    "command": "python -m unittest discover -s work/annotation-staging/header-survey-independent-v1 -p test_validate.py -v",
+    "passed": 18
+  },
+  "all_14_independent_bundle_sizes_and_hashes_verified": true,
+  "all_validation_input_and_candidate_bindings_verified": true,
+  "successful_endpoints": 48772,
+  "series": 24386,
+  "studies": 4410,
+  "candidate_studies": 129,
+  "full_slice_header_coverage": false,
+  "full_pixel_audit": false,
+  "archive_compression": {
+    "path": "endpoint-headers.jsonl.gz",
+    "sha256": "c823cd7a4e7cf451c240ab852b0ab29eb8b5361338ac2984a4d25f8bb5a7f9a4",
+    "bytes": 11664888,
+    "uncompressed_sha256": "d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3",
+    "uncompressed_bytes": 105453219,
+    "decompression_rehash_matches": true,
+    "reason": "Exact endpoint JSONL exceeds standard GitHub single-file limit; deterministic lossless gzip preserves complete original content."
+  },
+  "checkpoint_preservation": "Original checksummed SQLite checkpoint remains local at work/header-endpoint-full-v1/checkpoint.sqlite3. Published JSONL is the verified complete export.",
+  "candidate_policy": "Metadata-only candidates require reviewed source/anatomy correspondence; no automatic clinical labels, side assignment or exclusions.",
+  "training_ready": false
+}
