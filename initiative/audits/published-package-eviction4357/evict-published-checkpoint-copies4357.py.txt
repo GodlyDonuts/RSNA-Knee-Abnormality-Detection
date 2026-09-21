@@ -1,0 +1,65 @@
+"""Remove only two verified redundant local packages; preserve all evidence."""
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import shutil
+from dotenv import dotenv_values
+from huggingface_hub import HfApi
+
+WORK = Path(__file__).resolve().parent
+R = WORK / 'recovered'
+repo = 'GodlyDonuts/RSNA-Data'
+api = HfApi(token=dotenv_values(WORK.parent / '.env')['HF_TOKEN'])
+head = api.dataset_info(repo)
+assert head.private and head.sha == '2b1a8df36c2543f9f3b31af136f1cf83831eeae3'
+specs = [
+    ('6f2d07d06111d6170b22cdac1f3b27b4d41f4d38', 873998824, '515f871a2da9b00572f3fda5f39a302b354b8db5775d5a014f8b19fb960993a6'),
+    ('94fed05d353d180e30c968bc0561e05c00ae6880', 1203620292, '849d6a29286f2ee6d1b45e5012bc97407438e71d19990c3dcdefab8079ca2bf4'),
+]
+paths = [f'preparation-checkpoints/{commit}/checkpoint.tar.gz' for commit, _, _ in specs]
+remote = {p.path: p for p in api.get_paths_info(repo, paths, repo_type='dataset', revision=head.sha)}
+assert set(remote) == set(paths)
+verified = []
+for (commit, size, digest), remote_path in zip(specs, paths, strict=True):
+    path = WORK / 'hf-preparation-checkpoints' / commit / 'checkpoint.tar.gz'
+    assert path.is_file() and not path.is_symlink() and path.stat().st_size == size
+    h = hashlib.sha256()
+    with path.open('rb') as f:
+        for block in iter(lambda: f.read(8 * 1024 * 1024), b''):
+            h.update(block)
+    assert h.hexdigest() == digest
+    item = remote[remote_path]
+    assert item.size == size and item.lfs.sha256 == digest and item.lfs.size == size
+    audit = R / 'initiative/audits' / ('hf-preparation-checkpoint-' + commit[:7])
+    if commit.startswith('6f2d07d'):
+        evidence = audit / 'preservation.json'
+        preserved = json.loads(evidence.read_text())
+        assert preserved['package'] == dict(path='checkpoint.tar.gz', sha256=digest, bytes=size)
+        assert preserved['remote_objects_verified'] == 490
+    else:
+        evidence = audit / 'publication-receipt.json'
+        preserved = json.loads(evidence.read_text())
+        assert preserved['status'] == 'verified_private_preparation_checkpoint'
+        assert dict(path=remote_path, sha256=digest, bytes=size) in preserved['uploaded_files']
+        assert preserved['remote_objects_verified'] is True
+    verified.append(dict(local_path=str(path.relative_to(WORK)), remote_path=remote_path, bytes=size, sha256=digest,
+        prior_evidence=str(evidence.relative_to(R)), prior_evidence_sha256=hashlib.sha256(evidence.read_bytes()).hexdigest()))
+fresh = api.dataset_info(repo)
+assert fresh.private and fresh.sha == head.sha
+proof = dict(stage='verified_redundant_local_packages_before_eviction', agent_id='/root',
+    verified_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(), repo_id=repo, private=True,
+    revision=head.sha, files=verified, free_bytes_before=shutil.disk_usage(WORK).free,
+    scope='Full local SHA-256 plus fresh pinned private Hub LFS SHA-256 and byte size, cross-checked against preserved publication evidence. Only regenerable local tar copies; all source data, manifests, receipts, git objects and remote packages remain.',
+    training_ready=False)
+before = WORK / 'published-package-eviction4357-verified.json'
+after = WORK / 'published-package-eviction4357-completed.json'
+assert not before.exists() and not after.exists()
+before.write_text(json.dumps(proof, indent=2) + '\n')
+for item in verified:
+    (WORK / item['local_path']).unlink()
+after.write_text(json.dumps(dict(stage='redundant_local_package_eviction_completed', agent_id='/root',
+    completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    verification_sha256=hashlib.sha256(before.read_bytes()).hexdigest(), bytes_removed=sum(p['bytes'] for p in verified),
+    free_bytes_after=shutil.disk_usage(WORK).free, source_files_modified=False, remote_writes=0), indent=2) + '\n')
+print(after.read_text())

@@ -1,0 +1,137 @@
+"""Assemble personally adjudicated decisions; preserve the frozen source pass."""
+from pathlib import Path
+import copy
+import datetime
+import hashlib
+import json
+import sys
+
+G = Path(__file__).resolve().parent
+R = G.parents[1] / 'recovered'
+sys.path.insert(0, str(R))
+from rsna.labels import read_reviews
+from rsna.schema import TARGETS
+
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+source_path = R / 'initiative/reviews/inputs/batch-084.json'
+draft_path = R / 'initiative/reviews-v2/drafts/batch-084-draft.jsonl'
+pre_path = G / 'batch-084-preread.jsonl'
+assert sha(source_path) == 'e30d4eadc7ed56015824ff6f46ebc905d8c294111072a711c8528c5db570e80c'
+assert sha(draft_path) == '24fd5714a7ac604badab8992cf145811325a102a7e7926f4b1f4f65ac210b4e8'
+assert sha(pre_path) == '6bd111f9da6fa12cdb0b0447b2751a7cafd138352d11dad566a2074e5ec2b2b7'
+source = json.loads(source_path.read_text())
+pre = [json.loads(x) for x in pre_path.read_text().splitlines()]
+draft = [json.loads(x) for x in draft_path.read_text().splitlines()]
+dm = json.loads((R / 'initiative/reviews-v2/provenance/batch-084-draft.json').read_text())
+assert dm['agent_id'] != '/root' and dm['session_id'] != '/root'
+assert len(dm['reader_flags']) == 46
+assert all(f['study_uid'] == draft[f['source_index']]['study_uid'] and f['reason'] == draft[f['source_index']]['notes'] for f in dm['reader_flags'])
+review = copy.deepcopy(pre)
+choices = {}
+codes = {'p': 'positive', 'n': 'negative', 'u': 'uncertain', 'x': 'not_mentioned'}
+
+def choose(i, t, code, reason, quote_from='pre'):
+    assert (i, t) not in choices
+    assert pre[i]['states'][t] != draft[i]['states'][t]
+    quote = '' if code == 'x' else (pre if quote_from == 'pre' else draft)[i]['evidence'][t]
+    assert code == 'x' or quote and quote in source[i]['report']
+    review[i]['states'][t] = codes[code]
+    review[i]['evidence'][t] = quote
+    choices[i, t] = dict(source_index=i, study_uid=source[i]['study_uid'], target_index=t, target=TARGETS[t],
+        preread_state=pre[i]['states'][t], draft_state=draft[i]['states'][t], final_state=codes[code],
+        preread_evidence=pre[i]['evidence'][t], draft_evidence=draft[i]['evidence'][t], final_evidence=quote, reason=reason)
+
+fracture_contexts = {
+    0: 'Qualified normal marrow signal without a fracture or cortical assessment.',
+    4: 'Degenerative subchondral edema adjacent to cartilage loss without a fracture assessment.',
+    5: 'Normal bone signal without a separate cortical or fracture-line assessment.',
+    9: 'Subchondral degenerative edema and osteophytes without a fracture assessment.',
+    10: 'Normal marrow signal without a cortical or fracture-line assessment.',
+    20: 'Qualified normal marrow signal without a separate fracture assessment.',
+    24: 'Qualified normal marrow signal without a cortical or fracture-line assessment.',
+    25: 'Normal marrow signal without a cortical or fracture-line assessment.',
+    26: 'No suspicious focal marrow alteration without a separate fracture assessment.',
+    27: 'Marrow edema underlying complete cartilage loss without a fracture assessment.',
+    29: 'Qualified normal marrow signal without a separate fracture assessment.',
+    31: 'Unspecified mild underlying bony change accompanying cartilage disease without a fracture assessment.',
+    34: 'No bone edema without a cortical or fracture-line assessment.',
+    35: 'Tibial marrow edema without a fracture or cortical assessment.',
+    37: 'Normal bone signal without a cortical or fracture-line assessment.',
+    40: 'OA-associated edema and cysts without a fracture assessment.',
+    44: 'Pivot-shift marrow edema without a separate fracture or cortical assessment.',
+    45: 'Focal tibial subchondral edema without a fracture assessment.',
+    47: 'Patellar marrow edema and a chondral fragment without an osseous-fracture assessment.',
+    49: 'Patellar marrow edema without a fracture or cortical assessment.',
+}
+for i, reason in fracture_contexts.items():
+    choose(i, 11, 'x', 'Retain preread: ' + reason + ' Keep unmentioned and masked; this is not a negative fracture label.')
+
+for i in [0, 21]:
+    choose(i, 9, 'u', 'Retain preread: no pathological popliteal cysts is qualified and does not state complete cyst absence or a size class. Preserve the negation-scope ambiguity for global QA; do not turn it into a positive or reliable negative.')
+choose(7, 11, 'u', 'Retain preread: broad normal bone form and signal is followed by focal femoral marrow edema. The mixed bone assessment does not conclusively exclude a subtle fracture; no specific cortical or fracture-line statement resolves it.')
+choose(9, 3, 'n', 'Reconsider preread: degeneration with no evident rupture is an affirmative report of no visible tear, with no competing surface defect, equivocal tear or abnormal tear morphology. Accept the scoped tear negation. Preserve this negation interpretation for global QA; do not generalize it to wording such as no unequivocal tear.')
+choose(15, 10, 'x', 'Retain preread: cortical loss at an MCL avulsion site addresses cortical injury, but does not describe marrow edema or assess traumatic contusion. Keep this target unmentioned and masked.')
+choose(22, 10, 'p', 'Reconsider preread: the current finding directly diagnoses marked bone bruise, which the frozen rubric accepts as report-level contusion evidence. The infracture is explicitly prior and no current discrete fracture line is described. Retain the historical-fracture qualification and this inference for global QA; do not infer current acute fracture.', 'draft')
+choose(28, 11, 'u', 'Retain preread: general normal bone form and structure coexists with focal medial femoral/tibial marrow edema. The assessment leaves a subtle fracture unresolved rather than explicitly excluding a fracture line. Keep uncertainty masked.')
+choose(31, 10, 'x', 'Retain preread: mild underlying bony change does not specify marrow edema or assess impact injury. No informative contusion mention; keep unmentioned and masked.')
+choose(45, 0, 'u', 'Retain preread: mild diffuse ACL signal increase alone does not establish preserved fiber continuity, isolated degeneration or a below-threshold tear. The source gives no specific degeneration diagnosis or integrity assessment. Keep severity and morphology uncertainty masked.')
+choose(46, 6, 'u', 'Retain preread: mild patellar cartilage heterogeneity and mild chondrosis do not explicitly state intact thickness, superficial-only loss or absence of a defect. FT no-defect statements are compartment-specific and cannot be extended to PF. Keep the missing PF depth/extent masked.')
+for t in [4, 5]:
+    choose(49, t, 'u', 'Reconsider preread: specifically localized marginal osteophytes at medial and lateral FT articular margins provide informative degenerative-joint findings, but do not establish or exclude qualifying cartilage loss. Preserve this indirect OA mention as uncertain and masked rather than unmentioned; never infer a positive threshold from osteophytes.', 'draft')
+
+expected = {(i, t) for i in range(50) for t in range(12) if pre[i]['states'][t] != draft[i]['states'][t]}
+assert set(choices) == expected and len(choices) == 32, (set(choices) - expected, expected - set(choices))
+replacements = {
+    9: ('Lateral degeneration with qualified no evident rupture is not explicit isolated internal signal; uncertain.', 'Lateral degeneration with no evident rupture provides a scoped explicit tear negation without competing equivocal morphology; negative, with negation interpretation preserved for global QA.'),
+    22: ('Current marked bone bruise is at a previously fractured site; whether current edema is impact edema without a fracture line remains unclear, so contusion uncertain.', 'Current marked bone bruise is directly diagnosed and supports report-level contusion positive. The prior infracture does not itself establish a current discrete line; preserve the historical-fracture qualification and inference for global QA.'),
+    49: ('FT osteophytes/subchondral cysts do not explicitly assess compartment cartilage loss; both FT OA targets unmentioned.', 'Specifically localized medial/lateral FT marginal osteophytes provide informative degenerative-joint findings without establishing or excluding qualifying cartilage loss; both FT OA targets uncertain and masked.'),
+}
+for i, (old, new) in replacements.items():
+    assert old in review[i]['notes']
+    review[i]['notes'] = review[i]['notes'].replace(old, new)
+
+q = 'МР данни за лезия на задния лог на медиалния менискус. Вижда се скъсване на задния рог на менискуса с формиране на свободен фрагмент.'
+assert q in source[38]['report']
+evidence_changes = [dict(source_index=38, study_uid=source[38]['study_uid'], target_index=2, target=TARGETS[2],
+    state=review[38]['states'][2], before=review[38]['evidence'][2], after=q,
+    reason='Extend the contiguous quotation to include the preceding explicit medial-meniscus identity. The positive state and frozen preread remain unchanged.')]
+review[38]['evidence'][2] = q
+
+def changes(old):
+    return [dict(source_index=i, study_uid=source[i]['study_uid'], target_index=t, target=TARGETS[t],
+        before=old[i]['states'][t], after=review[i]['states'][t], source_quote=review[i]['evidence'][t], reason=choices[i,t]['reason'])
+        for i in range(50) for t in range(12) if old[i]['states'][t] != review[i]['states'][t]]
+
+cd, cp = changes(draft), changes(pre)
+assert len(cd) == 28 and len(cp) == 4, (len(cd), len(cp))
+out = G / 'batch-084-reviewed.jsonl'
+assert not out.exists()
+out.write_text(''.join(json.dumps(r, ensure_ascii=False) + '\n' for r in review))
+reports = {r['study_uid']: r['report'] for r in source}
+for p in [pre_path, draft_path, out]:
+    assert len(read_reviews(p.parent, reports, p.stem)) == 50
+freeze = json.loads((G / 'complete-source-freeze.json').read_text())
+meta = dict(stage='reviewed', rubric_version=dm['rubric_version'], agent_id='/root', session_id='/root',
+    identity_kind='codex_agent_task', workflow_run_id=dm['workflow_run_id'], rubric_sha256=dm['rubric_sha256'],
+    source_reports_sha256=dm['source_reports_sha256'], source_sha256=sha(source_path), source_path=dm['source_path'],
+    study_uids=[r['study_uid'] for r in source], n_studies=50, n_targets=600, sha256=sha(out), output_sha256=sha(out),
+    output_path='initiative/reviews-v2/reviewed/batch-084-reviewed.jsonl', parent_artifact_path=dm['output_path'],
+    parent_artifact_sha256=sha(draft_path), preread_path='initiative/reviews-v2/evidence/batch-084-preread.jsonl',
+    preread_sha256=sha(pre_path), preread_frozen_at=freeze['frozen_at_utc'], complete_source_freeze_sha256=sha(G / 'complete-source-freeze.json'),
+    initial_disagreements=[choices[k] for k in sorted(choices)], adjudication_history=[choices[k] for k in sorted(choices)],
+    changes_from_draft=cd, changes_from_preread=cp, evidence_only_changes=evidence_changes,
+    review_flags=[dict(source_index=i, study_uid=source[i]['study_uid'], reason=review[i]['notes']) for i in range(50)],
+    reader_flags_considered=dm['reader_flags'], completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    notes='Root personally read all 50 original gold-blinded reports and reasoned all 600 decisions before opening this clinical draft. Prior technical source/structural-assessment exposure to indices11,27,39 and general corpus exposure are disclosed in the preserved start record; this is not a claim of first-ever source access. The complete source preread remains unchanged. Then compared all 600 reader decisions, all reader notes and all 46 flags (flags exactly match the corresponding read notes). Personally adjudicated all 32 initial disagreements, resulting in 28 changes from draft and four reconsidered preread states. One medial-meniscus quotation was extended to include identity without changing its state. Actual reader/reviewer identities are distinct. The other agent partial clinical084 artifact was not opened or altered. No gold, legacy labels or automated medical-label filling used. Report-level negation, cartilage extent, bone-bruise timing and indirect OA mentions remain explicitly documented for global QA. Uncertain/unmentioned states stay masked. This is report extraction, not diagnostic MRI rereading or training-readiness certification.')
+
+def save(p, obj):
+    assert not p.exists()
+    p.write_text(json.dumps(obj, indent=2, ensure_ascii=False) + '\n')
+
+save(G / 'batch-084-reviewed.json', meta)
+validation = dict(agent_id='/root', source_reports=50, targets_compared=600, initial_state_disagreements=32,
+    final_changes_from_draft=len(cd), final_changes_from_preread=len(cp), evidence_only_changes=len(evidence_changes),
+    review_sha256=sha(out), provenance_sha256=sha(G / 'batch-084-reviewed.json'), preread_sha256=sha(pre_path),
+    exact_quotes_schema_membership_valid=True, reader_reviewer_identities_distinct=True, source_preread_unchanged=True, training_ready=False)
+save(G / 'final-validation.json', validation)
+print(json.dumps(validation))
