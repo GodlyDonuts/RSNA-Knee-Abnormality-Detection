@@ -1,0 +1,42 @@
+"""Render all146cached matrices for five explicitly selected series, without transforms."""
+from pathlib import Path
+import hashlib,json,shutil
+from datetime import datetime,timezone
+import numpy as np
+from PIL import Image,ImageDraw,ImageFont
+P=Path(__file__).resolve().parent;W=P.parents[1];S=P.parent/'technical-tier4-eighth-targeted-cache-v1'
+def require(v,m):
+ if not v:raise ValueError(m)
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb')as f:
+  for b in iter(lambda:f.read(1048576),b''):h.update(b)
+ return h.hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def save(p,x):
+ require(not p.exists(),'Output exists');p.write_text(json.dumps(x,indent=2,ensure_ascii=False)+'\n')
+def main():
+ require(shutil.disk_usage(P).free>20*2**30,'Disk floor');out=P/'cache-panels';require(not out.exists(),'New output required')
+ summary=S/'technical-evidence/summary.json';require(sha(summary)=='c6a2dc59b8c3b600e292376bab2ba6d9758dd5b4944c476f87cf72175db7bc91','Summary changed');s=json.loads(summary.read_text())
+ for x in s['cache_metadata_bindings']+s['evidence_bindings']:require(ref(W/x['path'])==x,'Existing evidence changed')
+ invp=S/'technical-evidence/inventory-two-cases.json';inv=json.loads(invp.read_text());by_sop={r['sop_uid']:r for r in inv};require(len(inv)==len(by_sop)==574,'Inventory scope')
+ ep=[json.loads(x)for x in(S/'technical-evidence/endpoints.jsonl').read_text().splitlines()];out.mkdir();entries=[];total=0;font=ImageFont.load_default(size=15)
+ for case in ['056:16']:
+  cname=case.replace(':','-');cp=S/f'technical-evidence/case-{cname}.json';c=json.loads(cp.read_text());selected=sorted([r for r in c['series']if int(r['header_endpoint_values']['SeriesNumber'][0])in{301,401,501,701,801}],key=lambda r:int(r['header_endpoint_values']['SeriesNumber'][0]));require([r['n_slices']for r in selected]==[34,28,26,28,30],'Selected scope changed');C=out/f'case-{cname}';C.mkdir();panels=[];images=[];bindings=[]
+  for row in selected:
+   mp=W/row['cache_metadata']['path'];require(ref(mp)==row['cache_metadata'],'Metadata changed');m=json.loads(mp.read_text());npz=mp.with_suffix('.npz');require(sha(npz)==m['cache_sha256']and npz.stat().st_size==m['cache_bytes'],'Cache changed');require(m['study_uid']==c['study_uid']and m['series_uid']==row['series_uid']and m['source_revision']=='0b5e410288232f570c69ba4f44723356e6ae6ab7'and m['cache_version']=='series-u16-v3','Cache identity')
+   members=[r for r in inv if r['series_uid']==m['series_uid']];require(len(members)==m['n_slices']and dict(zip(m['sop_uids'],m['slice_sha256'],strict=True))=={r['sop_uid']:r['sha256']for r in members},'Source membership differs');require(m['path_fingerprint']==hashlib.sha256('\n'.join(sorted(r['path']for r in members)).encode()).hexdigest(),'Source paths differ')
+   ends=[e for e in ep if e['series_uid']==m['series_uid']];require(len(ends)==2,'Endpoints missing')
+   for e in ends:
+    n=m['sop_uids'].index(e['sop_uid']);h=e['header_fields'];require(e['source_path']==by_sop[e['sop_uid']]['path']and e['source_sha256']==by_sop[e['sop_uid']]['sha256']and e['source_bytes']==by_sop[e['sop_uid']]['bytes'],'Endpoint source mismatch');require(json.loads(h['ImagePositionPatient'])==m['positions'][n]and json.loads(h['ImageOrientationPatient'])==m['orientation']and json.loads(h['PixelSpacing'])==m['pixel_spacing']and[int(h['Rows']),int(h['Columns'])]==m['original_shape'][1:],'Endpoint geometry mismatch')
+   with np.load(npz,allow_pickle=False)as archive:require(archive.files==['volume'],'Cache keys');volume=archive['volume']
+   require(volume.dtype==np.uint16 and list(volume.shape)==[m['n_slices'],256,256],'Array shape');number=int(row['header_endpoint_values']['SeriesNumber'][0]);side='/'.join(row['header_endpoint_values']['Laterality']);desc='/'.join(row['header_endpoint_values']['SeriesDescription']);cache_ref=ref(npz);meta_ref=ref(mp);bindings.append({'series_number':number,'cache':cache_ref,'metadata':meta_ref,'endpoint_records':ends})
+   for page,start in enumerate(range(0,m['n_slices'],12)):
+    stop=min(start+12,m['n_slices']);count=stop-start;nrows=(count+3)//4;canvas=Image.new('L',(1096,66+286*nrows),16);draw=ImageDraw.Draw(canvas);draw.text((12,8),f'{case} | Series {number} | literal side {side} | {desc}',font=font,fill=255);draw.text((12,30),f'ALL ordered cached slices {start}..{stop-1} of {m["n_slices"]} | untransformed256px',font=font,fill=230);image_path=C/f'series-{number}-all-page-{page:02}.png'
+    for index in range(start,stop):
+     k=index-start;x=12+(k%4)*272;y=58+(k//4)*286;display=np.rint(volume[index].astype(float)/65535*255).astype(np.uint8);canvas.paste(Image.fromarray(display),(x,y));draw.text((x,y+260),f'ordered index {index}/{m["n_slices"]-1}',font=font,fill=230);sop=m['sop_uids'][index]
+     panels.append({'case':case,'study_uid':m['study_uid'],'series_uid':m['series_uid'],'series_number':number,'literal_laterality':side,'series_description':desc,'official_plane':row['official_series_features']['Anatomical_Plane'],'source':by_sop[sop],'cache':cache_ref,'cache_metadata':meta_ref,'ordered_index':index,'cached_slice_bytes_sha256':hashlib.sha256(volume[index].tobytes()).hexdigest(),'display_pixel_bytes_sha256':hashlib.sha256(display.tobytes()).hexdigest(),'source_native_pixel_sha256_from_bound_metadata':m['pixel_sha256'][index],'original_native_shape':m['original_shape'][1:],'source_position':m['positions'][index],'source_orientation':m['orientation'],'source_pixel_spacing':m['pixel_spacing'],'image_path':str(image_path.relative_to(W)),'display_box_xywh':[x,y,256,256]})
+    canvas.save(image_path);images.append(ref(image_path))
+  require(len(panels)==146 and len(images)==15,'Case coverage differs');total+=len(panels);manifest=C/'panel-manifest.json';o={'schema_version':1,'stage':'neutral_all_selected_series_cached_matrix_panels','agent_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'case':case,'study_uid':c['study_uid'],'script':ref(Path(__file__).resolve()),'prior_technical_summary':ref(summary),'case_metadata':ref(cp),'source_inventory_subset':ref(invp),'prior_source_reuse':ref(S/'source-only-preread.json'),'prior_sparse_manifest':ref(S/f'cache-panels/case-{cname}/panel-manifest.json'),'prior_sparse_joint':ref(S/f'cache-panels/case-{cname}/joint-source-header-cache-handoff.json'),'images':images,'selected_series_bindings':bindings,'selected_series':5,'selected_complete_source_memberships':146,'cached_matrices':146,'whole_study_series_metadata':c['series_count'],'whole_study_source_memberships':c['slices'],'unselected_arrays_opened':0,'panels':panels,'display':'All uint16cache matrices linearly mapped with rounding to uint8.256x256display pasted unchanged: no further resize,crop,flip,rotation or geometric transformation.','scope':'Every cached slice of exactly301/401/501/701/801. Other study series remain outside this all-slice extension. This is existing normalized256pxcache, not native-resolution or freshly decoded sources. No clinical states, named-side or identity inference by renderer.','training_ready':False};save(manifest,o);entries.append({'case':case,'manifest':ref(manifest),'images':images,'matrices':146})
+ require(total==146,'Totalcoverage');save(out/'index.json',{'schema_version':1,'stage':'neutral_all_slice_cache_index','cases':entries,'selected_series':5,'matrices':146,'new_network_native':0,'npz_copies':0});print(json.dumps({'index':ref(out/'index.json'),'cases':entries,'free_gib':shutil.disk_usage(P).free/2**30}))
+if __name__=='__main__':main()

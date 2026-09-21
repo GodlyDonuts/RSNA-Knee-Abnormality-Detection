@@ -1,0 +1,185 @@
+"""Assemble root's explicit post-comparison adjudications; never alter the preread."""
+from pathlib import Path
+import copy
+import datetime
+import hashlib
+import json
+import sys
+
+G = Path(__file__).resolve().parent
+R = G.parents[1] / "recovered"
+sys.path.insert(0, str(R))
+from rsna.labels import read_reviews
+from rsna.schema import TARGETS
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def save(p, obj):
+    assert not p.exists(), p
+    p.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
+
+source_path = R / "initiative/reviews/inputs/batch-082.json"
+draft_path = R / "initiative/reviews-v2/drafts/batch-082-draft.jsonl"
+meta_path = R / "initiative/reviews-v2/provenance/batch-082-draft.json"
+pre_path = G / "batch-082-preread.jsonl"
+assert sha(source_path) == "a01cbd7f150f5525c09efc3da891c96abca6c1dae94ce5b3ec205916dd73f9d3"
+assert sha(pre_path) == "344a477a556f827d6c32b7d5f4ff190bec5adab95f7ba26b4f7e7005cf1b249a"
+assert sha(draft_path) == "6ae19f8ea8c672d11d6f3dd062281ce40ce3bfb498966810f5277eb1035f5b04"
+source = json.loads(source_path.read_text())
+pre = [json.loads(s) for s in pre_path.read_text().splitlines()]
+draft = [json.loads(s) for s in draft_path.read_text().splitlines()]
+dm = json.loads(meta_path.read_text())
+assert dm['agent_id'] != '/root' and dm['session_id'] != '/root'
+review = copy.deepcopy(pre)
+choices = {}
+state_names = {'u': 'uncertain', 'n': 'negative', 'x': 'not_mentioned'}
+
+def choose(i, t, state, reason, quote_from='pre'):
+    assert (i, t) not in choices
+    assert pre[i]['states'][t] != draft[i]['states'][t]
+    name = state_names[state]
+    quote = '' if state == 'x' else (pre if quote_from == 'pre' else draft)[i]['evidence'][t]
+    assert state == 'x' or quote and quote in source[i]['report']
+    review[i]['states'][t] = name
+    review[i]['evidence'][t] = quote
+    choices[i, t] = {'source_index': i, 'study_uid': source[i]['study_uid'],
+        'target_index': t, 'target': TARGETS[t], 'preread_state': pre[i]['states'][t],
+        'draft_state': draft[i]['states'][t], 'final_state': name,
+        'preread_evidence': pre[i]['evidence'][t], 'draft_evidence': draft[i]['evidence'][t],
+        'final_evidence': quote, 'reason': reason}
+
+# Explicitly enumerated marrow-only contexts: no informative acute-fracture assessment.
+fracture_contexts = {
+    0: 'Marrow edema and adjacent myositis do not assess a fracture line or cortex.',
+    1: 'A benign proximal tibial cyst is not an informative acute-fracture mention.',
+    2: 'Reactive subchondral changes accompanying cartilage disease do not assess fracture.',
+    3: 'Resolved prior marrow edema describes marrow evolution, not current cortical fracture.',
+    4: 'Qualified marrow signal wording does not describe fracture morphology.',
+    5: 'Malformed qualified marrow wording does not describe fracture morphology.',
+    7: 'Qualified marrow signal and secondary bone changes do not describe fracture.',
+    8: 'Preserved compartmental marrow signal does not specifically assess fracture.',
+    9: 'Bone infarcts without articular extension are not an acute-fracture assessment.',
+    11: 'No suspicious marrow alteration is not a separate fracture assessment.',
+    12: 'Duplicated qualified marrow negation does not introduce fracture assessment.',
+    13: 'Degenerative subchondral edema and cysts do not explicitly assess fracture.',
+    16: 'No marrow abnormality of concern does not assess cortical injury or fracture line.',
+    18: 'Erosion-associated marrow edema is not an informative acute-fracture mention.',
+    19: 'Explicit absence of bone bruise/edema is not an explicit fracture assessment.',
+    20: 'Arthritic subchondral cyst and edema describe degeneration, not fracture.',
+    22: 'Neither of the two unsided reports informs acute fracture; SONK alone does not.',
+    23: 'Age-appropriate marrow signal does not assess fracture morphology.',
+    25: 'Tibial bone edema alone does not mention a fracture or its absence.',
+    26: 'No bone edema is a marrow assessment, not an explicit fracture statement.',
+    28: 'Current residual bone contusion supports contusion but does not explicitly assess fracture.',
+    29: 'A femorotibial contusion diagnosis does not independently assess acute fracture.',
+    35: 'Normal marrow signal does not establish a separately unmentioned fracture status.',
+    36: 'PCL-insertion cysts and mild edema do not provide an acute-fracture assessment.',
+    37: 'Cyst-associated and arthropathy-associated marrow edema do not mention fracture.',
+    38: 'Neither left nor right report explicitly assesses fracture; preserve unresolved aggregation.',
+    41: 'Mild periarticular marrow edema does not explicitly assess fracture.',
+    42: 'Focal femoral/tibial edema accompanying ligament injury does not mention fracture.',
+    43: 'Explicit normal marrow does not broaden to an unmentioned cortical-fracture assessment.',
+    46: 'Secondary degenerative bone changes and osteophytes do not mention acute fracture.',
+    48: 'Erythropoiesis-related red-marrow expansion does not assess acute fracture.'}
+for i, reason in fracture_contexts.items():
+    choose(i, 11, 'x', reason + ' Keep masked as unmentioned; do not infer negative.')
+
+contusion_contexts = {
+    1: 'Benign tibial cyst lacks an informative impact-edema assessment.',
+    2: 'Secondary reactive subchondral changes do not mention traumatic marrow contusion.',
+    9: 'Bone infarcts are another bone finding, not an informative contusion assessment.',
+    22: 'SONK without a described impact edema finding does not mention contusion; both unsided reports remain unresolved.',
+    46: 'Secondary degenerative bone changes do not mention traumatic marrow contusion.',
+    47: 'Partly covered benign enchondroma does not assess impact-related marrow edema.',
+    48: 'Red-marrow expansion attributed to erythropoiesis does not assess contusion.'}
+for i, reason in contusion_contexts.items():
+    choose(i, 10, 'x', reason + ' Keep unmentioned and masked, not negative.')
+
+choose(2, 9, 'u', 'Reconsider preread: an elongated 8 cm craniocaudal dimension alone does not establish moderate/large fluid volume; no qualitative size class is stated.')
+for i in [4, 5, 7, 11, 12, 16]:
+    choose(i, 10, 'u', 'Reconsider preread: qualified no significant/suspicious/of-concern marrow alteration is insufficient to establish complete contusion absence. Preserve exact wording and any source typos.')
+choose(8, 6, 'u', 'No definite chondrosis is qualified; it does not unequivocally establish normal or below-threshold cartilage.')
+for i, targets in [(9, [3, 5, 6]), (27, [3, 5, 6]), (41, [0, 1, 3])]:
+    for t in targets:
+        choose(i, t, 'u', 'Reconsider preread: the scoped Greek statement excludes noteworthy findings, a qualification insufficient to establish the precise target criterion or its absence.')
+choose(19, 3, 'n', 'Retain preread: Keine fassbare Rissbildung states no detectable lateral meniscal tear, without a positive suspected tear. Treat this as explicit absence; distinguish degeneration with no clear tear signs, which leaves residual ambiguity.')
+choose(19, 8, 'u', 'Reconsider preread: mildly thickened synovium alone does not establish inflammation or a definite synovitis diagnosis.')
+for t in [4, 5, 6]:
+    choose(26, t, 'u', 'Reconsider preread: no major cartilage defects does not quantify depth/extent or establish the exact below-threshold criterion.')
+choose(27, 4, 'u', 'Third-state adjudication: intact articular surfaces in an insufficiency-fracture context may refer to bony surfaces, not cartilage thickness. Informative but ambiguous; neither unmentioned nor validated negative.', 'draft')
+choose(30, 5, 'u', 'Reconsider preread: an unqualified cartilage grade I without a named grading framework is not silently mapped to a depth threshold.')
+choose(30, 9, 'u', 'Reconsider preread: a 7 mm diameter alone is not an organizer-defined size category; do not invent a numeric cutoff.')
+choose(30, 11, 'u', 'Third-state adjudication: grossly appropriate bone morphology with marrow edema elsewhere is an informative but incomplete fracture assessment. It does not specifically exclude an acute fracture line.', 'draft')
+choose(33, 2, 'u', 'Reconsider preread: degeneration without clear signs of rupture is qualified and not explicit isolated internal signal; preserve tear uncertainty.')
+choose(37, 9, 'x', 'Reconsider preread: a specifically lateral popliteal synovial cyst is not identified as a Baker cyst or its characteristic origin. Other cysts do not establish this target; unmentioned, not negative.')
+choose(44, 3, 'u', 'Retain preread: a probably discoid lateral meniscus describes a shape variant without an explicit tear assessment. Absence of a described tear does not establish a negative.')
+
+expected = {(i, t) for i in range(50) for t in range(12) if pre[i]['states'][t] != draft[i]['states'][t]}
+assert set(choices) == expected, (set(choices) - expected, expected - set(choices))
+assert len(choices) == 67
+
+# Replace contradictory preread notes only in the separate final artifact.
+replacements = {
+ 2: [('elongated 8cm Baker cyst establishes substantial size.', 'elongated 8 cm Baker cyst lacks a qualitative volume class and remains uncertain.')],
+ 4: [('Baker absent and marrow signal normal.', 'Baker absent; qualified no significant marrow signal change leaves contusion uncertain.')],
+ 5: [('Normal marrow supports contusion absence.', 'Qualified no significant marrow alteration leaves contusion uncertain.')],
+ 7: [('Baker absent, marrow normal.', 'Baker absent; qualified marrow wording leaves contusion uncertain.')],
+ 8: [('Normal ACL/MCL/medial meniscus/cartilage support negatives.', 'Normal ACL/MCL/medial meniscus and femorotibial cartilage support negatives. Qualified no definite PF chondrosis remains uncertain.')],
+ 9: [('broad explicitly normal lateral/anterior compartments support local lateral-meniscus/lateral-OA/PF-OA negatives only, not an ACL negative.', 'qualified no noteworthy lateral/anterior findings leave lateral meniscus and lateral/PF cartilage uncertain; ACL remains unmentioned.')],
+ 11: [('No suspicious marrow abnormality supports contusion absence, without inventing a separate cortical fracture assessment.', 'Qualified no suspicious marrow alteration leaves contusion uncertain; fracture remains unmentioned.')],
+ 12: [('the marrow sentence is a repeated negative assertion, not a positive marrow finding.', 'the repeated qualified marrow negation leaves contusion uncertain, without establishing a positive marrow finding.')],
+ 16: [('Marrow normal; prepatellar soft-tissue edema is not bone contusion.', 'Qualified no marrow abnormality of concern leaves contusion uncertain; prepatellar soft-tissue edema does not establish bone contusion.')],
+ 19: [('Definite mildly thickened synovial lining supports synovitis positive.', 'Mildly thickened synovium without explicit inflammation or a synovitis diagnosis leaves synovitis uncertain.')],
+ 26: [('Explicit no major cartilage defects supports below-threshold OA negatives.', 'Qualified no major cartilage defects does not establish the exact depth/extent threshold; all three OA targets remain uncertain.')],
+ 27: [('Explicit normal remaining lateral/anterior compartments support corresponding lateral meniscus and lateral/PF cartilage negatives.', 'Qualified no noteworthy lateral/anterior findings leave the corresponding meniscus and cartilage targets uncertain.'), ('do not establish medial cartilage thickness; medial OA remains unmentioned.', 'are informative but do not establish medial cartilage thickness; medial OA remains uncertain.')],
+ 30: [('Grade-I lateral chondromalacia is below high-grade cartilage-loss threshold; other cartilage normal.', 'Lateral grade-I chondromalacia uses an unnamed framework and remains uncertain; other cartilage is normal.'), ('Small effusion and7mm popliteal cyst below thresholds.', 'Small effusion is below threshold; a 7 mm popliteal cyst has no verified qualitative size class and remains uncertain.'), ('Synovitis/fracture unmentioned.', 'Fracture remains uncertain on the incomplete gross-morphology assessment; synovitis is unmentioned.')],
+ 33: [('medial degeneration without clear tear remains below tear criterion.', 'medial degeneration without clear tear signs retains qualified tear uncertainty.')],
+ 37: [('Baker uncertain anatomical classification.', 'Baker unmentioned because the described lateral synovial cyst is another cyst type, not a verified Baker origin.')],
+ 41: [('lateral meniscus and cruciate/collateral ligaments normal.', 'qualified no noteworthy lateral-meniscal and cruciate/collateral findings leave these targets uncertain.')]
+}
+for i, pairs in replacements.items():
+    for old, new in pairs:
+        assert old in review[i]['notes'], (i, old)
+        review[i]['notes'] = review[i]['notes'].replace(old, new)
+
+changes = lambda old: [dict(source_index=i, study_uid=source[i]['study_uid'], target_index=t,
+    target=TARGETS[t], before=old[i]['states'][t], after=review[i]['states'][t],
+    source_quote=review[i]['evidence'][t], reason=choices[i,t]['reason'])
+    for i in range(50) for t in range(12) if old[i]['states'][t] != review[i]['states'][t]]
+cd, cp = changes(draft), changes(pre)
+assert len(cd) == 42 and len(cp) == 27, (len(cd), len(cp))
+assert all(s in ['uncertain', 'not_mentioned'] for i in [22,38] for s in review[i]['states'])
+out = G / 'batch-082-reviewed.jsonl'
+assert not out.exists()
+out.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in review))
+reports = {row['study_uid']: row['report'] for row in source}
+for path in [pre_path, draft_path, out]:
+    assert len(read_reviews(path.parent, reports, path.stem)) == 50
+freeze = json.loads((G/'complete-source-freeze.json').read_text())
+flags = [{'source_index':i, 'study_uid':source[i]['study_uid'], 'reason':review[i]['notes']}
+    for i in [2,6,7,9,12,13,14,19,20,21,22,26,27,28,30,33,34,35,36,37,38,41,42,44,45,46,47,48,49]]
+meta = dict(stage='reviewed', rubric_version=dm['rubric_version'], agent_id='/root', session_id='/root',
+    identity_kind='codex_agent_task', workflow_run_id=dm['workflow_run_id'],
+    rubric_sha256=dm['rubric_sha256'], source_reports_sha256=dm['source_reports_sha256'],
+    source_sha256=sha(source_path), source_path=dm['source_path'], study_uids=[s['study_uid'] for s in source],
+    n_studies=50, n_targets=600, sha256=sha(out), output_sha256=sha(out),
+    output_path='initiative/reviews-v2/reviewed/batch-082-reviewed.jsonl',
+    parent_artifact_path=dm['output_path'], parent_artifact_sha256=sha(draft_path),
+    preread_path='initiative/reviews-v2/evidence/batch-082-preread.jsonl', preread_sha256=sha(pre_path),
+    preread_frozen_at=freeze['frozen_at_utc'],
+    complete_source_freeze_sha256=sha(G/'complete-source-freeze.json'),
+    initial_disagreements=[choices[k] for k in sorted(choices)],
+    adjudication_history=[choices[k] for k in sorted(choices)],
+    changes_from_draft=cd, changes_from_preread=cp, review_flags=flags,
+    reader_flags_considered=dm['reader_flags'],
+    completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    notes='Root personally read all 50 original gold-blinded reports and reasoned all 600 targets before opening the draft. The complete preread is frozen and unchanged. Then compared all 600 draft decisions and all reader notes/flags; explicitly adjudicated all 67 state disagreements. Final review changes 42 draft states and reconsiders 27 preread states, including two third-state resolutions. No gold or legacy labels accessed. Prior technical source exposure to case 082:38 is disclosed in start.json, not claimed absent. Root and draft reader have different actual agent/session identities. Named ICRS grade-II interpretation is bound to the official ICRS classification in the frozen external terminology record for cases 37 and 41; no unnamed grading-system conversion. Cases 22 and 38 are unresolved multi-report aggregates with all target losses masked. This clinical review does not independently complete correspondence policy integration or certify image diagnoses/training readiness.')
+save(G/'batch-082-reviewed.json', meta)
+save(G/'final-validation.json', {'agent_id':'/root', 'source_reports':50, 'targets_compared':600,
+    'initial_state_disagreements':67, 'final_changes_from_draft':len(cd),
+    'final_changes_from_preread':len(cp), 'review_sha256':sha(out),
+    'provenance_sha256':sha(G/'batch-082-reviewed.json'), 'preread_sha256':sha(pre_path),
+    'exact_quotes_schema_membership_valid':True, 'reader_reviewer_identities_distinct':True,
+    'source_preread_unchanged':True, 'training_ready':False})
+print(json.dumps(json.loads((G/'final-validation.json').read_text())))

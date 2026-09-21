@@ -1,0 +1,12 @@
+"""Reuse preserved display mechanics with explicit two-case/nine-array scope."""
+from pathlib import Path
+import hashlib
+P=Path(__file__).resolve().parent;T=P.parent/'technical-tier4-seventh-targeted-cache-v1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+sm=sha(P/'technical-evidence/summary.json');pl=sha(P/'selection-plan.json')
+for name in ['compare_geometry.py','render_cache_sets.py','verify_cache_panels.py']:
+ s=(T/name).read_text().replace('5d7511a52934d5b259ffc11dab47f7c04590510d5edba2d39a8499236927fb8a',sm).replace('3930dc8d16f72bd395347640b3ae7f403d402283a69eddb99d5feb18a46d5501',pl)
+ repl={'All 40 selected endpoint':'All 26 selected endpoint','len(summary["cases"]) == 4':'len(summary["cases"]) == 2','len(plan["cases"]) == 4':'len(plan["cases"]) == 2','len(index["cases"]) == 4':'len(index["cases"]) == 2','Exactly four':'Exactly two','inventory-four-cases':'inventory-two-cases','plan["selected_series"] == 16':'plan["selected_series"] == 9','len(source) == 753':'len(source) == 574','source.series_uid.nunique() == 20':'source.series_uid.nunique() == 13','source.study_uid.nunique() == 4':'source.study_uid.nunique() == 2','len(checked_cache) == 16':'len(checked_cache) == 9','== 631':'== 442','== 48':'== 27','"whole_study_series_metadata_scope": 20':'"whole_study_series_metadata_scope": 13','"selected_source_inventory_rows_verified": 631':'"selected_source_inventory_rows_verified": 442','all 631 selected source memberships, all 753 whole-study inventory memberships':'all 442 selected source memberships, all 574 whole-study inventory memberships','Only 16 of 20 whole-study series arrays read; 48 sparse samples displayed.':'Only 9 of 13 whole-study series arrays read; 27 sparse samples displayed.'}
+ for a,b in repl.items():s=s.replace(a,b)
+ assert not(P/name).exists();(P/name).write_text(s)
+print(sm,pl)

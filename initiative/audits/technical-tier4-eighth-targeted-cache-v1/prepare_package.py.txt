@@ -1,0 +1,24 @@
+"""Prepare the exact two-case, nine-array authorized cache selection."""
+from pathlib import Path
+import json, hashlib, shutil
+from datetime import datetime, timezone
+P=Path(__file__).resolve().parent;W=P.parents[1];T=P.parent/'technical-tier4-eighth-six-v1'
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+assert shutil.disk_usage(P).free>20*2**30
+ap=T/'root-targeted-plan-acceptance.json';assert ref(ap)['sha256']=='a6fe3e8320225b8657b16b09375fbd0c09208276e4917a547fefc87238f8c2cf';ad=json.loads(ap.read_text())
+pp=T/'targeted-cache-followup-plan.json';assert ad['status']=='accepted'and ref(pp)==ad['plan'];original=json.loads(pp.read_text())
+assert ad['approved_cases']==['056:16','058:04'] and (ad['selected_arrays'],ad['source_memberships'],ad['samples'],ad['whole_series_metadata'],ad['whole_source_memberships'],ad['whole_endpoints'])==(9,442,27,13,574,26)
+for p,h in [(T/'source-only-preread.json','702092ddc008ab47513ab97209a2d985b1c369ec83d3f3266a2f433f71615ce9'),(T/'root-source-preread.json','26673fe7ddfd580ce69e0ba30ad39cfc517faa3422305013920e99cdf4ad9439')]:assert ref(p)['sha256']==h
+records=[];lineage=[];choices=[]
+for c in original['cases']:
+ case=c['case'];r=next(x for x in json.loads((T/'source-only-preread.json').read_text())['records']if x['case']==case);other=next(x for x in json.loads((T/'root-source-preread.json').read_text())['records']if x['case']==case);bp=W/r['input_batch']['path'];src=json.loads(bp.read_text())[r['source_batch_index_zero_based']]
+ assert src['study_uid']==r['study_uid']==other['study_uid']and src['report']==r['report']==other['report']and ref(bp)==r['input_batch']==other['source_batch'];records.append(r)
+ lineage.append({'case':case,'independent_assessors':['/root/image_pipeline_audit','/root'],'source_assessments':[ref(T/'source-only-preread.json'),ref(T/'root-source-preread.json')],'root_source_neutral_extraction':ref(T/'neutral-source-reports.json'),'independent_source_comparison':ref(T/'joint-source-comparison.json'),'root_source_independence_available':True})
+ choices.append({'case':case,'study_uid':c['study_uid'],'whole_study_series':c['whole_study_series'],'whole_study_source_memberships':c['whole_study_source_memberships'],'selection':c['selection'],'selected_series':[{k:x[k]for k in['series_uid','series_number','slices']}for x in c['selected_series']],'prior_technical_metadata':c['case_metadata']})
+assert [x['case']for x in choices]==['056:16','058:04'];assert (sum(x['whole_study_series']for x in choices),sum(x['whole_study_source_memberships']for x in choices),sum(len(x['selected_series'])for x in choices),sum(s['slices']for x in choices for s in x['selected_series']))==(13,574,9,442)
+pre={'schema_version':1,'stage':'preserved_source_preread_subset_for_authorized_selected_cache_review','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','created_at_utc':datetime.now(timezone.utc).isoformat(),'order':'Exact complete reports reused from two preserved independent source assessments. Source/header findings are already known; no new blinded source-reading claim. Prior exposure remains disclosed. No clinical annotations/gold opened. Independent new visual findings will be frozen before root image findings.','n_cases':2,'case_source_review_lineage':lineage,'records':records,'clinical_annotations_or_gold_opened':False}
+p=P/'source-only-preread.json';assert not p.exists();p.write_text(json.dumps(pre,indent=2,ensure_ascii=False)+'\n')
+plan={'schema_version':1,'stage':'explicit_parent_authorized_selected_series_plan','agent_id':'/root/image_pipeline_audit','cases':choices,'whole_study_metadata_series':13,'whole_study_source_memberships':574,'selected_series':9,'selected_source_memberships':442,'selected_samples':27,'parent_plan':ref(pp),'root_plan_admission':ref(ap),'reason':'Exactly 056:16 all seven series and 058:04 only 101/201. Four unselected 058:04 arrays remain metadata-only. Full metadata 13 series/574 memberships/26 endpoints is separate from selected nine-array/442 membership/27 sample scope.'}
+p=P/'selection-plan.json';assert not p.exists();p.write_text(json.dumps(plan,indent=2)+'\n')
+s=(T/'collect_technical.py').read_text().replace('702092ddc008ab47513ab97209a2d985b1c369ec83d3f3266a2f433f71615ce9',ref(P/'source-only-preread.json')['sha256']).replace('len(preread) == 6','len(preread) == 2').replace('len(studies) == 6','len(studies) == 2').replace('six','two').replace('Six','Two');(P/'collect_technical.py').write_text(s)
+print(json.dumps({'source_reuse':ref(P/'source-only-preread.json'),'selection_plan':ref(P/'selection-plan.json')}))
