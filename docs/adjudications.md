@@ -77,21 +77,34 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The present registry retains cartilage consistency, a focused bone-terminology
-check, and qualified-negation/duplicate consistency as three separate pending
-issues. A distinct assessor has now frozen all 108 target decisions for the nine
-neutral source reports before opening root's per-case proposals and original
-clinical rows. Required project instructions had disclosed aggregate proposal
-categories; that exposure is preserved explicitly. The assessor independently
-accepted all seven changes across six studies: four Effusion negatives become
-uncertain, and one Contusion plus two Fracture uncertain states become
-not_mentioned. These form a separately registered correction case, with the
-original assessment, reviews, source text and proposal preserved unchanged under
-[`duplicate-consistency-adjudication-v1/`](../initiative/audits/duplicate-consistency-adjudication-v1/).
-The registry now contains 34 accepted target corrections. No effective label
-release was performed. This bounded acceptance does not resolve qualified
-negation outside the nine reports or either other global semantic issue; all
-three gates remain pending against the complete final review scope.
+The registry contains **118 accepted target corrections** and retains cartilage,
+bone terminology and qualified-negation/duplicate consistency as three pending
+global issues. The latest two cases add 84 corrections from the first focused
+wording batch: 78 unsupported negatives and one insufficiently graded positive
+become uncertain, two already-masked fracture states become not_mentioned, and
+three negative states retain their state with more complete source evidence.
+
+Both focused readers froze all 600 judgments for 50 complete reports before
+their case comparison. Root then read all 48 attention reports and froze 576
+judgments before opening their case-specific findings, with historical exposure
+disclosed. Root accepted the first reader's 74 proposals; 73 proposed states
+matched the root freeze and one required explicit reconsideration. Root's ten
+additional proposals received an actual distinct assessor's acceptance, including
+six explicit reconsiderations of that assessor's earlier states. Post-comparison
+agreement is not initial blinded agreement. Every reading, quote, disagreement
+and reconsideration remains preserved.
+
+The [complete integration proof](../initiative/audits/qualified-negation-focused-000-integration-v1/complete118-integration-validation.json)
+replays all 118 corrections, preserves the earlier 34 and 298 protected artifacts,
+and reconciles all 576 final root states with inspection copies. The older
+ten-report root snapshot remains unchanged; the completed assessment is separately
+archived in `qualified-negation-focused-000-root-complete-v1/`. The previous
+seven-correction duplicate case remains preserved in
+`duplicate-consistency-adjudication-v1/`.
+
+No effective label release was performed. The other wording batches and cartilage
+candidate inventories are pending work, not additional accepted corrections or
+evidence that a complete global gate has been resolved.
 
 ## Release outputs
 

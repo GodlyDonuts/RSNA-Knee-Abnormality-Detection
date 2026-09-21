@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "rubric_version": "report-weak-v2.0",
+  "normalization": "Per-character casefold then NFKD with combining marks removed and a map back to exact original offsets; retrieval only.",
+  "patterns": {
+    "cartilage_anchor": "\\b(?:cartilag\\w*|chondr\\w*|kondrom\\w*|knorpel\\w*|χονδρ\\w*|k[ıi]k[ıi]rdak\\w*|kartilaj\\w*|хрущял\\w*|хрящ\\w*|osteoarthr\\w*|osteoartro\\w*|οστεοαρθρ\\w*)\\b",
+    "numeric_grade": "\\b(?:grade?s?|grados?|grad(?:ul|en)?|grau|derece\\w*|evre\\w*|stade\\w*|stadium|βαθμ\\w*|степен\\w*|стад\\w*)\\s*(?:[:=°]|de|der)?\\s*(?:iv|iii|ii|i|[0-4])(?:\\s*[-–/]\\s*(?:iv|iii|ii|i|[0-4]))?\\b|\\b(?:iv|iii|ii|i|[0-4])\\s*(?:°|βαθμ\\w*|derece\\w*|степен\\w*)",
+    "named_framework": "\\b(?:icrs|outerbridge|noyes(?:[- ]stabler)?|international\\s+cartilage\\s+repair\\s+society)\\b",
+    "numeric_extent": "\\b\\d+(?:[.,]\\d+)?(?:\\s*(?:x|×|by)\\s*\\d+(?:[.,]\\d+)?){0,2}\\s*(?:mm|cm|millimet\\w*|centimet\\w*|χιλ\\w*|εκατοστ\\w*|мм|см)\\b",
+    "width_axis_word": "\\b(?:width|wide|largeur|ancho|anchura|breit\\w*|ευροσ|πλατοσ|genisli\\w*|genislik|ширин\\w*)\\b",
+    "explicit_depth_fraction_or_full_thickness": "\\b\\d+(?:[.,]\\d+)?\\s*%|\\b(?:half|full[- ]?thickness|near[- ]?full[- ]?thickness|espesor\\s+(?:practicamente\\s+)?total|pleine?\\s+epaisseur|toute\\s+l.epaisseur|vollschichtig\\w*|komplett\\w*\\s+knorpelverlust|knorpelglatze\\w*|tam\\s+kat\\w*|ολικ\\w*\\s+(?:απωλει\\w*|παχ\\w*)|ολου\\s+του\\s+παχ\\w*)\\b",
+    "nongrade_depth_or_morphology": "\\b(?:superficial\\w*|surface\\s+fraying|low[- ]grade|full[- ]?thickness|partial[- ]?thickness|deep|depth|thickness|fray\\w*|fibrillat\\w*|espesor|profon\\w*|epaisseur|oberflach\\w*|tief\\w*|vollschichtig\\w*|ausdunn\\w*|incel\\w*|tam\\s+kat\\w*|yuzey\\w*|λεπτυν\\w*|παχ\\w*|βαθει\\w*|επιφανειακ\\w*|истъняв\\w*|повърхност\\w*)\\b|\\b\\d+(?:[.,]\\d+)?\\s*%",
+    "low_severity_language": "\\b(?:superficial\\w*|low[- ]grade|mild|minor|slight\\w*|leve\\w*|l[eé]g[eè]r\\w*|gering\\w*|oberflach\\w*|hafif|ηπι\\w*|επιφανειακ\\w*)\\b",
+    "high_severity_language": "\\b(?:full[- ]?thickness|high[- ]grade|severe\\w*|advanced|deep|espesor\\s+(?:practicamente\\s+)?total|profund\\w*|avanzad\\w*|sever\\w*|profon\\w*|vollschichtig\\w*|hohergradig\\w*|hochgradig\\w*|tief\\w*|tam\\s+kat\\w*|ileri|βαθει\\w*|σοβαρ\\w*|ολικ\\w*\\s+απωλει\\w*)\\b"
+  },
+  "source_cartilage_association": "A cue is associated with the cartilage family when any recognized cartilage anchor appears within 160 original characters either side. This is not compartment or injury attribution.",
+  "source_numeric_extent_limit": "An extent cue anywhere in the report may refer to a cyst, meniscus, other compartment or prior finding. Every positive OA cell remains selected regardless of cue presence.",
+  "numeric_grade_limit": "Grades in nearby ligaments/menisci may be retrieved. Recognized framework names may refer to a different sentence/compartment. Grade-only is an explicit lexical proxy, not a semantic conclusion that the full source offers no other support.",
+  "mixed_severity_limit": "Low/high terms and grade values may concern different locations, lesions, history or negations. Co-occurrence only nominates source review; no contradiction is declared.",
+  "named_framework_limit": "Recognizing ICRS/Outerbridge/Noyes does not establish any clinical grade mapping or prove depth/extent. Other named frameworks can be missed.",
+  "coverage_and_recall": "All 13221 cells and all effective positives are accounted for. Nonpositive selection remains lexical and can miss rare languages, transliteration, Greek-letter numerals, abbreviations, punctuation, misspellings and paraphrases. Absence of a cue is not absence of evidence.",
+  "trigger_implementation": "Exact deterministic choose_triggers function in bound build_inventory.py. No candidate state is assigned or changed; existing states are inspection metadata only.",
+  "neutral_order": "Original source batch/index order, at most ten complete reports per packet, no priority or label clues inside packets.",
+  "synthetic_retrieval_checks": "Unicode source offsets, numeric grade retrieval, framework retrieval, full-thickness cue, mixed lexical severity, dimension cue, disclosed Greek-letter gap, negated-cue inclusion without error inference, and unconditional positive-cell selection."
+}

@@ -1,0 +1,194 @@
+"""Assemble this agent's explicitly authored ten-item adjudication, write once.
+
+The decisions and reasons below are manually authored after full-source reading
+and proposal access. This assembler validates bindings, not clinical correctness.
+"""
+
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+WORKSPACE = STAGE.parents[2]
+REPO = WORKSPACE / "work/recovered"
+ROOT_STAGE = STAGE.parent / "qualified-negation-focused-000-root-review-v1"
+OLD_STAGE = STAGE.parent / "qualified-negation-focused-000-independent-review-v1"
+AGENT = "/root/quality_temporal_review"
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path)}
+
+
+def archive_bind(path):
+    return {"path": "initiative/audits/" + str(path.relative_to(STAGE.parent)), "sha256": sha(path)}
+
+
+def write(name, value):
+    with (STAGE / name).open("x") as stream:
+        stream.write(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+
+
+# Each decision below was selected individually by the named assessor.
+DECISIONS = {
+    ("000:06", "Fracture"): (
+        "not_mentioned",
+        "I retain my frozen not_mentioned assessment. Active cortical destruction is not an acute fracture-line/disruption assessment, and this complete report gives no fracture-specific diagnosis or exclusion. Marrow-edema wording cannot supply that missing fracture mention. The proposal correctly removes the nonspecific quote while preserving a masked state. This is agreement with the proposal after the root's reconsideration, not a change to my original state.",
+    ),
+    ("001:07", "Lateral Meniscus"): (
+        "negative",
+        "I retain negative. The detailed compartment paragraph explicitly states that the root-attachment signal does not meet MR criteria for a tear and characterizes it as likely intrasubstance degeneration; the conclusion is consistent. I do not treat borderline extrusion alone as a definite tear morphology. The full proposed paragraph is better evidence than the qualified impression sentence because it exposes the diagnostic basis and the borderline extrusion. The literal transcription 'MR chart here' is preserved. The first reader's historical uncertainty remains in the earlier record; this decision does not erase it or establish a general extrusion exception.",
+    ),
+    ("001:12", "Medial Meniscus"): (
+        "uncertain",
+        "I reconsider my earlier negative. I had allowed the concluding no-evidence-of-tears statement to settle the finding. On rereading, the conclusion still repeats undersurface fraying, while the body describes no definite tear. The rubric includes abnormal meniscal morphology and limits the degeneration-only negative example to isolated internal degeneration; the described surface finding does not establish that restricted negative basis. It also is not a definite diagnosed tear. The coexistence of surface fraying and a tear-denying conclusion leaves the target uncertain. I accept the proposed exact body quote while explicitly retaining this whole-report rationale.",
+    ),
+    ("003:02", "Medial Meniscus"): (
+        "uncertain",
+        "I retain my frozen uncertainty. A small meniscal flounce with no definitive tear, followed by no discrete tear in the conclusion, does not explicitly characterize the meniscus as normal or establish isolated internal degeneration. It also does not support a definite tear diagnosis. The intact capsular interface addresses an adjacent relationship and does not settle the focal morphology. I accept the expanded quote including that interface so the limitation is visible rather than omitted.",
+    ),
+    ("003:12", "Medial OA"): (
+        "uncertain",
+        "I reconsider my earlier negative for medial OA. The report's general cartilage statement says no higher-grade chondropathy, but does not define that severity term or quantify cartilage depth. I had mapped it directly to a below-threshold cartilage finding. That mapping is not established by the source or frozen rubric, and no separate medial-cartilage description resolves it. This informative but threshold-incomplete general assessment supports uncertainty for the addressed compartment; it does not establish disease or a reliable negative.",
+    ),
+    ("003:12", "Lateral OA"): (
+        "uncertain",
+        "I reconsider my earlier negative for lateral OA. The only cartilage assessment is the general denial of higher-grade chondropathy. Without a defined grade-to-depth framework or a direct thickness description, that phrase does not explicitly exclude the frozen cartilage threshold. The lateral bone-bruising findings supply no missing cartilage-depth or extent evidence. I therefore accept uncertainty for this compartment, preserving the original negative and its unsupported severity inference in the history.",
+    ),
+    ("003:12", "PF OA"): (
+        "uncertain",
+        "I reconsider my earlier negative for PF OA. The nonspecific whole-knee cartilage-severity denial is informative for cartilage but is not a patellofemoral normal-cartilage statement, a defined low grade, or a measured below-threshold defect. I previously read higher-grade as an exact depth boundary without source support. There is no further PF cartilage description to resolve the threshold, so uncertainty is appropriate. This does not invent compartment-specific disease from the general statement.",
+    ),
+    ("003:12", "Effusion"): (
+        "uncertain",
+        "I reconsider my earlier positive. I read Deutlicher Hämarthros as marked hemarthrosis and inferred at least moderate joint-fluid amount. The wording can establish a clear or pronounced blood-containing effusion without independently specifying moderate/large quantity or joint distension. The traumatic ligament and capsular injuries establish context but do not quantify fluid. Because the frozen effusion target needs the amount/distension qualification, I accept uncertainty instead of treating that translation inference as sufficient positive evidence.",
+    ),
+    ("004:39", "Medial Meniscus"): (
+        "uncertain",
+        "I retain my frozen uncertainty. Central increased signal with no categorical tear criteria is an equivocal focal meniscal assessment, not an explicit diagnosis of isolated internal degeneration or a statement that all signal is confined away from the surface. The definite lateral tear cannot resolve the medial target. The proposal preserves the exact line break and anatomically specific quote and correctly avoids assigning either a definite tear or an unsupported negative.",
+    ),
+    ("006:12", "PF OA"): (
+        "uncertain",
+        "I reconsider my earlier negative. The source describes deep patellar cartilage delamination with a reported width of 4.5 mm. I had treated that single width as a bound on the complete lesion region. It is not stated to be the maximum dimension, and the report supplies no second dimension or full region extent. Thus the stated width cannot exclude a roughly 1 cm region along an unreported axis. The proposed quote retains the patellar localization, deep delamination and literal measurement; uncertainty preserves the missing extent without inventing a larger lesion or declaring a new two-axis requirement.",
+    ),
+}
+
+
+def main():
+    proposal_path = ROOT_STAGE / "additional-proposed-errata.json"
+    assert sha(proposal_path) == "fa5bd552f0cc050246da4a6220e84b6e11289fbc96395a3c5857f794cb97bba6"
+    proposal = read(proposal_path)
+    assert proposal["agent_id"] == proposal["session_id"] == "/root"
+    root_freeze = ROOT_STAGE / "root48-source-freeze.json"
+    assert sha(root_freeze) == "1039fd54de56f0e9aa497095711a1443276e25db22f69a0be1c3c06992cea773"
+    assert sha(ROOT_STAGE / "root-postfreeze-dispositions.json") == "303869c3d1addb04f6eacce7960da6a14e959df8b18e4b3cdbd01375b63ddf91"
+    assert sha(OLD_STAGE / "source-freeze.json") == "e518455800874e4601dcc9a26792a73cab44d52427466462600509d74d29b227"
+    assert sha(REPO / "protocols/report_weak_v2.md") == proposal["rubric_sha256"]
+    prior = read(STAGE / "selected-original-frozen-assessments.json")
+    frozen = {(row["study_uid"], row["target"]): row for row in prior["records"]}
+    history = {(row["study_uid"], row["target"]): row for row in read(STAGE / "selected-own-historical-postfreeze-dispositions.json")["records"]}
+    assert len(proposal["proposed_errata"]) == len(DECISIONS) == len(frozen) == 10
+    assert {(row["case"], row["target"]) for row in proposal["proposed_errata"]} == set(DECISIONS)
+    records, accepted, reconsiderations = [], [], []
+    for row in proposal["proposed_errata"]:
+        state, reason = DECISIONS[row["case"], row["target"]]
+        assert state == row["proposed_state"]
+        source_path, base_path = REPO / row["source_path"], REPO / row["artifact_path"]
+        assert sha(source_path) == row["source_sha256"] and sha(base_path) == row["artifact_sha256"]
+        source = read(source_path)[row["index"]]
+        assert source["study_uid"] == row["study_uid"]
+        old = frozen[row["study_uid"], row["target"]]
+        assert old["source_index"] == row["index"] and old["source_sha256"] == row["source_sha256"]
+        assert hashlib.sha256(source["report"].encode()).hexdigest() == old["source_report_sha256"]
+        quote = row["source_quote"]
+        assert (state == "not_mentioned" and quote == "") or (state != "not_mentioned" and quote.strip() and quote in source["report"])
+        base = {item["study_uid"]: item for item in map(json.loads, base_path.read_text().splitlines())}[row["study_uid"]]
+        assert base["states"][old["target_index"]] == row["before_state"]
+        assert base["evidence"][old["target_index"]] == row["before_evidence"]
+        record = {
+            "case": row["case"], "study_uid": row["study_uid"], "target": row["target"],
+            "target_index": old["target_index"], "source_path": row["source_path"],
+            "source_sha256": row["source_sha256"], "source_index": row["index"],
+            "source_report_sha256": old["source_report_sha256"],
+            "independent_source_state": state, "source_evidence": quote, "reason": reason,
+            "disposition": "accepted", "earlier_frozen_state": old["frozen_state"],
+            "earlier_frozen_evidence": old["frozen_evidence"],
+            "earlier_postfreeze_state": history[row["study_uid"], row["target"]]["independent_postfreeze_state"],
+            "earlier_postfreeze_evidence": history[row["study_uid"], row["target"]]["independent_postfreeze_evidence"],
+            "state_reconsidered_from_own_freeze": state != old["frozen_state"],
+            "evidence_changed_from_own_freeze": quote != old["frozen_evidence"],
+            "full_source_reread_in_this_additional_stage": True,
+            "root_proposal_seen_before_this_additional_disposition": True,
+        }
+        records.append(record)
+        if record["state_reconsidered_from_own_freeze"] or record["evidence_changed_from_own_freeze"]:
+            reconsiderations.append(record)
+        accepted.append({
+            "case": row["case"], "study_uid": row["study_uid"], "target": row["target"],
+            "source_sha256": row["source_sha256"],
+            "original_review_path": row["artifact_path"], "original_review_sha256": row["artifact_sha256"],
+            "before_state": row["before_state"], "before_evidence": row["before_evidence"],
+            "after_state": state, "after_evidence": quote,
+            "independent_source_state": state, "source_evidence": quote, "reason": reason,
+        })
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    context = {"schema_version": 1, "source_reports_sha256": proposal["source_reports_sha256"], "rubric_sha256": proposal["rubric_sha256"]}
+    assessment = {
+        **context, "agent_id": AGENT, "session_id": AGENT,
+        "stage": "independent_source_assessment", "assessed_at_utc": timestamp,
+        "rubric_version": "report-weak-v2.0", "records": records,
+        "scope": {"complete_reports_reread": 7, "selected_target_assessments": 10, "new_12_target_pass": False},
+        "proposal": bind(proposal_path), "original_own_source_freeze": bind(OLD_STAGE / "source-freeze.json"),
+        "own_previous_disposition_freeze": bind(OLD_STAGE / "postfreeze-comparison-v1/disposition-freeze.json"),
+        "root_source_freeze": bind(root_freeze),
+        "historical_exposure": "The same agent previously read all 50 full reports and froze 600 judgments, then compared the first reader and the 34-correction effective baseline. The present seven complete reports and own old judgments were reread before this new root proposal was opened. This additional assessment is explicitly after proposal access; it is not newly blinded. All original states, quotes, earlier comparison disagreements and current reconsiderations remain separate and unchanged.",
+        "registry_context": "Historical comparison is pinned to the preserved 34-correction baseline. Root may integrate 74 disjoint primary items while this additional decision is prepared. That expected registry advance is not a source change; final production integration must replay the then-current registry.",
+        "clinical_role": "Independent AI report-evidence assessor; no MRI diagnostic reread or clinical-reader credential is claimed.",
+        "gold_accessed": False, "original_artifacts_preserved": True,
+    }
+    write("independent-source-assessment.json", assessment)
+    write("explicit-reconsiderations.json", {**context, "agent_id": AGENT, "session_id": AGENT, "stage": "preserved_additional_postproposal_reconsiderations", "original_freeze": bind(OLD_STAGE / "source-freeze.json"), "historical_dispositions": bind(STAGE / "selected-own-historical-postfreeze-dispositions.json"), "assessment": bind(STAGE / "independent-source-assessment.json"), "state_reconsiderations": sum(row["state_reconsidered_from_own_freeze"] for row in records), "evidence_changes_from_original_freeze": sum(row["evidence_changed_from_own_freeze"] for row in records), "records": reconsiderations, "originals_changed": False})
+    supporting = {
+        "original_independent_source_freeze_sha256": archive_bind(OLD_STAGE / "source-freeze.json"),
+        "original_independent_disposition_freeze_sha256": archive_bind(OLD_STAGE / "postfreeze-comparison-v1/disposition-freeze.json"),
+        "root_source_freeze_sha256": archive_bind(root_freeze),
+        "selected_binding_verification_sha256": archive_bind(STAGE / "start-and-selected-binding-verification.json"),
+        "selected_prior_dispositions_sha256": archive_bind(STAGE / "selected-own-historical-postfreeze-dispositions.json"),
+        "explicit_reconsiderations_sha256": archive_bind(STAGE / "explicit-reconsiderations.json"),
+    }
+    decision = {
+        **context, "status": "independently_adjudicated_pending_release_integration",
+        "decided_at_utc": timestamp, "proposer_agent_id": "/root", "adjudicator_agent_id": AGENT,
+        "adjudicator_session_id": AGENT, "original_artifacts_preserved": True,
+        "proposal_sha256": sha(proposal_path), "independent_assessment_sha256": sha(STAGE / "independent-source-assessment.json"),
+        **{field: reference["sha256"] for field, reference in supporting.items()},
+        "n_changes": len(accepted), "n_state_changes": sum(row["before_state"] != row["after_state"] for row in accepted),
+        "n_evidence_only_changes": sum(row["before_state"] == row["after_state"] for row in accepted),
+        "accepted_changes": accepted, "rejected_changes": [], "pending_items": [],
+        "decision_scope": "Accept these exact ten proposed annotations after individual full-source adjudication. This is not a clinical-image validation or closure of the global qualified-negation/cartilage QA gates.",
+        "original_freezes_rewritten": False, "production_registry_changed_by_this_assessor": False,
+        "gold_accessed": False, "global_qa_gates_closed": 0,
+    }
+    write("accepted-decision.json", decision)
+    wrapper = {
+        **context, "id": "qualified-negation-focused-000-additional-ten-20260921",
+        "proposal": archive_bind(proposal_path), "independent_assessment": archive_bind(STAGE / "independent-source-assessment.json"),
+        "decision": archive_bind(STAGE / "accepted-decision.json"), "supporting_evidence": supporting,
+        "changes": [{"study_uid": row["study_uid"], "target": row["target"], "before": {"state": row["before_state"], "evidence": row["before_evidence"]}, "after": {"state": row["proposed_state"], "evidence": row["source_quote"]}, "base_review": {"path": row["artifact_path"], "sha256": row["artifact_sha256"]}, "source_batch": {"path": row["source_path"], "sha256": row["source_sha256"]}} for row in proposal["proposed_errata"]],
+    }
+    write("proposed-runtime-case.json", wrapper)
+    print(json.dumps({"accepted": len(accepted), "state_changes": decision["n_state_changes"], "evidence_only_changes": decision["n_evidence_only_changes"], "own_state_reconsiderations": sum(row["state_reconsidered_from_own_freeze"] for row in records), "assessment_sha256": sha(STAGE / "independent-source-assessment.json"), "decision_sha256": sha(STAGE / "accepted-decision.json")}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

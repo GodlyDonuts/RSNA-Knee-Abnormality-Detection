@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "validated_at_utc": "2026-09-21T21:33:43.815358+00:00",
+  "validator": {
+    "path": "work/annotation-staging/qualified-negation-focused-000-additional-independent-v1/validate_adjudication.py",
+    "sha256": "766eda3cfc5a1a1dbff87559362e9f96ed0244b1ca0d1ecc3909237efda74e76"
+  },
+  "runtime": {
+    "path": "work/recovered/rsna/adjudications.py",
+    "sha256": "2b7af816e9caff240daf02af1dd3bf08e193438ac568478651f0b49868e1eac0"
+  },
+  "case": {
+    "path": "work/annotation-staging/qualified-negation-focused-000-additional-independent-v1/proposed-runtime-case.json",
+    "sha256": "694339bcbf60f7ce65463a4ad1d0a1e352d5c5d1b94436dd413f1f8ac5700720"
+  },
+  "assessment": {
+    "path": "work/annotation-staging/qualified-negation-focused-000-additional-independent-v1/independent-source-assessment.json",
+    "sha256": "1193e667db83458dc9c1f9c121cbc001bee602c046ff51e2149463baa5364624"
+  },
+  "decision": {
+    "path": "work/annotation-staging/qualified-negation-focused-000-additional-independent-v1/accepted-decision.json",
+    "sha256": "9962b544d69084bb3b9d2c91b4e74c004d12c6911815962ca8fe10eb51a76915"
+  },
+  "release_source_count": 4407,
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "accepted_runtime_changes": 10,
+  "negative_boundary_checks": [
+    {
+      "name": "same_assessor_as_proposer",
+      "rejected": true,
+      "message": "Self approval cannot authorize report corrections"
+    },
+    {
+      "name": "missing_accepted_item",
+      "rejected": true,
+      "message": "Correction changes must exactly cover the accepted decision"
+    },
+    {
+      "name": "changed_accepted_quote",
+      "rejected": true,
+      "message": "Correction state/quote differs from the accepted assessment"
+    },
+    {
+      "name": "wrong_original_before_annotation",
+      "rejected": true,
+      "message": "Correction before state/evidence differs from the preserved review"
+    }
+  ],
+  "current_registry": {
+    "path": "work/recovered/initiative/reviews-v2/adjudications/registry.json",
+    "sha256": "9a9c90dce97a245f903ef1e9079e604e0efcfb52952d7421d1420550196383ff"
+  },
+  "current_registered_changes": 108,
+  "additional_keys_overlap_current_registry": 0,
+  "historical_baseline": "Earlier source/comparison artifacts retain their exact 34-correction context. Current-registry replay is separate, not a rewrite or a new historical-blinding claim.",
+  "all_preexisting_stage_files_preserved": true,
+  "fixture_removed": true,
+  "production_registry_changed": false,
+  "gold_accessed": false,
+  "disk_free_bytes_before": 22346870784,
+  "disk_free_bytes_after": 22346870784,
+  "minimum_disk_free_bytes": 21474836480
+}

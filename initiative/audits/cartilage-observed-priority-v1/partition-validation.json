@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "validated_at_utc": "2026-09-21T21:16:30.735743+00:00",
+  "baseline": {
+    "path": "work/annotation-staging/cartilage-global-candidate-inventory-v1/completion-manifest.json",
+    "sha256": "fbaf2684f42a5803ae496aa8c337e72366db675cde58fbd16649367552792106",
+    "bytes": 27503
+  },
+  "original_partition_manifest": {
+    "path": "work/annotation-staging/cartilage-observed-priority-v1/artifact-manifest.json",
+    "sha256": "3a7d8792f12494c6ebd360cf2a15af00acb69efb645d823e7980a628bc63f7ae",
+    "bytes": 3673
+  },
+  "source_freeze_already_completed": {
+    "path": "work/annotation-staging/cartilage-observed-000-source-review-v1/source-freeze.json",
+    "sha256": "d3d9649dcbe23cb51f80827ae1faa845cd3a88ba4c370653259908dc5fb60067",
+    "bytes": 9333
+  },
+  "counts": {
+    "all_reports": 4407,
+    "all_oa_cells": 13221,
+    "discovery_candidate_reports": 2197,
+    "discovery_candidate_cells": 6034,
+    "priority_positive_cells": 259,
+    "priority_grade_proxy_negative_cells": 43,
+    "priority_cells": 302,
+    "priority_reports": 260,
+    "neutral_packets": 26,
+    "source_pass_reports": 50,
+    "source_pass_three_target_judgments": 150,
+    "residual_pending_negative_candidate_cells": 2407,
+    "residual_pending_negative_candidate_reports": 1204,
+    "residual_reports_also_in_priority": 100,
+    "residual_reports_outside_priority": 1104,
+    "candidate_masked_cells_retained_in_global_inventory": 3325,
+    "candidate_only_masked_reports": 833,
+    "candidate_only_masked_cells_with_report_export_requirement": 2200,
+    "candidate_only_masked_reports_with_all_three_oa_cells_masked": 749,
+    "candidate_only_masked_reports_with_other_observed_oa_cells": 84,
+    "noncandidate_negative_cells_not_cleared_by_lexical_discovery": 3002,
+    "all_effective_oa_states": {
+      "uncertain": 4636,
+      "not_mentioned": 2874,
+      "negative": 5452,
+      "positive": 259
+    }
+  },
+  "checks": {
+    "baseline_manifest_and_initial_partition_unchanged": true,
+    "all_89_original_source_and_89_review_artifact_hashes_match": true,
+    "full_4407_report_index_uid_and_text_hashes_match": true,
+    "priority_replayed_exactly_from_full_coverage_and_grade_trigger": true,
+    "all_neutral_packets_exact_original_text_and_metadata_only": true,
+    "source_pass_equals_first_50_neutral_reports": true,
+    "masked_retention_exact_effective_states_and_evidence": true,
+    "all_observed_candidate_cells_outside_priority_retained_exactly": true,
+    "candidate_partition_is_exhaustive_and_disjoint_by_cell": true
+  },
+  "scope": "Mechanical discovery partition only. It neither validates clinical accuracy nor compares source judgments with current labels.",
+  "recall_limit": "The 43 grade-only negative cells are a narrow lexical proxy. All 2407 other observed-negative candidate cells remain pending. The 3002 observed-negative noncandidate cells are not cleared; the lexical inventory makes no complete semantic-recall claim.",
+  "source_assessment_compared_to_current_labels": false,
+  "new_registered_corrections": 0,
+  "global_gate_closed": false,
+  "gold_accessed": false,
+  "validator": {
+    "path": "work/annotation-staging/cartilage-observed-priority-v1/validate_partition.py",
+    "sha256": "a8b57ec3f75bc698750a1826d0196bd154af564a3e9a8623c698b5575ecfe6f4",
+    "bytes": 12862
+  }
+}

@@ -1,0 +1,70 @@
+"""Create comparison artifacts only after verifying the source freeze."""
+import json,hashlib,sys
+from pathlib import Path
+HERE=Path(__file__).resolve().parent
+REPO=HERE.parents[2]/'work/recovered'
+sys.path.insert(0,str(REPO))
+from rsna.labels import read_reviews
+from rsna.adjudications import inspect_adjudications
+def read(path):return json.loads(path.read_text())
+def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+def write(name,data):
+    p=HERE/name;assert not p.exists();p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+receipt=read(HERE/'source-freeze-receipt.json')
+for f,h in receipt['files'].items():assert sha(HERE/f)==h
+freeze=read(HERE/'source-assessment-frozen.json')
+selected={r['study_uid']:r['report'] for r in freeze['records']}
+assert len(read_reviews(HERE,selected,'source-assessment-frozen'))==50
+reports={}
+for path in sorted((REPO/'initiative/reviews/inputs').glob('batch-*.json')):
+    for r in read(path):
+        assert r['study_uid'] not in reports
+        reports[r['study_uid']]=r['report']
+assert len(reports)==4407
+inspect=inspect_adjudications(reports,REPO/'initiative/reviews-v2/reviewed',REPO/'protocols/report_weak_v2.md',REPO)
+assert inspect['n_changes']==34 and len(inspect['pending_semantic_qa'])==3
+write('current-adjudications-inspection.json',inspect)
+corrections={(r['study_uid'],r['target']):r for r in inspect['changes']}
+current={};paths={}
+for source in freeze['records']:
+    b=source['batch'];p=REPO/f'initiative/reviews-v2/reviewed/{b}-reviewed.jsonl'
+    if b not in paths:
+        paths[b]=(str(p.relative_to(REPO)),sha(p))
+        for line in p.read_text().splitlines():
+            row=json.loads(line);current[row['study_uid']]=row
+base=dict(schema_version=1,agent_id=freeze['agent_id'],session_id=freeze['session_id'],
+          source_reports_sha256=freeze['source_reports_sha256'],rubric_sha256=freeze['rubric_sha256'],
+          source_assessment_sha256=sha(HERE/'source-assessment-frozen.json'),
+          adjudication_registry_sha256=inspect['registry_sha256'],registered_corrections=34,n_reports=50,n_targets=600)
+records=[]
+for source in freeze['records']:
+    uid=source['study_uid'];row=current[uid]
+    for i,decision in enumerate(source['decisions']):
+        key=(uid,decision['target']);change=corrections.get(key)
+        before=dict(state=row['states'][i],evidence=row['evidence'][i])
+        effective=change['after'] if change else before
+        records.append(dict(packet_index=source['packet_index'],batch=source['batch'],index=source['index'],
+            study_uid=uid,target=decision['target'],source_path=source['source_path'],source_sha256=source['source_sha256'],
+            original_review_path=paths[source['batch']][0],original_review_sha256=paths[source['batch']][1],
+            original_state=before['state'],original_evidence=before['evidence'],
+            existing_correction_case=change['case_id'] if change else None,
+            effective_state=effective['state'],effective_evidence=effective['evidence'],
+            first_assessor_state=decision['state'],first_assessor_evidence=decision['evidence'],first_assessor_reason=decision['reason'],
+            state_agrees=effective['state']==decision['state'],evidence_agrees=effective['evidence']==decision['evidence'],
+            original_notes=row['notes']))
+write('full-target-comparison.json',dict(base,records=records))
+diff=[r for r in records if not r['state_agrees']]
+evidence=[r for r in records if r['state_agrees'] and not r['evidence_agrees']]
+write('state-differences.json',dict(base,records=diff))
+write('same-state-evidence-differences.json',dict(base,records=evidence))
+candidate_path=HERE.parent/'qualified-negation-all4407-candidates-v1/focused-qualified-candidate-details.json'
+candidate_rows=[r for r in read(candidate_path)['records'] if r['study_uid'] in selected]
+by_key={(r['study_uid'],r['target']):r for r in records}
+for r in candidate_rows:
+    check=by_key[(r['study_uid'],r['target'])]
+    assert r['inspection_effective_state']==check['effective_state']
+    assert r['inspection_effective_evidence']==check['effective_evidence']
+write('batch-candidate-details-postfreeze.json',dict(base,candidate_source_path=str(candidate_path.relative_to(HERE.parents[2])),
+      candidate_source_sha256=sha(candidate_path),n_candidates=len(candidate_rows),source_freeze_preceded_new_access=True,records=candidate_rows))
+print(json.dumps({'n_state_differences':len(diff),'n_same_state_evidence_differences':len(evidence),
+                  'n_candidates':len(candidate_rows),'n_existing_corrections_selected':sum(r['existing_correction_case'] is not None for r in records)},indent=2))

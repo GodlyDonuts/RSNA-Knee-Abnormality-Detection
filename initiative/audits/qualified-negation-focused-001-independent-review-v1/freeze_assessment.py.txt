@@ -1,0 +1,153 @@
+"""Bind and freeze individually authored decisions; performs no clinical classification."""
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import runpy
+import shutil
+import sys
+
+STAGE = Path(__file__).resolve().parent
+WORK = STAGE.parents[1]
+REPO = WORK / 'recovered'
+sys.path.insert(0, str(REPO))
+from rsna.schema import TARGETS
+
+IDENTITY = '/root/last_twelve_visual_review'
+PACKET = WORK / 'annotation-staging/qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-001.json'
+RUBRIC = REPO / 'protocols/report_weak_v2.md'
+
+
+def read(p):
+    return json.loads(p.read_text())
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def ref(p):
+    return {'path': str(p.relative_to(WORK)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+
+def write_new(name, content):
+    path = STAGE / name
+    assert not path.exists(), f'Preserve existing freeze: {path}'
+    path.write_text(json.dumps(content, ensure_ascii=False, indent=2) + '\n')
+    return path
+
+
+binding_path = STAGE / 'source-and-rubric-bindings.json'
+binding = read(binding_path)
+assert sha(PACKET) == binding['packet']['sha256'] == 'c20b5396478a388c6830896fc23b8fb84f6951b0743c8af817d54160b6511084'
+assert sha(RUBRIC) == binding['rubric']['sha256'] == '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+packet = read(PACKET)
+assert len(packet) == len({r['study_uid'] for r in packet}) == 50
+authored = {}
+helper_refs = []
+for p in sorted(STAGE.glob('decisions_*.py')):
+    decisions = runpy.run_path(str(p))['ROWS']
+    assert not set(authored).intersection(decisions)
+    authored.update(decisions)
+    helper_refs.append(ref(p))
+assert set(authored) == set(range(50)) and len(helper_refs) == 5
+output = []
+nonmissing_count = 0
+for index, source in enumerate(packet):
+    original_path = REPO / source['source_path']
+    assert sha(original_path) == source['source_sha256']
+    assert type(source['index']) is int
+    original = read(original_path)[source['index']]
+    assert original['study_uid'] == source['study_uid'] and original['report'] == source['report']
+    report_sha = hashlib.sha256(source['report'].encode('utf-8')).hexdigest()
+    old = binding['reports'][index]
+    assert old['packet_index_zero_based'] == index and old['study_uid'] == source['study_uid']
+    assert old['report_utf8_sha256'] == report_sha and old['source_index_zero_based'] == source['index']
+    rows = authored[index]
+    assert len(rows) == len(TARGETS) == 12
+    spans = []
+    for state, evidence, reason in rows:
+        assert state in {'positive', 'negative', 'uncertain', 'not_mentioned'}
+        assert isinstance(reason, str) and reason.strip()
+        if state == 'not_mentioned':
+            assert evidence == ''
+            spans.append(None)
+        else:
+            assert evidence and evidence in source['report']
+            start = source['report'].index(evidence)
+            end = start + len(evidence)
+            assert source['report'][start:end] == evidence
+            spans.append({'start_python_character_index': start, 'end_exclusive_python_character_index': end})
+            nonmissing_count += 1
+    output.append({
+        'study_uid': source['study_uid'], 'case': old['case'],
+        'packet_index_zero_based': index, 'source_path': source['source_path'],
+        'source_index_zero_based': source['index'], 'source_batch_sha256': source['source_sha256'],
+        'report_utf8_sha256': report_sha, 'reader_id': IDENTITY,
+        'rubric_version': 'report-weak-v2.0', 'rubric_sha256': sha(RUBRIC),
+        'target_order': list(TARGETS),
+        'states': [d[0] for d in rows], 'evidence': [d[1] for d in rows],
+        'target_reasoning': [d[2] for d in rows], 'evidence_character_spans': spans,
+        'notes': ' | '.join(f'{target}: {d[2]}' for target, d in zip(TARGETS, rows)),
+        'all_targets_individually_authored_from_complete_source': True,
+    })
+assessment = STAGE / 'independent-assessment.jsonl'
+assert not assessment.exists()
+assessment.write_text(''.join(json.dumps(r, ensure_ascii=False) + '\n' for r in output))
+snapshot = STAGE / 'neutral-source-packet.json'
+assert not snapshot.exists()
+shutil.copyfile(PACKET, snapshot)
+assert snapshot.read_bytes() == PACKET.read_bytes()
+validation = write_new('validation.json', {
+    'stage': 'mechanically_validated_independently_authored_full_source_focused_001_assessment',
+    'agent_id': IDENTITY, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'packet': ref(PACKET), 'rubric': ref(RUBRIC), 'source_binding': ref(binding_path),
+    'assessment': ref(assessment), 'source_snapshot': ref(snapshot),
+    'report_count': 50, 'unique_source_memberships': 50, 'unique_study_uids': 50,
+    'target_decision_count': 600, 'target_order_verified': list(TARGETS),
+    'every_original_source_file_hash_index_uid_and_full_report_verified': True,
+    'every_nonmissing_quote_is_an_exact_contiguous_source_substring': True,
+    'every_not_mentioned_evidence_is_empty': True,
+    'all_600_targets_have_individually_authored_reasoning': True,
+    'clinical_correctness_not_proved_by_mechanical_checks': True,
+    'labels_registered_or_global_qa_closed': False,
+})
+freeze = write_new('independent-freeze.json', {
+    'stage': 'frozen_independent_full_source_600_target_assessment_before_comparison',
+    'agent_id': IDENTITY, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'actual_assessor_identity': IDENTITY,
+    'packet': ref(PACKET), 'rubric': ref(RUBRIC), 'assessment': ref(assessment),
+    'validation': ref(validation), 'source_snapshot': ref(snapshot),
+    'source_binding_and_historical_exposure_disclosure': ref(binding_path),
+    'individually_authored_decision_helpers': helper_refs,
+    'freeze_helper': ref(Path(__file__).resolve()),
+    'source_reading_attestation': 'This assessor personally read each of the 50 complete original reports displayed from the neutral batch and authored all twelve decisions per report. The helper validates/reformats authored decisions; it does not infer clinical labels.',
+    'historical_exposure_disclosure': binding['historical_exposure_disclosure'],
+    'current_task_access_order_attestation': 'Neutral original reports and unchanged rubric were read before authoring this assessment. No candidate-details, current reviewed/draft/adjudication case states, or other focused clinical reviewer stage was opened before this freeze. This is a session attestation, not a claim that a timestamp proves historical access order.',
+    'independence_limit': 'Not first-ever blinding; prior source/technical/clinical context exposure is explicitly preserved. No named other assessor output has informed this new assessment.',
+    'completion': {'complete_original_reports_personally_read': 50, 'individually_assessed_targets': 600},
+    'comparison_authorized_or_performed': False,
+    'runtime_gold_originals_shared_docs_or_policy_modified': False,
+    'global_qa_gate_closed': False, 'training_ready': False,
+})
+(STAGE / 'summary.md').write_text(
+    'Independent full-source review is complete for all 50 reports and 600 targets in focused neutral batch-001. '
+    'Every target has individual reasoning; every nonmissing decision has an exact contiguous original-language quotation. '
+    'Original report/index/UID/hash, packet membership, and unchanged rubric bindings passed mechanical validation.\n\n'
+    'The actual assessor is /root/last_twelve_visual_review. Historical source, technical and clinical context exposure is disclosed; '
+    'this is not a claim of first-ever blinding. Current case annotations, candidate details and other focused clinical assessments '
+    'were not opened before this freeze. Mechanical validation establishes binding/completeness, not clinical correctness.\n\n'
+    'No labels were registered, no original or gold data changed, and no global QA gate was closed. '
+    'Comparison awaits root authorization.\n'
+)
+files = [ref(p) for p in sorted(STAGE.iterdir()) if p.is_file()]
+manifest = write_new('final-file-list.json', {
+    'stage': 'frozen_focused_001_independent_review_file_bindings', 'agent_id': IDENTITY,
+    'files': files, 'file_count_excluding_this_manifest': len(files),
+    'report_count': 50, 'target_count': 600, 'comparison_performed': False,
+})
+for entry in read(manifest)['files']:
+    assert ref(WORK / entry['path']) == entry
+print(json.dumps({'complete_reports': 50, 'complete_target_decisions': 600,
+                  'assessment': ref(assessment), 'freeze': ref(freeze),
+                  'validation': ref(validation), 'final_file_list': ref(manifest)}, indent=2))

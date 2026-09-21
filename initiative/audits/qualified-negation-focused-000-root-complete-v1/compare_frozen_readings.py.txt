@@ -1,0 +1,114 @@
+"""Compare preserved source judgments and replay the effective baseline; no decisions."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib
+import json
+import sys
+
+W = Path(__file__).resolve().parents[3]
+R = W / "work/recovered"
+G = Path(__file__).resolve().parent
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def bind(path):
+    return {"path": str(path.relative_to(W)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+def read(path, expected=None):
+    if expected:
+        assert sha(path) == expected, path
+    return json.loads(path.read_text())
+
+def jsonl(path, expected):
+    assert sha(path) == expected
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+root_freeze_path = G / "root48-source-freeze.json"
+root_freeze = read(root_freeze_path, "1039fd54de56f0e9aa497095711a1443276e25db22f69a0be1c3c06992cea773")
+assert root_freeze["case_specific_focused_reader_states_proposals_comparisons_accessed_before_this_freeze"] is False
+root = {}
+for ref in root_freeze["source_assessments"]:
+    doc = read(W / ref["path"], ref["sha256"])
+    assert doc["assessor_id"] == "/root" and doc["target_order"] == list(TARGETS)
+    for row in doc["reports"]:
+        assert row["study_uid"] not in root
+        root[row["study_uid"]] = row
+assert len(root) == 48
+
+F = R / "initiative/audits/qualified-negation-focused-000-source-review-v1"
+S = R / "initiative/audits/qualified-negation-focused-000-independent-review-v1"
+first_rows = jsonl(F / "source-assessment-frozen.jsonl", "f104cd1e4da9b98d1b6bc01bc2bf75cb094cef42e94dbf9122b9bee7499e0e2b")
+second_freeze = read(S / "source-freeze.json", "e518455800874e4601dcc9a26792a73cab44d52427466462600509d74d29b227")
+second_rows = jsonl(S / "independent-source-judgments.jsonl", second_freeze["judgments"]["sha256"])
+first = {row["study_uid"]: row for row in first_rows}
+second = {row["study_uid"]: row for row in second_rows}
+assert len(first) == len(first_rows) == len(second) == len(second_rows) == 50
+assert set(root) < set(first) == set(second)
+proposals = read(F / "proposed-errata.json", "6df326618716d57ddacfe83061865d649ab4c0705619df08d2ba605e1fbf7962")
+first_disposition = read(F / "postfreeze-disposition-assessment.json", "0639a3fabe3857c16afd27ebdc79c5128a7d25584d5c84c925f08c56d8d9a12a")
+second_disposition = read(S / "postfreeze-comparison-v1/independent-postfreeze-dispositions.json", "89a8a3e6d6fc6efb43d64b12a7c92505c84266fd4f88ea1e6057b8789b49f5c8")
+assert proposals["agent_id"] == first_disposition["agent_id"] == "/root/duplicate_consistency_review"
+assert second_freeze["assessor"]["agent_id"] == second_disposition["assessor_agent_id"] == "/root/quality_temporal_review"
+assert len({"/root", proposals["agent_id"], second_disposition["assessor_agent_id"]}) == 3
+proposal_map = {(row["study_uid"], row["target"]): row for row in proposals["proposed_errata"]}
+assert len(proposal_map) == 74
+first_post = {(row["study_uid"], row["target"]): row for row in first_disposition["state_difference_records"]}
+reports = {row["study_uid"]: row["report"] for path in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")) for row in read(path)}
+assert len(reports) == 4407
+plan = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+assert plan["n_changes"] == 34 and len(plan["pending_semantic_qa"]) == 3
+assert plan["registry_sha256"] == root_freeze["clinical_adjudication_registry_before_comparison"]["sha256"]
+changes = {(c["study_uid"], c["target"]): c for c in plan["changes"]}
+originals = {row["study_uid"]: row for path in sorted((R / "initiative/reviews-v2/reviewed").glob("*-reviewed.jsonl")) for row in [json.loads(line) for line in path.read_text().splitlines()]}
+assert set(originals) == set(reports)
+
+rows = []
+for peer in second_disposition["records"]:
+    uid, target = peer["study_uid"], peer["target"]
+    j = list(TARGETS).index(target)
+    key = uid, target
+    assert uid in first
+    for who, statekey, evidencekey in [(first, "first_frozen_state", "first_frozen_evidence"), (second, "independent_frozen_state", "independent_frozen_evidence")]:
+        assert who[uid]["states"][j] == peer[statekey] and who[uid]["evidence"][j] == peer[evidencekey]
+        assert peer[evidencekey] == "" or peer[evidencekey] in reports[uid]
+    assert peer["original_state"] == originals[uid]["states"][j]
+    assert peer["original_evidence"] == originals[uid]["evidence"][j]
+    effective = {"state": originals[uid]["states"][j], "evidence": originals[uid]["evidence"][j]}
+    if key in changes:
+        assert effective == changes[key]["before"]
+        effective = changes[key]["after"]
+    assert peer["effective_state"] == effective["state"] and peer["effective_evidence"] == effective["evidence"]
+    expected_first = first_post[key]["final_first_assessor_state"] if key in first_post else first[uid]["states"][j]
+    assert peer["first_postfreeze_state"] == expected_first
+    proposal = proposal_map.get(key)
+    assert peer["first_proposal"] == proposal
+    if uid not in root:
+        assert proposal is None and peer["first_postfreeze_state"] == peer["independent_postfreeze_state"] == effective["state"]
+        continue
+    rr = root[uid]
+    assert rr["source_index_zero_based"] == peer["index"] and rr["report_sha256"] == peer["source_report_sha256"]
+    assert rr["source_sha256"] == peer["source_sha256"]
+    root_state, root_quote = rr["states"][j], rr["evidence"][j]
+    assert not root_quote or root_quote in reports[uid]
+    attention = bool(proposal) or len({root_state, peer["first_frozen_state"], peer["independent_frozen_state"], peer["first_postfreeze_state"], peer["independent_postfreeze_state"], effective["state"]}) > 1
+    rows.append({"case": rr["case"], "root_state": root_state, "root_evidence": root_quote, "root_notes": rr["notes"], "attention_required": attention, **peer})
+assert len(rows) == 576
+out = G / "root-postfreeze-comparison.json"
+assert not out.exists()
+proof = {"schema_version": 1, "stage": "root_mechanical_comparison_after_full_source_freeze", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(),
+         "root_freeze": bind(root_freeze_path), "first_source_jsonl": bind(F / "source-assessment-frozen.jsonl"), "second_source_freeze": bind(S / "source-freeze.json"),
+         "second_source_jsonl": bind(S / "independent-source-judgments.jsonl"), "first_proposals": bind(F / "proposed-errata.json"), "first_dispositions": bind(F / "postfreeze-disposition-assessment.json"),
+         "second_dispositions": bind(S / "postfreeze-comparison-v1/independent-postfreeze-dispositions.json"), "comparison_helper": bind(Path(__file__)),
+         "effective_baseline_replayed_from_all4407_sources_and34_accepted_changes": True,
+         "counts": {"root_reports": 48, "root_cells": len(rows), "both_original_reader_cells_replayed": 600, "attention_cells": sum(x["attention_required"] for x in rows),
+                    "root_differs_effective": sum(x["root_state"] != x["effective_state"] for x in rows), "first_proposals": len(proposal_map),
+                    "root_matches_first_proposed_state": sum(x["root_state"] == x["first_proposal"]["proposed_state"] for x in rows if x["first_proposal"]),
+                    "root_matches_second_postfreeze_state": sum(x["root_state"] == x["independent_postfreeze_state"] for x in rows)},
+         "rows": rows, "decisions_authored_by_this_script": False, "new_corrections_registered": 0, "training_ready": False}
+out.write_text(json.dumps(proof, ensure_ascii=False, indent=2) + "\n")
+print(json.dumps({"path": str(out), "sha256": sha(out), "counts": proof["counts"]}))

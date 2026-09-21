@@ -1,0 +1,228 @@
+"""Read-only partition replay; --record adds new, write-once aggregate receipts.
+
+Current state rows are processed mechanically and never printed. This does not
+author clinical judgments or compare the frozen source assessment with labels.
+Run from any directory with Python 3.11+.
+"""
+
+import argparse
+import hashlib
+import json
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+WORKSPACE = STAGE.parents[2]
+REPO = WORKSPACE / "work/recovered"
+GLOBAL = STAGE.parent / "cartilage-global-candidate-inventory-v1"
+SOURCE_PASS = STAGE.parent / "cartilage-observed-000-source-review-v1"
+AGENT = "/root/quality_temporal_review"
+TARGETS = ["Medial OA", "Lateral OA", "PF OA"]
+GRADE_TRIGGER = "negative_grade_only_proxy_no_framework_in_source_or_depth_cue_in_quote"
+MASKED = {"uncertain", "not_mentioned"}
+OBSERVED = {"positive", "negative"}
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def rows(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def key(row):
+    return row["study_uid"], row["target"]
+
+
+def write_once(path, obj):
+    with path.open("x") as stream:
+        stream.write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
+
+
+def main(record_outputs=False):
+    baseline_manifest = read(GLOBAL / "completion-manifest.json")
+    for relative, expected in baseline_manifest["files"].items():
+        assert sha(GLOBAL / relative) == expected, "Baseline changed"
+    initial_manifest = read(STAGE / "artifact-manifest.json")
+    for relative, expected in initial_manifest["files"].items():
+        assert sha(STAGE / relative) == expected, "Initial partition changed"
+    assert sha(SOURCE_PASS / "source-freeze.json") == "d3d9649dcbe23cb51f80827ae1faa845cd3a88ba4c370653259908dc5fb60067"
+    freeze = read(SOURCE_PASS / "source-freeze.json")
+    assert freeze["agent_id"] == AGENT
+    assert freeze["complete_reports_read"] == 50 and freeze["total_judgments"] == 150
+
+    coverage = rows(GLOBAL / "full-cartilage-coverage.jsonl")
+    candidates = rows(GLOBAL / "candidate-details.jsonl")
+    assert len(coverage) == 13221 and len(candidates) == 6034
+    coverage_by_key = {key(row): row for row in coverage}
+    assert len(coverage_by_key) == len(coverage)
+    assert {key(row) for row in candidates} == {key(row) for row in coverage if row["selected"]}
+    by_uid = defaultdict(list)
+    candidate_by_uid = defaultdict(list)
+    source_cache = {}
+    reviewed_hashes = {}
+    for row in coverage:
+        by_uid[row["study_uid"]].append(row)
+        path = REPO / row["source_path"]
+        if path not in source_cache:
+            source_cache[path] = (sha(path), read(path))
+        source_sha, original = source_cache[path]
+        assert source_sha == row["source_sha256"]
+        source = original[row["index"]]
+        assert source["study_uid"] == row["study_uid"]
+        assert hashlib.sha256(source["report"].encode()).hexdigest() == row["source_report_sha256"]
+        review_path = REPO / row["reviewed_artifact_path"]
+        if review_path not in reviewed_hashes:
+            reviewed_hashes[review_path] = sha(review_path)
+        assert reviewed_hashes[review_path] == row["reviewed_artifact_sha256"]
+    assert len(by_uid) == 4407 and len(source_cache) == 89 and len(reviewed_hashes) == 89
+    assert all([row["target"] for row in report] == TARGETS for report in by_uid.values())
+    for row in candidates:
+        candidate_by_uid[row["study_uid"]].append(row)
+        base = coverage_by_key[key(row)]
+        assert all(row[field] == value for field, value in base.items())
+
+    positives = [row for row in coverage if row["inspection_effective_state"] == "positive"]
+    grade_negatives = [row for row in candidates if row["inspection_effective_state"] == "negative" and GRADE_TRIGGER in row["trigger_ids"]]
+    selection = read(STAGE / "priority-selection-details.json")
+    assert selection["positive_cells"] == positives
+    assert selection["grade_only_negative_cells"] == grade_negatives
+    selected_keys = {key(row) for row in positives + grade_negatives}
+    selected_uids = {uid for uid, _ in selected_keys}
+    assert len(positives) == 259 and len(grade_negatives) == 43
+    assert len(selected_keys) == selection["selected_cell_count"] == 302
+    assert len(selected_uids) == selection["selected_report_count"] == 260
+
+    neutral_index = read(STAGE / "neutral-priority-index.json")
+    neutral = []
+    for packet in neutral_index["neutral_packets"]:
+        path = WORKSPACE / packet["path"]
+        assert sha(path) == packet["sha256"] and path.stat().st_size == packet["bytes"]
+        contents = read(path)
+        assert len(contents) == packet["n_reports"] <= 10
+        neutral.extend(contents)
+    expected_order = sorted(selected_uids, key=lambda uid: (by_uid[uid][0]["batch"], by_uid[uid][0]["index"]))
+    assert [row["study_uid"] for row in neutral] == expected_order
+    allowed_neutral_keys = {"study_uid", "report", "batch", "index", "source_path", "source_sha256"}
+    for row in neutral:
+        assert set(row) == allowed_neutral_keys
+        base = by_uid[row["study_uid"]][0]
+        assert all(row[field] == base[field] for field in allowed_neutral_keys - {"report"})
+        assert row["report"] == source_cache[REPO / row["source_path"]][1][row["index"]]["report"]
+    assert read(SOURCE_PASS / "neutral-first-50-full-reports.json") == neutral[:50]
+    assert sha(SOURCE_PASS / "neutral-first-50-full-reports.json") == "2eed3ab93cad06dcb338d374c6546054db9ed2c16c80c76c89aa70717429f0ae"
+
+    retained = read(STAGE / "masked-candidate-retention-and-export-checks.json")
+    masked_only_uids = {uid for uid, cells in candidate_by_uid.items() if all(row["inspection_effective_state"] in MASKED for row in cells)}
+    assert len(masked_only_uids) == retained["report_count"] == 833
+    assert {row["study_uid"] for row in retained["records"]} == masked_only_uids
+    all_three_masked = 0
+    masked_only_candidate_cells = 0
+    for record in retained["records"]:
+        uid = record["study_uid"]
+        assert record["all_three_oa_cells"] == by_uid[uid]
+        source = by_uid[uid][0]
+        assert all(record["source"][field] == source[field] for field in record["source"])
+        expected_targets = [row["target"] for row in candidate_by_uid[uid]]
+        assert record["masked_candidate_targets"] == expected_targets
+        actual_all_masked = all(row["inspection_effective_state"] in MASKED for row in by_uid[uid])
+        assert record["all_three_oa_states_masked"] == actual_all_masked
+        assert "training-loss mask 0" in record["final_export_requirement"]
+        all_three_masked += actual_all_masked
+        masked_only_candidate_cells += len(expected_targets)
+    assert all_three_masked == 749
+
+    residual = [row for row in candidates if row["inspection_effective_state"] in OBSERVED and key(row) not in selected_keys]
+    residual_file = STAGE / "other-observed-candidates-retained.json"
+    retained_residual = read(residual_file)
+    assert retained_residual["candidate_cells"] == residual
+    assert len(residual) == retained_residual["count"] == 2407
+    assert all(row["inspection_effective_state"] == "negative" for row in residual)
+    residual_uids = {row["study_uid"] for row in residual}
+    candidate_masked = [row for row in candidates if row["inspection_effective_state"] in MASKED]
+    candidate_keys = {key(row) for row in candidates}
+    noncandidate_negatives = [row for row in coverage if row["inspection_effective_state"] == "negative" and key(row) not in candidate_keys]
+    assert len(candidates) == len(selected_keys) + len(residual) + len(candidate_masked)
+    assert len(candidate_masked) == 3325 and len(noncandidate_negatives) == 3002
+
+    counts = {
+        "all_reports": len(by_uid), "all_oa_cells": len(coverage),
+        "discovery_candidate_reports": len(candidate_by_uid), "discovery_candidate_cells": len(candidates),
+        "priority_positive_cells": len(positives), "priority_grade_proxy_negative_cells": len(grade_negatives),
+        "priority_cells": len(selected_keys), "priority_reports": len(selected_uids),
+        "neutral_packets": len(neutral_index["neutral_packets"]),
+        "source_pass_reports": 50, "source_pass_three_target_judgments": 150,
+        "residual_pending_negative_candidate_cells": len(residual),
+        "residual_pending_negative_candidate_reports": len(residual_uids),
+        "residual_reports_also_in_priority": len(residual_uids & selected_uids),
+        "residual_reports_outside_priority": len(residual_uids - selected_uids),
+        "candidate_masked_cells_retained_in_global_inventory": len(candidate_masked),
+        "candidate_only_masked_reports": len(masked_only_uids),
+        "candidate_only_masked_cells_with_report_export_requirement": masked_only_candidate_cells,
+        "candidate_only_masked_reports_with_all_three_oa_cells_masked": all_three_masked,
+        "candidate_only_masked_reports_with_other_observed_oa_cells": len(masked_only_uids) - all_three_masked,
+        "noncandidate_negative_cells_not_cleared_by_lexical_discovery": len(noncandidate_negatives),
+        "all_effective_oa_states": dict(Counter(row["inspection_effective_state"] for row in coverage)),
+    }
+    proof = {
+        "schema_version": 1, "agent_id": AGENT,
+        "validated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "baseline": bind(GLOBAL / "completion-manifest.json"),
+        "original_partition_manifest": bind(STAGE / "artifact-manifest.json"),
+        "source_freeze_already_completed": bind(SOURCE_PASS / "source-freeze.json"),
+        "counts": counts,
+        "checks": {
+            "baseline_manifest_and_initial_partition_unchanged": True,
+            "all_89_original_source_and_89_review_artifact_hashes_match": True,
+            "full_4407_report_index_uid_and_text_hashes_match": True,
+            "priority_replayed_exactly_from_full_coverage_and_grade_trigger": True,
+            "all_neutral_packets_exact_original_text_and_metadata_only": True,
+            "source_pass_equals_first_50_neutral_reports": True,
+            "masked_retention_exact_effective_states_and_evidence": True,
+            "all_observed_candidate_cells_outside_priority_retained_exactly": True,
+            "candidate_partition_is_exhaustive_and_disjoint_by_cell": True,
+        },
+        "scope": "Mechanical discovery partition only. It neither validates clinical accuracy nor compares source judgments with current labels.",
+        "recall_limit": "The 43 grade-only negative cells are a narrow lexical proxy. All 2407 other observed-negative candidate cells remain pending. The 3002 observed-negative noncandidate cells are not cleared; the lexical inventory makes no complete semantic-recall claim.",
+        "source_assessment_compared_to_current_labels": False,
+        "new_registered_corrections": 0, "global_gate_closed": False, "gold_accessed": False,
+        "validator": bind(Path(__file__).resolve()),
+    }
+    residual_wrapper = {
+        "schema_version": 1, "agent_id": AGENT,
+        "created_after_source_freeze": bind(SOURCE_PASS / "source-freeze.json"),
+        "queue": bind(residual_file),
+        "candidate_cells": len(residual), "candidate_reports": len(residual_uids),
+        "reports_also_in_priority": len(residual_uids & selected_uids),
+        "reports_outside_priority": len(residual_uids - selected_uids),
+        "effective_state": "negative", "status": "pending_residual_observed_negative_candidate_queue",
+        "definition": "Every observed-negative candidate cell in the complete discovery inventory outside the 302-cell priority set; exact source, current effective state/evidence and existing correction bindings are preserved in the queue file.",
+        "not_cleared": True, "mandatory_reread_schedule_not_assigned": True,
+        "lexical_recall_limit": proof["recall_limit"],
+        "new_clinical_judgments": 0, "global_gate_closed": False, "gold_accessed": False,
+    }
+    if record_outputs:
+        write_once(STAGE / "residual-pending-queue-v2.json", residual_wrapper)
+        write_once(STAGE / "partition-validation-v2.json", proof)
+    else:
+        assert read(STAGE / "residual-pending-queue-v2.json") == residual_wrapper
+        saved = read(STAGE / "partition-validation-v2.json")
+        proof["validated_at_utc"] = saved["validated_at_utc"]
+        assert saved == proof
+    print(json.dumps({"passed": True, "counts": counts}, indent=2))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--record", action="store_true")
+    main(parser.parse_args().record)

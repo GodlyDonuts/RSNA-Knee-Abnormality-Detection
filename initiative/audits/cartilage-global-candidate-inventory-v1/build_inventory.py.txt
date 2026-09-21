@@ -1,0 +1,343 @@
+"""Reuse complete discovery coverage; add mechanical cartilage retrieval only."""
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import re
+import sys
+import unicodedata
+
+BASE = Path(__file__).resolve().parent
+WORKSPACE = BASE.parents[2]
+REPO = WORKSPACE / "work/recovered"
+PRIOR = BASE.parent / "qualified-negation-all4407-candidates-v1"
+AGENT = "/root/quality_temporal_review"
+OA_TARGETS = ["Medial OA", "Lateral OA", "PF OA"]
+sys.path.insert(0, str(REPO))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+PATTERNS = {
+    "cartilage_anchor": r"\b(?:cartilag\w*|chondr\w*|kondrom\w*|knorpel\w*|χονδρ\w*|k[ıi]k[ıi]rdak\w*|kartilaj\w*|хрущял\w*|хрящ\w*|osteoarthr\w*|osteoartro\w*|οστεοαρθρ\w*)\b",
+    "numeric_grade": r"\b(?:grade?s?|grados?|grad(?:ul|en)?|grau|derece\w*|evre\w*|stade\w*|stadium|βαθμ\w*|степен\w*|стад\w*)\s*(?:[:=°]|de|der)?\s*(?:iv|iii|ii|i|[0-4])(?:\s*[-–/]\s*(?:iv|iii|ii|i|[0-4]))?\b|\b(?:iv|iii|ii|i|[0-4])\s*(?:°|βαθμ\w*|derece\w*|степен\w*)",
+    "named_framework": r"\b(?:icrs|outerbridge|noyes(?:[- ]stabler)?|international\s+cartilage\s+repair\s+society)\b",
+    "numeric_extent": r"\b\d+(?:[.,]\d+)?(?:\s*(?:x|×|by)\s*\d+(?:[.,]\d+)?){0,2}\s*(?:mm|cm|millimet\w*|centimet\w*|χιλ\w*|εκατοστ\w*|мм|см)\b",
+    "width_axis_word": r"\b(?:width|wide|largeur|ancho|anchura|breit\w*|ευροσ|πλατοσ|genisli\w*|genislik|ширин\w*)\b",
+    "explicit_depth_fraction_or_full_thickness": r"\b\d+(?:[.,]\d+)?\s*%|\b(?:half|full[- ]?thickness|near[- ]?full[- ]?thickness|espesor\s+(?:practicamente\s+)?total|pleine?\s+epaisseur|toute\s+l.epaisseur|vollschichtig\w*|komplett\w*\s+knorpelverlust|knorpelglatze\w*|tam\s+kat\w*|ολικ\w*\s+(?:απωλει\w*|παχ\w*)|ολου\s+του\s+παχ\w*)\b",
+    "nongrade_depth_or_morphology": r"\b(?:superficial\w*|surface\s+fraying|low[- ]grade|full[- ]?thickness|partial[- ]?thickness|deep|depth|thickness|fray\w*|fibrillat\w*|espesor|profon\w*|epaisseur|oberflach\w*|tief\w*|vollschichtig\w*|ausdunn\w*|incel\w*|tam\s+kat\w*|yuzey\w*|λεπτυν\w*|παχ\w*|βαθει\w*|επιφανειακ\w*|истъняв\w*|повърхност\w*)\b|\b\d+(?:[.,]\d+)?\s*%",
+    "low_severity_language": r"\b(?:superficial\w*|low[- ]grade|mild|minor|slight\w*|leve\w*|l[eé]g[eè]r\w*|gering\w*|oberflach\w*|hafif|ηπι\w*|επιφανειακ\w*)\b",
+    "high_severity_language": r"\b(?:full[- ]?thickness|high[- ]grade|severe\w*|advanced|deep|espesor\s+(?:practicamente\s+)?total|profund\w*|avanzad\w*|sever\w*|profon\w*|vollschichtig\w*|hohergradig\w*|hochgradig\w*|tief\w*|tam\s+kat\w*|ileri|βαθει\w*|σοβαρ\w*|ολικ\w*\s+απωλει\w*)\b",
+}
+COMPILED = {name: re.compile(pattern) for name, pattern in PATTERNS.items()}
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def digest_bytes(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def sha(path):
+    return digest_bytes(path.read_bytes())
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def normal_with_offsets(text):
+    chars, offsets = [], []
+    for index, char in enumerate(text):
+        for piece in unicodedata.normalize("NFKD", char.casefold()):
+            if not unicodedata.combining(piece):
+                chars.append(piece)
+                offsets.append(index)
+    return "".join(chars), offsets
+
+
+def cue_matches(text):
+    normalized, offsets = normal_with_offsets(text)
+    output = {}
+    for name, pattern in COMPILED.items():
+        matches = []
+        for match in pattern.finditer(normalized):
+            start, end = offsets[match.start()], offsets[match.end() - 1] + 1
+            context_start, context_end = max(0, start - 160), min(len(text), end + 160)
+            context_norm = normal_with_offsets(text[context_start:context_end])[0]
+            item = {
+                "start": start, "end": end, "text": text[start:end],
+                "context_start": context_start, "context_end": context_end,
+                "context": text[context_start:context_end],
+                "near_cartilage_anchor": bool(COMPILED["cartilage_anchor"].search(context_norm)),
+            }
+            if name == "numeric_grade":
+                values = re.findall(r"(?<!\w)(iv|iii|ii|i|[0-4])(?!\w)", match.group())
+                item["numeric_values"] = [{"i":1,"ii":2,"iii":3,"iv":4}.get(value, int(value) if value.isdigit() else None) for value in values]
+            matches.append(item)
+        output[name] = matches
+    return output
+
+
+def features(cues, source_scope):
+    scoped = {name: [cue for cue in items if not source_scope or cue["near_cartilage_anchor"]] for name, items in cues.items()}
+    grades = scoped["numeric_grade"]
+    values = sorted({value for cue in grades for value in cue.get("numeric_values", []) if value is not None})
+    return {
+        "numeric_grade": bool(grades), "numeric_grade_values": values,
+        "named_framework": bool(cues["named_framework"]),
+        "numeric_extent": bool(cues["numeric_extent"]),
+        "width_axis_word": bool(scoped["width_axis_word"]),
+        "explicit_depth_fraction_or_full_thickness": bool(scoped["explicit_depth_fraction_or_full_thickness"]),
+        "nongrade_depth_or_morphology": bool(scoped["nongrade_depth_or_morphology"]),
+        "low_severity_language": bool(scoped["low_severity_language"]),
+        "high_severity_language": bool(scoped["high_severity_language"]),
+        "mixed_grade_values": any(value <= 2 for value in values) and any(value >= 3 for value in values),
+        "mixed_severity_language": bool(scoped["low_severity_language"] and scoped["high_severity_language"]),
+    }
+
+
+def choose_triggers(state, evidence_features, source_features, reused, corrected):
+    e, s = evidence_features, source_features
+    triggers = []
+    if reused:
+        triggers.append("reused_complete_inventory_cartilage_candidate")
+    if corrected:
+        triggers.append("existing_accepted_cartilage_correction_context")
+    if state == "positive":
+        triggers.append("all_effective_positive_cartilage_cells_for_threshold_review")
+        for field in ["numeric_extent", "explicit_depth_fraction_or_full_thickness"]:
+            if not e[field]:
+                triggers.append("positive_evidence_no_recognized_" + field)
+            if not s[field]:
+                triggers.append("positive_source_no_recognized_" + field)
+    if state == "negative" and e["numeric_grade"]:
+        triggers.append("negative_evidence_numeric_grade_framework_context_review")
+        if not e["named_framework"]:
+            triggers.append("negative_evidence_numeric_grade_without_named_framework_in_quote")
+        if not s["named_framework"] and not e["nongrade_depth_or_morphology"]:
+            triggers.append("negative_grade_only_proxy_no_framework_in_source_or_depth_cue_in_quote")
+    if state == "negative" and s["numeric_grade"]:
+        triggers.append("negative_source_cartilage_near_numeric_grade")
+    if state == "negative" and (e["high_severity_language"] or any(value >= 3 for value in e["numeric_grade_values"])):
+        triggers.append("negative_evidence_high_severity_cue_scope_review")
+    for location, values in [("evidence", e), ("source", s)]:
+        if values["mixed_grade_values"]:
+            triggers.append(location + "_mixed_numeric_grade_cues_possible_severity_discrepancy")
+        if values["mixed_severity_language"]:
+            triggers.append(location + "_mixed_low_high_cues_possible_severity_discrepancy")
+    if state in {"positive", "negative"} and e["numeric_extent"] and e["width_axis_word"]:
+        triggers.append("observed_evidence_width_measurement_not_automatically_maximum_extent")
+    return sorted(set(triggers))
+
+
+def rule_checks():
+    # Retrieval behavior only: no expected clinical labels or diagnoses.
+    assert features(cue_matches("Condropatía grado II de la rótula."), False)["numeric_grade_values"] == [2]
+    assert features(cue_matches("ICRS grade III cartilage loss over 12 mm."), False)["named_framework"]
+    assert features(cue_matches("Úlcera de espesor total y condropatía grado 2."), False)["explicit_depth_fraction_or_full_thickness"]
+    assert features(cue_matches("Knorpel Grad III, oberflächliche und tiefgreifende Läsionen."), False)["mixed_severity_language"]
+    assert features(cue_matches("Χονδροπάθεια ΙΙ βαθμού."), False)["numeric_grade"] is False  # Greek letter numerals are a disclosed lexical gap.
+    assert features(cue_matches("χόνδρος II βαθμού, εύρους 4,5mm"), False)["numeric_extent"]
+    test = "éé Condropatía grado II."
+    for items in cue_matches(test).values():
+        for item in items:
+            assert test[item["start"]:item["end"]] == item["text"]
+            assert test[item["context_start"]:item["context_end"]] == item["context"]
+    e = features(cue_matches("No full-thickness cartilage defect."), False)
+    assert "negative_evidence_high_severity_cue_scope_review" in choose_triggers("negative", e, e, False, False)
+    # This deliberately selects a negated cue; it never calls it an error.
+    e = features(cue_matches("Cartilage is normal."), False)
+    assert "all_effective_positive_cartilage_cells_for_threshold_review" in choose_triggers("positive", e, e, False, False)
+
+
+def build(start):
+    rule_checks()
+    prior_summary = read(PRIOR / "audit-summary.json")
+    prior_manifest = read(PRIOR / "artifact-manifest.json")
+    # Validate reused files directly; no prior publisher/discovery script executes.
+    prior_paths = [PRIOR / name for name in ["audit-summary.json", "full-coverage-scan.jsonl", "candidate-details.jsonl", "selection-method.json", "adjudications-inspection.json", "validation-receipt.json", "artifact-manifest.json"]]
+    for path in prior_paths:
+        if path.name != "artifact-manifest.json":
+            assert sha(path) == prior_manifest["files"][path.name]["sha256"]
+            assert path.stat().st_size == prior_manifest["files"][path.name]["size_bytes"]
+    for kind in ["source_artifact_bindings", "reviewed_artifact_bindings"]:
+        assert len(prior_summary[kind]) == 89
+        for path, digest in prior_summary[kind].items():
+            assert sha(REPO / path) == digest
+    assert sha(REPO / "protocols/report_weak_v2.md") == prior_summary["rubric_sha256"]
+    assert sha(REPO / "initiative/reviews-v2/index.json") == prior_summary["review_index_sha256"]
+    assert sha(REPO / "initiative/reviews-v2/adjudications/registry.json") == prior_summary["adjudication_registry_sha256"]
+    prior_coverage = [json.loads(line) for line in (PRIOR / "full-coverage-scan.jsonl").read_text().splitlines()]
+    assert len(prior_coverage) == 4407
+    coverage_by_uid = {row["study_uid"]: row for row in prior_coverage}
+    assert len(coverage_by_uid) == 4407
+    reused = {}
+    reused_candidate_binding = bind(PRIOR / "candidate-details.jsonl")
+    for line_number, line in enumerate((PRIOR / "candidate-details.jsonl").read_text().splitlines(), 1):
+        row = json.loads(line)
+        if row["target"] in OA_TARGETS:
+            key = row["study_uid"], row["target"]
+            assert key not in reused
+            reused[key] = {"line_number": line_number, "row_sha256": digest_bytes(line.encode()), "record": row}
+    sources, original_reviews, reports = [], {}, {}
+    for name in sorted(prior_summary["source_artifact_bindings"]):
+        path = REPO / name
+        batch = path.stem
+        for index, row in enumerate(read(path)):
+            uid = row["study_uid"]
+            assert uid not in reports
+            report = row["report"]
+            reports[uid] = report
+            source_row = {"study_uid": uid, "report": report, "batch": batch, "index": index, "source_path": name, "source_sha256": sha(path)}
+            sources.append(source_row)
+            old = coverage_by_uid[uid]
+            assert (old["batch"],old["index"],old["source_path"],old["source_sha256"],old["source_report_sha256"]) == (batch,index,name,sha(path),digest_bytes(report.encode()))
+    for name in sorted(prior_summary["reviewed_artifact_bindings"]):
+        for line in (REPO / name).read_text().splitlines():
+            row = json.loads(line)
+            assert row["study_uid"] not in original_reviews
+            original_reviews[row["study_uid"]] = (row, name, prior_summary["reviewed_artifact_bindings"][name])
+    assert len(sources) == len(original_reviews) == 4407 and set(original_reviews) == set(reports)
+    inspection = inspect_adjudications(reports, REPO / "initiative/reviews-v2/reviewed", REPO / "protocols/report_weak_v2.md", REPO)
+    assert inspection == read(PRIOR / "adjudications-inspection.json")
+    assert inspection["n_changes"] == 34 and len(inspection["pending_semantic_qa"]) == 3
+    corrections = {(row["study_uid"],row["target"]):row for row in inspection["changes"]}
+    qa_path = REPO / "initiative/reviews-v2/adjudications/qa/cartilage-consistency.json"
+    qa = read(qa_path)
+    assert qa["status"] == "pending"
+    qa_bindings = [bind(qa_path)]
+    historical_scopes = []
+    for reference in qa["evidence"]:
+        path = REPO / reference["path"]
+        assert sha(path) == reference["sha256"]
+        qa_bindings.append(bind(path))
+        artifact = read(path)
+        historical_scopes.append({"artifact": bind(path), "scope": artifact.get("scope"), "status": artifact.get("status"), "notes": artifact.get("notes"), "not_reinterpreted_by_inventory": True})
+    full_cells, candidates, source_cues = [], [], []
+    by_uid = {row["study_uid"]:row for row in sources}
+    for source_row in sources:
+        uid, report = source_row["study_uid"], source_row["report"]
+        raw_cues = cue_matches(report)
+        report_features = features(raw_cues, True)
+        source_cues.append({"study_uid":uid,"source_report_sha256":digest_bytes(report.encode()),"features":report_features,"cues":raw_cues,"association_limit":"160-character proximity is retrieval only; not target localization, negation scope, temporal attribution or clinical contradiction."})
+        original, review_path, review_sha = original_reviews[uid]
+        for target in OA_TARGETS:
+            index = TARGETS.index(target)
+            original_state, original_quote = original["states"][index], original["evidence"][index]
+            correction = corrections.get((uid,target))
+            effective = correction["after"] if correction else {"state":original_state,"evidence":original_quote}
+            state, quote = effective["state"], effective["evidence"]
+            for s,q in [(original_state,original_quote),(state,quote)]:
+                assert s in {"positive","negative","uncertain","not_mentioned"}
+                assert q == "" if s == "not_mentioned" else q and q in report
+            reused_item = reused.get((uid,target))
+            if reused_item:
+                old = reused_item["record"]
+                assert (old["inspection_effective_state"],old["inspection_effective_evidence"]) == (state,quote)
+                assert (old["source_sha256"],old["reviewed_artifact_sha256"]) == (source_row["source_sha256"],review_sha)
+            evidence_cues = cue_matches(quote)
+            evidence_features = features(evidence_cues, False)
+            triggers = choose_triggers(state,evidence_features,report_features,bool(reused_item),bool(correction))
+            base = {key:value for key,value in source_row.items() if key != "report"}
+            base.update({"source_report_sha256":digest_bytes(report.encode()),"target":target,"reviewed_artifact_path":review_path,"reviewed_artifact_sha256":review_sha,"original_state":original_state,"original_evidence":original_quote,"inspection_effective_state":state,"inspection_effective_evidence":quote,"existing_correction_case":correction["case_id"] if correction else None,"selected":bool(triggers),"trigger_ids":triggers,"new_state_proposed":False,"reviewed_error":False})
+            full_cells.append(base)
+            if triggers:
+                priority = ("P0_observed_threshold_or_grade_evidence_review" if state == "positive" or any(t.startswith("negative_evidence_") or t.startswith("negative_grade_only") or t.startswith("evidence_mixed") for t in triggers) else "P1_other_observed_candidate" if state == "negative" else "P2_masked_or_context_candidate")
+                candidates.append({**base,"priority":priority,"evidence_features":evidence_features,"evidence_cues":evidence_cues,"source_features":report_features,"source_cue_inventory_uid":uid,"reused_candidate":{"artifact":reused_candidate_binding,"line_number":reused_item["line_number"],"row_sha256":reused_item["row_sha256"],"prior_rule_ids":reused_item["record"]["rule_ids"]} if reused_item else None,"disposition":"mechanical_candidate_only_requires_complete_source_reading_no_clinical_error_inferred"})
+    assert len(full_cells) == 13221 and len({(row["study_uid"],row["target"]) for row in full_cells}) == 13221
+    assert len(source_cues) == 4407
+    assert {(row["study_uid"],row["target"]) for row in candidates} >= set(reused)
+    assert all(row["selected"] for row in full_cells if row["inspection_effective_state"] == "positive")
+    selected_uids = {row["study_uid"] for row in candidates}
+    neutral = [row for row in sources if row["study_uid"] in selected_uids]
+    summary = {
+        "schema_version":1,"agent_id":AGENT,"stage":"mechanical_cartilage_candidate_discovery_only","created_at_utc":start["created_at_utc"],
+        "source_reports":4407,"source_artifacts":89,"reviewed_artifacts":89,"cartilage_targets":OA_TARGETS,"cartilage_cells":13221,
+        "registered_corrections":34,"source_reports_sha256":inspection["source_reports_sha256"],"rubric_sha256":inspection["rubric_sha256"],"registry_sha256":inspection["registry_sha256"],
+        "reused_cartilage_candidate_cells":len(reused),"selected_cells":len(candidates),"selected_reports":len(neutral),"newly_selected_cells_beyond_reused_inventory":sum(not row["reused_candidate"] for row in candidates),
+        "effective_state_counts":dict(Counter(row["inspection_effective_state"] for row in full_cells)),
+        "selected_state_counts":dict(Counter(row["inspection_effective_state"] for row in candidates)),"selected_target_counts":dict(Counter(row["target"] for row in candidates)),
+        "priority_cell_counts":dict(Counter(row["priority"] for row in candidates)),"trigger_cell_counts":dict(Counter(trigger for row in candidates for trigger in row["trigger_ids"])),
+        "all_effective_positive_cells_selected":True,"new_clinical_judgments":0,"proposed_corrections":0,"global_cartilage_qa_status":"pending","pending_semantic_qa":inspection["pending_semantic_qa"],
+        "gold_accessed":False,"source_rubric_reviews_registry_or_prior_artifacts_changed":False,"recall_limit":"Complete mechanical coverage is not complete semantic recall. See selection-method.json and README.md; unmatched language, scope, negation and context can escape the candidate set.",
+    }
+    input_coverage = {
+        "schema_version":1,"agent_id":AGENT,"rubric":bind(REPO / "protocols/report_weak_v2.md"),"review_index":bind(REPO / "initiative/reviews-v2/index.json"),"registry":bind(REPO / "initiative/reviews-v2/adjudications/registry.json"),
+        "source_artifact_bindings":prior_summary["source_artifact_bindings"],"reviewed_artifact_bindings":prior_summary["reviewed_artifact_bindings"],
+        "reused_complete_inventory_files":[bind(path) for path in prior_paths],"existing_cartilage_qa_evidence":qa_bindings,"historical_scope_context":historical_scopes,
+        "reused_coverage_rows_verified":4407,"reused_all_target_cell_count":52884,"new_cartilage_cell_count":13221,"all_registered_changes_validated":34,
+        "reuse_decision":"The existing inventory already supplies complete source/review coverage and broad multilingual cartilage candidates. Those candidates and exact input bindings are reused, not independently rediscovered or claimed as fresh clinical reviews. Additional focused indicators are layered on the same effective baseline.",
+        "prior_qualified_negation_artifacts_remain_immutable":True,
+    }
+    method = {
+        "schema_version":1,"agent_id":AGENT,"rubric_version":"report-weak-v2.0","normalization":"Per-character casefold then NFKD with combining marks removed and a map back to exact original offsets; retrieval only.",
+        "patterns":PATTERNS,"source_cartilage_association":"A cue is associated with the cartilage family when any recognized cartilage anchor appears within 160 original characters either side. This is not compartment or injury attribution.",
+        "source_numeric_extent_limit":"An extent cue anywhere in the report may refer to a cyst, meniscus, other compartment or prior finding. Every positive OA cell remains selected regardless of cue presence.",
+        "numeric_grade_limit":"Grades in nearby ligaments/menisci may be retrieved. Recognized framework names may refer to a different sentence/compartment. Grade-only is an explicit lexical proxy, not a semantic conclusion that the full source offers no other support.",
+        "mixed_severity_limit":"Low/high terms and grade values may concern different locations, lesions, history or negations. Co-occurrence only nominates source review; no contradiction is declared.",
+        "named_framework_limit":"Recognizing ICRS/Outerbridge/Noyes does not establish any clinical grade mapping or prove depth/extent. Other named frameworks can be missed.",
+        "coverage_and_recall":"All 13221 cells and all effective positives are accounted for. Nonpositive selection remains lexical and can miss rare languages, transliteration, Greek-letter numerals, abbreviations, punctuation, misspellings and paraphrases. Absence of a cue is not absence of evidence.",
+        "trigger_implementation":"Exact deterministic choose_triggers function in bound build_inventory.py. No candidate state is assigned or changed; existing states are inspection metadata only.",
+        "neutral_order":"Original source batch/index order, at most ten complete reports per packet, no priority or label clues inside packets.",
+        "synthetic_retrieval_checks":"Unicode source offsets, numeric grade retrieval, framework retrieval, full-thickness cue, mixed lexical severity, dimension cue, disclosed Greek-letter gap, negated-cue inclusion without error inference, and unconditional positive-cell selection.",
+    }
+    outputs = {}
+    def add_json(name,value):
+        outputs[name]=(json.dumps(value,ensure_ascii=False,indent=2)+"\n").encode()
+    def add_jsonl(name,rows):
+        outputs[name]="".join(json.dumps(row,ensure_ascii=False)+"\n" for row in rows).encode()
+    add_json("summary.json",summary)
+    add_json("input-coverage-and-reuse.json",input_coverage)
+    add_json("selection-method.json",method)
+    add_jsonl("full-cartilage-coverage.jsonl",full_cells)
+    add_jsonl("candidate-details.jsonl",candidates)
+    add_jsonl("source-cue-inventory.jsonl",source_cues)
+    packets=[]
+    for number,offset in enumerate(range(0,len(neutral),10)):
+        name=f"neutral-full-report-packets/batch-{number:03d}.json"
+        packet=neutral[offset:offset+10]
+        assert 1<=len(packet)<=10
+        assert all(set(row)=={"study_uid","report","batch","index","source_path","source_sha256"} for row in packet)
+        add_json(name,packet)
+        packets.append({"path":str((BASE/name).relative_to(WORKSPACE)),"sha256":digest_bytes(outputs[name]),"bytes":len(outputs[name]),"n_reports":len(packet)})
+    add_json("neutral-packet-index.json",{"schema_version":1,"prepared_by":AGENT,"source_reports_sha256":inspection["source_reports_sha256"],"rubric_sha256":inspection["rubric_sha256"],"n_reports":len(neutral),"n_packets":len(packets),"max_reports_per_packet":10,"packets":packets,"neutrality":"Complete original source reports and bindings only. No added target, current state, evidence selection, trigger, proposal or error claim.","reader_instruction":"Freeze independent complete-source judgments before opening candidate details/current annotations. Selection itself is not random and does not establish an error."})
+    return outputs,summary
+
+
+def main():
+    verify_mode = "--verify" in sys.argv
+    start_path=BASE/"start.json"
+    if not start_path.exists():
+        assert not verify_mode
+        start={"schema_version":1,"agent_id":AGENT,"session_id":AGENT,"created_at_utc":datetime.now(timezone.utc).isoformat(),"scope":"Discovery only, all 4407 reports / 3 OA targets, frozen rubric / 34 registered corrections; no gold, no clinical labels, no prior artifact edits.","output_directory":str(BASE.relative_to(WORKSPACE))}
+        start_path.write_text(json.dumps(start,indent=2)+"\n")
+    start=read(start_path)
+    outputs,summary=build(start)
+    if verify_mode:
+        for name,data in outputs.items():
+            assert (BASE/name).read_bytes()==data, name
+        manifest=read(BASE/"artifact-manifest.json")
+        for name,digest in manifest["files"].items():
+            assert sha(BASE/name)==digest,name
+        print(json.dumps({"verification":"passed","generated_files":len(outputs),"source_reports":4407,"cartilage_cells":13221,"selected_cells":summary["selected_cells"],"selected_reports":summary["selected_reports"]}))
+        return
+    for name in outputs:
+        assert not (BASE/name).exists(), name
+    for name,data in outputs.items():
+        path=BASE/name
+        path.parent.mkdir(parents=True,exist_ok=True)
+        with path.open("xb") as handle:
+            handle.write(data)
+    files={name:digest_bytes(data) for name,data in outputs.items()}
+    for name in ["README.md","build_inventory.py","start.json"]:
+        files[name]=sha(BASE/name)
+    manifest={"schema_version":1,"agent_id":AGENT,"session_id":AGENT,"completed_at_utc":datetime.now(timezone.utc).isoformat(),"status":"complete_mechanical_discovery_only_not_clinical_review_or_qa_resolution","files":files}
+    (BASE/"artifact-manifest.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n")
+    print(json.dumps({"summary":summary,"neutral_index":bind(BASE/"neutral-packet-index.json"),"manifest":bind(BASE/"artifact-manifest.json")}))
+
+
+if __name__=="__main__":
+    main()

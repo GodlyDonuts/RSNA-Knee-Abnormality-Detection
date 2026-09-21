@@ -1,0 +1,47 @@
+"""Individually authored medial/lateral/PF OA decisions for packet positions 10–19."""
+N=lambda q,r: ('negative',q,r)
+U=lambda q,r: ('uncertain',q,r)
+P=lambda q,r: ('positive',q,r)
+M=lambda r: ('not_mentioned','',r)
+ROWS={
+10:[
+ N("Preservation of articular cartilage at medial femoral condyle and tibial plateau.","Explicit preserved cartilage on both medial femoral and tibial surfaces."),
+ U("Lateral compartment \n  High grade diffuse osteochondral defect at left femoral condyle and tibial plateau with subchondral bone edema.","The lateral heading localizes high-grade osteochondral disease, but the actual cartilage-loss depth and area are not specified sufficiently to establish the numeric threshold. Diffuse defect wording alone does not supply a measured deep-loss region."),
+ U("A intact54xintact55 cm high grade chondral defect at lateral articular facet with subchondral bone edema.","The PF defect is high grade but its dimensions are corrupted as intact54xintact55 cm. Preserve the exact text and do not repair it into an assumed qualifying area.")],
+11:[
+ U("insbesondere im medialen Kompartiment progredienter flächiger vollschichtiger Chondropathie mit korrespondierend geringem Knochenmarksödem in der medialen Femurkondyle sowie dem medialen Tibiaplateau.","Current medial full-thickness disease establishes depth, but the described areal involvement has no size or unequivocal near-total surface extent. Progression from the old examination does not supply missing current dimensions."),
+ U("Ebenfalls progrediente Chondropathie mit höhergradig geminderten Knorpelbesatz und V. a. fokal vollschichtige Chondropathie der lateralen Femurkondyle (4/23).", "Lateral cartilage is substantially reduced with suspected focal full-thickness loss; the qualifying deep region is both incompletely certain and unmeasured."),
+ U("Ebenfalls höhergradig geminderter Knorpelbesatz der Trochlea mit teils flächiger vollschichtiger Chondropathie. Teils höhergradige fokale, chondrale Läsionen auch retropatellar (8/10).", "PF high-grade reduction includes some areal full-thickness trochlear disease and focal patellar lesions, but the full-depth region size is not established.")],
+12:[
+ N("Normal tibiofemoral articular cartilage.","Explicit normal tibiofemoral cartilage includes medial compartment."),
+ N("Normal tibiofemoral articular cartilage.","Explicit normal tibiofemoral cartilage includes lateral compartment."),
+ N("Mild fraying of the patellar ridge and medial patellar facet articular cartilage is noted. Normal trochlear articular cartilage.","Below depth threshold: patellar surface fraying with normal trochlea, corroborated as grade-I patellar chondromalacia in the conclusion.")],
+13:[
+ P("Στο έσω κνηµοµηριαίο διαµέρισµα παρατηρείται εκφυλιστική ρήξη και υπεξάρθρηµα του έσω µηνίσκου. Παρατηρούνται επίσης επιχείλια οστεόφυτα, λέπτυνση του αρθρικού χόνδρου έως και ολικού πάχους απώλεια αυτού έκτασης ~ 2εκ µε µικρές εστίες οστεοµυελικού οιδήµατος στην πρόσθια επιφάνεια του έσω κνηµιαίου και µηριαίου κονδύλου (χονδροπάθεια grade IV).", "Medial compartment cartilage loss is explicitly full thickness over approximately 2 cm, directly supplying depth and extent."),
+ U("Στο έξω κνηµοµηριαίο διαµέρισµα παρατηρείται εκφυλιστική ρήξη του προσθίου κέρατος του έξω µηνίσκου, ενώ παρατηρείται και λέπτυνση του αρθρικού χόνδρου µε διαβρώσεις κατά τόπους, καθώς και µικρά επιχείλια οστεόφυτα στον έξω κνηµιαίο και µηριαίο κόνδυλο.","Lateral cartilage thinning and focal erosions are localized but lack loss fraction and qualifying deep-region dimensions."),
+ U("Στην επιγονατιδοµηριαία συµβολή παρατηρούνται µικρά οστεόφυτα και εστιακές διαβρώσεις του χόνδρου στο πλαίσιο χονδροπάθειας.","PF focal cartilage erosions and small osteophytes lack depth and extent information needed by the threshold.")],
+14:[
+ M("Possible inflammatory/post-traumatic arthritis is a global differential; no medial cartilage-loss assessment is given."),
+ M("Tiny tibial-eminence cysts and generalized arthritis differential do not establish a lateral cartilage assessment."),
+ N("Increased signal intensity of articular cartilage at lateral facet, R/O grade 1 chondromalacia.","Below depth threshold: the observed patellar abnormality is signal change, interpreted as grade-I chondromalacia; no cartilage-loss morphology is described.")],
+15:[
+ U("Hafif dereceli patellofemoral ve medyal femoral tibyal eklem dejenerasyonu dışında eklem kıkırdakları ve kemikler normal.","Mild medial degeneration is an explicit exception to otherwise-normal cartilage, but the report gives no cartilage-loss depth or extent for that exception."),
+ N("Hafif dereceli patellofemoral ve medyal femoral tibyal eklem dejenerasyonu dışında eklem kıkırdakları ve kemikler normal.","The otherwise-normal cartilage statement excludes only PF and medial degeneration; lateral cartilage remains explicitly normal in its scope."),
+ U("Hafif dereceli patellofemoral ve medyal femoral tibyal eklem dejenerasyonu dışında eklem kıkırdakları ve kemikler normal.","Mild PF degeneration is the named exception; neither actual PF loss fraction nor region size is supplied by the general otherwise-normal statement.")],
+16:[
+ N("Hondromalacija 1° u području medijalnog platoa tibije i medijalnog kondila femura.","Below depth threshold: grade-I chondromalacia at both medial cartilage surfaces, without a deeper cartilage lesion."),
+ M("Normal lateral meniscus does not assess lateral cartilage; no informative lateral cartilage statement."),
+ N("Uredna je kongruencija zglobnih tijela femoropatelarnog zgloba. Uredan intenzitet signala\npatelarne hrskavice.","PF joint is congruent and patellar cartilage signal is explicitly normal, without another PF cartilage abnormality described.")],
+17:[
+ U("Úlceras condrales de espesor parcial y total de la zona de carga de los compartimentos\nfemorotibiales.","Medial weightbearing ulcers include partial/full thickness but the deep-loss region size is unspecified."),
+ U("Úlceras condrales de espesor parcial y total de la zona de carga de los compartimentos\nfemorotibiales.","The statement covering both femorotibial compartments includes lateral ulceration, but neither the lateral deep-component area nor its region size is provided."),
+ U("Úlceras condrales de espesor total con cambios óseos secundarios de distribución difusa de la\narticulación patelofemoral.","Full-depth ulcers are diffusely distributed in PF cartilage, but distribution does not establish one qualifying approximately 1-cm deep-loss region.")],
+18:[
+ P("Potpuno je reducirana hrskavica medijalnog kompartmenta femorotibijalnog zgloba uz vidljiv\nsubhondralni koštani edem medijalnog kondila femura i platoa tibije - hondoromalacija IV.\nstupnja.","The medial compartment cartilage is described as completely reduced/lost with grade-IV disease across femoral and tibial surfaces, supporting broad full-thickness loss rather than a small isolated ulcer."),
+ U("Hondromalacija III. stupnja lateralnog kompartmenta femorotibijalnog zgloba.","Lateral grade-III chondromalacia lacks region size and an explicit loss-depth description; the grading convention is not defined."),
+ U("Patela je mediponirana, Wiberg 1 uz vidljivu hondromalaciju II. stupnja femoropatelarnog zgloba\ndominantno medijalne fasete patele i medijalne trohleje femura.","Grade-II PF chondromalacia is localized to patella/trochlea, but no defined depth fraction or region size permits a reliable threshold mapping.")],
+19:[
+ U("Flächig bis vollschichtige Chondropathie der medialen Femurkondyle (4/25).", "Areal medial disease reaches full thickness, but the extent of that deepest component is not specified; broad mixed-depth disease does not establish the required deep-region size."),
+ M("Lateral meniscal/ligament findings do not assess lateral cartilage; no lateral cartilage-loss description."),
+ U("Langstreckig vollschichtig aufgebrauchter retropatellarer Knorpel an der medialen Facette (7/15).", "Full-thickness depletion along a long segment of the medial patellar facet establishes depth, but long-segment length is unmeasured and transverse extent unspecified. Preserve missing region size rather than convert the adjective into centimeters.")]
+}

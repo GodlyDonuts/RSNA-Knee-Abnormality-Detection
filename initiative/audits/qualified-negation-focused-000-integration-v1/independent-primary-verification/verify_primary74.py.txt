@@ -1,0 +1,112 @@
+"""Read-only numerical/source-binding verification; no new clinical acceptance."""
+import hashlib,json,sys,subprocess
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+HERE=Path(__file__).resolve().parent;W=HERE.parents[2];R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.labels import read_reviews
+from rsna.adjudications import inspect_adjudications,apply_adjudications
+from rsna.schema import TARGETS
+
+def read(p):return json.loads(p.read_text())
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def write(n,obj):
+ p=HERE/n;assert not p.exists();p.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+def key(r):return r['study_uid'],r['target']
+def bound(ref):
+ p=R/ref['path'];assert sha(p)==ref['sha256'];return p
+receipt_path=R/'initiative/audits/qualified-negation-focused-000-integration-v1/primary-integration-validation.json'
+assert sha(receipt_path)=='fcc27c57868bfe955f9e332a836e803c04202c8055196906ed2e9901b7f7a55f'
+root_receipt=read(receipt_path);registry_path=bound(root_receipt['registry_after']);assert sha(registry_path)=='9a9c90dce97a245f903ef1e9079e604e0efcfb52952d7421d1420550196383ff'
+case_path=bound(root_receipt['case']);case=read(case_path)
+proposal_path=bound(case['proposal']);assessment_path=bound(case['independent_assessment']);decision_path=bound(case['decision'])
+proposal=read(proposal_path);assessment=read(assessment_path);decision=read(decision_path)
+P={key(r):r for r in proposal['proposed_errata']};A={key(r):r for r in assessment['records']};D={key(r):r for r in decision['accepted_changes']};C={key(r):r for r in case['changes']}
+assert len(P)==len(A)==len(D)==len(C)==74 and set(P)==set(A)==set(D)==set(C)
+assert proposal['proposer_agent_id']=='/root/duplicate_consistency_review' and assessment['agent_id']=='/root'
+assert decision['proposer_agent_id']=='/root/duplicate_consistency_review' and decision['adjudicator_agent_id']=='/root'
+assert decision['status']=='accepted' and decision['n_changes']==74
+assert decision['proposal_sha256']==sha(proposal_path) and decision['independent_assessment_sha256']==sha(assessment_path)
+# Bind all supporting files by bytes, but never inspect other clinical case findings.
+for ref in case['supporting_evidence'].values():bound(ref)
+root_freeze_path=bound(case['supporting_evidence']['root_source_freeze_sha256']);root_freeze=read(root_freeze_path)
+root_source={};root_source_files=[]
+for ref in root_freeze['source_assessments']:
+ p=R/'initiative/audits/qualified-negation-focused-000-root-complete-v1'/Path(ref['path']).name
+ assert sha(p)==ref['sha256'];root_source_files.append(dict(path=str(p.relative_to(R)),sha256=sha(p)))
+ for rec in read(p)['reports']:
+  for t,state,evidence in zip(TARGETS,rec['states'],rec['evidence']):
+   if (rec['study_uid'],t) in P:root_source[(rec['study_uid'],t)]=dict(state=state,evidence=evidence,source_record={k:rec[k] for k in ['source_path','source_sha256','source_index_zero_based','report_sha256']})
+root_comparison=read(bound(case['supporting_evidence']['root_comparison_sha256']))
+Q={key(r):r for r in root_comparison['rows'] if key(r) in P}
+root_dispositions=read(bound(case['supporting_evidence']['root_dispositions_sha256']))
+Z={key(r):r for r in root_dispositions['records'] if key(r) in P}
+assert set(Q)==set(Z)==set(P)
+first_freeze_path=bound(case['supporting_evidence']['first_source_freeze_sha256']);first_freeze=read(first_freeze_path)
+F={(r['study_uid'],d['target']):d for r in first_freeze['records'] for d in r['decisions'] if (r['study_uid'],d['target']) in P}
+assert set(F)==set(P)
+reports={}
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ for r in read(p):assert r['study_uid'] not in reports;reports[r['study_uid']]=r['report']
+assert len(reports)==4407
+reviews=read_reviews(R/'initiative/reviews-v2/reviewed',reports,'reviewed').set_index('study_uid')
+inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert inspection['n_changes']==108 and inspection['registry_sha256']==sha(registry_path)
+runtime={key(r):r for r in inspection['changes']}
+previous=read(W/'work/annotation-staging/qualified-negation-focused-003-source-review-v1/current-adjudications-inspection.json')
+previous_rows={key(r):r for r in previous['changes']};assert len(previous_rows)==34 and set(previous_rows).isdisjoint(P)
+assert set(runtime)==set(previous_rows)|set(P)
+for k,v in previous_rows.items():assert runtime[k]==v
+assert inspection['pending_semantic_qa']==previous['pending_semantic_qa'] and len(inspection['pending_semantic_qa'])==3
+assert inspection['semantic_qa']==previous['semantic_qa']
+oldreg=read(bound(root_receipt['registry_before']));newreg=read(registry_path)
+assert newreg['cases'][:-1]==oldreg['cases'] and newreg['semantic_qa']==oldreg['semantic_qa']
+rows=[]
+for k,p in P.items():
+ a,d,c,q,z=A[k],D[k],C[k],Q[k],Z[k];uid,t=k;i=list(TARGETS).index(t)
+ source_path=R/p['source_path'];assert sha(source_path)==p['source_sha256']
+ s=read(source_path)[p['index']];assert s['study_uid']==uid and s['report']==reports[uid]
+ assert sha(R/p['artifact_path'])==p['artifact_sha256']
+ before=dict(state=p['before_state'],evidence=p['before_evidence']);after=dict(state=p['proposed_state'],evidence=p['source_quote'])
+ assert (reviews.loc[uid,t+'__state'],reviews.loc[uid,t+'__evidence'])==(before['state'],before['evidence'])
+ assert c['before']==before and c['after']==after
+ assert c['base_review']==dict(path=p['artifact_path'],sha256=p['artifact_sha256'])
+ assert c['source_batch']==dict(path=p['source_path'],sha256=p['source_sha256'])
+ assert (a['independent_source_state'],a['source_evidence'])==(after['state'],after['evidence'])
+ assert a['source_sha256']==p['source_sha256']
+ assert (d['before_state'],d['before_evidence'])==(before['state'],before['evidence'])
+ assert (d['after_state'],d['after_evidence'])==(after['state'],after['evidence'])
+ assert d['source_path']==p['source_path'] and d['source_sha256']==p['source_sha256'] and d['original_review_path']==p['artifact_path'] and d['original_review_sha256']==p['artifact_sha256']
+ assert (d['independent_source_state'],d['source_evidence'])==(after['state'],after['evidence'])
+ assert (q['root_state'],q['root_evidence'])==(a['root_frozen_source_state'],a['root_frozen_source_evidence'])
+ assert (z['root_postfreeze_state'],z['root_postfreeze_evidence'])==(after['state'],after['evidence'])
+ assert (z['root_frozen_state'],z['root_frozen_evidence'])==(q['root_state'],q['root_evidence'])
+ assert d['root_frozen_state']==q['root_state'] and d['root_state_reconsidered']==a['root_state_reconsidered']==z['root_state_reconsidered']
+ if k in root_source:
+  assert (root_source[k]['state'],root_source[k]['evidence'])==(q['root_state'],q['root_evidence'])
+ assert (F[k]['state'],F[k]['evidence'])==(q['first_frozen_state'],q['first_frozen_evidence'])
+ assert runtime[k]['before']==before and runtime[k]['after']==after and runtime[k]['case_id']==case['id']
+ assert after['evidence']=='' if after['state']=='not_mentioned' else after['evidence'] in reports[uid]
+ rows.append(dict(study_uid=uid,target=t,source_path=p['source_path'],source_sha256=p['source_sha256'],source_index=p['index'],report_sha256=hashlib.sha256(reports[uid].encode()).hexdigest(),original_review_path=p['artifact_path'],original_review_sha256=p['artifact_sha256'],before=before,proposed=after,root_assessed=after,accepted=after,runtime_inspection=after,root_frozen=dict(state=q['root_state'],evidence=q['root_evidence']),root_reconsidered=z['root_state_reconsidered'],root_direct_frozen_file_verified=k in root_source,all_checks_passed=True))
+assert len(root_source)==74
+# Expected production release rejection verifies the unchanged gate. No labels emitted.
+try:apply_adjudications(reviews.reset_index(),reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+except ValueError as e:assert str(e).startswith('Pending semantic QA blocks label release:')
+else:raise AssertionError('Release gate unexpectedly opened')
+protected=[]
+for ref in root_receipt['protected_artifacts']:
+ # Opaque integrity hashing only, including official CSV bytes; no target parsing.
+ bound(ref);protected.append(ref)
+prior_stages={}
+for b in ['000','001','002','003']:
+ p=W/f'work/annotation-staging/qualified-negation-focused-{b}-source-review-v1';m=read(p/'artifact-manifest.json')
+ for n,h in m['files'].items():assert sha(p/n)==h
+ prior_stages[b]=dict(path=str(p.relative_to(W)),manifest_sha256=sha(p/'artifact-manifest.json'),all_files_unchanged=True)
+assert sha(registry_path)==root_receipt['registry_after']['sha256']
+write('primary74-runtime-inspection.json',inspection)
+write('primary74-verification.json',dict(schema_version=1,agent_id='/root/duplicate_consistency_review',session_id='/root/duplicate_consistency_review',role='numerical_source_binding_code_integration_verifier_of_own_prior74_proposals_not_independent_clinical_acceptance',verified_at_utc=datetime.now(timezone.utc).isoformat(),root_receipt=dict(path=str(receipt_path.relative_to(R)),sha256=sha(receipt_path)),registry_sha256=sha(registry_path),n_sources=4407,n_original_review_targets=4407*12,n_verified_primary_changes=74,n_prior_changes_preserved=34,n_runtime_changes=108,transition_counts=dict(Counter(r['before']['state']+'->'+r['proposed']['state'] for r in rows)),root_frozen_state_reconsiderations=sum(r['root_reconsidered'] for r in rows),n_root_direct_frozen_records_verified=len(root_source),source_binding_files=root_source_files,prior_stages=prior_stages,n_protected_artifacts=298,all_protected_artifacts_unchanged=True,pending_semantic_qa=inspection['pending_semantic_qa'],production_apply_rejected_pending_qa=True,other_clinical_case_findings_reviewed=False,gold_values_parsed=False,repository_mutations=0,remote_calls=0,records=rows))
+print(json.dumps({'verified':74,'prior_preserved':34,'runtime_changes':108,'pending_qa':3,'protected_unchanged':len(protected),'root_reconsiderations':sum(r['root_reconsidered'] for r in rows),'verification_sha256':sha(HERE/'primary74-verification.json')},indent=2))

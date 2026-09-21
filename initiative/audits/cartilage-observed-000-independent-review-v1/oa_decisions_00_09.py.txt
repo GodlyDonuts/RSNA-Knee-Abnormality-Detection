@@ -1,0 +1,47 @@
+"""Individually authored medial/lateral/PF OA decisions for packet positions 0–9."""
+N=lambda q,r: ('negative',q,r)
+U=lambda q,r: ('uncertain',q,r)
+P=lambda q,r: ('positive',q,r)
+M=lambda r: ('not_mentioned','',r)
+ROWS={
+0:[
+ P("Adelgazamiento condral difuso de espesor total de la región anterior y central de carga del\ncompartimento femorotibial medial.","The report describes diffuse full-depth cartilage loss across the anterior and central medial weightbearing region, establishing broad regional loss rather than scattered unmeasured deep ulcers. Qualitative regional extent supports roughly 1 cm; no image reread is inferred."),
+ N("Irregularidad superficial difusa del cartílago del compartimento femorotibial lateral.","Below depth threshold: lateral cartilage irregularity is explicitly superficial despite diffuse distribution."),
+ U("Moderado adelgazamiento condral con úlceras de espesor total en la región central y faceta\nmedial de la patela. Irregularidad superficial difusa del cartílago troclear, con adelgazamiento de\nespesor moderado en la vertiente medial.","Full-thickness patellar ulcers are not sized; moderate patellar/trochlear thinning does not specify a greater-than-half-depth region. Distribution across surfaces cannot supply the deep-ulcer area.")],
+1:[
+ M("Medial meniscus/MCL are assessed but medial cartilage is not; no medial OA state is inferred from unrelated normal structures."),
+ M("Lateral meniscal tearing is described without a lateral cartilage assessment."),
+ P("Full thickness cartilage defect, 1.2x1.5cm. at lateral trochlea with subchondral bone edema is noted.","A 1.2-by-1.5-cm full-thickness trochlear cartilage defect explicitly establishes PF depth and extent. The separate patellar osteochondral lesion does not need to supply missing criteria.")],
+2:[
+ P("Gevorderde mediale gonartrose met nagenoeg volledige denudatie van het kraakbeen mediaal femorotibiaal en subchondraal botoedeem", "Near-complete denudation of medial femorotibial cartilage states widespread loss of the covering, supporting full-depth regional extent; this is stronger than a bare advanced-OA diagnosis."),
+ U("Onregelmatige verdunning van het kraakbeen lateraal femorotibiaal.","Irregular lateral cartilage thinning is described without fractional depth or qualifying region size."),
+ N("Lichte patellofemorale artrose met meerdere ondiepe parti ële dikte kraakbeenfissuurtjes.","Below depth threshold: PF fissures are explicitly shallow partial-thickness. The negative rests on shallow morphology rather than the mild arthrosis label.")],
+3:[
+ U("In the medial compartment, the medial meniscus; horizontal tear at the body through the posterior horn. Extruded into the medial gutter. Diffuse lowe grade chondrosis with osteophyte formation.","Medial low-grade chondrosis is not described with a depth fraction or explicit superficial morphology. Diffuse distribution and osteophytes do not resolve the frozen cartilage-loss threshold."),
+ U("The lateral compartment, bone marrow edema at mid anterior tibial plateau and underneath tibial spine.  the lateral meniscus is not torn. Diffuse lowe grade chondrosis with osteophyte formation", "Lateral low-grade chondrosis lacks actual cartilage depth/extent. Bone edema and osteophytes cannot substitute for the missing cartilage description."),
+ U("The patellofemoral joint, bone marrow edema at lateral patellar and trochlear with diffuse high grade chondrosis, and osteophyte formation.","Diffuse high-grade chondrosis gives severity/distribution but no actual cartilage-loss depth or defined qualifying region. Marrow edema and suspected fracture do not establish the OA threshold.")],
+4:[
+ N("Medial compartment cartilage: No focal cartilage defects.","Explicit absence of medial cartilage defects, with no competing medial loss described."),
+ U("Lateral compartment cartilage: High-grade partial-thickness cartilage loss along the posterior lateral tibial plateau. Minimal heterogeneity along the central weightbearing lateral femoral condyle.","Deep partial-thickness lateral loss is reported, but its posterior tibial region has no qualifying size or broad surface-coverage description."),
+ P("Patellofemoral compartment cartilage: Diffuse high-grade partial-thickness cartilage loss along the articular surface with focal full-thickness chondral fissuring along the inferior lateral trochlea.","The cartilage loss itself is diffuse and high-grade partial thickness along the PF articular surface, supporting broad greater-than-half-depth loss; this does not depend on assigning size to the separate focal fissure.")],
+5:[
+ U("Progredient flächig-vollschichtige Chondropathie femorotibial medial mit Gelenkspaltverschmälerung und subchondraler Sklerose/Fibrose (5/9).", "Current medial disease is areal/full thickness, but flächig does not provide the size of that area or state near-total loss across a defined surface. Depth is met; qualifying extent remains unmeasured despite progression."),
+ U("Neu tiefgreifende fissurale Chondropathie femorotibial lateral mit deutlichem subchondralem Ödem (4/20);", "New deep fissural lateral chondropathy lacks the affected deep-region size. Adjacent edema does not establish extent."),
+ U("Mäßige Chondropathie retropatellar medial mit geringen Osteophyten.","Moderate retropatellar chondropathy and small osteophytes do not state cartilage-loss depth or extent.")],
+6:[
+ N("Promijenjen intenzitet signala hrskavica oba tibijalna platoa u smislu hondromalacije I°.","Below depth threshold: both tibial plateaus have cartilage signal change characterized as grade-I chondromalacia, with no medial loss morphology described."),
+ U("U području lateralnog kondila tibije, izraženije posteriorno, nalazi se zona koštanog edema.\nKontura posteriornog ruba lateralnog platoa tibije pokazuje konkavitet - osteohondralna lezija?\nUz posterolateralnu zglobnu čahuru i stražnju konturu lat. kondila femura nalazi se\npolumjesečasto slobodno zglobno tijelo aksijalno 21 x 4 mm koje intenzitetom signala prati\nmišićne strukture, moguće ulomak hrskavice - simptomi?", "A possible posterior lateral osteochondral defect and possible loose cartilage fragment leave local depth/extent unresolved, despite the separate grade-I tibial cartilage signal description. Fragment dimensions are not a demonstrated donor-defect area."),
+ N("Hondromalacija I° medijalne fasete patele i medijalnog dijela trohleje femura.","Below depth threshold: grade-I chondromalacia is localized to patella and trochlea, without a deeper PF lesion described.")],
+7:[
+ U("Úlceras condrales de espesor parcial de distribución difusa los compartimentos femorotibiales de\npredominio medial.","Diffuse medial-predominant partial-thickness ulcers do not specify a greater-than-half-depth region; grades2/3 in the impression lack a defined grading convention."),
+ U("Úlceras condrales de espesor parcial de distribución difusa los compartimentos femorotibiales de\npredominio medial.","The shared femorotibial ulcer description includes lateral cartilage but does not specify its depth fraction or qualifying deep-area extent."),
+ P("Prácticamente ausencia de visualización del cartílago patelofemoral de distribución difusa con\nformaciones quísticas subcorticales.","Virtually absent PF cartilage across a diffuse distribution describes broad near-full-depth loss, rather than isolated full-thickness ulcers of unknown size.")],
+8:[
+ M("The report describes menisci, ligaments and marrow but no medial cartilage assessment."),
+ M("Lateral marrow edema is not a lateral cartilage-loss assessment; no informative lateral cartilage description."),
+ N("Hondromalacija I° lateralne fasete patele.","Below depth threshold: grade-I chondromalacia of the lateral patellar facet, without a separate deeper PF abnormality.")],
+9:[
+ N("In the medial compartment, there is longitudinal vertical tear at the body and posterior horn of the medial meniscus. There is no focal chondrosis or chondral injury.","Explicit medial absence of focal chondrosis or chondral injury; the meniscal tear does not establish cartilage disease."),
+ P("There is focal high grade chondral injury (more than 50% thickness cartilage loss) at the posterolateral tibial plateau (about 1.7*1.7 cm).", "Lateral cartilage loss explicitly exceeds 50% thickness over 1.7-by-1.7 cm, directly meeting both threshold components."),
+ N("The patellofemaoral joint appears congruent. There is no cartilage injury.","Explicit PF cartilage-injury absence without another PF cartilage abnormality.")]
+}

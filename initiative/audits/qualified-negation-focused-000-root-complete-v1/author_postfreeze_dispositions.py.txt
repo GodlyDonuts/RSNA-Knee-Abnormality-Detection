@@ -1,0 +1,151 @@
+"""Assemble explicit root decisions; preserve every earlier source reading."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib
+import json
+
+G = Path(__file__).resolve().parent
+W = G.parents[2]
+R = W / "work/recovered"
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def ref(p):
+    return {"path": str(p.relative_to(W)), "sha256": sha(p)}
+
+def save(name, doc):
+    p = G / name
+    assert not p.exists(), p
+    p.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+    return ref(p)
+
+comparison_path = G / "root-postfreeze-comparison.json"
+assert sha(comparison_path) == "a4b6fbffcb25805ff714fbadd5a554feb3611a80e894bbe13b4b7c40e5421d6b"
+comparison = json.loads(comparison_path.read_text())
+rows = comparison["rows"]
+by_key = {(r["case"], r["target"]): r for r in rows}
+assert len(by_key) == 576
+reports = {}
+for r in rows:
+    if r["study_uid"] not in reports:
+        p = R / r["source_path"]
+        assert sha(p) == r["source_sha256"]
+        source = json.loads(p.read_text())[r["index"]]
+        assert source["study_uid"] == r["study_uid"]
+        assert hashlib.sha256(source["report"].encode()).hexdigest() == r["source_report_sha256"]
+        reports[r["study_uid"]] = source["report"]
+
+# These 74 positions are an explicit acceptance list authored after source reading
+# and inspection of the complete, untruncated proposal table. They are not an
+# automatic rule approving arbitrary candidate rows.
+accepted_primary_numbers = (
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+    35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+    51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66,
+    67, 68, 69, 70, 71, 72, 73, 74,
+)
+primary_path = R / "initiative/audits/qualified-negation-focused-000-source-review-v1/proposed-errata.json"
+assert sha(primary_path) == "6df326618716d57ddacfe83061865d649ab4c0705619df08d2ba605e1fbf7962"
+primary = json.loads(primary_path.read_text())
+assert len(primary["proposed_errata"]) == 74
+primary_map = {(p["study_uid"], p["target"]): (n, p) for n, p in enumerate(primary["proposed_errata"], 1) if n in accepted_primary_numbers}
+
+# All alterations of the root's 576 frozen SOURCE states are individually listed.
+# The reason records describe reconsideration after access to other readings.
+reconsider = {}
+def revise(case, target, state, reason, evidence=None):
+    key = case, target
+    assert key not in reconsider and by_key[key]["root_state"] != state
+    reconsider[key] = {"state": state, "reason": reason, "evidence": evidence}
+
+for case in ("000:02", "000:34", "001:10", "001:40", "001:48", "002:46"):
+    revise(case, "Baker's", "negative", "My source reading overextended the singular severity qualifier on effusion to the separately coordinated plural popliteal-cyst phrase. In this complete source the cyst phrase is separately unqualified, with no pathological-cyst restriction. Retain the existing explicit cyst-absence negative. This grammatical judgment is specific to this source; it does not repair the different literal 'y' in 006:11.")
+revise("000:04", "Contusion", "uncertain", "Otherwise-normal marrow describes the remainder after a reactive-edema focus. It does not establish a whole-knee contusion negative at that focus, and reactive edema does not establish impact causality. Retain the current masked state.", "Changements dégénératifs :\nChondropatie rétropatellaire modérée à sévère avec fissuration profonde impliquant les facettes médiale et latérale, au niveau de la facette médiale et œdème osseux réactionnel [grade 4].\nChondropatie légère des surfaces portantes des compartiments médial et latéral sans fissuration profonde.\n\nSignal de la moelle osseuse :\nPar ailleurs normal.")
+revise("000:34", "Contusion", "uncertain", "The focal marrow diagnosis is highly suggested, not a definite complete exclusion of impact edema. Normal remaining marrow does not settle the described focus. Preserve the current masked uncertainty.")
+revise("000:06", "Fracture", "not_mentioned", "The source addresses marrow edema and active cortical destruction, without fracture-line, acute disruption, fracture diagnosis or fracture-specific denial. Do not translate destructive-bone terminology into a fracture assessment. Propose a masked-to-masked clarification, pending the distinct assessor.", "")
+revise("001:12", "Medial OA", "uncertain", "Mild cartilage thinning is not a quantified focal depth or extent. My preread inferred a below-threshold finding that this wording does not establish. Preserve current uncertainty.")
+revise("001:18", "Medial Meniscus", "uncertain", "The focal meniscocapsular signal only does not appear to represent a tear, while normal remainder applies outside that focus. It is not an explicit isolated intrasubstance-degeneration finding. My source-negative reading overtreated an equivocal focal statement as exclusion. Accept the first proposal with its full focal-plus-remainder quote.")
+for case, targets in (("002:28", ("Medial OA", "Lateral OA")), ("004:01", ("Medial OA", "PF OA")), ("004:11", ("Medial OA", "Lateral OA")), ("005:30", ("Medial OA", "Lateral OA"))):
+    for target in targets:
+        revise(case, target, "not_mentioned", "My preread spread generic OA or another localized compartment's description into this unaddressed compartment. The full source supplies no informative compartment-specific cartilage assessment. Retain the original missing state and empty evidence.", "")
+for target in ("Medial OA", "Lateral OA"):
+    revise("003:02", target, "uncertain", "Mild chondrosis in this compartment does not quantify focal depth and extent. The separately specified patellar fissures less than 50% thick do not grade this tibiofemoral compartment. Retain current uncertainty.")
+revise("003:23", "Contusion", "uncertain", "The named contusions and osteochondral fractures occupy the same patellar/femoral sites. The source does not independently localize impact marrow edema without fracture at a separate site. The current fracture positive is separate; preserve masked contusion uncertainty rather than infer the exclusion requirement.")
+for case in ("004:01", "005:10"):
+    revise(case, "Baker's", "uncertain", "My positive preread converted reported linear dimensions into a moderate/large volume or distension category. The frozen rubric has no validated dimension-to-category mapping and this report supplies no independent qualifying size class. Retain existing uncertainty and preserve the original dimension-based opinion.")
+for target in ("Medial OA", "Lateral OA", "PF OA"):
+    revise("004:41", target, "uncertain", "Absence of an osteochondral defect is not a complete, compartment-specific exclusion of qualifying cartilage-only loss. My preread inferred broader negative scope than the source supports. Retain current uncertainty.")
+revise("006:11", "MCL", "uncertain", "Grade I-II with focal fiber interruption is not an explicitly low-grade finding or a quantified greater-than-50% acute tear. My negative preread assumed a grade mapping absent from this source and frozen rubric. Preserve current uncertainty.")
+revise("001:20", "Contusion", "not_mentioned", "The definite infarct and normal remaining marrow do not explicitly assess traumatic contusion at the focal lesion. My initial negative and the two other negative source opinions would add an observed label from that partial normality. Retain the existing missing/masked state; this does not classify the infarct as a contusion.", "")
+for target in ("Medial OA", "Lateral OA", "PF OA"):
+    revise("003:12", target, "uncertain", "The denial of higher-grade chondropathy does not state a grading framework, focal thickness or extent. My negative preread mapped unnamed severity to the frozen image threshold. Propose masked uncertainty for the addressed cartilage, pending distinct assessment.")
+revise("003:12", "Effusion", "uncertain", "Deutlicher Hämarthros establishes conspicuous blood-containing joint fluid but does not independently describe moderate/large quantity or distension. My positive preread assigned an amount from conspicuity alone. Propose masked uncertainty, pending distinct assessment.")
+revise("006:12", "PF OA", "uncertain", "The deep cartilage delamination has a reported width of 4.5 mm, not a maximum dimension or all-axis extent. My negative preread treated width as excluding a roughly 1 cm region along another axis. Do not invent that bound; propose uncertainty pending distinct assessment.")
+assert len(reconsider) == 34
+
+# Additional proposals are root-authored and require a distinct actual assessor.
+additional_specs = [
+    ("000:06", "Fracture", "not_mentioned", "", reconsider[("000:06", "Fracture")]["reason"]),
+    ("001:07", "Lateral Meniscus", "negative", "Lateral meniscus: Increased signal at the posterior root attachment not meeting MR chart here for tear, likely representing intrasubstance degeneration. There is borderline extrusion of the body. No displaced fragment or para meniscal cyst is identified.", "Keep the negative state because the body explicitly reports failure to meet tear criteria with likely intrasubstance degeneration. Borderline extrusion does not establish a definite tear. Expand the weak impression-only evidence to the complete compartment paragraph, preserving the literal source transcription and the borderline finding."),
+    ("001:12", "Medial Meniscus", "uncertain", "There is mild myxoid degeneration of the posteromedial corner of the medial meniscus with undersurface fraying but no definite tear.", "Undersurface fraying accompanies degeneration, so this is not explicitly isolated internal degeneration. The body is equivocal and the conclusion repeats surface fraying alongside no evidence of tears. That combination does not support a definite tear or reliable criterion-negative weak label; propose uncertainty."),
+    ("003:02", "Medial Meniscus", "uncertain", "Presence of a small meniscal flounce in the anterior body of medial meniscus without definitive tear. Capsular meniscal interface intact.", "The focal meniscal morphology is accompanied by qualified tear exclusion. An intact capsular interface does not settle the meniscal focus. Do not promote a flounce to positive morphology or convert without definitive/discrete tear into a reliable negative; propose uncertainty."),
+    ("004:39", "Medial Meniscus", "uncertain", "Aumento de señal central del cuerno posterior y cuerpo del menisco medial sin criterios\ncategóricos de rotura.", "Central signal with no categorical tear criteria does not explicitly establish confinement away from a surface or an isolated internal-degeneration diagnosis. Do not turn an equivocal focal assessment into a negative; propose uncertainty."),
+    ("003:12", "Medial OA", "uncertain", "Keine höhergradige Chondropathie.", reconsider[("003:12", "Medial OA")]["reason"]),
+    ("003:12", "Lateral OA", "uncertain", "Keine höhergradige Chondropathie.", reconsider[("003:12", "Lateral OA")]["reason"]),
+    ("003:12", "PF OA", "uncertain", "Keine höhergradige Chondropathie.", reconsider[("003:12", "PF OA")]["reason"]),
+    ("003:12", "Effusion", "uncertain", "Deutlicher Hämarthros.", reconsider[("003:12", "Effusion")]["reason"]),
+    ("006:12", "PF OA", "uncertain", "µε παρουσία στην κεντρική µοίρα της αρθρικής επιφάνειας της επιγονατίδας εκφύλισης του αρθρικού χόνδρου και παρουσίας εν τω βάθει αποκόλλησης του αρθρικού χόνδρου εύρους 4,5mm (αποφλοίωση).", reconsider[("006:12", "PF OA")]["reason"]),
+]
+additional_map = {(c, t): (s, q, reason) for c, t, s, q, reason in additional_specs}
+assert len(additional_map) == 10
+context = {"schema_version": 1, "agent_id": "/root", "session_id": "/root", "identity_kind": "codex_agent_task", "review_run": "qualified-negation-focused-000-root-review-v1", "rubric_version": "report-weak-v2.0", "rubric_sha256": primary["rubric_sha256"], "source_reports_sha256": primary["source_reports_sha256"]}
+additional = []
+dispositions = []
+for r in rows:
+    key = r["case"], r["target"]
+    state, quote = r["root_state"], r["root_evidence"]
+    reason = "Retain the root frozen source assessment; no newly supported baseline correction for this cell. Different exact source excerpts alone do not require annotation replacement."
+    if key in reconsider:
+        change = reconsider[key]
+        state, reason = change["state"], change["reason"]
+        if change["evidence"] is not None:
+            quote = change["evidence"]
+    action = "retain_effective_annotation"
+    if (r["study_uid"], r["target"]) in primary_map:
+        n, p = primary_map[(r["study_uid"], r["target"])]
+        assert state == p["proposed_state"], (key, state, p["proposed_state"])
+        quote = p["source_quote"]
+        reason = (reconsider[key]["reason"] + " " if key in reconsider else "") + "After the independent full-source freeze and source-context comparison, accept primary proposal " + str(n) + ": " + p["reason"]
+        action = "accept_primary_proposal_pending_registry_integration"
+    if key in additional_map:
+        expected, quote, reason = additional_map[key]
+        assert state == expected
+        assert r["existing_correction"] is None
+        assert (r["original_state"], r["original_evidence"]) == (r["effective_state"], r["effective_evidence"])
+        assert (state, quote) != (r["original_state"], r["original_evidence"])
+        assert (r["study_uid"], r["target"]) not in primary_map
+        additional.append({"case": r["case"], "study_uid": r["study_uid"], "target": r["target"], "batch": r["batch"], "index": r["index"], "source_path": r["source_path"], "source_sha256": r["source_sha256"], "artifact_path": r["original_review_path"], "artifact_sha256": r["original_review_sha256"], "before_state": r["original_state"], "before_evidence": r["original_evidence"], "proposed_state": state, "source_quote": quote, "reason": reason, "root_frozen_state": r["root_state"], "root_frozen_evidence": r["root_evidence"], "root_state_reconsidered": r["root_state"] != state, "kind": "state_correction" if state != r["original_state"] else "evidence_context_correction", "status": "proposed_pending_distinct_assessment_and_adjudication"})
+        action = "additional_root_proposal_pending_distinct_assessment"
+    if key == ("001:10", "Lateral Meniscus"):
+        reason = "Retain negative: the partial discoid configuration is explicitly described without tear criteria. Do not convert an anatomical shape variant by itself into a definite tear or invent an organizer variant exception."
+    if key == ("006:12", "Medial Meniscus"):
+        reason = "Retain uncertain: degeneration and subluxation position do not establish a definite tear or specific tear morphology, and the source does not supply an explicit isolated internal-degeneration negative."
+    assert quote in reports[r["study_uid"]]
+    assert (state == "not_mentioned") == (quote == "")
+    if action == "retain_effective_annotation":
+        assert state == r["effective_state"], (key, state, r["effective_state"])
+    dispositions.append({"case": r["case"], "study_uid": r["study_uid"], "target": r["target"], "source_sha256": r["source_sha256"], "original_review_path": r["original_review_path"], "original_review_sha256": r["original_review_sha256"], "root_frozen_state": r["root_state"], "root_frozen_evidence": r["root_evidence"], "root_postfreeze_state": state, "root_postfreeze_evidence": quote, "root_state_reconsidered": state != r["root_state"], "effective_before_state": r["effective_state"], "effective_before_evidence": r["effective_evidence"], "attention_required": r["attention_required"], "action": action, "reason": reason})
+
+assert sum(d["root_state_reconsidered"] for d in dispositions) == 34
+assert sum(d["root_postfreeze_state"] != d["effective_before_state"] for d in dispositions) == 81
+assert Counter(d["action"] for d in dispositions) == {"retain_effective_annotation": 492, "accept_primary_proposal_pending_registry_integration": 74, "additional_root_proposal_pending_distinct_assessment": 10}
+assert Counter(d["kind"] for d in additional) == {"state_correction": 9, "evidence_context_correction": 1}
+base = {**context, "at_utc": datetime.now(timezone.utc).isoformat(), "source_freeze": ref(G / "root48-source-freeze.json"), "comparison": ref(comparison_path), "authoring_helper": ref(Path(__file__)), "original_artifacts_preserved": True, "new_registry_changes": 0, "global_qa_gates_closed": 0, "training_ready": False, "exposure": "The root's 48 complete source reports / 576 target judgments were frozen before case-specific focused-reader findings were opened. Historical original-run exposure and candidate-selection exposure are disclosed in that freeze. This is a separate post-comparison artifact, not a rewrite or a new blinded pass. Explicit root reconsiderations are preserved. Other two reports in the 50-report peer packet received mechanical agreement verification only in this root stage."}
+disposition_ref = save("root-postfreeze-dispositions.json", {**base, "stage": "explicit_root_postfreeze_adjudication", "counts": {"source_reports": 48, "target_cells": 576, "attention_cells": 124, "primary_proposals_accepted_pending_integration": 74, "additional_proposals_pending_distinct_assessment": 10, "root_source_state_reconsiderations": 34}, "records": dispositions})
+proposal_ref = save("additional-proposed-errata.json", {**base, "stage": "root_additional_proposal_after_source_and_comparison", "status": "proposed_pending_distinct_assessment_and_adjudication", "proposer_agent_id": "/root", "proposer_session_id": "/root", "root_postfreeze_dispositions": disposition_ref, "n_changes": 10, "n_studies_with_proposals": 7, "proposed_errata": additional})
+assessment_rows = [{"study_uid": d["study_uid"], "target": d["target"], "source_sha256": d["source_sha256"], "independent_source_state": d["root_postfreeze_state"], "source_evidence": d["root_postfreeze_evidence"], "root_frozen_source_state": d["root_frozen_state"], "root_frozen_source_evidence": d["root_frozen_evidence"], "root_state_reconsidered": d["root_state_reconsidered"], "reason": d["reason"]} for d in dispositions if d["action"] == "accept_primary_proposal_pending_registry_integration"]
+assessment_ref = save("primary-independent-assessment.json", {**base, "stage": "independent_source_assessment", "semantic_stage_detail": "Final assessed states after the separately preserved source freeze and explicit post-comparison reconsideration; these fields are not a claim that all 74 final states/quotes were the original preread entries.", "proposal": ref(primary_path), "root_postfreeze_dispositions": disposition_ref, "n_changes": 74, "root_frozen_state_agreement": 73, "root_frozen_state_reconsiderations": 1, "records": assessment_rows})
+print(json.dumps({"dispositions": disposition_ref, "additional_proposal": proposal_ref, "primary_assessment": assessment_ref, "counts": {"primary": 74, "additional_pending": 10, "root_reconsiderations": 34}}, indent=2))

@@ -1,0 +1,139 @@
+"""Validate full coverage, exact cue locations and neutral packet preservation."""
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import shutil
+
+BASE=Path(__file__).resolve().parent
+WORKSPACE=BASE.parents[2]
+REPO=WORKSPACE/'work/recovered'
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def rows(name):
+    return [json.loads(line) for line in (BASE/name).read_text().splitlines()]
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def verify(reference):
+    path=WORKSPACE/reference['path']
+    assert sha(path)==reference['sha256']
+    if 'bytes' in reference:
+        assert path.stat().st_size==reference['bytes']
+
+
+manifest=read(BASE/'artifact-manifest.json')
+for name,digest in manifest['files'].items():
+    assert sha(BASE/name)==digest,name
+coverage=read(BASE/'input-coverage-and-reuse.json')
+summary=read(BASE/'summary.json')
+for field in ['rubric','review_index','registry']:
+    verify(coverage[field])
+for field in ['reused_complete_inventory_files','existing_cartilage_qa_evidence']:
+    for reference in coverage[field]:
+        verify(reference)
+source={}
+for path,digest in coverage['source_artifact_bindings'].items():
+    assert sha(REPO/path)==digest
+    for index,row in enumerate(read(REPO/path)):
+        assert row['study_uid'] not in source
+        source[row['study_uid']]={
+            'study_uid':row['study_uid'],'report':row['report'],'batch':Path(path).stem,
+            'index':index,'source_path':path,'source_sha256':digest,
+        }
+originals={}
+for path,digest in coverage['reviewed_artifact_bindings'].items():
+    assert sha(REPO/path)==digest
+    for line in (REPO/path).read_text().splitlines():
+        row=json.loads(line)
+        assert row['study_uid'] not in originals
+        originals[row['study_uid']]=row
+assert len(source)==len(originals)==4407 and set(source)==set(originals)
+full=rows('full-cartilage-coverage.jsonl')
+candidates=rows('candidate-details.jsonl')
+cues=rows('source-cue-inventory.jsonl')
+targets=['Medial OA','Lateral OA','PF OA']
+expected={(uid,target) for uid in source for target in targets}
+actual={(row['study_uid'],row['target']) for row in full}
+assert len(full)==len(actual)==13221 and actual==expected
+selected={(row['study_uid'],row['target']) for row in full if row['selected']}
+assert len(candidates)==len(selected)==6034
+assert {(row['study_uid'],row['target']) for row in candidates}==selected
+assert dict(Counter(row['inspection_effective_state'] for row in full))==summary['effective_state_counts']
+assert all(row['selected'] for row in full if row['inspection_effective_state']=='positive')
+assert sum(row['inspection_effective_state']=='positive' for row in full)==259
+for row in full:
+    assert row['new_state_proposed'] is False and row['reviewed_error'] is False
+    assert row['selected']==bool(row['trigger_ids'])
+    for field in ['original_evidence','inspection_effective_evidence']:
+        if row[field]:
+            assert row[field] in source[row['study_uid']]['report']
+assert len(cues)==len({row['study_uid'] for row in cues})==4407
+source_match_count=0
+for row in cues:
+    text=source[row['study_uid']]['report']
+    assert row['source_report_sha256']==hashlib.sha256(text.encode()).hexdigest()
+    for matches in row['cues'].values():
+        for match in matches:
+            assert text[match['start']:match['end']]==match['text']
+            assert text[match['context_start']:match['context_end']]==match['context']
+            source_match_count+=1
+evidence_match_count=0
+for row in candidates:
+    text=row['inspection_effective_evidence']
+    for matches in row['evidence_cues'].values():
+        for match in matches:
+            assert text[match['start']:match['end']]==match['text']
+            assert text[match['context_start']:match['context_end']]==match['context']
+            evidence_match_count+=1
+    assert row['disposition']=='mechanical_candidate_only_requires_complete_source_reading_no_clinical_error_inferred'
+index=read(BASE/'neutral-packet-index.json')
+seen=[]
+for reference in index['packets']:
+    verify(reference)
+    packet=read(WORKSPACE/reference['path'])
+    assert 1<=len(packet)<=10 and len(packet)==reference['n_reports']
+    for row in packet:
+        assert set(row)=={'study_uid','report','batch','index','source_path','source_sha256'}
+        assert row==source[row['study_uid']]
+        seen.append(row['study_uid'])
+assert len(seen)==len(set(seen))==index['n_reports']==summary['selected_reports']==2197
+assert set(seen)=={uid for uid,target in selected}
+assert len(index['packets'])==220
+priority_by_state=Counter((row['priority'],row['inspection_effective_state']) for row in candidates)
+free=shutil.disk_usage(BASE).free
+assert free>=20*1024**3
+receipt={
+    'schema_version':1,'agent_id':'/root/quality_temporal_review',
+    'validated_at_utc':datetime.now(timezone.utc).isoformat(),'status':'passed',
+    'inventory_manifest_sha256':sha(BASE/'artifact-manifest.json'),
+    'validation_script_sha256':sha(Path(__file__)),
+    'all_178_source_and_review_input_hashes_verified':True,
+    'reused_complete_inventory_and_qa_evidence_hashes_verified':True,
+    'complete_reports':4407,'complete_cartilage_cells':13221,
+    'candidate_cells':6034,'candidate_reports':2197,'neutral_packets':220,
+    'all_259_effective_positive_cells_selected':True,
+    'exact_source_cue_offsets_and_contexts_verified':source_match_count,
+    'exact_evidence_cue_offsets_and_contexts_verified':evidence_match_count,
+    'neutral_fields_whitelisted_and_complete_reports_exact':True,
+    'priority_by_state':[{'priority':priority,'state':state,'count':count} for (priority,state),count in sorted(priority_by_state.items())],
+    'priority_interpretation':'Priority buckets are retrieval order aids, not error or confidence labels. P0 includes observed-positive/negative-evidence screens and mixed-severity evidence regardless of whether the current state is observed or masked.',
+    'free_disk_bytes':free,'minimum_free_disk_bytes':20*1024**3,
+    'new_clinical_judgments':0,'proposed_corrections':0,
+    'gold_accessed_or_changed':False,'prior_qualified_negation_artifacts_changed':False,
+    'sources_rubric_reviews_or_registry_changed':False,'global_cartilage_qa_closed':False,
+    'scope_limit':'Coverage and byte validation do not establish complete semantic recall, clinical correctness, or the absence of errors among unselected rows.',
+}
+path=BASE/'validation-and-preservation.json'
+with path.open('x') as handle:
+    json.dump(receipt,handle,ensure_ascii=False,indent=2)
+    handle.write('\n')
+print(json.dumps({'status':'passed','receipt':str(path.relative_to(WORKSPACE)),'sha256':sha(path),'source_cue_offsets':source_match_count,'evidence_cue_offsets':evidence_match_count}))

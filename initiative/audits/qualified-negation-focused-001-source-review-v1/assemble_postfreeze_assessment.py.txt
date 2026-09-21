@@ -1,0 +1,199 @@
+"""Assemble individually reasoned dispositions after the immutable source freeze."""
+import hashlib,json
+from collections import Counter
+from datetime import datetime,timezone
+from pathlib import Path
+HERE=Path(__file__).resolve().parent
+WORKSPACE=HERE.parents[2]
+REPO=WORKSPACE/'work/recovered'
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def write(name,data):
+    p=HERE/name;assert not p.exists();p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+freeze=read(HERE/'source-assessment-frozen.json')
+receipt=read(HERE/'source-freeze-receipt.json')
+for f,h in receipt['files'].items():assert sha(HERE/f)==h
+comparison=read(HERE/'full-target-comparison.json')['records']
+differences=read(HERE/'state-differences.json')['records']
+quotes=read(HERE/'same-state-evidence-differences.json')['records']
+candidates=read(HERE/'batch-candidate-details-postfreeze.json')['records']
+inspect=read(HERE/'current-adjudications-inspection.json')
+assert len(comparison)==600 and len(differences)==92 and len(quotes)==31 and len(candidates)==85
+source_by_uid={r['study_uid']:r for r in freeze['records']}
+registered={(r['study_uid'],r['target']):r for r in inspect['changes']}
+assert len(registered)==34 and len(inspect['pending_semantic_qa'])==3
+base=dict(schema_version=1,agent_id=freeze['agent_id'],session_id=freeze['session_id'],identity_kind='codex_agent_task',
+          rubric_version=freeze['rubric_version'],rubric_sha256=freeze['rubric_sha256'],source_reports_sha256=freeze['source_reports_sha256'],
+          source_assessment_sha256=sha(HERE/'source-assessment-frozen.json'),source_freeze_receipt_sha256=sha(HERE/'source-freeze-receipt.json'),
+          neutral_packet_sha256=freeze['neutral_packet_sha256'],adjudication_registry_sha256=inspect['registry_sha256'])
+D={}
+def assign(indices,disposition,reason):
+    for i in indices:
+        assert i not in D
+        D[i]=(disposition,reason)
+
+# Indices identify personally examined rows in state-differences.json. No lexical
+# rule chooses a state or automatically converts a candidate into a proposal.
+assign([3,4,5,8,12,15,16,20,23,32,55,57,58,62,66,68,70,71,82,87,88,89],'propose',
+       'Only significant/evident/increased-significant knee fluid is denied, without a separate unqualified absence or explicit small/trace/minimal amount in the complete report. These qualifiers have no frozen moderate/large threshold mapping. Retain uncertainty instead of inventing a reliable negative.')
+assign([6,9,19,26,31,42,44,46,51,56,63,67,69,72,80],'propose',
+       'The marrow statement excludes only significant or substantial edema/signal change. No independent unqualified marrow normality or direct no-contusion finding settles this target in the full report. Contusion has no significance-size exclusion in the frozen criterion; preserve the qualification as uncertain.')
+assign([0,18,25,30,50,85],'propose',
+       'Only significant or pathological Baker/popliteal cysts are denied. The report gives no separate categorical absence or explicit below-moderate collection size. Neither adjective has a validated frozen size mapping; preserve uncertainty.')
+assign([1,2,13,14,17,21,22,37,38,39],'propose',
+       'This cartilage compartment is addressed only by a significance/major/noteworthy qualification. The full report does not separately establish normal cartilage or loss depth/extent below the threshold for this compartment. Keep uncertain rather than infer a thickness conversion from the adjective.')
+assign([7],'propose',
+       'The patellar lesion is explicitly superficial, but the other PF surface, the trochlea, is only without significant alterations. The original quote does not settle that qualified trochlear finding; the expanded exact quotation preserves both surfaces and the unresolved PF scope.')
+assign([27,28,33,34,75,81],'propose',
+       'The named ligament is included in a significance/noteworthy-qualified normality statement, without independent intact fibers or explicit low-grade injury for that ligament. Anatomical scope is clear but the qualifying high-grade exclusion is not; retain uncertain.')
+assign([35,36],'propose',
+       'The named meniscus is addressed only by a broad no-noteworthy-findings statement. No independent normal morphology/signal or definitive no-tear assertion resolves the qualifier; keep uncertain.')
+assign([40,41,78,79,83],'propose',
+       'The named meniscus has only a no-definite/no-discrete tear statement, with no independent normal morphology or isolated intrasubstance degeneration to support a negative. Report-level equivocation remains masked under the frozen protocol.')
+assign([73,74],'propose',
+       'The shared sentence gives lateral signal with only qualified nonsurfacing language, while its explicit grade-2 intrasubstance description is localized to the medial posterior horn. A medial internal-degeneration grade must not be transferred to lateral anatomy; the complete report does not otherwise resolve the lateral criterion.')
+assign([54],'propose',
+       'No definite fracture line is a qualified line assessment. The full report has no independent unqualified fracture absence, and a contusion diagnosis does not erase the explicitly unresolved fracture wording. Keep uncertain with exact local context.')
+assign([65],'propose',
+       'In the English coordination, significant may modify synovial thickening as well as effusion. The structured no-effusion finding settles only fluid; no other statement assesses the synovial lining. Preserve the unresolved qualifier scope as uncertain.')
+assign([11],'propose',
+       'The marrow signal is described as compatible with increased hematopoietic activity and possible anemia, with no edema or contusion assertion. A marrow activity finding alone does not inform the impact-edema target. Use not_mentioned with empty evidence; both states stay masked.')
+assign([64],'propose',
+       'The cited sentence only discusses marrow signal significance and contains no fracture diagnosis, cortical disruption or fracture line assessment. It cannot serve as fracture evidence. Use not_mentioned and empty evidence; masking is unchanged.')
+
+assign([43,45,47],'reconsider_keep_effective',
+       'I withdraw the initial uncertain fracture state inferred from an erosive/destructive cortical feature. In these sources the statement is a cortical destruction/erosion or lesion assessment, without acute fracture-line/disruption information. The original not_mentioned is defensible and remains unchanged.')
+assign([52,53],'reconsider_keep_effective',
+       'I withdraw the initial compartment uncertainty derived from the unlocalized osteochondral-lesion denial. The source has no informative isolated chondral-loss assessment for this tibiofemoral compartment. Preserve the existing not_mentioned rather than infer compartment coverage.')
+assign([84],'reconsider_keep_effective',
+       'I withdraw the initial positive that read complete delamination as covering the whole lateral patellar facet. Complete can describe depth of delamination without quantifying affected surface area. The source does not unequivocally establish the roughly 1 cm region; keep the existing uncertain state.')
+assign([91],'reconsider_keep_effective',
+       'I withdraw the initial mask: posterior medial tissue-volume attenuation is an explicitly abnormal morphology finding, even though no definite tear line is seen. The frozen morphology clause can support the original positive without inventing surgery or demanding a separate tear-line diagnosis.')
+
+assign([10],'defer_disagreement',
+       'Mild extrinsic MCL compression plus an otherwise-normal ligament statement can be read as a noninjury finding, while the frozen pass found fiber integrity insufficiently explicit at the exception. Preserve both readings for adjudication rather than automatically mask a compression descriptor.')
+assign([24],'defer_disagreement',
+       'The report directly diagnoses trabecular fractures in explicitly acute trauma, whereas the initial assessment required more explicit line/cortical morphology. This is the pending bone-terminology question, not a permitted automatic subtype conversion. Preserve the positive-versus-masked disagreement without a proposed change.')
+assign([29,48,49],'defer_disagreement',
+       'The original review explicitly infers qualifying cartilage extent from diffuse/extensive full-depth ulcers. The frozen pass considered extent of a contiguous qualifying deep-loss region unresolved. The qualitative-extent mapping needs separate cartilage adjudication; retain both readings and do not decide by diffuse keyword.')
+assign([59,60,90],'defer_disagreement',
+       'Generic underlying bony change and any remaining-normal-bones language do not establish an observed injury state. Whether this is an informative uncertain bone target or not_mentioned is a masked-versus-masked scope question. Preserve both states for adjudication without claiming a concrete error here.')
+assign([61],'defer_disagreement',
+       'Diffuse ACL signal and possible cystic transformation with a qualified rupture denial could be isolated degeneration under the rubric, as the original review reasoned, or incompletely characterized ACL change. Preserve the source disagreement; the qualifier alone is not enough for a concrete correction here.')
+assign([76],'defer_disagreement',
+       'Acute ACL disruption with associated tibial edema supports the initial contextual impact inference, but the original review requires a clearer impact diagnosis. This causal inference needs separate adjudication before creating an observed contusion positive.')
+assign([77],'defer_disagreement',
+       'A stress fracture with curvilinear low signal and marrow edema supports an active current fracture, but explicit acute timing is absent. The two readings differ over acuity sufficiency. Preserve this as unresolved; do not add a positive or introduce a fracture-subtype rule.')
+assign([86],'defer_disagreement',
+       'Slight 3 mm medial extrusion is definite, while the report explicitly denies a meniscal tear. Whether this morphology establishes or leaves the target uncertain needs separate adjudication; do not convert it from a keyword or an unvalidated extrusion cutoff.')
+assert set(D)==set(range(92)),sorted(set(range(92))-set(D))
+
+def proposed(r,reason,kind):
+    uid,target=r['study_uid'],r['target'];key=(uid,target)
+    assert key not in registered and r['original_state']==r['effective_state'] and r['original_evidence']==r['effective_evidence']
+    state,evidence=r['first_assessor_state'],r['first_assessor_evidence']
+    assert evidence=='' if state=='not_mentioned' else evidence.strip() and evidence in source_by_uid[uid]['report']
+    before=int(r['effective_state'] in ['negative','positive']);after=int(state in ['negative','positive'])
+    return dict(study_uid=uid,target=target,batch=r['batch'],index=r['index'],packet_index=r['packet_index'],
+          source_path=r['source_path'],source_sha256=r['source_sha256'],artifact_path=r['original_review_path'],artifact_sha256=r['original_review_sha256'],
+          before_state=r['original_state'],before_evidence=r['original_evidence'],proposed_state=state,source_quote=evidence,reason=reason,kind=kind,
+          report_weak_mask_before=before,report_weak_mask_after=after,
+          mask_impact='observed_to_masked' if before and not after else 'masked_to_masked' if not before and not after else 'observed_unchanged',
+          status='proposed_pending_distinct_assessment_and_adjudication',gold_value_or_mask_changes='none; evaluation values were not accessed')
+proposals=[];dispositions=[]
+for i,r in enumerate(differences):
+    disposition,reason=D[i]
+    dispositions.append(dict(r,difference_index=i,disposition=disposition,postfreeze_reason=reason,
+        final_first_assessor_state=r['effective_state'] if disposition=='reconsider_keep_effective' else r['first_assessor_state'],effective_annotation_changed=False))
+    if disposition=='propose':proposals.append(proposed(r,reason,'state_correction'))
+quote_reasons={
+ 14:'The original short quote omits which structure the subchondral edema is associated with and its location. Expand to the exact contiguous PF cartilage passage so the uncertainty evidence retains anatomy and degenerative context without changing state.',
+ 21:'The original negative evidence is only an R/O degeneration/cyst conclusion. Include the actual interstitial cystic-signal finding that supports the below-threshold interpretation, preserving its differential and without changing the state.'}
+quote_dispositions=[]
+for i,r in enumerate(quotes):
+    if i in quote_reasons:
+        reason=quote_reasons[i];proposals.append(proposed(r,reason,'evidence_context_correction'));disposition='propose_evidence_context'
+    else:
+        reason='Both quotes are exact source text and the current quote adequately supports the agreed state; excerpt preference alone is not a concrete erratum.';disposition='retain_original_evidence'
+    quote_dispositions.append(dict(r,evidence_difference_index=i,disposition=disposition,postfreeze_reason=reason))
+proposal_keys={(r['study_uid'],r['target']):r for r in proposals}
+assert len(proposal_keys)==len(proposals)
+diff_keys={(r['study_uid'],r['target']):r for r in dispositions}
+compare_keys={(r['study_uid'],r['target']):r for r in comparison}
+candidate_results=[]
+for r in candidates:
+    key=(r['study_uid'],r['target']);c=compare_keys[key]
+    candidate_results.append(dict(r,first_assessor_state=c['first_assessor_state'],first_assessor_evidence=c['first_assessor_evidence'],
+        first_assessor_reason=c['first_assessor_reason'],disposition_after_source_reading=(proposal_keys[key]['kind'] if key in proposal_keys else diff_keys[key]['disposition'] if key in diff_keys else 'source_judgment_agrees_with_effective_state')))
+write('candidate-disposition-assessment.json',dict(base,n_reports=50,n_candidates=85,records=candidate_results))
+
+# Reuse immutable source/review/provenance references. Existing identical archives
+# are referenced, never recopied. No new permanent source archive is created.
+old_archive=read(HERE.parent/'qualified-negation-focused-000-source-review-v1/originals-source-provenance-bindings.json')
+old_refs={r['original_path']:r for r in old_archive['files']}
+paths={'protocols/report_weak_v2.md','initiative/reviews/provenance.json','initiative/reviews-v2/provenance.json','initiative/reviews-v2/adjudications/registry.json'}
+for r in freeze['records']:
+    b=r['batch'];paths.update([r['source_path'],f'initiative/reviews-v2/reviewed/{b}-reviewed.jsonl',f'initiative/reviews-v2/drafts/{b}-draft.jsonl',
+                             f'initiative/reviews-v2/provenance/{b}-draft.json',f'initiative/reviews-v2/provenance/{b}-reviewed.json'])
+def collect(v):
+    if isinstance(v,dict):
+        if set(v)>={'path','sha256'} and isinstance(v['path'],str) and (REPO/v['path']).is_file():
+            assert sha(REPO/v['path'])==v['sha256'];paths.add(v['path'])
+        for item in v.values():collect(item)
+    elif isinstance(v,list):
+        for item in v:collect(item)
+collect(inspect)
+files=[]
+for path in sorted(paths):
+    digest=sha(REPO/path);r=dict(path=path,sha256=digest,bytes=(REPO/path).stat().st_size)
+    if path in old_refs and old_refs[path]['sha256']==digest:
+        archive=HERE.parent/'qualified-negation-focused-000-source-review-v1'/old_refs[path]['archived_path']
+        assert sha(archive)==digest;r['existing_identical_archive_path']=str(archive.relative_to(WORKSPACE))
+    files.append(r)
+studies=[];originals={}
+for source in freeze['records']:
+    uid=source['study_uid'];b=source['batch'];rp=f'initiative/reviews-v2/reviewed/{b}-reviewed.jsonl'
+    original=next(json.loads(line) for line in (REPO/rp).read_text().splitlines() if json.loads(line)['study_uid']==uid)
+    originals[uid]=original
+    src=read(REPO/source['source_path'])[source['index']]
+    assert src['study_uid']==uid and src['report']==source['report']
+    dp=f'initiative/reviews-v2/provenance/{b}-draft.json';vp=f'initiative/reviews-v2/provenance/{b}-reviewed.json'
+    studies.append(dict(study_uid=uid,packet_index=source['packet_index'],batch=b,index=source['index'],source_path=source['source_path'],source_sha256=source['source_sha256'],
+        report_utf8_sha256=hashlib.sha256(source['report'].encode()).hexdigest(),original_review_path=rp,original_review_sha256=sha(REPO/rp),original_review_row=original,
+        draft_provenance_path=dp,draft_provenance_sha256=sha(REPO/dp),reviewed_provenance_path=vp,reviewed_provenance_sha256=sha(REPO/vp),
+        original_reader_agent_id=read(REPO/dp)['agent_id'],original_reviewer_agent_id=read(REPO/vp)['agent_id'],existing_corrections=[]))
+write('originals-source-provenance-bindings.json',dict(base,n_reports=50,n_source_batches=len({r['batch'] for r in freeze['records']}),
+      n_registered_corrections=34,n_selected_registered_corrections=0,no_new_archive_copies=True,files=files,studies=studies))
+write('postfreeze-disposition-assessment.json',dict(base,status='first_assessor_comparison_not_independent_adjudication',completed_at_utc=datetime.now(timezone.utc).isoformat(),
+      n_reports=50,n_target_decisions=600,n_initial_state_agreements=508,n_initial_state_differences=92,n_same_state_quote_differences=31,
+      historical_exposure=freeze['historical_exposure'],second_assessor_judgments_accessed=False,
+      method='Personally read every full report before freeze; post-freeze individually assessed each difference and candidate. Indexed code only assembles authored decisions.',
+      difference_disposition_counts=dict(Counter(r['disposition'] for r in dispositions)),state_difference_records=dispositions,evidence_difference_records=quote_dispositions,
+      pending_semantic_qa=inspect['pending_semantic_qa'],labels_or_registries_changed=False,gold_values_inspected=False))
+write('proposed-errata.json',dict(base,status='proposed_pending_distinct_source_assessment_and_adjudication',proposer_agent_id=freeze['agent_id'],proposer_session_id=freeze['session_id'],
+      n_reports=50,n_targets_assessed=600,n_changes=len(proposals),n_studies_with_proposals=len({r['study_uid'] for r in proposals}),
+      kind_counts=dict(Counter(r['kind'] for r in proposals)),mask_impact_counts=dict(Counter(r['mask_impact'] for r in proposals)),target_counts=dict(Counter(r['target'] for r in proposals)),
+      proposed_errata=proposals,no_acceptance_metadata_created=True,no_registry_changes=True,
+      scope='Only focused batch001; first-assessor proposals requiring separate source assessment and explicit adjudication. No global QA closure, gold access or label release.'))
+
+for r in comparison:
+    idx=freeze['target_order'].index(r['target']);orig=originals[r['study_uid']]
+    assert (r['original_state'],r['original_evidence'])==(orig['states'][idx],orig['evidence'][idx])
+    assert (r['effective_state'],r['effective_evidence'])==(r['original_state'],r['original_evidence'])
+for p in proposals:
+    idx=freeze['target_order'].index(p['target']);orig=originals[p['study_uid']]
+    assert (p['before_state'],p['before_evidence'])==(orig['states'][idx],orig['evidence'][idx])
+    assert sha(REPO/p['artifact_path'])==p['artifact_sha256'] and sha(REPO/p['source_path'])==p['source_sha256']
+for f,h in receipt['files'].items():assert sha(HERE/f)==h
+for r in files:assert sha(REPO/r['path'])==r['sha256']
+assert sha(REPO/'initiative/reviews-v2/adjudications/registry.json')==inspect['registry_sha256']
+write('postfreeze-validation-receipt.json',dict(base,validated_at_utc=datetime.now(timezone.utc).isoformat(),
+      frozen50_read_reviews='passed in compare_after_freeze.py',all4407_inspect_adjudications='passed in compare_after_freeze.py',
+      all600_current_original_effective_cells_verified=True,all92_state_disagreements_disposed=True,all31_quote_disagreements_disposed=True,
+      all85_candidates_crosschecked=True,all_proposals_unique_disjoint_registered34=True,all_before_annotations_exact_current_originals=True,
+      all_proposed_quotes_exact_contiguous_source=True,all_source_and_provenance_references_hash_verified=True,source_freeze_unchanged=True,
+      second_assessor_files_accessed=False,registered_changes_still34=True,global_semantic_gates_still_pending=3,n_proposals=len(proposals),
+      clinical_acceptance_inferred=False,gold_accessed=False,originals_or_registries_changed=False,new_archive_copies=0))
+print(json.dumps({'proposals':len(proposals),'dispositions':dict(Counter(r['disposition'] for r in dispositions)),
+                  'kinds':dict(Counter(r['kind'] for r in proposals)),'impact':dict(Counter(r['mask_impact'] for r in proposals)),
+                  'bound_files':len(files)},indent=2))

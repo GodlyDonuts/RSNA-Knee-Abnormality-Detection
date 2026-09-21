@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "stage": "runtime_schema_requirements_read_before_new_root_proposal",
+  "runtime_validator": {
+    "path": "work/recovered/rsna/adjudications.py",
+    "sha256": "2b7af816e9caff240daf02af1dd3bf08e193438ac568478651f0b49868e1eac0"
+  },
+  "modern_case_inspected": {
+    "path": "work/recovered/initiative/reviews-v2/adjudications/cases/duplicate-qualified-negation-nine-report.json",
+    "sha256": "f0b2d5f5645cf2d402a98a145cf46421f6ecfa60aef464ce5add016e8be17c03"
+  },
+  "format": "accepted_changes / proposed_errata",
+  "requirements": [
+    "Case schema_version must be integer 1; source_reports_sha256 and rubric_sha256 must match the release.",
+    "Proposal, independent_assessment, decision and supporting_evidence use exact path/sha256 references relative to artifact root.",
+    "Decision requires accepted or independently_adjudicated_pending_release_integration status, original_artifacts_preserved true, distinct proposer_agent_id and adjudicator_agent_id matching actual document agent_id values.",
+    "Assessment session_id must be nonempty and different from proposer session_id; stage must equal independent_source_assessment.",
+    "Proposal and assessment both bind full source/rubric context. All decision top-level *_sha256 fields exactly match required and explicit supporting references.",
+    "Per target proposal requires exact source_path/source_sha256 and artifact_path/artifact_sha256; assessed record requires matching source_sha256.",
+    "Every accepted change requires source_sha256, original_review_path/original_review_sha256, before_state/before_evidence, after_state/after_evidence, independent_source_state/source_evidence, and nonempty reason.",
+    "Accepted after state/evidence must match proposal proposed_state/source_quote and assessment independent_source_state/source_evidence exactly.",
+    "Case changes must equal accepted keys and n_changes; each binds original reviewed batch and original full source batch. Before annotation must match preserved original review, not an unbound later view.",
+    "No-op annotations belong in semantic QA; runtime registry prohibits duplicate correction targets. Rejected or unresolved proposals must remain outside accepted_changes.",
+    "Each nonmissing annotation must carry an exact contiguous full-source substring; not_mentioned requires empty evidence."
+  ],
+  "target_name_mapping": {
+    "Lateral Meniscus Tear": "Lateral Meniscus",
+    "Medial Meniscus Tear": "Medial Meniscus",
+    "Patellofemoral Cartilage/OA": "PF OA"
+  },
+  "new_root_decisions_opened": false,
+  "runtime_changed": false,
+  "gold_accessed": false
+}

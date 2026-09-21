@@ -2,6 +2,38 @@
 
 ## Latest verified checkpoint
 
+The first focused wording batch now has **84 newly accepted corrections**, bringing
+the registry to **118**. Its two source readers assessed all 50 reports/600 targets;
+root separately froze all 48 attention reports/576 targets before opening their
+case-specific findings. Root accepted the first reader's 74 proposals, and a
+distinct assessor accepted root's ten additional proposals. All 34 root source
+reconsiderations and the other readers' reconsiderations remain explicit. These
+are post-comparison decisions, not claims of initial agreement. The changes remove
+79 insufficiently supported observed labels, clarify two already-masked fracture
+mentions and expand three negative-state quotations. The prior 34 corrections,
+all 298 protected artifacts and all initial review outputs are unchanged.
+
+Use `qualified-negation-focused-000-root-complete-v1/`,
+`qualified-negation-focused-000-additional-independent-v1/` and
+`qualified-negation-focused-000-integration-v1/complete118-integration-validation.json`.
+The existing ten-report root archive is a preserved historical snapshot. All 576
+final root states now reconcile with registry inspection; no label export or
+global QA closure has occurred.
+
+The completed parallel snapshots include both readings and post-comparison work
+for focused wording batch001, plus first readings for batches002 and003. Root
+has not opened their case-specific findings. Before root adjudication of batch001,
+read and freeze its five neutral ten-report packets; preserve the readers' original
+34-correction comparison context and separately account for the current registry.
+The complete cartilage discovery snapshot covers all 4,407 reports/13,221 OA cells,
+with 6,034 candidate cells. Its priority is 302 cells in 260 reports. Another 2,407
+observed-negative candidate cells in 1,204 reports remain pending; 3,002 negative
+cells outside lexical discovery are not certified by that proxy. The 833 reports
+whose candidate cells are all masked retain their final-export mask requirements;
+only 749 have all three OA targets masked. Both readers have frozen the first50
+complete cartilage sources/150 OA targets each; no cartilage correction is accepted
+from that stage. See `semantic-qa-parallel-snapshots-v1/` for exact snapshot scope.
+
 This archive contains all 89 first-reader batches and all 89 independently reviewed
 batches: 4,407 reports and 52,884 target decisions. Report-review coverage is
 complete; global semantic QA, correspondence and final release checks remain
@@ -106,7 +138,8 @@ Root and a distinct assessor each read all nine complete sources and froze108
 assessments before proposal access, with prior documentation exposure disclosed.
 Seven independently accepted corrections are now registered: four Effusion
 negative-to-uncertain masks and three already-masked Contusion/Fracture
-uncertainty-to-unmentioned clarifications. This brings the registered total to34.
+uncertainty-to-unmentioned clarifications. That milestone brought the total to34;
+the later focused wording cases above bring the current total to118.
 All277 protected source/review/rubric/prior-case/QA artifacts remain unchanged.
 The bounded adjudication and all27 focused tests passed. See
 `duplicate-consistency-adjudication-v1/`. The three global semantic QA gates remain
@@ -119,19 +152,17 @@ queue contains 539 target candidates across 331 reports; candidate membership is
 not a finding of error. For its first 50-report batch, two distinct agents have
 frozen all 600 source judgments and preserved their separate post-comparison
 reconsiderations. Their source freezes agree on 584 states and differ on 16.
-Neither their proposed corrections nor their agreements have been registered.
+The later root and additional independent adjudications described above now
+register the accepted corrections while preserving these earlier proposal states.
 Read the separate `qualified-negation-focused-000-source-review-v1/` and
 `qualified-negation-focused-000-independent-review-v1/` scopes before use.
 
-Root adjudication is in progress: only the first ten of 48 neutral source reports
-have been personally reread and frozen (120 decisions), preserved under
-`qualified-negation-focused-000-root-review-v1/`. The remaining four neutral
-packets must be read and independently assessed before root opens the two
-readers' case-specific findings. Root's prior original-run and aggregate wording
-exposure is explicitly disclosed. Preserve every frozen reading; any later
-reconsideration needs a separate record. The next 50-report batch and a full
-cartilage candidate inventory are in progress outside this archived snapshot.
-These stages add no accepted label corrections and close no global QA gate.
+The earlier `qualified-negation-focused-000-root-review-v1/` snapshot contains only
+the first ten source reports/120 decisions. It remains byte-identical. The separate
+completed root archive now includes all five original source packets, the combined
+48-report freeze and the full comparison/adjudication history. Historical source
+and aggregate exposure remain disclosed. Later batch001 and cartilage snapshots
+are preserved as pending work; none closes a global semantic QA gate.
 
 The tenth through thirteenth metadata groups now have two frozen source readings
 and root replay of 5,361 source memberships, 167 series metadata records and

@@ -1,0 +1,136 @@
+"""Compare preserved decisions and independently replay the accepted annotation baseline."""
+import copy
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+STAGE = Path(__file__).resolve().parent
+WORK = STAGE.parents[1]
+ROOT = WORK / 'recovered'
+FIRST = WORK / 'annotation-staging/qualified-negation-focused-001-source-review-v1'
+SECOND = WORK / 'annotation-staging/qualified-negation-focused-001-independent-review-v1'
+sys.path.insert(0, str(ROOT))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+
+def read(p):
+    return json.loads(p.read_text())
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def ref(p):
+    return {'path': str(p.relative_to(WORK)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+
+for name, digest in read(FIRST / 'artifact-manifest.json')['files'].items():
+    assert sha(FIRST / name) == digest
+for entry in read(SECOND / 'final-file-list.json')['files']:
+    assert ref(WORK / entry['path']) == entry
+assert sha(FIRST / 'source-assessment-frozen.json') == 'b6d14cc48a66ca48c3197f518e93c2d52af6b4f915c44d6b883f7c8a90a62e60'
+assert sha(SECOND / 'independent-freeze.json') == 'a8c5dfd9d2ab3eb737068c511750f66f3a1b61300b300c2e08bf62e7c13b66f1'
+first = read(FIRST / 'source-assessment-frozen.json')
+second = [json.loads(line) for line in (SECOND / 'independent-assessment.jsonl').read_text().splitlines()]
+packet = read(SECOND / 'neutral-source-packet.json')
+prior_comparison = read(FIRST / 'full-target-comparison.json')
+post = read(FIRST / 'postfreeze-disposition-assessment.json')
+proposals = read(FIRST / 'proposed-errata.json')
+assert first['agent_id'] != '/root/last_twelve_visual_review'
+assert first['rubric_sha256'] == sha(ROOT / 'protocols/report_weak_v2.md')
+assert first['target_order'] == list(TARGETS)
+reports = {r['study_uid']: r['report'] for p in (ROOT / 'initiative/reviews/inputs').glob('batch-*.json') for r in read(p)}
+registry = ROOT / 'initiative/reviews-v2/adjudications/registry.json'
+registry_before = ref(registry)
+actual = inspect_adjudications(reports, ROOT / 'initiative/reviews-v2/reviewed', ROOT / 'protocols/report_weak_v2.md', ROOT)
+assert actual['n_changes'] == 34
+assert ref(registry) == registry_before
+assert prior_comparison['adjudication_registry_sha256'] == sha(registry)
+assert first['n_reports'] == len(second) == len(packet) == 50
+assert first['n_target_decisions'] == len(prior_comparison['records']) == 600
+baseline = {(r['study_uid'], r['target']): r for r in prior_comparison['records']}
+post_states = {(r['study_uid'], r['target']): r for r in post['state_difference_records']}
+post_evidence = {(r['study_uid'], r['target']): r for r in post['evidence_difference_records']}
+errata = {(r['study_uid'], r['target']): r for r in proposals['proposed_errata']}
+assert len(errata) == proposals['n_changes'] == 75
+reviews = {}
+records = []
+selected_corrections = []
+for i, source in enumerate(packet):
+    a, b = first['records'][i], second[i]
+    uid = source['study_uid']
+    assert a['study_uid'] == b['study_uid'] == uid
+    assert a['report'] == source['report'] == reports[uid]
+    assert a['packet_index'] == b['packet_index_zero_based'] == i
+    assert a['index'] == b['source_index_zero_based'] == source['index']
+    assert a['source_sha256'] == b['source_batch_sha256'] == source['source_sha256']
+    assert a['source_report_sha256'] == b['report_utf8_sha256'] == hashlib.sha256(source['report'].encode()).hexdigest()
+    first_decisions = {d['target']: d for d in a['decisions']}
+    assert set(first_decisions) == set(TARGETS)
+    for j, target in enumerate(TARGETS):
+        key = uid, target
+        old = baseline[key]
+        review_path = ROOT / old['original_review_path']
+        assert sha(review_path) == old['original_review_sha256']
+        if review_path not in reviews:
+            reviews[review_path] = {r['study_uid']: r for r in (json.loads(line) for line in review_path.read_text().splitlines())}
+        original = reviews[review_path][uid]
+        assert original['states'][j] == old['original_state'] and original['evidence'][j] == old['original_evidence']
+        effective_state, effective_evidence = original['states'][j], original['evidence'][j]
+        changes = [c for c in actual['changes'] if c['study_uid'] == uid and c['target'] == target]
+        assert len(changes) <= 1
+        if changes:
+            c = changes[0]
+            assert c['before'] == {'state': effective_state, 'evidence': effective_evidence}
+            effective_state, effective_evidence = c['after']['state'], c['after']['evidence']
+            selected_corrections.append(c)
+        assert effective_state == old['effective_state'] and effective_evidence == old['effective_evidence']
+        fd = first_decisions[target]
+        assert fd['state'] == old['first_assessor_state'] and fd['evidence'] == old['first_assessor_evidence']
+        sd = {'state': b['states'][j], 'evidence': b['evidence'][j], 'reason': b['target_reasoning'][j]}
+        for d in [fd, sd, {'state': effective_state, 'evidence': effective_evidence}]:
+            assert (d['evidence'] == '') if d['state'] == 'not_mentioned' else (d['evidence'] and d['evidence'] in source['report'])
+        final_first = post_states[key]['final_first_assessor_state'] if key in post_states else fd['state']
+        first_post = {'state_disposition': post_states.get(key), 'evidence_disposition': post_evidence.get(key), 'proposal': errata.get(key), 'final_first_assessor_state': final_first}
+        records.append({
+            'packet_index': i, 'case': b['case'], 'study_uid': uid, 'target': target,
+            'source_path': source['source_path'], 'source_index_zero_based': source['index'],
+            'source_batch_sha256': source['source_sha256'], 'report_utf8_sha256': b['report_utf8_sha256'],
+            'original_review': ref(review_path), 'original_state': original['states'][j], 'original_evidence': original['evidence'][j],
+            'existing_accepted_correction': changes[0] if changes else None,
+            'effective_baseline': {'state': effective_state, 'evidence': effective_evidence},
+            'first_frozen': fd, 'second_frozen': sd, 'first_postfreeze': first_post,
+            'two_source_states_agree': fd['state'] == sd['state'],
+            'second_agrees_effective_state': sd['state'] == effective_state,
+            'second_agrees_first_postfreeze_state': sd['state'] == final_first,
+            'second_same_state_evidence_differs_effective': sd['state'] == effective_state and sd['evidence'] != effective_evidence,
+        })
+assert len(records) == len({(r['study_uid'], r['target']) for r in records}) == 600
+state_diffs = [r for r in records if not r['two_source_states_agree']]
+effective_diffs = [r for r in records if not r['second_agrees_effective_state']]
+attention = [r for r in records if not r['two_source_states_agree'] or not r['second_agrees_effective_state'] or r['first_postfreeze']['proposal'] is not None or r['first_postfreeze']['state_disposition'] is not None]
+aggregate = {
+    'complete_reports': 50, 'target_cells_compared': 600,
+    'two_frozen_source_state_agreements': 600-len(state_diffs), 'two_frozen_source_state_differences': len(state_diffs),
+    'reports_with_source_state_differences': len({r['study_uid'] for r in state_diffs}),
+    'second_source_vs_effective_baseline_state_differences': len(effective_diffs),
+    'reports_with_second_source_vs_baseline_differences': len({r['study_uid'] for r in effective_diffs}),
+    'second_source_vs_first_postfreeze_state_differences': sum(not r['second_agrees_first_postfreeze_state'] for r in records),
+    'first_reader_separate_proposals': len(errata),
+    'comparison_attention_target_cells': len(attention), 'comparison_attention_reports': len({r['study_uid'] for r in attention}),
+    'accepted_baseline_corrections_replayed': actual['n_changes'], 'selected_existing_corrections': len(selected_corrections),
+    'neutral_root_packets': 5, 'neutral_root_reports': 50,
+}
+for name, content in [
+    ('mechanical-full-comparison.json', {'stage':'post_freeze_comparison_of_two_full_source_passes_and_verified_effective_baseline','agent_id':'/root/last_twelve_visual_review','at_utc':datetime.now(timezone.utc).isoformat(),'first_frozen':ref(FIRST/'source-assessment-frozen.json'),'second_frozen':ref(SECOND/'independent-assessment.jsonl'),'first_postfreeze':ref(FIRST/'postfreeze-disposition-assessment.json'),'first_errata':ref(FIRST/'proposed-errata.json'),'actual_adjudication_registry':registry_before,'aggregate':aggregate,'records':records,'comparison_is_not_acceptance_or_registration':True}),
+    ('aggregate-comparison.json', {'stage':'aggregate_only_focused_001_post_freeze_comparison','agent_id':'/root/last_twelve_visual_review','at_utc':datetime.now(timezone.utc).isoformat(),'counts':aggregate,'neutral_packet_index':ref(STAGE/'neutral-root-packet-index.json'),'case_specific_findings_withheld_pending_root_source_freeze':True}),
+    ('baseline-replay-proof.json', {'stage':'independently_verified_34_correction_effective_annotation_baseline','agent_id':'/root/last_twelve_visual_review','at_utc':datetime.now(timezone.utc).isoformat(),'registry':registry_before,'source_report_count':len(reports),'accepted_corrections':actual['n_changes'],'selected_corrections':selected_corrections,'verified_cells':600,'verified_original_review_files':[ref(p) for p in sorted(reviews)],'effective_values_match_first_reader_recorded_baseline':True,'original_gold_labels_and_runtime_unchanged':True,'pending_global_qa_unchanged':actual['pending_semantic_qa']}),
+]:
+    destination = STAGE/name
+    assert not destination.exists()
+    destination.write_text(json.dumps(content,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'counts':aggregate,'aggregate_file':ref(STAGE/'aggregate-comparison.json'),'baseline_proof':ref(STAGE/'baseline-replay-proof.json')},indent=2))

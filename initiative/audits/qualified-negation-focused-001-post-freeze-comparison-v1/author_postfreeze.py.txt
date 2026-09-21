@@ -1,0 +1,88 @@
+"""Explicitly authored reconsiderations after comparison; original source pass stays frozen."""
+OVERRIDES = {}
+
+
+def revise(i, target, state, reason, evidence_origin='second_frozen'):
+    assert (i, target) not in OVERRIDES
+    OVERRIDES[i, target] = {'state': state, 'reason': reason, 'evidence_origin': evidence_origin}
+
+
+# Each reconsidered fluid finding was personally read in its complete report.
+# These are explicit authored memberships, not a phrase classifier.
+FLUID_REASONS = {
+    2: 'The fluid section says only no significant fluid. My initial negative mapped significance to a moderate/large threshold absent from the frozen rubric; no separate measured or explicitly small amount resolves this report.',
+    3: 'No significant knee effusion supplies no explicit volume grade. The trace Baker cyst and small ganglion concern different spaces and cannot provide a knee-fluid grade; withdraw the initial size inference.',
+    4: 'The effusion denial is significance-qualified. Normal other structures and absent popliteal cysts do not independently grade joint fluid; my initial threshold mapping was unsupported.',
+    5: 'Only significant joint fluid is denied. The tiny parameniscal cyst and cartilage findings do not provide an independent effusion amount; preserve missing severity rather than infer a reliable negative.',
+    7: 'No significant effusion is not an explicit none/small amount, and the general no-significant-findings conclusion repeats the limitation. Withdraw the initial significance-to-size conversion.',
+    8: 'Geen significante hydrops retains a significance qualifier without a separate volume description. The frozen rubric does not define this phrase as below moderate; reconsider the initial negative.',
+    9: 'Only significant intra-articular fluid is denied. The popliteal cyst denial does not supply effusion severity, so the original negative depended on an unvalidated significance mapping.',
+    12: 'No significant effusion leaves joint-fluid amount unspecified; the current ligament and meniscal findings do not independently establish absent or small fluid.',
+    13: 'Despite acute trauma and fracture findings, the fluid statement excludes only significant effusion and gives no independent size grade. Neither trauma nor this adjective establishes a reliable observed fluid state.',
+    16: 'No significant effusion is the sole target-specific statement. Otherwise normal study does not unambiguously remove that specific qualifier; withdraw the inferred below-moderate grade.',
+    25: 'Only significant knee fluid is denied; the measured parameniscal cyst is a separate collection. The original negative inferred a fluid-grade mapping not supplied by the rubric.',
+    26: 'No significant increased effusion is particularly ambiguous between amount and change. It does not establish absence or an explicitly small current effusion.',
+    28: 'No significant effusion supplies no explicit current fluid grade, and cartilage degeneration does not grade the fluid. Withdraw the initial negative conversion.',
+    29: 'No evident effusion is a visibility-qualified denial without a separate categorical or small-volume description. Under the frozen missing-evidence rule, I no longer convert this qualifier to a size threshold.',
+    31: 'Only significant joint fluid is denied in the current findings. The bilateral tendon indication neither supplies effusion severity nor creates separate knee findings; the fluid size remains unspecified.',
+    32: 'Geen significante hydrops is the only joint-fluid grading statement. The PCL-adjacent ganglion and extra-articular friction edema cannot supply an effusion volume.',
+    34: 'The specific effusion statement is significance-qualified, while normal bones and cartilage do not regrade it. Withdraw my original unsupported below-moderate inference.',
+    35: 'No significant effusion is not a separately small/absent fluid description. The small popliteal cyst grades a different collection and cannot settle effusion.',
+    44: 'The current follow-up report denies only significant effusion. No earlier fluid finding is available to infer a resolved or subthreshold amount, so preserve uncertainty.',
+    46: 'Only significant knee fluid is denied. The separate contusion and historical PCL injury do not establish a current fluid volume; my initial negative used an unvalidated qualifier mapping.',
+    47: 'No significant effusion remains ungraded. The collapsed Baker cyst establishes that separate collection as small/collapsed but does not grade intra-articular fluid.',
+    48: 'No significant effusion is the only fluid description. The small radial tear does not establish fluid amount; withdraw my initial significance-to-size inference.',
+}
+for i, reason in FLUID_REASONS.items():
+    revise(i, 'Effusion', 'uncertain', reason)
+
+revise(0, "Baker's", 'uncertain', 'My initial negative equated no significant Baker cyst with below-moderate size. The report has no independent cyst dimensions, explicit small amount or categorical absence; the frozen rubric does not define that adjective as a size grade.')
+revise(45, "Baker's", 'uncertain', 'No significant Baker cyst has no independent size/absence statement. The intercondylar ganglion dimensions concern a different cyst. Withdraw my initial significance-to-size conversion.')
+
+revise(0, 'Lateral OA', 'uncertain', 'Slight diffuse attenuation is not a quantified fraction of cartilage thickness. The explicit no-transfixing clause excludes full thickness but permits greater-than-half loss; my initial mild-to-shallow inference was stronger than the report.')
+revise(1, 'Medial OA', 'uncertain', 'I initially treated the broad arthrosis denial as an unqualified normal medial cartilage statement. The only relevant cartilage exclusion is significance-qualified and no medial normal morphology/depth is supplied; preserve the unresolved threshold.')
+revise(1, 'Lateral OA', 'uncertain', 'The global no-significant-chondrosis/arthrosis phrase does not separately establish normal lateral cartilage. My earlier compartment-negative inference strengthened the qualifier and supplied missing morphology.')
+revise(5, 'PF OA', 'uncertain', 'The patellar finding is genuinely superficial, but my initial note overstated the trochlear cartilage as preserved. The complete source only excludes significant trochlear alterations. Expand the quote to both PF surfaces and preserve that unresolved scope.', 'first_frozen')
+revise(10, 'PF OA', 'uncertain', 'Mild modifies irregularity and fissuring but does not specify fissure depth or region size. My initial inference of only shallow disease was stronger than this report; the mild OA conclusion does not repair the missing dimensions.')
+
+GREEK_REASONS = {
+    'ACL': 'My initial translation treated without noteworthy findings as unqualified ACL normality. The Greek phrase retains a significance qualification and supplies no independent intact-fiber or grade description.',
+    'MCL': 'The collateral statement says without noteworthy findings, not a separate normal/intact MCL description. My first negative erased the qualification; preserve missing severity rather than invent normal fibers.',
+    'Medial Meniscus': 'The plural meniscal statement excludes noteworthy findings without an independent medial morphology/signal assessment. My original unremarkable paraphrase was stronger than the source qualifier.',
+    'Lateral Meniscus': 'The lateral meniscus is only included in the without-noteworthy-findings phrase. No separate normal morphology or categorical tear absence supports my initial negative.',
+    'Medial OA': 'The shared articular-cartilage clause excludes noteworthy findings, without a normal medial surface or actual depth/extent assessment. Withdraw the initial unqualified-normality translation.',
+    'Lateral OA': 'The lateral compartment has only the broad significance-qualified cartilage assessment. My first reading converted that qualification into normal cartilage without further source evidence.',
+    'PF OA': 'The PF cartilage has no independent normal surface or shallow-loss statement beyond the significance-qualified broad sentence. Preserve the qualifier rather than repeat my initial normality inference.',
+}
+for target, reason in GREEK_REASONS.items():
+    revise(17, target, 'uncertain', reason)
+
+revise(15, 'PF OA', 'uncertain', 'Diffuse distribution of full-depth ulcers does not necessarily establish one roughly 1-cm deep-loss region: several smaller ulcers could be diffusely distributed. My initial positive inferred a contiguous qualifying extent not stated in the report.')
+revise(21, 'PF OA', 'uncertain', 'Extensive PF ulceration includes mixed partial and full thickness. The complete passage does not measure the full-depth component itself; my initial positive transferred the overall extent to the deepest lesions.', 'first_frozen')
+revise(22, 'PF OA', 'uncertain', 'Full-depth patellar ulcers are diffusely distributed, but a qualifying contiguous loss region is not specified. Withdraw my earlier anatomical extent inference while retaining the definite depth finding.')
+revise(21, 'Contusion', 'uncertain', 'State remains masked. I support the separate evidence-context proposal: include the full PF passage with patellar and trochlear locations to preserve the degenerative association of the marrow edema.', 'first_frozen')
+
+revise(18, 'ACL', 'negative', 'On reconsideration the findings affirmatively describe normal ACL contour without any abnormal ACL finding. I had required additional signal/fiber wording beyond the rubric allowance for a directly normal named structure; the weaker no-strong-evidence summary does not contradict that affirmative normal assessment.')
+revise(26, 'Lateral OA', 'not_mentioned', 'A possible lateral subchondral sclerotic focus alone does not assess cartilage loss or localize an OA diagnosis. My initial uncertainty promoted an isolated bone feature into a cartilage target without informative cartilage evidence.')
+revise(26, 'PF OA', 'uncertain', 'Mild wear with rule-out grade2 chondromalacia has neither a defined grading convention nor actual cartilage depth/extent. My initial negative treated mild wear as a quantitative shallow-loss statement.')
+revise(28, 'Contusion', 'not_mentioned', 'Generic underlying bony change does not state edema or contusion. Normal remaining bones does not safely cover the abnormal site, but that omission is not itself an informative contusion finding; withdraw the initial uncertain target assignment.')
+revise(28, 'Fracture', 'not_mentioned', 'The focal bony change is not described as a fracture, cortical disruption or line. I initially created an uncertain fracture from the incompletely characterized exception; no informative fracture assessment is actually supplied.')
+revise(37, 'ACL', 'negative', 'The observed ACL change is explicitly interstitial signal with cystic foci, without described discontinuity or a tear diagnosis. The cyst/degeneration differential does not by itself establish a potentially high-grade fiber lesion. The rubric supports a below-threshold reading from these actual findings, rather than the rule-out conclusion alone.')
+revise(37, 'Medial Meniscus', 'negative', 'The complete sentence specifically characterizes the medial posterior-horn signal as grade2 intrasubstance. That affirmative internal-signal description supports below threshold even though the degeneration cause is tentative; the adjacent possible recess/cyst does not establish a tear.')
+revise(38, "Baker's", 'uncertain', 'The characteristic Baker collection has a length greater than 7 cm, but the report does not grade its amount or transverse size. My positive inferred moderate/large from a single dimension without a frozen numeric mapping; retain identity but leave size severity unresolved.')
+revise(45, 'PF OA', 'uncertain', 'My initial positive read complete delamination as involvement of the entire lateral patellar facet. Complete can instead refer to delamination depth; the source does not explicitly say whole-facet area or provide a roughly 1-cm region. Withdraw that extent inference.')
+revise(48, 'Medial OA', 'uncertain', 'Mild generalized tibiofemoral thinning lacks an actual depth fraction. My original negative inferred a below-half thickness loss from mild, which is not a specified frozen conversion.')
+revise(48, 'Lateral OA', 'uncertain', 'The shared mild generalized thinning statement also lacks a lateral fractional depth; withdraw the initial mild-to-below-half conversion.')
+revise(48, 'Contusion', 'not_mentioned', 'Mild underlying patellar bony change is not an edema or contusion description. I had promoted generic bone change to uncertain injury; no informative impact-edema target statement is supplied.')
+revise(49, 'Medial Meniscus', 'positive', 'On reconsideration, attenuation in meniscal tissue size is an explicitly abnormal morphology finding under the frozen morphology clause. The no-definite-tear statement need not negate that alternative criterion. This does not assert a definite tear line, prior surgery or another unreported cause.')
+
+# Explicitly retained interpretations that still need root adjudication.
+HELD = {
+    (6, 'MCL'): 'Retain the initial negative recommendation: the complete source describes mild extrinsic compression and otherwise-normal ligaments, supporting a noninjury exception. The first reader still considers integrity insufficiently explicit; preserve this disagreement for root without registering a change.',
+    (13, 'Fracture'): 'Retain the initial positive recommendation: current fractures are directly diagnosed with marrow edema in an explicitly acute traumatic examination. The protocol permits a direct current acute-fracture diagnosis; it does not require a report to restate the diagnostic line morphology. The first reader defers this interpretation; root must adjudicate it.',
+    (26, 'Fracture'): 'Retain not_mentioned: no active cortical destruction is an erosive/destructive bone statement, not acute fracture-line assessment. The first reader withdrew the same inference in other reports but retained uncertain here where it matched baseline. This target remains a masked-scope disagreement requiring root review.',
+    (29, 'ACL'): 'Retain uncertain: diffuse signal and only possible cystic transformation do not affirmatively establish isolated cystic degeneration or a normal/low-grade ACL. Both frozen readers share this interpretation, while the effective baseline calls it negative; the first reader has deferred acceptance.',
+    (39, 'Contusion'): 'Retain uncertain: acute ACL injury with associated marrow edema gives temporal context but does not directly establish an impact-contusion cause without a discrete fracture line. The first reader supports contextual positive inference; preserve that disagreement without inferring an MRI injury pattern.',
+    (40, 'Fracture'): 'Retain uncertain: the stress-fracture line and surrounding edema establish a current active lesion but not explicitly acute timing. The first reader supports activity as sufficient and defers acceptance. Do not turn this into a blanket fracture-subtype exclusion or inclusion.',
+    (46, 'Medial Meniscus'): 'Retain the initial negative recommendation: the report explicitly excludes a medial tear and describes slight extrusion as position, without tissue loss or a definite destructive tear morphology. The first reader treats extrusion as potentially qualifying abnormal morphology; preserve this interpretation dispute for root, without introducing a numeric extrusion cutoff.',
+}

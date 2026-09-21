@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "recorded_at_utc": "2026-09-21T21:18:10.409692+00:00",
+  "original_validator": {
+    "path": "work/annotation-staging/cartilage-observed-priority-v1/validate_partition.py",
+    "sha256": "a8b57ec3f75bc698750a1826d0196bd154af564a3e9a8623c698b5575ecfe6f4",
+    "bytes": 12862
+  },
+  "original_receipt": {
+    "path": "work/annotation-staging/cartilage-observed-priority-v1/partition-validation.json",
+    "sha256": "8b2b778126fb22d15f80a5aaa1ecf4d57851d1d35cd2a0714f9bddb3af7836d9",
+    "bytes": 3374
+  },
+  "issue": "The original verifier reused its record boolean name for a masked-retention loop row. Its first --record run completed all assertions and wrote receipts successfully. A subsequent default invocation attempted the write-once output branch and stopped on FileExistsError; no existing output was replaced.",
+  "corrected_validator": {
+    "path": "work/annotation-staging/cartilage-observed-priority-v1/validate_partition_v2.py",
+    "sha256": "61ff62d22c4ea4e0aac19aeeb8dfa4d6d3b2d7d8301389f9135710b1e1ecc06e",
+    "bytes": 12890
+  },
+  "corrected_receipt": {
+    "path": "work/annotation-staging/cartilage-observed-priority-v1/partition-validation-v2.json",
+    "sha256": "e49f9a0a80538e14d38ee02ed711dadd6e84323ab93edfa1e5b217105a1f7161",
+    "bytes": 3377
+  },
+  "correction": "Rename the recording control argument to record_outputs and use new v2 receipt filenames. Preserve all earlier files.",
+  "successful_commands": [
+    "python3 work/annotation-staging/cartilage-observed-priority-v1/validate_partition_v2.py --record",
+    "python3 work/annotation-staging/cartilage-observed-priority-v1/validate_partition_v2.py"
+  ],
+  "verification_results": {
+    "record_run_passed": true,
+    "subsequent_read_only_replay_passed": true,
+    "all_original_and_completed_partition_bindings_unchanged": true,
+    "all_count_and_validation_results_match_original_receipt": true,
+    "residual_wrapper_bytes_identical": true
+  },
+  "clinical_judgments_or_sources_changed": false,
+  "comparison_with_source_judgments_performed": false,
+  "gold_accessed": false
+}

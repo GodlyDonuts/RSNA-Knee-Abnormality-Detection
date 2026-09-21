@@ -1,0 +1,165 @@
+"""Freeze explicitly authored reconsiderations without changing source or effective labels."""
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import runpy
+
+STAGE = Path(__file__).resolve().parent
+WORK = STAGE.parents[1]
+FIRST = WORK / 'annotation-staging/qualified-negation-focused-001-source-review-v1'
+SECOND = WORK / 'annotation-staging/qualified-negation-focused-001-independent-review-v1'
+
+
+def read(p):
+    return json.loads(p.read_text())
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def ref(p):
+    return {'path': str(p.relative_to(WORK)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+
+def write_new(name, content):
+    p = STAGE/name
+    assert not p.exists(), f'Preserve existing artifact: {p}'
+    p.write_text(json.dumps(content, ensure_ascii=False, indent=2) + '\n')
+    return p
+
+
+source_before = {entry['path']: entry for entry in read(SECOND/'final-file-list.json')['files']}
+for entry in source_before.values():
+    assert ref(WORK/entry['path']) == entry
+for name, digest in read(FIRST/'artifact-manifest.json')['files'].items():
+    assert sha(FIRST/name) == digest
+assert sha(SECOND/'independent-freeze.json') == 'a8c5dfd9d2ab3eb737068c511750f66f3a1b61300b300c2e08bf62e7c13b66f1'
+assert sha(FIRST/'source-assessment-frozen.json') == 'b6d14cc48a66ca48c3197f518e93c2d52af6b4f915c44d6b883f7c8a90a62e60'
+comparison = read(STAGE/'mechanical-full-comparison.json')
+reports = read(SECOND/'neutral-source-packet.json')
+authored = runpy.run_path(str(STAGE/'author_postfreeze.py'))
+overrides, held = authored['OVERRIDES'], authored['HELD']
+seen = set()
+output = []
+for r in comparison['records']:
+    i, target = r['packet_index'], r['target']
+    key = i, target
+    old = r['second_frozen']
+    new = overrides.get(key)
+    if new:
+        seen.add(key)
+        evidence = '' if new['state']=='not_mentioned' else r[new['evidence_origin']]['evidence']
+        current = {'state': new['state'], 'evidence': evidence, 'reason': new['reason']}
+        status = 'separate_postcomparison_reconsideration' if new['state'] != old['state'] else 'same_state_evidence_context_expansion'
+    else:
+        current = {**old, 'reason': held.get(key, old['reason'])}
+        status = 'explicitly_retained_pending_root_adjudication' if key in held else 'source_assessment_retained_after_comparison'
+    report = reports[i]['report']
+    assert current['reason'] and ((current['evidence']=='') if current['state']=='not_mentioned' else current['evidence'] in report)
+    first_post = r['first_postfreeze']
+    proposal = first_post['proposal']
+    if proposal:
+        assert proposal['source_quote']=='' if proposal['proposed_state']=='not_mentioned' else proposal['source_quote'] in report
+        proposal_review = {
+            'proposed_state_agrees_with_second_postfreeze': current['state']==proposal['proposed_state'],
+            'proposed_quote_exact_source_substring_or_empty_if_missing': True,
+            'recommendation': 'supports_separate_proposal_for_root_adjudication' if current['state']==proposal['proposed_state'] else 'preserve_disagreement_for_root_adjudication',
+            'independent_source_agreement_before_comparison': old['state']==r['first_frozen']['state'],
+            'second_reconsidered_after_comparison': current['state']!=old['state'],
+            'original_proposal_retained_verbatim_in_mechanical_comparison': True,
+            'not_an_accepted_change': True,
+        }
+    else:
+        proposal_review = None
+    output.append({
+        'packet_index':i,'case':r['case'],'study_uid':r['study_uid'],'target':target,
+        'source_path':r['source_path'],'source_index_zero_based':r['source_index_zero_based'],
+        'source_batch_sha256':r['source_batch_sha256'],'report_utf8_sha256':r['report_utf8_sha256'],
+        'effective_baseline':r['effective_baseline'],'first_source_frozen':r['first_frozen'],
+        'second_source_frozen':old,'first_postfreeze_state':first_post['final_first_assessor_state'],
+        'second_postfreeze':current,'second_postfreeze_status':status,
+        'explicitly_held_for_root_adjudication':key in held,
+        'first_separate_proposal_review':proposal_review,
+        'postcomparison_state_agrees_with_first_postfreeze':current['state']==first_post['final_first_assessor_state'],
+        'postcomparison_state_agrees_with_effective_baseline':current['state']==r['effective_baseline']['state'],
+        'source_review_or_effective_annotation_modified':False,
+    })
+assert seen == set(overrides)
+assert len(output)==len({(r['study_uid'],r['target']) for r in output})==600
+reconsidered=[r for r in output if r['second_postfreeze']['state']!=r['second_source_frozen']['state']]
+unresolved=[r for r in output if not r['postcomparison_state_agrees_with_first_postfreeze']]
+proposal_reviewed=[r for r in output if r['first_separate_proposal_review']]
+assert len(proposal_reviewed)==75
+attention=[r for r in comparison['records'] if not r['two_source_states_agree'] or not r['second_agrees_effective_state'] or r['first_postfreeze']['proposal'] is not None or r['first_postfreeze']['state_disposition'] is not None]
+counts={
+    'complete_reports':50,'frozen_target_cells_compared':600,
+    'frozen_source_state_agreements':539,'frozen_source_state_differences':61,
+    'attention_cells_individually_reviewed':len(attention),
+    'first_separate_proposals_reviewed':len(proposal_reviewed),
+    'second_separate_postcomparison_state_reconsiderations':len(reconsidered),
+    'second_same_state_evidence_context_expansions':sum(r['second_postfreeze_status']=='same_state_evidence_context_expansion' for r in output),
+    'postcomparison_state_agreements':600-len(unresolved),'postcomparison_state_disagreements':len(unresolved),
+    'postcomparison_agreement_is_not_fresh_independent_source_agreement':True,
+    'second_postcomparison_vs_effective_state_differences':sum(not r['postcomparison_state_agrees_with_effective_baseline'] for r in output),
+    'first_separate_proposals_with_concordant_second_postcomparison_state':sum(r['first_separate_proposal_review']['proposed_state_agrees_with_second_postfreeze'] for r in proposal_reviewed),
+    'explicitly_held_root_adjudication_cells':sum(r['explicitly_held_for_root_adjudication'] for r in output),
+    'accepted_label_or_policy_changes':0,'global_qa_gates_closed':0,
+}
+assessment=write_new('second-postfreeze-assessment.json',{
+    'stage':'second_assessor_separate_postcomparison_reconsiderations_and_retained_interpretations',
+    'agent_id':'/root/last_twelve_visual_review','at_utc':datetime.now(timezone.utc).isoformat(),
+    'first_source_freeze':ref(FIRST/'source-assessment-frozen.json'),
+    'second_source_freeze':ref(SECOND/'independent-freeze.json'),
+    'first_postfreeze_dispositions':ref(FIRST/'postfreeze-disposition-assessment.json'),
+    'first_separate_proposals':ref(FIRST/'proposed-errata.json'),
+    'mechanical_comparison':ref(STAGE/'mechanical-full-comparison.json'),
+    'baseline_replay':ref(STAGE/'baseline-replay-proof.json'),
+    'authored_reconsiderations':ref(STAGE/'author_postfreeze.py'),
+    'counts':counts,'records':output,
+    'method':'The assessor personally read all 50 complete reports before the original 600-cell source freeze. After authorized comparison, all 104 attention cells, both source rationales and the first reader separate decisions were reviewed. Each reconsideration is separately authored and preserves its original state/evidence. Agreement after comparison is not represented as initial independent agreement.',
+    'historical_exposure_disclosed_in_original_source_freeze':True,
+    'root_case_judgments_accessed':False,
+    'neither_source_freeze_nor_effective_baseline_changed':True,
+    'no_gold_values_or_masks_opened':True,'no_label_registration_or_global_qa_closure':True,
+})
+aggregate=write_new('postcomparison-aggregate.json',{
+    'stage':'aggregate_only_completed_focused_001_postcomparison','agent_id':'/root/last_twelve_visual_review',
+    'at_utc':datetime.now(timezone.utc).isoformat(),'counts':counts,
+    'neutral_root_packet_index':ref(STAGE/'neutral-root-packet-index.json'),
+    'neutral_root_packet_freeze':ref(STAGE/'neutral-root-packet-freeze.json'),
+    'case_findings_withheld_until_root_source_freeze':True,
+})
+for entry in source_before.values():
+    assert ref(WORK/entry['path'])==entry
+for name,digest in read(FIRST/'artifact-manifest.json')['files'].items():
+    assert sha(FIRST/name)==digest
+validation=write_new('postcomparison-validation.json',{
+    'stage':'validated_separate_postcomparison_assessment_without_original_mutation',
+    'agent_id':'/root/last_twelve_visual_review','at_utc':datetime.now(timezone.utc).isoformat(),
+    'assessment':ref(assessment),'aggregate':ref(aggregate),'baseline_replay':ref(STAGE/'baseline-replay-proof.json'),
+    'all_600_postcomparison_target_memberships_unique_and_complete':True,
+    'all_postcomparison_quotes_exact_contiguous_source_substrings':True,
+    'all_75_first_separate_proposals_reviewed_and_source_quote_bound':True,
+    'all_original_first_manifest_and_second_manifest_hashes_unchanged':True,
+    'full_effective_34_correction_baseline_independently_replayed':True,
+    'no_gold_runtime_registry_original_or_shared_document_mutations':True,
+})
+freeze=write_new('postcomparison-freeze.json',{
+    'stage':'frozen_second_assessor_postcomparison_before_root_case_findings',
+    'agent_id':'/root/last_twelve_visual_review','at_utc':datetime.now(timezone.utc).isoformat(),
+    'assessment':ref(assessment),'aggregate':ref(aggregate),'validation':ref(validation),
+    'helper':ref(Path(__file__).resolve()),
+    'original_source_freezes_preserved':True,'root_case_judgments_not_accessed':True,
+    'chronology_statement':'The neutral root packets were frozen before case-specific comparison findings were constructed. This postcomparison assessment is frozen without opening root judgments. Recorded times are session attestations, not proof of historical access order.',
+    'not_a_label_release_or_global_qa_closure':True,
+})
+manifest=write_new('final-file-list.json',{
+    'stage':'complete_focused_001_postcomparison_file_bindings','agent_id':'/root/last_twelve_visual_review',
+    'files':[ref(p) for p in sorted(STAGE.rglob('*')) if p.is_file() and '__pycache__' not in p.parts],
+    'scope':'Neutral root source packets, exact baseline replay, complete comparison and separately frozen reconsiderations; original source artifacts untouched.',
+})
+for entry in read(manifest)['files']:
+    assert ref(WORK/entry['path'])==entry
+print(json.dumps({'counts':counts,'postcomparison_freeze':ref(freeze),'aggregate':ref(aggregate),'final_file_list':ref(manifest)},indent=2))

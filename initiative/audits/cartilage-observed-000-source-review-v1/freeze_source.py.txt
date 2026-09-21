@@ -1,0 +1,126 @@
+"""Validate and freeze the actual 50-report, three-OA-target source pass once."""
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import runpy
+
+BASE=Path(__file__).resolve().parent
+WORKSPACE=BASE.parents[2]
+REPO=WORKSPACE/'work/recovered'
+PRIORITY=BASE.parent/'cartilage-observed-priority-v1'
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def binding(path):
+    return {'path':str(path.relative_to(WORKSPACE)),'sha256':sha(path),'bytes':path.stat().st_size}
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def write(name,value):
+    path=BASE/name
+    with path.open('x') as handle:
+        json.dump(value,handle,ensure_ascii=False,indent=2)
+        handle.write('\n')
+    return path
+
+
+start=read(BASE/'start.json')
+for field in ['source_packet','rubric']:
+    assert sha(WORKSPACE/start[field]['path'])==start[field]['sha256']
+namespace=runpy.run_path(str(BASE/'author_judgments.py'))
+rows=namespace['ROWS'];judgments=namespace['OUT'];targets=namespace['TARGETS']
+assert len(rows)==len(judgments)==50
+assert targets==['Medial OA','Lateral OA','PF OA']
+assert len({row['study_uid'] for row in rows})==50
+neutral_index=read(PRIORITY/'neutral-priority-index.json')
+all_priority_sources=[]
+for reference in neutral_index['neutral_packets']:
+    path=WORKSPACE/reference['path']
+    assert sha(path)==reference['sha256']
+    packet=read(path)
+    assert len(packet)<=10 and len(packet)==reference['n_reports']
+    assert all(set(row)=={'study_uid','report','batch','index','source_path','source_sha256'} for row in packet)
+    all_priority_sources.extend(packet)
+assert len(all_priority_sources)==260 and rows==all_priority_sources[:50]
+source_bindings={}
+counts=Counter();quotations=0
+for index,(row,judgment) in enumerate(zip(rows,judgments)):
+    assert judgment['packet_index']==index and judgment['study_uid']==row['study_uid']
+    source=REPO/row['source_path']
+    assert sha(source)==row['source_sha256']
+    original=read(source)[row['index']]
+    assert (original['study_uid'],original['report'])==(row['study_uid'],row['report'])
+    source_bindings[row['source_path']]=row['source_sha256']
+    assert judgment['source_report_sha256']==hashlib.sha256(row['report'].encode()).hexdigest()
+    assert len(judgment['states'])==len(judgment['evidence'])==len(judgment['rationales'])==3
+    for state,quote,reason in zip(judgment['states'],judgment['evidence'],judgment['rationales']):
+        assert state in {'positive','negative','uncertain','not_mentioned'}
+        counts[state]+=1
+        assert reason
+        if state=='not_mentioned':
+            assert quote==''
+        else:
+            assert quote and quote in row['report']
+            quotations+=1
+assert sum(counts.values())==150
+old_neutral=read(BASE.parent/'qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-000.json')
+old_uids={row['study_uid'] for row in old_neutral}
+overlap=[{'packet_index':index,'study_uid':row['study_uid'],'source_case':f'{row["batch"]}:{row["index"]:02d}'} for index,row in enumerate(rows) if row['study_uid'] in old_uids]
+output=BASE/'source-assessment-frozen.jsonl'
+assert not output.exists() and not (BASE/'source-freeze.json').exists()
+with output.open('x') as handle:
+    for row in judgments:
+        handle.write(json.dumps(row,ensure_ascii=False)+'\n')
+when=datetime.now(timezone.utc).isoformat()
+validation=write('source-validation.json',{
+    'schema_version':1,'agent_id':'/root/quality_temporal_review','validated_at_utc':when,
+    'source_packet':binding(BASE/'neutral-first-50-full-reports.json'),'judgments':binding(output),
+    'rubric':start['rubric'],'source_batch_bindings':source_bindings,
+    'complete_reports':50,'unique_uids':50,'targets_per_report':3,'target_judgments':150,
+    'target_order':targets,'state_counts':dict(sorted(counts.items())),
+    'exact_contiguous_nonmissing_source_quotes':quotations,'empty_not_mentioned_quotes_verified':True,
+    'all_individual_rationales_present':True,'exact_original_report_index_uid_and_hash_verified':True,
+    'equals_first_50_of_neutral_priority_order':True,
+    'case_specific_current_target_tables_opened_personally_during_source_pass':False,
+    'discovery_code_consumed_current_labels':True,'gold_accessed':False,
+    'validation_limit':'Coverage/quote traceability, not clinical correctness or agreement with another source reader.',
+})
+freeze=write('source-freeze.json',{
+    'schema_version':1,'stage':'three_oa_target_source_judgments_frozen_before_priority_table_comparison',
+    'agent_id':'/root/quality_temporal_review','session_id':'/root/quality_temporal_review',
+    'identity_kind':'actual_codex_agent_task','frozen_at_utc':when,'started_at_utc':start['started_at_utc'],
+    'rubric_version':'report-weak-v2.0','rubric':start['rubric'],
+    'source_packet':binding(BASE/'neutral-first-50-full-reports.json'),
+    'source_assessment':binding(output),'validation':binding(validation),
+    'start_record':binding(BASE/'start.json'),'authored_judgment_assembler':binding(BASE/'author_judgments.py'),
+    'freeze_validator':binding(Path(__file__)),'priority_neutral_index':binding(PRIORITY/'neutral-priority-index.json'),
+    'target_order':targets,'complete_reports_read':50,'total_judgments':150,
+    'exact_ordered_uids':[row['study_uid'] for row in rows],
+    'method':'Personally read every complete source in five displayed groups of ten, then authored each of the three OA states, one exact contiguous quotation when informative, and an individual rationale. q() only copies chosen source substrings; no labels inferred programmatically.',
+    'scope':'Additional three-target report-evidence pass only. Not a new twelve-target pass, first-ever blinded review, diagnostic MRI reread, or claim of MSK-reader credentials.',
+    'read_order_attestation':{
+        'basis':'Actual assessor self-report; not an independently instrumented historical access log.',
+        'all_complete_sources_read':True,'own_judgments_frozen_before_personal_priority_target_table_access':True,
+        'new_priority_selection_details_opened_personally_before_freeze':False,
+        'other_current_priority_reader_judgments_or_proposals_opened_before_freeze':False,
+        'discovery_and_partition_code_consumed_current_oa_labels_and_34_corrections':True,
+    },
+    'historical_exposure':{
+        'stage_wide_disclosure':start['prior_exposure'],
+        'known_case_specific_prior_qa_exposure':[{'packet_index':6,'case':'batch-002:40','exposure':'This agent read the historical root grade-I cartilage decision and its reasoning during the preceding global cartilage QA inventory task; the individual row discloses it.'}],
+        'overlap_with_previous_personally_read_qualified_negation_50_packet':overlap,
+        'scope_of_prior_qa_record_reads':'Existing cartilage QA records included narrow grade/extent/morphology adjudication summaries. Those historical interpretations were known context; this pass does not claim isolation from all prior project conclusions.',
+        'current_source_selection_bias':'Priority membership was mechanically selected from effective observed labels and the grade-only proxy, and that aggregate selection criterion was known. Code processed all current OA labels; this agent is not an independent verifier of its own discovery.',
+    },
+    'preservation':{'previous_stages_unchanged':True,'repository_R_changed':False,'original_sources_changed':False,'rubric_changed':False,'runtime_corrections_registered':False,'global_gate_closed':False,'gold_accessed_or_changed':False},
+    'next_step':'Only aggregate scope and freeze path/hash are sent initially. Hold case findings until a distinct source reader has frozen its pass and root authorizes comparison. Preserve this freeze and record any reconsideration separately.',
+})
+print(json.dumps({'freeze':binding(freeze),'reports':50,'judgments':150,'prior_qualified_packet_overlap_reports':len(overlap)}))

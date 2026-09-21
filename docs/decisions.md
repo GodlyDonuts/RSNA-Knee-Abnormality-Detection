@@ -2,6 +2,16 @@
 
 ## Current corrective run
 
+The clinical correction registry now contains 118 accepted changes. The latest
+84 come from the fully adjudicated first focused wording batch: 79 observed
+targets become uncertain, two already-masked fracture states become unmentioned,
+and three negative states receive expanded source quotations. Root and a distinct
+assessor authored separate actual acceptances; all prior source freezes and
+reconsiderations remain intact. The previous 34 corrections are unchanged.
+See [adjudications.md](adjudications.md) and the complete118 integration proof.
+The three global semantic QA gates remain pending; inventories and later source
+passes do not close them.
+
 The required correspondence registry enforces 18 whole-study report-supervision
 exclusions. The latest is 069:10, accepted independently from its full RIGHT
 report and conflicting literal L header fields; no new image interpretation is

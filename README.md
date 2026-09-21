@@ -13,13 +13,22 @@ code. [GodlyDonuts/RSNA-Data](https://huggingface.co/datasets/GodlyDonuts/RSNA-D
 holds the large DICOMs, caches, model weights, and mirrored versioned releases.
 Credentials and temporary authenticated URLs must stay outside both repositories.
 
-For a new session, check out the PR branch while
-[PR #1](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/pull/1)
-remains unmerged. `initiative/reviews/index.json` records precisely which batches
-are archived and valid; a missing reviewed artifact means that stage is unfinished
-or has not yet been collected. Run `python -m rsna.archive` to verify the archive.
+Continue from `main`; the owner authorized direct main integration and both
+earlier PRs are integrated. `initiative/reviews-v2/index.json` records current
+review coverage. Run `python -m rsna.archive` to verify preserved file identities
+and `python -m rsna.review_progress` with the v2 paths in the continuation guide
+to check the current review run.
 
 ## Status
+
+All 4,407 reports have completed both initial review passes, and the image cache
+has passed its full technical integrity audit. Subsequent consistency review has
+registered 118 target corrections; 18 studies have enforced exclusions from
+report-derived training loss. The first focused wording batch is adjudicated,
+with original source judgments and all later reconsiderations preserved.
+Cartilage, bone-terminology and qualified-wording QA remain open. Final manifests,
+leakage isolation and actual final-data training/resume/inference checks are still
+required. See [the correction evidence](docs/adjudications.md).
 
 The original mirror contains 4,407 training studies (58 with complete official
 labels), 819,078 training DICOMs, and 557 DICOMs from the three released sample test

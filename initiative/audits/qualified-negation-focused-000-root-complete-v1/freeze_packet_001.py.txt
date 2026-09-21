@@ -1,0 +1,122 @@
+"""Root's second ten personally read sources; preserve the first source freeze."""
+from pathlib import Path
+
+BASE = Path(__file__).with_name("freeze_packet_000.py")
+template = BASE.read_text()
+exec(compile(template.split("# Each state and quotation")[0], str(BASE), "exec"))
+P = P.with_name("batch-001.json")
+EXPECTED = "a14c47a81f9dff450595b290f5d92831e504cfc0f21f4fca976e34a6fce79b68"
+
+decisions = [
+    row("001:12", "nnunnnnnxxnn", {
+        "lig": "Normal ACL, PCL, MCL and LCL.",
+        "mm": "There is mild myxoid degeneration of the posteromedial corner of the medial meniscus with undersurface fraying but no definite tear.",
+        "lm": "Normal lateral meniscus.",
+        "mo": "Mild thinning of the medial compartment articular cartilage is noted.",
+        "lp": "Normal lateral tibiofemoral and patellofemoral articular cartilage.",
+        "eff": "There is a minor knee effusion.",
+        "bone": "Normal visualized bones and surrounding soft tissues."
+    }, "lig lig mm lm mo lp lp eff - - bone bone",
+    "Ligaments and lateral meniscus are explicitly normal. Medial degeneration coexists with undersurface fraying, so the conclusion 'No evidence of tears' does not fully resolve whether abnormal surface morphology satisfies the project criterion; retain uncertainty instead of equating fraying to either a definite tear or entirely internal degeneration. Mild medial cartilage thinning and minor effusion are below threshold. Explicitly normal bones support contusion/fracture negatives. Generic soft-tissue normality does not specifically describe synovium or Baker location."),
+    row("001:18", "unnnuuunxnux".replace("unnn", "nunn", 1), {
+        "acl": "Ligamentos cruzados y colateral lateral sin alteraciones.",
+        "mcl": "Signos de un esguince grado II del componente superficial y profundo del ligamento colateral medial de\npredominio proximal.",
+        "mm": "Leve aumento de señal del meniscocapsular del cuerpo del menisco medial que no impresiona representar\nuna rotura. El resto del menisco medial sin alteraciones.",
+        "lm": "Menisco lateral de morfología y señal conservada, sin signos de rotura.",
+        "cart": "Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones significativas.",
+        "eff": "Mínimo derrame articular.",
+        "bak": "Pequeño quiste poplíteo con probable rotura.",
+        "bone": "No hay alteraciones de señal significativas de la médula ósea."
+    }, "acl mcl mm lm cart cart cart eff - bak bone -",
+    "MCL grade-II partial disruption with peri-ligament fluid lacks explicit high-grade qualifying severity; uncertain rather than assuming every partial tear qualifies. Medial meniscocapsular signal is explicitly judged non-tear with remaining meniscus normal; lateral is normal. Cartilage and marrow absences are significance-qualified and cannot establish the exact target thresholds. Minimal effusion and a small Baker's collection are below threshold, even with possible cyst rupture. No fracture description or synovitis diagnosis is present."),
+    row("001:19", "pnpnunnnxnnx", {
+        "acl": "Chronic complete tear of the anterior cruciate ligament with anterior drawer sign measuring up to 7 mm.",
+        "mcl": "The medial collateral ligament is intact.",
+        "mm": "Inferiorly surfacing oblique tear posterior horn medial meniscus extending into the body.",
+        "lm": "The lateral meniscus and tibiofemoral cartilage are intact.",
+        "mo": "The medial tibiofemoral cartilage is grossly preserved.",
+        "pf": "The patellofemoral cartilage is intact.",
+        "eff": "Trace joint fluid.",
+        "bak": "No Baker's cyst.",
+        "cont": "No abnormal bone marrow edema or bone contusions."
+    }, "acl mcl mm lm mo lm pf eff - bak cont -",
+    "Chronic complete ACL tear meets the ACL criterion, which has no acute-only restriction. Medial meniscal tear is definite despite the impression's 'subtle' qualifier. Other named ligament/meniscus and lateral/PF cartilage are intact. 'Grossly preserved' medial cartilage remains imprecise. Trace fluid is below threshold; contusion and Baker absence are explicit. Parameniscal cyst is not Baker's. No fracture morphology is separately described."),
+    row("001:20", "nnnnnnnuxnnx", {
+        "lig": "The anterior cruciate ligament, posterior cruciate ligament, medial collateral ligament and lateral collateral ligament complex including the IT band, fibular collateral ligament, biceps femoris tendon and popliteus tendon all appear intact and unremarkable.",
+        "mm": "The medial meniscus is intact.",
+        "lm": "The lateral meniscus is intact.",
+        "mo": "The articular cartilage of the medial joint compartment is well-maintained.",
+        "lo": "The articular cartilage of lateral joint compartment is well-maintained.",
+        "pf": "The articular cartilage of patella directly posterior to this focus is intact but does demonstrate slight contour irregularity and signal change which may represent mild chondrosis.",
+        "eff": "No significant knee effusion is demonstrated.",
+        "bak": "There is a trace Baker's cyst demonstrated.",
+        "cont": "Marrow signal is otherwise normal. No other bone infarcts are seen within field-of-view."
+    }, "lig lig mm lm mo lo pf eff - bak cont -",
+    "Dorsal patellar defect is reported as a normal anatomical variant, not a fracture or cartilage-loss region. Slight possible mild overlying chondrosis remains explicitly below threshold; all cartilage is otherwise maintained. Ligaments and menisci are intact. Significance-qualified effusion stays uncertain; trace Baker's is below threshold. Marrow otherwise normal apart from a diagnosed infarct supports no traumatic contusion. 'No cortical/articular collapse' describes the infarct and does not independently report fracture absence; fracture stays unmentioned."),
+    row("001:26", "nnnnnnnuxnnx", {
+        "normal": "Autrement le ligament croisé antérieur, le ligament croisé postérieur, le ménisque interne, le ménisque externe, le mécanisme des extenseurs, le ligament collatéral interne, le semi-membraneux, le muscle et tendon du poplité, le biceps femoris distal, le ligament collatéral externe et la bandelette ilio-tibiale sont sans particularité.",
+        "cart": "Le cartilage articulaire est préservé.",
+        "fluid": "Il n'y a pas d'épanchement significatif ou de kyste poplité.",
+        "bone": "Le signal de la moelle osseuse est normal."
+    }, "normal normal normal normal cart cart cart fluid - fluid bone -",
+    "Named ACL, MCL and both menisci are unremarkable; broad articular cartilage preservation supports all compartments. The significance adjective immediately follows effusion, while a fresh 'de kyste poplité' gives a separate unqualified cyst absence; effusion uncertain, Baker negative. Normal marrow supports contusion absence, but there is no fracture-specific morphology. Generic normal conclusion adds no independent synovitis evidence."),
+    row("001:34", "nnpuuuxpxxuu", {
+        "acl": "Ο πρόσθιος χιαστός σύνδεσµος παρουσιάζει µυξοειδή εκφύλιση.",
+        "mcl": "Ο οπίσθιος χιαστός και οι πλάγιοι σύνδεσµοι απεικονίζονται εντός του φυσιολογικού.",
+        "mm": "Στο έσω διαµέρισµα παρατηρείται εκφυλιστική ρήξη του µηνίσκου και µειωµένη µάζα αυτού (δεν είναι γνωστό αν έχει προηγηθεί αρθροσκόπηση).",
+        "lat": "Στο έξω διαµέρισµα δεν παρατηρούνται αξιόλογα παθολογικά ευρήµατα.",
+        "mo": "Επιπλέον συνυπάρχουν ισοϋψώς αλλοιώσεις ολικής απώλειας αρθρικού χόνδρου σε µηριαίο και κνηµιαίο κόνδυλο (ICRS grade IV)",
+        "eff": "Ενδαρθρικά παρατηρείται µετρία συλλογή υγρού.",
+        "cont": "ενώ παρατηρείται επιπλέον εστίες οστεοµυελικού οιδήµατος υπαρθρικά στον έσω µηριαίο κόνδυλο και σε µεγάλη έκταση σε µετα επίφυση στον έσω κνηµιαίο κόνδυλο.",
+        "fx": "Συνολικά τα ευρήµατα συνηγορούν υπέρ εκφυλιστικής οστεοαρθρίτιδας µε µικροδοκιδώδες κάταγµα ανεπάρκειας στην έσω εγγύς κνήµη."
+    }, "acl mcl mm lat mo lat - eff - - cont fx",
+    "ACL myxoid degeneration alone is below threshold; collateral ligaments are normal. Medial degenerative tear is explicitly diagnosed despite unknown prior arthroscopy and reduced mass. The significant/noteworthy-pathology qualifier in the lateral compartment leaves lateral meniscus and cartilage uncertain. Explicit ICRS-IV full cartilage loss supplies depth but not a supported region size. Shallow trochlea describes shape rather than PF cartilage. Moderate effusion is positive. Marrow edema is associated with degenerative/insufficiency findings without impact causation; microtrabecular insufficiency fracture lacks explicit acute timing/line criterion and stays uncertain."),
+    row("001:37", "nnunnnnuxxnx", {
+        "acl": "Kreuzbänder intakt.",
+        "mcl": "LCL und MCL intakt.",
+        "mm": "Diskrete lineare Signalanhebung am IM in der Intermediärzone mit Bezug zur Unterkante, jedoch ohne Korrelat in den übrigen Sequenzen, dd mucoide Signalalteration.",
+        "lm": "Keine Rissbildung am AM.",
+        "mo": "Oberflächliche Chondropathie in der Belastungszone der medialen Femurkondyle (5/22, 6/11).",
+        "lp": "Lateral und femoropatellar keine tiefgreifende Chondropathie.",
+        "eff": "Kein relevanter Gelenkerguss.",
+        "bone": "Homogenes Knochenmarksignal, kein Knochenödem."
+    }, "acl mcl mm lm mo lp lp eff - - bone -",
+    "Medial meniscal undersurface-related signal lacks correlates on other sequences and has a mucoid differential; not a definite tear or confidently isolated internal degeneration. Lateral tear absence and ligament integrity are explicit. Superficial medial chondropathy and absence of deep lateral/PF chondropathy support below-threshold cartilage negatives. 'Relevanter' does not quantify effusion. Marrow edema absence supports contusion negative, not an inferred fracture negative."),
+    row("001:40", "nnnnuuuuxuxx", {
+        "lig": "Ligamentos cruzados y colaterales dentro de límites normales.",
+        "mm": "Aumento de señal central del cuerno posterior del menisco medial que no impresiona contactar\ncon la superficie articular, sin caracteres propios de rotura.",
+        "lm": "El menisco lateral impresiona de morfología y señal conservada, sin signos de rotura.",
+        "mo": "Úlceras condrales de espesor parcial de la región central del cóndilo femoral\nmedial.",
+        "lo": "Úlceras condrales de espesor parcial y prácticamente total de la zona de carga del compartimento\nfemorotibial lateral.",
+        "pf": "Úlceras condrales de espesor total de la faceta lateral de la rótula con cambios óseos\nsecundarios.",
+        "fluid": "No hay signos que sugieran significativo derrame articular o quistes poplíteos."
+    }, "lig lig mm lm mo lo pf fluid - fluid - -",
+    "Internal medial signal lacks surface/tear characteristics and lateral meniscus is morphologically normal. Medial partial-thickness/unnamed grade-2 disease lacks exact depth; lateral near-total and PF full-thickness ulcers lack supported size. Preserve all cartilage uncertainties. The 'no signs suggesting' construction qualifies both coordinated fluid and cyst observations. Secondary bone changes without marrow-edema or fracture description do not constitute informative contusion/fracture mentions. Hoffa fat edema does not establish synovitis."),
+    row("001:48", "nnnnnnnuxuux", {
+        "lig": "Ligamentos cruzados y colaterales dentro de límites normales.",
+        "mm": "Aumento de señal central del cuerno posterior del menisco medial que no contacta la superficie\narticular, sin caracteres propios de rotura.",
+        "lm": "El menisco lateral es de morfología y señal conservada, sin signos de rotura.",
+        "cart": "Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones.",
+        "fluid": "No hay\nsignificativo derrame articular ni quistes poplíteos.",
+        "bone": "No hay alteraciones de señal significativas de la médula ósea."
+    }, "lig lig mm lm cart cart cart fluid - fluid bone -",
+    "Medial intrasubstance signal explicitly does not reach the surface; remaining named structures/cartilage are normal. Preserve significance-qualified effusion and conservatively its coordinated popliteal-cyst absence as uncertain, with exact grammatical scope reserved for post-freeze adjudication. Marrow absence is significance-qualified. Prepatellar aponeurosis edema/tendinosis do not imply synovitis or bone injury; no fracture finding is given."),
+    row("002:01", "nnupuuuupxux", {
+        "lig": "Ligamentos cruzados y colaterales dentro de límites normales.",
+        "mm": "Aumento de señal central del cuerno posterior y parte del cuerpo del menisco medial que\nimpresiona contactar de manera periférica la superficie articular inferior, puede representar una\npequeña rotura.",
+        "lm": "Rotura a nivel de la unión de los fascículos poplíteo meniscales del cuerno posterior del menisco\nlateral con desplazamiento de segmento hacia parte de la región intercondílea y adyacente al\ncuerno anterior del menisco lateral.",
+        "mo": "Úlceras condrales de espesor parcial de la región central de la zona de carga del cóndilo femoral\nmedial con algunos fenómenos condrales reparativos.",
+        "lo": "Cartílagos del compartimento femorotibial lateral sin alteraciones significativas.",
+        "pf": "Úlceras condrales focales de espesor total de la región central\nde la tróclea femoral con cambios óseos secundarios.",
+        "joint": "Leve a moderado derrame articular con discreta sinovitis difusa.",
+        "bone": "No hay alteraciones en significativas de la médula ósea."
+    }, "lig lig mm lm mo lo pf joint joint - bone -",
+    "Medial tear is explicitly possible/probable. Lateral posterior-horn popliteomeniscal-junction tear has a displaced segment, supplying definite abnormal meniscal morphology. Medial partial-thickness/unspecified grade-2 and focal full-thickness trochlear lesions lack thresholds; lateral cartilage absence is significance-qualified. Mild-to-moderate effusion straddles the severity threshold and stays uncertain; directly diagnosed diffuse synovitis is positive without an invented minimum severity. Marrow absence remains qualified; fracture and Baker's are unmentioned.")
+]
+
+tail = template[template.index("if sha(P) != EXPECTED"):]
+tail = tail.replace('"packet-000-source-assessment.json"', '"packet-001-source-assessment.json"')
+tail = tail.replace('"authoring_helper": bind(Path(__file__).resolve()),', '"authoring_helper": bind(Path(__file__).resolve()), "assembly_template": bind(BASE), "prior_root_packet": bind(G / "packet-000-source-assessment.json"),')
+tail = tail.replace("Only the neutral manifest and this first ten-report packet were opened, besides the frozen rubric.", "The neutral manifest and packets 000 and 001 were personally read, besides the frozen rubric. The first ten-report source freeze already exists and remains unchanged. Neither reader's case-specific assessments or comparisons have been opened.")
+tail = tail.replace("Ten of 48 neutral adjudication reports, 120 source-first target assessments. Not accepted corrections; no global gate closure; remaining 38 reports and all post-freeze comparisons remain pending.", "This second packet contains ten complete source rereads and 120 decisions; cumulative root coverage is 20 of 48 reports and 240 decisions. Not accepted corrections; no global gate closure; remaining 28 reports and all post-freeze comparisons remain pending.")
+exec(compile(tail, str(BASE), "exec"))

@@ -1,0 +1,83 @@
+"""Preserve exact completed snapshots; do not read hidden clinical case findings."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import json
+import shutil
+from dotenv import dotenv_values
+
+T = Path(__file__).resolve().parent
+W, R = T.parent, T / "recovered"
+S = T / "annotation-staging"
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def ref(p):
+    return {"path": str(p.relative_to(R)), "sha256": sha(p), "bytes": p.stat().st_size}
+
+secrets = [v.encode() for k, v in dotenv_values(W / ".env").items() if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+assert len(secrets) == 2
+stages = [
+    ("qualified-negation-focused-001-source-review-v1", "artifact-manifest.json", "3cfef23117ba0fc03cbe7416879c5366e469a30cd41c4e4f41f7d604cce2c822"),
+    ("qualified-negation-focused-001-independent-review-v1", "final-file-list.json", "45f6f5b2254568e6c6259a06028d2483a213aca9a247162677a6aeee92a07b71"),
+    ("qualified-negation-focused-001-post-freeze-comparison-v1", "final-file-list.json", "726e72b72ba15f9483b4dfb9a1635a7d672146c3e76cbc183526815b39b99eee"),
+    ("qualified-negation-focused-002-source-review-v1", "artifact-manifest.json", "5e872b954732a4d437516dabdccbcafe3cbb4a62e403b433c210ca43c6c45df4"),
+    ("qualified-negation-focused-003-source-review-v1", "artifact-manifest.json", "3212df8281df967dc60dac33620bf690d05322b55e2c44abf5f47e95db299389"),
+    ("cartilage-global-candidate-inventory-v1", "completion-manifest.json", "fbaf2684f42a5803ae496aa8c337e72366db675cde58fbd16649367552792106"),
+    ("cartilage-observed-priority-v1", "completion-manifest-v2.json", "e185b66d9b16b259cc8f904e9c0f839a8f010a003c1384cdb15131f9b9988f5c"),
+    ("cartilage-observed-000-source-review-v1", "source-freeze.json", "d3d9649dcbe23cb51f80827ae1faa845cd3a88ba4c370653259908dc5fb60067"),
+    ("cartilage-observed-000-independent-review-v1", "final-file-list.json", "ab4c5d0f9278ff6b9476024019a07e89a7cbf2a6b14b6814ed7f4f10e70ce621"),
+]
+receipts = []
+for name, manifest_name, expected in stages:
+    source, target = S / name, R / "initiative/audits" / name
+    assert not target.exists(), target
+    manifest = source / manifest_name
+    assert sha(manifest) == expected, manifest
+    doc = json.loads(manifest.read_text())
+    entries = {manifest: expected}
+    if manifest_name == "source-freeze.json":
+        for value in doc.values():
+            if isinstance(value, dict) and "path" in value and "sha256" in value:
+                p = W / value["path"]
+                assert sha(p) == value["sha256"]
+                if p.is_relative_to(source):
+                    entries[p] = value["sha256"]
+        assert len(entries) == 7
+    elif isinstance(doc["files"], dict):
+        for rel, value in doc["files"].items():
+            entries[source / rel] = value if isinstance(value, str) else value["sha256"]
+    else:
+        for value in doc["files"]:
+            rel = value["path"]
+            p = W / rel if rel.startswith("work/") else T / rel
+            assert p.is_relative_to(source)
+            entries[p] = value["sha256"]
+    total = sum(p.stat().st_size for p in entries)
+    assert shutil.disk_usage(W).free - total > 20 * 2**30 + 32 * 2**20
+    copied = []
+    for p, digest in sorted(entries.items()):
+        assert p.is_relative_to(source) and p.is_file() and not p.is_symlink()
+        data = p.read_bytes()
+        assert hashlib.sha256(data).hexdigest() == digest
+        assert all(s not in data for s in secrets)
+        dest = target / p.relative_to(source)
+        if dest.suffix == ".py":
+            dest = dest.with_suffix(".py.txt")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with dest.open("xb") as f:
+            f.write(data)
+        assert sha(p) == sha(dest) == digest
+        copied.append({"original_path": str(p.relative_to(W)), **ref(dest)})
+    preservation = target / "preservation.json"
+    proof = {"schema_version": 1, "stage": "verified_completed_snapshot_byte_preservation", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "snapshot_manifest": {"original_path": str(manifest.relative_to(W)), "sha256": expected}, "files": copied, "file_count": len(copied), "bytes": total, "clinical_findings_accessed_by_root_during_copy": False, "snapshot_scope": "Exact completed files listed by the bound source freeze or completion manifest. Later files appended in staging are outside this snapshot. Clinical proposals in these stages are not adopted by preservation. Source and historical baseline states remain unchanged, and all three global semantic QA gates stay pending.", "helper_naming": "Original helper bytes use .py.txt suffix in the audit archive.", "training_ready": False}
+    with preservation.open("x") as f:
+        f.write(json.dumps(proof, indent=2) + "\n")
+    receipts.append({"name": name, "file_count": len(copied), "bytes": total, "preservation": ref(preservation)})
+
+audit = R / "initiative/audits/semantic-qa-parallel-snapshots-v1"
+audit.mkdir(exist_ok=False)
+(audit / "preserve-semantic-qa-milestone-v1.py.txt").write_bytes(Path(__file__).read_bytes())
+(audit / "snapshots.json").write_text(json.dumps({"stage": "root_verified_parallel_source_and_candidate_snapshots", "agent_id": "/root", "snapshots": receipts, "all_current_sources_and_reviews_remain_immutable": True, "training_ready": False}, indent=2) + "\n")
+print(json.dumps({"snapshots": [{k: r[k] for k in ("name", "file_count", "bytes")} for r in receipts], "proof": ref(audit / "snapshots.json"), "free_gib": round(shutil.disk_usage(W).free / 2**30, 3)}, indent=2))

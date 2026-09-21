@@ -1,0 +1,197 @@
+"""Package manually authored OA decisions; validate bindings, never infer labels."""
+from pathlib import Path
+import hashlib
+import json
+import runpy
+from datetime import datetime, timezone
+
+STAGE = Path(__file__).resolve().parent
+W = STAGE.parents[2]
+R = W / 'work/recovered'
+AGENT = '/root/last_twelve_visual_review'
+PACKET = W / 'work/annotation-staging/cartilage-observed-000-source-review-v1/neutral-first-50-full-reports.json'
+PACKET_HASH = '2eed3ab93cad06dcb338d374c6546054db9ed2c16c80c76c89aa70717429f0ae'
+RUBRIC = R / 'protocols/report_weak_v2.md'
+RUBRIC_HASH = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+TARGETS = ['Medial OA', 'Lateral OA', 'PF OA']
+# Individually classified negative rationale bases. Other negative cells explicitly
+# describe normal/absent cartilage, rather than an observed below-threshold lesion.
+BELOW_THRESHOLD = {
+    (0,1), (2,2), (6,0), (6,2), (8,2), (12,2), (14,2), (16,0),
+    (22,0), (22,1), (25,2), (28,0), (31,0), (35,2), (36,1),
+    (37,1), (37,2), (44,0), (45,1), (49,2),
+}
+
+def sha_bytes(data):
+    return hashlib.sha256(data).hexdigest()
+
+def ref(path):
+    raw = path.read_bytes()
+    return {'path': str(path.relative_to(W)), 'sha256': sha_bytes(raw), 'bytes': len(raw)}
+
+def write(name, value):
+    path = STAGE / name
+    with path.open('x', encoding='utf-8') as stream:
+        stream.write(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+    return path
+
+assert sha_bytes(PACKET.read_bytes()) == PACKET_HASH
+assert sha_bytes(RUBRIC.read_bytes()) == RUBRIC_HASH
+packet = json.loads(PACKET.read_bytes())
+binding_path = STAGE / 'source-bindings-and-exposure.json'
+bindings = json.loads(binding_path.read_bytes())
+assert bindings['agent_id'] == AGENT
+assert bindings['neutral_packet'] == ref(PACKET)
+assert bindings['rubric']['sha256'] == RUBRIC_HASH
+assert bindings['target_order'] == TARGETS
+assert len(packet) == len(bindings['source_records']) == 50
+assert len({row['study_uid'] for row in packet}) == 50
+
+decisions = {}
+authored_files = sorted(STAGE.glob('oa_decisions_*.py'))
+assert len(authored_files) == 5
+for path in authored_files:
+    authored = runpy.run_path(str(path))['ROWS']
+    assert not decisions.keys() & authored.keys()
+    decisions.update(authored)
+assert set(decisions) == set(range(50))
+
+source_checks = []
+rows = []
+for i, original in enumerate(packet):
+    source_path = R / original['source_path']
+    source_raw = source_path.read_bytes()
+    assert sha_bytes(source_raw) == original['source_sha256']
+    source_record = json.loads(source_raw)[original['index']]
+    assert source_record['study_uid'] == original['study_uid']
+    assert source_record['report'] == original['report']
+    bound = bindings['source_records'][i]
+    assert bound['packet_index_zero_based'] == i
+    assert bound['source_index_zero_based'] == original['index']
+    assert bound['source_path'] == original['source_path']
+    assert bound['source_sha256'] == original['source_sha256']
+    assert bound['study_uid'] == original['study_uid']
+    assert bound['report_utf8_sha256'] == sha_bytes(original['report'].encode('utf-8'))
+    assert bound['case'] == f"{original['batch'].removeprefix('batch-')}:{original['index']:02d}"
+    row_decisions = decisions[i]
+    assert len(row_decisions) == 3
+    offsets = []
+    bases = []
+    for target_index, (state, evidence, reason) in enumerate(row_decisions):
+        assert state in {'positive', 'negative', 'uncertain', 'not_mentioned'}
+        assert isinstance(reason, str) and reason.strip()
+        if state == 'not_mentioned':
+            assert evidence == ''
+            offsets.append(None)
+        else:
+            assert evidence and evidence in original['report'], (i, target_index)
+            start = original['report'].index(evidence)
+            stop = start + len(evidence)
+            assert original['report'][start:stop] == evidence
+            offsets.append({'start_unicode_codepoint': start, 'end_exclusive_unicode_codepoint': stop})
+        basis = ('below_threshold' if (i, target_index) in BELOW_THRESHOLD else 'explicit_absence') if state == 'negative' else None
+        if (i, target_index) in BELOW_THRESHOLD:
+            assert state == 'negative'
+        bases.append(basis)
+    exposure = [
+        {'inventory_item_zero_based': j, 'exposure': item['exposure']}
+        for j, item in enumerate(bindings['historical_exposure'])
+        if any(o['study_uid'] == original['study_uid'] for o in item['overlap'])
+    ]
+    rows.append({
+        **bound,
+        'reader_id': AGENT,
+        'rubric_version': 'report-weak-v2.0',
+        'rubric_sha256': RUBRIC_HASH,
+        'assessment_scope': 'three OA targets only; no other target reassessment',
+        'target_order': TARGETS,
+        'states': [d[0] for d in row_decisions],
+        'evidence': [d[1] for d in row_decisions],
+        'target_reasoning': [d[2] for d in row_decisions],
+        'negative_basis': bases,
+        'evidence_offsets': offsets,
+        'known_personal_source_overlap': exposure,
+        'notes': 'All three OA decisions were personally authored after reading this full original report. No current first-cartilage assessment, annotation/proposal/priority table, candidate detail or gold was opened for this pass. Historical context and any overlap remain disclosed in the bound exposure inventory. Report extraction does not establish image diagnostic accuracy.',
+    })
+    source_checks.append({**bound, 'original_uid_report_index_hash_match': True, 'three_judgments_complete': True, 'exact_contiguous_evidence_valid': True, 'individual_reasoning_present': True})
+
+with (STAGE / 'neutral-source-packet.json').open('xb') as stream:
+    stream.write(PACKET.read_bytes())
+assessment_path = STAGE / 'independent-oa-assessment.jsonl'
+with assessment_path.open('x', encoding='utf-8') as stream:
+    for row in rows:
+        stream.write(json.dumps(row, ensure_ascii=False) + '\n')
+assert sha_bytes((STAGE / 'neutral-source-packet.json').read_bytes()) == PACKET_HASH
+frozen_rows = [json.loads(line) for line in assessment_path.read_text().splitlines()]
+assert frozen_rows == rows
+
+validation_path = write('validation.json', {
+    'stage': 'mechanical_source_and_evidence_validation_only',
+    'validator_identity': AGENT,
+    'at_utc': datetime.now(timezone.utc).isoformat(),
+    'result': 'pass',
+    'report_count': 50, 'unique_uid_count': 50, 'target_count_per_report': 3,
+    'judgment_count': 150, 'target_order': TARGETS,
+    'all_original_file_index_uid_report_hash_bindings_match': True,
+    'all_nonmissing_evidence_exact_contiguous_original_substrings': True,
+    'all_not_mentioned_evidence_empty': True,
+    'all_150_individual_reasons_present': True,
+    'rubric_binding_valid': True,
+    'source_packet': ref(PACKET),
+    'preserved_neutral_source_packet': ref(STAGE / 'neutral-source-packet.json'),
+    'assessment': ref(assessment_path),
+    'exposure_inventory': ref(binding_path),
+    'per_source_checks': source_checks,
+    'limitations': 'Mechanical validation establishes binding/completeness/quotation traceability only; it is not an independent clinical correctness check and does not prove historical access order.',
+})
+
+freeze_path = write('independent-freeze.json', {
+    'stage': 'cartilage_observed_000_independent_50_full_source_150_oa_judgment_freeze_v1',
+    'agent_id': AGENT,
+    'at_utc': datetime.now(timezone.utc).isoformat(),
+    'rubric_version': 'report-weak-v2.0',
+    'rubric': ref(RUBRIC),
+    'report_count': 50, 'judgment_count': 150, 'target_order': TARGETS,
+    'source_packet': ref(PACKET),
+    'preserved_neutral_source_packet': ref(STAGE / 'neutral-source-packet.json'),
+    'assessment': ref(assessment_path),
+    'binding_and_exposure_inventory': ref(binding_path),
+    'validation': ref(validation_path),
+    'authored_decision_files': [ref(path) for path in authored_files],
+    'packaging_and_mechanical_validation_helper': ref(Path(__file__).resolve()),
+    'source_reading_attestation': 'I, /root/last_twelve_visual_review, personally read all 50 complete original reports in the designated neutral packet and authored each of the 150 medial/lateral/PF OA decisions with individual reasoning. The helper only packages my explicit decisions and verifies source/evidence bindings; it does not infer labels. All other targets are outside this assessment scope.',
+    'independence_attestation': 'This source freeze precedes opening the current first-cartilage assessment, current annotation/proposal/priority-state tables, and candidate trigger details. Historical focused clinical/source/technical work and prior post-comparison exposure cannot be erased and are disclosed, including five known report overlaps with my previous focused001 full-source pass. No first-ever blindness is claimed. The other assessor communicated only the existence/path/hash of their completed freeze while this freeze was being packaged; no findings or decisions were communicated or opened.',
+    'chronology_limit': 'Recorded timestamps and this attestation document the claimed workflow; they do not independently prove past access order or complete absence of remembered prior context.',
+    'inference_limit': 'Some individual judgments interpret explicit broad/full-surface loss or source-local grading statements. The exact inference is recorded per cell for later adjudication. This does not revise the rubric or prove MRI image criteria.',
+    'writes_scope': 'New independent staging artifacts only; original neutral packet, all original reports, prior freezes/stages, rubric, gold, runtime policies, labels and shared repository files remain unmodified.',
+    'registration_or_acceptance': False,
+    'global_qa_closure': False,
+    'case_findings_withheld_until_authorized_root_source_freeze': True,
+})
+
+summary = '''Completed an independent full-source pass for all 50 reports and all 150 OA judgments under report-weak-v2.0. The scope is Medial OA, Lateral OA and PF OA only.
+
+Every nonmissing state has an exact contiguous source quotation and individual reasoning. All original report/index/UID/hash and rubric bindings pass mechanical validation. These checks establish traceability and completeness, not clinical correctness.
+
+The preserved disclosure records historical technical, source and focused clinical exposure, including five prior full-source overlaps. No first-ever blindness is claimed. Current first-cartilage assessments and current annotation/proposal/priority tables were not opened before this freeze.
+
+No labels were registered, no global QA gate was closed, and no original, gold, runtime or repository files were changed. Case findings remain withheld pending the authorized root source assessment and comparison. The independent source freeze must remain unchanged; reconsiderations belong in separate artifacts.
+'''
+with (STAGE / 'summary.md').open('x', encoding='utf-8') as stream:
+    stream.write(summary)
+
+files = [ref(path) for path in sorted(STAGE.iterdir()) if path.is_file()]
+manifest_path = write('final-file-list.json', {
+    'stage': 'cartilage_observed_000_independent_review_v1_frozen_artifact_inventory',
+    'agent_id': AGENT,
+    'at_utc': datetime.now(timezone.utc).isoformat(),
+    'files': files,
+    'self_excluded_from_hash_list': True,
+    'source_freeze': ref(freeze_path),
+    'report_count': 50, 'oa_judgment_count': 150,
+})
+for item in files:
+    assert ref(W / item['path']) == item
+print(json.dumps({'result': 'pass', 'reports': 50, 'oa_judgments': 150,
+                  'freeze': ref(freeze_path), 'assessment': ref(assessment_path),
+                  'validation': ref(validation_path), 'manifest': ref(manifest_path)}, indent=2))
