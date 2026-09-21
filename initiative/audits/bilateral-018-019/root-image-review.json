@@ -1,0 +1,57 @@
+{
+  "assessor": "/root",
+  "stage": "independent_native_anatomical_correspondence_review",
+  "created_utc": "2026-09-21T03:13:42.087748+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.12632129640405661298623288977632682289",
+  "context_before_view": "Knew source018:19 has left/right sections and metadata has5L-tagged/4blank-tagged series. No imageagent visual conclusions, detailed technical assessment or018clinical annotations read before this freeze.",
+  "images_personally_viewed": [
+    "native-tag-L.png",
+    "native-tag-blank.png"
+  ],
+  "panels_personally_viewed": 27,
+  "image_sha256": {
+    "native-tag-L.png": "0354ba456418e364357496561ccba2c0714808e23a78cafdfc7a759d9fb0f584",
+    "native-tag-blank.png": "25fbd0594bf21dfbb7bb72375b10682d74e4e2ac01c49efafe70cd10ad20e376"
+  },
+  "renderer_sha256": "3e7d9e7da2c0cb01881b7bbdb1ec3a9e1e8b842c07484add906454e1823590cf",
+  "renderer_checked": "Read full renderer. Native decoded2D array rendered directly by imshow with percentile display window; no array flip/transpose/anatomical reorientation. Slice selection uses physical projection; panels are25/50/75percent positions within each of9series.",
+  "observations": [
+    {
+      "series_indices": [
+        1,
+        6
+      ],
+      "native_panels": "L-tagged coronal third panel, slice23/30",
+      "finding": "Fibular head/proximal fibula is to display-right of tibia in both fat-suppressed and T1 coronal views."
+    },
+    {
+      "series_indices": [
+        4
+      ],
+      "native_panels": "Blank-tagged coronal third panel, slice23/30",
+      "finding": "Fibular head/proximal fibula is to display-left of tibia."
+    },
+    {
+      "series_indices": [
+        1,
+        4,
+        6
+      ],
+      "geometry": "All coronal first IOP vectors point predominantly patient-positive X: L~0.99649, blank~0.99168. Increasing displayed column therefore points toward patient left for both groups. Opposite fibular sides are not explained by an introduced display flip."
+    }
+  ],
+  "inference": "Native lateral-anatomy landmark plus preserved patient orientation strongly supports opposite knees: L-tagged group left, blank-tagged group right. Missing Laterality alone is not evidence of right. This is anatomical correspondence, no clinical image diagnosis or target relabeling.",
+  "technical_counts_from_verified_artifacts": {
+    "slices": 270,
+    "series": 9,
+    "laterality_slice_counts": {
+      "": 120,
+      "L": 150
+    },
+    "distinct_patient_id_hashes": 1,
+    "exact_cross_series_pixel_groups": 0
+  },
+  "full_header_pixel_sha256": "c1be1fb7b402ada2d48c381c108b11984632f3d767f3a1a7b308c7369eabd580",
+  "decision": "Retain undivided-study report supervision masked until explicitly reviewed series-to-side/report binding is available. Preserve raw images/report and official gold; no silently split virtual studies.",
+  "limits": "All270 decoded/hash-checked by inspected script; only27 selected native panels visually reviewed. Opposite-knee inference does not certify disease labels, original patient identity, or clinical report timing. No lesion findings used to choose report labels."
+}

@@ -1,0 +1,44 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T03:16:49.811625+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.12632129640405661298623288977632682289",
+  "source_batch_path": "initiative/reviews/inputs/batch-018.json",
+  "source_batch_sha256": "4b2997b587eb4d30bb5245685c38a2465cf9b10a84157912ec0f983a430b725a",
+  "source_report_sha256": "f93db6aa92712f84b6362cae5757923d4b74e1e77cd08bd0e705aed9250ce139",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-018-reviewed.jsonl",
+  "review_artifact_sha256": "9fa0014d59cb9cabce5e8e185a9bfc9d41ddb20a01cfa4e364bd1dc8e4c841d4",
+  "finding": "Strong evidence of two knees in one study, supported by explicit left/right source sections, repeated acquisitions and two independent27-panel native anatomy/orientation reviews.",
+  "decision": "Retain whole-study report supervision fully masked for current single-knee training. Preserve raw source, images and official gold unchanged. Any later derived side-specific unit requires a separately validated series-to-side/report binding and parent-patient leakage grouping; no arbitrary selection, label cloning or automatic virtual split.",
+  "verified_scope": {
+    "full_native_slices_hash_uid_finite_decode": 270,
+    "series": 9,
+    "left_tag_slices": 150,
+    "blank_tag_slices": 120,
+    "independent_visual_assessors": 2,
+    "panels_per_assessor": 27,
+    "endpoint_full_metadata_source_matches": 18,
+    "exact_cross_series_pixel_duplicate_groups": 0
+  },
+  "limitations": [
+    "Anatomical side inference assumes DICOM orientation is correct and upstream pixels were not silently mirrored. Missing laterality is never treated as right without anatomy/orientation evidence.",
+    "Full source-byte hashes were checked by the inspected native download script; retained endpoint prefix digests remain prefix-only, independently checked against full-record metadata and identity.",
+    "No disease diagnoses or gold values inferred from these visual samples. One pseudonymous patient ID does not prove real-world identity.",
+    "Current official report copy already contains both sides; no claim that local recovery created this aggregation."
+  ],
+  "evidence_files": {
+    "all-slice-headers-and-pixels.jsonl": "c1be1fb7b402ada2d48c381c108b11984632f3d767f3a1a7b308c7369eabd580",
+    "cross-series-exact-pixel-groups.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "endpoint-full-comparison.json": "d00f5aa10943761177a713551698e123552d2a3be06fb04ef9d2b08e18d0c24e",
+    "endpoint-headers.jsonl": "9085334b21352f3d1d4b08eb72514aa5a780b760ee58cce36ddc019ab560564e",
+    "independent-image-review.json": "956740f75995f933bb3575e965dad4b58df81f3dfe47e2d5cf4f0f8f28ed15f0",
+    "native-comparison.py.txt": "3e7d9e7da2c0cb01881b7bbdb1ec3a9e1e8b842c07484add906454e1823590cf",
+    "native-tag-L.png": "0354ba456418e364357496561ccba2c0714808e23a78cafdfc7a759d9fb0f584",
+    "native-tag-blank.png": "25fbd0594bf21dfbb7bb72375b10682d74e4e2ac01c49efafe70cd10ad20e376",
+    "root-image-review.json": "f702b64d4924f72478515915f78452961a26e4a2ce3c0d43d6e5353b5accb9cf",
+    "series-summary.json": "a958d33359260bb457c9a025c82e12c51fc0c2d32afc3b5618a5e24eb4e9d649",
+    "source-copy-assessment.json": "dd127e46b66ec9abc4ab25fbad0695be1dc72c528fcb40757e230d72102ebea8",
+    "source-inventory.json": "efa4ed20f817584e908affff59b454333ef07506f214ea04cfc50534cac8782f",
+    "summary.json": "2d29a43545020214f0538ed8fc20ec081655edce7d1e92c76b051416a49533a4"
+  },
+  "training_ready": false
+}

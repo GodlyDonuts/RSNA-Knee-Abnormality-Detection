@@ -1,0 +1,91 @@
+"""Bounded full-study pixel/header comparison; produces no diagnostic labels."""
+import hashlib
+import io
+import json
+import sys
+from collections import Counter, defaultdict
+from pathlib import Path
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pydicom
+from dotenv import load_dotenv
+
+base = Path(__file__).resolve().parent
+repo = base / 'recovered'
+sys.path.insert(0, str(repo))
+from rsna.preprocess import Source
+
+load_dotenv(base.parent / '.env')
+out = base / 'bilateral-018019'
+out.mkdir(exist_ok=False)
+src_path = repo / 'initiative/reviews/inputs/batch-018.json'
+report = json.loads(src_path.read_text())[19]
+inv = pd.read_parquet(repo / 'initiative/source/inventory', filters=[('study_uid','==',report['study_uid'])])
+source = Source(None, inv.set_index('path')[['sha256','bytes','storage']].to_dict('index'), revision='52f995f4568e36bfa5fbbaf69a89af41226b4f5d')
+fields = ['Laterality','ImageLaterality','FrameLaterality','SeriesDescription','SeriesNumber','AcquisitionNumber','SeriesTime','AcquisitionTime','PatientPosition','ImagePositionPatient','ImageOrientationPatient','PixelSpacing','SliceThickness','SpacingBetweenSlices','Manufacturer','ManufacturerModelName','SoftwareVersions','Rows','Columns','PhotometricInterpretation','PixelRepresentation','RescaleSlope','RescaleIntercept']
+records=[]
+series=[]
+samples={}
+try:
+    for uid, frame in inv.groupby('series_uid',sort=True):
+        slices=[]
+        for start in range(0,len(frame),4):
+            block=frame.iloc[start:start+4]
+            for row,raw in zip(block.itertuples(),source.read_series(block.path.tolist())):
+                assert hashlib.sha256(raw).hexdigest()==row.sha256
+                ds=pydicom.dcmread(io.BytesIO(raw))
+                assert (str(ds.StudyInstanceUID),str(ds.SeriesInstanceUID),str(ds.SOPInstanceUID))==(row.study_uid,row.series_uid,row.sop_uid)
+                a=np.asarray(ds.pixel_array)
+                assert a.ndim==2 and np.isfinite(a).all()
+                native=np.ascontiguousarray(a.astype(a.dtype.newbyteorder('<'),copy=False))
+                px_hash=hashlib.sha256(str(native.shape).encode()+native.dtype.str.encode()+native.tobytes()).hexdigest()
+                orient=np.asarray(ds.ImageOrientationPatient,dtype=float)
+                pos=np.asarray(ds.ImagePositionPatient,dtype=float)
+                projection=float(pos@np.cross(orient[:3],orient[3:]))
+                rec={'study_uid':row.study_uid,'series_uid':uid,'sop_uid':row.sop_uid,'source_path':row.path,'source_sha256':row.sha256,'decoded_pixel_sha256':px_hash,'native_dtype':native.dtype.str,'projection':projection,'header_fields':{key:str(ds.get(key,'')) for key in fields},'patient_id_sha256':hashlib.sha256(str(ds.get('PatientID','')).encode()).hexdigest(),'frame_of_reference_sha256':hashlib.sha256(str(ds.get('FrameOfReferenceUID','')).encode()).hexdigest()}
+                records.append(rec)
+                slices.append((projection,native,rec))
+        slices.sort(key=lambda x:x[0])
+        sid=len(series)
+        item={'series_index':sid,'series_uid':uid,'n_slices':len(slices),'header_values':{key:sorted({s[2]['header_fields'][key] for s in slices}) for key in fields if key not in ['ImagePositionPatient','AcquisitionTime']},'patient_id_sha256':sorted({s[2]['patient_id_sha256'] for s in slices}),'frame_of_reference_sha256':sorted({s[2]['frame_of_reference_sha256'] for s in slices}),'pixel_hashes':[s[2]['decoded_pixel_sha256'] for s in slices]}
+        series.append(item)
+        idx=sorted(set(round((len(slices)-1)*frac) for frac in [.25,.5,.75]))
+        samples[sid]=[(j,slices[j][1],slices[j][2]) for j in idx]
+        print(f'Complete native series: {len(series)}/{inv.series_uid.nunique()}, slices {len(records)}/{len(inv)}',flush=True)
+finally:
+    source.downloads.shutdown()
+
+assert len(records)==len(inv)==270 and len(series)==9
+p=out/'all-slice-headers-and-pixels.jsonl'
+p.write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
+(out/'series-summary.json').write_text(json.dumps(series,ensure_ascii=False,indent=2)+'\n')
+by_hash=defaultdict(list)
+for r in records:by_hash[r['decoded_pixel_sha256']].append((r['series_uid'],r['sop_uid']))
+cross=[{'decoded_pixel_sha256':key,'instances':values} for key,values in by_hash.items() if len({v[0] for v in values})>1]
+pair_overlap=[]
+for i,a in enumerate(series):
+    for b in series[i+1:]:
+        overlap=len(set(a['pixel_hashes'])&set(b['pixel_hashes']))
+        if overlap:pair_overlap.append({'series_a':a['series_index'],'series_b':b['series_index'],'shared_decoded_slices':overlap})
+figures=[]
+for tag in ['L','']:
+    chosen=[s for s in series if s['header_values']['Laterality']==[tag]]
+    if not chosen:continue
+    chosen.sort(key=lambda s:(s['header_values']['SeriesDescription'],s['series_index']))
+    fig,axes=plt.subplots(len(chosen),3,figsize=(10,len(chosen)*3.2),squeeze=False)
+    for r,s in enumerate(chosen):
+        for c,(j,a,rec) in enumerate(samples[s['series_index']]):
+            lo,hi=np.percentile(a,[1,99.5]); axes[r,c].imshow(a,cmap='gray',vmin=lo,vmax=max(hi,lo+1));axes[r,c].axis('off')
+            desc=s['header_values']['SeriesDescription'][0]
+            axes[r,c].set_title(f"Series {s['series_index']} | {desc}\nTag:{tag or 'blank'} | slice {j+1}/{s['n_slices']}",fontsize=8)
+    fig.suptitle('Native pixel comparison — no anatomical reorientation; diagnostic labels unchanged',fontsize=11)
+    fig.tight_layout(rect=[0,0,1,.98]);name=f'native-tag-{tag or "blank"}.png';fig.savefig(out/name,dpi=150);plt.close(fig);figures.append(name)
+
+summary={'schema_version':1,'scope':'Full270-slice technical comparison for bilateral report018:19, no diagnostic label changes','study_uid':report['study_uid'],'source_batch_sha256':hashlib.sha256(src_path.read_bytes()).hexdigest(),'source_revision':source.revision,'n_slices':len(records),'n_series':len(series),'all_native_decode_finite':True,'laterality_slice_counts':dict(Counter(r['header_fields']['Laterality'] for r in records)),'distinct_patient_id_hashes':len({r['patient_id_sha256'] for r in records}),'distinct_frame_of_reference_hashes':len({r['frame_of_reference_sha256'] for r in records}),'cross_series_duplicate_pixel_groups':len(cross),'pairwise_exact_pixel_overlap':pair_overlap,'header_pixel_artifact_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'figures':figures,'limits':'Exact stored decoded pixels include dtype and shape. Nonmatching pixels can reflect distinct acquisitions of the same knee or different knees. Missing laterality never implies right. Visual anatomy/correspondence review required; no image-based diagnosis made.'}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+(out/'cross-series-exact-pixel-groups.json').write_text(json.dumps(cross,indent=2)+'\n')
+print(json.dumps(summary,indent=2))
