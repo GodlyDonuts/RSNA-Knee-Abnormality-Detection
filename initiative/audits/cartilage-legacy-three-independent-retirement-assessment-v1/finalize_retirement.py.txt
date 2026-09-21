@@ -1,0 +1,246 @@
+"""Bind authored retirement opinions and replay a read-only removal simulation."""
+import copy
+import hashlib
+import json
+import runpy
+from datetime import datetime, timezone
+from pathlib import Path
+
+S = Path(__file__).resolve().parent
+W = S.parents[2]
+R = W / 'work/recovered'
+F = W / 'work/annotation-staging/cartilage-legacy-three-independent-review-v1'
+AGENT = '/root/last_twelve_visual_review'
+TARGETS = ['Medial OA', 'Lateral OA', 'PF OA']
+ALL_TARGETS = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+
+
+def obj(path):
+    return json.loads(path.read_bytes())
+
+
+def ref(path):
+    b = path.read_bytes()
+    return {'path': str(path.relative_to(W)), 'sha256': hashlib.sha256(b).hexdigest(), 'bytes': len(b)}
+
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def write(name, value):
+    p = S / name
+    with p.open('x') as f:
+        json.dump(value, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+    return p
+
+
+def snapshot(path, name):
+    p = S / name
+    if not p.exists():
+        with p.open('xb') as f:
+            f.write(path.read_bytes())
+    assert path.read_bytes() == p.read_bytes()
+    return {'original': ref(path), 'preserved_copy': ref(p)}
+
+
+casepath = R / 'initiative/reviews-v2/adjudications/cases/cartilage-morphology-004-088.json'
+rootpath = W / 'work/annotation-staging/cartilage-legacy-three-neutral-v1/root-three-source-review.json'
+registry = R / 'initiative/reviews-v2/adjudications/registry.json'
+inspection = R / 'initiative/audits/cartilage-observed-000-integration-v1/primary-inspection223.json'
+assert ref(casepath)['sha256'] == 'fbdeadf26ee8f2c9421a2d6869fe041c5c58f41783439e1be2b6512c8b8c5a3f'
+assert ref(rootpath)['sha256'] == '6a096f5bab2d268bf4947f4e21a228271abd834aa7c0becd142e19508d24f744'
+assert ref(registry)['sha256'] == '9cdea4aa554c2f7059dd1d84eb481dc012f483a3922710b78755b74b7553249f'
+assert ref(F / 'source-freeze.json')['sha256'] == 'f5ff6e428d4020d23f2c06de3f3723a969b9c44e16dc379843e87cf11afe4847'
+original_freeze_refs = [ref(p) for p in F.rglob('*') if p.is_file()]
+case, root, reg, ins = [obj(p) for p in [casepath, rootpath, registry, inspection]]
+assert ins['registry_sha256'] == ref(registry)['sha256'] and ins['n_changes'] == len(ins['changes']) == 223
+assert root['agent_id'] == '/root' and root['agent_id'] != AGENT
+assert root['session_id'] != AGENT
+assert root['prior_case_sha256'] == ref(casepath)['sha256']
+assert root['neutral_source_sha256'] == ref(F / 'neutral-source-packet.json')['sha256']
+lineage = {
+    'legacy_case': snapshot(casepath, 'preserved-legacy-case.json'),
+    'root_new_source_review': snapshot(rootpath, 'preserved-root-source-review.json'),
+    'registry223': snapshot(registry, 'preserved-registry223.json'),
+    'inspection223': snapshot(inspection, 'preserved-inspection223.json'),
+}
+for key in ['proposal', 'independent_assessment', 'decision']:
+    p = R / case[key]['path']
+    assert ref(p)['sha256'] == case[key]['sha256']
+    lineage[key] = snapshot(p, f'preserved-legacy-{key}.json')
+legacy_proposal = obj(R / case['proposal']['path'])
+legacy_assessment = obj(R / case['independent_assessment']['path'])
+legacy_decision = obj(R / case['decision']['path'])
+assert legacy_proposal['agent_id'] == legacy_decision['proposer_agent_id']
+assert legacy_assessment['agent_id'] == legacy_decision['adjudicator_agent_id'] == '/root'
+assert legacy_decision['proposal_sha256'] == case['proposal']['sha256']
+assert legacy_decision['independent_assessment_sha256'] == case['independent_assessment']['sha256']
+assert case['rubric_sha256'] == ref(R / 'protocols/report_weak_v2.md')['sha256']
+allchanges = []
+case_bindings = []
+for item in reg['cases']:
+    p = R / item['path']
+    assert ref(p)['sha256'] == item['sha256']
+    c = obj(p)
+    case_bindings.append(ref(p))
+    for change in c['changes']:
+        allchanges.append({'case_id': c['id'], 'change': change})
+assert len(allchanges) == 223
+keys = [(x['change']['study_uid'], x['change']['target']) for x in allchanges]
+assert len(set(keys)) == 223
+ins_by_key = {(x['study_uid'], x['target']): x for x in ins['changes']}
+assert set(ins_by_key) == set(keys)
+for x in allchanges:
+    c = x['change']
+    y = ins_by_key[(c['study_uid'], c['target'])]
+    assert (x['case_id'], c['before'], c['after']) == (y['case_id'], y['before'], y['after'])
+source = obj(F / 'neutral-source-packet.json')
+own = [json.loads(x) for x in (F / 'independent-assessment.jsonl').read_text().splitlines()]
+decisions = runpy.run_path(str(S / 'authored_retirement_decisions.py'))['DECISIONS']
+assert set(decisions) == {0, 1, 2}
+records, nine, changed = [], [], []
+for i, p in enumerate(source):
+    uid = p['study_uid']
+    c = next(x for x in case['changes'] if x['study_uid'] == uid)
+    accepted = ins_by_key[(uid, 'PF OA')]
+    oldp = next(x for x in legacy_proposal['proposed_errata'] if x['study_uid'] == uid)
+    olda = next(x for x in legacy_assessment['records'] if x['study_uid'] == uid)
+    oldd = next(x for x in legacy_decision['accepted_changes'] if x['study_uid'] == uid)
+    assert accepted['before'] == c['before'] and accepted['after'] == c['after']
+    assert oldp['before_state'] == c['before']['state'] and oldp['proposed_state'] == c['after']['state']
+    assert olda['independent_source_state'] == oldd['after_state'] == c['after']['state']
+    assert oldd['before_evidence'] == c['before']['evidence'] and oldd['after_evidence'] == c['after']['evidence']
+    sp = R / p['source_path']
+    assert ref(sp)['sha256'] == p['source_sha256'] == c['source_batch']['sha256']
+    assert obj(sp)[p['source_index_zero_based']] == {'study_uid': uid, 'report': p['report']}
+    bp = R / c['base_review']['path']
+    assert ref(bp)['sha256'] == c['base_review']['sha256']
+    rawlines = bp.read_bytes().splitlines(keepends=True)
+    matches = [(j, b, json.loads(b)) for j, b in enumerate(rawlines) if json.loads(b)['study_uid'] == uid]
+    assert len(matches) == 1
+    j, raw, original = matches[0]
+    original_pf = {'state': original['states'][6], 'evidence': original['evidence'][6]}
+    assert original_pf == c['before']
+    effective = copy.deepcopy(original)
+    relevant = [x for x in ins['changes'] if x['study_uid'] == uid]
+    assert [x['target'] for x in relevant if x['target'] in TARGETS] == ['PF OA']
+    for existing in relevant:
+        at = ALL_TARGETS.index(existing['target'])
+        assert {'state': original['states'][at], 'evidence': original['evidence'][at]} == existing['before']
+        effective['states'][at] = existing['after']['state']
+        effective['evidence'][at] = existing['after']['evidence']
+    o = own[i]
+    rr = next(x for x in root['reports'] if x['study_uid'] == uid)
+    assert o['study_uid'] == uid and o['source_index_zero_based'] == p['source_index_zero_based']
+    d = decisions[i]
+    assert d['retirement_assessment'] in {'accepted', 'rejected', 'held'}
+    assert d['final_state'] == original_pf['state'] == 'uncertain'
+    for ti, target in enumerate(TARGETS):
+        original_cell = {'state': original['states'][ti + 4], 'evidence': original['evidence'][ti + 4]}
+        current_cell = {'state': effective['states'][ti + 4], 'evidence': effective['evidence'][ti + 4]}
+        own_cell = {'state': o['states'][ti], 'evidence': o['evidence'][ti]}
+        root_cell = {'state': rr['states'][ti], 'evidence': rr['evidence'][ti]}
+        final_cell = {'state': d['final_state'] if target == 'PF OA' else own_cell['state'], 'evidence': own_cell['evidence']}
+        assert final_cell == original_cell
+        for cell in [original_cell, current_cell, own_cell, root_cell, final_cell]:
+            assert bool(cell['evidence']) == (cell['state'] != 'not_mentioned') and cell['evidence'] in p['report']
+        nine.append({'packet_index': i, 'study_uid': uid, 'target': target,
+                     'original_annotation': original_cell, 'current223_annotation': current_cell,
+                     'own_frozen_source': own_cell, 'root_new_source': root_cell,
+                     'own_postcomparison': final_cell,
+                     'own_state_reconsidered': own_cell['state'] != final_cell['state'],
+                     'reason': d['reason'] if target == 'PF OA' else o['target_reasoning'][ti]})
+    if d['own_state_reconsidered']:
+        changed.append({'packet_index': i, 'study_uid': uid, 'target': 'PF OA',
+                        'before_frozen': {'state': o['states'][2], 'evidence': o['evidence'][2]},
+                        'after_postcomparison': {'state': d['final_state'], 'evidence': o['evidence'][2]},
+                        'reason': d['reason'], 'root_feedback_exposure': True})
+    records.append({'agent_id': AGENT, 'session_id': AGENT, 'packet_index': i,
+                    'study_uid': uid, 'target': 'PF OA', 'source': ref(sp),
+                    'source_index_zero_based': p['source_index_zero_based'],
+                    'report_utf8_sha256': hashlib.sha256(p['report'].encode()).hexdigest(),
+                    'original_review': ref(bp), 'original_row_index_zero_based': j,
+                    'original_row_bytes_including_line_ending_sha256': hashlib.sha256(raw).hexdigest(),
+                    'original_full_row_canonical_sha256': digest(original),
+                    'original_annotation': original_pf, 'original_annotation_canonical_sha256': digest(original_pf),
+                    'current223_annotation': c['after'], 'current223_annotation_canonical_sha256': digest(c['after']),
+                    'current223_effective_full_row_canonical_sha256': digest(effective),
+                    'other_existing_corrections_preserved_without_new_review': [x for x in relevant if x['target'] != 'PF OA'],
+                    'restored_annotation_if_retired': original_pf,
+                    'restored_annotation_canonical_sha256': digest(original_pf),
+                    'accepted_case_change_canonical_sha256': digest(c),
+                    'accepted_inspection_item_canonical_sha256': digest(accepted),
+                    'source_freeze': ref(F / 'source-freeze.json'),
+                    'own_frozen_state': o['states'][2], 'root_new_source_state': rr['states'][2],
+                    'original_evidence_preserved_exactly': True, 'restored_report_loss_mask': 0,
+                    **d})
+assert len(records) == 3 and len(nine) == 9 and len(changed) == 1
+post = write('complete-nine-cell-comparison.json', {
+    'agent_id': AGENT, 'source_freeze': ref(F / 'source-freeze.json'),
+    'baseline_registry_sha256': ref(registry)['sha256'], 'baseline_corrections': 223,
+    'cells': nine, 'source_agreement_with_root': 8, 'postcomparison_agreement_with_root': 9,
+    'current223_differences_from_final': 3,
+})
+recons = write('own-reconsiderations.json', {'agent_id': AGENT, 'state_reconsiderations': changed,
+    'reason_only_reconsiderations': [{'packet_index': i, 'reason': decisions[i]['reason']} for i in [0, 1]],
+    'quotes_changed': 0, 'source_freeze_preserved': ref(F / 'source-freeze.json'),
+    'no_claim_of_initial_unanimity': True})
+remaining = [x for x in allchanges if x['case_id'] != case['id']]
+removed = [x for x in allchanges if x['case_id'] == case['id']]
+assert len(removed) == 3 and len(remaining) == 220
+assert {(x['change']['study_uid'], x['change']['target']) for x in removed} == {(x['study_uid'], 'PF OA') for x in source}
+assert all(x['retirement_assessment'] == 'accepted' for x in records)
+proof = write('retirement-binding-proof.json', {
+    'agent_id': AGENT, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'status': 'read_only_verified_no_registry_mutation',
+    'lineage': lineage, 'source_freeze': ref(F / 'source-freeze.json'),
+    'source_assessment': ref(F / 'independent-assessment.jsonl'),
+    'rubric': ref(R / 'protocols/report_weak_v2.md'),
+    'legacy_case_id': case['id'], 'actual_registry': ref(registry),
+    'all_registered_case_bindings': case_bindings,
+    'actual_registry_changes': 223, 'actual_unique_keys': 223,
+    'inspection_matches_registry_case_states_and_evidence': True,
+    'exact_legacy_membership': 3, 'all_source_index_uid_report_bindings_match': True,
+    'all_original_and_current_annotation_bindings_match': True,
+    'all9_original_frozen_root_and_post_evidence_contiguous': True,
+    'distinct_current_assessor_and_root': {'assessor': AGENT, 'root': root['agent_id'], 'passed': True},
+    'simulated_retirement_only': {'remaining_active_changes': 220,
+        'removed_correction_keys': [{'study_uid': x['change']['study_uid'], 'target': x['change']['target']} for x in removed],
+        'other220_change_objects_exactly_preserved': True,
+        'other220_ordered_change_objects_canonical_sha256': digest(remaining),
+        'registry_case_entry_removed_exactly_once': sum(x['path'] == str(casepath.relative_to(R)) for x in reg['cases']) == 1,
+        'new_correction_entries': 0, 'original_evidence_changes': 0, 'restored_mask_values': [0, 0, 0],
+        'no_U_to_U_or_duplicate_key_entries': True},
+    'canonical_hash_convention': 'UTF-8 JSON, ensure_ascii=False, sort_keys=True, separators=(comma,colon), no terminal newline. File/row-byte hashes remain separately exact.',
+    'workflow_exposure': 'The nine-cell source freeze preceded fresh legacy/root findings. Historical exposure remains disclosed in that freeze. The current postcomparison personally read the relevant old proposal, root assessment, acceptance, original annotations and root fresh review. A broad old audit output also displayed some unrelated candidate findings; this is historical context for subsequent work. One source-state reconsideration and two reason refinements are explicit.',
+    'initial_mechanical_attempt': 'Initial validation stopped because it assumed these reports had no other accepted targets. One report also has an accepted non-OA Contusion correction. The corrected replay applies and preserves every existing correction, while restricting this retirement to the three legacy PF keys. Seven byte-identical input snapshots had been written before the stop; no assessment, proof or freeze had been written, and rerun verifies those copies without overwriting. No clinical decisions changed during this repair.',
+    'chronology_limit': 'Recorded timestamps and attestations do not prove past access order.',
+})
+assessment = write('independent-retirement-assessment.json', {
+    'stage': 'independent_legacy_three_whole_case_retirement_assessment_v1',
+    'agent_id': AGENT, 'session_id': AGENT, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'proposer_agent_id': '/root', 'assessor_distinct_from_proposer': True,
+    'legacy_case': ref(casepath), 'root_reconsideration': ref(rootpath),
+    'source_freeze': ref(F / 'source-freeze.json'), 'complete_nine_cell_comparison': ref(post),
+    'own_reconsiderations': ref(recons), 'binding_proof': ref(proof),
+    'whole_case_retirement_assessment': 'accepted',
+    'decision_scope': 'Independent support for root to retire exactly this entire three-correction legacy case from active use and restore its original three uncertain PF annotations. This is retirement support, not a new correction case, a no-op annotation entry, an executed registry change, or image truth.',
+    'records': records, 'accepted_retirements': 3, 'rejected_retirements': 0, 'held_retirements': 0,
+    'remaining_six_OA_targets': 'Reviewed and compared without further proposed changes; original states/evidence match current and final source opinions.',
+    'no_global_QA_closure_or_training_eligibility_claim': True,
+    'root_must_revalidate_actual_registry_before_execution': True,
+    'no_repository_registry_runtime_or_gold_changes': True,
+})
+for old in original_freeze_refs:
+    assert ref(W / old['path']) == old
+assert ref(registry) == lineage['registry223']['original']
+manifest = write('final-file-list.json', {'agent_id': AGENT,
+    'files': [ref(p) for p in sorted(S.rglob('*')) if p.is_file()], 'self_excluded': True})
+entries = obj(manifest)['files']
+assert {x['path'] for x in entries} == {str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p != manifest}
+for x in entries:
+    assert ref(W / x['path']) == x
+print(json.dumps({'assessment': ref(assessment), 'proof': ref(proof), 'reconsiderations': ref(recons),
+                  'comparison': ref(post), 'manifest': ref(manifest), 'bound_files': len(entries)}, indent=2))

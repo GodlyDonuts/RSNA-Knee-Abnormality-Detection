@@ -1,0 +1,67 @@
+"""Read current clinical artifacts only after validating the complete600 source freeze."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib,json,sys
+S=Path(__file__).resolve().parent
+W=S.parents[2]; R=W/'work/recovered'
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+
+def read(p): return json.loads(p.read_text())
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p): return dict(path=str(p.relative_to(W)),sha256=sha(p),bytes=p.stat().st_size)
+def save(name,obj):
+    with (S/name).open('x') as f: f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+
+assert sha(S/'source-assessment-frozen.json')=='409a10957791027d9f4512054633efab5451e73dfafe18556c9faec8889a185b'
+protected=read(S/'source-phase-manifest.json')['files']+[ref(S/'source-phase-manifest.json')]
+for item in protected: assert sha(W/item['path'])==item['sha256']
+freeze=read(S/'source-assessment-frozen.json'); targets=freeze['targets']; selected={r['study_uid']:r for r in freeze['reports']}
+reports={}
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+    for row in read(p):
+        assert row['study_uid'] not in reports
+        reports[row['study_uid']]=row['report']
+assert len(reports)==4407
+inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert inspection['n_changes']==205 and len(inspection['pending_semantic_qa'])==3
+assert inspection['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+save('current205-adjudications-inspection.json',inspection)
+changes={(x['study_uid'],x['target']):x for x in inspection['changes']}
+registry=R/'initiative/reviews-v2/adjudications/registry.json'; reg=read(registry)
+binding=[ref(registry),ref(R/'protocols/report_weak_v2.md')]
+binding.extend(ref(R/x['path']) for x in reg['cases']+reg['semantic_qa'])
+current={}; batch_paths={}
+for batch in sorted({r['batch'] for r in freeze['reports']}):
+    p=R/f'initiative/reviews-v2/reviewed/{batch}-reviewed.jsonl'
+    batch_paths[batch]=p; binding.append(ref(p))
+    for row in (json.loads(line) for line in p.read_text().splitlines()):
+        if row['study_uid'] in selected: current[row['study_uid']]=row
+    for stage in ('draft','reviewed'):
+        q=R/f'initiative/reviews-v2/provenance/{batch}-{stage}.json'
+        if q.is_file(): binding.append(ref(q))
+    binding.append(ref(R/f'initiative/reviews/inputs/{batch}.json'))
+assert set(current)==set(selected)
+base=dict(schema_version=1,agent_id=freeze['agent_id'],session_id=freeze['session_id'],source_reports_sha256=inspection['source_reports_sha256'],rubric_sha256=inspection['rubric_sha256'],source_assessment_sha256=sha(S/'source-assessment-frozen.json'),registry_sha256=inspection['registry_sha256'],registered_corrections=205,n_reports=50,n_targets=600,postfreeze_access_at_utc=datetime.now(timezone.utc).isoformat())
+rows=[]
+for source in freeze['reports']:
+    uid=source['study_uid']; original=current[uid]; sourcefile=R/source['source_path']; review=batch_paths[source['batch']]
+    for j,t in enumerate(targets):
+        correction=changes.get((uid,t))
+        before=dict(state=original['states'][j],evidence=original['evidence'][j]); effective=correction['after'] if correction else before
+        assert (before['evidence']=='') if before['state']=='not_mentioned' else (bool(before['evidence']) and before['evidence'] in reports[uid])
+        after=dict(state=source['states'][j],evidence=source['evidence'][j])
+        rows.append(dict(packet_ordinal=source['packet_ordinal'],batch=source['batch'],index=source['index'],study_uid=uid,target=t,target_index=j,source_path=source['source_path'],source_sha256=sha(sourcefile),report_sha256=source['report_sha256'],original_review_path=str(review.relative_to(R)),original_review_sha256=sha(review),original=before,effective=effective,existing_correction_case=correction['case_id'] if correction else None,source_frozen=after,source_reason=source['rationales'][j],state_agrees=effective['state']==after['state'],evidence_agrees=effective['evidence']==after['evidence'],effective_observed=effective['state'] in ('positive','negative'),source_frozen_observed=after['state'] in ('positive','negative')))
+save('full-target-comparison.json',dict(base,records=rows))
+save('state-differences.json',dict(base,records=[x for x in rows if not x['state_agrees']]))
+save('same-state-evidence-differences.json',dict(base,records=[x for x in rows if x['state_agrees'] and not x['evidence_agrees']]))
+candidate=W/'work/annotation-staging/qualified-negation-all4407-candidates-v1/focused-qualified-candidate-details.json'
+candidate_rows=[x for x in read(candidate)['records'] if x['study_uid'] in selected]
+for x in candidate_rows:
+    y=next(z for z in rows if z['study_uid']==x['study_uid'] and z['target']==x['target'])
+    x['discovery_baseline_differs_from_current205']=(x['inspection_effective_state']!=y['effective']['state'] or x['inspection_effective_evidence']!=y['effective']['evidence'])
+save('batch-candidate-details-postfreeze.json',dict(base,candidate_source=ref(candidate),records=candidate_rows))
+save('originals-source-provenance-bindings.json',dict(base,files=binding,source_phase_protected_files=protected,originals_copied=False,all_original_evidence_exact=True))
+for item in protected+binding: assert sha(W/item['path'])==item['sha256']
+print(json.dumps(dict(n_state_differences=sum(not x['state_agrees'] for x in rows),n_same_state_evidence_differences=sum(x['state_agrees'] and not x['evidence_agrees'] for x in rows),n_existing_corrections_selected=sum(x['existing_correction_case'] is not None for x in rows),n_candidate_details=len(candidate_rows),registry_sha256=inspection['registry_sha256'],state_transitions=dict(Counter(x['effective']['state']+' -> '+x['source_frozen']['state'] for x in rows if not x['state_agrees']))),indent=2))

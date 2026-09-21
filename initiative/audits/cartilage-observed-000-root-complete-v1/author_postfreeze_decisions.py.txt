@@ -1,0 +1,135 @@
+"""Serialize the root's individually reasoned decisions; do not infer labels."""
+import hashlib
+import json
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+G = Path(__file__).resolve().parent
+W = G.parents[2]
+R = W / "work/recovered"
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def read(p, expected=None):
+    if expected:
+        assert sha(p) == expected, p
+    return json.loads(p.read_text())
+
+def save(name, value):
+    p = G / name
+    with p.open("x") as f:
+        f.write(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    return {"path": str(p.relative_to(W)), "sha256": sha(p)}
+
+freeze = read(G / "complete-source-freeze.json", "e54e373ea862a3e099a316a2c748386992c79d75024f5b4ddacbc6e191fb802a")
+comparison = read(G / "root-postfreeze-comparison.json", "fbf6e1fbad854b1545cc6d7aca3cfd2eb69b32da67a6152d69d204cc6fb6e5cf")
+proposal_path = R / "initiative/audits/cartilage-observed-000-postfreeze-v1/proposed-errata.json"
+proposal = read(proposal_path)
+registry = read(R / "initiative/reviews-v2/adjudications/registry.json", "7716a2a065a7e6507cfe328ed4e3adb7c27dd99f646901140d182068f47ef229")
+assert proposal["agent_id"] == "/root/quality_temporal_review"
+assert freeze["full_reports"] == 26 and freeze["oa_judgments"] == 78
+for part in freeze["source_parts"]:
+    read(W / part["path"], part["sha256"])
+for ref in comparison["reader_disposition_bindings"]:
+    read(W / "work/annotation-staging" / ref["path"], ref["sha256"])
+
+# Literal decisions authored after personally reading all full reports, then the
+# readers' frozen findings. Original source judgments are never overwritten.
+PRIMARY_REASONS = {
+    ("001:32", "PF OA"): "Diffuse high-grade chondrosis localizes disease but does not define actual loss depth. Osteophytes and marrow edema do not supply that missing requirement; accept uncertainty.",
+    ("002:40", "Medial OA"): "I reconsider my frozen negative. Altered cartilage signal plus an unnamed grade I does not explicitly affirm preserved thickness or contour. I inferred absence of substance loss from its omission; that inference was unsupported. Accept uncertainty.",
+    ("002:40", "PF OA"): "The patellar/trochlear abnormality is an unnamed grade I without direct depth or preserved-thickness morphology. Normal alignment, retinacula and bone signal do not establish cartilage normality; accept uncertainty.",
+    ("003:13", "PF OA"): "Isolated grade I lateral patellar chondromalacia provides no named scale or independent depth description. Normal joint alignment does not exclude a qualifying cartilage defect; accept uncertainty.",
+    ("003:28", "Lateral OA"): "The lateral heading localizes the osteochondral defect; diffuse and high grade do not explicitly define the cartilage-loss fraction. Accept uncertainty and the expanded exact quote including the lateral heading.",
+    ("004:14", "PF OA"): "I reconsider my frozen negative. Increased cartilage signal and possible/favored grade 1 do not explicitly preserve thickness or contour. My earlier signal-only interpretation inferred an excluded loss component from silence. Accept uncertainty using the literal body quotation.",
+    ("004:32", "Medial OA"): "The medial tibial and femoral cartilage has an unnamed grade 1 without independently stated depth. The numeral does not establish a below-threshold finding under a verified local scale; accept uncertainty.",
+    ("006:09", "Medial OA"): "Grade I is assigned to the tibiofemoral articulating cartilage without a named grading framework or direct depth description. It mentions medial cartilage but does not establish or exclude the loss threshold; accept uncertainty.",
+    ("006:09", "Lateral OA"): "The same tibiofemoral cartilage statement covers the lateral compartment but gives only an unnamed grade I. No independent depth or normality statement establishes a reliable negative; accept uncertainty.",
+    ("006:18", "Medial OA"): "Only major medial cartilage defects are excluded. That qualifier has no explicit relation to the frozen loss threshold, and the normal meniscus does not supply cartilage normality; accept uncertainty.",
+    ("006:29", "Lateral OA"): "The lateral femoral condyle has a possible subchondral fracture with an osteochondritis dissecans differential. This is informative osteochondral uncertainty, although cartilage depth and extent are unresolved. Accept uncertain rather than unmentioned; the loss mask stays zero.",
+    ("007:26", "Medial OA"): "The medial tibial cartilage finding is an unnamed grade I without independent depth information. Do not infer a preserved thickness from the lack of a competing deeper description; accept uncertainty.",
+    ("008:01", "Medial OA"): "The medial cartilage is covered only by absence of significant alterations. This exact uncertain state and quote are already registered by focused001; retain that correction without adding a duplicate key.",
+    ("008:01", "PF OA"): "The PF cartilage is covered only by absence of significant alterations. This exact uncertain state and quote are already registered by focused001; retain that correction without adding a duplicate key.",
+    ("010:40", "Medial OA"): "The 1.0 by 1.9 cm region establishes extent, but the report does not name the scale or define its grade 4 as qualifying depth. Earlier contextual grading opinions and the balanced primary-source review remain preserved. Accept uncertainty from this distinct proposal without pretending that the earlier disagreement never occurred.",
+    ("010:48", "Medial OA"): "The reported 1.8 by approximately 2 cm region establishes extent. As in010:40, unnamed grade 4 does not bind depth to a verified report-specific grading scale. Accept uncertainty consistently; do not infer the reporting center or scale from wording.",
+    ("011:35", "PF OA"): "I reconsider my frozen positive. The lateral trochlea is described with greater-than-half1.2 by1.2 cm loss and then less-than-half loss at the same location with partly matching, corrupted dimensions. I had assumed distinct foci, but the text does not distinguish them. Preserve both clauses literally and accept uncertainty; do not repair malformed dimensions.",
+    ("011:36", "Medial OA"): "The conclusion explicitly calls medial chondropathy superficial, compatible with the body partial-thickness finding. Preserve the repeated medial wording rather than assume a localization typo. The explicit superficial morphology supports a below-threshold negative independently of grade2.",
+    ("012:22", "Lateral OA"): "I reconsider my frozen unmentioned state. Generic femoral/tibial cartilage and remaining segments precede the medial OA conclusion; that conclusion does not unambiguously restrict every segment to medial. Retain informative localization uncertainty and expand the exact quote to preserve the medial conclusion.",
+    ("012:22", "PF OA"): "Normal femoropatellar congruence addresses alignment. Patellar cartilage has an unnamed grade1 without explicit preserved depth or a scale definition. Accept uncertainty rather than equate alignment with cartilage normality.",
+}
+ADDITIONAL_REASONS = {
+    ("001:32", "Medial OA"): "Bare low-grade chondrosis does not independently define depth or explicitly superficial loss. Preserve the medial context and literal lowe; propose uncertainty without deriving depth from osteophytes.",
+    ("001:32", "Lateral OA"): "Bare low-grade lateral chondrosis lacks a source-defined depth fraction. Adjacent marrow edema and osteophytes do not resolve cartilage depth; propose uncertainty.",
+    ("004:32", "PF OA"): "Normal patellar cartilage signal and PF congruence do not independently assess the trochlear cartilage or establish normal structural thickness throughout this compartment. Propose uncertainty for incomplete cartilage coverage.",
+    ("007:26", "PF OA"): "The normal cartilage description is restricted to the patella. No informative trochlear cartilage assessment excludes a qualifying defect on the other PF surface; propose uncertainty for incomplete scope.",
+    ("010:17", "Medial OA"): "Full-thickness loss establishes depth, but central weightbearing parts provide location without a qualifying region size. Moderate/advanced disease does not supply that missing extent; propose uncertainty.",
+    ("010:47", "Medial OA"): "ICRS is explicitly named, so this is not the unnamed-scale issue. Predominantly grade4 destruction can describe grade composition without defining a qualifying contiguous footprint. Propose uncertainty for missing regional extent.",
+    ("011:36", "PF OA"): "The trochlear full-depth ulcer is focal and unmeasured; the patellar full-depth ulcers are diffusely distributed. Distribution of separate ulcers does not size one qualifying deep-loss region; propose uncertainty.",
+    ("012:19", "Lateral OA"): "Low-grade partial-thickness chondrosis is not explicitly tied to a less-than-half fraction or superficial-only morphology in this source. Partial thickness alone leaves the required threshold unresolved; propose uncertainty.",
+    ("012:19", "PF OA"): "Full-thickness loss is localized to the lateral facet and ridge without a qualifying footprint. Additional high-grade partial loss across the medial facet does not independently define depth and region for the full-thickness component; propose uncertainty.",
+}
+RECONSIDERED = {("002:40", "Medial OA"), ("004:14", "PF OA"), ("011:35", "PF OA"), ("012:22", "Lateral OA")}
+QUALITATIVE_EXTENT = {("002:35", "Medial OA"), ("003:37", "Medial OA"), ("003:37", "PF OA"), ("005:08", "PF OA")}
+assert len(PRIMARY_REASONS) == 20 and len(ADDITIONAL_REASONS) == 9
+proposed = {(p["case"], p["target"]): p for p in proposal["proposed_errata"]}
+assert set(proposed) == set(PRIMARY_REASONS)
+records, assessments, additional, recons = [], [], [], []
+for row in comparison["records"]:
+    key = row["case"], row["target"]
+    frozen = row["root_source_frozen"]
+    state, evidence, reason = frozen["state"], frozen["evidence"], frozen["reason"]
+    action = "retain_frozen_source_judgment_no_new_correction"
+    if key in PRIMARY_REASONS:
+        p = proposed[key]
+        state, evidence, reason = p["proposed_state"], p["source_quote"], PRIMARY_REASONS[key]
+        assert (state != frozen["state"]) == (key in RECONSIDERED)
+        if row["existing_accepted_case"]:
+            assert row["case"] == "008:01" and row["target"] in {"Medial OA", "PF OA"}
+            assert row["current205"] == {"state": state, "evidence": evidence}
+            action = "already_covered_by_existing_exact_accepted_correction"
+        else:
+            action = "accept_primary_proposal_pending_registry_integration"
+        assessments.append({"case": row["case"], "study_uid": row["study_uid"], "target": row["target"], "source_sha256": row["source_sha256"], "original_review_path": p["artifact_path"], "original_review_sha256": p["artifact_sha256"], "independent_source_state": state, "source_evidence": evidence, "root_frozen_state": frozen["state"], "root_state_reconsidered": key in RECONSIDERED, "reason": reason, "disposition": action})
+    elif key in ADDITIONAL_REASONS:
+        assert state == "uncertain" and not row["existing_accepted_case"]
+        reason = ADDITIONAL_REASONS[key]
+        action = "root_additional_proposal_pending_distinct_assessment"
+        b, i = row["case"].split(":")
+        artifact = R / f"initiative/reviews-v2/reviewed/batch-{b}-reviewed.jsonl"
+        original = [json.loads(line) for line in artifact.read_text().splitlines()]
+        original = next(x for x in original if x["study_uid"] == row["study_uid"])
+        ix = ["Medial OA", "Lateral OA", "PF OA"].index(row["target"]) + 4
+        assert row["current205"] == {"state": original["states"][ix], "evidence": original["evidence"][ix]}
+        additional.append({"case": row["case"], "study_uid": row["study_uid"], "target": row["target"], "batch": f"batch-{b}", "index": int(i), "source_path": row["source_path"], "source_sha256": row["source_sha256"], "artifact_path": str(artifact.relative_to(R)), "artifact_sha256": sha(artifact), "before_state": original["states"][ix], "before_evidence": original["evidence"][ix], "proposed_state": state, "source_quote": evidence, "reason": reason, "status": "proposed_pending_distinct_source_assessment"})
+    elif key == ("004:35", "PF OA"):
+        assert row["existing_accepted_case"] and state == "uncertain"
+        action = "existing_legacy_case_reconsideration_pending_distinct_assessment"
+        reason = "The earlier accepted positive relies on diffuse full-thickness patellar ulcers without a qualifying individual region size. Root retains uncertainty, while the three-change legacy case is undergoing a separate complete-source review before any retirement. The existing active correction is preserved for now."
+    elif key in QUALITATIVE_EXTENT:
+        assert state == row["current205"]["state"] == "positive"
+        action = "retain_current_positive_with_explicit_qualitative_extent_inference"
+        reason += " After comparison I retain this report-level qualitative extent inference from broad or long-segment full-depth loss. It is not a numerical measurement; the second reader's contrary extent judgment remains preserved. No new correction is registered for this retained state."
+    elif row["existing_accepted_case"]:
+        assert state == row["current205"]["state"]
+        action = "retain_existing_accepted_state_no_new_correction"
+    else:
+        assert state == row["current205"]["state"], (key, state, row["current205"])
+    sources = read(R / row["source_path"], row["source_sha256"])
+    source = next(x["report"] for x in sources if x["study_uid"] == row["study_uid"])
+    assert (state == "not_mentioned" and evidence == "") or (evidence and evidence in source)
+    out = {"case": row["case"], "study_uid": row["study_uid"], "target": row["target"], "source_path": row["source_path"], "source_sha256": row["source_sha256"], "root_frozen_state": frozen["state"], "root_frozen_evidence": frozen["evidence"], "root_postfreeze_state": state, "root_postfreeze_evidence": evidence, "root_state_reconsidered": state != frozen["state"], "root_quote_changed_after_comparison": evidence != frozen["evidence"], "action": action, "reason": reason, "existing_accepted_case": row["existing_accepted_case"]}
+    records.append(out)
+    if out["root_state_reconsidered"]:
+        recons.append(out)
+assert len(records) == 78 and len(recons) == 4 and len(assessments) == 20 and len(additional) == 9
+counts = dict(Counter(x["action"] for x in records))
+assert counts["accept_primary_proposal_pending_registry_integration"] == 18
+context = {"schema_version": 1, "agent_id": "/root", "session_id": "/root", "identity_kind": "codex_agent_task", "at_utc": datetime.now(timezone.utc).isoformat(), "source_reports_sha256": registry["source_reports_sha256"], "rubric_sha256": registry["rubric_sha256"], "root_source_freeze_sha256": sha(G / "complete-source-freeze.json"), "root_comparison_sha256": sha(G / "root-postfreeze-comparison.json"), "gold_values_inspected": False, "training_ready": False}
+exposure = "Root personally read all26 complete attention sources and froze78 judgments before this cartilage000 case comparison, with earlier full4407 and focused wording source/decision exposure disclosed. Root knew the earlier010:40 grading disagreement and primary-reference context. These four later reconsiderations follow open comparison and do not claim initial agreement or first-ever blindness. All earlier root and reader artifacts remain immutable."
+disposition_ref = save("root-postfreeze-dispositions.json", {**context, "stage": "root_explicit_postfreeze_adjudication", "exposure": exposure, "counts": counts, "records": records, "global_qa_gates_closed": 0, "production_registry_changed": False})
+save("root-state-reconsiderations.json", {**context, "stage": "separately_preserved_four_root_state_reconsiderations", "exposure": exposure, "records": recons})
+save("primary-independent-assessment.json", {**context, "stage": "independent_source_assessment", "root_dispositions_sha256": disposition_ref["sha256"], "proposal_sha256": sha(proposal_path), "exposure": exposure, "records": assessments, "new_acceptances_pending_registration": 18, "already_registered_exact_matches": 2})
+save("additional-proposed-errata.json", {**context, "stage": "root_additional_proposals_pending_distinct_assessment", "status": "proposed", "exposure": exposure, "root_dispositions_sha256": disposition_ref["sha256"], "n_changes": 9, "proposed_errata": additional, "production_registry_changed": False})
+print(json.dumps({"dispositions": disposition_ref, "counts": counts, "root_reconsiderations": len(recons), "additional_proposals": len(additional), "registry_changed": False}))

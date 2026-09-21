@@ -1,0 +1,60 @@
+"""Mechanical150-cell replay; no new clinical decisions."""
+import json,hashlib
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';AGENT='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_bytes())
+def jl(p):return [json.loads(x) for x in p.read_text().splitlines()]
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,d):
+ p=S/n
+ with p.open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+O=A/'cartilage-observed-004-independent-review-v1';F=A/'cartilage-observed-004-source-review-v1';D=A/'cartilage-observed-004-postfreeze-v1'
+for p,h in [(O/'source-freeze.json','d652bcdf82342d83ed78d09c53e78cc4e07622d6f84a9f35895ce4121168d1d0'),(O/'final-file-list.json','eac05f0c9e26f7ea4197574ec76521876d56bad2dd21b4974bd73d4738f81d8d')]:assert ref(p)['sha256']==h
+for e in obj(O/'final-file-list.json')['files']:assert ref(W/e['path'])==e
+packet=obj(O/'neutral-source-packet.json');own=jl(O/'independent-assessment.jsonl');first=jl(F/'source-assessment-frozen.jsonl');post=obj(D/'first-postfreeze-dispositions.json')['records'];base=obj(D/'own-source-vs-current-baseline.json')
+assert len(own)==len(first)==len(packet)==50 and len(post)==150
+target_order=['Medial OA','Lateral OA','PF OA'];post={(r['study_uid'],r['target']):r for r in post}
+registry=R/'initiative/reviews-v2/adjudications/registry.json';rr=ref(registry);reg=obj(registry);registered={};case_refs=[]
+for e in reg['cases']:
+ p=R/e['path'];assert ref(p)['sha256']==e['sha256'];c=obj(p);case_refs.append(ref(p))
+ for change in c['changes']:
+  k=change['study_uid'],change['target'];assert k not in registered;registered[k]={'case_id':c['id'],'case_file':ref(p),'change':change}
+assert len(registered)>=205
+historical={}
+for e in obj(D/'registry-at-comparison.json')['cases']:
+ p=R/e['path'];assert ref(p)['sha256']==e['sha256']
+ for c in obj(p)['changes']:
+  k=c['study_uid'],c['target'];assert k not in historical;historical[k]=c
+assert len(historical)==193
+originals={};records=[]
+for i,p in enumerate(packet):
+ assert first[i]['study_uid']==own[i]['study_uid']==p['study_uid']
+ assert obj(R/p['source_path'])[p['index']]=={'study_uid':p['study_uid'],'report':p['report']}
+ assert ref(R/p['source_path'])['sha256']==p['source_sha256']
+ for t,target in enumerate(target_order):
+  k=p['study_uid'],target;f=post[k];q=R/f['original_review_path']
+  assert ref(q)['sha256']==f['original_review_sha256']
+  if q not in originals:originals[q]={x['study_uid']:x for x in jl(q)}
+  oi=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture'].index(target)
+  orig={'state':originals[q][p['study_uid']]['states'][oi],'evidence':originals[q][p['study_uid']]['evidence'][oi]}
+  assert orig=={'state':f['original_state'],'evidence':f['original_evidence']}
+  h=historical.get(k);baseline=h['after'] if h else orig
+  assert baseline=={'state':f['baseline_effective_state'],'evidence':f['baseline_effective_evidence']}
+  e=registered.get(k);current=e['change']['after'] if e else orig
+  if e:assert e['change']['before']==orig
+  fs={'state':first[i]['states'][t],'evidence':first[i]['evidence'][t],'reason':first[i]['rationales'][t]}
+  assert fs['state']==f['own_frozen_state'] and fs['evidence']==f['own_frozen_evidence']
+  fp={'state':f['postfreeze_state'],'evidence':f['postfreeze_evidence'],'reason':f['postfreeze_reason'],'disposition':f['disposition']}
+  os={'state':own[i]['states'][t],'evidence':own[i]['evidence'][t],'reason':own[i]['target_reasoning'][t]}
+  anns=[orig,baseline,current,fs,fp,os]
+  for ann in anns:assert ann['evidence'] in p['report'] and bool(ann['evidence'])==(ann['state']!='not_mentioned')
+  records.append({'packet_index':i,'priority_index':200+i,'case':own[i]['case'],'study_uid':p['study_uid'],'target_index':t,'target':target,'source_path':p['source_path'],'source_index_zero_based':p['index'],'source_sha256':p['source_sha256'],'report_utf8_sha256':own[i]['report_utf8_sha256'],'original_review':ref(q),'original':orig,'baseline193':baseline,'current_effective':current,'current_registered_overlap':e,'changed_since193':current!=baseline,'first_source':fs,'first_postfreeze':fp,'second_source':os,'first_full_disposition':f,'source_state_agreement':fs['state']==os['state'],'state_attention':len({x['state'] for x in anns})>1,'evidence_attention':len({x['evidence'] for x in anns})>1})
+counts={'reports':50,'cells':150,'baseline_registered_changes':193,'current_registered_changes':len(registered),'current_overlap_cells':sum(bool(x['current_registered_overlap']) for x in records),'changed_since193':sum(x['changed_since193'] for x in records),'source_state_agreements':sum(x['source_state_agreement'] for x in records),'source_state_disagreements':sum(not x['source_state_agreement'] for x in records),'raw_state_attention':sum(x['state_attention'] for x in records),'raw_evidence_attention':sum(x['evidence_attention'] for x in records),'raw_union_cells':sum(x['state_attention'] or x['evidence_attention'] for x in records),'raw_union_reports':len({x['study_uid'] for x in records if x['state_attention'] or x['evidence_attention']})}
+inputs=[ref(p) for p in [A/'cartilage-observed-004-independent-provenance-clarification-v1/provenance-clarification.json',A/'cartilage-observed-004-independent-provenance-clarification-v1/final-file-list.json',O/'source-freeze.json',O/'independent-assessment.jsonl',O/'final-file-list.json',F/'source-freeze.json',F/'source-assessment-frozen.jsonl',D/'first-disposition-freeze.json',D/'first-postfreeze-dispositions.json',D/'proposed-errata.json',D/'own-source-vs-current-baseline.json',D/'registry-at-comparison.json',D/'completion-manifest.json']]
+assert ref(registry)==rr
+proof=write('registry-current-replay.json',{'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'current_registry':rr,'current_registry_cases':case_refs,'historical193_snapshot':ref(D/'registry-at-comparison.json'),'counts':counts,'all_original_and193_and_current_bindings_replayed':True,'original193_unchanged':True,'no_registry_changes':True,'repeat_at_integration_required':True,'records':[{'study_uid':x['study_uid'],'target':x['target'],'original':x['original'],'baseline193':x['baseline193'],'current_effective':x['current_effective'],'current_registered_overlap':x['current_registered_overlap'],'changed_since193':x['changed_since193']} for x in records]})
+out=write('complete-mechanical-comparison.json',{'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'inputs':inputs,'rubric':ref(R/'protocols/report_weak_v2.md'),'replay':ref(proof),'counts':counts,'records':records,'new_clinical_decisions_from_script':False})
+print(json.dumps({'counts':counts,'comparison':ref(out),'replay':ref(proof)},indent=2))

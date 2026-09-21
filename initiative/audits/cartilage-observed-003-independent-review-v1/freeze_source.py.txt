@@ -1,0 +1,114 @@
+"""Package explicit personally authored judgments; no automated clinical inference."""
+import hashlib
+import json
+import runpy
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+S = Path(__file__).resolve().parent
+W = S.parents[2]
+R = W / 'work/recovered'
+AGENT = '/root/last_twelve_visual_review'
+TARGETS = ['Medial OA', 'Lateral OA', 'PF OA']
+
+
+def obj(p):
+    return json.loads(p.read_bytes())
+
+
+def ref(p):
+    b = p.read_bytes()
+    return {'path': str(p.relative_to(W)), 'sha256': hashlib.sha256(b).hexdigest(), 'bytes': len(b)}
+
+
+def write(name, data):
+    p = S / name
+    with p.open('x') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+    return p
+
+
+packet = obj(S / 'neutral-source-packet.json')
+binding = obj(S / 'source-bindings-and-exposure.json')
+assert ref(S / 'neutral-source-packet.json')['sha256'] == 'e859dec3115721fedaf8888e30487d9fe685a76e05abe73c01fc17434f1cf523'
+assert ref(R / 'protocols/report_weak_v2.md')['sha256'] == '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+assert not binding['exact_neutral_packet_overlaps']
+rows = {}
+helpers = sorted(S.glob('decisions_*.py'))
+for p in helpers:
+    d = runpy.run_path(str(p))['ROWS']
+    assert not rows.keys() & d.keys()
+    rows.update(d)
+assert set(rows) == set(range(50))
+out = []
+checks = []
+for i, p in enumerate(packet):
+    assert len(rows[i]) == 3
+    source = R / p['source_path']
+    assert ref(source)['sha256'] == p['source_sha256']
+    assert obj(source)[p['index']] == {'study_uid': p['study_uid'], 'report': p['report']}
+    b = binding['bindings'][i]
+    assert b['study_uid'] == p['study_uid'] and b['priority_position_zero_based'] == 150 + i
+    assert b['report_utf8_sha256'] == hashlib.sha256(p['report'].encode()).hexdigest()
+    for t, (state, quote, reason) in enumerate(rows[i]):
+        assert state in ['positive', 'negative', 'uncertain', 'not_mentioned']
+        assert bool(quote) == (state != 'not_mentioned') and quote in p['report']
+        assert isinstance(reason, str) and reason.strip() and 'PLACEHOLDER' not in reason
+        checks.append({'packet_index': i, 'study_uid': p['study_uid'], 'target': TARGETS[t], 'quote_start_character': p['report'].find(quote) if quote else None, 'quote_characters': len(quote), 'quote_utf8_sha256': hashlib.sha256(quote.encode()).hexdigest() if quote else None, 'exact_contiguous_or_missing_empty': True})
+    out.append({'agent_id': AGENT, 'packet_index': i, 'priority_position_zero_based': 150 + i, 'case': f"{p['batch']}:{p['index']}", 'study_uid': p['study_uid'], 'source_path': p['source_path'], 'source_sha256': p['source_sha256'], 'source_index_zero_based': p['index'], 'report_utf8_sha256': b['report_utf8_sha256'], 'target_order': TARGETS, 'states': [x[0] for x in rows[i]], 'evidence': [x[1] for x in rows[i]], 'target_reasoning': [x[2] for x in rows[i]], 'prior_exact_packet_overlap': [], 'notes': 'Personally authored full-source OA-only pass with historical context disclosed. No first cartilage003 findings or fresh current003 annotations opened before freeze. Unintegrated source assessment only.'})
+assert len(out) == 50 and len({x['study_uid'] for x in out}) == 50 and len(checks) == 150
+assessment = S / 'independent-assessment.jsonl'
+with assessment.open('x') as f:
+    for r in out:
+        f.write(json.dumps(r, ensure_ascii=False) + '\n')
+addendum = write('exposure-and-authoring-clarification.json', {
+    'agent_id': AGENT,
+    'at_utc': datetime.now(timezone.utc).isoformat(),
+    'prior_context': 'This pass followed completion of cartilage002 postfreeze comparison, which replayed the first118 baseline and current193 then205 registry. Other reader interpretations and my reconsiderations about grade/depth, localization, qualified normality and extent were already known from that disjoint batch and cartilage000/001/focused001/002 work. Technical report/header/visual and correspondence inventory exposure remains as described in preparation. This is not first-ever blinding or a feedback-free conceptual reading.',
+    'exact_overlap_scope': 'Zero exact UID overlap with the five explicitly checked prior neutral source packets: focused001, focused002, cartilage000, cartilage001 and cartilage002. Those five packets are individually bound in preparation. This does not claim every earlier technical inventory or historical contextual exposure is exhaustively absent.',
+    'access_in_this_pass': 'Only neutral cartilage003 source content, neutral priority150–199 source packets, prior neutral UID membership, own earlier mechanical packaging helpers and own newly authored decisions were read for this pass. First003 stage filenames were listed, but source-assessment/postfreeze/current003 case findings were not opened. The frozen rubric was reread. Repo AGENTS was reread; broad changing case-status documents were not reopened because this bounded pass expressly excludes current findings.',
+    'personal_authoring': 'All50 complete original reports were personally read, then all150 OA decisions were authored explicitly in five ten-report helper files. Code packages those decisions and checks bindings/quotes only. Every first quotation check passed. No state changes or source-text repairs were performed during mechanical validation.',
+    'contextual_source_interpretation': 'Where a report explicitly pairs cartilage low/high grades with less/more than half thickness, source reasoning may use that report-internal definition with the full defining passage quoted. This is an authored source interpretation, not a generated grade mapping. Literal corrupted tokens are preserved and never repaired.',
+    'chronology_limit': 'Recorded timestamps and attestations describe the workflow; they do not independently prove past access order.',
+    'unintegrated_only': True,
+})
+validation = write('validation.json', {
+    'agent_id': AGENT, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'reports': 50, 'judgments': 150, 'target_order': TARGETS,
+    'priority_positions': [150, 199],
+    'all_original_source_hash_index_uid_and_report_bindings_match': True,
+    'all_report_utf8_hashes_match': True,
+    'all150_unique_judgments_have_individual_reasoning': True,
+    'all_nonmissing_evidence_contiguous_and_missing_empty': True,
+    'rubric': ref(R / 'protocols/report_weak_v2.md'),
+    'exact_prior_overlap_reports': 0, 'overlap_scope': binding['prior_neutral_sources'],
+    'checks': checks, 'no_automated_clinical_inference': True,
+    'no_first_cartilage003_or_current003_annotation_access_in_this_pass': True,
+})
+freeze = write('source-freeze.json', {
+    'stage': 'cartilage_observed003_second_full_source_50_reports_150_OA_targets_v1',
+    'agent_id': AGENT, 'session_id': AGENT,
+    'identity_note': 'Canonical collaboration agent/session identity; no separate UUID supplied or invented.',
+    'at_utc': datetime.now(timezone.utc).isoformat(),
+    'rubric_version': 'report-weak-v2.0', 'rubric': ref(R / 'protocols/report_weak_v2.md'),
+    'reports': 50, 'judgments': 150, 'priority_positions': [150, 199], 'target_order': TARGETS,
+    'source_packet': ref(S / 'neutral-source-packet.json'),
+    'source_and_exposure_bindings': ref(S / 'source-bindings-and-exposure.json'),
+    'exposure_clarification': ref(addendum), 'assessment': ref(assessment), 'validation': ref(validation),
+    'authored_helpers': [ref(p) for p in helpers], 'packaging_helper': ref(Path(__file__)),
+    'state_counts': dict(Counter(x[0] for r in rows.values() for x in r)),
+    'personal_reading_attestation': 'I, /root/last_twelve_visual_review, personally read all50 complete original reports and authored all150 OA judgments with individual reasoning and exact contiguous evidence. Code packages explicit decisions and validates source bindings only; it does not infer labels.',
+    'exposure_attestation': 'Historical focused, cartilage and technical source/context exposure is disclosed. No first cartilage003 case findings or fresh current003 annotations were opened before this freeze. Zero exact report overlap was found within the five explicitly bound prior neutral packets. This is not a first-ever blindness claim.',
+    'scope_limit': 'Only three OA targets per report; no600-target pass, image reread, registry action, policy acceptance or global QA closure. All source decisions remain unintegrated.',
+    'chronology_limit': 'Recorded timestamps and attestations do not prove past access order.',
+    'no_repository_registry_runtime_or_gold_changes': True,
+    'case_findings_withheld_pending_root_authorization': True,
+})
+manifest = write('final-file-list.json', {'agent_id': AGENT, 'files': [ref(p) for p in sorted(S.rglob('*')) if p.is_file()], 'self_excluded': True})
+items = obj(manifest)['files']
+assert {x['path'] for x in items} == {str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p != manifest}
+for item in items:
+    assert ref(W / item['path']) == item
+print(json.dumps({'reports': 50, 'judgments': 150, 'freeze': ref(freeze), 'assessment': ref(assessment), 'validation': ref(validation), 'manifest': ref(manifest), 'files_bound': len(items)}, indent=2))

@@ -1,0 +1,113 @@
+"""Package nine explicit authored judgments; validate traceability, never infer labels."""
+import hashlib
+import json
+import runpy
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+S = Path(__file__).resolve().parent
+W = S.parents[2]
+R = W / 'work/recovered'
+AGENT = '/root/last_twelve_visual_review'
+TARGETS = ['Medial OA', 'Lateral OA', 'PF OA']
+
+
+def read(path):
+    return json.loads(path.read_bytes())
+
+
+def ref(path):
+    b = path.read_bytes()
+    return {'path': str(path.relative_to(W)), 'sha256': hashlib.sha256(b).hexdigest(), 'bytes': len(b)}
+
+
+def write(name, value):
+    path = S / name
+    with path.open('x') as f:
+        json.dump(value, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+    return path
+
+
+packet = read(S / 'neutral-source-packet.json')
+binding = read(S / 'source-bindings-and-exposure.json')
+rubric = R / 'protocols/report_weak_v2.md'
+assert ref(S / 'neutral-source-packet.json')['sha256'] == '7acc46d1aa0d927927087faf28dd4924d4b7135f4f5faf5eaa2fa98cb7ba0174'
+assert (S / 'neutral-source-packet.json').read_bytes() == (W / binding['source_packet']['path']).read_bytes()
+assert ref(rubric)['sha256'] == '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+rows = runpy.run_path(str(S / 'authored_judgments.py'))['ROWS']
+assert set(rows) == set(range(3)) and len(packet) == 3
+out, checks = [], []
+for i, p in enumerate(packet):
+    b = binding['bindings'][i]
+    source = R / p['source_path']
+    assert ref(source)['sha256'] == p['source_sha256']
+    assert read(source)[p['source_index_zero_based']] == {'study_uid': p['study_uid'], 'report': p['report']}
+    assert b['study_uid'] == p['study_uid'] and b['source_index_zero_based'] == p['source_index_zero_based']
+    assert b['report_utf8_sha256'] == hashlib.sha256(p['report'].encode()).hexdigest()
+    assert len(rows[i]) == 3
+    for target, (state, quote, reason) in zip(TARGETS, rows[i]):
+        assert state in {'positive', 'negative', 'uncertain', 'not_mentioned'}
+        assert bool(quote) == (state != 'not_mentioned') and quote in p['report']
+        assert reason.strip() and 'PLACEHOLDER' not in reason
+        checks.append({'packet_index': i, 'study_uid': p['study_uid'], 'target': target,
+                       'quote_start_character': p['report'].find(quote) if quote else None,
+                       'quote_characters': len(quote),
+                       'quote_utf8_sha256': hashlib.sha256(quote.encode()).hexdigest() if quote else None,
+                       'exact_contiguous_or_missing_empty': True})
+    out.append({'agent_id': AGENT, 'packet_index': i,
+                'case': f"{Path(p['source_path']).stem.removeprefix('batch-')}:{p['source_index_zero_based']}",
+                'study_uid': p['study_uid'], 'source_path': p['source_path'],
+                'source_sha256': p['source_sha256'], 'source_index_zero_based': p['source_index_zero_based'],
+                'report_utf8_sha256': b['report_utf8_sha256'], 'target_order': TARGETS,
+                'states': [x[0] for x in rows[i]], 'evidence': [x[1] for x in rows[i]],
+                'target_reasoning': [x[2] for x in rows[i]],
+                'prior_exact_packet_overlap': [x for x in binding['exact_overlaps'] if x['packet_index'] == i],
+                'notes': 'Current personally authored source-only OA pass with historical exposure and one prior exact clinical/source overlap disclosed. No fresh legacy registry/case findings personally opened before this freeze. Unintegrated opinion only.'})
+assert len({x['study_uid'] for x in out}) == 3 and len(checks) == 9
+assessment = S / 'independent-assessment.jsonl'
+with assessment.open('x') as f:
+    for row in out:
+        f.write(json.dumps(row, ensure_ascii=False) + '\n')
+validation = write('validation.json', {
+    'agent_id': AGENT, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'reports': 3, 'judgments': 9, 'target_order': TARGETS,
+    'all_original_source_hash_index_uid_and_report_bindings_match': True,
+    'all_report_utf8_hashes_match': True, 'all9_unique_judgments_have_individual_reasoning': True,
+    'all_nonmissing_evidence_contiguous_and_missing_empty': True, 'rubric': ref(rubric),
+    'exact_prior_overlap_reports': 1, 'prior_neutral_source_bindings': binding['prior_neutral_source_bindings'],
+    'checks': checks, 'no_automated_clinical_inference': True,
+    'initial_mechanical_attempt': 'The first packaging attempt stopped at a mistyped rubric-hash constant before writing assessment or freeze outputs. The constant was corrected to the unchanged supplied rubric hash; no source or clinical decisions changed.',
+    'source_reread_after_context_compaction': 'All three complete neutral reports and the complete unchanged rubric were personally reread before packaging. Existing explicitly authored nine decisions were retained without state/evidence revisions. No fresh legacy case findings were opened.',
+    'historical_exposure': binding['historical_exposure'],
+    'mechanical_registry_exposure': binding['mechanical_registry_exposure'],
+    'chronology_limit': binding['chronology_limit'],
+})
+freeze = write('source-freeze.json', {
+    'stage': 'cartilage_legacy_three_independent_full_source_3_reports_9_OA_targets_v1',
+    'agent_id': AGENT, 'session_id': AGENT,
+    'identity_note': 'Canonical collaboration agent/session identity; no separate UUID supplied or invented.',
+    'at_utc': datetime.now(timezone.utc).isoformat(),
+    'rubric_version': 'report-weak-v2.0', 'rubric': ref(rubric),
+    'reports': 3, 'judgments': 9, 'target_order': TARGETS,
+    'source_packet': ref(S / 'neutral-source-packet.json'),
+    'source_and_exposure_bindings': ref(S / 'source-bindings-and-exposure.json'),
+    'assessment': ref(assessment), 'validation': ref(validation),
+    'authored_helper': ref(S / 'authored_judgments.py'), 'packaging_helper': ref(Path(__file__)),
+    'state_counts': dict(Counter(x[0] for r in rows.values() for x in r)),
+    'personal_reading_attestation': 'I, /root/last_twelve_visual_review, personally read all three complete original reports and authored all nine OA judgments with individual reasoning and exact contiguous evidence. The code only packages explicit decisions and validates their bindings.',
+    'exposure_attestation': binding['historical_exposure'],
+    'mechanical_registry_exposure': binding['mechanical_registry_exposure'],
+    'access_in_this_pass': 'No fresh legacy registry or case findings were personally read before this freeze. The recognized report overlap and remembered clinical context were disclosed before judgment packaging. This is neither first-ever blinding nor a claim of no prior process access to registry bytes.',
+    'scope_limit': 'Nine OA-only judgments. No new clinical acceptance, retirement, replacement, registry modification, image reread, gold access or global QA closure. Opinions remain unintegrated.',
+    'chronology_limit': binding['chronology_limit'],
+    'no_repository_registry_runtime_or_gold_changes': True,
+    'case_findings_withheld_pending_root_authorization': True,
+})
+manifest = write('final-file-list.json', {'agent_id': AGENT, 'files': [ref(p) for p in sorted(S.rglob('*')) if p.is_file()], 'self_excluded': True})
+items = read(manifest)['files']
+assert {x['path'] for x in items} == {str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p != manifest}
+for item in items:
+    assert ref(W / item['path']) == item
+print(json.dumps({'reports': 3, 'judgments': 9, 'freeze': ref(freeze), 'assessment': ref(assessment), 'validation': ref(validation), 'manifest': ref(manifest), 'files_bound': len(items)}, indent=2))

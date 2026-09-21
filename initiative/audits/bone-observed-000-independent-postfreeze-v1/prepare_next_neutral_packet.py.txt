@@ -1,0 +1,38 @@
+"""Project next50 priority UIDs without inspecting target/state/trigger values.
+
+The stored priority file is read as bytes for hashing and a narrow study_uid-key
+projection. It is not parsed into annotation records and no annotation field is
+selected, displayed, or used. Future reviewers must still disclose this mechanical
+selection exposure and any historical exact-source overlaps.
+"""
+import hashlib,json,re
+from pathlib import Path
+P=Path(__file__).resolve().parent;W=P.parents[2];D=P.parent;G=D/'bone-global-candidate-inventory-v1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p):return json.loads(p.read_text())
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(name,obj):
+ with(P/name).open('x')as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+def main():
+ original=D/'bone-observed-000-independent-review-v1/neutral-source-packet.json';assert sha(original)=='0f8b0e53d04442a97d8b9b6e9f50d899e3f5d38a40d479f865f89a42c4e9d79c';old=read(original)
+ index=G/'neutral-packet-index.json';assert sha(index)=='7fdd0be904ae6972e4e12a70cd602de5638259bf332757302cbd0aa0f882eb65'
+ priority=G/'priority-queue.json';assert sha(priority)==old['selection_provenance']['priority_queue_sha256']=='de068ba5edc97a9e0a1d0b66e75cf376ef2a1ae2856fd1cff833019756fb7407'
+ # Consume only UID key/value pairs; no target, state, evidence, or trigger lookup.
+ raw_uids=re.findall(r'"study_uid"\s*:\s*"([^"\\]+)"',priority.read_text())
+ uids=list(dict.fromkeys(raw_uids));assert len(uids)>=100
+ assert uids[:50]==[r['study_uid']for r in old['reports']]
+ next_uids=uids[50:100];assert len(next_uids)==len(set(next_uids))==50 and not(set(next_uids)&set(uids[:50]))
+ found={};refs=[]
+ for e in read(index)['packets']:
+  path=G/e['path'];assert sha(path)==e['sha256'];content=read(path);reports=content['reports']if isinstance(content,dict)else content
+  matches=[r for r in reports if r['study_uid']in set(next_uids)]
+  if matches:refs.append(bind(path))
+  for r in matches:
+   assert set(r)=={'study_uid','source_path','source_sha256','source_index_zero_based','report_sha256','report'};assert r['study_uid']not in found
+   source=W/'work/recovered'/r['source_path'];assert sha(source)==r['source_sha256'];assert read(source)[r['source_index_zero_based']]=={'study_uid':r['study_uid'],'report':r['report']};assert hashlib.sha256(r['report'].encode()).hexdigest()==r['report_sha256'];found[r['study_uid']]=r
+  if len(found)==50:break
+ assert set(found)==set(next_uids)
+ write('next-bone001-neutral-source-packet.json',{'schema_version':1,'scope':'Next50 distinct reports in frozen observed-bone priority order, zero-based positions50–99; assess Contusion and Fracture from complete sources before annotations.','selection_provenance':{'priority_queue_sha256':sha(priority),'neutral_packet_index':bind(index),'prior_bone000_neutral_packet':bind(original),'method':'Narrow study_uid-key extraction only, with exact first50 prefix equality checked; no target/state/evidence/trigger field was selected or displayed. The priority bytes were read by code, and this mechanical selection exposure must be disclosed.','neutral_input_packets':refs,'target_state_annotation_fields_selected_or_displayed':False},'rubric_sha256':read(index)['rubric_sha256'],'reports':[found[uid]for uid in next_uids]})
+ write('next-bone001-identification.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','next_neutral_packet':bind(P/'next-bone001-neutral-source-packet.json'),'reports':50,'bone_cells_for_future_source_pass':100,'priority_positions_zero_based':[50,99],'previous_bone000_uid_overlap':0,'no_clinical_source_judgments_for_new_packet_authored_yet':True,'future_annotations_or_reader_findings_opened':False,'mechanical_exposure':'Priority file bytes were hashed and scanned only for study_uid key/value pairs. No annotation field was parsed, selected, displayed or used; full neutral reports were mechanically matched and source hashes checked. This is not a claim of no process-level access to the priority file.','no_priority_or_original_files_changed':True,'helper':bind(Path(__file__).resolve())})
+ print(json.dumps({'next_packet_sha256':sha(P/'next-bone001-neutral-source-packet.json'),'identification_sha256':sha(P/'next-bone001-identification.json'),'reports':50,'neutral_input_packet_count':len(refs)},indent=2))
+if __name__=='__main__':main()

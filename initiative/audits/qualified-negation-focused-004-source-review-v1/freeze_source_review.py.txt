@@ -1,0 +1,78 @@
+"""Validate and freeze the personally authored source judgments before comparison."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib
+import json
+
+S = Path(__file__).resolve().parent
+ns = {'__file__':str(S/'author_source_review.py'),'__name__':'source_authoring'}
+for name in ['author_source_review.py','author_part2.py','author_part3.py','author_part4.py']:
+    exec(compile((S/name).read_text(),str(S/name),'exec'),ns)
+W,R,records,sources = (ns[x] for x in ['W','R','records','sources'])
+assert len(records)==50 and sum(len(x['states']) for x in records)==600
+
+def ref(p):
+    data=p.read_bytes()
+    return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)}
+
+def save(name,obj):
+    with (S/name).open('x') as f:
+        f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+
+rubric=R/'protocols/report_weak_v2.md'
+assert ref(rubric)['sha256']==ns['RUBRIC_SHA']
+prior_paths=[
+    'qualified-negation-focused-000-source-review-v1/source-assessment-frozen.json',
+    'qualified-negation-focused-001-source-review-v1/source-assessment-frozen.json',
+    'qualified-negation-focused-002-source-review-v1/source-assessment-frozen.json',
+    'qualified-negation-focused-003-source-review-v1/source-assessment-frozen.json',
+    'bone-observed-000-source-review-v1/source-assessment.json',
+    'independent-duplicate-assessment-v1/source-preread-frozen.json',
+    'qualified-negation-focused-001-additional-independent-v1/preproposal-reread-frozen.json',
+]
+uids={r['study_uid'] for r in records}
+def exact_strings(value):
+    if isinstance(value,str):
+        yield value
+    elif isinstance(value,dict):
+        for v in value.values(): yield from exact_strings(v)
+    elif isinstance(value,list):
+        for v in value: yield from exact_strings(v)
+overlap=[]
+for name in prior_paths:
+    p=W/'work/annotation-staging'/name
+    old=json.loads(p.read_text())
+    matched=uids & set(exact_strings(old))
+    overlap.append({'prior_source_freeze':ref(p),'overlapping_sources':[{'study_uid':r['study_uid'],'batch':r['batch'],'index':r['index']} for r in records if r['study_uid'] in matched], 'n_overlap':len(matched),'access_for_this_disclosure':'Extracted UID strings and artifact hashes only; did not display prior clinical judgments.'})
+exposure={
+    'agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review',
+    'role':'First focused004 source assessor; not a new distinct agent from this identity’s earlier work.',
+    'disclosure':'I authored the all4407 qualified-negation and bone discovery inventories, so I have historical exposure to rule logic, aggregate counts and some case-specific snippets/states. Those discovery stages programmatically inspected all original/effective annotation artifacts. I personally read and compared focused000–003, the first50 bone reports, nine duplicate-consistency reports, and additional001 proposals plus the separate grading issue. Historical conversation was compacted: exact incidental discovery snippets cannot all be reconstructed, so this pass is not claimed to be first-ever source blindness. I have not opened focused004 original/current annotations or its candidate details in this source-first pass. Prior conceptual exposure includes qualified negation, incomplete cartilage grade/extent, marrow cause/acuity, and retained disagreements.',
+    'previous_source_freezes_and_exact_uid_overlap':overlap,
+    'source_first_scope':'Every complete neutral004 original was personally read before authoring/finalizing its twelve judgments; all600 are frozen before this batch’s current comparison.',
+    'not_an_independent_second_reader_of_own_prior_batches':True,
+    'gold_values_opened':False,'rubric_changed':False,
+}
+save('historical-exposure.json',exposure)
+validation_rows=[]
+for row,source in zip(records,sources,strict=True):
+    p=R/source['source_path']; original=json.loads(p.read_text())[source['index']]
+    assert row['study_uid']==source['study_uid']==original['study_uid']
+    assert original['report']==source['report']
+    assert ref(p)['sha256']==source['source_sha256']
+    assert len(row['states'])==len(row['evidence'])==len(row['rationales'])==12
+    checks=[]
+    for t,state,quote,reason in zip(ns['TARGETS'],row['states'],row['evidence'],row['rationales'],strict=True):
+        assert state in ns['STATES'].values() and reason
+        assert (not quote) if state=='not_mentioned' else (bool(quote) and quote in original['report'])
+        checks.append({'target':t,'nonmissing':state!='not_mentioned','exact_contiguous_quote':bool(quote),'empty_evidence_only_if_not_mentioned':True})
+    validation_rows.append({'packet_ordinal':row['packet_ordinal'],'study_uid':row['study_uid'],'batch':row['batch'],'index':row['index'],'source_file':ref(p),'report_sha256':row['report_sha256'],'exact_original_uid_and_report':True,'target_checks':checks})
+save('source-binding-validation.json',{'schema_version':1,'agent_id':exposure['agent_id'],'n_reports':50,'n_target_judgments':600,'all_source_hashes_original_indices_uids_and_reports_exact':True,'all_evidence_valid':True,'rows':validation_rows})
+save('neutral-packet-reference.json',{'packet':ref(ns['PACKET']),'n_complete_reports':50,'contains_current_or_proposed_states':False,'copied_again':False})
+frozen_at=datetime.now(timezone.utc).isoformat()
+save('source-assessment-frozen.json',{'schema_version':1,'stage':'first_focused004_source_assessment_frozen_before_case_comparison','agent_id':exposure['agent_id'],'session_id':exposure['session_id'],'frozen_at_utc':frozen_at,'rubric':ref(rubric),'neutral_source_packet':ref(ns['PACKET']),'targets':ns['TARGETS'],'historical_exposure':ref(S/'historical-exposure.json'),'judgment_count':600,'reports':records,'code_role':'Assemble explicitly authored per-report/per-target decisions and validate source substrings; no keyword classification.','training_ready':False,'adjudication_registration':False})
+counts=dict(Counter(s for r in records for s in r['states']))
+save('source-freeze-receipt.json',{'schema_version':1,'agent_id':exposure['agent_id'],'session_id':exposure['session_id'],'frozen_at_utc':frozen_at,'assessment':ref(S/'source-assessment-frozen.json'),'binding_validation':ref(S/'source-binding-validation.json'),'historical_exposure':ref(S/'historical-exposure.json'),'packet':ref(ns['PACKET']),'rubric':ref(rubric),'n_reports':50,'n_targets_per_report':12,'n_judgments':600,'state_counts':counts,'original_current_candidate_details_opened_for_this_pass_before_freeze':False,'prior_exposure_disclosed':True,'source_judgments_must_remain_immutable':True})
+save('source-phase-manifest.json',{'schema_version':1,'agent_id':exposure['agent_id'],'files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'phase':'source_freeze_complete; later comparison artifacts must be separate and preserve these bytes'})
+print(json.dumps({'source_freeze':ref(S/'source-assessment-frozen.json'),'receipt':ref(S/'source-freeze-receipt.json'),'manifest':ref(S/'source-phase-manifest.json'),'state_counts':counts,'prior_exact_source_uid_overlaps':[{'stage':x['prior_source_freeze']['path'].split('/')[-2],'n':x['n_overlap']} for x in overlap]},indent=2))

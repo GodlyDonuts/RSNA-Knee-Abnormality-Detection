@@ -2,17 +2,20 @@
 
 ## Current corrective run
 
-The clinical correction registry now contains 205 accepted changes. The latest
-87 come from the second focused wording batch: 75 primary proposals and twelve
-additional changes accepted by a distinct assessor. Root read all 50 full sources
-and froze 600 judgments before case-specific reader findings. The changes mask
-74 unsupported negatives and three insufficiently specified positives, clarify
-six already-masked states, and improve four quotations without changing state.
-All 118 previous corrections and 297 protected artifacts remain unchanged.
-One cartilage grading disagreement remains pending after separate literature
-review; neither opinion is registered as a new accepted correction. See
-[adjudications.md](adjudications.md). The three global semantic QA gates remain
-pending; inventories and later source passes do not close them.
+The registry now contains229 active corrections. Cartilage000 contributes27 new
+accepted changes after root's26 full-source reads/78 OA judgments and a distinct
+assessment of nine additional proposals. Two exact proposals were already covered.
+A separate independent full-source review retires the earlier three-change
+morphology case, restoring its exact original uncertain PF annotations. The original
+wrapper and all earlier proposal/assessment/decision files remain archived. No
+no-op replacement correction was created. All other220 corrections survive the
+retirement unchanged, and the nine additional proposals preserve those220 exactly.
+
+All78 final root cartilage000 states match inspection, and54 identical-report
+groups/204 studies have zero conflicting target states. The earlier010:40 grading
+disagreement is separately resolved while its minority opinion remains preserved.
+See [adjudications.md](adjudications.md). The three global semantic QA gates remain
+pending; completed inventories or priority subsets do not close them.
 
 The required correspondence registry enforces 18 whole-study report-supervision
 exclusions. The latest is 069:10, accepted independently from its full RIGHT

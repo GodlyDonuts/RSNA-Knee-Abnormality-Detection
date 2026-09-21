@@ -1,0 +1,125 @@
+"""Execute an independently accepted whole-case retirement, preserving its history."""
+import hashlib
+import importlib.util
+import json
+import shutil
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from dotenv import dotenv_values
+
+W = Path(__file__).resolve().parents[1]
+R = W / "work/recovered"
+S = W / "work/annotation-staging"
+A = R / "initiative/audits/cartilage-legacy-three-retirement-integration-v1"
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p): return {"path": str(p.relative_to(R)), "sha256": sha(p)}
+def read(p, expected=None):
+    if expected: assert sha(p) == expected, p
+    return json.loads(p.read_text())
+def save(p, value):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("x") as f: f.write(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    return bind(p)
+
+registry_path = R / "initiative/reviews-v2/adjudications/registry.json"
+registry = read(registry_path, "9cdea4aa554c2f7059dd1d84eb481dc012f483a3922710b78755b74b7553249f")
+case_path = R / "initiative/reviews-v2/adjudications/cases/cartilage-morphology-004-088.json"
+case = read(case_path, "fbdeadf26ee8f2c9421a2d6869fe041c5c58f41783439e1be2b6512c8b8c5a3f")
+qa_path = R / "initiative/reviews-v2/adjudications/qa/cartilage-consistency.json"
+qa = read(qa_path, "dbcae193ad9046126fb489843d96f6753cb8889c0642184fa2e90cf769e732ee")
+assessment_path = S / "cartilage-legacy-three-independent-retirement-assessment-v1/independent-retirement-assessment.json"
+assessment = read(assessment_path, "7701e2f93c061b22baa7c524b5c26b59128c9acf95b2080f67ace85cf4d30338")
+assert assessment["agent_id"] == assessment["session_id"] == "/root/last_twelve_visual_review"
+assert assessment["proposer_agent_id"] == "/root"
+assert assessment["whole_case_retirement_assessment"] == "accepted"
+assert assessment["accepted_retirements"] == 3 and assessment["held_retirements"] == assessment["rejected_retirements"] == 0
+for field in ["legacy_case", "root_reconsideration", "source_freeze", "complete_nine_cell_comparison", "own_reconsiderations", "binding_proof"]:
+    ref = assessment[field]
+    assert sha(W / ref["path"]) == ref["sha256"]
+reports = {row["study_uid"]: row["report"] for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")) for row in read(p)}
+reviews = {row["study_uid"]: row for p in sorted((R / "initiative/reviews-v2/reviewed").glob("*.jsonl")) for row in map(json.loads, p.read_text().splitlines())}
+before = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+assert before["n_changes"] == 223 and len(before["pending_semantic_qa"]) == 3
+before_map = {(c["study_uid"], c["target"]): c for c in before["changes"]}
+retired = {(c["study_uid"], c["target"]): c for c in case["changes"]}
+assessed = {(c["study_uid"], c["target"]): c for c in assessment["records"]}
+assert len(retired) == 3 and set(retired) == set(assessed)
+for key, c in retired.items():
+    a = assessed[key]
+    assert a["retirement_assessment"] == "accepted" and a["final_state"] == "uncertain"
+    assert key[1] == "PF OA" and before_map[key]["case_id"] == case["id"]
+    assert a["current223_annotation"] == c["after"] == before_map[key]["after"]
+    original = {"state": reviews[key[0]]["states"][TARGETS.index(key[1])], "evidence": reviews[key[0]]["evidence"][TARGETS.index(key[1])]}
+    assert original == c["before"] == a["original_annotation"] == a["restored_annotation_if_retired"]
+    assert original["state"] == "uncertain" and original["evidence"] in reports[key[0]]
+    for f in ["source", "original_review"]: assert sha(W / a[f]["path"]) == a[f]["sha256"]
+    assert hashlib.sha256(reports[key[0]].encode()).hexdigest() == a["report_utf8_sha256"]
+protected = {}
+for folder in ["initiative/reviews/inputs", "initiative/reviews-v2/reviewed", "initiative/reviews-v2/drafts", "initiative/source", "initiative/reviews-v2/adjudications/cases", "initiative/reviews-v2/adjudications/qa"]:
+    for p in (R / folder).rglob("*"):
+        if p.is_file() and p not in {case_path, qa_path}: protected[str(p.relative_to(R))] = sha(p)
+protected["protocols/report_weak_v2.md"] = sha(R / "protocols/report_weak_v2.md")
+for field in ["proposal", "independent_assessment", "decision"]:
+    ref = case[field]; assert sha(R / ref["path"]) == ref["sha256"]
+    protected[ref["path"]] = ref["sha256"]
+
+# Archive only completed bound source/assessment files; validate before writing.
+entries = {}
+for name, digest in [
+    ("cartilage-legacy-three-independent-review-v1", "23de2e9e8ec76d440c02fdec44c3af468107d6d8e6946a6e6201c9b32691c85e"),
+    ("cartilage-legacy-three-independent-retirement-assessment-v1", "9628cfb0bdc7f49db13d5cc04790530cc2c4283304a0d74635a0325e046ebb95"),
+]:
+    manifest = S / name / "final-file-list.json"
+    d = read(manifest, digest); entries[manifest] = digest
+    for ref in d["files"]:
+        p = W / ref["path"]; assert p.is_relative_to(S) and sha(p) == ref["sha256"]
+        entries[p] = ref["sha256"]
+root_folder = S / "cartilage-legacy-three-neutral-v1"
+for p in root_folder.iterdir():
+    if p.is_file(): entries[p] = sha(p)
+assert sha(root_folder / "root-three-source-review.json") == "6a096f5bab2d268bf4947f4e21a228271abd834aa7c0becd142e19508d24f744"
+assert not A.exists() and all(not (R / "initiative/audits" / p.relative_to(S)).exists() for p in entries)
+assert shutil.disk_usage(W).free - sum(p.stat().st_size for p in entries) > 20 * 2**30
+secrets = [v.encode() for k,v in dotenv_values(W / ".env").items() if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+spec = importlib.util.spec_from_file_location("retirement_scanner", S / "checkpoint-delta-helper-v2-v1/checkpoint_delta.py")
+mod = importlib.util.module_from_spec(spec); sys.modules[spec.name] = mod; spec.loader.exec_module(mod)
+for p,h in entries.items():
+    assert sha(p) == h; mod.Scanner(secrets).feed(p.read_bytes())
+copies = []
+for p,h in entries.items():
+    dest = R / "initiative/audits" / p.relative_to(S)
+    if dest.suffix == ".py": dest = dest.with_suffix(".py.txt")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with dest.open("xb") as f: f.write(p.read_bytes())
+    assert sha(dest) == h
+    copies.append({"original_path": str(p.relative_to(W)), **bind(dest), "bytes": dest.stat().st_size})
+save(A / "preservation.json", {"stage": "whole_case_retirement_source_and_independent_assessment_preservation", "agent_id": "/root", "files": copies})
+for p,name in [(registry_path, "registry-before223.json"), (qa_path, "cartilage-qa-before.json"), (case_path, "retired-case-original.json")]:
+    with (A / name).open("xb") as f: f.write(p.read_bytes())
+save(A / "inspection-before223.json", before)
+archived_assessment = R / "initiative/audits/cartilage-legacy-three-independent-retirement-assessment-v1/independent-retirement-assessment.json"
+decision = {"schema_version": 1, "stage": "explicit_independently_accepted_whole_case_retirement", "status": "accepted", "agent_id": "/root", "session_id": "/root", "proposer_agent_id": "/root", "independent_assessor_agent_id": "/root/last_twelve_visual_review", "at_utc": datetime.now(timezone.utc).isoformat(), "source_reports_sha256": registry["source_reports_sha256"], "rubric_sha256": registry["rubric_sha256"], "retired_case_id": case["id"], "retired_case_original": bind(A / "retired-case-original.json"), "original_case_decision": case["decision"], "root_reconsideration": bind(R / "initiative/audits/cartilage-legacy-three-neutral-v1/root-three-source-review.json"), "independent_retirement_assessment": bind(archived_assessment), "prior_registry": bind(A / "registry-before223.json"), "retired_corrections": 3, "restored_original_annotations": [{"study_uid": k[0], "target": k[1], "withdrawn_annotation": c["after"], "restored_annotation": c["before"], "reason": assessed[k]["reason"]} for k,c in retired.items()], "decision": "Execute the distinct assessor's accepted retirement of this entire three-change case. Restore its exact original uncertain PF annotations, retain all other220 corrections, preserve every prior source, review, proposal, decision and the original case wrapper in the audit. No replacement no-op or duplicate correction is created. The three targets must remain masked at final export.", "global_semantic_qa_closed": 0, "gold_values_inspected": False, "training_ready": False}
+decision_ref = save(A / "accepted-retirement-decision.json", decision)
+qa_after = {**qa, "reason": "Full cartilage consistency across the final reviewed artifacts and active corrections remains pending. The early three-change morphology case has been independently retired, restoring its three original uncertain PF annotations. Its prior evidence and contrary judgments remain archived. Other early and current corrections retain their own exact decisions; partial source passes and this retirement do not close the global scope.", "evidence": [*qa["evidence"], decision_ref, bind(archived_assessment), bind(A / "retired-case-original.json")]}
+qa_path.write_text(json.dumps(qa_after, ensure_ascii=False, indent=2) + "\n")
+after_registry = {**registry, "cases": [ref for ref in registry["cases"] if ref["path"] != str(case_path.relative_to(R))], "semantic_qa": [bind(qa_path) if ref["path"] == str(qa_path.relative_to(R)) else ref for ref in registry["semantic_qa"]]}
+assert len(after_registry["cases"]) == len(registry["cases"]) - 1
+case_path.unlink()  # Exact bytes already archived and hash-bound above.
+registry_path.write_text(json.dumps(after_registry, ensure_ascii=False, indent=2) + "\n")
+after = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+assert after["n_changes"] == 220 and after["pending_semantic_qa"] == before["pending_semantic_qa"]
+after_map = {(c["study_uid"], c["target"]): c for c in after["changes"]}
+assert set(after_map) == set(before_map) - set(retired)
+assert all(after_map[k] == c for k,c in before_map.items() if k not in retired)
+assert all(sha(R / p) == h for p,h in protected.items())
+assert not case_path.exists() and sha(A / "retired-case-original.json") == "fbdeadf26ee8f2c9421a2d6869fe041c5c58f41783439e1be2b6512c8b8c5a3f"
+proof = {"stage": "executed_verified_whole_case_retirement", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "registry_before": bind(A / "registry-before223.json"), "registry_after": bind(registry_path), "accepted_retirement": decision_ref, "active_corrections_before": 223, "retired_corrections": 3, "active_corrections_after": 220, "all_other220_change_objects_unchanged": True, "protected_artifacts": [{"path": p, "sha256": h} for p,h in sorted(protected.items())], "all_protected_artifacts_unchanged": True, "retired_original_wrapper_preserved": bind(A / "retired-case-original.json"), "three_exact_original_uncertain_annotations_restored": True, "no_replacement_noop_or_duplicate_case": True, "final_export_zero_mask_check_still_required": True, "pending_semantic_qa": after["pending_semantic_qa"], "training_ready": False}
+proof_ref = save(A / "retirement-integration-validation.json", proof)
+save(A / "inspection-after220.json", after)
+(A / "retire-cartilage-legacy-three-v1.py.txt").write_bytes(Path(__file__).read_bytes())
+print(json.dumps({"proof": proof_ref, "active_corrections": 220, "retired": 3, "archived_files": len(copies), "registry": bind(registry_path)}))

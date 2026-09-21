@@ -1,0 +1,47 @@
+"""Preserve completed bound snapshots without reading their case-level findings."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import defaultdict
+import hashlib,json,shutil
+from dotenv import dotenv_values
+T=Path(__file__).resolve().parent;W=T.parent;R=T/'recovered';S=T/'annotation-staging'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+secrets=[v.encode() for k,v in dotenv_values(W/'.env').items() if k in {'HF_TOKEN','KAGGLE_API_TOKEN'} and v];assert len(secrets)==2
+snapshots=[('qualified-negation-focused-004-source-review-v1','artifact-manifest.json','429deb6e578bb8cc3414adfafcda7b91832d96c7103ed52e3a05e30146b18c6e')]
+entries={};roots=set();manifests=[]
+def add(p,h):
+ p=p.resolve();assert p.is_relative_to(S.resolve()) and p.is_file() and not p.is_symlink()
+ assert sha(p)==h,(p,h);assert p not in entries or entries[p]==h
+ entries[p]=h;roots.add(p.relative_to(S.resolve()).parts[0])
+def list_entries(value,base):
+ if isinstance(value,dict):
+  for rel,v in value.items():add(base/rel,v if isinstance(v,str) else v['sha256'])
+ else:
+  for v in value:
+   rel=v['path'];p=W/rel if rel.startswith('work/') else (T/rel if rel.startswith('annotation-staging/') else base/rel)
+   add(p,v['sha256'])
+for name,file,digest in snapshots:
+ p=S/name/file;assert sha(p)==digest;d=json.loads(p.read_text());add(p,digest)
+ list_entries(d['files'],S/name)
+ if 'source_stage_files' in d:list_entries(d['source_stage_files'],S/name.replace('postfreeze','source-review'))
+ manifests.append({'path':str(p.relative_to(W)),'sha256':digest})
+assert len(roots)==1
+for name in roots:assert not (R/'initiative/audits'/name).exists(),name
+total=sum(p.stat().st_size for p in entries);assert shutil.disk_usage(W).free-total>20*2**30+32*2**20
+receipts=defaultdict(list)
+for p,h in sorted(entries.items()):
+ rel=p.relative_to(S.resolve());name=rel.parts[0];dest=R/'initiative/audits'/rel
+ if dest.suffix=='.py':dest=dest.with_suffix('.py.txt')
+ b=p.read_bytes();assert hashlib.sha256(b).hexdigest()==h and all(s not in b for s in secrets)
+ dest.parent.mkdir(parents=True,exist_ok=True)
+ with dest.open('xb') as f:f.write(b)
+ assert sha(dest)==sha(p)==h
+ receipts[name].append({'original_path':str(p.relative_to(W)),'path':str(dest.relative_to(R)),'sha256':h,'bytes':len(b)})
+for name,files in receipts.items():
+ p=R/'initiative/audits'/name/'preservation.json'
+ with p.open('x') as f:json.dump({'stage':'root_verified_completed_snapshot_byte_preservation','agent_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'files':files,'file_count':len(files),'source_manifest_bindings':manifests,'root_opened_case_findings_for_copy':False,'scope':'Completed bound evidence only; archive copying does not accept clinical proposals or close a global gate. Earlier34/118/193/205 baselines remain historical evidence after current229. This archive does not rewrite those comparisons. Helper source bytes are unchanged under .py.txt names.','training_ready':False},f,indent=2);f.write('\n')
+for p,h in entries.items():assert sha(p)==h
+a=R/'initiative/audits/semantic-qa-parallel-snapshots-v8';a.mkdir(exist_ok=False)
+(a/'preserve-semantic-qa-milestone-v8.py.txt').write_bytes(Path(__file__).read_bytes())
+with (a/'snapshots.json').open('x') as f:json.dump({'stage':'completed_source_and_comparison_snapshots','agent_id':'/root','directories':{n:len(v) for n,v in sorted(receipts.items())},'source_files':len(entries),'bytes':total,'training_ready':False},f,indent=2);f.write('\n')
+print(json.dumps({'snapshots':len(receipts),'files':len(entries),'bytes':total,'proof_sha256':sha(a/'snapshots.json')}))

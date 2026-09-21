@@ -1,0 +1,106 @@
+"""Verify every selected source/current/final cell and preserve the full handoff."""
+import hashlib
+import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+R = W / 'work/recovered'
+AGENT = '/root/quality_temporal_review'
+TARGETS = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+
+def read(p):
+    return json.loads(p.read_text())
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def bind(p):
+    return {'path': str(p.relative_to(W)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+def write(name, obj):
+    with (P / name).open('x') as f:
+        f.write(json.dumps(obj, ensure_ascii=False, indent=2) + '\n')
+
+def main():
+    for item in read(P / 'source-completion-manifest.json')['files']:
+        assert sha(W / item['path']) == item['sha256']
+    historical = read(P / 'historical-own-file-bindings.json')['files_hashed_without_opening_current_case_state_tables_in_this_pass']
+    assert len(historical) == 20
+    for item in historical:
+        assert sha(W / item['path']) == item['sha256']
+    for item in read(P / 'postfreeze-protected-bindings.json')['files']:
+        assert sha(W / item['path']) == item['sha256']
+    sources = read(P / 'neutral-full-sources.json')['records']
+    frozen = [json.loads(line) for line in (P / 'source-assessment-frozen.jsonl').read_text().splitlines()]
+    comp = read(P / 'all21-bound-comparison.json')['records']
+    disposition = read(P / 'all21-independent-postfreeze-dispositions.json')
+    rows = disposition['records']
+    assessment = read(P / 'independent-source-assessment.json')
+    assert assessment['agent_id'] == assessment['session_id'] == AGENT
+    assert assessment['stage'] == 'independent_source_assessment'
+    assessed = {(r['study_uid'], r['target']): r for r in assessment['records']}
+    expected = [(s['study_uid'], t) for s in sources for t in ['Medial OA', 'Lateral OA', 'PF OA']]
+    assert [(r['study_uid'], r['target']) for r in rows] == expected
+    assert len(comp) == len(rows) == len(assessed) == 21
+    original_cache = {}
+    allquotes = 0
+    for i, (r, c) in enumerate(zip(rows, comp, strict=True)):
+        assert all(r[k] == v for k, v in c.items())
+        s, own = sources[i // 3], frozen[i // 3]
+        assert r['study_uid'] == s['study_uid'] == own['study_uid']
+        sp = R / r['source_path']
+        assert sha(sp) == s['source_sha256'] == r['source_sha256']
+        assert read(sp)[r['source_index_zero_based']] == {'study_uid': s['study_uid'], 'report': s['report']}
+        assert hashlib.sha256(s['report'].encode()).hexdigest() == s['report_sha256'] == r['report_sha256']
+        j = i % 3
+        assert r['own_source_frozen'] == {'state': own['states'][j], 'evidence': own['evidence'][j], 'rationale': own['rationales'][j]}
+        rp = R / r['original_review_path']
+        assert sha(rp) == r['original_review_sha256']
+        if rp not in original_cache:
+            original_cache[rp] = {a['study_uid']: a for a in map(json.loads, rp.read_text().splitlines())}
+        original = original_cache[rp][r['study_uid']]
+        k = TARGETS.index(r['target'])
+        assert r['original'] == {'state': original['states'][k], 'evidence': original['evidence'][k]}
+        assert r['original_notes'] == original['notes']
+        for name in ['original', 'current223_effective', 'own_source_frozen', 'independent_postfreeze_judgment']:
+            q = r[name]
+            assert (q['state'] == 'not_mentioned' and q['evidence'] == '') or (q['state'] in {'positive', 'negative', 'uncertain'} and q['evidence'] and q['evidence'] in s['report'])
+            allquotes += q['state'] != 'not_mentioned'
+        a = assessed[(r['study_uid'], r['target'])]
+        final = r['independent_postfreeze_judgment']
+        assert (a['independent_source_state'], a['source_evidence'], a['reason']) == (final['state'], final['evidence'], final['rationale'])
+        assert r['own_state_reconsidered'] == (final['state'] != r['own_source_frozen']['state'])
+        assert r['own_quote_reconsidered'] == (final['evidence'] != r['own_source_frozen']['evidence'])
+        assert r['required_effective_report_mask_after_accepted_integration'] == int(final['state'] in {'positive', 'negative'})
+        if r['current_accepted_correction']:
+            assert final['state'] == r['current223_effective']['state']
+            assert r['root_additional_proposal'] is None
+        if r['root_additional_proposal']:
+            p = r['root_additional_proposal']
+            assert (p['before_state'], p['before_evidence']) == (r['original']['state'], r['original']['evidence'])
+            assert (p['proposed_state'], p['source_quote']) == (final['state'], final['evidence'])
+            assert r['root_proposal_decision'] == 'accepted'
+    reconsiderations = read(P / 'explicit-reconsiderations.json')
+    assert len(reconsiderations['records']) == reconsiderations['state_reconsiderations'] == 9
+    assert reconsiderations['records'] == [r for r in rows if r['own_state_reconsidered'] or r['own_quote_reconsidered']]
+    decision = read(P / 'accepted-decision.json')
+    assert decision['adjudicator_agent_id'] == AGENT != decision['proposer_agent_id'] == '/root'
+    assert decision['n_changes'] == len(decision['accepted_changes']) == 9
+    assert decision['rejected_changes'] == decision['held_changes'] == []
+    assert len({(r['study_uid'], r['target']) for r in decision['accepted_changes']}) == 9
+    runtime = read(P / 'runtime-validation-and-preservation.json')
+    assert runtime['accepted_runtime_changes'] == 9 and len(runtime['negative_boundary_checks']) == 4
+    assert all(t['rejected'] for t in runtime['negative_boundary_checks'])
+    assert runtime['current_registered_changes'] == 223 and runtime['additional_keys_overlap_current_registry'] == 0
+    assert sha(R / 'initiative/reviews-v2/adjudications/registry.json') == '9cdea4aa554c2f7059dd1d84eb481dc012f483a3922710b78755b74b7553249f'
+    assert shutil.disk_usage(W).free >= 20 * 1024**3
+    receipt = {'schema_version': 1, 'agent_id': AGENT, 'validated_at_utc': datetime.now(timezone.utc).isoformat(), 'complete_sources': 7, 'all21_source_original_current_and_final_bindings_checked': True, 'exact_nonmissing_quotes_across_four_versions': allquotes, 'accepted_runtime_changes': 9, 'explicit_own_state_reconsiderations': 9, 'reconsiderations_among_nine_accepted_proposals': 8, 'matching_preproposal_source_states_among_nine_accepted': 1, 'existing_primary_entries_preserved': 4, 'existing_primary_item_with_own_state_reconsideration': 1, 'prior20_cartilage000_files_preserved': True, 'new_source21_freeze_preserved': True, 'current_registered_changes': 223, 'additional_existing_key_overlap': 0, 'runtime_validation': bind(P / 'runtime-validation-and-preservation.json'), 'source_freeze': bind(P / 'source-freeze.json'), 'accepted_decision': bind(P / 'accepted-decision.json'), 'dispositions': bind(P / 'all21-independent-postfreeze-dispositions.json'), 'validator': bind(Path(__file__).resolve()), 'registry_changed': False, 'gold_accessed': False, 'global_gate_closed': False, 'clinical_accuracy_certified_by_mechanical_checks': False, 'initial_unanimity_claimed': False}
+    write('complete-validation-and-preservation.json', receipt)
+    write('completion-manifest.json', {'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT, 'completed_at_utc': datetime.now(timezone.utc).isoformat(), 'scope': 'Seven full-source21-OA reassessment and separate nine-root-proposal adjudication. Nine exact changes accepted pending root registry integration, with explicit reconsiderations; no global closure.', 'counts': disposition['counts'], 'files': [bind(p) for p in sorted(P.rglob('*')) if p.is_file() and '__pycache__' not in p.parts], 'source_freeze': bind(P / 'source-freeze.json'), 'assessment': bind(P / 'independent-source-assessment.json'), 'decision': bind(P / 'accepted-decision.json'), 'runtime_case': bind(P / 'proposed-runtime-case.json'), 'complete_validation': bind(P / 'complete-validation-and-preservation.json'), 'production_registry_changed': False, 'gold_accessed': False, 'global_gate_closed': False})
+    print(json.dumps({'accepted': 9, 'rejected': 0, 'held': 0, 'all_cells_compared': 21, 'own_state_reconsiderations': 9, 'completion_sha256': sha(P / 'completion-manifest.json'), 'validation_sha256': sha(P / 'complete-validation-and-preservation.json')}, indent=2))
+
+if __name__ == '__main__':
+    main()

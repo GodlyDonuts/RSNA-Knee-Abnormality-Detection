@@ -1,0 +1,110 @@
+"""Assemble21 personally reasoned source judgments, before new root proposals."""
+import hashlib
+import json
+from pathlib import Path
+from datetime import datetime, timezone
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+R = W / 'work/recovered'
+AGENT = '/root/quality_temporal_review'
+TARGETS = ['Medial OA', 'Lateral OA', 'PF OA']
+
+def read(p):
+    return json.loads(p.read_text())
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def bind(p):
+    return {'path': str(p.relative_to(W)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+def write(name, obj):
+    with (P / name).open('x') as f:
+        f.write(json.dumps(obj, ensure_ascii=False, indent=2) + '\n')
+
+def span(source, start, end):
+    a = source.index(start)
+    b = source.index(end, a) + len(end)
+    return source[a:b]
+
+def main():
+    packet = P / 'neutral-full-sources.json'
+    assert sha(packet) == '58152951a63331e56e28c28ff8e48a01b1800814ef715eef2a4ae6ab7a82e827'
+    sources = read(packet)['records']
+    assert [s['case'] for s in sources] == ['001:32', '004:32', '007:26', '010:17', '010:47', '011:36', '012:19']
+    prior_neutral = P.parent / 'cartilage-observed-000-source-review-v1/neutral-first-50-full-reports.json'
+    old_packet = read(prior_neutral)
+    old_reports = old_packet if isinstance(old_packet, list) else old_packet.get('reports', old_packet.get('records'))
+    assert {s['study_uid'] for s in sources} <= {s['study_uid'] for s in old_reports}
+    # These are personally authored case-specific judgments, not lexical rules.
+    judgments = [
+        [
+            ('negative', span(sources[0]['report'], 'In the medial compartment,', 'Diffuse lowe grade chondrosis with osteophyte formation.'), 'The medial compartment is directly described as diffuse low-grade chondrosis. Low-grade lesion wording supports below-threshold depth; associated osteophytes and the broad OA conclusion do not override that localized severity. No named numeric grading framework is inferred.'),
+            ('negative', span(sources[0]['report'], 'The lateral compartment,', 'Diffuse lowe grade chondrosis with osteophyte formation'), 'The lateral compartment also has direct low-grade chondrosis wording. Its diffuse extent does not make low-depth disease positive, and the nonspecific three-compartment OA summary does not supply a contrary localized higher-grade lesion.'),
+            ('positive', 'The patellofemoral joint, bone marrow edema at lateral patellar and trochlear with diffuse high grade chondrosis, and osteophyte formation.', 'Diffuse high-grade chondrosis is explicitly localized to the patellofemoral joint with patellar and trochlear involvement. I interpret the qualitative high-grade cartilage descriptor as deep disease and diffuse regional involvement as supporting the approximate extent requirement. This is a disclosed report-level interpretation, not a measured >50% or centimetre value and not a positive inferred solely from edema/osteophytes or the OA diagnosis. A reviewer may reasonably require more explicit depth wording; that interpretive boundary remains visible.'),
+        ],
+        [
+            ('uncertain', 'Hondromalacija 1° u području medijalnog platoa tibije i medijalnog kondila femura.', 'A numeric first-degree chondromalacia diagnosis names the medial tibial and femoral surfaces, but no grading framework or explicit loss depth is supplied. Do not silently map the numeral to a negative depth threshold; extent also is not characterized.'),
+            ('not_mentioned', '', 'The lateral meniscus and ligaments are assessed, but no informative lateral cartilage/OA assessment appears. Normal remaining bone signal is not a cartilage-loss assessment.'),
+            ('uncertain', 'Uredna je kongruencija zglobnih tijela femoropatelarnog zgloba. Uredan intenzitet signala\npatelarne hrskavice.', 'The report normalizes femoropatellar congruence and patellar cartilage signal. Congruence and signal alone do not explicitly assess cartilage thickness/defects, and the trochlear cartilage is not separately described. I preserve an informative but limited cartilage assessment rather than equate normal signal with a complete compartmental loss exclusion. This is a scope judgment for independent review, not evidence of OA presence.'),
+        ],
+        [
+            ('uncertain', 'Prikaže se hondromalacija I° hrskavice medijalnog tibijalnog platoa.', 'The medial tibial cartilage has first-degree chondromalacia under an unnamed system. No explicit depth or loss extent establishes or excludes the frozen threshold; do not manufacture a grading-system mapping.'),
+            ('not_mentioned', '', 'Normal lateral meniscus, bone and ligaments do not address lateral articular-cartilage loss. No informative lateral cartilage/OA finding is provided.'),
+            ('negative', 'Primjeren prikaz hrskavice patele.', 'The patellar cartilage itself is directly described as having normal appearance, rather than only normal marrow or joint alignment. I accept that explicit structural-cartilage statement as a report-level PF negative in the absence of a competing PF lesion. This relies on the normal-appearance scope of the named cartilage, not an inferred numerical grade or proof of an independent trochlear thickness measurement.'),
+        ],
+        [
+            ('positive', 'Matig tot gevorderd mediaal femorotibiaal kraakbeenlijden met volledig kraakbeenverlies op centraal dragende deel van de mediale femorale condyl en het mediale tibiaplateau.', 'The body explicitly states complete cartilage loss over the central weightbearing portion of both medial opposing surfaces. Complete loss establishes depth, and the named weightbearing regions provide qualitative regional extent rather than an isolated unspecified focus. The conclusion numeric grade2-to3 has no named system and does not by itself contradict or replace the explicit morphology. Approximate extent is inferred from the regional description, not numerically measured.'),
+            ('not_mentioned', '', 'The lateral meniscal tear/degeneration is described without a lateral articular-cartilage assessment. Do not transfer medial cartilage disease or infer lateral loss from the meniscus.'),
+            ('not_mentioned', '', 'No informative patellofemoral cartilage/OA finding. Suprapatellar recess fluid and normal tendons are not cartilage assessments.'),
+        ],
+        [
+            ('positive', 'Από τον έλεγχο του έσω διαµερίσµατος αναγνωρίζεται καταστροφή του αρθρικού χόνδρου (επί το πλείστον ICRS grade 4) µε εκφύλιση και υπεξάρθρηµα του έσω µηνίσκου και ευµεγέθη επιχείλια οστεόφυτα.', 'Medial cartilage destruction is described as predominantly grade4 under the explicitly named ICRS framework. Destruction and predominance across the compartment support deep loss and qualitative broad extent; the positive is not based only on an unnamed numeric grade or the OA impression. The report supplies no centimetre measurement, so the regional extent interpretation remains explicit.'),
+            ('uncertain', 'Από τον έλεγχο του έξω διαµερίσµατος αναγνωρίζεται εκφύλιση του έξω µηνίσκου, λέπτυνση του αρθρικού χόνδρου (ICRS έως grade 3) και επιχείλια οστεόφυτα.', 'The lateral compartment has thinning up to ICRS grade3, supporting potentially qualifying depth but no extent for that deepest region. A highest grade does not establish a roughly centimetre region; retain uncertainty rather than infer extent from osteophytes or overall OA.'),
+            ('uncertain', 'Από τον έλεγχο της επιγονατιδοµηριαίας άρθρωσης, λέπτυνση και κατά τόπους εξάλειψη παρατηρείται στον αρθρικό χόνδρο (ICRS εως grade 4) καθώς και επιχείλια οστεόφυτα στη µηριαία τροχιλία και στον άνω πόλο της επιγονατίδας.', 'PF thinning with locally complete loss and up-to-grade4 ICRS disease supports full-depth foci. The extent of the full/deep loss is not stated; osteophytes at multiple locations do not establish that cartilage-loss extent. Keep uncertain despite the named high maximum grade.'),
+        ],
+        [
+            ('negative', span(sources[5]['report'], 'Úlceras condrales de espesor parcial', 'Condropatía superficial del\ncompartimento femorotibial medial.'), 'The body gives medial partial-thickness ulcers without a percentage; the impression explicitly calls the medial compartment superficial. I treat that final named-compartment superficial description as resolving depth below threshold, independently of the unnamed grade2 numeral. The body also assigns superficial change to the lateral compartment, but that does not logically exclude superficial medial disease; I do not silently correct the repeated medial wording. The long quote preserves the body/impression localization tension for later review.'),
+            ('negative', 'Condropatía superficial de la zona de carga del compartimento femorotibial lateral.', 'The body directly states superficial lateral weightbearing chondropathy, which supports below-threshold depth. The impression additionally calls medial disease superficial without explicitly retracting or contradicting the lateral body finding. Do not swap anatomical labels on an assumed transcription correction.'),
+            ('positive', 'Úlcera condral\nfocal de espesor total de la región central de la tróclea femoral con cambios óseos secundarios.\nÚlceras condrales de espesor total con cambios óseos secundarios de la rótula de distribución\ndifusa.', 'Full-thickness patellar ulcers are explicitly of diffuse distribution, establishing full depth and qualitative regional extent. The focal trochlear full-thickness ulcer alone would lack size, but it is not the sole positive basis. The bare numeric grades in the impression are unnecessary to this direct morphological assessment.'),
+        ],
+        [
+            ('uncertain', 'Medial compartment cartilage: Areas of high-grade partial thickness cartilage loss in the central weightbearing aspect of the medial femoral condyle.', 'The medial high-grade partial-thickness loss establishes deep disease, but areas in a location do not specify the extent of any qualifying loss region. No measurement or explicit diffuse/across-region wording is supplied; retain uncertainty about approximate centimetre extent.'),
+            ('negative', 'Lateral compartment cartilage: Low-grade partial-thickness chondrosis in the central weightbearing aspect of the lateral femoral condyle.', 'Explicit low-grade partial-thickness lateral chondrosis supports below-threshold depth. The generic tricompartmental OA impression does not establish deeper lateral cartilage loss.'),
+            ('positive', 'Patellofemoral compartment cartilage: Full thickness cartilage loss in the lateral patellar facet and median ridge with subchondral marrow edema. Additional high-grade partial thickness loss across the medial patellar facet.', 'The report identifies full-thickness loss at the lateral facet and ridge, plus additional deep partial loss across the medial facet. The explicit across-facet extent and multiple named patellar regions support a qualitative regional qualifying loss burden. This is not a positive from OA wording or edema alone, and no exact centimetre value is invented.'),
+        ],
+    ]
+    assert len(judgments) == len(sources) == 7
+    rows, nonmissing = [], 0
+    for i, (s, decisions) in enumerate(zip(sources, judgments, strict=True)):
+        sp = R / s['source_path']
+        assert sha(sp) == s['source_sha256']
+        assert read(sp)[s['source_index_zero_based']] == {'study_uid': s['study_uid'], 'report': s['report']}
+        assert hashlib.sha256(s['report'].encode()).hexdigest() == s['report_sha256']
+        assert len(decisions) == 3
+        for state, quote, reason in decisions:
+            assert reason
+            assert (state == 'not_mentioned' and quote == '') or (state in {'positive', 'negative', 'uncertain'} and quote and quote in s['report'])
+            nonmissing += state != 'not_mentioned'
+        rows.append({'agent_id': AGENT, 'packet_index': i, 'case': s['case'], 'study_uid': s['study_uid'], 'source_path': s['source_path'], 'source_index_zero_based': s['source_index_zero_based'], 'source_sha256': s['source_sha256'], 'report_sha256': s['report_sha256'], 'rubric_version': 'report-weak-v2.0', 'rubric_sha256': '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014', 'target_order': TARGETS, 'states': [r[0] for r in decisions], 'evidence': [r[1] for r in decisions], 'rationales': [r[2] for r in decisions]})
+    with (P / 'source-assessment-frozen.jsonl').open('x') as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + '\n')
+    protected = []
+    for stage in ['cartilage-observed-000-source-review-v1', 'cartilage-observed-000-postfreeze-v1']:
+        for path in sorted((P.parent / stage).rglob('*')):
+            if path.is_file() and '__pycache__' not in path.parts:
+                protected.append(bind(path))
+    write('historical-own-file-bindings.json', {'schema_version': 1, 'agent_id': AGENT, 'prior_neutral_packet': bind(prior_neutral), 'known_exact_source_overlap': 7, 'files_hashed_without_opening_current_case_state_tables_in_this_pass': protected, 'historical_prior_findings_preserved': True})
+    validation = {'schema_version': 1, 'agent_id': AGENT, 'validated_at_utc': datetime.now(timezone.utc).isoformat(), 'complete_sources_personally_reread': 7, 'personally_authored_OA_judgments': 21, 'exact_nonmissing_quotes': nonmissing, 'empty_not_mentioned_quotes': 21 - nonmissing, 'exact_source_file_index_uid_and_full_report_hashes_verified': True, 'all_target_order_and_quote_checks_passed': True, 'known_prior_cartilage000_source_overlap': 7, 'prior_source_and_findings_not_rewritten': True, 'new_root_proposal_states_opened': False, 'current_case_state_tables_opened_in_this_pass': False, 'scope': 'Mechanical traceability does not prove clinical correctness. These are report-based judgments with disclosed historical exposure, not a first-ever blinded pass or MRI reread.'}
+    write('source-validation.json', validation)
+    rubric = R / 'protocols/report_weak_v2.md'
+    assert sha(rubric) == '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+    freeze = {'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT, 'identity_kind': 'actual_codex_agent_task', 'frozen_at_utc': datetime.now(timezone.utc).isoformat(), 'stage': 'seven_complete_sources_21_OA_judgments_frozen_before_new_root_additional_proposal_access', 'rubric': bind(rubric), 'source_packet': bind(packet), 'source_assessment': bind(P / 'source-assessment-frozen.jsonl'), 'validation': bind(P / 'source-validation.json'), 'exposure_context': bind(P / 'source-pass-context.json'), 'historical_file_bindings': bind(P / 'historical-own-file-bindings.json'), 'authoring_and_validation_helper': bind(Path(__file__).resolve()), 'complete_reports_read': 7, 'target_judgments': 21, 'target_order': TARGETS, 'exact_ordered_uids': [s['study_uid'] for s in sources], 'read_order_attestation': {'all_seven_full_reports_personally_reread': True, 'all21_states_exact_quotes_and_individual_reasons_personally_authored': True, 'new_root_proposal_states_opened': False, 'source_pass_is_first_ever_blinded': False, 'basis': 'Actual author self-attestation; timestamps do not independently establish historical access order. Earlier source and comparison exposure remains disclosed.'}, 'accepted_changes': [], 'gold_accessed': False, 'registry_changed': False, 'global_gate_closed': False, 'next_step': 'Notify root only of freeze and aggregate scope. Open new proposals only on root instruction and preserve every later reconsideration or disagreement separately.'}
+    write('source-freeze.json', freeze)
+    write('source-completion-manifest.json', {'schema_version': 1, 'agent_id': AGENT, 'scope': 'Seven full sources21 OA judgments before new root proposals; no acceptance or gate closure.', 'files': [bind(p) for p in sorted(P.iterdir()) if p.is_file()], 'source_freeze': bind(P / 'source-freeze.json'), 'gold_accessed': False, 'new_root_proposals_opened': False})
+    print(json.dumps({'reports': 7, 'judgments': 21, 'nonmissing_quotes': nonmissing, 'freeze_sha256': sha(P / 'source-freeze.json'), 'assessment_sha256': sha(P / 'source-assessment-frozen.jsonl'), 'manifest_sha256': sha(P / 'source-completion-manifest.json')}, indent=2))
+
+if __name__ == '__main__':
+    main()

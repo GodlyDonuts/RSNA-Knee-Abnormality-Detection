@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "validated_at_utc": "2026-09-21T23:44:33.303391+00:00",
+  "validator": {
+    "path": "work/annotation-staging/cartilage-observed-000-additional-independent-v1/validate_adjudication.py",
+    "sha256": "b86ef231944f76147df250a81a8f6bd1d07a21c489a71ebfcc361d5ac8d8b16b"
+  },
+  "runtime": {
+    "path": "work/recovered/rsna/adjudications.py",
+    "sha256": "2b7af816e9caff240daf02af1dd3bf08e193438ac568478651f0b49868e1eac0"
+  },
+  "case": {
+    "path": "work/annotation-staging/cartilage-observed-000-additional-independent-v1/proposed-runtime-case.json",
+    "sha256": "109c5b6e68afb210314399d6bc5eed9a00e0299ba7c3170775781d28a200a109"
+  },
+  "assessment": {
+    "path": "work/annotation-staging/cartilage-observed-000-additional-independent-v1/independent-source-assessment.json",
+    "sha256": "58a0d7a17deae449381b61fd8e608ea3b60c430068cbc3fb3860245d5c3870c1"
+  },
+  "decision": {
+    "path": "work/annotation-staging/cartilage-observed-000-additional-independent-v1/accepted-decision.json",
+    "sha256": "02cf32c6f0421c91d80f85eecec71bec5fe34c6d98461454f468ecf984c35bcc"
+  },
+  "release_source_count": 4407,
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "accepted_runtime_changes": 9,
+  "negative_boundary_checks": [
+    {
+      "name": "same_assessor_as_proposer",
+      "rejected": true,
+      "message": "Self approval cannot authorize report corrections"
+    },
+    {
+      "name": "missing_accepted_item",
+      "rejected": true,
+      "message": "Correction changes must exactly cover the accepted decision"
+    },
+    {
+      "name": "changed_accepted_quote",
+      "rejected": true,
+      "message": "Correction state/quote differs from the accepted assessment"
+    },
+    {
+      "name": "wrong_original_before_annotation",
+      "rejected": true,
+      "message": "Correction before state/evidence differs from the preserved review"
+    }
+  ],
+  "current_registry": {
+    "path": "work/recovered/initiative/reviews-v2/adjudications/registry.json",
+    "sha256": "9cdea4aa554c2f7059dd1d84eb481dc012f483a3922710b78755b74b7553249f"
+  },
+  "current_registered_changes": 223,
+  "additional_keys_overlap_current_registry": 0,
+  "historical_baseline": "This new comparison binds current223. The earlier cartilage000 historical34-baseline artifacts and bone001205 baseline remain unchanged; current replay is separate and is not a new blinding claim.",
+  "all_preexisting_stage_files_preserved": true,
+  "fixture_removed": true,
+  "production_registry_changed": false,
+  "gold_accessed": false,
+  "disk_free_bytes_before": 22496681984,
+  "disk_free_bytes_after": 22494646272,
+  "minimum_disk_free_bytes": 21474836480
+}

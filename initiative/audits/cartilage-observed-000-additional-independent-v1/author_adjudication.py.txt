@@ -1,0 +1,145 @@
+"""Personally adjudicate nine root proposals, preserving the prior21-source freeze."""
+import hashlib
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+R = W / 'work/recovered'
+ROOT = P.parent / 'cartilage-observed-000-root-review-v1'
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+
+AGENT = '/root/quality_temporal_review'
+RUBRIC = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+SOURCE = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+
+def read(p):
+    return json.loads(p.read_text())
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def bind(p):
+    return {'path': str(p.relative_to(W)), 'sha256': sha(p)}
+
+def runtime_bind(p):
+    if p.is_relative_to(R):
+        name = str(p.relative_to(R))
+    else:
+        name = 'initiative/audits/' + str(p.relative_to(P.parent))
+    return {'path': name, 'sha256': sha(p)}
+
+def write(name, obj):
+    with (P / name).open('x') as f:
+        f.write(json.dumps(obj, ensure_ascii=False, indent=2) + '\n')
+
+# The named assessor personally reasons about the specific sources and preserves
+# every source-state change below. Agreement is not derived from root state alone.
+REASONS = {
+    ('001:32', 'Medial OA'): 'I reconsider negative to uncertain. My frozen negative treated low-grade chondrosis as a defined shallow-loss descriptor, but the source gives no named scale, superficial morphology, preserved thickness or depth fraction. Low grade can be an overall disease-severity description; osteophytes do not define cartilage depth. The frozen rubric does not license translating this adjective alone into an explicit below-threshold finding. The medial context quotation also disambiguates the repeated identical short phrase. I accept the proposed mask; the initial negative remains preserved.',
+    ('001:32', 'Lateral OA'): 'I reconsider negative to uncertain for this separately localized lateral finding. The source calls chondrosis low grade but does not specify superficial-only change or a depth mapping; diffuse distribution and adjacent marrow edema cannot supply the omitted loss depth. My prior negative used an unstated descriptor-to-threshold inference. I accept the exact contextual quote and uncertain state while preserving my original judgment.',
+    ('004:32', 'PF OA'): 'I retain my independently frozen uncertain state and accept the exact proposed quote. The source establishes normal patellar cartilage signal and PF congruence, not a normal structural-cartilage survey including the trochlea. These statements are informative but insufficient to exclude a qualifying compartmental loss region. No new state reconsideration is needed for this item, and neither positive OA nor a measured defect is asserted.',
+    ('007:26', 'PF OA'): 'I reconsider negative to uncertain. Normal patellar cartilage appearance is a stronger structural statement than normal signal alone, but my initial PF negative still extended its scope to the unaddressed trochlear cartilage. The frozen rubric permits a broad normal statement only within its explicit structural scope. The report has no separate normal trochlear/PF-cartilage survey. I accept masking for incomplete compartmental coverage and preserve the prior local-normal interpretation as the reason for the original disagreement.',
+    ('010:17', 'Medial OA'): 'I reconsider positive to uncertain. Complete loss clearly establishes depth, yet op centraal dragende deel describes where the loss lies, without stating that the whole named weightbearing region is denuded or that a loss region reaches the required approximate size. My frozen positive expanded location into extent on both opposing surfaces. Moderate/advanced disease and an unnamed grade range do not repair that missing extent. I accept the mask for missing extent while retaining the unequivocal full-depth morphology.',
+    ('010:47', 'Medial OA'): 'I reconsider positive to uncertain. The named ICRS grade and destruction support severe/full-depth disease; this is not an unnamed-framework problem. Predominantly grade4 can characterize the mixture of lesion grades without establishing that most of the whole medial compartment has been lost. My frozen positive assumed the latter spatial meaning. Because the source does not resolve the size of a qualifying loss region, I accept uncertainty for extent, preserving the explicit named-grade evidence and the earlier broader interpretation.',
+    ('011:36', 'PF OA'): 'I reconsider positive to uncertain. The source states a focal unmeasured trochlear ulcer and multiple full-thickness patellar ulcers of diffuse distribution. Diffuse distribution of separate ulcers does not establish the size of any qualifying deep-loss region. My frozen positive substituted their spread across the patella for the required loss-region extent. I accept masking for missing extent, with the expanded quote preserving both trochlear and patellar findings; depth itself is definite.',
+    ('012:19', 'Lateral OA'): 'I reconsider negative to uncertain. Partial thickness excludes full thickness but can still cross the more-than-half threshold. My frozen negative additionally mapped low grade to a below-half depth; the source provides neither an explicit superficial descriptor nor a verified grade-to-depth definition. I accept uncertainty rather than silently supply that missing mapping. This is not a judgment that low-grade disease is positive.',
+    ('012:19', 'PF OA'): 'I reconsider positive to uncertain. The source gives definite full-thickness loss at two locations but no size of that component. Across the medial facet offers broader distribution for a separate high-grade partial-thickness finding, yet the source does not define that descriptor as a more-than-half fraction or the extent of a region meeting that depth. My frozen positive combined the unequivocal depth of one component with the broader distribution of another. I accept uncertainty without changing the source or insisting that the entire cartilage compartment must have a numeric measurement when explicit qualifying morphology and extent are otherwise present.',
+    ('001:32', 'PF OA'): 'I separately reconsider my frozen positive to uncertain after reviewing the already accepted primary correction. Diffuse high-grade chondrosis supplies a location/distribution and general severity but no explicit loss-depth morphology or named grade mapping. My earlier positive inferred deep cartilage loss from the adjective, just as my initial low-grade negatives inferred shallow depth. That is stronger than the literal threshold evidence. I now support the existing accepted uncertain state on source reasoning, without proposing a duplicate correction or claiming that the accepted registry entry itself determined my judgment.',
+}
+
+def main():
+    assert sha(P / 'source-freeze.json') == '2f04000ead615b948edb64eb2a7cbcb52fcd495e51293dc228ee99d2ad7c5df6'
+    proposal_path = ROOT / 'additional-proposed-errata.json'
+    assert sha(proposal_path) == 'fafc5bd76cb2f4b76645190379f1b89db5370b5e784671cef3c291936db8ed87'
+    assert sha(ROOT / 'complete-source-freeze.json') == 'e54e373ea862a3e099a316a2c748386992c79d75024f5b4ddacbc6e191fb802a'
+    assert sha(ROOT / 'root-postfreeze-dispositions.json') == 'bd377dd055534f52739d1620a1bb5ba344ae0fd278b29fa678fd325a67cf2541'
+    for item in read(P / 'source-completion-manifest.json')['files']:
+        assert sha(W / item['path']) == item['sha256']
+    protected = [bind(path) for path in sorted(P.iterdir()) if path.is_file()]
+    protected += [bind(ROOT / name) for name in ['additional-proposed-errata.json', 'complete-source-freeze.json', 'root-postfreeze-dispositions.json']]
+    write('postfreeze-protected-bindings.json', {'agent_id': AGENT, 'files': protected, 'historical_prior_bindings': bind(P / 'historical-own-file-bindings.json')})
+    sources = read(P / 'neutral-full-sources.json')['records']
+    own = [json.loads(line) for line in (P / 'source-assessment-frozen.jsonl').read_text().splitlines()]
+    proposals = read(proposal_path)
+    assert proposals['agent_id'] == proposals['session_id'] == '/root'
+    proposed = {(p['study_uid'], p['target']): p for p in proposals['proposed_errata']}
+    assert len(proposed) == 9
+    root_rows = {(r['study_uid'], r['target']): r for r in read(ROOT / 'root-postfreeze-dispositions.json')['records']}
+    reports = {r['study_uid']: r['report'] for path in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')) for r in read(path)}
+    assert len(reports) == 4407 and source_reports_fingerprint(reports) == SOURCE
+    registry = R / 'initiative/reviews-v2/adjudications/registry.json'
+    pin = sha(registry)
+    assert pin == '9cdea4aa554c2f7059dd1d84eb481dc012f483a3922710b78755b74b7553249f'
+    replay = inspect_adjudications(reports, R / 'initiative/reviews-v2/reviewed', R / 'protocols/report_weak_v2.md', R)
+    assert sha(registry) == pin
+    changes = {(r['study_uid'], r['target']): r for r in replay['changes']}
+    assert len(changes) == 223 and not set(proposed) & set(changes)
+    pinned_inspection = R / 'initiative/audits/cartilage-observed-000-integration-v1/primary-inspection223.json'
+    assert read(pinned_inspection)['changes'] == replay['changes']
+    with (P / 'registry-at-comparison223.json').open('xb') as f:
+        f.write(registry.read_bytes())
+    comparison = []
+    for source, a in zip(sources, own, strict=True):
+        assert source['study_uid'] == a['study_uid']
+        sp = R / source['source_path']
+        rp = R / 'initiative/reviews-v2/reviewed' / (sp.stem + '-reviewed.jsonl')
+        original = next(r for r in map(json.loads, rp.read_text().splitlines()) if r['study_uid'] == source['study_uid'])
+        for k, target in enumerate(a['target_order']):
+            key = source['study_uid'], target
+            j = TARGETS.index(target)
+            base = {'state': original['states'][j], 'evidence': original['evidence'][j]}
+            change = changes.get(key)
+            current = change['after'] if change else base
+            comparison.append({'case': source['case'], 'study_uid': source['study_uid'], 'target': target, 'source_path': source['source_path'], 'source_sha256': source['source_sha256'], 'source_index_zero_based': source['source_index_zero_based'], 'report_sha256': source['report_sha256'], 'original_review_path': str(rp.relative_to(R)), 'original_review_sha256': sha(rp), 'original': base, 'original_notes': original['notes'], 'current223_effective': current, 'current_accepted_correction': change, 'own_source_frozen': {'state': a['states'][k], 'evidence': a['evidence'][k], 'rationale': a['rationales'][k]}, 'root_postfreeze': root_rows[key], 'root_additional_proposal': proposed.get(key)})
+    context = {'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT, 'source_reports_sha256': SOURCE, 'rubric_sha256': RUBRIC, 'at_utc': datetime.now(timezone.utc).isoformat(), 'own_source_freeze': bind(P / 'source-freeze.json'), 'root_proposal': bind(proposal_path), 'root_source_freeze': bind(ROOT / 'complete-source-freeze.json'), 'root_postfreeze_dispositions': bind(ROOT / 'root-postfreeze-dispositions.json'), 'current_registry': bind(P / 'registry-at-comparison223.json'), 'current_registered_changes': 223, 'current_inspection': bind(pinned_inspection), 'exposure': 'This actual distinct assessor reread all7 full sources and froze21 OA judgments before opening these nine new root proposals. All seven reports were previously encountered in the assessor own cartilage000 source/postfreeze work; discovery/original/inherited/qualified/bone exposure remains disclosed. This is a separate reasoned postfreeze reconsideration, not first-ever blindness. All21 selected original/current annotations and root dispositions have now been compared.', 'gold_accessed': False, 'registry_changed': False, 'global_gate_closed': False}
+    write('all21-bound-comparison.json', {**context, 'records': comparison, 'mechanical_binding_not_acceptance': True})
+    rows, reconsiderations, accepted = [], [], []
+    for old in comparison:
+        key = old['case'], old['target']
+        own = old['own_source_frozen']
+        prop = old['root_additional_proposal']
+        state, quote = own['state'], own['evidence']
+        if key in REASONS:
+            state = 'uncertain'
+            quote = prop['source_quote'] if prop else own['evidence']
+            reason = REASONS[key]
+        else:
+            reason = 'I retain my freshly frozen source judgment after the separate original/current223 and root comparison. ' + own['rationale']
+        if old['current_accepted_correction'] and key != ('001:32', 'PF OA'):
+            reason += ' The existing accepted primary correction already supports this state. Preserve its exact current quote and registry entry; my longer source quotation is a separate assessment, not an additional correction.'
+        assert (state == 'not_mentioned' and quote == '') or (quote and quote in reports[old['study_uid']])
+        changed = state != own['state']
+        disposition = 'accept_exact_root_proposal_pending_registry_integration' if prop else 'support_existing_accepted_state_no_duplicate_correction' if old['current_accepted_correction'] else 'retain_current_no_correction'
+        row = {**old, 'independent_postfreeze_judgment': {'state': state, 'evidence': quote, 'rationale': reason}, 'own_state_reconsidered': changed, 'own_quote_reconsidered': quote != own['evidence'], 'disposition': disposition, 'root_proposal_decision': 'accepted' if prop else 'not_applicable', 'accepted_existing_entry_rewritten': False, 'required_effective_report_mask_after_accepted_integration': int(state in {'positive', 'negative'})}
+        rows.append(row)
+        if changed or quote != own['evidence']:
+            reconsiderations.append(row)
+        if prop:
+            assert state == prop['proposed_state'] and quote == prop['source_quote']
+            assert old['current_accepted_correction'] is None
+            assert (prop['before_state'], prop['before_evidence']) == (old['original']['state'], old['original']['evidence']) == (old['current223_effective']['state'], old['current223_effective']['evidence'])
+            accepted.append({'case': old['case'], 'study_uid': old['study_uid'], 'target': old['target'], 'index': old['source_index_zero_based'], 'source_sha256': old['source_sha256'], 'source_path': old['source_path'], 'source_report_sha256': old['report_sha256'], 'original_review_path': old['original_review_path'], 'original_review_sha256': old['original_review_sha256'], 'before_state': prop['before_state'], 'before_evidence': prop['before_evidence'], 'after_state': state, 'after_evidence': quote, 'independent_source_state': state, 'source_evidence': quote, 'reason': reason, 'own_preproposal_source_state': own['state'], 'own_state_reconsidered': changed})
+    counts = {'complete_reports_reassessed': 7, 'all_target_cells_compared': 21, 'exact_root_proposals': 9, 'accepted': len(accepted), 'rejected': 0, 'held': 0, 'own_state_reconsiderations': sum(r['own_state_reconsidered'] for r in rows), 'own_quote_reconsiderations': sum(r['own_quote_reconsidered'] for r in rows), 'accepted_proposals_matching_own_preproposal_source_state': sum(not r['own_state_reconsidered'] for r in rows if r['root_additional_proposal']), 'accepted_proposals_following_own_reconsideration': sum(r['own_state_reconsidered'] for r in rows if r['root_additional_proposal']), 'already_accepted_selected_entries_preserved': sum(r['current_accepted_correction'] is not None for r in rows), 'new_root_proposal_existing_key_overlap': 0, 'final_state_disagreements_with_root': sum(r['independent_postfreeze_judgment']['state'] != r['root_postfreeze']['root_postfreeze_state'] for r in rows)}
+    write('all21-independent-postfreeze-dispositions.json', {**context, 'stage': 'independent_postfreeze_dispositions', 'comparison': bind(P / 'all21-bound-comparison.json'), 'counts': counts, 'records': rows, 'pending_disagreements': [], 'acceptance_scope': 'Nine exact root-proposed changes only; other selected already accepted corrections remain unchanged. This does not close the global QA gate.'})
+    write('explicit-reconsiderations.json', {**context, 'records': reconsiderations, 'state_reconsiderations': counts['own_state_reconsiderations'], 'quote_reconsiderations': counts['own_quote_reconsiderations'], 'earlier_states_preserved': True, 'initial_unanimity_claimed': False})
+    assessed = []
+    for r in rows:
+        q = r['independent_postfreeze_judgment']
+        assessed.append({'study_uid': r['study_uid'], 'target': r['target'], 'case': r['case'], 'source_path': r['source_path'], 'source_sha256': r['source_sha256'], 'source_report_sha256': r['report_sha256'], 'index': r['source_index_zero_based'], 'original_review_path': r['original_review_path'], 'original_review_sha256': r['original_review_sha256'], 'independent_source_state': q['state'], 'source_evidence': q['evidence'], 'reason': q['rationale'], 'own_frozen_state': r['own_source_frozen']['state'], 'own_frozen_evidence': r['own_source_frozen']['evidence'], 'own_state_reconsidered': r['own_state_reconsidered'], 'proposal_disposition': r['root_proposal_decision']})
+    write('independent-source-assessment.json', {**context, 'stage': 'independent_source_assessment', 'identity_kind': 'actual_codex_agent_task', 'records': assessed, 'dispositions': bind(P / 'all21-independent-postfreeze-dispositions.json'), 'frozen_source_assessment': bind(P / 'source-assessment-frozen.jsonl'), 'new_blinding_claim': False, 'scope': 'All21 source judgments, nine exact accepted proposals. This modern runtime assessment is post-comparison; the original preproposal source21 freeze is preserved separately.'})
+    support_paths = {'independent_source_freeze_sha256': P / 'source-freeze.json', 'independent_original_source_assessment_sha256': P / 'source-assessment-frozen.jsonl', 'independent_postfreeze_dispositions_sha256': P / 'all21-independent-postfreeze-dispositions.json', 'independent_reconsiderations_sha256': P / 'explicit-reconsiderations.json', 'root_source_freeze_sha256': ROOT / 'complete-source-freeze.json', 'root_postfreeze_dispositions_sha256': ROOT / 'root-postfreeze-dispositions.json', 'comparison_sha256': P / 'all21-bound-comparison.json', 'source_completion_manifest_sha256': P / 'source-completion-manifest.json'}
+    decision = {'schema_version': 1, 'status': 'independently_adjudicated_pending_release_integration', 'stage': 'independent_accepted_decision', 'at_utc': datetime.now(timezone.utc).isoformat(), 'proposer_agent_id': '/root', 'adjudicator_agent_id': AGENT, 'adjudicator_session_id': AGENT, 'source_reports_sha256': SOURCE, 'rubric_sha256': RUBRIC, 'proposal_sha256': sha(proposal_path), 'independent_assessment_sha256': sha(P / 'independent-source-assessment.json'), **{name: sha(path) for name, path in support_paths.items()}, 'n_changes': len(accepted), 'accepted_changes': accepted, 'rejected_changes': [], 'held_changes': [], 'original_artifacts_preserved': True, 'no_initial_unanimity_claim': True, 'own_state_reconsiderations': counts['own_state_reconsiderations'], 'prior_existing_corrections_preserved': True, 'registry_changed': False, 'gold_accessed': False, 'global_gate_closed': False, 'acceptance_statement': 'I, /root/quality_temporal_review, actually accept these nine exact root proposals after personally rereading the seven complete reports, freezing21 judgments first, and comparing all21 separately. Eight accepted items follow my explicit source-state reconsideration; one was already uncertain in my new source freeze. A ninth state reconsideration supports an already accepted primary item without registering it again. This decision records my source-based agreement, not delegated or fabricated acceptance.'}
+    write('accepted-decision.json', decision)
+    case = {'schema_version': 1, 'id': 'cartilage-observed-000-additional-20260921', 'source_reports_sha256': SOURCE, 'rubric_sha256': RUBRIC, 'proposal': runtime_bind(proposal_path), 'independent_assessment': runtime_bind(P / 'independent-source-assessment.json'), 'decision': runtime_bind(P / 'accepted-decision.json'), 'supporting_evidence': {name: runtime_bind(path) for name, path in support_paths.items()}, 'changes': [{'study_uid': r['study_uid'], 'target': r['target'], 'source_batch': {'path': r['source_path'], 'sha256': r['source_sha256']}, 'base_review': {'path': r['original_review_path'], 'sha256': r['original_review_sha256']}, 'before': {'state': r['before_state'], 'evidence': r['before_evidence']}, 'after': {'state': r['after_state'], 'evidence': r['after_evidence']}} for r in accepted]}
+    write('proposed-runtime-case.json', case)
+    write('runtime-integration-requirements.json', {'schema_version': 1, 'agent_id': AGENT, 'case': bind(P / 'proposed-runtime-case.json'), 'decision': bind(P / 'accepted-decision.json'), 'current_registry': bind(P / 'registry-at-comparison223.json'), 'accepted_changes': 9, 'current_registered_changes': 223, 'prospective_registered_changes_if_no_other_advance': 232, 'no_existing_key_overlap': True, 'archive': 'Preserve all source/frozen/comparison/assessment/decision files under their same initiative/audits directory names; Python helpers may be archived with .txt suffix while preserving bytes and original staging-path provenance inside immutable files. Runtime case references only evidence JSON/JSONL files whose names are unchanged.', 'must_replay_actual_registry_at_integration': True, 'masked_export_requirement': 'All nine accepted uncertain changes require zero report-derived loss mask after integration. Existing uncertain and not_mentioned cells remain masked; retained observed states remain subject to correspondence/duplicate/gold exclusions. This stage has not performed a final export.', 'production_registry_changed': False, 'global_gate_closed': False})
+    print(json.dumps({'counts': counts, 'dispositions_sha256': sha(P / 'all21-independent-postfreeze-dispositions.json'), 'assessment_sha256': sha(P / 'independent-source-assessment.json'), 'decision_sha256': sha(P / 'accepted-decision.json'), 'case_sha256': sha(P / 'proposed-runtime-case.json')}, indent=2))
+
+if __name__ == '__main__':
+    main()

@@ -2,36 +2,41 @@
 
 ## Latest verified checkpoint
 
-The second focused wording batch has 87 newly accepted corrections, bringing the
-registry to 205: 75 primary proposals and twelve additional proposals accepted by
-a distinct assessor. Root read all 50 complete sources and froze 600 judgments
-before case-specific reader findings. All thirteen root source-state revisions
-remain explicit. The changes mask 74 unsupported negatives and three insufficiently
-specified positives, clarify six masked states and improve four quotations.
-All 118 previous corrections and 297 protected artifacts remain unchanged.
+The registry contains 229 active accepted corrections. The first cartilage
+attention batch adds 27: 18 primary proposals and nine additional root proposals
+accepted by a distinct assessor. Two primary proposals already matched exact
+accepted annotations and were not duplicated. A separate independent review
+retired the earlier three-change morphology case, restoring its three original
+uncertain PF annotations. The net change from the published205 checkpoint is24.
+Every prior source, reviewed file and decision remains preserved, including the
+retired case wrapper and the assessors' explicit reconsiderations.
 
-Use `qualified-negation-focused-001-root-complete-v1/` and
-`qualified-negation-focused-001-integration-v1/complete205-integration-validation.json`.
-The source freeze SHA is
-`a745d9e7c210282cf8ea075e0564804b4b75c616de4d1d411a938576b9e102c6`.
-The current 205 replay finds zero state conflicts across 54 exact normalized-report
-groups/204 studies. All 87 new annotations match root evidence and 599/600 final
-root states agree. Case 010:40 medial OA remains an unregistered disagreement;
-the separate `qualified-negation-focused-001-grade-semantics-supplement-v1/`
-preserves balanced primary-reference review without claiming the report's grading
-scale is known. Resolve this before final release; do not quietly count it as accepted.
+Root read all26 complete attention reports and froze78 OA judgments before
+cartilage000 case findings, with previous source and grading exposure disclosed.
+All78 final root states now match current registry inspection. The27 new active
+corrections mask24 unsupported observed annotations, clarify one already-masked
+state, accept one explicitly superficial below-threshold negative, and improve
+one quotation without changing state. The retirement additionally masks three
+previously observed annotations. The229 replay finds zero state conflicts across
+54 normalized identical-report groups/204 studies.
 
-Completed parallel snapshots include both readings/comparisons for focused wording
-batch 002 and the first reading for batch 003. Root has not opened their case
-findings. Before batch 002 adjudication, read/freeze its 46 complete neutral attention
-reports; disclose historical source reuse and replay against the current registry.
-The first cartilage reader has finished sources and comparisons for batches 000–005
-(260 reports/780 OA judgments). The second reader has frozen batches 000–002
-(150 reports/450 judgments), with comparisons complete through 002. Root has frozen
-the first five of 26 attention sources for cartilage 000 locally; finish the other
-21 before opening its case findings. Bone discovery and the first 50-report/100-cell
-source/comparison stage are archived. These pending proposals are not acceptances.
-Snapshots v2 through v5 preserve exact completed file sets and historical baselines.
+Use `cartilage-observed-000-integration-v1/complete229-integration-validation.json`
+and `cartilage-legacy-three-retirement-integration-v1/retirement-integration-validation.json`.
+The earlier010:40 medial-OA grading disagreement is resolved through this separately
+accepted cartilage proposal; all earlier minority opinions and the balanced
+reference review remain unchanged. No grading scale or hospital is inferred.
+
+Both cartilage readers have completed sources and comparisons for the260-report
+priority set/780 OA judgments each. Root has also frozen the first ten of34 full
+attention sources for cartilage001; read/freeze the other24 before opening that
+batch's reader findings. The partial source freeze is archived under
+`cartilage-observed-001-root-first-ten-v1/`. Completed later cartilage and bone
+stages, plus two provenance clarifications, are preserved in snapshotv7. Bone000
+has two source readings/comparison; bone001 has its first reading/comparison,
+and its second reading is underway. Bone002 first reading is underway. Focused
+wording004 first source/comparison is complete locally; wording003 second source
+reading is underway. Before focused wording002 root adjudication, read/freeze
+all46 neutral attention sources. Later pending proposals are not acceptances.
 
 The cartilage discovery snapshot covers all 4,407 reports/13,221 OA cells, with
 6,034 candidate cells. Priority covers 302 cells in 260 reports; all 260 first-reader
@@ -122,20 +127,22 @@ gold-neighbor quarantine. Read `docs/report-similarity.md`. The complete final
 label export remains unfinished.
 
 The latest verified private Hugging Face checkpoint is
-`291d0051cb517a5609c23a58a2e4f5a0e724664a`, corresponding to Git
-`a27b16146520ce9de67ebd4762354191754bf636` (CI35658670372 passed).
-It reconstructs all6692 tracked Git files exactly from the pinned1792 base and
-a194,198,375-byte delta. Root and a distinct verifier independently streamed the
-base/delta and checked every result path, mode, size, SHA256 and Git blob identity;
-all six remote objects were content-verified. Original source trees, five official
-metadata blobs and root dataset card remained unchanged. The full restoration
-and publication receipt is preserved under `hf-preparation-delta-a27-v1/` and
-the reusable helper/test evidence under
-`primary74-integration-and-hf-delta-verification-v1/`. The bulk delta remains at
-its immutable external prefix, with its exact hash in the archived receipt.
-This published checkpoint contains118 clinical corrections,18 correspondence
-exclusions and the reviewed sampling preference. Current205 clinical changes and
-the newer semantic snapshots are not claimed to be in that earlier HF revision.
+`a70f15a39afd38a994aedc72af774817bf53647e`, corresponding to Git
+`7c1225e61974c374245c0656edeb0c47f54582c6` (CI35666396114 passed).
+It reconstructs all7179 tracked Git files exactly from the pinned1792 base and
+a202,364,633-byte delta. Root and a distinct verifier separately streamed the
+base/delta and checked every result path, mode, size, SHA256 and Git blob identity.
+All six published objects and both immutable base objects were verified. Original
+source image trees, five official metadata files and the root dataset card remain
+unchanged. See `qualified001-verified205-publication-v1/` for the actual receipts,
+operation, manifest and both restoration proofs. The base remains HF54949cd5 /
+Git1792f01; use the pinned v2 helper and its exact fixture-aware scan policy.
+
+That immutable checkpoint contains205 active corrections,18 correspondence
+exclusions and the reviewed sampling preference. The current229 active corrections,
+three retirements and newer semantic snapshots require a later verified publication
+receipt; do not infer synchronization from a Git commit alone. Earlier118 and205
+checkpoints and their original evidence remain immutable.
 The archive also preserves proof that547 staged DICOM copies now share their
 byte-identical archived files' physical storage. All paths and bytes remain
 unchanged; never write through those shared inodes. The full cache is untouched.

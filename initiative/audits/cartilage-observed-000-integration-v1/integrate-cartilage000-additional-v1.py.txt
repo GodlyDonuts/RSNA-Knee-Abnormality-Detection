@@ -1,0 +1,108 @@
+"""Register the distinct assessor's nine accepted additional cartilage corrections."""
+import copy
+import hashlib
+import json
+import shutil
+import sys
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+from dotenv import dotenv_values
+
+W = Path(__file__).resolve().parents[1]
+R = W / "work/recovered"
+G = W / "work/annotation-staging/cartilage-observed-000-additional-independent-v1"
+A = R / "initiative/audits/cartilage-observed-000-additional-independent-v1"
+I = R / "initiative/audits/cartilage-observed-000-integration-v1"
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p): return {"path": str(p.relative_to(R)), "sha256": sha(p)}
+def read(p, expected=None):
+    if expected: assert sha(p) == expected, p
+    return json.loads(p.read_text())
+def save(p, value):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("x") as f: f.write(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    return bind(p)
+
+rp = R / "initiative/reviews-v2/adjudications/registry.json"
+registry = read(rp, "8a7d1b528c854fd161b98f3fecb86797b938e563f25ebfd2263450452369870d")
+reports = {x["study_uid"]: x["report"] for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")) for x in read(p)}
+before = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+assert before["n_changes"] == 220 and len(before["pending_semantic_qa"]) == 3
+before_map = {(c["study_uid"], c["target"]): c for c in before["changes"]}
+protected = {}
+for folder in ["initiative/reviews/inputs", "initiative/reviews-v2/reviewed", "initiative/reviews-v2/drafts", "initiative/source", "initiative/reviews-v2/adjudications/cases", "initiative/reviews-v2/adjudications/qa"]:
+    for p in (R / folder).rglob("*"):
+        if p.is_file(): protected[str(p.relative_to(R))] = sha(p)
+protected["protocols/report_weak_v2.md"] = sha(R / "protocols/report_weak_v2.md")
+mp = G / "completion-manifest.json"
+manifest = read(mp, "3ca4f90de0fb79600e6abe67bcb614aa30fbb3526478915a8a8a64f13e0880f4")
+assessment = read(G / "independent-source-assessment.json", "58a0d7a17deae449381b61fd8e608ea3b60c430068cbc3fb3860245d5c3870c1")
+decision = read(G / "accepted-decision.json", "02cf32c6f0421c91d80f85eecec71bec5fe34c6d98461454f468ecf984c35bcc")
+suggested = read(G / "proposed-runtime-case.json", "109c5b6e68afb210314399d6bc5eed9a00e0299ba7c3170775781d28a200a109")
+assert assessment["agent_id"] == decision["adjudicator_agent_id"] == "/root/quality_temporal_review"
+assert decision["proposer_agent_id"] == "/root" and decision["n_changes"] == 9
+assert len(assessment["records"]) == 21 and not decision["held_changes"] and not decision["rejected_changes"]
+assert sum(r["own_state_reconsidered"] for r in decision["accepted_changes"]) == 8
+assert sum(r["own_state_reconsidered"] for r in assessment["records"]) == 9
+entries = {W / ref["path"]: ref["sha256"] for ref in manifest["files"]}
+entries[mp] = sha(mp)
+assert not A.exists() and all(p.is_relative_to(G) for p in entries)
+assert shutil.disk_usage(W).free - sum(p.stat().st_size for p in entries) > 20 * 2**30
+secrets = [v.encode() for k,v in dotenv_values(W / ".env").items() if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+assert len(secrets) == 2
+for p,h in entries.items(): assert sha(p) == h and all(s not in p.read_bytes() for s in secrets)
+preserved = []
+for p,h in entries.items():
+    dest = A / p.relative_to(G)
+    if dest.suffix == ".py": dest = dest.with_suffix(".py.txt")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with dest.open("xb") as f: f.write(p.read_bytes())
+    assert sha(dest) == h
+    preserved.append({"original_path": str(p.relative_to(W)), **bind(dest), "bytes": dest.stat().st_size})
+save(A / "preservation.json", {"stage": "byte_preserved_actual_independent_additional_nine_decision", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "files": preserved, "all_originals_unchanged": True})
+case = copy.deepcopy(suggested)
+relocations = []
+for ref in [case["proposal"], *case["supporting_evidence"].values()]:
+    old = ref["path"]
+    if old.startswith("initiative/audits/cartilage-observed-000-root-review-v1/"):
+        ref["path"] = old.replace("cartilage-observed-000-root-review-v1/", "cartilage-observed-000-root-complete-v1/")
+        assert sha(R / ref["path"]) == ref["sha256"]
+        relocations.append({"suggested_path": old, "actual_preserved_path": ref["path"], "same_sha256": ref["sha256"]})
+assert len(relocations) == 3
+keys = {(c["study_uid"], c["target"]) for c in case["changes"]}
+assert len(keys) == 9 and not keys & set(before_map)
+old223 = read(R / "initiative/audits/cartilage-observed-000-integration-v1/primary-inspection223.json")
+old223_map = {(c["study_uid"], c["target"]): c for c in old223["changes"]}
+selected = {(r["study_uid"], r["target"]) for r in assessment["records"]}
+assert all(old223_map.get(k) == before_map.get(k) for k in selected)
+cp = R / "initiative/reviews-v2/adjudications/cases/cartilage-observed-000-additional-nine.json"
+save(cp, case)
+save(I / "registry-before-additional220.json", registry)
+rp.write_text(json.dumps({**registry, "cases": [*registry["cases"], bind(cp)]}, ensure_ascii=False, indent=2) + "\n")
+after = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+after_map = {(c["study_uid"], c["target"]): c for c in after["changes"]}
+assert after["n_changes"] == 229 and after["pending_semantic_qa"] == before["pending_semantic_qa"]
+assert set(after_map) - set(before_map) == keys
+assert all(after_map[k] == c for k,c in before_map.items())
+assert all(sha(R / p) == h for p,h in protected.items())
+original = {r["study_uid"]: r for p in sorted((R / "initiative/reviews-v2/reviewed").glob("*.jsonl")) for r in map(json.loads,p.read_text().splitlines())}
+dispositions = read(R / "initiative/audits/cartilage-observed-000-root-complete-v1/root-postfreeze-dispositions.json", "bd377dd055534f52739d1620a1bb5ba344ae0fd278b29fa678fd325a67cf2541")
+assert len(dispositions["records"]) == 78
+for d in dispositions["records"]:
+    key = d["study_uid"], d["target"]
+    current = after_map[key]["after"] if key in after_map else {"state": original[key[0]]["states"][TARGETS.index(key[1])], "evidence": original[key[0]]["evidence"][TARGETS.index(key[1])]}
+    assert current["state"] == d["root_postfreeze_state"], (d["case"], key[1])
+    if d["action"] in {"accept_primary_proposal_pending_registry_integration", "root_additional_proposal_pending_distinct_assessment", "already_covered_by_existing_exact_accepted_correction"}:
+        assert current["evidence"] == d["root_postfreeze_evidence"]
+new_changes = [c for c in after["changes"] if c["case_id"].startswith("cartilage-observed-000-")]
+assert len(new_changes) == 27
+receipt = {"stage": "root_verified_cartilage000_primary_and_additional_registration", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "registry": bind(rp), "additional_case": bind(cp), "independent_accepted_decision": bind(A / "accepted-decision.json"), "runtime_wrapper_path_relocations_only": relocations, "prior220_changes_preserved": True, "protected_artifacts": [{"path": p, "sha256": h} for p,h in sorted(protected.items())], "all_protected_artifacts_unchanged": True, "new_primary": 18, "new_additional": 9, "new_primary_and_additional": 27, "separately_retired_prior_corrections": 3, "total_registered": 229, "net_change_from_last_published205": 24, "new_active_transition_counts": dict(Counter(c["before"]["state"] + "->" + c["after"]["state"] for c in new_changes)), "all78_root_final_states_match_current": True, "all27_new_and_two_already_covered_quotes_match_exactly": True, "independent223_to_actual220_selected21_rebase_changes": 0, "pending_semantic_qa": after["pending_semantic_qa"], "label_export_performed": False, "training_ready": False}
+save(I / "complete229-integration-validation.json", receipt)
+save(I / "complete229-inspection.json", after)
+(I / "integrate-cartilage000-additional-v1.py.txt").write_bytes(Path(__file__).read_bytes())
+print(json.dumps({"receipt": bind(I / "complete229-integration-validation.json"), "registry": bind(rp), "active_corrections": 229, "new_registered": 27, "prior_retired": 3, "root78_reconciled": True}))

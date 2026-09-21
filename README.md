@@ -23,13 +23,14 @@ to check the current review run.
 
 All 4,407 reports have completed both initial review passes, and the image cache
 has passed its full technical integrity audit. Subsequent consistency review has
-registered 205 target corrections; 18 studies have enforced exclusions from
-report-derived training loss. The latest focused wording batch adds 87 accepted
-changes, with original source judgments and later reconsiderations preserved.
-One additional cartilage grading disagreement remains pending.
-Cartilage, bone-terminology and qualified-wording QA remain open. Final manifests,
-leakage isolation and actual final-data training/resume/inference checks are still
-required. See [the correction evidence](docs/adjudications.md).
+229 active target corrections; 18 studies have enforced exclusions from report-derived
+training loss. The latest cartilage batch adds27 accepted corrections and separately
+retires three earlier corrections, restoring their original uncertain annotations.
+Both priority cartilage readers have finished260 reports; remaining source queues
+and root adjudication continue. Original source judgments and later reconsiderations
+are preserved. Cartilage, bone terminology and qualified-wording QA remain open.
+Final manifests, leakage isolation and actual final-data training/resume/inference
+checks are still required. See [the correction evidence](docs/adjudications.md).
 
 The original mirror contains 4,407 training studies (58 with complete official
 labels), 819,078 training DICOMs, and 557 DICOMs from the three released sample test

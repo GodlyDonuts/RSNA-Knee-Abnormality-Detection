@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "completed_at_utc": "2026-09-21T23:16:32.031645+00:00",
+  "status": "exact_substitutions_and_v2_compatibility_verified_offline",
+  "publisher": {
+    "path": "publish_qualified001_delta.py",
+    "sha256": "5b5821f6b45a97f7832a08c64ac2f935d100e1604446fafcc9a5d56312a59057",
+    "bytes": 14672
+  },
+  "reviewed_corrected_template_sha256": "fe7e8e1a37ada08079895bb1b0f565136c432c95bc965cf86867631d976d3f3a",
+  "proof_of_no_other_source_changes": "Reverse the exact five one-occurrence substitutions and recover the previously reviewed full-file SHA256.",
+  "substitutions": {
+    "TARGET": "7c1225e61974c374245c0656edeb0c47f54582c6",
+    "N_FILES": 7179,
+    "N_CORRECTIONS": 205,
+    "CI_RUN": 35666396114,
+    "HELPER": "work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py"
+  },
+  "helper": {
+    "path": "checkpoint_delta.py",
+    "sha256": "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8",
+    "bytes": 27915
+  },
+  "manifest": {
+    "path": "manifest.json",
+    "sha256": "2aa7790f931e2faa64fc47e778f403d254978784dbf6408a466a7a5457e498d7",
+    "bytes": 2944551
+  },
+  "restoration_proof": {
+    "path": "restoration-proof.json",
+    "sha256": "5e0045983c836ce8ad95a712c8047bf076793219d229131cecd44270a07b7cb8",
+    "bytes": 3095
+  },
+  "checks_passed": [
+    "exact_bound_v2_manifest_local_guard",
+    "v2_exact_scan_policy_and_restoration_proof_compatible",
+    "actual_restoration_proof_target_count_manifest_compatible",
+    "publication_parent_distinct_from_reconstruction_base",
+    "wrong_file_count_rejected",
+    "wrong_base_git_rejected",
+    "mock_exact_ci_success_accepted",
+    "mock_in_progress_ci_rejected",
+    "mock_other_commit_ci_rejected",
+    "custom_parent_guard_v2_helper_compatible",
+    "obsolete_base_parent_rejected",
+    "ordinary_scan_actual_publisher_v2_helper_manifest_proof_passed"
+  ],
+  "n_checks": 12,
+  "unresolved_new_findings": [],
+  "ci_scope": "CI guard exercised only with offline mocks; no real CI query or success assertion. Root must observe exact CI success before prepare/publish.",
+  "network_calls": 0,
+  "remote_mutations": 0,
+  "repository_edits": 0,
+  "package_writes": 0,
+  "prior_review_limitations_preserved": [
+    "Changed-head reconciliation proves exact content, not parent ancestry or author.",
+    "Remote request timeouts remain bounded individually; no overall wall-clock watchdog added."
+  ]
+}

@@ -1,0 +1,55 @@
+"""Verify both frozen readers and mechanically bind only the selected100 current cells."""
+import json,hashlib,sys
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';D=P.parent
+OWN=D/'bone-observed-000-independent-review-v1';FIRST=D/'bone-observed-000-source-review-v1';POST=D/'bone-observed-000-postfreeze-v1';sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(name,obj):
+ with(P/name).open('x')as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+def main():
+ assert sha(OWN/'independent-freeze.json')=='1787840662a8d732952cc384ae011c17476d7603ea47a79fa0bb18a33477727f'
+ protected=[]
+ for stage,manifest_name in [(OWN,'final-file-list.json'),(FIRST,'artifact-manifest.json'),(POST,'artifact-manifest.json')]:
+  m=read(stage/manifest_name)
+  if isinstance(m['files'],list):entries=[(W/e['path'],e['sha256'])for e in m['files']]
+  else:entries=[(stage/name,e['sha256'])for name,e in m['files'].items()]
+  for path,h in entries:assert sha(path)==h;protected.append(bind(path))
+  protected.append(bind(stage/manifest_name))
+ assert sha(FIRST/'source-freeze.json')=='b11ee841930a1fefcde029e8b1fa84a8b167d15761b4fef094b8abac2a0fc8ce'
+ assert sha(FIRST/'source-assessment.json')=='bd414d34a1ba8e69b40084d18e4087fa18083f00a1e81ce73ce44bb434e70d50'
+ assert sha(POST/'all100-postfreeze-dispositions.json')=='570ab210d0e72aec008eeecbcad1a11c49cb9eb9b37e2eefb337c1626d91cdc7'
+ first=read(FIRST/'source-assessment.json');peer=read(POST/'all100-postfreeze-dispositions.json');own=[json.loads(l)for l in(OWN/'independent-source-assessment.jsonl').read_text().splitlines()];sources=read(OWN/'neutral-source-packet.json')['reports']
+ assert first['assessor_agent_id']=='/root/duplicate_consistency_review' and first['assessor_agent_id']!=read(OWN/'independent-freeze.json')['agent_id']
+ assert peer['baseline_registry_sha256']=='64b6b8b51efb693738e8a3f70743afe4b160c5b3acd1f4ec3300cc699e8fee12'
+ all_reports={r['study_uid']:r['report']for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for r in read(p)};assert len(all_reports)==4407 and source_reports_fingerprint(all_reports)=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+ registry=R/'initiative/reviews-v2/adjudications/registry.json';pin=sha(registry);replay=inspect_adjudications(all_reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R);assert sha(registry)==pin
+ changes={(r['study_uid'],r['target']):r for r in replay['changes']};assert len(changes)==205
+ with(P/'registry-at-comparison.json').open('xb')as f:f.write(registry.read_bytes())
+ fby={r['study_uid']:r for r in first['records']};pby={(r['study_uid'],r['target']):r for r in peer['records']};props={(r['study_uid'],r['target']):r for r in read(POST/'proposed-errata.json')['proposed_errata']}
+ rows=[];reviews={}
+ for i,(source,a)in enumerate(zip(sources,own,strict=True)):
+  uid=source['study_uid'];f=fby[uid];assert a['study_uid']==uid and f['ordinal']==i
+  sp=R/source['source_path'];assert sha(sp)==source['source_sha256']==f['source_sha256'];assert read(sp)[source['source_index_zero_based']]=={'study_uid':uid,'report':source['report']};assert hashlib.sha256(source['report'].encode()).hexdigest()==f['report_sha256']==a['source_report_sha256']
+  rp=R/'initiative/reviews-v2/reviewed'/(sp.stem+'-reviewed.jsonl')
+  if rp not in reviews:reviews[rp]={r['study_uid']:r for r in map(json.loads,rp.read_text().splitlines())}
+  original=reviews[rp][uid]
+  for k,target in enumerate(a['target_order']):
+   key=uid,target;fd=next(x for x in f['decisions']if x['target']==target);pd=pby[key];j=TARGETS.index(target);o={'state':original['states'][j],'evidence':original['evidence'][j]};assert o==pd['original'] and sha(rp)==pd['artifact_sha256']
+   current=changes[key]['after']if key in changes else o
+   owncell={'state':a['states'][k],'evidence':a['evidence'][k],'rationale':a['rationales'][k]}
+   for cell in [fd,pd['source_frozen'],pd['postfreeze_assessor_judgment'],owncell,current,o,pd['current_effective']]:
+    state,q=cell['state'],cell['evidence'];assert(state=='not_mentioned'and q=='')or(state in {'positive','negative','uncertain'}and q and q in source['report'])
+   assert (fd['state'],fd['evidence'],fd['rationale'])==(pd['source_frozen']['state'],pd['source_frozen']['evidence'],pd['source_frozen']['rationale'])
+   rows.append({'ordinal':i,'study_uid':uid,'target':target,'source_path':source['source_path'],'source_index_zero_based':source['source_index_zero_based'],'source_sha256':source['source_sha256'],'report_sha256':source['report_sha256'],'original_review_path':str(rp.relative_to(R)),'original_review_sha256':sha(rp),'original':o,'original_notes':original['notes'],'first118_effective':pd['current_effective'],'current205_effective':current,'changed_since_first118':current!=pd['current_effective'],'current_accepted_correction':changes.get(key),'own_source_frozen':owncell,'first_source_frozen':fd,'first_postfreeze_judgment':pd['postfreeze_assessor_judgment'],'first_postfreeze_action':pd['action'],'first_postfreeze_reason':pd['reason'],'first_proposal':props.get(key),'first_retained_scope_disagreement':pd['unresolved_source_scope_disagreement']})
+ assert len(rows)==100 and len({(r['study_uid'],r['target'])for r in rows})==100
+ write('all100-bound-comparison.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','created_at_utc':datetime.now(timezone.utc).isoformat(),'own_source_freeze':bind(OWN/'independent-freeze.json'),'first_source_freeze':bind(FIRST/'source-freeze.json'),'first_source_assessment':bind(FIRST/'source-assessment.json'),'first_postfreeze_dispositions':bind(POST/'all100-postfreeze-dispositions.json'),'first_proposals':bind(POST/'proposed-errata.json'),'first_baseline_registry_sha256':peer['baseline_registry_sha256'],'first_baseline_registered_changes':118,'current_registry':bind(registry),'current_registered_changes':205,'records':rows,'other_future_bone_case_annotations_personally_opened':False,'registry_replay_scope_disclosure':'The validator mechanically replays the full existing registry but exposes and saves only this selected100-cell comparison. It does not open future bone001 candidate tables or reader findings.','new_clinical_judgments_automated':False,'helper':bind(Path(__file__).resolve())})
+ write('protected-prior-bindings.json',{'files':protected,'originals_preserved':True,'source_passes_remain_independent_and_unchanged':True})
+ print(json.dumps({'cells':len(rows),'own_vs_first_source_state_differences':sum(r['own_source_frozen']['state']!=r['first_source_frozen']['state']for r in rows),'own_vs_first_post_state_differences':sum(r['own_source_frozen']['state']!=r['first_postfreeze_judgment']['state']for r in rows),'own_vs_current205_state_differences':sum(r['own_source_frozen']['state']!=r['current205_effective']['state']for r in rows),'current_changes_since118':sum(r['changed_since_first118']for r in rows),'current_existing_correction_cells':sum(r['current_accepted_correction']is not None for r in rows)},indent=2))
+if __name__=='__main__':main()

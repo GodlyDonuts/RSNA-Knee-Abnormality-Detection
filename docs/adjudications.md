@@ -77,25 +77,39 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry now contains **205 accepted target corrections**. The second focused
-wording batch adds 87 accepted changes: 74 unsupported observed negatives and
-three insufficiently specified positives become uncertain, six already-masked
-states become unmentioned, and four quotations gain necessary context without
-changing state. Root read all 50 complete sources and froze 600 judgments before
-the other readers' case findings. Its initial states matched 73 of the 75 primary
-proposals; all thirteen root reconsiderations across the batch remain explicit.
-A distinct agent accepted twelve of thirteen additional root proposals after a
-separate source reread. One cartilage grading disagreement remains pending,
-including after a balanced literature follow-up; it is excluded from registration.
+The registry contains **229 active accepted target corrections**. The latest
+cartilage000 milestone adds27 corrections and independently retires three earlier
+ones. Root read26 complete attention sources and froze78 OA judgments before reader
+case findings. Its20 primary assessments yield18 new changes and two exact matches
+to already accepted corrections. Four root source-state reconsiderations remain
+separate. A distinct assessor reread seven complete sources/21 OA judgments, then
+accepted nine additional proposals, with eight proposal-related state reconsiderations
+and one further reconsideration supporting an already accepted primary entry.
+This is actual post-comparison agreement, not initial unanimity.
 
-The [integration proof](../initiative/audits/qualified-negation-focused-001-integration-v1/complete205-integration-validation.json)
-replays all 205 corrections and preserves the earlier 118 and 297 protected files.
-All 87 new annotations match the final root judgments and exact evidence; 599 of
-600 root states agree with the resulting inspection, with the remaining disputed
-cell explicitly identified. The
-[current consistency check](../initiative/audits/qualified-negation-focused-001-integration-v1/current205-consistency-validation.json)
-finds no differing target states in 54 exact normalized-report groups/204 studies.
-This does not resolve report-similarity leakage or any global semantic QA gate.
+The [integration proof](../initiative/audits/cartilage-observed-000-integration-v1/complete229-integration-validation.json)
+reconciles all78 final root states and the exact27 new quotations with inspection.
+The [current duplicate check](../initiative/audits/cartilage-observed-000-integration-v1/current229-consistency-validation.json)
+finds zero conflicting states in54 normalized identical-report groups/204 studies.
+The earlier010:40 grading disagreement is now resolved through a distinct cartilage
+proposal; the earlier contrary judgment and balanced reference review are preserved.
+
+The [retirement decision](../initiative/audits/cartilage-legacy-three-retirement-integration-v1/accepted-retirement-decision.json)
+withdraws the entire earlier `cartilage-morphology-004-088` case after three complete
+source rereads and a distinct assessor's explicit acceptance. The three PF annotations
+return exactly to their original uncertain states/evidence. The original case wrapper
+is preserved byte for byte in the audit and removed from active `cases/` and its
+registry list. All prior proposal, assessment and decision files remain unchanged.
+The still-pending cartilage QA record binds the retirement decision and original
+wrapper. No duplicate or no-op correction is added; final export must verify all
+three masks remain zero. The [execution proof](../initiative/audits/cartilage-legacy-three-retirement-integration-v1/retirement-integration-validation.json)
+validates exact preservation of every other220 change object.
+
+At the preceding205 checkpoint, the second focused wording batch contributed87
+accepted changes:74 unsupported negatives and three insufficiently specified positives
+became uncertain, six already-masked states became unmentioned, and four quotations
+improved. Those artifacts remain historical evidence, including their then-pending
+grading disagreement. The three global semantic gates remain pending.
 
 At the previous checkpoint, the registry contained **118 accepted target corrections** and retains cartilage,
 bone terminology and qualified-negation/duplicate consistency as three pending

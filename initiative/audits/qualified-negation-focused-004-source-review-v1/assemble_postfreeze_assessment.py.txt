@@ -1,0 +1,121 @@
+"""Assemble separately reasoned post-freeze dispositions; never infer acceptance."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib,json,sys
+S=Path(__file__).resolve().parent; W=S.parents[2]; R=W/'work/recovered'
+sys.path.insert(0,str(R))
+from rsna.labels import read_reviews
+def read(p): return json.loads(p.read_text())
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p): return dict(path=str(p.relative_to(W)),sha256=sha(p),bytes=p.stat().st_size)
+def save(name,obj):
+    with (S/name).open('x') as f: f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+
+freeze=read(S/'source-assessment-frozen.json'); targets=freeze['targets']; rows=read(S/'full-target-comparison.json')['records']
+by={(x['packet_ordinal'],x['target_index']):x for x in rows}; assert len(by)==600
+packet=read(W/freeze['neutral_source_packet']['path']); reports={x['study_uid']:x['report'] for x in packet}
+old=read(S/'current205-adjudications-inspection.json'); current=read(S/'current223-adjudications-inspection.json'); rebase=read(S/'current223-rebase-proof.json')
+assert old['n_changes']==205 and current['n_changes']==223 and rebase['n_new_corrections_overlapping_selected_reports']==0
+assert sha(S/'source-assessment-frozen.json')=='409a10957791027d9f4512054633efab5451e73dfafe18556c9faec8889a185b'
+base=dict(schema_version=1,agent_id=freeze['agent_id'],session_id=freeze['session_id'],rubric_version='report-weak-v2.0',rubric_sha256=old['rubric_sha256'],source_reports_sha256=old['source_reports_sha256'],source_assessment_sha256=sha(S/'source-assessment-frozen.json'),source_freeze_receipt_sha256=sha(S/'source-freeze-receipt.json'),neutral_packet_sha256=freeze['neutral_source_packet']['sha256'],comparison_registry_sha256=old['registry_sha256'],comparison_registered_corrections=205,rebase_registry_sha256=current['registry_sha256'],rebase_registered_corrections=223,rebase_proof_sha256=sha(S/'current223-rebase-proof.json'))
+
+# Explicit per-case/target decisions authored after personally assessing the
+# original-versus-frozen differences. Candidate keyword matches do not assign them.
+proposal_targets={
+0:[7,9,11],1:[7,11],2:[9],4:[9],6:[9],9:[4,5,6],10:[9],11:[4,5,11],12:[6],13:[9],14:[3,9],15:[7],16:[2,4,5,6],17:[4,5,6],18:[0,1,2,4,5,6,10],19:[7,9,10],21:[9],26:[2,3,9],28:[9],29:[11],30:[4,5],31:[9],35:[7,11],37:[9],40:[2,9],42:[0,1,3],43:[4,5],44:[7],45:[7],46:[7,9],47:[7],48:[6]}
+propose={(i,j) for i,js in proposal_targets.items() for j in js}
+reconsider={
+(3,4):'I retract my initial medial-cartilage negative. The no-cartilagenous-tear sentence follows the localized lateral osteochondral finding; it does not unequivocally assess medial cartilage. Preserve the original not_mentioned state and the source-first negative separately.',
+(7,10):'I retract my initial contusion negative. Normal remaining bones exclude the specifically described fibrovascular/cystic regions, and their non-impact attribution alone does not categorically exclude the whole contusion target. Retain the existing masked uncertainty.',
+(8,11):'I reconsider the initial unmentioned fracture state. The report explicitly describes cortical irregularity, an informative cortical abnormality, while its acuity and fracture-line meaning are unresolved. Existing fracture uncertainty is defensible; retain the mask.',
+(23,5):'I retract the initial negative based on mild thinning. Mild is qualitative and this report does not quantify thickness loss. Under the frozen depth/extent rule it does not establish a numerical below-threshold boundary; retain uncertainty.',
+(45,4):'I retract the initial negative based on mild thinning. No explicit thickness percentage or qualifying region measure resolves it; mild alone is not a verified cartilage-depth mapping. Retain existing uncertainty.',
+(49,4):'I retract the initial medial negative. The numerical no-more-than50% depth statement specifically describes patellar-apical cartilage. Most prominent PF disease and mild tricompartmental OA do not prove the same depth limit for the medial compartment; retain uncertainty.',
+(49,5):'I retract the initial lateral negative. The quantified depth is specific to the patellar region; relative prominence and mild tricompartmental disease do not quantify lateral cartilage loss. Retain uncertainty.',
+}
+pending={
+(7,11):'Both states remain masked. The source lacks an acute fracture diagnosis or line, but contains broad otherwise-normal bone language and specific osseous findings. Whether fracture is unmentioned or informatively uncertain is a source-scope disagreement; no concrete erratum is asserted here.',
+(12,11):'The initial positive inferred current acute fracture from depression, bruises and subcutaneous hemorrhage. The original uncertainty preserves absent explicit timing. Retain both interpretations and the current mask pending a distinct source assessment of acuity; do not automatically promote a fracture subtype.',
+(19,6):'The initial positive inferred a broad qualifying loss region from diffuse patellar partial-to-near-total ulceration. The exact extent of the deeper component is not quantified separately. Retain the existing mask pending independent assessment of this depth/extent inference.',
+(20,11):'The initial positive inferred acute fibular fracture from definite fracture, edema, displacement and urgent multiligament-trauma context. The original uncertainty retains missing explicit acuity. Preserve this inferential disagreement and current mask for a distinct source assessment.',
+(23,6):'Normal PF articulation may denote a broadly normal joint or may refer mainly to alignment rather than cartilage thickness. The initial negative and original unmentioned state remain a scope disagreement; retain the existing mask rather than promote an ambiguous normality statement.',
+(28,5):'General knee OA with worse medial/PF disease can imply uncertain remaining cartilage, but no specific lateral compartment finding is provided. Preserve initial uncertain versus original unmentioned as a masked localization disagreement.',
+(43,9):'The initial positive inferred a moderate-large posterior collection from three centimeter dimensions. The frozen rubric does not supply a validated dimensional-to-volume severity mapping. Retain the original mask pending distinct assessment; the initial dimensional interpretation remains preserved.',
+}
+quote_fix={(11,6):'The original negative quote denies only higher-grade chondropathy. The complete report separately describes at most minimal retropatellar cartilage signal alteration, which supports the below-loss interpretation. Bind that actual below-threshold finding rather than relying solely on an undefined higher-grade denial.'}
+differences={k for k,r in by.items() if not r['state_agrees']}
+assert len(differences)==76 and len(propose)==62
+assert not (propose & set(reconsider) or propose & set(pending) or set(reconsider)&set(pending))
+assert differences==propose|set(reconsider)|set(pending)
+assert all(by[k]['state_agrees'] and not by[k]['evidence_agrees'] for k in quote_fix)
+
+dispositions=[]; proposals=[]; reconsiderations=[]; disagreements=[]; final_rows=[]
+registered={(r['study_uid'],r['target']) for r in current['changes']}
+for k,r in by.items():
+    preferred=r['source_frozen']; why=r['source_reason']; status='source_state_agrees_retain_original_evidence'
+    if k in propose:
+        status='proposed_state_change_pending_distinct_assessment'
+    elif k in reconsider:
+        preferred=r['effective']; why=reconsider[k]; status='own_reconsideration_retain_current'
+    elif k in pending:
+        why=pending[k]; status='unresolved_disagreement_retain_current_mask'
+        assert not r['effective_observed']
+    elif k in quote_fix:
+        why=quote_fix[k]; status='proposed_evidence_context_pending_distinct_assessment'
+    item=dict(r,postfreeze_disposition=status,postfreeze_reason=why,final_first_assessor_preference=preferred,current_annotation_modified=False)
+    dispositions.append(item); final_rows.append(item)
+    if k in reconsider: reconsiderations.append(item)
+    if k in pending: disagreements.append(item)
+    if k in propose or k in quote_fix:
+        assert (r['study_uid'],r['target']) not in registered and r['original']==r['effective']
+        state=preferred['state']; quote=preferred['evidence']; assert (quote=='') if state=='not_mentioned' else (quote and quote in reports[r['study_uid']])
+        b=int(r['effective_observed']); a=int(state in ('positive','negative'))
+        proposals.append(dict(study_uid=r['study_uid'],target=r['target'],batch=r['batch'],index=r['index'],packet_index=r['packet_ordinal'],source_path=r['source_path'],source_sha256=r['source_sha256'],artifact_path=r['original_review_path'],artifact_sha256=r['original_review_sha256'],before_state=r['original']['state'],before_evidence=r['original']['evidence'],proposed_state=state,source_quote=quote,reason=why,kind='state_correction' if k in propose else 'evidence_context_correction',report_weak_mask_before=b,report_weak_mask_after=a,mask_impact='observed_to_masked' if b and not a else 'masked_to_observed' if a and not b else 'masked_to_masked' if not a and not b else 'observed_unchanged',status='proposed_pending_distinct_source_assessment_and_adjudication'))
+assert len(proposals)==63
+save('postfreeze-disposition-assessment.json',dict(base,status='first_assessor_postfreeze_comparison_not_acceptance',completed_at_utc=datetime.now(timezone.utc).isoformat(),n_reports=50,n_targets=600,n_initial_state_agreements=524,n_initial_state_differences=76,n_same_state_quote_differences=46,n_source_reconsiderations=7,n_unresolved_retained_masks=7,records=dispositions,secondary_clinical_access_note='After this freeze I read my own prior focused003 assembly code as a format reference; it contains my earlier dispositions. No second-assessor clinical file was opened. All seven current reconsiderations are explicit and the initial source freeze remains unchanged.',global_semantic_qa_pending=current['pending_semantic_qa'],no_acceptance_metadata=True,labels_or_registry_modified=False,gold_values_opened=False))
+save('own-reconsiderations.json',dict(base,status='separate_from_immutable_initial_source_freeze',records=reconsiderations))
+save('unresolved-retained-mask-disagreements.json',dict(base,status='pending_distinct_source_assessment',records=disagreements,all_current_masks_retained=True))
+save('proposed-errata.json',dict(base,status='proposed_pending_distinct_source_assessment_and_adjudication',proposer_agent_id=freeze['agent_id'],proposer_session_id=freeze['session_id'],n_reports=50,n_targets_assessed=600,n_changes=len(proposals),n_studies_with_proposals=len({x['study_uid'] for x in proposals}),kind_counts=dict(Counter(x['kind'] for x in proposals)),mask_impact_counts=dict(Counter(x['mask_impact'] for x in proposals)),proposed_errata=proposals,originals_unchanged=True,no_acceptance_metadata_created=True,no_global_qa_closure=True))
+qrows=[r for r in dispositions if r['state_agrees'] and not r['evidence_agrees']]
+save('quote-difference-dispositions.json',dict(base,n_differences=len(qrows),n_context_corrections=1,records=qrows,retention_policy='All other existing quotes adequately support the agreed state; changing excerpt length alone is not an erratum. Full original-report quotes were already personally read as full source.'))
+by_key={(r['study_uid'],r['target']):r for r in dispositions}
+candidates=read(S/'batch-candidate-details-postfreeze.json')['records']
+save('candidate-disposition-assessment.json',dict(base,n_candidates=len(candidates),records=[dict(c,postfreeze_disposition=by_key[(c['study_uid'],c['target'])]['postfreeze_disposition'],source_frozen=by_key[(c['study_uid'],c['target'])]['source_frozen'],final_first_assessor_preference=by_key[(c['study_uid'],c['target'])]['final_first_assessor_preference']) for c in candidates],keyword_matches_only_discover_candidates=True))
+attention={r['packet_ordinal'] for r in dispositions if r['postfreeze_disposition']!='source_state_agrees_retain_original_evidence'}
+save('neutral-full-source-attention-packet.json',[r for i,r in enumerate(packet) if i in attention])
+save('neutral-attention-packet-reference.json',dict(full50_source_packet=freeze['neutral_source_packet'],attention_packet=ref(S/'neutral-full-source-attention-packet.json'),n_attention_reports=len(attention),contains_current_proposed_or_frozen_states=False,selection_scope='All reports with a concrete proposal, own source-state reconsideration or unresolved retained-mask disagreement; no candidate target/state is included in the neutral source packet.'))
+
+# Parse the frozen and final assessor preferences with the repository's real
+# annotation validator. This does not run label export or inspect official gold.
+for label,use_final in [('initial-source-validation',False),('postfreeze-preference-validation',True)]:
+    p=S/(label+'.jsonl')
+    with p.open('x') as f:
+        for source in freeze['reports']:
+            vals=[by[(source['packet_ordinal'],j)]['source_frozen'] for j in range(12)]
+            if use_final: vals=[next(x for x in final_rows if x['packet_ordinal']==source['packet_ordinal'] and x['target_index']==j)['final_first_assessor_preference'] for j in range(12)]
+            f.write(json.dumps(dict(study_uid=source['study_uid'],states=[x['state'] for x in vals],evidence=[x['evidence'] for x in vals],notes='Validation copy of actual assessor preferences; not registered labels.'),ensure_ascii=False)+'\n')
+    assert len(read_reviews(S,reports,label))==50
+
+bindings=read(S/'originals-source-provenance-bindings.json')
+for item in bindings['source_phase_protected_files']: assert sha(W/item['path'])==item['sha256']
+for item in bindings['files']:
+    if item['path'].endswith('/adjudications/registry.json'):
+        assert item['sha256']==old['registry_sha256']
+    else: assert sha(W/item['path'])==item['sha256']
+assert sha(R/'initiative/reviews-v2/adjudications/registry.json')==current['registry_sha256']
+supplement=[]
+for batch in sorted({x['batch'] for x in packet}):
+    p=R/f'initiative/reviews-v2/drafts/{batch}-draft.jsonl'; supplement.append(ref(p))
+for p in [R/'initiative/reviews/provenance.json',R/'initiative/reviews-v2/provenance.json']:
+    supplement.append(ref(p))
+save('supplemental-original-bindings.json',dict(base,files=supplement,contents_not_displayed=True,archives_not_recopied=True))
+for r in rows:
+    source=packet[r['packet_ordinal']]; assert source['study_uid']==r['study_uid']
+    p=R/r['original_review_path']; assert sha(p)==r['original_review_sha256']
+    orig=next(json.loads(line) for line in p.read_text().splitlines() if json.loads(line)['study_uid']==r['study_uid'])
+    j=r['target_index']; assert r['original']==dict(state=orig['states'][j],evidence=orig['evidence'][j])
+    assert sha(R/r['source_path'])==r['source_sha256']
+save('postfreeze-validation-receipt.json',dict(base,validated_at_utc=datetime.now(timezone.utc).isoformat(),n_source_reports=50,n_initial_and_postfreeze_judgments_validated_each=600,real_read_reviews_passed_both_views=True,initial_source_states_unchanged=True,all_600_original_annotations_exact=True,all_76_initial_state_differences_disposed=True,all_46_evidence_differences_disposed=True,all_85_discovery_candidates_crosschecked=True,n_proposed_changes=63,n_source_reconsiderations=7,n_unresolved_retained_masks=7,n_neutral_attention_reports=len(attention),all_proposals_have_exact_original_source_review_quote_bindings=True,all_proposals_disjoint_from_current223=True,prior205_preserved_and_new18_no_selected_overlap=True,protected_source_phase_hashes_unchanged=True,original_review_draft_source_and_provenance_hashes_unchanged=True,registry_change_during_task='Root-authorized205-to223 integration, independently rebound; this agent made no registry writes.',global_semantic_qa_still_pending=3,second_reader_clinical_files_opened=False,gold_values_opened=False,repository_writes=0))
+save('artifact-manifest.json',dict(schema_version=1,agent_id=freeze['agent_id'],session_id=freeze['session_id'],status='first_source_review_and_postfreeze_comparison_complete_pending_distinct_assessment',files=[ref(p) for p in sorted(S.iterdir()) if p.is_file()],source_phase_manifest=ref(S/'source-phase-manifest.json')))
+print(json.dumps(dict(n_proposals=len(proposals),kind_counts=dict(Counter(x['kind'] for x in proposals)),mask_impact_counts=dict(Counter(x['mask_impact'] for x in proposals)),n_reconsiderations=len(reconsiderations),n_unresolved_retained_masks=len(disagreements),n_attention_reports=len(attention),proposal=ref(S/'proposed-errata.json'),assessment=ref(S/'postfreeze-disposition-assessment.json'),validation=ref(S/'postfreeze-validation-receipt.json'),manifest=ref(S/'artifact-manifest.json')),indent=2))

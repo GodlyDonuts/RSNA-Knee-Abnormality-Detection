@@ -1,0 +1,71 @@
+"""Verify all100 semantic-artifact bindings and replay the live registry separately."""
+import hashlib,json,shutil,sys
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(name,obj):
+ with(P/name).open('x')as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+def main():
+ freeze=P/'independent-disposition-freeze.json';assert sha(freeze)=='edaa42907d6e28e0ca71470d04ceaf01574f8ced7de9dad470628c7312b92c7b';f=read(freeze)
+ for name,h in f['files'].items():assert sha(P/name)==h
+ assert sha(W/f['authoring_helper']['path'])==f['authoring_helper']['sha256']
+ for e in read(P/'protected-prior-bindings.json')['files']:assert sha(W/e['path'])==e['sha256']
+ reports={r['study_uid']:r['report']for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for r in read(p)}
+ assert len(reports)==4407 and source_reports_fingerprint(reports)==f['source_reports_sha256']
+ assert sha(R/'protocols/report_weak_v2.md')==f['rubric_sha256']
+ c=read(P/'all100-bound-comparison.json');old={(r['study_uid'],r['target']):r for r in c['records']};d=read(P/'all100-independent-postfreeze-dispositions.json');rows=d['records'];new={(r['study_uid'],r['target']):r for r in rows};assert len(new)==len(rows)==100
+ original_cache={};seen_sources=set()
+ for r in rows:
+  key=r['study_uid'],r['target'];assert all(r[k]==v for k,v in old[key].items())
+  sp=R/r['source_path'];assert sha(sp)==r['source_sha256'];source=read(sp)[r['source_index_zero_based']];assert source=={'study_uid':r['study_uid'],'report':reports[r['study_uid']]};assert hashlib.sha256(source['report'].encode()).hexdigest()==r['report_sha256'];seen_sources.add(r['study_uid'])
+  rp=R/r['original_review_path'];assert sha(rp)==r['original_review_sha256']
+  if rp not in original_cache:original_cache[rp]={x['study_uid']:x for x in map(json.loads,rp.read_text().splitlines())}
+  a=original_cache[rp][r['study_uid']];j=TARGETS.index(r['target']);assert r['original']=={'state':a['states'][j],'evidence':a['evidence'][j]}
+  for name in ['own_source_frozen','first_source_frozen','first_postfreeze_judgment','independent_postfreeze_judgment','original','first118_effective','current205_effective']:
+   q=r[name];assert(q['state']=='not_mentioned'and q['evidence']=='')or(q['state']in {'positive','negative','uncertain'}and q['evidence']and q['evidence']in source['report'])
+  assert r['own_source_state_reconsidered']is False and r['independent_postfreeze_judgment']['state']==r['own_source_frozen']['state']
+  assert r['retained_disagreement']==(r['independent_postfreeze_judgment']['state']!=r['first_postfreeze_judgment']['state'])
+  assert r['current_report_observation_mask']==int(r['current205_effective']['state']in {'positive','negative'})
+  assert r['acceptance_or_registration']is False
+ assert len(seen_sources)==50
+ p=read(P/'proposed-errata.json');assert p['accepted_changes']==[] and len(p['proposed_errata'])==7;keys=set()
+ for item in p['proposed_errata']:
+  key=item['study_uid'],item['target'];assert key not in keys;keys.add(key);r=new[key];assert r['current_accepted_correction']is None
+  assert (item['before_state'],item['before_evidence'])==(r['current205_effective']['state'],r['current205_effective']['evidence'])==(r['original']['state'],r['original']['evidence'])
+  assert (item['proposed_state'],item['source_quote'])==(r['independent_postfreeze_judgment']['state'],r['independent_postfreeze_judgment']['evidence'])
+  assert (item['proposed_state'],item['source_quote'])!=(item['before_state'],item['before_evidence'])
+  assert item['both_postfreeze_readers_support_exact_proposed_state_and_quote']is True
+ assert sum(x['kind']=='state_correction'for x in p['proposed_errata'])==4
+ assert sum(x['kind']=='evidence_correction'and x['before_state']==x['proposed_state']for x in p['proposed_errata'])==3
+ disagreements=read(P/'retained-reader-disagreements.json')['records'];assert len(disagreements)==3
+ for r in disagreements:assert new[(r['study_uid'],r['target'])]==r and r['current_report_observation_mask']==0
+ ref=read(P/'own-reconsiderations-and-evidence-refinements.json');assert ref['own_state_reconsiderations']==[] and len(ref['evidence_refinements'])==2
+ masks=read(P/'retained-masks-and-export-requirements.json');assert len(masks['records'])==masks['current_masked_cells']==21
+ for m in masks['records']:
+  r=new[(m['study_uid'],m['target'])];assert (m['current_effective_state'],m['current_effective_evidence'])==(r['current205_effective']['state'],r['current205_effective']['evidence']);assert m['required_final_report_loss_mask']==0 and m['current_effective_state']in {'uncertain','not_mentioned'}
+ manifest=read(P/'neutral-root-packet-manifest.json');neutral=[]
+ for packet in manifest['packets']:
+  path=W/packet['path'];assert sha(path)==packet['sha256'];items=read(path);assert 0<len(items)==packet['n_reports']<=10
+  for r in items:
+   assert set(r)=={'report','report_sha256','source_index_zero_based','source_path','source_sha256','study_uid'};assert r['report']==reports[r['study_uid']];neutral.append(r['study_uid'])
+ assert len(neutral)==len(set(neutral))==13
+ assert set(neutral)=={r['study_uid']for r in read(P/'attention-selection-details.json')['records']}
+ registry=R/'initiative/reviews-v2/adjudications/registry.json';pin=sha(registry);current=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R);assert sha(registry)==pin
+ changes={(r['study_uid'],r['target']):r for r in current['changes']};diff=[];entries=[]
+ for key,r in new.items():
+  now=changes[key]['after']if key in changes else r['original'];changed=now!=r['current205_effective'];e={'study_uid':key[0],'target':key[1],'baseline205_effective':r['current205_effective'],'current_effective':now,'changed_since_baseline205':changed,'current_correction':changes.get(key)};entries.append(e)
+  if changed:diff.append(e)
+ overlap=keys&set(changes);assert not overlap
+ write('current-registry-rebase.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','checked_at_utc':datetime.now(timezone.utc).isoformat(),'historical_first_registry_registered_changes':118,'historical_first_registry_sha256':c['first_baseline_registry_sha256'],'independent_comparison_registry_registered_changes':205,'independent_comparison_registry':bind(P/'registry-at-comparison.json'),'current_registry':bind(registry),'current_registered_changes':len(changes),'selected_cells':100,'changed_since_first118':sum(r['changed_since_first118']for r in rows),'changed_since_independent205':len(diff),'existing_registered_key_overlap_with_proposals':len(overlap),'records':entries,'historical_sources_and_baselines_rewritten':False,'root_must_replay_at_actual_integration':True})
+ assert shutil.disk_usage(W).free>=20*1024**3
+ receipt={'schema_version':1,'agent_id':'/root/quality_temporal_review','validated_at_utc':datetime.now(timezone.utc).isoformat(),'disposition_freeze':bind(freeze),'all100_source_index_uid_fullreport_quote_and_original_before_bindings_verified':True,'both_source_freezes_and_first_postfreeze_preserved':True,'own_source_state_reconsiderations':0,'explicit_source_quote_refinements':2,'retained_reader_disagreements':3,'all7_proposals_exact_before_and_after_verified':True,'all13_neutral_reports_complete_and_without_target_state_trigger_clues':True,'current_registry_rebase':bind(P/'current-registry-rebase.json'),'current_registry_changes':len(changes),'changed_since_comparison_cells':len(diff),'proposal_key_overlap':len(overlap),'current21_masks_have_exact_final_export_requirements':True,'final_export_not_performed':True,'acceptance_or_registry_changes':0,'gold_accessed':False,'global_gate_closed':False,'validator':bind(Path(__file__).resolve())}
+ write('validation-and-preservation.json',receipt)
+ print(json.dumps({'validated_cells':100,'proposals':7,'neutral_reports':13,'current_registered_changes':len(changes),'changed_since_baseline':len(diff),'proposal_overlap':len(overlap),'receipt_sha256':sha(P/'validation-and-preservation.json')},indent=2))
+if __name__=='__main__':main()
