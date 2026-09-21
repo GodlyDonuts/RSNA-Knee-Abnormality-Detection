@@ -1,0 +1,151 @@
+--- a/checkpoint_delta-v1.py
++++ b/checkpoint_delta-v2.py
+@@ -31,6 +31,13 @@
+ RESERVE = 64 * 2**20
+ SOURCE_TREES = ("train_series", "test_series")
+ SOURCE_CSVS = ("train.csv", "test.csv", "train_series.csv", "test_series.csv", "sample_submission.csv")
++# One immutable regression-test artifact contains a deliberately rejected URL.
++# Keep the token split in this source so the helper itself needs no exception.
++FIXTURE_ARTIFACT_PATH = "initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt"
++FIXTURE_ARTIFACT_SHA256 = "e5b46e5bcbac3b9ed626a9e5a9c8a89519c2ad5058e3a682049625786a1cfc57"
++FIXTURE_ARTIFACT_GIT_BLOB = "f322d072369b7da379aee487b0fa2007e9817669"
++FIXTURE_ARTIFACT_BYTES = 9478
++FIXTURE_URL = b"https://" + b"example.invalid/blob?" + b"X-Amz-Signature=" + b"fixture"
+ OID = re.compile(r"[0-9a-f]{40}")
+ SHA = re.compile(r"[0-9a-f]{64}")
+ 
+@@ -122,14 +129,74 @@
+         self.keep = max([8192, *(len(x) for x in self.secrets)])
+         self.tail = b""
+ 
+-    def feed(self, data):
+-        window = self.tail + data
++    def check_credentials(self, window):
++        """Scan the original bytes even when a separately bound URL fixture is omitted."""
+         require(not any(x in window for x in self.secrets), "secret_value_detected")
+         require(re.search(rb"(?:hf_[A-Za-z0-9]{25,}|KGAT_[A-Za-z0-9]{25,})", window) is None,
+                 "credential_pattern_detected")
++
++    def feed(self, data):
++        window = self.tail + data
++        self.check_credentials(window)
+         require(re.search(rb"https?://[^\s\"'<>]{1,8192}[?&](?:X-Amz-(?:Signature|Security-Token|Credential)|access_token|auth_token|token)=[^\s&\"'<>]+", window,
+                           flags=re.I) is None, "authenticated_url_detected")
+         self.tail = window[-self.keep:]
++
++
++def secret_scan_policy():
++    return dict(version="v2-exact-bound-test-fixture", generic_scanner_unchanged=True,
++                exceptions=[dict(path=FIXTURE_ARTIFACT_PATH, sha256=FIXTURE_ARTIFACT_SHA256,
++                                 git_blob=FIXTURE_ARTIFACT_GIT_BLOB, bytes=FIXTURE_ARTIFACT_BYTES,
++                                 fixture_sha256=hashlib.sha256(FIXTURE_URL).hexdigest(),
++                                 fixture_bytes=len(FIXTURE_URL), exact_occurrences=1,
++                                 scope="Omit this literal only from URL scanning after full content verification; original bytes always undergo credential scanning.")])
++
++
++class ArtifactScanner:
++    """Buffer only the exact-sized candidate; no URL exemption before its full SHA check.
++
++    Git selection has an object ID but no SHA256 yet, whereas archive verification
++    also has a bound SHA256. Both require the fixed path/object/size; finish computes
++    the actual SHA256 independently before omitting the one approved URL literal.
++    The payload returned to tar/Git verification is never modified.
++    """
++
++    def __init__(self, row, secrets=()):
++        self.scanner = Scanner(secrets)
++        self.bound = row["path"] == FIXTURE_ARTIFACT_PATH
++        self.buffer = bytearray()
++        self.finished = False
++        self.exception_used = False
++        if self.bound:
++            require(row["bytes"] == FIXTURE_ARTIFACT_BYTES
++                    and row["git_blob"] == FIXTURE_ARTIFACT_GIT_BLOB
++                    and row.get("sha256", FIXTURE_ARTIFACT_SHA256) == FIXTURE_ARTIFACT_SHA256,
++                    "fixture_artifact_binding_mismatch")
++
++    def feed(self, data):
++        require(not self.finished, "artifact_scan_already_finished")
++        if self.bound:
++            require(len(self.buffer) + len(data) <= FIXTURE_ARTIFACT_BYTES,
++                    "fixture_artifact_size_mismatch")
++            self.buffer.extend(data)
++        else:
++            self.scanner.feed(data)
++
++    def finish(self, actual_sha256):
++        require(not self.finished, "artifact_scan_already_finished")
++        if self.bound:
++            raw = bytes(self.buffer)
++            require(len(raw) == FIXTURE_ARTIFACT_BYTES, "fixture_artifact_size_mismatch")
++            # No byte, including the fixture literal itself, is exempt from known
++            # secret-value or credential-pattern detection.
++            self.scanner.check_credentials(raw)
++            require(hashlib.sha256(raw).hexdigest() == actual_sha256 == FIXTURE_ARTIFACT_SHA256,
++                    "fixture_artifact_sha256_mismatch")
++            require(raw.count(FIXTURE_URL) == 1, "fixture_literal_occurrence_mismatch")
++            self.scanner.feed(raw.replace(FIXTURE_URL, b" " * len(FIXTURE_URL)))
++            self.exception_used = True
++            self.buffer.clear()
++        self.finished = True
+ 
+ 
+ def secret_values(path=None):
+@@ -147,7 +214,11 @@
+         self.left = row["bytes"]
+         self.sha = hashlib.sha256()
+         self.oid = hashlib.sha1(b"blob " + str(self.left).encode() + b"\0")
+-        self.scanner = Scanner(secrets)
++        self.scanner = ArtifactScanner(row, secrets)
++
++    def finish(self):
++        require(self.left == 0, "incomplete_blob_scan")
++        self.scanner.finish(self.sha.hexdigest())
+ 
+     def read(self, n=-1):
+         n = self.left if n < 0 else min(n, self.left)
+@@ -205,6 +276,7 @@
+                     info.uid = info.gid = 0
+                     info.uname = info.gname = ""
+                     tar.addfile(info, reader)
++                    reader.finish()
+                     require(reader.left == 0 and reader.oid.hexdigest() == row["git_blob"], "git_blob_hash")
+                     require(proc.stdout.read(1) == b"\n", "git_batch_separator")
+                     refs.append(dict({k: row[k] for k in ["path", "mode", "git_blob", "bytes"]},
+@@ -269,7 +341,8 @@
+         r = delta[p] if p in delta else dict(row, sha256=archived[p]["sha256"])
+         operation = "new" if p not in old else "modified" if p in changed else "base_coverage_completion" if p in omitted else "reuse_base"
+         files.append(dict(r, materialization="delta" if p in delta else "base", operation=operation))
+-    return dict(schema_version=1, format="complete-git-tree-from-base-plus-delta-v1",
++    return dict(schema_version=1, format="complete-git-tree-from-base-plus-delta-v2",
++                secret_scan_policy=secret_scan_policy(),
+                 base_git_commit=base.git_commit, base_hf_revision=base.hf_revision,
+                 base_archive=dict(path=f"preparation-checkpoints/{base.git_commit}/checkpoint.tar.gz",
+                                   sha256=base.archive_sha256, bytes=base.archive_bytes),
+@@ -302,6 +375,7 @@
+             reader = BlobReader(tar.extractfile(member), row, secrets)
+             while reader.left:
+                 reader.read(min(reader.left, 1024 * 1024))
++            reader.finish()
+             require(reader.sha.hexdigest() == row["sha256"], "member_sha256_mismatch")
+             require(reader.oid.hexdigest() == row["git_blob"], "member_git_blob_mismatch")
+             seen[name] = {k: row[k] for k in ["path", "bytes", "mode", "git_blob", "sha256"]}
+@@ -315,7 +389,8 @@
+     mp = package_dir / "manifest.json"
+     verify_file(mp, dict(sha256=expected_manifest_sha256))
+     plan = json.loads(mp.read_text())
+-    require(plan["format"] == "complete-git-tree-from-base-plus-delta-v1", "unsupported_format")
++    require(plan["format"] == "complete-git-tree-from-base-plus-delta-v2", "unsupported_format")
++    require(plan["secret_scan_policy"] == secret_scan_policy(), "secret_scan_policy_mismatch")
+     require(plan["base_hf_revision"] == base.hf_revision, "base_parent_mismatch")
+     require(plan["base_git_commit"] == base.git_commit and plan["target_git_commit"] == target,
+             "git_binding_mismatch")
+@@ -369,6 +444,8 @@
+                 n_result_files_verified=len(resulting), n_deletions_applied=len(deleted),
+                 every_file_sha256_git_blob_size_mode_verified=True, membership_exact=True,
+                 source_preservation=plan["source_preservation"],
++                secret_scan_policy=secret_scan_policy(),
++                verified_secret_scan_exception_paths=[FIXTURE_ARTIFACT_PATH] if FIXTURE_ARTIFACT_PATH in resulting else [],
+                 proof_method="Stream both archives, verify every payload SHA256 and Git blob identity, apply explicit deletions and delta precedence in memory, compare exact resulting membership/modes/sizes/OIDs/SHA256 to pinned target tree manifest.",
+                 full_tree_extracted=False, source_or_clinical_values_parsed=False,
+                 remote_calls=0, remote_mutations=0, training_ready=False)

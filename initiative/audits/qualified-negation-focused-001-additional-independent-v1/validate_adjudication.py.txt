@@ -1,0 +1,96 @@
+"""Bounded read-only runtime replay and rejection checks for the accepted subset."""
+import copy
+import hashlib
+import json
+import shutil
+import sys
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+S=Path(__file__).resolve().parent
+W=S.parents[2]
+R=W/'work/recovered'
+sys.path.insert(0,str(R))
+from rsna.adjudications import _case_changes, inspect_adjudications
+
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def read(p):return json.loads(Path(p).read_text())
+def bind(p):return {'path':str(Path(p).relative_to(W)),'sha256':sha(p)}
+def resolve(ref):
+    candidates=[R/ref['path']]
+    if ref['path'].startswith('initiative/audits/'):
+        candidates.append(S.parent/ref['path'].removeprefix('initiative/audits/'))
+    matches=[p for p in candidates if p.is_file() and sha(p)==ref['sha256']]
+    assert matches,ref['path']
+    return matches[0]
+
+free_before=shutil.disk_usage(W).free
+assert free_before>20*1024**3
+stage_before={str(p):sha(p) for p in S.iterdir() if p.is_file()}
+bound=read(S/'selected-binding-verification.json')
+for p,d in bound['protected_files'].items():assert sha(W/p)==d
+case=read(S/'proposed-runtime-case.json')
+decision=read(S/'accepted-decision.json')
+reports={row['study_uid']:row['report'] for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for row in read(p)}
+assert len(reports)==4407
+current=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert current==read(S/'current193-inspection.json')
+assert current['n_changes']==193 and len(current['pending_semantic_qa'])==3
+accepted_keys={(r['study_uid'],r['target']) for r in case['changes']}
+pending_keys={(r['study_uid'],r['target']) for r in decision['pending_items']}
+assert len(accepted_keys)==12 and len(pending_keys)==1 and not accepted_keys&pending_keys
+assert not (accepted_keys|pending_keys)&{(r['study_uid'],r['target']) for r in current['changes']}
+refs=[case[n] for n in ('proposal','independent_assessment','decision')]+list(case['supporting_evidence'].values())
+refs += [r[k] for r in case['changes'] for k in ('base_review','source_batch')]
+negative=[]
+with tempfile.TemporaryDirectory(prefix='runtime-case-',dir=S) as tmp:
+    fixture=Path(tmp)
+    copied={}
+    for ref in refs:
+        src=resolve(ref)
+        dest=fixture/ref['path']
+        assert dest.resolve().is_relative_to(fixture.resolve())
+        dest.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(src,dest)
+        assert sha(dest)==ref['sha256']
+        copied[ref['path']]=ref['sha256']
+    def validate(c):
+        return _case_changes(c,{'path':'staged-case.json','sha256':sha(S/'proposed-runtime-case.json')},reports,fixture/'initiative/reviews-v2/reviewed',fixture,case['source_reports_sha256'],case['rubric_sha256'])
+    changes=validate(case)
+    assert len(changes)==12 and {(r['study_uid'],r['target']) for r in changes}==accepted_keys
+    for original,actual in zip(case['changes'],changes):
+        assert actual['before']==original['before'] and actual['after']==original['after']
+    decision_path=fixture/case['decision']['path']; decision_bytes=decision_path.read_bytes()
+    for name in ('same_assessor_as_proposer','missing_accepted_item','changed_accepted_quote'):
+        altered=read(decision_path)
+        if name=='same_assessor_as_proposer':altered['adjudicator_agent_id']=altered['proposer_agent_id']
+        elif name=='missing_accepted_item':altered['accepted_changes'].pop()
+        else:altered['accepted_changes'][0]['source_evidence']+=' altered'
+        decision_path.write_text(json.dumps(altered))
+        c=copy.deepcopy(case);c['decision']['sha256']=sha(decision_path)
+        try:
+            validate(c)
+            raise AssertionError('Invalid mutation passed: '+name)
+        except ValueError as e:negative.append({'name':name,'rejected':True,'reason':str(e)})
+        finally:decision_path.write_bytes(decision_bytes)
+    for name in ('wrong_original_before','changed_bound_source_hash','unaccepted_pending_item_in_case'):
+        c=copy.deepcopy(case)
+        if name=='wrong_original_before':c['changes'][0]['before']['state']='uncertain'
+        elif name=='changed_bound_source_hash':c['changes'][0]['source_batch']['sha256']='0'*64
+        else:
+            extra=copy.deepcopy(c['changes'][0]);extra['study_uid'],extra['target']=next(iter(pending_keys));c['changes'].append(extra)
+        try:
+            validate(c)
+            raise AssertionError('Invalid mutation passed: '+name)
+        except ValueError as e:negative.append({'name':name,'rejected':True,'reason':str(e)})
+    assert len(validate(case))==12
+    for p,d in copied.items():assert sha(fixture/p)==d
+assert len(negative)==6
+for p,d in stage_before.items():assert sha(p)==d
+for p,d in bound['protected_files'].items():assert sha(W/p)==d
+free_after=shutil.disk_usage(W).free
+assert free_after>20*1024**3
+receipt={'schema_version':1,'agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review','validated_at_utc':datetime.now(timezone.utc).isoformat(),'validator':bind(__file__),'runtime':bind(R/'rsna/adjudications.py'),'case':bind(S/'proposed-runtime-case.json'),'assessment':bind(S/'independent-source-assessment.json'),'decision':bind(S/'accepted-decision.json'),'release_source_count':len(reports),'source_reports_sha256':current['source_reports_sha256'],'accepted_runtime_changes':len(changes),'pending_items_excluded_from_runtime':len(pending_keys),'negative_boundary_checks':negative,'current_registry':bind(R/'initiative/reviews-v2/adjudications/registry.json'),'current_registered_changes':193,'selected_keys_overlap_current_registry':0,'historical118_changes_preserved':True,'protected_files_unchanged':len(bound['protected_files']),'all_preexisting_stage_files_preserved':True,'all_three_global_qa_pending_and_unchanged':True,'fixture_removed':True,'production_registry_changed':False,'gold_accessed':False,'disk_free_bytes_before':free_before,'disk_free_bytes_after':free_after,'minimum_disk_free_bytes':20*1024**3}
+with (S/'runtime-validation-and-preservation.json').open('x') as f:f.write(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'accepted_runtime_changes':len(changes),'pending_excluded':len(pending_keys),'negative_boundary_checks_passed':len(negative),'current_registered_changes':193,'protected_files_unchanged':len(bound['protected_files']),'receipt_sha256':sha(S/'runtime-validation-and-preservation.json')},indent=2))

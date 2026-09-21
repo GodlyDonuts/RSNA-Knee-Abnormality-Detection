@@ -1,0 +1,46 @@
+"""Verify first-source priority coverage and a separate current rebase of batch004."""
+import hashlib,json,sys
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p)}
+def write(name,obj):
+ with (P/name).open('x')as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+def main():
+ index=P.parent/'cartilage-observed-priority-v1/neutral-priority-index.json';assert sha(index)=='951d8677b148deb49842b2201097d2f3edafe21956d6bc19137a69de26457c66'
+ expected=[]
+ for packet in read(index)['neutral_packets']:
+  p=W/packet['path'];assert sha(p)==packet['sha256'];expected.extend(read(p))
+ expected_hashes=['d3d9649dcbe23cb51f80827ae1faa845cd3a88ba4c370653259908dc5fb60067','3fd79e9036929bfceabd295e6512304d660e441d0266c29fe91660adc4bb91d0','043253f7442c7fb9727f4d73a603a8589dcc9c963c112f07414e312384fae411','fc518da38655358561042984fd857560dbc8df74245d4311863aa0c9f4168c36','783c306a952c909dffec74341401294826ef8ebd81a199169afe6fe99eb3a4b4','cbfe6a40eea0e113a4e3a54bc72dbe7824a576e2ff2229e256a8627667cf2571']
+ joined=[];freezes=[];target_cells=0
+ for n,expected_hash in enumerate(expected_hashes):
+  path=P.parent/f'cartilage-observed-{n:03d}-source-review-v1/source-freeze.json';assert sha(path)==expected_hash;f=read(path)
+  assert f['agent_id']=='/root/quality_temporal_review';assert f['target_order']==['Medial OA','Lateral OA','PF OA']
+  for e in f.values():
+   if isinstance(e,dict)and 'path'in e and 'sha256'in e:assert sha(W/e['path'])==e['sha256']
+  sources=read(W/f['source_packet']['path']);a=[json.loads(l)for l in(W/f['source_assessment']['path']).read_text().splitlines()]
+  assert len(sources)==len(a)==(50 if n<5 else 10)
+  for source,assessment in zip(sources,a,strict=True):
+   assert source['study_uid']==assessment['study_uid'];assert len(assessment['states'])==len(assessment['evidence'])==len(assessment['rationales'])==3
+   sourcepath=R/source['source_path'];assert sha(sourcepath)==source['source_sha256'];assert read(sourcepath)[source['index']]=={'study_uid':source['study_uid'],'report':source['report']}
+   for state,quote,reason in zip(assessment['states'],assessment['evidence'],assessment['rationales'],strict=True):
+    assert reason.strip();assert (state=='not_mentioned' and quote=='')or(state in {'positive','negative','uncertain'}and quote and quote in source['report']);target_cells+=1
+  assert [r['study_uid']for r in sources]==f['exact_ordered_uids'];joined.extend(sources);freezes.append({'batch_number':n,'source_freeze':bind(path),'source_packet':f['source_packet'],'source_assessment':f['source_assessment'],'full_reports':len(sources),'oa_judgments':len(sources)*3})
+ assert joined==expected and len(joined)==len({r['study_uid']for r in joined})==260 and target_cells==780
+ write('priority-first-source-pass-completion.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','checked_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'First reader of all260 mechanically selected priority reports, three OA targets each; not global cartilage clearance.','priority_neutral_index':bind(index),'reports':260,'oa_judgments':780,'exact_priority_order_source_index_uid_fullreport_and_quote_bindings_reverified':True,'duplicate_reports_between_priority_batches':0,'source_freezes':freezes,'independent_reading_and_root_adjudication_still_pending_where_not_separately_completed':True,'residual_negative_candidates_and_existing_mask_export_requirements_remain_open':True,'no_new_twelve_target_or_MRI_diagnostic_pass_claimed':True,'no_acceptance_or_production_changes':True,'global_qa_closed':False,'gold_accessed':False,'helper':bind(Path(__file__).resolve())})
+ registry=R/'initiative/reviews-v2/adjudications/registry.json';pin=sha(registry)
+ reports={r['study_uid']:r['report']for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for r in read(p)}
+ assert len(reports)==4407 and source_reports_fingerprint(reports)=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+ replay=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R);changes={(c['study_uid'],c['target']):c for c in replay['changes']};assert sha(registry)==pin
+ original=P.parent/'cartilage-observed-004-postfreeze-v1/first-postfreeze-dispositions.json';rows=[]
+ for r in read(original)['records']:
+  key=r['study_uid'],r['target'];effective=changes[key]['after']if key in changes else {'state':r['original_state'],'evidence':r['original_evidence']};before={'state':r['baseline_effective_state'],'evidence':r['baseline_effective_evidence']}
+  rows.append({'study_uid':r['study_uid'],'target':r['target'],'historical193_effective':before,'current_effective':effective,'changed_since_historical193':before!=effective,'existing_correction':changes.get(key),'pending_proposal':r['disposition']=='proposed_correction_pending_distinct_assessment'})
+ write('earlier004-current-registry-rebase.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','original004_dispositions':bind(original),'historical_registry':bind(original.parent/'registry-at-comparison.json'),'historical_registered_changes':193,'current_registry':bind(registry),'current_registered_changes':len(changes),'rows':rows,'changed_cells':sum(r['changed_since_historical193']for r in rows),'existing_corrected_cells':sum(r['existing_correction']is not None for r in rows),'overlapping_proposal_keys':sum(r['pending_proposal']and r['existing_correction']is not None for r in rows),'prior_stages_or_baselines_rewritten':False,'root_must_replay_at_integration':True})
+ print(json.dumps({'priority_reports':260,'oa_judgments':780,'coverage_receipt_sha256':sha(P/'priority-first-source-pass-completion.json'),'current_registry_changes':len(changes),'earlier004_changed_cells':sum(r['changed_since_historical193']for r in rows),'earlier004_rebase_sha256':sha(P/'earlier004-current-registry-rebase.json')},indent=2))
+if __name__=='__main__':main()

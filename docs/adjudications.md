@@ -77,9 +77,29 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry contains **118 accepted target corrections** and retains cartilage,
+The registry now contains **205 accepted target corrections**. The second focused
+wording batch adds 87 accepted changes: 74 unsupported observed negatives and
+three insufficiently specified positives become uncertain, six already-masked
+states become unmentioned, and four quotations gain necessary context without
+changing state. Root read all 50 complete sources and froze 600 judgments before
+the other readers' case findings. Its initial states matched 73 of the 75 primary
+proposals; all thirteen root reconsiderations across the batch remain explicit.
+A distinct agent accepted twelve of thirteen additional root proposals after a
+separate source reread. One cartilage grading disagreement remains pending,
+including after a balanced literature follow-up; it is excluded from registration.
+
+The [integration proof](../initiative/audits/qualified-negation-focused-001-integration-v1/complete205-integration-validation.json)
+replays all 205 corrections and preserves the earlier 118 and 297 protected files.
+All 87 new annotations match the final root judgments and exact evidence; 599 of
+600 root states agree with the resulting inspection, with the remaining disputed
+cell explicitly identified. The
+[current consistency check](../initiative/audits/qualified-negation-focused-001-integration-v1/current205-consistency-validation.json)
+finds no differing target states in 54 exact normalized-report groups/204 studies.
+This does not resolve report-similarity leakage or any global semantic QA gate.
+
+At the previous checkpoint, the registry contained **118 accepted target corrections** and retains cartilage,
 bone terminology and qualified-negation/duplicate consistency as three pending
-global issues. The latest two cases add 84 corrections from the first focused
+global issues. Those two cases added 84 corrections from the first focused
 wording batch: 78 unsupported negatives and one insufficiently graded positive
 become uncertain, two already-masked fracture states become not_mentioned, and
 three negative states retain their state with more complete source evidence.

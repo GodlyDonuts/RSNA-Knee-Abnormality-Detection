@@ -1,0 +1,80 @@
+"""Personally authored full12-target judgments for original positions40–44."""
+import json
+from pathlib import Path
+N=lambda q,r:('negative',q,r)
+U=lambda q,r:('uncertain',q,r)
+P=lambda q,r:('positive',q,r)
+M=lambda r:('not_mentioned','',r)
+# Explicitly selected contiguous span includes all three named marrow regions.
+# This extracts a personally chosen quotation; it never chooses a clinical state.
+_r44=json.loads((Path(__file__).parent/'neutral-source-packet.json').read_text())[44]['report']
+_a=_r44.index('Normal marrow SI of medial femoral condyle and medial tibial plateau are preserved.')
+_end='Preserve normal marrow SI within patella.'
+Q44=_r44[_a:_r44.index(_end)+len(_end)]
+ROWS={
+40:[
+ N('The anterior cruciate ligament, posterior cruciate ligament, medial collateral ligament and lateral collateral ligament complex are intact and appear unremarkable.','Explicit intact unremarkable ACL.'),
+ N('The anterior cruciate ligament, posterior cruciate ligament, medial collateral ligament and lateral collateral ligament complex are intact and appear unremarkable.','Explicit intact unremarkable MCL.'),
+ N('The medial meniscus is intact.','Explicit intact medial meniscus.'),
+ N('The lateral meniscus is intact.','Explicit intact lateral meniscus.'),
+ U('The articular cartilage of the medial joint compartment is well-maintained overall.','Overall preservation is qualified and does not rule out a focal qualifying medial defect.'),
+ U('The articular cartilage of the lateral joint compartment is reasonably well-maintained.','Reasonably preserved lateral cartilage lacks an explicit normal or below-threshold description.'),
+ U('There is focal fissuring of the articular cartilage of the patella at the apex and particularly involving the medial facet. The finding is associated with subcortical interosseous edema and cyst formation within the patella. The articular cartilage of the femoral trochlea also demonstrates focal chondral fissuring at the trochlear apex with subcortical interosseous cyst formation also seen to the femoral trochlea.','Patellar/trochlear focal fissures and severe chondrosis in the impression do not supply cartilage-loss fraction or region size. The missing title side is preserved; the body provides a single knee, without a conflicting separate-side cartilage finding.'),
+ U("There is no evidence of significant Baker's cyst or knee effusion.",'Shared significant qualifier leaves effusion severity threshold unspecified.'),
+ M('No synovial lining inflammation/thickening.'),
+ U("There is no evidence of significant Baker's cyst or knee effusion.",'Qualified significant Baker-cyst denial leaves size threshold unspecified.'),
+ U('The finding is associated with subcortical interosseous edema and cyst formation within the patella.','Patellar edema accompanies cartilage/cystic degenerative changes without impact cause; it does not establish the contusion criterion.'),
+ M('No acute fracture assessment.')],
+41:[
+ N('Normal ACL, PCL, MCL and LCL.','Explicit normal ACL.'),
+ N('Normal ACL, PCL, MCL and LCL.','Explicit normal MCL.'),
+ U('Myxoid degeneration of the body of medial meniscus is noted but no definite tear.','Myxoid change is stated but tear exclusion remains explicitly no-definite; no direct entirely-internal signal localization settles surface involvement.'),
+ N('Normal lateral meniscus.','Explicit normal lateral meniscus.'),
+ N('Normal tibiofemoral articular cartilage.','Explicit normal medial tibiofemoral cartilage.'),
+ N('Normal tibiofemoral articular cartilage.','Explicit normal lateral tibiofemoral cartilage.'),
+ U('Mild fraying of the lateral patellar facet articular cartilage is noted. The patellofemoral articular cartilage is otherwise well maintained.','Mild focal fraying lacks direct depth and extent; otherwise normal PF cartilage does not exclude the named abnormal site from assessment.'),
+ N('There is a mild knee effusion.','Below threshold: explicitly mild effusion.'),
+ M('No synovial lining assessment.'),
+ M('No Baker cyst assessment.'),
+ N('Normal visualized bones and surrounding soft tissues.','Explicit normal visualized bones supports absent contusion.'),
+ N('Normal visualized bones and surrounding soft tissues.','Explicit normal visualized osseous structures supports absent fracture morphology.')],
+42:[
+ U('Ligamentos cruzados y colaterales sin alteraciones relevantes que consignar.','Only relevant cruciate alterations are excluded; no independent explicit ACL normality or defined below-threshold severity.'),
+ U('Ligamentos cruzados y colaterales sin alteraciones relevantes que consignar.','Only relevant collateral alterations are excluded; the MCL high-grade acute criterion is not explicitly resolved.'),
+ P('Rotura compleja con componente horizontal oblicuo y radial incompleta del cuerpo y cuerno posterior del\nmenisco medial, sin desplazamiento de segmento.','Definite complex medial tear with horizontal/radial components; nondisplacement does not negate the tear.'),
+ P('Rotura marginal del cuerno anterior y cuerpo del menisco lateral, sin desplazamiento de segmentos,\ndegenerativa.','Definite degenerative marginal lateral tear.'),
+ U('Úlceras condrales de espesor parcial de la región central de la zona de carga del cóndilo femoral medial.','Medial partial-thickness ulcers lack actual depth fraction and size; unnamed grade2 in the conclusion does not supply both.'),
+ N('El\nresto de los cartílagos femorotibiales y de la tróclea femoral sin alteraciones.','After the medial focal lesion, remaining femorotibial cartilage includes explicitly normal lateral surfaces.'),
+ U('Úlceras condrales de espesor\nparcial de la faceta lateral de la rótula.','Patellar partial-thickness ulcers have unmeasured depth/extent; normal trochlea does not settle the patellar exception.'),
+ N('Leve derrame articular con sinovitis difusa.','Below threshold: explicitly mild joint effusion.'),
+ P('Leve derrame articular con sinovitis difusa.','Diffuse synovitis is explicitly diagnosed independently of mild fluid.'),
+ M('Prepatellar bursitis is not a Baker cyst and none is assessed.'),
+ U('No hay alteraciones de señal significativas de la médula ósea.','Qualified marrow-signal denial does not establish categorical contusion absence.'),
+ M('No acute fracture assessment.')],
+43:[
+ P('Anterior çapraz bağda komplete yakın geniş yırtık.','The impression explicitly describes a broad near-complete ACL tear, supporting high-grade disruption beyond the body thinning description.'),
+ N('Medial kollateral ligamende grade I sprain.','Below threshold: MCL grade-I sprain explains periligamentous edema without high-grade disruption.'),
+ P('Medial ve lateral meniskürde eklem mesafesinden ekstrüzyon, volüm kaybı, grade III  dejenerasyon ve kompleks yırtıklar.','Definite complex medial meniscal tear with volume loss/extrusion in the named-meniscus conclusion.'),
+ P('Medial ve lateral meniskürde eklem mesafesinden ekstrüzyon, volüm kaybı, grade III  dejenerasyon ve kompleks yırtıklar.','Definite complex lateral meniscal tear with abnormal volume/extrusion, also supported by body discontinuity.'),
+ U('Tibiofemoral eklem medialinde eklem aralığında daralma, ekleme komşu kemik yüzlerde subkondrial skleroz, ödem ve dejeneratif milimetrik kistler izlendi. Bu düzeyde femoral ve tibial kartilajlarda destrüksiyon izlendi.','Medial cartilage destruction is explicit but lacks fractional depth or a qualifying region footprint; bone-cyst sizes do not size cartilage.'),
+ U('Diz eklemini oluşturan her 3 kompartmanda santral-marjinal osteofit formasyonu izlendi.','Three-compartment osteophytes provide lateral degenerative context but not lateral cartilage-loss depth/extent.'),
+ U('Diz eklemini oluşturan her 3 kompartmanda santral-marjinal osteofit formasyonu izlendi.','Three-compartment osteophytes inform PF degeneration without its cartilage severity/extent; patellar subchondral edema is not a cartilage measure.'),
+ U('Suprapatellar bursa ve diz eklem mesafesinde sıvı artışı izlendi.','Increased joint/suprapatellar fluid lacks moderate/large distension qualification.'),
+ P('Diz ekleminde sinovit.','Direct current knee synovitis diagnosis.'),
+ P('Popliteal fossada 7x2 cm boyutlu baker kisti izlendi.','Baker cyst has a large7-cm length with substantial2-cm second dimension, supporting moderate/large size rather than a single narrow slit.'),
+ U('Tibiofemoral eklem medialinde eklem aralığında daralma, ekleme komşu kemik yüzlerde subkondrial skleroz, ödem ve dejeneratif milimetrik kistler izlendi.','Subchondral edema accompanies narrowing/sclerosis/degenerative cysts without a stated impact cause; traumatic nonfracture contusion remains unsupported.'),
+ M('No acute fracture assessment.')],
+44:[
+ N('ACL: unremarkable.','Explicit unremarkable ACL.'),
+ N('Medial collateral ligament: preserved.','Explicit preserved MCL.'),
+ N('Medial meniscus: preserved.','Explicit preserved medial meniscus, with a separate no-meniscal-tear statement.'),
+ N('Lateral meniscus: preserved.','Explicit preserved lateral meniscus, with a separate no-meniscal-tear statement.'),
+ M('Medial marrow and meniscus are assessed, but medial cartilage is not described.'),
+ N('Preservation of cartilage at weightbaring lateral femoral condyle and lateral tibial plateau.','Explicit preserved lateral femoral and tibial cartilage.'),
+ U('No definite finding of patellofemoral joint arthritis.','Only definite PF arthritis is denied; normal patellar marrow/alignment does not resolve cartilage depth/extent.'),
+ U('No significant amount of fluid within knee joint is observed.','Significant fluid qualifier lacks explicit moderate/large distension boundary.'),
+ M('No synovial plica does not assess inflamed/thickened lining. The final both-knee plica wording is retained as historical correspondence context without adding a clinical synovitis state.'),
+ M('No Baker cyst assessment.'),
+ N(Q44,'Marrow signal is explicitly normal in medial femoral/tibial, lateral femoral/tibial and patellar regions. The contiguous span binds all three regional negatives rather than borrowing one normal region for the whole knee.'),
+ M('No acute fracture assessment; normal marrow signal is not an explicit cortical-fracture denial.')]
+}

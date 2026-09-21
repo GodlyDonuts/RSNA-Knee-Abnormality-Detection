@@ -1,0 +1,118 @@
+"""Package personally authored second dispositions; preserve all earlier artifacts."""
+import json,hashlib
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';AGENT='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_bytes())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,d):
+ p=S/n;p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+m=obj(S/'complete-mechanical-comparison.json');packet=obj(A/'cartilage-observed-001-independent-review-v1/neutral-source-packet.json');rows=m['records']
+replay=obj(S/'registry193-replay.json')
+for x in m['inputs']:assert ref(W/x['path'])==x
+assert ref(R/'initiative/reviews-v2/adjudications/registry.json')==replay['current_registry']
+# Authored after personally reviewing all150 states and all55 union attention cells.
+reconsider={
+ (9,0):('uncertain','I withdraw the medial positive inferred from narrative order. The full-thickness12-mm femoral defect satisfies morphology/size, but its sentence does not name the compartment. The preceding medial meniscus and subsequent superficial lateral disease do not securely localize it. Preserve uncertain location; no alteration of the source freeze.'),
+ (21,0):('uncertain','I withdraw the positive based on confluent areas alone. Confluence indicates merging, not a centimeter-scale size; the named weightbearing site is a location and the source does not say that full loss covers that whole region. Preserve full-depth loss with unresolved regional extent.'),
+}
+retained={
+ (3,0):'I retain uncertain: mild medial thinning plus no major defects lacks an explicit loss-fraction boundary. The first reader accepts a low-depth interpretation; preserve that semantic disagreement rather than automatically promote an observed negative.',
+ (6,1):'I retain uncertain for low-grade lateral thinning without a directly defined fraction or superficial-only morphology. The first reader interprets the descriptor as below threshold; root must adjudicate that difference.',
+ (8,2):'I retain uncertain: high-grade partial-thickness is more specific than OA alone, but no depth convention is explicitly bound and full fissures are unsized. The first reader accepts a qualitative threshold inference; retain this disagreement.',
+ (20,1):'I retain uncertain for low-grade cartilage loss with no explicit fractional boundary. The first reader interprets direct low-grade loss as below threshold; neither source record is rewritten.',
+ (22,0):'I retain uncertain for mild medial thinning without a stated thickness fraction. The first reader accepts mild thinning as a below-threshold morphological descriptor; preserve for root.',
+ (33,2):'I retain uncertain for diffuse high-grade partial loss and unsized full fissures. The first reader accepts the thickness-qualified adjective as sufficient depth; no universal descriptor-to-fraction rule is introduced here.',
+ (35,0):'I retain the explicit medial cartilage-intact negative: the broad tricompartmental summary does not describe a specific competing medial lesion or depth. The first reader considers the finding/conclusion conflict sufficient for uncertainty. Preserve both exact passages and this unresolved scope judgment.',
+ (41,0):'I retain uncertain for low-grade partial-thickness medial loss without an explicit half-depth boundary. The first reader accepts the specific low-grade depth phrase; this difference is held for root.',
+ (49,0):'I retain uncertain for relatively mild age-related medial thinning: no explicit fraction or superficial-only boundary is provided. The first reader accepts mild structural thinning as negative; preserve the distinction.',
+}
+# Exact evidence comparisons, authored separately from state choices.
+evidence_notes={
+ (3,0):'Both quotes preserve the mild-thinning wording; the longer also preserves no-major-defects. The dispute is depth interpretation, not a bad substring.',
+ (7,2):'The bare grade-I quote and longer patellar sentence support the same unresolved grading convention. No additional quote correction beyond a state change.',
+ (9,0):'The longer medial-meniscus context does not establish the defect compartment. Retain the original exact femoral quote for the masked effective annotation.',
+ (10,2):'The present quote includes trochlear identity, full-depth morphology and21x19-mm extent. Added marrow detail is optional.',
+ (12,0):'The present positive quote omits the medial compartment heading. Expand the contiguous span back to that heading to bind the compartment, without changing the positive.',
+ (12,1):'The state proposal should include the lateral heading with the qualified no-high-grade statement; this is bundled with the proposed state change.',
+ (12,2):'The present patellar quote already supports unresolved total deep-loss extent; added low-grade trochlear detail is a valid alternate rather than a correction.',
+ (15,1):'The present lateral full-fissure quote is adequate for uncertainty; adding no marrow edema is unnecessary.',
+ (17,0):'The present12-mm/full-loss excerpt omits the medial localization. Expand contiguously to the medial-compartment lead-in; this is also a pending focused002 evidence proposal.',
+ (18,0):'Both excerpts identify medial gradeII; retaining the adjacent lateral phrase is an excerpt preference.',
+ (18,1):'The current lateral denudation9x13-mm quote includes anatomy, depth and size; added edema context is not a correction.',
+ (21,2):'The current quote already contains full-thickness loss throughout the patella. The shorter first quote is sufficient too.',
+ (22,2):'The full sentence with relative trochlear preservation retains the same uncertainty; the substantive proposal is the state reconsideration, not evidence alone.',
+ (26,0):'The full current quote explicitly identifies medial denudation; its additional lateral sentence does not obscure that anatomy.',
+ (26,1):'The full current quote explicitly identifies lateral thinning/grades; the shorter isolated lateral clause is an equivalent alternative.',
+ (29,0):'The original broad full-depth excerpt lacks medial localization. Expand to the named medial findings so the positive is anatomically self-contained.',
+ (30,1):'The current quote already says lateral tibial plateau and both numerical thresholds; adding a lateral heading is redundant.',
+ (31,2):'Both quotes give PF multiple fissures without depth or size. Removing the preceding nodulair word does not warrant a registry edit.',
+ (33,2):'The current quote names a patellar facet and therefore already localizes PF. The full compartment-prefixed quote is used with my state proposal, not a separate evidence correction.',
+ (34,0):'The current quote contains direct medial near-complete denudation; omitting the following grade diagnosis is an optional shorter excerpt.',
+ (35,0):'The current quote clearly states medial cartilage integrity. Preserve the first reader long conflicting-impression span separately; I do not treat the short negative quote as a transcription error.',
+ (35,1):'The present quote explicitly names lateral femoral/tibial structures; adding the compartment heading is optional.',
+ (35,2):'The present severe trochlear-loss quote identifies PF anatomy but lacks a defined fraction; expanded source context accompanies the state proposal.',
+ (36,2):'The present quote already names patellar facets and trochleas with less-than-half loss. The added PF lead-in is redundant.',
+ (37,0):'The present broad full-thickness quote omits medial identity. Add the contiguous Medial compartment cartilage prefix for a source-bound positive.',
+ (37,1):'The present quote already names lateral femoral/tibial sites. The added heading/spurs do not change adequacy.',
+ (37,2):'The present quote explicitly names patella/trochlea; the heading and spurs are optional context for the same uncertainty.',
+ (39,0):'The original longer quote contains all medial complete-loss morphology; dropping the grade/edema tail is only an excerpt preference.',
+ (41,0):'The current full-report quote already contains medial heading and low-grade partial loss. Its length is not a substantive error; the state interpretation remains disputed.',
+ (41,1):'The current full report contains the lateral heading and broad full loss. A shorter focused quote is equivalent, not an erratum.',
+ (41,2):'The current anterior-compartment quote already identifies mild chondropathy. Adding osteophytes does not resolve or change its uncertainty.',
+ (44,1):'The present quote specifies lateral bones and broad complete loss. The fuller disease lead-in is optional.',
+ (45,0):'The present quote includes long-segment exhausted medial cartilage. Extra sequence/edema wording does not alter the positive evidence.',
+ (45,1):'The present quote already states lateral superficial change and no deep lesion. Its truncated grammatical ending does not remove the evidence.',
+ (45,2):'The existing quote names patella and trochlea; adding Knorpel supplies a generic heading only.',
+ (46,0):'The present medial quote already localizes the lesion but lacks depth definition. Use the full source sentence with the state proposal; do not repair the corrupted dimension.',
+ (46,2):'The original quote already names medial trochlea and numerical depth/size. The added PF lead-in is unnecessary for correctness.',
+ (47,0):'The current quote lacks medial identity and the separate small full-depth focus. The proposed uncertain state uses the complete medial passage to preserve both issues.',
+ (47,1):'The present quote already names lateral cartilage fraying. The compartment prefix is optional.',
+ (47,2):'The current patellar quote identifies PF anatomy; expanded heading accompanies the state proposal without adding a new finding.',
+ (48,1):'The existing quote includes lateral anatomy, partial depth and image references; adding osteophytes does not resolve size/depth.',
+ (49,1):'The current quote already states diffuse full-thickness lateral tibial loss. The preceding meniscal context is not needed to support OA.',
+}
+assert set(evidence_notes)=={(r['packet_index'],r['target_index']) for r in rows if r['evidence_attention']}
+material={(12,0),(17,0),(29,0),(37,0)}
+pending_path=A/'qualified-negation-focused-002-post-freeze-comparison-v1/unintegrated-proposals.json';pending={(x['study_uid'],x['target']):x for x in obj(pending_path)['records']}
+out=[];rec=[];proposals=[];overlaps=[]
+for r in rows:
+ k=r['packet_index'],r['target_index'];key=r['study_uid'],r['target'];final=r['second_source'].copy()
+ if k in reconsider:final['state'],final['reason']=reconsider[k]
+ if k in retained:final['reason']=retained[k]
+ if final!=r['second_source'] and k in reconsider:rec.append({'packet_index':r['packet_index'],'study_uid':r['study_uid'],'target':r['target'],'before':r['second_source'],'after':final,'source_freeze_changed':False})
+ state_diff=final['state']!=r['current193']['state'];evidence_correction=k in material
+ pd=pending.get(key)
+ if pd:overlaps.append({'study_uid':r['study_uid'],'target':r['target'],'pending_stage':ref(pending_path),'pending_proposal':pd,'accepted_registry_overlap':False,'action':'Reconcile once at root; do not append duplicate accepted keys.'})
+ different=final['state']!=r['first_postfreeze']['state'];att=r['state_attention'] or r['evidence_attention'] or different or state_diff or evidence_correction or bool(pd)
+ assert final['evidence'] in packet[r['packet_index']]['report'] and bool(final['evidence'])==(final['state']!='not_mentioned')
+ rr={**r,'second_postfreeze':final,'retained_first_second_disagreement':different,'evidence_review':evidence_notes.get(k,'The exact evidence is shared; no quotation difference requires resolution.'),'evidence_only_correction_recommended':evidence_correction,'second_disposition':'propose_state_change_pending_root' if state_diff else 'propose_evidence_only_pending_root' if evidence_correction else 'retain_current_annotation_pending_root_if_disputed','pending_focused002_proposal':pd,'root_attention':att,'acceptance_status':'No acceptance; staged recommendation only.'};out.append(rr)
+ if state_diff or evidence_correction:
+  proposals.append({'packet_index':r['packet_index'],'case':r['case'],'study_uid':r['study_uid'],'target':r['target'],'source_path':r['source_path'],'source_index_zero_based':r['source_index_zero_based'],'source_sha256':r['source_sha256'],'report_utf8_sha256':r['report_utf8_sha256'],'original_review':r['original_review'],'before_current193':r['current193'],'after_proposed':{'state':final['state'],'evidence':final['evidence']},'reason':final['reason'],'evidence_reason':evidence_notes.get(k),'kind':'state_change' if state_diff else 'evidence_only','first_postfreeze_agrees_state':not different,'accepted_key_overlap':r['current_registered_overlap'],'pending_focused002_overlap':pd,'status':'unintegrated_pending_root_source_adjudication'})
+attention=[r for r in out if r['root_attention']];ids=sorted({r['packet_index'] for r in attention})
+counts={**m['counts'],'second_reconsidered_states':len(rec),'postfreeze_state_agreements':sum(not r['retained_first_second_disagreement'] for r in out),'postfreeze_state_disagreements':sum(r['retained_first_second_disagreement'] for r in out),'second_proposed_state_changes':sum(p['kind']=='state_change' for p in proposals),'second_proposed_evidence_only':sum(p['kind']=='evidence_only' for p in proposals),'pending_focused002_overlap_cells':len(overlaps),'complete_union_attention_cells':len(attention),'complete_union_attention_reports':len(ids)}
+d=write('second-complete-dispositions.json',{'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'rubric':m['rubric'],'inputs':m['inputs'],'current_replay':m['replay'],'counts':counts,'records':out,'all150_cells_personally_compared':True,'authorship':'All state choices and evidence dispositions personally authored. Code packages explicit decisions and validates bindings only.'})
+c=write('own-reconsiderations.json',{'agent_id':AGENT,'source_freeze_unchanged':True,'records':rec})
+p=write('unintegrated-proposals.json',{'agent_id':AGENT,'registry193':replay['current_registry'],'accepted':False,'records':proposals})
+u=write('complete-union-attention.json',{'agent_id':AGENT,'counts':counts,'selection':'Complete union of all state differences, raw quotation differences, retained disagreements, either-reader proposals and pending focused002 overlap. Equivalent excerpts remain represented.','records':attention})
+o=write('pending-cross-batch-overlap.json',{'agent_id':AGENT,'accepted_current_overlap':0,'pending_proposal_source':ref(pending_path),'records':overlaps,'note':'These overlaps are unintegrated proposals, not accepted corrections. Rebase and reconcile each key once at integration.'})
+packets=[]
+for b,start in enumerate(range(0,len(ids),10)):
+ clean=[packet[i] for i in ids[start:start+10]]
+ for q in clean:assert set(q)=={'study_uid','report','batch','index','source_path','source_sha256'}
+ z=write(f'neutral-root-packets/batch-{b:03}.json',clean);packets.append({**ref(z),'reports':len(clean)})
+index=write('neutral-root-packet-index.json',{'agent_id':AGENT,'source_packet':ref(A/'cartilage-observed-001-independent-review-v1/neutral-source-packet.json'),'rubric':m['rubric'],'reports':len(ids),'max_reports_per_packet':10,'packets':packets,'only_full_original_sources_and_bindings':True,'no_target_state_reason_or_proposal_clues':True})
+for x in m['inputs']:assert ref(W/x['path'])==x
+assert ref(R/'initiative/reviews-v2/adjudications/registry.json')==replay['current_registry']
+for x in packets:
+ for q in obj(W/x['path']):assert obj(R/q['source_path'])[q['index']]=={'study_uid':q['study_uid'],'report':q['report']}
+assert {q['study_uid'] for x in packets for q in obj(W/x['path'])}=={r['study_uid'] for r in attention}
+v=write('validation.json',{'agent_id':AGENT,'counts':counts,'all150_unique_source_original118_current193_bindings_valid':True,'all150_final_quotes_contiguous_or_missing_empty':True,'all_original_source_and_first_baseline_freezes_unchanged':True,'neutral_union_complete_unique_and_original':True,'accepted_registry_unchanged':True,'integration_requires_fresh_registry_replay_and_pending_key_deduplication':True,'no_gold_or_repository_edits_or_acceptance_or_gate_closure':True})
+f=write('second-disposition-freeze.json',{'agent_id':AGENT,'session_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'rubric':m['rubric'],'inputs':m['inputs'],'current_replay':m['replay'],'assessment':ref(d),'reconsiderations':ref(c),'proposals':ref(p),'attention_union':ref(u),'pending_overlap':ref(o),'neutral_packet_index':ref(index),'validation':ref(v),'authoring_helper':ref(Path(__file__)),'counts':counts,'disclosure':'This postfreeze pass knowingly compares both source readings, first dispositions, original/118/193 annotations and earlier pending focused002 proposals. Prior exposure remains in the source freeze. Timestamps do not prove past access order.','scope':'Staged recommendations only; unresolved interpretations remain preserved and already masked original states remain masked unless root later accepts a change. No acceptance or new masking is applied here.'})
+manifest=write('final-file-list.json',{'agent_id':AGENT,'files':[ref(p) for p in sorted(S.rglob('*')) if p.is_file()],'self_excluded':True})
+lst=obj(manifest)['files'];assert {x['path'] for x in lst}=={str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p!=manifest}
+for x in lst:assert ref(W/x['path'])==x
+print(json.dumps({'counts':counts,'freeze':ref(f),'neutral_packets':ref(index),'manifest':ref(manifest)},indent=2))

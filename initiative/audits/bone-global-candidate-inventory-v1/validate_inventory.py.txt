@@ -1,0 +1,111 @@
+"""Replay discovery and directly check every published row's source lineage."""
+from pathlib import Path
+from collections import Counter
+from datetime import datetime, timezone
+import json
+import hashlib
+import build_inventory as b
+
+S, R = b.HERE, b.R
+
+
+def rows(name):
+    return [json.loads(line) for line in (S/name).read_text().splitlines()]
+
+
+def key(row): return row['study_uid'],row['target']
+
+
+def main():
+    bindings=b.read(S/'input-bindings.json')
+    for section in ['source_artifacts','reviewed_artifacts','review_index_and_provenance','correction_cases','semantic_qa']:
+        for name,sha in bindings[section].items(): assert b.sha(R/name)==sha
+    assert b.sha(R/'initiative/reviews-v2/adjudications/registry.json')==b.REGISTRY_SHA
+    assert b.sha(R/'protocols/report_weak_v2.md')==b.RUBRIC_SHA
+    source, originals = {}, {}
+    for name,sha in bindings['source_artifacts'].items():
+        for i,row in enumerate(b.read(R/name)):
+            assert row['study_uid'] not in source
+            source[row['study_uid']]=dict(row,source_path=name,source_sha256=sha,source_index_zero_based=i)
+    for name,sha in bindings['reviewed_artifacts'].items():
+        for i,line in enumerate((R/name).read_text().splitlines()):
+            row=json.loads(line);assert row['study_uid'] not in originals
+            originals[row['study_uid']]=dict(row,review_path=name,review_sha256=sha,review_index_zero_based=i)
+    reports={uid:x['report'] for uid,x in source.items()}
+    inspection=b.inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+    assert inspection==b.read(S/'adjudications-inspection-118.json') and inspection['n_changes']==118
+    corrections={key(x):x for x in inspection['changes']}
+    partition=rows('all-8814-cell-partition.jsonl');details=rows('priority-candidate-details.jsonl')
+    assert len(partition)==len({key(x) for x in partition})==8814
+    assert {key(x) for x in partition}=={(uid,t) for uid in reports for t in b.BONE_TARGETS}
+    prior={x['study_uid'] for x in b.read(R/'initiative/audits/bone-terminology-v2/candidate-triage.json')['records']}
+    features={x['study_uid']:x for x in rows('source-feature-inventory.jsonl')}
+    assert set(features)==set(reports)
+    cached={uid:b.hits(text) for uid,text in reports.items()}
+    assert all(features[uid]['features']==found for uid,found in cached.items())
+    projected=[]
+    for row in partition:
+        uid,t=key(row);i=list(b.TARGETS).index(t);src,orig=source[uid],originals[uid]
+        assert all(row[k]==src[k] for k in ['source_path','source_sha256','source_index_zero_based'])
+        assert all(row[k]==orig[k] for k in ['review_path','review_sha256','review_index_zero_based'])
+        assert row['report_sha256']==hashlib.sha256(src['report'].encode()).hexdigest()
+        assert (row['original_state'],row['original_evidence'])==(orig['states'][i],orig['evidence'][i])
+        original=dict(state=orig['states'][i],evidence=orig['evidence'][i])
+        if key(row) in corrections:
+            c=corrections[key(row)];assert c['before']==original
+            expected=c['after'];assert row['registered_correction_case']==c['case_id']
+        else:
+            expected=original;assert row['registered_correction_case'] is None
+        assert (row['effective_state'],row['effective_evidence'])==(expected['state'],expected['evidence'])
+        if expected['state']=='not_mentioned':assert expected['evidence']==''
+        else:assert expected['evidence'] and expected['evidence'] in src['report']
+        all_states={target:corrections[(uid,target)]['after']['state'] if (uid,target) in corrections
+                    else orig['states'][list(b.TARGETS).index(target)] for target in b.BONE_TARGETS}
+        rules,cues=b.discover_cell(t,expected['state'],expected['evidence'],cached[uid],all_states,uid in prior)
+        assert row['discovery_rules']==rules
+        selected=expected['state'] in b.OBSERVED and bool(rules)
+        assert row['selected']==selected
+        if selected:
+            assert row['partition']=='observed_selected' and row['priority']==min(b.RULES[x][0] for x in rules)
+            projected.append(dict(row,source_cues=cues,source_excerpts=b.excerpts(src['report'],cues,expected['evidence']),
+                review_questions=[b.RULES[x][1] for x in rules],clinical_decision=None,proposed_state=None))
+        elif expected['state'] in b.OBSERVED:
+            assert row['partition']=='observed_unselected' and not rules and row['no_proxy_is_not_semantic_clearance']
+        else:assert row['partition']==('masked_with_proxy' if rules else 'masked_without_proxy')
+    projected.sort(key=lambda x:(x['priority'],x['source_path'],x['source_index_zero_based'],list(b.TARGETS).index(x['target'])))
+    for rank,row in enumerate(projected,1):row['priority_queue_rank']=rank
+    assert projected==details
+    queue=b.read(S/'priority-queue.json')['cells']
+    assert queue==[{k:x[k] for k in ['priority_queue_rank','priority','study_uid','target','source_path','source_index_zero_based','report_sha256','effective_state','discovery_rules']} for x in details]
+    neutral_index=b.read(S/'neutral-packet-index.json');packets=neutral_index['packets'];neutral=[]
+    permitted={'study_uid','source_path','source_sha256','source_index_zero_based','report_sha256','report'}
+    for packet in packets:
+        assert b.sha(S/packet['path'])==packet['sha256']
+        obj=b.read(S/packet['path']);assert len(obj['reports'])==packet['n_reports']
+        for row in obj['reports']:
+            assert set(row)==permitted
+            src=source[row['study_uid']]
+            assert all(row[k]==src[k] for k in ['source_path','source_sha256','source_index_zero_based','report'])
+            assert row['report_sha256']==hashlib.sha256(src['report'].encode()).hexdigest()
+            neutral.append(row)
+    selected={x['study_uid'] for x in details}
+    assert {x['study_uid'] for x in neutral}==selected and len(neutral)==len(selected)==1549
+    assert neutral==sorted(neutral,key=lambda x:(x['source_path'],x['source_index_zero_based']))
+    assert len(details)==2304 and len(packets)==31
+    assert all(x['selected'] for x in partition if x['effective_state']=='positive')
+    rules=Counter(rule for x in details for rule in x['discovery_rules'])
+    result=dict(schema_version=1,status='passed_exact_replay_and_source_binding',agent_id='/root/duplicate_consistency_review',
+        verified_at_utc=datetime.now(timezone.utc).isoformat(),source_reports_sha256=b.SOURCE_SHA,registry_sha256=b.REGISTRY_SHA,
+        n_reports=4407,n_cells=8814,n_selected_cells=2304,n_selected_reports=1549,n_neutral_batches=31,
+        every_cell_original_and_effective_state_evidence_verified=True,fresh_inspection118_exact=True,
+        all_features_and_rules_recomputed_exactly=True,candidate_details_and_rank_order_reproduce_exactly=True,
+        all_selected_context_excerpts_reproduce_exactly=True,all_positive_cells_included_without_lexical_recall=True,
+        full_partition_disjoint_and_exhaustive=True,neutral_packets_exact_complete_original_reports=True,
+        neutral_packet_key_allowlist_verified=True,all_rule_counts={rule:rules[rule] for rule in b.RULES},
+        method='Deterministic computation replay, independent direct original/effective lineage comparison and full source-only packet checks; not an independent clinical review.',
+        source_or_clinical_decisions_created=False,gold_values_inspected=False,global_qa_resolved=False,remote_calls=0,repository_mutations=0)
+    receipt=b.dump('replay-validation-receipt.json',result)
+    print(json.dumps(dict(status=result['status'],n_cells=8814,n_selected=2304,n_neutral_reports=1549,receipt=receipt),indent=2))
+
+
+if __name__=='__main__':main()

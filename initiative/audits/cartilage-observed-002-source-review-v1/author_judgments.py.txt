@@ -1,0 +1,464 @@
+"""Personally authored three-target decisions; helper verifies exact quotations."""
+import hashlib
+import json
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+SOURCES = json.loads((STAGE / "neutral-full-reports.json").read_text())
+TARGETS = ["Medial OA", "Lateral OA", "PF OA"]
+STATES = {"P": "positive", "N": "negative", "U": "uncertain", "M": "not_mentioned"}
+OUT = []
+
+
+def span(index, first, last):
+    report = SOURCES[index]["report"]
+    start = report.index(first)
+    stop = report.index(last, start) + len(last)
+    return report[start:stop]
+
+
+def add(index, states, quotes, reasons):
+    source = SOURCES[index]
+    assert index == len(OUT) and len(states.split()) == len(quotes) == len(reasons) == 3
+    expanded = [STATES[state] for state in states.split()]
+    for state, quote, reason in zip(expanded, quotes, reasons, strict=True):
+        assert reason.strip()
+        assert (state == "not_mentioned" and quote == "") or (state != "not_mentioned" and quote and quote in source["report"]), (index, state, quote)
+    OUT.append({"packet_index": index, "priority_index": index + 100, "study_uid": source["study_uid"], "batch": source["batch"], "source_index": source["index"], "source_path": source["source_path"], "source_sha256": source["source_sha256"], "source_report_sha256": hashlib.sha256(source["report"].encode()).hexdigest(), "target_order": TARGETS, "states": expanded, "evidence": quotes, "rationales": reasons})
+
+add(0, "U P U", [
+    "Συνυπάρχει στένωση του µεσάρθριου στο έσω κνηµοµηριαίο διαµέρισµα και ήπια διαταραχή του χόνδρου, στο πλαίσιο χονδροπάθειας (Grade III).",
+    "Συνυπάρχει στένωση του µεσάρθριου στο έξω κνηµοµηριαίο διαµέρισµα, µε απώλεια του χόνδρου ολικού πάχους σε µεγάλη έκταση και ήπιο οστεοµυελικό οίδηµα στον έξω µηριαίο κόνδυλο και στον έξω κνηµιαίο κόνδυλο, στο πλαίσιο εκφυλιστικής οστεοαρθρίτιδας.",
+    "Χονδροπάθεια επιγονατίδας (Grade II) µε πλάγια επιχείλια οστεόφυτα στην επιγονατιδοµηριαία συµβολή.",
+], [
+    "Mild medial cartilage disturbance with unnamed grade III supplies neither a defined depth fraction nor extent; the mixed severity language is not resolved by assuming a scale.",
+    "Lateral cartilage loss is explicitly full-thickness and of large extent, establishing depth and qualitative broad region independently of the OA diagnosis.",
+    "Patellar grade II has no named framework or independent thickness/extent evidence; osteophytes do not supply it.",
+])
+add(1, "U M U", [
+    "Hondromalacija I° kondilarne i tibijalne hrskavice medijalnog kompartmenta.", "", "Hondromalacija patelarne hrskavice III°.",
+], [
+    "Bare medial grade I lacks a named depth framework or direct preserved-thickness morphology; uncertain rather than inferred negative.",
+    "No informative lateral cartilage assessment. Normal menisci and absence of osteochondral lesions do not explicitly assess isolated lateral chondral loss.",
+    "Patellar grade III has no named scale or lesion extent, so the threshold is unresolved.",
+])
+add(2, "N U P", [
+    "Cartílagos del compartimento\nfemorotibial medial sin alteraciones.",
+    "úlceras condrales de espesor parcial y total del aspecto posterior de carga del\ncompartimento femorotibial lateral sin cambios óseos secundarios.",
+    "Úlceras condrales de espesor total de distribución difusa de la\ntróclea femoral.",
+], [
+    "Explicit normal medial femorotibial cartilage.",
+    "Lateral partial/full-thickness ulcers lack extent of the deep component; absence of bone reaction does not quantify it.",
+    "Diffuse full-thickness trochlear ulcers establish deep and broad PF loss. The unnamed grade 2-3 conclusion does not define an incompatible depth scale or erase that explicit morphology; patellar partial loss is separate.",
+])
+add(3, "U U U", [
+    "Medial compartment cartilage: Focal high-grade chondral loss involving the anterior weightbearing portion of the femoral condyle with subchondral cystic changes.",
+    span(3, "Lateral compartment cartilage: No focal cartilage defects.", "1.\tSevere tricompartmental osteoarthritis primarily affecting the patellofemoral compartment."),
+    "Patellofemoral compartment cartilage: Diffuse high-grade chondral loss involving the median ridge, medial and lateral patellar facets with subchondral cystic changes and reactive edema. Diffuse high-grade chondral loss primarily involving the lateral and central trochlea with subchondral cystic changes and reactive edema.",
+], [
+    "Focal medial high-grade loss has neither a defined thickness fraction nor qualifying region extent.",
+    "The detailed lateral cartilage denial conflicts with the severe tricompartmental OA impression, which includes lateral. Preserve whole-source uncertainty and both statements without assuming which is erroneous.",
+    "PF high-grade loss is diffuse, but generic high-grade wording does not explicitly state a loss fraction or full-thickness morphology. Broad extent alone cannot supply depth.",
+])
+add(4, "P M N", [
+    "Εκτεταµένες οστεοαρθριτικές αλλοιώσεις εντοπιζόµενες ιδίως στο έσω µεσάρθριο διάστηµα µε ολικού πάχους απώλεια αρθρικού χόνδρου της κνήµης και του µηριαίου",
+    "", "Ανωµαλία παρυφής του χόνδρου της επιγονατίδας ως επι αρχόµενων αλλοιώσεων (ICRS grade 1-2).",
+], [
+    "Extensive medial-predominant disease explicitly includes full-thickness tibial/femoral cartilage loss, supporting broad deep medial involvement qualitatively.",
+    "No localized lateral cartilage assessment. Lateral meniscal degeneration and a lateral loose body do not establish lateral cartilage loss.",
+    "Below threshold: early patellar surface irregularity is explicitly tied to named ICRS grade 1-2, a superficial/below-half depth category, rather than an unnamed numeral.",
+])
+add(5, "U N U", [
+    "Full-thickness chondral loss at the medial femoral condyle, with diffuse high-grade medial articular cartilage thinning.",
+    "Mild partial-thickness chondral thinning of lateral articular cartilage.",
+    "Full-thickness cartilage loss at the medial patellar articular facet with mild subchondral reactive edema.",
+], [
+    "The medial full-thickness component is not sized; diffuse overall high-grade thinning does not independently establish diffuse qualifying-depth loss.",
+    "Below threshold: direct lateral partial-thickness thinning is explicitly mild.",
+    "Full-thickness loss at a patellar-facet location does not state how much of the facet is involved; qualifying extent is missing.",
+])
+add(6, "U U M", [
+    "Izmijenjen intenzitet signala hrskavice pretežno oba platoa tibije u sklopu hondromalacije I°.",
+    "Izmijenjen intenzitet signala hrskavice pretežno oba platoa tibije u sklopu hondromalacije I°.", "",
+], [
+    "Both tibial plateaus include medial cartilage, but altered signal and unnamed grade I do not establish preserved thickness or a below-threshold fraction.",
+    "The same bilateral-plateau cartilage sentence includes lateral cartilage without a named grade framework or depth description; uncertainty.",
+    "No informative PF cartilage mention; normal retinacula are not cartilage evidence.",
+])
+add(7, "M U U", [
+    "", "Prikaže se hondromalacija I° hrskavice lateralnog tibijalnog platoa.", "Hondromalacija I° medijalne fasete patele.",
+], [
+    "No medial cartilage assessment; meniscal degeneration and normal bone appearance cannot supply it.",
+    "Bare lateral plateau grade I does not bind a below-threshold depth without a named framework or direct morphology.",
+    "Bare grade I at the medial patellar facet remains PF uncertainty; medial patellar localization is not medial tibiofemoral OA.",
+])
+add(8, "M M U", [
+    "", "", "Suspicious of mild increased singal intensity of patellar articular cartialge on F/S T2WI, R/O grade 1 chondromalacia.",
+], [
+    "No informative medial cartilage finding; meniscal signal is separate.",
+    "No informative lateral cartilage finding; normal collateral ligaments do not supply it.",
+    "Possible patellar signal change with unnamed grade 1 does not establish thickness preservation or loss fraction. The equivocal diagnosis remains masked.",
+])
+add(9, "U M U", [
+    "Grade 2 chondromalacia of patella and medial femorotibial joint.", "",
+    "Mild irregular contour of articular surface of patella, in favor of grade 2 chondromalacia.",
+], [
+    "The impression addresses medial cartilage with bare grade 2 but no named scale or independent thickness/extent description.",
+    "No lateral cartilage assessment; lateral ligament, meniscal and bursal findings do not fill this target.",
+    "Mild patellar surface irregularity and bare grade 2 do not explicitly define a loss fraction or establish superficial-only disease; uncertainty preserves the missing threshold.",
+])
+
+add(10, "U P U", [
+    span(10, "Úlceras condrales focales lineales", "Finas úlceras condrales lineales grado 4 del cóndilo femoral lateral."),
+    "Úlcera condral de espesor total del aspecto posterior de la zona de carga del cóndilo femoral\nlateral que mide aproximadamente 8 x 10 mm en sus ejes anteroposterior y mediolateral,\nrespectivamente con discretos cambios óseos secundarios.",
+    "Úlceras condrales focales lineales de espesor total la zona de carga del cóndilo femoral medial\ncon mínimos cambios óseos secundarios y patelofemoral sin alteraciones significativas.",
+], [
+    "The body localizes full-thickness linear ulcers medially without size, while the impression calls the linear ulcers lateral. Preserve both extent insufficiency and localization inconsistency; do not repair the report.",
+    "Explicit full-thickness lateral ulcer has a 10 mm axis, meeting the roughly 1 cm extent. The separate 8 mm axis does not negate that measured region.",
+    "No significant PF abnormality is a significance-qualified denial, not explicit normal cartilage or a defined below-threshold depth.",
+])
+add(11, "U U U", [
+    "Reducirana je debljina artikulacijskih hrskavica medijalnog kompartmenta uz formirane rubne\nosteofite.",
+    "Promijenjen je intenzitet signala artikulacijskih hrskavica - hondromalacija I/II°.\nOpisano odgovara početnim degenerativnim promjenama lateralnog kompartmenta FT zgloba.",
+    "Hondromalacija I° lateralne fasete patele uz početno formiran osteofit lateralnog ruba patele u\nsmislu početnih OA promjena FP zgloba.",
+], [
+    "Medial cartilage thinning lacks fraction and qualifying region extent; moderate degeneration and osteophytes cannot substitute.",
+    "Lateral cartilage signal change with unnamed grade I/II does not explicitly establish preserved thickness or a defined loss fraction.",
+    "Patellar grade I and early OA have no named grading framework or independent depth measurement. Lateral patellar facet belongs to PF, not lateral tibiofemoral cartilage.",
+])
+add(12, "U N U", [
+    "Diffuse articular cartilage thinning is identified involving the weightbearing surface of the medial femoral condyle without significant subchondral bone marrow reactive signal intensity changes.",
+    "Lateral compartment (meniscus, collateral ligament complex, cartilage):\nNormal.",
+    span(12, "There is moderate focal chondrosis", "most marked involving the central and lateral trochlea."),
+], [
+    "Diffuse medial thinning establishes distribution, not the thickness-loss fraction. The 2 cm meniscal tear length does not measure cartilage.",
+    "Explicit normal lateral compartment statement includes cartilage within its named scope.",
+    "Severe diffuse trochlear thinning and focal significant patellar thinning lack a defined fraction or full-thickness morphology. Bone reaction does not independently supply depth.",
+])
+add(13, "U U U", [
+    "Prikaže se hondromalacija I° hrskavice medijalnog i lateralnog tibijalnog platoa.",
+    "Prikaže se hondromalacija I° hrskavice medijalnog i lateralnog tibijalnog platoa.",
+    "Hondromalacija III° medijalne fasete patele te I° lateralne fasete.",
+], [
+    "Medial tibial cartilage has bare grade I without a named scale or direct thickness description; no reliable below-threshold conclusion.",
+    "Lateral tibial cartilage has the same unnamed grade I with no independent depth evidence.",
+    "Patellar grades III and I have no named grading framework or region measurement; both depth interpretation and qualifying extent remain unresolved.",
+])
+add(14, "P U U", [
+    "Medial compartment cartilage: There is moderate to severe cartilage loss diffusely, with large region of full-thickness cartilage delamination at the central weightbearing aspect of the medial femoral condyle.",
+    "Lateral compartment cartilage: There is mild cartilage thinning and fissuring centrally near the tibial spine.",
+    "Patellofemoral compartment cartilage: There is moderate to severe cartilage thinning and fissuring at the patella and trochlea diffusely, with full-thickness cartilage loss at the central trochlea.",
+], [
+    "Large-region full-thickness medial delamination explicitly establishes deep and broadly sized cartilage loss.",
+    "Mild overall lateral thinning and fissuring does not explicitly bound fissure depth or extent; the adjective does not define a thickness fraction for all components.",
+    "The full-thickness central trochlear component is not sized; diffuse overall moderate/severe thinning does not establish the extent of that deep component.",
+])
+add(15, "P U U", [
+    span(15, "Από τον έλεγχο του έσω διαµερίσµατος", "Ευρήµατα εκτεταµένης εκφυλιστικής οστεοαρθρίτιδας στο έσω διαµέρισµα"),
+    "Ο αρθρικός χόνδρος του έξω µηριαίου κονδύλου εµφανίζει λέπτυνση καθώς και εικόνα χονδρασβέστωσης.",
+    "Συνυπάρχουν σχισµοειδείς διαβρώσεις του αρθρικού χόνδρου της επιγονατίδας καθώς και της o µηριαίας τροχιλίας.",
+], [
+    "Explicit full-thickness cartilage erosion of both medial femoral and tibial surfaces, named ICRS 4 and extensive medial disease together support broad deep loss. Extent is qualitative, not an invented numeric measurement.",
+    "Lateral femoral cartilage thinning and chondrocalcinosis have no depth fraction or qualifying loss region.",
+    "Patellar and trochlear fissure-like erosions do not define thickness loss or extent. The stray source token is preserved rather than repaired.",
+])
+add(16, "N P U", [
+    "In the medial compartment, the meniscus is not torn and there is no focal chondrosis or chondral injury.",
+    "There is focal high grade chondrosis (more than 50% thickness cartilage loss) with subchondral edema few intact3 cm subchondral bone cyst at mid weightbaring lateral femoral condyle (about 3* 1.1 cm).",
+    "The patellofemoral joint, there is focal cartilage delamination at the lateral patellar facet (about 1* 1 cm). The trochlear cartilage appears congruent without chondral lesion.",
+], [
+    "Explicit absence of medial chondrosis or chondral injury in compartment scope.",
+    "The lateral femoral chondrosis explicitly exceeds half thickness and has a stated 3 by 1.1 cm region. The corrupted nearby cyst-size token is not used as the cartilage measurement.",
+    "The 1 by 1 cm patellar delamination supplies size but not the fraction of cartilage loss. Normal trochlea does not negate this patellar uncertainty.",
+])
+add(17, "U U U", [
+    "Medial compartment cartilage: Diffuse articular cartilage irregularity with confluent regions of full-thickness cartilage loss at the weightbearing aspect of the joint.",
+    "Lateral compartment cartilage: Diffuse articular cartilage irregularity with areas of high-grade fissuring at the weightbearing aspect of the joint.",
+    "Patellofemoral compartment cartilage: Confluent full-thickness articular cartilage loss at the lateral patellar facet and lateral trochlea. Articular surface remodeling at the lateral patellar facet. High-grade articular cartilage loss at the medial trochlea and medial facet.",
+], [
+    "Full-thickness regions are confluent but neither measured nor explicitly broad/diffuse themselves; diffuse overall irregularity does not bind qualifying extent of full loss.",
+    "Diffuse overall irregularity with generic high-grade fissuring supplies neither a defined fissure depth fraction nor region size.",
+    "Confluent full-thickness loss at two PF locations establishes depth, but location and confluence do not alone quantify an approximately 1 cm region. Remodeling and separate generic high-grade loss do not repair that missing extent.",
+])
+add(18, "P N U", [
+    "Medial compartment cartilage: Diffuse full-thickness cartilage loss about the weightbearing medial femoral condyle with scattered areas of subchondral marrow edema and cystic change.",
+    "Lateral compartment cartilage: Low-grade partial-thickness cartilage loss/fraying about the central weightbearing lateral femoral condyle.",
+    "Patellofemoral compartment cartilage: Focal partial thickness chondrosis central femoral trochlea. Patellar cartilage is intact.",
+], [
+    "Diffuse full-thickness medial femoral loss explicitly establishes depth with broad extent.",
+    "Direct low-grade partial-thickness lateral loss/fraying supports a below-threshold negative.",
+    "Focal partial-thickness trochlear loss has no stated fraction or size; intact patellar cartilage does not resolve the trochlear target component.",
+])
+add(19, "P N N", [
+    "There is diffuse high grade chondrosis (more than 50% thickness cartilage loss) along weight-baring medial femoral condyle and medial tibial plateau.",
+    "The lateral compartment, the meniscus is not torn and there is no focal chondrosis or chondral injury.",
+    "The patellofemoral joint, there is diffuse low grade chondrosis (less than 50% thickness cartilage loss) along medial, lateral patellar facets, medial and lateral trochleas.",
+], [
+    "Explicit greater-than-half loss is diffuse across medial weightbearing surfaces, supporting broad qualifying extent; the corrupted cyst size is not used.",
+    "Explicit lateral cartilage absence statement supports negative.",
+    "Explicit less-than-half cartilage loss throughout the listed PF surfaces is below threshold despite diffuse distribution.",
+])
+add(20, "U U U", [
+    "Medial compartment cartilage: There is moderate cartilage thinning and irregularity diffusely. Small marginal osteophytes.",
+    "Lateral compartment cartilage: There is marked, diffuse cartilage loss with large marginal osteophytes.",
+    "Patellofemoral compartment cartilage: There is moderate cartilage thinning and surface irregularity at the patella and trochlea diffusely. Moderate osteophytes.",
+], [
+    "Diffuse medial involvement supplies distribution but moderate thinning does not explicitly define a thickness-loss fraction.",
+    "Marked diffuse lateral loss does not explicitly state full-thickness or greater-than-half depth; large osteophytes do not quantify the cartilage lesion.",
+    "Moderate diffuse PF thinning and irregularity leave loss depth unresolved. Distribution alone is insufficient.",
+])
+add(21, "N U P", [
+    "Medial compartment cartilage: No focal cartilage defects.",
+    "Lateral compartment cartilage: Focal full-thickness cartilage fissuring along the posterior weightbearing lateral femoral condyle.",
+    "Patellofemoral compartment cartilage: Broad areas of full-thickness cartilage loss spanning the median ridge and lateral patellar facet with subchondral cystic change.",
+], [
+    "Explicit medial cartilage defect denial with no contradictory medial disease finding.",
+    "Full-depth lateral fissuring is focal and unsized; the mild chondrosis impression cannot supply or exclude qualifying regional extent.",
+    "Explicit broad areas of full-thickness PF loss establish both depth and qualitative regional extent, independently of the unnamed grade 4 impression.",
+])
+add(22, "P U U", [
+    "Ставният хрущял от медиалната страна е изцяло лизиран.",
+    "От латералната страна се виждат дефекти в ставния хрущял срединно.",
+    "Сравнително запазен е хрущяла на пателата.",
+], [
+    "The medial articular cartilage is explicitly entirely destroyed, supporting complete depth loss across the medial cartilage region, not merely an unsized focal defect.",
+    "Central lateral cartilage defects have no depth or size description.",
+    "Relatively preserved patellar cartilage is comparative and does not establish explicit normality or a defined below-threshold degree of loss.",
+])
+add(23, "N U P", [
+    "Weiteres Ödem randständig tibial medialseitig (5/15) bei im medialen Kompartiment oberflächlichen Knorpelirregularitäten.",
+    "Bei geringer Pangonarthrose lateral randständig in der Belastungszone subchondrales Knochenödem femoral bei fokal hochgradiger Chondropathie mit subchondraler Linienbildung, DD kleine Infraktionen/SIF möglich.",
+    "Retropatellararthrose mit sowohl fokal an den Condylenwangen sowie femorpatellar lateral führend teils flächig hochgradige, vollschichtige Chondropathie mit teils subchondraler Zysten-/Ödembildung und kleinem chondralen Osteophyten.",
+], [
+    "Direct superficial medial cartilage irregularities support below-threshold depth despite adjacent nonspecific marrow edema.",
+    "Focal generic high-grade lateral chondropathy has no defined depth fraction or lesion extent; marrow findings cannot substitute.",
+    "PF-predominant full-thickness chondropathy is explicitly partly broad/sheetlike (flächig), supplying qualitative extent of the deep component itself.",
+])
+add(24, "P P P", [
+    "In beiden Kompartimenten höhergradig geminderter Knorpelbesatz mit teils flächiger vollschichtige Chondropathie am lateralen Tibiaplateau sowie an der medialen Femurkondyle; medial führend.",
+    "In beiden Kompartimenten höhergradig geminderter Knorpelbesatz mit teils flächiger vollschichtige Chondropathie am lateralen Tibiaplateau sowie an der medialen Femurkondyle; medial führend.",
+    "An der medialen Trochleafacette flächig vollschichtig geminderter Knorpelbesatz.",
+], [
+    "Broad full-thickness chondropathy explicitly includes the medial femoral condyle, with medial predominance; both requirements have qualitative support.",
+    "The same explicit broad full-thickness description includes lateral tibial plateau; the separate focal lateral femoral defect is not needed for extent.",
+    "Medial trochlear facet has explicitly broad full-thickness cartilage reduction, establishing PF depth and region extent; this is not medial tibiofemoral disease.",
+])
+add(25, "U U U", [
+    "Prikaže se hondromalacija I° hrskavice oba tibijalna platoa.",
+    "Prikaže se hondromalacija I° hrskavice oba tibijalna platoa.",
+    "Hondromalacija I° medijalne fasete patele.",
+], [
+    "Both tibial plateaus include medial cartilage, but bare grade I has no named depth framework or explicit morphology.",
+    "Lateral plateau grade I likewise does not independently establish a below-threshold depth.",
+    "Patellar grade I alone cannot establish the thickness criterion; no named framework is supplied.",
+])
+add(26, "U M U", [
+    "Hondromalacija IIi° hrskavice medijalnog femoralnog kondila.", "",
+    "Promijenjen intenzitet signala medijalne fasete patele - hondromalacija I°.",
+], [
+    "The literal mixed-case grade IIi is preserved; no named cartilage grading scale, direct depth or lesion size is provided.",
+    "Lateral meniscal findings do not assess lateral cartilage, which has no informative mention.",
+    "Patellar signal change plus bare grade I does not explicitly establish preserved cartilage thickness or a below-threshold loss fraction.",
+])
+add(27, "U N U", [
+    "Promijenjen intenzitet signala artikulacijskih hrskavica medijalne fasete FT zgloba -\nhondromalacija I/II°.",
+    "Artikulacijske hrskavice lateralne fasete\nFT zgloba su primjerenih intenziteta signala.",
+    "Hondromalacija I° medijalne fasete patele.",
+], [
+    "Medial femorotibial cartilage signal alteration with unnamed I/II grading leaves the thickness criterion unresolved.",
+    "Explicit normal lateral femorotibial articular cartilage signal is the report's affirmative normal structure assessment, without a competing cartilage lesion.",
+    "Bare patellar grade I has no named scale or independent thickness evidence; medial facet here is PF.",
+])
+add(28, "P N U", [
+    "Potpuni gubitak hrskavice medijalnog kondila femura i tibije sa subhondralnim koštanim edemom.",
+    "Plitke fisure hrskavice lateralnog kondila femura i tibije (hondromalacija 2. stupnja prema ICRS\nklasifikaciji).",
+    "U patelofemoralnom zglobu nalaze se fisure do pune debljine hrsakvice s manjim fokalnim\nzonama subhondralnog koštanog edema patele (hondromalacija 3. stupnja prema ICRS\nklasifikaciji).",
+], [
+    "Complete loss of the medial femoral and tibial cartilage surfaces supplies both full depth and qualitative broad involvement, not just a focal lesion.",
+    "Explicit shallow lateral fissures, corroborated by named ICRS grade 2, support below-threshold depth.",
+    "Full-depth PF fissures and named ICRS 3 establish deep morphology but not an approximately 1 cm cartilage-loss region. Sizes of focal bone edema are not cartilage extent.",
+])
+add(29, "U U U", [
+    "Il y a progression d’une chondropathie maintenant sévère (grade 4) au compartiment fémoro-tibial interne avec dénudation transfixiante des surfaces cartilagineuses et changements sous-chondraux réactionnels associés. Ostéophytes marginaux modérés.",
+    "Atténuation chondrale légère à modérée au compartiment fémoro-tibial externe avec fissures chondrales partielles en lien avec une chondropathie de grade 2. Il n’y a pas d’évidence d’atteinte transfixiante ou changements sous-chondraux réactionnels associés.",
+    "Il y a une atténuation diffuse modérée des surfaces chondrales, avec foyer de chondropathie de grade 4 similaire le long de la facette patellaire interne avec fissure transfixiante et début de changements sous-chondraux réactionnels associés et de grade 3 au niveau de l’échancrure inter-condylienne avec fissure chondrale transfixiante.",
+], [
+    "Transfixing medial denudation establishes full depth but no explicit broad/diffuse extent or measurement of the denuded region. Severe diagnosis and unnamed grade 4 cannot supply the missing region size.",
+    "Mild-to-moderate attenuation and partial fissures without full-thickness involvement still do not exclude greater-than-half loss; bare grade 2 has no named framework.",
+    "Diffuse moderate overall thinning is distinguished from focal transfixing fissures, whose qualifying extent is missing. Unnamed grades do not supply size.",
+])
+add(30, "U U U", [
+    "Prikaže se hondromalacija I-II° hrskavice medijalnog kondila femura.",
+    "Početne degenerativne\npromjene femorotibijalnog zgloba, izraženije u medijalnom dijelu.",
+    "Početne degenerativne promjene femoropatelarnog zgloba. Hondromalacija I° medijalne fasete\npatele.",
+], [
+    "Bare medial cartilage grade I-II lacks a named depth framework or direct below-threshold morphology.",
+    "General early femorotibial degeneration with medial predominance leaves the lateral component ambiguously localized and unquantified; it cannot establish a lateral negative or positive.",
+    "Early PF degeneration with unnamed patellar grade I has no independent thickness criterion evidence.",
+])
+add(31, "P N N", [
+    "Medial compartment cartilage: Full-thickness cartilage loss spanning the majority of the weightbearing medial femoral condyle and medial tibial plateau.",
+    "Lateral compartment cartilage: No focal cartilage defects.",
+    "Patellofemoral compartment cartilage: Low-grade cartilage fissuring and mild cartilage edema spanning the patella..",
+], [
+    "Full-thickness loss spans the majority of both medial weightbearing surfaces, explicitly supporting broad qualifying extent.",
+    "Explicit absence of lateral cartilage defects, without competing lateral disease.",
+    "Direct low-grade patellar fissuring and mild edema support below-threshold cartilage depth. This is morphology, not reliance on an unnamed numeric grade.",
+])
+add(32, "U U P", [
+    span(32, "Ηπιες αλλοιώσεις οστεοαρθρίτιδας", "του λοιπού οστικού µυελού."),
+    span(32, "Ηπιες αλλοιώσεις οστεοαρθρίτιδας", "του λοιπού οστικού µυελού."),
+    "Ευρήµατα σοβαρής οστεοαρθρίτιδας της επιγονατιδοµηριαίας άρθρωσης µε µεγάλης έκτασης ολικού πάχους έλλειµµα του αρθρικού χόνδου της επιγονατίδας κατά το έξω τµήµα της",
+], [
+    "Femorotibial mild OA/osteophytes are not compartment-separately quantified; normal femoral cartilage and absence of space narrowing do not explicitly assess tibial loss or resolve the whole medial threshold.",
+    "The same unlocalized femoral/tibial OA changes mention the lateral-relevant joint scope but supply no separate depth; normal femoral cartilage alone cannot fill the tibial portion.",
+    "Large-extent full-thickness lateral patellar cartilage defect explicitly supports PF depth and size qualitatively.",
+])
+add(33, "P N U", [
+    "Medial compartment cartilage: Large areas of full-thickness chondrosis along the weightbearing femoral condyle with underlying subchondral cystic change/edema.",
+    "Lateral compartment cartilage: Low-grade partial-thickness cartilage loss along the femoral condyle and tibial plateau.",
+    "Patellofemoral compartment cartilage: Full-thickness cartilage loss along the superior aspect of the medial patellar facet with underlying subchondral cystic change and edema. Diffuse thinning of the trochlear cartilage, without focal defect.",
+], [
+    "Large areas of full-thickness medial loss supply both requirements directly.",
+    "Direct low-grade partial-thickness loss across lateral femoral/tibial surfaces supports below-threshold depth.",
+    "Full-thickness superior patellar loss has no lesion size; diffuse trochlear thinning does not state depth or establish extent of the separate patellar lesion.",
+])
+add(34, "U P P", [
+    "The finding is associated with severe chondral denuding and exuberant marginal osteophyte formation seen to the medial joint compartment.",
+    "The finding is associated with denuding of the entire articular cartilage of lateral joint compartment associated with prominent lateral joint compartment osteophyte formation.",
+    "The finding is associated with advanced patellofemoral joint osteoarthritic change with extensive denuding of the articular cartilage and with extensive subcortical cyst formation particularly seen along the apex and lateral facet of patella.",
+], [
+    "Medial denuding establishes full-depth loss, but severe does not give lesion extent; unlike the other compartments, medial denuding is not explicitly entire or extensive.",
+    "Denuding of the entire lateral articular cartilage explicitly establishes full depth and broad extent. The separate 3 cm intraosseous cyst is not used to size cartilage.",
+    "Extensive PF articular cartilage denuding explicitly establishes broad full-depth loss; cyst measurements are not needed.",
+])
+add(35, "P U N", [
+    "Gevorderd mediaal femorotibiaal kraakbeenlijden, met volledig kraakbeenverlies op het dragende deel van de femorale condylen en van de hele mediale tibiaplateau, gepaard gaand met subchondrale sclerotische veranderingen en oedemateuze veranderingen, marginale osteofytose, beginnende remodellering van het mediale compartiment.",
+    "Beginnend lateraal femorotibiaal kraakbeenlijden, graad 2 .",
+    "Beginnend femoropatellair kraakbeenlijden graad 2 met enkele oppervlakkige fissuren .",
+], [
+    "Complete cartilage loss including the entire medial tibial plateau establishes full depth and extensive region in explicit medial scope.",
+    "Early lateral cartilage disease with unnamed grade 2 has no independently stated thickness or lesion extent.",
+    "Explicit superficial PF fissures support a below-threshold finding independently of the unnamed grade 2.",
+])
+add(36, "U M P", [
+    "Matiggradige verdunning van het kraakbeen mediaal femorotibiaal.", "",
+    span(36, "Volledig dikte kraakbeendefect lateraal trochleair", "Groot graad 4 kraakbeenletsel lateraal trochleair."),
+], [
+    "Moderate medial femorotibial cartilage thinning does not define the loss fraction or region size.",
+    "No informative lateral femorotibial cartilage mention; intact lateral meniscus does not supply cartilage status.",
+    "The lateral trochlear lesion is explicitly full-thickness in findings and large in the conclusion, supporting qualitative extent. The nearby 1.5 cm phrase may describe the subchondral cyst and is not treated as a cartilage measurement.",
+])
+add(37, "N N P", [
+    "Femorotibial gering verschmälerter Knorpelbesatz ohne tiefgreifende Chondropathie.",
+    "Femorotibial gering verschmälerter Knorpelbesatz ohne tiefgreifende Chondropathie.",
+    "Flächig vollschichtige Chondropathie der lateralen Patellafacette mit lefzenartigem chondralen Rand auf Höhe des Patellafirstes.",
+], [
+    "General femorotibial scope includes medial cartilage: slight thinning explicitly without deep chondropathy supports below threshold.",
+    "The same broad femorotibial statement includes lateral cartilage and explicitly excludes deep disease, supporting below threshold.",
+    "Broad/sheetlike full-thickness lateral patellar loss explicitly supplies depth and qualitative region extent.",
+])
+add(38, "U P U", [
+    "Medial compartment articular cartilage:  Grade 2 chondrosis with mild degenerative changes, including osteophyte formation.",
+    "Lateral compartment articular cartilage:  Grade 4 chondrosis with complete denuding of the articular surface and extensive degenerative changes, including bone-on-bone articulation, subchondral edema and cystic change, and osteophyte formation.",
+    "Patellofemoral cartilage:  Grade 1 chondrosis with mild degenerative changes.",
+], [
+    "Bare grade 2 and mild degenerative changes do not independently establish below-half cartilage loss; osteophytes are not a depth measure.",
+    "Complete denuding of the lateral articular surface with bone-on-bone articulation establishes full-depth widespread loss independently of numeric grade 4.",
+    "Bare grade 1 and mild generic degeneration have no named scale or direct preserved-thickness morphology.",
+])
+add(39, "P U U", [
+    "Medial compartment cartilage: Full thickness cartilage denudation throughout the medial femoral condyle and medial tibial plateau with subchondral cystic change and marrow edema.",
+    "Lateral compartment cartilage: Low-grade partial-thickness cartilage loss at the anterior weightbearing surfaces. High grade chondrosis along the peripheral lateral joint.",
+    "Patellofemoral compartment cartilage: High-grade partial-thickness cartilage loss along the medial trochlea. High-grade fissuring at the median ridge with likely an early delaminating component extending along the medial patellar facet.",
+], [
+    "Full-thickness denudation throughout both medial surfaces establishes deep and broad loss.",
+    "The low-grade anterior component cannot negate the separate peripheral high-grade chondrosis, whose depth fraction and extent remain unspecified. Proximal tibiofibular chondrosis is anatomically separate.",
+    "High-grade partial-thickness trochlear morphology supports deep loss, but its approximately 1 cm extent is not established. Separate fissuring and possible delamination likewise lack qualifying size.",
+])
+add(40, "M M P", [
+    "", "", "Umschriebene vollschichtige Chondropathie mit kortikaler Ausdünnung an der Trochlea mit ml 27 x cc 18 mm (7/16,5/24).",
+], [
+    "The cartilage sentence explicitly says femoropatellar despite weightbearing/medial wording; no medial femorotibial cartilage assessment is independently stated, and I do not repair it to femorotibial.",
+    "No informative lateral femorotibial cartilage assessment.",
+    "Trochlear full-thickness chondropathy measures 27 by 18 mm, explicitly establishing PF depth and qualifying region size.",
+])
+add(41, "U U U", [
+    "Medial compartment cartilage: Severe, diffuse cartilage loss.",
+    "Lateral compartment cartilage: Mild cartilage thinning and fissuring at the weightbearing aspect.",
+    "Patella cartilage: Moderate to severe cartilage loss, lateral greater than medial.\nFemoral trochlea cartilage: Mild to moderate cartilage thinning diffusely.",
+], [
+    "Severe diffuse medial cartilage loss does not explicitly quantify the thickness fraction or say full-thickness; adjacent insufficiency fractures cannot supply depth.",
+    "Mild thinning and fissuring leaves fissure depth and qualifying extent unquantified; overall mild wording does not explicitly bound all fissures below half thickness.",
+    "Moderate/severe patellar loss and mild/moderate diffuse trochlear thinning have no defined thickness fraction. PF facet laterality does not designate tibiofemoral compartments.",
+])
+add(42, "P U U", [
+    "Medial compartment cartilage: Large confluent regions of full-thickness articular cartilage loss at the weightbearing aspect of the joint.",
+    "Lateral compartment cartilage: Articular cartilage irregularity at the weightbearing aspect of the joint without focal defect.",
+    "Patellofemoral compartment cartilage: Focal full-thickness chondral defect at the lateral patellar facet measuring 6 x 6 mm. Focal full-thickness fissuring at the patellar median ridge. Areas of full-thickness fissuring at the medial trochlea.",
+], [
+    "Large confluent full-thickness regions establish deep loss and qualifying qualitative extent; large supplies information beyond confluence alone.",
+    "Cartilage irregularity without a focal defect does not explicitly state preserved thickness or exclude diffuse deep loss. The report mentions cartilage disease without its required depth.",
+    "The 6 by 6 mm defect is below the region-size threshold, but separate full-thickness ridge and trochlear fissures are unsized; the measured small lesion cannot bound those other lesions.",
+])
+add(43, "U M P", [
+    "Chondromalacie mediale femorotibiale gewrichtscompartiment met globaal kraakbeenverlies alsook graag 4 kraakbeen defecten, subchondrale insuffici ëntiefractuur zowel tibiaal als femoraal",
+    "", '"F ull thickness " kraakbeenverlies denudatie mediale patellaire facet en crista patellae (overgrijpend op het laterale facet, deels ondermijnd)',
+], [
+    "Global medial cartilage loss supplies extent but the separate literal 'graag 4' defects are an unnamed grade without explicit depth/extent binding. Subchondral fractures do not quantify cartilage loss.",
+    "No informative lateral tibiofemoral cartilage mention. Lateral patellar facet extension remains PF.",
+    "Explicit full-thickness denudation spans the medial patellar facet and ridge and extends onto the lateral facet, qualitatively establishing a broad connected PF region. Literal separated spelling is preserved.",
+])
+add(44, "U U U", [
+    "Denudacija kondilarne i tibijalne zglobne hrskavice medijalnog kompartmenta u\nsmislu hondromalacije IV stupnja.",
+    "Hondromalacija tibijale hrskavice lateralnog kompartmenta III. stupnja",
+    "te trohlearne i patelarne\nhrskavice II. stupnja.",
+], [
+    "Medial condylar/tibial cartilage denudation establishes full depth but does not explicitly state entire/broad region or a size. Extensive osteophytes do not establish denuded-region extent.",
+    "Bare lateral tibial grade III has no named framework or independent depth/extent description.",
+    "Bare trochlear and patellar grade II lacks a named framework or direct below-threshold morphology; normal joint congruence does not supply cartilage depth.",
+])
+add(45, "U M P", [
+    "Hondromalacija I° medijalnog platoa tibijalne hrskavice.", "",
+    "Defekt kranijalnog ruba lateralne trohlearne hrskavice femura cijelom debljinom aksijalno na\nduljini 11mm- hondromalacija III stupnja.",
+], [
+    "Bare medial tibial grade I does not establish a below-threshold depth without named scale or morphology.",
+    "No lateral tibiofemoral cartilage assessment; normal lateral meniscus cannot substitute.",
+    "Full-thickness lateral trochlear defect explicitly extends 11 mm, meeting depth and approximate 1 cm region criteria independently of the unnamed grade III.",
+])
+add(46, "U U U", [
+    "Medial compartment cartilage: Confluent regions of high-grade articular cartilage loss at both sides of the weightbearing aspect of the joint, including some areas of full-thickness fissuring and associated subchondral signal changes. High-grade cartilage loss at the posterior medial femoral condyle.",
+    "Lateral compartment cartilage: Articular cartilage irregularity and high-grade cartilage loss at the weightbearing aspect of the joint with regions of full-thickness fissuring and associated subchondral signal changes.",
+    "Patellofemoral compartment cartilage: Diffuse articular cartilage loss at the patella, including areas of full-thickness cartilage loss at the median ridge, medial patellar facet, and lateral patellar facet. Full-thickness chondral fissuring at the medial and lateral trochlea.",
+], [
+    "Confluent generic high-grade loss includes unsized full-depth fissures; confluence alone and anatomic location do not establish qualifying extent of greater-than-half loss.",
+    "Lateral full-thickness fissuring establishes deep components but not their region size; generic surrounding high-grade loss lacks a defined fraction.",
+    "Overall patellar loss is diffuse, but the full-thickness components are described as areas at separate locations without deep-region size or explicit broad extent. Trochlear fissures are also unsized.",
+])
+add(47, "U U P", [
+    "High-grade chondral thinning in the weightbearing portion of the medial tibiofemoral compartment.",
+    "Focal high-grade chondropathy in the lateral tibial condyle with minor underlying bone stress change.",
+    "High-grade chondral thinning and full-thickness chondral loss across the majority of the medial and lateral retropatellar facets.",
+], [
+    "Generic high-grade medial thinning lacks a defined loss fraction and qualifying lesion extent.",
+    "Focal lateral high-grade chondropathy lacks explicit depth fraction and size; bone stress is not a cartilage measure.",
+    "Full-thickness loss extends across the majority of the retropatellar facets, explicitly supporting broad qualifying deep loss.",
+])
+add(48, "P U U", [
+    "Gotovo potpuni gubitak femoralne i tibijalne hrskavice medijalnog segmenta.",
+    "Hondromalacija III\nstupnja lateralnog segmenta.",
+    "Hondromalacija II do III stupnja\npatelarne hrskavice.",
+], [
+    "Nearly complete loss of femoral and tibial cartilage throughout the named medial segment supports greater-than-half depth and broad cartilage involvement.",
+    "Bare lateral grade III supplies neither a named depth scale nor lesion extent.",
+    "Patellar grades II to III without a named scale or independent thickness/extent description remain uncertain.",
+])
+add(49, "P U U", [
+    "Potupuni gubitak hrskavice u prednjoj i srednjoj trećini medijalnog platoa tibije i femoralnog\nkondila uz edem prilježeće subhondralne kosti te po jedna subhondralna cista - hondomalacija\nIV°.",
+    span(49, "Politopne erozije zglobnih hrskavica", "Suženje zglobnog prostora femorotibijalnog i patelofemoralnog zgloba."),
+    span(49, "Politopne erozije zglobnih hrskavica", "Suženje zglobnog prostora femorotibijalnog i patelofemoralnog zgloba."),
+], [
+    "Explicit complete loss over anterior and middle thirds of both medial surfaces establishes full depth and broad extent; numeric grade is not needed.",
+    "Multifocal erosions, osteophytes in both compartments and general femorotibial narrowing mention lateral-relevant degeneration without separately defining its cartilage depth or extent.",
+    "PF narrowing and patellar/trochlear osteophytes with multifocal cartilage erosions lack a localized depth fraction and qualifying erosion extent.",
+])

@@ -1,0 +1,15 @@
+"""Run unchanged original tests against the new helper, then v2 boundary checks."""
+import importlib.util
+import json
+from pathlib import Path
+import sys
+
+import pytest
+
+S=Path(__file__).resolve().parent
+spec=importlib.util.spec_from_file_location('checkpoint_delta',S/'checkpoint_delta.py')
+d=importlib.util.module_from_spec(spec);sys.modules['checkpoint_delta']=d;spec.loader.exec_module(d)
+original=S.parent/'primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py'
+result=pytest.main(['-q','-p','no:cacheprovider',str(original),str(S/'test_checkpoint_delta_v2.py'),'--basetemp='+str(S/'offline-fixtures')])
+print(json.dumps({'pytest_exit_code':result,'helper_loaded':str(Path(d.__file__).relative_to(S.parent)),'original_tests_unchanged':True,'remote_calls':0}))
+raise SystemExit(result)

@@ -1,0 +1,36 @@
+"""Personally authored comparison dispositions, after the preserved100-cell freeze."""
+PROPOSE_STATE = {
+ (1,'Contusion'): 'The full report attributes the patellar edema to chondropathy as reactive and explicitly states that the remaining marrow is normal. That complete causal/negative context supports a nontraumatic below-threshold finding rather than leaving the short edema-only quote as nonspecific. Proposed uncertain-to-negative requires a distinct source assessment before acceptance.',
+ (2,'Fracture'): 'A current avulsion fracture is described, but its acuity is not established. Unlike the other fracture-positive reports in this packet, this source lacks lipohemarthrosis or an explicit acute/recent fracture context. Associated nonspecific edema and ligament findings are insufficient to promote an undated fracture subtype. Mask the unsupported acute-positive inference.',
+ (5,'Fracture'): 'A suspected osteochondral lesion is not described as a fracture, cortical disruption or fracture line; the exostosis is a separate suspected osteochondroma. Reclassify the already-masked state as not mentioned without importing a blanket osteochondral exclusion or deciding what the lesion represents.',
+ (8,'Contusion'): 'No suspicious focal marrow alteration is a qualified screen, not an unqualified normal-marrow/no-contusion statement. Bone islands do not resolve traumatic edema status. Preserve the complete adjacent source context and mask this insufficient negative.',
+ (17,'Contusion'): 'No suspicious focal marrow alteration limits the negative by suspicious and focal. It does not unequivocally exclude the marrow-edema/contusion target; change the observed negative to uncertain with the exact existing source sentence.',
+}
+PROPOSE_EVIDENCE = {
+ (4,'Fracture'): 'Retain positive, but include the contiguous explicitly traumatic lipohemarthrosis and associated injury context on which the acute interpretation depends. The original excerpt gives articular fracture morphology without the acuity context.',
+ (7,'Fracture'): 'Retain positive, with a contiguous quote extending through current lipohemarthrosis. A displaced fragment plus nonspecific marrow edema in the original excerpt is less specific for acuity than the full traumatic joint-blood/injury context used in the source assessment.',
+ (24,'Fracture'): 'Retain positive, with the contiguous conclusion that includes definite fracture diagnoses, associated current soft-tissue injuries and large lipohemarthrosis. The short avulsion-plus-edema excerpt alone omits the acuity-supporting context. The lateral microtrabecular differential is not used as a blanket positive subtype rule.',
+}
+RECONSIDER = {
+ (12,'Fracture'): 'I reconsider my frozen negative. The Turkish sentence states that the knee bones have normal signal intensities, not that cortical morphology/continuity or fracture lines were assessed. I had extended signal normality too far into a fracture-morphology exclusion. Retain the existing not-mentioned mask; this is my own post-freeze correction, not a replacement of the source freeze.',
+ (14,'Fracture'): 'I reconsider my frozen negative after distinguishing normal bone signal from an unqualified normal-bone morphology or explicit fracture survey. This source describes signal intensities only; no fracture/line/cortical assessment is supplied. Retain the existing not-mentioned mask and preserve my original frozen judgment.',
+ (33,'Fracture'): 'I reconsider my frozen negative: the literal source normalizes bone signal intensity, while the fracture target requires fracture-line/cortical morphology and acute context. As with the other identical signal-only sentences, retain the original not-mentioned mask instead of inferring a morphology exclusion.',
+}
+RETAIN_DISAGREEMENT = {
+ (25,'Fracture'): 'My source freeze interpreted the unqualified conclusion that the examination is unremarkable as a broad negative. The existing masked state instead requires target-specific fracture/cortical assessment, which the body does not provide beyond normal marrow. This scope question remains unresolved in this first pass: preserve the current not-mentioned mask and both interpretations for an independent source reader; do not propose unmasking from the generic conclusion.',
+ (41,'Fracture'): 'My frozen negative used the otherwise-unremarkable examination conclusion. The body explicitly describes marrow normality but no fracture/cortical-line assessment. Whether the generic conclusion supplies sufficient osseous scope remains a source-interpretation disagreement. Keep the current not-mentioned mask pending independent reading; no unmasking proposal is issued.',
+}
+EQUIVALENT_EVIDENCE = {
+ (2,'Contusion'): 'The existing quote already names the femoral contusion, which is a distinct site from the tibial fracture. The frozen longer context is preserved but does not require replacing this sufficient quote.',
+ (7,'Contusion'): 'The existing exact quote names the lower-patellar contusion. It is sufficient for the separate patellar site; adding the tibial fracture sentence is optional context, not necessary erratum.',
+ (11,'Contusion'): 'The existing quote explicitly denies bone bruise. Additional normal-marrow wording is corroboration rather than a necessary evidence correction.',
+ (13,'Contusion'): 'The explicit bone-bruise denial in the current quote is sufficient; the added background-marrow sentence is not needed to retain the negative.',
+ (18,'Contusion'): 'The current uncertain evidence already contains the qualified marrow denial. Adding no fracture would not resolve the contusion criterion; retain the mask and sufficient quote.',
+ (27,'Contusion'): 'The existing no-bone-bruise statement directly supports the negative, so retain it without an unnecessary quote expansion.',
+ (29,'Contusion'): 'The existing direct bone-bruise denial is sufficient; the frozen normal-marrow extension does not change its scope.',
+ (35,'Contusion'): 'The existing quote directly diagnoses the focal tibial bone contusion. The full report separately identifies reactive changes at other sites, and the adjacent possible MCL sprain is supporting context rather than required extra wording in the quote.',
+ (44,'Contusion'): 'The existing impression quote already includes the diagnosed osseous contusion and suggested recent dislocation mechanism. Appending as described above does not change its meaning or support.',
+ (48,'Fracture'): 'The current quote explicitly denies fracture; the full-source old-avulsion context is retained in the frozen assessment. It is not a competing acute fracture, so the current negative and exact denial quote remain sufficient.',
+ (49,'Contusion'): 'The direct bone-bruise denial is sufficient; prepending marrow normality is redundant for this negative target.',
+ (49,'Fracture'): 'The direct acute-fracture denial is sufficient; the extra normal-marrow clause is not a necessary correction.',
+}

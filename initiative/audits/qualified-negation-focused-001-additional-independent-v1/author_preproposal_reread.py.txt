@@ -1,0 +1,88 @@
+"""Assemble this assessor's individually authored, full-source reread judgments."""
+import hashlib
+import json
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+W = Path(__file__).resolve().parents[3]
+R = W / 'work/recovered'
+S = Path(__file__).resolve().parent
+OLD = W / 'work/annotation-staging/qualified-negation-focused-001-source-review-v1'
+sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+packet = json.loads((S / 'neutral-selected-full-reports.json').read_text())
+
+# These decisions were written after personally reading every full selected report,
+# before displaying the root proposal's states, evidence, or reasons.
+decisions = [
+ (0, 'MCL', 'negative', 'Medyal menisküs medyale 6 mm ekstrüde ve iç yan bağı hafifçe basılıyor. Lateral menisküs normal. Çapraz ve yan bağlar bunların dışında normal.',
+  'The extruded medial meniscus mildly compresses the medial collateral ligament; the ligaments are otherwise normal. This is mild mechanical displacement/compression, not described fiber disruption or acute high-grade injury. The full qualification supports a below-threshold negative, while the normal-ligaments clause alone would conceal the exception.'),
+ (1, 'PF OA', 'positive', 'Úlceras condrales de espesor total con cambios óseos secundarios de distribución difusa de la\narticulación patelofemoral.',
+  'Full-thickness patellofemoral ulcers explicitly establish depth. Their diffuse distribution supplies qualitative compartmental extent, rather than an isolated unmeasured focal defect. I accept this as report-level support for the roughly centimetre-scale extent criterion. This does not claim a measured MRI reread or rely on the grade-4 impression alone.'),
+ (2, 'PF OA', 'negative', 'Normal tibiofemoral and patellar articular cartilage. Mild fraying of the trochlear articular cartilage is noted.',
+  'The patellar cartilage is normal and the trochlear finding is explicitly mild fraying, a surface-level abnormality below the required greater-than-half-thickness loss. Both patellofemoral surfaces must remain in the evidence scope; quoting normal patellar cartilage alone would omit the trochlear exception.'),
+ (3, 'PF OA', 'positive', 'Irregularidad difusa del cartílago articular en el compartimento patelofemoral con extensas úlceras\nde espesor parcial y total, estas últimas en el vértice y faceta lateral de la rótula asociado a focos\nde edema óseo subcondrales así como también en la zona central de la vertiente lateral troclear.',
+  'Diffuse patellofemoral cartilage irregularity includes extensive ulcers, with full-thickness loss specifically at the patellar vertex/lateral facet and lateral trochlear region. The reported extensive distribution and explicit full-thickness lesions support depth and qualitative extent. I do not convert the bare grade-4 impression into a size measurement.'),
+ (4, 'PF OA', 'positive', 'Úlceras condrales de espesor total con cambios óseos secundarios de distribución difusa de la\nrótula.',
+  'Diffuse full-thickness patellar ulcers establish deep and extensive cartilage loss within the patellofemoral compartment. The otherwise normal trochlear cartilage does not negate a qualifying lesion on the patellar side. Extent is supported qualitatively by diffuse distribution, not by an invented numerical measurement.'),
+ (5, 'Fracture', 'not_mentioned', '',
+  'The report addresses significant marrow edema, active cortical destruction, contusion and subchondral sclerosis, but gives no informative fracture-line, cortical-disruption, or acute-fracture assessment. Active cortical destruction is not synonymous with fracture. Neither the destructive-process denial nor the explicit contusion denial establishes fracture absence; leave evidence empty and mask this unmentioned target.'),
+ (6, 'Contusion', 'uncertain', 'There is moderate thinning of the medial compartment articular cartilage with mild underlying bony change. Normal lateral tibiofemoral and patellofemoral articular cartilage. Normal remaining visualized bones and surrounding soft tissues.',
+  'The normal-bones statement explicitly applies to the remaining bones and excludes the medial underlying bony change. The degenerative compartment context favors a nontraumatic explanation, but the bony finding is not characterized as marrow edema, reactive change, or a specific alternative. The source does not adequately establish or exclude impact-related edema at that excluded site; retain uncertainty rather than extend the remaining-bones normality across it.'),
+ (6, 'Fracture', 'uncertain', 'There is moderate thinning of the medial compartment articular cartilage with mild underlying bony change. Normal lateral tibiofemoral and patellofemoral articular cartilage. Normal remaining visualized bones and surrounding soft tissues.',
+  'The report leaves the morphology of an abnormal medial underlying bony region unspecified while calling only the remaining bones normal. Degenerative context alone does not describe an intact cortex or exclude a fracture line within that exception. No acute fracture is established; the incompletely characterized osseous exception prevents a reliable whole-knee negative.'),
+ (7, 'ACL', 'uncertain', 'Aumento de señal del LCA, de manera difusa, sin criterios categóricos de rotura. Podría\nrepresentar fenómenos de transformación quística parcial.',
+  'Diffuse ACL signal abnormality is followed by a qualified statement that categorical tear criteria are absent and a possible cystic-transformation explanation. The alternative is equivocal, not a definite diagnosis of isolated degeneration with preserved continuity. Fiber integrity and high-grade tear exclusion remain insufficiently established, so the abnormal ACL remains uncertain.'),
+ (8, 'Medial OA', 'positive', 'Medial compartment cartilage: Broad-based area of grade 4 chondrosis along the central the anterior weightbearing surface of the medial femoral condyle extending over 1.0 cm mediolateral dimension, and up to 1.9 cm anterior posterior dimension.',
+  'The cartilage finding itself specifies a broad-based grade-4 medial femoral condylar lesion measuring 1.0 by 1.9 cm. This supplies severe/full-thickness chondral loss and the requisite regional extent. These are the cartilage dimensions, distinct from the separately described tibial stress-fracture dimensions; the broad OA impression alone is not the basis.'),
+ (9, 'Medial Meniscus', 'uncertain', 'The anterior horn medial meniscus is slightly extruded 3 mm beyond the tibial plateau. No medial meniscal tear is identified.',
+  'There is a definite positional/morphologic abnormality of the named meniscus beside an explicit no-tear conclusion. Extrusion alone does not establish a definite tear, but the abnormal-morphology branch of the frozen criterion makes a negative based only on the no-tear sentence incomplete. The report does not resolve whether the extrusion satisfies that branch or merely reflects non-tear displacement; preserve the ambiguity as uncertain without creating a new extrusion cutoff.'),
+ (10, 'PF OA', 'negative', 'Focal fraying of the medial patellar facet articular cartilage is noted with mild underlying bony change. Normal trochlear articular cartilage.',
+  'The patellar surface finding is focal fraying, with normal trochlear cartilage and a mild patellar chondral conclusion. This supports a below-threshold surface abnormality, not greater-than-half-thickness cartilage loss. The mild underlying bony change does not supply missing deep cartilage loss and must remain visible in the quote.'),
+ (10, 'Contusion', 'uncertain', 'Focal fraying of the medial patellar facet articular cartilage is noted with mild underlying bony change. Normal trochlear articular cartilage.',
+  'The patellar underlying bony change is not characterized as impact-related edema, explicitly reactive edema, or another definite osseous finding. Its chondral context favors degeneration but does not itself settle marrow causality or exclude a coexisting contusion. Preserve the missing characterization as uncertain rather than infer a negative from the mild surface-fraying context.'),
+]
+
+records = []
+for n, target, state, quote, reason in decisions:
+    r = packet['reports'][n]
+    assert target in r['targets_for_this_assessment']
+    assert (state == 'not_mentioned' and quote == '') or (quote and quote in r['report'])
+    src = R / r['source_path']
+    assert sha(src) == r['source_sha256']
+    original = json.loads(src.read_text())
+    if isinstance(original, dict):
+        original = original.get('reports', original.get('records'))
+    raw = original[r['source_index_zero_based']]
+    assert raw['study_uid'] == r['study_uid'] and raw['report'] == r['report']
+    assert hashlib.sha256(r['report'].encode()).hexdigest() == r['report_sha256']
+    records.append({k:v for k,v in r.items() if k not in ('report', 'targets_for_this_assessment')} | {
+        'target':target,'state':state,'source_quote':quote,'reason':reason,
+        'complete_original_personally_reread':True,'reread_before_root_proposal_display':True})
+assert len(records) == 13 and len({r['study_uid'] for r in records}) == 11
+assert sha(R / 'protocols/report_weak_v2.md') == packet['rubric_sha256']
+assert sha(OLD / 'source-assessment-frozen.json') == 'b6d14cc48a66ca48c3197f518e93c2d52af6b4f915c44d6b883f7c8a90a62e60'
+out = {'schema_version':1,'stage':S.name,'agent_id':'/root/duplicate_consistency_review',
+ 'session_id':'/root/duplicate_consistency_review','identity_kind':'canonical agent identity; actual distinct assessor from root proposer, same historical focused001 first assessor',
+ 'frozen_at_utc':datetime.now(timezone.utc).isoformat(),
+ 'exposure_binding_sha256':sha(S / 'exposure-and-scope.json'),
+ 'neutral_packet_sha256':sha(S / 'neutral-selected-full-reports.json'),
+ 'prior_real_source_freeze_path':str((OLD/'source-assessment-frozen.json').relative_to(W)),
+ 'prior_real_source_freeze_sha256':sha(OLD/'source-assessment-frozen.json'),
+ 'rubric_sha256':packet['rubric_sha256'],
+ 'n_reports':11,'n_target_decisions':13,'states':dict(Counter(r['state'] for r in records)),
+ 'root_proposal_clinical_content_displayed_before_this_freeze':False,
+ 'method':'Full original sources personally reread; every selected target state, quotation and rationale individually authored. Code assembles static judgments and validates bindings, never derives clinical states.',
+ 'records':records}
+def write(name, data):
+    p=S/name
+    assert not p.exists(), p
+    p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+write('preproposal-reread-frozen.json',out)
+write('preproposal-reread-freeze-receipt.json',{
+ 'schema_version':1,'agent_id':out['agent_id'],'session_id':out['session_id'],
+ 'frozen_at_utc':out['frozen_at_utc'],'n_reports':11,'n_cells':13,
+ 'source_uid_index_text_hash_bindings_valid':True,'all_contiguous_quotes_valid':True,
+ 'prior_source_freeze_preserved':True,'root_proposal_clinical_content_not_displayed_yet':True,
+ 'files':{n:sha(S/n) for n in ('preproposal-reread-frozen.json','neutral-selected-full-reports.json','exposure-and-scope.json','author_preproposal_reread.py')}})
+print(json.dumps({'n_reports':11,'n_cells':13,'states':out['states'],'freeze_sha256':sha(S/'preproposal-reread-frozen.json'),'receipt_sha256':sha(S/'preproposal-reread-freeze-receipt.json')},indent=2))

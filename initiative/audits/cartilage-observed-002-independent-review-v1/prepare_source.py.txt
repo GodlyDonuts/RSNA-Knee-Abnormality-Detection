@@ -1,0 +1,36 @@
+"""Bind neutral sources and prior neutral-source overlaps; no annotation access."""
+import json,hashlib
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered'
+def obj(p):return json.loads(p.read_bytes())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(name,d):
+ with (S/name).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+p=A/'cartilage-observed-002-source-review-v1/neutral-full-reports.json'
+assert ref(p)['sha256']=='80ca364ce979ab0270cee9fa4c8f2936dd91745190fdea1532b1000aae6fd8c4'
+packet=obj(p);assert len(packet)==50
+priority=[];refs=[]
+for i in range(10,15):
+ q=A/f'cartilage-observed-priority-v1/neutral-full-report-packets/batch-{i:03}.json';priority.extend(obj(q));refs.append(ref(q))
+assert priority==packet
+prior={
+ 'focused001_source_and_postcomparison':A/'qualified-negation-focused-001-independent-review-v1/neutral-source-packet.json',
+ 'focused002_source_and_postcomparison':A/'qualified-negation-focused-002-independent-review-v1/neutral-source-packet.json',
+ 'cartilage001_source_and_postcomparison':A/'cartilage-observed-001-independent-review-v1/neutral-source-packet.json',
+ 'cartilage000_source_and_postcomparison':A/'cartilage-observed-000-source-review-v1/neutral-first-50-full-reports.json',
+}
+priorids={label:{r['study_uid'] for r in obj(path)} for label,path in prior.items()}
+bindings=[];overlap=[]
+for i,r in enumerate(packet):
+ assert set(r)=={'study_uid','report','batch','index','source_path','source_sha256'}
+ source=R/r['source_path'];assert ref(source)['sha256']==r['source_sha256']
+ assert obj(source)[r['index']]=={'study_uid':r['study_uid'],'report':r['report']}
+ b={k:v for k,v in r.items() if k!='report'};b.update({'packet_index':i,'priority_position_zero_based':i+100,'report_utf8_sha256':hashlib.sha256(r['report'].encode()).hexdigest()});bindings.append(b)
+ for label,ids in priorids.items():
+  if r['study_uid'] in ids:overlap.append({'packet_index':i,'study_uid':r['study_uid'],'case':f"{r['batch']}:{r['index']}",'prior_exposure':label})
+assert len({r['study_uid'] for r in packet})==50
+(S/'neutral-source-packet.json').write_bytes(p.read_bytes())
+write('source-bindings-and-exposure.json',{'agent_id':'/root/last_twelve_visual_review','session_id':'/root/last_twelve_visual_review','at_utc':datetime.now(timezone.utc).isoformat(),'source_packet':ref(p),'priority_positions':[100,149],'priority_neutral_packet_bindings':refs,'rubric':ref(R/'protocols/report_weak_v2.md'),'scope':'50 complete reports, three OA targets each; no other clinical judgments requested.','bindings':bindings,'prior_neutral_sources':[{'exposure':k,**ref(v)} for k,v in prior.items()],'exact_neutral_packet_overlaps':overlap,'historical_context':'This assessor previously read focused001 and002 sources and compared both with current/original annotations and other readers; cartilage000 and cartilage001 full sources and150 OA postcomparisons; last12 technical full reports/sparse contact sheets; four correspondence full reports and source/header/policy reconciliation; correspondence28 neutral packet inventory; technical crosswalks and code/selection review. Earlier current-registry exposure is known. This is not first-ever blinding. Remembered context and exact overlaps remain disclosed; no old source freezes are rewritten.','current_batch_access':'Only neutral source packet and neutral priority packets accessed for this pass. File discovery exposed names of first002 source/postfreeze stages, not their findings. Neutral-priority-index top-level field names were inspected, not case state/trigger contents. No first cartilage002 findings or current case annotations opened in this stage. Historical overlap exposure cannot be undone.','chronology_limit':'Recorded timestamps and attestations do not prove past access order.','no_gold_no_registry_changes_no_global_gate_closure':True})
+print(json.dumps({'reports':50,'overlap_reports':len({x['study_uid'] for x in overlap}),'overlap_entries':overlap,'bindings':ref(S/'source-bindings-and-exposure.json')},indent=2))

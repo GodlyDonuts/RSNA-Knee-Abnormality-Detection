@@ -1,0 +1,98 @@
+"""Record root's personally adjudicated comparison; source freezes stay immutable."""
+from pathlib import Path
+from datetime import datetime,timezone
+import json,hashlib
+from collections import Counter
+G=Path(__file__).resolve().parent;W=G.parents[2];R=W/'work/recovered'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def save(n,d):
+ with (G/n).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+comparison=json.loads((G/'root-postfreeze-comparison.json').read_text())
+rows=comparison['records'];by={(r['case'],r['target']):r for r in rows}
+assert len(by)==600
+N,P,U,X='negative','positive','uncertain','not_mentioned'
+# These thirteen revisions were individually selected after reading the two other
+# readers' findings. They do not overwrite any of root's 600 preread judgments.
+reconsider={
+ ('006:25','Synovitis'):(U,'The source explicitly mentions synovitis but restricts its denial to the IT-band region and syndrome. The anatomical scope is uncertain rather than wholly absent; retain the original masked uncertain state. My source-only unmentioned state over-discounted an informative but incorrectly localized target mention.'),
+ ('006:38','PF OA'):(U,'I initially used the superficial patellar finding alone. The full source only excludes significant trochlear alterations, so the other PF surface is not independently normal. Accept the expanded two-surface quotation and uncertain state.'),
+ ('006:46','Medial OA'):(N,'The complete Turkish source characterizes the actual cartilage losses as focal and millimetric, even where full thickness. This explicit small-extent description supplies the below-threshold basis; my initial uncertainty overrode that descriptive extent. This is a report-level interpretation of millimetric, not an invented exact measurement.'),
+ ('006:46','PF OA'):(N,'The PF lesions are characterized as superficial irregularities and millimetric fissures. Their described morphology and small extent support below threshold; the broad degeneration label does not override those explicit local findings. My initial uncertain judgment was unnecessarily broader than the described lesions.'),
+ ('008:06','PF OA'):(U,'I initially inferred one qualifying deep-loss region from diffuse distribution of full-thickness ulcers. Several small deep ulcers could be diffusely distributed; distribution alone does not establish the roughly1cm region. Withdraw that extent inference and retain definite depth with uncertain extent.'),
+ ('008:35','PF OA'):(U,'The extensive/diffuse description covers mixed partial- and full-thickness ulcers. My source-only positive transferred overall extent to the deepest component without a stated qualifying deep-loss region. Retain uncertainty for that missing link rather than invent a measurement.'),
+ ('008:38','PF OA'):(U,'The full-thickness patellar ulcers are diffusely distributed, but the report does not establish the size of an individual deep-loss region. My source-only positive inferred qualifying extent from distribution. Preserve depth evidence and withdraw the unsupported extent inference.'),
+ ('008:43','Medial OA'):(X,'The generic osteochondral-lesion exclusion is not a compartment-specific assessment of medial cartilage-only loss. I initially assigned that broad statement to both tibiofemoral cartilage targets; retain unmentioned with an empty quote instead. This masked-scope distinction introduces no observed negative.'),
+ ('008:43','Lateral OA'):(X,'The generic osteochondral-lesion exclusion does not informatively localize a pure lateral cartilage assessment. Withdraw my source-only assignment of that generic statement to this target; unmentioned remains masked and is not an absence label.'),
+ ('010:32','ACL'):(N,'The complete body affirmatively describes interstitial ACL signal with cystic foci, without described discontinuity or an injury hypothesis. Its cyst/degeneration differential is etiologic uncertainty about those internal findings, not evidence of high-grade fiber loss. I initially relied too heavily on the rule-out conclusion. Accept the expanded body quote as an isolated below-threshold finding.'),
+ ('010:32','Medial Meniscus'):(N,'The complete sentence specifically characterizes medial posterior-horn signal as grade2 intrasubstance. This affirmative localized internal-signal description supplies a below-threshold basis independently of the qualified surface phrase and uncertain degeneration cause. The adjacent possible cyst/recess alone does not establish tearing. This does not transfer medial characterization to the lateral meniscus.'),
+ ('010:36','Medial Meniscus'):(U,'The body favors tear with surfacing and root blunting, but the conclusion explicitly retains a rule-out tear diagnosis. I initially treated blunting as independently definitive destructive morphology. In this report it remains part of an equivocal tear interpretation; preserve uncertainty without a categorical positive inference.'),
+ ('010:40','Lateral Meniscus'):(N,'The described abnormality is explicitly mild intrasubstance signal, without another surface-reaching or destructive morphological lesion. That affirmative internal description supports below threshold independently of no-definite-tear wording; my first pass treated the qualifier as if no independent descriptive evidence existed.'),
+}
+assert len(reconsider)==13
+# Root's eleven additional state proposals and two context-preserving evidence
+# proposals require an actual other agent's assessment before registration.
+extra_reasons={
+ ('006:46','MCL'):'Expand the original compression-only excerpt to include the otherwise-normal ligament statement. Mild extrinsic compression by the displaced meniscus is not an intrinsic high-grade fiber injury; the complete source supports the retained negative.',
+ ('008:06','PF OA'):reconsider[('008:06','PF OA')][1],
+ ('008:17','PF OA'):'Retain my uncertain source interpretation: mild trochlear fraying does not explicitly quantify loss depth or extent. The report does not call it superficial, and normal patellar cartilage does not settle the trochlear finding. Do not insert surface-only depth from a severity adjective.',
+ ('008:35','PF OA'):reconsider[('008:35','PF OA')][1],
+ ('008:38','PF OA'):reconsider[('008:38','PF OA')][1],
+ ('009:26','Fracture'):'No active cortical destruction is an erosive/destructive bone statement, not a current fracture-line or cortical-fracture assessment. No other source clause informs this target. Change uncertain to unmentioned with empty evidence; masking remains unchanged.',
+ ('009:38','Contusion'):'Unspecified degenerative underlying bony change and normal remaining bones do not assess impact-related marrow edema at the abnormal site. There is no informative contusion or edema statement; use unmentioned and keep masked.',
+ ('009:38','Fracture'):'Unspecified underlying bony change and normal remaining bones do not establish or exclude an acute fracture at the abnormal site. No fracture-line or disruption assessment is given; unmentioned with empty evidence remains masked.',
+ ('009:45','ACL'):'Diffuse abnormal ACL signal has only possible cystic transformation and a qualified rupture denial, without affirmative isolated cystic-foci morphology, intact fibers or low-grade-only injury. All three source readers retained uncertainty. The current observed negative is unsupported.',
+ ('010:40','Medial OA'):'Measured medial chondrosis extent meets the size requirement, but grade4 uses an unnamed system and the source never independently states full-thickness or >50% loss. Do not silently convert an unspecified grade into depth. Preserve uncertainty pending a supported grading interpretation rather than the current positive.',
+ ('011:22','Medial Meniscus'):'Expand the no-tear quotation to include the slight3mm extrusion. The current report explicitly excludes a medial tear, and extrusion describes position without destructive tissue loss. Retain negative while preserving the full local context that led to the reader disagreement.',
+ ('012:04','PF OA'):'Retain uncertain: focal patellar fraying and mild underlying bony change do not explicitly quantify cartilage-loss depth or extent. The source does not explicitly characterize the fraying as superficial. Normal trochlea does not settle the patellar finding, and mild overall disease is not a depth conversion.',
+ ('012:04','Contusion'):'The only bone wording is unspecified mild underlying bony change next to patellar cartilage fraying. It does not informatively assess marrow edema or an impact contusion; use unmentioned with empty evidence and preserve masking.',
+}
+assert len(extra_reasons)==13
+extra_quotes={
+ ('006:46','MCL'):"Medyal menisküs medyale 6 mm ekstrüde ve iç yan bağı hafifçe basılıyor. Lateral menisküs normal. Çapraz ve yan bağlar bunların dışında normal.",
+ ('008:17','PF OA'):"Normal tibiofemoral and patellar articular cartilage. Mild fraying of the trochlear articular cartilage is noted.",
+ ('011:22','Medial Meniscus'):"The anterior horn medial meniscus is slightly extruded 3 mm beyond the tibial plateau. No medial meniscal tear is identified.",
+}
+retained_dispute_reasons={
+ ('006:46','MCL'):extra_reasons[('006:46','MCL')],
+ ('008:01','Fracture'):'Retain positive. Current trabecular fractures are directly diagnosed in the explicitly acute traumatic left-knee examination. The frozen weak-report rule permits a direct current acute-fracture diagnosis without re-stating all diagnostic image morphology. Acuity comes from connected current context, not the fracture subtype alone.',
+ ('010:37','Contusion'):'Retain uncertain. Acute ACL rupture with associated marrow edema gives timing but does not explicitly diagnose impact contusion or resolve a potentially co-located line. Do not infer an MRI impact pattern or substitute temporal context for cause.',
+ ('010:40','Fracture'):'Retain uncertain. The current stress-fracture line with edema establishes an active lesion, but not its acute timing. No blanket subtype rule is used; missing acuity remains explicit.',
+ ('011:22','Medial Meniscus'):extra_reasons[('011:22','Medial Meniscus')],
+}
+records=[];primary=[];additional=[];changes=[]
+for r in rows:
+ k=(r['case'],r['target']);p=r['primary_proposal'];old=r['root_frozen']
+ state=reconsider[k][0] if k in reconsider else old['state']
+ evidence=old['evidence'];reason=reconsider[k][1] if k in reconsider else old['report_notes']
+ if k in reconsider:
+  evidence='' if state==X else (p['source_quote'] if p else r['effective_baseline']['evidence'])
+ if k in extra_reasons:
+  reason=extra_reasons[k];evidence=extra_quotes.get(k,evidence)
+  # For revised positive OA sources use the already authored exact original quote.
+  if k in [('008:06','PF OA'),('008:35','PF OA'),('008:38','PF OA')]:evidence=old['evidence']
+ if k in retained_dispute_reasons:reason=retained_dispute_reasons[k]
+ action='retain_current_state_no_registry_change'
+ if p:
+  assert state==p['proposed_state'],k
+  evidence=p['source_quote'];action='accept_primary_proposal_pending_registry_integration'
+  if k not in reconsider:reason='I accept this individually reviewed proposal after full-source reading: '+p['reason']
+ elif k in extra_reasons:action='root_additional_proposal_pending_distinct_assessment'
+ else:assert state==r['effective_baseline']['state'],(k,state,r['effective_baseline']['state'])
+ report=json.loads((R/r['source_path']).read_text())[r['source_index_zero_based']]['report']
+ assert evidence in report and ((state==X)==(evidence=='')),k
+ d={**{z:r[z] for z in ('case','study_uid','target','source_path','source_sha256','report_sha256','source_index_zero_based','original_review_path','original_review_sha256')},'effective_before':r['effective_baseline'],'root_frozen_state':old['state'],'root_frozen_evidence':old['evidence'],'root_postfreeze_state':state,'root_postfreeze_evidence':evidence,'root_state_reconsidered':state!=old['state'],'action':action,'reason':reason,'first_source_state':r['first_source_frozen']['state'],'second_source_state':r['second_source_frozen']['state'],'first_postfreeze_state':r['first_postfreeze_state'],'second_postfreeze_state':r['second_postfreeze']['state'],'prior_second_root_hold':r['second_explicitly_held_for_root']}
+ records.append(d)
+ if d['root_state_reconsidered']:changes.append(d)
+ if p:
+  primary.append({'study_uid':r['study_uid'],'target':r['target'],'source_sha256':r['source_sha256'],'independent_source_state':state,'source_evidence':evidence,'root_frozen_state':old['state'],'root_state_reconsidered':d['root_state_reconsidered'],'reason':reason})
+ if k in extra_reasons:
+  assert not p and r['existing_correction'] is None
+  before=r['original'];assert (before['state'],before['evidence'])!=(state,evidence)
+  additional.append({'study_uid':r['study_uid'],'target':r['target'],'case':r['case'],'source_path':r['source_path'],'source_sha256':r['source_sha256'],'artifact_path':r['original_review_path'],'artifact_sha256':r['original_review_sha256'],'before_state':before['state'],'before_evidence':before['evidence'],'proposed_state':state,'source_quote':evidence,'reason':reason,'root_frozen_state':old['state'],'root_state_reconsidered':d['root_state_reconsidered']})
+assert len(primary)==75 and len(additional)==13 and len(changes)==13
+bound={'source_reports_sha256':'5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3','rubric_sha256':sha(R/'protocols/report_weak_v2.md'),'root_source_freeze_sha256':sha(G/'complete-source-freeze.json'),'root_comparison_sha256':sha(G/'root-postfreeze-comparison.json')}
+save('root-postfreeze-dispositions.json',{'schema_version':1,'stage':'root_separate_postcomparison_adjudication','agent_id':'/root','session_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),**bound,'reports':50,'targets':600,'primary_proposals_accepted_pending_registration':75,'additional_proposals_pending_distinct_assessment':13,'root_source_state_reconsiderations':13,'records':records,'method':'I personally reviewed all50 sources and froze600 judgments before reader findings. I then read all75 proposals and all differing/held interpretations. Every revision is recorded separately; no initial agreement or fresh historical blindness is fabricated. The helper serializes and validates these explicit decisions only.','training_ready':False})
+save('root-explicit-reconsiderations.json',{'stage':'preserved_root_source_state_reconsiderations','agent_id':'/root',**bound,'records':changes,'source_freezes_unchanged':True})
+save('primary-independent-assessment.json',{'schema_version':1,'stage':'independent_source_assessment','agent_id':'/root','session_id':'/root','identity_kind':'codex_agent_task',**bound,'root_dispositions_sha256':sha(G/'root-postfreeze-dispositions.json'),'records':primary,'disclosure':'The final assessed states include two explicit root state reconsiderations among75 proposals after comparison. The complete50-source600-judgment preread is preserved. This is not a claim that all75 proposed states agreed at source freeze.','n_targets':75,'n_frozen_state_matches':73})
+save('additional-proposed-errata.json',{'schema_version':1,'stage':'root_proposal_pending_actual_distinct_assessment','status':'proposed_pending_distinct_source_assessment_and_adjudication','agent_id':'/root','session_id':'/root','proposer_agent_id':'/root','proposer_session_id':'/root','identity_kind':'codex_agent_task',**bound,'root_dispositions_sha256':sha(G/'root-postfreeze-dispositions.json'),'n_changes':13,'n_studies':len({r['study_uid'] for r in additional}),'proposed_errata':additional,'original_artifacts_preserved':True,'no_acceptance_metadata_created':True,'no_registry_changes':True,'training_ready':False})
+print(json.dumps({'primary_assessment':sha(G/'primary-independent-assessment.json'),'dispositions':sha(G/'root-postfreeze-dispositions.json'),'additional_proposals':sha(G/'additional-proposed-errata.json'),'reconsiderations':len(changes),'extra_transitions':dict(Counter(p['before_state']+'->'+p['proposed_state'] for p in additional))}))

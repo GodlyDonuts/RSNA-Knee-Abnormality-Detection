@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "rubric_version": "report-weak-v2.0",
+  "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "completed_at_utc": "2026-09-21T21:40:44.806206+00:00",
+  "source_freeze": {
+    "path": "work/annotation-staging/cartilage-observed-000-source-review-v1/source-freeze.json",
+    "sha256": "d3d9649dcbe23cb51f80827ae1faa845cd3a88ba4c370653259908dc5fb60067"
+  },
+  "source_assessment": {
+    "path": "work/annotation-staging/cartilage-observed-000-source-review-v1/source-assessment-frozen.jsonl",
+    "sha256": "086aee38e1a1a461f45bb9d74af7a47f7e0be71ca4ba59f2bfeb0c51720aadbc"
+  },
+  "baseline_comparison": {
+    "path": "work/annotation-staging/cartilage-observed-000-postfreeze-v1/own-source-vs-preserved-baseline.json",
+    "sha256": "d3cd22e0c91e72a2d80f2f06d1ebd2d8413e308fd7daa04e3f7f028cd1d56cd2"
+  },
+  "baseline_registered_corrections": 34,
+  "baseline_registry_sha256": "36cfae8368b5983a6ea09aff877519831c2099b28b3200d026b8ee68625436d6",
+  "exposure": "Discovery code consumed current labels before the original source pass; exact historical exposure is disclosed in that freeze. This stage opened the pinned 34-correction current target rows only after the 150-state source freeze. Both source passes are now frozen, but only the second reader's file hashes and neutral packet equality were checked; its case findings remain unopened. This is a post-baseline-comparison assessment, not a new blinded pass.",
+  "adjudication_context": "Between the source freeze and this comparison, this same agent independently adjudicated ten additional qualified-negation items, including grade-depth, severity and single-width evidence limitations. That subsequent conceptual exposure is disclosed. It does not rewrite earlier source states or create a new grading framework.",
+  "originals_preserved": true,
+  "production_registry_changed": false,
+  "gold_accessed": false,
+  "global_qa_gates_closed": 0,
+  "second_reader_case_findings_opened": false,
+  "stage": "first_cartilage_reader_postfreeze_dispositions_frozen_before_second_case_findings",
+  "counts": {
+    "full_source_reports": 50,
+    "oa_targets_per_report": 3,
+    "all_cells_assessed": 150,
+    "source_frozen_state_differences_from_baseline": 8,
+    "own_state_reconsiderations": 13,
+    "proposed_items": 20,
+    "proposed_state_changes": 19,
+    "proposed_evidence_only_changes": 1,
+    "proposal_reports": 16,
+    "other_retained_baseline_cells": 130
+  },
+  "files": {
+    "explicit-reconsiderations.json": "aa97111e0c50b3b5948f9aab9e0e26cb6539e53e7551ce0b7d95ed2c9b34e75a",
+    "first-postfreeze-dispositions.json": "1ba803240fdaaa63f9e74a6675441ce8f5d772de6e85f338a8c527c611ec2b53",
+    "neutral-root-packet-manifest.json": "c139510355c376041fcba2a7ef44cf7ee97590cfcbde7b3ffa2c603c41d4e11b",
+    "own-source-vs-preserved-baseline.json": "d3cd22e0c91e72a2d80f2f06d1ebd2d8413e308fd7daa04e3f7f028cd1d56cd2",
+    "proposed-errata.json": "eb1890616f97608a5bd6242ef4418f88b7df5f9a9b6750a1ad26055328fbf7e8"
+  },
+  "authoring_helper": {
+    "path": "work/annotation-staging/cartilage-observed-000-postfreeze-v1/author_dispositions.py",
+    "sha256": "923b3cabb71d77a49faa01cae7404f2fc3d26cd0634076d6efdfc566e83d9497"
+  },
+  "next_step": "Separate second-reader comparison may now open these findings, preserving its own freeze. Root should read neutral candidate sources before examining case-specific proposals. No corrections are accepted or registered by this freeze."
+}

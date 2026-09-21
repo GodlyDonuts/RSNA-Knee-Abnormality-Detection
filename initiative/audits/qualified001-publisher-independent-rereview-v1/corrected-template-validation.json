@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "stage": "qualified001-publisher-independent-rereview-v1",
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "completed_at_utc": "2026-09-21T22:59:44.550651+00:00",
+  "status": "corrected_template_controls_validated_pending_concrete_target_bindings",
+  "template": {
+    "path": "work/publish_qualified001_delta.template.py",
+    "sha256": "fe7e8e1a37ada08079895bb1b0f565136c432c95bc965cf86867631d976d3f3a",
+    "bytes": 14671
+  },
+  "original_review": {
+    "path": "work/annotation-staging/qualified001-publisher-independent-review-v1/independent-publisher-review.json",
+    "sha256": "abd3d7a5cc8c77ab899ab0f0b702238fa69bd4509842ee9ebfa92c6d239b4e4c"
+  },
+  "applied_patch": {
+    "path": "work/annotation-staging/qualified001-publisher-independent-review-v1/suggested-not-applied.patch",
+    "sha256": "bd06ab163dc74e2e04f347422547a77cf14a2140a3579c4bd1d2f875f8e17e08"
+  },
+  "exact_patch_application_verified": true,
+  "exact_patch_method": "Reverse the provided unified diff in memory from the current template and verify the reconstructed prior template SHA256 equals ec4e317b9c5f524aee4c7abe04f7a4a4919f4c76e3cf242fd91406e2d1608a64. No source file was changed.",
+  "tests": {
+    "path": "work/annotation-staging/qualified001-publisher-independent-rereview-v1/test_corrected_publisher.py",
+    "sha256": "6c992d3e96152a1a1becabab67ea7e727ef87a3693940d20552b9d0e4b0211ed",
+    "passed": 32,
+    "failed": 0,
+    "coverage": [
+      "All TARGET/CI_RUN/N_FILES/N_CORRECTIONS placeholders, booleans, zero and stale193 counts fail shared local preflight.",
+      "Expected205, baseGit and exact manifest count/membership pass; mismatches fail.",
+      "Actual CI function, with a mocked subprocess result, blocks failed CI before passed-CI prose is written.",
+      "Unbound and stale correction counts fail prepare before README or operation files exist.",
+      "Current291d parent still passes the actual guard; old54949 parent, public repository, changed parent/base source identities and wrong Git CI head fail.",
+      "Mocked new-commit path produces exactly six additions and enforces parent_commit291d; receipt records verified parent and action.",
+      "Mocked reconciliation produces no commit call and records verified_hf_parent:null with explicit content-only scope.",
+      "An extra remote prefix member or changed operation parent blocks completion."
+    ],
+    "remote_calls": 0,
+    "actual_mutations": 0,
+    "real_credential_reads": 0
+  },
+  "remaining_scope": [
+    "TARGET, N_FILES, N_CORRECTIONS and CI_RUN are still deliberately unbound in the template; it is not an executable approved publication package.",
+    "Reconciliation content equality still does not verify ancestry; the receipt now states that accurately. Separate proof is required if exact ancestry must be established after an uncertain commit response.",
+    "Future actual Git tree,205 correction count, exact successful CI and local delta/restoration proofs must be checked once bound.",
+    "No archive was downloaded, copied, decompressed or removed by this reviewer. Only synthetic offline test fixtures were created and removed."
+  ],
+  "preservation": {
+    "prior_review_stage_unchanged": true,
+    "previous_publisher_helper_and_transport_unchanged": true,
+    "root_template_edited_by_this_assessor": false,
+    "repository_edited": false,
+    "synthetic_fixture_bytes_created_then_removed": 231328,
+    "disk_free_bytes_after": 22833610752,
+    "disk_floor_bytes": 21474836480
+  },
+  "finding_resolution": {
+    "publisher-001-bind-all-milestone-values-before-prepare": "fixed_and_offline_verified",
+    "publisher-002-separate-expected-parent-from-proven-parent": "fixed_and_offline_verified"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "assessed_at_utc": "2026-09-21T22:48:19.672788+00:00",
+  "root_note": {
+    "path": "work/annotation-staging/cartilage-grading-reference-check-v1/reference-check.json",
+    "sha256": "641c6b692f8abe32f69a31c848061045a2af2fe02b513753304d8222705baf3b"
+  },
+  "search_scope": "Generic cartilage grading queries and primary/issuer sources only. No report text, study UID, private URL, clinical labels or gold values were sent to search. Secondary review search hits were discovery-only and do not establish this disposition.",
+  "references": [
+    {
+      "id": "meredith2009",
+      "title": "Empirical evaluation of the inter-relationship of articular elements involved in the pathoanatomy of knee osteoarthritis using Magnetic Resonance Imaging",
+      "authors": "Meredith et al.",
+      "year": 2009,
+      "doi": "10.1186/1471-2474-10-133",
+      "url": "https://link.springer.com/article/10.1186/1471-2474-10-133",
+      "table_url": "https://link.springer.com/article/10.1186/1471-2474-10-133/tables/1",
+      "source_kind": "primary research",
+      "locations": [
+        "Methods: MRI Assessment",
+        "Table 1: MRI Assessment Criteria"
+      ],
+      "short_quotes": [
+        "4 = Thinning <50% cartilage thickness",
+        "6 = Full thickness cartilage loss"
+      ],
+      "assessment": "A genuine seven-level MRI research scheme assigns4 to below-half thinning and6 to full loss. The investigators applied a standardized semiquantitative scoring form to routine clinical scans. This proves that numeric4 is not universal across MRI grading schemes. It does not identify the clinical report author’s scale or prove use of this research form in the competition report.",
+      "retrieval": "Publisher methods and complete Table1 parsed text personally read. PMC direct extraction returned a challenge; publisher HTML succeeded. PDF screenshot calls returned references without a visible image, so no visual table inspection is claimed."
+    },
+    {
+      "id": "3d_dess2015",
+      "title": "Accuracy of cartilage-specific 3-Tesla 3D-DESS magnetic resonance imaging in the diagnosis of chondral lesions: comparison with knee arthroscopy",
+      "year": 2015,
+      "doi": "10.1186/s13018-015-0326-1",
+      "url": "https://link.springer.com/article/10.1186/s13018-015-0326-1",
+      "source_kind": "primary research",
+      "location": "Methods: MRI, paragraphs defining modified Outerbridge grading",
+      "short_quote": "Full-thickness cartilage lesions were defined as grade IV.",
+      "assessment": "This MRI/arthroscopy study explicitly uses modified Outerbridge grading: gradeII below-half defects, gradeIII above-half defects and gradeIV full-thickness lesions. It supplies a concrete clinical MRI convention supporting my original interpretation, while its named scale does not identify the unnamed scale in our report.",
+      "retrieval": "Publisher primary article methods personally read; no diagnostic performance number is used to validate the competition report."
+    },
+    {
+      "id": "icrs_official",
+      "title": "ICRS Cartilage Injury Evaluation Package",
+      "url": "https://cartilage.org/wp-content/uploads/2024/07/ICRS_evaluation1-1.pdf",
+      "source_kind": "official classification issuer document",
+      "location": "PDF page13, ICRS articular cartilage injury classification",
+      "short_quote": "Lesions extending down to <50% of cartilage depth",
+      "assessment": "The issuer’s text explicitly distinguishes grade2 below-half lesions and grade3 lesions deeper than half. Its grade4 category is illustrated in a figure; the extracted text does not fully describe that figure. I do not use an unseen diagram as a new grade4 definition.",
+      "retrieval": "Official PDF parsed text personally read. Screenshot requests returned only tool reference text in this environment; no figure viewing is claimed."
+    }
+  ],
+  "source_snapshot_scope": "URLs, read locations, short quotations and assessor-authored interpretations are preserved. Their artifact hash binds these notes, not full downloaded publication bytes.",
+  "prior_decision_was_frozen_before_literature_access": true,
+  "rubric_change": false
+}

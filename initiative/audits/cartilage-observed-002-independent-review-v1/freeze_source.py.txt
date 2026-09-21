@@ -1,0 +1,43 @@
+"""Package150 personally authored OA judgments; mechanical validation only."""
+import json,hashlib,runpy
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';AGENT='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_bytes())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,d):
+ p=S/n
+ with p.open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+packet=obj(S/'neutral-source-packet.json');binding=obj(S/'source-bindings-and-exposure.json')
+assert ref(S/'neutral-source-packet.json')['sha256']=='80ca364ce979ab0270cee9fa4c8f2936dd91745190fdea1532b1000aae6fd8c4'
+assert ref(R/'protocols/report_weak_v2.md')['sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+rows={};helpers=sorted(S.glob('decisions_*.py'))
+for p in helpers:
+ d=runpy.run_path(str(p))['ROWS'];assert not rows.keys()&d.keys();rows.update(d)
+assert set(rows)==set(range(50));targets=['Medial OA','Lateral OA','PF OA'];out=[];checks=[]
+for i,p in enumerate(packet):
+ assert len(rows[i])==3
+ source=R/p['source_path'];assert ref(source)['sha256']==p['source_sha256']
+ assert obj(source)[p['index']]=={'study_uid':p['study_uid'],'report':p['report']}
+ b=binding['bindings'][i];assert b['study_uid']==p['study_uid'] and b['priority_position_zero_based']==100+i
+ assert b['report_utf8_sha256']==hashlib.sha256(p['report'].encode()).hexdigest()
+ for t,(state,quote,reason) in enumerate(rows[i]):
+  assert state in ['positive','negative','uncertain','not_mentioned']
+  assert bool(quote)==(state!='not_mentioned') and quote in p['report']
+  assert isinstance(reason,str) and reason.strip() and 'PLACEHOLDER' not in reason
+  checks.append({'packet_index':i,'study_uid':p['study_uid'],'target':targets[t],'quote_start_character':p['report'].find(quote) if quote else None,'quote_characters':len(quote),'quote_utf8_sha256':hashlib.sha256(quote.encode()).hexdigest() if quote else None,'exact_contiguous_or_missing_empty':True})
+ out.append({'agent_id':AGENT,'packet_index':i,'priority_position_zero_based':100+i,'case':f"{p['batch']}:{p['index']}",'study_uid':p['study_uid'],'source_path':p['source_path'],'source_sha256':p['source_sha256'],'source_index_zero_based':p['index'],'report_utf8_sha256':b['report_utf8_sha256'],'target_order':targets,'states':[x[0] for x in rows[i]],'evidence':[x[1] for x in rows[i]],'target_reasoning':[x[2] for x in rows[i]],'prior_exact_packet_overlap':[],'notes':'Personally authored full-source OA-only pass with historical context disclosed. No first cartilage002 findings or fresh current case annotations opened before freeze. Unintegrated source assessment only.'})
+assert len(out)==50 and len({x['study_uid'] for x in out})==50 and len(checks)==150
+assessment=S/'independent-assessment.jsonl'
+with assessment.open('x') as f:
+ for r in out:f.write(json.dumps(r,ensure_ascii=False)+'\n')
+addendum=write('exposure-and-authoring-clarification.json',{'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'prior_context':'This pass followed the completed cartilage001 postfreeze comparison against193 corrections. It exposed the other reader interpretation of grade/depth, location, confluence and extent in that disjoint batch. The assessor retains that conceptual context and does not claim a wholly feedback-free reader. Focused001/002 and cartilage000 prior context remains bound in the preparation record.','exact_overlap_scope':'Zero UID overlaps with the four neutral packets explicitly checked: focused001, focused002, cartilage000 and cartilage001. This is not a claim that every technical inventory or historical contextual exposure has been exhaustively erased.','access_wording_clarification':'The preparation record mentions neutral-priority-index field-name inspection and first-stage filename discovery. Those occurred during prior packet discovery before cartilage001, not as new case-specific reads in this cartilage002 pass. This pass read only neutral cartilage002 sources, neutral priority100–149 sources, own authored decisions and prior neutral UID membership for binding.','authoring_note':'An unfinished temporary quotation/reason for one superficial-medial decision was completed before packaging; a first patch match failed and made no change, then the literal quotation/reason were completed. No clinical state was changed or frozen artifact overwritten.','source_order_attestation':'All50 full reports were read and all150 judgments authored before first cartilage002 or fresh current002 findings. No such findings were opened during the pass.','chronology_limit':'These attestations record workflow; timestamps cannot independently prove past access order.'})
+v=write('validation.json',{'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'reports':50,'judgments':150,'target_order':targets,'priority_positions':[100,149],'all_original_source_hash_index_uid_and_report_bindings_match':True,'all_report_utf8_hashes_match':True,'all150_unique_judgments_have_individual_reasoning':True,'all_nonmissing_evidence_contiguous_and_missing_empty':True,'rubric':ref(R/'protocols/report_weak_v2.md'),'exact_prior_overlap_reports':0,'overlap_scope':binding['prior_neutral_sources'],'checks':checks,'no_automated_clinical_inference':True,'no_first_cartilage002_or_current002_annotation_access_in_this_pass':True})
+f=write('source-freeze.json',{'stage':'cartilage_observed002_second_full_source_50_reports_150_OA_targets_v1','agent_id':AGENT,'session_id':AGENT,'identity_note':'Canonical collaboration agent/session identity; no separate UUID supplied or invented.','at_utc':datetime.now(timezone.utc).isoformat(),'rubric_version':'report-weak-v2.0','rubric':ref(R/'protocols/report_weak_v2.md'),'reports':50,'judgments':150,'priority_positions':[100,149],'target_order':targets,'source_packet':ref(S/'neutral-source-packet.json'),'source_and_exposure_bindings':ref(S/'source-bindings-and-exposure.json'),'exposure_clarification':ref(addendum),'assessment':ref(assessment),'validation':ref(v),'authored_helpers':[ref(p) for p in helpers],'packaging_helper':ref(Path(__file__)),'state_counts':dict(Counter(x[0] for r in rows.values() for x in r)),'personal_reading_attestation':'I, /root/last_twelve_visual_review, personally read all50 complete original reports and authored all150 OA judgments with individual reasoning and exact contiguous evidence. Code packages explicit decisions and validates source bindings only; it does not infer labels.','exposure_attestation':'Historical focused, cartilage and technical source/context exposure is disclosed. No first cartilage002 case findings or fresh current002 annotations were opened before this freeze. Zero exact report overlap was found within the four explicitly bound prior neutral packets. This is not a first-ever blindness claim.','scope_limit':'Only three OA targets per report; no600-target pass, image reread, registry action, policy acceptance or global QA closure. All source decisions remain unintegrated.','chronology_limit':'Recorded timestamps and attestations do not prove past access order.','no_repository_registry_runtime_or_gold_changes':True,'case_findings_withheld_pending_root_authorization':True})
+manifest=write('final-file-list.json',{'agent_id':AGENT,'files':[ref(p) for p in sorted(S.rglob('*')) if p.is_file()],'self_excluded':True})
+lst=obj(manifest)['files'];assert {x['path'] for x in lst}=={str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p!=manifest}
+for x in lst:assert ref(W/x['path'])==x
+print(json.dumps({'reports':50,'judgments':150,'freeze':ref(f),'assessment':ref(assessment),'validation':ref(v),'manifest':ref(manifest),'files_bound':len(lst)},indent=2))

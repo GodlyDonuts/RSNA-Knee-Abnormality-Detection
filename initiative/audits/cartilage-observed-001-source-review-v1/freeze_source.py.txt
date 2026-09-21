@@ -1,0 +1,107 @@
+"""Validate and freeze the personally authored 50-source/150-target OA pass."""
+
+import hashlib
+import json
+import shutil
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+from author_judgments import OUT, SOURCES, TARGETS
+
+STAGE = Path(__file__).resolve().parent
+WORKSPACE = STAGE.parents[2]
+REPO = WORKSPACE / "work/recovered"
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path)}
+
+
+def write(name, obj):
+    with (STAGE / name).open("x") as stream:
+        stream.write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
+
+
+def main():
+    start = read(STAGE / "start.json")
+    assert sha(STAGE / "neutral-full-reports.json") == start["source_packet"]["sha256"] == "4a1a86a0dde159021453f05a1a172585020e2c7ae864a884dfe40225e78f39b0"
+    assert sha(REPO / "protocols/report_weak_v2.md") == start["rubric"]["sha256"] == "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+    priority = read(WORKSPACE / start["priority_neutral_index"]["path"])
+    assert sha(WORKSPACE / start["priority_neutral_index"]["path"]) == start["priority_neutral_index"]["sha256"]
+    expected = []
+    for packet in priority["neutral_packets"][5:10]:
+        path = WORKSPACE / packet["path"]
+        assert sha(path) == packet["sha256"]
+        expected.extend(read(path))
+    assert expected == SOURCES and len(SOURCES) == len(OUT) == 50
+    assert len({row["study_uid"] for row in OUT}) == 50
+    source_bindings = {}
+    quote_count, missing_count = 0, 0
+    for index, (source, assessment) in enumerate(zip(SOURCES, OUT, strict=True)):
+        assert assessment["packet_index"] == index and assessment["priority_index"] == index + 50
+        assert assessment["study_uid"] == source["study_uid"]
+        assert assessment["target_order"] == TARGETS
+        path = REPO / source["source_path"]
+        assert sha(path) == source["source_sha256"] == assessment["source_sha256"]
+        assert read(path)[source["index"]] == {"study_uid": source["study_uid"], "report": source["report"]}
+        assert assessment["source_index"] == source["index"]
+        assert hashlib.sha256(source["report"].encode()).hexdigest() == assessment["source_report_sha256"]
+        source_bindings[source["source_path"]] = source["source_sha256"]
+        assert len(assessment["states"]) == len(assessment["evidence"]) == len(assessment["rationales"]) == 3
+        for state, quote, reason in zip(assessment["states"], assessment["evidence"], assessment["rationales"], strict=True):
+            assert reason.strip()
+            if state == "not_mentioned":
+                assert quote == ""
+                missing_count += 1
+            else:
+                assert state in {"positive", "negative", "uncertain"} and quote and quote in source["report"]
+                quote_count += 1
+    assert quote_count + missing_count == 150
+    assert shutil.disk_usage(WORKSPACE).free >= 20 * 1024**3
+    assessment_path = STAGE / "source-assessment-frozen.jsonl"
+    with assessment_path.open("x") as stream:
+        stream.write("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in OUT))
+    timestamp = datetime.now(timezone.utc).isoformat()
+    validation = {
+        "schema_version": 1, "agent_id": "/root/quality_temporal_review", "validated_at_utc": timestamp,
+        "source_packet": bind(STAGE / "neutral-full-reports.json"), "assessment": bind(assessment_path),
+        "rubric": bind(REPO / "protocols/report_weak_v2.md"), "source_batch_bindings": source_bindings,
+        "complete_reports": 50, "three_target_judgments": 150, "exact_contiguous_nonmissing_quotes": quote_count,
+        "empty_not_mentioned_quotes": missing_count, "all_individual_rationales_present": True,
+        "original_index_uid_report_and_hash_verified": True, "equals_priority_positions_50_through_99": True,
+        "state_counts": dict(Counter(state for row in OUT for state in row["states"])),
+        "current_selected_case_annotation_tables_opened": False, "other_reader_case_findings_opened": False,
+        "gold_accessed": False, "validation_limit": "Quote traceability and exact coverage checks do not establish clinical correctness or independently instrument historical access order.",
+    }
+    write("source-validation.json", validation)
+    freeze = {
+        "schema_version": 1, "agent_id": "/root/quality_temporal_review", "session_id": "/root/quality_temporal_review",
+        "stage": "three_target_source_assessment_frozen_before_current_annotation_comparison",
+        "frozen_at_utc": timestamp, "started_at_utc": start["started_at_utc"], "rubric_version": "report-weak-v2.0",
+        "rubric": bind(REPO / "protocols/report_weak_v2.md"), "source_packet": bind(STAGE / "neutral-full-reports.json"),
+        "source_assessment": bind(assessment_path), "validation": bind(STAGE / "source-validation.json"),
+        "start": bind(STAGE / "start.json"), "authored_judgment_assembler": bind(STAGE / "author_judgments.py"),
+        "freeze_validator": bind(Path(__file__).resolve()), "target_order": TARGETS,
+        "complete_reports_read": 50, "target_judgments": 150, "exact_ordered_uids": [row["study_uid"] for row in SOURCES],
+        "historical_exposure": start["historical_exposure"],
+        "additional_during_pass_exposure": "Received only aggregate status and hash bindings for the other reader's completed cartilage000 comparison, concerning a distinct preceding 50-report packet. No case findings were opened.",
+        "source_reading_attestation": "This actual agent personally read all 50 complete reports and authored all 150 states, exact quotes and individual rationales before opening current case annotations or proposals for these 50. This access-order statement is assessor self-attestation, not an independent historical-access log.",
+        "scope": "OA targets only. Supplemental report-evidence review, not a new 12-target pass, clinical MRI reread, or claim of first-ever blinding.",
+        "preservation": {"prior_stages_changed": False, "original_reports_or_reviews_changed": False, "runtime_registry_changed": False, "gold_accessed": False},
+        "next_step": "Separately compare this immutable source assessment with original reviews and the actual current accepted-correction registry; preserve every reconsideration and proposal without registering changes or closing global QA.",
+    }
+    write("source-freeze.json", freeze)
+    print(json.dumps({"reports": 50, "judgments": 150, "source_freeze_sha256": sha(STAGE / "source-freeze.json"), "assessment_sha256": sha(assessment_path), "nonmissing_quotes": quote_count}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,56 @@
+"""Compare preserved readings against the live registry; no clinical decisions."""
+from pathlib import Path
+from datetime import datetime,timezone
+import json,hashlib,sys
+from collections import Counter
+G=Path(__file__).resolve().parent;W=G.parents[2];R=W/'work/recovered';B=G.parent
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def save(name,d):
+ with (G/name).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+def read(p):return json.loads(p.read_text())
+freeze=G/'complete-source-freeze.json';assert sha(freeze)=='a745d9e7c210282cf8ea075e0564804b4b75c616de4d1d411a938576b9e102c6'
+rp=G/'source-assessment-frozen.jsonl';assert sha(rp)=='b5e570c0b590599b8b09c8b3c3e28f07749f1fb3549136367f5d19698eb5a12c'
+roots={r['study_uid']:r for r in map(json.loads,rp.read_text().splitlines())};assert len(roots)==50
+reports={r['study_uid']:r['report'] for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for r in read(p)}
+registry=R/'initiative/reviews-v2/adjudications/registry.json';assert sha(registry)=='64b6b8b51efb693738e8a3f70743afe4b160c5b3acd1f4ec3300cc699e8fee12'
+current=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert current['n_changes']==118 and len(current['pending_semantic_qa'])==3
+cm={(c['study_uid'],c['target']):c for c in current['changes']}
+fdir=B/'qualified-negation-focused-001-source-review-v1';sdir=B/'qualified-negation-focused-001-post-freeze-comparison-v1'
+pp=fdir/'proposed-errata.json';assert sha(pp)=='14e8511620cd7aa37f84c5e80f17686f9c6a0f64b1a135df828d7865ceae846d'
+pdoc=read(pp);props={(r['study_uid'],r['target']):r for r in pdoc['proposed_errata']};assert len(props)==75
+second=read(sdir/'second-postfreeze-assessment.json')['records'];assert len(second)==600
+orig={};records=[]
+for s in second:
+ uid,t=s['study_uid'],s['target'];k=(uid,t);ti=TARGETS.index(t);root=roots[uid]
+ assert root['source_sha256']==s['source_batch_sha256']==sha(R/root['source_path'])
+ assert root['report_sha256']==s['report_utf8_sha256']==hashlib.sha256(reports[uid].encode()).hexdigest()
+ assert root['source_index_zero_based']==s['source_index_zero_based']
+ batch=root['case'].split(':')[0];op=R/f'initiative/reviews-v2/reviewed/batch-{batch}-reviewed.jsonl'
+ if batch not in orig:orig[batch]={r['study_uid']:r for r in map(json.loads,op.read_text().splitlines())}
+ o=orig[batch][uid];original={'state':o['states'][ti],'evidence':o['evidence'][ti]}
+ effective=cm[k]['after'] if k in cm else original
+ assert effective==s['effective_baseline'],(s['case'],t,'baseline drift')
+ rstate=root['states'][ti];rq=root['evidence'][ti];assert rq in reports[uid]
+ first=s['first_source_frozen'];sec=s['second_source_frozen'];post=s['second_postfreeze']
+ p=props.get(k)
+ if p:
+  assert p['before_state']==original['state'] and p['before_evidence']==original['evidence']
+  assert p['source_sha256']==sha(R/p['source_path']) and p['artifact_sha256']==sha(R/p['artifact_path'])
+  assert p['source_quote'] in reports[uid]
+ attention=bool(p or s['explicitly_held_for_root_adjudication'] or rstate!=effective['state'] or rstate!=s['first_postfreeze_state'] or rstate!=post['state'] or first['state']!=sec['state'])
+ records.append({'case':root['case'],'study_uid':uid,'target':t,'source_path':root['source_path'],'source_sha256':root['source_sha256'],'report_sha256':root['report_sha256'],'source_index_zero_based':root['source_index_zero_based'],'original_review_path':str(op.relative_to(R)),'original_review_sha256':sha(op),'original':original,'effective_baseline':effective,'existing_correction':cm.get(k),'root_frozen':{'state':rstate,'evidence':rq,'report_notes':root['notes']},'first_source_frozen':first,'second_source_frozen':sec,'first_postfreeze_state':s['first_postfreeze_state'],'second_postfreeze':post,'second_postfreeze_status':s['second_postfreeze_status'],'second_explicitly_held_for_root':s['explicitly_held_for_root_adjudication'],'primary_proposal':p,'root_state_matches_proposal':rstate==p['proposed_state'] if p else None,'attention':attention})
+assert len({(r['study_uid'],r['target']) for r in records})==600
+assert not any(r['existing_correction'] for r in records)
+inputs=[freeze,rp,registry,pp,fdir/'source-assessment-frozen.json',sdir/'second-postfreeze-assessment.json',sdir/'mechanical-full-comparison.json']
+aggregate={'reports':50,'targets':600,'current_registered_corrections':118,'current118_changes_affecting_this_slice':0,'primary_proposals':75,'root_source_states_match_primary':sum(r['root_state_matches_proposal'] is True for r in records),'root_primary_state_disagreements':sum(r['root_state_matches_proposal'] is False for r in records),'root_vs_current_state_differences':sum(r['root_frozen']['state']!=r['effective_baseline']['state'] for r in records),'root_vs_first_post_state_differences':sum(r['root_frozen']['state']!=r['first_postfreeze_state'] for r in records),'root_vs_second_post_state_differences':sum(r['root_frozen']['state']!=r['second_postfreeze']['state'] for r in records),'attention_cells':sum(r['attention'] for r in records),'attention_reports':len({r['study_uid'] for r in records if r['attention']})}
+save('root-postfreeze-comparison.json',{'stage':'mechanical_comparison_after_complete_root_source_freeze','agent_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'inputs':[{'path':str(p.relative_to(W)),'sha256':sha(p)} for p in inputs],'aggregate':aggregate,'records':records,'no_adjudication_or_registration_by_this_helper':True,'training_ready':False})
+save('current118-inspection.json',current)
+save('registry-before118.json',read(registry))
+print(json.dumps(aggregate))
+for r in records:
+ if r['root_frozen']['state']!=r['first_postfreeze_state'] or r['root_frozen']['state']!=r['second_postfreeze']['state'] or r['second_explicitly_held_for_root']:
+  print(r['case'],r['target'],'base',r['effective_baseline']['state'],'root',r['root_frozen']['state'],'first',r['first_postfreeze_state'],'second',r['second_postfreeze']['state'],'PRIMARY',bool(r['primary_proposal']),'HELD',r['second_explicitly_held_for_root'])

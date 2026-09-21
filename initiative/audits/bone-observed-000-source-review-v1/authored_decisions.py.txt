@@ -1,0 +1,163 @@
+"""Personally authored source judgments; code only assembles exact quotations."""
+MANUAL = {}
+
+
+def put(n, contusion, fracture):
+    assert n not in MANUAL
+    MANUAL[n] = {'Contusion': contusion, 'Fracture': fracture}
+
+
+def d(state, quote, rationale):
+    return {'state': state, 'evidence': quote, 'rationale': rationale}
+
+
+put(0,
+ d('negative', 'There is no fracture or bone contusion.', 'Explicit absence of bone contusion; the suspicious finding concerns meniscal shape, not marrow.'),
+ d('negative', 'There is no fracture or bone contusion.', 'Explicit fracture absence, without a competing osseous injury description.'))
+put(1,
+ d('negative', 'Chondropatie rétropatellaire modérée à sévère avec fissuration profonde impliquant les facettes médiale et latérale, au niveau de la facette médiale et œdème osseux réactionnel [grade 4].\nChondropatie légère des surfaces portantes des compartiments médial et latéral sans fissuration profonde.\n\nSignal de la moelle osseuse :\nPar ailleurs normal.', 'Below-threshold causal finding: the marrow edema is explicitly reactive to the chondropathy and the remaining marrow is normal; no traumatic marrow injury is asserted.'),
+ d('negative', 'Fractures :\nAucune.', 'The dedicated fracture section explicitly states none.'))
+put(2,
+ d('positive', '1. Posterior tibial intercondylar eminence fracture with avulsion fracture of PCL and partial tear of PCL.\n2. Bone contusion in medial femoral condyle and tibial plateau.', 'Definite bone-contusion diagnosis includes the medial femoral condyle, anatomically distinct from the stated tibial fracture. Do not require same-site fracture-associated tibial edema to establish the separate femoral contusion.'),
+ d('uncertain', 'Fracture of posterior tibial intercondylar eminence with avulsion fracture of PCL.\n    Bone marrow edema in proximal tibia.', 'Current fracture morphology is described, but acuity is not stated. Marrow/soft-tissue edema and associated ligament findings do not by themselves date the fracture; retain a mask rather than infer acute status from subtype.'))
+put(3,
+ d('positive', 'Mild bone contusion at posterior lateral proximal tibia is observed.', 'Direct current bone-contusion diagnosis supports report-level traumatic contusion. Mild extent is not a disqualifying severity threshold for this target; the separate chondral/subchondral description does not negate the explicit diagnosis.'),
+ d('not_mentioned', '', 'No fracture, cortical disruption or fracture line is described. Focal cartilage injury/subchondral edema and named contusion do not establish global fracture absence.'))
+put(4,
+ d('positive', 'Tibial plateau fracture and fibular head fracture, major involving lateral tibial plateau and extending to the articular surface and bone contusion at proximal tibia and fibula and lateral femoral condyle', 'A definite contusion is diagnosed at the lateral femoral condyle, separate from the tibial/fibular fractures. Do not use marrow at the fracture sites alone as contusion proof.'),
+ d('positive', 'Tibial plateau fracture and fibular head fracture, major involving lateral tibial plateau and extending to the articular surface and bone contusion at proximal tibia and fibula and lateral femoral condyle\n> Avulsion fracture of ACL insertion site and laxity of ACL with increased singla intenisty at distal portion, indicative grade 1-2 injury.\n> Traumatic lipohemarthrosis of knee joint with suprapatellar bursitis and complex plicae', 'Articular tibial/fibular and avulsion fracture morphology is accompanied by explicitly traumatic lipohemarthrosis in the current examination. The current traumatic joint-blood/injury context supports acuity, rather than relying on the fracture subtype alone.'))
+put(5,
+ d('negative', 'No evidence of bone contusion is noted.', 'Explicit contusion absence; subcutaneous hematomas and an osteochondroma are not a contrary marrow-contusion diagnosis.'),
+ d('not_mentioned', '', 'A suspected small osteochondral lesion and exostosis are described without a fracture, cortical disruption or line. Their unspecified nature is not an informative fracture assertion or explicit exclusion.'))
+put(6,
+ d('negative', 'There is no fracture or bone contusion.', 'Explicit traumatic bone-contusion absence; described subchondral edema is in the chondrosis/OA context and does not contradict that denial.'),
+ d('negative', 'There is no fracture or bone contusion.', 'Fracture is explicitly denied; chondrosis and subchondral edema do not override the denial.'))
+put(7,
+ d('positive', 'Left tibial intercondylar eminence fracture with bone marrow edema over left proximal tibia; bone contusion of left lower patella.', 'Definite patellar contusion is separate from the tibial avulsion-fracture site; the tibial fracture-associated edema is not used as the sole contusion evidence.'),
+ d('positive', 'Fracture of posterior aspect of tibial intercondylar eminence of left proximal tibia with displaced bony fragment, just at PCL attchment, C/W avulsion fracture of PCL. \n> Bone marrow edema over left proximal tibia and lower pole of patella.\n> The contour of PCL not all in a straight line and increase signal intensity inside on F/S T2WI, in favor of partial tear.\n  Interstitial increase signal intensity of ACL on F/S T2WI, infavor of grade 1 injury.\n> Lipohemarthrosis of left knee and suprapatellar bursitis; mild deep infrapatellar bursitis.', 'A displaced fracture fragment is present with current lipohemarthrosis and associated marrow/ligament injury. This supports an acute traumatic fracture context, not merely an undated avulsion label.'))
+put(8,
+ d('uncertain', 'No suspicious focal marrow signal alteration. Bone islands in the distal femur and proximal tibia.', 'The denial is restricted to suspicious focal marrow alteration and includes incidental islands; it is not an unqualified normal-marrow or no-contusion statement. Traumatic edema is not reliably established or excluded.'),
+ d('not_mentioned', '', 'No fracture or cortical/line finding is mentioned. A qualified marrow-screening statement and bone islands do not specifically establish fracture absence.'))
+put(9,
+ d('negative', 'Normal visualized bones and surrounding soft tissues.', 'The body explicitly describes the visualized bones as normal without qualification. The general conclusion about significance does not erase that unqualified structural statement.'),
+ d('negative', 'Normal visualized bones and surrounding soft tissues.', 'Unqualified normal visualized bones support fracture absence; no competing cortical or fracture finding is described.'))
+put(10,
+ d('negative', 'Ostale prikazane koštane, mekotkivne i neurovaskularne strukture uredne su morfologije i\nintenziteta signala.', 'The remaining displayed osseous structures have normal morphology and signal. Possible trochlear dysplasia is a shape finding and does not imply traumatic marrow edema.'),
+ d('negative', 'Ostale prikazane koštane, mekotkivne i neurovaskularne strukture uredne su morfologije i\nintenziteta signala.', 'Normal osseous morphology and signal support absence of fracture; the isolated trochlear-shape question does not describe a break or line.'))
+put(11,
+ d('negative', 'No acute fracture or bone bruise. Background marrow signal is normal without infiltrative marrow process.', 'Bone bruise is explicitly denied and background marrow is unqualifiedly normal.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit absence of acute fracture directly addresses the target acuity.'))
+put(12,
+ d('negative', 'Diz eklemini oluşturan kemik yapıların sinyal intensiteleri doğaldır.', 'The signal intensities of the bones forming the knee are explicitly normal. Periligamentous MCL edema is not marrow edema.'),
+ d('negative', 'Diz eklemini oluşturan kemik yapıların sinyal intensiteleri doğaldır.', 'Unqualified normal signal of the knee bones provides a broad osseous-normality statement with no fracture or cortical injury described.'))
+put(13,
+ d('negative', 'No acute fracture or bone bruise. Background marrow signal is normal without infiltrative marrow process.', 'Explicit no bone bruise; patellar subcortical cystic change is attributed to overlying chondromalacia rather than traumatic contusion.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit no acute fracture, notwithstanding the separate degenerative patellar cystic change.'))
+put(14,
+ d('negative', 'Diz eklemini oluşturan kemik yapıların sinyal intensiteleri doğaldır.', 'The knee bones have normal signal; prepatellar subcutaneous edema is outside marrow and does not contradict the bone statement.'),
+ d('negative', 'Diz eklemini oluşturan kemik yapıların sinyal intensiteleri doğaldır.', 'Unqualified normal bone signal supports osseous absence; the report describes no fracture or cortical defect.'))
+put(15,
+ d('negative', 'There is no fracture or bone contusion.', 'Contusion is explicitly absent despite ligament injury and effusion; do not infer marrow injury from ACL tear.'),
+ d('negative', 'There is no fracture or bone contusion.', 'Explicit fracture absence.'))
+put(16,
+ d('negative', 'There is no fracture or bone contusion.', 'The report explicitly denies bone contusion; chronic ligament/tendon tears are distinct from marrow trauma.'),
+ d('negative', 'There is no fracture or bone contusion.', 'Fracture is explicitly denied without a competing osseous injury.'))
+put(17,
+ d('uncertain', 'No suspicious focal marrow signal alteration.', 'The statement excludes suspicious focal marrow alteration rather than all marrow edema or traumatic contusion. The criterion cannot be reliably excluded from this qualified wording.'),
+ d('not_mentioned', '', 'No fracture, cortical disruption or fracture line is reported; the qualified marrow statement is not a specific fracture finding or denial.'))
+put(18,
+ d('uncertain', 'No fracture. No suspicious marrow signal abnormality.', 'A fall is described in the history, but current marrow normality is qualified by suspicious. No-fracture does not establish no-contusion, and traumatic marrow edema is neither established nor unqualifiedly excluded.'),
+ d('negative', 'No fracture.', 'The current findings explicitly exclude fracture, resolving the fracture question in the indication.'))
+put(19,
+ d('negative', 'Normal visualized bones and surrounding soft tissues .', 'The visualized bones are explicitly normal without a limiting qualifier; meniscal degeneration does not imply marrow contusion.'),
+ d('negative', 'Normal visualized bones and surrounding soft tissues .', 'Unqualified normal visualized bones support fracture absence.'))
+put(20,
+ d('negative', 'Normal visualized bones and surrounding soft tissues.', 'Explicit unqualified normal bones; minor effusion and meniscal degeneration do not establish marrow trauma.'),
+ d('negative', 'Normal visualized bones and surrounding soft tissues.', 'Unqualified normal osseous structures support fracture absence.'))
+put(21,
+ d('positive', 'There is bone bruise at the posterolateral tibial plateau and mid weight-baring lateral femoral condyle.', 'Direct current bone-bruise diagnosis at two lateral sites supports traumatic contusion. The separate medial subchondral edema/osteophytes need not be assumed traumatic to establish these named bruises.'),
+ d('not_mentioned', '', 'No cortical disruption, fracture line or fracture diagnosis is provided. A named bone bruise is not an explicit survey excluding fracture elsewhere.'))
+put(22,
+ d('negative', 'Eklem kıkırdakları ve kemikler normal.', 'Articular cartilage and bones are explicitly normal. Prepatellar/periligamentous edema is extraosseous and does not contradict bone normality.'),
+ d('negative', 'Eklem kıkırdakları ve kemikler normal.', 'Explicit normal bones support fracture absence without a competing fracture description.'))
+put(23,
+ d('negative', 'No abnormal bone marrow edema or bone contusions.', 'Both abnormal marrow edema and contusions are explicitly denied; chronic ACL injury does not override that current finding.'),
+ d('not_mentioned', '', 'The bone statement addresses edema and contusion, not cortical continuity or fracture lines. There is no informative fracture diagnosis or explicit fracture exclusion.'))
+put(24,
+ d('uncertain', 'Œdème osseux focal d\'aspect partiellement linéaire sur la face latérale du condyle fémoral latéral portant, représentant une contusion osseuse ou une fracture microtrabéculaire non déplacée.', 'At the lateral femoral site the report offers contusion versus microtrabecular fracture with partly linear edema. The other marrow findings accompany diagnosed/suspected fractures; a separate unequivocal contusion without a discrete fracture line is not established. Do not decide this differential from the subtype word alone.'),
+ d('positive', 'Fracture avulsion de l\'épine tibiale sans déplacement significatif, associée à une déchirure partielle de bas grade du ligament croisé antérieur.\nLe signe de fractures supplémentaires non déplacées impliquant le plateau tibial latéral postérieur, le condyle fémoral latéral, la face médiale du condyle fémoral médial sous l\'origine du LCM, ainsi que la tête fibulaire comme détaillé ci-dessus.\nEntorse de bas grade de la partie proximale du ligament collatéral latéral ainsi que de l\'origine du tendon du poplité.\nEntorse musculaire de bas grade impliquant l\'origine du gastrocnémien latéral, le poplité et la jonction myotendineuse distale du vaste interne.\nSigne d\'une lésion du coin postéro-latéral avec déchirure du fascicule ménisco-poplité inférieur.\nGrande lipohémarthrose.', 'Definite avulsion and intra-articular fractures are described with large current lipohemarthrosis and associated ligament/muscle injuries, supporting an acute fracture context. The separate microtrabecular differential is not needed as the sole morphology evidence.'))
+put(25,
+ d('negative', 'Le signal de la moelle osseuse est normal.', 'Unqualified normal marrow signal excludes a marrow-edema contusion pattern.'),
+ d('negative', 'Conclusion:\n\nExamen sans particularité.', 'The entire knee examination is explicitly unremarkable, alongside normal marrow in the findings; this broad unqualified normal-examination conclusion supports fracture absence.'))
+put(26,
+ d('negative', 'Φυσιολογικοί ελέγχονται οι χιαστοί και πλάγιοι σύνδεσµοι, ο έσω µηνίσκος, ο οστικός µυελός και ο αρθρικός χόνδρος.', 'The bone marrow is explicitly normal. Hoffa fat-pad edema is extraosseous, and trochlear/patellar shape findings do not establish marrow trauma.'),
+ d('not_mentioned', '', 'The normality statement specifically includes marrow, cartilage and named soft-tissue structures, without fracture/cortical-line assessment. Developmental trochlear shape and fat-pad impingement do not supply a fracture diagnosis or explicit exclusion.'))
+put(27,
+ d('negative', 'No acute fracture or bone bruise. Background marrow signal is normal without infiltrative marrow process.', 'Bone bruise is explicitly absent and marrow normal; trace Baker fluid is unrelated.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit acute-fracture absence.'))
+put(28,
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit no bone bruise. The separate low-grade chondroid lesion and fat-pad edema do not contradict this trauma-specific denial.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit no acute fracture; an incidental low-grade chondroid lesion is not a contrary fracture finding.'))
+put(29,
+ d('negative', 'No acute fracture or bone bruise. Background marrow signal is normal without infiltrative marrow process.', 'Explicit bone-bruise absence with normal marrow.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit acute-fracture absence.'))
+put(30,
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit bone-bruise denial is compatible with the separately described subchondral edema/cysts beneath high-grade patellofemoral chondrosis. Neither bilateral pain in the indication nor degenerative edema establishes a traumatic contusion.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit acute-fracture absence. Cartilage fissuring is not described as a bone fracture line.'))
+put(31,
+ d('negative', 'No acute fracture or bone bruise.', 'Bone bruise is explicitly absent. The cortical low-signal focus is characterized as an involuted nonossifying fibroma, while Hoffa edema is extraosseous.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit no acute fracture; the likely involuted cortical fibroma is not reported as a cortical break.'))
+put(32,
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit no bone bruise. Marrow edema and cystic change are reported beneath complete cartilage loss in the osteoarthritic medial compartment, rather than as a competing traumatic contusion.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit acute-fracture absence; chronic OA-related subchondral change does not itself contradict that statement.'))
+put(33,
+ d('negative', 'Diz eklemini oluşturan kemik yapıların sinyal intensiteleri doğaldır.', 'The knee bones have normal signal. ACL signal change and prepatellar subcutaneous edema do not establish marrow contusion.'),
+ d('negative', 'Diz eklemini oluşturan kemik yapıların sinyal intensiteleri doğaldır.', 'The unqualified normal signal of the knee bones supports osseous absence, with no fracture or cortical finding described.'))
+put(34,
+ d('negative', 'No fracture or bone contusion is seen.', 'Explicit contusion absence is repeated consistently and accompanied by no focal marrow edema. Prepatellar edema is subcutaneous.'),
+ d('negative', 'No fracture or bone contusion is seen.', 'Explicit fracture absence; the duplicated report body is consistent.'))
+put(35,
+ d('positive', 'There is focal intense subchondral bone contusion involving the medial tibial plateau.\n\nThere is some thickening of the medial collateral ligament with some soft tissue edema external to the ligament suggesting a subacute sprain.', 'The medial tibial finding is directly diagnosed as a focal bone contusion, in a compartment with a possible subacute ligament sprain. The report separately calls patellar/trochlear marrow changes reactive and femoral cystic change degenerative, so those different sites are not being used as contusion evidence. No fracture line is described at the tibial contusion.'),
+ d('not_mentioned', '', 'No fracture, cortical disruption or discrete fracture line is described. Subchondral contusion and degenerative cystic/reactive changes are not an explicit global fracture exclusion.'))
+put(36,
+ d('negative', 'No fracture or bone contusion is seen.', 'The report unqualifiedly denies bone contusion. Later qualified osteochondral/cartilage statements do not revoke the explicit target-specific denial.'),
+ d('negative', 'No fracture or bone contusion is seen.', 'Unqualified fracture absence is explicit despite later no-definite wording for different osteochondral/cartilage findings.'))
+put(37,
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit no bone bruise. The healed finding is a likely nonossifying fibroma, not a newly diagnosed traumatic marrow lesion.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit acute-fracture denial; healed modifies the incidental nonossifying fibroma and does not establish fracture.'))
+put(38,
+ d('negative', 'No evidence of bone contusion is noted.', 'Explicit contusion absence. Degenerative cartilage wear with a small subchondral cyst and extraosseous infiltration do not contradict this target-specific denial.'),
+ d('not_mentioned', '', 'The report does not mention fracture/cortical disruption/line or an unqualified normal-bone survey. A subchondral degenerative cyst and no-contusion statement do not establish fracture absence.'))
+put(39,
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit no bone bruise; patellar subchondral edema is described with full-thickness cartilage fissuring and osteoarthritis, not as a contrary traumatic lesion.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit acute-fracture absence. The fissuring is chondral, not a reported osseous fracture line.'))
+put(40,
+ d('negative', 'Ne vidi se zona koštanog edema prikazanih koštanih struktura.', 'No area of bone edema is seen in the displayed osseous structures; this explicitly excludes the edema component of contusion.'),
+ d('not_mentioned', '', 'The bone statement denies edema only; no fracture, cortical disruption or line assessment is supplied. Other normal soft-tissue and alignment findings do not establish global fracture absence.'))
+put(41,
+ d('negative', 'There is normal bone marrow signal intensity.', 'Unqualified normal marrow supports contusion absence.'),
+ d('negative', '1. Minimal tendinosis without tear involving the extensor mechanism.\n2. Otherwise unremarkable examination.', 'The complete examination is otherwise unremarkable apart from named tendon change, and marrow is normal in the body. That broad unqualified conclusion includes the osseous survey and supports fracture absence.'))
+put(42,
+ d('negative', 'There is no fracture or bone contusion.', 'Explicit contusion absence; ACL and meniscal tears do not override the current bone finding.'),
+ d('negative', 'There is no fracture or bone contusion.', 'Explicit fracture absence.'))
+put(43,
+ d('negative', 'Marrow signal is within normal limits.', 'Unqualified normal marrow excludes a contusion edema pattern. Subcortical cysts are described with chondrosis rather than as marrow trauma.'),
+ d('not_mentioned', '', 'The report gives marrow normality but no fracture/line/cortical assessment or global normal-bone conclusion. Degenerative cysts and spurring are not fracture assertions or exclusions.'))
+put(44,
+ d('positive', 'Findings of patellofemoral maltracking with osseous contusion along the lateral femoral condyle suggesting a recent lateral patellar dislocation, as described above.', 'The final impression directly diagnoses osseous contusion, with current marrow edema and a proposed recent dislocation mechanism. The suggestion concerns the precise recent dislocation mechanism; the impression does not offer contusion versus a competing marrow diagnosis. No discrete fracture line is reported at this site.'),
+ d('not_mentioned', '', 'No fracture, cortical disruption or discrete fracture line is addressed. The contusion and background-marrow description do not explicitly exclude fracture.'))
+put(45,
+ d('negative', 'Marrow signal normal.', 'Unqualified marrow normality supports absence of marrow contusion; tendon symptoms and low-grade cartilage change are separate.'),
+ d('not_mentioned', '', 'Only marrow normality is stated for bone, without fracture/cortical-line assessment or an overall normal-examination conclusion. Do not convert this silence into fracture absence.'))
+put(46,
+ d('positive', 'Mild focal bone contusion at mid lateral femoral condyle, posterior lateral and posterior medial proximal tibia is noted.', 'Definite current contusions are diagnosed at named sites in an injury pattern, and fracture is explicitly excluded. Mild extent does not disqualify this target.'),
+ d('negative', 'no fracture detected.', 'Explicit fracture absence despite ligament injury and contusions.'))
+put(47,
+ d('negative', 'No acute fracture or bone bruise.', 'Current bone bruise is explicitly denied. Old skiing history and subchondral edema beneath full-thickness patellar cartilage loss do not establish a current traumatic contusion.'),
+ d('negative', 'No acute fracture or bone bruise.', 'Explicit absence of acute fracture, with no competing current cortical fracture finding.'))
+put(48,
+ d('positive', 'Mild bone contusion at mid lateral femoral condyle and lateral proximal tibia is observed.', 'Definite current lateral contusions are separate from the old medial collateral avulsion site. No fracture is detected at the current contusion sites.'),
+ d('negative', 'No fracture is detected.   \n Mild bone contusion at mid lateral femoral condyle and lateral proximal tibia is observed. \n  \n  Complete loss of normal ACL with deformed residual distal ACL part is detected.  PCL is intact.   \n   No anterior tibial translation is noted.            \n   \n   Mild thickened hyperintense deep proximal MCL attached site , associated with small bone fragment, about 8x4mm., at the medial femoral condyle, could be old avulsion injury of  deep proximal MCL  \n at the medial femoral condyle.', 'No current fracture is detected. The separate small medial femoral fragment is interpreted as an old avulsion injury, confirmed as old in the impression, so it does not establish the acute-fracture criterion.'))
+put(49,
+ d('negative', 'Bone marrow signal is normal. No acute fracture or bone bruise.', 'Explicit absence of bone bruise and normal marrow. The osteochondral lesion is healed; iliotibial friction edema is extraosseous.'),
+ d('negative', 'Bone marrow signal is normal. No acute fracture or bone bruise.', 'Acute fracture is explicitly denied. The separate healed osteochondral lesion is not an acute fracture.'))

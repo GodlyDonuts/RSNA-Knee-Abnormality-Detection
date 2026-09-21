@@ -1,0 +1,125 @@
+"""Author the separate post-source comparison; no other reader is consulted."""
+
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+WORKSPACE = STAGE.parents[2]
+SOURCE = STAGE.parent / "cartilage-observed-005-source-review-v1"
+AGENT = "/root/quality_temporal_review"
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path)}
+
+
+def write(path, obj):
+    with path.open("x") as stream:
+        stream.write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
+
+
+def source_span(index, first, last):
+    report = read(SOURCE / "neutral-full-reports.json")[index]["report"]
+    begin = report.index(first)
+    end = report.index(last, begin) + len(last)
+    return report[begin:end]
+
+
+RECONSIDERATIONS = {}
+EVIDENCE_ONLY = {(7, "Lateral OA"): "I retain my frozen and current negative state but propose replacement of the current grade-only evidence quote with the explicit slight diffuse cartilage-attenuation sentence from the same full source. The body supplies the below-threshold morphological evidence used in my source rationale; the existing quote instead contains only unspecified numeric grades, which cannot independently calibrate the threshold. This is an evidence correction, not a newly reconsidered state, an assumed named grading scale, or an acceptance."}
+
+
+def main():
+    comparison_path = STAGE / "own-source-vs-current-baseline.json"
+    comparison = read(comparison_path)
+    assert comparison["registered_changes"] == 205
+    assert sha(SOURCE / "source-freeze.json") == "cbfe6a40eea0e113a4e3a54bc72dbe7824a576e2ff2229e256a8627667cf2571"
+    sources = read(SOURCE / "neutral-full-reports.json")
+    records, proposals, reconsidered = [], [], []
+    for baseline in comparison["records"]:
+        key = baseline["packet_index"], baseline["target"]
+        update = RECONSIDERATIONS.get(key)
+        state = update["state"] if update else baseline["own_frozen_state"]
+        evidence = (update["evidence"] or baseline["own_frozen_evidence"]) if update else baseline["own_frozen_evidence"]
+        reason = update["reason"] if update else "I retain my personally authored source judgment after reviewing the preserved original annotation and current accepted-correction context. " + baseline["own_frozen_rationale"]
+        source = sources[baseline["packet_index"]]
+        assert source["study_uid"] == baseline["study_uid"]
+        assert (state == "not_mentioned" and evidence == "") or (state != "not_mentioned" and evidence and evidence in source["report"])
+        state_changed = state != baseline["baseline_effective_state"]
+        evidence_only = key in EVIDENCE_ONLY and not state_changed
+        if evidence_only:
+            reason = EVIDENCE_ONLY[key]
+            assert evidence != baseline["baseline_effective_evidence"]
+        changed = state_changed or evidence_only
+        record = {**baseline, "postfreeze_state": state, "postfreeze_evidence": evidence, "postfreeze_reason": reason,
+                  "reconsidered_from_own_source_freeze": update is not None, "evidence_only_change_proposed": evidence_only,
+                  "disposition": "proposed_correction_pending_distinct_assessment" if changed else "retain_current_state_after_own_review",
+                  "other_reader_case_findings_opened": False, "original_source_freeze_changed": False}
+        records.append(record)
+        if update:
+            reconsidered.append(record)
+        if changed:
+            assert baseline["accepted_correction"] is None
+            assert baseline["original_state"] == baseline["baseline_effective_state"]
+            assert baseline["original_evidence"] == baseline["baseline_effective_evidence"]
+            proposals.append({
+                "packet_index": baseline["packet_index"], "priority_index": baseline["priority_index"],
+                "case": baseline["batch"].removeprefix("batch-") + ":" + f'{baseline["source_index"]:02d}',
+                "study_uid": baseline["study_uid"], "target": baseline["target"], "batch": baseline["batch"], "index": baseline["source_index"],
+                "source_path": baseline["source_path"], "source_sha256": baseline["source_sha256"],
+                "artifact_path": baseline["original_review_path"], "artifact_sha256": baseline["original_review_sha256"],
+                "before_state": baseline["baseline_effective_state"], "before_evidence": baseline["baseline_effective_evidence"],
+                "proposed_state": state, "source_quote": evidence, "reason": reason,
+                "kind": "evidence_correction" if evidence_only else "state_correction", "status": "proposed_pending_distinct_source_assessment_and_root_adjudication",
+                "own_frozen_state": baseline["own_frozen_state"], "own_state_reconsidered": update is not None,
+                "overlaps_existing_accepted_correction": False,
+            })
+    timestamp = datetime.now(timezone.utc).isoformat()
+    common = {
+        "schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "completed_at_utc": timestamp,
+        "rubric_version": "report-weak-v2.0", "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+        "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+        "source_freeze": bind(SOURCE / "source-freeze.json"), "source_assessment": bind(SOURCE / "source-assessment-frozen.jsonl"),
+        "baseline_comparison": bind(comparison_path), "registered_changes_at_comparison": 205,
+        "registry_at_comparison": bind(STAGE / "registry-at-comparison.json"),
+        "exposure": "Current original reviewed annotations and accepted corrections were opened only after this agent's complete 10-source/30-target freeze. Earlier discovery, original-run/contextual and prior adjudication exposure is disclosed in the source freeze. No second-reader source judgments or proposals for these cases were opened. This is a separate post-freeze comparison, not a new blinded pass.",
+        "original_artifacts_preserved": True, "production_registry_changed": False,
+        "other_reader_case_findings_opened": False, "gold_accessed": False, "global_qa_gates_closed": 0,
+    }
+    counts = {"full_sources": 10, "oa_targets_per_source": 3, "all_cells_assessed": 30,
+              "initial_source_state_differences_from_current": sum(row["own_frozen_state"] != row["baseline_effective_state"] for row in records),
+              "own_explicit_state_reconsiderations": len(reconsidered), "proposed_items": len(proposals),
+              "proposed_state_changes": sum(row["kind"] == "state_correction" for row in proposals), "proposed_evidence_only_changes": sum(row["kind"] == "evidence_correction" for row in proposals),
+              "proposal_reports": len({row["study_uid"] for row in proposals}), "retained_current_cells": 30 - len(proposals)}
+    write(STAGE / "first-postfreeze-dispositions.json", {**common, "stage": "first_source_reader_postfreeze_dispositions", "counts": counts, "records": records})
+    write(STAGE / "explicit-reconsiderations.json", {**common, "stage": "preserved_postfreeze_reconsiderations", "count": len(reconsidered), "records": reconsidered})
+    write(STAGE / "proposed-errata.json", {**common, "stage": "first_reader_proposals_pending_independent_assessment", "status": "proposed", "n_changes": len(proposals), "n_studies_with_proposals": counts["proposal_reports"], "proposed_errata": proposals})
+    retained_uncertain = [row for row in records if row["postfreeze_state"] == "uncertain" and row["disposition"] == "retain_current_state_after_own_review"]
+    write(STAGE / "unresolved-items-and-mask-retention.json", {**common, "stage": "unresolved_adjudication_and_existing_masked_evidence_kept_separate", "pending_proposal_count": len(proposals), "pending_proposals": proposals, "retained_current_uncertain_cells": len(retained_uncertain), "retained_uncertain_records": retained_uncertain, "mask_requirement": "Uncertain and not_mentioned current cells remain masked. Proposed alternatives are not release annotations before separate acceptance and registry integration.", "mandatory_new_reread_schedule_inferred_for_retained_masked_cells": False})
+    selected = {row["study_uid"] for row in proposals}
+    neutral = [row for row in sources if row["study_uid"] in selected]
+    folder = STAGE / "neutral-root-source-packets"
+    folder.mkdir()
+    packets = []
+    for start in range(0, len(neutral), 10):
+        contents = neutral[start:start + 10]
+        path = folder / f"packet-{start // 10:03d}.json"
+        write(path, contents)
+        packets.append({**bind(path), "n_reports": len(contents)})
+    write(STAGE / "neutral-root-packet-manifest.json", {"schema_version": 1, "agent_id": AGENT, "source_packet": bind(SOURCE / "neutral-full-reports.json"), "reports": len(neutral), "max_reports_per_packet": 10, "packets": packets, "neutral_source_and_identity_fields_only": True})
+    write(STAGE / "first-disposition-freeze.json", {**common, "stage": "postfreeze_comparison_and_proposals_preserved_before_other_reader_case_findings", "counts": counts, "files": {path.name: sha(path) for path in sorted(STAGE.glob("*.json"))}, "authoring_helper": bind(Path(__file__).resolve()), "next_step": "Distinct source assessment and root source-first adjudication remain pending. Preserve every proposed and retained uncertain item; do not register corrections or close global QA from this single comparison."})
+    print(json.dumps({"counts": counts, "freeze_sha256": sha(STAGE / "first-disposition-freeze.json"), "proposal_sha256": sha(STAGE / "proposed-errata.json"), "neutral_manifest_sha256": sha(STAGE / "neutral-root-packet-manifest.json")}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

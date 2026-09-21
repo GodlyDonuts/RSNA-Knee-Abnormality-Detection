@@ -2,37 +2,44 @@
 
 ## Latest verified checkpoint
 
-The first focused wording batch now has **84 newly accepted corrections**, bringing
-the registry to **118**. Its two source readers assessed all 50 reports/600 targets;
-root separately froze all 48 attention reports/576 targets before opening their
-case-specific findings. Root accepted the first reader's 74 proposals, and a
-distinct assessor accepted root's ten additional proposals. All 34 root source
-reconsiderations and the other readers' reconsiderations remain explicit. These
-are post-comparison decisions, not claims of initial agreement. The changes remove
-79 insufficiently supported observed labels, clarify two already-masked fracture
-mentions and expand three negative-state quotations. The prior 34 corrections,
-all 298 protected artifacts and all initial review outputs are unchanged.
+The second focused wording batch has 87 newly accepted corrections, bringing the
+registry to 205: 75 primary proposals and twelve additional proposals accepted by
+a distinct assessor. Root read all 50 complete sources and froze 600 judgments
+before case-specific reader findings. All thirteen root source-state revisions
+remain explicit. The changes mask 74 unsupported negatives and three insufficiently
+specified positives, clarify six masked states and improve four quotations.
+All 118 previous corrections and 297 protected artifacts remain unchanged.
 
-Use `qualified-negation-focused-000-root-complete-v1/`,
-`qualified-negation-focused-000-additional-independent-v1/` and
-`qualified-negation-focused-000-integration-v1/complete118-integration-validation.json`.
-The existing ten-report root archive is a preserved historical snapshot. All 576
-final root states now reconcile with registry inspection; no label export or
-global QA closure has occurred.
+Use `qualified-negation-focused-001-root-complete-v1/` and
+`qualified-negation-focused-001-integration-v1/complete205-integration-validation.json`.
+The source freeze SHA is
+`a745d9e7c210282cf8ea075e0564804b4b75c616de4d1d411a938576b9e102c6`.
+The current 205 replay finds zero state conflicts across 54 exact normalized-report
+groups/204 studies. All 87 new annotations match root evidence and 599/600 final
+root states agree. Case 010:40 medial OA remains an unregistered disagreement;
+the separate `qualified-negation-focused-001-grade-semantics-supplement-v1/`
+preserves balanced primary-reference review without claiming the report's grading
+scale is known. Resolve this before final release; do not quietly count it as accepted.
 
-The completed parallel snapshots include both readings and post-comparison work
-for focused wording batch001, plus first readings for batches002 and003. Root
-has not opened their case-specific findings. Before root adjudication of batch001,
-read and freeze its five neutral ten-report packets; preserve the readers' original
-34-correction comparison context and separately account for the current registry.
-The complete cartilage discovery snapshot covers all 4,407 reports/13,221 OA cells,
-with 6,034 candidate cells. Its priority is 302 cells in 260 reports. Another 2,407
-observed-negative candidate cells in 1,204 reports remain pending; 3,002 negative
-cells outside lexical discovery are not certified by that proxy. The 833 reports
-whose candidate cells are all masked retain their final-export mask requirements;
-only 749 have all three OA targets masked. Both readers have frozen the first50
-complete cartilage sources/150 OA targets each; no cartilage correction is accepted
-from that stage. See `semantic-qa-parallel-snapshots-v1/` for exact snapshot scope.
+Completed parallel snapshots include both readings/comparisons for focused wording
+batch 002 and the first reading for batch 003. Root has not opened their case
+findings. Before batch 002 adjudication, read/freeze its 46 complete neutral attention
+reports; disclose historical source reuse and replay against the current registry.
+The first cartilage reader has finished sources and comparisons for batches 000–005
+(260 reports/780 OA judgments). The second reader has frozen batches 000–002
+(150 reports/450 judgments), with comparisons complete through 002. Root has frozen
+the first five of 26 attention sources for cartilage 000 locally; finish the other
+21 before opening its case findings. Bone discovery and the first 50-report/100-cell
+source/comparison stage are archived. These pending proposals are not acceptances.
+Snapshots v2 through v5 preserve exact completed file sets and historical baselines.
+
+The cartilage discovery snapshot covers all 4,407 reports/13,221 OA cells, with
+6,034 candidate cells. Priority covers 302 cells in 260 reports; all 260 first-reader
+sources and comparisons are now complete. Another 2,407 observed-negative
+candidate cells in 1,204 reports remain pending; 3,002 negative cells outside lexical
+discovery are not certified by that proxy. Of 833 reports whose candidate cells
+are all masked, only 749 have all three OA targets masked. Final export must
+validate all required masks. None of these inventories closes global semantic QA.
 
 This archive contains all 89 first-reader batches and all 89 independently reviewed
 batches: 4,407 reports and 52,884 target decisions. Report-review coverage is
@@ -114,18 +121,21 @@ The required report-similarity registry joins 038:44 and 045:15 before transitiv
 gold-neighbor quarantine. Read `docs/report-similarity.md`. The complete final
 label export remains unfinished.
 
-The latest verified private Hugging Face snapshot contains all 4,407 reviewed reports,
-at `54949cd5a575ea7027a4a57916e772936a98d38b`, corresponding to Git
-`1792f01ed3daab757c5ddb9bf5733ffe8d999f91` (CI run 35647456612 passed).
-Root checked all 5,657 archive members against their pinned Git contents. The
-1,335,583,564-byte package was verified remotely against its Hub SHA-256 identity
-and size; the manifest and README were downloaded and fully hashed. All three
-objects are under an immutable preparation-checkpoint prefix. Original source
-trees and all five official metadata blobs remain unchanged. The receipt and
-review evidence are preserved under `hf-preparation-checkpoint-1792f01/`.
-That published checkpoint contains 34 clinical corrections and 17 correspondence
-exclusions. The later v6 exclusion and sampling preference are newer Git work;
-they must not be described as already present in this pinned HF revision.
+The latest verified private Hugging Face checkpoint is
+`291d0051cb517a5609c23a58a2e4f5a0e724664a`, corresponding to Git
+`a27b16146520ce9de67ebd4762354191754bf636` (CI35658670372 passed).
+It reconstructs all6692 tracked Git files exactly from the pinned1792 base and
+a194,198,375-byte delta. Root and a distinct verifier independently streamed the
+base/delta and checked every result path, mode, size, SHA256 and Git blob identity;
+all six remote objects were content-verified. Original source trees, five official
+metadata blobs and root dataset card remained unchanged. The full restoration
+and publication receipt is preserved under `hf-preparation-delta-a27-v1/` and
+the reusable helper/test evidence under
+`primary74-integration-and-hf-delta-verification-v1/`. The bulk delta remains at
+its immutable external prefix, with its exact hash in the archived receipt.
+This published checkpoint contains118 clinical corrections,18 correspondence
+exclusions and the reviewed sampling preference. Current205 clinical changes and
+the newer semantic snapshots are not claimed to be in that earlier HF revision.
 The archive also preserves proof that547 staged DICOM copies now share their
 byte-identical archived files' physical storage. All paths and bytes remain
 unchanged; never write through those shared inodes. The full cache is untouched.
@@ -139,7 +149,7 @@ assessments before proposal access, with prior documentation exposure disclosed.
 Seven independently accepted corrections are now registered: four Effusion
 negative-to-uncertain masks and three already-masked Contusion/Fracture
 uncertainty-to-unmentioned clarifications. That milestone brought the total to34;
-the later focused wording cases above bring the current total to118.
+the later focused wording cases are summarized with the current total above.
 All277 protected source/review/rubric/prior-case/QA artifacts remain unchanged.
 The bounded adjudication and all27 focused tests passed. See
 `duplicate-consistency-adjudication-v1/`. The three global semantic QA gates remain

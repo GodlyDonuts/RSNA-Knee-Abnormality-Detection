@@ -1,0 +1,473 @@
+"""Pinned local delta builder and streaming reconstruction verifier; no uploader.
+
+The immutable prior package plus this delta represents every regular Git blob,
+including files the prior package omitted. All clinical and source payloads are
+opaque bytes. Verification reconstructs membership and content identities in
+memory without writing a second full repository or a new full archive.
+"""
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+from datetime import datetime, timezone
+import gzip
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import shutil
+import subprocess
+import tarfile
+
+BASE_GIT = "1792f01ed3daab757c5ddb9bf5733ffe8d999f91"
+BASE_HF = "54949cd5a575ea7027a4a57916e772936a98d38b"
+SOURCE_HF = "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+BASE_ARCHIVE_SHA = "10206b752cce97cb671de607291785eef10d7fd9154c4dd4a0612b6686327271"
+BASE_ARCHIVE_BYTES = 1335583564
+BASE_MANIFEST_SHA = "5f879ae740356e21ff5ed4c34fa31daf1cce4b5ffa9dafdd044a0658b9ad850b"
+HF_REPO = "GodlyDonuts/RSNA-Data"
+FLOOR = 20 * 2**30
+RESERVE = 64 * 2**20
+SOURCE_TREES = ("train_series", "test_series")
+SOURCE_CSVS = ("train.csv", "test.csv", "train_series.csv", "test_series.csv", "sample_submission.csv")
+OID = re.compile(r"[0-9a-f]{40}")
+SHA = re.compile(r"[0-9a-f]{64}")
+
+
+class GuardError(Exception):
+    """Arguments are fixed nonsensitive codes; never payloads or credentials."""
+
+
+def require(value, code):
+    if not value:
+        raise GuardError(code)
+
+
+def safe_path(value):
+    require(isinstance(value, str) and bool(value), "path_type")
+    p = PurePosixPath(value)
+    require(not p.is_absolute() and str(p) == value and "\\" not in value
+            and all(x not in {"", ".", ".."} for x in p.parts)
+            and all(ord(c) >= 32 and ord(c) != 127 for c in value), "unsafe_path")
+    require(not any(x.startswith(".env") or x == ".git" for x in p.parts), "secret_or_git_path")
+    return value
+
+
+def git(repo, *args):
+    return subprocess.check_output(["git", *args], cwd=repo, stderr=subprocess.DEVNULL, timeout=120)
+
+
+def tree(repo, commit):
+    require(OID.fullmatch(commit) is not None, "commit_must_be_full_sha")
+    require(git(repo, "rev-parse", "--verify", commit + "^{commit}").decode().strip() == commit,
+            "commit_identity")
+    rows = {}
+    for line in git(repo, "ls-tree", "-rlz", commit).split(b"\0"):
+        if not line:
+            continue
+        meta, path = line.split(b"\t", 1)
+        mode, kind, oid, size = meta.decode().split()
+        name = safe_path(path.decode())
+        require(kind == "blob" and mode in {"100644", "100755"}, "unsupported_git_member")
+        require(name not in rows, "duplicate_git_path")
+        rows[name] = dict(path=name, mode=mode, git_blob=oid, bytes=int(size))
+    require(bool(rows), "empty_git_tree")
+    return rows
+
+
+def file_ref(path):
+    require(path.is_file() and not path.is_symlink(), "missing_or_symlink_file")
+    h = hashlib.sha256()
+    n = 0
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(block)
+            n += len(block)
+    return dict(path=path.name, sha256=h.hexdigest(), bytes=n)
+
+
+def verify_file(path, expected):
+    ref = file_ref(path)
+    require(ref["sha256"] == expected["sha256"], "file_sha256_mismatch")
+    require("bytes" not in expected or ref["bytes"] == expected["bytes"], "file_size_mismatch")
+    return ref
+
+
+def atomic_json(path, value):
+    require(not path.exists(), "output_already_exists")
+    data = (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode()
+    partial = path.with_name(path.name + ".partial")
+    require(not partial.exists(), "partial_already_exists")
+    with partial.open("xb") as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    partial.rename(path)
+    return file_ref(path)
+
+
+@dataclass(frozen=True)
+class Base:
+    git_commit: str = BASE_GIT
+    hf_revision: str = BASE_HF
+    archive_sha256: str = BASE_ARCHIVE_SHA
+    archive_bytes: int = BASE_ARCHIVE_BYTES
+    manifest_sha256: str = BASE_MANIFEST_SHA
+
+
+class Scanner:
+    def __init__(self, secrets=()):
+        self.secrets = tuple(x for x in secrets if x)
+        self.keep = max([8192, *(len(x) for x in self.secrets)])
+        self.tail = b""
+
+    def feed(self, data):
+        window = self.tail + data
+        require(not any(x in window for x in self.secrets), "secret_value_detected")
+        require(re.search(rb"(?:hf_[A-Za-z0-9]{25,}|KGAT_[A-Za-z0-9]{25,})", window) is None,
+                "credential_pattern_detected")
+        require(re.search(rb"https?://[^\s\"'<>]{1,8192}[?&](?:X-Amz-(?:Signature|Security-Token|Credential)|access_token|auth_token|token)=[^\s&\"'<>]+", window,
+                          flags=re.I) is None, "authenticated_url_detected")
+        self.tail = window[-self.keep:]
+
+
+def secret_values(path=None):
+    values = dict(os.environ)
+    if path is not None:
+        from dotenv import dotenv_values
+        values.update(dotenv_values(path))
+    return tuple(v.encode() for k, v in values.items() if isinstance(v, str) and len(v) >= 12
+                 and any(word in k.upper() for word in ("TOKEN", "SECRET", "PASSWORD", "KEY")))
+
+
+class BlobReader:
+    def __init__(self, stream, row, secrets=()):
+        self.stream = stream
+        self.left = row["bytes"]
+        self.sha = hashlib.sha256()
+        self.oid = hashlib.sha1(b"blob " + str(self.left).encode() + b"\0")
+        self.scanner = Scanner(secrets)
+
+    def read(self, n=-1):
+        n = self.left if n < 0 else min(n, self.left)
+        data = self.stream.read(n)
+        require(len(data) == n, "truncated_blob")
+        self.left -= n
+        self.sha.update(data)
+        self.oid.update(data)
+        self.scanner.feed(data)
+        return data
+
+
+class Counter:
+    def __init__(self, output=None, guard=None, maximum=None):
+        self.output, self.guard, self.maximum = output, guard, maximum
+        self.size = 0
+        self.digest = hashlib.sha256()
+
+    def write(self, data):
+        require(self.maximum is None or self.size + len(data) <= self.maximum,
+                "compressed_size_exceeds_measurement")
+        if self.guard is not None:
+            self.guard(len(data))
+        if self.output is not None:
+            require(self.output.write(data) == len(data), "short_write")
+        self.size += len(data)
+        self.digest.update(data)
+        return len(data)
+
+    def flush(self):
+        if self.output is not None:
+            self.output.flush()
+
+    def ref(self):
+        return dict(path="delta.tar.gz", bytes=self.size, sha256=self.digest.hexdigest())
+
+
+def stream_delta(repo, rows, sink, secrets=()):
+    proc = subprocess.Popen(["git", "cat-file", "--batch"], cwd=repo, stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    refs = []
+    try:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=sink, mtime=0, compresslevel=9) as gz:
+            with tarfile.open(fileobj=gz, mode="w|", format=tarfile.PAX_FORMAT) as tar:
+                for row in rows:
+                    safe_path(row["path"])
+                    proc.stdin.write(row["git_blob"].encode() + b"\n")
+                    proc.stdin.flush()
+                    oid, kind, size = proc.stdout.readline().decode().split()
+                    require((oid, kind, int(size)) == (row["git_blob"], "blob", row["bytes"]),
+                            "git_batch_identity")
+                    reader = BlobReader(proc.stdout, row, secrets)
+                    info = tarfile.TarInfo(row["path"])
+                    info.size, info.mode, info.mtime = row["bytes"], int(row["mode"], 8) & 0o777, 0
+                    info.uid = info.gid = 0
+                    info.uname = info.gname = ""
+                    tar.addfile(info, reader)
+                    require(reader.left == 0 and reader.oid.hexdigest() == row["git_blob"], "git_blob_hash")
+                    require(proc.stdout.read(1) == b"\n", "git_batch_separator")
+                    refs.append(dict({k: row[k] for k in ["path", "mode", "git_blob", "bytes"]},
+                                     sha256=reader.sha.hexdigest()))
+        proc.stdin.close()
+        require(proc.wait(timeout=60) == 0, "git_batch_failed")
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+    return refs
+
+
+def disk_guard(path, additional=0, *, floor=FLOOR, reserve=RESERVE):
+    free = shutil.disk_usage(path).free
+    require(free >= floor + reserve + additional, "disk_floor_would_be_breached")
+    return dict(free_bytes=free, floor_bytes=floor, reserve_bytes=reserve, additional_bytes=additional)
+
+
+def source_preservation(old, new):
+    source = {p for p in old if p.startswith("initiative/source/") or p == "protocols/report_weak_v2.md"}
+    require(source == {p for p in new if p.startswith("initiative/source/") or p == "protocols/report_weak_v2.md"},
+            "source_membership_changed")
+    require(all(old[p] == new[p] for p in source), "source_or_rubric_changed")
+    return dict(n_source_or_rubric_files=len(source), exact_git_identities_unchanged=True,
+                payloads_parsed=False)
+
+
+def load_base(repo, manifest_path, base):
+    verify_file(manifest_path, dict(sha256=base.manifest_sha256))
+    meta = json.loads(manifest_path.read_text())
+    old = tree(repo, base.git_commit)
+    archived = {}
+    for row in meta["files"]:
+        p = safe_path(row["path"])
+        require(p not in archived and p in old, "base_manifest_membership")
+        require(SHA.fullmatch(row["sha256"]) is not None, "base_manifest_hash")
+        require((row["bytes"], row["git_blob"]) == (old[p]["bytes"], old[p]["git_blob"]),
+                "base_manifest_git_mismatch")
+        archived[p] = dict(old[p], sha256=row["sha256"])
+    require(bool(archived), "empty_base_manifest")
+    return old, archived
+
+
+def selection(old, new, archived):
+    changed = {p for p in new if p not in old or old[p] != new[p]}
+    omitted = set(new) - changed - set(archived)
+    deleted = set(old) - set(new)
+    return changed, omitted, deleted
+
+
+def make_plan(repo, target, manifest_path, base=Base(), secrets=()):
+    old, archived = load_base(repo, manifest_path, base)
+    new = tree(repo, target)
+    source = source_preservation(old, new)
+    changed, omitted, deleted = selection(old, new, archived)
+    sink = Counter()
+    refs = stream_delta(repo, [new[p] for p in sorted(changed | omitted)], sink, secrets)
+    delta = {r["path"]: r for r in refs}
+    files = []
+    for p, row in sorted(new.items()):
+        r = delta[p] if p in delta else dict(row, sha256=archived[p]["sha256"])
+        operation = "new" if p not in old else "modified" if p in changed else "base_coverage_completion" if p in omitted else "reuse_base"
+        files.append(dict(r, materialization="delta" if p in delta else "base", operation=operation))
+    return dict(schema_version=1, format="complete-git-tree-from-base-plus-delta-v1",
+                base_git_commit=base.git_commit, base_hf_revision=base.hf_revision,
+                base_archive=dict(path=f"preparation-checkpoints/{base.git_commit}/checkpoint.tar.gz",
+                                  sha256=base.archive_sha256, bytes=base.archive_bytes),
+                base_manifest=dict(path=f"preparation-checkpoints/{base.git_commit}/manifest.json",
+                                   sha256=base.manifest_sha256),
+                target_git_commit=target, target_git_tree=git(repo, "rev-parse", target + "^{tree}").decode().strip(),
+                delta_archive=sink.ref(), source_preservation=source,
+                n_base_git_files=len(old), n_base_archive_files=len(archived), n_target_git_files=len(new),
+                n_new=sum(p not in old for p in changed), n_modified=sum(p in old for p in changed),
+                n_unchanged_omitted_from_base=len(omitted), n_delta_files=len(refs),
+                delta_raw_bytes=sum(r["bytes"] for r in refs), deleted_paths=sorted(deleted),
+                files=files, training_ready=False, private_destination_required=True,
+                archive_metadata=dict(gzip_level=9, gzip_mtime=0, tar_format="PAX_FORMAT",
+                                      tar_uid=0, tar_gid=0, tar_mtime=0))
+
+
+def verify_archive(path, expected_file, expected_members, secrets=()):
+    before = verify_file(path, expected_file)
+    seen = {}
+    with tarfile.open(path, "r|gz") as tar:
+        for member in tar:
+            name = safe_path(member.name)
+            require(member.isfile() and not member.issym() and not member.islnk(), "unsafe_tar_type")
+            require(name in expected_members and name not in seen, "tar_membership_mismatch")
+            row = expected_members[name]
+            require(member.size == row["bytes"] and member.mode == (int(row["mode"], 8) & 0o777),
+                    "tar_size_or_mode_mismatch")
+            require(member.uid == member.gid == member.mtime == 0 and member.uname == member.gname == "",
+                    "noncanonical_tar_metadata")
+            reader = BlobReader(tar.extractfile(member), row, secrets)
+            while reader.left:
+                reader.read(min(reader.left, 1024 * 1024))
+            require(reader.sha.hexdigest() == row["sha256"], "member_sha256_mismatch")
+            require(reader.oid.hexdigest() == row["git_blob"], "member_git_blob_mismatch")
+            seen[name] = {k: row[k] for k in ["path", "bytes", "mode", "git_blob", "sha256"]}
+    require(set(seen) == set(expected_members), "missing_tar_members")
+    require(file_ref(path) == before, "archive_changed_during_verification")
+    return seen
+
+
+def verify_package(repo, target, base_archive, base_manifest, package_dir,
+                   expected_manifest_sha256, base=Base(), secrets=()):
+    mp = package_dir / "manifest.json"
+    verify_file(mp, dict(sha256=expected_manifest_sha256))
+    plan = json.loads(mp.read_text())
+    require(plan["format"] == "complete-git-tree-from-base-plus-delta-v1", "unsupported_format")
+    require(plan["base_hf_revision"] == base.hf_revision, "base_parent_mismatch")
+    require(plan["base_git_commit"] == base.git_commit and plan["target_git_commit"] == target,
+            "git_binding_mismatch")
+    require(plan["base_archive"]["sha256"] == base.archive_sha256
+            and plan["base_archive"]["bytes"] == base.archive_bytes
+            and plan["base_manifest"]["sha256"] == base.manifest_sha256, "immutable_base_mismatch")
+    old, archived = load_base(repo, base_manifest, base)
+    new = tree(repo, target)
+    require(plan["target_git_tree"] == git(repo, "rev-parse", target + "^{tree}").decode().strip(),
+            "target_tree_mismatch")
+    require(plan["source_preservation"] == source_preservation(old, new), "source_proof_mismatch")
+    changed, omitted, deleted = selection(old, new, archived)
+    require(plan["deleted_paths"] == sorted(deleted), "deletion_manifest_mismatch")
+    all_refs = {}
+    for row in plan["files"]:
+        p = safe_path(row["path"])
+        require(p not in all_refs and p in new, "result_membership_mismatch")
+        require({k: row[k] for k in ["path", "mode", "git_blob", "bytes"]} == new[p],
+                "result_git_identity_mismatch")
+        require(row["materialization"] == ("delta" if p in changed | omitted else "base"),
+                "materialization_mismatch")
+        expected_operation = "new" if p not in old else "modified" if p in changed else "base_coverage_completion" if p in omitted else "reuse_base"
+        require(row["operation"] == expected_operation, "operation_mismatch")
+        all_refs[p] = row
+    require(set(all_refs) == set(new), "incomplete_result_manifest")
+    require(plan["n_target_git_files"] == len(new) and plan["n_delta_files"] == len(changed | omitted)
+            and plan["n_base_git_files"] == len(old) and plan["n_base_archive_files"] == len(archived)
+            and plan["n_new"] == sum(p not in old for p in changed)
+            and plan["n_modified"] == sum(p in old for p in changed)
+            and plan["n_unchanged_omitted_from_base"] == len(omitted), "manifest_count_mismatch")
+    base_seen = verify_archive(base_archive, dict(sha256=base.archive_sha256, bytes=base.archive_bytes), archived, secrets)
+    delta_members = {p: r for p, r in all_refs.items() if r["materialization"] == "delta"}
+    require(plan["delta_raw_bytes"] == sum(r["bytes"] for r in delta_members.values()), "delta_raw_size_mismatch")
+    delta_seen = verify_archive(package_dir / "delta.tar.gz", plan["delta_archive"], delta_members, secrets)
+    resulting = {p: r for p, r in base_seen.items() if p not in deleted}
+    resulting.update(delta_seen)
+    require(set(resulting) == set(new), "restored_membership_mismatch")
+    for p, row in resulting.items():
+        require(row == {k: all_refs[p][k] for k in row}, "restored_file_mismatch")
+    require(plan["training_ready"] is False and plan["private_destination_required"] is True,
+            "preparation_scope_changed")
+    verify_file(mp, dict(sha256=expected_manifest_sha256))
+    return dict(schema_version=1, status="every_target_git_file_restorable_identically",
+                verified_at_utc=datetime.now(timezone.utc).isoformat(),
+                verifier_agent_id="/root/duplicate_consistency_review",
+                target_git_commit=target, target_git_tree=plan["target_git_tree"],
+                manifest=file_ref(mp), delta_archive=plan["delta_archive"],
+                base_hf_revision=base.hf_revision, base_git_commit=base.git_commit,
+                base_archive_sha256=base.archive_sha256, base_manifest_sha256=base.manifest_sha256,
+                n_base_archive_members_verified=len(base_seen), n_delta_members_verified=len(delta_seen),
+                n_result_files_verified=len(resulting), n_deletions_applied=len(deleted),
+                every_file_sha256_git_blob_size_mode_verified=True, membership_exact=True,
+                source_preservation=plan["source_preservation"],
+                proof_method="Stream both archives, verify every payload SHA256 and Git blob identity, apply explicit deletions and delta precedence in memory, compare exact resulting membership/modes/sizes/OIDs/SHA256 to pinned target tree manifest.",
+                full_tree_extracted=False, source_or_clinical_values_parsed=False,
+                remote_calls=0, remote_mutations=0, training_ready=False)
+
+
+def build_package(repo, target, base_archive, base_manifest, output, base=Base(), secrets=(),
+                  floor=FLOOR, reserve=RESERVE):
+    repo, output = repo.resolve(), output.resolve()
+    require(not output.is_relative_to(repo), "output_inside_repository")
+    require(not output.exists(), "output_already_exists")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    disk_guard(output.parent, floor=floor, reserve=reserve)
+    plan = make_plan(repo, target, base_manifest, base, secrets)
+    verify_file(base_archive, dict(sha256=base.archive_sha256, bytes=base.archive_bytes))
+    disk_before = disk_guard(output.parent, plan["delta_archive"]["bytes"], floor=floor, reserve=reserve)
+    output.mkdir()
+    manifest_ref = atomic_json(output / "manifest.json", plan)
+    partial = output / "delta.tar.gz.partial"
+    refs = [r for r in plan["files"] if r["materialization"] == "delta"]
+    with partial.open("xb") as f:
+        sink = Counter(f, lambda n: disk_guard(output, n, floor=floor, reserve=reserve),
+                       plan["delta_archive"]["bytes"])
+        actual = stream_delta(repo, refs, sink, secrets)
+        require(sink.ref() == plan["delta_archive"], "built_archive_differs_from_measurement")
+        require(actual == [{k: r[k] for k in ["path", "mode", "git_blob", "bytes", "sha256"]} for r in refs],
+                "built_members_differ_from_measurement")
+        f.flush()
+        os.fsync(f.fileno())
+    partial.rename(output / "delta.tar.gz")
+    proof = verify_package(repo, target, base_archive, base_manifest, output,
+                           manifest_ref["sha256"], base, secrets)
+    proof["disk_before_build"] = disk_before
+    proof["disk_after_verification"] = disk_guard(output, floor=floor, reserve=reserve)
+    proof["helper"] = file_ref(Path(__file__))
+    atomic_json(output / "restoration-proof.json", proof)
+    return proof
+
+
+def publication_guard(api, ci, target, expected_parent=BASE_HF):
+    """Optional read-only guard for root's future uploader; never called by CLI.
+
+    The caller must configure bounded HTTP timeouts, verify immutable base remote
+    objects, and repeat this guard immediately before a commit with parent_commit.
+    """
+    require(OID.fullmatch(target) is not None and expected_parent == BASE_HF, "publication_binding")
+    require(ci == dict(conclusion="success", headSha=target, status="completed"), "exact_commit_ci_not_success")
+    info = api.repo_info(HF_REPO, repo_type="dataset", revision="main", timeout=30,
+                         expand=["sha", "private"])
+    require(info.private is True, "repository_not_private")
+    require(info.sha == expected_parent, "remote_parent_mismatch")
+
+    def identity(revision):
+        result = {}
+        for e in api.list_repo_tree(HF_REPO, repo_type="dataset", revision=revision):
+            if e.path in SOURCE_TREES + SOURCE_CSVS:
+                require(e.path not in result, "duplicate_source_entry")
+                attribute = "tree_id" if e.path in SOURCE_TREES else "blob_id"
+                value = getattr(e, attribute, None)
+                require(isinstance(value, str) and OID.fullmatch(value), "source_entry_identity")
+                result[e.path] = {attribute: value}
+        require(set(result) == set(SOURCE_TREES + SOURCE_CSVS), "source_entries_missing")
+        return result
+
+    expected = identity(SOURCE_HF)
+    require(identity(expected_parent) == expected, "source_identity_changed")
+    return dict(private=True, parent=expected_parent, source_revision=SOURCE_HF,
+                source_identities=expected, ci=ci, read_only=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=["build", "verify"])
+    parser.add_argument("--repo", type=Path, required=True)
+    parser.add_argument("--target", required=True)
+    parser.add_argument("--base-archive", type=Path, required=True)
+    parser.add_argument("--base-manifest", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--expected-manifest-sha256")
+    parser.add_argument("--secrets-file", type=Path)
+    args = parser.parse_args()
+    secrets = secret_values(args.secrets_file)
+    if args.action == "build":
+        proof = build_package(args.repo, args.target, args.base_archive, args.base_manifest, args.output,
+                              secrets=secrets)
+    else:
+        require(isinstance(args.expected_manifest_sha256, str)
+                and SHA.fullmatch(args.expected_manifest_sha256), "expected_manifest_hash_required")
+        proof = verify_package(args.repo, args.target, args.base_archive, args.base_manifest, args.output,
+                                args.expected_manifest_sha256, secrets=secrets)
+    print(json.dumps({k: proof[k] for k in ["status", "target_git_commit", "n_base_archive_members_verified",
+                     "n_delta_members_verified", "n_result_files_verified", "manifest", "delta_archive"]}, indent=2))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except GuardError as error:
+        print(json.dumps(dict(status="blocked", code=str(error))))
+        raise SystemExit(2) from None
+    except Exception:
+        print(json.dumps(dict(status="blocked", code="unexpected_local_failure")))
+        raise SystemExit(3) from None

@@ -1,0 +1,156 @@
+"""Bounded fixture exception tests; real credentials, reports and archives are unused."""
+import gzip
+import hashlib
+import io
+import json
+from pathlib import Path
+import subprocess
+import tarfile
+
+import pytest
+import checkpoint_delta as d
+
+STAGE=Path(__file__).resolve().parent
+WORKSPACE=STAGE.parents[2]
+ORIGINAL=WORKSPACE/'work/recovered'/d.FIXTURE_ARTIFACT_PATH
+
+def digest(data):return hashlib.sha256(data).hexdigest()
+def blob(data):return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+def row(data,path=d.FIXTURE_ARTIFACT_PATH):
+    return dict(path=path,sha256=digest(data),git_blob=blob(data),bytes=len(data),mode='100644')
+def data():
+    value=ORIGINAL.read_bytes()
+    assert digest(value)==d.FIXTURE_ARTIFACT_SHA256 and len(value)==d.FIXTURE_ARTIFACT_BYTES
+    return value
+def scan(value,reference=None,secrets=(),chunk=4096):
+    scanner=d.ArtifactScanner(row(value) if reference is None else reference,secrets)
+    for start in range(0,len(value),chunk):scanner.feed(value[start:start+chunk])
+    scanner.finish(digest(value))
+    return scanner
+
+def test_tests_use_actual_new_helper():assert Path(d.__file__).resolve()==STAGE/'checkpoint_delta.py'
+
+@pytest.mark.parametrize('chunk',[1,7,4096,20000])
+def test_only_exact_bound_file_passes_across_chunk_boundaries(chunk):
+    original=data();result=scan(original,chunk=chunk)
+    assert result.exception_used and digest(original)==d.FIXTURE_ARTIFACT_SHA256
+
+def test_generic_scanner_still_rejects_exact_synthetic_url():
+    with pytest.raises(d.GuardError,match='authenticated_url_detected'):d.Scanner().feed(d.FIXTURE_URL)
+
+def test_generic_scanner_still_rejects_split_url():
+    scanner=d.Scanner();scanner.feed(d.FIXTURE_URL[:30])
+    with pytest.raises(d.GuardError,match='authenticated_url_detected'):scanner.feed(d.FIXTURE_URL[30:])
+
+@pytest.mark.parametrize('path',['other/test_checkpoint_delta.py.txt',d.FIXTURE_ARTIFACT_PATH+'.copy',d.FIXTURE_ARTIFACT_PATH.replace('primary74','Primary74')])
+def test_same_bytes_at_any_other_path_get_no_exception(path):
+    with pytest.raises(d.GuardError,match='authenticated_url_detected'):scan(data(),row(data(),path))
+
+@pytest.mark.parametrize('field,value',[('sha256','0'*64),('git_blob','0'*40),('bytes',9479)])
+def test_changed_declared_binding_is_rejected(field,value):
+    reference=row(data());reference[field]=value
+    with pytest.raises(d.GuardError,match='fixture_artifact_binding_mismatch'):scan(data(),reference)
+
+def test_changed_content_cannot_rebind_its_new_hash():
+    changed=data().replace(b'Adversarial',b'AdversaRial',1)
+    with pytest.raises(d.GuardError,match='fixture_artifact_binding_mismatch'):scan(changed)
+
+def test_changed_content_with_forged_original_binding_fails_actual_hash():
+    changed=data().replace(b'Adversarial',b'AdversaRial',1)
+    with pytest.raises(d.GuardError,match='fixture_artifact_sha256_mismatch'):scan(changed,row(data()))
+
+def test_even_fixture_literal_is_scanned_for_known_secret_values():
+    # If this exact byte sequence were an actual configured secret, replacing it
+    # only in URL scanning must never hide it from credential-value scanning.
+    with pytest.raises(d.GuardError,match='secret_value_detected'):
+        scan(data(),secrets=(d.FIXTURE_URL,))
+
+def test_real_credential_shape_cannot_hide_behind_forged_allowed_hash():
+    credential=b'hf_'+b'A'*30
+    changed=credential+data()[len(credential):]
+    with pytest.raises(d.GuardError,match='credential_pattern_detected'):scan(changed,row(data()))
+
+def test_nonfixture_signed_url_cannot_use_allowance():
+    changed=data().replace(b'example.invalid/blob?',b'storage.example/blob?',1)
+    assert len(changed)==len(data())
+    with pytest.raises(d.GuardError,match='fixture_artifact_sha256_mismatch'):scan(changed,row(data()))
+
+def test_blob_reader_does_not_modify_payload_and_requires_finalization():
+    original=data();reader=d.BlobReader(io.BytesIO(original),row(original))
+    output=b''.join(iter(lambda:reader.read(min(reader.left,7)) if reader.left else b'',b''))
+    reader.finish()
+    assert output==original and reader.sha.hexdigest()==d.FIXTURE_ARTIFACT_SHA256
+    assert reader.scanner.exception_used
+
+def make_archive(path,value,reference):
+    with path.open('wb') as raw,gzip.GzipFile(filename='',mode='wb',fileobj=raw,mtime=0) as gz:
+        with tarfile.open(fileobj=gz,mode='w|',format=tarfile.PAX_FORMAT) as tar:
+            info=tarfile.TarInfo(reference['path']);info.size=len(value);info.mode=0o644
+            info.uid=info.gid=info.mtime=0;info.uname=info.gname=''
+            tar.addfile(info,io.BytesIO(value))
+
+def test_archive_verification_applies_binding_and_preserves_payload(tmp_path):
+    original=data();reference=row(original);path=tmp_path/'small.tar.gz';make_archive(path,original,reference)
+    seen=d.verify_archive(path,d.file_ref(path),{reference['path']:reference})
+    assert seen[reference['path']]['sha256']==d.FIXTURE_ARTIFACT_SHA256
+    with tarfile.open(path,'r:gz') as tar:assert tar.extractfile(tar.next()).read()==original
+
+def test_archive_verification_rejects_changed_content_even_rebound_outer_hash(tmp_path):
+    reference=row(data());changed=data().replace(b'Adversarial',b'AdversaRial',1)
+    path=tmp_path/'changed.tar.gz';make_archive(path,changed,reference)
+    with pytest.raises(d.GuardError,match='fixture_artifact_sha256_mismatch'):
+        d.verify_archive(path,d.file_ref(path),{reference['path']:reference})
+
+def test_archive_verification_rejects_alias_path(tmp_path):
+    reference=row(data(),'different.txt');path=tmp_path/'alias.tar.gz';make_archive(path,data(),reference)
+    with pytest.raises(d.GuardError,match='authenticated_url_detected'):
+        d.verify_archive(path,d.file_ref(path),{reference['path']:reference})
+
+def git(repo,*args):return subprocess.check_output(['git',*args],cwd=repo,stderr=subprocess.DEVNULL).decode().strip()
+def commit(repo):
+    git(repo,'add','-A');git(repo,'-c','user.name=Offline Test','-c','user.email=fixture@example.invalid','commit','-qm','fixture')
+    return git(repo,'rev-parse','HEAD')
+
+@pytest.fixture
+def toy(tmp_path):
+    repo=tmp_path/'repo';repo.mkdir();git(repo,'init','-q')
+    (repo/'README.md').write_bytes(b'toy base\n');base_commit=commit(repo)
+    base_archive=tmp_path/'base.tar.gz'
+    with base_archive.open('wb') as f:refs=d.stream_delta(repo,list(d.tree(repo,base_commit).values()),d.Counter(f))
+    base_manifest=tmp_path/'base-manifest.json';base_manifest.write_text(json.dumps({'files':refs}))
+    ref=d.file_ref(base_archive)
+    base=d.Base(base_commit,'a'*40,ref['sha256'],ref['bytes'],d.file_ref(base_manifest)['sha256'])
+    targetfile=repo/d.FIXTURE_ARTIFACT_PATH;targetfile.parent.mkdir(parents=True);targetfile.write_bytes(data())
+    target=commit(repo)
+    return repo,target,targetfile,base_archive,base_manifest,base,tmp_path/'package'
+
+def test_git_stream_and_complete_package_restore_exact_fixture(toy):
+    repo,target,targetfile,archive,manifest,base,output=toy
+    proof=d.build_package(repo,target,archive,manifest,output,base,floor=0,reserve=0)
+    assert proof['verified_secret_scan_exception_paths']==[d.FIXTURE_ARTIFACT_PATH]
+    assert proof['n_result_files_verified']==2
+    assert proof['secret_scan_policy']==d.secret_scan_policy()
+    with tarfile.open(output/'delta.tar.gz','r:gz') as tar:
+        assert tar.extractfile(d.FIXTURE_ARTIFACT_PATH).read()==data()
+    d.verify_package(repo,target,archive,manifest,output,d.file_ref(output/'manifest.json')['sha256'],base)
+
+def test_changed_git_member_cannot_use_exception(toy):
+    repo,target,targetfile,archive,manifest,base,output=toy
+    targetfile.write_bytes(data().replace(b'Adversarial',b'AdversaRial',1));changed=commit(repo)
+    with pytest.raises(d.GuardError,match='fixture_artifact_binding_mismatch'):
+        d.make_plan(repo,changed,manifest,base)
+
+def test_git_measurement_scans_known_secrets_inside_fixture(toy):
+    repo,target,targetfile,archive,manifest,base,output=toy
+    with pytest.raises(d.GuardError,match='secret_value_detected'):
+        d.make_plan(repo,target,manifest,base,secrets=(d.FIXTURE_URL,))
+
+def test_manifest_cannot_change_exception_policy(toy):
+    repo,target,targetfile,archive,manifest,base,output=toy
+    d.build_package(repo,target,archive,manifest,output,base,floor=0,reserve=0)
+    path=output/'manifest.json';value=json.loads(path.read_text());value['secret_scan_policy']['exceptions'][0]['sha256']='0'*64;path.write_text(json.dumps(value))
+    with pytest.raises(d.GuardError,match='secret_scan_policy_mismatch'):
+        d.verify_package(repo,target,archive,manifest,output,d.file_ref(path)['sha256'],base)
+
+def test_new_helper_and_new_tests_need_no_scanner_exception():
+    for path in [STAGE/'checkpoint_delta.py',Path(__file__)]:d.Scanner().feed(path.read_bytes())

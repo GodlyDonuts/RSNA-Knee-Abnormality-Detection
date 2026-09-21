@@ -9,15 +9,17 @@ from a clone of this repository.
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
-The latest audit additions preserve 34 registered report-target corrections,
-18 enforced report-supervision exclusions and a reviewed sampling preference for
-two studies, retaining all original series. The 150 independently inspected
-samples from the final 12 targeted cases and bounded native/display evidence are
-preserved. All 462 tests pass. Three global semantic QA gates and final leakage,
-mask, manifest and training checks remain open; 24 unresolved correspondence
-cases must retain zero report loss masks at final export. The verified private
-HF checkpoint for Git `1792f01` is archived with its publication receipt; the
-subsequent v6 policy and sampling table are newer than that checkpoint.
+The current registry contains 205 accepted report-target corrections and retains
+18 enforced report-supervision exclusions. The latest focused wording batch adds
+87 accepted changes; one additional grading disagreement remains pending.
+Original full-source judgments and all later reconsiderations are preserved.
+Three global semantic QA gates and final leakage, mask, manifest and training
+checks remain open. Twenty-four unresolved correspondence cases must retain
+zero report loss masks at final export. The latest verified private Hugging Face
+checkpoint is Git `a27b161` / HF `291d0051`, preserving the earlier 118-correction
+milestone; its restoration and publication evidence are archived. This
+205-correction milestone is newer than that immutable checkpoint. A later
+publication receipt must establish synchronization; do not infer it from this text.
 
 The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and
 [agent procedure](../protocols/agent_tasks.md). The `reviews/` outputs and index

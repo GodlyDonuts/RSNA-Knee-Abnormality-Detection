@@ -1,0 +1,165 @@
+"""Corrected publisher regression checks with synthetic services and tiny fixtures."""
+import hashlib
+import importlib.util
+import json
+import re
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import pytest
+
+S=Path(__file__).resolve().parent
+W=S.parents[2]
+T=W/'work'
+def module(name,path):
+    import sys
+    spec=importlib.util.spec_from_file_location(name,path)
+    value=importlib.util.module_from_spec(spec);sys.modules[name]=value;spec.loader.exec_module(value)
+    return value
+P=module('corrected_publisher_review',T/'publish_qualified001_delta.template.py')
+H=module('corrected_publisher_helper',P.HELPER)
+TR=module('corrected_publisher_transport',P.TRANSPORT)
+TARGET='1'*40
+OTHER='2'*40
+PREFIX='preparation-checkpoints/'+TARGET+'/'
+GOOD=dict(TARGET=TARGET,PREFIX=PREFIX,CI_RUN=123,N_FILES=7000,N_CORRECTIONS=205)
+IDENTITY={p:{'tree_id' if p in H.SOURCE_TREES else 'blob_id':'3'*40} for p in H.SOURCE_TREES+H.SOURCE_CSVS}
+
+def reverse_patch(new_text,patch_text):
+    source=new_text.splitlines(True);diff=patch_text.splitlines(True)
+    result=[];cursor=0;i=0
+    while i<len(diff):
+        if not diff[i].startswith('@@ '):i+=1;continue
+        match=re.match(r'@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@',diff[i]);assert match
+        start=int(match.group(3))-1
+        result.extend(source[cursor:start]);cursor=start;i+=1
+        while i<len(diff) and not diff[i].startswith('@@ '):
+            line=diff[i]
+            if line.startswith(' '):
+                assert source[cursor]==line[1:];result.append(line[1:]);cursor+=1
+            elif line.startswith('+'):
+                assert source[cursor]==line[1:];cursor+=1
+            elif line.startswith('-'):result.append(line[1:])
+            else:raise AssertionError('Unexpected patch line')
+            i+=1
+    result.extend(source[cursor:]);return ''.join(result)
+
+def test_root_applied_exact_suggested_patch():
+    previous=S.parent/'qualified001-publisher-independent-review-v1'
+    restored=reverse_patch(Path(P.__file__).read_text(),(previous/'suggested-not-applied.patch').read_text())
+    assert hashlib.sha256(restored.encode()).hexdigest()=='ec4e317b9c5f524aee4c7abe04f7a4a4919f4c76e3cf242fd91406e2d1608a64'
+
+@pytest.mark.parametrize('bad',[{'TARGET':'TO_BE_BOUND_AFTER_COMMIT'},{'TARGET':'abc'},{'TARGET':None},{'CI_RUN':None},{'CI_RUN':True},{'CI_RUN':0},{'N_FILES':None},{'N_FILES':True},{'N_FILES':0},{'N_CORRECTIONS':None},{'N_CORRECTIONS':193},{'N_CORRECTIONS':118},{'N_CORRECTIONS':True},{'PREFIX':'wrong/'}])
+def test_all_unbound_or_stale_values_fail_locally(bad):
+    with patch.multiple(P,**(GOOD|bad)),pytest.raises(P.PublicationGuardError):P.local_binding_guard()
+
+def test_exact205_and_bound_manifest_pass():
+    with patch.multiple(P,**GOOD):
+        P.local_binding_guard({'base_git_commit':P.BASE_GIT,'n_target_git_files':7000,'files':[{}]*7000})
+
+@pytest.mark.parametrize('changes',[{'base_git_commit':OTHER},{'n_target_git_files':7001},{'files':[{}]}])
+def test_manifest_base_count_or_membership_mismatch_fails(changes):
+    manifest={'base_git_commit':P.BASE_GIT,'n_target_git_files':7000,'files':[{}]*7000}|changes
+    with patch.multiple(P,**GOOD),pytest.raises(P.PublicationGuardError):P.local_binding_guard(manifest)
+
+class Api:
+    private=True
+    head=P.PARENT
+    changed_revision=None
+    def repo_info(self,*args,**kwargs):return SimpleNamespace(private=self.private,sha=self.head)
+    def list_repo_tree(self,*args,**kwargs):
+        return [SimpleNamespace(path=p,**{k:('4'*40 if kwargs['revision']==self.changed_revision else v) for k,v in data.items()}) for p,data in IDENTITY.items()]
+
+def test_current_parent_guard_remains_valid():
+    with patch.multiple(P,**GOOD):P.publication_guard(Api(),dict(conclusion='success',headSha=TARGET,status='completed'),TR,H,IDENTITY)
+
+@pytest.mark.parametrize('kind',['old_base_parent','public','parent_source','base_source','wrong_ci'])
+def test_remote_guard_regressions_remain_fail_closed(kind):
+    api=Api();ci=dict(conclusion='success',headSha=TARGET,status='completed')
+    if kind=='old_base_parent':api.head=P.BASE_HF
+    elif kind=='public':api.private=False
+    elif kind=='parent_source':api.changed_revision=P.PARENT
+    elif kind=='base_source':api.changed_revision=P.BASE_HF
+    else:ci['headSha']=OTHER
+    with patch.multiple(P,**GOOD),pytest.raises((P.PublicationGuardError,TR.GuardError)):
+        P.publication_guard(api,ci,TR,H,IDENTITY)
+
+def package(tmp_path):
+    p=tmp_path/'package';p.mkdir()
+    (p/'delta.tar.gz').write_bytes(b'synthetic offline placeholder; not an archive')
+    manifest={'base_git_commit':P.BASE_GIT,'target_git_commit':TARGET,'base_hf_revision':P.BASE_HF,'training_ready':False,
+        'n_target_git_files':7000,'files':[{}]*7000,'delta_archive':{'sha256':P.sha(p/'delta.tar.gz'),'bytes':(p/'delta.tar.gz').stat().st_size},
+        'base_archive':{'path':'base/checkpoint.tar.gz'},'base_manifest':{'path':'base/manifest.json'}}
+    (p/'manifest.json').write_text(json.dumps(manifest))
+    proof={'verifier_agent_id':'/root','target_git_commit':TARGET,'manifest':{'sha256':P.sha(p/'manifest.json')},'n_result_files_verified':7000,'status':'every_target_git_file_restorable_identically'}
+    (p/'root-restoration-proof.json').write_text(json.dumps(proof));(p/'restoration-proof.json').write_text('{}')
+    return p
+
+def run(p,action,*,corrections=205,head=None,ci_success=True,extra_remote=False):
+    initial_head=P.PARENT if head is None else head
+    state={'head':initial_head,'mock_commit_calls':[],'mock_token_reads':0}
+    names={PREFIX+n for n in ('delta.tar.gz','manifest.json','restoration-proof.json','root-restoration-proof.json','README.md','checkpoint_delta.py')}
+    def tree(*args,**kwargs):
+        if kwargs.get('path_in_repo'):
+            return [SimpleNamespace(path=n) for n in names|({PREFIX+'extra'} if extra_remote else set())]
+        return [SimpleNamespace(path='README.md',blob_id='5'*40)]
+    def create_commit(**kwargs):
+        state['mock_commit_calls'].append(kwargs);state['head']=OTHER
+        return SimpleNamespace(oid=OTHER)
+    api=SimpleNamespace(list_repo_tree=tree,get_paths_info=lambda *a,**k:[],create_commit=create_commit)
+    def add(path_in_repo,path_or_fileobj):
+        return SimpleNamespace(path_in_repo=path_in_repo,upload_info=SimpleNamespace(size=path_or_fileobj.stat().st_size,sha256=bytes.fromhex(P.sha(path_or_fileobj))))
+    hub=SimpleNamespace(HfApi=lambda **kw:api,CommitOperationAdd=add)
+    transport=SimpleNamespace(configure_hub=lambda:hub,private_head=lambda a:state['head'],source_identity=lambda a,r:IDENTITY,
+        verify_remote=lambda a,h,t,r,refs:[dict(x,verification='mock_exact_content') for x in refs])
+    helper=SimpleNamespace(disk_guard=lambda p:None,secret_values=lambda p:(),Scanner=lambda s:SimpleNamespace(feed=lambda d:None),OID=H.OID,
+        SOURCE_HF=H.SOURCE_HF,HF_REPO=H.HF_REPO,BASE_ARCHIVE_SHA=H.BASE_ARCHIVE_SHA,BASE_ARCHIVE_BYTES=H.BASE_ARCHIVE_BYTES,BASE_MANIFEST_SHA=H.BASE_MANIFEST_SHA)
+    def secrets(p):state['mock_token_reads']+=1;return {'HF_TOKEN':'synthetic-offline-value'}
+    ci={'conclusion':'success' if ci_success else 'failure','headSha':TARGET,'status':'completed'}
+    argv=['publisher',action,'--package',str(p),'--manifest-sha256',P.sha(p/'manifest.json'),'--helper-sha256',P.sha(P.HELPER)]
+    if action=='publish':argv+=['--operation-sha256',P.sha(p/'root-publication-operation.json')]
+    with patch.multiple(P,**(GOOD|{'N_CORRECTIONS':corrections}),module=lambda name,path:helper if path==P.HELPER else transport,dotenv_values=secrets),patch.object(P.subprocess,'check_output',return_value=json.dumps(ci).encode()),patch('sys.argv',argv):
+        P.main()
+    return state
+
+@pytest.mark.parametrize('corrections',[None,193])
+def test_prepare_blocks_unbound_or_stale_count_before_writes(tmp_path,corrections):
+    p=package(tmp_path)
+    with pytest.raises(P.PublicationGuardError,match='correction_count_not_205'):run(p,'prepare',corrections=corrections)
+    assert not (p/'README.md').exists() and not (p/'root-publication-operation.json').exists()
+
+def test_prepare_checks_ci_before_writing_passed_claim(tmp_path):
+    p=package(tmp_path)
+    with pytest.raises(P.PublicationGuardError,match='ci_mismatch'):run(p,'prepare',ci_success=False)
+    assert not (p/'README.md').exists() and not (p/'root-publication-operation.json').exists()
+
+def test_new_commit_receipt_records_cas_parent(tmp_path):
+    p=package(tmp_path);run(p,'prepare');state=run(p,'publish')
+    receipt=json.loads((p/'root-publication-receipt.json').read_text())
+    assert len(state['mock_commit_calls'])==1
+    assert state['mock_commit_calls'][0]['parent_commit']==P.PARENT
+    assert len(state['mock_commit_calls'][0]['operations'])==6
+    assert receipt['publication_action']=='commit_from_expected_parent'
+    assert receipt['verified_hf_parent']==receipt['expected_hf_parent']==P.PARENT
+    assert receipt['base_hf_revision']==P.BASE_HF and receipt['registered_corrections']==205
+
+def test_reconciliation_receipt_does_not_claim_unverified_parent(tmp_path):
+    p=package(tmp_path);run(p,'prepare');state=run(p,'publish',head=OTHER)
+    receipt=json.loads((p/'root-publication-receipt.json').read_text())
+    assert state['mock_commit_calls']==[]
+    assert receipt['publication_action']=='verify_existing_exact_content'
+    assert receipt['verified_hf_parent'] is None and receipt['expected_hf_parent']==P.PARENT
+    assert 'not ancestry or author' in receipt['parent_binding_scope']
+    assert 'previous_hf_head' not in receipt
+
+def test_extra_remote_prefix_member_blocks_receipt(tmp_path):
+    p=package(tmp_path);run(p,'prepare')
+    with pytest.raises(P.PublicationGuardError,match='published_prefix_membership'):run(p,'publish',head=OTHER,extra_remote=True)
+    assert not (p/'root-publication-receipt.json').exists()
+
+def test_changed_operation_parent_blocks_publication(tmp_path):
+    p=package(tmp_path);run(p,'prepare')
+    path=p/'root-publication-operation.json';op=json.loads(path.read_text());op['expected_hf_parent']=P.BASE_HF;path.write_text(json.dumps(op))
+    with pytest.raises(P.PublicationGuardError,match='operation_identity'):run(p,'publish')
+    assert not (p/'root-publication-receipt.json').exists()

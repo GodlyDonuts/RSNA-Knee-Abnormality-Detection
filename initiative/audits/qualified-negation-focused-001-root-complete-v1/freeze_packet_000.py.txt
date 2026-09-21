@@ -1,0 +1,142 @@
+"""Assemble root's explicit first ten source readings; no candidate/label rules."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import json
+import sys
+
+G = Path(__file__).resolve().parent
+W = G.parents[2]
+R = W / "work/recovered"
+sys.path.insert(0, str(R))
+from rsna.schema import TARGETS
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+packet = W / "work/annotation-staging/qualified-negation-focused-001-post-freeze-comparison-v1/neutral-root-packets/packet-000.json"
+assert sha(packet) == "f1a6b43685b9fd62ebe879772156dc281ddfc8ad164af5834c50c24b5aaffb6f"
+source = json.loads(packet.read_text())
+assert len(source) == 10
+N, P, U, X = "negative", "positive", "uncertain", "not_mentioned"
+missing = (X, "")
+judgments = []
+
+judgments.append(([
+    (U, "Il y a une légère atténuation du ligament croisé antérieur suggérant une ancienne déchirure partielle. Il n'y a pas de composante transfixiante."),
+    (N, "Il y a un œdème au pourtour du ligament collatéral interne suggérant une entorse de grade 1."),
+    (P, "Il y a une déchirure radiaire transfixiante au rebord libre de la corne postérieure du ménisque interne à proximité de la racine postérieure avec une extrusion modérée du corps méniscal."),
+    (N, "Le ménisque externe de même que le complexe ligamentaire collatéral externe sont intacts et sans déchirure."),
+    (U, "Il y a une atténuation modérée des surfaces cartilagineuses au compartiment fémorotibial interne, sans atteinte transfixiante."),
+    (U, "Il y a une légère atténuation diffuse des surfaces cartilagineuses au compartiment fémorotibial externe, sans atteinte transfixiante ni changement sous-chondral réactionnel associé."),
+    (U, "Il y a une atténuation modérée des surfaces cartilagineuses au compartiment patellofémoral avec une fissure chondrale de haut grade à la jonction de l’apex patellaire et de la facette patellaire externe."),
+    (U, "Il y a un épanchement intra-articulaire léger à modéré."), missing,
+    (U, "Il n'y a pas de kyste de Baker significatif."), missing, missing,
+], "ACL partial injury is old and unquantified; excluding full-thickness disruption does not establish the high-grade boundary. Grade1 MCL is below threshold. The medial radial tear is definite; lateral meniscus is intact. Cartilage descriptions lack qualifying depth/extent; absence of full-thickness or reactive subchondral change does not grade partial loss or globally assess traumatic marrow injury. Mild-to-moderate fluid crosses the threshold; significant Baker absence is qualified. Bursitis around MCL/pes anserine is not intra-articular synovitis. No fracture or informative contusion assessment."))
+
+judgments.append(([
+    (N, "Le ligament croisé antérieur est normal."), (N, "Le ligament collatéral interne est normal."),
+    (N, "Pas d'évidence de déchirure méniscale."), (N, "Le ménisque externe est normal."),
+    (U, "Il n'y a pas de chondrose significative ou d'arthrose."), (U, "Il n'y a pas de chondrose significative ou d'arthrose."),
+    (N, "Le cartilage fémoro-rotulien est normal."), (N, "Il y a un minime épanchement articulaire."), missing,
+    (N, "Il n'y a pas de kyste poplité."),
+    (N, "Il n'y a pas d'oedème de la moelle osseuse de contusion ou de fracture."),
+    (N, "Il n'y a pas d'oedème de la moelle osseuse de contusion ou de fracture."),
+], "Explicit normal ligaments/lateral meniscus, the final unqualified meniscal-tear denial and no other medial abnormality support negatives. PF cartilage is explicitly normal despite another significance-qualified clause. The general significant-chondrosis/OA denial alone does not quantify the medial/lateral threshold. Minimal knee fluid is below threshold; the additional proximal tibiofibular effusion does not raise it. Popliteal cyst and bone edema/contusion/fracture are expressly denied. Synovial lining unmentioned."))
+
+judgments.append(([
+    (N, "Ligament croisé antérieur : Normal."), (N, "Ligament collatéral médial : Normal."),
+    (N, "Ménisque médial : Normal."), (N, "Ménisque latéral : Normal."), missing, missing,
+    (U, "Chondropatie rétropatellaire modérée avec fissuration profonde de la facette latérale."),
+    (U, "Épanchement articulaire : Pas de liquide significatif."), missing, (N, "Kyste de Baker : Aucun."),
+    (U, "Zone focale d’œdème osseux mesurant 1 cm dans la face médiale du condyle fémoral médial, qui semble être en lien avec quelques vaisseaux intra-osseux proéminents. Par ailleurs, l'examen est normal."),
+    (N, "Fractures :\nAucune."),
+], "Explicit structure normals, cyst absence and fracture absence support negatives. PF deep fissuring lacks extent; medial/lateral cartilage is unaddressed. The presumed vascular explanation for focal marrow edema is tentative and does not establish impact causality or a whole-knee contusion exclusion. No significant fluid is threshold-incomplete. General otherwise-normal examination is in the marrow paragraph and cannot supply unmentioned compartment cartilage negatives."))
+
+normal_ligaments = "The anterior cruciate ligament, posterior cruciate ligament and medial collateral ligament are intact and appear unremarkable."
+judgments.append(([
+    (N, normal_ligaments), (N, normal_ligaments), (N, "The medial meniscus is intact and unremarkable."), (N, "The lateral meniscus is intact and appears unremarkable."),
+    (N, "Articular cartilage of the medial joint compartment is well-maintained."), (N, "Articular cartilage of lateral joint compartment is well-maintained."), (N, "Articular cartilage of the patellofemoral joint is well-maintained."),
+    (U, "No significant knee effusion."), missing, (N, "There is a trace Baker's cyst."), missing, missing,
+], "Explicitly intact structures and maintained cartilage support negatives. A separate parameniscal ganglion is not a Baker cyst and does not override the explicit no associated meniscal tear. Trace Baker is below threshold; joint fluid is only significance-qualified. No synovitis deep to the IT band is extra-articular local context, not a global knee synovial-lining negative. Fat-pad edema is not bone edema, and no informative fracture/contusion mention occurs."))
+
+normal_spanish = "Ligamentos cruzados y colaterales dentro de límites normales."
+cart_normal = "Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones."
+judgments.append(([
+    (N, normal_spanish), (N, normal_spanish),
+    (N, "Aumento de señal central del cuerno posterior y cuerpo del menisco medial que no contacta la\nsuperficie articular, sin caracteres propios de rotura."),
+    (N, "El menisco lateral es de morfología y señal\nconservada, sin signos de rotura."),
+    (N, cart_normal), (N, cart_normal), (N, cart_normal),
+    (U, "No hay significativo derrame articular ni quistes poplíteos."), missing,
+    (N, "No hay significativo derrame articular ni quistes poplíteos."),
+    (U, "No hay alteraciones en significativas de la médula ósea."), missing,
+], "Explicitly normal ligaments/cartilage and preserved lateral meniscus support negatives. Medial signal is explicitly away from the surface and lacks tear characteristics. The singular significance qualifier modifies effusion; separately coordinated plural popliteal cyst absence is unqualified. Marrow absence is significance-qualified. IT-band-adjacent soft-tissue lesion/edema is not marrow contusion or joint synovitis; fracture unmentioned. Literal transcription is preserved."))
+
+judgments.append(([
+    (N, normal_spanish), (N, normal_spanish),
+    (U, "Aumento de señal central del cuerpo, cuerno posterior del menisco medial asociado a pequeño quiste\nparameniscal posterior. Estos hallazgos podrían representar una pequeña rotura, no desplazada,\ncorrelacionar con clínica."),
+    (N, "El menisco lateral es de morfología y señal conservada, sin criterios categóricos de rotura."),
+    (U, "Finas úlceras condrales de espesor parcial de la región central de la zona de carga del\ncóndilo femoral medial."),
+    (U, "Fina úlcera condral focal de espesor total de la región central posterior de platillo tibial lateral, sin cambios\nóseos secundarios."),
+    (N, "Condropatía rotuliana superficial de la rótula."),
+    (U, "No hay significativo derrame articular ni quistes poplíteos."), missing,
+    (N, "No hay significativo derrame articular ni quistes poplíteos."),
+    (U, "No hay alteraciones de señal significativas de la médula ósea."), missing,
+], "Medial tear remains possible, including the parameniscal cyst; do not promote it to definite tear or isolated degeneration. Lateral morphology and signal are independently normal despite qualified tear denial. Medial partial loss plus unnamed grade2 does not quantify depth; lateral full-thickness fine focal loss lacks a measured qualifying extent. Explicitly superficial patellar disease is below the depth threshold. Effusion and marrow are qualified; the separate cyst phrase is unqualified. Fracture/synovitis unmentioned."))
+
+cart_turkish = "Diz eklemindeki trikompartmantal dejeneratif eklem hastalığı medyal femorotibyal eklem yüzeylerinde belirgin olup patellanın apeksi ve medyal fasetindeki yüzeyel kondral düzensizlikler ve milimetrik kondral fissürler, medyal femoral kondilin ağırlık taşıyan yüzeyinin posteriyorundaki yer yer fokal olarak tam kata ulaşan milimetrik kondral kayıplar ve milimetrik marjinal osteofitler ile karakterize."
+judgments.append(([
+    (N, "Çapraz ve yan bağlar bunların dışında normal."),
+    (N, "Medyal menisküs medyale 6 mm ekstrüde ve iç yan bağı hafifçe basılıyor. Lateral menisküs normal. Çapraz ve yan bağlar bunların dışında normal."),
+    (P, "Medyal menisküs arka boynuzundaki dejenerasyona arka boynuzu-kökü bileşkesi düzeyindeki tam kat vertikal yırtık eşlik ediyor."),
+    (N, "Lateral menisküs normal."),
+    (U, cart_turkish), (U, cart_turkish), (U, cart_turkish),
+    (P, "Diz eklemi içi sıvı miktarı suprapatellar reseste daha belirgin olmak üzere orta derecede artmış."), missing, missing, missing, missing,
+], "Moderately increased intra-articular fluid supports positive effusion; the medial full-thickness vertical tear is definite. Ligaments are otherwise normal; mild MCL compression by an extruded meniscus does not establish a tear. Tricompartmental degenerative disease explicitly addresses all three cartilage compartments. Millimetric focal losses lack an explicit maximum regional extent; superficial patellar irregularity does not grade the separately mentioned fissures. Keep OA uncertain rather than invent dimensions/depth. Hematopoietic marrow changes are not an edema/impact or fracture assessment. Extra-articular pes-anserine inflammation is not synovitis; Baker unmentioned."))
+
+ligaments = "Intact cruciate and collateral ligaments."
+menisci = "Intact menisci."
+cartilage = "Well-maintained tricompartmental hyaline articular cartilage."
+judgments.append(([
+    (N, ligaments), (N, ligaments), (N, menisci), (N, menisci),
+    (N, cartilage), (N, cartilage), (N, cartilage),
+    (U, "No significant joint effusion."), missing, missing,
+    (U, "No sinister bone marrow changes."), missing,
+], "Normal named structure groups and tricompartmental cartilage support negatives. Significant effusion and sinister marrow changes are qualified exclusions, not explicit amount or complete marrow negatives. Generic no significant findings cannot supply missing target labels. Synovial lining, Baker cyst and fracture are unmentioned."))
+
+judgments.append(([
+    (N, "Intacte voorste kruisband."), (N, "Intact mediaal collateraal ligament."),
+    (N, "Intacte mediale meniscus."), (N, "Intacte laterale meniscus."),
+    (U, "Geen majeure kraakbeendefecten mediaal en lateraal femorotibiaal."),
+    (U, "Geen majeure kraakbeendefecten mediaal en lateraal femorotibiaal."),
+    (N, "Ondiep parti ële dikte kraakbeenfissuurtje mediaal patellair."),
+    (U, "Geen significante hydrops."), missing, missing, (N, "Geen botoedeem."), missing,
+], "Explicit intact ligaments/menisci and no marrow edema support negatives. Shallow partial-thickness patellar fissuring explicitly supplies a superficial below-depth finding. No major tibiofemoral defects and no significant fluid do not define the target thresholds. Prepatellar bursitis is not joint synovitis; Baker and fracture unmentioned. Preserve the unusual split word in the original quotation."))
+
+structures = "Autrement le ligament croisé antérieur, le ligament croisé postérieur, le mécanisme des extenseurs, le ligament collatéral interne, le semi-membraneux, le muscle et tendon du poplité, le biceps fémoris distal, le ligament collatéral externe et la bandelette ilio-tibiale sont sans particularité."
+judgments.append(([
+    (N, structures), (N, structures), (N, "Les ménisques sont sans particularité."), (N, "Les ménisques sont sans particularité."),
+    (N, "Le cartilage du compartiment interne et externe est préservé."), (N, "Le cartilage du compartiment interne et externe est préservé."),
+    (U, "Il y a amincissement du cartilage avec fibrillation superficielle plus proéminent impliquant la facette latérale de la rotule avec fissure partielle de la facette médiale."),
+    (U, "Il n’y a pas d’épanchement intra-articulaire significatif ou de kyste poplité."), missing,
+    (N, "Il n’y a pas d’épanchement intra-articulaire significatif ou de kyste poplité."), missing, missing,
+], "Normal named structures and preserved medial/lateral cartilage support negatives. Superficial lateral patellar fibrillation does not quantify the separately located medial partial fissure; PF OA is uncertain. Significant qualifies effusion, while the separately introduced popliteal cyst phrase is unqualified. Fat-pad edema is extraosseous, not marrow injury. Synovitis/fracture are unmentioned."))
+
+assert len(judgments) == len(source)
+records = []
+for row, (decisions, notes) in zip(source, judgments):
+    assert len(decisions) == 12
+    p = R / row["source_path"]
+    assert sha(p) == row["source_sha256"]
+    original = json.loads(p.read_text())[row["index"]]
+    assert original == {"study_uid": row["study_uid"], "report": row["report"]}
+    assert hashlib.sha256(row["report"].encode()).hexdigest() == row["report_utf8_sha256"]
+    for state, quote in decisions:
+        assert state in (N, P, U, X) and quote in row["report"]
+        assert (state == X) == (quote == "")
+    records.append({"study_uid": row["study_uid"], "case": row["batch"].removeprefix("batch-") + ":" + str(row["index"]).zfill(2), "source_path": row["source_path"], "source_sha256": row["source_sha256"], "source_index_zero_based": row["index"], "report_sha256": row["report_utf8_sha256"], "states": [s for s, q in decisions], "evidence": [q for s, q in decisions], "notes": notes})
+out = G / "packet-000-source-assessment.json"
+doc = {"schema_version": 1, "stage": "root_complete_original_source_reading_before_focused001_case_findings", "assessor_id": "/root", "session_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "target_order": list(TARGETS), "rubric_sha256": sha(R / "protocols/report_weak_v2.md"), "source_packet": {"path": str(packet.relative_to(W)), "sha256": sha(packet)}, "authoring_helper": {"path": str(Path(__file__).relative_to(W)), "sha256": sha(Path(__file__))}, "clinical_registry_at_source_stage_sha256": sha(R / "initiative/reviews-v2/adjudications/registry.json"), "case_specific_focused001_reader_states_proposals_or_comparisons_accessed": False, "historical_exposure": "Root previously read the original4407-run sources and completed focused000 adjudication at118 registered corrections. Aggregate focused001 disagreement/proposal counts and neutral packet membership are known. The present first10 sources were personally read in full before focused001 case-specific reader findings. No claim of first-ever or complete historical blindness; previous root judgments remain untouched. No gold values opened.", "reports": records, "counts": {"reports": 10, "target_judgments": 120, "remaining_reports_before_case_comparison": 40}, "runtime_annotation_changes": 0, "training_ready": False}
+with out.open("x") as f:
+    f.write(json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+print(json.dumps({"source_reports": 10, "target_judgments": 120, "remaining_reports": 40, "assessment_sha256": sha(out)}))

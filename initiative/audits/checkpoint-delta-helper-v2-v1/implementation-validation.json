@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "stage": "checkpoint-delta-helper-v2-v1",
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "at_utc": "2026-09-21T23:08:29.495912+00:00",
+  "status": "implemented_and_locally_validated_pending_root_code_review",
+  "helper": {
+    "path": "work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py",
+    "sha256": "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8",
+    "bytes": 27915
+  },
+  "original_helper": {
+    "path": "work/annotation-staging/primary74-integration-and-hf-delta-verification-v1/checkpoint_delta.py",
+    "sha256": "0d89473e7feb5c7d613436193f97773de99697ca3d2ddc88a1994038bdec7d8a",
+    "unchanged": true
+  },
+  "original_test_suite": {
+    "path": "work/annotation-staging/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py",
+    "sha256": "e5b46e5bcbac3b9ed626a9e5a9c8a89519c2ad5058e3a682049625786a1cfc57",
+    "unchanged": true,
+    "tests_passed": 28
+  },
+  "new_tests": {
+    "path": "work/annotation-staging/checkpoint-delta-helper-v2-v1/test_checkpoint_delta_v2.py",
+    "sha256": "fa15fc0f5ad2f1f74d151c3ead442cfb37e5247e16e82cdbbf1bb45c333023a6",
+    "tests_passed": 27
+  },
+  "total_tests_passed": 55,
+  "actual_staged_artifact": {
+    "path": "initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt",
+    "sha256": "e5b46e5bcbac3b9ed626a9e5a9c8a89519c2ad5058e3a682049625786a1cfc57",
+    "bytes": 9478,
+    "git_blob": "f322d072369b7da379aee487b0fa2007e9817669",
+    "index_worktree_and_original_test_bytes_identical": true,
+    "original_generic_scanner_rejects": true,
+    "v2_bound_blob_reader_accepts": true,
+    "payload_bytes_preserved": true,
+    "literal_occurrences": 1
+  },
+  "policy": {
+    "version": "v2-exact-bound-test-fixture",
+    "generic_scanner_unchanged": true,
+    "exceptions": [
+      {
+        "path": "initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt",
+        "sha256": "e5b46e5bcbac3b9ed626a9e5a9c8a89519c2ad5058e3a682049625786a1cfc57",
+        "git_blob": "f322d072369b7da379aee487b0fa2007e9817669",
+        "bytes": 9478,
+        "fixture_sha256": "dd061102d0a3cb13e9e87def67200d4cca09af9a13751f386994045b8c807267",
+        "fixture_bytes": 52,
+        "exact_occurrences": 1,
+        "scope": "Omit this literal only from URL scanning after full content verification; original bytes always undergo credential scanning."
+      }
+    ]
+  },
+  "verification_call_sites": [
+    "stream_delta: BlobReader.finish() after reading each complete Git blob and before recording its hashes.",
+    "verify_archive: BlobReader.finish() after reading each complete member and before accepting its hashes."
+  ],
+  "security_scope": [
+    "No URL exemption is activated before actual whole-file SHA256 equality; a Git-stream candidate is selected only by exact path, fixed size and fixed Git object, and then independently SHA256-verified.",
+    "Known secret values and credential patterns inspect every original byte before URL-only substitution.",
+    "Only the exact reserved-domain fixture literal is replaced by equal-length spaces in the scanner view. Archive and Git payload bytes are untouched.",
+    "A supplied archive-member hash that differs from the fixed approved hash is rejected.",
+    "No arbitrary allowlist, command-line exemption, prefix match or source-file rewrite is introduced.",
+    "The generic Scanner retains its original URL rejection behavior and unchanged28 tests pass against the new helper."
+  ],
+  "format": "complete-git-tree-from-base-plus-delta-v2",
+  "base_git": "1792f01ed3daab757c5ddb9bf5733ffe8d999f91",
+  "base_hf": "54949cd5a575ea7027a4a57916e772936a98d38b",
+  "root_review_pending": true,
+  "future_real_target_build_performed": false,
+  "r_edited": false,
+  "network_calls": 0,
+  "remote_mutations": 0,
+  "real_credentials_read": false,
+  "full_archive_downloads_or_copies": 0,
+  "synthetic_fixture_bytes_removed": 630229,
+  "disk_free_bytes_after": 22820978688
+}

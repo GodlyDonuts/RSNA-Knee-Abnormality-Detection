@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "reviewer_agent_id": "/root/duplicate_consistency_review",
+  "reviewed_at_utc": "2026-09-21T21:55:57.426798+00:00",
+  "role": "bounded_code_scope_hash_and_retry_review_not_clinical_acceptance_or_publication",
+  "publisher": {
+    "path": "work/publish_qualified000_delta.py",
+    "bytes": 12107,
+    "sha256": "d30a8183ed83fbd4f75742f3a91e08a93f5e093a64289e6e6774eb2e19dba2f9"
+  },
+  "publisher_full_lines_read": 164,
+  "operation": {
+    "path": "work/hf-preparation-deltas/a27b16146520ce9de67ebd4762354191754bf636/root-publication-operation.json",
+    "bytes": 3039,
+    "sha256": "a02a2459d13eba0416adb5530b9c7dd467378ea5da93d6d56533d4d95985cea3"
+  },
+  "helper": {
+    "local_path": "work/annotation-staging/primary74-integration-and-hf-delta-verification-v1/checkpoint_delta.py",
+    "sha256": "0d89473e7feb5c7d613436193f97773de99697ca3d2ddc88a1994038bdec7d8a",
+    "bytes": 23798
+  },
+  "transport": {
+    "local_path": "work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py",
+    "sha256": "494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f",
+    "bytes": 27855
+  },
+  "operation_local_objects_all_exact": true,
+  "source_code_parses": true,
+  "status": "no_blocking_findings_for_frozen_operation",
+  "blocking_findings": [],
+  "verified_design": {
+    "scope": "Exactly six CommitOperationAdd objects beneath the target Git checkpoint prefix; fixed destination names; no delete operations.",
+    "binding": "Operation SHA binds exact publisher, transport, helper and every local upload object; manifest and root replay bind exact target Git SHA and complete6692 file count.",
+    "new_commit_preconditions": "Fresh exact-target CI; private HF main equals54949cd5a575ea7027a4a57916e772936a98d38b; destination paths absent; source tree/metadata identities match preserved effective source revision; immutable base objects verify.",
+    "race_prevention": "Read-only publication_guard repeats immediately before create_commit; explicit parent_commit constrains the actual HF commit.",
+    "retry_reconciliation": "A changed head enters remote content verification without another create_commit. Exact six-object prefix, hashes/sizes, source, root card and private head must match before recording success.",
+    "remote_object_verification": "LFS objects use Hub SHA256 OID and byte size; ordinary objects are fully streamed and hashed. Receipt retains the exact verification method.",
+    "secrets": "Existing token loaded into memory; no token/URL logging; metadata scanned for exact secret values and patterns; top-level exception handling prints only fixed guard codes or exception class.",
+    "transport": "Reused transport and relevant installed Hub source files are hash-pinned; Xet disabled; progress/telemetry/debug suppressed; each HTTP request timeout is capped, including redirects; bounded connection pool and two upload threads.",
+    "disk": "20GiB floor plus64MiB reserve checked before upload; existing single delta reused, no new full archive.",
+    "final_preservation": "Final exact prefix membership, source tree and official metadata identities, private head and root README identity checked; training_ready remainsfalse."
+  },
+  "verification_limits": [
+    "This review inspected code and hashed local artifacts; it did not perform any remote request or publication.",
+    "Real privacy, parent, CI, source and remote object checks occur during root execution and can still reject the operation.",
+    "Remote LFS verification is content-addressed identity and size; it is not a second full remote byte download.",
+    "The role is code/integration verification of the assessor's own prior proposals, not an additional independent clinical adjudication."
+  ],
+  "network_calls": 0,
+  "remote_mutations": 0,
+  "repository_mutations": 0
+}

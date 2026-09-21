@@ -1,0 +1,40 @@
+"""Bind final immutable stage outputs and exact current mask requirements."""
+import hashlib,json,shutil
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];S=P.parent/'cartilage-observed-005-source-review-v1'
+def read(p): return json.loads(p.read_text())
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p): return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(name,obj):
+ if (P/name).exists():
+  assert read(P/name)==obj
+  return
+ with (P/name).open('x') as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+def main():
+ d=read(P/'first-postfreeze-dispositions.json');r=read(P/'current-registry-rebase.json');u=read(P/'unresolved-items-and-mask-retention.json')
+ live=W/'work/recovered/initiative/reviews-v2/adjudications/registry.json'
+ assert sha(live)==r['current_registry']['sha256']
+ masked=[{'study_uid':x['study_uid'],'target':x['target'],'source_path':x['source_path'],'source_index':x['source_index'],'source_report_sha256':x['source_report_sha256'],'effective_state':x['baseline_effective_state'],'effective_evidence':x['baseline_effective_evidence'],'required_report_loss_mask':0,'pending_proposal':x['disposition']=='proposed_correction_pending_distinct_assessment'} for x in d['records'] if x['baseline_effective_state'] in {'uncertain','not_mentioned'}]
+ write('current-masked-cell-export-checks.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','stage':'existing_mask_retention_requirement_not_actual_export_measurement','registry':bind(P/'registry-at-comparison.json'),'assessed_cells':len(d['records']),'currently_masked_cells':len(masked),'records':masked,'requirement':'Recheck these exact states against final effective annotations and confirm zero report-loss masks for uncertain/not_mentioned cells. Pending proposals do not authorize mask changes. Existing masked-cell coverage does not clear unresolved observed proposals for export.','actual_final_export_checked':False,'production_changes':0,'global_gate_closed':False,'gold_accessed':False})
+ prior=[]
+ for number,expected in [('001','f5b19d13e05b20ede4a309937ae7732d8b77ea1e0deaa698b6050608932f1cda'),('002','b64a1d6b67b30004aceaadf6e9f7142d2fa9d8e4fb1a0890663d4b0f298549b2'),('003','8f2e26fb2118a75cb99d328d8f08cb5c75c5fb89f3b6da4436a30ffc5f5acf6c'),('004','f66725c069a4691729885cd48b8bbaa2f028f9dbbf46054d2e3b103fd193b656')]:
+  p=P.parent/f'cartilage-observed-{number}-postfreeze-v1/completion-manifest.json'
+  assert sha(p)==expected
+  entries=read(p)['files']
+  if isinstance(entries,dict):
+   for name,expected_hash in entries.items():assert sha(p.parent/name)==expected_hash
+  else:
+   for entry in entries:assert sha(W/entry['path'])==entry['sha256']
+  prior.append(bind(p))
+ write('prior-completion-preservation.json',{'agent_id':'/root/quality_temporal_review','completed_prior_stages':prior,'all_manifest_bound_prior_files_reverified':True,'historical_baselines_rewritten':False,'current_comparison_registry':bind(P/'registry-at-comparison.json'),'note':'Earlier34/118/193 contexts and freezes remain historical evidence. This batch uses its separately measured actual current registry and rebase receipt.'})
+ cache=S/'__pycache__'
+ if cache.exists():
+  for p in cache.glob('*.pyc'):p.unlink()
+  cache.rmdir()
+ free=shutil.disk_usage(W).free;assert free>=20*1024**3
+ files=[bind(p) for folder in (S,P) for p in sorted(folder.rglob('*')) if p.is_file()]
+ write('completion-manifest.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','session_id':'/root/quality_temporal_review','completed_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Supplemental three-OA-target source-first pass for priority positions250–259, followed by separate original-plus-current registry comparison. No second-reader assessment or acceptance claimed.','counts':d['counts'],'source_freeze':bind(S/'source-freeze.json'),'disposition_freeze':bind(P/'first-disposition-freeze.json'),'validation_receipt':bind(P/'validation-and-preservation.json'),'neutral_root_manifest':bind(P/'neutral-root-packet-manifest.json'),'priority_first_source_pass_completion':bind(P/'priority-first-source-pass-completion.json'),'earlier004_current_registry_rebase':bind(P/'earlier004-current-registry-rebase.json'),'retained_current_uncertain_cells':u['retained_current_uncertain_cells'],'current_masked_cells':len(masked),'current_registry_changes':r['current_registered_changes'],'current_registry_changed_since_comparison':bool(r['annotations_changed_since_baseline205']),'proposal_keys_overlapping_existing_corrections':len(r['proposal_keys_overlapping_current_corrections']),'other_reader_case_findings_opened':False,'gold_accessed':False,'prior_stages_or_original_artifacts_changed':False,'production_changes':0,'global_gate_closed':False,'free_bytes_at_completion':free,'files':files,'next_step':'Distinct source reading and root source-first adjudication remain required. Neutral packets omit target/state/proposal clues. Replay the registry at any later integration; retained masks and pending proposals do not close global QA.'})
+ for e in read(P/'completion-manifest.json')['files']:assert sha(W/e['path'])==e['sha256']
+ print(json.dumps({'completion_sha256':sha(P/'completion-manifest.json'),'bound_files':len(files),'current_masked':len(masked),'retained_uncertain':u['retained_current_uncertain_cells'],'neutral_manifest':read(P/'neutral-root-packet-manifest.json')},indent=2))
+if __name__=='__main__':main()

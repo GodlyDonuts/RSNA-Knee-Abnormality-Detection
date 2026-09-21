@@ -1,0 +1,40 @@
+"""Validate and bind already authored source judgments; no clinical inference."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib,json,sys
+G=Path(__file__).resolve().parent
+W=G.parents[2]; R=W/'work/recovered'
+sys.path.insert(0,str(R))
+from rsna.schema import TARGETS
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+expected=['cf3799c53e95b6fa8dc85441da781b32bede3b5a0c36e6162d9fc6d54759cc8a','54ab3840221e55b4c5b55d3acfa5a59ef69ca7c1f08e700c3f4fa6ecb244e0af','3b1290dce871add0292ec00647712f19bab660360069905451049087ffae9657','80fd5ab23f51f7ae3481a63afaa8a8a37b52ef26800e4bbdf787586e98d6817c','07885e4b51a78c025c54b4e116e608aa576049bbf6feb69e7caeede28787602d']
+rows=[]; files=[]; quotes=0
+for i,h in enumerate(expected):
+ p=G/f'packet-{i:03d}-source-assessment.json'; assert sha(p)==h
+ d=json.loads(p.read_text()); assert d['target_order']==list(TARGETS)
+ assert d['case_specific_focused001_reader_states_proposals_or_comparisons_accessed'] is False
+ assert d['rubric_sha256']==sha(R/'protocols/report_weak_v2.md')=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+ assert d['clinical_registry_at_source_stage_sha256']==sha(R/'initiative/reviews-v2/adjudications/registry.json')=='64b6b8b51efb693738e8a3f70743afe4b160c5b3acd1f4ec3300cc699e8fee12'
+ packet=W/d['source_packet']['path'];assert sha(packet)==d['source_packet']['sha256']
+ assert sha(W/d['authoring_helper']['path'])==d['authoring_helper']['sha256']
+ neutral=json.loads(packet.read_text()); assert len(neutral)==len(d['reports'])==10
+ for n,r in zip(neutral,d['reports']):
+  assert r['study_uid']==n['study_uid'] and r['report_sha256']==n['report_utf8_sha256']
+  p0=R/r['source_path'];assert sha(p0)==r['source_sha256']
+  original=json.loads(p0.read_text())[r['source_index_zero_based']]
+  assert original=={'study_uid':r['study_uid'],'report':n['report']}
+  assert hashlib.sha256(original['report'].encode()).hexdigest()==r['report_sha256']
+  assert len(r['states'])==len(r['evidence'])==12
+  for st,q in zip(r['states'],r['evidence']):
+   assert st in ('negative','positive','uncertain','not_mentioned') and q in original['report']
+   assert (st=='not_mentioned')==(q=='');quotes+=bool(q)
+  rows.append(r)
+ files.append({'path':str(p.relative_to(W)),'sha256':h,'bytes':p.stat().st_size})
+assert len(rows)==len({r['study_uid'] for r in rows})==50
+out=G/'source-assessment-frozen.jsonl'
+with out.open('x') as f:
+ for r in rows:f.write(json.dumps(r,ensure_ascii=False)+'\n')
+freeze={'schema_version':1,'stage':'complete_root_source_freeze_before_focused001_case_findings','assessor_id':'/root','session_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'reports':50,'target_judgments':600,'nonmissing_exact_quotes':quotes,'target_order':list(TARGETS),'rubric_sha256':sha(R/'protocols/report_weak_v2.md'),'clinical_registry_sha256':sha(R/'initiative/reviews-v2/adjudications/registry.json'),'packets':files,'assessment':{'path':str(out.relative_to(W)),'sha256':sha(out),'bytes':out.stat().st_size},'authoring_helper_sha256':sha(Path(__file__)),'case_specific_focused001_findings_accessed_before_freeze':False,'historical_exposure':'Original full4407-run source exposure and focused000 adjudication known. Focused001 aggregate counts and neutral selected membership known. All50 complete sources personally read and all600 judgments authored before first/second focused001 case findings. Prior source packets untouched. No claim of first-ever blindness.','runtime_label_changes':0,'training_ready':False}
+p=G/'complete-source-freeze.json'
+with p.open('x') as f:json.dump(freeze,f,ensure_ascii=False,indent=2);f.write('\n')
+print(json.dumps({'reports':50,'target_judgments':600,'nonmissing_quotes':quotes,'source_jsonl_sha256':sha(out),'freeze_sha256':sha(p)}))

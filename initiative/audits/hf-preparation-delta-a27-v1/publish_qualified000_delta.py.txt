@@ -1,0 +1,164 @@
+"""Root publisher for the pinned, locally verified preparation delta; no label release."""
+from pathlib import Path
+from datetime import datetime, timezone
+import argparse
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+from dotenv import dotenv_values
+
+T = Path(__file__).resolve().parent
+W, R = T.parent, T / "recovered"
+TARGET = "a27b16146520ce9de67ebd4762354191754bf636"
+PARENT = "54949cd5a575ea7027a4a57916e772936a98d38b"
+BASE_GIT = "1792f01ed3daab757c5ddb9bf5733ffe8d999f91"
+CI_RUN = 35658670372
+PREFIX = "preparation-checkpoints/" + TARGET + "/"
+HELPER = T / "annotation-staging/primary74-integration-and-hf-delta-verification-v1/checkpoint_delta.py"
+TRANSPORT = T / "annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py"
+
+def sha(p):
+    h = hashlib.sha256()
+    with p.open("rb") as f:
+        for data in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(data)
+    return h.hexdigest()
+
+class PublicationGuardError(Exception):
+    pass
+
+def require(value, code):
+    if not value:
+        raise PublicationGuardError(code)
+
+def module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    obj = importlib.util.module_from_spec(spec)
+    sys.modules[name] = obj
+    spec.loader.exec_module(obj)
+    return obj
+
+def save(path, doc):
+    with path.open("x") as f:
+        f.write(json.dumps(doc, indent=2) + "\n")
+
+def read(path):
+    return json.loads(path.read_text())
+
+def local_ref(path):
+    return {"local_path": str(path.relative_to(W)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+def ci():
+    value = json.loads(subprocess.check_output(["gh", "run", "view", str(CI_RUN), "--json", "conclusion,headSha,status"], cwd=R, stderr=subprocess.DEVNULL, timeout=60))
+    require(value == {"conclusion": "success", "headSha": TARGET, "status": "completed"}, "ci_mismatch")
+    return value
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("action", choices=["prepare", "publish"])
+    parser.add_argument("--package", type=Path, required=True)
+    parser.add_argument("--manifest-sha256", required=True)
+    parser.add_argument("--helper-sha256", required=True)
+    parser.add_argument("--operation-sha256")
+    args = parser.parse_args()
+    package = args.package.resolve()
+    require(package.is_relative_to(T) and not package.is_relative_to(R), "package_scope")
+    require(sha(HELPER) == args.helper_sha256, "helper_changed")
+    require(sha(package / "manifest.json") == args.manifest_sha256, "manifest_changed")
+    manifest = read(package / "manifest.json")
+    require(manifest["target_git_commit"] == TARGET and manifest["base_hf_revision"] == PARENT, "package_binding")
+    require(manifest["training_ready"] is False, "not_preparation")
+    root_proof = read(package / "root-restoration-proof.json")
+    require(root_proof["verifier_agent_id"] == "/root" and root_proof["target_git_commit"] == TARGET, "root_replay_missing")
+    require(root_proof["manifest"]["sha256"] == args.manifest_sha256 and root_proof["n_result_files_verified"] == 6692, "root_replay_binding")
+    require(root_proof["status"] == "every_target_git_file_restorable_identically", "root_replay_incomplete")
+    helper = module("qualified_delta_package_helper", HELPER)
+    helper.disk_guard(package)
+    operation_path = package / "root-publication-operation.json"
+    if args.action == "prepare":
+        card = package / "README.md"
+        require(not card.exists(), "readme_exists")
+        card.write_text("# Preparation checkpoint: 118 accepted corrections\n\n"
+            + "Git commit: `" + TARGET + "`. Exact-commit CI run 35658670372 passed; 462 local tests passed.\n\n"
+            + "Both original review passes cover all 4,407 reports. The registry contains 118 accepted target corrections and 18 enforced study exclusions from report-derived training loss. Three global semantic QA gates and final training/resume/inference validation remain pending. **Training readiness is false.** Gold labels remain evaluation-only.\n\n"
+            + "This checkpoint represents all 6,692 files of the pinned Git tree. Its manifest lists exact paths, modes, sizes, Git blob IDs and SHA-256 hashes. The delta includes new/modified files and files omitted by the earlier preparation archive.\n\n"
+            + "The required immutable base is dataset revision `" + PARENT + "`, files `preparation-checkpoints/" + BASE_GIT + "/checkpoint.tar.gz` and `manifest.json`. The new delta is not a standalone replacement for that base. Both archives were streamed and every resulting member verified against the complete target Git tree, without extracting another full copy.\n\n"
+            + "To reconstruct, start with the verified base archive, remove the manifest's explicit deleted_paths, then overlay delta.tar.gz. Verify the complete resulting membership, every file hash/size/mode and the manifest's pinned Git identity. Never extract unverified paths or links. checkpoint_delta.py provides a streaming verification command (`verify --repo <pinned-git-repo> --target " + TARGET + " --base-archive <base-tar> --base-manifest <base-manifest> --output <this-directory> --expected-manifest-sha256 " + args.manifest_sha256 + "`).\n\n"
+            + "The original source image trees, five official metadata CSVs and root dataset card are preserved. This is a private preparation checkpoint, not a finished training release or a diagnostic accuracy claim.\n")
+        paths = [(package / name, name) for name in ["delta.tar.gz", "manifest.json", "restoration-proof.json", "root-restoration-proof.json", "README.md"]]
+        paths.append((HELPER, "checkpoint_delta.py"))
+        refs = [{**local_ref(p), "path": PREFIX + name} for p, name in paths]
+        secrets = helper.secret_values(W / ".env")
+        for p, name in paths:
+            if name.endswith(".gz"):
+                require(sha(p) == manifest["delta_archive"]["sha256"], "delta_changed")
+            else:
+                helper.Scanner(secrets).feed(p.read_bytes())
+        operation = {"stage": "root_prepared_complete_tree_delta_publication", "agent_id": "/root", "target_git": TARGET, "expected_hf_parent": PARENT, "github_ci": ci(), "uploaded_files": refs, "helper": local_ref(HELPER), "transport": local_ref(TRANSPORT), "publisher": local_ref(Path(__file__)), "private_required": True, "training_ready": False}
+        save(operation_path, operation)
+        print(json.dumps({"prepared": True, "operation_sha256": sha(operation_path), "objects": len(refs), "delta_bytes": manifest["delta_archive"]["bytes"]}))
+        return
+
+    require(args.operation_sha256 and sha(operation_path) == args.operation_sha256, "operation_binding")
+    operation = read(operation_path)
+    require(operation["publisher"]["sha256"] == sha(Path(__file__)) and operation["transport"]["sha256"] == sha(TRANSPORT), "publisher_or_transport_changed")
+    refs = operation["uploaded_files"]
+    names = {PREFIX + name for name in ["delta.tar.gz", "manifest.json", "restoration-proof.json", "root-restoration-proof.json", "README.md", "checkpoint_delta.py"]}
+    require(len(refs) == 6 and {r["path"] for r in refs} == names, "upload_scope")
+    for ref in refs:
+        p = W / ref["local_path"]
+        require(p.is_relative_to(T) and sha(p) == ref["sha256"] and p.stat().st_size == ref["bytes"], "local_object_changed")
+    transport = module("reviewed_hf_transport", TRANSPORT)
+    hub = transport.configure_hub()
+    token = dotenv_values(W / ".env")["HF_TOKEN"]
+    api = hub.HfApi(token=token)
+    remote_refs = [{k: r[k] for k in ["path", "sha256", "bytes"]} for r in refs]
+    current_ci = ci()
+    head = transport.private_head(api)
+    source_before = transport.source_identity(api, helper.SOURCE_HF)
+    require(transport.source_identity(api, PARENT) == source_before, "base_sources_changed")
+    require(transport.source_identity(api, head) == source_before, "head_sources_changed")
+    root_card_before = {x.path: x.blob_id for x in api.list_repo_tree(helper.HF_REPO, repo_type="dataset", revision=PARENT) if x.path == "README.md"}
+    base_refs = [dict(path=manifest["base_archive"]["path"], sha256=helper.BASE_ARCHIVE_SHA, bytes=helper.BASE_ARCHIVE_BYTES), dict(path=manifest["base_manifest"]["path"], sha256=helper.BASE_MANIFEST_SHA, bytes=1865355)]
+    base_verified = transport.verify_remote(api, hub, token, PARENT, base_refs)
+    journal = package / "root-publication-journal.jsonl"
+    def event(name, **fields):
+        with journal.open("a") as f:
+            f.write(json.dumps({"at_utc": datetime.now(timezone.utc).isoformat(), "event": name, **fields}) + "\n")
+    if head == PARENT:
+        helper.publication_guard(api, current_ci, TARGET)
+        require(not api.get_paths_info(helper.HF_REPO, paths=list(names), repo_type="dataset", revision=head), "destination_exists")
+        adds = []
+        for ref in refs:
+            add = hub.CommitOperationAdd(path_in_repo=ref["path"], path_or_fileobj=W / ref["local_path"])
+            require(add.upload_info.size == ref["bytes"] and add.upload_info.sha256.hex() == ref["sha256"], "upload_info_mismatch")
+            adds.append(add)
+        helper.disk_guard(package)
+        helper.publication_guard(api, ci(), TARGET)
+        event("commit_starting", parent=PARENT, objects=6)
+        result = api.create_commit(repo_id=helper.HF_REPO, repo_type="dataset", revision="main", parent_commit=PARENT, operations=adds, commit_message="Preserve 118-correction preparation checkpoint", commit_description="Pinned Git a27b161 with 118 accepted corrections, 18 report-supervision exclusions and 462 passing tests. Complete 6,692-file tree reconstructs from verified base plus delta; all original source trees and official metadata remain unchanged. Three global semantic QA gates remain pending; training readiness is false.", num_threads=2)
+        head = result.oid
+        require(head != PARENT and helper.OID.fullmatch(head), "commit_identity")
+        event("committed_verification_pending", revision=head)
+    else:
+        event("reconciling_changed_head_without_another_commit", revision=head)
+    verified = transport.verify_remote(api, hub, token, head, remote_refs)
+    found = {x.path for x in api.list_repo_tree(helper.HF_REPO, path_in_repo=PREFIX.rstrip("/"), repo_type="dataset", revision=head, recursive=True)}
+    require(found == names, "published_prefix_membership")
+    require(transport.source_identity(api, head) == source_before and transport.private_head(api) == head, "final_source_or_head_mismatch")
+    root_card_after = {x.path: x.blob_id for x in api.list_repo_tree(helper.HF_REPO, repo_type="dataset", revision=head) if x.path == "README.md"}
+    require(root_card_after == root_card_before, "root_card_changed")
+    receipt = {"status": "verified_private_complete_tree_preparation_delta", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "github_commit": TARGET, "github_ci_run": CI_RUN, "github_ci": current_ci, "hf_revision": head, "base_hf_revision": PARENT, "private": True, "operation_sha256": sha(operation_path), "uploaded_objects": verified, "immutable_base_objects_verified": base_verified, "source_identities": source_before, "root_card_identities": root_card_after, "complete_result_files": 6692, "registered_corrections": 118, "report_supervision_exclusions": 18, "source_and_official_metadata_unchanged": True, "training_ready": False}
+    save(package / "root-publication-receipt.json", receipt)
+    event("verified", revision=head)
+    print(json.dumps({"status": receipt["status"], "github_commit": TARGET, "hf_revision": head, "objects_verified": len(verified), "resulting_git_files": 6692, "training_ready": False}))
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as error:
+        # Fixed class names only: third-party exception messages can contain signed URLs.
+        print(json.dumps({"status": "publication_not_confirmed", "error_class": type(error).__name__, "guard_code": str(error) if isinstance(error, PublicationGuardError) else None}))
+        raise SystemExit(2) from None

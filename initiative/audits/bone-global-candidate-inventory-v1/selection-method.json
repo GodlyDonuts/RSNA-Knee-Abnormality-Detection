@@ -1,0 +1,105 @@
+{
+  "limitations": [
+    "Rule recall is unmeasured across languages, spelling and phrasing.",
+    "Unselected observed cells are not clinically cleared.",
+    "Nearby fracture and contusion cues are not proof of same-site disease or conflict.",
+    "A cue may be historical, negated, incidental, from another structure or fully support the existing annotation.",
+    "No source readings, adjudications, label changes or global QA resolution are created."
+  ],
+  "masked_policy": "Both masked states retained in partition; masked cells with lexical proxies remain separately countable but are outside observed-priority queue.",
+  "neutral_order": "Source batch path then source index, batches of50 unique reports. Only complete original report and source identity/hash/locator fields; no states, evidence, reasons, triggers or rankings.",
+  "normalization": "Unicode casefold then NFKD removal of combining marks; Polish ł and Turkish dotless ı normalized for retrieval; per-character map preserves exact original offsets.",
+  "patterns": {
+    "acute": "\\b(?:acute|acut\\w*|recent\\w*|new|fresh\\w*|swiez\\w*|ostry\\w*|ostra\\w*|ostre\\w*|aigu\\w*|agud\\w*|akut\\w*|frisch\\w*|οξει\\w*|οξυ\\w*|προσφατ\\w*)\\b",
+    "alternative_cause": "\\b(?:degenerat\\w*|reactiv\\w*|reakty\\w*|stress\\w*|insufficien\\w*|overload\\w*|overuse|mechanic\\w*|atrauma\\w*|przeciaz\\w*|zwyrodn\\w*|eklem\\w*|εκφυλισ\\w*|αντιδρασ\\w*|καταπον\\w*|ανεπαρκ\\w*)\\b",
+    "bone": "\\b(?:bone\\w*|bony|osseous|marrow|medull\\w*|corti\\w*|cancell\\w*|trabec\\w*|subchond\\w*|osteochon\\w*|osseo\\w*|osseu\\w*|hueso\\w*|knoche\\w*|markraum\\w*|szpik\\w*|kostn\\w*|kosc\\w*|podchrz\\w*|kemik\\w*|ilik\\w*|οστ\\w*|μυελ\\w*|υποχονδ\\w*|femur\\w*|femor\\w*|tibi\\w*|patell\\w*|fibul\\w*|condyl\\w*|kondyl\\w*|klyk\\w*|μηριαι\\w*|κνημ\\w*|επιγονατιδ\\w*)\\b|骨|골",
+    "contusion": "\\b(?:contus\\w*|bruise\\w*|bruising|stlucz\\w*|kontuz\\w*|kontus\\w*|θλασ\\w*|bone\\s+bruise\\w*)\\b",
+    "denial_normal": "\\b(?:no|not|without|absen\\w*|normal\\w*|unremarkable|intact|preserv\\w*|maintain\\w*|bez|nie|brak|prawidlow\\w*|sans|sin|kein\\w*|ohne|yok\\w*|izlenme\\w*|χωρισ|δεν|φυσιολογ\\w*|απουσ\\w*)\\b",
+    "edema": "\\b(?:edema\\w*|oedema\\w*|edem\\w*|oedem\\w*|odem\\w*|obrz[eę]k\\w*|οιδημ\\w*|swelling)\\b",
+    "equivocal": "\\b(?:possible|possibly|probabl\\w*|suspect\\w*|cannot\\s+exclude|can\\s+not\\s+exclude|could|may|might|questionable|equivocal|versus|differential|suspici\\w*|suspicion|podejrz\\w*|mozliw\\w*|nie\\s+mozna\\s+wyklucz\\w*|peut[- ]etre|probable|sospett\\w*|verdacht\\w*|suphe\\w*|πιθαν\\w*|υποψ\\w*|ενδεχομ\\w*)\\b|\\?",
+    "fracture": "\\b(?:fractur\\w*|fraktur\\w*|fractura\\w*|fratura\\w*|zlam\\w*|pekni\\w*|k[iı]r[iı]k\\w*|fissur\\w*|καταγμα\\w*)\\b",
+    "history_chronic": "\\b(?:chronic\\w*|chroniq\\w*|cron\\w*|chronisch\\w*|old|remote|prior|previous\\w*|history|healed|healing|united|nonunion|consolidat\\w*|residual\\w*|sequel\\w*|post[- ]?trauma\\w*|przebyt\\w*|przewlek\\w*|wygojon\\w*|dawn\\w*|stary\\w*|stare\\w*|ancienne?\\w*|vieja?\\w*|alte\\w*|eski|kronik\\w*|χρονι\\w*|παλαι\\w*|ιστορικ\\w*|πωρω\\w*)\\b",
+    "infarct_necrosis_destructive": "\\b(?:infarct\\w*|infar[kc]\\w*|necros\\w*|nekroz\\w*|osteonec\\w*|avascular|avascul\\w*|martwic\\w*|zawal\\w*|destruct\\w*|destruk\\w*|lytic|lytiqu\\w*|osteoly\\w*|neoplas\\w*|tumou?r\\w*|νεκρω\\w*|εμφρα\\w*|καταστροφ\\w*|λυτικ\\w*)\\b",
+    "line_cortex_impaction": "\\b(?:fracture\\s+line|cortical\\s+(?:disrupt\\w*|break\\w*|fractur\\w*)|cortex\\s+(?:disrupt\\w*|break\\w*)|linia\\s+zlam\\w*|szczelin\\w*\\s+zlam\\w*|przerwan\\w*\\s+ciaglosci\\s+(?:kory|korow\\w*)|trait\\s+de\\s+fractur\\w*|linea\\s+de\\s+fractur\\w*|fracture\\s+trait|fracture\\s+gap|fracture\\s+cleft|impaction|impact\\w*|depress\\w*|collapse\\w*|compression\\s+fractur\\w*|avuls\\w*|zapadni\\w*|wgniec\\w*|καταγματικ\\w*\\s+γραμμ\\w*|καθιζη\\w*)\\b",
+    "marrow": "\\b(?:marrow|medull\\w*|medul\\w*|szpik\\w*|knochenmark\\w*|markraum\\w*|ilik\\w*|μυελ\\w*)\\b|骨髓",
+    "microtrabecular": "\\b(?:micro[- ]?trabec\\w*|mikro[- ]?trabek\\w*|micro[- ]?fract\\w*|mikro[- ]?zlam\\w*|micro[- ]?fissur\\w*|mikro[- ]?kirik\\w*|trabecular\\s+fractur\\w*|μικροκαταγ\\w*|μικροδοκιδ\\w*)\\b",
+    "qualifier": "\\b(?:signific\\w*|noteworthy|substantial\\w*|appreciable|definite\\w*|obvious\\w*|convincing|gross\\w*|essentially|largely|mostly|relatively|notable\\w*|clear\\w*|relevan\\w*|istotn\\w*|wyrazn\\w*|jednoznaczn\\w*|znaczn\\w*|wesentlich\\w*|nennenswert\\w*|eindeutig\\w*|evident\\w*|franche?\\w*|rilevan\\w*|belirgin\\w*|onemli\\w*|αξιολογ\\w*|αξιοσημειω\\w*|σημαντικ\\w*|σαφ\\w*)\\b|\\bαξια\\s+λογου\\b|\\bkayda\\s+deger\\b",
+    "subchondral_osteochondral": "\\b(?:subchond\\w*|osteochon\\w*|osteokon\\w*|osteocond\\w*|podchrz\\w*|chrzestno[- ]kost\\w*|οστεοχονδ\\w*|υποχονδ\\w*|osteochondritis|dissecans)\\b",
+    "trauma": "\\b(?:trauma\\w*|posttrauma\\w*|post[- ]trauma\\w*|uraz\\w*|pouraz\\w*|impact\\w*|impaction|impakt\\w*|collision|injur\\w*|τραυμα\\w*)\\b"
+  },
+  "priority": "Minimum numerical priority of matched rules; then source batch path, zero-based source index, target schema index. No learned model or random selection.",
+  "proximity": "Default220 normalized characters between cue spans;350 for cross-target/alternative-cause context;180 for qualifier versus denial. These windows do not establish same anatomy, causality, negation or acuity.",
+  "rules": {
+    "P01_observed_positive_criterion_review": {
+      "priority": 3,
+      "reason": "All observed positives are included without relying on lexical recall; personally verify current traumatic contusion or acute fracture criteria."
+    },
+    "P02_microtrabecular_fracture_morphology": {
+      "priority": 1,
+      "reason": "Microtrabecular/microfracture wording requires source reading of contusion versus discrete acute fracture morphology; no automatic subtype exclusion."
+    },
+    "P03_contusion_fracture_nearby_context": {
+      "priority": 1,
+      "reason": "Contusion or bone-edema and fracture cues occur within350 normalized characters, or both cells are positive; same site, polarity and causal relation are unproven."
+    },
+    "P04_infarct_necrosis_destructive_scope": {
+      "priority": 2,
+      "reason": "Infarct/necrosis/destructive terminology near bone or in target evidence may have different causal or denial scope."
+    },
+    "P05_osteochondral_subchondral_context": {
+      "priority": 2,
+      "reason": "Osteochondral/subchondral wording may need morphology, acuity and compartment context; it is not a blanket fracture exclusion."
+    },
+    "P06_bone_edema_causality": {
+      "priority": 2,
+      "reason": "Edema near bone or marrow needs causal context; no inference of traumatic contusion from edema alone."
+    },
+    "P07_historical_or_chronic_bone_context": {
+      "priority": 2,
+      "reason": "Historical/chronic/healed terminology near bone or in bone target evidence requires temporal scope reading."
+    },
+    "P08_qualified_bone_denial": {
+      "priority": 1,
+      "reason": "Qualifier and denial/normality cues occur in bone target evidence or nearby bone text; negation and scope are not resolved automatically."
+    },
+    "P09_contusion_positive_no_impact_cue": {
+      "priority": 1,
+      "reason": "Observed Contusion positive has no detected trauma/contusion cue. This is a retrieval blind spot or possible causal-evidence gap, never proof of error."
+    },
+    "P10_fracture_positive_no_acute_cue": {
+      "priority": 1,
+      "reason": "Observed Fracture positive has no detected acute cue. A direct diagnosis may still be adequate; full-source temporal reading is required."
+    },
+    "P11_negative_evidence_bone_scope_not_lexically_detected": {
+      "priority": 2,
+      "reason": "Negative target quote lacks detected bone/contusion/fracture/edema anchor; broad normality or another language may still support it."
+    },
+    "P12_contusion_negative_fracture_only_quote_proxy": {
+      "priority": 1,
+      "reason": "Contusion negative quote contains fracture vocabulary without detected bone/edema/contusion scope; no-fracture does not itself establish no-contusion."
+    },
+    "P13_preexisting_source_bound_bone_inventory": {
+      "priority": 1,
+      "reason": "Report belongs to the preserved earlier source-bound bone-term candidate inventory; prior findings are not adopted."
+    },
+    "P14_equivocal_bone_context": {
+      "priority": 1,
+      "reason": "Equivocal language or question mark appears near bone context or in target evidence; indication and current findings need separation."
+    },
+    "P15_fracture_line_cortical_impaction_context": {
+      "priority": 1,
+      "reason": "Fracture-line/cortical-disruption/impaction vocabulary near bone needs explicit morphology, polarity and same-site review."
+    },
+    "P16_bone_edema_with_alternative_cause": {
+      "priority": 1,
+      "reason": "Bone-edema and degenerative/reactive/stress/insufficiency cues are nearby; causal wording is not automatically interpreted."
+    }
+  },
+  "schema_version": 1,
+  "scope": "deterministic discovery, not clinical assessment",
+  "selection": "Select only current effective positive/negative cells with at least one rule. All observed positives selected regardless of lexical matches. Other cells retain full partition membership and rule traces.",
+  "targets": [
+    "Contusion",
+    "Fracture"
+  ]
+}

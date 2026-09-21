@@ -1,0 +1,25 @@
+"""Archive the already verified private preparation publication, excluding bulk tar bytes."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json
+from dotenv import dotenv_values
+W=Path(__file__).resolve().parents[1];R=W/'work/recovered';P=W/'work/hf-preparation-deltas/a27b16146520ce9de67ebd4762354191754bf636'
+A=R/'initiative/audits/hf-preparation-delta-a27-v1';assert not A.exists()
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(P/'root-publication-receipt.json')=='0330104fdf094d16b1095320f8b99be337d473eb7ac5eb99a5d825fbc127b2cb'
+assert sha(P/'root-publication-operation.json')=='a02a2459d13eba0416adb5530b9c7dd467378ea5da93d6d56533d4d95985cea3'
+secrets=[v.encode() for k,v in dotenv_values(W/'.env').items() if k in {'HF_TOKEN','KAGGLE_API_TOKEN'} and v];assert len(secrets)==2
+files=[(P/n,n) for n in ['README.md','manifest.json','restoration-proof.json','root-restoration-proof.json','root-publication-operation.json','root-publication-journal.jsonl','root-publication-receipt.json']]
+files += [(W/'work/publish_qualified000_delta.py','publish_qualified000_delta.py.txt'),(W/'work/qualified000-synchronized-publication.json','synchronized-publication.json'),(W/'work/qualified000-staged-verification.json','github-staged-verification.json'),(Path(__file__),'preserve-hf-a27-receipt-v1.py.txt')]
+entries=[];A.mkdir()
+for p,n in files:
+ b=p.read_bytes();assert all(s not in b for s in secrets)
+ assert b'https://huggingface.co' in b or not any(t in b.lower() for t in (b'x-amz-signature=',b'x-goog-signature='))
+ assert not any(t in b.lower() for t in (b'x-amz-signature=',b'x-goog-signature='))
+ out=A/n
+ with out.open('xb') as f:f.write(b)
+ assert sha(out)==sha(p)
+ entries.append({'original_path':str(p.relative_to(W)),'path':str(out.relative_to(R)),'sha256':sha(p),'bytes':len(b)})
+doc={'stage':'root_preserved_prior_verified_private_publication','agent_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'github_commit':'a27b16146520ce9de67ebd4762354191754bf636','hf_revision':'291d0051cb517a5609c23a58a2e4f5a0e724664a','private':True,'complete_git_files_verified':6692,'bulk_delta':{'remote_path':'preparation-checkpoints/a27b16146520ce9de67ebd4762354191754bf636/delta.tar.gz','revision':'291d0051cb517a5609c23a58a2e4f5a0e724664a','bytes':194198375,'sha256':'f23c86e58dc00c38a206156585d9433206dacfe686408f7680f66331358a8acb'},'files':entries,'checkpoint_delta_helper':'initiative/audits/primary74-integration-and-hf-delta-verification-v1/checkpoint_delta.py.txt','scope':'This receipt proves publication of the earlier118-correction preparation milestone. Subsequent clinical stages and the current193 registry are newer and not claimed to be in that immutable checkpoint. Restore using the pinned1792 base plus this delta and full manifest.','training_ready':False}
+with (A/'preservation.json').open('x') as f:json.dump(doc,f,indent=2);f.write('\n')
+print(json.dumps({'files':len(entries),'proof_sha256':sha(A/'preservation.json')}))

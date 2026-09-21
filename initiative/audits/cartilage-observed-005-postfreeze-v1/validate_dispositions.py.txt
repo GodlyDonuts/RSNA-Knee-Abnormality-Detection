@@ -1,0 +1,163 @@
+"""Verify all source/annotation bindings; replay current registry separately.
+
+Does not read the second reader's case findings or authorize clinical changes.
+"""
+
+import hashlib
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+WORKSPACE = STAGE.parents[2]
+REPO = WORKSPACE / "work/recovered"
+sys.path.insert(0, str(REPO))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path)}
+
+
+def write(name, obj):
+    with (STAGE / name).open("x") as stream:
+        stream.write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
+
+
+def main():
+    frozen = STAGE / "first-disposition-freeze.json"
+    assert sha(frozen) == "89b9b24532b1b14e70b36e17daaaca4e1427421f5922f322501f0684f690ab32"
+    freeze = read(frozen)
+    for name, expected in freeze["files"].items():
+        assert sha(STAGE / name) == expected
+    assert sha(WORKSPACE / freeze["authoring_helper"]["path"]) == freeze["authoring_helper"]["sha256"]
+    assert sha(WORKSPACE / freeze["source_freeze"]["path"]) == freeze["source_freeze"]["sha256"]
+    reports = {}
+    for path in sorted((REPO / "initiative/reviews/inputs").glob("batch-*.json")):
+        for row in read(path):
+            assert row["study_uid"] not in reports
+            reports[row["study_uid"]] = row["report"]
+    assert len(reports) == 4407 and source_reports_fingerprint(reports) == freeze["source_reports_sha256"]
+    source_freeze = read(WORKSPACE / freeze["source_freeze"]["path"])
+    for binding in source_freeze.values():
+        if isinstance(binding, dict) and set(binding) == {"path", "sha256"}:
+            assert sha(WORKSPACE / binding["path"]) == binding["sha256"]
+    frozen_source_rows = [json.loads(line) for line in (WORKSPACE / source_freeze["source_assessment"]["path"]).read_text().splitlines()]
+    frozen_cells = {(item["study_uid"], target): (item["states"][index], item["evidence"][index], item["rationales"][index]) for item in frozen_source_rows for index, target in enumerate(item["target_order"])}
+    dispositions = read(STAGE / "first-postfreeze-dispositions.json")
+    proposals = read(STAGE / "proposed-errata.json")
+    baseline = read(STAGE / "own-source-vs-current-baseline.json")
+    baseline_rows = {(row["study_uid"], row["target"]): row for row in baseline["records"]}
+    source_cache, review_cache = {}, {}
+    keys = set()
+    for row in dispositions["records"]:
+        key = row["study_uid"], row["target"]
+        assert (row["own_frozen_state"], row["own_frozen_evidence"], row["own_frozen_rationale"]) == frozen_cells[key]
+        assert key not in keys
+        keys.add(key)
+        assert all(row[field] == value for field, value in baseline_rows[key].items())
+        sp, rp = REPO / row["source_path"], REPO / row["original_review_path"]
+        if sp not in source_cache:
+            source_cache[sp] = (sha(sp), read(sp))
+        if rp not in review_cache:
+            review_cache[rp] = (sha(rp), {item["study_uid"]: item for item in map(json.loads, rp.read_text().splitlines())})
+        assert row["source_sha256"] == source_cache[sp][0]
+        assert row["original_review_sha256"] == review_cache[rp][0]
+        source = source_cache[sp][1][row["source_index"]]
+        assert source["study_uid"] == row["study_uid"] and source["report"] == reports[row["study_uid"]]
+        assert hashlib.sha256(source["report"].encode()).hexdigest() == row["source_report_sha256"]
+        original = review_cache[rp][1][row["study_uid"]]
+        index = TARGETS.index(row["target"])
+        assert row["original_state"] == original["states"][index] and row["original_evidence"] == original["evidence"][index]
+        for state_field, evidence_field in [("postfreeze_state", "postfreeze_evidence"), ("own_frozen_state", "own_frozen_evidence"), ("baseline_effective_state", "baseline_effective_evidence")]:
+            state, quote = row[state_field], row[evidence_field]
+            assert state in {"positive", "negative", "uncertain", "not_mentioned"}
+            assert (state == "not_mentioned" and quote == "") or (state != "not_mentioned" and quote and quote in source["report"])
+        assert row["postfreeze_reason"].strip() and row["other_reader_case_findings_opened"] is False
+    assert len(keys) == 30 and len({uid for uid, _ in keys}) == 10
+    rows_by_key = {(row["study_uid"], row["target"]): row for row in dispositions["records"]}
+    proposal_keys = set()
+    for proposal in proposals["proposed_errata"]:
+        key = proposal["study_uid"], proposal["target"]
+        assert key not in proposal_keys
+        proposal_keys.add(key)
+        row = rows_by_key[key]
+        assert proposal["before_state"] == row["baseline_effective_state"]
+        assert proposal["before_evidence"] == row["baseline_effective_evidence"]
+        assert proposal["proposed_state"] == row["postfreeze_state"]
+        assert proposal["source_quote"] == row["postfreeze_evidence"]
+        assert proposal["before_state"] == row["original_state"] and proposal["before_evidence"] == row["original_evidence"]
+        assert (proposal["before_state"], proposal["before_evidence"]) != (proposal["proposed_state"], proposal["source_quote"])
+    assert len(proposal_keys) == 3
+    assert sum(p["kind"] == "state_correction" for p in proposals["proposed_errata"]) == 2
+    assert sum(p["kind"] == "evidence_correction" and p["before_state"] == p["proposed_state"] and p["before_evidence"] != p["source_quote"] for p in proposals["proposed_errata"]) == 1
+    manifest = read(STAGE / "neutral-root-packet-manifest.json")
+    neutral_uids = []
+    for packet in manifest["packets"]:
+        path = WORKSPACE / packet["path"]
+        assert sha(path) == packet["sha256"]
+        contents = read(path)
+        assert 0 < len(contents) == packet["n_reports"] <= 10
+        for source in contents:
+            assert set(source) == {"study_uid", "report", "batch", "index", "source_path", "source_sha256"}
+            assert source["report"] == reports[source["study_uid"]]
+            neutral_uids.append(source["study_uid"])
+    assert len(neutral_uids) == len(set(neutral_uids)) == 3
+    assert set(neutral_uids) == {uid for uid, _ in proposal_keys}
+
+    registry_path = REPO / "initiative/reviews-v2/adjudications/registry.json"
+    registry_before = sha(registry_path)
+    current = inspect_adjudications(reports, REPO / "initiative/reviews-v2/reviewed", REPO / "protocols/report_weak_v2.md", REPO)
+    assert sha(registry_path) == registry_before
+    current_changes = {(row["study_uid"], row["target"]): row for row in current["changes"]}
+    binding_rows, differences = [], []
+    for row in dispositions["records"]:
+        key = row["study_uid"], row["target"]
+        effective = current_changes[key]["after"] if key in current_changes else {"state": row["original_state"], "evidence": row["original_evidence"]}
+        old = {"state": row["baseline_effective_state"], "evidence": row["baseline_effective_evidence"]}
+        changed = effective != old
+        entry = {"study_uid": row["study_uid"], "target": row["target"], "baseline205_effective": old, "current_effective": effective, "annotation_changed_since_baseline205": changed, "current_existing_correction": current_changes.get(key)}
+        binding_rows.append(entry)
+        if changed:
+            differences.append(entry)
+    overlap = sorted(proposal_keys & set(current_changes))
+    write("current-registry-rebase.json", {
+        "schema_version": 1, "agent_id": "/root/quality_temporal_review", "checked_at_utc": datetime.now(timezone.utc).isoformat(),
+        "historical_baseline_registered_changes": 205, "historical_baseline_registry_sha256": freeze["registry_at_comparison"]["sha256"],
+        "current_registry": bind(registry_path), "current_registered_changes": len(current_changes),
+        "assessed_cells": len(binding_rows), "annotations_changed_since_baseline205": len(differences),
+        "proposal_keys_overlapping_current_corrections": [list(key) for key in overlap],
+        "records": binding_rows, "historical_baseline_rewritten": False, "root_must_replay_registry_at_actual_integration": True,
+    })
+    receipt = {
+        "schema_version": 1, "agent_id": "/root/quality_temporal_review", "validated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "disposition_freeze": bind(frozen), "proposal": bind(STAGE / "proposed-errata.json"),
+        "neutral_packet_manifest": bind(STAGE / "neutral-root-packet-manifest.json"), "current_registry_rebase": bind(STAGE / "current-registry-rebase.json"),
+        "all_30_source_index_uid_report_hash_bindings_verified": True,
+        "all_30_original_before_and_postfreeze_annotations_verified": True,
+        "all_3_proposal_states_quotes_and_exact_original_before_bindings_verified": True,
+        "all_3_neutral_candidate_reports_complete_and_metadata_only": True,
+        "explicit_reconsiderations_count": 0, "current_registered_changes": len(current_changes),
+        "current_vs_historical30_annotation_differences": len(differences), "current_registered_proposal_key_overlap": len(overlap),
+        "original_source_and_disposition_freezes_unchanged": True,
+        "second_reader_case_findings_opened": False, "clinical_agreement_or_acceptance_claimed": False,
+        "production_changes": 0, "global_gate_closed": False, "gold_accessed": False,
+        "validator": bind(Path(__file__).resolve()),
+    }
+    write("validation-and-preservation.json", receipt)
+    print(json.dumps({"validated_cells": 30, "proposed_items": 3, "neutral_reports": 3, "current_registered_changes": len(current_changes), "changed_baseline_cells": len(differences), "proposal_overlap": len(overlap), "receipt_sha256": sha(STAGE / "validation-and-preservation.json")}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

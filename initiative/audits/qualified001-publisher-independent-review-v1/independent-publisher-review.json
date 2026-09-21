@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "stage": "qualified001-publisher-independent-review-v1",
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "reviewed_at_utc": "2026-09-21T22:54:31.848932+00:00",
+  "scope": "Independent source/code review of the next publisher template against previous publisher, delta helper and pinned transport. No actual Git target is bound yet.",
+  "reviewed_files": {
+    "work/publish_qualified001_delta.template.py": {
+      "sha256": "ec4e317b9c5f524aee4c7abe04f7a4a4919f4c76e3cf242fd91406e2d1608a64",
+      "bytes": 13143
+    },
+    "work/publish_qualified000_delta.py": {
+      "sha256": "d30a8183ed83fbd4f75742f3a91e08a93f5e093a64289e6e6774eb2e19dba2f9",
+      "bytes": 12107
+    },
+    "work/annotation-staging/primary74-integration-and-hf-delta-verification-v1/checkpoint_delta.py": {
+      "sha256": "0d89473e7feb5c7d613436193f97773de99697ca3d2ddc88a1994038bdec7d8a",
+      "bytes": 23798
+    },
+    "work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py": {
+      "sha256": "494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f",
+      "bytes": 27855
+    }
+  },
+  "status": "changes_requested_before_binding_and_execution",
+  "findings": [
+    {
+      "id": "publisher-001-bind-all-milestone-values-before-prepare",
+      "priority": 2,
+      "path": "work/publish_qualified001_delta.template.py",
+      "lines": [
+        61,
+        64,
+        77,
+        110
+      ],
+      "problem": "The strict placeholder/count guard runs only on the new-commit branch. With TARGET, N_FILES and CI_RUN filled but N_CORRECTIONS=None, prepare writes a None-correction README and a frozen operation; the new-commit guard later rejects it. More seriously,193 satisfies the >=193 bound for the requested205 milestone, permitting stale count metadata to be published.",
+      "reproduced_offline": true,
+      "fix": "Add a shared local preflight before any README or operation write: full40hex target, positive integer CI run and file count, exact205 corrections. Bind file count to n_target_git_files and manifest membership, and obtain exact CI success before writing passed-CI prose. Reuse this local preflight in the remote guard and reconciliation path."
+    },
+    {
+      "id": "publisher-002-separate-expected-parent-from-proven-parent",
+      "priority": 2,
+      "path": "work/publish_qualified001_delta.template.py",
+      "lines": [
+        156,
+        164
+      ],
+      "problem": "If current private HEAD differs from PARENT, exact six-object and source verification can succeed without inspecting ancestry. The receipt nevertheless writes previous_hf_head=PARENT unconditionally and does not distinguish reconciliation from a newly parent-guarded commit.",
+      "reproduced_offline": true,
+      "fix": "Record publication_action, expected_hf_parent, and a verified parent only for the successful create_commit(parent_commit=PARENT) branch. Reconciliation must state that it verifies content, not ancestry/authorship. If the milestone requires actual parent proof on reconciliation too, block that success claim until separately verified ancestry is supplied."
+    }
+  ],
+  "confirmed_controls": [
+    "Custom new-commit guard correctly uses current private parent291d0051cb517a5609c23a58a2e4f5a0e724664a and avoids the older helper guard that requires base54949. create_commit also passes that current parent as a compare-and-swap boundary.",
+    "Immutable reconstruction base remains54949cd5a575ea7027a4a57916e772936a98d38b and baseGit1792f01. Both remote base objects are verified by exact pinned hash and size at BASE_HF, not incorrectly at the new publication parent.",
+    "Exact successful CI head is checked and refreshed before commit. Main uses only six fixed-prefix add operations; existing destination paths block a new commit. Changed HEAD never authorizes a second commit.",
+    "Source identity checks cover both original train/test image trees and all five official metadata CSV blobs against the corrected immutable source revision at base, expected parent and final head. Root README blob identity is compared before/after.",
+    "Remote verification checks exact membership, size and LFS SHA256 pointer for LFS files; it streams and hashes complete ordinary-file bytes. Final prefix contains exactly six paths and final HEAD remains private and unchanged during verification.",
+    "Pinned transport source/version hashes, endpoint, disabled Xet/debug/progress/telemetry, request timeouts and bounded connection counts remain in force. The new template imports and uses only transport primitives, not its obsolete publication parent constants.",
+    "Tokens are read from the local secret file only in real publish; no token/value is logged. Exception output shows only class names or fixed publisher guard codes. Nonarchive publication metadata is scanned for credentials/signed URLs; the delta hash binds the helper\u2019s earlier per-blob secret scan.",
+    "The helper streams exact committed Git blobs, verifies complete tree membership and every restored hash/mode/size, rejects unsafe paths/links, and enforces a20GiB floor. The publisher applies its disk guard before upload."
+  ],
+  "limits": [
+    "This audit performs no Hub or GitHub network call and does not verify live HEAD/private/CI status.",
+    "No package for the future commit was built in this task; its concrete manifest/proofs remain to be independently checked when targetSHA arrives.",
+    "The transport provides per-request timeouts; the wrapper does not inherit the older CLI total-runtime watchdog or lock. This is a retained boundedness limitation, not a new-parent regression.",
+    "Reconciliation can prove exact remote content without proving authorship or parentage; the suggested receipt change makes that distinction explicit.",
+    "The non-applied patch is a concrete recommendation, not an approved or executed publisher; root owns the template and must bind actual target/count/CI before review."
+  ],
+  "offline_validation": {
+    "test_path": "work/annotation-staging/qualified001-publisher-independent-review-v1/test_publisher_review.py",
+    "test_sha256": "34fe0ebb4ed68ccbed82473a2ff669661b9610135a8ab4e91b493a99c3a50ae7",
+    "tests_passed": 12,
+    "test_design": "Actual guard and transport identity functions with synthetic API objects; main prepare/reconciliation with all Hub, credential and subprocess paths stubbed. No real network or token reads. Two passing tests intentionally demonstrate undesired behavior in the current template.",
+    "fixture_scope": "Synthetic fixtures removed after test; only reproducible test code is retained."
+  },
+  "suggested_patch": {
+    "path": "work/annotation-staging/qualified001-publisher-independent-review-v1/suggested-not-applied.patch",
+    "sha256": "bd06ab163dc74e2e04f347422547a77cf14a2140a3579c4bd1d2f875f8e17e08",
+    "applied": false,
+    "syntax_checked": true
+  },
+  "template_or_repository_changed": false,
+  "network_calls": 0,
+  "remote_mutations": 0,
+  "secret_values_read": false
+}

@@ -1,0 +1,332 @@
+"""Bind/compare explicit clinical decisions without inferring any new states."""
+import hashlib
+import json
+import runpy
+from datetime import datetime, timezone
+from pathlib import Path
+
+S = Path(__file__).resolve().parent
+W = S.parents[2]
+R = W / 'work/recovered'
+A = W / 'work/annotation-staging'
+OWN = A / 'cartilage-observed-000-independent-review-v1'
+FIRST = A / 'cartilage-observed-000-source-review-v1'
+POST = A / 'cartilage-observed-000-postfreeze-v1'
+BASE = A / 'cartilage-global-candidate-inventory-v1'
+PRIOR = A / 'qualified-negation-focused-001-post-freeze-comparison-v1'
+AGENT = '/root/last_twelve_visual_review'
+TARGETS = ['Medial OA', 'Lateral OA', 'PF OA']
+ALL_TARGETS = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def ref(path):
+    raw = path.read_bytes()
+    return {'path': str(path.relative_to(W)), 'sha256': digest(raw), 'bytes': len(raw)}
+
+def obj(path):
+    return json.loads(path.read_bytes())
+
+def jsonl(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+def write(name, data):
+    path = S / name
+    with path.open('x', encoding='utf-8') as handle:
+        handle.write(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+    return path
+
+expected = {
+ OWN/'independent-freeze.json': '11b83750f8d02d8f9d281a88767eff772ff553c8949f29bf5ec2075be563cd1a',
+ OWN/'independent-oa-assessment.jsonl': '244cab0bedd10da005aec4f4bc3fa103bbc19f723b18632f7a51afae6fadb42a',
+ OWN/'neutral-source-packet.json': '2eed3ab93cad06dcb338d374c6546054db9ed2c16c80c76c89aa70717429f0ae',
+ OWN/'final-file-list.json': 'ab4c5d0f9278ff6b9476024019a07e89a7cbf2a6b14b6814ed7f4f10e70ce621',
+ FIRST/'source-freeze.json': 'd3d9649dcbe23cb51f80827ae1faa845cd3a88ba4c370653259908dc5fb60067',
+ FIRST/'source-assessment-frozen.jsonl': '086aee38e1a1a461f45bb9d74af7a47f7e0be71ca4ba59f2bfeb0c51720aadbc',
+ POST/'first-disposition-freeze.json': 'b7669760b48d9d2019c8cd389051dea74297d98ef243ec3316befbd6ec4dda32',
+ POST/'first-postfreeze-dispositions.json': '1ba803240fdaaa63f9e74a6675441ce8f5d772de6e85f338a8c527c611ec2b53',
+ POST/'proposed-errata.json': 'eb1890616f97608a5bd6242ef4418f88b7df5f9a9b6750a1ad26055328fbf7e8',
+ POST/'current-registry-rebase.json': 'b13c92b4e9238e89268646e117b25ea3aa445336587d192cd85feafd66812bd1',
+ BASE/'completion-manifest.json': 'fbaf2684f42a5803ae496aa8c337e72366db675cde58fbd16649367552792106',
+ BASE/'full-cartilage-coverage.jsonl': '48e7beb6ef9b59ecbe2113812176fc28959063a94b615bf8cfd9b1a2fa7e0f1d',
+ PRIOR/'postcomparison-freeze.json': '6a4ad238e6af74acff229af9a541e2e393d557cda9584ef58b44da3bed9bc040',
+}
+for path, wanted in expected.items():
+    assert ref(path)['sha256'] == wanted, path
+preserved_inputs = [ref(path) for path in expected]
+for item in obj(OWN/'final-file-list.json')['files']:
+    assert ref(W/item['path']) == item
+
+packet = obj(OWN/'neutral-source-packet.json')
+own = jsonl(OWN/'independent-oa-assessment.jsonl')
+first_source = jsonl(FIRST/'source-assessment-frozen.jsonl')
+first_post = obj(POST/'first-postfreeze-dispositions.json')['records']
+first_proposals = {(x['study_uid'], x['target']): x for x in obj(POST/'proposed-errata.json')['proposed_errata']}
+assert len(packet) == len(own) == len(first_source) == 50
+assert len(first_post) == 150
+ids = {row['study_uid'] for row in own}
+assert len(ids) == 50
+keys = {(uid, target) for uid in ids for target in TARGETS}
+assert {(x['study_uid'], x['target']) for x in first_post} == keys
+post_index = {(x['study_uid'], x['target']): x for x in first_post}
+
+# Restrict clinical state inspection to the designated cartilage150. Nonmatching
+# original-review lines and registry changes are not emitted to the reviewer.
+baseline_rows = [x for x in jsonl(BASE/'full-cartilage-coverage.jsonl') if (x['study_uid'], x['target']) in keys]
+assert len(baseline_rows) == 150
+baseline = {(x['study_uid'], x['target']): x for x in baseline_rows}
+baseline_meta = obj(BASE/'input-coverage-and-reuse.json')
+assert baseline_meta['registry']['sha256'] == '36cfae8368b5983a6ea09aff877519831c2099b28b3200d026b8ee68625436d6'
+registry_path = R/'initiative/reviews-v2/adjudications/registry.json'
+registry_ref = ref(registry_path)
+registry = obj(registry_path)
+registry_keys = set()
+matching_current = {}
+case_refs = []
+registered_changes = 0
+for entry in registry['cases']:
+    path = R/entry['path']
+    assert ref(path)['sha256'] == entry['sha256']
+    case_refs.append(ref(path))
+    case = obj(path)
+    for change in case['changes']:
+        registered_changes += 1
+        key = (change['study_uid'], change['target'])
+        assert key not in registry_keys
+        registry_keys.add(key)
+        if key in keys:
+            matching_current[key] = {'change': change, 'case': case['id'], 'case_file': ref(path)}
+
+review_cache = {}
+rebase_records = []
+for key, row in baseline.items():
+    review_path = R/row['reviewed_artifact_path']
+    assert ref(review_path)['sha256'] == row['reviewed_artifact_sha256']
+    if review_path not in review_cache:
+        review_cache[review_path] = {x['study_uid']: x for x in jsonl(review_path) if x['study_uid'] in ids}
+    original = review_cache[review_path][row['study_uid']]
+    target_index = ALL_TARGETS.index(row['target'])
+    original_annotation = {'state': original['states'][target_index], 'evidence': original['evidence'][target_index]}
+    assert original_annotation == {'state': row['original_state'], 'evidence': row['original_evidence']}
+    base_annotation = {'state': row['inspection_effective_state'], 'evidence': row['inspection_effective_evidence']}
+    # Authenticate any pre-existing34 correction rather than confusing its
+    # effective state with the original reviewed state.
+    if row['existing_correction_case'] is None:
+        assert base_annotation == original_annotation
+    else:
+        assert key in matching_current
+        assert matching_current[key]['case'] == row['existing_correction_case']
+        assert matching_current[key]['change']['before'] == original_annotation
+        assert matching_current[key]['change']['after'] == base_annotation
+    current = dict(original_annotation)
+    if key in matching_current:
+        change = matching_current[key]['change']
+        assert change['before'] == original_annotation
+        current = dict(change['after'])
+    first_record = post_index[key]
+    assert base_annotation == {'state': first_record['baseline_effective_state'], 'evidence': first_record['baseline_effective_evidence']}
+    rebase_records.append({'study_uid':key[0], 'target':key[1], 'baseline34':base_annotation,
+                          'current_effective':current, 'changed_since_baseline34':current != base_annotation,
+                          'existing_current_correction':matching_current.get(key),
+                          'original_review':ref(review_path)})
+rebase_index = {(x['study_uid'],x['target']):x for x in rebase_records}
+prior_selected = {(x['study_uid'],x['target']):x for x in obj(PRIOR/'second-postfreeze-assessment.json')['records'] if (x['study_uid'],x['target']) in keys}
+assert len(prior_selected) == 15
+assert len({key[0] for key in prior_selected}) == 5
+focused002_packet = obj(A/'qualified-negation-focused-002-independent-review-v1/neutral-source-packet.json')
+assert not ids & {x['study_uid'] for x in focused002_packet}
+
+authored = runpy.run_path(str(S/'author_second_dispositions.py'))
+changes = authored['RECONSIDERATIONS']
+dissent = authored['RETAINED_DISAGREEMENTS']
+assert len(changes) == 14 and len(dissent) == 15
+records = []
+for i, source in enumerate(packet):
+    original_path = R/source['source_path']
+    assert ref(original_path)['sha256'] == source['source_sha256']
+    original_source = obj(original_path)[source['index']]
+    assert original_source == {'study_uid':source['study_uid'], 'report':source['report']}
+    assert own[i]['study_uid'] == first_source[i]['study_uid'] == source['study_uid']
+    assert own[i]['target_order'] == first_source[i]['target_order'] == TARGETS
+    for ti, target in enumerate(TARGETS):
+        key = (source['study_uid'],target)
+        p = post_index[key]
+        assert p['packet_index'] == i
+        assert p['own_frozen_state'] == first_source[i]['states'][ti]
+        assert p['own_frozen_evidence'] == first_source[i]['evidence'][ti]
+        initial = {'state':own[i]['states'][ti], 'evidence':own[i]['evidence'][ti], 'reason':own[i]['target_reasoning'][ti]}
+        final = dict(initial)
+        if (i,ti) in changes:
+            state, evidence, reason = changes[(i,ti)]
+            final = {'state':state, 'evidence':initial['evidence'] if evidence is None else evidence, 'reason':reason}
+            assert final['state'] != initial['state']
+        elif (i,ti) in dissent:
+            final['reason'] = dissent[(i,ti)]
+        else:
+            final['reason'] = 'After personally comparing both frozen readings and the first disposition, I retain my own source judgment. ' + initial['reason']
+        for st, ev in [(initial['state'],initial['evidence']), (first_source[i]['states'][ti], first_source[i]['evidence'][ti]), (p['postfreeze_state'],p['postfreeze_evidence']), (final['state'],final['evidence'])]:
+            assert st in {'positive','negative','uncertain','not_mentioned'}
+            assert (ev == '') == (st == 'not_mentioned')
+            assert ev in source['report']
+        assert final['reason'].strip()
+        is_disagreement = final['state'] != p['postfreeze_state']
+        assert is_disagreement == ((i,ti) in dissent), (i,ti)
+        current = rebase_index[key]['current_effective']
+        prior = prior_selected.get(key)
+        prior_state_conflict = prior is not None and prior['second_postfreeze']['state'] != final['state']
+        records.append({
+            'packet_index':i, 'case':own[i]['case'], 'study_uid':key[0], 'target':target,
+            'source_path':source['source_path'], 'source_index_zero_based':source['index'],
+            'source_sha256':source['source_sha256'], 'report_utf8_sha256':own[i]['report_utf8_sha256'],
+            'baseline34':rebase_index[key]['baseline34'], 'current_effective':current,
+            'first_source_frozen':{'state':first_source[i]['states'][ti], 'evidence':first_source[i]['evidence'][ti], 'reason':first_source[i]['rationales'][ti]},
+            'second_source_frozen':initial,
+            'first_postfreeze':{'state':p['postfreeze_state'], 'evidence':p['postfreeze_evidence'], 'reason':p['postfreeze_reason']},
+            'second_postfreeze':final,
+            'second_source_state_reconsidered':(i,ti) in changes,
+            'second_source_evidence_changed':initial['evidence'] != final['evidence'],
+            'state_agrees_with_first_source':initial['state'] == first_source[i]['states'][ti],
+            'postcomparison_state_agrees_with_first_postfreeze':not is_disagreement,
+            'retained_second_reader_disagreement_for_root':is_disagreement,
+            'second_state_differs_from_current_effective':final['state'] != current['state'],
+            'existing_accepted_correction':matching_current.get(key),
+            'integration_overlap_status':'requires explicit root reconsideration of existing accepted correction; never append a duplicate key' if key in matching_current and final['state'] != current['state'] else 'no conflicting accepted correction for this proposed state',
+            'first_separate_proposal':first_proposals.get(key),
+            'prior_focused001_overlap':None if prior is None else {
+                'reference':ref(PRIOR/'second-postfreeze-assessment.json'),
+                'prior_source':prior['second_source_frozen'],
+                'prior_second_postfreeze':prior['second_postfreeze'],
+                'current_second_postfreeze_state_conflicts_with_prior':prior_state_conflict,
+                'status':'historical pending review overlap; not an additional independent reader and not a registered acceptance',
+            },
+            'root_attention_required':is_disagreement or final['state'] != current['state'] or key in first_proposals or prior_state_conflict,
+            'registered_or_accepted':False,
+        })
+
+assert len(records) == len({(x['study_uid'],x['target']) for x in records}) == 150
+second_proposals = [x for x in records if x['second_state_differs_from_current_effective']]
+attention = [x for x in records if x['root_attention_required']]
+attention_positions = sorted({x['packet_index'] for x in attention})
+counts = {
+ 'reports':50, 'oa_judgments_compared':150,
+ 'original_source_state_agreements':sum(x['state_agrees_with_first_source'] for x in records),
+ 'original_source_state_disagreements':sum(not x['state_agrees_with_first_source'] for x in records),
+ 'second_original_source_state_differences_from_baseline34':sum(x['second_source_frozen']['state'] != x['baseline34']['state'] for x in records),
+ 'first_proposed_items':len(first_proposals),
+ 'second_explicit_state_reconsiderations':len(changes),
+ 'second_evidence_expansions_or_replacements':sum(x['second_source_evidence_changed'] for x in records),
+ 'postcomparison_state_agreements':sum(x['postcomparison_state_agrees_with_first_postfreeze'] for x in records),
+ 'retained_state_disagreements':len(dissent),
+ 'second_proposed_state_changes_vs_current':len(second_proposals),
+ 'root_attention_cells':len(attention), 'root_attention_reports':len(attention_positions),
+ 'current_registered_changes':registered_changes,
+ 'cartilage150_current_registry_key_overlap':len(matching_current),
+ 'cartilage150_changes_since_baseline34':sum(x['changed_since_baseline34'] for x in rebase_records),
+ 'historical_focused001_overlap_reports':5, 'historical_focused001_overlap_cells':15,
+ 'historical_focused001_new_second_state_conflicts':sum(bool(x['prior_focused001_overlap']) and x['prior_focused001_overlap']['current_second_postfreeze_state_conflicts_with_prior'] for x in records),
+}
+rebase_path = write('independent-current-registry-replay.json', {
+ 'agent_id':AGENT, 'at_utc':datetime.now(timezone.utc).isoformat(),
+ 'baseline34_inventory':ref(BASE/'full-cartilage-coverage.jsonl'),
+ 'baseline34_completion_manifest':ref(BASE/'completion-manifest.json'),
+ 'baseline34_recorded_registry':baseline_meta['registry'],
+ 'current_registry':registry_ref, 'current_registry_cases':case_refs,
+ 'registered_changes':registered_changes, 'unique_registered_change_keys':len(registry_keys),
+ 'selected_cartilage_key_overlap':len(matching_current),
+ 'first_proposal_current_registry_overlap':[list(k) for k in first_proposals.keys() & matching_current.keys()],
+ 'second_proposal_current_registry_overlap':[{'study_uid':x['study_uid'],'target':x['target']} for x in second_proposals if (x['study_uid'],x['target']) in matching_current],
+ 'records':rebase_records,
+ 'non_cartilage_state_exposure':'Registry case files and baseline/review files were mechanically parsed/hashed, but only the designated cartilage150 states were emitted for clinical inspection. No focused002 state or first002 findings were exposed; its neutral UID intersection is zero.',
+ 'integration_requirement':'Replay the registry immediately before acceptance/registration. Preserve the34 baseline; do not duplicate or overwrite an existing accepted change. Pending focused001 overlap must be reconciled by exact UID/target before any combined integration.',
+})
+comparison_path = write('second-postfreeze-dispositions.json', {
+ 'stage':'complete_second_cartilage150_postfreeze_comparison_and_dispositions_v1',
+ 'agent_id':AGENT, 'at_utc':datetime.now(timezone.utc).isoformat(),
+ 'first_source_freeze':ref(FIRST/'source-freeze.json'), 'second_source_freeze':ref(OWN/'independent-freeze.json'),
+ 'first_postfreeze':ref(POST/'first-disposition-freeze.json'), 'current_registry_replay':ref(rebase_path),
+ 'rubric':ref(R/'protocols/report_weak_v2.md'), 'rubric_version':'report-weak-v2.0',
+ 'counts':counts, 'records':records,
+ 'exposure_and_chronology':'This is a disclosed post-comparison assessment, not another blinded source pass. Both preserved source freezes preceded this comparison; the first reader froze its separate dispositions before I opened them. I personally read all150 first disposition reasons with both source states and selected baseline states. Prior focused001 source/post-comparison exposure is recorded for15 overlapping OA cells. A focused002 source-only pass was started while waiting and reached30 reports/360 judgments before this comparison; its50 UIDs have zero overlap with this cartilage packet. Comparison reasoning may influence later general concepts but no first002/current002 case findings were opened. Recorded chronology is attestation, not timestamp proof of access order.',
+ 'no_acceptance_registration_global_qa_closure_or_gold_access':True,
+ 'all_source_freezes_and_prior_dispositions_unchanged':True,
+})
+reconsideration_path = write('explicit-second-reconsiderations.json', {
+ 'agent_id':AGENT, 'source_freeze':ref(OWN/'independent-freeze.json'),
+ 'dispositions':ref(comparison_path), 'records':[x for x in records if x['second_source_state_reconsidered']],
+ 'count':len(changes), 'prior_records_rewritten':False,
+})
+proposal_path = write('second-proposed-state-changes.json', {
+ 'agent_id':AGENT, 'status':'proposed_for_root_adjudication_only',
+ 'dispositions':ref(comparison_path), 'registry_replay':ref(rebase_path),
+ 'records':second_proposals, 'count':len(second_proposals),
+ 'note':'These are this reader\'s differences from current effective states. They include unresolved inter-reader disagreements and are not approvals. First evidence-only proposals remain separately preserved in the complete dispositions.',
+})
+freeze_path = write('second-disposition-freeze.json', {
+ 'stage':'second_cartilage000_complete150_postcomparison_freeze_before_neutral_root_attention_packets',
+ 'agent_id':AGENT, 'at_utc':datetime.now(timezone.utc).isoformat(), 'counts':counts,
+ 'dispositions':ref(comparison_path), 'reconsiderations':ref(reconsideration_path),
+ 'second_proposals':ref(proposal_path), 'registry_replay':ref(rebase_path),
+ 'first_postfreeze':ref(POST/'first-disposition-freeze.json'),
+ 'preserved_source_inputs':preserved_inputs,
+ 'authoring_helper':ref(S/'author_second_dispositions.py'),
+ 'packaging_helper':ref(Path(__file__).resolve()),
+ 'personal_review_attestation':'All150 first-reader source/post-disposition states and reasons were personally compared against my frozen source judgments and the selected original34 baseline. Retentions carry my own individual source rationale; changes and remaining disagreements are individually authored. Mechanical code only binds, compares, validates and packages those decisions.',
+ 'no_registry_or_originals_changed':True, 'no_gold_access':True, 'no_global_qa_closure':True,
+ 'root_case_findings_withheld_pending_source_freeze':True,
+})
+
+# Only after both complete comparison freezes exist, emit neutral full-source
+# packets. Inclusion metadata carries no target, state, rationale or proposal.
+packet_dir = S/'neutral-root-packets'
+packet_dir.mkdir(exist_ok=False)
+packet_refs = []
+for number, start in enumerate(range(0,len(attention_positions),10)):
+    positions = attention_positions[start:start+10]
+    content = [packet[i] for i in positions]
+    assert 1 <= len(content) <= 10
+    assert all(set(row) == {'study_uid','report','batch','index','source_path','source_sha256'} for row in content)
+    path = packet_dir/f'packet-{number:03d}.json'
+    with path.open('x',encoding='utf-8') as handle:
+        handle.write(json.dumps(content,ensure_ascii=False,indent=2)+'\n')
+    assert obj(path) == content
+    packet_refs.append({**ref(path), 'full_report_count':len(content)})
+packet_index_path = write('neutral-root-packet-index.json', {
+ 'stage':'neutral_original_full_source_packets_for_root_reading',
+ 'agent_id':AGENT, 'at_utc':datetime.now(timezone.utc).isoformat(),
+ 'full_report_count':len(attention_positions), 'max_reports_per_packet':10,
+ 'source_packet':ref(OWN/'neutral-source-packet.json'),
+ 'rubric':ref(R/'protocols/report_weak_v2.md'),
+ 'packets':packet_refs,
+ 'content_scope':'Exact complete original reports and immutable original source/index/UID/hash references only. No added target, state, proposal, rationale or trigger clues.',
+})
+
+for item in preserved_inputs:
+    assert ref(W/item['path']) == item
+assert ref(registry_path) == registry_ref
+for item in case_refs:
+    assert ref(W/item['path']) == item
+validation_path = write('validation-and-preservation.json', {
+ 'result':'pass', 'agent_id':AGENT, 'at_utc':datetime.now(timezone.utc).isoformat(),
+ 'counts':counts, 'complete_unique150_membership':True,
+ 'original_source_index_uid_hash_and_full_report_bindings_valid':True,
+ 'both_frozen_source_state_and_quote_bindings_valid':True,
+ 'all_final_nonmissing_evidence_exact_contiguous_source_substrings':True,
+ 'all_original_and_prior_freezes_unchanged':True,
+ 'current_registry_hash_stable_during_replay':True,
+ 'neutral_packets_built_after_both_comparison_freezes':True,
+ 'neutral_packets_complete_originals_no_added_decision_fields':True,
+ 'mechanical_validation_is_not_clinical_correctness_certification':True,
+ 'preserved_inputs':preserved_inputs,
+})
+write('aggregate-completion.json', {'agent_id':AGENT, 'counts':counts, 'source_freezes_unchanged':True,
+                                 'disposition_freeze':ref(freeze_path), 'neutral_packet_index':ref(packet_index_path),
+                                 'validation':ref(validation_path), 'no_case_findings_released_to_root':True})
+files = [ref(path) for path in sorted(S.rglob('*')) if path.is_file()]
+manifest = write('final-file-list.json', {'agent_id':AGENT, 'files':files, 'self_excluded':True,
+                                      'at_utc':datetime.now(timezone.utc).isoformat()})
+assert len(files) == len({x['path'] for x in files})
+for item in files:
+    assert ref(W/item['path']) == item
+print(json.dumps({'counts':counts, 'freeze':ref(freeze_path),'neutral_packet_index':ref(packet_index_path),
+                  'registry_replay':ref(rebase_path),'manifest':ref(manifest)},indent=2))

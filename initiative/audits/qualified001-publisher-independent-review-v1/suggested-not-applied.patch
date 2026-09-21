@@ -1,0 +1,104 @@
+--- a/work/publish_qualified001_delta.template.py
++++ b/work/publish_qualified001_delta.template.py
+@@ -5,6 +5,7 @@
+ import hashlib
+ import importlib.util
+ import json
++import re
+ import subprocess
+ import sys
+ from dotenv import dotenv_values
+@@ -58,7 +59,19 @@
+     require(value == {"conclusion": "success", "headSha": TARGET, "status": "completed"}, "ci_mismatch")
+     return value
+ 
++def local_binding_guard(manifest=None):
++    require(isinstance(TARGET, str) and re.fullmatch(r"[0-9a-f]{40}", TARGET), "target_not_bound")
++    require(type(CI_RUN) is int and CI_RUN > 0, "ci_run_not_bound")
++    require(type(N_FILES) is int and N_FILES > 0, "file_count_not_bound")
++    require(type(N_CORRECTIONS) is int and N_CORRECTIONS == 205, "correction_count_not_205")
++    require(PREFIX == "preparation-checkpoints/" + TARGET + "/", "prefix_binding")
++    if manifest is not None:
++        require(manifest["base_git_commit"] == BASE_GIT, "base_git_binding")
++        require(manifest["n_target_git_files"] == N_FILES and len(manifest["files"]) == N_FILES, "manifest_file_count")
++
++
+ def publication_guard(api, current_ci, transport, helper, source_before):
++    local_binding_guard()
+     require(current_ci == dict(conclusion="success", headSha=TARGET, status="completed"), "exact_commit_ci_not_success")
+     require(helper.OID.fullmatch(TARGET) is not None and isinstance(N_FILES, int) and N_FILES > 6692, "target_binding")
+     require(isinstance(N_CORRECTIONS, int) and N_CORRECTIONS >= 193, "correction_binding")
+@@ -74,11 +87,13 @@
+     parser.add_argument("--helper-sha256", required=True)
+     parser.add_argument("--operation-sha256")
+     args = parser.parse_args()
++    local_binding_guard()
+     package = args.package.resolve()
+     require(package.is_relative_to(T) and not package.is_relative_to(R), "package_scope")
+     require(sha(HELPER) == args.helper_sha256, "helper_changed")
+     require(sha(package / "manifest.json") == args.manifest_sha256, "manifest_changed")
+     manifest = read(package / "manifest.json")
++    local_binding_guard(manifest)
+     require(manifest["target_git_commit"] == TARGET and manifest["base_hf_revision"] == BASE_HF, "package_binding")
+     require(manifest["training_ready"] is False, "not_preparation")
+     root_proof = read(package / "root-restoration-proof.json")
+@@ -88,6 +103,7 @@
+     helper = module("qualified_delta_package_helper", HELPER)
+     helper.disk_guard(package)
+     operation_path = package / "root-publication-operation.json"
++    current_ci = ci()
+     if args.action == "prepare":
+         card = package / "README.md"
+         require(not card.exists(), "readme_exists")
+@@ -107,13 +123,14 @@
+                 require(sha(p) == manifest["delta_archive"]["sha256"], "delta_changed")
+             else:
+                 helper.Scanner(secrets).feed(p.read_bytes())
+-        operation = {"stage": "root_prepared_complete_tree_delta_publication", "agent_id": "/root", "target_git": TARGET, "expected_hf_parent": PARENT, "github_ci": ci(), "uploaded_files": refs, "helper": local_ref(HELPER), "transport": local_ref(TRANSPORT), "publisher": local_ref(Path(__file__)), "private_required": True, "training_ready": False}
++        operation = {"stage": "root_prepared_complete_tree_delta_publication", "agent_id": "/root", "target_git": TARGET, "expected_hf_parent": PARENT, "github_ci": current_ci, "uploaded_files": refs, "helper": local_ref(HELPER), "transport": local_ref(TRANSPORT), "publisher": local_ref(Path(__file__)), "private_required": True, "training_ready": False}
+         save(operation_path, operation)
+         print(json.dumps({"prepared": True, "operation_sha256": sha(operation_path), "objects": len(refs), "delta_bytes": manifest["delta_archive"]["bytes"]}))
+         return
+ 
+     require(args.operation_sha256 and sha(operation_path) == args.operation_sha256, "operation_binding")
+     operation = read(operation_path)
++    require(operation["target_git"] == TARGET and operation["expected_hf_parent"] == PARENT and operation["private_required"] is True and operation["training_ready"] is False, "operation_identity")
+     require(operation["publisher"]["sha256"] == sha(Path(__file__)) and operation["transport"]["sha256"] == sha(TRANSPORT), "publisher_or_transport_changed")
+     refs = operation["uploaded_files"]
+     names = {PREFIX + name for name in ["delta.tar.gz", "manifest.json", "restoration-proof.json", "root-restoration-proof.json", "README.md", "checkpoint_delta.py"]}
+@@ -126,7 +143,6 @@
+     token = dotenv_values(W / ".env")["HF_TOKEN"]
+     api = hub.HfApi(token=token)
+     remote_refs = [{k: r[k] for k in ["path", "sha256", "bytes"]} for r in refs]
+-    current_ci = ci()
+     head = transport.private_head(api)
+     source_before = transport.source_identity(api, helper.SOURCE_HF)
+     require(transport.source_identity(api, BASE_HF) == source_before and transport.source_identity(api, PARENT) == source_before, "base_sources_changed")
+@@ -138,7 +154,10 @@
+     def event(name, **fields):
+         with journal.open("a") as f:
+             f.write(json.dumps({"at_utc": datetime.now(timezone.utc).isoformat(), "event": name, **fields}) + "\n")
++    publication_action = "verify_existing_exact_content"
++    verified_parent = None
+     if head == PARENT:
++        publication_action = "commit_from_expected_parent"
+         publication_guard(api, current_ci, transport, helper, source_before)
+         require(not api.get_paths_info(helper.HF_REPO, paths=list(names), repo_type="dataset", revision=head), "destination_exists")
+         adds = []
+@@ -151,6 +170,7 @@
+         event("commit_starting", parent=PARENT, objects=6)
+         result = api.create_commit(repo_id=helper.HF_REPO, repo_type="dataset", revision="main", parent_commit=PARENT, operations=adds, commit_message="Preserve " + str(N_CORRECTIONS) + "-correction preparation checkpoint", commit_description="Pinned Git " + TARGET + " with " + str(N_CORRECTIONS) + " accepted corrections, 18 report-supervision exclusions and 462 passing tests. Complete " + str(N_FILES) + "-file tree reconstructs from verified base plus delta; all original source trees and official metadata remain unchanged. Three global semantic QA gates remain pending; training readiness is false.", num_threads=2)
+         head = result.oid
++        verified_parent = PARENT
+         require(head != PARENT and helper.OID.fullmatch(head), "commit_identity")
+         event("committed_verification_pending", revision=head)
+     else:
+@@ -161,7 +181,7 @@
+     require(transport.source_identity(api, head) == source_before and transport.private_head(api) == head, "final_source_or_head_mismatch")
+     root_card_after = {x.path: x.blob_id for x in api.list_repo_tree(helper.HF_REPO, repo_type="dataset", revision=head) if x.path == "README.md"}
+     require(root_card_after == root_card_before, "root_card_changed")
+-    receipt = {"status": "verified_private_complete_tree_preparation_delta", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "github_commit": TARGET, "github_ci_run": CI_RUN, "github_ci": current_ci, "hf_revision": head, "base_hf_revision": BASE_HF, "previous_hf_head": PARENT, "private": True, "operation_sha256": sha(operation_path), "uploaded_objects": verified, "immutable_base_objects_verified": base_verified, "source_identities": source_before, "root_card_identities": root_card_after, "complete_result_files": N_FILES, "registered_corrections": N_CORRECTIONS, "report_supervision_exclusions": 18, "source_and_official_metadata_unchanged": True, "training_ready": False}
++    receipt = {"status": "verified_private_complete_tree_preparation_delta", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "github_commit": TARGET, "github_ci_run": CI_RUN, "github_ci": current_ci, "hf_revision": head, "base_hf_revision": BASE_HF, "expected_hf_parent": PARENT, "verified_hf_parent": verified_parent, "publication_action": publication_action, "parent_binding_scope": "A new commit uses the expected parent through compare-and-swap; changed-head reconciliation proves exact content, not ancestry or author. If exact ancestry is required for reconciliation, obtain separate proof before treating that requirement as satisfied.", "private": True, "operation_sha256": sha(operation_path), "uploaded_objects": verified, "immutable_base_objects_verified": base_verified, "source_identities": source_before, "root_card_identities": root_card_after, "complete_result_files": N_FILES, "registered_corrections": N_CORRECTIONS, "report_supervision_exclusions": 18, "source_and_official_metadata_unchanged": True, "training_ready": False}
+     save(package / "root-publication-receipt.json", receipt)
+     event("verified", revision=head)
+     print(json.dumps({"status": receipt["status"], "github_commit": TARGET, "hf_revision": head, "objects_verified": len(verified), "resulting_git_files": N_FILES, "training_ready": False}))

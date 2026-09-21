@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "n_cells": 2,
+  "scope": "Existing masks retained; frozen negative interpretation and source-scope disagreement remain visible; no unmasking proposal.",
+  "records": [
+    {
+      "ordinal": 25,
+      "study_uid": "1.2.826.0.1.3680043.8.498.10207134048598925821261298801127950516",
+      "target": "Fracture",
+      "source_path": "initiative/reviews/inputs/batch-001.json",
+      "source_sha256": "5e1f99ac8a97e73bfa43cf1840ddf4f6f48ba68fdb3e0357a5f04b950f26077e",
+      "source_index_zero_based": 26,
+      "report_sha256": "12c52bf5b530341daf9b99c3ee7e8b80b12d148a91ee14c6c8fc8925cb3f6af1",
+      "artifact_path": "initiative/reviews-v2/reviewed/batch-001-reviewed.jsonl",
+      "artifact_sha256": "09bb69953a17e1989d7b5450e00c1e6c09745567246bf5bdebecf65d51b434dc",
+      "original": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "current_effective": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "Conclusion:\n\nExamen sans particularité.",
+        "rationale": "The entire knee examination is explicitly unremarkable, alongside normal marrow in the findings; this broad unqualified normal-examination conclusion supports fracture absence."
+      },
+      "postfreeze_assessor_judgment": {
+        "state": "negative",
+        "evidence": "Conclusion:\n\nExamen sans particularité."
+      },
+      "action": "retain_mask_with_unresolved_source_scope_disagreement",
+      "reason": "My source freeze interpreted the unqualified conclusion that the examination is unremarkable as a broad negative. The existing masked state instead requires target-specific fracture/cortical assessment, which the body does not provide beyond normal marrow. This scope question remains unresolved in this first pass: preserve the current not-mentioned mask and both interpretations for an independent source reader; do not propose unmasking from the generic conclusion.",
+      "proposal_issued": false,
+      "own_state_reconsidered": false,
+      "unresolved_source_scope_disagreement": true,
+      "existing_correction_preserved": null,
+      "current_observation_mask": 0,
+      "proposed_observation_mask": 0,
+      "mask_scope": "Report target-state observation only; does not override correspondence, leakage, quarantine or final-release masking."
+    },
+    {
+      "ordinal": 41,
+      "study_uid": "1.2.826.0.1.3680043.8.498.10405028141768633100332386157519916334",
+      "target": "Fracture",
+      "source_path": "initiative/reviews/inputs/batch-002.json",
+      "source_sha256": "e468a44aeaf5220f9a86c2697af16dedc1820d9b3e6d4c2cc8480bddae139343",
+      "source_index_zero_based": 47,
+      "report_sha256": "dc9b4d537e9c35cd503e8a920fb5c78def200c8118d42cfcc8e18cad14d95bb5",
+      "artifact_path": "initiative/reviews-v2/reviewed/batch-002-reviewed.jsonl",
+      "artifact_sha256": "9a1e0bb86497c45aef76bec491353c1edb43347c9c2fc30412a39dadc020ffa6",
+      "original": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "current_effective": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "1. Minimal tendinosis without tear involving the extensor mechanism.\n2. Otherwise unremarkable examination.",
+        "rationale": "The complete examination is otherwise unremarkable apart from named tendon change, and marrow is normal in the body. That broad unqualified conclusion includes the osseous survey and supports fracture absence."
+      },
+      "postfreeze_assessor_judgment": {
+        "state": "negative",
+        "evidence": "1. Minimal tendinosis without tear involving the extensor mechanism.\n2. Otherwise unremarkable examination."
+      },
+      "action": "retain_mask_with_unresolved_source_scope_disagreement",
+      "reason": "My frozen negative used the otherwise-unremarkable examination conclusion. The body explicitly describes marrow normality but no fracture/cortical-line assessment. Whether the generic conclusion supplies sufficient osseous scope remains a source-interpretation disagreement. Keep the current not-mentioned mask pending independent reading; no unmasking proposal is issued.",
+      "proposal_issued": false,
+      "own_state_reconsidered": false,
+      "unresolved_source_scope_disagreement": true,
+      "existing_correction_preserved": null,
+      "current_observation_mask": 0,
+      "proposed_observation_mask": 0,
+      "mask_scope": "Report target-state observation only; does not override correspondence, leakage, quarantine or final-release masking."
+    }
+  ]
+}

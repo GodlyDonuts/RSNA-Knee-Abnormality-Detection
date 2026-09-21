@@ -1,0 +1,246 @@
+"""Adversarial tests use a disposable toy Git repository, never clinical data."""
+import gzip
+import hashlib
+import io
+import json
+from pathlib import Path
+import subprocess
+from types import SimpleNamespace
+
+import pytest
+
+import checkpoint_delta as d
+
+
+def call(repo, *args):
+    return subprocess.check_output(["git", *args], cwd=repo, stderr=subprocess.DEVNULL).decode().strip()
+
+
+def commit(repo, message):
+    call(repo, "add", "-A")
+    call(repo, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", message)
+    return call(repo, "rev-parse", "HEAD")
+
+
+@pytest.fixture
+def toy(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    call(repo, "init", "-q")
+    files = {"README.md": b"base readme\n", "code.py": b"version one\n", "deleted.txt": b"delete me\n",
+             "omitted.bin": b"omitted by old package\x00", "initiative/source/data.bin": b"opaque source\x00"}
+    for name, data in files.items():
+        p = repo / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+    base_commit = commit(repo, "base")
+    base_tree = d.tree(repo, base_commit)
+    archive = tmp_path / "base.tar.gz"
+    with archive.open("wb") as f:
+        refs = d.stream_delta(repo, [v for k, v in sorted(base_tree.items()) if k != "omitted.bin"], d.Counter(f))
+    manifest = tmp_path / "base-manifest.json"
+    manifest.write_text(json.dumps(dict(files=refs)))
+    base_ref = d.file_ref(archive)
+    base = d.Base(base_commit, "a" * 40, base_ref["sha256"], base_ref["bytes"], d.file_ref(manifest)["sha256"])
+    (repo / "code.py").write_bytes(b"version two\n")
+    (repo / "code.py").chmod(0o755)
+    (repo / "deleted.txt").unlink()
+    (repo / "new.txt").write_bytes(b"new member\n")
+    target = commit(repo, "target")
+    output = tmp_path / "package"
+    proof = d.build_package(repo, target, archive, manifest, output, base, floor=0, reserve=0)
+    return SimpleNamespace(repo=repo, target=target, archive=archive, manifest=manifest,
+                           base=base, output=output, proof=proof)
+
+
+def verify(t, expected=None):
+    return d.verify_package(t.repo, t.target, t.archive, t.manifest, t.output,
+                            expected or d.file_ref(t.output / "manifest.json")["sha256"], t.base)
+
+
+def mutate_manifest(t, modify):
+    p = t.output / "manifest.json"
+    obj = json.loads(p.read_text())
+    modify(obj)
+    p.write_text(json.dumps(obj))
+
+
+def rewrite_delta(t, transform):
+    p = t.output / "delta.tar.gz"
+    records = []
+    with d.tarfile.open(p, "r:gz") as tar:
+        for member in tar:
+            records.append((member, tar.extractfile(member).read()))
+    records = transform(records)
+    with p.open("wb") as out, gzip.GzipFile(filename="", mode="wb", fileobj=out, mtime=0) as gz:
+        with d.tarfile.open(fileobj=gz, mode="w|", format=d.tarfile.PAX_FORMAT) as tar:
+            for member, data in records:
+                member.size = len(data)
+                tar.addfile(member, io.BytesIO(data))
+    mutate_manifest(t, lambda obj: obj.update(delta_archive=d.file_ref(p)))
+
+
+def test_full_restoration_includes_omission_and_applies_deletion_and_mode(toy):
+    proof = verify(toy)
+    obj = json.loads((toy.output / "manifest.json").read_text())
+    assert proof["n_result_files_verified"] == 5
+    assert proof["n_base_archive_members_verified"] == 4
+    assert proof["n_delta_members_verified"] == 3
+    assert proof["n_deletions_applied"] == 1
+    by_path = {r["path"]: r for r in obj["files"]}
+    assert by_path["omitted.bin"]["operation"] == "base_coverage_completion"
+    assert by_path["code.py"]["mode"] == "100755"
+    assert obj["deleted_paths"] == ["deleted.txt"]
+    # Physical reconstruction in this tiny disposable fixture independently
+    # compares bytes and modes; real verification streams without extraction.
+    restored = {}
+    for path in [toy.archive, toy.output / "delta.tar.gz"]:
+        with d.tarfile.open(path, "r:gz") as tar:
+            for member in tar:
+                restored[member.name] = (tar.extractfile(member).read(), member.mode)
+    for path in obj["deleted_paths"]:
+        restored.pop(path, None)
+    expected = d.tree(toy.repo, toy.target)
+    assert set(restored) == set(expected)
+    for path, row in expected.items():
+        assert restored[path] == (d.git(toy.repo, "cat-file", "blob", row["git_blob"]), int(row["mode"], 8) & 0o777)
+
+
+def test_external_manifest_hash_rejects_changes(toy):
+    original = d.file_ref(toy.output / "manifest.json")["sha256"]
+    mutate_manifest(toy, lambda o: o.update(n_target_git_files=999))
+    with pytest.raises(d.GuardError, match="file_sha256_mismatch"):
+        verify(toy, original)
+
+
+def test_changed_archive_hash_rejected(toy):
+    with (toy.output / "delta.tar.gz").open("ab") as f:
+        f.write(b"changed")
+    with pytest.raises(d.GuardError, match="file_sha256_mismatch"):
+        verify(toy)
+
+
+def test_changed_payload_rejected_even_if_outer_hash_is_rebound(toy):
+    def alter(rows):
+        member, data = rows[0]
+        rows[0] = (member, b"X" + data[1:])
+        return rows
+    rewrite_delta(toy, alter)
+    with pytest.raises(d.GuardError, match="member_sha256_mismatch"):
+        verify(toy)
+
+
+def test_changed_base_archive_rejected(toy):
+    with toy.archive.open("ab") as f:
+        f.write(b"corruption")
+    with pytest.raises(d.GuardError, match="file_sha256_mismatch"):
+        verify(toy)
+
+
+def test_changed_member_sha_rejected(toy):
+    mutate_manifest(toy, lambda o: o["files"][0].update(sha256="0" * 64))
+    with pytest.raises(d.GuardError, match="restored_file_mismatch|member_sha256_mismatch"):
+        verify(toy)
+
+
+@pytest.mark.parametrize("path", ["../escape", "/absolute", "a/../../escape", "a\\escape", "a//b", ".git/config", ".env", "folder/.env.production"])
+def test_unsafe_paths_rejected(path):
+    with pytest.raises(d.GuardError, match="unsafe_path|secret_or_git_path"):
+        d.safe_path(path)
+
+
+def test_archive_traversal_rejected_even_if_outer_hash_rebound(toy):
+    def alter(rows):
+        rows[0][0].name = "../escape"
+        return rows
+    rewrite_delta(toy, alter)
+    with pytest.raises(d.GuardError, match="unsafe_path"):
+        verify(toy)
+
+
+def test_duplicate_archive_member_rejected(toy):
+    rewrite_delta(toy, lambda rows: rows + [rows[0]])
+    with pytest.raises(d.GuardError, match="tar_membership_mismatch"):
+        verify(toy)
+
+
+def test_symlink_archive_member_rejected(toy):
+    def alter(rows):
+        rows[0][0].type = d.tarfile.SYMTYPE
+        rows[0][0].linkname = "../escape"
+        rows[0] = (rows[0][0], b"")
+        return rows
+    rewrite_delta(toy, alter)
+    with pytest.raises(d.GuardError, match="unsafe_tar_type"):
+        verify(toy)
+
+
+def test_local_parent_mismatch_rejected(toy):
+    mutate_manifest(toy, lambda o: o.update(base_hf_revision="b" * 40))
+    with pytest.raises(d.GuardError, match="base_parent_mismatch"):
+        verify(toy)
+
+
+def test_missing_result_member_rejected(toy):
+    mutate_manifest(toy, lambda o: o["files"].pop())
+    with pytest.raises(d.GuardError, match="incomplete_result_manifest"):
+        verify(toy)
+
+
+def test_source_mutation_rejected(toy):
+    (toy.repo / "initiative/source/data.bin").write_bytes(b"different")
+    changed = commit(toy.repo, "source mutation")
+    with pytest.raises(d.GuardError, match="source_or_rubric_changed"):
+        d.make_plan(toy.repo, changed, toy.manifest, toy.base)
+
+
+def test_disk_floor_rejected(monkeypatch, tmp_path):
+    monkeypatch.setattr(d.shutil, "disk_usage", lambda _: SimpleNamespace(free=d.FLOOR + d.RESERVE - 1))
+    with pytest.raises(d.GuardError, match="disk_floor_would_be_breached"):
+        d.disk_guard(tmp_path)
+
+
+def test_secret_split_across_chunks_rejected():
+    scanner = d.Scanner([b"fixture-secret-value"])
+    scanner.feed(b"opaque fixture-sec")
+    with pytest.raises(d.GuardError, match="secret_value_detected"):
+        scanner.feed(b"ret-value tail")
+
+
+def test_signed_url_rejected():
+    with pytest.raises(d.GuardError, match="authenticated_url_detected"):
+        d.Scanner().feed(b"https://example.invalid/blob?X-Amz-Signature=fixture")
+
+
+class FakeApi:
+    def __init__(self, private=True, parent=d.BASE_HF, changed=False):
+        self.private, self.parent, self.changed = private, parent, changed
+
+    def repo_info(self, *args, **kwargs):
+        return SimpleNamespace(private=self.private, sha=self.parent)
+
+    def list_repo_tree(self, *args, **kwargs):
+        oid = "b" * 40 if self.changed and kwargs["revision"] == d.BASE_HF else "a" * 40
+        return [SimpleNamespace(path=p, **{("tree_id" if p in d.SOURCE_TREES else "blob_id"): oid})
+                for p in d.SOURCE_TREES + d.SOURCE_CSVS]
+
+
+def ci():
+    return dict(conclusion="success", headSha="c" * 40, status="completed")
+
+
+def test_read_only_publication_guard_accepts_exact_private_parent_and_source():
+    assert d.publication_guard(FakeApi(), ci(), "c" * 40)["read_only"]
+
+
+@pytest.mark.parametrize("api,code", [(FakeApi(private=False), "repository_not_private"),
+    (FakeApi(parent="b" * 40), "remote_parent_mismatch"),
+    (FakeApi(changed=True), "source_identity_changed")])
+def test_publication_guards_reject_mismatch(api, code):
+    with pytest.raises(d.GuardError, match=code):
+        d.publication_guard(api, ci(), "c" * 40)
+
+
+def test_ci_exact_commit_required():
+    with pytest.raises(d.GuardError, match="exact_commit_ci_not_success"):
+        d.publication_guard(FakeApi(), ci(), "d" * 40)

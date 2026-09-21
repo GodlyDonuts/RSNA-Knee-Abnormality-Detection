@@ -1,0 +1,121 @@
+"""Offline bounded review: no Hub setup, subprocess, token read or network call."""
+import importlib.util
+import json
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import pytest
+
+S=Path(__file__).resolve().parent
+W=S.parents[2]
+T=W/'work'
+def module(name,path):
+    import sys
+    spec=importlib.util.spec_from_file_location(name,path)
+    value=importlib.util.module_from_spec(spec);sys.modules[name]=value;spec.loader.exec_module(value)
+    return value
+P=module('offline_qualified001_publisher',T/'publish_qualified001_delta.template.py')
+H=module('offline_qualified001_helper',P.HELPER)
+TR=module('offline_qualified001_transport',P.TRANSPORT)
+TARGET='1'*40
+OTHER='2'*40
+IDENTITY={p:{'tree_id' if p in H.SOURCE_TREES else 'blob_id':'3'*40} for p in H.SOURCE_TREES+H.SOURCE_CSVS}
+
+class Api:
+    private=True
+    head=P.PARENT
+    changed_revision=None
+    def repo_info(self,*args,**kwargs):return SimpleNamespace(private=self.private,sha=self.head)
+    def list_repo_tree(self,*args,**kwargs):
+        revision=kwargs['revision']
+        return [SimpleNamespace(path=p,**{k:('4'*40 if revision==self.changed_revision else v) for k,v in data.items()}) for p,data in IDENTITY.items()]
+
+def guard(api=None,**overrides):
+    values=dict(TARGET=TARGET,N_FILES=7000,N_CORRECTIONS=205)
+    values.update(overrides)
+    with patch.multiple(P,**values):
+        return P.publication_guard(api or Api(),dict(conclusion='success',headSha=TARGET,status='completed'),TR,H,IDENTITY)
+
+def test_new_current_parent_passes_despite_older_reconstruction_base():guard()
+
+def test_old_base_is_rejected_as_new_commit_parent():
+    api=Api();api.head=P.BASE_HF
+    with pytest.raises(P.PublicationGuardError,match='remote_parent_mismatch'):guard(api)
+
+def test_nonprivate_repository_rejected():
+    api=Api();api.private=False
+    with pytest.raises(TR.GuardError,match='repository_not_private'):guard(api)
+
+@pytest.mark.parametrize('revision',[P.PARENT,P.BASE_HF])
+def test_changed_source_at_parent_or_base_rejected(revision):
+    api=Api();api.changed_revision=revision
+    with pytest.raises(P.PublicationGuardError,match='sources_changed'):guard(api)
+
+def test_wrong_exact_ci_rejected():
+    with patch.multiple(P,TARGET=TARGET,N_FILES=7000,N_CORRECTIONS=205):
+        with pytest.raises(P.PublicationGuardError,match='exact_commit_ci_not_success'):
+            P.publication_guard(Api(),dict(conclusion='success',headSha=OTHER,status='completed'),TR,H,IDENTITY)
+
+@pytest.mark.parametrize('values',[{'TARGET':'TO_BE_BOUND_AFTER_COMMIT'},{'N_FILES':None},{'N_CORRECTIONS':None}])
+def test_placeholders_rejected_on_new_commit_guard(values):
+    with pytest.raises(P.PublicationGuardError):guard(**values)
+
+def test_reproduces_stale_193_count_allowed_for_205_milestone():
+    # This passing demonstration is the identified defect, not the desired guard.
+    guard(N_CORRECTIONS=193)
+
+def make_package(tmp_path,count):
+    package=tmp_path/'package';package.mkdir()
+    (package/'delta.tar.gz').write_bytes(b'synthetic offline archive placeholder')
+    manifest={'target_git_commit':TARGET,'base_hf_revision':P.BASE_HF,'training_ready':False,
+              'delta_archive':{'sha256':P.sha(package/'delta.tar.gz'),'bytes':(package/'delta.tar.gz').stat().st_size},
+              'base_archive':{'path':'base/checkpoint.tar.gz'},'base_manifest':{'path':'base/manifest.json'}}
+    (package/'manifest.json').write_text(json.dumps(manifest))
+    proof={'verifier_agent_id':'/root','target_git_commit':TARGET,'manifest':{'sha256':P.sha(package/'manifest.json')},
+           'n_result_files_verified':count,'status':'every_target_git_file_restorable_identically'}
+    (package/'root-restoration-proof.json').write_text(json.dumps(proof))
+    (package/'restoration-proof.json').write_text('{}')
+    return package
+
+def run_main(package,action,corrections,head=P.PARENT):
+    calls=[]
+    prefix='preparation-checkpoints/'+TARGET+'/'
+    names={prefix+n for n in ('delta.tar.gz','manifest.json','restoration-proof.json','root-restoration-proof.json','README.md','checkpoint_delta.py')}
+    api=SimpleNamespace()
+    def tree(*args,**kwargs):
+        if kwargs.get('path_in_repo'):return [SimpleNamespace(path=n) for n in names]
+        return [SimpleNamespace(path='README.md',blob_id='5'*40)]
+    api.list_repo_tree=tree
+    def forbidden_commit(**kwargs):
+        calls.append('commit')
+        raise AssertionError('No test may call the mutation branch')
+    api.create_commit=forbidden_commit
+    fake_hub=SimpleNamespace(HfApi=lambda **kwargs:api)
+    transport=SimpleNamespace(configure_hub=lambda:fake_hub,private_head=lambda a:head,
+        source_identity=lambda a,r:IDENTITY,verify_remote=lambda a,h,t,r,refs:[dict(x,verification='mocked_exact_content') for x in refs])
+    helper=SimpleNamespace(disk_guard=lambda p:None,secret_values=lambda p:(),Scanner=lambda secrets:SimpleNamespace(feed=lambda data:None),
+        OID=H.OID,SOURCE_HF=H.SOURCE_HF,HF_REPO=H.HF_REPO,BASE_ARCHIVE_SHA=H.BASE_ARCHIVE_SHA,BASE_ARCHIVE_BYTES=H.BASE_ARCHIVE_BYTES,BASE_MANIFEST_SHA=H.BASE_MANIFEST_SHA)
+    argv=['publisher',action,'--package',str(package),'--manifest-sha256',P.sha(package/'manifest.json'),'--helper-sha256',P.sha(P.HELPER)]
+    if action=='publish':argv+=['--operation-sha256',P.sha(package/'root-publication-operation.json')]
+    # All credential/network/subprocess entrypoints are replaced; dummy credentials are synthetic.
+    with patch.multiple(P,TARGET=TARGET,PREFIX=prefix,N_FILES=7000,N_CORRECTIONS=corrections,CI_RUN=123,
+        module=lambda name,path:helper if path==P.HELPER else transport,
+        ci=lambda:dict(conclusion='success',headSha=TARGET,status='completed'),
+        dotenv_values=lambda p:{'HF_TOKEN':'synthetic-offline-test-value'}),patch('sys.argv',argv):
+        P.main()
+    assert calls==[]
+
+def test_reproduces_prepare_writes_unbound_correction_count(tmp_path):
+    package=make_package(tmp_path,7000)
+    run_main(package,'prepare',None)
+    assert (package/'root-publication-operation.json').exists()
+    assert 'None accepted corrections' in (package/'README.md').read_text()
+
+def test_reproduces_reconciliation_parent_claim_without_parent_verification(tmp_path):
+    package=make_package(tmp_path,7000)
+    run_main(package,'prepare',205)
+    run_main(package,'publish',205,head=OTHER)
+    receipt=json.loads((package/'root-publication-receipt.json').read_text())
+    assert receipt['hf_revision']==OTHER and receipt['previous_hf_head']==P.PARENT
+    assert 'publication_action' not in receipt and 'parent_binding_scope' not in receipt

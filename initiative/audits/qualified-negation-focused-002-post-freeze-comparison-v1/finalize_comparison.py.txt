@@ -1,0 +1,171 @@
+"""Package personally authored post-freeze choices; validate, never infer clinical labels."""
+import json, hashlib
+from pathlib import Path
+from datetime import datetime, timezone
+S=Path(__file__).resolve().parent; W=S.parents[2]; A=W/'work/annotation-staging'; R=W/'work/recovered'
+AGENT='/root/last_twelve_visual_review'
+def obj(p): return json.loads(p.read_bytes())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(name,d):
+ p=S/name;p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+M=obj(S/'mechanical-full-comparison.json'); P=obj(A/'qualified-negation-focused-002-independent-review-v1/neutral-source-packet.json')
+rows=M['records']; by={(r['packet_index'],r['target_index']):r for r in rows}
+assert len(by)==600
+original_bindings=M['source_freezes_and_first_postfreeze_inputs']
+for z in original_bindings:assert ref(W/z['path'])==z
+reg=M['current_replay']; replay=obj(W/reg['path']);assert ref(R/'initiative/reviews-v2/adjudications/registry.json')==replay['current_registry']
+# Explicit individual reconsiderations by this assessor after reading both frozen assessments.
+# Values: new state, quotation source selector, independently authored reasoning.
+C={
+ (1,9):('negative','own','I had spread significativo over the second coordinated noun. Here the singular adjective modifies derrame; the separate ni quistes popliteos clause supplies an unqualified cyst denial. Retain the distinct fluid uncertainty.'),
+ (5,9):('negative','own','The source independently denies popliteal cysts after ni. The significant-fluid qualifier does not modify the plural cyst noun in this sentence; the prior shared-qualifier mask was too broad.'),
+ (11,9):('negative','own','On reconsidering the Spanish coordination, the cyst clause after ni is an unqualified absence; significativo belongs to the singular joint-effusion noun.'),
+ (19,9):('negative','own','The separate ni quistes popliteos denial supports cyst absence. I withdraw my earlier transfer of the significant-effusion qualifier to this plural noun.'),
+ (25,9):('negative','own','The report denies cysts through a separate ni clause without a cyst-specific qualifier. The original shared-significance reading was overbroad.'),
+ (26,9):('negative','own','Significativo qualifies derrame articular; the following ni quistes popliteos is a categorical posterior-cyst denial, so the observed negative is supported.'),
+ (27,9):('negative','own','The posterior-cyst phrase is a separate unqualified ni denial. It does not inherit the singular adjective attached to effusion.'),
+ (29,9):('negative','own','My initial shared-qualifier interpretation missed the separate plural cyst denial. The exact sentence supports absent cysts while leaving effusion qualified.'),
+ (49,9):('negative','own','The significant modifier attaches to effusion and the separate ni clause excludes popliteal cysts. I retain this source-specific grammatical distinction from shared English qualifications.'),
+ (8,2):('negative','own','The menisci are independently described as having preserved morphology and signal. Ordinary impresionan wording does not posit a competing lesion; the qualified categorical-tear clause does not erase the explicit medial normality.'),
+ (8,3):('negative','own','Preserved meniscal morphology and signal directly covers the lateral meniscus. No separate lateral abnormality is described; the no-categorical-tear wording is not the only negative evidence.'),
+ (21,2):('negative','own','The medial meniscus is included in preserved morphology and signal, independently supporting normality. The categorical-tear qualification alone had been given too much weight.'),
+ (21,3):('negative','own','Preserved morphology and signal also directly covers the lateral meniscus. The full report supplies no conflicting lateral lesion, so I withdraw the isolated qualifier-based mask.'),
+ (25,2):('negative','own','Normal medial morphology and signal are explicitly supplied before the no-categorical-tear clause. This independent normal description supports the negative under the rubric.'),
+ (25,3):('negative','own','The bilateral-meniscus sentence expressly preserves lateral morphology and signal; the second clause does not introduce a suspicious lateral lesion.'),
+ (27,2):('negative','own','Preserved morphology and signal provides medial normal evidence beyond the qualified tear denial. My initial mask failed to account for that independent clause.'),
+ (27,3):('negative','own','The same preserved morphology and signal assessment covers the lateral meniscus with no reported abnormality. I reconsider to explicit normal rather than extracting the final qualifier alone.'),
+ (29,2):('negative','own','Medial morphology and signal are explicitly normal in the full sentence. The categorical criterion wording does not invalidate this separate structural evidence.'),
+ (29,3):('negative','own','Lateral morphology and signal are preserved without a competing lesion. Normality is independently stated, so the prior uncertain interpretation was unnecessarily restrictive.'),
+ (10,2):('negative','own','The complete medial passage describes central internal degenerative signal and no tear features; it does not describe abnormal shape or a surface-reaching lesion. Isolated internal degeneration is below threshold despite the categorical-contact qualifier.'),
+ (16,2):('negative','own','The sole medial finding is degenerative signal within the posterior horn/body junction. No tear morphology or surface extension is described. The rubric explicitly excludes isolated internal degeneration; no-definite-tear is not the sole basis for this negative.'),
+ (41,2):('negative','own','Myxoid degeneration is the isolated medial finding, without abnormal morphology or a described surfacing lesion. It falls within the rubric degeneration exclusion; I withdraw the mask based only on no definite tear.'),
+ (17,4):('negative','own','The medial cartilage is maintained with only mild fraying. That limited surface morphology, rather than the adjective reasonably alone, supports a below-depth-threshold judgment; no thinning or deep defect is described here.'),
+ (41,6):('negative','own','The only PF abnormality is mild surface fraying and the remainder is maintained. This explicit limited surface change supports a below-threshold negative; I had treated absence of a numeric depth as overriding the morphology.'),
+ (6,9):('uncertain','own','I withdraw my conversion of 27 x 29 x 59 mm into a moderate/large grade. The frozen rubric supplies no dimensional conversion, and leakage does not itself establish collection severity. Preserve the measured posterior cyst with an explicit severity gap.'),
+ (43,9):('uncertain','own','The 7 x 2 cm posterior Baker cyst is measured but not explicitly graded moderate/large. My earlier size-to-grade inference was not established by the frozen rubric; retain uncertain severity rather than importing a new cutoff.'),
+ (13,7):('negative','first_post','The opening sentence independently denies intra-articular effusion before the Baker qualifier. Its liquid sliver wording does not assert a moderate/large joint collection, and the later qualified absence does not contradict the earlier denial. Use the full opening sentence, not only the later significant-effusion excerpt.'),
+ (14,10):('not_mentioned','empty','Underlying bony change beneath a cartilage fissure is not explicitly marrow edema, traumatic contusion, or normal marrow. My initial uncertain contusion inferred an edema target not supplied by this source; no informative contusion assessment is present.'),
+ (24,10):('negative','first_source','All named medial/lateral femoral and tibial bones plus the patellar bone are unremarkable. These explicit osseous normals support contusion absence; the described contusion is separately confined to soft tissue. I had underweighted the combined normal bone coverage.'),
+ (24,11):('negative','first_source','The structured source explicitly finds the named femoral/tibial and patellar bones unremarkable. This is broader than merely normal marrow signal and supports an osseous negative; the soft-tissue injury does not conflict. Preserve the full contiguous multi-region span.'),
+}
+assert len(C)==30
+# Every evidence-difference cell is individually reviewed below. These notes address
+# evidence fitness, distinct from the full clinical reasoning retained in each decision.
+E={
+ (0,9):'The significant Baker denial and incidental ganglion context both leave Baker severity unresolved; retain the qualification in a state-change quote.',
+ (1,6):'Both excerpts identify superficial patellar disease and the source separately normalizes the trochlea; the broader current quote adequately supports the negative.',
+ (2,11):'The old excerpt is a donor-defect/osteochondral comment, not an informative acute-fracture assessment. A missing state requires empty evidence.',
+ (5,4):'The existing quote supplies medial localization and the 2 x 3 mm full-depth defect; the surrounding normal remainder supports the same below-extent result. No material quote erratum.',
+ (5,11):'Findings and impression each describe a possible nondisplaced avulsive lesion; both exact excerpts preserve the diagnostic uncertainty.',
+ (6,1):'The current full-report quote includes MCL disruption, acute injury context and surrounding edema. A shorter excerpt is preferable stylistically but the original is adequate.',
+ (7,2):'Both excerpts name mild medial degeneration; the added compartment heading does not alter the below-threshold support.',
+ (7,6):'The bare grade-I diagnosis is exactly traceable in either excerpt. The disagreement concerns grade semantics, not a faulty substring; preserve for root.',
+ (7,11):'Normal marrow is informative for contusion but does not itself assess acute cortical disruption; retain empty evidence for the missing fracture target.',
+ (8,11):'A significance-qualified marrow statement does not become an acute-fracture assessment. Empty evidence follows the missing-target choice.',
+ (10,6):'Both excerpts preserve the significance qualification for PF cartilage; the changed state requires that qualification to remain visible.',
+ (10,11):'The general marrow statement is not an acute-fracture assertion; retain missing with no evidence.',
+ (11,4):'The current quote explicitly localizes superficial medial cartilage disease; the additional normal remainder is consistent but not a necessary correction.',
+ (11,6):'The current quote localizes superficial patellar disease. The broader source also normalizes trochlea, so either excerpt supports the negative without conflict.',
+ (11,11):'No fracture assessment is supplied by the nonspecific marrow-signal line; empty evidence is appropriate for missing.',
+ (13,2):'Both source passages explicitly preserve the possible old ramp lesion and medial anatomy; neither turns the uncertainty into a definite tear.',
+ (13,7):'The current negative quote only denies significant effusion. Replace it with the separate initial categorical joint-fluid denial, retaining the adjacent Baker/sliver wording.',
+ (14,10):'Bony change without an edema or trauma assessment is not informative contusion evidence; withdraw that inference and its quote.',
+ (17,6):'The existing patellar severe-fraying/focal-loss excerpt already supports uncertain extent/depth. Added trochlear detail is consistent but not a concrete erratum.',
+ (20,10):'Findings and impression both directly call patellar marrow edema contusional; either supports the report-level diagnosis.',
+ (21,9):'Both passages preserve a small/laminar posterior collection possibly reflecting recess rupture; neither establishes a moderate/large Baker collection.',
+ (22,0):'The conclusion and findings both support an ACL tear without high-grade extent; the present short quote is adequate for uncertainty.',
+ (22,4):'The findings describe articular wear more severe laterally, not exclusively there. Keep the broad-source uncertain interpretation and preserve first-reader missing disagreement.',
+ (22,6):'General wear with lateral predominance does not localize PF depth or extent. The current full phrase supports uncertainty while the first reader requires explicit PF localization.',
+ (23,2):'The grade-2 intrasubstance phrase resolves the significance qualifier; the present excerpt carries that essential internal-signal context.',
+ (23,4):'The findings localize cartilage pathology to patella/trochlea and describe other bone edema without cartilage. I retain missing medially; preserve the original broad-OA interpretation.',
+ (23,5):'The source describes PF cartilage and gives no lateral cartilage finding. Missing uses empty evidence; broad impression scope remains recorded for root.',
+ (23,6):'The existing focal patellar defect/grade excerpt adequately leaves depth convention and extent unresolved; added trochlear detail is not a correction.',
+ (24,4):'Unremarkable named bones do not explicitly assess medial cartilage; preserve missing versus the first/original uncertain scope judgment.',
+ (24,5):'Unremarkable lateral bone fields are not a separate lateral cartilage assessment; retain empty evidence for my missing interpretation and retain the alternative mask.',
+ (24,10):'The complete current quote contains all normal bone regions and the separate soft-tissue injury. The shorter multi-region quote is adequate too; no current evidence erratum.',
+ (24,11):'The current full-report quote already includes all normal named osseous regions. The shorter contiguous normal-bone span is a valid alternative, not a correction.',
+ (25,6):'The present quote combines normal trochlea with superficial patellar disease, providing sufficient compartment context; the shorter quote is only an excerpt preference.',
+ (30,2):'Both excerpts directly identify the medial tear and displaced meniscal material; no identity is lost in the original.',
+ (30,4):'The current full-depth 12-mm quote omits its medial localization. Expand contiguously back to the medial-compartment heading so anatomy and both criteria are auditable.',
+ (30,7):'The original quote already says intra-articular and large, so additional synovial morphology is not required to support the positive.',
+ (30,10):'The original excerpt supplies only an insufficiency-fracture diagnosis. Replace with actual marrow-edema/low-signal-region evidence while retaining causal and fracture uncertainty.',
+ (32,10):'The existing excerpt directly diagnoses a named bone bruise. Additional normal marrow/fracture denial corroborates it but is not required for the report-level inference.',
+ (36,6):'Normal trochlea plus superficial patellar disease is present in the current quote; the shorter patellar-only version is an acceptable alternate with full-source context.',
+ (38,2):'The existing named complex medial tear supports positive; additional discontinuity/extrusion language is consistent and does not require replacement.',
+ (38,4):'Replace the retropatellar/femoral quote with the actual medial-predominant joint-narrowing passage to bind the masked OA target to its anatomy.',
+ (38,5):'Both quotations localize lateral cartilage only indirectly. Preserve this evidence-scope issue for root; neither excerpt is asserted to resolve lateral anatomy.',
+ (38,10):'The direct medial contusional-edema quote supports the positive; the first reader separately withdrew its causal concern after comparison.',
+ (39,4):'The findings describe general cartilage thinning more severe at PF. I retain uncertain medial involvement, with the first reader requiring explicit medial naming; neither excerpt resolves it.',
+ (39,5):'General intra-articular thinning with PF predominance supports my uncertain lateral scope; preserve the alternative missing interpretation and original exact text.',
+ (39,6):'Both the grade diagnosis and explicit PF-predominant thinning leave depth/extent insufficient. The present findings excerpt is adequate.',
+ (40,6):'The current severe PF chondrosis diagnosis lacks qualifying extent/depth and supports uncertainty; the longer fissure passage adds detail without changing evidence fitness.',
+ (43,2):'The current full-report quote includes medial tear/volume loss and its conclusion. Shortening it is not a substantive erratum.',
+ (43,3):'The present lateral extrusion/discontinuity quote directly supports abnormal morphology; the shared conclusion is an equally valid alternative.',
+ (43,4):'The current full report contains medial cartilage destruction and lacks extent; the shorter localized passage improves readability but not correctness.',
+ (44,10):'The current full-report span contains normal marrow in all named compartments. The shorter multi-region span retains the same anatomical coverage.',
+ (47,7):'The substantive qualifier kein wesentlicher remains in both quotes; preceding capsule wording does not grade fluid. Retain qualifier for the state proposal.',
+ (48,7):'The current large-fluid phrase omits intra-articular location. Add the immediately preceding location so the positive targets joint fluid explicitly.',
+ (48,8):'The current quote already states synovitis and synovial villous change; the full sentence is an acceptable alternate, not a correction.',
+ (48,10):'Benign marrow hyperplasia alone does not assess contusion. Empty evidence preserves missing; retain the first initial mask in the comparison history.',
+}
+assert set(E)=={(r['packet_index'],r['target_index']) for r in rows if r['any_evidence_attention']}
+evidence_corrections={(13,7),(30,4),(30,10),(38,4),(48,7)}
+retained_special={
+ (7,0):'I retain the source normal reading of satisfactory ACL appearance in contrast to the explicitly injured PCL. The first assessor treats satisfactory as insufficient; preserve that translation/scope disagreement for root.',
+ (7,1):'I retain negative for satisfactory collateral appearance as ordinary normal assessment, with no collateral lesion. The first reader leaves it masked; root must adjudicate this language interpretation.',
+ (7,6):'I retain uncertainty for a bare grade I without a defined grading convention or direct depth morphology. The earlier pre-freeze reconsideration remains preserved; the first reader retains a low-grade negative.',
+ (22,4):E[(22,4)],(22,6):E[(22,6)],(24,4):E[(24,4)],(24,5):E[(24,5)],(39,4):E[(39,4)],(39,5):E[(39,5)],
+}
+out=[]; reconsider=[]; proposals=[]
+for r in rows:
+ k=r['packet_index'],r['target_index']; own=r['second_source_frozen']; final=own.copy()
+ if k in C:
+  state,selector,reason=C[k];quote={'own':own['evidence'],'first_post':r['first_postfreeze']['evidence'],'first_source':r['first_source_frozen']['evidence'],'empty':''}[selector]
+  final={'state':state,'evidence':quote,'reason':reason}
+ elif k in retained_special:final['reason']=retained_special[k]
+ state_change=final['state']!=own['state']; quote_change=final['evidence']!=own['evidence']
+ assert final['evidence'] in P[r['packet_index']]['report']
+ assert bool(final['evidence'])==(final['state']!='not_mentioned')
+ if state_change or quote_change:reconsider.append({'packet_index':r['packet_index'],'study_uid':r['study_uid'],'target':r['target'],'before_source_freeze':own,'after_postfreeze':final,'state_changed':state_change,'quote_changed':quote_change})
+ current=r['current_effective']; state_diff=final['state']!=current['state']; substantive_evidence=k in evidence_corrections
+ disposition='propose_state_change_pending_root' if state_diff else 'propose_evidence_only_pending_root' if substantive_evidence else 'retain_current_annotation'
+ disagreement=final['state']!=r['first_postfreeze']['state']
+ raw=r['any_state_attention'] or r['any_evidence_attention']
+ after={'state':final['state'],'evidence':final['evidence']} if state_diff or substantive_evidence else current
+ record={**r,'second_postfreeze':final,'second_disposition':disposition,'retained_first_second_state_disagreement':disagreement,'evidence_review':E.get(k,'The same exact evidence supports the compared decision; no quotation difference requires resolution.'),'substantive_evidence_correction_recommended':substantive_evidence,'first_reader_deferred':r['first_postfreeze']['disposition']=='defer_disagreement' or r['first_postfreeze'].get('evidence_disposition')=='defer_evidence_scope','root_attention':raw or disagreement or state_diff or substantive_evidence,'recommendation_status':'unintegrated; root adjudication required; no accepted correction'}
+ out.append(record)
+ if state_diff or substantive_evidence:
+  proposals.append({'packet_index':r['packet_index'],'case':r['case'],'study_uid':r['study_uid'],'target':r['target'],'source_path':r['source_path'],'source_index_zero_based':r['source_index_zero_based'],'source_sha256':r['source_sha256'],'report_utf8_sha256':r['report_utf8_sha256'],'original_review':r['original_review'],'before_current':current,'after_proposed':after,'reason':final['reason'],'evidence_reason':E.get(k),'kind':'state_change' if state_diff else 'evidence_only','first_postfreeze_state':r['first_postfreeze']['state'],'first_reader_deferred':record['first_reader_deferred'],'both_postfreeze_states_agree':not disagreement,'current_accepted_overlap':r['existing_current_correction'],'status':'proposed_only_pending_root_source_adjudication'})
+attention=[r for r in out if r['root_attention']]; ids=sorted({r['packet_index'] for r in attention})
+counts={**M['counts'],'raw_union_attention_cells':sum(r['any_state_attention'] or r['any_evidence_attention'] for r in rows),'own_state_reconsiderations':sum(x['state_changed'] for x in reconsider),'own_quote_reconsiderations':sum(x['quote_changed'] for x in reconsider),'postfreeze_state_agreements':sum(not r['retained_first_second_state_disagreement'] for r in out),'postfreeze_state_disagreements':sum(r['retained_first_second_state_disagreement'] for r in out),'second_proposed_state_changes':sum(p['kind']=='state_change' for p in proposals),'second_proposed_evidence_only':sum(p['kind']=='evidence_only' for p in proposals),'complete_union_attention_cells':len(attention),'complete_union_attention_reports':len(ids)}
+comparison=write('complete-second-dispositions.json',{'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'rubric':M['rubric'],'inputs':original_bindings,'current_replay':ref(S/'original-current-baseline-replay.json'),'counts':counts,'records':out,'authorship':'All source decisions and each postfreeze reconsideration/evidence disposition authored by this assessor. Code packages explicit choices and checks membership; it does not infer labels.','all600_comparison_reviewed':True,'raw_evidence_variants_retained_even_when_equivalent':True})
+recp=write('own-postfreeze-reconsiderations.json',{'agent_id':AGENT,'own_source_freeze_unchanged':True,'records':reconsider,'notes':'Separate post-exposure decisions do not overwrite the earlier full source pass. Timestamps do not prove historical access order.'})
+prop=write('unintegrated-proposals.json',{'agent_id':AGENT,'current_registry':replay['current_registry'],'accepted_registry_count':118,'accepted_key_overlap':0,'accepted_changes':False,'records':proposals})
+attp=write('complete-union-attention.json',{'selection':'Union of original/baseline/current/first-source/first-post/second-source state differences, all raw evidence differences, all retained deferrals, plus second-post differences. Equivalent excerpts remain represented rather than silently dropped.','counts':counts,'records':attention})
+# Root packets contain no target, state, reason, trigger, proposal or attention-cell fields.
+packets=[]
+for b,start in enumerate(range(0,len(ids),10)):
+ clean=[]
+ for i in ids[start:start+10]:
+  p=P[i];clean.append({k:p[k] for k in ['source_path','source_sha256','index','study_uid','report']})
+ pp=write(f'neutral-root-packets/batch-{b:03}.json',clean);packets.append({**ref(pp),'reports':len(clean)})
+idx=write('neutral-root-packet-index.json',{'stage':'focused002_neutral_complete_union_sources_v1','agent_id':AGENT,'source_packet':ref(A/'qualified-negation-focused-002-independent-review-v1/neutral-source-packet.json'),'rubric':M['rubric'],'reports':len(ids),'maximum_reports_per_packet':10,'packets':packets,'no_case_specific_findings_in_packets':True,'reports_are_complete_unchanged_originals':True})
+for p in packets:
+ for q in obj(W/p['path']):
+  assert set(q)=={'source_path','source_sha256','index','study_uid','report'}
+  original=obj(R/q['source_path'])[q['index']]
+  assert original=={'study_uid':q['study_uid'],'report':q['report']}
+  assert ref(R/q['source_path'])['sha256']==q['source_sha256']
+assert sum(p['reports'] for p in packets)==len(ids)
+assert {q['study_uid'] for p in packets for q in obj(W/p['path'])}=={r['study_uid'] for r in attention}
+for z in original_bindings:assert ref(W/z['path'])==z
+assert ref(R/'initiative/reviews-v2/adjudications/registry.json')==replay['current_registry']
+validation=write('validation.json',{'agent_id':AGENT,'counts':counts,'all600_unique_and_bound':True,'all_final_nonmissing_quotes_contiguous':True,'all_original_source_freezes_and_first_post_artifacts_unchanged':True,'current118_registry_replayed_unchanged':True,'no_accepted_key_overlap':True,'neutral_packet_unique_complete_union_membership':True,'neutral_packet_source_and_schema_checks_pass':True,'no_repository_or_gold_changes':True,'registry_replay_required_again_before_any_integration':True})
+freeze=write('second-comparison-freeze.json',{'agent_id':AGENT,'session_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'rubric':M['rubric'],'source_and_first_reader_lineage':original_bindings,'assessment':ref(comparison),'reconsiderations':ref(recp),'proposals':ref(prop),'attention_union':ref(attp),'neutral_root_packets':ref(idx),'validation':ref(validation),'helper':ref(Path(__file__)),'counts':counts,'scope':'50 reports/600 targets; all proposals remain unintegrated. No registration or global QA closure. Root source reading must precede root case-specific comparison.','disclosure':'Postfreeze comparison knowingly exposes both source readings, first dispositions and immutable/current annotations for these600 cells. All prior exposures remain recorded in the preserved source freeze. No first-ever blinding claimed. Recorded timestamps do not prove historical access order.'})
+manifest=write('final-file-list.json',{'agent_id':AGENT,'files':[ref(p) for p in sorted(S.rglob('*')) if p.is_file()],'self_excluded':True})
+listed=obj(manifest)['files'];assert {z['path'] for z in listed}=={str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p!=manifest}
+for z in listed:assert ref(W/z['path'])==z
+print(json.dumps({'counts':counts,'freeze':ref(freeze),'neutral_packet_index':ref(idx),'manifest':ref(manifest)},indent=2))

@@ -1,0 +1,140 @@
+"""Integrate the actual distinct assessor's twelve accepted additional corrections."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import copy
+import hashlib
+import json
+import sys
+from dotenv import dotenv_values
+
+T = Path(__file__).resolve().parent
+W, R = T.parent, T / "recovered"
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def bind(p):
+    return {"path": str(p.relative_to(R)), "sha256": sha(p)}
+
+def read(p, expected=None):
+    if expected:
+        assert sha(p) == expected, p
+    return json.loads(p.read_text())
+
+def save(p, doc):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("x") as f:
+        f.write(json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+    return bind(p)
+
+registry_path = R / "initiative/reviews-v2/adjudications/registry.json"
+registry = read(registry_path, "00ef56cdb94f6854a21ab102229139270096fd0ead26562d2caf1b824e8cd60b")
+reports = {r["study_uid"]: r["report"] for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")) for r in read(p)}
+before = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+assert before["n_changes"] == 193 and len(before["pending_semantic_qa"]) == 3
+before_map = {(c["study_uid"], c["target"]): c for c in before["changes"]}
+primary_validation = read(R / "initiative/audits/qualified-negation-focused-001-integration-v1/primary-integration-validation.json", "95cc2f245f06357aa4ed83be1d7bd50e63b51f90ba275991b232458edb0d4c53")
+
+G = T / "annotation-staging/qualified-negation-focused-001-additional-independent-v1"
+A = R / "initiative/audits/qualified-negation-focused-001-additional-independent-v1"
+assert not A.exists()
+manifest_path = G / "completion-manifest.json"
+manifest = read(manifest_path, "4f81540f30abe8ee20e2e8f72137bd024e8f8e2e1afed1942e9f58c1862691ea")
+assessment = read(G / "independent-source-assessment.json", "bb44faedc9ed8c23d893eb279d8dfc5762435ff7778a531ff55006c5d627740c")
+decision = read(G / "accepted-decision.json", "119996fa8ffd6f03ac2fee4eeaec90dd65ed5badd38f1db6b23708713366d19d")
+proposed_case = read(G / "proposed-runtime-case.json", "a1aa63487c80091b143116e0bb39095870a1314bb7edc2e4bf3a5d330545ee1d")
+assert assessment["agent_id"] == decision["adjudicator_agent_id"] == "/root/duplicate_consistency_review"
+assert decision["proposer_agent_id"] == "/root" and decision["n_changes"] == 12
+assert len(assessment["records"]) == 13
+assert Counter(r["disposition"] for r in assessment["records"]) == {"accepted": 12, "pending_disagreement": 1}
+assert sum(r["state_reconsidered_from_own_original_freeze"] for r in assessment["records"]) == 5
+assert sum(r["state_reconsidered_from_new_reread"] for r in assessment["records"]) == 9
+pending_keys = {(r["study_uid"], r["target"]) for r in assessment["records"] if r["disposition"] == "pending_disagreement"}
+assert len(pending_keys) == 1 and len(decision["pending_items"]) == 1
+secrets = [v.encode() for k, v in dotenv_values(W / ".env").items() if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+assert len(secrets) == 2
+assert isinstance(manifest["files"], dict)
+entries = {G / name: digest for name, digest in manifest["files"].items()}
+entries[manifest_path] = sha(manifest_path)
+preserved = []
+for p, digest in sorted(entries.items()):
+    if isinstance(digest, dict):
+        digest = digest["sha256"]
+    data = p.read_bytes()
+    assert hashlib.sha256(data).hexdigest() == digest and all(s not in data for s in secrets)
+    dest = A / p.relative_to(G)
+    if dest.suffix == ".py":
+        dest = dest.with_suffix(".py.txt")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with dest.open("xb") as f:
+        f.write(data)
+    assert sha(dest) == sha(p)
+    preserved.append({"original_path": str(p.relative_to(W)), **bind(dest), "bytes": len(data)})
+save(A / "preservation.json", {"stage": "byte_preserved_actual_independent_additional_twelve_decision", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "files": preserved, "all_originals_unchanged": True})
+
+# Only the runtime wrapper's archive locations change. All assessor artifacts,
+# including its originally suggested case wrapper, remain byte-identical.
+case = copy.deepcopy(proposed_case)
+relocations = []
+for reference in [case["proposal"], *case["supporting_evidence"].values()]:
+    old = reference["path"]
+    if old.startswith("initiative/audits/qualified-negation-focused-001-root-review-v1/"):
+        reference["path"] = old.replace("qualified-negation-focused-001-root-review-v1/", "qualified-negation-focused-001-root-complete-v1/")
+        assert sha(R / reference["path"]) == reference["sha256"]
+        relocations.append({"suggested_path": old, "actual_preserved_path": reference["path"], "same_sha256": reference["sha256"]})
+assert len(relocations) == 2
+new_keys = {(c["study_uid"], c["target"]) for c in case["changes"]}
+assert len(new_keys) == 12 and not new_keys & set(before_map) and not new_keys & pending_keys
+case_path = R / "initiative/reviews-v2/adjudications/cases/qualified-negation-focused-001-additional-twelve.json"
+save(case_path, case)
+audit = R / "initiative/audits/qualified-negation-focused-001-integration-v1"
+save(audit / "registry-before-additional.json", registry)
+registry_after = {**registry, "cases": [*registry["cases"], bind(case_path)]}
+registry_path.write_text(json.dumps(registry_after, ensure_ascii=False, indent=2) + "\n")
+after = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+after_map = {(c["study_uid"], c["target"]): c for c in after["changes"]}
+assert after["n_changes"] == 205 and after["pending_semantic_qa"] == before["pending_semantic_qa"]
+assert all(after_map[k] == v for k, v in before_map.items())
+assert set(after_map) - set(before_map) == new_keys
+assert all(sha(R / ref["path"]) == ref["sha256"] for ref in primary_validation["protected_artifacts"])
+
+# Reconcile all600 dispositions: 599 match; one documented disagreement remains pending. These are
+# inspection copies, not a label export; pending semantic QA still blocks export.
+root_dispositions = read(R / "initiative/audits/qualified-negation-focused-001-root-complete-v1/root-postfreeze-dispositions.json", "bda71d6c1a741ac5379bca56e896e31eaa307aa86be1fd8d67fcdec052cb9c7b")
+original = {r["study_uid"]: r for p in sorted((R / "initiative/reviews-v2/reviewed").glob("*-reviewed.jsonl")) for r in [json.loads(line) for line in p.read_text().splitlines()]}
+assert len(original) == 4407
+coverage = {target: Counter() for target in TARGETS}
+for uid, row in original.items():
+    for j, target in enumerate(TARGETS):
+        key = uid, target
+        state = after_map[key]["after"]["state"] if key in after_map else row["states"][j]
+        coverage[target][state] += 1
+assert len(root_dispositions["records"]) == 600
+reconciled = 0
+pending_reconciliation = []
+for d in root_dispositions["records"]:
+    key = d["study_uid"], d["target"]
+    j = TARGETS.index(d["target"])
+    current = after_map[key]["after"] if key in after_map else {"state": original[d["study_uid"]]["states"][j], "evidence": original[d["study_uid"]]["evidence"][j]}
+    if key in pending_keys:
+        assert key not in after_map and current["state"] == "positive" and d["root_postfreeze_state"] == "uncertain"
+        pending_reconciliation.append({"study_uid": key[0], "target": key[1], "current_state": current["state"], "root_postfreeze_state": d["root_postfreeze_state"], "disposition": "pending_disagreement_not_registered"})
+        continue
+    reconciled += 1
+    assert current["state"] == d["root_postfreeze_state"]
+    if d["action"] != "retain_current_state_no_registry_change":
+        assert current["evidence"] == d["root_postfreeze_evidence"]
+assert reconciled == 599 and len(pending_reconciliation) == 1
+all_new = [c for c in after["changes"] if c["case_id"].startswith("qualified-negation-focused-001-")]
+assert len(all_new) == 87
+transition = Counter(c["before"]["state"] + "->" + c["after"]["state"] for c in all_new)
+assert transition == {"negative->uncertain": 74, "positive->uncertain": 3, "uncertain->not_mentioned": 6, "negative->negative": 3, "uncertain->uncertain": 1}
+receipt = {"schema_version": 1, "stage": "root_verified_qualified001_registration_with_one_dispute_pending", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "registry": bind(registry_path), "additional_case": bind(case_path), "actual_assessor_decision": bind(A / "accepted-decision.json"), "runtime_wrapper_path_relocations_only": relocations, "prior193_changes_preserved": True, "original118_and_all297_protected_artifacts_unchanged": True, "new_additional": 12, "new_primary_and_additional": 87, "total_registered": 205, "new_transition_counts": dict(transition), "root599_final_states_match_registry_inspection": True, "pending_disagreements": pending_reconciliation, "root87_changed_annotations_match_exact_evidence": True, "all4407_inspection_only_state_counts": {k: dict(v) for k, v in coverage.items()}, "pending_semantic_qa": after["pending_semantic_qa"], "label_export_performed": False, "training_ready": False}
+save(audit / "complete205-integration-validation.json", receipt)
+save(audit / "complete205-inspection.json", after)
+(audit / "integrate-qualified001-additional-v1.py.txt").write_bytes(Path(__file__).read_bytes())
+print(json.dumps({"receipt": bind(audit / "complete205-integration-validation.json"), "registry": bind(registry_path), "total_registered": 205, "new_registered": 87, "new_transition_counts": dict(transition), "root599_states_reconciled": True, "pending_disagreements": 1, "training_ready": False}, indent=2))

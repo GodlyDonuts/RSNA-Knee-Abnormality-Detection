@@ -1,0 +1,190 @@
+"""Read-only Git delta sizing; streams opaque blobs into a discard counter."""
+from pathlib import Path
+from datetime import datetime, timezone
+import gzip
+import hashlib
+import json
+import shutil
+import subprocess
+import tarfile
+
+HERE = Path(__file__).resolve().parent
+W = HERE.parents[2]
+R = W / 'work/recovered'
+BASE = '1792f01ed3daab757c5ddb9bf5733ffe8d999f91'
+TARGET = '78da1da5ba52abe293676442ff2ae65e454d7d34'
+HF_BASE = '54949cd5a575ea7027a4a57916e772936a98d38b'
+META = R / 'initiative/audits/hf-preparation-checkpoint-1792f01/package-metadata/manifest.json'
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with path.open('rb') as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def git(*args):
+    return subprocess.check_output(['git', *args], cwd=R)
+
+
+def write(name, value):
+    p = HERE / name
+    assert not p.exists(), p
+    p.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+    return dict(path=name, bytes=p.stat().st_size, sha256=sha(p))
+
+
+def tree(commit):
+    out = {}
+    for row in git('ls-tree', '-rlz', commit).split(b'\0'):
+        if not row:
+            continue
+        meta, path = row.split(b'\t', 1)
+        mode, kind, oid, size = meta.decode().split()
+        name = path.decode()
+        assert kind == 'blob' and mode in {'100644', '100755'}
+        assert not any(x == '.env' or x.startswith('.env.') for x in Path(name).parts)
+        assert not name.startswith('/') and '..' not in Path(name).parts
+        out[name] = dict(path=name, mode=mode, git_blob=oid, bytes=int(size))
+    return out
+
+
+class Counter:
+    def __init__(self):
+        self.size = 0
+        self.digest = hashlib.sha256()
+
+    def write(self, data):
+        self.size += len(data)
+        self.digest.update(data)
+        return len(data)
+
+    def flush(self):
+        pass
+
+
+class BlobReader:
+    def __init__(self, source, row):
+        self.source = source
+        self.remaining = row['bytes']
+        self.digest = hashlib.sha256()
+        self.oid = hashlib.sha1(b'blob ' + str(row['bytes']).encode() + b'\0')
+
+    def read(self, n=-1):
+        n = self.remaining if n < 0 else min(n, self.remaining)
+        data = self.source.read(n)
+        assert len(data) == n
+        self.remaining -= n
+        self.digest.update(data)
+        self.oid.update(data)
+        return data
+
+
+def measure(rows):
+    sink = Counter()
+    proc = subprocess.Popen(['git', 'cat-file', '--batch'], cwd=R, stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    refs = []
+    try:
+        with gzip.GzipFile(filename='', mode='wb', fileobj=sink, mtime=0, compresslevel=9) as gz:
+            with tarfile.open(fileobj=gz, mode='w|', format=tarfile.PAX_FORMAT) as tar:
+                for row in rows:
+                    proc.stdin.write(row['git_blob'].encode() + b'\n')
+                    proc.stdin.flush()
+                    oid, kind, size = proc.stdout.readline().decode().split()
+                    assert (oid, kind, int(size)) == (row['git_blob'], 'blob', row['bytes'])
+                    reader = BlobReader(proc.stdout, row)
+                    info = tarfile.TarInfo(row['path'])
+                    info.size = row['bytes']
+                    info.mode = int(row['mode'], 8) & 0o777
+                    info.mtime = 0
+                    info.uid = info.gid = 0
+                    info.uname = info.gname = ''
+                    tar.addfile(info, reader)
+                    assert reader.remaining == 0 and reader.oid.hexdigest() == row['git_blob']
+                    assert proc.stdout.read(1) == b'\n'
+                    refs.append(dict(row, sha256=reader.digest.hexdigest()))
+        proc.stdin.close()
+        assert proc.wait(timeout=60) == 0
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+    return refs, dict(bytes=sink.size, sha256=sink.digest.hexdigest(), writes_archive=False,
+                      gzip_level=9, gzip_mtime=0, tar_format='PAX_FORMAT', metadata='canonical')
+
+
+def main():
+    assert git('rev-parse', TARGET).decode().strip() == TARGET
+    assert sha(META) == '5f879ae740356e21ff5ed4c34fa31daf1cce4b5ffa9dafdd044a0658b9ad850b'
+    old, new = tree(BASE), tree(TARGET)
+    meta = json.loads(META.read_text())
+    archived = {x['path']: x for x in meta['files']}
+    assert len(archived) == len(meta['files']) == 5657
+    for path, row in archived.items():
+        assert row['bytes'] == old[path]['bytes'] and row['git_blob'] == old[path]['git_blob']
+    changed = {p for p, row in new.items() if p not in old or row != old[p]}
+    missing = {p for p in new if p not in changed and p not in archived}
+    deletions = sorted(set(old) - set(new))
+    assert changed.isdisjoint(missing)
+    selected = sorted(changed | missing)
+    refs, package = measure([new[p] for p in selected])
+    delta = {x['path']: x for x in refs}
+    resulting = []
+    for p, row in sorted(new.items()):
+        if p in delta:
+            resulting.append(dict(delta[p], materialization='delta.tar.gz',
+                                  reason='new_or_changed' if p in changed else 'base_archive_coverage_completion'))
+        else:
+            assert p in archived and row == old[p]
+            resulting.append(dict(row, sha256=archived[p]['sha256'],
+                                  materialization='immutable_base_checkpoint.tar.gz'))
+    assert len(resulting) == len(new)
+    assert (set(archived) - set(deletions)) | set(delta) == set(new)
+    binding = dict(base_git_commit=BASE, target_git_commit=TARGET,
+                   target_git_tree=git('rev-parse', TARGET + '^{tree}').decode().strip(),
+                   base_hf_revision=HF_BASE,
+                   base_archive_path=f'preparation-checkpoints/{BASE}/checkpoint.tar.gz',
+                   base_archive_sha256='10206b752cce97cb671de607291785eef10d7fd9154c4dd4a0612b6686327271',
+                   base_archive_bytes=1335583564,
+                   base_manifest_path=f'preparation-checkpoints/{BASE}/manifest.json',
+                   base_manifest_sha256=sha(META))
+    manifest = write('planning-resulting-git-manifest-78da.json', dict(
+        schema_version=1, scope='every Git tree blob; opaque content only; planning baseline, not future integration commit',
+        **binding, n_files=len(resulting), files=resulting))
+    index = write('planning-delta-index-78da.json', dict(
+        schema_version=1, **binding, package=package, resulting_manifest=manifest,
+        n_new=sum(p not in old for p in changed), n_modified=sum(p in old for p in changed),
+        n_base_coverage_additions=len(missing), deletions=deletions,
+        files=[dict(x, operation=('add' if x['path'] not in old else 'modify') if x['path'] in changed
+                    else 'include_unchanged_missing_from_base',
+                    prior_git_blob=old.get(x['path'], {}).get('git_blob'),
+                    prior_mode=old.get(x['path'], {}).get('mode')) for x in refs]))
+    free = shutil.disk_usage(W).free
+    floor, reserve = 20 * 2**30, 64 * 2**20
+    receipt = dict(schema_version=1, agent_id='/root/duplicate_consistency_review',
+                   at_utc=datetime.now(timezone.utc).isoformat(), **binding,
+                   n_base_git_files=len(old), n_base_archive_files=len(archived),
+                   n_target_git_files=len(new), n_new_or_changed=len(changed),
+                   raw_changed_bytes=sum(new[p]['bytes'] for p in changed),
+                   n_unchanged_base_archive_omissions=len(missing),
+                   raw_omitted_bytes=sum(new[p]['bytes'] for p in missing),
+                   n_delta_files=len(refs), raw_delta_bytes=sum(x['bytes'] for x in refs),
+                   n_deletions=len(deletions), package=package, manifest=manifest, index=index,
+                   disk=dict(free_bytes=free, floor_bytes=floor, operations_reserve_bytes=reserve,
+                             bytes_over_floor=free-floor,
+                             can_build_single_delta_now=free >= floor + reserve + package['bytes']),
+                   source_gold_or_other_clinical_values_parsed=False, repository_mutations=0,
+                   remote_calls=0, archive_written=False,
+                   full_manifest_sha256_basis='SHA256 of delta blobs streamed from Git; unchanged base-covered blobs reuse immutable manifest SHA256 after Git OID and size validation',
+                   planning_limitation='This pinned 78da snapshot predates the pending integration commit. Refresh exact manifest, compression measurement, CI and private remote HEAD bindings after that commit.')
+    write('planning-delta-measurement-78da.json', receipt)
+    print(json.dumps({k: receipt[k] for k in ['n_base_git_files', 'n_base_archive_files',
+        'n_target_git_files', 'n_new_or_changed', 'n_unchanged_base_archive_omissions',
+        'n_delta_files', 'raw_delta_bytes', 'package', 'disk']}, indent=2))
+
+
+if __name__ == '__main__':
+    main()

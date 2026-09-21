@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "validated_at_utc": "2026-09-21T22:43:30.024221+00:00",
+  "validator": {
+    "path": "work/annotation-staging/qualified-negation-focused-001-additional-independent-v1/validate_adjudication.py",
+    "sha256": "05637200629e87a422b69fa00e3fc1831bbd2e5a307fd3a613b1b187f11005d3"
+  },
+  "runtime": {
+    "path": "work/recovered/rsna/adjudications.py",
+    "sha256": "2b7af816e9caff240daf02af1dd3bf08e193438ac568478651f0b49868e1eac0"
+  },
+  "case": {
+    "path": "work/annotation-staging/qualified-negation-focused-001-additional-independent-v1/proposed-runtime-case.json",
+    "sha256": "a1aa63487c80091b143116e0bb39095870a1314bb7edc2e4bf3a5d330545ee1d"
+  },
+  "assessment": {
+    "path": "work/annotation-staging/qualified-negation-focused-001-additional-independent-v1/independent-source-assessment.json",
+    "sha256": "bb44faedc9ed8c23d893eb279d8dfc5762435ff7778a531ff55006c5d627740c"
+  },
+  "decision": {
+    "path": "work/annotation-staging/qualified-negation-focused-001-additional-independent-v1/accepted-decision.json",
+    "sha256": "119996fa8ffd6f03ac2fee4eeaec90dd65ed5badd38f1db6b23708713366d19d"
+  },
+  "release_source_count": 4407,
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "accepted_runtime_changes": 12,
+  "pending_items_excluded_from_runtime": 1,
+  "negative_boundary_checks": [
+    {
+      "name": "same_assessor_as_proposer",
+      "rejected": true,
+      "reason": "Self approval cannot authorize report corrections"
+    },
+    {
+      "name": "missing_accepted_item",
+      "rejected": true,
+      "reason": "Correction changes must exactly cover the accepted decision"
+    },
+    {
+      "name": "changed_accepted_quote",
+      "rejected": true,
+      "reason": "Correction state/quote differs from the accepted assessment"
+    },
+    {
+      "name": "wrong_original_before",
+      "rejected": true,
+      "reason": "Correction before state/evidence differs from the preserved review"
+    },
+    {
+      "name": "changed_bound_source_hash",
+      "rejected": true,
+      "reason": "Missing or changed evidence checksum: initiative/reviews/inputs/batch-006.json"
+    },
+    {
+      "name": "unaccepted_pending_item_in_case",
+      "rejected": true,
+      "reason": "Correction changes must exactly cover the accepted decision"
+    }
+  ],
+  "current_registry": {
+    "path": "work/recovered/initiative/reviews-v2/adjudications/registry.json",
+    "sha256": "00ef56cdb94f6854a21ab102229139270096fd0ead26562d2caf1b824e8cd60b"
+  },
+  "current_registered_changes": 193,
+  "selected_keys_overlap_current_registry": 0,
+  "historical118_changes_preserved": true,
+  "protected_files_unchanged": 239,
+  "all_preexisting_stage_files_preserved": true,
+  "all_three_global_qa_pending_and_unchanged": true,
+  "fixture_removed": true,
+  "production_registry_changed": false,
+  "gold_accessed": false,
+  "disk_free_bytes_before": 29448536064,
+  "disk_free_bytes_after": 29447475200,
+  "minimum_disk_free_bytes": 21474836480
+}

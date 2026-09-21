@@ -1,0 +1,141 @@
+"""Record this reader's personal post-freeze dispositions for all 150 OA cells.
+
+All 50 complete sources and 150 frozen rationales were personally read. The
+explicit reconsiderations below change those authored judgments; other cells
+retain their authored source judgment. No second-reader findings are loaded.
+"""
+
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+WORKSPACE = STAGE.parents[2]
+REPO = WORKSPACE / "work/recovered"
+SOURCE = STAGE.parent / "cartilage-observed-000-source-review-v1"
+AGENT = "/root/quality_temporal_review"
+SOURCE_HASH = "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3"
+RUBRIC_HASH = "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path)}
+
+
+def write(path, obj):
+    with path.open("x") as stream:
+        stream.write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
+
+
+# State changes are personal reconsiderations, not keyword-generated labels.
+# None of the second reader's case findings were opened before these decisions.
+RECONSIDERATIONS = {
+    (6, "Medial OA"): "I reconsider negative. Altered tibial cartilage signal is described as grade I, but neither preserved cartilage thickness/contour nor a named grading framework is stated for this medial finding. I previously treated signal change plus the bare numeral as proving only superficial disease. The absence of described substance loss is not an explicit exclusion of it. The frozen cartilage threshold is therefore unresolved. The earlier historical root grade-I exposure disclosed in my source freeze is retained, not adopted as independent evidence.",
+    (6, "PF OA"): "I reconsider negative. The PF sentence gives grade I chondromalacia at the medial patellar facet and trochlea, without a named grading framework, direct loss fraction, or preserved-thickness morphology. I had converted that numeral into a below-threshold finding. Normal retinacula, patellar shape and absence of bone edema do not establish cartilage thickness. Retain uncertainty rather than asserting an unnamed grade-to-depth conversion.",
+    (8, "PF OA"): "I reconsider negative. The only PF cartilage finding is isolated grade I lateral patellar chondromalacia. No named grading system or direct cartilage-depth description supplies the below-threshold inference I originally made. Normal joint alignment does not repair that omission. The source mentions cartilage abnormality but does not establish or exclude the required loss threshold.",
+    (14, "PF OA"): "I reconsider negative. The report describes increased cartilage signal and possible grade 1 chondromalacia, later favored in the impression. It does not describe preserved thickness or contour, quantify loss, or name a grading framework. I previously inferred absence of substantial tissue loss from the signal-only description and grade number; silence about tissue loss is insufficient for that negative. PF cartilage remains informative but threshold-incomplete.",
+    (16, "Medial OA"): "I reconsider negative. Medial tibial/femoral chondromalacia is reported only as 1 degree. A below-threshold cartilage depth cannot be established from that unnamed numeric scale alone. Medial marrow edema and normal cartilage at the patella are separate findings and cannot supply the missing medial cartilage criterion. I retain the exact localized grade quote with uncertainty.",
+    (22, "Medial OA"): "I reconsider negative. The tibiofemoral articular-cartilage statement contains bare grade I without a named framework or direct loss fraction. My prior low-grade interpretation assumed its depth meaning. Neither the patellofemoral grade-IV site nor the bone and meniscal descriptions resolve medial cartilage thickness. The general tibiofemoral statement addresses this compartment but leaves the threshold uncertain.",
+    (22, "Lateral OA"): "I reconsider negative. Bare grade I is the only depth characterization of tibiofemoral cartilage; the associated small lateral osteophytes do not quantify cartilage loss. I previously treated this numeral as proving a below-threshold lateral finding despite the unnamed scale. Retain uncertainty for lateral OA without transferring the separate PF grade-IV lesion to this target.",
+    (28, "Medial OA"): "I reconsider negative. Isolated grade I medial tibial cartilage disease has no named grade framework or explicit thickness/contour preservation. The otherwise normal bone morphology and normal patellar cartilage refer to different structures. My earlier below-threshold mapping is not directly established, so the medial cartilage threshold stays uncertain.",
+    (39, "Medial OA"): "I reconsider positive. The medial region is explicitly large enough, but its depth is described solely as grade 4 chondrosis on an unnamed scale. My frozen rationale openly supplied the missing full-depth interpretation. The report does not independently say full-thickness loss or define the grade; its additional grade-3 tibial disease and generic advanced OA impression do not repair that depth binding. Accept measured extent, preserve uncertainty about the required depth, and do not alter the rubric.",
+    (41, "Medial OA"): "I reconsider positive. Broad medial grade-4 disease spans approximately centimeter-scale dimensions, but the source neither names its grading framework nor separately describes full-thickness or greater-than-half loss. I had treated grade 4 as full-depth automatically. The advanced-OA impression repeats that grade rather than providing the missing depth statement. This supports uncertainty despite adequate stated region extent.",
+    (44, "PF OA"): "I reconsider positive because the same lateral trochlear location is described as a greater-than-50-percent defect of 1.2 by 1.2 cm and then as a less-than-50-percent injury with the same 1.2 cm leading dimension and a corrupted other dimension. My original rationale assumed coexisting distinct foci, but the report does not actually distinguish them. A qualifying high-grade lesion is explicitly possible, yet the overlapping location and partly matching dimensions leave contradictory severity unresolved. Preserve both contiguous clauses and all corrupted tokens; do not repair the text or claim a specific transcription cause.",
+    (49, "Lateral OA"): "I reconsider not_mentioned and retain the baseline uncertain state. The source first refers generally to femoral/tibial cartilage and remaining segments, then interprets the described disease as medial-compartment OA. My frozen reading treated the final medial interpretation as restricting every preceding cartilage segment to medial. The generic remaining-segment language leaves the lateral scope unresolved; it is safer to preserve informative localization uncertainty than assert no informative mention. Expand the quote to retain the final medial interpretation rather than silently filling a lateral grade.",
+    (49, "PF OA"): "I reconsider negative. Normal femoropatellar congruence describes alignment, while the patellar cartilage abnormality is a bare grade 1 without a named scale or direct thickness description. I had inferred a below-threshold cartilage depth from the numeral and lack of a competing deeper finding. That missing depth evidence supports uncertainty; normal alignment cannot substitute for cartilage normality.",
+}
+
+SPECIAL_QUOTES = {
+    (49, "Lateral OA"): "Hondromalacija femoralne i tibijalne hrskavice, najizražnije u području opisanog koštanog edema\n3°, u preostalim segmentima 2°. Opisano odgovara OA promjenama medijalnog kompartmenta.",
+}
+
+
+def main():
+    compared_path = STAGE / "own-source-vs-preserved-baseline.json"
+    compared = read(compared_path)
+    assert len(compared["records"]) == 150
+    neutral = read(SOURCE / "neutral-first-50-full-reports.json")
+    assert sha(SOURCE / "source-freeze.json") == "d3d9649dcbe23cb51f80827ae1faa845cd3a88ba4c370653259908dc5fb60067"
+    assert sha(REPO / "protocols/report_weak_v2.md") == RUBRIC_HASH
+    assert compared["baseline_registered_corrections"] == 34
+    timestamp = datetime.now(timezone.utc).isoformat()
+    records, proposals, reconsidered = [], [], []
+    for base in compared["records"]:
+        key = base["packet_index"], base["target"]
+        source = neutral[base["packet_index"]]
+        assert source["study_uid"] == base["study_uid"]
+        assert hashlib.sha256(source["report"].encode()).hexdigest() == base["source_report_sha256"]
+        state = "uncertain" if key in RECONSIDERATIONS else base["own_frozen_state"]
+        evidence = SPECIAL_QUOTES.get(key, base["own_frozen_evidence"])
+        assert (state == "not_mentioned" and evidence == "") or (state != "not_mentioned" and evidence and evidence in source["report"])
+        reason = RECONSIDERATIONS.get(key, "I retain my personally authored source judgment after comparison with the preserved baseline. " + base["own_frozen_rationale"])
+        correction = state != base["baseline_effective_state"] or key == (49, "Lateral OA")
+        row = {**base, "postfreeze_state": state, "postfreeze_evidence": evidence,
+               "postfreeze_reason": reason, "reconsidered_from_own_source_freeze": key in RECONSIDERATIONS,
+               "disposition": "proposed_correction_pending_distinct_review" if correction else "retain_baseline_state_after_own_review",
+               "second_reader_case_findings_opened": False, "original_freeze_changed": False}
+        records.append(row)
+        if key in RECONSIDERATIONS:
+            reconsidered.append(row)
+        if correction:
+            assert base["existing_correction_case"] is None, "Requires explicit supersession handling, not duplicate registration"
+            proposals.append({
+                "packet_index": base["packet_index"], "case": base["batch"].removeprefix("batch-") + ":" + f'{base["source_index"]:02d}',
+                "study_uid": base["study_uid"], "target": base["target"], "batch": base["batch"], "index": base["source_index"],
+                "source_path": base["source_path"], "source_sha256": base["source_sha256"],
+                "artifact_path": base["original_review_path"], "artifact_sha256": base["original_review_sha256"],
+                "before_state": base["baseline_effective_state"], "before_evidence": base["baseline_effective_evidence"],
+                "proposed_state": state, "source_quote": evidence, "reason": reason,
+                "kind": "state_correction" if state != base["baseline_effective_state"] else "evidence_context_correction",
+                "status": "proposed_pending_distinct_source_assessment_and_root_adjudication",
+                "original_before_matches_effective_baseline": base["original_state"] == base["baseline_effective_state"] and base["original_evidence"] == base["baseline_effective_evidence"],
+                "own_frozen_state": base["own_frozen_state"], "own_state_reconsidered": state != base["own_frozen_state"],
+            })
+    common = {
+        "schema_version": 1, "agent_id": AGENT, "session_id": AGENT,
+        "rubric_version": "report-weak-v2.0", "rubric_sha256": RUBRIC_HASH, "source_reports_sha256": SOURCE_HASH,
+        "completed_at_utc": timestamp, "source_freeze": bind(SOURCE / "source-freeze.json"),
+        "source_assessment": bind(SOURCE / "source-assessment-frozen.jsonl"),
+        "baseline_comparison": bind(compared_path), "baseline_registered_corrections": 34,
+        "baseline_registry_sha256": "36cfae8368b5983a6ea09aff877519831c2099b28b3200d026b8ee68625436d6",
+        "exposure": "Discovery code consumed current labels before the original source pass; exact historical exposure is disclosed in that freeze. This stage opened the pinned 34-correction current target rows only after the 150-state source freeze. Both source passes are now frozen, but only the second reader's file hashes and neutral packet equality were checked; its case findings remain unopened. This is a post-baseline-comparison assessment, not a new blinded pass.",
+        "adjudication_context": "Between the source freeze and this comparison, this same agent independently adjudicated ten additional qualified-negation items, including grade-depth, severity and single-width evidence limitations. That subsequent conceptual exposure is disclosed. It does not rewrite earlier source states or create a new grading framework.",
+        "originals_preserved": True, "production_registry_changed": False, "gold_accessed": False,
+        "global_qa_gates_closed": 0, "second_reader_case_findings_opened": False,
+    }
+    counts = {"full_source_reports": 50, "oa_targets_per_report": 3, "all_cells_assessed": 150,
+              "source_frozen_state_differences_from_baseline": compared["state_differences"],
+              "own_state_reconsiderations": len(reconsidered), "proposed_items": len(proposals),
+              "proposed_state_changes": sum(row["kind"] == "state_correction" for row in proposals),
+              "proposed_evidence_only_changes": sum(row["kind"] == "evidence_context_correction" for row in proposals),
+              "proposal_reports": len({row["study_uid"] for row in proposals}),
+              "other_retained_baseline_cells": 150 - len(proposals)}
+    write(STAGE / "first-postfreeze-dispositions.json", {**common, "stage": "first_source_reader_postfreeze_dispositions", "counts": counts, "records": records})
+    write(STAGE / "explicit-reconsiderations.json", {**common, "stage": "preserved_first_reader_reconsiderations", "count": len(reconsidered), "records": reconsidered})
+    write(STAGE / "proposed-errata.json", {**common, "stage": "first_reader_proposals_pending_independent_assessment", "status": "proposed", "n_changes": len(proposals), "n_studies_with_proposals": counts["proposal_reports"], "proposed_errata": proposals})
+    selected_uids = {row["study_uid"] for row in proposals}
+    selected_neutral = [row for row in neutral if row["study_uid"] in selected_uids]
+    packet_dir = STAGE / "neutral-root-source-packets"
+    packet_dir.mkdir()
+    packets = []
+    for start in range(0, len(selected_neutral), 10):
+        path = packet_dir / f"packet-{start // 10:03d}.json"
+        contents = selected_neutral[start:start + 10]
+        write(path, contents)
+        packets.append({**bind(path), "n_reports": len(contents)})
+    write(STAGE / "neutral-root-packet-manifest.json", {"schema_version": 1, "agent_id": AGENT, "neutral_original_source_packet": bind(SOURCE / "neutral-first-50-full-reports.json"), "reports": len(selected_neutral), "max_reports_per_packet": 10, "packets": packets, "neutral_fields_only": True, "no_target_state_or_trigger_fields_in_packets": True})
+    write(STAGE / "first-disposition-freeze.json", {**common, "stage": "first_cartilage_reader_postfreeze_dispositions_frozen_before_second_case_findings", "counts": counts, "files": {path.name: sha(path) for path in sorted(STAGE.glob("*.json"))}, "authoring_helper": bind(Path(__file__).resolve()), "next_step": "Separate second-reader comparison may now open these findings, preserving its own freeze. Root should read neutral candidate sources before examining case-specific proposals. No corrections are accepted or registered by this freeze."})
+    print(json.dumps({"counts": counts, "disposition_freeze_sha256": sha(STAGE / "first-disposition-freeze.json"), "proposal_sha256": sha(STAGE / "proposed-errata.json"), "neutral_manifest_sha256": sha(STAGE / "neutral-root-packet-manifest.json")}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

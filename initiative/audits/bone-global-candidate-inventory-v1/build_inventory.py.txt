@@ -1,0 +1,326 @@
+"""Reproducible bone-cell discovery inventory, never clinical adjudication."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import copy
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import unicodedata
+
+HERE = Path(__file__).resolve().parent
+W = HERE.parents[2]
+R = W / 'work/recovered'
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+RUBRIC_SHA = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+SOURCE_SHA = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+REGISTRY_SHA = '64b6b8b51efb693738e8a3f70743afe4b160c5b3acd1f4ec3300cc699e8fee12'
+BONE_TARGETS = ('Contusion', 'Fracture')
+OBSERVED = {'positive', 'negative'}
+
+# All patterns are retrieval proxies. Negated, historical or unrelated matches
+# remain matches, and missing matches never establish clinical absence.
+PATTERNS = {
+ 'bone': r'\b(?:bone\w*|bony|osseous|marrow|medull\w*|corti\w*|cancell\w*|trabec\w*|subchond\w*|osteochon\w*|osseo\w*|osseu\w*|hueso\w*|knoche\w*|markraum\w*|szpik\w*|kostn\w*|kosc\w*|podchrz\w*|kemik\w*|ilik\w*|οστ\w*|μυελ\w*|υποχονδ\w*|femur\w*|femor\w*|tibi\w*|patell\w*|fibul\w*|condyl\w*|kondyl\w*|klyk\w*|μηριαι\w*|κνημ\w*|επιγονατιδ\w*)\b|骨|골',
+ 'marrow': r'\b(?:marrow|medull\w*|medul\w*|szpik\w*|knochenmark\w*|markraum\w*|ilik\w*|μυελ\w*)\b|骨髓',
+ 'edema': r'\b(?:edema\w*|oedema\w*|edem\w*|oedem\w*|odem\w*|obrz[eę]k\w*|οιδημ\w*|swelling)\b',
+ 'contusion': r'\b(?:contus\w*|bruise\w*|bruising|stlucz\w*|kontuz\w*|kontus\w*|θλασ\w*|bone\s+bruise\w*)\b',
+ 'trauma': r'\b(?:trauma\w*|posttrauma\w*|post[- ]trauma\w*|uraz\w*|pouraz\w*|impact\w*|impaction|impakt\w*|collision|injur\w*|τραυμα\w*)\b',
+ 'fracture': r'\b(?:fractur\w*|fraktur\w*|fractura\w*|fratura\w*|zlam\w*|pekni\w*|k[iı]r[iı]k\w*|fissur\w*|καταγμα\w*)\b',
+ 'microtrabecular': r'\b(?:micro[- ]?trabec\w*|mikro[- ]?trabek\w*|micro[- ]?fract\w*|mikro[- ]?zlam\w*|micro[- ]?fissur\w*|mikro[- ]?kirik\w*|trabecular\s+fractur\w*|μικροκαταγ\w*|μικροδοκιδ\w*)\b',
+ 'subchondral_osteochondral': r'\b(?:subchond\w*|osteochon\w*|osteokon\w*|osteocond\w*|podchrz\w*|chrzestno[- ]kost\w*|οστεοχονδ\w*|υποχονδ\w*|osteochondritis|dissecans)\b',
+ 'infarct_necrosis_destructive': r'\b(?:infarct\w*|infar[kc]\w*|necros\w*|nekroz\w*|osteonec\w*|avascular|avascul\w*|martwic\w*|zawal\w*|destruct\w*|destruk\w*|lytic|lytiqu\w*|osteoly\w*|neoplas\w*|tumou?r\w*|νεκρω\w*|εμφρα\w*|καταστροφ\w*|λυτικ\w*)\b',
+ 'alternative_cause': r'\b(?:degenerat\w*|reactiv\w*|reakty\w*|stress\w*|insufficien\w*|overload\w*|overuse|mechanic\w*|atrauma\w*|przeciaz\w*|zwyrodn\w*|eklem\w*|εκφυλισ\w*|αντιδρασ\w*|καταπον\w*|ανεπαρκ\w*)\b',
+ 'acute': r'\b(?:acute|acut\w*|recent\w*|new|fresh\w*|swiez\w*|ostry\w*|ostra\w*|ostre\w*|aigu\w*|agud\w*|akut\w*|frisch\w*|οξει\w*|οξυ\w*|προσφατ\w*)\b',
+ 'history_chronic': r'\b(?:chronic\w*|chroniq\w*|cron\w*|chronisch\w*|old|remote|prior|previous\w*|history|healed|healing|united|nonunion|consolidat\w*|residual\w*|sequel\w*|post[- ]?trauma\w*|przebyt\w*|przewlek\w*|wygojon\w*|dawn\w*|stary\w*|stare\w*|ancienne?\w*|vieja?\w*|alte\w*|eski|kronik\w*|χρονι\w*|παλαι\w*|ιστορικ\w*|πωρω\w*)\b',
+ 'line_cortex_impaction': r'\b(?:fracture\s+line|cortical\s+(?:disrupt\w*|break\w*|fractur\w*)|cortex\s+(?:disrupt\w*|break\w*)|linia\s+zlam\w*|szczelin\w*\s+zlam\w*|przerwan\w*\s+ciaglosci\s+(?:kory|korow\w*)|trait\s+de\s+fractur\w*|linea\s+de\s+fractur\w*|fracture\s+trait|fracture\s+gap|fracture\s+cleft|impaction|impact\w*|depress\w*|collapse\w*|compression\s+fractur\w*|avuls\w*|zapadni\w*|wgniec\w*|καταγματικ\w*\s+γραμμ\w*|καθιζη\w*)\b',
+ 'qualifier': r'\b(?:signific\w*|noteworthy|substantial\w*|appreciable|definite\w*|obvious\w*|convincing|gross\w*|essentially|largely|mostly|relatively|notable\w*|clear\w*|relevan\w*|istotn\w*|wyrazn\w*|jednoznaczn\w*|znaczn\w*|wesentlich\w*|nennenswert\w*|eindeutig\w*|evident\w*|franche?\w*|rilevan\w*|belirgin\w*|onemli\w*|αξιολογ\w*|αξιοσημειω\w*|σημαντικ\w*|σαφ\w*)\b|\bαξια\s+λογου\b|\bkayda\s+deger\b',
+ 'denial_normal': r'\b(?:no|not|without|absen\w*|normal\w*|unremarkable|intact|preserv\w*|maintain\w*|bez|nie|brak|prawidlow\w*|sans|sin|kein\w*|ohne|yok\w*|izlenme\w*|χωρισ|δεν|φυσιολογ\w*|απουσ\w*)\b',
+ 'equivocal': r'\b(?:possible|possibly|probabl\w*|suspect\w*|cannot\s+exclude|can\s+not\s+exclude|could|may|might|questionable|equivocal|versus|differential|suspici\w*|suspicion|podejrz\w*|mozliw\w*|nie\s+mozna\s+wyklucz\w*|peut[- ]etre|probable|sospett\w*|verdacht\w*|suphe\w*|πιθαν\w*|υποψ\w*|ενδεχομ\w*)\b|\?',
+}
+
+RULES = {
+ 'P01_observed_positive_criterion_review': (3, 'All observed positives are included without relying on lexical recall; personally verify current traumatic contusion or acute fracture criteria.'),
+ 'P02_microtrabecular_fracture_morphology': (1, 'Microtrabecular/microfracture wording requires source reading of contusion versus discrete acute fracture morphology; no automatic subtype exclusion.'),
+ 'P03_contusion_fracture_nearby_context': (1, 'Contusion or bone-edema and fracture cues occur within350 normalized characters, or both cells are positive; same site, polarity and causal relation are unproven.'),
+ 'P04_infarct_necrosis_destructive_scope': (2, 'Infarct/necrosis/destructive terminology near bone or in target evidence may have different causal or denial scope.'),
+ 'P05_osteochondral_subchondral_context': (2, 'Osteochondral/subchondral wording may need morphology, acuity and compartment context; it is not a blanket fracture exclusion.'),
+ 'P06_bone_edema_causality': (2, 'Edema near bone or marrow needs causal context; no inference of traumatic contusion from edema alone.'),
+ 'P07_historical_or_chronic_bone_context': (2, 'Historical/chronic/healed terminology near bone or in bone target evidence requires temporal scope reading.'),
+ 'P08_qualified_bone_denial': (1, 'Qualifier and denial/normality cues occur in bone target evidence or nearby bone text; negation and scope are not resolved automatically.'),
+ 'P09_contusion_positive_no_impact_cue': (1, 'Observed Contusion positive has no detected trauma/contusion cue. This is a retrieval blind spot or possible causal-evidence gap, never proof of error.'),
+ 'P10_fracture_positive_no_acute_cue': (1, 'Observed Fracture positive has no detected acute cue. A direct diagnosis may still be adequate; full-source temporal reading is required.'),
+ 'P11_negative_evidence_bone_scope_not_lexically_detected': (2, 'Negative target quote lacks detected bone/contusion/fracture/edema anchor; broad normality or another language may still support it.'),
+ 'P12_contusion_negative_fracture_only_quote_proxy': (1, 'Contusion negative quote contains fracture vocabulary without detected bone/edema/contusion scope; no-fracture does not itself establish no-contusion.'),
+ 'P13_preexisting_source_bound_bone_inventory': (1, 'Report belongs to the preserved earlier source-bound bone-term candidate inventory; prior findings are not adopted.'),
+ 'P14_equivocal_bone_context': (1, 'Equivocal language or question mark appears near bone context or in target evidence; indication and current findings need separation.'),
+ 'P15_fracture_line_cortical_impaction_context': (1, 'Fracture-line/cortical-disruption/impaction vocabulary near bone needs explicit morphology, polarity and same-site review.'),
+ 'P16_bone_edema_with_alternative_cause': (1, 'Bone-edema and degenerative/reactive/stress/insufficiency cues are nearby; causal wording is not automatically interpreted.'),
+}
+
+
+def read(p): return json.loads(p.read_text())
+
+
+def sha(p):
+    h = hashlib.sha256()
+    with p.open('rb') as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b''): h.update(chunk)
+    return h.hexdigest()
+
+
+def dump(name, obj, lines=False):
+    p = HERE / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if lines:
+        data = ''.join(json.dumps(x, ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n' for x in obj)
+    else:
+        data = json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + '\n'
+    if p.exists(): assert p.read_text() == data, 'existing output differs'
+    else: p.write_text(data)
+    return {'path': name, 'bytes': p.stat().st_size, 'sha256': sha(p)}
+
+
+def normalized(text):
+    chars, offsets = [], []
+    for i, c in enumerate(text):
+        for folded in unicodedata.normalize('NFKD', c.casefold()).replace('ł', 'l').replace('ı', 'i'):
+            if not unicodedata.combining(folded):
+                chars.append(folded); offsets.append(i)
+    return ''.join(chars), offsets
+
+
+def hits(text):
+    norm, offsets = normalized(text)
+    found = {}
+    for family, pattern in PATTERNS.items():
+        rows = []
+        for m in re.finditer(pattern, norm):
+            start, end = offsets[m.start()], offsets[m.end() - 1] + 1
+            rows.append(dict(family=family, start=start, end=end, quote=text[start:end],
+                             normalized_start=m.start(), normalized_end=m.end()))
+        found[family] = rows
+    return found
+
+
+def nearby(a, b, distance=220):
+    return [(x, y) for x in a for y in b if max(x['normalized_start'], y['normalized_start'])
+            - min(x['normalized_end'], y['normalized_end']) <= distance]
+
+
+def excerpts(text, cue_rows, evidence):
+    points = sorted({(x['start'], x['end']) for x in cue_rows})
+    spans = []
+    for start, end in points:
+        lo, hi = max(0, start - 180), min(len(text), end + 220)
+        if spans and lo <= spans[-1][1]: spans[-1][1] = max(hi, spans[-1][1])
+        else: spans.append([lo, hi])
+    # Do not truncate the list of cue windows. Every selection trigger remains traceable.
+    result = [dict(start=a, end=b, quote=text[a:b], kind='source_cue_context') for a, b in spans]
+    if evidence:
+        a = text.index(evidence); result.append(dict(start=a, end=a + len(evidence), quote=evidence, kind='current_effective_evidence'))
+    return result
+
+
+def discover_cell(target, state, evidence, source_hits, all_states, prior_member):
+    eh = hits(evidence)
+    bone = source_hits['bone'] + source_hits['contusion'] + source_hits['fracture']
+    bone_edema = [x for x, y in nearby(source_hits['edema'], source_hits['bone'] + source_hits['marrow'])]
+    triggers = {}
+    def add(rule, cues): triggers[rule] = cues
+    if state == 'positive': add('P01_observed_positive_criterion_review', [])
+    if source_hits['microtrabecular']: add('P02_microtrabecular_fracture_morphology', source_hits['microtrabecular'])
+    cross = nearby(source_hits['contusion'] + bone_edema, source_hits['fracture'], 350)
+    if cross or all(all_states[t] == 'positive' for t in BONE_TARGETS):
+        add('P03_contusion_fracture_nearby_context', [x for pair in cross for x in pair])
+    for rule, family in [('P04_infarct_necrosis_destructive_scope','infarct_necrosis_destructive'),
+                         ('P07_historical_or_chronic_bone_context','history_chronic'),
+                         ('P14_equivocal_bone_context','equivocal'),
+                         ('P15_fracture_line_cortical_impaction_context','line_cortex_impaction')]:
+        linked = [x for x, y in nearby(source_hits[family], bone)]
+        if linked or (eh[family] and any(eh[x] for x in ['bone','marrow','contusion','fracture','edema'])):
+            add(rule, linked)
+    if source_hits['subchondral_osteochondral']:
+        add('P05_osteochondral_subchondral_context', source_hits['subchondral_osteochondral'])
+    if bone_edema: add('P06_bone_edema_causality', bone_edema)
+    qlinked = [x for x,y in nearby(source_hits['qualifier'], bone)]
+    qdenial = [x for x,y in nearby(qlinked, source_hits['denial_normal'], 180)]
+    if qdenial or (eh['qualifier'] and eh['denial_normal']): add('P08_qualified_bone_denial', qdenial)
+    if target == 'Contusion' and state == 'positive' and not(source_hits['trauma'] or source_hits['contusion']):
+        add('P09_contusion_positive_no_impact_cue', bone_edema)
+    if target == 'Fracture' and state == 'positive' and not source_hits['acute']:
+        add('P10_fracture_positive_no_acute_cue', source_hits['fracture'])
+    if state == 'negative' and not any(eh[x] for x in ['bone','marrow','contusion','fracture','edema']):
+        add('P11_negative_evidence_bone_scope_not_lexically_detected', [])
+    if target == 'Contusion' and state == 'negative' and eh['fracture'] and not any(eh[x] for x in ['bone','marrow','contusion','edema']):
+        add('P12_contusion_negative_fracture_only_quote_proxy', [])
+    if prior_member: add('P13_preexisting_source_bound_bone_inventory', [])
+    alt = nearby(bone_edema, source_hits['alternative_cause'], 350)
+    if alt: add('P16_bone_edema_with_alternative_cause', [x for pair in alt for x in pair])
+    cue_rows = {(x['family'],x['start'],x['end']):x for group in triggers.values() for x in group}
+    return sorted(triggers), sorted(cue_rows.values(), key=lambda x:(x['start'],x['end'],x['family']))
+
+
+def main():
+    now = datetime.now(timezone.utc).isoformat()
+    registry_path = R/'initiative/reviews-v2/adjudications/registry.json'
+    rubric_path = R/'protocols/report_weak_v2.md'
+    qa_path = R/'initiative/reviews-v2/adjudications/qa/bone-terminology.json'
+    assert sha(registry_path) == REGISTRY_SHA and sha(rubric_path) == RUBRIC_SHA
+    qa = read(qa_path); assert qa['status'] == 'pending' and qa['source_reports_sha256'] == SOURCE_SHA
+    old_summary_path = W/'work/annotation-staging/qualified-negation-all4407-candidates-v1/audit-summary.json'
+    old_summary = read(old_summary_path)
+    report_map, source_records, source_bindings = {}, {}, {}
+    for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+        name = str(p.relative_to(R)); digest = sha(p); source_bindings[name] = digest
+        assert old_summary['source_artifact_bindings'][name] == digest
+        for i, row in enumerate(read(p)):
+            uid, text = row['study_uid'], row['report']; assert uid not in report_map
+            report_map[uid] = text
+            source_records[uid] = dict(study_uid=uid, source_path=name, source_sha256=digest,
+                                      source_index_zero_based=i, report_sha256=hashlib.sha256(text.encode()).hexdigest(), report=text)
+    assert len(report_map) == 4407 and len(source_bindings) == 89
+    canonical = json.dumps([dict(study_uid=uid,report=report_map[uid]) for uid in sorted(report_map)], ensure_ascii=False, sort_keys=True, separators=(',',':'))
+    assert hashlib.sha256(canonical.encode()).hexdigest() == SOURCE_SHA
+    original, review_bindings = {}, {}
+    for p in sorted((R/'initiative/reviews-v2/reviewed').glob('batch-*.jsonl')):
+        name = str(p.relative_to(R)); digest = sha(p); review_bindings[name] = digest
+        assert old_summary['reviewed_artifact_bindings'][name] == digest
+        rows = [json.loads(x) for x in p.read_text().splitlines() if x]
+        for i,row in enumerate(rows):
+            uid=row['study_uid']; assert uid not in original and uid in report_map
+            assert len(row['states']) == len(row['evidence']) == 12
+            for st,q in zip(row['states'],row['evidence']):
+                assert st in {'positive','negative','uncertain','not_mentioned'}
+                assert (q == '') if st == 'not_mentioned' else bool(q) and q in report_map[uid]
+            original[uid] = dict(states=row['states'],evidence=row['evidence'],review_path=name,review_sha256=digest,review_index_zero_based=i)
+    assert len(original) == 4407 and len(review_bindings) == 89
+    inspection = inspect_adjudications(report_map,R/'initiative/reviews-v2/reviewed',rubric_path,R)
+    assert inspection['n_changes'] == 118 and inspection['registry_sha256'] == REGISTRY_SHA
+    assert len(inspection['pending_semantic_qa']) == 3
+    inspection_ref = dump('adjudications-inspection-118.json',inspection)
+    effective=copy.deepcopy(original); corrections={}
+    for change in inspection['changes']:
+        uid,t=change['study_uid'],change['target'];i=list(TARGETS).index(t)
+        assert dict(state=effective[uid]['states'][i],evidence=effective[uid]['evidence'][i]) == change['before']
+        effective[uid]['states'][i]=change['after']['state'];effective[uid]['evidence'][i]=change['after']['evidence']
+        corrections[(uid,t)] = change['case_id']
+    prior_path=R/'initiative/audits/bone-terminology-v2/candidate-triage.json';prior=read(prior_path);prior_uids=set()
+    assert sha(prior_path) == '84978008a2b17d18eac0bb9c514fc0abcaf1b1a5f96bcfbe42e7377588e7d71e'
+    for rec in prior['records']:
+        src=source_records[rec['study_uid']]
+        assert src['source_sha256'] == rec['source_sha256'] and src['source_index_zero_based']==rec['source_index']
+        assert Path(src['source_path']).stem == 'batch-'+Path(rec['batch']).stem.removeprefix('batch-')
+        prior_uids.add(rec['study_uid'])
+    registry=read(registry_path)
+    case_bindings={x['path']:x['sha256'] for x in registry['cases']}
+    qa_bindings={x['path']:x['sha256'] for x in registry['semantic_qa']}
+    provenance_paths=[R/'initiative/reviews-v2/provenance.json',R/'initiative/reviews-v2/index.json']
+    provenance_paths += sorted((R/'initiative/reviews-v2/provenance').glob('*reviewed*.json'))
+    provenance_bindings={str(p.relative_to(R)):sha(p) for p in provenance_paths}
+    bindings=dump('input-bindings.json',dict(source_reports_sha256=SOURCE_SHA,rubric_sha256=RUBRIC_SHA,registry_sha256=REGISTRY_SHA,
+        source_artifacts=source_bindings,reviewed_artifacts=review_bindings,review_index_and_provenance=provenance_bindings,
+        correction_cases=case_bindings,semantic_qa=qa_bindings,
+        prior_inventory=dict(path=str(prior_path.relative_to(R)),sha256=sha(prior_path),reused='four source-bound UID memberships only; no previous clinical conclusions imported'),
+        prior_all_release_coverage=dict(path=str(old_summary_path.relative_to(W)),sha256=sha(old_summary_path),reused='all89 original source and final-reviewed artifact hashes revalidated; old34 registry states not reused'),
+        inspected_effective_corrections=inspection_ref))
+    method=dump('selection-method.json',dict(schema_version=1,scope='deterministic discovery, not clinical assessment',targets=list(BONE_TARGETS),
+        patterns=PATTERNS,rules={k:dict(priority=v[0],reason=v[1]) for k,v in RULES.items()},
+        normalization='Unicode casefold then NFKD removal of combining marks; Polish ł and Turkish dotless ı normalized for retrieval; per-character map preserves exact original offsets.',
+        selection='Select only current effective positive/negative cells with at least one rule. All observed positives selected regardless of lexical matches. Other cells retain full partition membership and rule traces.',
+        proximity='Default220 normalized characters between cue spans;350 for cross-target/alternative-cause context;180 for qualifier versus denial. These windows do not establish same anatomy, causality, negation or acuity.',
+        priority='Minimum numerical priority of matched rules; then source batch path, zero-based source index, target schema index. No learned model or random selection.',
+        neutral_order='Source batch path then source index, batches of50 unique reports. Only complete original report and source identity/hash/locator fields; no states, evidence, reasons, triggers or rankings.',
+        masked_policy='Both masked states retained in partition; masked cells with lexical proxies remain separately countable but are outside observed-priority queue.',
+        limitations=['Rule recall is unmeasured across languages, spelling and phrasing.','Unselected observed cells are not clinically cleared.','Nearby fracture and contusion cues are not proof of same-site disease or conflict.','A cue may be historical, negated, incidental, from another structure or fully support the existing annotation.','No source readings, adjudications, label changes or global QA resolution are created.']))
+    partition,details,feature_rows=[],[],[]
+    source_order=sorted(source_records,key=lambda uid:(source_records[uid]['source_path'],source_records[uid]['source_index_zero_based']))
+    for uid in source_order:
+        src=source_records[uid];text=src['report'];sh=hits(text);eff=effective[uid];orig=original[uid]
+        feature_rows.append(dict(study_uid=uid,report_sha256=src['report_sha256'],source_path=src['source_path'],source_index_zero_based=src['source_index_zero_based'],source_sha256=src['source_sha256'],features=sh))
+        states={t:eff['states'][list(TARGETS).index(t)] for t in BONE_TARGETS}
+        for t in BONE_TARGETS:
+            i=list(TARGETS).index(t);st,q=eff['states'][i],eff['evidence'][i]
+            rules,cues=discover_cell(t,st,q,sh,states,uid in prior_uids)
+            selected=st in OBSERVED and bool(rules)
+            part='observed_selected' if selected else 'observed_unselected' if st in OBSERVED else 'masked_with_proxy' if rules else 'masked_without_proxy'
+            priority=min((RULES[x][0] for x in rules),default=None) if selected else None
+            row=dict(study_uid=uid,target=t,source_path=src['source_path'],source_index_zero_based=src['source_index_zero_based'],source_sha256=src['source_sha256'],report_sha256=src['report_sha256'],review_path=orig['review_path'],review_sha256=orig['review_sha256'],review_index_zero_based=orig['review_index_zero_based'],
+                original_state=orig['states'][i],original_evidence=orig['evidence'][i],effective_state=st,effective_evidence=q,
+                registered_correction_case=corrections.get((uid,t)),partition=part,selected=selected,priority=priority,discovery_rules=rules,
+                no_proxy_is_not_semantic_clearance=part=='observed_unselected')
+            partition.append(row)
+            if selected:
+                details.append(dict(row,source_cues=cues,source_excerpts=excerpts(text,cues,q),
+                    review_questions=[RULES[x][1] for x in rules],clinical_decision=None,proposed_state=None))
+    assert len(partition)==8814 and len({(x['study_uid'],x['target']) for x in partition})==8814
+    details.sort(key=lambda x:(x['priority'],x['source_path'],x['source_index_zero_based'],list(TARGETS).index(x['target'])))
+    for rank,row in enumerate(details,1):row['priority_queue_rank']=rank
+    part_ref=dump('all-8814-cell-partition.jsonl',partition,True)
+    feature_ref=dump('source-feature-inventory.jsonl',feature_rows,True)
+    detail_ref=dump('priority-candidate-details.jsonl',details,True)
+    queue=dump('priority-queue.json',dict(schema_version=1,inputs=bindings,method=method,candidate_details=detail_ref,
+        cells=[{k:x[k] for k in ['priority_queue_rank','priority','study_uid','target','source_path','source_index_zero_based','report_sha256','effective_state','discovery_rules']} for x in details]))
+    selected_uids={x['study_uid'] for x in details};neutral=[source_records[uid] for uid in source_order if uid in selected_uids]
+    packets=[]
+    for start in range(0,len(neutral),50):
+        records=neutral[start:start+50]
+        packets.append(dict(dump(f'neutral-batches/batch-{start//50:03d}.json',dict(schema_version=1,scope='complete original source reports only; assess both Contusion and Fracture from source before opening discovery details',rubric_sha256=RUBRIC_SHA,source_reports_sha256=SOURCE_SHA,reports=records)),n_reports=len(records)))
+    packet_index=dump('neutral-packet-index.json',dict(schema_version=1,n_reports=len(neutral),rubric_sha256=RUBRIC_SHA,source_reports_sha256=SOURCE_SHA,report_schema=list(source_records[source_order[0]]),packets=packets,
+        source_first_instruction='Read each complete original report and freeze personal source judgments and exact quotations before opening any states, candidate details or priority queue. Selection itself is discovery-derived; prior exposure must be disclosed.'))
+    # Validate source locators, contiguous quotations, neutral keys and full partition.
+    n_cues=n_excerpts=0
+    for row in feature_rows:
+        text=report_map[row['study_uid']]
+        for values in row['features'].values():
+            for cue in values:assert text[cue['start']:cue['end']]==cue['quote'];n_cues+=1
+    for row in details:
+        text=report_map[row['study_uid']]
+        for e in row['source_excerpts']:assert text[e['start']:e['end']]==e['quote'];n_excerpts+=1
+    rebuilt=[]
+    for packet in packets:
+        obj=read(HERE/packet['path']);assert sha(HERE/packet['path'])==packet['sha256']
+        for row in obj['reports']:
+            assert set(row)==set(source_records[source_order[0]]) and row==source_records[row['study_uid']]
+        rebuilt.extend(obj['reports'])
+    assert rebuilt==neutral and len({x['study_uid'] for x in neutral})==len(neutral)
+    protected={**source_bindings,**review_bindings,**provenance_bindings,**case_bindings,**qa_bindings,
+               'protocols/report_weak_v2.md':RUBRIC_SHA,'initiative/reviews-v2/adjudications/registry.json':REGISTRY_SHA}
+    for name,digest in protected.items():assert sha(R/name)==digest
+    assert len({(x['study_uid'],x['target']) for x in details})==len(details)
+    assert { (x['study_uid'],x['target']) for x in partition if x['selected']}=={(x['study_uid'],x['target']) for x in details}
+    summary=dict(schema_version=1,agent_id='/root/duplicate_consistency_review',created_at_utc=now,
+        scope='all-report bone target discovery inventory; no clinical reassessment',source_reports_sha256=SOURCE_SHA,rubric_sha256=RUBRIC_SHA,registry_sha256=REGISTRY_SHA,
+        n_source_artifacts=89,n_final_reviewed_artifacts=89,n_reports=4407,n_target_cells=8814,n_registered_corrections=118,
+        n_registered_bone_cell_corrections=sum(t in BONE_TARGETS for uid,t in corrections),
+        partition_counts=dict(Counter(x['partition'] for x in partition)),
+        effective_state_counts={t:dict(Counter(x['effective_state'] for x in partition if x['target']==t)) for t in BONE_TARGETS},
+        priority_cell_counts=dict(Counter(str(x['priority']) for x in details)),
+        selected_target_state_counts={t:dict(Counter(x['effective_state'] for x in details if x['target']==t)) for t in BONE_TARGETS},
+        rule_cell_counts=dict(Counter(rule for x in details for rule in x['discovery_rules'])),
+        n_selected_cells=len(details),n_selected_reports=len(neutral),n_neutral_batches=len(packets),
+        n_prior_source_bound_candidate_reports=len(prior_uids),n_prior_inventory_reports_selected=len(prior_uids & selected_uids),
+        n_cue_exact_source_locators_validated=n_cues,n_candidate_context_quotes_validated=n_excerpts,
+        n_protected_artifacts_unchanged=len(protected),input_bindings=bindings,selection_method=method,full_partition=part_ref,
+        source_features=feature_ref,priority_queue=queue,candidate_details=detail_ref,neutral_packet_index=packet_index,
+        all_three_global_semantic_qa_gates_still_pending=True,bone_global_qa_resolved=False,clinical_decisions_changed=False,gold_values_inspected=False,
+        exposure='Same agent previously authored the all4407 qualified-wording discovery and personally read focused batches000–003 (200 reports) and the nine-report duplicate task. All89 reviews and prior/current corrections have machine discovery exposure; this is not fresh source blinding or a distinct independent clinical pass. No second-reader clinical files were opened for this task.',
+        limits='Every8814 cell is accounted for structurally. Clinical semantic completeness, language recall, actual same-site context, causality, acuity and correctness are not established by this lexical inventory.')
+    dump('inventory-summary.json',summary)
+    dump('validation-receipt.json',dict(schema_version=1,status='passed_structural_discovery_validation',agent_id='/root/duplicate_consistency_review',
+        n_reports=4407,n_cells=8814,n_unique_cells=8814,all_source_review_memberships_and_quotes_valid=True,
+        effective_states_use_only_inspect_adjudications_118=True,partition_disjoint_and_exhaustive=True,
+        selected_queue_exact_partition_projection=True,neutral_packets_exact_selected_unique_sources=True,
+        neutral_packets_contain_no_current_or_proposed_states=True,all_selected_quotes_contiguous_source_substrings=True,
+        n_source_cue_locators=n_cues,n_selected_context_quotes=n_excerpts,n_protected_artifacts_unchanged=len(protected),
+        registry_sha256=REGISTRY_SHA,global_qa_resolved=False,clinical_decisions_changed=False,gold_inspected=False,remote_calls=0,repository_mutations=0))
+    print(json.dumps({k:summary[k] for k in ['n_reports','n_target_cells','partition_counts','effective_state_counts','n_selected_cells','n_selected_reports','n_neutral_batches','n_registered_bone_cell_corrections']},indent=2))
+
+
+if __name__=='__main__':main()

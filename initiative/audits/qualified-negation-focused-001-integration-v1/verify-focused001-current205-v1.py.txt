@@ -1,0 +1,30 @@
+"""Verify current accepted changes and exact-report consistency without exporting labels."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import defaultdict,Counter
+import json,hashlib,sys
+W=Path(__file__).resolve().parents[1];R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import report_group
+from rsna.schema import TARGETS
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+reports={r['study_uid']:r['report'] for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for r in json.loads(p.read_text())}
+current=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R);n=current['n_changes'];assert n>=193
+states={r['study_uid']:dict(zip(TARGETS,r['states'])) for p in sorted((R/'initiative/reviews-v2/reviewed').glob('*.jsonl')) for r in map(json.loads,p.read_text().splitlines())}
+for c in current['changes']:states[c['study_uid']][c['target']]=c['after']['state']
+groups=defaultdict(list)
+for uid,report in reports.items():groups[report_group(report)].append(uid)
+groups={h:u for h,u in groups.items() if len(u)>1};conflicts=[]
+for h,uids in groups.items():
+ differing=[t for t in TARGETS if len({states[u][t] for u in uids})>1]
+ if differing:conflicts.append({'normalized_report_group':h,'study_uids':uids,'differing_targets':differing})
+G=W/'work/annotation-staging/qualified-negation-focused-001-root-review-v1'
+disp=json.loads((G/'root-postfreeze-dispositions.json').read_text())['records']
+pending=[{'case':r['case'],'target':r['target'],'root_postfreeze_state':r['root_postfreeze_state'],'registered_state':states[r['study_uid']][r['target']]} for r in disp if r['root_postfreeze_state']!=states[r['study_uid']][r['target']]]
+primary=json.loads((R/'initiative/audits/qualified-negation-focused-001-integration-v1/primary-integration-validation.json').read_text())
+assert all(sha(R/p['path'])==p['sha256'] for p in primary['protected_artifacts'])
+a=R/'initiative/audits/qualified-negation-focused-001-integration-v1';out=a/f'current{n}-consistency-validation.json';assert not out.exists()
+d={'stage':'exact_current_registry_and_normalized_report_state_replay','agent_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'registry_sha256':sha(R/'initiative/reviews-v2/adjudications/registry.json'),'registered_corrections':n,'source_reports':len(reports),'exact_normalized_duplicate_groups':len(groups),'duplicate_reports':sum(map(len,groups.values())),'conflicting_groups':len(conflicts),'conflicts':conflicts,'root_final_state_differences_from_current':pending,'protected_artifact_count':len(primary['protected_artifacts']),'protected_artifacts_unchanged':True,'pending_semantic_qa':current['pending_semantic_qa'],'training_ready':False}
+with out.open('x') as f:json.dump(d,f,indent=2);f.write('\n')
+(a/f'verify-focused001-current{n}-v1.py.txt').write_bytes(Path(__file__).read_bytes())
+print(json.dumps({'registered_corrections':n,'duplicate_groups':len(groups),'duplicate_reports':sum(map(len,groups.values())),'conflicting_groups':len(conflicts),'pending_root_state_differences':len(pending),'proof_sha256':sha(out)}))
