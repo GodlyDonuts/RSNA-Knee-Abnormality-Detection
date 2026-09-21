@@ -1,0 +1,514 @@
+{
+  "schema_version": 1,
+  "stage": "independent_technical_source_final_endpoint_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "study_uid": "1.2.826.0.1.3680043.8.498.16886658450293145802897654768506439494",
+  "source_batch_index": 21,
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "source_batch_sha256": "4e915a97b8801c1a2af5b8d564fbbe916bb1e8d04a123dcf32fd27fb73f4bd1e",
+  "source_report_sha256": "53c58fbfbd8206b82bb2936fa4836214e8c5cf904f50ca7f4f87672b8098c0f1",
+  "input_bindings": [
+    {
+      "path": "recovered/initiative/reviews/inputs/batch-026.json",
+      "sha256": "4e915a97b8801c1a2af5b8d564fbbe916bb1e8d04a123dcf32fd27fb73f4bd1e",
+      "n_bytes": 67881
+    },
+    {
+      "path": "annotation-staging/bilateral02621-source-preread.json",
+      "sha256": "e9866854023bd029eef8bb6355ac4a4acb7ba2f1cf15c86d2dae40905726a049",
+      "n_bytes": 3262
+    },
+    {
+      "path": "annotation-staging/bilateral02621-source-copy-assessment.json",
+      "sha256": "1291da8857c76bf56adb01130783b3aa39ee70fe64792e785baa7691fb4089af",
+      "n_bytes": 960
+    },
+    {
+      "path": "annotation-staging/bilateral02621-source-inventory.json",
+      "sha256": "52d75a0f12bbfcd1358430950490dca8a0751b05c90d51b6ccc19ade70fc181b",
+      "n_bytes": 84922
+    },
+    {
+      "path": "annotation-staging/header-extract-026021.jsonl",
+      "sha256": "16ecd835c4369338edf367f6bb96441f5931f9f2b32ad6ae84fb8fd1bd646f35",
+      "n_bytes": 21039
+    },
+    {
+      "path": "annotation-staging/bilateral02621-series-headers.json",
+      "sha256": "eb89bd58aaf46045f3298c9e4a4ba2153962e2cec1a0ce37373f8baa1bb6d515",
+      "n_bytes": 8928
+    },
+    {
+      "path": "annotation-staging/bilateral02621-final-survey-binding.json",
+      "sha256": "3ce8c9c0d1aec2a60bdf35f43e336232c3697e730eba4f71bc5a5e380706c35b",
+      "n_bytes": 773
+    },
+    {
+      "path": "annotation-staging/correspondence-02621-02639-02309-source.py",
+      "sha256": "f3b7e91ef5e1b7dc5da41b6a0d133085fe50ef0721f9a1ab110bb73a872d83b2",
+      "n_bytes": 5068
+    },
+    {
+      "path": "annotation-staging/correspondence-02621-02639-02309-extract.py",
+      "sha256": "8f24dc2224f1e392a371a02051198d947ace11191338f3182a0ecc0a326eba50",
+      "n_bytes": 5062
+    }
+  ],
+  "independence": "Personally read complete original blinded026 source before case endpoint metadata, any026 annotations or native images. Parent disclosed a correspondence candidate only. No gold opened.",
+  "source_structure_category": "single_report_with_incompatible_side_wording",
+  "source_interpretation": "The one current examination starts MRI of left knee but attributes a current anterior soft-tissue observation to the right knee. It does not describe two complete side-specific exams or integrated bilateral imaging. A template typo or mispaired sentence is possible but not established. Exact contradictory wording exists in archived and current official source, so recovery did not create it.",
+  "header_interpretation": "Ten endpoint records cover all five series. Side tags Laterality/ImageLaterality/FrameLaterality are entirely blank; one PatientID hash, five frame hashes, AcquisitionNumber2 throughout. SeriesNumbers4001/5001/6001/7001/8001 form one protocol with sagittal PD FS/T2 FS/T1, coronal T2 FS and axial T2 FS. The SG/CO/AX abbreviations agree with the recorded sagittal/coronal/axial IOP. No repeated complete acquisition sets or mixed side tags support a two-knee candidate.",
+  "header_coverage": {
+    "n_expected_series": 5,
+    "n_series_with_both_endpoints": 5,
+    "n_expected_slices": 134,
+    "n_header_samples": 10,
+    "n_pixel_header_boundaries_reached": 10,
+    "n_full_dicom_files_verified": 0,
+    "n_native_pixel_decodes": 0,
+    "n_patient_id_hashes": 1,
+    "n_frame_of_reference_hashes": 5,
+    "expected_full_source_bytes": 88592070,
+    "transport_scope": "Final completed endpoint artifact verified against its summary hash, selected records extracted exactly, then every UID/path/size/OID/storage binding and lexical endpoint selection matched to pinned inventory. No full DICOM bytes downloaded. Prefix digests remain prefix digests."
+  },
+  "series_records": [
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.12155482768149201736168190320008865211",
+      "n_inventory_slices": 25,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "2"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.99994624, 0.00000000, -0.01037159, 0.00000000, 1.00000000, 0.00000000]"
+        ],
+        "ImagePositionPatient": [
+          "[-74.30599976, -57.57538223, 21.15189934]",
+          "[-74.67108154, -57.57538223, -14.04620838]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "TOSHIBA"
+        ],
+        "ManufacturerModelName": [
+          "Vantage"
+        ],
+        "PatientPosition": [
+          ""
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.2930, 0.2930]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          "AX T2W FS"
+        ],
+        "SeriesNumber": [
+          "8001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "4.0000"
+        ],
+        "SoftwareVersions": [
+          ""
+        ],
+        "SpacingBetweenSlices": [
+          ""
+        ]
+      },
+      "patient_id_sha256": [
+        "0cdd6d7cc9e11d98ad8b8ca8a58b1b077713b5617164ad257c130ca5b9e21727"
+      ],
+      "frame_of_reference_sha256": [
+        "e428fe6f4879b44f27cf4007f4d2b0b03c3495569b040a6d53427b11a15e8ecc"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.17050129296690074611565245342312193745",
+      "n_inventory_slices": 27,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "2"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "672"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[-0.02327144, 0.99972916, 0.00000000, 0.00000000, 0.00000000, -1.00000000]"
+        ],
+        "ImagePositionPatient": [
+          "[12.07986164, -63.75377655, 116.73007965]",
+          "[47.17035675, -62.93695068, 116.73007965]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "TOSHIBA"
+        ],
+        "ManufacturerModelName": [
+          "Vantage"
+        ],
+        "PatientPosition": [
+          ""
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.2381, 0.2381]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "672"
+        ],
+        "SeriesDescription": [
+          "SG T1W"
+        ],
+        "SeriesNumber": [
+          "6001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3.5000"
+        ],
+        "SoftwareVersions": [
+          ""
+        ],
+        "SpacingBetweenSlices": [
+          ""
+        ]
+      },
+      "patient_id_sha256": [
+        "0cdd6d7cc9e11d98ad8b8ca8a58b1b077713b5617164ad257c130ca5b9e21727"
+      ],
+      "frame_of_reference_sha256": [
+        "593cd90267e33f53ba3857e73bb4478cd51e896535691440228f34be5d35f8d8"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.33793722160540353649132319091907544080",
+      "n_inventory_slices": 27,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "2"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "640"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[-0.02327144, 0.99972916, 0.00000000, 0.00000000, 0.00000000, -1.00000000]"
+        ],
+        "ImagePositionPatient": [
+          "[-50.30323792, -65.20590973, 116.73007202]",
+          "[12.07986164, -63.75376892, 116.73007202]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "TOSHIBA"
+        ],
+        "ManufacturerModelName": [
+          "Vantage"
+        ],
+        "PatientPosition": [
+          ""
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.2500, 0.2500]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "640"
+        ],
+        "SeriesDescription": [
+          "SG PD FatSat"
+        ],
+        "SeriesNumber": [
+          "4001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3.5000"
+        ],
+        "SoftwareVersions": [
+          ""
+        ],
+        "SpacingBetweenSlices": [
+          ""
+        ]
+      },
+      "patient_id_sha256": [
+        "0cdd6d7cc9e11d98ad8b8ca8a58b1b077713b5617164ad257c130ca5b9e21727"
+      ],
+      "frame_of_reference_sha256": [
+        "b9f0f6e56f8b1f36422a7f8e3e87a3e94b4c9eb3c375005f981aae088c9b553e"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.45487609218788603520146525150284245488",
+      "n_inventory_slices": 27,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "2"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[-0.02327144, 0.99972916, 0.00000000, 0.00000000, 0.00000000, -1.00000000]"
+        ],
+        "ImagePositionPatient": [
+          "[19.87775040, -63.57226181, 116.73007965]",
+          "[8.18091869, -63.84453583, 116.73007965]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "TOSHIBA"
+        ],
+        "ManufacturerModelName": [
+          "Vantage"
+        ],
+        "PatientPosition": [
+          ""
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3125, 0.3125]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          "SG T2W FS"
+        ],
+        "SeriesNumber": [
+          "5001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3.5000"
+        ],
+        "SoftwareVersions": [
+          ""
+        ],
+        "SpacingBetweenSlices": [
+          ""
+        ]
+      },
+      "patient_id_sha256": [
+        "0cdd6d7cc9e11d98ad8b8ca8a58b1b077713b5617164ad257c130ca5b9e21727"
+      ],
+      "frame_of_reference_sha256": [
+        "7e0dc7ddc18291e139bede448559beb19ad5dacf9e1cbac88fd5166aecec3d35"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.68120074886840050845716533146421727044",
+      "n_inventory_slices": 28,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "2"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "512"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.99996239, -0.00372126, 0.00783443, 0.00789944, 0.01778843, -0.99981058]"
+        ],
+        "ImagePositionPatient": [
+          "[-86.84059906, 39.30679703, 117.03385925]",
+          "[-87.00354004, -6.18568563, 116.22317505]"
+        ],
+        "Laterality": [
+          ""
+        ],
+        "Manufacturer": [
+          "TOSHIBA"
+        ],
+        "ManufacturerModelName": [
+          "Vantage"
+        ],
+        "PatientPosition": [
+          ""
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "1"
+        ],
+        "PixelSpacing": [
+          "[0.3125, 0.3125]"
+        ],
+        "RescaleIntercept": [
+          ""
+        ],
+        "RescaleSlope": [
+          ""
+        ],
+        "Rows": [
+          "512"
+        ],
+        "SeriesDescription": [
+          "CO T2W FS"
+        ],
+        "SeriesNumber": [
+          "7001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3.5000"
+        ],
+        "SoftwareVersions": [
+          ""
+        ],
+        "SpacingBetweenSlices": [
+          ""
+        ]
+      },
+      "patient_id_sha256": [
+        "0cdd6d7cc9e11d98ad8b8ca8a58b1b077713b5617164ad257c130ca5b9e21727"
+      ],
+      "frame_of_reference_sha256": [
+        "aa428650a00d7c9b1415c33eae53502d0f418b37c104ad2bf2eb4850215732f7"
+      ]
+    }
+  ],
+  "candidate_flags": {
+    "mixed_explicit_laterality": false,
+    "all_side_tags_missing": true,
+    "mixed_patient_id": false,
+    "repeated_complete_acquisition_set": false,
+    "source_correspondence_unresolved": true
+  },
+  "limits": "Absent laterality cannot resolve the contradictory source and never implies right. Separate frame hashes prevent relying on shared coordinate origins. Endpoints do not establish all-slice consistency or actual imaged anatomy. No full-file pixel or native anatomy check was performed.",
+  "native_followup": {
+    "launched": false,
+    "reason": "No repeated/mixed side acquisition sets strongly warrant native confirmation under assigned escalation criterion."
+  },
+  "recommendation": "Keep correspondence unresolved and retain informative masks or whole-study exclusion until a reviewed source-to-image side decision. Do not replace left with right or right with left from plausibility; no native escalation is warranted by the present endpoint-set criterion.",
+  "clinical_annotations_changed": 0,
+  "runtime_source_pipeline_modified": false
+}

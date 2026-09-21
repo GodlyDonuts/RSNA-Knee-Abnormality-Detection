@@ -1,0 +1,78 @@
+{
+  "stage": "root_independent_native_visual_preread",
+  "assessor": "/root",
+  "created_utc": "2026-09-21T04:25:51.569693+00:00",
+  "source_case": "045:14",
+  "independent_agent_visual_assessment_opened": false,
+  "prior_disclosure": "Agent reported numeric source/cache integrity and six description-versus-patient-coordinate-IOP disagreements. No agent visual interpretation or final routing assessment seen before this freeze. Sheet labels/descriptions and computed IOP groups visible.",
+  "image_bindings": [
+    {
+      "path": "plane-045014/native-iop-axial.png",
+      "sha256": "dddb9639b23d891963d10c731fd248fbc67e544e91eabc98b249c7c95cdf1d57",
+      "bytes": 1445763
+    },
+    {
+      "path": "plane-045014/native-iop-coronal.png",
+      "sha256": "ef10fadcd161954a77d2d2cceb23662cf2a96f38e976e7e2ba2ab421f4c02cf7",
+      "bytes": 1624254
+    },
+    {
+      "path": "plane-045014/native-iop-sagittal.png",
+      "sha256": "20d2c2de6a3997270ea15eb6cbaeb911c9480826178d86b8e8c250f50fa63e90",
+      "bytes": 1534495
+    },
+    {
+      "path": "plane-045014/native-iop-oblique.png",
+      "sha256": "930d86e41a311471f0c710cafdf7e35c35431dd4836ffb155e8f5338b01b6594",
+      "bytes": 842283
+    }
+  ],
+  "panels_viewed": 30,
+  "observations": [
+    {
+      "sheet": "native-iop-axial.png",
+      "series_ids": [
+        "S0",
+        "S4",
+        "S8"
+      ],
+      "panels": 9,
+      "observation": "All nine panels show transverse cross-sections of one knee/leg, including separate long-bone cross-sections and axial condylar/patellofemoral anatomy. Axial anatomy agrees with tra descriptions and axial IOP group. Anatomy appears rotated in image display, with anterior patella toward right in middle panels; no image reorientation inferred."
+    },
+    {
+      "sheet": "native-iop-coronal.png",
+      "series_ids": [
+        "S1",
+        "S5",
+        "S6"
+      ],
+      "panels": 9,
+      "observation": "All three rows show recognizable sagittal anatomical knee profiles: individual rounded femoral condyle profile, bent femur/tibia relation and sagittal extensor chain/patellar profile. These appear anatomically sagittal and agree with sag descriptions, despite patient-coordinate IOP group coronal."
+    },
+    {
+      "sheet": "native-iop-sagittal.png",
+      "series_ids": [
+        "S3",
+        "S7",
+        "S9"
+      ],
+      "panels": 9,
+      "observation": "All three rows show recognizable coronal anatomical views, with both femoral condyles side-by-side, broad tibial plateau and central notch in middle panels; posterior/distal variations visible. These agree with cor descriptions despite patient-coordinate IOP group sagittal."
+    },
+    {
+      "sheet": "native-iop-oblique.png",
+      "series_ids": [
+        "S2"
+      ],
+      "panels": 3,
+      "observation": "Three strongly oblique partial femoral/notch cross-sections; insufficient to assign an exact anatomical plane solely by visual inspection. Retain oblique classification, no forced coronal/sagittal reassignment."
+    }
+  ],
+  "conclusion": "The six numeric description/IOP disagreements are real, but visible anatomy supports the original sagittal/coronal descriptions. Do not automatically swap sequence routing to patient-coordinate IOP classes. Limb positioning or reference-coordinate discrepancy could explain mismatch; cause not established. Need compare official Anatomical_Plane and actual dataset routing before any change.",
+  "limits": [
+    "Visual assessment is of30 selected panels, not all439 native slices.",
+    "No clinical image diagnosis or target label inference.",
+    "Patient-coordinate planes need not coincide with local knee anatomical planes when limb is rotated; visual evidence alone does not prove how orientation metadata originated.",
+    "No claim of wrong source descriptions, deidentification error or processing corruption."
+  ]
+}

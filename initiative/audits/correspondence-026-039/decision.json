@@ -1,0 +1,30 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T04:33:05.675129+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.17427902052389033416295416299697276519",
+  "source_batch_path": "initiative/reviews/inputs/batch-026.json",
+  "source_batch_sha256": "4e915a97b8801c1a2af5b8d564fbbe916bb1e8d04a123dcf32fd27fb73f4bd1e",
+  "source_report_sha256": "ed3d4f3dcb8edbc2f1c270d5d2f3bce9920b36f0fc958a15a990208a0afd16af",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-026-reviewed.jsonl",
+  "review_artifact_sha256": "4a8fff8d1985dc020b974ede863057e3e44d6e15ee53687505b7eddf0ef5b6f8",
+  "decision": "Retain all 11 informative targets as uncertain and all other targets as unmentioned. No automatic report selection, label duplication or virtual study splitting. Raw source and gold unchanged.",
+  "findings": "The first report explicitly identifies right knee; the second is unlocalized and explicitly compares current/persisting findings against prior imaging, states pre-existing findings and says the protocol was incomplete due poor cooperation. That language supports a possible longitudinal/follow-up relationship. The literal bilateral marker does not establish opposite knees. Masked dates and absent second-side identification prevent determining report chronology or which report describes the stored series. Eight endpoint records cover all four series. Every Laterality is R, while ImageLaterality/FrameLaterality are blank. One PatientID hash and four frame hashes, AcquisitionNumber1, SeriesNumbers3001/4001/5001/6001. Distinct sequences are axial PD FS, coronal PD FS, coronal T1 and sagittal PD FS, with descriptions agreeing with IOP. No duplicate full protocol, side alternation or metadata evidence of opposite-knee sets. Presence of T1 is closer to the first stated protocol than the second stated PD/T2-only protocol, but technique text and incomplete acquisition wording are not sufficient provenance to choose a report.",
+  "root_verification": "Personally read full original source and independent technical assessment including series identity, counts, side and orientation fields. Verified all bound file sizes/SHA, source identity, exact series/header counts, side fields and current twelve report masks. Previous source/header flags were disclosed, so this is not a blinded discovery.",
+  "limits": [
+    "Consistent R tags support a right-tagged acquisition set, not independent native-anatomy proof or temporal linkage to either report. Series count alone does not verify completion, and recorded dates are unavailable. Lexical endpoints exclude unsampled variation; distinct frames limit coordinate comparisons.",
+    "No native image viewing or anatomical laterality confirmation for this case. Absence of a repeated-set candidate does not prove one knee.",
+    "Existing current Kaggle source copy was obtained previously; no new download here."
+  ],
+  "evidence_files": {
+    "independent-header-review.json": "db1f1b1c49d82f408d5b562d574857f00ea9818f46ba33fafe8e24de09d8c890",
+    "independent-source-preread.json": "118d2b93d8e3e30ba8dff256e2d2cdb969ed8148ba1a9847dda34e8f6554676c",
+    "source-copy-assessment.json": "1073721a167800607d8b95fbb7f70fb7363bbde69261ef75a7b68746fac46b10",
+    "source-inventory.json": "e81d739eb7b49671dc3127a7fc43196fa142cd4e4a5fbe5ed4ea5a0e5dde649a",
+    "endpoint-headers.jsonl": "16100d12121835ac23126634a215688a68ba76d00bd5dca3db17b1f2e3e43027",
+    "series-headers.json": "48c83298315cee5305c37e77477d372ed6c5e83d3da044593509b1f02c6c95c8",
+    "source.py.txt": "f3b7e91ef5e1b7dc5da41b6a0d133085fe50ef0721f9a1ab110bb73a872d83b2",
+    "extract.py.txt": "8f24dc2224f1e392a371a02051198d947ace11191338f3182a0ecc0a326eba50",
+    "final-survey-binding.json": "096f71d9babb1a4181a65d3bf6b48d2f4632d592019372f221030d865b9ea4f2"
+  },
+  "training_ready": false
+}

@@ -1,0 +1,97 @@
+{
+  "stage": "synthetic_all_masked_loader_description_independence_probe",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+  "n_available_cache_series": 10,
+  "n_selected_series": 8,
+  "sampled_slices_per_series": 3,
+  "loader_image_shape": [
+    8,
+    3,
+    1,
+    224,
+    224
+  ],
+  "features": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      1.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "description_only_perturbation_exact_equal_outputs": {
+    "images": true,
+    "features": true,
+    "series_mask": true,
+    "labels": true,
+    "label_mask": true
+  },
+  "all_clinical_masks_zero_in_synthetic_fixture": true,
+  "input_bindings": [
+    {
+      "path": "annotation-staging/plane04514-loader-probe.py",
+      "sha256": "1ee527068ccea547e726072b8f27359ddd5bff909210fde6ae28cb3daf96f8af"
+    },
+    {
+      "path": "recovered/rsna/data.py",
+      "sha256": "7ad3e0028ec3ead5aa236a85c3df646ff43c815f54b3f4a4002fd7947bac8ebf"
+    },
+    {
+      "path": "annotation-staging/plane04514-official-series-routing.json",
+      "sha256": "7d20317c33a0e316b582faee5ef21591efbf7a1d317484703df00df9ad6c0b3b"
+    }
+  ],
+  "scope": "One identity-only synthetic study row, no gold/report target values, no training and no persisted clinical annotations. Added contradictory SeriesDescription strings only to an in-memory auxiliary table. Current loader selected eight cache volumes and produced exactly identical images/features/masks, demonstrating it ignores descriptions. Official Anatomical_Plane metadata was preserved."
+}

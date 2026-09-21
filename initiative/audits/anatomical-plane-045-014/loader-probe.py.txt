@@ -1,0 +1,17 @@
+"""Synthetic all-masked technical probe: series descriptions must not affect current loader."""
+from pathlib import Path
+import sys,json,hashlib
+import pandas as pd
+import torch
+base=Path.cwd().parent;repo=base/'recovered';stage=base/'annotation-staging';sys.path.insert(0,str(repo));torch.set_num_threads(1)
+from rsna.data import StudyDataset
+uid='1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778'
+rows=json.loads((stage/'plane04514-official-series-routing.json').read_text())['source_tables'][0]['selected_records'];table=pd.DataFrame(rows)
+# No clinical target values: one synthetic study identity only, masks default to zero.
+studies=pd.DataFrame({'study_uid':[uid]});first=StudyDataset(studies,table,base/'cache256-v3',slices=3,side=224,max_series=8,augment=False)[0]
+changed=table.copy();changed['SeriesDescription']=['DELIBERATELY_CONTRADICTORY_DESCRIPTION_ONLY' for _ in range(len(changed))]
+second=StudyDataset(studies,changed,base/'cache256-v3',slices=3,side=224,max_series=8,augment=False)[0]
+keys=['images','features','series_mask','labels','label_mask'];equality={k:bool(torch.equal(first[k],second[k])) for k in keys};assert all(equality.values());assert first['label_mask'].sum().item()==0 and first['series_mask'].sum().item()==8
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+a={'stage':'synthetic_all_masked_loader_description_independence_probe','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','study_uid':uid,'n_available_cache_series':10,'n_selected_series':8,'sampled_slices_per_series':3,'loader_image_shape':list(first['images'].shape),'features':first['features'].tolist(),'description_only_perturbation_exact_equal_outputs':equality,'all_clinical_masks_zero_in_synthetic_fixture':True,'input_bindings':[{'path':str(p.relative_to(base)),'sha256':sha(p)} for p in [Path(__file__).resolve(),repo/'rsna/data.py',stage/'plane04514-official-series-routing.json']],'scope':'One identity-only synthetic study row, no gold/report target values, no training and no persisted clinical annotations. Added contradictory SeriesDescription strings only to an in-memory auxiliary table. Current loader selected eight cache volumes and produced exactly identical images/features/masks, demonstrating it ignores descriptions. Official Anatomical_Plane metadata was preserved.'}
+out=stage/'plane04514-loader-probe.json';assert not out.exists();out.write_text(json.dumps(a,indent=2)+'\n');print(json.dumps({'probe_passed':True,'n_selected_series':8,'image_shape':list(first['images'].shape),'output_sha256':sha(out)}))

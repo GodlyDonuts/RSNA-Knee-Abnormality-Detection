@@ -1,0 +1,38 @@
+"""Verify the completed full metadata export in the unchanged real-cache loader."""
+from pathlib import Path
+from unittest.mock import patch
+import hashlib,json,sys
+import numpy as np
+import pandas as pd
+import torch
+base=Path.cwd().parent; repo=base/'recovered'; stage=base/'annotation-staging'; sys.path.insert(0,str(repo)); torch.set_num_threads(1)
+from rsna.data import StudyDataset
+uid='1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778'
+original=repo/'initiative/source/train_series.csv'; exported=stage/'plane04514-series-export-v1/series_effective.csv'
+source=pd.read_csv(original); effective=pd.read_csv(exported,keep_default_na=False)
+changed=effective.Anatomical_Plane.ne(source.Anatomical_Plane)
+assert len(source)==len(effective)==24371 and changed.sum()==6
+for field in source.columns:
+    if field!='Anatomical_Plane': pd.testing.assert_series_equal(source[field],effective[field])
+studies=pd.DataFrame({'study_uid':[uid]})
+ids=sorted(source.loc[source.StudyInstanceUID==uid,'SeriesInstanceUID']); number={v:i for i,v in enumerate(ids)}
+def sample(table):
+    dataset=StudyDataset(studies,table,base/'cache256-v3',slices=3,side=224,max_series=8,augment=False)
+    paths=[]; load=np.load
+    def capture(path,*args,**kwargs):
+        paths.append(Path(path)); return load(path,*args,**kwargs)
+    with patch('rsna.data.np.load',side_effect=capture): result=dataset[0]
+    assert result['label_mask'].sum().item()==0
+    return result,[p.stem for p in paths]
+a,old=sample(source); b,new=sample(effective)
+assert [number[x] for x in new]==[6,9,2,4,0,1,3,5]
+assert set(old)==set(new)
+for key in old: assert torch.equal(a['images'][old.index(key)],b['images'][new.index(key)])
+prior=json.loads((stage/'plane04514-plane-feature-probe.json').read_text())
+for row in prior['comparisons']:
+    assert b['features'][new.index(row['series_uid'])].tolist()==row['simulated_features']
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+result={'stage':'completed_full_series_export_and_unchanged_loader_validation','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','n_source_and_export_series':len(source),'n_exact_accepted_plane_changes':int(changed.sum()),'all_other_source_values_and_order_preserved':True,'native_case_study_uid':uid,'n_selected_real_cache_series':len(new),'selected_series_indices':[number[x] for x in new],'n_per_series_sampled_images_exact_to_original':len(new),'features_match_independently_reviewed_six_series_simulation':True,'clinical_target_values_read':False,'clinical_masks_zero':True,'runtime_code_modified':False,'input_bindings':[{'path':str(p.relative_to(base)),'sha256':sha(p)} for p in [Path(__file__).resolve(),original,exported,stage/'plane04514-series-export-v1/series_metadata_audit.json',repo/'initiative/audits/anatomical-plane-045-014/decision.json',repo/'rsna/series_metadata.py',repo/'rsna/data.py',stage/'plane04514-plane-feature-probe.json']]}
+out=stage/'plane04514-export-loader-check.json'
+with out.open('x') as f: f.write(json.dumps(result,indent=2)+'\n')
+print(json.dumps({'output_sha256':sha(out),'checks_passed':True}))

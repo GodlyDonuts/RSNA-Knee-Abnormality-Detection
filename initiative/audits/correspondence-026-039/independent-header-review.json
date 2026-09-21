@@ -1,0 +1,430 @@
+{
+  "schema_version": 1,
+  "stage": "independent_technical_source_final_endpoint_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "study_uid": "1.2.826.0.1.3680043.8.498.17427902052389033416295416299697276519",
+  "source_batch_index": 39,
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "source_batch_sha256": "4e915a97b8801c1a2af5b8d564fbbe916bb1e8d04a123dcf32fd27fb73f4bd1e",
+  "source_report_sha256": "ed3d4f3dcb8edbc2f1c270d5d2f3bce9920b36f0fc958a15a990208a0afd16af",
+  "input_bindings": [
+    {
+      "path": "recovered/initiative/reviews/inputs/batch-026.json",
+      "sha256": "4e915a97b8801c1a2af5b8d564fbbe916bb1e8d04a123dcf32fd27fb73f4bd1e",
+      "n_bytes": 67881
+    },
+    {
+      "path": "annotation-staging/bilateral02639-source-preread.json",
+      "sha256": "118d2b93d8e3e30ba8dff256e2d2cdb969ed8148ba1a9847dda34e8f6554676c",
+      "n_bytes": 6765
+    },
+    {
+      "path": "annotation-staging/bilateral02639-source-copy-assessment.json",
+      "sha256": "1073721a167800607d8b95fbb7f70fb7363bbde69261ef75a7b68746fac46b10",
+      "n_bytes": 960
+    },
+    {
+      "path": "annotation-staging/bilateral02639-source-inventory.json",
+      "sha256": "e81d739eb7b49671dc3127a7fc43196fa142cd4e4a5fbe5ed4ea5a0e5dde649a",
+      "n_bytes": 93208
+    },
+    {
+      "path": "annotation-staging/header-extract-026039.jsonl",
+      "sha256": "16100d12121835ac23126634a215688a68ba76d00bd5dca3db17b1f2e3e43027",
+      "n_bytes": 17086
+    },
+    {
+      "path": "annotation-staging/bilateral02639-series-headers.json",
+      "sha256": "48c83298315cee5305c37e77477d372ed6c5e83d3da044593509b1f02c6c95c8",
+      "n_bytes": 7218
+    },
+    {
+      "path": "annotation-staging/bilateral02639-final-survey-binding.json",
+      "sha256": "096f71d9babb1a4181a65d3bf6b48d2f4632d592019372f221030d865b9ea4f2",
+      "n_bytes": 772
+    },
+    {
+      "path": "annotation-staging/correspondence-02621-02639-02309-source.py",
+      "sha256": "f3b7e91ef5e1b7dc5da41b6a0d133085fe50ef0721f9a1ab110bb73a872d83b2",
+      "n_bytes": 5068
+    },
+    {
+      "path": "annotation-staging/correspondence-02621-02639-02309-extract.py",
+      "sha256": "8f24dc2224f1e392a371a02051198d947ace11191338f3182a0ecc0a326eba50",
+      "n_bytes": 5062
+    }
+  ],
+  "independence": "Personally read complete original blinded026 source before case endpoint metadata, any026 annotations or native images. Parent disclosed multiple-report candidate only. No gold opened.",
+  "source_structure_category": "two_reports_possible_longitudinal_followup_only_first_explicit_right",
+  "source_interpretation": "The first report explicitly identifies right knee; the second is unlocalized and explicitly compares current/persisting findings against prior imaging, states pre-existing findings and says the protocol was incomplete due poor cooperation. That language supports a possible longitudinal/follow-up relationship. The literal bilateral marker does not establish opposite knees. Masked dates and absent second-side identification prevent determining report chronology or which report describes the stored series.",
+  "header_interpretation": "Eight endpoint records cover all four series. Every Laterality is R, while ImageLaterality/FrameLaterality are blank. One PatientID hash and four frame hashes, AcquisitionNumber1, SeriesNumbers3001/4001/5001/6001. Distinct sequences are axial PD FS, coronal PD FS, coronal T1 and sagittal PD FS, with descriptions agreeing with IOP. No duplicate full protocol, side alternation or metadata evidence of opposite-knee sets. Presence of T1 is closer to the first stated protocol than the second stated PD/T2-only protocol, but technique text and incomplete acquisition wording are not sufficient provenance to choose a report.",
+  "header_coverage": {
+    "n_expected_series": 4,
+    "n_series_with_both_endpoints": 4,
+    "n_expected_slices": 147,
+    "n_header_samples": 8,
+    "n_pixel_header_boundaries_reached": 8,
+    "n_full_dicom_files_verified": 0,
+    "n_native_pixel_decodes": 0,
+    "n_patient_id_hashes": 1,
+    "n_frame_of_reference_hashes": 4,
+    "expected_full_source_bytes": 143024416,
+    "transport_scope": "Final completed endpoint artifact verified against its summary hash, selected records extracted exactly, then every UID/path/size/OID/storage binding and lexical endpoint selection matched to pinned inventory. No full DICOM bytes downloaded. Prefix digests remain prefix digests."
+  },
+  "series_records": [
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.72999316872567856854418822737486337441",
+      "n_inventory_slices": 38,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "384"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.965954, -0.257433, -0.025696, 0.257245, 0.96629, -0.0104541]"
+        ],
+        "ImagePositionPatient": [
+          "[-159.169, -105.638, 25.8498]",
+          "[-160.457, -105.801, -20.9322]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Siemens Healthineers"
+        ],
+        "ManufacturerModelName": [
+          "MAGNETOM Prisma"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.416667, 0.416667]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "1"
+        ],
+        "Rows": [
+          "384"
+        ],
+        "SeriesDescription": [
+          "pd_tse_fs_tra_448_p2_s2"
+        ],
+        "SeriesNumber": [
+          "3001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "syngo MR XA30"
+        ],
+        "SpacingBetweenSlices": [
+          "3.6"
+        ]
+      },
+      "patient_id_sha256": [
+        "28a48e85c6cebb447d60935ac0067871122e0e34a21764c4fd51c3dd3a80f6c7"
+      ],
+      "frame_of_reference_sha256": [
+        "b9f25fa1e0802e283255d54cc1c3b5488a7e49ecf69ebb29d54708d5f405df40"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.76234020749678031049385438694578717513",
+      "n_inventory_slices": 39,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "1024"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.959193, -0.282631, -0.00826977, 0.00877816, 0.0589991, -0.998219]"
+        ],
+        "ImagePositionPatient": [
+          "[-132.872, 13.3916, 93.2015]",
+          "[-163.649, -90.8705, 86.7686]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Siemens Healthineers"
+        ],
+        "ManufacturerModelName": [
+          "MAGNETOM Prisma"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.175781, 0.175781]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "1"
+        ],
+        "Rows": [
+          "1024"
+        ],
+        "SeriesDescription": [
+          "t1_tse_cor"
+        ],
+        "SeriesNumber": [
+          "5001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "syngo MR XA30"
+        ],
+        "SpacingBetweenSlices": [
+          "3.3"
+        ]
+      },
+      "patient_id_sha256": [
+        "28a48e85c6cebb447d60935ac0067871122e0e34a21764c4fd51c3dd3a80f6c7"
+      ],
+      "frame_of_reference_sha256": [
+        "6d567ab4a249962e4ae11753b215de2b6b6a1801de0ff0605bd16ed78d8cab11"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.91151170359306480259769935733596721058",
+      "n_inventory_slices": 40,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "384"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.959087, -0.283111, 4.47015e-08, 0.016724, 0.0566552, -0.998254]"
+        ],
+        "ImagePositionPatient": [
+          "[-142.822, -40.6262, 78.4477]",
+          "[-154.014, -78.5397, 76.1085]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Siemens Healthineers"
+        ],
+        "ManufacturerModelName": [
+          "MAGNETOM Prisma"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.416667, 0.416667]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "1"
+        ],
+        "Rows": [
+          "384"
+        ],
+        "SeriesDescription": [
+          "pd_tse_fs_cor_384_p2_s2"
+        ],
+        "SeriesNumber": [
+          "4001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "syngo MR XA30"
+        ],
+        "SpacingBetweenSlices": [
+          "3.3"
+        ]
+      },
+      "patient_id_sha256": [
+        "28a48e85c6cebb447d60935ac0067871122e0e34a21764c4fd51c3dd3a80f6c7"
+      ],
+      "frame_of_reference_sha256": [
+        "e902cb8194b32d05c0461e090e37569835f2b451362a1df4cb2e9d02ea5539c2"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.98985497207454879255104706797323713893",
+      "n_inventory_slices": 30,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "1"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "792"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.259161, 0.965834, 4.71253e-08, -0.0250387, 0.00671866, -0.999664]"
+        ],
+        "ImagePositionPatient": [
+          "[-119.325, -115.125, 77.2072]",
+          "[-49.2287, -133.934, 75.3251]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Siemens Healthineers"
+        ],
+        "ManufacturerModelName": [
+          "MAGNETOM Prisma"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.1875, 0.1875]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "1"
+        ],
+        "Rows": [
+          "800"
+        ],
+        "SeriesDescription": [
+          "pd_tse_fs_sag_p2"
+        ],
+        "SeriesNumber": [
+          "6001"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "syngo MR XA30"
+        ],
+        "SpacingBetweenSlices": [
+          "3.3"
+        ]
+      },
+      "patient_id_sha256": [
+        "28a48e85c6cebb447d60935ac0067871122e0e34a21764c4fd51c3dd3a80f6c7"
+      ],
+      "frame_of_reference_sha256": [
+        "4b575e55a8b571ed68e1e50232bc0fc854ed5c98bf0ec16e968047ab6feb07fd"
+      ]
+    }
+  ],
+  "candidate_flags": {
+    "mixed_explicit_laterality": false,
+    "all_side_tags_missing": false,
+    "mixed_patient_id": false,
+    "repeated_complete_acquisition_set": false,
+    "source_correspondence_unresolved": true
+  },
+  "limits": "Consistent R tags support a right-tagged acquisition set, not independent native-anatomy proof or temporal linkage to either report. Series count alone does not verify completion, and recorded dates are unavailable. Lexical endpoints exclude unsampled variation; distinct frames limit coordinate comparisons.",
+  "native_followup": {
+    "launched": false,
+    "reason": "No repeated/mixed side acquisition sets strongly warrant native confirmation under assigned escalation criterion."
+  },
+  "recommendation": "Preserve both reports as a possible same-knee longitudinal documentation problem; retain informative masks/exclusion until report-to-exam chronology is resolved. Do not discard the second block as contralateral, select the first from protocol resemblance, or assign target states from either without an explicit reviewed correspondence contract.",
+  "clinical_annotations_changed": 0,
+  "runtime_source_pipeline_modified": false
+}

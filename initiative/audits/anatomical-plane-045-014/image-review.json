@@ -1,0 +1,195 @@
+{
+  "stage": "independent_native_technical_visual_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+  "source_batch_index": 14,
+  "independence": "Personally viewed all30 panels using view_image at original resolution, after complete source preread and metadata/code review. Parent has been sent image paths and objective verification counts only; this assessment is frozen before seeing any parent native visual conclusions. Prior source-reader045 authorship and metadata discrepancy exposure are disclosed in the preread. No clinical image diagnosis or target annotation performed.",
+  "input_bindings": [
+    {
+      "path": "plane-045014/native-iop-coronal.png",
+      "sha256": "ef10fadcd161954a77d2d2cceb23662cf2a96f38e976e7e2ba2ab421f4c02cf7",
+      "bytes": 1624254
+    },
+    {
+      "path": "plane-045014/native-iop-sagittal.png",
+      "sha256": "20d2c2de6a3997270ea15eb6cbaeb911c9480826178d86b8e8c250f50fa63e90",
+      "bytes": 1534495
+    },
+    {
+      "path": "plane-045014/native-iop-axial.png",
+      "sha256": "dddb9639b23d891963d10c731fd248fbc67e544e91eabc98b249c7c95cdf1d57",
+      "bytes": 1445763
+    },
+    {
+      "path": "plane-045014/native-iop-oblique.png",
+      "sha256": "930d86e41a311471f0c710cafdf7e35c35431dd4836ffb155e8f5338b01b6594",
+      "bytes": 842283
+    },
+    {
+      "path": "plane-045014/series-summary.json",
+      "sha256": "4252cac1eac9b3b23f92057c48da0ab3083b06ad4e21dcd69b833e9e34e68b52",
+      "bytes": 85592
+    },
+    {
+      "path": "plane-045014/summary.json",
+      "sha256": "e3cca84360e577801ddb14f44bba7baa849429ac157a346b90bf22ae0377dc61",
+      "bytes": 3362
+    },
+    {
+      "path": "plane-045014/all-slice-headers-and-pixels.jsonl",
+      "sha256": "29136d3cadb835de9b63b204468be57ca1473ba67f4e85da12d1d4152e34631a",
+      "bytes": 840020
+    },
+    {
+      "path": "plane-045014/cache-comparison.json",
+      "sha256": "7ca3b1eade62c69c2887213ad810e12148c9fecafdce679e43b61c5fbc061004",
+      "bytes": 8904
+    },
+    {
+      "path": "plane_045014.py",
+      "sha256": "dc44c136389dabf3f768aa55df61402f2b0b66b396f97b2402f0709b9e26c7b6",
+      "bytes": 10489
+    },
+    {
+      "path": "annotation-staging/plane04514-source-preread.json",
+      "sha256": "ffecd031b6d4e37d446a4273540275542786a8b1cd364e439f98ac92583b8a59",
+      "bytes": 4891
+    },
+    {
+      "path": "annotation-staging/plane04514-source-copy-assessment.json",
+      "sha256": "aa31a18d9796cc8477573e3d854ed5c5539bb35f1d7dbe2d21b57f4db526547d",
+      "bytes": 790
+    },
+    {
+      "path": "annotation-staging/plane04514-official-series-routing.json",
+      "sha256": "7d20317c33a0e316b582faee5ef21591efbf7a1d317484703df00df9ad6c0b3b",
+      "bytes": 7177
+    },
+    {
+      "path": "annotation-staging/plane04514-routing-code-prereview.json",
+      "sha256": "865838b02d2f8a55256187452fffeb9cc56b9545b393e11c1cc00d3427c9e418",
+      "bytes": 6579
+    },
+    {
+      "path": "annotation-staging/plane04514-loader-probe.json",
+      "sha256": "a66270ddb892c263408f03bc0ea34509edc3fafd5c83b9870079c2b62543825f",
+      "bytes": 2094
+    },
+    {
+      "path": "annotation-staging/plane04514-endpoint-cache-routing-comparison.json",
+      "sha256": "f97d5d21391562aef3f61758e52f7c9980a2cee49423ff1d300eede21eeb3b5b",
+      "bytes": 14751
+    }
+  ],
+  "rendering_scope": "Unflipped, untransposed native pixel arrays; no anatomical reorientation or crop. Per-panel display percentiles only. Contact sheets grouped by patient-coordinate IOP normal, which is a metadata definition rather than assumed knee anatomical plane. Three projection-ordered samples per series,30 panels total. Full439-slice decode/hash/geometry validation separately passed.",
+  "group_observations": [
+    {
+      "series_indices": [
+        1,
+        5,
+        6
+      ],
+      "patient_coordinate_iop_plane": "coronal",
+      "official_anatomical_plane": "Coronal",
+      "description_plane_token": "sag",
+      "native_anatomical_view_assessment": "sagittal",
+      "visual_observations": "Across all nine panels, the knee is seen in longitudinal side profile: femoral/tibial shaft lengths, one femoral-condylar profile at a time, and the patella/anterior extensor contour are visible along the side of the joint. These are anatomical sagittal views despite their coronal patient-coordinate IOP normals. The sag description suffixes agree with this native appearance."
+    },
+    {
+      "series_indices": [
+        3,
+        7,
+        9
+      ],
+      "patient_coordinate_iop_plane": "sagittal",
+      "official_anatomical_plane": "Sagittal",
+      "description_plane_token": "cor",
+      "native_anatomical_view_assessment": "coronal",
+      "visual_observations": "The nine panels traverse front-to-back knee levels, with paired femoral condyles/intercondylar region and broad tibial plateau/shaft views across the knee width in the central/posterior examples. The cor description suffixes fit local anatomical coronal views, despite sagittal patient-coordinate normals."
+    },
+    {
+      "series_indices": [
+        0,
+        4,
+        8
+      ],
+      "patient_coordinate_iop_plane": "axial",
+      "official_anatomical_plane": "Axial",
+      "description_plane_token": "tra",
+      "native_anatomical_view_assessment": "transverse/axial",
+      "visual_observations": "The nine panels show transverse cross-sections of bone and surrounding muscle/soft-tissue compartments rather than the longitudinal sagittal profiles above. This is consistent with axial descriptions and official routing. A small peripheral portion of other anatomy at the edge of some fields is not evidence of a second complete knee acquisition."
+    },
+    {
+      "series_indices": [
+        2
+      ],
+      "patient_coordinate_iop_plane": "oblique",
+      "official_anatomical_plane": "Axial",
+      "description_plane_token": "cor_obl_ACL",
+      "native_anatomical_view_assessment": "specialized oblique, do not force a principal local-anatomy plane",
+      "visual_observations": "Three panels show a specialized oblique section through the knee. Its patient-coordinate normal has no component >=0.90. The limited contact sheet does not justify forcing a coronal or sagittal local-anatomy correction."
+    }
+  ],
+  "series_identity_map": [
+    {
+      "series_index": 0,
+      "series_uid": "1.2.826.0.1.3680043.8.498.14873488589197746123622123880575171303",
+      "description": "LT_t1_tse_tra"
+    },
+    {
+      "series_index": 1,
+      "series_uid": "1.2.826.0.1.3680043.8.498.38329406043709448668212560654205243506",
+      "description": "LT_t2_tse_sag"
+    },
+    {
+      "series_index": 2,
+      "series_uid": "1.2.826.0.1.3680043.8.498.43027496214862870196529688959485840362",
+      "description": "LT_t2_tse_fs_cor_obl_ACL"
+    },
+    {
+      "series_index": 3,
+      "series_uid": "1.2.826.0.1.3680043.8.498.61632024638081900832246913333778939144",
+      "description": "LT_t2_tse_cor"
+    },
+    {
+      "series_index": 4,
+      "series_uid": "1.2.826.0.1.3680043.8.498.68185565593252057347062790125203839804",
+      "description": "LT_t2_tse_fs_tra"
+    },
+    {
+      "series_index": 5,
+      "series_uid": "1.2.826.0.1.3680043.8.498.71038909055672544926631743506544252223",
+      "description": "LT_t1_tse_sag"
+    },
+    {
+      "series_index": 6,
+      "series_uid": "1.2.826.0.1.3680043.8.498.74389339348633000283070126504845546392",
+      "description": "LT_pd_tse_fs_sag"
+    },
+    {
+      "series_index": 7,
+      "series_uid": "1.2.826.0.1.3680043.8.498.76974693121604573580661191512915907173",
+      "description": "LT_t1_tse_cor"
+    },
+    {
+      "series_index": 8,
+      "series_uid": "1.2.826.0.1.3680043.8.498.87827727586156074967825034668126552168",
+      "description": "t1_vibe_we_tra_cartilage"
+    },
+    {
+      "series_index": 9,
+      "series_uid": "1.2.826.0.1.3680043.8.498.99497688854122153258840214387845412380",
+      "description": "LT_pd_tse_fs_cor"
+    }
+  ],
+  "conclusion": "The six systematic discrepancies are not supported as erroneous sequence-description names by native anatomy. Their sag/cor suffixes fit the local anatomical views, while patient-coordinate principal-plane classes and the official Anatomical_Plane field are reciprocally different. Patient-coordinate IOP classification must not be treated as universal local knee-anatomy classification in this study.",
+  "cause_limit": "Unusual limb positioning/rotation relative to patient axes is plausible given the source and native positioning, but the exact cause cannot be established from these images and anonymized headers alone. A patient-coordinate convention/setup issue cannot be excluded. Do not rewrite IOP, PatientPosition or raw descriptions from this audit.",
+  "cache_and_loader_implication": "IOP/IPP are internally consistent across every source slice, yield positive ordered slice gaps, and reproduce all10 cached arrays and geometry metadata exactly. Current preprocessing does not misorder, transpose or swap data based on descriptions. However, the loader uses official Anatomical_Plane for one-hot features/plane-aware selection; six of those categorical features refer to patient-coordinate planes rather than the visually observed local anatomical planes here. The description-perturbation probe therefore confirms immunity to text changes, not correctness of anatomical plane semantics.",
+  "recommended_disposition": "Preserve source DICOMs, official tables, cache and clinical annotations unchanged. After independent parent image review, register this as an auxiliary plane-semantics QA case and either apply a separately reviewed per-series local-anatomy routing override or mask/avoid categorical plane features for this study until resolved. Proposed anatomy-only mapping for independent adjudication: indices1/5/6 to Sagittal and3/7/9 to Coronal; retain other planes pending stated limits. Do not apply this correction automatically to the other metadata-only candidates.",
+  "clinical_annotations_changed": 0,
+  "runtime_pipeline_modified": false,
+  "new_native_abnormality_diagnoses": false
+}

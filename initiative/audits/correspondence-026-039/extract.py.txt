@@ -1,0 +1,38 @@
+from pathlib import Path
+import json,hashlib
+import pandas as pd
+repo=Path.cwd();base=repo.parent;stage=base/'annotation-staging';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+cases=[('026',21,'02621','026021'),('026',39,'02639','026039'),('023',9,'02309','023009')]
+reports={slug:json.loads((repo/f'initiative/reviews/inputs/batch-{b}.json').read_text())[i] for b,i,slug,_ in cases};uid_to_slug={r['study_uid']:slug for slug,r in reports.items()};headers={slug:[] for slug in reports}
+artifact=base/'header-endpoint-full-v1/endpoint-headers.jsonl';summary=base/'header-endpoint-full-v1/summary.json';ss=json.loads(summary.read_text());assert sha(artifact)==ss['endpoint_artifact_sha256']=='d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3';assert ss['complete_endpoint_coverage'] and not ss['failures']
+for line in artifact.open():
+ r=json.loads(line)
+ if r['study_uid'] in uid_to_slug:headers[uid_to_slug[r['study_uid']]].append(r)
+source_copies=[]
+for p in [repo/'initiative/source/train.csv',base/'kaggle_current/train.csv']:
+ df=pd.read_csv(p,usecols=['StudyInstanceUID','Report'],dtype=str,keep_default_na=False)
+ source_copies.append((p,sha(p),p.stat().st_size,df))
+assert source_copies[0][1]==source_copies[1][1]=='8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33'
+def write(name,a):
+ p=stage/name;assert not p.exists();p.write_text(json.dumps(a,ensure_ascii=False,indent=2)+'\n');return p
+for b,i,slug,ep in cases:
+ report=reports[slug];uid=report['study_uid'];copies=[]
+ for p,h,n,df in source_copies:
+  f=df[df.StudyInstanceUID==uid];assert len(f)==1 and f.iloc[0].Report==report['report']
+  copies.append({'path':str(p.relative_to(base)),'sha256':h,'n_bytes':n,'n_matching_uid_rows':1,'report_exact_match':True})
+ write(f'bilateral{slug}-source-copy-assessment.json',{'study_uid':uid,'source_report_sha256':hashlib.sha256(report['report'].encode()).hexdigest(),'source_copies':copies,'scope':'Exact comparison against existing root-obtained authenticated current Kaggle source, archived train.csv and blinded batch; no fresh CSV download. Only StudyInstanceUID and Report columns materialized; no gold. Source laterality/report-block wording predates recovery.'})
+ inv=pd.read_parquet(repo/'initiative/source/inventory',filters=[('study_uid','==',uid)]);cols=['study_uid','series_uid','sop_uid','path','sha256','bytes','storage'];records=inv.sort_values(['series_uid','sop_uid'])[cols].to_dict('records');lookup={r['path']:r for r in records};hs=headers[slug]
+ for r in hs:
+  e=lookup[r['source_path']]
+  for a,c in [('study_uid','study_uid'),('series_uid','series_uid'),('sop_uid','sop_uid'),('source_sha256','sha256'),('source_bytes','bytes'),('storage','storage')]:assert r[a]==e[c]
+  assert r['reached_pixel_data_header'] and not r['full_file_sha256_verified']
+ write(f'bilateral{slug}-source-inventory.json',{'source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d','study_uid':uid,'n_slices':len(inv),'n_series':inv.series_uid.nunique(),'source_bytes':int(inv.bytes.sum()),'records':records})
+ p=stage/f'header-extract-{ep}.jsonl';assert not p.exists();p.write_text(''.join(json.dumps(r,ensure_ascii=False,sort_keys=True)+'\n' for r in hs))
+ series=[]
+ for sid,g in inv.groupby('series_uid',sort=True):
+  group=[r for r in hs if r['series_uid']==sid];assert {r['sop_uid'] for r in group}=={g.sop_uid.min(),g.sop_uid.max()}
+  series.append({'series_uid':sid,'n_inventory_slices':len(g),'n_endpoint_headers':len(group),'endpoint_selection':'exact lexical first and last SOP','header_fields':{k:sorted({r['header_fields'][k] for r in group}) for k in sorted(group[0]['header_fields'])},'patient_id_sha256':sorted({r['patient_id_sha256'] for r in group}),'frame_of_reference_sha256':sorted({r['frame_of_reference_sha256'] for r in group})})
+ write(f'bilateral{slug}-series-headers.json',series)
+ write(f'bilateral{slug}-final-survey-binding.json',{'final_endpoint_artifact_path':str(artifact.relative_to(base)),'final_endpoint_artifact_sha256':sha(artifact),'final_summary_path':str(summary.relative_to(base)),'final_summary_sha256':sha(summary),'extracted_endpoint_path':str(p.relative_to(base)),'extracted_endpoint_sha256':sha(p),'n_exact_selected_records':len(hs),'scope':'Extracted completed final endpoint artifact, not a live checkpoint. Pinned source binding and exact lexical endpoint selection checked for every selected series. Prefix hashes remain prefix hashes.'})
+ print(json.dumps({'case':slug,'n_slices':len(inv),'n_series':len(series),'n_endpoints':len(hs),'n_patient_hashes':len({r['patient_id_sha256'] for r in hs}),'n_frame_hashes':len({r['frame_of_reference_sha256'] for r in hs}),'source_bytes':int(inv.bytes.sum())}))
+ for r in series:print(json.dumps({'series_uid':r['series_uid'],'n_slices':r['n_inventory_slices'],**{k:v for k,v in r['header_fields'].items() if k in ['Laterality','ImageLaterality','FrameLaterality','SeriesNumber','AcquisitionNumber','SeriesDescription','ImageOrientationPatient','ImagePositionPatient','Rows','Columns','PixelSpacing']}},ensure_ascii=False))

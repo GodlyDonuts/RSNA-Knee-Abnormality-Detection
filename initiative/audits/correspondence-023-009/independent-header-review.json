@@ -1,0 +1,598 @@
+{
+  "schema_version": 1,
+  "stage": "independent_technical_source_final_endpoint_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "study_uid": "1.2.826.0.1.3680043.8.498.13291943370279119939499960846843879156",
+  "source_batch_index": 9,
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "source_batch_sha256": "260949e234c8efd27866e5bd7fc2255441fbd5cbaf6740ecf0956ebd9dc35e0a",
+  "source_report_sha256": "67f22a38b34edcb8280f79e831ae187bdef3e7b3553533c29f9617a6b84c32a0",
+  "input_bindings": [
+    {
+      "path": "recovered/initiative/reviews/inputs/batch-023.json",
+      "sha256": "260949e234c8efd27866e5bd7fc2255441fbd5cbaf6740ecf0956ebd9dc35e0a",
+      "n_bytes": 73063
+    },
+    {
+      "path": "annotation-staging/bilateral02309-source-preread.json",
+      "sha256": "fdd7ed12046f13c23700d98cf835d1e67986ba219f69c7285fed063353f76ee4",
+      "n_bytes": 5663
+    },
+    {
+      "path": "annotation-staging/bilateral02309-source-copy-assessment.json",
+      "sha256": "20da5270b990fa9849213e3a91face4e964d6685d5ce6e2435d8c1216667142b",
+      "n_bytes": 960
+    },
+    {
+      "path": "annotation-staging/bilateral02309-source-inventory.json",
+      "sha256": "06f06f78b28fca0732bd08e4a37c5a5f8afb28da8befeabfdc659b8297b858b9",
+      "n_bytes": 104544
+    },
+    {
+      "path": "annotation-staging/header-extract-023009.jsonl",
+      "sha256": "6f1b315e069db363d55fd6bfc78d9cdc09de7e45df53b96977c05f458fa8967a",
+      "n_bytes": 26708
+    },
+    {
+      "path": "annotation-staging/bilateral02309-series-headers.json",
+      "sha256": "b8f8281fce100ddda56e7984c2979b6677e264329a046134c203a33a03e80b25",
+      "n_bytes": 11518
+    },
+    {
+      "path": "annotation-staging/bilateral02309-final-survey-binding.json",
+      "sha256": "59583b7f48971d33fc7daee733fb90c1436685dd06b3ad5ebd67d5dbc8312db6",
+      "n_bytes": 773
+    },
+    {
+      "path": "annotation-staging/correspondence-02621-02639-02309-source.py",
+      "sha256": "f3b7e91ef5e1b7dc5da41b6a0d133085fe50ef0721f9a1ab110bb73a872d83b2",
+      "n_bytes": 5068
+    },
+    {
+      "path": "annotation-staging/correspondence-02621-02639-02309-extract.py",
+      "sha256": "8f24dc2224f1e392a371a02051198d947ace11191338f3182a0ecc0a326eba50",
+      "n_bytes": 5062
+    }
+  ],
+  "independence": "Complete source reread for technical scope before case endpoint metadata or native images. This agent previously authored reader023 from the same source; this is not a second independent clinical annotation pass. No other-agent023 annotations or gold values consulted or changed.",
+  "source_structure_category": "two_reports_both_right_supported_possible_longitudinal_or_mispaired_text",
+  "source_interpretation": "The second complete report explicitly identifies right knee; the first lacks an overall side heading but contains m.semimembranosus dex., a right-sided muscle reference. Thus the text does not establish two opposite knees despite the literal bilateral marker. Same-knee longitudinal documentation or mispaired text is plausible; no explicit comparison date/chronology selects which block is current. The full source and both blocks match the archived/current official field exactly.",
+  "header_interpretation": "Twelve endpoints cover all six series. All Laterality values are R; other side fields blank. One PatientID hash and six frame hashes. SeriesNumbers201/301/401/501/601/701 and AcquisitionNumbers2 through7 describe three sagittal contrasts, two coronal contrasts and one axial contrast, with compatible IOP. T2 sagittal has15 slices while other series have29–32, an ordinary protocol-coverage difference by metadata alone. There is no repeated complete acquisition set or mixed side-tag group strongly suggesting both knees.",
+  "header_coverage": {
+    "n_expected_series": 6,
+    "n_series_with_both_endpoints": 6,
+    "n_expected_slices": 165,
+    "n_header_samples": 12,
+    "n_pixel_header_boundaries_reached": 12,
+    "n_full_dicom_files_verified": 0,
+    "n_native_pixel_decodes": 0,
+    "n_patient_id_hashes": 1,
+    "n_frame_of_reference_hashes": 6,
+    "expected_full_source_bytes": 125736966,
+    "transport_scope": "Final completed endpoint artifact verified against its summary hash, selected records extracted exactly, then every UID/path/size/OID/storage binding and lexical endpoint selection matched to pinned inventory. No full DICOM bytes downloaded. Prefix digests remain prefix digests."
+  },
+  "series_records": [
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.10652459504746885149462396246148997164",
+      "n_inventory_slices": 30,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "5"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "704"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.99889781306117, 0.02939965911133, -0.0365898770939, -0.0364868228421, -0.004034320246, -0.9993259908653]"
+        ],
+        "ImagePositionPatient": [
+          "[-178.41475899417, -44.196888415397, 79.3605821048288]",
+          "[-179.19427712161, -17.808514086783, 79.2825126563578]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Philips Medical Systems"
+        ],
+        "ManufacturerModelName": [
+          "Ingenia"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.22727273404598, 0.22727273404598]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "2.46227106227106"
+        ],
+        "Rows": [
+          "704"
+        ],
+        "SeriesDescription": [
+          "T1W_TSE_Cor"
+        ],
+        "SeriesNumber": [
+          "501"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['5.3.1', '5.3.1.4']"
+        ],
+        "SpacingBetweenSlices": [
+          "3.3"
+        ]
+      },
+      "patient_id_sha256": [
+        "91df67f2b9d24346331e4d023dd9de6dd055e3ec0743d4608556a541900e367a"
+      ],
+      "frame_of_reference_sha256": [
+        "57aa0f9c49a000561c86ada686da919940603f2ac7bfa912e5e018f78ec0cc5e"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.12938648157859626963442327413579732127",
+      "n_inventory_slices": 32,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "6"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "640"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.99817037756861, 0.02933007982079, -0.0528738476208, -0.0264287428274, 0.99814966899036, 0.05476093358395]"
+        ],
+        "ImagePositionPatient": [
+          "[-177.755030607, -125.26678692945, 16.3579332314936]",
+          "[-181.52370736482, -121.57563626416, -52.740999034741]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Philips Medical Systems"
+        ],
+        "ManufacturerModelName": [
+          "Ingenia"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.24786290526390, 0.24786290526390]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "4.36947496947496"
+        ],
+        "Rows": [
+          "640"
+        ],
+        "SeriesDescription": [
+          "PDW_TSE_SPAIR_Tra"
+        ],
+        "SeriesNumber": [
+          "601"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['5.3.1', '5.3.1.4']"
+        ],
+        "SpacingBetweenSlices": [
+          "3.3"
+        ]
+      },
+      "patient_id_sha256": [
+        "91df67f2b9d24346331e4d023dd9de6dd055e3ec0743d4608556a541900e367a"
+      ],
+      "frame_of_reference_sha256": [
+        "81de7a483824e080097319dc1abed4766a366378a4154cc531b68e0718200b69"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.40324125648836921987748628020869650813",
+      "n_inventory_slices": 15,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "7"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "432"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[-0.0326403049122, 0.9979661599151, 0.05475540301672, 0.05291534687568, 0.05643325780683, -0.9970031361426]"
+        ],
+        "ImagePositionPatient": [
+          "[-117.19348975548, -127.13355536853, 67.0220458725539]",
+          "[-99.228310312127, -126.59994407092, 68.0057404259291]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Philips Medical Systems"
+        ],
+        "ManufacturerModelName": [
+          "Ingenia"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.37037035822868, 0.37037035822868]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "3.74554334554334"
+        ],
+        "Rows": [
+          "432"
+        ],
+        "SeriesDescription": [
+          "T2W_TSE_Sag"
+        ],
+        "SeriesNumber": [
+          "701"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "1.5"
+        ],
+        "SoftwareVersions": [
+          "['5.3.1', '5.3.1.4']"
+        ],
+        "SpacingBetweenSlices": [
+          "1.8"
+        ]
+      },
+      "patient_id_sha256": [
+        "91df67f2b9d24346331e4d023dd9de6dd055e3ec0743d4608556a541900e367a"
+      ],
+      "frame_of_reference_sha256": [
+        "8de4f46693f9b5c44580da3429cc0f633b50af75d6f4114a1140079264a69972"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.59001493619550394751349444281465434364",
+      "n_inventory_slices": 30,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "4"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "640"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.99889781306117, 0.02939965911133, -0.0365898770939, -0.0364868228421, -0.004034320246, -0.9993259908653]"
+        ],
+        "ImagePositionPatient": [
+          "[-178.69614046581, -34.300958785615, 79.3195317347116]",
+          "[-179.28078096874, -14.509678992829, 79.2609797079629]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Philips Medical Systems"
+        ],
+        "ManufacturerModelName": [
+          "Ingenia"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.25, 0.25]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "5.26471306471306"
+        ],
+        "Rows": [
+          "640"
+        ],
+        "SeriesDescription": [
+          "PDW_TSE_SPAIR_Cor"
+        ],
+        "SeriesNumber": [
+          "401"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['5.3.1', '5.3.1.4']"
+        ],
+        "SpacingBetweenSlices": [
+          "3.3"
+        ]
+      },
+      "patient_id_sha256": [
+        "91df67f2b9d24346331e4d023dd9de6dd055e3ec0743d4608556a541900e367a"
+      ],
+      "frame_of_reference_sha256": [
+        "e0233d2054bac2e2865e5a1079c7a3fbca05564df66a2bba82894440323d4e4d"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.83776996148807632006922840711856772397",
+      "n_inventory_slices": 29,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "3"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "400"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.01330364308779, 0.99990712979002, -0.0029571735957, -0.0366261128702, -0.002468148918, -0.9993259909043]"
+        ],
+        "ImagePositionPatient": [
+          "[-100.91440246711, -119.43392302786, 65.2267741730951]",
+          "[-127.29435394416, -119.08008315359, 66.1927470734857]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Philips Medical Systems"
+        ],
+        "ManufacturerModelName": [
+          "Ingenia"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.40000000596046, 0.40000000596046]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "2.04200244200244"
+        ],
+        "Rows": [
+          "400"
+        ],
+        "SeriesDescription": [
+          "PDW_TSE_Sag"
+        ],
+        "SeriesNumber": [
+          "301"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['5.3.1', '5.3.1.4']"
+        ],
+        "SpacingBetweenSlices": [
+          "3.3"
+        ]
+      },
+      "patient_id_sha256": [
+        "91df67f2b9d24346331e4d023dd9de6dd055e3ec0743d4608556a541900e367a"
+      ],
+      "frame_of_reference_sha256": [
+        "6d329ed43337f023ac51304b884de8e8dd1436320b7f6cb2086020bc4b93aa1e"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.92402087512705800298758705314173685647",
+      "n_inventory_slices": 29,
+      "n_endpoint_headers": 2,
+      "endpoint_selection": "exact lexical first and last SOP",
+      "header_fields": {
+        "AcquisitionNumber": [
+          "2"
+        ],
+        "AcquisitionTime": [
+          ""
+        ],
+        "Columns": [
+          "720"
+        ],
+        "FrameLaterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "ImageOrientationPatient": [
+          "[0.01330364308779, 0.99990712979002, -0.0029571735957, -0.0366261128702, -0.002468148918, -0.9993259909043]"
+        ],
+        "ImagePositionPatient": [
+          "[-71.209386377005, -121.01115466815, 65.3249455801611]",
+          "[-77.804372338919, -120.92269565326, 65.5664388052587]"
+        ],
+        "Laterality": [
+          "R"
+        ],
+        "Manufacturer": [
+          "Philips Medical Systems"
+        ],
+        "ManufacturerModelName": [
+          "Ingenia"
+        ],
+        "PatientPosition": [
+          "FFS"
+        ],
+        "PhotometricInterpretation": [
+          "MONOCHROME2"
+        ],
+        "PixelRepresentation": [
+          "0"
+        ],
+        "PixelSpacing": [
+          "[0.22526340186595, 0.22526340186595]"
+        ],
+        "RescaleIntercept": [
+          "0"
+        ],
+        "RescaleSlope": [
+          "5.89523809523809"
+        ],
+        "Rows": [
+          "720"
+        ],
+        "SeriesDescription": [
+          "PDW_TSE_SPAIR_Sag"
+        ],
+        "SeriesNumber": [
+          "201"
+        ],
+        "SeriesTime": [
+          ""
+        ],
+        "SliceThickness": [
+          "3"
+        ],
+        "SoftwareVersions": [
+          "['5.3.1', '5.3.1.4']"
+        ],
+        "SpacingBetweenSlices": [
+          "3.3"
+        ]
+      },
+      "patient_id_sha256": [
+        "91df67f2b9d24346331e4d023dd9de6dd055e3ec0743d4608556a541900e367a"
+      ],
+      "frame_of_reference_sha256": [
+        "0e9752937efc683fde081da9f3ea0a05a7bb8fbaabfb2c6b5eb324f748a92559"
+      ]
+    }
+  ],
+  "candidate_flags": {
+    "mixed_explicit_laterality": false,
+    "all_side_tags_missing": false,
+    "mixed_patient_id": false,
+    "repeated_complete_acquisition_set": false,
+    "source_correspondence_unresolved": true
+  },
+  "limits": "Right tags plus right text references support same-side correspondence more than opposite sides, but do not establish whether report differences are longitudinal, erroneous or from another examination. No native anatomy check or reliable source examination time was available. Endpoint coverage does not equal all-slice coverage.",
+  "native_followup": {
+    "launched": false,
+    "reason": "No repeated/mixed side acquisition sets strongly warrant native confirmation under assigned escalation criterion."
+  },
+  "recommendation": "Preserve both blocks and existing informative masks/exclusion until a reviewed report-to-examination chronology/correspondence decision. Do not pick the apparently earlier or later clinical report by content, or assume two knees from the marker. No full-native escalation under the repeated/mixed acquisition-set criterion.",
+  "clinical_annotations_changed": 0,
+  "runtime_source_pipeline_modified": false
+}

@@ -1,0 +1,119 @@
+{
+  "stage": "read_only_pipeline_routing_review_before_native_visuals",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+  "input_bindings": [
+    {
+      "path": "recovered/rsna/dicom.py",
+      "sha256": "a26a16d296fc913a1c3f1f33e8c4d8b38d73c5fb9718e663242e6c7ec077b269"
+    },
+    {
+      "path": "recovered/rsna/preprocess.py",
+      "sha256": "07da6625045099b085d2afd76d49203fe15826dc40a00b881b1080aaa8b6ae22"
+    },
+    {
+      "path": "recovered/rsna/data.py",
+      "sha256": "7ad3e0028ec3ead5aa236a85c3df646ff43c815f54b3f4a4002fd7947bac8ebf"
+    },
+    {
+      "path": "recovered/rsna/schema.py",
+      "sha256": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948"
+    },
+    {
+      "path": "annotation-staging/plane04514-official-series-routing.json",
+      "sha256": "7d20317c33a0e316b582faee5ef21591efbf7a1d317484703df00df9ad6c0b3b"
+    },
+    {
+      "path": "annotation-staging/plane04514-pre-native-input-bindings.json",
+      "sha256": "9d3b908e122e7cce00dbe49fa45c61ac3334ac12191fdebd7a03f63a202b02b3"
+    }
+  ],
+  "preprocessing_behavior": {
+    "decode": "rsna.dicom.decode_slice checks all three UIDs, decodes pixels, applies rescale and records native IOP/IPP/spacing. It never reads SeriesDescription or Anatomical_Plane.",
+    "ordering": "order_slices validates orthonormal IOP, requires consistent orientation and complete IPP for patient_geometry, then sorts IPP projection on the row/column cross-product normal. If geometry is unavailable/mixed, fallback uses unique InstanceNumber and records a warning.",
+    "volume": "make_volume retains all slices in sorted order, globally normalizes intensity, resizes in-plane preserving physical aspect ratio, pads to square, and emits uint16 pixels plus original geometry lineage. It performs no sagittal/coronal relabeling, anatomical rotation or transpose.",
+    "cache_identity": "cache_series keys output by split/study/series UID and binds original SOP set/source revision/hashes. SeriesDescription is not part of plane routing or cache identity."
+  },
+  "loader_behavior": {
+    "plane_source": "StudyDataset reads Anatomical_Plane from the supplied series table, normally official train_series.csv; it does not derive planes from SeriesDescription or IOP.",
+    "selection": "Without augmentation it sorts by Fluid_Sensitive, Fat_Suppression and SeriesInstanceUID, selects one available series for each official Sagittal/Coronal/Axial plane, then fills remaining slots up to max_series.",
+    "features": "One-hot plane, fluid-sensitive and fat-suppression features come directly from auxiliary official series rows."
+  },
+  "case_official_metadata": "All six sagittal/coronal description disagreements have official Anatomical_Plane matching the dominant patient-coordinate IOP plane, not the SeriesDescription token. The additional specialized oblique ACL sequence is officially Axial; its oblique normal does not pass the independent0.90 principal-axis threshold. No claim about actual local anatomical knee plane is made before native review.",
+  "official_series_records": [
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.14873488589197746123622123880575171303",
+      "Fluid_Sensitive": 0,
+      "Fat_Suppression": 0,
+      "Anatomical_Plane": "Axial"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.38329406043709448668212560654205243506",
+      "Fluid_Sensitive": 0,
+      "Fat_Suppression": 0,
+      "Anatomical_Plane": "Coronal"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.43027496214862870196529688959485840362",
+      "Fluid_Sensitive": 1,
+      "Fat_Suppression": 1,
+      "Anatomical_Plane": "Axial"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.61632024638081900832246913333778939144",
+      "Fluid_Sensitive": 0,
+      "Fat_Suppression": 0,
+      "Anatomical_Plane": "Sagittal"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.68185565593252057347062790125203839804",
+      "Fluid_Sensitive": 1,
+      "Fat_Suppression": 1,
+      "Anatomical_Plane": "Axial"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.71038909055672544926631743506544252223",
+      "Fluid_Sensitive": 0,
+      "Fat_Suppression": 0,
+      "Anatomical_Plane": "Coronal"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.74389339348633000283070126504845546392",
+      "Fluid_Sensitive": 1,
+      "Fat_Suppression": 1,
+      "Anatomical_Plane": "Coronal"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.76974693121604573580661191512915907173",
+      "Fluid_Sensitive": 0,
+      "Fat_Suppression": 0,
+      "Anatomical_Plane": "Sagittal"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.87827727586156074967825034668126552168",
+      "Fluid_Sensitive": 0,
+      "Fat_Suppression": 0,
+      "Anatomical_Plane": "Axial"
+    },
+    {
+      "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.99497688854122153258840214387845412380",
+      "Fluid_Sensitive": 1,
+      "Fat_Suppression": 1,
+      "Anatomical_Plane": "Sagittal"
+    }
+  ],
+  "prospective_implication": "Misleading SeriesDescription names alone would not alter current cache ordering or the supplied-official-table loader plane features. Whether IOP and official planes reflect native anatomical views still requires independent visual review. Do not fix descriptions, IOP or official metadata solely from the discrepancy detector.",
+  "clinical_values_opened_or_changed": false,
+  "runtime_files_modified": false
+}

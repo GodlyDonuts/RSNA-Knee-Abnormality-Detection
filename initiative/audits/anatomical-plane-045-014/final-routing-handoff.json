@@ -1,0 +1,221 @@
+{
+  "stage": "completed_technical_plane_routing_handoff",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "case": "045:14",
+  "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+  "scope": "Technical source integrity, geometry, local anatomical plane routing and cache comparison; no clinical image diagnosis or label change.",
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "official_train_series_sha256": "573c1d80772bf41211c91b149c95677385a1c22d63f485c347f1b46c0177aef3",
+  "official_train_series_matches_current_download": true,
+  "independent_assessment_comparison": {
+    "root_and_agent_both_frozen_before_comparison": true,
+    "visual_conclusions_agree_for_all_10_series": true,
+    "n_native_contact_sheet_panels_each_personally_viewed": 30,
+    "n_series_with_exact_local_anatomy_plane_agreement": 9,
+    "specialized_oblique_series_index": 2,
+    "specialized_oblique_forced_anatomy_mapping": false
+  },
+  "numeric_validation": {
+    "full_native_size_sha256_uid_finite_decodes": 439,
+    "full_native_series": 10,
+    "exact_endpoint_metadata_and_independently_recomputed_prefix_hash_matches": 20,
+    "exact_cache_volume_and_geometry_metadata_reproductions": 10,
+    "source_bytes_downloaded_verified": 183756752,
+    "max_simultaneous_source_requests": 2,
+    "cross_series_exact_nonconstant_pixel_groups": 0
+  },
+  "conclusion": "Visible local knee anatomy agrees with the original sag/cor descriptions. Six official Anatomical_Plane values agree with patient-coordinate IOP classes but disagree with local knee anatomy; no evidence supports renaming the original descriptions. Relative slice geometry and current caches are internally consistent. Absolute patient-axis cause remains unestablished.",
+  "current_loader": {
+    "uses_series_description": false,
+    "uses_iop_to_choose_categorical_plane": false,
+    "categorical_plane_source": "supplied series table Anatomical_Plane",
+    "plane_affects": [
+      "one-hot auxiliary features",
+      "one-series-per-plane selection priority"
+    ],
+    "pixel_preprocessing_uses_description_or_plane": false,
+    "observed_current_selected_series_indices": [
+      9,
+      6,
+      2,
+      4,
+      0,
+      1,
+      3,
+      5
+    ],
+    "current_selected_known_plane_semantic_mismatches": 5,
+    "simulation_selected_series_indices": [
+      6,
+      9,
+      2,
+      4,
+      0,
+      1,
+      3,
+      5
+    ],
+    "simulation_maintained_same_8_series_and_exact_per_series_sampled_images": true,
+    "six_plane_simulation_only_in_memory": true,
+    "oblique_note": "S2 is the current first Axial representative because its supplied Axial/Fluid_Sensitive/Fat_Suppression metadata wins sorting. Its specialized oblique plane remains unresolved; no forced principal-plane correction proposed."
+  },
+  "proposed_exact_auxiliary_changes": [
+    {
+      "series_index": 1,
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.38329406043709448668212560654205243506",
+      "field": "Anatomical_Plane",
+      "before": "Coronal",
+      "proposed_effective_after": "Sagittal",
+      "source_description": "LT_t2_tse_sag",
+      "patient_coordinate_iop_plane": "coronal",
+      "n_full_native_source_slices_verified": 31,
+      "native_contact_sheet": "plane-045014/native-iop-coronal.png",
+      "clinical_target_annotation_change": false
+    },
+    {
+      "series_index": 3,
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.61632024638081900832246913333778939144",
+      "field": "Anatomical_Plane",
+      "before": "Sagittal",
+      "proposed_effective_after": "Coronal",
+      "source_description": "LT_t2_tse_cor",
+      "patient_coordinate_iop_plane": "sagittal",
+      "n_full_native_source_slices_verified": 32,
+      "native_contact_sheet": "plane-045014/native-iop-sagittal.png",
+      "clinical_target_annotation_change": false
+    },
+    {
+      "series_index": 5,
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.71038909055672544926631743506544252223",
+      "field": "Anatomical_Plane",
+      "before": "Coronal",
+      "proposed_effective_after": "Sagittal",
+      "source_description": "LT_t1_tse_sag",
+      "patient_coordinate_iop_plane": "coronal",
+      "n_full_native_source_slices_verified": 31,
+      "native_contact_sheet": "plane-045014/native-iop-coronal.png",
+      "clinical_target_annotation_change": false
+    },
+    {
+      "series_index": 6,
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.74389339348633000283070126504845546392",
+      "field": "Anatomical_Plane",
+      "before": "Coronal",
+      "proposed_effective_after": "Sagittal",
+      "source_description": "LT_pd_tse_fs_sag",
+      "patient_coordinate_iop_plane": "coronal",
+      "n_full_native_source_slices_verified": 31,
+      "native_contact_sheet": "plane-045014/native-iop-coronal.png",
+      "clinical_target_annotation_change": false
+    },
+    {
+      "series_index": 7,
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.76974693121604573580661191512915907173",
+      "field": "Anatomical_Plane",
+      "before": "Sagittal",
+      "proposed_effective_after": "Coronal",
+      "source_description": "LT_t1_tse_cor",
+      "patient_coordinate_iop_plane": "sagittal",
+      "n_full_native_source_slices_verified": 32,
+      "native_contact_sheet": "plane-045014/native-iop-sagittal.png",
+      "clinical_target_annotation_change": false
+    },
+    {
+      "series_index": 9,
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.99497688854122153258840214387845412380",
+      "field": "Anatomical_Plane",
+      "before": "Sagittal",
+      "proposed_effective_after": "Coronal",
+      "source_description": "LT_pd_tse_fs_cor",
+      "patient_coordinate_iop_plane": "sagittal",
+      "n_full_native_source_slices_verified": 32,
+      "native_contact_sheet": "plane-045014/native-iop-sagittal.png",
+      "clinical_target_annotation_change": false
+    }
+  ],
+  "n_proposed_auxiliary_changes": 6,
+  "integration_status": "not_applied_pending_parent_joint_decision_and_runtime_design_review",
+  "preservation": [
+    "official CSVs",
+    "all source DICOM bytes/IOP/descriptions",
+    "cached volumes and metadata",
+    "report annotations and clinical targets",
+    "original independent assessments"
+  ],
+  "generalization_limit": "The other metadata-only description/IOP candidates are not proven errors. Never auto-apply patient-coordinate IOP or lexical description rules as local anatomical corrections.",
+  "input_bindings": [
+    {
+      "path": "annotation-staging/plane04514-image-review.json",
+      "sha256": "19f2c7c9473290235a622d89960c289b85bed4233d95000595be52a82c4ffe5d",
+      "bytes": 10257
+    },
+    {
+      "path": "annotation-staging/plane04514-root-visual-preread.json",
+      "sha256": "0fd1021c85353338e6693eb0084f10edd87cac22c1d0c59eec8bd8666b6e6a96",
+      "bytes": 3869
+    },
+    {
+      "path": "annotation-staging/plane04514-source-preread.json",
+      "sha256": "ffecd031b6d4e37d446a4273540275542786a8b1cd364e439f98ac92583b8a59",
+      "bytes": 4891
+    },
+    {
+      "path": "annotation-staging/plane04514-source-copy-assessment.json",
+      "sha256": "aa31a18d9796cc8477573e3d854ed5c5539bb35f1d7dbe2d21b57f4db526547d",
+      "bytes": 790
+    },
+    {
+      "path": "annotation-staging/plane04514-official-series-routing.json",
+      "sha256": "7d20317c33a0e316b582faee5ef21591efbf7a1d317484703df00df9ad6c0b3b",
+      "bytes": 7177
+    },
+    {
+      "path": "annotation-staging/plane04514-endpoint-cache-routing-comparison.json",
+      "sha256": "f97d5d21391562aef3f61758e52f7c9980a2cee49423ff1d300eede21eeb3b5b",
+      "bytes": 14751
+    },
+    {
+      "path": "annotation-staging/plane04514-loader-probe.json",
+      "sha256": "a66270ddb892c263408f03bc0ea34509edc3fafd5c83b9870079c2b62543825f",
+      "bytes": 2094
+    },
+    {
+      "path": "annotation-staging/plane04514-plane-feature-probe.json",
+      "sha256": "359b3126907706c29cb29bdbca2473bf3dc44800c1a61b168a1e41331843254f",
+      "bytes": 6862
+    },
+    {
+      "path": "plane-045014/summary.json",
+      "sha256": "e3cca84360e577801ddb14f44bba7baa849429ac157a346b90bf22ae0377dc61",
+      "bytes": 3362
+    },
+    {
+      "path": "plane-045014/cache-comparison.json",
+      "sha256": "7ca3b1eade62c69c2887213ad810e12148c9fecafdce679e43b61c5fbc061004",
+      "bytes": 8904
+    },
+    {
+      "path": "recovered/rsna/data.py",
+      "sha256": "7ad3e0028ec3ead5aa236a85c3df646ff43c815f54b3f4a4002fd7947bac8ebf",
+      "bytes": 5862
+    },
+    {
+      "path": "recovered/rsna/train.py",
+      "sha256": "7b6baccadf92951eb122668fd1dd24f68c934fec4165159b575980b7a534905a",
+      "bytes": 11537
+    },
+    {
+      "path": "recovered/rsna/infer.py",
+      "sha256": "a2589f86a2dd17b3601a295c481b9c4c3f45791373dff74179bb15e14f02fbf4",
+      "bytes": 5192
+    }
+  ]
+}

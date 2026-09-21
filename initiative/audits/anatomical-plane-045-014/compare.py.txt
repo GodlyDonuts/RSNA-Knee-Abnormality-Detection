@@ -1,0 +1,22 @@
+from pathlib import Path
+import json,hashlib
+repo=Path.cwd();base=repo.parent;stage=base/'annotation-staging';out=base/'plane-045014';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+full=out/'all-slice-headers-and-pixels.jsonl';assert (out/'summary.json').exists()
+rows=[json.loads(x) for x in full.read_text().splitlines()];lookup={r['source_path']:r for r in rows};invp=stage/'plane04514-source-inventory.json';inv=json.loads(invp.read_text());expected={r['path']:r for r in inv['records']};assert len(lookup)==len(rows)==439 and set(lookup)==set(expected)
+for path,r in lookup.items():
+ e=expected[path]
+ for a,b in [('study_uid','study_uid'),('series_uid','series_uid'),('sop_uid','sop_uid'),('source_sha256','sha256'),('source_bytes','bytes')]:assert r[a]==e[b]
+ep=stage/'plane04514-endpoint-headers.jsonl';endpoints=[json.loads(x) for x in ep.read_text().splitlines()];comparisons=[]
+for r in endpoints:
+ old=lookup[r['source_path']]
+ for k in ['study_uid','series_uid','sop_uid','source_sha256','source_bytes','header_fields','patient_id_sha256','frame_of_reference_sha256']:assert r[k]==old[k],(r['series_uid'],k)
+ assert r['prefix_bytes']==65536 and r['prefix_sha256']==old['source_prefix_65536_sha256']
+ comparisons.append({'source_path':r['source_path'],'full_metadata_source_binding_and_65536_prefix_match':True})
+series=json.loads((out/'series-summary.json').read_text());official={r['SeriesInstanceUID']:r for r in json.loads((stage/'plane04514-official-series-routing.json').read_text())['source_tables'][0]['selected_records']}
+routing=[]
+for s in series:
+ plane=s['patient_coordinate_plane']['plane'];r=official[s['series_uid']]
+ routing.append({'series_index':s['series_index'],'series_uid':s['series_uid'],'n_slices':s['n_slices'],'series_description':s['header_values']['SeriesDescription'][0],'patient_coordinate_iop_plane':plane,'official_anatomical_plane':r['Anatomical_Plane'],'official_matches_principal_iop_plane':r['Anatomical_Plane'].lower()==plane if plane!='oblique' else None,'orientation_values':s['header_values']['ImageOrientationPatient'],'cache_ordering':'patient_geometry','native_visual_anatomy_assessed_in_this_artifact':False})
+assert len(endpoints)==20 and all(x['official_matches_principal_iop_plane'] is True for x in routing if x['patient_coordinate_iop_plane']!='oblique')
+a={'stage':'full_native_endpoint_cache_source_routing_validation','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','study_uid':inv['study_uid'],'n_full_source_records':439,'n_series':10,'n_exact_endpoint_metadata_source_and_prefix_matches':20,'n_official_principal_iop_plane_matches':9,'n_oblique_official_axial_series':1,'comparisons':comparisons,'routing_records':routing,'input_bindings':[{'path':str(p.relative_to(base)),'sha256':sha(p)} for p in [Path(__file__).resolve(),full,ep,invp,out/'summary.json',out/'series-summary.json',out/'cache-comparison.json',stage/'plane04514-official-series-routing.json',stage/'plane04514-loader-probe.json',stage/'plane04514-routing-code-prereview.json']],'scope':'Source integrity, geometry, metadata and exact cache-reproduction bindings only. No native visual interpretation or clinical target labels. Twenty prefix digests were independently recomputed from full source bytes during the bounded native audit, not compared to whole-file digests.'}
+p=stage/'plane04514-endpoint-cache-routing-comparison.json';assert not p.exists();p.write_text(json.dumps(a,ensure_ascii=False,indent=2)+'\n');print(p.name,sha(p))

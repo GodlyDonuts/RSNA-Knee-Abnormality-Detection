@@ -1,0 +1,30 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T04:33:05.669979+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.16886658450293145802897654768506439494",
+  "source_batch_path": "initiative/reviews/inputs/batch-026.json",
+  "source_batch_sha256": "4e915a97b8801c1a2af5b8d564fbbe916bb1e8d04a123dcf32fd27fb73f4bd1e",
+  "source_report_sha256": "53c58fbfbd8206b82bb2936fa4836214e8c5cf904f50ca7f4f87672b8098c0f1",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-026-reviewed.jsonl",
+  "review_artifact_sha256": "4a8fff8d1985dc020b974ede863057e3e44d6e15ee53687505b7eddf0ef5b6f8",
+  "decision": "Retain all 5 informative targets as uncertain and all other targets as unmentioned. No automatic report selection, label duplication or virtual study splitting. Raw source and gold unchanged.",
+  "findings": "The one current examination starts MRI of left knee but attributes a current anterior soft-tissue observation to the right knee. It does not describe two complete side-specific exams or integrated bilateral imaging. A template typo or mispaired sentence is possible but not established. Exact contradictory wording exists in archived and current official source, so recovery did not create it. Ten endpoint records cover all five series. Side tags Laterality/ImageLaterality/FrameLaterality are entirely blank; one PatientID hash, five frame hashes, AcquisitionNumber2 throughout. SeriesNumbers4001/5001/6001/7001/8001 form one protocol with sagittal PD FS/T2 FS/T1, coronal T2 FS and axial T2 FS. The SG/CO/AX abbreviations agree with the recorded sagittal/coronal/axial IOP. No repeated complete acquisition sets or mixed side tags support a two-knee candidate.",
+  "root_verification": "Personally read full original source and independent technical assessment including series identity, counts, side and orientation fields. Verified all bound file sizes/SHA, source identity, exact series/header counts, side fields and current twelve report masks. Previous source/header flags were disclosed, so this is not a blinded discovery.",
+  "limits": [
+    "Absent laterality cannot resolve the contradictory source and never implies right. Separate frame hashes prevent relying on shared coordinate origins. Endpoints do not establish all-slice consistency or actual imaged anatomy. No full-file pixel or native anatomy check was performed.",
+    "No native image viewing or anatomical laterality confirmation for this case. Absence of a repeated-set candidate does not prove one knee.",
+    "Existing current Kaggle source copy was obtained previously; no new download here."
+  ],
+  "evidence_files": {
+    "independent-header-review.json": "723ec169cfffc991e31fa8cf8511315ff3f773c33b94cb55efe92dd438ba6482",
+    "independent-source-preread.json": "e9866854023bd029eef8bb6355ac4a4acb7ba2f1cf15c86d2dae40905726a049",
+    "source-copy-assessment.json": "1291da8857c76bf56adb01130783b3aa39ee70fe64792e785baa7691fb4089af",
+    "source-inventory.json": "52d75a0f12bbfcd1358430950490dca8a0751b05c90d51b6ccc19ade70fc181b",
+    "endpoint-headers.jsonl": "16ecd835c4369338edf367f6bb96441f5931f9f2b32ad6ae84fb8fd1bd646f35",
+    "series-headers.json": "eb89bd58aaf46045f3298c9e4a4ba2153962e2cec1a0ce37373f8baa1bb6d515",
+    "source.py.txt": "f3b7e91ef5e1b7dc5da41b6a0d133085fe50ef0721f9a1ab110bb73a872d83b2",
+    "extract.py.txt": "8f24dc2224f1e392a371a02051198d947ace11191338f3182a0ecc0a326eba50",
+    "final-survey-binding.json": "3ce8c9c0d1aec2a60bdf35f43e336232c3697e730eba4f71bc5a5e380706c35b"
+  },
+  "training_ready": false
+}

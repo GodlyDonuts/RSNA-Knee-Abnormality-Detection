@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "status": "validated_export",
+  "decision_id": "anatomical-plane-045-014",
+  "assessor": "/root",
+  "source_series_path": "initiative/source/train_series.csv",
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "source_series_sha256": "573c1d80772bf41211c91b149c95677385a1c22d63f485c347f1b46c0177aef3",
+  "decision_sha256": "b10b72b20cfcb5324777d07ba69dd5a36ceb2ff7e471b5b7fb4abafe99ef536f",
+  "reviewer_ids": [
+    "/root",
+    "/root/image_pipeline_audit"
+  ],
+  "evidence": [
+    {
+      "path": "initiative/audits/anatomical-plane-045-014/root-visual-preread.json",
+      "sha256": "0fd1021c85353338e6693eb0084f10edd87cac22c1d0c59eec8bd8666b6e6a96",
+      "bytes": 3869
+    },
+    {
+      "path": "initiative/audits/anatomical-plane-045-014/image-review.json",
+      "sha256": "19f2c7c9473290235a622d89960c289b85bed4233d95000595be52a82c4ffe5d",
+      "bytes": 10257
+    },
+    {
+      "path": "initiative/audits/anatomical-plane-045-014/official-series-routing.json",
+      "sha256": "7d20317c33a0e316b582faee5ef21591efbf7a1d317484703df00df9ad6c0b3b",
+      "bytes": 7177
+    },
+    {
+      "path": "initiative/audits/anatomical-plane-045-014/summary.json",
+      "sha256": "e3cca84360e577801ddb14f44bba7baa849429ac157a346b90bf22ae0377dc61",
+      "bytes": 3362
+    },
+    {
+      "path": "initiative/audits/anatomical-plane-045-014/cache-comparison.json",
+      "sha256": "7ca3b1eade62c69c2887213ad810e12148c9fecafdce679e43b61c5fbc061004",
+      "bytes": 8904
+    },
+    {
+      "path": "initiative/audits/anatomical-plane-045-014/plane-feature-probe.json",
+      "sha256": "359b3126907706c29cb29bdbca2473bf3dc44800c1a61b168a1e41331843254f",
+      "bytes": 6862
+    },
+    {
+      "path": "initiative/audits/anatomical-plane-045-014/native-iop-coronal.png",
+      "sha256": "ef10fadcd161954a77d2d2cceb23662cf2a96f38e976e7e2ba2ab421f4c02cf7",
+      "bytes": 1624254
+    },
+    {
+      "path": "initiative/audits/anatomical-plane-045-014/native-iop-sagittal.png",
+      "sha256": "20d2c2de6a3997270ea15eb6cbaeb911c9480826178d86b8e8c250f50fa63e90",
+      "bytes": 1534495
+    }
+  ],
+  "n_studies": 4407,
+  "n_series": 24371,
+  "n_corrections_registered": 6,
+  "n_corrections_applied": 6,
+  "corrections": [
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.38329406043709448668212560654205243506",
+      "original_plane": "Coronal",
+      "reviewed_plane": "Sagittal"
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.71038909055672544926631743506544252223",
+      "original_plane": "Coronal",
+      "reviewed_plane": "Sagittal"
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.74389339348633000283070126504845546392",
+      "original_plane": "Coronal",
+      "reviewed_plane": "Sagittal"
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.61632024638081900832246913333778939144",
+      "original_plane": "Sagittal",
+      "reviewed_plane": "Coronal"
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.76974693121604573580661191512915907173",
+      "original_plane": "Sagittal",
+      "reviewed_plane": "Coronal"
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778",
+      "series_uid": "1.2.826.0.1.3680043.8.498.99497688854122153258840214387845412380",
+      "original_plane": "Sagittal",
+      "reviewed_plane": "Coronal"
+    }
+  ],
+  "decision_provenance": "Accept six auxiliary local-anatomical-plane corrections for a separately derived series metadata table. Original DICOM geometry, source CSV, cache arrays and clinical labels remain immutable. Apply the reviewed table through the shared --series loader input after exporter validation. No global IOP or description heuristic.",
+  "source_preserved": true,
+  "only_anatomical_plane_modified": true,
+  "heuristic_overrides_applied": false,
+  "clinical_target_values_read_or_changed": false,
+  "effective_csv_sha256": "24e6bbe6cfc9ceab2eb395b2db3f16f86f762198e68b52d28853202d338b6212",
+  "effective_csv_bytes": 3701224
+}

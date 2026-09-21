@@ -1,0 +1,90 @@
+{
+  "stage": "completed_auxiliary_metadata_export_implementation_validation",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "new_code_files": [
+    "rsna/series_metadata.py",
+    "tests/test_series_metadata.py",
+    "docs/series-metadata.md"
+  ],
+  "runtime_decoder_preprocess_audit_schema_dataset_train_infer_changed": false,
+  "validation": {
+    "focused_regressions": {
+      "command": "python -m pytest -q tests/test_series_metadata.py",
+      "passed": 27
+    },
+    "full_suite": {
+      "command": "python -m pytest -q",
+      "passed": 123,
+      "elapsed_seconds": 8.04
+    },
+    "style": "ruff check . passed",
+    "format": "ruff format --check . passed (28 files)",
+    "types": "mypy rsna passed (16 source files)",
+    "real_source_rows": 24371,
+    "real_exact_accepted_plane_changes": 6,
+    "all_other_source_values_and_order_preserved": true,
+    "real_cache_selected_series": 8,
+    "per_series_sampled_images_unchanged": true,
+    "real_export_features_match_prior_independent_six_series_simulation": true
+  },
+  "readiness_scope": "Completed standalone explicit-decision exporter and bounded one-study routing integration. No global heuristic or clinical label changes. Does not certify completion of corpus-wide report/image semantic QA. Parent handles archive refresh, independent code review and integration.",
+  "input_bindings": [
+    {
+      "path": "recovered/rsna/series_metadata.py",
+      "sha256": "7f520f14872170fdd9a837334d508c8b30a929a0c393591fd3dbe97a8d8d84b7",
+      "bytes": 10385
+    },
+    {
+      "path": "recovered/tests/test_series_metadata.py",
+      "sha256": "8b71db8d7d40ac4fb07132b539425ab7d5f97698d96a5e49e4d32ce1b2e38b58",
+      "bytes": 10976
+    },
+    {
+      "path": "recovered/docs/series-metadata.md",
+      "sha256": "dace61ce3dcf9a02caebd3e4cbed32bba80519785d42d46e0a2143ab7055a035",
+      "bytes": 5142
+    },
+    {
+      "path": "recovered/initiative/audits/anatomical-plane-045-014/decision.json",
+      "sha256": "b10b72b20cfcb5324777d07ba69dd5a36ceb2ff7e471b5b7fb4abafe99ef536f",
+      "bytes": 5376
+    },
+    {
+      "path": "annotation-staging/plane04514-final-routing-handoff.json",
+      "sha256": "da9e8b7a17d9a47607a8eb620d011a6295f260a3639c35ec7e094e291e963044",
+      "bytes": 9362
+    },
+    {
+      "path": "annotation-staging/plane04514-plane-feature-probe.py",
+      "sha256": "0598e1cbc44d1121160c4e1ff3efa335e912602bf82bf02ab1a49fb9d14cc1ea",
+      "bytes": 5445
+    },
+    {
+      "path": "annotation-staging/plane04514-plane-feature-probe.json",
+      "sha256": "359b3126907706c29cb29bdbca2473bf3dc44800c1a61b168a1e41331843254f",
+      "bytes": 6862
+    },
+    {
+      "path": "annotation-staging/plane04514-export-loader-check.py",
+      "sha256": "8296307a0067060068b6229b80abcc4893440e1b55d673f5996d0d9b46c5f6de",
+      "bytes": 3127
+    },
+    {
+      "path": "annotation-staging/plane04514-export-loader-check.json",
+      "sha256": "5cff6b10f2f668aa915b2502dec68b3aca8347c71587dcd1b963e95e2c10e283",
+      "bytes": 2103
+    },
+    {
+      "path": "annotation-staging/plane04514-series-export-v1/series_effective.csv",
+      "sha256": "24e6bbe6cfc9ceab2eb395b2db3f16f86f762198e68b52d28853202d338b6212",
+      "bytes": 3701224
+    },
+    {
+      "path": "annotation-staging/plane04514-series-export-v1/series_metadata_audit.json",
+      "sha256": "847963c7792fe142ac55e9b7164b03fa1c2ed127707d25ac52f1451cdee1c7ad",
+      "bytes": 4447
+    }
+  ]
+}

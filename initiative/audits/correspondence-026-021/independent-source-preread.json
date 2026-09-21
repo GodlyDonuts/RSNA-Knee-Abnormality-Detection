@@ -1,0 +1,31 @@
+{
+  "stage": "independent_technical_source_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "source_path": "initiative/reviews/inputs/batch-026.json",
+  "source_batch_index": 21,
+  "source_batch_sha256": "4e915a97b8801c1a2af5b8d564fbbe916bb1e8d04a123dcf32fd27fb73f4bd1e",
+  "study_uid": "1.2.826.0.1.3680043.8.498.16886658450293145802897654768506439494",
+  "report_sha256": "53c58fbfbd8206b82bb2936fa4836214e8c5cf904f50ca7f4f87672b8098c0f1",
+  "full_source_report": "MRI of left knee in sagittal section (Proton density with fat saturation, T1WI, T2WI with fat saturation), axial section (T2WI with fat saturation) and coronal section (T2WI with fat saturation):\n\n* Blurred contour of the patellar tendon with increased signal intensity on T2WI is noticed, in favor of tear of patellar tendon.\n\n* Blurred contour of medial and lateral femoropatellar ligaments with increased signal intensity on T2WI is noticed, r/o tear of medial and lateral femoropatellar ligaments.\n\n* Subcutaneous soft tissue infiltration at anterior aspect of right knee is noticed.\n\n> The contour of anterior cruciate ligament (ACL) and posterior cruciate ligament (PCL) appear to be within normal, no abnormal signal intensity is noted.\n> No evidence of tear is noted in either medial or lateral meniscus.\n> Both medial & lateral collateral ligaments appear to be within normal.\n> No evidence of bone contusion is noted.\n\nImpressions: \n1. In favor of tear of patellar tendon\n2. R/O tear of medial and lateral femoropatellar ligaments\n\nSuggest clinical correlation\n",
+  "context": "Personally read complete original blinded026 source before case endpoint metadata, any026 annotations or native images. Parent disclosed a correspondence candidate only. No gold opened.",
+  "n_current_report_blocks": 1,
+  "side_localization": [
+    "examination heading left",
+    "isolated current soft-tissue sentence right"
+  ],
+  "evidence": [
+    "MRI of left knee in sagittal section",
+    "Subcutaneous soft tissue infiltration at anterior aspect of right knee is noticed."
+  ],
+  "assessment": "One current examination has incompatible laterality: the examination heading says left, while a current soft-tissue finding says right. No separate right-side examination or integrated bilateral technique is described. A template typo or mispaired text is plausible but unproven; neither phrase should be automatically corrected. Metadata may identify the imaged side but cannot establish which text was erroneous without further review.",
+  "required_proof": [
+    "Verify exact blinded source against archived/current official train.csv, preserving contradictory wording.",
+    "Compare every series lexical endpoint in the completed final survey with pinned source inventory and final artifact digest.",
+    "Only if repeated/mixed side acquisition sets strongly warrant it, perform bounded full-native study validation and independent orientation-grounded anatomy review.",
+    "No side assignment from missing tags, no clinical label changes, no reconstruction of masked dates or report text."
+  ],
+  "clinical_annotations_changed": 0
+}

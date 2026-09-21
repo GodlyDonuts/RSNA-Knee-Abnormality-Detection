@@ -1,0 +1,122 @@
+"""Observe current loader routing and a six-plane in-memory technical simulation.
+
+No clinical target columns, source metadata mutation, or runtime-code mutation.
+"""
+
+import hashlib
+import json
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+import numpy as np
+import pandas as pd
+import torch
+
+BASE = Path(__file__).resolve().parents[1]
+REPO = BASE / "recovered"
+STAGE = BASE / "annotation-staging"
+sys.path.insert(0, str(REPO))
+from rsna.data import StudyDataset  # noqa: E402
+
+torch.set_num_threads(1)
+UID = "1.2.826.0.1.3680043.8.498.41698150452794914665945455397334605778"
+rows = json.loads((STAGE / "plane04514-official-series-routing.json").read_text())[
+    "source_tables"
+][0]["selected_records"]
+table = pd.DataFrame(rows)
+ids = sorted(table.SeriesInstanceUID)
+number = {uid: i for i, uid in enumerate(ids)}
+local_planes = {
+    **{ids[i]: "Sagittal" for i in (1, 5, 6)},
+    **{ids[i]: "Coronal" for i in (3, 7, 9)},
+}
+studies = pd.DataFrame({"study_uid": [UID]})
+
+
+def sample(series):
+    dataset = StudyDataset(
+        studies, series, BASE / "cache256-v3", slices=3, side=224,
+        max_series=8, augment=False,
+    )
+    paths = []
+    original_load = np.load
+
+    def capture(path, *args, **kwargs):
+        paths.append(Path(path))
+        return original_load(path, *args, **kwargs)
+
+    with patch("rsna.data.np.load", side_effect=capture):
+        result = dataset[0]
+    assert len(paths) == 8 and result["label_mask"].sum().item() == 0
+    selected = [path.stem for path in paths]
+    assert len(set(selected)) == 8
+    return result, selected
+
+
+current, current_ids = sample(table)
+simulation = table.copy(deep=True)
+for uid, plane in local_planes.items():
+    simulation.loc[simulation.SeriesInstanceUID == uid, "Anatomical_Plane"] = plane
+simulated, simulated_ids = sample(simulation)
+assert set(current_ids) == set(simulated_ids)
+comparisons = []
+for uid in current_ids:
+    before = current_ids.index(uid)
+    after = simulated_ids.index(uid)
+    image_equal = bool(torch.equal(current["images"][before], simulated["images"][after]))
+    assert image_equal
+    feature_changed = not bool(
+        torch.equal(current["features"][before], simulated["features"][after])
+    )
+    assert feature_changed == (uid in local_planes)
+    assert torch.equal(current["features"][before, 3:], simulated["features"][after, 3:])
+    comparisons.append({
+        "series_index": number[uid], "series_uid": uid,
+        "current_slot": before, "simulated_slot": after,
+        "official_plane": rows[number[uid]]["Anatomical_Plane"],
+        "independent_local_anatomy_plane": local_planes.get(uid),
+        "current_features": current["features"][before].tolist(),
+        "simulated_features": simulated["features"][after].tolist(),
+        "per_series_sampled_images_exact_equal": image_equal,
+        "plane_features_changed": feature_changed,
+    })
+for key in ("series_mask", "labels", "label_mask"):
+    assert torch.equal(current[key], simulated[key])
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+artifact = {
+    "stage": "current_loader_observation_and_in_memory_plane_simulation",
+    "agent_id": "/root/image_pipeline_audit",
+    "session_id": "/root/image_pipeline_audit", "study_uid": UID,
+    "source_case": "045:14", "clinical_target_values_read": False,
+    "runtime_source_cache_metadata_changed": False,
+    "all_clinical_masks_zero_in_synthetic_fixture": True,
+    "current_selected_series_indices": [number[uid] for uid in current_ids],
+    "simulated_selected_series_indices": [number[uid] for uid in simulated_ids],
+    "current_omitted_series_indices": [number[uid] for uid in ids if uid not in current_ids],
+    "n_current_selected_plane_features_disagreeing_with_independent_local_anatomy":
+        sum(uid in local_planes for uid in current_ids),
+    "n_selected_per_series_images_exact_equal": len(comparisons),
+    "selected_series_set_unchanged": True,
+    "comparisons": comparisons,
+    "scope": "Observed real StudyDataset np.load paths with augment=False, max_series=8, "
+        "three sampled slices per series, identity-only synthetic study row. In-memory "
+        "six-series plane simulation uses independently agreed native anatomy; it is not "
+        "a deployed correction or alteration of official metadata. It swaps two leading "
+        "selection slots and changes five selected plane features while preserving the "
+        "eight selected series and their exact sampled images. S2 remains supplied Axial "
+        "in both runs; its specialized oblique semantics remain unresolved.",
+    "input_bindings": [{"path": str(path.relative_to(BASE)), "sha256": sha(path)}
+        for path in [Path(__file__).resolve(), REPO / "rsna/data.py",
+            STAGE / "plane04514-official-series-routing.json",
+            STAGE / "plane04514-image-review.json",
+            STAGE / "plane04514-root-visual-preread.json",
+            BASE / "plane-045014/cache-comparison.json"]],
+}
+assert artifact["n_current_selected_plane_features_disagreeing_with_independent_local_anatomy"] == 5
+output = STAGE / "plane04514-plane-feature-probe.json"
+with output.open("x") as stream:
+    stream.write(json.dumps(artifact, indent=2) + "\n")
+print(json.dumps({"output_sha256": sha(output), "selected_current": artifact[
+    "current_selected_series_indices"], "selected_simulated": artifact[
+    "simulated_selected_series_indices"], "all_checks_passed": True}))

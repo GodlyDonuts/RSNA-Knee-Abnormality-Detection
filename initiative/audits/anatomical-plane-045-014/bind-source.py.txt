@@ -1,0 +1,32 @@
+from pathlib import Path
+import json,hashlib
+import pandas as pd
+repo=Path.cwd();base=repo.parent;stage=base/'annotation-staging';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+source=repo/'initiative/reviews/inputs/batch-045.json';report=json.loads(source.read_text())[14];uid=report['study_uid']
+def write(name,value):
+ p=stage/name;assert not p.exists();p.write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n');return p
+copies=[]
+for p in [repo/'initiative/source/train.csv',base/'kaggle_current/train.csv']:
+ f=pd.read_csv(p,usecols=['StudyInstanceUID','Report'],dtype=str,keep_default_na=False);f=f[f.StudyInstanceUID==uid];assert len(f)==1 and f.iloc[0].Report==report['report'];copies.append({'path':str(p.relative_to(base)),'sha256':sha(p),'bytes':p.stat().st_size,'report_exact_match':True})
+assert copies[0]['sha256']==copies[1]['sha256']
+write('plane04514-source-copy-assessment.json',{'study_uid':uid,'source_report_sha256':hashlib.sha256(report['report'].encode()).hexdigest(),'source_copies':copies,'scope':'Existing root-authenticated current CSV compared with archived source; only UID and Report columns materialized. No gold target values. Entire source report matches.'})
+inv=pd.read_parquet(repo/'initiative/source/inventory',filters=[('study_uid','==',uid)]);records=inv.sort_values(['series_uid','sop_uid'])[['study_uid','series_uid','sop_uid','path','sha256','bytes','storage']].to_dict('records');assert len(records)==439 and inv.series_uid.nunique()==10
+write('plane04514-source-inventory.json',{'source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d','study_uid':uid,'n_slices':len(inv),'n_series':10,'source_bytes':int(inv.bytes.sum()),'records':records})
+artifact=base/'header-endpoint-full-v1/endpoint-headers.jsonl';assert sha(artifact)=='d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3';headers=[];lookup={r['path']:r for r in records}
+for line in artifact.open():
+ r=json.loads(line)
+ if r['study_uid']==uid:
+  e=lookup[r['source_path']]
+  for a,b in [('study_uid','study_uid'),('series_uid','series_uid'),('sop_uid','sop_uid'),('source_sha256','sha256'),('source_bytes','bytes')]:assert r[a]==e[b]
+  headers.append(r)
+for sid,g in inv.groupby('series_uid'):assert {r['sop_uid'] for r in headers if r['series_uid']==sid}=={g.sop_uid.min(),g.sop_uid.max()}
+p=stage/'plane04514-endpoint-headers.jsonl';assert not p.exists();p.write_text(''.join(json.dumps(r,ensure_ascii=False,sort_keys=True)+'\n' for r in headers))
+series_paths=[repo/'initiative/source/train_series.csv',base/'kaggle_current/train_series.csv'];official=[]
+for path in series_paths:
+ table=pd.read_csv(path,keep_default_na=False);selected=table[table.StudyInstanceUID==uid].sort_values('SeriesInstanceUID');assert set(selected.SeriesInstanceUID)==set(inv.series_uid)
+ official.append({'path':str(path.relative_to(base)),'sha256':sha(path),'bytes':path.stat().st_size,'selected_records':selected.to_dict('records')})
+assert official[0]['sha256']==official[1]['sha256'] and official[0]['selected_records']==official[1]['selected_records']
+write('plane04514-official-series-routing.json',{'study_uid':uid,'source_tables':official,'scope':'Official auxiliary series metadata, not clinical target values. Source bytes equal current official copy. Preserve Anatomical_Plane and fluid/fat-suppression fields as supplied; no corrections made.'})
+write('plane04514-pre-native-input-bindings.json',{'stage':'source_and_endpoint_pre_native_validation','agent_id':'/root/image_pipeline_audit','study_uid':uid,'source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d','input_bindings':[{'path':str(p.relative_to(base)),'sha256':sha(p),'bytes':p.stat().st_size} for p in [source,stage/'plane04514-source-preread.json',stage/'plane04514-source-copy-assessment.json',stage/'plane04514-source-inventory.json',stage/'plane04514-endpoint-headers.jsonl',stage/'plane04514-official-series-routing.json',artifact,base/'header-endpoint-full-v1/summary.json',base/'header-endpoint-full-v1/manifest.json',repo/'rsna/dicom.py',repo/'rsna/preprocess.py',repo/'rsna/data.py',repo/'rsna/schema.py']],'n_series':10,'n_slices':439,'n_final_endpoints_verified':len(headers),'n_full_files_decoded_at_this_stage':0,'clinical_annotations_changed':0})
+for r in official[0]['selected_records']:
+ h=next(x for x in headers if x['series_uid']==r['SeriesInstanceUID']);print(json.dumps({**r,'SeriesDescription':h['header_fields']['SeriesDescription'],'IOP':h['header_fields']['ImageOrientationPatient']}))
