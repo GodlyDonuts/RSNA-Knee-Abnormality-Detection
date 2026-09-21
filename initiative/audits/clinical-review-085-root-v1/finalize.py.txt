@@ -1,0 +1,151 @@
+"""Assemble personally adjudicated decisions; preserve the frozen source pass."""
+from pathlib import Path
+import copy
+import datetime
+import hashlib
+import json
+import sys
+
+G = Path(__file__).resolve().parent
+R = G.parents[1] / 'recovered'
+sys.path.insert(0, str(R))
+from rsna.labels import read_reviews
+from rsna.schema import TARGETS
+
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+source_path = R / 'initiative/reviews/inputs/batch-085.json'
+draft_path = R / 'initiative/reviews-v2/drafts/batch-085-draft.jsonl'
+pre_path = G / 'batch-085-preread.jsonl'
+assert sha(source_path) == '26c0842dd22da3b63982746690a972ef8e9f3d3aae2cf6cf7d38ce0dfb83246c'
+assert sha(draft_path) == '755d6fcfa44aad49fa00344c93ca5ad4d41bc7232d776a553c196b8f31c83ff2'
+assert sha(pre_path) == 'fc685df4b9b8be9dda55d7db1b46e8904b4d054aa6d9a9914b19d8b00730d920'
+source = json.loads(source_path.read_text())
+pre = [json.loads(x) for x in pre_path.read_text().splitlines()]
+draft = [json.loads(x) for x in draft_path.read_text().splitlines()]
+dm = json.loads((R / 'initiative/reviews-v2/provenance/batch-085-draft.json').read_text())
+assert dm['agent_id'] != '/root' and dm['session_id'] != '/root'
+assert len(dm['reader_flags']) == 45
+assert all(f['study_uid'] == draft[f['source_index']]['study_uid'] and f['reason'] == draft[f['source_index']]['notes'] for f in dm['reader_flags'])
+review = copy.deepcopy(pre)
+choices = {}
+codes = {'p': 'positive', 'n': 'negative', 'u': 'uncertain', 'x': 'not_mentioned'}
+
+def choose(i, t, code, reason, quote_from='pre'):
+    assert (i, t) not in choices
+    assert pre[i]['states'][t] != draft[i]['states'][t]
+    quote = '' if code == 'x' else (pre if quote_from == 'pre' else draft)[i]['evidence'][t]
+    assert code == 'x' or quote and quote in source[i]['report']
+    review[i]['states'][t] = codes[code]
+    review[i]['evidence'][t] = quote
+    choices[i, t] = dict(source_index=i, study_uid=source[i]['study_uid'], target_index=t, target=TARGETS[t],
+        preread_state=pre[i]['states'][t], draft_state=draft[i]['states'][t], final_state=codes[code],
+        preread_evidence=pre[i]['evidence'][t], draft_evidence=draft[i]['evidence'][t], final_evidence=quote, reason=reason)
+
+fracture_contexts = {
+    0: 'Unspecified subchondral change accompanying cartilage fissures.',
+    5: 'Qualified no suspicious focal marrow alteration.',
+    9: 'Tiny subchondral insertion cysts.',
+    13: 'Local sclerosis/bone island and qualified absence of significant marrow edema.',
+    14: 'Conflicting bone-bruise statements across unresolved report aggregates, without fracture assessment in either report.',
+    17: 'A probable bone island with no aggressive features.',
+    18: 'Patellar marrow edema accompanying cartilage loss.',
+    19: 'Marginal osteophytes accompanying medial cartilage thinning.',
+    20: 'Underlying bone stress change accompanying high-grade cartilage disease.',
+    21: 'Qualified no noteworthy marrow findings.',
+    23: 'Normal bone signal and small insertion cysts.',
+    24: 'Qualified absence of significant marrow signal change.',
+    26: 'Normal bone signal.',
+    29: 'Normal bone signal.',
+    30: 'Subchondral edema accompanying extensive cartilage loss, with only remaining bones normal.',
+    31: 'Qualified no suspicious focal marrow alteration.',
+    32: 'Normal marrow.',
+    33: 'Normal bone signal.',
+    34: 'Secondary bone changes accompanying full-depth cartilage ulcers.',
+    38: 'OA-associated subchondral edema and spurs.',
+    39: 'Normal bone signal and explicit no bone bruise or marrow edema.',
+    40: 'Small marginal FT osteophytes.',
+    41: 'Scoped normal marrow.',
+    43: 'Qualified absence of significant marrow signal change.',
+    45: 'Degenerative cysts and subcortical edema.',
+    46: 'Degenerative subchondral cysts and osteophytes.',
+    47: 'Normal bone signal.',
+}
+for i, context in fracture_contexts.items():
+    choose(i,11,'x','Retain preread: '+context+' No informative cortical or fracture-line assessment. Keep unmentioned and masked, never infer fracture negative.')
+contusion_contexts = {
+    0: 'Unspecified subchondral change, without marrow edema or impact assessment.',
+    9: 'Tiny subchondral cysts, without marrow edema or impact assessment.',
+    17: 'A probable bone island, without edema or contusion assessment.',
+    19: 'Osteophytes, without marrow edema or contusion assessment.',
+    27: 'Unspecified reactive subchondral change, without explicit marrow edema or impact diagnosis.',
+    34: 'Unspecified secondary bony changes, without marrow edema or contusion assessment.',
+    40: 'Marginal osteophytes, without marrow edema or impact assessment.',
+    46: 'Degenerative cysts/osteophytes and soft-tissue edema, without marrow edema or contusion assessment.',
+}
+for i, context in contusion_contexts.items():
+    choose(i,10,'x','Retain preread: '+context+' Keep target unmentioned and masked rather than infer an injury exclusion.')
+
+choose(0,1,'x','Reconsider preread: lateral bands alone do not name the medial collateral ligament. Do not transfer the normal finding across structures. The MCL is unmentioned; the ambiguity remains documented and the loss stays masked.')
+choose(2,6,'u','Retain preread: tiny full-depth focus with preserved remaining cartilage suggests limited extent, but does not supply a sufficiently clear bound relative to the approximate1cm cutoff. Keep extent uncertainty masked rather than convert an unmeasured size adjective into a reliable negative.')
+choose(13,6,'n','Reconsider preread: the only proposed PF abnormality is mild surface-contour irregularity, a superficial morphological finding even if present. Interpret that morphology below the cartilage-depth threshold, consistent with other explicitly mild surface irregularities. The decision does not depend on translating unnamedgrade2 into a numeric fraction. Preserve this report-level morphology inference for global QA.')
+choose(18,5,'x','Reconsider preread: the general small osteophytes are unlocalized, while specifically described cartilage disease is medial/PF. They do not provide an informative lateral-compartment cartilage or OA assessment; keep lateral OA unmentioned and masked.')
+choose(19,5,'x','Reconsider preread: final varus gonarthrosis summarizes the specifically described medial disease. It is not an additional lateral cartilage assessment. Keep lateral OA unmentioned and masked rather than extend the summary across compartments.')
+choose(27,11,'u','Retain preread: the bony irregularity is only suggestive of an old fracture. This proposed chronic cause does not unequivocally establish current fracture timing or explicitly exclude an acute lesion. Preserve uncertainty rather than negate the acute target from a tentative historical attribution.')
+choose(37,0,'u','Retain preread: a possibly small partial ACL tear does not explicitly establish a low-grade fiber-loss fraction. Small lesion size is not necessarily a quantified fraction of remaining fibers; keep this severity/diagnostic uncertainty masked.')
+choose(38,5,'x','Reconsider preread: general final knee OA summarizes explicitly medial/PF cartilage findings without an additional lateral compartment assessment. Keep lateral OA unmentioned and masked. This differs from explicit general multifocal cartilage wear extending beyond named predominant sites.')
+choose(40,6,'x','Reconsider preread: final mild gonarthrosis summarizes FT osteophytes and medial thinning. No PF cartilage or specifically PF degenerative finding is described; keep PF OA unmentioned and masked.')
+choose(43,9,'u','Retain preread: no pathological popliteal cysts is qualified and does not unequivocally state complete absence or a below-threshold size class. Keep the negation-scope uncertainty masked for global QA.')
+choose(45,1,'u','Retain preread: thin fluid adjacent to MCL with possible irritation does not report intact fibers or an explicit low-grade sprain. Do not infer ligament integrity from the absence of a described tear; keep the incomplete assessment uncertain.')
+
+expected={(i,t) for i in range(50) for t in range(12) if pre[i]['states'][t]!=draft[i]['states'][t]}
+assert set(choices)==expected and len(choices)==46,(set(choices)-expected,expected-set(choices))
+replacements={
+ 0:('Laterale banden may denote side ligaments but does not unequivocally identify the medial collateral ligament; MCL anatomy uncertain.', 'Laterale banden does not name the medial collateral ligament; MCL remains unmentioned rather than transferring a lateral-structure finding. The linguistic ambiguity stays documented.'),
+ 13:('PF irregularity and R/O unnamedgrade2 lack definite depth/extent, uncertain.', 'Possible mild PF surface-contour irregularity is interpreted as superficial below-depth-threshold morphology even if present; negative with this report-level inference flagged, without using unnamedgrade2 as a numeric conversion.'),
+ 18:('General knee osteophytes inform degeneration but leave lateral compartment localization/severity uncertain, masked.', 'General unlocalized knee osteophytes do not add a lateral-compartment assessment beyond the specifically medial/PF cartilage findings; lateral OA remains unmentioned and masked.'),
+ 19:('Medial diffuse cartilage thinning lacks depth; general varus gonarthrosis leaves lateral cartilage localization/severity uncertain, masked.', 'Medial diffuse cartilage thinning lacks depth. Final varus gonarthrosis summarizes medial disease without a separate lateral cartilage assessment; lateral OA remains unmentioned and masked.'),
+ 38:('Medial/PF cartilage wear lacks depth/extent; general knee OA leaves lateral compartment localization/severity uncertain.', 'Medial/PF cartilage wear lacks depth/extent; final general knee OA summarizes those findings without a separate lateral cartilage assessment, so lateral OA remains unmentioned.'),
+ 40:('general mild gonarthrosis leaves PF localization/severity uncertain rather than infer a qualified loss threshold.', 'general mild gonarthrosis summarizes FT findings without assessing PF cartilage, which remains unmentioned and masked.'),
+}
+for i,(old,new) in replacements.items():
+    assert old in review[i]['notes'],(i,old)
+    review[i]['notes']=review[i]['notes'].replace(old,new)
+
+def changes(old):
+    return [dict(source_index=i,study_uid=source[i]['study_uid'],target_index=t,target=TARGETS[t],
+        before=old[i]['states'][t],after=review[i]['states'][t],source_quote=review[i]['evidence'][t],reason=choices[i,t]['reason'])
+        for i in range(50) for t in range(12) if old[i]['states'][t]!=review[i]['states'][t]]
+cd,cp=changes(draft),changes(pre)
+assert len(cd)==40 and len(cp)==6,(len(cd),len(cp))
+out=G/'batch-085-reviewed.jsonl'
+assert not out.exists()
+out.write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in review))
+reports={r['study_uid']:r['report'] for r in source}
+for p in [pre_path,draft_path,out]:
+    assert len(read_reviews(p.parent,reports,p.stem))==50
+freeze=json.loads((G/'complete-source-freeze.json').read_text())
+meta=dict(stage='reviewed',rubric_version=dm['rubric_version'],agent_id='/root',session_id='/root',
+    identity_kind='codex_agent_task',workflow_run_id=dm['workflow_run_id'],rubric_sha256=dm['rubric_sha256'],
+    source_reports_sha256=dm['source_reports_sha256'],source_sha256=sha(source_path),source_path=dm['source_path'],
+    study_uids=[r['study_uid'] for r in source],n_studies=50,n_targets=600,sha256=sha(out),output_sha256=sha(out),
+    output_path='initiative/reviews-v2/reviewed/batch-085-reviewed.jsonl',parent_artifact_path=dm['output_path'],
+    parent_artifact_sha256=sha(draft_path),preread_path='initiative/reviews-v2/evidence/batch-085-preread.jsonl',
+    preread_sha256=sha(pre_path),preread_frozen_at=freeze['frozen_at_utc'],complete_source_freeze_sha256=sha(G/'complete-source-freeze.json'),
+    initial_disagreements=[choices[k] for k in sorted(choices)],adjudication_history=[choices[k] for k in sorted(choices)],
+    changes_from_draft=cd,changes_from_preread=cp,
+    review_flags=[dict(source_index=i,study_uid=source[i]['study_uid'],reason=review[i]['notes']) for i in range(50)],
+    reader_flags_considered=dm['reader_flags'],completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    notes='Root personally read all50 original gold-blinded reports and reasoned all600 target decisions before opening the clinical draft. Prior technical source/structural-assessment exposure to085:14 and general corpus exposure are disclosed in the preserved start record; not a claim of first-ever source access. Complete preread remains frozen and unchanged. Then personally compared all600 reader states, all50 reader notes and all45 flags, which exactly match the corresponding notes. All46 initial state disagreements explicitly adjudicated, yielding40 changes from draft and six reconsidered preread states. Actual reader and reviewer identities are distinct. Other agent work remains untouched. No gold, legacy labels, regex/NLI labeling or default filling used. Duplicate PCL naming is not silently repaired into ACL, and an unsided singular meniscus does not identify both menisci. Case085:14 contains two undated RIGHT-compatible report headers with conflicting findings; every loss stays masked pending temporal/source correspondence adjudication, without assuming opposite knees from the inserted bilateral separator. Morphology/extent/negation and uncertain fracture timing remain flagged for global QA. Completing report-review coverage does not certify clinical MRI diagnosis or training readiness.')
+
+def save(p,obj):
+    assert not p.exists()
+    p.write_text(json.dumps(obj,indent=2,ensure_ascii=False)+'\n')
+save(G/'batch-085-reviewed.json',meta)
+validation=dict(agent_id='/root',source_reports=50,targets_compared=600,initial_state_disagreements=46,
+    final_changes_from_draft=len(cd),final_changes_from_preread=len(cp),review_sha256=sha(out),
+    provenance_sha256=sha(G/'batch-085-reviewed.json'),preread_sha256=sha(pre_path),
+    exact_quotes_schema_membership_valid=True,reader_reviewer_identities_distinct=True,source_preread_unchanged=True,
+    unresolved_correspondence_fully_masked=all(x in ['uncertain','not_mentioned'] for x in review[14]['states']),training_ready=False)
+assert validation['unresolved_correspondence_fully_masked']
+save(G/'final-validation.json',validation)
+print(json.dumps(validation))
