@@ -91,11 +91,12 @@ The exporter writes:
 Pass the same exported training CSV to existing `--series` arguments for training,
 resume, weak validation and heldout inference. The existing dataset reads the
 effective `Anatomical_Plane` column and ignores the additional lineage columns.
-The training checkpoint's `series_sha256` binds the export bytes, and resume
-rejects a changed export. **Heldout inference currently does not enforce that
-series checksum**: use the same export and verify its recorded hash explicitly.
-For test inference, use a separately source-bound test export. No loader,
-training, inference, or pixel-processing code changes are required by this export.
+The training checkpoint's `series_sha256` binds the export bytes. Resume and
+heldout inference reject a changed export. Heldout inference also requires the
+same study manifest and cache source revision; see
+[inference bindings](inference-bindings.md). For test inference, use a separately
+source-bound test export. No loader or pixel-processing code changes are required
+by this exporter.
 
 Archive the accepted decision, independent evidence, exported CSV, and audit
 together, and record the effective CSV hash in the final release manifest.

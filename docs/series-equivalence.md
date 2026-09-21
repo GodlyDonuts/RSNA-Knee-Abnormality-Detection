@@ -103,11 +103,11 @@ effective CSV; it does not repeat the plane decision's anatomical adjudication.
 
 No live decoder, preprocessing, audit, dataset or training code is changed by
 this module. Pass the **same selected training CSV** to training, resume,
-weak validation and heldout inference. Training/resume already binds its bytes
-through the checkpoint's `series_sha256`. Heldout inference currently does not
-enforce that checksum; verify it externally until a separate reviewed integration
-adds that check. Test tables have different bytes and require separate provenance
-under the same policy, rather than the training CSV checksum.
+weak validation and heldout inference. Training/resume binds its bytes through
+the checkpoint's `series_sha256`; heldout inference enforces the same checksum,
+the study manifest checksum, and the training cache source revision. Test tables
+have different bytes and require separate provenance under the same policy.
+See [inference bindings](inference-bindings.md) for exact requirements and limits.
 
 This removes duplicate model slots before augmentation and attention pooling.
 It does not establish that remaining studies are ready for clinical training:

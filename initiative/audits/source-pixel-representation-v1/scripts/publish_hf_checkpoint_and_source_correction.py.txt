@@ -1,0 +1,42 @@
+"""Publish only bound, independently checked source replacements and incomplete checkpoint."""
+from pathlib import Path
+import hashlib,json,datetime,subprocess,sys
+from dotenv import dotenv_values
+from huggingface_hub import HfApi,CommitOperationAdd,hf_hub_download
+W=Path(__file__).resolve().parent;S=W/'source-byte-failures-v1';P=S/'source-correction-publication';patch_path=P/'source_correction_plan.json';patch=json.loads(patch_path.read_text());sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();token=dotenv_values(W.parent/'.env')['HF_TOKEN'];api=HfApi(token=token);repo=patch['repo_id'];parent=patch['publication_parent_revision'];commit='31e4ff8d456e37fffc16fcd09f37ca613d2d7c02';cp=W/'hf-preparation-checkpoints'/commit
+assert sha(patch_path)=='68b44c1412ced183db223220f39cd4a6e071d40515df4c7b75b40a96ba6d0f3d'
+assert api.repo_info(repo,repo_type='dataset').private is True
+assert api.repo_info(repo,repo_type='dataset').sha==parent
+ci=json.loads(subprocess.check_output(['gh','run','view','35569282707','--repo','GodlyDonuts/RSNA-Knee-Abnormality-Detection','--json','conclusion,headSha'],text=True));assert ci=={'conclusion':'success','headSha':commit}
+source_prefix='audits/source-corrections/official-pixel-representation-v1';checkpoint_prefix=f'preparation-checkpoints/{commit}';files={}
+for c in patch['changes']:
+ p=W/c['official_local_path'];assert sha(p)==c['after']['sha256'] and p.stat().st_size==c['after']['bytes'];files[c['path']]=p
+for entry in api.get_paths_info(repo,paths=list(files),repo_type='dataset',revision=parent):
+ c=next(x for x in patch['changes']if x['path']==entry.path);assert entry.size==c['before']['bytes'] and entry.lfs and entry.lfs.sha256==c['before']['sha256']
+for name in ['source_correction_plan.json','inventory_corrected.parquet']:files[source_prefix+'/'+name]=P/name
+assert sha(P/'inventory_corrected.parquet')==patch['corrected_inventory']['sha256']
+for ref in patch['evidence']:
+ p=W/ref['path'];assert sha(p)==ref['sha256'] and p.stat().st_size==ref['bytes'];files[source_prefix+'/evidence/'+p.name]=p
+for name in ['checkpoint.tar.gz','manifest.json','README.md']:files[checkpoint_prefix+'/'+name]=cp/name
+card=(W/'hf-current-readme.md').read_text()
+old='The implementation and incremental progress are in\n[PR #1](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/pull/1).'
+assert old in card;card=card.replace(old,'Verified changes are integrated directly into the repository’s `main` branch.')
+card=card.replace('* This dataset is public because of Hugging Face free-plan storage constraints. Review Kaggle\'s competition terms before redistributing.','* Repository access was verified private on2026-09-21. Keep competition data and preparation checkpoints restricted in accordance with the competition terms.')
+marker='# RSNA Knee Abnormality Detection Dataset\n';assert marker in card
+addition=f'''\n## Verified preparation checkpoint — September21,2026\n\nThe private [preparation checkpoint]({checkpoint_prefix}) preserves GitHub commit `{commit}` after152 tests, style/type checks and archive validation passed. It contains2,457 reports with two complete source readings and29,484 explicit target decisions. It is **incomplete and not training-ready**; full report coverage, semantic/correspondence adjudication, complete pixel/leakage audit and final training/resume/inference checks remain required.\n\nThe full image pass decoded819,561 slices and exposed two nonconforming mirror files in two series. Their8-bit payloads contradicted unchanged16-bit DICOM headers. Exact authenticated Kaggle originals were obtained and independently compared; the two source paths in this commit restore those authoritative originals. No guessed pixel reconstruction or decoder exception was used. [Source correction evidence and effective inventory]({source_prefix}) preserve exact old/new hashes, official-file verification and both independent assessments. The original baseline remains pinned at `52f995f4568e36bfa5fbbaf69a89af41226b4f5d`.\n\nA fresh official ZIP index covers all819,635 image paths; its only file-size differences are those two known files. This is a full path/size check, not a claim that every mirror file has been compared byte-for-byte with Kaggle. All74 sources in the affected series match official ZIP size and CRC after substituting the two originals. Rebuilding those series and auditing the complete corrected cache remain pending.\n'''
+card=card.replace(marker,marker+addition,1);updated=P/'README.updated.md';updated.write_text(card);files['README.md']=updated
+refs=[{'path':remote,'sha256':sha(local),'bytes':local.stat().st_size}for remote,local in files.items()]
+operation_record=S/'hf-source-correction-publication-operation.json';assert not operation_record.exists();operation_record.write_text(json.dumps({'stage':'prepared_for_atomic_private_hf_commit','parent_commit':parent,'files':refs,'source_correction_plan_sha256':sha(patch_path),'training_ready':False},indent=2)+'\n')
+print({'stage':'uploading_bound_files','n_files':len(files),'bytes':sum(x['bytes']for x in refs)},flush=True)
+info=api.create_commit(repo_id=repo,repo_type='dataset',revision='main',parent_commit=parent,operations=[CommitOperationAdd(path_in_repo=remote,path_or_fileobj=local)for remote,local in files.items()],commit_message='Restore two official DICOM encodings and preserve reviewed preparation checkpoint',commit_description='Exact authenticated Kaggle originals replace two malformed mirror encodings. Preserve the baseline revision, old/new hashes, independent evidence and complete effective inventory. The 2457-report checkpoint is explicitly incomplete; full corrected-cache audit and release gates remain pending.',num_threads=3)
+revision=info.oid
+receipt={'schema_version':1,'status':'committed_remote_verification_pending','repo_id':repo,'private':True,'baseline_source_revision':patch['baseline_source_revision'],'publication_parent_revision':parent,'corrected_source_revision':revision,'source_correction_plan_sha256':sha(patch_path),'corrected_inventory_sha256':sha(P/'inventory_corrected.parquet'),'changed_source_paths':[c['path']for c in patch['changes']],'remote_objects_verified':False,'uploaded_files':refs,'github_checkpoint_commit':commit,'hf_commit_url':info.commit_url,'training_ready':False,'completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+receipt_path=S/'hf-source-correction-receipt.json';receipt_path.write_text(json.dumps(receipt,indent=2)+'\n');print({'stage':'committed_verifying','revision':revision},flush=True)
+remote_entries={x.path:x for x in api.get_paths_info(repo,paths=list(files),repo_type='dataset',revision=revision)};assert set(remote_entries)==set(files)
+for ref in refs:
+ e=remote_entries[ref['path']];assert e.size==ref['bytes']
+ if e.lfs:assert e.lfs.sha256==ref['sha256']
+ else:
+  downloaded=Path(hf_hub_download(repo,ref['path'],repo_type='dataset',revision=revision,token=token,cache_dir=str(W/'hf-publication-verification-cache')));assert sha(downloaded)==ref['sha256']
+assert api.repo_info(repo,repo_type='dataset',revision=revision).private is True
+receipt.update({'status':'verified_private_hf_source_correction','remote_objects_verified':True,'completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()});receipt_path.write_text(json.dumps(receipt,indent=2)+'\n');print({'stage':'verified','revision':revision,'commit_url':info.commit_url,'n_files':len(refs)},flush=True)

@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_recovery_implementation_handoff",
+  "agent_id": "/root/image_pipeline_audit",
+  "files": [
+    {
+      "path": "recovered/rsna/source_recovery.py",
+      "sha256": "17fc6c3330b90e5e449472a7457f374ceb3e6f02a6a825cdd248468792f6c3ae",
+      "bytes": 25623
+    },
+    {
+      "path": "recovered/tests/test_source_recovery.py",
+      "sha256": "c5552bd8680caf4bc584c9e5d0b196ab5f4e762f387f806c0490a969394f5756",
+      "bytes": 17613
+    },
+    {
+      "path": "recovered/docs/source-recovery.md",
+      "sha256": "122c8af096c7744d6644bdeead2b81778d4e46e757f4c08fe9e398dfc26adfa2",
+      "bytes": 6470
+    },
+    {
+      "path": "source-byte-failures-v1/source-recovery-implementation-validation.json",
+      "sha256": "f889e740714e3b81088af136bb85970c18741832e95db94b5f0ad0ed8af2bc5f",
+      "bytes": 732
+    }
+  ],
+  "validation": {
+    "focused_tests": 26,
+    "full_suite_tests": 178,
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "mypy_source_files": 18,
+    "actual_full_inventory_and_74_effective_sources": "passed",
+    "real_cache_migration_executed": false,
+    "full_corrected_image_audit_executed": false
+  },
+  "expected_real_migration": {
+    "reused_series": 24384,
+    "fresh_series": 2,
+    "fresh_slices": 74,
+    "all_series": 24386,
+    "all_slices": 819635,
+    "baseline_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+    "corrected_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+  },
+  "scope": [
+    "Exact two-file official replacement; no decoder changes or source reconstruction.",
+    "Every reused NPZ SHA and size verified; copied metadata changes only source_revision, external per-series lineage preserves both bindings.",
+    "Same-filesystem hardlinks require immutable NPZ usage; in-place writes through either name would change shared bytes.",
+    "New output only; visible partial failures, no overwrite/resume.",
+    "Read-only publication receipt validation does not repeat remote HF operations.",
+    "Full rsna.audit against effective inventory/cache/revision remains mandatory before later equivalence/label release."
+  ],
+  "training_ready": false
+}

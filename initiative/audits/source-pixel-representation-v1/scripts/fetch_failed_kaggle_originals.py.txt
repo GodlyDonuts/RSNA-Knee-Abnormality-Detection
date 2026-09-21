@@ -1,0 +1,21 @@
+from pathlib import Path
+import json,hashlib,datetime
+from dotenv import load_dotenv
+W=Path(__file__).resolve().parent;load_dotenv(W.parent/'.env')
+from kaggle.api.kaggle_api_extended import KaggleApi
+out=W/'source-byte-failures-v1/kaggle-original';out.mkdir(exist_ok=True)
+a=KaggleApi();a.authenticate();records=[]
+source=json.loads((out.parent/'header-pixel-findings.json').read_text())
+for x in source['records']:
+ if x['decode_status']!='error':continue
+ path=x['source']['path']
+ try:
+  a.competition_download_file('rsna-knee-abnormality-detection',path,path=str(out),quiet=True)
+  downloaded=out/Path(path).name
+  assert downloaded.is_file()
+  sha=hashlib.sha256(downloaded.read_bytes()).hexdigest()
+  records.append({'path':path,'local_path':str(downloaded.relative_to(W)),'official_bytes':downloaded.stat().st_size,'official_sha256':sha,'mirror_sha256':x['source']['sha256'],'exact_mirror_match':sha==x['source']['sha256']})
+  print({'sop_uid':Path(path).stem,'official_bytes':downloaded.stat().st_size,'mirror_exact':sha==x['source']['sha256']},flush=True)
+ except Exception as e:
+  records.append({'path':path,'error_type':type(e).__name__});print({'sop_uid':Path(path).stem,'error_type':type(e).__name__},flush=True)
+d={'stage':'fresh_authenticated_kaggle_original_comparison','agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'records':records};p=out.parent/'kaggle-original-comparison.json';assert not p.exists();p.write_text(json.dumps(d,indent=2)+'\n');print({'sha256':hashlib.sha256(p.read_bytes()).hexdigest()})

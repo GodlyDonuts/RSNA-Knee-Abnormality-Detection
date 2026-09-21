@@ -1,0 +1,52 @@
+"""Reproduce the authoritative two-file comparison without writing any source file."""
+from pathlib import Path
+import hashlib
+import io
+import json
+import numpy as np
+import pydicom
+from pydicom.filereader import read_partial
+
+root = Path(__file__).resolve().parent
+comparison_path = root / 'independent-official-mirror-comparison.json'
+comparison = json.loads(comparison_path.read_text())
+checked = []
+for record in comparison['results']:
+    mirror_path = root / 'native' / record['source_path']
+    official_path = root / 'kaggle-original' / (record['sop_uid'] + '.dcm')
+    mirror, official = mirror_path.read_bytes(), official_path.read_bytes()
+    for prefix, data in [('mirror', mirror), ('official', official)]:
+        assert len(data) == record[prefix + '_bytes']
+        assert hashlib.sha256(data).hexdigest() == record[prefix + '_sha256']
+    md, od = pydicom.dcmread(io.BytesIO(mirror)), pydicom.dcmread(io.BytesIO(official))
+    for ds in [md, od]:
+        assert str(ds.SOPInstanceUID) == record['sop_uid']
+        assert str(ds.file_meta.TransferSyntaxUID) == '1.2.840.10008.1.2.1'
+    mm, om = md.to_json_dict(), od.to_json_dict()
+    mm.pop('7FE00010'); om.pop('7FE00010')
+    assert mm == om and md.file_meta.to_json_dict() == od.file_meta.to_json_dict()
+    locations = []
+    for data in [mirror, official]:
+        stream = io.BytesIO(data)
+        pixel = {}
+        def stop(tag, vr, length):
+            if tag == 0x7fe00010:
+                pixel.update(vr=vr, vl=length, offset=stream.tell())
+                return True
+            return False
+        read_partial(stream, stop_when=stop)
+        assert pixel['vr'] == 'OW' and pixel['vl'] == len(data) - pixel['offset']
+        locations.append(pixel)
+    offset = locations[0]['offset']
+    assert offset == locations[1]['offset']
+    assert mirror[:offset-4] == official[:offset-4]
+    assert locations[1]['vl'] == 2 * locations[0]['vl']
+    mp, op = bytes(md.PixelData), bytes(od.PixelData)
+    assert not any(op[1::2]) and op[::2] == mp
+    actual = od.pixel_array
+    assert actual.dtype == np.uint16
+    assert list(actual.shape) == record['official_full_decode_shape']
+    assert np.array_equal(np.frombuffer(mp, np.uint8), actual.ravel())
+    assert mirror == official[:offset-4] + len(mp).to_bytes(4, 'little') + op[::2]
+    checked.append(record['sop_uid'])
+print(json.dumps({'comparison_sha256': hashlib.sha256(comparison_path.read_bytes()).hexdigest(), 'script_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'n_full_comparisons_reproduced': len(checked), 'sop_uids': checked, 'all_checks_passed': True, 'source_files_modified': False}, indent=2))

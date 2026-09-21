@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "stage": "independent_bounded_recovery_design_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "completed_at_utc": "2026-09-21T06:46:39.424758+00:00",
+  "disposition": "proposed_source_revision_and_new_cache_recovery_is_appropriate_with_explicit_invariants",
+  "reviewed_parent_design": "New private HF source revision replaces exactly two malformed mirror files with exact authoritative Kaggle originals. Preserve old pinned revision/inventory/cache; new full inventory and fresh cache tree reuse unchanged NPZ content with verified copied/rebased metadata, freshly decode both affected series, then run full audit.",
+  "observed_delta": {
+    "source_paths": [
+      "train_series/1.2.826.0.1.3680043.8.498.34685905030370793639196564723935583035/1.2.826.0.1.3680043.8.498.39396636671446532796538574315802928348/1.2.826.0.1.3680043.8.498.41947538458330624797291612781685746320.dcm",
+      "train_series/1.2.826.0.1.3680043.8.498.37833587429731221455928642963031995680/1.2.826.0.1.3680043.8.498.31160785238781353848727311763596115703/1.2.826.0.1.3680043.8.498.66460523372602171398246641420761543626.dcm"
+    ],
+    "n_changed_source_files": 2,
+    "n_changed_series": 2,
+    "n_affected_series_slices": 74,
+    "newly_available_full_native_slices": 2,
+    "n_previously_normal_neighbor_slices": 72,
+    "total_inventory_paths_unchanged": 819635,
+    "total_series_unchanged": 24386,
+    "source_bytes_delta": 582656,
+    "baseline_source_bytes": 569754741408,
+    "expected_effective_source_bytes": 569755324064
+  },
+  "required_invariants": [
+    "Preserve baseline commit52f995f4568e36bfa5fbbaf69a89af41226b4f5d, inventory bytes and old cache metadata. New source commit must be immutable and accessible in the approved private destination; verify the returned commit and exact two uploaded file OIDs/sizes against authoritative bytes.",
+    "Compare the complete old/new inventory: exact same path/split/study/series/SOP membership and order-independent content. Exactly the two declared records change SHA256/bytes; verify actual storage mode as well. Reject unexplained third changes, additions, deletions or UID moves. Derive counts/total bytes from the checked complete tables.",
+    "For every reused series, require old metadata source_revision/cache_version, exact all-SOP/source-file-hash membership and path_fingerprint against baseline; require the same source content membership against the new inventory. Check NPZ size/SHA256 and complete expected shape metadata. An unchanged source revision label alone is insufficient.",
+    "New cache directory only. Reuse immutable NPZ bytes with APFS copy-on-write clones if available, or hardlinks with an explicit never-modify-in-place rule. Hardlinks share content/inode and require care; do not make ordinary duplicate80GiB copies on this disk. Cache JSON must be newly copied regular files, never linked, and its only expected semantic edit for unchanged series is source_revision. cache_path remains the same relative path.",
+    "Record parent/new metadata SHA256, unchanged NPZ SHA256, old/new revision, source-content fingerprint and reuse method per series in a separate migration manifest outside cache series-glob paths. Reject any unrelated metadata difference.",
+    "Build a clean local74-file tree using unchanged verified72 source files plus exact2 Kaggle originals at official paths. Preverify every file size/SHA/UID against new inventory, freshly decode both complete series with unchanged v3 code, and create new series cache metadata honestly from these bytes. No padding, dtype header edits or global decoder exceptions.",
+    "Old cache lacks the two complete series, so initial reuse validation cannot rely on a nonexistent successful full-old-cache audit. Verify each available series directly, track exactly24384 reusable plus2 fresh series, then let the full new audit enforce complete24386-series/819635-slice coverage, shape/checksum invariants, constants and cross-study duplicate graph.",
+    "Only after the complete new audit succeeds may exact-series selection and final label release consume the effective inventory/revision. Keep train/test overlap gates and transitive report/pixel group isolation before any series exclusions.",
+    "Existing report source and auxiliary series CSV bytes are unchanged. Preserve their independent review decisions and original revision evidence; attach an explicit baseline-to-effective source delta instead of rewriting historical evidence hashes."
+  ],
+  "header_survey_reuse": {
+    "full_completed_endpoint_records_checked": 48772,
+    "corrected_sops_in_endpoint_selection": [],
+    "conclusion": "No selected endpoint source file changes. Preserve the old survey and its baseline revision; a new derivative provenance record may bind unchanged endpoint path/SHA/size selection against the new complete inventory. Do not simply replace the old survey revision field or call it a new network/header survey."
+  },
+  "meaningful_tests_required": [
+    "Unexpected third source delta, removed/duplicate/moved SOP or incorrect authoritative hash/size rejects migration.",
+    "Wrong old cache revision/version, missing/extra SOP, stale source hash, wrong path fingerprint, orphan cache or changed same-size NPZ rejects reuse.",
+    "Reused NPZ bytes remain exact and old JSON bytes remain unchanged; new JSON diff is exactly the permitted revision rebase.",
+    "Hardlink/clone provenance and atomic new-output behavior are explicit; existing output paths are never overwritten and partial failures cannot report completion.",
+    "Both authoritative originals pass strict decode; both fresh full series have exact inventory slice/source-hash coverage and74 total slices.",
+    "Final inventory/cache full audit counts reconcile; any missing series or source/cross-split duplicate gate remains blocking.",
+    "Unchanged selected endpoint inventory proofs pass and any future changed endpoint would require a new prefix/full-header validation."
+  ],
+  "visual_comparison": {
+    "own_visual_sha256": "23622bfa3f26d23e5079cef89f1cccb218800a46f47e0cad79e3df2b6abe09aa",
+    "root_visual_sha256": "d37875ab727374c4ac3061a58445e0b392b87ffd7da65e0fa9e8be64a73db297",
+    "independent_panels_each": 4,
+    "agreement": "Both independently saw coherent adjacent axial anatomy in case1 and a low-contrast peripheral boundary slice with smooth/patchy dark regions in case2; no half-raster blank or repair-generated content. Authoritative decode validity does not establish absence of source acquisition/reconstruction artifacts.",
+    "source_files_or_runtime_changed": false
+  },
+  "input_bindings": [
+    {
+      "path": "source-byte-failures-v1/independent-source-diagnosis-handoff.json",
+      "sha256": "5df23822f149f9fb78de50c062266771d3ce2df38a650f155d6eea97c0de8bbe",
+      "bytes": 6075
+    },
+    {
+      "path": "source-byte-failures-v1/independent-official-mirror-comparison.json",
+      "sha256": "f3ea7e803cf1863b68da8d991fb68f17cbc35d7281ebe173f981c529d7d3a6c5",
+      "bytes": 4120
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-visual-assessment.json",
+      "sha256": "23622bfa3f26d23e5079cef89f1cccb218800a46f47e0cad79e3df2b6abe09aa",
+      "bytes": 2981
+    },
+    {
+      "path": "source-byte-failures-v1/root-authoritative-visual-review.json",
+      "sha256": "d37875ab727374c4ac3061a58445e0b392b87ffd7da65e0fa9e8be64a73db297",
+      "bytes": 1521
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-panels/manifest.json",
+      "sha256": "dddd31bed173090c011accdb6b7af58854ae9d12fc1b08952631419b342813da",
+      "bytes": 5678
+    },
+    {
+      "path": "header-endpoint-full-v1/endpoint-headers.jsonl",
+      "sha256": "d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3",
+      "bytes": 105453219
+    },
+    {
+      "path": "recovered/rsna/dicom.py",
+      "sha256": "a26a16d296fc913a1c3f1f33e8c4d8b38d73c5fb9718e663242e6c7ec077b269",
+      "bytes": 8065
+    },
+    {
+      "path": "recovered/rsna/preprocess.py",
+      "sha256": "07da6625045099b085d2afd76d49203fe15826dc40a00b881b1080aaa8b6ae22",
+      "bytes": 14056
+    },
+    {
+      "path": "recovered/rsna/audit.py",
+      "sha256": "f284e48c266245c0969358559626390c5d4a89fddd48e5aed8010c5a432d81ca",
+      "bytes": 10582
+    },
+    {
+      "path": "recovered/rsna/series_equivalence.py",
+      "sha256": "313304800f91b1157d5d631c3758e27accb03ca022d4e1f7a9285a3054c440ff",
+      "bytes": 20306
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+"""Read-only source-byte diagnosis; candidate byte interpretation is never exported as an image."""
+from pathlib import Path
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import io
+import json
+import numpy as np
+import pandas as pd
+import pydicom
+from pydicom.filereader import read_partial
+
+ROOT = Path(__file__).resolve().parent
+sha = lambda value: hashlib.sha256(value).hexdigest()
+inventory_path = ROOT / 'source-inventory.parquet'
+inventory = pd.read_parquet(inventory_path)
+fields = ['Rows', 'Columns', 'SamplesPerPixel', 'PhotometricInterpretation', 'BitsAllocated', 'BitsStored', 'HighBit', 'PixelRepresentation', 'NumberOfFrames', 'InstanceNumber', 'RescaleSlope', 'RescaleIntercept', 'SeriesDescription', 'Manufacturer', 'ManufacturerModelName', 'PixelSpacing', 'ImageOrientationPatient', 'ImagePositionPatient']
+records, arrays, payloads = [], {}, {}
+for row in inventory.itertuples(index=False):
+    path = ROOT / 'native' / row.path
+    data = path.read_bytes()
+    assert len(data) == row.bytes and sha(data) == row.sha256
+    stream = io.BytesIO(data)
+    element = {}
+    def stop(tag, vr, length):
+        if tag == 0x7fe00010:
+            element.update(vr=vr, declared_length=length, value_offset=stream.tell())
+            return True
+        return False
+    header = read_partial(stream, stop_when=stop)
+    ds = pydicom.dcmread(io.BytesIO(data))
+    assert (str(ds.StudyInstanceUID), str(ds.SeriesInstanceUID), str(ds.SOPInstanceUID)) == (row.study_uid, row.series_uid, row.sop_uid)
+    pixel = bytes(ds.PixelData)
+    expected = int(ds.Rows) * int(ds.Columns) * int(ds.get('NumberOfFrames', 1)) * int(ds.SamplesPerPixel) * int(ds.BitsAllocated) // 8
+    error = None
+    try:
+        array = ds.pixel_array
+        arrays[row.sop_uid] = array
+    except Exception as exc:
+        error = {'type': type(exc).__name__, 'message': str(exc)}
+    record = {'source_path': row.path, 'source_sha256': row.sha256, 'source_bytes': row.bytes, 'study_uid': row.study_uid, 'series_uid': row.series_uid, 'sop_uid': row.sop_uid, 'transfer_syntax_uid': str(ds.file_meta.TransferSyntaxUID), 'header_fields': {key: str(ds.get(key, '')) for key in fields}, 'pixel_element': element, 'pixel_data_sha256': sha(pixel), 'pixel_data_actual_bytes': len(pixel), 'expected_declared_raster_bytes': expected, 'file_bytes_after_pixel_value_offset': len(data) - element['value_offset'], 'pixel_value_matches_own_declared_length': len(pixel) == element['declared_length'], 'decode_error': error}
+    if error is None:
+        record['decoded_array'] = {'shape': list(array.shape), 'dtype': str(array.dtype), 'minimum': int(array.min()), 'maximum': int(array.max()), 'mean': float(array.mean()), 'std': float(array.std())}
+    else:
+        payloads[row.sop_uid] = pixel
+    records.append(record)
+
+def correlation(left, right):
+    a, b = np.asarray(left, dtype=np.float64).ravel(), np.asarray(right, dtype=np.float64).ravel()
+    return float(np.corrcoef(a, b)[0, 1]) if a.std() and b.std() else None
+
+failures = []
+for record in records:
+    if record['decode_error'] is None:
+        continue
+    pixel = payloads[record['sop_uid']]
+    byte_values = np.frombuffer(pixel, dtype=np.uint8)
+    words = np.frombuffer(pixel, dtype='<u2')
+    fields = record['header_fields']
+    columns = int(fields['Columns'])
+    byte_hypothesis = byte_values.astype(float)
+    same_series = [r for r in records if r['series_uid'] == record['series_uid'] and r['decode_error'] is None]
+    neighbors = sorted(same_series, key=lambda r: abs(int(r['header_fields']['InstanceNumber']) - int(fields['InstanceNumber'])))[:2]
+    comparison = []
+    for neighbor in neighbors:
+        array = arrays[neighbor['sop_uid']]
+        flat = array.astype(float).ravel()
+        assert len(flat) == len(byte_values)
+        slope = float(np.cov(byte_hypothesis, flat, bias=True)[0, 1] / np.var(flat)) if flat.var() else None
+        intercept = float(byte_hypothesis.mean() - slope * flat.mean()) if slope is not None else None
+        comparison.append({'neighbor_sop_uid': neighbor['sop_uid'], 'neighbor_instance_number': int(neighbor['header_fields']['InstanceNumber']), 'neighbor_source_sha256': neighbor['source_sha256'], 'neighbor_decoded_min': int(flat.min()), 'neighbor_decoded_max': int(flat.max()), 'candidate_byte_vector_vs_neighbor_full_raster_correlation': correlation(byte_hypothesis, flat), 'candidate_byte_vector_vs_neighbor_mean_abs_difference': float(np.mean(np.abs(byte_hypothesis-flat))), 'linear_fit_candidate_bytes_from_neighbor_slope': slope, 'linear_fit_intercept': intercept, 'exact_numeric_sample_equality_fraction': float(np.mean(byte_hypothesis == flat)), 'context': 'Hypothesis test only: one payload byte aligned to one declared raster sample, not an authorized decode or repaired image.'})
+    failure = {**record, 'raw_numeric_content': {'uint8_count': len(byte_values), 'declared_rows_times_columns': int(fields['Rows']) * columns, 'uint8_min': int(byte_values.min()), 'uint8_max': int(byte_values.max()), 'uint8_mean': float(byte_values.mean()), 'uint8_std': float(byte_values.std()), 'zero_byte_fraction': float(np.mean(byte_values == 0)), 'odd_position_bytes_over_15_fraction': float(np.mean(byte_values[1::2] > 15)), 'even_position_bytes_over_15_fraction': float(np.mean(byte_values[::2] > 15)), 'complete_little_endian_u16_words_count': len(words), 'u16_words_min': int(words.min()), 'u16_words_max': int(words.max()), 'u16_words_over_12bit_fraction': float(np.mean(words > 4095)), 'adjacent_byte_lag1_correlation': correlation(byte_hypothesis[:-1], byte_hypothesis[1:]), 'byte_vector_lag_declared_columns_correlation': correlation(byte_hypothesis[:-columns], byte_hypothesis[columns:])}, 'adjacent_original_comparisons': comparison}
+    failures.append(failure)
+
+result = {'schema_version': 1, 'stage': 'independent_source_bytes_and_numeric_neighbor_probe', 'agent_id': '/root/image_pipeline_audit', 'session_id': '/root/image_pipeline_audit', 'completed_at_utc': datetime.now(timezone.utc).isoformat(), 'exposure': 'Root disclosed two half-length errors and one failing slice per series before this pass. Root detailed header artifact and Kaggle comparison were not opened. All74 local original files were independently hash/UID checked and parsed; no claim of blind failure discovery.', 'source_revision': '52f995f4568e36bfa5fbbaf69a89af41226b4f5d', 'source_inventory_sha256': sha(inventory_path.read_bytes()), 'script_sha256': sha(Path(__file__).read_bytes()), 'pydicom_version': pydicom.__version__, 'n_source_files_verified': len(records), 'source_bytes': int(inventory.bytes.sum()), 'n_normal_decodes': sum(r['decode_error'] is None for r in records), 'n_failures': len(failures), 'all_pixel_values_match_own_declared_vl': all(r['pixel_value_matches_own_declared_length'] for r in records), 'series_counts': dict(Counter(r['series_uid'] for r in records)), 'failed_instances': failures, 'all_source_records': records, 'original_bytes_changed': False, 'pixel_padding_or_repair_attempted': False, 'candidate_images_exported': False, 'limitations': ['The byte-vector comparison is a diagnostic hypothesis, not a sanctioned8-bit raster or recovery of missing samples.', 'DICOM unused high bits cannot be assumed zero; u16 numerical distributions alone do not prove metadata error.', 'No Kaggle original comparison in this independent probe; root performs that separate source-lineage check.']}
+out = ROOT / 'independent-byte-probe.json'
+with out.open('x') as f:
+    f.write(json.dumps(result, indent=2) + '\n')
+print(json.dumps({'result_sha256': sha(out.read_bytes()), 'n_files':len(records),'n_normal_decodes':result['n_normal_decodes'],'n_failures':len(failures),'all_pixel_values_match_own_declared_vl':result['all_pixel_values_match_own_declared_vl']}, indent=2))
+for failure in failures:
+    print(json.dumps({'sop_uid':failure['sop_uid'],'instance':failure['header_fields']['InstanceNumber'],'numeric':failure['raw_numeric_content'],'neighbor_comparisons':failure['adjacent_original_comparisons']},indent=2))

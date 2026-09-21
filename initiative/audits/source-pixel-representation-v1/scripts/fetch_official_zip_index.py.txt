@@ -1,0 +1,17 @@
+from pathlib import Path
+import sys,json,datetime,hashlib
+import pandas as pd
+from dotenv import load_dotenv
+W=Path(__file__).resolve().parent;load_dotenv(W.parent/'.env');sys.path.insert(0,str(W/'recovered'))
+from rsna.preprocess import Source
+out=W/'source-byte-failures-v1';s=Source(None)
+try:
+ print('Opening official archive central directory without downloading image payloads',flush=True);s.connect()
+ infos=s.fs.zip.infolist()
+ rows=[{'path':i.filename,'bytes':i.file_size,'crc32':f'{i.CRC:08x}','compressed_bytes':i.compress_size,'compression':i.compress_type}for i in infos if not i.is_dir()]
+ f=pd.DataFrame(rows);p=out/'kaggle-official-zip-index.parquet';assert not p.exists();f.to_parquet(p,index=False)
+ inv=pd.read_parquet(W/'recovered/initiative/source/inventory');images=f[f.path.str.endswith('.dcm')];assert not images.path.duplicated().any();merged=inv.merge(images,on='path',how='outer',suffixes=('_mirror','_official'),indicator=True);bad=merged[(merged['_merge']!='both') | (merged.bytes_mirror!=merged.bytes_official)]
+ d={'stage':'fresh_official_archive_index_comparison','agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'archive_files':len(f),'official_images':len(images),'mirror_images':len(inv),'mismatches':bad[['path','bytes_mirror','bytes_official','_merge']].astype(str).to_dict('records'),'official_index_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'scope':'Official ZIP path/size/CRC index only; CRC is preserved, not yet compared with every mirror payload. No whole-corpus byte identity claim.'};(out/'kaggle-official-zip-index-comparison.json').write_text(json.dumps(d,indent=2)+'\n');print({k:v for k,v in d.items()if k not in ['mismatches']},flush=True);print('path_size_mismatches',len(bad),flush=True)
+except Exception as e:
+ print({'error_type':type(e).__name__},flush=True)
+ raise SystemExit(1)

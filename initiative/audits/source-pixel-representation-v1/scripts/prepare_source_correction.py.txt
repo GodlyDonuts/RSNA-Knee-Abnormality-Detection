@@ -1,0 +1,27 @@
+from pathlib import Path
+import hashlib,json,sys,zlib,datetime
+import pandas as pd
+import pydicom
+W=Path(__file__).resolve().parent;R=W/'recovered';S=W/'source-byte-failures-v1';sys.path.insert(0,str(R))
+from rsna.audit import inventory_fingerprint
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+base=pd.read_parquet(R/'initiative/source/inventory');effective=base.copy();official=pd.read_parquet(S/'kaggle-official-zip-index.parquet').set_index('path');comparison=json.loads((S/'kaggle-original-comparison.json').read_text());changes=[]
+for row in comparison['records']:
+ path=row['path'];old=base[base.path.eq(path)];assert len(old)==1;before=old.iloc[0].to_dict();file=W/row['local_path'];data=file.read_bytes();assert sha(file)==row['official_sha256'];ds=pydicom.dcmread(file);a=ds.pixel_array
+ assert (str(ds.StudyInstanceUID),str(ds.SeriesInstanceUID),str(ds.SOPInstanceUID))==(before['study_uid'],before['series_uid'],before['sop_uid'])
+ assert len(data)==int(official.loc[path,'bytes']) and f'{zlib.crc32(data):08x}'==official.loc[path,'crc32']
+ after={**before,'sha256':sha(file),'bytes':len(data)};assert before['storage']=='lfs'
+ effective.loc[effective.path.eq(path),['sha256','bytes']]=[after['sha256'],after['bytes']]
+ changes.append({'path':path,'study_uid':before['study_uid'],'series_uid':before['series_uid'],'sop_uid':before['sop_uid'],'before':before,'after':after,'official_local_path':str(file.relative_to(W)),'official_crc32':official.loc[path,'crc32'],'official_shape':list(a.shape),'official_dtype':str(a.dtype),'reason':'Restore exact authenticated Kaggle original. Mirror encoded one byte per sample under unchanged16-bit header; officialuint16 pixel values exactly equal every mirrorbyte. No guessed reconstruction or decoder exception.'})
+assert len(changes)==2 and set(effective.columns)==set(base.columns)
+mask=base.path.isin([x['path']for x in changes]);assert base[~mask].equals(effective[~mask]);assert len(base)==len(effective)==819635
+# CRC verification for all74 locally preserved mirror files, substituting only exact2 originals.
+local=pd.read_parquet(S/'source-inventory.parquet');official_map={c['path']:W/c['official_local_path']for c in changes}
+for row in local.to_dict('records'):
+ p=official_map.get(row['path'],S/'native'/row['path']);data=p.read_bytes();assert len(data)==int(official.loc[row['path'],'bytes']);assert f'{zlib.crc32(data):08x}'==official.loc[row['path'],'crc32']
+out=S/'source-correction-publication';out.mkdir(exist_ok=False);inv=out/'inventory_corrected.parquet';effective.to_parquet(inv,index=False)
+refs=[]
+for n in ['kaggle-original-comparison.json','root-official-pixel-comparison.json','independent-official-mirror-comparison.json','independent-source-diagnosis-handoff.json','root-authoritative-visual-review.json','independent-authoritative-visual-assessment.json','kaggle-official-zip-index-comparison.json','baseline-current-source-tree-equality.json']:
+ p=S/n;refs.append({'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size})
+plan={'schema_version':1,'id':'official-pixel-representation-v1','status':'accepted_exact_authoritative_source_replacement','agent_id':'/root','independent_agent_id':'/root/image_pipeline_audit','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'baseline_source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d','publication_parent_revision':'8cd74d58f8b2f7618614b7ca76791f2bb8eae853','repo_id':'GodlyDonuts/RSNA-Data','repo_private_verified':True,'baseline_inventory_fingerprint_sha256':inventory_fingerprint(base),'corrected_inventory_fingerprint_sha256':inventory_fingerprint(effective),'corrected_inventory':{'path':'inventory_corrected.parquet','sha256':sha(inv),'bytes':inv.stat().st_size},'changes':changes,'n_changed_source_files':2,'n_source_files':819635,'n_unchanged_source_files':819633,'n_affected_series':2,'n_affected_series_slices':74,'all74_local_effective_sources_match_official_zip_size_crc':True,'all819635_path_size_comparison_only2_known_mismatches':True,'source_bytes_before':int(base.bytes.sum()),'source_bytes_after':int(effective.bytes.sum()),'evidence':refs,'original_pinned_revision_preserved':True,'decoder_changed':False,'clinical_targets_changed':False,'training_ready':False,'next_steps':'Bind returned newHFcommit in separate receipt; reconstruct new cache with verified unchanged-file reuse and fresh decode of2affectedseries; run full audit before series selection and release. This patch does not assert whole-corpus byte equality from size checks.'}
+p=out/'source_correction_plan.json';p.write_text(json.dumps(plan,indent=2)+'\n');print({'plan_sha256':sha(p),'corrected_inventory_bytes':inv.stat().st_size,'changes':len(changes),'all74_crc_matches':True,'source_bytes_after':plan['source_bytes_after']})

@@ -1,0 +1,40 @@
+{
+  "stage": "independent_native_visual_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "frozen_at_utc": "2026-09-21T06:45:01.620063+00:00",
+  "n_panels_personally_viewed": 4,
+  "view_detail": "original native resolution",
+  "prior_exposure": "Own complete byte/metadata/official-source comparison and root disclosure of matching authoritative numerical values were available. No root visual findings or visual preread was opened before this freeze.",
+  "case_observations": [
+    {
+      "case": 1,
+      "observations": "Both full640x640 panels show coherent transverse lower-leg anatomy with matching general positioning/contour and expected adjacent-slice differences. The authoritative instance36 is dimmer than35 under the same0..314 display scale, matching the recorded lower maximum211. No half-frame cutoff, alternating-byte striping, artificial padding or layout discontinuity is visible in the authoritative native decode.",
+      "limits": "This is a technical comparison of adjacent source slices, not a diagnosis or proof of clinical image quality."
+    },
+    {
+      "case": 2,
+      "observations": "Both full416x416 panels contain a small tissue region in the upper central frame with broad dark background. The authoritative boundary instance1 is substantially darker and has patchy/ring-like intensity bands with less clearly visible tissue than instance2 under the shared0..317 scale. Their broad placement is compatible, but local anatomy and contrast differ markedly at this boundary. The complete original frame is displayed; no half-frame truncation or invented padding was introduced.",
+      "limits": "The darker first-slice appearance is present in the authoritative original. Its cause is not established from these two panels; do not call it corruption, correction artifact, normal anatomy or a clinical finding. It does not justify altering or deleting the valid source."
+    }
+  ],
+  "source_recovery_conclusion": "Use exact authoritative original bytes whose full native matrices passed metadata/length/decode checks. The visual check does not introduce a header fix or pixel inference. Preserve the boundary-slice appearance without interpretation.",
+  "clinical_target_values_assigned": false,
+  "input_bindings": [
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-panels/manifest.json",
+      "sha256": "dddd31bed173090c011accdb6b7af58854ae9d12fc1b08952631419b342813da",
+      "bytes": 5678
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-panels/case-1-authoritative-and-neighbor.png",
+      "sha256": "c2df806a3141812992fb806ac4b21fe589f8d3d3fc050904843bfcff1da6d2e4",
+      "bytes": 537740
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-panels/case-2-authoritative-and-neighbor.png",
+      "sha256": "ae380dc31f582406d78f1ac813dda27409fea026c04e4e9982cc69151333781f",
+      "bytes": 203803
+    }
+  ]
+}

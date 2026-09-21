@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "stage": "completed_independent_authoritative_pixel_source_diagnosis",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "completed_at_utc": "2026-09-21T06:41:50.308979+00:00",
+  "source_revision_under_review": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "scope": {
+    "mirror_originals_full_hash_uid_checked": 74,
+    "mirror_originals_normal_decodes": 72,
+    "mirror_originals_failures": 2,
+    "official_originals_full_hash_uid_and_decode_checked": 2,
+    "original_source_bytes_verified": 42170176,
+    "native_images_or_clinical_labels_interpreted": 0
+  },
+  "findings": [
+    "All74 mirror file sizes and SHA256 match the pinned source inventory; source hashing alone does not establish DICOM conformance.",
+    "Both failing files are internally complete relative to their own PixelData element ValueLength and EOF. Neither is an HTTP/local truncation relative to its declared file or PixelData length.",
+    "Both claim uncompressed Explicit VR Little Endian, OW, one monochrome sample,16allocated/12stored/highbit11, with no NumberOfFrames. Their payload length is only one byte per declared raster sample.",
+    "The official Kaggle files retain identical nonpixel data elements and identical header bytes except the PixelData ValueLength. Their16-bit payloads have twice the byte length and correctly decode the declared matrices.",
+    "Every high byte of the authoritative payload is zero; the entire mirror file is exactly reproduced by retaining every low byte and halving the PixelData ValueLength. All official numerical samples survive in the mirror byte sequence for these two cases, but the mirror encoding contradicts its unchanged16-bit header.",
+    "This establishes the precise byte transformation. It does not identify the software, actor or stage that performed it, nor authorize a general8-bit decoder heuristic."
+  ],
+  "primary_references": [
+    {
+      "title": "DICOM PS3.5 2026d Section8.1.1",
+      "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_8.html",
+      "relevance": "BitsAllocated determines sample-cell width. Twelve stored bits inside16allocated bits still occupy a16-bit word; padding reaches an even byte boundary, not half the raster size."
+    },
+    {
+      "title": "DICOM PS3.5 2026d AnnexA.2",
+      "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_A.2.html",
+      "relevance": "Explicit VR Little Endian with more than8allocated bits uses OW native pixel data. UID1.2.840.10008.1.2.1 does not declare an encapsulated compression scheme."
+    },
+    {
+      "title": "DICOM PS3.3 2026d SectionC.7.6.3",
+      "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html",
+      "relevance": "Monochrome data uses one sample plane; the composite sample width follows BitsAllocated, not an inferred numerical maximum."
+    }
+  ],
+  "recovery_recommendation": "Use the two exact full-length authoritative Kaggle originals in an explicit path/SOP/hash/size-bound source-correction layer and new effective source manifest. Preserve the original pinned HF inventory and both original file versions. Keep the strict decoder unchanged, rebuild the two affected series from trusted originals, then run the full effective-inventory coverage/cache/duplicate audit before release. Do not mark the old pinned-inventory audit complete by dropping the two errors, rewriting its hashes or padding pixels.",
+  "originals_modified": false,
+  "decoder_or_runtime_modules_modified": false,
+  "full_corpus_source_override_applied": false,
+  "artifact_bindings": [
+    {
+      "path": "source-byte-failures-v1/source-inventory.parquet",
+      "sha256": "552c2a72edc2a985520353915f16baced0cdab92ce2062c02a924264b9582680",
+      "bytes": 18559
+    },
+    {
+      "path": "source-byte-failures-v1/independent-byte-probe.py",
+      "sha256": "404e8f440bb7bacdfb1321e35477eabb68b5da71260714f064a49a3592d5a8d0",
+      "bytes": 8062
+    },
+    {
+      "path": "source-byte-failures-v1/independent-byte-probe.json",
+      "sha256": "d9f864490f5929ce5c22fddbd6500a5a4c73899a5cf8d36d11fa283a9938acdd",
+      "bytes": 170414
+    },
+    {
+      "path": "source-byte-failures-v1/independent-official-mirror-comparison.json",
+      "sha256": "f3ea7e803cf1863b68da8d991fb68f17cbc35d7281ebe173f981c529d7d3a6c5",
+      "bytes": 4120
+    },
+    {
+      "path": "source-byte-failures-v1/independent-official-mirror-verify.py",
+      "sha256": "919d6d65f76d2a68258229512d23d9a6f84298026e74f875a64123d92dc1223d",
+      "bytes": 2660
+    },
+    {
+      "path": "source-byte-failures-v1/independent-official-mirror-reverification.json",
+      "sha256": "9a91c34b159cb36a905467792b72c6c7705310cc79c8364c58fcee3f1309a3aa",
+      "bytes": 446
+    },
+    {
+      "path": "source-byte-failures-v1/native/train_series/1.2.826.0.1.3680043.8.498.34685905030370793639196564723935583035/1.2.826.0.1.3680043.8.498.39396636671446532796538574315802928348/1.2.826.0.1.3680043.8.498.41947538458330624797291612781685746320.dcm",
+      "sha256": "cfe23f2a97ba3fc07066bfed047c6701d9982a54e4913205a6c30366906a455c",
+      "bytes": 411052
+    },
+    {
+      "path": "source-byte-failures-v1/kaggle-original/1.2.826.0.1.3680043.8.498.41947538458330624797291612781685746320.dcm",
+      "sha256": "68efac14c0550118b1eb2ce75601f3b5cdf13a824ca83628ef201e260a4b7a9a",
+      "bytes": 820652
+    },
+    {
+      "path": "source-byte-failures-v1/native/train_series/1.2.826.0.1.3680043.8.498.37833587429731221455928642963031995680/1.2.826.0.1.3680043.8.498.31160785238781353848727311763596115703/1.2.826.0.1.3680043.8.498.66460523372602171398246641420761543626.dcm",
+      "sha256": "c057554899ba81249d280e880226bf28b089b1e33235e3cfd101bfc36a399d7a",
+      "bytes": 174560
+    },
+    {
+      "path": "source-byte-failures-v1/kaggle-original/1.2.826.0.1.3680043.8.498.66460523372602171398246641420761543626.dcm",
+      "sha256": "ab491d18a6b3fae57a014c27679f32afc526e4d336373e4354f81b8a4b7de2d4",
+      "bytes": 347616
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "stage": "independent_authoritative_source_comparison",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "scope": "Both exact Kaggle originals supplied by root independently compared with preserved pinned HF files. Complete nonpixel metadata, byte headers, payload lengths, all decoded official samples and exact byte-level transformation checked. No metadata patch or inferred padding applied.",
+  "source_inventory_sha256": "552c2a72edc2a985520353915f16baced0cdab92ce2062c02a924264b9582680",
+  "preceding_independent_probe_sha256": "d9f864490f5929ce5c22fddbd6500a5a4c73899a5cf8d36d11fa283a9938acdd",
+  "n_official_files_decoded": 2,
+  "results": [
+    {
+      "sop_uid": "1.2.826.0.1.3680043.8.498.41947538458330624797291612781685746320",
+      "source_path": "train_series/1.2.826.0.1.3680043.8.498.34685905030370793639196564723935583035/1.2.826.0.1.3680043.8.498.39396636671446532796538574315802928348/1.2.826.0.1.3680043.8.498.41947538458330624797291612781685746320.dcm",
+      "mirror_sha256": "cfe23f2a97ba3fc07066bfed047c6701d9982a54e4913205a6c30366906a455c",
+      "mirror_bytes": 411052,
+      "official_sha256": "68efac14c0550118b1eb2ce75601f3b5cdf13a824ca83628ef201e260a4b7a9a",
+      "official_bytes": 820652,
+      "all_nonpixel_data_elements_equal": true,
+      "file_meta_elements_equal": true,
+      "header_prefix_before_pixel_length_byte_identical": true,
+      "pixel_offsets_equal": true,
+      "mirror_pixel_value_declared_bytes": 409600,
+      "official_pixel_value_declared_bytes": 819200,
+      "official_full_decode_shape": [
+        640,
+        640
+      ],
+      "official_full_decode_dtype": "uint16",
+      "official_min": 0,
+      "official_max": 211,
+      "official_pixel_value_length_correct": true,
+      "official_eof_matches_pixel_value_end": true,
+      "mirror_equals_every_low_byte_of_official_payload": true,
+      "all_official_high_bytes_zero": true,
+      "all_mirror_byte_samples_equal_authoritative_uint16_samples": true,
+      "hypothesized_transform_exact_byte_reproduction": true
+    },
+    {
+      "sop_uid": "1.2.826.0.1.3680043.8.498.66460523372602171398246641420761543626",
+      "source_path": "train_series/1.2.826.0.1.3680043.8.498.37833587429731221455928642963031995680/1.2.826.0.1.3680043.8.498.31160785238781353848727311763596115703/1.2.826.0.1.3680043.8.498.66460523372602171398246641420761543626.dcm",
+      "mirror_sha256": "c057554899ba81249d280e880226bf28b089b1e33235e3cfd101bfc36a399d7a",
+      "mirror_bytes": 174560,
+      "official_sha256": "ab491d18a6b3fae57a014c27679f32afc526e4d336373e4354f81b8a4b7de2d4",
+      "official_bytes": 347616,
+      "all_nonpixel_data_elements_equal": true,
+      "file_meta_elements_equal": true,
+      "header_prefix_before_pixel_length_byte_identical": true,
+      "pixel_offsets_equal": true,
+      "mirror_pixel_value_declared_bytes": 173056,
+      "official_pixel_value_declared_bytes": 346112,
+      "official_full_decode_shape": [
+        416,
+        416
+      ],
+      "official_full_decode_dtype": "uint16",
+      "official_min": 0,
+      "official_max": 181,
+      "official_pixel_value_length_correct": true,
+      "official_eof_matches_pixel_value_end": true,
+      "mirror_equals_every_low_byte_of_official_payload": true,
+      "all_official_high_bytes_zero": true,
+      "all_mirror_byte_samples_equal_authoritative_uint16_samples": true,
+      "hypothesized_transform_exact_byte_reproduction": true
+    }
+  ],
+  "finding": "The mirror files are exactly reproduced by removing the zero high byte of every official16-bit sample and changing only PixelData ValueLength to half size, while leaving16-bit allocation/12-bit storage metadata unchanged. This is a deterministic representation mismatch, not loss of raster samples for these two files. The original causal software/process is unestablished. Use the authoritative full-length Kaggle originals via an explicit source correction; do not patch the pinned baseline or infer a general decoder exception.",
+  "source_files_modified": false,
+  "clinical_diagnoses_inferred": false
+}

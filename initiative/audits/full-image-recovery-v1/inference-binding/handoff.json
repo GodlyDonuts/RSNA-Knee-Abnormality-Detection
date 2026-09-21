@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "stage": "heldout_inference_binding_implementation_handoff",
+  "agent_id": "/root/image_pipeline_audit",
+  "confirmed_before": "Training/resume bound series_sha256 and manifest_sha256, while infer loaded arbitrary CSV/Parquet without matching either and only compared cache side, not source revision.",
+  "implemented": [
+    "Held-out metadata requires valid checkpoint SHA256 bindings and exact equality of the same bytes subsequently parsed.",
+    "Held-out cache source revision must match the training checkpoint; raw preprocessing rejects a wrong declared source revision before cache creation.",
+    "Missing legacy held-out metadata bindings fail explicitly.",
+    "Metrics preserve actual input hashes and binding mode.",
+    "Separate test-template mode retains distinct new test metadata and explicitly does not claim checkpoint-input equality.",
+    "Simultaneous study-manifest/template modes are rejected."
+  ],
+  "limits": [
+    "Test input hashes are recorded but do not authenticate their source or independent review; preserve separately bound test export evidence.",
+    "Dataset cache hashes and native source evidence still require the complete audit; these inference changes do not repeat it."
+  ],
+  "files": [
+    {
+      "path": "recovered/rsna/infer.py",
+      "sha256": "5ef482007c9a4d0d019ad01dcf761d3973681341a524bf5f16c38f662e5c418a",
+      "bytes": 7962
+    },
+    {
+      "path": "recovered/tests/test_inference_bindings.py",
+      "sha256": "f2f945072db842ff42122989013015e96fb21ddfe8b0b5ae4a41b96a3147d5e4",
+      "bytes": 10118
+    },
+    {
+      "path": "recovered/docs/inference-bindings.md",
+      "sha256": "6916ba7e003789d54af5f697d97b33c61ba53199d9e155f55040e6ade5eea260",
+      "bytes": 3529
+    },
+    {
+      "path": "recovered/docs/series-equivalence.md",
+      "sha256": "e4a3d5dcf8f75bcd36ce5383b09b7b8774c707e6744c6c1c931d5e2c6cf84ccb",
+      "bytes": 7430
+    },
+    {
+      "path": "recovered/docs/series-metadata.md",
+      "sha256": "74f99fd50701cb57f0970119755d762eba629506246bc69a58f7e40460959b5e",
+      "bytes": 5139
+    }
+  ],
+  "validation": {
+    "focused_new_tests": 22,
+    "full_tests": 200,
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "mypy": "passed, 18 modules",
+    "real_fixture_heldout_prediction": "passed",
+    "real_fixture_new_test_prediction": "passed",
+    "existing_train_resume_inference_integration": "passed"
+  },
+  "unchanged_source_recovery_sha256": "17fc6c3330b90e5e449472a7457f374ceb3e6f02a6a825cdd248468792f6c3ae",
+  "source_cache_modified": false,
+  "full_audit_executed": false,
+  "full_audit_command": [
+    "python",
+    "-m",
+    "rsna.audit",
+    "--inventory",
+    "../cache256-v3-official-recovery-v1/inventory_effective.parquet",
+    "--cache",
+    "../cache256-v3-official-recovery-v1/cache",
+    "--revision",
+    "0b5e410288232f570c69ba4f44723356e6ae6ab7",
+    "--output",
+    "../dicom-audit-v3-official-recovery-v1"
+  ]
+}

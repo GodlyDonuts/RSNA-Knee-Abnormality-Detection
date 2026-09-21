@@ -1,0 +1,45 @@
+"""Native unchanged-geometry display of authoritative slices and valid neighbors."""
+from pathlib import Path
+import hashlib
+import json
+import numpy as np
+import pydicom
+from PIL import Image, ImageDraw
+
+root = Path(__file__).resolve().parent
+probe_path = root / 'independent-byte-probe.json'
+probe = json.loads(probe_path.read_text())
+out = root / 'independent-authoritative-panels'
+out.mkdir(exist_ok=False)
+records = []
+for case, failure in enumerate(probe['failed_instances'], 1):
+    neighbor = failure['adjacent_original_comparisons'][0]
+    neighbor_record = next(r for r in probe['all_source_records'] if r['sop_uid'] == neighbor['neighbor_sop_uid'])
+    selected = [('authoritative Kaggle original', root / 'kaggle-original' / (failure['sop_uid'] + '.dcm')), ('valid pinned-source neighbor', root / 'native' / neighbor_record['source_path'])]
+    items = []
+    for label, path in selected:
+        data = path.read_bytes()
+        ds = pydicom.dcmread(path)
+        expected = failure['sop_uid'] if label.startswith('authoritative') else neighbor['neighbor_sop_uid']
+        assert str(ds.SOPInstanceUID) == expected
+        items.append((int(ds.InstanceNumber), label, path, data, ds, ds.pixel_array))
+    items.sort(key=lambda item: item[0])
+    maximum = max(int(item[5].max()) for item in items)
+    height, width = items[0][5].shape
+    assert all(item[5].shape == (height, width) for item in items)
+    canvas = Image.new('RGB', (width * 2 + 30, height + 116), 'white')
+    draw = ImageDraw.Draw(canvas)
+    draw.text((10, 7), f'Case {case}: native source geometry; shared display window 0..{maximum}', fill='black')
+    draw.text((10, 24), 'No flip, transpose, rotation, crop, interpolation or clinical annotation', fill='black')
+    for index, (instance, label, path, data, ds, array) in enumerate(items):
+        display = np.rint(array.astype(float) / maximum * 255).clip(0, 255).astype(np.uint8)
+        x = 10 + index * (width + 10)
+        canvas.paste(Image.fromarray(display), (x, 77))
+        draw.text((x, 45), f'Instance {instance}: {label}', fill='black')
+        draw.text((x, 61), f'{height} x {width}, uint16, min {int(array.min())}, max {int(array.max())}', fill='black')
+        records.append({'case': case, 'panel_index': index, 'source': label, 'source_path': str(path.relative_to(root.parent)), 'source_sha256': hashlib.sha256(data).hexdigest(), 'source_bytes': len(data), 'study_uid': str(ds.StudyInstanceUID), 'series_uid': str(ds.SeriesInstanceUID), 'sop_uid': str(ds.SOPInstanceUID), 'instance_number': instance, 'shape': list(array.shape), 'dtype': str(array.dtype), 'iop': [float(v) for v in ds.ImageOrientationPatient], 'ipp': [float(v) for v in ds.ImagePositionPatient], 'pixel_spacing': [float(v) for v in ds.PixelSpacing], 'display_window': [0, maximum]})
+    png = out / f'case-{case}-authoritative-and-neighbor.png'
+    canvas.save(png)
+manifest = {'stage': 'native_authoritative_neighbor_panels_for_independent_review', 'agent_id': '/root/image_pipeline_audit', 'script_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'source_probe_sha256': hashlib.sha256(probe_path.read_bytes()).hexdigest(), 'rendering': 'Full native matrices, unchanged geometry and dimensions; common per-pair linear display range only. All displayed arrays are valid native uint16 decodes. No hypothesized mirror-byte image, padding or clinical interpretation.', 'panels': records, 'artifacts': [{'path': str(p.relative_to(root.parent)), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'bytes': p.stat().st_size} for p in sorted(out.glob('*.png'))]}
+(out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+print(json.dumps(manifest['artifacts'], indent=2))

@@ -1,0 +1,69 @@
+"""Independent root verification of completed recovery/audit/selection artifacts."""
+import datetime, hashlib, json
+from pathlib import Path
+import pandas as pd
+W=Path(__file__).resolve().parent;R=W/'recovered';C=W/'cache256-v3-official-recovery-v1'
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def verify(b):
+ p=Path(b['path']);assert p.stat().st_size==b['bytes'] and sha(p)==b['sha256'],p
+status=json.loads((C/'source_recovery_status.json').read_text()); assert status['status']=='cache_recovery_complete_full_audit_required'
+assert (status['n_reused_series'],status['n_fresh_series'],status['n_cache_slices'])==(24384,2,819635)
+verify(status['effective_inventory']);verify(status['lineage'])
+lineage=[json.loads(s)for s in (C/'cache_recovery_lineage.jsonl').read_text().splitlines()]
+assert len(lineage)==24386 and len({(r['split'],r['study_uid'],r['series_uid'])for r in lineage})==24386
+fresh=[]; reused=0
+for row in lineage:
+ verify(row['new_metadata']);newp=Path(row['new_metadata']['path']);new=json.loads(newp.read_text())
+ if row['operation']=='hardlink_immutable_npz_copy_rebased_metadata':
+  verify(row['baseline_metadata']);oldp=Path(row['baseline_metadata']['path']);old=json.loads(oldp.read_text())
+  assert new=={**old,'source_revision':status['corrected_source_revision']}
+  assert oldp.stat().st_ino!=newp.stat().st_ino
+  assert oldp.with_suffix('.npz').stat().st_ino==newp.with_suffix('.npz').stat().st_ino
+  assert old['source_revision']==status['baseline_source_revision']; reused+=1
+ else:
+  assert row['operation']=='fresh_full_series_decode_from_effective_authoritative_sources'
+  assert row['original_source_samples_reconstructed_or_padded'] is False
+  fresh.append({'study_uid':row['study_uid'],'series_uid':row['series_uid'],'n_slices':row['n_slices'],'source_revision':new['source_revision']})
+assert reused==24384 and len(fresh)==2 and sum(r['n_slices']for r in fresh)==74
+A=W/'dicom-audit-v3-official-recovery-v1';audit=json.loads((A/'dicom_audit.json').read_text());inv=pd.read_parquet(C/'inventory_effective.parquet');idx=pd.read_parquet(A/'series_cache_index.parquet')
+assert audit['complete'] and audit['source_revision']==status['corrected_source_revision']
+assert audit['series']==len(idx)==inv.series_uid.nunique()==24386 and audit['decoded_slices']==len(inv)==819635
+assert not audit['series_warning_counts'] and not audit['train_test_duplicate_pairs']
+assert sha(A/'series_cache_index.parquet')==audit['series_cache_index_sha256']
+for split,uids in audit['study_uids_by_split'].items():assert sorted(uids)==sorted(inv.loc[inv.split==split,'study_uid'].unique())
+selections=[];selection_bindings=[]
+for split,name in [('train_series','series-selected-train-official-v1'),('test_series','series-selected-test-official-v1')]:
+ d=W/name;sa=json.loads((d/'series_selection_audit.json').read_text());plan=json.loads((d/'series_selection_plan.json').read_text());selected=pd.read_csv(d/'series_selected.csv',dtype=str,keep_default_na=False)
+ assert sha(d/'series_selection_plan.json')==sa['plan_sha256'] and sha(d/'series_selected.csv')==sa['selected_csv_sha256']
+ assert sa['all_input_cache_bytes_sha256_reverified'] and not sa['source_files_deleted_or_modified']
+ for k in ['dicom_audit','series_cache_index','source_series']:verify(plan[k])
+ assert plan['raw_split']==split and plan['source_revision']==audit['source_revision']
+ assert plan['cross_study_training_edges_preserved']==audit['cross_study_pixel_duplicate_pairs']
+ source=pd.read_csv(plan['source_series']['path'],dtype=str,keep_default_na=False)
+ rows={r['series_uid']:r for r in plan['series']}; assert len(rows)==len(source)
+ chosen=[r for r in plan['series']if r['retained']]
+ assert set(selected.SeriesInstanceUID)=={r['series_uid']for r in chosen}
+ assert set(selected.StudyInstanceUID)==set(source.StudyInstanceUID)==set(inv.loc[inv.split==split,'study_uid'])
+ for group in plan['groups']:
+  members=group['series_uids'];assert group['representative_series_uid']==min(members)
+  assert len({rows[u]['study_uid']for u in members})==1
+  assert sum(rows[u]['retained']for u in members)==1
+ for c in plan['candidate_comparisons']:assert c['compatible'] and c['reason']=='native_geometry_features_and_cache_exact'
+ for col in source.columns:
+  left=source.set_index('SeriesInstanceUID').loc[selected.SeriesInstanceUID,col] if col!='SeriesInstanceUID' else None
+  if left is not None: assert left.tolist()==selected[col].tolist(),col
+ if split=='train_series':
+  prefix='1.2.826.0.1.3680043.8.498.'
+  assert rows[prefix+'10335555054928741153620086817417866255']['retained']
+  assert not rows[prefix+'61972393881812789635445975255392095449']['retained']
+  assert all(rows[prefix+s]['retained']for s in ['40841517457347881294782611236782006983','91084781853978492460808437108354301799'])
+ selections.append({'split':split,**{k:sa[k]for k in ['n_input_studies','n_input_series','n_retained_series','n_excluded_series','n_equivalence_groups','selected_csv_sha256','plan_sha256']}})
+ selection_bindings.extend(bind(d/f)for f in ['series_selection_audit.json','series_selection_plan.json','series_selected.csv'])
+result={'schema_version':1,'stage':'root_recovery_full_audit_and_selection_verification','agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified_technical_milestone_not_training_release','reused_series_all_original_and_new_metadata_hashes_verified':reused,'metadata_semantic_delta_exactly_source_revision':True,'metadata_inodes_distinct_and_npz_inodes_shared':True,'fresh_series':fresh,'full_audit':{k:v for k,v in audit.items()if k!='study_uids_by_split'},'source_split_study_counts':{k:len(v)for k,v in audit['study_uids_by_split'].items()},'selections':selections,'preserved_cross_study_pixel_edges':audit['cross_study_pixel_duplicate_pairs'],'input_bindings':[bind(C/'source_recovery_status.json'),bind(C/'cache_recovery_lineage.jsonl'),bind(A/'dicom_audit.json'),bind(A/'series_cache_index.parquet'),*selection_bindings],'scope':'Root reviewed complete recovery code/tests/docs, ran 26 focused tests, executed real migration and full audit, verified every lineage JSON hash/semantic delta/inode relation and exact final memberships. Full audit and selection each checked NPZ content; this verifier does not hash all NPZ bytes a third time. Prior native hashes remain trusted decoder evidence, not second raw decode of the entire corpus. Corrected inventory preserved externally by hash and original baseline plus exact2 patch. No clinical labels/gold values accessed by this script.','training_ready':False}
+out=W/'source-byte-failures-v1/root-full-image-milestone-verification.json';assert not out.exists();out.write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps({'status':result['status'],'reused_series':reused,'fresh_slices':74,'selections':selections,'verification_sha256':sha(out)},indent=2))

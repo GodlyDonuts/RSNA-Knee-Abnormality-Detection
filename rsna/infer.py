@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import io
 import json
 import time
 from pathlib import Path
@@ -14,6 +16,60 @@ from rsna.model import StudyNet
 from rsna.preprocess import Source, cache_series
 from rsna.schema import CACHE_VERSION, TARGETS
 from rsna.train import predict
+
+
+def load_inference_metadata(
+    checkpoint: dict,
+    series_path: Path,
+    studies_path: Path | None,
+    template_path: Path | None,
+    split: str,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | None, dict]:
+    """Bind held-out evaluation to the exact training inputs before preprocessing.
+
+    New test metadata cannot match the training series table. Template mode
+    records its separate hashes without claiming checkpoint-input equality.
+    """
+    if (studies_path is None) == (template_path is None):
+        raise ValueError("Provide exactly one test template or labeled study manifest")
+    series_bytes = series_path.read_bytes()
+    series_hash = hashlib.sha256(series_bytes).hexdigest()
+    bindings = {"series_sha256": series_hash}
+    template = None
+    if studies_path is not None:
+        manifest_bytes = studies_path.read_bytes()
+        manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
+        for name, actual in [("series_sha256", series_hash), ("manifest_sha256", manifest_hash)]:
+            expected = checkpoint.get(name)
+            if (
+                not isinstance(expected, str)
+                or len(expected) != 64
+                or any(c not in "0123456789abcdef" for c in expected)
+            ):
+                raise ValueError(f"Checkpoint lacks a valid {name}; held-out inference is unbound")
+            if actual != expected:
+                raise ValueError(f"Held-out inference {name} differs from checkpoint")
+        revision = checkpoint.get("cache_source_revision")
+        if not isinstance(revision, str) or not revision.strip():
+            raise ValueError("Checkpoint lacks cache source revision for held-out inference")
+        # Parse the same immutable byte snapshots that were hashed above.
+        manifest = pd.read_parquet(io.BytesIO(manifest_bytes))
+        studies = manifest.loc[manifest.split == split].copy()
+        bindings.update(
+            manifest_sha256=manifest_hash,
+            metadata_binding="exact_checkpoint_series_and_manifest",
+        )
+    else:
+        assert template_path is not None
+        template_bytes = template_path.read_bytes()
+        template = pd.read_csv(io.BytesIO(template_bytes))
+        studies = template[["StudyInstanceUID"]].rename(columns={"StudyInstanceUID": "study_uid"})
+        bindings.update(
+            template_sha256=hashlib.sha256(template_bytes).hexdigest(),
+            metadata_binding="separate_test_inputs_not_checkpoint_bound",
+        )
+    series = pd.read_csv(io.BytesIO(series_bytes))
+    return series, studies, template, bindings
 
 
 def write_submission(predictions: pd.DataFrame, template: pd.DataFrame, output: Path) -> None:
@@ -56,17 +112,16 @@ def main() -> None:
         raise ValueError("Checkpoint target order mismatch")
     if checkpoint.get("cache_version") != CACHE_VERSION:
         raise ValueError("Checkpoint cache transform version differs")
-    series = pd.read_csv(args.series)
-    if args.template:
-        template = pd.read_csv(args.template)
-        studies = template[["StudyInstanceUID"]].rename(columns={"StudyInstanceUID": "study_uid"})
-        raw_split = "test_series"
-    elif args.studies:
-        manifest = pd.read_parquet(args.studies)
-        studies = manifest[manifest.split == args.split]
-        raw_split = "train_series"
-    else:
-        raise ValueError("Provide a test submission template or a labeled study manifest")
+    series, studies, template, bindings = load_inference_metadata(
+        checkpoint, args.series, args.studies, args.template, args.split
+    )
+    raw_split = "test_series" if template is not None else "train_series"
+    if (
+        args.studies
+        and args.dicom_root
+        and args.source_revision != checkpoint["cache_source_revision"]
+    ):
+        raise ValueError("Held-out preprocessing source revision differs from checkpoint")
     if args.dicom_root:
         source = Source(args.dicom_root)
         for uid in studies.study_uid:
@@ -82,12 +137,14 @@ def main() -> None:
     dataset = StudyDataset(studies, series, args.cache, raw_split=raw_split, **checkpoint["config"])
     if dataset.cache_side != checkpoint["cache_side"]:
         raise ValueError("Inference cache resolution differs from training")
+    if args.studies and dataset.source_revision != checkpoint["cache_source_revision"]:
+        raise ValueError("Held-out inference cache source revision differs from checkpoint")
     loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.workers)
     model = StudyNet(checkpoint["width"]).to(device)
     model.load_state_dict(checkpoint["model"])
     predictions, metrics = predict(model, loader, device)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    if args.template:
+    if template is not None:
         write_submission(predictions, template, args.output)
     else:
         predictions.to_csv(args.output, index=False)
@@ -103,6 +160,7 @@ def main() -> None:
             "cache_version": CACHE_VERSION,
             "cache_side": dataset.cache_side,
             "cache_source_revision": dataset.source_revision,
+            **bindings,
         }
     )
     args.output.with_suffix(".metrics.json").write_text(json.dumps(metrics, indent=2))

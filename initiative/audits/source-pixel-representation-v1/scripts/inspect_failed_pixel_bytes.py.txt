@@ -1,0 +1,23 @@
+from pathlib import Path
+import hashlib,io,json,sys,datetime
+import pandas as pd
+import pydicom
+from dotenv import load_dotenv
+W=Path(__file__).resolve().parent;R=W/'recovered';load_dotenv(W.parent/'.env');sys.path.insert(0,str(R))
+from rsna.preprocess import Source
+out=W/'source-byte-failures-v1';out.mkdir(exist_ok=True)
+inv=pd.read_parquet(R/'initiative/source/inventory');failed=[json.loads(x)for x in (W/'cache256-v3/progress.jsonl').read_text().splitlines() if json.loads(x)['status']=='error'];uids=[x['series_uid']for x in failed];f=inv[inv.series_uid.isin(uids)].copy();source=Source(None,lfs_objects=f.set_index('path').to_dict('index'),revision='52f995f4568e36bfa5fbbaf69a89af41226b4f5d')
+f.to_parquet(out/'source-inventory.parquet',index=False);records=[]
+for uid in uids:
+ frame=f[f.series_uid.eq(uid)].sort_values('path');data=source.read_series(frame.path.tolist())
+ for row,blob in zip(frame.to_dict('records'),data):
+  assert len(blob)==row['bytes'] and hashlib.sha256(blob).hexdigest()==row['sha256'];p=out/'native'/row['path'];p.parent.mkdir(parents=True,exist_ok=True)
+  if p.exists():assert p.read_bytes()==blob
+  else:p.write_bytes(blob)
+  ds=pydicom.dcmread(io.BytesIO(blob));d={k:str(ds.get(k,''))for k in ['Rows','Columns','BitsAllocated','BitsStored','HighBit','SamplesPerPixel','NumberOfFrames','PhotometricInterpretation','PixelRepresentation','InstanceNumber','SeriesDescription','ImageType','RescaleSlope','RescaleIntercept','LossyImageCompression','LossyImageCompressionRatio','DerivationDescription','ImagePositionPatient','ImageOrientationPatient','PixelSpacing']};d.update({'source':row,'local_path':str(p.relative_to(W)),'transfer_syntax':str(ds.file_meta.TransferSyntaxUID),'pixel_vr':ds['PixelData'].VR,'pixel_bytes':len(ds.PixelData),'pixel_data_sha256':hashlib.sha256(ds.PixelData).hexdigest(),'declared_frame_bytes':int(ds.Rows)*int(ds.Columns)*int(ds.SamplesPerPixel)*int(ds.BitsAllocated)//8})
+  try:
+   a=ds.pixel_array;d['decode_status']='ok';d['decoded_shape']=list(a.shape);d['decoded_dtype']=str(a.dtype)
+  except Exception as e:d['decode_status']='error';d['decode_error']=str(e)
+  records.append(d)
+ print({'series_uid':uid,'slices':len(frame),'decode_failures':sum(r['decode_status']=='error'for r in records if r['source']['series_uid']==uid)},flush=True)
+d={'stage':'source_exact_original_header_and_pixel_length_investigation','agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source_revision':source.revision,'source_files':len(f),'source_bytes':int(f.bytes.sum()),'records':records,'source_bytes_modified':False,'decoder_policy_changed':False};p=out/'header-pixel-findings.json';assert not p.exists();p.write_text(json.dumps(d,indent=2)+'\n');print({'result_sha256':hashlib.sha256(p.read_bytes()).hexdigest()})

@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "stage": "root_independent_source_recovery_code_review",
+  "agent_id": "/root",
+  "completed_at_utc": "2026-09-21T07:05:36.137279+00:00",
+  "complete_code_test_and_doc_read": true,
+  "focused_tests_independently_run": 26,
+  "focused_tests_passed": true,
+  "checked_input_references": [
+    {
+      "path": "recovered/rsna/source_recovery.py",
+      "sha256": "17fc6c3330b90e5e449472a7457f374ceb3e6f02a6a825cdd248468792f6c3ae",
+      "bytes": 25623
+    },
+    {
+      "path": "recovered/tests/test_source_recovery.py",
+      "sha256": "c5552bd8680caf4bc584c9e5d0b196ab5f4e762f387f806c0490a969394f5756",
+      "bytes": 17613
+    },
+    {
+      "path": "recovered/docs/source-recovery.md",
+      "sha256": "122c8af096c7744d6644bdeead2b81778d4e46e757f4c08fe9e398dfc26adfa2",
+      "bytes": 6470
+    },
+    {
+      "path": "source-byte-failures-v1/source-recovery-implementation-validation.json",
+      "sha256": "f889e740714e3b81088af136bb85970c18741832e95db94b5f0ad0ed8af2bc5f",
+      "bytes": 732
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-panels/manifest.json",
+      "sha256": "dddd31bed173090c011accdb6b7af58854ae9d12fc1b08952631419b342813da",
+      "bytes": 5678
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-panels/case-1-authoritative-and-neighbor.png",
+      "sha256": "c2df806a3141812992fb806ac4b21fe589f8d3d3fc050904843bfcff1da6d2e4",
+      "bytes": 537740
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-panels/case-2-authoritative-and-neighbor.png",
+      "sha256": "ae380dc31f582406d78f1ac813dda27409fea026c04e4e9982cc69151333781f",
+      "bytes": 203803
+    },
+    {
+      "path": "source-byte-failures-v1/independent-source-diagnosis-handoff.json",
+      "sha256": "5df23822f149f9fb78de50c062266771d3ce2df38a650f155d6eea97c0de8bbe",
+      "bytes": 6075
+    },
+    {
+      "path": "source-byte-failures-v1/independent-official-mirror-comparison.json",
+      "sha256": "f3ea7e803cf1863b68da8d991fb68f17cbc35d7281ebe173f981c529d7d3a6c5",
+      "bytes": 4120
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-visual-assessment.json",
+      "sha256": "23622bfa3f26d23e5079cef89f1cccb218800a46f47e0cad79e3df2b6abe09aa",
+      "bytes": 2981
+    },
+    {
+      "path": "source-byte-failures-v1/root-authoritative-visual-review.json",
+      "sha256": "d37875ab727374c4ac3061a58445e0b392b87ffd7da65e0fa9e8be64a73db297",
+      "bytes": 1521
+    },
+    {
+      "path": "source-byte-failures-v1/independent-authoritative-panels/manifest.json",
+      "sha256": "dddd31bed173090c011accdb6b7af58854ae9d12fc1b08952631419b342813da",
+      "bytes": 5678
+    },
+    {
+      "path": "header-endpoint-full-v1/endpoint-headers.jsonl",
+      "sha256": "d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3",
+      "bytes": 105453219
+    },
+    {
+      "path": "recovered/rsna/dicom.py",
+      "sha256": "a26a16d296fc913a1c3f1f33e8c4d8b38d73c5fb9718e663242e6c7ec077b269",
+      "bytes": 8065
+    },
+    {
+      "path": "recovered/rsna/preprocess.py",
+      "sha256": "07da6625045099b085d2afd76d49203fe15826dc40a00b881b1080aaa8b6ae22",
+      "bytes": 14056
+    },
+    {
+      "path": "recovered/rsna/audit.py",
+      "sha256": "f284e48c266245c0969358559626390c5d4a89fddd48e5aed8010c5a432d81ca",
+      "bytes": 10582
+    },
+    {
+      "path": "recovered/rsna/series_equivalence.py",
+      "sha256": "313304800f91b1157d5d631c3758e27accb03ca022d4e1f7a9285a3054c440ff",
+      "bytes": 20306
+    }
+  ],
+  "implementation_bindings": [
+    {
+      "path": "recovered/rsna/source_recovery.py",
+      "bytes": 25623,
+      "sha256": "17fc6c3330b90e5e449472a7457f374ceb3e6f02a6a825cdd248468792f6c3ae"
+    },
+    {
+      "path": "recovered/tests/test_source_recovery.py",
+      "bytes": 17613,
+      "sha256": "c5552bd8680caf4bc584c9e5d0b196ab5f4e762f387f806c0490a969394f5756"
+    },
+    {
+      "path": "recovered/docs/source-recovery.md",
+      "bytes": 6470,
+      "sha256": "122c8af096c7744d6644bdeead2b81778d4e46e757f4c08fe9e398dfc26adfa2"
+    }
+  ],
+  "review_findings": [
+    "Exact complete baseline/corrected inventory comparison permits only the two source SHA256/size pairs; original and effective local UID/hash/size checks bind all 74 affected sources.",
+    "Unchanged cache membership, metadata and NPZ bytes are verified before hardlink reuse; copied JSON is a separate inode with source_revision as its only semantic modification. Every reuse has explicit lineage.",
+    "Affected series always use fresh strict full-series decoding, including all 72 unchanged neighbors. Missing/orphan caches and extra inventory changes reject reuse.",
+    "New output only, >=20 GiB runtime reserve, partial failure status retained, full audit mandatory. Hardlinked NPZ bytes must never be modified in place.",
+    "Read-only remote receipt validation is supported by earlier root verified private HF publication; this command does not independently contact HF. No code change to native decoder, preprocessing or audit."
+  ],
+  "disposition": "accepted_for_real_new_cache_migration_followed_by_full_audit",
+  "real_migration_complete": false,
+  "full_corrected_audit_complete": false,
+  "training_ready": false
+}

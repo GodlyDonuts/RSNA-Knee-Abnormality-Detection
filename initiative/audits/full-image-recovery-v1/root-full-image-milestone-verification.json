@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "stage": "root_recovery_full_audit_and_selection_verification",
+  "agent_id": "/root",
+  "completed_at_utc": "2026-09-21T07:23:58.702826+00:00",
+  "status": "verified_technical_milestone_not_training_release",
+  "reused_series_all_original_and_new_metadata_hashes_verified": 24384,
+  "metadata_semantic_delta_exactly_source_revision": true,
+  "metadata_inodes_distinct_and_npz_inodes_shared": true,
+  "fresh_series": [
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.34685905030370793639196564723935583035",
+      "series_uid": "1.2.826.0.1.3680043.8.498.39396636671446532796538574315802928348",
+      "n_slices": 36,
+      "source_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.37833587429731221455928642963031995680",
+      "series_uid": "1.2.826.0.1.3680043.8.498.31160785238781353848727311763596115703",
+      "n_slices": 38,
+      "source_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+    }
+  ],
+  "full_audit": {
+    "audit_schema_version": 2,
+    "complete": true,
+    "inventory_fingerprint_sha256": "5bdaa5fa06a61a914d92c7fa3b82159b2af89c8228fdc78c1a8e91305a2e5395",
+    "source_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7",
+    "cache_version": "series-u16-v3",
+    "studies": 4410,
+    "series": 24386,
+    "decoded_slices": 819635,
+    "source_bytes": 569755324064,
+    "cache_side": 256,
+    "cache_bytes": 82555132978,
+    "series_warning_counts": {},
+    "series_transfer_syntax_counts": {
+      "1.2.840.10008.1.2.1": 24386
+    },
+    "constant_source_slices_excluded_from_duplicate_detection": 5,
+    "pixel_hash_definition": "shape_i64le_and_decoded_samples_f64le_before_rescale",
+    "cross_study_pixel_duplicate_pairs": [
+      [
+        "1.2.826.0.1.3680043.8.498.99725523560254732094432244556623376711",
+        "1.2.826.0.1.3680043.8.498.99926624968240681772735102303531613209"
+      ]
+    ],
+    "train_test_duplicate_pairs": [],
+    "image_interpretation": "Technical decode/geometry/content audit; no diagnostic image rereading.",
+    "patient_identity": "Study UIDs do not establish that different studies belong to different patients.",
+    "series_cache_index_sha256": "0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81"
+  },
+  "source_split_study_counts": {
+    "test_series": 3,
+    "train_series": 4407
+  },
+  "selections": [
+    {
+      "split": "train_series",
+      "n_input_studies": 4407,
+      "n_input_series": 24371,
+      "n_retained_series": 24338,
+      "n_excluded_series": 33,
+      "n_equivalence_groups": 33,
+      "selected_csv_sha256": "35fcf7333b7b4cc91180ca282afdf462c3bdbe101639c3184c11b30cfe823d97",
+      "plan_sha256": "23c23cde2791ee5f05d670507f7c3d27952275d38c1cde9b8d5344d029188bc1"
+    },
+    {
+      "split": "test_series",
+      "n_input_studies": 3,
+      "n_input_series": 15,
+      "n_retained_series": 15,
+      "n_excluded_series": 0,
+      "n_equivalence_groups": 0,
+      "selected_csv_sha256": "a3a61a35f40cdcbb03a733291041be32814b036f62ad2edc2233cf69d99e3c69",
+      "plan_sha256": "5cdfc3bfe50f740d6007594bdb8e04f60a3961421db861be20ec02280808bced"
+    }
+  ],
+  "preserved_cross_study_pixel_edges": [
+    [
+      "1.2.826.0.1.3680043.8.498.99725523560254732094432244556623376711",
+      "1.2.826.0.1.3680043.8.498.99926624968240681772735102303531613209"
+    ]
+  ],
+  "input_bindings": [
+    {
+      "path": "cache256-v3-official-recovery-v1/source_recovery_status.json",
+      "sha256": "a238fb4609058a7855759f13532433d7762fe6a7074f82f8d760eae778741742",
+      "bytes": 2498
+    },
+    {
+      "path": "cache256-v3-official-recovery-v1/cache_recovery_lineage.jsonl",
+      "sha256": "506ca8e3aa8f10a36fbdc96bc853b1a4dfcbec8f55949aac3bf26701c5642934",
+      "bytes": 37564415
+    },
+    {
+      "path": "dicom-audit-v3-official-recovery-v1/dicom_audit.json",
+      "sha256": "dd2b482452df616675222dd9766c774d2abbab06fec44b5e8e0c1c2c7061a347",
+      "bytes": 327630
+    },
+    {
+      "path": "dicom-audit-v3-official-recovery-v1/series_cache_index.parquet",
+      "sha256": "0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81",
+      "bytes": 3960525
+    },
+    {
+      "path": "series-selected-train-official-v1/series_selection_audit.json",
+      "sha256": "4af393fef61e616c410e7fd4138bcbf7db469eede09e1e8fac3c61e4bcbf76c2",
+      "bytes": 1174
+    },
+    {
+      "path": "series-selected-train-official-v1/series_selection_plan.json",
+      "sha256": "23c23cde2791ee5f05d670507f7c3d27952275d38c1cde9b8d5344d029188bc1",
+      "bytes": 49960495
+    },
+    {
+      "path": "series-selected-train-official-v1/series_selected.csv",
+      "sha256": "35fcf7333b7b4cc91180ca282afdf462c3bdbe101639c3184c11b30cfe823d97",
+      "bytes": 6860204
+    },
+    {
+      "path": "series-selected-test-official-v1/series_selection_audit.json",
+      "sha256": "6b2c116a61a8f20f7d0c2b0eea2411672d0c9e64018fe19dadf1cc51993f3719",
+      "bytes": 1157
+    },
+    {
+      "path": "series-selected-test-official-v1/series_selection_plan.json",
+      "sha256": "5cdfc3bfe50f740d6007594bdb8e04f60a3961421db861be20ec02280808bced",
+      "bytes": 31930
+    },
+    {
+      "path": "series-selected-test-official-v1/series_selected.csv",
+      "sha256": "a3a61a35f40cdcbb03a733291041be32814b036f62ad2edc2233cf69d99e3c69",
+      "bytes": 4221
+    }
+  ],
+  "scope": "Root reviewed complete recovery code/tests/docs, ran 26 focused tests, executed real migration and full audit, verified every lineage JSON hash/semantic delta/inode relation and exact final memberships. Full audit and selection each checked NPZ content; this verifier does not hash all NPZ bytes a third time. Prior native hashes remain trusted decoder evidence, not second raw decode of the entire corpus. Corrected inventory preserved externally by hash and original baseline plus exact2 patch. No clinical labels/gold values accessed by this script.",
+  "training_ready": false
+}

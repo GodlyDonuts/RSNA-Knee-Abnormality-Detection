@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_endpoint_cache_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "frozen_at_utc": "2026-09-21T06:32:06.532643+00:00",
+  "case": "042:14",
+  "study_uid": "1.2.826.0.1.3680043.8.498.38095098835657518803781210111463995296",
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "source_explicit_current_bilateral_content": true,
+  "source_report_blocks": 1,
+  "source_current_knees_described": 2,
+  "source_official_archive_blinded_exact_match": true,
+  "n_series": 4,
+  "n_inventory_slices": 95,
+  "n_endpoint_headers": 8,
+  "source_bytes": 47251160,
+  "observed_endpoint_laterality": [
+    "RIGHT"
+  ],
+  "within_series_or_study_endpoint_side_variation": false,
+  "n_endpoint_patient_id_hashes": 1,
+  "n_endpoint_frame_of_reference_hashes": 4,
+  "series_description_counts": {
+    "DummySeriesDesc!": 4
+  },
+  "observations": [
+    "The report explicitly describes two current studies together in one integrated bilateral report; it does not supply per-side study UIDs or separate chronological examinations.",
+    "All eight lexical endpoint headers across four series state Laterality=RIGHT. ImageLaterality and FrameLaterality are blank. A blank tag is not used to infer a second side.",
+    "Series numbers 201/301/401/501 and acquisition numbers 2/3/4/5 form one short sequence set. Recorded IOPs support one axial, one coronal and two sagittal-type acquisitions, without a second repeated set.",
+    "All four SeriesDescription strings are the literal placeholder DummySeriesDesc!. Repetition of that placeholder is not evidence of four repeated acquisitions or a bilateral protocol.",
+    "There is one nonempty hashed PatientID at all endpoints and four FrameOfReference hashes, one per series. These deidentified values do not prove real patient identity or report-image correspondence."
+  ],
+  "candidate_classification": "integrated_bilateral_report_with_one_coherent_single-side_tagged_acquisition_set",
+  "multiple_or_mixed_knees_in_images_established": false,
+  "report_source_recovery_corruption_established": false,
+  "native_escalation_recommended_now": false,
+  "native_escalation_reason": "Current metadata provides no repeated or mixed-side acquisition-set candidate that a bounded native audit needs to disambiguate. A full study download would not by itself establish administrative report-to-study linkage. Preserve the correspondence flag and root source-target assessment; obtain explicit study/side mapping if a release policy requires it.",
+  "inclusion_limit": "No target values or existing reviews changed. Single-knee technical eligibility and any study-level masking remain pending root adjudication; this metadata assessment does not automatically mask, restore or assign clinical targets. Shared bilateral source statements and image-correspondence policy must be considered separately.",
+  "scope": "All inventory SOP/source hashes and cache metadata bindings checked; all nine selected-study NPZ files across the two cases were SHA256 rechecked. Only lexical first/last native headers per series were inspected from the completed survey; no new source redecode, all-slice native-header check, or anatomical image review occurred.",
+  "input_bindings": [
+    {
+      "path": "annotation-staging/correspondence-042014-042041/04214-source-preread.json",
+      "sha256": "45c4ad3f85b801261827977e2bf873e263592262c0ddefc5a3cdefa0ea31abd1",
+      "bytes": 2615
+    },
+    {
+      "path": "annotation-staging/correspondence-042014-042041/04214-source-copy-assessment.json",
+      "sha256": "ee37b60406bad29e29398073b9420eb907b1ab3b7f70f9f6b22a7efed28f16f6",
+      "bytes": 864
+    },
+    {
+      "path": "annotation-staging/correspondence-042014-042041/04214-inventory.json",
+      "sha256": "a987b9a64af22b2df8832c6e4a2c5588b0e5a8715e9752b53c7f7e0866891585",
+      "bytes": 63218
+    },
+    {
+      "path": "annotation-staging/correspondence-042014-042041/04214-endpoint-headers.jsonl",
+      "sha256": "54bfd3b5ed62afa704d069317d5df1b33554f7a91a1f39d25df29c5c951e8ae8",
+      "bytes": 17713
+    },
+    {
+      "path": "annotation-staging/correspondence-042014-042041/04214-series-technical-metadata.json",
+      "sha256": "d81c66e69cd6736c77f6c7848b131c68574860a1f15a2308e0516f6ea9395693",
+      "bytes": 20299
+    },
+    {
+      "path": "annotation-staging/correspondence-042014-042041/04214-technical-bindings.json",
+      "sha256": "08592d986f1c2272695acd456944f1479d6d0842d12febb51c623f8b3053235e",
+      "bytes": 5082
+    }
+  ]
+}
