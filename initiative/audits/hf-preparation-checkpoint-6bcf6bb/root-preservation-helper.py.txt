@@ -1,0 +1,173 @@
+"""Preserve completed checkpoint evidence and an explicitly pending QA proposal."""
+import datetime
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+from dotenv import dotenv_values
+
+WORK = Path(__file__).resolve().parent
+W = WORK.parent
+R = WORK / "recovered"
+G = WORK / "annotation-staging/post-review-readiness4407-v1"
+H = WORK / "annotation-staging/hf-review4407-preparation-v1"
+COMMIT = "6bcf6bbc6b49b1627ca257b892881b8bd693b750"
+B = WORK / "hf-preparation-checkpoints" / COMMIT
+TARGETS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA",
+           "Lateral OA", "PF OA", "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def write_new(path, value):
+    with path.open("x") as stream:
+        stream.write(json.dumps(value, indent=2, ensure_ascii=False) + "\n")
+
+
+preread = read(G / "root-duplicate-source-preread.json")
+assert sha(G / "root-duplicate-source-preread.json") == "e62737b83a2e57845d9c9283f6630d6fa552c07115bf46851428f671ed980aaf"
+registry_path = R / "initiative/reviews-v2/adjudications/registry.json"
+registry = read(registry_path)
+assert sha(registry_path) == "fb7303486a81e1613f3b9e2b79bc77d409990061dd9ad2aa2be1878afeb05f36"
+old_inspection = read(G / "adjudications-inspection.json")
+corrected_keys = {(c["study_uid"], c["target"]) for c in old_inspection["changes"]}
+changes = []
+for item in preread["records"]:
+    path = R / f"initiative/reviews-v2/reviewed/{item['batch']}-reviewed.jsonl"
+    original = next(json.loads(line) for line in path.read_text().splitlines()
+                    if json.loads(line)["study_uid"] == item["study_uid"])
+    for index, target in enumerate(TARGETS):
+        if original["states"][index] == item["states"][index]:
+            continue
+        assert (item["study_uid"], target) not in corrected_keys
+        changes.append(dict(
+            study_uid=item["study_uid"], batch=item["batch"], index=item["index"],
+            target=target, source_path=item["source_path"], source_sha256=item["source_sha256"],
+            artifact_path=str(path.relative_to(R)), artifact_sha256=sha(path),
+            before_state=original["states"][index], before_evidence=original["evidence"][index],
+            proposed_state=item["states"][index], source_quote=item["evidence"][index],
+            reason=item["notes"], observed_mask_changes=target == "Effusion",
+        ))
+assert len(changes) == 7
+assert {(x["batch"], x["index"], x["target"]) for x in changes} == {
+    ("batch-026", 49, "Effusion"), ("batch-045", 19, "Effusion"),
+    ("batch-011", 48, "Effusion"), ("batch-057", 36, "Effusion"),
+    ("batch-000", 44, "Fracture"), ("batch-072", 27, "Contusion"),
+    ("batch-072", 27, "Fracture"),
+}
+proposal = dict(
+    schema_version=1, agent_id="/root", session_id="/root",
+    status="proposed_pending_distinct_independent_source_assessment",
+    source_reports_sha256=registry["source_reports_sha256"], rubric_sha256=registry["rubric_sha256"],
+    preread_sha256=sha(G / "root-duplicate-source-preread.json"),
+    candidate_audit_sha256=sha(G / "duplicate-consistency-candidates.json"),
+    proposed_errata=changes,
+    notes="Root reread all nine complete sources and froze108 assessments before opening current discrepancy details. Historical exposure is disclosed in the preread. Four Effusion negative-to-uncertain proposals affect observed masks; one Contusion and two Fracture uncertain-to-not-mentioned proposals preserve masked loss. The two Fracture proposals were found by full source comparison, although the existing duplicate copies agree on that state. No changes are accepted or applied. Original reviews, gold and sources remain immutable. A distinct agent/session must read the neutral sources first and assess every proposal before any accepted correction can be registered.",
+    training_ready=False,
+)
+write_new(G / "root-duplicate-proposed-errata.json", proposal)
+(G / "README.md").write_text("""# Full-coverage consistency inspection
+
+This gold-blind inspection covers all4,407 reviewed reports and all89 exact
+review artifact hashes. Existing27 registered corrections are used only in an
+inspection copy. The54 identical normalized-report groups contain204 studies;
+four groups have one differing target each. No positive-versus-negative pair
+was found, but three group differences affect observed supervision.
+
+Root then personally read every full source in the neutral packet and froze108
+target assessments before opening the discrepancy details. Earlier exposure is
+disclosed. Comparison yields seven pending correction proposals across six
+studies: four Effusion negative-to-uncertain changes, one Contusion and two
+Fracture uncertain-to-not-mentioned changes. The latter two are additional
+source-based findings despite duplicate agreement. This is not adjudication.
+
+A separate assessor must first read `duplicate-consistency-neutral-sources.json`
+and the frozen v2 rubric, freeze source-based assessments, then inspect
+`root-duplicate-proposed-errata.json` and the exact original reviews. Preserve
+all disagreements and real identities. Do not replace original reviews or
+register any proposal as an accepted correction without that assessment.
+
+The all-release qualified-negation and duplicate-consistency check remains
+pending, alongside the existing cartilage and bone terminology gates. Report
+wording outside these exact duplicate groups still needs consistency review.
+An absent duplicate conflict does not certify correct medical extraction.
+""")
+
+receipt = read(H / "runs/root-publish-001/publication-receipt.json")
+assert receipt["status"] == "verified_private_preparation_checkpoint"
+assert receipt["github_commit"] == COMMIT
+assert receipt["hf_publication_revision"] == "046466739c134be9287ef7c5471968b704467cfd"
+assert receipt["private"] and receipt["remote_objects_verified"]
+assert receipt["source_tree_and_official_metadata_unchanged"] and not receipt["training_ready"]
+assert sha(B / "manifest.json") == receipt["manifest"]["sha256"]
+assert sha(B / "publication-operation.json") == receipt["operation"]["sha256"]
+assert sha(H / "publish_checkpoint.py") == receipt["publisher"]["sha256"]
+build = read(H / "build-receipt.json")
+local = read(H / "runs/root-publish-001/local-preflight.json")
+assert build["validation"] == local["tar_validation"] == dict(
+    members=5404, reviewed_batches=89, reviewed_reports=4407,
+    all_member_git_blobs_verified=True, secret_scan_passed=True,
+)
+assert build["package"]["sha256"] == local["package"]["sha256"] == receipt["uploaded_files"][0]["sha256"]
+
+secrets = [v.encode() for k, v in dotenv_values(W / ".env").items()
+           if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+assert len(secrets) == 2
+archives = {
+    "hf-preparation-checkpoint-6bcf6bb": [(p, Path("preparation") / p.relative_to(H))
+        for p in sorted(H.rglob("*")) if p.is_file() and "__pycache__" not in p.parts
+        and not p.name.endswith((".lock", ".pyc"))] + [
+        (B / name, Path("package") / name) for name in ["manifest.json", "publication-operation.json", "README.md"]
+    ] + [(H / "runs/root-publish-001/publication-receipt.json", Path("publication-receipt.json"))],
+    "post-review-consistency4407-v1": [(p, p.relative_to(G)) for p in sorted(G.rglob("*"))
+        if p.is_file() and "__pycache__" not in p.parts],
+}
+for name, files in archives.items():
+    files.append((Path(__file__), Path("root-preservation-helper.py")))
+    dest = R / "initiative/audits" / name
+    assert not dest.exists()
+    assert shutil.disk_usage(W).free - sum(p.stat().st_size for p, _ in files) > 20 * 2**30 + 2**20
+    entries = []
+    for source, relative in files:
+        assert not source.is_symlink()
+        data = source.read_bytes()
+        assert len(data) < 100_000_000 and all(value not in data for value in secrets)
+        target = dest / relative
+        if target.suffix == ".py":
+            target = target.with_suffix(".py.txt")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("xb") as stream:
+            stream.write(data)
+        assert sha(target) == sha(source)
+        entries.append(dict(original_path=str(source.relative_to(WORK)),
+                            archived_path=str(target.relative_to(R)), sha256=sha(target), bytes=len(data)))
+    write_new(dest / "preservation.json", dict(
+        stage="root_verified_byte_preservation", agent_id="/root", session_id="/root",
+        at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(), files=entries,
+        excluded="Generated bytecode and lock files only; the1.308GB tar stays at its verified immutable private HF path with manifest and receipts. No source or review modified. Staged547DICOM duplicates share archived immutable inodes; their full byte-preservation proof is included. Never write through those inodes.",
+        training_ready=False,
+    ))
+    print(json.dumps(dict(archive=name, files=len(entries), bytes=sum(x["bytes"] for x in entries),
+                          preservation_sha256=sha(dest / "preservation.json"))))
+
+audit = R / "initiative/audits/post-review-consistency4407-v1"
+qa_path = R / "initiative/reviews-v2/adjudications/qa/duplicate-qualified-negation-consistency.json"
+write_new(qa_path, dict(
+    schema_version=1, source_reports_sha256=registry["source_reports_sha256"],
+    rubric_sha256=registry["rubric_sha256"], id="duplicate-qualified-negation-consistency-all-release-reviews",
+    status="pending", scope="all_release_reviews",
+    reason="The full4407-report inspection finds4 identical-report groups with differing states. Source-based root review proposes7 changes across6 studies, including4 qualified-effusion masks and3 already-masked bone-state clarifications. No proposal is independently adjudicated or applied. Resolve the exact duplicate findings and assess qualified-negation consistency across all final reviewed artifacts, including reports outside these groups; preserve source scope and do not infer severity from a generic significant qualifier.",
+    evidence=[dict(path=str((audit / name).relative_to(R)), sha256=sha(audit / name)) for name in
+              ["duplicate-consistency-candidates.json", "root-duplicate-source-preread.json", "root-duplicate-proposed-errata.json"]],
+))
+registry["semantic_qa"].append(dict(path=str(qa_path.relative_to(R)), sha256=sha(qa_path)))
+registry_path.write_text(json.dumps(registry, indent=2) + "\n")
+print(json.dumps(dict(pending_proposals=len(changes), accepted_new_changes=0,
+                      semantic_qa_records=len(registry["semantic_qa"]), registry_sha256=sha(registry_path))))

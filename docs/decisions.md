@@ -105,7 +105,9 @@ Historical outputs and in-progress drafts are not a corrected release.
 
 ## Remaining acceptance gates
 
-1. Finish and archive every independent review; validate all evidence and IDs.
+1. All4,407 reports have two archived review passes with validated evidence and
+   IDs. Resolve the remaining cartilage, bone terminology, and qualified-negation/
+   duplicate semantic gates against the exact final artifacts and corrections.
 2. Finish remaining technical correspondence checks and incorporate the complete
    image audit and verified duplicate edges into final leakage isolation.
 3. Generate disjoint corrected manifests, coverage, distributions, and gold

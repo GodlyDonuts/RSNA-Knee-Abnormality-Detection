@@ -1,0 +1,60 @@
+"""Find state disagreements for identical normalized reports; never relabel."""
+from pathlib import Path
+import collections
+import copy
+import hashlib
+import json
+import sys
+
+G=Path(__file__).resolve().parent
+W=G.parents[1]
+R=W/'recovered'
+sys.path.insert(0,str(R))
+from rsna.labels import report_group
+from rsna.schema import TARGETS
+
+sources={}
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+    for i,row in enumerate(json.loads(p.read_text())):
+        assert row['study_uid'] not in sources
+        sources[row['study_uid']]=dict(**row,batch=p.stem,index=i,source_path=str(p.relative_to(R)),source_sha256=hashlib.sha256(p.read_bytes()).hexdigest())
+reviews={}
+bindings={}
+for p in sorted((R/'initiative/reviews-v2/reviewed').glob('*-reviewed.jsonl')):
+    bindings[str(p.relative_to(R))]=hashlib.sha256(p.read_bytes()).hexdigest()
+    for line in p.read_text().splitlines():
+        row=json.loads(line);assert row['study_uid'] not in reviews;reviews[row['study_uid']]=row
+assert len(sources)==len(reviews)==4407 and set(sources)==set(reviews)
+effective=copy.deepcopy(reviews)
+inspection=json.loads((G/'adjudications-inspection.json').read_text())
+for change in inspection['changes']:
+    row=effective[change['study_uid']];t=TARGETS.index(change['target'])
+    assert dict(state=row['states'][t],evidence=row['evidence'][t])==change['before']
+    row['states'][t]=change['after']['state'];row['evidence'][t]=change['after']['evidence']
+groups=collections.defaultdict(list)
+for uid,s in sources.items():groups[report_group(s['report'])].append(uid)
+duplicates={key:sorted(uids) for key,uids in groups.items() if len(uids)>1}
+conflicts=[];neutral=[]
+for group,uids in sorted(duplicates.items()):
+    differences=[]
+    for t,target in enumerate(TARGETS):
+        states={effective[uid]['states'][t] for uid in uids}
+        if len(states)<2:continue
+        differences.append(dict(target=target,states=sorted(states),opposite_observed_polarities={'positive','negative'}.issubset(states),
+            training_mask_or_value_differs=bool(states & {'positive','negative'}),
+            records=[dict(study_uid=uid,batch=sources[uid]['batch'],index=sources[uid]['index'],state=effective[uid]['states'][t],evidence=effective[uid]['evidence'][t]) for uid in uids]))
+    if differences:
+        conflicts.append(dict(report_group=group,study_uids=uids,differences=differences))
+        neutral.append(dict(report_group=group,source_records=[sources[uid] for uid in uids]))
+summary=dict(stage='readonly_duplicate_report_consistency_candidates',reports=4407,reviewed_artifact_bindings=bindings,
+    duplicate_groups=len(duplicates),duplicate_studies=sum(len(v) for v in duplicates.values()),
+    conflicting_groups=len(conflicts),conflicting_group_targets=sum(len(c['differences']) for c in conflicts),
+    opposite_polarity_group_targets=sum(x['opposite_observed_polarities'] for c in conflicts for x in c['differences']),
+    observed_mask_or_value_different_group_targets=sum(x['training_mask_or_value_differs'] for c in conflicts for x in c['differences']),
+    accepted_corrections_used_for_comparison=inspection['n_changes'],
+    adjudication_registry_sha256=inspection['registry_sha256'],
+    scope='Grouping uses production NFKC/casefold/whitespace normalization. Already registered corrections are applied only to an in-memory inspection copy. This is a consistency candidate list, not medical adjudication, source identity, patient identity or final training masks. No gold values read, no new annotations or source files changed.',
+    conflicts=conflicts,training_ready=False)
+for name,obj in [('duplicate-consistency-candidates.json',summary),('duplicate-consistency-neutral-sources.json',neutral)]:
+    p=G/name;assert not p.exists();p.write_text(json.dumps(obj,indent=2,ensure_ascii=False)+'\n')
+print(json.dumps({k:v for k,v in summary.items() if isinstance(v,(int,bool,str))}))

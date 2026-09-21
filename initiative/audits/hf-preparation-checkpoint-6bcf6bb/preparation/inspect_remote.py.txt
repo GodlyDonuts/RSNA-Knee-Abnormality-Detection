@@ -1,0 +1,30 @@
+"""Fresh read-only checks for the exact immutable publication plan."""
+from pathlib import Path
+import importlib.util
+import json
+import sys
+
+G=Path(__file__).resolve().parent
+spec=importlib.util.spec_from_file_location('checkpoint_publisher',G/'publish_checkpoint.py')
+m=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+try:
+    m.load_plan('dcc69a5b0aa953728de963afbc2b776eb047d5e9b3cd36620f364aac01883c01')
+    ci=m.ci_guard()
+    hub=m.configure_hub()
+    from dotenv import dotenv_values
+    token=dotenv_values(m.WORK.parent/'.env')['HF_TOKEN']
+    api=hub.HfApi(token=token,endpoint=m.ENDPOINT)
+    head=m.private_head(api)
+    m.require(head==m.PARENT,'unexpected_private_head')
+    source=m.verify_source_unchanged(api,head)
+    m.require(m.private_head(api)==head,'head_changed')
+    disk=m.disk_guard(json.loads((G/'pinned-package-measurement.json').read_text())['package']['bytes'])
+    proof=dict(stage='readonly_exact_plan_remote_preflight_passed',agent_id='/root',at_utc=m.now(),
+        github_commit=m.COMMIT,github_ci=ci,hf_repo=m.HF_REPO,private=True,parent=head,
+        source_tree_and_official_metadata_identities=source,disk=disk,remote_writes=0,training_ready=False)
+    m.write_new_json(G/'readonly-preflight.json',proof)
+    print(json.dumps(dict(stage=proof['stage'],parent=head,private=True,remote_writes=0,free_bytes=disk['free_bytes'])))
+except BaseException as e:
+    print(json.dumps(dict(stage='readonly_preflight_stopped',error_code=e.args[0] if type(e) is m.GuardError else 'external_or_unexpected_error',error_type=type(e).__name__,remote_writes=0)))
+    sys.exit(1)

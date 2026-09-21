@@ -1,0 +1,55 @@
+"""Share verified immutable staging/archive bytes while preserving both paths."""
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+
+G=Path(__file__).resolve().parent
+W=G.parents[1]
+R=W/'recovered'
+plan_path=G/'readonly-storage-dedup-candidates.json'
+plan=json.loads(plan_path.read_text())
+commit='6bcf6bbc6b49b1627ca257b892881b8bd693b750'
+assert plan['github_commit']==commit and plan['mutation_performed'] is False
+assert len(plan['candidates'])==547 and plan['logical_duplicate_bytes']==471926940
+assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=R,text=True).strip()==commit
+assert not subprocess.check_output(['git','status','--porcelain'],cwd=R,text=True).strip()
+out=G/'storage-dedup-completed.json'
+journal=G/'storage-dedup-events.jsonl'
+assert not out.exists() and not journal.exists()
+free_before=shutil.disk_usage(W).free
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+with journal.open('x') as log:
+    for index,row in enumerate(plan['candidates']):
+        p=W/row['staged_path'];q=R/row['canonical_path']
+        assert p.is_relative_to(W/'annotation-staging/repeated-protocol-native-v1')
+        assert q.is_relative_to(R/'initiative/audits') and p.suffix==q.suffix=='.dcm'
+        assert not p.is_symlink() and not q.is_symlink()
+        ps,qs=p.stat(),q.stat()
+        assert ps.st_ino==row['original_inode'] and qs.st_ino==row['canonical_inode']
+        assert ps.st_nlink==1 and ps.st_dev==qs.st_dev and ps.st_size==qs.st_size==row['bytes']
+        assert ps.st_mode & 0o777 == qs.st_mode & 0o777 == row['mode']
+        a,b=p.read_bytes(),q.read_bytes()
+        assert a==b and hashlib.sha256(a).hexdigest()==row['sha256']
+        assert hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()==row['git_blob']
+        tmp=p.with_name(p.name+'.verified-hardlink-tmp')
+        assert not tmp.exists()
+        os.link(q,tmp)
+        assert tmp.stat().st_ino==qs.st_ino and sha(tmp)==row['sha256']
+        os.replace(tmp,p)
+        assert p.stat().st_ino==q.stat().st_ino and sha(p)==sha(q)==row['sha256']
+        log.write(json.dumps(dict(index=index,staged_path=row['staged_path'],canonical_path=row['canonical_path'],sha256=row['sha256'],bytes=row['bytes'],paths_and_bytes_preserved=True))+'\n')
+        log.flush();os.fsync(log.fileno())
+assert not subprocess.check_output(['git','status','--porcelain'],cwd=R,text=True).strip()
+result=dict(stage='verified_immutable_copy_storage_deduplication_completed',agent_id='/root',
+    completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),github_commit=commit,
+    plan_sha256=sha(plan_path),journal_sha256=sha(journal),files=547,logical_duplicate_bytes=471926940,
+    free_bytes_before=free_before,free_bytes_after=shutil.disk_usage(W).free,
+    original_paths_preserved=True,all_file_contents_unchanged=True,git_worktree_clean=True,
+    full_image_cache_untouched=True,remote_writes=0,
+    scope='Only redundant staged copies now share their already-preserved identical Git archive inode. Each full payload was checked against its pinned Git blob and SHA-256 before and after. Both paths and all bytes remain. These evidence files are immutable: future replacements must unlink/replace a path, never write through a shared inode.',training_ready=False)
+out.write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result))

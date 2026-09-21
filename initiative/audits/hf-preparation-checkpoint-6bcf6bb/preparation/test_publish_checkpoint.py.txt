@@ -1,0 +1,543 @@
+"""Offline recovery regressions: every HTTP response is fake or mocked."""
+
+import hashlib
+import importlib.util
+import io
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tarfile
+from types import SimpleNamespace as NS
+
+import httpx
+import pytest
+
+SCRIPT = Path(__file__).with_name("publish_checkpoint.py")
+spec = importlib.util.spec_from_file_location("recover_checkpoint", SCRIPT)
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+
+def ref(name, data=b"abc"):
+    return {
+        "path": name,
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "bytes": len(data),
+    }
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["../README.md", "audits/../train.csv", "/audits/x", "audits//x", "audits\\x"],
+)
+def test_path_traversal_rejected(path):
+    with pytest.raises(m.GuardError):
+        m.local_path(path)
+
+
+def test_same_size_changed_bytes_and_symlink_rejected(tmp_path):
+    p = tmp_path / "file"
+    p.write_bytes(b"abc")
+    m.verify_file(p, ref("file"))
+    p.write_bytes(b"abd")
+    with pytest.raises(m.GuardError, match="sha256"):
+        m.verify_file(p, ref("file"))
+    link = tmp_path / "link"
+    link.symlink_to(p)
+    with pytest.raises(m.GuardError, match="symlink"):
+        m.verify_file(link, ref("file", b"abd"))
+
+
+def test_duplicate_or_malformed_operation_refs_rejected():
+    with pytest.raises(m.GuardError, match="duplicate"):
+        m.validate_refs([ref("x"), ref("x")])
+    with pytest.raises(m.GuardError, match="ref_size"):
+        m.validate_refs([{**ref("x"), "bytes": True}])
+    with pytest.raises(m.GuardError, match="object_count"):
+        m.validate_refs([ref("x")], 3)
+
+
+def test_timeout_none_infinite_and_oversized_values_are_bounded():
+    request = httpx.Request("GET", "https://example.invalid")
+    request.extensions["timeout"] = {
+        "connect": None,
+        "read": float("inf"),
+        "write": 999,
+        "pool": 4,
+    }
+    m.bounded_request(request)
+    assert request.extensions["timeout"] == {
+        "connect": 15,
+        "read": 120,
+        "write": 120,
+        "pool": 4,
+    }
+
+
+def test_hub_negotiates_http_only_in_fresh_process(tmp_path):
+    # This process imports no network fixtures. The child installs a MockTransport
+    # to demonstrate timeout=None is clamped on actual httpx request construction.
+    code = r"""
+import importlib.util,sys,tempfile
+from pathlib import Path
+spec=importlib.util.spec_from_file_location('recovery',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+hub=m.configure_hub()
+from huggingface_hub import _commit_api as c
+from huggingface_hub.utils._runtime import is_xet_available
+assert is_xet_available() is False
+offered=[]
+def batch(**kw):
+ offered.append(kw['transfers']);return [],[],"basic"
+c.post_lfs_batch_info=batch
+def forbidden(**kw):raise AssertionError('xet must not run')
+c._upload_xet_files=forbidden
+p=Path(sys.argv[2]);p.write_bytes(b'unchanged fixture')
+c._upload_files(additions=[hub.CommitOperationAdd(path_in_repo='fixture',path_or_fileobj=p)],repo_type='dataset',repo_id='test/repo',headers={})
+assert offered==[['basic','multipart']]
+import httpx
+seen=[]
+def transport(req):seen.append(req.extensions['timeout']);return httpx.Response(200,json={})
+with httpx.Client(transport=httpx.MockTransport(transport),event_hooks={'request':[m.bounded_request]}) as client:
+ client.get('https://example.invalid',timeout=None)
+assert seen==[m.HTTP_TIMEOUTS]
+print('http_only_negotiation_and_finite_timeout_verified')
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", code, str(SCRIPT), str(tmp_path / "fixture")],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "http_only_negotiation_and_finite_timeout_verified" in result.stdout
+
+
+def test_source_tree_and_five_csv_identity_all_required(monkeypatch):
+    ids = {
+        name: NS(
+            path=name,
+            **{("tree_id" if name in m.SOURCE_TREES else "blob_id"): "a" * 40},
+        )
+        for name in m.SOURCE_TREES + m.SOURCE_CSVS
+    }
+    api = NS(list_repo_tree=lambda *_args, **_kwargs: list(ids.values()))
+    assert len(m.verify_source_unchanged(api, "c" * 40)) == 7
+
+    def changed(_repo, revision, **_kwargs):
+        rows = list(ids.values())
+        if revision == "c" * 40:
+            rows[-1] = NS(path="sample_submission.csv", blob_id="b" * 40)
+        return rows
+
+    api.list_repo_tree = changed
+    with pytest.raises(m.GuardError, match="publication_changed_source"):
+        m.verify_source_unchanged(api, "c" * 40)
+    api.list_repo_tree = lambda *_args, **_kwargs: list(ids.values())[:-1]
+    with pytest.raises(m.GuardError, match="source_entries_missing"):
+        m.source_identity(api, m.PARENT)
+
+
+@pytest.mark.parametrize(
+    "damage", [None, "missing", "duplicate", "size", "oid", "bytes"]
+)
+def test_remote_complete_membership_lfs_and_ordinary_hashes(monkeypatch, damage):
+    from huggingface_hub.utils import _http
+
+    refs = [ref("large.bin"), ref("README.md", b"document")]
+    entries = [
+        NS(path="large.bin", size=3, lfs=NS(sha256=refs[0]["sha256"])),
+        NS(path="README.md", size=8, lfs=None),
+    ]
+    if damage == "missing":
+        entries.pop()
+    if damage == "duplicate":
+        entries.append(entries[0])
+    if damage == "size":
+        entries[0].size = 4
+    if damage == "oid":
+        entries[0].lfs.sha256 = "0" * 64
+    payload = b"changed!" if damage == "bytes" else b"document"
+    client = httpx.Client(
+        transport=httpx.MockTransport(lambda _req: httpx.Response(200, content=payload))
+    )
+    monkeypatch.setattr(_http, "get_session", lambda: client)
+    api = NS(get_paths_info=lambda *_args, **_kwargs: entries)
+    hub = NS(hf_hub_url=lambda *_args, **_kwargs: "https://example.invalid/file")
+    if damage is None:
+        result = m.verify_remote(api, hub, "fixture-token", "c" * 40, refs)
+        assert [r["verification"] for r in result] == [
+            "hub_lfs_sha256_and_size",
+            "full_http_bytes_sha256_and_size",
+        ]
+    else:
+        with pytest.raises(m.GuardError):
+            m.verify_remote(api, hub, "fixture-token", "c" * 40, refs)
+    client.close()
+
+
+def test_changed_head_only_allows_verification_never_republication():
+    calls = []
+
+    def verified(head):
+        calls.append(head)
+        return ["all exact"]
+
+    assert m.choose_action(m.PARENT, verified) == ("commit_from_original_parent", None)
+    assert calls == []
+    assert m.choose_action("c" * 40, verified) == (
+        "verify_existing_exact_operation",
+        ["all exact"],
+    )
+
+    def mismatch(_head):
+        raise m.GuardError("remote_sha_mismatch")
+
+    with pytest.raises(m.GuardError, match="remote_sha_mismatch"):
+        m.choose_action("d" * 40, mismatch)
+
+
+@pytest.fixture
+def publication_fixture(monkeypatch, tmp_path):
+    data = tmp_path / "unchanged.bin"
+    data.write_bytes(b"abc")
+    refs = [ref("audits/fixture-" + str(n)) for n in range(3)]
+    operation = {"uploaded_files": refs}
+    package = tmp_path / "package"
+    package.mkdir()
+    op = package / "publication-operation.json"
+    op.write_text(json.dumps(operation))
+    (package / "manifest.json").write_text("{}")
+    (tmp_path / "hf-review3607-stalled-attempt-stop.json").write_text("{}")
+    monkeypatch.setattr(m, "WORK", tmp_path)
+    monkeypatch.setattr(m, "PACKAGE", package)
+    monkeypatch.setattr(m, "local_path", lambda _name: data)
+    monkeypatch.setattr(
+        m,
+        "ci_guard",
+        lambda: {"conclusion": "success", "headSha": m.COMMIT, "status": "completed"},
+    )
+    monkeypatch.setattr(m, "disk_guard", lambda *_: {})
+    monkeypatch.setattr(
+        m, "verify_source_unchanged", lambda *_args: {"all_seven": "equal"}
+    )
+    monkeypatch.setattr(
+        m,
+        "verify_remote",
+        lambda _api, _hub, _token, _rev, refs, _progress: refs.copy(),
+    )
+    api = NS(head=m.PARENT, commit_calls=[])
+    api.repo_info = lambda *_args, **_kwargs: NS(private=True, sha=api.head)
+
+    def commit(**kwargs):
+        api.commit_calls.append(kwargs)
+        api.head = "c" * 40
+        return NS(oid=api.head)
+
+    api.create_commit = commit
+    hub = NS(
+        CommitOperationAdd=lambda **kw: NS(
+            path_in_repo=kw["path_in_repo"],
+            upload_info=NS(size=3, sha256=hashlib.sha256(b"abc").digest()),
+        )
+    )
+    out = tmp_path / "run"
+    out.mkdir()
+    return api, hub, operation, m.RunJournal(out), out
+
+
+def test_recovery_success_uses_exact_parent_and_full_operation(publication_fixture):
+    api, hub, operation, journal, out = publication_fixture
+    m.publish(api, hub, "fixture", operation, journal, out)
+    assert len(api.commit_calls) == 1
+    call = api.commit_calls[0]
+    assert call["parent_commit"] == m.PARENT and call["num_threads"] == 2
+    assert [r.path_in_repo for r in call["operations"]] == [
+        r["path"] for r in operation["uploaded_files"]
+    ]
+    receipt = json.loads((out / "publication-receipt.json").read_text())
+    assert receipt["remote_objects_verified"] and receipt["training_ready"] is False
+    assert not (m.PACKAGE / "publication-receipt.json").exists()
+
+
+def test_recovery_idempotent_success_does_not_commit(publication_fixture):
+    api, hub, operation, journal, out = publication_fixture
+    api.head = "c" * 40
+    m.publish(api, hub, "fixture", operation, journal, out)
+    assert api.commit_calls == []
+    receipt = json.loads((out / "publication-receipt.json").read_text())
+    assert receipt["publication_action"] == "verify_existing_exact_operation"
+    assert receipt["hf_parent_revision"] is None
+    assert receipt["expected_hf_parent_revision"] == m.PARENT
+
+
+@pytest.mark.parametrize(
+    "failure", ["ci", "private", "head_race", "upload_info", "remote_mismatch"]
+)
+def test_guards_fail_without_commit_or_success_receipt(
+    monkeypatch, publication_fixture, failure
+):
+    api, hub, operation, journal, out = publication_fixture
+    if failure == "ci":
+
+        def bad_ci():
+            raise m.GuardError("exact_commit_ci_not_success")
+
+        monkeypatch.setattr(m, "ci_guard", bad_ci)
+    elif failure == "private":
+        api.repo_info = lambda *_args, **_kwargs: NS(private=False, sha=api.head)
+    elif failure == "head_race":
+        sequence = iter([m.PARENT, "d" * 40])
+        api.repo_info = lambda *_args, **_kwargs: NS(private=True, sha=next(sequence))
+    elif failure == "upload_info":
+        hub.CommitOperationAdd = lambda **_kw: NS(
+            upload_info=NS(size=3, sha256=b"wrong")
+        )
+    else:
+        api.head = "c" * 40
+
+        def mismatch(*_args):
+            raise m.GuardError("remote_sha256_mismatch")
+
+        monkeypatch.setattr(m, "verify_remote", mismatch)
+    with pytest.raises(m.GuardError):
+        m.publish(api, hub, "fixture", operation, journal, out)
+    assert api.commit_calls == []
+    assert not (out / "publication-receipt.json").exists()
+
+
+def test_existing_receipt_is_never_overwritten(tmp_path):
+    p = tmp_path / "receipt.json"
+    p.write_text("preserved")
+    with pytest.raises(FileExistsError):
+        m.write_new_json(p, {"new": True})
+    assert p.read_text() == "preserved"
+
+
+def test_post_commit_verification_failure_keeps_pending_event(
+    monkeypatch, publication_fixture
+):
+    api, hub, operation, journal, out = publication_fixture
+
+    def mismatch(*_args):
+        raise m.GuardError("remote_full_sha256_mismatch")
+
+    monkeypatch.setattr(m, "verify_remote", mismatch)
+    with pytest.raises(m.GuardError, match="remote_full_sha256_mismatch"):
+        m.publish(api, hub, "fixture", operation, journal, out)
+    assert len(api.commit_calls) == 1
+    events = [json.loads(line) for line in journal.path.read_text().splitlines()]
+    assert events[-1]["stage"] == "committed_remote_verification_pending"
+    assert events[-1]["revision"] == api.head
+    assert not (out / "publication-receipt.json").exists()
+
+
+@pytest.mark.parametrize("bad", ["commit", "conclusion", "status"])
+def test_exact_ci_run_requires_matching_commit_completed_success(monkeypatch, bad):
+    record = {"conclusion": "success", "headSha": m.COMMIT, "status": "completed"}
+    record[
+        {"commit": "headSha", "conclusion": "conclusion", "status": "status"}[bad]
+    ] = "wrong"
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append((command, kwargs))
+        return json.dumps(record)
+
+    monkeypatch.setattr(m.subprocess, "check_output", fake)
+    with pytest.raises(m.GuardError, match="exact_commit_ci_not_success"):
+        m.ci_guard()
+    assert str(m.CI_RUN) in calls[0][0]
+    assert calls[0][1]["timeout"] == 60
+
+
+def test_private_head_requests_only_sha_and_privacy():
+    seen = {}
+
+    def get_info(repo_id, **kwargs):
+        seen.update(kwargs)
+        assert repo_id == m.HF_REPO
+        return NS(private=True, sha=m.PARENT)
+
+    assert m.private_head(NS(repo_info=get_info)) == m.PARENT
+    assert seen == {
+        "repo_type": "dataset",
+        "revision": "main",
+        "timeout": 30,
+        "expand": ["sha", "private"],
+    }
+
+
+def test_only_three_immutable_checkpoint_objects_map_locally(tmp_path):
+    for name in ("checkpoint.tar.gz", "manifest.json", "README.md"):
+        assert m.local_path(m.PREFIX + name, tmp_path) == tmp_path / name
+    for name in ("README.md", "train.csv", "audits/proof.json", m.PREFIX + "extra"):
+        with pytest.raises(m.GuardError, match="outside_frozen_mapping"):
+            m.local_path(name, tmp_path)
+
+
+@pytest.mark.parametrize("free_delta", [-1, 0, 1])
+def test_space_preflight_preserves_floor_and_reserves(monkeypatch, free_delta):
+    package_size = 1_203_620_292
+    needed = m.FLOOR_BYTES + m.OVERHEAD_BYTES + m.ROOT_RESERVE_BYTES + package_size
+    monkeypatch.setattr(m.shutil, "disk_usage", lambda _: NS(free=needed + free_delta))
+    if free_delta < 0:
+        with pytest.raises(m.GuardError, match="disk_floor"):
+            m.disk_guard(package_size)
+    else:
+        assert m.disk_guard(package_size)["additional_bytes"] == package_size
+
+
+def test_git_selection_uses_exact_commit_and_never_worktree(monkeypatch):
+    seen = []
+
+    def fake(command, **kwargs):
+        seen.append((command, kwargs))
+        return (
+            "100644 blob "
+            + "a" * 40
+            + " 3\trsna/f.py\n100644 blob "
+            + "b" * 40
+            + " 9\tunselected.csv\n"
+        )
+
+    monkeypatch.setattr(m.subprocess, "check_output", fake)
+    monkeypatch.setattr(m, "EXPECTED_MEMBERS", 1)
+    assert m.selected_files() == [
+        {"path": "rsna/f.py", "git_blob": "a" * 40, "bytes": 3, "mode": 0o644}
+    ]
+    assert seen[0][0] == ["git", "ls-tree", "-rl", m.COMMIT]
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [None, "changed", "missing", "extra", "duplicate", "git_blob", "mode", "secret"],
+)
+def test_tar_exact_pinned_blobs_and_membership(monkeypatch, tmp_path, damage):
+    monkeypatch.setattr(m, "EXPECTED_BATCHES", 0)
+    monkeypatch.setattr(m, "EXPECTED_REVIEWED", 0)
+    payloads = [("rsna/a", b"abc"), ("rsna/b", b"def")]
+    refs = [ref(n, d) for n, d in payloads]
+    pinned = [
+        {
+            "path": n,
+            "git_blob": hashlib.sha1(
+                b"blob " + str(len(d)).encode() + b"\0" + d
+            ).hexdigest(),
+            "bytes": len(d),
+            "mode": 0o644,
+        }
+        for n, d in payloads
+    ]
+    if damage == "changed":
+        payloads[0] = ("rsna/a", b"abd")
+    elif damage == "missing":
+        payloads.pop()
+    elif damage == "extra":
+        payloads.append(("rsna/c", b"ghi"))
+    elif damage == "duplicate":
+        payloads.append(payloads[0])
+    elif damage == "git_blob":
+        pinned[0]["git_blob"] = "0" * 40
+    p = tmp_path / "package.tar.gz"
+    with tarfile.open(p, "w:gz") as tar:
+        for name, data in payloads:
+            member = tarfile.TarInfo(name)
+            member.size = len(data)
+            member.mode = 0o755 if damage == "mode" else 0o644
+            tar.addfile(member, io.BytesIO(data))
+    if damage is None:
+        assert m.validate_tar(p, refs, pinned)["all_member_git_blobs_verified"] is True
+    else:
+        with pytest.raises(m.GuardError):
+            m.validate_tar(p, refs, pinned, [b"abc"] if damage == "secret" else [])
+
+
+def test_secret_scanner_outputs_only_safe_fixed_code():
+    with pytest.raises(m.GuardError, match="^secret_value_detected$"):
+        m.reject_secret_payload(
+            b"before credential-fixture after", [b"credential-fixture"]
+        )
+    with pytest.raises(m.GuardError, match="^credential_pattern_detected$"):
+        m.reject_secret_payload(b"hf_" + b"a" * 30, [])
+    m.reject_secret_payload(b"HF_TOKEN is loaded in memory", [])
+
+
+def test_main_suppresses_sensitive_external_exception(monkeypatch, capsys):
+    sentinel = "secret-fixture-signed-url-and-token"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(SCRIPT),
+            "--check-local",
+            "--expected-plan-sha",
+            "a" * 64,
+            "--output",
+            str(m.STAGE / "runs/fake"),
+        ],
+    )
+
+    def fail(_):
+        raise RuntimeError(sentinel)
+
+    monkeypatch.setattr(m, "load_plan", fail)
+    assert m.main() == 1
+    capture = capsys.readouterr()
+    assert sentinel not in capture.out + capture.err
+    assert "external_or_unexpected_error" in capture.out
+
+
+def test_missing_or_altered_review_plan_blocks_before_package(monkeypatch, tmp_path):
+    monkeypatch.setattr(m, "STAGE", tmp_path)
+    with pytest.raises(m.GuardError, match="local_missing"):
+        m.load_plan("a" * 64)
+    (tmp_path / "review-plan.json").write_text("{}")
+    with pytest.raises(m.GuardError, match="local_sha256_mismatch"):
+        m.load_plan("a" * 64)
+
+
+def test_builder_stops_before_creating_package_if_disk_insufficient(
+    monkeypatch, tmp_path
+):
+    spec = importlib.util.spec_from_file_location(
+        "checkpoint_builder", SCRIPT.with_name("build_package.py")
+    )
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    monkeypatch.setattr(builder, "STAGE", tmp_path)
+    monkeypatch.setattr(builder.m, "PACKAGE", tmp_path)
+    monkeypatch.setattr(builder.m, "load_plan", lambda _: {})
+    monkeypatch.setattr(builder.m, "selected_files", lambda: [])
+    (tmp_path / "pinned-package-measurement.json").write_text(
+        json.dumps({"files": [], "package": {"bytes": 100}})
+    )
+
+    def blocked(_):
+        raise builder.m.GuardError("disk_floor_would_be_breached")
+
+    monkeypatch.setattr(builder.m, "disk_guard", blocked)
+    monkeypatch.setattr(
+        builder.subprocess,
+        "Popen",
+        lambda *_a, **_kw: pytest.fail("No archive process may start"),
+    )
+    with pytest.raises(builder.m.GuardError, match="disk_floor"):
+        builder.build("a" * 64)
+    assert not (tmp_path / "checkpoint.tar.gz.partial").exists()
+
+
+def test_guarded_writer_checks_floor_and_measured_size_before_write(monkeypatch):
+    spec = importlib.util.spec_from_file_location(
+        "checkpoint_builder", SCRIPT.with_name("build_package.py")
+    )
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    calls = []
+    monkeypatch.setattr(builder.m, "disk_guard", lambda n: calls.append(n))
+    stream = io.BytesIO()
+    writer = builder.GuardedWriter(stream, 3)
+    assert writer.write(b"abc") == 3
+    with pytest.raises(builder.m.GuardError, match="compressed_size"):
+        writer.write(b"x")
+    assert stream.getvalue() == b"abc" and calls == [3]

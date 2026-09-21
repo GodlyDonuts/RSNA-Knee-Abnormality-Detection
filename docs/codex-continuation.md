@@ -58,15 +58,32 @@ The required report-similarity registry joins 038:44 and 045:15 before transitiv
 gold-neighbor quarantine. Read `docs/report-similarity.md`. The complete final
 label export remains unfinished.
 
-The latest verified private Hugging Face snapshot contains 3,957 reviewed reports,
-at `2b1a8df36c2543f9f3b31af136f1cf83831eeae3`, corresponding to Git
-`94fed05d353d180e30c968bc0561e05c00ae6880`.
-Root checked all 4,464 archive members against their pinned Git contents. The
-1,203,620,292-byte package was verified remotely against its Hub SHA-256 identity
+The latest verified private Hugging Face snapshot contains all 4,407 reviewed reports,
+at `046466739c134be9287ef7c5471968b704467cfd`, corresponding to Git
+`6bcf6bbc6b49b1627ca257b892881b8bd693b750` (CI run35636602111 passed).
+Root checked all 5,404 archive members against their pinned Git contents. The
+1,308,014,492-byte package was verified remotely against its Hub SHA-256 identity
 and size; the manifest and README were downloaded and fully hashed. All three
 objects are under an immutable preparation-checkpoint prefix. Original source
 trees and all five official metadata blobs remain unchanged. The receipt and
-review evidence are preserved under `hf-preparation-checkpoint-94fed05/`.
+review evidence are preserved under `hf-preparation-checkpoint-6bcf6bb/`.
+The archive also preserves proof that547 staged DICOM copies now share their
+byte-identical archived files' physical storage. All paths and bytes remain
+unchanged; never write through those shared inodes. The full cache is untouched.
+
+The full-coverage duplicate consistency inspection is preserved under
+`post-review-consistency4407-v1/`. Of54 identical normalized-report groups
+covering204 studies, four have differing target states. Three group differences
+affect observed supervision; no positive-versus-negative pair was found.
+Root read all nine complete sources before opening discrepancy details and
+froze108 assessments, with historical exposure disclosed. Seven corrections
+across six studies are proposed, not accepted: four qualified-effusion masks,
+one Contusion and two Fracture uncertainty-to-unmentioned clarifications.
+The two Fracture proposals concern existing duplicate agreement, illustrating
+that agreement alone does not establish semantic validity. A distinct assessor
+must review the neutral sources before the proposals. Original reviews and gold
+remain unchanged. The required registry now has three pending semantic gates:
+cartilage, bone terminology, and qualified-negation/duplicate consistency.
 
 The tenth through thirteenth metadata groups now have two frozen source readings
 and root replay of 5,361 source memberships, 167 series metadata records and

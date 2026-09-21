@@ -77,8 +77,11 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The present registry retains cartilage consistency and a focused bone-terminology
-check as separate pending issues.
+The present registry retains cartilage consistency, a focused bone-terminology
+check, and qualified-negation/duplicate consistency as separate pending issues.
+The latter binds the all4,407-report inspection and root's seven unaccepted
+proposals across six studies. A distinct source assessor is still required;
+these proposals are not registered correction cases and do not alter labels.
 The early focused audits and retained decisions do not certify all future report
 batches. Preserve their dispositions as evidence while completing that broader
 scope.
