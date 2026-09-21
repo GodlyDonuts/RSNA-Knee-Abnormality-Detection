@@ -1,0 +1,53 @@
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import shutil
+from dotenv import dotenv_values
+
+WORK = Path(__file__).resolve().parent
+W = WORK.parent
+R = WORK/'recovered'
+STAGE = WORK/'annotation-staging'
+secrets = [v.encode() for k,v in dotenv_values(W/'.env').items() if k in ['HF_TOKEN','KAGGLE_API_TOKEN'] and v]
+assert len(secrets) == 2
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+groups = {
+ 'clinical-review-083-root-v1': ('batch-083-root-review', []),
+}
+for name, (staged_name, helpers) in groups.items():
+ source=STAGE/staged_name
+ dest=R/'initiative/audits'/name
+ assert not dest.exists()
+ files=[(p,p.relative_to(source)) for p in sorted(source.rglob('*')) if p.is_file() and '__pycache__' not in p.parts]
+ files.extend((STAGE/h,Path('root-replay-helpers')/h) for h in helpers)
+ files.append((Path(__file__),Path('root-preservation-helper.py')))
+ needed=sum(p.stat().st_size for p,_ in files)
+ assert shutil.disk_usage(W).free-needed > 20*2**30+2**20
+ entries=[]
+ for p,rel in files:
+  assert not p.is_symlink()
+  data=p.read_bytes()
+  assert len(data)<100_000_000 and all(s not in data for s in secrets)
+  out=dest/rel
+  if out.suffix=='.py':out=out.with_suffix('.py.txt')
+  out.parent.mkdir(parents=True,exist_ok=True)
+  assert not out.exists()
+  out.write_bytes(data)
+  assert sha(out)==sha(p)
+  entries.append(dict(original_path=str(p.relative_to(WORK)),archived_path=str(out.relative_to(R)),sha256=sha(out),bytes=len(data)))
+ proof=dict(stage='root_verified_byte_preservation', agent_id='/root', name=name,
+   at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(), files=entries,
+   excluded='Only generated Python bytecode directories. All original observations, superseded interpretations, corrections and completed evidence are preserved unchanged.',
+   source_paths='Original workspace-relative references remain intact; use this mapping for the renamed .py.txt helpers. Cache NPZ dependencies remain at their separately pinned original locations.',
+   training_ready=False)
+ (dest/'preservation.json').write_text(json.dumps(proof,indent=2)+'\n')
+ print(json.dumps(dict(archive=name,files=len(entries),bytes=needed,preservation_sha256=sha(dest/'preservation.json'))))
+
+G=STAGE/'batch-083-root-review'
+for filename,folder in [('batch-083-preread.jsonl','evidence'),('batch-083-reviewed.jsonl','reviewed'),('batch-083-reviewed.json','provenance')]:
+ p=G/filename;out=R/'initiative/reviews-v2'/folder/filename
+ assert not out.exists()
+ out.write_bytes(p.read_bytes())
+ assert sha(p)==sha(out)
+ print(json.dumps(dict(promoted=str(out.relative_to(R)),sha256=sha(out))))

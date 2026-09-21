@@ -1,0 +1,22 @@
+"""Assemble only explicitly supplied, personally reasoned decisions."""
+from pathlib import Path
+import json,hashlib,datetime
+G=Path(__file__).resolve().parent;W=G.parents[1];R=W/'recovered'
+SOURCE=R/'initiative/reviews/inputs/batch-083.json'
+SOURCES=json.loads(SOURCE.read_text());ROWS=[]
+MAP={'p':'positive','n':'negative','u':'uncertain','x':'not_mentioned'}
+def add(i,states,evidence,notes):
+ codes=states.split();assert len(codes)==len(evidence)==12,(i,len(codes),len(evidence))
+ report=SOURCES[i]['report']
+ for j,(code,quote) in enumerate(zip(codes,evidence)):
+  assert code in MAP and isinstance(quote,str)
+  assert (quote=='' if code=='x' else bool(quote) and quote in report),(i,j,code,quote)
+ assert isinstance(notes,str) and notes.strip()
+ ROWS.append((i,{'study_uid':SOURCES[i]['study_uid'],'states':[MAP[c] for c in codes],'evidence':evidence,'notes':notes}))
+def finish(start,end):
+ assert [i for i,_ in ROWS]==list(range(start,end))
+ p=G/'batch-083-preread.jsonl';existing=p.read_text().splitlines() if p.exists() else [];assert len(existing)==start
+ with p.open('a') as f:
+  for _,row in ROWS:f.write(json.dumps(row,ensure_ascii=False)+'\n')
+ progress={'stage':'partial_independent_source_reading','agent_id':'/root','session_id':'/root','reports_read_and_explicit_targets_recorded':end,'target_decisions':end*12,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'preread_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'updated_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'draft_or_previous_clinical_choices_opened':False,'training_ready':False}
+ (G/f'progress-{end:02d}.json').write_text(json.dumps(progress,indent=2)+'\n');print(json.dumps({'source_read_reports':end,'targets':end*12,'sha256':progress['preread_sha256']}))

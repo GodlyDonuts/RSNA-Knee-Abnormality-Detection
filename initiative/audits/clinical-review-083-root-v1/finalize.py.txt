@@ -1,0 +1,145 @@
+"""Assemble explicit root adjudications after the complete frozen source pass."""
+from pathlib import Path
+import copy
+import datetime
+import hashlib
+import json
+import sys
+
+G=Path(__file__).resolve().parent
+R=G.parents[1]/'recovered'
+sys.path.insert(0,str(R))
+from rsna.labels import read_reviews
+from rsna.schema import TARGETS
+
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+source_path=R/'initiative/reviews/inputs/batch-083.json'
+draft_path=R/'initiative/reviews-v2/drafts/batch-083-draft.jsonl'
+pre_path=G/'batch-083-preread.jsonl'
+assert sha(source_path)=='6a10d44f3e12b70e035ab6e891605edb7c53ab3fc76218623b8b8242d2315e9d'
+assert sha(pre_path)=='b1b1f5b605bce90f237f12c55ae8a63d392594b490682d2c4902cd43fc2148d0'
+assert sha(draft_path)=='5f7ea9cb2b025e05055584d868f4b1a2758df9666b4395b8ed0185df0bc2690b'
+source=json.loads(source_path.read_text())
+pre=[json.loads(l) for l in pre_path.read_text().splitlines()]
+draft=[json.loads(l) for l in draft_path.read_text().splitlines()]
+dm=json.loads((R/'initiative/reviews-v2/provenance/batch-083-draft.json').read_text())
+assert dm['agent_id']!='/root' and dm['session_id']!='/root'
+review=copy.deepcopy(pre)
+choices={}
+codes={'p':'positive','n':'negative','u':'uncertain','x':'not_mentioned'}
+
+def choose(i,t,code,reason,quote_from='pre'):
+ assert (i,t) not in choices
+ assert pre[i]['states'][t]!=draft[i]['states'][t]
+ quote='' if code=='x' else (pre if quote_from=='pre' else draft)[i]['evidence'][t]
+ assert code=='x' or quote and quote in source[i]['report']
+ review[i]['states'][t]=codes[code]
+ review[i]['evidence'][t]=quote
+ choices[i,t]=dict(source_index=i,study_uid=source[i]['study_uid'],target_index=t,target=TARGETS[t],
+  preread_state=pre[i]['states'][t],draft_state=draft[i]['states'][t],final_state=codes[code],
+  preread_evidence=pre[i]['evidence'][t],draft_evidence=draft[i]['evidence'][t],final_evidence=quote,reason=reason)
+
+fracture_contexts={
+ 0:'Reactive subchondral bone changes without an explicit fracture assessment.',
+ 5:'Definite bone bruise without a separate fracture assessment.',
+ 7:'Qualified normal marrow wording without a fracture/cortical assessment.',
+ 8:'Reactive tibial edema after meniscectomy without explicit fracture assessment.',
+ 11:'Suspicious mottled marrow signal without a fracture finding or exclusion.',
+ 12:'Button osteophyte and local absence of adjacent edema without a fracture assessment.',
+ 20:'Degenerative subchondral edema/cysts without fracture assessment.',
+ 21:'Current traumatic bone bruises without a separate fracture assessment.',
+ 22:'Degenerative geodes and osteophytes without an acute-fracture assessment.',
+ 23:'Normal bone signal without a cortical/fracture-line assessment.',
+ 26:'Normal marrow signal without a cortical/fracture-line assessment.',
+ 27:'Trochlear subchondral edema accompanying cartilage disease without fracture assessment.',
+ 28:'Normal marrow signal without a separate fracture assessment.',
+ 29:'Qualified marrow normality without cortical/fracture assessment.',
+ 32:'Degenerative sclerosis/edema/cysts and cartilage destruction without explicit fracture assessment.',
+ 36:'Secondary degenerative bone changes without explicit fracture assessment.',
+ 39:'No underlying bone change in a cartilage context without a fracture assessment.',
+ 40:'Direct bone bruise without a separate fracture assessment.',
+ 41:'Reactive marrow changes at a focal cartilage defect without fracture assessment.',
+ 46:'Tibial/PF marrow edema without explicit fracture assessment.',
+ 47:'Normal marrow signal without a cortical/fracture-line assessment.',
+ 49:'Subchondral edema accompanying cartilage fissures without fracture assessment.'}
+for i,reason in fracture_contexts.items():
+ choose(i,11,'x','Retain preread: '+reason+' No informative mention of this target; keep masked as unmentioned, never infer negative.')
+
+for i,reason in {
+ 17:'No marrow infiltration excludes a different process, not impact edema; no informative contusion assessment.',
+ 22:'Subchondral geodes and osteophytes do not mention impact edema or assess its absence.',
+ 36:'Secondary degenerative bone changes do not explicitly mention marrow edema or traumatic contusion.',
+ 39:'No underlying bony change in cartilage context is not an informative impact-marrow assessment.'}.items():
+ choose(i,10,'x','Retain preread: '+reason+' Keep unmentioned and masked, not negative.')
+
+choose(0,3,'u','Retain preread: free-edge fibrillation is a surface abnormality rather than explicit isolated internal degeneration. Preserved overall morphology does not conclusively classify that focal abnormality as below the tear criterion.')
+choose(0,6,'p','Reconsider preread: explicitly broad subtotal/full-thickness defects affecting both patellar facets and central trochlea provide qualitative regional extent as well as depth. The approximate 1 cm criterion need not require an exact numeric measurement when broad deep defects are explicitly described. Preserve this report-level extent inference for global QA.')
+choose(3,10,'u','Reconsider preread: normal named femoral/tibial compartments do not establish whole-knee contusion absence when the tuberosity/tendon region has an incompletely characterized traction-related abnormality. Limited marrow assessment remains uncertain.','draft')
+for i in [7,29]:
+ choose(i,9,'u','Retain preread: no pathological popliteal cysts is qualified and does not explicitly establish total absence or a size class. Keep this negation-scope ambiguity masked for global QA.')
+choose(11,5,'u','Reconsider preread: general multifocal knee cartilage wear with especially medial/PF locations is informative but incompletely localized, rather than a definitive absence of lateral cartilage assessment. Keep lateral OA uncertain and masked.','draft')
+choose(12,8,'u','Retain preread: a thickened edematous synovial fold is an informative localized synovial abnormality but does not establish a definite lining-inflammation diagnosis. No requirement for diffuse disease is imposed; localization and diagnosis remain uncertain.')
+choose(22,4,'p','Reconsider preread: near-complete cartilage loss described over both opposing medial weight-bearing surfaces supplies qualitative broad regional involvement and substantial depth. This differs from unmeasured focal full-thickness ulcers. Accept report-level positive extent inference and retain it for global QA.')
+for t in [4,5]:
+ choose(27,t,'u','Reconsider preread: general knee cartilage wearing with especially PF findings informs cartilage disease but leaves the FT compartment localization and severity unresolved. Keep uncertain and masked rather than treat the general statement as no mention.','draft')
+choose(29,2,'u','Retain preread: marginal fibrillation plus extrusion is not explicit isolated internal degeneration or a definite tear diagnosis; negative would overstate exclusion of a surface tear.')
+choose(35,5,'u','Retain preread: qualitative shallower fissures with unnamed II/III grading do not unequivocally establish a less-than-half-depth threshold. Do not infer a precise depth fraction from comparative wording or an unnamed scale.')
+choose(36,7,'u','Retain preread: body mild-to-moderate fluid crosses the threshold while the conclusion says mild. There is no explicit correction or time change resolving this difference; preserve uncertainty rather than select one wording.')
+choose(41,3,'p','Reconsider preread: a definite cleft affecting the meniscal free edge is a specific surface-breaking morphological abnormality. The rubric accepts abnormal tear morphology without requiring a tear noun. This is stronger than nonspecific fraying or a possibly abnormal variant.')
+choose(43,5,'u','Reconsider preread: terminal chondromalacia in retropatellar and femoral cartilage is informative but ambiguously localized; it cannot establish lateral severity or absence. Keep uncertain and masked.','draft')
+choose(45,11,'u','Reconsider preread: the report establishes cortical/subcortical fractures and edema, but the trauma history has no date or explicit acute interval. Associated ligament injury does not by itself prove fracture acuity. Keep fracture timing uncertainty without denying that fractures are described.')
+choose(46,3,'u','Retain preread: mucoid degeneration plus fraying is not explicit isolated internal signal. Surface abnormality remains insufficiently characterized to prove or exclude a tear.')
+
+expected={(i,t) for i in range(50) for t in range(12) if pre[i]['states'][t]!=draft[i]['states'][t]}
+assert set(choices)==expected and len(choices)==43,(set(choices)-expected,expected-set(choices))
+
+replacements={
+ 0:[('Lateral and PF subtotal/full-thickness cartilage loss is described, including broad PF regions, but qualifying deep-loss extent is not quantified; retain extent uncertainty for global semantic QA rather than map bare grade 3/4.', 'Lateral mixed subtotal/full-thickness lesions lack qualifying deep-region extent and remain uncertain. Explicitly broad subtotal/full-thickness PF defects across both facets and central trochlea support positive by qualitative regional-extent inference; retain that inference for global QA rather than rely on bare grade 3/4.')],
+ 3:[('Explicitly normal medial/lateral tibial plateaux and femoral condyles support a scoped absence of marrow contusion, but no cartilage assessment is explicitly stated;', 'Normal named medial/lateral bony compartments do not establish complete contusion absence at the abnormal tuberosity region; contusion remains uncertain. No cartilage assessment is explicitly stated;')],
+ 11:[('Do not infer lateral cartilage disease from lateral femoral marrow signal.', 'General multifocal knee cartilage wear leaves lateral cartilage localization/severity uncertain; do not infer it from the lateral femoral marrow signal.')],
+ 12:[('not a definite generalized lining-inflammation diagnosis', 'not a definite synovial-lining inflammation diagnosis')],
+ 22:[('Near-complete medial cartilage loss is clearly deep but the actual qualifying loss-region extent is not given; weight-bearing location alone does not measure it. Other compartments have mixed superficial/deep fissures without depth/extent. Keep all cartilage targets uncertain, including qualitative regional-extent QA.', 'Near-complete cartilage loss over both opposing medial weight-bearing surfaces supports qualitative broad regional extent and substantial depth, accepted as medial OA positive with the extent inference flagged for global QA. Other compartments have mixed superficial/deep fissures without qualifying depth/extent and remain uncertain.')],
+ 27:[('FT cartilage unmentioned rather than inferred from general knee wording.', 'General knee cartilage wearing leaves FT localization/severity uncertain; both FT cartilage targets remain masked.')],
+ 41:[('Tiny free-edge lateral cleft lacks an explicit definite tear diagnosis; uncertain morphology.', 'Definite tiny free-edge lateral cleft supplies specific surface-breaking abnormal morphology and supports positive under the morphology criterion despite no explicit tear noun.')],
+ 43:[('PF uncertain, no inferred lateral FT compartment.', 'PF uncertain; the general femoral-cartilage wording leaves lateral FT localization/severity uncertain as well.')],
+ 45:[('ACL positive; current traumatic fracture diagnosis and cortical involvement support acute-fracture report-level positive, with acuity inferred from the current injury context rather than an explicit date. Preserve that inference for adjudication.', 'ACL positive. Fractures are definitely described, but trauma history has no date or explicit acute interval; associated edema/ligament injury does not establish fracture acuity by itself. Final fracture state remains uncertain for missing timing.')]
+}
+for i,pairs in replacements.items():
+ for old,new in pairs:
+  assert old in review[i]['notes'],(i,old)
+  review[i]['notes']=review[i]['notes'].replace(old,new)
+
+def changes(old):
+ return [dict(source_index=i,study_uid=source[i]['study_uid'],target_index=t,target=TARGETS[t],
+  before=old[i]['states'][t],after=review[i]['states'][t],source_quote=review[i]['evidence'][t],reason=choices[i,t]['reason'])
+  for i in range(50) for t in range(12) if old[i]['states'][t]!=review[i]['states'][t]]
+cd,cp=changes(draft),changes(pre)
+assert len(cd)==34 and len(cp)==9,(len(cd),len(cp))
+out=G/'batch-083-reviewed.jsonl'
+assert not out.exists()
+out.write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in review))
+reports={r['study_uid']:r['report'] for r in source}
+for p in [pre_path,draft_path,out]:assert len(read_reviews(p.parent,reports,p.stem))==50
+freeze=json.loads((G/'complete-source-freeze.json').read_text())
+meta=dict(stage='reviewed',rubric_version=dm['rubric_version'],agent_id='/root',session_id='/root',
+ identity_kind='codex_agent_task',workflow_run_id=dm['workflow_run_id'],rubric_sha256=dm['rubric_sha256'],
+ source_reports_sha256=dm['source_reports_sha256'],source_sha256=sha(source_path),source_path=dm['source_path'],
+ study_uids=[r['study_uid'] for r in source],n_studies=50,n_targets=600,sha256=sha(out),output_sha256=sha(out),
+ output_path='initiative/reviews-v2/reviewed/batch-083-reviewed.jsonl',parent_artifact_path=dm['output_path'],
+ parent_artifact_sha256=sha(draft_path),preread_path='initiative/reviews-v2/evidence/batch-083-preread.jsonl',
+ preread_sha256=sha(pre_path),preread_frozen_at=freeze['frozen_at_utc'],complete_source_freeze_sha256=sha(G/'complete-source-freeze.json'),
+ initial_disagreements=[choices[k] for k in sorted(choices)],adjudication_history=[choices[k] for k in sorted(choices)],
+ changes_from_draft=cd,changes_from_preread=cp,
+ review_flags=[dict(source_index=i,study_uid=source[i]['study_uid'],reason=review[i]['notes']) for i in [0,3,4,5,7,8,9,11,12,13,15,17,18,20,22,23,26,27,28,29,32,35,36,39,40,41,42,43,44,45,46,48,49]],
+ reader_flags_considered=dm['reader_flags'],completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+ notes='Root personally read all 50 original gold-blinded reports and reasoned all 600 target decisions before opening this batch draft or earlier clinical choices. Complete source preread is frozen and unchanged. Then compared all 600 reader decisions and all reader notes; all 40 reader flags exactly matched the corresponding read notes. Explicitly adjudicated all 43 initial state disagreements, with 34 changes from draft and 9 reconsidered preread states. Both actual reader/reviewer identities are distinct. General corpus/technical source exposure is disclosed; no overlap was found with the four most recent completed technical source packets. No gold/legacy labels accessed. Qualitative broad cartilage extent in cases0/22 and specific free-edge cleft morphology in41 are accepted report-level inferences with preserved review history and global-QA flags. Qualified negations, partial ligament grades, unnamed grading systems, missing severity/extent, postoperative uncertainty, and fracture acuity remain explicitly reasoned/masked. This is report extraction, not diagnostic MRI rereading or training-readiness certification.')
+def save(p,obj):
+ assert not p.exists()
+ p.write_text(json.dumps(obj,indent=2,ensure_ascii=False)+'\n')
+save(G/'batch-083-reviewed.json',meta)
+validation=dict(agent_id='/root',source_reports=50,targets_compared=600,initial_state_disagreements=43,
+ final_changes_from_draft=len(cd),final_changes_from_preread=len(cp),review_sha256=sha(out),
+ provenance_sha256=sha(G/'batch-083-reviewed.json'),preread_sha256=sha(pre_path),
+ exact_quotes_schema_membership_valid=True,reader_reviewer_identities_distinct=True,source_preread_unchanged=True,training_ready=False)
+save(G/'final-validation.json',validation)
+print(json.dumps(validation))

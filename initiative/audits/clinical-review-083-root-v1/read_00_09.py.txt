@@ -1,0 +1,112 @@
+from assemble import add, finish
+
+add(0, 'n n p u p u u p p n u x', [
+ 'Ligamentos cruzados y colaterales continuos.',
+ 'Ligamentos cruzados y colaterales continuos.',
+ 'Rotura radial de espesor completo de la unión cuerno posterior / raíz posterior del menisco medial',
+ 'Menisco lateral de morfología conservada con fibrilación del borde libre del cuerpo.',
+ 'Cartílago femorotibial medial con defecto condral de espesor subtotal con cambios óseos\nreactivos en el tercio posterior de carga del cóndilo femoral medial se extiende 11 mm de lateral\npor 13 mm anteroposterior.',
+ 'Cartílago femorotibial lateral con alteración de señal y úlceras de espesor parcial, subtotal y total\nen ambas superficies articulares con cambios óseos reactivos en el cóndilo.',
+ 'Cartílago patelofemoral con amplios defectos de espesor subtotal / total con cambios óseos\nreactivos en ambas facetas de la patela y región central de la tróclea.',
+ 'Moderado derrame articular con signos de sinovitis difusa',
+ 'Moderado derrame articular con signos de sinovitis difusa',
+ 'Discreta distensión\ndel receso gastrocnemio semimembranoso.',
+ 'No hay alteración de señal difusa la médula ósea.', ''
+], 'Definite medial radial root tear and medial subtotal cartilage defect measuring 11 by 13 mm meet report thresholds. Lateral free-edge fibrillation with preserved morphology does not clearly establish a tear or isolated internal degeneration; uncertain. Lateral and PF subtotal/full-thickness cartilage loss is described, including broad PF regions, but qualifying deep-loss extent is not quantified; retain extent uncertainty for global semantic QA rather than map bare grade 3/4. Ligaments continuous. Moderate effusion and direct diffuse synovitis positive. Discrete gastrocnemio-semimembranosus recess distension is below Baker size threshold. No diffuse marrow alteration does not exclude focal contusion; reactive subchondral changes do not establish an impact cause. Fracture unmentioned; patellar tendinosis is not target ligament injury.')
+
+add(1, 'n n n n n n n n x n p n', [
+ 'Anterior cruciate ligament (ACL): Mucoid degeneration without full-thickness disruption.',
+ 'Medial collateral ligament (MCL): Normal.',
+ 'Medial meniscus: Normal in morphology and signal.',
+ 'Lateral meniscus: Normal in morphology and signal.',
+ 'Medial compartment cartilage: No focal cartilage defects.',
+ 'Lateral compartment cartilage: No focal cartilage defects.',
+ 'Patellofemoral compartment cartilage: No focal cartilage defects.',
+ 'Trace joint effusion.', '', "No Baker's cyst.",
+ 'Low to intermediate grade osseous contusion involving the superior posterolateral femoral condyle.',
+ 'No acute fracture.'
+], 'RIGHT exam after recent fall. Direct current osseous contusion positive and acute fracture explicitly absent. Mucoid ACL degeneration without a diagnosed disruptive tear is below the high-grade target; the full-thickness qualifier does not create an unstated partial tear. Other target ligaments, menisci and cartilage explicitly normal. Trace fluid below threshold and Baker absent. Quadriceps tendinosis does not supply ligament injury or synovitis; synovitis unmentioned.')
+
+add(2, 'n n n n n n n n x x n n', [
+ 'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+ 'Normal medial and lateral menisci. No evidence of tears.',
+ 'Normal medial and lateral menisci. No evidence of tears.',
+ 'Normal tibiofemoral and patellofemoral articulations.',
+ 'Normal tibiofemoral and patellofemoral articulations.',
+ 'Normal tibiofemoral and patellofemoral articulations.',
+ 'There is a minor knee effusion.', '', '',
+ 'Normal visualized bones and surrounding soft tissues.',
+ 'Normal visualized bones and surrounding soft tissues.'
+], 'Explicitly normal named ligaments, both menisci, all articulations and visualized bones support scoped negatives. Minor fluid is below moderate threshold. General normal surrounding soft tissues does not specifically mention Baker cyst or synovitis. Do not derive extra target negatives from the generic conclusion alone.')
+
+add(3, 'p n n n x x x n x x n u', [
+ 'Anterior cruciate ligament (ACL): Discontinuity, abnormal hyper intensity and abnormal orientation of ACL; representing complete tear of ACL.',
+ 'Medial collateral ligament: Normal.',
+ 'Medial meniscus: unremarkable.', 'Lateral meniscus: unremarkable.', '', '', '',
+ 'Minimal fluid at right knee joint is noted.', '', '',
+ 'Medial tibial plateau: Normal. \n  Medial femoral condyle: Normal',
+ 'Ossified lesion in distal patellar tendon with thickening and increased laxity at distal patella tendon is noted.'
+], 'Complete RIGHT ACL tear definite; MCL and menisci normal. Explicitly normal medial/lateral tibial plateaux and femoral condyles support a scoped absence of marrow contusion, but no cartilage assessment is explicitly stated; all OA targets unmentioned. Distal patellar tendon ossification and tubercle hypertrophy have traction injury/Osgood-Schlatter alternatives and no explicit acute fracture assessment; retain fracture uncertainty on this incomplete structural assessment. Minimal fluid below threshold. Preserve malformed intact81 cm translation verbatim; it is not a valid quantitative measurement. Baker and synovitis unmentioned. Flag limited bone-assessment scope for comparison.')
+
+add(4, 'n u n n x x x u p x n n', [
+ 'Ön çapraz bağ, lateral  kollateral ligaman normaldir.',
+ 'Medial kollateral ligaman çevresinde hafif sıvı artışı mevcuttur.',
+ 'Lateral menisküs ve medial menisküs normaldir.',
+ 'Lateral menisküs ve medial menisküs normaldir.', '', '', '',
+ 'Eklemde sıvı artışı saptanmamıştır. Suprapatellar bursada ve diz ekleminde sıvı artışı izlendi(bursit ve sinovit).',
+ 'Suprapatellar bursada ve diz ekleminde sıvı artışı izlendi(bursit ve sinovit).', '',
+ 'Diz eklemini oluşturan kemik yapılar doğaldır.',
+ 'Diz eklemini oluşturan kemik yapılar doğaldır.'
+], 'RIGHT exam. ACL and menisci explicitly normal; periligamentous medial fluid does not establish MCL fiber integrity or high-grade severity, uncertain. Contradictory absence/presence of increased joint fluid and no volume grade leave effusion uncertain. Direct sinovit diagnosis supports synovitis under report-level inference despite limited descriptive detail. Knee bones explicitly normal support bone-target negatives. Cartilage/Baker unmentioned; retain fluid contradiction without editing source.')
+
+add(5, 'u u u n u u u p x u p x', [
+ 'Από τον έλεγχο του έσω µηνίσκου, των χιαστών και πλαγίων συνδέσµων, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+ 'Από τον έλεγχο του έσω µηνίσκου, των χιαστών και πλαγίων συνδέσµων, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+ 'Από τον έλεγχο του έσω µηνίσκου, των χιαστών και πλαγίων συνδέσµων, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+ 'Εκφύλιση χωρίς ρήξη παρατηρείται στον έξω µηνίσκο.',
+ 'Από τον έλεγχο του έσω µηνίσκου, των χιαστών και πλαγίων συνδέσµων, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+ 'Από τον έλεγχο του έσω µηνίσκου, των χιαστών και πλαγίων συνδέσµων, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+ 'Από τον έλεγχο του έσω µηνίσκου, των χιαστών και πλαγίων συνδέσµων, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+ 'Ενδαρθρικά σηµειούται ικανή συλλογή υγρού', '',
+ 'Υδραρθρο και συνοβιακή κύστη Baker.',
+ 'Ενδοστικός µώλωπας (Bone Bruise) έξω κνηµιαίου κονδύλου.', ''
+], 'RIGHT exam. Qualified no noteworthy findings leaves ACL, MCL, medial meniscus and cartilage uncertain. Lateral degeneration explicitly without tear is below threshold. Direct tibial bone-bruise diagnosis positive. Greek substantial/sufficient fluid is accepted as moderate-or-greater report-level fluid evidence, flagged for qualitative terminology QA. Baker is named with characteristic communication but its size is not given; uncertain. Synovial cyst wording is not synovitis; fracture unmentioned.')
+
+add(6, 'x u x x x x x x x x x x', [
+ '', 'Rotura parcial del LCM.', '', '', '', '', '', '', '', '', '', ''
+], 'Partial MCL tear lacks fiber fraction/high-grade severity and acute edema detail, so uncertain. Iliotibial friction and pes-anserine bursitis do not establish synovitis, Baker cyst or another target. All eleven other targets unmentioned; no invented normal findings.')
+
+add(7, 'n n n n n n u n x u u x', [
+ 'Ligamentos cruzados y colaterales dentro de límites normales.',
+ 'Ligamentos cruzados y colaterales dentro de límites normales.',
+ 'Aumento de señal central del cuerpo del menisco medial que no impresiona contactar con la\nsuperficie articular, sin caracteres propios de rotura.',
+ 'El menisco lateral es de morfología y señal\nconservada, sin signos de rotura.',
+ 'Cartílagos los compartimentos femorotibiales y de la tróclea femoral sin alteraciones.',
+ 'Cartílagos los compartimentos femorotibiales y de la tróclea femoral sin alteraciones.',
+ 'Úlceras\ncondrales de espesor parcial y total de distribución difusa de la rótula, sin cambios óseos\nsecundarios.',
+ 'Mínimo derrame articular.', '', 'No hay quistes poplíteos patológicos.',
+ 'No hay alteraciones en significativas de la médula ósea.', ''
+], 'RIGHT pain history. Named ligaments and lateral meniscus normal; central internal medial signal without tear characteristics supports below-threshold negative. Femorotibial cartilage normal. Diffuse mixed partial/full patellar ulcers do not quantify the qualifying full-depth region; PF OA uncertain, preserving discrepancy with unnamed grade 2/3 conclusion. Minimal fluid below threshold. Qualified no pathological popliteal cysts does not explicitly establish cyst size or total absence; Baker uncertainty retained for global negation QA. Qualified no significant marrow alteration leaves contusion uncertain; fracture unmentioned. Soft-tissue friction/tendinosis are not synovitis.')
+
+add(8, 'n n u n u u u u u x u x', [
+ 'HKB sowie VKB sowie Kollateralbandapparat intakt.',
+ 'HKB sowie VKB sowie Kollateralbandapparat intakt.',
+ 'deutliche Signalanhebungen des Innenmeniskus im Hinterhorn und Pars intermedia mit entsprechendem Substanzdefekt nach Z.\u00a0n. Meniskusresektion am Vortag',
+ 'Der Außenmeniskus ist intakt.',
+ 'insbesondere in der Femurkondyle fokal tief greifender Chondropathie',
+ 'Überwiegend oberflächliche Chondropathie auch im lateralen Kompartiment',
+ 'An der medialen Patellafacette überwiegend oberflächliche, teils tief greifende Chondropathie',
+ 'Postoperativer Hämarthros mit einzelnen Synovialenproliferationen.',
+ 'Postoperativer Hämarthros mit einzelnen Synovialenproliferationen.', '',
+ 'Kleines Reizödem im medialen Tibiaplateau', ''
+], 'LEFT knee immediately after medial meniscal resection yesterday. Residual signal/substance loss is postoperative and does not establish current recurrent tear; medial meniscus uncertain. Intact ligaments/lateral meniscus negative. Deep focal medial/PF chondropathy lacks depth fraction/extent; predominantly superficial lateral disease does not prove all qualifying loss absent. All OA targets uncertain. Postoperative hemarthrosis ungraded and synovial proliferations without explicit inflammatory diagnosis leave effusion/synovitis uncertain. Reactive tibial edema lacks impact cause. Baker/fracture unmentioned; no blanket postoperative exclusion of intact structures.')
+
+add(9, 'x x u u x x x n x x u u', [
+ '', '', 'No definite tear of medial or lateral meniscus',
+ 'No definite tear of medial or lateral meniscus', '', '', '',
+ 'Small amount of joint effusion and suprapatellar bursitis', '', '',
+ 'No significant bone marrow edema or active cortical destruction in distal femur, proximal tibia and fibula in this study.',
+ 'No significant bone marrow edema or active cortical destruction in distal femur, proximal tibia and fibula in this study.'
+], 'RIGHT exam with PCL tear and low-grade LCL injury, neither transferable to ACL/MCL. Qualified no definite meniscal tear leaves both menisci uncertain. Small fluid below threshold. Qualified absence of significant marrow edema does not exclude contusion; no active cortical destruction does not precisely exclude an acute fracture line, so retain incomplete bone-assessment uncertainty. Cartilage, Baker and synovitis unmentioned; suprapatellar bursitis alone is not synovitis.')
+
+finish(0, 10)
