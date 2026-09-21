@@ -180,8 +180,15 @@ identities, and provenance hashes binding both passes to the frozen rubric and e
 blinded reports. It also checks the full image-audit inventory, revision, cache version,
 study identities, counts, and series-index checksum. A partial audit or copied draft
 cannot satisfy release gates. It writes
-`studies.parquet`, `study_labels.csv`, `report_annotations.parquet`, and
+`studies.parquet`, `study_labels.csv`, `report_annotations.parquet`,
+`report_annotations_original.parquet`, `adjudication_trace.json`, and
 `label_audit.json`. Keep the draft and reviewed JSONL files for provenance.
+The fixed adjacent `reviews-v2/adjudications/registry.json` is also required,
+including when explicitly empty. Registered corrections must match preserved
+independent decisions and exact source/review hashes; pending semantic QA blocks
+release. Effective annotations preserve original states/evidence and per-target
+correction traces, while gold remains authoritative. See the
+[correction procedure](docs/adjudications.md).
 
 ## Train and evaluate
 

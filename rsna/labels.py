@@ -269,6 +269,12 @@ def build_studies(
         studies[f"{target}__provenance"] = np.where(
             studies[f"{target}__mask"].eq(1), "report_reviewed", state
         )
+        correction = f"{target}__correction"
+        if correction in studies:
+            studies.loc[
+                studies[correction].ne("") & studies[f"{target}__mask"].eq(1),
+                f"{target}__provenance",
+            ] = "report_adjudicated"
         studies.loc[~gold, target] = state[~gold].eq("positive").astype(float)
         studies.loc[gold, f"{target}__mask"] = 1.0
         studies.loc[gold, f"{target}__provenance"] = "official_gold"
@@ -284,6 +290,7 @@ def audit_labels(studies: pd.DataFrame, drafts: pd.DataFrame) -> dict:
     drafts = drafts.set_index("study_uid").loc[studies.study_uid]
     targets = {}
     for target in TARGETS:
+        original_state = studies.get(f"{target}__original_state", studies[f"{target}__state"])
         state = gold[f"{target}__state"]
         observed = state.isin(["positive", "negative"])
         predictions = state[observed].eq("positive").astype(int)
@@ -304,10 +311,9 @@ def audit_labels(studies: pd.DataFrame, drafts: pd.DataFrame) -> dict:
             "gold_recall_observed": tp / (tp + fn) if tp + fn else None,
             "gold_agreement_observed": (tp + tn) / int(observed.sum()) if observed.any() else None,
             "reviewer_state_changes": int(
-                (
-                    studies[f"{target}__state"].to_numpy() != drafts[f"{target}__state"].to_numpy()
-                ).sum()
+                (original_state.to_numpy() != drafts[f"{target}__state"].to_numpy()).sum()
             ),
+            "adjudicated_state_changes": int(original_state.ne(studies[f"{target}__state"]).sum()),
         }
     return {
         "studies": len(studies),
@@ -320,6 +326,8 @@ def audit_labels(studies: pd.DataFrame, drafts: pd.DataFrame) -> dict:
 
 
 def main() -> None:
+    from rsna.adjudications import apply_adjudications
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", type=Path, required=True)
     parser.add_argument("--reviews", type=Path, required=True)
@@ -330,6 +338,12 @@ def main() -> None:
     parser.add_argument("--source-revision", required=True)
     parser.add_argument("--review-provenance", type=Path, required=True)
     parser.add_argument("--rubric", type=Path, required=True)
+    parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        default=Path("."),
+        help="Repository root for relative adjudication evidence paths (default: current directory)",
+    )
     args = parser.parse_args()
     train = pd.read_csv(args.train)
     if train.StudyInstanceUID.duplicated().any():
@@ -346,6 +360,10 @@ def main() -> None:
         args.reviews,
         args.rubric,
     )
+    original_reviews = reviews
+    reviews, adjudications = apply_adjudications(
+        reviews, reports, args.reviews, args.rubric, args.artifact_root
+    )
     pairs = validate_dicom_audit(
         args.dicom_audit, pd.read_parquet(args.inventory), set(reports), args.source_revision
     )
@@ -353,14 +371,20 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=True)
     studies.to_parquet(args.output / "studies.parquet", index=False)
     reviews.to_parquet(args.output / "report_annotations.parquet", index=False)
+    original_reviews.to_parquet(args.output / "report_annotations_original.parquet", index=False)
+    (args.output / "adjudication_trace.json").write_text(
+        json.dumps(adjudications, ensure_ascii=False, indent=2) + "\n"
+    )
     studies.drop(columns=["Report"]).to_csv(args.output / "study_labels.csv", index=False)
     report = audit_labels(studies, drafts)
+    report["adjudications"] = adjudications
     report["release_inputs"] = {
         **provenance,
         "train_sha256": file_sha256(args.train),
         "dicom_audit_sha256": file_sha256(args.dicom_audit),
         "source_revision": args.source_revision,
         "cache_version": CACHE_VERSION,
+        "adjudication_registry_sha256": adjudications["registry_sha256"],
     }
     (args.output / "label_audit.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
