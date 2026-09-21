@@ -1,0 +1,36 @@
+from pathlib import Path
+import hashlib, io, json, sys, time
+import pandas as pd
+import pydicom
+from dotenv import load_dotenv
+BASE=Path(__file__).resolve().parents[1]
+REPO=BASE/'recovered'
+sys.path.insert(0,str(REPO))
+from rsna.preprocess import Source
+load_dotenv(BASE.parent/'.env')
+headers=pd.read_parquet(REPO/'initiative/audits/patient-header-audit/study_header_index.parquet')
+proposal=json.loads((BASE/'annotation-staging/batch-000-grade-audit/proposed-errata.json').read_text())
+candidates={x['study_uid'] for x in proposal['proposed_masks']}
+selected=pd.concat([headers.groupby(['manufacturer','model'],sort=True).head(1),headers[headers.study_uid.isin(candidates)]]).drop_duplicates('study_uid')
+inventory=pd.read_parquet(REPO/'initiative/source/inventory')
+rows=inventory[inventory.sop_uid.isin(selected.sop_uid)].copy()
+assert len(rows)==len(selected)
+source=Source(None,rows.set_index('path')[['sha256','bytes','storage']].to_dict('index'),revision='52f995f4568e36bfa5fbbaf69a89af41226b4f5d')
+identifiers=['InstitutionName','InstitutionAddress','InstitutionalDepartmentName','StationName','DeviceSerialNumber','ClinicalTrialSiteID','ClinicalTrialSiteName','IssuerOfPatientID']
+acquisition=['Manufacturer','ManufacturerModelName','MagneticFieldStrength','SoftwareVersions','ProtocolName','SeriesDescription','StudyDescription']
+result=[];start=time.monotonic()
+try:
+ for offset in range(0,len(rows),8):
+  block=rows.iloc[offset:offset+8]
+  for row,raw in zip(block.itertuples(),source.read_series(block.path.tolist())):
+   d=pydicom.dcmread(io.BytesIO(raw),stop_before_pixels=True)
+   assert (str(d.StudyInstanceUID),str(d.SeriesInstanceUID),str(d.SOPInstanceUID))==(row.study_uid,row.series_uid,row.sop_uid)
+   values={k:str(d.get(k,'')).strip() for k in identifiers}
+   result.append({'study_uid':row.study_uid,'series_uid':row.series_uid,'sop_uid':row.sop_uid,'source_path':row.path,'source_sha256':row.sha256,'candidate_cartilage_report':row.study_uid in candidates,'identifier_field_present':{k:k in d for k in identifiers},'identifier_field_nonempty':{k:bool(v) for k,v in values.items()},'identifier_field_sha256':{k:hashlib.sha256(v.encode()).hexdigest() if v else None for k,v in values.items()},'acquisition':{k:str(d.get(k,'')).strip() for k in acquisition},'retained_header_keywords':sorted(e.keyword or str(e.tag) for e in d)})
+  print(f'origin headers {len(result)}/{len(rows)} elapsed={time.monotonic()-start:.1f}',flush=True)
+finally:source.downloads.shutdown()
+out=BASE/'origin-audit/header-probe.jsonl'
+out.write_text(''.join(json.dumps(x,ensure_ascii=False)+'\n' for x in result))
+summary={'selection':'One study per observed manufacturer/model pair in the existing full-study sample, plus all five grade-convention candidates; one first-listed DICOM per study, not all headers.','source_revision':source.revision,'studies_checked':len(result),'manufacturer_model_pairs_in_existing_index':int(headers[['manufacturer','model']].drop_duplicates().shape[0]),'all_five_candidates_checked':len([x for x in result if x['candidate_cartilage_report']])==5,'nonempty_identifier_fields':{k:sum(x['identifier_field_nonempty'][k] for x in result) for k in identifiers},'present_identifier_fields':{k:sum(x['identifier_field_present'][k] for x in result) for k in identifiers},'record_sha256':hashlib.sha256(out.read_bytes()).hexdigest(),'interpretation':'Scanner model and acquisition settings are domain descriptors; they do not establish named source center, country, or reporting convention. No annotation changed.'}
+(BASE/'origin-audit/header-probe-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+print(json.dumps(summary,indent=2))
