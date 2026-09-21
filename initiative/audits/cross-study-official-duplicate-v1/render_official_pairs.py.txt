@@ -1,0 +1,159 @@
+"""Render ten bound official native mid-slice panels without spatial transforms."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pydicom
+from characterize import binding, require, sha
+from PIL import Image, ImageDraw, ImageFont
+
+ROOT = Path(__file__).resolve().parent
+WORK = ROOT.parents[1]
+OFFICIAL = ROOT / "official-verification-v1"
+OUTPUT = ROOT / "official-native-panels-v1"
+
+
+def main() -> None:
+    require(not OUTPUT.exists(), "Panel output must be new")
+    result_path = OFFICIAL / "official-verification.json"
+    require(
+        sha(result_path) == "14b0b82424d1bbc3ba13318c088f525a6804e9b8598e329dea2fd03d982b7a56",
+        "Official proof changed",
+    )
+    result = json.loads(result_path.read_text())
+    require(
+        result["status"] == "verified_official_complete_image_content_duplication",
+        "Official source comparison incomplete",
+    )
+    official = {
+        r["requested_source_path"]: r
+        for r in map(
+            json.loads, (OFFICIAL / "official-source-records.jsonl").read_text().splitlines()
+        )
+    }
+    slices = list(
+        map(
+            json.loads, (ROOT / "evidence/all-source-slice-bindings.jsonl").read_text().splitlines()
+        )
+    )
+    pairs = json.loads((ROOT / "evidence/complete-series-matches.json").read_text())
+    require(len(pairs) == 5, "Expected five complete series pairs")
+    font = ImageFont.load_default(size=14)
+    canvas = Image.new("L", (684, 1870), 18)
+    drawing = ImageDraw.Draw(canvas)
+    drawing.text(
+        (12, 10), "Official source A                     Official source B", fill=255, font=font
+    )
+    panels = []
+    for row_number, pair in enumerate(pairs):
+        frame = sorted(
+            [r for r in slices if r["series_uid"] == pair["left_series_uid"]],
+            key=lambda r: r["ordered_slice_index"],
+        )
+        left = frame[len(frame) // 2]
+        right = next(
+            r
+            for r in slices
+            if r["series_uid"] == pair["right_series_uid"]
+            and r["native_pixel_sha256"] == left["native_pixel_sha256"]
+        )
+        source_rows = [left, right]
+        images, datasets, files = [], [], []
+        for source in source_rows:
+            record = official[source["source_path"]]
+            path = OFFICIAL / record["official_local_path"]
+            require(
+                sha(path) == source["source_sha256"] == record["official_sha256"],
+                "Official source reference changed",
+            )
+            dataset = pydicom.dcmread(path)
+            require(
+                [
+                    str(dataset.StudyInstanceUID),
+                    str(dataset.SeriesInstanceUID),
+                    str(dataset.SOPInstanceUID),
+                ]
+                == [source[k] for k in ["study_uid", "series_uid", "sop_uid"]],
+                "Panel UID mismatch",
+            )
+            images.append(dataset.pixel_array)
+            datasets.append(dataset)
+            files.append(path)
+        require(np.array_equal(images[0], images[1]), "Expected matrix pair differs")
+        low, high = float(images[0].min()), float(images[0].max())
+        require(high > low, "Selected source panel is constant")
+        for column, (source, pixels, dataset, path) in enumerate(
+            zip(source_rows, images, datasets, files)
+        ):
+            x, y = 12 + column * 336, 42 + row_number * 362
+            display = np.rint((pixels.astype(float) - low) / (high - low) * 255).astype(np.uint8)
+            # Center native pixels in an empty cell; never scale, crop, rotate or mirror.
+            canvas.paste(
+                Image.fromarray(display),
+                (x + (320 - pixels.shape[1]) // 2, y + (320 - pixels.shape[0]) // 2),
+            )
+            drawing.text(
+                (x, y + 324),
+                f"Pair {row_number} | slice {source['ordered_slice_index']} | {pixels.shape[0]}x{pixels.shape[1]}",
+                fill=255,
+                font=font,
+            )
+            drawing.text((x, y + 342), f"SOP ...{source['sop_uid'][-16:]}", fill=220, font=font)
+            panels.append(
+                {
+                    "pair_index": row_number,
+                    "study_column": "A" if column == 0 else "B",
+                    "source": binding(path, WORK),
+                    "study_uid": source["study_uid"],
+                    "series_uid": source["series_uid"],
+                    "sop_uid": source["sop_uid"],
+                    "ordered_slice_index": source["ordered_slice_index"],
+                    "native_shape": list(pixels.shape),
+                    "native_dtype": str(pixels.dtype),
+                    "native_matrix_bytes_sha256": hashlib.sha256(
+                        pixels.tobytes(order="C")
+                    ).hexdigest(),
+                    "window_min": low,
+                    "window_max": high,
+                    "window_method": "shared_pair_full_native_min_max_linear_to_uint8",
+                    "spatial_transform": "none; centered padding only",
+                    "orientation": [float(v) for v in dataset.ImageOrientationPatient],
+                    "position": [float(v) for v in dataset.ImagePositionPatient],
+                    "pixel_spacing": [float(v) for v in dataset.PixelSpacing],
+                }
+            )
+    OUTPUT.mkdir()
+    image_path = OUTPUT / "official-paired-native-mid-slices.png"
+    canvas.save(image_path)
+    manifest = {
+        "schema_version": 1,
+        "stage": "bound_official_native_pair_panels",
+        "agent_id": "/root/image_pipeline_audit",
+        "official_verification": binding(result_path, WORK),
+        "render_script": binding(Path(__file__).resolve(), WORK),
+        "image": binding(image_path, WORK),
+        "n_pairs": 5,
+        "n_native_panels": 10,
+        "new_native_decodes_for_rendering": 10,
+        "panels": panels,
+        "scope": "Native sample matrix visualization only, with common linear display window per pair and no spatial transform. No anatomy, laterality, patient identity or clinical target labels inferred.",
+    }
+    (OUTPUT / "panel-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    print(
+        json.dumps(
+            {
+                "image": str(image_path),
+                "image_sha256": sha(image_path),
+                "manifest_sha256": sha(OUTPUT / "panel-manifest.json"),
+            },
+            indent=2,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

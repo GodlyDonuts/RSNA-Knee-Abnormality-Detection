@@ -1,0 +1,482 @@
+"""Derive endpoint-survey reuse eligibility without changing historical evidence.
+
+Run from the recovered repository with its environment. All inputs are local;
+there are no HTTP, DICOM parsing, image decoding, or clinical annotation reads.
+"""
+
+from __future__ import annotations
+
+import argparse
+import gzip
+import hashlib
+import json
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "recovered"))
+from rsna.audit import inventory_fingerprint, validate_inventory  # noqa: E402
+
+BASELINE_REVISION = "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+CORRECTED_REVISION = "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+PLAN_SHA256 = "68b44c1412ced183db223220f39cd4a6e071d40515df4c7b75b40a96ba6d0f3d"
+RECEIPT_SHA256 = "2c88c4f53cb3d2332e8079e1cd353eede5a601172febf0ab0b74ce8161f9fbb4"
+SURVEY_SHA256 = "d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3"
+MANIFEST_SHA256 = "7aa80f9ca6043d55b1fdab4e008739877e96273b5d9c2111114f5c10b2ed4c7a"
+SUMMARY_SHA256 = "f42bb1df14c97a06480173759ebb823d687ece3404f9605da3719a7b2481f641"
+INV_COLUMNS = ["path", "study_uid", "series_uid", "sop_uid", "sha256", "bytes", "storage"]
+RECORD_FIELDS = {
+    "source_path",
+    "study_uid",
+    "series_uid",
+    "sop_uid",
+    "source_sha256",
+    "source_bytes",
+    "storage",
+    "prefix_bytes",
+    "prefix_sha256",
+    "full_file_sha256_verified",
+    "verification_scope",
+    "prefix_attempts",
+    "header_fields",
+    "patient_id_sha256",
+    "patient_id_present",
+    "frame_of_reference_sha256",
+    "frame_of_reference_present",
+    "transfer_syntax_uid",
+    "pixel_data_header",
+    "reached_pixel_data_header",
+}
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
+def canonical(value: object) -> bytes:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+
+
+def sha(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def bind(path: Path, root: Path) -> dict:
+    return {"path": str(path.relative_to(root)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def read_json(path: Path) -> dict:
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            require(key not in result, "Duplicate JSON field")
+            result[key] = value
+        return result
+
+    return json.loads(path.read_text(), object_pairs_hook=unique)
+
+
+def select_endpoints(inventory: pd.DataFrame) -> tuple[list[dict], list[dict], dict]:
+    selected, series_rows, roles = [], [], {}
+    for (study, series), frame in inventory.sort_values("sop_uid").groupby(
+        ["study_uid", "series_uid"]
+    ):
+        endpoints = frame.iloc[[0, -1]][INV_COLUMNS].to_dict("records")
+        first, last = endpoints
+        series_rows.append(
+            {
+                "study_uid": study,
+                "series_uid": series,
+                "n_slices": len(frame),
+                "first_sop_uid": first["sop_uid"],
+                "last_sop_uid": last["sop_uid"],
+            }
+        )
+        selected.append(first)
+        roles[first["path"]] = ["lexical_first"]
+        if first["sop_uid"] != last["sop_uid"]:
+            selected.append(last)
+            roles[last["path"]] = ["lexical_last"]
+        else:
+            roles[first["path"]].append("lexical_last")
+    return selected, series_rows, roles
+
+
+def validate_record(record: dict, expected: dict, fields: list[str]) -> None:
+    require(set(record) == RECORD_FIELDS, "Unexpected endpoint record schema")
+    require(set(record["header_fields"]) == set(fields), "Unexpected header field schema")
+    for recorded, source in [
+        ("source_path", "path"),
+        ("source_sha256", "sha256"),
+        ("source_bytes", "bytes"),
+        ("study_uid", "study_uid"),
+        ("series_uid", "series_uid"),
+        ("sop_uid", "sop_uid"),
+        ("storage", "storage"),
+    ]:
+        require(
+            record[recorded] == expected[source], f"Endpoint source binding mismatch: {recorded}"
+        )
+    require(record["reached_pixel_data_header"] is True, "Incomplete recorded header")
+    require(
+        type(record["prefix_bytes"]) is int
+        and 0 < record["prefix_bytes"] <= record["source_bytes"],
+        "Invalid prefix size",
+    )
+    for field in [
+        "source_sha256",
+        "prefix_sha256",
+        "patient_id_sha256",
+        "frame_of_reference_sha256",
+    ]:
+        require(
+            isinstance(record[field], str)
+            and re.fullmatch(r"[0-9a-f]{64}", record[field]) is not None,
+            "Invalid recorded digest",
+        )
+    whole = record["prefix_bytes"] == record["source_bytes"]
+    require(record["full_file_sha256_verified"] is whole, "False full-file hash claim")
+    require(
+        record["verification_scope"]
+        == ("complete_file_sha256" if whole else "range_transport_and_uid_binding_only"),
+        "Wrong verification scope",
+    )
+    if whole:
+        require(record["prefix_sha256"] == record["source_sha256"], "Small-file full hash mismatch")
+    require(
+        record["prefix_attempts"][-1]
+        == {"prefix_bytes": record["prefix_bytes"], "prefix_sha256": record["prefix_sha256"]},
+        "Prefix history mismatch",
+    )
+    boundary = record["pixel_data_header"]
+    require(
+        set(boundary) == {"declared_length", "tag", "value_offset", "vr"},
+        "Unexpected PixelData boundary schema",
+    )
+    require(
+        boundary["tag"] == "7fe00010" and boundary["vr"] == "OW",
+        "Unexpected baseline PixelData encoding",
+    )
+    require(
+        0 < boundary["value_offset"] <= record["prefix_bytes"],
+        "PixelData boundary lies outside prefix",
+    )
+    require(
+        boundary["value_offset"] + boundary["declared_length"] <= record["source_bytes"],
+        "Declared payload exceeds object size",
+    )
+
+
+def verify(work: Path, output: Path) -> dict:
+    require(not output.exists(), "Output must be a new directory")
+    repo, survey = work / "recovered", work / "header-endpoint-full-v1"
+    correction = work / "source-byte-failures-v1"
+    plan_path = correction / "source-correction-publication/source_correction_plan.json"
+    receipt_path = correction / "hf-source-correction-receipt.json"
+    endpoints_path, manifest_path, summary_path = [
+        survey / n for n in ["endpoint-headers.jsonl", "manifest.json", "summary.json"]
+    ]
+    expected_hashes = {
+        plan_path: PLAN_SHA256,
+        receipt_path: RECEIPT_SHA256,
+        endpoints_path: SURVEY_SHA256,
+        manifest_path: MANIFEST_SHA256,
+        summary_path: SUMMARY_SHA256,
+    }
+    for path, expected_sha in expected_hashes.items():
+        require(sha(path) == expected_sha, f"Changed immutable artifact: {path.name}")
+    patch, receipt, manifest, summary = [
+        read_json(p) for p in [plan_path, receipt_path, manifest_path, summary_path]
+    ]
+    require(
+        patch["status"] == "accepted_exact_authoritative_source_replacement",
+        "Correction not accepted",
+    )
+    require(patch["baseline_source_revision"] == BASELINE_REVISION, "Wrong patch baseline revision")
+    require(
+        patch["original_pinned_revision_preserved"] is True and patch["decoder_changed"] is False,
+        "Baseline preservation requirement failed",
+    )
+    require(
+        receipt["status"] == "verified_private_hf_source_correction"
+        and receipt["private"] is True
+        and receipt["remote_objects_verified"] is True,
+        "Unverified source publication",
+    )
+    require(
+        receipt["source_correction_plan_sha256"] == PLAN_SHA256
+        and receipt["baseline_source_revision"] == BASELINE_REVISION
+        and receipt["corrected_source_revision"] == CORRECTED_REVISION,
+        "Receipt source binding mismatch",
+    )
+    require(
+        manifest["source_revision"] == summary["source_revision"] == BASELINE_REVISION,
+        "Historical survey revision mismatch",
+    )
+    require(
+        manifest["selection"]
+        == {"kind": "lexical_first_and_last_sop_per_series", "study_uid": None},
+        "Unexpected survey selection",
+    )
+    require(
+        summary["endpoint_artifact_sha256"] == SURVEY_SHA256
+        and summary["manifest_sha256"] == MANIFEST_SHA256,
+        "Historical summary binding mismatch",
+    )
+    require(
+        summary["complete_endpoint_coverage"] is True and summary["failures"] == [],
+        "Historical survey incomplete",
+    )
+    require(
+        summary["full_slice_header_coverage"] is False and summary["full_pixel_audit"] is False,
+        "Survey scope drift",
+    )
+    inventory_root = repo / "initiative/source/inventory"
+    inventory_parts = sorted(inventory_root.glob("*.parquet"))
+    inventory_files = [
+        {"path": p.name, "sha256": sha(p), "bytes": p.stat().st_size} for p in inventory_parts
+    ]
+    require(
+        inventory_files == manifest["inventory_files"], "Original inventory file bindings changed"
+    )
+    require(
+        hashlib.sha256(canonical(inventory_files)).hexdigest()
+        == manifest["inventory_files_fingerprint"],
+        "Survey inventory file fingerprint mismatch",
+    )
+    corrected_path = plan_path.parent / patch["corrected_inventory"]["path"]
+    require(
+        sha(corrected_path)
+        == patch["corrected_inventory"]["sha256"]
+        == receipt["corrected_inventory_sha256"],
+        "Corrected inventory file hash mismatch",
+    )
+    require(
+        corrected_path.stat().st_size == patch["corrected_inventory"]["bytes"],
+        "Corrected inventory size mismatch",
+    )
+    baseline, corrected = pd.read_parquet(inventory_root), pd.read_parquet(corrected_path)
+    for frame in [baseline, corrected]:
+        validate_inventory(frame)
+        require(
+            frame.series_uid.nunique() == 24386
+            and frame.study_uid.nunique() == 4410
+            and len(frame) == 819635,
+            "Full inventory coverage mismatch",
+        )
+    require(
+        inventory_fingerprint(baseline) == patch["baseline_inventory_fingerprint_sha256"],
+        "Baseline canonical inventory mismatch",
+    )
+    require(
+        inventory_fingerprint(corrected) == patch["corrected_inventory_fingerprint_sha256"],
+        "Corrected canonical inventory mismatch",
+    )
+    before = baseline.set_index("path", drop=False)
+    after = corrected.set_index("path", drop=False)
+    expected = before.copy(deep=True)
+    changes = patch["changes"]
+    require(
+        len(changes) == 2 and len({c["path"] for c in changes}) == 2,
+        "Expected exactly two unique changes",
+    )
+    for change in changes:
+        name = change["path"]
+        require(
+            before.loc[name].to_dict() == change["before"]
+            and after.loc[name].to_dict() == change["after"],
+            "Exact correction before/after row mismatch",
+        )
+        require(
+            {k for k in change["before"] if change["before"][k] != change["after"][k]}
+            == {"sha256", "bytes"},
+            "Correction changes source identities",
+        )
+        expected.loc[name, ["sha256", "bytes"]] = [
+            change["after"]["sha256"],
+            change["after"]["bytes"],
+        ]
+    pd.testing.assert_frame_equal(expected.sort_index(), after.sort_index())
+    require(
+        set(receipt["changed_source_paths"]) == {c["path"] for c in changes},
+        "Receipt changed membership mismatch",
+    )
+    old_endpoints, old_series, roles = select_endpoints(baseline)
+    new_endpoints, new_series, _ = select_endpoints(corrected)
+    require(
+        old_endpoints == new_endpoints and old_series == new_series,
+        "Selected source endpoints changed",
+    )
+    require(old_series == manifest["selected_series"], "Historical series selection mismatch")
+    require(
+        hashlib.sha256(canonical(old_endpoints)).hexdigest() == manifest["endpoints_sha256"],
+        "Historical selected endpoint digest mismatch",
+    )
+    require(
+        len(old_endpoints) == manifest["n_endpoints"] == 48772, "Expected 48,772 selected endpoints"
+    )
+    expected_records = {row["path"]: row for row in old_endpoints}
+    require(
+        not ({c["path"] for c in changes} & set(expected_records)),
+        "A corrected path was selected by the baseline survey",
+    )
+    require(
+        not ({c["sop_uid"] for c in changes} & {r["sop_uid"] for r in old_endpoints}),
+        "A replaced SOP was selected",
+    )
+    archived = repo / "initiative/audits/header-endpoint-full-v1/endpoint-headers.jsonl.gz"
+    decompressed = hashlib.sha256()
+    with gzip.open(archived, "rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            decompressed.update(block)
+    require(decompressed.hexdigest() == SURVEY_SHA256, "Archived gzip content differs from survey")
+    script = repo / "initiative/audits/header-endpoint-full-v1/survey.py.txt"
+    require(sha(script) == manifest["script_sha256"], "Original survey code binding mismatch")
+    bindings = [
+        bind(p, work)
+        for p in [
+            *expected_hashes,
+            *inventory_parts,
+            corrected_path,
+            archived,
+            script,
+            Path(__file__).resolve(),
+        ]
+    ]
+    output.mkdir(parents=True)
+    seen, study_ids, series_ids = set(), set(), set()
+    prefix_counts = Counter()
+    whole_files = 0
+    provenance_path = output / "endpoint-source-equivalence.jsonl"
+    with endpoints_path.open() as handle, provenance_path.open("x") as out:
+        for index, line in enumerate(handle, 1):
+            record = json.loads(line)
+            name = record["source_path"]
+            require(
+                name not in seen and name in expected_records,
+                "Duplicate or unexpected endpoint record",
+            )
+            source = expected_records[name]
+            validate_record(record, source, manifest["fields"])
+            require(
+                before.loc[name].to_dict() == after.loc[name].to_dict(),
+                "Endpoint source row differs across revisions",
+            )
+            seen.add(name)
+            study_ids.add(record["study_uid"])
+            series_ids.add(record["series_uid"])
+            prefix_counts[str(record["prefix_bytes"])] += 1
+            whole_files += int(record["full_file_sha256_verified"])
+            out.write(
+                json.dumps(
+                    {
+                        "baseline_endpoint_line": index,
+                        "baseline_record_canonical_sha256": hashlib.sha256(
+                            canonical(record)
+                        ).hexdigest(),
+                        "source_identity_and_content_in_both_inventories": {
+                            **source,
+                            "split": name.split("/", 1)[0],
+                        },
+                        "endpoint_roles": roles[name],
+                        "recorded_prefix_sha256": record["prefix_sha256"],
+                        "recorded_prefix_bytes": record["prefix_bytes"],
+                        "original_verification_scope": record["verification_scope"],
+                        "source_object_unchanged": True,
+                        "historical_record_rewritten": False,
+                    },
+                    sort_keys=True,
+                )
+                + "\n"
+            )
+    require(seen == set(expected_records), "Endpoint coverage mismatch")
+    require(
+        len(study_ids) == 4410 and len(series_ids) == 24386,
+        "Endpoint study/series coverage mismatch",
+    )
+    require(
+        dict(prefix_counts) == summary["successful_prefix_size_counts"]
+        and whole_files == summary["endpoints_with_full_file_sha256_verified"],
+        "Prefix scope counts mismatch",
+    )
+    for item in bindings:
+        require(
+            sha(work / item["path"]) == item["sha256"],
+            "An input changed during derivative validation",
+        )
+    result = {
+        "schema_version": 1,
+        "stage": "derivative_endpoint_source_reuse_eligibility",
+        "agent_id": "/root/image_pipeline_audit",
+        "session_id": "/root/image_pipeline_audit",
+        "workflow_run_id": "codex-20260920-rubric-v2",
+        "status": "all_selected_source_objects_unchanged",
+        "historical_source_revision": BASELINE_REVISION,
+        "effective_source_revision": CORRECTED_REVISION,
+        "historical_survey_sha256": SURVEY_SHA256,
+        "input_bindings": bindings,
+        "baseline_inventory_fingerprint_sha256": patch["baseline_inventory_fingerprint_sha256"],
+        "corrected_inventory_fingerprint_sha256": patch["corrected_inventory_fingerprint_sha256"],
+        "complete_inventories_compared": 2,
+        "inventory_slices_each": 819635,
+        "source_records_unchanged": 819633,
+        "changed_source_records": 2,
+        "selected_endpoint_records": len(seen),
+        "selected_series": len(series_ids),
+        "selected_studies": len(study_ids),
+        "selected_endpoint_rows_changed": 0,
+        "replaced_sops_selected": [],
+        "failures": [],
+        "recorded_prefix_size_counts": dict(prefix_counts),
+        "recorded_full_small_file_hash_count": whole_files,
+        "per_endpoint_provenance": bind(provenance_path, work),
+        "unselected_changed_sources": [
+            {
+                "path": c["path"],
+                "sop_uid": c["sop_uid"],
+                "before_sha256": c["before"]["sha256"],
+                "after_sha256": c["after"]["sha256"],
+            }
+            for c in changes
+        ],
+        "baseline_survey_and_revision_modified": False,
+        "new_network_requests": 0,
+        "new_header_parses": 0,
+        "new_pixel_decodes": 0,
+        "clinical_annotations_accessed_or_changed": False,
+        "scope": [
+            "Existing endpoint metadata remains eligible as derivative evidence because every selected whole-source object identity/hash/size/storage and lexical selection is unchanged across both complete inventories.",
+            "This does not rewrite historical survey provenance or constitute a new survey under the corrected revision.",
+            "Recorded prefix bytes are unavailable for rehashing here; prefix transport/parser claims retain their original limits. 48,770 partial-prefix records are not full-file verification.",
+            "No middle-slice header coverage, new patient identity conclusion, native pixel audit, anatomical inference, or training readiness is established.",
+        ],
+        "training_ready": False,
+    }
+    (output / "reuse-provenance.json").write_text(json.dumps(result, indent=2) + "\n")
+    return {
+        k: result[k]
+        for k in [
+            "status",
+            "selected_endpoint_records",
+            "selected_series",
+            "selected_studies",
+            "selected_endpoint_rows_changed",
+            "new_network_requests",
+        ]
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--work-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    arguments = parser.parse_args()
+    print(json.dumps(verify(arguments.work_root.resolve(), arguments.output.resolve()), indent=2))

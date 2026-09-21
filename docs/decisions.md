@@ -9,9 +9,10 @@ The current decoder/cache version is `series-u16-v3`. Fresh authenticated Kaggle
 metadata now matches the archived source byte for byte. All 4,410 sampled study
 headers have distinct pseudonymous PatientIDs, which does not prove real patient
 disjointness. Read `docs/codex-continuation.md` for current progress and gates.
-The public HF mirror is not an authorized destination for new restricted data;
-keep new artifacts local or in the private GitHub monorepo. Historical access
-and publication plans below describe the previous run, not current permission.
+Both GitHub and Hugging Face are verified private destinations for preparation
+checkpoints. Preserve restricted access, immutable source revisions and verified
+publication receipts. Historical access and publication notes below describe the
+previous run; the current evidence is in the continuation guide.
 
 ## Objective and scope
 
@@ -72,8 +73,9 @@ inspection or rubric tuning must be declared rather than called unbiased.
 
 ## Image processing and training
 
-The source inventory is complete and source-verified. Full decoding is separate
-and still must finish. The `series-u16-v2` cache verifies source hashes and UIDs,
+The corrected source inventory and `series-u16-v3` cache have passed the full
+819,635-slice audit. Two invalid mirror encodings were replaced with exact official
+files in a separately preserved source revision. The cache verifies source hashes and UIDs,
 decodes rescale/monochrome conventions, orders by geometry, preserves physical
 aspect, and uses per-volume min/max scaling with uint16 storage. Geometry
 warnings are preserved; cache pairs are atomic and checksummed.
@@ -102,7 +104,8 @@ Historical outputs and in-progress drafts are not a corrected release.
 ## Remaining acceptance gates
 
 1. Finish and archive every independent review; validate all evidence and IDs.
-2. Finish the full cache and technical image audit; resolve failures/duplicates.
+2. Finish remaining technical correspondence checks and incorporate the complete
+   image audit and verified duplicate edges into final leakage isolation.
 3. Generate disjoint corrected manifests, coverage, distributions, and gold
    comparison without training or calibrating on the gold evaluation set.
 4. Complete real-data smoke training, exact resume, gold inference, and exact

@@ -1,0 +1,95 @@
+"""Read-only revalidation of all preserved official file and evidence references."""
+
+from __future__ import annotations
+
+import json
+import zlib
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pydicom
+from characterize import binding, require, sha
+
+ROOT = Path(__file__).resolve().parent
+WORK = ROOT.parents[1]
+OFFICIAL = ROOT / "official-verification-v1"
+
+
+def main() -> None:
+    output = ROOT / "official-source-reference-integrity.json"
+    require(not output.exists(), "Integrity output must be new")
+    result_path = OFFICIAL / "official-verification.json"
+    require(
+        sha(result_path) == "14b0b82424d1bbc3ba13318c088f525a6804e9b8598e329dea2fd03d982b7a56",
+        "Official result changed",
+    )
+    result = json.loads(result_path.read_text())
+    references = result["input_bindings"] + result["evidence_bindings"]
+    frozen = json.loads((ROOT / "cache-characterization-handoff.json").read_text())
+    references += frozen["files"]
+    for item in references:
+        path = WORK / item["path"]
+        require(
+            path.stat().st_size == item["bytes"] and sha(path) == item["sha256"],
+            "Evidence reference changed",
+        )
+    rows = [
+        json.loads(line)
+        for line in (OFFICIAL / "official-source-records.jsonl").read_text().splitlines()
+    ]
+    require(
+        len(rows) == len({r["requested_source_path"] for r in rows}) == 288,
+        "Source membership changed",
+    )
+    files = []
+    for row in rows:
+        path = OFFICIAL / row["official_local_path"]
+        data = path.read_bytes()
+        require(
+            len(data) == row["official_bytes"] == row["expected_source_bytes"],
+            "Source size changed",
+        )
+        require(
+            sha(path) == row["official_sha256"] == row["expected_source_sha256"],
+            "Source hash changed",
+        )
+        require(
+            f"{zlib.crc32(data) & 0xFFFFFFFF:08x}"
+            == row["official_crc32"]
+            == row["official_archive_crc32"],
+            "Source CRC changed",
+        )
+        header = pydicom.dcmread(path, stop_before_pixels=True)
+        require(
+            [
+                str(header.StudyInstanceUID),
+                str(header.SeriesInstanceUID),
+                str(header.SOPInstanceUID),
+            ]
+            == row["official_uid_triplet"]
+            == [row[k] for k in ("study_uid", "series_uid", "sop_uid")],
+            "Source UID changed",
+        )
+        files.append(binding(path, WORK))
+    payload = {
+        "schema_version": 1,
+        "stage": "preserved_official_source_reference_integrity",
+        "agent_id": "/root/image_pipeline_audit",
+        "completed_at_utc": datetime.now(timezone.utc).isoformat(),
+        "status": "verified",
+        "script": binding(Path(__file__).resolve(), WORK),
+        "official_result": binding(result_path, WORK),
+        "evidence_references_verified": len(references),
+        "source_files_sha_size_crc_uid_reverified": len(files),
+        "source_bytes_reverified": sum(item["bytes"] for item in files),
+        "source_files": files,
+        "new_network_requests": 0,
+        "new_native_pixel_decodes": 0,
+        "scope": "Rechecks preserved bytes and DICOM UID headers. Exhaustive native matrix/geometry comparisons remain bound to the unchanged earlier official verification result.",
+    }
+    output.write_text(json.dumps(payload, indent=2) + "\n")
+    print(json.dumps({"result": binding(output, WORK), "source_files_verified": len(files)}))
+
+
+if __name__ == "__main__":
+    main()

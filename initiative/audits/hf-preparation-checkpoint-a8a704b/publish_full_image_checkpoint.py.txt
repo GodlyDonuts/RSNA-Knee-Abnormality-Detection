@@ -1,0 +1,66 @@
+"""Publish committed, CI-verified preparation evidence to the private dataset."""
+import argparse,datetime,gzip,hashlib,io,json,subprocess,tarfile
+from pathlib import Path
+from dotenv import dotenv_values
+from huggingface_hub import HfApi,CommitOperationAdd,hf_hub_download
+
+W=Path(__file__).resolve().parent;R=W/'recovered'
+parser=argparse.ArgumentParser();parser.add_argument('--commit',required=True);parser.add_argument('--ci-run',type=int,required=True);args=parser.parse_args()
+commit=args.commit;assert len(commit)==40
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb')as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def blob(name):return subprocess.check_output(['git','show',commit+':'+name],cwd=R)
+def now():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+ci=json.loads(subprocess.check_output(['gh','run','view',str(args.ci_run),'--repo','GodlyDonuts/RSNA-Knee-Abnormality-Detection','--json','conclusion,headSha'],text=True))
+assert ci=={'conclusion':'success','headSha':commit}
+index=json.loads(blob('initiative/reviews-v2/index.json'));assert index['training_ready'] is False
+image_audit=json.loads(blob('initiative/audits/full-image-recovery-v1/audit/dicom_audit.json'))
+assert image_audit['complete'] and image_audit['decoded_slices']==819635 and not image_audit['train_test_duplicate_pairs']
+train_selection=json.loads(blob('initiative/audits/full-image-recovery-v1/train-selection/series_selection_audit.json'))
+assert train_selection['n_retained_series']==24338 and train_selection['n_excluded_series']==33
+files=subprocess.check_output(['git','ls-tree','-r','--name-only',commit],cwd=R,text=True).splitlines()
+roots=('rsna/','tests/','docs/','protocols/','initiative/reviews-v2/','initiative/reviews/inputs/','initiative/audits/full-image-recovery-v1/','initiative/audits/source-pixel-representation-v1/')
+files=[p for p in files if p.startswith(roots)or(p.startswith('initiative/audits/')and Path(p).suffix in ['.json','.jsonl','.md','.txt'])or p in ['README.md','AGENTS.md','pyproject.toml','requirements.txt','requirements-dev.txt']]
+out=W/'hf-preparation-checkpoints'/commit;out.mkdir(parents=True,exist_ok=False)
+secret_values=dotenv_values(W.parent/'.env');token=secret_values['HF_TOKEN'];secrets=[v.encode()for k,v in secret_values.items()if k in ['HF_TOKEN','KAGGLE_API_TOKEN']and v]
+target=out/'checkpoint.tar.gz';refs=[];review_count=0;report_count=0
+process=subprocess.Popen(['git','archive','--format=tar',commit,*files],cwd=R,stdout=subprocess.PIPE);assert process.stdout
+with target.open('wb')as dest,gzip.GzipFile(filename='',mode='wb',fileobj=dest,mtime=0)as gz,tarfile.open(fileobj=gz,mode='w|')as result,tarfile.open(fileobj=process.stdout,mode='r|')as origin:
+ for member in origin:
+  if not member.isfile():continue
+  f=origin.extractfile(member);assert f;data=f.read();assert not any(v in data for v in secrets),member.name
+  if member.name.startswith('initiative/reviews-v2/reviewed/')and member.name.endswith('.jsonl'):
+   rows=[json.loads(s)for s in data.splitlines()];assert all(len(row['states'])==12 for row in rows);review_count+=1;report_count+=len(rows)
+  info=tarfile.TarInfo(member.name);info.size=len(data);info.mode=member.mode;info.mtime=0;result.addfile(info,io.BytesIO(data));refs.append({'path':member.name,'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)})
+assert process.wait()==0 and review_count==index['counts']['reviewed']['valid']==54 and report_count==2657
+manifest={'schema_version':1,'status':'incomplete_preparation_checkpoint','training_ready':False,'github_commit':commit,'github_url':f'https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/commit/{commit}','github_ci_run':args.ci_run,'github_ci_conclusion':'success','tests_passed':200,'reviewed_batches':review_count,'reviewed_reports':report_count,'target_decisions':report_count*12,'pinned_baseline_source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d','effective_source_revision':image_audit['source_revision'],'image_audit':{k:v for k,v in image_audit.items()if k!='study_uids_by_split'},'training_series_selection':train_selection,'accepted_target_adjudications':27,'remaining_gates':['All4407 reports receive independent source passes','Global semantic and correspondence adjudication','Remaining technical candidate assessment','Transitive report/pixel leakage-isolated final manifest and gold-neighbor quarantine','Final-release loader, training, exact resume and inference verification'],'clinical_scope':'Report-derived weak annotation, not a diagnostic MRI reread. Unknown states remain masked; gold stays evaluation-only.','package':{'path':'checkpoint.tar.gz','sha256':sha(target),'bytes':target.stat().st_size},'scope':'Committed code, tests, protocol, all source report review evidence, JSON/text audit records, complete new source restoration and recovery/audit/selection artifacts. The82.6GB local cache is represented by exact per-series hashes and rebuild instructions, not packaged.','files':refs}
+(out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+(out/'README.md').write_text(f'# Preparation checkpoint — not training-ready\n\nThis private snapshot preserves GitHub `{commit}` after 200 tests, style/type checks and archive validation passed. It includes {report_count:,} independently reviewed reports and {report_count*12:,} explicit target decisions.\n\nThe complete corrected cache passed its technical audit: 819,635 slices, 24,386 series, zero warnings. One cross-study nonconstant pixel link remains in leakage grouping; no released train/test overlap was found. Training input selection retains 24,338 series across all4,407 studies and excludes33 exact duplicate slots. All original sources remain preserved.\n\nFull report review, global semantic/correspondence adjudication, remaining technical candidate assessment, final leakage-isolated manifest and real release smoke checks remain required. See `manifest.json` for every packaged hash, pinned source, scope and remaining gate.\n')
+repo='GodlyDonuts/RSNA-Data';source_revision=image_audit['source_revision'];api=HfApi(token=token);info=api.repo_info(repo,repo_type='dataset');assert info.private is True and info.sha==source_revision
+parent=info.sha;prefix='preparation-checkpoints/'+commit;files_to_upload={prefix+'/'+n:out/n for n in ['checkpoint.tar.gz','manifest.json','README.md']}
+audit_prefix='audits/full-image-recovery-v1'
+for n in ['audit/dicom_audit.json','audit/series_cache_index.parquet','cache_recovery_lineage.jsonl','source_recovery_status.json','root-full-image-milestone-verification.json','preservation.json','train-selection/series_selected.csv','train-selection/series_selection_audit.json','train-selection/series_selection_plan.json','test-selection/series_selected.csv','test-selection/series_selection_audit.json','test-selection/series_selection_plan.json']:
+ p=R/'initiative/audits/full-image-recovery-v1'/n;assert p.read_bytes()==blob('initiative/audits/full-image-recovery-v1/'+n);files_to_upload[audit_prefix+'/'+n]=p
+card_path=Path(hf_hub_download(repo,'README.md',repo_type='dataset',revision=parent,token=token,cache_dir=str(W/'hf-publication-verification-cache')));card=card_path.read_text();marker='# RSNA Knee Abnormality Detection Dataset\n';assert marker in card
+addition=f'''\n## Complete technical image audit — September 21, 2026\n\nThe newest private [preparation checkpoint]({prefix}) preserves GitHub `{commit}` with 2,657 independently reviewed reports, 31,884 target decisions and 200 passing tests. It remains **incomplete and not training-ready**.\n\nThe corrected source is pinned at `{source_revision}`. All819,635 slices in24,386 series passed the complete technical cache audit with zero warnings. One cross-study nonconstant pixel link is retained for leakage isolation, with no overlap against the three released test studies. This is not a diagnostic reread or a hidden-test claim.\n\n[Full image audit and input-selection evidence]({audit_prefix}) includes per-series cache lineage, the complete audit/index, and exact training/test selections. The training table preserves all4,407 studies while excluding33 fully equivalent model slots, leaving24,338 selected series; all15 released test series remain. The original source files and baseline are preserved.\n\nFull report review, global semantic/correspondence adjudication, remaining technical candidate assessment, the final leakage-isolated manifest and final training/resume/inference checks remain required. Older sections below describe historical checkpoints.\n'''
+card=card.replace(marker,marker+addition,1);(out/'dataset-card.md').write_text(card);files_to_upload['README.md']=out/'dataset-card.md'
+remote_refs=[{'path':remote,'sha256':sha(local),'bytes':local.stat().st_size}for remote,local in files_to_upload.items()]
+(out/'publication-operation.json').write_text(json.dumps({'stage':'prepared_private_checkpoint_publication','github_commit':commit,'parent_commit':parent,'effective_source_revision':source_revision,'uploaded_files':remote_refs,'training_ready':False},indent=2)+'\n')
+print({'stage':'uploading','files':len(remote_refs),'bytes':sum(r['bytes']for r in remote_refs),'package_bytes':target.stat().st_size},flush=True)
+response=api.create_commit(repo_id=repo,repo_type='dataset',revision='main',parent_commit=parent,operations=[CommitOperationAdd(path_in_repo=remote,path_or_fileobj=local)for remote,local in files_to_upload.items()],commit_message='Preserve full corrected image audit and2657-report checkpoint',commit_description='Complete819635-slice technical audit,33 exact duplicate-series exclusions, source-recovery lineage and strict held-out inference bindings. This private preparation checkpoint remains incomplete pending report, semantic, correspondence, leakage-isolation and final training gates.',num_threads=3)
+revision=response.oid;receipt={'schema_version':1,'status':'committed_remote_verification_pending','repo_id':repo,'private':True,'github_commit':commit,'github_ci_run':args.ci_run,'hf_publication_revision':revision,'hf_parent_revision':parent,'effective_source_revision':source_revision,'hf_commit_url':response.commit_url,'uploaded_files':remote_refs,'remote_objects_verified':False,'training_ready':False,'completed_at_utc':now()};receipt_path=out/'publication-receipt.json';receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+print({'stage':'verifying','revision':revision},flush=True)
+entries={e.path:e for e in api.get_paths_info(repo,paths=list(files_to_upload),repo_type='dataset',revision=revision)};assert set(entries)==set(files_to_upload)
+for r in remote_refs:
+ e=entries[r['path']];assert e.size==r['bytes']
+ if e.lfs:assert e.lfs.sha256==r['sha256']
+ else:
+  local=Path(hf_hub_download(repo,r['path'],repo_type='dataset',revision=revision,token=token,cache_dir=str(W/'hf-publication-verification-cache')));assert sha(local)==r['sha256']
+before={e.path:e for e in api.list_repo_tree(repo,repo_type='dataset',revision=source_revision)};after={e.path:e for e in api.list_repo_tree(repo,repo_type='dataset',revision=revision)}
+for name in ['train_series','test_series']:assert before[name].tree_id==after[name].tree_id
+for name in ['train.csv','test.csv','train_series.csv','test_series.csv','sample_submission.csv']:assert before[name].blob_id==after[name].blob_id
+assert api.repo_info(repo,repo_type='dataset',revision=revision).private is True
+receipt.update(status='verified_private_preparation_checkpoint',remote_objects_verified=True,source_tree_and_official_metadata_unchanged=True,completed_at_utc=now());receipt_path.write_text(json.dumps(receipt,indent=2)+'\n');print({'stage':'verified','revision':revision,'github_commit':commit,'url':response.commit_url},flush=True)

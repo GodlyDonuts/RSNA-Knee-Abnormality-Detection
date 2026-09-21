@@ -1,0 +1,226 @@
+"""Cross-check the frozen technical candidate queue against completed audit files.
+
+Only identities, technical statuses and technical artifact presence are read.
+No report text, reviewed/draft target states or gold annotation files are opened.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from collections import Counter
+from pathlib import Path
+
+from verify_reuse import bind, require, sha
+
+
+def case_name(row: dict) -> str:
+    batch = Path(row["source_batch_path"]).stem.split("-")[-1]
+    return f"{batch}:{row['source_batch_index']:02d}"
+
+
+def run(work: Path, output: Path) -> dict:
+    require(not output.exists(), "Queue output must be new")
+    repo = work / "recovered"
+    audit_root = repo / "initiative/audits"
+    original = audit_root / "header-endpoint-full-v1/independent/candidate-review-queue.json"
+    frozen = json.loads(original.read_text())
+    queue = frozen["queue"]
+    require(len(queue) == frozen["n_candidate_studies"] == 129, "Unexpected original queue count")
+    require(len({r["study_uid"] for r in queue}) == 129, "Duplicate candidate study")
+    for reference in frozen["source_batch_bindings"]:
+        require(sha(repo / reference["path"]) == reference["sha256"], "Source batch bytes changed")
+    bindings = [bind(original, work)]
+    audits_by_uid = {}
+    completed_plane_uids, completed_native_uids = set(), set()
+    for path in sorted(audit_root.glob("*/decision.json")):
+        folder = path.parent.name
+        if not folder.startswith(("anatomical-plane-", "bilateral-", "correspondence-")):
+            continue
+        # Deliberately project only technical identity/status fields. The original
+        # decision also binds preserved clinical artifacts, which are not opened.
+        decision = json.loads(path.read_text())
+        uids = (
+            [decision["study_uid"]]
+            if "study_uid" in decision
+            else sorted({row["study_uid"] for row in decision.get("overrides", [])})
+        )
+        reference = bind(path, work)
+        bindings.append(reference)
+        for uid in uids:
+            audits_by_uid.setdefault(uid, []).append(
+                {
+                    "artifact": reference,
+                    "technical_audit_kind": folder.split("-")[0],
+                    "recorded_technical_status": decision.get(
+                        "status", "technical_decision_preserved_without_status_field"
+                    ),
+                }
+            )
+            if folder.startswith("anatomical-plane-"):
+                require(
+                    decision.get("status")
+                    in {
+                        "accepted",
+                        "case_closed_no_plane_override",
+                        "plane_case_closed_duplicate_selection_pending",
+                    },
+                    "Unfinished plane decision",
+                )
+                completed_plane_uids.add(uid)
+            elif folder in {
+                "bilateral-017-007",
+                "bilateral-018-019",
+                "bilateral-038-037",
+                "bilateral-067-037",
+            }:
+                completed_native_uids.add(uid)
+    require(
+        len(completed_plane_uids) == 10 and len(completed_native_uids) == 4,
+        "Completed native/plane audit count changed; review scope",
+    )
+    # These independently preserved source/header assessments share one archive
+    # folder and intentionally do not claim native confirmation of both knees.
+    for case in ["04214", "04241"]:
+        path = audit_root / f"correspondence-042-014-041/{case}-technical-assessment.json"
+        assessment = json.loads(path.read_text())
+        reference = bind(path, work)
+        bindings.append(reference)
+        audits_by_uid.setdefault(assessment["study_uid"], []).append(
+            {
+                "artifact": reference,
+                "technical_audit_kind": "correspondence",
+                "recorded_technical_status": assessment["stage"],
+                "native_escalation_recommended_now": assessment[
+                    "native_escalation_recommended_now"
+                ],
+                "multiple_or_mixed_knees_in_images_established": assessment[
+                    "multiple_or_mixed_knees_in_images_established"
+                ],
+            }
+        )
+    derived = []
+    for candidate in queue:
+        uid = candidate["study_uid"]
+        existing = audits_by_uid.get(uid, [])
+        if uid in completed_plane_uids:
+            status = "plane_question_completed"
+        elif uid in completed_native_uids:
+            status = "bilateral_native_confirmation_completed"
+        elif existing:
+            status = "source_header_assessment_exists_correspondence_limits_remain"
+        else:
+            status = "needs_initial_source_and_header_technical_assessment"
+        derived.append(
+            {
+                **candidate,
+                "case": case_name(candidate),
+                "technical_review_status": status,
+                "completed_technical_artifacts": existing,
+            }
+        )
+    counts = Counter(row["technical_review_status"] for row in derived)
+    pending = [
+        row
+        for row in derived
+        if row["technical_review_status"] == "needs_initial_source_and_header_technical_assessment"
+    ]
+    pending_tiers = Counter(str(row["priority_tier"]) for row in pending)
+    priority_two = [row for row in pending if row["priority_tier"] == 2]
+    repeats = [row for row in priority_two if row["flags"]["repeated_sequence_set_candidate"]]
+    explicit_sides = [
+        row for row in priority_two if row["flags"]["explicit_left_and_right_aliases"]
+    ]
+    require(
+        len(repeats) == 6 and len(explicit_sides) == 25,
+        "Priority-two cross-check count changed; inspect new evidence",
+    )
+    derivative_proof = Path(__file__).parent / "verification/reuse-provenance.json"
+    proof = json.loads(derivative_proof.read_text())
+    require(
+        proof["status"] == "all_selected_source_objects_unchanged",
+        "Derivative source proof incomplete",
+    )
+    bindings.extend([bind(derivative_proof, work), bind(Path(__file__).resolve(), work)])
+    result = {
+        "schema_version": 1,
+        "stage": "derivative_technical_candidate_queue_crosscheck",
+        "agent_id": "/root/image_pipeline_audit",
+        "original_candidate_studies": 129,
+        "input_bindings": bindings,
+        "status_counts": dict(counts),
+        "pending_initial_assessment_priority_counts": dict(pending_tiers),
+        "pending_repeated_sequence_cases": [
+            {
+                "case": row["case"],
+                "study_uid": row["study_uid"],
+                "n_series": row["n_series"],
+                "raw_side_values": row["raw_side_values"],
+                "blank_and_filled_side_fields": row["blank_and_filled_side_fields"],
+            }
+            for row in repeats
+        ],
+        "pending_explicit_both_side_cases": [row["case"] for row in explicit_sides],
+        "all_candidates": derived,
+        "separate_followups": [
+            {
+                "case": "025:21",
+                "scope": "Plane routing is completed; existing correspondence assessment still cannot establish which report block maps to the coherent protocol. Plane closure is not report-linkage closure.",
+            },
+            {
+                "case": "077:22",
+                "scope": "Plane routing is completed; exact duplicate-series selection follows the separately validated full graph/export mechanism. This queue cross-check does not certify that final selection has run.",
+            },
+        ],
+        "clinical_annotations_accessed_or_changed": False,
+        "scope": [
+            "The archived technical metadata queue is unchanged; this derivative records completed technical audit evidence and remaining questions.",
+            "No clinical draft/review/gold labels or original report text was inspected. Source batch files were hashed only to preserve existing queue mapping.",
+            "Completed native/plane questions do not imply clinical training eligibility, resolved patient identity, or proof of report-to-series correspondence.",
+            "Candidate flags are neither automatic laterality assignments nor an instruction to download all pixels. Begin each remaining case with full original source and all-series header review.",
+        ],
+        "training_ready": False,
+    }
+    output.mkdir(parents=True)
+    (output / "candidate-crosscheck.json").write_text(json.dumps(result, indent=2) + "\n")
+    lines = [
+        "# Remaining endpoint technical queue",
+        "",
+        f"The original 129 candidates include {counts['plane_question_completed']} completed plane questions and {counts['bilateral_native_confirmation_completed']} completed bilateral native confirmations. Four further candidates have source/header assessments with correspondence limits. {len(pending)} candidates still need an initial technical assessment.",
+        "",
+        "The six remaining repeated-protocol cases are:",
+        "",
+        "| Case | Series | Literal side values | Blank/filled field |",
+        "| --- | ---: | --- | --- |",
+    ]
+    for row in repeats:
+        lines.append(
+            f"| {row['case']} | {row['n_series']} | {', '.join(row['raw_side_values']) or 'all blank'} | {', '.join(row['blank_and_filled_side_fields']) or 'none'} |"
+        )
+    lines += [
+        "",
+        "The other 25 priority-two candidates have explicit L and R endpoint values:",
+        "",
+        ", ".join(row["case"] for row in explicit_sides) + ".",
+        "",
+        "There are also 80 lower-priority tag candidates without a completed technical assessment. All exact UIDs, source batch bindings, flags, and matched audit hashes are in `candidate-crosscheck.json`.",
+        "",
+        "The four previously assessed tag candidates are 020:15, 031:24, 042:14, and 042:41; preserve their correspondence limits. The 025:21 plane question is closed but report-to-protocol correspondence remains unproved. The 077:22 exact duplicate follows the separate final selection mechanism.",
+        "",
+        "These are technical review priorities, not clinical labels or automatic side assignments. Do not start with full-pixel downloads; first read the source report and all-series endpoint metadata.",
+    ]
+    (output / "candidate-summary.md").write_text("\n".join(lines) + "\n")
+    return {
+        "status_counts": dict(counts),
+        "pending_tiers": dict(pending_tiers),
+        "repeated_cases": [row["case"] for row in repeats],
+        "explicit_side_cases": [row["case"] for row in explicit_sides],
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--work-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    print(json.dumps(run(args.work_root.resolve(), args.output.resolve()), indent=2))

@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "stage": "complete_authoritative_source_duplicate_pair_comparison",
+  "agent_id": "/root/image_pipeline_audit",
+  "completed_at_utc": "2026-09-21T07:40:39.997433+00:00",
+  "status": "verified_official_complete_image_content_duplication",
+  "source_provider": "authenticated_official_Kaggle_competition_download_file_API",
+  "studies": [
+    "1.2.826.0.1.3680043.8.498.99725523560254732094432244556623376711",
+    "1.2.826.0.1.3680043.8.498.99926624968240681772735102303531613209"
+  ],
+  "expected_source_files": 288,
+  "official_source_files_received": 288,
+  "official_unique_files_decoded": 288,
+  "official_source_bytes_received": 50996372,
+  "verification_counts": {
+    "source_hash_matches_corrected_inventory": 288,
+    "source_size_matches_corrected_inventory": 288,
+    "source_crc_matches_official_archive_index": 288,
+    "uid_triplet_matches_corrected_inventory": 288,
+    "native_fingerprint_matches_mirrored_decode": 288,
+    "native_shape_matches_mirrored_decode": 288,
+    "position_matches_mirrored_decode": 288,
+    "nonconstant": 288
+  },
+  "native_full_matrix_pairs_compared": 144,
+  "native_full_matrix_pairs_equal": 144,
+  "native_full_geometry_encoding_pairs_equal": 144,
+  "full_matching_series": 5,
+  "failures": [],
+  "source_mismatch_paths": [],
+  "input_bindings": [
+    {
+      "path": "annotation-staging/cross-study-pixel-edge-v1/cache-characterization-handoff.json",
+      "sha256": "bff6ee0cf2f243aa0c3c6cdc7cbd10b56379de8d1d77100e9b157aa05e49e68b",
+      "bytes": 3340
+    },
+    {
+      "path": "cache256-v3-official-recovery-v1/inventory_effective.parquet",
+      "sha256": "68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537",
+      "bytes": 121268763
+    },
+    {
+      "path": "source-byte-failures-v1/kaggle-official-zip-index.parquet",
+      "sha256": "92daae7822bbfca3c440dbb85a47731ef11347b7b4c4c9c00aee988d653684da",
+      "bytes": 49360118
+    },
+    {
+      "path": "annotation-staging/cross-study-pixel-edge-v1/verify_official.py",
+      "sha256": "679e4345515214a8eacf261eaa6ac26419ffb03fd6770db58b2a83f3143fbbb5",
+      "bytes": 18843
+    }
+  ],
+  "evidence_bindings": [
+    {
+      "path": "annotation-staging/cross-study-pixel-edge-v1/official-verification-v1/fetch-plan.json",
+      "sha256": "7219084e59ee3502cadd91af53d3a46a17893dcb5b42542410d50d0cbceaa92d",
+      "bytes": 1382
+    },
+    {
+      "path": "annotation-staging/cross-study-pixel-edge-v1/official-verification-v1/official-source-records.jsonl",
+      "sha256": "5d3e3e939340f78d55d4853140cbe7bc192e8043c059cabf07be46482de74a17",
+      "bytes": 785556
+    },
+    {
+      "path": "annotation-staging/cross-study-pixel-edge-v1/official-verification-v1/official-full-matrix-comparisons.jsonl",
+      "sha256": "cc434413da9a76ea50060e41f0c83f0451e542faa86cceecfbc6899f69e6ba85",
+      "bytes": 142992
+    }
+  ],
+  "final_free_bytes": 29072257024,
+  "source_cache_clinical_annotations_modified": false,
+  "scope": [
+    "Fresh authenticated official API downloads, full source SHA256/size/CRC/UID checks and all 288 native decodes; not merely official path/size equality.",
+    "All 144 corresponding full native matrices and per-slice geometry/encoding fields are compared directly, with preserved source and cache/fingerprint bindings.",
+    "If all checks pass, this pair's duplicated image content is present in the authoritative Kaggle sources, not introduced only by this mirror/cache. This does not identify the original upstream duplication process or a real-world patient.",
+    "Both original studies and all leakage edges remain preserved. No clinical annotation or gold values are accessed or changed."
+  ],
+  "training_ready": false
+}

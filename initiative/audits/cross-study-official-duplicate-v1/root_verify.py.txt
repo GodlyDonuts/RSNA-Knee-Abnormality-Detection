@@ -1,0 +1,48 @@
+"""Independent read-only validation of preserved official duplicate evidence."""
+import collections,datetime,hashlib,io,json,zlib
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import pydicom
+P=Path(__file__).resolve().parent; W=P.parents[1]; O=P/'official-verification-v1'; C=W/'cache256-v3-official-recovery-v1'; OUT=P/'root-numeric-review.json'; assert not OUT.exists()
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def read(p):return json.loads(p.read_text())
+def lines(p):return [json.loads(x) for x in p.read_text().splitlines()]
+handoff=read(P/'official-handoff.json'); refs=handoff['bindings']+read(P/'cache-characterization-handoff.json')['files']; result=read(O/'official-verification.json'); edge=read(P/'evidence/edge-characterization.json');refs+=result['input_bindings']+result['evidence_bindings']+edge['input_bindings']+edge['output_bindings']
+seen={}
+for r in refs:
+ f=W/r['path']; assert f.stat().st_size==r['bytes']; expected=seen.setdefault(str(f),r['sha256']); assert expected==r['sha256']
+for path,h in seen.items():assert sha(Path(path))==h
+inv=pd.read_parquet(C/'inventory_effective.parquet',filters=[('study_uid','in',result['studies'])]); assert len(inv)==288 and inv.sop_uid.nunique()==288 and inv.sha256.nunique()==288
+zi=pd.read_parquet(W/'source-byte-failures-v1/kaggle-official-zip-index.parquet'); zi=zi.loc[zi.path.isin(inv.path)].set_index('path'); assert len(zi)==288
+rows=lines(O/'official-source-records.jsonl'); assert len(rows)==288 and {r['requested_source_path'] for r in rows}==set(inv.path)
+by_path=inv.set_index('path'); cache_sources={x['source_path']:x for x in lines(P/'evidence/all-source-slice-bindings.jsonl')}; assert set(cache_sources)==set(inv.path)
+arrays={}; geometries={}; patients=collections.defaultdict(set); frames=collections.defaultdict(set); hashowners=collections.defaultdict(list); sourcefiles=[]
+for r in rows:
+ path=r['requested_source_path']; ir=by_path.loc[path]; f=O/r['official_local_path']; assert f==O/'native'/path; b=f.read_bytes(); h=hashlib.sha256(b).hexdigest(); assert h==r['official_sha256']==ir.sha256; assert len(b)==r['official_bytes']==ir.bytes==zi.loc[path,'bytes']; assert f'{zlib.crc32(b)&0xffffffff:08x}'==r['official_crc32']==zi.loc[path,'crc32']
+ ds=pydicom.dcmread(io.BytesIO(b)); assert [str(ds.get(k)) for k in ['StudyInstanceUID','SeriesInstanceUID','SOPInstanceUID']]==[ir.study_uid,ir.series_uid,ir.sop_uid]
+ a=ds.pixel_array; assert a.ndim==2 and a.min()!=a.max(); nh=hashlib.sha256(np.asarray(a.shape,dtype='<i8').tobytes()+a.astype('<f8').tobytes(order='C')).hexdigest(); assert nh==r['native_pixel_sha256']==cache_sources[path]['native_pixel_sha256']; assert list(a.shape)==r['native_shape']==cache_sources[path]['native_shape']; assert str(a.dtype)==r['native_dtype']; hashowners[nh].append(path)
+ g={'position':list(map(float,ds.ImagePositionPatient)),'orientation':list(map(float,ds.ImageOrientationPatient)),'pixel_spacing':list(map(float,ds.PixelSpacing))}
+ for name,tag in [('slice_thickness','SliceThickness'),('spacing_between_slices','SpacingBetweenSlices'),('photometric_interpretation','PhotometricInterpretation'),('rescale_slope','RescaleSlope'),('rescale_intercept','RescaleIntercept')]: g[name]=str(ds.get(tag,''))
+ for name,tag in [('rows','Rows'),('columns','Columns'),('samples_per_pixel','SamplesPerPixel'),('bits_allocated','BitsAllocated'),('bits_stored','BitsStored'),('high_bit','HighBit'),('pixel_representation','PixelRepresentation')]:g[name]=int(ds.get(tag))
+ assert len(g)==15 and g==r['geometry']; assert g['position']==cache_sources[path]['position']; arrays[path]=a;geometries[path]=g; patients[ir.study_uid].add(hashlib.sha256(str(ds.get('PatientID','')).encode()).hexdigest());frames[ir.study_uid].add(hashlib.sha256(str(ds.get('FrameOfReferenceUID','')).encode()).hexdigest()); sourcefiles.append({'path':str(f.relative_to(W)),'sha256':h,'bytes':len(b)})
+assert len(hashowners)==144 and all(len(v)==2 for v in hashowners.values()); paircounts=collections.Counter(); direct=[]
+for nh,paths in hashowners.items():
+ left,right=sorted(paths); a,b=arrays[left],arrays[right]; il,ir=by_path.loc[left],by_path.loc[right]; assert il.study_uid!=ir.study_uid and a.dtype==b.dtype and a.shape==b.shape and np.array_equal(a,b) and geometries[left]==geometries[right]; paircounts[il.series_uid,ir.series_uid]+=1;direct.append((left,right))
+assert len(paircounts)==5 and sum(paircounts.values())==144
+recorded=lines(O/'official-full-matrix-comparisons.jsonl'); assert len(recorded)==144 and {(r['left_path'],r['right_path']) for r in recorded}==set(direct)
+for r in recorded:assert all(r[k] is True for k in ['full_decoded_matrix_equal','dtype_equal','shape_equal','full_recorded_geometry_and_encoding_equal'])
+cache_arrays={}; cachemeta={}
+for (study,series),group in inv.groupby(['study_uid','series_uid']):
+ f=C/'cache/train_series'/study/f'{series}.npz'; m=read(f.with_suffix('.json')); assert sha(f)==m['cache_sha256'] and f.stat().st_size==m['cache_bytes']; assert len(group)==m['n_slices']; assert dict(zip(m['sop_uids'],m['slice_sha256']))==dict(zip(group.sop_uid,group.sha256))
+ with np.load(f,allow_pickle=False) as z:cache_arrays[series]=z['volume']
+ cachemeta[series]=m
+for (left,right),n in paircounts.items():
+ a,b=cache_arrays[left],cache_arrays[right]; lm,rm=cachemeta[left],cachemeta[right]; assert a.shape==(n,256,256) and np.array_equal(a,b) and lm['cache_sha256']==rm['cache_sha256']; assert lm['pixel_sha256']==rm['pixel_sha256']; assert lm['positions']==rm['positions']
+assert all(len(v)==1 for v in patients.values()); assert not set.intersection(*patients.values()); assert not set.intersection(*frames.values())
+record={'agent_id':'/root','stage':'independent_complete_official_duplicate_numeric_review','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified','code_reviewed':['characterize.py','verify_official.py','verify_official_integrity.py','render_official_pairs.py'],'unique_evidence_references_verified':len(seen),'source_files_independently_hashed_crc_uid_and_decoded':288,'source_bytes':sum(x['bytes'] for x in sourcefiles),'direct_native_full_matrix_pairs':144,'all15_recorded_geometry_encoding_fields_equal':True,'complete_matching_series_pairs':5,'cache_files_fully_hashed_and_arrays_compared':10,'pair_record_membership_exact':True,'full_source_membership_exact':True,'source_files':sourcefiles,'root_visual_freeze_sha256':sha(P/'root-official-panel-visual.json'),'agent_visual_sha256':sha(P/'official-native-panels-v1/independent-visual-assessment.json'),'root_script_sha256':sha(Path(__file__)),'official_handoff_sha256':sha(P/'official-handoff.json'),'independence':'Separately implemented offline verification of every retained official file and native matrix pair after reading agent code/results. Root sampled visual findings frozen before agent visual findings, but both knew numeric equality evidence.','limitations':['Fresh authenticated origin established by preserved agent fetch record; root offline replay makes no extra network request.','Parsed15geometry/encoding fields compared, not every DICOM tag.','Different pseudonymous PatientIDs and frames do not establish real patient identity.','No original source/cache/clinical/gold modifications; both studies and edge must remain in final transitive leakage groups.','No clinical label or training-readiness assertion.'],'training_ready':False}
+OUT.write_text(json.dumps(record,indent=2)+'\n'); print(json.dumps({'status':record['status'],'n_official_files':288,'n_native_pairs':144,'n_evidence_refs':len(seen),'sha256':sha(OUT)},indent=2))
