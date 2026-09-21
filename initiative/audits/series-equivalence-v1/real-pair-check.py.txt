@@ -1,0 +1,59 @@
+"""Check new equivalence predicate on two independently audited real pairs only."""
+from pathlib import Path
+import hashlib
+import json
+import sys
+import numpy as np
+import pandas as pd
+
+STAGE = Path(__file__).resolve().parent
+WORK = STAGE.parent.parent
+REPO = WORK / "recovered"
+sys.path.insert(0, str(REPO))
+from rsna.series_equivalence import POLICY, canonical_bytes, equivalence_reason, _volume
+
+def bind(path):
+    return {"path": str(path.relative_to(WORK)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "bytes": path.stat().st_size}
+
+source = REPO / "initiative/source/train_series.csv"
+series = pd.read_csv(source, dtype=str, keep_default_na=False).set_index("SeriesInstanceUID", drop=False)
+bindings = [bind(source), bind(REPO / "rsna/series_equivalence.py"), bind(Path(__file__).resolve())]
+results = []
+for slug, evidence_name, expected_equivalent in [
+    ("07722", "plane07722-duplicate-sequence-check.json", True),
+    ("04240", "plane04240-repeat-sequence-check.json", False),
+]:
+    evidence_path = STAGE.parent / evidence_name
+    evidence = json.loads(evidence_path.read_text())
+    inventory_path = STAGE.parent / f"plane{slug}-source-inventory.json"
+    inventory = json.loads(inventory_path.read_text())
+    bindings.extend([bind(evidence_path), bind(inventory_path), bind(STAGE.parent / f"plane{slug}-final-routing-handoff.json")])
+    study = evidence["study_uid"]
+    ids = evidence["series_uids"]
+    metas, paths, rows = [], [], []
+    for uid in ids:
+        path = WORK / "cache256-v3/train_series" / study / f"{uid}.npz"
+        meta = json.loads(path.with_suffix(".json").read_text())
+        original = [r for r in inventory["records"] if r["series_uid"] == uid]
+        assert len(original) == meta["n_slices"] == 30
+        assert meta["source_revision"] == inventory["source_revision"]
+        assert meta["study_uid"] == study and meta["series_uid"] == uid
+        assert dict(zip(meta["sop_uids"], meta["slice_sha256"])) == {r["sop_uid"]: r["sha256"] for r in original}
+        assert meta["path_fingerprint"] == hashlib.sha256("\n".join(sorted(r["path"] for r in original)).encode()).hexdigest()
+        row = series.loc[uid].to_dict()
+        assert row["StudyInstanceUID"] == study
+        metas.append(meta)
+        paths.append(path)
+        rows.append(row)
+        bindings.extend([bind(path), bind(path.with_suffix(".json"))])
+    reason = equivalence_reason(metas[0], metas[1], rows[0], rows[1])
+    arrays_equal = bool(np.array_equal(_volume(paths[0], metas[0]), _volume(paths[1], metas[1])))
+    equivalent = reason is None and arrays_equal
+    assert equivalent == expected_equivalent
+    results.append({"case": f"{slug[:3]}:{slug[3:]}", "study_uid": study, "series_uids": ids, "ordered_native_hashes_equal": metas[0]["pixel_sha256"] == metas[1]["pixel_sha256"], "ordered_native_hashes_per_series": [len(m["pixel_sha256"]) for m in metas], "all_stored_positions_equal_at_policy_tolerance": bool(np.allclose(metas[0]["positions"], metas[1]["positions"], atol=1e-3, rtol=0)), "first_iop_equal_at_policy_tolerance": bool(np.allclose(metas[0]["orientation"], metas[1]["orientation"], atol=1e-3, rtol=0)), "source_sop_intersection": len(set(metas[0]["sop_uids"]) & set(metas[1]["sop_uids"])), "source_file_hash_intersection": len(set(metas[0]["slice_sha256"]) & set(metas[1]["slice_sha256"])), "decoded_cache_arrays_exact": arrays_equal, "equivalence_predicate_reason": reason, "eligible_exact_pair": equivalent, "proposed_representative_if_full_release_gates_pass": min(ids) if equivalent else None, "proposed_excluded_if_full_release_gates_pass": max(ids) if equivalent else None, "current_files_deleted_or_modified": False})
+
+result = {"schema_version": 1, "stage": "bounded_real_pair_equivalence_verification", "agent_id": "/root/image_pipeline_audit", "session_id": "/root/image_pipeline_audit", "policy_sha256": hashlib.sha256(canonical_bytes(POLICY)).hexdigest(), "scope": "Two 30-slice pairs from two prior complete native study audits; not a corpus selection/export or full-graph certification. Source SOP/SHA inventory bindings and exact cached content rechecked; no source DICOM redecoding or clinical labels accessed.", "n_pairs": 2, "n_series": 4, "n_source_slice_bindings": 120, "results": results, "input_bindings": bindings}
+path = STAGE / "real-pair-results.json"
+with path.open("x") as handle:
+    handle.write(json.dumps(result, indent=2) + "\n")
+print(json.dumps({"path": str(path.relative_to(WORK)), "sha256": bind(path)["sha256"], "cases": [{"case": r["case"], "eligible_exact_pair": r["eligible_exact_pair"], "reason": r["equivalence_predicate_reason"]} for r in results]}, indent=2))

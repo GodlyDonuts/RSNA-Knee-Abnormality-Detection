@@ -1,0 +1,45 @@
+"""Root independent review checks on preserved two-pair evidence and actual loader."""
+from pathlib import Path
+import datetime, hashlib, json, sys
+import numpy as np
+import pandas as pd
+import torch
+W=Path(__file__).resolve().parent;R=W/'recovered';sys.path.insert(0,str(R))
+from rsna.series_equivalence import POLICY, canonical_bytes, equivalence_reason
+from rsna.data import StudyDataset
+S=W/'annotation-staging/duplicate-selection-readonly-v1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+verified={}
+def refs(value):
+ if isinstance(value,dict):
+  if set(['path','sha256','bytes'])<=set(value):
+   p=W/value['path'];assert p.is_file() and p.stat().st_size==value['bytes'] and sha(p)==value['sha256'],value['path'];verified[value['path']]=value
+  for v in value.values():refs(v)
+ elif isinstance(value,list):
+  for v in value:refs(v)
+for n in ['probe-results.json','real-pair-results.json','review-and-implementation-handoff.json']:refs(json.loads((S/n).read_text()))
+series_path=R/'initiative/audits/anatomical-plane-045-014/series_effective.csv'
+frame=pd.read_csv(series_path,dtype=str,keep_default_na=False)
+records=[];torch.set_num_threads(1)
+for slug,expected in [('07722',True),('04240',False)]:
+ evidence=json.loads((W/'annotation-staging'/('plane07722-duplicate-sequence-check.json' if slug=='07722' else 'plane04240-repeat-sequence-check.json')).read_text())
+ study=evidence['study_uid'];uids=sorted(evidence['series_uids']);metas=[];volumes=[];rows=[]
+ for uid in uids:
+  p=W/'cache256-v3/train_series'/study/(uid+'.npz');m=json.loads(p.with_suffix('.json').read_text());assert sha(p)==m['cache_sha256'];assert len(m['pixel_sha256'])==30
+  with np.load(p,allow_pickle=False) as z:a=z['volume']
+  assert a.shape==(30,256,256) and a.dtype==np.uint16
+  metas.append(m);volumes.append(a);row=frame.loc[frame.SeriesInstanceUID.eq(uid)];assert len(row)==1;rows.append(row.iloc[0].to_dict())
+  verified[str(p.relative_to(W))]=bind(p);verified[str(p.with_suffix('.json').relative_to(W))]=bind(p.with_suffix('.json'))
+ reason=equivalence_reason(*metas,*rows);exact=np.array_equal(*volumes);assert (reason is None and exact)==expected
+ native_equal=metas[0]['pixel_sha256']==metas[1]['pixel_sha256'];assert native_equal==expected
+ record={'case':slug,'native_hash_sequence_equal':native_equal,'cache_arrays_equal':bool(exact),'predicate_reason':reason,'expected_pair_equivalence':expected}
+ if expected:
+  original=frame.loc[frame.StudyInstanceUID.eq(study)].copy();selected=original.loc[original.SeriesInstanceUID.ne(uids[1])].copy();assert len(original)==6 and len(selected)==5
+  selected[['Fluid_Sensitive','Fat_Suppression']]=selected[['Fluid_Sensitive','Fat_Suppression']].astype(int)
+  sample=StudyDataset(pd.DataFrame({'study_uid':[study]}),selected,W/'cache256-v3',augment=False)[0]
+  assert sample['series_mask'].sum().item()==5 and sample['label_mask'].sum().item()==0
+  record.update({'selected_loader_slots':5,'excluded_series_uid_for_bounded_check':uids[1],'no_clinical_targets_accessed':True})
+ records.append(record)
+d={'stage':'root_independent_code_and_bounded_real_loader_review','agent_id':'/root','session_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'full_module_tests_docs_and_probe_scripts_read':True,'focused_tests_passed':29,'agent_full_tests_reported':152,'policy_sha256':hashlib.sha256(canonical_bytes(POLICY)).hexdigest(),'verified_input_count':len(verified),'input_bindings':list(verified.values()),'root_code_bindings':[bind(R/q)for q in ['rsna/series_equivalence.py','tests/test_series_equivalence.py','docs/series-equivalence.md']],'script':bind(Path(__file__).resolve()),'effective_series_input':bind(series_path),'results':records,'decision':'Accept separate conservative technical selection module for integration; real full-corpus export still requires completed audit and stable inputs. Preserve pre-selection cross-study graph in labels; all clinical/correspondence/global semantic and release smoke gates remain pending.','limitations':['No source DICOM redecoding in this review; earlier independent full-native comparisons remain authoritative.','Cache retains one IOP and all positions, not every slice IOP/rescale parameter; exact full cache arrays and prior no-warning decoder required.','Export relies on stable input files; no claim of an immutable concurrent storage snapshot.','Heldout inference checksum enforcement remains a separately tracked integration gap.'],'source_files_changed':False,'corpus_export_run':False}
+p=S/'root-review.json';assert not p.exists();p.write_text(json.dumps(d,indent=2)+'\n');print({'sha256':sha(p),'verified_bindings':len(verified),'results':records})

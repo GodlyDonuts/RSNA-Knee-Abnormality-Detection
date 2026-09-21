@@ -1,0 +1,130 @@
+"""Bounded read-only real-series loader probe and wholly synthetic leakage checks."""
+from __future__ import annotations
+
+import hashlib
+import io
+import json
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+import numpy as np
+import pandas as pd
+import pydicom
+import torch
+
+STAGE = Path(__file__).resolve().parent
+WORK = STAGE.parent.parent
+REPO = WORK / "recovered"
+sys.path[:0] = [str(REPO), str(REPO / "tests")]
+from test_pipeline import dicom_bytes
+from rsna.audit import audit_cache
+from rsna.data import StudyDataset
+from rsna.labels import build_studies, validate_dicom_audit
+from rsna.preprocess import Source, cache_series
+from rsna.schema import TARGETS
+
+
+def binding(path):
+    return {"path": str(path.relative_to(WORK)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "bytes": path.stat().st_size}
+
+
+def real_loader_probe():
+    uid = "1.2.826.0.1.3680043.8.498.85943737587102032370951456635167782343"
+    pair = ["1.2.826.0.1.3680043.8.498.10335555054928741153620086817417866255", "1.2.826.0.1.3680043.8.498.61972393881812789635445975255392095449"]
+    source = REPO / "initiative/source/train_series.csv"
+    frame = pd.read_csv(source)
+    frame = frame.loc[frame.StudyInstanceUID.eq(uid)].copy()
+    assert len(frame) == 6
+    # This table has no report, real label, or review data. Dataset defaults mask all targets.
+    studies = pd.DataFrame({"study_uid": [uid]})
+    original_load = np.load
+    outcomes = []
+    inputs = [binding(source)]
+    for series_uid in frame.SeriesInstanceUID:
+        path = WORK / "cache256-v3/train_series" / uid / f"{series_uid}.npz"
+        inputs.extend([binding(path), binding(path.with_suffix(".json"))])
+    for augment in [False, True]:
+        dataset = StudyDataset(studies, frame, WORK / "cache256-v3", augment=augment)
+        selected = []
+        def observed_load(path, *args, **kwargs):
+            selected.append(Path(path).stem)
+            return original_load(path, *args, **kwargs)
+        torch.manual_seed(77322)
+        with patch("rsna.data.np.load", side_effect=observed_load):
+            item = dataset[0]
+        slots = [selected.index(series_uid) for series_uid in pair]
+        a, b = slots
+        exact = bool(torch.equal(item["images"][a], item["images"][b]))
+        assert len(selected) == 6 and item["series_mask"].sum().item() == 6
+        assert item["label_mask"].sum().item() == 0
+        assert torch.equal(item["features"][a], item["features"][b])
+        if not augment:
+            assert exact
+        outcomes.append({"augment": augment, "seed": 77322, "selected_series_uids": selected, "selected_series_count": len(selected), "duplicate_pair_slots_zero_based": slots, "duplicate_pair_features": [item["features"][i].tolist() for i in slots], "duplicate_sampled_tensors_exact": exact, "sample_tensor_shape_per_series": list(item["images"][a].shape), "all_clinical_masks_zero": True})
+    return {"study_uid": uid, "duplicate_series_uids": pair, "parameters": {"slices": 24, "side": 224, "max_series": 8}, "outcomes": outcomes, "input_bindings": inputs}
+
+
+def synthetic_audit(name, test_overlap):
+    root = STAGE / name
+    source_root, cache = root / "source", root / "cache"
+    root.mkdir(exist_ok=False)
+    # A has a within-study duplicate. B connects X and Y. C has Y. D is test.
+    definitions = [("train_series", "1.1", "1.1.1", 0), ("train_series", "1.1", "1.1.2", 0), ("train_series", "1.2", "1.2.1", 0), ("train_series", "1.2", "1.2.2", 1000), ("train_series", "1.3", "1.3.1", 1000), ("test_series", "1.4", "1.4.1", 0 if test_overlap else 2000)]
+    rows = []
+    for split, study, series, offset in definitions:
+        sop = series + ".1"
+        ds = pydicom.dcmread(io.BytesIO(dicom_bytes(1, 1)))
+        ds.StudyInstanceUID, ds.SeriesInstanceUID, ds.SOPInstanceUID = study, series, sop
+        ds.file_meta.MediaStorageSOPInstanceUID = sop
+        ds.PixelData = (np.arange(512, dtype=np.uint16) + offset).reshape(16, 32).tobytes()
+        buf = io.BytesIO()
+        ds.save_as(buf, enforce_file_format=True)
+        data = buf.getvalue()
+        relative = f"{split}/{study}/{series}/{sop}.dcm"
+        path = source_root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        rows.append({"split": split, "study_uid": study, "series_uid": series, "sop_uid": sop, "path": relative, "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)})
+        cache_series(Source(source_root), [relative], cache, 32, "a" * 40)
+    inventory = pd.DataFrame(rows)
+    inventory.to_parquet(root / "inventory.parquet", index=False)
+    report = audit_cache(inventory, cache, "a" * 40, root / "audit")
+    train_uids = {"1.1", "1.2", "1.3"}
+    if test_overlap:
+        try:
+            validate_dicom_audit(root / "audit/dicom_audit.json", inventory, train_uids, "a" * 40)
+        except ValueError as exc:
+            assert "Train/test image duplicates" in str(exc)
+            return {"cross_study_pixel_duplicate_pairs": report["cross_study_pixel_duplicate_pairs"], "train_test_duplicate_pairs": report["train_test_duplicate_pairs"], "release_blocked": True, "reason": str(exc)}
+        raise AssertionError("Expected cross-split release block")
+    pairs = validate_dicom_audit(root / "audit/dicom_audit.json", inventory, train_uids, "a" * 40)
+    assert pairs == [("1.1", "1.2"), ("1.2", "1.3")]
+    # All labels below are synthetic fixtures, never read from official metadata.
+    train = pd.DataFrame([{"StudyInstanceUID": uid, "Report": f"Synthetic distinct report {uid}", **{t: 1 if uid == "1.1" else np.nan for t in TARGETS}} for uid in sorted(train_uids)])
+    reviews = pd.DataFrame([{"study_uid": uid, **{f"{t}__state": "not_mentioned" for t in TARGETS}, **{f"{t}__evidence": "" for t in TARGETS}} for uid in sorted(train_uids)])
+    studies = build_studies(train, reviews, pairs).set_index("study_uid")
+    assert studies.leakage_group.nunique() == 1
+    assert studies.loc["1.1", "split"] == "gold_evaluation"
+    assert studies.loc[["1.2", "1.3"], "split"].eq("quarantine").all()
+    assert studies.loc["1.1", list(TARGETS)].eq(1).all()
+    # Verify transitive composition of one pixel edge and one normalized-report edge.
+    train.loc[train.StudyInstanceUID.eq("1.2"), "Report"] = " Synthetic shared report "
+    train.loc[train.StudyInstanceUID.eq("1.3"), "Report"] = "SYNTHETIC   SHARED REPORT"
+    mixed = build_studies(train, reviews, [("1.1", "1.2")]).set_index("study_uid")
+    assert mixed.leakage_group.nunique() == 1
+    assert mixed.loc[["1.2", "1.3"], "split"].eq("quarantine").all()
+    return {"cross_study_pixel_duplicate_pairs": pairs, "transitive_pixel_component_studies": 3, "transitive_pixel_report_component_studies": 3, "synthetic_gold_preserved": True, "weak_gold_neighbors_quarantined": 2, "within_study_duplicate_relation_exported": False, "audit_has_no_within_study_relation_schema": True}
+
+
+def main():
+    torch.set_num_threads(1)
+    result = {"stage": "bounded_readonly_duplicate_selection_and_grouping_probe", "agent_id": "/root/image_pipeline_audit", "session_id": "/root/image_pipeline_audit", "runtime_modules_changed": False, "official_targets_accessed": False, "real_loader": real_loader_probe(), "synthetic_train_graph": synthetic_audit("synthetic-train-graph", False), "synthetic_train_test_gate": synthetic_audit("synthetic-train-test-gate", True), "code_bindings": [binding(REPO / p) for p in ["rsna/audit.py", "rsna/data.py", "rsna/dicom.py", "rsna/preprocess.py", "rsna/labels.py", "rsna/train.py", "rsna/infer.py", "rsna/model.py", "rsna/series_metadata.py", "tests/test_pipeline.py", "tests/test_image_integrity.py", "tests/test_label_release.py"]], "script": binding(Path(__file__).resolve())}
+    out = STAGE / "probe-results.json"
+    with out.open("x") as handle:
+        handle.write(json.dumps(result, indent=2) + "\n")
+    print(json.dumps({"path": str(out.relative_to(WORK)), "sha256": binding(out)["sha256"], "real_selected_count": [r["selected_series_count"] for r in result["real_loader"]["outcomes"]], "real_exact_duplicate_eval_tensor": result["real_loader"]["outcomes"][0]["duplicate_sampled_tensors_exact"], "synthetic_train_graph": result["synthetic_train_graph"], "synthetic_train_test_gate": result["synthetic_train_test_gate"]}, indent=2))
+
+
+if __name__ == "__main__":
+    main()
