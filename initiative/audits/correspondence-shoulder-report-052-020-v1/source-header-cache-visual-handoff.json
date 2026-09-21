@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "stage": "complete_body_region_correspondence_technical_handoff",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T08:22:04.570110+00:00",
+  "case": "052:20",
+  "study_uid": "1.2.826.0.1.3680043.8.498.52010826440192227660457107121818389761",
+  "bindings": [
+    {
+      "path": "annotation-staging/correspondence-052020-v1/source-only-preread.json",
+      "sha256": "ea9f604b575e896dce582fa8fb59fb1047730841b5d96cea6153bcebf9659605",
+      "bytes": 2653
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/source-header-assessment.json",
+      "sha256": "68d1eaf0fc08a568b28a1480f29318b6b06cd9298f7949147f68856d54e7424c",
+      "bytes": 2942
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/collect_technical.py",
+      "sha256": "20553fa5d3b319b4f89dbf382c31418ec7141f38bdc4a09faae1a0a4ba63713b",
+      "bytes": 13542
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/render_cache_views.py",
+      "sha256": "ed9fc4f2e6f9a4c8f4b068ecc984c4c17704cf2e4c1e5f3cb1bfccd84218de5f",
+      "bytes": 4693
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/independent-cache-visual-assessment.json",
+      "sha256": "9afea53970a9f75eee94f7fa7fc8d8ff15e294414aa868167d62f2c0df6223e1",
+      "bytes": 1720
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/technical-evidence/case-052-20.json",
+      "sha256": "a57e5032b1afda678510add48cb31fb5deb68a307337b424c1fff2468f4a696b",
+      "bytes": 37747
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/technical-evidence/endpoints.jsonl",
+      "sha256": "9925747f605707d4b2d3c59230f2413fe41b4f3acead7fd96e9f4879114cef1b",
+      "bytes": 26662
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/technical-evidence/inventory-one-cases.json",
+      "sha256": "fd411e8602be791fc09b9e0562bff9286143485eec2dbb31ac7e1b6e925ffc71",
+      "bytes": 108699
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/technical-evidence/native-fingerprint-overlaps.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/technical-evidence/summary.json",
+      "sha256": "acc7c23d21f7eb43889d9756aa7cf6ca70b7096a7792bcf408aefb6b9dba4003",
+      "bytes": 6867
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/cache-panels/panel-manifest.json",
+      "sha256": "0650a10aa8fd5c3dd557763cca11026435cde9aa35cccdbdff2aeaed2da48cbf",
+      "bytes": 8575
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/cache-panels/root-visual-freeze.json",
+      "sha256": "2d11b248c8accbd4846a6cf3ca72e9da69b4e78823c4dc420dca88305ec26d1d",
+      "bytes": 2018
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/cache-panels/three-verified-cache-mid-slices.png",
+      "sha256": "30d872f5f2e3c540d9173881306ef3ce8e80928c1ad1a092834b55db73971a46",
+      "bytes": 80923
+    }
+  ],
+  "independent_visual_reviewers": [
+    "/root",
+    "/root/image_pipeline_audit"
+  ],
+  "original_source": "Complete original shoulder-only narrative is byte-for-byte report-string identical to preserved current authenticated Kaggle and archived train.csv. Therefore report wording predates the recovery process. Source SHA320650a24b78193b8e82c1cd81e53fec5e7bd9942570c55a3cc2563ad41f9923.",
+  "metadata_scope": {
+    "series": 6,
+    "source_inventory_slices": 169,
+    "selected_endpoint_headers": 12,
+    "consistent_laterality": "L",
+    "patient_hash_groups": 1,
+    "anonymized_frame_hash_groups": 6
+  },
+  "visual_scope": {
+    "full_NPZ_files_hash_verified_and_read": 3,
+    "selected_middle_slices_viewed": 3,
+    "cache_resolution": [
+      256,
+      256
+    ],
+    "new_original_DICOM_decodes": 0,
+    "new_network_requests": 0
+  },
+  "joint_technical_result": "Both independently frozen visual reviews identify knee anatomy in all three sampled views, whereas complete source text identifies shoulder structures. This establishes a body-region correspondence failure for the sampled image series and supplied report; it does not reconstruct or identify the intended knee report.",
+  "limits": [
+    "This is three slices from three of six series; no claim all169native images were visually examined or body-region validated.",
+    "Current cache follows previous complete strict source decode and verified source membership; no fresh authoritative raw byte fetch here.",
+    "No clinical abnormality, target label, named-side, patient identity or institution inference.",
+    "Official/archive equality proves wording is upstream of recovery, not the upstream mechanism or where wrong association originated."
+  ],
+  "recommendation": "Preserve original report/images and technical conflict. Do not transfer shoulder statements to knee targets; root controls review/correction/release disposition.",
+  "source_cache_clinical_annotations_modified": false,
+  "training_ready": false
+}

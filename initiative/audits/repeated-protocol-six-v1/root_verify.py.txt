@@ -1,0 +1,39 @@
+"""Read-only independent source/header triage binding verification."""
+import datetime,hashlib,json
+from pathlib import Path
+import numpy as np
+import pandas as pd
+P=Path(__file__).resolve().parent;W=P.parents[1];R=W/'recovered';out=P/'root-triage-review.json';assert not out.exists()
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def read(p):return json.loads(p.read_text())
+h=read(P/'handoff.json'); summary=read(P/'technical-evidence/summary.json'); refs=h['files']+summary['input_bindings']+summary['official_archive_csv_copies']+summary['cache_metadata_bindings']+summary['evidence_bindings']; seen={}
+for x in refs:
+ f=W/x['path'];assert f.stat().st_size==x['bytes'];assert seen.setdefault(str(f),x['sha256'])==x['sha256']
+for name,value in seen.items():assert sha(Path(name))==value
+pre=read(P/'source-only-preread.json'); studies=[x['study_uid'] for x in pre['records']]
+for x in pre['records']:
+ source=R/x['source_batch_path'];assert sha(source)==x['source_batch_sha256']; s=read(source)[x['batch_index']];assert s['study_uid']==x['study_uid'] and s['report']==x['report'];assert hashlib.sha256(x['report'].encode()).hexdigest()==x['source_report_sha256'];assert all(q in x['report'] for q in x['exact_source_quotes'])
+inv=pd.read_parquet(W/'cache256-v3-official-recovery-v1/inventory_effective.parquet',filters=[('study_uid','in',studies)]);assert len(inv)==1657 and inv.series_uid.nunique()==56
+endpoints=[json.loads(x) for x in (P/'technical-evidence/endpoints.jsonl').read_text().splitlines()];assert len(endpoints)==112
+expected=set()
+for _,g in inv.groupby('series_uid'):expected.update(g.sort_values('sop_uid').iloc[[0,-1]].path)
+assert {x['source_path'] for x in endpoints}==expected
+by_path=inv.set_index('path');metas={}
+for ref in summary['cache_metadata_bindings']:
+ m=read(W/ref['path']);metas[m['series_uid']]=m;g=inv.loc[inv.series_uid==m['series_uid']];assert len(g)==m['n_slices'];assert dict(zip(g.sop_uid,g.sha256))==dict(zip(m['sop_uids'],m['slice_sha256']));assert m['source_revision']=='0b5e410288232f570c69ba4f44723356e6ae6ab7'
+for e in endpoints:
+ r=by_path.loc[e['source_path']];assert [e[k] for k in ['study_uid','series_uid','sop_uid','storage']]==[r[k] for k in ['study_uid','series_uid','sop_uid','storage']];assert e['source_sha256']==r.sha256 and e['source_bytes']==r.bytes;m=metas[e['series_uid']];idx=m['sop_uids'].index(e['sop_uid']);f=e['header_fields'];assert json.loads(f['ImagePositionPatient'])==m['positions'][idx] and json.loads(f['ImageOrientationPatient'])==m['orientation'] and json.loads(f['PixelSpacing'])==m['pixel_spacing'];assert [int(f['Rows']),int(f['Columns'])]==m['original_shape'][1:]
+plan=read(P/'source-header-assessment-and-native-plan.json');counters=[]
+for x in plan['records']:
+ c=read(W/x['technical_evidence']['path']);g=inv.loc[inv.study_uid==x['study_uid']]; assert len(g)==x['slices'] and int(g.bytes.sum())==x['bounded_raw_bytes'];members={s for group in x['acquisition_groups'] for s in group['series_uids']};assert members==set(g.series_uid);assert len(c['series'])==x['series']
+ for group in x['acquisition_groups']:
+  wanted='' if group['literal_laterality']=='blank' else group['literal_laterality']; assert {e['header_fields']['Laterality'] for e in endpoints if e['series_uid'] in group['series_uids']}=={wanted}
+ hs=set()
+ for series in c['series']:
+  m=metas[series['series_uid']];assert not hs.intersection(m['pixel_sha256']);hs.update(m['pixel_sha256']);v=np.asarray(m['orientation']); plane=['Sagittal','Coronal','Axial'][np.argmax(abs(np.cross(v[:3],v[3:])))];assert plane==series['iop_dominant_axis_plane_technical_only']==series['official_series_features']['Anatomical_Plane']
+ counters.append({'case':x['case'],'series':x['series'],'slices':len(g),'source_bytes':int(g.bytes.sum()),'new_native_review_required':x['priority']<=3})
+a={'agent_id':'/root','stage':'reviewed_source_header_triage_not_native_acceptance','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified_for_bounded_native_triage','evidence_refs_verified':len(seen),'reports_read_in_full':6,'series_metadata_verified':56,'lexical_endpoints_verified':112,'source_membership':1657,'case_counts':counters,'source_assessment':'Personally read all six complete source texts.048:12and086:13 expressly integrate both knees.001:18,021:03and064:14 each contain one unsided current report;075:14 is short unsided coherent text, no basis to claim truncation. Agree that three separated full protocols need native assessment; repeat/repositioning cases are lower priority, not clinically accepted by this triage.','code_reviewed':['collect_technical.py','compare_geometry.py'],'scope':'Root reviewed code, full preread and plan then independently checked bound source/hash/membership/geometry records. Source notes and earlier metadata summaries were known; not a blinded clinical annotation pass. Existing source and header records are reused, no fresh native/header read in this root check.','limitations':['Distinct anonymized frames mean coordinate separation is a candidate clue, not a common registered patient frame.','No patient identity/institution or blank-side inference.','No clinical label change; no series deletion merely for repeated protocol.','No completed anatomical acceptance before independent native views.'],'new_network_requests':0,'new_native_decodes':0,'training_ready':False,'script_sha256':sha(Path(__file__)),'handoff_sha256':sha(P/'handoff.json')};out.write_text(json.dumps(a,indent=2)+'\n');print(json.dumps({'status':a['status'],'sha256':sha(out),'refs':len(seen)}))

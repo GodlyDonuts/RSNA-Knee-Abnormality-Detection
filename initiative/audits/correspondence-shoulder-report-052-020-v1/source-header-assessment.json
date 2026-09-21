@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "stage": "body_region_source_header_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T08:12:47.010984+00:00",
+  "case": "052:20",
+  "study_uid": "1.2.826.0.1.3680043.8.498.52010826440192227660457107121818389761",
+  "inputs": [
+    {
+      "path": "annotation-staging/correspondence-052020-v1/source-only-preread.json",
+      "sha256": "ea9f604b575e896dce582fa8fb59fb1047730841b5d96cea6153bcebf9659605",
+      "bytes": 2653
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/technical-evidence/summary.json",
+      "sha256": "acc7c23d21f7eb43889d9756aa7cf6ca70b7096a7792bcf408aefb6b9dba4003",
+      "bytes": 6867
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/technical-evidence/case-052-20.json",
+      "sha256": "a57e5032b1afda678510add48cb31fb5deb68a307337b424c1fff2468f4a696b",
+      "bytes": 37747
+    }
+  ],
+  "source_finding": "One complete current source narrative exclusively references shoulder-region anatomy; no knee narrative or second report block. Exact archived and current authenticated official CSV matches show this wording predates recovery rather than introduced aggregation corruption.",
+  "technical_scope": {
+    "series": 6,
+    "slices": 169,
+    "endpoints": 12,
+    "source_bytes": 125747342,
+    "all_laterality_tags": "L",
+    "image_and_frame_laterality": "blank",
+    "patient_id_hash_groups": 1,
+    "frame_hash_groups": 6,
+    "series_numbers": [
+      201,
+      301,
+      401,
+      501,
+      601,
+      701
+    ],
+    "patient_position": "FFS"
+  },
+  "technical_observations": "One coherent acquisition set comprising paired sagittal and coronal contrasts, one axial series, and a narrower sagittal T2 series. No repeated full protocol, mixed laterality or header identity inconsistency. Names are generic pulse-sequence/plane descriptors; they do not independently prove knee or shoulder anatomy. Official plane rows match dominant IOP axes. The existing survey whitelist does not include BodyPartExamined, and geometry or FFS position alone is not anatomical proof.",
+  "correspondence_status": "upstream_shoulder_report_confirmed_image_body_region_unresolved",
+  "recommended_next_step": "A small source/cache-bound sagittal/coronal/axial representative panel set would distinguish knee images with wrong-region report from wrong-region image inclusion; start from validated cached pixels if root authorizes while official API cools. If authoritative native confirmation is required, fetch exact selected original files only after rate-limit cooldown, then escalate complete169source study only if evidence warrants. Do not infer clinical diagnoses, transfer shoulder findings to knee labels, or change annotations.",
+  "no_clinical_annotations_or_gold_accessed": true,
+  "new_network_requests": 0,
+  "new_native_or_cached_pixel_decodes": 0,
+  "originals_preserved": true
+}

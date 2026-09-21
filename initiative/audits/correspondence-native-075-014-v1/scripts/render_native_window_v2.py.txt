@@ -1,0 +1,140 @@
+"""Render native stored samples with their actual full-series native range.
+
+Supersedes the first unpublished075 panel window (which used rescaled cache limits).
+All original verification and first-render artifacts remain immutable.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pydicom
+from audit_native import PRIOR, ROOT, WORK, binding, geometry, require, save, sha
+from PIL import Image, ImageDraw, ImageFont
+
+
+def run(case: str) -> dict:
+    output = ROOT / f"case-{case}"
+    proof = json.loads((output / "native-verification.json").read_text())
+    require(proof["status"] == "verified", "Incomplete source proof")
+    record_ref = proof["source_records"]
+    require(sha(WORK / record_ref["path"]) == record_ref["sha256"], "Official records changed")
+    records = [json.loads(line) for line in (WORK / record_ref["path"]).read_text().splitlines()]
+    technical = json.loads((PRIOR / f"technical-evidence/case-{case}.json").read_text())
+    study = technical["study_uid"]
+    meta_by_series = {
+        s["series_uid"]: json.loads((WORK / s["cache_metadata"]["path"]).read_text())
+        for s in technical["series"]
+    }
+    require(not (output / "panels-native-window-v2").exists(), "Output must be new")
+    panels_dir = output / "panels-native-window-v2"
+    panels_dir.mkdir()
+    font = ImageFont.load_default(size=18)
+    by_sop = {r["sop_uid"]: r for r in records}
+    series_order = sorted(
+        technical["series"], key=lambda s: int(s["header_endpoint_values"]["SeriesNumber"][0])
+    )
+    all_panels, sheets = [], []
+    for page_start in range(0, len(series_order), 3):
+        page_series = series_order[page_start : page_start + 3]
+        cell = max(max(s["cache_original_shape"][1:]) for s in page_series)
+        sheet = Image.new("L", (3 * (cell + 16) + 16, len(page_series) * (cell + 82) + 42), 16)
+        draw = ImageDraw.Draw(sheet)
+        draw.text(
+            (12, 10),
+            f"Official native | {case} | three selected slices per series",
+            font=font,
+            fill=255,
+        )
+        for ri, series in enumerate(page_series):
+            meta = meta_by_series[series["series_uid"]]
+            n = meta["n_slices"]
+            selected = sorted({int(round((n - 1) * v)) for v in [0.25, 0.5, 0.75]})
+            require(len(selected) == 3, "Need three distinct native sample slices")
+            num = series["header_endpoint_values"]["SeriesNumber"][0]
+            side = series["header_endpoint_values"]["Laterality"][0] or "blank"
+            for ci, si in enumerate(selected):
+                source = by_sop[meta["sop_uids"][si]]
+                path = output / source["official_local_path"]
+                require(sha(path) == source["official_sha256"], "Panel source changed")
+                ds = pydicom.dcmread(path)
+                pixels = ds.pixel_array
+                native_rows = [r for r in records if r["series_uid"] == series["series_uid"]]
+                low = min(r["native_min"] for r in native_rows)
+                high = max(r["native_max"] for r in native_rows)
+                require(high > low, "Constant full series cannot be displayed")
+                display = np.rint(
+                    np.clip((pixels.astype(float) - low) / (high - low), 0, 1) * 255
+                ).astype(np.uint8)
+                x, y = 16 + ci * (cell + 16), 42 + ri * (cell + 82)
+                sheet.paste(
+                    Image.fromarray(display),
+                    (x + (cell - pixels.shape[1]) // 2, y + (cell - pixels.shape[0]) // 2),
+                )
+                draw.text(
+                    (x, y + cell + 2),
+                    f"Series {num} | tag {side} | index {si}/{n - 1}",
+                    font=font,
+                    fill=255,
+                )
+                draw.text(
+                    (x, y + cell + 25),
+                    f"Native {pixels.shape[0]}x{pixels.shape[1]} | no spatial transform",
+                    font=font,
+                    fill=230,
+                )
+                all_panels.append(
+                    {
+                        "page_index": page_start // 3,
+                        "row": ri,
+                        "column": ci,
+                        "series_uid": series["series_uid"],
+                        "series_number": num,
+                        "literal_laterality": side,
+                        "ordered_index": si,
+                        "source": binding(path, WORK),
+                        "sop_uid": source["sop_uid"],
+                        "native_shape": list(pixels.shape),
+                        "native_matrix_bytes_sha256": hashlib.sha256(
+                            pixels.tobytes(order="C")
+                        ).hexdigest(),
+                        "geometry": geometry(ds),
+                        "display_min": low,
+                        "display_max": high,
+                        "display": "linear whole-series native min/max to uint8; centered native pixels, no resize/crop/rotate/flip",
+                    }
+                )
+        page = panels_dir / f"native-series-page-{page_start // 3:02d}.png"
+        sheet.save(page)
+        sheets.append(binding(page, WORK))
+    manifest = {
+        "schema_version": 1,
+        "stage": "native_contact_sample_manifest",
+        "case": case,
+        "study_uid": study,
+        "agent_id": "/root/image_pipeline_audit",
+        "source_verification": binding(output / "native-verification.json", WORK),
+        "render_script": binding(Path(__file__).resolve(), WORK),
+        "series_sampled": len(series_order),
+        "native_panels": len(all_panels),
+        "new_render_decodes": len(all_panels),
+        "images": sheets,
+        "panels": all_panels,
+        "scope": "Three ordered slice samples at approximately25/50/75 percent per series; all source slices were numerically checked but only these panels are presented for visual review. No anatomical side or clinical label assigned.",
+    }
+    save(output / "panel-manifest-native-window-v2.json", manifest)
+    return {
+        "manifest": binding(output / "panel-manifest-native-window-v2.json", WORK),
+        "images": sheets,
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--case", required=True)
+    args = parser.parse_args()
+    print(json.dumps(run(args.case), indent=2))

@@ -1,0 +1,47 @@
+"""Independent source/report/cache/display review; no label inference."""
+import datetime,hashlib,json
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from PIL import Image
+P=Path(__file__).resolve().parent;W=P.parents[1];R=W/'recovered';OUT=P/'root-source-display-review.json';assert not OUT.exists()
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def read(p):return json.loads(p.read_text())
+def binding(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+assert sha(P/'source-header-cache-visual-handoff.json')=='3154e639c025686f6d1040c662ee6ff99c58baada1f75b3a7aaa04ced9644878'
+h=read(P/'source-header-cache-visual-handoff.json');summary=read(P/'technical-evidence/summary.json');panel=read(P/'cache-panels/panel-manifest.json');seen={}
+def checkrefs(x):
+ if isinstance(x,dict):
+  if {'path','sha256','bytes'}<=x.keys():
+   if {'sop_uid','series_uid','study_uid','storage'}<=x.keys():
+    assert x['path'].startswith('train_series/');return # Remote inventory row, checked against effective inventory below; no local native-source claim.
+   f=W/x['path'];assert f.resolve().is_relative_to(W.resolve());assert f.stat().st_size==x['bytes'];assert sha(f)==x['sha256'];seen[str(f)]=x['sha256']
+  for v in x.values():checkrefs(v)
+ elif isinstance(x,list):
+  for v in x:checkrefs(v)
+for x in [h,summary,panel,read(P/'source-header-assessment.json'),read(P/'independent-cache-visual-assessment.json'),read(P/'cache-panels/root-visual-freeze.json')]:checkrefs(x)
+pre=read(P/'source-only-preread.json');src=R/pre['source_batch_path'];assert sha(src)==pre['source_batch_sha256'];source=read(src)[20];assert source['study_uid']==pre['study_uid']==h['study_uid'];assert source['report']==pre['report'];assert hashlib.sha256(source['report'].encode()).hexdigest()==pre['source_report_sha256'];assert all(q in source['report'] for q in pre['exact_source_quotes'])
+for ref in summary['official_archive_csv_copies']:
+ csv=pd.read_csv(W/ref['path'],usecols=['StudyInstanceUID','Report']);row=csv.loc[csv.StudyInstanceUID==pre['study_uid']];assert len(row)==1 and row.iloc[0].Report==source['report']
+inv=pd.read_parquet(W/'cache256-v3-official-recovery-v1/inventory_effective.parquet',filters=[('study_uid','==',pre['study_uid'])]);assert len(inv)==169 and inv.series_uid.nunique()==6;inv_by_sop=inv.set_index('sop_uid')
+metas={};expected=set()
+for _,g in inv.groupby('series_uid'):expected.update(g.sort_values('sop_uid').iloc[[0,-1]].path)
+for ref in summary['cache_metadata_bindings']:
+ m=read(W/ref['path']);metas[m['series_uid']]=m;g=inv.loc[inv.series_uid==m['series_uid']];assert len(g)==m['n_slices'];assert dict(zip(g.sop_uid,g.sha256))==dict(zip(m['sop_uids'],m['slice_sha256']));assert m['source_revision']=='0b5e410288232f570c69ba4f44723356e6ae6ab7'
+endpoints=[json.loads(x) for x in (P/'technical-evidence/endpoints.jsonl').read_text().splitlines()];assert len(endpoints)==12 and {e['source_path'] for e in endpoints}==expected
+for e in endpoints:
+ r=inv_by_sop.loc[e['sop_uid']];assert e['source_path']==r.path and e['source_sha256']==r.sha256 and e['source_bytes']==r.bytes;assert e['study_uid']==r.study_uid and e['series_uid']==r.series_uid;m=metas[r.series_uid];i=m['sop_uids'].index(e['sop_uid']);f=e['header_fields'];assert f['Laterality']=='L';assert json.loads(f['ImagePositionPatient'])==m['positions'][i];assert json.loads(f['ImageOrientationPatient'])==m['orientation'];assert json.loads(f['PixelSpacing'])==m['pixel_spacing'];assert [int(f['Rows']),int(f['Columns'])]==m['original_shape'][1:]
+canvas=np.asarray(Image.open(W/panel['image']['path']));assert canvas.shape==(338,832);assert len(panel['panels'])==3;npzbytes=0
+for col,p in enumerate(panel['panels']):
+ m=metas[p['series_uid']];assert p['study_uid']==pre['study_uid'];assert p['ordered_index']==m['n_slices']//2;i=p['ordered_index'];sop=m['sop_uids'][i];r=inv_by_sop.loc[sop];assert p['source']['sop_uid']==sop and p['source']['sha256']==r.sha256 and p['source']['path']==r.path
+ assert all(p['source'][k]==r[k] for k in ['study_uid','series_uid','storage','bytes'])
+ f=W/p['cache']['path'];assert sha(f)==m['cache_sha256'] and f.stat().st_size==m['cache_bytes'];npzbytes+=f.stat().st_size
+ with np.load(f,allow_pickle=False) as z:a=z['volume']
+ assert a.dtype==np.uint16 and list(a.shape)==[m['n_slices'],256,256];assert hashlib.sha256(a[i].tobytes()).hexdigest()==p['cached_slice_bytes_sha256'];assert p['native_pixel_sha256_from_bound_cache_metadata']==m['pixel_sha256'][i];assert p['source_position']==m['positions'][i] and p['source_orientation']==m['orientation'] and p['source_pixel_spacing']==m['pixel_spacing']
+ display=np.rint(a[i].astype(float)/65535*255).astype(np.uint8);x=12+276*col;assert np.array_equal(canvas[36:292,x:x+256],display)
+out={'stage':'independent_root_source_header_and_cache_display_correspondence_review','case':'052:20','study_uid':pre['study_uid'],'agent_id':'/root','completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'verified_body_region_correspondence_failure','source_report_read_in_full':True,'official_archive_report_strings_exact':True,'source_report_sha256':pre['source_report_sha256'],'bound_evidence_files_verified':len(seen),'series_source_membership_verified':6,'source_inventory_slices_verified':169,'endpoint_geometry_bindings_verified':12,'full_npz_hashes_and_arrays_verified':3,'npz_bytes':npzbytes,'displayed_cache_panels_pixel_exact':3,'source_assessment':'Complete Bulgarian report describes subscapularis insertion on humerus, subcoracoid bursa, supra/infraspinatus, biceps brachii and glenoid labrum. No knee anatomy or knee finding is supplied.','technical_conclusion':'Both independently frozen gross visual reviews show knee anatomy in all three precisely bound cached samples; original report has shoulder-only anatomy and exactly matches preserved official train.csv. Training supervision from this report must remain masked. This does not identify the intended knee report.','bindings':[binding(Path(__file__)),binding(P/'source-header-cache-visual-handoff.json'),binding(P/'cache-panels/root-visual-freeze.json'),binding(P/'independent-cache-visual-assessment.json')],'code_review':'Full render_cache_views.py read; collect_technical.py fully compared against previously root-reviewed six-case collector. Only one-case membership/preread/filenames and descriptive scope differ. Root independently reread source and replayed bindings, source membership, endpoint geometry, NPZ hashes and panel pixels.','limits':['Three cached256px samples from three of six series, not all169 native image anatomy inspected.','No new native decode or network source request. Header records reused with original scope.','No source/cache/gold or clinical labels changed; acceptance registry disposition is separate.','No patient/site/named-side inference or explanation of upstream mismatch mechanism.'],'training_ready':False}
+OUT.write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({'status':out['status'],'references':len(seen),'sha256':sha(OUT)},indent=2))

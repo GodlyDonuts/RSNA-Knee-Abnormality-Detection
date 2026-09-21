@@ -1,0 +1,24 @@
+from pathlib import Path
+src=Path('../publish_full_image_checkpoint.py'); dst=Path('../publish_official_duplicate_checkpoint.py'); assert not dst.exists(); t=src.read_text()
+t=t.replace("'initiative/audits/source-pixel-representation-v1/')","'initiative/audits/source-pixel-representation-v1/','initiative/audits/cross-study-official-duplicate-v1/','initiative/audits/endpoint-source-reuse-v1/')")
+t=t.replace("==54 and report_count==2657","==58 and report_count==2857")
+t=t.replace('2,657','2,857').replace('31,884','34,284').replace('2657-report','2857-report')
+t=t.replace('and info.sha==source_revision',"and info.sha=='3c572475723dfcc64d6b2ffcece73ca5322f2733'")
+t=t.replace('complete new source restoration and recovery/audit/selection artifacts.','complete source restoration and recovery/audit/selection artifacts, all288fresh official duplicate-study source files, independent numeric/visual proof, and the corrected-source endpoint reuse proof.')
+old="audit_prefix='audits/full-image-recovery-v1'\nfor n in"
+new="""audit_prefix='audits/full-image-recovery-v1'
+extra_audits={
+ 'cross-study-official-duplicate-v1':['OFFICIAL-VERIFICATION.md','root-numeric-review.json','root-official-panel-visual.json','official-handoff.json','preservation.json','official-verification-v1/official-verification.json','official-verification-v1/official-source-records.jsonl','official-verification-v1/official-full-matrix-comparisons.jsonl','official-native-panels-v1/panel-manifest.json','official-native-panels-v1/official-paired-native-mid-slices.png','official-native-panels-v1/independent-visual-assessment.json','official-visual-comparison.json'],
+ 'endpoint-source-reuse-v1':['README.md','root-review.json','preservation.json','verification/reuse-provenance.json','verification/endpoint-source-equivalence.jsonl.gz','queue/candidate-crosscheck.json','queue/candidate-summary.md']}
+for name,names in extra_audits.items():
+ for n in names:
+  path='initiative/audits/'+name+'/'+n;p=R/path;assert p.read_bytes()==blob(path);files_to_upload['audits/'+name+'/'+n]=p
+for n in"""
+assert old in t;t=t.replace(old,new)
+t=t.replace('## Complete technical image audit — September 21, 2026','## Official duplicate proof and report-review checkpoint — September 21, 2026')
+t=t.replace('One cross-study nonconstant pixel link is retained for leakage isolation, with no overlap against the three released test studies.','The one cross-study pixel link has been verified against all288fresh Kaggle originals: five matching series and144exact complete native image pairs. Root independently rechecked every file, matrix pair and15parsed geometry/encoding fields. Both studies remain preserved for one leakage component, with no overlap against the three released test studies.')
+t=t.replace('Full report review, global semantic/correspondence adjudication, remaining technical candidate assessment, the final leakage-isolated manifest and final training/resume/inference checks remain required. Older sections below describe historical checkpoints.','[Official duplicate proof](audits/cross-study-official-duplicate-v1) and [endpoint-source reuse proof](audits/endpoint-source-reuse-v1) are available separately. All288authoritative duplicated-study source files and exact evidence are in the checkpoint package. No patient identity or institution is inferred.\n\nFull report review, global semantic/correspondence adjudication, remaining technical candidate assessment, the final leakage-isolated manifest and final training/resume/inference checks remain required. A shoulder-only source report052:20 and combined bilateral reports052:01/17 are preserved with knee supervision masked and technical correspondence pending. Older sections below describe historical checkpoints.')
+t=t.replace("commit_message='Preserve full corrected image audit and2857-report checkpoint'","commit_message='Preserve official duplicate-source proof and2857-report checkpoint'")
+t=t.replace('Complete819635-slice technical audit,33 exact duplicate-series exclusions, source-recovery lineage and strict held-out inference bindings.','All288official files independently verified,144native image pairs identical, endpoint-source reuse proof and2857reviewed reports. Complete819635-slice technical audit and33exact duplicate-series exclusions preserved.')
+t=t.replace("(out/'manifest.json').write_text", "manifest['official_duplicate_proof']={'source_files':288,'full_native_matrix_pairs':144,'matching_series_pairs':5,'source_bytes':50996372,'root_verification_sha256':'8da31fe93b1cdbc40b9cc729b6e864cba6f8698a5e9ce127ed7f0756153cb232','patient_identity_inferred':False}\n(out/'manifest.json').write_text")
+dst.write_text(t);compile(t,str(dst),'exec');print('Prepared new fixed-checkpoint publisher; no remote publication yet.')

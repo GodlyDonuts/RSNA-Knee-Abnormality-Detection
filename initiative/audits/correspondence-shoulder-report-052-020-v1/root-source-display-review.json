@@ -1,0 +1,50 @@
+{
+  "stage": "independent_root_source_header_and_cache_display_correspondence_review",
+  "case": "052:20",
+  "study_uid": "1.2.826.0.1.3680043.8.498.52010826440192227660457107121818389761",
+  "agent_id": "/root",
+  "completed_at_utc": "2026-09-21T08:38:17.869424+00:00",
+  "status": "verified_body_region_correspondence_failure",
+  "source_report_read_in_full": true,
+  "official_archive_report_strings_exact": true,
+  "source_report_sha256": "320650a24b78193b8e82c1cd81e53fec5e7bd9942570c55a3cc2563ad41f9923",
+  "bound_evidence_files_verified": 29,
+  "series_source_membership_verified": 6,
+  "source_inventory_slices_verified": 169,
+  "endpoint_geometry_bindings_verified": 12,
+  "full_npz_hashes_and_arrays_verified": 3,
+  "npz_bytes": 7921540,
+  "displayed_cache_panels_pixel_exact": 3,
+  "source_assessment": "Complete Bulgarian report describes subscapularis insertion on humerus, subcoracoid bursa, supra/infraspinatus, biceps brachii and glenoid labrum. No knee anatomy or knee finding is supplied.",
+  "technical_conclusion": "Both independently frozen gross visual reviews show knee anatomy in all three precisely bound cached samples; original report has shoulder-only anatomy and exactly matches preserved official train.csv. Training supervision from this report must remain masked. This does not identify the intended knee report.",
+  "bindings": [
+    {
+      "path": "annotation-staging/correspondence-052020-v1/root_verify.py",
+      "sha256": "2ab06458a694e8ae576302da69cb92b0ae28a71426be996c9d13d32ef92a0134",
+      "bytes": 7155
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/source-header-cache-visual-handoff.json",
+      "sha256": "3154e639c025686f6d1040c662ee6ff99c58baada1f75b3a7aaa04ced9644878",
+      "bytes": 5086
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/cache-panels/root-visual-freeze.json",
+      "sha256": "2d11b248c8accbd4846a6cf3ca72e9da69b4e78823c4dc420dca88305ec26d1d",
+      "bytes": 2018
+    },
+    {
+      "path": "annotation-staging/correspondence-052020-v1/independent-cache-visual-assessment.json",
+      "sha256": "9afea53970a9f75eee94f7fa7fc8d8ff15e294414aa868167d62f2c0df6223e1",
+      "bytes": 1720
+    }
+  ],
+  "code_review": "Full render_cache_views.py read; collect_technical.py fully compared against previously root-reviewed six-case collector. Only one-case membership/preread/filenames and descriptive scope differ. Root independently reread source and replayed bindings, source membership, endpoint geometry, NPZ hashes and panel pixels.",
+  "limits": [
+    "Three cached256px samples from three of six series, not all169 native image anatomy inspected.",
+    "No new native decode or network source request. Header records reused with original scope.",
+    "No source/cache/gold or clinical labels changed; acceptance registry disposition is separate.",
+    "No patient/site/named-side inference or explanation of upstream mismatch mechanism."
+  ],
+  "training_ready": false
+}
