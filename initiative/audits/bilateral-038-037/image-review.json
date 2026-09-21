@@ -1,0 +1,121 @@
+{
+  "stage": "independent_native_technical_correspondence_visual_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "completed_at_utc": "2026-09-21T05:56:34.736729+00:00",
+  "source_case": "038:37",
+  "study_uid": "1.2.826.0.1.3680043.8.498.33620268340279901383196638228030589893",
+  "independence": "Personally viewed all 30 panels with view_image at original resolution, then inspected full-source orientations and validation. Source and header observations were frozen earlier. No root native visual interpretation, batch038 clinical annotations, reader/reviewer flags or gold accessed. Source text explicitly bilateral and L/blank tag group labels were visible.",
+  "n_native_panels_personally_viewed": 30,
+  "observations": [
+    "The L-tag contact sheet shows coronal S6 and S9 with the fibular head on display-right in the posterior selected sample. Their coronal long-axis anatomy and fibular position agree across contrasts.",
+    "The blank-tag contact sheet shows coronal S7 and S0 with the fibular head on display-left in the posterior selected sample, again agreeing across contrasts.",
+    "The two coronal groups have positive dominant patient-X components for increasing displayed columns (about 0.9928 for L group and 0.9768 for blank group); the native renderer performs no flips, transposes or reorientation. Opposite displayed fibular sides therefore do not arise from an explicit renderer mirror between groups.",
+    "Other rows contain coherent sagittal and transverse knee anatomy within their respective protocol sets. Appearance alone is not used to diagnose any clinical target or to match an individual pathological statement."
+  ],
+  "orientation_grounding": [
+    {
+      "series_index": 6,
+      "series_uid": "1.2.826.0.1.3680043.8.498.32985471088688625488920205108424636075",
+      "raw_laterality": "L",
+      "orientation_values": [
+        "[0.992832347887, 0.11157924676053, 0.04282523416782, 0.03983098701652, 0.0289284955108, -0.998787582332]"
+      ],
+      "fibular_head_in_posterior_coronal_sample": "display-right"
+    },
+    {
+      "series_index": 9,
+      "series_uid": "1.2.826.0.1.3680043.8.498.60463831000758617794026531620492868018",
+      "raw_laterality": "L",
+      "orientation_values": [
+        "[0.992832347887, 0.11157924676053, 0.04282523416782, 0.03983098701652, 0.0289284955108, -0.998787582332]"
+      ],
+      "fibular_head_in_posterior_coronal_sample": "display-right"
+    },
+    {
+      "series_index": 7,
+      "series_uid": "1.2.826.0.1.3680043.8.498.40214926994041046485122401768662530652",
+      "raw_laterality": "",
+      "orientation_values": [
+        "[0.9767563405743, -0.1840238041722, -0.1099194734605, -0.0956542728967, 0.08470462672935, -0.991804106811]"
+      ],
+      "fibular_head_in_posterior_coronal_sample": "display-left"
+    },
+    {
+      "series_index": 0,
+      "series_uid": "1.2.826.0.1.3680043.8.498.10762249251520789297502030571384861436",
+      "raw_laterality": "",
+      "orientation_values": [
+        "[0.9767563405743, -0.1840238041722, -0.1099194734605, -0.0956542728967, 0.08470462672935, -0.991804106811]"
+      ],
+      "fibular_head_in_posterior_coronal_sample": "display-left"
+    }
+  ],
+  "technical_conclusion": "Combined opposite fibular sides in two coherent coronal protocol sets, verified positive-X orientations and explicit bilateral source text support imaging of both knees within this StudyInstanceUID. This is stronger than a repeated protocol or missing Laterality tag alone. The L-tag group is consistent with left-knee geometry; the blank group is consistent with the opposite knee from anatomy and geometry, without altering any blank source tag.",
+  "single_knee_training_recommendation": "Do not treat the complete mixed-knee study as one unambiguous single-knee supervised example. Preserve or apply report-correspondence quarantine/masking under the separately reviewed label policy; later side-specific reuse would require explicit verified series grouping and independently approved per-side source labels. This assessment changes no clinical annotations.",
+  "n_full_native_size_hash_uid_checks_passed": 300,
+  "n_exact_cache_reproductions": 10,
+  "n_exact_endpoint_matches": 20,
+  "cross_series_exact_pixel_groups": 0,
+  "clinical_target_changes": 0,
+  "source_or_cache_or_runtime_changes": 0,
+  "limitations": [
+    "Only 30 representative native panels were visually reviewed. All 300 files were decoded and geometrically checked, not diagnostically interpreted.",
+    "Patient-coordinate interpretation assumes the source IOP patient-axis labels are valid; independent left/right acquisition certification is unavailable. No raw side tag is rewritten.",
+    "One consistent pseudonymous PatientID hash does not establish true patient identity; unique per-series FrameOfReference hashes do not prove registered frames.",
+    "No source-to-image pathological correspondence or clinical target diagnosis was inferred."
+  ],
+  "input_bindings": [
+    {
+      "path": "bilateral-038037/native-tag-L.png",
+      "sha256": "c0e109fad50b3a31dbf2349f578dbf1fe71d115426fab60d68c42065ff561f17",
+      "bytes": 3113299
+    },
+    {
+      "path": "bilateral-038037/native-tag-blank.png",
+      "sha256": "14f6749d16952c2ff7038c3c3848a4dd2b6a20b10f81bb00c5112c37398b1345",
+      "bytes": 3054016
+    },
+    {
+      "path": "bilateral-038037/series-summary.json",
+      "sha256": "6eb49acb0fae7dde91c73f3e00432af4ef0097550c06c3a08e24907fc7eb6111",
+      "bytes": 65574
+    },
+    {
+      "path": "bilateral-038037/summary.json",
+      "sha256": "f1a937bf7bd2cb72f11b771f0aade7de19b9c1cb7b3904d5630f931dd2537440",
+      "bytes": 3050
+    },
+    {
+      "path": "bilateral-038037/all-slice-headers-and-pixels.jsonl",
+      "sha256": "d98cc8be07a146f4bddcfffb895de6845f8e911b8f769ac8a1bbd58e3be6cdcd",
+      "bytes": 589004
+    },
+    {
+      "path": "bilateral-038037/cache-comparison.json",
+      "sha256": "956a2531445d679207b36e2368b00b6ea6271e07e6f3522b91c6e92b7216ccc4",
+      "bytes": 8903
+    },
+    {
+      "path": "bilateral_038037.py",
+      "sha256": "3ce180f0ff2e4edeede600a6e129f54bb149849184ed1cfa3bff409e85700fc5",
+      "bytes": 10720
+    },
+    {
+      "path": "annotation-staging/bilateral03837-source-preread.json",
+      "sha256": "4f93add68e73cd0850d3b5406eb3ddaa9bdd41bbdb7dfb39b5ade4cc7a81b538",
+      "bytes": 6847
+    },
+    {
+      "path": "annotation-staging/bilateral03837-header-review.json",
+      "sha256": "c9f8d3f7cb9f6c2741a46624321b2ca5191dc6c63fe8b31626018b06a9a49dfe",
+      "bytes": 27118
+    },
+    {
+      "path": "annotation-staging/bilateral03837-native-endpoint-cache-comparison.json",
+      "sha256": "e4b508df28e904262803de959d51409b0360340c6200571a5c41507fc8d2f894",
+      "bytes": 2370
+    }
+  ]
+}

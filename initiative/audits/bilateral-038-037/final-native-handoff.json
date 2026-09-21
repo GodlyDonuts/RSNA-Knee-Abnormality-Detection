@@ -1,0 +1,65 @@
+{
+  "stage": "completed_independent_native_correspondence_handoff",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "source_case": "038:37",
+  "study_uid": "1.2.826.0.1.3680043.8.498.33620268340279901383196638228030589893",
+  "n_full_native_source_slices": 300,
+  "n_series": 10,
+  "n_exact_cache_reproductions": 10,
+  "n_exact_endpoint_source_metadata_and_prefix_matches": 20,
+  "n_native_panels_each_independent_assessor_viewed": 30,
+  "n_cross_series_exact_pixel_groups": 0,
+  "independent_assessors_agree": true,
+  "shared_observations": "L-tag coronal S6/S9 show fibula on viewer-right; blank-tag coronal S7/S0 show it on viewer-left, consistent across contrasts. Both groups have positive dominant patient-X components for increasing displayed columns and no renderer flips/transposes/reorientation. Each belongs to a coherent five-sequence protocol set of 150 slices.",
+  "conclusion": "Both independent native reviews and full-source geometry support two knees under this study, conditional on trustworthy source patient-axis orientation and absence of an upstream mirror. Blank Laterality alone never identifies a side, and no source tag is altered. The report contains explicit left/right blocks, so the complete aggregate must not be treated as one unambiguous single-knee supervised example. Preserve quarantine/masking via the separately reviewed clinical pipeline; no clinical target state is inferred from these images.",
+  "scope_limitations": [
+    "Technical anatomy/correspondence review of 30 selected panels and full decoding of 300 source files; no clinical diagnostic image reread.",
+    "No independently certified acquisition-side metadata or true patient identity; no claim of exact pathological statement-to-image matching.",
+    "Ten per-series FrameOfReference hashes do not establish registered coordinate systems; the conclusion relies on consistent orientation-grounded anatomical side patterns, not shared origins."
+  ],
+  "clinical_target_changes": 0,
+  "source_or_cache_or_runtime_changes": 0,
+  "input_bindings": [
+    {
+      "path": "annotation-staging/bilateral03837-image-review.json",
+      "sha256": "4742942a487b619d3e57ade25a61f95a77ca44135ed0b33cae983ae648ca9aef",
+      "bytes": 6860
+    },
+    {
+      "path": "annotation-staging/bilateral03837-root-native-preread.json",
+      "sha256": "267469f40c7c7dab3cb9fafad893745291dd66ebc9cf24deff974da4a854b04a",
+      "bytes": 2381
+    },
+    {
+      "path": "annotation-staging/bilateral03837-native-endpoint-cache-comparison.json",
+      "sha256": "e4b508df28e904262803de959d51409b0360340c6200571a5c41507fc8d2f894",
+      "bytes": 2370
+    },
+    {
+      "path": "annotation-staging/bilateral03837-header-review.json",
+      "sha256": "c9f8d3f7cb9f6c2741a46624321b2ca5191dc6c63fe8b31626018b06a9a49dfe",
+      "bytes": 27118
+    },
+    {
+      "path": "annotation-staging/bilateral03837-source-preread.json",
+      "sha256": "4f93add68e73cd0850d3b5406eb3ddaa9bdd41bbdb7dfb39b5ade4cc7a81b538",
+      "bytes": 6847
+    },
+    {
+      "path": "annotation-staging/bilateral03837-pre-native-input-bindings.json",
+      "sha256": "25803777839b952dd3f8e0552bcc57c4d1ad7ec409eee56c6f021b0d22477e4a",
+      "bytes": 2604
+    },
+    {
+      "path": "bilateral-038037/summary.json",
+      "sha256": "f1a937bf7bd2cb72f11b771f0aade7de19b9c1cb7b3904d5630f931dd2537440",
+      "bytes": 3050
+    },
+    {
+      "path": "bilateral_038037.py",
+      "sha256": "3ce180f0ff2e4edeede600a6e129f54bb149849184ed1cfa3bff409e85700fc5",
+      "bytes": 10720
+    }
+  ]
+}

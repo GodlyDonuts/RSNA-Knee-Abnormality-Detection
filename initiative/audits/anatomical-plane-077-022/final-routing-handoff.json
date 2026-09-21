@@ -1,0 +1,84 @@
+{
+  "stage": "completed_independent_technical_plane_handoff_with_separate_duplicate_selection_followup",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "source_case": "077:22",
+  "study_uid": "1.2.826.0.1.3680043.8.498.85943737587102032370951456635167782343",
+  "n_full_native_source_slices": 298,
+  "n_exact_cache_reproductions": 6,
+  "n_exact_endpoint_source_metadata_and_prefix_matches": 12,
+  "n_native_panels_each_independent_assessor_viewed": 18,
+  "all_six_official_planes_agree_with_both_native_assessments": true,
+  "description_inconsistency": {
+    "series_uid": "1.2.826.0.1.3680043.8.498.61972393881812789635445975255392095449",
+    "source_description": "DESS MPR 1mm cor Knie rechts",
+    "supplied_anatomical_plane": "Sagittal",
+    "independently_viewed_local_anatomy": "Sagittal"
+  },
+  "recommended_effective_plane_overrides": [],
+  "exact_duplicate_series": {
+    "series_indices": [
+      1,
+      5
+    ],
+    "series_uids": [
+      "1.2.826.0.1.3680043.8.498.10335555054928741153620086817417866255",
+      "1.2.826.0.1.3680043.8.498.61972393881812789635445975255392095449"
+    ],
+    "n_identical_ordered_native_pixel_matrices": 30,
+    "geometry_matches_at_1e_3": true,
+    "complete_cached_volumes_numerically_equal": true,
+    "cache_npz_sha256_equal": true,
+    "whole_source_files_identical": false,
+    "disposition": "Preserve both source series and caches. Independent reviewed downstream selection policy is still required to avoid counting identical image evidence twice; no exclusion is applied by this technical audit."
+  },
+  "conclusion": "Retain all six official plane categories. S5 MPR/cor naming does not match its sagittal local anatomy, but its supplied Sagittal category is already appropriate. S1/S5 are confirmed exact duplicated pixel content under different source identifiers and require a separate preserved selection decision. All native source records, geometry and exact cache reproductions pass. No source/caches, runtime, selection or clinical annotations changed.",
+  "clinical_target_changes": 0,
+  "input_bindings": [
+    {
+      "path": "annotation-staging/plane07722-image-review.json",
+      "sha256": "96a0efe2dfec17b2ec7aee57d5c887c3fe086a091cc728adb6ba35f906c6f18d",
+      "bytes": 5444
+    },
+    {
+      "path": "annotation-staging/plane07722-root-visual-preread.json",
+      "sha256": "d74b5248e12c0c6b5cdd8e3d45cb5fbdcb778905f77af3e02bca2a1b3d79bd89",
+      "bytes": 2292
+    },
+    {
+      "path": "annotation-staging/plane07722-endpoint-cache-routing-comparison.json",
+      "sha256": "c09425033c29bf632f867d8d0cab282b7ca06113d0ee57f796190517b0e7fea7",
+      "bytes": 5506
+    },
+    {
+      "path": "annotation-staging/plane07722-duplicate-sequence-check.json",
+      "sha256": "bec2013519097e668d85764f2ac9d59cbaf30e828e178ef412a49e3963578ee8",
+      "bytes": 17500
+    },
+    {
+      "path": "annotation-staging/native-077022-identity-check.json",
+      "sha256": "3a672cdedf30770f7ea40707f770b3c72ec2a5fae4d85174ff75a18031bb93aa",
+      "bytes": 2550
+    },
+    {
+      "path": "annotation-staging/plane07722-source-preread.json",
+      "sha256": "9300794ab851cc1615f7706dc144971ff08af58a738af176f839402dfcf014ee",
+      "bytes": 2090
+    },
+    {
+      "path": "annotation-staging/plane07722-pre-native-input-bindings.json",
+      "sha256": "ea827b43ae6791f56376f28c2a36d6bf18f0a690656ff97ecb4dd4114c532cb5",
+      "bytes": 2730
+    },
+    {
+      "path": "plane-077022/summary.json",
+      "sha256": "914a3d0f8265788e34e8e145a727917b7803cbc618513e4c6c1e06c435b1766a",
+      "bytes": 3185
+    },
+    {
+      "path": "plane_077022.py",
+      "sha256": "72a9d21c8022fb4ffd3ddc2bd61db43308f11ab6b402b05ac82012133b64bc81",
+      "bytes": 10657
+    }
+  ]
+}

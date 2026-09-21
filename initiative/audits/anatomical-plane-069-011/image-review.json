@@ -1,0 +1,118 @@
+{
+  "stage": "independent_native_technical_visual_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "completed_at_utc": "2026-09-21T05:32:34.383681+00:00",
+  "source_case": "069:11",
+  "study_uid": "1.2.826.0.1.3680043.8.498.74872419726042767543822107291861307866",
+  "independence": "Personally viewed all 27 native panels with view_image at original resolution after complete source and metadata preread, before any root visual interpretation. IOP group labels, descriptions and candidate identity were visible. No clinical annotations, reader/reviewer flags or gold accessed.",
+  "n_panels_personally_viewed": 27,
+  "group_observations": [
+    {
+      "series_indices": [
+        5
+      ],
+      "official_plane": "Axial",
+      "description": "RT.COR ACL T2W FS",
+      "native_anatomical_view": "axial",
+      "observations": "Three panels show oblique transverse knee sections with tibial/femoral cross-sections, paired femoral-condylar contours at the more cranial samples, anterior extensor tissues and posterior muscle/vascular cross-sections. They do not show the long femoral/tibial axes across the joint width characteristic of the separate coronal rows. This tilted sequence is most consistent with axial local anatomy among the three supplied plane categories. Preserve its specialized ACL naming context; COR is not a reliable ordinary whole-knee coronal label here."
+    },
+    {
+      "series_indices": [
+        2,
+        6
+      ],
+      "official_plane": "Axial",
+      "native_anatomical_view": "axial",
+      "observations": "Six transverse sections show proximal tibia/distal femur at varying levels, anterior patella and posterior cross-sectional soft tissues. The matching rows agree across contrast; Tra descriptions and supplied Axial fit the local anatomy."
+    },
+    {
+      "series_indices": [
+        3,
+        4,
+        8
+      ],
+      "official_plane": "Coronal",
+      "native_anatomical_view": "coronal",
+      "observations": "Nine anterior, central and posterior coronal views show paired femoral condyles and tibial plateau across the knee width with longitudinal femur/tibia, consistently across three contrasts. Cor descriptions and supplied Coronal agree with local anatomy."
+    },
+    {
+      "series_indices": [
+        0,
+        1,
+        7
+      ],
+      "official_plane": "Sagittal",
+      "native_anatomical_view": "sagittal",
+      "observations": "Nine views show longitudinal knee side profiles with anterior patella, individual femoral-condylar silhouettes and posterior structures. Sag descriptions and supplied Sagittal agree with local anatomy."
+    }
+  ],
+  "conclusion": "Retain all nine supplied official plane categories. S5 is an oblique axial-appearing specialized ACL sequence, and its COR naming alone does not justify changing official Axial to Coronal. Preserve all original descriptions and source geometry. No effective plane overrides.",
+  "current_pipeline_implication": "The loader uses official Anatomical_Plane and ignores SeriesDescription. The observed views support retaining current routing; all 299 source checks and nine exact cache reproductions passed separately.",
+  "recommended_auxiliary_overrides": [],
+  "clinical_target_changes": 0,
+  "limitations": [
+    "Twenty-seven selected native panels were visually reviewed; all 299 files were decoded and geometrically checked, not diagnostically interpreted.",
+    "The specialized oblique sequence is described within the available three-category plane scheme; this does not determine the scanner operator intention behind its name.",
+    "No clinical targets, true patient identity, anatomical side or report linkage inferred.",
+    "No general IOP-over-description rule for other studies."
+  ],
+  "input_bindings": [
+    {
+      "path": "plane-069011/native-iop-axial.png",
+      "sha256": "284b2e5c8aa11510493f83bf234553f554bbd6efc613b53cddcf6cb4d7c5e29a",
+      "bytes": 1490247
+    },
+    {
+      "path": "plane-069011/native-iop-coronal.png",
+      "sha256": "a25610bb2164690c114b75b2d21e575b9f0a48ef50366fb257bc974219e224b1",
+      "bytes": 1770794
+    },
+    {
+      "path": "plane-069011/native-iop-sagittal.png",
+      "sha256": "131d9551890b9628441828ee67e30e9a7569591e1fa86569e3e031948c6388a0",
+      "bytes": 1636061
+    },
+    {
+      "path": "plane-069011/series-summary.json",
+      "sha256": "be6ed97b62572c02d1fdd6947c1082bd23ed567eba3cb49710a9a859e7446b03",
+      "bytes": 63119
+    },
+    {
+      "path": "plane-069011/summary.json",
+      "sha256": "62a145d0fe7be4fbc1ba7b44a0cf474ab898be7d52fb65375d75341e6cd44684",
+      "bytes": 3184
+    },
+    {
+      "path": "plane-069011/cache-comparison.json",
+      "sha256": "c15bc6dc2623efd90cd616a92cd564f0c2149051a4314553e697d711bc3bc86b",
+      "bytes": 8013
+    },
+    {
+      "path": "plane-069011/all-slice-headers-and-pixels.jsonl",
+      "sha256": "f2beb7548dfbe356cdcb4293899a2bbdc4f0d6a1aa98bce005d15c437fc3f1dc",
+      "bytes": 580507
+    },
+    {
+      "path": "plane_069011.py",
+      "sha256": "280aa8a8e6236ab24a6ccb3bd5a3ce5e0688b88f15cbae78157e1d552d567f5e",
+      "bytes": 10657
+    },
+    {
+      "path": "annotation-staging/plane06911-source-preread.json",
+      "sha256": "414f557d98dbfc08475e89d483ec014e7f25dc1695158033f4515a1b3dc3248a",
+      "bytes": 3068
+    },
+    {
+      "path": "annotation-staging/plane06911-routing-prereview.json",
+      "sha256": "9d41b9a63ad322edd2dc3a012f4392ea973bfcd6f6827919728544ca9170452a",
+      "bytes": 13716
+    },
+    {
+      "path": "annotation-staging/plane06911-official-series-routing.json",
+      "sha256": "08cce591a888a0f7ddde578fe72537734817a3a48d045efdee2af1b59c547719",
+      "bytes": 6537
+    }
+  ]
+}

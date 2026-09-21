@@ -1,0 +1,22 @@
+from pathlib import Path
+import hashlib,json
+base=Path(__file__).resolve().parents[1];stage=base/'annotation-staging';out=base/'bilateral-038037';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+full=out/'all-slice-headers-and-pixels.jsonl';rows=[json.loads(x) for x in full.read_text().splitlines()];lookup={r['source_path']:r for r in rows};invp=stage/'bilateral03837-source-inventory.json';inv=json.loads(invp.read_text());expected={r['path']:r for r in inv['records']};assert len(lookup)==len(rows)==inv['n_slices']==300 and set(lookup)==set(expected)
+for path,r in lookup.items():
+ for a,b in [('study_uid','study_uid'),('series_uid','series_uid'),('sop_uid','sop_uid'),('source_sha256','sha256'),('source_bytes','bytes')]:assert r[a]==expected[path][b]
+ep=stage/'header-extract-038037.jsonl';endpoints=[json.loads(x) for x in ep.read_text().splitlines()]
+for r in endpoints:
+ n=lookup[r['source_path']]
+ for k in ['study_uid','series_uid','sop_uid','source_sha256','source_bytes','header_fields','patient_id_sha256','frame_of_reference_sha256']:assert r[k]==n[k],(r['series_uid'],k)
+ assert r['prefix_bytes']==65536 and r['prefix_sha256']==n['source_prefix_65536_sha256']
+series=json.loads((out/'series-summary.json').read_text());cache=json.loads((out/'cache-comparison.json').read_text());assert len(series)==len(cache)==10 and len(endpoints)==20
+empty=hashlib.sha256(b'').hexdigest();patients={r['patient_id_sha256'] for r in rows};assert len(patients)==1 and empty not in patients
+for s in series:
+ assert len(s['frame_of_reference_sha256'])==1 and empty not in s['frame_of_reference_sha256'];assert len(s['header_values']['Laterality'])==1
+for c in cache:
+ assert c['reproduced_pixels_exact'] and c['all_compared_metadata_exact'] and c['independent_projection_order_equals_cache'];assert sha(base/c['cache_path'])==c['cache_sha256'] and sha(base/c['cache_metadata_path'])==c['cache_metadata_sha256']
+paths=[Path(__file__),full,invp,ep,out/'summary.json',out/'series-summary.json',out/'cache-comparison.json',stage/'bilateral03837-pre-native-input-bindings.json']
+o={'stage':'completed_full_native_endpoint_cache_binding','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','study_uid':inv['study_uid'],'source_revision':inv['source_revision'],'n_full_source_records':300,'n_series':10,'n_exact_endpoint_metadata_and_independently_recomputed_prefix_matches':20,'n_exact_cache_reproductions':10,'n_nonempty_patient_id_hashes':1,'n_series_with_single_nonempty_frame_hash':10,'n_series_with_constant_raw_laterality':10,'scope':'Full source size/hash/UID coverage, native decode/geometry and exact current cache reproduction. Endpoint prefix hashes independently recomputed from fully verified source bytes. This artifact makes no visual anatomy, clinical-label or real-identity inference.','input_bindings':[{'path':str(p.relative_to(base)),'sha256':sha(p),'bytes':p.stat().st_size} for p in paths]}
+p=stage/'bilateral03837-native-endpoint-cache-comparison.json'
+with p.open('x') as f:json.dump(o,f,indent=2);f.write('\n')
+print(p.name,sha(p))

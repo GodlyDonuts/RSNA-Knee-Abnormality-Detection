@@ -1,0 +1,88 @@
+"""Bounded 069:11 full native/geometry/cache audit. No diagnostic labels or runtime writes."""
+from pathlib import Path
+import hashlib
+import io
+import json
+import sys
+import shutil
+from collections import Counter, defaultdict
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+import pydicom
+import torch
+from dotenv import load_dotenv
+
+base=Path(__file__).resolve().parent;repo=base/'recovered';stage=base/'annotation-staging';sys.path.insert(0,str(repo));sys.path.insert(0,str(stage/'header-survey-independent-v1'))
+from rsna.preprocess import Source
+from rsna.dicom import decode_slice,make_volume
+from rsna.schema import CACHE_VERSION
+from validate import plane,FIELDS
+
+torch.set_num_threads(1)
+load_dotenv(base.parent/'.env')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert shutil.disk_usage(base).free >= 20*1024**3, '20GiB reserve unavailable'
+out=base/'plane-069011';out.mkdir(exist_ok=False)
+invp=stage/'plane06911-source-inventory.json';inventory=json.loads(invp.read_text());uid=inventory['study_uid'];expected=inventory['records'];assert len(expected)==299
+bindings=json.loads((stage/'plane06911-pre-native-input-bindings.json').read_text())
+for b in bindings['input_bindings']:
+ p=base/b['path'];assert p.exists() and sha(p)==b['sha256']
+source=Source(None,{r['path']:{'sha256':r['sha256'],'bytes':r['bytes'],'storage':r['storage']} for r in expected},revision=inventory['source_revision'])
+groups=defaultdict(list)
+for r in expected:groups[r['series_uid']].append(r)
+records=[];series=[];samples={};cache_comparisons=[]
+try:
+ for sid,rows in sorted(groups.items()):
+  slices=[];production=[]
+  for start in range(0,len(rows),2):
+   assert shutil.disk_usage(base).free >= 20*1024**3, '20GiB reserve reached'
+   block=rows[start:start+2]
+   for r,raw in zip(block,source.read_series([x['path'] for x in block])):
+    assert len(raw)==r['bytes'] and hashlib.sha256(raw).hexdigest()==r['sha256']
+    ds=pydicom.dcmread(io.BytesIO(raw));assert (str(ds.StudyInstanceUID),str(ds.SeriesInstanceUID),str(ds.SOPInstanceUID))==(uid,sid,r['sop_uid'])
+    native=np.asarray(ds.pixel_array);assert native.ndim==2 and native.size and np.isfinite(native).all();native=np.ascontiguousarray(native.astype(native.dtype.newbyteorder('<'),copy=False))
+    iop=np.asarray(ds.ImageOrientationPatient,dtype=float);ipp=np.asarray(ds.ImagePositionPatient,dtype=float);spacing=np.asarray(ds.PixelSpacing,dtype=float)
+    assert iop.shape==(6,) and ipp.shape==(3,) and spacing.shape==(2,) and np.isfinite(np.r_[iop,ipp,spacing]).all() and (spacing>0).all()
+    assert np.isclose(np.linalg.norm(iop[:3]),1,atol=1e-3,rtol=0) and np.isclose(np.linalg.norm(iop[3:]),1,atol=1e-3,rtol=0) and abs(iop[:3]@iop[3:])<1e-3
+    canonical_hash=hashlib.sha256(np.asarray(native.shape,dtype='<i8').tobytes()+np.asarray(native,dtype='<f8').tobytes(order='C')).hexdigest()
+    rec={'study_uid':uid,'series_uid':sid,'sop_uid':r['sop_uid'],'source_path':r['path'],'source_sha256':r['sha256'],'source_bytes':len(raw),'source_prefix_65536_sha256':hashlib.sha256(raw[:65536]).hexdigest(),'decoded_pixel_sha256':hashlib.sha256(str(native.shape).encode()+native.dtype.str.encode()+native.tobytes()).hexdigest(),'production_pixel_fingerprint':canonical_hash,'native_dtype':native.dtype.str,'projection':float(ipp@np.cross(iop[:3],iop[3:])),'header_fields':{k:str(ds.get(k,'')) for k in FIELDS},'patient_id_sha256':hashlib.sha256(str(ds.get('PatientID','')).encode()).hexdigest(),'frame_of_reference_sha256':hashlib.sha256(str(ds.get('FrameOfReferenceUID','')).encode()).hexdigest()}
+    prod=decode_slice(raw,uid,sid,r['sop_uid']);assert prod.pixel_sha256==canonical_hash
+    production.append(prod);records.append(rec);slices.append((native,rec));del ds,raw
+  ref=np.asarray(json.loads(slices[0][1]['header_fields']['ImageOrientationPatient']));normal=np.cross(ref[:3],ref[3:])
+  assert all(np.allclose(json.loads(rec['header_fields']['ImageOrientationPatient']),ref,atol=1e-3,rtol=0) for _,rec in slices)
+  slices.sort(key=lambda x:(float(np.asarray(json.loads(x[1]['header_fields']['ImagePositionPatient']))@normal),x[1]['sop_uid']))
+  positions=np.asarray([float(np.asarray(json.loads(rec['header_fields']['ImagePositionPatient']))@normal) for _,rec in slices]);gaps=np.diff(positions);assert (gaps>1e-4).all()
+  index=len(series);gp=plane(slices[0][1]['header_fields']['ImageOrientationPatient']);assert gp['plane'] in {'sagittal','coronal','axial','oblique'}
+  item={'series_index':index,'series_uid':sid,'n_slices':len(slices),'patient_coordinate_plane':gp,'header_values':{k:sorted({r['header_fields'][k] for _,r in slices}) for k in FIELDS if k not in ['ImagePositionPatient','AcquisitionTime']},'patient_id_sha256':sorted({r['patient_id_sha256'] for _,r in slices}),'frame_of_reference_sha256':sorted({r['frame_of_reference_sha256'] for _,r in slices}),'ordered_sop_uids':[r['sop_uid'] for _,r in slices],'projection_range':[float(positions.min()),float(positions.max())],'slice_gap_min':float(gaps.min()),'slice_gap_max':float(gaps.max()),'slice_gap_median':float(np.median(gaps)),'pixel_hashes':[r['decoded_pixel_sha256'] for _,r in slices]};series.append(item)
+  loc=sorted(set(round((len(slices)-1)*f) for f in [.25,.5,.75]));samples[index]=[(j,slices[j][0],slices[j][1]) for j in loc]
+  cp=base/'cache256-v3/train_series'/uid/f'{sid}.npz';mp=cp.with_suffix('.json');assert cp.exists() and mp.exists();meta=json.loads(mp.read_text());assert meta['cache_version']==CACHE_VERSION and meta['source_revision']==inventory['source_revision'] and meta['cache_sha256']==sha(cp) and meta['cache_bytes']==cp.stat().st_size
+  reproduction,info=make_volume(production,meta['side']);assert info['ordering']=='patient_geometry' and info['sop_uids']==item['ordered_sop_uids']
+  with np.load(cp,allow_pickle=False) as archive:cached=archive['volume'];array_exact=np.array_equal(cached,reproduction);cached_shape=list(cached.shape);cached_dtype=str(cached.dtype)
+  fields=['ordering','warnings','intensity_min','intensity_max','original_shape','resized_shape','pixel_spacing','sop_uids','positions','orientation','slice_sha256','pixel_sha256','pixel_nonconstant','photometric_interpretation','transfer_syntaxes','constant_slices'];different=[k for k in fields if meta[k]!=info[k]]
+  assert array_exact and not different
+  cache_comparisons.append({'series_uid':sid,'cache_path':str(cp.relative_to(base)),'cache_sha256':sha(cp),'cache_metadata_path':str(mp.relative_to(base)),'cache_metadata_sha256':sha(mp),'shape':cached_shape,'dtype':cached_dtype,'reproduced_pixels_exact':array_exact,'all_compared_metadata_exact':not different,'metadata_differences':different,'independent_projection_order_equals_cache':meta['sop_uids']==item['ordered_sop_uids']})
+  del production,reproduction,slices
+  print(json.dumps({'completed_native_series':len(series),'total_series':9,'completed_native_slices':len(records),'total_slices':299,'cache_exact':True}),flush=True)
+finally:
+ source.downloads.shutdown()
+assert len(records)==299 and len(series)==9
+p=out/'all-slice-headers-and-pixels.jsonl';p.write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records));(out/'series-summary.json').write_text(json.dumps(series,ensure_ascii=False,indent=2)+'\n');(out/'cache-comparison.json').write_text(json.dumps(cache_comparisons,indent=2)+'\n')
+figures=[]
+for group in ['axial','coronal','sagittal','oblique']:
+ chosen=[s for s in series if s['patient_coordinate_plane']['plane']==group]
+ if not chosen:continue
+ fig,axes=plt.subplots(len(chosen),3,figsize=(12,len(chosen)*4),squeeze=False)
+ for row,s in enumerate(chosen):
+  for col,(j,a,r) in enumerate(samples[s['series_index']]):
+   lo,hi=np.percentile(a,[1,99.5]);axes[row,col].imshow(a,cmap='gray',origin='upper',interpolation='nearest',vmin=lo,vmax=max(hi,lo+1));axes[row,col].axis('off')
+   axes[row,col].set_title(f"S{s['series_index']} | {s['header_values']['SeriesDescription'][0]}\nIOP group:{group} | native slice {j+1}/{s['n_slices']}",fontsize=9)
+ fig.suptitle('Native pixels; no flips/transposes/reorientation; groups are patient-coordinate IOP planes',fontsize=11);fig.tight_layout(rect=[0,0,1,.98]);name=f'native-iop-{group}.png';fig.savefig(out/name,dpi=160);plt.close(fig);figures.append({'path':name,'sha256':sha(out/name),'n_panels':3*len(chosen)})
+by_pixel=defaultdict(list)
+for r in records:by_pixel[r['decoded_pixel_sha256']].append({'series_uid':r['series_uid'],'sop_uid':r['sop_uid']})
+cross=[{'decoded_pixel_sha256':k,'instances':v} for k,v in by_pixel.items() if len({x['series_uid'] for x in v})>1]
+(out/'cross-series-exact-pixel-groups.json').write_text(json.dumps(cross,indent=2)+'\n')
+summary={'schema_version':1,'scope':'Full299-slice bounded technical native/geometry/cache comparison for069:11. No image diagnoses or clinical-label changes.','agent_id':'/root/image_pipeline_audit','study_uid':uid,'source_revision':inventory['source_revision'],'n_slices':len(records),'n_series':len(series),'n_full_size_sha256_uid_checks_passed':len(records),'n_finite_native_decodes':len(records),'n_cache_series_exact_reproduction':len(cache_comparisons),'all_series_patient_geometry_ordered':True,'laterality_slice_counts':dict(Counter(r['header_fields']['Laterality'] for r in records)),'n_patient_id_hashes':len({r['patient_id_sha256'] for r in records}),'n_frame_of_reference_hashes':len({r['frame_of_reference_sha256'] for r in records}),'patient_coordinate_plane_series_counts':dict(Counter(s['patient_coordinate_plane']['plane'] for s in series)),'cross_series_exact_pixel_groups':len(cross),'source_bytes_downloaded_verified':sum(r['source_bytes'] for r in records),'max_simultaneous_source_requests':2,'full_raw_dicom_files_retained':False,'native_pixel_arrays_retained_after_process':False,'header_pixel_artifact_sha256':sha(p),'figures':figures,'input_bindings':[{'path':str(q.relative_to(base)),'sha256':sha(q)} for q in [Path(__file__),invp,stage/'plane06911-pre-native-input-bindings.json',stage/'header-survey-independent-v1/validate.py',repo/'rsna/dicom.py',repo/'rsna/preprocess.py',repo/'rsna/data.py',repo/'rsna/schema.py']],'limitations':'Patient-coordinate plane groups do not independently establish the local anatomical knee plane. Exact cache reproduction verifies current code against cache and all source hashes, not diagnostic adequacy or trustworthy absolute patient axes. Native figures show representative stored pixels only; independent visual assessment required.'}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps({'completed':True,'n_native_slices':299,'n_cache_exact_series':9,'figures':figures},indent=2))

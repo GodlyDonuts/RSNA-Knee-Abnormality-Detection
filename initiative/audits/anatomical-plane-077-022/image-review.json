@@ -1,0 +1,115 @@
+{
+  "stage": "independent_native_technical_visual_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "completed_at_utc": "2026-09-21T05:42:25.555247+00:00",
+  "source_case": "077:22",
+  "study_uid": "1.2.826.0.1.3680043.8.498.85943737587102032370951456635167782343",
+  "independence": "Personally viewed all 18 native panels with view_image at original resolution after complete source and metadata preread, before any root visual interpretation. IOP group labels, descriptions and candidate identity were visible. No clinical annotations, reader/reviewer flags or gold accessed.",
+  "n_panels_personally_viewed": 18,
+  "group_observations": [
+    {
+      "series_indices": [
+        5
+      ],
+      "official_plane": "Sagittal",
+      "description": "DESS MPR 1mm cor Knie rechts",
+      "native_anatomical_view": "sagittal",
+      "observations": "All three panels show longitudinal femoral-condylar and tibial side profiles with anterior patella and posterior soft tissues. These are sagittal views, closely resembling corresponding S1 panels. The MPR/cor name alone does not describe their actual local plane; official Sagittal is supported. Similarity to S1 warrants explicit full-pixel comparison before any duplicate claim."
+    },
+    {
+      "series_indices": [
+        1,
+        4
+      ],
+      "official_plane": "Sagittal",
+      "native_anatomical_view": "sagittal",
+      "observations": "Six views show longitudinal knee side profiles with anterior patella, separate condylar contours and posterior structures. The Sag descriptions and official Sagittal fit local anatomy."
+    },
+    {
+      "series_indices": [
+        0,
+        2
+      ],
+      "official_plane": "Axial",
+      "native_anatomical_view": "axial",
+      "observations": "Six transverse sections show distal femoral cross-sections, anterior patella and posterior muscle/vascular cross-sections. S2 has a different displayed field/matrix and more slices, but the local plane is clearly axial. Tra descriptions and supplied Axial fit."
+    },
+    {
+      "series_indices": [
+        3
+      ],
+      "official_plane": "Coronal",
+      "native_anatomical_view": "coronal",
+      "observations": "Three anterior, central and posterior coronal samples show paired femoral condyles and tibial plateau across knee width with femoral/tibial longitudinal axes. Cor description and official Coronal fit."
+    }
+  ],
+  "conclusion": "All six supplied plane categories agree with native anatomy. S5 is sagittal despite cor within its MPR description; no effective plane override. Preserve source descriptions and geometry; close S1/S5 similarity requires separate full-source pixel/geometry comparison before calling duplication.",
+  "current_pipeline_implication": "The loader uses official Anatomical_Plane and ignores SeriesDescription. Current routing is supported; all 298 full-source checks and six exact cache reproductions passed separately.",
+  "recommended_auxiliary_overrides": [],
+  "clinical_target_changes": 0,
+  "limitations": [
+    "Eighteen selected native panels were visually reviewed; all 298 files were decoded and geometrically checked, not diagnostically interpreted.",
+    "No clinical target, true patient identity, anatomical side or report linkage inference.",
+    "MPR naming alone does not establish source-to-derived-series lineage.",
+    "No general IOP-over-description rule for other studies."
+  ],
+  "input_bindings": [
+    {
+      "path": "plane-077022/native-iop-axial.png",
+      "sha256": "d04a682891946bb6f0929f1be99c614841e04b5becc7c918ba47a916190111cb",
+      "bytes": 1450683
+    },
+    {
+      "path": "plane-077022/native-iop-coronal.png",
+      "sha256": "4b8837673d1ee1b880b7cf89d0e7fb2a3f8ec0cf599a1f323e50ca1635775b8e",
+      "bytes": 734013
+    },
+    {
+      "path": "plane-077022/native-iop-sagittal.png",
+      "sha256": "08a1e708baabe3b161bffd6540d53b0b97d018a91d471cde48869324f7010be8",
+      "bytes": 2573238
+    },
+    {
+      "path": "plane-077022/series-summary.json",
+      "sha256": "f740857cf016d3aef897660739e3e397814fea2ba0761dec2f3ce0ba0b14303d",
+      "bytes": 56447
+    },
+    {
+      "path": "plane-077022/summary.json",
+      "sha256": "914a3d0f8265788e34e8e145a727917b7803cbc618513e4c6c1e06c435b1766a",
+      "bytes": 3185
+    },
+    {
+      "path": "plane-077022/cache-comparison.json",
+      "sha256": "3a9d6a584af9024a2f1735c41f9739070ef59173a0642e4a5cdbf1a0abd49223",
+      "bytes": 5344
+    },
+    {
+      "path": "plane-077022/all-slice-headers-and-pixels.jsonl",
+      "sha256": "b8b19aa89d442f6f63770ed9e2fdbea07e3881c5bfa2934c0047b2c464e4bfe8",
+      "bytes": 561998
+    },
+    {
+      "path": "plane_077022.py",
+      "sha256": "72a9d21c8022fb4ffd3ddc2bd61db43308f11ab6b402b05ac82012133b64bc81",
+      "bytes": 10657
+    },
+    {
+      "path": "annotation-staging/plane07722-source-preread.json",
+      "sha256": "9300794ab851cc1615f7706dc144971ff08af58a738af176f839402dfcf014ee",
+      "bytes": 2090
+    },
+    {
+      "path": "annotation-staging/plane07722-routing-prereview.json",
+      "sha256": "f1eade240aef11d1c3cee2a56e89b3f5d229223e7dc5d654d76c3d61ac6a0b5c",
+      "bytes": 9431
+    },
+    {
+      "path": "annotation-staging/plane07722-official-series-routing.json",
+      "sha256": "f8fa8b3ff84c3b42dc1c8f307317bddba7fa088cecd2c6e769c535f680dd6af8",
+      "bytes": 4609
+    }
+  ]
+}

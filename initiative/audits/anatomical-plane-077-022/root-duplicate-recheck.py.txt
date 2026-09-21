@@ -1,0 +1,27 @@
+"""Independent check of immutable decoded-record digests and actual cached volumes."""
+from pathlib import Path
+import hashlib,json,datetime
+import numpy as np
+w=Path(__file__).resolve().parent;n=w/'plane-077022';st=w/'annotation-staging';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+s=json.loads((n/'series-summary.json').read_text());rr=[json.loads(l)for l in(n/'all-slice-headers-and-pixels.jsonl').read_text().splitlines()];lookup={x['sop_uid']:x for x in rr};a,b=s[1],s[5]
+assert len(a['ordered_sop_uids'])==len(b['ordered_sop_uids'])==30
+checks=[]
+for u,v in zip(a['ordered_sop_uids'],b['ordered_sop_uids']):
+ x,y=lookup[u],lookup[v];assert x['series_uid']==a['series_uid']and y['series_uid']==b['series_uid']
+ assert x['decoded_pixel_sha256']==y['decoded_pixel_sha256']and x['production_pixel_fingerprint']==y['production_pixel_fingerprint']
+ assert x['source_sha256']!=y['source_sha256']and u!=v
+ for field in ['ImagePositionPatient','ImageOrientationPatient','PixelSpacing']:
+  xa=np.array(json.loads(x['header_fields'][field]),dtype=float);ya=np.array(json.loads(y['header_fields'][field]),dtype=float);assert xa.shape==ya.shape and np.isfinite(xa).all()and np.isfinite(ya).all()and np.max(np.abs(xa-ya))<1e-3
+ checks.append([u,v])
+c=json.loads((n/'cache-comparison.json').read_text());paths=[]
+for z in[a,b]:
+ e=next(x for x in c if x['series_uid']==z['series_uid']);cp=w/e['cache_path'];assert sha(cp)==e['cache_sha256'];paths.append(cp)
+with np.load(paths[0],allow_pickle=False)as z:x=z['volume'].copy()
+with np.load(paths[1],allow_pickle=False)as z:y=z['volume'].copy()
+assert x.shape==y.shape==(30,256,256)and x.dtype==y.dtype and np.array_equal(x,y)and np.count_nonzero(x!=y)==0
+result={'stage':'root_independent_record_and_cache_recheck','assessor':'/root','case':'077:22','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'series_uids':[a['series_uid'],b['series_uid']],'ordered_pairs_checked':checks,'n_verified_native_digest_and_geometry_pairs':30,'native_arrays_redecoded_by_root':False,'native_record_basis':'All source identity/size/hash record bindings independently checked during preservation; native decode digest production is the agent full-source audit, not a second root download.','actual_cached_volumes_independently_loaded':True,'cache_shape':list(x.shape),'cache_dtype':str(x.dtype),'cache_differing_voxels':int(np.count_nonzero(x!=y)),'decision':'Confirmed exact duplicate image-content pair. Preserve both source records; require one representative of this exact-equivalent series group during final training selection. Representative policy and corpus-wide graph remain pending.','bindings':[{'path':str(p.relative_to(w)),'sha256':sha(p),'bytes':p.stat().st_size}for p in[Path(__file__),n/'series-summary.json',n/'all-slice-headers-and-pixels.jsonl',n/'cache-comparison.json',st/'plane07722-duplicate-sequence-check.json',*paths]]}
+p=st/'plane07722-root-duplicate-recheck.json';assert not p.exists();p.write_text(json.dumps(result,indent=2)+'\n');print('root duplicate recheck',sha(p),'30native-recordpairs/actual3,932,160cachedvoxels checked')
+d=w/'recovered/initiative/audits/anatomical-plane-077-022';dp=d/'decision.json';dec=json.loads(dp.read_text())
+for a,name in[(p,'root-duplicate-recheck.json'),(Path(__file__),'root-duplicate-recheck.py.txt')]:
+ out=d/name;assert not out.exists();out.write_bytes(a.read_bytes());dec['archived_bindings'].append({'original_path':str(a.relative_to(w)),'archived_path':str(out.relative_to(w/'recovered')),'sha256':sha(a),'bytes':a.stat().st_size})
+dp.write_text(json.dumps(dec,indent=2)+'\n')
