@@ -1,0 +1,104 @@
+{
+  "stage": "independent_native_technical_visual_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "source_case": "000:21",
+  "study_uid": "1.2.826.0.1.3680043.8.498.10077803906105306230229342168184970097",
+  "independence": "Personally viewed all12 native panels via view_image original before seeing any parent visual conclusions. Source and metadata candidate were known; contact-sheet patient-coordinate IOP labels/descriptions were visible. This freeze precedes cross-review comparison.",
+  "n_panels_personally_viewed": 12,
+  "group_observations": [
+    {
+      "series_indices": [
+        2
+      ],
+      "official_plane": "Axial",
+      "description": "pd_tse_fs_sag_np",
+      "native_anatomical_view": "axial",
+      "observations": "All three panels show transverse knee cross-sections: cross-sectional tibia/femur at different levels, the paired condylar transverse profiles posteriorly, and patella anteriorly in the middle and superior examples. These are anatomical axial views, not sagittal side profiles. Native appearance agrees with official Axial and the axial patient-coordinate IOP class."
+    },
+    {
+      "series_indices": [
+        0,
+        1
+      ],
+      "official_plane": "Sagittal",
+      "native_anatomical_view": "sagittal",
+      "observations": "Six panels show longitudinal femur/tibia profiles, individual condyle side contours and the patellar/extensor chain in side view. Both rows are sagittal local anatomy and agree with sagittal descriptions and supplied planes."
+    },
+    {
+      "series_indices": [
+        3
+      ],
+      "official_plane": "Coronal",
+      "native_anatomical_view": "coronal",
+      "observations": "Three panels show anterior-to-posterior coronal views; the central/posterior examples contain both femoral condyles across the width, tibial plateau and central notch. Native appearance agrees with Coronal and the cor description."
+    }
+  ],
+  "conclusion": "The single candidate S2 has a misleading sag description suffix relative to its visibly axial anatomy. The existing official Anatomical_Plane Axial is supported. No effective auxiliary plane correction is proposed; all four existing plane categories agree with inspected local anatomy. Preserve the literal source description and flag its inconsistency in technical provenance rather than rewriting source DICOMs.",
+  "current_pipeline_implication": "Current StudyDataset uses official Anatomical_Plane, not descriptions. Its categorical routing already agrees with inspected anatomy here. Full78-source integrity and four exact cache reproductions passed; no preprocessing change is supported.",
+  "recommended_auxiliary_overrides": [],
+  "clinical_target_changes": 0,
+  "limitations": [
+    "Only12 representative panels were visually assessed; all78 source files were decoded and geometrically checked separately.",
+    "No clinical image diagnoses, laterality attribution or report-label changes.",
+    "Descriptor reuse or source naming error is plausible, but its cause is not established. Do not generalize a rule to other candidate studies."
+  ],
+  "input_bindings": [
+    {
+      "path": "plane-000021/native-iop-axial.png",
+      "sha256": "d9a169e129bff0a7744d883914dc8016781a8a1146642b91bb6a876e8e6fe6c4",
+      "bytes": 532269
+    },
+    {
+      "path": "plane-000021/native-iop-coronal.png",
+      "sha256": "d16006441e13983f077b53f157034defb42c692b62d32c73a6f52ad2710114d7",
+      "bytes": 608107
+    },
+    {
+      "path": "plane-000021/native-iop-sagittal.png",
+      "sha256": "e92bd40ddfc6057f020ce8c4ff4495b0a5209371037467551d3bcb2ddc0d0dde",
+      "bytes": 1343822
+    },
+    {
+      "path": "plane-000021/series-summary.json",
+      "sha256": "5e958a65cb501531decca3fe3e094b289ec4d9555d6445a5a846ad118323292b",
+      "bytes": 19822
+    },
+    {
+      "path": "plane-000021/summary.json",
+      "sha256": "0abb7eebc53c443ea9369f076a23e60d97f0d9253533ffd17ab105688e27be4f",
+      "bytes": 3177
+    },
+    {
+      "path": "plane-000021/cache-comparison.json",
+      "sha256": "c4490802cf346d034440b889ab9268b292e2934db44738a82ab1b9800c8ee079",
+      "bytes": 3563
+    },
+    {
+      "path": "plane-000021/all-slice-headers-and-pixels.jsonl",
+      "sha256": "963c2512d065595d46cf6cc059cfe9e7d36df8cbe6f70dc3595e7c61410c614f",
+      "bytes": 149928
+    },
+    {
+      "path": "plane_000021.py",
+      "sha256": "8a0011ecb1199b5d7b86b4f6b40a26284f36f362b9dcda4ee3ff6ae4aba2884f",
+      "bytes": 10652
+    },
+    {
+      "path": "annotation-staging/plane00021-source-preread.json",
+      "sha256": "237e42aee0d52b3b8bee541e67f00b5b18b1a197cd42c67481cc50fb3f8ad6ac",
+      "bytes": 3096
+    },
+    {
+      "path": "annotation-staging/plane00021-routing-prereview.json",
+      "sha256": "ba4d4bc78b06ec0ceb7dd33eb7d0610f14f6bea6c4641f86b3d8199293b7381c",
+      "bytes": 6611
+    },
+    {
+      "path": "annotation-staging/plane00021-official-series-routing.json",
+      "sha256": "9b987827d043ed881d165857b7a764cdb5d74d9843b737a0a06e7370c9a2a82a",
+      "bytes": 3323
+    }
+  ]
+}

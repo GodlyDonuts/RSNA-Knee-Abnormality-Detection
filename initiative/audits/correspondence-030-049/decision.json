@@ -1,0 +1,90 @@
+{
+  "assessor": "/root",
+  "created_utc": "2026-09-21T04:56:48.030013+00:00",
+  "study_uid": "1.2.826.0.1.3680043.8.498.23394601328148358087542766577727876635",
+  "source_batch_path": "initiative/reviews/inputs/batch-030.json",
+  "source_batch_sha256": "0e8a14fccda9082cc3a2a98c11cb2d5af2c452da0ff2a3dcea0cd5c8bf35b68f",
+  "source_report_sha256": "c5ba8b2e1c22c40f4366271709fca9a6a6e1649b78c3d4f3135614b3f777e38e",
+  "review_artifact_path": "initiative/reviews-v2/reviewed/batch-030-reviewed.jsonl",
+  "review_artifact_sha256": "491c2a510e2ad6f2e47cafd5c89ec910640ef7f769465df71e66b611b39b50e1",
+  "decision": "Retain all10 informative targets uncertain and the remaining unmentioned. No automatic report selection, annotation duplication or virtual study splitting. Raw source and gold unchanged.",
+  "findings": "The single unsided report contains a bilateral trochlear wording fragment, while all sampled metadata consistently names the right side and has one acquisition protocol. Headers support a single right-side acquisition candidate, but cannot prove that the bilateral phrase is a typo, history, template material or additional anatomical coverage. It is not a two-report aggregation and is not established dual-knee imaging.",
+  "metadata": "All8 lexical endpoints across4 series carry Laterality R; ImageLaterality/FrameLaterality remain blank. One PatientID hash, four per-series frame-of-reference hashes, AcquisitionNumber1 throughout. Series3001 transverse PD fat-suppressed,4001 coronal PD fat-suppressed,5001 coronal T1,6001 sagittal PD fat-suppressed constitute one coherent set. Coronal pair has closely aligned IOP; no duplicated whole protocol or opposing side group. Siemens MAGNETOM Prisma, FFS, blank AcquisitionTime/SeriesTime.",
+  "root_verification": "Personally read complete original source and technical interpretation/limitations and inspected all series identity/count/side/orientation/position fields. Verified all handoff21artifacts plus everycase nestedbinding,sourceUID/reporthash,exactseries/headercounts,sidefields and all12currentreportmasks. Priorflagswereknown;this is not a blinded discovery. No new native clinical interpretation.",
+  "limits": [
+    "All series are represented by exact lexical first/last SOP endpoints, not first/last anatomical slices. Endpoint positions do not establish full volume extent.",
+    "No native pixels were downloaded or visually interpreted for these three cases. No full-file source hash or all-slice header validation is claimed by this endpoint audit.",
+    "One pseudonymous PatientID hash does not establish a real patient identity or anatomical side. Missing side tags do not imply right. Raw LEFT is preserved as a noncanonical value.",
+    "Coherent metadata suggests acquisition structure; it does not prove report-to-image linkage, report chronology, template error or whole-study anatomy.",
+    "Only blinded original source reports and technical metadata were read. No reader/reviewer flags or target states/gold were opened."
+  ],
+  "archived_bindings": [
+    {
+      "original_path": "annotation-staging/bilateral03049-header-review.json",
+      "archived_path": "initiative/audits/correspondence-030-049/independent-header-review.json",
+      "sha256": "d507c1b69db6d965c9a0d33eaf3ab32d36ae2f9e10b15c032aead6709a43610b",
+      "bytes": 13252
+    },
+    {
+      "original_path": "annotation-staging/bilateral03049-source-preread.json",
+      "archived_path": "initiative/audits/correspondence-030-049/independent-source-preread.json",
+      "sha256": "d2079b70172dafa31018fa5173f776fed5799aecda7375b7de0a6ea43961c86f",
+      "bytes": 3982
+    },
+    {
+      "original_path": "annotation-staging/bilateral03049-source-copy-assessment.json",
+      "archived_path": "initiative/audits/correspondence-030-049/source-copy-assessment.json",
+      "sha256": "1d678e91450e474b6629d73e190b91b321d87f899800230f22e52b9d7e1ec494",
+      "bytes": 960
+    },
+    {
+      "original_path": "annotation-staging/bilateral03049-source-inventory.json",
+      "archived_path": "initiative/audits/correspondence-030-049/source-inventory.json",
+      "sha256": "0f4446c2f377aabd794d467baf45f5fd18383854595c8e07ee02fdf12510f542",
+      "bytes": 83721
+    },
+    {
+      "original_path": "annotation-staging/header-extract-030049.jsonl",
+      "archived_path": "initiative/audits/correspondence-030-049/endpoint-headers.jsonl",
+      "sha256": "8f405069b349677fbe7213fa767b9c2a46e4dc500099f161521acf9a9357742e",
+      "bytes": 17088
+    },
+    {
+      "original_path": "annotation-staging/bilateral03049-series-headers.json",
+      "archived_path": "initiative/audits/correspondence-030-049/series-headers.json",
+      "sha256": "4c6e2d51a5498cf6c97378d347da9efec6f0359fe9d2920cb794aedfb9ad0f20",
+      "bytes": 7217
+    },
+    {
+      "original_path": "annotation-staging/correspondence-03027-03049-03124-source.py",
+      "archived_path": "initiative/audits/correspondence-030-049/source.py.txt",
+      "sha256": "39df93bb3784d08471cdcf2efb96fccbf474fdf30900eea8513f8d059167f7d2",
+      "bytes": 5896
+    },
+    {
+      "original_path": "annotation-staging/correspondence-03027-03049-03124-extract.py",
+      "archived_path": "initiative/audits/correspondence-030-049/extract.py.txt",
+      "sha256": "5064e690c709d12f81fc4fcf5a1d3de396499f02c4dce353bc7bdba027155075",
+      "bytes": 5063
+    },
+    {
+      "original_path": "annotation-staging/correspondence-03027-03049-03124-finalize.py",
+      "archived_path": "initiative/audits/correspondence-030-049/finalize.py.txt",
+      "sha256": "c14104c221fec61bbcddb7381f4f080a4cbc51529436a6a687b1320681f3b85f",
+      "bytes": 8475
+    },
+    {
+      "original_path": "annotation-staging/bilateral03049-final-survey-binding.json",
+      "archived_path": "initiative/audits/correspondence-030-049/final-survey-binding.json",
+      "sha256": "9ce0cad4d0723e1a14604a117418e9eee845fa2ffd044c6505bd1ab02b04e3e9",
+      "bytes": 772
+    },
+    {
+      "original_path": "annotation-staging/correspondence-03027-03049-03124-handoff.json",
+      "archived_path": "initiative/audits/correspondence-030-049/combined-handoff.json",
+      "sha256": "48024d087ba46419d8e310eb87b0326964d7b10777bf3be50e2d96a66804541c",
+      "bytes": 6564
+    }
+  ],
+  "training_ready": false
+}

@@ -1,0 +1,34 @@
+"""Persist personally read source-only technical observations before endpoint inspection."""
+from pathlib import Path
+import hashlib,json
+repo=Path.cwd();stage=repo.parent/'annotation-staging';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+observations={
+ (30,27):{
+  'n_full_report_blocks':2,'report_sides':['right','right'],
+  'source_quotes':['костите, формиращи дясната колянната става.','[BILATERAL NOTE: two reports filed under this study]','Направи се сравнение с предходно МР изследване от [DATE]г.','Костите, формиращи дясната колянната става са с нормална форма'],
+  'observations':'Two full Bulgarian finding/conclusion blocks both explicitly concern the right knee. The second starts with comparison to a prior MRI at a redacted date and describes interval change. This is a concrete two-report aggregation and possible longitudinal pair, not source proof of imaging opposite knees. The literal bilateral filing note does not override two explicit right-knee references.',
+  'unresolved':'The first block could be the prior examination compared in the second, but its actual date is absent. Source text alone cannot establish which report corresponds to the supplied image acquisition, whether both acquisitions are present, or whether one block is extraneous. Do not choose current-versus-prior report from block order alone.',
+  'technical_next':'Check all-series endpoint laterality, pseudonymous identity, acquisition/series numbers, descriptions, geometry and repeated complete protocol groups. Same right-knee headers alone cannot resolve two report dates.'
+ },
+ (30,49):{
+  'n_full_report_blocks':1,'report_sides':['unspecified'],
+  'source_quotes':['ΤΕΧΝΙΚΗ: Η εξέταση πραγµατοποιήθηκε µε ακολουθίες Τ1 σε στεφανιαίο επίπεδο και PDFS σε τρία επίπεδα.','εικόνα αβαθούς τροχιλίας άµφω (sulcus angle ~160)°.'],
+  'observations':'One continuous Greek technique/findings report, with no right or left knee heading and no second report or bilateral filing marker. Within the current extensor-mechanism sentence, άµφω explicitly introduces bilateral shallow-trochlea wording. The rest of the document is a single undifferentiated report; there is no explicitly separate contralateral protocol or history section.',
+  'unresolved':'The single bilateral phrase creates a correspondence ambiguity: it may refer to bilateral assessment, imported/template wording or information outside the present single-knee acquisition. Source text alone cannot distinguish those possibilities or assign the unsided remaining findings to a named knee. Do not infer two acquired knees solely from the phrase or erase it as a typo.',
+  'technical_next':'Inspect all series for opposite explicit side tags or repeated acquisition sets. A coherent single set, especially blank side tags, limits what headers can resolve; no automatic native download merely for this lexical phrase.'
+ },
+ (31,24):{
+  'n_full_report_blocks':2,'report_sides':['left','right'],
+  'source_quotes':['MRI ΑΡΙΣΤΕΡΟΥ ΓΟΝΑΤΟΣ','[BILATERAL NOTE: two reports filed under this study]','MRI ∆ΕΞΙΟΥ ΓΟΝΑΤΟΣ','µήκος 12mm.','µήκος 27mm.'],
+  'observations':'Two complete Greek MRI reports each with a technique, findings and conclusion: the first explicitly LEFT knee, the second explicitly RIGHT knee, separated by the literal bilateral filing note. The same described regional source measurement differs at 12 mm versus 27 mm, supporting distinct side-specific report narratives rather than exact duplicated text. Neither block presents itself as a dated prior comparison; the text is an explicit opposite-side report aggregation.',
+  'unresolved':'It is not yet established whether the image study contains both knees, one side, or a misfiled block. Shared report phrases cannot establish image correspondence. Clinical target adjudication is outside this technical assessment; no decisions are inferred from the source body/conclusion inconsistencies.',
+  'technical_next':'Check all-series side/identity and acquisition-set evidence; full native verification is warranted only if metadata materially supports two different side/protocol groups, with root independent visual review before conclusions.'
+ }
+}
+for (batch,index),obs in observations.items():
+ source=repo/f'initiative/reviews/inputs/batch-{batch:03d}.json';row=json.loads(source.read_text())[index]
+ for quote in obs['source_quotes']:assert quote in row['report']
+ data={'stage':'independent_source_only_technical_correspondence_preread','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','workflow_run_id':'codex-20260920-rubric-v2','source_case':f'{batch:03d}:{index:02d}','source_batch_index':index,'source_path':str(source.relative_to(repo)),'source_batch_sha256':sha(source),'source_report_sha256':hashlib.sha256(row['report'].encode()).hexdigest(),'study_uid':row['study_uid'],'original_source_report':row['report'],'prior_exposure':'Assignment disclosed the suspected report-block/laterality issues, and for031:24 measurements/body-conclusion discrepancy. Personally read all three complete original reports before this freeze. No reader/reviewer flags, clinical annotations or gold opened. Case-specific endpoint records have not yet been inspected in this pass.','observations':obs,'clinical_target_states_inferred':False,'source_or_annotation_changed':False}
+ out=stage/f'bilateral{batch:03d}{index:02d}-source-preread.json'
+ with out.open('x') as f:f.write(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({'case':data['source_case'],'study_uid':data['study_uid'],'preread_path':out.name,'preread_sha256':sha(out)}))

@@ -1,0 +1,115 @@
+{
+  "stage": "independent_native_technical_visual_review",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "source_case": "025:21",
+  "study_uid": "1.2.826.0.1.3680043.8.498.15468179600399954478612037548577772269",
+  "independence": "Personally viewed all18 native panels via view_image original after complete source reread and metadata binding, before seeing any parent visual conclusions. Prior025 source-reader authorship and prior source/header correspondence audit are disclosed in source-preread. Contact-sheet patient-coordinate labels/descriptions were visible; no parent interpretation consulted.",
+  "n_panels_personally_viewed": 18,
+  "group_observations": [
+    {
+      "series_indices": [
+        0
+      ],
+      "official_plane": "Sagittal",
+      "description": "t1_se_cor_384",
+      "native_anatomical_view": "sagittal",
+      "observations": "All three panels are longitudinal knee side profiles, showing single-condyle side contour, femur/tibia length, and the patella/extensor profile. They closely correspond to the sagittal levels of S3/S5 under different contrast. The cor description suffix is inconsistent with native sagittal anatomy; supplied Sagittal is supported."
+    },
+    {
+      "series_indices": [
+        3,
+        5
+      ],
+      "official_plane": "Sagittal",
+      "native_anatomical_view": "sagittal",
+      "observations": "Six panels show longitudinal femur/tibia side profiles and anterior patella, matching local sagittal anatomy and their sagittal descriptions. Their contours/levels are consistent with the additional S0 contrast rather than a visually distinct acquisition of another knee."
+    },
+    {
+      "series_indices": [
+        2,
+        4
+      ],
+      "official_plane": "Coronal",
+      "native_anatomical_view": "coronal",
+      "observations": "Six panels show anterior/posterior coronal knee sections with both condyles across the width, broad tibial plateau and central notch at corresponding levels. Both rows agree with coronal descriptions and official Coronal."
+    },
+    {
+      "series_indices": [
+        1
+      ],
+      "official_plane": "Axial",
+      "native_anatomical_view": "axial",
+      "observations": "Three panels show transverse knee cross-sections, with anterior patella and posterior paired femoral condyles/soft-tissue groups. This agrees with tra description, axial IOP and official Axial."
+    }
+  ],
+  "conclusion": "All six supplied official plane values agree with observed local anatomy. S0 has a misleading cor description suffix; its current official Sagittal routing is appropriate. No effective anatomical-plane override is proposed. Preserve source description unchanged with a reviewed inconsistency flag.",
+  "correspondence_observation": "The selected views form a coherent single-knee acquisition appearance, including three matching sagittal contrasts and two coronal contrasts; no separate opposite-side acquisition set is apparent. This supports the earlier one-protocol metadata interpretation and does not explain the separate RIGHT and LEFT source reports. The misleading cor suffix on extra T1 series is not evidence of a second knee. Do not select one report or alter clinical supervision solely from this limited technical visual review.",
+  "current_pipeline_implication": "Current loader uses official Anatomical_Plane and ignores descriptions, so no routing change is supported. All115 full sources and six cache reproductions passed independently of these visual observations.",
+  "recommended_auxiliary_overrides": [],
+  "clinical_target_changes": 0,
+  "limitations": [
+    "Only18 representative native panels were visually assessed, not every115slice clinically.",
+    "No new clinical diagnosis, gold access or report target decision.",
+    "Full source headers consistently use RIGHT, but technical single-knee appearance does not establish provenance of the extra left report; report-to-image linkage remains unresolved.",
+    "No global description/IOP correction rule is justified."
+  ],
+  "input_bindings": [
+    {
+      "path": "plane-025021/native-iop-axial.png",
+      "sha256": "8fe17bf85e78f355d1476d11999c6bbc3b2e3880c7a0003ef00db5228299b0a1",
+      "bytes": 491978
+    },
+    {
+      "path": "plane-025021/native-iop-coronal.png",
+      "sha256": "aff49b0aa27d2bb505cd76dde956e0423f0db99d08271c3c355e93d60d3a5c4e",
+      "bytes": 1193378
+    },
+    {
+      "path": "plane-025021/native-iop-sagittal.png",
+      "sha256": "31394a023cc42a59dbfe59bb7ec7caa419a13da73744d15628a9352efa7c0dc6",
+      "bytes": 2189286
+    },
+    {
+      "path": "plane-025021/series-summary.json",
+      "sha256": "22c4174a3a2fc9df58cedaa0be13ef178b6ae6a10bb9fe88fdbf3442465ac9cb",
+      "bytes": 29558
+    },
+    {
+      "path": "plane-025021/summary.json",
+      "sha256": "49f6a46c2d95f953069f2ca2e475b72c332e8c73dbb291cc236933c512316337",
+      "bytes": 3187
+    },
+    {
+      "path": "plane-025021/cache-comparison.json",
+      "sha256": "b6df5e7d8f38259c60636ef878ea8ea7596263d1c6e20597ecff9f940d068277",
+      "bytes": 5343
+    },
+    {
+      "path": "plane-025021/all-slice-headers-and-pixels.jsonl",
+      "sha256": "5c7f48f445df255aca2a8c6eb46e0bebd51e8b91b5e7bdb42edc7802016cc028",
+      "bytes": 222680
+    },
+    {
+      "path": "plane_025021.py",
+      "sha256": "039d542a25e7a973c7f6c27d0887879ab6cdddc4ef441e4eb988c44027df0a77",
+      "bytes": 10657
+    },
+    {
+      "path": "annotation-staging/plane02521-source-preread.json",
+      "sha256": "1a865f053edeb30836e28360f32ea97e555c79fcad7e90eac4b3a979d497beca",
+      "bytes": 5186
+    },
+    {
+      "path": "annotation-staging/plane02521-routing-prereview.json",
+      "sha256": "6bc29f8d115898cad32b47d5f1c1719ce482453368b6ef20752b6573f757e11c",
+      "bytes": 9781
+    },
+    {
+      "path": "annotation-staging/plane02521-official-series-routing.json",
+      "sha256": "8b2cdc7890a21c7f2fbd00db29a0cbe4e9a3d44b95c2e95cade5a8bb6a8313c4",
+      "bytes": 4613
+    }
+  ]
+}
