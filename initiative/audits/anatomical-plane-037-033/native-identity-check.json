@@ -1,0 +1,84 @@
+{
+  "stage": "completed_full_native_metadata_identity_consistency_check",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "study_uid": "1.2.826.0.1.3680043.8.498.31949224274318638796196151105617844024",
+  "n_full_native_records": 234,
+  "n_series": 7,
+  "n_patient_id_hashes": 1,
+  "n_frame_of_reference_hashes": 7,
+  "raw_laterality_counts": {
+    "L": 234
+  },
+  "series_consistency": [
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.10281646556830165328535103479196312858",
+      "n_full_native_records": 22,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.10736332493680344931557301470838927959",
+      "n_full_native_records": 29,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.54515059708610466682039181905811000131",
+      "n_full_native_records": 29,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.59463140672332282172465816594055336858",
+      "n_full_native_records": 32,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.59972482238366030752939890298847397291",
+      "n_full_native_records": 45,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.65571872746013080822906271141595308133",
+      "n_full_native_records": 32,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.69915568861624461197560004069634312000",
+      "n_full_native_records": 45,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    }
+  ],
+  "scope": "Uses all fully source-hash/UID-verified native records, not only endpoints. Verifies no missing/variable pseudonymous PatientID within each bounded study and one nonmissing FrameOfReference hash/raw side value per series. Does not establish real patient identity, anatomical side, report linkage or cross-corpus uniqueness.",
+  "input_bindings": [
+    {
+      "path": "plane-037033/all-slice-headers-and-pixels.jsonl",
+      "sha256": "bbcd0ec7f2d168f24bb47fa8d73dd0c66950280dec0086f3729425e3e15b5a4c",
+      "bytes": 459934
+    },
+    {
+      "path": "annotation-staging/native-small-case-identity-check.py",
+      "sha256": "4a0c1de15f489ab8ac8a7696a38c3d10e35dca9a789f13d8aa5f6dbb6e52d409",
+      "bytes": 2201
+    }
+  ]
+}

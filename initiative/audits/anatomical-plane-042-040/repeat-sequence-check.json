@@ -1,0 +1,95 @@
+{
+  "stage": "completed_full_native_duplicate_and_geometry_check",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "source_case": "042:40",
+  "study_uid": "1.2.826.0.1.3680043.8.498.38617606118499305781729905815407382451",
+  "series_indices": [
+    2,
+    5
+  ],
+  "series_uids": [
+    "1.2.826.0.1.3680043.8.498.40841517457347881294782611236782006983",
+    "1.2.826.0.1.3680043.8.498.91084781853978492460808437108354301799"
+  ],
+  "n_full_native_slices_per_series": [
+    30,
+    30
+  ],
+  "n_native_cross_series_comparisons": 900,
+  "intersection_counts": {
+    "sop_uid": 0,
+    "source_sha256": 0,
+    "decoded_pixel_sha256": 0,
+    "production_pixel_fingerprint": 0
+  },
+  "normal_axis_difference_degrees": 2.4438352434131567,
+  "same_native_matrix_and_spacing": true,
+  "frame_of_reference_hashes_equal": false,
+  "n_ordered_pairs_iop_equal_at_1e_3": 0,
+  "n_ordered_pairs_ipp_equal_at_1e_3": 0,
+  "cache_comparison": {
+    "both_independently_reproduced_exactly_from_source": true,
+    "shape": [
+      30,
+      256,
+      256
+    ],
+    "whole_arrays_exactly_equal": false,
+    "ordered_slice_pairs_exactly_equal": 0,
+    "different_voxel_fraction": 0.9931223551432292
+  },
+  "conclusion": "S2 and S5 are not exact source-file or decoded-pixel duplicates: no intersection among all 30-by-30 slice pairs using both native-dtype hashes and canonical numeric fingerprints. Both independently reproduced caches also differ at every corresponding slice. Similar native appearances accompany slightly different orientations, positions, FrameOfReference hashes and distinct source pixels; this supports similar/repeated sagittal imaging rather than a copied exact-pixel series. No removal, plane override or clinical label change is supported.",
+  "limits": [
+    "This artifact does not establish acquisition timing or distinguish a separately acquired repetition from an altered/reconstructed sequence. Series/Acquisition times are absent in the inspected metadata.",
+    "Equal hashed PatientID and nearby anatomical appearance do not independently establish true patient identity or report correspondence.",
+    "Numerical comparison concerns existing fully verified native records and cached volumes; no new source download or clinical image diagnosis."
+  ],
+  "input_bindings": [
+    {
+      "path": "recovered/../annotation-staging/plane04240-repeat-sequence-check.py",
+      "sha256": "bd86b2a768b8ffe90608b842dbcd71cde9ced22a84317fdd52cd18189c02e583",
+      "bytes": 4866
+    },
+    {
+      "path": "plane-042040/all-slice-headers-and-pixels.jsonl",
+      "sha256": "79af540d72af43a83b4e6c4f3eaca1f13445ebaf206fa17290dc7d4b8906e1c6",
+      "bytes": 378018
+    },
+    {
+      "path": "plane-042040/series-summary.json",
+      "sha256": "bc877e4f9702b37e0c09ce6dfef9019713baf727ad3061dab0e6832c88730b2d",
+      "bytes": 42735
+    },
+    {
+      "path": "plane-042040/cache-comparison.json",
+      "sha256": "381751ee0dfc504a4fdd85398fa318153954cb3f9bedcbaa3349cb11ee9b5e8d",
+      "bytes": 5343
+    },
+    {
+      "path": "plane-042040/cross-series-exact-pixel-groups.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    },
+    {
+      "path": "cache256-v3/train_series/1.2.826.0.1.3680043.8.498.38617606118499305781729905815407382451/1.2.826.0.1.3680043.8.498.40841517457347881294782611236782006983.npz",
+      "sha256": "b3559ed36de4478fa0cee1af2f2bb0687b337e60cdbc86a68a25527ed528737f",
+      "bytes": 3257853
+    },
+    {
+      "path": "cache256-v3/train_series/1.2.826.0.1.3680043.8.498.38617606118499305781729905815407382451/1.2.826.0.1.3680043.8.498.91084781853978492460808437108354301799.npz",
+      "sha256": "7ef83f5576b7d088109e1fc189b096519c4a7acf30b0170657cd350880a22f3d",
+      "bytes": 3313487
+    },
+    {
+      "path": "cache256-v3/train_series/1.2.826.0.1.3680043.8.498.38617606118499305781729905815407382451/1.2.826.0.1.3680043.8.498.40841517457347881294782611236782006983.json",
+      "sha256": "ea2f99c184f81cd191dd112174cc767e822caaffcf0fda99452fdcdd9823bf79",
+      "bytes": 8420
+    },
+    {
+      "path": "cache256-v3/train_series/1.2.826.0.1.3680043.8.498.38617606118499305781729905815407382451/1.2.826.0.1.3680043.8.498.91084781853978492460808437108354301799.json",
+      "sha256": "f6b629615121f076ba15d89c615ccf0dd7efc13f3ea06315798ac1e241d17be9",
+      "bytes": 8431
+    }
+  ]
+}

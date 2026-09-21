@@ -1,0 +1,18 @@
+"""Confirm full native metadata identity consistency for completed bounded cases."""
+from pathlib import Path
+from collections import defaultdict,Counter
+import hashlib,json,sys
+base=Path.cwd().parent;sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+for folder in sys.argv[1:]:
+ p=base/f'plane-{folder}/all-slice-headers-and-pixels.jsonl';rows=[json.loads(x) for x in p.read_text().splitlines()];by_series=defaultdict(list)
+ for r in rows:by_series[r['series_uid']].append(r)
+ empty=hashlib.sha256(b'').hexdigest();patients={r['patient_id_sha256'] for r in rows};assert len(patients)==1 and empty not in patients
+ consistency=[]
+ for uid,rs in sorted(by_series.items()):
+  frames={r['frame_of_reference_sha256'] for r in rs};sides={r['header_fields']['Laterality'] for r in rs}
+  assert len(frames)==1 and empty not in frames and len(sides)==1
+  consistency.append({'series_uid':uid,'n_full_native_records':len(rs),'n_frame_of_reference_hashes':len(frames),'raw_laterality_values':sorted(sides)})
+ out=base/'annotation-staging'/f'native-{folder}-identity-check.json'
+ a={'stage':'completed_full_native_metadata_identity_consistency_check','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','study_uid':rows[0]['study_uid'],'n_full_native_records':len(rows),'n_series':len(by_series),'n_patient_id_hashes':len(patients),'n_frame_of_reference_hashes':len({r['frame_of_reference_sha256'] for r in rows}),'raw_laterality_counts':dict(Counter(r['header_fields']['Laterality'] for r in rows)),'series_consistency':consistency,'scope':'Uses all fully source-hash/UID-verified native records, not only endpoints. Verifies no missing/variable pseudonymous PatientID within each bounded study and one nonmissing FrameOfReference hash/raw side value per series. Does not establish real patient identity, anatomical side, report linkage or cross-corpus uniqueness.','input_bindings':[{'path':str(f.relative_to(base)),'sha256':sha(f),'bytes':f.stat().st_size} for f in [p,Path(__file__).resolve()]]}
+ with out.open('x') as f:f.write(json.dumps(a,indent=2)+'\n')
+ print(json.dumps({'case':folder,'n_full_native_records':len(rows),'n_series':len(by_series),'sha256':sha(out)}))

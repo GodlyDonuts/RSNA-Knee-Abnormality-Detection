@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "scope": "Full234-slice bounded technical native/geometry/cache comparison for037:33. No image diagnoses or clinical-label changes.",
+  "agent_id": "/root/image_pipeline_audit",
+  "study_uid": "1.2.826.0.1.3680043.8.498.31949224274318638796196151105617844024",
+  "source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "n_slices": 234,
+  "n_series": 7,
+  "n_full_size_sha256_uid_checks_passed": 234,
+  "n_finite_native_decodes": 234,
+  "n_cache_series_exact_reproduction": 7,
+  "all_series_patient_geometry_ordered": true,
+  "laterality_slice_counts": {
+    "L": 234
+  },
+  "n_patient_id_hashes": 1,
+  "n_frame_of_reference_hashes": 7,
+  "patient_coordinate_plane_series_counts": {
+    "sagittal": 3,
+    "coronal": 2,
+    "axial": 2
+  },
+  "cross_series_exact_pixel_groups": 0,
+  "source_bytes_downloaded_verified": 185611932,
+  "max_simultaneous_source_requests": 2,
+  "full_raw_dicom_files_retained": false,
+  "native_pixel_arrays_retained_after_process": false,
+  "header_pixel_artifact_sha256": "bbcd0ec7f2d168f24bb47fa8d73dd0c66950280dec0086f3729425e3e15b5a4c",
+  "figures": [
+    {
+      "path": "native-iop-axial.png",
+      "sha256": "245b89aefdd23008bc5442d4fc7c6401a18509f55a65c0489b1c905007bd7be1",
+      "n_panels": 6
+    },
+    {
+      "path": "native-iop-coronal.png",
+      "sha256": "f00b6890c1e1f9fb76d2ad1571b93933d51e32b91898b6ed1e4b96a7d79268fd",
+      "n_panels": 6
+    },
+    {
+      "path": "native-iop-sagittal.png",
+      "sha256": "8e77868ea347c27895c96b9dd51a9e0493034109883ad31ba01fbbd7aa720c1a",
+      "n_panels": 9
+    }
+  ],
+  "input_bindings": [
+    {
+      "path": "recovered/../plane_037033.py",
+      "sha256": "4a542bfa7ae6a782c4f4c32ae65ce036a7936e53f5d05821730b13fec2cfbee8"
+    },
+    {
+      "path": "annotation-staging/plane03733-source-inventory.json",
+      "sha256": "e0bf636dac74439085caf6b60de6bac0774ab288fcf51bce0d2ef1c447ff2681"
+    },
+    {
+      "path": "annotation-staging/plane03733-pre-native-input-bindings.json",
+      "sha256": "03df949616e564aac5cccc20b8ac5d1beeef46a30f725f36e740502d05332bc6"
+    },
+    {
+      "path": "annotation-staging/header-survey-independent-v1/validate.py",
+      "sha256": "73a5614640088f758aa505de3120b1ed17429e139a7d9e0d8e43f5735f6094d2"
+    },
+    {
+      "path": "recovered/rsna/dicom.py",
+      "sha256": "a26a16d296fc913a1c3f1f33e8c4d8b38d73c5fb9718e663242e6c7ec077b269"
+    },
+    {
+      "path": "recovered/rsna/preprocess.py",
+      "sha256": "07da6625045099b085d2afd76d49203fe15826dc40a00b881b1080aaa8b6ae22"
+    },
+    {
+      "path": "recovered/rsna/data.py",
+      "sha256": "7ad3e0028ec3ead5aa236a85c3df646ff43c815f54b3f4a4002fd7947bac8ebf"
+    },
+    {
+      "path": "recovered/rsna/schema.py",
+      "sha256": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948"
+    }
+  ],
+  "limitations": "Patient-coordinate plane groups do not independently establish the local anatomical knee plane. Exact cache reproduction verifies current code against cache and all source hashes, not diagnostic adequacy or trustworthy absolute patient axes. Native figures show representative stored pixels only; independent visual assessment required."
+}

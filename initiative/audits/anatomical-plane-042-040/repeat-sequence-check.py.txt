@@ -1,0 +1,24 @@
+from pathlib import Path
+import hashlib,json
+import numpy as np
+base=Path(__file__).resolve().parents[1];out=base/'annotation-staging';native=base/'plane-042040'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+series=json.loads((native/'series-summary.json').read_text());records=[json.loads(l) for l in (native/'all-slice-headers-and-pixels.jsonl').read_text().splitlines()]
+a,b=series[2],series[5];assert a['n_slices']==b['n_slices']==30
+ra=[r for r in records if r['series_uid']==a['series_uid']];rb=[r for r in records if r['series_uid']==b['series_uid']]
+checks={key:len({r[key] for r in ra}&{r[key] for r in rb}) for key in ['sop_uid','source_sha256','decoded_pixel_sha256','production_pixel_fingerprint']}
+assert all(v==0 for v in checks.values())
+na=np.array(a['patient_coordinate_plane']['normal']);nb=np.array(b['patient_coordinate_plane']['normal']);angle=float(np.degrees(np.arccos(np.clip(abs(na@nb)/(np.linalg.norm(na)*np.linalg.norm(nb)),0,1))))
+lookup={r['sop_uid']:r for r in records};geom=[]
+for sid_a,sid_b in zip(a['ordered_sop_uids'],b['ordered_sop_uids']):
+ ha,hb=lookup[sid_a]['header_fields'],lookup[sid_b]['header_fields']
+ geom.append({'a_sop_uid':sid_a,'b_sop_uid':sid_b,'iop_equal_at_1e_3':bool(np.allclose(json.loads(ha['ImageOrientationPatient']),json.loads(hb['ImageOrientationPatient']),atol=1e-3,rtol=0)),'ipp_equal_at_1e_3':bool(np.allclose(json.loads(ha['ImagePositionPatient']),json.loads(hb['ImagePositionPatient']),atol=1e-3,rtol=0))})
+cs=json.loads((native/'cache-comparison.json').read_text());ca=next(c for c in cs if c['series_uid']==a['series_uid']);cb=next(c for c in cs if c['series_uid']==b['series_uid']);pa=base/ca['cache_path'];pb=base/cb['cache_path'];assert sha(pa)==ca['cache_sha256'] and sha(pb)==cb['cache_sha256']
+with np.load(pa,allow_pickle=False) as z:va=z['volume']
+with np.load(pb,allow_pickle=False) as z:vb=z['volume']
+assert va.shape==vb.shape==(30,256,256)
+cache_exact_pairs=sum(np.array_equal(x,y) for x,y in zip(va,vb));assert cache_exact_pairs==0
+result={'stage':'completed_full_native_duplicate_and_geometry_check','agent_id':'/root/image_pipeline_audit','session_id':'/root/image_pipeline_audit','source_case':'042:40','study_uid':records[0]['study_uid'],'series_indices':[2,5],'series_uids':[a['series_uid'],b['series_uid']],'n_full_native_slices_per_series':[30,30],'n_native_cross_series_comparisons':900,'intersection_counts':checks,'normal_axis_difference_degrees':angle,'same_native_matrix_and_spacing':a['header_values']['Rows']==b['header_values']['Rows'] and a['header_values']['Columns']==b['header_values']['Columns'] and a['header_values']['PixelSpacing']==b['header_values']['PixelSpacing'],'frame_of_reference_hashes_equal':a['frame_of_reference_sha256']==b['frame_of_reference_sha256'],'n_ordered_pairs_iop_equal_at_1e_3':sum(x['iop_equal_at_1e_3'] for x in geom),'n_ordered_pairs_ipp_equal_at_1e_3':sum(x['ipp_equal_at_1e_3'] for x in geom),'cache_comparison':{'both_independently_reproduced_exactly_from_source':True,'shape':list(va.shape),'whole_arrays_exactly_equal':bool(np.array_equal(va,vb)),'ordered_slice_pairs_exactly_equal':cache_exact_pairs,'different_voxel_fraction':float(np.mean(va!=vb))},'conclusion':'S2 and S5 are not exact source-file or decoded-pixel duplicates: no intersection among all 30-by-30 slice pairs using both native-dtype hashes and canonical numeric fingerprints. Both independently reproduced caches also differ at every corresponding slice. Similar native appearances accompany slightly different orientations, positions, FrameOfReference hashes and distinct source pixels; this supports similar/repeated sagittal imaging rather than a copied exact-pixel series. No removal, plane override or clinical label change is supported.','limits':['This artifact does not establish acquisition timing or distinguish a separately acquired repetition from an altered/reconstructed sequence. Series/Acquisition times are absent in the inspected metadata.','Equal hashed PatientID and nearby anatomical appearance do not independently establish true patient identity or report correspondence.','Numerical comparison concerns existing fully verified native records and cached volumes; no new source download or clinical image diagnosis.'],'input_bindings':[{'path':str(p.relative_to(base)),'sha256':sha(p),'bytes':p.stat().st_size} for p in [Path(__file__),native/'all-slice-headers-and-pixels.jsonl',native/'series-summary.json',native/'cache-comparison.json',native/'cross-series-exact-pixel-groups.json',pa,pb,base/ca['cache_metadata_path'],base/cb['cache_metadata_path']]]}
+p=out/'plane04240-repeat-sequence-check.json'
+with p.open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+print(json.dumps({'path':str(p),'sha256':sha(p),'intersection_counts':checks,'normal_axis_difference_degrees':angle,'cache':result['cache_comparison']},indent=2))

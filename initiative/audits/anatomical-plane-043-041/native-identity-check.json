@@ -1,0 +1,76 @@
+{
+  "stage": "completed_full_native_metadata_identity_consistency_check",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "study_uid": "1.2.826.0.1.3680043.8.498.39895705984068714346274689335576595443",
+  "n_full_native_records": 215,
+  "n_series": 6,
+  "n_patient_id_hashes": 1,
+  "n_frame_of_reference_hashes": 6,
+  "raw_laterality_counts": {
+    "L": 215
+  },
+  "series_consistency": [
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.15632228200284220590585986379810438569",
+      "n_full_native_records": 38,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.16232144658085625964383369298679300276",
+      "n_full_native_records": 38,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.46344657797566309878917619998649511168",
+      "n_full_native_records": 29,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.59180007379391265280154286160817754102",
+      "n_full_native_records": 31,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.61934499337450598850419885279461337897",
+      "n_full_native_records": 49,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    },
+    {
+      "series_uid": "1.2.826.0.1.3680043.8.498.91290227196277765442098591017929634536",
+      "n_full_native_records": 30,
+      "n_frame_of_reference_hashes": 1,
+      "raw_laterality_values": [
+        "L"
+      ]
+    }
+  ],
+  "scope": "Uses all fully source-hash/UID-verified native records, not only endpoints. Verifies no missing/variable pseudonymous PatientID within each bounded study and one nonmissing FrameOfReference hash/raw side value per series. Does not establish real patient identity, anatomical side, report linkage or cross-corpus uniqueness.",
+  "input_bindings": [
+    {
+      "path": "plane-043041/all-slice-headers-and-pixels.jsonl",
+      "sha256": "564296b6ad8970c78e9c5829fc6c4d6845426e0abc407c6ccb8991089b6dbceb",
+      "bytes": 424294
+    },
+    {
+      "path": "annotation-staging/native-small-case-identity-check.py",
+      "sha256": "4a0c1de15f489ab8ac8a7696a38c3d10e35dca9a789f13d8aa5f6dbb6e52d409",
+      "bytes": 2201
+    }
+  ]
+}
