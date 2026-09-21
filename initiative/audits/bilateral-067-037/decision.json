@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "stage": "independently_supported_source_correspondence_quarantine",
+  "at_utc": "2026-09-21T02:04:34.891918+00:00",
+  "agent_id": "/root",
+  "independent_reviewer_id": "/root/image_pipeline_audit",
+  "study_uid": "1.2.826.0.1.3680043.8.498.73070182506490199787361298167985971577",
+  "source_batch": {
+    "path": "initiative/reviews/inputs/batch-067.json",
+    "sha256": "7bb80724154bd5d492af25eb93865c2f0efcc362d68ba144af5f5fe3243eced1"
+  },
+  "source_index": 37,
+  "root_visual_assessment": {
+    "path": "initiative/audits/bilateral-067-037/root-visual-assessment.json",
+    "sha256": "5e481d167f9ba65fad2ee3c956bf0734663d9fffd685bb5c990e42a346d3eeda"
+  },
+  "independent_visual_assessment": {
+    "path": "initiative/audits/bilateral-067-037/independent-image-review.json",
+    "sha256": "a28359cc84bae86e8b925edae363344bb1cd9adcd3a543e5909046dcb240324c"
+  },
+  "full_native_audit": {
+    "path": "initiative/audits/bilateral-067-037/full-study/summary.json",
+    "sha256": "b8afd798f69364f7175052b3ce825b4e3062955c3fe658f342c30a83a84a4b00"
+  },
+  "original_review": {
+    "path": "initiative/reviews-v2/reviewed/batch-067-reviewed.jsonl",
+    "sha256": "b04868cd184d9abdb12982b5629956554e6062dfbaa2471b30f3d1027dfe7859"
+  },
+  "finding": "Both knees are strongly supported by opposite fibular locations with consistent native DICOM patient-coordinate directions, two sequence/acquisition sets, and two explicit report sections. Blank Laterality alone is not used to infer right.",
+  "series_groups": [
+    {
+      "source_laterality_tag": "L",
+      "image_supported_side": "left",
+      "series_uids": [
+        "1.2.826.0.1.3680043.8.498.11343531028236723298620561336997812508",
+        "1.2.826.0.1.3680043.8.498.11692020830178070858461307718851646169",
+        "1.2.826.0.1.3680043.8.498.12766632011970832281103524873927679328",
+        "1.2.826.0.1.3680043.8.498.33433380048714714310300019244884130120",
+        "1.2.826.0.1.3680043.8.498.70723594464298027885849633227957834661"
+      ],
+      "slices": 150
+    },
+    {
+      "source_laterality_tag": "",
+      "image_supported_side": "right",
+      "series_uids": [
+        "1.2.826.0.1.3680043.8.498.11345030916585262812472936117995401179",
+        "1.2.826.0.1.3680043.8.498.11809354913653326221794865797132843494",
+        "1.2.826.0.1.3680043.8.498.25377335743713847654967046430618190250",
+        "1.2.826.0.1.3680043.8.498.33213853653515877268223602716587869460",
+        "1.2.826.0.1.3680043.8.498.96054398545437337674825559944475213195"
+      ],
+      "slices": 150
+    }
+  ],
+  "single_knee_inclusion_status": "quarantined_undivided_study",
+  "report_supervision_action": "retain_all12_target_masks; zero confident report targets",
+  "training_filter_evidence": {
+    "path": "rsna/train.py",
+    "behavior": "Training rows with sum of12 label masks equal zero are excluded before loader creation. Official gold is separately evaluation-only."
+  },
+  "official_gold_action": "Preserve all official values and evaluation roles; no gold values inspected for this decision.",
+  "raw_data_action": "Preserve all original series, headers and report; do not rewrite missing Laterality tags.",
+  "series_split_action": "No virtual studies or side-specific labels promoted. Requires explicit validated series/report binding and leakage-safe grouping if pursued.",
+  "wider_audit_required": "Audit source correspondence and within-study side/acquisition consistency across all series; first-header-per-study PatientID audit is insufficient. Do not edit/restart current fullpixeljob.",
+  "diagnostic_labels_changed": false,
+  "training_ready": false,
+  "limits": "All300nativepixels/headers verified;30selectednativeimages visually inspected by two agents. This is an acquisition/source-correspondence finding, not a diagnosis of the12 abnormalities."
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "stage": "root_technical_visual_assessment",
+  "agent_id": "/root",
+  "session_id": "/root",
+  "at_utc": "2026-09-21T02:01:55.312538+00:00",
+  "source_batch": {
+    "path": "initiative/reviews/inputs/batch-067.json",
+    "sha256": "7bb80724154bd5d492af25eb93865c2f0efcc362d68ba144af5f5fe3243eced1"
+  },
+  "source_index": 37,
+  "study_uid": "1.2.826.0.1.3680043.8.498.73070182506490199787361298167985971577",
+  "reviewed_annotation": {
+    "path": "initiative/reviews-v2/reviewed/batch-067-reviewed.jsonl",
+    "sha256": "b04868cd184d9abdb12982b5629956554e6062dfbaa2471b30f3d1027dfe7859"
+  },
+  "native_summary": {
+    "path": "initiative/audits/bilateral-067-037/full-study/summary.json",
+    "sha256": "b8afd798f69364f7175052b3ce825b4e3062955c3fe658f342c30a83a84a4b00"
+  },
+  "all_slice_headers_and_pixels": {
+    "path": "initiative/audits/bilateral-067-037/full-study/all-slice-headers-and-pixels.jsonl",
+    "sha256": "08221986b5d6d7ee5afa551d60a3fc6d761062cd8ed45e7faaaf3c727519d734"
+  },
+  "images_inspected": [
+    {
+      "path": "initiative/audits/bilateral-067-037/full-study/native-tag-L.png",
+      "sha256": "2619086c82529840db877b0634ae0571c7890688e81d5693f1e1499d89c8d16b"
+    },
+    {
+      "path": "initiative/audits/bilateral-067-037/full-study/native-tag-blank.png",
+      "sha256": "b8a97255b8d51af929fb9ca5c3684651fa7a81bacbadf6eeea3149cdcef8432a"
+    }
+  ],
+  "n_native_images_visually_inspected": 30,
+  "technical_findings": [
+    "All300 native slices verified against pinned source byte hashes, UID hierarchy and finite native decoding.",
+    "Five series150slices consistently taggedL, five separate series150slices with blank Laterality. Same five sequence descriptions recur; acquisition numbers2-6 versus8-12 distinguish two sets.",
+    "No exact decoded-pixel overlap between any series, so these are not byte-identical pixel duplicates.",
+    "In native coronal images, fibula appears on display-right in taggedL set and display-left in blank set. Both sets have row direction cosine x approximately+1 and column z approximately-1; no image flipping/reorientation was applied. Native axial views also show opposite lateral fibular positions.",
+    "Under standard human DICOM patient axes, columns here run toward patient-left. Fibular position therefore supports left knee for taggedL and right knee for blank-tag set, corroborating report separate RIGHT/LEFT examinations. This laterality inference combines anatomy and orientation, not missing-tag interpretation.",
+    "One pseudonymousPatientID acrossall300 does not independently prove patient identity. Ten distinct frame-of-reference hashes are not used to infer ten examinations or patients."
+  ],
+  "interpretation": "Strong technical/visual evidence of both knees aggregated under one StudyInstanceUID. Do not treat all10series as one consistently left-sided knee or choose right by default for missing tags.",
+  "diagnostic_labels_changed": false,
+  "current_supervision_confident_targets": 0,
+  "recommended_handling": "Preserve source and bothseries sets. Keep this study outside single-knee report-supervised training until an explicit, validated series-to-knee policy and source-section adjudication are available. Do not invent whole-study OR labels or modify official gold.",
+  "independent_visual_review": "Requested from /root/image_pipeline_audit; pending separate artifact.",
+  "orientation_reference": {
+    "title": "DICOM PS3.3 2026d C.7.6.2 Image Plane Module",
+    "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.2.html",
+    "scope": "For human BIPED coordinates, increasing x points patient-left; ImageOrientationPatient maps pixel row/column directions. This supports orientation interpretation, not a clinical diagnosis."
+  },
+  "limitations": [
+    "Only30selectednativeimages visually examined; all300 decoded and header/pixel-hash checked.",
+    "Stored orientation/laterality may themselves contain acquisition errors; independent technical review remains useful.",
+    "No diagnosis of tears/cartilage/marrow injury made from these images. Report thresholds and left postoperative ambiguity remain separate.",
+    "Existing report masks already supply no confident supervision; final release must preserve this exclusion or explicitly validate a series-level alternative."
+  ]
+}

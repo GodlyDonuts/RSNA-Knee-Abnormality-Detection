@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "stage": "independent_technical_visual_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "identity_kind": "codex_agent_task",
+  "workflow_run_id": "codex-20260920-rubric-v2",
+  "study_uid": "1.2.826.0.1.3680043.8.498.73070182506490199787361298167985971577",
+  "source_batch_index": 37,
+  "source_batch_sha256": "7bb80724154bd5d492af25eb93865c2f0efcc362d68ba144af5f5fe3243eced1",
+  "source_report_utf8_sha256": "11f7d4cc72aadec83fb4ecd6eba8047f81d06e1efa3723635543c3191cd411d0",
+  "inputs_inspected": [
+    {
+      "path": "bilateral-067037/native-tag-L.png",
+      "sha256": "2619086c82529840db877b0634ae0571c7890688e81d5693f1e1499d89c8d16b"
+    },
+    {
+      "path": "bilateral-067037/native-tag-blank.png",
+      "sha256": "b8a97255b8d51af929fb9ca5c3684651fa7a81bacbadf6eeea3149cdcef8432a"
+    },
+    {
+      "path": "bilateral-067037/summary.json",
+      "sha256": "b8afd798f69364f7175052b3ce825b4e3062955c3fe658f342c30a83a84a4b00"
+    },
+    {
+      "path": "bilateral-067037/series-summary.json",
+      "sha256": "f21eaf5af79eb54635c63608c5d6db135040ce86f4131de29f09baa3be23dd2e"
+    },
+    {
+      "path": "bilateral_067037.py",
+      "sha256": "fe15692633b66a3975efd1e5725bf7b928ec926f9751a5e6c3b49ccf1ea25951"
+    },
+    {
+      "path": "recovered/initiative/reviews/inputs/batch-067.json",
+      "sha256": "7bb80724154bd5d492af25eb93865c2f0efcc362d68ba144af5f5fe3243eced1"
+    }
+  ],
+  "inspection_scope": "Personally viewed both supplied native montage images via view_image (30 sampled panels total, three slices per series), read full original source report and summary, inspected all ten series header summaries with pixel hash lists omitted from display, and read complete rendering/comparison script. Did not personally reread all 300 images or rerun the decoder. No clinical diagnoses or label changes.",
+  "source_observations": [
+    "The original Bulgarian report contains separately named right-knee and left-knee findings and conclusions. It therefore describes two knees; report text alone does not determine which image series corresponds to each section."
+  ],
+  "visual_observations": [
+    {
+      "input": "bilateral-067037/native-tag-L.png",
+      "series_indices": [
+        7,
+        8
+      ],
+      "panels": "Coronal slice23/30 in both PD fat-suppressed and T1 rows",
+      "observation": "The fibular head/proximal fibula lies on the right side of the displayed tibia. These two sequences consistently identify the anatomical lateral side on image right."
+    },
+    {
+      "input": "bilateral-067037/native-tag-blank.png",
+      "series_indices": [
+        1,
+        9
+      ],
+      "panels": "Coronal slice23/30 in both PD fat-suppressed and T1 rows",
+      "observation": "The fibular head/proximal fibula lies on the left side of the displayed tibia. These two sequences consistently identify the anatomical lateral side on image left, opposite to the L-tag group."
+    },
+    {
+      "input": "both native montages",
+      "series_indices": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        1,
+        9
+      ],
+      "observation": "Each group contains a coherent five-sequence knee acquisition with coronal, sagittal, and axial views. The opposite fibular-side placement across the two coronal acquisitions is the decisive visible laterality observation; sagittal morphology alone would not prove side."
+    }
+  ],
+  "geometry_reasoning": [
+    "Coronal L-tag series7/8 have first IOP vector [0.9992510441047,0.02449850039088,0.02995286854789]; blank series1/9 have [0.99981415409107,0.00262098438653,-0.0190994167449]. Both have positive x very close to +1, so increasing displayed native column index runs predominantly toward patient left in both groups. There is no opposite horizontal IOP sign that could explain opposite fibular sides as a mere display reversal.",
+    "The inspected renderer passes each native two-dimensional pixel array directly to imshow, with intensity windowing only; no transpose, horizontal flip, or anatomical reorientation is present. Thus the visible horizontal anatomical reversal can be compared against the recorded IOP.",
+    "With a lateral fibula on image right/patient-left, the L-tag group is consistent with a left knee. With the fibula on image left/patient-right under the same column direction, the blank group is consistent with a right knee. This side inference uses anatomy plus orientation; missing Laterality itself supplies no right-side evidence.",
+    "All series record feet-first supine patient position. IOP, rather than PatientPosition alone, governs the pixel-to-patient direction. The small differing obliquities do not reverse the dominant left-right direction.",
+    "Five L-tag series account for150 slices and five blank-tag series for150, with separate acquisition-number ranges2-6 and8-12. The summary reports no exact pixel overlap, but lack of overlap alone cannot distinguish repeat acquisitions from different knees. Ten distinct frame-of-reference hashes prevent assuming a common cross-series spatial origin; this assessment does not use absolute positions to infer side."
+  ],
+  "conclusion": {
+    "classification": "strong_evidence_two_knees_within_one_study_uid",
+    "tag_L_series_indices": [
+      0,
+      2,
+      4,
+      7,
+      8
+    ],
+    "tag_blank_series_indices": [
+      1,
+      3,
+      5,
+      6,
+      9
+    ],
+    "tag_L_anatomical_side_inference": "left",
+    "tag_blank_anatomical_side_inference": "right",
+    "confidence": "High for bilateral technical inconsistency, conditional on preserved/correct DICOM orientation and the inspected renderer. Sufficient to reject unqualified single-knee study pooling."
+  },
+  "training_recommendation": {
+    "disposition": "quarantine_whole_study_from_single_knee_training_pending_explicit_resolution",
+    "reason": "Combining all ten series with one single-knee target row can mix opposing knees and two distinct report sections. Do not assign blank-tag series to right merely from missing metadata, and do not promote whole-study inclusion by choosing one report section. A future explicit, reviewed series-to-side split and training-unit/report binding could recover data while preserving the original study; this assessment does not perform that change."
+  },
+  "limits": [
+    "Montages show three representative slices per series rather than every image.",
+    "This is anatomical/orientation QA, not a diagnostic image reread or validation of reported abnormalities.",
+    "Incorrect or anonymization-corrupted IOP, or a renderer/input mismatch, could defeat the side inference; all inspected artifacts are hash-bound for reproducibility.",
+    "No source header, pixel, published annotation, clinical target, cache, or corpus process was changed."
+  ],
+  "references": [
+    {
+      "title": "DICOM PS3.3 C.7.6.2.1.1 Image Position and Image Orientation",
+      "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.2.html",
+      "accessed": "2026-09-20",
+      "application": "Verified patient x increases to patient left for biped/unspecified orientation and that the first IOP vector maps increasing pixel column index."
+    }
+  ]
+}
