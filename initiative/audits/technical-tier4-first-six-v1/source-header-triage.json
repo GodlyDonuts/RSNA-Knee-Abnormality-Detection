@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_header_technical_triage",
+  "agent_id": "/root/image_pipeline_audit",
+  "session_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T10:50:37.791467+00:00",
+  "n_cases": 6,
+  "complete_series": 45,
+  "source_memberships": 1390,
+  "endpoint_geometries": 90,
+  "source_preread": {
+    "path": "annotation-staging/technical-tier4-first-six-v1/source-only-preread.json",
+    "sha256": "d74ee567d4d373ac5c01212b8a097f81dfd9b65291aacae65b393ce74a9c90b8",
+    "bytes": 17469
+  },
+  "candidate_triggers": {
+    "path": "annotation-staging/technical-tier4-first-six-v1/candidate-trigger-bindings.json",
+    "sha256": "c22f8523da7b4276663548aae82259d1460112fb033a7e8dd996a071745c745f",
+    "bytes": 6319
+  },
+  "technical_summary": {
+    "path": "annotation-staging/technical-tier4-first-six-v1/technical-evidence/summary.json",
+    "sha256": "1ed71f4e33bbe7ba843ff05afdbaff9afea9c1ce22da8fcde73a5c14b4046b13",
+    "bytes": 26734
+  },
+  "geometry": {
+    "path": "annotation-staging/technical-tier4-first-six-v1/geometry-comparison.json",
+    "sha256": "4bb7bdcf92942376a765d7d76666e169763b074695ba7045a49867fb4833b73c",
+    "bytes": 2946
+  },
+  "image_field_centers": {
+    "path": "annotation-staging/technical-tier4-first-six-v1/derived-series-image-centers.json",
+    "sha256": "f891ed564407ca40558204a8556ae374dff5df8dc5d6648d9d7b531af47cc7b0",
+    "bytes": 17614
+  },
+  "records": [
+    {
+      "case": "001:39",
+      "study_uid": "1.2.826.0.1.3680043.8.498.10252121617380434672930525780360219531",
+      "source_report_sha256": "83936e2ff5f617ac5a90153b5a1bd183955952972e86c5f3f74c6896e6a3d4a9",
+      "series": 5,
+      "source_slices": 142,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-first-six-v1/technical-evidence/case-001-39.json",
+        "sha256": "97fcc1ee7568ca0bc2885b6148c37ec035eb3b1d83f63ed718d028050ab24df9",
+        "bytes": 27384
+      },
+      "trigger": "The original tier-4 trigger is noncanonical literal Laterality RIGHT on all endpoints; there is no mixed filled side, repeated-protocol or plane-anomaly flag.",
+      "technical": "Five series, 142 slices: axial3001, coronal4001/7001, sagittal5001/6001. Every endpoint says RIGHT, with ImageLaterality and FrameLaterality empty. This forms one tagged multi-plane protocol, without a separately tagged left set. One hashed PatientID and five distinct frame hashes are present.",
+      "source_relation": "The directly read report is explicitly integrated bilateral MRI content, with a same-day ultrasound postscript. That source concern is substantive and separate from the original noncanonical tag trigger. A single RIGHT-tagged protocol does not establish correspondence for both described knees.",
+      "pixels_needed": "bounded_cached_review_recommended",
+      "proposal": "After root independent source freeze, prepare three native-order cache samples from all five series to assess whether any views include both knees or multiple anatomical sets. Keep source/visual independence. Do not fetch native originals or assume named side; limited samples may leave report linkage unresolved.",
+      "priority": "escalate_source_correspondence"
+    },
+    {
+      "case": "002:30",
+      "study_uid": "1.2.826.0.1.3680043.8.498.10352011938574988727803498915608467179",
+      "source_report_sha256": "5759b292d615218faf8d699e1a66cece5ff713c8826460e315ff56315814e9c1",
+      "series": 10,
+      "source_slices": 309,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-first-six-v1/technical-evidence/case-002-30.json",
+        "sha256": "ffdab63f3f470c23689e6f96f7539a26b01a8cc8f30f520a07ecf46ab6e25c74",
+        "bytes": 65193
+      },
+      "trigger": "The original tier-4 trigger is blank-and-filled Laterality: nine series have R and series1101 is blank. No opposite nonempty side or plane-anomaly trigger exists.",
+      "technical": "Ten series, 309 slices. Three sagittal201/301/401, axial501/601, coronal701/801, dedicated coronal901/1001, and 50-slice axial1101 named3D_WATSc. All named-side descriptions before1101 are RT-prefixed; only the supplementary3D description and literal side are unsided. One hashed PatientID and ten distinct frame hashes.",
+      "source_relation": "The complete original is one unsided current report without bilateral or temporal structure. Metadata presents one dominant RT-described protocol plus a blank-tag 3D series, with no opposite tagged set.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Retain literal blank and filled tags. No immediate pixel escalation or source rewrite is warranted solely by an unsided 3D supplementary series. If root requests bounded confirmation, compare axial1101 with501/601 using existing cache; never impute R into missing tags or claim full same-knee identity from metadata.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "007:16",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11057883757434391643878168168845592475",
+      "source_report_sha256": "37899fa13481f88c4794e5266aec9f1a965c1d892dadb1a647f2437c527f7975",
+      "series": 4,
+      "source_slices": 82,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-first-six-v1/technical-evidence/case-007-16.json",
+        "sha256": "23bfe7c24450ec8cf69d49877fe23e49f4aec8c125750efbe0f8bcc9640526f5",
+        "bytes": 21940
+      },
+      "trigger": "The original tier-4 trigger is noncanonical literal Laterality RIGHT on all endpoints, with no mixed-side, repeated-protocol or plane-anomaly flag.",
+      "technical": "Four series, 82 slices: axial3, coronal4/5, sagittal8. Every endpoint says RIGHT; other side tags are empty. There is no separately tagged left protocol. The sagittal native matrix is rectangular512x416; this shape is preserved in metadata and is not a malformed payload finding. One hashed PatientID and four distinct frame hashes.",
+      "source_relation": "The original source explicitly contains right and left MRI reports with a bilateral separator and separate technique/findings blocks. Noncanonical spelling alone was a low-priority metadata trigger, but the independent source reading adds unresolved report-to-acquisition correspondence.",
+      "pixels_needed": "bounded_cached_review_recommended",
+      "proposal": "After root independent source freeze, inspect all four series via three cache samples each, preserving aspect and native order. Assess gross anatomical sets, not clinical findings or which side label to use. No native download or automatic report-block selection; a coherent single sampled set would not resolve both-report linkage.",
+      "priority": "escalate_source_correspondence"
+    },
+    {
+      "case": "008:12",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11208107516750574657838495761140109258",
+      "source_report_sha256": "18a59f5de4f0103ed0e560b42de3e032cc6fafe8fbff4f98eea5bdd4ab902161",
+      "series": 10,
+      "source_slices": 331,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-first-six-v1/technical-evidence/case-008-12.json",
+        "sha256": "de9975a8896a41a883ace8741505a41e832abb63db943a457b7d1669be5b589d",
+        "bytes": 67579
+      },
+      "trigger": "The original tier-4 trigger is blank-and-filled Laterality. Axial201/301 are L; the following eight series are blank. No opposite nonempty side or plane-anomaly flag exists.",
+      "technical": "Ten series, 331 slices. Two L-tagged axial201/301 precede blank-tag sagittal401/501/601, coronal701/801/901, dedicated coronal1001 and axial3D1101. Descriptions through1001 use LT prefixes even where side tags are blank;1101 is3D_WATSc. One hashed PatientID and ten distinct frame hashes. No repeated complete native fingerprint group.",
+      "source_relation": "The original is one unsided current report organized by compartments, without separate knee or temporal blocks. The observed missing tags occur within a consistently LT-described multi-plane set, with an unsided3D supplement; descriptions are contextual metadata, not authoritative side repairs.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Preserve all missing tags and descriptions; no immediate pixel escalation from tag incompleteness alone. If a later bounded comparison is requested, compare blank sagittal/coronal/3D coverage with the existing L-tagged axial set without named-side inference. No native download or blanket tag filling.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "008:22",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11223691171233118900160265287691267884",
+      "source_report_sha256": "64acc98b40ed592facbad2dd466e7fcac4ff9bef1f105707ad2da82a6dd64293",
+      "series": 6,
+      "source_slices": 181,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-first-six-v1/technical-evidence/case-008-22.json",
+        "sha256": "380882d83a33bcb4d844c5a2677c83608f9fd0ed0f2ba0e856d352f8ad63a591",
+        "bytes": 39095
+      },
+      "trigger": "The original tier-4 trigger is blank-and-filled Laterality: main series201..601 are L and supplementary701 is blank. No opposite filled side or plane-anomaly flag exists.",
+      "technical": "Six series, 181 slices. A main sagittal/coronal/axial protocol is followed by an11-slice sagittal701, sharing the PDW_TSE_Sag description with29-slice601 but differing in orientation and coverage. Both series have different full native fingerprints. One hashed PatientID and six distinct frame hashes.",
+      "source_relation": "One complete unsided Bulgarian findings/conclusion report; a repeated ligament sentence does not create a second examination. Metadata supports a main tagged set and a narrow unsided sagittal supplement, without an independently identified opposing protocol.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "No immediate pixel escalation solely for missing Laterality on a supplementary oblique series. Preserve unknown side. If root later needs correspondence confirmation, compare701 to201/601 using bounded cached samples, keeping the changed-plane limits explicit. No native fetch or series exclusion.",
+      "priority": "defer_pixel_escalation"
+    },
+    {
+      "case": "009:17",
+      "study_uid": "1.2.826.0.1.3680043.8.498.11362547519125634779422991321337283241",
+      "source_report_sha256": "5c7a017fd6b3f91a3e7be0366c81245bb71ebd623b90abe96a4faced143a0302",
+      "series": 10,
+      "source_slices": 345,
+      "case_metadata": {
+        "path": "annotation-staging/technical-tier4-first-six-v1/technical-evidence/case-009-17.json",
+        "sha256": "112a8b23606a970d765ebac146ffbafd577f9a677df0dd6617f3ccf9d823de8e",
+        "bytes": 68902
+      },
+      "trigger": "The original tier-4 trigger is blank-and-filled Laterality: axial3D series701 is blank while the other nine series are R. No opposite filled side or plane-anomaly flag exists.",
+      "technical": "Ten series, 345 slices: sagittal201/301/401, axial501/601, blank axial3D701, coronal801/901/1001 and dedicated coronal1101. All side-bearing descriptions use RT;701 is3D_WATSc. One hashed PatientID and ten distinct frame hashes; no shared native fingerprints.",
+      "source_relation": "The source is one unsided current report followed by concluding repetition, without bilateral or temporal blocks. The tag gap is isolated to the3D supplementary sequence within a consistent described protocol.",
+      "pixels_needed": "not_required_by_current_trigger_alone",
+      "proposal": "Retain the blank tag and original source. No immediate pixel escalation based solely on a blank3D supplement. Optional future bounded cache comparison should pair701 with501/601 and avoid inferring named side or anatomy equivalence from acquisition names. No native fetch or automatic repairs.",
+      "priority": "defer_pixel_escalation"
+    }
+  ],
+  "common_scope": "All90 selected endpoints match their own source-SOP cached position,IOP,spacing and native dimensions. All45 official planes agree with dominant recorded IOP axes. Full cache metadata identities/source memberships and preserved audit/recovery bindings were verified. No NPZ arrays or native pixels were opened in this pass; no full NPZ hash replay or clinical image interpretation is claimed.",
+  "root_source_findings_seen": false,
+  "clinical_annotations_gold_or_targets_accessed": false,
+  "new_network_or_native_decodes": 0,
+  "source_cache_initiative_modified": false,
+  "training_ready": false
+}

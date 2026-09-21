@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "stage": "bilateral_report_single_protocol_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T08:16:05.847257+00:00",
+  "inputs": [
+    {
+      "path": "annotation-staging/correspondence-052001-017-v1/source-only-preread.json",
+      "sha256": "bd9c6f60bd10e5b0585a65f08e191e9634751c6552ca0e4d9d7b3615975b194d",
+      "bytes": 9556
+    },
+    {
+      "path": "annotation-staging/correspondence-052001-017-v1/technical-evidence/summary.json",
+      "sha256": "49d94e1a8384a34666c0e021136e7d635856a05476f1002d0d084595e21f5875",
+      "bytes": 10344
+    }
+  ],
+  "records": [
+    {
+      "case": "052:01",
+      "study_uid": "1.2.826.0.1.3680043.8.498.51676679394093588751371807453793655464",
+      "source": "Two current LEFT then RIGHT report blocks with literal bilateral note, exact match to existing current official/archive CSV.",
+      "series": 5,
+      "slices": 107,
+      "endpoints": 10,
+      "source_bytes": 44327406,
+      "header_assessment": "One coherent five-series protocol numbered3\u20137; every Laterality value is literal LEFT, with one hashedPatientID and distinct per-series frame hashes. No repeated protocol or second side-tagged set. Generic sequences span axial, coronal and sagittal with consistent recorded region.",
+      "correspondence": "The second RIGHT report is not resolved by a current all-LEFT tagged single protocol. Do not assign both reports to these images or infer a historical MRI from an old lesion adjective. Header evidence suggests one-side acquisition but is not definitive whole-study anatomical validation.",
+      "native_escalation": "Defer automatic full download: no repeated or mixed-side protocol to adjudicate. If root needs named-side anatomical confirmation, use a small bound native/cache set, retaining unresolved report correspondence."
+    },
+    {
+      "case": "052:17",
+      "study_uid": "1.2.826.0.1.3680043.8.498.51981019698056120061499970572334688555",
+      "source": "Two complete current LEFT and RIGHT MRI reports each with technique/findings and bilateral note, exact official/archive match. Subsequent ultrasound mention does not make the MRI pair longitudinal.",
+      "series": 7,
+      "slices": 138,
+      "endpoints": 14,
+      "source_bytes": 55610676,
+      "header_assessment": "All laterality fields blank. One five-series protocol numbered3\u20137 plus sagittal8 and axial9 repeats/adjusted coverage. Sagittal6/8 share orientation and nearly sameX range but shift inY/Z; axial3/9 nearly identical orientation andX range with alteredZ coverage. No full second protocol at a separated lateral position. One patient hash, seven distinct frame hashes; no shared native fingerprints.",
+      "correspondence": "The current two-report source cannot be allocated to a named side from this blank single-set/repeat metadata. Blank tags are not RIGHT. Images might cover one knee, but morphology has not been reviewed.",
+      "native_escalation": "Defer full download absent stronger evidence. A targeted representative review may confirm acquisition scope but cannot reconstruct missing source linkage."
+    }
+  ],
+  "scope": "Complete source-only report preread, exact official/archive text checks, all-series inventory and existing endpoint/cache metadata bindings. No new network, native/cache pixel reads, clinical review annotations or gold. No source or label changes.",
+  "training_ready": false
+}

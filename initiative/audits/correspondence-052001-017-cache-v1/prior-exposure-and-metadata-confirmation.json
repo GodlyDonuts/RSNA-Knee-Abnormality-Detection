@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "stage": "prior_source_pass_exposure_confirmation_after_current_freeze",
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-21T10:14:05.207819+00:00",
+  "current_source_freeze": {
+    "path": "annotation-staging/correspondence-052001-017-cache-v1/source-only-preread.json",
+    "sha256": "9066d18c7c5bd5e65a558193d94a7595d7965779a6110d0905ac0f37108804af",
+    "bytes": 11620
+  },
+  "earlier_source_preread": {
+    "path": "annotation-staging/correspondence-052001-017-v1/source-only-preread.json",
+    "sha256": "bd9c6f60bd10e5b0585a65f08e191e9634751c6552ca0e4d9d7b3615975b194d",
+    "bytes": 9556
+  },
+  "earlier_technical_summary": {
+    "path": "annotation-staging/correspondence-052001-017-v1/technical-evidence/summary.json",
+    "sha256": "49d94e1a8384a34666c0e021136e7d635856a05476f1002d0d084595e21f5875",
+    "bytes": 10344
+  },
+  "finding": "After freezing the current original-source reread, the earlier staging was opened. Its source preread confirms this same agent personally read both reports at2026-09-21T08:15:08.410933+00:00. The current source artifact already declines first-ever exposure; this separate record makes the earlier structural exposure explicit. No prior clinical annotation files or root-source-preread were opened.",
+  "earlier_case_source_inventory_endpoint_files": [
+    {
+      "prior": {
+        "path": "annotation-staging/correspondence-052001-017-v1/technical-evidence/case-052-01.json",
+        "sha256": "1c1f8de04d13244f69c1db4cac614eccc28b74737b4d4c90dcadde671d286875",
+        "bytes": 27695
+      },
+      "current": {
+        "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/case-052-01.json",
+        "sha256": "1c1f8de04d13244f69c1db4cac614eccc28b74737b4d4c90dcadde671d286875",
+        "bytes": 27695
+      },
+      "exact_bytes_equal": true
+    },
+    {
+      "prior": {
+        "path": "annotation-staging/correspondence-052001-017-v1/technical-evidence/case-052-17.json",
+        "sha256": "d5f2f88871094e85ca0d706025c375d65c5ffe8715b02d641d71d7d8f58bf27a",
+        "bytes": 37695
+      },
+      "current": {
+        "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/case-052-17.json",
+        "sha256": "d5f2f88871094e85ca0d706025c375d65c5ffe8715b02d641d71d7d8f58bf27a",
+        "bytes": 37695
+      },
+      "exact_bytes_equal": true
+    },
+    {
+      "prior": {
+        "path": "annotation-staging/correspondence-052001-017-v1/technical-evidence/endpoints.jsonl",
+        "sha256": "d7bcaa67db2f3e97a9693d1018f754ed51ffd75ebd09d5e93faaefcea755fa1a",
+        "bytes": 52609
+      },
+      "current": {
+        "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/endpoints.jsonl",
+        "sha256": "d7bcaa67db2f3e97a9693d1018f754ed51ffd75ebd09d5e93faaefcea755fa1a",
+        "bytes": 52609
+      },
+      "exact_bytes_equal": true
+    },
+    {
+      "prior": {
+        "path": "annotation-staging/correspondence-052001-017-v1/technical-evidence/inventory-two-cases.json",
+        "sha256": "56f4ecffb0287441cd94278cae868d653f062921056518a42de4cd3e62b73f0d",
+        "bytes": 157538
+      },
+      "current": {
+        "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/inventory-two-cases.json",
+        "sha256": "56f4ecffb0287441cd94278cae868d653f062921056518a42de4cd3e62b73f0d",
+        "bytes": 157538
+      },
+      "exact_bytes_equal": true
+    },
+    {
+      "prior": {
+        "path": "annotation-staging/correspondence-052001-017-v1/technical-evidence/native-fingerprint-overlaps.json",
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "bytes": 3
+      },
+      "current": {
+        "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/native-fingerprint-overlaps.json",
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "bytes": 3
+      },
+      "exact_bytes_equal": true
+    }
+  ],
+  "new_metadata_replay_reproduces_prior_exactly": true,
+  "old_artifacts_modified": false
+}

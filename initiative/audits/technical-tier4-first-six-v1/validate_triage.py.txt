@@ -1,0 +1,62 @@
+"""Verify six-case source/metadata triage bindings without loading any pixels."""
+import hashlib
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+WORK = ROOT.parents[1]
+
+
+def ref(path):
+    return {'path': str(path.relative_to(WORK)), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+            'bytes': path.stat().st_size}
+
+
+def main():
+    output = ROOT / 'validation.json'
+    assert not output.exists()
+    pre = json.loads((ROOT / 'source-only-preread.json').read_text())
+    triage = json.loads((ROOT / 'source-header-triage.json').read_text())
+    summary = json.loads((ROOT / 'technical-evidence/summary.json').read_text())
+    trigger = json.loads((ROOT / 'candidate-trigger-bindings.json').read_text())
+    expected = {'001:39', '002:30', '007:16', '008:12', '008:22', '009:17'}
+    assert {r['case'] for r in pre['records']} == {r['case'] for r in triage['records']} == {r['case'] for r in trigger['records']} == expected
+    assert len(pre['records']) == len(triage['records']) == len(trigger['records']) == 6
+    assert len({r['study_uid'] for r in pre['records']}) == 6
+    bindings = []
+    for row in pre['records']:
+        path = WORK / row['input_batch']['path']
+        assert ref(path) == row['input_batch']
+        original = json.loads(path.read_text())[row['source_batch_index_zero_based']]
+        assert original['study_uid'] == row['study_uid'] and original['report'] == row['report']
+        assert hashlib.sha256(row['report'].encode()).hexdigest() == row['source_report_sha256']
+        assert all(q in row['report'] for q in row['exact_structure_quotes'])
+        bindings.append(row['input_batch'])
+    for field in ['input_bindings', 'cache_metadata_bindings', 'evidence_bindings', 'official_archive_csv_copies']:
+        bindings.extend({k: r[k] for k in ['path', 'sha256', 'bytes']} for r in summary[field])
+    bindings.extend([trigger['original_queue'], trigger['source_preread']])
+    bindings.extend(triage[k] for k in ['source_preread', 'candidate_triggers', 'technical_summary', 'geometry', 'image_field_centers'])
+    bindings.extend(r['case_metadata'] for r in triage['records'])
+    unique = {r['path']: r for r in bindings}
+    for row in unique.values():
+        assert ref(WORK / row['path']) == row, row['path']
+    assert summary['series_metadata_verified'] == triage['complete_series'] == 45
+    assert summary['source_inventory_slice_membership_verified'] == triage['source_memberships'] == 1390
+    assert summary['endpoint_records_verified'] == triage['endpoint_geometries'] == 90
+    inventory = json.loads((ROOT / 'technical-evidence/inventory-six-cases.json').read_text())
+    assert len(inventory) == len({r['sop_uid'] for r in inventory}) == 1390
+    assert len({r['series_uid'] for r in inventory}) == 45 and len({r['study_uid'] for r in inventory}) == 6
+    assert summary['new_native_decodes'] == summary['new_network_requests'] == summary['cached_pixel_arrays_read'] == 0
+    assert len(triage['records']) == 6 and all(r['proposal'] and r['pixels_needed'] for r in triage['records'])
+    result = {'schema_version': 1, 'stage': 'six_case_source_header_triage_integrity_validation',
+              'agent_id': '/root/image_pipeline_audit', 'status': 'passed', 'cases': 6,
+              'series_metadata': 45, 'source_inventory_memberships': 1390, 'endpoint_geometries': 90,
+              'exact_source_text_and_quotes_verified': True, 'unique_file_bindings_verified': len(unique),
+              'triage': ref(ROOT / 'source-header-triage.json'), 'validator': ref(Path(__file__)),
+              'no_pixels_or_network': True, 'training_ready': False}
+    output.write_text(json.dumps(result, indent=2) + '\n')
+    print(json.dumps(result, indent=2))
+
+
+if __name__ == '__main__':
+    main()

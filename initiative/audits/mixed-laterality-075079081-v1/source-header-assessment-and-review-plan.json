@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_header_geometry_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "bindings": [
+    {
+      "path": "annotation-staging/mixed-laterality-075079081-v1/source-only-preread.json",
+      "sha256": "a7a5cfd7458eeeb71dbe67ad6bfdc26ab54da109c16d839d82af8f5eb6002030",
+      "bytes": 8683
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-075079081-v1/technical-evidence/summary.json",
+      "sha256": "d43393cd10cda2eb54eb6bfdc9be24bb586e59062c4e2724ebe8967105e0ade7",
+      "bytes": 16336
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-075079081-v1/geometry-comparison.json",
+      "sha256": "77ec1d05f6c00b570d5b483d52a2eaabceb7dae346ac103b3aebccc18dd0602c",
+      "bytes": 4514
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-075079081-v1/derived-series-image-centers.json",
+      "sha256": "dd13d1c3fec5d5f6ca32377bee951d17173c83d853c62c2279a8a2fb4970b8e2",
+      "bytes": 9513
+    },
+    {
+      "path": "annotation-staging/mixed-laterality-075079081-v1/verify_image_centers.py",
+      "sha256": "2dd7ba6f235f57a776601b860e9741ec75263cdfdca09544cc0fea4e127ccc0d",
+      "bytes": 1829
+    }
+  ],
+  "cases": [
+    {
+      "case": "075:28",
+      "study_uid": "1.2.826.0.1.3680043.8.498.83030371526667747898709613600825477966",
+      "source_report_sha256": "337846b70148db8381c4786c3da6da17d03cac5b861affa383fae726a24afe8e",
+      "source_structure": "One continuous Croatian RIGHT-knee report, explicitly introduced as MR sections of the right knee. It proceeds through structures within that knee; no left-knee block, bilateral declaration, second full report or separately dated previous examination. A post-event phrase is history within the same narrative.",
+      "explicit_report_side": "right",
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. Separate case075:14 underwent technical native review earlier; no clinical annotations or gold for075:28 were opened.",
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/mixed-laterality-075079081-v1/technical-evidence/case-075-28.json",
+        "sha256": "0d1a616480149fa37b20e79873f530787b4455efea7d0766ca77be288db1fe7a",
+        "bytes": 37925
+      },
+      "series_count": 6,
+      "slices": 171,
+      "endpoints": 12,
+      "source_bytes": 93443656,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 6,
+      "laterality_values": {
+        "Laterality": [
+          "L",
+          "R"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 12.56325842539633,
+      "technical_interpretation": "The complete inventory contains six series numbered 1101 through 1601: L1101/R1201 sagittal, R1301/1401 coronal, R1501 axial, R1601 oblique-coronal supplement. The opposite-tag sagittal pair shares IOP and nearly equal field centers despite 33 versus 30 slices and native matrix differences. Coronal pair has matching IOP, positions and native shape. No second complete protocol or native fingerprint overlap. High series numbers alone do not reconstruct a missing earlier set. The source explicitly names the right knee but this does not authorize correcting the L1101 tag.",
+      "review_plan": "Three representative cached views per all six series, emphasizing opposite-tag sagittal compatibility, primary coronal/axial morphology and limited oblique1601 comparison.",
+      "pixel_review_reason": "Literal tag conflicts require bounded gross anatomical compatibility review; geometry and narrative alone do not prove named side or clinical correspondence.",
+      "limits": "Different frame identities prevent asserting registered anatomy. Coordinate signs, source language and blank tags do not identify side, patient or institution. All original tags preserved."
+    },
+    {
+      "case": "079:10",
+      "study_uid": "1.2.826.0.1.3680043.8.498.88274753211076645976496220746740420894",
+      "source_report_sha256": "7236c0550c85cb4d060d1b66226ff47643f9ac96a25b826fb65488de6ea3eee4",
+      "source_structure": "One short Spanish unsided knee MRI report with Técnica, Resultados and Impresión. The impression repeats the two result phrases. No named knee side, bilateral declaration, separate full report, prior examination/date or longitudinal comparison.",
+      "explicit_report_side": null,
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. No clinical drafts, reviews, flags or gold opened.",
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/mixed-laterality-075079081-v1/technical-evidence/case-079-10.json",
+        "sha256": "b894f8dc39c3a4f1057dec25b39b148bba2e9ddb4d999bc25b228a854d5f7c73",
+        "bytes": 32650
+      },
+      "series_count": 6,
+      "slices": 120,
+      "endpoints": 12,
+      "source_bytes": 194303644,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 6,
+      "laterality_values": {
+        "Laterality": [
+          "",
+          "L",
+          "R"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 54.81616491182284,
+      "technical_interpretation": "Six series include R201/301 sagittal, R401 axial, L501/R601 coronal, and blank-tag701 small-field axial supplement. Coronal pair shares IOP, 22 slices and nearly equal field centers with differing native matrices. Supplement 701 has 13 slices, approximately 81 mm in-plane width and a displaced recorded center relative to the main set. No second full protocol or native fingerprint overlap. Blank laterality remains unknown; small field does not by itself establish a different body part or side.",
+      "review_plan": "Three cached views from all six series, comparing the coronal pair and separately assessing the focused axial supplement gross anatomy/coverage.",
+      "pixel_review_reason": "Literal tag conflicts require bounded gross anatomical compatibility review; geometry and narrative alone do not prove named side or clinical correspondence.",
+      "limits": "Different frame identities prevent asserting registered anatomy. Coordinate signs, source language and blank tags do not identify side, patient or institution. All original tags preserved."
+    },
+    {
+      "case": "079:31",
+      "study_uid": "1.2.826.0.1.3680043.8.498.88752039058074948027322975455607258941",
+      "source_report_sha256": "3f5704c6f727c6ea1ee668d714392183c23a0ae8c90b202afcfa00082b9e4862",
+      "source_structure": "One Spanish unsided knee MRI report with Técnica, Resultados and Impresión. The impression repeats the first two result phrases while leaving the final result phrase out of the summary; this is not a second report or side change. Medial/internal and external refer to anatomical structures. No named knee side, bilateral declaration, prior examination/date or longitudinal comparison.",
+      "explicit_report_side": null,
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. No clinical drafts, reviews, flags or gold opened.",
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/mixed-laterality-075079081-v1/technical-evidence/case-079-31.json",
+        "sha256": "2a32f448853e0efeee0f2bf426210e13db5e8ff4992193c2d924c07083af592c",
+        "bytes": 28427
+      },
+      "series_count": 5,
+      "slices": 111,
+      "endpoints": 10,
+      "source_bytes": 198247256,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 5,
+      "laterality_values": {
+        "Laterality": [
+          "L",
+          "R"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 20.413919300190923,
+      "technical_interpretation": "Five series form R201/301 sagittal, R401 axial and L501/R601 coronal. Coronal pair shares IOP, 22 slices and nearly equal field centers with different native matrices. No separate second full protocol or native fingerprint overlap.",
+      "review_plan": "Three representative cached views per all five series, emphasizing differently tagged coronal counterpart morphology and primary-plane consistency.",
+      "pixel_review_reason": "Literal tag conflicts require bounded gross anatomical compatibility review; geometry and narrative alone do not prove named side or clinical correspondence.",
+      "limits": "Different frame identities prevent asserting registered anatomy. Coordinate signs, source language and blank tags do not identify side, patient or institution. All original tags preserved."
+    },
+    {
+      "case": "081:24",
+      "study_uid": "1.2.826.0.1.3680043.8.498.91125742927944703615970502025043944089",
+      "source_report_sha256": "838ebd705616d9dde977a73d00297b817a1820613681152af9817001fac8f3d2",
+      "source_structure": "One Spanish unsided knee MRI report with Técnica, Resultados and Impresión, repeating the result sentences in its impression. Medial and lateral describe compartments within the knee and do not establish bilateral imaging. No named knee side, separate full report, previous examination/date or longitudinal comparison.",
+      "explicit_report_side": null,
+      "prior_exposure_disclosure": "No earlier case-specific clinical reader/reviewer exposure is recalled. No clinical drafts, reviews, flags or gold opened.",
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/mixed-laterality-075079081-v1/technical-evidence/case-081-24.json",
+        "sha256": "76efe42593cbe5a20918ff3e58e83054b57f6afc95777ff8eb5e1a7a3ee2f74c",
+        "bytes": 33019
+      },
+      "series_count": 6,
+      "slices": 124,
+      "endpoints": 12,
+      "source_bytes": 200896118,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 6,
+      "laterality_values": {
+        "Laterality": [
+          "L",
+          "R"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 59.9821140734623,
+      "technical_interpretation": "Six series form R201/301 sagittal, R401 axial, L501/R601 coronal, plus R701 small-field axial supplement. Coronal pair shares IOP, 21 slices and nearly equal field centers despite native matrix differences. Supplement 701 has 13 slices and approximately 95 mm in-plane width with a displaced recorded field center. No second full protocol or native fingerprint overlap.",
+      "review_plan": "Three cached views per all six series, emphasizing coronal counterparts and focused axial supplementary coverage; do not infer clinical target states from views.",
+      "pixel_review_reason": "Literal tag conflicts require bounded gross anatomical compatibility review; geometry and narrative alone do not prove named side or clinical correspondence.",
+      "limits": "Different frame identities prevent asserting registered anatomy. Coordinate signs, source language and blank tags do not identify side, patient or institution. All original tags preserved."
+    }
+  ],
+  "totals": {
+    "studies": 4,
+    "series": 23,
+    "slices": 526,
+    "endpoints": 46,
+    "native_fingerprint_overlap_groups": 0
+  },
+  "official_plane_vs_iop_dominant_axis": "All 23 agree; technical plane comparison only, no relabeling.",
+  "source_scope": "Complete original reports match archive/current official CSV exactly; only StudyInstanceUID and Report columns read. Existing endpoint and metadata bindings verified against corrected inventory and recovery lineage, no new network.",
+  "geometry_scope": "All 46 selected endpoints match corresponding cache position/IOP/spacing/native dimensions. All 526 source memberships and23metadata hashes verified; no NPZ pixels read at this frozen assessment.",
+  "clinical_labels_or_gold_opened": false,
+  "source_tags_changed": false,
+  "publication_hold": true,
+  "training_ready": false
+}

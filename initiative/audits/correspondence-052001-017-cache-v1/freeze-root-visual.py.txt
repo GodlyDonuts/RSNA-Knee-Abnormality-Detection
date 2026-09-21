@@ -1,0 +1,11 @@
+"""Write only root's explicit source-bound personal visual observations."""
+import datetime,hashlib,json,sys
+from pathlib import Path
+G=Path(__file__).resolve().parent;W=G.parent.parent
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ref=lambda p:{'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+source=G.parent/'correspondence-052001-017-v1/root-source-preread.json';assert sha(source)=='bf1b036c2593e749541a6d358b12a5baa067837230189d9ddf23b28b9574b787'
+case=sys.argv[1];record=next(r for r in json.loads(source.read_text())['records'] if r['case']==case);folder=G/'cache-panels'/('case-'+case.replace(':','-'));p=folder/'root-visual-freeze.json';assert not p.exists()
+observations=json.loads(sys.stdin.read());tags=observations.pop('literal_tags_read_from_panel_captions');n=observations.pop('series_personally_viewed');pages=observations.pop('pages_personally_viewed')
+result={'stage':'independent_root_cached_visual_freeze','agent_id':'/root','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'case':case,'study_uid':record['study_uid'],'root_source_preread':ref(source),'source_structure':record['structure_assessment'],'order':'Full original sources independently read and frozen before neutral images; every displayed sample personally viewed before other assessor source/header/visual conclusions for this package. Case identities and prior bilateral flag were disclosed.','panel_manifest':ref(folder/'panel-manifest.json'),'images':[ref(folder/f'cache-series-page-{i:02}.png') for i in range(pages)],'series_personally_viewed':n,'samples_personally_viewed':3*n,'literal_tags_read_from_panel_captions':tags,'observations':observations,'limits':['Only three normalized256px samples per series; no full native/all-slice anatomical review.','Source/cache/geometry/display numeric replay remains separate.','No named-side correction, disease label inference or proof of clinical correspondence.','No original report, cache, annotation or tag changed.'],'training_ready':False}
+p.write_text(json.dumps(result,indent=2)+'\n');print(case,sha(p))

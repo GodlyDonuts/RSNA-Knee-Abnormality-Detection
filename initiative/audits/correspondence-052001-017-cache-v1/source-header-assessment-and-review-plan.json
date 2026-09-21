@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "stage": "independent_source_header_geometry_correspondence_assessment",
+  "agent_id": "/root/image_pipeline_audit",
+  "bindings": [
+    {
+      "path": "annotation-staging/correspondence-052001-017-cache-v1/source-only-preread.json",
+      "sha256": "9066d18c7c5bd5e65a558193d94a7595d7965779a6110d0905ac0f37108804af",
+      "bytes": 11620
+    },
+    {
+      "path": "annotation-staging/correspondence-052001-017-cache-v1/prior-exposure-and-metadata-confirmation.json",
+      "sha256": "edb612a7f3b42cd3e0d3a50843bc4b43aa086f16694cf0eef8664116b35ccd01",
+      "bytes": 4133
+    },
+    {
+      "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/summary.json",
+      "sha256": "7488720d27570f4b908bdacf9e03ad876881350518c43703e0560c388e6b5f09",
+      "bytes": 10387
+    },
+    {
+      "path": "annotation-staging/correspondence-052001-017-cache-v1/geometry-comparison.json",
+      "sha256": "680d6d415ae2121a0c5008a5ec20c94cda7cacfe56d3dea650aca2aae35833ae",
+      "bytes": 3255
+    },
+    {
+      "path": "annotation-staging/correspondence-052001-017-cache-v1/derived-series-image-centers.json",
+      "sha256": "bff29f01770a49310a27b8dfbf976db799469621ec2b4192498cbd0df3b91b89",
+      "bytes": 5153
+    },
+    {
+      "path": "annotation-staging/correspondence-052001-017-cache-v1/verify_image_centers.py",
+      "sha256": "e7b90f662ce7238c2f44553b67ed38bd7a51acbe09584ead2280a3fce3c3680d",
+      "bytes": 1828
+    }
+  ],
+  "cases": [
+    {
+      "case": "052:01",
+      "study_uid": "1.2.826.0.1.3680043.8.498.51676679394093588751371807453793655464",
+      "source_report_sha256": "db1dfc9384c5f16dc4654549fb40f0ed2fe998e43482d0f118666da579f89dec",
+      "source_structure": "Two explicitly side-separated Greek knee narratives under one study UID. A technique introduction precedes ΑΡΙΣΤΕΡΟ ΓΟΝΑΤΟ (left knee) with numbered findings. The literal bilateral note separates that block from ∆ΕΞΙΟ ΓΟΝΑΤΟ (right knee), which has its own numbered findings. This is current bilateral report content, not merely a historical mention or internal/external compartment wording. No separate dated prior MRI is identified.",
+      "report_blocks": 2,
+      "explicit_report_sides": [
+        "left",
+        "right"
+      ],
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/case-052-01.json",
+        "sha256": "1c1f8de04d13244f69c1db4cac614eccc28b74737b4d4c90dcadde671d286875",
+        "bytes": 27695
+      },
+      "series_count": 5,
+      "slices": 107,
+      "endpoints": 10,
+      "source_bytes": 44327406,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 5,
+      "laterality_values": {
+        "Laterality": [
+          "LEFT"
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 13.984159422023192,
+      "technical_interpretation": "The full inventory has five series 3..7: one axial, two coronal and two sagittal. Every selected endpoint carries literal Laterality LEFT; ImageLaterality and FrameLaterality are blank. There is one hashed PatientID and distinct frame hashes per series. The two sagittal orientations match; coronal orientations differ modestly. Recorded fields cluster within one candidate protocol rather than two repeated complete acquisitions. No native fingerprint overlap. Source contains explicit left and right report blocks; the single LEFT-tagged set does not resolve correspondence for the right block or certify named anatomy.",
+      "review_plan": "Render three ordered cached samples from all five series. Assess gross protocol coherence and any clear opposing anatomy, keeping report-side linkage unresolved and no clinical image diagnoses.",
+      "limits": "Reports explicitly cover both knees, but metadata alone cannot assign each side block to acquired series. Missing tags are unknown, not right. Hashed identities and recorded coordinates do not establish patient/site or shared anatomical registration."
+    },
+    {
+      "case": "052:17",
+      "study_uid": "1.2.826.0.1.3680043.8.498.51981019698056120061499970572334688555",
+      "source_report_sha256": "6dedb30fb3cf6bf742ebc83d14ebf6c681bbb64cfd27115bab6631e1330583d3",
+      "source_structure": "Two complete explicitly side-specific Greek MRI report blocks under one study UID. MRI ΑΡΙΣΤΕΡΟΥ ΓΟΝΑΤΟΣ introduces a left-knee technique/findings narrative; the bilateral note precedes MRI ∆ΕΞΙΟΥ ΓΟΝΑΤΟΣ with its own technique, findings and conclusion. The right block mentions a subsequent ultrasound confirmation within that narrative; this does not replace the explicit two-knee MRI structure or establish that the blocks are merely longitudinal records of one knee.",
+      "report_blocks": 2,
+      "explicit_report_sides": [
+        "left",
+        "right"
+      ],
+      "official_archive_report_match": true,
+      "complete_case_metadata": {
+        "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/case-052-17.json",
+        "sha256": "d5f2f88871094e85ca0d706025c375d65c5ffe8715b02d641d71d7d8f58bf27a",
+        "bytes": 37695
+      },
+      "series_count": 7,
+      "slices": 138,
+      "endpoints": 14,
+      "source_bytes": 55610676,
+      "patient_id_hash_count": 1,
+      "distinct_frame_hash_count": 7,
+      "laterality_values": {
+        "Laterality": [
+          ""
+        ],
+        "ImageLaterality": [
+          ""
+        ],
+        "FrameLaterality": [
+          ""
+        ]
+      },
+      "max_recorded_image_field_center_distance_mm": 44.59674968844302,
+      "technical_interpretation": "The full inventory has seven series 3..9, all three laterality fields blank. It contains axial3/9, coronal4/5 and sagittal6/7/8. Repeated-description sagittal6/8 have identical IOP but different pixel spacing and roughly 26 mm shift in recorded center; axial3/9 have near-identical IOP and roughly 32 mm shift along the superior/inferior coordinate. These may represent changed coverage/repeats rather than a second full protocol; coordinate and frame identity alone cannot decide. No native fingerprint overlap. The explicit left/right reports remain a source-to-series correspondence ambiguity.",
+      "review_plan": "Render three ordered cached samples from every series, including both repeated-description sagittal and axial acquisitions; compare gross coverage and anatomical compatibility without filling missing side tags or changing labels.",
+      "limits": "Reports explicitly cover both knees, but metadata alone cannot assign each side block to acquired series. Missing tags are unknown, not right. Hashed identities and recorded coordinates do not establish patient/site or shared anatomical registration."
+    }
+  ],
+  "totals": {
+    "studies": 2,
+    "series": 12,
+    "slices": 245,
+    "endpoints": 24,
+    "native_fingerprint_overlap_groups": 0
+  },
+  "official_plane_vs_iop_dominant_axis": "All12agree; technical plane comparison only, no relabeling.",
+  "source_scope": "Complete original reports match archive/current official CSV exactly; only StudyInstanceUID and Report columns read. Existing prior case/header/inventory files reproduce byte-for-byte under the fresh offline metadata binding.",
+  "geometry_scope": "All24selected endpoints match corresponding cache positions, IOP, spacing and native dimensions. All245source memberships and12metadata hashes verified; NPZ arrays not yet read at this frozen stage.",
+  "clinical_labels_or_gold_opened": false,
+  "source_tags_changed": false,
+  "publication_hold": true,
+  "training_ready": false
+}

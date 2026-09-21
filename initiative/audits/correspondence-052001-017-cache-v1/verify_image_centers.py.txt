@@ -1,0 +1,48 @@
+"""Recompute and verify the two-case recorded image-field center calculation."""
+
+import json
+
+import numpy as np
+from collect_technical import ROOT, require
+
+
+def main() -> None:
+    expected = json.loads((ROOT / "derived-series-image-centers.json").read_text())["cases"]
+    cases = []
+    for path in sorted((ROOT / "technical-evidence").glob("case-*.json")):
+        case = json.loads(path.read_text())
+        series = []
+        for row in sorted(
+            case["series"], key=lambda r: int(r["header_endpoint_values"]["SeriesNumber"][0])
+        ):
+            orientation = np.array(row["cache_orientation"])
+            spacing = np.array(row["cache_pixel_spacing"])
+            shape = row["cache_original_shape"]
+            center = (
+                np.mean(row["cache_positions"], 0)
+                + orientation[:3] * (shape[2] - 1) / 2 * spacing[1]
+                + orientation[3:] * (shape[1] - 1) / 2 * spacing[0]
+            )
+            series.append(
+                {
+                    "series_uid": row["series_uid"],
+                    "series_number": row["header_endpoint_values"]["SeriesNumber"][0],
+                    "literal_laterality": row["header_endpoint_values"]["Laterality"][0],
+                    "plane": row["iop_dominant_axis_plane_technical_only"],
+                    "mean_slice_image_center_xyz_mm": center.tolist(),
+                }
+            )
+        cases.append({"case": case["case"], "study_uid": case["study_uid"], "series": series})
+    require(cases == expected, "Recomputed image-field center records differ")
+    print(
+        json.dumps(
+            {
+                "cases": len(cases),
+                "series_image_centers_exactly_reproduced": sum(len(r["series"]) for r in cases),
+            }
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

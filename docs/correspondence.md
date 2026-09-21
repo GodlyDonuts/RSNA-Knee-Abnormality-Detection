@@ -29,9 +29,11 @@ with two knee protocols at 075:14, and the integrated bilateral aggregates at
 048:12 and 086:13. The latter two retain explicit source-origin limits: 83 files
 came from fresh Kaggle downloads; fresh official whole-byte confirmation remains
 deferred for 576 corrected pinned mirror files. Original files and reports are
-preserved. The nine completed mixed-tag investigations favor coherent single
+preserved. The 25 completed mixed-tag investigations favor coherent single
 protocols; conflicting tags remain recorded and do not automatically cause an
 exclusion or named-side correction.
+
+The independently reviewed 052:01/17 bilateral report aggregates require withholding report supervision because their image-to-report-block correspondence remains unresolved. Their 245 source memberships, 12 complete cache volumes and 36 sampled views are preserved in `initiative/audits/correspondence-052001-017-cache-v1/`; adding their final registry policies remains pending.
 
 These controls do not certify completion of report review, semantic QA or the
 remaining technical correspondence queue. Final manifests and actual final-data

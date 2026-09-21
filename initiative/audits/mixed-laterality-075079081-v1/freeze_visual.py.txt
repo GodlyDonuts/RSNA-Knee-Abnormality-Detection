@@ -1,0 +1,11 @@
+"""Serialize explicitly supplied personal observations, without image inference."""
+import datetime, hashlib, json
+from pathlib import Path
+def freeze(case, tags, observations):
+    p=Path(__file__).parent;c=p/'cache-panels'/('case-'+case.replace(':','-'))
+    sha=lambda f:hashlib.sha256(f.read_bytes()).hexdigest()
+    ref=lambda f:dict(path=str(f.relative_to(p.parent.parent)),sha256=sha(f),bytes=f.stat().st_size)
+    sources=json.loads((p/'root-source-preread.json').read_text())['source_observations']
+    s=next(x for x in sources if x['case']==case)
+    meta=dict(schema_version=1,stage='independent_root_cached_visual_freeze',agent_id='/root',created_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),case=case,study_uid=s['study_uid'],order='Complete original source frozen before both neutral sheets; all samples personally viewed before assessor source or visual findings.',panel_manifest=ref(c/'panel-manifest.json'),viewed_images=[ref(c/f'cache-series-page-{i:02}.png') for i in range(2)],series_personally_viewed=len(tags),samples_personally_viewed=3*len(tags),literal_tags_read_from_panel_captions=tags,observations=observations,source_structure=s['root_source_observation'],limits=['Three normalized 256-pixel samples per series only; no full native anatomy sweep or clinical target diagnoses.', 'Numerical source/cache/geometry/display replay remains separate. No named-side correction, real-world patient/site identity or upstream-mirroring exclusion.', 'No source, cache, annotation or literal tag changes.'],clinical_annotations_or_gold_accessed=False,training_ready=False)
+    out=c/'root-visual-freeze.json';assert not out.exists();out.write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n');print(case,sha(out))

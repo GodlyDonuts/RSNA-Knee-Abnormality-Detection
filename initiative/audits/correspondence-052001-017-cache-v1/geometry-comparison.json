@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "stage": "existing_endpoint_cache_geometry_comparison",
+  "agent_id": "/root/image_pipeline_audit",
+  "script": {
+    "path": "annotation-staging/correspondence-052001-017-cache-v1/compare_geometry.py",
+    "sha256": "1d467eae87abb139afca91b3cf84e2eb5ef4127594b11f08d7a0e4b6106035e3",
+    "bytes": 4950
+  },
+  "summary": {
+    "path": "annotation-staging/correspondence-052001-017-cache-v1/technical-evidence/summary.json",
+    "sha256": "7488720d27570f4b908bdacf9e03ad876881350518c43703e0560c388e6b5f09",
+    "bytes": 10387
+  },
+  "endpoint_geometry_shape_checks_passed": 24,
+  "cases": [
+    {
+      "case": "052:01",
+      "study_uid": "1.2.826.0.1.3680043.8.498.51676679394093588751371807453793655464",
+      "repeated_description_pairs": []
+    },
+    {
+      "case": "052:17",
+      "study_uid": "1.2.826.0.1.3680043.8.498.51981019698056120061499970572334688555",
+      "repeated_description_pairs": [
+        {
+          "left_series_uid": "1.2.826.0.1.3680043.8.498.11705766746511589927137620352046323970",
+          "right_series_uid": "1.2.826.0.1.3680043.8.498.20538192297457055091232826277232692331",
+          "series_numbers": [
+            [
+              "3"
+            ],
+            [
+              "9"
+            ]
+          ],
+          "description": [
+            "pd_tse_fs_tra_np"
+          ],
+          "laterality_values": [
+            [
+              ""
+            ],
+            [
+              ""
+            ]
+          ],
+          "same_native_shape": true,
+          "exact_same_orientation": false,
+          "exact_same_pixel_spacing": true,
+          "exact_same_all_ordered_positions": false,
+          "mean_image_origin_displacement_xyz_mm": [
+            -0.41182734254751097,
+            3.0686474504689727,
+            -31.860036059375012
+          ],
+          "native_fingerprint_list_equal": false
+        },
+        {
+          "left_series_uid": "1.2.826.0.1.3680043.8.498.86821232904196797613392639388119422294",
+          "right_series_uid": "1.2.826.0.1.3680043.8.498.90711336359096857125738813774713606772",
+          "series_numbers": [
+            [
+              "8"
+            ],
+            [
+              "6"
+            ]
+          ],
+          "description": [
+            "pd_tse_fs_sag_np"
+          ],
+          "laterality_values": [
+            [
+              ""
+            ],
+            [
+              ""
+            ]
+          ],
+          "same_native_shape": true,
+          "exact_same_orientation": true,
+          "exact_same_pixel_spacing": false,
+          "exact_same_all_ordered_positions": false,
+          "mean_image_origin_displacement_xyz_mm": [
+            0.8822451876613329,
+            21.630681569312145,
+            6.2739302611302605
+          ],
+          "native_fingerprint_list_equal": false
+        }
+      ]
+    }
+  ],
+  "scope": "All 24 selected endpoint positions matched their own source SOP's full-cache position exactly; orientation, spacing and native dimensions also exactly matched. Pair displacements compare recorded image origins, not aligned anatomical centers. Different anonymized FrameOfReferenceUIDs prevent asserting one shared patient coordinate frame. No image anatomy, side or target labels inferred."
+}

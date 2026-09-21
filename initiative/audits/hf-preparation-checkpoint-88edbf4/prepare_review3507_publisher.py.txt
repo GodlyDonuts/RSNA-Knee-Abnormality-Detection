@@ -1,0 +1,20 @@
+from pathlib import Path
+W=Path(__file__).resolve().parent
+s=(W/'publish_enforcement_checkpoint.py').read_text()
+def replace(old,new):
+    global s
+    assert old in s,old[:100]
+    s=s.replace(old,new)
+replace('==65 and report_count==3207','==71 and report_count==3507')
+replace("info.sha=='a36928407109e9d23ccb694a57765606b792fbc6'", "info.sha=='d6557ffc2aadc9be050ab4668a1a24ef9b9d8414'")
+replace("'correspondence-enforcement-v1']", "'correspondence-enforcement-v1', 'mixed-laterality-042044045-v1', 'mixed-laterality-048052056-v1', 'mixed-laterality-057059062-v1', 'mixed-laterality-065067071-v1']")
+replace("'studies':9,'source_memberships':1413,'endpoint_records':104,'complete_npz_volumes':52,'sampled_panels':156", "'studies':21,'source_memberships':3257,'endpoint_records':234,'complete_npz_volumes':117,'sampled_panels':351")
+replace('Nine mixed-tag cases preserve52complete cache volumes,156bound cached samples', 'Twenty-one mixed-tag cases preserve 117 complete cache volumes, 351 bound cached samples')
+replace('## Enforced correspondence checkpoint — September 21, 2026', '## Expanded independent-review checkpoint — September 21, 2026')
+replace('**3,207 independently reviewed reports**, **38,484 target decisions**', '**3,507 independently reviewed reports**, **42,084 target decisions**')
+replace('Nine additional mixed-tag investigations preserve 52 complete cache volumes, 1,413 source memberships, 104 endpoint records and 156 exact displayed samples.', 'Twenty-one mixed-tag investigations preserve 117 complete cache volumes, 3,257 source memberships, 234 endpoint records and 351 exact displayed samples. The new groups cover 042/044/045, 048/052/056, 057/059/062 and 065/067/071. Original independent observations and a separately recorded caption-reading correction for 045:38 are preserved.')
+replace("commit_message='Enforce correspondence exclusions and preserve3207-report checkpoint'", "commit_message='Preserve 3507 independently reviewed reports and 21 mixed-tag audits'")
+replace('Includes659new native sources with explicit official/mirror origins, nine mixed-tag investigations and3207reviewed reports.', 'Preserves 659 native sources with explicit official/mirror origins, 21 mixed-tag investigations and 3507 reviewed reports.')
+compile(s,'publish_review3507_checkpoint.py','exec')
+out=W/'publish_review3507_checkpoint.py';assert not out.exists();out.write_text(s)
+print('Prepared guarded 3507-report publisher; no external write performed.')
