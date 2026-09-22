@@ -1,0 +1,53 @@
+{
+  "archive_index_changes": false,
+  "author": "/root/competition_contract",
+  "checks": [
+    {
+      "name": "ruff-check",
+      "returncode": 0,
+      "stdout": "All checks passed!"
+    },
+    {
+      "name": "ruff-format",
+      "returncode": 0,
+      "stdout": "2 files already formatted"
+    },
+    {
+      "name": "focused-kaggle",
+      "returncode": 0,
+      "stdout": "........................................................................ [ 84%]\n.............                                                            [100%]\n85 passed in 2.85s"
+    }
+  ],
+  "correction": "Disable bytecode writing before local helper execution; stdlib runpy loads the explicit helper source rather than any cached helper; retain all-file membership/cache rejection before workflow import.",
+  "issue": "Default Python wrote publication bytecode before the exact projection gate, causing valid clean CLI use to reject its own projection. Prior tests imported the coordinator outside that projection.",
+  "limitations": [
+    "CLI and loader regressions use exact synthetic source projections and no model, network, scheduler job or medical data.",
+    "Parent owns full repository checks, archive refresh, Git/HF publication."
+  ],
+  "prior_evidence_preserved": true,
+  "remote_mutations": 0,
+  "runtime_rsna_changes": false,
+  "schema_version": 1,
+  "source_to_archive": [
+    {
+      "archived": "initiative/audits/kaggle-epoch-publication-bootstrap-v2/source/coordinator.py.txt",
+      "bytes": 11366,
+      "sha256": "5a521cf66f3f87a9e5eade057a70a8e31483e75f67dde4cbbc49dff17ff8a963",
+      "source": "scripts/kaggle/coordinator.py"
+    },
+    {
+      "archived": "initiative/audits/kaggle-epoch-publication-bootstrap-v2/source/test_kaggle_coordinator_binding.py.txt",
+      "bytes": 7537,
+      "sha256": "7876e6a7005432b86794f567b4ef144479329f2baf407848c649b20f6861f257",
+      "source": "tests/test_kaggle_coordinator_binding.py"
+    },
+    {
+      "archived": "initiative/audits/kaggle-epoch-publication-bootstrap-v2/before-fix.json",
+      "bytes": 315,
+      "sha256": "9c45058d40cddb4fa4a4ae78e949cc4f51b82d8b3b426af3b0860938692225ca",
+      "source": "artifacts/kaggle-coordinator-cli-bootstrap-fix-v1/before-fix.json"
+    }
+  ],
+  "status": "corrected_integration_pending_parent_full_checks",
+  "supersedes_current_source_pins_in": "initiative/audits/kaggle-epoch-publication-v1/integration-checks.json"
+}

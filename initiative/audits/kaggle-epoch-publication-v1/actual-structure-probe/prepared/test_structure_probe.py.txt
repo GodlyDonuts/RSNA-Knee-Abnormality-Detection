@@ -1,0 +1,132 @@
+"""Synthetic local tests; no Kaggle API imports, credentials, or network."""
+
+import hashlib
+import importlib.util
+import json
+import shutil
+import tempfile
+import unittest
+import zipfile
+from pathlib import Path
+
+HERE = Path(__file__).parent
+spec = importlib.util.spec_from_file_location("structure_probe", HERE / "notebook.py")
+assert spec is not None and spec.loader is not None
+probe = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(probe)
+
+
+class StructureProbeTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.inputs = self.root / "input"
+        self.inputs.mkdir()
+        self.bundle = self.inputs / "private-dataset" / "optional-zip-wrapper"
+        shutil.copytree(HERE / "payload", self.bundle)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_nested_manifest_parent_and_all_exact_members(self):
+        receipt = probe.verify_structure(self.inputs)
+        self.assertEqual(receipt["verified_file_count"], 3)
+        self.assertEqual(receipt["status"], "structure_probe_passed")
+        self.assertFalse(receipt["competition_submission_eligible"])
+        self.assertEqual(
+            {row["path"] for row in receipt["verified_files"]},
+            {"bundle-manifest.json", "code/rsna/sentinel.py", "encoder/config.json"},
+        )
+
+    def test_flat_extracted_bundle(self):
+        self.assertEqual(probe.verify_structure(self.bundle)["verified_file_count"], 3)
+
+    def test_exact_zip_extraction(self):
+        destination = self.root / "unpacked"
+        destination.mkdir()
+        with zipfile.ZipFile(HERE / "structure-probe.zip") as archive:
+            self.assertEqual(
+                set(archive.namelist()),
+                {"bundle-manifest.json", "code/rsna/sentinel.py", "encoder/config.json"},
+            )
+            archive.extractall(destination)
+        self.assertEqual(probe.verify_structure(destination)["verified_file_count"], 3)
+
+    def test_same_size_tamper_rejected(self):
+        target = self.bundle / "code/rsna/sentinel.py"
+        original = target.read_bytes()
+        target.write_bytes(b"!" + original[1:])
+        with self.assertRaisesRegex(ValueError, "hash mismatch"):
+            probe.verify_structure(self.inputs)
+
+    def test_size_tamper_rejected(self):
+        target = self.bundle / "encoder/config.json"
+        target.write_bytes(target.read_bytes() + b" ")
+        with self.assertRaisesRegex(ValueError, "size mismatch"):
+            probe.verify_structure(self.inputs)
+
+    def test_manifest_tamper_rejected(self):
+        target = self.bundle / "bundle-manifest.json"
+        target.write_bytes(target.read_bytes() + b" ")
+        with self.assertRaisesRegex(ValueError, "Manifest hash mismatch"):
+            probe.verify_structure(self.inputs)
+
+    def test_missing_member_rejected(self):
+        (self.bundle / "encoder/config.json").unlink()
+        with self.assertRaisesRegex(ValueError, "Missing or unexpected"):
+            probe.verify_structure(self.inputs)
+
+    def test_extra_member_rejected(self):
+        (self.bundle / "extra.txt").write_text("unbound")
+        with self.assertRaisesRegex(ValueError, "Missing or unexpected"):
+            probe.verify_structure(self.inputs)
+
+    def test_duplicate_manifest_rejected(self):
+        shutil.copytree(self.bundle, self.inputs / "second-copy")
+        with self.assertRaisesRegex(ValueError, "Exactly one"):
+            probe.verify_structure(self.inputs)
+
+    def test_absent_manifest_rejected(self):
+        (self.bundle / "bundle-manifest.json").unlink()
+        with self.assertRaisesRegex(ValueError, "Exactly one"):
+            probe.verify_structure(self.inputs)
+
+    def test_member_symlink_rejected_even_with_exact_target_bytes(self):
+        target = self.bundle / "encoder/config.json"
+        external = self.root / "external.json"
+        target.rename(external)
+        target.symlink_to(external)
+        with self.assertRaisesRegex(ValueError, "Symlink"):
+            probe.verify_structure(self.inputs)
+
+    def test_directory_symlink_rejected(self):
+        target = self.bundle / "encoder"
+        external = self.root / "external-encoder"
+        target.rename(external)
+        target.symlink_to(external, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "Symlink"):
+            probe.verify_structure(self.inputs)
+
+    def test_receipt_is_new_file_and_preserves_manifest_binding(self):
+        output = self.root / "receipt.json"
+        probe.main(self.inputs, output)
+        original = output.read_bytes()
+        receipt = json.loads(original)
+        manifest = self.bundle / "bundle-manifest.json"
+        self.assertEqual(
+            receipt["manifest_sha256"], hashlib.sha256(manifest.read_bytes()).hexdigest()
+        )
+        with self.assertRaises(FileExistsError):
+            probe.main(self.inputs, output)
+        self.assertEqual(output.read_bytes(), original)
+
+    def test_failure_emits_no_receipt(self):
+        (self.bundle / "encoder/config.json").unlink()
+        output = self.root / "receipt.json"
+        with self.assertRaises(ValueError):
+            probe.main(self.inputs, output)
+        self.assertFalse(output.exists())
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

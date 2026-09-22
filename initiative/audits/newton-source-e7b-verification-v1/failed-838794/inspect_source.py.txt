@@ -1,0 +1,40 @@
+"""Read-only sanitized source-job accounting; never reads authentication bytes."""
+import json
+import shlex
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+root = Path.cwd()
+stage = Path(__file__).resolve().parent
+intent = json.loads((stage / "mutation-intent.json").read_text())
+connection = json.loads((root / "artifacts/newton-access-control/connection.json").read_text())
+job = json.loads((stage / "submission.json").read_text())["job_id"]
+code = '''from pathlib import Path
+import json,subprocess,sys
+control=Path(sys.argv[1]);target=Path(sys.argv[3]);result={'job_id':sys.argv[2],'auth_file_exists':(control/'auth.token').exists()}
+receipt=control/'receipt.json'
+if receipt.exists():result['receipt']=json.loads(receipt.read_text())
+query=subprocess.run(['squeue','-j',sys.argv[2],'-h','-o','%i|%T|%R|%C|%b'],capture_output=True,text=True,timeout=20)
+result['queue']=query.stdout.strip()
+result['git_pack_file_bytes']=sum(path.stat().st_size for path in (target/'.git/objects/pack').glob('*')if path.is_file())
+accounting=subprocess.run(['sacct','-j',sys.argv[2],'-n','-P','--format=JobIDRaw,State,Elapsed,AllocCPUS,AllocTRES,ExitCode'],capture_output=True,text=True,timeout=20)
+result['accounting']=accounting.stdout.splitlines()
+print(json.dumps(result))
+'''
+ssh = ["/usr/bin/ssh", "-S", connection["control_socket"], "-o", "BatchMode=yes", "-o",
+       "StrictHostKeyChecking=yes", "-o", "ControlMaster=no", connection["user"] + "@" + connection["host"]]
+result = subprocess.run(ssh + [shlex.join(["/usr/bin/python3.12", "-c", code,
+    intent["control_directory"], job, intent["target"]])], capture_output=True, text=True, timeout=45)
+if result.returncode:
+    raise SystemExit("read_only_source_inspection_failed")
+record = json.loads(result.stdout)
+record["observed_at_utc"] = datetime.now(timezone.utc).isoformat()
+index = max([int(p.stem.split("-")[1]) for p in stage.glob("status-*.json")] + [0]) + 1
+with (stage / f"status-{index:03d}.json").open("x") as output:
+    json.dump(record, output, indent=2, sort_keys=True)
+    output.write("\n")
+summary=dict(record)
+if 'receipt' in summary:
+    summary['receipt']={k:v for k,v in summary['receipt'].items()if k!='verified_sources'}
+print(json.dumps(summary))

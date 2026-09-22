@@ -1,0 +1,75 @@
+{
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "created_at": "2026-09-22T18:34:08.891662+00:00",
+  "credentials_accessed_for_this_review": false,
+  "executed_tests": {
+    "all_passed": true,
+    "elapsed_seconds": 0.12,
+    "independent_tests": 8,
+    "owner_tests": 24,
+    "remote_calls": 0,
+    "total": 32,
+    "uses_synthetic_payloads": true
+  },
+  "independent_regressions": {
+    "bytes": 3609,
+    "path": "artifacts/epoch-publication-coordinator-independent-review-v1/test_independent_review.py",
+    "sha256": "7f02aa951b88937eac0e26ef7921041dd84eb043c41446e235771fc998021e33"
+  },
+  "initial_review": {
+    "bytes": 1857,
+    "path": "artifacts/epoch-publication-coordinator-independent-review-v1/initial-review.json",
+    "sha256": "bc7fc26a5348c7660e7802dc2727e9ad068a096dfc8d57ddc1c2f6fef159c54b"
+  },
+  "inspection_findings": [
+    "No remaining blocker found in the scoped three-file implementation after the exact-membership correction.",
+    "Dataset Create uses a direct typed RPC with reviewed SDK versions and an exclusively created durable intent; uncertain outcomes prohibit retry.",
+    "Explicit ZIP preserves full logical paths; remote reconciliation requires exact private version1, complete members and full byte hashes, then rechecks Dataset identity.",
+    "Coordinator binds snapshot, operation, source projection, transport and immutable Dataset verification before notebook mutation.",
+    "Git projection compares all rsna Python hashes between training and packaging commits and excludes accepted medical/source data and credentials."
+  ],
+  "limits": [
+    "This review does not claim actual full-size epoch Dataset publication or competition submission; only local synthetic tests were executed by this reviewer.",
+    "Runtime assumes the documented fresh coordinator process and private stable projection/operation directories. This review did not implement defenses against a concurrent privileged writer altering files after validation.",
+    "GPU allocation, model quality and Kaggle score were not evaluated.",
+    "The CPU-only Slurm guard is an operational environment check; actual scheduler accounting remains part of each deployment receipt."
+  ],
+  "production_rsna_edits": false,
+  "remote_actions_for_this_review": false,
+  "resolved_issue": {
+    "correction": "Exact complete file membership now precedes import, all links are refused, and sys.dont_write_bytecode is set before workflow or subsequent project imports. Extra pyc, so and other files are rejected.",
+    "original": "Pinned .py source and manifest hashes did not prevent importlib from executing an extra matching-timestamp/size bytecode cache. Original synthetic reproduction executed a harmless alternate VALUE.",
+    "verified": "Original matching-timestamp/size bytecode reproduction now fails before import; clean pinned module imports twice without generating bytecode; extra native/ordinary files, symlinked parents, changed source/manifest fail. Competing coordinator cannot enter or delete the existing claim."
+  },
+  "reviewed_files": [
+    {
+      "bytes": 16790,
+      "path": "artifacts/epoch-publication-coordinator-v1/publication.py",
+      "sha256": "34704fb146ff4705c79e3fabb3ba0af17e921f51f2f21b054bf48ca913301242"
+    },
+    {
+      "bytes": 10951,
+      "path": "artifacts/epoch-publication-coordinator-v1/coordinator.py",
+      "sha256": "a4c5faf960ee91d3c99a7b0413c61a7c70283422d4d811b618602aed0b6671a7"
+    },
+    {
+      "bytes": 4744,
+      "path": "artifacts/epoch-publication-coordinator-v1/project_code.py",
+      "sha256": "cf6c2673f160bd092f008b7ab53ceaf42284e78283c9c9a5d8fe8f2babbd83bd"
+    },
+    {
+      "bytes": 9466,
+      "path": "artifacts/epoch-publication-coordinator-v1/test_publication.py",
+      "sha256": "cc4fa4bfb30f3466b365610246a8b616505c38a32a24253b520f5cbe1e359e1b"
+    }
+  ],
+  "schema_version": 1,
+  "separate_operational_scope": "An independently authorized Newton source job was dispatched separately; its lifecycle and later reconciliation are not acceptance evidence for this local coordinator review.",
+  "source_edits_by_reviewer": false,
+  "status": "accepted_for_scoped_staged_coordinator_use",
+  "test_log": {
+    "bytes": 764,
+    "path": "artifacts/epoch-publication-coordinator-independent-review-v1/final-tests.log",
+    "sha256": "1f2b4b65011075690fba71b2d9f7ddfcf955b6f49223b60f9fcf6480684467f3"
+  }
+}

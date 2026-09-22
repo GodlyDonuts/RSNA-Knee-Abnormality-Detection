@@ -1,0 +1,63 @@
+"""Read-only reconciliation of the actual one-shot SaveKernel response."""
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+STAGE = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location('workflow', ROOT / 'scripts/kaggle/workflow.py')
+w = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(w)
+
+
+def main():
+    response = json.loads((STAGE / 'kernel-response.json').read_text())
+    intent = json.loads((STAGE / 'kernel-intent.json').read_text())
+    actual = 'godlydonuts/private-zip-structure-preservation-probe'
+    if response.get('ref') != '/code/' + actual or response.get('versionNumber') != 1:
+        raise ValueError('Unexpected actual response identity')
+    r = w.Remote()
+    d = r.kernel('GetKernel', actual, 1)
+    m = d.get('metadata', {})
+    source = d.get('blob', {}).get('source', '')
+    if (hashlib.sha256(source.encode()).hexdigest() != intent['source_sha256']
+            or m.get('isPrivate') is not True or m.get('enableInternet') is not False
+            or m.get('enableGpu') is not False or m.get('competitionDataSources', [])
+            or m.get('datasetDataSources') != ['godlydonuts/rsna-zip-structure-a3ef941019b6']):
+        raise ValueError('Returned kernel does not bind exact private offline CPU source')
+    status = r.kernel('GetKernelSessionStatus', actual, 1)
+    if status.get('status') != 'COMPLETE':
+        raise ValueError('Kernel not complete')
+    result = r.output_json(actual, 1, 'structure-probe-receipt.json')
+    if (result.get('status') != 'structure_probe_passed'
+            or result.get('manifest_sha256') != 'eafd9fe98948f9c7637c7906f347989c84b5a8cdb5cef08b3cfce501a64bef1b'):
+        raise ValueError('Mounted structure proof is invalid')
+    expected = json.loads((STAGE / 'dataset-bytes-verified.json').read_text())['files']
+    observed = {row['path']: {'sha256': row['sha256'], 'bytes': row['bytes']}
+                for row in result['verified_files']}
+    if observed != expected or result.get('verified_file_count') != 3:
+        raise ValueError('Mounted files do not match streamed Dataset proof')
+    w.new_json(STAGE / 'mounted-structure-receipt.json', result)
+    proof = {'status': 'passed', 'requested_kernel_slug': intent['kernel_slug'],
+             'actual_kernel_slug': actual, 'version': 1, 'kernel_id': response['kernelId'],
+             'source_sha256': intent['source_sha256'], 'private': True, 'gpu': False,
+             'internet': False, 'competition_submission': False,
+             'dataset_slug': 'godlydonuts/rsna-zip-structure-a3ef941019b6',
+             'dataset_id': 12140092, 'dataset_version': 1,
+             'kernel_response_sha256': w.digest(STAGE / 'kernel-response.json'),
+             'dataset_verification_sha256': w.digest(STAGE / 'dataset-bytes-verified.json'),
+             'mounted_receipt_sha256': w.digest(STAGE / 'mounted-structure-receipt.json'),
+             'slug_resolution': 'Observed SaveKernel newTitle-derived slug; reconciled returned identity/source read-only. No second SaveKernel call.'}
+    w.new_json(STAGE / 'mounted-structure-provenance.json', proof)
+    print(json.dumps(proof, sort_keys=True))
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as exc:
+        print(json.dumps({'status': 'blocked', 'error_type': type(exc).__name__, 'automatic_retry': False}))
+        raise SystemExit(1) from None

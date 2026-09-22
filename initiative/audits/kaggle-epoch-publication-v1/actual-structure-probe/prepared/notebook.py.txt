@@ -1,0 +1,127 @@
+"""Offline, CPU-only synthetic ZIP structure probe; no model or medical data."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+from typing import Any
+
+EXPECTED_MANIFEST_SHA256 = "eafd9fe98948f9c7637c7906f347989c84b5a8cdb5cef08b3cfce501a64bef1b"
+PROBE_ID = "rsna-private-zip-structure-v1"
+EXPECTED_MEMBERS = {"code/rsna/sentinel.py", "encoder/config.json"}
+
+
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _ordinary_file(path: Path, root: Path) -> bytes:
+    relative = path.relative_to(root)
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError("Symlink in bundle or source path")
+    if not path.is_file() or path.stat().st_size > 65536:
+        raise ValueError("Missing, oversized, or nonregular probe member")
+    return path.read_bytes()
+
+
+def verify_structure(inputs: Path) -> dict[str, Any]:
+    """Verify one extracted logical bundle, with any ordinary outer wrapper."""
+    if inputs.is_symlink() or not inputs.is_dir():
+        raise ValueError("Inputs must be an ordinary directory")
+    manifests: list[Path] = []
+    directories_seen = 0
+    for directory, dirs, files in os.walk(inputs, followlinks=False):
+        directories_seen += 1
+        if directories_seen > 512:
+            raise ValueError("Unexpectedly large synthetic input tree")
+        if any((Path(directory) / name).is_symlink() for name in dirs):
+            raise ValueError("Symlink directory in inputs")
+        if "bundle-manifest.json" in files:
+            manifests.append(Path(directory) / "bundle-manifest.json")
+    if len(manifests) != 1:
+        raise ValueError("Exactly one bundle manifest is required")
+    manifest_path = manifests[0]
+    raw = _ordinary_file(manifest_path, inputs)
+    if sha256(raw) != EXPECTED_MANIFEST_SHA256:
+        raise ValueError("Manifest hash mismatch")
+    manifest = json.loads(raw)
+    if manifest.get("schema_version") != 1 or manifest.get("probe_id") != PROBE_ID:
+        raise ValueError("Unexpected probe schema or identity")
+    for field in (
+        "checkpoint_present",
+        "competition_submission_eligible",
+        "medical_data_present",
+        "gpu_required",
+    ):
+        if manifest.get(field) is not False:
+            raise ValueError("Unexpected probe scope")
+    expected = manifest.get("files")
+    if not isinstance(expected, dict) or set(expected) != EXPECTED_MEMBERS:
+        raise ValueError("Unexpected member contract")
+    bundle = manifest_path.parent
+    actual_members: set[str] = set()
+    for path in bundle.rglob("*"):
+        if path.is_symlink():
+            raise ValueError("Symlink in bundle")
+        if path.is_file():
+            actual_members.add(path.relative_to(bundle).as_posix())
+        elif not path.is_dir():
+            raise ValueError("Nonregular entry in bundle")
+    if actual_members != EXPECTED_MEMBERS | {"bundle-manifest.json"}:
+        raise ValueError("Missing or unexpected bundle files")
+    verified = []
+    for name, binding in sorted(expected.items()):
+        posix = PurePosixPath(name)
+        if posix.is_absolute() or ".." in posix.parts or str(posix) != name:
+            raise ValueError("Unsafe member path")
+        data = _ordinary_file(bundle / name, bundle)
+        if type(binding.get("bytes")) is not int or binding["bytes"] != len(data):
+            raise ValueError("Member size mismatch")
+        digest = sha256(data)
+        if binding.get("sha256") != digest:
+            raise ValueError("Member hash mismatch")
+        verified.append({"path": name, "sha256": digest, "bytes": len(data)})
+    verified.append(
+        {
+            "path": "bundle-manifest.json",
+            "sha256": sha256(raw),
+            "bytes": len(raw),
+        }
+    )
+    return {
+        "schema_version": 1,
+        "status": "structure_probe_passed",
+        "probe_id": PROBE_ID,
+        "manifest_sha256": EXPECTED_MANIFEST_SHA256,
+        "verified_files": sorted(verified, key=lambda item: item["path"]),
+        "verified_file_count": 3,
+        "verified_total_bytes": sum(item["bytes"] for item in verified),
+        "recursive_single_manifest_parent_resolution": True,
+        "exact_bundle_file_membership": True,
+        "cpu_only_stdlib_verification": True,
+        "network_requested_by_code": False,
+        "gpu_used_by_code": False,
+        "medical_data_present": False,
+        "checkpoint_present": False,
+        "competition_submission_eligible": False,
+    }
+
+
+def main(
+    inputs: Path = Path("/kaggle/input"),
+    output: Path = Path("/kaggle/working/structure-probe-receipt.json"),
+) -> None:
+    receipt = verify_structure(inputs)
+    with output.open("x", encoding="utf-8") as handle:
+        json.dump(receipt, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    print(json.dumps({"status": receipt["status"], "verified_file_count": 3}))
+
+
+if __name__ == "__main__":
+    main()

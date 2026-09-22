@@ -1,0 +1,53 @@
+{
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "checked_at_utc": "2026-09-22T18:16:59.909325+00:00",
+  "credentials_accessed": false,
+  "findings": [
+    "dataset_create_new ignores convert_to_csv in its serialized request; the relevant assignment is commented out.",
+    "dataset_create_new wraps final create_dataset in with_retry whose default is10 attempts for retryable HTTP errors. High-level create is not a one-shot mutation.",
+    "Its initial dataset_status guard treats every HTTPError as absence, so independent authoritative identity/absence checks are necessary.",
+    "dir_mode=zip generates a separate zip per top-level directory with the directory contents at its archive root; do not assume server archive-name wrapper restoration.",
+    "ListDatasetFiles and DownloadDataset requests accept explicit dataset_version_number from owner/slug/1, allowing exact versioned read-only reconciliation."
+  ],
+  "primary_documentation": [
+    "https://github.com/Kaggle/kaggle-cli/blob/main/docs/datasets.md",
+    "https://www.kaggle.com/docs/datasets"
+  ],
+  "recommendation": {
+    "mutation": "Avoid the SDK final with_retry wrapper for publication; use a guarded one-shot exact request or explicitly disable retries at all relevant mutation layers, then reconcile read-only.",
+    "structure": "One explicit ZIP of the complete prepared bundle with logical relative paths retained together. Keep only dataset-metadata.json plus that ZIP in the new upload directory; use no implicit directory packing. The existing loader locates the exact bound bundle manifest recursively and resolves code/encoder paths relative to its parent, tolerating any single outer archive wrapper.",
+    "uncertain_create": "Record intent and exact logical per-file hashes before a single final create request. After uncertainty, never retry create automatically: query same owner/slug, require private and currentVersionNumber1, record datasetID, wait read-only for processing completion, enumerate all version1 files with bounded pagination, and stream-download version1 payloads to verify every expected logical path/size/SHA with no extras. Verify raw payload bytes, not just remote sizes or server-generated download-ZIP SHA. Account for download transport ZIP wrappers by validating contained member bytes. Recheck privateID/currentVersion1 after reads. Missing/403/processing/ambiguous/mismatch stays blocked, not safe-to-retry."
+  },
+  "remote_requests": 0,
+  "remote_writes": 0,
+  "schema_version": 1,
+  "scope_limits": [
+    "Synthetic temporary archives only; no real checkpoint archive, upload or server path semantics were executed.",
+    "Official documentation says uploaded archives are decompressed with their directory structure preserved; per-directory archive basename wrapping is not assumed."
+  ],
+  "sdk_source_sha256": "ba0cbbcfcbce9b7b42997de0b3ffa759144d95110cb073483a64e6b7d2fa4c96",
+  "sdk_version": "2.2.3",
+  "synthetic_local_archive_check": {
+    "code": {
+      "members": [
+        "rsna/",
+        "rsna/competitive/",
+        "rsna/competitive/infer.py"
+      ],
+      "upload_name": "code.zip"
+    },
+    "encoder": {
+      "members": [
+        "config.json"
+      ],
+      "upload_name": "encoder.zip"
+    },
+    "explicit_complete_zip_members": [
+      "bundle-manifest.json",
+      "checkpoint.pt",
+      "code/rsna/competitive/infer.py",
+      "encoder/config.json",
+      "encoder.json"
+    ]
+  }
+}

@@ -1,0 +1,103 @@
+"""Read-only coordinator regressions; synthetic local files, no API calls."""
+
+import hashlib
+import importlib._bootstrap_external
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+STAGE = Path(__file__).parents[1] / "epoch-publication-coordinator-v1"
+sys.path.insert(0, str(STAGE))
+import coordinator as c  # noqa: E402
+import publication as p  # noqa: E402
+
+
+@pytest.fixture
+def source(tmp_path):
+    projection = tmp_path / "projection"
+    path = projection / "scripts/kaggle/workflow.py"
+    path.parent.mkdir(parents=True)
+    path.write_text("VALUE = 'expected'\n")
+    manifest = tmp_path / "projection.json"
+    raw = path.read_bytes()
+    manifest.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "scripts/kaggle/workflow.py": {
+                        "bytes": len(raw),
+                        "sha256": hashlib.sha256(raw).hexdigest(),
+                    }
+                }
+            }
+        )
+    )
+    return projection, path, manifest, p.digest(manifest)
+
+
+def test_pinned_clean_module_runs_twice_without_generated_code(source):
+    root, path, manifest, digest = source
+    for _ in range(2):
+        module, _ = c.load_workflow(root, manifest, digest)
+        assert module.VALUE == "expected"
+    assert not Path(importlib.util.cache_from_source(str(path))).exists()
+
+
+def test_actual_matching_timestamp_bytecode_attack_blocked(source):
+    root, path, manifest, digest = source
+    cache = Path(importlib.util.cache_from_source(str(path)))
+    cache.parent.mkdir()
+    code = compile("VALUE = 'unbound_cached_code_executed'\n", str(path), "exec")
+    cache.write_bytes(
+        importlib._bootstrap_external._code_to_timestamp_pyc(
+            code, int(path.stat().st_mtime), path.stat().st_size
+        )
+    )
+    with pytest.raises(ValueError, match="extra/missing files"):
+        c.load_workflow(root, manifest, digest)
+
+
+@pytest.mark.parametrize("name", ["workflow.so", "unbound.txt"])
+def test_any_unbound_file_fails(source, name):
+    root, path, manifest, digest = source
+    path.with_name(name).write_bytes(b"unbound")
+    with pytest.raises(ValueError, match="extra/missing files"):
+        c.load_workflow(root, manifest, digest)
+
+
+def test_linked_parent_with_exact_source_bytes_fails(source, tmp_path):
+    root, path, manifest, digest = source
+    original = root / "scripts"
+    moved = tmp_path / "elsewhere"
+    original.rename(moved)
+    original.symlink_to(moved, target_is_directory=True)
+    with pytest.raises(ValueError, match="links"):
+        c.load_workflow(root, manifest, digest)
+
+
+def test_changed_manifest_fails_before_import(source):
+    root, path, manifest, digest = source
+    manifest.write_bytes(manifest.read_bytes() + b" ")
+    with pytest.raises(ValueError, match="manifest differs"):
+        c.load_workflow(root, manifest, digest)
+
+
+def test_changed_source_fails_before_import(source):
+    root, path, manifest, digest = source
+    path.write_text("VALUE = 'changed!'\n")
+    with pytest.raises(ValueError, match="projection changed"):
+        c.load_workflow(root, manifest, digest)
+
+
+def test_second_coordinator_cannot_remove_or_reuse_first_claim(tmp_path):
+    with c.single_coordinator(tmp_path):
+        claim = tmp_path / "coordinator-claim"
+        before = (claim / "owner.json").read_bytes()
+        with pytest.raises(FileExistsError):
+            with c.single_coordinator(tmp_path):
+                pytest.fail("Second coordinator entered protected scope")
+        assert (claim / "owner.json").read_bytes() == before
+    assert not claim.exists()

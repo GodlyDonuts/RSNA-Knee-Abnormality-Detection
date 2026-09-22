@@ -1,0 +1,13 @@
+# Synthetic Kaggle ZIP structure probe
+
+This package tests directory and byte preservation only. It contains no competition source, model weights, medical data, or eligible checkpoint. Its local verification does not establish remote Kaggle execution.
+
+Upload exactly `structure-probe.zip` as the sole Dataset payload. Its three regular archive members are `bundle-manifest.json`, `code/rsna/sentinel.py`, and `encoder/config.json`. The notebook does not import the sentinel or instantiate the synthetic encoder configuration.
+
+Run `notebook.py` as a private CPU script with Internet disabled. Attach only the exact newly created private Dataset version 1. Competition, model, and kernel source lists must be empty. The code locates exactly one manifest recursively, hashes that manifest against its pinned value, resolves relative members from its parent, rejects links and unexpected members, and hashes every file. An optional ordinary outer archive directory is tolerated. Success creates `/kaggle/working/structure-probe-receipt.json` using exclusive creation. A changed or missing input fails without a success receipt. The script uses only Python standard-library byte and file operations; it neither queries nor invokes a GPU.
+
+The coordinator must bind the notebook SHA and exact attachment/version/private/Internet/GPU settings in its mutation intent, compare returned settings, and obtain and validate the output receipt before claiming the remote structure probe passed. `preparation-proof.json` records local synthetic tests only.
+
+The installed Kaggle 2.2.3 `dataset_create_new` high-level method invokes `self.with_retry(...create_dataset)` and leaves `convert_to_csv` assignment commented out. For the authorized one-shot create, construct `ApiCreateDatasetRequest` explicitly with `is_private=True` and the single exact ZIP upload token, then invoke the typed `create_dataset` endpoint once under the coordinator ledger. Do not infer serialized conversion behavior from the high-level argument. Reconcile uncertain outcomes using read-only exact private version-1 metadata and complete byte comparisons; an uncertain response or 403 does not authorize another create. Initial Dataset creation has no client-selected version: verify the returned/published version is exactly 1.
+
+The preparation and tests made no API call, read no credentials, and performed no remote mutation. Local tests cover flat and wrapped extraction, exact ZIP membership, same-size and different-size tampering, manifest tampering, missing/extra files, duplicate/missing manifests, file/directory symlinks, exclusive receipt creation, and absence of a receipt on validation failure.

@@ -1,0 +1,49 @@
+{
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "created_at": "2026-09-22T18:28:41.390009+00:00",
+  "credentials_accessed": false,
+  "files": [
+    {
+      "bytes": 16790,
+      "path": "artifacts/epoch-publication-coordinator-v1/publication.py",
+      "sha256": "34704fb146ff4705c79e3fabb3ba0af17e921f51f2f21b054bf48ca913301242"
+    },
+    {
+      "bytes": 10380,
+      "path": "artifacts/epoch-publication-coordinator-v1/coordinator.py",
+      "sha256": "fff7045630bc4e19cb13bd4a0970789b2c5a94babcfcfc962b2a660ac9daa47e"
+    },
+    {
+      "bytes": 4744,
+      "path": "artifacts/epoch-publication-coordinator-v1/project_code.py",
+      "sha256": "cf6c2673f160bd092f008b7ab53ceaf42284e78283c9c9a5d8fe8f2babbd83bd"
+    },
+    {
+      "bytes": 7409,
+      "path": "artifacts/epoch-publication-coordinator-v1/test_publication.py",
+      "sha256": "8398a60d5aec69581c8fabc5e07a36e270d9bd338c52369e973fca574263870e"
+    }
+  ],
+  "findings": [
+    {
+      "issue": "Only extra *.py files rejected; cached bytecode or extension can override pinned source during import. Existing pyc read despite -B.",
+      "location": "coordinator.py:load_workflow",
+      "recommended_fix": "Require exact all-file membership and reject links/extras before import, disable bytecode writes before importing workflow/rsna, run fresh process.",
+      "severity": "blocking_code_binding"
+    }
+  ],
+  "remote_calls": 0,
+  "schema_version": 1,
+  "source_edits": false,
+  "status": "changes_requested",
+  "tests": {
+    "owner_test_count": 22,
+    "passed": 22,
+    "reproduction": "Unbound matching-timestamp/size __pycache__/workflow bytecode executed instead of exact-hash workflow.py",
+    "reproduction_output": {
+      "exact_manifest_and_py_sha_unchanged": true,
+      "executed_value": "unbound_cached_code_executed",
+      "unbound_cache_accepted": true
+    }
+  }
+}

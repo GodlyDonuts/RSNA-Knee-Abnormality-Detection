@@ -294,3 +294,74 @@ an existing notebook is never intentionally overwritten. The preflight absence
 check is not a server-side compare-and-swap; use the single account coordinator.
 The shared Dataset avoids repeated multi-gigabyte uploads; the checkpoint bundle
 still contains its measured immutable snapshot, exact code/config and license.
+
+## Remote epoch publisher
+
+`scripts/kaggle/project_code.py` builds a small exact-Git source projection for a
+separate coordinator directory. It requires the packaging and training commits
+to have identical `rsna` source hashes. The corrected training source is
+`e7b08625854de692b9266ccfc25c90fc22169f58` (CI 35766826230 passed; verified HF
+revision `6f30d9def9b411c3adf2517ec683a22b2adf1bb4`). Build the eventual packaging
+projection from the commit containing these new helpers, with that exact training
+commit while its runtime remains unchanged. Keep the training checkout clean.
+
+Use one finite CPU-only Slurm allocation after a real scheduled snapshot exists:
+2 CPUs initially, no GPU, accepted Python3.12 environment unpacked on node-local
+scratch. Keep the 20 GiB disk reserve, accounting for the actual checkpoint,
+prepared copy and ZIP. The separate small management venv pins Kaggle 2.2.3 and
+kagglesdk 0.1.30; it does not alter the accepted model environment. Large artifacts
+stay on Newton. The canonical queue is fixed to
+`$HOME/rsna-knee/kaggle/account-ledger.sqlite3`; do not create per-run ledgers.
+
+After the existing `prepare --shared-wheelhouse ...` step, `coordinator.py` offers
+finite phases `prepare-transport`, `create-dataset`, `reconcile-dataset`,
+`push-kernel` and `submit`. Each binds the projection manifest, complete actual
+epoch sidecar and prepared operation. Common arguments are:
+
+```sh
+python scripts/kaggle/coordinator.py prepare-transport \
+  --projection "$PROJECTION" --projection-manifest "$PROJECTION_MANIFEST" \
+  --projection-sha256 "$REVIEWED_PROJECTION_SHA256" \
+  --operation "$OPERATION" --snapshot "$ACTUAL_EPOCH_SIDECAR"
+```
+
+`create-dataset` additionally requires `--management-python` for the isolated SDK
+interpreter. Network phases receive only a JSON token object on stdin, streamed
+privately from the local secret store; never put credentials in arguments, batch
+scripts, persistent remote files or logs. An atomic coordinator-directory claim
+prevents concurrent phases. A killed process leaves a claim that must be checked
+against scheduler state and durable intents before manual recovery.
+
+The transport is one explicit ZIP containing all complete logical paths. The
+SDK's conversion flag is ignored, so the publisher admits expected non-tabular
+payload types and verifies the actual server bytes. It uses one direct typed
+CreateDataset request after durable intent; ambiguous outcomes cannot retry.
+Read-only reconciliation checks private version 1, complete file membership and
+every streamed SHA/size before any notebook push. The notebook checks all mounted
+bytes again. Dedicated notebook titles must normalize to their intended slug.
+Only the existing completed-kernel/inference-receipt gate can submit, with a fresh
+account-wide allowance check. No diagnostic or three-row template can submit.
+
+An actual private CPU-only test verified the three-file ZIP layout at both the
+Dataset download and notebook mount. This used no competition data, GPU or
+submission slot. The scoped independent review and 32 synthetic guards passed;
+the initial cached-bytecode issue was corrected by exact all-file/link rejection
+before imports and disabling bytecode writes. Full pretrained hidden-set runtime
+and competitive score remain unmeasured. Original sources, reviews, exact
+publication receipts and source-to-archive mappings are preserved in
+[`kaggle-epoch-publication-v1`](../initiative/audits/kaggle-epoch-publication-v1/).
+The archived operational runbook gives the environment hashes and recovery steps.
+
+The subsequent bootstrap correction also tests a clean subprocess launched from
+inside its own exact projection, with normal Python bytecode defaults. The
+coordinator disables bytecode writing before loading a local helper and reads
+that helper's explicit source file, while still rejecting pre-existing unlisted
+cache files at the projection gate. This prevents the coordinator from creating
+its own cache and then rejecting itself. The four new subprocess regressions and
+existing Kaggle checks pass together (85 focused tests); the earlier review and
+its results remain preserved. See the separate
+[bootstrap correction audit](../initiative/audits/kaggle-epoch-publication-bootstrap-v2/).
+The bootstrap-v2 source pins supersede those in the original coordinator
+integration audit. Earlier source/mapping records and the root's 937-test result
+are preserved as historical evidence; the final repository-wide check belongs to
+the corrected source and is recorded separately by root.

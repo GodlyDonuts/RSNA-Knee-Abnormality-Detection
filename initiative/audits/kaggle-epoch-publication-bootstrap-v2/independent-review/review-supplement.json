@@ -1,0 +1,103 @@
+{
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-22T18:57:54.306650+00:00",
+  "executed_validation": {
+    "coordinator_cases": 12,
+    "elapsed_seconds": 0.39,
+    "fresh_child_tests": {
+      "actual_cli_help": true,
+      "ambient_PYTHONDONTWRITEBYTECODE_PYTHONPYCACHEPREFIX_PYTHONPATH_removed": true,
+      "children_have_no_B_flag": true,
+      "complete_load_workflow": true,
+      "no_cache_written_in_clean_projection": true,
+      "preexisting_unlisted_cache_rejected": true,
+      "valid_timestamp_size_cached_helper_rejected_without_execution": true
+    },
+    "publication_cases": 24,
+    "total_passed": 36
+  },
+  "findings": "No remaining blocker found in the bounded default-Python startup and preexisting-cache rejection scope.",
+  "fix_reviewed": "Coordinator sets sys.dont_write_bytecode before local helper execution, reads the explicit publication.py source with runpy.run_path, then applies unchanged exact all-file membership/link checks before workflow import. Existing helper bytecode is bypassed, not trusted or silently removed.",
+  "limits": [
+    "Synthetic local tests and source review only; no remote epoch publication, credentials or scheduler/GPU actions.",
+    "A documented fresh CLI invocation and stable private source projection remain deployment assumptions.",
+    "This supplement is new evidence and does not rewrite earlier executed reviews or source snapshots."
+  ],
+  "prior_review": {
+    "bytes": 4395,
+    "path": "artifacts/epoch-publication-coordinator-independent-review-v1/final-review.json",
+    "sha256": "80cb3498e6891460e21bf5501701ecf7751e1e3427b0f61753a99043c421f938"
+  },
+  "prior_review_gap": "The earlier independent review did not exercise default-Python CLI startup from the exact source projection. Importing publication before setting dont_write_bytecode created a pyc and caused that valid projection to reject itself. Root found this real startup bug; the earlier proof is preserved unchanged.",
+  "remote_actions": false,
+  "reviewed_and_preserved": [
+    {
+      "original": {
+        "bytes": 11366,
+        "path": "scripts/kaggle/coordinator.py",
+        "sha256": "5a521cf66f3f87a9e5eade057a70a8e31483e75f67dde4cbbc49dff17ff8a963"
+      },
+      "preserved": {
+        "bytes": 11366,
+        "path": "artifacts/epoch-publication-coordinator-bootstrap-review-v1/source/scripts/kaggle/coordinator.py.txt",
+        "sha256": "5a521cf66f3f87a9e5eade057a70a8e31483e75f67dde4cbbc49dff17ff8a963"
+      }
+    },
+    {
+      "original": {
+        "bytes": 16790,
+        "path": "scripts/kaggle/publication.py",
+        "sha256": "34704fb146ff4705c79e3fabb3ba0af17e921f51f2f21b054bf48ca913301242"
+      },
+      "preserved": {
+        "bytes": 16790,
+        "path": "artifacts/epoch-publication-coordinator-bootstrap-review-v1/source/scripts/kaggle/publication.py.txt",
+        "sha256": "34704fb146ff4705c79e3fabb3ba0af17e921f51f2f21b054bf48ca913301242"
+      }
+    },
+    {
+      "original": {
+        "bytes": 4744,
+        "path": "scripts/kaggle/project_code.py",
+        "sha256": "cf6c2673f160bd092f008b7ab53ceaf42284e78283c9c9a5d8fe8f2babbd83bd"
+      },
+      "preserved": {
+        "bytes": 4744,
+        "path": "artifacts/epoch-publication-coordinator-bootstrap-review-v1/source/scripts/kaggle/project_code.py.txt",
+        "sha256": "cf6c2673f160bd092f008b7ab53ceaf42284e78283c9c9a5d8fe8f2babbd83bd"
+      }
+    },
+    {
+      "original": {
+        "bytes": 7537,
+        "path": "tests/test_kaggle_coordinator_binding.py",
+        "sha256": "7876e6a7005432b86794f567b4ef144479329f2baf407848c649b20f6861f257"
+      },
+      "preserved": {
+        "bytes": 7537,
+        "path": "artifacts/epoch-publication-coordinator-bootstrap-review-v1/source/tests/test_kaggle_coordinator_binding.py.txt",
+        "sha256": "7876e6a7005432b86794f567b4ef144479329f2baf407848c649b20f6861f257"
+      }
+    },
+    {
+      "original": {
+        "bytes": 9673,
+        "path": "tests/test_kaggle_publication.py",
+        "sha256": "ad64c43f6248a8ce8b91fba1d408c2adccdf464a7b367f1c4e3a2c93d52586eb"
+      },
+      "preserved": {
+        "bytes": 9673,
+        "path": "artifacts/epoch-publication-coordinator-bootstrap-review-v1/source/tests/test_kaggle_publication.py.txt",
+        "sha256": "ad64c43f6248a8ce8b91fba1d408c2adccdf464a7b367f1c4e3a2c93d52586eb"
+      }
+    }
+  ],
+  "schema_version": 1,
+  "source_edits_by_reviewer": false,
+  "status": "bootstrap_fix_independently_verified",
+  "test_log": {
+    "bytes": 764,
+    "path": "artifacts/epoch-publication-coordinator-bootstrap-review-v1/targeted-tests.log",
+    "sha256": "993621bd4c9659a4cf0b9df3535db32f8f4ac0a1a4c82dff0eaee3d9181bc201"
+  }
+}

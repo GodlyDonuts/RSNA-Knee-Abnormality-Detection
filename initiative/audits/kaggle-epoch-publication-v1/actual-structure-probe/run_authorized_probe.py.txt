@@ -1,0 +1,164 @@
+"""One authorized private CPU-only structure probe. Never a competition submission."""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import os
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+STAGE = Path(__file__).resolve().parent
+
+
+def module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    value = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(value)
+    return value
+
+
+w = module("workflow", ROOT / "scripts/kaggle/workflow.py")
+p = module("publication", ROOT / "artifacts/epoch-publication-coordinator-v1/publication.py")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "action", choices=["create-dataset", "verify-dataset", "push", "status", "output"]
+    )
+    args = parser.parse_args()
+    source = STAGE / "prepared"
+    blob = source / "payload/bundle-manifest.json"
+    expected = json.loads(blob.read_text())["files"]
+    expected["bundle-manifest.json"] = {"sha256": p.digest(blob), "bytes": blob.stat().st_size}
+    archive = source / "structure-probe.zip"
+    if p.digest(archive) != "a3ef941019b6124f71d7e54eff4c6b1cb4c13801460ef8fe8727d096fce89247":
+        raise ValueError("Independent probe archive changed")
+    slug = "godlydonuts/rsna-zip-structure-a3ef941019b6"
+    kernel = "godlydonuts/rsna-zip-check-a3ef941019b6"
+    remote = w.Remote()
+    if remote.username != "godlydonuts":
+        raise ValueError("Wrong account")
+    if args.action == "create-dataset":
+        upload = STAGE / "upload"
+        upload.mkdir(mode=0o700, exist_ok=True)
+        target = upload / "bundle.zip"
+        if not target.exists():
+            os.link(archive, target)
+        context = {
+            "purpose": "authorized_synthetic_structure_only",
+            "archive_sha256": p.digest(archive),
+            "archive_bytes": archive.stat().st_size,
+            "gpu": False,
+            "checkpoint": False,
+            "competition_sources": [],
+            "eligible_snapshot": False,
+        }
+        token = remote.session.headers["Authorization"].removeprefix("Bearer ")
+        result = p.create_once(
+            remote, token, slug, expected, upload, STAGE / "dataset-journal", context
+        )
+        print(json.dumps({"status": "one_create_returned", "slug": slug, "result": result}))
+        return
+    if args.action == "verify-dataset":
+        result = p.reconcile(remote, slug, expected)
+        w.new_json(STAGE / "dataset-bytes-verified.json", result)
+        print(
+            json.dumps(
+                {
+                    "status": result["status"],
+                    "dataset_id": result["id"],
+                    "files": len(result["files"]),
+                }
+            )
+        )
+        return
+    verified = json.loads((STAGE / "dataset-bytes-verified.json").read_text())
+    if p.metadata(remote, slug) != {k: verified[k] for k in ("id", "version", "slug", "private")}:
+        raise ValueError("Verified Dataset identity changed")
+    text = (source / "notebook.py").read_text()
+    request = {
+        "slug": kernel,
+        "newTitle": "Private ZIP structure preservation probe",
+        "text": text,
+        "language": "python",
+        "kernelType": "script",
+        "isPrivate": True,
+        "enableGpu": False,
+        "enableInternet": False,
+        "datasetDataSources": [slug],
+        "competitionDataSources": [],
+        "sessionTimeoutSeconds": 300,
+    }
+    if args.action == "push":
+        absence = remote.require_absent_kernel(kernel)
+        w.new_json(
+            STAGE / "kernel-intent.json",
+            {
+                "request_sha256": w.object_hash(request),
+                "source_sha256": p.digest(source / "notebook.py"),
+                "absence_proof": absence,
+                "kernel_slug": kernel,
+                "version": 1,
+                "gpu": False,
+                "competition_submission": False,
+                "dataset_verification_sha256": p.digest(STAGE / "dataset-bytes-verified.json"),
+            },
+        )
+        result = remote.call("kernels.KernelsApiService", "SaveKernel", request)
+        w.new_json(STAGE / "kernel-response.json", result)
+        if result.get("versionNumber") != 1 or result.get("error"):
+            raise ValueError("Kernel result uncertain; reconcile only")
+        print(json.dumps({"status": "pushed", "kernel_slug": kernel, "version": 1, "gpu": False}))
+        return
+    intent = json.loads((STAGE / "kernel-intent.json").read_text())
+    if intent["request_sha256"] != w.object_hash(request):
+        raise ValueError("Kernel request changed")
+    found = remote.kernel("GetKernel", kernel, 1)
+    meta = found.get("metadata", {})
+    if (
+        found.get("blob", {}).get("source") != text
+        or meta.get("isPrivate") is not True
+        or meta.get("enableInternet", False) is not False
+        or meta.get("enableGpu", False) is not False
+        or meta.get("datasetDataSources") != [slug]
+        or meta.get("competitionDataSources", [])
+    ):
+        raise ValueError("Actual private offline CPU kernel differs")
+    status = remote.kernel("GetKernelSessionStatus", kernel, 1)
+    if args.action == "status":
+        print(json.dumps({"status": status.get("status"), "version": 1, "gpu": False}))
+        return
+    if status.get("status") != "COMPLETE":
+        raise ValueError("Probe is not complete")
+    result = remote.output_json(kernel, 1, "structure-probe-receipt.json")
+    w.new_json(STAGE / "mounted-structure-receipt.json", result)
+    w.new_json(
+        STAGE / "mounted-structure-provenance.json",
+        {
+            "kernel_slug": kernel,
+            "version": 1,
+            "source_sha256": p.digest(source / "notebook.py"),
+            "receipt_sha256": p.digest(STAGE / "mounted-structure-receipt.json"),
+            "dataset_slug": slug,
+            "dataset_version": 1,
+            "dataset_id": verified["id"],
+            "gpu": False,
+            "competition_submission": False,
+        },
+    )
+    print(json.dumps(result, sort_keys=True))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        print(
+            json.dumps(
+                {"status": "blocked", "error_type": type(exc).__name__, "automatic_retry": False}
+            )
+        )
+        raise SystemExit(1) from None
