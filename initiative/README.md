@@ -36,9 +36,10 @@ The pinned weights, pilot cache, exact Newton source and offline CPU environment
 are verified. The first GPU pilot stopped before training because its allocated
 GPUs were not correctly available to the process. Basic CUDA checks passed on
 another Newton node, and the exact offline Kaggle T4 runtime also passed. The
-recovery-pilot retry then exposed a strict weight-key compatibility mismatch
-before training; that fix and the full-cache transfer continue. No competitive
-DINOv3 result has been measured yet. The
+recovery-pilot retry then exposed a strict weight-key compatibility mismatch.
+The corrected adapter passed full official-weight CPU loading and exact
+restoration; the corrected GPU pilot and full-cache transfer remain. No
+competitive DINOv3 result has been measured yet. The
 accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 
 ## Contents

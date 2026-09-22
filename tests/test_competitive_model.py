@@ -307,6 +307,125 @@ def test_safetensors_local_loading(tmp_path, monkeypatch):
     assert encoder(torch.zeros(1, 1, 28, 28)).shape == (1, dim)
 
 
+def _legacy_dino_fixture():
+    pytest.importorskip("transformers")
+    config = dict(
+        hidden_size=16,
+        intermediate_size=32,
+        num_hidden_layers=2,
+        num_attention_heads=4,
+        image_size=32,
+        patch_size=16,
+        num_register_tokens=4,
+    )
+    model = backbones._construct("dinov3_l16", config, "ConvNextForImageClassification").eval()
+    # Synthetic random tensors in the official checkpoint's legacy namespace.
+    # Actual complete official weight acceptance is a separate Newton CPU test.
+    state = {
+        key.removeprefix("model.") if key.startswith("model.layer.") else key: value
+        for key, value in model.state_dict().items()
+    }
+    return dict(backbones._DINOV3_L16_LEGACY_SOURCE), config, model, state
+
+
+def test_official_dino_key_migration_preserves_every_tensor_and_forward():
+    spec, config, original, legacy = _legacy_dino_fixture()
+    converted = backbones._adapt_pretrained_state(spec, legacy)
+    restored = backbones._construct("dinov3_l16", config, "ConvNextForImageClassification").eval()
+    result = restored.load_state_dict(converted, strict=True)
+    assert result.missing_keys == result.unexpected_keys == []
+    assert set(converted) == set(original.state_dict())
+    for key, value in legacy.items():
+        destination = "model." + key if key.startswith("layer.") else key
+        assert converted[destination] is value
+        torch.testing.assert_close(restored.state_dict()[destination], value, rtol=0, atol=0)
+    assert any(key.startswith("layer.") for key in legacy)  # caller state not rewritten
+    pixels = torch.rand(1, 3, 32, 32)
+    with torch.no_grad():
+        torch.testing.assert_close(
+            original(pixel_values=pixels).pooler_output,
+            restored(pixel_values=pixels).pooler_output,
+            rtol=0,
+            atol=0,
+        )
+
+
+@pytest.mark.parametrize("field", list(backbones._DINOV3_L16_LEGACY_SOURCE))
+def test_dino_key_migration_does_not_apply_to_unreviewed_source_or_version(field):
+    spec, _, model, legacy = _legacy_dino_fixture()
+    spec[field] = "different"
+    assert backbones._pretrained_key_mapping(spec) is None
+    assert backbones._adapt_pretrained_state(spec, legacy) is legacy
+    with pytest.raises(RuntimeError, match="Missing key"):
+        model.load_state_dict(legacy, strict=True)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra", "shape"])
+def test_dino_key_migration_keeps_strict_full_state_rejection(mutation):
+    spec, _, model, legacy = _legacy_dino_fixture()
+    if mutation == "missing":
+        legacy.pop("layer.0.norm1.weight")
+    elif mutation == "extra":
+        legacy["layer.99.norm1.weight"] = torch.ones(16)
+    else:
+        legacy["layer.0.norm1.weight"] = torch.ones(15)
+    converted = backbones._adapt_pretrained_state(spec, legacy)
+    with pytest.raises(RuntimeError):
+        model.load_state_dict(converted, strict=True)
+
+
+@pytest.mark.parametrize("mutation", ["collision", "already_migrated", "missing_layers"])
+def test_official_dino_mixed_colliding_or_unexpected_namespaces_rejected(mutation):
+    spec, _, model, legacy = _legacy_dino_fixture()
+    if mutation == "collision":
+        legacy["model.layer.0.norm1.weight"] = legacy["layer.0.norm1.weight"].clone()
+    elif mutation == "already_migrated":
+        legacy = dict(model.state_dict())
+    else:
+        legacy = {key: value for key, value in legacy.items() if not key.startswith("layer.")}
+    with pytest.raises(ValueError, match="DINOv3 source"):
+        backbones._adapt_pretrained_state(spec, legacy)
+
+
+def test_dino_migration_provenance_and_checkpoint_only_restore(tmp_path, monkeypatch):
+    pytest.importorskip("transformers")
+    config_path = (
+        Path(__file__).resolve().parents[1] / "configs/competitive/weights/dinov3-large.config.json"
+    )
+    config = json.loads(config_path.read_text())
+    spec = dict(backbones._DINOV3_L16_LEGACY_SOURCE, license="other")
+    assert backbones._sha256(config_path) == spec["config_sha256"]
+    provenance = backbones._encoder_provenance(spec, config, "ConvNextForImageClassification")
+    assert provenance["pretrained_state_key_mapping"] == backbones._DINOV3_LAYER_MAPPING
+    assert provenance["weights_sha256"] == spec["weights_sha256"]
+    constructor = backbones._construct
+
+    def reduced_constructor(architecture, actual_config, model_class):
+        # Width, registers, normalization and global embedding stay Large; only
+        # depth reduced for this synthetic checkpoint-restoration regression.
+        return constructor(architecture, dict(actual_config, num_hidden_layers=1), model_class)
+
+    monkeypatch.setattr(backbones, "_construct", reduced_constructor)
+    base = reduced_constructor("dinov3_l16", config, "ConvNextForImageClassification")
+    encoder = backbones._GrayEncoder(base, 16).eval()
+    state = encoder.state_dict()
+    restored, dimension, saved = backbones.create_encoder_from_training_checkpoint(
+        provenance, config_path, encoder_state=state
+    )
+    assert dimension == 1024 and saved == provenance
+    pixels = torch.rand(1, 1, 32, 32)
+    with torch.no_grad():
+        torch.testing.assert_close(encoder(pixels), restored(pixels), rtol=0, atol=0)
+    for changed in (
+        {key: value for key, value in provenance.items() if key != "pretrained_state_key_mapping"},
+        dict(provenance, pretrained_state_key_mapping="unknown"),
+    ):
+        with pytest.raises(ValueError, match="provenance/architecture"):
+            backbones.create_encoder_from_training_checkpoint(
+                changed, config_path, encoder_state=state
+            )
+
+
 def _large_config():
     # Source-derived topology fixture, not a copy of the gated HF config file.
     return dict(

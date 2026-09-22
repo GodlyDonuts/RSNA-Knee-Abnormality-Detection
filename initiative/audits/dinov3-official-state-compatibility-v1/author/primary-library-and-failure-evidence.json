@@ -1,0 +1,11 @@
+{
+  "constructor_source": "    def __init__(self, config: DINOv3ViTConfig):\n        super().__init__(config)\n        self.embeddings = DINOv3ViTEmbeddings(config)\n        self.rope_embeddings = DINOv3ViTRopePositionEmbedding(config)\n        self.model = DINOv3ViTEncoder(config)\n        self.norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)\n        self.gradient_checkpointing = False\n        # Initialize weights and apply final processing\n        self.post_init()\n",
+  "exact_leading_prefix_bijection": true,
+  "failure_unique_missing_layer_keys": 408,
+  "failure_unique_unexpected_layer_keys": 408,
+  "mapping_excerpt": "        \"dinov3_convnext\": [WeightRenaming(r\"(?<!model\\.)stages\", r\"model.stages\")],\n        \"dinov3_vit\": [WeightRenaming(r\"(?<!model\\.)layer.\", r\"model.layer.\")],\n        \"timesfm2_5\": [",
+  "mapping_module": "conversion_mapping.py",
+  "mapping_module_sha256": "a99a81674cfaa15ec9071ba09dad4b9e6ec1e7a71494283ceb366164ea978832",
+  "source": "Installed primary Transformers5.6.1 Python implementation plus preserved actual official checkpoint traceback. No tensor payload or source file edited.",
+  "version": "5.6.1"
+}

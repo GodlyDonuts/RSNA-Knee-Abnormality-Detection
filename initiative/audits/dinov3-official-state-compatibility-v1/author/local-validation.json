@@ -1,0 +1,46 @@
+{
+  "actual_author": "/root/image_pipeline_audit",
+  "change": "Only exact admitted architecture/source/revision/config SHA/weight SHA/format/library version applies a leading layer. to model.layer. key rename. Tensor objects and source bytes remain untouched. Mixed/canonical legacy namespaces and collisions reject; full strict key/shape/finite checks remain. Saved encoder provenance names the transform and checkpoint-only restoration requires it.",
+  "created_at_utc": "2026-09-22T18:13:44.321914+00:00",
+  "diagnosis": "Official pinned DINOv3-L file uses layer.N.*; Transformers5.6.1 constructs model.layer.N.*. Its central conversion_mapping.py provides the same DINOv3 rename for from_pretrained; the offline raw strict load bypassed it.",
+  "failure_evidence": {
+    "bytes": 60562,
+    "path": "artifacts/newton-pilot-launch-v2/failed-838580/continuous.log",
+    "sha256": "05f25fdea162847abd4ce001fc277e7110bf8f749ddda5aa5ff42f96cd2e237e"
+  },
+  "files": [
+    {
+      "bytes": 18397,
+      "path": "rsna/competitive/backbones.py",
+      "sha256": "f318c0d437d8bcc7834a2304e8379a9f37b698bee5cf8b5fb2d9ea3e0de37c9e"
+    },
+    {
+      "bytes": 29838,
+      "path": "tests/test_competitive_model.py",
+      "sha256": "e9f38bfd9401556d33c437442c1fda46f5e7cb0a71e6ece9865a89c1fb68fe92"
+    }
+  ],
+  "limits": [
+    "Actual complete1.2GB official weights have not been read locally.",
+    "No GPU jobs or remote changes by this author.",
+    "Full official state CPU load/forward acceptance must pass separately before retrying GPU training.",
+    "Base DINOv3 or other source artifacts do not get heuristic key migration."
+  ],
+  "original_runtime_git": "06816e6b698901bd5148d47a3cdf73252c5a3a89",
+  "schema_version": 1,
+  "status": "local_compatibility_tests_passed_awaiting_full_official_cpu_acceptance",
+  "tests": {
+    "command": "python -m pytest -q tests/test_competitive_model.py tests/test_competitive_inference.py",
+    "elapsed_seconds": 6.06,
+    "mypy": "passed using --cache-dir=/dev/null",
+    "new_regression_scope": [
+      "Complete synthetic real-HF small model tensor identity and bit-exact forward equality",
+      "Seven source/library pin changes cannot invoke migration",
+      "Missing/extra/wrong-shape states still fail strict loading",
+      "Mixed colliding/already migrated/absent layer namespaces reject",
+      "Large-width reduced-depth checkpoint-only restoration preserves mapping lineage; missing/altered mapping rejects"
+    ],
+    "passed": 110,
+    "ruff": "passed"
+  }
+}

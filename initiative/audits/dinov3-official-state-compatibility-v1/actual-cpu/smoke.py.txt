@@ -1,0 +1,61 @@
+"""Full pinned official DINOv3-L load plus one synthetic CPU forward; no downloads."""
+import hashlib
+import importlib.util
+import json
+import os
+import resource
+import sys
+import time
+from pathlib import Path
+
+
+def digest(path):
+    h=hashlib.sha256()
+    with path.open('rb') as f:
+        for block in iter(lambda:f.read(4*1024*1024),b''):h.update(block)
+    return h.hexdigest()
+
+
+def main():
+    if not os.environ.get('SLURM_JOB_ID') or os.environ.get('SLURM_JOB_GPUS'):
+        raise ValueError('Zero-GPU allocation required')
+    module_path=Path(sys.argv[1]);expected_module_sha=sys.argv[2];output=Path(sys.argv[3])
+    if digest(module_path)!=expected_module_sha:raise ValueError('Adapter bytes changed')
+    manifest=Path('configs/competitive/weights/dinov3-large.json')
+    if digest(manifest)!='d41104bb647f6444dbd1549048730d8ba6900ea7af36bfd5e7c938dca48a9a43':raise ValueError('Official manifest changed')
+    spec=importlib.util.spec_from_file_location('rsna_checked_backbone_smoke',module_path)
+    module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
+    import torch
+    torch.set_num_threads(2);torch.manual_seed(20260922)
+    encoder_spec=json.loads(manifest.read_text())['encoder']
+    before=time.monotonic();encoder,dimension,provenance=module.create_encoder(encoder_spec)
+    load_seconds=time.monotonic()-before
+    assert dimension==1024 and provenance['weights_sha256']=='dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179'
+    from safetensors.torch import load_file
+    original=load_file(encoder_spec['weights_path'],device='cpu')
+    loaded=encoder.backbone.state_dict()
+    assert len(original)==415 and len(loaded)==415
+    renamed=sum(key.startswith('layer.') for key in original)
+    assert renamed==408
+    mapped={('model.'+key if key.startswith('layer.') else key):value for key,value in original.items()}
+    assert set(mapped)==set(loaded)
+    assert all(mapped[key].shape==loaded[key].shape and torch.equal(mapped[key],loaded[key]) for key in mapped)
+    del original,mapped,loaded
+    encoder.eval();before=time.monotonic()
+    with torch.inference_mode():features=encoder(torch.zeros(1,1,224,224))
+    forward_seconds=time.monotonic()-before
+    assert tuple(features.shape)==(1,1024) and torch.isfinite(features).all()
+    before=time.monotonic()
+    restored,restored_dim,restored_provenance=module.create_encoder_from_training_checkpoint(
+        provenance,Path(encoder_spec['config_path']),encoder_state=encoder.state_dict())
+    with torch.inference_mode():restored_features=restored(torch.zeros(1,1,224,224))
+    assert restored_dim==dimension and restored_provenance==provenance and torch.equal(features,restored_features)
+    restoration_seconds=time.monotonic()-before
+    assert digest(Path(encoder_spec['weights_path']))==encoder_spec['weights_sha256']
+    assert Path(encoder_spec['weights_path']).stat().st_size==1212559808
+    r={'schema_version':1,'status':'passed','job_id':os.environ['SLURM_JOB_ID'],'requested_gpus':0,'device':str(features.device),'adapter_sha256':expected_module_sha,'manifest_sha256':digest(manifest),'encoder_provenance':provenance,'strict_full_official_pretrained_load':True,'official_tensor_count':415,'renamed_keys':408,'unchanged_keys':7,'all_original_tensors_exact_after_mapping':True,'checkpoint_only_restore_forward_bit_exact':True,'checkpoint_restore_seconds':restoration_seconds,'original_weights_bytes':1212559808,'synthetic_input_shape':[1,1,224,224],'output_shape':list(features.shape),'output_finite':True,'output_sha256':hashlib.sha256(features.numpy().tobytes()).hexdigest(),'parameters':sum(p.numel() for p in encoder.parameters()),'load_seconds':load_seconds,'forward_seconds':forward_seconds,'max_rss_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'medical_data_used':False,'downloads':False,'gpu_acceptance':False}
+    with output.open('x') as f:json.dump(r,f,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+    print(json.dumps(r,sort_keys=True),flush=True)
+
+
+if __name__=='__main__':main()

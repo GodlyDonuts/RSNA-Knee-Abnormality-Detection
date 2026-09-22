@@ -54,6 +54,11 @@ weight revision, size and SHA are pinned. Meta approved account access; the
 authenticated exact config and license bytes are verified. The executable source
 manifest is `configs/competitive/weights/dinov3-large.json`. The campaign recipe
 is combined with that manifest only after staged weights pass full verification.
+For this exact official checkpoint, the offline adapter applies Transformers
+5.6.1's documented `layer.` to `model.layer.` compatibility conversion. Original
+weight hashes and tensor values stay unchanged, and full strict loading remains
+required. Actual Newton CPU verification checked all 415 tensors, a 224-pixel
+forward and exact checkpoint-only restoration; CUDA recovery is a separate gate.
 
 Start with one Newton node, two H100s, four CPUs total and zero extra loader
 workers. Use two-rank DDP with one study per microbatch and four accumulation

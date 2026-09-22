@@ -16,6 +16,48 @@ from torch import Tensor, nn
 
 TRANSFORMERS_VERSION = "5.6.1"
 ARCHITECTURES = {"dinov2_b14_reg", "dinov3_b16", "dinov3_l16", "convnext_tiny"}
+_DINOV3_L16_LEGACY_SOURCE = {
+    "architecture": "dinov3_l16",
+    "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "config_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+    "weights_sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179",
+    "state_dict_format": "safetensors",
+    "transformers_version": TRANSFORMERS_VERSION,
+}
+_DINOV3_LAYER_MAPPING = "dinov3_official_layer_to_model_layer_transformers_5_6_1_v1"
+
+
+def _pretrained_key_mapping(spec: Mapping[str, Any]) -> str | None:
+    if all(spec.get(key) == value for key, value in _DINOV3_L16_LEGACY_SOURCE.items()):
+        return _DINOV3_LAYER_MAPPING
+    return None
+
+
+def _adapt_pretrained_state(spec: Mapping[str, Any], state: dict[str, Tensor]) -> dict[str, Tensor]:
+    """Apply only the reviewed official source's documented HF key migration.
+
+    Transformers 5.6.1 conversion_mapping.py maps DINOv3 ``layer.`` keys to
+    ``model.layer.`` during from_pretrained. Our offline constructor bypasses
+    that loader, so reproduce the leading-prefix rename for the exact admitted
+    artifact. Tensor objects/values and original file hashes remain untouched.
+    The caller must still strict-load every resulting key and tensor shape.
+    """
+    if _pretrained_key_mapping(spec) is None:
+        return state
+    if any(key.startswith("model.layer.") for key in state):
+        raise ValueError("Official DINOv3 source has mixed or already migrated layer keys")
+    adapted: dict[str, Tensor] = {}
+    renamed = 0
+    for key, tensor in state.items():
+        target = "model." + key if key.startswith("layer.") else key
+        if target in adapted:
+            raise ValueError("DINOv3 checkpoint key migration collision")
+        adapted[target] = tensor
+        renamed += target != key
+    if not renamed:
+        raise ValueError("Official DINOv3 source is missing its expected layer namespace")
+    return adapted
 
 
 def _sha256(path: Path) -> str:
@@ -238,6 +280,9 @@ def _encoder_provenance(spec: Mapping[str, Any], config: dict, model_class: str)
         if architecture == "convnext_tiny"
         else "normalized_cls",
     )
+    mapping = _pretrained_key_mapping(spec)
+    if mapping is not None:
+        result["pretrained_state_key_mapping"] = mapping
     return result
 
 
@@ -311,7 +356,7 @@ def create_encoder(spec: Mapping[str, Any]) -> tuple[nn.Module, int, dict[str, A
         )
     ):
         raise ValueError("Checkpoint must be a finite plain tensor state dictionary")
-    model.load_state_dict(state, strict=True)
+    model.load_state_dict(_adapt_pretrained_state(spec, state), strict=True)
     if architecture == "convnext_tiny" and model_class == "ConvNextForImageClassification":
         model = cast(nn.Module, model.convnext)
     patch, embedding_dim = _encoder_dimensions(architecture)

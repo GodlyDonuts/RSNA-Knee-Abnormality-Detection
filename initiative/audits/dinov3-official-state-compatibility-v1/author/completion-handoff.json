@@ -1,0 +1,33 @@
+{
+  "actual_author": "/root/image_pipeline_audit",
+  "actual_official_cpu_acceptance": {
+    "all_original_tensors_exact": true,
+    "checkpoint_only_forward_bit_exact": true,
+    "executor": "/root/competition_contract/medical_encoder_sources",
+    "gpu_allocation": false,
+    "independent_read_only_receipt_and_all_preserved_file_hashes_checked": true,
+    "job_id": 838689,
+    "manifest_sha256": "cb96ff163e305a2de54a262966aa5714afcff32dcba39f1792362906973ee510",
+    "official_tensor_count": 415,
+    "path": "artifacts/newton-dinov3-pretrained-cpu-v1/completed-838689",
+    "renamed_keys": 408,
+    "result_sha256": "15a695fb68d0c5ac149e1ed81cae47a2290fd450fe0b91ae0fb6c7edab4dca0b",
+    "unchanged_keys": 7
+  },
+  "local_validation": {
+    "path": "artifacts/dinov3-official-state-compatibility-v1/local-validation.json",
+    "sha256": "b22cce29d07991a0bd029d21d8b59351a92d4af594c7d543eae55928d245063c"
+  },
+  "original_failure_preserved": true,
+  "primary_evidence": {
+    "path": "artifacts/dinov3-official-state-compatibility-v1/primary-library-and-failure-evidence.json",
+    "sha256": "9db17692cc97a1689670a228e4191dc0d1c1d1fa7ec5039a4308d70007dbbb29"
+  },
+  "remaining": [
+    "Root required checks and separate runtime commit/push.",
+    "Sole dispatcher must stage that exact new commit before a bounded GPU pilot; CPU success does not certify training throughput or DDP recovery."
+  ],
+  "schema_version": 1,
+  "source_files_unchanged_since_local_tests": true,
+  "status": "ready_for_runtime_commit_after_root_required_checks"
+}

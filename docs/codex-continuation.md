@@ -71,10 +71,15 @@ evc38 from our jobs until verified healthy. The recovery-pilot retry is job
 838580 on evc37, with the same code/configuration and a fresh output directory.
 That retry passed CUDA/NCCL preflight but stopped before training: the official
 checkpoint uses `layer.N.*`, while Transformers 5.6.1 expects `model.layer.N.*`.
-The complete strict-load failure is preserved. Implement a narrow source-bound
-key mapping, keep full strict loading and original weight hashes, and require an
-actual full pretrained CPU load before another GPU pilot. No epoch time or
-competitive score has been measured at this checkpoint.
+The complete strict-load failure is preserved. A narrow mapping for the exact
+reviewed source now follows the library's own conversion while keeping strict
+loading and original weight hashes. CPU job 838689 verified all 415 official
+tensors, a finite 224-pixel forward and bit-exact checkpoint-only restoration.
+All 905 local tests, Ruff and mypy passed. See
+`initiative/audits/dinov3-official-state-compatibility-v1/`. Deploy this corrected
+committed source before the next GPU recovery pilot; the older `06816e6` checkout
+does not contain the fix. No epoch time or competitive score has been measured
+at this checkpoint.
 
 The exact offline Kaggle wheelhouse also passed an actual T4 probe. Its dedicated
 private Dataset and notebook remain at version 1, with all small receipts under
