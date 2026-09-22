@@ -616,6 +616,7 @@ def test_labels_cli_cannot_release_without_registry(
     assert not (root / "release").exists()
 
 
+@pytest.mark.usefixtures("isolate_semantic_release")
 def test_labels_cli_exports_effective_original_and_correction_lineage(
     bundle: dict, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -672,6 +673,18 @@ def test_labels_cli_exports_effective_original_and_correction_lineage(
             *[item for key, value in arguments.items() for item in (f"--{key}", str(value))],
         ],
     )
+    # A late release-boundary rejection must not expose a partial export.
+    from rsna import release
+
+    def reject_release(*args):
+        raise ValueError("fixture late release rejection")
+
+    with monkeypatch.context() as late:
+        late.setattr(release, "write_verified_release", reject_release)
+        with pytest.raises(ValueError, match="fixture late release rejection"):
+            labels.main()
+        assert not output.exists()
+        assert not list(output.parent.glob(".release-*"))
     labels.main()
     original = pd.read_parquet(output / "report_annotations_original.parquet")
     effective = pd.read_parquet(output / "report_annotations.parquet")

@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "stage": "independent_final_training_strategy_delta_review",
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "at_utc": "2026-09-22T15:07:56.553575+00:00",
+  "status": "accepted_as_bounded_unexecuted_experiment_plan_no_remaining_blockers_identified",
+  "final_strategy": {
+    "path": "work/annotation-staging/h100-evaluation-design-review-v1/training-strategy-root-revision-002.md",
+    "sha256": "ff74dc7e32507e0c156d547f2a2eaa728edcecfc333a11767ed9f24294181a97",
+    "bytes": 29897
+  },
+  "canonical_hash_matches_snapshot_at_review": true,
+  "prior_review": {
+    "path": "work/annotation-staging/h100-evaluation-design-review-v1/root-revision-001-review.json",
+    "sha256": "5b7352a66921fd2ffc2750ccdbf253b7a4861d1ee5ebced03fdc85f20d24662b",
+    "bytes": 5726
+  },
+  "exact_delta": {
+    "path": "work/annotation-staging/h100-evaluation-design-review-v1/root-revisions-001-002.diff",
+    "sha256": "dc188f7ffb91d575dc06ab010212f5c775f1272e74211a31c877e01ff20da7d3",
+    "bytes": 7519
+  },
+  "method": "Read full revision001 and every exact revision002 delta with surrounding prior context; checked added model availability/domain statements against public primary sources. Original snapshots/reviews unchanged.",
+  "resolved_findings": [
+    {
+      "id": "task-logit-distillation-masks",
+      "assessment": "Final text explicitly requires per-target masks and whole-study exclusions for task-logit distillation; auxiliary scope changes need separate review; representation objectives distinguished."
+    },
+    {
+      "id": "diagnostic-ddp-already-exists",
+      "assessment": "Existing diagnostic distributed path acknowledged; competitive pretrained/distributed implementation remains pending acceptance."
+    },
+    {
+      "id": "cache-upper-bound",
+      "assessment": "Upper-bound wording removed; measured compression and padding explicitly qualify proportional planning estimate."
+    }
+  ],
+  "additional_deltas_reviewed": [
+    {
+      "scope": "conditional_knee_checkpoints",
+      "assessment": "OrthoFoundation-L and OrthoDiffusion remain candidates only; public listing is separated from unchecked overlap/license/competition eligibility. No dataset or weights downloaded and no model approved by this review."
+    },
+    {
+      "scope": "fold_specific_mri_adaptation",
+      "assessment": "Eligible images and bounded matched update budget; same-series crop correspondence; separately trained fold adaptations exclude evaluation images without relying on labels. No unconditional cross-sequence registration assumption."
+    },
+    {
+      "scope": "base_vs_large",
+      "assessment": "Distinct researcher preference and root Base-first decision preserved; matched evidence determines later scaling rather than presumed superiority."
+    },
+    {
+      "scope": "expert_label_pilot",
+      "assessment": "Independent sampled audit separated from enriched training acquisition, explicit indeterminate state and second reader, no authorized spending/completed label claim."
+    },
+    {
+      "scope": "200_hour_fallback",
+      "assessment": "Now explicitly conditional on measured cost; complete comparison prioritized over breadth."
+    }
+  ],
+  "primary_source_checks": [
+    {
+      "url": "https://github.com/ytrsk/OrthoFoundation",
+      "support": "Author repository lists OrthoFoudation-L.pth and DINOv3-L continued knee radiograph/MRI pretraining; a project MIT notice is not treated as upstream clearance."
+    },
+    {
+      "url": "https://arxiv.org/abs/2601.18250",
+      "support": "Primary study describes multimodal knee pretraining; current task performance not inferred."
+    },
+    {
+      "url": "https://arxiv.org/html/2602.20752v1",
+      "support": "Three orientation-specific3D models,15,948 knee pretraining examinations and surgical/hardware/acute complex-fracture exclusions are present in primary methods."
+    },
+    {
+      "url": "https://github.com/lt-0123/OrthoDiffusion",
+      "support": "Author code describes view-specific representation extraction; no private cohort access inferred."
+    },
+    {
+      "url": "https://huggingface.co/lanstat0123/orthodiffusion/tree/main",
+      "support": "Public listing has axial_model.pt,coronal_model.pt,sagittal_model.pt. Listing inspected only; no payload download or license clearance."
+    },
+    {
+      "url": "https://arxiv.org/abs/2208.13923",
+      "support": "Limited-data knee SSL precedent, not evidence of the current twelve-target model."
+    },
+    {
+      "url": "https://arxiv.org/abs/2604.11679",
+      "support": "Task-dependent brain-MRI pretraining findings motivate controls; no automatic transfer claim."
+    }
+  ],
+  "scope_limits": [
+    "Review is methodological/documentary, not measured GPU throughput or trained model acceptance.",
+    "No official gold values, clinical annotation records, source images or cache arrays were opened.",
+    "No changes to source, accepted labels/masks, runtime code or canonical strategy by this reviewer.",
+    "Actual folds, search registry, weight eligibility,GPU implementation, allocation and deployment pilots still must be executed and validated.",
+    "Pair-weighted within-fold aggregate is a declared development diagnostic; it does not replace reporting the competition macro/OOF result with limits."
+  ],
+  "training_ready_or_competitive_accuracy_claim": false,
+  "remote_mutations": false
+}

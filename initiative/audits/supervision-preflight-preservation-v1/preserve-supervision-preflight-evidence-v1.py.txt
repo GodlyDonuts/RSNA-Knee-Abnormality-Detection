@@ -1,0 +1,64 @@
+"""Preserve bounded design and technical coverage evidence, without accepting holds."""
+import hashlib
+import json
+from pathlib import Path
+import shutil
+
+W = Path(__file__).resolve().parent.parent
+R = W / "work/recovered"
+B = W / "work/annotation-staging"
+A = R / "initiative/audits"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+pins = {
+    "conservative-semantic-hold-coverage-preflight-569-v1": "11c6472dd28c364be89621448c25a8f0d811e144fdbeb6bc2ec86d68f3d8a30c",
+    "conservative-semantic-hold-independent-design-v1": "fbb822251421f7446f604972269071ff9caee0285e8bdd4ab0e821896e2d2580",
+}
+refs = {}
+for stage, expected in pins.items():
+    manifest = B / stage / "completion-manifest.json"
+    assert sha(manifest) == expected
+    for ref in json.loads(manifest.read_text())["files"]:
+        p = W / ref["path"]
+        assert p.is_relative_to(B / stage) and p.is_file() and not p.is_symlink()
+        assert sha(p) == ref["sha256"] and p.stat().st_size == ref["bytes"]
+        refs[p] = ref
+    refs[manifest] = dict(path=str(manifest.relative_to(W)), sha256=expected, bytes=manifest.stat().st_size)
+decision = B / "conservative-semantic-hold-root-design-decision-v1/root-design-decision.json"
+assert sha(decision) == "357a3c6aec6d8752ae488a2fed1cd16b342d7de89f5b0bb5991d87c4e36a7f76"
+refs[decision] = dict(path=str(decision.relative_to(W)), sha256=sha(decision), bytes=decision.stat().st_size)
+jobs = []
+for p, ref in refs.items():
+    dest = A / p.relative_to(B)
+    if p.suffix == ".py":
+        dest = dest.with_suffix(".py.txt")
+    jobs.append((p, dest, ref))
+design = W / "work/conservative-semantic-hold-design-v1.md"
+assert sha(design) == "2ac18fcf2fcf28dc23532fb963d1dbff8beec1ec503ab1ce80648bf502982ba1"
+jobs.append((design, A / "conservative-semantic-hold-root-design-decision-v1/original-design.md",
+             dict(path=str(design.relative_to(W)), sha256=sha(design), bytes=design.stat().st_size)))
+needed = sum(ref["bytes"] for _, d, ref in jobs if not d.exists())
+assert shutil.disk_usage(W).free - needed >= 20 * 1024**3
+outdir = A / "supervision-preflight-preservation-v1"
+assert not outdir.exists()
+for _, d, ref in jobs:
+    if d.exists():
+        assert sha(d) == ref["sha256"]
+files = []
+for p, d, ref in jobs:
+    d.parent.mkdir(parents=True, exist_ok=True)
+    action = "equal_existing" if d.exists() else "copied_new"
+    if not d.exists():
+        with d.open("xb") as out:
+            out.write(p.read_bytes())
+    assert sha(d) == ref["sha256"]
+    files.append({**ref, "original_path": ref["path"], "path": str(d.relative_to(R)), "action": action})
+outdir.mkdir()
+helper = outdir / (Path(__file__).name + ".txt")
+helper.write_bytes(Path(__file__).read_bytes())
+record = dict(actual_executor="/root", stage="design_and_coverage_evidence_preservation",
+               completion_pins=pins, files=files, helper_sha256=sha(helper),
+               approved_hold_records=0, clinical_judgments_added=0,
+               semantic_qa_closed=False, training_ready=False)
+out = outdir / "preservation.json"
+out.write_text(json.dumps(record, indent=2) + "\n")
+print(json.dumps(dict(status="preserved", files=len(files), new_bytes=needed, receipt_sha256=sha(out))))

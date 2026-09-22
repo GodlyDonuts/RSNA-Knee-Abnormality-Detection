@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "actual_author": "/root/image_pipeline_audit",
+  "rules": [
+    "Do not archive the unsafe original activation-pins.json; preserve it unchanged privately.",
+    "Archive the explicitly labeled projection and this scan receipt. Map the omitted original relative path and SHA to the projection in archive provenance.",
+    "Do not rewrite original final-review.json or completion-manifest.json; their original hash references remain historical references, with the explicit projection mapping showing why one original is not embedded.",
+    "Do not use the projection as STAGED_PROOF or execute its placeholder path. Actual future bindings use the preserved private final-review.json and its existing hash.",
+    "Rename Python sources .py.txt when archiving, with exact input/output identity mapping.",
+    "Run final known-secret-value scanning on the exact archive selection before publication."
+  ],
+  "original_sha256": "acf553cd3e13663a2dba3af04e8d5ae28634af0d1a582d8d972dc659d4037797",
+  "projection": {
+    "path": "work/annotation-staging/final-release-publication-archive-projection-v1/activation-pins.redacted-projection.json",
+    "sha256": "7cd23f746dc81869b63a3dc3a07b1ed215c6919ab74b8587bdbf201b7a6f4f73",
+    "bytes": 4367
+  },
+  "scan": {
+    "path": "work/annotation-staging/final-release-publication-archive-projection-v1/complete-stage-path-scan.json",
+    "sha256": "206256641e64617e75978aadc3aa5fc38f46da51c99828bcf1c798d5519614d8",
+    "bytes": 15630
+  }
+}

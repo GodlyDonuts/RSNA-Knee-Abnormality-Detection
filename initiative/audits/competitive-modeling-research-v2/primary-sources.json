@@ -1,0 +1,60 @@
+{
+  "access_date": "2026-09-22",
+  "source_policy": "Primary papers or official model repositories only; no Kaggle rules recheck in this task.",
+  "sources": [
+    {
+      "title": "MRNet: Deep-learning-assisted diagnosis for knee MRI",
+      "url": "https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002699",
+      "use": "Pretrained slice encoding, slice pooling and multi-plane fusion motivate a simple knee-MRI baseline.",
+      "limit": "Three original tasks and different population; not evidence of current twelve-target superiority."
+    },
+    {
+      "title": "Attention-based Deep Multiple Instance Learning",
+      "url": "https://proceedings.mlr.press/v80/ilse18a.html",
+      "use": "Learnable bag attention is a candidate aggregation mechanism.",
+      "limit": "Attention is not validated clinical localization."
+    },
+    {
+      "title": "DINOv2 official model card",
+      "url": "https://github.com/facebookresearch/dinov2/blob/main/MODEL_CARD.md",
+      "use": "ViT-S/14 has a 384-dimensional representation; fourteen-pixel patches constrain input dimensions.",
+      "limit": "General image features; model-specific eligibility must be verified separately."
+    },
+    {
+      "title": "A ConvNet for the 2020s",
+      "url": "https://arxiv.org/abs/2201.03545",
+      "use": "Modern pretrained convolutional baseline candidate.",
+      "limit": "Natural-image results do not establish knee transfer performance."
+    },
+    {
+      "title": "Med3D: Transfer Learning for 3D Medical Image Analysis",
+      "url": "https://arxiv.org/abs/1904.00625",
+      "use": "Medical 3D transfer learning motivates a bounded 3D challenger.",
+      "limit": "Does not establish superiority against the proposed 2D setup."
+    },
+    {
+      "title": "MedicalNet official implementation",
+      "url": "https://github.com/Tencent/MedicalNet",
+      "use": "Candidate pretrained 3D ResNet implementation.",
+      "limit": "No weights downloaded; exact checkpoint/license/data provenance and eligibility remain a pre-acquisition check."
+    },
+    {
+      "title": "CheXpert: A Large Chest Radiograph Dataset with Uncertainty Labels and Expert Comparison",
+      "url": "https://ojs.aaai.org/index.php/AAAI/article/view/3834",
+      "use": "Uncertainty-label strategies can differ by pathology.",
+      "limit": "Chest findings do not justify importing an uncertainty policy into knees."
+    },
+    {
+      "title": "Asymmetric Loss for Multi-Label Classification",
+      "url": "https://arxiv.org/abs/2009.14119",
+      "use": "Asymmetric positive/negative treatment is a later loss ablation.",
+      "limit": "Benefit not established for our severe positive and negative scarcity."
+    },
+    {
+      "title": "Positive-Unlabeled Learning with Non-Negative Risk Estimator",
+      "url": "https://proceedings.neurips.cc/paper/2017/hash/7cce53cf90577442771720a370c3c723-Abstract.html",
+      "use": "A positive-unlabeled estimator needs defensible modeling/sampling assumptions.",
+      "limit": "The paper does not validate report omission as an appropriate unlabeled-data mechanism here."
+    }
+  ]
+}

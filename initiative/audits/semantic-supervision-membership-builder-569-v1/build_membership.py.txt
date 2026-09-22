@@ -1,0 +1,173 @@
+"""Build reviewable supervision-hold candidates; no approvals, R writes or gold parsing.
+
+Required scope/reuse/near-edge inputs are actual externally authored records.
+The output has no registry or accepted decision and cannot pass the release gate.
+"""
+from pathlib import Path
+from collections import defaultdict,Counter
+from datetime import datetime,timezone
+import argparse,gzip,hashlib,importlib.util,json,shutil,sys
+W=Path(__file__).resolve().parents[3];B=W/'work/annotation-staging';R=W/'work/recovered';HERE=Path(__file__).resolve().parent
+PREF=B/'conservative-semantic-hold-coverage-preflight-569-v1';RESULT=PREF/'result-v2';HIST=B/'readiness-evidence-ledger-362-v1/ledger-final'
+PREF_SHA='11c6472dd28c364be89621448c25a8f0d811e144fdbeb6bc2ec86d68f3d8a30c';REGISTRY='7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae';CANON='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3';RUBRIC='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014';AGENT='/root/duplicate_consistency_review'
+
+def require(ok,code):
+ if not ok:raise ValueError(code)
+def raw(p):return p.read_bytes()
+def sh(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for block in iter(lambda:f.read(2**20),b''):h.update(block)
+ return h.hexdigest()
+def jb(v):return json.dumps(v,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+def digest(v):return hashlib.sha256(jb(v)).hexdigest()
+def load(p):
+ data=gzip.decompress(raw(p)) if p.suffix=='.gz' else raw(p)
+ return json.loads(data)
+def lines(p):
+ opener=gzip.open if p.suffix=='.gz' else open
+ with opener(p,'rt') as f:
+  for i,line in enumerate(f):yield i,json.loads(line)
+def whole_ref(p):return {'path':str(p.relative_to(W)),'sha256':sh(p),'bytes':p.stat().st_size}
+def verify_ref(r):
+ p=(W/r['path']).resolve();require(p.is_relative_to(W) and p.is_file() and not p.is_symlink(),'unsafe_input');require(sh(p)==r['sha256'],'changed_input');return p
+
+def main(args):
+ require(sh(PREF/'completion-manifest.json')==PREF_SHA,'preflight_changed')
+ require(sh(R/'initiative/reviews-v2/adjudications/registry.json')==REGISTRY,'registry_not569')
+ require(not args.output.exists() and not args.output.resolve().is_relative_to(R),'write_scope')
+ require(shutil.disk_usage(W).free>20*2**30+64*2**20,'disk_floor')
+ cfg=load(args.plan);require(cfg['status']=='provisional_membership_build_no_approval','plan_status')
+ require(cfg['preflight_sha256']==PREF_SHA and cfg['registry_sha256']==REGISTRY,'plan_context')
+ runtime=verify_ref(cfg['runtime']);sys.path.insert(0,str(R));spec=importlib.util.spec_from_file_location('pinned_hold_runtime',runtime);m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m)
+ require(m.digest({'state':'uncertain','evidence':'a'})==digest({'state':'uncertain','evidence':'a'}),'runtime_hash_convention')
+ from rsna.schema import TARGETS
+ from rsna.adjudications import inspect_adjudications
+ from rsna.correspondence import inspect_correspondence
+ from rsna.report_similarity import inspect_report_similarity
+ targets=list(TARGETS);reports={};sources={};source_files={};review_files={};original={}
+ for path in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+  source_files[str(path.relative_to(R))]=sh(path)
+  for i,row in enumerate(load(path)):
+   require(row['study_uid'] not in reports,'duplicate_source');reports[row['study_uid']]=row['report'];sources[row['study_uid']]={'source_path':str(path.relative_to(R)),'source_index_zero_based':i,'source_sha256':sh(path),'report_sha256':hashlib.sha256(row['report'].encode()).hexdigest()}
+ for path in sorted((R/'initiative/reviews-v2/reviewed').glob('*-reviewed.jsonl')):
+  review_files[str(path.relative_to(R))]=sh(path)
+  for _,row in lines(path):
+   for t,state,ev in zip(targets,row['states'],row['evidence']):original[row['study_uid'],t]={'state':state,'evidence':ev}
+ inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+ require(inspection['n_changes']==569 and inspection['registry_sha256']==REGISTRY and inspection['source_reports_sha256']==CANON,'actual_context')
+ require(inspection['rubric_sha256']==RUBRIC and len(inspection['pending_semantic_qa'])==3,'rubric_or_gates')
+ current=dict(original);changes={}
+ for c in inspection['changes']:current[c['study_uid'],c['target']]=c['after'];changes[c['study_uid'],c['target']]=c
+ require(len(current)==52884,'cell_count')
+ corr=inspect_correspondence(reports,R);excluded={r['study_uid'] for r in corr['decisions']};near=inspect_report_similarity(reports,R);near_pairs=sorted(tuple(sorted((e['left']['study_uid'],e['right']['study_uid']))) for e in near['decisions'])
+ pre={(r['study_uid'],r['target']):r for _,r in lines(RESULT/'cell-ledger.jsonl.gz')};require(set(pre)==set(current),'preflight_membership')
+ for k,row in pre.items():require(hashlib.sha256(jb(current[k])+b'\n').hexdigest()==row['current569']['annotation_sha256'],'historical_newline_annotation_hash')
+ # All externally chosen obligations and reuse decisions remain exact, explicit memberships.
+ scope_path=verify_ref(cfg['scope_manifest']);scope_doc=load(scope_path)
+ require(set(scope_doc)=={'schema_version','source_reports_sha256','rubric_sha256','target_order','obligations'},'scope_schema')
+ require(scope_doc['source_reports_sha256']==CANON and scope_doc['rubric_sha256']==RUBRIC and scope_doc['target_order']==targets,'scope_context')
+ obligations=scope_doc['obligations'];bycell=defaultdict(list);seen=set()
+ for o in obligations:
+  k=o['study_uid'],o['target'];require(k in current and o['id'] not in seen,'unknown_duplicate_obligation');seen.add(o['id']);require(o['category'] in m.CATEGORIES and o['scope_kind'] in {'target','whole_report'},'obligation_type');bycell[k].append(o)
+ # No meaning is inferred from a review-family name. The external receipt must name
+ # exact obligations and exact supporting evidence, not merely a same-state pair.
+ reuse_doc=load(verify_ref(cfg['reuse_dispositions']));require(reuse_doc['status']=='proposed_issue_specific_reuse_not_policy_acceptance','reuse_status');require(reuse_doc['registry_sha256']==REGISTRY and reuse_doc['preflight_sha256']==PREF_SHA,'reuse_context')
+ reuse={}
+ for row in reuse_doc['records']:
+  k=row['study_uid'],row['target'];require(k in current,'unknown_reuse_cell')
+  for oid in row['obligation_ids']:
+   require(oid in seen and any(o['id']==oid for o in bycell[k]),'reuse_obligation_scope');require(oid not in reuse,'duplicate_reuse_disposition');require(row['reason'] and row['resolution_evidence_ids'],'reuse_evidence_missing');reuse[oid]=row
+ # Evidence selections are an exact externally authored index over preserved raw
+ # source/disposition/case objects. It must include all contrary records named in
+ # the scope plan and cannot turn a technical join into an independent reader.
+ catalog_plan=load(verify_ref(cfg['evidence_catalog_plan']));require(catalog_plan['status']=='proposed_exact_evidence_catalog','catalog_plan_status')
+ catalog_entries=catalog_plan['records'];catalog={e['id']:e for e in catalog_entries};require(len(catalog)==len(catalog_entries),'duplicate_evidence')
+ future_prefix=Path(cfg['future_archive_directory']);require(not future_prefix.is_absolute() and str(future_prefix).startswith('initiative/audits/') and '..' not in future_prefix.parts,'future_archive_scope')
+ outputs={};outrefs={}
+ def add(name,obj,gz=False):
+  content=jb(obj)+b'\n';compressed=gzip.compress(content,mtime=0) if gz else content;outputs[name]=compressed;ref={'path':str(future_prefix/name),'sha256':hashlib.sha256(compressed).hexdigest()};outrefs[name]=ref;return ref
+ inputs={k:dict(v) for k,v in cfg['required_inputs'].items()};require(set(inputs)==m.INPUT_NAMES,'required_inputs')
+ # Input references must already be real R files or exact planned artifacts whose
+ # byte hashes are validated separately; no path is silently aliased.
+ staged_input_map={}
+ for name,ref in inputs.items():
+  if name=='scope_manifest':
+   require(ref['sha256']==sh(scope_path),'scope_input_hash');staged_input_map[ref['path']]=scope_path
+  else:
+   pp=R/ref['path'];require(pp.is_file() and sh(pp)==ref['sha256'],'required_input_absent_or_stale')
+ case_map={row['path']:row['sha256'] for row in load(R/'initiative/reviews-v2/adjudications/registry.json')['cases']}
+ reading_files={folder:{str(p.relative_to(R)):sh(p) for p in sorted((R/'initiative/reviews-v2'/folder).glob(f'*-{suffix}.jsonl'))} for folder,suffix in [('drafts','draft'),('prereads','preread')]}
+ context={'schema_version':1,'source_reports_sha256':CANON,'report_count':4407,'target_order':targets,'correspondence_excluded_uids':sorted(excluded),'source_files':source_files,'review_files':review_files,'original_reading_files':reading_files,'near_report_pairs':[list(p) for p in near_pairs],'rubric':{'path':'protocols/report_weak_v2.md','sha256':RUBRIC},'correction_cases':case_map,'correction_objects_sha256':digest(inspection['changes']),'required_inputs':inputs}
+ ctx=add('context.json',context);catalog_ref=add('evidence-catalog.json.gz',{'schema_version':1,'context':ctx,'records':catalog_entries},True)
+ # Resolve the actual raw files through runtime projection logic without approvals.
+ class PreviewBindings(m.Bindings):
+  def path(self,ref):
+   name=ref['path']
+   if name in virtual:
+    data=virtual[name];require(hashlib.sha256(data).hexdigest()==ref['sha256'],'staged_ref_changed');self.raw[name]=data;self.hashes[name]=ref['sha256'];return args.output/name
+   if name in staged_input_map:
+    pp=staged_input_map[name];require(sh(pp)==ref['sha256'],'staged_input_changed');self.raw[name]=raw(pp);self.hashes[name]=ref['sha256'];return pp
+   return super().path(ref)
+  def unchanged(self):
+   for name,h in self.hashes.items():
+    if name in virtual:require(hashlib.sha256(virtual[name]).hexdigest()==h,'staged_output_changed')
+    elif name in staged_input_map:require(sh(staged_input_map[name])==h,'staged_input_changed')
+    else:require(sh(R/name)==h,'original_evidence_changed')
+ virtual={str(future_prefix/n):v for n,v in outputs.items()};bindings=PreviewBindings(R)
+ evidence=m._evidence(catalog_ref,reports,ctx,context,bindings)
+ percell_evidence=defaultdict(list)
+ for eid,e in evidence.items():percell_evidence[e['study_uid'],e['target']].append(eid)
+ # Exact text groups; policy must explicitly mark obligations text-intrinsic or
+ # record-specific. Near-report disposition input remains a separate requirement.
+ import unicodedata
+ groups=defaultdict(set)
+ for u,r in reports.items():groups[' '.join(unicodedata.normalize('NFKC',r).casefold().split())].add(u)
+ groupby={u:g for g in groups.values() for u in g}
+ scope_types=cfg['obligation_hold_scope'];require(set(scope_types)==seen and set(scope_types.values())<={'text_intrinsic','record_specific'},'explicit_hold_scopes_required')
+ holds=[];dispositions=defaultdict(list);hold_by_key=defaultdict(list);hold_by_obligation={}
+ for key in sorted(current):
+  a=current[key]
+  for o in bycell[key]:
+   oid=o['id']
+   if key[0] in excluded:status={'id':oid,'disposition':'correspondence_excluded'}
+   elif a['state'] in {'uncertain','not_mentioned'}:status={'id':oid,'disposition':'already_masked'}
+   elif oid in reuse:
+    rr=reuse[oid];require(all(e in evidence and evidence[e]['kind']=='resolution' and (evidence[e]['study_uid'],evidence[e]['target'])==key for e in rr['resolution_evidence_ids']),'reuse_resolution_not_exact');status={'id':oid,'disposition':'resolved','resolution_evidence_ids':rr['resolution_evidence_ids']}
+   else:
+    eids=[e for e in percell_evidence[key]];require(eids,'held_cell_no_bound_evidence');hid='hold-'+digest({'uid':key[0],'target':key[1],'obligation':oid})[:24]
+    h={'id':hid,'study_uid':key[0],'target':key[1],'category':o['category'],'scope_kind':scope_types[oid],'reason':o.get('reason','Explicit finite reliability obligation has no bound issue-specific reuse disposition; proposed conservative exclusion pending approval.'),'current_annotation_sha256':digest(a),'evidence_ids':eids,'obligation_ids':[oid],'origin_id':hid,'lifecycle':'active','predecessor_sha256':None};holds.append(h);hold_by_key[key].append(hid);hold_by_obligation[oid]=h;status={'id':oid,'disposition':'held'}
+   dispositions[key].append(status)
+ # Propagation is explicit in scope membership, rather than silently inventing
+ # new obligations after scope approval. Require matching propagated-origin IDs.
+ propagation=cfg.get('exact_duplicate_propagation',[])
+ holdmap={h['id']:h for h in holds}
+ for row in propagation:
+  src=hold_by_obligation.get(row['origin_obligation_id']);dst=hold_by_obligation.get(row['destination_obligation_id']);require(src is not None and dst is not None,'propagation_requires_two_active_holds');require(src['study_uid'] in groupby[dst['study_uid']] and src['target']==dst['target'] and src['category']==dst['category'] and src['scope_kind']==dst['scope_kind']=='text_intrinsic','propagation_scope');dst['origin_id']=src['origin_id']
+ holds_ref=add('candidate-holds.json.gz',{'schema_version':1,'context':ctx,'records':holds},True)
+ ledger_rows=[]
+ for key,a in sorted(current.items()):
+  ledger_rows.append({'study_uid':key[0],'target':key[1],'source_report_sha256':sources[key[0]]['report_sha256'],'original_annotation_sha256':digest(original[key]),'current_annotation_sha256':digest(a),'evidence_ids':percell_evidence[key],'hold_ids':hold_by_key[key],'obligations':dispositions[key],'retention_reason':catalog_plan.get('retention_reasons',{}).get(key[0]+'|'+key[1],'Bound actual source support and exact explicit obligation dispositions; candidate package remains unapproved.')})
+ ledger={'schema_version':1,'context':ctx,'holds':holds_ref,'evidence_catalog':catalog_ref,'rows':ledger_rows};ledger_ref=add('candidate-ledger.json.gz',ledger,True)
+ virtual.update({str(future_prefix/n):v for n,v in outputs.items()})
+ # Schema/runtime mechanics only: intentionally no _approval, bundle registry,
+ # accepted decision or mask application. These remain separate real actions.
+ bundle={'context':ctx,'holds':holds_ref,'ledger':ledger_ref,'decision':{'path':'UNAPPROVED-NO-DECISION','sha256':'0'*64}}
+ audit=m._finish_inspection(reports,original,current,context,{'path':'UNAPPROVED-NO-REGISTRY','sha256':'0'*64},bundle,{h['id']:h for h in holds},ledger,evidence,inputs,bindings)
+ require(len(audit['cells'])==52884,'runtime_preview_coverage')
+ allclass=defaultdict(Counter);holdclass=defaultdict(Counter)
+ for row in audit['cells']:
+  if row['current']['state'] in {'positive','negative'} and row['study_uid'] not in excluded:
+   allclass[row['target']][row['current']['state']]+=1
+   if not row['report_supervision_allowed']:holdclass[row['target']][row['current']['state']]+=1
+ plan={'schema_version':1,'status':'concrete_candidate_bundle_no_approval','prepared_by':AGENT,'policy_plan':whole_ref(args.plan),'runtime':whole_ref(runtime),'preflight':whole_ref(PREF/'completion-manifest.json'),'context':ctx,'holds':holds_ref,'ledger':ledger_ref,'evidence_catalog':catalog_ref,'counts':{'cells':52884,'evidence_records':len(evidence),'obligations':len(obligations),'hold_records':len(holds),'observed_held_cells':sum(bool(v) for v in hold_by_key.values())},'annotation_hash_conversion':'Preflight newline convention validated; runtime hashes recomputed from exact annotation objects without newline. Original hashes remain unchanged.','all_observed_pre_gold_classes':dict(allclass),'candidate_removed_pre_gold_classes':dict(holdclass),'runtime_mechanical_validation_excluding_approval_passed':True,'actual_approved_hold_count':0,'registry_created':False,'gold_values_read':False,'R_writes':False,'network_calls':0,'final_gold_and_split_accounting_pending':True,'hold_proposal_is_not_clinical_relabeling':True}
+ add('candidate-plan.json',plan)
+ require(shutil.disk_usage(W).free-sum(map(len,outputs.values()))>20*2**30+64*2**20,'output_disk_floor')
+ args.output.mkdir()
+ for n,data in outputs.items():
+  with (args.output/n).open('xb') as f:f.write(data)
+ require(sh(R/'initiative/reviews-v2/adjudications/registry.json')==REGISTRY,'registry_changed_during_build')
+ print(json.dumps({'status':plan['status'],'counts':plan['counts'],'candidate_plan':whole_ref(args.output/'candidate-plan.json')}))
+
+if __name__=='__main__':
+ ap=argparse.ArgumentParser();ap.add_argument('--plan',type=Path,required=True);ap.add_argument('--output',type=Path,required=True);a=ap.parse_args();main(a)

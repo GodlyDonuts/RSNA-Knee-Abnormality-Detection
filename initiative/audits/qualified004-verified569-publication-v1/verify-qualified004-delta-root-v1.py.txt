@@ -1,0 +1,26 @@
+"""Actual root full-tree streaming reconstruction, distinct from the peer build."""
+from pathlib import Path
+import argparse,hashlib,importlib.util,json,sys
+W=Path(__file__).resolve().parent.parent;S=W/'work/annotation-staging/qualified004-hf-publication-preparation-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(S/'qualified004_bindings.py')=='2bdb84d31e9e1529a4ff5545ed52819431cc51ed2d16f17c8ef6ea535147aa4b'
+sys.path.insert(0,str(S));import qualified004_bindings as b
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--manifest-sha256',required=True);parser.add_argument('--peer-proof-sha256',required=True);parser.add_argument('--peer-build-receipt-sha256',required=True);args=parser.parse_args()
+for value in vars(args).values():assert b.SHA.fullmatch(value)
+args.target_commit=b.TARGET_GIT;args.target_tree=b.TARGET_TREE;args.expected_file_count=b.TARGET_FILE_COUNT;args.package=b.WORK/'hf-preparation-deltas'/b.TARGET_GIT
+h=b.helper();P,manifest,_=b.local_guard(args,h)
+protected={name:sha(P/name) for name in ['manifest.json','restoration-proof.json','peer-restoration-proof.json','peer-build-receipt.json']}
+assert protected['restoration-proof.json']==protected['peer-restoration-proof.json']==args.peer_proof_sha256
+assert protected['peer-build-receipt.json']==args.peer_build_receipt_sha256
+peer=b.read(P/'peer-restoration-proof.json');b.proof_guard(peer,args,manifest,b.PEER)
+assert peer['peer_runner']==b.ref(S/'build_qualified004_peer.py')
+out=P/'root-restoration-proof.json';assert not out.exists();base=b.WORK/'hf-preparation-checkpoints'/b.BASE_GIT
+proof=h.verify_package(b.R,b.TARGET_GIT,base/'checkpoint.tar.gz',base/'manifest.json',P,args.manifest_sha256,secrets=h.secret_values(W/'.env'))
+assert proof['verifier_agent_id']=='/root/duplicate_consistency_review'
+for name,digest in protected.items():assert sha(P/name)==digest
+proof.update(verifier_agent_id='/root',actual_executor='/root',generated_helper_default_identity='/root/duplicate_consistency_review',helper_default_is_not_evidence_of_actual_execution=True,helper_sha256=b.HELPER_SHA,root_runner_sha256=sha(Path(__file__)),independent_peer_proof_sha256=args.peer_proof_sha256,peer_artifact_unchanged=True,actual_role='Root independently executed complete base-plus-delta streaming verification after the distinct peer build execution. The two peer proof names are aliases of one peer execution.',process_exposure='Opaque hashing and credential/authenticated-URL scanning of all payload bytes, without clinical adjudication, gold-label interpretation or pixel rereading.')
+b.proof_guard(proof,args,manifest,b.ROOT)
+h.Scanner(h.secret_values(W/'.env')).feed((json.dumps(proof)+'\n').encode())
+b.save(out,proof)
+print(json.dumps({'status':'root_full_tree_streaming_verification_passed','target_commit':b.TARGET_GIT,'all_files':b.TARGET_FILE_COUNT,'root_proof_sha256':sha(out),'root_runner_sha256':sha(Path(__file__)),'peer_proof_unchanged':True}))

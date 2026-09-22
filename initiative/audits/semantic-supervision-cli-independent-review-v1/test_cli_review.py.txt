@@ -1,0 +1,204 @@
+"""Independent focused regressions; isolates full policy replay already tested separately."""
+
+from __future__ import annotations
+
+import hashlib
+import io
+import sys
+
+import pandas as pd
+import pytest
+from rsna import infer, train
+from rsna.schema import CACHE_VERSION, TARGETS
+from rsna.semantic_supervision import digest
+
+
+def binding(manifest_hash="1" * 64, series_hash="2" * 64):
+    value = {
+        "schema_version": 1,
+        "manifest_sha256": manifest_hash,
+        "series_sha256": series_hash,
+        "source_revision": "synthetic-source",
+        "release_receipt_sha256": "3" * 64,
+        "semantic_registry_sha256": "4" * 64,
+    }
+    value["binding_sha256"] = digest(value)
+    return value
+
+
+def test_training_parses_the_same_authenticated_series_snapshot(tmp_path, monkeypatch):
+    manifest = pd.DataFrame(
+        [
+            {
+                "study_uid": uid,
+                "split": split,
+                "report_group": uid,
+                "leakage_group": uid,
+                **{f"{t}__mask": 1 for t in TARGETS},
+                **{f"{t}__provenance": "report_reviewed" for t in TARGETS},
+            }
+            for uid, split in [("train", "train"), ("val", "weak_validation")]
+        ]
+    )
+    series_path = tmp_path / "series.csv"
+    original = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": u,
+                "SeriesInstanceUID": u + "-series",
+                "Anatomical_Plane": "Sagittal",
+                "Fluid_Sensitive": 0,
+                "Fat_Suppression": 0,
+            }
+            for u in ["train", "val"]
+        ]
+    )
+    original.to_csv(series_path, index=False)
+    bound = binding(series_hash=hashlib.sha256(series_path.read_bytes()).hexdigest())
+    monkeypatch.setattr(train, "load_verified_release", lambda *a: (manifest, bound))
+    read_csv = pd.read_csv
+    captured = {}
+
+    def raced_parse(source, *args, **kwargs):
+        # A concurrent replacement after authentication must not change the
+        # in-memory sampling metadata that reaches the dataset constructor.
+        changed = original.copy()
+        changed["Fluid_Sensitive"] = 1
+        changed.to_csv(series_path, index=False)
+        captured["snapshot"] = isinstance(source, io.BytesIO)
+        return read_csv(source, *args, **kwargs)
+
+    class ReachedDataset(Exception):
+        pass
+
+    def capture(studies, series, *args, **kwargs):
+        captured["values"] = series.Fluid_Sensitive.tolist()
+        raise ReachedDataset
+
+    monkeypatch.setattr(train.pd, "read_csv", raced_parse)
+    monkeypatch.setattr(train, "StudyDataset", capture)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "train",
+            "--studies",
+            str(tmp_path / "studies.parquet"),
+            "--series",
+            str(series_path),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--output",
+            str(tmp_path / "out"),
+            "--workers",
+            "0",
+            "--device",
+            "cpu",
+        ],
+    )
+    with pytest.raises(ReachedDataset):
+        train.main()
+    assert captured == {"snapshot": True, "values": [0, 0]}
+    assert read_csv(series_path).Fluid_Sensitive.tolist() == [1, 1]
+    assert not (tmp_path / "out").exists()
+
+
+@pytest.mark.parametrize("field", ["manifest_sha256", "series_sha256", "cache_source_revision"])
+def test_public_inference_rejects_conflicting_identity_before_dataset(tmp_path, monkeypatch, field):
+    bound = binding()
+    checkpoint = {
+        "targets": list(TARGETS),
+        "cache_version": CACHE_VERSION,
+        "release_binding": bound,
+        "manifest_sha256": bound["manifest_sha256"],
+        "series_sha256": bound["series_sha256"],
+        "cache_source_revision": bound["source_revision"],
+    }
+    checkpoint[field] = "f" * 64
+    monkeypatch.setattr(infer.torch, "load", lambda *a, **kw: checkpoint)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError(
+            "No training-data read or dataset use is permitted in this rejected public case"
+        )
+
+    monkeypatch.setattr(infer, "load_verified_release", forbidden)
+    monkeypatch.setattr(infer, "StudyDataset", forbidden)
+    template = tmp_path / "template.csv"
+    pd.DataFrame([{"StudyInstanceUID": "test", **{t: 0 for t in TARGETS}}]).to_csv(
+        template, index=False
+    )
+    series = tmp_path / "series.csv"
+    pd.DataFrame([{"StudyInstanceUID": "test", "SeriesInstanceUID": "test-series"}]).to_csv(
+        series, index=False
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "infer",
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--template",
+            str(template),
+            "--series",
+            str(series),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--output",
+            str(tmp_path / "out.csv"),
+            "--workers",
+            "0",
+            "--device",
+            "cpu",
+        ],
+    )
+    with pytest.raises(ValueError, match="conflicts with its verified release"):
+        infer.main()
+    assert not (tmp_path / "out.csv").exists()
+
+
+def test_labeled_inference_validates_full_release_before_metadata_selection(tmp_path, monkeypatch):
+    bound = binding()
+    checkpoint = {
+        "targets": list(TARGETS),
+        "cache_version": CACHE_VERSION,
+        "release_binding": bound,
+        "manifest_sha256": bound["manifest_sha256"],
+        "series_sha256": bound["series_sha256"],
+        "cache_source_revision": bound["source_revision"],
+    }
+    monkeypatch.setattr(infer.torch, "load", lambda *a, **kw: checkpoint)
+
+    class FullBoundaryReached(Exception):
+        pass
+
+    def full_boundary(*args, **kwargs):
+        raise FullBoundaryReached
+
+    def selected_too_soon(*args, **kwargs):
+        raise AssertionError("Metadata helper selected a split before the full release boundary")
+
+    monkeypatch.setattr(infer, "load_verified_release", full_boundary)
+    monkeypatch.setattr(infer, "load_inference_metadata", selected_too_soon)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "infer",
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--studies",
+            str(tmp_path / "studies.parquet"),
+            "--series",
+            str(tmp_path / "series.csv"),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--output",
+            str(tmp_path / "out.csv"),
+            "--device",
+            "cpu",
+        ],
+    )
+    with pytest.raises(FullBoundaryReached):
+        infer.main()

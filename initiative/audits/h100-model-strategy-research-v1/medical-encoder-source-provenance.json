@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0",
+  "artifact": "medical-encoder-source-facts.md",
+  "author_agent_id": "/root/competition_contract/medical_encoder_sources",
+  "author_agent_id_evidence": "Canonical agent_name returned by collaboration.list_agents during this task",
+  "parent_agent_id": "/root/competition_contract",
+  "researched_at_utc": "2026-09-22T14:59:20Z",
+  "scope": "Primary-source medical encoder provenance/access/transfer review for RSNA knee MRI 12-label classification; no competition-rule re-audit",
+  "method": "Fresh official model cards, author repositories, original papers, and publisher documentation via web tools",
+  "actions": {
+    "model_weights_acquired": false,
+    "datasets_acquired": false,
+    "training_run": false,
+    "paid_compute_run": false,
+    "credentials_accessed": false,
+    "runtime_load_verified": false,
+    "local_changes": ["medical-encoder-source-facts.md", "medical-encoder-source-provenance.json"]
+  },
+  "global_limitations": [
+    "License observations do not determine Kaggle eligibility or data-overlap status.",
+    "No experiment measures transfer to the competition's 12 labels.",
+    "Model repository revisions were not fully pinned; pin immutable revision IDs when authorized artifacts are staged.",
+    "Weight checksums are publisher metadata only; no checksum was recomputed from weight bytes.",
+    "The MedImageInsight community Hugging Face mirror was not treated as an official Microsoft artifact."
+  ],
+  "candidate_records": [
+    {
+      "name": "MedSigLIP",
+      "artifact_id": "google/medsiglip-448",
+      "declared_version": "1.0.0",
+      "declared_created_date": "2025-07-09",
+      "immutable_repository_revision": null,
+      "geometry": "2D, 448x448, 400M vision encoder",
+      "license": "Health AI Developer Foundations terms",
+      "access": "Hugging Face login and agreement acceptance required",
+      "modality_evidence": "Medical and natural images; explicitly includes CT/MRI slices",
+      "knee_pathology_evidence": "Not established by inspected model card",
+      "disposition": "Primary medical 2D comparison after existing access/eligibility requirements are satisfied",
+      "sources": ["S01", "S02"]
+    },
+    {
+      "name": "BiomedCLIP",
+      "artifact_id": "microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224",
+      "filenames": ["open_clip_pytorch_model.bin", "open_clip_config.json"],
+      "immutable_repository_revision": null,
+      "geometry": "2D ViT-Base/16, 224x224; 256 is text context length",
+      "license": "MIT declared by official Microsoft model card",
+      "access": "Public model card and direct-load examples; no acceptance gate shown",
+      "pretraining": "PMC-15M scientific figure/caption pairs",
+      "knee_pathology_evidence": "Not established by inspected model card",
+      "disposition": "Smaller 2D medical baseline",
+      "sources": ["S03"]
+    },
+    {
+      "name": "VoCo Base SSL",
+      "artifact_id": "Luffy503/VoCo",
+      "filename": "VoCo_B_SSL_head.pt",
+      "publisher_file_commit_short": "c4a5b11",
+      "publisher_repository_commit_short": "68df573",
+      "publisher_file_sha256": "06664b629e73a25aacfaf9e0dd3f2df36f93a9f60f0bf8cf4d8b5cc95cd01298",
+      "publisher_approximate_file_size": "220 MB",
+      "immutable_repository_revision": null,
+      "geometry": "3D SwinUNETR, feature_size=48, one input channel; release table lists 53M for SSL checkpoint",
+      "license": "Apache-2.0 declared in author weight card and code license",
+      "access": "Public author release; no acceptance gate shown",
+      "pretraining": "PreCT-160K, 160K CT volumes / 42M slices",
+      "mri_evidence": "Downstream MRI segmentation and registration evaluations, not MRI pretraining",
+      "knee_pathology_evidence": "Not established by inspected paper benchmark",
+      "disposition": "Complementary genuine 3D transfer experiment",
+      "sources": ["S04", "S05", "S06", "S07", "S08"]
+    }
+  ],
+  "conditional_or_excluded_records": [
+    {
+      "name": "MedImageInsight original model",
+      "artifact_id": "Microsoft Foundry MedImageInsight asset version 2",
+      "version_note": "2026-09-03 card/BYOC packaging update explicitly reports no weight changes",
+      "license": "MIT per Microsoft Foundry model card",
+      "knee_evidence": "Small mixed CT/MRI view/anatomy training set includes knee; 1202 images across all 21 categories, not 1202 knee scans",
+      "execution_constraint": "Verified pinned Microsoft-origin offline checkpoint acquisition not established; current inspected official route uses Azure deployment",
+      "sources": ["S09", "S10", "S11"]
+    },
+    {
+      "name": "3DINO-ViT",
+      "artifact_id": "AICONSlab/3DINO-ViT",
+      "filename": "3dino_vit_weights.pth",
+      "license": "CC BY-NC-ND 4.0 with author-card explicit no-adaptation/no-commercial language",
+      "access": "Gated Hugging Face repository",
+      "pretraining": "Card states approximately 100000 multimodal 3D scans spanning more than 10 organs",
+      "execution_constraint": "Do not assume permission for standard fine-tuning, commercial/prize-related use, or derivative redistribution; author-stated restrictions need resolution",
+      "sources": ["S12", "S13"]
+    },
+    {
+      "name": "Decipher-MR",
+      "artifact_id": "2026 paper DOI 10.1038/s41746-026-02596-4; no runnable public artifact established",
+      "geometry": "3D ViT-Base, 86M parameters, 8x8x8 patches",
+      "pretraining": "203233 MRI series / 22594 studies; knee among covered anatomy",
+      "license": "Public model-weight license not established; article license is not a weight license",
+      "execution_constraint": "Official paper says pretrained weights might not be directly shared because of safety, IP and commercial considerations",
+      "sources": ["S14"]
+    }
+  ],
+  "sources": [
+    {"id": "S01", "title": "Google MedSigLIP model card", "url": "https://huggingface.co/google/medsiglip-448", "publisher": "Google", "kind": "official model card", "accessed_on": "2026-09-22"},
+    {"id": "S02", "title": "Health AI Developer Foundations Terms of Use", "url": "https://developers.google.com/health-ai-developer-foundations/terms", "publisher": "Google", "kind": "official model terms", "accessed_on": "2026-09-22"},
+    {"id": "S03", "title": "BiomedCLIP-PubMedBERT_256-vit_base_patch16_224", "url": "https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224", "publisher": "Microsoft", "kind": "official model card", "accessed_on": "2026-09-22"},
+    {"id": "S04", "title": "Large-Scale 3D Medical Image Pre-training", "url": "https://github.com/Luffy03/Large-Scale-Medical", "publisher": "VoCo authors", "kind": "author code repository and release table", "accessed_on": "2026-09-22"},
+    {"id": "S05", "title": "VoCo_B_SSL_head.pt metadata", "url": "https://huggingface.co/Luffy503/VoCo/blob/main/VoCo_B_SSL_head.pt", "publisher": "VoCo authors", "kind": "author checkpoint metadata page", "accessed_on": "2026-09-22"},
+    {"id": "S06", "title": "Large-Scale 3D Medical Image Pre-training with Geometric Context Priors", "url": "https://arxiv.org/html/2410.09890v1", "publisher": "Wu, Zhuang, Chen", "kind": "original paper", "accessed_on": "2026-09-22", "version": "arXiv v1 2024-10-13; current author repository labels journal work TPAMI 2026"},
+    {"id": "S07", "title": "Luffy503/VoCo model card", "url": "https://huggingface.co/Luffy503/VoCo", "publisher": "VoCo authors", "kind": "author model card", "accessed_on": "2026-09-22"},
+    {"id": "S08", "title": "Large-Scale-Medical LICENSE", "url": "https://github.com/Luffy03/Large-Scale-Medical/blob/main/LICENSE", "publisher": "VoCo authors", "kind": "repository license", "accessed_on": "2026-09-22"},
+    {"id": "S09", "title": "MedImageInsight Microsoft Foundry model card", "url": "https://ai.azure.com/catalog/models/MedImageInsight?source=microsoft", "publisher": "Microsoft", "kind": "official model card", "accessed_on": "2026-09-22", "version": "asset version 2"},
+    {"id": "S10", "title": "MedImageInsight: An Open-Source Embedding Model for General Domain Medical Imaging", "url": "https://arxiv.org/html/2410.06542v1", "publisher": "MedImageInsight authors", "kind": "original paper", "accessed_on": "2026-09-22", "version": "arXiv v1"},
+    {"id": "S11", "title": "Deploy MedImageInsight for Medical Image Embeddings", "url": "https://learn.microsoft.com/en-us/azure/foundry-classic/how-to/healthcare-ai/deploy-medimageinsight", "publisher": "Microsoft", "kind": "official deployment documentation", "accessed_on": "2026-09-22"},
+    {"id": "S12", "title": "AICONSlab/3DINO-ViT model card", "url": "https://huggingface.co/AICONSlab/3DINO-ViT", "publisher": "AICONS lab / 3DINO authors", "kind": "author model card", "accessed_on": "2026-09-22"},
+    {"id": "S13", "title": "AICONSlab/3DINO-ViT file listing", "url": "https://huggingface.co/AICONSlab/3DINO-ViT/tree/main", "publisher": "AICONS lab / 3DINO authors", "kind": "author checkpoint listing", "accessed_on": "2026-09-22"},
+    {"id": "S14", "title": "Decipher-MR: a vision-language foundation model for 3D MRI representations", "url": "https://www.nature.com/articles/s41746-026-02596-4", "publisher": "Yang et al., npj Digital Medicine", "kind": "original paper", "accessed_on": "2026-09-22", "doi": "10.1038/s41746-026-02596-4"}
+  ]
+}

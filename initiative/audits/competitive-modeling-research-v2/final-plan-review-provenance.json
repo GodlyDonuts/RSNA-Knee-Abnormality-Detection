@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "stage": "independent_final_plan_review",
+  "agent_id": "/root/competition_contract",
+  "session_id": "/root/competition_contract",
+  "date": "2026-09-22",
+  "input_bindings": [
+    {
+      "path": "work/recovered/docs/training-strategy.md",
+      "sha256": "1c6d8a9dd64398473dd431f087efd9f83e0898b60bcf8403bb4acf6472c0362a"
+    },
+    {
+      "path": "work/recovered/docs/mission-and-training-plan.md",
+      "sha256": "0e4deae2d9313818dd3bd2c901581d5a7eda527336f4a1040f4bc20b376ddf6b"
+    },
+    {
+      "path": "work/recovered/docs/competition-contract-20260922.md",
+      "sha256": "4d1e805590c829209f65b9fcdcc12eb3272c5b1382faed67c47ff5fc2191ab2c"
+    },
+    {
+      "path": "work/recovered/initiative/releases/report-supervision-v1/verified_release.json",
+      "sha256": "6453a8ff31373c40556dc857e15fa0025f122195388a2b46c81ecd9cff0b8833"
+    },
+    {
+      "path": "work/recovered/rsna/model.py",
+      "sha256": "f62331039151a26f94474ecce0251bbe995f47330ed8a5d5fa002b41b1551aa9"
+    },
+    {
+      "path": "work/annotation-staging/competitive-modeling-research-v2/memo.md",
+      "sha256": "bfb4fd2fc591344cbcf5955323120d30ad45792b597ab58e06297f59bf9364f2"
+    },
+    {
+      "path": "work/annotation-staging/competitive-modeling-research-v2/provenance.json",
+      "sha256": "934b4a35306079dacdfe7b42549e9d1a5bfac74f34556ad6097ea57f5eba3adc"
+    },
+    {
+      "path": "work/annotation-staging/competitive-modeling-research-v2/reviewed-training-strategy-final-snapshot.md",
+      "sha256": "1c6d8a9dd64398473dd431f087efd9f83e0898b60bcf8403bb4acf6472c0362a"
+    }
+  ],
+  "reviewed_strategy_sha256": "1c6d8a9dd64398473dd431f087efd9f83e0898b60bcf8403bb4acf6472c0362a",
+  "output_sha256": "833d2e427c5368d744f9e6d0defd55e2dfc74f5e02b4ad0d67c4cd317174acd4",
+  "output_path": "final-plan-review.md",
+  "seven_deliverables_covered": true,
+  "blocking_flaws_found": false,
+  "execution_clarifications": [
+    {
+      "id": "controlled_3d_comparison",
+      "priority": "before_experiment_specification",
+      "detail": "Match input coverage and measured compute, and document pretrained versus scratch initialization explicitly."
+    }
+  ],
+  "review_limits": [
+    "Planning review; no training or numerical replay of runtime acceptance.",
+    "No individual gold labels read.",
+    "Kaggle current rules attributed to coordinator direct-browser record; not independently revisited.",
+    "Primary sources opened only for read-only fact checks; no models/datasets downloaded.",
+    "No R, initiative, code, Git, HF or purchase mutation."
+  ],
+  "cost_checks": {
+    "starter_hours": 72,
+    "single_run_hours_at_0_5s": 9.452777777777778,
+    "single_run_hours_at_2s": 37.81111111111111,
+    "three_fold_two_seed_full_run_equivalents": 4.0,
+    "starter_cost_4090": 53.28,
+    "starter_cost_a100": 114.48,
+    "six_hour_seconds_per_1300_studies": 16.615384615384617
+  },
+  "additional_primary_urls": [
+    "https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.convnext_tiny.html",
+    "https://github.com/facebookresearch/dinov3",
+    "https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md",
+    "https://arxiv.org/abs/2111.14791",
+    "https://arxiv.org/abs/2111.06377",
+    "https://arxiv.org/abs/2010.00747",
+    "https://arxiv.org/abs/2001.07685",
+    "https://www.runpod.io/pricing"
+  ],
+  "resolved_findings": [
+    {
+      "id": "starter_fold_seed_budget",
+      "resolution": "Final strategy explicitly limits 48 fine-tuning hours to restricted screen and selected replication; measured scheduling/full comparisons within budget; unfinished results inconclusive.",
+      "resolved_strategy_sha256": "1c6d8a9dd64398473dd431f087efd9f83e0898b60bcf8403bb4acf6472c0362a"
+    }
+  ],
+  "prior_review_bindings": [
+    {
+      "path": "initial-plan-review-before-budget-fix.md",
+      "sha256": "1325591112f54f6785ebe12056a4e2f227fe591d2a92cce0014b8627be6553b3"
+    },
+    {
+      "path": "initial-plan-review-provenance-before-budget-fix.json",
+      "sha256": "61b9c20ace0740d58419669f8a8b333f83c9696b9d223034398dcabab2061585"
+    },
+    {
+      "path": "reviewed-training-strategy-snapshot.md",
+      "sha256": "ce80642accacfcc1181dc8997da4f158f5944558ce7280526774f254e9043a0a"
+    }
+  ],
+  "final_conclusion": "All seven planning deliverables covered; actionable defensible research route; no blocking flaw found; no performance or rank promise."
+}

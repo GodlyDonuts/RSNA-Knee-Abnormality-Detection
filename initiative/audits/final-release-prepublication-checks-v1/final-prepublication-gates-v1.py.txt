@@ -1,0 +1,42 @@
+from pathlib import Path
+import importlib.util, subprocess, json, hashlib, stat, sys
+w=Path(__file__).resolve().parent.parent
+r=w/'work/recovered'
+p=w/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+spec=importlib.util.spec_from_file_location('publication_scan_helper',p)
+h=importlib.util.module_from_spec(spec);sys.modules[spec.name]=h;spec.loader.exec_module(h)
+def main():
+ secrets=h.secret_values(w/'.env');lowered=[x.lower() for x in secrets];paths=set()
+ for args in [('diff','--name-only','-z'),('diff','--cached','--name-only','-z'),('ls-files','--others','--exclude-standard','-z')]:
+  paths.update(x.decode() for x in subprocess.check_output(['git',*args],cwd=r).split(b'\0') if x)
+ errors=[];total=0
+ for name in sorted(paths):
+  p=r/name
+  if not p.is_file():continue
+  scan=h.Scanner(secrets);tail=b''
+  try:
+   assert p.stat().st_size<100*2**20,'github_file_size'
+   with p.open('rb') as f:
+    while chunk:=f.read(2**20):
+     scan.feed(chunk);lo=(tail+chunk).lower()
+     assert not any(v in lo for v in lowered),'casefolded_secret'
+     assert w.name.encode().lower() not in lo,'workspace_basename'
+     tail=chunk[-8192:];total+=len(chunk)
+  except Exception as e:errors.append({'path':name,'code':str(e) if isinstance(e,(AssertionError,h.GuardError)) else type(e).__name__})
+ seal=json.loads((r/'initiative/audits/final-release-dependency-seal-v1/dependency-seal.json').read_text())
+ for row in seal['files']:
+  p=r/row['path']
+  if not p.is_file() or p.stat().st_size!=row['bytes'] or hashlib.sha256(p.read_bytes()).hexdigest()!=row['sha256']:errors.append({'sealed_file_changed':row['path']})
+ for row in seal['membership_checks']:
+  p=r/row['directory'];method=p.rglob if row['recursive'] else p.glob
+  got=sorted(x.relative_to(r).as_posix() for x in method(row['pattern']) if x.is_file())
+  if got!=sorted(row['paths']):errors.append({'sealed_scope_changed':row['directory']})
+ assert not subprocess.check_output(['git','ls-files','--','.env'],cwd=r).strip()
+ assert stat.S_IMODE((w/'.env').stat().st_mode)==0o600
+ out={'status':'passed' if not errors else 'failed','actual_executor':'/root','files_scanned':len(paths),'bytes_scanned':total,'sealed_inputs_verified':len(seal['files']),'sealed_membership_scopes_verified':len(seal['membership_checks']),'env_private_mode':True,'env_untracked':True,'errors':errors}
+ print(json.dumps(out))
+ if errors:sys.exit(2)
+if __name__=='__main__':
+ try: main()
+ except Exception as e:
+  print(json.dumps({'status':'not_completed','error_class':type(e).__name__}));sys.exit(2)

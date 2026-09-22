@@ -1,0 +1,39 @@
+"""Bind root-accepted fixed data policy and reviewed runtime before actual final approval."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,sys
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.release import CODE_PATHS,SPLIT_ALGORITHM
+from rsna.semantic_supervision import INPUT_NAMES
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(name):
+ p=R/name;assert p.is_file();return dict(path=name,sha256=sha(p))
+D=R/'initiative/reviews-v2/semantic-supervision'
+p=W/'work/annotation-staging/semantic-supervision-final-input-projections-569-v1/near-report-dispositions.json';assert sha(p)=='87ce1af5072688352c7e75fcb50a0ea434e90a0e19dc07eae6f67a4ab8b6e4e4'
+with (D/'near-report-dispositions.json').open('xb') as f:f.write(p.read_bytes())
+for name,pin in [('labels','c4506b51ec40c9d2b9a3ecdb90662f9bf7cd4358bef72a06fafc0cfa7ab92dc3'),('release','d4f0fd4f6d5aad63ad50397d6f6d0ae6203f84a14690b5ad1385cc57d6a811a6'),('weak_split','aeea2320daf8d05d459ad94a9ff0219681d14706e0832ebd75303344597642ef')]:assert sha(R/f'rsna/{name}.py')==pin
+code={name:sha(R/name) for name in sorted(CODE_PATHS)}
+split=dict(schema_version=1,algorithm=SPLIT_ALGORITHM,code_sha256=code)
+with (D/'split-policy.json').open('x') as f:f.write(json.dumps(split,indent=2)+'\n')
+paths={
+ 'review_provenance':'initiative/reviews-v2/provenance.json',
+ 'retirement_manifest':'initiative/audits/cartilage-legacy-three-retirement-integration-v1/accepted-retirement-decision.json',
+ 'correspondence_policy':'initiative/audits/correspondence-release-registry.json',
+ 'similarity_policy':'initiative/audits/report-similarity-registry.json',
+ 'split_policy':'initiative/reviews-v2/semantic-supervision/split-policy.json',
+ 'technical_policy':'initiative/reviews-v2/semantic-supervision/technical-policy.json',
+ 'scope_manifest':'initiative/reviews-v2/semantic-supervision/scope-manifest.json.gz',
+ 'authenticated_train_csv':'initiative/source/train.csv',
+ 'near_report_dispositions':'initiative/reviews-v2/semantic-supervision/near-report-dispositions.json',
+}
+assert set(paths)==INPUT_NAMES and len(CODE_PATHS)==9
+inputs={key:ref(path) for key,path in paths.items()}
+assert inputs['authenticated_train_csv']['sha256']=='8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33'
+coordinator=dict(schema_version=1,required_inputs=inputs,code_sha256=code)
+with (D/'release-inputs.json').open('x') as f:f.write(json.dumps(coordinator,indent=2)+'\n')
+A=R/'initiative/audits/final-release-input-acceptance-v1';A.mkdir(exist_ok=False)
+record=dict(schema_version=1,agent_id='/root',session_id='01a0c0eb-43a3-7be3-a2e3-a2b0f413ae1e',at_utc=datetime.now(timezone.utc).isoformat(),status='accepted_runtime_split_and_required_inputs_for_context_assembly',coordinator=ref(str((D/'release-inputs.json').relative_to(R))),code_sha256=code,split_policy=inputs['split_policy'],membership_decision=ref('initiative/audits/semantic-supervision-root-membership-decision-569-v1/root-membership-decision.json'),split_proposal=ref('initiative/audits/weak-split-coverage-repair-proposal-v1/fixed-candidate-repair.json'),independent_split_review=ref('initiative/audits/weak-split-coverage-independent-review-v1/independent-review.json'),independent_actual_integration_review=ref('initiative/audits/weak-split-integration-independent-review-v1/independent-integration-review.json'),reason='Accept the independently reviewed deterministic post-mask group coverage repair and exact nine runtime modules. Legacy weak validation had no MCL positive before or after holds; one whole safe group supplies that class while preserving all donor classes and all nonsplit fields. Fixed semantic membership, gold/quarantine isolation and original annotations are unchanged. This is a split protocol choice before final release/training, never a clinical finding or score-tuned decision.',tests={'pytest_passed':553,'pytest_seconds':22.73,'ruff_check_passed':True,'ruff_format_files':49,'mypy_source_files':23},limitations=['Very small rare-target validation counts remain; class presence does not provide a precise performance estimate.','Final context-bound proposal, distinct assessment, root decision, QA bindings and final-input diagnostic training remain outstanding.'],semantic_qa_closed=False,training_ready=False)
+(A/'root-input-acceptance.json').write_text(json.dumps(record,indent=2)+'\n')
+for helper in [Path(__file__),W/'work/prepare-final-release-technical-policy-v1.py']:(A/(helper.name+'.txt')).write_bytes(helper.read_bytes())
+(A/'repository-tests.log').write_bytes((W/'work/final-input-acceptance-v1/repository-tests-with-split.log').read_bytes())
+print(json.dumps({'coordinator_sha256':sha(D/'release-inputs.json'),'split_policy_sha256':sha(D/'split-policy.json'),'acceptance_sha256':sha(A/'root-input-acceptance.json'),'inputs':len(inputs),'code_files':len(code)}))

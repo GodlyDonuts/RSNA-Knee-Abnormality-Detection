@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "stage": "bounded_independent_h100_evaluation_architecture_review",
+  "actual_author": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-22T15:01:11.377233+00:00",
+  "hardware_source": "Parent user-context: UCF Newton opportunistic two-GPU nodes linked with InfiniBand; allocated count and exact memory unverified.",
+  "local_inputs": [
+    {
+      "path": "work/recovered/docs/training-strategy.md",
+      "sha256": "1c6d8a9dd64398473dd431f087efd9f83e0898b60bcf8403bb4acf6472c0362a",
+      "bytes": 21130
+    },
+    {
+      "path": "work/recovered/docs/data-readiness-report.md",
+      "sha256": "b64c3367ff0e72baf8a44b1bd498cd4bf25d4a027cc49d31bd2860dda3476764",
+      "bytes": 8788
+    },
+    {
+      "path": "work/recovered/docs/competition-contract-20260922.md",
+      "sha256": "4d1e805590c829209f65b9fcdcc12eb3272c5b1382faed67c47ff5fc2191ab2c",
+      "bytes": 3560
+    },
+    {
+      "path": "work/recovered/rsna/model.py",
+      "sha256": "f62331039151a26f94474ecce0251bbe995f47330ed8a5d5fa002b41b1551aa9",
+      "bytes": 3843
+    },
+    {
+      "path": "work/recovered/rsna/train.py",
+      "sha256": "c409ddb87588cddc7dc3af012d8b58f6a9504bc6975a0ef2b85e543834eae5c2",
+      "bytes": 13911
+    },
+    {
+      "path": "work/recovered/rsna/data.py",
+      "sha256": "3e9a7f87ae2a956b04fcfcaf755e17f92c1f78ddb6c9a2ca534b621d982a4833",
+      "bytes": 6626
+    }
+  ],
+  "memo": {
+    "path": "work/annotation-staging/h100-evaluation-design-review-v1/memo.md",
+    "sha256": "62544e7a89394f1be58d7058f764ee790aa6d3dbc6f0a8b2d8fa510bb3921490",
+    "bytes": 18396
+  },
+  "primary_sources_inspected": [
+    {
+      "url": "https://github.com/facebookresearch/dinov2",
+      "scope": "Original DINOv2 B/14 model size, patch/register variants and per-model licensing distinction."
+    },
+    {
+      "url": "https://github.com/facebookresearch/dinov3",
+      "scope": "B/16 model size, dense features and available backbone families."
+    },
+    {
+      "url": "https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md",
+      "scope": "Distinct model license, no blanket permission conclusion."
+    },
+    {
+      "url": "https://arxiv.org/abs/2508.10104",
+      "scope": "Primary DINOv3 research; no extrapolated knee-MRI accuracy."
+    },
+    {
+      "url": "https://arxiv.org/abs/2111.14791",
+      "scope": "Swin UNETR pretraining explicitly uses CT."
+    },
+    {
+      "url": "https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002699",
+      "scope": "Knee MRI 2D series baseline motivation; not current twelve-target validation."
+    }
+  ],
+  "actions": {
+    "canonical_edits": false,
+    "gold_value_access": false,
+    "clinical_annotation_access": false,
+    "native_or_cache_array_access": false,
+    "network_reads": "Public primary research only",
+    "credential_access": false,
+    "training_or_build_launched": false,
+    "remote_mutation": false
+  },
+  "priority_findings": [
+    "Nested or locked confirmation for architecture and blending; weak validation is report agreement.",
+    "Within-fold versus pooled OOF ranking scale; conditional bootstrap does not include all search/training uncertainty.",
+    "Measure independent rare-target components; more seeds are not more patients.",
+    "Match B-size DINO inputs/update budgets before detail/3D experiments.",
+    "Admit competitive model implementation separately from diagnostic CNN.",
+    "Use opportunistic node-level parallel experiments and tested checkpoint recovery."
+  ],
+  "archive_projection_is_separate": "work/annotation-staging/final-release-publication-archive-projection-v1/preservation-guidance.json"
+}

@@ -1,0 +1,231 @@
+"""Independent final context and payload equivalence; no invented approvals."""
+import argparse
+import copy
+import gc
+import gzip
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+W = HERE.parents[2]
+R = W / "work/recovered"
+A = W / "work/annotation-staging"
+D = A / "semantic-supervision-final-proposal-569-v1"
+B = A / "semantic-supervision-membership-builder-569-v1"
+C = B / "membership-candidate-v1"
+PREFIX = "initiative/reviews-v2/semantic-supervision/"
+COORDINATOR = "6b456bfcb067df2f47efe3698c67fd0bc86519d1983ec1635c6049de3dd8da35"
+ACCEPTANCE = "0c2c359708b90fd73cc6af02a49d88ac7adccbe10cd131497fa3decd41a5b781"
+REGISTRY = "7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae"
+
+
+def sha(p):
+    h = hashlib.sha256()
+    with p.open("rb") as f:
+        for b in iter(lambda: f.read(2**20), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def read(p):
+    with (gzip.open(p, "rt") if p.suffix == ".gz" else p.open()) as f:
+        return json.load(f)
+
+
+def lines(p):
+    with gzip.open(p, "rt") as f:
+        for line in f:
+            yield json.loads(line)
+
+
+def digest(x):
+    return hashlib.sha256(json.dumps(x, ensure_ascii=False, sort_keys=True,
+                                    separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
+def wref(p):
+    return {"path": str(p.relative_to(W)), "sha256": sha(p), "bytes": p.stat().st_size}
+
+
+def finalref(name):
+    return {"path": PREFIX + name, "sha256": sha(D / name)}
+
+
+def archive_path(p):
+    if p.startswith("work/recovered/"):
+        return p[len("work/recovered/"):]
+    if p.startswith("work/annotation-staging/"):
+        return "initiative/audits/" + p[len("work/annotation-staging/"):]
+    assert not p.startswith("work/") and not Path(p).is_absolute()
+    return p
+
+
+def main(expected_manifest):
+    manifest_path = D / "completion-manifest.json"
+    assert sha(manifest_path) == expected_manifest
+    manifest = read(manifest_path)
+    for f in manifest["files"]:
+        p = D / f["path"]
+        assert p.is_file() and sha(p) == f["sha256"] and p.stat().st_size == f["bytes"]
+    coordinator_path = R / PREFIX / "release-inputs.json"
+    acceptance_path = R / "initiative/audits/preread-provenance-integration-v1/root-input-acceptance.json"
+    assert sha(coordinator_path) == COORDINATOR and sha(acceptance_path) == ACCEPTANCE
+    coordinator = read(coordinator_path)
+    acceptance = read(acceptance_path)
+    assert acceptance["coordinator"] == {"path": PREFIX + "release-inputs.json", "sha256": COORDINATOR}
+    assert acceptance["code_sha256"] == coordinator["code_sha256"]
+    for path, h in coordinator["code_sha256"].items():
+        assert sha(R / path) == h
+    for f in coordinator["required_inputs"].values():
+        assert sha(R / f["path"]) == f["sha256"]  # Official CSV remains opaque.
+    assert coordinator["code_sha256"]["rsna/semantic_supervision.py"] == "5b0f4bf68e2b1c4ffe4396f37b946d4cbf48ee4ec12ade10ec0149f2db0765a7"
+    assert sha(R / "initiative/reviews-v2/adjudications/registry.json") == REGISTRY
+    fixed_path = B / "candidate-membership-file-manifest.json"
+    assert sha(fixed_path) == "1fad29b367ab217512308e7af4d767476ca3cc98aaf7b4f5b7474812b132699a"
+    for f in read(fixed_path)["files"]:
+        assert sha(W / f["path"]) == f["sha256"]
+        assert sha(R / archive_path(f["path"])) == f["sha256"]
+    sys.path.insert(0, str(R))
+    from rsna import semantic_supervision as m
+    from rsna.adjudications import inspect_adjudications
+    from rsna.correspondence import inspect_correspondence
+    from rsna.report_similarity import inspect_report_similarity, similarity_pairs
+
+    reports = {}
+    for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+        for row in read(p):
+            assert row["study_uid"] not in reports
+            reports[row["study_uid"]] = row["report"]
+    inspection = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed",
+                                      R / "protocols/report_weak_v2.md", R)
+    historical = read(A / "conservative-semantic-hold-coverage-preflight-569-v1/result-v2/current569-inspection.json")
+    assert inspection["n_changes"] == 569 and inspection["changes"] == historical["changes"]
+    assert len(inspection["pending_semantic_qa"]) == 3
+    correspondence = inspect_correspondence(reports, R)
+    near = inspect_report_similarity(reports, R)
+    b = m.Bindings(R)
+    context, original, current = m._context(
+        reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R,
+        inspection, coordinator["required_inputs"], b,
+        {x["study_uid"] for x in correspondence["decisions"]}, similarity_pairs(near))
+    assert context == read(D / "context.json") and len(original) == len(current) == 52884
+    assert len(context["original_reading_files"]["prereads"]) == 89
+    b.unchanged()
+    print("Fresh exact context independently recomputed; all569 correction objects preserved.", flush=True)
+
+    holds = read(D / "holds.json.gz")
+    ledger = read(D / "ledger.json.gz")
+    assert holds == {"schema_version": 1, "context": finalref("context.json"),
+                     "records": list(lines(C / "candidate-hold-records.jsonl.gz"))}
+    assert ledger == {"schema_version": 1, "context": finalref("context.json"),
+                      "holds": finalref("holds.json.gz"), "evidence_catalog": finalref("evidence-catalog.json.gz"),
+                      "rows": list(lines(C / "candidate-ledger-rows.jsonl.gz"))}
+    assert len(holds["records"]) == 4412 and len(ledger["rows"]) == 52884
+    obligation_count = sum(len(r["obligations"]) for r in ledger["rows"])
+    assert obligation_count == 23804
+    del holds, ledger
+    gc.collect()
+    catalog = read(D / "evidence-catalog.json.gz")
+    assert set(catalog) == {"schema_version", "context", "records"}
+    assert catalog["context"] == finalref("context.json") and catalog["schema_version"] == 1
+    entries = catalog["records"]
+    assert len(entries) == 202697
+    n = 0
+    for n, expected in enumerate(lines(B / "catalog-projection-v1/catalog-entries.jsonl.gz"), 1):
+        assert entries[n - 1] == expected
+    assert n == 194973
+    additions = read(C / "peer-resolution-catalog-additions.json")
+    rebases = []
+    for i, original_entry in enumerate(additions):
+        expected = copy.deepcopy(original_entry)
+        for field in ("record", "identity", "target_order_record"):
+            if field in expected:
+                f = expected[field]["artifact"]
+                before = dict(f)
+                f["path"] = archive_path(f["path"])
+                assert sha(R / f["path"]) == f["sha256"]
+                if before != f:
+                    rebases.append({"evidence_id": expected["id"], "field": field,
+                                    "before": before, "after": dict(f)})
+        assert entries[n + i] == expected
+    assert len(additions) == 187
+    cohort_path = R / archive_path(str((C / "candidate-cohort-reuse-receipts.json.gz").relative_to(W)))
+    cohort = read(cohort_path)
+    cref = {"path": str(cohort_path.relative_to(R)), "sha256": sha(cohort_path)}
+    identity = {"artifact": cref, "format": "json", "selector": "", "sha256": digest(cohort)}
+    assert len(cohort["records"]) == 7537
+    for i, row in enumerate(cohort["records"]):
+        expected = {"id": row["id"], "study_uid": row["study_uid"], "target": row["target"],
+                    "source_report_sha256": row["source_report_sha256"], "rubric_sha256": context["rubric"]["sha256"],
+                    "agent_id": "/root/duplicate_consistency_review", "session_id": "/root/duplicate_consistency_review",
+                    "kind": "resolution", "layout": "scalar",
+                    "annotation_sha256": digest({"state": row["state"], "evidence": row["evidence"]}),
+                    "record": {"artifact": cref, "format": "json", "selector": f"/records/{i}", "sha256": digest(row)},
+                    "identity": identity, "role": "mechanical_proposed_release_use_not_source_author"}
+        assert entries[n + len(additions) + i] == expected
+    del catalog, entries, cohort
+    gc.collect()
+    equality = read(D / "candidate-to-final-equivalence.json")
+    assert equality["peer_path_rebases"] == rebases
+    near_final = read(R / coordinator["required_inputs"]["near_report_dispositions"]["path"])
+    near_original = read(C / "candidate-near-edge-dispositions.json")
+    for edge in near_final["edges"]:
+        for target in edge["target_dispositions"]:
+            binding = target["evidence"][0]
+            index = int(binding["selector"].split("/")[-1])
+            raw = near_original["records"][index]
+            assert digest(raw) == binding["sha256"]
+            assert all(target[k] == raw[k] for k in ("target", "action", "reason"))
+            assert raw["left"] == edge["left"] and raw["right"] == edge["right"]
+    proposal = read(D / "proposal.json")
+    assert proposal["status"] == "proposed_for_report_supervision"
+    assert proposal["agent_id"] == proposal["session_id"] == "/root/duplicate_consistency_review"
+    mechanics = read(D / "fresh-final-code-mechanics.json")
+    assert mechanics["status"] == "final_context_bound_preapproval_mechanics_passed"
+    for key, name in (("context", "context.json"), ("holds", "holds.json.gz"), ("ledger", "ledger.json.gz"),
+                      ("evidence_catalog", "evidence-catalog.json.gz")):
+        assert proposal[key] == mechanics[key] == finalref(name)
+    assert mechanics["proposal"] == finalref("proposal.json")
+    assert mechanics["final_code_sha256"] == coordinator["code_sha256"]
+    assert mechanics["all_nine_input_refs"] == coordinator["required_inputs"]
+    assert mechanics["approval_function_called"] is False and mechanics["root_decision_created"] is False
+    for path, h in coordinator["code_sha256"].items():
+        assert sha(R / path) == h
+    for f in coordinator["required_inputs"].values():
+        assert sha(R / f["path"]) == f["sha256"]
+    assert sha(manifest_path) == expected_manifest and sha(coordinator_path) == COORDINATOR
+    assert sha(R / "initiative/reviews-v2/adjudications/registry.json") == REGISTRY
+    result = {"schema_version": 1, "agent_id": "/root/last_twelve_visual_review",
+              "session_id": "/root/last_twelve_visual_review", "status": "independent_exact_final_bundle_checks_passed",
+              "helper": wref(Path(__file__)), "proposal_completion": wref(manifest_path),
+              "fresh_context_recomputed_with_current_runtime": True,
+              "coordinator": wref(coordinator_path), "root_input_acceptance": wref(acceptance_path),
+              "code_sha256": coordinator["code_sha256"], "context": finalref("context.json"),
+              "holds": finalref("holds.json.gz"), "ledger": finalref("ledger.json.gz"),
+              "catalog": finalref("evidence-catalog.json.gz"), "proposal": finalref("proposal.json"),
+              "counts": {"reports": 4407, "cells": 52884, "holds": 4412, "obligations": obligation_count,
+                         "base_catalog": 194973, "peer_resolution": 187, "cohort_resolution": 7537, "catalog": 202697},
+              "all569_whole_correction_objects_preserved": True, "all89_actual_prereads_bound": True,
+              "holds_and_ledger_exact_original_objects": True,
+              "all_base_catalog_entries_exact": True, "all_added_catalog_entries_independently_reconstructed": True,
+              "peer_rebases_only_bound_path_changes": len(rebases),
+              "near_actions_reasons_and_raw_parent_hashes_exact": True,
+              "fresh_full_catalog_and_obligation_mechanics": {"actual_author": "/root/duplicate_consistency_review",
+                                                            "artifact": wref(D / "fresh-final-code-mechanics.json"),
+                                                            "personally_repeated_by_this_assessor": False},
+              "independent_actual_context_and_payload_replay_by_this_assessor": True,
+              "gold_values_read": False, "official_CSV_only_opaque_hashed": True,
+              "R_writes": False, "no_approval_qa_or_release_receipt_authored_by_this_helper": True}
+    output = HERE / "independent-final-binding-replay.json"
+    with output.open("x") as f:
+        json.dump(result, f, ensure_ascii=False, sort_keys=True, indent=2)
+        f.write("\n")
+    print(json.dumps(wref(output)), flush=True)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("completion_sha256")
+    main(parser.parse_args().completion_sha256)

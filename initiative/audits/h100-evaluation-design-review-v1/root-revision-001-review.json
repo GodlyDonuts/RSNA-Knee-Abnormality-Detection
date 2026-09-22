@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "stage": "independent_revised_training_strategy_review",
+  "revision_reviewed": "001",
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "at_utc": "2026-09-22T15:06:42.610020+00:00",
+  "snapshot": {
+    "path": "work/annotation-staging/h100-evaluation-design-review-v1/training-strategy-root-revision-001.md",
+    "sha256": "cd2ebfd25db1ea45b06e759e0388ac810a6a0ebc38a74ac508ce5aadbc340140",
+    "bytes": 25925
+  },
+  "status": "no_data_release_blocker_two_plan_clarifications_and_one_storage_wording_correction_recommended",
+  "canonical_edits": false,
+  "gold_values_or_clinical_records_accessed": false,
+  "runtime_or_training_executed": false,
+  "scope": "Personally read complete3492-word snapshot and reviewed requested evaluation, budget and implementation boundaries. Aggregate non-gold count artifact read; its raw labels were not re-derived. Primary UCF hardware/scheduler pages independently checked.",
+  "satisfied_checks": [
+    {
+      "name": "fixed441_confirmation",
+      "assessment": "Shortlist, input, schedule and ensemble frozen before one reserved confirmation; any subsequent fitting disclosed; prior diagnostic exposure explicitly stated."
+    },
+    {
+      "name": "inner_selection_outer_evaluation",
+      "assessment": "Hyperparameters, stopping and blend fitting occur within fold training portion or a fixed schedule; outer checkpoint selection forbidden. Final confirmation limits adaptive search bias."
+    },
+    {
+      "name": "pair_weighted_auc",
+      "assessment": "Within-target folds weighted by observed positive-negative pair counts, then equal target averaging; pooled OOF separated and scale risk acknowledged. At implementation, specify zero-pair folds contribute no comparisons and a zero-total-pair target is undefined; do not invent0.5."
+    },
+    {
+      "name": "masked_distributed_accumulation",
+      "assessment": "Correctly requires loss sums/counts over full effective batch and ranks plus DDP averaging factor; reference-gradient tests planned including uneven counts, padding and all-masked targets."
+    },
+    {
+      "name": "opportunistic_budget",
+      "assessment": "Stage ceilings24+96+300+300+180+100 sum1000; 1000/(2*24)=20.833days and1000/(8*24)=5.208days. These are expressly scenarios excluding queueing, not guaranteed allocation; optional smaller campaign and deadline gates remain conditional."
+    },
+    {
+      "name": "competitive_capabilities_pending",
+      "assessment": "Clear scratch-CNN status, new pretrained/fold/3D experiment entrypoints pending, immutable production release. One sentence overstates absence of all distributed implementation; clarification requested below."
+    },
+    {
+      "name": "rare_group_counts",
+      "assessment": "New aggregate artifact explicitly supports5fracture,7MCL,9Baker-positive and15synovitis-negative train components. This review verified reported aggregate equality, not a second study-table recomputation.",
+      "evidence": {
+        "path": "work/recovered/initiative/audits/h100-evaluation-group-counts-v1/counts.json",
+        "sha256": "68fc6a24eaa8da310c7a9a19751d62a7cece16945a06bb56aee85bcc3427d038",
+        "bytes": 4941
+      }
+    },
+    {
+      "name": "deployment_scope",
+      "assessment": "GPU training separated from actual offline raw-DICOM Kaggle runtime; frozen dependencies and measured whole-ensemble latency required."
+    }
+  ],
+  "requested_clarifications": [
+    {
+      "id": "task-logit-distillation-masks",
+      "priority": "before implementing optional distillation",
+      "quote": "keep uncertain and held clinical labels separate from auxiliary soft targets",
+      "issue": "Separating provenance alone could still allow target-specific soft losses to circumvent final masks/whole-study exclusions.",
+      "suggested_change": "Task-logit distillation respects final target masks and whole-study report exclusions unless a separately reviewed, versioned experimental policy authorizes a specific auxiliary change; image-only representation objectives are distinct."
+    },
+    {
+      "id": "diagnostic-ddp-already-exists",
+      "priority": "documentation precision",
+      "quote": "accumulation, distributed training and a 3D encoder are **implementation work to follow this plan**",
+      "issue": "Existing train.py already contains DDP and model.py global-count masked loss; tests/test_distributed.py exercises gradient equivalence. GPU pretrained/accumulated path remains unaccepted.",
+      "suggested_change": "Specify competitive pretrained/distributed extensions remain to implement and accept; acknowledge existing diagnostic DDP without claiming H100 acceptance."
+    },
+    {
+      "id": "cache-upper-bound",
+      "priority": "documentation precision",
+      "quote": "rough pixel-count upper planning scale",
+      "issue": "Scaling compressed bytes by pixel count is an estimate, not a mathematical upper bound; compression and padding can change.",
+      "suggested_change": "Use proportional planning estimate and retain actual measurement/quota requirement."
+    }
+  ],
+  "primary_checks": [
+    {
+      "url": "https://arcc.ist.ucf.edu/index.php/resources/newton/about-newton",
+      "assessment": "Confirms29dual80GBH100nodes,4eight-H100nodes and InfiniBand; availability remains account-dependent."
+    },
+    {
+      "url": "https://arcc.ist.ucf.edu/docs/scheduler/",
+      "assessment": "Confirms Slurm, walltime enforcement and shared faculty monthly allocation; doc does not promise personal access to all hours."
+    }
+  ],
+  "future_delta_review": "Knee-checkpoint eligibility addition and any edits after snapshot require a separately bound delta review; this record does not cover unseen text."
+}

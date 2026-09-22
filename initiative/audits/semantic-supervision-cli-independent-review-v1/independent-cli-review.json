@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "review_role": "independent technical code review of root CLI integration; core/adapter original author disclosed",
+  "created_at_utc": "2026-09-22T09:13:10.212210+00:00",
+  "reviewed_files": [
+    {
+      "path": "rsna/labels.py",
+      "sha256": "4c3a2184d5cc03d8823f0abba2470ed409b777366dc881264f96594db7dd9b2e"
+    },
+    {
+      "path": "rsna/train.py",
+      "sha256": "c409ddb87588cddc7dc3af012d8b58f6a9504bc6975a0ef2b85e543834eae5c2"
+    },
+    {
+      "path": "rsna/infer.py",
+      "sha256": "346840196d89f56c92284258bacf4a75048f07b79ea95d5977eb1f98d776ced5"
+    },
+    {
+      "path": "rsna/release.py",
+      "sha256": "1b175bdc8a0ea00498272591ded2d43f9d8d4796759505d26c8fc7d4a3bf8f13"
+    },
+    {
+      "path": "rsna/semantic_supervision.py",
+      "sha256": "a4d4e793c5c63cdca5927e9ef13d720df74582c2b48631a5b944f16e478360ba"
+    },
+    {
+      "path": "tests/conftest.py",
+      "sha256": "58d2f11d9c582116c5b470036e9abb50bda991e31f591f7f6ad85c005e840635"
+    },
+    {
+      "path": "tests/test_inference_bindings.py",
+      "sha256": "f89336b4b3668ade5dc1be277fe18472ec9be00d8e42268338d9e5e34132aece"
+    },
+    {
+      "path": "tests/test_pipeline.py",
+      "sha256": "a2c3c721a7be3cb8e7c802308ac5a94ee45fc75d4da0772f7b2c993d5d3146aa"
+    },
+    {
+      "path": "tests/test_adjudications.py",
+      "sha256": "a65fd25255935feaf2b9b183dbac3dedea4f83147f670450f91fa80ae9b83c36"
+    },
+    {
+      "path": "tests/test_correspondence.py",
+      "sha256": "af06a8ce927b34907f3e52af2ef08539f4deb650c2954945c235601126119d6e"
+    },
+    {
+      "path": "tests/test_report_similarity.py",
+      "sha256": "743e17ee0015137381b479672ef252bbb79d8e4ddbfe875ad7daf3f7c06dcb6e"
+    },
+    {
+      "path": "tests/test_release_adapter.py",
+      "sha256": "24a3d1a12c1eb71b36fb64f52f2e089201735282a539cc3f077393db573d20eb"
+    },
+    {
+      "path": "tests/test_semantic_supervision.py",
+      "sha256": "eb822b280420978c3469e8f5876e4b5cb262c6151fbb70275ff7c68c582eed40"
+    }
+  ],
+  "scope": "CLI mandatory release boundary, deterministic diagnostic subset/resume identity, exact checkpoint binding, immutable sampling bytes, atomic label publication and explicit test-double adaptations. No new clinical review or approval.",
+  "findings": [
+    {
+      "id": "CLI-01",
+      "severity": "P2",
+      "finding": "Training hashed series bytes but reparsed the mutable path, permitting the metadata used by StudyDataset to differ from authenticated bytes.",
+      "discovery": "static initial integration review; root fixed before an old-version runtime reproduction",
+      "status": "fixed_by_root_and_verified",
+      "verification": "A synthetic concurrent-path replacement occurs inside read_csv; StudyDataset still receives the original authenticated feature values from BytesIO."
+    },
+    {
+      "id": "CLI-02",
+      "severity": "P2",
+      "finding": "Inference validated nested release identity but did not reject conflicting present top-level checkpoint manifest/series/source identities.",
+      "discovery": "static initial integration review; root acknowledged and fixed",
+      "status": "fixed_by_root_and_verified",
+      "verification": "Three synthetic conflicting-identity cases fail before dataset access or output. Public-test mode requires no training data. Duplicated legacy top-level fields may be absent in public mode, while the nested release identity stays mandatory."
+    },
+    {
+      "id": "CLI-03",
+      "severity": "contract_order",
+      "finding": "The metadata helper selected a preliminary split before full release validation, although that selection was discarded before dataset use. No supervision bypass was demonstrated.",
+      "status": "fixed_by_root_and_verified",
+      "verification": "A sentinel full-boundary test confirms labeled inference reaches complete release validation before the metadata selection helper."
+    }
+  ],
+  "other_checks": [
+    "labels rejects pre-existing outputs and stages all files in a temporary sibling directory before rename",
+    "actual synthetic release fixture injects failure after receipt creation and before lineage completion; neither destination nor temporary partial release survives",
+    "full manifest release validation precedes diagnostic subsetting and resume loading",
+    "diagnostic selection sorted by UID only after original leakage/group checks; count and UID digests plus limit enter run_config and metrics",
+    "resume requires exact release binding and run_config; diagnostic metrics are explicitly marked",
+    "legacy policy tests use opt-in fixtures only; no production bypass or automatic fallback was introduced",
+    "new real-boundary tests restore the actual loader when checking missing receipt failures"
+  ],
+  "verification": {
+    "independent_tests_passed": 6,
+    "seconds": 2.18,
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "full_repo_suite": "not rerun by reviewer; root owns current required checks",
+    "mocks": "Only unrelated full release policy/optimizer boundaries are isolated in focused snapshot/order tests. Atomic labels test uses the actual-validator synthetic fixture and creates a real verified receipt before injected lineage failure."
+  },
+  "unresolved_concrete_cli_defects_at_reviewed_pins": [],
+  "excluded_pending_scope": [
+    "planned deterministic class-coverage split repair utility and its later integration",
+    "actual final context/QA/membership acceptance",
+    "production full release and training experiment"
+  ],
+  "no_recovered_repository_writes": true,
+  "no_gold_or_clinical_values_inspected": true
+}

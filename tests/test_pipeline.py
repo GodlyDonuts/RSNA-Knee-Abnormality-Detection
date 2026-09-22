@@ -203,8 +203,9 @@ def test_submission_requires_exact_studies_and_valid_probabilities(tmp_path: Pat
         write_submission(predictions, template, output)
 
 
+@pytest.mark.parametrize("diagnostic_limit", [None, 2])
 def test_offline_train_resume_predict_pipeline(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, synthetic_release_binding, diagnostic_limit
 ) -> None:
     def deny_network(*args, **kwargs):
         raise AssertionError("Offline pipeline attempted network access")
@@ -254,6 +255,18 @@ def test_offline_train_resume_predict_pipeline(
     study_file, series_file = tmp_path / "studies.parquet", tmp_path / "series.csv"
     pd.DataFrame(studies).to_parquet(study_file, index=False)
     pd.DataFrame(series).to_csv(series_file, index=False)
+    # This test exercises optimizer/resume/inference. Full evidence validation is
+    # independently exercised by the release adapter's real roundtrip tests.
+    binding = synthetic_release_binding(study_file, series_file, "synthetic-integration-test")
+
+    def verified_manifest(path, artifact_root):
+        assert path == study_file
+        full_manifest = pd.read_parquet(path)
+        assert len(full_manifest) == 6  # Validation always precedes diagnostic selection.
+        return full_manifest, binding
+
+    monkeypatch.setattr(train, "load_verified_release", verified_manifest)
+    monkeypatch.setattr(infer, "load_verified_release", verified_manifest)
     base = [
         "train",
         "--studies",
@@ -275,6 +288,8 @@ def test_offline_train_resume_predict_pipeline(
         "--device",
         "cpu",
     ]
+    if diagnostic_limit is not None:
+        base += ["--diagnostic-study-limit", str(diagnostic_limit)]
     continuous, resumed = tmp_path / "continuous", tmp_path / "resumed"
     monkeypatch.setattr(sys, "argv", base + ["--epochs", "2", "--output", str(continuous)])
     train.main()
@@ -296,6 +311,9 @@ def test_offline_train_resume_predict_pipeline(
     train.main()
     expected = torch.load(continuous / "checkpoint.pt", weights_only=True)
     actual = torch.load(resumed / "checkpoint.pt", weights_only=True)
+    assert actual["run_config"]["training_studies"] == (diagnostic_limit or 4)
+    assert actual["run_config"]["validation_studies"] == 2
+    assert actual["release_binding"] == binding
     for key, value in expected["model"].items():
         torch.testing.assert_close(value, actual["model"][key], atol=0, rtol=0)
     predictions = tmp_path / "predictions.csv"
@@ -331,6 +349,7 @@ def test_offline_train_resume_predict_pipeline(
         base + ["--epochs", "3", "--output", str(resumed), "--resume", str(altered)],
     )
     for field, value, message in [
+        ("release_binding", {}, "supervision release differs"),
         ("targets", list(reversed(TARGETS)), "targets or training settings"),
         ("run_config", {**actual["run_config"], "seed": 1}, "targets or training settings"),
         ("cache_side", 64, "cache preprocessing"),
@@ -401,3 +420,29 @@ def test_transitive_image_report_duplicates_are_quarantined_with_gold() -> None:
     assert result.loc["a", "split"] == "gold_evaluation"
     assert result.loc[list("bcd"), "split"].eq("quarantine").all()
     assert result.leakage_group.nunique() == 1
+
+
+def test_diagnostic_training_still_requires_real_release_boundary(tmp_path, monkeypatch):
+    output = tmp_path / "unapproved-run"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "train",
+            "--studies",
+            str(tmp_path / "studies.parquet"),
+            "--series",
+            str(tmp_path / "series.csv"),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--output",
+            str(output),
+            "--diagnostic-study-limit",
+            "1",
+            "--device",
+            "cpu",
+        ],
+    )
+    with pytest.raises(ValueError, match="verified release receipt is required"):
+        train.main()
+    assert not output.exists()

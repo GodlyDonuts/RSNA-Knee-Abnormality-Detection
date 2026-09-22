@@ -1,0 +1,53 @@
+"""Resolve the three release QA gates only after actual separately authored policy approval.
+
+This is root's explicit policy action, not another clinical rereading. Unresolved
+report judgments are retained and excluded through the accepted exact hold ledger.
+"""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+import hashlib,json,sys
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.correspondence import inspect_correspondence
+from rsna.report_similarity import inspect_report_similarity,similarity_pairs
+from rsna.semantic_supervision import inspect_semantic_supervision,validate_qa_binding
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(R)),'sha256':sha(p)}
+reports={}
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ for row in json.loads(p.read_text()):
+  assert row['study_uid'] not in reports;reports[row['study_uid']]=row['report']
+assert len(reports)==4407
+reviews=R/'initiative/reviews-v2/reviewed';rubric=R/'protocols/report_weak_v2.md'
+registry_path=R/'initiative/reviews-v2/adjudications/registry.json'
+registry=json.loads(registry_path.read_text())
+current=inspect_adjudications(reports,reviews,rubric,R)
+assert current['n_changes']==569 and len(current['pending_semantic_qa'])==3
+coordinator=json.loads((R/'initiative/reviews-v2/semantic-supervision/release-inputs.json').read_text())
+correspondence=inspect_correspondence(reports,R);similarity=inspect_report_similarity(reports,R)
+audit=inspect_semantic_supervision(reports,reviews,rubric,R,current,coordinator['required_inputs'],correspondence_excluded_uids={d['study_uid'] for d in correspondence['decisions']},near_report_pairs=sorted({(min(p),max(p)) for p in similarity_pairs(similarity)}))
+assert audit['n_cells']==52884 and audit['no_clinical_annotation_changes']
+# Actual approval validator has now verified separately authored proposal,
+# endorsement and root acceptance at exact final context/holds/ledger hashes.
+D=R/'initiative/audits/final-semantic-qa-resolution-v1';D.mkdir(exist_ok=False)
+(D/'registry-before.json').write_bytes(registry_path.read_bytes())
+(D/'resolve-final-semantic-qa-v1.py.txt').write_bytes(Path(__file__).read_bytes())
+contract={k:audit[k] for k in ['registry','context','holds','ledger','decision']}
+changes=[]
+for entry in registry['semantic_qa']:
+ p=R/entry['path'];assert sha(p)==entry['sha256']
+ issue=json.loads(p.read_text());assert issue['status']=='pending'
+ (D/(p.stem+'-before.json')).write_bytes(p.read_bytes())
+ resolution={'schema_version':1,'status':'resolved','issue_id':issue['id'],'source_reports_sha256':audit['source_reports_sha256'],'rubric_sha256':sha(rubric),'agent_id':'/root','session_id':'01a0c0eb-43a3-7be3-a2e3-a2b0f413ae1e','at_utc':datetime.now(timezone.utc).isoformat(),'review_artifacts':audit['review_files'],'correction_cases':audit['correction_cases'],'semantic_supervision':contract,'notes':'The exact full-release source/review/correction context now has a separately proposed, independently endorsed and root-accepted report-supervision policy. Its52884-cell ledger explicitly disposes all finite overlapping semantic review obligations using genuine bound source evidence, prior reasoned decisions or active holds. All original annotations and disagreements remain preserved. Unresolved observed claims are excluded from loss; this resolution does not declare them clinically correct, fabricate consensus or certify a clinical rereading of MRI pixels. Gold remains evaluation-only and final persisted-manifest/training/inference checks remain separate.','prior_pending_issue':ref(D/(p.stem+'-before.json')),'clinical_annotations_changed':False}
+ validate_qa_binding(resolution,audit)
+ out=D/(p.stem+'-resolution.json');out.write_text(json.dumps(resolution,indent=2)+'\n')
+ issue.update(status='resolved',resolution=ref(out),reason='Full-release report supervision is covered by the exact accepted conservative semantic ledger: genuine prior evidence is reused, unresolved targets are masked, original judgments remain intact. See the bound resolution for exact scope and limitations.')
+ p.write_text(json.dumps(issue,indent=2)+'\n');entry['sha256']=sha(p);changes.append({'issue':ref(p),'resolution':ref(out)})
+registry_path.write_text(json.dumps(registry,indent=2)+'\n')
+after=inspect_adjudications(reports,reviews,rubric,R)
+assert not after['pending_semantic_qa'] and after['n_changes']==569 and after['changes']==current['changes']
+counts=Counter(c['primary_disposition'] for c in audit['cells'])
+proof={'actual_executor':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'status':'three_semantic_release_gates_resolved_against_actual_accepted_policy','registry_before':ref(D/'registry-before.json'),'registry_after':ref(registry_path),'semantic_supervision':contract,'prior_inspection_sha256':audit['inspection_sha256'],'bound_artifacts':audit['bound_artifacts'],'reports':4407,'cells':52884,'original_569_whole_corrections_preserved':True,'pending_semantic_qa':[],'primary_disposition_counts':dict(counts),'report_observations_allowed_before_gold_split_technical':sum(c['report_supervision_allowed'] for c in audit['cells']),'issues':changes,'training_ready':False,'remaining':['Persisted final release and complete masks/splits/gold/technical validation','Real final-input optimizer/exact resume/gold inference/test template validation','Versioned verified publication and readiness report']}
+(D/'resolution-validation.json').write_text(json.dumps(proof,indent=2)+'\n')
+print(json.dumps({'status':proof['status'],'reports':4407,'cells':52884,'registry_after_sha256':sha(registry_path),'proof_sha256':sha(D/'resolution-validation.json')}))

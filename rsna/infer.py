@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 from rsna.data import StudyDataset
 from rsna.model import StudyNet
 from rsna.preprocess import Source, cache_series
+from rsna.release import load_verified_release, validate_checkpoint_binding
 from rsna.schema import CACHE_VERSION, TARGETS
 from rsna.train import predict
 
@@ -103,6 +104,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--artifact-root", type=Path, default=Path("."))
     args = parser.parse_args()
     torch.set_num_threads(2)
     started = time.monotonic()
@@ -112,9 +114,28 @@ def main() -> None:
         raise ValueError("Checkpoint target order mismatch")
     if checkpoint.get("cache_version") != CACHE_VERSION:
         raise ValueError("Checkpoint cache transform version differs")
+    release_binding = checkpoint.get("release_binding")
+    validate_checkpoint_binding(release_binding)
+    for checkpoint_key, release_key in (
+        ("manifest_sha256", "manifest_sha256"),
+        ("series_sha256", "series_sha256"),
+        ("cache_source_revision", "source_revision"),
+    ):
+        if (
+            checkpoint_key in checkpoint
+            and checkpoint[checkpoint_key] != release_binding[release_key]
+        ):
+            raise ValueError(f"Checkpoint {checkpoint_key} conflicts with its verified release")
+    if args.studies is not None:
+        full_manifest, verified_binding = load_verified_release(args.studies, args.artifact_root)
+        if verified_binding != release_binding:
+            raise ValueError("Held-out supervision release differs from checkpoint")
     series, studies, template, bindings = load_inference_metadata(
         checkpoint, args.series, args.studies, args.template, args.split
     )
+    if args.studies is not None:
+        studies = full_manifest.loc[full_manifest.split.eq(args.split)].copy()
+    bindings["training_release_binding"] = release_binding
     raw_split = "test_series" if template is not None else "train_series"
     if (
         args.studies

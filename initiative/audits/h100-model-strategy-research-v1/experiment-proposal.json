@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "stage": "resource_scalable_experiment_proposal",
+  "author": "/root/competition_contract",
+  "hardware": "UCF Newton, actual allocation/GPU identity/remaining PI balance unverified",
+  "stage_ceiling_gpu_hours": {
+    "pilot": 8,
+    "frozen_screens": 24,
+    "core_shortlist_replication": 128,
+    "mri_ssl": 160,
+    "one_spatial_3d_branch": 160,
+    "final_confirmation_distillation_runtime": 120
+  },
+  "total_ceiling_gpu_hours": 600,
+  "not_a_reservation_or_measured_runtime": true,
+  "evaluation": {
+    "group_folds": 3,
+    "seeds": 2,
+    "primary_aggregation": "Per-target within-fold AUC weighted by valid positive-negative pair counts; equal-target macro only if all twelve defined",
+    "pooled_oof_auc": "secondary; cross-fold score scale caveat",
+    "weak_validation": "one locked predeclared confirmation after inner selection",
+    "gold": "historically exposed; evaluation only, no fit/selection",
+    "bootstrap": "paired resampling of groups within fixed folds; conditional on fitted models; seed variation separate"
+  },
+  "illustrative_arithmetic": {
+    "20_epoch_gpu_hours_coefficient_per_seconds_per_study_per_allocated_gpu": 18.905555555555555,
+    "three_fold_two_seed_run_equivalents": 4.0,
+    "fp16_global_1024_features_bytes": 1678612480,
+    "fp16_384px_16patch_1024dim_patch_cache_bytes": 966880788480,
+    "target_cold_hours": 6,
+    "target_seconds_per_study_1300": 16.615384615384617
+  },
+  "hypotheses": [
+    "DINOv3 dense features improve task transfer relative to input-matched DINOv2",
+    "Training-fold MRI continuation improves useful representations over untouched general pretraining",
+    "Denser/native spatial input helps before or independently of parameter scaling",
+    "A genuinely 3D branch adds complementary OOF information sufficient to justify final runtime",
+    "Accepted corrections improve useful supervision relative to reduced observed-cell ablations"
+  ]
+}

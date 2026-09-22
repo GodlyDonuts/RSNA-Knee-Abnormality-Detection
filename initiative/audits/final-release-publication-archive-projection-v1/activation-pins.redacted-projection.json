@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "stage": "explicit_nonexecuting_archive_projection",
+  "actual_author": "/root/image_pipeline_audit",
+  "original_artifact": {
+    "path": "work/annotation-staging/final-release-publication-independent-review-v1/activation-pins.json",
+    "sha256": "acf553cd3e13663a2dba3af04e8d5ae28634af0d1a582d8d972dc659d4037797",
+    "bytes": 3410
+  },
+  "original_preserved_privately_unchanged": true,
+  "not_byte_identical_to_original": true,
+  "not_an_execution_binding": true,
+  "transformations": [
+    {
+      "json_pointer": "/known_values/STAGED_PROOF",
+      "reason": "Remove absolute workspace prefix containing credential-like naming; no credential validity is asserted.",
+      "original_value_sha256": "5825c8a855dedd3bd4a544dee544f2a48c9fc941ba206e5a228fb6d92512bae1",
+      "replacement": "$WORKSPACE/work/annotation-staging/final-release-publication-independent-review-v1/final-review.json"
+    }
+  ],
+  "projected_document": {
+    "schema_version": 1,
+    "stage": "future_execution_successor_activation_instructions",
+    "actual_author": "/root/image_pipeline_audit",
+    "preserve_preparation_and_create_new_sibling_successor": true,
+    "pending_values": {
+      "TARGET_GIT": "Exact future final release commit, unknown now",
+      "TARGET_TREE": "Exact target Git tree, derive after commit",
+      "TARGET_FILE_COUNT": "Exact regular Git file count from target tree",
+      "TARGET_CI_RUN": "Completed successful CI run with headSha equal to TARGET_GIT"
+    },
+    "known_values": {
+      "STAGED_PROOF": "$WORKSPACE/work/annotation-staging/final-release-publication-independent-review-v1/final-review.json",
+      "STAGED_PROOF_SHA": "45f64b3ed2d87ad930708104b14a9508c8e0e655c326ba4c264c9ca933dbb8d1",
+      "REGISTRY_SHA": "7c5d0e294cd770c2e96c1ecc10a277de293f762ae50f719935dda170f31b11b1",
+      "VERIFIED_RELEASE_SHA": "6453a8ff31373c40556dc857e15fa0025f122195388a2b46c81ecd9cff0b8833",
+      "ACCEPTANCE_PATH": "initiative/audits/final-input-training-acceptance-v1/acceptance.json",
+      "ACCEPTANCE_SHA": "cd680364f174224d278ea37be80dd335edf7c8bff8fc90066c0648c569053067",
+      "DEPENDENCY_SEAL_SHA": "6200a3594bf485bc6e4eef7aaf267b5c5eac8c91ca4962f51b3b5bfc4d93952d"
+    },
+    "copy_byte_identical_modules": {
+      "build_final_release_peer.py": "19d74c5f2c1dde68d5ed664499392f518eca9da9e427995ffb6c9bc0ac286b32",
+      "final_release_dependency_seal.py": "24b3d3150ca41c1b5a2f20fd325a725efa7c96281b761cfdef2c88db96f3b75b",
+      "final_release_eligibility.py": "a9ab5f8b2900be919a3f139c36e9b2a60462c8f818f61208d704b97566031e49",
+      "publish_final_release_delta.py": "efaffa67f22eaec25973cd775b11f08c8077f447965937b1610bb0b0dfa8e63e",
+      "seal_final_release_root.py": "f2461068ebb665ab8ef4e19c5e7d28a8f21325628433bb11abc9005baa0103a5",
+      "test_dependency_seal.py": "55650c637700baa287546c5abb6a64e7574f81c99bd38c1af11da2005c18cbe7",
+      "test_dependency_seal_integration.py": "bd971e57dc2c861a83c7152afbcbe90cc58405018640dab06ac29696795ea8b1",
+      "test_successor_guards.py": "fa5453715630fd4a671568e806eec512cfef8781ac73298fb6be69eb1bb831c0",
+      "verify_final_release_peer.py": "841e6ca149d0dcf1c500bf77cc44f85f5fde1eb7358225743c39299ee08b3c47",
+      "verify_final_release_root.py": "82771b561fc622724d3ca731460e25309c5218acf0a5af0d4434167e3e37ca05"
+    },
+    "binding_module_before_activation": {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/final_release_bindings.py",
+      "sha256": "103a826d63da5671770b5a6b17a30e72f29e7a2f35863035fea8ed544c8c3a5b",
+      "bytes": 12847
+    },
+    "source_inventory": {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/protected-source-576.json",
+      "sha256": "0e12da42dc91e43799eeecddb7bfffda1dd9b598e93610a836ad3428a1fae527",
+      "bytes": 436765
+    },
+    "no_target_pin_in_seal": "Avoid a target-commit cycle; target Git and manifest still bind the sealed inputs.",
+    "execution_roles": {
+      "actual_build_and_first_streaming_restore": "/root/image_pipeline_audit",
+      "actual_second_streaming_restore_and_publisher": "/root"
+    },
+    "instructions": {
+      "path": "work/annotation-staging/final-release-publication-independent-review-v1/README.md",
+      "sha256": "7ca67ad47399c1b85d694f645b1b3449b69984cf86dcd2c58dc3b503893bcb29",
+      "bytes": 4808
+    }
+  }
+}

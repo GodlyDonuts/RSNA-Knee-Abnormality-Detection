@@ -1,0 +1,65 @@
+"""Exercises atomic CLI publication using the actual synthetic release fixture."""
+
+from __future__ import annotations
+
+import gzip
+import sys
+from pathlib import Path
+
+import pandas as pd
+import pytest
+from rsna import labels
+from test_release_adapter import prepared  # noqa: F401: shared actual-validator fixture
+
+
+def test_labels_failure_after_verified_receipt_does_not_publish(prepared, monkeypatch):  # noqa: F811
+    f, _, _, _, _ = prepared
+    inventory = f.root / "input/inventory.parquet"
+    inventory.write_bytes(gzip.decompress((f.root / "input/inventory.parquet.gz").read_bytes()))
+    destination = f.root / "atomic-release"
+    seen = {"verified_receipt": False}
+    original = pd.DataFrame.to_parquet
+
+    class LineageFailure(Exception):
+        pass
+
+    def fail_lineage(frame, path, *args, **kwargs):
+        path = Path(path)
+        if path.name == "report_annotations.parquet":
+            seen["verified_receipt"] = (path.parent / "verified_release.json").is_file()
+            raise LineageFailure
+        return original(frame, path, *args, **kwargs)
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", fail_lineage)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "labels",
+            "--train",
+            str(f.root / "initiative/source/train.csv"),
+            "--reviews",
+            str(f.reviews),
+            "--drafts",
+            str(f.reviews.parent / "drafts"),
+            "--output",
+            str(destination),
+            "--dicom-audit",
+            str(f.root / "input/dicom_audit.json"),
+            "--inventory",
+            str(inventory),
+            "--source-revision",
+            "synthetic-revision",
+            "--review-provenance",
+            str(f.root / "initiative/reviews-v2/provenance.json"),
+            "--rubric",
+            str(f.rubric),
+            "--artifact-root",
+            str(f.root),
+        ],
+    )
+    with pytest.raises(LineageFailure):
+        labels.main()
+    assert seen["verified_receipt"]
+    assert not destination.exists()
+    assert not list(f.root.glob(".release-*"))

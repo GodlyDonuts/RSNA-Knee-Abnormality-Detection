@@ -1,0 +1,118 @@
+"""Preserve completed publication evidence; no new network or restoration work."""
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import shutil
+
+W = Path(__file__).resolve().parent.parent
+R = W / "work/recovered"
+B = W / "work/annotation-staging"
+GIT = "a815aae64d812596a00b517c8542346280ee85f4"
+HF = "7d6d4cef88215a032cdaa23de5d189aefc0aa99b"
+P = W / "work/hf-preparation-deltas" / GIT
+D = R / "initiative/audits/qualified004-verified569-publication-v1"
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def read(p):
+    return json.loads(p.read_text())
+
+def check(p, expected, size=None):
+    assert p.is_file() and not p.is_symlink(), p
+    assert sha(p) == expected, p
+    if size is not None:
+        assert p.stat().st_size == size, p
+
+sync_path = W / "work/qualified004-synchronized-publication.json"
+check(sync_path, "ae9f2fd6bd0bc1db4e0a9bab932caa8b5686a74ba82b0b51b6fe251136c79f78")
+sync = read(sync_path)
+assert sync["github_commit"] == GIT and sync["hf_revision"] == HF
+assert sync["registered_corrections"] == 569 and sync["complete_result_files"] == 10566
+assert sync["repositories_private"] and not sync["training_ready"]
+for key in ("publication_receipt", "peer_proof", "root_proof"):
+    ref = sync[key]
+    check(W / ref["path"], ref["sha256"], ref["bytes"])
+receipt = read(P / "root-publication-receipt.json")
+assert receipt["github_commit"] == GIT and receipt["hf_revision"] == HF
+assert receipt["private"] and receipt["source_and_official_metadata_unchanged"]
+assert len(receipt["uploaded_objects"]) == 6
+assert len(receipt["immutable_base_objects_verified"]) == 2
+assert len(receipt["protected_source576_parent_objects_verified"]) == 576
+peer = read(P / "peer-restoration-proof.json")
+root = read(P / "root-restoration-proof.json")
+assert peer["n_result_files_verified"] == root["n_result_files_verified"] == 10566
+assert root["actual_executor"] == "/root"
+assert sha(P / "peer-restoration-proof.json") == sha(P / "restoration-proof.json")
+
+jobs = []
+def add(source, dest):
+    assert source.is_file() and not source.is_symlink(), source
+    jobs.append((source, dest, sha(source), source.stat().st_size))
+
+stages = {
+    "qualified004-hf-publication-preparation-v1": "5a8116b5cf4c01adc1fcda67d4375f5a5773b94e77ebea5b36a78cba8809fbb6",
+    "qualified004-publication-workflow-independent-review-v1": "be12199a9c9d5cceecb8a8f0e1845479d2b22187d51bd920cb81c84d40a0e3db",
+    "qualified004-delta-build-verification-v1": "000ca5fbf455b3f507a9cf229b0eb8a3d95dd732468064830657c2106fe23c62",
+}
+for name, expected in stages.items():
+    manifest = B / name / "completion-manifest.json"
+    check(manifest, expected)
+    for ref in read(manifest)["files"]:
+        source = W / ref["path"]
+        assert source.parent == B / name
+        check(source, ref["sha256"], ref["bytes"])
+        suffix = ".txt" if source.suffix == ".py" else ""
+        add(source, R / "initiative/audits" / name / (source.name + suffix))
+    add(manifest, R / "initiative/audits" / name / manifest.name)
+
+for name in (
+    "README.md", "manifest.json", "peer-build-receipt.json",
+    "peer-restoration-proof.json", "restoration-proof.json", "root-restoration-proof.json",
+    "root-publication-journal.jsonl", "root-publication-operation.json", "root-publication-receipt.json",
+):
+    add(P / name, D / name)
+for name in (
+    "qualified004-synchronized-publication.json", "qualified004-final-staged-verification.json",
+    "finalize-qualified004-publication-status-v1.py", "verify-qualified004-delta-root-v1.py",
+    "prepare-qualified004-publication-workflow-v1.py", "preserve-verified569-publication-v1.py",
+):
+    source = W / "work" / name
+    add(source, D / (name + (".txt" if source.suffix == ".py" else "")))
+
+assert len({str(d) for _, d, _, _ in jobs}) == len(jobs)
+assert not (D / "preservation.json").exists()
+needed = sum(n for _, d, _, n in jobs if not d.exists())
+assert shutil.disk_usage(W).free - needed >= 20 * 1024**3
+for source, dest, expected, size in jobs:
+    check(source, expected, size)
+    if dest.exists():
+        check(dest, expected, size)
+
+files = []
+for source, dest, expected, size in jobs:
+    action = "equal_existing" if dest.exists() else "copied_new"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if not dest.exists():
+        with dest.open("xb") as out:
+            out.write(source.read_bytes())
+    check(dest, expected, size)
+    files.append(dict(original_path=str(source.relative_to(W)), path=str(dest.relative_to(R)),
+                      sha256=expected, bytes=size, action=action))
+record = dict(
+    stage="preserved_verified569_private_publication", actual_executor="/root",
+    at_utc=datetime.now(timezone.utc).isoformat(), github_commit=GIT,
+    github_tree=sync["github_tree"], hf_revision=HF,
+    registered_corrections_at_publication=569, result_files=10566, files=files,
+    original_distinct_executors=sync["actual_distinct_executors"],
+    peer_proof_aliases_are_one_execution=True, new_restoration_performed=False,
+    network_calls=0, large_archives_copied_or_extracted=False,
+    external_delta= root["delta_archive"], external_base_hf_revision=root["base_hf_revision"],
+    source_and_official_metadata_unchanged_in_bound_publication=True,
+    training_ready=False, global_semantic_qa_closed=False,
+)
+with (D / "preservation.json").open("x") as out:
+    out.write(json.dumps(record, indent=2) + "\n")
+print(json.dumps(dict(status="preserved", files=len(files), bytes=sum(f["bytes"] for f in files),
+                      preservation_sha256=sha(D / "preservation.json"))))

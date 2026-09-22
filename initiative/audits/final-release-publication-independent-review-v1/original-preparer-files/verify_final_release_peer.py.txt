@@ -1,0 +1,45 @@
+"""Unexecuted peer runner: streaming verification only, never builds or uploads."""
+import argparse
+import json
+from final_release_bindings import *
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    add_inputs(parser)
+    parser.add_argument('--actual-executor', choices=[PEER], required=True)
+    args = parser.parse_args()
+    future_pins_guard()
+    h = helper()
+    package, manifest, inv, eligibility = local_guard(args, h)
+    output = package / 'peer-restoration-proof.json'
+    require(not output.exists(), 'peer_proof_already_exists')
+    protected = {p.name: ref(p) for p in package.iterdir() if p.is_file()}
+    base = WORK / 'hf-preparation-checkpoints' / BASE_GIT
+    disk_before = h.disk_guard(package)
+    proof = h.verify_package(R, args.target_commit, base / 'checkpoint.tar.gz', base / 'manifest.json', package, args.manifest_sha256, secrets=h.secret_values(W / '.env'))
+    original_default = proof['verifier_agent_id']
+    proof.update(verifier_agent_id=PEER, actual_executor=args.actual_executor,
+                 final_release_eligibility=eligibility,
+                 generated_helper_default_identity=original_default,
+                 helper_default_is_not_evidence_of_actual_execution=True,
+                 helper_sha256=HELPER_SHA, peer_runner=ref(Path(__file__)),
+                 preparation_author_agent_id=WORKFLOW_AUTHOR,
+                 actual_role='Distinct peer streaming reconstruction verifier when this runner is actually executed by the named agent; preparation alone creates no proof.',
+                 protected_source576_inventory=ref(SOURCE_INVENTORY),
+                 source576_exact_target_git_identities_verified=len(inv['files']),
+                 disk_before_verification=disk_before, disk_after_verification=h.disk_guard(package),
+                 process_exposure='Opaque streaming of all base/delta payload bytes, including source and review artifacts, for hashes and credential/URL scanning. No clinical judgments, gold-label interpretation or pixel review. Disclose this mechanical exposure in subsequent source review.',
+                 input_artifacts_preserved=protected)
+    proof_guard(proof, args, manifest, PEER)
+    for name, expected in protected.items():
+        require(ref(package / name) == expected, 'package_changed_during_peer_verification')
+    h.Scanner(h.secret_values(W / '.env')).feed((json.dumps(proof) + '\n').encode())
+    save(output, proof)
+    print(json.dumps({'status': proof['status'], 'actual_executor': PEER, 'proof': ref(output), 'verified_files': args.expected_file_count, 'training_ready': False}))
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as error:
+        print(json.dumps(error_result(error)))
+        raise SystemExit(2) from None

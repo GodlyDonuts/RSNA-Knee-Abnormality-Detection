@@ -1,0 +1,121 @@
+"""Real synthetic approval/export/reload path with a genuinely missing weak class."""
+
+from __future__ import annotations
+
+import gzip
+import json
+import sys
+
+import pandas as pd
+from rsna import labels, release, weak_split
+from rsna import semantic_supervision as ss
+from rsna.schema import TARGETS
+from test_release_adapter import prepared as prepared_fixture
+from test_semantic_supervision import Fixture
+
+
+def test_actual_approved_synthetic_release_repairs_missing_class(tmp_path, monkeypatch):
+    original_build = Fixture.build
+    changed_before_approval = []
+
+    def build_missing_class(fixture):
+        # Change synthetic reader objects BEFORE their first final context,
+        # evidence catalog, proposal, assessment and decision are constructed.
+        if len(fixture.reports) == 6 and not changed_before_approval:
+            index = TARGETS.index("MCL")
+            selected = [
+                r
+                for r in fixture.rows
+                if r["study_uid"].startswith("v") and r["states"][index] == "positive"
+            ]
+            assert len(selected) == 1
+            selected[0]["states"][index] = "negative"
+            changed_before_approval.append(selected[0]["study_uid"])
+            for folder, suffix in [
+                ("reviewed", "reviewed"),
+                ("drafts", "draft"),
+                ("prereads", "preread"),
+            ]:
+                path = fixture.root / f"initiative/reviews-v2/{folder}/batch-000-{suffix}.jsonl"
+                path.write_text("".join(json.dumps(r) + "\n" for r in fixture.rows))
+            provenance = json.loads((fixture.root / release.PROVENANCE_PATH).read_text())
+            for phase, folder in [("draft", "drafts"), ("reviewed", "reviewed")]:
+                provenance["batch-000"][phase]["sha256"] = ss.file_digest(
+                    fixture.root / f"initiative/reviews-v2/{folder}/batch-000-{phase}.jsonl"
+                )
+            provenance["batch-000"]["reviewed"]["parent_artifact_sha256"] = provenance["batch-000"][
+                "draft"
+            ]["sha256"]
+            fixture.inputs["review_provenance"] = fixture.write(
+                str(release.PROVENANCE_PATH), provenance
+            )
+        return original_build(fixture)
+
+    monkeypatch.setattr(Fixture, "build", build_missing_class)
+    actual_repair = weak_split.repair_weak_split_coverage
+    witnessed = []
+
+    def witness(frame):
+        after = actual_repair(frame)
+        witnessed.append((frame.copy(deep=True), after.copy(deep=True)))
+        return after
+
+    monkeypatch.setattr(release, "repair_weak_split_coverage", witness)
+    f, _, audit, repaired, out = prepared_fixture.__wrapped__(tmp_path)
+    assert len(changed_before_approval) == 1 and len(witnessed) == 1
+    before, after = witnessed[0]
+    missing = before.loc[before.split.eq("weak_validation") & before.MCL__mask.eq(1), "MCL"]
+    assert set(missing) == {0.0}
+    repair = weak_split.split_repair_audit(before, after)
+    assert repair["moved_studies"] == 1 and len(repair["moved_groups"]) == 1
+    assert all(r["negative"] and r["positive"] for r in weak_split.split_class_counts(after))
+    pd.testing.assert_frame_equal(
+        before.drop(columns="split"), after.drop(columns="split"), check_exact=True
+    )
+    initial_binding = release.write_verified_release(out, repaired, audit, f.root)
+    loaded, repeated_binding = release.load_verified_release(out / "studies.parquet", f.root)
+    assert initial_binding == repeated_binding
+    assert ss.table_fingerprint(loaded) == ss.table_fingerprint(after)
+
+    # Exercise the actual labels CLI too, without mocking policy, approval,
+    # class repair, receipt validation or atomic publication.
+    inventory = f.root / "input/inventory.parquet"
+    inventory.write_bytes(gzip.decompress((f.root / "input/inventory.parquet.gz").read_bytes()))
+    destination = f.root / "cli-release"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "labels",
+            "--train",
+            str(f.root / release.SOURCE_PATH),
+            "--reviews",
+            str(f.reviews),
+            "--drafts",
+            str(f.reviews.parent / "drafts"),
+            "--output",
+            str(destination),
+            "--dicom-audit",
+            str(f.root / "input/dicom_audit.json"),
+            "--inventory",
+            str(inventory),
+            "--source-revision",
+            "synthetic-revision",
+            "--review-provenance",
+            str(f.root / release.PROVENANCE_PATH),
+            "--rubric",
+            str(f.rubric),
+            "--artifact-root",
+            str(f.root),
+        ],
+    )
+    labels.main()
+    exported, final_binding = release.load_verified_release(destination / "studies.parquet", f.root)
+    assert ss.table_fingerprint(exported) == ss.table_fingerprint(after)
+    assert json.loads((destination / "weak_split_repair.json").read_text()) == repair
+    report = json.loads((destination / "label_audit.json").read_text())
+    assert report["verified_release_binding"] == final_binding
+    assert report["weak_split_repair"] == repair
+    assert all(ss.table_fingerprint(frame) == ss.table_fingerprint(after) for _, frame in witnessed)
+    assert "rsna/weak_split.py" in release.CODE_PATHS and len(release.CODE_PATHS) == 9
+    assert release.SPLIT_ALGORITHM.endswith("coverage_repair_v1")

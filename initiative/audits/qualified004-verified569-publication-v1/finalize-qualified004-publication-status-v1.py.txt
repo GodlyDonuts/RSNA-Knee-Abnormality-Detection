@@ -1,0 +1,48 @@
+"""Verify actual569 publication evidence and update mutable progress, not its originals."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,subprocess,stat
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';O=Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection');B=W/'work/annotation-staging';gitid='a815aae64d812596a00b517c8542346280ee85f4';hfid='7d6d4cef88215a032cdaa23de5d189aefc0aa99b';P=W/'work/hf-preparation-deltas'/gitid
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();read=lambda p:json.loads(p.read_text());ref=lambda p:dict(path=str(p.relative_to(W)),sha256=sha(p),bytes=p.stat().st_size)
+receipt=P/'root-publication-receipt.json';assert sha(receipt)=='d417d44ee138e638b22e8fb7a04f7001fe8a6297e7cbb061ecc3e22389d689da';d=read(receipt)
+assert d['status']=='verified_private_complete_tree_preparation_delta' and d['github_commit']==gitid and d['hf_revision']==hfid and d['private'] is True and d['training_ready'] is False
+assert d['complete_result_files']==10566 and d['registered_corrections']==569 and d['github_ci_run']==35701433274
+assert d['github_tree']=='47a46cf4ac4b4411dea5424610b18dc596c2c149' and d['github_ci']=={'conclusion':'success','headSha':gitid,'status':'completed'}
+assert d['publication_action']=='commit_from_expected_parent' and d['verified_hf_parent']==d['expected_hf_parent']=='d2804e1da6fdaa6e77e01c224480c5b31aefc186'
+assert len(d['uploaded_objects'])==6 and len(d['immutable_base_objects_verified'])==2 and len(d['protected_source576_parent_objects_verified'])==576 and d['source_and_official_metadata_unchanged'] is True
+assert sha(R/'initiative/reviews-v2/adjudications/registry.json')==d['registry_sha256']=='7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'
+assert sha(P/'root-restoration-proof.json')==d['root_proof_sha256']=='73f9c5c9f2ca601346dfb8aac5d09fe8c1cb5998bea42f1e6809152abf395e55'
+assert sha(P/'peer-restoration-proof.json')==sha(P/'restoration-proof.json')==d['peer_proof_sha256']=='c57c0129cbfb9f84e246221c1bd517d1a460e408e11916c320edce6fb5a0e624'
+for repo in (R,O):
+ assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip()==gitid
+ assert not subprocess.check_output(['git','status','--porcelain'],cwd=repo).strip()
+assert stat.S_IMODE((W/'.env').stat().st_mode)==0o600
+assert not subprocess.check_output(['git','ls-files','--','.env'],cwd=R).strip()
+first=B/'bone-observed-030-postfreeze-v1/completion-manifest.json';second=B/'bone-observed-030-independent-postfreeze-v1/final-file-list.json'
+assert sha(first)=='90156ea5e15f01e9a941b27353e70264240cbc5cdc19916c358349e249156bb3'
+assert sha(second)=='d0d3e19523ee6d8e82a7df8120343eee269f36d13eb12e9ca97e79eb1b2fbd2c'
+now=datetime.now(timezone.utc).isoformat()
+record={'stage':'root_verified_synchronized569_publication','actual_executor':'/root','at_utc':now,'github_commit':gitid,'github_tree':d['github_tree'],'github_ci_run':35701433274,'github_ci':'success','hf_revision':hfid,'registered_corrections':569,'complete_result_files':10566,'publication_receipt':ref(receipt),'peer_proof':ref(P/'peer-restoration-proof.json'),'root_proof':ref(P/'root-restoration-proof.json'),'peer_alias_is_one_execution':True,'actual_distinct_executors':['/root/duplicate_consistency_review','/root'],'source_metadata_preserved':True,'repositories_private':True,'published_bone_source_and_post_reports_per_reader':1450,'newer_local_bone_source_and_post_reports_per_reader':1549,'newer_local_bone_completions':[ref(first),ref(second)],'remaining_gates':3,'training_ready':False,'mission_requires_data_release_then_researched_competitive_training_plan':True}
+out=W/'work/qualified004-synchronized-publication.json'
+with out.open('x') as f:f.write(json.dumps(record,indent=2)+'\n')
+p=W/'outputs/readiness-status.json';j=read(p);assert j['accepted_corrections']==569
+j.update(updated_at_utc=now,github_commit=gitid,github_ci_run=35701433274,github_ci_status='success',huggingface_revision=hfid,huggingface_matching_git_commit=gitid,newest_github_changes_mirrored_to_huggingface=True,published_accepted_corrections=569,published_github_corrections=569,published_huggingface_corrections=569,huggingface_verified_result_files=10566,local_registry_sha256=d['registry_sha256'],publication_receipt_sha256=sha(receipt),publication_receipt_local_path=str(receipt.relative_to(W)),repositories_private=True,tests_passed=462,training_ready=False,global_semantic_gates_pending=3,local_changes_newer_than_published_checkpoint=True,local_changes_pending_publication=True)
+j['qualified569_publication']=record
+j['focused_consistency_batch004'].update(root_complete_adjudication_archived_to_github=True,published_accepted_new_corrections=78)
+j['focused_consistency_batch005']['source_freeze_archived_to_github']=True
+j['bone_review'].update(first_source_reports_completed_locally=1549,first_source_target_judgments_completed_locally=3098,first_postfreeze_reports_completed_locally=1549,second_source_reports_completed_locally=1549,second_source_target_judgments_completed_locally=3098,second_postfreeze_reports_completed_locally=1549,first_source_reports_archived_to_github=1450,second_source_reports_archived_to_github=1450,first_postfreeze_reports_archived_to_github=1450,second_postfreeze_reports_archived_to_github=1450,latest_first_source_freeze_sha256='bbe3ffbee8cfd340aa8e71f20e7e2aa345bf9a91e333390474628721c21a1696',latest_second_source_freeze_sha256='286ca166413b07a071ca490e307eabd476639700e9a46e4f7b5e2f8ef3e436d4',latest_first_comparison_completion_sha256=sha(first),latest_second_comparison_completion_sha256=sha(second),latest_first_comparison_baseline=569,latest_second_comparison_baseline=569,progress_scope='Both complete finite1549 source/comparison passes; published checkpoint stops at1450, newer029/030 remain local.',newer_local_work_not_yet_archived=True)
+j['semantic_supervision_hold_design'].update(status='design_approved_for_concrete_implementation_and_validation_only',root_design_decision_sha256='357a3c6aec6d8752ae488a2fed1cd16b342d7de89f5b0bb5991d87c4e36a7f76',concrete_hold_registry_approved=False,gates_closed=False)
+j['local_unpublished_review_progress']={'bone_source_and_comparison029_030_complete':True,'hold_design_and_runtime_coverage_work_in_progress':True,'gates_closed':False}
+j['latest_local_progress_evidence'].update({str(first.relative_to(W)):sha(first),str(second.relative_to(W)):sha(second),str(out.relative_to(W)):sha(out)})
+p.write_text(json.dumps(j,ensure_ascii=False,indent=2)+'\n')
+(W/'outputs/readiness-status.md').write_text('''# RSNA data preparation progress
+
+**569 corrections are verified on GitHub main and private Hugging Face.** Git `a815aae6` and HF `7d6d4cef` contain a matching preparation checkpoint. All 10,566 Git files passed two distinct reconstruction checks; exact-commit CI and 462 local tests passed.
+
+All 4,407 original reports received two 12-target passes. The full technical image audit and 32 targeted visual escalations are complete. Both supplemental bone reviewers have now finished the finite 1,549-report queue locally; the published checkpoint contains their first 1,450 reports. Wording004 contributes 78 accepted corrections, with four extra proposals independently rejected and explicitly withdrawn. Wording005 has all 48 sources / 576 initial judgments frozen and archived before comparison.
+
+**Data readiness remains pending.** Three semantic gates, the concrete finite supervision ledger and hold policy, final leakage/mask/export checks, and actual training/resume/inference acceptance remain. The separate hold design is approved for implementation, not release: it preserves clinical labels and excludes unresolved training supervision. Twenty-four unresolved correspondence cases must retain zero report-loss masks. Official gold stays evaluation-only.
+
+The expanded mission requires both a verified training-ready data release and, afterward, a researched competitive training plan covering model/sequence choices, pretraining, validation, data-quality ablations, compute and submission strategy. Quality and score improvements must be measured.
+''')
+print(json.dumps({'status':'synchronized569_verified','github':gitid,'hf':hfid,'files':10566,'local_bone_reports_each':1549,'training_ready':False,'record_sha256':sha(out)}))

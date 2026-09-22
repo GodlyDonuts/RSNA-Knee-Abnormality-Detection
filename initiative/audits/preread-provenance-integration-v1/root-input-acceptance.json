@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root",
+  "session_id": "01a0c0eb-43a3-7be3-a2e3-a2b0f413ae1e",
+  "at_utc": "2026-09-22T09:44:58.968548+00:00",
+  "status": "accepted_corrected_runtime_and_required_inputs_for_final_context_assembly",
+  "coordinator": {
+    "path": "initiative/reviews-v2/semantic-supervision/release-inputs.json",
+    "sha256": "6b456bfcb067df2f47efe3698c67fd0bc86519d1983ec1635c6049de3dd8da35"
+  },
+  "code_sha256": {
+    "rsna/adjudications.py": "2b7af816e9caff240daf02af1dd3bf08e193438ac568478651f0b49868e1eac0",
+    "rsna/audit.py": "f284e48c266245c0969358559626390c5d4a89fddd48e5aed8010c5a432d81ca",
+    "rsna/correspondence.py": "b5de41060bfc922007947551ce7229d07de36efee5e306470106f2663cb0111c",
+    "rsna/labels.py": "c4506b51ec40c9d2b9a3ecdb90662f9bf7cd4358bef72a06fafc0cfa7ab92dc3",
+    "rsna/release.py": "d4f0fd4f6d5aad63ad50397d6f6d0ae6203f84a14690b5ad1385cc57d6a811a6",
+    "rsna/report_similarity.py": "728cf2faba14900e3d6477c47b2a9b6ab8c28c8ff5cdaf6006c1f6e5312fb764",
+    "rsna/schema.py": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948",
+    "rsna/semantic_supervision.py": "5b0f4bf68e2b1c4ffe4396f37b946d4cbf48ee4ec12ade10ec0149f2db0765a7",
+    "rsna/weak_split.py": "aeea2320daf8d05d459ad94a9ff0219681d14706e0832ebd75303344597642ef"
+  },
+  "split_policy": {
+    "path": "initiative/reviews-v2/semantic-supervision/split-policy.json",
+    "sha256": "5ae6a0ccb245421bbbc98835d62d402a915e47ece0e321c933083a8e0ab7e18c"
+  },
+  "predecessor_acceptance": {
+    "path": "initiative/audits/final-release-input-acceptance-v1/root-input-acceptance.json",
+    "sha256": "482c5be2dc8541d7c89c6fe23b9a751a64821c61b40d55338a6d1f14dca4a86c"
+  },
+  "preserved_prior_coordinator": {
+    "path": "initiative/audits/preread-provenance-integration-v1/release-inputs.json.before",
+    "sha256": "6a010c54fd5cf2889f775c96c424a3aaa782534536dcdd15df4c63eb8d42d391"
+  },
+  "preserved_prior_split_policy": {
+    "path": "initiative/audits/preread-provenance-integration-v1/split-policy.json.before",
+    "sha256": "395e3a2d5c3cd6384d2bdd219b152fe3f8fef0035f151024846e28af731c09bc"
+  },
+  "integration": {
+    "path": "initiative/audits/preread-provenance-integration-v1/integration.json",
+    "sha256": "63829beaadff78d24a1fefe97a501b546f4e89bfa926575ffc8123a92f5197ba"
+  },
+  "independent_review": {
+    "path": "initiative/audits/semantic-supervision-preread-independent-review-v1/independent-review.json",
+    "sha256": "a662768b99cabf8e125bdd6844b1d149e5b74c967e714896bf16dedc8f129978"
+  },
+  "actual89_context_probe": {
+    "path": "initiative/audits/semantic-supervision-preread-provenance-fix-v1/actual89-context-probe.json",
+    "sha256": "9e5d026d70d1ab27121d1e0552e47fe85377026ffda6658235a4a3076b4ab0b9"
+  },
+  "reason": "Accept the narrow mechanical correction from a nonexistent uniform preread directory to all89 original paths and hashes recorded in per-batch provenance. The first context assembly stopped before writing any final context/proposal. Two actual executions verify the89 original bindings; selected clinical evidence validation and fixed supervision membership are unchanged. Only this core module and its enclosing code/input hashes are superseded. Original code, policies and prior acceptance remain preserved.",
+  "tests": {
+    "pytest_passed": 573,
+    "pytest_seconds": 22.18,
+    "ruff_check_passed": true,
+    "ruff_format_files": 50,
+    "mypy_source_files": 23
+  },
+  "semantic_membership_changed": false,
+  "clinical_annotations_changed": false,
+  "semantic_qa_closed": false,
+  "training_ready": false
+}

@@ -1,0 +1,362 @@
+"""Actual adapter flow over a small, entirely synthetic approved release fixture."""
+
+from __future__ import annotations
+
+import copy
+import gzip
+import hashlib
+import json
+from pathlib import Path
+
+import pandas as pd
+import pytest
+from test_semantic_supervision import Fixture
+
+from rsna import release
+from rsna import semantic_supervision as ss
+from rsna.adjudications import inspect_adjudications
+from rsna.audit import inventory_fingerprint
+from rsna.schema import CACHE_VERSION, TARGETS
+
+
+@pytest.fixture
+def prepared(tmp_path: Path):
+    f = Fixture(tmp_path)
+    vals = [
+        f"v{i}"
+        for i in range(100)
+        if int(hashlib.sha256(f"v{i}".encode()).hexdigest(), 16) % 10 == 0
+    ][:2]
+    uids = ["a", "b", "c", *vals, "g"]
+    positive = {"a", "b", vals[0]}
+    f.reports = {u: f"Synthetic unique report {u}: present and absent." for u in uids}
+    f.rows = [
+        {
+            "study_uid": u,
+            "states": ["positive" if u in positive else "negative"] * 12,
+            "evidence": [f.reports[u]] * 12,
+            "notes": "Synthetic source judgment only.",
+        }
+        for u in uids
+    ]
+    f.write(
+        "initiative/reviews/inputs/batch-000.json",
+        [{"study_uid": u, "report": r} for u, r in f.reports.items()],
+    )
+    for folder, suffix in [("reviewed", "reviewed"), ("drafts", "draft"), ("prereads", "preread")]:
+        p = tmp_path / f"initiative/reviews-v2/{folder}/batch-000-{suffix}.jsonl"
+        p.write_text("".join(json.dumps(r) + "\n" for r in f.rows))
+    f.source_hash = ss.digest([{"study_uid": u, "report": f.reports[u]} for u in sorted(f.reports)])
+    source = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": u,
+                "Report": r,
+                **{t: i % 2 if u == "g" else None for i, t in enumerate(TARGETS)},
+            }
+            for u, r in f.reports.items()
+        ]
+    )
+    (tmp_path / release.SOURCE_PATH).parent.mkdir(parents=True, exist_ok=True)
+    source.to_csv(tmp_path / release.SOURCE_PATH, index=False)
+    f.inputs["authenticated_train_csv"] = f.ref(tmp_path / release.SOURCE_PATH)
+    context = {
+        "schema_version": 1,
+        "source_reports_sha256": f.source_hash,
+        "rubric_sha256": ss.file_digest(f.rubric),
+    }
+    registry = {**context, "cases": [], "semantic_qa": []}
+    f.registry = f.write("initiative/reviews-v2/adjudications/registry.json", registry)
+    f.plan = {
+        "registry_sha256": f.registry["sha256"],
+        "source_reports_sha256": f.source_hash,
+        "rubric_sha256": ss.file_digest(f.rubric),
+        "n_changes": 0,
+        "changes": [],
+    }
+    provenance = {}
+    for phase in ["draft", "reviewed"]:
+        path = (
+            tmp_path
+            / f"initiative/reviews-v2/{'drafts' if phase == 'draft' else 'reviewed'}/batch-000-{phase}.jsonl"
+        )
+        provenance[phase] = {
+            "agent_id": "synthetic-" + phase,
+            "session_id": phase,
+            "workflow_run_id": "synthetic",
+            "notes": "Synthetic independently identified fixture.",
+            "n_studies": len(uids),
+            "sha256": ss.file_digest(path),
+            "source_reports_sha256": f.source_hash,
+            "rubric_sha256": ss.file_digest(f.rubric),
+        }
+    provenance["reviewed"]["parent_artifact_sha256"] = provenance["draft"]["sha256"]
+    f.inputs["review_provenance"] = f.write(str(release.PROVENANCE_PATH), {"batch-000": provenance})
+    f.inputs["correspondence_policy"] = f.write(
+        str(release.CORRESPONDENCE_PATH),
+        {"schema_version": 1, "target_order": list(TARGETS), "policies": []},
+    )
+    f.inputs["similarity_policy"] = f.write(
+        str(release.SIMILARITY_PATH), {"schema_version": 1, "policies": []}
+    )
+    code = {}
+    repo = Path(__file__).resolve().parents[1]
+    staged_core = Path(ss.__file__)
+    for name in release.CODE_PATHS:
+        source_path = (
+            Path(release.__file__)
+            if name == "rsna/release.py"
+            else staged_core
+            if name == "rsna/semantic_supervision.py"
+            else repo / name
+        )
+        target = tmp_path / name
+        target.parent.mkdir(exist_ok=True)
+        target.write_bytes(source_path.read_bytes())
+        code[name] = ss.file_digest(target)
+    f.inputs["split_policy"] = f.write(
+        "input/split_policy.json",
+        {"schema_version": 1, "algorithm": release.SPLIT_ALGORITHM, "code_sha256": code},
+    )
+    inventory = pd.DataFrame(
+        [
+            {
+                "split": "train_series",
+                "study_uid": u,
+                "series_uid": "s-" + u,
+                "sop_uid": "sop-" + u,
+                "path": f"train_series/{u}/s-{u}/sop-{u}.dcm",
+                "sha256": "1" * 64,
+                "bytes": 5,
+            }
+            for u in uids
+        ]
+    )
+    raw = io_bytes = __import__("io").BytesIO()
+    inventory.to_parquet(raw, index=False)
+    decoded = io_bytes.getvalue()
+    invpath = tmp_path / "input/inventory.parquet.gz"
+    invpath.write_bytes(gzip.compress(decoded, mtime=0))
+    index = pd.DataFrame(
+        [{"raw_split": "train_series", "study_uid": u, "series_uid": "s-" + u} for u in uids]
+    )
+    indexpath = tmp_path / "input/series_cache_index.parquet"
+    index.to_parquet(indexpath, index=False)
+    daudit = f.write(
+        "input/dicom_audit.json",
+        {
+            "audit_schema_version": 2,
+            "complete": True,
+            "cache_version": CACHE_VERSION,
+            "source_revision": "synthetic-revision",
+            "inventory_fingerprint_sha256": inventory_fingerprint(inventory),
+            "studies": len(uids),
+            "series": len(uids),
+            "decoded_slices": len(uids),
+            "source_bytes": 5 * len(uids),
+            "study_uids_by_split": {"train_series": sorted(uids)},
+            "series_cache_index_sha256": ss.file_digest(indexpath),
+            "train_test_duplicate_pairs": [],
+            "cross_study_pixel_duplicate_pairs": [],
+        },
+    )
+    series = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": u,
+                "SeriesInstanceUID": "s-" + u,
+                "Fluid_Sensitive": 1,
+                "Fat_Suppression": 1,
+                "Anatomical_Plane": "axial",
+            }
+            for u in uids
+        ]
+    )
+    seriespath = tmp_path / "input/sampling.csv"
+    series.to_csv(seriespath, index=False)
+    source_series = tmp_path / "initiative/source/train_series.csv"
+    series.to_csv(source_series, index=False)
+    f.inputs["technical_policy"] = f.write(
+        "input/technical-policy.json",
+        {
+            "schema_version": 1,
+            "source_revision": "synthetic-revision",
+            "corrected_inventory": f.ref(invpath),
+            "decoded_inventory_sha256": hashlib.sha256(decoded).hexdigest(),
+            "dicom_audit": daudit,
+            "series_cache_index": f.ref(indexpath),
+            "series_sampling": f.ref(seriespath),
+            "source_series": f.ref(source_series),
+            "reason": "Entirely synthetic technical binding.",
+        },
+    )
+    f.inputs["near_report_dispositions"] = f.write(
+        "input/near.json",
+        {"schema_version": 1, "source_reports_sha256": f.source_hash, "edges": []},
+    )
+    f.holds[0].pop("current_annotation_sha256")
+    f.build()
+    f.write(
+        str(release.COORDINATOR_PATH),
+        {"schema_version": 1, "required_inputs": f.inputs, "code_sha256": code},
+    )
+    # QA points downstream to the already-approved synthetic semantic registry;
+    # the stable correction context itself never includes these QA file hashes.
+    sem = f.inspect()
+    for issue_id in sorted(release.QA_IDS):
+        resolution = f.write(
+            f"input/{issue_id}-resolution.json",
+            {
+                **context,
+                "status": "resolved",
+                "issue_id": issue_id,
+                "agent_id": "synthetic-root",
+                "session_id": "synthetic",
+                "notes": "Synthetic only.",
+                "review_artifacts": sem["review_files"],
+                "correction_cases": sem["correction_cases"],
+                "semantic_supervision": {
+                    n: sem[n] for n in ("registry", "context", "holds", "ledger", "decision")
+                },
+            },
+        )
+        issue = f.write(
+            f"initiative/reviews-v2/adjudications/qa/{issue_id}.json",
+            {
+                **context,
+                "id": issue_id,
+                "status": "resolved",
+                "scope": "all_release_reviews",
+                "reason": "Synthetic fixture only.",
+                "evidence": [f.context],
+                "resolution": resolution,
+            },
+        )
+        registry["semantic_qa"].append(issue)
+    f.registry = f.write("initiative/reviews-v2/adjudications/registry.json", registry)
+    current = inspect_adjudications(f.reports, f.reviews, f.rubric, tmp_path)
+    audit = release.prepare_supervision(f.reports, current, tmp_path)
+    studies = release._fresh_table(audit, tmp_path)
+    out = tmp_path / "output"
+    out.mkdir()
+    studies.to_parquet(out / "studies.parquet", index=False)
+    return f, current, audit, studies, out
+
+
+def test_real_synthetic_adapter_roundtrip_and_offline_binding(prepared) -> None:
+    f, _, audit, studies, out = prepared
+    binding = release.write_verified_release(out, studies, audit, f.root)
+    loaded, repeated = release.load_verified_release(out / "studies.parquet", f.root)
+    assert binding == repeated and ss.table_fingerprint(studies) == ss.table_fingerprint(loaded)
+    release.validate_checkpoint_binding(binding)
+    assert studies.loc[studies.study_uid.eq("a"), "ACL__mask"].item() == 0
+    assert len(release._coverage(studies)) == 24
+
+
+@pytest.mark.parametrize(
+    "change", ["split", "numeric", "held_mask", "gold", "missing_row", "class_collapse"]
+)
+def test_fresh_full_replay_rejects_corrupted_manifest(prepared, change: str) -> None:
+    f, _, audit, studies, out = prepared
+    frame = studies.copy()
+    if change == "split":
+        frame.loc[0, "split"] = "weak_validation"
+    elif change == "numeric":
+        frame.loc[0, "ACL"] = 0
+    elif change == "held_mask":
+        frame.loc[0, "ACL__mask"] = 1
+    elif change == "gold":
+        frame.loc[frame.study_uid.eq("g"), "ACL"] = 1
+    elif change == "missing_row":
+        frame = frame.iloc[:-1]
+    else:
+        frame.loc[frame.split.eq("train"), "ACL__mask"] = 0
+    frame.to_parquet(out / "studies.parquet", index=False)
+    with pytest.raises(ValueError):
+        release.write_verified_release(out, frame, audit, f.root)
+    assert not (out / release.RECEIPT_NAME).exists()
+
+
+@pytest.mark.parametrize(
+    "change", ["coordinator", "code", "technical", "qa", "sampling", "inventory"]
+)
+def test_adapter_required_live_bindings(prepared, change: str) -> None:
+    f, current, _, _, _ = prepared
+    paths = {
+        "coordinator": release.COORDINATOR_PATH,
+        "code": Path("rsna/schema.py"),
+        "technical": Path("input/technical-policy.json"),
+        "qa": Path("input/" + sorted(release.QA_IDS)[0] + "-resolution.json"),
+        "sampling": Path("input/sampling.csv"),
+        "inventory": Path("input/inventory.parquet.gz"),
+    }
+    path = f.root / paths[change]
+    if change == "coordinator":
+        path.unlink()
+    else:
+        path.write_bytes(path.read_bytes() + b" ")
+    with pytest.raises((ValueError, FileNotFoundError)):
+        release.prepare_supervision(f.reports, current, f.root)
+
+
+def test_zero_class_fails_without_gold_influence(prepared) -> None:
+    _, _, _, studies, _ = prepared
+    frame = studies.copy()
+    frame.loc[frame.split.eq("weak_validation"), "ACL"] = 0
+    with pytest.raises(ValueError, match="zero-class"):
+        release._coverage(frame)
+    gold = studies.copy()
+    gold.loc[gold.split.eq("gold_evaluation"), list(TARGETS)] = 1
+    assert release._coverage(gold) == release._coverage(studies)
+
+
+def test_offline_binding_rejects_empty_and_changed_identity(prepared) -> None:
+    f, _, audit, studies, out = prepared
+    binding = release.write_verified_release(out, studies, audit, f.root)
+    with pytest.raises(ValueError):
+        release.validate_checkpoint_binding({})
+    changed = copy.deepcopy(binding)
+    changed["series_sha256"] = "0" * 64
+    with pytest.raises(ValueError):
+        release.validate_checkpoint_binding(changed)
+
+
+@pytest.mark.parametrize(
+    "change", ["missing_receipt", "tampered_receipt", "changed_evidence", "changed_split_group"]
+)
+def test_load_requires_actual_untampered_complete_release(prepared, change: str) -> None:
+    f, _, audit, studies, out = prepared
+    path = out / "studies.parquet"
+    if change == "missing_receipt":
+        with pytest.raises(ValueError, match="receipt is required"):
+            release.load_verified_release(path, f.root)
+        return
+    release.write_verified_release(out, studies, audit, f.root)
+    if change == "tampered_receipt":
+        receipt_path = out / release.RECEIPT_NAME
+        receipt = json.loads(receipt_path.read_text())
+        receipt["series_sha256"] = "0" * 64
+        receipt_path.write_text(json.dumps(receipt))
+    elif change == "changed_evidence":
+        evidence_path = f.root / "evidence/reader1.json"
+        evidence_path.write_bytes(evidence_path.read_bytes() + b"\n")
+    else:
+        frame = studies.copy()
+        frame.loc[0, "leakage_group"] = "0" * 64
+        frame.to_parquet(path, index=False)
+    with pytest.raises(ValueError):
+        release.load_verified_release(path, f.root)
+
+
+def test_lossless_inventory_requires_decoded_hash_too(prepared) -> None:
+    f, current, _, _, _ = prepared
+    policy_path = f.root / f.inputs["technical_policy"]["path"]
+    policy = json.loads(policy_path.read_text())
+    policy["decoded_inventory_sha256"] = "0" * 64
+    f.inputs["technical_policy"] = f.write(str(policy_path.relative_to(f.root)), policy)
+    coordinator_path = f.root / release.COORDINATOR_PATH
+    coordinator = json.loads(coordinator_path.read_text())
+    coordinator["required_inputs"] = f.inputs
+    coordinator_path.write_text(json.dumps(coordinator))
+    with pytest.raises(ValueError, match="decoded inventory changed"):
+        release.prepare_supervision(f.reports, current, f.root)

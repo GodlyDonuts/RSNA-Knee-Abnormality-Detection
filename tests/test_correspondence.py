@@ -483,6 +483,7 @@ def test_invalid_or_stale_policy_blocks_release(bundle: dict, mutation: str) -> 
 @pytest.mark.parametrize(
     "failure", [None, "missing_registry", "omitted_policy", "wrapper_bad_report"]
 )
+@pytest.mark.usefixtures("isolate_semantic_release")
 def test_cli_enforces_policy_before_export(
     bundle: dict, monkeypatch: pytest.MonkeyPatch, failure: str | None
 ) -> None:

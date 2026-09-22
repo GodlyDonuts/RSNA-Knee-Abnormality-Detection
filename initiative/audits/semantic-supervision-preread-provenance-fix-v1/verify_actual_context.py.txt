@@ -1,0 +1,59 @@
+"""Read-only exact89 context probe; gold CSV is hashed opaquely, never parsed."""
+from pathlib import Path
+import hashlib
+import importlib.util
+import json
+import sys
+
+S = Path(__file__).resolve().parent
+W = S.parents[2]
+R = W / 'work/recovered'
+sys.path.insert(0, str(R))
+spec = importlib.util.spec_from_file_location('staged_semantic', S / 'semantic_supervision.py')
+ss = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ss)
+from rsna.adjudications import inspect_adjudications
+
+before = ss.file_digest(R / 'rsna/semantic_supervision.py')
+reports = {}
+for path in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')):
+    for row in json.loads(path.read_text()):
+        assert row['study_uid'] not in reports
+        reports[row['study_uid']] = row['report']
+assert len(reports) == 4407
+reviews, rubric = R / 'initiative/reviews-v2/reviewed', R / 'protocols/report_weak_v2.md'
+coordinator = R / 'initiative/reviews-v2/semantic-supervision/release-inputs.json'
+inputs = json.loads(coordinator.read_text())['required_inputs']
+current = inspect_adjudications(reports, reviews, rubric, R)
+assert current['n_changes'] == 569
+b = ss.Bindings(R)
+context, original, effective = ss._context(reports, reviews, rubric, R, current, inputs, b, set(), [])
+assert len(original) == len(effective) == 52884
+assert len(context['original_reading_files']['drafts']) == 89
+assert len(context['original_reading_files']['prereads']) == 89
+aggregate = json.loads((R / inputs['review_provenance']['path']).read_text())
+expected = {ss._preread_reference(aggregate[batch]['reviewed'])['path']: ss._preread_reference(aggregate[batch]['reviewed'])['sha256'] for batch in aggregate}
+assert context['original_reading_files']['prereads'] == expected
+b.unchanged()
+assert ss.file_digest(R / 'rsna/semantic_supervision.py') == before
+proof = {
+    'schema_version': 1, 'status': 'passed', 'actual_executor': '/root/quality_temporal_review',
+    'scope': 'Actual _context source/provenance/correction/nine-input phase only. Empty correspondence/near-pair arguments isolate this phase; no final context, membership, approval, QA resolution or release validation was created or asserted.',
+    'staged_core_sha256': ss.file_digest(S / 'semantic_supervision.py'),
+    'recovered_core_sha256_unchanged': before,
+    'coordinator_sha256': ss.file_digest(coordinator),
+    'n_required_inputs': len(inputs), 'required_inputs': inputs,
+    'n_reports': len(reports), 'n_cells': len(original), 'n_preserved_changes': current['n_changes'],
+    'live_registry_sha256': current['registry_sha256'],
+    'source_reports_sha256': context['source_reports_sha256'], 'rubric': context['rubric'],
+    'source_files': context['source_files'], 'review_files': context['review_files'],
+    'original_reading_files': context['original_reading_files'],
+    'metadata_alias_counts': {'preread_path': 74, 'independent_source_read_path': 11, 'independent_preread_path': 4},
+    'exact_batch_uid_order_and_arrays12_verified': True,
+    'quote_boundary': 'Original bytes are bound, including any unused history. No new global quote-validity gate; selected catalog evidence retains its unchanged exact-source check.',
+    'all_bound_inputs_unchanged': True,
+    'gold_values_parsed': False, 'repository_writes': False,
+}
+out = S / 'actual89-context-probe.json'
+with out.open('x') as f: json.dump(proof, f, indent=2);f.write('\n')
+print(json.dumps({'status':'passed', 'reports':len(reports), 'cells':len(original), 'inputs':len(inputs), 'proof_sha256':ss.file_digest(out)}))

@@ -1,0 +1,190 @@
+"""Synthetic, offline guards only. No build, remote call, credential read or data replay."""
+import argparse
+import copy
+import json
+import sys
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+
+import final_release_bindings as b
+import final_release_eligibility as e
+import build_final_release_peer as builder
+import verify_final_release_peer as peer
+import verify_final_release_root as root
+import publish_final_release_delta as publisher
+
+
+class Guards(unittest.TestCase):
+    def pins(self):
+        return dict(TARGET_GIT='1'*40, TARGET_TREE='2'*40, TARGET_FILE_COUNT=99,
+                    TARGET_CI_RUN=123, STAGED_PROOF=b.WORK/'synthetic-proof.json',
+                    STAGED_PROOF_SHA='a'*64, REGISTRY_SHA='b'*64,
+                    VERIFIED_RELEASE_SHA='c'*64, ACCEPTANCE_PATH='initiative/audits/synthetic/acceptance.json',
+                    ACCEPTANCE_SHA='d'*64, DEPENDENCY_SEAL_SHA='9'*64)
+
+    def test_all_unknown_pins_explicitly_unset(self):
+        for name in self.pins():
+            self.assertIsNone(getattr(b, name), name)
+
+    def test_all_operational_entrypoints_stop_before_helper_or_credentials(self):
+        common = ['--target-commit','1'*40,'--target-tree','2'*40,'--expected-file-count','99',
+                  '--package','unused','--manifest-sha256','a'*64]
+        cases = [(builder, ['--actual-executor',b.PEER]),
+                 (peer, common+['--actual-executor',b.PEER]),
+                 (root, common+['--actual-executor',b.ROOT,'--peer-proof-sha256','a'*64,'--peer-build-receipt-sha256','b'*64]),
+                 (publisher, ['prepare',*common,'--actual-executor',b.ROOT,'--ci-run','123',
+                              '--peer-proof-sha256','a'*64,'--root-proof-sha256','b'*64,'--root-verifier-sha256','c'*64]),
+                 (publisher, ['publish',*common,'--actual-executor',b.ROOT,'--ci-run','123',
+                              '--peer-proof-sha256','a'*64,'--root-proof-sha256','b'*64,'--root-verifier-sha256','c'*64])]
+        for module, args in cases:
+            with self.subTest(module=module.__name__, args=args[0]), patch.object(sys,'argv',['synthetic',*args]), patch.object(b,'helper') as shared:
+                with self.assertRaisesRegex(b.GuardError,'unset_or_historical_target_git'): module.main()
+                shared.assert_not_called()
+
+    def test_every_missing_pin_fails_closed(self):
+        with patch.multiple(b, **self.pins()):
+            b.future_pins_guard()
+            for name in self.pins():
+                with self.subTest(name=name), patch.object(b, name, None):
+                    with self.assertRaises(b.GuardError): b.future_pins_guard()
+
+    def test_bool_or_historical_or_escaping_pins_fail(self):
+        with patch.multiple(b, **self.pins()):
+            for name,value in [('TARGET_FILE_COUNT',True),('TARGET_CI_RUN',True),
+                               ('TARGET_GIT',b.PREVIOUS_GIT),('ACCEPTANCE_PATH','initiative/audits/../escape/acceptance.json')]:
+                with self.subTest(name=name),patch.object(b,name,value):
+                    with self.assertRaises(b.GuardError):b.future_pins_guard()
+
+    def fixture(self):
+        docs={}
+        def store(path,obj):
+            docs[path]=obj
+            return {'path':path,'sha256':e.digest(obj)}
+        def read(ref):
+            e.safe_ref(ref)
+            self.assertEqual(e.digest(docs[ref['path']]),ref['sha256'])
+            return docs[ref['path']]
+        context={'source_reports_sha256':'e'*64,'rubric_sha256':'f'*64}
+        case=store('case.json',{'changes':[{'study_uid':f'synthetic-{i}','target':'ACL'} for i in range(569)]})
+        qa=[];resolutions={}
+        for i,issue_id in enumerate(sorted(e.QA_IDS)):
+            res=store(f'resolution-{i}.json',{**context,'status':'resolved','issue_id':issue_id})
+            resolutions[issue_id]=res
+            qa.append(store(f'qa-{i}.json',{**context,'id':issue_id,'status':'resolved','scope':'all_release_reviews','resolution':res}))
+        registry={**context,'cases':[case],'semantic_qa':qa}
+        prior=copy.deepcopy(registry)
+        semantic=store('semantic.json',{'synthetic':True})
+        receipt={'schema_version':1,'status':'verified_release','qa_resolutions':resolutions,
+                 'semantic_supervision':{'registry':semantic},'studies_sha256':'1'*64,
+                 'series_sha256':'2'*64,'source_revision':b.SOURCE_HF,
+                 'coverage':[{'split':split,'target':target,'positive':1,'negative':1}
+                             for split in ('train','weak_validation') for target in e.TARGETS]}
+        binding={'schema_version':1,'manifest_sha256':receipt['studies_sha256'],
+                 'series_sha256':receipt['series_sha256'],'source_revision':receipt['source_revision'],
+                 'release_receipt_sha256':b.VERIFIED_RELEASE_SHA,'semantic_registry_sha256':semantic['sha256']}
+        binding['binding_sha256']=e.digest(binding)
+        acceptance={'schema_version':1,'actual_executor':b.ROOT,'status':'passed','diagnostic_only':True,
+                    'competitive_performance_claim':False,'gold_prediction_rows':58,'released_test_prediction_rows':3,
+                    'full_release':{'path':b.STUDIES_PATH,'sha256':receipt['studies_sha256']},
+                    'series':{'path':'series.csv','sha256':receipt['series_sha256']},
+                    'artifacts':[{'path':'initiative/audits/synthetic/'+n,'sha256':'8'*64} for n in (
+                        'continuous/checkpoint.pt','resumed/checkpoint.pt','gold_predictions.csv',
+                        'sample_submission.csv','gold_predictions.metrics.json','sample_submission.metrics.json','run_acceptance.py.txt')],
+                    'commands':[{'name':n,'exit_code':0} for n in sorted(e.COMMANDS)],
+                    'training_checks':{'release_binding':binding,'full_loaded_checkpoint_equal':True,
+                    'optimizer_changed_initial_weights':True,'all_training_masked_logits_zero_gradient':True,
+                    'unmasked_gradients_nonzero':True,'completed_epochs':2,'steps':4,
+                    'run_config':{'diagnostic_study_limit':2,'training_studies':2,'validation_studies':2,
+                                  'training_uids_sha256':'3'*64,'validation_uids_sha256':'4'*64}}}
+        return read,prior,registry,receipt,acceptance,docs
+
+    def test_exact_synthetic_release_eligible_without_changing_transport_scope(self):
+        with patch.multiple(b, **self.pins()):
+            fixture=self.fixture();result=e.evaluate(*fixture[:5])
+            self.assertEqual(result['preserved_accepted_corrections'],569)
+            self.assertFalse(result['competitive_accuracy_claim'])
+            self.assertFalse(result['training_strategy_complete'])
+            self.assertNotIn('training_ready',result)
+
+    def test_failed_or_incomplete_acceptance_never_eligible(self):
+        with patch.multiple(b, **self.pins()):
+            for mutate in [lambda a:a.update(status='running'),lambda a:a.update(status='failed'),
+                           lambda a:a.update(actual_executor=b.PEER),lambda a:a.update(competitive_performance_claim=True),
+                           lambda a:a.update(gold_prediction_rows=57),lambda a:a.update(released_test_prediction_rows=2),
+                           lambda a:a['commands'].pop(),lambda a:a['commands'][0].update(exit_code=1),
+                           lambda a:a['training_checks'].update(full_loaded_checkpoint_equal=False),
+                           lambda a:a['training_checks'].update(completed_epochs=1),
+                           lambda a:a['training_checks']['release_binding'].update(manifest_sha256='5'*64),
+                           lambda a:a['training_checks']['run_config'].update(diagnostic_study_limit=None)]:
+                f=self.fixture();mutate(f[4])
+                with self.assertRaises(b.GuardError):e.evaluate(*f[:5])
+
+    def test_missing_stale_qa_receipt_and_coverage_rejected(self):
+        with patch.multiple(b, **self.pins()):
+            for mutate in [lambda r:r.update(status='proposed'),lambda r:r.update(schema_version=True),
+                           lambda r:r.update(qa_resolutions={}),lambda r:r['coverage'].pop(),
+                           lambda r:r['coverage'][0].update(positive=0)]:
+                f=self.fixture();mutate(f[3])
+                with self.assertRaises(b.GuardError):e.evaluate(*f[:5])
+            f=self.fixture();old=f[2]['semantic_qa'][0];obj=f[5][old['path']];obj['status']='pending'
+            old['sha256']=e.digest(obj)
+            with self.assertRaisesRegex(b.GuardError,'three_qa_gates_not_resolved'):e.evaluate(*f[:5])
+
+    def test_changed_case_or_wrong_correction_count_rejected(self):
+        with patch.multiple(b, **self.pins()):
+            f=self.fixture();f[2]['cases']=[]
+            with self.assertRaisesRegex(b.GuardError,'prior_correction_cases_changed'):e.evaluate(*f[:5])
+            f=self.fixture();doc=f[5]['case.json'];doc['changes'].pop()
+            f[1]['cases'][0]['sha256']=f[2]['cases'][0]['sha256']=e.digest(doc)
+            with self.assertRaisesRegex(b.GuardError,'preserved569'):e.evaluate(*f[:5])
+
+    def test_fresh_ci_requires_actual_exact_commit_success(self):
+        args=argparse.Namespace(ci_run=123,target_commit='1'*40)
+        with patch.object(publisher,'TARGET_CI_RUN',123):
+            for result in [{'status':'queued','headSha':args.target_commit,'conclusion':None},
+                           {'status':'completed','headSha':b.PREVIOUS_GIT,'conclusion':'success'}]:
+                with patch.object(publisher.subprocess,'check_output',return_value=json.dumps(result).encode()):
+                    with self.assertRaises(b.GuardError):publisher.ci(args)
+            result={'status':'completed','headSha':args.target_commit,'conclusion':'success'}
+            with patch.object(publisher.subprocess,'check_output',return_value=json.dumps(result).encode()):
+                self.assertEqual(publisher.ci(args),result)
+
+    def test_exact_six_objects_parent_and_root_card_preserved(self):
+        self.assertEqual(publisher.NAMES,('delta.tar.gz','manifest.json','peer-restoration-proof.json',
+                                        'root-restoration-proof.json','README.md','checkpoint_delta.py'))
+        self.assertEqual(b.PARENT_HF,'7d6d4cef88215a032cdaa23de5d189aefc0aa99b')
+        api=SimpleNamespace(list_repo_tree=lambda *a,**k:[SimpleNamespace(path='README.md',blob_id=b.ROOT_CARD['README.md'])])
+        transport=SimpleNamespace(source_identity=lambda *a:b.SOURCE_IDENTITIES)
+        self.assertEqual(publisher.remote_guard(api,transport,b.PARENT_HF),b.ROOT_CARD)
+        api.list_repo_tree=lambda *a,**k:[]
+        with self.assertRaisesRegex(b.GuardError,'root_dataset_card_changed'):publisher.remote_guard(api,transport,b.PARENT_HF)
+
+    def test_restoration_must_be_actual_distinct_executor(self):
+        args=argparse.Namespace(target_commit='1'*40,target_tree='2'*40,manifest_sha256='a'*64,expected_file_count=99)
+        manifest={'delta_archive':{'sha256':'b'*64,'bytes':1},'secret_scan_policy':{},'files':[],
+                  'n_delta_files':2,'n_base_archive_files':3,'deleted_paths':[]}
+        proof={'verifier_agent_id':b.PEER,'actual_executor':b.PEER,'status':'every_target_git_file_restorable_identically',
+               'target_git_commit':args.target_commit,'target_git_tree':args.target_tree,'manifest':{'sha256':'a'*64},
+               'n_result_files_verified':99,'delta_archive':manifest['delta_archive'],'base_git_commit':b.BASE_GIT,
+               'base_hf_revision':b.BASE_HF,'base_archive_sha256':b.BASE_ARCHIVE_SHA,'base_manifest_sha256':b.BASE_MANIFEST_SHA,
+               'every_file_sha256_git_blob_size_mode_verified':True,'membership_exact':True,'full_tree_extracted':False,
+               'training_ready':False,'helper_sha256':b.HELPER_SHA,'secret_scan_policy':{},'verified_secret_scan_exception_paths':[],
+               'n_delta_members_verified':2,'n_base_archive_members_verified':3,'n_deletions_applied':0}
+        b.proof_guard(proof,args,manifest,b.PEER)
+        with self.assertRaisesRegex(b.GuardError,'actual_executor_mismatch'):b.proof_guard(proof,args,manifest,b.ROOT)
+        proof['training_ready']=True
+        with self.assertRaisesRegex(b.GuardError,'proof_scope'):b.proof_guard(proof,args,manifest,b.PEER)
+
+    def test_no_helper_readiness_or_competitive_claim_in_card(self):
+        args=argparse.Namespace(target_commit='1'*40,target_tree='2'*40,ci_run=123,expected_file_count=99)
+        text=publisher.card(args,{'status':'eligible_for_final_data_publication'})
+        self.assertIn('unchanged delta helper retains its historical',text)
+        self.assertIn('not a competitive accuracy claim',text)
+        self.assertIn('remain separate work',text)
+
+    def test_untrusted_errors_never_disclose_payload(self):
+        self.assertNotIn('secret-fixture',json.dumps(b.error_result(RuntimeError('secret-fixture'))))
+
+
+if __name__ == '__main__': unittest.main(verbosity=2)

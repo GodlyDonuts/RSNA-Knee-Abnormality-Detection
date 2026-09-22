@@ -1,0 +1,55 @@
+"""Append exact identity and archive aliases; never rewrite the projection build."""
+from prepare_projections import *
+
+HERE = Path(__file__).resolve().parent
+BASE = HERE / "projections-v1"
+
+
+def main():
+    output = HERE / "adapter-metadata.json"
+    require(not output.exists(), "write once")
+    issues = read(BASE / "projection-adapter-issues.json")
+    wanted = set(issues["identity_projection_incomplete_ids"])
+    grouped = {}
+    fixed = 0
+    for row in lines(BASE / "source-evidence-projections.jsonl.gz"):
+        short = row["id"].split(":")[-1]
+        if short not in wanted:
+            continue
+        group = row["historical_stage"], row["record"]["artifact"]["path"]
+        if group in grouped:
+            grouped[group]["evidence_ids"].append(row["id"])
+            fixed += 1
+            continue
+        path = W / row["record"]["artifact"]["path"]
+        if path.suffix != ".jsonl":
+            original = read(path)
+            require(original.get("agent_id") == row["agent_id"] and "session_id" not in original, "unexpected missing identity schema")
+            binding = raw_binding(path, "", original)
+            identity = {"binding": binding, "identity_agent_pointer": "/agent_id", "identity_session_pointer": None, "actual_agent_id": original["agent_id"], "actual_session_id": None, "same_artifact_identity": True, "historical_session_id": row["session_id"], "historical_session_was_inherited_from_matching_source_stage": True, "reason": "The actual postfreeze artifact names its author but records no session. Runtime session remains null; the historical source-associated session is preserved separately."}
+        else:
+            require(row["historical_stage"] == "wording:000:second:source", "unexpected nested source identity")
+            path = B / "qualified-negation-focused-000-independent-review-v1/source-freeze.json"
+            original = read(path)
+            require(original["assessor"]["agent_id"] == row["agent_id"] and original["assessor"]["session_id"] == row["session_id"], "nested actual identity")
+            require(original["judgments"]["sha256"] == row["record"]["artifact"]["sha256"], "nested ownership hash")
+            identity = {"binding": raw_binding(path, "", original), "identity_agent_pointer": "/assessor/agent_id", "identity_session_pointer": "/assessor/session_id", "ownership_sha256_pointer": "/judgments/sha256", "actual_agent_id": row["agent_id"], "actual_session_id": row["session_id"], "same_artifact_identity": False, "reason": "Actual nested assessor fields and sibling authored-judgment hash are selected within one unchanged original freeze record."}
+        grouped[group] = {"historical_stage": group[0], "authored_artifact": row["record"]["artifact"], "identity": identity, "evidence_ids": [row["id"]]}
+        fixed += 1
+    require(fixed == len(wanted) == 3130, "finite identity coverage")
+    aliases = []
+    for old in read(BASE / "archive-path-resolution.json")["pending_archives"]:
+        src = W / old["source"]["path"]
+        require("-root-review-v1" in str(src.parent), "unexpected alternate archive")
+        directory = src.parent.name.replace("-root-review-v1", "-root-complete-v1")
+        dest = R / "initiative/audits" / directory / src.name
+        require(dest.is_file() and sha(dest) == old["source"]["sha256"] and dest.stat().st_size == old["source"]["bytes"], "exact finite archived alias mismatch")
+        aliases.append({"original": old["source"], "archived": {"path": str(dest.relative_to(R)), "sha256": sha(dest), "bytes": dest.stat().st_size}, "exact_bytes_equal": True})
+    obj = {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "status": "technical_adapter_metadata_no_new_clinical_opinion", "base_summary": ref(BASE / "summary.json"), "identity_overlays": list(grouped.values()), "identity_record_count": fixed, "exact_archive_path_aliases": aliases, "remaining_unresolved_identity_projections": 0, "remaining_unarchived_original_paths": 0, "existing_index_and_clinical_files_modified": False, "runtime_context": None}
+    with output.open("xb") as f:
+        f.write(jb(obj) + b"\n")
+    print(json.dumps({"identity_groups": len(grouped), "identity_records": fixed, "exact_archive_aliases": len(aliases), "output": ref(output)}))
+
+
+if __name__ == "__main__":
+    main()

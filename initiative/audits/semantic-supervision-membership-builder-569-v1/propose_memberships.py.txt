@@ -1,0 +1,206 @@
+"""Apply bounded reuse rules to exact memberships; no approval or mask change.
+
+Final context/registry construction is intentionally absent until root's release
+integration is fixed. This is the actual mechanical proposer's candidate data.
+"""
+from prepare_projections import *
+import unicodedata
+
+HERE = Path(__file__).resolve().parent
+BASE = HERE / "projections-v1"
+PEER = B / "conservative-semantic-hold-concrete-reuse-receipts-v1"
+PEER_RECEIPTS = "2758a43f61a9680b3a334ffe7371dbfcdc927f9ebb07aaf1e898844f0069cae8"
+PEER_COMPLETION = "9af39e019b7930d10f95ac431f4ba5de9ca7e22a43919cf1c5a28a65c183228b"
+COHORT_REASONS = {
+    "explicit_proxy_reliability_queue_without_focused_postfreeze",
+    "bone_outside_proxy_accounting_only_no_hold_inferred",
+    "cartilage_outside_proxy_accounting_only_no_hold_inferred",
+}
+STATE_REASONS = {
+    "pending_source_supported_state_difference", "explicit_root003_extra_unresolved",
+    "unresolved_root_current_state", "root_disposed_retained_reader_state_dissent_policy_choice",
+    "historical_source_state_difference_requires_existing_disposition",
+}
+
+
+def main(output):
+    require(not output.exists() and not output.resolve().is_relative_to(R), "new staging only")
+    require(shutil.disk_usage(W).free > 20 * 2**30 + 128 * 2**20, "disk floor")
+    require(sha(R / "initiative/reviews-v2/adjudications/registry.json") == REG, "registry drift")
+    require(sha(PEER / "completion-manifest.json") == PEER_COMPLETION and sha(PEER / "proposed-reuse-receipts.json") == PEER_RECEIPTS, "peer receipts changed")
+    for r in read(PEER / "completion-manifest.json")["files"]:
+        require(sha(W / r["path"]) == r["sha256"], "peer member changed")
+    sys.path.insert(0, str(R))
+    from rsna.schema import TARGETS
+    targets = list(TARGETS)
+    cells = {(r["study_uid"], r["target"]): r for r in lines(BASE / "cell-projection-ledger.jsonl.gz")}
+    obligations = {r["id"]: r for r in lines(BASE / "candidate-obligations.jsonl.gz")}
+    evidence = {r["id"]: r for r in lines(BASE / "source-evidence-projections.jsonl.gz")}
+    reports = {}
+    for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+        for r in read(p):
+            reports[r["study_uid"]] = r["report"]
+    require(len(cells) == 52884 and len(reports) == 4407, "complete canonical membership")
+    bycell = defaultdict(list)
+    for o in obligations.values():
+        bycell[o["study_uid"], o["target"]].append(o["id"])
+    peer_records = read(PEER / "proposed-reuse-receipts.json")["receipts"]
+    technical_aliases = {"preflight569:" + r["historical_evidence_id"]: "preflight569:" + r["correct_explicit_root_projection_id"] for r in read(P / "historical-root-projection-notes.json")}
+    resolutions = {}
+    resolution_rows = []
+    peer_join = []
+    for index, r in enumerate(peer_records):
+        key = r["study_uid"], r["target"]
+        c = cells[key]
+        ann = {"state": r["current_state"], "evidence": r["current_evidence"]}
+        require(digest(ann) == c["current_annotation_sha256"], "peer resolution current object mismatch")
+        rid = "reuse569:" + r["id"]
+        # This new catalog record is a genuine peer-authored release-use
+        # opinion. Supporting source/postfreeze records keep their old kinds.
+        resolution_rows.append({"id": rid, "study_uid": key[0], "target": key[1], "source_report_sha256": c["source_report_sha256"], "rubric_sha256": RUBRIC, "agent_id": r["author_agent_id"], "session_id": r["author_session_id"], "kind": "resolution", "record": raw_binding(PEER / "proposed-reuse-receipts.json", "/receipts/" + str(index), r), "identity": raw_binding(PEER / "proposed-reuse-receipts.json", "", read(PEER / "proposed-reuse-receipts.json")), "layout": "scalar_fields", "state_field": "current_state", "evidence_field": "current_evidence", "annotation_sha256": digest(ann), "status": "peer_release_use_proposal_not_policy_approval"})
+        for decision in r["obligations"]:
+            reason = decision["reason"]
+            oid = "ob-" + digest({"study_uid": key[0], "target": key[1], "reason": reason})[:24]
+            require(oid == decision["id"] and oid in obligations and oid in bycell[key], "peer obligation mapping")
+            original_support = decision["resolution_evidence_ids"]
+            support = [technical_aliases.get(e, e) for e in original_support]
+            discharged = decision["discharged_evidence_ids"]
+            require(all(e in evidence and (evidence[e]["study_uid"], evidence[e]["target"]) == key for e in support + discharged), "peer evidence scope")
+            join = {"id": oid, "peer_receipt_id": r["id"], "peer_record_index": index, "proposed_disposition": decision["proposed_disposition"], "underlying_support_evidence_ids": support, "original_peer_support_ids_unchanged": original_support, "superseded_technical_support_aliases": {e: technical_aliases[e] for e in original_support if e in technical_aliases}, "discharged_evidence_ids": discharged, "resolution_evidence_ids": [rid], "reason": decision["rationale"]}
+            peer_join.append(join)
+            if decision["proposed_disposition"] == "resolved":
+                require(oid not in resolutions, "two proposed resolutions for one obligation")
+                resolutions[oid] = join
+    # Narrow cohort: both actual original independent source opinions are N,
+    # reviewed annotation is the unchanged current object, no source opinion
+    # anywhere is contrary, and no state/evidence objection is waived. An
+    # unassigned report cue remains an independent unresolved obligation.
+    cohort = []
+    for key, c in cells.items():
+        if c["current_state"] != "negative" or c["existing_correspondence_exclusion"] or c["contrary_source_evidence_ids"]:
+            continue
+        rr = [obligations[o]["reason_code"] for o in bycell[key]]
+        if any(reason not in COHORT_REASONS | {"unassigned_report_scope_cue_policy_choice"} for reason in rr):
+            continue
+        source = [evidence[e] for e in c["evidence_ids"] if evidence[e]["historical_kind"] in {"original_first_source", "original_second_source_preread"}]
+        reviewed = [evidence[e] for e in c["evidence_ids"] if evidence[e]["historical_kind"] == "original_second_postcomparison"]
+        require(len(source) == 2 and len({r["agent_id"] for r in source}) == 2 and len(reviewed) == 1, "original cohort scope/authors")
+        if not all(r["annotation"]["state"] == "negative" for r in source) or reviewed[0]["annotation_sha256"] != c["current_annotation_sha256"]:
+            continue
+        ids = [o for o in bycell[key] if obligations[o]["reason_code"] in COHORT_REASONS and o not in resolutions]
+        if not ids:
+            continue
+        rid = "cohort569:" + digest({"study_uid": key[0], "target": key[1]})[:24]
+        row = {"id": rid, "study_uid": key[0], "target": key[1], "state": "negative", "evidence": reviewed[0]["annotation"]["evidence"], "source_report_sha256": c["source_report_sha256"], "current_annotation_sha256": c["current_annotation_sha256"], "obligation_ids": ids, "supporting_evidence_ids": [r["id"] for r in source + reviewed], "discharged_evidence_ids": [], "actual_original_source_authors": [r["agent_id"] for r in source], "rule": "unchanged_negative_original_pair_no_contrary_source_or_specific_objection", "reason": "Proposed reuse of the actual complete frozen-v2 source/preread judgments and exact reviewed current quote for this target. Both independent original source opinions are negative, no preserved source opinion is contrary, and no state/quote/mixed-context objection is waived. Target retrieval/complement membership alone does not invalidate these existing judgments. Any report-scope cue remains separate.", "agent_id": AGENT, "session_id": AGENT, "role": "mechanical_release_use_proposer_not_new_source_reader", "approved": False}
+        cohort.append(row)
+        for oid in ids:
+            resolutions[oid] = {"id": oid, "proposed_disposition": "resolved", "resolution_evidence_ids": [rid], "underlying_support_evidence_ids": row["supporting_evidence_ids"], "discharged_evidence_ids": [], "reason": row["reason"]}
+    groups = defaultdict(set)
+    for uid, report in reports.items():
+        normalized = " ".join(unicodedata.normalize("NFKC", report).casefold().split())
+        groups[normalized].add(uid)
+    groupby = {u: g for g in groups.values() for u in g}
+    dispositions = defaultdict(dict)
+    holds = []
+    holds_by_cell = defaultdict(list)
+    source_contrary_remaining = {}
+    for key, c in cells.items():
+        discharged = {e for o in bycell[key] if o in resolutions for e in resolutions[o]["discharged_evidence_ids"]}
+        source_contrary_remaining[key] = set(c["contrary_source_evidence_ids"]) - discharged
+        for oid in bycell[key]:
+            if c["existing_correspondence_exclusion"]:
+                disposition = {"id": oid, "disposition": "correspondence_excluded"}
+            elif c["existing_clinical_mask"]:
+                disposition = {"id": oid, "disposition": "already_masked"}
+            elif oid in resolutions:
+                rr = resolutions[oid]
+                # A partial history discharge cannot clear newer contrary
+                # opinions merely because an older disposition supported P/N.
+                if obligations[oid]["reason_code"] == "historical_source_state_difference_requires_existing_disposition" and source_contrary_remaining[key]:
+                    disposition = {"id": oid, "disposition": "held", "partially_resolved_receipt": rr, "remaining_contrary_evidence_ids": sorted(source_contrary_remaining[key])}
+                else:
+                    disposition = {"id": oid, "disposition": "resolved", "resolution_evidence_ids": rr["resolution_evidence_ids"], "discharged_evidence_ids": rr["discharged_evidence_ids"]}
+            else:
+                disposition = {"id": oid, "disposition": "held"}
+            dispositions[key][oid] = disposition
+    propagation = []
+    original_obligations_by_cell = {k: list(v) for k, v in bycell.items()}
+    for key in sorted(cells, key=lambda k: (k[0], targets.index(k[1]))):
+        c = cells[key]
+        for oid in original_obligations_by_cell.get(key, []):
+            if dispositions[key][oid]["disposition"] != "held":
+                continue
+            ob = obligations[oid]
+            intrinsic = ob["reason_code"] in STATE_REASONS or ob["reason_code"] in {"explicit_proxy_reliability_queue_without_focused_postfreeze", "unassigned_report_scope_cue_policy_choice"}
+            origin = "hold-" + digest({"uid": key[0], "target": key[1], "obligation": oid})[:24]
+            for uid in sorted(groupby[key[0]] if intrinsic else {key[0]}):
+                dest = uid, key[1]
+                dc = cells[dest]
+                destoid = oid
+                if dest != key:
+                    destoid = "ob-propagated-" + digest({"origin": oid, "study_uid": uid, "target": key[1]})[:24]
+                    require(destoid not in obligations, "duplicate derived propagation")
+                    obligations[destoid] = {"id": destoid, "study_uid": uid, "target": key[1], "category": ob["category"], "scope_kind": "target", "reason_code": "exact_text_intrinsic_propagation", "source_report_sha256": dc["source_report_sha256"], "current_annotation_sha256": dc["current_annotation_sha256"], "origin_obligation_id": oid, "original_reason_code": ob["reason_code"], "status": "candidate_propagation_pending_approval"}
+                    bycell[dest].append(destoid)
+                    dispositions[dest][destoid] = {"id": destoid, "disposition": "correspondence_excluded" if dc["existing_correspondence_exclusion"] else "already_masked" if dc["existing_clinical_mask"] else "held"}
+                    propagation.append({"origin_obligation_id": oid, "destination_obligation_id": destoid, "study_uid": uid, "target": key[1]})
+                hid = origin if dest == key else "hold-" + digest({"origin": origin, "study_uid": uid, "target": key[1]})[:24]
+                h = {"id": hid, "study_uid": uid, "target": key[1], "category": ob["category"], "scope_kind": "text_intrinsic" if intrinsic else "record_specific", "reason": "Candidate conservative supervision hold: " + ob["reason_code"] + ". No bound complete issue-specific release-use disposition discharges this obligation at the fixed cutoff; this is not a changed clinical label or proof of an error.", "current_annotation_sha256": dc["current_annotation_sha256"], "evidence_ids": dc["evidence_ids"], "obligation_ids": [destoid], "origin_id": origin, "lifecycle": "active", "predecessor_sha256": None}
+                holds.append(h)
+                holds_by_cell[dest].append(hid)
+    # Full canonical membership, all original opinions, all overlapping reasons.
+    ledger = []
+    class_before = defaultdict(Counter)
+    class_removed = defaultdict(Counter)
+    for key in sorted(cells, key=lambda k: (k[0], targets.index(k[1]))):
+        c = cells[key]
+        obs = not c["existing_clinical_mask"] and not c["existing_correspondence_exclusion"]
+        local_resolutions = sorted({eid for rr in dispositions[key].values() if rr["disposition"] == "resolved" for eid in rr["resolution_evidence_ids"]})
+        row = {"study_uid": key[0], "target": key[1], "source_report_sha256": c["source_report_sha256"], "original_annotation_sha256": c["original_annotation_sha256"], "current_annotation_sha256": c["current_annotation_sha256"], "evidence_ids": c["evidence_ids"] + local_resolutions, "hold_ids": holds_by_cell[key], "obligations": list(dispositions[key].values()), "retention_reason": "Candidate release use only: authentic original/full-target supplemental evidence and explicit obligation resolutions are retained; unresolved obligations remain held. This is not a new clinical reading or policy acceptance."}
+        require(set(dispositions[key]) == set(bycell[key]), "omitted obligation")
+        if obs and not holds_by_cell[key]:
+            require(not source_contrary_remaining[key], "undischarged source opinion retained")
+        if obs:
+            class_before[key[1]][c["current_state"]] += 1
+            if holds_by_cell[key]:
+                class_removed[key[1]][c["current_state"]] += 1
+        ledger.append(row)
+    near = read(P / "near-report-inspection.json")
+    require(len(near["decisions"]) == 1, "known near edge changed")
+    edge = near["decisions"][0]
+    pair = sorted([edge["left"]["study_uid"], edge["right"]["study_uid"]])
+    edge_dispositions = []
+    for t in targets:
+        both = all(holds_by_cell[u, t] for u in pair)
+        edge_dispositions.append({"study_uid": pair[0], "other_study_uid": pair[1], "target": t, "action": "separately_held" if both else "no_semantic_transfer", "reason": "The accepted near-report edge binds one redundant punctuation/space difference for leakage handling. This candidate policy preserves independently bound local evidence and obligations; it does not transfer clinical labels or infer an extra reading. Existing local holds apply separately where present.", "source_relation": edge, "no_new_source_reading": True, "agent_id": AGENT, "session_id": AGENT, "approved": False})
+    output.mkdir()
+    def gz(name, rows):
+        with (output / name).open("xb") as raw:
+            with gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0) as stream:
+                for row in rows:
+                    stream.write(jb(row) + b"\n")
+    def dump(name, obj, compress=False):
+        data = jb(obj) + b"\n"
+        if compress:
+            data = gzip.compress(data, mtime=0)
+        with (output / name).open("xb") as f:
+            f.write(data)
+    gz("candidate-hold-records.jsonl.gz", holds)
+    gz("candidate-ledger-rows.jsonl.gz", ledger)
+    dump("candidate-scope-manifest.json.gz", {"schema_version": 1, "source_reports_sha256": CANON, "rubric_sha256": RUBRIC, "target_order": targets, "obligations": list(obligations.values())}, True)
+    dump("candidate-cohort-reuse-receipts.json.gz", {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "status": "proposed_mechanical_cohort_reuse_no_acceptance", "rule": ref(PEER / "cohort-reuse-rule.md"), "records": cohort}, True)
+    dump("peer-receipt-obligation-join.json", peer_join)
+    dump("peer-resolution-catalog-additions.json", resolution_rows)
+    dump("exact-text-propagation.json", propagation)
+    dump("candidate-near-edge-dispositions.json", {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "source_reports_sha256": CANON, "status": "proposed_finite_near_edge_policy_no_clinical_transfer", "records": edge_dispositions})
+    summary = {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "status": "concrete_membership_proposal_pending_independent_assessment_and_root_decision", "preflight_completion_sha256": PREF, "registry_sha256": REG, "source_reports_sha256": CANON, "rubric_sha256": RUBRIC, "final_context_ref": None, "release_inputs_ref": None, "counts": {"reports": 4407, "cells": len(ledger), "evidence_projection_records": len(evidence), "candidate_obligations": len(obligations), "peer_receipts": len(peer_records), "peer_issue_rows": len(peer_join), "cohort_candidate_cells": len(cohort), "cohort_resolved_obligations": sum(len(r["obligation_ids"]) for r in cohort), "hold_records": len(holds), "distinct_held_cells_including_prior_masks": sum(bool(v) for v in holds_by_cell.values()), "observed_cells_removed_pre_gold": sum(sum(v.values()) for v in class_removed.values()), "observed_cells_before_pre_gold": sum(sum(v.values()) for v in class_before.values()), "exact_text_propagation_rows": len(propagation), "near_report_target_dispositions": len(edge_dispositions)}, "obligation_disposition_counts": dict(Counter(x["disposition"] for row in ledger for x in row["obligations"])), "all_observed_pre_gold_by_target": dict(class_before), "candidate_removed_pre_gold_by_target": dict(class_removed), "remaining_pre_gold_by_target": {t: {s: class_before[t][s] - class_removed[t][s] for s in ("positive", "negative")} for t in targets}, "known_limit": "These are candidate report-level counts before official gold membership, final leakage groups, technical eligibility and train/validation/quarantine handling. No class count selected membership.", "cohort_is_narrow_no_contrary_source_or_specific_evidence_objection": True, "unassigned_report_cues_not_waived_by_cohort": True, "all_original_evidence_kinds_preserved": True, "all569_corrections_unchanged": True, "gates_closed": 0, "holds_approved": 0, "masks_changed": 0, "R_writes": False, "network_calls": 0, "gold_values_read": False, "peer_receipt_completion": ref(PEER / "completion-manifest.json"), "projection_proof": ref(HERE / "catalog-projection-v1/projection-validation.json")}
+    dump("candidate-summary.json", summary)
+    require(shutil.disk_usage(W).free > 20 * 2**30, "disk guard after write")
+    print(json.dumps({"counts": summary["counts"], "summary": ref(output / "candidate-summary.json"), "free_bytes": shutil.disk_usage(W).free}))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    main(args.output.resolve())

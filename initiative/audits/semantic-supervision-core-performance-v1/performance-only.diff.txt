@@ -1,0 +1,52 @@
+--- amended-core
++++ performance-core
+@@ -594,6 +594,7 @@
+     inputs: dict,
+     bindings: Bindings,
+ ) -> dict:
++    evidence_keys, hold_keys = set(evidence), set(holds)
+     scope = version(
+         bindings.obj(inputs["scope_manifest"]),
+         {"source_reports_sha256", "rubric_sha256", "target_order", "obligations"},
+@@ -644,7 +645,7 @@
+             hold.get("current_annotation_sha256") == digest(current[k]),
+             "hold current annotation drift",
+         )
+-        _ids(hold.get("evidence_ids"), set(evidence), "hold evidence missing", True)
++        _ids(hold.get("evidence_ids"), evidence_keys, "hold evidence missing", True)
+         _ids(hold.get("obligation_ids"), by_cell.get(k, set()), "hold obligation mismatch", True)
+         fail(
+             all(
+@@ -670,7 +671,7 @@
+             )
+         if hold["lifecycle"] == "released":
+             _ids(
+-                hold.get("resolution_evidence_ids"), set(evidence), "release evidence missing", True
++                hold.get("resolution_evidence_ids"), evidence_keys, "release evidence missing", True
+             )
+             fail(
+                 all(
+@@ -741,12 +742,12 @@
+             and row.get("current_annotation_sha256") == digest(current[k]),
+             "ledger annotation/source drift",
+         )
+-        evidence_ids = _ids(row.get("evidence_ids"), set(evidence), "ledger evidence mismatch")
++        evidence_ids = _ids(row.get("evidence_ids"), evidence_keys, "ledger evidence mismatch")
+         fail(
+             all((evidence[e]["study_uid"], evidence[e]["target"]) == k for e in evidence_ids),
+             "ledger evidence belongs to another target",
+         )
+-        hold_ids = _ids(row.get("hold_ids"), set(holds), "ledger hold IDs mismatch")
++        hold_ids = _ids(row.get("hold_ids"), hold_keys, "ledger hold IDs mismatch")
+         fail(set(hold_ids) == all_holds_by_cell.get(k, set()), "ledger omits hold history")
+         dispositions = row.get("obligations")
+         fail(isinstance(dispositions, list), "ledger obligations missing")
+@@ -775,7 +776,7 @@
+                 fail(status == "resolved", "unresolved obligation in final ledger")
+                 eids = _ids(
+                     item.get("resolution_evidence_ids"),
+-                    set(evidence),
++                    evidence_keys,
+                     "resolution evidence missing",
+                     True,
+                 )

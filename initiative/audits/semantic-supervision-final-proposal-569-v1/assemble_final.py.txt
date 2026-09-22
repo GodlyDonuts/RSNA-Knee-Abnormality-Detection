@@ -1,0 +1,187 @@
+"""Assemble the actual proposer's exact context-bound payload; no approvals or R writes."""
+from __future__ import annotations
+import argparse,copy,gzip,hashlib,json,shutil,sys
+from pathlib import Path
+
+W=Path(__file__).resolve().parents[3]
+R=W/'work/recovered'
+D=Path(__file__).resolve().parent
+B=W/'work/annotation-staging'
+M=B/'semantic-supervision-membership-builder-569-v1'
+C=M/'membership-candidate-v1'
+CANON='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+REG='7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'
+AGENT='/root/duplicate_consistency_review'
+PREFIX='initiative/reviews-v2/semantic-supervision/'
+MEMBER_SHA='1fad29b367ab217512308e7af4d767476ca3cc98aaf7b4f5b7474812b132699a'
+
+def need(ok,message):
+    if not ok: raise ValueError(message)
+def sha(path):
+    h=hashlib.sha256()
+    with path.open('rb') as f:
+        for b in iter(lambda:f.read(2**20),b''):h.update(b)
+    return h.hexdigest()
+def jb(obj):return json.dumps(obj,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+def digest(obj):return hashlib.sha256(jb(obj)).hexdigest()
+def read(path):
+    with (gzip.open(path,'rt') if path.name.endswith('.gz') else path.open()) as f:return json.load(f)
+def lines(path):
+    with gzip.open(path,'rt') as f:
+        for line in f:yield json.loads(line)
+def put(name,obj):
+    path=D/name
+    with path.open('xb') as f:f.write(jb(obj)+b'\n')
+    return path
+def ref(path):return {'path':str(path.relative_to(R)),'sha256':sha(path)}
+def wref(path):return {'path':str(path.relative_to(W)),'sha256':sha(path)}
+def finalref(name):return {'path':PREFIX+name,'sha256':sha(D/name)}
+def archive_path(p):
+    if p.startswith('work/recovered/'):
+        return p[len('work/recovered/'):]
+    if p.startswith('work/annotation-staging/'):
+        return 'initiative/audits/'+p[len('work/annotation-staging/'):]
+    need(not p.startswith('work/') and not Path(p).is_absolute(),'unsupported raw evidence alias')
+    return p
+
+def write_array_doc(name,fields,array_name,rows):
+    path=D/name
+    opener=path.open('xb')
+    with opener as raw:
+        with gzip.GzipFile(filename='',fileobj=raw,mode='wb',mtime=0) as out:
+            out.write(b'{')
+            for key in sorted(fields):out.write(jb(key)+b':'+jb(fields[key])+b',')
+            out.write(jb(array_name)+b':[')
+            for i,row in enumerate(rows):
+                if i:out.write(b',')
+                out.write(jb(row))
+            out.write(b']}\n')
+    # Streaming decompression is an independent byte proof, not another full file.
+    h=hashlib.sha256();size=0
+    with gzip.open(path,'rb') as f:
+        for block in iter(lambda:f.read(2**20),b''):h.update(block);size+=len(block)
+    return {'path':str(path.relative_to(W)),'sha256':sha(path),'bytes':path.stat().st_size,'decompressed_sha256':h.hexdigest(),'decompressed_bytes':size}
+
+def main(coordinator_sha, acceptance_path, acceptance_sha):
+    need(shutil.disk_usage(W).free>20*2**30+100*2**20,'disk guard')
+    need(not (D/'context.json').exists(),'write-once output exists')
+    sys.path.insert(0,str(R))
+    from rsna import semantic_supervision as m
+    from rsna import release
+    from rsna.schema import TARGETS
+    from rsna.adjudications import inspect_adjudications
+    from rsna.correspondence import inspect_correspondence
+    from rsna.report_similarity import inspect_report_similarity,similarity_pairs
+    coordinator_path=R/PREFIX/'release-inputs.json'
+    need(sha(coordinator_path)==coordinator_sha,'coordinator supplied pin changed')
+    coordinator=read(coordinator_path)
+    need(set(coordinator)=={'schema_version','required_inputs','code_sha256'},'coordinator schema')
+    need(set(coordinator['code_sha256'])==release.CODE_PATHS,'final code scope')
+    for path,expected in coordinator['code_sha256'].items():need(sha(R/path)==expected,'code pin changed: '+path)
+    inputs=coordinator['required_inputs'];need(set(inputs)==m.INPUT_NAMES,'exact nine input scope')
+    for fref in inputs.values():need(sha(R/fref['path'])==fref['sha256'],'required input drift')
+    split=read(R/inputs['split_policy']['path'])
+    need(split['algorithm']==release.SPLIT_ALGORITHM and split['code_sha256']==coordinator['code_sha256'],'split policy mismatch')
+    need(sha(R/acceptance_path)==acceptance_sha,'root input acceptance pin')
+    need(sha(R/'initiative/reviews-v2/adjudications/registry.json')==REG,'569 registry drift before assembly')
+    need(sha(M/'candidate-membership-file-manifest.json')==MEMBER_SHA,'fixed candidate manifest drift')
+    for member in read(M/'candidate-membership-file-manifest.json')['files']:
+        path=W/member['path'];need(sha(path)==member['sha256'] and path.stat().st_size==member['bytes'],'fixed candidate file drift')
+        archived=R/archive_path(member['path']);need(sha(archived)==member['sha256'],'candidate archive mismatch')
+        if 'decompressed_sha256' in member:
+            h=hashlib.sha256();size=0
+            with gzip.open(path,'rb') as f:
+                for data in iter(lambda:f.read(2**20),b''):h.update(data);size+=len(data)
+            need(h.hexdigest()==member['decompressed_sha256'] and size==member['decompressed_bytes'],'candidate decompression changed')
+    print('Pinned runtime, nine required inputs and fixed membership verified.',flush=True)
+    reports={}
+    for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+        for row in read(p):need(row['study_uid'] not in reports,'duplicate UID');reports[row['study_uid']]=row['report']
+    inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+    old=read(B/'conservative-semantic-hold-coverage-preflight-569-v1/result-v2/current569-inspection.json')
+    need(inspection['n_changes']==569 and inspection['changes']==old['changes'],'whole correction objects changed')
+    need(len(inspection['pending_semantic_qa'])==3,'unexpected pending gate count')
+    correspondence=inspect_correspondence(reports,R)
+    near=inspect_report_similarity(reports,R)
+    excluded={row['study_uid'] for row in correspondence['decisions']}
+    pairs=similarity_pairs(near)
+    context_bindings=m.Bindings(R)
+    context,original,current=m._context(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R,inspection,inputs,context_bindings,excluded,pairs)
+    need(context['source_reports_sha256']==CANON and context['rubric']['sha256']==RUBRIC,'canonical context changed')
+    need(context['report_count']==4407 and len(current)==52884,'full cell coverage')
+    put('context.json',context);context_ref=finalref('context.json')
+    entries=list(lines(M/'catalog-projection-v1/catalog-entries.jsonl.gz'))
+    need(len(entries)==194973,'base catalog scope')
+    base_catalog_digest=digest(entries)
+    rebase=[]
+    additions=read(C/'peer-resolution-catalog-additions.json')
+    for entry in additions:
+        for field in ('record','identity','target_order_record'):
+            if field in entry:
+                art=entry[field]['artifact'];oldpath=art['path'];newpath=archive_path(oldpath)
+                need(sha(R/newpath)==art['sha256'],'peer archive changed')
+                if oldpath!=newpath:
+                    rebase.append({'evidence_id':entry['id'],'field':field,'before':copy.deepcopy(art),'after':{'path':newpath,'sha256':art['sha256']}})
+                art['path']=newpath
+    need(len(additions)==187,'peer catalog scope')
+    entries+=additions
+    cohort_path=R/archive_path(str((C/'candidate-cohort-reuse-receipts.json.gz').relative_to(W)))
+    cohort=read(cohort_path);cohort_file=ref(cohort_path)
+    cohort_identity={'artifact':cohort_file,'format':'json','selector':'','sha256':digest(cohort)}
+    for i,row in enumerate(cohort['records']):
+        entries.append({'id':row['id'],'study_uid':row['study_uid'],'target':row['target'],'source_report_sha256':row['source_report_sha256'],'rubric_sha256':RUBRIC,'agent_id':AGENT,'session_id':AGENT,'kind':'resolution','layout':'scalar','annotation_sha256':digest({'state':row['state'],'evidence':row['evidence']}),'record':{'artifact':cohort_file,'format':'json','selector':f'/records/{i}','sha256':digest(row)},'identity':cohort_identity,'role':'mechanical_proposed_release_use_not_source_author'})
+    need(len(cohort['records'])==7537 and len(entries)==202697,'complete catalog count')
+    holds_list=list(lines(C/'candidate-hold-records.jsonl.gz'));rows=list(lines(C/'candidate-ledger-rows.jsonl.gz'))
+    need(len(holds_list)==4412 and len(rows)==52884,'fixed final row counts')
+    need(all(h['lifecycle']=='active' and h['predecessor_sha256'] is None for h in holds_list),'initial lifecycle mismatch')
+    wrappers=[]
+    wrappers.append(write_array_doc('evidence-catalog.json.gz',{'schema_version':1,'context':context_ref},'records',entries))
+    catalog_ref=finalref('evidence-catalog.json.gz')
+    wrappers.append(write_array_doc('holds.json.gz',{'schema_version':1,'context':context_ref},'records',holds_list))
+    holds_ref=finalref('holds.json.gz')
+    wrappers.append(write_array_doc('ledger.json.gz',{'schema_version':1,'context':context_ref,'holds':holds_ref,'evidence_catalog':catalog_ref},'rows',rows))
+    ledger_ref=finalref('ledger.json.gz')
+    print('Final context and compressed catalog, holds and full-cell ledger authored.',flush=True)
+    equality={'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'status':'exact_fixed_membership_preserved','candidate_manifest':wref(M/'candidate-membership-file-manifest.json'),'context':context_ref,'holds':holds_ref,'ledger':ledger_ref,'evidence_catalog':catalog_ref,'counts':{'ledger_rows':len(rows),'holds':len(holds_list),'scope_obligations':23804,'base_catalog_records':194973,'peer_resolution_records':187,'cohort_resolution_records':7537,'catalog_records':len(entries)},'ledger_rows_equal_original':read(D/'ledger.json.gz')['rows']==list(lines(C/'candidate-ledger-rows.jsonl.gz')),'holds_equal_original':read(D/'holds.json.gz')['records']==list(lines(C/'candidate-hold-records.jsonl.gz')),'base_catalog_records_digest_unchanged':digest(entries[:194973])==base_catalog_digest,'scope_byte_identical':inputs['scope_manifest']['sha256']=='09d540f4a03aabf7b1c02e303af82c2f8e26aea7f3f6587d6d077ae4b3119f7a','cohort_receipts_original_file':cohort_file,'peer_path_rebases':rebase,'near_contract_projection':ref(R/inputs['near_report_dispositions']['path']),'compressed_wrapper_proofs':wrappers,'clinical_objects_or_membership_changed':False,'original_source_role_identity_preserved':True}
+    need(all(equality[x] for x in ['ledger_rows_equal_original','holds_equal_original','base_catalog_records_digest_unchanged','scope_byte_identical']),'candidate equivalence failed')
+    put('candidate-to-final-equivalence.json',equality)
+    proposal={'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'status':'proposed_for_report_supervision','context':context_ref,'holds':holds_ref,'ledger':ledger_ref,'evidence_catalog':catalog_ref,'reason':'I propose these exact finite supervision holds and full-cell obligations as a mechanical application of the reviewed and root-accepted membership. This retains original clinical states and verbatim quotations, genuine source authors, source/postfreeze distinctions and explicit contrary opinions; genuine original and supplemental evidence is reused only through the preserved issue-specific or narrow negative-cohort dispositions. Existing masks and correspondence exclusions remain separate. No new clinical reading, clinical acceptance, fabricated independent approval, QA closure or final release is claimed. The repaired whole-group split policy is independently bound in the final context and did not alter these memberships.','candidate_manifest':ref(R/'initiative/audits/semantic-supervision-membership-builder-569-v1/candidate-membership-file-manifest.json'),'prior_membership_assessment':ref(R/'initiative/audits/semantic-supervision-membership-independent-assessment-569-v1/independent-assessment.json'),'root_membership_decision':ref(R/'initiative/audits/semantic-supervision-root-membership-decision-569-v1/root-membership-decision.json'),'root_input_acceptance':ref(R/acceptance_path),'final_independent_assessment_pending':True,'final_root_decision_pending':True,'no_R_writes':True}
+    put('proposal.json',proposal)
+    # Map only the exact freshly authored files to their final canonical names.
+    # No registry, endorsement or accepted decision is manufactured or bypassed.
+    staged={PREFIX+name:D/name for name in ('context.json','evidence-catalog.json.gz','holds.json.gz','ledger.json.gz','proposal.json')}
+    class StagedBindings(m.Bindings):
+        def path(self,ref_):
+            if isinstance(ref_,dict) and ref_.get('path') in staged:
+                need(set(ref_)=={'path','sha256'},'invalid staged FileRef')
+                name=ref_['path'];path=staged[name]
+                if name not in self.raw:self.raw[name]=path.read_bytes();self.hashes[name]=hashlib.sha256(self.raw[name]).hexdigest()
+                need(self.hashes[name]==ref_['sha256'],'staged artifact drift');return path
+            return super().path(ref_)
+        def unchanged(self):
+            for name,expected in self.hashes.items():need(sha(staged.get(name,R/name))==expected,'changed final binding: '+name)
+    bindings=StagedBindings(R)
+    need(bindings.obj(context_ref)==context,'serialized context changed')
+    catalog=m._evidence(catalog_ref,reports,context_ref,context,bindings)
+    print('All final raw catalog record, original identity and exact quotation projections validated.',flush=True)
+    hold_doc=bindings.obj(holds_ref);ledger=bindings.obj(ledger_ref)
+    need(hold_doc['context']==ledger['context']==context_ref and ledger['holds']==holds_ref,'wrapper DAG mismatch')
+    holds={h['id']:h for h in hold_doc['records']};need(len(holds)==4412,'duplicate holds')
+    bundle={'context':context_ref,'holds':holds_ref,'ledger':ledger_ref,'proposal':finalref('proposal.json'),'decision':None}
+    audit=m._finish_inspection(reports,original,current,context,None,bundle,holds,ledger,catalog,inputs,bindings)
+    retained=sum(c['report_supervision_allowed'] for c in audit['cells'])
+    need(len(audit['cells'])==52884 and retained==23844,'final mechanics membership counts changed')
+    context_bindings.unchanged();bindings.unchanged()
+    for path,expected in coordinator['code_sha256'].items():need(sha(R/path)==expected,'code changed during run')
+    need(sha(coordinator_path)==coordinator_sha and sha(R/'initiative/reviews-v2/adjudications/registry.json')==REG,'live context changed during run')
+    proof={'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'status':'final_context_bound_preapproval_mechanics_passed','context':context_ref,'holds':holds_ref,'ledger':ledger_ref,'evidence_catalog':catalog_ref,'proposal':finalref('proposal.json'),'coordinator':ref(coordinator_path),'final_code_sha256':coordinator['code_sha256'],'all_nine_input_refs':inputs,'counts':{'reports':4407,'cells':52884,'catalog_records':len(catalog),'hold_records':len(holds),'retained_observed_pre_gold':retained,'active_corrections':569,'pending_QA':len(inspection['pending_semantic_qa'])},'all569_current_whole_objects_equal_fixed_baseline':True,'actual_correspondence_and_near_inspections_replayed':True,'all_original_record_identity_quote_scope_and_discharge_bindings_verified':True,'catalog_artifact_files_checked':len(bindings.hashes),'approval_function_called':False,'registry_created':False,'independent_assessment_created':False,'root_decision_created':False,'final_release_claimed':False,'official_gold_values_read':False,'authenticated_train_csv_handling':'opaque exact byte hash only; no parsing','R_writes':False,'network_calls':0,'all_three_semantic_QA_gates_remain_pending':inspection['pending_semantic_qa'],'staged_resolution_map':{n:str(p.relative_to(W)) for n,p in staged.items()},'disk_free_bytes':shutil.disk_usage(W).free}
+    put('fresh-final-code-mechanics.json',proof)
+    put('root-install-plan.json',{'schema_version':1,'prepared_by':AGENT,'status':'root_copy_only_after_review_no_execution_here','files':[{'source':str(p.relative_to(W)),'destination':n,'sha256':sha(p),'bytes':p.stat().st_size} for n,p in staged.items()],'required_action':'Copy exact bytes without overwriting differing existing files; then distinct actual final assessment and root decision must be authored before registry or normal approval-enforcing inspection.','no_registry_or_other_actor_approval_included':True})
+    (D/'README.md').write_text('This is the actual proposer’s complete final context-bound bundle. All accepted fixed memberships are unchanged. Canonical references resolve through an explicit staging map for this pre-approval mechanics run; root may install the five exact files using root-install-plan.json. No registry, independent endorsement, root decision, QA closure or final release has been authored. Final approval-enforcing inspection follows the real distinct assessment and root decision. Runtime object hashes use compact sorted UTF-8 JSON without newline; file hashes cover original bytes. Official train CSV was opaque-hashed only.\n')
+    files=[{'path':p.name,'sha256':sha(p),'bytes':p.stat().st_size} for p in sorted(D.iterdir()) if p.is_file() and p.name not in {'completion-manifest.json','run.log'}]
+    put('completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'status':'complete_final_concrete_proposal_pending_actual_assessment_and_decision','files':files,'runtime_execution_log_excluded_as_live_console':True})
+    print(json.dumps({'completion_sha256':sha(D/'completion-manifest.json'),'context':context_ref,'holds':holds_ref,'ledger':ledger_ref,'catalog':catalog_ref,'proposal':finalref('proposal.json'),'mechanics_sha256':sha(D/'fresh-final-code-mechanics.json'),'equivalence_sha256':sha(D/'candidate-to-final-equivalence.json'),'counts':proof['counts'],'disk_free_bytes':shutil.disk_usage(W).free}),flush=True)
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--execute-final-assembly',action='store_true',required=True);parser.add_argument('--coordinator-sha256',required=True);parser.add_argument('--input-acceptance-path',required=True);parser.add_argument('--input-acceptance-sha256',required=True);args=parser.parse_args();main(args.coordinator_sha256,args.input_acceptance_path,args.input_acceptance_sha256)

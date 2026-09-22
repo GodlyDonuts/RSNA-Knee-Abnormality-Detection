@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "status": "verified_local_training_release",
+  "training_ready": true,
+  "release_name": "report-supervision-v1",
+  "at_utc": "2026-09-22T14:44:55.076603+00:00",
+  "source_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7",
+  "cache_version": "series-u16-v3",
+  "cache_side": 256,
+  "code_identity": "Exact runtime file hashes in acceptance; final Git commit is bound by the immutable publication manifest.",
+  "runtime_acceptance": {
+    "path": "initiative/audits/final-input-training-acceptance-v1/acceptance.json",
+    "sha256": "cd680364f174224d278ea37be80dd335edf7c8bff8fc90066c0648c569053067"
+  },
+  "persisted_invariants": {
+    "path": "initiative/audits/final-persisted-release-invariants-v1/validation.json",
+    "sha256": "840f6cc11835f1298a1fbb67bd829dd874547ead6aeac544ffe85f11156e9887"
+  },
+  "target_order": [
+    "ACL",
+    "MCL",
+    "Medial Meniscus",
+    "Lateral Meniscus",
+    "Medial OA",
+    "Lateral OA",
+    "PF OA",
+    "Effusion",
+    "Synovitis",
+    "Baker's",
+    "Contusion",
+    "Fracture"
+  ],
+  "files": [
+    {
+      "path": "initiative/releases/report-supervision-v1/adjudication_trace.json",
+      "sha256": "e5b9891944a77236b2f4dfec50fe0500ea5aef3e169a119f6ea6bc5144f953a6",
+      "bytes": 3571358
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/correspondence_trace.json",
+      "sha256": "fa11e48aea4f389469dca678986120f0d2fee9a4410e5247d777d0898db7870e",
+      "bytes": 34117
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/label_audit.json",
+      "sha256": "aa8656a31ef49f7b7c9c1fb37a9e5ef1005dd78efb1ff8006d789ba07a25a750",
+      "bytes": 3866232
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/report_annotations.parquet",
+      "sha256": "5608725f0bddbbabca95985daf11b760e66444367871389c910b3e59c36d36a2",
+      "bytes": 5046922
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/report_annotations_original.parquet",
+      "sha256": "461564d9edf8b039a6f67d77df7f5788856fdceba897a977cb23a1633571354b",
+      "bytes": 2639041
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/report_similarity_trace.json",
+      "sha256": "3f9932c1dc331471d8f63bd2ed89c810a0a82c938a91b6b3d81cf829227b4b9c",
+      "bytes": 3169
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/studies.parquet",
+      "sha256": "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7",
+      "bytes": 8181448
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/study_labels.csv",
+      "sha256": "77fe9df0576c923b54a1657379c05a887e3961af57dcf75f9f2a79f5326a9c6d",
+      "bytes": 19114100
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/verified_release.json",
+      "sha256": "6453a8ff31373c40556dc857e15fa0025f122195388a2b46c81ecd9cff0b8833",
+      "bytes": 7281
+    },
+    {
+      "path": "initiative/releases/report-supervision-v1/weak_split_repair.json",
+      "sha256": "0b33868ebb5e6f011944631764a17bf68fa099962cb7afb398d56f7996d1e0d6",
+      "bytes": 6181
+    }
+  ],
+  "limitations": [
+    "Auditable weak report supervision; no perfect clinical label or competitive accuracy claim",
+    "Official58historically exposed; evaluation-only for corrected training",
+    "Rare-target scarcity and selective report observation",
+    "No fresh official-byte recheck for all576mirrorfiles after rate limit",
+    "Full hidden-test GPU runtime rehearsal still required"
+  ],
+  "readiness_report_path": "docs/data-readiness-report.md",
+  "remote_publication_status_at_local_acceptance": "pending_separate_receipt"
+}

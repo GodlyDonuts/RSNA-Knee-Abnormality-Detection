@@ -1,0 +1,25 @@
+Traceback (most recent call last):
+  File "$WORKSPACE/work/annotation-staging/semantic-supervision-membership-builder-569-v1/verify_candidate_mechanics.py", line 108, in <module>
+    main(args.runtime.resolve(), args.runtime_sha256, args.output.resolve())
+  File "$WORKSPACE/work/annotation-staging/semantic-supervision-membership-builder-569-v1/verify_candidate_mechanics.py", line 53, in main
+    entries.append({"id": r["id"], "study_uid": r["study_uid"], "target": r["target"], "source_report_sha256": r["source_report_sha256"], "rubric_sha256": RUBRIC, "agent_id": AGENT, "session_id": AGENT, "kind": "resolution", "layout": "scalar", "annotation_sha256": digest(ann), "record": raw_binding(cohort_path, "/records/" + str(i), r), "identity": raw_binding(cohort_path, "", cohort_doc), "role": "mechanical_proposed_release_use_not_source_author"})
+                                                                                                                                                                                                                                                                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "$WORKSPACE/work/annotation-staging/semantic-supervision-membership-builder-569-v1/prepare_projections.py", line 104, in raw_binding
+    return {"artifact": {"path": r["path"], "sha256": r["sha256"]}, "format": "jsonl" if ".jsonl" in path.name else "json", "selector": selector, "sha256": digest(obj)}
+                                                                                                                                                            ^^^^^^^^^^^
+  File "$WORKSPACE/work/annotation-staging/semantic-supervision-membership-builder-569-v1/prepare_projections.py", line 40, in digest
+    return hashlib.sha256(jb(obj)).hexdigest()
+                          ^^^^^^^
+  File "$WORKSPACE/work/annotation-staging/semantic-supervision-membership-builder-569-v1/prepare_projections.py", line 36, in jb
+    return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py", line 238, in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

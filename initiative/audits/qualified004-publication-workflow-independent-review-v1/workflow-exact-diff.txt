@@ -1,0 +1,282 @@
+--- build_qualified003_peer.py
++++ build_qualified004_peer.py
+@@ -1,7 +1,7 @@
+ """Authorized local build plus actual peer streaming proof; no network operations."""
+ import argparse
+ import json
+-from qualified003_bindings import *
++from qualified004_bindings import *
+ 
+ def bind_actual_execution(proof):
+     """Replace execution provenance before the unchanged builder saves its proof."""
+@@ -11,7 +11,7 @@
+         generated_helper_default_identity=old_identity,
+         helper_default_is_not_evidence_of_actual_execution=True,
+         helper_sha256=HELPER_SHA, peer_runner=ref(Path(__file__)),
+-        preparation_author_agent_id=PEER,
++        preparation_author_agent_id=WORKFLOW_AUTHOR,
+         actual_role='Actual local builder and peer verifier: the unchanged shared verification function streamed the complete base and newly built delta within build_package. Only execution-provenance fields were replaced before the first proof save. The peer-restoration-proof.json name is a byte-identical alias of this same execution, not a second verification.',
+         protected_source576_inventory=ref(SOURCE_INVENTORY),
+         source576_exact_target_git_identities_verified=576,
+@@ -28,9 +28,9 @@
+     require(h.git(R, 'rev-parse', TARGET_GIT + '^{tree}').decode().strip() == TARGET_TREE, 'target_tree_changed')
+     rows = h.tree(R, TARGET_GIT)
+     require(len(rows) == TARGET_FILE_COUNT, 'target_file_count_changed')
+-    require(h.git(R, 'merge-base', PREVIOUS_GIT, TARGET_GIT).decode().strip() == PREVIOUS_GIT, 'target_not_descendant_of425')
++    require(h.git(R, 'merge-base', PREVIOUS_GIT, TARGET_GIT).decode().strip() == PREVIOUS_GIT, 'target_not_descendant_of491')
+     registry = h.git(R, 'show', TARGET_GIT + ':initiative/reviews-v2/adjudications/registry.json')
+-    require(hashlib.sha256(registry).hexdigest() == REGISTRY_SHA, 'registry491_binding')
++    require(hashlib.sha256(registry).hexdigest() == REGISTRY_SHA, 'registry569_binding')
+     source576_guard(h, rows)
+     original_verify = h.verify_package
+     def actual_verify(*positional, **keywords):
+@@ -48,7 +48,7 @@
+     with (package / 'peer-restoration-proof.json').open('xb') as f:
+         f.write((package / 'restoration-proof.json').read_bytes())
+     require(sha(package / 'restoration-proof.json') == sha(package / 'peer-restoration-proof.json'), 'proof_alias_not_exact')
+-    receipt = {'stage': 'actual_local_qualified003_build_and_peer_streaming_verification',
++    receipt = {'stage': 'actual_local_qualified004_build_and_peer_streaming_verification',
+         'actual_executor': PEER, 'target_git_commit': TARGET_GIT, 'target_git_tree': TARGET_TREE,
+         'registered_corrections': N_CORRECTIONS, 'registry_sha256': REGISTRY_SHA,
+         'n_result_files_verified': proof['n_result_files_verified'],
+@@ -58,7 +58,7 @@
+         'peer_proof_alias': ref(package / 'peer-restoration-proof.json'),
+         'proof_alias_scope': 'Identical bytes, one actual streaming execution; separate root replay remains required.',
+         'builder': ref(Path(__file__)), 'shared_helper': ref(HELPER),
+-        'binding_module': ref(STAGE / 'qualified003_bindings.py'),
++        'binding_module': ref(STAGE / 'qualified004_bindings.py'),
+         'disk_after': h.disk_guard(package), 'remote_calls': 0, 'remote_mutations': 0,
+         'repository_writes': False, 'training_ready': False, 'publication_performed': False}
+     save(package / 'peer-build-receipt.json', receipt)
+--- publish_qualified003_delta.py
++++ publish_qualified004_delta.py
+@@ -1,15 +1,15 @@
+-"""Future root publisher derived from the verified425 workflow; not executed here."""
++"""Root publisher derived from the verified491 workflow; no mutation during preparation."""
+ import argparse
+ from datetime import datetime, timezone
+ import json
+ import subprocess
+-from qualified003_bindings import *
++from qualified004_bindings import *
+ 
+ NAMES = ('delta.tar.gz', 'manifest.json', 'peer-restoration-proof.json',
+          'root-restoration-proof.json', 'README.md', 'checkpoint_delta.py')
+ 
+ def ci(args):
+-    require(type(args.ci_run) is int and args.ci_run == TARGET_CI_RUN, 'exact491_ci_run_required')
++    require(type(args.ci_run) is int and args.ci_run == TARGET_CI_RUN, 'exact569_ci_run_required')
+     raw = subprocess.check_output(['gh', 'run', 'view', str(args.ci_run), '--repo',
+         'GodlyDonuts/RSNA-Knee-Abnormality-Detection', '--json', 'conclusion,headSha,status'],
+         cwd=R, stderr=subprocess.DEVNULL, timeout=60)
+@@ -26,7 +26,7 @@
+     peer, root = read(peer_path), read(root_path)
+     proof_guard(peer, args, manifest, PEER)
+     proof_guard(root, args, manifest, ROOT)
+-    require(peer['peer_runner'] in [ref(STAGE / n) for n in ['verify_qualified003_peer.py', 'build_qualified003_peer.py']], 'peer_runner_changed')
++    require(peer['peer_runner'] in [ref(STAGE / n) for n in ['verify_qualified004_peer.py', 'build_qualified004_peer.py']], 'peer_runner_changed')
+     require(peer['protected_source576_inventory']['sha256'] == SOURCE_INVENTORY_SHA and peer['source576_exact_target_git_identities_verified'] == 576, 'peer_source576_proof')
+     require(root['independent_peer_proof_sha256'] == args.peer_proof_sha256 and root['peer_artifact_unchanged'] is True, 'root_peer_binding')
+     require(root['root_runner_sha256'] == args.root_verifier_sha256, 'actual_root_runner_binding')
+@@ -34,13 +34,13 @@
+     return peer, root
+ 
+ def card(args):
+-    return ('# Preparation checkpoint: 491 accepted corrections\n\n'
++    return ('# Preparation checkpoint: 569 accepted corrections\n\n'
+         f'Git commit: `{args.target_commit}`. Git tree: `{args.target_tree}`. '
+         f'Exact-commit CI run {args.ci_run} passed.\n\n'
+-        'The pinned registry contains 491 accepted target corrections. Report extraction, '
++        'The pinned registry contains 569 accepted target corrections. Report extraction, '
+         'source correspondence and final training/resume/inference checks remain separate '
+         'readiness requirements. This publication does not close a QA gate. **Training readiness is false.** '
+-        'Gold remains evaluation-only. The 491 milestone passed 462 local tests; exact-commit CI is separately verified before publication.\n\n'
++        'Gold remains evaluation-only. The 569 milestone passed 462 local tests; exact-commit CI is separately verified before publication.\n\n'
+         f'The complete manifest contains {args.expected_file_count} Git files. '
+         'Every path, mode, size, Git blob ID and SHA-256 is verified from the immutable base plus the delta, '
+         'including entries omitted from the earlier base archive. Actual peer and root restoration proofs '
+@@ -113,20 +113,20 @@
+         for p, name in paths:
+             if name != 'delta.tar.gz':
+                 h.Scanner(secrets).feed(p.read_bytes())
+-        operation = {'stage': 'root_prepared_qualified003_complete_tree_delta_publication',
+-            'actual_executor': args.actual_executor, 'preparation_workflow_author': PEER,
++        operation = {'stage': 'root_prepared_qualified004_complete_tree_delta_publication',
++            'actual_executor': args.actual_executor, 'preparation_workflow_author': WORKFLOW_AUTHOR,
+             'target_git': args.target_commit, 'target_tree': args.target_tree,
+             'file_count': args.expected_file_count, 'registered_corrections': N_CORRECTIONS,
+             'registry_sha256': REGISTRY_SHA, 'expected_hf_parent': PARENT_HF,
+             'base_git_commit': BASE_GIT, 'base_hf_revision': BASE_HF,
+             'github_ci_run': args.ci_run, 'github_ci': current_ci, 'uploaded_files': refs,
+-            'publisher': ref(Path(__file__)), 'binding_module': ref(STAGE / 'qualified003_bindings.py'),
++            'publisher': ref(Path(__file__)), 'binding_module': ref(STAGE / 'qualified004_bindings.py'),
+             'transport': ref(TRANSPORT), 'shared_helper': ref(HELPER),
+-            'peer_runner': ref(STAGE / 'verify_qualified003_peer.py'),
+-            'build_runner': ref(STAGE / 'build_qualified003_peer.py'),
++            'peer_runner': ref(STAGE / 'verify_qualified004_peer.py'),
++            'build_runner': ref(STAGE / 'build_qualified004_peer.py'),
+             'root_verifier_sha256': args.root_verifier_sha256,
+             'protected_source576_inventory': ref(SOURCE_INVENTORY),
+-            'root491_staged_proof': ref(STAGED_PROOF),
++            'root569_staged_proof': ref(STAGED_PROOF),
+             'peer_proof_sha256': args.peer_proof_sha256, 'root_proof_sha256': args.root_proof_sha256,
+             'private_required': True, 'training_ready': False}
+         h.Scanner(secrets).feed(json.dumps(operation).encode())
+@@ -143,12 +143,12 @@
+     require(operation['expected_hf_parent'] == PARENT_HF and operation['private_required'] is True and operation['training_ready'] is False, 'operation_scope')
+     require(operation['registered_corrections'] == N_CORRECTIONS and operation['registry_sha256'] == REGISTRY_SHA, 'operation_registry')
+     require(operation['peer_proof_sha256'] == args.peer_proof_sha256 and operation['root_proof_sha256'] == args.root_proof_sha256 and operation['root_verifier_sha256'] == args.root_verifier_sha256, 'operation_proofs')
+-    for key, path in [('publisher', Path(__file__)), ('binding_module', STAGE / 'qualified003_bindings.py'), ('transport', TRANSPORT), ('shared_helper', HELPER), ('peer_runner', STAGE / 'verify_qualified003_peer.py'), ('build_runner', STAGE / 'build_qualified003_peer.py'), ('protected_source576_inventory', SOURCE_INVENTORY), ('root491_staged_proof', STAGED_PROOF)]:
++    for key, path in [('publisher', Path(__file__)), ('binding_module', STAGE / 'qualified004_bindings.py'), ('transport', TRANSPORT), ('shared_helper', HELPER), ('peer_runner', STAGE / 'verify_qualified004_peer.py'), ('build_runner', STAGE / 'build_qualified004_peer.py'), ('protected_source576_inventory', SOURCE_INVENTORY), ('root569_staged_proof', STAGED_PROOF)]:
+         require(operation[key] == ref(path), 'operation_dependency_changed')
+     refs = operation['uploaded_files']
+     expected = [{**ref(package / name if name != 'checkpoint_delta.py' else HELPER), 'path': prefix + name} for name in NAMES]
+     require(refs == expected, 'exact_six_upload_scope_or_content_changed')
+-    transport = module('qualified003_reviewed_transport', TRANSPORT, TRANSPORT_SHA)
++    transport = module('qualified004_reviewed_transport', TRANSPORT, TRANSPORT_SHA)
+     hub = transport.configure_hub()
+     from dotenv import dotenv_values
+     token = dotenv_values(W / '.env').get('HF_TOKEN')
+@@ -186,7 +186,7 @@
+             require(ref(W / row['local_path']) == {k: row[k] for k in ['local_path', 'sha256', 'bytes']}, 'precommit_file_changed')
+         event('commit_starting', parent=PARENT_HF, objects=len(adds))
+         result = api.create_commit(repo_id=HF_REPO, repo_type='dataset', revision='main', parent_commit=PARENT_HF,
+-            operations=adds, commit_message='Preserve 491-correction preparation checkpoint',
++            operations=adds, commit_message='Preserve 569-correction preparation checkpoint',
+             commit_description=f'Pinned Git {args.target_commit}, tree {args.target_tree}, {args.expected_file_count} complete files. Actual distinct peer/root streaming restoration and exact-commit CI passed. Original sources and official metadata preserved. Training readiness remains false.', num_threads=2)
+         head = result.oid
+         require(OID.fullmatch(head) and head != PARENT_HF, 'commit_identity_invalid')
+@@ -204,7 +204,7 @@
+     for row in refs:
+         require(ref(W / row['local_path']) == {k: row[k] for k in ['local_path', 'sha256', 'bytes']}, 'local_file_changed_during_publication')
+     receipt = {'status': 'verified_private_complete_tree_preparation_delta', 'actual_executor': ROOT,
+-        'workflow_preparation_author': PEER, 'at_utc': datetime.now(timezone.utc).isoformat(),
++        'workflow_preparation_author': WORKFLOW_AUTHOR, 'at_utc': datetime.now(timezone.utc).isoformat(),
+         'github_commit': args.target_commit, 'github_tree': args.target_tree, 'github_ci_run': args.ci_run,
+         'github_ci': current_ci, 'complete_result_files': args.expected_file_count, 'registered_corrections': N_CORRECTIONS,
+         'registry_sha256': REGISTRY_SHA, 'hf_revision': head, 'expected_hf_parent': PARENT_HF,
+--- qualified003_bindings.py
++++ qualified004_bindings.py
+@@ -1,4 +1,4 @@
+-"""Future491 checkpoint guards. Importing this module performs no I/O."""
++"""Future569 checkpoint guards. Importing this module performs no I/O."""
+ from pathlib import Path
+ import hashlib
+ import importlib.util
+@@ -13,28 +13,30 @@
+ BASE_GIT = '1792f01ed3daab757c5ddb9bf5733ffe8d999f91'
+ BASE_HF = '54949cd5a575ea7027a4a57916e772936a98d38b'
+ SOURCE_HF = '0b5e410288232f570c69ba4f44723356e6ae6ab7'
+-PARENT_HF = 'b57d752502d4d31d03adb1bf71868af576798d97'
+-PREVIOUS_GIT = 'a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004'
+-TARGET_GIT = 'fec046253168083514749226987dda5b6c2505ce'
+-TARGET_TREE = '77321d30b1e6970c062e0a4c64791bc03b203638'
+-TARGET_FILE_COUNT = 10020
+-TARGET_CI_RUN = 35693648375
+-STAGED_PROOF = WORK / 'qualified003-final-staged-verification.json'
+-STAGED_PROOF_SHA = 'a71371148beee6a9b941ca290cc8d3e52086aed35faa99c938c3252b980bf312'
++PARENT_HF = 'd2804e1da6fdaa6e77e01c224480c5b31aefc186'
++PREVIOUS_GIT = 'fec046253168083514749226987dda5b6c2505ce'
++TARGET_GIT = 'AWAITING_ACTUAL_569_COMMIT'
++TARGET_TREE = 'AWAITING_ACTUAL_569_TREE'
++TARGET_FILE_COUNT = None
++TARGET_CI_RUN = None
++STAGED_PROOF = WORK / 'qualified004-final-staged-verification.json'
++STAGED_PROOF_SHA = 'AWAITING_ACTUAL_STAGED_PROOF'
+ BASE_ARCHIVE_SHA = '10206b752cce97cb671de607291785eef10d7fd9154c4dd4a0612b6686327271'
+ BASE_MANIFEST_SHA = '5f879ae740356e21ff5ed4c34fa31daf1cce4b5ffa9dafdd044a0658b9ad850b'
+ BASE_ARCHIVE_BYTES = 1335583564
+ BASE_MANIFEST_BYTES = 1865355
+-REGISTRY_SHA = '685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+-N_CORRECTIONS = 491
++REGISTRY_SHA = '7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'
++N_CORRECTIONS = 569
+ HELPER = WORK / 'annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+ HELPER_SHA = '58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+ TRANSPORT = WORK / 'annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py'
+ TRANSPORT_SHA = '494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f'
+ SOURCE_INVENTORY = STAGE / 'protected-source-576.json'
+ SOURCE_INVENTORY_SHA = '0e12da42dc91e43799eeecddb7bfffda1dd9b598e93610a836ad3428a1fae527'
+-PEER = '/root/last_twelve_visual_review'
++PEER = '/root/duplicate_consistency_review'
+ ROOT = '/root'
++WORKFLOW_AUTHOR = '/root'
++SOURCE_INVENTORY_BASELINE_GIT = 'a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004'
+ SHA = re.compile(r'[0-9a-f]{64}')
+ OID = re.compile(r'[0-9a-f]{40}')
+ HF_REPO = 'GodlyDonuts/RSNA-Data'
+@@ -85,7 +87,7 @@
+     return obj
+ 
+ def helper():
+-    h = module('qualified003_shared_delta', HELPER, HELPER_SHA)
++    h = module('qualified004_shared_delta', HELPER, HELPER_SHA)
+     require((h.BASE_GIT, h.BASE_HF, h.SOURCE_HF) == (BASE_GIT, BASE_HF, SOURCE_HF), 'shared_base_changed')
+     require(h.FLOOR == 20 * 2**30 and h.RESERVE == 64 * 2**20, 'disk_floor_changed')
+     return h
+@@ -99,11 +101,11 @@
+ 
+ def argument_guard(args):
+     require(isinstance(args.target_commit, str) and OID.fullmatch(args.target_commit), 'future_commit_required')
+-    require(args.target_commit not in {PREVIOUS_GIT, BASE_GIT}, 'historical_commit_not_491')
++    require(args.target_commit not in {PREVIOUS_GIT, BASE_GIT}, 'historical_commit_not_569')
+     require(isinstance(args.target_tree, str) and OID.fullmatch(args.target_tree), 'future_tree_required')
+     require(type(args.expected_file_count) is int and args.expected_file_count > 0, 'future_file_count_required')
+     require(isinstance(args.manifest_sha256, str) and SHA.fullmatch(args.manifest_sha256), 'future_manifest_required')
+-    require((args.target_commit, args.target_tree, args.expected_file_count) == (TARGET_GIT, TARGET_TREE, TARGET_FILE_COUNT), 'exact491_milestone_required')
++    require((args.target_commit, args.target_tree, args.expected_file_count) == (TARGET_GIT, TARGET_TREE, TARGET_FILE_COUNT), 'exact569_milestone_required')
+     package = args.package.resolve()
+     require(package == WORK / 'hf-preparation-deltas' / args.target_commit, 'exact_package_location')
+     require(args.package.absolute() == package and package.is_dir(), 'package_symlink_or_missing')
+@@ -113,7 +115,7 @@
+     require(sha(SOURCE_INVENTORY) == SOURCE_INVENTORY_SHA, 'source576_inventory_changed')
+     inv = read(SOURCE_INVENTORY)
+     require(inv['count'] == len(inv['files']) == len({x['path'] for x in inv['files']}) == 576, 'source576_count')
+-    require(inv['source_hf_revision'] == SOURCE_HF and inv['baseline_git_commit'] == PREVIOUS_GIT, 'source576_origin')
++    require(inv['source_hf_revision'] == SOURCE_HF and inv['baseline_git_commit'] == SOURCE_INVENTORY_BASELINE_GIT, 'source576_origin')
+     for row in inv['files']:
+         h.safe_path(row['path'])
+         require(row['path'].startswith('train_series/'), 'source576_remote_scope')
+@@ -124,7 +126,7 @@
+ def local_guard(args, h):
+     package = argument_guard(args)
+     h.disk_guard(package)
+-    require(sha(STAGED_PROOF) == STAGED_PROOF_SHA, 'root491_staged_proof_changed')
++    require(sha(STAGED_PROOF) == STAGED_PROOF_SHA, 'root569_staged_proof_changed')
+     require(sha(package / 'manifest.json') == args.manifest_sha256, 'manifest_hash_changed')
+     manifest = read(package / 'manifest.json')
+     require(manifest['target_git_commit'] == args.target_commit and manifest['target_git_tree'] == args.target_tree, 'future_git_binding')
+@@ -135,11 +137,11 @@
+     require(manifest['base_archive'] == {'path': 'preparation-checkpoints/' + BASE_GIT + '/checkpoint.tar.gz', 'sha256': BASE_ARCHIVE_SHA, 'bytes': BASE_ARCHIVE_BYTES}, 'base_archive_binding')
+     require(manifest['base_manifest'] == {'path': 'preparation-checkpoints/' + BASE_GIT + '/manifest.json', 'sha256': BASE_MANIFEST_SHA}, 'base_manifest_binding')
+     require(h.git(R, 'rev-parse', args.target_commit + '^{tree}').decode().strip() == args.target_tree, 'actual_git_tree_mismatch')
+-    require(h.git(R, 'merge-base', PREVIOUS_GIT, args.target_commit).decode().strip() == PREVIOUS_GIT, 'target_not_descendant_of425')
++    require(h.git(R, 'merge-base', PREVIOUS_GIT, args.target_commit).decode().strip() == PREVIOUS_GIT, 'target_not_descendant_of491')
+     rows = h.tree(R, args.target_commit)
+     require(len(rows) == args.expected_file_count, 'actual_git_file_count_mismatch')
+     registry = h.git(R, 'show', args.target_commit + ':initiative/reviews-v2/adjudications/registry.json')
+-    require(hashlib.sha256(registry).hexdigest() == REGISTRY_SHA, 'target_not_known491_registry')
++    require(hashlib.sha256(registry).hexdigest() == REGISTRY_SHA, 'target_not_known569_registry')
+     inv = source576_guard(h, rows)
+     require(sha(package / 'delta.tar.gz') == manifest['delta_archive']['sha256'], 'delta_sha_changed')
+     require((package / 'delta.tar.gz').stat().st_size == manifest['delta_archive']['bytes'], 'delta_size_changed')
+--- verify_qualified003_peer.py
++++ verify_qualified004_peer.py
+@@ -1,7 +1,7 @@
+ """Unexecuted peer runner: streaming verification only, never builds or uploads."""
+ import argparse
+ import json
+-from qualified003_bindings import *
++from qualified004_bindings import *
+ 
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+@@ -21,7 +21,7 @@
+                  generated_helper_default_identity=original_default,
+                  helper_default_is_not_evidence_of_actual_execution=True,
+                  helper_sha256=HELPER_SHA, peer_runner=ref(Path(__file__)),
+-                 preparation_author_agent_id=PEER,
++                 preparation_author_agent_id=WORKFLOW_AUTHOR,
+                  actual_role='Distinct peer streaming reconstruction verifier when this runner is actually executed by the named agent; preparation alone creates no proof.',
+                  protected_source576_inventory=ref(SOURCE_INVENTORY),
+                  source576_exact_target_git_identities_verified=len(inv['files']),

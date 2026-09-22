@@ -1,0 +1,37 @@
+"""Independent membership/count replay of a sealed technical preflight; no hold approval."""
+from pathlib import Path
+from collections import Counter,defaultdict
+import json,gzip,hashlib
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';P=A/'conservative-semantic-hold-coverage-preflight-569-v1/result-v2'
+def j(p):return json.loads(p.read_text())
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+m=P/'completion-manifest.json';assert ref(m)['sha256']=='db15c743d18e4afaab5846aa917ba9af3a94896781cae386bdffda0b24be14e2';manifest=j(m);validated=[]
+for e in manifest['files']:
+ p=W/e['path'];assert ref(p)=={k:e[k] for k in ['path','sha256','bytes']}
+ if p.suffix=='.gz':
+  raw=gzip.decompress(p.read_bytes());assert len(raw)==e['uncompressed_bytes'] and hashlib.sha256(raw).hexdigest()==e['uncompressed_sha256'];assert len(raw.splitlines())==e['records']
+ validated.append(ref(p))
+with gzip.open(P/'cell-ledger.jsonl.gz','rt') as f:rows=[json.loads(s) for s in f]
+assert len(rows)==len({(r['study_uid'],r['target']) for r in rows})==52884
+sm=j(P/'summary.json');own=j(S/'measured-current569-scopes.json');assert sm['current_registry_sha256']==own['actual_registry']['sha256'];assert sm['current_annotation_state_counts']==own['current_all_cell_state_counts'];assert sm['current_annotation_state_counts_by_target']==own['current_state_counts_by_target']
+partition=Counter(r['display_partition'] for r in rows);assert dict(partition)==sm['partition_counts'];sc=Counter(r['current569']['state'] for r in rows);assert dict(sc)==sm['current_annotation_state_counts']
+for k,v in own['scope_counts'].items():
+ if k not in sm['scope_counts']:continue
+ p=sm['scope_counts'][k];assert (p['cells'],p['reports'],p['current_observed'],p['current_masked'],p['active_correction'])==(v['cells'],v['reports'],v['current_observed'],v['current_masked'],v['active_correction_overlap'])
+assert own['exact_normalized_report_groups']['groups']==sm['exact_duplicate_groups']==54;assert own['exact_normalized_report_groups']['reports']==sm['exact_duplicate_reports']==204;assert sm['exact_duplicate_current_state_conflicts']==0
+BASE={'existing_correspondence_exclusion','existing_uncertain_or_unmentioned_mask'}
+scenarios={'correspondence_plus_current_masks_only':set(),'candidate_state_difference_envelope':{'candidate_state_hold_pending_approval'},'all_unresolved_display_choices_envelope':{'candidate_state_hold_pending_approval','root_quote_variant_policy_choice_not_error','quote_variant_policy_choice_not_error','adjudicated_retained_dissent_policy_choice','incomplete_reliability_queue_policy_choice'}}
+scenario_counts={}
+for name,display in scenarios.items():
+ by=defaultdict(Counter);hold=0;kept=0
+ for r in rows:
+  if r['display_partition'] in BASE:continue
+  assert r['current569']['state'] in {'positive','negative'}
+  if r['display_partition'] in display:hold+=1
+  else:by[r['target']][r['current569']['state']]+=1;kept+=1
+ scenario_counts[name]={'display_categories_excluded':sorted(display),'unique_observed_candidates_removed':hold,'remaining_report_observations':kept,'surviving_positive_negative_by_target':{t:dict(c) for t,c in sorted(by.items())},'before_gold_split_technical_and_exact_duplicate_closure':True,'not_approved_hold_membership':True}
+write('preflight-crosscheck.json',{'agent_id':'/root/last_twelve_visual_review','scope':'Mechanical replay of sealed result-v2 membership/compressed hashes/counts; not a new clinical review or independent audit of every historical opinion selector.','preflight_completion':ref(m),'validated_bound_members':validated,'canonical_unique_cells':52884,'all_current_state_target_counts_match_independent_original_current_replay':True,'shared_historical_scope_counts_match':True,'exact_report_group_counts_match':True,'exclusive_display_partition':dict(partition),'historical_root_projection_note':ref(P/'historical-root-projection-notes.json'),'cutoff':'Both bone030 passes complete; root002–004 dispositions and later004 withdrawals; root005 source-only. No root005 post-comparison completion is inferred.','historical362_ledger_remains_separate':True,'hold_approved':False})
+write('candidate-coverage-scenarios-not-policy.json',{'agent_id':'/root/last_twelve_visual_review','input':ref(P/'cell-ledger.jsonl.gz'),'actual_registry':own['actual_registry'],'current_all_report_annotations':own['current_all_cell_state_counts'],'scope':'Finite numerical envelopes only. The all-unresolved-display envelope deliberately counts pending quote choices as temporarily unused; it does not call every quote variant a defect or propose that all remain held after evidence reuse. No gold values, gold membership or actual splits were opened; these are not final train/validation class counts. Exact-report propagation and known near-report disposition are outstanding policy steps.','scenarios':scenario_counts,'required_final_measurements':['approved whole-hold union after exact-report closure','actual per-target train/weak-validation positive and negative survivors','direct versus propagated reasons and all overlaps','correspondence and existing-mask overlap','quarantine and gold precedence separately','unique leakage groups and all-zero-supervision studies','predeclared zero-class failure or explicit changed target/split scope'],'approved':False})
+print(json.dumps({'crosscheck':ref(S/'preflight-crosscheck.json'),'scenarios':ref(S/'candidate-coverage-scenarios-not-policy.json'),'scenario_counts':scenario_counts},indent=2))

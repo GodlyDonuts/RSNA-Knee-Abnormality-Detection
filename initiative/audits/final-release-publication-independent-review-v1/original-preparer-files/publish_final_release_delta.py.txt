@@ -1,0 +1,246 @@
+"""Root publisher derived from the verified491 workflow; no mutation during preparation."""
+import argparse
+from datetime import datetime, timezone
+import json
+import subprocess
+from final_release_bindings import *
+
+NAMES = ('delta.tar.gz', 'manifest.json', 'peer-restoration-proof.json',
+         'root-restoration-proof.json', 'README.md', 'checkpoint_delta.py')
+
+def ci(args):
+    require(type(args.ci_run) is int and args.ci_run == TARGET_CI_RUN, 'exact_final_ci_run_required')
+    raw = subprocess.check_output(['gh', 'run', 'view', str(args.ci_run), '--repo',
+        'GodlyDonuts/RSNA-Knee-Abnormality-Detection', '--json', 'conclusion,headSha,status'],
+        cwd=R, stderr=subprocess.DEVNULL, timeout=60)
+    value = json.loads(raw)
+    require(value == {'conclusion': 'success', 'headSha': args.target_commit, 'status': 'completed'}, 'exact_future_commit_ci_not_success')
+    return value
+
+def proof_inputs(args, package, manifest):
+    for value in [args.peer_proof_sha256, args.root_proof_sha256, args.root_verifier_sha256]:
+        require(SHA.fullmatch(value), 'future_proof_hash_required')
+    require(args.root_verifier_sha256 == sha(STAGE / 'verify_final_release_root.py'), 'prepared_root_verifier_changed')
+    peer_path = package / 'peer-restoration-proof.json'
+    root_path = package / 'root-restoration-proof.json'
+    require(sha(peer_path) == args.peer_proof_sha256 and sha(root_path) == args.root_proof_sha256, 'proof_hash_changed')
+    peer, root = read(peer_path), read(root_path)
+    proof_guard(peer, args, manifest, PEER)
+    proof_guard(root, args, manifest, ROOT)
+    require(peer['peer_runner'] in [ref(STAGE / n) for n in ['verify_final_release_peer.py', 'build_final_release_peer.py']], 'peer_runner_changed')
+    require(peer['protected_source576_inventory']['sha256'] == SOURCE_INVENTORY_SHA and peer['source576_exact_target_git_identities_verified'] == 576, 'peer_source576_proof')
+    require(root['independent_peer_proof_sha256'] == args.peer_proof_sha256 and root['peer_artifact_unchanged'] is True, 'root_peer_binding')
+    require(root['root_runner_sha256'] == args.root_verifier_sha256, 'actual_root_runner_binding')
+    require(root['actual_executor'] != peer['actual_executor'], 'same_executor_not_independent')
+    return peer, root
+
+def card(args, eligibility):
+    require(eligibility['status'] == 'eligible_for_final_data_publication', 'release_not_eligible')
+    return ('# Verified report-supervision data release\n\n'
+        f'Git commit: `{args.target_commit}`. Git tree: `{args.target_tree}`. '
+        f'Exact-commit CI run {args.ci_run} passed.\n\n'
+        'The separately bound final data release has status `verified_release`; its final-input '
+        'diagnostic acceptance passed, all three semantic QA gates are resolved for that release, '
+        'and all 569 prior accepted corrections remain unchanged. '
+        f'Release receipt: `{VERIFIED_RELEASE_PATH}` SHA-256 `{VERIFIED_RELEASE_SHA}`. '
+        f'Diagnostic acceptance: `{ACCEPTANCE_PATH}` SHA-256 `{ACCEPTANCE_SHA}`.\n\n'
+        'Acceptance verifies two completed short diagnostic epochs, exact CPU resume, masked zero gradients, '
+        'all 58 gold-study inference outputs and all 3 released test outputs. These are software and data '
+        'acceptance checks, not a competitive accuracy claim. Gold remains evaluation-only. '
+        'Competitive training strategy, tuning and full training remain separate work.\n\n'
+        '**Transport metadata scope:** the unchanged delta helper retains its historical '
+        '`training_ready=false` field in the manifest and streaming proofs. That unchecked legacy field '
+        'does not certify or assess data readiness. The final-data eligibility statement above is '
+        'supported only by the separately pinned release and acceptance records.\n\n'
+        f'The complete manifest contains {args.expected_file_count} Git files. '
+        'Every path, mode, size, Git blob ID and SHA-256 is independently reconstructed by the actual '
+        'peer and root from the immutable base plus delta. The two peer proof names are aliases of one '
+        'execution; the root proof comes from a separate actual execution. No full extra tree is extracted.\n\n'
+        f'Required base: dataset revision `{BASE_HF}`, `preparation-checkpoints/{BASE_GIT}/checkpoint.tar.gz` '
+        'and its `manifest.json`. This delta is not standalone. Verify safe regular-file paths, apply '
+        'the explicit deletions and overlay delta precedence, then verify all final manifest identities '
+        'with the accompanying unchanged checkpoint_delta.py.\n\n'
+        'This is a private six-object checkpoint prefix. Original train/test image trees, five official '
+        'metadata CSVs, root dataset card and 576 tracked corrected-mirror files remain unchanged. '
+        'Their preserved origin limitations are unchanged; metadata preservation is not fresh official-byte confirmation.\n')
+
+def remote_guard(api, transport, revision, *, check_card=True):
+    require(transport.source_identity(api, revision) == SOURCE_IDENTITIES, 'remote_source_tree_or_csv_changed')
+    if not check_card:
+        return None
+    root_card = {x.path: x.blob_id for x in api.list_repo_tree(HF_REPO, repo_type='dataset', revision=revision) if x.path == 'README.md'}
+    require(root_card == ROOT_CARD, 'root_dataset_card_changed')
+    return root_card
+
+def source576_metadata(api, rows):
+    """LFS OID/size verification only; never download source payload bytes."""
+    seen = {}
+    for start in range(0, len(rows), 100):
+        chunk = rows[start:start + 100]
+        expected = {x['path']: x for x in chunk}
+        entries = api.get_paths_info(HF_REPO, paths=list(expected), repo_type='dataset', revision=PARENT_HF)
+        found = set()
+        for entry in entries:
+            require(entry.path in expected and entry.path not in seen, 'source576_metadata_membership')
+            row = expected[entry.path]
+            lfs = getattr(entry, 'lfs', None)
+            require(lfs is not None, 'source576_lfs_metadata_required_no_download_fallback')
+            require(entry.size == row['bytes'] and lfs.sha256 == row['sha256'], 'source576_metadata_identity')
+            found.add(entry.path)
+            seen[entry.path] = dict(row, verification='hub_lfs_sha256_and_size_no_source_download')
+        require(found == set(expected), 'source576_metadata_missing')
+    require(len(seen) == 576, 'source576_metadata_count')
+    return [seen[x['path']] for x in rows]
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('action', choices=['prepare', 'publish'])
+    add_inputs(parser)
+    parser.add_argument('--actual-executor', choices=[ROOT], required=True)
+    parser.add_argument('--ci-run', type=int, required=True)
+    parser.add_argument('--peer-proof-sha256', required=True)
+    parser.add_argument('--root-proof-sha256', required=True)
+    parser.add_argument('--root-verifier-sha256', required=True)
+    parser.add_argument('--operation-sha256')
+    args = parser.parse_args()
+    future_pins_guard()
+    h = helper()
+    package, manifest, inv, eligibility = local_guard(args, h)
+    peer, root = proof_inputs(args, package, manifest)
+    require(peer.get("final_release_eligibility") == root.get("final_release_eligibility") == eligibility, "restorers_release_eligibility_mismatch")
+    require(sha(TRANSPORT) == TRANSPORT_SHA, 'transport_changed')
+    current_ci = ci(args)
+    prefix = 'preparation-checkpoints/' + args.target_commit + '/'
+    operation_path = package / 'root-publication-operation.json'
+    refs = None
+    if args.action == 'prepare':
+        require(not (package / 'README.md').exists() and not operation_path.exists(), 'preparation_already_exists')
+        content = card(args, eligibility).encode()
+        secrets = h.secret_values(W / '.env')
+        h.Scanner(secrets).feed(content)
+        with (package / 'README.md').open('xb') as f:
+            f.write(content)
+        paths = [(package / name if name != 'checkpoint_delta.py' else HELPER, name) for name in NAMES]
+        refs = [{**ref(p), 'path': prefix + name} for p, name in paths]
+        for p, name in paths:
+            if name != 'delta.tar.gz':
+                h.Scanner(secrets).feed(p.read_bytes())
+        operation = {'stage': 'root_prepared_final_release_complete_tree_delta_publication',
+            'actual_executor': args.actual_executor, 'preparation_workflow_author': WORKFLOW_AUTHOR,
+            'target_git': args.target_commit, 'target_tree': args.target_tree,
+            'file_count': args.expected_file_count, 'registered_corrections': N_CORRECTIONS,
+            'registry_sha256': REGISTRY_SHA, 'expected_hf_parent': PARENT_HF,
+            'base_git_commit': BASE_GIT, 'base_hf_revision': BASE_HF,
+            'github_ci_run': args.ci_run, 'github_ci': current_ci, 'uploaded_files': refs,
+            'publisher': ref(Path(__file__)), 'binding_module': ref(STAGE / 'final_release_bindings.py'),
+            'transport': ref(TRANSPORT), 'shared_helper': ref(HELPER),
+            'peer_runner': ref(STAGE / 'verify_final_release_peer.py'),
+            'build_runner': ref(STAGE / 'build_final_release_peer.py'),
+            'root_verifier_sha256': args.root_verifier_sha256,
+            'protected_source576_inventory': ref(SOURCE_INVENTORY),
+            'final_staged_proof': ref(STAGED_PROOF),
+            'peer_proof_sha256': args.peer_proof_sha256, 'root_proof_sha256': args.root_proof_sha256,
+            'private_required': True, 'training_ready': False,
+            'final_release_eligibility': eligibility, 'release_eligibility_module': ref(ELIGIBILITY_MODULE)}
+        h.Scanner(secrets).feed(json.dumps(operation).encode())
+        h.disk_guard(package)
+        save(operation_path, operation)
+        print(json.dumps({'prepared': True, 'operation': ref(operation_path), 'objects': len(refs), 'training_ready': False}))
+        return
+
+    require(isinstance(args.operation_sha256, str) and SHA.fullmatch(args.operation_sha256), 'reviewed_operation_hash_required')
+    require(sha(operation_path) == args.operation_sha256, 'operation_changed')
+    operation = read(operation_path)
+    require(operation['target_git'] == args.target_commit and operation['target_tree'] == args.target_tree and operation['file_count'] == args.expected_file_count, 'operation_future_git_mismatch')
+    require(operation['github_ci_run'] == args.ci_run and operation['github_ci'] == current_ci, 'operation_ci_mismatch')
+    require(operation['expected_hf_parent'] == PARENT_HF and operation['private_required'] is True and operation['training_ready'] is False, 'operation_scope')
+    require(operation.get('final_release_eligibility') == eligibility and operation.get('release_eligibility_module') == ref(ELIGIBILITY_MODULE), 'operation_release_eligibility_changed')
+    require(operation['registered_corrections'] == N_CORRECTIONS and operation['registry_sha256'] == REGISTRY_SHA, 'operation_registry')
+    require(operation['peer_proof_sha256'] == args.peer_proof_sha256 and operation['root_proof_sha256'] == args.root_proof_sha256 and operation['root_verifier_sha256'] == args.root_verifier_sha256, 'operation_proofs')
+    for key, path in [('publisher', Path(__file__)), ('binding_module', STAGE / 'final_release_bindings.py'), ('transport', TRANSPORT), ('shared_helper', HELPER), ('peer_runner', STAGE / 'verify_final_release_peer.py'), ('build_runner', STAGE / 'build_final_release_peer.py'), ('protected_source576_inventory', SOURCE_INVENTORY), ('final_staged_proof', STAGED_PROOF)]:
+        require(operation[key] == ref(path), 'operation_dependency_changed')
+    refs = operation['uploaded_files']
+    expected = [{**ref(package / name if name != 'checkpoint_delta.py' else HELPER), 'path': prefix + name} for name in NAMES]
+    require(refs == expected, 'exact_six_upload_scope_or_content_changed')
+    transport = module('final_release_reviewed_transport', TRANSPORT, TRANSPORT_SHA)
+    hub = transport.configure_hub()
+    from dotenv import dotenv_values
+    token = dotenv_values(W / '.env').get('HF_TOKEN')
+    require(isinstance(token, str) and bool(token), 'hf_token_missing')
+    api = hub.HfApi(token=token, endpoint=transport.ENDPOINT)
+    head = transport.private_head(api)
+    for revision in {SOURCE_HF, BASE_HF}:
+        remote_guard(api, transport, revision, check_card=False)
+    for revision in {PARENT_HF, head}:
+        remote_guard(api, transport, revision)
+    base_refs = [dict(path=manifest['base_archive']['path'], sha256=BASE_ARCHIVE_SHA, bytes=BASE_ARCHIVE_BYTES), dict(path=manifest['base_manifest']['path'], sha256=BASE_MANIFEST_SHA, bytes=BASE_MANIFEST_BYTES)]
+    base_verified = transport.verify_remote(api, hub, token, BASE_HF, base_refs)
+    protected_refs = [{k: x[k] for k in ['path', 'sha256', 'bytes']} for x in inv['files']]
+    protected_verified = source576_metadata(api, protected_refs)
+    require(len(protected_verified) == 576, 'source576_remote_verification_incomplete')
+    journal = package / 'root-publication-journal.jsonl'
+    def event(name, **fields):
+        with journal.open('a') as f:
+            f.write(json.dumps({'at_utc': datetime.now(timezone.utc).isoformat(), 'event': name, **fields}) + '\n')
+    names = {prefix + name for name in NAMES}
+    action = 'verify_existing_exact_content'
+    verified_parent = None
+    if head == PARENT_HF:
+        require(not api.get_paths_info(HF_REPO, paths=sorted(names), repo_type='dataset', revision=head), 'destination_already_exists')
+        adds = []
+        for row in refs:
+            add = hub.CommitOperationAdd(path_in_repo=row['path'], path_or_fileobj=W / row['local_path'])
+            require(add.upload_info.size == row['bytes'] and add.upload_info.sha256.hex() == row['sha256'], 'upload_info_changed')
+            adds.append(add)
+        h.disk_guard(package)
+        require(ci(args) == current_ci and transport.private_head(api) == PARENT_HF, 'precommit_ci_or_parent_changed')
+        remote_guard(api, transport, PARENT_HF)
+        require(sha(operation_path) == args.operation_sha256, 'precommit_operation_changed')
+        for row in refs:
+            require(ref(W / row['local_path']) == {k: row[k] for k in ['local_path', 'sha256', 'bytes']}, 'precommit_file_changed')
+        event('commit_starting', parent=PARENT_HF, objects=len(adds))
+        result = api.create_commit(repo_id=HF_REPO, repo_type='dataset', revision='main', parent_commit=PARENT_HF,
+            operations=adds, commit_message='Preserve verified final-data release and diagnostic acceptance',
+            commit_description=f'Pinned Git {args.target_commit}, tree {args.target_tree}, {args.expected_file_count} complete files. Actual distinct peer/root streaming restoration and exact-commit CI passed. Original sources and official metadata preserved. Separately pinned final-data release and diagnostic acceptance passed; legacy transport training_ready=false is not a data-readiness assessment. No competitive accuracy or strategy-completion claim.', num_threads=2)
+        head = result.oid
+        require(OID.fullmatch(head) and head != PARENT_HF, 'commit_identity_invalid')
+        verified_parent = PARENT_HF
+        action = 'commit_from_expected_parent'
+        event('committed_verification_pending', revision=head)
+    else:
+        event('changed_head_read_only_reconciliation', revision=head)
+    verified = transport.verify_remote(api, hub, token, head, [{k: x[k] for k in ['path', 'sha256', 'bytes']} for x in refs])
+    found = {x.path for x in api.list_repo_tree(HF_REPO, path_in_repo=prefix.rstrip('/'), repo_type='dataset', revision=head, recursive=True)}
+    require(found == names, 'remote_prefix_membership_mismatch')
+    root_card = remote_guard(api, transport, head)
+    require(transport.private_head(api) == head, 'final_head_changed')
+    require(sha(operation_path) == args.operation_sha256, 'operation_changed_during_publication')
+    for row in refs:
+        require(ref(W / row['local_path']) == {k: row[k] for k in ['local_path', 'sha256', 'bytes']}, 'local_file_changed_during_publication')
+    receipt = {'status': 'verified_private_complete_tree_final_data_delta', 'actual_executor': ROOT,
+        'workflow_preparation_author': WORKFLOW_AUTHOR, 'at_utc': datetime.now(timezone.utc).isoformat(),
+        'github_commit': args.target_commit, 'github_tree': args.target_tree, 'github_ci_run': args.ci_run,
+        'github_ci': current_ci, 'complete_result_files': args.expected_file_count, 'registered_corrections': N_CORRECTIONS,
+        'registry_sha256': REGISTRY_SHA, 'hf_revision': head, 'expected_hf_parent': PARENT_HF,
+        'verified_hf_parent': verified_parent, 'publication_action': action,
+        'parent_binding_scope': 'New commits use compare-and-swap expected parent. Changed-head reconciliation proves exact content, not ancestry or author; no second commit is issued.',
+        'base_hf_revision': BASE_HF, 'private': True, 'operation_sha256': args.operation_sha256,
+        'uploaded_objects': verified, 'immutable_base_objects_verified': base_verified,
+        'protected_source576_parent_objects_verified': protected_verified,
+        'source_identities': SOURCE_IDENTITIES, 'root_card_identities': root_card,
+        'source_and_official_metadata_unchanged': True,
+        'source_origin_limitations': 'The576 corrected pinned-mirror origins remain as documented; this preservation check is not fresh official-byte confirmation.',
+        'peer_proof_sha256': args.peer_proof_sha256, 'root_proof_sha256': args.root_proof_sha256,
+        'training_ready': False, 'final_release_eligibility': eligibility,
+        'readiness_scope': 'Legacy transport flag unchanged; final data eligibility is evidenced separately, never certified by the transport helper.'}
+    h.disk_guard(package)
+    save(package / 'root-publication-receipt.json', receipt)
+    event('verified', revision=head)
+    print(json.dumps({'status': receipt['status'], 'hf_revision': head, 'objects': len(verified), 'training_ready': False}))
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as error:
+        print(json.dumps(error_result(error)))
+        raise SystemExit(2) from None

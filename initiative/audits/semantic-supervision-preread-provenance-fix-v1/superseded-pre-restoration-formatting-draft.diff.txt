@@ -1,0 +1,646 @@
+--- a/rsna/semantic_supervision.py
++++ b/rsna/semantic_supervision.py
+@@ -48,7 +48,11 @@
+ def digest(value: Any) -> str:
+     return hashlib.sha256(
+         json.dumps(
+-            value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
++            value,
++            ensure_ascii=False,
++            sort_keys=True,
++            separators=(",", ":"),
++            allow_nan=False,
+         ).encode()
+     ).hexdigest()
+ 
+@@ -78,7 +82,10 @@
+ 
+ 
+ def identity(value: Any) -> str:
+-    fail(isinstance(value, str) and bool(value.strip()), "missing actual identity or reason")
++    fail(
++        isinstance(value, str) and bool(value.strip()),
++        "missing actual identity or reason",
++    )
+     return value
+ 
+ 
+@@ -95,12 +102,18 @@
+ 
+ def key(row: dict, reports: dict[str, str]) -> tuple[str, str]:
+     uid, target = row.get("study_uid"), row.get("target")
+-    fail(isinstance(uid, str) and uid in reports and target in TARGETS, "unknown UID/target")
++    fail(
++        isinstance(uid, str) and uid in reports and target in TARGETS,
++        "unknown UID/target",
++    )
+     return cast(str, uid), cast(str, target)
+ 
+ 
+ def annotation(value: Any, report: str) -> dict:
+-    fail(isinstance(value, dict) and set(value) == {"state", "evidence"}, "annotation shape")
++    fail(
++        isinstance(value, dict) and set(value) == {"state", "evidence"},
++        "annotation shape",
++    )
+     state, quote = value["state"], value["evidence"]
+     fail(state in STATES and isinstance(quote, str), "annotation state/evidence")
+     fail(
+@@ -112,7 +125,10 @@
+ 
+ 
+ def pointer(value: Any, path: Any) -> Any:
+-    fail(isinstance(path, str) and (path == "" or path.startswith("/")), "invalid pointer")
++    fail(
++        isinstance(path, str) and (path == "" or path.startswith("/")),
++        "invalid pointer",
++    )
+     if path == "":
+         return value
+     for raw in path[1:].split("/"):
+@@ -142,14 +158,20 @@
+         self.selected_records: dict[tuple, Any] = {}
+ 
+     def path(self, ref: Any) -> Path:
+-        fail(isinstance(ref, dict) and set(ref) == {"path", "sha256"}, "invalid file binding")
++        fail(
++            isinstance(ref, dict) and set(ref) == {"path", "sha256"},
++            "invalid file binding",
++        )
+         name, expected = ref["path"], ref["sha256"]
+         fail(
+             isinstance(name, str) and bool(name) and not Path(name).is_absolute(),
+             "binding path must be relative",
+         )
+         path = (self.root / name).resolve()
+-        fail(path.is_relative_to(self.root) and path.is_file(), "missing or escaping binding")
++        fail(
++            path.is_relative_to(self.root) and path.is_file(),
++            "missing or escaping binding",
++        )
+         if name not in self.raw:
+             self.raw[name] = path.read_bytes()
+             self.hashes[name] = hashlib.sha256(self.raw[name]).hexdigest()
+@@ -173,7 +195,12 @@
+             "invalid evidence selector binding",
+         )
+         self.path(ref["artifact"])
+-        cache_key = (ref["artifact"]["path"], ref["format"], ref["selector"], ref["sha256"])
++        cache_key = (
++            ref["artifact"]["path"],
++            ref["format"],
++            ref["selector"],
++            ref["sha256"],
++        )
+         if cache_key in self.selected_records:
+             return self.selected_records[cache_key]
+         name = ref["artifact"]["path"]
+@@ -195,11 +222,161 @@
+ 
+     def unchanged(self) -> None:
+         for name, expected in self.hashes.items():
+-            fail(file_digest(self.root / name) == expected, "bound input changed during validation")
++            fail(
++                file_digest(self.root / name) == expected,
++                "bound input changed during validation",
++            )
+ 
+ 
+ def _reference(path: Path, root: Path) -> dict:
+-    return {"path": str(path.resolve().relative_to(root.resolve())), "sha256": file_digest(path)}
++    return {
++        "path": str(path.resolve().relative_to(root.resolve())),
++        "sha256": file_digest(path),
++    }
++
++
++def _preread_reference(metadata: dict) -> dict:
++    """Resolve only recorded aliases; supplementary hash aliases must agree."""
++    aliases = (
++        ("independent_source_read_path", "independent_source_read_sha256"),
++        ("preread_path", "preread_sha256"),
++        ("independent_preread_path", "independent_preread_sha256"),
++    )
++    refs = []
++    for path_key, hash_key in aliases:
++        if path_key in metadata:
++            fail(
++                isinstance(metadata[path_key], str)
++                and bool(metadata[path_key])
++                and isinstance(metadata.get(hash_key), str),
++                "incomplete preread provenance alias",
++            )
++            refs.append({"path": metadata[path_key], "sha256": metadata[hash_key]})
++    fail(
++        bool(refs) and all(ref == refs[0] for ref in refs),
++        "missing/conflicting preread aliases",
++    )
++    fail(
++        all(metadata[h] == refs[0]["sha256"] for _, h in aliases if h in metadata),
++        "conflicting preread hash aliases",
++    )
++    return refs[0]
++
++
++def _reading_rows(ref: dict, uids: list[str], reports: dict[str, str], bindings: Bindings) -> None:
++    bindings.path(ref)
++    rows = [parse(line) for line in bindings.text(ref["path"]).splitlines()]
++    fail(
++        all(
++            isinstance(row, dict) and set(row) == {"study_uid", "states", "evidence", "notes"}
++            for row in rows
++        ),
++        "original reading row shape",
++    )
++    fail(
++        [row["study_uid"] for row in rows] == uids,
++        "original reading batch membership/order",
++    )
++    for row in rows:
++        fail(
++            isinstance(row["states"], list)
++            and isinstance(row["evidence"], list)
++            and len(row["states"]) == len(row["evidence"]) == len(TARGETS),
++            "original reading target order",
++        )
++        # Preserve all historical bytes, including unused/nonprojectable quotes.
++        # Exact-source quotation validation belongs to selected catalog evidence.
++        fail(
++            all(state in STATES for state in row["states"])
++            and all(isinstance(quote, str) for quote in row["evidence"]),
++            "original reading state/evidence shape",
++        )
++
++
++def _original_reading_files(
++    reviews: Path,
++    root: Path,
++    reports: dict[str, str],
++    source_files: dict,
++    review_files: dict,
++    source_hash: str,
++    rubric_hash: str,
++    provenance_ref: dict,
++    bindings: Bindings,
++) -> dict:
++    """Bind actual authored prereads through reviewed provenance, never a folder guess."""
++    provenance = bindings.obj(provenance_ref)
++    batches = {Path(path).stem: path for path in source_files}
++    fail(
++        isinstance(provenance, dict) and set(provenance) == set(batches),
++        "original reading provenance batch coverage",
++    )
++    expected_reviews = {
++        str((reviews / f"{batch}-reviewed.jsonl").relative_to(root)) for batch in batches
++    }
++    fail(set(review_files) == expected_reviews, "original reviewed batch coverage")
++    draft_paths = sorted((reviews.parent / "drafts").glob("*-draft.jsonl"))
++    expected_drafts = {reviews.parent / "drafts" / f"{batch}-draft.jsonl" for batch in batches}
++    fail(
++        set(draft_paths) == expected_drafts and bool(draft_paths),
++        "missing original draft artifacts",
++    )
++    reading_files: dict[str, dict] = {"drafts": {}, "prereads": {}}
++    for batch, source_path in sorted(batches.items()):
++        uids = [
++            row["study_uid"]
++            for row in bindings.obj({"path": source_path, "sha256": source_files[source_path]})
++        ]
++        phases = provenance[batch]
++        fail(
++            isinstance(phases, dict) and set(phases) == {"draft", "reviewed"},
++            "original reading requires both provenance phases",
++        )
++        for phase, folder in (("draft", "drafts"), ("reviewed", "reviewed")):
++            metadata = phases[phase]
++            fail(isinstance(metadata, dict), "original reading provenance shape")
++            for name in ("agent_id", "session_id"):
++                identity(metadata.get(name))
++            fail(
++                metadata.get("source_reports_sha256") == source_hash
++                and metadata.get("rubric_sha256") == rubric_hash,
++                "original reading source/rubric context",
++            )
++            fail(
++                metadata.get("source_sha256") == source_files[source_path],
++                "original reading source batch binding",
++            )
++            fail(
++                type(metadata.get("n_studies")) is int and metadata["n_studies"] == len(uids),
++                "original reading provenance study count",
++            )
++            path = reviews.parent / folder / f"{batch}-{phase}.jsonl"
++            ref = {
++                "path": str(path.relative_to(root)),
++                "sha256": metadata.get("sha256"),
++            }
++            _reading_rows(ref, uids, reports, bindings)
++            if phase == "draft":
++                reading_files["drafts"][ref["path"]] = ref["sha256"]
++        fail(
++            phases["reviewed"].get("parent_artifact_sha256") == phases["draft"]["sha256"],
++            "original reviewed draft binding",
++        )
++        fail(
++            all(
++                phases["draft"][name] != phases["reviewed"][name]
++                for name in ("agent_id", "session_id")
++            ),
++            "original readers not distinct",
++        )
++        preread = _preread_reference(phases["reviewed"])
++        fail(
++            preread["path"] not in reading_files["prereads"],
++            "duplicate original preread path",
++        )
++        _reading_rows(preread, uids, reports, bindings)
++        reading_files["prereads"][preread["path"]] = preread["sha256"]
++    return reading_files
+ 
+ 
+ def _context(
+@@ -226,7 +403,10 @@
+         ref = _reference(path, root)
+         source_files[ref["path"]] = ref["sha256"]
+         for row in bindings.obj(ref):
+-            fail(isinstance(row, dict) and set(row) == {"study_uid", "report"}, "source shape")
++            fail(
++                isinstance(row, dict) and set(row) == {"study_uid", "report"},
++                "source shape",
++            )
+             fail(row["study_uid"] not in actual_reports, "duplicate source UID")
+             actual_reports[row["study_uid"]] = row["report"]
+     fail(actual_reports == reports, "canonical source coverage mismatch")
+@@ -242,11 +422,18 @@
+                 "review shape",
+             )
+             uid = row["study_uid"]
+-            fail(uid in reports and (uid, TARGETS[0]) not in original, "review UID mismatch")
+-            fail(len(row["states"]) == len(row["evidence"]) == len(TARGETS), "review target order")
++            fail(
++                uid in reports and (uid, TARGETS[0]) not in original,
++                "review UID mismatch",
++            )
++            fail(
++                len(row["states"]) == len(row["evidence"]) == len(TARGETS),
++                "review target order",
++            )
+             for i, target in enumerate(TARGETS):
+                 original[uid, target] = annotation(
+-                    {"state": row["states"][i], "evidence": row["evidence"][i]}, reports[uid]
++                    {"state": row["states"][i], "evidence": row["evidence"][i]},
++                    reports[uid],
+                 )
+     fail(len(original) == len(reports) * len(TARGETS), "incomplete original reviews")
+     source_hash = digest([{"study_uid": u, "report": reports[u]} for u in sorted(reports)])
+@@ -268,19 +455,21 @@
+         bindings.path(ref)
+         fail(ref["path"] not in case_map, "duplicate correction case")
+         case_map[ref["path"]] = ref["sha256"]
+-    reading_files = {}
+-    for folder, suffix in (("drafts", "draft"), ("prereads", "preread")):
+-        files = sorted((reviews.parent / folder).glob(f"*-{suffix}.jsonl"))
+-        fail(
+-            len(files) == len(review_files) and bool(files),
+-            "missing original draft/preread artifacts",
+-        )
+-        mapping = {}
+-        for path in files:
+-            ref = _reference(path, root)
+-            bindings.path(ref)
+-            mapping[ref["path"]] = ref["sha256"]
+-        reading_files[folder] = mapping
++    fail(
++        set(required_inputs) == INPUT_NAMES,
++        "missing independently pinned policy/scope input",
++    )
++    reading_files = _original_reading_files(
++        reviews,
++        root,
++        reports,
++        source_files,
++        review_files,
++        source_hash,
++        rubric_ref["sha256"],
++        required_inputs["review_provenance"],
++        bindings,
++    )
+     changes = adjudications["changes"]
+     fail(adjudications.get("n_changes") == len(changes), "correction count mismatch")
+     current = dict(original)
+@@ -288,7 +477,8 @@
+     for change in changes:
+         k = key(change, reports)
+         fail(
+-            k not in seen and change["before"] == original[k], "correction base/duplicate mismatch"
++            k not in seen and change["before"] == original[k],
++            "correction base/duplicate mismatch",
+         )
+         fail(
+             case_map.get(change["case"]["path"]) == change["case"]["sha256"],
+@@ -296,7 +486,10 @@
+         )
+         current[k] = annotation(change["after"], reports[k[0]])
+         seen.add(k)
+-    fail(set(required_inputs) == INPUT_NAMES, "missing independently pinned policy/scope input")
++    fail(
++        set(required_inputs) == INPUT_NAMES,
++        "missing independently pinned policy/scope input",
++    )
+     for ref in required_inputs.values():
+         bindings.path(ref)
+     context = {
+@@ -332,8 +525,14 @@
+             and doc.get("ledger") == bundle["ledger"],
+             "approval does not bind exact scope",
+         )
+-    fail(proposer != assessor and decider != assessor, "policy assessment is not distinct")
+-    fail(proposal.get("status") == "proposed_for_report_supervision", "not a concrete proposal")
++    fail(
++        proposer != assessor and decider != assessor,
++        "policy assessment is not distinct",
++    )
++    fail(
++        proposal.get("status") == "proposed_for_report_supervision",
++        "not a concrete proposal",
++    )
+     fail(
+         assessment.get("status") == "endorsed_for_report_supervision"
+         and assessment.get("proposal") == bundle["proposal"],
+@@ -355,7 +554,15 @@
+     visiting.add(name)
+     bundle = version(
+         bindings.obj(ref),
+-        {"context", "holds", "ledger", "proposal", "assessment", "decision", "previous_registry"},
++        {
++            "context",
++            "holds",
++            "ledger",
++            "proposal",
++            "assessment",
++            "decision",
++            "previous_registry",
++        },
+     )
+     _approval(bundle, bindings)
+     version(bindings.obj(bundle["context"]))
+@@ -388,7 +595,10 @@
+                 "new hold cannot be a fabricated release",
+             )
+         elif row != old:
+-            fail(row.get("predecessor_sha256") == digest(old), "unbound lifecycle transition")
++            fail(
++                row.get("predecessor_sha256") == digest(old),
++                "unbound lifecycle transition",
++            )
+             fail(
+                 (row.get("study_uid"), row.get("target"))
+                 == (old.get("study_uid"), old.get("target")),
+@@ -396,7 +606,10 @@
+             )
+             identity(row.get("transition_reason"))
+             if row["lifecycle"] == "released":
+-                fail(bool(row.get("resolution_evidence_ids")), "release lacks explicit evidence")
++                fail(
++                    bool(row.get("resolution_evidence_ids")),
++                    "release lacks explicit evidence",
++                )
+     visiting.remove(name)
+     return bundle, holds, ledger
+ 
+@@ -418,7 +631,12 @@
+         owned_hashes = {identity_obj.get("sha256")}
+         if "ownership_sha256_pointer" in entry:
+             owned_hashes.add(pointer(identity_obj, entry["ownership_sha256_pointer"]))
+-        for field in ("authored_artifact", "source_assessment", "assessment", "artifact"):
++        for field in (
++            "authored_artifact",
++            "source_assessment",
++            "assessment",
++            "artifact",
++        ):
+             candidate = identity_obj.get(field)
+             if isinstance(candidate, dict):
+                 owned_hashes.add(candidate.get("sha256"))
+@@ -434,7 +652,8 @@
+             else identity_obj.get("session_id")
+         )
+         fail(
+-            session is None or isinstance(session, str) and bool(session.strip()), "invalid session"
++            session is None or isinstance(session, str) and bool(session.strip()),
++            "invalid session",
+         )
+         fail(
+             agent == entry.get("agent_id") and session == entry.get("session_id"),
+@@ -445,7 +664,10 @@
+             and entry.get("rubric_sha256") == context["rubric"]["sha256"],
+             "evidence source/rubric mismatch",
+         )
+-        fail(isinstance(obj, dict) and obj.get("study_uid") == k[0], "evidence UID mismatch")
++        fail(
++            isinstance(obj, dict) and obj.get("study_uid") == k[0],
++            "evidence UID mismatch",
++        )
+         layout = entry.get("layout")
+         if layout in {"arrays12", "arrays_scoped"}:
+             order = list(TARGETS) if layout == "arrays12" else obj.get("target_order")
+@@ -464,7 +686,10 @@
+                 and k[1] in order,
+                 "evidence target scope",
+             )
+-            fail(len(obj["states"]) == len(obj["evidence"]) == len(order), "evidence array shape")
++            fail(
++                len(obj["states"]) == len(obj["evidence"]) == len(order),
++                "evidence array shape",
++            )
+             i = order.index(k[1])
+             ann = {"state": obj["states"][i], "evidence": obj["evidence"][i]}
+         elif layout == "decisions":
+@@ -497,7 +722,8 @@
+             ann = {"state": selected[state_field], "evidence": selected[evidence_field]}
+         ann = annotation(ann, reports[k[0]])
+         fail(
+-            entry.get("annotation_sha256") == digest(ann), "evidence annotation projection mismatch"
++            entry.get("annotation_sha256") == digest(ann),
++            "evidence annotation projection mismatch",
+         )
+         fail(
+             entry.get("kind")
+@@ -616,7 +842,10 @@
+             oid not in obligations and item.get("category") in CATEGORIES,
+             "duplicate/invalid obligation",
+         )
+-        fail(item.get("scope_kind") in {"target", "whole_report"}, "obligation scope kind")
++        fail(
++            item.get("scope_kind") in {"target", "whole_report"},
++            "obligation scope kind",
++        )
+         if item["scope_kind"] == "whole_report":
+             group = identity(item.get("report_scope_id"))
+             report_scopes.setdefault((k[0], group), set()).add(k[1])
+@@ -647,7 +876,12 @@
+             "hold current annotation drift",
+         )
+         _ids(hold.get("evidence_ids"), evidence_keys, "hold evidence missing", True)
+-        _ids(hold.get("obligation_ids"), by_cell.get(k, set()), "hold obligation mismatch", True)
++        _ids(
++            hold.get("obligation_ids"),
++            by_cell.get(k, set()),
++            "hold obligation mismatch",
++            True,
++        )
+         fail(
+             all(
+                 (evidence[e]["study_uid"], evidence[e]["target"]) == k for e in hold["evidence_ids"]
+@@ -672,7 +906,10 @@
+             )
+         if hold["lifecycle"] == "released":
+             _ids(
+-                hold.get("resolution_evidence_ids"), evidence_keys, "release evidence missing", True
++                hold.get("resolution_evidence_ids"),
++                evidence_keys,
++                "release evidence missing",
++                True,
+             )
+             fail(
+                 all(
+@@ -697,7 +934,8 @@
+                     "text-intrinsic hold missing exact-report copy",
+                 )
+     near = version(
+-        bindings.obj(inputs["near_report_dispositions"]), {"source_reports_sha256", "edges"}
++        bindings.obj(inputs["near_report_dispositions"]),
++        {"source_reports_sha256", "edges"},
+     )
+     fail(
+         near["source_reports_sha256"] == context["source_reports_sha256"],
+@@ -714,18 +952,27 @@
+         seen_targets = set()
+         for disposition in edge["target_dispositions"]:
+             target = disposition.get("target")
+-            fail(target in TARGETS and target not in seen_targets, "near-report target scope")
++            fail(
++                target in TARGETS and target not in seen_targets,
++                "near-report target scope",
++            )
+             seen_targets.add(target)
+             identity(disposition.get("reason"))
+             fail(
+                 disposition.get("action") in {"no_semantic_transfer", "separately_held"},
+                 "missing explicit near-report action",
+             )
+-            fail(bool(disposition.get("evidence")), "near-report disposition lacks bound evidence")
++            fail(
++                bool(disposition.get("evidence")),
++                "near-report disposition lacks bound evidence",
++            )
+             for ref in disposition["evidence"]:
+                 bindings.record(ref)
+             if disposition["action"] == "separately_held":
+-                fail(all(active.get((uid, target)) for uid in pair), "near-report hold unapplied")
++                fail(
++                    all(active.get((uid, target)) for uid in pair),
++                    "near-report hold unapplied",
++                )
+         fail(seen_targets == set(TARGETS), "near-report disposition not complete")
+     fail(
+         seen_edges == {tuple(p) for p in context["near_report_pairs"]},
+@@ -749,7 +996,10 @@
+             "ledger evidence belongs to another target",
+         )
+         hold_ids = _ids(row.get("hold_ids"), hold_keys, "ledger hold IDs mismatch")
+-        fail(set(hold_ids) == all_holds_by_cell.get(k, set()), "ledger omits hold history")
++        fail(
++            set(hold_ids) == all_holds_by_cell.get(k, set()),
++            "ledger omits hold history",
++        )
+         dispositions = row.get("obligations")
+         fail(isinstance(dispositions, list), "ledger obligations missing")
+         covered = set()
+@@ -757,7 +1007,8 @@
+         for item in dispositions:
+             oid = item.get("id")
+             fail(
+-                oid in by_cell.get(k, set()) and oid not in covered, "unknown/duplicate obligation"
++                oid in by_cell.get(k, set()) and oid not in covered,
++                "unknown/duplicate obligation",
+             )
+             covered.add(oid)
+             status = item.get("disposition")
+@@ -883,7 +1134,11 @@
+ 
+ 
+ def apply_semantic_supervision(
+-    studies: pd.DataFrame, audit: dict, *, gold_uids: set[str], technical_eligible_uids: set[str]
++    studies: pd.DataFrame,
++    audit: dict,
++    *,
++    gold_uids: set[str],
++    technical_eligible_uids: set[str],
+ ) -> pd.DataFrame:
+     """Intersect existing masks; preserve all clinical annotations and official gold.
+ 
+@@ -916,7 +1171,10 @@
+                 "application report changed",
+             )
+             fail(
+-                {"state": row[f"{target}__state"], "evidence": row[f"{target}__evidence"]}
++                {
++                    "state": row[f"{target}__state"],
++                    "evidence": row[f"{target}__evidence"],
++                }
+                 == cell["current"],
+                 "application clinical annotation drift",
+             )
+@@ -968,7 +1226,10 @@
+     expected = {
+         name: audit[name] for name in ("registry", "context", "holds", "ledger", "decision")
+     }
+-    fail(resolution.get("semantic_supervision") == expected, "QA lacks exact supervision contract")
++    fail(
++        resolution.get("semantic_supervision") == expected,
++        "QA lacks exact supervision contract",
++    )
+ 
+ 
+ def table_fingerprint(studies: pd.DataFrame) -> str:
+@@ -1044,7 +1305,8 @@
+     source = source.set_index("StudyInstanceUID")
+     truth_gold = source[list(TARGETS)].notna().all(axis=1)
+     fail(
+-        not (source[list(TARGETS)].notna().any(axis=1) & ~truth_gold).any(), "partial official gold"
++        not (source[list(TARGETS)].notna().any(axis=1) & ~truth_gold).any(),
++        "partial official gold",
+     )
+     fail(
+         set(source.index[truth_gold]) == gold_uids,
+@@ -1064,16 +1326,25 @@
+             )
+     source_binding.unchanged()
+     reapplied = apply_semantic_supervision(
+-        studies, audit, gold_uids=gold_uids, technical_eligible_uids=technical_eligible_uids
+-    )
+-    fail(table_fingerprint(reapplied) == table_fingerprint(studies), "held mask re-enabled")
++        studies,
++        audit,
++        gold_uids=gold_uids,
++        technical_eligible_uids=technical_eligible_uids,
++    )
++    fail(
++        table_fingerprint(reapplied) == table_fingerprint(studies),
++        "held mask re-enabled",
++    )
+     qa = receipt.get("qa_resolutions")
+     expected_ids = {
+         "cartilage-consistency-all-release-reviews",
+         "bone-terminology-all-release-reviews",
+         "duplicate-qualified-negation-consistency-all-release-reviews",
+     }
+-    fail(isinstance(qa, dict) and set(qa) == expected_ids, "release lacks all three QA resolutions")
++    fail(
++        isinstance(qa, dict) and set(qa) == expected_ids,
++        "release lacks all three QA resolutions",
++    )
+     bound = Bindings(artifact_root)
+     for issue_id, ref in cast(dict, qa).items():
+         resolution = bound.obj(ref)

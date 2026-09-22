@@ -1,0 +1,98 @@
+"""Flat current-runtime dependency contract; never recurse through historical references."""
+import fnmatch
+from pathlib import PurePosixPath
+import final_release_bindings as b
+
+# These are the current runtime's filename-discovery boundaries. The acceptance
+# also pins every rsna/*.py, so a changed discovery algorithm needs new acceptance.
+MEMBERSHIP_SCOPES = (
+ ('initiative/reviews/inputs', 'batch-*.json', False),
+ ('initiative/reviews-v2/drafts', '*-draft.jsonl', False),
+ ('initiative/reviews-v2/reviewed', '*-reviewed.jsonl', False),
+ ('initiative/reviews-v2/adjudications/cases', '*.json', True),
+ ('initiative/reviews-v2/adjudications/qa', '*.json', True),
+ ('initiative/audits', 'correspondence-release-dispositions-v*.json', False),
+ ('initiative/audits', 'report-similarity-dispositions-v*.json', False),
+)
+
+def safe_path(value):
+    b.require(isinstance(value, str) and bool(value), 'seal_path_required')
+    p=PurePosixPath(value)
+    b.require(not p.is_absolute() and str(p)==value and '\\' not in value
+              and ':' not in value and all(x not in {'.','..'} for x in p.parts)
+              and all(ord(c)>=32 and ord(c)!=127 for c in value)
+              and not any(x.startswith('.env') or x=='.git' for x in p.parts), 'seal_unsafe_path')
+    return value
+
+def selected_paths(paths, directory, pattern, recursive):
+    safe_path(directory)
+    b.require(isinstance(pattern,str) and '/' not in pattern and '\\' not in pattern
+              and type(recursive) is bool, 'seal_membership_pattern')
+    prefix=directory+'/'
+    return sorted(p for p in paths if p.startswith(prefix)
+                  and (recursive or '/' not in p[len(prefix):])
+                  and fnmatch.fnmatchcase(p.rsplit('/',1)[-1],pattern))
+
+def required_refs(receipt, registry, acceptance):
+    semantic=receipt.get('semantic_supervision', {})
+    b.require(set(semantic)=={'registry','context','holds','ledger','decision'}, 'seal_receipt_semantic_scope')
+    return [*semantic.values(),receipt['coordinator'],
+            {'path':b.REGISTRY_PATH,'sha256':b.REGISTRY_SHA},
+            *registry['cases'],*registry['semantic_qa'],*receipt['qa_resolutions'].values(),
+            {'path':b.VERIFIED_RELEASE_PATH,'sha256':b.VERIFIED_RELEASE_SHA},
+            {'path':b.ACCEPTANCE_PATH,'sha256':b.ACCEPTANCE_SHA},
+            acceptance['full_release'],acceptance['series'],*acceptance['artifacts'],
+            *({'path':p,'sha256':h}for p,h in acceptance['code_sha256'].items())]
+
+def validate(seal, receipt, registry, acceptance, rows, manifest=None):
+    b.require(type(seal.get('schema_version')) is int and seal['schema_version']==1
+              and seal.get('stage')=='root_fresh_verified_release_dependency_seal'
+              and seal.get('status')=='passed' and seal.get('actual_executor')==b.ROOT,
+              'actual_root_dependency_seal_required')
+    b.require(seal.get('verified_release')=={'path':b.VERIFIED_RELEASE_PATH,'sha256':b.VERIFIED_RELEASE_SHA}
+              and seal.get('acceptance')=={'path':b.ACCEPTANCE_PATH,'sha256':b.ACCEPTANCE_SHA}
+              and seal.get('studies')==acceptance['full_release']
+              and seal.get('series')==acceptance['series'], 'seal_acceptance_release_identity')
+    b.require(seal.get('source_revision')==receipt['source_revision']==b.SOURCE_HF,
+              'seal_corrected_source_revision_required')
+    b.require(seal.get('release_binding')==acceptance['training_checks']['release_binding'],
+              'seal_actual_checkpoint_binding')
+    b.require(seal.get('fresh_load_verified_release_passed') is True
+              and seal.get('current_runtime_open_capture_complete') is True
+              and seal.get('all_observed_inputs_unchanged') is True
+              and seal.get('seal_runner_sha256')==b.sha(b.SEAL_RUNNER), 'seal_actual_execution_scope')
+    files=seal.get('files',[])
+    b.require(isinstance(files,list) and bool(files), 'seal_dependencies_required')
+    bound={}
+    for item in files:
+        b.require(isinstance(item,dict) and set(item)=={'path','sha256','git_blob','bytes'},'seal_dependency_shape')
+        p=safe_path(item['path'])
+        b.require(p not in bound and isinstance(item['sha256'],str) and b.SHA.fullmatch(item['sha256'])
+                  and isinstance(item['git_blob'],str) and b.OID.fullmatch(item['git_blob'])
+                  and type(item['bytes']) is int and item['bytes']>=0,'seal_dependency_identity')
+        b.require(p in rows and rows[p]['git_blob']==item['git_blob'] and rows[p]['bytes']==item['bytes'],
+                  'target_dependency_missing_or_changed')
+        bound[p]=item
+    for item in required_refs(receipt,registry,acceptance):
+        p=safe_path(item['path'])
+        b.require(p in bound and bound[p]['sha256']==item['sha256'], 'seal_required_dependency_omitted')
+    b.require(seal.get('n_files')==len(bound),'seal_dependency_count')
+    scope_rows=seal.get('membership_checks',[])
+    b.require(len(scope_rows)==len(MEMBERSHIP_SCOPES), 'seal_discovery_scope_missing')
+    seen=set()
+    for scope in scope_rows:
+        b.require(isinstance(scope,dict) and set(scope)=={'directory','pattern','recursive','paths'},'seal_membership_shape')
+        key=(scope['directory'],scope['pattern'],scope['recursive'])
+        b.require(type(scope['recursive']) is bool and key in MEMBERSHIP_SCOPES and key not in seen,'seal_discovery_scope_changed')
+        seen.add(key)
+        expected=selected_paths(rows,*key)
+        b.require(scope['paths']==expected and all(p in bound for p in expected),'target_discovered_membership_changed')
+    if manifest is not None:
+        final={x['path']:x for x in manifest['files']}
+        b.require(len(final)==len(manifest['files']), 'manifest_duplicate_path')
+        for p,item in bound.items():
+            b.require(p in final and all(final[p].get(k)==item[k]for k in ('sha256','git_blob','bytes')),
+                      'target_manifest_dependency_mismatch')
+    return {'path':b.DEPENDENCY_SEAL_PATH,'sha256':b.DEPENDENCY_SEAL_SHA,
+            'verified_current_dependency_files':len(bound),'verified_discovery_scopes':len(seen),
+            'seal_actual_executor':b.ROOT,'scope':'Exact current inputs observed during fresh runtime release validation; historical references are not recursively reinterpreted.'}

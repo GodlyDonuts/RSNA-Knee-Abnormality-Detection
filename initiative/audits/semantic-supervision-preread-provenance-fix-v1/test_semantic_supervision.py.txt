@@ -1,0 +1,962 @@
+"""Entirely synthetic policy evidence. No real clinical decisions or approvals."""
+
+from __future__ import annotations
+
+import copy
+import gzip
+import json
+from pathlib import Path
+
+import pandas as pd
+import pytest
+import torch
+
+from rsna import semantic_supervision as ss
+from rsna.model import masked_bce
+from rsna.schema import TARGETS
+
+
+class Fixture:
+    def __init__(self, root: Path):
+        self.root = root
+        self.prefix = "policy"
+        self.reports = {
+            "a": "Synthetic present and absent.",
+            "b": "Synthetic present and absent.",
+            "c": "Synthetic other present and absent.",
+            "g": "Synthetic gold source.",
+        }
+        self.rubric = root / "protocols/report_weak_v2.md"
+        self.rubric.parent.mkdir(parents=True)
+        self.rubric.write_text("Synthetic frozen rubric; no clinical meaning.\n")
+        self.reviews = root / "initiative/reviews-v2/reviewed"
+        self.rows = [
+            {
+                "study_uid": uid,
+                "states": ["negative"] * 12,
+                "evidence": [text] * 12,
+                "notes": "Synthetic fixture.",
+            }
+            for uid, text in self.reports.items()
+        ]
+        self.write(
+            "initiative/reviews/inputs/batch-000.json",
+            [{"study_uid": u, "report": r} for u, r in self.reports.items()],
+        )
+        for folder, suffix in [
+            ("reviewed", "reviewed"),
+            ("drafts", "draft"),
+            ("prereads", "preread"),
+        ]:
+            p = root / f"initiative/reviews-v2/{folder}/batch-000-{suffix}.jsonl"
+            p.parent.mkdir(parents=True)
+            p.write_text("".join(json.dumps(r) + "\n" for r in self.rows))
+        self.registry = self.write(
+            "initiative/reviews-v2/adjudications/registry.json",
+            {"schema_version": 1, "cases": [], "semantic_qa": []},
+        )
+        self.source_hash = ss.digest(
+            [{"study_uid": u, "report": self.reports[u]} for u in sorted(self.reports)]
+        )
+        self.plan = {
+            "registry_sha256": self.registry["sha256"],
+            "source_reports_sha256": self.source_hash,
+            "rubric_sha256": ss.file_digest(self.rubric),
+            "n_changes": 0,
+            "changes": [],
+        }
+        self.excluded: set[str] = set()
+        self.near: list[tuple[str, str]] = []
+        self.obligations = [
+            {
+                "id": "scope:a:ACL",
+                "study_uid": "a",
+                "target": "ACL",
+                "category": "state_disagreement",
+                "scope_kind": "target",
+            }
+        ]
+        self.inputs = {}
+        for name in ss.INPUT_NAMES - {
+            "scope_manifest",
+            "authenticated_train_csv",
+            "near_report_dispositions",
+        }:
+            self.inputs[name] = self.write(
+                f"input/{name}.json", {"schema_version": 1, "synthetic": True}
+            )
+        source = pd.DataFrame(
+            [
+                {
+                    "StudyInstanceUID": u,
+                    "Report": r,
+                    **{t: (i % 2 if u == "g" else None) for i, t in enumerate(TARGETS)},
+                }
+                for u, r in self.reports.items()
+            ]
+        )
+        p = root / "input/train.csv"
+        source.to_csv(p, index=False)
+        self.inputs["authenticated_train_csv"] = self.ref(p)
+        self.inputs["near_report_dispositions"] = self.write(
+            "input/near.json",
+            {"schema_version": 1, "source_reports_sha256": self.source_hash, "edges": []},
+        )
+        self.holds = [
+            {
+                "id": "hold-a",
+                "study_uid": "a",
+                "target": "ACL",
+                "category": "state_disagreement",
+                "scope_kind": "record_specific",
+                "evidence_ids": ["a:ACL:reader1", "a:ACL:reader2"],
+                "obligation_ids": ["scope:a:ACL"],
+                "origin_id": "hold-a",
+                "lifecycle": "active",
+                "predecessor_sha256": None,
+                "reason": "Synthetic unresolved decision only.",
+            }
+        ]
+        self.previous = None
+        self.ledger_edit = None
+        self.evidence_edit = None
+        self.approval_edit = None
+        self.build()
+
+    def ref(self, p: Path) -> dict:
+        return {"path": str(p.relative_to(self.root)), "sha256": ss.file_digest(p)}
+
+    def write(self, name: str, value: object) -> dict:
+        p = self.root / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        raw = (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode()
+        p.write_bytes(gzip.compress(raw, mtime=0) if name.endswith(".gz") else raw)
+        return self.ref(p)
+
+    def record(self, artifact: dict, selector: str, obj: object) -> dict:
+        return {
+            "artifact": artifact,
+            "format": "json",
+            "selector": selector,
+            "sha256": ss.digest(obj),
+        }
+
+    def bind_reading_provenance(self) -> None:
+        source = self.root / "initiative/reviews/inputs/batch-000.json"
+        phases = {}
+        for phase, folder in (("draft", "drafts"), ("reviewed", "reviewed")):
+            phases[phase] = {
+                "agent_id": "synthetic-" + phase,
+                "session_id": phase,
+                "workflow_run_id": "synthetic",
+                "notes": "Synthetic fixture only.",
+                "source_reports_sha256": self.source_hash,
+                "source_sha256": ss.file_digest(source),
+                "rubric_sha256": ss.file_digest(self.rubric),
+                "n_studies": len(self.rows),
+                "sha256": ss.file_digest(
+                    self.root / f"initiative/reviews-v2/{folder}/batch-000-{phase}.jsonl"
+                ),
+            }
+        phases["reviewed"].update(
+            parent_artifact_sha256=phases["draft"]["sha256"],
+            preread_path="initiative/reviews-v2/prereads/batch-000-preread.jsonl",
+            preread_sha256=ss.file_digest(
+                self.root / "initiative/reviews-v2/prereads/batch-000-preread.jsonl"
+            ),
+        )
+        self.inputs["review_provenance"] = self.write(
+            self.inputs["review_provenance"]["path"], {"batch-000": phases}
+        )
+
+    def build(self) -> None:
+        self.bind_reading_provenance()
+        self.inputs["scope_manifest"] = self.write(
+            "input/scope.json",
+            {
+                "schema_version": 1,
+                "source_reports_sha256": self.source_hash,
+                "rubric_sha256": ss.file_digest(self.rubric),
+                "target_order": list(TARGETS),
+                "obligations": self.obligations,
+            },
+        )
+        context, original, current = ss._context(
+            self.reports,
+            self.reviews,
+            self.rubric,
+            self.root,
+            self.plan,
+            self.inputs,
+            ss.Bindings(self.root),
+            self.excluded,
+            self.near,
+        )
+        self.context = self.write(f"{self.prefix}/context.json", context)
+        catalog = []
+        for reader in ["reader1", "reader2"]:
+            data = self.write(f"evidence/{reader}.json", {"records": self.rows})
+            identity_obj = {"agent_id": reader, "session_id": None, "authored_artifact": data}
+            ident = self.write(f"evidence/{reader}-identity.json", identity_obj)
+            for i, row in enumerate(self.rows):
+                for target in TARGETS:
+                    k = row["study_uid"], target
+                    catalog.append(
+                        {
+                            "id": f"{k[0]}:{target}:{reader}",
+                            "study_uid": k[0],
+                            "target": target,
+                            "source_report_sha256": ss.hashlib.sha256(
+                                self.reports[k[0]].encode()
+                            ).hexdigest(),
+                            "rubric_sha256": ss.file_digest(self.rubric),
+                            "agent_id": reader,
+                            "session_id": None,
+                            "kind": "original_source",
+                            "layout": "arrays12",
+                            "annotation_sha256": ss.digest(original[k]),
+                            "record": self.record(data, f"/records/{i}", row),
+                            "identity": self.record(ident, "", identity_obj),
+                        }
+                    )
+        if self.evidence_edit:
+            self.evidence_edit(catalog)
+        self.catalog = self.write(
+            f"{self.prefix}/evidence.json.gz",
+            {"schema_version": 1, "context": self.context, "records": catalog},
+        )
+        for hold in self.holds:
+            hold.setdefault(
+                "current_annotation_sha256", ss.digest(current[hold["study_uid"], hold["target"]])
+            )
+        self.holds_ref = self.write(
+            f"{self.prefix}/holds.json",
+            {"schema_version": 1, "context": self.context, "records": self.holds},
+        )
+        rows = []
+        for uid in self.reports:
+            for target in TARGETS:
+                k = uid, target
+                held = [h for h in self.holds if (h["study_uid"], h["target"]) == k]
+                obligations = [
+                    {"id": o["id"], "disposition": "held"}
+                    for o in self.obligations
+                    if (o["study_uid"], o["target"]) == k
+                ]
+                rows.append(
+                    {
+                        "study_uid": uid,
+                        "target": target,
+                        "source_report_sha256": ss.hashlib.sha256(
+                            self.reports[uid].encode()
+                        ).hexdigest(),
+                        "original_annotation_sha256": ss.digest(original[k]),
+                        "current_annotation_sha256": ss.digest(current[k]),
+                        "evidence_ids": [f"{uid}:{target}:reader1", f"{uid}:{target}:reader2"],
+                        "hold_ids": [h["id"] for h in held],
+                        "obligations": obligations,
+                        "retention_reason": "Synthetic exact source support; not real clinical acceptance.",
+                    }
+                )
+        if self.ledger_edit:
+            self.ledger_edit(rows)
+        self.ledger_ref = self.write(
+            f"{self.prefix}/ledger.json.gz",
+            {
+                "schema_version": 1,
+                "context": self.context,
+                "holds": self.holds_ref,
+                "evidence_catalog": self.catalog,
+                "rows": rows,
+            },
+        )
+        common = {
+            "schema_version": 1,
+            "context": self.context,
+            "holds": self.holds_ref,
+            "ledger": self.ledger_ref,
+            "session_id": "synthetic",
+            "reason": "Synthetic fixture only.",
+        }
+        proposal = {**common, "agent_id": "proposer", "status": "proposed_for_report_supervision"}
+        self.proposal = self.write(f"{self.prefix}/proposal.json", proposal)
+        assessment = {
+            **common,
+            "agent_id": "independent",
+            "status": "endorsed_for_report_supervision",
+            "proposal": self.proposal,
+        }
+        if self.approval_edit:
+            self.approval_edit(assessment)
+        self.assessment = self.write(f"{self.prefix}/assessment.json", assessment)
+        self.decision = self.write(
+            f"{self.prefix}/decision.json",
+            {
+                **common,
+                "agent_id": "proposer",
+                "status": "accepted_for_report_supervision",
+                "proposal": self.proposal,
+                "assessment": self.assessment,
+            },
+        )
+        self.hold_registry = self.write(
+            str(ss.REGISTRY_PATH),
+            {
+                "schema_version": 1,
+                "context": self.context,
+                "holds": self.holds_ref,
+                "ledger": self.ledger_ref,
+                "proposal": self.proposal,
+                "assessment": self.assessment,
+                "decision": self.decision,
+                "previous_registry": self.previous,
+            },
+        )
+
+    def inspect(self) -> dict:
+        return ss.inspect_semantic_supervision(
+            self.reports,
+            self.reviews,
+            self.rubric,
+            self.root,
+            self.plan,
+            self.inputs,
+            correspondence_excluded_uids=self.excluded,
+            near_report_pairs=self.near,
+        )
+
+    def studies(self) -> pd.DataFrame:
+        result = []
+        for uid, report in self.reports.items():
+            row = {
+                "study_uid": uid,
+                "Report": report,
+                "split": "gold_evaluation"
+                if uid == "g"
+                else "weak_validation"
+                if uid == "c"
+                else "train",
+                "leakage_group": "ab" if uid in {"a", "b"} else uid,
+                "report_group": "ab" if uid in {"a", "b"} else uid,
+            }
+            for i, target in enumerate(TARGETS):
+                row.update(
+                    {
+                        target: float(i % 2) if uid == "g" else 0.0,
+                        f"{target}__state": "negative",
+                        f"{target}__evidence": report,
+                        f"{target}__mask": 0.0 if uid in self.excluded else 1.0,
+                        f"{target}__provenance": "official_gold"
+                        if uid == "g"
+                        else "report_reviewed",
+                    }
+                )
+            result.append(row)
+        return pd.DataFrame(result)
+
+
+@pytest.fixture
+def fixture(tmp_path: Path) -> Fixture:
+    return Fixture(tmp_path)
+
+
+def test_valid_complete_compressed_ledger_preserves_annotations_and_gold(fixture: Fixture) -> None:
+    audit = fixture.inspect()
+    before = fixture.studies()
+    after = ss.apply_semantic_supervision(
+        before, audit, gold_uids={"g"}, technical_eligible_uids=set(fixture.reports)
+    )
+    assert audit["n_cells"] == 48
+    assert after.loc[after.study_uid.eq("a"), "ACL__mask"].item() == 0
+    columns = [t for t in TARGETS] + [
+        f"{t}__{field}" for t in TARGETS for field in ["state", "evidence", "provenance"]
+    ]
+    pd.testing.assert_frame_equal(before[columns], after[columns])
+    assert after.loc[after.study_uid.eq("g"), [f"{t}__mask" for t in TARGETS]].eq(1).all().all()
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "missing",
+        "empty",
+        "omit_cell",
+        "duplicate_cell",
+        "unknown_uid",
+        "unknown_target",
+        "omit_obligation",
+        "fake_masked",
+        "wrong_annotation",
+        "same_assessor",
+        "unapproved",
+        "bool_schema",
+        "bad_target_order",
+        "wrong_evidence_selector",
+        "same_source_author",
+    ],
+)
+def test_fail_closed_policy_and_coverage(fixture: Fixture, change: str) -> None:
+    if change == "missing":
+        (fixture.root / ss.REGISTRY_PATH).unlink()
+    elif change == "empty":
+        fixture.holds = []
+        fixture.build()
+    elif change in {
+        "omit_cell",
+        "duplicate_cell",
+        "unknown_uid",
+        "unknown_target",
+        "omit_obligation",
+        "fake_masked",
+        "wrong_annotation",
+    }:
+
+        def edit(rows: list) -> None:
+            if change == "omit_cell":
+                rows.pop()
+            if change == "duplicate_cell":
+                rows.append(copy.deepcopy(rows[0]))
+            if change == "unknown_uid":
+                rows[0]["study_uid"] = "missing"
+            if change == "unknown_target":
+                rows[0]["target"] = "PCL"
+            if change == "omit_obligation":
+                rows[0]["obligations"] = []
+            if change == "fake_masked":
+                rows[0]["obligations"][0]["disposition"] = "already_masked"
+            if change == "wrong_annotation":
+                rows[0]["current_annotation_sha256"] = "0" * 64
+
+        fixture.ledger_edit = edit
+        fixture.build()
+    elif change == "same_assessor":
+        fixture.approval_edit = lambda a: a.update(agent_id="proposer")
+        fixture.build()
+    elif change == "unapproved":
+        fixture.approval_edit = lambda a: a.update(status="proposal_only")
+        fixture.build()
+    elif change == "wrong_evidence_selector":
+        fixture.evidence_edit = lambda e: e[0]["record"].update(selector="/records/1")
+        fixture.build()
+    elif change == "same_source_author":
+
+        def same(e: list) -> None:
+            for x in e:
+                if x["agent_id"] == "reader2":
+                    match = next(a for a in e if a["id"] == x["id"].replace("reader2", "reader1"))
+                    x.update(agent_id="reader1", identity=copy.deepcopy(match["identity"]))
+
+        fixture.evidence_edit = same
+        fixture.build()
+    else:
+        path = fixture.root / (
+            ss.REGISTRY_PATH if change == "bool_schema" else fixture.context["path"]
+        )
+        obj = json.loads(path.read_text())
+        if change == "bool_schema":
+            obj["schema_version"] = True
+        else:
+            obj["target_order"] = list(reversed(TARGETS))
+        path.write_text(json.dumps(obj))
+    with pytest.raises(ValueError):
+        fixture.inspect()
+
+
+@pytest.mark.parametrize(
+    "name", ["source", "review", "draft", "preread", "rubric", "policy", "evidence", "gold_csv"]
+)
+def test_bound_input_changes_invalidate_release(fixture: Fixture, name: str) -> None:
+    paths = {
+        "source": "initiative/reviews/inputs/batch-000.json",
+        "review": "initiative/reviews-v2/reviewed/batch-000-reviewed.jsonl",
+        "draft": "initiative/reviews-v2/drafts/batch-000-draft.jsonl",
+        "preread": "initiative/reviews-v2/prereads/batch-000-preread.jsonl",
+        "rubric": "protocols/report_weak_v2.md",
+        "policy": "input/split_policy.json",
+        "evidence": "evidence/reader1.json",
+        "gold_csv": "input/train.csv",
+    }
+    p = fixture.root / paths[name]
+    p.write_bytes(p.read_bytes() + b"\n")
+    with pytest.raises(ValueError):
+        fixture.inspect()
+
+
+def test_record_specific_hold_does_not_propagate_but_text_intrinsic_requires_closure(
+    fixture: Fixture,
+) -> None:
+    assert fixture.inspect()["n_cells"] == 48
+    fixture.holds[0]["scope_kind"] = "text_intrinsic"
+    fixture.build()
+    with pytest.raises(ValueError, match="exact-report copy"):
+        fixture.inspect()
+    fixture.obligations.append({**fixture.obligations[0], "id": "scope:b:ACL", "study_uid": "b"})
+    fixture.holds.append(
+        {
+            **fixture.holds[0],
+            "id": "hold-b",
+            "study_uid": "b",
+            "evidence_ids": ["b:ACL:reader1", "b:ACL:reader2"],
+            "obligation_ids": ["scope:b:ACL"],
+        }
+    )
+    fixture.build()
+    audit = fixture.inspect()
+    assert sum(bool(r["hold_ids"]) for r in audit["cells"]) == 2
+
+
+def test_overlapping_reasons_and_whole_report_scope(fixture: Fixture) -> None:
+    fixture.obligations.append(
+        {**fixture.obligations[0], "id": "scope:a:quote", "category": "evidence_reliability"}
+    )
+    fixture.holds.append(
+        {
+            **fixture.holds[0],
+            "id": "hold-quote",
+            "origin_id": "hold-quote",
+            "category": "evidence_reliability",
+            "obligation_ids": ["scope:a:quote"],
+        }
+    )
+    fixture.build()
+    row = fixture.inspect()["cells"][0]
+    assert len(row["hold_ids"]) == 2 and len(row["all_reason_categories"]) == 2
+    fixture.obligations[0].update(scope_kind="whole_report", report_scope_id="all-a")
+    fixture.build()
+    with pytest.raises(ValueError, match="all twelve"):
+        fixture.inspect()
+
+
+def test_known_near_edge_needs_its_own_disposition(fixture: Fixture) -> None:
+    fixture.near = [("a", "c")]
+    fixture.build()
+    with pytest.raises(ValueError, match="known near-report edge"):
+        fixture.inspect()
+
+
+def test_lifecycle_cannot_drop_or_release_old_holds(fixture: Fixture) -> None:
+    fixture.inspect()
+    old_bundle = json.loads((fixture.root / ss.REGISTRY_PATH).read_text())
+    previous = fixture.write("history/registry-v1.json", old_bundle)
+    fixture.previous = previous
+    fixture.prefix = "policy-v2"
+    old_hold = copy.deepcopy(fixture.holds[0])
+    fixture.holds = []
+    fixture.build()
+    with pytest.raises(ValueError, match="prior hold silently omitted"):
+        fixture.inspect()
+    fixture.holds = [
+        {
+            **old_hold,
+            "lifecycle": "released",
+            "predecessor_sha256": ss.digest(old_hold),
+            "transition_reason": "Synthetic release attempt",
+            "resolution_evidence_ids": [],
+        }
+    ]
+    fixture.build()
+    with pytest.raises(ValueError, match="release lacks explicit evidence"):
+        fixture.inspect()
+    fixture.holds = [{**old_hold, "reason": "Changed without an explicit predecessor"}]
+    fixture.build()
+    with pytest.raises(ValueError, match="unbound lifecycle transition"):
+        fixture.inspect()
+
+
+def test_zero_gradients_quarantine_and_technical_masks(fixture: Fixture) -> None:
+    audit = fixture.inspect()
+    studies = fixture.studies()
+    studies.loc[studies.study_uid.eq("b"), "split"] = "quarantine"
+    after = ss.apply_semantic_supervision(
+        studies, audit, gold_uids={"g"}, technical_eligible_uids={"a", "b", "g"}
+    )
+    mask = torch.tensor(after[[f"{t}__mask" for t in TARGETS]].values, dtype=torch.float32)
+    logits = torch.zeros((4, 12), requires_grad=True)
+    labels = torch.tensor(after[list(TARGETS)].values, dtype=torch.float32)
+    masked_bce(logits, labels, mask).backward()
+    assert logits.grad[0, 0].item() == 0
+    assert torch.equal(logits.grad[1:3], torch.zeros(2, 12))
+    assert logits.grad[0, 1].item() != 0
+    all_zero = torch.zeros((2, 12), requires_grad=True)
+    loss = masked_bce(all_zero, torch.ones_like(all_zero), torch.zeros_like(all_zero))
+    loss.backward()
+    assert loss.item() == 0 and all_zero.grad.eq(0).all()
+
+
+def test_json_duplicate_fields_escaping_and_parse_cache(fixture: Fixture) -> None:
+    bindings = ss.Bindings(fixture.root)
+    obj1 = bindings.obj(fixture.catalog)
+    assert bindings.obj(fixture.catalog) is obj1
+    with pytest.raises(ValueError):
+        ss.parse('{"x":1,"x":2}')
+    with pytest.raises(ValueError):
+        bindings.path({"path": "../outside", "sha256": "0" * 64})
+    with pytest.raises(ValueError):
+        ss.pointer([0], "/00")
+    with pytest.raises(ValueError):
+        ss.pointer({}, "/~2")
+
+
+def release_fixture(f: Fixture):
+    audit = f.inspect()
+    output = ss.apply_semantic_supervision(
+        f.studies(), audit, gold_uids={"g"}, technical_eligible_uids=set(f.reports)
+    )
+    path = f.root / "release.parquet"
+    output.to_parquet(path, index=False)
+    contract = {n: audit[n] for n in ["registry", "context", "holds", "ledger", "decision"]}
+    qa = {}
+    for issue_id in [
+        "cartilage-consistency-all-release-reviews",
+        "bone-terminology-all-release-reviews",
+        "duplicate-qualified-negation-consistency-all-release-reviews",
+    ]:
+        qa[issue_id] = f.write(
+            f"qa/{issue_id}.json",
+            {
+                "schema_version": 1,
+                "status": "resolved",
+                "issue_id": issue_id,
+                "review_artifacts": audit["review_files"],
+                "correction_cases": audit["correction_cases"],
+                "semantic_supervision": contract,
+            },
+        )
+    receipt = {
+        "schema_version": 1,
+        "status": "verified_release",
+        "semantic_supervision": contract,
+        "studies_sha256": ss.file_digest(path),
+        "table_sha256": ss.table_fingerprint(output),
+        "gold_uids_sha256": ss.digest(["g"]),
+        "technical_eligible_uids_sha256": ss.digest(sorted(f.reports)),
+        "qa_resolutions": qa,
+    }
+    return audit, output, path, receipt
+
+
+def test_verified_persisted_boundary_and_gold_truth(fixture: Fixture) -> None:
+    audit, output, path, receipt = release_fixture(fixture)
+    ss.verify_release_boundary(
+        path,
+        pd.read_parquet(path),
+        receipt,
+        audit,
+        fixture.root,
+        gold_uids={"g"},
+        technical_eligible_uids=set(fixture.reports),
+    )
+    # Even if a corrupted table and its superficial receipt hashes are updated,
+    # authenticated source targets are independently compared.
+    output.loc[output.study_uid.eq("g"), "ACL"] = 1.0
+    output.to_parquet(path, index=False)
+    receipt.update(studies_sha256=ss.file_digest(path), table_sha256=ss.table_fingerprint(output))
+    with pytest.raises(ValueError, match="official gold target values"):
+        ss.verify_release_boundary(
+            path,
+            output,
+            receipt,
+            audit,
+            fixture.root,
+            gold_uids={"g"},
+            technical_eligible_uids=set(fixture.reports),
+        )
+
+
+@pytest.mark.parametrize(
+    "change", ["reenable", "gold_membership", "qa", "stale_binding", "table", "mask_nan"]
+)
+def test_release_boundary_detects_actual_bypass_attempts(fixture: Fixture, change: str) -> None:
+    audit, output, path, receipt = release_fixture(fixture)
+    gold = {"g"}
+    if change == "reenable":
+        output.loc[output.study_uid.eq("a"), "ACL__mask"] = 1.0
+        output.to_parquet(path, index=False)
+        receipt.update(
+            studies_sha256=ss.file_digest(path), table_sha256=ss.table_fingerprint(output)
+        )
+    elif change == "gold_membership":
+        gold = {"g", "a"}
+        output.loc[output.study_uid.eq("a"), "split"] = "gold_evaluation"
+        output.to_parquet(path, index=False)
+        receipt.update(
+            studies_sha256=ss.file_digest(path),
+            table_sha256=ss.table_fingerprint(output),
+            gold_uids_sha256=ss.digest(sorted(gold)),
+        )
+    elif change == "qa":
+        receipt["qa_resolutions"] = {}
+    elif change == "stale_binding":
+        (fixture.root / "evidence/reader1.json").write_text("{}")
+    elif change == "table":
+        path.write_bytes(path.read_bytes() + b"x")
+    else:
+        output.loc[0, "ACL__mask"] = float("nan")
+    with pytest.raises(ValueError):
+        ss.verify_release_boundary(
+            path,
+            output,
+            receipt,
+            audit,
+            fixture.root,
+            gold_uids=gold,
+            technical_eligible_uids=set(fixture.reports),
+        )
+
+
+def test_correction_scope_change_is_not_hidden_by_same_annotation_count(fixture: Fixture) -> None:
+    case = fixture.write("new-case.json", {"schema_version": 1, "synthetic": True})
+    fixture.registry = fixture.write(
+        "initiative/reviews-v2/adjudications/registry.json",
+        {"schema_version": 1, "cases": [case], "semantic_qa": []},
+    )
+    fixture.plan["registry_sha256"] = fixture.registry["sha256"]
+    with pytest.raises(ValueError, match="source-review-correction-policy context"):
+        fixture.inspect()
+
+
+@pytest.mark.parametrize("layout", ["scalar_fields", "decisions"])
+def test_preserved_original_record_projections(fixture: Fixture, layout: str) -> None:
+    def edit(entries: list) -> None:
+        e = entries[0]
+        if layout == "scalar_fields":
+            obj = {
+                "study_uid": "a",
+                "target": "ACL",
+                "root_postfreeze_state": "negative",
+                "root_postfreeze_evidence": fixture.reports["a"],
+                "agent_id": "reader1",
+                "session_id": None,
+            }
+            e.update(
+                layout=layout,
+                state_field="root_postfreeze_state",
+                evidence_field="root_postfreeze_evidence",
+            )
+        else:
+            obj = {
+                "study_uid": "a",
+                "decisions": [
+                    {"target": "ACL", "state": "negative", "evidence": fixture.reports["a"]}
+                ],
+                "agent_id": "reader1",
+                "session_id": None,
+            }
+            e.update(layout=layout)
+        ref = fixture.write("evidence/preserved-original.json", obj)
+        e.update(record=fixture.record(ref, "", obj), identity=fixture.record(ref, "", obj))
+
+    fixture.evidence_edit = edit
+    fixture.build()
+    assert fixture.inspect()["n_cells"] == 48
+
+
+@pytest.mark.parametrize("mode", ["valid", "wrong_owner", "wrong_order"])
+def test_bound_original_identity_and_scoped_header(fixture: Fixture, mode: str) -> None:
+    def edit(entries: list) -> None:
+        e = entries[0]
+        obj = {"study_uid": "a", "states": ["negative"], "evidence": [fixture.reports["a"]]}
+        ref = fixture.write("evidence/scoped-original.json", obj)
+        ident = {
+            "agent_id": "reader1",
+            "session_id": None,
+            "independent_source_read_sha256": ref["sha256"] if mode != "wrong_owner" else "0" * 64,
+            "target_order": ["ACL"] if mode != "wrong_order" else ["Fracture"],
+            "assessor": {"agent_id": "reader1", "session_id": None},
+        }
+        ident_ref = fixture.write("evidence/original-freeze.json", ident)
+        identity_ref = fixture.record(ident_ref, "", ident)
+        e.update(
+            layout="arrays_scoped",
+            record=fixture.record(ref, "", obj),
+            identity=identity_ref,
+            ownership_sha256_pointer="/independent_source_read_sha256",
+            identity_agent_pointer="/assessor/agent_id",
+            identity_session_pointer="/assessor/session_id",
+            target_order_record=identity_ref,
+            target_order_pointer="/target_order",
+        )
+
+    fixture.evidence_edit = edit
+    fixture.build()
+    if mode == "valid":
+        assert fixture.inspect()["n_cells"] == 48
+    else:
+        with pytest.raises(ValueError):
+            fixture.inspect()
+
+
+@pytest.mark.parametrize("mode", ["explicit", "unrelated_quote_resolution", "contrary_resolution"])
+def test_resolution_must_support_current_and_name_specific_dissent(
+    fixture: Fixture, mode: str
+) -> None:
+    # Synthetic second source dissent is retained, never overwritten by resolution.
+    fixture.holds = []
+
+    def edit(entries: list) -> None:
+        dissent = next(e for e in entries if e["id"] == "a:ACL:reader2")
+        obj = {
+            "study_uid": "a",
+            "target": "ACL",
+            "state": "uncertain",
+            "evidence": fixture.reports["a"],
+            "agent_id": "reader2",
+            "session_id": None,
+        }
+        ref = fixture.write("evidence/dissent.json", obj)
+        dissent.update(
+            layout="scalar",
+            record=fixture.record(ref, "", obj),
+            identity=fixture.record(ref, "", obj),
+            annotation_sha256=ss.digest({"state": "uncertain", "evidence": obj["evidence"]}),
+        )
+        resolved = {
+            **obj,
+            "state": "uncertain" if mode == "contrary_resolution" else "negative",
+            "agent_id": "resolver",
+        }
+        rref = fixture.write("evidence/resolution.json", resolved)
+        entries.append(
+            {
+                **dissent,
+                "id": "a:ACL:resolution",
+                "kind": "resolution",
+                "agent_id": "resolver",
+                "record": fixture.record(rref, "", resolved),
+                "identity": fixture.record(rref, "", resolved),
+                "annotation_sha256": ss.digest(
+                    {"state": resolved["state"], "evidence": resolved["evidence"]}
+                ),
+            }
+        )
+
+    def ledger(rows: list) -> None:
+        row = rows[0]
+        row["evidence_ids"].append("a:ACL:resolution")
+        row["obligations"] = [
+            {
+                "id": "scope:a:ACL",
+                "disposition": "resolved",
+                "resolution_evidence_ids": ["a:ACL:resolution"],
+                "discharged_evidence_ids": []
+                if mode == "unrelated_quote_resolution"
+                else ["a:ACL:reader2"],
+            }
+        ]
+
+    fixture.evidence_edit, fixture.ledger_edit = edit, ledger
+    fixture.build()
+    if mode == "explicit":
+        assert fixture.inspect()["n_cells"] == 48
+    else:
+        with pytest.raises(ValueError, match="resolution"):
+            fixture.inspect()
+
+
+def test_report_numeric_label_cannot_disagree_with_preserved_state(fixture: Fixture) -> None:
+    studies = fixture.studies()
+    studies.loc[0, "ACL"] = 1.0
+    with pytest.raises(ValueError, match="target value"):
+        ss.apply_semantic_supervision(
+            studies,
+            fixture.inspect(),
+            gold_uids={"g"},
+            technical_eligible_uids=set(fixture.reports),
+        )
+
+
+def test_positive_hold_preserves_positive_label_with_zero_gradient(fixture: Fixture) -> None:
+    fixture.rows[0]["states"][0] = "positive"
+    for folder, suffix in [("reviewed", "reviewed"), ("drafts", "draft"), ("prereads", "preread")]:
+        p = fixture.root / f"initiative/reviews-v2/{folder}/batch-000-{suffix}.jsonl"
+        p.write_text("".join(json.dumps(r) + "\n" for r in fixture.rows))
+    fixture.holds[0].pop("current_annotation_sha256")
+    fixture.build()
+    studies = fixture.studies()
+    studies.loc[0, ["ACL", "ACL__state"]] = [1.0, "positive"]
+    output = ss.apply_semantic_supervision(
+        studies, fixture.inspect(), gold_uids={"g"}, technical_eligible_uids=set(fixture.reports)
+    )
+    assert output.loc[0, "ACL"] == 1.0 and output.loc[0, "ACL__state"] == "positive"
+    logits = torch.zeros((4, 12), requires_grad=True)
+    masked_bce(
+        logits,
+        torch.tensor(output[list(TARGETS)].values, dtype=torch.float32),
+        torch.tensor(output[[f"{t}__mask" for t in TARGETS]].values, dtype=torch.float32),
+    ).backward()
+    assert logits.grad[0, 0].item() == 0
+
+
+def test_explicit_approved_release_retains_original_history(fixture: Fixture) -> None:
+    fixture.inspect()
+    original = copy.deepcopy(fixture.holds[0])
+    prior = fixture.write(
+        "history/registry-v1.json", json.loads((fixture.root / ss.REGISTRY_PATH).read_text())
+    )
+    protected = {
+        p: ss.file_digest(fixture.root / p)
+        for p in ["policy/holds.json", "policy/ledger.json.gz", "policy/decision.json"]
+    }
+    fixture.previous, fixture.prefix = prior, "policy-v2"
+    fixture.holds[0].update(
+        lifecycle="released",
+        predecessor_sha256=ss.digest(original),
+        transition_reason="Synthetic separately approved resolution.",
+        resolution_evidence_ids=["a:ACL:resolution"],
+    )
+
+    def evidence(entries: list) -> None:
+        e = copy.deepcopy(entries[0])
+        e.update(id="a:ACL:resolution", kind="resolution")
+        entries.append(e)
+
+    def ledger(rows: list) -> None:
+        rows[0]["evidence_ids"].append("a:ACL:resolution")
+        rows[0]["obligations"] = [
+            {
+                "id": "scope:a:ACL",
+                "disposition": "resolved",
+                "resolution_evidence_ids": ["a:ACL:resolution"],
+                "discharged_evidence_ids": [],
+            }
+        ]
+
+    fixture.evidence_edit, fixture.ledger_edit = evidence, ledger
+    fixture.build()
+    audit = fixture.inspect()
+    assert not audit["cells"][0]["hold_ids"]
+    assert all(ss.file_digest(fixture.root / p) == h for p, h in protected.items())
+    assert len(json.loads((fixture.root / fixture.holds_ref["path"]).read_text())["records"]) == 1
+
+
+@pytest.mark.parametrize("kind", ["postfreeze", "proposal", "rejection", "resolution"])
+def test_extended_opinion_discharge_never_resolution_self_discharge(
+    fixture: Fixture, kind: str
+) -> None:
+    fixture.holds = []
+
+    def edit(entries: list) -> None:
+        resolution = copy.deepcopy(entries[0])
+        resolution.update(id="a:ACL:resolution", kind="resolution")
+        opinion = copy.deepcopy(entries[0])
+        opinion.update(id="a:ACL:opinion", kind=kind)
+        entries.extend([resolution, opinion])
+
+    def ledger(rows: list) -> None:
+        rows[0]["evidence_ids"].extend(["a:ACL:resolution", "a:ACL:opinion"])
+        rows[0]["obligations"] = [
+            {
+                "id": "scope:a:ACL",
+                "disposition": "resolved",
+                "resolution_evidence_ids": ["a:ACL:resolution"],
+                "discharged_evidence_ids": ["a:ACL:opinion"],
+            }
+        ]
+
+    fixture.evidence_edit, fixture.ledger_edit = edit, ledger
+    fixture.build()
+    if kind == "resolution":
+        with pytest.raises(ValueError, match="not resolution evidence"):
+            fixture.inspect()
+    else:
+        assert fixture.inspect()["n_cells"] == 48

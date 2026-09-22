@@ -1,0 +1,114 @@
+--- training-strategy-root-revision-001.md
++++ training-strategy-root-revision-002.md
+@@ -134,6 +134,42 @@
+ [Swin UNETR](https://arxiv.org/abs/2111.14791),
+ [ConVIRT](https://arxiv.org/abs/2010.00747)
+ 
++Two newer knee-specific checkpoints warrant an early eligibility and frozen-feature
++check. **OrthoFoundation-L** continues DINOv3-L pretraining on knee radiographs and
++MRI, with a public checkpoint in the author repository; its project MIT notice does
++not remove upstream DINOv3 obligations. **OrthoDiffusion** offers three orientation
++specific 3D checkpoints, with knee-domain pretraining on 15,948 exams. Its source
++cohort excludes some surgical/hardware and acute complex-fracture cases, so domain
++relevance is not the same as coverage of our competition targets. Public weight
++availability is verified; pretraining overlap, exact release terms and competition
++eligibility remain unverified. Neither is an approved training dependency yet.
++[OrthoFoundation paper](https://arxiv.org/abs/2601.18250),
++[author checkpoint](https://github.com/ytrsk/OrthoFoundation),
++[OrthoDiffusion paper](https://arxiv.org/abs/2602.20752),
++[author code](https://github.com/lt-0123/OrthoDiffusion),
++[checkpoint listing](https://huggingface.co/lanstat0123/orthodiffusion/tree/main)
++
++If those checks fail, retain fully reproducible alternatives: continued MRI
++self-supervision from the eligible DINO initialization and a small 3D encoder.
++A conditional second-line screen can include SigLIP2, BiomedCLIP/MedSigLIP and VoCo,
++as described in the [independent hardware-aware research](../initiative/audits/h100-model-strategy-research-v1/memo.md).
++Natural-image/text, medical figure/text, and CT pretraining answer different
++transfer questions. Do not run every model combination. The independent researcher
++favors starting with DINO Large; root chooses the matched Base screen first to
++reduce time-to-evidence, then scales both families if the measured gains justify it.
++The 6.7B DINOv3 teacher is a later frozen/distillation option, not the starting model.
++
++For MRI adaptation, compare the unchanged initialization against continued
++DINO/iBOT-style teacher-student learning and one masked-reconstruction control,
++with the same eligible images and a bounded update budget. Use spatially overlapping
++same-series crops; arbitrary slices and unregistered sequences are not automatically
++matching anatomical views. Monitor collapse and compare downstream ranking through
++the unchanged evaluation protocol. Cache and train an adaptation separately for
++each fold's training pool, excluding its evaluation images even without labels.
++Only expand to cross-sequence consistency when geometry supports correspondence.
++[Limited-data knee SSL precedent](https://arxiv.org/abs/2208.13923),
++[task-dependent MRI pretraining findings](https://arxiv.org/abs/2604.11679)
++
+ Do not start with automatic pseudo-labeling of every masked target. Confidence
+ from five fracture positives is not reliable evidence. A later teacher/student
+ experiment may use training-fold-only out-of-fold predictions, agreement across
+@@ -224,6 +260,17 @@
+ That would need its own consent/access arrangements and label protocol; it is not
+ represented as completed, free, or already authorized spending.
+ 
++If qualified image readers are available, first run a separately versioned labeling
++pilot. Allocate review effort between a probability-sampled blinded development
++audit, targeted training acquisition and an independent second reader/adjudication.
++Prioritize distinct-component fracture/MCL/Baker positives and synovitis negatives;
++include normal controls and uncertain boundaries. Keep outcome-enriched acquisition
++separate from the random audit, recording how cases were sampled. Train-only model
++disagreement can select cases to review but cannot supply the diagnosis. Define
++present, absent and indeterminate against the exact competition rubric, preserve
++unresolved claims and originals, and measure yield before committing a large review
++budget. No paid review or new clinical labels are represented as completed.
++
+ ## Centers and domain shift
+ 
+ The dataset is international, but report language is not an institution identifier.
+@@ -257,9 +304,10 @@
+ Do not launch the entire matrix at once. Freeze a stage's hypotheses and advance
+ only after its evidence review. If the measured fold cost exceeds a stage's ceiling,
+ reduce the preregistered candidate count or request a revised allocation; never label
+-an incomplete comparison as passed. A smaller 200-hour campaign would retain the
++an incomplete comparison as passed. A smaller 200-hour campaign would prioritize the
+ pilot, a matched two-family screen, one complete finalist comparison and deployment
+-checks, dropping speculative pretraining and large-model searches.
++checks if measured costs permit, dropping speculative pretraining and large-model
++searches. A complete comparison takes priority over a broad unfinished matrix.
+ 
+ A run's GPU-hour cost is allocated GPU count multiplied by measured elapsed hours.
+ Three folds times two seeds train about four full-training-pool equivalents at the
+@@ -297,8 +345,11 @@
+ does not combine memory automatically or guarantee faster training.
+ 
+ The existing accepted model is a small diagnostic CNN. Pretrained adapters,
+-physical-position features, accumulation, distributed training and a 3D encoder
++physical-position features, accumulation, the competitive pretrained/distributed
++path and a 3D encoder
+ are **implementation work to follow this plan**, not already validated capabilities.
++The diagnostic implementation already contains a distributed path; this is not
++evidence that the proposed pretrained H100 path has passed acceptance.
+ Build separate experiment entrypoints consuming the verified release and a hashed
+ fold overlay. Keep the production release and original supervision immutable.
+ 
+@@ -320,7 +371,7 @@
+ encoders invalidate frozen-feature caches.
+ 
+ The existing cache is 82.6 GB; original DICOMs are 569.8 GB. A native-derived 384
+-cache has a rough pixel-count upper planning scale of 186 GB and 448 about 253 GB
++cache has a rough pixel-count planning scale of 186 GB and 448 about 253 GB
+ if volume and encoding were unchanged; actual padding and compression will differ.
+ Request roughly 1–2 TB of approved scratch for source plus selected derivatives,
+ features and checkpoints, then measure quota and real sizes before writing. Store
+@@ -358,9 +409,12 @@
+ lateral semantics or erase subtle findings.
+ 
+ A large teacher ensemble can train on H100s while a smaller student is deployed.
+-Distillation is optional: use only fold-eligible training images and teacher outputs;
+-keep uncertain and held clinical labels separate from auxiliary soft targets, and
+-never treat teacher confidence as new diagnostic truth. Retain the student only if
++Distillation is optional: use only fold-eligible training images and teacher outputs.
++Task-logit distillation must obey the final per-target masks and whole-study
++supervision exclusions. Any auxiliary policy that changes that scope needs its own
++explicit experiment review; it cannot bypass a hold through a soft target. Feature
++distillation on technically eligible training images is a separate representation
++objective. Never treat teacher confidence as new diagnostic truth. Retain the student only if
+ it preserves held-out ranking and reduces measured inference cost. No hidden-test
+ adaptation or report access is assumed.
+ 

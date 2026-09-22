@@ -1,0 +1,129 @@
+"""Actual split/eligibility diagnostic of fixed holds; no gold-value metrics."""
+from prepare_projections import *
+import inspect
+
+HERE = Path(__file__).resolve().parent
+C = HERE / "membership-candidate-v1"
+# Exact source pin supplied by root; declared separately to avoid any inferred pin.
+TRAIN_SHA = "8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33"
+SAMPLING_SHA = "14eb050d081abe9fce638f5dcfb2cedc688fdac5ace9a62bf9b1cf152421eada"
+
+
+def main(output):
+    require(not output.exists(), "new diagnostic stage only")
+    require(shutil.disk_usage(W).free > 20 * 2**30 + 64 * 2**20, "disk floor")
+    sys.path.insert(0, str(R))
+    import pandas as pd
+    import numpy as np
+    from rsna.schema import TARGETS
+    from rsna.labels import build_studies, read_reviews
+    from rsna.adjudications import inspect_adjudications
+    from rsna.correspondence import apply_correspondence, inspect_correspondence
+    from rsna.report_similarity import inspect_report_similarity, similarity_pairs
+    targets = list(TARGETS)
+    require(sha(R / "initiative/reviews-v2/adjudications/registry.json") == REG, "fixed569 registry changed")
+    manifest_path = HERE / "candidate-membership-file-manifest.json"
+    require(sha(manifest_path) == "1fad29b367ab217512308e7af4d767476ca3cc98aaf7b4f5b7474812b132699a", "candidate selection changed")
+    for r in read(manifest_path)["files"]:
+        require(sha(W / r["path"]) == r["sha256"], "fixed membership member changed")
+    source_path = R / "initiative/source/train.csv"
+    sampling_path = R / "initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv"
+    audit_path = R / "initiative/audits/full-image-recovery-v1/audit/dicom_audit.json"
+    require(sha(source_path) == TRAIN_SHA and sha(sampling_path) == SAMPLING_SHA, "root-authenticated input pin")
+    reports = {}
+    for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+        for row in read(p):
+            reports[row["study_uid"]] = row["report"]
+    # Explicit root-authorized identity-only projection: inspect presence only,
+    # immediately discard official target values, never display/store/score them.
+    source = pd.read_csv(source_path)
+    present = source[targets].notna()
+    require(not (present.any(axis=1) & ~present.all(axis=1)).any(), "partial official gold membership")
+    gold_uids = set(source.loc[present.all(axis=1), "StudyInstanceUID"])
+    source = source.drop(columns=targets)
+    del present
+    require(dict(zip(source.StudyInstanceUID, source.Report)) == reports and not source.StudyInstanceUID.duplicated().any(), "canonical source metadata changed")
+    split_input = source[["StudyInstanceUID", "Report"]].copy()
+    for target in targets:
+        split_input[target] = np.where(split_input.StudyInstanceUID.isin(gold_uids), 0.0, np.nan)
+    # Synthetic zeros exist only to preserve membership for the unchanged split
+    # function. They are never gold scores or output clinical/evaluation values.
+    review = read_reviews(R / "initiative/reviews-v2/reviewed", reports, "-reviewed").set_index("study_uid")
+    adjudications = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+    require(adjudications["changes"] == read(P / "current569-inspection.json")["changes"], "current corrections drift")
+    for change in adjudications["changes"]:
+        for field in ("state", "evidence"):
+            review.at[change["study_uid"], change["target"] + "__" + field] = change["after"][field]
+    raw_pairs = read(audit_path)["cross_study_pixel_duplicate_pairs"]
+    pixel_pairs = []
+    for pair in raw_pairs:
+        require(len(pair) == 2 and (pair[0] in reports) == (pair[1] in reports), "cross train/test or malformed pixel pair")
+        if pair[0] in reports:
+            pixel_pairs.append(tuple(pair))
+    similarity = inspect_report_similarity(reports, R)
+    pairs = pixel_pairs + similarity_pairs(similarity)
+    table = build_studies(split_input, review.reset_index(), pairs)
+    require(set(table.loc[table.split.eq("gold_evaluation"), "study_uid"]) == gold_uids, "split gold membership")
+    table, correspondence_trace = apply_correspondence(table, reports, R)
+    correspondence = inspect_correspondence(reports, R)
+    excluded = {d["study_uid"] for d in correspondence["decisions"]}
+    sampling = pd.read_csv(sampling_path, usecols=["StudyInstanceUID"])
+    eligible = set(sampling.StudyInstanceUID)
+    require(eligible <= set(reports), "sampling unknown study")
+    held = defaultdict(set)
+    categories = defaultdict(set)
+    for row in lines(C / "candidate-hold-records.jsonl.gz"):
+        require(row["lifecycle"] == "active", "unexpected nonactive candidate hold")
+        held[row["study_uid"], row["target"]].add(row["id"])
+        categories[row["study_uid"], row["target"]].add(row["category"])
+    diagnostics = []
+    removed_rows = []
+    for split in ("train", "weak_validation", "quarantine", "gold_evaluation"):
+        selected = table.loc[table.split.eq(split)]
+        for target in targets:
+            if split == "gold_evaluation":
+                continue  # No synthetic or actual gold-class metrics.
+            before = Counter()
+            after = Counter()
+            category_classes = defaultdict(Counter)
+            for _, row in selected.iterrows():
+                uid = row.study_uid
+                state = row[target + "__state"]
+                active = split in {"train", "weak_validation"} and uid in eligible and row[target + "__mask"] == 1
+                if active:
+                    require(state in {"positive", "negative"}, "observed mask/state mismatch")
+                    before[state] += 1
+                    if held[uid, target]:
+                        for category in categories[uid, target]:
+                            category_classes[category][state] += 1
+                        removed_rows.append({"study_uid": uid, "target": target, "split": split, "report_state": state, "hold_ids": sorted(held[uid, target]), "categories": sorted(categories[uid, target])})
+                    else:
+                        after[state] += 1
+            diagnostics.append({"split": split, "target": target, "before_candidate_holds": dict(before), "after_candidate_holds": dict(after), "removed_by_category_overlapping": dict(category_classes), "zero_class_before": split in {"train", "weak_validation"} and any(before[s] == 0 for s in ("positive", "negative")), "zero_class_after": split in {"train", "weak_validation"} and any(after[s] == 0 for s in ("positive", "negative"))})
+    memberships = [{"study_uid": r.study_uid, "report_group": r.report_group, "leakage_group": r.leakage_group, "split": r.split, "gold_membership_only": r.study_uid in gold_uids, "technical_eligible": r.study_uid in eligible, "correspondence_excluded": r.study_uid in excluded} for r in table.itertuples()]
+    require(table.loc[~table.split.eq("quarantine")].groupby("leakage_group").split.nunique().max() == 1, "active split leakage")
+    output.mkdir()
+    def write(name, obj):
+        with (output / name).open("xb") as f:
+            f.write(jb(obj) + b"\n")
+    def gz(name, rows):
+        with (output / name).open("xb") as raw:
+            with gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0) as f:
+                for r in rows:
+                    f.write(jb(r) + b"\n")
+    gz("study-split-membership-only.jsonl.gz", memberships)
+    gz("non-gold-held-active-cells.jsonl.gz", removed_rows)
+    write("coverage-by-target-and-split.json", diagnostics)
+    split_counts = dict(Counter(r["split"] for r in memberships))
+    zero = [r for r in diagnostics if r["zero_class_after"]]
+    result = {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "status": "fixed_candidate_split_diagnostic_not_release_approval", "fixed_candidate_manifest": ref(manifest_path), "source_membership_input": ref(source_path), "series_sampling": ref(sampling_path), "dicom_audit": ref(audit_path), "labels_code_used": ref(R / "rsna/labels.py"), "build_studies_function_sha256": hashlib.sha256(inspect.getsource(build_studies).encode()).hexdigest(), "similarity_registry_sha256": similarity["registry_sha256"], "correspondence_registry_sha256": correspondence["registry_sha256"], "counts": {"reports": len(reports), "gold_uid_membership": len(gold_uids), "technically_eligible_reports": len(eligible), "correspondence_excluded_reports_actual_registry": len(excluded), "raw_pixel_pairs": len(raw_pairs), "training_pixel_pairs": len(pixel_pairs), "near_report_pairs": len(similarity_pairs(similarity)), "split_counts": split_counts, "active_non_gold_held_cells": len(removed_rows)}, "zero_class_after_candidate": zero, "unchanged_hashmod10_split_recipe": True, "actual_gold_values_personally_inspected_or_printed": False, "gold_values_used_for_metrics_or_membership_selection": False, "gold_presence_projection_only_authorized_by_root": True, "synthetic_zero_gold_columns_used_only_for_build_studies_membership": True, "gold_class_counts_not_computed": True, "candidate_holds_changed_from_diagnostic": False, "final_context_and_protocol_decision_pending": True, "mask_or_label_files_written": False, "R_writes": False, "network_calls": 0}
+    write("diagnostic-summary.json", result)
+    require(sha(R / "initiative/reviews-v2/adjudications/registry.json") == REG, "registry drift after diagnostic")
+    print(json.dumps({"counts": result["counts"], "zero_class_after_candidate": [{"split": r["split"], "target": r["target"], "before": r["before_candidate_holds"], "after": r["after_candidate_holds"]} for r in zero], "summary": ref(output / "diagnostic-summary.json")}))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    main(args.output.resolve())

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import random
@@ -18,6 +19,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 
 from rsna.data import StudyDataset
 from rsna.model import StudyNet, auc_metrics, masked_bce
+from rsna.release import load_verified_release
 from rsna.schema import CACHE_VERSION, TARGETS
 
 
@@ -73,10 +75,18 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int)
     parser.add_argument("--resume", type=Path)
+    parser.add_argument("--artifact-root", type=Path, default=Path("."))
+    parser.add_argument(
+        "--diagnostic-study-limit",
+        type=int,
+        help="After full release validation, limit each development split for pipeline checks",
+    )
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
     if args.epochs < 1 or args.batch_size < 1 or args.workers < 0 or args.lr <= 0:
         raise ValueError("Invalid training configuration")
+    if args.diagnostic_study_limit is not None and args.diagnostic_study_limit < 1:
+        raise ValueError("Diagnostic study limit must be positive")
     rank = int(os.environ.get("RANK", "0"))
     world = int(os.environ.get("WORLD_SIZE", "1"))
     local_rank = int(os.environ.get("LOCAL_RANK", "0"))
@@ -91,8 +101,12 @@ def main() -> None:
     torch.manual_seed(args.seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    manifest = pd.read_parquet(args.studies)
-    series = pd.read_csv(args.series)
+    manifest, release_binding = load_verified_release(args.studies, args.artifact_root)
+    series_bytes = args.series.read_bytes()
+    series_hash = hashlib.sha256(series_bytes).hexdigest()
+    if release_binding["series_sha256"] != series_hash:
+        raise ValueError("Training series differ from the verified release")
+    series = pd.read_csv(io.BytesIO(series_bytes))
     train = manifest[manifest.split == "train"]
     train = train[train[[f"{t}__mask" for t in TARGETS]].sum(axis=1) > 0]
     validation = manifest[manifest.split == "weak_validation"]
@@ -107,6 +121,9 @@ def main() -> None:
         raise ValueError("Training studies overlap gold evaluation groups")
     if any(train[f"{t}__provenance"].eq("official_gold").any() for t in TARGETS):
         raise ValueError("Gold labels cannot enter weak training")
+    if args.diagnostic_study_limit is not None:
+        train = train.sort_values("study_uid").head(args.diagnostic_study_limit)
+        validation = validation.sort_values("study_uid").head(args.diagnostic_study_limit)
     config = {"slices": args.slices, "side": args.side, "max_series": args.max_series}
     run_config = {
         "seed": args.seed,
@@ -114,6 +131,15 @@ def main() -> None:
         "workers": args.workers,
         "world_size": world,
         "lr": args.lr,
+        "diagnostic_study_limit": args.diagnostic_study_limit,
+        "training_studies": len(train),
+        "validation_studies": len(validation),
+        "training_uids_sha256": hashlib.sha256(
+            json.dumps(train.study_uid.tolist(), separators=(",", ":")).encode()
+        ).hexdigest(),
+        "validation_uids_sha256": hashlib.sha256(
+            json.dumps(validation.study_uid.tolist(), separators=(",", ":")).encode()
+        ).hexdigest(),
     }
     training_data = StudyDataset(train, series, args.cache, augment=True, **config)
     validation_data = StudyDataset(validation, series, args.cache, **config)
@@ -122,6 +148,8 @@ def main() -> None:
         validation_data.source_revision,
     ):
         raise ValueError("Train/validation cache preprocessing differs")
+    if training_data.source_revision != release_binding["source_revision"]:
+        raise ValueError("Training cache source differs from the verified release")
     sampler: DistributedSampler | None = (
         DistributedSampler(training_data, seed=args.seed) if world > 1 else None
     )
@@ -142,9 +170,12 @@ def main() -> None:
     scaler = torch.amp.GradScaler(device.type, enabled=device.type == "cuda")
     start_epoch, step = 0, 0
     manifest_hash = hashlib.sha256(args.studies.read_bytes()).hexdigest()
-    series_hash = hashlib.sha256(args.series.read_bytes()).hexdigest()
+    if manifest_hash != release_binding["manifest_sha256"]:
+        raise ValueError("Training manifest changed after release validation")
     if args.resume:
         checkpoint = torch.load(args.resume, map_location=device, weights_only=True)
+        if checkpoint.get("release_binding") != release_binding:
+            raise ValueError("Resume supervision release differs from checkpoint")
         if not checkpoint["epoch_complete"]:
             raise ValueError("Cannot resume a partial smoke-test epoch; start a fresh run")
         if (
@@ -215,6 +246,13 @@ def main() -> None:
                     "training_loss": float(totals[0] / totals[1].clamp_min(1)),
                     "elapsed_seconds": time.monotonic() - started,
                     "evaluation_source": "weak_report_validation",
+                    "diagnostic_run": args.diagnostic_study_limit is not None,
+                    "diagnostic_study_limit": args.diagnostic_study_limit,
+                    "training_studies": len(train),
+                    "validation_studies": len(validation),
+                    "training_uids_sha256": run_config["training_uids_sha256"],
+                    "validation_uids_sha256": run_config["validation_uids_sha256"],
+                    "release_binding_sha256": release_binding["binding_sha256"],
                 }
             )
             predictions.to_csv(args.output / "weak_validation_predictions.csv", index=False)
@@ -232,6 +270,7 @@ def main() -> None:
                 "targets": list(TARGETS),
                 "manifest_sha256": manifest_hash,
                 "series_sha256": series_hash,
+                "release_binding": release_binding,
                 "seed": args.seed,
                 "torch_rng": torch.get_rng_state(),
                 "loader_rng": generator.get_state(),

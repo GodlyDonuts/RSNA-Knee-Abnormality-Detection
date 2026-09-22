@@ -1,0 +1,50 @@
+"""Root's independent persisted-table checks; does not rewrite any release data."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib,json,sys
+import pandas as pd
+
+W=Path(__file__).resolve().parent.parent; R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.schema import TARGETS
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(R)),'sha256':sha(p)}
+P=R/'initiative/releases/report-supervision-v1'
+d=pd.read_parquet(P/'studies.parquet').set_index('study_uid',drop=False)
+mask=[t+'__mask' for t in TARGETS]
+assert len(d)==4407 and d.index.is_unique
+assert d.groupby('leakage_group').split.nunique().eq(1).all()
+gold=pd.read_csv(R/'initiative/source/train.csv').set_index('StudyInstanceUID')
+g=gold.loc[gold[list(TARGETS)].notna().all(axis=1)]
+assert len(g)==58 and set(d.index[d.split.eq('gold_evaluation')])==set(g.index)
+assert (d.loc[g.index,list(TARGETS)].to_numpy()==g[list(TARGETS)].to_numpy()).all()
+assert d.loc[g.index,mask].eq(1).all().all()
+assert d.loc[d.split.eq('quarantine'),mask].eq(0).all().all()
+non_gold=d.loc[~d.split.eq('gold_evaluation')]
+for t in TARGETS:
+    assert non_gold.loc[non_gold[t+'__state'].isin(['uncertain','not_mentioned']),t+'__mask'].eq(0).all()
+    assert non_gold[t].eq(non_gold[t+'__state'].eq('positive').astype(int)).all()
+closure_path=R/'initiative/audits/correspondence-source-header-v1/correspondence28-consolidated-closure.json'
+closure=json.loads(closure_path.read_text())
+unresolved=[x for x in closure['records'] if x['consolidated_status']=='source_examination_linkage_unresolved_existing_all12_masks_preserved']
+assert len(unresolved)==24
+for x in unresolved:
+    uid=x['study_uid'];assert uid in non_gold.index
+    assert sha(R/x['source_batch']['path'])==x['source_batch']['sha256']
+    assert hashlib.sha256(d.loc[uid,'Report'].encode()).hexdigest()==x['report_utf8_sha256']
+    assert d.loc[uid,mask].eq(0).all()
+    obj={'study_uid':uid,'states':{t:d.loc[uid,t+'__state'] for t in TARGETS},'evidence':{t:d.loc[uid,t+'__evidence'] for t in TARGETS}}
+    h=hashlib.sha256(json.dumps(obj,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    assert h==x['effective_annotation_states_evidence_sha256'],x['case']
+trace=json.loads((P/'correspondence_trace.json').read_text())
+uids={x['study_uid'] for x in trace['decisions']}
+assert len(uids)==18 and d.loc[list(uids),mask].eq(0).all().all()
+counts={}
+for split,frame in d.groupby('split'):
+    observed=frame[mask].sum(axis=1)
+    counts[split]={'studies':len(frame),'leakage_groups':int(frame.leakage_group.nunique()),'with_any_observed_target':int(observed.gt(0).sum()),'observed_cells':int(observed.sum()),'masked_cells':int((observed.size*12)-observed.sum())}
+index=pd.read_parquet(R/'initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet')
+out=R/'initiative/audits/final-persisted-release-invariants-v1';out.mkdir(exist_ok=False)
+(out/'check-final-release-invariants-v1.py.txt').write_bytes(Path(__file__).read_bytes())
+proof={'schema_version':1,'status':'passed','actual_executor':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'studies':ref(P/'studies.parquet'),'verified_release':ref(P/'verified_release.json'),'original_gold':ref(R/'initiative/source/train.csv'),'correspondence_closure':ref(closure_path),'unresolved24_all12_masks_zero_and_original_source_states_evidence_preserved':True,'excluded18_all12_masks_zero':True,'gold58_values_exact_and_evaluation_only':True,'quarantine_all_masks_zero':True,'leakage_groups_do_not_cross_splits':True,'uncertain_unmentioned_zero_masks':True,'non_gold_numeric_values_preserve_original_state_encoding':True,'counts':counts,'cache_npz_bytes':int(index.cache_bytes.sum()),'cache_series':len(index),'cache_slices':int(index.n_slices.sum()),'clinical_image_reread_claim':False}
+(out/'validation.json').write_text(json.dumps(proof,indent=2)+'\n')
+print(json.dumps(proof,indent=2))

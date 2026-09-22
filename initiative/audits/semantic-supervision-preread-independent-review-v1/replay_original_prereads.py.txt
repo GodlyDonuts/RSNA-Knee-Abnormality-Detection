@@ -1,0 +1,142 @@
+"""Independent metadata/quote replay; no clinical inference or repository writes."""
+import collections
+import hashlib
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+W = HERE.parents[2]
+R = W / "work/recovered"
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def ref(path):
+    raw = path.read_bytes()
+    return {"path": str(path.relative_to(W)), "sha256": sha(raw), "bytes": len(raw)}
+
+
+def strict_pairs(pairs):
+    out = {}
+    for key, value in pairs:
+        assert key not in out, "duplicate JSON key"
+        out[key] = value
+    return out
+
+
+def read(path):
+    return json.loads(path.read_bytes(), object_pairs_hook=strict_pairs)
+
+
+def resolve(path):
+    assert isinstance(path, str) and path
+    p = (R / path).resolve()
+    assert p.is_relative_to(R.resolve()) and p.is_file()
+    return p
+
+
+def main():
+    source_paths = sorted((R / "initiative/reviews/inputs").glob("batch-*.json"))
+    reports, source_batches = {}, {}
+    for p in source_paths:
+        rows = read(p)
+        source_batches[p.stem] = [r["study_uid"] for r in rows]
+        for row in rows:
+            assert set(row) == {"study_uid", "report"}
+            assert row["study_uid"] not in reports
+            reports[row["study_uid"]] = row["report"]
+    uids = sorted(reports)
+    batches = {f"batch-{n // 50:03d}": uids[n:n+50] for n in range(0, len(uids), 50)}
+    assert source_batches == batches and len(reports) == 4407 and len(batches) == 89
+    source_hash = sha(json.dumps([{"study_uid": u, "report": reports[u]} for u in uids],
+                                  sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode())
+    assert source_hash == "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3"
+    rubric = R / "protocols/report_weak_v2.md"
+    rubric_hash = sha(rubric.read_bytes())
+    assert rubric_hash == "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+    prov_path = R / "initiative/reviews-v2/provenance.json"
+    provenance = read(prov_path)
+    assert set(provenance) == set(batches)
+    alias_counts = collections.Counter()
+    records, paths, quote_counts = [], set(), collections.Counter()
+    for batch, batch_uids in batches.items():
+        phases = provenance[batch]
+        assert set(phases) == {"draft", "reviewed"}
+        for field in ("agent_id", "session_id"):
+            assert phases["draft"][field] != phases["reviewed"][field]
+        assert phases["reviewed"]["parent_artifact_sha256"] == phases["draft"]["sha256"]
+        for phase, folder in (("draft", "drafts"), ("reviewed", "reviewed")):
+            metadata = phases[phase]
+            for field in ("agent_id", "session_id", "workflow_run_id", "notes"):
+                assert isinstance(metadata[field], str) and metadata[field].strip()
+            assert type(metadata["n_studies"]) is int and metadata["n_studies"] == len(batch_uids)
+            assert metadata["source_reports_sha256"] == source_hash
+            assert metadata["rubric_sha256"] == rubric_hash
+            p = R / f"initiative/reviews-v2/{folder}/{batch}-{phase}.jsonl"
+            assert sha(p.read_bytes()) == metadata["sha256"]
+        aliases = []
+        alias_hashes = []
+        for name in ("preread", "independent_preread", "independent_source_read"):
+            a, b = name + "_path", name + "_sha256"
+            if b in phases["reviewed"]:
+                alias_hashes.append(phases["reviewed"][b])
+            if a in phases["reviewed"]:
+                assert b in phases["reviewed"]
+                p = resolve(phases["reviewed"][a])
+                assert sha(p.read_bytes()) == phases["reviewed"][b]
+                aliases.append((p, phases["reviewed"][b]))
+                alias_counts[name] += 1
+        assert aliases and len(set(aliases)) == 1
+        p, preread_hash = aliases[0]
+        assert all(h == preread_hash for h in alias_hashes)
+        assert p not in paths
+        paths.add(p)
+        for phase, payload in (("draft", R / f"initiative/reviews-v2/drafts/{batch}-draft.jsonl"),
+                               ("reviewed", R / f"initiative/reviews-v2/reviewed/{batch}-reviewed.jsonl"),
+                               ("preread", p)):
+            rows = [json.loads(line, object_pairs_hook=strict_pairs)
+                    for line in payload.read_text().splitlines() if line.strip()]
+            assert len(rows) == len(batch_uids)
+            assert sorted(r["study_uid"] for r in rows) == batch_uids
+            for row in rows:
+                assert set(row) == {"study_uid", "states", "evidence", "notes"}
+                assert isinstance(row["notes"], str)
+                assert len(row["states"]) == len(row["evidence"]) == 12
+                for state, evidence in zip(row["states"], row["evidence"]):
+                    assert state in {"positive", "negative", "uncertain", "not_mentioned"}
+                    assert isinstance(evidence, str)
+                    if state == "not_mentioned":
+                        assert evidence == ""
+                        quote_counts[phase + "_empty_missing"] += 1
+                    else:
+                        assert evidence and evidence in reports[row["study_uid"]]
+                        quote_counts[phase + "_exact_nonmissing"] += 1
+        records.append({"batch": batch, "n_studies": len(batch_uids),
+                        "actual_preread": {"path": str(p.relative_to(R)), "sha256": preread_hash}})
+    peer_map_path = W / "work/annotation-staging/semantic-supervision-final-proposal-569-v1/actual89-preread-metadata-map.json"
+    assert sha(peer_map_path.read_bytes()) == "8a1e79bc513d932f95f0fbd18b412f3b3ef5737a35d9b949ad62d9a53cedc012"
+    peer_map = read(peer_map_path)
+    assert [(r["batch"], r["actual_preread"]) for r in records] == [
+        (r["batch"], r["actual_preread"]) for r in peer_map["records"]]
+    proof = {"schema_version": 1, "agent_id": "/root/last_twelve_visual_review",
+             "session_id": "/root/last_twelve_visual_review",
+             "scope": "mechanical original source/preread/provenance replay; no clinical decisions",
+             "reports": len(reports), "batches": len(batches), "preread_files": len(paths),
+             "source_reports_sha256": source_hash, "rubric_sha256": rubric_hash,
+             "provenance": ref(prov_path), "peer_map": ref(peer_map_path), "helper": ref(Path(__file__)),
+             "counts_by_alias": dict(alias_counts), "quote_checks": dict(quote_counts),
+             "records": records, "all_batch_memberships_exact": True,
+             "all_actual_file_hashes_exact": True, "actual_distinct_original_identities": True,
+             "all_selected_prereads_match_peer_map": True, "R_writes": False,
+             "gold_values_read": False, "clinical_reread_claimed": False}
+    output = HERE / "actual89-independent-replay.json"
+    with output.open("x") as f:
+        json.dump(proof, f, ensure_ascii=False, sort_keys=True, indent=2)
+        f.write("\n")
+    print(json.dumps(ref(output)))
+
+
+if __name__ == "__main__":
+    main()

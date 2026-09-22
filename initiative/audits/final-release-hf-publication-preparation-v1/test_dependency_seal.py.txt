@@ -1,0 +1,99 @@
+"""Synthetic adversarial closure checks and real local read-capture tests; no R/network."""
+import argparse,copy,hashlib,json,sys,tempfile,unittest
+from pathlib import Path
+from unittest.mock import patch
+import final_release_bindings as b
+import final_release_dependency_seal as d
+import final_release_eligibility as e
+import seal_final_release_root as s
+import build_final_release_peer as builder
+from test_successor_guards import Guards
+
+class SealTests(unittest.TestCase):
+    def fixture(self):
+        f=Guards().fixture();_,prior,reg,receipt,acceptance,docs=f
+        receipt['semantic_supervision']={n:{'path':'initiative/reviews-v2/semantic-supervision/'+n+('.json.gz'if n in {'holds','ledger'}else'.json'),'sha256':str(i+1)*64}for i,n in enumerate(['registry','context','holds','ledger','decision'])}
+        receipt['coordinator']={'path':'initiative/reviews-v2/semantic-supervision/release-inputs.json','sha256':'6'*64}
+        acceptance['code_sha256']={'rsna/runtime.py':'7'*64}
+        binding=acceptance['training_checks']['release_binding'];binding['semantic_registry_sha256']=receipt['semantic_supervision']['registry']['sha256'];binding['binding_sha256']=e.digest({k:v for k,v in binding.items()if k!='binding_sha256'})
+        refs=d.required_refs(receipt,reg,acceptance)
+        refs.append({'path':'initiative/audits/nested-current-proof.json','sha256':'f'*64})
+        # Include one discovered policy in addition to direct receipt references.
+        refs.append({'path':'initiative/audits/correspondence-release-dispositions-v1.json','sha256':'e'*64})
+        files={}
+        for r in refs:
+            name=r['path'];data=('synthetic:'+name).encode();files[name]={'path':name,'sha256':r['sha256'],'git_blob':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest(),'bytes':len(data)}
+        rows={p:{k:r[k]for k in ('path','git_blob','bytes')}for p,r in files.items()}
+        manifest={'files':list(files.values())}
+        seal={'schema_version':1,'stage':'root_fresh_verified_release_dependency_seal','status':'passed','actual_executor':b.ROOT,'acceptance':{'path':b.ACCEPTANCE_PATH,'sha256':b.ACCEPTANCE_SHA},'verified_release':{'path':b.VERIFIED_RELEASE_PATH,'sha256':b.VERIFIED_RELEASE_SHA},'studies':acceptance['full_release'],'series':acceptance['series'],'source_revision':b.SOURCE_HF,'release_binding':binding,'fresh_load_verified_release_passed':True,'current_runtime_open_capture_complete':True,'all_observed_inputs_unchanged':True,'seal_runner_sha256':b.sha(b.SEAL_RUNNER),'files':list(files.values()),'n_files':len(files),'membership_checks':[{'directory':path,'pattern':pattern,'recursive':recursive,'paths':d.selected_paths(rows,path,pattern,recursive)}for path,pattern,recursive in d.MEMBERSHIP_SCOPES]}
+        return seal,receipt,reg,acceptance,rows,manifest
+    def test_success_is_current_dependency_proof_not_training_strategy(self):
+        with patch.multiple(b,**Guards().pins()):
+            f=self.fixture();out=d.validate(*f);self.assertEqual(out['verified_current_dependency_files'],len(f[0]['files']));self.assertNotIn('training_ready',out)
+    def test_missing_or_changed_receipt_dependency_and_nested_current_proof_rejected(self):
+        with patch.multiple(b,**Guards().pins()):
+            for path in ['initiative/reviews-v2/semantic-supervision/'+n for n in ['context.json','holds.json.gz','ledger.json.gz','decision.json','release-inputs.json']]+['initiative/audits/nested-current-proof.json']:
+                for action in ['missing','changed']:
+                    with self.subTest(path=path,action=action):
+                        f=self.fixture()
+                        if action=='missing':f[4].pop(path)
+                        else:f[4][path]['git_blob']='0'*40
+                        with self.assertRaisesRegex(b.GuardError,'target_dependency_missing_or_changed'):d.validate(*f)
+    def test_new_unregistered_policy_or_review_cannot_hide_outside_flat_files(self):
+        with patch.multiple(b,**Guards().pins()):
+            for p in ['initiative/audits/correspondence-release-dispositions-v999.json','initiative/audits/report-similarity-dispositions-v999.json','initiative/reviews-v2/adjudications/cases/new/sub/case.json','initiative/reviews-v2/reviewed/new-reviewed.jsonl']:
+                f=self.fixture();f[4][p]={'path':p,'git_blob':'0'*40,'bytes':1}
+                with self.assertRaisesRegex(b.GuardError,'target_discovered_membership_changed'):d.validate(*f)
+    def test_omitted_or_duplicated_required_dependency_fails(self):
+        with patch.multiple(b,**Guards().pins()):
+            f=self.fixture();name=f[1]['semantic_supervision']['holds']['path'];f[0]['files']=[r for r in f[0]['files']if r['path']!=name];f[0]['n_files']-=1
+            with self.assertRaisesRegex(b.GuardError,'seal_required_dependency_omitted'):d.validate(*f)
+            f=self.fixture();f[0]['files'].append(f[0]['files'][0])
+            with self.assertRaisesRegex(b.GuardError,'seal_dependency_identity'):d.validate(*f)
+    def test_changed_manifest_payload_rejected_after_row_oid_check(self):
+        with patch.multiple(b,**Guards().pins()):
+            f=self.fixture();f[5]['files']=copy.deepcopy(f[5]['files']);f[5]['files'][0]['sha256']='0'*64
+            with self.assertRaisesRegex(b.GuardError,'target_manifest_dependency_mismatch'):d.validate(*f)
+    def test_stale_acceptance_or_receipt_or_wrong_source_or_executor_rejected(self):
+        with patch.multiple(b,**Guards().pins()):
+            for key in ['acceptance','verified_release']:
+                f=self.fixture();f[0][key]['sha256']='0'*64
+                with self.assertRaisesRegex(b.GuardError,'seal_acceptance_release_identity'):d.validate(*f)
+            f=self.fixture();f[0]['actual_executor']=b.PEER
+            with self.assertRaisesRegex(b.GuardError,'actual_root_dependency_seal_required'):d.validate(*f)
+            f=self.fixture();f[0]['source_revision']=f[1]['source_revision']='0'*40
+            with self.assertRaisesRegex(b.GuardError,'seal_corrected_source_revision_required'):d.validate(*f)
+    def test_missing_discovery_boundary_and_false_capture_attestation_rejected(self):
+        with patch.multiple(b,**Guards().pins()):
+            f=self.fixture();f[0]['membership_checks'].pop()
+            with self.assertRaisesRegex(b.GuardError,'seal_discovery_scope_missing'):d.validate(*f)
+            f=self.fixture();f[0]['current_runtime_open_capture_complete']=False
+            with self.assertRaisesRegex(b.GuardError,'seal_actual_execution_scope'):d.validate(*f)
+    def test_closure_allows_unreferenced_historical_evidence_without_recursive_claim(self):
+        with patch.multiple(b,**Guards().pins()):
+            f=self.fixture();p='initiative/audits/preserved-historical/superseded.json';f[4][p]={'path':p,'git_blob':'0'*40,'bytes':1};f[5]['files'].append({**f[4][p],'sha256':'0'*64});d.validate(*f)
+    def test_logs_without_actual_checkpoint_and_prediction_artifacts_rejected(self):
+        with patch.multiple(b,**Guards().pins()):
+            f=Guards().fixture();f[4]['artifacts']=[]
+            with self.assertRaisesRegex(b.GuardError,'acceptance_actual_outputs_required'):e.evaluate(*f[:5])
+    def test_actual_builder_identity_is_not_shared_helper_default(self):
+        value=builder.bind_actual_execution({'verifier_agent_id':b.HELPER_DEFAULT_IDENTITY})
+        self.assertEqual(value['actual_executor'],'/root/image_pipeline_audit');self.assertEqual(value['generated_helper_default_identity'],'/root/duplicate_consistency_review');self.assertTrue(value['helper_default_is_not_evidence_of_actual_execution'])
+    def test_actual_read_capture_binds_nested_input_and_blocks_mutation(self):
+        with tempfile.TemporaryDirectory(dir=b.WORK)as tmp:
+            root=Path(tmp);p=root/'proof.json';p.write_text('{"current":true}')
+            capture=s.InputCapture(root);sys.addaudithook(capture.hook)
+            try:
+                capture.active=True;p.read_text();self.assertIn('proof.json',capture.files)
+                with self.assertRaisesRegex(b.GuardError,'runtime_attempted_repository_write'):p.write_text('changed')
+            finally:capture.active=False
+            p.write_text('changed')
+            with self.assertRaisesRegex(b.GuardError,'seal_input_changed_during_validation'):capture.unchanged()
+    def test_capture_rejects_escape_and_symlink(self):
+        with tempfile.TemporaryDirectory(dir=b.WORK)as tmp:
+            root=Path(tmp);p=root/'inside';p.write_text('value');link=root/'link';link.symlink_to(p)
+            capture=s.InputCapture(root)
+            with self.assertRaisesRegex(b.GuardError,'seal_input_scope_or_symlink'):capture.add(link)
+            with self.assertRaisesRegex(b.GuardError,'seal_input_scope_or_symlink'):capture.add(root/'..'/'no-file')
+
+if __name__=='__main__':unittest.main(verbosity=2)

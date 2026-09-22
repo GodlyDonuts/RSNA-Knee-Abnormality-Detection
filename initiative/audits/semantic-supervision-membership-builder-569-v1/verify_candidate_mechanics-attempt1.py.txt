@@ -1,0 +1,108 @@
+"""Full candidate mechanics, deliberately excluding final context and approval."""
+from prepare_projections import *
+import importlib.util
+
+HERE = Path(__file__).resolve().parent
+C = HERE / "membership-candidate-v1"
+CAT = HERE / "catalog-projection-v1"
+
+
+def main(runtime, expected, output):
+    require(not output.exists(), "write once proof")
+    require(sha(runtime) == expected, "runtime pin changed")
+    require(sha(R / "initiative/reviews-v2/adjudications/registry.json") == REG, "registry drift")
+    require(shutil.disk_usage(W).free > 20 * 2**30 + 64 * 2**20, "disk guard")
+    spec = importlib.util.spec_from_file_location("candidate_runtime", runtime)
+    m = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = m
+    sys.path.insert(0, str(R))
+    spec.loader.exec_module(m)
+    from rsna.schema import TARGETS
+    from rsna.adjudications import inspect_adjudications
+    targets = list(TARGETS)
+    reports = {}
+    original = {}
+    review_files = {}
+    for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+        for r in read(p):
+            reports[r["study_uid"]] = r["report"]
+    for p in sorted((R / "initiative/reviews-v2/reviewed").glob("*-reviewed.jsonl")):
+        review_files[str(p.relative_to(R))] = sha(p)
+        for r in lines(p):
+            for t, s, e in zip(targets, r["states"], r["evidence"]):
+                original[r["study_uid"], t] = {"state": s, "evidence": e}
+    inspection = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+    require(inspection["changes"] == read(P / "current569-inspection.json")["changes"], "whole accepted changes drift")
+    current = dict(original)
+    for change in inspection["changes"]:
+        current[change["study_uid"], change["target"]] = change["after"]
+    rows = list(lines(C / "candidate-ledger-rows.jsonl.gz"))
+    holds_list = list(lines(C / "candidate-hold-records.jsonl.gz"))
+    holds = {h["id"]: h for h in holds_list}
+    require(len(holds) == len(holds_list), "duplicate holds")
+    entries = list(lines(CAT / "catalog-entries.jsonl.gz"))
+    for e in entries:
+        for field in ("record", "identity", "target_order_record"):
+            if field in e:
+                e[field]["artifact"]["path"] = "work/recovered/" + e[field]["artifact"]["path"]
+    entries += read(C / "peer-resolution-catalog-additions.json")
+    cohort_path = C / "candidate-cohort-reuse-receipts.json.gz"
+    cohort_doc = read(cohort_path)
+    for i, r in enumerate(cohort_doc["records"]):
+        ann = {"state": r["state"], "evidence": r["evidence"]}
+        entries.append({"id": r["id"], "study_uid": r["study_uid"], "target": r["target"], "source_report_sha256": r["source_report_sha256"], "rubric_sha256": RUBRIC, "agent_id": AGENT, "session_id": AGENT, "kind": "resolution", "layout": "scalar", "annotation_sha256": digest(ann), "record": raw_binding(cohort_path, "/records/" + str(i), r), "identity": raw_binding(cohort_path, "", cohort_doc), "role": "mechanical_proposed_release_use_not_source_author"})
+    # Ephemeral adapters exercise exact rows without manufacturing final policy
+    # context, independent endorsement, root acceptance or an authenticated CSV.
+    bindings = m.Bindings(W)
+    real_obj = bindings.obj
+    marker = {"path": "UNAPPROVED-CATALOG-PREVIEW", "sha256": "0" * 64}
+    near_marker = {"path": "UNAPPROVED-NEAR-PREVIEW", "sha256": "0" * 64}
+    near_path = C / "candidate-near-edge-dispositions.json"
+    near_doc = read(near_path)
+    first = near_doc["records"][0]
+    pair = sorted([first["study_uid"], first["other_study_uid"]])
+    near = {"schema_version": 1, "source_reports_sha256": CANON, "edges": [{"left": pair[0], "right": pair[1], "target_dispositions": [{"target": r["target"], "action": r["action"], "reason": r["reason"], "evidence": [raw_binding(near_path, "/records/" + str(i), r)]} for i, r in enumerate(near_doc["records"])]}]}
+    def preview_obj(ref_):
+        if ref_ == marker:
+            return {"schema_version": 1, "context": None, "records": entries}
+        if ref_ == near_marker:
+            return near
+        return real_obj(ref_)
+    bindings.obj = preview_obj
+    context = {"source_reports_sha256": CANON, "rubric": {"sha256": RUBRIC}, "correspondence_excluded_uids": sorted({r["study_uid"] for r in lines(HERE / "projections-v1/cell-projection-ledger.jsonl.gz") if r["existing_correspondence_exclusion"]}), "near_report_pairs": [pair], "review_files": review_files, "correction_cases": {r["path"]: r["sha256"] for r in read(R / "initiative/reviews-v2/adjudications/registry.json")["cases"]}}
+    catalog = m._evidence(marker, reports, None, context, bindings)
+    scope = ref(C / "candidate-scope-manifest.json.gz")
+    scope = {k: scope[k] for k in ("path", "sha256")}
+    inputs = {"scope_manifest": scope, "near_report_dispositions": near_marker, "authenticated_train_csv": None}
+    bundle = {"context": None, "holds": None, "ledger": None, "decision": None}
+    audit = m._finish_inspection(reports, original, current, context, None, bundle, holds, {"rows": rows}, catalog, inputs, bindings)
+    require(len(audit["cells"]) == 52884, "runtime full coverage")
+    expected_summary = read(C / "candidate-summary.json")
+    retained = sum(c["report_supervision_allowed"] for c in audit["cells"])
+    require(retained == expected_summary["counts"]["observed_cells_before_pre_gold"] - expected_summary["counts"]["observed_cells_removed_pre_gold"], "coverage replay mismatch")
+    # Independent exact cohort replay, with no clinical text classifier.
+    byid = {e["id"]: e for e in catalog.values()}
+    source_by_cell = defaultdict(list)
+    for entry in catalog.values():
+        if entry["kind"] in {"original_source", "supplemental_source"}:
+            source_by_cell[entry["study_uid"], entry["target"]].append(entry)
+    for r in cohort_doc["records"]:
+        opinions = [byid[e] for e in r["supporting_evidence_ids"]]
+        source = [e for e in opinions if e["kind"] == "original_source"]
+        key = r["study_uid"], r["target"]
+        require(len(source) == 2 and len({e["agent_id"] for e in source}) == 2 and all(e["annotation"]["state"] == "negative" for e in source), "cohort source rule")
+        require(current[key] == original[key] and current[key]["state"] == "negative", "cohort changed original/current")
+        require(all(e["annotation"]["state"] == "negative" for e in source_by_cell[key]), "cohort hidden contrary source")
+    proof = {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "status": "complete_candidate_mechanics_passed_no_final_context_or_approval", "runtime_used_for_mechanics_only": ref(runtime), "candidate_summary": ref(C / "candidate-summary.json"), "counts": {"canonical_cells": len(audit["cells"]), "catalog_records": len(catalog), "original_projection_records": 194973, "actual_peer_resolution_records": 187, "mechanical_cohort_resolution_records": len(cohort_doc["records"]), "hold_records": len(holds), "retained_observed_pre_gold": retained}, "all569_whole_corrections_unchanged": True, "all_original_raw_source_and_quote_bindings_valid": True, "all_obligation_dispositions_and_exact_group_propagation_valid": True, "all_contrary_source_ids_explicitly_discharged_or_held": True, "all12_known_near_edge_dispositions_valid": True, "no_semantic_registry_or_policy_approval_created": True, "final_context_ref": None, "final_release_inputs_ref": None, "official_train_csv_opened": False, "gold_values_read": False, "mask_application_called": False, "approval_validator_called": False, "runtime_final_context_validator_called": False, "R_writes": False, "all_three_gates_pending": inspection["pending_semantic_qa"], "bound_original_files_checked": len(bindings.hashes), "disk_free_bytes": shutil.disk_usage(W).free}
+    with output.open("xb") as f:
+        f.write(jb(proof) + b"\n")
+    print(json.dumps({"proof": ref(output), "counts": proof["counts"]}))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runtime", type=Path, required=True)
+    parser.add_argument("--runtime-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    main(args.runtime.resolve(), args.runtime_sha256, args.output.resolve())

@@ -57,8 +57,21 @@ to an actionable, costed sequence whose assumptions can be tested.
 
 ## Goal tracking
 
-Both phases are now required by the user. The available goal-status control cannot edit
-the original app objective text in place or reactivate its current blocked status.
-The work is continuing under the owner’s expanded instruction. This document records the user's expanded scope for continuation and completion audits.
+Both phases are now required by the user. The goal is active; its status control
+cannot edit the original objective text in place. This document records the user’s
+expanded scope for continuation and completion audits.
 Do not mark the expanded mission complete until the data-release evidence and
 the competitive training research/plan have both been delivered and verified.
+
+## H100 and CPU-cluster expansion
+
+The owner subsequently confirmed access to an H100 GPU server and a large CPU
+cluster, with access to follow once the plan is agreed. Revise the modeling plan
+for scalable multi-GPU experiments, native-resolution preparation and MRI-specific
+representation learning. Critically compare DINOv2 with newer encoders and 3D
+approaches; popularity in public notebooks is not evidence of optimality. The user identified UCF Newton, with opportunistically available two-GPU nodes
+and inter-node InfiniBand. Exact allocation, assigned memory and usable duration
+remain to be confirmed at access. Training
+resources do not relax the competition’s offline nine-hour inference limit.
+The deliverable remains a defensible first-place-oriented experiment strategy,
+not a guarantee of winning or authorization to incur new compute charges.

@@ -1,0 +1,88 @@
+"""Real diagnostic only: final release, optimizer, exact CPU resume and inference.
+
+Invoke from recovered repository with the workspace Python. No shortcuts around
+release validation, no gold-driven training/tuning, no competitive score claim.
+"""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib,json,platform,shutil,subprocess,sys,time
+import numpy as np
+import pandas as pd
+import torch
+sys.path.insert(0, str(Path.cwd()))
+from rsna.model import StudyNet,masked_bce
+from rsna.schema import TARGETS
+
+R=Path.cwd().resolve()
+W=R.parent.parent
+DEST=R/'initiative/audits/final-input-training-acceptance-v1'
+STUDIES=Path('initiative/releases/report-supervision-v1/studies.parquet')
+SERIES=Path('initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv')
+CACHE=Path('../cache256-v3-official-recovery-v1/cache')
+assert (R/'rsna/train.py').is_file() and (R/STUDIES).is_file()
+assert not DEST.exists(), 'Never overwrite an earlier acceptance run'
+assert shutil.disk_usage(R).free > 20*1024**3+40*1024**2
+DEST.mkdir(parents=True)
+(DEST/'run_acceptance.py.txt').write_bytes(Path(__file__).read_bytes())
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+started=time.monotonic()
+record={'schema_version':1,'actual_executor':'/root','started_at_utc':datetime.now(timezone.utc).isoformat(),'status':'running','diagnostic_only':True,'competitive_performance_claim':False,'python':platform.python_version(),'torch':torch.__version__,'platform':platform.platform(),'commands':[],'full_release':{'path':str(STUDIES),'sha256':sha(R/STUDIES)},'series':{'path':str(SERIES),'sha256':sha(R/SERIES)},'code_sha256':{str(p.relative_to(R)):sha(p) for p in sorted((R/'rsna').glob('*.py'))}}
+def save():
+ (DEST/'acceptance.json').write_text(json.dumps(record,indent=2)+'\n')
+def run(name,args):
+ assert shutil.disk_usage(R).free > 20*1024**3
+ start=time.monotonic()
+ command=[sys.executable,*map(str,args)]
+ with (DEST/f'{name}.log').open('w') as handle:
+  completed=subprocess.run(command,cwd=R,stdout=handle,stderr=subprocess.STDOUT)
+ record['commands'].append({'name':name,'argv':['python',*map(str,args)],'exit_code':completed.returncode,'elapsed_seconds':time.monotonic()-start,'log_sha256':sha(DEST/f'{name}.log')})
+ save();print(json.dumps(record['commands'][-1]),flush=True)
+ assert completed.returncode==0, name+' failed; see preserved log'
+def equal(a,b,path='checkpoint'):
+ assert type(a) is type(b),(path,type(a),type(b))
+ if isinstance(a,torch.Tensor):assert torch.equal(a,b),path
+ elif isinstance(a,dict):
+  assert a.keys()==b.keys(),path
+  for k in a:equal(a[k],b[k],f'{path}.{k}')
+ elif isinstance(a,(list,tuple)):
+  assert len(a)==len(b),path
+  for i,(x,y) in enumerate(zip(a,b)):equal(x,y,f'{path}[{i}]')
+ else:assert a==b,path
+save()
+try:
+ base=['-m','rsna.train','--studies',STUDIES,'--series',SERIES,'--cache',CACHE,'--artifact-root','.','--width','8','--slices','2','--side','32','--max-series','3','--batch-size','4','--workers','0','--device','cpu','--seed','42','--diagnostic-study-limit','32']
+ continuous=DEST.relative_to(R)/'continuous';resumed=DEST.relative_to(R)/'resumed'
+ run('continuous-two-epochs',base+['--epochs','2','--output',continuous])
+ run('resumed-first-epoch',base+['--epochs','1','--output',resumed])
+ first=torch.load(R/resumed/'checkpoint.pt',map_location='cpu',weights_only=True)
+ record['first_epoch_checkpoint_sha256']=sha(R/resumed/'checkpoint.pt')
+ record['first_epoch_steps']=first['step'];save()
+ run('resume-second-epoch',base+['--epochs','2','--output',resumed,'--resume',resumed/'checkpoint.pt'])
+ expected=torch.load(R/continuous/'checkpoint.pt',map_location='cpu',weights_only=True)
+ actual=torch.load(R/resumed/'checkpoint.pt',map_location='cpu',weights_only=True)
+ equal(expected,actual)
+ assert expected['epoch_complete'] and actual['epoch_complete'] and actual['step']>first['step']>0
+ torch.manual_seed(42);initial=StudyNet(width=8).state_dict()
+ assert any(not torch.equal(v,initial[k]) for k,v in actual['model'].items())
+ frame=pd.read_parquet(R/STUDIES)
+ train=frame.loc[frame.split.eq('train')].copy()
+ mask=torch.as_tensor(train[[t+'__mask' for t in TARGETS]].to_numpy(dtype=np.float32))
+ labels=torch.as_tensor(train[list(TARGETS)].to_numpy(dtype=np.float32))
+ logits=torch.zeros_like(labels,requires_grad=True)
+ loss=masked_bce(logits,labels,mask);loss.backward()
+ assert logits.grad is not None and logits.grad[mask.eq(0)].eq(0).all() and logits.grad[mask.eq(1)].abs().sum()>0
+ record['training_checks']={'full_loaded_checkpoint_equal':True,'optimizer_changed_initial_weights':True,'completed_epochs':actual['epoch']+1,'steps':actual['step'],'run_config':actual['run_config'],'release_binding':actual['release_binding'],'all_training_masked_logits_zero_gradient':True,'unmasked_gradients_nonzero':True,'masked_training_cells':int(mask.eq(0).sum()),'observed_training_cells':int(mask.eq(1).sum())};save()
+ infer=['-m','rsna.infer','--checkpoint',resumed/'checkpoint.pt','--cache',CACHE,'--artifact-root','.','--device','cpu','--workers','0','--batch-size','1']
+ gold=DEST.relative_to(R)/'gold_predictions.csv'
+ run('all-gold-inference',infer+['--studies',STUDIES,'--series',SERIES,'--split','gold_evaluation','--output',gold])
+ sample=DEST.relative_to(R)/'sample_submission.csv'
+ run('released-test-inference',infer+['--template','initiative/source/sample_submission.csv','--series','initiative/source/test_series.csv','--output',sample])
+ for path,count in [(gold,58),(sample,3)]:
+  prediction=pd.read_csv(R/path)
+  assert list(prediction.columns)==['StudyInstanceUID',*TARGETS] and len(prediction)==count
+  assert prediction.StudyInstanceUID.is_unique
+  values=prediction[list(TARGETS)].to_numpy();assert np.isfinite(values).all() and ((values>=0)&(values<=1)).all()
+ record.update(status='passed',finished_at_utc=datetime.now(timezone.utc).isoformat(),elapsed_seconds=time.monotonic()-started,gold_prediction_rows=58,released_test_prediction_rows=3,training_ready_claim='Only final-input software acceptance; full release/publication and project strategy are separately assessed',artifacts=[{'path':str(p.relative_to(R)),'bytes':p.stat().st_size,'sha256':sha(p)} for p in sorted(DEST.rglob('*')) if p.is_file() and p.name!='acceptance.json'])
+ save();print(json.dumps({'status':'passed','steps':actual['step'],'elapsed_seconds':record['elapsed_seconds']}),flush=True)
+except BaseException as error:
+ record.update(status='failed',error_type=type(error).__name__,error=str(error),elapsed_seconds=time.monotonic()-started);save();raise

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "actual_author": "/root/quality_temporal_review",
+  "scope": "Narrow original preread path/provenance fix only; no clinical membership changes or new historical-quote gate.",
+  "actual_context_probe": {
+    "path": "actual89-context-probe.json",
+    "sha256": "9e5d026d70d1ab27121d1e0552e47fe85377026ffda6658235a4a3076b4ab0b9"
+  },
+  "tests": {
+    "combined_core_preread_adapter": 93,
+    "passed": 93,
+    "seconds": 7.45,
+    "log_sha256": "e4c64b3c161f85f19d54ae92642bb8d2a3074a1a5317cbbf5199dd72c0dd7f19",
+    "new_preread_cases": 20,
+    "adapter_changes_required": false,
+    "staged_adapter_copy_only_changes_repo_fixture_lookup": true
+  },
+  "style": {
+    "ruff_check": "passed with repo config and explicit rsna first-party classification for out-of-repo staging",
+    "ruff_format": "passed repo100-column config",
+    "mypy": "passed one core module"
+  },
+  "independent_review": {
+    "path": "work/annotation-staging/semantic-supervision-preread-independent-review-v1/independent-review.json",
+    "sha256": "a662768b99cabf8e125bdd6844b1d149e5b74c967e714896bf16dedc8f129978"
+  },
+  "independent_completion": {
+    "path": "work/annotation-staging/semantic-supervision-preread-independent-review-v1/completion-manifest.json",
+    "sha256": "2089a37e0d2591a79273c1c77d1bcda85704038bc1b2a122e1f072890e4c7b3e"
+  },
+  "copy_to_R_only": [
+    "semantic_supervision.py -> rsna/semantic_supervision.py",
+    "test_semantic_supervision.py -> tests/test_semantic_supervision.py",
+    "test_preread_provenance.py -> tests/test_preread_provenance.py"
+  ],
+  "do_not_copy": [
+    "conftest.py staging injector",
+    "test_release_adapter.py staging path adapter"
+  ],
+  "limitations": [
+    "Actual context smoke isolates source/provenance/correction/nine-input phase; correspondence/near-pair inputs empty for this probe. It is not final approval, full release validation or QA closure.",
+    "Existing binding helpers read authenticated CSV bytes only for hashing; official gold values not parsed.",
+    "Historical invalid/unused quote preservation remains separate from unchanged selected-evidence exact-source checks."
+  ],
+  "attempt_history": [
+    "Initial Ruff default88 formatting created unrelated line expansion; restored unchanged core from R and applied only helper/context patch, then used repository100-column config. Superseded formatting diff preserved.",
+    "One unused test import and out-of-repo first-party classification corrected before seal; no core logic altered after independent review."
+  ],
+  "repository_writes": false
+}

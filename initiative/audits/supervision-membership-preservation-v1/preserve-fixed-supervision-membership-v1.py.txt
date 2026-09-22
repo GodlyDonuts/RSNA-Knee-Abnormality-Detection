@@ -1,0 +1,35 @@
+"""Preserve fixed membership evidence and actual policy decisions without closing QA."""
+from pathlib import Path
+import hashlib,json,shutil
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';B=W/'work/annotation-staging';A=R/'initiative/audits'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={'semantic-supervision-membership-builder-569-v1':'43711273b4ab570e66e601952c85aa21a1362ef208caff51ae652f95b0b91f8e','semantic-supervision-membership-independent-assessment-569-v1':'9edb2ffecc5af7b1b82ec04465b41b3f7ac18378237e9aed716fbdc14cfb39a7'}
+refs={}
+for n,pin in pins.items():
+ m=B/n/'completion-manifest.json';assert sha(m)==pin
+ for ref in json.loads(m.read_text())['files']:
+  p=W/ref['path'];assert p.is_relative_to(B/n) and p.is_file() and not p.is_symlink()
+  assert sha(p)==ref['sha256'] and p.stat().st_size==ref['bytes']
+  refs[p]=dict(sha256=sha(p),bytes=p.stat().st_size)
+ refs[m]=dict(sha256=pin,bytes=m.stat().st_size)
+p=B/'semantic-supervision-root-membership-decision-569-v1/root-membership-decision.json';assert sha(p)=='972a86a9d4f07029a46139e2c41fd388d9742ac4d3494019af717bee0f27863f';refs[p]=dict(sha256=sha(p),bytes=p.stat().st_size)
+jobs=[]
+for p,ref in refs.items():
+ d=A/p.relative_to(B)
+ if p.suffix=='.py':d=d.with_suffix('.py.txt')
+ jobs.append((p,d,ref))
+needed=sum(ref['bytes'] for _,d,ref in jobs if not d.exists());assert shutil.disk_usage(W).free-needed>=20*1024**3
+outdir=A/'supervision-membership-preservation-v1';assert not outdir.exists()
+for _,d,ref in jobs:
+ if d.exists():assert sha(d)==ref['sha256']
+files=[]
+for p,d,ref in jobs:
+ d.parent.mkdir(parents=True,exist_ok=True)
+ action='equal_existing' if d.exists() else 'copied_new'
+ if not d.exists():
+  with d.open('xb') as out:out.write(p.read_bytes())
+ assert sha(d)==ref['sha256']
+ files.append(dict(original_path=str(p.relative_to(W)),path=str(d.relative_to(R)),action=action,**ref))
+outdir.mkdir();helper=outdir/(Path(__file__).name+'.txt');helper.write_bytes(Path(__file__).read_bytes())
+out=outdir/'preservation.json';out.write_text(json.dumps(dict(actual_executor='/root',stage='fixed_membership_evidence_preservation',completion_pins=pins,files=files,helper_sha256=sha(helper),accepted_for_final_context_binding=True,semantic_qa_closed=False,training_ready=False),indent=2)+'\n')
+print(json.dumps(dict(files=len(files),new_bytes=needed,receipt_sha256=sha(out))))

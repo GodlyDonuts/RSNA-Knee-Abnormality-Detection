@@ -1,0 +1,188 @@
+--- a/rsna/semantic_supervision.py
++++ b/rsna/semantic_supervision.py
+@@ -202,6 +202,150 @@
+     return {"path": str(path.resolve().relative_to(root.resolve())), "sha256": file_digest(path)}
+ 
+ 
++def _preread_reference(metadata: dict) -> dict:
++    """Resolve only recorded aliases; supplementary hash aliases must agree."""
++    aliases = (
++        ("independent_source_read_path", "independent_source_read_sha256"),
++        ("preread_path", "preread_sha256"),
++        ("independent_preread_path", "independent_preread_sha256"),
++    )
++    refs = []
++    for path_key, hash_key in aliases:
++        if path_key in metadata:
++            fail(
++                isinstance(metadata[path_key], str)
++                and bool(metadata[path_key])
++                and isinstance(metadata.get(hash_key), str),
++                "incomplete preread provenance alias",
++            )
++            refs.append({"path": metadata[path_key], "sha256": metadata[hash_key]})
++    fail(
++        bool(refs) and all(ref == refs[0] for ref in refs),
++        "missing/conflicting preread aliases",
++    )
++    fail(
++        all(metadata[h] == refs[0]["sha256"] for _, h in aliases if h in metadata),
++        "conflicting preread hash aliases",
++    )
++    return refs[0]
++
++
++def _reading_rows(ref: dict, uids: list[str], reports: dict[str, str], bindings: Bindings) -> None:
++    bindings.path(ref)
++    rows = [parse(line) for line in bindings.text(ref["path"]).splitlines()]
++    fail(
++        all(
++            isinstance(row, dict) and set(row) == {"study_uid", "states", "evidence", "notes"}
++            for row in rows
++        ),
++        "original reading row shape",
++    )
++    fail(
++        [row["study_uid"] for row in rows] == uids,
++        "original reading batch membership/order",
++    )
++    for row in rows:
++        fail(
++            isinstance(row["states"], list)
++            and isinstance(row["evidence"], list)
++            and len(row["states"]) == len(row["evidence"]) == len(TARGETS),
++            "original reading target order",
++        )
++        # Preserve all historical bytes, including unused/nonprojectable quotes.
++        # Exact-source quotation validation belongs to selected catalog evidence.
++        fail(
++            all(state in STATES for state in row["states"])
++            and all(isinstance(quote, str) for quote in row["evidence"]),
++            "original reading state/evidence shape",
++        )
++
++
++def _original_reading_files(
++    reviews: Path,
++    root: Path,
++    reports: dict[str, str],
++    source_files: dict,
++    review_files: dict,
++    source_hash: str,
++    rubric_hash: str,
++    provenance_ref: dict,
++    bindings: Bindings,
++) -> dict:
++    """Bind actual authored prereads through reviewed provenance, never a folder guess."""
++    provenance = bindings.obj(provenance_ref)
++    batches = {Path(path).stem: path for path in source_files}
++    fail(
++        isinstance(provenance, dict) and set(provenance) == set(batches),
++        "original reading provenance batch coverage",
++    )
++    expected_reviews = {
++        str((reviews / f"{batch}-reviewed.jsonl").relative_to(root)) for batch in batches
++    }
++    fail(set(review_files) == expected_reviews, "original reviewed batch coverage")
++    draft_paths = sorted((reviews.parent / "drafts").glob("*-draft.jsonl"))
++    expected_drafts = {reviews.parent / "drafts" / f"{batch}-draft.jsonl" for batch in batches}
++    fail(
++        set(draft_paths) == expected_drafts and bool(draft_paths),
++        "missing original draft artifacts",
++    )
++    reading_files: dict[str, dict] = {"drafts": {}, "prereads": {}}
++    for batch, source_path in sorted(batches.items()):
++        uids = [
++            row["study_uid"]
++            for row in bindings.obj({"path": source_path, "sha256": source_files[source_path]})
++        ]
++        phases = provenance[batch]
++        fail(
++            isinstance(phases, dict) and set(phases) == {"draft", "reviewed"},
++            "original reading requires both provenance phases",
++        )
++        for phase, folder in (("draft", "drafts"), ("reviewed", "reviewed")):
++            metadata = phases[phase]
++            fail(isinstance(metadata, dict), "original reading provenance shape")
++            for name in ("agent_id", "session_id"):
++                identity(metadata.get(name))
++            fail(
++                metadata.get("source_reports_sha256") == source_hash
++                and metadata.get("rubric_sha256") == rubric_hash,
++                "original reading source/rubric context",
++            )
++            fail(
++                metadata.get("source_sha256") == source_files[source_path],
++                "original reading source batch binding",
++            )
++            fail(
++                type(metadata.get("n_studies")) is int and metadata["n_studies"] == len(uids),
++                "original reading provenance study count",
++            )
++            path = reviews.parent / folder / f"{batch}-{phase}.jsonl"
++            ref = {
++                "path": str(path.relative_to(root)),
++                "sha256": metadata.get("sha256"),
++            }
++            _reading_rows(ref, uids, reports, bindings)
++            if phase == "draft":
++                reading_files["drafts"][ref["path"]] = ref["sha256"]
++        fail(
++            phases["reviewed"].get("parent_artifact_sha256") == phases["draft"]["sha256"],
++            "original reviewed draft binding",
++        )
++        fail(
++            all(
++                phases["draft"][name] != phases["reviewed"][name]
++                for name in ("agent_id", "session_id")
++            ),
++            "original readers not distinct",
++        )
++        preread = _preread_reference(phases["reviewed"])
++        fail(
++            preread["path"] not in reading_files["prereads"],
++            "duplicate original preread path",
++        )
++        _reading_rows(preread, uids, reports, bindings)
++        reading_files["prereads"][preread["path"]] = preread["sha256"]
++    return reading_files
++
++
+ def _context(
+     reports: dict[str, str],
+     reviews: Path,
+@@ -268,19 +412,21 @@
+         bindings.path(ref)
+         fail(ref["path"] not in case_map, "duplicate correction case")
+         case_map[ref["path"]] = ref["sha256"]
+-    reading_files = {}
+-    for folder, suffix in (("drafts", "draft"), ("prereads", "preread")):
+-        files = sorted((reviews.parent / folder).glob(f"*-{suffix}.jsonl"))
+-        fail(
+-            len(files) == len(review_files) and bool(files),
+-            "missing original draft/preread artifacts",
+-        )
+-        mapping = {}
+-        for path in files:
+-            ref = _reference(path, root)
+-            bindings.path(ref)
+-            mapping[ref["path"]] = ref["sha256"]
+-        reading_files[folder] = mapping
++    fail(
++        set(required_inputs) == INPUT_NAMES,
++        "missing independently pinned policy/scope input",
++    )
++    reading_files = _original_reading_files(
++        reviews,
++        root,
++        reports,
++        source_files,
++        review_files,
++        source_hash,
++        rubric_ref["sha256"],
++        required_inputs["review_provenance"],
++        bindings,
++    )
+     changes = adjudications["changes"]
+     fail(adjudications.get("n_changes") == len(changes), "correction count mismatch")
+     current = dict(original)

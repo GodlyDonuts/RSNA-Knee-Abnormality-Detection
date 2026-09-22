@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "stage": "independent_technical_review_of_split_only_coverage_repair",
+  "created_at_utc": "2026-09-22T09:18:09.577768+00:00",
+  "reviewed_utility": {
+    "path": "work/annotation-staging/weak-split-coverage-repair-proposal-v1/weak_split.py",
+    "sha256": "b4ae6e16ec3d55cba94ab1b8967dab9d6e10616a4a69d61f12be1fc74e54c667"
+  },
+  "reviewed_author_tests": {
+    "path": "work/annotation-staging/weak-split-coverage-repair-proposal-v1/test_weak_split.py",
+    "sha256": "39ac393bd5632342d0cb06642ec6e62cf2a5ed30b5dc95b7d467a73e3f856829"
+  },
+  "findings": [],
+  "conclusion": "No concrete defect found in the pinned bounded utility. Integration and final context/QA acceptance remain separate requirements.",
+  "verified_invariants": [
+    "Only split values change; all other columns and input DataFrame remain preserved.",
+    "Only whole existing leakage groups from train or weak_validation can move; any active/protected or active/active cross-boundary group is rejected.",
+    "Gold/quarantine target values do not contribute candidate classes, ranking or coverage.",
+    "Candidates are evaluated using already-fixed mask==1 weak labels only.",
+    "Each donor retains every previously present target/class, and the recipient gains a previously missing pair.",
+    "Global missing split/class count strictly decreases. Global class absence fails before moves.",
+    "Candidate ordering is group study count, SHA256(existing group ID), then group ID, with fixed canonical missing-pair order.",
+    "No safe donor fails closed; this is a conservative deterministic greedy repair, not a claim that every mathematically possible partition is found.",
+    "Exact moved groups, UIDs, directions, before/after counts and rule version are serialized by separate audit."
+  ],
+  "move_bound_analysis": "Although MAX_MOVES is48, global presence guarantees at least24 of48 split/class pairs initially present. Strict monotonic improvement therefore needs at most24 actual moves. The independent worst-case fixture performs exactly24 safe moves and terminates complete.",
+  "independent_tests": {
+    "passed": 2,
+    "seconds": 5.53,
+    "cases": "One exact24-move fixture plus20 randomized fixtures checking complete coverage, whole-group preservation, protected values, row-order independence and unchanged clinical/mask fields.",
+    "scope": "Entirely synthetic utility-level tests; no real gold or clinical values inspected."
+  },
+  "integration_requirements": [
+    "Add utility and exact rule version to accepted data-semantic code/split-policy context.",
+    "Apply the same utility after fixed semantic/technical masking in both labels export and deterministic fresh release replay.",
+    "Do not select or alter holds based on class counts or gold values.",
+    "Recompute final complete release table/receipt and before/after split proof after actual fixed membership; retain original hash-based splits as historical before evidence."
+  ],
+  "repository_writes_by_reviewer": false,
+  "membership_or_qa_acceptance": false
+}

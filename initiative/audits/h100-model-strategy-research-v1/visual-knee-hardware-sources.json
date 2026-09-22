@@ -1,0 +1,139 @@
+{
+  "author": "/root/competition_contract",
+  "verified_date": "2026-09-22",
+  "scope": "Public primary documentation and research only; no checkpoint downloads or eligibility decision.",
+  "candidates": [
+    {
+      "id": "dinov2_vitl14_reg",
+      "family": "DINOv2",
+      "role": "core comparator",
+      "parameters_approx": 300000000,
+      "embedding_dim": 1024,
+      "patch": 14,
+      "pretraining": "LVD-142M general images; distilled from ViT-g",
+      "license_reported": "Apache-2.0",
+      "sources": [
+        "https://github.com/facebookresearch/dinov2/blob/main/MODEL_CARD.md",
+        "https://arxiv.org/abs/2304.07193"
+      ],
+      "limitations": [
+        "No direct twelve-target knee validation",
+        "Exact revision/weight hash to pin before acquisition"
+      ]
+    },
+    {
+      "id": "dinov3_vitl16, LVD-1689M",
+      "family": "DINOv3",
+      "role": "primary high-compute candidate, conditional on license/rules compatibility",
+      "parameters_approx": 300000000,
+      "embedding_dim": 1024,
+      "patch": 16,
+      "pretraining": "Distilled from ViT-7B trained on LVD-1689M, curated from public Instagram posts; use web rather than satellite variant",
+      "license_reported": "DINOv3 custom license, August 19 2025",
+      "sources": [
+        "https://github.com/facebookresearch/dinov3/blob/main/MODEL_CARD.md",
+        "https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md",
+        "https://arxiv.org/abs/2508.10104"
+      ],
+      "limitations": [
+        "General-vision dense-feature improvements are not knee superiority evidence",
+        "Custom redistribution and acknowledgment terms remain relevant",
+        "Actual gate acceptance not performed"
+      ]
+    },
+    {
+      "id": "google/siglip2-so400m-patch16-384",
+      "family": "SigLIP 2",
+      "role": "one objective-diverse frozen-feature comparator",
+      "visual_parameters_approx": 400000000,
+      "patch": 16,
+      "pretraining": "WebLI image-text data; captioning, self-distillation, masked prediction",
+      "license_reported": "Apache-2.0",
+      "sources": [
+        "https://huggingface.co/google/siglip2-so400m-patch16-384",
+        "https://arxiv.org/abs/2502.14786"
+      ],
+      "limitations": [
+        "Not MRI-specific",
+        "Native preprocessing resolution differs from common 224 screening; report matched-input and native-input comparisons separately"
+      ]
+    },
+    {
+      "id": "ytrsk/OrthoFoundation::OrthoFoudation-L.pth",
+      "family": "OrthoFoundation",
+      "role": "conditional knee-specific challenger",
+      "advertised_weight_bytes_approx": 1130000000,
+      "pretraining": "DINOv3-L continuation; current author README: 1251655 knee 2D images, 357670 radiographs and 893985 MRI slices; OAI, fastMRI and private multicenter cohort",
+      "license_reported": "Repository MIT; DINOv3 upstream obligations require resolution",
+      "sources": [
+        "https://arxiv.org/abs/2601.18250",
+        "https://arxiv.org/pdf/2601.18250",
+        "https://github.com/ytrsk/OrthoFoundation",
+        "https://github.com/ytrsk/OrthoFoundation/blob/main/LICENSE",
+        "https://github.com/ytrsk/OrthoFoundation/blob/main/OrthoFoudation-L.pth"
+      ],
+      "limitations": [
+        "January preprint says 14 tasks; current README says 17, so bind version rather than merge claims",
+        "Private data restricted; source overlap not established",
+        "Checkpoint presence verified only, bytes/architecture/provenance not replayed",
+        "Public weight availability does not establish eligibility"
+      ]
+    },
+    {
+      "id": "lanstat0123/orthodiffusion::{axial,coronal,sagittal}_model.pt",
+      "family": "OrthoDiffusion",
+      "role": "conditional orientation-specific 3D knee challenger",
+      "advertised_total_bytes_approx": 1660000000,
+      "pretraining": "15948 knee examinations, three orientation-specific 3D diffusion backbones; private PD-weighted series",
+      "license_reported": "Official code MIT; linked-paper HF card declares MIT",
+      "sources": [
+        "https://arxiv.org/abs/2602.20752",
+        "https://arxiv.org/html/2602.20752v1",
+        "https://github.com/lt-0123/OrthoDiffusion",
+        "https://github.com/lt-0123/OrthoDiffusion/blob/main/LICENSE",
+        "https://huggingface.co/lanstat0123/orthodiffusion",
+        "https://huggingface.co/lanstat0123/orthodiffusion/tree/main",
+        "https://github.com/lt-0123/OrthoDiffusion/blob/main/configs/config_linear.yaml"
+      ],
+      "limitations": [
+        "Private data restricted; pretraining excluded prior surgery/hardware and acute complex fractures, among other exclusions",
+        "Eight knee targets differ from competition twelve and severity definitions",
+        "HF card links official paper/code; no reciprocal GitHub weight link found in README, so verify release linkage before loading",
+        "Weight bytes not downloaded or authenticated",
+        "Use feature extraction at chosen timesteps, not a full generative sampling chain or unavailable EHR inputs"
+      ]
+    }
+  ],
+  "method_sources": [
+    {
+      "url": "https://arxiv.org/abs/2208.13923",
+      "claim": "SB-SSL supplies direct limited-data knee MRI self-supervision precedent, not current twelve-target proof."
+    },
+    {
+      "url": "https://arxiv.org/abs/2604.11679",
+      "claim": "FOMO25 reports task-dependent SSL gains and no reliable benefit from simply scaling model size/duration on its brain MRI tasks."
+    }
+  ],
+  "ucf_sources": [
+    {
+      "url": "https://arcc.ist.ucf.edu/index.php/resources/newton/about-newton",
+      "claim": "Published inventory: 29 dual H100 80GB PCIe nodes; 4 eight-H100 nodes; V100 nodes; EDR/HDR InfiniBand."
+    },
+    {
+      "url": "https://arcc.ist.ucf.edu/docs/scheduler/",
+      "claim": "Slurm, walltime limits, published shared faculty GPU-hour allocation; user actual balance must be checked."
+    },
+    {
+      "url": "https://arcc.ist.ucf.edu/docs/scheduler/limitations/",
+      "claim": "normal/preemptable queues and fairshare; not guaranteed capacity."
+    },
+    {
+      "url": "https://arcc.ist.ucf.edu/docs/scheduler/scripts/",
+      "claim": "GPU type/count, CPU, memory and partition are submission resources; job scripting recommended."
+    },
+    {
+      "url": "https://arcc.ist.ucf.edu/docs/data/files/",
+      "claim": "Published Stokes quota/inode and no-backup policies; do not infer Newton account quota from aggregate storage."
+    }
+  ]
+}

@@ -582,6 +582,7 @@ def _mock_cli_inputs(monkeypatch: pytest.MonkeyPatch, bundle: dict, output: Path
     )
 
 
+@pytest.mark.usefixtures("isolate_semantic_release")
 def test_cli_enforces_similarity_before_gold_quarantine_and_exports_bound_trace(
     bundle: dict, monkeypatch: pytest.MonkeyPatch
 ) -> None:

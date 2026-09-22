@@ -1,0 +1,64 @@
+"""Root's actual final policy decision after the preserved independent assessment."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib, json
+
+W = Path(__file__).resolve().parent.parent
+R = W / 'work/recovered'
+S = W / 'work/annotation-staging'
+P = S / 'semantic-supervision-final-proposal-569-v1'
+A = S / 'semantic-supervision-final-independent-assessment-569-v1'
+D = R / 'initiative/reviews-v2/semantic-supervision'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):
+    return {'path': str(p.relative_to(R)), 'sha256': sha(p)}
+def copy(source, dest):
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.exists():
+        assert dest.read_bytes() == source.read_bytes(), str(dest)
+    else:
+        dest.write_bytes(source.read_bytes())
+    assert sha(dest) == sha(source)
+
+assert sha(P/'completion-supplement.json') == '1112723a4d99480df7e771f03500884563ce88eee00207104a1116f98b0cb3d2'
+assert sha(A/'assessment.json') == 'da3c2c4e6cb06281275b59fc5ac5213d6e4301467279c08ab4a6349e70e9c28d'
+preserved = []
+for stage, completion in [(P, 'completion-supplement.json'), (A, 'completion-manifest.json')]:
+    manifest = json.loads((stage/completion).read_text())
+    for item in manifest['files']:
+        source = W/item['path'] if item['path'].startswith('work/') else stage/item['path']
+        assert source.stat().st_size == item['bytes'] and sha(source) == item['sha256']
+    for source in sorted(stage.iterdir()):
+        if source.is_file():
+            name = source.name + '.txt' if source.suffix == '.py' else source.name
+            dest = R/'initiative/audits'/stage.name/name
+            copy(source, dest)
+            preserved.append({'original':str(source.relative_to(W)), **ref(dest)})
+for item in json.loads((P/'root-install-plan.json').read_text())['files']:
+    source, dest = W/item['source'], R/item['destination']
+    assert sha(source) == item['sha256']
+    copy(source, dest)
+copy(A/'assessment.json', D/'assessment.json')
+assessment = json.loads((D/'assessment.json').read_text())
+assert assessment['status'] == 'endorsed_for_report_supervision' and not assessment['blocking_findings']
+for name, expected in assessment['code_sha256'].items():
+    assert sha(R/name) == expected, name
+scope = {name: ref(D/name2) for name,name2 in [('context','context.json'),('holds','holds.json.gz'),('ledger','ledger.json.gz'),('proposal','proposal.json'),('assessment','assessment.json')]}
+for name in ['context','holds','ledger','proposal']:
+    assert assessment[name] == scope[name]
+decision = {
+    'schema_version':1, **scope, 'status':'accepted_for_report_supervision',
+    'agent_id':'/root', 'session_id':'01a0c0eb-43a3-7be3-a2e3-a2b0f413ae1e',
+    'at_utc':datetime.now(timezone.utc).isoformat(),
+    'reason':'I accept this exact final report-supervision policy after reviewing the concrete proposal, fresh mechanics, exhaustive independent final binding assessment and the prior root membership decision. All 569 accepted whole corrections and original judgments remain unchanged. The full-cell ledger retains supported evidence reuse and explicit dissent, while unresolved report targets are held out of loss. I accept the deterministic whole-group split coverage repair independently bound in this context. This is a policy acceptance for report supervision, not a clinical adjudication of held claims or a diagnostic reread of images. The normal approval-enforcing inspection, three bound QA resolutions, persisted final release, real optimizer/resume/inference acceptance and verified publication remain separate required actions.',
+    'clinical_annotations_changed':False, 'training_ready':False,
+}
+assert not (D/'decision.json').exists() and not (D/'registry.json').exists()
+(D/'decision.json').write_text(json.dumps(decision,indent=2)+'\n')
+registry = {'schema_version':1, **scope, 'decision':ref(D/'decision.json'), 'previous_registry':None}
+(D/'registry.json').write_text(json.dumps(registry,indent=2)+'\n')
+out = R/'initiative/audits/final-supervision-policy-integration-v1'
+out.mkdir(exist_ok=False)
+copy(Path(__file__), out/'accept-final-supervision-policy-v1.py.txt')
+(out/'integration.json').write_text(json.dumps({'schema_version':1,'actual_executor':'/root','registry':ref(D/'registry.json'),'preserved':preserved,'policy_decision':ref(D/'decision.json'),'training_ready':False},indent=2)+'\n')
+print(json.dumps({'status':'actual_final_policy_accepted','registry':ref(D/'registry.json'),'assessment':scope['assessment']}))

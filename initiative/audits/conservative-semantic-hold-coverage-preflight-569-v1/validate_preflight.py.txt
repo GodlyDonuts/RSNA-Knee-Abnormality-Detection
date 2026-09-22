@@ -1,0 +1,82 @@
+"""Replay compact candidate output and measure scenarios, with no clinical inference."""
+from pathlib import Path
+from collections import Counter,defaultdict
+import gzip,hashlib,json,shutil,sys
+P=Path(__file__).resolve().parent;W=P.parents[2];D=P/'result-v2';R=W/'work/recovered';AGENT='/root/duplicate_consistency_review'
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(2**20),b''):h.update(b)
+ return h.hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def read(p):return json.loads(p.read_text())
+def rows(p):
+ with gzip.open(p,'rt') as f:return [json.loads(x) for x in f]
+def jb(x):return (json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\n').encode()
+def write(name,x):
+ with (P/name).open('xb') as f:f.write(jb(x))
+manifest=read(D/'completion-manifest.json')
+for x in manifest['files']:
+ p=W/x['path'];assert sha(p)==x['sha256'] and p.stat().st_size==x['bytes']
+ if 'uncompressed_sha256' in x:
+  h=hashlib.sha256();size=lines=0
+  with gzip.open(p,'rb') as f:
+   for line in f:h.update(line);size+=len(line);lines+=1
+  assert h.hexdigest()==x['uncompressed_sha256'] and size==x['uncompressed_bytes'] and lines==x['records']
+ledger=rows(D/'cell-ledger.jsonl.gz');cells={(r['study_uid'],r['target']):r for r in ledger};assert len(cells)==len(ledger)==52884
+sys.path.insert(0,str(R));from rsna.schema import TARGETS
+assert len({k[0] for k in cells})==4407 and all(set(r['target'] for r in ledger if r['study_uid']==u)==set(TARGETS) for u in {k[0] for k in cells})
+inspection=read(D/'current569-inspection.json');active={(c['study_uid'],c['target']):(i,c) for i,c in enumerate(inspection['changes'])};assert len(active)==569
+original={}
+for p in sorted((R/'initiative/reviews-v2/reviewed').glob('*-reviewed.jsonl')):
+ for r in map(json.loads,p.read_text().splitlines()):
+  for t,st,ev in zip(TARGETS,r['states'],r['evidence']):original[r['study_uid'],t]={'state':st,'evidence':ev}
+for key,r in cells.items():
+ a=active[key][1]['after'] if key in active else original[key]
+ assert r['current569']['state']==a['state'] and r['current569']['evidence_sha256']==hashlib.sha256(a['evidence'].encode()).hexdigest()
+ assert r['current569']['annotation_sha256']==hashlib.sha256(jb(a)).hexdigest()
+ assert r['active_accepted_change_index']==(active[key][0] if key in active else None)
+ assert r['approved_semantic_hold'] is False
+assert sha(R/'initiative/reviews-v2/adjudications/registry.json')==inspection['registry_sha256']=='7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'
+summary=read(D/'summary.json');assert Counter(r['display_partition'] for r in ledger)==summary['partition_counts']
+assert Counter(r['current569']['state'] for r in ledger)==summary['current_annotation_state_counts']
+observed={k for k,r in cells.items() if r['current569']['state'] in {'positive','negative'}}
+eligible={k for k in observed if not cells[k]['existing_correspondence_exclusion'] and not cells[k]['existing_unresolved_correspondence_all12_obligation']}
+reasonsets=defaultdict(set)
+for key,r in cells.items():
+ for reason in r['scope_obligations']:reasonsets[reason].add(key)
+strict=reasonsets['pending_source_supported_state_difference']|reasonsets['unresolved_root_current_state']|reasonsets['explicit_root003_extra_unresolved']
+quotes=reasonsets['pending_quote_variant_requires_scope_decision']|reasonsets['root_current_quote_variant_no_error_inferred']|reasonsets['root_disposed_retained_reader_state_dissent_policy_choice']
+incomplete=reasonsets['explicit_proxy_reliability_queue_without_focused_postfreeze']
+reportcue=reasonsets['unassigned_report_scope_cue_policy_choice']
+no_proxy=reasonsets['bone_outside_proxy_accounting_only_no_hold_inferred']|reasonsets['cartilage_outside_proxy_accounting_only_no_hold_inferred']
+mixed=reasonsets['historical_mixed_short_quote_group_context_review']
+scenarios={'state_differences_only':strict,'plus_all_quote_variants_and_adjudicated_dissent_for_measurement':strict|quotes,'plus_incomplete_proxy_reliability_queues_for_measurement':strict|quotes|incomplete,'plus_unassigned_report_scope_all12_scenario':strict|quotes|incomplete|reportcue,'plus_all_outside_proxy_accounting_and_mixed_short_quote_scopes':strict|quotes|incomplete|reportcue|no_proxy|mixed}
+dups=rows(D/'exact-duplicate-preflight.jsonl.gz');near=read(D/'near-report-inspection.json');scenario_results={}
+for name,allkeys in scenarios.items():
+ selected=allkeys&eligible;prop=set(selected)
+ for g in dups:
+  ks={(u,g['target']) for u in g['study_uids']}
+  if selected&ks:prop|=ks&eligible
+ bytarget={}
+ for t in TARGETS:
+  base={k for k in eligible if k[1]==t};holds={k for k in selected if k[1]==t};remaining=base-holds
+  bytarget[t]={'before':dict(Counter(cells[k]['current569']['state'] for k in base)),'candidate_removed':dict(Counter(cells[k]['current569']['state'] for k in holds)),'remaining':dict(Counter(cells[k]['current569']['state'] for k in remaining))}
+ scenario_results[name]={'candidate_keys_including_existing_masks':len(allkeys),'new_observed_report_cells_excluding_correspondence':len(selected),'reports_with_new_candidate_cells':len({u for u,t in selected}),'observed_remaining':len(eligible-selected),'additional_cells_if_exact_duplicate_consistency_propagation_approved':len(prop-selected),'by_target':bytarget,'actual_hold_decisions_approved':0,'is_gold_or_split_adjusted':False}
+near_rows=[]
+for edge in near['decisions']:
+ u,v=edge['left']['study_uid'],edge['right']['study_uid']
+ for t in TARGETS:
+  a,b=cells[u,t],cells[v,t]
+  near_rows.append({'left_uid':u,'right_uid':v,'target':t,'effective_state_equal':a['current569']['state']==b['current569']['state'],'effective_quote_equal':a['current569']['evidence_sha256']==b['current569']['evidence_sha256'],'candidate_reasons_equal':a['scope_obligations']==b['scope_obligations'],'require_explicit_relation_decision_no_automatic_propagation':True})
+accepted_history=[]
+for key,(i,c) in active.items():
+ r=cells[key];accepted_history.append({'study_uid':key[0],'target':key[1],'active_change_index':i,'case_id':c['case_id'],'current_state':r['current569']['state'],'root_or_reader_candidate_reasons':r['scope_obligations'],'current_annotation_sha256':r['current569']['annotation_sha256'],'approved_hold':False})
+with (P/'accepted-current-scope-overlap.jsonl.gz').open('xb') as raw:
+ with gzip.GzipFile(filename='',fileobj=raw,mode='wb',mtime=0) as f:
+  for r in accepted_history:f.write(jb(r))
+assert len(rows(P/'accepted-current-scope-overlap.jsonl.gz'))==569
+write('conditional-coverage-scenarios.json',{'status':'measurement_only_not_hold_approval','eligible_observed_report_cells_before':len(eligible),'all_observed_annotation_cells':len(observed),'current_correspondence_excluded_observed_cells':len(observed-eligible),'scenarios':scenario_results,'interpretation':'Scenarios are cumulative coverage-loss measurements, not policy recommendations or approved memberships. No official gold or final split was loaded. Raw annotation classes remain unchanged; final implementation must apply gold precedence and split-specific accounting.'})
+write('near-report-candidate-reconciliation.json',{'bound_similarity_inspection':ref(D/'near-report-inspection.json'),'records':near_rows,'no_hold_or_leakage_edge_changes':True})
+write('independent-output-replay.json',{'agent_id':AGENT,'status':'passed','all_cells_replayed':52884,'current_changes_exact':569,'gzip_member_hash_size_line_counts_verified':True,'current_annotation_object_hash_rule':'SHA256 of UTF-8 canonical sorted-key compact JSON with state/evidence and final newline','expected_target_order':list(TARGETS),'historical_ledger_unchanged':True,'three_gates_pending':len(inspection['pending_semantic_qa'])==3,'actual_semantic_holds_created':0,'free_bytes':shutil.disk_usage(W).free,'result_completion':ref(D/'completion-manifest.json')})
+print(json.dumps({'cells':52884,'eligible_observed_pre_gold':len(eligible),'scenarios':{n:{k:v for k,v in x.items() if k!='by_target'} for n,x in scenario_results.items()},'near_report_target_reason_asymmetry':sum(not x['candidate_reasons_equal'] for x in near_rows),'status':'passed'}))

@@ -1,0 +1,1076 @@
+"""Required, separately approved report-supervision exclusions; never relabels reports.
+
+The caller supplies the freshly validated adjudication inspection, before applying
+its release gate, and independently pinned policy/scope inputs. No clinical
+acceptance is inferred from reader counts, candidate discovery, or this module.
+"""
+
+from __future__ import annotations
+
+import gzip
+import hashlib
+import json
+import math
+import unicodedata
+from pathlib import Path
+from typing import Any, cast
+
+import pandas as pd
+from rsna.schema import STATES, TARGETS
+
+REGISTRY_PATH = Path("initiative/reviews-v2/semantic-supervision/registry.json")
+INPUT_NAMES = {
+    "review_provenance",
+    "retirement_manifest",
+    "correspondence_policy",
+    "similarity_policy",
+    "split_policy",
+    "technical_policy",
+    "scope_manifest",
+    "authenticated_train_csv",
+    "near_report_dispositions",
+}
+CATEGORIES = {
+    "state_disagreement",
+    "evidence_reliability",
+    "incomplete_reliability_review",
+    "report_scope_ambiguity",
+}
+SOURCE_KINDS = {"original_source", "supplemental_source"}
+
+
+def fail(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError("Semantic supervision: " + message)
+
+
+def digest(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
+    ).hexdigest()
+
+
+def file_digest(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def unique_object(pairs: list[tuple[str, Any]]) -> dict:
+    value: dict = {}
+    for key, item in pairs:
+        fail(key not in value, "duplicate JSON field")
+        value[key] = item
+    return value
+
+
+def parse(text: str) -> Any:
+    return json.loads(
+        text,
+        object_pairs_hook=unique_object,
+        parse_constant=lambda x: (_ for _ in ()).throw(ValueError(x)),
+    )
+
+
+def identity(value: Any) -> str:
+    fail(isinstance(value, str) and bool(value.strip()), "missing actual identity or reason")
+    return value
+
+
+def version(value: Any, fields: set[str] | None = None) -> dict:
+    fail(isinstance(value, dict), "expected object")
+    fail(
+        type(value.get("schema_version")) is int and value["schema_version"] == 1,
+        "unsupported schema version",
+    )
+    if fields is not None:
+        fail(set(value) == fields | {"schema_version"}, "unexpected schema fields")
+    return value
+
+
+def key(row: dict, reports: dict[str, str]) -> tuple[str, str]:
+    uid, target = row.get("study_uid"), row.get("target")
+    fail(isinstance(uid, str) and uid in reports and target in TARGETS, "unknown UID/target")
+    return cast(str, uid), cast(str, target)
+
+
+def annotation(value: Any, report: str) -> dict:
+    fail(isinstance(value, dict) and set(value) == {"state", "evidence"}, "annotation shape")
+    state, quote = value["state"], value["evidence"]
+    fail(state in STATES and isinstance(quote, str), "annotation state/evidence")
+    fail(
+        (state == "not_mentioned" and quote == "")
+        or (state != "not_mentioned" and bool(quote.strip()) and quote in report),
+        "nonverbatim or missing quotation",
+    )
+    return value
+
+
+def pointer(value: Any, path: Any) -> Any:
+    fail(isinstance(path, str) and (path == "" or path.startswith("/")), "invalid pointer")
+    if path == "":
+        return value
+    for raw in path[1:].split("/"):
+        fail("~" not in raw.replace("~0", "").replace("~1", ""), "invalid pointer escape")
+        part = raw.replace("~1", "/").replace("~0", "~")
+        if isinstance(value, list):
+            fail(
+                part.isdigit() and str(int(part)) == part and int(part) < len(value),
+                "invalid pointer index",
+            )
+            value = value[int(part)]
+        else:
+            fail(isinstance(value, dict) and part in value, "missing pointer field")
+            value = value[part]
+    return value
+
+
+class Bindings:
+    """Per-inspection immutable-byte cache, confined to one artifact root."""
+
+    def __init__(self, root: Path):
+        self.root = root.resolve()
+        self.raw: dict[str, bytes] = {}
+        self.hashes: dict[str, str] = {}
+        self.documents: dict[str, Any] = {}
+        self.lines: dict[str, list[Any]] = {}
+        self.selected_records: dict[tuple, Any] = {}
+
+    def path(self, ref: Any) -> Path:
+        fail(isinstance(ref, dict) and set(ref) == {"path", "sha256"}, "invalid file binding")
+        name, expected = ref["path"], ref["sha256"]
+        fail(
+            isinstance(name, str) and bool(name) and not Path(name).is_absolute(),
+            "binding path must be relative",
+        )
+        path = (self.root / name).resolve()
+        fail(path.is_relative_to(self.root) and path.is_file(), "missing or escaping binding")
+        if name not in self.raw:
+            self.raw[name] = path.read_bytes()
+            self.hashes[name] = hashlib.sha256(self.raw[name]).hexdigest()
+        fail(expected == self.hashes[name], "changed bound file: " + name)
+        return path
+
+    def text(self, name: str) -> str:
+        data = self.raw[name]
+        return (gzip.decompress(data) if name.endswith(".gz") else data).decode()
+
+    def obj(self, ref: Any) -> Any:
+        self.path(ref)
+        name = ref["path"]
+        if name not in self.documents:
+            self.documents[name] = parse(self.text(name))
+        return self.documents[name]
+
+    def record(self, ref: Any) -> Any:
+        fail(
+            isinstance(ref, dict) and set(ref) == {"artifact", "format", "selector", "sha256"},
+            "invalid evidence selector binding",
+        )
+        self.path(ref["artifact"])
+        cache_key = (ref["artifact"]["path"], ref["format"], ref["selector"], ref["sha256"])
+        if cache_key in self.selected_records:
+            return self.selected_records[cache_key]
+        name = ref["artifact"]["path"]
+        if ref["format"] == "json":
+            obj = pointer(self.obj(ref["artifact"]), ref["selector"])
+        else:
+            fail(
+                ref["format"] == "jsonl" and type(ref["selector"]) is int,
+                "invalid evidence format/line",
+            )
+            if name not in self.lines:
+                self.lines[name] = [parse(line) for line in self.text(name).splitlines()]
+            lines = self.lines[name]
+            fail(0 <= ref["selector"] < len(lines), "missing evidence line")
+            obj = lines[ref["selector"]]
+        fail(digest(obj) == ref["sha256"], "changed evidence object/selector")
+        self.selected_records[cache_key] = obj
+        return obj
+
+    def unchanged(self) -> None:
+        for name, expected in self.hashes.items():
+            fail(file_digest(self.root / name) == expected, "bound input changed during validation")
+
+
+def _reference(path: Path, root: Path) -> dict:
+    return {"path": str(path.resolve().relative_to(root.resolve())), "sha256": file_digest(path)}
+
+
+def _context(
+    reports: dict[str, str],
+    reviews: Path,
+    rubric: Path,
+    root: Path,
+    adjudications: dict,
+    required_inputs: dict,
+    bindings: Bindings,
+    correspondence_excluded_uids: set[str],
+    near_report_pairs: list[tuple[str, str]],
+) -> tuple[dict, dict, dict]:
+    fail(
+        bool(reports)
+        and all(
+            isinstance(u, str) and u and isinstance(r, str) and r.strip()
+            for u, r in reports.items()
+        ),
+        "invalid canonical reports",
+    )
+    source_files, actual_reports = {}, {}
+    for path in sorted((root / "initiative/reviews/inputs").glob("batch-*.json")):
+        ref = _reference(path, root)
+        source_files[ref["path"]] = ref["sha256"]
+        for row in bindings.obj(ref):
+            fail(isinstance(row, dict) and set(row) == {"study_uid", "report"}, "source shape")
+            fail(row["study_uid"] not in actual_reports, "duplicate source UID")
+            actual_reports[row["study_uid"]] = row["report"]
+    fail(actual_reports == reports, "canonical source coverage mismatch")
+    original, review_files = {}, {}
+    for path in sorted(reviews.glob("*-reviewed.jsonl")):
+        ref = _reference(path, root)
+        review_files[ref["path"]] = ref["sha256"]
+        bindings.path(ref)
+        for line in bindings.raw[ref["path"]].decode().splitlines():
+            row = parse(line)
+            fail(
+                isinstance(row, dict) and set(row) == {"study_uid", "states", "evidence", "notes"},
+                "review shape",
+            )
+            uid = row["study_uid"]
+            fail(uid in reports and (uid, TARGETS[0]) not in original, "review UID mismatch")
+            fail(len(row["states"]) == len(row["evidence"]) == len(TARGETS), "review target order")
+            for i, target in enumerate(TARGETS):
+                original[uid, target] = annotation(
+                    {"state": row["states"][i], "evidence": row["evidence"][i]}, reports[uid]
+                )
+    fail(len(original) == len(reports) * len(TARGETS), "incomplete original reviews")
+    source_hash = digest([{"study_uid": u, "report": reports[u]} for u in sorted(reports)])
+    rubric_ref = _reference(rubric, root)
+    bindings.path(rubric_ref)
+    live_registry = root / "initiative/reviews-v2/adjudications/registry.json"
+    registry = bindings.obj(_reference(live_registry, root))
+    fail(
+        adjudications.get("registry_sha256") == file_digest(live_registry),
+        "stale adjudication inspection",
+    )
+    fail(
+        adjudications.get("source_reports_sha256") == source_hash
+        and adjudications.get("rubric_sha256") == rubric_ref["sha256"],
+        "adjudication context mismatch",
+    )
+    case_map = {}
+    for ref in registry["cases"]:
+        bindings.path(ref)
+        fail(ref["path"] not in case_map, "duplicate correction case")
+        case_map[ref["path"]] = ref["sha256"]
+    reading_files = {}
+    for folder, suffix in (("drafts", "draft"), ("prereads", "preread")):
+        files = sorted((reviews.parent / folder).glob(f"*-{suffix}.jsonl"))
+        fail(
+            len(files) == len(review_files) and bool(files),
+            "missing original draft/preread artifacts",
+        )
+        mapping = {}
+        for path in files:
+            ref = _reference(path, root)
+            bindings.path(ref)
+            mapping[ref["path"]] = ref["sha256"]
+        reading_files[folder] = mapping
+    changes = adjudications["changes"]
+    fail(adjudications.get("n_changes") == len(changes), "correction count mismatch")
+    current = dict(original)
+    seen = set()
+    for change in changes:
+        k = key(change, reports)
+        fail(
+            k not in seen and change["before"] == original[k], "correction base/duplicate mismatch"
+        )
+        fail(
+            case_map.get(change["case"]["path"]) == change["case"]["sha256"],
+            "unknown correction case",
+        )
+        current[k] = annotation(change["after"], reports[k[0]])
+        seen.add(k)
+    fail(set(required_inputs) == INPUT_NAMES, "missing independently pinned policy/scope input")
+    for ref in required_inputs.values():
+        bindings.path(ref)
+    context = {
+        "schema_version": 1,
+        "source_reports_sha256": source_hash,
+        "report_count": len(reports),
+        "target_order": list(TARGETS),
+        "correspondence_excluded_uids": sorted(correspondence_excluded_uids),
+        "source_files": source_files,
+        "review_files": review_files,
+        "original_reading_files": reading_files,
+        "near_report_pairs": [list(p) for p in sorted(near_report_pairs)],
+        "rubric": rubric_ref,
+        "correction_cases": case_map,
+        "correction_objects_sha256": digest(changes),
+        "required_inputs": required_inputs,
+    }
+    return context, original, current
+
+
+def _approval(bundle: dict, bindings: Bindings) -> None:
+    proposal = version(bindings.obj(bundle["proposal"]))
+    assessment = version(bindings.obj(bundle["assessment"]))
+    decision = version(bindings.obj(bundle["decision"]))
+    proposer = identity(proposal.get("agent_id"))
+    assessor = identity(assessment.get("agent_id"))
+    decider = identity(decision.get("agent_id"))
+    for doc in (proposal, assessment, decision):
+        identity(doc.get("session_id"))
+        fail(
+            doc.get("context") == bundle["context"]
+            and doc.get("holds") == bundle["holds"]
+            and doc.get("ledger") == bundle["ledger"],
+            "approval does not bind exact scope",
+        )
+    fail(proposer != assessor and decider != assessor, "policy assessment is not distinct")
+    fail(proposal.get("status") == "proposed_for_report_supervision", "not a concrete proposal")
+    fail(
+        assessment.get("status") == "endorsed_for_report_supervision"
+        and assessment.get("proposal") == bundle["proposal"],
+        "missing independent endorsement",
+    )
+    fail(
+        decision.get("status") == "accepted_for_report_supervision"
+        and decision.get("proposal") == bundle["proposal"]
+        and decision.get("assessment") == bundle["assessment"],
+        "missing exact accepted policy action",
+    )
+    identity(assessment.get("reason"))
+    identity(decision.get("reason"))
+
+
+def _bundle(ref: dict, bindings: Bindings, visiting: set[str]) -> tuple[dict, dict, dict]:
+    name = ref["path"]
+    fail(name not in visiting, "cyclic registry history")
+    visiting.add(name)
+    bundle = version(
+        bindings.obj(ref),
+        {"context", "holds", "ledger", "proposal", "assessment", "decision", "previous_registry"},
+    )
+    _approval(bundle, bindings)
+    version(bindings.obj(bundle["context"]))
+    holds_doc = version(bindings.obj(bundle["holds"]), {"context", "records"})
+    ledger = version(
+        bindings.obj(bundle["ledger"]), {"context", "holds", "evidence_catalog", "rows"}
+    )
+    fail(
+        holds_doc["context"] == ledger["context"] == bundle["context"]
+        and ledger["holds"] == bundle["holds"],
+        "acyclic holds/ledger context mismatch",
+    )
+    fail(isinstance(holds_doc["records"], list), "holds must be explicit records")
+    holds = {}
+    for row in holds_doc["records"]:
+        fail(isinstance(row, dict), "invalid hold")
+        hold_id = identity(row.get("id"))
+        fail(hold_id not in holds, "duplicate hold ID")
+        holds[hold_id] = row
+    previous: dict[str, dict] = {}
+    if bundle["previous_registry"] is not None:
+        _, previous, _ = _bundle(bundle["previous_registry"], bindings, visiting)
+    fail(set(previous) <= set(holds), "prior hold silently omitted")
+    for hold_id, row in holds.items():
+        old = previous.get(hold_id)
+        fail(row.get("lifecycle") in {"active", "released"}, "unknown hold lifecycle")
+        if old is None:
+            fail(
+                row.get("predecessor_sha256") is None and row["lifecycle"] == "active",
+                "new hold cannot be a fabricated release",
+            )
+        elif row != old:
+            fail(row.get("predecessor_sha256") == digest(old), "unbound lifecycle transition")
+            fail(
+                (row.get("study_uid"), row.get("target"))
+                == (old.get("study_uid"), old.get("target")),
+                "hold identity changed",
+            )
+            identity(row.get("transition_reason"))
+            if row["lifecycle"] == "released":
+                fail(bool(row.get("resolution_evidence_ids")), "release lacks explicit evidence")
+    visiting.remove(name)
+    return bundle, holds, ledger
+
+
+def _evidence(
+    ref: dict, reports: dict, context_ref: dict, context: dict, bindings: Bindings
+) -> dict:
+    catalog = version(bindings.obj(ref), {"context", "records"})
+    fail(catalog["context"] == context_ref, "evidence catalog context mismatch")
+    records = {}
+    for entry in catalog["records"]:
+        fail(isinstance(entry, dict), "invalid evidence entry")
+        eid = identity(entry.get("id"))
+        fail(eid not in records, "duplicate evidence ID")
+        k = key(entry, reports)
+        obj = bindings.record(entry["record"])
+        identity_obj = bindings.record(entry["identity"])
+        fail(isinstance(identity_obj, dict), "identity evidence must be object")
+        owned_hashes = {identity_obj.get("sha256")}
+        if "ownership_sha256_pointer" in entry:
+            owned_hashes.add(pointer(identity_obj, entry["ownership_sha256_pointer"]))
+        for field in ("authored_artifact", "source_assessment", "assessment", "artifact"):
+            candidate = identity_obj.get(field)
+            if isinstance(candidate, dict):
+                owned_hashes.add(candidate.get("sha256"))
+        fail(
+            entry["identity"]["artifact"] == entry["record"]["artifact"]
+            or entry["record"]["artifact"]["sha256"] in owned_hashes,
+            "identity is not bound to the authored artifact",
+        )
+        agent = identity(pointer(identity_obj, entry.get("identity_agent_pointer", "/agent_id")))
+        session = (
+            pointer(identity_obj, entry["identity_session_pointer"])
+            if "identity_session_pointer" in entry
+            else identity_obj.get("session_id")
+        )
+        fail(
+            session is None or isinstance(session, str) and bool(session.strip()), "invalid session"
+        )
+        fail(
+            agent == entry.get("agent_id") and session == entry.get("session_id"),
+            "identity mismatch",
+        )
+        fail(
+            entry.get("source_report_sha256") == hashlib.sha256(reports[k[0]].encode()).hexdigest()
+            and entry.get("rubric_sha256") == context["rubric"]["sha256"],
+            "evidence source/rubric mismatch",
+        )
+        fail(isinstance(obj, dict) and obj.get("study_uid") == k[0], "evidence UID mismatch")
+        layout = entry.get("layout")
+        if layout in {"arrays12", "arrays_scoped"}:
+            order = list(TARGETS) if layout == "arrays12" else obj.get("target_order")
+            if layout == "arrays_scoped" and "target_order_record" in entry:
+                order_record = bindings.record(entry["target_order_record"])
+                order = pointer(order_record, entry.get("target_order_pointer", "/target_order"))
+                fail(
+                    entry["target_order_record"]["artifact"]
+                    in (entry["record"]["artifact"], entry["identity"]["artifact"]),
+                    "target order must come from authored bytes or their bound identity freeze",
+                )
+            fail(
+                isinstance(order, list)
+                and len(order) == len(set(order))
+                and all(t in TARGETS for t in order)
+                and k[1] in order,
+                "evidence target scope",
+            )
+            fail(len(obj["states"]) == len(obj["evidence"]) == len(order), "evidence array shape")
+            i = order.index(k[1])
+            ann = {"state": obj["states"][i], "evidence": obj["evidence"][i]}
+        elif layout == "decisions":
+            decisions = obj.get("decisions")
+            fail(
+                isinstance(decisions, list) and all(isinstance(d, dict) for d in decisions),
+                "evidence decisions shape",
+            )
+            matches = [d for d in decisions if d.get("target") == k[1]]
+            fail(len(matches) == 1, "evidence target decision missing/duplicated")
+            ann = {"state": matches[0]["state"], "evidence": matches[0]["evidence"]}
+        else:
+            fail(
+                layout in {"scalar", "scalar_fields"} and obj.get("target") == k[1],
+                "evidence target mismatch",
+            )
+            selected = pointer(obj, entry.get("annotation_pointer", ""))
+            state_field = entry.get("state_field") if layout == "scalar_fields" else "state"
+            evidence_field = (
+                entry.get("evidence_field") if layout == "scalar_fields" else "evidence"
+            )
+            fail(
+                isinstance(state_field, str)
+                and isinstance(evidence_field, str)
+                and isinstance(selected, dict)
+                and state_field in selected
+                and evidence_field in selected,
+                "evidence scalar fields missing",
+            )
+            ann = {"state": selected[state_field], "evidence": selected[evidence_field]}
+        ann = annotation(ann, reports[k[0]])
+        fail(
+            entry.get("annotation_sha256") == digest(ann), "evidence annotation projection mismatch"
+        )
+        fail(
+            entry.get("kind")
+            in SOURCE_KINDS | {"postfreeze", "proposal", "rejection", "resolution"},
+            "unknown evidence role",
+        )
+        records[eid] = {**entry, "annotation": ann}
+    return records
+
+
+def inspect_semantic_supervision(
+    reports: dict[str, str],
+    reviews_folder: Path,
+    rubric_path: Path,
+    artifact_root: Path,
+    adjudications: dict,
+    required_inputs: dict,
+    *,
+    correspondence_excluded_uids: set[str],
+    near_report_pairs: list[tuple[str, str]],
+) -> dict:
+    """Validate the entire required policy. `adjudications` must be freshly inspected.
+
+    Does not resolve QA or export labels. `required_inputs` is independently pinned
+    by the release coordinator, not read from the registry to satisfy its own check.
+    """
+    fail(correspondence_excluded_uids <= set(reports), "unknown correspondence UID")
+    fail(
+        all(
+            isinstance(p, tuple)
+            and len(p) == 2
+            and p[0] in reports
+            and p[1] in reports
+            and p[0] < p[1]
+            for p in near_report_pairs
+        )
+        and len(near_report_pairs) == len(set(near_report_pairs)),
+        "invalid near-report edges",
+    )
+    root = artifact_root.resolve()
+    bindings = Bindings(root)
+    expected, original, current = _context(
+        reports,
+        reviews_folder,
+        rubric_path,
+        root,
+        adjudications,
+        required_inputs,
+        bindings,
+        correspondence_excluded_uids,
+        near_report_pairs,
+    )
+    registry_path = root / REGISTRY_PATH
+    fail(registry_path.is_file(), "required registry is missing")
+    registry_ref = _reference(registry_path, root)
+    bundle, holds, ledger = _bundle(registry_ref, bindings, set())
+    context = bindings.obj(bundle["context"])
+    fail(context == expected, "stale/incomplete source-review-correction-policy context")
+    evidence = _evidence(ledger["evidence_catalog"], reports, bundle["context"], context, bindings)
+    # Pass full context separately for source/rubric check while keeping catalog DAG explicit.
+    return _finish_inspection(
+        reports,
+        original,
+        current,
+        context,
+        registry_ref,
+        bundle,
+        holds,
+        ledger,
+        evidence,
+        required_inputs,
+        bindings,
+    )
+
+
+def _ids(value: Any, allowed: set[str], message: str, nonempty: bool = False) -> list[str]:
+    fail(isinstance(value, list) and all(isinstance(x, str) for x in value), message)
+    fail(
+        len(value) == len(set(value)) and set(value) <= allowed and (bool(value) or not nonempty),
+        message,
+    )
+    return value
+
+
+def _finish_inspection(
+    reports: dict,
+    original: dict,
+    current: dict,
+    context: dict,
+    registry_ref: dict,
+    bundle: dict,
+    holds: dict,
+    ledger: dict,
+    evidence: dict,
+    inputs: dict,
+    bindings: Bindings,
+) -> dict:
+    scope = version(
+        bindings.obj(inputs["scope_manifest"]),
+        {"source_reports_sha256", "rubric_sha256", "target_order", "obligations"},
+    )
+    fail(
+        scope["source_reports_sha256"] == context["source_reports_sha256"]
+        and scope["rubric_sha256"] == context["rubric"]["sha256"]
+        and scope["target_order"] == list(TARGETS),
+        "finite scope context mismatch",
+    )
+    obligations: dict[str, dict] = {}
+    by_cell: dict[tuple[str, str], set[str]] = {}
+    report_scopes: dict[tuple[str, str], set[str]] = {}
+    for item in scope["obligations"]:
+        k = key(item, reports)
+        oid = identity(item.get("id"))
+        fail(
+            oid not in obligations and item.get("category") in CATEGORIES,
+            "duplicate/invalid obligation",
+        )
+        fail(item.get("scope_kind") in {"target", "whole_report"}, "obligation scope kind")
+        if item["scope_kind"] == "whole_report":
+            group = identity(item.get("report_scope_id"))
+            report_scopes.setdefault((k[0], group), set()).add(k[1])
+        obligations[oid] = item
+        by_cell.setdefault(k, set()).add(oid)
+    fail(
+        all(targets == set(TARGETS) for targets in report_scopes.values()),
+        "whole-report scope must enumerate all twelve targets",
+    )
+    groups: dict[str, set[str]] = {}
+    for uid, report in reports.items():
+        normalized = " ".join(unicodedata.normalize("NFKC", report).casefold().split())
+        groups.setdefault(normalized, set()).add(uid)
+    group_by_uid = {uid: group for group in groups.values() for uid in group}
+    active: dict[tuple[str, str], list[str]] = {}
+    all_holds_by_cell: dict[tuple[str, str], set[str]] = {}
+    for hid, hold in holds.items():
+        k = key(hold, reports)
+        all_holds_by_cell.setdefault(k, set()).add(hid)
+        fail(
+            hold.get("category") in CATEGORIES
+            and hold.get("scope_kind") in {"text_intrinsic", "record_specific"},
+            "invalid hold reason/scope",
+        )
+        identity(hold.get("reason"))
+        fail(
+            hold.get("current_annotation_sha256") == digest(current[k]),
+            "hold current annotation drift",
+        )
+        _ids(hold.get("evidence_ids"), set(evidence), "hold evidence missing", True)
+        _ids(hold.get("obligation_ids"), by_cell.get(k, set()), "hold obligation mismatch", True)
+        fail(
+            all(
+                (evidence[e]["study_uid"], evidence[e]["target"]) == k for e in hold["evidence_ids"]
+            ),
+            "hold cites evidence from another cell",
+        )
+        fail(
+            all(obligations[o]["category"] == hold["category"] for o in hold["obligation_ids"]),
+            "hold reason differs from approved obligation",
+        )
+        origin = holds.get(hold.get("origin_id"))
+        fail(origin is not None, "missing hold origin")
+        origin = cast(dict, origin)
+        if hold["origin_id"] != hid:
+            fail(
+                hold["scope_kind"] == origin.get("scope_kind") == "text_intrinsic"
+                and origin.get("origin_id") == origin.get("id")
+                and origin.get("target") == k[1]
+                and origin.get("category") == hold["category"]
+                and origin.get("study_uid") in group_by_uid[k[0]],
+                "invalid duplicate propagation",
+            )
+        if hold["lifecycle"] == "released":
+            _ids(
+                hold.get("resolution_evidence_ids"), set(evidence), "release evidence missing", True
+            )
+            fail(
+                all(
+                    evidence[e]["kind"] == "resolution"
+                    and (evidence[e]["study_uid"], evidence[e]["target"]) == k
+                    and evidence[e]["annotation"]["state"] == current[k]["state"]
+                    for e in hold["resolution_evidence_ids"]
+                ),
+                "release resolution scope mismatch",
+            )
+        else:
+            active.setdefault(k, []).append(hid)
+    # Only text-intrinsic active roots propagate; record-specific defects stay local.
+    for hid, hold in holds.items():
+        if hold["lifecycle"] == "active" and hold["scope_kind"] == "text_intrinsic":
+            for uid in group_by_uid[hold["study_uid"]]:
+                fail(
+                    any(
+                        holds[h]["origin_id"] == hold["origin_id"]
+                        for h in active.get((uid, hold["target"]), [])
+                    ),
+                    "text-intrinsic hold missing exact-report copy",
+                )
+    near = version(
+        bindings.obj(inputs["near_report_dispositions"]), {"source_reports_sha256", "edges"}
+    )
+    fail(
+        near["source_reports_sha256"] == context["source_reports_sha256"],
+        "near-report source drift",
+    )
+    seen_edges = set()
+    for edge in near["edges"]:
+        pair = (edge.get("left"), edge.get("right"))
+        fail(
+            list(pair) in context["near_report_pairs"] and pair not in seen_edges,
+            "unknown/duplicate near-report disposition",
+        )
+        seen_edges.add(pair)
+        seen_targets = set()
+        for disposition in edge["target_dispositions"]:
+            target = disposition.get("target")
+            fail(target in TARGETS and target not in seen_targets, "near-report target scope")
+            seen_targets.add(target)
+            identity(disposition.get("reason"))
+            fail(
+                disposition.get("action") in {"no_semantic_transfer", "separately_held"},
+                "missing explicit near-report action",
+            )
+            fail(bool(disposition.get("evidence")), "near-report disposition lacks bound evidence")
+            for ref in disposition["evidence"]:
+                bindings.record(ref)
+            if disposition["action"] == "separately_held":
+                fail(all(active.get((uid, target)) for uid in pair), "near-report hold unapplied")
+        fail(seen_targets == set(TARGETS), "near-report disposition not complete")
+    fail(
+        seen_edges == {tuple(p) for p in context["near_report_pairs"]},
+        "known near-report edge lacks a concrete disposition",
+    )
+    fail(isinstance(ledger["rows"], list), "ledger rows missing")
+    cells = {}
+    excluded = set(context["correspondence_excluded_uids"])
+    for row in ledger["rows"]:
+        k = key(row, reports)
+        fail(k not in cells, "duplicate canonical cell")
+        fail(
+            row.get("source_report_sha256") == hashlib.sha256(reports[k[0]].encode()).hexdigest()
+            and row.get("original_annotation_sha256") == digest(original[k])
+            and row.get("current_annotation_sha256") == digest(current[k]),
+            "ledger annotation/source drift",
+        )
+        evidence_ids = _ids(row.get("evidence_ids"), set(evidence), "ledger evidence mismatch")
+        fail(
+            all((evidence[e]["study_uid"], evidence[e]["target"]) == k for e in evidence_ids),
+            "ledger evidence belongs to another target",
+        )
+        hold_ids = _ids(row.get("hold_ids"), set(holds), "ledger hold IDs mismatch")
+        fail(set(hold_ids) == all_holds_by_cell.get(k, set()), "ledger omits hold history")
+        dispositions = row.get("obligations")
+        fail(isinstance(dispositions, list), "ledger obligations missing")
+        covered = set()
+        discharged = set()
+        for item in dispositions:
+            oid = item.get("id")
+            fail(
+                oid in by_cell.get(k, set()) and oid not in covered, "unknown/duplicate obligation"
+            )
+            covered.add(oid)
+            status = item.get("disposition")
+            if status == "held":
+                fail(
+                    any(oid in holds[h]["obligation_ids"] for h in active.get(k, [])),
+                    "obligation falsely marked held",
+                )
+            elif status == "already_masked":
+                fail(
+                    current[k]["state"] in {"uncertain", "not_mentioned"},
+                    "observed cell claimed masked",
+                )
+            elif status == "correspondence_excluded":
+                fail(k[0] in excluded, "unbound correspondence exclusion")
+            else:
+                fail(status == "resolved", "unresolved obligation in final ledger")
+                eids = _ids(
+                    item.get("resolution_evidence_ids"),
+                    set(evidence),
+                    "resolution evidence missing",
+                    True,
+                )
+                fail(
+                    all(
+                        evidence[e]["kind"] == "resolution"
+                        and (evidence[e]["study_uid"], evidence[e]["target"]) == k
+                        for e in eids
+                    ),
+                    "resolution evidence scope mismatch",
+                )
+                fail(
+                    all(evidence[e]["annotation"]["state"] == current[k]["state"] for e in eids),
+                    "resolution contradicts retained current state",
+                )
+                dissent = _ids(
+                    item.get("discharged_evidence_ids"),
+                    set(evidence_ids),
+                    "resolution must explicitly bind discharged evidence",
+                )
+                fail(
+                    all(evidence[e]["kind"] in SOURCE_KINDS for e in dissent),
+                    "discharged dissent must name source evidence",
+                )
+                discharged.update(dissent)
+        fail(covered == by_cell.get(k, set()), "ledger omits finite obligation")
+        observed = current[k]["state"] in {"positive", "negative"}
+        allowed = observed and k[0] not in excluded and not active.get(k)
+        if allowed:
+            sources = [evidence[e] for e in evidence_ids if evidence[e]["kind"] in SOURCE_KINDS]
+            fail(
+                len({e["agent_id"] for e in sources}) >= 2,
+                "retained observation lacks two actual source authors",
+            )
+            fail(
+                any(
+                    evidence[e]["annotation"]["state"] == current[k]["state"] for e in evidence_ids
+                ),
+                "retained state has no bound source support",
+            )
+            conflicting = {
+                e["id"] for e in sources if e["annotation"]["state"] != current[k]["state"]
+            }
+            fail(
+                conflicting <= discharged,
+                "contrary source states lack an explicitly scoped resolution or hold",
+            )
+            identity(row.get("retention_reason"))
+        reasons = []
+        if not observed:
+            reasons.append("state_masked")
+        if k[0] in excluded:
+            reasons.append("correspondence_excluded")
+        reasons += sorted({holds[h]["category"] for h in active.get(k, [])})
+        cells[k] = {
+            "study_uid": k[0],
+            "target": k[1],
+            "current": current[k],
+            "original": original[k],
+            "source_report_sha256": row["source_report_sha256"],
+            "hold_ids": sorted(active.get(k, [])),
+            "all_reason_categories": reasons,
+            "report_supervision_allowed": bool(allowed),
+            "primary_disposition": reasons[0] if reasons else "observed_retained",
+        }
+    fail(set(cells) == set(original), "incomplete canonical UID-by-target ledger")
+    bindings.unchanged()
+    audit = {
+        "schema_version": 1,
+        "registry": registry_ref,
+        "context": bundle["context"],
+        "holds": bundle["holds"],
+        "ledger": bundle["ledger"],
+        "decision": bundle["decision"],
+        "source_reports_sha256": context["source_reports_sha256"],
+        "target_order": list(TARGETS),
+        "n_reports": len(reports),
+        "n_cells": len(cells),
+        "review_files": context["review_files"],
+        "correction_cases": context["correction_cases"],
+        "bound_artifacts": dict(bindings.hashes),
+        "cells": list(cells.values()),
+        "authenticated_train_csv": inputs["authenticated_train_csv"],
+        "correspondence_excluded_uids": sorted(excluded),
+        "no_clinical_annotation_changes": True,
+        "does_not_resolve_qa": True,
+    }
+    audit["inspection_sha256"] = digest(audit)
+    return audit
+
+
+def _audit_valid(audit: dict) -> None:
+    fail(
+        audit.get("inspection_sha256")
+        == digest({k: v for k, v in audit.items() if k != "inspection_sha256"}),
+        "changed inspection",
+    )
+    fail(audit.get("target_order") == list(TARGETS), "inspection target order")
+
+
+def apply_semantic_supervision(
+    studies: pd.DataFrame, audit: dict, *, gold_uids: set[str], technical_eligible_uids: set[str]
+) -> pd.DataFrame:
+    """Intersect existing masks; preserve all clinical annotations and official gold.
+
+    Gold IDs must come from the already-validated source membership, not from a
+    mutable split column. Technical eligibility is independently validated.
+    """
+    _audit_valid(audit)
+    cells = {(r["study_uid"], r["target"]): r for r in audit["cells"]}
+    uids = {k[0] for k in cells}
+    fail(
+        not studies.study_uid.duplicated().any() and set(studies.study_uid) == uids,
+        "application study membership mismatch",
+    )
+    fail(gold_uids <= uids and technical_eligible_uids <= uids, "unknown eligibility UID")
+    fail(
+        set(studies.loc[studies.split.eq("gold_evaluation"), "study_uid"]) == gold_uids,
+        "gold membership/split changed",
+    )
+    fail(
+        studies.split.isin(["train", "weak_validation", "quarantine", "gold_evaluation"]).all(),
+        "unknown split",
+    )
+    output = studies.copy(deep=True)
+    for index, row in studies.iterrows():
+        uid = row.study_uid
+        for target in TARGETS:
+            cell = cells[uid, target]
+            fail(
+                hashlib.sha256(row.Report.encode()).hexdigest() == cell["source_report_sha256"],
+                "application report changed",
+            )
+            fail(
+                {"state": row[f"{target}__state"], "evidence": row[f"{target}__evidence"]}
+                == cell["current"],
+                "application clinical annotation drift",
+            )
+            value = float(row[f"{target}__mask"])
+            fail(math.isfinite(value) and value in {0.0, 1.0}, "invalid input mask")
+            if uid in gold_uids:
+                fail(
+                    value == 1.0 and row[f"{target}__provenance"] == "official_gold",
+                    "official gold mask/provenance changed",
+                )
+                new_mask = 1.0
+            else:
+                fail(
+                    float(row[target]) == float(cell["current"]["state"] == "positive"),
+                    "report target value differs from preserved state",
+                )
+                fail(
+                    not (
+                        value
+                        and (
+                            cell["current"]["state"] in {"uncertain", "not_mentioned"}
+                            or uid in audit["correspondence_excluded_uids"]
+                        )
+                    ),
+                    "state/correspondence precedence was not applied",
+                )
+                eligible = (
+                    row.split in {"train", "weak_validation"} and uid in technical_eligible_uids
+                )
+                new_mask = float(value and cell["report_supervision_allowed"] and eligible)
+            output.at[index, f"{target}__mask"] = new_mask
+            output.at[index, f"{target}__semantic_hold_ids"] = json.dumps(cell["hold_ids"])
+            output.at[index, f"{target}__semantic_reasons"] = json.dumps(
+                cell["all_reason_categories"]
+            )
+    output["semantic_supervision_registry_sha256"] = audit["registry"]["sha256"]
+    return output
+
+
+def validate_qa_binding(resolution: dict, audit: dict) -> None:
+    """Additional requirement alongside existing QA validation; never marks resolved."""
+    _audit_valid(audit)
+    fail(resolution.get("status") == "resolved", "QA is not resolved")
+    fail(
+        resolution.get("review_artifacts") == audit["review_files"]
+        and resolution.get("correction_cases") == audit["correction_cases"],
+        "QA input scope mismatch",
+    )
+    expected = {
+        name: audit[name] for name in ("registry", "context", "holds", "ledger", "decision")
+    }
+    fail(resolution.get("semantic_supervision") == expected, "QA lacks exact supervision contract")
+
+
+def table_fingerprint(studies: pd.DataFrame) -> str:
+    columns = [
+        "study_uid",
+        "split",
+        "leakage_group",
+        "report_group",
+        "Report",
+        "semantic_supervision_registry_sha256",
+    ]
+    for target in TARGETS:
+        columns += [
+            target,
+            f"{target}__state",
+            f"{target}__evidence",
+            f"{target}__mask",
+            f"{target}__provenance",
+            f"{target}__semantic_hold_ids",
+            f"{target}__semantic_reasons",
+        ]
+    fail(set(columns) <= set(studies.columns), "release table missing verified columns")
+    return digest(studies.sort_values("study_uid")[columns].to_dict(orient="records"))
+
+
+def verify_release_boundary(
+    studies_path: Path,
+    studies: pd.DataFrame,
+    receipt: dict,
+    audit: dict,
+    artifact_root: Path,
+    *,
+    gold_uids: set[str],
+    technical_eligible_uids: set[str],
+) -> None:
+    """Required at persisted-table load/resume; receipt authoring is outside this module."""
+    _audit_valid(audit)
+    version(receipt)
+    fail(receipt.get("status") == "verified_release", "release receipt not verified")
+    for name, expected in audit["bound_artifacts"].items():
+        path = (artifact_root / name).resolve()
+        fail(
+            path.is_relative_to(artifact_root.resolve())
+            and path.is_file()
+            and file_digest(path) == expected,
+            "release evidence changed",
+        )
+    expected = {
+        name: audit[name] for name in ("registry", "context", "holds", "ledger", "decision")
+    }
+    fail(receipt.get("semantic_supervision") == expected, "release holds are stale")
+    fail(
+        receipt.get("studies_sha256") == file_digest(studies_path)
+        and receipt.get("table_sha256") == table_fingerprint(studies),
+        "release table changed",
+    )
+    fail(
+        receipt.get("gold_uids_sha256") == digest(sorted(gold_uids))
+        and receipt.get("technical_eligible_uids_sha256")
+        == digest(sorted(technical_eligible_uids)),
+        "release eligibility membership changed",
+    )
+    # Selection/holds were built without gold values. At this release boundary,
+    # verify evaluation identity and values against the authenticated immutable CSV.
+    source_binding = Bindings(artifact_root)
+    source_path = source_binding.path(audit["authenticated_train_csv"])
+    source = pd.read_csv(source_path)
+    fail(
+        not source.StudyInstanceUID.duplicated().any()
+        and set(source.StudyInstanceUID) == set(studies.study_uid),
+        "authenticated source membership",
+    )
+    source = source.set_index("StudyInstanceUID")
+    truth_gold = source[list(TARGETS)].notna().all(axis=1)
+    fail(
+        not (source[list(TARGETS)].notna().any(axis=1) & ~truth_gold).any(), "partial official gold"
+    )
+    fail(
+        set(source.index[truth_gold]) == gold_uids,
+        "self-supplied gold membership differs from source",
+    )
+    actual = studies.set_index("study_uid")
+    for uid in source.index:
+        fail(
+            source.loc[uid, "Report"] == actual.loc[uid, "Report"],
+            "authenticated source report changed",
+        )
+        if uid in gold_uids:
+            fail(
+                source.loc[uid, list(TARGETS)].isin([0, 1]).all()
+                and source.loc[uid, list(TARGETS)].equals(actual.loc[uid, list(TARGETS)]),
+                "official gold target values changed",
+            )
+    source_binding.unchanged()
+    reapplied = apply_semantic_supervision(
+        studies, audit, gold_uids=gold_uids, technical_eligible_uids=technical_eligible_uids
+    )
+    fail(table_fingerprint(reapplied) == table_fingerprint(studies), "held mask re-enabled")
+    qa = receipt.get("qa_resolutions")
+    expected_ids = {
+        "cartilage-consistency-all-release-reviews",
+        "bone-terminology-all-release-reviews",
+        "duplicate-qualified-negation-consistency-all-release-reviews",
+    }
+    fail(isinstance(qa, dict) and set(qa) == expected_ids, "release lacks all three QA resolutions")
+    bound = Bindings(artifact_root)
+    for issue_id, ref in cast(dict, qa).items():
+        resolution = bound.obj(ref)
+        fail(resolution.get("issue_id") == issue_id, "QA issue identity mismatch")
+        validate_qa_binding(resolution, audit)
+    bound.unchanged()

@@ -1,0 +1,69 @@
+{
+  "QA_closed": false,
+  "R_writes": false,
+  "actual_original_replay": {
+    "bytes": 24649,
+    "path": "work/annotation-staging/semantic-supervision-preread-independent-review-v1/actual89-independent-replay.json",
+    "sha256": "4f3d9ebd1ce254ce386f3ebc63bad9929a1145747de680b2d1614c696ea35278"
+  },
+  "agent_id": "/root/last_twelve_visual_review",
+  "authorship_disclosure": "Quality authored the fix and synthetic20 focused tests; I personally reviewed the exact diff, independently reconstructed the actual89 map, executed those20 tests, and authored/executed7 additional checks. This is no clinical reread, no policy approval and no claim of independent authorship of quality’s code.",
+  "changed_existing_AST_objects": [
+    "_context"
+  ],
+  "clinical_objects_or_membership_changed": false,
+  "created_at_utc": "2026-09-22T09:39:56.153642+00:00",
+  "findings": [],
+  "gold_values_read": false,
+  "independent_runtime_checks": {
+    "bytes": 1716,
+    "path": "work/annotation-staging/semantic-supervision-preread-independent-review-v1/staged-fix-independent-checks.json",
+    "sha256": "cbd56f014974e9440a1534363d13c685975304ff00d31b0d1468c1e6eb4abd12"
+  },
+  "new_AST_objects": [
+    "_original_reading_files",
+    "_preread_reference",
+    "_reading_rows"
+  ],
+  "origin": {
+    "bytes": 357,
+    "path": "work/annotation-staging/semantic-supervision-preread-provenance-fix-v1/origin.json",
+    "sha256": "65d53cbedf88512ad6c61510ee092b968b01fd26153357444a7e282ef7e626a8"
+  },
+  "review_rationale": [
+    "Actual preread locations derive solely from the already hash-bound original reviewed provenance. At least one complete path/hash pair is required; all complete references and every extra hash-only alias must agree. No fallback path is invented.",
+    "The helper binds all89 original sources, draft files, reviewed files and actual preread files, checks source/rubric/batch/parent hashes and exact batch row order, and retains distinct original identities. Bound artifacts remain inside the artifact root.",
+    "All code outside the three new helper functions and _context is unchanged at the AST level, including annotation(), evidence catalog validation, policy approvals, hold membership and QA checks.",
+    "Root explicitly limited the new runtime requirement to preserved original bytes, exact membership and valid field shapes; unused historical quotes are not silently rewritten or introduced as a new release gate. My separate actual-original replay confirms all158652 original draft/review/preread annotations currently pass exact quote/missing-evidence checks.",
+    "Actual matching hash-only aliases in batches005/008 are preserved and accepted only because they equal the real complete reference. The initial independent over-strict attempt and its correction are retained."
+  ],
+  "reviewed_base": {
+    "bytes": 44526,
+    "path": "work/recovered/rsna/semantic_supervision.py",
+    "sha256": "a4d4e793c5c63cdca5927e9ef13d720df74582c2b48631a5b944f16e478360ba"
+  },
+  "reviewed_module": {
+    "bytes": 50112,
+    "path": "work/annotation-staging/semantic-supervision-preread-provenance-fix-v1/semantic_supervision.py",
+    "sha256": "5b0f4bf68e2b1c4ffe4396f37b946d4cbf48ee4ec12ade10ec0149f2db0765a7"
+  },
+  "reviewed_test": {
+    "bytes": 4715,
+    "path": "work/annotation-staging/semantic-supervision-preread-provenance-fix-v1/test_preread_provenance.py",
+    "sha256": "c97a4e7954cb624997aac0a48f714ed47906c9cfbe6f5e63948ce5af213e1982"
+  },
+  "schema_version": 1,
+  "session_id": "/root/last_twelve_visual_review",
+  "status": "no_blocking_findings_for_exact_bounded_provenance_fix",
+  "verification": {
+    "actual_original_batches": 89,
+    "actual_original_reports": 4407,
+    "actual_preread_files": 89,
+    "actual_runtime_bound_files": 357,
+    "all_bound_bytes_unchanged": true,
+    "executed_peer_focused_tests": 20,
+    "fresh_whole_final_context_or_membership_verification": "not performed by this bounded review; final assembler owns upcoming run at repinned inputs",
+    "independently_authored_additional_checks": 7,
+    "peer_focused_test_seconds": 4.25
+  }
+}

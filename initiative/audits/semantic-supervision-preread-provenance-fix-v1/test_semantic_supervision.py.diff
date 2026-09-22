@@ -1,0 +1,39 @@
+--- a/tests/test_semantic_supervision.py
++++ b/tests/test_semantic_supervision.py
+@@ -141,7 +141,36 @@
+             "sha256": ss.digest(obj),
+         }
+ 
++    def bind_reading_provenance(self) -> None:
++        source = self.root / "initiative/reviews/inputs/batch-000.json"
++        phases = {}
++        for phase, folder in (("draft", "drafts"), ("reviewed", "reviewed")):
++            phases[phase] = {
++                "agent_id": "synthetic-" + phase,
++                "session_id": phase,
++                "workflow_run_id": "synthetic",
++                "notes": "Synthetic fixture only.",
++                "source_reports_sha256": self.source_hash,
++                "source_sha256": ss.file_digest(source),
++                "rubric_sha256": ss.file_digest(self.rubric),
++                "n_studies": len(self.rows),
++                "sha256": ss.file_digest(
++                    self.root / f"initiative/reviews-v2/{folder}/batch-000-{phase}.jsonl"
++                ),
++            }
++        phases["reviewed"].update(
++            parent_artifact_sha256=phases["draft"]["sha256"],
++            preread_path="initiative/reviews-v2/prereads/batch-000-preread.jsonl",
++            preread_sha256=ss.file_digest(
++                self.root / "initiative/reviews-v2/prereads/batch-000-preread.jsonl"
++            ),
++        )
++        self.inputs["review_provenance"] = self.write(
++            self.inputs["review_provenance"]["path"], {"batch-000": phases}
++        )
++
+     def build(self) -> None:
++        self.bind_reading_provenance()
+         self.inputs["scope_manifest"] = self.write(
+             "input/scope.json",
+             {

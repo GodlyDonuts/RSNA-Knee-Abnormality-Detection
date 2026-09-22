@@ -1,0 +1,42 @@
+from pathlib import Path
+import json,hashlib,datetime
+from collections import Counter
+W=Path.cwd();A=W/'work/annotation-staging';S=Path(__file__).resolve().parent
+j=lambda p:json.loads(p.read_text())
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def objsha(x,nl=True):return hashlib.sha256((json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':'))+('\n' if nl else '')).encode()).hexdigest()
+def wr(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+p=j(S/'proposed-reuse-receipts.json');rs=p['receipts'];old=j(S/'existing-evidence-packet.json')['records'];roots=j(S/'actual-root-parent-records.json')['records'];assert len(rs)==len({(r['study_uid'],r['target']) for r in rs})==187
+registry=W/'work/recovered/initiative/reviews-v2/adjudications/registry.json';assert ref(registry)['sha256']==p['registry_sha256']
+for x in j(S/'raw-evidence-bindings.json')['artifacts']:assert ref(W/x['path'])==x
+for x in roots:
+ a=j(W/x['artifact']['path']);assert a['agent_id']==a['session_id']=='/root';parent=a[x['parent_selector'].split('/')[1]][int(x['parent_selector'].split('/')[2])];assert objsha(parent)==x['parent_record_sha256'];assert all(parent[k]==x['actual_root'][v] for k,v in [('root_postfreeze_state','state'),('root_postfreeze_evidence','evidence'),('reason','reason')])
+resolution_counts=Counter();obligations=Counter();evidence_ids={}
+for r,o in zip(rs,old):
+ assert r['n']==o['n'];c=o['cell'];assert r['current_annotation_sha256']==objsha({'state':r['current_state'],'evidence':r['current_evidence']});assert ref(W/r['source_binding']['path'])==r['source_binding'];src=j(W/r['source_binding']['path'])[r['source_index_zero_based']];assert src['study_uid']==r['study_uid'];text=src['report'];assert hashlib.sha256(text.encode()).hexdigest()==r['report_sha256'];assert r['current_evidence'] in text
+ es={ 'preflight569:'+e['id']:e for e in o['existing_evidence_records']};evidence_ids.update(es)
+ for e in es.values():
+  if e.get('evidence'):assert e['evidence'] in text
+ assert set(r['all_prior_evidence_ids'])==set(es)
+ for ob in r['obligations']:
+  assert ob['id']=='ob-'+objsha({'study_uid':r['study_uid'],'target':r['target'],'reason':ob['reason']},False)[:24];resolution_counts[ob['proposed_disposition']]+=1;obligations[ob['reason']]+=1
+  assert set(ob['discharged_evidence_ids'])<=set(r['all_contrary_evidence_ids_preserved'])
+  if ob['category']!='state_disagreement':assert not ob['discharged_evidence_ids']
+  if ob['proposed_disposition']=='resolved':assert ob['resolution_evidence_ids'] and all(es[i].get('state')==r['current_state'] for i in ob['resolution_evidence_ids'])
+ if r['decision']=='propose_retain_observation':assert set(r['all_contrary_evidence_ids_preserved'])<=set(i for x in r['obligations'] for i in x['discharged_evidence_ids'])
+ if 'required_context_completion' in r:
+  q=r['required_context_completion']['evidence'];assert q in text;assert hashlib.sha256(q.encode()).hexdigest()==r['required_context_completion']['evidence_sha256']
+assert sum(r['decision']=='propose_hold' for r in rs)==1
+# Record exact cue bindings; their assessment was personally authored, not derived from pattern matching.
+cuep=A/'qualified-negation-all4407-candidates-v1/unassigned-qualified-source-cues.jsonl';cl=cuep.read_text().splitlines();cues=[]
+for n,lineno in [(26,46),(70,115),(89,169),(148,295),(171,330)]:
+ row=j(S/'existing-evidence-packet.json')['records'][n];v=json.loads(cl[lineno-1]);assert v['study_uid']==row['cell']['study_uid'];src=j(W/row['source_binding']['path'])[row['cell']['source_index_zero_based']]['report'];assert src[v['excerpt_start']:v['excerpt_end']]==v['source_excerpt'];cues.append({'n':n,'artifact':ref(cuep),'selector':f'line:{lineno}','raw_record':v,'scope':'Only this selected target; other targets and original report-scope obligations remain separately accountable.'})
+wr('source-cue-bindings.json',{'records':cues})
+known=j(A/'conservative-semantic-hold-coverage-preflight-569-v1/result-v2/historical-root-projection-notes.json');q=j(S/'projection-quirks-and-attempts.json')['quirks'];assert all(x['evidence_id'] in {e['historical_evidence_id'] for e in known} for x in q if x['actual_annotation_differs'])
+inputs=[A/'conservative-semantic-hold-evidence-reuse-review-v1/completion-manifest.json',A/'conservative-semantic-hold-coverage-preflight-569-v1/completion-manifest.json',A/'semantic-supervision-holds-implementation-v1/core-schema-v1.md',A/'cartilage-observed-004-root-review-v1/terminology-source-check.json',A/'conservative-semantic-hold-coverage-preflight-569-v1/result-v2/current569-inspection.json',registry,W/'work/recovered/protocols/report_weak_v2.md']
+wr('validation-and-input-bindings.json',{'agent_id':'/root/last_twelve_visual_review','session_id':'/root/last_twelve_visual_review','inputs':[ref(x) for x in inputs],'unique_selected_cells':187,'positive_OA_cells':178,'observed_root_retained_dissent_cells':12,'overlap':3,'recommendations':dict(Counter(r['decision'] for r in rs)),'obligation_recommendations':dict(resolution_counts),'obligation_reason_counts':dict(obligations),'material_quote_context_completion_recommendations':1,'retained_positive_OA_by_target':dict(Counter(r['target'] for r in rs if r['target'].endswith('OA') and r['current_state']=='positive' and r['decision']=='propose_retain_observation')),'all12_actual_root_parents_personally_read':True,'actual_root_parent_refs':len(roots),'root_projection_annotation_differences_all_in_previously_disclosed25':True,'all_original_input_hashes_and_quotes_reverified':True,'quote_obligations_do_not_discharge_state_dissent':True,'all_retained_contrary_ids_explicitly_named':True,'current569_registry_rechecked':True,'review_scope':'Personally inspected all187 selected current quotations, prior authored same-target rationale, retained contrary histories, source-local scope contexts, and actual12 root parent records. Existing source passes reused; no claim of a new full-report source-first or MRI reread. Other126 root references are mechanically field-bound, with material contrary/reconsideration rationales additionally inspected.','historical_exposure':'All earlier source, technical, clinical and postfreeze work by this actual agent remains known. The new release-use recommendations preserve every earlier clinical opinion; they are not clinical reconsiderations or approvals.','negative_cohort_membership_not_approved_here':True,'runtime_membership_approval':False,'gold_values_or_splits_read':False,'R_writes':False,'registry_changes':0,'clinical_annotation_changes':0,'QA_gates_closed':0})
+wr('assessment-freeze.json',{'agent_id':'/root/last_twelve_visual_review','session_id':'/root/last_twelve_visual_review','at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'independent_personal_release_use_receipts_pending_root_review','receipts':ref(S/'proposed-reuse-receipts.json'),'negative_cohort_rule':ref(S/'cohort-reuse-rule.md'),'validation':ref(S/'validation-and-input-bindings.json'),'root_dissent_cases':12,'all_prior_clinical_states_preserved':True,'current_registry':ref(registry),'next_scope':'Independent assessment of duplicate author’s actual provisional hold/ledger bundle after it is frozen. No approval is manufactured here.'})
+wr('completion-manifest.json',{'agent_id':'/root/last_twelve_visual_review','session_id':'/root/last_twelve_visual_review','status':'sealed_bounded_receipts_pending_root_review','files':[ref(x) for x in sorted(S.iterdir()) if x.is_file()]})
+for x in j(S/'completion-manifest.json')['files']:assert ref(W/x['path'])==x
+print(json.dumps({'receipts':ref(S/'proposed-reuse-receipts.json'),'freeze':ref(S/'assessment-freeze.json'),'completion':ref(S/'completion-manifest.json'),'validation':ref(S/'validation-and-input-bindings.json')},indent=2))

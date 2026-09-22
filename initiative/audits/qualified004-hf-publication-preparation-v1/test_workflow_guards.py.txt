@@ -1,0 +1,108 @@
+"""Offline guard tests; no archive construction, HTTP calls or repository mutations."""
+import argparse
+import copy
+import json
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+import qualified004_bindings as b
+import publish_qualified004_delta as p
+import build_qualified004_peer as build
+
+class WorkflowGuards(unittest.TestCase):
+    def args(self):
+        return argparse.Namespace(target_commit=b.TARGET_GIT, target_tree=b.TARGET_TREE,
+            expected_file_count=b.TARGET_FILE_COUNT, package=b.WORK/'hf-preparation-deltas'/b.TARGET_GIT,
+            manifest_sha256='a'*64, ci_run=b.TARGET_CI_RUN)
+
+    def test_historical_target_rejected_before_disk(self):
+        a=self.args();a.target_commit=b.PREVIOUS_GIT
+        with self.assertRaisesRegex(b.GuardError,'historical_commit_not_569'):b.argument_guard(a)
+
+    def test_stale_count_rejected_before_disk(self):
+        a=self.args();a.expected_file_count=10020
+        with self.assertRaisesRegex(b.GuardError,'exact569_milestone_required'):b.argument_guard(a)
+
+    def test_stale_tree_rejected_before_disk(self):
+        a=self.args();a.target_tree='a'*40
+        with self.assertRaisesRegex(b.GuardError,'exact569_milestone_required'):b.argument_guard(a)
+
+    def test_unbound_manifest_rejected(self):
+        a=self.args();a.manifest_sha256=None
+        with self.assertRaisesRegex(b.GuardError,'future_manifest_required'):b.argument_guard(a)
+
+    def test_ci_in_progress_never_success(self):
+        value={'conclusion':None,'headSha':b.TARGET_GIT,'status':'in_progress'}
+        with patch.object(p.subprocess,'check_output',return_value=json.dumps(value).encode()):
+            with self.assertRaisesRegex(b.GuardError,'exact_future_commit_ci_not_success'):p.ci(self.args())
+
+    def test_ci_wrong_commit_rejected(self):
+        value={'conclusion':'success','headSha':b.PREVIOUS_GIT,'status':'completed'}
+        with patch.object(p.subprocess,'check_output',return_value=json.dumps(value).encode()):
+            with self.assertRaisesRegex(b.GuardError,'exact_future_commit_ci_not_success'):p.ci(self.args())
+
+    def test_ci_exact_success(self):
+        value={'conclusion':'success','headSha':b.TARGET_GIT,'status':'completed'}
+        with patch.object(p.subprocess,'check_output',return_value=json.dumps(value).encode()):
+            self.assertEqual(p.ci(self.args()),value)
+
+    def proof_fixture(self):
+        m={'delta_archive':{'sha256':'b'*64,'bytes':1},'n_delta_files':2,'n_base_archive_files':3,'deleted_paths':[], 'files':[], 'secret_scan_policy':{'exceptions':[]}}
+        proof={'verifier_agent_id':b.PEER,'actual_executor':b.PEER,'status':'every_target_git_file_restorable_identically',
+          'target_git_commit':b.TARGET_GIT,'target_git_tree':b.TARGET_TREE,'manifest':{'sha256':'a'*64},
+          'n_result_files_verified':b.TARGET_FILE_COUNT,'delta_archive':m['delta_archive'],
+          'base_git_commit':b.BASE_GIT,'base_hf_revision':b.BASE_HF,'base_archive_sha256':b.BASE_ARCHIVE_SHA,
+          'base_manifest_sha256':b.BASE_MANIFEST_SHA,'every_file_sha256_git_blob_size_mode_verified':True,
+          'membership_exact':True,'full_tree_extracted':False,'training_ready':False,'helper_sha256':b.HELPER_SHA,
+          'secret_scan_policy':m['secret_scan_policy'],'verified_secret_scan_exception_paths':[],
+          'n_delta_members_verified':2,'n_base_archive_members_verified':3,'n_deletions_applied':0}
+        return m,proof
+
+    def test_proof_tampering_rejected(self):
+        m,proof=self.proof_fixture();b.proof_guard(proof,self.args(),m,b.PEER)
+        for key,value in [('actual_executor',b.ROOT),('target_git_tree','f'*40),('n_result_files_verified',10020),
+              ('full_tree_extracted',True),('training_ready',True),('helper_sha256','c'*64),
+              ('n_delta_members_verified',1),('verified_secret_scan_exception_paths',['broad/path'])]:
+            with self.subTest(key=key):
+                changed=copy.deepcopy(proof);changed[key]=value
+                with self.assertRaises(b.GuardError):b.proof_guard(changed,self.args(),m,b.PEER)
+
+    def test_provenance_override_keeps_verification_payload(self):
+        original={'verifier_agent_id':'/root/duplicate_consistency_review','payload':{'unchanged':[1,2,3]}}
+        frozen=copy.deepcopy(original);actual=build.bind_actual_execution(original)
+        self.assertEqual(original,frozen)
+        self.assertEqual(actual['payload'],original['payload'])
+        self.assertEqual(actual['actual_executor'],b.PEER)
+        self.assertEqual(actual['generated_helper_default_identity'],'/root/duplicate_consistency_review')
+        with self.assertRaises(b.GuardError):build.bind_actual_execution({'verifier_agent_id':b.ROOT})
+
+    def test_remote_tree_or_card_mutation_rejected(self):
+        api=SimpleNamespace(list_repo_tree=lambda *a,**k:[SimpleNamespace(path='README.md',blob_id=b.ROOT_CARD['README.md'])])
+        t=SimpleNamespace(source_identity=lambda *a:b.SOURCE_IDENTITIES)
+        self.assertEqual(p.remote_guard(api,t,b.PARENT_HF),b.ROOT_CARD)
+        bad=SimpleNamespace(source_identity=lambda *a:{})
+        with self.assertRaisesRegex(b.GuardError,'remote_source_tree_or_csv_changed'):p.remote_guard(api,bad,b.PARENT_HF)
+        api.list_repo_tree=lambda *a,**k:[SimpleNamespace(path='README.md',blob_id='a'*40)]
+        with self.assertRaisesRegex(b.GuardError,'root_dataset_card_changed'):p.remote_guard(api,t,b.PARENT_HF)
+
+    def test_exact576_members_and_mutation(self):
+        h=b.helper();inv=b.read(b.SOURCE_INVENTORY)
+        rows={x['archived_git_path']:dict(path=x['archived_git_path'],mode=x['baseline_git_mode'],git_blob=x['baseline_git_blob'],bytes=x['bytes']) for x in inv['files']}
+        self.assertEqual(len(b.source576_guard(h,rows)['files']),576)
+        rows[next(iter(rows))]['bytes']+=1
+        with self.assertRaisesRegex(b.GuardError,'source576_target_changed'):b.source576_guard(h,rows)
+
+    def test_generic_scanner_has_no_new_exception(self):
+        h=b.helper()
+        self.assertEqual(len(h.secret_scan_policy()['exceptions']),1)
+        self.assertEqual(h.FLOOR,20*2**30)
+        bad=b'https://'+b'example.invalid/object?'+b'X-Amz-Signature='+b'fixture'
+        with self.assertRaises(h.GuardError):h.Scanner().feed(bad)
+        with self.assertRaises(h.GuardError):h.Scanner((b'secret-value-sentinel',)).feed(b'secret-value-sentinel')
+
+    def test_external_error_payload_never_serialized(self):
+        result=b.error_result(RuntimeError('untrusted secret payload'))
+        self.assertNotIn('untrusted secret payload',json.dumps(result))
+        self.assertEqual(result['guard_code'],'external_or_unexpected_error')
+
+if __name__=='__main__':unittest.main(verbosity=2)

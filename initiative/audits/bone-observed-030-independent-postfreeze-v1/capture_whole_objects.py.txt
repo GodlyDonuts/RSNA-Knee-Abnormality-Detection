@@ -1,0 +1,21 @@
+"""Derive mechanical packagers and whole-object preservation receipts; no clinical inference."""
+from pathlib import Path
+import json,hashlib
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';old=A/'bone-observed-028-independent-postfreeze-v1';F=A/'bone-observed-030-source-review-v1';P=A/'bone-observed-030-postfreeze-v1'
+def j(p):return json.loads(p.read_text())
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def h(x):return hashlib.sha256(json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+regp=R/'initiative/reviews-v2/adjudications/registry.json';assert ref(regp)['sha256']=='7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae';assert regp.read_bytes()==(S/'registry-at-comparison-start.json').read_bytes();acc={};active=[]
+for e in j(regp)['cases']:
+ p=R/e['path'];assert ref(p)['sha256']==e['sha256']
+ for c in j(p)['changes']:
+  k=c['study_uid'],c['target'];assert k not in acc;acc[k]=c;active.append({'study_uid':k[0],'target':k[1],'whole_change':c,'whole_change_sha256':h(c),'case':ref(p)})
+assert len(acc)==569
+history=old/'first-historical491-registry.json';assert ref(history)['sha256']=='685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2';prior=[]
+for e in j(history)['cases']:
+ p=R/e['path'];assert ref(p)['sha256']==e['sha256']
+ for c in j(p)['changes']:
+  assert acc[c['study_uid'],c['target']]==c;prior.append({'study_uid':c['study_uid'],'target':c['target'],'whole_change_sha256':h(c)})
+assert len(prior)==491
+retbase=R/'initiative/audits/cartilage-legacy-three-retirement-integration-v1';retfiles=['retired-case-original.json','accepted-retirement-decision.json','retirement-integration-validation.json','preservation.json'];rb=[ref(retbase/n) for n in retfiles];ret=j(retbase/'retired-case-original.json')['changes'];assert len(ret)==3 and all((c['study_uid'],c['target']) not in acc for c in ret)
+with (S/'whole-object-preservation-start.json').open('x') as f:json.dump({'agent_id':'/root/last_twelve_visual_review','actual_registry':ref(regp),'active_change_count':569,'active_changes':active,'historical491_registry':ref(history),'all491_prior_whole_objects_exact':prior,'first569_registry':ref(P/'registry-at-comparison.json'),'retirement_bindings':rb,'retired_case_count':1,'retired_changes':ret,'retired_keys_absent_from_active_registry':True,'scope':'Whole-object capture before final packaging, after personal comparisons. Registry bytes also match the earlier comparison-start snapshot; this receipt does not claim that these full objects were captured before clinical reading or that timestamps prove access order.'},f,ensure_ascii=False,indent=2);f.write('\n')

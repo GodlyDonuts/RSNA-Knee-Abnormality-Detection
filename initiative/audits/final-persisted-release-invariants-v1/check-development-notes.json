@@ -1,0 +1,23 @@
+{
+  "actual_executor": "/root",
+  "preserved_attempts": [
+    {
+      "path": "check-final-release-invariants-attempt1.py.txt",
+      "sha256": "944eda853161e53e5c1053579f3139d944307074524ded3a7b61fe60fa664057"
+    },
+    {
+      "path": "check-final-release-invariants-attempt2.py.txt",
+      "sha256": "004e4968ee44334e0a734a5a8480478989b36fbee093a658349226c297d7b488"
+    },
+    {
+      "path": "check-final-release-invariants-attempt3.py.txt",
+      "sha256": "106576bd1503f85203634eb663edf37b16aaf93069d628537fafa709293f72b6"
+    }
+  ],
+  "notes": [
+    "Attempt1 incorrectly required quarantine and its connected gold group to have different leakage groups; corrected assertion to prohibit training/validation overlap and require quarantined studies to remain gold-connected.",
+    "Attempt2 used dictionaries where the preserved annotation fingerprint uses target-ordered lists; original annotations matched.",
+    "Attempt3 wrongly treated all24 unresolved cases as nongold. Case032:35 is official gold:23nongold cases have all12 masks zero, and the one gold case retains official evaluation masks only. No data or policy changes were needed."
+  ],
+  "final_check": "validation.json"
+}

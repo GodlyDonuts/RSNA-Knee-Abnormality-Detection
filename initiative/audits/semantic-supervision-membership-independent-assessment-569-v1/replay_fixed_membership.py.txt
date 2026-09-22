@@ -1,0 +1,112 @@
+"""Independent complete membership/count replay; no clinical or runtime approval."""
+from pathlib import Path
+import json,gzip,hashlib,unicodedata,sys
+from collections import defaultdict,Counter
+W=Path.cwd();A=W/'work/annotation-staging';R=W/'work/recovered';S=Path(__file__).resolve().parent;D=A/'semantic-supervision-membership-builder-569-v1';C=D/'membership-candidate-v1';P=D/'projections-v1';F=A/'conservative-semantic-hold-coverage-preflight-569-v1/result-v2'
+def read(p):return json.loads(gzip.decompress(p.read_bytes()) if p.suffix=='.gz' else p.read_bytes())
+def rows(p):
+ with gzip.open(p,'rt') if p.suffix=='.gz' else p.open() as f:
+  for x in f:yield json.loads(x)
+def h(x):return hashlib.sha256(json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def wr(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+m=D/'candidate-membership-file-manifest.json';assert ref(m)['sha256']=='1fad29b367ab217512308e7af4d767476ca3cc98aaf7b4f5b7474812b132699a'
+manifest=read(m)
+for e in manifest['files']:
+ p=W/e['path'];assert ref(p)=={k:e[k] for k in ('path','sha256','bytes')}
+ if p.suffix=='.gz':b=gzip.decompress(p.read_bytes());assert len(b)==e['decompressed_bytes'];assert hashlib.sha256(b).hexdigest()==e['decompressed_sha256']
+print('Fixed9 file hashes verified',flush=True)
+sys.path.insert(0,str(R));from rsna.schema import TARGETS
+from rsna.adjudications import inspect_adjudications
+reports={r['study_uid']:r['report'] for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for r in read(p)}
+orig={};origrows={}
+for p in (R/'initiative/reviews-v2/reviewed').glob('*-reviewed.jsonl'):
+ for r in rows(p):
+  for t,state,evidence in zip(TARGETS,r['states'],r['evidence']):orig[r['study_uid'],t]={'state':state,'evidence':evidence}
+inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert inspection['n_changes']==569 and inspection['changes']==read(F/'current569-inspection.json')['changes'];assert inspection['registry_sha256']=='7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'
+current=dict(orig)
+for x in inspection['changes']:current[x['study_uid'],x['target']]=x['after']
+assert len(current)==52884
+cells={(x['study_uid'],x['target']):x for x in rows(P/'cell-projection-ledger.jsonl.gz')};ledger={(x['study_uid'],x['target']):x for x in rows(C/'candidate-ledger-rows.jsonl.gz')};holds={x['id']:x for x in rows(C/'candidate-hold-records.jsonl.gz')};scope=read(C/'candidate-scope-manifest.json.gz');obs={x['id']:x for x in scope['obligations']};cohort=read(C/'candidate-cohort-reuse-receipts.json.gz')['records'];pre={(x['study_uid'],x['target']):x for x in rows(F/'cell-ledger.jsonl.gz')}
+assert set(cells)==set(ledger)==set(current)==set(pre);assert len(holds)==4412 and len(obs)==23804
+# Independent stream over every actual projection; retain minimal identity/state metadata.
+ev={};bycell=defaultdict(list);kinds=Counter()
+for x in rows(P/'source-evidence-projections.jsonl.gz'):
+ k=x['study_uid'],x['target'];ann=x['annotation'];assert k in current and h(ann)==x['annotation_sha256'];assert ann['state'] in {'positive','negative','uncertain','not_mentioned'}
+ assert ann['evidence']=='' if ann['state']=='not_mentioned' else bool(ann['evidence']) and ann['evidence'] in reports[k[0]]
+ assert x['source_report_sha256']==hashlib.sha256(reports[k[0]].encode()).hexdigest()
+ assert x['id'] not in ev
+ ev[x['id']]={key:x.get(key) for key in ('id','study_uid','target','kind','historical_kind','agent_id','session_id','annotation_sha256')};ev[x['id']]['state']=ann['state'];bycell[k].append(x['id']);kinds[x['kind']]+=1
+assert len(ev)==194973 and kinds['original_source']==105768
+preserved=list(rows(P/'preserved-nonprojected-index-records.jsonl.gz'));assert len(preserved)==518
+for x in read(P/'bound-artifacts.json'):assert ref(W/x['path'])==x
+print('Complete source/current maps and194973 evidence projections replayed',flush=True)
+cohort_by={(r['study_uid'],r['target']):r for r in cohort};assert len(cohort_by)==7537
+cohort_reasons={'explicit_proxy_reliability_queue_without_focused_postfreeze','bone_outside_proxy_accounting_only_no_hold_inferred','cartilage_outside_proxy_accounting_only_no_hold_inferred'}
+byob=defaultdict(list)
+for x in obs.values():byob[x['study_uid'],x['target']].append(x)
+peer=read(A/'conservative-semantic-hold-concrete-reuse-receipts-v1/proposed-reuse-receipts.json')['receipts'];peer_by={(r['study_uid'],r['target']):r for r in peer};join=read(C/'peer-receipt-obligation-join.json');joined={r['id']:r for r in join};assert len(join)==240
+expected_resolved=set();aliases={ 'preflight569:'+x['historical_evidence_id']:'preflight569:'+x['correct_explicit_root_projection_id'] for x in read(F/'historical-root-projection-notes.json')}
+for r in peer:
+ k=r['study_uid'],r['target'];assert current[k]=={'state':r['current_state'],'evidence':r['current_evidence']}
+ for d in r['obligations']:
+  x=joined[d['id']];assert x['proposed_disposition']==d['proposed_disposition'];assert x['discharged_evidence_ids']==d['discharged_evidence_ids'];assert x['original_peer_support_ids_unchanged']==d['resolution_evidence_ids'];assert x['underlying_support_evidence_ids']==[aliases.get(i,i) for i in d['resolution_evidence_ids']]
+  if d['proposed_disposition']=='resolved':expected_resolved.add(d['id'])
+all_disposition=Counter();retained=Counter();removed=Counter();before=Counter();unresolved_counter=Counter();cohort_expected=set();contra_cells=0;all_held=set();resolution_class=Counter();cohort_with_cues=0
+for k,c in cells.items():
+ l=ledger[k];assert c['current_state']==current[k]['state'];assert c['current_annotation_sha256']==l['current_annotation_sha256']==h(current[k]);assert c['original_annotation_sha256']==l['original_annotation_sha256']==h(orig[k]);assert set(c['evidence_ids'])==set(bycell[k]);assert set(c['evidence_ids'])<=set(l['evidence_ids']);assert c['existing_clinical_mask']==(current[k]['state'] in {'uncertain','not_mentioned'});assert c['existing_correspondence_exclusion']==pre[k]['existing_correspondence_exclusion']
+ contr={i for i in bycell[k] if ev[i]['kind'] in {'original_source','supplemental_source'} and ev[i]['state']!=current[k]['state']};assert contr==set(c['contrary_source_evidence_ids']);contra_cells+=bool(contr)
+ required=set(pre[k]['scope_obligations'])|({'historical_source_state_difference_requires_existing_disposition'} if contr else set());base_obs=[o for o in byob[k] if o['reason_code']!='exact_text_intrinsic_propagation'];assert {o['reason_code'] for o in base_obs}==required
+ assert {o['id'] for o in l['obligations']}=={o['id'] for o in byob[k]}
+ assert set(l['hold_ids'])=={hid for hid in l['hold_ids'] if hid in holds and (holds[hid]['study_uid'],holds[hid]['target'])==k}
+ source=[ev[i] for i in bycell[k] if ev[i]['historical_kind'] in {'original_first_source','original_second_source_preread'}];reviewed=[ev[i] for i in bycell[k] if ev[i]['historical_kind']=='original_second_postcomparison'];assert len(source)==2 and len(reviewed)==1 and len({s['agent_id'] for s in source})==2
+ ids=[o['id'] for o in base_obs if o['reason_code'] in cohort_reasons and o['id'] not in expected_resolved]
+ qualifies=(current[k]['state']=='negative' and not c['existing_correspondence_exclusion'] and not contr and all(o['reason_code'] in cohort_reasons|{'unassigned_report_scope_cue_policy_choice'} for o in base_obs) and all(s['state']=='negative' for s in source) and reviewed[0]['annotation_sha256']==h(current[k]) and bool(ids))
+ if qualifies:cohort_expected.add(k)
+ if k in cohort_by:
+  r=cohort_by[k];assert qualifies;assert set(r['obligation_ids'])==set(ids);assert set(r['supporting_evidence_ids'])=={s['id'] for s in source+reviewed};assert not r['discharged_evidence_ids'];assert r['evidence']==current[k]['evidence'];expected_resolved.update(ids);cohort_with_cues+=any(o['reason_code']=='unassigned_report_scope_cue_policy_choice' for o in base_obs)
+ discharged=set()
+ for o in l['obligations']:
+  st=o['disposition'];all_disposition[st]+=1;raw=obs[o['id']]
+  if st=='resolved':
+   assert o['id'] in expected_resolved;discharged.update(o['discharged_evidence_ids']);assert all(i in ev and (ev[i]['study_uid'],ev[i]['target'])==k for i in o['discharged_evidence_ids']);resolution_class[raw['category']]+=1
+   if raw['category']!='state_disagreement':assert not o['discharged_evidence_ids']
+  elif st=='already_masked':assert c['existing_clinical_mask']
+  elif st=='correspondence_excluded':assert c['existing_correspondence_exclusion']
+  elif st=='held':assert any(o['id'] in holds[i]['obligation_ids'] for i in l['hold_ids']);unresolved_counter[raw['reason_code']]+=1
+  else:raise AssertionError(st)
+ if l['hold_ids']:all_held.add(k)
+ observed=not c['existing_clinical_mask'] and not c['existing_correspondence_exclusion']
+ if observed:
+  before[k[1],current[k]['state']]+=1
+  if l['hold_ids']:removed[k[1],current[k]['state']]+=1
+  else:
+   retained[k[1],current[k]['state']]+=1;assert not (contr-discharged);assert len({ev[i]['agent_id'] for i in bycell[k] if ev[i]['kind'] in {'original_source','supplemental_source'}})>=2;assert any(ev[i]['state']==current[k]['state'] for i in bycell[k])
+assert cohort_expected==set(cohort_by)
+# Exact report groups independently rebuilt and all text-intrinsic origin memberships checked.
+groups=defaultdict(set)
+for u,t in reports.items():groups[' '.join(unicodedata.normalize('NFKC',t).casefold().split())].add(u)
+gby={u:g for g in groups.values() for u in g};origins=defaultdict(list)
+for hid,r in holds.items():
+ k=r['study_uid'],r['target'];assert r['current_annotation_sha256']==h(current[k]);assert r['lifecycle']=='active' and r['predecessor_sha256'] is None;assert hid in ledger[k]['hold_ids'];assert all(i in ledger[k]['evidence_ids'] for i in r['evidence_ids']);assert all(o in obs and (obs[o]['study_uid'],obs[o]['target'])==k for o in r['obligation_ids']);origins[r['origin_id']].append(r)
+for origin,hs in origins.items():
+ if hs[0]['scope_kind']=='text_intrinsic':assert {x['study_uid'] for x in hs}==gby[hs[0]['study_uid']] and len({x['target'] for x in hs})==1
+ else:assert len(hs)==1
+whole=defaultdict(set)
+for o in obs.values():
+ if o['scope_kind']=='whole_report':whole[o['report_scope_id']].add(o['target'])
+assert len(whole)==320 and all(t==set(TARGETS) for t in whole.values())
+near=read(C/'candidate-near-edge-dispositions.json')['records'];assert len(near)==12 and {x['target'] for x in near}==set(TARGETS);near_actions=Counter()
+for x in near:
+ k=x['study_uid'],x['target'];other=x['other_study_uid'],x['target'];assert x['action']==('separately_held' if ledger[k]['hold_ids'] and ledger[other]['hold_ids'] else 'no_semantic_transfer');near_actions[x['action']]+=1
+ for key in ['difference_proof','joint_source_comparison','policy']:
+  z=x['source_relation'][key];assert ref(R/z['path'])['sha256']==z['sha256']
+ for z in x['source_relation']['source_assessments'].values():assert ref(R/z['path'])['sha256']==z['sha256']
+summary=read(C/'candidate-summary.json');assert dict(all_disposition)==summary['obligation_disposition_counts'];assert len(all_held)==sum(removed.values())==3629;assert sum(retained.values())==23844
+remaining={t:{s:retained[t,s] for s in ['positive','negative']} for t in TARGETS};assert remaining==summary['remaining_pre_gold_by_target'];assert all(v['positive']>0 and v['negative']>0 for v in remaining.values())
+# The known late contrary OA source remains held; approved context completion is preserved in the original receipt.
+held_peer=[r for r in peer if r['decision']=='propose_hold'];assert len(held_peer)==1 and ledger[held_peer[0]['study_uid'],held_peer[0]['target']]['hold_ids']
+wr('independent-complete-replay.json',{'agent_id':'/root/last_twelve_visual_review','session_id':'/root/last_twelve_visual_review','status':'passed_fixed_membership_replay_no_final_release_approval','fixed_manifest':ref(m),'counts':{'cells':len(ledger),'reports':len(reports),'evidence_projections':len(ev),'preserved_other_index_records':len(preserved),'original_source_events':kinds['original_source'],'all_contrary_source_cells':contra_cells,'negative_cohort_exact':len(cohort),'cohort_cells_with_separate_report_scope_cues':cohort_with_cues,'obligations':len(obs),'holds':len(holds),'held_observed_cells':len(all_held),'remaining_observations_before_gold_split_technical':sum(retained.values()),'exact_text_propagation':len(read(C/'exact-text-propagation.json')),'whole_report_scope_groups':len(whole)},'obligation_dispositions':dict(all_disposition),'unresolved_reason_counts':dict(unresolved_counter),'remaining_pre_gold_by_target':remaining,'near_edge_actions':dict(near_actions),'all_original_and_current_annotation_digests_recomputed':True,'all569_whole_correction_objects_replayed':True,'all_current_source_quotes_rechecked':True,'negative_cohort_exact_predicate_recomputed':True,'all240_peer_issue_joins_replayed_with_exact_discharge_ids':True,'no_retained_contrary_source_without_explicit_discharge':True,'all_original_scope_obligations_accounted':True,'all_text_intrinsic_origin_groups_complete':True,'all_320_unassigned_report_scopes_enumerate12targets':True,'raw_source_projection_validation':'Recomputed every projected annotation digest/quote/source key and verified all bound original artifact hashes; the earlier separate runtime raw-selector/identity replay remains explicitly attributed to its actual author.','code_context_boundaries':'This assesses only the pinned9-file membership payload. Final runtime/catalog/required-input context, post-gold/split/technical coverage and policy approvals remain separate.','gold_values_read':False,'clinical_changes':0,'R_writes':False,'QA_closure':False})
+print(json.dumps({'proof':ref(S/'independent-complete-replay.json'),'remaining':sum(retained.values()),'cohort':len(cohort),'holds':len(holds),'near_actions':dict(near_actions)},indent=2))

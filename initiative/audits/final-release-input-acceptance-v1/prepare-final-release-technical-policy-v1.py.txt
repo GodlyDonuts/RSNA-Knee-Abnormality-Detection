@@ -1,0 +1,15 @@
+"""Pin existing immutable technical inputs; select no new images or semantic cells."""
+from pathlib import Path
+import hashlib,json
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered'
+D=R/'initiative/reviews-v2/semantic-supervision';D.mkdir(parents=True,exist_ok=True)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(name):
+ p=R/name;assert p.is_file();return dict(path=name,sha256=sha(p))
+obj={'schema_version':1,'source_revision':'0b5e410288232f570c69ba4f44723356e6ae6ab7','corrected_inventory':ref('initiative/audits/final-release-technical-inputs-v1/inventory_effective.parquet.gz'),'decoded_inventory_sha256':'68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537','dicom_audit':ref('initiative/audits/full-image-recovery-v1/audit/dicom_audit.json'),'series_cache_index':ref('initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet'),'series_sampling':ref('initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'),'source_series':ref('initiative/source/train_series.csv'),'reason':'Use the completed corrected official-source inventory and zero-warning technical cache audit, together with the accepted geometry/series preferences and exact duplicate-series sampling exclusions. Technical eligibility is the training UID set with authenticated sampled/cache series; original image sources and unsampled series remain preserved. This policy makes no clinical image-rereading claim.'}
+assert obj['corrected_inventory']['sha256']=='33065e6a60b878e5eda90ff2ffe865b5778cdcfa668adab23f2fd65bccdde240'
+assert obj['series_sampling']['sha256']=='14eb050d081abe9fce638f5dcfb2cedc688fdac5ace9a62bf9b1cf152421eada'
+audit=json.loads((R/obj['dicom_audit']['path']).read_text());assert audit['source_revision']==obj['source_revision']
+p=D/'technical-policy.json'
+with p.open('x') as out:out.write(json.dumps(obj,indent=2)+'\n')
+print(sha(p))

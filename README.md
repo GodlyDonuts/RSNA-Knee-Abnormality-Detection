@@ -21,22 +21,21 @@ to check the current review run.
 
 ## Status
 
-All 4,407 reports have completed both initial review passes, and the image cache
-has passed its full technical integrity audit. Consistency review has produced
-569 active target corrections; 18 studies have enforced exclusions from report
-training loss. Priority cartilage adjudication covers 260 reports. Both bone
-reviewers have completed 1,450 priority reports; later batch progress is recorded
-in the continuation guide. Original judgments, rejected proposals and later
-reconsiderations are preserved. Cartilage, bone terminology and qualified-wording
-QA, final manifests, leakage isolation and final-data training/resume/inference
-checks remain open. See [the correction evidence](docs/adjudications.md).
+The final local [report-supervision release](docs/data-readiness-report.md) passed
+full export verification and actual training/resume/inference acceptance. It contains
+3,904 training studies, 441 weak-validation studies, 58 official evaluation studies
+and four quarantined studies. All 569 corrections are preserved; the three semantic
+QA gates are resolved through a separately reviewed conservative mask policy.
+573 software tests pass. Rare targets remain sparsely supervised, so data quality
+and competitive benefit must be measured rather than inferred from effort.
 
-The latest verified private publication contains 491 corrections at Git
-`fec04625` / Hugging Face `d2804e1d`. Its receipt and two actual reconstruction
-checks are preserved. The local 569 milestone needs its own verified publication.
-After data readiness, the [expanded mission](docs/mission-and-training-plan.md)
-requires a researched training strategy, prioritized experiments and compute plan.
-Data quality and competitive benefit must be measured, not inferred from effort.
+Remote publication of this release is in progress. The last verified checkpoint is
+Git `a815aae6` / private Hugging Face `7d6d4cef`. Read the release report and immutable
+publication receipt rather than assuming every local milestone is already remote.
+The [expanded mission](docs/mission-and-training-plan.md) also includes a competitive
+[training strategy](docs/training-strategy.md), experiments and compute plan for
+UCF Newton: compare DINOv2/DINOv3 fairly, then test MRI adaptation, native detail
+and a complementary 3D branch. Competitive training starts after cluster access.
 
 The original mirror contains 4,407 training studies (58 with complete official
 labels), 819,078 training DICOMs, and 557 DICOMs from the three released sample test
@@ -57,12 +56,9 @@ Those drafts remain historical evidence. Corrected annotation must use the froze
 [verified competition contract](docs/competition-contract-20260920.md) records the
 official thresholds and the limitations of report-derived supervision.
 
-The replacement release requires every report to be read and independently
-reviewed, all DICOMs to pass the technical audit, and a real-data training/inference
-smoke run. The implementation and synthetic regression tests are available here;
-release validation is still in progress. Check the versioned HF release's audit
-files before starting a costly training run. This repository does not claim a
-competitive model score or a diagnostic rereading of every image.
+The accepted data release establishes technical operability and auditable report
+supervision. It does not claim a competitive score or a diagnostic rereading of every
+image. Keep original sources, masks and exact provenance with every experiment.
 
 ## Setup
 
@@ -101,8 +97,8 @@ labels, per-target `__mask`, `__state`, `__evidence`, and `__provenance` columns
 
 | Report state | Training value | Mask |
 | --- | ---: | ---: |
-| positive | 1 | 1 |
-| negative (explicit absence) | 0 | 1 |
+| positive | 1 | 1 only if accepted for supervision |
+| negative (explicit absence) | 0 | 1 only if accepted for supervision |
 | uncertain | placeholder 0 | 0 |
 | not_mentioned | placeholder 0 | 0 |
 
@@ -114,7 +110,9 @@ Report duplicates (NFKC, case-fold, whitespace normalization) and nonconstant
 identical-pixel duplicates form connected study groups. A SHA-256 of each group's
 smallest study UID assigns approximately 90% to `train` and 10% to
 `weak_validation`. All 58 official studies go to `gold_evaluation`; non-gold
-members of their duplicate groups go to `quarantine`. Train/test pixel duplicates
+members of their duplicate groups go to `quarantine`. A deterministic whole-group
+repair restores missing class coverage after masks; the accepted release moved one
+study. See [the policy](docs/semantic-supervision.md). Train/test pixel duplicates
 block label release. Study IDs do not establish patient-disjoint cohorts.
 
 Weak validation measures agreement with reviewed reports, not diagnostic accuracy.
@@ -153,12 +151,13 @@ python -m rsna.audit \
 obtain it from the [verified source inventory](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/86df08e5be2149aef0dc855f0ebffd376e164a19/audits/source-inventory-52f995f)
 or independently enumerate the source ZIP. That folder also contains the pinned
 DICOM inventory, original study/series coverage counts, and artifact checksums.
-It is a source-inventory milestone; the reviewed-label release is still pending.
+It is a historical source-inventory milestone; use the corrected source revision
+and accepted manifest in the readiness report for new training.
 Without it, the original-archive path equality check cannot run.
 The inventory records SHA-256, byte size, storage type, and UID/path identity for
 every DICOM. HF downloads use LFS object batches with verified size and hashes;
-the 144 directly stored Git blobs use pinned resolve URLs. Public reads need no
-HF token, but `HF_TOKEN` supports authenticated Hub rate limits and private access.
+the 144 directly stored Git blobs use pinned resolve URLs. The current HF dataset is private; use an authorized `HF_TOKEN` from ignored
+local secret storage for authenticated downloads.
 Optional direct Kaggle access uses `KAGGLE_API_TOKEN`; local unpacked
 input uses `--root /path/to/competition`.
 
@@ -181,7 +180,8 @@ included in a release. Reserve sufficient storage; caching stops below 3 GiB fre
 
 For the annotation stage, see [the review procedure](docs/report-review.md). After
 all batches and the DICOM audit complete, use the corrected inventory and audit
-from [source recovery](docs/source-recovery.md):
+from [source recovery](docs/source-recovery.md). The existing verified release
+can be loaded directly; use a new output directory for any rebuild:
 
 ```bash
 python -m rsna.labels --train initiative/source/train.csv \
@@ -190,7 +190,8 @@ python -m rsna.labels --train initiative/source/train.csv \
   --rubric protocols/report_weak_v2.md \
   --inventory ../cache256-v3-official-recovery-v1/inventory_effective.parquet \
   --source-revision 0b5e410288232f570c69ba4f44723356e6ae6ab7 \
-  --dicom-audit ../dicom-audit-v3-official-recovery-v1/dicom_audit.json \
+  --dicom-audit initiative/audits/full-image-recovery-v1/audit/dicom_audit.json \
+  --artifact-root . \
   --output data/release
 ```
 
@@ -224,25 +225,25 @@ plane before filling with additional fluid-sensitive sequences. This is an
 auditable baseline, not a tuned competition-winning architecture. Do not interpret
 smoke-run metrics as evidence of model quality.
 
-After the final label-release gates pass, rebuild the
+Use the accepted release and the already exported
 [reviewed sampling table](docs/series-preferences.md). It preserves exact-series
 deduplication and reviewed plane metadata while preferring clearer or more focused
 acquisitions within a limited series budget. Use the same exported CSV throughout
 training, resume and heldout inference.
 
 ```bash
-python -m rsna.train --studies data/release/studies.parquet \
-  --series data/series-sampling/series_sampling.csv --cache data/cache256 \
+python -m rsna.train --studies initiative/releases/report-supervision-v1/studies.parquet \
+  --series initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache data/cache256 \
   --output runs/baseline --epochs 20 --device cuda \
   --side 224 --slices 16 --max-series 6 --batch-size 2 --workers 4
-python -m rsna.train --studies data/release/studies.parquet \
-  --series data/series-sampling/series_sampling.csv --cache data/cache256 \
+python -m rsna.train --studies initiative/releases/report-supervision-v1/studies.parquet \
+  --series initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache data/cache256 \
   --output runs/baseline --epochs 30 --device cuda \
   --side 224 --slices 16 --max-series 6 --batch-size 2 --workers 4 \
   --resume runs/baseline/checkpoint.pt
 python -m rsna.infer --checkpoint runs/baseline/checkpoint.pt \
-  --studies data/release/studies.parquet --split gold_evaluation \
-  --series data/series-sampling/series_sampling.csv --cache data/cache256 \
+  --studies initiative/releases/report-supervision-v1/studies.parquet --split gold_evaluation \
+  --series initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache data/cache256 \
   --output runs/baseline/gold_predictions.csv --device cuda
 ```
 

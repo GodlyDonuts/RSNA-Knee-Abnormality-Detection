@@ -4,29 +4,27 @@ This folder contains actual data and evidence, not only links to a previous
 session. A new agent can recover the report-review work and source inventory
 from a clone of this repository.
 
-**The corrected training release is unfinished.** Read
-[`reviews-v2/index.json`](reviews-v2/index.json) for current per-batch availability and
-validation. Drafts awaiting independent review must not be promoted as final
-labels. Review completion alone does not establish image audit or training
-readiness.
-The current registry contains **569 active accepted target corrections** and
-18 enforced report-supervision exclusions. Wording004 adds 78 changes while
-preserving all 491 earlier whole correction objects and three retirements. Its
-four additional root proposals were independently rejected and later withdrawn
-by root with explicit reconsiderations; none changed the registry. The older
-wording003 additional disagreement remains open. All three semantic QA gates and
-final leakage, mask, manifest and training checks remain open; 24 unresolved
-correspondence cases must retain zero report-loss masks.
+**The local report-supervision release has passed data and runtime acceptance.**
+Use [the readiness report](../docs/data-readiness-report.md), the final
+[manifest and receipt](releases/report-supervision-v1/), and the
+[training strategy](../docs/training-strategy.md). There are 3,904 training studies,
+441 weak-validation studies, 58 official evaluation studies and four quarantined
+studies. All 569 accepted corrections and original judgments remain preserved.
+The three semantic QA gates are resolved against the exact accepted conservative
+supervision ledger; unresolved clinical claims remain masked.
 
-The latest verified private publication contains 491 corrections and 10,020
-restorable Git files at Git `fec04625` / HF `d2804e1d`; its actual receipt and two
-reconstruction proofs are archived. This local 569 milestone needs its own
-publication. Both bone passes cover 1,450 priority reports, with later batch
-progress in the continuation guide. Root wording005 has frozen all 48 full
-sources / 576 judgments before current case findings. The fixed 362 ledger
-remains historical evidence. After data readiness, the expanded mission requires
-competitive training research and an experiment plan; see
-[mission-and-training-plan.md](../docs/mission-and-training-plan.md).
+The complete image audit and actual final-input optimizer, exact CPU resume,
+58-study evaluation prediction and three-study template checks passed. Rare targets
+still have limited evidence, and no competitive score or complete diagnostic image
+reread is claimed. The 24 unresolved correspondence cases comprise 23 masked
+non-gold studies and one official evaluation-only study; all 18 registered report
+exclusions are masked.
+
+Verified publication of this local release is in progress. The previous verified
+private checkpoint is Git `a815aae6` / HF `7d6d4cef`. Its restoration proofs remain
+archived under `audits/qualified004-verified569-publication-v1/`.
+The [expanded mission](../docs/mission-and-training-plan.md) includes both data
+readiness and a competitive training plan.
 
 The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and
 [agent procedure](../protocols/agent_tasks.md). The `reviews/` outputs and index

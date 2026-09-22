@@ -1,0 +1,62 @@
+"""Exercise the real eligibility entry point with fully consistent synthetic Git objects."""
+import copy,hashlib,json,unittest
+from types import SimpleNamespace
+from pathlib import PurePosixPath
+from unittest.mock import patch
+import final_release_bindings as b
+import final_release_eligibility as e
+import final_release_dependency_seal as d
+import test_successor_guards as fixtures
+raw=lambda x:json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+sha=lambda v:hashlib.sha256(v).hexdigest()
+def row(path,value):
+ return {'path':path,'mode':'100644','bytes':len(value),'git_blob':hashlib.sha1(b'blob '+str(len(value)).encode()+b'\0'+value).hexdigest(),'sha256':sha(value)}
+
+class Integration(unittest.TestCase):
+ def fixture(self):
+  _,prior,reg,receipt,acceptance,docs=fixtures.Guards().fixture();payload={k:raw(v)for k,v in docs.items()}
+  for name in ('registry','context','holds','ledger','decision'):
+   p='initiative/reviews-v2/semantic-supervision/'+name+('.json.gz'if name in {'holds','ledger'}else'.json');v=raw({'synthetic':name});payload[p]=v;receipt['semantic_supervision'][name]={'path':p,'sha256':sha(v)}
+  p='initiative/reviews-v2/semantic-supervision/release-inputs.json';payload[p]=raw({'current':'synthetic'});receipt['coordinator']={'path':p,'sha256':sha(payload[p])}
+  payload[b.STUDIES_PATH]=b'synthetic study bytes';payload['series.csv']=b'synthetic series bytes'
+  receipt['studies_sha256']=sha(payload[b.STUDIES_PATH]);receipt['series_sha256']=sha(payload['series.csv'])
+  acceptance['full_release']['sha256']=receipt['studies_sha256'];acceptance['series']['sha256']=receipt['series_sha256']
+  for artifact in acceptance['artifacts']:
+   payload[artifact['path']]=b'synthetic diagnostic output';artifact['sha256']=sha(payload[artifact['path']])
+  for command in acceptance['commands']:
+   p=str(PurePosixPath(b.ACCEPTANCE_PATH).parent/(command['name']+'.log'));payload[p]=b'synthetic passed log';command['log_sha256']=sha(payload[p]);acceptance['artifacts'].append({'path':p,'sha256':sha(payload[p])})
+  payload['rsna/runtime.py']=b'# synthetic runtime\n';acceptance['code_sha256']={'rsna/runtime.py':sha(payload['rsna/runtime.py'])}
+  b.VERIFIED_RELEASE_SHA=sha(raw(receipt));binding=acceptance['training_checks']['release_binding'];binding.update(manifest_sha256=receipt['studies_sha256'],series_sha256=receipt['series_sha256'],release_receipt_sha256=b.VERIFIED_RELEASE_SHA,semantic_registry_sha256=receipt['semantic_supervision']['registry']['sha256']);binding['binding_sha256']=e.digest({k:v for k,v in binding.items()if k!='binding_sha256'})
+  b.ACCEPTANCE_SHA=sha(raw(acceptance));b.REGISTRY_SHA=sha(raw(reg));b.PREVIOUS_REGISTRY_SHA=sha(raw(prior))
+  payload[b.ACCEPTANCE_PATH]=raw(acceptance);payload[b.REGISTRY_PATH]=raw(reg);payload[b.VERIFIED_RELEASE_PATH]=raw(receipt)
+  payload['initiative/audits/current-proof/nested.json']=raw({'used_by_current_validator':True})
+  files=[{k:r[k]for k in ('path','sha256','git_blob','bytes')}for p,v in sorted(payload.items())for r in [row(p,v)]]
+  seal={'schema_version':1,'stage':'root_fresh_verified_release_dependency_seal','status':'passed','actual_executor':b.ROOT,'acceptance':{'path':b.ACCEPTANCE_PATH,'sha256':b.ACCEPTANCE_SHA},'verified_release':{'path':b.VERIFIED_RELEASE_PATH,'sha256':b.VERIFIED_RELEASE_SHA},'studies':acceptance['full_release'],'series':acceptance['series'],'source_revision':b.SOURCE_HF,'release_binding':binding,'fresh_load_verified_release_passed':True,'current_runtime_open_capture_complete':True,'all_observed_inputs_unchanged':True,'seal_runner_sha256':b.sha(b.SEAL_RUNNER),'files':files,'n_files':len(files),'membership_checks':[{'directory':p,'pattern':pattern,'recursive':rec,'paths':d.selected_paths(payload,p,pattern,rec)}for p,pattern,rec in d.MEMBERSHIP_SCOPES]}
+  b.DEPENDENCY_SEAL_SHA=sha(raw(seal));payload[b.DEPENDENCY_SEAL_PATH]=raw(seal)
+  def run(mutate=lambda p:None,manifest=True):
+   changed=copy.deepcopy(payload);mutate(changed)
+   def git(repo,command,ref):
+    commit,path=ref.split(':',1)
+    return raw(prior)if commit==b.PREVIOUS_GIT and path==b.REGISTRY_PATH else changed[path]
+   rows={p:{k:v for k,v in row(p,data).items()if k!='sha256'}for p,data in changed.items()}
+   final={'files':[row(p,v)for p,v in changed.items()]}
+   return e.evaluate_git(SimpleNamespace(git=git),rows,final if manifest else None)
+  return run
+ def test_exact_current_dependency_tree_passes_both_build_and_publication_guards(self):
+  with patch.multiple(b,**fixtures.Guards().pins()):
+   run=self.fixture();a=run();self.assertEqual(a['current_dependency_seal']['seal_actual_executor'],b.ROOT);self.assertEqual(run(manifest=False),a)
+ def test_original_receipt_dependency_gap_is_closed_at_real_entrypoint(self):
+  with patch.multiple(b,**fixtures.Guards().pins()):
+   for path in ['initiative/reviews-v2/semantic-supervision/holds.json.gz','initiative/reviews-v2/semantic-supervision/context.json','initiative/reviews-v2/semantic-supervision/release-inputs.json','initiative/audits/current-proof/nested.json']:
+    for delete in (True,False):
+     run=self.fixture()
+     def mutate(payload):
+      if delete:payload.pop(path)
+      else:payload[path]=b'changed after actual acceptance'
+     with self.subTest(path=path,missing=delete),self.assertRaisesRegex(b.GuardError,'target_dependency_missing_or_changed'):run(mutate)
+ def test_added_current_policy_fails_even_with_consistent_target_manifest(self):
+  with patch.multiple(b,**fixtures.Guards().pins()):
+   run=self.fixture()
+   with self.assertRaisesRegex(b.GuardError,'target_discovered_membership_changed'):run(lambda p:p.update({'initiative/audits/correspondence-release-dispositions-v999.json':b'{}'}))
+
+if __name__=='__main__':unittest.main(verbosity=2)

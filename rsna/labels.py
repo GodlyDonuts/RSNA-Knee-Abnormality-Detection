@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 import unicodedata
 from pathlib import Path
 
@@ -330,11 +331,14 @@ def audit_labels(studies: pd.DataFrame, drafts: pd.DataFrame) -> dict:
 def main() -> None:
     from rsna.adjudications import apply_adjudications
     from rsna.correspondence import apply_correspondence
+    from rsna.release import prepare_supervision, write_verified_release
     from rsna.report_similarity import (
         bind_similarity_splits,
         inspect_report_similarity,
         similarity_pairs,
     )
+    from rsna.semantic_supervision import apply_semantic_supervision
+    from rsna.weak_split import repair_weak_split_coverage, split_repair_audit
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", type=Path, required=True)
@@ -353,6 +357,8 @@ def main() -> None:
         help="Repository root for required release policies and evidence (default: current directory)",
     )
     args = parser.parse_args()
+    if args.output.exists():
+        raise ValueError("Release output must be a new directory")
     train = pd.read_csv(args.train)
     if train.StudyInstanceUID.duplicated().any():
         raise ValueError("Study IDs must be unique")
@@ -378,36 +384,60 @@ def main() -> None:
     similarity = inspect_report_similarity(reports, args.artifact_root)
     studies = build_studies(train, reviews, pixel_pairs + similarity_pairs(similarity))
     studies, correspondence = apply_correspondence(studies, reports, args.artifact_root)
+    supervision = prepare_supervision(reports, adjudications, args.artifact_root)
+    studies = apply_semantic_supervision(
+        studies,
+        supervision["semantic_supervision"],
+        gold_uids=set(supervision["gold_uids"]),
+        technical_eligible_uids=set(supervision["technical_eligible_uids"]),
+    )
+    before_split_repair = studies
+    studies = repair_weak_split_coverage(studies)
+    split_repair = split_repair_audit(before_split_repair, studies)
     similarity = bind_similarity_splits(similarity, studies)
-    args.output.mkdir(parents=True, exist_ok=True)
-    studies.to_parquet(args.output / "studies.parquet", index=False)
-    reviews.to_parquet(args.output / "report_annotations.parquet", index=False)
-    original_reviews.to_parquet(args.output / "report_annotations_original.parquet", index=False)
-    (args.output / "adjudication_trace.json").write_text(
-        json.dumps(adjudications, ensure_ascii=False, indent=2) + "\n"
-    )
-    (args.output / "correspondence_trace.json").write_text(
-        json.dumps(correspondence, ensure_ascii=False, indent=2) + "\n"
-    )
-    (args.output / "report_similarity_trace.json").write_text(
-        json.dumps(similarity, ensure_ascii=False, indent=2) + "\n"
-    )
-    studies.drop(columns=["Report"]).to_csv(args.output / "study_labels.csv", index=False)
-    report = audit_labels(studies, drafts)
-    report["adjudications"] = adjudications
-    report["correspondence"] = correspondence
-    report["report_similarity"] = similarity
-    report["release_inputs"] = {
-        **provenance,
-        "train_sha256": file_sha256(args.train),
-        "dicom_audit_sha256": file_sha256(args.dicom_audit),
-        "source_revision": args.source_revision,
-        "cache_version": CACHE_VERSION,
-        "adjudication_registry_sha256": adjudications["registry_sha256"],
-        "correspondence_registry_sha256": correspondence["registry_sha256"],
-        "report_similarity_registry_sha256": similarity["registry_sha256"],
-    }
-    (args.output / "label_audit.json").write_text(json.dumps(report, indent=2))
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".release-", dir=args.output.parent) as temporary:
+        output = Path(temporary) / "release"
+        output.mkdir()
+        studies.to_parquet(output / "studies.parquet", index=False)
+        release_binding = write_verified_release(output, studies, supervision, args.artifact_root)
+        reviews.to_parquet(output / "report_annotations.parquet", index=False)
+        original_reviews.to_parquet(output / "report_annotations_original.parquet", index=False)
+        (output / "adjudication_trace.json").write_text(
+            json.dumps(adjudications, ensure_ascii=False, indent=2) + "\n"
+        )
+        (output / "correspondence_trace.json").write_text(
+            json.dumps(correspondence, ensure_ascii=False, indent=2) + "\n"
+        )
+        (output / "report_similarity_trace.json").write_text(
+            json.dumps(similarity, ensure_ascii=False, indent=2) + "\n"
+        )
+        studies.drop(columns=["Report"]).to_csv(output / "study_labels.csv", index=False)
+        report = audit_labels(studies, drafts)
+        report["adjudications"] = adjudications
+        report["correspondence"] = correspondence
+        report["report_similarity"] = similarity
+        report["weak_split_repair"] = split_repair
+        report["verified_release_binding"] = release_binding
+        report["semantic_supervision"] = {
+            "registry": supervision["semantic_supervision"]["registry"],
+            "ledger": supervision["semantic_supervision"]["ledger"],
+            "cells": supervision["semantic_supervision"]["n_cells"],
+            "clinical_annotations_preserved": True,
+        }
+        report["release_inputs"] = {
+            **provenance,
+            "train_sha256": file_sha256(args.train),
+            "dicom_audit_sha256": file_sha256(args.dicom_audit),
+            "source_revision": args.source_revision,
+            "cache_version": CACHE_VERSION,
+            "adjudication_registry_sha256": adjudications["registry_sha256"],
+            "correspondence_registry_sha256": correspondence["registry_sha256"],
+            "report_similarity_registry_sha256": similarity["registry_sha256"],
+        }
+        (output / "label_audit.json").write_text(json.dumps(report, indent=2))
+        (output / "weak_split_repair.json").write_text(json.dumps(split_repair, indent=2) + "\n")
+        output.rename(args.output)
     print(json.dumps(report, indent=2))
 
 

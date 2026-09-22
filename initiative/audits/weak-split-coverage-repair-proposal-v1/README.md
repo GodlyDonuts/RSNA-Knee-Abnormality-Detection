@@ -1,0 +1,11 @@
+# Proposed deterministic weak split coverage repair
+
+`repair_weak_split_coverage(studies)` preserves the original hash split when both classes are present for every target in train and weak validation. Otherwise it moves the smallest safe whole leakage group from the opposite active split; ties use SHA256 of the existing leakage-group identifier, then the identifier. Missing pairs are visited in fixed split, canonical target and negative/positive order.
+
+A donor must retain every class it currently has. Each move strictly increases covered split/target/class pairs. Globally absent usable classes fail immediately; no safe improving move fails explicitly. The hard limit is 48 moves, while global presence limits the initial missing-pair count to 24. Gold/quarantine groups are never donors or recipients. The function changes only split values and adds no columns, masks or hidden audit attributes. A separate audit records exact final moved groups and UID membership.
+
+Ten focused tests, Ruff and mypy pass. The real fixed candidate needs one group/one study moved from train to weak validation: 3,904 train, 441 weak validation, 58 gold and four quarantine afterward. All 48 active split/target/class pairs then exist. Every numeric value, clinical state, exact quote, mask, provenance field, report group and leakage group remains identical. Reapplying the function is a no-op. The real diagnostic reused the bound gold-UID-only metadata and did not reopen official target values.
+
+This is a protocol proposal, not a release approval. Root must bind the rule version and exact utility in an explicit successor split policy. Invoke the same helper after fixed semantic masking in both label assembly and fresh release replay, before computing persisted-table fingerprints or downstream split traces. Do not silently retain the old hash-only algorithm name. Resume and labeled inference must continue to validate the complete bound release.
+
+`test_weak_split-attempt1.py` preserves a mistaken synthetic fixture whose sole fracture-negative donor made its requested move unsafe; the utility correctly rejected it. The corrected fixture adds independent donor support rather than weakening the rule. No repository or registry files were changed here.

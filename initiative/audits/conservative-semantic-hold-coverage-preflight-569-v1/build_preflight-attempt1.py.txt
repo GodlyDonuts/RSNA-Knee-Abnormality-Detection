@@ -1,0 +1,288 @@
+"""Read-only exact-cell candidate accounting; never author approved holds or labels."""
+from pathlib import Path
+from collections import defaultdict, Counter
+from datetime import datetime, timezone
+import argparse, gzip, hashlib, importlib.util, json, shutil, sys
+
+W=Path(__file__).resolve().parents[3]; B=W/'work/annotation-staging'; R=W/'work/recovered'; P=Path(__file__).resolve().parent
+L=B/'readiness-evidence-ledger-362-v1'; CANON='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'; RUBRIC='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'; REG='7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'; AGENT='/root/duplicate_consistency_review'
+BO=['Contusion','Fracture']; OA=['Medial OA','Lateral OA','PF OA']; OBS={'positive','negative'}
+
+def require(x,code):
+ if not x:raise ValueError(code)
+def sha_bytes(b):return hashlib.sha256(b).hexdigest()
+def measure(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(2**20),b''):h.update(b)
+ return {'path':str(p.relative_to(W)),'sha256':h.hexdigest(),'bytes':p.stat().st_size}
+def rows(p):
+ with p.open() as f:
+  for i,line in enumerate(f,1):yield f'line:{i}',json.loads(line)
+def read(p):return json.loads(p.read_text())
+def strings(x):
+ if isinstance(x,str):yield x
+ elif isinstance(x,dict):
+  for v in x.values():yield from strings(v)
+ elif isinstance(x,list):
+  for v in x:yield from strings(v)
+def data_rows(p):
+ if p.suffix=='.jsonl':return {},list(rows(p))
+ x=read(p)
+ if isinstance(x,list):return {},[(f'/{i}',r) for i,r in enumerate(x)]
+ for k in ['records','reports','judgments']:
+  if isinstance(x.get(k),list):return x,[(f'/{k}/{i}',r) for i,r in enumerate(x[k])]
+ raise ValueError('unsupported_rows')
+def actor(*objs):
+ a=s=None
+ for o in objs:
+  if not isinstance(o,dict):continue
+  for k in ['agent_id','assessor_agent_id','assessor_id','reader_id']:
+   if isinstance(o.get(k),str):a=a or o[k]
+  for k in ['session_id','assessor_session_id']:
+   if isinstance(o.get(k),str):s=s or o[k]
+ return a,s
+def quote_check(report,state,quote):
+ require(state in OBS|{'uncertain','not_mentioned'},'bad_state')
+ require(isinstance(quote,str),'bad_quote_type')
+ require((state=='not_mentioned' and quote=='') or (state!='not_mentioned' and bool(quote) and quote in report),'noncontiguous_quote')
+def json_bytes(x):return (json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\n').encode()
+def annotation_hash(a):return sha_bytes(json_bytes({'state':a['state'],'evidence':a['evidence']}))
+
+
+def main(output):
+ require(not output.exists(),'output_exists');require(shutil.disk_usage(W).free>20*2**30+64*2**20,'disk_floor')
+ bindings={}; events={}; cell_events=defaultdict(list); stages={}; supplemental=[]; scope=defaultdict(set); root_final={}; notices=[]
+ def bind(p,expected=None):
+  p=p.resolve();require(p.is_relative_to(W) and p.is_file() and not p.is_symlink(),'invalid_binding')
+  require(p!=R/'initiative/source/train.csv' and p.name!='.env','forbidden_value_input')
+  ref=measure(p);require(expected is None or ref['sha256']==expected,'changed_binding');require(bindings.setdefault(ref['path'],ref)==ref,'binding_drift');return ref
+ def seal(p,expected=None):bind(p,expected);return read(p)
+ def choose(d,names):
+  for n in names:
+   if (d/n).is_file():return d/n
+  raise ValueError('missing_named_artifact')
+ def quoted(r):
+  uid=r['study_uid'];require(uid in source,'unknown_uid');q=source[uid]
+  for k in ['report_sha256','report_utf8_sha256','source_report_sha256']:
+   if r.get(k):require(r[k]==q['report_sha256'],'source_report_hash')
+  for k in ['source_sha256','source_batch_sha256','source_file_sha256']:
+   if r.get(k):require(r[k]==q['source_sha256'],'source_batch_hash')
+  for k in ['source_index_zero_based','source_index']:
+   if k in r:require(r[k]==q['index'],'source_index')
+  return q
+ def emit(st,p,loc,r,t,a,agent,session):
+  q=quoted(r);require(t in st['targets'],'target_scope');require(agent,'missing_author');quote_check(q['report'],a['state'],a['evidence'])
+  e={'id':f'n{len(supplemental):05d}','study_uid':r['study_uid'],'target':t,'report_sha256':q['report_sha256'],'stage':st['id'],'kind':st['kind'],'artifact':bind(p),'selector':loc,'agent_id':agent,'session_id':session,'state':a['state'],'evidence_sha256':sha_bytes(a['evidence'].encode()),'annotation_sha256':annotation_hash(a)}
+  supplemental.append(e);events[e['id']]=e;cell_events[(e['study_uid'],t)].append(e['id']);return e
+ def stage(sid,kind,targets,family,anchor):
+  st={'id':sid,'kind':kind,'targets':targets,'family':family,'anchor':bind(anchor)};stages[sid]=st;return st
+ def source_import(path,freeze,sid,family,targets):
+  f=seal(freeze);header,rr=data_rows(path);a,s=actor(header,f);st=stage(sid,'root_source_frozen' if ':root:' in sid else 'supplemental_source_frozen',targets,family,freeze);bind(path)
+  require(measure(path)['sha256'] in set(strings(f)) or path==freeze,'source_not_frozen');seen=set()
+  for loc,r in rr:
+   aa,ss=actor(r,header,f);aa=aa or a;ss=ss or s
+   if 'decisions' in r:pairs=[(z['target'],z,f'{loc}/decisions/{i}') for i,z in enumerate(r['decisions'])]
+   else:
+    order=r.get('target_order',header.get('target_order',header.get('targets',targets)));require(len(order)==len(r['states'])==len(r['evidence']),'array_length');pairs=[(t,{'state':state,'evidence':ev},f'{loc}/states/{i}') for i,(t,state,ev) in enumerate(zip(order,r['states'],r['evidence']))]
+   for t,ann,selector in pairs:
+    key=r['study_uid'],t;require(key not in seen,'duplicate_source_cell');seen.add(key);emit(st,path,selector,r,t,ann,aa,ss)
+  st.update(agent_id=aa,session_id=ss,cells=len(seen),reports=len({k[0] for k in seen}));require(seen=={(u,t) for u in {k[0] for k in seen} for t in targets},'incomplete_source_scope');return st,seen
+ postkeys=['second_postfreeze','own_postfreeze','independent_postfreeze','independent_postfreeze_judgment','postfreeze_assessor_judgment','first_postfreeze_judgment','postfreeze_opinion','final_first_assessor_preference']
+ def post_import(path,anchor,sid,family,targets,base=None,expected_keys=None):
+  bind(anchor);header,rr=data_rows(path);aa,ss=actor(header);aa=aa or (base or {}).get('agent_id');ss=ss or (base or {}).get('session_id');st=stage(sid,'root_postfreeze_dispositions' if ':root:' in sid else 'postfreeze_complete_opinions',targets,family,anchor);seen=set()
+  require(measure(path)['sha256'] in set(strings(read(anchor))) or path==anchor,'post_not_completion_bound')
+  for loc,r in rr:
+   ann=field=None
+   for k in postkeys:
+    if isinstance(r.get(k),dict):ann=r[k];field=k;break
+   if ann is None:
+    for k in ['root_postfreeze','independent_postfreeze','postfreeze']:
+     if k+'_state' in r:ann={'state':r[k+'_state'],'evidence':r[k+'_evidence']};field=k;break
+   require(ann is not None,'unsupported_post_opinion');key=r['study_uid'],r['target'];require(key not in seen,'duplicate_post_cell');seen.add(key);e=emit(st,path,loc+'/'+field,r,key[1],ann,aa,ss)
+   if ':root:' in sid:root_final[(key,family)]=e['id']
+  if expected_keys is not None:require(seen==expected_keys,'post_scope_mismatch')
+  st.update(agent_id=aa,session_id=ss,cells=len(seen),reports=len({k[0] for k in seen}));return st
+
+ bind(W/'work/conservative-semantic-hold-design-v1.md','2ac18fcf2fcf28dc23532fb963d1dbff8beec1ec503ab1ce80648bf502982ba1')
+ historical=seal(L/'completion-manifest.json')
+ for item in historical['files']:bind(L/item['path'],item['sha256'])
+ bind(B/'readiness-closure-map-362-v1/readiness-closure-map.json','d2b7244f61ab1e9f1e628937013f1ff3e909302b219d562fd4b904daf23613f1')
+ require(measure(R/'initiative/reviews-v2/adjudications/registry.json')['sha256']==REG,'not569')
+ sys.path.insert(0,str(R));from rsna.schema import TARGETS
+ from rsna.adjudications import inspect_adjudications
+ from rsna.correspondence import inspect_correspondence
+ from rsna.report_similarity import inspect_report_similarity
+ from rsna.labels import report_group
+ targets=list(TARGETS);source={}
+ for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+  ref=bind(p)
+  for i,r in enumerate(read(p)):
+   require(set(r)=={'study_uid','report'} and r['study_uid'] not in source,'source_membership')
+   source[r['study_uid']]={'report':r['report'],'report_sha256':sha_bytes(r['report'].encode()),'source_path':str(p.relative_to(R)),'source_sha256':ref['sha256'],'index':i,'case':f'{p.stem[-3:]}:{i:02d}'}
+ require(len(source)==4407,'report_count');reports={u:s['report'] for u,s in source.items()}
+ bind(R/'protocols/report_weak_v2.md',RUBRIC);bind(R/'initiative/reviews-v2/adjudications/registry.json',REG)
+ inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+ require(inspection['source_reports_sha256']==CANON and inspection['rubric_sha256']==RUBRIC and inspection['n_changes']==569 and inspection['registry_sha256']==REG,'runtime_context')
+ require(len(inspection['pending_semantic_qa'])==3,'qa_changed')
+ corrections={(c['study_uid'],c['target']):(i,c) for i,c in enumerate(inspection['changes'])};require(len(corrections)==569,'duplicate_change')
+ for _,c in corrections.values():
+  for f in ['case','proposal','independent_assessment','decision']:
+   row=c[f]
+   if isinstance(row,dict) and 'path' in row:bind(R/row['path'],row['sha256'])
+ original={}
+ for p in sorted((R/'initiative/reviews-v2/reviewed').glob('*-reviewed.jsonl')):
+  bind(p)
+  for _,r in rows(p):
+   for t,state,ev in zip(targets,r['states'],r['evidence']):original[r['study_uid'],t]={'state':state,'evidence':ev}
+ current={k:(corrections[k][1]['after'] if k in corrections else v) for k,v in original.items()}
+ require(len(current)==52884,'allcell_count')
+ for k,a in current.items():quote_check(source[k[0]]['report'],a['state'],a['evidence'])
+ histcells={(r['study_uid'],r['target']):r for _,r in rows(L/'ledger-final/cell-ledger.jsonl')};require(set(histcells)==set(current),'historical_cell_set')
+ for k,r in histcells.items():require(r['report_sha256']==source[k[0]]['report_sha256'] and {x:r['original_reviewed'][x] for x in ['state','evidence']}==original[k],'historical_original_changed')
+ oldst={r['id']:r for r in read(L/'ledger-final/stage-index.json')};stages.update(oldst)
+ for _,r in rows(L/'ledger-final/evidence-records.jsonl'):
+  key=r['study_uid'],r['target'];require(key in current and r['report_sha256']==source[key[0]]['report_sha256'],'old_evidence_source')
+  if 'state' in r:
+   quote_check(source[key[0]]['report'],r['state'],r['evidence']);r['evidence_sha256']=sha_bytes(r['evidence'].encode());r['annotation_sha256']=annotation_hash(r)
+  events[r['id']]=r;cell_events[key].append(r['id'])
+  if r['kind']=='root_postfreeze_dispositions':root_final[(key,oldst[r['stage']]['family'])]=r['id']
+ for _,r in rows(L/'worklists/exact-worklist-memberships.jsonl'):scope[r['scope']].add((r['study_uid'],r['target']))
+ # Later stable bone000-019 remain referenced in fixed ledger; add only020-030.
+ lateanchors={29:('46757824364ca185a0a28f7328874d425ea52972402f96426909791d47918d1b','8bf701f91c6e45e856d5d32894c5fe856bfae8fe2a48fa598af309638a56c8f0'),30:('90156ea5e15f01e9a941b27353e70264240cbc5cdc19916c358349e249156bb3','d0d3e19523ee6d8e82a7df8120343eee269f36d13eb12e9ca97e79eb1b2fbd2c')}
+ for n in range(20,31):
+  for role in ['first','second']:
+   d=B/f'bone-observed-{n:03d}-{"source" if role=="first" else "independent"}-review-v1';f=d/'source-freeze.json';p=d/'source-assessment-frozen.jsonl'
+   st,keys=source_import(p,f,f'bone:{n:03d}:{role}:source','bone',BO)
+   post=B/f'bone-observed-{n:03d}-{"postfreeze" if role=="first" else "independent-postfreeze"}-v1';anchor=post/('completion-manifest.json' if role=='first' else 'final-file-list.json')
+   bind(anchor,lateanchors[n][role=='second'] if n in lateanchors else None)
+   pp=choose(post,['all100-postfreeze-dispositions.json','all98-postfreeze-dispositions.json'] if role=='first' else ['complete-second-dispositions.json'])
+   post_import(pp,anchor,f'bone:{n:03d}:{role}:postfreeze','bone',BO,st,keys)
+ # Source and adjudication remains explicit; root005 has no postfreeze.
+ for n in [3,4,5]:
+  d=B/f'qualified-negation-focused-{n:03d}-root-review-v1';source_import(d/'full-source-assessment.json',d/'source-freeze.json',f'wording:{n:03d}:root:source','wording',targets)
+ for n in [2,3,4]:
+  d=B/f'qualified-negation-focused-{n:03d}-root-adjudication-v1';p=d/'root-postfreeze-dispositions.json';post_import(p,d/'completion-manifest.json',f'wording:{n:03d}:root:postfreeze','wording',targets,{'agent_id':'/root','session_id':'/root'})
+ # Preserve actual distinct additional assessment; later root004 withdraws its4 only.
+ d=B/'qualified003-additional-independent-v1';post_import(d/'all3-independent-postfreeze-dispositions.json',d/'completion-manifest.json','wording:003:additional:postfreeze','wording',targets)
+ d=B/'qualified004-additional-root-resolution-v1';bind(d/'completion-manifest.json','6d875ee0928cf33c02dd208860061f379b6dd14a4a642840fba6836e59718ae6');p=d/'root-later-resolution.json';h=seal(p,'f2329efcf766c95cab94470ce3b00e6d94d40c15e888bb7a615f1cdc85c5bdc0');st=stage('wording:004:root:later-resolution','root_postfreeze_dispositions',targets,'wording',d/'completion-manifest.json')
+ for i,r in enumerate(h['records']):
+  e=emit(st,p,f'/records/{i}/root_later_final_annotation',r,r['target'],r['root_later_final_annotation'],h['agent_id'],h['session_id']);root_final[((r['study_uid'],r['target']),'wording')]=e['id'];require(current[r['study_uid'],r['target']]==r['root_later_final_annotation'],'later_resolution_not_current')
+ # Explicit pending root003 extra is preserved instead of converted to acceptance.
+ extra=seal(B/'qualified-negation-focused-003-root-adjudication-v1/additional-root-proposals.json');pendingextra=set()
+ for r in extra.get('proposed_errata',extra.get('records',[])):pendingextra.add((r['study_uid'],r['target']))
+ require(len(pendingextra)==1,'root003_extra_count')
+ # Exact cue and short-quote memberships are separate from target-specific clinical judgments.
+ wd=B/'qualified-negation-all4407-candidates-v1';p=wd/'unassigned-qualified-source-cues.jsonl';bind(p);cues=[]
+ for loc,r in rows(p):
+  require(r['study_uid'] in source,'unassigned_uid');require(r['source_excerpt'] in source[r['study_uid']]['report'],'cue_quote');cues.append({'study_uid':r['study_uid'],'artifact':str(p.relative_to(W)),'selector':loc,'cue_id':r['cue_id']})
+ unassigned={r['study_uid'] for r in cues}
+ p=wd/'exact-wording-state-consistency-candidates.json';mixed=seal(p);mixedgroups=[]
+ for i,g in enumerate(mixed['groups']):
+  members={(r['study_uid'],g['target']) for r in g['records']};scope['wording:historical_mixed_short_evidence_groups']|=members;mixedgroups.append({'historical_group_index':i,'members':sorted(members),'current_state_counts':dict(Counter(current[k]['state'] for k in members)),'historical_artifact':str(p.relative_to(W))})
+ correspondence=inspect_correspondence(reports,R);bind(R/'initiative/audits/correspondence-release-registry.json')
+ excluded={r['study_uid'] for r in correspondence['decisions']};require(len(excluded)==18,'correspondence_count')
+ unresolved={k[0] for k,c in histcells.items() if c['mask_obligations']['unresolved_correspondence_requires_all12_non_gold_zero']};require(len(unresolved)==24,'unresolved_correspondence')
+ similarity=inspect_report_similarity(reports,R);bind(R/'initiative/audits/report-similarity-registry.json')
+ # No output until every required source schema and current registry check passes.
+ output.mkdir();outrefs=[]
+ def gz(name,items):
+  p=output/name;h=hashlib.sha256();size=count=0
+  with p.open('xb') as raw:
+   with gzip.GzipFile(filename='',mode='wb',fileobj=raw,mtime=0,compresslevel=6) as f:
+    for item in items:
+     b=json_bytes(item);h.update(b);size+=len(b);count+=1;f.write(b)
+  hh=hashlib.sha256();n=0
+  with gzip.open(p,'rb') as f:
+   for block in iter(lambda:f.read(2**20),b''):hh.update(block);n+=len(block)
+  require(hh.hexdigest()==h.hexdigest() and n==size,'gzip_roundtrip');ref=measure(p);ref.update(uncompressed_sha256=h.hexdigest(),uncompressed_bytes=size,records=count);outrefs.append(ref);return ref
+ # Build latest per-family reader postfreeze maps; never elevate a source-only opinion into a final postfreeze.
+ posts=defaultdict(lambda:defaultdict(list));source_authors=defaultdict(lambda:defaultdict(set));frozen_hist_diff=0
+ for eid,e in events.items():
+  st=stages[e['stage']];key=e['study_uid'],e['target'];fam=st.get('family')
+  if e['kind']=='supplemental_source_frozen':source_authors[key][fam].add(e['agent_id'])
+  if e['kind']=='postfreeze_complete_opinions':posts[key][fam].append(eid)
+  if 'state' in e and e['kind']!='original_second_postcomparison' and e['state']!=current[key]['state']:frozen_hist_diff+=1
+ categories=Counter();bytarget=defaultdict(Counter);reasons_count=Counter();reasonkeys=defaultdict(set);partition=[];detail=[];root_matches=set();root_different=set();retained_dissent=set();reused=set();unassigned_cells=set();pending_proposal_cells=set()
+ for key,a in current.items():
+  uid,t=key;hist=histcells[key];observed=a['state'] in OBS;currenthash=annotation_hash(a);reasons=[];comparisons=[]
+  if any(len(aa)>=2 for aa in source_authors[key].values()):reused.add(key)
+  for fam,eids in posts[key].items():
+   rootid=root_final.get((key,fam));root=events[rootid] if rootid else None
+   state_diff=[e for e in eids if events[e]['state']!=a['state']];quote_diff=[e for e in eids if events[e]['state']==a['state'] and events[e]['evidence_sha256']!=sha_bytes(a['evidence'].encode())]
+   between=len({events[e]['state'] for e in eids})>1
+   if root and root['annotation_sha256']==currenthash:
+    root_matches.add(key);status='root_disposed_current_exact'
+    if state_diff:retained_dissent.add(key);reasons.append('root_disposed_retained_reader_state_dissent_policy_choice')
+   elif root:
+    root_different.add(key);status='root_final_differs_actual_current';reasons.append('unresolved_root_current_state' if root['state']!=a['state'] else 'unresolved_root_current_evidence')
+   elif state_diff or between:
+    status='pending_postfreeze_state_difference';reasons.append('pending_source_supported_state_difference');pending_proposal_cells.add(key)
+   elif quote_diff:
+    status='pending_quote_variant_no_error_inferred';reasons.append('pending_quote_variant_requires_scope_decision')
+   else:status='reader_posts_match_current'
+   comparisons.append({'family':fam,'reader_postfreeze_evidence_ids':eids,'root_final_evidence_id':rootid,'status':status,'state_difference_ids':state_diff,'quote_only_difference_ids':quote_diff,'between_reader_state_difference':between})
+  # Root opinions with no complete historical first postprojection remain assessed separately.
+  for (k,fam),rid in root_final.items():
+   if k!=key or fam in posts[key]:continue
+   ev=events[rid]
+   if ev['annotation_sha256']==currenthash:root_matches.add(key)
+   else:root_different.add(key);reasons.append('unresolved_root_current_state' if ev['state']!=a['state'] else 'unresolved_root_current_evidence')
+  if key in pendingextra:reasons.append('explicit_root003_extra_unresolved')
+  inv=[name for name,members in scope.items() if key in members]
+  relevant={'cartilage' if n.startswith(('inventory:cartilage','historical34:cartilage')) else 'bone' if n.startswith('inventory:bone') else 'wording' for n in inv if n.startswith(('inventory:','historical34:'))}
+  unresolved_queues=[]
+  for fam in sorted(relevant):
+   hasqueue=any((n=='inventory:bone:priority' if fam=='bone' else n in {'inventory:cartilage:residual_negative_candidate','inventory:cartilage_inventory:candidate'} if fam=='cartilage' else n=='inventory:wording_inventory:candidate') for n in inv)
+   if hasqueue and (key,fam) not in root_final and not posts[key].get(fam):unresolved_queues.append(fam)
+  if unresolved_queues:reasons.append('explicit_proxy_reliability_queue_without_focused_postfreeze')
+  if 'inventory:bone_inventory:observed_unselected' in inv:reasons.append('bone_outside_proxy_accounting_only_no_hold_inferred')
+  if 'historical34:cartilage:noncandidate_negative' in inv:reasons.append('cartilage_outside_proxy_accounting_only_no_hold_inferred')
+  if uid in unassigned:reasons.append('unassigned_report_scope_cue_policy_choice');unassigned_cells.add(key)
+  if 'wording:historical_mixed_short_evidence_groups' in inv:reasons.append('historical_mixed_short_quote_group_context_review')
+  if uid in excluded:category='existing_correspondence_exclusion'
+  elif not observed:category='existing_uncertain_or_unmentioned_mask'
+  elif uid in unresolved:category='existing_unresolved_correspondence_mask_obligation'
+  elif any(x in reasons for x in ['explicit_root003_extra_unresolved','pending_source_supported_state_difference','unresolved_root_current_state']):category='candidate_state_hold_pending_approval'
+  elif 'unresolved_root_current_evidence' in reasons:category='candidate_evidence_scope_hold_pending_approval'
+  elif 'root_disposed_retained_reader_state_dissent_policy_choice' in reasons:category='adjudicated_retained_dissent_policy_choice'
+  elif 'pending_quote_variant_requires_scope_decision' in reasons:category='quote_variant_policy_choice_not_error'
+  elif unresolved_queues:category='incomplete_reliability_queue_policy_choice'
+  elif key in corrections:category='accepted_current_observation_no_new_hold_inferred'
+  else:category='other_current_observation_no_hold_inferred'
+  categories[category]+=1;bytarget[t][category]+=1
+  for reason in set(reasons):reasons_count[reason]+=1;reasonkeys[reason].add(key)
+  c=corrections.get(key);source_row=source[uid]
+  row={'study_uid':uid,'target':t,'case':source_row['case'],'report_sha256':source_row['report_sha256'],'source_path':source_row['source_path'],'source_sha256':source_row['source_sha256'],'source_index_zero_based':source_row['index'],'current569':{'state':a['state'],'evidence_sha256':sha_bytes(a['evidence'].encode()),'annotation_sha256':currenthash},'historical362_cell_selector':f'uid={uid};target={t}','historical_evidence_ids':hist['evidence_record_ids'],'later_evidence_ids':[e for e in cell_events[key] if e.startswith('n')],'active_accepted_change_index':c[0] if c else None,'active_accepted_case_id':c[1]['case_id'] if c else None,'inventory_and_attention_scopes':inv,'reader_and_root_comparisons':comparisons,'scope_obligations':sorted(set(reasons)),'incomplete_reliability_families':unresolved_queues,'has_two_supplemental_source_authors_in_any_same_family':key in reused,'existing_clinical_mask':not observed,'existing_correspondence_exclusion':uid in excluded,'existing_unresolved_correspondence_all12_obligation':uid in unresolved,'display_partition':category,'approved_semantic_hold':False,'policy_approval_pending':True}
+  partition.append(row)
+  if reasons:detail.append({'study_uid':uid,'target':t,'reasons':sorted(set(reasons)),'observed':observed,'correspondence_excluded':uid in excluded})
+ require(len(partition)==len({(r['study_uid'],r['target']) for r in partition})==52884,'partition_not_exact')
+ gz('cell-ledger.jsonl.gz',sorted(partition,key=lambda r:(r['study_uid'],targets.index(r['target']))));gz('later-evidence-index.jsonl.gz',supplemental);gz('candidate-scope-memberships.jsonl.gz',detail)
+ gz('unassigned-report-cues.jsonl.gz',cues)
+ gz('scope-memberships.jsonl.gz',({'scope':s,'study_uid':u,'target':t} for s,members in sorted(scope.items()) for u,t in sorted(members)))
+ exact=defaultdict(list)
+ for uid,report in reports.items():exact[report_group(report)].append(uid)
+ dups=[v for v in exact.values() if len(v)>1];duplicate_checks=[]
+ keysmap={(r['study_uid'],r['target']):r for r in partition}
+ for i,uids in enumerate(dups):
+  for t in targets:
+   ann={current[u,t]['state'] for u in uids};rs={tuple(keysmap[u,t]['scope_obligations']) for u in uids}
+   duplicate_checks.append({'group':i,'study_uids':uids,'target':t,'effective_state_conflict':len(ann)>1,'candidate_reason_membership_asymmetry':len(rs)>1,'approval_or_propagation_performed':False})
+ gz('exact-duplicate-preflight.jsonl.gz',duplicate_checks)
+ def count_members(members):
+  return {'cells':len(members),'reports':len({u for u,t in members}),'current_observed':sum(current[k]['state'] in OBS for k in members),'current_masked':sum(current[k]['state'] not in OBS for k in members),'correspondence_excluded':sum(k[0] in excluded for k in members),'two_supplemental_source_authors':len(members & reused),'root_disposed_exact_current':len(members & root_matches),'root_current_difference':len(members & root_different),'active_correction':len(members & set(corrections))}
+ summary={'schema_version':1,'agent_id':AGENT,'status':'technical_candidate_preflight_not_approved_holds','created_at_utc':datetime.now(timezone.utc).isoformat(),'source_reports_sha256':CANON,'rubric_sha256':RUBRIC,'current_registry_sha256':REG,'active_corrections':569,'cells':52884,'reports':4407,'historical_evidence_records_reused':len(events)-len(supplemental),'later_evidence_records':len(supplemental),'bone_source_and_post_endpoint':{'batch':'030','reports_per_reader':1549,'cells_per_reader':3098},'source_only_root005':{'reports':48,'cells':576,'no_comparison_completion_claim':True},'partition_counts':dict(categories),'partition_by_target':dict(bytarget),'candidate_reason_counts':{s:count_members(m) for s,m in reasonkeys.items()},'scope_counts':{s:count_members(m) for s,m in scope.items()},'accepted_correction_current_state_counts':dict(Counter(current[k]['state'] for k in corrections)),'root_disposed_exact_current_cells':len(root_matches),'root_final_different_from_current_cells':len(root_different),'historical_state_difference_records_not_automatically_pending':frozen_hist_diff,'root_disposed_retained_dissent_cells':len(retained_dissent),'unassigned_cues':len(cues),'unassigned_reports':len(unassigned),'unassigned_report_scope_all12_scenario':count_members(unassigned_cells),'historical_mixed_short_evidence_groups':len(mixedgroups),'current_mixed_state_short_evidence_groups':sum(len(g['current_state_counts'])>1 for g in mixedgroups),'exact_duplicate_groups':len(dups),'exact_duplicate_reports':sum(map(len,dups)),'exact_duplicate_current_state_conflicts':sum(x['effective_state_conflict'] for x in duplicate_checks),'candidate_duplicate_reason_asymmetry_group_targets':sum(x['candidate_reason_membership_asymmetry'] for x in duplicate_checks),'near_report_edges':len(similarity['edges']),'gold_and_splits_not_read':True,'class_counts_are_report_annotations_not_non_gold_final_loss_counts':True,'all_three_gates_pending':inspection['pending_semantic_qa'],'candidate_holds_approved':0,'masks_changed':0,'labels_changed':0,'R_writes':False,'network_calls':0,'limits':['Current observed annotations are not final non-gold supervision counts; official gold membership/values and final splits were not loaded.','Every historical difference is preserved; source-only, reconsidered, root-disposed and accepted changes are separated.','Postfreeze exact quote variation is a candidate scope review, not an inferred evidence defect.','A root retention with reader dissent is reported separately from an unadjudicated proposal; policy must explicitly decide any hold.','Broad lexical and no-proxy queues are accounting scopes, not diagnoses or automatically approved exclusions.','Target-unassigned cues retain report scope; the all12 scenario is explicit and not applied.','Original two-pass evidence remains reusable; unmatched focused scopes do not mandate new reads.']}
+ # Bind exact runtime objects once; references never pretend changed historical registry is still live362.
+ def dump(name,x):
+  p=output/name
+  with p.open('xb') as f:f.write(json_bytes(x))
+  outrefs.append(measure(p))
+ dump('current569-inspection.json',inspection);dump('correspondence-inspection.json',correspondence);dump('near-report-inspection.json',similarity);dump('mixed-short-evidence-groups.json',mixedgroups);dump('summary.json',summary);dump('supplemental-stage-index.json',[st for sid,st in stages.items() if sid not in oldst]);dump('input-bindings.json',list(bindings.values()))
+ for row in bindings.values():require(measure(W/row['path'])==row,'input_changed_during_join')
+ require(measure(R/'initiative/reviews-v2/adjudications/registry.json')['sha256']==REG,'registry_changed_during_join');require(shutil.disk_usage(W).free>20*2**30+64*2**20,'disk_floor_after')
+ dump('validation.json',{'all_checks_passed':True,'source_bound_cells':52884,'every_imported_nonmissing_quote_contiguous':True,'all_imported_source_hashes_and_indices_match':True,'later_source_freezes_and_postcompletion_hash_bound':True,'all_actual569_cases_runtime_validated':True,'historical_ledger_original_unchanged':True,'gzip_outputs_stream_replayed':True,'output_bytes':sum(x['bytes'] for x in outrefs),'free_bytes':shutil.disk_usage(W).free,'approved_holds':0,'implementation_or_gate_closure':False})
+ dump('completion-manifest.json',{'agent_id':AGENT,'status':'complete_technical_candidate_coverage_not_policy_approval','files':list(outrefs),'builder':measure(Path(__file__))})
+ print(json.dumps({'output':str(output.relative_to(W)),'cells':52884,'later_records':len(supplemental),'partition_counts':dict(categories),'output_bytes':sum(x['bytes'] for x in outrefs),'completion':measure(output/'completion-manifest.json')}))
+
+if __name__=='__main__':
+ ap=argparse.ArgumentParser();ap.add_argument('--output',type=Path,required=True);args=ap.parse_args();main(args.output.resolve())

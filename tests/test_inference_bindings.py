@@ -21,7 +21,7 @@ def sha(path: Path) -> str:
 
 
 @pytest.fixture
-def case(tmp_path: Path) -> dict:
+def case(tmp_path: Path, monkeypatch, synthetic_release_binding) -> dict:
     studies = pd.DataFrame(
         [
             {
@@ -72,6 +72,14 @@ def case(tmp_path: Path) -> dict:
         "config": {"slices": 2, "side": 32, "max_series": 3},
         "model": StudyNet(8).state_dict(),
     }
+    checkpoint["release_binding"] = synthetic_release_binding(manifest_path, series_path, "a" * 40)
+    # These cases target inference metadata/cache behavior; the complete release
+    # boundary has separate real-validator roundtrip and tamper tests.
+    monkeypatch.setattr(
+        infer,
+        "load_verified_release",
+        lambda path, artifact_root: (pd.read_parquet(path), checkpoint["release_binding"]),
+    )
     checkpoint_path = tmp_path / "checkpoint.pt"
     torch.save(checkpoint, checkpoint_path)
     return {
@@ -261,3 +269,43 @@ def test_real_new_test_input_inference_preserves_separate_mode(case, monkeypatch
     assert metrics["series_sha256"] == sha(case["series"])
     assert metrics["template_sha256"] == sha(template)
     assert metrics["cache_source_revision"] == "new-runtime-test"
+
+
+def test_heldout_inference_requires_real_release_receipt(case, monkeypatch):
+    from rsna.release import load_verified_release
+
+    monkeypatch.setattr(infer, "load_verified_release", load_verified_release)
+    monkeypatch.setattr(sys, "argv", argv(case))
+    with pytest.raises(ValueError, match="verified release receipt is required"):
+        infer.main()
+    assert not case["output"].exists()
+
+
+@pytest.mark.parametrize("mutation", ["missing", "changed_digest"])
+def test_inference_rejects_unbound_checkpoint_before_output(case, monkeypatch, mutation):
+    if mutation == "missing":
+        del case["checkpoint"]["release_binding"]
+    else:
+        case["checkpoint"]["release_binding"]["manifest_sha256"] = "c" * 64
+    torch.save(case["checkpoint"], case["checkpoint_path"])
+    monkeypatch.setattr(sys, "argv", argv(case))
+    with pytest.raises(ValueError):
+        infer.main()
+    assert not case["output"].exists()
+
+
+@pytest.mark.parametrize("field", ["manifest_sha256", "series_sha256", "cache_source_revision"])
+def test_public_inference_rejects_conflicting_training_identity(case, monkeypatch, field):
+    template = case["output"].with_name("template.csv")
+    pd.DataFrame([{"StudyInstanceUID": "1.2.4", **{t: 0 for t in TARGETS}}]).to_csv(
+        template, index=False
+    )
+    case["checkpoint"][field] = "c" * 64
+    torch.save(case["checkpoint"], case["checkpoint_path"])
+    args = argv(case)
+    args[args.index("--studies")] = "--template"
+    args[args.index(str(case["studies"]))] = str(template)
+    monkeypatch.setattr(sys, "argv", args)
+    with pytest.raises(ValueError, match="conflicts with its verified release"):
+        infer.main()
+    assert not case["output"].exists()

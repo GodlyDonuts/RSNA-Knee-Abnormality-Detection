@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "scope": "Independent read-only review of exact integration normalizations after staged module preservation; planned split repair excluded.",
+  "bindings": [
+    {
+      "original": {
+        "path": "work/annotation-staging/semantic-supervision-core-performance-v1/semantic_supervision.py",
+        "sha256": "2e092cc17ba1bda677597438541a87860a2144cb0b1f09450ba52f6a404007f7"
+      },
+      "integrated": {
+        "path": "work/recovered/rsna/semantic_supervision.py",
+        "sha256": "a4d4e793c5c63cdca5927e9ef13d720df74582c2b48631a5b944f16e478360ba"
+      }
+    },
+    {
+      "original": {
+        "path": "work/annotation-staging/semantic-supervision-release-adapter-v1/release.py",
+        "sha256": "e21eb8941845c9ef655c63c80655eb537f7d5acd9d69770c8cef87f3971b70a3"
+      },
+      "integrated": {
+        "path": "work/recovered/rsna/release.py",
+        "sha256": "1b175bdc8a0ea00498272591ded2d43f9d8d4796759505d26c8fc7d4a3bf8f13"
+      }
+    }
+  ],
+  "findings": [],
+  "verified_changes": [
+    "One blank line between third-party pandas and first-party rsna imports in each module.",
+    "For already validated two-member similarity pairs, tuple(sorted(p)) is replaced by (min(p),max(p)), preserving exact ordering/values and yielding tuple[str,str] for the full-repository type check."
+  ],
+  "required_input_keys_count": 9,
+  "original_stages_preserved": true,
+  "repository_writes_by_reviewer": false,
+  "clinical_or_qa_acceptance": false
+}

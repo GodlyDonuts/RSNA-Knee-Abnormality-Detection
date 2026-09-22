@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "stage": "synthetic_core_implementation_validation",
+  "agent_id": "/root/quality_temporal_review",
+  "created_at_utc": "2026-09-22T08:42:00.574093+00:00",
+  "scope": "Staging-only core implementation and entirely synthetic fixtures. No real hold memberships, policy endorsements, QA resolution, clinical annotation changes, gold inspection, repository mutation or publication.",
+  "schema": {
+    "path": "work/annotation-staging/semantic-supervision-holds-implementation-v1/core-schema-v1.md",
+    "sha256": "f032f1399ffa0a1f300065ca7c58abf7eb2a5f2a407b8ad2c0589410c8449552"
+  },
+  "checks": {
+    "pytest": {
+      "command": "PYTHONPATH=work/recovered:work/annotation-staging/semantic-supervision-holds-implementation-v1 .venv/bin/python -B -m pytest -q work/annotation-staging/semantic-supervision-holds-implementation-v1/test_semantic_supervision.py",
+      "passed": 49,
+      "seconds": 3.87,
+      "known_unrelated_warning": "Installed pytest-asyncio default fixture loop scope deprecation."
+    },
+    "ruff_check": "passed with recovered pyproject config",
+    "ruff_format_check": "passed; 2 files already formatted",
+    "mypy": "passed, module only, recovered config, follow-imports=silent"
+  },
+  "material_cases": [
+    "missing/stale/unapproved registry and exact whole-cell coverage",
+    "draft/preread/review/source/policy/correction drift",
+    "original raw identity/ownership/scoped-order pointers",
+    "unrelated and contrary-state resolution rejection; explicit dissent discharge",
+    "hold lifecycle omission rejection and actual approved synthetic release preserving historical bytes",
+    "record-specific versus exact-report propagation, near-report disposition requirement",
+    "overlapping reasons and whole-report all-target requirement",
+    "compressed exact-byte hashes and cached parse/selector paths",
+    "held positive target preserved with zero gradient",
+    "nongold numeric target/state integrity",
+    "authenticated synthetic source/gold membership and values",
+    "persisted masks/file/receipt/QA binding bypass rejection"
+  ],
+  "pending_downstream_work_owned_by_root": [
+    "fresh release adapter and fixed-membership coverage/class-collapse approval",
+    "labels/train/resume/labeled-inference entry-point integration",
+    "checkpoint training-release identity for public-test inference",
+    "deterministic diagnostic study limit and resume identity"
+  ],
+  "implementation_notes": [
+    "Interface and membership schema frozen; actual accepted policy must be authored separately.",
+    "Existing adjudication inspection is a trusted freshly validated caller input; core does not replace its case validation.",
+    "Complete known-obligation selection requires the independently bound finite scope manifest; absence from a lexical candidate list is not semantic clearance.",
+    "This is synthetic validation, not a successful production release."
+  ],
+  "disk_free_bytes": 22286577664
+}

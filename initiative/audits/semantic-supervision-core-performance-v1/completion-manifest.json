@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "created_at_utc": "2026-09-22T09:00:54.220479+00:00",
+  "status": "sealed_performance_only_successor",
+  "predecessor": {
+    "path": "work/annotation-staging/semantic-supervision-core-amendment-v1/completion-manifest.json",
+    "sha256": "fe93915d25f91a71be62fdb27a89c081b526c478eb87dff1a5bb7362e18f22bd"
+  },
+  "change": "Compute immutable evidence and hold ID sets once in _finish_inspection. Schema and validation behavior unchanged.",
+  "measurement_limit": "Repeated-set cost identified statically. The peer interrupted an earlier candidate build inside its own repeated identity hashing, so no elapsed time from that attempt is attributed to this core issue.",
+  "tests": {
+    "core_passed": 53,
+    "combined_adapter_passed": 73,
+    "combined_seconds": 7.0,
+    "ruff_check": "passed",
+    "ruff_format": "passed",
+    "mypy": "passed; two staged modules"
+  },
+  "files": [
+    {
+      "path": "performance-only.diff.txt",
+      "sha256": "c111d5eb5754f9758cb4650eef2688a5cae3e7316dc4598594f8e8187462a28f",
+      "bytes": 2422
+    },
+    {
+      "path": "semantic_supervision.py",
+      "sha256": "2e092cc17ba1bda677597438541a87860a2144cb0b1f09450ba52f6a404007f7",
+      "bytes": 44525
+    },
+    {
+      "path": "test_semantic_supervision.py",
+      "sha256": "f8a9dbcfb3ef8f121a38a0bf8b08034e6244f28c40891232f6d58cde6928df99",
+      "bytes": 35359
+    }
+  ]
+}

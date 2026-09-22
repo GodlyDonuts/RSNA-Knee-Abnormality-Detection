@@ -1,0 +1,54 @@
+"""Preserve sealed implementation and genuine policy opinions; approve no real release."""
+from pathlib import Path
+import hashlib,json,shutil
+W=Path(__file__).resolve().parent.parent
+R=W/'work/recovered'; B=W/'work/annotation-staging'; A=R/'initiative/audits'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={
+'semantic-supervision-holds-implementation-v1':'d9fe7b5d3f3456e5141a4d36b805cc022a02191d5d77c4d8563b908669365108',
+'semantic-supervision-core-amendment-v1':'fe93915d25f91a71be62fdb27a89c081b526c478eb87dff1a5bb7362e18f22bd',
+'semantic-supervision-core-performance-v1':'268af24bc4d892b584ffe6d766c5fdb8af65cb1238bb67f6a2edb3297b9ec3e8',
+'semantic-supervision-release-adapter-v1':'2d8faac9db29e5dc8d49272414f858447ed613274b733fc954bca2c1e6a8ad34',
+'conservative-semantic-hold-evidence-reuse-review-v1':'964149de6aef844236eec1e6f5330a664bffd4e6d3f05c7b3e85363126d38ae4',
+'conservative-semantic-hold-concrete-reuse-receipts-v1':'9af39e019b7930d10f95ac431f4ba5de9ca7e22a43919cf1c5a28a65c183228b',
+}
+refs={}
+for n,pin in pins.items():
+ m=B/n/'completion-manifest.json';assert sha(m)==pin,(n,sha(m))
+ for ref in json.loads(m.read_text())['files']:
+  p=W/ref['path'] if ref['path'].startswith('work/') else B/n/ref['path']
+  assert p.is_relative_to(B/n) and p.is_file() and not p.is_symlink()
+  assert sha(p)==ref['sha256'] and p.stat().st_size==ref['bytes'],str(p)
+  refs[p]=dict(sha256=sha(p),bytes=p.stat().st_size)
+ refs[m]=dict(sha256=pin,bytes=m.stat().st_size)
+d=B/'conservative-semantic-hold-root-reuse-decision-v1/root-reuse-decision.json'
+assert sha(d)=='911356f5137d8059a1f8df22d5581dc4eea61e45d0040d74be679a6543bdeeb1'
+refs[d]=dict(sha256=sha(d),bytes=d.stat().st_size)
+jobs=[]
+for p,ref in refs.items():
+ d=A/p.relative_to(B)
+ if p.suffix=='.py':d=d.with_suffix('.py.txt')
+ jobs.append((p,d,ref))
+for stage,file,dest in [
+ ('semantic-supervision-core-performance-v1','semantic_supervision.py','rsna/semantic_supervision.py'),
+ ('semantic-supervision-core-performance-v1','test_semantic_supervision.py','tests/test_semantic_supervision.py'),
+ ('semantic-supervision-release-adapter-v1','release.py','rsna/release.py'),
+ ('semantic-supervision-release-adapter-v1','test_release_adapter.py','tests/test_release_adapter.py')]:
+ p=B/stage/file;assert p in refs;jobs.append((p,R/dest,refs[p]))
+needed=sum(ref['bytes'] for _,d,ref in jobs if not d.exists())
+assert shutil.disk_usage(W).free-needed>=20*1024**3
+outdir=A/'semantic-implementation-preservation-v1';assert not outdir.exists()
+for _,d,ref in jobs:
+ if d.exists():assert sha(d)==ref['sha256']
+files=[]
+for p,d,ref in jobs:
+ d.parent.mkdir(parents=True,exist_ok=True)
+ action='equal_existing' if d.exists() else 'copied_new'
+ if not d.exists():
+  with d.open('xb') as out:out.write(p.read_bytes())
+ assert sha(d)==ref['sha256']
+ files.append(dict(original_path=str(p.relative_to(W)),path=str(d.relative_to(R)),action=action,**ref))
+outdir.mkdir();helper=outdir/(Path(__file__).name+'.txt');helper.write_bytes(Path(__file__).read_bytes())
+record=dict(actual_executor='/root',stage='implementation_and_policy_opinion_preservation',completion_pins=pins,files=files,helper_sha256=sha(helper),approved_final_hold_records=0,semantic_qa_closed=False,training_ready=False)
+out=outdir/'preservation.json';out.write_text(json.dumps(record,indent=2)+'\n')
+print(json.dumps(dict(files=len(files),new_bytes=needed,receipt_sha256=sha(out))))

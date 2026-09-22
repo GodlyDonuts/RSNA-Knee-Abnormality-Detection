@@ -1,0 +1,368 @@
+"""Rebind the sealed technical index to real original records, without approval.
+
+This stage deliberately has no final policy context or runtime-code hash. It
+preserves technical selector labels separately from dereferenceable raw pointers.
+"""
+from pathlib import Path
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+from functools import lru_cache
+import argparse
+import gzip
+import hashlib
+import json
+import re
+import shutil
+import sys
+
+W = Path(__file__).resolve().parents[3]
+B = W / "work/annotation-staging"
+R = W / "work/recovered"
+H = B / "readiness-evidence-ledger-362-v1/ledger-final"
+P = B / "conservative-semantic-hold-coverage-preflight-569-v1/result-v2"
+AGENT = "/root/duplicate_consistency_review"
+REG = "7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae"
+CANON = "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3"
+RUBRIC = "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+PREF = "11c6472dd28c364be89621448c25a8f0d811e144fdbeb6bc2ec86d68f3d8a30c"
+
+
+def require(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+
+def jb(obj):
+    return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+
+
+def digest(obj):
+    return hashlib.sha256(jb(obj)).hexdigest()
+
+
+@lru_cache(maxsize=None)
+def sha(path):
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(2**20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def ref(path):
+    return {"path": str(path.relative_to(W)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def read(path):
+    with (gzip.open(path, "rt") if path.suffix == ".gz" else path.open()) as stream:
+        return json.load(stream)
+
+
+def lines(path):
+    with (gzip.open(path, "rt") if path.suffix == ".gz" else path.open()) as stream:
+        for row in stream:
+            yield json.loads(row)
+
+
+@lru_cache(maxsize=32)
+def document(path):
+    return list(lines(path)) if ".jsonl" in path.name else read(path)
+
+
+def pointer(obj, selector):
+    if isinstance(selector, int):
+        return obj[selector]
+    for token in selector.split("/")[1:]:
+        token = token.replace("~1", "/").replace("~0", "~")
+        obj = obj[int(token)] if isinstance(obj, list) else obj[token]
+    return obj
+
+
+def pointers(obj, path="", depth=0):
+    """Identity/ownership metadata only; do not crawl report arrays."""
+    if isinstance(obj, dict):
+        yield path, obj
+        if depth < 3:
+            for key, value in obj.items():
+                if isinstance(value, dict):
+                    yield from pointers(value, path + "/" + key.replace("~", "~0").replace("/", "~1"), depth + 1)
+
+
+def strings_with_paths(obj, path=""):
+    if isinstance(obj, str):
+        yield path, obj
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from strings_with_paths(v, path + "/" + k.replace("~", "~0").replace("/", "~1"))
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            yield from strings_with_paths(v, path + "/" + str(i))
+
+
+def raw_binding(path, selector, obj):
+    r = ref(path)
+    return {"artifact": {"path": r["path"], "sha256": r["sha256"]}, "format": "jsonl" if ".jsonl" in path.name else "json", "selector": selector, "sha256": digest(obj)}
+
+
+def archive_path(path):
+    if path.is_relative_to(R):
+        return path
+    if path.is_relative_to(B):
+        rel = path.relative_to(B)
+        return R / "initiative/audits" / rel
+    return None
+
+
+def main(out):
+    require(not out.exists() and not out.resolve().is_relative_to(R), "new staging output required")
+    require(shutil.disk_usage(W).free > 20 * 2**30 + 128 * 2**20, "20 GiB guard")
+    require(sha(P.parent / "completion-manifest.json") == PREF, "preflight seal changed")
+    require(sha(R / "initiative/reviews-v2/adjudications/registry.json") == REG, "actual569 changed")
+    sys.path.insert(0, str(R))
+    from rsna.schema import TARGETS
+    from rsna.adjudications import inspect_adjudications
+    targets = list(TARGETS)
+    reports = {}
+    original = {}
+    for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+        for row in read(p):
+            reports[row["study_uid"]] = row["report"]
+    for p in sorted((R / "initiative/reviews-v2/reviewed").glob("*-reviewed.jsonl")):
+        for row in lines(p):
+            for t, s, q in zip(targets, row["states"], row["evidence"]):
+                original[row["study_uid"], t] = {"state": s, "evidence": q}
+    inspected = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+    require(inspected["n_changes"] == 569 and inspected["source_reports_sha256"] == CANON and inspected["rubric_sha256"] == RUBRIC, "runtime context")
+    require(inspected["changes"] == read(P / "current569-inspection.json")["changes"], "whole current569 objects changed")
+    current = dict(original)
+    for c in inspected["changes"]:
+        current[c["study_uid"], c["target"]] = c["after"]
+    old_art = {a["id"]: a for a in read(H / "artifact-index.json")}
+    stages = {s["id"]: s for s in read(H / "stage-index.json")}
+    stages.update({s["id"]: s for s in read(P / "supplemental-stage-index.json")})
+    events = list(lines(H / "evidence-records.jsonl")) + list(lines(P / "later-evidence-index.jsonl.gz"))
+    replacements = {x["historical_evidence_id"]: x["correct_explicit_root_projection_id"] for x in read(P / "historical-root-projection-notes.json")}
+    pre = {(x["study_uid"], x["target"]): x for x in lines(P / "cell-ledger.jsonl.gz")}
+    require(set(pre) == set(current) and len(current) == 52884, "canonical cell membership")
+    artifacts = {}
+    counts = Counter()
+    adaptations = Counter()
+    missing_identity = []
+    missing_archives = {}
+    bycell = defaultdict(list)
+    source_states = defaultdict(list)
+    projected = []
+    preserve_only = []
+
+    def path_for(r):
+        path = W / r["path"]
+        require(path.is_file() and not path.is_symlink() and sha(path) == r["sha256"], "source artifact drift: " + r["path"])
+        artifacts[r["path"]] = ref(path)
+        dest = archive_path(path)
+        if dest is not None:
+            if dest.exists():
+                require(sha(dest) == sha(path), "archived bytes differ: " + r["path"])
+            else:
+                missing_archives[r["path"]] = {"source": ref(path), "future_path": str(dest.relative_to(R))}
+        return path
+
+    def stage_anchor(st):
+        return path_for(old_art[st["anchor_artifact"]] if "anchor_artifact" in st else st["anchor"])
+
+    identity_cache = {}
+    def find_identity(path, header, row, rowloc, event, st):
+        cachekey = (str(path), event["agent_id"], event.get("session_id"), st["id"])
+        if cachekey in identity_cache:
+            return identity_cache[cachekey]
+        candidates = [(path, loc, ob) for loc, ob in pointers(header)]
+        candidates += [(path, rowloc, row)]
+        anchor = stage_anchor(st)
+        if anchor != path:
+            candidates += [(anchor, loc, ob) for loc, ob in pointers(document(anchor))]
+        # A postfreeze author may be declared by the actual matching source
+        # freeze. Preserve that provenance link, never invent an identity object.
+        sid = st["id"].split(":postfreeze")[0] + ":source"
+        if sid in stages:
+            source_anchor = stage_anchor(stages[sid])
+            if source_anchor not in {path, anchor}:
+                candidates += [(source_anchor, loc, ob) for loc, ob in pointers(document(source_anchor))]
+        for ip, loc, ob in candidates:
+            af = next((f for f in ("agent_id", "assessor_agent_id", "assessor_id", "reader_id") if ob.get(f) == event["agent_id"]), None)
+            if af is None:
+                continue
+            session = event.get("session_id")
+            sf = next((f for f in ("session_id", "assessor_session_id") if f in ob and ob[f] == session), None)
+            if session is not None and sf is None:
+                continue
+            ownership = [] if ip == path else [p for p, value in strings_with_paths(ob) if value == sha(path)]
+            result = {"binding": raw_binding(ip, loc, ob), "agent_field": af, "session_field": sf, "session_absent_in_original": sf is None, "same_artifact_identity": ip == path, "authored_hash_pointers": ownership, "actual_agent_id": event["agent_id"], "actual_session_id": session}
+            if ip != path and not ownership:
+                result["ownership_chain_pending"] = True
+                continue
+            identity_cache[cachekey] = result
+            return result
+        result = {"actual_agent_id": event["agent_id"], "actual_session_id": event.get("session_id"), "historical_stage_index": st["id"], "identity_projection_incomplete": True, "stage_anchor": ref(anchor)}
+        identity_cache[cachekey] = result
+        return result
+
+    for event in events:
+        st = stages[event["stage"]]
+        er = old_art[event["artifact"]] if isinstance(event["artifact"], str) else event["artifact"]
+        path = path_for(er)
+        doc = document(path)
+        label = event["selector"]
+        prefix = re.match(r"^(line:\d+|/(?:records|reports|judgments)/\d+|/\d+)", label)
+        if prefix is None:
+            # Early difference-only tables intentionally have no single final
+            # annotation. Preserve the whole actual row without inventing one.
+            obj = pointer(doc, label)
+            require(obj["study_uid"] == event["study_uid"] and obj["target"] == event["target"], "partial record key")
+            preserve_only.append({"id": "preflight569:" + event["id"], "historical_selector": label, "raw_record": raw_binding(path, label, obj), "reason": event.get("reason_no_synthetic_final_quote", "no single final annotation projection"), "study_uid": event["study_uid"], "target": event["target"], "historical_stage": st["id"]})
+            counts["partial_records_preserved_without_inferred_annotation"] += 1
+            continue
+        base = prefix.group(0)
+        selector = int(base.split(":")[1]) - 1 if base.startswith("line:") else base
+        row = pointer(doc, selector)
+        header = doc if isinstance(doc, dict) else {}
+        key = event["study_uid"], event["target"]
+        require(row["study_uid"] == key[0], "raw UID mismatch")
+        projection = {}
+        if "/states/" in label:
+            order = row.get("target_order", header.get("target_order", header.get("targets", st["targets"])))
+            require(len(order) == len(set(order)) == len(row["states"]) == len(row["evidence"]), "scoped arrays invalid")
+            i = order.index(key[1])
+            require(i == int(label.rsplit("/", 1)[1]), "technical array selector mismatch")
+            ann = {"state": row["states"][i], "evidence": row["evidence"][i]}
+            projection = {"layout": "arrays12" if order == targets else "arrays_scoped", "target_order": order}
+            if order != targets and "target_order" not in row:
+                if header.get("target_order") == order or header.get("targets") == order:
+                    field = "target_order" if header.get("target_order") == order else "targets"
+                    projection["target_order_binding"] = raw_binding(path, "/" + field, header[field])
+                else:
+                    anchor = stage_anchor(st)
+                    ah = document(anchor)
+                    orders = [(q, v) for q, v in pointers(ah) if v.get("target_order", v.get("targets")) == order]
+                    if orders:
+                        q, v = orders[0]
+                        f = "target_order" if v.get("target_order") == order else "targets"
+                        projection["target_order_binding"] = raw_binding(anchor, q + "/" + f, v[f])
+                    else:
+                        projection["target_order_binding_incomplete"] = True
+                adaptations["scoped_order_outside_report_row"] += 1
+        elif "/decisions/" in label:
+            matches = [x for x in row["decisions"] if x["target"] == key[1]]
+            require(len(matches) == 1, "unique target decision")
+            ann = {k: matches[0][k] for k in ("state", "evidence")}
+            projection = {"layout": "decisions"}
+        else:
+            require(row["target"] == key[1], "scalar target mismatch")
+            suffix = label[len(base):]
+            if st["kind"] == "root_postfreeze_dispositions" and "root_postfreeze_state" in row:
+                projection = {"layout": "scalar_fields", "state_field": "root_postfreeze_state", "evidence_field": "root_postfreeze_evidence"}
+                ann = {"state": row["root_postfreeze_state"], "evidence": row["root_postfreeze_evidence"]}
+                adaptations["explicit_root_scalar_parent"] += 1
+            else:
+                field = suffix.lstrip("/")
+                if field in row:
+                    obj = row[field]
+                    projection = {"layout": "scalar", "annotation_pointer": suffix}
+                    ann = {k: obj[k] for k in ("state", "evidence")}
+                else:
+                    require(field + "_state" in row and field + "_evidence" in row, "unsupported scalar projection")
+                    projection = {"layout": "scalar_fields", "state_field": field + "_state", "evidence_field": field + "_evidence"}
+                    ann = {"state": row[field + "_state"], "evidence": row[field + "_evidence"]}
+        require(ann["state"] in {"positive", "negative", "uncertain", "not_mentioned"}, "invalid state")
+        require((ann["state"] == "not_mentioned" and ann["evidence"] == "") or (ann["state"] != "not_mentioned" and ann["evidence"] and ann["evidence"] in reports[key[0]]), "noncontiguous source quote")
+        require(event["report_sha256"] == hashlib.sha256(reports[key[0]].encode()).hexdigest(), "source report hash")
+        if event["id"] in replacements:
+            preserve_only.append({"id": "preflight569:" + event["id"], "historical_selector": label, "raw_record": raw_binding(path, selector, row), "reason": "superseded technical projection; exact historical ledger unchanged", "correct_projection_id": "preflight569:" + replacements[event["id"]], "study_uid": key[0], "target": key[1], "historical_stage": st["id"]})
+            counts["superseded_technical_projection_records"] += 1
+            continue
+        require(event["state"] == ann["state"] and event["evidence_sha256"] == hashlib.sha256(ann["evidence"].encode()).hexdigest(), "original projection does not reproduce sealed index")
+        if "annotation_sha256" in event:
+            require(event["annotation_sha256"] == hashlib.sha256(jb(ann) + b"\n").hexdigest(), "preflight newline hash convention")
+        identity = find_identity(path, header, row, selector, event, st)
+        if identity.get("identity_projection_incomplete"):
+            missing_identity.append(event["id"])
+        kind = "original_source" if event["kind"] in {"original_first_source", "original_second_source_preread"} else "supplemental_source" if event["kind"] in {"supplemental_source_frozen", "root_source_frozen"} else "postfreeze"
+        result = {"id": "preflight569:" + event["id"], "study_uid": key[0], "target": key[1], "source_report_sha256": event["report_sha256"], "rubric_sha256": RUBRIC, "agent_id": event["agent_id"], "session_id": event.get("session_id"), "kind": kind, "historical_kind": event["kind"], "historical_stage": st["id"], "historical_selector": label, "record": raw_binding(path, selector, row), "projection": projection, "identity_provenance": identity, "annotation_sha256": digest(ann), "annotation": ann, "historical_annotation_sha256_with_newline": hashlib.sha256(jb(ann) + b"\n").hexdigest(), "context_ref": None, "clinical_reinterpretation": False}
+        projected.append(result)
+        bycell[key].append(result["id"])
+        if kind in {"original_source", "supplemental_source"}:
+            source_states[key].append({"evidence_id": result["id"], "agent_id": event["agent_id"], "state": ann["state"]})
+        counts[kind] += 1
+        if identity.get("agent_field") != "agent_id":
+            adaptations["identity_field_alias"] += 1
+        if identity.get("session_field") not in {None, "session_id"}:
+            adaptations["session_field_alias"] += 1
+        if identity.get("authored_hash_pointers"):
+            adaptations["external_identity_hash_binding"] += 1
+
+    # Exact finite reason memberships; these are proposed obligations, not
+    # approved holds. Existing masks and exclusions remain visible dispositions.
+    categories = {
+        "pending_source_supported_state_difference": "state_disagreement",
+        "explicit_root003_extra_unresolved": "state_disagreement",
+        "unresolved_root_current_state": "state_disagreement",
+        "root_disposed_retained_reader_state_dissent_policy_choice": "state_disagreement",
+        "pending_quote_variant_requires_scope_decision": "incomplete_reliability_review",
+        "root_current_quote_variant_no_error_inferred": "incomplete_reliability_review",
+        "explicit_proxy_reliability_queue_without_focused_postfreeze": "incomplete_reliability_review",
+        "bone_outside_proxy_accounting_only_no_hold_inferred": "incomplete_reliability_review",
+        "cartilage_outside_proxy_accounting_only_no_hold_inferred": "incomplete_reliability_review",
+        "historical_mixed_short_quote_group_context_review": "incomplete_reliability_review",
+        "unassigned_report_scope_cue_policy_choice": "report_scope_ambiguity",
+        "historical_source_state_difference_requires_existing_disposition": "state_disagreement",
+    }
+    obligations = []
+    cells = []
+    for key in sorted(current, key=lambda k: (k[0], targets.index(k[1]))):
+        row = pre[key]
+        ann = current[key]
+        require(hashlib.sha256(jb(ann) + b"\n").hexdigest() == row["current569"]["annotation_sha256"], "effective annotation changed")
+        reasons = set(row["scope_obligations"])
+        contrary = [s for s in source_states[key] if s["state"] != ann["state"]]
+        if contrary:
+            reasons.add("historical_source_state_difference_requires_existing_disposition")
+        ids = []
+        for reason in sorted(reasons):
+            require(reason in categories, "unclassified finite reason")
+            oid = "ob-" + digest({"study_uid": key[0], "target": key[1], "reason": reason})[:24]
+            whole = reason == "unassigned_report_scope_cue_policy_choice"
+            ob = {"id": oid, "study_uid": key[0], "target": key[1], "category": categories[reason], "reason_code": reason, "scope_kind": "whole_report" if whole else "target", "source_report_sha256": row["report_sha256"], "current_annotation_sha256": digest(ann), "status": "candidate_obligation_awaits_actual_reuse_or_hold_disposition", "preflight_reason_is_not_a_clinical_error": True}
+            if whole:
+                ob["report_scope_id"] = "unassigned-cue-report-" + hashlib.sha256(key[0].encode()).hexdigest()[:24]
+            obligations.append(ob)
+            ids.append(oid)
+        cells.append({"study_uid": key[0], "target": key[1], "source_report_sha256": row["report_sha256"], "original_annotation_sha256": digest(original[key]), "current_annotation_sha256": digest(ann), "current_state": ann["state"], "historical_preflight_current_sha256_with_newline": row["current569"]["annotation_sha256"], "evidence_ids": bycell[key], "candidate_obligation_ids": ids, "contrary_source_evidence_ids": [s["evidence_id"] for s in contrary], "existing_correspondence_exclusion": row["existing_correspondence_exclusion"], "existing_clinical_mask": row["existing_clinical_mask"], "active_accepted_case_id": row["active_accepted_case_id"], "active_accepted_change_index": row["active_accepted_change_index"], "inventory_and_attention_scopes": row["inventory_and_attention_scopes"], "final_context_ref": None, "approved_holds": None, "release_allowed": None})
+    require(len(projected) + len(preserve_only) == len(events), "every indexed record accounted")
+    require(all(bycell[k] for k in current), "cell has no evidence")
+    out.mkdir()
+    def dump(name, obj):
+        with (out / name).open("xb") as f:
+            f.write(jb(obj) + b"\n")
+    def gz(name, rows):
+        with (out / name).open("xb") as raw:
+            with gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0) as stream:
+                for row in rows:
+                    stream.write(jb(row) + b"\n")
+    gz("source-evidence-projections.jsonl.gz", projected)
+    gz("preserved-nonprojected-index-records.jsonl.gz", preserve_only)
+    gz("cell-projection-ledger.jsonl.gz", cells)
+    gz("candidate-obligations.jsonl.gz", obligations)
+    dump("bound-artifacts.json", list(artifacts.values()))
+    dump("archive-path-resolution.json", {"existing_archives_verified_equal": len(artifacts) - len(missing_archives), "pending_archives": list(missing_archives.values())})
+    dump("projection-adapter-issues.json", {"identity_projection_incomplete_ids": missing_identity, "counts": dict(adaptations), "final_runtime_adapter_not_executed": True, "no_authored_wrappers_created": True})
+    summary = {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "created_at_utc": datetime.now(timezone.utc).isoformat(), "status": "source_projections_and_candidate_obligations_not_policy_approval", "canonical_source_reports_sha256": CANON, "rubric_sha256": RUBRIC, "actual_registry_sha256": REG, "preflight_completion_sha256": PREF, "counts": {"reports": len(reports), "cells": len(cells), "input_evidence_records": len(events), "projected_evidence_records": len(projected), "preserved_nonprojected_records": len(preserve_only), "candidate_obligations": len(obligations), "candidate_cells": sum(bool(c["candidate_obligation_ids"]) for c in cells), "bound_original_artifacts": len(artifacts), "pending_archive_paths": len(missing_archives), "identity_projection_incomplete_records": len(missing_identity)}, "evidence_kind_counts": dict(counts), "category_counts": dict(Counter(o["category"] for o in obligations)), "reason_counts": dict(Counter(o["reason_code"] for o in obligations)), "runtime_context_and_code_pins": None, "approved_hold_count": 0, "mask_changes": 0, "gold_values_read": False, "R_writes": False, "network_calls": 0, "source_freezes_and_historical_ledger_modified": False, "all569_whole_change_objects_replayed_exact": True, "all_three_qa_pending": inspected["pending_semantic_qa"], "limits": ["Candidate reasons retain all finite memberships; actual reuse dispositions and approved holds are separate future artifacts.", "Historical contrary source opinions are preserved, not automatically deemed unresolved after reviewed/root dispositions.", "Technical index labels are not blindly used as raw JSON pointers.", "No context is pinned to code before the release-validation integration is complete."]}
+    dump("summary.json", summary)
+    require(shutil.disk_usage(W).free > 20 * 2**30, "final disk floor")
+    sha.cache_clear()
+    require(sha(R / "initiative/reviews-v2/adjudications/registry.json") == REG, "registry changed during projection")
+    print(json.dumps({"counts": summary["counts"], "output": str(out.relative_to(W)), "summary": ref(out / "summary.json"), "disk_free_bytes": shutil.disk_usage(W).free}))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    main(args.output.resolve())

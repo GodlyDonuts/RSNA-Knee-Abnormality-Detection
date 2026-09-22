@@ -1,0 +1,112 @@
+"""Independent exact-real-file and narrow tamper review of a pinned staged fix."""
+import argparse
+import copy
+import hashlib
+import importlib.util
+import json
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+W = HERE.parents[2]
+R = W / "work/recovered"
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def ref(p):
+    return {"path": str(p.relative_to(W)), "sha256": sha(p), "bytes": p.stat().st_size}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("module", type=Path)
+    ap.add_argument("expected_sha")
+    args = ap.parse_args()
+    p = args.module.resolve()
+    assert sha(p) == args.expected_sha
+    sys.path.insert(0, str(R))
+    spec = importlib.util.spec_from_file_location("independent_preread_fix", p)
+    m = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = m
+    spec.loader.exec_module(m)
+    reports, sources = {}, {}
+    for f in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+        sources[str(f.relative_to(R))] = sha(f)
+        for row in json.loads(f.read_bytes()):
+            assert row["study_uid"] not in reports
+            reports[row["study_uid"]] = row["report"]
+    reviews = R / "initiative/reviews-v2/reviewed"
+    review_map = {str(f.relative_to(R)): sha(f) for f in reviews.glob("*-reviewed.jsonl")}
+    prov = R / "initiative/reviews-v2/provenance.json"
+    b = m.Bindings(R)
+    actual = m._original_reading_files(
+        reviews, R, reports, sources, review_map,
+        "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+        "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+        {"path": str(prov.relative_to(R)), "sha256": sha(prov)}, b)
+    original = json.loads((HERE / "actual89-independent-replay.json").read_bytes())
+    assert actual["prereads"] == {r["actual_preread"]["path"]: r["actual_preread"]["sha256"]
+                                    for r in original["records"]}
+    assert len(actual["drafts"]) == 89
+    b.unchanged()
+    tests = []
+    base = {"preread_path": "evidence/original.jsonl", "preread_sha256": "a" * 64}
+    matching_hash = {**base, "independent_preread_sha256": "a" * 64}
+    assert m._preread_reference(matching_hash) == {"path": base["preread_path"], "sha256": "a" * 64}
+    tests.append("supplementary matching hash-only alias accepted without invented path")
+    duplicate = {**matching_hash, "independent_source_read_path": base["preread_path"],
+                 "independent_source_read_sha256": "a" * 64}
+    assert m._preread_reference(duplicate) == m._preread_reference(base)
+    tests.append("consistent complete aliases resolve to same immutable reference")
+    for name, bad in [
+        ("conflicting supplementary hash", {**matching_hash, "independent_preread_sha256": "b" * 64}),
+        ("only hash cannot invent a path", {"independent_preread_sha256": "a" * 64}),
+        ("complete path lacks hash", {"preread_path": base["preread_path"]}),
+    ]:
+        try:
+            m._preread_reference(bad)
+        except ValueError:
+            tests.append(name + " rejected")
+        else:
+            raise AssertionError(name)
+    with tempfile.TemporaryDirectory(dir=HERE) as directory:
+        root = Path(directory)
+        rows = [{"study_uid": "a", "states": ["negative"] * 12,
+                 "evidence": ["normal"] * 12, "notes": "synthetic"}]
+        for name, transform in [
+            ("unknown state", lambda r: r[0]["states"].__setitem__(0, "unrecognized")),
+            ("nonstring evidence", lambda r: r[0]["evidence"].__setitem__(0, 7)),
+        ]:
+            changed = copy.deepcopy(rows)
+            transform(changed)
+            f = root / "original.jsonl"
+            f.write_text("".join(json.dumps(r) + "\n" for r in changed))
+            try:
+                m._reading_rows({"path": f.name, "sha256": sha(f)}, ["a"], {"a": "normal"}, m.Bindings(root))
+            except ValueError:
+                tests.append("repinned " + name + " rejected")
+            else:
+                raise AssertionError(name)
+    assert sha(p) == args.expected_sha
+    result = {"schema_version": 1, "agent_id": "/root/last_twelve_visual_review",
+              "session_id": "/root/last_twelve_visual_review", "module": ref(p),
+              "helper": ref(Path(__file__)), "original_replay": ref(HERE / "actual89-independent-replay.json"),
+              "actual_preread_files": len(actual["prereads"]), "actual_draft_files": len(actual["drafts"]),
+              "bound_file_count": len(b.hashes), "bound_files_unchanged": True,
+              "matches_independently_reconstructed_original_map": True,
+              "independent_focused_checks": tests,
+              "runtime_quote_scope": "Unselected historical original bytes remain byte-bound; selected catalog quotes use unchanged annotation validation. Separate independent original replay verified every actual quote.",
+              "R_writes": False, "gold_values_read": False, "clinical_reread_claimed": False}
+    output = HERE / "staged-fix-independent-checks.json"
+    with output.open("x") as handle:
+        json.dump(result, handle, ensure_ascii=False, sort_keys=True, indent=2)
+        handle.write("\n")
+    print(json.dumps(ref(output)))
+
+
+if __name__ == "__main__":
+    main()

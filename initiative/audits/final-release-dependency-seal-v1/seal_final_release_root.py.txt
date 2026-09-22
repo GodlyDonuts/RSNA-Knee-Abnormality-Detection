@@ -1,0 +1,125 @@
+"""Root-only local fresh validation seal; no future Git pin, build, HF or credentials.
+
+Runtime validation necessarily reads original labels as opaque validation inputs;
+this script does not print, tune, interpret or alter clinical/gold values. It
+captures CURRENT reads, not a recursive walk of historical evidence references.
+"""
+import argparse,hashlib,json,os,stat,sys
+from datetime import datetime,timezone
+from pathlib import Path
+import final_release_bindings as b
+from final_release_dependency_seal import MEMBERSHIP_SCOPES,safe_path
+
+class InputCapture:
+    def __init__(self,root):
+        self.root=root.resolve();self.files={};self.active=False;self.busy=False
+    def inspect(self,path):
+        path=Path(path).absolute()
+        b.require(path==path.resolve() and path.is_relative_to(self.root) and path.is_file()
+                  and not path.is_symlink(),'seal_input_scope_or_symlink')
+        name=safe_path(str(path.relative_to(self.root)))
+        n=path.stat().st_size;h=hashlib.sha256();g=hashlib.sha1(b'blob '+str(n).encode()+b'\0');count=0
+        with path.open('rb')as f:
+            for data in iter(lambda:f.read(2**20),b''):h.update(data);g.update(data);count+=len(data)
+        b.require(count==n,'seal_input_changed_size')
+        item={'path':name,'sha256':h.hexdigest(),'git_blob':g.hexdigest(),'bytes':n}
+        b.require(name not in self.files or self.files[name]==item,'seal_input_changed_during_validation')
+        self.files[name]=item
+        return item
+    def add(self,path):
+        before=self.busy;self.busy=True
+        try:return self.inspect(path)
+        finally:self.busy=before
+    def hook(self,event,args):
+        if not self.active or self.busy or event!='open' or not isinstance(args[0],(str,bytes,os.PathLike)):return
+        path=Path(os.fsdecode(args[0])).absolute()
+        if not path.is_relative_to(self.root):return
+        # Imported bytecode is represented by the exact accepted source-module hashes.
+        if '__pycache__' in path.parts or path.suffix in {'.pyc','.pyo'}:return
+        flags=args[2]if len(args)>2 and type(args[2])is int else 0
+        b.require(not(flags&(os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC|os.O_APPEND)), 'runtime_attempted_repository_write')
+        self.add(path)
+    def unchanged(self):
+        for name in list(self.files):self.add(self.root/name)
+
+def memberships(root,capture):
+    result=[]
+    for directory,pattern,recursive in MEMBERSHIP_SCOPES:
+        base=root/directory;paths=base.rglob(pattern)if recursive else base.glob(pattern)
+        names=[]
+        for path in sorted(paths):names.append(capture.add(path)['path'])
+        result.append({'directory':directory,'pattern':pattern,'recursive':recursive,'paths':names})
+    return result
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--actual-executor',choices=[b.ROOT],required=True)
+    p.add_argument('--acceptance-path',required=True)
+    p.add_argument('--acceptance-sha256',required=True)
+    p.add_argument('--verified-release-sha256',required=True)
+    p.add_argument('--registry-sha256',required=True)
+    args=p.parse_args()
+    for h in (args.acceptance_sha256,args.verified_release_sha256,args.registry_sha256):b.require(b.SHA.fullmatch(h),'seal_expected_hash_required')
+    name=safe_path(args.acceptance_path)
+    b.require(name.startswith('initiative/audits/')and name.endswith('/acceptance.json'),'seal_acceptance_path')
+    dest=b.R/b.DEPENDENCY_SEAL_PATH; b.require(not dest.parent.exists(),'seal_new_output_directory_required')
+    acceptance_path=b.R/name;receipt_path=b.R/b.VERIFIED_RELEASE_PATH
+    b.require(b.sha(acceptance_path)==args.acceptance_sha256 and b.sha(receipt_path)==args.verified_release_sha256
+              and b.sha(b.R/b.REGISTRY_PATH)==args.registry_sha256,'seal_initial_pin_mismatch')
+    acceptance=b.read(acceptance_path);receipt=b.read(receipt_path)
+    b.require(type(acceptance.get('schema_version'))is int and acceptance['schema_version']==1
+              and acceptance.get('status')=='passed'and acceptance.get('actual_executor')==b.ROOT
+              and acceptance.get('diagnostic_only')is True and acceptance.get('competitive_performance_claim')is False,'seal_passed_root_acceptance_required')
+    b.require(receipt.get('status')=='verified_release'and receipt.get('source_revision')==b.SOURCE_HF,'seal_current_verified_release_required')
+    b.require(acceptance.get('full_release')=={'path':b.STUDIES_PATH,'sha256':receipt['studies_sha256']}
+              and acceptance.get('series',{}).get('sha256')==receipt['series_sha256'],'seal_release_inputs_differ')
+    capture=InputCapture(b.R)
+    for path in (acceptance_path,receipt_path,b.R/b.REGISTRY_PATH,b.R/b.STUDIES_PATH):capture.add(path)
+    actual_code={str(x.relative_to(b.R)):b.sha(x)for x in sorted((b.R/'rsna').glob('*.py'))}
+    b.require(actual_code==acceptance.get('code_sha256'),'seal_runtime_changed_since_acceptance')
+    for path in actual_code:capture.add(b.R/path)
+    for item in [acceptance['series'],*acceptance.get('artifacts',[])]:
+        row=capture.add(b.R/safe_path(item['path']));b.require(row['sha256']==item['sha256'],'seal_acceptance_artifact_changed')
+    b.require(bool(acceptance.get('artifacts')),'seal_acceptance_artifacts_required')
+    before_members=memberships(b.R,capture)
+    # Hook actual filesystem reads across independent runtime validators, including
+    # adjudication/correspondence proof files absent from semantic Bindings maps.
+    sys.addaudithook(capture.hook)
+    sys.path.insert(0,str(b.R))
+    import rsna.release as release
+    b.require(Path(release.__file__).resolve()==b.R/'rsna/release.py','seal_wrong_runtime_import')
+    original=release.prepare_supervision;audits=[]
+    def record_audit(*a,**kw):
+        out=original(*a,**kw);audits.append(out);return out
+    release.prepare_supervision=record_audit
+    try:
+        capture.active=True
+        frame,binding=release.load_verified_release(b.R/b.STUDIES_PATH,b.R)
+    finally:
+        capture.active=False;release.prepare_supervision=original
+    b.require(len(audits)==1 and binding==acceptance['training_checks']['release_binding'],'seal_fresh_release_binding_mismatch')
+    del frame
+    audit=audits[0]
+    for source in (audit['release_context']['bound_artifacts'],audit['semantic_supervision']['bound_artifacts']):
+        for path,h in source.items():b.require(capture.add(b.R/safe_path(path))['sha256']==h,'seal_runtime_binding_mismatch')
+    b.require(before_members==memberships(b.R,capture),'seal_input_membership_changed_during_validation')
+    capture.unchanged()
+    b.require(b.sha(acceptance_path)==args.acceptance_sha256 and b.sha(receipt_path)==args.verified_release_sha256,'seal_acceptance_changed')
+    import shutil
+    b.require(shutil.disk_usage(b.R).free>20*2**30+8*2**20,'seal_disk_floor')
+    files=[capture.files[k]for k in sorted(capture.files)]
+    output={'schema_version':1,'stage':'root_fresh_verified_release_dependency_seal','status':'passed','actual_executor':args.actual_executor,'workflow_revision_author':b.WORKFLOW_REVISER,'created_at_utc':datetime.now(timezone.utc).isoformat(),
+      'acceptance':{'path':name,'sha256':args.acceptance_sha256},'verified_release':{'path':b.VERIFIED_RELEASE_PATH,'sha256':args.verified_release_sha256},'studies':acceptance['full_release'],'series':acceptance['series'],'source_revision':receipt['source_revision'],'release_binding':binding,
+      'fresh_load_verified_release_passed':True,'current_runtime_open_capture_complete':True,'all_observed_inputs_unchanged':True,'files':files,'n_files':len(files),'membership_checks':before_members,'code_sha256':actual_code,'seal_runner_sha256':b.sha(Path(__file__)),
+      'scope':'Fresh runtime revalidation against actual passed acceptance, full current input read capture plus both runtime bound-artifact maps and exact current discovery membership. No recursive historical-reference interpretation. No clinical labels inferred, gold tuned, new training/inference performed, source/cache edited, Git or remote mutation.','training_strategy_complete':False,'competitive_performance_claim':False}
+    dest.parent.mkdir()
+    # Archive code used for this actual seal, without claiming another executor.
+    for path in (Path(__file__),b.DEPENDENCY_SEAL_MODULE,b.STAGE/'final_release_bindings.py'):
+        q=dest.parent/(path.name+'.txt');q.write_bytes(path.read_bytes())
+    with dest.open('x')as f:f.write(json.dumps(output,ensure_ascii=False,indent=2)+'\n')
+    print(json.dumps({'status':'passed','actual_executor':b.ROOT,'dependency_seal':{'path':b.DEPENDENCY_SEAL_PATH,'sha256':b.sha(dest)},'files':len(files),'discovery_scopes':len(before_members),'remote_mutations':0}))
+
+if __name__=='__main__':
+    try:main()
+    except Exception as error:
+        print(json.dumps(b.error_result(error)));raise SystemExit(2)from None

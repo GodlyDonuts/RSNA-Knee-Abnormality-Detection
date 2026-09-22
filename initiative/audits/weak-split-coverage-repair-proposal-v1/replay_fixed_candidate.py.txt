@@ -1,0 +1,120 @@
+"""Diagnostic split repair from immutable candidate masks and gold UID metadata."""
+from pathlib import Path
+from collections import defaultdict
+import gzip
+import hashlib
+import json
+import shutil
+import sys
+
+import numpy as np
+import pandas as pd
+
+W = Path(__file__).resolve().parents[3]
+R = W / "work/recovered"
+B = W / "work/annotation-staging"
+HERE = Path(__file__).resolve().parent
+M = B / "semantic-supervision-membership-builder-569-v1"
+C = M / "membership-candidate-v1"
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.correspondence import apply_correspondence
+from rsna.labels import build_studies, read_reviews
+from rsna.report_similarity import inspect_report_similarity, similarity_pairs
+from rsna.schema import TARGETS
+from weak_split import repair_weak_split_coverage, split_repair_audit
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def ref(path):
+    return {"path": str(path.relative_to(W)), "sha256": sha(path), "bytes": path.stat().st_size}
+
+
+def lines(path):
+    with gzip.open(path, "rt") as f:
+        return [json.loads(line) for line in f]
+
+
+def require(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+
+def main():
+    out = HERE / "fixed-candidate-repair.json"
+    require(not out.exists(), "write once")
+    require(shutil.disk_usage(W).free > 20 * 2**30, "disk floor")
+    require(sha(HERE / "weak_split.py") == "b4ae6e16ec3d55cba94ab1b8967dab9d6e10616a4a69d61f12be1fc74e54c667", "utility changed")
+    manifest = M / "candidate-membership-file-manifest.json"
+    require(sha(manifest) == "1fad29b367ab217512308e7af4d767476ca3cc98aaf7b4f5b7474812b132699a", "candidate changed")
+    for r in read(manifest)["files"]:
+        require(sha(W / r["path"]) == r["sha256"], "candidate member changed")
+    diag = M / "fixed-split-diagnostic-v1/diagnostic-summary.json"
+    require(sha(diag) == "27a227664bab372ac7d53928e03f06db680cade3580576f95748838db4284a84", "split diagnostic changed")
+    identity_path = diag.parent / "study-split-membership-only.jsonl.gz"
+    membership = {r["study_uid"]: r for r in lines(identity_path)}
+    gold = {u for u, r in membership.items() if r["gold_membership_only"]}
+    eligible = {u for u, r in membership.items() if r["technical_eligible"]}
+    require(len(gold) == 58 and len(eligible) == 4407, "membership projection counts")
+    reports = {}
+    for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+        for r in read(p):
+            reports[r["study_uid"]] = r["report"]
+    require(set(reports) == set(membership), "metadata membership")
+    reviews = read_reviews(R / "initiative/reviews-v2/reviewed", reports, "-reviewed").set_index("study_uid")
+    current = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+    require(current["registry_sha256"] == "7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae" and current["n_changes"] == 569, "actual569 changed")
+    for c in current["changes"]:
+        for field in ("state", "evidence"):
+            reviews.at[c["study_uid"], c["target"] + "__" + field] = c["after"][field]
+    source = pd.DataFrame([{"StudyInstanceUID": u, "Report": reports[u]} for u in sorted(reports)])
+    for t in TARGETS:
+        source[t] = np.where(source.StudyInstanceUID.isin(gold), 0.0, np.nan)
+    # Gold placeholders are used only for the unchanged hash split. This replay
+    # does not reopen official values, and exports no gold-class counts.
+    image_audit = R / "initiative/audits/full-image-recovery-v1/audit/dicom_audit.json"
+    pixel = [tuple(p) for p in read(image_audit)["cross_study_pixel_duplicate_pairs"] if p[0] in reports]
+    similarity = inspect_report_similarity(reports, R)
+    table = build_studies(source, reviews.reset_index(), pixel + similarity_pairs(similarity))
+    require(all(membership[r.study_uid]["split"] == r.split and membership[r.study_uid]["leakage_group"] == r.leakage_group for r in table.itertuples()), "legacy split replay differs from frozen diagnostic")
+    table, _ = apply_correspondence(table, reports, R)
+    held = defaultdict(set)
+    for r in lines(C / "candidate-hold-records.jsonl.gz"):
+        held[r["target"]].add(r["study_uid"])
+    nongold = ~table.study_uid.isin(gold)
+    usable = table.study_uid.isin(eligible) & table.split.isin(["train", "weak_validation"])
+    for t in TARGETS:
+        allowed = usable & ~table.study_uid.isin(held[t])
+        table.loc[nongold, t + "__mask"] = table.loc[nongold, t + "__mask"] * allowed[nongold]
+    before = table.copy(deep=True)
+    after = repair_weak_split_coverage(before)
+    audit = split_repair_audit(before, after)
+    require(all(r["negative"] > 0 and r["positive"] > 0 for r in audit["after_counts"]), "unrepaired class")
+    pd.testing.assert_frame_equal(repair_weak_split_coverage(after), after, check_exact=True)
+    require(set(after.loc[after.split.eq("gold_evaluation"), "study_uid"]) == gold, "gold membership changed")
+    require(after.loc[~after.split.eq("quarantine")].groupby("leakage_group").split.nunique().max() == 1, "split leakage")
+    for target in TARGETS:
+        before_count = [r for r in audit["before_counts"] if r["target"] == target]
+        after_count = [r for r in audit["after_counts"] if r["target"] == target]
+        for c in ("positive", "negative"):
+            require(sum(r[c] for r in before_count) == sum(r[c] for r in after_count), "class observations changed")
+    result = {"schema_version": 1, "agent_id": "/root/duplicate_consistency_review", "session_id": "/root/duplicate_consistency_review", "status": "deterministic_split_protocol_proposal_pending_independent_review", "utility": ref(HERE / "weak_split.py"), "fixed_candidate_manifest": ref(manifest), "gold_uid_only_metadata": ref(identity_path), "original_split_diagnostic": ref(diag), "no_official_train_csv_reopened": True, "synthetic_gold_placeholders_used_for_split_only": True, "no_gold_class_counts_or_selection": True, "audit": audit, "masks_numeric_values_states_evidence_provenance_and_groups_unchanged": True, "candidate_holds_unchanged": True, "idempotent_on_completed_split": True, "active_groups_split_disjoint": True, "registry_or_qa_changes": False, "R_writes": False, "new_split_study_counts": after.split.value_counts().to_dict(), "disk_free_bytes": shutil.disk_usage(W).free}
+    with out.open("x") as f:
+        json.dump(result, f, ensure_ascii=False, sort_keys=True, indent=2)
+        f.write("\n")
+    with (HERE / "repaired-study-split-membership.jsonl.gz").open("xb") as raw:
+        with gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0) as f:
+            for row in after.itertuples():
+                f.write((json.dumps({"study_uid": row.study_uid, "leakage_group": row.leakage_group, "report_group": row.report_group, "split": row.split, "gold_membership_only": row.study_uid in gold}, sort_keys=True, separators=(",", ":")) + "\n").encode())
+    print(json.dumps({"receipt": ref(out), "moved_groups": len(audit["moved_groups"]), "moved_studies": audit["moved_studies"], "after_split_counts": result["new_split_study_counts"], "all48_split_target_classes_present": True}))
+
+
+if __name__ == "__main__":
+    main()

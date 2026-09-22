@@ -1,0 +1,113 @@
+"""Validate catalog entries against frozen interface; final context stays unset."""
+from prepare_projections import *
+import importlib.util
+
+HERE = Path(__file__).resolve().parent
+BASE = HERE / "projections-v1"
+RUNTIME = B / "semantic-supervision-holds-implementation-v1/semantic_supervision.py"
+SCHEMA = B / "semantic-supervision-holds-implementation-v1/core-schema-v1.md"
+SCHEMA_SHA = "f032f1399ffa0a1f300065ca7c58abf7eb2a5f2a407b8ad2c0589410c8449552"
+
+
+def main():
+    output = HERE / "catalog-projection-v1"
+    require(not output.exists(), "write once")
+    require(sha(SCHEMA) == SCHEMA_SHA, "schema contract drift")
+    require(shutil.disk_usage(W).free > 20 * 2**30 + 128 * 2**20, "disk guard")
+    adapter = read(HERE / "adapter-metadata.json")
+    overlays = {eid: r["identity"] for r in adapter["identity_overlays"] for eid in r["evidence_ids"]}
+    aliases = {a["original"]["path"]: a["archived"] for a in adapter["exact_archive_path_aliases"]}
+    mapped = {}
+
+    def archive_record(r):
+        original = r["artifact"]
+        p = W / original["path"]
+        require(sha(p) == original["sha256"], "original raw bytes changed")
+        if original["path"] in aliases:
+            ar = aliases[original["path"]]
+            dest = R / ar["path"]
+        else:
+            dest = archive_path(p)
+        require(dest is not None and dest.exists() and sha(dest) == original["sha256"], "exact R source archive unavailable")
+        newref = {"path": str(dest.relative_to(R)), "sha256": sha(dest)}
+        mapped[original["path"]] = {"original": original, "archived": newref}
+        return {**r, "artifact": newref}
+
+    entries = []
+    null_session_count = 0
+    for r in lines(BASE / "source-evidence-projections.jsonl.gz"):
+        identity = overlays.get(r["id"], r["identity_provenance"])
+        e = {k: r[k] for k in ("id", "study_uid", "target", "source_report_sha256", "rubric_sha256", "agent_id", "session_id", "kind", "annotation_sha256")}
+        e.update(record=archive_record(r["record"]), identity=archive_record(identity["binding"]), historical_kind=r["historical_kind"], historical_stage=r["historical_stage"], historical_projection_selector=r["historical_selector"])
+        e["session_id"] = identity["actual_session_id"]
+        if r["id"] in overlays:
+            if identity.get("identity_agent_pointer"):
+                e["identity_agent_pointer"] = identity["identity_agent_pointer"]
+            if identity.get("identity_session_pointer"):
+                e["identity_session_pointer"] = identity["identity_session_pointer"]
+            if identity.get("ownership_sha256_pointer"):
+                e["ownership_sha256_pointer"] = identity["ownership_sha256_pointer"]
+            if "historical_session_id" in identity:
+                e["historical_source_associated_session_id"] = identity["historical_session_id"]
+        else:
+            e["identity_agent_pointer"] = "/" + identity["agent_field"]
+            if identity.get("session_field"):
+                e["identity_session_pointer"] = "/" + identity["session_field"]
+            if identity.get("authored_hash_pointers"):
+                e["ownership_sha256_pointer"] = identity["authored_hash_pointers"][0]
+        null_session_count += e["session_id"] is None
+        projection = r["projection"]
+        for field in ("layout", "annotation_pointer", "state_field", "evidence_field"):
+            if field in projection:
+                e[field] = projection[field]
+        if "target_order_binding" in projection:
+            e["target_order_record"] = archive_record(projection["target_order_binding"])
+            e["target_order_pointer"] = ""
+            if e["target_order_record"]["artifact"] not in (e["record"]["artifact"], e["identity"]["artifact"]):
+                # Scoped bone rows record their actual author but bind the
+                # two-target order in the source freeze. Use that unchanged
+                # author+assessment freeze as identity too, as the contract
+                # requires; no arbitrary external order is admitted.
+                freeze_path = W / projection["target_order_binding"]["artifact"]["path"]
+                freeze = read(freeze_path)
+                require(freeze.get("agent_id") == e["agent_id"] and freeze.get("session_id") == e["session_id"], "scope freeze actual author/session mismatch")
+                ownership = [p for p, value in strings_with_paths(freeze) if value == e["record"]["artifact"]["sha256"]]
+                require(ownership, "scope freeze lacks authored hash")
+                e["identity"] = archive_record(raw_binding(freeze_path, "", freeze))
+                e["identity_agent_pointer"] = "/agent_id"
+                e["identity_session_pointer"] = "/session_id"
+                e["ownership_sha256_pointer"] = ownership[0]
+        entries.append(e)
+    sys.path.insert(0, str(R))
+    spec = importlib.util.spec_from_file_location("projection_validation_runtime", RUNTIME)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    reports = {}
+    for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+        for row in read(p):
+            reports[row["study_uid"]] = row["report"]
+    # This exercises only original-record projections. There is no context
+    # artifact, holds/ledger, registry, approval call or release inspection here.
+    bindings = module.Bindings(R)
+    original_obj = bindings.obj
+    marker = {"path": "PROJECTION-ONLY-NO-FINAL-CONTEXT", "sha256": "0" * 64}
+    bindings.obj = lambda ref_: {"schema_version": 1, "context": None, "records": entries} if ref_ == marker else original_obj(ref_)
+    verified = module._evidence(marker, reports, None, {"rubric": {"sha256": RUBRIC}}, bindings)
+    require(len(verified) == len(entries) == 194973, "full evidence projection coverage")
+    bindings.unchanged()
+    output.mkdir()
+    with (output / "catalog-entries.jsonl.gz").open("xb") as raw:
+        with gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0) as stream:
+            for entry in entries:
+                stream.write(jb(entry) + b"\n")
+    with (output / "exact-original-archive-map.json").open("xb") as stream:
+        stream.write(jb(list(mapped.values())) + b"\n")
+    proof = {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "status": "all_original_catalog_projections_validated_no_context_or_approval", "schema_contract": ref(SCHEMA), "runtime_used_for_projection_test_only": ref(RUNTIME), "final_runtime_or_context_pin": None, "entry_count": len(entries), "raw_artifact_count": len(mapped), "catalog": ref(output / "catalog-entries.jsonl.gz"), "adapter_metadata": ref(HERE / "adapter-metadata.json"), "sessions_left_null": null_session_count, "runtime_projection_validator_passed": True, "all_raw_files_unchanged_after_validation": True, "approved_holds": 0, "R_writes": False, "gold_values_read": False, "network_calls": 0}
+    with (output / "projection-validation.json").open("xb") as stream:
+        stream.write(jb(proof) + b"\n")
+    print(json.dumps({"entries": len(entries), "raw_artifacts": len(mapped), "proof": ref(output / "projection-validation.json"), "free_bytes": shutil.disk_usage(W).free}))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,21 @@
+from pathlib import Path
+import json,hashlib
+W=Path.cwd();S=Path(__file__).resolve().parent
+j=lambda p:json.loads(p.read_text())
+def sha(x):return hashlib.sha256((json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\n').encode()).hexdigest()
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+rows=j(S/'existing-evidence-packet.json')['records'];out=[];quirks=[]
+for r in rows:
+ for e in r['existing_evidence_records']:
+  if e['kind']!='root_postfreeze_dispositions':continue
+  p=W/e['raw_artifact_binding']['path'];v=j(p);parts=e['selector'].split('/');i=int(parts[2]);parent=v[parts[1]][i]
+  assert parent['study_uid']==r['cell']['study_uid'] and parent['target']==r['cell']['target'];assert 'root_postfreeze_state' in parent and 'root_postfreeze_evidence' in parent
+  actual={'state':parent['root_postfreeze_state'],'evidence':parent['root_postfreeze_evidence'],'reason':parent['reason']}
+  out.append({'n':r['n'],'evidence_id':e['id'],'artifact':ref(p),'parent_selector':'/'+('/'.join(parts[1:3])),'layout':'explicit_root_scalar_fields','state_field':'root_postfreeze_state','evidence_field':'root_postfreeze_evidence','reason_field':'reason','parent_record_sha256':sha(parent),'actual_root_agent_id':'/root','actual_root_session_id':'/root','original_derived_selector':e['selector'],'original_derived_agent_id':e['agent_id'],'raw_parent':parent,'actual_root':actual})
+  if actual['reason']!=e.get('rationale') or e['selector'].split('/')[-1]!='root_postfreeze':quirks.append({'n':r['n'],'evidence_id':e['id'],'derived_selector':e['selector'],'actual_parent_selector':'/'+('/'.join(parts[1:3])),'actual_reason_differs_from_derived_rationale':actual['reason']!=e.get('rationale'),'actual_annotation_differs':actual['state']!=e['state'] or hashlib.sha256(actual['evidence'].encode()).hexdigest()!=e['evidence_sha256'],'old_projection_preserved':True})
+for name,x in [('actual-root-parent-records.json',{'records':out}),('projection-quirks-and-attempts.json',{'quirks':quirks,'attempts':['Initial assembler stopped before writing packet because accepted-current quote was present only in fresh inspection rather than old string-carrying evidence rows. Added exact inspection lookup.','Second assembler stopped before writing packet on a virtual root_postfreeze child absent from raw object. Explicit scalar-field projection was added for those later records.','Successful original packet retains historical projection fields without rewriting them. This sidecar binds actual parent and root scalar fields for every root opinion.','Historical source and postfreeze states/i selectors are projections of whole rows, not direct clinical record objects.'],'clinical_choice_changes':0,'original_files_unchanged':True})]:
+ with (S/name).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+print('root records',len(out),'quirks',len(quirks),'annotation different',sum(q['actual_annotation_differs'] for q in quirks))
+for x in out:
+ r=rows[x['n']]
+ if x['actual_root']['state']!=r['cell']['current569']['state']:print('actual root contrary',x['n'],x['evidence_id'],x['actual_root']['state'],x['actual_root']['reason'])

@@ -1,0 +1,41 @@
+"""Project the accepted fixed near-edge membership to the runtime contract."""
+from pathlib import Path
+import hashlib,json,shutil,sys
+W=Path(__file__).resolve().parents[3]
+R=W/'work/recovered'
+D=Path(__file__).resolve().parent
+AGENT='/root/duplicate_consistency_review'
+SOURCE='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RAW='initiative/audits/semantic-supervision-membership-builder-569-v1/membership-candidate-v1/candidate-near-edge-dispositions.json'
+EXPECTED='fd64a506bc3094f7377494a6f5a8d4bb9659e6cc73e57c6a0869ffb0b241e6a8'
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def jb(x): return json.dumps(x,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
+def put(p,x):
+    with p.open('xb') as f: f.write(jb(x)+b'\n')
+def main():
+    assert shutil.disk_usage(W).free>20*2**30+10*2**20
+    assert sha(R/RAW)==EXPECTED
+    doc=json.loads((R/RAW).read_bytes()); rows=doc['records']
+    sys.path.insert(0,str(R))
+    from rsna.schema import TARGETS
+    from rsna.semantic_supervision import Bindings
+    assert doc['source_reports_sha256']==SOURCE and len(rows)==12
+    pair=sorted([rows[0]['study_uid'],rows[0]['other_study_uid']])
+    assert [r['target'] for r in rows]==list(TARGETS)
+    out={'schema_version':1,'source_reports_sha256':SOURCE,'edges':[{'left':pair[0],'right':pair[1],'target_dispositions':[]}]}
+    bindings=Bindings(R)
+    for i,row in enumerate(rows):
+        assert sorted([row['study_uid'],row['other_study_uid']])==pair
+        assert row['action']=='no_semantic_transfer'
+        rec={'artifact':{'path':RAW,'sha256':EXPECTED},'format':'json','selector':f'/records/{i}','sha256':hashlib.sha256(jb(row)).hexdigest()}
+        assert bindings.record(rec)==row
+        out['edges'][0]['target_dispositions'].append({'target':row['target'],'action':row['action'],'reason':row['reason'],'evidence':[rec]})
+    dest=D/'near-report-dispositions.json';put(dest,out)
+    scope=R/'initiative/reviews-v2/semantic-supervision/scope-manifest.json.gz'
+    assert sha(scope)=='09d540f4a03aabf7b1c02e303af82c2f8e26aea7f3f6587d6d077ae4b3119f7a'
+    receipt={'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'status':'exact_contract_projection_no_new_clinical_decision','raw':{'path':RAW,'sha256':EXPECTED},'output':{'path':str(dest.relative_to(W)),'sha256':sha(dest),'bytes':dest.stat().st_size},'intended_destination':'initiative/reviews-v2/semantic-supervision/near-report-dispositions.json','scope_already_installed':{'path':str(scope.relative_to(R)),'sha256':sha(scope)},'edge_count':1,'target_dispositions':12,'all_original_actions_and_reasons_exact':True,'all_runtime_record_selectors_and_hashes_valid':True,'R_writes':False,'final_context_created':False,'approval_records_created':False,'disk_free_bytes':shutil.disk_usage(W).free}
+    put(D/'projection-validation.json',receipt)
+    files=[{'path':p.name,'sha256':sha(p),'bytes':p.stat().st_size} for p in sorted(D.iterdir()) if p.is_file()]
+    put(D/'completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'status':'complete','files':files})
+    print(json.dumps({'output':receipt['output'],'validation_sha256':sha(D/'projection-validation.json'),'completion_sha256':sha(D/'completion-manifest.json')}))
+if __name__=='__main__': main()

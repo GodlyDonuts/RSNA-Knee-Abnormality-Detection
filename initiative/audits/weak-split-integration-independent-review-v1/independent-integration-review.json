@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "created_at_utc": "2026-09-22T09:22:46.827610+00:00",
+  "review_role": "Independent review of root integration of the peer-authored split utility; original semantic-core/release-adapter authorship disclosed.",
+  "reviewed_files": [
+    {
+      "path": "rsna/labels.py",
+      "sha256": "c4506b51ec40c9d2b9a3ecdb90662f9bf7cd4358bef72a06fafc0cfa7ab92dc3"
+    },
+    {
+      "path": "rsna/schema.py",
+      "sha256": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948"
+    },
+    {
+      "path": "rsna/adjudications.py",
+      "sha256": "2b7af816e9caff240daf02af1dd3bf08e193438ac568478651f0b49868e1eac0"
+    },
+    {
+      "path": "rsna/correspondence.py",
+      "sha256": "b5de41060bfc922007947551ce7229d07de36efee5e306470106f2663cb0111c"
+    },
+    {
+      "path": "rsna/report_similarity.py",
+      "sha256": "728cf2faba14900e3d6477c47b2a9b6ab8c28c8ff5cdaf6006c1f6e5312fb764"
+    },
+    {
+      "path": "rsna/semantic_supervision.py",
+      "sha256": "a4d4e793c5c63cdca5927e9ef13d720df74582c2b48631a5b944f16e478360ba"
+    },
+    {
+      "path": "rsna/release.py",
+      "sha256": "d4f0fd4f6d5aad63ad50397d6f6d0ae6203f84a14690b5ad1385cc57d6a811a6"
+    },
+    {
+      "path": "rsna/audit.py",
+      "sha256": "f284e48c266245c0969358559626390c5d4a89fddd48e5aed8010c5a432d81ca"
+    },
+    {
+      "path": "rsna/weak_split.py",
+      "sha256": "aeea2320daf8d05d459ad94a9ff0219681d14706e0832ebd75303344597642ef"
+    },
+    {
+      "path": "rsna/train.py",
+      "sha256": "c409ddb87588cddc7dc3af012d8b58f6a9504bc6975a0ef2b85e543834eae5c2"
+    },
+    {
+      "path": "rsna/infer.py",
+      "sha256": "346840196d89f56c92284258bacf4a75048f07b79ea95d5977eb1f98d776ced5"
+    },
+    {
+      "path": "tests/test_release_adapter.py",
+      "sha256": "24a3d1a12c1eb71b36fb64f52f2e089201735282a539cc3f077393db573d20eb"
+    },
+    {
+      "path": "tests/test_semantic_supervision.py",
+      "sha256": "eb822b280420978c3469e8f5876e4b5cb262c6151fbb70275ff7c68c582eed40"
+    },
+    {
+      "path": "tests/test_weak_split.py",
+      "sha256": "6403de3c7d026cc665792b0d9c6ada56441f694d6c13b6af96ca9dfaa5cca72a"
+    }
+  ],
+  "findings": [],
+  "conclusion": "No concrete defect found in the actual pinned integration. The same reviewed repair function is applied after fixed semantic/technical masks in labels and fresh release replay. Data-context assembly may use these exact code pins; this review does not approve real membership or close QA.",
+  "verified_integration": [
+    "labels constructs original source/correction/group splits, applies correspondence and semantic/technical masks, then repairs whole groups",
+    "labels serializes exact split-repair audit and binds report-similarity final split trace only after repair",
+    "adapter _fresh_table invokes the identical helper after identical masks; persisted table must match that fresh replay",
+    "CODE_PATHS contains exactly nine data/boundary modules including weak_split, excluding train/infer/model experiment code",
+    "split algorithm is report_pixel_similarity_groups_gold_quarantine_hashmod10_coverage_repair_v1 and utility rule remains whole_group_post_mask_class_coverage_v1",
+    "strict final zero-class rejection remains enabled; class repair changes split only, never memberships, numeric labels, states, evidence or masks"
+  ],
+  "actual_synthetic_integration_test": {
+    "passed": 1,
+    "seconds": 2.53,
+    "fixture": "Six synthetic reports /72 cells; original weak-validation MCL positives deliberately absent. Synthetic reader/provenance rows were changed before the final context/catalog/approval bundle was first generated, never after approval.",
+    "execution": "Actual core/adjudication/provenance/DICOM/correspondence/similarity/repair/receipt validators, actual labels.main atomic export, and actual load_verified_release replays. No policy, approval, receipt or repair bypass. A wrapper only observed real helper inputs/outputs.",
+    "result": "One group/study moves; all48 split-target-class pairs become nonzero; all nonsplit columns remain exact; export and repeated fresh loads agree exactly; exported repair audit and receipt binding match."
+  },
+  "checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "full_suite": "Root owns required complete suite/type checks; reviewer did not repeat them."
+  },
+  "production_data_scope": "No official gold or clinical report values were opened. Actual fixed-candidate replay remains separately authored by duplicate_consistency_review.",
+  "repository_writes_by_reviewer": false,
+  "membership_or_qa_acceptance": false
+}

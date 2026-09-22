@@ -1,0 +1,14 @@
+"""Exercise staged core without changing recovered repository files."""
+import importlib.util
+import sys
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+ROOT = STAGE.parents[2] / 'work/recovered'
+sys.path.insert(0, str(ROOT))
+spec = importlib.util.spec_from_file_location('rsna.semantic_supervision', STAGE / 'semantic_supervision.py')
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+import rsna
+rsna.semantic_supervision = module

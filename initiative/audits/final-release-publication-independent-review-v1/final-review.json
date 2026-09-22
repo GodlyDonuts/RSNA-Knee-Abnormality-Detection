@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "stage": "independent_original_publication_review_and_authorized_dependency_closure_patch",
+  "status": "review_and_patch_complete_pending_root_final_review_and_future_actual_execution",
+  "actual_reviewer_and_patch_author": "/root/image_pipeline_audit",
+  "original_preparer": "/root/quality_temporal_review",
+  "created_at_utc": "2026-09-22T14:50:20.467218+00:00",
+  "independence_scope": "Original workflow review and failure reproduction were independent. This same reviewer implemented the subsequent authorized patch; root supplies separate code review and actual sealing. No second independent self-approval is asserted.",
+  "original_snapshot": {
+    "path": "work/annotation-staging/final-release-publication-independent-review-v1/original-files.json",
+    "sha256": "3986406dde655c455cc8815316613c2608d22988f9bf19ca4f273446040e4a4b",
+    "bytes": 4098
+  },
+  "original_failure_reproducer": {
+    "path": "work/annotation-staging/final-release-publication-independent-review-v1/reproduce_original_gap.py",
+    "sha256": "8195d2cfe4c1ee57425ba85784a18a556f294e564f37a53f8561dba4b82cf75f",
+    "bytes": 3552
+  },
+  "original_failure_results": {
+    "path": "work/annotation-staging/final-release-publication-independent-review-v1/original-gap-reproduction.json",
+    "sha256": "5bdb8f3d811d9ce9f26e7d6b7392713ffc2075dd573fa6b70114e41551c47911",
+    "bytes": 556
+  },
+  "original_failure_scope": "Original eligibility-only synthetic fixture demonstrated receipt-bound holds/coordinator omitted or wrong bytes accepted. It was not a full real archive reconstruction. The new evaluate_git integration fixture uses consistent synthetic blobs and manifests.",
+  "findings": [
+    {
+      "severity": "P1",
+      "problem": "Receipt hash did not bind the complete current runtime dependency closure; missing or changed context/holds/coordinator/nested evidence could pass final eligibility.",
+      "resolution": "Root fresh runtime capture seals the flat current dependency set and all seven filename-discovery memberships; target Git/blob/size and final manifest SHA checks fail closed."
+    },
+    {
+      "severity": "provenance",
+      "problem": "Prepared actual peer name referred to a different agent while root assigned this reviewer the future execution.",
+      "resolution": "Actual peer and workflow reviser are /root/image_pipeline_audit; original preparer and shared-helper generated default remain distinct and disclosed. No execution by the helper default agent is claimed."
+    }
+  ],
+  "reviewed_workflow_files": [
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/build_final_release_peer.py",
+      "sha256": "19d74c5f2c1dde68d5ed664499392f518eca9da9e427995ffb6c9bc0ac286b32",
+      "bytes": 5371
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/final_release_bindings.py",
+      "sha256": "103a826d63da5671770b5a6b17a30e72f29e7a2f35863035fea8ed544c8c3a5b",
+      "bytes": 12847
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/final_release_dependency_seal.py",
+      "sha256": "24b3d3150ca41c1b5a2f20fd325a725efa7c96281b761cfdef2c88db96f3b75b",
+      "bytes": 6293
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/final_release_eligibility.py",
+      "sha256": "a9ab5f8b2900be919a3f139c36e9b2a60462c8f818f61208d704b97566031e49",
+      "bytes": 11289
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/guard-tests.log",
+      "sha256": "5c2ea819e088ad01f43e64129f2f30a0aabac210dc58ac604b5744822c02fb92",
+      "bytes": 1764
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/paused-preparation-snapshot.json",
+      "sha256": "81357b32854c47cb63c0a5ea85cc5371f8609831df8c4f7d1b72ca87f7c6ccda",
+      "bytes": 2595
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/protected-source-576.json",
+      "sha256": "0e12da42dc91e43799eeecddb7bfffda1dd9b598e93610a836ad3428a1fae527",
+      "bytes": 436765
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/publish_final_release_delta.py",
+      "sha256": "efaffa67f22eaec25973cd775b11f08c8077f447965937b1610bb0b0dfa8e63e",
+      "bytes": 18677
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/seal_final_release_root.py",
+      "sha256": "f2461068ebb665ab8ef4e19c5e7d28a8f21325628433bb11abc9005baa0103a5",
+      "bytes": 8874
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/test_dependency_seal.py",
+      "sha256": "55650c637700baa287546c5abb6a64e7574f81c99bd38c1af11da2005c18cbe7",
+      "bytes": 8843
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/test_dependency_seal_integration.py",
+      "sha256": "bd971e57dc2c861a83c7152afbcbe90cc58405018640dab06ac29696795ea8b1",
+      "bytes": 5766
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/test_successor_guards.py",
+      "sha256": "fa5453715630fd4a671568e806eec512cfef8781ac73298fb6be69eb1bb831c0",
+      "bytes": 12998
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/verify_final_release_peer.py",
+      "sha256": "841e6ca149d0dcf1c500bf77cc44f85f5fde1eb7358225743c39299ee08b3c47",
+      "bytes": 2946
+    },
+    {
+      "path": "work/annotation-staging/final-release-hf-publication-preparation-v1/verify_final_release_root.py",
+      "sha256": "82771b561fc622724d3ca731460e25309c5218acf0a5af0d4434167e3e37ca05",
+      "bytes": 3660
+    }
+  ],
+  "shared_dependencies": [
+    {
+      "path": "work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py",
+      "sha256": "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8",
+      "bytes": 27915
+    },
+    {
+      "path": "work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py",
+      "sha256": "494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f",
+      "bytes": 27855
+    }
+  ],
+  "root_actual_dependency_seal": {
+    "path": "work/recovered/initiative/audits/final-release-dependency-seal-v1/dependency-seal.json",
+    "sha256": "6200a3594bf485bc6e4eef7aaf267b5c5eac8c91ca4962f51b3b5bfc4d93952d",
+    "bytes": 359065,
+    "reported_actual_executor": "/root",
+    "n_current_files": 1240,
+    "n_discovery_scopes": 7,
+    "reviewer_checked_exact_hash_and_metadata": true,
+    "reviewer_executed_sealer": false
+  },
+  "tests": {
+    "distinct_passed": 28,
+    "original_guard_tests": 13,
+    "new_dependency_tests": 12,
+    "new_integrated_entrypoint_tests": 3,
+    "logs": [
+      {
+        "path": "work/annotation-staging/final-release-publication-independent-review-v1/dependency-guard-tests.log",
+        "sha256": "9d213dfe5fde5f0c555588307bbd7bab7e3a0809f01312e44a8ab4f7fe9038d6",
+        "bytes": 3813
+      },
+      {
+        "path": "work/annotation-staging/final-release-publication-independent-review-v1/dependency-integration-tests.log",
+        "sha256": "6ff5753cbd9357613c7da692dd3da38160939c724bb9f3f119bc9f5fc93f4bea",
+        "bytes": 610
+      }
+    ],
+    "all_11_python_sources_ast_parse": true,
+    "synthetic_only": true,
+    "network_or_credentials_used": false
+  },
+  "verified_boundaries": [
+    "Complete actual checkpoint/prediction/run-source artifacts required, not only logs and flags.",
+    "Corrected source revision and actual acceptance checkpoint binding required.",
+    "Changed/missing receipt/context/holds/ledger/coordinator/nested proofs or newly discovered current policy blocks target eligibility.",
+    "Unreferenced historical artifacts need not be recursively valid; originals remain byte preserved.",
+    "Two actual named executions required; peer proof aliases are a single execution.",
+    "Private compare-and-swap and exact six-object upload preserved; source trees/CSV/card preservation remains guarded.",
+    "Untrusted error payloads are not serialized; future pins remain unset and entrypoints stop before credentials."
+  ],
+  "actions_not_performed": [
+    "Actual package build",
+    "Actual streaming restoration",
+    "Credential read",
+    "Network request",
+    "Remote mutation",
+    "Git commit",
+    "Production repository edits",
+    "Clinical or gold-label judgments"
+  ],
+  "current_scope": "Prepared workflow and offline regression review. Root-reported real acceptance/seal are separately attributed. Final publication is not yet performed by this reviewer.",
+  "documentation": {
+    "path": "work/annotation-staging/final-release-publication-independent-review-v1/README.md",
+    "sha256": "7ca67ad47399c1b85d694f645b1b3449b69984cf86dcd2c58dc3b503893bcb29",
+    "bytes": 4808
+  }
+}

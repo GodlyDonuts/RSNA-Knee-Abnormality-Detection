@@ -1,0 +1,25 @@
+"""Prepare a new root-authored workflow copy; target pins await actual commit."""
+from pathlib import Path
+import hashlib,json,re
+W=Path(__file__).resolve().parent.parent;B=W/'work/annotation-staging';old=B/'qualified003-hf-publication-preparation-v1';new=B/'qualified004-hf-publication-preparation-v1';new.mkdir(exist_ok=False)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+expected={'qualified003_bindings.py':'b0a2a69521e3b3f103ed9c7b43c07df0b1781c22b021a15bab2db7fe9d7a6f82','publish_qualified003_delta.py':'a36f42bdaa3f4f9b0b43e9a5d68160c45f79f4c1b5e3d2161626c8e443d08641','build_qualified003_peer.py':'aeb6bd0614801137f03e1cbdda2056b331733869d898f337572fb15c182bbf0d','protected-source-576.json':'0e12da42dc91e43799eeecddb7bfffda1dd9b598e93610a836ad3428a1fae527'}
+for n,h in expected.items():assert sha(old/n)==h
+for name in ['qualified003_bindings.py','publish_qualified003_delta.py','build_qualified003_peer.py','verify_qualified003_peer.py']:
+ s=(old/name).read_text().replace('qualified003','qualified004')
+ # Counts and semantic guard names only; never substitute inside hashes.
+ s=s.replace('Future491','Future569').replace('491-correction','569-correction').replace('491 accepted','569 accepted').replace('491 milestone','569 milestone').replace(' 491 ', ' 569 ').replace('not_491','not_569').replace('exact491','exact569').replace('root491','root569').replace('known491','known569').replace('registry491','registry569').replace('descendant_of425','descendant_of491')
+ if name=='qualified003_bindings.py':
+  values={'PARENT_HF':"'d2804e1da6fdaa6e77e01c224480c5b31aefc186'",'PREVIOUS_GIT':"'fec046253168083514749226987dda5b6c2505ce'",'TARGET_GIT':"'AWAITING_ACTUAL_569_COMMIT'",'TARGET_TREE':"'AWAITING_ACTUAL_569_TREE'",'TARGET_FILE_COUNT':'None','TARGET_CI_RUN':'None','STAGED_PROOF_SHA':"'AWAITING_ACTUAL_STAGED_PROOF'",'REGISTRY_SHA':"'7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'",'N_CORRECTIONS':'569','PEER':"'/root/duplicate_consistency_review'"}
+  for key,value in values.items():s,n=re.subn(r'^'+key+r' = .*$',key+' = '+value,s,flags=re.M);assert n==1,key
+  s=s.replace("ROOT = '/root'","ROOT = '/root'\nWORKFLOW_AUTHOR = '/root'\nSOURCE_INVENTORY_BASELINE_GIT = 'a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004'")
+  s=s.replace("inv['baseline_git_commit'] == PREVIOUS_GIT","inv['baseline_git_commit'] == SOURCE_INVENTORY_BASELINE_GIT")
+ if name=='publish_qualified003_delta.py':
+  s=s.replace('Future root publisher derived from the verified425 workflow; not executed here.','Root publisher derived from the verified491 workflow; no mutation during preparation.')
+  s=s.replace("'preparation_workflow_author': PEER","'preparation_workflow_author': WORKFLOW_AUTHOR").replace("'workflow_preparation_author': PEER","'workflow_preparation_author': WORKFLOW_AUTHOR")
+ if name in ['build_qualified003_peer.py','verify_qualified003_peer.py']:
+  s=s.replace('preparation_author_agent_id=PEER','preparation_author_agent_id=WORKFLOW_AUTHOR')
+ (new/name.replace('qualified003','qualified004')).write_text(s)
+(new/'protected-source-576.json').write_bytes((old/'protected-source-576.json').read_bytes())
+(new/'preparation-origin.json').write_text(json.dumps({'status':'unexecuted_target_pins_pending_actual_commit','workflow_author':'/root','intended_peer_executor':'/root/duplicate_consistency_review','root_executor':'/root','original491_sources':{n:sha(old/n) for n in ['qualified003_bindings.py','publish_qualified003_delta.py','build_qualified003_peer.py','verify_qualified003_peer.py','protected-source-576.json']},'changes':['Separate569 registry and parent491HF pins','Future target commit/tree/count/CI/stagedproof remain explicit sentinels until verified actualvalues','Preserve original425 source576 inventory baseline separately from predecessor491','Preserve actualroot workflowauthor versus actualpeerexecutor','No sharedhelper,transport,scannerpolicy,diskfloor,privacy,remotecompareandswap,sourceidentityguard changes'],'publication_executed':False,'training_ready':False},indent=2)+'\n')
+print('New569 publication workflow prepared with explicit future-pin sentinels; no build or network write.')

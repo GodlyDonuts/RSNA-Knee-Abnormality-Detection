@@ -1,0 +1,13 @@
+Pinned runtime, nine required inputs and fixed membership verified.
+Traceback (most recent call last):
+  File "$WORKSPACE/work/annotation-staging/semantic-supervision-final-proposal-569-v1/assemble_final.py", line 189, in <module>
+    parser=argparse.ArgumentParser();parser.add_argument('--execute-final-assembly',action='store_true',required=True);parser.parse_args();main()
+                                                                                                                                           ^^^^^^
+  File "$WORKSPACE/work/annotation-staging/semantic-supervision-final-proposal-569-v1/assemble_final.py", line 112, in main
+    context,original,current=m._context(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R,inspection,inputs,context_bindings,excluded,pairs)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "$WORKSPACE/work/recovered/rsna/semantic_supervision.py", line 274, in _context
+    fail(
+  File "$WORKSPACE/work/recovered/rsna/semantic_supervision.py", line 45, in fail
+    raise ValueError("Semantic supervision: " + message)
+ValueError: Semantic supervision: missing original draft/preread artifacts

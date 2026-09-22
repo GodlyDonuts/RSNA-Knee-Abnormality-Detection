@@ -1,0 +1,478 @@
+"""Required full-manifest release boundary. No bypass and no clinical adjudication."""
+
+from __future__ import annotations
+
+import gzip
+import hashlib
+import io
+import json
+from pathlib import Path
+
+import pandas as pd
+from rsna.adjudications import inspect_adjudications
+from rsna.audit import validate_inventory
+from rsna.correspondence import REGISTRY_PATH as CORRESPONDENCE_PATH
+from rsna.correspondence import apply_correspondence, inspect_correspondence
+from rsna.labels import (
+    build_studies,
+    read_reviews,
+    validate_dicom_audit,
+    validate_review_provenance,
+)
+from rsna.report_similarity import REGISTRY_PATH as SIMILARITY_PATH
+from rsna.report_similarity import inspect_report_similarity, similarity_pairs
+from rsna.schema import TARGETS
+from rsna.semantic_supervision import (
+    Bindings,
+    apply_semantic_supervision,
+    digest,
+    fail,
+    file_digest,
+    inspect_semantic_supervision,
+    parse,
+    table_fingerprint,
+    validate_qa_binding,
+    verify_release_boundary,
+    version,
+)
+
+COORDINATOR_PATH = Path("initiative/reviews-v2/semantic-supervision/release-inputs.json")
+REVIEWS_PATH = Path("initiative/reviews-v2/reviewed")
+DRAFTS_PATH = Path("initiative/reviews-v2/drafts")
+RUBRIC_PATH = Path("protocols/report_weak_v2.md")
+SOURCE_PATH = Path("initiative/source/train.csv")
+PROVENANCE_PATH = Path("initiative/reviews-v2/provenance.json")
+RECEIPT_NAME = "verified_release.json"
+CODE_PATHS = {
+    f"rsna/{name}.py"
+    for name in (
+        "labels",
+        "schema",
+        "adjudications",
+        "correspondence",
+        "report_similarity",
+        "semantic_supervision",
+        "release",
+        "audit",
+    )
+}
+SPLIT_ALGORITHM = "report_pixel_similarity_groups_gold_quarantine_hashmod10_v1"
+QA_IDS = {
+    "cartilage-consistency-all-release-reviews",
+    "bone-terminology-all-release-reviews",
+    "duplicate-qualified-negation-consistency-all-release-reviews",
+}
+
+
+def _ref(path: Path, root: Path) -> dict:
+    return {"path": str(path.resolve().relative_to(root.resolve())), "sha256": file_digest(path)}
+
+
+def _fixed_input(bindings: Bindings, ref: dict, name: Path) -> None:
+    fail(ref.get("path") == str(name), "coordinator changed a canonical input path")
+    bindings.path(ref)
+
+
+def prepare_supervision(reports: dict[str, str], adjudications: dict, artifact_root: Path) -> dict:
+    """Freshly verify coordinator, original review lineage, technical and semantic policies.
+
+    Does not mutate files or approve membership. Gold is read only to authenticate
+    evaluation membership; neither its values nor class counts select hold records.
+    """
+    root = artifact_root.resolve()
+    b = Bindings(root)
+    coordinator_ref = _ref(root / COORDINATOR_PATH, root)
+    coordinator = version(b.obj(coordinator_ref), {"required_inputs", "code_sha256"})
+    inputs = coordinator["required_inputs"]
+    fail(isinstance(inputs, dict), "coordinator required inputs")
+    for name, path in [
+        ("authenticated_train_csv", SOURCE_PATH),
+        ("review_provenance", PROVENANCE_PATH),
+        ("correspondence_policy", CORRESPONDENCE_PATH),
+        ("similarity_policy", SIMILARITY_PATH),
+    ]:
+        fail(name in inputs, "coordinator omitted canonical input")
+        _fixed_input(b, inputs[name], path)
+    code = coordinator["code_sha256"]
+    fail(isinstance(code, dict) and set(code) == CODE_PATHS, "coordinator code scope mismatch")
+    for path, sha in code.items():
+        b.path({"path": path, "sha256": sha})
+    split = version(b.obj(inputs["split_policy"]), {"algorithm", "code_sha256"})
+    fail(
+        split["algorithm"] == SPLIT_ALGORITHM and split["code_sha256"] == code,
+        "split policy does not approve the current boundary code and split algorithm",
+    )
+    current = inspect_adjudications(reports, root / REVIEWS_PATH, root / RUBRIC_PATH, root)
+    fail(digest(current) == digest(adjudications), "stale caller adjudication inspection")
+    fail(not current["pending_semantic_qa"], "pending QA blocks verified release")
+    reviews = read_reviews(root / REVIEWS_PATH, reports, "-reviewed")
+    drafts = read_reviews(root / DRAFTS_PATH, reports, "-draft")
+    validate_review_provenance(
+        root / PROVENANCE_PATH,
+        reports,
+        drafts,
+        reviews,
+        root / DRAFTS_PATH,
+        root / REVIEWS_PATH,
+        root / RUBRIC_PATH,
+    )
+    correspondence = inspect_correspondence(reports, root)
+    similarity = inspect_report_similarity(reports, root)
+    technical = version(
+        b.obj(inputs["technical_policy"]),
+        {
+            "source_revision",
+            "corrected_inventory",
+            "decoded_inventory_sha256",
+            "dicom_audit",
+            "series_cache_index",
+            "series_sampling",
+            "source_series",
+            "reason",
+        },
+    )
+    fail(
+        isinstance(technical["source_revision"], str)
+        and bool(technical["source_revision"].strip())
+        and isinstance(technical["reason"], str)
+        and bool(technical["reason"].strip()),
+        "technical policy lacks source revision/reason",
+    )
+    _fixed_input(b, technical["source_series"], Path("initiative/source/train_series.csv"))
+    inventory_path = b.path(technical["corrected_inventory"])
+    inventory_bytes = b.raw[technical["corrected_inventory"]["path"]]
+    decoded = (
+        gzip.decompress(inventory_bytes)
+        if inventory_path.name.endswith(".parquet.gz")
+        else inventory_bytes
+    )
+    fail(
+        hashlib.sha256(decoded).hexdigest() == technical["decoded_inventory_sha256"],
+        "decoded inventory changed",
+    )
+    inventory = pd.read_parquet(io.BytesIO(decoded))
+    validate_inventory(inventory)
+    audit_path = b.path(technical["dicom_audit"])
+    index_path = b.path(technical["series_cache_index"])
+    fail(
+        index_path == audit_path.parent / "series_cache_index.parquet", "DICOM index path mismatch"
+    )
+    pixel_pairs = validate_dicom_audit(
+        audit_path, inventory, set(reports), technical["source_revision"]
+    )
+    index = pd.read_parquet(index_path)
+    fail(
+        not index[["raw_split", "study_uid", "series_uid"]].duplicated().any(),
+        "duplicate cache series",
+    )
+    inventory_series = set(
+        inventory[["split", "study_uid", "series_uid"]].itertuples(index=False, name=None)
+    )
+    fail(
+        set(index[["raw_split", "study_uid", "series_uid"]].itertuples(index=False, name=None))
+        == inventory_series,
+        "cache index inventory membership mismatch",
+    )
+    sampling = pd.read_csv(b.path(technical["series_sampling"]))
+    required = {
+        "StudyInstanceUID",
+        "SeriesInstanceUID",
+        "Fluid_Sensitive",
+        "Fat_Suppression",
+        "Anatomical_Plane",
+    }
+    fail(
+        required <= set(sampling.columns) and not sampling.empty,
+        "sampling table missing model metadata",
+    )
+    fail(
+        not sampling[["StudyInstanceUID", "SeriesInstanceUID"]].duplicated().any(),
+        "duplicate sampling series",
+    )
+    sampled = set(
+        sampling[["StudyInstanceUID", "SeriesInstanceUID"]].itertuples(index=False, name=None)
+    )
+    source_series = pd.read_csv(b.path(technical["source_series"]))
+    original_series = set(
+        source_series[["StudyInstanceUID", "SeriesInstanceUID"]].itertuples(index=False, name=None)
+    )
+    fail(
+        sampled <= original_series
+        and all(("train_series", u, s) in inventory_series for u, s in sampled),
+        "sampling includes an unauthenticated source/cache series",
+    )
+    eligible = set(sampling.StudyInstanceUID)
+    fail(eligible <= set(reports), "sampling contains nontraining study")
+    source = pd.read_csv(b.path(inputs["authenticated_train_csv"]))
+    fail(
+        not source.StudyInstanceUID.duplicated().any()
+        and dict(zip(source.StudyInstanceUID, source.Report)) == reports,
+        "authenticated source reports changed",
+    )
+    has_gold = source[list(TARGETS)].notna()
+    fail(
+        not (has_gold.any(axis=1) & ~has_gold.all(axis=1)).any(), "partial official gold membership"
+    )
+    gold_uids = set(source.loc[has_gold.all(axis=1), "StudyInstanceUID"])
+    semantic = inspect_semantic_supervision(
+        reports,
+        root / REVIEWS_PATH,
+        root / RUBRIC_PATH,
+        root,
+        current,
+        inputs,
+        correspondence_excluded_uids={d["study_uid"] for d in correspondence["decisions"]},
+        near_report_pairs=sorted({tuple(sorted(p)) for p in similarity_pairs(similarity)}),
+    )
+    qa = {}
+    fail(
+        {q["id"] for q in current["semantic_qa"]} == QA_IDS, "release requires all three QA issues"
+    )
+    for issue in current["semantic_qa"]:
+        resolution = b.obj(issue["resolution"])
+        validate_qa_binding(resolution, semantic)
+        qa[issue["id"]] = issue["resolution"]
+    b.unchanged()
+    context = {
+        "coordinator": coordinator_ref,
+        "code_sha256": code,
+        "bound_artifacts": dict(b.hashes),
+        "technical_policy": inputs["technical_policy"],
+        "series_sampling": technical["series_sampling"],
+        "source_revision": technical["source_revision"],
+        "pixel_pairs": [list(p) for p in sorted(pixel_pairs)],
+        "similarity_pairs": [list(p) for p in sorted(similarity_pairs(similarity))],
+        "adjudication_registry_sha256": current["registry_sha256"],
+        "qa_resolutions": qa,
+    }
+    return {
+        "schema_version": 1,
+        "semantic_supervision": semantic,
+        "release_context": context,
+        "gold_uids": sorted(gold_uids),
+        "technical_eligible_uids": sorted(eligible),
+        "prepared_sha256": digest(
+            {
+                "semantic_inspection": semantic["inspection_sha256"],
+                "context": context,
+                "gold_uids": sorted(gold_uids),
+                "technical_eligible_uids": sorted(eligible),
+            }
+        ),
+    }
+
+
+def _fresh_table(audit: dict, root: Path) -> pd.DataFrame:
+    semantic = audit["semantic_supervision"]
+    source = pd.read_csv(root / SOURCE_PATH)
+    reports = dict(zip(source.StudyInstanceUID, source.Report))
+    reviews = read_reviews(root / REVIEWS_PATH, reports, "-reviewed").set_index("study_uid")
+    # Core already replayed exact original-before/accepted-after objects. This is
+    # serialization of that verified inspection, not another clinical judgment.
+    for target in TARGETS:
+        reviews[f"{target}__correction"] = ""
+    for cell in semantic["cells"]:
+        uid, target = cell["study_uid"], cell["target"]
+        for field in ("state", "evidence"):
+            reviews.at[uid, f"{target}__{field}"] = cell["current"][field]
+        if cell["current"] != cell["original"]:
+            reviews.at[uid, f"{target}__correction"] = "verified_accepted_correction"
+    pairs = audit["release_context"]["pixel_pairs"] + audit["release_context"]["similarity_pairs"]
+    studies = build_studies(source, reviews.reset_index(), [tuple(p) for p in pairs])
+    studies, _ = apply_correspondence(studies, reports, root)
+    return apply_semantic_supervision(
+        studies,
+        semantic,
+        gold_uids=set(audit["gold_uids"]),
+        technical_eligible_uids=set(audit["technical_eligible_uids"]),
+    )
+
+
+def _coverage(studies: pd.DataFrame) -> list[dict]:
+    """Measure after fixed membership; never inspect gold to choose supervision."""
+    rows = []
+    for split in ("train", "weak_validation"):
+        selected = studies.loc[studies.split.eq(split)]
+        for target in TARGETS:
+            observed = selected.loc[selected[f"{target}__mask"].eq(1)]
+            positives, negatives = observed[target].eq(1), observed[target].eq(0)
+            fail(
+                bool(positives.any()) and bool(negatives.any()),
+                f"zero-class release: {split}/{target}",
+            )
+            rows.append(
+                {
+                    "split": split,
+                    "target": target,
+                    "positive": int(positives.sum()),
+                    "negative": int(negatives.sum()),
+                    "masked": len(selected) - len(observed),
+                    "positive_groups": int(observed.loc[positives, "leakage_group"].nunique()),
+                    "negative_groups": int(observed.loc[negatives, "leakage_group"].nunique()),
+                }
+            )
+    return rows
+
+
+def _checkpoint_binding(receipt: dict, receipt_hash: str) -> dict:
+    binding = {
+        "schema_version": 1,
+        "manifest_sha256": receipt["studies_sha256"],
+        "series_sha256": receipt["series_sha256"],
+        "source_revision": receipt["source_revision"],
+        "release_receipt_sha256": receipt_hash,
+        "semantic_registry_sha256": receipt["semantic_supervision"]["registry"]["sha256"],
+    }
+    binding["binding_sha256"] = digest(binding)
+    return binding
+
+
+def validate_checkpoint_binding(binding: dict) -> None:
+    """Offline identity check for public-test inference; requires no training data."""
+    version(
+        binding,
+        {
+            "manifest_sha256",
+            "series_sha256",
+            "source_revision",
+            "release_receipt_sha256",
+            "semantic_registry_sha256",
+            "binding_sha256",
+        },
+    )
+    for name in (
+        "manifest_sha256",
+        "series_sha256",
+        "release_receipt_sha256",
+        "semantic_registry_sha256",
+        "binding_sha256",
+    ):
+        value = binding[name]
+        fail(
+            isinstance(value, str)
+            and len(value) == 64
+            and all(c in "0123456789abcdef" for c in value),
+            "checkpoint release hash missing or malformed",
+        )
+    fail(
+        isinstance(binding["source_revision"], str) and bool(binding["source_revision"].strip()),
+        "checkpoint release source revision missing",
+    )
+    fail(
+        binding["binding_sha256"]
+        == digest({k: v for k, v in binding.items() if k != "binding_sha256"}),
+        "checkpoint release binding changed",
+    )
+
+
+def _unchanged_context(audit: dict, root: Path) -> None:
+    for name, expected in audit["release_context"]["bound_artifacts"].items():
+        path = (root / name).resolve()
+        fail(
+            path.is_relative_to(root) and path.is_file() and file_digest(path) == expected,
+            "technical/source/code binding changed during release validation",
+        )
+
+
+def _validate_table(path: Path, studies: pd.DataFrame, audit: dict, root: Path) -> list[dict]:
+    expected = _fresh_table(audit, root)
+    fail(
+        table_fingerprint(studies) == table_fingerprint(expected),
+        "persisted manifest differs from fresh source/annotation/mask/split replay",
+    )
+    return _coverage(studies)
+
+
+def write_verified_release(
+    output: Path, studies: pd.DataFrame, audit: dict, artifact_root: Path
+) -> dict:
+    """Write a small receipt only after validating the persisted full release table."""
+    root = artifact_root.resolve()
+    path, receipt_path = output / "studies.parquet", output / RECEIPT_NAME
+    fail(
+        path.is_file() and not receipt_path.exists(),
+        "release table missing or receipt already exists",
+    )
+    fail(
+        table_fingerprint(pd.read_parquet(path)) == table_fingerprint(studies),
+        "persisted output differs",
+    )
+    # Refresh policy/QA/technical context at publication, even if the caller kept an old audit.
+    reports = dict(zip(studies.study_uid, studies.Report))
+    current = inspect_adjudications(reports, root / REVIEWS_PATH, root / RUBRIC_PATH, root)
+    fresh = prepare_supervision(reports, current, root)
+    fail(fresh["prepared_sha256"] == audit["prepared_sha256"], "release preparation changed")
+    coverage = _validate_table(path, studies, fresh, root)
+    semantic, context = fresh["semantic_supervision"], fresh["release_context"]
+    receipt = {
+        "schema_version": 1,
+        "status": "verified_release",
+        "semantic_supervision": {
+            n: semantic[n] for n in ("registry", "context", "holds", "ledger", "decision")
+        },
+        "studies_sha256": file_digest(path),
+        "table_sha256": table_fingerprint(studies),
+        "gold_uids_sha256": digest(fresh["gold_uids"]),
+        "technical_eligible_uids_sha256": digest(fresh["technical_eligible_uids"]),
+        "qa_resolutions": context["qa_resolutions"],
+        "coordinator": context["coordinator"],
+        "prepared_sha256": fresh["prepared_sha256"],
+        "coverage": coverage,
+        "series_sha256": context["series_sampling"]["sha256"],
+        "source_revision": context["source_revision"],
+    }
+    verify_release_boundary(
+        path,
+        studies,
+        receipt,
+        semantic,
+        root,
+        gold_uids=set(fresh["gold_uids"]),
+        technical_eligible_uids=set(fresh["technical_eligible_uids"]),
+    )
+    _unchanged_context(fresh, root)
+    with receipt_path.open("x") as handle:
+        handle.write(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
+    return _checkpoint_binding(receipt, file_digest(receipt_path))
+
+
+def load_verified_release(studies_path: Path, artifact_root: Path) -> tuple[pd.DataFrame, dict]:
+    """Verify the complete persisted release before any caller selects a split."""
+    root = artifact_root.resolve()
+    receipt_path = studies_path.parent / RECEIPT_NAME
+    fail(receipt_path.is_file(), "verified release receipt is required")
+    receipt_bytes, table_bytes = receipt_path.read_bytes(), studies_path.read_bytes()
+    receipt = version(parse(receipt_bytes.decode()))
+    studies = pd.read_parquet(io.BytesIO(table_bytes))
+    reports = dict(zip(studies.study_uid, studies.Report))
+    current = inspect_adjudications(reports, root / REVIEWS_PATH, root / RUBRIC_PATH, root)
+    audit = prepare_supervision(reports, current, root)
+    fail(
+        receipt.get("prepared_sha256") == audit["prepared_sha256"]
+        and receipt.get("coordinator") == audit["release_context"]["coordinator"],
+        "release coordinator/context stale",
+    )
+    coverage = _validate_table(studies_path, studies, audit, root)
+    fail(receipt.get("coverage") == coverage, "release coverage changed")
+    fail(
+        receipt.get("series_sha256") == audit["release_context"]["series_sampling"]["sha256"]
+        and receipt.get("source_revision") == audit["release_context"]["source_revision"],
+        "release technical identity changed",
+    )
+    verify_release_boundary(
+        studies_path,
+        studies,
+        receipt,
+        audit["semantic_supervision"],
+        root,
+        gold_uids=set(audit["gold_uids"]),
+        technical_eligible_uids=set(audit["technical_eligible_uids"]),
+    )
+    fail(
+        studies_path.read_bytes() == table_bytes and receipt_path.read_bytes() == receipt_bytes,
+        "release files changed during validation",
+    )
+    _unchanged_context(audit, root)
+    binding = _checkpoint_binding(receipt, file_digest(receipt_path))
+    validate_checkpoint_binding(binding)
+    return studies, binding

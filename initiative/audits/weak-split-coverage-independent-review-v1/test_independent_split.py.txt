@@ -1,0 +1,92 @@
+"""Independent invariant checks on the proposed bounded split-only utility."""
+
+from __future__ import annotations
+
+import random
+
+import pandas as pd
+from rsna.schema import TARGETS
+from weak_split import repair_weak_split_coverage, split_repair_audit
+
+
+def row(uid, split):
+    result = {"study_uid": uid, "leakage_group": uid, "split": split}
+    for target in TARGETS:
+        result[target] = 0.0
+        result[target + "__mask"] = 0.0
+        result[target + "__state"] = "preserved synthetic state"
+        result[target + "__evidence"] = "preserved synthetic evidence"
+    return result
+
+
+def assert_full_weak_coverage(frame):
+    for split in ["train", "weak_validation"]:
+        for target in TARGETS:
+            values = frame.loc[frame.split.eq(split) & frame[target + "__mask"].eq(1), target]
+            assert set(values) == {0, 1}
+
+
+def test_global_presence_implies_at_most_24_progress_moves():
+    rows = [row("empty-validation", "weak_validation")]
+    for index, target in enumerate(TARGETS):
+        for value in [0, 1]:
+            for copy in [0, 1]:
+                current = row(f"{index}-{value}-{copy}", "train")
+                current[target] = value
+                current[target + "__mask"] = 1
+                rows.append(current)
+    before = pd.DataFrame(rows)
+    untouched = before.copy(deep=True)
+    after = repair_weak_split_coverage(before)
+    assert_full_weak_coverage(after)
+    audit = split_repair_audit(before, after)
+    assert len(audit["moved_groups"]) == 24
+    assert audit["moved_studies"] == 24
+    pd.testing.assert_frame_equal(before, untouched, check_exact=True)
+    pd.testing.assert_frame_equal(
+        before.drop(columns="split"), after.drop(columns="split"), check_exact=True
+    )
+
+
+def test_randomized_whole_group_and_protected_value_invariants():
+    for seed in range(20):
+        rng = random.Random(seed)
+        rows = []
+        for group in range(24):
+            split = "train" if group < 16 else "weak_validation"
+            for member in range(1 + group % 3):
+                current = row(f"g{group}-u{member}", split)
+                current["leakage_group"] = f"g{group}"
+                for target in TARGETS:
+                    current[target] = float(rng.randrange(2))
+                    current[target + "__mask"] = float(rng.random() > 0.2)
+                # Force a missing usable validation class; only approved masks
+                # and weak labels can repair it.
+                if split == "weak_validation":
+                    current["MCL__mask"] = 0.0
+                rows.append(current)
+        for name, split in [("gold", "gold_evaluation"), ("quarantine", "quarantine")]:
+            protected = row(name, split)
+            protected["leakage_group"] = "protected"
+            for target in TARGETS:
+                protected[target] = "not read as a weak class"
+            rows.append(protected)
+        before = pd.DataFrame(rows)
+        after = repair_weak_split_coverage(before)
+        assert_full_weak_coverage(after)
+        assert after.groupby("leakage_group").split.nunique().drop("protected").eq(1).all()
+        pd.testing.assert_frame_equal(
+            before.drop(columns="split"), after.drop(columns="split"), check_exact=True
+        )
+        pd.testing.assert_frame_equal(
+            before.loc[before.leakage_group.eq("protected")],
+            after.loc[after.leakage_group.eq("protected")],
+            check_exact=True,
+        )
+        shuffled = before.sample(frac=1, random_state=seed)
+        repeated = repair_weak_split_coverage(shuffled)
+        assert dict(zip(after.study_uid, after.split)) == dict(
+            zip(repeated.study_uid, repeated.split)
+        )
+        audit = split_repair_audit(before, after)
+        assert 0 < len(audit["moved_groups"]) <= 24

@@ -1,0 +1,33 @@
+from pathlib import Path
+import json,gzip,hashlib
+W=Path.cwd();A=W/'work/annotation-staging';S=Path(__file__).resolve().parent;P=A/'conservative-semantic-hold-coverage-preflight-569-v1/result-v2';L=A/'readiness-evidence-ledger-362-v1/ledger-final'
+def j(p):return json.loads(p.read_text())
+def jl(p):return [json.loads(s) for s in (gzip.open(p,'rt') if p.suffix=='.gz' else p.open())]
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def wr(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+rows=jl(P/'cell-ledger.jsonl.gz');selected=[r for r in rows if (r['target'].endswith('OA') and r['current569']['state']=='positive') or r['display_partition']=='adjudicated_retained_dissent_policy_choice'];ids={x for r in selected for x in r['historical_evidence_ids']+r['later_evidence_ids']};ev={r['id']:r for r in jl(L/'evidence-records.jsonl') if r['id'] in ids};ev.update({r['id']:r for r in jl(P/'later-evidence-index.jsonl.gz') if r['id'] in ids});art={r['id']:r for r in j(L/'artifact-index.json')};used={}
+for e in ev.values():
+ a=art[e['artifact']] if isinstance(e['artifact'],str) else e['artifact'];p=W/a['path'];r=ref(p);assert r['sha256']==a['sha256'];used[r['path']]=r;e['raw_artifact_binding']=r
+for e in ev.values():
+ if e['id'].startswith('n'):
+  node=j(W/e['raw_artifact_binding']['path'])
+  for part in e['selector'].strip('/').split('/'):
+   part=part.replace('~1','/').replace('~0','~')
+   if isinstance(node,dict) and part=='root_postfreeze' and part not in node and 'root_postfreeze_state' in node:
+    e['actual_raw_field_projection']=['root_postfreeze_state','root_postfreeze_evidence','reason'];node={'state':node['root_postfreeze_state'],'evidence':node['root_postfreeze_evidence'],'reason':node['reason']}
+   else:node=node[int(part)] if isinstance(node,list) else node[part]
+  e['raw_selected_value']=node
+  if isinstance(node,dict):
+   if 'evidence' in node:e['evidence']=node['evidence']
+   e['rationale']=node.get('reason',node.get('rationale',node.get('reasoning')))
+changes={(r['study_uid'],r['target']):r for r in j(P/'current569-inspection.json')['changes']}
+# Retain only exact source metadata and existing authored evidence; this is not a fresh source-first assessment.
+records=[]
+for n,r in enumerate(selected):
+ es=[ev[i] for i in r['historical_evidence_ids']+r['later_evidence_ids']];p=W/'work/recovered'/r['source_path'];assert ref(p)['sha256']==r['source_sha256'];src=j(p);src=src if isinstance(src,list) else src.get('reports',src.get('records'));source=src[r['source_index_zero_based']];text=source.get('report',source.get('text',source.get('report_text')));assert hashlib.sha256(text.encode()).hexdigest()==r['report_sha256'];assert source['study_uid']==r['study_uid']
+ quotes=[e['evidence'] for e in es if 'evidence' in e and e.get('evidence_sha256')==r['current569']['evidence_sha256']];current=quotes[0] if quotes else changes[(r['study_uid'],r['target'])]['after']['evidence'];assert hashlib.sha256(current.encode()).hexdigest()==r['current569']['evidence_sha256'];assert current in text
+ records.append({'n':n,'cell':r,'current_evidence':current,'existing_evidence_records':es,'source_binding':ref(p),'report_sha256':r['report_sha256']})
+wr('existing-evidence-packet.json',{'status':'mechanical_projection_no_new_clinical_decision','agent_id':'/root/last_twelve_visual_review','session_id':'/root/last_twelve_visual_review','inputs':[ref(P/'cell-ledger.jsonl.gz'),ref(L/'evidence-records.jsonl'),ref(L/'artifact-index.json'),ref(P/'later-evidence-index.jsonl.gz')],'positive_OA_cells':178,'retained_dissent_cells':12,'unique_cells':len(records),'records':records})
+wr('raw-evidence-bindings.json',{'all_raw_artifact_hashes_checked':True,'artifacts':list(used.values())})
+print(len(records),len(ev),len(used))

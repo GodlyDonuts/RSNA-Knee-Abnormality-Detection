@@ -1,0 +1,126 @@
+import hashlib
+
+import pandas as pd
+import pytest
+
+from rsna.schema import TARGETS
+from weak_split import repair_weak_split_coverage, split_class_counts, split_repair_audit
+
+
+def row(uid, split, value, group=None):
+    result = {"study_uid": uid, "split": split, "leakage_group": group or uid, "report_group": "report-" + uid}
+    for target in TARGETS:
+        result[target] = float(value)
+        result[target + "__mask"] = 1.0
+        result[target + "__state"] = "positive" if value else "negative"
+        result[target + "__evidence"] = "preserved source quotation"
+        result[target + "__provenance"] = "report_reviewed"
+    return result
+
+
+def complete():
+    return pd.DataFrame([row("tn", "train", 0), row("tp", "train", 1), row("vn", "weak_validation", 0), row("vp", "weak_validation", 1)])
+
+
+def missing_mcl():
+    frame = complete()
+    frame.loc[frame.study_uid.eq("vp"), "MCL__mask"] = 0.0
+    return frame
+
+
+def mcl_group(uid, group=None):
+    result = row(uid, "train", 0, group)
+    result["MCL"] = 1.0
+    result["MCL__state"] = "positive"
+    return result
+
+
+def test_complete_split_is_byte_value_unchanged_and_idempotent():
+    source = complete()
+    after = repair_weak_split_coverage(source)
+    pd.testing.assert_frame_equal(source, after, check_exact=True)
+    assert split_repair_audit(source, after)["moved_groups"] == []
+
+
+def test_smallest_safe_group_moves_and_all_other_fields_remain_exact():
+    source = pd.concat([missing_mcl(), pd.DataFrame([mcl_group("small"), mcl_group("big1", "big"), mcl_group("big2", "big")])], ignore_index=True)
+    unchanged = source.copy(deep=True)
+    after = repair_weak_split_coverage(source)
+    audit = split_repair_audit(source, after)
+    assert [g["study_uids"] for g in audit["moved_groups"]] == [["small"]]
+    assert all(r["negative"] and r["positive"] for r in split_class_counts(after))
+    pd.testing.assert_frame_equal(source, unchanged, check_exact=True)
+    pd.testing.assert_frame_equal(repair_weak_split_coverage(after), after, check_exact=True)
+
+
+def test_donor_only_positive_group_cannot_move():
+    source = missing_mcl()
+    with pytest.raises(ValueError, match="no safe whole"):
+        repair_weak_split_coverage(source)
+
+
+def test_global_absence_and_masked_values_cannot_supply_a_class():
+    source = complete()
+    source["MCL__mask"] = 0.0
+    with pytest.raises(ValueError, match="globally absent"):
+        repair_weak_split_coverage(source)
+
+
+def test_equal_size_tie_is_stable_hash_and_row_order_independent():
+    source = pd.concat([missing_mcl(), pd.DataFrame([mcl_group("a"), mcl_group("b")])], ignore_index=True)
+    expected = min(["a", "b"], key=lambda x: (hashlib.sha256(x.encode()).hexdigest(), x))
+    after = repair_weak_split_coverage(source)
+    moved = split_repair_audit(source, after)["moved_groups"]
+    assert [r["leakage_group"] for r in moved] == [expected]
+    shuffled = source.sample(frac=1, random_state=8)
+    shuffled_after = repair_weak_split_coverage(shuffled)
+    assert dict(zip(after.study_uid, after.split)) == dict(zip(shuffled_after.study_uid, shuffled_after.split))
+
+
+def test_every_member_of_duplicate_group_moves_together():
+    source = pd.concat([missing_mcl(), pd.DataFrame([mcl_group("d1", "dup"), mcl_group("d2", "dup")])], ignore_index=True)
+    after = repair_weak_split_coverage(source)
+    assert set(after.loc[after.leakage_group.eq("dup"), "split"]) == {"weak_validation"}
+    assert split_repair_audit(source, after)["moved_studies"] == 2
+
+
+def test_gold_quarantine_group_is_never_used_or_scored():
+    source = pd.concat([missing_mcl(), pd.DataFrame([mcl_group("safe"), row("gold", "gold_evaluation", 1, "protected"), row("q", "quarantine", 1, "protected")])], ignore_index=True)
+    # Deliberately nonbinary protected values establish that the utility does
+    # not inspect gold/quarantine target values for donor/class selection.
+    source.loc[source.study_uid.isin(["gold", "q"]), list(TARGETS)] = "uninspected"
+    after = repair_weak_split_coverage(source)
+    assert after.loc[after.study_uid.eq("gold"), "split"].item() == "gold_evaluation"
+    assert after.loc[after.study_uid.eq("q"), "split"].item() == "quarantine"
+    split_repair_audit(source, after)
+
+
+def test_active_group_crossing_gold_or_active_split_fails():
+    source = complete()
+    source.loc[source.study_uid.isin(["tp", "vp"]), "leakage_group"] = "bad"
+    with pytest.raises(ValueError, match="crosses an active"):
+        repair_weak_split_coverage(source)
+    source.loc[source.study_uid.eq("vp"), "split"] = "gold_evaluation"
+    with pytest.raises(ValueError, match="crosses an active"):
+        repair_weak_split_coverage(source)
+
+
+def test_donor_preserves_other_classes_not_only_the_missing_class():
+    source = pd.concat([missing_mcl(), pd.DataFrame([mcl_group("safe")])], ignore_index=True)
+    after = repair_weak_split_coverage(source)
+    # tp alone supplies all non-MCL positive classes and must remain in train.
+    assert after.loc[after.study_uid.eq("tp"), "split"].item() == "train"
+    assert after.loc[after.study_uid.eq("safe"), "split"].item() == "weak_validation"
+
+
+def test_reciprocal_missing_classes_can_be_repaired_monotonically():
+    source = pd.concat([missing_mcl(), pd.DataFrame([mcl_group("extra_train"), row("extra_val", "weak_validation", 0)])], ignore_index=True)
+    source.loc[source.split.eq("train"), "Fracture__mask"] = 0.0
+    source.loc[source.study_uid.eq("extra_train"), "Fracture__mask"] = 1.0
+    extra = row("val_fracture", "weak_validation", 0)
+    extra["Fracture"] = 1.0
+    extra["Fracture__state"] = "positive"
+    source = pd.concat([source, pd.DataFrame([extra])], ignore_index=True)
+    after = repair_weak_split_coverage(source)
+    assert all(r["negative"] and r["positive"] for r in split_class_counts(after))
+    assert len(split_repair_audit(source, after)["moved_groups"]) == 2

@@ -1,0 +1,44 @@
+"""Seal finite candidate preparation, preserving attempts and provisional pins."""
+from prepare_projections import *
+
+HERE = Path(__file__).resolve().parent
+
+
+def main():
+    out = HERE / "completion-manifest.json"
+    require(not out.exists(), "seal is write once")
+    require(shutil.disk_usage(W).free > 20 * 2**30, "disk floor")
+    require(sha(R / "initiative/reviews-v2/adjudications/registry.json") == REG, "registry changed")
+    for r in read(HERE / "candidate-membership-file-manifest.json")["files"]:
+        require(sha(W / r["path"]) == r["sha256"], "candidate member changed")
+    proof = read(HERE / "candidate-mechanical-validation.json")
+    require(proof["status"] == "complete_candidate_mechanics_passed_no_final_context_or_approval", "mechanical proof absent")
+    peer = B / "semantic-supervision-membership-independent-assessment-569-v1/independent-assessment.json"
+    root = B / "conservative-semantic-hold-root-reuse-decision-v1/root-reuse-decision.json"
+    require(sha(peer) == "c8f2470d3587d3280e4b54c7f40a5e02bc770a127235d38c2ae707bcd5e28a54", "peer exact membership assessment changed")
+    require(sha(root) == "911356f5137d8059a1f8df22d5581dc4eea61e45d0040d74be679a6543bdeeb1", "root candidate assembly decision changed")
+    files = []
+    for p in sorted(HERE.rglob("*")):
+        if not p.is_file():
+            continue
+        require(not p.is_symlink() and "__pycache__" not in p.parts, "unexpected artifact")
+        r = ref(p)
+        require(r["bytes"] < 100_000_000, "single archived member exceeds GitHub limit")
+        if p.suffix == ".gz":
+            h = hashlib.sha256()
+            n = 0
+            with gzip.open(p, "rb") as stream:
+                for block in iter(lambda: stream.read(2**20), b""):
+                    h.update(block)
+                    n += len(block)
+            r["decompressed_sha256"] = h.hexdigest()
+            r["decompressed_bytes"] = n
+        files.append(r)
+    result = {"schema_version": 1, "agent_id": AGENT, "session_id": AGENT, "status": "sealed_finite_candidate_preparation_not_final_policy_or_release", "at_utc": datetime.now(timezone.utc).isoformat(), "files": files, "file_count": len(files), "bytes": sum(r["bytes"] for r in files), "fixed_membership_manifest": ref(HERE / "candidate-membership-file-manifest.json"), "candidate_mechanical_validation": ref(HERE / "candidate-mechanical-validation.json"), "actual_independent_membership_assessment": ref(peer), "root_reuse_acceptance_for_assembly_only": ref(root), "fixed_split_diagnostic": ref(HERE / "fixed-split-diagnostic-v1/diagnostic-summary.json"), "final_context_ref": None, "final_code_approval_refs": None, "candidate_membership_changes_after_diagnostic": False, "no_approval_synthesized": True, "gold_presence_only_diagnostic_authorized_separately": True, "official_gold_values_used_for_metrics_or_hold_selection": False, "R_writes": False, "network_writes": False, "labels_masks_registry_or_qa_changed": False, "next_required_steps": ["Root's protocol disposition for pre-existing weak-validation MCL zero positives.", "Stable independently pinned release inputs and final code context.", "Fresh exact context/catalog/holds/ledger binding, distinct actual assessment and root policy decision.", "Complete non-gold split/class acceptance and existing release/training validation; no gate closure is implied here."], "disk_free_bytes": shutil.disk_usage(W).free}
+    with out.open("xb") as f:
+        f.write(jb(result) + b"\n")
+    print(json.dumps({"completion": ref(out), "files": len(files), "bytes": result["bytes"], "disk_free_bytes": result["disk_free_bytes"]}))
+
+
+if __name__ == "__main__":
+    main()

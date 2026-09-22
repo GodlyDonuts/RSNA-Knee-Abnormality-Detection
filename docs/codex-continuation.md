@@ -4,7 +4,45 @@ The owner has expanded the mission: after data readiness, research and deliver a
 competitive training strategy and prioritized experiment plan. Both phases are
 required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
-## Latest verified checkpoint
+## Current local release: September 22
+
+The final `initiative/releases/report-supervision-v1/` export and real runtime
+acceptance passed. Start with [data-readiness-report.md](data-readiness-report.md),
+[training-strategy.md](training-strategy.md), and the final receipt. The exact
+manifest is `2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7`;
+receipt `6453a8ff31373c40556dc857e15fa0025f122195388a2b46c81ecd9cff0b8833`.
+The accepted semantic registry is `d7e513e444b9639b0797f6e9034a075256d9b32d33abed41964eabfe32210f36`.
+The 569-correction registry is now `7c5d0e294cd770c2e96c1ecc10a277de293f762ae50f719935dda170f31b11b1`;
+only its three QA references changed. All whole correction objects are unchanged.
+
+The three global QA gates are resolved against the actual proposal, distinct
+assessment, root decision and full-cell hold ledger. Core acceptance contains
+573 passing tests. Final runtime acceptance took 235.7 seconds and five commands:
+32 training/32 weak-validation diagnostic studies, two epochs/16 steps, complete
+checkpoint equality after resume, zero masked gradients, 58 gold predictions and
+three exact-template predictions. The full release is checked before any subset
+is selected; this is operability evidence, not a competitive model.
+
+Current remaining work is verified publication of this release. The expanded
+modeling plan now targets UCF Newton: matched DINOv2/DINOv3 comparisons, fold-local
+MRI adaptation, native detail and a complementary 3D branch under opportunistic
+two-GPU allocations. It is a plan, not completed competitive training.
+The publication dependency guard is corrected and reviewed; the actual root seal
+binds 1,240 unchanged current inputs and seven discovery scopes. Remote main/HF
+still refer to the prior checkpoint until actual receipts say otherwise. Keep at least 20 GiB free. Old reproducible local upload tar caches
+were removed only after immutable private-HF hash and size checks, with receipts
+under `obsolete-publication-cache-eviction-v1/` and `-v2/`. Source images, cache
+hardlinks, the base archive and latest published tar were preserved.
+
+The correspondence final check clarifies one historical shorthand: among the
+24 unresolved cases, 23 non-gold studies have twelve zero masks, and 032:35 is
+an official-gold evaluation-only study. Its official masks remain one and no
+report supervision enters training. The 18 registered report exclusions are zero.
+
+## Historical checkpoint context before final acceptance
+
+The following records preserve earlier milestones and their then-open work.
+Their pending-gate statements are superseded by the current release above.
 
 The local registry contains **569 active accepted corrections**. Wording004
 adds 78 across four cases: FIRST14, SECOND62 and two single-item original-author
@@ -31,18 +69,20 @@ were registered. The older wording003 additional proposal for 026:03 Lateral OA
 remains a real semantic disagreement and is still unregistered.
 
 The latest verified publication is Git
-`fec046253168083514749226987dda5b6c2505ce` / private HF
-`d2804e1da6fdaa6e77e01c224480c5b31aefc186`: 491 corrections and 10,020 restorable
-Git files. Exact-commit CI 35693648375 passed. Its actual receipt and two complete
+`a815aae64d812596a00b517c8542346280ee85f4` / private HF
+`7d6d4cef88215a032cdaa23de5d189aefc0aa99b`: 569 corrections and 10,566 restorable
+Git files. Exact-commit CI 35701433274 passed. Its actual receipt and two complete
 reconstruction executions are preserved in
-`qualified003-verified491-publication-v1/`. The peer proof and local alias describe
-one execution; the distinct root proof is the second. The local 569 milestone
-requires its own verified publication. No corrected training export exists yet.
+`qualified004-verified569-publication-v1/`. The peer proof and local alias describe
+one execution; the distinct root proof is the second. The final two bone batches
+and conservative supervision disposition work are newer than that checkpoint.
+No corrected training export exists yet.
 
 Both cartilage readers completed 260 priority reports and root adjudications
-000–005. Both bone readers completed source and comparison passes through 028:
-1,450 reports / 2,900 target judgments each. FIRST028 preserves its actual491
-comparison and separate verified569 rebase; SECOND028 compares against actual569. Bone proposals remain
+000–005. Both bone readers completed source and comparison passes through 030:
+1,549 reports / 3,098 target judgments each. The complete original final two
+batches are preserved with their bound completion manifests in
+`bone-final-passes-preservation-v1/`. Bone proposals remain
 unintegrated until a supported disposition; no reading count is clinical approval.
 
 Root wording005 has frozen all 48 complete neutral attention sources / 576 target
@@ -65,8 +105,18 @@ remaining dispositions, not automatic QA clearance or a mandate for another
 blanket two-pass campaign. Large ledger members are losslessly compressed with
 their original hashes and decompression checks.
 
-Close remaining target-specific reviews, account for observed and masked cells,
-then resolve the three gates against the exact final review/correction hashes.
+A separate conservative supervision policy is being implemented. It will preserve
+clinical states and evidence while excluding unresolved report targets from loss.
+Its all-cell ledger must reuse genuine adequate prior readings, preserve dissent,
+distinguish quote variants from defects, and quantify class depletion before any
+release approval. A blanket preliminary exclusion scenario removed every PF OA
+positive; that scenario is not approved. Review-family names cannot substitute for
+an assessment of the actual full-source target evidence. No further blanket reread
+or forced clinical consensus is required merely to withhold unresolved supervision.
+
+Complete and validate the concrete supervision disposition, account for observed
+and masked cells, then resolve the three gates against its exact ledger and the
+final review/correction hashes.
 Recheck the 18 report-supervision exclusions and 24 unresolved all-target masks,
 build final leakage-isolated manifests, and run one final-input real optimizer,
 exact CPU resume, 58-study gold inference and three-study submission validation.

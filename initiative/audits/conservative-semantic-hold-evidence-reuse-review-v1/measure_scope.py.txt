@@ -1,0 +1,63 @@
+"""Read-only current-state counts and immutable memberships; no semantic decisions or gold access."""
+from pathlib import Path
+from collections import Counter,defaultdict
+from datetime import datetime,timezone
+import json,hashlib,sys
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';AG='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_text())
+def jl(p):return [json.loads(s) for s in p.read_text().splitlines()]
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def oh(x):return hashlib.sha256(json.dumps(x,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+def write(n,d):
+ with (S/n).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint,report_group
+from rsna.schema import TARGETS
+regp=R/'initiative/reviews-v2/adjudications/registry.json';regref=ref(regp);assert regref['sha256']=='7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'
+reg=obj(regp);reports={};source_refs=[];review_refs=[];original={}
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ source_refs.append(ref(p));src=obj(p)
+ for i,row in enumerate(src):
+  assert set(row)=={'study_uid','report'} and row['study_uid'] not in reports;reports[row['study_uid']]=row['report']
+ rp=R/'initiative/reviews-v2/reviewed'/f'{p.stem}-reviewed.jsonl';review_refs.append(ref(rp));rv=jl(rp);assert [x['study_uid'] for x in src]==[x['study_uid'] for x in rv]
+ for x in rv:
+  assert len(x['states'])==len(x['evidence'])==len(TARGETS)==12
+  for t,state,q in zip(TARGETS,x['states'],x['evidence']):original[x['study_uid'],t]={'state':state,'evidence':q}
+assert len(reports)==4407 and len(original)==52884
+canonical=source_reports_fingerprint(reports);assert canonical==reg['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+active={};cases=[]
+for e in reg['cases']:
+ p=R/e['path'];assert ref(p)['sha256']==e['sha256'];cases.append(ref(p))
+ for c in obj(p)['changes']:
+  k=c['study_uid'],c['target'];assert k not in active and c['before']==original[k];active[k]=c
+assert len(active)==569
+current={k:(active[k]['after'] if k in active else v) for k,v in original.items()}
+for (uid,t),v in current.items():assert bool(v['evidence'])==(v['state']!='not_mentioned') and v['evidence'] in reports[uid]
+scopes=defaultdict(set);mp=A/'readiness-evidence-ledger-362-v1/worklists/exact-worklist-memberships.jsonl'
+for row in jl(mp):
+ if row['scope'].startswith('attention_source_scope:'):continue
+ k=row['study_uid'],row['target'];assert k in current;scopes[row['scope']].add(k)
+# These are lexical inventory scopes, never automatically selected hold memberships.
+un=A/'qualified-negation-all4407-candidates-v1/unassigned-qualified-source-cues.jsonl';uu=jl(un);excluded=A/'qualified-negation-all4407-candidates-v1/excluded-nonclinical-comparison-cues.jsonl';xx=jl(excluded)
+for x in uu:
+ text=reports[x['study_uid']];assert text[x['matched_start']:x['matched_end']]==x['matched_text'];assert text[x['excerpt_start']:x['excerpt_end']]==x['source_excerpt']
+scopes['inventory:wording:unassigned_report_scope_maximum']={(x['study_uid'],t) for x in uu for t in TARGETS}
+scopes['inventory:wording:excluded_nonclinical_comparison_report_scope_not_hold']={(x['study_uid'],t) for x in xx for t in TARGETS}
+counts={}
+for name,keys in scopes.items():
+ states=Counter(current[k]['state'] for k in keys);orig=Counter(original[k]['state'] for k in keys)
+ counts[name]={'cells':len(keys),'reports':len({k[0] for k in keys}),'current569_state_counts':dict(states),'current_observed':states['positive']+states['negative'],'current_masked':states['uncertain']+states['not_mentioned'],'original_reviewed_state_counts':dict(orig),'active_correction_overlap':sum(k in active for k in keys),'changed_from_original_full_annotation':sum(current[k]!=original[k] for k in keys),'membership_sha256':oh(sorted([list(k) for k in keys]))}
+groups=defaultdict(list)
+for uid,report in reports.items():groups[report_group(report)].append(uid)
+groups={g:sorted(u) for g,u in groups.items() if len(u)>1};dup=[];stateconf=[];quotevar=[]
+for g,uids in sorted(groups.items()):
+ dup.append({'normalized_report_group':g,'study_uids':uids})
+ for t in TARGETS:
+  states={current[uid,t]['state'] for uid in uids};quotes={current[uid,t]['evidence'] for uid in uids}
+  if len(states)>1:stateconf.append({'group':g,'target':t,'states':sorted(states)})
+  if len(quotes)>1:quotevar.append({'group':g,'target':t})
+summary={'agent_id':AG,'session_id':AG,'at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Independent mechanical current569 count replay over frozen historical worklist memberships. No hold selected, no adequacy inference, no clinical source reread, no gold/split values opened. Counts are report annotations across all4407, not actual supervised train/validation coverage.','canonical_reports':len(reports),'canonical_cells':len(current),'source_reports_sha256':canonical,'rubric':ref(R/'protocols/report_weak_v2.md'),'actual_registry':regref,'active_corrections':569,'current_all_cell_state_counts':dict(Counter(x['state'] for x in current.values())),'current_state_counts_by_target':{t:dict(Counter(v['state'] for (uid,tt),v in current.items() if tt==t)) for t in TARGETS},'historical_membership':ref(mp),'scope_counts':counts,'unassigned_cues':{'artifact':ref(un),'cue_records':len(uu),'reports':len({x['study_uid'] for x in uu}),'exact_source_spans_valid':True,'maximum_all12_cells':len(scopes['inventory:wording:unassigned_report_scope_maximum']),'approved_hold_count':None},'excluded_nonclinical_cues':{'artifact':ref(excluded),'records':len(xx),'reports':len({x['study_uid'] for x in xx}),'not_automatically_a_hold':True},'exact_normalized_report_groups':{'runtime_function':'rsna.labels.report_group','runtime_module':ref(R/'rsna/labels.py'),'groups':len(groups),'reports':sum(map(len,groups.values())),'membership_sha256':oh(dup),'current569_state_conflicts':len(stateconf),'group_target_quote_variants':len(quotevar),'quote_variants_are_not_defects':True},'original_source_refs':source_refs,'original_reviewed_refs':review_refs,'current_case_refs':cases,'current_case_map_sha256':oh(cases),'source_map_sha256':oh(source_refs),'review_map_sha256':oh(review_refs),'live_registry_unchanged_at_end':ref(regp)==regref,'originals_modified':False,'gold_values_opened':False,'hold_membership_accepted':False,'qa_closed':False}
+assert summary['live_registry_unchanged_at_end'];assert all(ref(W/e['path'])==e for e in source_refs+review_refs+cases)
+write('measured-current569-scopes.json',summary)
+write('exact-normalized-report-metadata.json',{'agent_id':AG,'scope':'Group UIDs and target-level state/quote-variant counts only; no automatic semantic propagation decision.','runtime_module':ref(R/'rsna/labels.py'),'actual_registry':regref,'groups':dup,'state_conflicts':stateconf,'quote_variant_group_targets':quotevar})
+print(json.dumps({'measurement':ref(S/'measured-current569-scopes.json'),'state_counts':summary['current_all_cell_state_counts'],'scopes':{k:v for k,v in counts.items() if k in ['inventory:cartilage:residual_negative_candidate','historical34:cartilage:noncandidate_negative','inventory:bone_inventory:observed_unselected','inventory:wording_inventory:candidate','inventory:wording:unassigned_report_scope_maximum']},'duplicates':summary['exact_normalized_report_groups']},indent=2))

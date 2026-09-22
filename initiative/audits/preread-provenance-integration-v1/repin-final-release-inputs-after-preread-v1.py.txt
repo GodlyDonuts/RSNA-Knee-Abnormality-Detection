@@ -1,0 +1,23 @@
+"""Append a corrective runtime/input acceptance after the real provenance-path fix."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,re,sys
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.release import CODE_PATHS,SPLIT_ALGORITHM
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(R)),'sha256':sha(p)}
+D=R/'initiative/audits/preread-provenance-integration-v1';S=R/'initiative/reviews-v2/semantic-supervision'
+log=W/'work/final-input-acceptance-v1/repository-tests-provenance-fixed.log';match=re.search(r'\b(573) passed in ([0-9.]+)s',log.read_text());assert match
+assert sha(R/'rsna/semantic_supervision.py')=='5b0f4bf68e2b1c4ffe4396f37b946d4cbf48ee4ec12ade10ec0149f2db0765a7'
+coordinator_path=S/'release-inputs.json';split_path=S/'split-policy.json'
+assert sha(coordinator_path)=='6a010c54fd5cf2889f775c96c424a3aaa782534536dcdd15df4c63eb8d42d391'
+assert sha(split_path)=='395e3a2d5c3cd6384d2bdd219b152fe3f8fef0035f151024846e28af731c09bc'
+coordinator=json.loads(coordinator_path.read_text());code={name:sha(R/name) for name in sorted(CODE_PATHS)}
+assert [key for key in code if code[key]!=coordinator['code_sha256'][key]]==['rsna/semantic_supervision.py']
+split={'schema_version':1,'algorithm':SPLIT_ALGORITHM,'code_sha256':code};split_path.write_text(json.dumps(split,indent=2)+'\n')
+coordinator['code_sha256']=code;coordinator['required_inputs']['split_policy']=ref(split_path);coordinator_path.write_text(json.dumps(coordinator,indent=2)+'\n')
+record={'schema_version':1,'agent_id':'/root','session_id':'01a0c0eb-43a3-7be3-a2e3-a2b0f413ae1e','at_utc':datetime.now(timezone.utc).isoformat(),'status':'accepted_corrected_runtime_and_required_inputs_for_final_context_assembly','coordinator':ref(coordinator_path),'code_sha256':code,'split_policy':ref(split_path),'predecessor_acceptance':ref(R/'initiative/audits/final-release-input-acceptance-v1/root-input-acceptance.json'),'preserved_prior_coordinator':ref(D/'release-inputs.json.before'),'preserved_prior_split_policy':ref(D/'split-policy.json.before'),'integration':ref(D/'integration.json'),'independent_review':ref(R/'initiative/audits/semantic-supervision-preread-independent-review-v1/independent-review.json'),'actual89_context_probe':ref(R/'initiative/audits/semantic-supervision-preread-provenance-fix-v1/actual89-context-probe.json'),'reason':'Accept the narrow mechanical correction from a nonexistent uniform preread directory to all89 original paths and hashes recorded in per-batch provenance. The first context assembly stopped before writing any final context/proposal. Two actual executions verify the89 original bindings; selected clinical evidence validation and fixed supervision membership are unchanged. Only this core module and its enclosing code/input hashes are superseded. Original code, policies and prior acceptance remain preserved.', 'tests':{'pytest_passed':int(match[1]),'pytest_seconds':float(match[2]),'ruff_check_passed':True,'ruff_format_files':50,'mypy_source_files':23},'semantic_membership_changed':False,'clinical_annotations_changed':False,'semantic_qa_closed':False,'training_ready':False}
+p=D/'root-input-acceptance.json'
+with p.open('x') as f:f.write(json.dumps(record,indent=2)+'\n')
+(D/'repository-tests.log').write_bytes(log.read_bytes());(D/(Path(__file__).name+'.txt')).write_bytes(Path(__file__).read_bytes())
+print(json.dumps({'coordinator_sha256':sha(coordinator_path),'root_input_acceptance_sha256':sha(p),'split_policy_sha256':sha(split_path)}))

@@ -1,0 +1,38 @@
+"""Integrate the reviewed mechanical preread-path correction; retain failed pins."""
+from pathlib import Path
+from datetime import datetime,timezone
+import argparse,hashlib,json,shutil
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';B=W/'work/annotation-staging';A=R/'initiative/audits'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+parser=argparse.ArgumentParser();parser.add_argument('--completion-sha256',required=True);args=parser.parse_args()
+pins={'semantic-supervision-preread-provenance-fix-v1':args.completion_sha256,'semantic-supervision-preread-independent-review-v1':'2089a37e0d2591a79273c1c77d1bcda85704038bc1b2a122e1f072890e4c7b3e','semantic-supervision-final-input-projections-569-v1':'6ee2c7c9d42bbf284614a68741541e93eb7cfafc8c0399a0a767f64fede0f900'}
+refs={}
+for n,pin in pins.items():
+ m=B/n/'completion-manifest.json';assert sha(m)==pin
+ members=json.loads(m.read_text())['files']
+ if isinstance(members,dict):members=[dict(path=key,**value) for key,value in members.items()]
+ for ref in members:
+  p=W/ref['path'] if ref['path'].startswith('work/') else B/n/ref['path'];assert p.is_relative_to(B/n) and p.is_file() and not p.is_symlink();assert sha(p)==ref['sha256'] and p.stat().st_size==ref['bytes'];refs[p]=dict(sha256=sha(p),bytes=p.stat().st_size)
+ refs[m]=dict(sha256=pin,bytes=m.stat().st_size)
+new=B/'semantic-supervision-preread-provenance-fix-v1/semantic_supervision.py';assert sha(new)=='5b0f4bf68e2b1c4ffe4396f37b946d4cbf48ee4ec12ade10ec0149f2db0765a7'
+assert sha(R/'rsna/semantic_supervision.py')=='a4d4e793c5c63cdca5927e9ef13d720df74582c2b48631a5b944f16e478360ba'
+assert json.loads((B/'semantic-supervision-preread-provenance-fix-v1/actual89-context-probe.json').read_text())['status']=='passed'
+review=json.loads((B/'semantic-supervision-preread-independent-review-v1/independent-review.json').read_text())
+D=A/'preread-provenance-integration-v1';D.mkdir(exist_ok=False)
+backups={}
+for name in ['rsna/semantic_supervision.py','tests/test_semantic_supervision.py','initiative/reviews-v2/semantic-supervision/release-inputs.json','initiative/reviews-v2/semantic-supervision/split-policy.json']:
+ p=R/name;dest=D/(p.name+'.before'+('.txt' if p.suffix=='.py' else ''));dest.write_bytes(p.read_bytes());backups[name]=dict(path=str(dest.relative_to(R)),sha256=sha(dest))
+files=[]
+for p,ref in refs.items():
+ d=A/p.relative_to(B)
+ if p.suffix=='.py':d=d.with_suffix('.py.txt')
+ d.parent.mkdir(parents=True,exist_ok=True)
+ if d.exists():assert sha(d)==ref['sha256']
+ else:
+  with d.open('xb') as out:out.write(p.read_bytes())
+ files.append(dict(original_path=str(p.relative_to(W)),path=str(d.relative_to(R)),**ref))
+for name,dest in [('semantic_supervision.py','rsna/semantic_supervision.py'),('test_semantic_supervision.py','tests/test_semantic_supervision.py'),('test_preread_provenance.py','tests/test_preread_provenance.py')]:
+ p=B/'semantic-supervision-preread-provenance-fix-v1'/name;assert p in refs;(R/dest).write_bytes(p.read_bytes())
+record=dict(actual_executor='/root',at_utc=datetime.now(timezone.utc).isoformat(),status='reviewed_mechanical_preread_path_fix_integrated_before_repin',completion_pins=pins,prior_files=backups,preserved_files=files,new_core_sha256=sha(R/'rsna/semantic_supervision.py'),clinical_or_membership_changes=False,qa_gates_closed=False,training_ready=False,reason='Replace an incorrect uniform folder assumption with actual per-batch recorded preread paths/hashes. All89 original artifacts, sources, identities and569 corrections verified; source opinions and fixed hold memberships remain unchanged. Required inputs/code pins need a fresh successor before final policy assembly.')
+(D/'integration.json').write_text(json.dumps(record,indent=2)+'\n');(D/(Path(__file__).name+'.txt')).write_bytes(Path(__file__).read_bytes())
+print(json.dumps({'integration_sha256':sha(D/'integration.json'),'new_core_sha256':record['new_core_sha256'],'files':len(files)}))

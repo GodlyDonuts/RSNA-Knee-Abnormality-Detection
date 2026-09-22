@@ -1,0 +1,37 @@
+"""Evict three reproducible obsolete tar caches only after fresh immutable Hub checks."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,shutil
+from huggingface_hub import HfApi
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered'
+secrets=[]
+for line in (W/'.env').read_text().splitlines():
+ if '=' in line:
+  value=line.split('=',1)[1].strip().strip('\"').strip("'")
+  if value.startswith('hf_'):secrets.append(value)
+assert len(set(secrets))==1
+api=HfApi(token=secrets[0]);repo='GodlyDonuts/RSNA-Data'
+assert api.repo_info(repo,repo_type='dataset').private
+commits=['fec046253168083514749226987dda5b6c2505ce','a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004','f648ebce325d8dd78990aa159021308cddc9e369']
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+items=[]
+for commit in commits:
+ directory=W/'work/hf-preparation-deltas'/commit
+ receipt_path=directory/'root-publication-receipt.json';receipt=json.loads(receipt_path.read_text())
+ manifest_path=directory/'manifest.json';manifest=json.loads(manifest_path.read_text())
+ assert receipt['status']=='verified_private_complete_tree_preparation_delta' and receipt['private'] is True
+ delta=directory/'delta.tar.gz';pin=manifest['delta_archive']
+ assert pin['path']=='delta.tar.gz' and not delta.is_symlink() and delta.is_file()
+ assert delta.stat().st_size==pin['bytes'] and sha(delta)==pin['sha256']
+ remote=next(o for o in receipt['uploaded_objects'] if o['path'].endswith('/delta.tar.gz'))
+ assert remote['bytes']==pin['bytes'] and remote['sha256']==pin['sha256']
+ info=api.get_paths_info(repo,[remote['path']],repo_type='dataset',revision=receipt['hf_revision'])
+ assert len(info)==1 and info[0].size==pin['bytes'] and info[0].lfs.sha256==pin['sha256']
+ items.append(dict(local_path=str(delta.relative_to(W)),bytes=pin['bytes'],sha256=pin['sha256'],hf_repository=repo,hf_revision=receipt['hf_revision'],hf_path=remote['path'],fresh_remote_verification='immutable_revision_lfs_sha256_and_size',publication_receipt_sha256=sha(receipt_path),rebuild_manifest_sha256=sha(manifest_path)))
+dest=R/'initiative/audits/obsolete-publication-cache-eviction-v1';dest.mkdir(exist_ok=False)
+(dest/'evict-verified-obsolete-publication-caches-v1.py.txt').write_bytes(Path(__file__).read_bytes())
+record=dict(actual_executor='/root',at_utc=datetime.now(timezone.utc).isoformat(),status='verified_before_eviction',items=items,reason='Recover space for the final release while preserving the20GiB free-space floor. These agent-generated tar caches are obsolete standalone deltas against the preserved1792 base, not chain dependencies.',source_images_caches_base_archive_latest569_archive_touched=False,free_bytes_before=shutil.disk_usage(W).free)
+p=dest/'eviction.json';p.write_text(json.dumps(record,indent=2)+'\n')
+for item in items:(W/item['local_path']).unlink()
+record.update(status='evicted_verified_reproducible_caches',free_bytes_after=shutil.disk_usage(W).free,total_bytes_removed=sum(o['bytes'] for o in items));p.write_text(json.dumps(record,indent=2)+'\n')
+print(json.dumps({'status':record['status'],'bytes_removed':record['total_bytes_removed'],'free_bytes_after':record['free_bytes_after'],'receipt_sha256':sha(p)}))

@@ -1,0 +1,30 @@
+--- work/annotation-staging/semantic-supervision-core-performance-v1/semantic_supervision.py
++++ work/recovered/rsna/semantic_supervision.py
+@@ -16,6 +16,7 @@
+ from typing import Any, cast
+ 
+ import pandas as pd
++
+ from rsna.schema import STATES, TARGETS
+ 
+ REGISTRY_PATH = Path("initiative/reviews-v2/semantic-supervision/registry.json")
+
+--- work/annotation-staging/semantic-supervision-release-adapter-v1/release.py
++++ work/recovered/rsna/release.py
+@@ -9,6 +9,7 @@
+ from pathlib import Path
+ 
+ import pandas as pd
++
+ from rsna.adjudications import inspect_adjudications
+ from rsna.audit import validate_inventory
+ from rsna.correspondence import REGISTRY_PATH as CORRESPONDENCE_PATH
+@@ -222,7 +223,7 @@
+         current,
+         inputs,
+         correspondence_excluded_uids={d["study_uid"] for d in correspondence["decisions"]},
+-        near_report_pairs=sorted({tuple(sorted(p)) for p in similarity_pairs(similarity)}),
++        near_report_pairs=sorted({(min(p), max(p)) for p in similarity_pairs(similarity)}),
+     )
+     qa = {}
+     fail(

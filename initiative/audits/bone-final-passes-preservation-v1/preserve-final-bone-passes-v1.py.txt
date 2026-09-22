@@ -1,0 +1,67 @@
+"""Copy the completed final two bone batches without altering original readings."""
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import shutil
+
+W = Path(__file__).resolve().parent.parent
+R = W / "work/recovered"
+B = W / "work/annotation-staging"
+A = R / "initiative/audits"
+pins = {
+    "bone-observed-029-postfreeze-v1/completion-manifest.json": "46757824364ca185a0a28f7328874d425ea52972402f96426909791d47918d1b",
+    "bone-observed-029-independent-review-v1/final-file-list.json": "a949ee88ad61b323b43b837cb8c81c71c8f90d1f4a65fe4aabac70b6ba8dc202",
+    "bone-observed-029-independent-postfreeze-v1/final-file-list.json": "8bf701f91c6e45e856d5d32894c5fe856bfae8fe2a48fa598af309638a56c8f0",
+    "bone-observed-030-postfreeze-v1/completion-manifest.json": "90156ea5e15f01e9a941b27353e70264240cbc5cdc19916c358349e249156bb3",
+    "bone-observed-030-independent-review-v1/final-file-list.json": "9b1738a0bc9614eda6609d2d019f9ca881426eac79e4813da326e1673227fb62",
+    "bone-observed-030-independent-postfreeze-v1/final-file-list.json": "d0d3e19523ee6d8e82a7df8120343eee269f36d13eb12e9ca97e79eb1b2fbd2c",
+}
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+refs = {}
+for name, expected in pins.items():
+    p = B / name
+    assert sha(p) == expected, name
+    document = json.loads(p.read_text())
+    for ref in document["files"]:
+        q = W / ref["path"]
+        assert q.is_relative_to(B) and q.is_file() and not q.is_symlink()
+        assert sha(q) == ref["sha256"] and q.stat().st_size == ref["bytes"], q.name
+        if ref["path"] in refs:
+            assert refs[ref["path"]] == ref
+        refs[ref["path"]] = ref
+    refs[str(p.relative_to(W))] = dict(path=str(p.relative_to(W)), sha256=expected, bytes=p.stat().st_size)
+destinations = []
+for ref in refs.values():
+    p = W / ref["path"]
+    relative = p.relative_to(B)
+    dest = A / relative
+    if p.suffix == ".py":
+        dest = dest.with_suffix(".py.txt")
+    if dest.exists():
+        assert sha(dest) == ref["sha256"]
+    destinations.append((p, dest, ref))
+needed = sum(r["bytes"] for _, d, r in destinations if not d.exists())
+assert shutil.disk_usage(W).free - needed >= 20 * 1024**3
+receipt_dir = A / "bone-final-passes-preservation-v1"
+assert not receipt_dir.exists()
+files = []
+for p, dest, ref in destinations:
+    action = "equal_existing" if dest.exists() else "copied_new"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if not dest.exists():
+        with dest.open("xb") as out:
+            out.write(p.read_bytes())
+    assert sha(dest) == ref["sha256"]
+    files.append({**ref, "original_path": ref["path"], "path": str(dest.relative_to(R)), "action": action})
+receipt_dir.mkdir()
+helper = receipt_dir / (Path(__file__).name + ".txt")
+helper.write_bytes(Path(__file__).read_bytes())
+receipt = dict(stage="completed_bone029_030_original_artifact_preservation", actual_executor="/root",
+               at_utc=datetime.now(timezone.utc).isoformat(), completion_pins=pins, files=files,
+               helper_sha256=sha(helper), source_and_post_reports_per_reader_total=1549,
+               source_judgments_per_reader_total=3098, registry_corrections_unchanged=569,
+               new_clinical_readings=0, gates_closed=False, training_ready=False)
+out = receipt_dir / "preservation.json"
+out.write_text(json.dumps(receipt, indent=2) + "\n")
+print(json.dumps(dict(status="preserved", files=len(files), new_bytes=needed, receipt_sha256=sha(out))))

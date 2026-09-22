@@ -1,0 +1,160 @@
+"""Final data eligibility from actual pinned artifacts, separate from archive transport.
+
+This preparer creates no release, acceptance, QA decision or restoration proof.
+Evaluation only reads target-Git metadata and JSON; original image/source CSV
+payloads are never opened here. The unchanged streaming helper verifies payloads.
+"""
+import hashlib
+import json
+from pathlib import PurePosixPath
+
+import final_release_bindings as b
+
+QA_IDS = {
+    'cartilage-consistency-all-release-reviews',
+    'bone-terminology-all-release-reviews',
+    'duplicate-qualified-negation-consistency-all-release-reviews',
+}
+TARGETS = ('ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA',
+           'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture')
+COMMANDS = {'continuous-two-epochs', 'resumed-first-epoch', 'resume-second-epoch',
+            'all-gold-inference', 'released-test-inference'}
+
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+        separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
+def safe_ref(ref):
+    b.require(isinstance(ref, dict) and set(ref) == {'path', 'sha256'}, 'eligibility_reference_shape')
+    p = ref['path']
+    b.require(isinstance(p, str) and bool(p) and not PurePosixPath(p).is_absolute()
+              and '..' not in PurePosixPath(p).parts and ':' not in p, 'eligibility_reference_path')
+    b.require(isinstance(ref['sha256'], str) and b.SHA.fullmatch(ref['sha256']), 'eligibility_reference_hash')
+    return ref
+
+
+def evaluate(read_ref, prior, registry, receipt, acceptance):
+    """Pure checks over already hash-verified JSON; fixture inputs are synthetic only."""
+    b.require(type(receipt.get('schema_version')) is int and receipt['schema_version'] == 1
+              and receipt.get('status') == 'verified_release', 'final_verified_release_required')
+    b.require(type(acceptance.get('schema_version')) is int and acceptance['schema_version'] == 1
+              and acceptance.get('status') == 'passed' and acceptance.get('actual_executor') == b.ROOT,
+              'actual_passed_acceptance_required')
+    b.require(acceptance.get('diagnostic_only') is True
+              and acceptance.get('competitive_performance_claim') is False, 'diagnostic_scope_required')
+    b.require(registry['cases'] == prior['cases'] and bool(prior['cases']), 'prior_correction_cases_changed')
+    for name in ('source_reports_sha256', 'rubric_sha256'):
+        b.require(registry.get(name) == prior[name], 'correction_source_or_rubric_changed')
+    corrections, keys = 0, set()
+    for ref in registry['cases']:
+        case = read_ref(safe_ref(ref))
+        for change in case['changes']:
+            key = change['study_uid'], change['target']
+            b.require(key not in keys, 'duplicate_preserved_correction')
+            keys.add(key); corrections += 1
+    b.require(corrections == b.N_CORRECTIONS, 'preserved569_corrections_required')
+    qa_refs = registry['semantic_qa']
+    b.require(len(qa_refs) == len(prior['semantic_qa']) == 3
+              and {x['path'] for x in qa_refs} == {x['path'] for x in prior['semantic_qa']},
+              'exact_three_original_qa_required')
+    qa = {}
+    for ref in qa_refs:
+        issue = read_ref(safe_ref(ref))
+        b.require(issue.get('id') in QA_IDS and issue['id'] not in qa
+                  and issue.get('status') == 'resolved' and issue.get('scope') == 'all_release_reviews',
+                  'three_qa_gates_not_resolved')
+        resolution_ref = safe_ref(issue.get('resolution'))
+        resolution = read_ref(resolution_ref)
+        b.require(resolution.get('status') == 'resolved' and resolution.get('issue_id') == issue['id'],
+                  'qa_resolution_binding')
+        for name in ('source_reports_sha256', 'rubric_sha256'):
+            b.require(issue.get(name) == resolution.get(name) == registry[name], 'qa_context_binding')
+        qa[issue['id']] = resolution_ref
+    b.require(set(qa) == QA_IDS and receipt.get('qa_resolutions') == qa, 'release_qa_resolution_mismatch')
+    semantic_ref = safe_ref(receipt['semantic_supervision']['registry'])
+    read_ref(semantic_ref)
+    expected_binding = {
+        'schema_version': 1, 'manifest_sha256': receipt['studies_sha256'],
+        'series_sha256': receipt['series_sha256'], 'source_revision': receipt['source_revision'],
+        'release_receipt_sha256': b.VERIFIED_RELEASE_SHA,
+        'semantic_registry_sha256': semantic_ref['sha256'],
+    }
+    expected_binding['binding_sha256'] = digest(expected_binding)
+    checks = acceptance.get('training_checks', {})
+    b.require(checks.get('release_binding') == expected_binding, 'acceptance_different_release')
+    b.require(all(checks.get(name) is True for name in (
+        'full_loaded_checkpoint_equal', 'optimizer_changed_initial_weights',
+        'all_training_masked_logits_zero_gradient', 'unmasked_gradients_nonzero')),
+        'diagnostic_training_or_exact_resume_incomplete')
+    b.require(type(checks.get('completed_epochs')) is int and checks['completed_epochs'] >= 2
+              and type(checks.get('steps')) is int and checks['steps'] > 0,
+              'diagnostic_epochs_or_steps_incomplete')
+    config = checks.get('run_config', {})
+    limit = config.get('diagnostic_study_limit')
+    b.require(type(limit) is int and limit > 0, 'diagnostic_limit_required')
+    for name in ('training', 'validation'):
+        n = config.get(name + '_studies'); h = config.get(name + '_uids_sha256')
+        b.require(type(n) is int and 0 < n <= limit and isinstance(h, str) and b.SHA.fullmatch(h),
+                  'diagnostic_subset_identity_required')
+    b.require(type(acceptance.get('gold_prediction_rows')) is int and acceptance['gold_prediction_rows'] == 58
+              and type(acceptance.get('released_test_prediction_rows')) is int
+              and acceptance['released_test_prediction_rows'] == 3, 'complete_inference_acceptance_required')
+    commands = acceptance.get('commands', [])
+    b.require(len(commands) == len(COMMANDS) and {x.get('name') for x in commands} == COMMANDS
+              and all(type(x.get('exit_code')) is int and x['exit_code'] == 0 for x in commands),
+              'acceptance_commands_incomplete')
+    b.require(acceptance.get('full_release') == {'path': b.STUDIES_PATH, 'sha256': receipt['studies_sha256']},
+              'acceptance_studies_binding')
+    b.require(acceptance.get('series', {}).get('sha256') == receipt['series_sha256'], 'acceptance_series_binding')
+    coverage = receipt.get('coverage', [])
+    b.require(len(coverage) == 24 and {(x['split'], x['target']) for x in coverage}
+              == {(split, target) for split in ('train', 'weak_validation') for target in TARGETS}
+              and all(type(x.get(c)) is int and x[c] > 0 for x in coverage for c in ('positive', 'negative')),
+              'final_release_class_coverage_incomplete')
+    return {'status': 'eligible_for_final_data_publication', 'target_git_commit': b.TARGET_GIT,
+            'verified_release': {'path': b.VERIFIED_RELEASE_PATH, 'sha256': b.VERIFIED_RELEASE_SHA},
+            'diagnostic_acceptance': {'path': b.ACCEPTANCE_PATH, 'sha256': b.ACCEPTANCE_SHA},
+            'adjudication_registry_sha256': b.REGISTRY_SHA, 'preserved_accepted_corrections': corrections,
+            'qa_resolutions': qa, 'checkpoint_binding': expected_binding,
+            'diagnostic_study_limit': limit, 'competitive_accuracy_claim': False,
+            'training_strategy_complete': False,
+            'scope': 'Actual pinned release/acceptance/QA evidence; unchanged helper legacy training_ready=false is not a readiness assessment.'}
+
+
+def evaluate_git(h, rows, manifest=None):
+    b.future_pins_guard()
+    cache = {}
+    def read(ref, commit=b.TARGET_GIT):
+        safe_ref(ref)
+        key = commit, ref['path']
+        if key not in cache:
+            cache[key] = h.git(b.R, 'show', commit + ':' + ref['path'])
+        b.require(hashlib.sha256(cache[key]).hexdigest() == ref['sha256'], 'target_release_evidence_changed')
+        return json.loads(cache[key])
+    prior = read({'path': b.REGISTRY_PATH, 'sha256': b.PREVIOUS_REGISTRY_SHA}, b.PREVIOUS_GIT)
+    registry = read({'path': b.REGISTRY_PATH, 'sha256': b.REGISTRY_SHA})
+    receipt = read({'path': b.VERIFIED_RELEASE_PATH, 'sha256': b.VERIFIED_RELEASE_SHA})
+    acceptance = read({'path': b.ACCEPTANCE_PATH, 'sha256': b.ACCEPTANCE_SHA})
+    result = evaluate(read, prior, registry, receipt, acceptance)
+    # Verify accepted run used exactly the target's runtime code, not an earlier failed version.
+    code = acceptance.get('code_sha256', {})
+    actual_code = {p for p in rows if p.startswith('rsna/') and p.count('/') == 1 and p.endswith('.py')}
+    b.require(bool(actual_code) and set(code) == actual_code, 'acceptance_runtime_code_coverage')
+    for name, expected in code.items():
+        raw = h.git(b.R, 'show', b.TARGET_GIT + ':' + name)
+        b.require(hashlib.sha256(raw).hexdigest() == expected, 'acceptance_runtime_code_changed')
+    required = [acceptance['full_release'], acceptance['series'], *acceptance.get('artifacts', [])]
+    b.require(bool(acceptance.get('artifacts')), 'acceptance_artifacts_required')
+    final = {x['path']: x for x in manifest['files']} if manifest is not None else None
+    for item in required:
+        ref = safe_ref({k: item[k] for k in ('path', 'sha256')})
+        b.require(ref['path'] in rows, 'acceptance_artifact_missing_from_target')
+        if final is not None:
+            b.require(final.get(ref['path'], {}).get('sha256') == ref['sha256'], 'acceptance_manifest_payload_mismatch')
+    for command in acceptance['commands']:
+        log = str(PurePosixPath(b.ACCEPTANCE_PATH).parent / (command['name'] + '.log'))
+        b.require(any(x['path'] == log and x['sha256'] == command['log_sha256'] for x in required),
+                  'acceptance_log_binding_missing')
+    return result

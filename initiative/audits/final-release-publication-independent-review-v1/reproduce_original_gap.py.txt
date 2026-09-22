@@ -1,0 +1,47 @@
+"""Synthetic offline reproduction against preserved original preparer code."""
+import hashlib,json,sys
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+P=Path(__file__).resolve().parent
+sys.path.insert(0,str(P/'original-preparer-files'))
+import final_release_bindings as b
+import final_release_eligibility as e
+from test_successor_guards import Guards
+raw=lambda x:json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+sha=lambda x:hashlib.sha256(x).hexdigest()
+results=[]
+with patch.multiple(b,**Guards().pins()):
+ read,prior,registry,receipt,acceptance,docs=Guards().fixture()
+ holds={'path':'initiative/reviews-v2/semantic-supervision/holds.json.gz','sha256':sha(b'original synthetic holds')}
+ receipt['semantic_supervision']['holds']=holds
+ receipt['coordinator']={'path':'initiative/reviews-v2/semantic-supervision/release-inputs.json','sha256':sha(b'original synthetic coordinator')}
+ receipt['source_revision']=b.SOURCE_HF
+ b.VERIFIED_RELEASE_SHA=sha(raw(receipt))
+ acceptance['training_checks']['release_binding']['source_revision']=b.SOURCE_HF
+ acceptance['training_checks']['release_binding']['release_receipt_sha256']=b.VERIFIED_RELEASE_SHA
+ binding=acceptance['training_checks']['release_binding'];binding['binding_sha256']=e.digest({k:v for k,v in binding.items()if k!='binding_sha256'})
+ payloads={k:raw(v)for k,v in docs.items()};payloads[b.REGISTRY_PATH]=raw(registry);payloads[b.VERIFIED_RELEASE_PATH]=raw(receipt)
+ payloads[b.STUDIES_PATH]=b'synthetic studies';payloads['series.csv']=b'synthetic series'
+ # Synthetic manifest hashes for table/series come from fixture; only dependency omission is under test.
+ acceptance['artifacts']=[]
+ for cmd in acceptance['commands']:
+  p=str(Path(b.ACCEPTANCE_PATH).parent/(cmd['name']+'.log'));payloads[p]=b'passed synthetic command';cmd['log_sha256']=sha(payloads[p]);acceptance['artifacts'].append({'path':p,'sha256':cmd['log_sha256']})
+ payloads['rsna/runtime.py']=b'# synthetic runtime\n';acceptance['code_sha256']={'rsna/runtime.py':sha(payloads['rsna/runtime.py'])}
+ b.REGISTRY_SHA=sha(raw(registry));b.PREVIOUS_REGISTRY_SHA=sha(raw(prior));b.ACCEPTANCE_SHA=sha(raw(acceptance));payloads[b.ACCEPTANCE_PATH]=raw(acceptance)
+ def run(label,changed):
+  pp=dict(payloads);pp.update(changed)
+  def git(repo,op,ref):
+   commit,path=ref.split(':',1)
+   return raw(prior)if commit==b.PREVIOUS_GIT and path==b.REGISTRY_PATH else pp[path]
+  rows={k:{'path':k,'bytes':len(v),'git_blob':hashlib.sha1(b'blob '+str(len(v)).encode()+b'\0'+v).hexdigest(),'mode':'100644'}for k,v in pp.items()}
+  files=[{'path':k,'sha256':sha(v)}for k,v in pp.items()]
+  for f in files:
+   if f['path']==b.STUDIES_PATH:f['sha256']=receipt['studies_sha256']
+   if f['path']=='series.csv':f['sha256']=receipt['series_sha256']
+  result=e.evaluate_git(SimpleNamespace(git=git),rows,{'files':files})
+  results.append({'case':label,'observed':result['status'],'dependency_was_enforced':False})
+ run('receipt-bound holds and coordinator absent from target',{})
+ run('receipt-bound holds and coordinator wrong bytes in target',{holds['path']:b'changed synthetic holds',receipt['coordinator']['path']:b'changed synthetic coordinator'})
+out={'stage':'offline_original_preparer_gap_reproduction','actual_reviewer':'/root/image_pipeline_audit','synthetic_only':True,'network_or_credentials':False,'results':results}
+p=P/'original-gap-reproduction.json';assert not p.exists();p.write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out,indent=2))

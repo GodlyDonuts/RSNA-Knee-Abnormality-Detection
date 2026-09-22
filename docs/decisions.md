@@ -1,6 +1,25 @@
 # Decisions, corrections, and unresolved work
 
-## Current corrective run
+## Accepted local release, September 22
+
+The final report-supervision export and runtime acceptance have passed; see
+[data-readiness-report.md](data-readiness-report.md). The 569 clinical correction
+objects remain unchanged. A separately proposed, independently assessed and
+root-accepted supervision ledger resolves all three global QA gates while masking
+unresolved target claims. It preserves every original annotation and disagreement.
+
+The deterministic post-mask split repair moved one whole non-gold group/study to
+restore MCL class coverage. The persisted counts are 3,904 training, 441 weak
+validation, 58 official evaluation and four quarantined. Real training and exact
+resume plus all gold/sample inference passed. Report supervision remains sparse
+and selected; this is not evidence of competitive accuracy or perfect labels.
+The expanded modeling plan follows actual data acceptance. Verified remote
+publication is being completed separately.
+
+## Historical corrective-run decisions before final acceptance
+
+Pending statements in this section describe the previous checkpoint; the accepted
+release above supersedes their completion status, not their original reasoning.
 
 The registry now contains 569 active corrections. Wording004 adds 78: 14
 first-reader proposals, 62 second-reader proposals and two second-reader proposals
@@ -21,15 +40,16 @@ at 569. The older wording003 extra disagreement for 026:03 Lateral OA remains
 unresolved and unregistered.
 
 All 4,407 original reports have two passes. Priority cartilage adjudication is
-complete. Both bone readers completed source and comparison passes through 028
-(1,450 reports each). FIRST028 preserves its original491 comparison and a later
-569 rebase; SECOND028 compares against actual569. Root wording005 has all
+complete. Both bone readers completed source and comparison passes through 030
+(1,549 reports / 3,098 judgments each). Their original judgments and later
+reconsiderations remain unchanged. Root wording005 has all
 48 sources / 576 initial judgments frozen; its comparison and wording006 remain.
 The fixed registry362 ledger and closure map remain historical evidence.
 
-The latest verified publication contains 491 corrections at Git `fec04625` /
-private HF `d2804e1d`, with all 10,020 files reconstructed by two actual executors.
-Its receipt is archived. This local 569 milestone requires its own publication.
+The latest verified publication contains 569 corrections at Git `a815aae6` /
+private HF `7d6d4cef`, with all 10,566 files reconstructed by two actual executors.
+Its receipt is archived under `qualified004-verified569-publication-v1`.
+The final two bone batches and semantic supervision disposition work are newer.
 All three semantic QA gates, final export, leakage/mask and actual training checks
 remain pending. After readiness, the expanded mission requires a competitive
 training strategy and experiment plan; see
@@ -151,22 +171,14 @@ where appropriate; full image/cache collections retain immutable external
 references. Small release artifacts should be mirrored into both repositories.
 Historical outputs and in-progress drafts are not a corrected release.
 
-## Remaining acceptance gates
+## Final acceptance and publication
 
-1. All 4,407 reports have two archived review passes with validated evidence and
-   IDs. There are 425 active accepted target corrections, each with exact
-   original/source bindings and preserved prior artifacts. Resolve the remaining cartilage, bone terminology, and qualified-negation/
-   duplicate semantic gates against the exact final artifacts and corrections.
-2. Recheck zero report loss masks for all 24 administratively unresolved
-   correspondence cases after final adjudication. Incorporate the complete image
-   audit, accepted exclusions and verified duplicate edges into final isolation.
-3. Generate disjoint corrected manifests, coverage, distributions, and gold
-   comparison without training or calibrating on the gold evaluation set.
-4. Complete real-data smoke training, exact resume, gold inference, and exact
-   sample-submission inference.
-5. Record configurations, hashes, measured timings, warnings, and limitations.
-6. Publish immutable corrected artifacts, verify downloaded hashes, and update
-   GitHub/HF references and release status.
+Source, image, review, semantic-policy, leakage, mask, gold and final-input runtime
+gates have passed with the exact artifacts linked in the readiness report. The
+remaining release action is immutable Git/HF publication with full dependency
+verification and recorded receipts. Continue the expanded research/experiment-plan
+mission after local data acceptance; do not mark both phases complete merely
+because software tests pass.
 
 There is no claim that all images have been diagnostically reread by a
 radiologist, that report labels are optimal, that the hidden test set is
