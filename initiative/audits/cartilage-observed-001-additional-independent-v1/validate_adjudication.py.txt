@@ -1,0 +1,127 @@
+"""Validate staged evidence through the existing runtime in an isolated fixture."""
+
+import copy
+import hashlib
+import json
+import shutil
+import sys
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+STAGE = Path(__file__).resolve().parent
+WORKSPACE = STAGE.parents[2]
+REPO = WORKSPACE / "work/recovered"
+sys.path.insert(0, str(REPO))
+from rsna.adjudications import _case_changes, inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def bind(path):
+    return {"path": str(path.relative_to(WORKSPACE)), "sha256": sha(path)}
+
+
+def main():
+    before_free = shutil.disk_usage(WORKSPACE).free
+    assert before_free > 20 * 1024**3
+    original_files = {str(path): sha(path) for path in STAGE.iterdir() if path.is_file()}
+    case = read(STAGE / "proposed-runtime-case.json")
+    reports = {}
+    for path in sorted((REPO / "initiative/reviews/inputs").glob("batch-*.json")):
+        for row in read(path):
+            assert row["study_uid"] not in reports
+            reports[row["study_uid"]] = row["report"]
+    assert len(reports) == 4407 and source_reports_fingerprint(reports) == case["source_reports_sha256"]
+    targets = {(row["study_uid"], row["target"]) for row in case["changes"]}
+    current_registry_path = REPO / "initiative/reviews-v2/adjudications/registry.json"
+    registry_hash = sha(current_registry_path)
+    current = inspect_adjudications(reports, REPO / "initiative/reviews-v2/reviewed", REPO / "protocols/report_weak_v2.md", REPO)
+    assert sha(current_registry_path) == registry_hash
+    current_changes = current["changes"]
+    assert not (targets & {(row["study_uid"], row["target"]) for row in current_changes})
+    references = [case[name] for name in ["proposal", "independent_assessment", "decision"]]
+    references += list(case["supporting_evidence"].values())
+    for change in case["changes"]:
+        references.extend([change["base_review"], change["source_batch"]])
+    negatives = []
+    with tempfile.TemporaryDirectory(prefix="runtime-validation-", dir=STAGE) as temporary:
+        fixture = Path(temporary)
+        for reference in references:
+            relative = reference["path"]
+            source = (STAGE.parent / relative.removeprefix("initiative/audits/")) if relative.startswith("initiative/audits/") else REPO / relative
+            assert sha(source) == reference["sha256"]
+            dest = fixture / relative
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, dest)
+        assert shutil.disk_usage(WORKSPACE).free > 20 * 1024**3
+        reviews = fixture / "initiative/reviews-v2/reviewed"
+        case_ref = {"path": "staged-case.json", "sha256": sha(STAGE / "proposed-runtime-case.json")}
+
+        def validate(candidate):
+            return _case_changes(candidate, case_ref, reports, reviews, fixture, case["source_reports_sha256"], case["rubric_sha256"])
+
+        changes = validate(case)
+        assert len(changes) == 1 and {(row["study_uid"], row["target"]) for row in changes} == targets
+        decision_path = fixture / case["decision"]["path"]
+        decision_bytes = decision_path.read_bytes()
+        for name in ["same_assessor_as_proposer", "missing_accepted_item", "changed_accepted_quote"]:
+            mutated = read(decision_path)
+            if name == "same_assessor_as_proposer":
+                mutated["adjudicator_agent_id"] = mutated["proposer_agent_id"]
+            elif name == "missing_accepted_item":
+                mutated["accepted_changes"].pop()
+            else:
+                mutated["accepted_changes"][0]["source_evidence"] += " altered"
+            decision_path.write_text(json.dumps(mutated))
+            changed_case = copy.deepcopy(case)
+            changed_case["decision"]["sha256"] = sha(decision_path)
+            try:
+                validate(changed_case)
+                raise AssertionError("Negative validation unexpectedly passed")
+            except ValueError as error:
+                negatives.append({"name": name, "rejected": True, "message": str(error)})
+            finally:
+                decision_path.write_bytes(decision_bytes)
+        changed_case = copy.deepcopy(case)
+        changed_case["changes"][0]["before"]["state"] = "positive"
+        try:
+            validate(changed_case)
+            raise AssertionError("Wrong original before annotation unexpectedly passed")
+        except ValueError as error:
+            negatives.append({"name": "wrong_original_before_annotation", "rejected": True, "message": str(error)})
+        assert len(validate(case)) == 1
+    for path, expected in original_files.items():
+        assert sha(Path(path)) == expected
+    assert sha(current_registry_path) == registry_hash
+    receipt = {
+        "schema_version": 1, "agent_id": "/root/quality_temporal_review",
+        "validated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "validator": bind(Path(__file__).resolve()), "runtime": bind(REPO / "rsna/adjudications.py"),
+        "case": bind(STAGE / "proposed-runtime-case.json"),
+        "assessment": bind(STAGE / "independent-source-assessment.json"),
+        "decision": bind(STAGE / "accepted-decision.json"),
+        "release_source_count": len(reports), "source_reports_sha256": source_reports_fingerprint(reports),
+        "accepted_runtime_changes": len(changes), "negative_boundary_checks": negatives,
+        "current_registry": bind(current_registry_path), "current_registered_changes": len(current_changes),
+        "additional_keys_overlap_current_registry": 0,
+        "historical_baseline": "This new single-proposal comparison binds current229. Historical cartilage001 source/comparison and the new preproposal three-state freeze are unchanged; the modern independent assessment is an explicit postproposal reconsideration, not a new blinding claim.",
+        "all_preexisting_stage_files_preserved": True, "fixture_removed": True,
+        "production_registry_changed": False, "gold_accessed": False,
+        "disk_free_bytes_before": before_free, "disk_free_bytes_after": shutil.disk_usage(WORKSPACE).free,
+        "minimum_disk_free_bytes": 20 * 1024**3,
+    }
+    with (STAGE / "runtime-validation-and-preservation.json").open("x") as stream:
+        stream.write(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
+    print(json.dumps({"runtime_accepted": len(changes), "negative_checks_passed": len(negatives), "current_registry_changes": len(current_changes), "overlap": 0, "receipt_sha256": sha(STAGE / "runtime-validation-and-preservation.json")}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

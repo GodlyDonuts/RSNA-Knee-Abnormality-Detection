@@ -1,0 +1,99 @@
+"""Freeze personally read sources; never loads reader findings or current labels."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import json
+
+G = Path(__file__).resolve().parent
+W = G.parents[2]
+R = W / "work/recovered"
+P = W / "work/annotation-staging/cartilage-observed-001-independent-postfreeze-v1/neutral-root-packets"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+packet_hashes = [
+    "0aab865b25a2d29bb641563e7f343e04e2333850bc250c17904a4010f692f5d9",
+    "9bf3266030a320bd08cbe430b594a630ed15cc2bb6e70031af64228907d448cf",
+    "67a7cb52954ccd2c7fc18837b634a7c864c12a4d07615ad6d0809fbd8f1a5d77",
+    "7da3528a0e5a62c2d305c6789712a1593333df2788afe45168daab23e840318a",
+]
+all_sources = []
+for i, expected in enumerate(packet_hashes):
+    p = P / f"batch-{i:03}.json"
+    assert sha(p) == expected
+    all_sources.extend(json.loads(p.read_text()))
+assert len(all_sources) == 34
+N, U, POS = "negative", "uncertain", "positive"
+judgments = [
+    ("026:32", [U, N, POS], [
+        "There is focal high grade chondral defect at mid weight-baring medial femoral condyle (about intact8*1.4 cm).",
+        "The lateral compartment, appears normal including meniscus and articular cartilage.",
+        "The patellofemoral joint, there is focal high grade chondral defect (more than 50% thickness cartilage loss) at medial trochlea (about 1*2 cm).",
+    ], "Medial high grade does not independently define depth and the dimension intact8 is corrupted; preserve literal source without repair. Lateral cartilage is explicitly normal. PF provides explicit greater-than-half thickness loss and a 1 by 2 cm region, meeting the report rubric independently of a grade mapping."),
+    ("026:41", [U, U, U], [
+        "Medial compartment cartilage: Diffuse high-grade cartilage loss, weightbearing portion of the femoral condyle. 8 x 5 mm full-thickness cartilage defect posterior weightbearing portion of the femoral condyle. High grade partial thickness cartilage loss of the tibial plateau.",
+        "Lateral compartment cartilage: Low-grade cartilage fraying spanning the lateral compartment.",
+        "Patellofemoral compartment cartilage: Mild heterogeneity of the patellar cartilage.",
+    ], "Medial 8 by 5 mm full-thickness defect does not clearly establish the qualifying region; other diffuse high-grade loss lacks a defined thickness fraction. Low-grade lateral fraying and mild patellar heterogeneity do not explicitly establish preserved thickness or a loss fraction. Normal tracking morphology is separate from cartilage assessment. Preserve medial/lateral bone-location conflict without using it to infer cartilage states."),
+    ("027:44", [N, U, POS], [
+        "Medial compartment cartilage: No focal cartilage defects.",
+        "Lateral compartment cartilage: There is partial thickness, in part delaminating cartilage fissuring (grade 3 chondral fissuring) at the central weightbearing aspect of the lateral femoral condyle (se 8, img 8 to 12). Very small marginal osteophytes.",
+        "Patellofemoral compartment cartilage: There is a chronic, 15 x 15 mm full-thickness cartilage defect (grade 4 chondral defect) at the groove of the femoral trochlea extending into the lateral aspect of the trochlea with subchondral cystic change.",
+    ], "Medial absence of defects has no competing cartilage abnormality. Lateral partial thickness and unnamed grade3 do not establish the loss fraction or regional extent. PF explicit full thickness over 15 by 15 mm qualifies independently of grade4. Chronic but currently present cartilage loss remains a current finding."),
+    ("028:02", [U, POS, U], [
+        "relatively mild age-related thinning of medial weightbearing hyaline cartilage.",
+        "There is incomplete, chronic looking loss of lateral meniscal tissue throughout the corresponding posterior half, together with diffuse full-thickness chondral loss affecting the lateral tibial plateau.",
+        "Focal grade 3 chondral loss noted at the medial retropatellar facets",
+    ], "Mild medial thinning lacks a defined thickness fraction. Diffuse full-depth loss affecting the lateral plateau supports broad extent as an explicit qualitative anatomical inference, without supplying a numeric size. PF unnamed grade3 focal loss lacks independent depth and extent. The over-1-cm measurement describes a loose body, not a cartilage defect."),
+]
+rows = []
+for source, (case, states, evidence, notes) in zip(all_sources[-4:], judgments):
+    assert case == source["batch"].removeprefix("batch-") + ":" + str(source["index"]).zfill(2)
+    rows.append({"case": case, "study_uid": source["study_uid"], "source_path": source["source_path"], "source_sha256": source["source_sha256"], "source_index_zero_based": source["index"], "report_sha256": hashlib.sha256(source["report"].encode()).hexdigest(), "target_order": ["Medial OA", "Lateral OA", "PF OA"], "states": states, "evidence": evidence, "notes": notes})
+
+def validate(record, source):
+    sp = R / record["source_path"]
+    assert sha(sp) == record["source_sha256"] == source["source_sha256"]
+    original = json.loads(sp.read_text())[record["source_index_zero_based"]]
+    assert original["study_uid"] == record["study_uid"] == source["study_uid"]
+    assert original["report"] == source["report"]
+    assert hashlib.sha256(original["report"].encode()).hexdigest() == record["report_sha256"]
+    assert record["target_order"] == ["Medial OA", "Lateral OA", "PF OA"]
+    assert len(record["states"]) == len(record["evidence"]) == 3
+    for state, quote in zip(record["states"], record["evidence"]):
+        assert state in {"positive", "negative", "uncertain", "not_mentioned"}
+        assert (state == "not_mentioned" and quote == "") or (state != "not_mentioned" and quote and quote in original["report"]), record["case"]
+
+for row, source in zip(rows, all_sources[-4:]):
+    validate(row, source)
+rubric_hash = sha(R / "protocols/report_weak_v2.md")
+assert rubric_hash == "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+part = {"stage": "partial_root_cartilage001_complete_source_reading_before_current_case_findings", "agent_id": "/root", "session_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "neutral_packet": {"path": str((P / "batch-003.json").relative_to(W)), "sha256": packet_hashes[3]}, "packet_rows_zero_based": list(range(4)), "rubric_sha256": rubric_hash, "exposure": "Same prior full4407, wording and cartilage000 source/decision exposure as preceding parts, with mechanical229 publication verification. These four complete reports were personally reread before current cartilage001 reader findings or selected annotation rows. Final four were also displayed earlier before context compaction and reread after compaction. No gold target values inspected; this is not first-ever blindness.", "full_reports": 4, "oa_judgments": 12, "records": rows, "cumulative_attention_sources": 34, "remaining_attention_reports": 0, "registry_changed": False, "training_ready": False}
+part_path = G / "final-four-source-assessment.json"
+assert not part_path.exists()
+parts = [
+    ("first-ten-source-assessment.json", "4513bf239be55dba4add86b8a1eb5414bac99f4a59884536365c315127e42c91"),
+    ("next-five-source-assessment.json", "209d4dadf6d0d9e6370433b586091275198c771ae00293cd9240dd87d7214c65"),
+    ("third-five-source-assessment.json", "79ec8bbb211650c477106673a5e96e3120514bb6035076d3efb7cea3b70cf874"),
+    ("fourth-five-source-assessment.json", "d3c260916fb6086632a35d80f8b68fb7d3a588befd982471462e7f4b1913ecf9"),
+    ("fifth-five-source-assessment.json", "c49de680cad7f6ed6ad96b2dedd16bf00f028e4002934fb0e35751486280dda5"),
+]
+complete_rows = []
+bindings = []
+for name, expected in parts:
+    p = G / name
+    assert sha(p) == expected
+    obj = json.loads(p.read_text())
+    assert obj["rubric_sha256"] == rubric_hash
+    complete_rows.extend(obj["records"])
+    bindings.append({"path": str(p.relative_to(W)), "sha256": expected})
+complete_rows.extend(rows)
+assert len(complete_rows) == len({r["study_uid"] for r in complete_rows}) == 34
+for row, source in zip(complete_rows, all_sources):
+    validate(row, source)
+with part_path.open("x") as f:
+    f.write(json.dumps(part, ensure_ascii=False, indent=2) + "\n")
+bindings.append({"path": str(part_path.relative_to(W)), "sha256": sha(part_path)})
+out = {"stage": "complete_root_cartilage001_source_assessment_frozen_before_reader_case_findings", "agent_id": "/root", "session_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "rubric_sha256": rubric_hash, "source_parts": bindings, "neutral_packets": [{"path": str((P / f"batch-{i:03}.json").relative_to(W)), "sha256": h} for i, h in enumerate(packet_hashes)], "exposure": "All six immutable source-part disclosures apply. Prior full-corpus and related source/decision exposure prevents a first-ever-blindness claim. The 34 full attention sources were personally reread and all 102 OA judgments frozen before opening the current cartilage001 reader case findings or selected annotation rows. Aggregate agent progress messages and mechanical publication checks were already known. No gold target values inspected.", "full_reports": 34, "oa_judgments": 102, "records": complete_rows, "validation": {"exact_neutral_packet_union": True, "source_hash_index_uid_and_report_match": True, "all_nonmissing_evidence_contiguous": True, "all_not_mentioned_evidence_empty": True, "prior_five_part_bytes_unchanged": True}, "registry_changed": False, "global_qa_gates_closed": 0, "training_ready": False}
+complete_path = G / "complete-source-assessment-frozen.json"
+with complete_path.open("x") as f:
+    f.write(json.dumps(out, ensure_ascii=False, indent=2) + "\n")
+print(json.dumps({"final_four_sha256": sha(part_path), "complete_source_sha256": sha(complete_path), "full_reports": 34, "oa_judgments": 102, "registry_changed": False}))

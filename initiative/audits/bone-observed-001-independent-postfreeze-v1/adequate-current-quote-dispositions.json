@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "assessor_agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "source_freeze": {
+    "path": "work/annotation-staging/bone-observed-001-independent-review-v1/source-assessment-frozen.json",
+    "sha256": "5a2acf40552c64d7055ffcbc38955b92a01719f4e3270d857c6a40564bbecd60",
+    "size_bytes": 54074
+  },
+  "current_inspection": {
+    "path": "work/annotation-staging/bone-observed-001-independent-postfreeze-v1/current-registry-inspection.json",
+    "sha256": "83ef4104a4a1d874b286a9c968cb7be45dc3979b1a37aab572c0b74f6da2b135",
+    "size_bytes": 993586
+  },
+  "active_corrections": 229,
+  "registry_sha256": "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600",
+  "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "completed_at_utc": "2026-09-22T00:06:17.544051+00:00",
+  "first_assessor_agent_id": "/root/quality_temporal_review",
+  "first_source_freeze": {
+    "path": "work/annotation-staging/bone-observed-001-source-review-v1/source-assessment-frozen.jsonl",
+    "sha256": "635e8d3f6c13c83c560966f9caa81938f5d560eed3fd4050852f4309a8958457",
+    "size_bytes": 53668
+  },
+  "first_proposals": {
+    "path": "work/annotation-staging/bone-observed-001-postfreeze-v1/proposed-errata.json",
+    "sha256": "7d3ba098361f88858a990ad2135bf5aa3f030a663cda3dc3cc8b9c3aa90278f2",
+    "size_bytes": 15368
+  },
+  "first_postfreeze_dispositions": {
+    "path": "work/annotation-staging/bone-observed-001-postfreeze-v1/all100-postfreeze-dispositions.json",
+    "sha256": "eda0d00bb7a88e07f2b1adf6f8a29a071a0a098e5f88572b2507c6a008e9968c",
+    "size_bytes": 270318
+  },
+  "status": "independent_source_assessment_complete_pending_root_adjudication",
+  "gold_inspected": false,
+  "registry_mutated": false,
+  "global_qa_closed": false,
+  "records": [
+    {
+      "packet_ordinal": 4,
+      "study_uid": "1.2.826.0.1.3680043.8.498.10546313646515875953943156661172963953",
+      "target": "Contusion",
+      "current": {
+        "state": "negative",
+        "evidence": "No acute fracture or bone bruise."
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "Bone marrow signal is normal. No acute fracture or bone bruise."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current direct no-bone-bruise quote is sufficient; adding normal marrow is optional context."
+    },
+    {
+      "packet_ordinal": 4,
+      "study_uid": "1.2.826.0.1.3680043.8.498.10546313646515875953943156661172963953",
+      "target": "Fracture",
+      "current": {
+        "state": "negative",
+        "evidence": "No acute fracture or bone bruise."
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "Bone marrow signal is normal. No acute fracture or bone bruise."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current explicit no-acute-fracture quote is sufficient without the normal-marrow sentence."
+    },
+    {
+      "packet_ordinal": 10,
+      "study_uid": "1.2.826.0.1.3680043.8.498.10738640862162795323010965765443420384",
+      "target": "Contusion",
+      "current": {
+        "state": "negative",
+        "evidence": "του οστικού µυελού και του εκτατικού µηχανισµού δεν παρατηρούνται παθολογικά ευρήµατα."
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "Από τον έλεγχο των µηνίσκων, των χιαστών και πλαγίων συνδέσµων, του αρθρικού χόνδρου, του οστικού µυελού και του εκτατικού µηχανισµού δεν παρατηρούνται παθολογικά ευρήµατα."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current contiguous Greek quote contains marrow identity and explicit no-pathology wording; expanding the list adds no missing negation or scope."
+    },
+    {
+      "packet_ordinal": 38,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11049882927267755769995376553330493298",
+      "target": "Contusion",
+      "current": {
+        "state": "negative",
+        "evidence": "No bone marrow edema."
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "No fracture or osseous lesion is seen. No bone marrow edema."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current no-marrow-edema sentence directly supplies the needed exclusion; the adjacent fracture sentence is optional."
+    },
+    {
+      "packet_ordinal": 38,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11049882927267755769995376553330493298",
+      "target": "Fracture",
+      "current": {
+        "state": "negative",
+        "evidence": "No fracture or osseous lesion is seen."
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "No fracture or osseous lesion is seen. No bone marrow edema."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current no-fracture/osseous-lesion sentence is sufficient; the separate edema denial is unnecessary for this target."
+    },
+    {
+      "packet_ordinal": 49,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11150751959089942633754454715290410758",
+      "target": "Contusion",
+      "current": {
+        "state": "positive",
+        "evidence": "Marrow edema remains in the lateral femoral condyle in keeping with resolving bone contusion."
+      },
+      "source_frozen": {
+        "state": "positive",
+        "evidence": "Associated with the lateral meniscal tear there is an osteochondral impaction injury of the posterior aspect of the lateral femoral condyle as described. Marrow edema remains in the lateral femoral condyle in keeping with resolving bone contusion."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current sentence directly diagnoses residual resolving contusion at the lateral femoral condyle. The complete report describes no discrete fracture line. Retain this adequate diagnostic quotation."
+    },
+    {
+      "packet_ordinal": 49,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11150751959089942633754454715290410758",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Associated with the lateral meniscal tear there is an osteochondral impaction injury of the posterior aspect of the lateral femoral condyle as described."
+      },
+      "source_frozen": {
+        "state": "uncertain",
+        "evidence": "Associated with the lateral meniscal tear there is an osteochondral impaction injury of the posterior aspect of the lateral femoral condyle as described. Marrow edema remains in the lateral femoral condyle in keeping with resolving bone contusion."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current impaction-injury quotation appropriately supports uncertainty about structural fracture and acuity. The additional resolving-contusion sentence does not resolve acute fracture and need not be added."
+    }
+  ]
+}

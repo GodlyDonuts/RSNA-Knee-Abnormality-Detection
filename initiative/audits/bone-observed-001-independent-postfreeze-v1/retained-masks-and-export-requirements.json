@@ -1,0 +1,450 @@
+{
+  "schema_version": 1,
+  "assessor_agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "source_freeze": {
+    "path": "work/annotation-staging/bone-observed-001-independent-review-v1/source-assessment-frozen.json",
+    "sha256": "5a2acf40552c64d7055ffcbc38955b92a01719f4e3270d857c6a40564bbecd60",
+    "size_bytes": 54074
+  },
+  "current_inspection": {
+    "path": "work/annotation-staging/bone-observed-001-independent-postfreeze-v1/current-registry-inspection.json",
+    "sha256": "83ef4104a4a1d874b286a9c968cb7be45dc3979b1a37aab572c0b74f6da2b135",
+    "size_bytes": 993586
+  },
+  "active_corrections": 229,
+  "registry_sha256": "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600",
+  "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "completed_at_utc": "2026-09-22T00:06:17.544051+00:00",
+  "first_assessor_agent_id": "/root/quality_temporal_review",
+  "first_source_freeze": {
+    "path": "work/annotation-staging/bone-observed-001-source-review-v1/source-assessment-frozen.jsonl",
+    "sha256": "635e8d3f6c13c83c560966f9caa81938f5d560eed3fd4050852f4309a8958457",
+    "size_bytes": 53668
+  },
+  "first_proposals": {
+    "path": "work/annotation-staging/bone-observed-001-postfreeze-v1/proposed-errata.json",
+    "sha256": "7d3ba098361f88858a990ad2135bf5aa3f030a663cda3dc3cc8b9c3aa90278f2",
+    "size_bytes": 15368
+  },
+  "first_postfreeze_dispositions": {
+    "path": "work/annotation-staging/bone-observed-001-postfreeze-v1/all100-postfreeze-dispositions.json",
+    "sha256": "eda0d00bb7a88e07f2b1adf6f8a29a071a0a098e5f88572b2507c6a008e9968c",
+    "size_bytes": 270318
+  },
+  "status": "independent_source_assessment_complete_pending_root_adjudication",
+  "gold_inspected": false,
+  "registry_mutated": false,
+  "global_qa_closed": false,
+  "n_current_masked_cells": 27,
+  "records": [
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10475397432011699698577978597417345091",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Torn medial patellofemoral ligament associated with bone contusions an osteochondral fracturing of the medial surface of patella and lateral femoral condyle associated with transient dislocation of the patellofemoral joint."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Torn medial patellofemoral ligament associated with bone contusions an osteochondral fracturing of the medial surface of patella and lateral femoral condyle associated with transient dislocation of the patellofemoral joint."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Contusions and osteochondral fractures occupy the same two described sites. Separate impact edema without a discrete fracture line is not established; retain the coexistence/line distinction as uncertain.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10726624821670417064567481545750543282",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10729725525284633011179038668107963557",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10731612202208916303411280624156291171",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Ekleme komşu femur medial kondilde subkondral alanda 8x3 mm boyutlu osteokondral defekt izlenmiştir."
+      },
+      "action": "retain_current_zero_mask_with_unresolved_state_classification",
+      "reason": "My frozen uncertain state treats the specifically localized subchondral osteochondral defect as a structural bone abnormality with missing fracture/acuity characterization. The first reader and current record use not_mentioned because the degenerative defect is not explicitly a fracture, line or cortical break. Both remain masked. I retain this state-classification disagreement without proposing an erratum or expanding a defect into definite fracture; root may settle the informative-mention boundary after its own source read.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10738640862162795323010965765443420384",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10748806810865802591313438958975301375",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Augeprägter bone bruise an der laterodorsalen Femurkondyle (5/22), hierbei lässt sich eine schräg verlaufende Frakturlinie am posterolateralen Femurkondylus verfolgen (7/21) mit intraossärer Einblutung (4/63)."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Augeprägter bone bruise an der laterodorsalen Femurkondyle (5/22), hierbei lässt sich eine schräg verlaufende Frakturlinie am posterolateralen Femurkondylus verfolgen (7/21) mit intraossärer Einblutung (4/63)."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: The named bruise contains a demonstrable fracture line at the same posterolateral condyle. A distinct fracture-line-free contusion site is not established.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10751624265599812767108610284996090628",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "gepaard gaand met subchondraal oedeem beiderzijds zonder onderliggende necrose of insuffici ëntiefractuur."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "gepaard gaand met subchondraal oedeem beiderzijds zonder onderliggende necrose of insuffici ëntiefractuur."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Subchondral edema is in a cartilage-loss context; impact causality and separate contusion absence are not established.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10759288702627176691392048851622294054",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Tibyal platonun mediyalinde kemik kontüzyonu ve yaklaşık 10x2 mm'lik bir alanı ilgilendiren küçük bir kompresyon kırığı eşlik ediyor."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Tibyal platonun mediyalinde kemik kontüzyonu ve yaklaşık 10x2 mm'lik bir alanı ilgilendiren küçük bir kompresyon kırığı eşlik ediyor."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Contusion and compression fracture share the medial plateau site; a separate line-free contusion focus is not delineated.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10761658878615069270304502752374858610",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10843463954622076609489312662891432839",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10852517092524464338210061305792376636",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10896245499713818848442117831482755673",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10924685588962763768106617368647678902",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Petite zone focale d'œdème osseux dans le condyle médial du fémur qui semble en lien avec des structures vasculaires intra-osseuses proéminentes, probablement non significative."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Petite zone focale d'œdème osseux dans le condyle médial du fémur qui semble en lien avec des structures vasculaires intra-osseuses proéminentes, probablement non significative."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Focal marrow edema is probably vascular and nonsignificant; attribution remains qualified, without definite impact injury or categorical contusion absence.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10932818400202426453525918723737011737",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Lateral femoral kondilin santral kesimindeki subkortikal hafif kemik iliği ödemi gerilemekte olan kontüzyonu temsil edebilir."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Lateral femoral kondilin santral kesimindeki subkortikal hafif kemik iliği ödemi gerilemekte olan kontüzyonu temsil edebilir."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Mild subcortical edema may represent resolving contusion; possibility does not establish definite traumatic contusion. No fracture target assessment is supplied.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10937504474673840994058935502377258768",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones en significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones en significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Significant-only marrow denial is qualified; no categorical contusion exclusion or fracture assessment follows.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10937504474673840994058935502377258768",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10965573028231658307306828073340279415",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Significant-only marrow-signal denial does not categorically exclude impact edema; no fracture assessment is stated.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10965573028231658307306828073340279415",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.10983416091338854252058678062116243962",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11011061033863592500429481719734134286",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11014091506864318694851337553197477906",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11043926695471016727738735328317975282",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Osteohondralna lezija IIa stupnja nosivog dijela lateralnog kondila femura s vidljivom impresijom\nkortikalne kosti i polukružnom sklerotičnom linijom u zoni frakture, promjera oko 11 mm."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Osteohondralna lezija IIa stupnja nosivog dijela lateralnog kondila femura s vidljivom impresijom\nkortikalne kosti i polukružnom sklerotičnom linijom u zoni frakture, promjera oko 11 mm."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: Cortical depression and a sclerotic line in a fracture zone establish an osteochondral structural injury, but its acute timing is not explicit. Sclerosis and unspecified lesion chronology leave acuity unresolved despite associated traumatic soft-tissue findings.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11100224438877567316062152508871079233",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No gross fracture or osseous destruction."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No gross fracture or osseous destruction."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: Gross-only denial does not exclude a subtle acute fracture line. Osteochondral bodies possibly from synovial chondromatosis do not establish an acute fracture either.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11103894265181149878864749992746236768",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Qualified significant-only marrow denial cannot support categorical traumatic-contusion absence; no fracture assessment is provided.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11103894265181149878864749992746236768",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11113442398569287228475456000446876768",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11150751959089942633754454715290410758",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Associated with the lateral meniscal tear there is an osteochondral impaction injury of the posterior aspect of the lateral femoral condyle as described."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Associated with the lateral meniscal tear there is an osteochondral impaction injury of the posterior aspect of the lateral femoral condyle as described. Marrow edema remains in the lateral femoral condyle in keeping with resolving bone contusion."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: Osteochondral impaction and articular flattening are structural injury evidence, but the history is two years of pain after a fall and the report supplies neither a discrete fracture line nor current acute timing. Retain acuity/structural-criterion uncertainty.",
+      "required_current_report_loss_mask": 0
+    }
+  ],
+  "n_pending_observed_to_masked": 5,
+  "requirement": "All current uncertain/not_mentioned cells remain report-masked; pending observed-to-masked proposals require separate adjudication. Final export must replay actual registry and correspondence/duplicate masks. No gold values were used or export claimed."
+}

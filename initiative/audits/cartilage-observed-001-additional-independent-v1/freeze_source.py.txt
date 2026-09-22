@@ -1,0 +1,46 @@
+"""Freeze this agent's fresh reasoned three-OA assessment, retaining prior exposure."""
+import hashlib,json,shutil,sys
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];D=P.parent;R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint
+AGENT='/root/quality_temporal_review'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p):return json.loads(p.read_text())
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(name,x):
+ with(P/name).open('x')as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+def main():
+ assert shutil.disk_usage(W).free>=20*1024**3
+ src=D/'cartilage-observed-001-root-review-v1/additional-neutral-full-source.json'
+ assert sha(src)=='f2e6d84627fa32206c92b75634592984a732b1c8ded1c7a1b43707b2165cea81'
+ packet=read(src);assert len(packet)==1;s=packet[0]
+ rubric=R/'protocols/report_weak_v2.md';assert sha(rubric)=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+ original=R/s['source_path'];assert sha(original)==s['source_sha256']
+ assert read(original)[s['index']]=={'study_uid':s['study_uid'],'report':s['report']}
+ assert original.stem==s['batch']
+ prior=D/'cartilage-observed-001-source-review-v1/neutral-full-reports.json';x=read(prior);rs=x if isinstance(x,list)else x.get('reports',x.get('records'));matches=[r for r in rs if r['study_uid']==s['study_uid']];assert len(matches)==1 and matches[0]['report']==s['report']
+ reports={r['study_uid']:r['report']for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for r in read(p)}
+ assert len(reports)==4407 and source_reports_fingerprint(reports)=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+ with(P/'neutral-full-sources.json').open('xb')as f:f.write(src.read_bytes())
+ history=[D/'cartilage-observed-001-source-review-v1/source-freeze.json',D/'cartilage-observed-001-source-review-v1/source-assessment-frozen.jsonl',D/'cartilage-observed-001-postfreeze-v1/completion-manifest.json',D/'cartilage-observed-001-postfreeze-v1/first-disposition-freeze.json',D/'cartilage-observed-000-additional-independent-v1/source-freeze.json',D/'cartilage-observed-000-additional-independent-v1/completion-manifest.json']
+ protected=[bind(p)for p in history]
+ context={'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'identity_kind':'actual_codex_agent_task','recorded_after_complete_source_read_at_utc':datetime.now(timezone.utc).isoformat(),'scope':{'full_reports':1,'OA_judgments':3,'new_12_target_pass':False},'neutral_input':bind(src),'rubric':bind(rubric),'historical_exposure':{'known_exact_prior_complete_source_overlap':1,'prior_cartilage001_neutral_packet':bind(prior),'disclosure':'This actual agent previously personally read this same full report as the first cartilage001 reader and completed that batch source/comparison stages. It also authored all260 first cartilage-priority sources, original/current34 discovery, qualified000 and subsequent bone000–004 passes. Cartilage000 source/findings and the nine additional root-proposal adjudications were previously seen, and the legacy-three retirement/replacement context was disclosed during integration coordination. Prior runtime validators mechanically loaded original/current annotation records for aggregate or earlier selected-case verification. This is a fresh reasoned reconsideration with known historical source and conceptual exposure, not first-ever blinding, a newly independent original reader, an MRI reread, or a clinical credential claim.','prior_own_artifacts_hash_bound_without_reopening_their_case_values_for_this_stage':protected},'new_root_cartilage001_findings_or_proposals_opened':False,'current_selected_annotation_values_opened_for_this_new_stage':False,'gold_accessed':False,'originals_or_prior_stages_changed':False,'registry_or_R_writes':False}
+ write('source-pass-context.json',context)
+ judgments=[
+ ('Medial OA','positive','Medial compartment cartilage: Diffuse high-grade cartilage loss, weightbearing portion of the femoral condyle. 8 x 5 mm full-thickness cartilage defect posterior weightbearing portion of the femoral condyle. High grade partial thickness cartilage loss of the tibial plateau.','Diffuse high-grade cartilage loss across the weightbearing femoral region supplies qualifying depth and qualitative broad extent. The separately measured8x5mm full-thickness defect does not restrict the extent of the preceding diffuse high-grade loss. This is a disclosed report-level regional-extent inference, not a new numeric measurement or an image reread.'),
+ ('Lateral OA','negative','Lateral compartment cartilage: Low-grade cartilage fraying spanning the lateral compartment.','The cartilage finding is explicitly low-grade fraying, below the greater-than-half-thickness loss criterion even though it spans the compartment. This is below-threshold evidence, not a negative from silence.'),
+ ('PF OA','uncertain','Patellofemoral compartment cartilage: Mild heterogeneity of the patellar cartilage.','Mild cartilage heterogeneity supplies an abnormal cartilage description but does not explicitly state preserved thickness, superficial/low-grade loss, or the depth/extent of any loss. I do not equate mild signal heterogeneity with a calibrated below-threshold cartilage-loss fraction. Normal patellar/trochlear morphology in the tracking section describes osseous alignment/morphology, not an additional cartilage-thickness survey. The specific missing depth/extent evidence remains masked.')]
+ rows=[]
+ for target,state,q,why in judgments:
+  assert q in s['report'] and why
+  rows.append({'agent_id':AGENT,'study_uid':s['study_uid'],'source_path':s['source_path'],'source_index_zero_based':s['index'],'source_sha256':s['source_sha256'],'report_sha256':hashlib.sha256(s['report'].encode()).hexdigest(),'target':target,'state':state,'evidence':q,'rationale':why,'rubric_version':'report-weak-v2.0','rubric_sha256':sha(rubric)})
+ with(P/'source-assessment-frozen.jsonl').open('x')as f:f.write(''.join(json.dumps(r,ensure_ascii=False)+'\n'for r in rows))
+ validation={'schema_version':1,'agent_id':AGENT,'validated_at_utc':datetime.now(timezone.utc).isoformat(),'complete_reports':1,'OA_judgments':3,'target_order':['Medial OA','Lateral OA','PF OA'],'original_index_uid_fullreport_hash_validated':True,'exact_nonmissing_contiguous_quotes':3,'individual_rationales_present':True,'whole4407_source_reports_sha256':source_reports_fingerprint(reports),'source_packet':bind(P/'neutral-full-sources.json'),'assessment':bind(P/'source-assessment-frozen.jsonl'),'rubric':bind(rubric),'known_prior_source_overlap':1,'prior_artifacts':[bind(p)for p in history],'traceability_not_semantic_correctness_proof':True}
+ assert validation['prior_artifacts']==protected
+ write('source-validation.json',validation)
+ write('source-freeze.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'identity_kind':'actual_codex_agent_task','frozen_at_utc':datetime.now(timezone.utc).isoformat(),'stage':'fresh_cartilage001_additional_complete_source_OA_assessment_before_new_root_proposal','source_packet':bind(P/'neutral-full-sources.json'),'original_neutral_input':bind(src),'source_assessment':bind(P/'source-assessment-frozen.jsonl'),'context':bind(P/'source-pass-context.json'),'validation':bind(P/'source-validation.json'),'rubric':bind(rubric),'authoring_and_validation_helper':bind(Path(__file__).resolve()),'complete_reports_personally_read':1,'personally_authored_OA_judgments':3,'target_order':['Medial OA','Lateral OA','PF OA'],'read_order_attestation':{'complete_source_read_before_new_root_proposal_access':True,'new_root_findings_or_proposals_opened':False,'historical_exposure_disclosed':True,'first_ever_blinding_claimed':False,'basis':'Actual assessor self-attestation, not an independently instrumented historical access log.'},'original_source_and_prior_freezes_preserved':True,'registry_changed':False,'gold_accessed':False,'R_changed':False,'acceptance_or_registration':False})
+ files=[bind(p)for p in sorted(P.iterdir())if p.is_file()]
+ write('source-completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'One previously exposed full report reread; three personally authored OA judgments before the new root proposal. No adjudication or acceptance yet.','source_freeze':bind(P/'source-freeze.json'),'files':files,'prior_file_bindings_preserved':protected,'root_proposal_comparison_pending':True})
+ print(json.dumps({'full_reports':1,'OA_judgments':3,'exact_quotes':3,'source_freeze_sha256':sha(P/'source-freeze.json'),'assessment_sha256':sha(P/'source-assessment-frozen.jsonl'),'validation_sha256':sha(P/'source-validation.json'),'source_manifest_sha256':sha(P/'source-completion-manifest.json')},indent=2))
+if __name__=='__main__':main()

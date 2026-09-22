@@ -1,0 +1,681 @@
+{
+  "schema_version": 1,
+  "assessor_agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "source_freeze": {
+    "path": "work/annotation-staging/bone-observed-002-independent-review-v1/source-assessment-frozen.json",
+    "sha256": "6aed052a3ef25f83acbdede01a50e767c849c3c46ada0b1721031a9323f7ac79",
+    "size_bytes": 55804
+  },
+  "current_inspection": {
+    "path": "work/annotation-staging/bone-observed-002-independent-postfreeze-v1/current-registry-inspection.json",
+    "sha256": "83ef4104a4a1d874b286a9c968cb7be45dc3979b1a37aab572c0b74f6da2b135",
+    "size_bytes": 993586
+  },
+  "active_corrections": 229,
+  "registry_sha256": "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600",
+  "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "agent_id": "/root/duplicate_consistency_review",
+  "completed_at_utc": "2026-09-22T00:15:44.716757+00:00",
+  "first_assessor_agent_id": "/root/quality_temporal_review",
+  "first_source_freeze": {
+    "path": "work/annotation-staging/bone-observed-002-source-review-v1/source-assessment-frozen.jsonl",
+    "sha256": "557745f3ff9bab6bb329f31c6168fb8aa234fca3419b2167756e46c8786d7f42",
+    "size_bytes": 56330
+  },
+  "first_proposals": {
+    "path": "work/annotation-staging/bone-observed-002-postfreeze-v1/proposed-errata.json",
+    "sha256": "048a903ab204cbac6a2bb6a43f0709895f55ee3a018b5b4ba6f3b0e06b1ee3b9",
+    "size_bytes": 14590
+  },
+  "first_postfreeze_dispositions": {
+    "path": "work/annotation-staging/bone-observed-002-postfreeze-v1/all100-postfreeze-dispositions.json",
+    "sha256": "0f1c7e9c1b296d59e01f242cdf28162577a2bfda8029084c54ce8b1ba7a6f0d5",
+    "size_bytes": 329827
+  },
+  "status": "second_source_assessment_complete_pending_root_adjudication",
+  "gold_inspected": false,
+  "registry_mutated": false,
+  "global_qa_closed": false,
+  "n_current_masked_cells": 42,
+  "records": [
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11152585968424897353533125085307104033",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Οι περιοχές οστεοµυελικού οιδήµατος ως περιγράφονται αποδίδονται σε µικροδοκιδώδη κατάγµατα απότοκα της αναφερόµενης πρόσφατης κάκωσης."
+      },
+      "independent_postfreeze": {
+        "state": "positive",
+        "evidence": "Οι περιοχές οστεοµυελικού οιδήµατος ως περιγράφονται αποδίδονται σε µικροδοκιδώδη κατάγµατα απότοκα της αναφερόµενης πρόσφατης κάκωσης."
+      },
+      "action": "support_first_proposal_pending_root_adjudication",
+      "reason": "My independent source freeze already judged positive. The report directly diagnoses microtrabecular fractures due to the reported recent injury. Frozen rule4 permits a current acute fracture diagnosis as weak evidence; recent trauma supplies the acute context that a subtype alone would lack. I acknowledge the original microtrabecular-contusion interpretation and its preserved mask. Unmasking still requires separate root adjudication.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11159546221032123495135103648570690656",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Edema óseo asociado a fracturas trabeculares en la región periférica y anterior del platillo tibial\nlateral."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Edema óseo asociado a fracturas trabeculares en la región periférica y anterior del platillo tibial\nlateral. También se observa edema óseo pequeñas fracturas trabeculares de la espina tibial\nmedial. No hay otras alteraciones de señal de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Edema is assigned to the same tibial sites as trabecular fractures. A distinct line-free traumatic-contusion focus is not established; secondary cartilage-related bone change is not that evidence.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11183915112115196028799391678356464392",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: The marrow denial is significant-only. Secondary bone changes under cartilage ulcers do not establish impact causality or supply categorical contusion absence; fracture is unaddressed.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11183915112115196028799391678356464392",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11190292536746235063218740991532759863",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones en significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones en significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Significance-qualified marrow normality does not categorically exclude traumatic edema. Secondary cartilage-related bone changes do not establish a fracture assessment.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11190292536746235063218740991532759863",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11219813299300915347039206446596901205",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No significant bone marrow edema or active cortical destruction in distal femur, proximal tibia and fibula in this study."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No significant bone marrow edema or active cortical destruction in distal femur, proximal tibia and fibula in this study."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Only significant edema is excluded; contusion has no significance threshold in the rubric.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11219813299300915347039206446596901205",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "I reconsider uncertain to not_mentioned. The complete source screens for active cortical destruction, an erosive/destructive process; it never assesses a fracture line, cortical fracture disruption or current fracture diagnosis. My frozen uncertainty overextended a different structural process into this target. This retains the current mask and does not infer a negative.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11244115315611630362929576340631670750",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Kein wesentliches Knochenmarksödem."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Kein wesentliches Knochenmarksödem."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: No substantial marrow edema is qualified; the benign-appearing tibial lesion does not establish categorical impact-edema absence.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11244115315611630362929576340631670750",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "I reconsider uncertain to not_mentioned. The metaphyseal lesion is characterized as nonaggressive with no cortical erosion or malignant features. On full rereading, this is lesion characterization, not a fracture question or fracture survey. My source freeze treated any cortical assessment as informative fracture evidence too broadly. The current missing state and mask are retained.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11257168136762043265165109052826442974",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11264140845869814478794346490273061499",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No significant bone marrow edema or active cortical destruction noted at distal femur and proximal tibia and fibula in this study."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No significant bone marrow edema or active cortical destruction noted at distal femur and proximal tibia and fibula in this study."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Significance-qualified edema absence leaves the impact-edema target uncertain; the tiny degenerative subchondral cyst is not traumatic evidence.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11264140845869814478794346490273061499",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "I reconsider uncertain to not_mentioned. The active-cortical-destruction screen is distinct from fracture morphology; the degenerative trochlear spur/cyst does not name a fracture either. Limited scope was not the central problem: the fracture target was not informatively addressed. Retain empty evidence and the current zero mask.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11276674006815021828943434205349220551",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Qualified significant-only marrow denial does not establish complete contusion absence; patellar secondary bone changes accompany chondropathy. No fracture assessment is given.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11276674006815021828943434205349220551",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11282706861378379965012380644125662529",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "The study reveals normal knee joint alignment, no definite fracture line noted."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "no definite fracture line noted."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: Definite-only line denial is equivocal rather than categorical; associated contusions do not resolve the qualified fracture exclusion.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11287173314232027941677698384842764593",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones en significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones en significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: The marrow denial is significant-only; a meniscal cyst and extraosseous friction edema do not resolve impact marrow status. Fracture is unaddressed.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11287173314232027941677698384842764593",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11338962847958062668991874160027887372",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "There is very mild subchondral impaction in the lateral femoral epicondyle which could represent microtrabecular fracture."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "There is very mild subchondral impaction in the lateral femoral epicondyle which could represent microtrabecular fracture."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: Possible microtrabecular fracture is explicitly equivocal. Associated traumatic findings do not turn could-represent wording into a definite acute fracture.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11347466940974045182979684641300336177",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No significant bone marrow edema or active cortical destruction noted at distal femur and proximal tibia and fibula in this study."
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "support_first_proposal_pending_root_adjudication",
+      "reason": "I reconsider uncertain to not_mentioned after rereading the complete report and the other reader rationale. No active cortical destruction addresses a destructive process; no fracture line, cortical break or acute fracture is described. OA, spur and cyst findings do not make it a fracture assessment. I support the masked-to-masked correction with empty evidence, preserving both original uncertainty and my frozen uncertainty.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11353976221682532422630231842008146722",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Patchy bone marrow edema at the inferior patellar pole without focal fracture line, most probably representing bone contusion after a previous trauma."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Patchy bone marrow edema at the inferior patellar pole without focal fracture line, most probably representing bone contusion after a previous trauma."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Traumatic contusion remains most-probably rather than definite, despite the plausible direct-impact history. Retain causal uncertainty.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11395349736725035422736613041202251830",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "I reconsider uncertain to not_mentioned. The complete source has only an active-destructive-process screen and likely subchondral sclerosis, not fracture morphology or a fracture diagnosis. The current accepted missing state is appropriate and remains unchanged. This also agrees with my earlier additional-focused001 adjudication, which I had not reopened before the present freeze; my new frozen contrary judgment is preserved explicitly.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11420670844338686032030860787688858057",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11451981256762378203455481812714370193",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Only significant marrow alteration is excluded; the described IT-band friction edema is extraosseous and does not settle the bone target. No fracture assessment is supplied.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11451981256762378203455481812714370193",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11482325994550095339373157256174349858",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones en significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones en significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Significance-qualified marrow denial is insufficient for categorical contusion absence. Bilateral tendinopathy in the indication does not supply a definite current fracture assessment or laterality clarification.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11482325994550095339373157256174349858",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11498239309891927151456629915927889165",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11498505068787084440256890724559761815",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: The marrow screen is qualified by significant. Extraosseous Hoffa/IT-band changes and patellar cartilage ulcers do not supply categorical bone-target exclusion or a fracture assessment.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11498505068787084440256890724559761815",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11504079342934513987748646905909982588",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Suspected microtrabecular impaction fracture at the posterior aspect of the lateral tibial plateau."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Suspected microtrabecular impaction fracture at the posterior aspect of the lateral tibial plateau."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: Fracture is suspected rather than definite. ACL injury and edema do not eliminate this diagnostic uncertainty.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11506642732332295874076832453198901115",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Osteochondral impaction injury with accompanying bone marrow edema along the sulcus terminalis of the lateral femoral condyle"
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Osteochondral impaction injury with accompanying bone marrow edema along the sulcus terminalis of the lateral femoral condyle with additional small osseous contusions along the posterior medial and lateral tibial plateaus."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: The osteochondral impaction injury is definite, but a discrete fracture line/cortical disruption or directly named acute fracture is not given. Basketball injury and associated edema are undated; preserve the structural/acuity uncertainty.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11508340006652282767645009271305921426",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Qualified significant-only marrow denial does not establish complete contusion absence. Secondary trochlear bone change is associated with cartilage ulcers; fracture is unaddressed.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11508340006652282767645009271305921426",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11529405479134457001825038259936796388",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11579571696748051185342754881791715610",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "No hay alteraciones de señal significativas de la médula ósea."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Significant-only marrow denial does not categorically exclude contusion; the only positive edema finding is extraosseous IT-band friction. Fracture is unaddressed.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11579571696748051185342754881791715610",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11592056376890319271545710970155310824",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Medial compartment cartilage: Large regions of full-thickness cartilage loss throughout both sides of the weightbearing aspect of the joint with associated subchondral signal changes."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Medial compartment cartilage: Large regions of full-thickness cartilage loss throughout both sides of the weightbearing aspect of the joint with associated subchondral signal changes."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Contusion: Subchondral signal changes accompany severe cartilage disease, without impact causality or an explicit contusion exclusion. No-marrow-replacing-lesion wording does not settle traumatic edema.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11599387556469808488160280438305325860",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11641274367861998748475337224297076397",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "There is ill-defined bone marrow edema in the lateral body of the patella compatible with osseous stress response across the extensor mechanism.\nBone marrow signal is otherwise normal."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "There is ill-defined bone marrow edema in the lateral body of the patella compatible with osseous stress response across the extensor mechanism.\nBone marrow signal is otherwise normal."
+      },
+      "action": "do_not_support_unmasking_retain_current_mask",
+      "reason": "I retain my frozen and current uncertain state. The full report favors an extensor-mechanism stress response and describes maltracking with otherwise normal marrow, which is substantial support for the first reader non-impact interpretation. However, compatible-with stress response plus absence of a recent pivot-shift mechanism does not unequivocally exclude an impact component at that abnormal patellar focus; no direct contusion absence is supplied. I do not accept the proposed observed negative. This is a causal-scope disagreement, not evidence that contusion is present; retain the current zero mask pending root resolution.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11651755040149549966484720727140190853",
+      "target": "Fracture",
+      "current": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "independent_postfreeze": {
+        "state": "not_mentioned",
+        "evidence": ""
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: no informative acute fracture/impact marrow assessment for this target; silence remains masked.",
+      "required_current_report_loss_mask": 0
+    },
+    {
+      "study_uid": "1.2.826.0.1.3680043.8.498.11674925658184069242322832524274428408",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Lateral femoral kondilin ağırlık taşıyan yüzeyinin anteriyorunda ve tibyal platonun posterolateral köşesinde pivot kaymasını telkin eden impaksiyonla ilintili subkondral kırık ve subkondral kemik kontüzyonu ile uyumlu intensite değişiklikleri gözleniyor."
+      },
+      "independent_postfreeze": {
+        "state": "uncertain",
+        "evidence": "Lateral femoral kondilin ağırlık taşıyan yüzeyinin anteriyorunda ve tibyal platonun posterolateral köşesinde pivot kaymasını telkin eden impaksiyonla ilintili subkondral kırık ve subkondral kemik kontüzyonu ile uyumlu intensite değişiklikleri gözleniyor."
+      },
+      "action": "retain_current_annotation",
+      "reason": "Fracture: Subchondral fracture-compatible signal is associated with a suggested pivot-shift impaction mechanism, but acute timing and definite cortical/line morphology are not stated. Preserve the acute-criterion uncertainty without a blanket subchondral subtype rule.",
+      "required_current_report_loss_mask": 0
+    }
+  ],
+  "pending_supported_impacts": {
+    "observed_to_masked": 2,
+    "masked_to_observed": 1,
+    "masked_to_masked": 1
+  },
+  "pending_disputed_unmaskings": 1,
+  "requirement": "Current uncertain/not_mentioned cells retain zero report-loss masks until a separate accepted correction. Disputed negative unmasking is not approved by this assessor. Final export must replay actual corrections and correspondence/duplicate policies; no gold or final export was inspected."
+}

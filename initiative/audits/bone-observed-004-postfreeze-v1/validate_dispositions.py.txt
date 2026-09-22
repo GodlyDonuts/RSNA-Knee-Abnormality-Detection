@@ -1,0 +1,181 @@
+"""Validate source/quote/baseline bindings and mask requirements, without labels."""
+import hashlib
+import json
+import shutil
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+R = W / 'work/recovered'
+S = P.parent / 'bone-observed-004-source-review-v1'
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+
+AGENT = '/root/quality_temporal_review'
+
+def read(p):
+    return json.loads(p.read_text())
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def bind(p):
+    return {'path': str(p.relative_to(W)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+def write(name, obj):
+    with (P / name).open('x') as f:
+        f.write(json.dumps(obj, ensure_ascii=False, indent=2) + '\n')
+
+def check_binding(item):
+    path = W / item['path']
+    assert sha(path) == item['sha256']
+    if 'bytes' in item:
+        assert path.stat().st_size == item['bytes']
+
+def main():
+    assert shutil.disk_usage(W).free >= 20 * 1024**3
+    freeze_path = P / 'postfreeze-disposition-freeze.json'
+    assert sha(freeze_path) == '07684de8da3b9b1e66adb82ddcc6943618af54123308fb720342030ed75a8a84'
+    f = read(freeze_path)
+    for name, digest in f['files'].items():
+        assert sha(P / name) == digest
+    check_binding(f['authoring_helper'])
+    protected = read(P / 'protected-prior-bindings.json')['files']
+    for item in protected:
+        check_binding(item)
+    sf = read(S / 'source-freeze.json')
+    assert sha(S / 'source-freeze.json') == '5cff87a6b905710b263c6985aadcd51eb22b3a09b90097965326650f5f3f6f55'
+    assert sf['agent_id'] == AGENT
+    for name in ['rubric', 'neutral_assembly_validation', 'neutral_assembly_helper', 'source_packet', 'source_assessment', 'validation', 'start', 'authored_judgment_assembler', 'freeze_validator']:
+        check_binding(sf[name])
+    c = read(P / 'all100-bound-comparison.json')
+    assert sf['frozen_at_utc'] < c['created_at_utc'] < f['completed_at_utc']
+    assert f['other_bone004_reader_findings_opened'] is False
+    assert sf['read_order_attestation']['own_full_source_judgments_frozen_before_current_selected_case_annotation_values_displayed'] is True
+    assert sf['read_order_attestation']['other_bone004_reader_findings_opened'] is False
+    assert sha(P / 'registry-at-comparison.json') == 'c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600'
+    reports = {r['study_uid']: r['report'] for path in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')) for r in read(path)}
+    assert len(reports) == 4407
+    assert source_reports_fingerprint(reports) == f['source_reports_sha256'] == '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+    assert sha(R / 'protocols/report_weak_v2.md') == f['rubric_sha256']
+    sources = read(S / 'neutral-source-packet.json')['reports']
+    own = [json.loads(line) for line in (S / 'source-assessment-frozen.jsonl').read_text().splitlines()]
+    rows = read(P / 'all100-postfreeze-dispositions.json')['records']
+    assert len(rows) == len(c['records']) == 100
+    assert len(own) == len(sources) == 50
+    expected_order = [(s['study_uid'], target) for s in sources for target in ['Contusion', 'Fracture']]
+    assert [(r['study_uid'], r['target']) for r in rows] == expected_order
+    by_key = {(r['study_uid'], r['target']): r for r in rows}
+    assert len(by_key) == 100
+    original_cache, source_seen = {}, set()
+    quote_checks = 0
+    for index, (r, prior) in enumerate(zip(rows, c['records'], strict=True)):
+        assert all(r[k] == v for k, v in prior.items())
+        assert r['ordinal'] == index // 2
+        source, a = sources[index // 2], own[index // 2]
+        assert r['study_uid'] == a['study_uid'] == source['study_uid']
+        sp = R / r['source_path']
+        assert sha(sp) == r['source_sha256'] == source['source_sha256']
+        original_source = read(sp)[r['source_index_zero_based']]
+        assert original_source == {'study_uid': r['study_uid'], 'report': source['report']}
+        assert source['report'] == reports[r['study_uid']]
+        assert hashlib.sha256(source['report'].encode()).hexdigest() == r['report_sha256'] == source['report_sha256']
+        source_seen.add(r['study_uid'])
+        k = index % 2
+        assert r['own_source_frozen'] == {'state': a['states'][k], 'evidence': a['evidence'][k], 'rationale': a['rationales'][k]}
+        rp = R / r['original_review_path']
+        assert sha(rp) == r['original_review_sha256']
+        if rp not in original_cache:
+            original_cache[rp] = {x['study_uid']: x for x in map(json.loads, rp.read_text().splitlines())}
+        original = original_cache[rp][r['study_uid']]
+        j = TARGETS.index(r['target'])
+        assert r['original'] == {'state': original['states'][j], 'evidence': original['evidence'][j]}
+        assert r['original_notes'] == original['notes']
+        for name in ['own_source_frozen', 'first_postfreeze_judgment', 'original', 'current_effective']:
+            q = r[name]
+            assert (q['state'] == 'not_mentioned' and q['evidence'] == '') or (q['state'] in {'positive', 'negative', 'uncertain'} and q['evidence'] and q['evidence'] in source['report'])
+            quote_checks += q['state'] != 'not_mentioned'
+        final = r['first_postfreeze_judgment']
+        assert final['rationale']
+        assert r['own_state_reconsidered'] == (final['state'] != r['own_source_frozen']['state'])
+        assert r['own_evidence_reconsidered'] == (final['evidence'] != r['own_source_frozen']['evidence'])
+        assert r['state_differs_from_current'] == (final['state'] != r['current_effective']['state'])
+        assert r['current_report_observation_mask'] == int(r['current_effective']['state'] in {'positive', 'negative'})
+        assert r['proposed_report_observation_mask'] == int(final['state'] in {'positive', 'negative'})
+        assert r['distinct_bone004_reader_comparison_done'] is False and r['acceptance_or_registration'] is False
+        if r['current_accepted_correction']:
+            assert r['current_effective'] == r['current_accepted_correction']['after']
+            assert not r['state_differs_from_current'] and not r['evidence_only_proposal']
+    assert len(source_seen) == 50
+    p = read(P / 'proposed-errata.json')
+    assert p['accepted_changes'] == [] and p['n_changes'] == len(p['proposed_errata']) == 4
+    proposal_keys = set()
+    for item in p['proposed_errata']:
+        key = item['study_uid'], item['target']
+        assert key not in proposal_keys
+        proposal_keys.add(key)
+        r = by_key[key]
+        assert item['proposer_agent_id'] == AGENT and item['accepted'] is False
+        assert r['current_accepted_correction'] is None and item['existing_accepted_key_overlap'] is False
+        assert (item['before_state'], item['before_evidence']) == (r['current_effective']['state'], r['current_effective']['evidence'])
+        assert (item['original_state'], item['original_evidence']) == (r['original']['state'], r['original']['evidence'])
+        assert (item['proposed_state'], item['source_quote']) == (r['first_postfreeze_judgment']['state'], r['first_postfreeze_judgment']['evidence'])
+        assert (item['proposed_state'], item['source_quote']) != (item['before_state'], item['before_evidence'])
+        for akey, bkey in [('source_path', 'source_path'), ('source_sha256', 'source_sha256'), ('source_report_sha256', 'report_sha256'), ('index', 'source_index_zero_based'), ('artifact_path', 'original_review_path'), ('artifact_sha256', 'original_review_sha256')]:
+            assert item[akey] == r[bkey]
+        check_binding(item['source_freeze'])
+    assert sum(x['kind'] == 'state_correction' for x in p['proposed_errata']) == 1
+    assert sum(x['kind'] == 'evidence_correction' and x['before_state'] == x['proposed_state'] for x in p['proposed_errata']) == 3
+    reconsiderations = read(P / 'own-reconsiderations.json')['records']
+    assert len(reconsiderations) == 0
+    assert reconsiderations == [r for r in rows if r['own_state_reconsidered']]
+    masks = read(P / 'retained-masks-and-export-requirements.json')
+    expected_masks = {key for key, r in by_key.items() if not r['current_report_observation_mask']}
+    assert len(masks['records']) == masks['current_masked_cells'] == len(expected_masks) == 24
+    assert {(m['study_uid'], m['target']) for m in masks['records']} == expected_masks
+    for m in masks['records']:
+        r = by_key[(m['study_uid'], m['target'])]
+        assert (m['current_effective_state'], m['current_effective_evidence']) == (r['current_effective']['state'], r['current_effective']['evidence'])
+        assert m['required_final_report_loss_mask'] == 0
+    assert masks['actual_final_export_checked'] is False
+    neutral_manifest = read(P / 'neutral-root-packet-manifest.json')
+    neutral = []
+    for packet in neutral_manifest['packets']:
+        check_binding(packet)
+        items = read(W / packet['path'])
+        assert 0 < len(items) == packet['n_reports'] <= 10
+        for item in items:
+            assert set(item) == {'report', 'report_sha256', 'source_index_zero_based', 'source_path', 'source_sha256', 'study_uid'}
+            assert item == next(s for s in sources if s['study_uid'] == item['study_uid'])
+            neutral.append(item['study_uid'])
+    assert len(neutral) == len(set(neutral)) == neutral_manifest['reports'] == 4
+    assert set(neutral) == {key[0] for key in proposal_keys} | {r['study_uid'] for r in reconsiderations}
+    assert set(neutral) == {r['study_uid'] for r in read(P / 'attention-selection-details.json')['records']}
+    registry = R / 'initiative/reviews-v2/adjudications/registry.json'
+    registry_sha = sha(registry)
+    replay = inspect_adjudications(reports, R / 'initiative/reviews-v2/reviewed', R / 'protocols/report_weak_v2.md', R)
+    assert sha(registry) == registry_sha
+    changes = {(r['study_uid'], r['target']): r for r in replay['changes']}
+    rebase = []
+    for key, r in by_key.items():
+        now = changes[key]['after'] if key in changes else r['original']
+        rebase.append({'study_uid': key[0], 'target': key[1], 'baseline229_effective': r['current_effective'], 'current_effective': now, 'changed_since_baseline229': now != r['current_effective'], 'current_correction': changes.get(key)})
+    changed = sum(r['changed_since_baseline229'] for r in rebase)
+    overlap = len(proposal_keys & set(changes))
+    assert changed == 0 and overlap == 0
+    write('current-registry-rebase.json', {'schema_version': 1, 'agent_id': AGENT, 'checked_at_utc': datetime.now(timezone.utc).isoformat(), 'comparison_registry': bind(P / 'registry-at-comparison.json'), 'comparison_registered_changes': 229, 'current_registry': bind(registry), 'current_registered_changes': len(changes), 'selected_cells': 100, 'changed_since_comparison': changed, 'proposed_key_overlap': overlap, 'existing_selected_corrections_preserved': sum(r['current_correction'] is not None for r in rebase), 'records': rebase, 'prior_baseline_rewritten': False, 'must_replay_at_actual_integration_or_export': True})
+    for item in protected:
+        check_binding(item)
+    assert shutil.disk_usage(W).free >= 20 * 1024**3
+    receipt = {'schema_version': 1, 'agent_id': AGENT, 'validated_at_utc': datetime.now(timezone.utc).isoformat(), 'source_freeze': bind(S / 'source-freeze.json'), 'disposition_freeze': bind(freeze_path), 'full_reports': 50, 'all_cells_compared_and_bound': 100, 'exact_nonmissing_quote_checks_across_four_record_versions': quote_checks, 'all_source_index_uid_fullreport_original_review_before_and_after_checks_passed': True, 'source_freeze_and_previous_bound_files_unchanged': True, 'protected_file_count': len(protected), 'own_state_and_quote_reconsiderations_count': 0, 'four_proposals_exact_before_after_validated': True, 'neutral_reports_complete_and_without_target_state_trigger_fields': 4, 'current_masks_bound_to_final_export_requirements': 24, 'current_registry_rebase': bind(P / 'current-registry-rebase.json'), 'current_registered_changes': len(changes), 'changed_since_comparison': changed, 'proposal_key_overlap': overlap, 'existing_selected_corrections_preserved': 0, 'final_export_performed': False, 'registry_changes_or_acceptance': 0, 'global_gate_closed': False, 'gold_accessed': False, 'other_bone004_reader_findings_opened': False, 'validation_scope': 'Mechanical traceability and preservation checks support, but do not prove, the correctness of the personally authored semantic judgments. Distinct source review and root adjudication remain pending.', 'validator': bind(Path(__file__).resolve())}
+    write('validation-and-preservation.json', receipt)
+    completion_files = [bind(p) for p in sorted(S.rglob('*')) if p.is_file() and '__pycache__' not in p.parts] + [bind(p) for p in sorted(P.rglob('*')) if p.is_file() and '__pycache__' not in p.parts]
+    write('completion-manifest.json', {'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT, 'completed_at_utc': datetime.now(timezone.utc).isoformat(), 'scope': 'Bone004 first source pass and separate postfreeze comparison only;50 full reports100 bone judgments. Four proposals remain pending distinct review and root adjudication. No global clearance.', 'counts': f['counts'], 'source_freeze': bind(S / 'source-freeze.json'), 'postfreeze': bind(freeze_path), 'neutral_packet_manifest': bind(P / 'neutral-root-packet-manifest.json'), 'validation': bind(P / 'validation-and-preservation.json'), 'files': completion_files, 'source_originals_prior_stages_and_registry_unchanged': True, 'gold_accessed': False, 'other_bone004_reader_findings_opened': False, 'acceptance': False, 'global_gate_closed': False})
+    print(json.dumps({'validated_cells': 100, 'proposals': 4, 'own_state_reconsiderations': 0, 'neutral_reports': 4, 'current_masks': 24, 'current_registered_changes': len(changes), 'changed_since_baseline': changed, 'proposal_overlap': overlap, 'receipt_sha256': sha(P / 'validation-and-preservation.json'), 'completion_sha256': sha(P / 'completion-manifest.json')}, indent=2))
+
+if __name__ == '__main__':
+    main()

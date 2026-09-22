@@ -1,0 +1,58 @@
+"""Verify every preserved source/annotation layer and final bounded handoff."""
+import hashlib,json,shutil
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p):return json.loads(p.read_text())
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def check(b):
+ p=W/b['path'];assert sha(p)==b['sha256'];assert 'bytes'not in b or p.stat().st_size==b['bytes']
+def write(n,x):
+ with(P/n).open('x')as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+def main():
+ assert shutil.disk_usage(W).free>=20*1024**3
+ assert sha(P/'source-freeze.json')=='901b0a19ed3113ba32e7705a894fbea963500b32f5eac7e3f1186e81395027e3'
+ assert sha(P/'source-assessment-frozen.jsonl')=='2d73712af7cd47096addf904a981664674335c9d4a97d43e767d8684a3155a7f'
+ assert sha(P/'source-completion-manifest.json')=='6399052a150918a22260d1605a2177a0b908b408d259e2a0b7e8e458faa742fc'
+ before=read(P/'source-completion-manifest.json')
+ for b in before['files']+before['prior_file_bindings_preserved']:check(b)
+ protected=read(P/'postfreeze-protected-bindings.json')
+ for b in protected['files']+protected['root_proposal_and_supporting_bindings']+[protected['historical_own_assessment']]:check(b)
+ s=read(P/'neutral-full-sources.json')[0];assert read(R/s['source_path'])[s['index']]=={'study_uid':s['study_uid'],'report':s['report']};assert sha(R/s['source_path'])==s['source_sha256']
+ own=[json.loads(l)for l in(P/'source-assessment-frozen.jsonl').read_text().splitlines()];comparison=read(P/'all3-bound-comparison.json')['records'];dispositions=read(P/'all3-independent-postfreeze-dispositions.json')['records']
+ assert len(own)==len(comparison)==len(dispositions)==3
+ assert [r['target']for r in own]==[r['target']for r in comparison]==[r['target']for r in dispositions]==['Medial OA','Lateral OA','PF OA']
+ quote_checks=0
+ for i,(o,c,d)in enumerate(zip(own,comparison,dispositions,strict=True)):
+  assert all(d[k]==v for k,v in c.items())
+  assert c['own_new_preproposal_source']=={'state':o['state'],'evidence':o['evidence'],'rationale':o['rationale']}
+  assert c['study_uid']==o['study_uid']==s['study_uid'] and c['source_index_zero_based']==s['index']
+  assert c['report_sha256']==hashlib.sha256(s['report'].encode()).hexdigest()
+  assert sha(R/c['original_review_path'])==c['original_review_sha256']
+  for v in [c['original'],c['current_effective'],c['own_historical_cartilage001_source'],c['own_new_preproposal_source'],d['independent_postproposal_assessment']]:
+   assert v['state']in {'positive','negative','uncertain'}and v['evidence']in s['report'];quote_checks+=1
+  assert d['own_new_state_reconsidered']==(o['state']!=d['independent_postproposal_assessment']['state'])
+  assert d['own_new_evidence_reconsidered']==(o['evidence']!=d['independent_postproposal_assessment']['evidence'])
+  assert d['actual_accepted_in_this_stage']==(d['target']=='Lateral OA')
+ reconsidered=read(P/'explicit-reconsiderations.json')['records'];assert reconsidered==[d for d in dispositions if d['own_new_state_reconsidered']]and len(reconsidered)==2
+ assessment=read(P/'independent-source-assessment.json');decision=read(P/'accepted-decision.json');case=read(P/'proposed-runtime-case.json')
+ assert assessment['stage']=='independent_source_assessment' and assessment['agent_id']=='/root/quality_temporal_review'
+ assert len(assessment['records'])==len(decision['accepted_changes'])==decision['n_changes']==len(case['changes'])==1
+ a=assessment['records'][0];d=decision['accepted_changes'][0];c=case['changes'][0]
+ assert a['target']==d['target']==c['target']=='Lateral OA' and a['study_uid']==d['study_uid']==c['study_uid']==s['study_uid']
+ assert a['independent_source_state']==d['after_state']==c['after']['state']=='uncertain'
+ assert a['source_evidence']==d['after_evidence']==c['after']['evidence']==own[1]['evidence']
+ assert d['before_state']=='negative' and d['before_evidence']==comparison[1]['original']['evidence']
+ assert decision['original_artifacts_preserved']is True and decision['registry_changed']is False
+ runtime=read(P/'runtime-validation-and-preservation.json');assert runtime['accepted_runtime_changes']==1 and len(runtime['negative_boundary_checks'])==4 and all(n['rejected']for n in runtime['negative_boundary_checks'])
+ assert sha(R/'initiative/reviews-v2/adjudications/registry.json')==sha(P/'registry-at-comparison229.json')=='c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600'
+ for key in ['case','assessment','decision','validator','runtime','current_registry']:check(runtime[key])
+ for p in P.iterdir():assert not (p.is_dir() and p.name.startswith('runtime-validation-'))
+ receipt={'schema_version':1,'agent_id':'/root/quality_temporal_review','validated_at_utc':datetime.now(timezone.utc).isoformat(),'source_freeze':bind(P/'source-freeze.json'),'complete_full_reports':1,'OA_cells_compared':3,'nonmissing_quote_checks_across_five_versions':quote_checks,'exact_original_uid_index_report_review_before_after_validated':True,'protected_new_and_historical_source_freezes_unchanged':True,'actual_accepted_additional_changes':1,'new_state_reconsiderations':2,'accepted_item_state_reconsiderations':1,'outside_additional_proposal_reconsiderations':1,'runtime_validation':bind(P/'runtime-validation-and-preservation.json'),'actual_registry_count':229,'selected_proposal_overlap':0,'registry_changed':False,'gold_accessed':False,'global_gate_closed':False,'other_OA_targets_accepted_by_this_stage':False,'clinical_semantic_correctness_certified':False,'validator':bind(Path(__file__).resolve())}
+ write('complete-validation-and-preservation.json',receipt)
+ files=[bind(p)for p in sorted(P.rglob('*'))if p.is_file()and'__pycache__'not in p.parts]
+ write('completion-manifest.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','session_id':'/root/quality_temporal_review','completed_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'One full-source three-OA reread, separate comparison and actual independent acceptance of one additional root proposal only. Two new source-state reconsiderations are explicit; the medial item is outside this one-change acceptance. Historical and new freezes remain unchanged.','source_freeze':bind(P/'source-freeze.json'),'independent_assessment':bind(P/'independent-source-assessment.json'),'actual_decision':bind(P/'accepted-decision.json'),'runtime_case':bind(P/'proposed-runtime-case.json'),'validation':bind(P/'complete-validation-and-preservation.json'),'files':files,'registered_changes':0,'gold_accessed':False,'R_changed':False,'global_gate_closed':False})
+ for b in files:check(b)
+ print(json.dumps({'bound_files':len(files),'accepted_proposals':1,'OA_cells_compared':3,'new_state_reconsiderations':2,'runtime_negative_checks':4,'validation_sha256':sha(P/'complete-validation-and-preservation.json'),'completion_sha256':sha(P/'completion-manifest.json')},indent=2))
+if __name__=='__main__':main()

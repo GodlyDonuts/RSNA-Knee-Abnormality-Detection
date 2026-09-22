@@ -9,18 +9,18 @@ from a clone of this repository.
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
-The current registry contains229 active accepted target corrections and retains
-18 enforced report-supervision exclusions. The latest cartilage batch adds27
-accepted changes; an independent reassessment retires three earlier corrections
-and restores their exact original uncertain annotations. Every original artifact,
-contrary judgment and retirement decision is preserved. Three global semantic QA
-gates and final leakage, mask, manifest and training checks remain open. Twenty-four
-unresolved correspondence cases must retain zero report loss masks at final export.
-The latest verified private Hugging Face checkpoint is Git `7c1225e` / HF `a70f15a`,
-covering the prior205-correction milestone; its full publication and restoration
-evidence is archived under `audits/qualified001-verified205-publication-v1/`.
-The current229 milestone is newer. A later publication receipt must establish its
-synchronization; do not infer that from this text.
+The current registry contains254 active accepted target corrections and retains
+18 enforced report-supervision exclusions. The latest cartilage001 milestone adds
+25 independently accepted changes:21 observed annotations become uncertain, and
+four quotes gain anatomical context without changing positive state. All229 prior
+corrections and the three earlier retirements remain unchanged. Three global
+semantic QA gates and final leakage, mask, manifest and training checks remain
+open. Twenty-four unresolved correspondence cases must retain zero report loss
+masks at final export.
+The latest verified private Hugging Face checkpoint is Git `001eff697` / HF
+`72f2f065`, covering229 corrections. Its full publication/restoration evidence is
+archived under `audits/cartilage000-verified229-publication-v1/`. This254 milestone
+is newer; a later publication receipt must establish its synchronization.
 
 The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and
 [agent procedure](../protocols/agent_tasks.md). The `reviews/` outputs and index

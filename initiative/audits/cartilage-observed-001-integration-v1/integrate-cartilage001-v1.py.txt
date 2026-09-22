@@ -1,0 +1,153 @@
+"""Register the root-assessed24 proposals and a distinct assessor's additional one."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter, defaultdict
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+from dotenv import dotenv_values
+
+W = Path(__file__).resolve().parents[1]
+R = W / "work/recovered"
+S = W / "work/annotation-staging"
+G = S / "cartilage-observed-001-root-review-v1"
+N = S / "cartilage-observed-001-independent-proposal-normalization-v1"
+E = S / "cartilage-observed-001-additional-independent-v1"
+I = R / "initiative/audits/cartilage-observed-001-integration-v1"
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import report_group
+from rsna.schema import TARGETS
+
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p, expected=None):
+    if expected: assert sha(p) == expected, p
+    return json.loads(p.read_text())
+def bind(p): return {"path": str(p.relative_to(R)), "sha256": sha(p)}
+def save(p, obj):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("x") as f: f.write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
+def archived(p):
+    if p.is_relative_to(S):
+        out = R / "initiative/audits" / p.relative_to(S)
+        return out.with_suffix(".py.txt") if out.suffix == ".py" else out
+    assert p.is_relative_to(R)
+    return p
+
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=R, text=True).strip() == "001eff697a6dae5c83213a82948fc4dfda520354"
+rp = R / "initiative/reviews-v2/adjudications/registry.json"
+registry = read(rp, "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600")
+reports = {r["study_uid"]: r["report"] for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")) for r in read(p)}
+before = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+assert before["n_changes"] == 229 and len(before["pending_semantic_qa"]) == 3
+before_map = {(c["study_uid"], c["target"]): c for c in before["changes"]}
+protected = {}
+for directory in ["initiative/reviews/inputs", "initiative/reviews-v2/reviewed", "initiative/reviews-v2/drafts", "initiative/source", "initiative/reviews-v2/adjudications/cases", "initiative/reviews-v2/adjudications/qa"]:
+    for p in (R / directory).rglob("*"):
+        if p.is_file(): protected[str(p.relative_to(R))] = sha(p)
+protected["protocols/report_weak_v2.md"] = sha(R / "protocols/report_weak_v2.md")
+
+proposal_path = N / "proposed-errata.json"
+proposal = read(proposal_path, "b4d61160c0abf3a7144b425409c68ea3f331979862dcea03f8caeb3a059a6326")
+assessment_path = G / "second-proposals-independent-assessment.json"
+assessment = read(assessment_path, "f35daa72fa968025454379885e1b7ae2aeed5e01f33f42017d14403962294319")
+dispositions = read(G / "root-postfreeze-dispositions.json", "84f83c26412460e675ca76aa50edcbfdff0a722683d58c75fe1764f31755cf72")
+root_freeze = read(G / "complete-source-assessment-frozen.json", "6be29069597f4bd4aff06526bf12a9e56ff36cc6722c6cf15f476cae13b74b90")
+assert proposal["agent_id"] == "/root/last_twelve_visual_review" and assessment["agent_id"] == "/root"
+for ref in root_freeze["source_parts"] + root_freeze["neutral_packets"]:
+    assert sha(W / ref["path"]) == ref["sha256"]
+original_proposal_path = W / proposal["original_proposal"]["path"]
+original_proposal = read(original_proposal_path, proposal["original_proposal"]["sha256"])
+original_map = {(r["study_uid"],r["target"]):r for r in original_proposal["records"]}
+assessed = {(r["study_uid"],r["target"]):r for r in assessment["records"]}
+proposed = {(r["study_uid"],r["target"]):r for r in proposal["proposed_errata"]}
+disposition_map = {(r["study_uid"],r["target"]):r for r in dispositions["records"]}
+assert set(proposed) == set(assessed) == set(original_map) and len(proposed) == 24
+assert not set(proposed) & set(before_map)
+changes, accepted = [], []
+for key,p in proposed.items():
+    a, d, old = assessed[key], disposition_map[key], original_map[key]
+    assert p["proposed_state"] == old["after_proposed"]["state"] == a["independent_source_state"] == d["root_postfreeze_state"]
+    assert p["source_quote"] == old["after_proposed"]["evidence"] == a["source_evidence"] == d["root_postfreeze_evidence"]
+    assert p["reason"] == old["reason"]
+    assert sha(R / p["source_path"]) == p["source_sha256"] and sha(R / p["artifact_path"]) == p["artifact_sha256"]
+    assert p["source_quote"] in reports[p["study_uid"]]
+    changes.append({"study_uid":p["study_uid"],"target":p["target"],"before":{"state":p["before_state"],"evidence":p["before_evidence"]},"after":{"state":p["proposed_state"],"evidence":p["source_quote"]},"base_review":{"path":p["artifact_path"],"sha256":p["artifact_sha256"]},"source_batch":{"path":p["source_path"],"sha256":p["source_sha256"]}})
+    accepted.append({"study_uid":p["study_uid"],"target":p["target"],"before_state":p["before_state"],"before_evidence":p["before_evidence"],"after_state":p["proposed_state"],"after_evidence":p["source_quote"],"independent_source_state":a["independent_source_state"],"source_evidence":a["source_evidence"],"source_path":p["source_path"],"source_sha256":p["source_sha256"],"original_review_path":p["artifact_path"],"original_review_sha256":p["artifact_sha256"],"reason":d["reason"],"root_frozen_state":d["root_frozen_state"],"root_state_reconsidered":d["root_state_reconsidered"]})
+supports = {
+    "root_source_freeze_sha256":G/"complete-source-assessment-frozen.json",
+    "root_dispositions_sha256":G/"root-postfreeze-dispositions.json",
+    "root_reconsiderations_sha256":G/"root-explicit-reconsiderations.json",
+    "root_comparison_sha256":G/"root-postfreeze-comparison.json",
+    "original_second_proposal_sha256":original_proposal_path,
+    "original_second_source_freeze_sha256":W/proposal["original_source_freeze"]["path"],
+    "original_second_disposition_freeze_sha256":W/proposal["original_disposition_freeze"]["path"],
+    "normalization_rebase_sha256":N/"current229-rebase-and-exact-preservation.json",
+}
+decision = {"schema_version":1,"status":"accepted","stage":"independent_adjudication_decision","agent_id":"/root","session_id":"/root","proposer_agent_id":proposal["agent_id"],"proposer_session_id":proposal["session_id"],"adjudicator_agent_id":"/root","adjudicator_session_id":"/root","accepted_at_utc":datetime.now(timezone.utc).isoformat(),"source_reports_sha256":proposal["source_reports_sha256"],"rubric_sha256":proposal["rubric_sha256"],"proposal_sha256":sha(proposal_path),"independent_assessment_sha256":sha(assessment_path),**{k:sha(p) for k,p in supports.items()},"original_artifacts_preserved":True,"n_changes":24,"n_studies":len({k[0] for k in proposed}),"accepted_changes":accepted,"decision_statement":"I, /root, actually accept these24 exact second-reader proposals after personally rereading34 complete attention reports and freezing102 OA judgments before current cartilage001 case findings, with prior exposure explicitly disclosed. I compared all102 source-frozen cells and all19 first-reader proposals;15 first proposals are supported via these second proposals, while four first proposals are rejected with reasons. Four root source-state reconsiderations are preserved, including withdrawal of an unsupported two-dimensional extent requirement. The normalized proposals retain their actual distinct author's original clinical choices exactly.","scope":"Twenty state changes mask nine positives and eleven negatives whose report evidence does not establish the threshold. Four state-preserving quote expansions restore compartment localization. One separate additional root proposal has a different actual assessor and a separate decision. No global semantic QA gate is closed.","gold_values_inspected":False,"rubric_changed":False,"training_ready":False}
+decision_path = G / "second-proposals-accepted-decision.json"
+save(decision_path, decision)
+
+extra_manifest = read(E / "completion-manifest.json", "065c29e6ab0c55c8af5838b803f44254b2e2b86b77d1f6d2c3c348252e592524")
+extra_decision = read(E / "accepted-decision.json", "7665d46e0f7c3bd5ff1318e8398c6e1777b13331994b42b2ed93550861adab8a")
+extra_case = read(E / "proposed-runtime-case.json", "557b01174f75e62dd85af0881d06edb0a1de0fd4d908349c237fff7133909075")
+assert extra_decision["adjudicator_agent_id"] == "/root/quality_temporal_review" and extra_decision["proposer_agent_id"] == "/root" and extra_decision["n_changes"] == 1
+assert not extra_decision["held_changes"] and not extra_decision["rejected_changes"]
+extra_keys = {(c["study_uid"],c["target"]) for c in extra_case["changes"]}
+assert len(extra_keys) == 1 and not extra_keys & (set(proposed) | set(before_map))
+norm_manifest = read(N / "completion-manifest.json", "fc716cecf49d1418d75bcab847443015ce3c9a10e0c92a9e12dcee74fe20db2a")
+entries = {p:sha(p) for p in G.rglob("*") if p.is_file() and "__pycache__" not in p.parts}
+for folder,manifest in [(N,norm_manifest),(E,extra_manifest)]:
+    for ref in manifest["files"]:
+        p = W / ref["path"]
+        assert p.is_relative_to(folder) and sha(p) == ref["sha256"]
+        entries[p] = ref["sha256"]
+    entries[folder/"completion-manifest.json"] = sha(folder/"completion-manifest.json")
+assert all(not archived(folder).exists() for folder in (G,N,E))
+secrets = [v.encode() for k,v in dotenv_values(W/".env").items() if k in {"HF_TOKEN","KAGGLE_API_TOKEN"} and v]
+assert len(secrets) == 2
+assert shutil.disk_usage(W).free - sum(p.stat().st_size for p in entries) > 20 * 2**30
+for p,h in entries.items():
+    assert not p.is_symlink() and sha(p) == h and all(s not in p.read_bytes() for s in secrets)
+preserved = defaultdict(list)
+for p,h in sorted(entries.items()):
+    dest=archived(p);dest.parent.mkdir(parents=True,exist_ok=True)
+    with dest.open("xb") as f:f.write(p.read_bytes())
+    assert sha(dest)==h
+    preserved[p.relative_to(S).parts[0]].append({"original_path":str(p.relative_to(W)),**bind(dest),"bytes":dest.stat().st_size})
+for name,files in preserved.items():
+    save(R/"initiative/audits"/name/"preservation.json",{"stage":"root_verified_exact_source_decision_preservation","agent_id":"/root","at_utc":datetime.now(timezone.utc).isoformat(),"files":files,"originals_unchanged":True,"helpers_preserved_as_text":True,"training_ready":False})
+for p in supports.values():
+    assert sha(archived(p)) == sha(p)
+case = {"schema_version":1,"id":"cartilage-observed-001-second-20260922","source_reports_sha256":proposal["source_reports_sha256"],"rubric_sha256":proposal["rubric_sha256"],"proposal":bind(archived(proposal_path)),"independent_assessment":bind(archived(assessment_path)),"decision":bind(archived(decision_path)),"supporting_evidence":{k:bind(archived(p)) for k,p in supports.items()},"changes":changes}
+case_path=R/"initiative/reviews-v2/adjudications/cases/cartilage-observed-001-second.json"
+extra_path=R/"initiative/reviews-v2/adjudications/cases/cartilage-observed-001-additional.json"
+for ref in [extra_case["proposal"],extra_case["independent_assessment"],extra_case["decision"],*extra_case["supporting_evidence"].values()]:assert sha(R/ref["path"])==ref["sha256"]
+save(case_path,case);save(extra_path,extra_case)
+save(I/"registry-before229.json",registry)
+rp.write_text(json.dumps({**registry,"cases":[*registry["cases"],bind(case_path),bind(extra_path)]},ensure_ascii=False,indent=2)+"\n")
+after=inspect_adjudications(reports,R/"initiative/reviews-v2/reviewed",R/"protocols/report_weak_v2.md",R)
+after_map={(c["study_uid"],c["target"]):c for c in after["changes"]}
+assert after["n_changes"]==254 and after["pending_semantic_qa"]==before["pending_semantic_qa"]
+assert set(after_map)-set(before_map)==set(proposed)|extra_keys
+assert all(after_map[k]==c for k,c in before_map.items())
+assert all(sha(R/p)==h for p,h in protected.items())
+states={x["study_uid"]:dict(zip(TARGETS,x["states"])) for p in (R/"initiative/reviews-v2/reviewed").glob("*.jsonl") for x in map(json.loads,p.read_text().splitlines())}
+for c in after["changes"]:states[c["study_uid"]][c["target"]]=c["after"]["state"]
+for d in dispositions["records"]:
+    key=d["study_uid"],d["target"]
+    assert states[key[0]][key[1]]==d["root_postfreeze_state"],(d["case"],key[1])
+    if key in set(proposed)|extra_keys:assert after_map[key]["after"]["evidence"]==d["root_postfreeze_evidence"]
+groups=defaultdict(list)
+for uid,report in reports.items():groups[report_group(report)].append(uid)
+groups={h:u for h,u in groups.items() if len(u)>1}
+conflicts=[{"group":h,"uids":u,"targets":[t for t in TARGETS if len({states[x][t] for x in u})>1]} for h,u in groups.items() if any(len({states[x][t] for x in u})>1 for t in TARGETS)]
+assert not conflicts
+new_changes=[after_map[k] for k in set(proposed)|extra_keys]
+save(I/"complete254-inspection.json",after)
+receipt={"stage":"root_verified_cartilage001_25_correction_registration","agent_id":"/root","at_utc":datetime.now(timezone.utc).isoformat(),"registry":bind(rp),"cases":[bind(case_path),bind(extra_path)],"second_proposals_accepted":24,"additional_independently_accepted":1,"prior229_changes_preserved_exactly":True,"total_registered":254,"new_transition_counts":dict(Counter(c["before"]["state"]+"->"+c["after"]["state"] for c in new_changes)),"root102_final_states_match_current":True,"all25_new_quotes_match_root_dispositions":True,"all150_selected_cells_unchanged_since193_before_integration":True,"exact_normalized_duplicate_groups":len(groups),"duplicate_reports":sum(map(len,groups.values())),"conflicting_groups":0,"protected_artifacts":[{"path":p,"sha256":h} for p,h in sorted(protected.items())],"all_protected_artifacts_unchanged":True,"prior_three_retirements_preserved":True,"pending_semantic_qa":after["pending_semantic_qa"],"label_export_performed":False,"training_ready":False}
+save(I/"complete254-integration-validation.json",receipt)
+(I/"integrate-cartilage001-v1.py.txt").write_bytes(Path(__file__).read_bytes())
+print(json.dumps({"registry":bind(rp),"receipt":bind(I/"complete254-integration-validation.json"),"total_registered":254,"new_corrections":25,"root102_reconciled":True,"duplicate_conflicts":0,"archived_source_files":len(entries),"training_ready":False}))

@@ -1,0 +1,64 @@
+"""Mechanical comparison only, after root's complete source freeze."""
+from pathlib import Path
+from datetime import datetime, timezone
+import json
+import hashlib
+import sys
+
+G = Path(__file__).resolve().parent
+W = G.parents[2]
+R = W / "work/recovered"
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+def load(p):
+    return json.loads(p.read_text())
+def bind(p):
+    return {"path": str(p.relative_to(W)), "sha256": sha(p)}
+def save(name, data):
+    p = G / name
+    with p.open("x") as f:
+        f.write(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+    return bind(p)
+
+rp = R / "initiative/reviews-v2/adjudications/registry.json"
+assert sha(rp) == "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600"
+source_freeze = G / "complete-source-assessment-frozen.json"
+assert sha(source_freeze) == "6be29069597f4bd4aff06526bf12a9e56ff36cc6722c6cf15f476cae13b74b90"
+root = load(source_freeze)
+for ref in root["source_parts"] + root["neutral_packets"]:
+    assert sha(W / ref["path"]) == ref["sha256"]
+first_path = W / "work/annotation-staging/cartilage-observed-001-postfreeze-v1/proposed-errata.json"
+second_path = W / "work/annotation-staging/cartilage-observed-001-independent-postfreeze-v1/second-complete-dispositions.json"
+second_proposal = second_path.with_name("unintegrated-proposals.json")
+reports = {r["study_uid"]: r["report"] for p in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")) for r in load(p)}
+inspection = inspect_adjudications(reports, R / "initiative/reviews-v2/reviewed", R / "protocols/report_weak_v2.md", R)
+assert inspection["n_changes"] == 229 and len(inspection["pending_semantic_qa"]) == 3
+changes = {(c["study_uid"], c["target"]): c for c in inspection["changes"]}
+roots = {(r["study_uid"], t): {"state": s, "evidence": e, "reason": r["notes"], "case": r["case"]} for r in root["records"] for t, s, e in zip(r["target_order"], r["states"], r["evidence"])}
+first_proposals = {(r["study_uid"],r["target"]):r for r in load(first_path)["proposed_errata"]}
+second_proposals = {(r["study_uid"],r["target"]):r for r in load(second_proposal)["records"]}
+records = []
+for peer in load(second_path)["records"]:
+    uid, target = peer["study_uid"], peer["target"]
+    key = (uid, target)
+    review = W / peer["original_review"]["path"]
+    assert sha(review) == peer["original_review"]["sha256"]
+    candidates = [json.loads(line) for line in review.read_text().splitlines() if line]
+    original = next(r for r in candidates if r["study_uid"] == uid)
+    ti = TARGETS.index(target)
+    original_cell = {"state": original["states"][ti], "evidence": original["evidence"][ti]}
+    assert original_cell == peer["original"]
+    current = changes[key]["after"] if key in changes else original_cell
+    record = {"case": peer["case"].removeprefix("batch-").split(":")[0] + ":" + peer["case"].split(":")[1].zfill(2), "study_uid": uid, "target": target, "source_path": peer["source_path"], "source_sha256": peer["source_sha256"], "source_index_zero_based": peer["source_index_zero_based"], "original_review": peer["original_review"], "original": original_cell, "historical193": peer["current193"], "current229": current, "changed_since193": current != peer["current193"], "accepted_key_overlap": changes.get(key), "first_postfreeze": peer["first_postfreeze"], "second_postfreeze": peer["second_postfreeze"], "first_proposal": first_proposals.get(key), "second_proposal": second_proposals.get(key), "root_frozen": roots.get(key), "reader_attention": peer["root_attention"], "reader_evidence_review": peer["evidence_review"], "pending_focused002_proposal": peer["pending_focused002_proposal"]}
+    if key in roots:
+        record["root_vs_current_state_difference"] = roots[key]["state"] != current["state"]
+    records.append(record)
+assert len(records) == 150 and sum(r["root_frozen"] is not None for r in records) == 102
+assert not any(r["changed_since193"] or r["accepted_key_overlap"] for r in records)
+assert all(not r["reader_attention"] or r["root_frozen"] is not None for r in records)
+inspection_ref = save("current229-inspection-before.json", inspection)
+out = {"stage": "post_source_freeze_mechanical_comparison", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "source_freeze": bind(source_freeze), "registry": bind(rp), "current_inspection": inspection_ref, "first_proposals": bind(first_path), "second_dispositions": bind(second_path), "second_proposals": bind(second_proposal), "source_reports": 50, "mechanically_compared_cells": 150, "root_personally_reread_full_sources": 34, "root_source_frozen_cells": 102, "root_claims_full_source_reread_of_other16_reports": False, "selected_drift_since193": 0, "selected_accepted_key_overlap": 0, "records": records, "registry_changed": False, "training_ready": False}
+print(json.dumps({"comparison": save("root-postfreeze-comparison.json", out), "root_source_cells": 102, "all_selected_cells": 150, "drift": 0}))

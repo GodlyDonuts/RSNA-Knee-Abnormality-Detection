@@ -1,0 +1,137 @@
+"""Package root's explicitly reasoned 102 decisions; no model or rule labeling."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import json
+from collections import Counter
+
+G = Path(__file__).resolve().parent
+W = G.parents[2]
+R = W / "work/recovered"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):
+    return {"path": str(p.relative_to(W)), "sha256": sha(p)}
+def save(name, data):
+    p = G / name
+    with p.open("x") as f:
+        f.write(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+    return bind(p)
+
+comparison_path = G / "root-postfreeze-comparison.json"
+assert sha(comparison_path) == "2556ef8b3d18580b2b4f33cf09c96bd1bd6a772ae3a81be4c4ab0aa8dfb4aa8d"
+comparison = json.loads(comparison_path.read_text())
+source_path = G / "complete-source-assessment-frozen.json"
+assert sha(source_path) == "6be29069597f4bd4aff06526bf12a9e56ff36cc6722c6cf15f476cae13b74b90"
+source = json.loads(source_path.read_text())
+
+# Each ordered triple was personally decided after the full-source rereading.
+FINAL = {
+    "012:41": "UNU", "012:42": "UUU", "012:46": "UUP",
+    "013:40": "XXU", "013:44": "UUP", "014:13": "XUU",
+    "014:15": "UNU", "014:25": "UNP", "014:28": "UNP",
+    "015:43": "PUU", "017:08": "UUP", "018:10": "PUX",
+    "018:28": "UPU", "019:14": "UUU", "019:26": "UUP",
+    "020:02": "UNU", "021:32": "PUU", "022:18": "PUU",
+    "023:03": "PPN", "023:22": "PPU", "024:10": "NUU",
+    "024:20": "PUU", "024:29": "NUU", "024:36": "PXN",
+    "024:41": "PUU", "025:16": "PUU", "025:29": "UPU",
+    "025:38": "PUU", "026:00": "XPX", "026:14": "PNU",
+    "026:32": "UNP", "026:41": "UUU", "027:44": "NUP",
+    "028:02": "UPU",
+}
+STATES = {"P": "positive", "N": "negative", "U": "uncertain", "X": "not_mentioned"}
+TARGETS = ["Medial OA", "Lateral OA", "PF OA"]
+RECONSIDER = {
+    ("012:46", "PF OA"): "I withdraw my additional two-dimensional footprint requirement. The frozen rubric specifies a roughly >=1 cm region, not >=1 cm in both axes or a square-centimeter minimum. The explicit full-thickness patellar defect measures 14 by 5 mm and supplies a qualifying measured linear extent. Retain the current positive, independently of the unnamed conclusion grade4. My original narrower interpretation remains preserved, not silently edited.",
+    ("018:10", "Medial OA"): "I withdraw my requirement for a second measured axis. The complete medial source explicitly describes total cartilage erosion in the femoral and tibial surfaces over at least 12 mm anteroposteriorly. That supplies the frozen rubric's approximate centimeter extent and full depth. Preserve positive and expand the quote to include medial localization; no two-axis minimum is introduced.",
+    ("025:38", "Medial OA"): "I withdraw my requirement for two measured dimensions. The current medial full-thickness loss is explicitly measured up to 1.3 cm in size; the frozen rubric does not require both axes or an area. Retain positive based on the reported maximum extent and full depth, not on surrounding moderate chondrosis or longitudinal progression.",
+    ("023:22", "Medial OA"): "I reconsider uncertain after rereading the complete Dutch sentence. Quasi volledig kraakbeenverlies dragende deel mediale femorale condyl describes near-complete cartilage loss of the named weightbearing medial femoral part; it is not a separately focal defect merely situated there. I accept broad near-complete regional loss as a qualitative report-level inference, consistent with other named-surface denudation cases. No numeric footprint is claimed, and the preceding moderate disease adjective is not the positive basis. Preserve my original narrower location-only reading explicitly.",
+}
+
+# Explicitly accepted source recommendations, including four localization quotes.
+ACCEPT_SECOND = {
+    ("012:41", "Medial OA"): "The medial measured defect has undefined loss depth; high grade does not supply a source-bound fraction. Preserve uncertain.",
+    ("012:42", "PF OA"): "Unnamed gradeI patellar chondromalacia has no independent below-half morphology. Preserve uncertain.",
+    ("013:40", "PF OA"): "Mild gradeI PF chondromalacia has no bound grading scale or loss fraction. Preserve uncertain.",
+    ("013:44", "Lateral OA"): "Low-grade lateral thinning does not give an explicit loss fraction or superficial-only boundary. I retain the source-frozen uncertainty despite the first reader's negative.",
+    ("014:13", "Lateral OA"): "The Greek denial is qualified by noteworthy pathology and does not independently establish normal cartilage. Preserve uncertain.",
+    ("014:13", "PF OA"): "The patellar unnamed gradeI does not establish a depth boundary; accept uncertain with the full local anatomical quote. The same pending wording002 key must be reconciled once.",
+    ("014:15", "PF OA"): "The full-depth fissures have no qualifying measured or broad full-depth footprint. Diffuse high-grade partial-thickness loss lacks a source-bound fractional convention. Preserve uncertain; the first reader's positive remains documented.",
+    ("015:43", "Medial OA"): "The majority of the femoral surface has full-depth loss, establishing broad regional disease. Retain positive and expand the contiguous quote to the medial compartment heading.",
+    ("015:43", "Lateral OA"): "No high-grade loss is a qualified severity denial without a defined fraction; preserve uncertain and include the lateral heading in the quote.",
+    ("018:10", "Medial OA"): RECONSIDER[("018:10", "Medial OA")],
+    ("018:10", "Lateral OA"): "The lateral Greek statement denies noteworthy pathology only; preserve uncertainty. Reconcile the duplicate pending wording002 proposal once.",
+    ("019:14", "Medial OA"): "Broad medial high-grade loss establishes distribution, but not a stated thickness fraction or full-depth morphology. Preserve uncertain depth.",
+    ("019:14", "Lateral OA"): "Low-grade lateral loss lacks a defined below-half boundary. Preserve uncertainty despite the first reader's negative interpretation.",
+    ("019:26", "Medial OA"): "Confluent full-depth areas establish depth and merging, but do not size a qualifying region or state full loss throughout the weightbearing surface. Preserve extent uncertainty.",
+    ("020:02", "PF OA"): "Caudal two-thirds describes surface coverage, not thickness lost. Combined severe thinning and loss does not independently quantify a qualifying deep-loss component. Preserve uncertain.",
+    ("022:18", "Medial OA"): "Broad full-depth defects on both medial surfaces support positive. The expanded Spanish quote supplies medial localization absent from the old isolated excerpt.",
+    ("024:10", "PF OA"): "Unsized full-depth fissures and diffuse high-grade partial loss do not bind both required depth and extent. Preserve uncertainty and retain the first reader's contrary positive.",
+    ("024:29", "PF OA"): "Diffuse severe trochlear loss provides distribution but no explicit loss fraction or full-depth description; patellar thinning does not resolve depth. Preserve uncertain.",
+    ("024:41", "Medial OA"): "Broad medial full-thickness loss meets the qualitative extent and explicit depth requirements. Retain positive and restore medial localization in the exact quote.",
+    ("025:29", "Medial OA"): "Low-grade partial-thickness loss does not define its fractional boundary. Preserve uncertain and use the localized medial paragraph; the first reader's negative remains documented.",
+    ("025:38", "Lateral OA"): "Mild lateral irregularity neither establishes preserved thickness nor a defined loss fraction. The separate edema qualification is not cartilage evidence. Preserve uncertain.",
+    ("026:32", "Medial OA"): "Preserve the corrupted dimension literally. A valid 1.4 cm axis cannot supply missing depth, and the PF lesion's explicit greater-than-half definition is not transferred to this medial focus. Preserve uncertain.",
+    ("026:41", "Medial OA"): "The 8 by 5 mm full-depth focus does not establish a centimeter region or bound the surrounding diffuse high-grade disease. Other loss lacks a source-bound fraction; preserve uncertain without converting the small focus into a whole-compartment negative.",
+    ("026:41", "PF OA"): "Patellar heterogeneity is informative but neither an explicit preserved-thickness statement nor a defined loss fraction. Normal tracking morphology is separate. Preserve uncertain.",
+}
+REJECT_FIRST = {
+    ("012:46", "Medial OA"): "Retain uncertain. Mild thinning plus no major defects has no independently defined loss fraction; do not unmask the target from the adjective alone.",
+    ("020:02", "Medial OA"): "Retain uncertain. Mild medial thinning lacks a directly stated fraction or superficial-only description. The first reader's below-threshold interpretation remains preserved.",
+    ("024:29", "Medial OA"): "Retain negative. The detailed cartilage statement explicitly says medial cartilage is intact. The generic tricompartmental chondrosis summary has no specific competing medial defect or depth finding; it does not outweigh this direct structural assessment. Preserve the first reader's conflict-based uncertainty as a contrary judgment.",
+    ("028:02", "Medial OA"): "Retain uncertain. Relatively mild age-related thinning supplies no explicit fractional or superficial-only boundary. Do not unmask from age-related or mild wording alone.",
+}
+EXTRA = ("026:41", "Lateral OA")
+extra_reason = "I retain my original source-frozen uncertainty. Low-grade cartilage fraying is not a directly stated less-than-half loss fraction or explicit preserved-thickness/superficial-only description. Both cartilage001 readers interpreted it as below threshold; those opinions remain preserved. The analogous earlier mild-fraying corrections were separately retired after source reassessment. This new proposal needs a distinct actual assessment, and is not accepted merely because it is more conservative."
+
+all_records = [r for r in comparison["records"] if r["root_frozen"] is not None]
+assert len(all_records) == 102 and set(FINAL) == {r["case"] for r in all_records}
+assert set(ACCEPT_SECOND) == {(r["case"], r["target"]) for r in all_records if r["second_proposal"]}
+assert set(REJECT_FIRST) <= {(r["case"], r["target"]) for r in all_records if r["first_proposal"]}
+rows, reconsiderations, assessments, extra = [], [], [], []
+for r in all_records:
+    k = (r["case"], r["target"])
+    state = STATES[FINAL[r["case"]][TARGETS.index(r["target"])]]
+    frozen = r["root_frozen"]
+    reason = frozen["reason"]
+    evidence = r["current229"]["evidence"]
+    action = "retain_current_annotation"
+    if k in ACCEPT_SECOND:
+        p = r["second_proposal"]
+        assert state == p["after_proposed"]["state"]
+        evidence = p["after_proposed"]["evidence"]
+        reason = ACCEPT_SECOND[k]
+        action = "accept_second_proposal_pending_normalized_binding_and_registry_integration"
+    elif k == EXTRA:
+        evidence = frozen["evidence"]
+        reason = extra_reason
+        action = "additional_root_proposal_pending_distinct_assessment"
+    elif k in REJECT_FIRST:
+        reason = REJECT_FIRST[k]
+    elif k in RECONSIDER:
+        reason = RECONSIDER[k]
+    elif k == ("014:25", "Medial OA"):
+        reason = "Retain uncertain solely for localization: the full-thickness femoral defect measures 12 by 8 mm, which is not rejected by an invented two-axis minimum. Its sentence does not securely specify medial versus lateral. The preceding medial meniscus and subsequent superficial lateral cartilage do not establish the missing compartment. My earlier two-dimensional objection is withdrawn without changing state."
+    elif k == ("018:28", "Lateral OA"):
+        reason = "Retain positive for directly denuded lateral femoral cartilage over 9 by 13 mm. The 13 mm extent and full-depth loss support the frozen criterion; no requirement for both dimensions to reach 1 cm is introduced."
+    report = json.loads((R / r["source_path"]).read_text())[r["source_index_zero_based"]]["report"]
+    assert (state == "not_mentioned" and evidence == "") or (state != "not_mentioned" and evidence and evidence in report)
+    if state != frozen["state"]:
+        assert k in RECONSIDER
+        reconsiderations.append({"case": r["case"], "study_uid": r["study_uid"], "target": r["target"], "before_source_state": frozen["state"], "after_postfreeze_state": state, "reason": RECONSIDER[k], "source_freeze_preserved": True})
+    if action == "retain_current_annotation":
+        assert {"state": state, "evidence": evidence} == r["current229"]
+    row = {"case": r["case"], "study_uid": r["study_uid"], "target": r["target"], "source_path": r["source_path"], "source_sha256": r["source_sha256"], "original": r["original"], "current229": r["current229"], "root_frozen_state": frozen["state"], "root_frozen_evidence": frozen["evidence"], "root_postfreeze_state": state, "root_postfreeze_evidence": evidence, "root_state_reconsidered": state != frozen["state"], "first_postfreeze": r["first_postfreeze"], "second_postfreeze": r["second_postfreeze"], "reason": reason, "action": action, "first_proposal_disposition": "rejected_preserve_current_state" if k in REJECT_FIRST else "supported_via_second_proposal_with_final_quote" if r["first_proposal"] else None, "raw_evidence_variants_retained_in_comparison": True, "pending_focused002_overlap": r["pending_focused002_proposal"] is not None}
+    rows.append(row)
+    if k in ACCEPT_SECOND:
+        assessments.append({"case": r["case"], "study_uid": r["study_uid"], "target": r["target"], "source_path": r["source_path"], "source_sha256": r["source_sha256"], "independent_source_state": state, "source_evidence": evidence, "reason": reason, "root_frozen_state": frozen["state"], "root_state_reconsidered": state != frozen["state"]})
+    if k == EXTRA:
+        base = r["original_review"]
+        extra.append({"case": r["case"], "study_uid": r["study_uid"], "target": r["target"], "source_path": r["source_path"], "source_sha256": r["source_sha256"], "artifact_path": base["path"].removeprefix("work/recovered/"), "artifact_sha256": base["sha256"], "before_state": r["original"]["state"], "before_evidence": r["original"]["evidence"], "proposed_state": state, "source_quote": evidence, "reason": reason, "status": "proposed_pending_distinct_assessment"})
+assert len(reconsiderations) == 4 and len(assessments) == 24 and len(extra) == 1
+base = {"schema_version": 1, "agent_id": "/root", "session_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "rubric_sha256": source["rubric_sha256"], "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3", "source_freeze": bind(source_path), "comparison": bind(comparison_path), "registry_at_comparison": comparison["registry"], "prior_source_and_decision_exposure_disclosed": True, "original_artifacts_preserved": True, "gold_values_inspected": False, "registry_changed": False, "training_ready": False}
+recon_ref = save("root-explicit-reconsiderations.json", {**base, "stage": "explicit_postfreeze_source_reconsiderations", "records": reconsiderations, "reason_only_corrections": [{"case": "014:25", "target": "Medial OA", "state_unchanged": True, "reason": next(r["reason"] for r in rows if (r["case"],r["target"]) == ("014:25","Medial OA"))}, {"case": "018:28", "target": "Lateral OA", "state_unchanged": True, "reason": next(r["reason"] for r in rows if (r["case"],r["target"]) == ("018:28","Lateral OA"))}], "rubric_changed": False, "official_page_fresh_text_available": False, "reference_limit": "A fresh web open of the linked host post returned no readable text. These corrections bind to the existing frozen operational rubric, not a newly claimed organizer clarification."})
+dispo_ref = save("root-postfreeze-dispositions.json", {**base, "stage": "root_complete_attention_adjudication", "records": rows, "source_reports_personally_reread": 34, "oa_judgments": 102, "explicit_reconsiderations": recon_ref, "accepted_second_proposals_pending_binding": 24, "first_proposals_supported_via_second": 15, "first_proposals_rejected": 4, "additional_root_proposals_pending": 1, "no_claim_of_root_full_source_reread_for_other16": True})
+assessment_ref = save("second-proposals-independent-assessment.json", {**base, "stage": "independent_source_assessment", "proposer_agent_id": "/root/last_twelve_visual_review", "records": assessments, "dispositions": dispo_ref})
+extra_ref = save("additional-root-proposal.json", {**base, "stage": "root_additional_proposal_pending_distinct_source_assessment", "status": "proposed", "proposed_errata": extra, "n_changes": 1, "dispositions": dispo_ref})
+print(json.dumps({"dispositions": dispo_ref, "assessment": assessment_ref, "additional_proposal": extra_ref, "reconsiderations": 4, "accepted_second_transitions": dict(Counter(r['current229']['state']+'->'+r['root_postfreeze_state'] for r in rows if r['action'].startswith('accept_second'))), "registry_changed": False}))

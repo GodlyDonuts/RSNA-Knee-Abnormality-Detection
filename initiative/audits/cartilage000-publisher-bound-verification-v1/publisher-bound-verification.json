@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "session_id": "/root/quality_temporal_review",
+  "checked_at_utc": "2026-09-22T00:04:15.539971+00:00",
+  "status": "exact_requested_pins_verified_no_publication_logic_changes",
+  "publisher": {
+    "path": "work/publish_cartilage000_delta.py",
+    "sha256": "25e543b4d51ff1f92ea689890531c9bd1592164e6b537fb541e590f9074afec8",
+    "bytes": 14672
+  },
+  "prior_publisher": {
+    "path": "work/publish_qualified001_delta.py",
+    "sha256": "5b5821f6b45a97f7832a08c64ac2f935d100e1604446fafcc9a5d56312a59057",
+    "bytes": 14672
+  },
+  "allowed_substitutions": {
+    "TARGET = \"7c1225e61974c374245c0656edeb0c47f54582c6\"": "TARGET = \"001eff697a6dae5c83213a82948fc4dfda520354\"",
+    "PARENT = \"291d0051cb517a5609c23a58a2e4f5a0e724664a\"": "PARENT = \"a70f15a39afd38a994aedc72af774817bf53647e\"",
+    "N_FILES = 7179": "N_FILES = 7493",
+    "N_CORRECTIONS = 205": "N_CORRECTIONS = 229",
+    "CI_RUN = 35666396114": "CI_RUN = 35669808219",
+    "require(type(N_CORRECTIONS) is int and N_CORRECTIONS == 205, \"correction_count_not_205\")": "require(type(N_CORRECTIONS) is int and N_CORRECTIONS == 229, \"correction_count_not_229\")"
+  },
+  "exact_text_after_only_allowed_substitutions_matches": true,
+  "diff": {
+    "path": "work/annotation-staging/cartilage000-publisher-bound-verification-v1/publisher-only-pin-diff.txt",
+    "sha256": "8ddbfd06d4574b71dbeb77e1c334bcd1bd559ce3bb50c760f81b9aad7569ba2e",
+    "bytes": 1480
+  },
+  "git_commit": "001eff697a6dae5c83213a82948fc4dfda520354",
+  "git_tree": "f8d05b81361be76ce11aa0ff6d7478516115cef0",
+  "git_worktree_clean": true,
+  "exact_git_manifest_member_count": 7493,
+  "all_member_paths_modes_sizes_and_git_blob_ids_match_pinned_tree": true,
+  "manifest": {
+    "path": "work/hf-preparation-deltas/001eff697a6dae5c83213a82948fc4dfda520354/manifest.json",
+    "sha256": "433e8a454b8c5850c0b25116b775ad6dab431ac82b63fd0ff296a14ee719a18e",
+    "bytes": 3061619
+  },
+  "prepared_operation": {
+    "path": "work/hf-preparation-deltas/001eff697a6dae5c83213a82948fc4dfda520354/root-publication-operation.json",
+    "sha256": "82cf07c8b4514ea1201d1c9abc3ffaa1264d9b8bf572b70dc0d4ae07bd23c655",
+    "bytes": 2997
+  },
+  "all_six_prepared_local_object_sizes_and_sha256_verified": true,
+  "helper": {
+    "local_path": "work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py",
+    "sha256": "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8",
+    "bytes": 27915
+  },
+  "transport": {
+    "local_path": "work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py",
+    "sha256": "494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f",
+    "bytes": 27855
+  },
+  "helper_and_transport_unchanged_from_prior_reviewed_operation": true,
+  "expected_hf_parent": "a70f15a39afd38a994aedc72af774817bf53647e",
+  "prior_private_publication_receipt": {
+    "path": "work/hf-preparation-deltas/7c1225e61974c374245c0656edeb0c47f54582c6/root-publication-receipt.json",
+    "sha256": "b9246a2acf354e638037baacd5bd6bc00d40082897ededa18dd1c330800637ce",
+    "bytes": 4278
+  },
+  "hf_parent_scope": "Expected parent matches the prior verified private publication receipt and current operation. No fresh HF network read was performed here; the unchanged publisher rechecks private head and enforces the parent fence before any write.",
+  "exact_ci": {
+    "path": "work/annotation-staging/cartilage000-publisher-bound-verification-v1/exact-ci-success.json",
+    "sha256": "217fff9d9bd0ca2c8042b2cb0072d5a8cca8a43720991a59a71313a5d9336a8d",
+    "bytes": 307
+  },
+  "current_registry": {
+    "path": "work/recovered/initiative/reviews-v2/adjudications/registry.json",
+    "sha256": "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600",
+    "bytes": 3134
+  },
+  "active_validated_corrections": 229,
+  "registry_matches_pinned_git_blob": true,
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "root_restoration_proof": {
+    "path": "work/hf-preparation-deltas/001eff697a6dae5c83213a82948fc4dfda520354/root-restoration-proof.json",
+    "sha256": "126261867ee4abade3d98c1234419847e3e2c78965f12216e6a2863b22cf0766",
+    "bytes": 3014
+  },
+  "restoration_scope": "The root proof already records all-member payload verification; this independent short check binds that proof and checks every target-tree metadata member plus all six prepared-object digests, without restreaming or copying the base archive.",
+  "transport_or_publication_logic_changed": false,
+  "publisher_executed": false,
+  "credentials_opened": false,
+  "network_mutations": 0,
+  "uploads": 0,
+  "source_or_gold_csv_values_opened": false,
+  "clinical_annotation_process_access": "Runtime registry validation inspected existing correction evidence only to verify its aggregate229 count; no bone003 candidate-specific states or findings were selected or displayed. Disclose this mechanical publication validation before the next source pass.",
+  "global_gate_closed": false,
+  "training_ready": false,
+  "verifier": {
+    "path": "work/annotation-staging/cartilage000-publisher-bound-verification-v1/verify_bindings.py",
+    "sha256": "92d04e43bbf9c02b46c27183095eb0cbbd2d410a1d19b8908e3f5f86d7fee7a7",
+    "bytes": 8561
+  }
+}

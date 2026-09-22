@@ -1,0 +1,79 @@
+"""Preserve thirty personally authored OA judgments after reading ten full sources."""
+from pathlib import Path
+from datetime import datetime, timezone
+import json, hashlib
+
+G = Path(__file__).resolve().parent
+W = G.parents[2]
+R = W / "work/recovered"
+P = W / "work/annotation-staging/cartilage-observed-001-independent-postfreeze-v1/neutral-root-packets/batch-000.json"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(P) == "0aab865b25a2d29bb641563e7f343e04e2333850bc250c17904a4010f692f5d9"
+sources = json.loads(P.read_text())
+N, U, X, POS = "negative", "uncertain", "not_mentioned", "positive"
+JUDGMENTS = [
+    ("012:41", [U, N, U], [
+        "Medial betonte Gonarthrose mit in der Belastungszone flächig gemindertem Knorpelbesatz, v.a. tibial, und zentral subchondral ödematösen Veränderungen, ebenfalls tibial führend (exemplarisch 4/18). Fokal hochgradiger chondraler Defekt an der dorsomedialen Femurkondyle mit 11 x 6\u00a0mm (ap x ml; 4/23).",
+        "Oberflächliche Chondropathien auch im lateralen femorotibialen Gelenk.",
+        "Lateral betonte Schliffarthrose femoropatellar.",
+    ], "Medial broad reduction lacks explicit depth, while the focal high-grade defect has measurements but no defined loss fraction. Lateral disease is explicitly superficial, supporting below-threshold negative. PF grinding arthrosis is a diagnosis without a separately described qualifying cartilage-loss region; do not supply severity/extent from that label."),
+    ("012:42", [U, U, U], [
+        "Prikaže se hondromalacija III° hrskavice medijalnog tibijalnog platoa kao i hondromalacija\nhrskavice lateralnog tibijalnog platoa IV°.",
+        "Prikaže se hondromalacija III° hrskavice medijalnog tibijalnog platoa kao i hondromalacija\nhrskavice lateralnog tibijalnog platoa IV°.",
+        "Hondromalacija I° patelarne hrskavice.",
+    ], "Each cartilage compartment has an unnamed numerical grade, without direct loss depth or a qualifying region size. Normal articulation and separate ligament/meniscus findings do not establish preserved cartilage thickness. Keep all three uncertain rather than infer the reporting scale."),
+    ("012:46", [U, U, U], [
+        "Lichte verdunning van het kraakbeen mediaal femorotibiaal. Geen majeure kraakbeendefecten mediaal of lateraal femorotibiaal.",
+        "Geen majeure kraakbeendefecten mediaal of lateraal femorotibiaal.",
+        "Volledig dikte kraakbeendefect centrocentraal patellair met afmetingen 14 x 5\\~mm.",
+    ], "Medial mild thinning is not source-bound to a depth fraction, and absence of major tibiofemoral defects is qualified. PF full depth is explicit, but its narrow14 by5 mm footprint does not unambiguously establish the roughly centimeter-scale region; preserve extent uncertainty instead of treating the long axis alone as decisive. The conclusion grade4 does not change that dimensional limitation."),
+    ("013:40", [X, X, U], [
+        "", "", "Patellofemoral eklemde grade I hafif kondromalazi bulguları izlenmiştir.",
+    ], "No informative medial or lateral cartilage assessment; meniscal and bone findings are separate targets. PF gradeI/mild chondromalacia lacks a named scale or independent loss-depth description. Preserve uncertainty without converting mild or the numeral into a measured fraction."),
+    ("013:44", [U, U, POS], [
+        "Full-thickness chondral loss is also appreciated in the weightbearing portion of the medial femoral condyle.",
+        "Low-grade chondral thinning in the lateral tibiofemoral compartment.",
+        "Severe patellofemoral degenerative change with diffuse full-thickness chondral loss along the retropatellar facets and corresponding femoral trochlea, and chronic underlying bone stress changes together with attrition/moulding of the retropatellar facets.",
+    ], "Medial full-depth loss has weightbearing location but no qualifying footprint. Lateral low-grade thinning does not define a below-half loss fraction. PF diffuse full-depth loss along both facets and corresponding trochlea supports broad regional extent as an explicit qualitative report-level inference; it is not merely scattered full-depth ulcers or a numeric measurement."),
+    ("014:13", [X, U, U], [
+        "",
+        "Στην περιοχή του έξω διαµερίσµατος δεν αναγνωρίζονται αξιόλογα παθολογικά ευρήµατα.",
+        "Από τον έλεγχο του πρόσθιου διασµερίσµατος αναδεικνύεται χονδροπάθεια grade I της επιγονατίδας, και ευµεγέθης υπερεπιγονατιδική υµενική πτυχή.",
+    ], "The medial compartment description addresses the meniscus only. The lateral broad statement denies notable pathological findings, retaining a significance qualification rather than explicitly normal cartilage. PF gradeI is unnamed and gives no direct loss-depth morphology; plica size is not cartilage loss."),
+    ("014:15", [U, N, U], [
+        "Medial compartment cartilage: High-grade partial-thickness cartilage loss about the central and posterior weightbearing medial femoral condyle with superimposed areas of full-thickness fissuring and mild subchondral marrow edema, progressed from prior.",
+        "Lateral compartment cartilage: No focal cartilage defects.",
+        "Patellofemoral compartment cartilage: Full-thickness fissuring involving the median ridge and lateral patellar facet with mild subchondral marrow edema and cystic change, low-grade partial-thickness loss along the medial patellar facet peripherally. Focal full-thickness fissuring involving the mid to inferior lateral femoral trochlea with mild subchondral marrow edema superimposed on diffuse high-grade partial-thickness cartilage loss along the lateral femoral trochlea.",
+    ], "Medial and PF full-depth fissures have no qualifying region size; surrounding high-grade partial loss does not independently define a numeric depth fraction. Lateral cartilage defects are explicitly absent without a significance qualifier and with no competing cartilage abnormality in this source, supporting negative. The measured1.1 cm loose body is not a cartilage-loss measurement."),
+    ("014:25", [U, N, POS], [
+        "Schräg-horizontale Rissbildung im Innenmeniskushinterhorn bei mukoider Vorschädigung (7/8). Flächige mäßige Chondropathie femoral mit dorsal vollschichtem Knorpeldefekt von ap 12 x ml 8 mm (5/26).",
+        "Oberflächliche Chondropathie im lateralen Kompartiment.",
+        "Flächig vollschichtige Chondropathie an der medialen Patellafacette sowie an der korrespondierenden Trochlea und am Sulcus trochlearis.",
+    ], "The femoral defect follows the medial meniscal finding but lacks an explicit cartilage-compartment label; its12 by8 mm extent is also borderline rather than a clear qualifying region. Preserve medial uncertainty. Lateral cartilage disease is superficial. PF explicitly broad full-depth disease at the medial facet, corresponding trochlea and sulcus supports qualitative regional extent; record that inference rather than claim a measurement."),
+    ("014:28", [U, N, POS], [
+        "Zu [DATE] progrediente, medial betonte, gering- bis mäßiggradige Gonarthrose mit flächig gemindertem Knorpelbesatz in der medialen Belastungszone, zum Meniskus hin zunehmend.",
+        "Oberflächliche Chondropathie lateralseitig sowie retropatellar.",
+        "Bis flächig vollschichtige chondrale Läsion über 21 x 19\u00a0mm (ml x cc; 8/17, 6/16) in der Trochlea mit medialer Betonung an den Kondylenwangen bei hier subchondraler Zysten- minimal assozierter Ödembildung.",
+    ], "Medial broad cartilage reduction lacks explicit depth despite the OA severity wording. Lateral superficial morphology supports negative. The trochlear lesion reaches broad full thickness over21 by19 mm, supporting a qualifying deep PF region; the separate superficial retropatellar finding does not negate it."),
+    ("015:43", [POS, U, U], [
+        "Cartilage: Full-thickness cartilage loss with small subchondral edema/cystic change involves the majority of femur. Full-thickness and high-grade partial thickness cartilage loss involves majority of the tibial plateau.",
+        "LATERAL COMPARTMENT:\nLateral meniscus: Intact. No discrete tear.\nCartilage: No high-grade cartilage loss.",
+        "Patellar cartilage: Focal high-grade cartilage loss with 3 mm full-thickness delaminating chondral fissure and subchondral edema/cystic change in median ridge. Low-grade partial thickness cartilage loss and medial facet.\nTrochlear cartilage: Focal low-grade cartilage loss with heterogeneity in trochlear groove.",
+    ], "Medial majority-of-femur full-depth loss establishes extensive qualifying cartilage loss by explicit anatomical coverage. Lateral absence of high-grade loss is not bound to a defined fraction in this report. PF has a3 mm full-depth fissure and other focal high/low-grade descriptions without a qualifying deep-loss region; do not use overall moderate OA to supply it."),
+]
+assert len(sources) == len(JUDGMENTS) == 10
+rows = []
+for source, (case, states, evidence, notes) in zip(sources, JUDGMENTS):
+    assert case == source["batch"].replace("batch-", "") + ":" + str(source["index"]).zfill(2)
+    sp = R / source["source_path"]
+    assert sha(sp) == source["source_sha256"]
+    original = json.loads(sp.read_text())[source["index"]]
+    assert original["study_uid"] == source["study_uid"] and original["report"] == source["report"]
+    for state, quote in zip(states, evidence):
+        assert (state == X and quote == "") or (state != X and quote and quote in source["report"]), (case, state, quote)
+    rows.append({"case": case, "study_uid": source["study_uid"], "source_path": source["source_path"], "source_sha256": source["source_sha256"], "source_index_zero_based": source["index"], "report_sha256": hashlib.sha256(source["report"].encode()).hexdigest(), "target_order": ["Medial OA", "Lateral OA", "PF OA"], "states": states, "evidence": evidence, "notes": notes})
+out = {"stage": "partial_root_cartilage001_complete_source_reading_before_current_case_findings", "agent_id": "/root", "session_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "neutral_packet": {"path": str(P.relative_to(W)), "sha256": sha(P)}, "rubric_sha256": sha(R / "protocols/report_weak_v2.md"), "exposure": "Root previously participated in full4407 and focused wording/source adjudications, and cartilage000 source/decision work. These10 complete cartilage001 attention sources were personally reread before opening cartilage001 reader findings or current selected labels. This is not a first-ever blinded reading. An initial inspection printed the full10 source list before a shape-handling exception; all10 displayed reports were read in full, without annotation content. No gold values were inspected.", "full_reports": 10, "oa_judgments": 30, "records": rows, "remaining_attention_reports": 24, "registry_changed": False, "global_qa_gates_closed": 0, "training_ready": False}
+p = G / "first-ten-source-assessment.json"
+with p.open("x") as f:
+    f.write(json.dumps(out, ensure_ascii=False, indent=2) + "\n")
+print(json.dumps({"path": str(p.relative_to(W)), "sha256": sha(p), "reports": 10, "judgments": 30}))

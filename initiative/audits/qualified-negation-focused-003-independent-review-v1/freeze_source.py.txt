@@ -1,0 +1,152 @@
+"""Package600 personally authored target decisions and verify immutable source evidence."""
+import hashlib
+import json
+import runpy
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+S = Path(__file__).resolve().parent
+W = S.parents[2]
+R = W / 'work/recovered'
+AGENT = '/root/last_twelve_visual_review'
+TARGETS = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+
+
+def obj(p):
+    return json.loads(p.read_bytes())
+
+
+def ref(p):
+    b = p.read_bytes()
+    return {'path': str(p.relative_to(W)), 'sha256': hashlib.sha256(b).hexdigest(), 'bytes': len(b)}
+
+
+def write(name, value):
+    p = S / name
+    with p.open('x') as f:
+        json.dump(value, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+    return p
+
+
+packet = obj(S / 'neutral-source-packet.json')
+binding = obj(S / 'source-bindings-and-exposure.json')
+rubric = R / 'protocols/report_weak_v2.md'
+assert ref(S / 'neutral-source-packet.json')['sha256'] == 'a64451d4ed5bc9d442ee760a65b2ca3748f504c43dc5f13b66d7fdc3bff1cfe8'
+assert ref(rubric)['sha256'] == '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+assert (S / 'neutral-source-packet.json').read_bytes() == (W / binding['source_packet']['path']).read_bytes()
+for prior in binding['prior_neutral_packet_bindings']:
+    assert ref(W / prior['path']) == prior
+rows = {}
+helpers = sorted(S.glob('decisions_*.py'))
+assert len(helpers) == 10
+for h in helpers:
+    authored = runpy.run_path(str(h))['ROWS']
+    assert not rows.keys() & authored.keys()
+    rows.update(authored)
+assert len(packet) == 50 and set(rows) == set(range(50))
+checks, out = [], []
+for i, p in enumerate(packet):
+    b = binding['bindings'][i]
+    sp = R / p['source_path']
+    assert ref(sp)['sha256'] == p['source_sha256']
+    assert obj(sp)[p['index']] == {'study_uid': p['study_uid'], 'report': p['report']}
+    assert b['study_uid'] == p['study_uid'] and b['source_index_zero_based'] == p['index']
+    assert b['report_utf8_sha256'] == hashlib.sha256(p['report'].encode()).hexdigest()
+    assert len(rows[i]) == 12
+    for target, (state, quote, reason) in zip(TARGETS, rows[i]):
+        assert state in {'positive', 'negative', 'uncertain', 'not_mentioned'}
+        assert bool(quote) == (state != 'not_mentioned') and quote in p['report']
+        assert reason.strip() and 'PLACEHOLDER' not in reason
+        checks.append({'packet_index': i, 'study_uid': p['study_uid'], 'target': target,
+                       'quote_start_character': p['report'].find(quote) if quote else None,
+                       'quote_characters': len(quote),
+                       'quote_utf8_sha256': hashlib.sha256(quote.encode()).hexdigest() if quote else None,
+                       'exact_contiguous_or_missing_empty': True})
+    out.append({'agent_id': AGENT, 'session_id': AGENT, 'packet_index': i,
+                'case': f"{p['batch'].removeprefix('batch-')}:{p['index']}",
+                'study_uid': p['study_uid'], 'source_path': p['source_path'],
+                'source_sha256': p['source_sha256'], 'source_index_zero_based': p['index'],
+                'report_utf8_sha256': b['report_utf8_sha256'], 'target_order': TARGETS,
+                'states': [x[0] for x in rows[i]], 'evidence': [x[1] for x in rows[i]],
+                'target_reasoning': [x[2] for x in rows[i]],
+                'prior_exact_neutral_overlaps': [x for x in binding['exact_prior_packet_overlaps'] if x['packet_index'] == i],
+                'notes': 'Independent full-source wording003 second pass. Historical exact source/clinical overlap and broader contextual exposure disclosed. No first wording003 findings or fresh current003 case annotations opened before freeze. Decisions remain unintegrated.'})
+assert len(out) == len({x['study_uid'] for x in out}) == 50
+assert len(checks) == len({(x['study_uid'], x['target']) for x in checks}) == 600
+assessment = S / 'independent-assessment.jsonl'
+with assessment.open('x') as f:
+    for row in out:
+        f.write(json.dumps(row, ensure_ascii=False) + '\n')
+revision = write('pre-freeze-own-reconsiderations.json', {
+    'agent_id': AGENT, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'scope': 'Own source-only review before freezing, without first003/current003 case findings.',
+    'changes': [
+        {'packet_index': 16, 'study_uid': packet[16]['study_uid'], 'target': 'Synovitis',
+         'initial_authored': {'state': 'negative', 'evidence': 'Gelenkkapsel nicht verdickt, kein wesentlicher Erguss.',
+                             'reason': 'Explicit absence of joint-capsular thickening is a negative thickening assessment; no contradictory synovial inflammation is described.'},
+         'final_source': {'state': rows[16][8][0], 'evidence': rows[16][8][1], 'reason': rows[16][8][2]},
+         'reason': 'On own anatomical-scope check, joint capsule without thickening was not a specific synovial-lining assessment. Changed to not_mentioned with empty evidence; no clinical feedback was opened.'},
+        {'packet_index': 45, 'study_uid': packet[45]['study_uid'], 'target': 'Medial Meniscus',
+         'state_unchanged': 'positive',
+         'initial_evidence': 'Il y a une déchirure horizontale impliquant le corps et la corne postérieure s’étendant à la surface articulaire inférieure au niveau du corps. Il y a légère extrusion du ménisque au niveau du corps. Il n’y a pas de fragment méniscal déplacé. Le ménisque externe est sans particularité.',
+         'final_evidence': rows[45][2][1],
+         'reason': 'Expanded the quote backward to include explicit medial meniscus identity and omitted the unnecessary lateral sentence. State unchanged.'},
+    ],
+    'mechanical_validation_history': 'All first300 quotation checks passed. After the two authored refinements, all600 quotation checks passed. No source text was normalized or repaired.',
+})
+exposure = write('completed-source-exposure-and-chronology.json', {
+    'agent_id': AGENT, 'session_id': AGENT, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'preparation': ref(S / 'source-bindings-and-exposure.json'),
+    'full_source_reading': 'All50 complete neutral original reports were personally read in ten sequential groups of five. All12 judgments per report were authored explicitly with individual reasoning and exact contiguous evidence. Code only assembles these decisions and checks provenance/evidence.',
+    'rubric_use': 'The full unchanged rubric was personally reread during the immediately preceding legacy-three source task and reused here; its bytes/hash were rechecked. No rubric revision or invented numerical grading policy was applied.',
+    'prior_exposure': binding['historical_exposure'],
+    'exact_overlap_scope': 'Four unique report UID overlaps across the ten explicitly bound prior neutral packets: three cartilage001 reports and one cartilage002 report. Those reports were previously personally read and clinically compared for OA; those existing opinions/context are acknowledged. The UID scan is not a claim of exhaustive reconstruction of every earlier viewed byte.',
+    'exact_overlaps': binding['exact_prior_packet_overlaps'],
+    'workflow_notifications': 'During this source pass root reported execution of the accepted legacy retirement and a subsequent authoritative229 registry, SHA c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600. This was an aggregate coordination message. No229 inspection, new registry bytes, first003 clinical findings or fresh current003 case annotations were opened for this source pass.',
+    'historical_process_access': 'Previous comparison/replay helpers accessed accepted registry/case bytes through223. Previously viewed broad legacy004/088 audit candidates and other focused/cartilage/technical interpretations remain known. This pass is not first-ever blinding or a claim that no process historically accessed current-state bytes.',
+    'postfreeze_boundary': 'All600 source judgments are frozen before the planned first003/current229 comparison. Any subsequent reconsideration must be separate.',
+    'chronology_limit': 'Timestamps and workflow attestations do not independently prove past access order.',
+})
+validation = write('validation.json', {
+    'agent_id': AGENT, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'reports': 50, 'judgments': 600, 'unique_study_uids': 50, 'unique_study_target_keys': 600,
+    'target_order': TARGETS,
+    'all_original_file_hash_index_uid_and_full_report_bindings_match': True,
+    'all_report_utf8_hashes_match': True,
+    'all_nonmissing_quotes_exact_contiguous_and_missing_quotes_empty': True,
+    'all600_decisions_have_individually_authored_reasons': True,
+    'rubric': ref(rubric), 'prior_exact_overlap_reports': 4,
+    'checks': checks, 'clinical_decisions_authored_by_agent_not_inferred_by_script': True,
+    'no_gold_or_first_reader_or_current_annotation_access_in_this_pass': True,
+})
+freeze = write('source-freeze.json', {
+    'stage': 'qualified_negation_focused003_independent_second_full_source_50_reports_600_targets_v1',
+    'agent_id': AGENT, 'session_id': AGENT,
+    'identity_note': 'Actual canonical collaboration agent/session identity; no separate UUID supplied or invented.',
+    'at_utc': datetime.now(timezone.utc).isoformat(),
+    'rubric_version': 'report-weak-v2.0', 'rubric': ref(rubric),
+    'reports': 50, 'judgments': 600, 'target_order': TARGETS,
+    'neutral_source_packet': ref(S / 'neutral-source-packet.json'),
+    'source_and_exposure_bindings': ref(S / 'source-bindings-and-exposure.json'),
+    'completed_exposure_and_chronology': ref(exposure),
+    'pre_freeze_own_reconsiderations': ref(revision),
+    'assessment': ref(assessment), 'validation': ref(validation),
+    'authored_helpers': [ref(p) for p in helpers], 'packaging_helper': ref(Path(__file__)),
+    'state_counts': dict(Counter(x[0] for r in rows.values() for x in r)),
+    'personal_reading_attestation': 'I, /root/last_twelve_visual_review, personally read all50 complete original reports and personally authored all600 targets under the unchanged rubric. Quotes are literal original-language substrings. Mechanical code validates bindings and packages explicit choices; it does not generate clinical decisions.',
+    'independence_and_exposure': 'First wording003 case findings and fresh current003 annotations were not opened before this freeze. Historical exact source/clinical overlap and prior registry/case-process exposure are disclosed. This is not a first-ever blindness claim or a feedback-free conceptual reading.',
+    'chronology_limit': 'Recorded timestamps and attestations do not independently prove past access order.',
+    'no_repository_registry_runtime_gold_or_global_QA_changes': True,
+    'unintegrated_source_opinions_only': True,
+    'case_findings_withheld_pending_root_source_assessment': True,
+})
+manifest = write('final-file-list.json', {'agent_id': AGENT,
+    'files': [ref(p) for p in sorted(S.rglob('*')) if p.is_file()], 'self_excluded': True})
+files = obj(manifest)['files']
+assert {x['path'] for x in files} == {str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p != manifest}
+for item in files:
+    assert ref(W / item['path']) == item
+print(json.dumps({'reports': 50, 'judgments': 600, 'freeze': ref(freeze), 'assessment': ref(assessment),
+                  'validation': ref(validation), 'manifest': ref(manifest), 'bound_files': len(files)}, indent=2))

@@ -1,0 +1,22 @@
+"""This assessor's explicit, personally reasoned bone002 judgments; no classifier."""
+from pathlib import Path
+import hashlib,json
+S=Path(__file__).resolve().parent; W=S.parents[2]; R=W/'work/recovered'
+PACKET=W/'work/annotation-staging/bone-observed-002-source-review-v1/neutral-source-packet.json'
+PACKET_SHA='a43da3e7f9d52554d5437da09fbff19426a336fa4d57622fd826adef524d3b14'
+assert hashlib.sha256(PACKET.read_bytes()).hexdigest()==PACKET_SHA
+sources=json.loads(PACKET.read_text())['reports']; assert len(sources)==50
+TARGETS=['Contusion','Fracture']; STATES=dict(P='positive',N='negative',U='uncertain',M='not_mentioned'); records=[]
+def case(i,codes,entries):
+    assert i==len(records); row=sources[i]; codes=codes.split(); assert len(codes)==2
+    ev=['','']; reasons=[f'{t}: no informative acute fracture/impact marrow assessment for this target; silence remains masked.' for t in TARGETS]; seen=set()
+    for js,start,reason,*end in entries:
+        a=row['report'].index(start); b=row['report'].index(end[0],a)+len(end[0]) if end else a+len(start); q=row['report'][a:b]
+        for j in js:
+            assert j not in seen and codes[j]!='M'; seen.add(j); ev[j]=q; reasons[j]=TARGETS[j]+': '+reason
+    assert seen=={j for j,c in enumerate(codes) if c!='M'}
+    p=R/row['source_path']; assert hashlib.sha256(p.read_bytes()).hexdigest()==row['source_sha256']
+    original=json.loads(p.read_text())[row['source_index_zero_based']]
+    assert original['study_uid']==row['study_uid'] and original['report']==row['report']
+    assert hashlib.sha256(row['report'].encode()).hexdigest()==row['report_sha256']
+    records.append(dict(packet_ordinal=i,study_uid=row['study_uid'],source_path=row['source_path'],source_index_zero_based=row['source_index_zero_based'],source_sha256=row['source_sha256'],report_sha256=row['report_sha256'],states=[STATES[c] for c in codes],evidence=ev,rationales=reasons,full_original_source_personally_read=True))

@@ -1,0 +1,45 @@
+"""This assessor's explicit, personally reasoned bone001 judgments; no classifier."""
+from pathlib import Path
+import hashlib,json
+S=Path(__file__).resolve().parent; W=S.parents[2]; R=W/'work/recovered'
+PACKET=W/'work/annotation-staging/bone-observed-000-independent-postfreeze-v1/next-bone001-neutral-source-packet.json'
+PACKET_SHA='21eaafcf594238411b690791f2cf17d5c26f5decbae39480f72ce16c0bce9da2'
+assert hashlib.sha256(PACKET.read_bytes()).hexdigest()==PACKET_SHA
+sources=json.loads(PACKET.read_text())['reports']; assert len(sources)==50
+TARGETS=['Contusion','Fracture']; STATES=dict(P='positive',N='negative',U='uncertain',M='not_mentioned'); records=[]
+def case(i,codes,entries):
+    assert i==len(records); row=sources[i]; codes=codes.split(); assert len(codes)==2
+    ev=['','']; reasons=[f'{t}: no informative acute fracture/impact marrow assessment for this target; silence remains masked.' for t in TARGETS]; seen=set()
+    for js,start,reason,*end in entries:
+        a=row['report'].index(start); b=row['report'].index(end[0],a)+len(end[0]) if end else a+len(start); q=row['report'][a:b]
+        for j in js:
+            assert j not in seen and codes[j]!='M'; seen.add(j); ev[j]=q; reasons[j]=TARGETS[j]+': '+reason
+    assert seen=={j for j,c in enumerate(codes) if c!='M'}
+    p=R/row['source_path']; assert hashlib.sha256(p.read_bytes()).hexdigest()==row['source_sha256']
+    original=json.loads(p.read_text())[row['source_index_zero_based']]
+    assert original['study_uid']==row['study_uid'] and original['report']==row['report']
+    assert hashlib.sha256(row['report'].encode()).hexdigest()==row['report_sha256']
+    records.append(dict(packet_ordinal=i,study_uid=row['study_uid'],source_path=row['source_path'],source_index_zero_based=row['source_index_zero_based'],source_sha256=row['source_sha256'],report_sha256=row['report_sha256'],states=[STATES[c] for c in codes],evidence=ev,rationales=reasons,full_original_source_personally_read=True))
+
+case(0,'U P',[
+([0],'Torn medial patellofemoral ligament associated with bone contusions an osteochondral fracturing of the medial surface of patella and lateral femoral condyle associated with transient dislocation of the patellofemoral joint.','Contusions and osteochondral fractures occupy the same two described sites. Separate impact edema without a discrete fracture line is not established; retain the coexistence/line distinction as uncertain.'),
+([1],'Torn medial patellofemoral ligament associated with bone contusions an osteochondral fracturing of the medial surface of patella and lateral femoral condyle associated with transient dislocation of the patellofemoral joint.','Direct osteochondral-fracturing diagnosis with current edema, cortical impaction/flattening and traumatic dislocation mechanism supports active acute injury; this is contextual acuity inference, not a universal subtype rule.')])
+case(1,'N N',[
+([0,1],'No acute fracture or bone bruise.','Explicit separate absence of acute fracture and bruise. Addendum trochlear edema is associated with cartilage loss, not a traumatic-contusion diagnosis; it does not negate these target-specific exclusions.')])
+case(2,'N N',[
+([0,1],'No acute fracture or bone bruise.','Explicit current absence despite preceding injury history; history alone does not establish current targets.')])
+case(3,'N N',[
+([0,1],'No acute fracture or bone bruise.','Explicit acute-fracture and bruise absence; meniscal/chondral findings do not contradict it.')])
+case(4,'N N',[
+([0,1],'Bone marrow signal is normal. No acute fracture or bone bruise.','Normal marrow plus explicit absence of both targets in an otherwise normal examination.')])
+case(5,'N N',[
+([0,1],'No acute fracture or bone bruise.','Explicit separate absence; low-grade chondrosis and chronic pain without injury do not establish either target.')])
+case(6,'N N',[
+([0,1],'No acute fracture or bone bruise.','Direct exclusions remain applicable despite subchondral edema under full-thickness patellar fissuring, which is described in a degenerative cartilage context.')])
+case(7,'P M',[
+([0],'Bone bruise der medialen Patella.','Direct current localized bone-bruise diagnosis supports contusion under the rubric. Adjacent chondropathy is preserved as context, but no fracture at the site is described.')])
+case(8,'N M',[
+([0],'No evidence of bone contusion is noted.','Explicit contusion absence; separate medial subchondral edema is expressly attributed to degeneration. No acute-fracture assessment is stated.')])
+case(9,'N U',[
+([0],'Diz eklemini oluşturan kemik yapıların sinyal intensiteleri doğaldır.','Bone signal is expressly normal, excluding marrow edema despite degenerative osteochondral/cartilage defects.'),
+([1],'Ekleme komşu femur medial kondilde subkondral alanda 8x3 mm boyutlu osteokondral defekt izlenmiştir.','Osteochondral defect is a structural bone/cartilage abnormality, without an acute fracture line, cortical-disruption diagnosis or timing; no automatic positive from its subtype.')])

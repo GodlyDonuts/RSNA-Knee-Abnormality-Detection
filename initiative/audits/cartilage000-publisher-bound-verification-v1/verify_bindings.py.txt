@@ -1,0 +1,76 @@
+"""Bound read-only publisher verification; never import or run the publisher."""
+import difflib
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';T=W/'work'
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+TARGET='001eff697a6dae5c83213a82948fc4dfda520354';OLD='7c1225e61974c374245c0656edeb0c47f54582c6';PARENT='a70f15a39afd38a994aedc72af774817bf53647e';PKG=T/'hf-preparation-deltas'/TARGET
+def read(p):return json.loads(p.read_text())
+def sha(p):
+    h=hashlib.sha256()
+    with p.open('rb')as f:
+        for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
+    return h.hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def run(args):return subprocess.check_output(args,cwd=R,stderr=subprocess.DEVNULL,timeout=60)
+def write(name,obj):
+    with(P/name).open('x')as f:f.write(json.dumps(obj,indent=2)+'\n')
+def main():
+    old=T/'publish_qualified001_delta.py';new=T/'publish_cartilage000_delta.py'
+    assert sha(old)=='5b5821f6b45a97f7832a08c64ac2f935d100e1604446fafcc9a5d56312a59057'
+    assert sha(new)=='25e543b4d51ff1f92ea689890531c9bd1592164e6b537fb541e590f9074afec8'
+    substitutions={f'TARGET = "{OLD}"':f'TARGET = "{TARGET}"','PARENT = "291d0051cb517a5609c23a58a2e4f5a0e724664a"':f'PARENT = "{PARENT}"','N_FILES = 7179':'N_FILES = 7493','N_CORRECTIONS = 205':'N_CORRECTIONS = 229','CI_RUN = 35666396114':'CI_RUN = 35669808219','require(type(N_CORRECTIONS) is int and N_CORRECTIONS == 205, "correction_count_not_205")':'require(type(N_CORRECTIONS) is int and N_CORRECTIONS == 229, "correction_count_not_229")'}
+    expected=old.read_text()
+    for before,after in substitutions.items():
+        assert expected.count(before)==1
+        expected=expected.replace(before,after)
+    assert expected==new.read_text()
+    with(P/'publisher-only-pin-diff.txt').open('x')as f:f.write(''.join(difflib.unified_diff(old.read_text().splitlines(True),new.read_text().splitlines(True),fromfile=str(old.relative_to(W)),tofile=str(new.relative_to(W)))))
+    assert run(['git','rev-parse','HEAD']).decode().strip()==TARGET
+    assert run(['git','status','--porcelain'])==b''
+    tree=run(['git','rev-parse',TARGET+'^{tree}']).decode().strip()
+    manifest=PKG/'manifest.json';assert sha(manifest)=='433e8a454b8c5850c0b25116b775ad6dab431ac82b63fd0ff296a14ee719a18e'
+    m=read(manifest);assert m['target_git_commit']==TARGET and m['target_git_tree']==tree and m['n_target_git_files']==len(m['files'])==7493
+    assert m['training_ready']is False and m['private_destination_required']is True
+    entries={}
+    for line in run(['git','ls-tree','-r','-l','-z',TARGET]).split(b'\0'):
+        if not line:continue
+        meta,path=line.split(b'\t',1);mode,kind,oid,size=meta.split();assert kind==b'blob'
+        entries[path.decode()]={'mode':mode.decode(),'git_blob':oid.decode(),'bytes':int(size)}
+    assert len(entries)==7493 and set(entries)=={f['path']for f in m['files']}
+    for f in m['files']:
+        assert entries[f['path']]=={k:f[k]for k in ['mode','git_blob','bytes']}
+        assert len(f['sha256'])==64
+    op=read(PKG/'root-publication-operation.json');prior_op=read(T/'hf-preparation-deltas'/OLD/'root-publication-operation.json');prior_receipt=T/'hf-preparation-deltas'/OLD/'root-publication-receipt.json'
+    assert read(prior_receipt)['hf_revision']==PARENT and read(prior_receipt)['private']is True
+    assert op['expected_hf_parent']==PARENT and op['target_git']==TARGET and op['private_required']is True and op['training_ready']is False
+    assert op['publisher']['sha256']==sha(new)
+    for name,known in [('helper','58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'),('transport','494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f')]:
+        assert op[name]==prior_op[name] and sha(W/op[name]['local_path'])==known==op[name]['sha256']
+    expected_names={'delta.tar.gz','manifest.json','restoration-proof.json','root-restoration-proof.json','README.md','checkpoint_delta.py'}
+    assert len(op['uploaded_files'])==6 and {r['path']for r in op['uploaded_files']}=={'preparation-checkpoints/'+TARGET+'/'+name for name in expected_names}
+    for e in op['uploaded_files']:
+        local=W/e['local_path'];assert local.stat().st_size==e['bytes']and sha(local)==e['sha256']
+    rootproof=read(PKG/'root-restoration-proof.json');assert rootproof['verifier_agent_id']=='/root'and rootproof['status']=='every_target_git_file_restorable_identically'and rootproof['target_git_commit']==TARGET and rootproof['target_git_tree']==tree and rootproof['manifest']['sha256']==sha(manifest)and rootproof['n_result_files_verified']==7493
+    ci=json.loads(run(['gh','run','view','35669808219','--json','databaseId,headSha,conclusion,status,name,url,workflowName']))
+    assert ci['databaseId']==35669808219 and ci['headSha']==TARGET and ci['status']=='completed'and ci['conclusion']=='success'
+    write('exact-ci-success.json',ci)
+    reports={r['study_uid']:r['report']for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for r in read(p)}
+    registry=R/'initiative/reviews-v2/adjudications/registry.json';rh=sha(registry)
+    assert hashlib.sha256(run(['git','show',TARGET+':initiative/reviews-v2/adjudications/registry.json'])).hexdigest()==rh
+    inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+    assert len(inspection['changes'])==229 and sha(registry)==rh
+    assert shutil.disk_usage(W).free>=20*1024**3
+    proof={'schema_version':1,'agent_id':'/root/quality_temporal_review','session_id':'/root/quality_temporal_review','checked_at_utc':datetime.now(timezone.utc).isoformat(),'status':'exact_requested_pins_verified_no_publication_logic_changes','publisher':bind(new),'prior_publisher':bind(old),'allowed_substitutions':substitutions,'exact_text_after_only_allowed_substitutions_matches':True,'diff':bind(P/'publisher-only-pin-diff.txt'),'git_commit':TARGET,'git_tree':tree,'git_worktree_clean':True,'exact_git_manifest_member_count':7493,'all_member_paths_modes_sizes_and_git_blob_ids_match_pinned_tree':True,'manifest':bind(manifest),'prepared_operation':bind(PKG/'root-publication-operation.json'),'all_six_prepared_local_object_sizes_and_sha256_verified':True,'helper':op['helper'],'transport':op['transport'],'helper_and_transport_unchanged_from_prior_reviewed_operation':True,'expected_hf_parent':PARENT,'prior_private_publication_receipt':bind(prior_receipt),'hf_parent_scope':'Expected parent matches the prior verified private publication receipt and current operation. No fresh HF network read was performed here; the unchanged publisher rechecks private head and enforces the parent fence before any write.','exact_ci':bind(P/'exact-ci-success.json'),'current_registry':bind(registry),'active_validated_corrections':229,'registry_matches_pinned_git_blob':True,'source_reports_sha256':source_reports_fingerprint(reports),'root_restoration_proof':bind(PKG/'root-restoration-proof.json'),'restoration_scope':'The root proof already records all-member payload verification; this independent short check binds that proof and checks every target-tree metadata member plus all six prepared-object digests, without restreaming or copying the base archive.','transport_or_publication_logic_changed':False,'publisher_executed':False,'credentials_opened':False,'network_mutations':0,'uploads':0,'source_or_gold_csv_values_opened':False,'clinical_annotation_process_access':'Runtime registry validation inspected existing correction evidence only to verify its aggregate229 count; no bone003 candidate-specific states or findings were selected or displayed. Disclose this mechanical publication validation before the next source pass.','global_gate_closed':False,'training_ready':False,'verifier':bind(Path(__file__).resolve())}
+    write('publisher-bound-verification.json',proof)
+    write('artifact-manifest.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','files':[bind(p)for p in sorted(P.iterdir())if p.is_file()],'network_mutations':0,'training_ready':False})
+    print(json.dumps({'status':proof['status'],'files':7493,'corrections':229,'ci':'completed_success','proof_sha256':sha(P/'publisher-bound-verification.json'),'manifest_sha256':sha(P/'artifact-manifest.json')},indent=2))
+if __name__=='__main__':main()

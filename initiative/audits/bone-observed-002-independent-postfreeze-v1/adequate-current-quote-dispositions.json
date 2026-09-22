@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "assessor_agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "source_freeze": {
+    "path": "work/annotation-staging/bone-observed-002-independent-review-v1/source-assessment-frozen.json",
+    "sha256": "6aed052a3ef25f83acbdede01a50e767c849c3c46ada0b1721031a9323f7ac79",
+    "size_bytes": 55804
+  },
+  "current_inspection": {
+    "path": "work/annotation-staging/bone-observed-002-independent-postfreeze-v1/current-registry-inspection.json",
+    "sha256": "83ef4104a4a1d874b286a9c968cb7be45dc3979b1a37aab572c0b74f6da2b135",
+    "size_bytes": 993586
+  },
+  "active_corrections": 229,
+  "registry_sha256": "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600",
+  "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "agent_id": "/root/duplicate_consistency_review",
+  "completed_at_utc": "2026-09-22T00:15:44.716757+00:00",
+  "first_assessor_agent_id": "/root/quality_temporal_review",
+  "first_source_freeze": {
+    "path": "work/annotation-staging/bone-observed-002-source-review-v1/source-assessment-frozen.jsonl",
+    "sha256": "557745f3ff9bab6bb329f31c6168fb8aa234fca3419b2167756e46c8786d7f42",
+    "size_bytes": 56330
+  },
+  "first_proposals": {
+    "path": "work/annotation-staging/bone-observed-002-postfreeze-v1/proposed-errata.json",
+    "sha256": "048a903ab204cbac6a2bb6a43f0709895f55ee3a018b5b4ba6f3b0e06b1ee3b9",
+    "size_bytes": 14590
+  },
+  "first_postfreeze_dispositions": {
+    "path": "work/annotation-staging/bone-observed-002-postfreeze-v1/all100-postfreeze-dispositions.json",
+    "sha256": "0f1c7e9c1b296d59e01f242cdf28162577a2bfda8029084c54ce8b1ba7a6f0d5",
+    "size_bytes": 329827
+  },
+  "status": "second_source_assessment_complete_pending_root_adjudication",
+  "gold_inspected": false,
+  "registry_mutated": false,
+  "global_qa_closed": false,
+  "records": [
+    {
+      "packet_ordinal": 1,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11159546221032123495135103648570690656",
+      "target": "Contusion",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Edema óseo asociado a fracturas trabeculares en la región periférica y anterior del platillo tibial\nlateral."
+      },
+      "source_frozen": {
+        "state": "uncertain",
+        "evidence": "Edema óseo asociado a fracturas trabeculares en la región periférica y anterior del platillo tibial\nlateral. También se observa edema óseo pequeñas fracturas trabeculares de la espina tibial\nmedial. No hay otras alteraciones de señal de la médula ósea."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current quote identifies fracture-associated edema at a named site and supports uncertainty; the longer source quote repeats another fractured site without resolving a line-free contusion."
+    },
+    {
+      "packet_ordinal": 1,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11159546221032123495135103648570690656",
+      "target": "Fracture",
+      "current": {
+        "state": "positive",
+        "evidence": "Rodilla traumática aguda izquierda.\nHallazgos:\nEdema óseo asociado a fracturas trabeculares en la región periférica y anterior del platillo tibial\nlateral."
+      },
+      "source_frozen": {
+        "state": "positive",
+        "evidence": "Rodilla traumática aguda izquierda.\nHallazgos:\nEdema óseo asociado a fracturas trabeculares en la región periférica y anterior del platillo tibial\nlateral. También se observa edema óseo pequeñas fracturas trabeculares de la espina tibial\nmedial. No hay otras alteraciones de señal de la médula ósea."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current quote contains the acute traumatic context and definite fracture diagnosis. Additional tibial-spine detail is optional for this study-level target."
+    },
+    {
+      "packet_ordinal": 15,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11282706861378379965012380644125662529",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "The study reveals normal knee joint alignment, no definite fracture line noted."
+      },
+      "source_frozen": {
+        "state": "uncertain",
+        "evidence": "no definite fracture line noted."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The accepted current quote already includes alignment context and the qualified no-definite-fracture-line denial. Preserve it exactly."
+    },
+    {
+      "packet_ordinal": 18,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11338962847958062668991874160027887372",
+      "target": "Contusion",
+      "current": {
+        "state": "positive",
+        "evidence": "Bone contusion involving lateral and medial femoral epicondyle and lateral aspect of the tibial plateau with possible microtrabecular fracture involving lateral femoral epicondyle."
+      },
+      "source_frozen": {
+        "state": "positive",
+        "evidence": "There is bone contusion involving lateral femoral epicondyle, medial femoral condyle and lateral aspect of the tibial plateau."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current impression identifies separate medial/tibial contusions alongside the possible lateral fracture; it is adequate source evidence."
+    },
+    {
+      "packet_ordinal": 32,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11501070108039994411346060488666341726",
+      "target": "Contusion",
+      "current": {
+        "state": "negative",
+        "evidence": "Normal visualized bones and surrounding soft tissues."
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "Normal visualized bones and surrounding soft tissues. No evidence of stress phenomenon."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "Unqualified normal visualized bones is sufficient; the stress-phenomenon sentence adds no required contusion context."
+    },
+    {
+      "packet_ordinal": 32,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11501070108039994411346060488666341726",
+      "target": "Fracture",
+      "current": {
+        "state": "negative",
+        "evidence": "Normal visualized bones and surrounding soft tissues."
+      },
+      "source_frozen": {
+        "state": "negative",
+        "evidence": "Normal visualized bones and surrounding soft tissues. No evidence of stress phenomenon."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "Unqualified normal visualized bones is sufficient structural evidence without the extra stress sentence."
+    },
+    {
+      "packet_ordinal": 34,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11506642732332295874076832453198901115",
+      "target": "Contusion",
+      "current": {
+        "state": "positive",
+        "evidence": "additional small osseous contusions along the posterior medial and lateral tibial plateaus."
+      },
+      "source_frozen": {
+        "state": "positive",
+        "evidence": "Osteochondral impaction injury with accompanying bone marrow edema along the sulcus terminalis of the lateral femoral condyle with additional small osseous contusions along the posterior medial and lateral tibial plateaus."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current quote directly names additional contusions at the posterior tibial plateaus; adding the distinct femoral impaction is optional."
+    },
+    {
+      "packet_ordinal": 34,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11506642732332295874076832453198901115",
+      "target": "Fracture",
+      "current": {
+        "state": "uncertain",
+        "evidence": "Osteochondral impaction injury with accompanying bone marrow edema along the sulcus terminalis of the lateral femoral condyle"
+      },
+      "source_frozen": {
+        "state": "uncertain",
+        "evidence": "Osteochondral impaction injury with accompanying bone marrow edema along the sulcus terminalis of the lateral femoral condyle with additional small osseous contusions along the posterior medial and lateral tibial plateaus."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current quote identifies the osteochondral impaction and associated marrow edema, sufficient for the retained acute/structural uncertainty."
+    },
+    {
+      "packet_ordinal": 46,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11642678020345468499556230871411308014",
+      "target": "Contusion",
+      "current": {
+        "state": "positive",
+        "evidence": "Вижда се изразен контузионен костно-мозъчен едем в пателата."
+      },
+      "source_frozen": {
+        "state": "positive",
+        "evidence": "МР данни за контузионен костно-мозъчен едем в пателата."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "Body and impression each directly diagnose the same patellar contusional edema. Preserve the adequate body quote."
+    },
+    {
+      "packet_ordinal": 47,
+      "study_uid": "1.2.826.0.1.3680043.8.498.11651755040149549966484720727140190853",
+      "target": "Contusion",
+      "current": {
+        "state": "positive",
+        "evidence": "Bone contusion anterior tibia, just lateral to the tibial tubercle."
+      },
+      "source_frozen": {
+        "state": "positive",
+        "evidence": "Bone contusion anterior tibia just lateral to the tibial tubercle."
+      },
+      "decision": "retain_adequate_current_quote",
+      "reason": "The current body sentence and my impression sentence differ only by the original comma; both are exact and sufficient. No correction is warranted."
+    }
+  ]
+}

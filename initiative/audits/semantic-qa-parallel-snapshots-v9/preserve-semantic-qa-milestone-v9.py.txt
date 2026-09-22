@@ -1,0 +1,47 @@
+"""Preserve completed bound snapshots without reading their case-level findings."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import defaultdict
+import hashlib,json,shutil
+from dotenv import dotenv_values
+T=Path(__file__).resolve().parent;W=T.parent;R=T/'recovered';S=T/'annotation-staging'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+secrets=[v.encode() for k,v in dotenv_values(W/'.env').items() if k in {'HF_TOKEN','KAGGLE_API_TOKEN'} and v];assert len(secrets)==2
+snapshots=[('bone-observed-001-independent-review-v1', 'source-phase-manifest.json', '3b6bdec7c8b18705817290c2bf9e53e6e994df072c8b2644f8d8105e2e61fd90'), ('bone-observed-001-independent-postfreeze-v1', 'completion-manifest.json', '6001b19c01a147a3067af656f1a0465f7183d5ac91f6601598fa207fb6ed0652'), ('bone-observed-002-postfreeze-v1', 'completion-manifest.json', '12bc1156f0dc50ac391bd98c54e17da8ebc37143c4942602c61d2d5e7bd49a46'), ('bone-observed-002-independent-review-v1', 'source-phase-manifest.json', '3923bf684d73b31a3c2f4cc1396f66de5c39e81a47813e9cb0154a347be39676'), ('bone-observed-002-independent-postfreeze-v1', 'completion-manifest.json', '735e4779005ed2cdd5008132b404a7510e0cdf3e4c72109586ff6b9c2a5e7717'), ('bone-observed-003-postfreeze-v1', 'completion-manifest.json', 'cba006cbdf1f2b5b4c59e2a94ac5696d91ae1069b375f16b4cd60c3f9ece7034'), ('bone-observed-003-independent-review-v1', 'source-phase-manifest.json', 'd01185d51567c3453ff2ac77d806dc1eccf62473f200bd1732c2ab4a028c1033'), ('bone-observed-003-independent-postfreeze-v1', 'completion-manifest.json', '47f038dfd0d8b44b9d172d18aa591f7aa95e0d0cd75a608397e7f0cfccea6d8e'), ('bone-observed-004-postfreeze-v1', 'completion-manifest.json', '31ebfef8463727dd06e1a4486c6ce2346486b009f7f055c7a23f6b61ff1fac10'), ('qualified-negation-focused-003-independent-review-v1', 'final-file-list.json', '1b384bc333b2060050e6c38c405d4a05bc6c7d4977b039bcc150731e16b6be8e'), ('qualified-negation-focused-003-post-freeze-comparison-v1', 'final-file-list.json', '19e7c196b08cd409f2ef19c4d1d32741e0284d1bd6d26d87c955c9bedfd80590'), ('cartilage000-delta-build-verification-v1', 'artifact-manifest.json', '6805c0adc1d5045a0cf8b9c031b0115f43795ee778db038d4f0493db7ac0be32'), ('cartilage000-publisher-bound-verification-v1', 'artifact-manifest.json', 'f258e22c5d485607bf4cf358299584872f39da1dc7aa79736f9b7e22a244d4d8')]
+entries={};roots=set();manifests=[]
+def add(p,h):
+ p=p.resolve();assert p.is_relative_to(S.resolve()) and p.is_file() and not p.is_symlink()
+ assert sha(p)==h,(p,h);assert p not in entries or entries[p]==h
+ entries[p]=h;roots.add(p.relative_to(S.resolve()).parts[0])
+def list_entries(value,base):
+ if isinstance(value,dict):
+  for rel,v in value.items():add(base/rel,v if isinstance(v,str) else v['sha256'])
+ else:
+  for v in value:
+   rel=v['path'];p=W/rel if rel.startswith('work/') else (T/rel if rel.startswith('annotation-staging/') else base/rel)
+   add(p,v['sha256'])
+for name,file,digest in snapshots:
+ p=S/name/file;assert sha(p)==digest;d=json.loads(p.read_text());add(p,digest)
+ list_entries(d['files'],S/name)
+ if 'source_stage_files' in d:list_entries(d['source_stage_files'],S/name.replace('postfreeze','source-review'))
+ manifests.append({'path':str(p.relative_to(W)),'sha256':digest})
+assert len(roots)==16
+for name in roots:assert not (R/'initiative/audits'/name).exists(),name
+total=sum(p.stat().st_size for p in entries);assert shutil.disk_usage(W).free-total>20*2**30+32*2**20
+receipts=defaultdict(list)
+for p,h in sorted(entries.items()):
+ rel=p.relative_to(S.resolve());name=rel.parts[0];dest=R/'initiative/audits'/rel
+ if dest.suffix=='.py':dest=dest.with_suffix('.py.txt')
+ b=p.read_bytes();assert hashlib.sha256(b).hexdigest()==h and all(s not in b for s in secrets)
+ dest.parent.mkdir(parents=True,exist_ok=True)
+ with dest.open('xb') as f:f.write(b)
+ assert sha(dest)==sha(p)==h
+ receipts[name].append({'original_path':str(p.relative_to(W)),'path':str(dest.relative_to(R)),'sha256':h,'bytes':len(b)})
+for name,files in receipts.items():
+ p=R/'initiative/audits'/name/'preservation.json'
+ with p.open('x') as f:json.dump({'stage':'root_verified_completed_snapshot_byte_preservation','agent_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'files':files,'file_count':len(files),'source_manifest_bindings':manifests,'root_opened_case_findings_for_copy':False,'scope':'Completed bound evidence only; archive copying does not accept clinical proposals or close a global gate. Earlier baselines remain historical evidence after current229; later registry integration does not rewrite them. This archive does not rewrite those comparisons. Helper source bytes are unchanged under .py.txt names.','training_ready':False},f,indent=2);f.write('\n')
+for p,h in entries.items():assert sha(p)==h
+a=R/'initiative/audits/semantic-qa-parallel-snapshots-v9';a.mkdir(exist_ok=False)
+(a/'preserve-semantic-qa-milestone-v9.py.txt').write_bytes(Path(__file__).read_bytes())
+with (a/'snapshots.json').open('x') as f:json.dump({'stage':'completed_source_and_comparison_snapshots','agent_id':'/root','directories':{n:len(v) for n,v in sorted(receipts.items())},'source_files':len(entries),'bytes':total,'training_ready':False},f,indent=2);f.write('\n')
+print(json.dumps({'snapshots':len(receipts),'files':len(entries),'bytes':total,'proof_sha256':sha(a/'snapshots.json')}))

@@ -1,0 +1,30 @@
+--- work/publish_qualified001_delta.py
++++ work/publish_cartilage000_delta.py
+@@ -12,13 +12,13 @@
+ 
+ T = Path(__file__).resolve().parent
+ W, R = T.parent, T / "recovered"
+-TARGET = "7c1225e61974c374245c0656edeb0c47f54582c6"
+-PARENT = "291d0051cb517a5609c23a58a2e4f5a0e724664a"
++TARGET = "001eff697a6dae5c83213a82948fc4dfda520354"
++PARENT = "a70f15a39afd38a994aedc72af774817bf53647e"
+ BASE_HF = "54949cd5a575ea7027a4a57916e772936a98d38b"
+-N_FILES = 7179
+-N_CORRECTIONS = 205
++N_FILES = 7493
++N_CORRECTIONS = 229
+ BASE_GIT = "1792f01ed3daab757c5ddb9bf5733ffe8d999f91"
+-CI_RUN = 35666396114
++CI_RUN = 35669808219
+ PREFIX = "preparation-checkpoints/" + TARGET + "/"
+ HELPER = T / "annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py"
+ TRANSPORT = T / "annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py"
+@@ -63,7 +63,7 @@
+     require(isinstance(TARGET, str) and re.fullmatch(r"[0-9a-f]{40}", TARGET), "target_not_bound")
+     require(type(CI_RUN) is int and CI_RUN > 0, "ci_run_not_bound")
+     require(type(N_FILES) is int and N_FILES > 0, "file_count_not_bound")
+-    require(type(N_CORRECTIONS) is int and N_CORRECTIONS == 205, "correction_count_not_205")
++    require(type(N_CORRECTIONS) is int and N_CORRECTIONS == 229, "correction_count_not_229")
+     require(PREFIX == "preparation-checkpoints/" + TARGET + "/", "prefix_binding")
+     if manifest is not None:
+         require(manifest["base_git_commit"] == BASE_GIT, "base_git_binding")

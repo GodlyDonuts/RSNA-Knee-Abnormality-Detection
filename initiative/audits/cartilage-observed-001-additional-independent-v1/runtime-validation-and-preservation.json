@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "validated_at_utc": "2026-09-22T00:34:14.476454+00:00",
+  "validator": {
+    "path": "work/annotation-staging/cartilage-observed-001-additional-independent-v1/validate_adjudication.py",
+    "sha256": "29848631b730937e3f3f76a2b97ea21f7ed7263d7427a464e5a3aa336bf8aa06"
+  },
+  "runtime": {
+    "path": "work/recovered/rsna/adjudications.py",
+    "sha256": "2b7af816e9caff240daf02af1dd3bf08e193438ac568478651f0b49868e1eac0"
+  },
+  "case": {
+    "path": "work/annotation-staging/cartilage-observed-001-additional-independent-v1/proposed-runtime-case.json",
+    "sha256": "557b01174f75e62dd85af0881d06edb0a1de0fd4d908349c237fff7133909075"
+  },
+  "assessment": {
+    "path": "work/annotation-staging/cartilage-observed-001-additional-independent-v1/independent-source-assessment.json",
+    "sha256": "a5676c1dec0b6dbc166091da7c2600395c5f020ed6aacec3aad31a024a5f37d5"
+  },
+  "decision": {
+    "path": "work/annotation-staging/cartilage-observed-001-additional-independent-v1/accepted-decision.json",
+    "sha256": "7665d46e0f7c3bd5ff1318e8398c6e1777b13331994b42b2ed93550861adab8a"
+  },
+  "release_source_count": 4407,
+  "source_reports_sha256": "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3",
+  "accepted_runtime_changes": 1,
+  "negative_boundary_checks": [
+    {
+      "name": "same_assessor_as_proposer",
+      "rejected": true,
+      "message": "Self approval cannot authorize report corrections"
+    },
+    {
+      "name": "missing_accepted_item",
+      "rejected": true,
+      "message": "Correction changes must exactly cover the accepted decision"
+    },
+    {
+      "name": "changed_accepted_quote",
+      "rejected": true,
+      "message": "Correction state/quote differs from the accepted assessment"
+    },
+    {
+      "name": "wrong_original_before_annotation",
+      "rejected": true,
+      "message": "Correction before state/evidence differs from the preserved review"
+    }
+  ],
+  "current_registry": {
+    "path": "work/recovered/initiative/reviews-v2/adjudications/registry.json",
+    "sha256": "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600"
+  },
+  "current_registered_changes": 229,
+  "additional_keys_overlap_current_registry": 0,
+  "historical_baseline": "This new single-proposal comparison binds current229. Historical cartilage001 source/comparison and the new preproposal three-state freeze are unchanged; the modern independent assessment is an explicit postproposal reconsideration, not a new blinding claim.",
+  "all_preexisting_stage_files_preserved": true,
+  "fixture_removed": true,
+  "production_registry_changed": false,
+  "gold_accessed": false,
+  "disk_free_bytes_before": 22029225984,
+  "disk_free_bytes_after": 22029221888,
+  "minimum_disk_free_bytes": 21474836480
+}

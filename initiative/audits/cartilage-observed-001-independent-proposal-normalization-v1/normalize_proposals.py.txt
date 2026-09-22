@@ -1,0 +1,152 @@
+"""Normalize explicitly authored proposals; never infer or alter clinical judgments."""
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+S = Path(__file__).resolve().parent
+W = S.parents[2]
+R = W / 'work/recovered'
+A = W / 'work/annotation-staging'
+P = A / 'cartilage-observed-001-independent-postfreeze-v1'
+O = A / 'cartilage-observed-001-independent-review-v1'
+AGENT = '/root/last_twelve_visual_review'
+TARGETS = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+
+def obj(p): return json.loads(p.read_bytes())
+def jl(p): return [json.loads(x) for x in p.read_text().splitlines()]
+def ref(p):
+    b = p.read_bytes()
+    return {'path': str(p.relative_to(W)), 'sha256': hashlib.sha256(b).hexdigest(), 'bytes': len(b)}
+def write(name, value):
+    p = S / name
+    with p.open('x') as f:
+        json.dump(value, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+    return p
+
+inputs = [P/'unintegrated-proposals.json', P/'second-disposition-freeze.json',
+          P/'second-complete-dispositions.json', P/'own-reconsiderations.json',
+          P/'registry193-replay.json', O/'source-freeze.json', O/'independent-assessment.jsonl',
+          O/'neutral-source-packet.json', O/'source-bindings-and-exposure.json',
+          R/'protocols/report_weak_v2.md', R/'rsna/adjudications.py']
+original_refs = [ref(p) for p in inputs]
+old = obj(P/'unintegrated-proposals.json')
+freeze = obj(P/'second-disposition-freeze.json')
+assert ref(P/'unintegrated-proposals.json') == freeze['proposals']
+assert ref(P/'second-complete-dispositions.json') == freeze['assessment']
+assert ref(P/'own-reconsiderations.json') == freeze['reconsiderations']
+assert old['agent_id'] == AGENT and old['accepted'] is False
+assert len(old['records']) == 24
+full = obj(P/'second-complete-dispositions.json')['records']
+assert len(full) == 150 and len({(x['study_uid'], x['target']) for x in full}) == 150
+full_map = {(x['study_uid'], x['target']): x for x in full}
+regp = R/'initiative/reviews-v2/adjudications/registry.json'
+regref = ref(regp)
+assert regref['sha256'] == 'c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600'
+reg = obj(regp)
+inspection_path = R/'initiative/audits/cartilage-observed-000-integration-v1/complete229-inspection.json'
+inspection = obj(inspection_path)
+assert inspection['registry_sha256'] == regref['sha256'] and inspection['n_changes'] == 229
+registered, case_refs = {}, []
+for entry in reg['cases']:
+    p = R/entry['path']
+    assert ref(p)['sha256'] == entry['sha256']
+    case_refs.append(ref(p))
+    case = obj(p)
+    for change in case['changes']:
+        k = change['study_uid'], change['target']
+        assert k not in registered
+        registered[k] = {'case_id': case['id'], 'case': ref(p), 'change': change}
+assert len(registered) == 229
+inspected = {(x['study_uid'], x['target']): x for x in inspection['changes']}
+assert set(inspected) == set(registered)
+for k, v in registered.items():
+    assert v['change']['before'] == inspected[k]['before'] and v['change']['after'] == inspected[k]['after']
+checks = []
+for d in full:
+    sp = R/d['source_path']
+    assert ref(sp)['sha256'] == d['source_sha256']
+    source = obj(sp)[d['source_index_zero_based']]
+    assert source['study_uid'] == d['study_uid']
+    assert hashlib.sha256(source['report'].encode()).hexdigest() == d['report_utf8_sha256']
+    rp = W/d['original_review']['path']
+    assert ref(rp) == d['original_review']
+    original = next(x for x in jl(rp) if x['study_uid'] == d['study_uid'])
+    t = TARGETS.index(d['target'])
+    before = {'state': original['states'][t], 'evidence': original['evidence'][t]}
+    assert before == d['original']
+    existing = registered.get((d['study_uid'], d['target']))
+    current = existing['change']['after'] if existing else before
+    if existing: assert existing['change']['before'] == before
+    assert current == d['current193'], (d['case'], d['target'], 'selected drift')
+    checks.append({'study_uid': d['study_uid'], 'target': d['target'], 'source_path': d['source_path'],
+                   'source_sha256': d['source_sha256'], 'source_index_zero_based': d['source_index_zero_based'],
+                   'report_utf8_sha256': d['report_utf8_sha256'], 'original_review': d['original_review'],
+                   'current193': d['current193'], 'current229': current, 'accepted_overlap': existing,
+                   'changed_since193': False})
+assert not any(x['accepted_overlap'] for x in checks)
+proposed = []
+for x in old['records']:
+    d = full_map[x['study_uid'], x['target']]
+    before, after = x['before_current193'], x['after_proposed']
+    assert before == d['current193'] == d['original']
+    assert after == {k: d['second_postfreeze'][k] for k in ['state', 'evidence']}
+    assert before != after
+    source = obj(R/x['source_path'])[x['source_index_zero_based']]
+    assert after['evidence'] in source['report']
+    assert bool(after['evidence']) == (after['state'] != 'not_mentioned')
+    proposed.append({'packet_index': x['packet_index'], 'priority_index': d['priority_index'],
+        'case': x['case'].removeprefix('batch-'), 'study_uid': x['study_uid'], 'target': x['target'],
+        'batch': x['case'].split(':')[0], 'index': x['source_index_zero_based'],
+        'source_path': x['source_path'], 'source_sha256': x['source_sha256'],
+        'report_utf8_sha256': x['report_utf8_sha256'],
+        'artifact_path': str((W/x['original_review']['path']).relative_to(R)),
+        'artifact_sha256': x['original_review']['sha256'],
+        'before_state': before['state'], 'before_evidence': before['evidence'],
+        'proposed_state': after['state'], 'source_quote': after['evidence'],
+        'reason': x['reason'], 'evidence_reason': x['evidence_reason'],
+        'kind': 'state_correction' if x['kind'] == 'state_change' else 'evidence_only_correction',
+        'original_kind': x['kind'], 'status': 'proposed_unintegrated',
+        'own_frozen_state': d['second_source']['state'],
+        'own_state_reconsidered': d['second_source']['state'] != after['state'],
+        'overlaps_existing_accepted_correction': False,
+        'pending_focused002_overlap': x['pending_focused002_overlap']})
+assert len({(x['study_uid'], x['target']) for x in proposed}) == 24
+for before, after in zip(old['records'], proposed):
+    assert before['after_proposed'] == {'state': after['proposed_state'], 'evidence': after['source_quote']}
+    assert before['reason'] == after['reason'] and before['evidence_reason'] == after['evidence_reason']
+proof = write('current229-rebase-and-exact-preservation.json', {
+    'agent_id': AGENT, 'at_utc': datetime.now(timezone.utc).isoformat(),
+    'original_inputs': original_refs, 'current_registry': regref, 'current_case_bindings': case_refs,
+    'current_inspection': ref(inspection_path), 'registered_changes': 229,
+    'selected_cells_replayed': 150, 'selected_changed_since193': 0, 'selected_accepted_overlap': 0,
+    'normalized_proposals': 24, 'state_changes': 20, 'evidence_only_changes': 4,
+    'all_proposed_states_quotes_reasons_and_evidence_reasons_preserved_exactly': True,
+    'all_original_reviews_sources_indices_uids_hashes_and_contiguous_quotes_verified': True,
+    'runtime_schema_reference': ref(R/'rsna/adjudications.py'),
+    'runtime_compatibility_scope': 'Uses the actual proposed_errata field names consumed by the existing loader; no synthetic acceptance/case was created or registered.',
+    'records': checks, 'no_new_clinical_choices_or_acceptance': True})
+proposal = write('proposed-errata.json', {
+    'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT,
+    'completed_at_utc': datetime.now(timezone.utc).isoformat(), 'rubric_version': 'report-weak-v2.0',
+    'rubric_sha256': reg['rubric_sha256'], 'source_reports_sha256': reg['source_reports_sha256'],
+    'stage': 'second_reader_original_proposals_format_normalization_with_actual229_rebase',
+    'status': 'proposed', 'accepted': False, 'n_changes': 24,
+    'n_studies_with_proposals': len({x['study_uid'] for x in proposed}),
+    'authorship': 'I, /root/last_twelve_visual_review, authored and endorsed these clinical proposals in my preserved cartilage001 second postfreeze assessment. I now personally authorize their exact format normalization as my original proposals. Every proposed state, quote, reason and evidence reason is preserved verbatim. This is not a new source reread, new clinical decision, root-authored approval or acceptance.',
+    'exposure': 'Both earlier source passes, first-reader findings, original118 and193 comparisons were already disclosed. Root subsequently reported aggregate support for24 proposals and four root reconsiderations; no root case decisions were opened here. Later wording/cartilage reasoning contexts remain historical exposure; no prior reasons or source judgments are overwritten.',
+    'original_proposal': ref(P/'unintegrated-proposals.json'),
+    'original_source_freeze': ref(O/'source-freeze.json'),
+    'original_source_assessment': ref(O/'independent-assessment.jsonl'),
+    'original_disposition_freeze': ref(P/'second-disposition-freeze.json'),
+    'original_reconsiderations': ref(P/'own-reconsiderations.json'),
+    'current_registry': regref, 'registered_changes_at_normalization': 229, 'current_rebase': ref(proof),
+    'production_registry_changed': False, 'gold_accessed': False, 'global_qa_gates_closed': 0,
+    'proposed_errata': proposed})
+for p, expected in zip(inputs, original_refs): assert ref(p) == expected
+assert ref(regp) == regref
+manifest = write('completion-manifest.json', {'agent_id': AGENT, 'files': [ref(p) for p in sorted(S.iterdir()) if p.is_file()], 'self_excluded': True})
+for x in obj(manifest)['files']: assert ref(W/x['path']) == x
+assert len(list(S.iterdir())) == len(obj(manifest)['files']) + 1
+print(json.dumps({'proposal': ref(proposal), 'proof': ref(proof), 'manifest': ref(manifest), 'proposals': 24, 'selected_drift': 0}, indent=2))

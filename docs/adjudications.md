@@ -77,7 +77,23 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry contains **229 active accepted target corrections**. The latest
+The registry contains **254 active accepted target corrections**. The latest
+cartilage001 milestone adds25 after root's34 complete attention-source reads and
+102 frozen OA judgments. Root actually accepts24 proposals from the distinct
+second reader; a separate source assessor accepts root's additional fraying
+proposal. The25 changes mask nine previously positive and twelve previously
+negative targets, and expand four positive quotations to include compartment
+identity. All229 prior changes and the earlier three retirements remain exact.
+
+The [254 integration proof](../initiative/audits/cartilage-observed-001-integration-v1/complete254-integration-validation.json)
+reconciles every final root state and exact new quotation and verifies zero
+conflicts across54 normalized identical-report groups/204 studies. Four root
+source-state reconsiderations and the additional assessor's reconsiderations
+remain preserved; agreement after reconsideration is not initial unanimity.
+The frozen rubric has not changed. In particular, root's earlier two-axis size
+requirement was withdrawn explicitly, rather than made into a new rule.
+
+The preceding milestone contained **229 active accepted target corrections**. The latest
 cartilage000 milestone adds27 corrections and independently retires three earlier
 ones. Root read26 complete attention sources and froze78 OA judgments before reader
 case findings. Its20 primary assessments yield18 new changes and two exact matches
