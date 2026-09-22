@@ -21,7 +21,7 @@ to check the current review run.
 
 ## Status
 
-The final local [report-supervision release](docs/data-readiness-report.md) passed
+The published [report-supervision release](docs/data-readiness-report.md) passed
 full export verification and actual training/resume/inference acceptance. It contains
 3,904 training studies, 441 weak-validation studies, 58 official evaluation studies
 and four quarantined studies. All 569 corrections are preserved; the three semantic
@@ -29,9 +29,7 @@ QA gates are resolved through a separately reviewed conservative mask policy.
 573 software tests pass. Rare targets remain sparsely supervised, so data quality
 and competitive benefit must be measured rather than inferred from effort.
 
-Remote publication of this release is in progress. The last verified checkpoint is
-Git `a815aae6` / private Hugging Face `7d6d4cef`. Read the release report and immutable
-publication receipt rather than assuming every local milestone is already remote.
+The accepted data/code release is Git `f41879a3`. Its [private Hugging Face release](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/a177562d5f49458e287752b94f085dcb061f6495/releases/report-supervision-v1) is pinned to `a177562d5f49458e287752b94f085dcb061f6495`; all 19 direct-download objects passed full byte verification. The [publication record](initiative/provenance/report-supervision-v1-publication.json) links the separate complete-tree recovery archive and both restoration proofs.
 The [expanded mission](docs/mission-and-training-plan.md) also includes a competitive
 [training strategy](docs/training-strategy.md), experiments and compute plan for
 UCF Newton: compare DINOv2/DINOv3 fairly, then test MRI adaptation, native detail

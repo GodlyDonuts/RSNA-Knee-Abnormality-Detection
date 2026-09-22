@@ -1,0 +1,407 @@
+"""Prepare locally; only explicit root publish may add this exact private release prefix."""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import sys
+import time
+from types import SimpleNamespace
+
+STAGE = Path(__file__).resolve().parent
+W = STAGE.parents[2]
+R = W / 'work/recovered'
+OLD = W / 'work/annotation-staging/final-release-hf-publication-execution-v1'
+PINS = STAGE / 'dependency-pins.json'
+PINS_SHA = 'f708b368138fc660d85a855c7e852ec1ebc20487d53fe3adac7d74037a50e483'
+COMMIT = 'f41879a33b38e47f0cbd96025edac7e2176a0a2f'
+TREE = 'aed8cda7cbb394bf665319a52073ab8926a16a10'
+CI = 35745491694
+COUNT = 11145
+PREFIX = 'releases/report-supervision-v1/'
+SOURCE = 'initiative/releases/report-supervision-v1/'
+PACKAGE = W / 'work/hf-preparation-deltas' / COMMIT
+RECEIPT = PACKAGE / 'root-publication-receipt.json'
+RECEIPT_SHA = '85eff309806b04c658ec59001607a585be2603eb2e7d7337275a6a49c9ac17c8'
+CHECKPOINT_HF = 'c0b2c8b041120ae6d27891145f1a19e48a6d498f'
+ATTEMPT = STAGE / 'root-mutation-attempt.json'
+OPERATION = STAGE / 'operation.json'
+AUTHOR = '/root/competition_contract'
+FLOOR = 20 * 2**30
+RESERVE = 2**20
+MAX_PAYLOAD = 256 * 2**20
+NAMES = (
+    'adjudication_trace.json', 'correspondence_trace.json', 'label_audit.json',
+    'release.json', 'report_annotations.parquet', 'report_annotations_original.parquet',
+    'report_similarity_trace.json', 'studies.parquet', 'study_labels.csv',
+    'verified_release.json', 'weak_split_repair.json',
+)
+COMPANIONS = {
+    'companions/series_sampling.csv': 'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv',
+    'companions/series_cache_index.parquet': 'initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet',
+    'companions/dicom_audit.json': 'initiative/audits/full-image-recovery-v1/audit/dicom_audit.json',
+    'companions/inventory_effective.parquet.gz': 'initiative/audits/final-release-technical-inputs-v1/inventory_effective.parquet.gz',
+    'companions/acceptance.json': 'initiative/audits/final-input-training-acceptance-v1/acceptance.json',
+    'companions/dependency-seal.json': 'initiative/audits/final-release-dependency-seal-v1/dependency-seal.json',
+}
+MAPPING = {**{n: SOURCE + n for n in NAMES}, **COMPANIONS}
+PATHS = {PREFIX + n for n in [*MAPPING, 'README.md', 'PUBLICATION.json']}
+CHECKPOINT_NAMES = {'delta.tar.gz', 'manifest.json', 'peer-restoration-proof.json',
+                    'root-restoration-proof.json', 'README.md', 'checkpoint_delta.py'}
+
+
+class GuardError(Exception):
+    """Fixed nonsensitive codes only."""
+
+
+def require(ok, code):
+    if not ok:
+        raise GuardError(code)
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def load(path):
+    require(path.is_file() and not path.is_symlink(), 'missing_or_symlink_input')
+    return json.loads(path.read_bytes())
+
+
+def file_sha(path):
+    require(path.is_file() and not path.is_symlink(), 'missing_or_symlink_input')
+    h = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(2**20), b''):
+            h.update(block)
+    return h.hexdigest()
+
+
+def encode(obj):
+    return (json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False) + '\n').encode()
+
+
+def write_new(path, raw):
+    require(path.parent == STAGE and not path.exists(), 'new_stage_file_required')
+    with path.open('xb') as stream:
+        stream.write(raw)
+
+
+def disk_guard():
+    free = shutil.disk_usage(STAGE).free
+    require(free >= FLOOR + RESERVE, 'disk_floor_would_be_breached')
+    return free
+
+
+def dependencies():
+    require(file_sha(PINS) == PINS_SHA, 'dependency_pins_hash_changed')
+    pins = load(PINS)
+    require(pins['target_git'] == COMMIT and pins['schema_version'] == 1, 'dependency_pin_scope')
+    for rel, expected in pins['files'].items():
+        path = W / rel
+        require(path.resolve().is_relative_to(W / 'work/annotation-staging')
+                and '..' not in Path(rel).parts, 'dependency_path_scope')
+        require(file_sha(path) == expected, 'dependency_hash_changed')
+    sys.path.insert(0, str(OLD))
+    import final_release_bindings as b
+    import publish_final_release_delta as publisher
+    require((b.TARGET_GIT, b.TARGET_TREE, b.TARGET_FILE_COUNT, b.TARGET_CI_RUN)
+            == (COMMIT, TREE, COUNT, CI), 'checkpoint_pins_changed')
+    require(b.TRANSPORT_SHA == '494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f',
+            'transport_not_reviewed_version')
+    return b, publisher
+
+
+def receipt_guard(receipt, operation, eligibility, b):
+    require(receipt.get('status') == 'verified_private_complete_tree_final_data_delta'
+            and receipt.get('actual_executor') == '/root', 'actual_root_checkpoint_receipt_required')
+    require((receipt.get('github_commit'), receipt.get('github_tree'),
+             receipt.get('github_ci_run'), receipt.get('complete_result_files'))
+            == (COMMIT, TREE, CI, COUNT), 'checkpoint_milestone_mismatch')
+    require(receipt.get('github_ci') == {'conclusion': 'success', 'headSha': COMMIT, 'status': 'completed'},
+            'checkpoint_ci_not_success')
+    require(receipt.get('private') is True and receipt.get('source_and_official_metadata_unchanged') is True,
+            'checkpoint_private_source_required')
+    require(receipt.get('source_identities') == b.SOURCE_IDENTITIES
+            and receipt.get('root_card_identities') == b.ROOT_CARD, 'checkpoint_protected_identity_mismatch')
+    require(receipt.get('final_release_eligibility') == eligibility, 'checkpoint_eligibility_mismatch')
+    require(isinstance(receipt.get('hf_revision'), str) and b.OID.fullmatch(receipt['hf_revision'])
+            and receipt['hf_revision'] != b.PARENT_HF, 'checkpoint_immutable_revision_required')
+    require(receipt.get('expected_hf_parent') == b.PARENT_HF
+            and receipt.get('registry_sha256') == b.REGISTRY_SHA
+            and receipt.get('registered_corrections') == b.N_CORRECTIONS, 'checkpoint_lineage_mismatch')
+    refs = operation['uploaded_files']
+    expected = {'preparation-checkpoints/' + COMMIT + '/' + n for n in CHECKPOINT_NAMES}
+    require(len(refs) == 6 and {r['path'] for r in refs} == expected, 'checkpoint_six_object_scope')
+    actual = receipt.get('uploaded_objects', [])
+    require(len(actual) == 6 and {r['path'] for r in actual} == expected, 'checkpoint_verified_objects_missing')
+    required = {r['path']: {k: r[k] for k in ('path', 'sha256', 'bytes')} for r in refs}
+    for row in actual:
+        require({k: row.get(k) for k in ('path', 'sha256', 'bytes')} == required[row['path']]
+                and row.get('verification') in {'full_http_bytes_sha256_and_size', 'hub_lfs_sha256_and_size'},
+                'checkpoint_verified_content_mismatch')
+    for name in ('peer_proof_sha256', 'root_proof_sha256'):
+        require(receipt.get(name) == operation[name], 'checkpoint_proof_mismatch')
+
+
+def context():
+    disk_guard()
+    b, publisher = dependencies()
+    # The receipt must already exist; preparation never invents a future HF parent.
+    require(file_sha(RECEIPT) == RECEIPT_SHA, 'actual_checkpoint_receipt_changed')
+    receipt = load(RECEIPT)
+    require(receipt.get('hf_revision') == CHECKPOINT_HF, 'actual_checkpoint_revision_changed')
+    checkpoint_operation = load(PACKAGE / 'root-publication-operation.json')
+    require(receipt['operation_sha256'] == file_sha(PACKAGE / 'root-publication-operation.json'),
+            'checkpoint_operation_hash_mismatch')
+    args = SimpleNamespace(target_commit=COMMIT, target_tree=TREE, expected_file_count=COUNT,
+        ci_run=CI, package=PACKAGE,
+        peer_proof_sha256=checkpoint_operation['peer_proof_sha256'],
+        root_proof_sha256=checkpoint_operation['root_proof_sha256'],
+        root_verifier_sha256=checkpoint_operation['root_verifier_sha256'])
+    # Select the manifest by exact remote path, never by incidental list ordering.
+    args.manifest_sha256 = next(x['sha256'] for x in checkpoint_operation['uploaded_files']
+        if x['path'] == 'preparation-checkpoints/' + COMMIT + '/manifest.json')
+    h = b.helper()
+    _, manifest, _, eligibility = b.local_guard(args, h)
+    peer, root = publisher.proof_inputs(args, PACKAGE, manifest)
+    require(peer.get('final_release_eligibility') == root.get('final_release_eligibility') == eligibility,
+            'checkpoint_restorer_eligibility_mismatch')
+    receipt_guard(receipt, checkpoint_operation, eligibility, b)
+    rows = {r['path']: r for r in manifest['files']}
+    require({p[len(SOURCE):] for p in rows if p.startswith(SOURCE)} == set(NAMES), 'exact_eleven_release_files_required')
+    return b, publisher, h, args, receipt, eligibility, rows
+
+
+def payload_refs(rows):
+    refs = []
+    for name, git_path in MAPPING.items():
+        require(git_path in rows, 'companion_missing_from_pinned_tree')
+        row = rows[git_path]
+        require(row['mode'] == '100644', 'regular_git_file_required')
+        refs.append({'path': PREFIX + name, 'git_path': git_path, 'git_blob': row['git_blob'],
+                     'sha256': row['sha256'], 'bytes': row['bytes']})
+    require(sum(x['bytes'] for x in refs) <= MAX_PAYLOAD, 'payload_memory_bound')
+    return refs
+
+
+def publication_metadata(receipt, eligibility, refs, b, rows):
+    return {'schema_version': 1, 'stage': 'direct_verified_data_release_promotion',
+        'release_version': 'report-supervision-v1', 'target_git': COMMIT, 'target_tree': TREE,
+        'complete_git_file_count': COUNT, 'github_ci_run': CI,
+        'source_hf': {'repository': b.HF_REPO, 'revision': b.SOURCE_HF},
+        'checkpoint_hf': {'repository': b.HF_REPO, 'revision': receipt['hf_revision'],
+            'prefix': 'preparation-checkpoints/' + COMMIT + '/',
+            'objects': receipt['uploaded_objects'], 'base_revision': b.BASE_HF,
+            'base_prefix': 'preparation-checkpoints/' + b.BASE_GIT + '/'},
+        'checkpoint_receipt_sha256': file_sha(RECEIPT),
+        'training_ready_data': True, 'competitive_performance': False,
+        'eligibility': eligibility, 'files': refs,
+        'official_source_references': {'revision': b.SOURCE_HF, 'identities': b.SOURCE_IDENTITIES,
+            'zip_files_reference': {'git_commit': COMMIT, 'path': 'initiative/source/zip_files.txt.gz',
+                'sha256': rows['initiative/source/zip_files.txt.gz']['sha256'],
+                'bytes': rows['initiative/source/zip_files.txt.gz']['bytes']}},
+        'checkpoint_verification_scope': 'Original checkpoint transport verifies LFS object IDs and sizes, and streams ordinary objects. Distinct root and peer previously reconstructed the full Git tree locally. This direct promotion separately streams every one of its 19 immutable remote objects, including LFS, after commit; it does not claim a fresh full checkpoint-tar download.',
+        'metadata_hash_scope': 'All 17 exact Git payloads are hashed above. README.md is included in the reviewed operation and final receipt. PUBLICATION.json cannot contain its own hash; its hash is in both.',
+        'lineage': '11 unchanged final-release Git files, six unchanged pinned companions. The complete Git base-plus-delta checkpoint preserves code, full reviews, original reports, policies, acceptance outputs and provenance. Restore it to preserve repository-relative dependency paths.',
+        'limitations': [
+            'Auditable weak report supervision, not perfect clinical labels or a competitive score.',
+            'Use released per-target observation/training masks and whole-study exclusions; uncertain or missing evidence is never a negative.',
+            'Keep conservative leakage groups and fixed splits. The 58 historically exposed official gold studies are evaluation-only, never training or model selection; 441 weak validation studies are report-supervised.',
+            'Runtime acceptance is a short CPU optimizer/resume/inference diagnostic, not full-scale GPU training or a 9-hour hidden-test timing rehearsal.',
+            'The 576 corrected pinned-mirror source files retain documented origin limitations; this promotion does not establish fresh official-byte confirmation.',
+            'Cache arrays are not duplicated here. The cache index is metadata, not array payload. Rebuild from pinned source images and pinned code; all referenced paths remain repository-relative.'],
+        'author': AUTHOR}
+
+
+def readme(metadata):
+    return f'''# Verified report-supervision data release\n\nTraining-ready data: **true**. Competitive performance established: **false**.\n\nGit `{COMMIT}` (tree `{TREE}`, CI {CI}) supplies all 17 unchanged payload files. The 11 release files are directly downloadable here; six supporting files are under `companions/`. `PUBLICATION.json` binds every payload hash, source identity, dependency seal, diagnostic acceptance and immutable complete checkpoint revision `{metadata['checkpoint_hf']['revision']}`.\n\nUse `studies.parquet` and `study_labels.csv` with their released observation/training masks and exclusions. Missing or uncertain evidence must not become a negative. Preserve group boundaries and fixed splits; the 58 historically exposed official-gold studies remain evaluation-only. This is report-derived weak supervision, not perfect clinical labeling.\n\nFor runnable training and validation, restore the complete Git `{COMMIT}` tree from GitHub or the pinned base-plus-delta HF checkpoint listed in `PUBLICATION.json`, then place these files at the original `git_path` mappings in that manifest. The unchanged release receipts intentionally retain their original repository-relative references and historical publication status. Full original/reviewed annotations, policies, code, diagnostic output checkpoints, logs and provenance are preserved in that complete tree; this compact folder alone is not a standalone runtime installation. Follow the pinned `docs/data-readiness-report.md`, `docs/releases.md` and training strategy.\n\nThe root train/test image trees and official CSVs are referenced at source HF revision `{metadata['source_hf']['revision']}` without modification. Cache `series-u16-v3` uses side 256; the accepted local arrays totaled 82,555,132,978 bytes (24,386 series, 819,635 slices). Those arrays are **not included** in this compact promotion: the index and effective inventory support rebuild/verification from pinned images. Rebuild commands and measured requirements are in the complete pinned documentation.\n\nActual short diagnostic acceptance covered optimizer updates, exact CPU resume, zero masked gradients, 58 gold outputs and 3 supplied test outputs. Competitive training, evaluation uncertainty, full hidden-test runtime and model ranking remain separate research tasks.\n\nNo root dataset card, source object or existing version is replaced. The final publication receipt records the immutable promoted revision and full streamed verification of all promoted bytes.\n'''.encode()
+
+
+def operation_guard(op, expected_refs, receipt, eligibility):
+    require(op.get('stage') == 'prepared_guarded_additive_direct_release' and op.get('target_git') == COMMIT
+            and op.get('target_tree') == TREE and op.get('actual_publish_executor') == '/root', 'operation_scope')
+    require(op.get('private_required') is True and op.get('training_ready_data') is True
+            and op.get('competitive_performance') is False, 'operation_readiness_scope')
+    require(op.get('expected_hf_parent') == receipt['hf_revision']
+            and op.get('checkpoint_receipt_sha256') == file_sha(RECEIPT), 'operation_receipt_parent_changed')
+    require(op.get('eligibility') == eligibility and op.get('uploaded_files') == expected_refs, 'operation_payload_changed')
+    require(len(expected_refs) == 19 and {r['path'] for r in expected_refs} == PATHS,
+            'exact_nineteen_object_scope_required')
+    require(op.get('publisher_sha256') == file_sha(Path(__file__))
+            and op.get('dependency_pins_sha256') == file_sha(PINS), 'operation_code_changed')
+
+
+def select_action(head, parent, prefix_exists, allow_write=True):
+    if not allow_write:
+        require(prefix_exists, 'read_only_retry_release_not_present')
+        return 'read_only_exact_content_reconciliation'
+    if head == parent:
+        require(not prefix_exists, 'existing_version_cannot_be_overwritten')
+        return 'commit_from_verified_checkpoint_parent'
+    require(prefix_exists, 'changed_head_without_exact_release')
+    return 'read_only_exact_content_reconciliation'
+
+
+def exact_membership(entries):
+    files, directories = set(), set()
+    for item in entries:
+        if getattr(item, 'tree_id', None) is not None:
+            directories.add(item.path)
+        else:
+            require(item.path not in files, 'duplicate_remote_path')
+            files.add(item.path)
+    allowed_dirs = {PREFIX.rstrip('/'), PREFIX + 'companions'}
+    require(files == PATHS and directories <= allowed_dirs, 'release_prefix_membership_mismatch')
+
+
+def full_verify(api, hub, token, transport, revision, refs):
+    wanted = [{k: x[k] for k in ('path', 'sha256', 'bytes')} for x in refs]
+    verified = transport.verify_remote(api, hub, token, revision, wanted)
+    from huggingface_hub.utils._http import get_session
+    started = time.monotonic()
+    # Existing transport streams ordinary Git objects; promote LFS checks to actual bytes too.
+    for row in verified:
+        if row['verification'] == 'full_http_bytes_sha256_and_size':
+            continue
+        digest, size = hashlib.sha256(), 0
+        url = hub.hf_hub_url(transport.HF_REPO, row['path'], repo_type='dataset', revision=revision)
+        with get_session().stream('GET', url, headers={'Authorization': 'Bearer ' + token}) as response:
+            response.raise_for_status()
+            for chunk in response.iter_bytes(2**20):
+                require(time.monotonic() - started < 1800, 'stream_total_deadline')
+                size += len(chunk)
+                require(size <= row['bytes'], 'stream_excess_bytes')
+                digest.update(chunk)
+        require(size == row['bytes'] and digest.hexdigest() == row['sha256'], 'stream_content_mismatch')
+        row['verification'] = 'full_http_bytes_sha256_and_size'
+    return verified
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('action', choices=['prepare', 'publish', 'reconcile'])
+    parser.add_argument('--operation-sha256')
+    parser.add_argument('--actual-executor', choices=['/root'])
+    args = parser.parse_args()
+    if args.action != 'prepare':
+        require(args.actual_executor == '/root', 'root_execution_required')
+        require(args.operation_sha256 is not None and file_sha(OPERATION) == args.operation_sha256, 'reviewed_operation_hash_required')
+        early = load(OPERATION)
+        require(early.get('publisher_sha256') == file_sha(Path(__file__))
+                and early.get('dependency_pins_sha256') == PINS_SHA, 'operation_code_changed')
+    b, publisher, h, checkpoint_args, receipt, eligibility, rows = context()
+    refs = payload_refs(rows)
+    metadata = publication_metadata(receipt, eligibility, refs, b, rows)
+    generated = {'PUBLICATION.json': encode(metadata), 'README.md': readme(metadata)}
+    all_refs = refs + [{'path': PREFIX + name, 'local_name': name, 'sha256': sha(raw), 'bytes': len(raw)}
+                       for name, raw in generated.items()]
+    secrets = h.secret_values(W / '.env')
+    for row in refs:
+        raw = h.git(R, 'show', COMMIT + ':' + row['git_path'])
+        require(len(raw) == row['bytes'] and sha(raw) == row['sha256'], 'pinned_git_payload_mismatch')
+        h.Scanner(secrets).feed(raw)
+    for raw in generated.values():
+        h.Scanner(secrets).feed(raw)
+    if args.action == 'prepare':
+        require(not OPERATION.exists() and all(not (STAGE / n).exists() for n in generated), 'already_prepared')
+        op = {'schema_version': 1, 'stage': 'prepared_guarded_additive_direct_release',
+            'preparation_author': AUTHOR, 'actual_publish_executor': '/root', 'target_git': COMMIT,
+            'target_tree': TREE, 'expected_hf_parent': receipt['hf_revision'],
+            'checkpoint_receipt_sha256': file_sha(RECEIPT), 'private_required': True,
+            'training_ready_data': True, 'competitive_performance': False,
+            'eligibility': eligibility, 'uploaded_files': all_refs,
+            'publisher_sha256': file_sha(Path(__file__)), 'dependency_pins_sha256': file_sha(PINS)}
+        operation_guard(op, all_refs, receipt, eligibility)
+        h.Scanner(secrets).feed(encode(op))
+        disk_guard()
+        for name, raw in generated.items():
+            write_new(STAGE / name, raw)
+        write_new(OPERATION, encode(op))
+        print(json.dumps({'status': 'prepared_locally_remote_unstarted', 'operation_sha256': file_sha(OPERATION),
+            'objects': len(all_refs), 'payload_bytes': sum(x['bytes'] for x in all_refs),
+            'expected_hf_parent': receipt['hf_revision']}))
+        return
+    require(args.actual_executor == '/root', 'root_execution_required')
+    require(isinstance(args.operation_sha256, str) and b.SHA.fullmatch(args.operation_sha256)
+            and file_sha(OPERATION) == args.operation_sha256, 'reviewed_operation_hash_required')
+    operation_guard(load(OPERATION), all_refs, receipt, eligibility)
+    for name, raw in generated.items():
+        require((STAGE / name).read_bytes() == raw, 'generated_metadata_changed')
+    require(publisher.ci(checkpoint_args) == receipt['github_ci'], 'ci_changed')
+    transport = b.module('direct_release_reviewed_transport', b.TRANSPORT, b.TRANSPORT_SHA)
+    hub = transport.configure_hub()
+    from dotenv import dotenv_values
+    token = dotenv_values(W / '.env').get('HF_TOKEN')
+    require(isinstance(token, str) and bool(token), 'missing_hf_token')
+    api = hub.HfApi(token=token, endpoint=transport.ENDPOINT)
+    parent = receipt['hf_revision']
+    head = transport.private_head(api)
+    for revision in {parent, head}:
+        publisher.remote_guard(api, transport, revision)
+    publisher.remote_guard(api, transport, b.SOURCE_HF, check_card=False)
+    transport.verify_remote(api, hub, token, parent, [
+        {k: x[k] for k in ('path', 'sha256', 'bytes')} for x in receipt['uploaded_objects']])
+    exists = bool(api.get_paths_info(b.HF_REPO, paths=[PREFIX.rstrip('/')], repo_type='dataset', revision=head))
+    action = select_action(head, parent, exists, allow_write=args.action == 'publish' and not ATTEMPT.exists())
+    if action == 'commit_from_verified_checkpoint_parent':
+        adds, memory = [], []
+        for row in all_refs:
+            raw = h.git(R, 'show', COMMIT + ':' + row['git_path']) if 'git_path' in row else generated[row['local_name']]
+            require(len(raw) == row['bytes'] and sha(raw) == row['sha256'], 'precommit_payload_changed')
+            buffer = io.BytesIO(raw)
+            memory.append(buffer)
+            add = hub.CommitOperationAdd(path_in_repo=row['path'], path_or_fileobj=buffer)
+            require(add.upload_info.size == row['bytes'] and add.upload_info.sha256.hex() == row['sha256'], 'upload_info_changed')
+            adds.append(add)
+        disk_guard()
+        require(transport.private_head(api) == parent and publisher.ci(checkpoint_args) == receipt['github_ci'], 'precommit_head_or_ci_changed')
+        publisher.remote_guard(api, transport, parent)
+        require(file_sha(OPERATION) == args.operation_sha256 and file_sha(RECEIPT) == load(OPERATION)['checkpoint_receipt_sha256'],
+                'precommit_operation_or_receipt_changed')
+        # Durable exclusive marker: every later attempt is read-only, even if HEAD is unchanged.
+        write_new(ATTEMPT, encode({'stage': 'root_mutation_attempt_started', 'actual_executor': '/root',
+            'operation_sha256': args.operation_sha256, 'expected_hf_parent': parent,
+            'at_utc': datetime.now(timezone.utc).isoformat()}))
+        result = api.create_commit(repo_id=b.HF_REPO, repo_type='dataset', revision='main', parent_commit=parent,
+            operations=adds, num_threads=2, commit_message='Expose verified report-supervision-v1 data release',
+            commit_description='Additive exact pinned Git release and six companions. Complete checkpoint lineage retained. Training-ready data; no competitive performance claim. Root card and source objects unchanged.')
+        head = result.oid
+        require(isinstance(head, str) and b.OID.fullmatch(head) and head != parent, 'invalid_commit_revision')
+        for buffer in memory:
+            buffer.close()
+    verified = full_verify(api, hub, token, transport, head, all_refs)
+    exact_membership(api.list_repo_tree(b.HF_REPO, path_in_repo=PREFIX.rstrip('/'),
+        repo_type='dataset', revision=head, recursive=True))
+    publisher.remote_guard(api, transport, head)
+    require(transport.private_head(api) == head, 'final_head_changed')
+    require(file_sha(OPERATION) == args.operation_sha256, 'operation_changed_during_publication')
+    final = {'schema_version': 1, 'stage': 'verified_private_direct_release_promotion', 'actual_executor': '/root',
+        'at_utc': datetime.now(timezone.utc).isoformat(), 'target_git': COMMIT,
+        'hf_revision': head, 'expected_hf_parent': parent, 'action': action,
+        'ancestry_scope': 'CAS enforced for a new commit; changed-head reconciliation verifies exact content only and issues no write.',
+        'private': True, 'source_and_root_card_unchanged': True, 'uploaded_objects': verified,
+        'checkpoint_receipt_sha256': file_sha(RECEIPT), 'operation_sha256': args.operation_sha256,
+        'training_ready_data': True, 'competitive_performance': False}
+    path = STAGE / 'root-promotion-receipt.json'
+    if path.exists():
+        prior = load(path)
+        require(prior['hf_revision'] == head and prior['operation_sha256'] == args.operation_sha256
+                and prior['uploaded_objects'] == verified, 'existing_promotion_receipt_mismatch')
+    else:
+        disk_guard()
+        write_new(path, encode(final))
+    print(json.dumps({'status': final['stage'], 'hf_revision': head, 'objects': len(verified)}))
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as error:
+        print(json.dumps({'status': 'not_completed', 'error_class': type(error).__name__,
+            'guard_code': str(error) if type(error) is GuardError else 'external_or_dependency_guard_failure'}))
+        raise SystemExit(2) from None

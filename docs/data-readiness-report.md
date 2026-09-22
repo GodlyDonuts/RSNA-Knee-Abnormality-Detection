@@ -1,9 +1,8 @@
 # Accepted report-supervision release
 
-The local `report-supervision-v1` release passed its data and runtime acceptance
+The published `report-supervision-v1` release passed its data and runtime acceptance
 on September 22, 2026. It is ready for supervised training with its supplied masks.
-Verified remote publication is a separate step; until its receipt is recorded,
-the last verified Git/HF checkpoint remains `a815aae6` / `7d6d4cef`.
+The accepted data/code release is Git `f41879a3`. Its [private Hugging Face release](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/a177562d5f49458e287752b94f085dcb061f6495/releases/report-supervision-v1) is pinned to `a177562d5f49458e287752b94f085dcb061f6495`; all 19 direct-download objects passed full byte verification. The [publication record](../initiative/provenance/report-supervision-v1-publication.json) links the separate complete-tree recovery archive and both restoration proofs.
 
 This is an auditable weak-supervision release. It does not certify perfect clinical
 labels or better data than competitors. The [training strategy](training-strategy.md)
@@ -155,3 +154,26 @@ Use the existing verified cache directly when available. The rebuild command is
 provided for portability; it was not repeated after the completed full-image audit.
 The training command is the accepted diagnostic configuration, not the proposed
 competitive pretrained architecture. Never change a cache file shared by hardlinks.
+
+## Immutable publication and cluster handoff
+
+Use code/data Git `f41879a33b38e47f0cbd96025edac7e2176a0a2f` and the direct release at HF revision
+`a177562d5f49458e287752b94f085dcb061f6495`. `PUBLICATION.json` in that folder binds the unchanged 11 release
+files and six companions to the accepted Git tree. The extra README and publication
+index make 19 fully downloaded and verified objects. This folder is a convenient
+data export; runnable training still requires the full repository and its relative
+policy/dependency paths. Default legacy dataset configurations are not this release.
+
+The complete recovery checkpoint is at HF revision `c0b2c8b041120ae6d27891145f1a19e48a6d498f` under
+`preparation-checkpoints/f41879a33b38e47f0cbd96025edac7e2176a0a2f/`. Its 444,510,430-byte delta
+needs the pinned base archive listed in its manifest. Distinct peer and root
+executions reconstructed all 11,145 Git files identically. Remote archive LFS
+objects were verified by content-addressed SHA256 and size; ordinary objects were
+streamed. The separate direct release above was fully streamed, including LFS.
+
+The current documentation/receipt commit follows the immutable release commit;
+it records publication results without claiming the release contains its own
+future receipt. Training code, accepted manifests and the reviewed Newton strategy
+remain unchanged. The full cache arrays are not duplicated in the compact export;
+use the pinned source and rebuild instructions above. No competitive GPU run or
+Kaggle performance score is claimed.

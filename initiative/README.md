@@ -20,9 +20,7 @@ reread is claimed. The 24 unresolved correspondence cases comprise 23 masked
 non-gold studies and one official evaluation-only study; all 18 registered report
 exclusions are masked.
 
-Verified publication of this local release is in progress. The previous verified
-private checkpoint is Git `a815aae6` / HF `7d6d4cef`. Its restoration proofs remain
-archived under `audits/qualified004-verified569-publication-v1/`.
+The accepted data/code release is Git `f41879a3`. Its [private Hugging Face release](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/a177562d5f49458e287752b94f085dcb061f6495/releases/report-supervision-v1) is pinned to `a177562d5f49458e287752b94f085dcb061f6495`; all 19 direct-download objects passed full byte verification. The [publication record](provenance/report-supervision-v1-publication.json) links the separate complete-tree recovery archive and both restoration proofs.
 The [expanded mission](../docs/mission-and-training-plan.md) includes both data
 readiness and a competitive training plan.
 

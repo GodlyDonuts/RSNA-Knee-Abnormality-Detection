@@ -23,16 +23,20 @@ checkpoint equality after resume, zero masked gradients, 58 gold predictions and
 three exact-template predictions. The full release is checked before any subset
 is selected; this is operability evidence, not a competitive model.
 
-Current remaining work is verified publication of this release. The expanded
-modeling plan now targets UCF Newton: matched DINOv2/DINOv3 comparisons, fold-local
-MRI adaptation, native detail and a complementary 3D branch under opportunistic
-two-GPU allocations. It is a plan, not completed competitive training.
-The publication dependency guard is corrected and reviewed; the actual root seal
-binds 1,240 unchanged current inputs and seven discovery scopes. Remote main/HF
-still refer to the prior checkpoint until actual receipts say otherwise. Keep at least 20 GiB free. Old reproducible local upload tar caches
-were removed only after immutable private-HF hash and size checks, with receipts
-under `obsolete-publication-cache-eviction-v1/` and `-v2/`. Source images, cache
-hardlinks, the base archive and latest published tar were preserved.
+Publication and the expanded modeling plan are complete. Use Git `f41879a3` and
+private HF `a177562d5f49458e287752b94f085dcb061f6495` under `releases/report-supervision-v1/`.
+All 19 promoted objects passed full immutable byte verification; the separate
+complete-tree checkpoint `c0b2c8b041120ae6d27891145f1a19e48a6d498f` has two actual restoration proofs
+covering 11,145 files. The publication record is
+`initiative/provenance/report-supervision-v1-publication.json`.
+
+The next phase requires cluster access: implement and benchmark the proposed
+pretrained/distributed experiments on UCF Newton. The strategy is reviewed, but
+competitive training has not run. Preserve the accepted masks, exclusions and
+fold/evaluation restrictions. Do not repeat completed report passes or change the
+release to accommodate a preferred score. Keep at least 20 GiB free locally;
+verified transfer-cache eviction and immutable-copy deduplication have receipts
+under `final-publication-storage-maintenance-v1/`.
 
 The correspondence final check clarifies one historical shorthand: among the
 24 unresolved cases, 23 non-gold studies have twelve zero masks, and 032:35 is

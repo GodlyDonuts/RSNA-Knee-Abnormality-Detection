@@ -69,3 +69,13 @@ labels. It does not guarantee optimal labels, a winning leaderboard score, patie
 disjointness from study IDs alone, or fitness for clinical use. Large-scale GPU
 training, architecture selection, and full Kaggle runtime validation remain
 separate measured experiments.
+
+## Published report-supervision-v1
+
+The accepted data/code release is Git `f41879a3`. Its [private Hugging Face release](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/a177562d5f49458e287752b94f085dcb061f6495/releases/report-supervision-v1) is pinned to `a177562d5f49458e287752b94f085dcb061f6495`; all 19 direct-download objects passed full byte verification. The [publication record](../initiative/provenance/report-supervision-v1-publication.json) links the separate complete-tree recovery archive and both restoration proofs.
+
+The current version contains unchanged final tables plus six companions. Full
+source/review/code provenance is available through the pinned complete-tree
+checkpoint and Git release commit, rather than duplicated in this compact folder.
+The root HF dataset card and legacy default configurations remain unchanged.
+Select this explicit version when downloading accepted supervision.

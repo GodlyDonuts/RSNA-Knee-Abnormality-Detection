@@ -1,0 +1,205 @@
+"""Synthetic refusal/reconciliation/streaming tests; no network or publication."""
+import copy
+import hashlib
+from pathlib import Path
+from types import SimpleNamespace
+import sys
+import types
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import promote_release as p
+
+
+def binding():
+    import re
+    return SimpleNamespace(SOURCE_IDENTITIES={'train_series': {'tree_id': 'a' * 40}},
+        ROOT_CARD={'README.md': 'b' * 40}, PARENT_HF='c' * 40, REGISTRY_SHA='d' * 64,
+        N_CORRECTIONS=569, OID=re.compile('[0-9a-f]{40}'))
+
+
+def fixture():
+    b = binding()
+    refs = [{'path': 'preparation-checkpoints/' + p.COMMIT + '/' + n, 'sha256': 'f' * 64,
+             'bytes': 10} for n in sorted(p.CHECKPOINT_NAMES)]
+    op = {'uploaded_files': refs, 'peer_proof_sha256': '1' * 64, 'root_proof_sha256': '2' * 64}
+    eligibility = {'status': 'eligible_for_final_data_publication'}
+    receipt = {'status': 'verified_private_complete_tree_final_data_delta', 'actual_executor': '/root',
+        'github_commit': p.COMMIT, 'github_tree': p.TREE, 'github_ci_run': p.CI,
+        'complete_result_files': p.COUNT,
+        'github_ci': {'conclusion': 'success', 'headSha': p.COMMIT, 'status': 'completed'},
+        'private': True, 'source_and_official_metadata_unchanged': True,
+        'source_identities': b.SOURCE_IDENTITIES, 'root_card_identities': b.ROOT_CARD,
+        'final_release_eligibility': eligibility, 'hf_revision': 'e' * 40,
+        'expected_hf_parent': b.PARENT_HF, 'registry_sha256': b.REGISTRY_SHA, 'registered_corrections': 569,
+        'uploaded_objects': [dict(x, verification='hub_lfs_sha256_and_size') for x in refs],
+        'peer_proof_sha256': op['peer_proof_sha256'], 'root_proof_sha256': op['root_proof_sha256']}
+    return receipt, op, eligibility, b
+
+
+class Guards(unittest.TestCase):
+    def test_actual_receipt_acceptance(self):
+        p.receipt_guard(*fixture())
+
+    def test_receipt_refusals(self):
+        for key, bad in [('actual_executor', '/root/peer'), ('github_commit', '0' * 40),
+            ('github_tree', '0' * 40), ('github_ci_run', 1), ('complete_result_files', 11144),
+            ('private', False), ('source_and_official_metadata_unchanged', False),
+            ('hf_revision', 'main'), ('expected_hf_parent', '0' * 40),
+            ('registry_sha256', '0' * 64), ('registered_corrections', 568),
+            ('source_identities', {}), ('root_card_identities', {}), ('final_release_eligibility', {}),
+            ('peer_proof_sha256', '0' * 64), ('github_ci', {'conclusion': 'success'})]:
+            with self.subTest(key=key):
+                args = fixture()
+                args[0][key] = bad
+                with self.assertRaises(p.GuardError):
+                    p.receipt_guard(*args)
+
+    def test_checkpoint_content_not_status_only(self):
+        for mode in ('missing', 'wronghash', 'unverified', 'extra'):
+            with self.subTest(mode=mode):
+                args = fixture()
+                refs = args[0]['uploaded_objects']
+                if mode == 'missing':
+                    refs.pop()
+                elif mode == 'wronghash':
+                    refs[0]['sha256'] = '0' * 64
+                elif mode == 'unverified':
+                    refs[0]['verification'] = 'declared_passed'
+                else:
+                    refs.append(copy.deepcopy(refs[0]))
+                with self.assertRaises(p.GuardError):
+                    p.receipt_guard(*args)
+
+    def test_existing_version_never_overwritten(self):
+        with self.assertRaises(p.GuardError):
+            p.select_action('a', 'a', True)
+
+    def test_only_exact_parent_can_write(self):
+        self.assertEqual(p.select_action('a', 'a', False), 'commit_from_verified_checkpoint_parent')
+        self.assertEqual(p.select_action('b', 'a', True), 'read_only_exact_content_reconciliation')
+        with self.assertRaises(p.GuardError):
+            p.select_action('b', 'a', False)
+
+    def test_read_only_retry_cannot_repeat_commit(self):
+        for head in ('a', 'b'):
+            with self.subTest(head=head):
+                with self.assertRaises(p.GuardError):
+                    p.select_action(head, 'a', False, allow_write=False)
+                self.assertEqual(p.select_action(head, 'a', True, allow_write=False),
+                                 'read_only_exact_content_reconciliation')
+
+    def test_changed_dependency_pins_refused_before_import(self):
+        with patch.object(p, 'file_sha', return_value='0' * 64):
+            with self.assertRaisesRegex(p.GuardError, 'dependency_pins_hash_changed'):
+                p.dependencies()
+
+    def test_changed_dependency_file_refused_before_import(self):
+        with patch.object(p, 'file_sha', side_effect=[p.PINS_SHA, '0' * 64]):
+            with self.assertRaisesRegex(p.GuardError, 'dependency_hash_changed'):
+                p.dependencies()
+
+    def test_mutation_marker_is_exclusive(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            stage = Path(directory)
+            marker = stage / 'attempt.json'
+            with patch.object(p, 'STAGE', stage):
+                p.write_new(marker, b'first')
+                with self.assertRaises(p.GuardError):
+                    p.write_new(marker, b'second')
+            self.assertEqual(marker.read_bytes(), b'first')
+
+    def test_exact_remote_membership(self):
+        entries = [SimpleNamespace(path=x) for x in p.PATHS]
+        p.exact_membership(entries + [SimpleNamespace(path=p.PREFIX + 'companions', tree_id='x')])
+        for wrong in (entries[:-1], entries + [SimpleNamespace(path=p.PREFIX + 'extra')],
+                      entries + [entries[0]], entries + [SimpleNamespace(path=p.PREFIX + 'extra', tree_id='x')]):
+            with self.assertRaises(p.GuardError):
+                p.exact_membership(wrong)
+
+    def test_payload_scope_memory_regular_files(self):
+        rows = {path: {'mode': '100644', 'git_blob': 'a' * 40, 'sha256': 'b' * 64, 'bytes': 1}
+                for path in p.MAPPING.values()}
+        refs = p.payload_refs(rows)
+        self.assertEqual(len(refs), 17)
+        self.assertEqual(len(p.PATHS), 19)
+        first = next(iter(rows))
+        rows[first]['mode'] = '120000'
+        with self.assertRaises(p.GuardError):
+            p.payload_refs(rows)
+        rows[first]['mode'] = '100644'
+        rows[first]['bytes'] = p.MAX_PAYLOAD + 1
+        with self.assertRaises(p.GuardError):
+            p.payload_refs(rows)
+        del rows[first]
+        with self.assertRaises(p.GuardError):
+            p.payload_refs(rows)
+
+    def test_operation_exact_scope(self):
+        refs = [{'path': x} for x in sorted(p.PATHS)]
+        receipt = {'hf_revision': 'a' * 40}
+        op = {'stage': 'prepared_guarded_additive_direct_release', 'target_git': p.COMMIT,
+            'target_tree': p.TREE, 'actual_publish_executor': '/root', 'private_required': True,
+            'training_ready_data': True, 'competitive_performance': False,
+            'expected_hf_parent': 'a' * 40, 'checkpoint_receipt_sha256': 'hash',
+            'eligibility': {}, 'uploaded_files': refs, 'publisher_sha256': 'hash', 'dependency_pins_sha256': 'hash'}
+        with patch.object(p, 'file_sha', return_value='hash'):
+            p.operation_guard(op, refs, receipt, {})
+            for key, bad in [('expected_hf_parent', 'b' * 40), ('competitive_performance', True),
+                ('training_ready_data', False), ('publisher_sha256', 'other'), ('private_required', False)]:
+                wrong = copy.deepcopy(op)
+                wrong[key] = bad
+                with self.assertRaises(p.GuardError):
+                    p.operation_guard(wrong, refs, receipt, {})
+            extra = refs + [{'path': 'README.md'}]
+            wrong = dict(op, uploaded_files=extra)
+            with self.assertRaises(p.GuardError):
+                p.operation_guard(wrong, extra, receipt, {})
+
+    def test_disk_floor(self):
+        with patch.object(p.shutil, 'disk_usage', return_value=SimpleNamespace(free=p.FLOOR - 1)):
+            with self.assertRaises(p.GuardError):
+                p.disk_guard()
+
+    def stream_run(self, raw, expected, size=None):
+        row = {'path': p.PREFIX + 'studies.parquet', 'sha256': hashlib.sha256(expected).hexdigest(),
+               'bytes': len(expected) if size is None else size}
+        class Response:
+            def __enter__(self):
+                return self
+            def __exit__(self, *_):
+                pass
+            def raise_for_status(self):
+                pass
+            def iter_bytes(self, _):
+                yield raw
+        session = SimpleNamespace(stream=lambda *_, **__: Response())
+        module = types.ModuleType('huggingface_hub.utils._http')
+        module.get_session = lambda: session
+        transport = SimpleNamespace(HF_REPO='test/synthetic', verify_remote=lambda *_:
+            [dict(row, verification='hub_lfs_sha256_and_size')])
+        with patch.dict(sys.modules, {'huggingface_hub.utils._http': module}):
+            return p.full_verify(None, SimpleNamespace(hf_hub_url=lambda *_, **__: 'https://invalid.test/synthetic'),
+                'synthetic-not-a-credential', transport, 'a' * 40, [row])
+
+    def test_lfs_downloaded_not_just_metadata(self):
+        self.assertEqual(self.stream_run(b'example', b'example')[0]['verification'], 'full_http_bytes_sha256_and_size')
+
+    def test_lfs_byte_corruption_rejected(self):
+        with self.assertRaises(p.GuardError):
+            self.stream_run(b'changed', b'example')
+
+    def test_lfs_excess_rejected(self):
+        with self.assertRaises(p.GuardError):
+            self.stream_run(b'toolong', b'xx')
+
+    def test_lfs_deadline(self):
+        with patch.object(p.time, 'monotonic', side_effect=[0, 1801]):
+            with self.assertRaises(p.GuardError):
+                self.stream_run(b'x', b'x')
+
+
+if __name__ == '__main__':
+    unittest.main()

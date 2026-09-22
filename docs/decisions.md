@@ -13,8 +13,9 @@ restore MCL class coverage. The persisted counts are 3,904 training, 441 weak
 validation, 58 official evaluation and four quarantined. Real training and exact
 resume plus all gold/sample inference passed. Report supervision remains sparse
 and selected; this is not evidence of competitive accuracy or perfect labels.
-The expanded modeling plan follows actual data acceptance. Verified remote
-publication is being completed separately.
+The expanded modeling plan now targets UCF Newton and passed independent review.
+Verified publication is complete at code/data Git `f41879a3` and private HF
+`a177562d5f49458e287752b94f085dcb061f6495`; see the publication record and readiness report.
 
 ## Historical corrective-run decisions before final acceptance
 

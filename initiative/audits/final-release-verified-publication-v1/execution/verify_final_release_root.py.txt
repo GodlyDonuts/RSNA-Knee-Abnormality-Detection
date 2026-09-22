@@ -1,0 +1,59 @@
+"""Unexecuted prepared runner; only an actual root invocation creates a root proof."""
+import argparse
+import json
+from pathlib import Path
+import final_release_bindings as b
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    b.add_inputs(parser)
+    parser.add_argument('--actual-executor', choices=[b.ROOT], required=True)
+    parser.add_argument('--peer-proof-sha256', required=True)
+    parser.add_argument('--peer-build-receipt-sha256', required=True)
+    args = parser.parse_args()
+    b.future_pins_guard()
+    h = b.helper()
+    package, manifest, _, eligibility = b.local_guard(args, h)
+    for value in (args.peer_proof_sha256, args.peer_build_receipt_sha256):
+        b.require(b.SHA.fullmatch(value), 'bound_peer_hash_required')
+    protected = {name: b.sha(package / name) for name in
+                 ('manifest.json', 'restoration-proof.json', 'peer-restoration-proof.json', 'peer-build-receipt.json')}
+    b.require(protected['restoration-proof.json'] == protected['peer-restoration-proof.json'] == args.peer_proof_sha256,
+              'exact_peer_execution_alias_required')
+    b.require(protected['peer-build-receipt.json'] == args.peer_build_receipt_sha256, 'peer_build_receipt_changed')
+    peer = b.read(package / 'peer-restoration-proof.json')
+    b.proof_guard(peer, args, manifest, b.PEER)
+    b.require(peer['peer_runner'] == b.ref(b.STAGE / 'build_final_release_peer.py')
+              and peer.get('final_release_eligibility') == eligibility, 'actual_peer_build_binding')
+    out = package / 'root-restoration-proof.json'
+    b.require(not out.exists(), 'root_proof_already_exists')
+    base = b.WORK / 'hf-preparation-checkpoints' / b.BASE_GIT
+    proof = h.verify_package(b.R, b.TARGET_GIT, base / 'checkpoint.tar.gz', base / 'manifest.json',
+                             package, args.manifest_sha256, secrets=h.secret_values(b.W / '.env'))
+    b.require(proof['verifier_agent_id'] == b.HELPER_DEFAULT_IDENTITY, 'shared_default_identity_changed')
+    for name, expected in protected.items():
+        b.require(b.sha(package / name) == expected, 'peer_package_changed_during_root_verification')
+    proof.update(verifier_agent_id=b.ROOT, actual_executor=args.actual_executor,
+                 generated_helper_default_identity=b.HELPER_DEFAULT_IDENTITY, helper_default_is_not_evidence_of_actual_execution=True,
+                 helper_sha256=b.HELPER_SHA, root_runner_sha256=b.sha(Path(__file__)),
+                 preparation_author_agent_id=b.WORKFLOW_AUTHOR,
+                 workflow_revision_author_agent_id=b.WORKFLOW_REVISER,
+                 independent_peer_proof_sha256=args.peer_proof_sha256, peer_artifact_unchanged=True,
+                 final_release_eligibility=eligibility,
+                 actual_role='Root actually streamed the complete base and delta after the separate peer build. The peer proof alias is one peer execution, not another independent run.',
+                 process_exposure='Opaque streaming for hash and credential/URL scanning; no clinical judgments or gold-label interpretation.')
+    b.proof_guard(proof, args, manifest, b.ROOT)
+    h.Scanner(h.secret_values(b.W / '.env')).feed((json.dumps(proof) + '\n').encode())
+    b.save(out, proof)
+    print(json.dumps({'status': proof['status'], 'actual_executor': b.ROOT,
+                      'proof': b.ref(out), 'verified_files': args.expected_file_count,
+                      'training_ready': False, 'final_release_eligibility': eligibility}))
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as error:
+        print(json.dumps(b.error_result(error)))
+        raise SystemExit(2) from None

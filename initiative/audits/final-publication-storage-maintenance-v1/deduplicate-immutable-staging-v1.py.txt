@@ -1,0 +1,32 @@
+from pathlib import Path
+import os,json,hashlib,subprocess,collections,stat,shutil
+w=Path(__file__).resolve().parent.parent;r=w/'work/recovered';stage=w/'work/annotation-staging'
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  while b:=f.read(2**20):h.update(b)
+ return h.hexdigest()
+tracked=[r/x.decode() for x in subprocess.check_output(['git','ls-files','-z'],cwd=r).split(b'\0') if x]
+by_size=collections.defaultdict(list)
+for p in tracked:
+ if p.is_file() and not p.is_symlink() and p.stat().st_size>=262144 and p.suffix in {'.json','.jsonl','.gz','.parquet'}:by_size[p.stat().st_size].append(p)
+cache={};rows=[];before=shutil.disk_usage(w).free
+for p in sorted(stage.rglob('*')):
+ if not p.is_file() or p.is_symlink() or '__pycache__' in p.parts:continue
+ ps=p.stat()
+ if ps.st_size not in by_size or ps.st_nlink!=1:continue
+ if any('final-release-' in part for part in p.parts):continue
+ digest=sha(p)
+ for q in by_size[ps.st_size]:
+  qs=q.stat()
+  if stat.S_IMODE(qs.st_mode)!=stat.S_IMODE(ps.st_mode) or qs.st_dev!=ps.st_dev:continue
+  if q not in cache:cache[q]=sha(q)
+  if cache[q]!=digest:continue
+  assert sha(p)==sha(q)==digest
+  tmp=p.with_name(p.name+'.verified-hardlink-tmp')
+  assert not tmp.exists();os.link(q,tmp);os.replace(tmp,p)
+  assert p.stat().st_ino==q.stat().st_ino and sha(p)==digest
+  rows.append({'staged_path':p.relative_to(w).as_posix(),'tracked_path':q.relative_to(r).as_posix(),'sha256':digest,'bytes':ps.st_size,'byte_identical':True,'method':'Replace redundant immutable staged copy with hardlink to exact Git-tracked bytes; both paths remain present.'})
+  break
+out={'actual_executor':'/root','git_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=r).decode().strip(),'scope':'Frozen authored data artifacts only. No content changed, no source/cache image removed. All preserved paths remain. Future changes must use a new successor file rather than overwrite an immutable original.','free_bytes_before':before,'free_bytes_after':shutil.disk_usage(w).free,'files':rows,'logical_duplicate_bytes':sum(x['bytes'] for x in rows)}
+(w/'work/immutable-staging-deduplication-v1.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({k:v for k,v in out.items() if k not in {'files','scope'}}));print('deduplicated_files',len(rows))

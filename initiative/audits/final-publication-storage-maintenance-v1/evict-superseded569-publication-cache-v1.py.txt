@@ -1,0 +1,18 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,shutil,sys
+from dotenv import dotenv_values
+from huggingface_hub import HfApi
+w=Path(__file__).resolve().parent.parent
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def main():
+ new=w/'work/hf-preparation-deltas/f41879a33b38e47f0cbd96025edac7e2176a0a2f/root-publication-receipt.json';done=json.loads(new.read_text());assert done['status']=='verified_private_complete_tree_final_data_delta' and done['private']
+ old=w/'work/hf-preparation-deltas/a815aae64d812596a00b517c8542346280ee85f4';receipt=json.loads((old/'root-publication-receipt.json').read_text());manifest=json.loads((old/'manifest.json').read_text());p=old/'delta.tar.gz';pin=manifest['delta_archive'];assert p.is_file() and not p.is_symlink();assert p.stat().st_size==pin['bytes'] and sha(p)==pin['sha256']
+ tokens=[v for v in dotenv_values(w/'.env').values() if isinstance(v,str) and v.startswith('hf_')];assert len(set(tokens))==1;api=HfApi(token=tokens[0]);repo='GodlyDonuts/RSNA-Data';assert api.repo_info(repo,repo_type='dataset').private
+ remote=next(x for x in receipt['uploaded_objects'] if x['path'].endswith('/delta.tar.gz'));assert remote['sha256']==pin['sha256'] and remote['bytes']==pin['bytes']
+ obj=api.get_paths_info(repo,[remote['path']],repo_type='dataset',revision=receipt['hf_revision']);assert len(obj)==1 and obj[0].size==pin['bytes'] and obj[0].lfs.sha256==pin['sha256']
+ out={'actual_executor':'/root','status':'freshly_verified_then_evicted_superseded_transfer_cache','at_utc':datetime.now(timezone.utc).isoformat(),'local_path':p.relative_to(w).as_posix(),'sha256':pin['sha256'],'bytes':pin['bytes'],'private_hf_revision':receipt['hf_revision'],'hf_path':remote['path'],'fresh_verification':'immutable revision LFS SHA256 and size match locally rehashed cache and prior streaming-publication receipt','superseding_verified_publication':{'hf_revision':done['hf_revision'],'receipt_sha256':sha(new)},'free_before':shutil.disk_usage(w).free,'base_archive_source_images_training_cache_and_new_delta_untouched':True}
+ p.unlink();out['free_after']=shutil.disk_usage(w).free;(w/'work/superseded569-cache-eviction-v1.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({'status':out['status'],'bytes':out['bytes'],'free_after':out['free_after']}))
+if __name__=='__main__':
+ try:main()
+ except Exception as e:print(json.dumps({'status':'not_completed','error_class':type(e).__name__}));sys.exit(2)
