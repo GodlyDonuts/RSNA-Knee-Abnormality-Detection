@@ -9,22 +9,23 @@ from a clone of this repository.
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
-The current registry contains **425 active accepted target corrections** and
-18 enforced report-supervision exclusions. Wording002 adds 63 changes while
-preserving all 362 earlier whole correction objects and three earlier retirements.
-Four overlapping proposals retain their existing accepted objects. All initial
-judgments and 22 later root reconsiderations remain explicit. Three semantic QA
-gates and final leakage, mask, manifest and training checks remain open; 24
-unresolved correspondence cases must retain zero report-loss masks.
+The current registry contains **491 active accepted target corrections** and
+18 enforced report-supervision exclusions. Wording003 adds 66 changes while
+preserving all 425 earlier whole correction objects, four selected overlaps and
+three retirements. Initial judgments, rejected proposals and five later root
+reconsiderations remain explicit. One additional root/assessor dispute remains
+unresolved and unregistered. All three semantic QA gates and final leakage, mask,
+manifest and training checks remain open; 24 unresolved correspondence cases
+must retain zero report-loss masks.
 
-The latest verified private publication contains 362 corrections and 9,164
-restorable Git files at Git `f648ebce` / HF `a9155790`; its actual receipt is archived.
-The local 425 milestone needs its own verified publication receipt. Completed
-bone passes cover 1,050 priority reports each. Root wording003 has 20 of 45 sources
-frozen before case findings. The fixed362 evidence ledger links every target to
-existing reviews and remaining work, with separate later snapshots. After data
-readiness, the owner's expanded mission requires competitive training research
-and an experiment plan; see
+The latest verified private publication contains 425 corrections and 9,530
+restorable Git files at Git `a9b388f6` / HF `b57d7525`; its actual receipt is archived.
+The local 491 milestone needs its own verified publication receipt. Both bone
+passes cover 1,250 priority reports. Root wording004 has frozen all 46 full sources
+before current case findings and awaits comparison. Snapshot v17 preserves
+completed evidence cutoffs; the fixed 362 ledger remains unchanged. After data
+readiness, the expanded mission requires competitive training research and an
+experiment plan; see
 [mission-and-training-plan.md](../docs/mission-and-training-plan.md).
 
 The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and

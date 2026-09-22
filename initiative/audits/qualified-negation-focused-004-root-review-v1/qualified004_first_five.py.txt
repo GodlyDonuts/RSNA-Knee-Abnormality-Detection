@@ -1,0 +1,61 @@
+from qualified004_source_tools import freeze,N,G,json,Path
+rows=json.loads((N/'neutral-root-packets/batch-000.json').read_text())
+def span(i,first,last):
+    s=rows[i]['report'];a=s.index(first)
+    return s[a:s.index(last,a)+len(last)]
+judgments=[
+('N N N N N N U U X N U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+span(0,'Aumento de señal central del cuerno posterior del menisco medial','con la superficie articular, sin caracteres de una rotura categórica.'),
+'El menisco lateral de morfología y señal conservada, sin criterios de rotura.',
+'Cartílagos de los compartimentos femorotibiales y de la tróclea femoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y de la tróclea femoral sin alteraciones.',
+span(0,'Cartílagos de los compartimentos femorotibiales','secundarios.'),
+'No hay significativo derrame articular ni quistes poplíteos.','',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.','',
+],'Ligaments and lateral meniscal morphology/signal are explicitly normal. Medial signal is central/internal and does not appear to contact the surface, without definite tear morphology; the positive internal description supports a below-tear negative despite the qualified clause. TF and trochlear cartilage are normal; patellar ulcers include full thickness but no qualifying extent, so PF is uncertain regardless of bare grades2/3. Effusion is significance-qualified while popliteal cysts are separately denied. Marrow denial is qualified. Bilateral symptoms belong to clinical history, not an explicit bilateral imaging finding; Hoffa/tendon findings do not diagnose synovitis or acute fracture.'),
+('N N N N N N N U X N N X',[
+span(1,'The anterior cruciate ligament, posterior cruciate ligament','all appear intact and unremarkable.'),
+span(1,'The anterior cruciate ligament, posterior cruciate ligament','all appear intact and unremarkable.'),
+'The medial meniscus is intact.', 'The lateral meniscus is intact.',
+'The articular cartilage of the medial joint compartment is well-maintained.',
+'The articular cartilage of the lateral joint compartment is well-maintained.',
+'The articular cartilage of the patellofemoral joint is well-maintained.',
+'No significant knee effusion.','', "There is no Baker's cyst demonstrated.",
+'Marrow signal is within normal limits.','',
+],'Named cruciate/collateral ligaments and both menisci are intact, and each cartilage compartment is affirmatively well-maintained without a preservation qualifier. Effusion denial alone is significance-qualified. Baker is absent and marrow signal explicitly normal. Marathon-related pain is history, not an injury diagnosis; synovitis and acute fracture are unmentioned.'),
+('N N N N U N U U X N X X',[
+'LCA y ligamentos colaterales dentro de límites normales.',
+'LCA y ligamentos colaterales dentro de límites normales.',
+span(2,'Persiste aumento de señal central','sin contactar la superficie articular, sin caracteres propios de rotura.'),
+'Menisco lateral de morfología conservada.',
+span(2,'Persisten úlceras condrales de espesor parcial','femoral medial sin cambios.'),
+span(2,'Persisten úlceras condrales de espesor parcial','El resto de los cartílagos femorotibiales sin alteraciones.'),
+span(2,'Cartílago troclear sin alteraciones.','rotuliano sin variaciones.'),
+'No hay significativo derrame articular ni quistes poplíteos.','',
+'No hay significativo derrame articular ni quistes poplíteos.','','',
+],'Prior/scarring cruciate injury is expressly PCL, while ACL and collaterals are normal. Medial meniscal central signal explicitly does not reach a surface and lateral morphology is preserved. Medial and patellar cartilage ulcers are partial thickness without fractional loss/extent; bare grade numbers do not resolve the body descriptions. The remaining TF cartilage gives lateral negative. Effusion is significance-qualified and popliteal cysts separately absent. Trochlear dysplasia is shape, and superficial susceptibility/tendinopathy do not assess marrow contusion, fracture or synovitis.'),
+('N N N N X N N N X X U X',[
+'Normal course with preserved signal of the ACL is noted.', 'The MCL is intact.',
+'Medial meniscus is not torn.', 'Normal shape with preserved signal of the lateral meniscus is observed.', '',
+'Small osteochondral lesion, about 7mm., at weightbearing part of the lateral femoral condyle is noted.',
+'The PF joint surface is preserved.', 'Minimal amount of joint effusion is seen.','','',
+span(3,'Small osteochondral lesion, about 7mm., at weightbearing part of the lateral femoral condyle is noted.','NO definite osteochondral fragment is detected.'),'',
+],'ACL/MCL and both menisci are explicitly intact/normal or not torn. The localized lateral osteochondral lesion is about7mm, below the stated cartilage-region extent, and the PF surface is preserved. The local no-cartilaginous-tear statement around that lateral lesion is not an explicit medial-cartilage assessment. Minimal fluid is below threshold. Surrounding marrow edema with a probable early OCD interpretation does not establish impact causation. Absence of a definite osteochondral fragment is not an acute-fracture assessment. Baker and synovial lining are unmentioned.'),
+('N N N N N N U U X N U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Cartílagos de los compartimentos femorotibiales con úlceras superficiales de distribución difusa.',
+'Cartílagos de los compartimentos femorotibiales con úlceras superficiales de distribución difusa.',
+'Cartílagos patelofemorales con úlceras de espesor parcial de distribución difusa.',
+'No hay significativo derrame articular ni quistes poplíteos.','',
+'No hay significativo derrame articular ni quistes poplíteos.',
+span(4,'No hay alteraciones de señal significativas de la médula ósea','probablemente condroide de 5 mm de la región metafisaria distal del fémur.'),'',
+],'Named ligaments and meniscal morphology/signal are affirmatively normal despite qualified tear wording. TF ulcers are expressly superficial, below the deep-loss threshold; PF ulcers are partial thickness with diffuse extent but no depth bound, and bare grades1/2 do not resolve that. Effusion denial is qualified; popliteal cysts are separately absent. Marrow normality is qualified with a probable small chondroid lesion, not a traumatic contusion diagnosis. Bilateral pain is clinical history. IT-band and tendon changes do not diagnose synovitis or acute fracture.'),
+]
+freeze('first-five',0,0,judgments)
+with (G/(Path(__file__).name+'.txt')).open('xb') as f:f.write(Path(__file__).read_bytes())

@@ -1,0 +1,45 @@
+"""Source/index/hash and UID-only historical neutral-packet overlap inventory."""
+import hashlib,json
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';AGENT='/root/last_twelve_visual_review'
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def obj(p):return json.loads(p.read_text())
+def write(n,d):
+ with (S/n).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+p=A/'bone-observed-022-source-review-v1/neutral-source-packet.json';assert ref(p)['sha256']=='8be161e7b6b0b8226ab51be1ed26b81f64780cdcc505bb5cff2b5ea348735f5a'
+d=obj(p);reports=d['reports'];assert len(reports)==len({x['study_uid'] for x in reports})==50
+assert (S/'neutral-source-packet.json').read_bytes()==p.read_bytes()
+rub=ref(R/'protocols/report_weak_v2.md');assert rub['sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'==d['rubric_sha256']
+import re,sys
+queue=A/'bone-global-candidate-inventory-v1/priority-queue.json'
+assert ref(queue)['sha256']=='de068ba5edc97a9e0a1d0b66e75cf376ef2a1ae2856fd1cff833019756fb7407'
+ordered=list(dict.fromkeys(re.findall(r'"study_uid"\s*:\s*"([^"\n]+)"',queue.read_text())));assert len(ordered)==1549 and len(set(ordered))==1549
+assert [v['study_uid'] for v in reports]==ordered[1100:1150]
+prior_order=[]
+for e in d['selection_provenance']['prior_packet_bindings']:
+ pp=W/e['path'];assert ref(pp)['sha256']==e['sha256'];aa=obj(pp);aa=aa.get('reports',aa) if isinstance(aa,dict) else aa
+ for rr in aa:
+  sp=R/rr['source_path'];ii=rr.get('source_index_zero_based',rr.get('index'));assert ref(sp)['sha256']==rr['source_sha256'];ss=obj(sp)[ii];assert ss=={'study_uid':rr['study_uid'],'report':rr['report']}
+  expected=rr.get('report_sha256',rr.get('report_utf8_sha256'));assert expected is None or expected==hashlib.sha256(ss['report'].encode()).hexdigest();prior_order.append(ss['study_uid'])
+assert len(prior_order)==len(set(prior_order))==1100 and prior_order==ordered[:1100];assert not set(prior_order)&{v['study_uid'] for v in reports}
+sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint
+allreports={}
+for sp in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ for rr in obj(sp):assert set(rr)=={'study_uid','report'} and rr['study_uid'] not in allreports;allreports[rr['study_uid']]=rr['report']
+assert len(allreports)==4407 and source_reports_fingerprint(allreports)==d['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+write('independent-neutral-order-validation.json',{'agent_id':AGENT,'source_packet':ref(S/'neutral-source-packet.json'),'first_assembly_proof':ref(A/'bone-observed-022-source-review-v1/neutral-assembly-validation.json'),'prior_ordered_source_bindings_verified':1100,'selected_positions':[1100,1149],'selected_source_bindings':50,'priority_uid_projection_only':True,'prior_overlap':0,'actual_canonical4407_function_executed':True,'source_reports_sha256':d['source_reports_sha256'],'neutral_file_sha256':ref(S/'neutral-source-packet.json')['sha256']})
+prior_paths=[A/f'cartilage-observed-{i:03}-independent-review-v1/neutral-source-packet.json' for i in range(6)]+[A/f'qualified-negation-focused-{i:03}-independent-review-v1/neutral-source-packet.json' for i in range(1,5)]+[A/'cartilage-legacy-three-independent-review-v1/neutral-source-packet.json',A/'qualified-negation-focused-005-source-review-v1/neutral-source-packet.json',A/'bone-observed-007-independent-review-v1/neutral-source-packet.json',A/'bone-observed-008-independent-review-v1/neutral-source-packet.json',A/'bone-observed-009-independent-review-v1/neutral-source-packet.json',A/'bone-observed-010-independent-review-v1/neutral-source-packet.json',A/'bone-observed-011-independent-review-v1/neutral-source-packet.json',A/'bone-observed-012-independent-review-v1/neutral-source-packet.json',A/'qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-006.json',A/'bone-observed-013-independent-review-v1/neutral-source-packet.json',A/'bone-observed-015-independent-review-v1/neutral-source-packet.json',A/'bone-observed-016-independent-review-v1/neutral-source-packet.json',A/'bone-observed-017-independent-review-v1/neutral-source-packet.json',A/'bone-observed-018-independent-review-v1/neutral-source-packet.json',A/'bone-observed-019-independent-review-v1/neutral-source-packet.json',A/'bone-observed-020-independent-review-v1/neutral-source-packet.json',A/'bone-observed-021-independent-review-v1/neutral-source-packet.json']
+prior={};prior_refs=[]
+for p in prior_paths:
+ a=obj(p);a=a.get('reports',a) if isinstance(a,dict) else a
+ assert isinstance(a,list);prior_refs.append(ref(p))
+ for x in a:prior.setdefault(x['study_uid'],[]).append(ref(p))
+rows=[]
+for i,x in enumerate(reports):
+ sp=R/x['source_path'];assert ref(sp)['sha256']==x['source_sha256'];assert obj(sp)[x['source_index_zero_based']]=={'study_uid':x['study_uid'],'report':x['report']};assert hashlib.sha256(x['report'].encode()).hexdigest()==x['report_sha256']
+ rows.append({'packet_index':i,'case':sp.stem.removeprefix('batch-')+':'+str(x['source_index_zero_based']),'study_uid':x['study_uid'],'source':ref(sp),'source_index_zero_based':x['source_index_zero_based'],'report_utf8_sha256':x['report_sha256'],'prior_exact_uid_neutral_packets':prior.get(x['study_uid'],[])})
+write('source-bindings-and-exposure.json',{'agent_id':AGENT,'session_id':AGENT,'created_at_utc':datetime.now(timezone.utc).isoformat(),'source_packet':ref(S/'neutral-source-packet.json'),'rubric':rub,'target_order':['Contusion','Fracture'],'reports':rows,'prior_neutral_packets_scanned_uid_only':prior_refs,'known_exact_overlap_count':sum(bool(x['prior_exact_uid_neutral_packets']) for x in rows),'disclosure':'This agent previously personally read technical/correspondence sources and selected matrix/header evidence, wording001-006, cartilage000-005 and legacy-three, bone007-013 and015-021 (not014), and authored their source/postfreeze assessments. Historical conceptual debates, accepted and unintegrated clinical changes and temporal report-loss exclusions are known. The immediately preceding wording005 metadata-only normalization mechanically loaded60 original proposals and600 historical254/current425 selected annotation cells, with7 accepted overlaps; no new clinical opinion was authored. Earlier wording002, bone007 and cartilage author normalizations are known. Bone021 all100 source/post comparison and its actual425 replay are completed context. Current425 registry objects were mechanically accessed for normalization, which can create incidental historical annotation exposure; they are not reopened or selected for022 before this source freeze. Exact prior-source overlaps are inventoried by neutral-packet UID only across27 personally read collections, without reopening prior case findings. Historical technical sources and opaque publication/archive exposure may extend beyond that bounded inventory; recognized additional cases are recorded separately. The distinct first reader supplied the neutral022 packet and assembly proof; I personally verify only source/order bindings from the frozen priority UID projection, not candidate trigger values. No first022 clinical findings or selected current022 annotation are opened before the complete100 source freeze. No first-ever blindness or timestamp-proven access order is claimed.','chronology_limitation':'This records intended and actual declared workflow; timestamps cannot independently prove all past access order.','source_validations_passed':True,'repository_modified':False})
+print(json.dumps({'reports':len(rows),'exact_overlap_count':sum(bool(x['prior_exact_uid_neutral_packets']) for x in rows),'overlap_positions':[x['packet_index'] for x in rows if x['prior_exact_uid_neutral_packets']],'bindings':ref(S/'source-bindings-and-exposure.json')},indent=2))

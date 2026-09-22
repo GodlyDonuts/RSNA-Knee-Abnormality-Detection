@@ -1,0 +1,133 @@
+"""Actual original-author context verification; no clinical field or decision change."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+import hashlib,json,shutil,sys
+S=Path(__file__).resolve().parent;W=S.parents[2];B=W/'work/annotation-staging';R=W/'work/recovered'
+F=B/'qualified-negation-focused-003-source-review-v1';T=B/'qualified-negation-focused-003-post-freeze-comparison-v1'
+AG='/root/duplicate_consistency_review'
+CANON='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+CURRENT='17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62'
+HIST='36cfae8368b5983a6ea09aff877519831c2099b28b3200d026b8ee68625436d6'
+protected={}
+def ref(p):
+ p=p.resolve();b=p.read_bytes();v={'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+ assert protected.setdefault(v['path'],v)==v;return v
+def read(p):ref(p);return json.loads(p.read_text())
+def jl(p):ref(p);return [json.loads(x) for x in p.read_text().splitlines()]
+def ch(v):return hashlib.sha256(json.dumps(v,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+def indexed(rows):
+ result={(x['study_uid'],x['target']):x for x in rows};assert len(result)==len(rows);return result
+def write(name,v):
+ with (S/name).open('x') as f:f.write(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+ return ref(S/name)
+def copy(p,name):
+ with (S/name).open('xb') as f:f.write(p.read_bytes())
+ assert (S/name).read_bytes()==p.read_bytes();return ref(S/name)
+def anno(state,evidence):return {'state':state,'evidence':evidence}
+def quote(v,report):
+ assert v['state'] in {'positive','negative','uncertain','not_mentioned'}
+ assert isinstance(v['evidence'],str)
+ assert v['evidence']=='' if v['state']=='not_mentioned' else bool(v['evidence']) and v['evidence'] in report
+assert shutil.disk_usage(W).free>20*2**30+64*2**20
+oldp=F/'proposed-errata.json';old=read(oldp)
+assert ref(oldp)['sha256']=='d489a2aa61f7d67001dbbbcadc6d7504d13474260b4939cce6bcdffc74624b60'
+assert old['agent_id']==old['session_id']==old['proposer_agent_id']==old['proposer_session_id']==AG
+assert old['source_reports_sha256']==CANON and old['rubric_sha256']==RUBRIC
+assert old['n_changes']==len(old['proposed_errata'])==59
+for name,pin in [('source-assessment-frozen.json','f81e1ec755dd475541d7f3a122edf9c6054a7e4945abd00bd7726133b286812e'),('source-freeze-receipt.json','fafabf8354bbce9c4aa5beaba15a0910677fea07324a0d44ad42162929e03b39'),('postfreeze-disposition-assessment.json','7d450398f66697151c85e36874631c603e85fd68aab99537c502721406b4c2bf'),('artifact-manifest.json','3212df8281df967dc60dac33620bf690d05322b55e2c44abf5f47e95db299389')]:assert ref(F/name)['sha256']==pin
+for name in ['source-freeze-receipt.json','artifact-manifest.json']:
+ m=read(F/name)
+ for n,h in m['files'].items():assert ref(F/n)['sha256']==h
+for p in sorted(F.iterdir()):
+ if p.is_file():ref(p)
+arch=R/'initiative/audits/qualified-negation-focused-003-source-review-v1/proposed-errata.json'
+assert arch.read_bytes()==oldp.read_bytes();ref(arch)
+source_doc=read(F/'source-assessment-frozen.json');source={x['study_uid']:x for x in source_doc['records']};assert len(source)==50 and source_doc['n_target_decisions']==600
+assert source_doc['agent_id']==source_doc['session_id']==AG
+histdoc=read(F/'current-adjudications-inspection.json');historic=indexed(histdoc['changes']);assert len(historic)==histdoc['n_changes']==34
+assert histdoc['registry_sha256']==old['adjudication_registry_sha256']==HIST
+hp=R/'initiative/audits/qualified-negation-focused-000-integration-v1/registry-before.json';assert ref(hp)['sha256']==HIST
+hreg=read(hp);histcases=[];histfull={}
+for e in hreg['cases']:
+ cp=R/e['path'];relocated=False
+ if not cp.exists():
+  assert e['path']=='initiative/reviews-v2/adjudications/cases/cartilage-morphology-004-088.json'
+  cp=R/'initiative/audits/qualified-negation-focused-000-source-review-v1/bound-originals'/e['path'];relocated=True
+ assert ref(cp)['sha256']==e['sha256'];histcases.append({'original_registry_reference':e,'exact_preserved_case':ref(cp),'retired_from_active_registry':relocated})
+ for x in read(cp)['changes']:
+  k=x['study_uid'],x['target'];assert k not in histfull;histfull[k]=x
+assert len(histfull)==34
+regp=R/'initiative/reviews-v2/adjudications/registry.json';assert ref(regp)['sha256']==CURRENT
+reg=read(regp)
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+TARGETS=list(TARGETS);assert source_doc['target_order']==TARGETS
+reports={};batches={};source_refs=[]
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ rows=read(p);source_refs.append(ref(p));batches[str(p.relative_to(R))]=rows
+ for x in rows:
+  assert set(x)=={'study_uid','report'} and x['study_uid'] not in reports;reports[x['study_uid']]=x['report']
+assert len(reports)==4407 and source_reports_fingerprint(reports)==CANON==reg['source_reports_sha256']
+rub=R/'protocols/report_weak_v2.md';assert ref(rub)['sha256']==RUBRIC
+runtime=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',rub,R)
+assert runtime['n_changes']==425 and runtime['registry_sha256']==CURRENT and len(runtime['pending_semantic_qa'])==3
+runtimechanges=indexed(runtime['changes']);assert len(runtimechanges)==425
+current={};case_refs=[]
+for e in reg['cases']:
+ cp=R/e['path'];assert ref(cp)['sha256']==e['sha256'];case_refs.append(ref(cp))
+ for c in read(cp)['changes']:
+  k=c['study_uid'],c['target'];assert k not in current;current[k]={'case':ref(cp),'whole_change_object':c}
+assert set(current)==set(runtimechanges)
+prior=[]
+for k,c in histfull.items():
+ active=current.get(k)
+ if active:assert active['whole_change_object']==c
+ else:assert k in { (x['study_uid'],x['target']) for z in histcases if z['retired_from_active_registry'] for x in read(W/z['exact_preserved_case']['path'])['changes'] }
+ prior.append({'study_uid':k[0],'target':k[1],'historical_whole_change_object':c,'historical_whole_change_sha256':ch(c),'current_active_whole_change_object':active['whole_change_object'] if active else None,'same_whole_change_if_still_active':bool(active),'retired_preserved_only_not_reactivated':active is None})
+originals={};baseline=read(F/'full-target-comparison.json');assert baseline['registered_corrections']==34 and baseline['adjudication_registry_sha256']==HIST
+replay=[]
+for r in baseline['records']:
+ k=r['study_uid'],r['target'];f=source[k[0]];ti=TARGETS.index(k[1]);sp=R/r['source_path'];assert ref(sp)['sha256']==r['source_sha256']==f['source_sha256']
+ assert batches[r['source_path']][r['index']]=={'study_uid':k[0],'report':f['report']} and reports[k[0]]==f['report']
+ assert hashlib.sha256(f['report'].encode()).hexdigest()==f['source_report_sha256'];rp=R/r['original_review_path'];assert ref(rp)['sha256']==r['original_review_sha256']
+ if rp not in originals:originals[rp]={x['study_uid']:x for x in jl(rp)}
+ raw=originals[rp][k[0]];original=anno(raw['states'][ti],raw['evidence'][ti]);assert original==anno(r['original_state'],r['original_evidence'])
+ historical=historic[k]['after'] if k in historic else original;assert historical==anno(r['effective_state'],r['effective_evidence'])
+ c=current.get(k);effective=runtimechanges[k]['after'] if k in runtimechanges else original
+ if c:assert c['whole_change_object']['before']==original and c['whole_change_object']['after']==effective
+ a=f['decisions'][ti];assert a['target']==k[1] and (a['state'],a['evidence'],a['reason'])==(r['first_assessor_state'],r['first_assessor_evidence'],r['first_assessor_reason'])
+ for q in [original,historical,effective,a]:quote(q,f['report'])
+ replay.append({'packet_index':f['packet_index'],'study_uid':k[0],'target':k[1],'source_batch':ref(sp),'source_index_zero_based':r['index'],'report_utf8_sha256':f['source_report_sha256'],'original_review':ref(rp),'original_annotation':original,'historical34_effective':historical,'actual425_effective':effective,'changed_since34':effective!=historical,'accepted_key_overlap':c,'source_first_frozen_object':a})
+assert len(replay)==len(indexed(replay))==600
+rl=indexed(replay);secondp=T/'unintegrated-proposals.json';assert ref(secondp)['sha256']=='6d27c40939f9ef08115955c53d10a066b08ae6308f09dce6142b61f24054efef';secondkeys=set(indexed(read(secondp)['records']))
+# The source fingerprint and standard proposal fields are already correct. Preserve
+# the entire original serialized proposal, with normalization provenance separate.
+normalized_ref=copy(oldp,'proposed-errata.json');new=read(S/'proposed-errata.json');assert new==old and normalized_ref['sha256']==ref(oldp)['sha256']
+exact=[];ledger=[]
+for i,(a,b) in enumerate(zip(old['proposed_errata'],new['proposed_errata'],strict=True)):
+ assert a==b;k=a['study_uid'],a['target'];r=rl[k];f=source[k[0]]
+ assert a['source_sha256']==f['source_sha256'] and a['source_path']==f['source_path'] and a['index']==f['index']
+ assert ref(R/a['artifact_path'])['sha256']==a['artifact_sha256']==r['original_review']['sha256']
+ before=anno(a['before_state'],a['before_evidence']);after=anno(a['proposed_state'],a['source_quote']);assert before==r['historical34_effective'];quote(before,f['report']);quote(after,f['report'])
+ exact.append({'original_proposal_index':i,'study_uid':k[0],'target':k[1],'whole_original_object_sha256':ch(a),'whole_normalized_object_sha256':ch(b),'whole_object_exact':True,'original_full_record':a,'standard_proposal_fields_already_present':True,'source_quote_exact_contiguous':True,'historical_before_preserved':True})
+ ledger.append({'original_proposal_index':i,'study_uid':k[0],'target':k[1],'historical34_before':before,'original_proposed_after':after,'actual425_effective':r['actual425_effective'],'current_accepted_key_overlap':r['accepted_key_overlap'],'current_before_matches_original_historical_before':r['actual425_effective']==before,'current_effective_matches_original_proposed_after':r['actual425_effective']==after,'first_only_proposal_key_absent_from_second':k not in secondkeys,'original_record_preserved':True,'new_acceptance_created':False})
+assert len(exact)==len(indexed(ledger))==59
+counts={'reports':50,'selected_cells':600,'historical_registry_count':34,'actual_registry_count':425,'original_proposals':59,'normalized_proposals':59,'dropped_proposals':0,'changed_clinical_objects':0,'changed_top_level_fields':0,'selected_current_accepted_overlap':sum(x['accepted_key_overlap'] is not None for x in replay),'selected_drift_since34':sum(x['changed_since34'] for x in replay),'proposal_current_accepted_overlap':sum(x['current_accepted_key_overlap'] is not None for x in ledger),'proposal_before_drift':sum(not x['current_before_matches_original_historical_before'] for x in ledger),'first_only_proposal_keys_preserved':sum(x['first_only_proposal_key_absent_from_second'] for x in ledger),'historical34_objects_still_active_exact':sum(x['same_whole_change_if_still_active'] for x in prior),'historical_retired_objects_preserved':sum(x['retired_preserved_only_not_reactivated'] for x in prior),'pending_semantic_gates':3}
+assert counts['selected_current_accepted_overlap']==4 and counts['selected_drift_since34']==3 and counts['proposal_current_accepted_overlap']==counts['proposal_before_drift']==0
+copy(regp,'registry425-at-normalization.json');copy(hp,'historical34-registry.json')
+write('actual425-inspection.json',runtime)
+write('canonical-source-context.json',{'agent_id':AG,'session_id':AG,'runtime_function':'rsna.labels.source_reports_fingerprint','actual_function_executed':True,'runtime_module':ref(R/'rsna/labels.py'),'canonical_all4407_source_reports_sha256':CANON,'source_reports_count':4407,'original_blinded_inputs':source_refs,'rubric':ref(rub),'original_neutral_packet_sha256':old['neutral_packet_sha256'],'packet_and_canonical_fingerprint_kept_separate':True,'original_proposal_context_already_canonical':True,'source_metadata_changes_needed':False})
+write('actual425-rebase-and-preservation.json',{'agent_id':AG,'session_id':AG,'counts':counts,'original_historical_comparison':ref(F/'full-target-comparison.json'),'historical34_registry':ref(S/'historical34-registry.json'),'historical_case_bindings':histcases,'actual425_registry':ref(S/'registry425-at-normalization.json'),'actual425_inspection':ref(S/'actual425-inspection.json'),'current_case_bindings':case_refs,'selected_replay':replay,'all34_historical_whole_changes':prior,'no_retired_case_reactivated':True,'no_current_change_object_mutated':True,'no_clinical_acceptance':True})
+write('current425-overlap-ledger.json',{'agent_id':AG,'session_id':AG,'counts':counts,'records':ledger,'all_selected_accepted_or_drift_rows':[x for x in replay if x['accepted_key_overlap'] is not None or x['changed_since34']],'scope':'Full59 retained, including every first-only key. Existing selected accepted overlaps remain explicit. No filtering, new acceptance, clinical adjudication, source/rubric change or registry mutation.'})
+write('original-to-normalized-exact-comparison.json',{'agent_id':AG,'session_id':AG,'original':ref(oldp),'archived_original':ref(arch),'normalized':normalized_ref,'same_full_file_bytes_and_sha256':True,'changed_top_level_fields':[],'all59_whole_original_objects_exact':True,'original_metadata_and_historical34_context_exact':True,'records':exact,'counts':counts})
+write('author-and-context-clarification.json',{'agent_id':AG,'session_id':AG,'normalization_at_utc':datetime.now(timezone.utc).isoformat(),'actual_role':'Original wording003 first author verifying canonical metadata and issuing an unchanged standard proposal copy; not a new clinical assessor.','original_author_agent_id':old['agent_id'],'original_author_session_id':old['session_id'],'original_source_freeze':ref(F/'source-freeze-receipt.json'),'original_source_assessment':ref(F/'source-assessment-frozen.json'),'original_explicit_postfreeze_dispositions':ref(F/'postfreeze-disposition-assessment.json'),'original_proposal':ref(oldp),'normalized_proposal':normalized_ref,'normalization_result':'Original already has the canonical4407 fingerprint, frozen rubric and standard proposed_errata schema. Zero metadata replacement was needed; the complete original file is preserved byte-for-byte. Current425 context and all overlaps are separate artifacts. Original reasons, before values, statuses, timestamps, identity and scope remain unchanged.','historical_exposure':'I personally authored the original003 first source and postfreeze work. I subsequently handled other source reviews and technical publication work, prepared and executed the authorized003 mechanical comparison after root full45 freeze, and now know current425 context. No fresh blindness or additional clinical reading is claimed. Root has communicated completion and possible first-only attention, not an acceptance used to alter any proposal.','all_first_only_proposals_retained':True,'clinical_values_changed':False,'new_acceptance':False,'R_writes':False,'gold_values_opened':False,'global_gate_closed':False})
+for r in list(protected.values()):assert ref(W/r['path'])==r
+assert ref(regp)['sha256']==CURRENT and shutil.disk_usage(W).free>20*2**30
+validation={'agent_id':AG,'session_id':AG,'counts':counts,'same_full_proposal_bytes':True,'canonical_fingerprint_recomputed':True,'runtime_inspection_executed':True,'all600_source_original_historical_current_bindings_verified':True,'all59_whole_proposals_preserved':True,'original_inputs':list(protected.values()),'no_clinical_decisions_or_acceptance':True,'R_writes':False,'gold_values_opened':False}
+write('validation.json',validation)
+completion=write('completion-manifest.json',{'agent_id':AG,'session_id':AG,'at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Completed original-author FIRST003 canonical context validation and byte-identical59-proposal preservation, with separate actual425 replay; no new clinical reading or acceptance.','counts':counts,'files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'all_originals_unchanged':True,'no_R_writes':True})
+print(json.dumps({'normalized_proposal':normalized_ref,'overlap_ledger':ref(S/'current425-overlap-ledger.json'),'exact_proof':ref(S/'original-to-normalized-exact-comparison.json'),'completion':completion,'counts':counts},indent=2))

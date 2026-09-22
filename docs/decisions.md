@@ -2,29 +2,30 @@
 
 ## Current corrective run
 
-The registry now contains 425 active corrections. Wording002 contributes 63
-new accepted changes: 59 state changes and four evidence fixes. Four additional
-proposals were already accepted and retain their exact existing correction objects.
-All 362 prior whole objects and three retirements remain unchanged. Root froze 552
-source judgments across 46 full reports before case findings; 22 later state
-reconsiderations are explicit. Both original source passes, all 67 second proposals,
-all 58 first proposals and nine retained first/root postfreeze disagreements remain
-preserved. The independent technical replay found no source/quote defects or
-conflicts across 54 identical-report groups / 204 reports.
+The registry now contains 491 active corrections. Wording003 contributes 66
+new accepted changes: 51 negative-to-uncertain, five uncertain-to-unmentioned,
+one uncertain-to-negative, one uncertain-to-positive, one negative-to-unmentioned,
+and seven evidence-only changes. All 425 prior whole objects, four selected
+overlaps and three retirements are unchanged. Root froze 540 judgments across 45
+full sources before case findings; five later state reconsiderations are explicit.
+Both original readers' proposals and the two second/one first rejections remain
+preserved. One additional root/assessor disagreement is unresolved and excluded.
+The independent replay found no conflicts across 54 identical-report groups / 204
+reports. See [adjudications.md](adjudications.md) for exact evidence.
 
-All original 4,407 reports have two completed passes. Priority cartilage review is
-complete; bone passes cover 1,050 priority reports each, and root wording003 has
-20of45 attention reports source-frozen. The registry362 evidence ledger and finite
-closure map link existing evidence to remaining work. They do not accept labels
-or mandate fresh blanket rereads; original and supplemental roles stay distinct.
+All original 4,407 reports have two completed passes. Priority cartilage
+adjudication is complete; both bone passes now cover 1,250 priority reports each.
+Root wording004 has frozen all 46 sources / 552 judgments before current case
+findings; its comparison is pending. The fixed registry362 ledger and finite
+closure map remain historical evidence, supplemented by later snapshots.
 
-The latest verified publication contains 362 corrections at Git `f648ebce` /
-private HF `a9155790`, with all 9,164 files independently reconstructable. Its
-receipt is archived; the local 425 milestone needs its own publication receipt.
+The latest verified publication contains 425 corrections at Git `a9b388f6` /
+private HF `b57d7525`, with all 9,530 files independently reconstructable. Its
+receipt is archived. This local 491 milestone requires its own verified receipt.
 All three semantic QA gates, final export, leakage/mask and actual training checks
-remain pending. See [adjudications.md](adjudications.md). After readiness, the
-expanded mission requires a competitive training strategy and experiment plan;
-see [mission-and-training-plan.md](mission-and-training-plan.md).
+remain pending. After readiness, the expanded mission requires a competitive
+training strategy and experiment plan; see
+[mission-and-training-plan.md](mission-and-training-plan.md).
 
 The required correspondence registry enforces 18 whole-study report-supervision
 exclusions. The latest is 069:10, accepted independently from its full RIGHT

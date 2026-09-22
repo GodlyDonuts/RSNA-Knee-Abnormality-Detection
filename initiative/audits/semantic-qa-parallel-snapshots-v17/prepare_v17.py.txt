@@ -1,0 +1,74 @@
+"""Prepare exact stable v17 metadata pins. This program never writes to R."""
+from pathlib import Path
+from datetime import datetime,timezone
+import argparse,json,hashlib
+from preserve_v17 import measure,require,check_disk,scanner_factory,HISTORICAL_REGISTRY_RESOLUTIONS,within
+W=Path(__file__).resolve().parents[3];D=W/'work/annotation-staging';R=W/'work/recovered';HERE=Path(__file__).resolve().parent;AGENT='/root/quality_temporal_review'
+def read(p):return json.loads(p.read_text())
+def ref(p):return {'path':str(p.relative_to(W)),**measure(p)}
+def refs(value):
+ if isinstance(value,dict):
+  if isinstance(value.get('path'),str) and isinstance(value.get('sha256'),str):
+   yield value
+   if isinstance(value.get('original_path'),str):yield {**value,'path':value['original_path']}
+  for v in value.values():yield from refs(v)
+ elif isinstance(value,list):
+  for v in value:yield from refs(v)
+def files(folder):return sorted(p for p in folder.rglob('*')if p.is_file() and '__pycache__'not in p.parts)
+def normalized(owner,raw):
+ q=Path(raw)
+ if not q.is_absolute():q=W/q if raw.startswith('work/')else R/q if raw.startswith(('initiative/','protocols/','docs/'))else owner.parent/q
+ q=q.resolve();require(q.is_relative_to(W),'reference_outside_workspace');return q
+
+def main(config,output,preflight=False):
+ require(not output.exists(),'output_already_exists');check_disk(W,256*2**20)
+ conf=read(config);A=conf['anchors'];snapshots=[];checks=[];unresolved=[];initial={}
+ for name,anchors in A.items():
+  folder=within(D,name);paths=files(folder)
+  require(paths,'empty_snapshot')
+  for p in paths:require(not p.is_symlink(),'symlink_not_allowed');initial[p]=measure(p)
+  status=conf.get('partial_cutoffs',{}).get(name,{}).get('status','completed_stable_stage')
+  snap={'directory':name,'completion_status':status,'completion_anchors':[],'files':[]};snapshots.append(snap)
+  for n,h in anchors.items():
+   p=within(folder,n);require(measure(p)['sha256']==h,'completion_anchor_changed');snap['completion_anchors'].append({'path':n,'source_path':str(p.relative_to(W)),**measure(p)})
+   # Only metadata path/hash pairs are selected from anchors; clinical fields
+   # in an anchor remain uninterpreted and are never printed.
+   for r in refs(read(p)):
+    raw=r['path'];q=normalized(p,raw);selected=q;resolution='exact_current_bytes'
+    alias=HISTORICAL_REGISTRY_RESOLUTIONS.get(r['sha256'])
+    if q==R/'initiative/reviews-v2/adjudications/registry.json' and alias:
+     selected=within(W,alias[0]);require(measure(selected)=={'sha256':r['sha256'],'bytes':alias[1]},'historical_registry_changed');resolution='explicit_historical_live_registry_identity'
+    if not selected.is_file() or measure(selected)['sha256']!=r['sha256']:
+     unresolved.append({'anchor':str(p.relative_to(W)),'reference':raw,'expected_sha256':r['sha256'],'normalized_reference':str(q.relative_to(W))});continue
+    expected_size=r.get('bytes',r.get('size_bytes'))
+    if expected_size is not None:require(measure(selected)['bytes']==expected_size,'reference_size_mismatch')
+    checks.append({'anchor':str(p.relative_to(W)),'original_reference':raw,'normalized_reference':str(q.relative_to(W)),'verified_file':str(selected.relative_to(W)),**measure(selected),'resolution':resolution})
+ if unresolved:
+  output.write_text(json.dumps({'status':'stopped_unresolved_exact_reference','preflight_only':True,'unresolved':unresolved},indent=2)+'\n');print(json.dumps({'status':'stopped_unresolved_exact_reference','count':len(unresolved),'diagnostic':str(output.relative_to(W))}));return
+ # Already-preserved425 publication remains equality-only, never a copy target.
+ equality=[];pub=R/'initiative/audits/qualified002-verified425-publication-v1'
+ for p in files(pub):equality.append(ref(p))
+ for r in read(pub/'preservation.json')['files']:
+  original=within(W,r['original_path']);dest=within(R,r['path']);require(measure(original)==measure(dest)=={k:r[k]for k in ['sha256','bytes']},'existing425_publication_original_mismatch')
+ if preflight:
+  output.write_text(json.dumps({'status':'metadata_preflight_passed','directories':len(snapshots),'files':len(initial),'references_checked':len(checks),'historical_aliases':sum(r['resolution']!='exact_current_bytes'for r in checks),'equality_only425_files':len(equality)},indent=2)+'\n');print(output.read_text());return
+ require(conf.get('preliminary_metadata_only')is False,'unsealed_cutoff_config')
+ scan=scanner_factory(W,W/'.env')
+ for snap in snapshots:
+  folder=D/snap['directory']
+  for p in files(folder):
+   expected=initial[p];require(measure(p,scan())==expected,'source_changed_while_scanning');relative=p.relative_to(folder);archive=Path('initiative/audits')/snap['directory']/relative
+   if archive.suffix=='.py':archive=archive.with_suffix('.py.txt')
+   require(expected['bytes']<100_000_000,'unexpected_large_member_no_recompression_authorized')
+   snap['files'].append({'path':str(relative),'source_path':str(p.relative_to(W)),**expected,'archive_path':str(archive),'archive_source_path':str(p.relative_to(W)),'archive_representation':{'encoding':'identity',**expected}})
+  require(set(files(folder))=={p for p in initial if p.is_relative_to(folder)},'source_membership_changed')
+ for p,expected in initial.items():require(measure(p)==expected,'source_changed_before_pins')
+ for e in equality:require(measure(W/e['path'])=={k:e[k]for k in['sha256','bytes']},'equality_archive_changed')
+ prior=W/'work/semantic-qa-v16-snapshot-pins-final.json';require(measure(prior)['sha256']=='16198b51144f550865393c6a1d241f59e5b26fff6f6dfd7e5311e44354e7f004','prior_v16_pins_changed')
+ paths=[r['archive_path']for s in snapshots for r in s['files']];require(len(paths)==len(set(paths)),'duplicate_archive_target')
+ totals={'directories':len(snapshots),'files':len(initial),'source_bytes':sum(m['bytes']for m in initial.values()),'completion_references':len(checks),'explicit_historical_registry_resolutions':sum(r['resolution']!='exact_current_bytes'for r in checks),'equality_only_existing425_files':len(equality),'compressed_or_rebuilt_members':0}
+ doc={'schema_version':2,'snapshot_version':17,'agent_id':AGENT,'session_id':AGENT,'created_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Fixed newly stable evidence since v16, including complete root004 source-only46/552 and actual additional003 rejection preserved. Preparation only; root executes preservation. No clinical acceptance, integration or QA closure is created.','integration_or_clinical_acceptance':False,'builder':ref(Path(__file__)),'preserver':ref(HERE/'preserve_v17.py'),'completed_cutoff_config':ref(config),'prior_schema_reference':ref(prior),'snapshots':snapshots,'completion_reference_validation':checks,'existing_archive_equality_checks':equality,'compression_validation':[],'counts':totals,'pending':conf.get('pending',[]),'partial_cutoffs':conf.get('partial_cutoffs',{}),'mapping_rules':{'python':'Only exact .py suffix becomes .py.txt; all other paths and bytes remain unchanged.','compression':'None. Prior v16 gzip ledgers stay archived and are not rebuilt or recopied.','existing_archive':'Existing equal destination bytes may be reused; any mismatch fails before copying. Verified425 publication archive is equality-only.','historical_registry':'Only the exact live registry path plus explicitly whitelisted425 or prior documented362 SHA may resolve to its specified immutable snapshot. Original reference text remains unchanged; no generic hash search or path rebinding.','external_reference':'Verify exact references in place without copying base/delta packages, official source collections, gold, images or cache.'},'hashing_disclosure':'Actual preparer performs metadata-only path/hash traversal, opaque content hashing and secret scanning. No new clinical reading, acceptance, first-ever blindness or gate closure is inferred; wording005 clinical payloads remain opaque.','stability':'Every included full directory was measured twice at the fixed cutoff; all included originals and existing archive equality-only bindings remain exact.','preservation_scope':{'R_writes':False,'gold_values_opened':False,'registry_or_source_changed':False,'global_gate_closed':False,'minimum_free_bytes':20*2**30}}
+ with output.open('x')as f:f.write(json.dumps(doc,ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({'pins':ref(output),'counts':totals}))
+if __name__=='__main__':
+ ap=argparse.ArgumentParser();ap.add_argument('--config',type=Path,required=True);ap.add_argument('--output',type=Path,required=True);ap.add_argument('--preflight',action='store_true');a=ap.parse_args();main(a.config.resolve(),a.output.resolve(),a.preflight)

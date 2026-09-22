@@ -1,0 +1,38 @@
+"""Mechanical historical425 to actual491 binding replay; no clinical inference."""
+import hashlib,json
+from pathlib import Path
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';P=A/'bone-observed-024-postfreeze-v1';O=A/'bone-observed-024-independent-review-v1'
+def obj(p):return json.loads(p.read_text())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+old=P/'registry-at-comparison.json';live=R/'initiative/reviews-v2/adjudications/registry.json';current=S/'registry-at-comparison-start.json'
+assert ref(old)['sha256']=='17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62'
+assert ref(current)['sha256']=='685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+assert live.read_bytes()==current.read_bytes()
+with (S/'first-historical425-registry.json').open('xb') as f:f.write(old.read_bytes())
+def load_registry(p):
+ entries={};refs=[]
+ for e in obj(p)['cases']:
+  cp=R/e['path'];assert ref(cp)['sha256']==e['sha256'];refs.append(ref(cp))
+  for c in obj(cp)['changes']:
+   k=(c['study_uid'],c['target']);assert k not in entries;entries[k]={'change':c,'case':ref(cp)}
+ return entries,refs
+before,brefs=load_registry(old);after,arefs=load_registry(current);assert len(before)==425 and len(after)==491
+assert before.keys()<=after.keys();assert all(after[k]==v for k,v in before.items())
+first={(x['study_uid'],x['target']):x for x in obj(P/'all100-postfreeze-dispositions.json')['records']};rows=[]
+for i,p in enumerate(obj(O/'neutral-source-packet.json')['reports']):
+ sp=R/p['source_path'];assert ref(sp)['sha256']==p['source_sha256'];assert obj(sp)[p['source_index_zero_based']]=={'study_uid':p['study_uid'],'report':p['report']};assert hashlib.sha256(p['report'].encode()).hexdigest()==p['report_sha256']
+ rp=R/'initiative/reviews-v2/reviewed'/f'{sp.stem}-reviewed.jsonl';rev=next(json.loads(s) for s in rp.read_text().splitlines() if json.loads(s)['study_uid']==p['study_uid'])
+ for t,target in enumerate(['Contusion','Fracture']):
+  k=p['study_uid'],target;original={'state':rev['states'][10+t],'evidence':rev['evidence'][10+t]}
+  for m in [before,after]:
+   if k in m:assert m[k]['change']['before']==original
+  earlier=before[k]['change']['after'] if k in before else original;now=after[k]['change']['after'] if k in after else original
+  assert first[k]['original']==original and first[k]['current_effective']==earlier
+  rows.append({'packet_index':i,'study_uid':p['study_uid'],'target':target,'source_path':p['source_path'],'source_sha256':p['source_sha256'],'source_index_zero_based':p['source_index_zero_based'],'report_sha256':p['report_sha256'],'original_review':ref(rp),'original':original,'first_historical425':earlier,'actual491':now,'historical_accepted_key':before.get(k),'actual_accepted_key':after.get(k),'changed425_to491':earlier!=now,'current_original_drift':now!=original})
+assert len(rows)==len({(x['study_uid'],x['target']) for x in rows})==100
+assert live.read_bytes()==current.read_bytes()
+write('historical425-to-actual491-replay.json',{'agent_id':'/root/last_twelve_visual_review','session_id':'/root/last_twelve_visual_review','scope':'Post-source-freeze technical baseline replay only; no acceptance or clinical reconsideration. Actual491 was already live on first current-registry read; no own425 live receipt is fabricated. First-reader historical425 bytes and full prior correction objects are preserved.','own_source_freeze':ref(O/'source-freeze.json'),'first_completion':ref(P/'completion-manifest.json'),'first_registry':ref(old),'preserved_historical_snapshot':ref(S/'first-historical425-registry.json'),'actual_registry':ref(live),'actual_read_snapshot':ref(current),'historical_count':425,'actual_count':491,'all425_prior_complete_change_objects_and_case_hashes_exact':True,'historical_case_refs':brefs,'actual_case_refs':arefs,'counts':{'reports':50,'cells':100,'changed_selected_annotations':sum(x['changed425_to491'] for x in rows),'selected_current_original_drift':sum(x['current_original_drift'] for x in rows),'historical_selected_key_overlap':sum(x['historical_accepted_key'] is not None for x in rows),'actual_selected_key_overlap':sum(x['actual_accepted_key'] is not None for x in rows)},'records':rows,'repository_changed':False,'accepted':False})
+print(json.dumps({'proof':ref(S/'historical425-to-actual491-replay.json'),'counts':obj(S/'historical425-to-actual491-replay.json')['counts']},indent=2))

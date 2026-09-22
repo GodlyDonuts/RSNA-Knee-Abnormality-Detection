@@ -1,0 +1,18 @@
+"""Actual root streaming verification, preserving the separate peer proof."""
+from pathlib import Path
+import hashlib,importlib.util,json,sys
+from datetime import datetime,timezone
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';T=W/'work';target='a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004';P=T/'hf-preparation-deltas'/target;B=T/'hf-preparation-checkpoints/1792f01ed3daab757c5ddb9bf5733ffe8d999f91';H=T/'annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(H)=='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+assert sha(P/'manifest.json')=='05aa10e25bd2ca76fb7cfacbe60ecf8b0f48d587841d0350c43e1308e9068908'
+peer_sha=sha(P/'restoration-proof.json');assert peer_sha=='4d2bb7ad10e96f47b85203c571be9fe01e9dbe8a7eb8f9446aac7a52b67a1ff1';out=P/'root-restoration-proof.json';assert not out.exists()
+spec=importlib.util.spec_from_file_location('root_delta_v2',H);m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m);m.disk_guard(P)
+proof=m.verify_package(R,target,B/'checkpoint.tar.gz',B/'manifest.json',P,'05aa10e25bd2ca76fb7cfacbe60ecf8b0f48d587841d0350c43e1308e9068908',secrets=m.secret_values(W/'.env'))
+assert proof['n_result_files_verified']==9530 and proof['n_delta_members_verified']==3885
+assert proof['delta_archive']['sha256']=='22d5d0d09c6fd7261222de35430d5aabc784f645579a41da8cf45e4d2eabc178'
+assert sha(P/'restoration-proof.json')==peer_sha
+peer=json.loads((P/'restoration-proof.json').read_text());assert peer['verifier_agent_id']=='/root/duplicate_consistency_review'
+proof.update(verifier_agent_id='/root',actual_executor='/root',helper_default_identity_replaced_for_actual_root_execution=True,helper_sha256=sha(H),root_runner_sha256=sha(Path(__file__)),independent_peer_proof_sha256=peer_sha,peer_artifact_unchanged=True)
+with out.open('x') as f:json.dump(proof,f,indent=2);f.write('\n')
+print(json.dumps({'root_streaming_verification':'passed','target':target,'all_files':9530,'root_proof_sha256':sha(out),'peer_proof_unchanged':True}))

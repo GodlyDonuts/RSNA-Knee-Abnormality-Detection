@@ -1,0 +1,42 @@
+"""Mechanical post-source replay of the actual live registry, without clinical inference."""
+import json,hashlib
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';O=A/'bone-observed-021-independent-review-v1';AG='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_text())
+def jl(p):return [json.loads(x) for x in p.read_text().splitlines()]
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,d):
+ with (S/n).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+assert ref(O/'source-freeze.json')['sha256']=='f00b7e2940392a675bbb0d2e2dd1fa85805cf31ceae13838dd45f1d5daebd9a0'
+for e in obj(O/'final-file-list.json')['files']:assert ref(W/e['path'])==e
+regp=R/'initiative/reviews-v2/adjudications/registry.json';regbytes=regp.read_bytes();reg=json.loads(regbytes);regref={'path':str(regp.relative_to(W)),'sha256':hashlib.sha256(regbytes).hexdigest(),'bytes':len(regbytes)};acc={};cases=[]
+for e in reg['cases']:
+ cp=R/e['path'];assert ref(cp)['sha256']==e['sha256'];cases.append(ref(cp))
+ for c in obj(cp)['changes']:
+  k=c['study_uid'],c['target'];assert k not in acc;acc[k]={'case':ref(cp),'change':c}
+assert reg['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+histp=A/'bone-observed-020-independent-postfreeze-v1/registry-at-comparison.json';assert ref(histp)['sha256']=='a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b';prior_count=0;prior_case_refs=[]
+for e in obj(histp)['cases']:
+ cp=R/e['path'];assert ref(cp)['sha256']==e['sha256'];prior_case_refs.append(ref(cp))
+ for c in obj(cp)['changes']:
+  assert acc[c['study_uid'],c['target']]['change']==c;prior_count+=1
+assert prior_count==362
+rows=[];reports=obj(O/'neutral-source-packet.json')['reports'];own=jl(O/'source-assessment-frozen.jsonl');assert len(reports)==len(own)==50
+for i,o in enumerate(own):
+ p=reports[i];assert p['study_uid']==o['study_uid'];sp=R/o['source_path'];assert ref(sp)['sha256']==p['source_sha256']==o['source_sha256'];assert obj(sp)[o['source_index_zero_based']]=={'study_uid':o['study_uid'],'report':p['report']};assert hashlib.sha256(p['report'].encode()).hexdigest()==o['report_utf8_sha256']
+ rp=R/'initiative/reviews-v2/reviewed'/f"{Path(o['source_path']).stem}-reviewed.jsonl";rev=next(x for x in jl(rp) if x['study_uid']==o['study_uid'])
+ for t,target in enumerate(['Contusion','Fracture']):
+  orig={'state':rev['states'][10+t],'evidence':rev['evidence'][10+t]};a=acc.get((o['study_uid'],target));cur=a['change']['after'] if a else orig
+  if a:assert a['change']['before']==orig
+  sf={'state':o['states'][t],'evidence':o['evidence'][t],'reason':o['target_reasoning'][t]}
+  for z in [orig,cur,sf]:assert bool(z['evidence'])==(z['state']!='not_mentioned') and z['evidence'] in p['report']
+  rows.append({'packet_index':i,'case':o['case'],'study_uid':o['study_uid'],'target':target,'source_path':o['source_path'],'source_sha256':o['source_sha256'],'source_index_zero_based':o['source_index_zero_based'],'report_utf8_sha256':o['report_utf8_sha256'],'original_review':ref(rp),'original':orig,'current_effective':cur,'own_source_frozen':sf,'accepted_overlap':a})
+assert len(rows)==len({(x['study_uid'],x['target']) for x in rows})==100
+assert regp.read_bytes()==regbytes
+for e in cases+prior_case_refs:assert ref(W/e['path'])==e
+with (S/'registry-at-comparison.json').open('xb') as f:f.write(regbytes)
+write('initial-original-current-replay.json',{'agent_id':AG,'session_id':AG,'scope':'All100 original/current/source bindings replayed only after complete own source021 freeze. Actual registry count is measured, not assumed. No clinical opinion is inferred and no first021 findings have been opened.','actual_registry':regref,'registered_changes':len(acc),'accepted_cases':cases,'prior362_registry_snapshot':ref(histp),'all362_prior_whole_correction_objects_and_case_bytes_unchanged':True,'prior362_case_references':prior_case_refs,'rows':rows})
+write('current-replay-receipt.json',{'agent_id':AG,'session_id':AG,'recorded_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'This receipt seals only mechanical current replay and own source bindings; final two-reader comparison awaits actual first021 source/post artifacts. No existing baseline or correction object was rewritten.','own_source_freeze':ref(O/'source-freeze.json'),'own_source_manifest':ref(O/'final-file-list.json'),'actual_registry':regref,'actual_registered_changes':len(acc),'selected_cells':100,'selected_accepted_key_overlap':sum(x['accepted_overlap'] is not None for x in rows),'selected_current_original_drift':sum(x['original']!=x['current_effective'] for x in rows),'prior362_correction_objects_exact':True,'files':[ref(S/n) for n in ['prepare_current_replay.py','registry-at-comparison.json','initial-original-current-replay.json']],'first_source_findings_opened':False,'first_post_findings_opened':False,'final_two_reader_comparison_complete':False,'registry_changed':False,'accepted':False})
+print(json.dumps({'receipt':ref(S/'current-replay-receipt.json'),'replay':ref(S/'initial-original-current-replay.json'),'actual_registry':regref,'actual_registered_changes':len(acc),'selected_accepted_overlap':sum(x['accepted_overlap'] is not None for x in rows),'selected_drift':sum(x['original']!=x['current_effective'] for x in rows)},indent=2))

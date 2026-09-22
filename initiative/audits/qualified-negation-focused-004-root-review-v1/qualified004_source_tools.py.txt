@@ -1,0 +1,36 @@
+"""Freeze individually authored root judgments against unchanged neutral sources."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib, json
+W = Path(__file__).resolve().parent.parent
+R = W / 'work/recovered'
+G = W / 'work/annotation-staging/qualified-negation-focused-004-root-review-v1'
+N = W / 'work/annotation-staging/qualified-negation-focused-004-post-freeze-comparison-v1'
+PINS = ['1a775e859f039a2980d9761ed960b771cd8a23448c0c6a45be9b0dcfd1e4998c', '1b228e259c838b5301f5025477ecaf9e76ce778c797e55118658d34fa504ea78', '4b6e9ead06420314f5c68c674f91767056842ef705aa957d82ab5fe83a347476', 'cd145078e888cd1c24c9412d4960f624ca444709a18edd87b4fc36e2a0e7f5ab', '030133c810528aec099285399febfa350bd87ba14ac6b5edc62d15c3c4dfbf0e']
+TARGETS = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+def freeze(name, batch, offset, judgments):
+    packet = N / f'neutral-root-packets/batch-{batch:03d}.json'
+    assert sha(packet) == PINS[batch]
+    rows = json.loads(packet.read_text())[offset:offset + len(judgments)]
+    assert len(rows) == len(judgments)
+    records = []
+    for row, (letters, evidence, notes) in zip(rows, judgments):
+        source = R / row['source_path']
+        assert sha(source) == row['source_sha256']
+        assert json.loads(source.read_text())[row['index']] == {'study_uid': row['study_uid'], 'report': row['report']}
+        states = [dict(P='positive', N='negative', U='uncertain', X='not_mentioned')[x] for x in letters.split()]
+        assert len(states) == len(evidence) == 12
+        for state, quote in zip(states, evidence):
+            assert (state == 'not_mentioned' and quote == '') or (state != 'not_mentioned' and quote and quote in row['report'])
+        records.append(dict(case=source.stem.removeprefix('batch-') + ':' + str(row['index']).zfill(2), study_uid=row['study_uid'], source_path=row['source_path'], source_sha256=row['source_sha256'], source_index_zero_based=row['index'], report_sha256=hashlib.sha256(row['report'].encode()).hexdigest(), target_order=TARGETS, states=states, evidence=evidence, notes=notes))
+    G.mkdir(parents=True, exist_ok=True)
+    previous = [x for p in G.glob('*-source-assessment.json') for x in json.loads(p.read_text())['records']]
+    assert not {x['study_uid'] for x in records} & {x['study_uid'] for x in previous}
+    assert sha(R / 'protocols/report_weak_v2.md') == '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+    assert sha(N / 'neutral-root-packet-index.json') == '96f71711f7cbecc5de3add2bf04a76514fd731fb8d9d9e2418c1874e8e65ece5'
+    doc = dict(stage='partial_root_qualified004_source_assessment_before_current_reader_case_findings', agent_id='/root', session_id='/root', at_utc=datetime.now(timezone.utc).isoformat(), neutral_packet=dict(path=str(packet.relative_to(W)), sha256=sha(packet)), packet_rows_zero_based=list(range(offset, offset + len(rows))), rubric_sha256=sha(R / 'protocols/report_weak_v2.md'), canonical_all4407_source_reports_sha256='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3', exposure='Prior full4407 report work, wording000/001/002/003, cartilage000–005 source/adjudication and technical/image work can include historical overlaps. These complete sources are personally reread before current wording004 case-specific reader findings or selected current annotation rows. This is not first-ever blindness. No gold values opened.', full_reports=len(records), target_judgments=len(records) * 12, records=records, source_index_uid_report_hash_and_exact_quotes_verified=True, validation_helper_sha256=sha(Path(__file__)), current004_reader_case_findings_opened=False, training_ready=False)
+    out = G / (name + '-source-assessment.json')
+    with out.open('x') as f:
+        f.write(json.dumps(doc, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps(dict(part=name, sha256=sha(out), total_root_sources_frozen=len(previous) + len(records), reader_case_findings_opened=False)))

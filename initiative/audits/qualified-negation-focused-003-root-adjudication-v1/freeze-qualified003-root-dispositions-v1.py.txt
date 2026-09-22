@@ -1,0 +1,143 @@
+"""Serialize /root's personally completed45-report adjudication, without registry edits."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib, json
+W=Path(__file__).resolve().parent.parent
+R=W/'work/recovered'; S=W/'work/annotation-staging'
+G=S/'qualified-negation-focused-003-root-review-v1'
+M=S/'qualified003-root-mechanical-comparison-425-v1'
+D=S/'qualified-negation-focused-003-root-adjudication-v1'
+SOURCE='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+REGISTRY='17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62'
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p): return dict(path=str(p.relative_to(W)),sha256=sha(p),bytes=p.stat().st_size)
+def read(p,pin=None):
+    if pin: assert sha(p)==pin,p
+    return json.loads(p.read_text())
+def write(name,doc):
+    p=D/name
+    with p.open('x') as f: f.write(json.dumps(doc,ensure_ascii=False,indent=2)+'\n')
+    return ref(p)
+assert not D.exists()
+j=read(M/'all540-root-mechanical-comparison.json','a39a7062fa6a7d05465bf38733bdcb128dd598ae6c85ebb575a515524db7ff52')
+read(G/'source-freeze.json','7e6902f7cc2a246a016819cfdd7f8aeff52b6101534dcb18fbae7600ea3b8923')
+read(G/'full-source-assessment.json','2eaf1251f4ace8370f3afd18ba4303e175016d6f0f65723da42b02b564c165e2')
+read(R/'initiative/reviews-v2/adjudications/registry.json',REGISTRY)
+assert sha(R/'protocols/report_weak_v2.md')==RUBRIC
+protected={p:sha(p) for parent in [G,M] for p in parent.rglob('*') if p.is_file()}
+protected[R/'initiative/reviews-v2/adjudications/registry.json']=REGISTRY
+
+# These are five explicit source-based changes of my initial judgments, not a vote.
+reconsider={
+ ('023:39','MCL'):('uncertain','The directly mild residual thickening applies to proximal superficial MCL only. The remaining components have a separate significance-qualified assessment. My initial negative generalized the local below-threshold lesion across the incompletely assessed whole ligament. Expand the quote to retain the entire MCL passage and withdraw that extrapolation.'),
+ ('030:25','Medial Meniscus'):('negative','The complete passage positively characterizes the signal as intrasubstance. The competing explanations are meniscal contusion or peripheral vascularity, without a competing surface-tear or abnormal-morphology description. My initial reading over-weighted the significant qualifier and R/O summary rather than the affirmative internal-signal classification. Retain the below-tear negative without assigning a numeric meaning to grade2.'),
+ ('031:36','Medial OA'):('uncertain','Extensive modifies the mixed degenerative changes, including osteophytes and subchondral edema, rather than explicitly describing the size or continuous extent of the full-thickness cartilage defects. My initial positive transferred that broad extent to the deep-loss regions. The depth is definite but qualifying extent is not; withdraw the positive and retain masked uncertainty.'),
+ ('033:25','Medial Meniscus'):('negative','The described medial signal is characterized as intrasubstance degeneration; the uncertainty concerns that interpretation without a competing surface-reaching signal or abnormal morphology. My initial uncertainty treated the qualified no-definite-tear clause as the sole assessment. The complete internal-degeneration description supports a below-threshold negative, while the original judgment remains preserved.'),
+ ('033:25','Contusion'):('not_mentioned','No fracture, stress reaction or osseous lesion excludes named structural lesions but does not directly describe normal marrow signal, absent marrow edema or contusion. My initial negative widened that list into a complete marrow assessment. Withdraw it and use empty evidence for the unmentioned contusion target, while retaining the explicit fracture negative.'),
+}
+clarify={
+ ('023:41','Contusion'):'Retain uncertain for explicitly subchondral medullary fibrovascular changes, an actual focal marrow abnormality with no impact attribution. This is distinct from red-marrow hyperplasia alone. The first reader treats it as unmentioned; preserve that masked scope disagreement.',
+ ('024:46','Medial OA'):'Retain uncertain: slight diffuse thinning does not establish a calibrated half-thickness bound. Support the original first reader\'s evidence-only expansion to include the medial-compartment heading. Reject the second reader\'s proposed negative, while recognizing that its expanded anatomical quote is valid.',
+ ('025:29','Medial OA'):'Retain the already accepted uncertainty and its whole correction object. Low-grade partial-thickness loss does not define a fractional boundary in this source; the later second-reader negative remains explicit historical disagreement rather than replacing the accepted source-based decision.',
+ ('025:38','Lateral OA'):'Retain the already accepted uncertainty: mild chondral irregularity is not expressly superficial-only or a preserved-thickness assessment. The separate marrow qualifier is not cartilage evidence. Preserve the full existing correction object and both reader histories.',
+ ('026:03','Lateral OA'):'Retain my frozen uncertain interpretation for low-grade lateral chondral thinning without a locally defined loss fraction or extent. Both later reader opinions use negative while the second original source opinion used uncertain. This is an additional ROOT proposal requiring a distinct source assessment before registration; it is not accepted merely from my judgment.',
+ ('030:25','PF OA'):'Retain the already accepted uncertainty for suspected signal change and an unnamed grade1. The missing calibrated loss/extent and diagnostic uncertainty are sufficient; no new requirement to separately name both PF surfaces is imposed. Preserve the existing whole correction object.',
+ ('031:23','Medial OA'):'The sole described cartilage lesion is specifically trochlear, and the remaining three-compartment cartilage is maintained. Expand the quote to include the exception so membership of medial cartilage in the normal remainder is explicit.',
+ ('031:23','Lateral OA'):'Expand the preserved-remainder quote backward through the specifically trochlear exception; lateral cartilage is thereby explicitly outside the lesion and remains negative.',
+ ('031:23','PF OA'):'The explicitly subcentimeter trochlear lesion is below the stated regional-size threshold and remaining cartilage is maintained. Preserve both pieces in one contiguous quote rather than relying only on the lesion fragment.',
+ ('031:36','Lateral OA'):'Retain negative for the directly stated minimal amount of lateral cartilage thinning. This is an explicit minimal thickness-reduction description, not a bare OA label or a universal numeric grade table. Preserve the first reader\'s stricter uncertain interpretation; no deeper competing lateral defect is described.',
+ ('031:36','Contusion'):'Retain uncertainty and replace the isolated edema fragment with the complete medial cartilage/degeneration/marrow passage. Specific degenerative subchondral edema is not traumatic contusion and prevents the later generic normal-marrow clause from supporting a categorical negative. The first reader\'s alternate trochlear marrow quote is also valid and remains preserved.',
+ ('032:17','Contusion'):'Retain uncertain: the report locates an abnormal signal within metaphyseal tibia and offers only a most-likely vascular explanation. It is informative focal bone/marrow evidence without a definite impact cause or unqualified normal assessment. Preserve the first reader\'s not-mentioned interpretation.',
+ ('032:24','Lateral Meniscus'):'Retain positive from definite medial displacement of the lateral anterior horn, which independently satisfies the abnormal-morphology route. The bucket-handle subtype remains suspected; no suspected diagnosis is automatically promoted.',
+ ('032:24','Medial OA'):'Retain uncertainty for nonspecific femoral-cartilage wear and generalized knee OA described as more severe laterally. This is incompletely localized cartilage disease rather than an exclusively PF body finding followed by generic OA. No medial positive or negative is inferred.',
+ ('032:24','PF OA'):'Retain uncertainty for broad incompletely localized femoral-cartilage wear/general knee OA with lateral predominance. Patellar plica is not cartilage evidence; it is the broader unlocalized cartilage description that leaves correspondence unresolved. Preserve the first reader\'s missing interpretation.',
+ ('033:13','PF OA'):'Retain the direct normal patellar-cartilage assessment. The frozen report protocol does not require each PF surface to be separately named when a directly normal PF cartilage structure has no competing cartilage lesion. Trochlear shallowness concerns shape and supplies no contradictory cartilage defect. Reject both proposals that impose an added exhaustive-surface requirement; keep the current exact patellar quote.',
+ ('033:30','Medial OA'):'Retain uncertain: actual slight cartilage thinning accompanies superficial fibrillation, and no complete loss only excludes full-thickness loss. The thinning fraction remains unspecified. Support the original first proposal and its full contiguous cartilage passage; preserve the second reader\'s negative as a real disagreement.',
+}
+FIRST_ONLY={('024:46','Medial OA'),('033:30','Medial OA')}
+REJECT_SECOND={('024:46','Medial OA'),('033:13','PF OA')}
+ROOT_ADDITIONAL={('026:03','Lateral OA')}
+sources={}
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+    for x in read(p):
+        assert x['study_uid'] not in sources
+        sources[x['study_uid']]=x['report']
+assert len(sources)==4407
+rows=j['records'];assert len(rows)==540 and len({r['study_uid'] for r in rows})==45
+assert set(reconsider)|set(clarify) <= {(r['case'],r['target']) for r in rows}
+out=[];own=[];second_support=[];second_rejected=[];first_support=[];overlaps=[];second_new=[];first_new=[];additional=[]
+for r in rows:
+    k=(r['case'],r['target']);initial=r['root_frozen'];c=r['effective_current425']
+    state,reason=reconsider.get(k,(initial['state'],clarify.get(k,initial['report_notes'])))
+    p=r['second_proposal_original'];f=r['first_proposal_original']
+    if k in FIRST_ONLY:
+        assert f and f['proposed_state']==state
+        evidence=f['source_quote'];evidence_action='support_exact_original_first_quote'
+    elif p and k not in REJECT_SECOND:
+        assert p['after_proposed']['state']==state,k
+        evidence=p['after_proposed']['evidence'];evidence_action='support_exact_original_second_quote'
+    elif k in ROOT_ADDITIONAL:
+        evidence=initial['evidence'];evidence_action='root_proposed_quote_pending_distinct_assessment'
+    else:
+        evidence=c['evidence'];evidence_action='retain_current_quote_without_brevity_churn'
+    after=dict(state=state,evidence=evidence)
+    if r['current_registered_change']:
+        assert after==c,k
+        evidence_action='preserve_current_accepted_quote_and_full_correction_object'
+    assert (state=='not_mentioned' and evidence=='') or (state!='not_mentioned' and evidence and evidence in sources[r['study_uid']]),k
+    assert sha(R/r['source_path'])==r['source_sha256']
+    assert sha(R/r['original_review']['path'].removeprefix('work/recovered/'))==r['original_review']['sha256']
+    assert hashlib.sha256(sources[r['study_uid']].encode()).hexdigest()==r['report_sha256']
+    changed=initial['state']!=state;assert changed==(k in reconsider)
+    action='retain_current_after_source_adjudication'
+    change=dict(case=r['case'],study_uid=r['study_uid'],target=r['target'],before=c,after=after,reason=reason)
+    if k in FIRST_ONLY:
+        assert c==dict(state=f['before_state'],evidence=f['before_evidence']) and c!=after
+        action='accept_first_proposal_pending_registry_integration';first_new.append(change)
+    elif k in ROOT_ADDITIONAL:
+        assert c!=after and p is None and f is None
+        action='additional_root_proposal_pending_distinct_assessment';additional.append(change)
+    elif p and k not in REJECT_SECOND:
+        if r['current_registered_change']:
+            action='already_accepted_preserve_existing_full_object'
+            overlaps.append(dict(**change,original_second_proposal=p,current_registered_change=r['current_registered_change'],current_registered_case_original=r['current_registered_case_original']))
+        else:
+            assert c==p['before_current'] and c!=after,k
+            action='accept_second_proposal_pending_registry_integration';second_new.append(change)
+    else: assert c==after,k
+    if p:
+        supported=k not in REJECT_SECOND
+        assert supported==(after==p['after_proposed']),k
+        entry=dict(case=r['case'],study_uid=r['study_uid'],target=r['target'],state_supported=state==p['after_proposed']['state'],exact_proposed_evidence_supported=evidence==p['after_proposed']['evidence'],original_proposal_preserved=p,root_reason=reason,root_final=after,action=action)
+        (second_support if supported else second_rejected).append(entry)
+    if f:
+        first_support.append(dict(case=r['case'],study_uid=r['study_uid'],target=r['target'],state_supported=f['proposed_state']==state,original_quote_exact=(f['source_quote']=='' if f['proposed_state']=='not_mentioned' else f['source_quote'] in sources[r['study_uid']]),final_quote_same_bytes=f['source_quote']==evidence,original_first_proposal=f,root_final=after,root_reason=reason,selected_for_separate_first_integration=k in FIRST_ONLY))
+    rec=dict(case=r['case'],root_report_ordinal=r['root_report_ordinal'],study_uid=r['study_uid'],target=r['target'],target_index=r['target_index'],source_path=r['source_path'],source_sha256=r['source_sha256'],source_index_zero_based=r['source_index_zero_based'],report_sha256=r['report_sha256'],original_review=r['original_review'],root_frozen_state=initial['state'],root_frozen_evidence=initial['evidence'],root_frozen_report_notes=initial['report_notes'],root_postfreeze_state=state,root_postfreeze_evidence=evidence,root_state_reconsidered=changed,reason=reason,evidence_action=evidence_action,effective_current425=c,first_source_frozen=r['first_source_frozen'],second_source_frozen=r['second_source_frozen'],first_postfreeze=r['first_postfreeze'],second_postfreeze=r['second_postfreeze'],retained_first_postfreeze_state_disagreement=state!=r['first_postfreeze']['state'],retained_second_postfreeze_state_disagreement=state!=r['second_postfreeze']['state'],mechanical_attention_reviewed=r['mechanical_attention_only'],action=action,exact_quote_validated=True)
+    out.append(rec)
+    if changed:own.append(rec)
+assert len(own)==5 and len(second_support)==66 and len(second_rejected)==2
+assert len(second_new)==64 and len(overlaps)==2 and len(first_new)==2 and len(additional)==1
+assert len(first_support)==59 and sum(x['state_supported'] for x in first_support)==58
+assert sum(x['mechanical_attention_reviewed'] for x in out)==158
+counts=dict(root_reports=45,root_judgments=540,mechanical_attention_cells_personally_reviewed=158,own_state_reconsiderations=5,first_proposals_state_supported=58,first_proposals_state_rejected=1,second_proposals_supported=66,second_proposals_rejected=2,second_proposals_already_accepted=2,new_second_proposals_supported=64,new_first_only_proposals_supported=2,new_independently_supported_changes=66,additional_root_proposals_pending_distinct_assessment=1,selected_current_full_objects_preserved=4,final_vs_first_postfreeze_state_disagreements=sum(x['retained_first_postfreeze_state_disagreement'] for x in out),final_vs_second_postfreeze_state_disagreements=sum(x['retained_second_postfreeze_state_disagreement'] for x in out),final_state_counts=dict(Counter(x['root_postfreeze_state'] for x in out)),supported_new_transition_counts=dict(Counter(x['before']['state']+'->'+x['after']['state'] for x in second_new+first_new)))
+common=dict(schema_version=1,agent_id='/root',session_id='/root',identity_kind='codex_agent_task',created_at_utc=datetime.now(timezone.utc).isoformat(),source_reports_sha256=SOURCE,rubric_sha256=RUBRIC,rubric_version='report-weak-v2.0',root_source_freeze=ref(G/'source-freeze.json'),root_source_assessment=ref(G/'full-source-assessment.json'),mechanical_comparison=ref(M/'all540-root-mechanical-comparison.json'),registry_before=ref(R/'initiative/reviews-v2/adjudications/registry.json'),registered_corrections_at_review=425,gold_values_inspected=False,original_artifacts_changed=False,training_ready=False,global_semantic_qa_closed=False)
+D.mkdir()
+write('root-explicit-reconsiderations.json',dict(**common,stage='explicit_postfreeze_root_reconsiderations',records=own,reason_clarifications=[dict(case=k[0],target=k[1],reason=v) for k,v in clarify.items()],interpretation='All540 initial source judgments remain exact. Five later state changes are disclosed and are not initial agreement.'))
+write('root-postfreeze-dispositions.json',dict(**common,stage='root_personal_source_adjudication_after_complete_source_freeze',counts=counts,review_statement='I personally read all45 complete attention reports and froze540 source-only judgments before current003 case findings. I then personally reviewed all540 comparisons, including158 attention cells, both original source passes, both postfreeze opinions, all59 first and68 second proposals, and actual425 overlaps. The five reconsiderations and retained reader disagreements are individual source/rubric decisions, not a consensus algorithm. Prior full4407 and focused-review exposure is disclosed. This is report-derived weak supervision, not MRI diagnosis.',scope='Accept64 new exact second proposals and2 exact first proposals through distinct-author evidence and root assessment. Preserve2 already accepted second overlaps and all4 selected existing whole objects. Reject2 second state proposals and1 first state proposal. One extra root proposal remains pending a distinct source assessment; this stage does not approve its registration. Five reader reports outside the45 root scope receive no invented root judgments.',records=out,new_second_supported_changes=second_new,new_first_supported_changes=first_new,already_accepted_overlaps=overlaps,first_proposal_state_support=first_support,second_proposal_support=second_support,rejected_second_proposals=second_rejected,additional_root_proposals=additional))
+def assessment(records):
+    return [dict(study_uid=x['study_uid'],target=x['target'],case=x['case'],independent_source_state=x['root_postfreeze_state'],source_evidence=x['root_postfreeze_evidence'],source_path=x['source_path'],source_sha256=x['source_sha256'],report_sha256=x['report_sha256'],root_frozen_state=x['root_frozen_state'],root_frozen_evidence=x['root_frozen_evidence'],root_state_reconsidered=x['root_state_reconsidered'],reason=x['reason'],disposition=x['action']) for x in records]
+write('second-proposals-independent-assessment.json',dict(**common,stage='independent_source_assessment',proposer_agent_id='/root/last_twelve_visual_review',n_changes_supported=66,n_new_changes_supported=64,n_already_accepted=2,n_changes_rejected=2,n_changes_held=0,records=assessment([x for x in out if x['action'] in ['accept_second_proposal_pending_registry_integration','already_accepted_preserve_existing_full_object']]),rejected_proposals=second_rejected))
+write('first-proposals-independent-assessment.json',dict(**common,stage='independent_source_assessment',proposer_agent_id='/root/duplicate_consistency_review',n_changes_supported=2,n_new_changes_supported=2,n_already_accepted=0,n_changes_rejected=0,n_changes_held=0,records=assessment([x for x in out if x['action']=='accept_first_proposal_pending_registry_integration']),scope='Only two first-only proposals selected here; all59 original proposal state dispositions remain in the full root record.'))
+root_props=[]
+for x in out:
+    if x['action']!='additional_root_proposal_pending_distinct_assessment':continue
+    c=x['effective_current425']
+    root_props.append(dict(study_uid=x['study_uid'],target=x['target'],batch=Path(x['source_path']).stem,index=x['source_index_zero_based'],source_path=x['source_path'],source_sha256=x['source_sha256'],artifact_path=x['original_review']['path'].removeprefix('work/recovered/'),artifact_sha256=x['original_review']['sha256'],before_state=c['state'],before_evidence=c['evidence'],proposed_state=x['root_postfreeze_state'],source_quote=x['root_postfreeze_evidence'],reason=x['reason'],kind='state_correction',status='proposed_pending_distinct_source_assessment_and_adjudication'))
+write('additional-root-proposals.json',dict(**common,stage='root_additional_proposals_pending_distinct_assessment',n_changes=1,proposed_errata=root_props))
+assert all(sha(p)==h for p,h in protected.items())
+write('validation.json',dict(**common,stage='exact_serialization_and_preservation_validation',counts=counts,all540_source_and_quote_bindings_validated=True,original68_second_and59_first_proposals_preserved=True,all_four_selected_existing_full_objects_preserved=True,new66_before_values_match_actual425=True,additional_root_proposal_is_not_accepted=True,registry_mutated=False,protected_files=[ref(p) for p in sorted(protected)],all_protected_unchanged=True))
+(D/(Path(__file__).name+'.txt')).write_bytes(Path(__file__).read_bytes())
+write('completion-manifest.json',dict(**common,stage='complete_root_wording003_adjudication_freeze_with_one_additional_proposal_pending',counts=counts,files=[ref(p) for p in sorted(D.iterdir()) if p.is_file()],next_step='Original-author canonical normalization, distinct assessment of the one root proposal, exact case preparation preserving all425 objects and two overlaps, required repository checks and private publication. Three global QA gates remain pending.'))
+print(json.dumps(dict(completion=ref(D/'completion-manifest.json'),dispositions=ref(D/'root-postfreeze-dispositions.json'),second_assessment=ref(D/'second-proposals-independent-assessment.json'),first_assessment=ref(D/'first-proposals-independent-assessment.json'),root_proposal=ref(D/'additional-root-proposals.json'),counts=counts),indent=2))

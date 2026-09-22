@@ -1,0 +1,63 @@
+from qualified003_source_tools import freeze, N, G, json, Path
+rows = json.loads((N / 'neutral-root-packets/batch-002.json').read_text())
+def span(i, first, last):
+    s = rows[i]['report']; start = s.index(first)
+    return s[start:s.index(last, start) + len(last)]
+judgments = [
+('U U U U U U U X X X U X', [
+span(5, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(5, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(5, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(5, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(5, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(5, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(5, 'Από τον έλεγχο των µηνίσκων', 'άνευ κλινικής σηµασίας.'),
+'', '', '',
+span(5, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'), '',
+], 'Menisci, cruciate/collateral ligaments, cartilage and marrow receive only a no-noteworthy-findings qualification. The focal patellar chondrocalcification is not a quantified cartilage-loss assessment. Edema is situated between the loose body/patella/anterior lateral condyle in an extensor impingement description, without definite traumatic marrow localization. The8mm osteochondral loose body is not an acute fracture diagnosis. Fluid, synovial lining and Baker collection are not described.'),
+('U U U U U U U N X X U X', [
+span(6, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+'Σηµειούται µικρό ύδραρθρο.', '', '',
+span(6, 'Από τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'), '',
+], 'Named menisci, cruciate/collateral ligaments, cartilage and marrow have a significance-qualified no-findings statement. Small hydrops is directly below the effusion threshold. Synovitis, Baker collection and acute fracture are unmentioned; a normal extensor assessment cannot supply those targets.'),
+('N N N N N N N U X U N X', [
+span(7, 'Otherwise the anterior cruciate ligament', 'are unremarkable.'),
+span(7, 'Otherwise the anterior cruciate ligament', 'are unremarkable.'),
+span(7, 'Otherwise the anterior cruciate ligament', 'are unremarkable.'),
+span(7, 'Otherwise the anterior cruciate ligament', 'are unremarkable.'),
+'The articular cartilage is unremarkable.', 'The articular cartilage is unremarkable.', 'The articular cartilage is unremarkable.',
+'There is no significant knee joint effusion or popliteal cyst.', '',
+'There is no significant knee joint effusion or popliteal cyst.',
+'There is normal bone marrow signal intensity.', '',
+], 'All listed ligaments/menisci and broadly scoped articular cartilage are affirmatively unremarkable. The shared no-significant phrase qualifies both effusion and popliteal cyst. Explicit normal marrow supports the contusion negative, while no cortical or fracture assessment is supplied. The generic normal conclusion does not create an unmentioned synovial-lining or fracture assessment.'),
+('N N U X X X U N X X N X', [
+'The contour of ACL & PCL appear to be within normal, no abnormal signal intensity is noted.',
+'Both medial & lateral collateral ligaments appear to be within normal.',
+'Linear signal intensity in posterior horn of medial meniscus, without significant extending into the surface, in favor of grade 2 intrasubstance signal of posterior horn of medial meniscus, maybe due to contusion or peripheral vascularity.',
+'', '', '',
+'Suspicious of mild increased singal intensity of patellar articular cartialge on F/S T2WI, R/O grade 1 chondromalacia.',
+'Minimal joint effusion and suprapatellar plica.', '', '',
+'No evidence of bone contusion is noted.', '',
+], 'ACL contour and signal are affirmatively normal despite the qualified full-thickness-tear summary; both collaterals are normal. Medial meniscal surface extension is only significance-qualified and the favored internal-signal interpretation remains R/O in the impression, so this is not an unequivocal isolated-degeneration negative. PF chondromalacia is equivocal and its bare grade supplies no calibrated loss/extent. Minimal effusion is below threshold. Plica and fat-pad inflammation do not diagnose synovitis. Meniscal contusion alternatives concern another structure and do not override the direct no-bone-contusion statement. Lateral meniscus, TF cartilage, Baker and acute fracture are unmentioned.'),
+('N N N N N N N U X N U X', [
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'No hay significativo derrame articular ni quistes poplíteos.', '',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', '',
+], 'Named ligaments are normal, both menisci have affirmatively preserved morphology/signal despite the qualified tear clause, and all cartilage compartments are without alterations. Significant qualifies effusion while popliteal cysts are separately denied. Marrow has a significance-qualified statement. Tendon and Hoffa assessments do not establish synovitis or acute-fracture status.'),
+]
+freeze('sixth-five', 2, 5, judgments)
+with (G / (Path(__file__).name + '.txt')).open('xb') as stream:
+    stream.write(Path(__file__).read_bytes())

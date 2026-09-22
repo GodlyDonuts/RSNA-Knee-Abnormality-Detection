@@ -1,0 +1,68 @@
+"""Bounded temporary-directory preservation guards; no real R/network writes."""
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase,main
+from unittest.mock import patch
+import preserve_v17 as m
+class NullScanner:
+ def feed(self,block):pass
+class Guards(TestCase):
+ def setUp(self):
+  self.tmp=TemporaryDirectory();self.w=Path(self.tmp.name);self.addCleanup(self.tmp.cleanup)
+  self.source=self.w/'work/annotation-staging/example/a.jsonl';self.source.parent.mkdir(parents=True);self.source.write_bytes(b'{"one":1}\n')
+  self.row={'path':'a.jsonl','source_path':str(self.source.relative_to(self.w)),**m.measure(self.source),'archive_path':'initiative/audits/example/a.jsonl','archive_source_path':str(self.source.relative_to(self.w)),'archive_representation':{'encoding':'identity',**m.measure(self.source)}}
+  self.pins={'snapshot_version':17,'integration_or_clinical_acceptance':False,'completion_reference_validation':[],'snapshots':[{'directory':'example','completion_anchors':[],'files':[self.row]}]}
+ def validate(self):
+  with patch.object(m,'check_disk',return_value=m.FLOOR+10**9):return m.validate_pins(self.w,self.pins,NullScanner)
+ def test_verify_only_creates_no_repository(self):
+  _,counts=self.validate();self.assertEqual(counts['new_archive_files'],1);self.assertFalse((self.w/'work/recovered').exists())
+ def test_changed_original_fails(self):
+  self.source.write_bytes(b'changed');self.assertRaises(ValueError,self.validate)
+ def test_traversal_fails(self):
+  self.row['archive_path']='initiative/audits/example/../../other';self.assertRaises(ValueError,self.validate)
+ def test_absolute_fails(self):
+  self.row['archive_path']='/tmp/elsewhere';self.assertRaises(ValueError,self.validate)
+ def test_wrong_directory_fails(self):
+  self.row['archive_path']='initiative/audits/other/a.jsonl';self.assertRaises(ValueError,self.validate)
+ def test_duplicate_target_fails(self):
+  self.pins['snapshots'][0]['files'].append(dict(self.row));self.assertRaises(ValueError,self.validate)
+ def test_equal_existing_reused(self):
+  dest=self.w/'work/recovered'/self.row['archive_path'];dest.parent.mkdir(parents=True);dest.write_bytes(self.source.read_bytes());_,counts=self.validate();self.assertEqual(counts['existing_equal_files'],1);self.assertEqual(m.copy_one(self.row,self.source,dest),'reused_equal')
+ def test_different_existing_preserved(self):
+  dest=self.w/'work/recovered'/self.row['archive_path'];dest.parent.mkdir(parents=True);dest.write_bytes(b'old');self.assertRaises(ValueError,self.validate);self.assertEqual(dest.read_bytes(),b'old')
+ def test_new_gzip_not_allowed(self):
+  self.row['archive_representation']['encoding']='gzip';self.assertRaises(ValueError,self.validate)
+ def test_arbitrary_filename_change_not_allowed(self):
+  self.row['archive_path']='initiative/audits/example/b.jsonl';self.assertRaises(ValueError,self.validate)
+ def test_exact_py_suffix_gets_txt_only(self):
+  new=self.source.with_name('script.py');self.source.rename(new);self.source=new;self.row.update(path='script.py',source_path=str(new.relative_to(self.w)),archive_source_path=str(new.relative_to(self.w)),archive_path='initiative/audits/example/script.py.txt');self.validate()
+ def test_wrong_source_relative_mapping_fails(self):
+  self.row['path']='other.jsonl';self.row['archive_path']='initiative/audits/example/other.jsonl';self.assertRaises(ValueError,self.validate)
+ def test_existing_py_txt_not_doubled(self):
+  self.row['path']='script.py.txt';self.row['archive_path']='initiative/audits/example/script.py.txt.txt';self.assertRaises(ValueError,self.validate)
+ def test_symlink_escape_fails(self):
+  (self.w/'link').symlink_to(self.w.parent/'not-created');self.assertRaises(ValueError,m.within,self.w,'link/a')
+ def test_github_limit_fails(self):
+  self.row['archive_representation']['bytes']=m.LIMIT;self.assertRaises(ValueError,self.validate)
+ def test_floor_includes_reserve(self):
+  with patch.object(m.shutil,'disk_usage',return_value=type('Space',(),{'free':m.FLOOR+m.RESERVE+100})()):self.assertRaises(ValueError,m.check_disk,self.w,101)
+ def test_boolean_version_fails(self):
+  self.pins['snapshot_version']=True;self.assertRaises(ValueError,self.validate)
+ def test_unknown_reference_mismatch_fails(self):
+  self.pins['completion_reference_validation']=[{'normalized_reference':self.row['source_path'],'verified_file':self.row['source_path'],'resolution':'exact_current_bytes','bytes':self.row['bytes'],'sha256':'0'*64}];self.assertRaises(ValueError,self.validate)
+ def test_exact_current_reference_cannot_redirect(self):
+  ref={'normalized_reference':self.row['source_path'],'verified_file':'work/another.json','resolution':'exact_current_bytes'};self.assertRaises(ValueError,m.check_reference_resolution,self.w,ref)
+ def alias(self):
+  h='17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62';return {'normalized_reference':'work/recovered/initiative/reviews-v2/adjudications/registry.json','verified_file':m.HISTORICAL_REGISTRY_RESOLUTIONS[h][0],'resolution':'explicit_historical_live_registry_identity','bytes':4670,'sha256':h}
+ def test_exact425_registry_alias_metadata_allowed(self):m.check_reference_resolution(self.w,self.alias())
+ def test425_alias_wrong_original_path_fails(self):
+  ref=self.alias();ref['normalized_reference']='work/other/registry.json';self.assertRaises(ValueError,m.check_reference_resolution,self.w,ref)
+ def test425_alias_wrong_hash_fails(self):
+  ref=self.alias();ref['sha256']='0'*64;self.assertRaises(ValueError,m.check_reference_resolution,self.w,ref)
+ def test425_alias_wrong_target_fails(self):
+  ref=self.alias();ref['verified_file']='work/other-snapshot.json';self.assertRaises(ValueError,m.check_reference_resolution,self.w,ref)
+ def test425_alias_wrong_size_fails(self):
+  ref=self.alias();ref['bytes']=4671;self.assertRaises(ValueError,m.check_reference_resolution,self.w,ref)
+ def test_equality_only_archive_change_fails(self):
+  self.pins['existing_archive_equality_checks']=[{'path':self.row['source_path'],'sha256':'0'*64,'bytes':self.row['bytes']}];self.assertRaises(ValueError,self.validate)
+if __name__=='__main__':main()

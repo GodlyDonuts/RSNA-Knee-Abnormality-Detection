@@ -1,0 +1,57 @@
+"""Freeze this actual assessor's one-report, three-OA source-only assessment."""
+import hashlib,json,shutil,sys
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;D=P.parent;W=P.parents[2];R=W/'work/recovered'
+sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint
+AGENT='/root/quality_temporal_review';RUBRIC='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(name,o):
+ with(P/name).open('x')as f:f.write(json.dumps(o,ensure_ascii=False,indent=2)+'\n')
+def main():
+ assert shutil.disk_usage(W).free>=20*1024**3
+ packet=D/'qualified003-additional-neutral-source-v1/neutral-source.json'
+ assert sha(packet)=='b5b88a6e2f40fd5e7b13a028cd932d01b961d32d5d50d14709f214b5418bfb1f'
+ sources=read(packet);assert len(sources)==1;s=sources[0]
+ assert s['study_uid']=='1.2.826.0.1.3680043.8.498.16538738179840493095338324009830673843'
+ assert s['source_path']=='initiative/reviews/inputs/batch-026.json' and s['index']==3
+ original=R/s['source_path'];assert sha(original)==s['source_sha256']
+ assert read(original)[s['index']]=={'study_uid':s['study_uid'],'report':s['report']}
+ rubric=R/'protocols/report_weak_v2.md';assert sha(rubric)==RUBRIC
+ allreports={r['study_uid']:r['report']for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for r in read(p)}
+ canonical=source_reports_fingerprint(allreports)
+ assert len(allreports)==4407 and canonical=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+ # Historical neutral packets are read for membership only, without judgments.
+ prior_packets=[D/'cartilage-observed-000-source-review-v1/neutral-first-50-full-reports.json']+[D/f'cartilage-observed-{i:03d}-source-review-v1/neutral-full-reports.json'for i in range(1,6)]+[D/'qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-000.json']+[D/'bone-observed-000-independent-review-v1/neutral-source-packet.json']+[D/f'bone-observed-{i:03d}-source-review-v1/neutral-source-packet.json'for i in range(1,25)]
+ membership=[]
+ for p in prior_packets:
+  o=read(p);rows=o.get('reports',o.get('records',[]))if isinstance(o,dict)else o
+  membership.append({**bind(p),'report_count':len(rows),'selected_uid_matching_ordinals':[i for i,r in enumerate(rows)if r['study_uid']==s['study_uid']]})
+ assert sum(len(m['selected_uid_matching_ordinals'])for m in membership)==0
+ now=datetime.now(timezone.utc).isoformat()
+ with(P/'neutral-full-sources.json').open('xb')as f:f.write(packet.read_bytes())
+ write('historical-membership-check.json',{'schema_version':1,'agent_id':AGENT,'checked_at_utc':now,'study_uid':s['study_uid'],'method':'Only neutral-packet study_uid membership was selected; no prior/current assessment states or proposal findings were read. Zero overlap in these checked packets does not prove first-ever source blindness.','packets':membership,'verified_overlaps_in_checked_prior_packets':0,'checked_personally_reviewed_scope':'All260 cartilage priority reports, all1250 bone000–024 reports, qualified00050 source reports; other historical/inherited and mechanical context is disclosed separately.'})
+ states=['negative','negative','uncertain'];targets=['Medial OA','Lateral OA','PF OA']
+ evidence=[
+ 'Focal 2 mm x 2 mm low-grade cartilage defect in the weightbearing portion of the medial femoral condyle. Otherwise well maintained medial tibiofemoral hyaline articular cartilage.',
+ 'Low-grade chondral thinning in the lateral tibiofemoral compartment.',
+ 'Relatively well-maintained patellofemoral hyaline articular cartilage.',
+ ]
+ rationales=[
+ 'The focal medial femoral cartilage defect is explicitly low-grade and 2 by 2 mm, below the qualifying depth/region criterion; the remaining medial cartilage is well maintained. This is a report-level below-threshold negative using stated qualitative depth and measured extent, without importing a numeric grading framework.',
+ 'The lateral tibiofemoral thinning is explicitly low-grade, supporting a below-threshold negative. Severe mucoid degeneration and complex tearing in the same compartment refer to the meniscus, not cartilage severity, and do not override the chondral qualifier.',
+ 'Patellofemoral cartilage is only relatively well maintained. This qualified comparative preservation does not explicitly establish normal cartilage or the absence of a roughly1 cm region with greater-than50 percent loss. No separate depth/extent or unqualified normal PF assessment resolves that limitation; preserve uncertainty rather than infer a reliable negative or a positive.',
+ ]
+ for q in evidence:assert q and q in s['report']
+ context={'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'stage':'qualified003_additional_one_complete_source_three_OA_assessment_before_new_proposal','recorded_at_utc':now,'supplied_neutral_packet':bind(packet),'source_reports_sha256':canonical,'rubric_version':'report-weak-v2.0','rubric':bind(rubric),'historical_membership':bind(P/'historical-membership-check.json'),'latest_own_bone_context':bind(D/'bone-observed-024-source-review-v1/start.json'),'latest_own_bone_completion':bind(D/'bone-observed-024-postfreeze-v1/completion-manifest.json'),'historical_exposure':'This actual assessor has personally read all260 cartilage priority reports and their OA comparisons, qualified00050 full reports and later additional source assessments/adjudications, and bone000–0241250 full reports/2500 bone judgments. I have original/inherited review context, earlier technical064:14/46 source exposure, and knowledge of cartilage qualified-preservation, grading/extent, legacy-three and other prior adjudication discussions. My full4407 discovery code consumed historical34 current labels; runtime and wording002 technical validators later mechanically consumed original/current reports and annotations through actual425, so absolute process-level annotation isolation is not claimed. A source-only membership check found no exact UID overlap within my checked260 cartilage,1250 bone and50 qualified000 packets. That finite check does not establish absence of earlier original/inherited/technical exposure or first-ever blindness. No selected current003, root003 or other003 case findings or new proposal were opened before this complete three-judgment freeze.','read_order_attestation':'I personally read the entire supplied report and authored all3 OA judgments, exact contiguous quotations and individual source reasons before new selected findings/proposal access. This is an actual assessor self-attestation, not an independently instrumented historical access log.','first_ever_blinding_claimed':False,'new12_target_or_all003_pass_claimed':False,'MRI_reread_or_clinician_credential_claimed':False,'selected_current003_values_opened':False,'root003_or_other003_case_findings_opened':False,'gold_accessed':False,'R_writes':False}
+ write('source-pass-context.json',context)
+ row={'agent_id':AGENT,'session_id':AGENT,'study_uid':s['study_uid'],'source_path':s['source_path'],'source_index_zero_based':s['index'],'source_sha256':s['source_sha256'],'report_sha256':hashlib.sha256(s['report'].encode()).hexdigest(),'rubric_version':'report-weak-v2.0','rubric_sha256':RUBRIC,'source_reports_sha256':canonical,'target_order':targets,'states':states,'evidence':evidence,'rationales':rationales,'complete_source_personally_read':True}
+ with(P/'source-assessment-frozen.jsonl').open('x')as f:f.write(json.dumps(row,ensure_ascii=False)+'\n')
+ write('source-validation.json',{'schema_version':1,'agent_id':AGENT,'validated_at_utc':now,'complete_reports':1,'OA_judgments':3,'exact_contiguous_quotes':3,'source':bind(original),'neutral_packet':bind(P/'neutral-full-sources.json'),'assessment':bind(P/'source-assessment-frozen.jsonl'),'rubric':bind(rubric),'canonical_all4407_source_reports_sha256':canonical,'packet_hash_distinct_from_canonical':sha(packet)!=canonical,'original_uid_index_fullreport_and_hash_match':True,'distinct_exact_target_order_verified':True,'all_quotes_and_rationales_present':True,'selected_current_root_or_other003_findings_opened':False,'gold_accessed':False,'limit':'Source traceability and counts do not independently prove semantic correctness or historical access order.'})
+ write('source-freeze.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'identity_kind':'actual_codex_agent_task','frozen_at_utc':now,'stage':'qualified003_additional_source3_frozen_before_selected_current_root_or_other003_findings_and_new_proposal','complete_reports_read':1,'target_judgments':3,'target_order':targets,'source_packet':bind(P/'neutral-full-sources.json'),'assessment':bind(P/'source-assessment-frozen.jsonl'),'context':bind(P/'source-pass-context.json'),'validation':bind(P/'source-validation.json'),'historical_membership':bind(P/'historical-membership-check.json'),'rubric':bind(rubric),'authoring_validator':bind(Path(__file__).resolve()),'historical_exposure_disclosed':True,'first_ever_blinding_claimed':False,'selected_current_root_or_other003_findings_opened':False,'gold_accessed':False,'registry_changed':False,'acceptance_or_registration':False,'next_action':'Await exact root proposal path for a separate reasoned independent assessment; preserve every initial judgment and subsequent reconsideration.'})
+ write('source-completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'completed_at_utc':now,'source_only_complete_reports':1,'OA_judgments':3,'files':[bind(p)for p in sorted(P.iterdir())if p.is_file()],'adjudication_started':False,'gold_accessed':False,'R_writes':False})
+ for n in ['source-freeze.json','source-assessment-frozen.jsonl','source-validation.json','source-completion-manifest.json']:print(n,sha(P/n))
+if __name__=='__main__':main()

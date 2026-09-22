@@ -1,0 +1,22 @@
+"""Seal exact preparation membership after bounded validation; no R writes."""
+from pathlib import Path
+import hashlib,json,importlib.util,sys
+from datetime import datetime,timezone
+W=Path(__file__).resolve().parents[3];S=Path(__file__).resolve().parent
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+scanner_path=W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+assert sha(scanner_path)=='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+spec=importlib.util.spec_from_file_location('sealed_scanner',scanner_path);m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m)
+secrets=m.secret_values(W/'.env');assert secrets
+files=[]
+for p in sorted(S.iterdir()):
+ if p.is_file():
+  assert p.name!='completion-manifest.json'
+  m.Scanner(secrets).feed(p.read_bytes())
+  files.append({'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size,'archive_filename':p.name+'.txt' if p.suffix=='.py' else p.name})
+manifest={'schema_version':1,'status':'complete_unexecuted_preparation','agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review','sealed_at_utc':datetime.now(timezone.utc).isoformat(),'role':'original_FIRST003_author_and_technical_preparer_not_new_clinical_assessor','execution_performed':False,'base_git':'a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004','base_registry_sha256':'17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62','expected_after_root_execution':491,'new_changes':66,'extra_root_proposal_included':False,'extra_root_disagreement_unresolved':True,'file_count_excluding_this_manifest':len(files),'files':files,'archive_rule':'Append .txt to .py source filenames only; preserve all bytes and other filenames exactly.'}
+p=S/'completion-manifest.json'
+with p.open('x') as f:f.write(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
+for e in files:
+ q=W/e['path'];assert sha(q)==e['sha256'] and q.stat().st_size==e['bytes']
+print(json.dumps({'completion_sha256':sha(p),'files_including_completion':len(files)+1,'total_bytes_including_completion':sum(e['bytes'] for e in files)+p.stat().st_size,'helper_sha256':sha(S/'integrate_wording003.py'),'context_sha256':sha(S/'verify_context.py'),'validation_sha256':sha(S/'preparation-validation.json'),'plan_sha256':sha(S/'final-read-only-plan.json'),'inputs_sha256':sha(S/'final-plan-bound-inputs.json')}))

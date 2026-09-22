@@ -77,7 +77,28 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry contains **362 active accepted target corrections**. Cartilage005
+The registry contains **491 active accepted target corrections**. Wording003
+adds 64 second-reader changes and two first-reader changes, while preserving all 425
+prior whole objects, four selected overlaps and three earlier retirements. All 540
+root source judgments preceded the current comparison; five later state changes
+remain explicit. All 59 original first proposals and 68 second proposals remain
+preserved, including two rejected second proposals and one rejected first state.
+
+The [491 integration receipt](../initiative/audits/qualified-negation-focused-003-integration-v1/complete491-integration-validation.json)
+and [independent technical replay](../initiative/audits/qualified003-integration-independent-verification-v1/independent-integration-validation.json)
+verify 66 exact additions, 539 final root states/quotations and zero conflicts among
+54 identical-report groups / 204 reports. The one extra root proposal for 026:03
+Lateral OA remains a semantic disagreement after a distinct assessor's rejection;
+it is unregistered and its current annotation is unchanged. It remains work for
+QA resolution, not evidence of agreement. All three global gates remain pending.
+
+The preceding 425 checkpoint added 63 changes from wording002, preserving the
+previous 362 objects. Its [integration receipt](../initiative/audits/qualified-negation-focused-002-integration-v1/complete425-integration-validation.json)
+and [verified private publication](../initiative/audits/qualified002-verified425-publication-v1/root-publication-receipt.json)
+are preserved. The original wording002 and wording003 assessments must not be
+rewritten to match accepted final decisions.
+
+The earlier registry contained **362 active accepted target corrections**. Cartilage005
 adds four after six complete root source rereads / 18 frozen OA judgments. Two
 negatives become uncertain, and one positive and one negative gain exact evidence
 that supports the retained state. All 18 root states are unchanged; one reason

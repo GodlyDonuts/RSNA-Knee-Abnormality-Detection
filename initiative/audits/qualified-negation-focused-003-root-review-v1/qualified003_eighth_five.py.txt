@@ -1,0 +1,67 @@
+from qualified003_source_tools import freeze, N, G, json, Path
+rows = json.loads((N / 'neutral-root-packets/batch-003.json').read_text())
+def span(i, first, last):
+    s = rows[i]['report']; start = s.index(first)
+    return s[start:s.index(last, start) + len(last)]
+judgments = [
+('N X N P U U U U P U U X', [
+'Increase interstitial intensity of ACL and proximal PCL with straight linear contour suspect degenerative change', '',
+span(5, 'Linear signal intensity in posterior horn of medial meniscus', 'degeneration of medial meniscus'),
+'Heterogenous hypertintensity and medial displacement(Srs:[ID] Img:9) of anterior horn of lateral meniscus with subcondromaedema(Srs [ID] Img:12) in the lateral femoral condyle and lateral tibial plateau suspect bucket handle tear',
+'Osteoarthritis of right knee joint, more severe at lateral compartment with synovitis, suprapatellar bursitis and patellar plicae.',
+'Osteoarthritis of right knee joint, more severe at lateral compartment with synovitis, suprapatellar bursitis and patellar plicae.',
+'Osteoarthritis of right knee joint, more severe at lateral compartment with synovitis, suprapatellar bursitis and patellar plicae.',
+'Joint effusion and suprapatellar bursitis with medial plicae; hypertrophy of the synovium, indicative of synovitis.',
+'Joint effusion and suprapatellar bursitis with medial plicae; hypertrophy of the synovium, indicative of synovitis.',
+"A lobulated cystic lesion in medial popliteal fossa between the tendons of the medial head of the gastrocnemius and the semimembranosus muscles, in favor of Baker's cyst.",
+'Bone marrow edema of lateral femoral condyle and lateral tibial plateau, maybe due to degeneration with subchondral edema; differential diagnosis of bone contusion.', '',
+], 'ACL has isolated interstitial degenerative signal and straight contour without a described discontinuity. Medial meniscus has a favored intrasubstance-signal pattern and an affirmative degenerative conclusion, without a competing tear diagnosis. Lateral meniscus has directly described displaced morphology even though the specific bucket-handle interpretation is suspected. Broad knee OA described as more severe laterally leaves lesser/nonlocalized disease uncalibrated; none of the three target depth/extent criteria is established. Fluid and characteristic Baker collection lack moderate/large severity; the14x9x15mm measurement belongs to a different subcutaneous lesion. Thickened synovium and direct synovitis diagnosis support positive. Bone edema has degenerative-versus-contusion alternatives. MCL and acute fracture are unmentioned.'),
+('U U U P U U N N X X U X', [
+span(6, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'),
+'Ο έξω µηνίσκος παρουσιάζει εκφύλιση και οριζόντια ρήξη µε µικρή παραµηνισκική ρήξη.',
+span(6, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'),
+span(6, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'),
+'Ο αρθρικός χόνδρος της επιγονατίδας είναι φυσιολογικός.',
+'Μικρή συλλογή παρατηρείται ενδοαρθρικά.', '', '',
+span(6, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'), '',
+], 'Ligaments, medial meniscus, broadly scoped cartilage and marrow have only no-noteworthy-findings qualification. The lateral meniscal horizontal tear is definite. A later direct normal patellar-cartilage assessment supports PF negative despite trochlear dysplasia, while TF assessment remains qualified. Intra-articular collection is explicitly small. Popliteus tendon-sheath fluid is a different location from Baker collection and does not create that target or synovitis. Acute fracture is unmentioned.'),
+('N N P N X X X N X X U X', [
+'Ön çapraz bağ ve arka çapraz bağ, lateral ve medial kollateral ligaman normaldir.',
+'Ön çapraz bağ ve arka çapraz bağ, lateral ve medial kollateral ligaman normaldir.',
+'Medial menisküs gövde ve arka boynuzda  belirgin dejenerasyon ve kompleks yırtık ile uyumlu sinyal değişiklikleri mevcuttur.',
+'Lateral menisküs normal.', '', '', '',
+'Eklem düzeyinde hafif sıvı artışı mevcuttur. Suprapatellar bursada hafif sıvı artışı mevcuttur.', '', '',
+span(7, 'Tibia proksimalde subkondral kemik iliği ödemi', 'Femur medial epikondil düzeyinde kemik iliği ödemi izlenmiştir.'), '',
+], 'Named ACL/MCL and lateral meniscus are normal; medial meniscal signal is explicitly compatible with a complex tear. Joint and suprapatellar fluid are both slight, below threshold. Proximal tibial and medial femoral epicondylar marrow edema has no stated impact cause; associated subchondral cysts do not supply it. Normal patellar positioning/retinacula/tendons do not assess articular cartilage, synovitis, Baker or acute fracture.'),
+('N N P N N X N U X N N N', [
+'Ligament croisé antérieur : Légers changements mucoïdes sans signe de déchirure.',
+'Ligament collatéral médial : Normal.',
+'Ménisque médial : Déchirure horizontale oblique impliquant le corps et la corne postérieure surfaçant distalement.',
+'Ménisque latéral : Normal.',
+'Légère chondropatie fémoropatellaire et médiale sans fissuration profonde.', '',
+'Légère chondropatie fémoropatellaire et médiale sans fissuration profonde.',
+'Épanchement articulaire : Pas de liquide significatif.', '',
+'Kyste de Baker : Minuscule kyste de Baker collabé et non compliqué.',
+span(8, 'Signal de la moelle osseuse :', 'Normal.'),
+span(8, 'Fractures :', 'Aucune.'),
+], 'ACL mucoid change explicitly lacks tear; MCL and lateral meniscus are normal; medial meniscal surface-reaching horizontal-oblique tear is definite. Mild medial/PF chondropathy expressly lacks deep fissuring, supporting below-depth negatives; lateral cartilage is unmentioned. Effusion is significance-qualified and Baker is directly tiny/collapsed. Marrow is normal and fractures directly absent. Parameniscal/ganglion cyst alternatives and loose chondral bodies do not diagnose synovitis or acute fracture.'),
+('N N U N U U U N U N N N', [
+'Anterior cruciate ligament: Intact fibers are present however caliber of these fibers is somewhat attenuated compatible with a remote low-grade partial thickness injury. No significant tibial translation.',
+'Medial collateral ligament: Superficial and deep components intact. No periligamentous edema.',
+'Medial meniscus: Mild hyperintensity is seen at the posterior horn suggestive of intrasubstance degeneration. No definite tear. No parameniscal cyst.',
+'Lateral meniscus: intact',
+'Medial compartment: Mild chondrosis of the medial femoral condyle.',
+'Lateral compartment: Mild chondrosis of the lateral femoral condyle.',
+span(9, 'Patellofemoral compartment:', 'less probable.'),
+"No joint effusion or loose body. No Baker's cyst.",
+'Differential diagnoses such as focal synovitis and PVNS are less probable.',
+"No joint effusion or loose body. No Baker's cyst.",
+'Bones: No fracture, stress reaction, or osseous lesion is seen.',
+'Bones: No fracture, stress reaction, or osseous lesion is seen.',
+], 'Current ACL is explicitly remote low-grade partial injury with intact fibers, below target; MCL and lateral meniscus are intact. Medial meniscal degeneration is only suggested with no-definite-tear qualification. Bare mild TF chondrosis lacks calibrated depth/extent. Patellar hypertrophy measures cartilage thickness rather than cartilage loss; severe chondropathic wording and suspicious fissure do not establish the threshold. Focal synovitis/PVNS remains a stated less-likely differential and is uncertain. Effusion/Baker are absent. The broad bone assessment explicitly excludes fracture, stress reaction and osseous lesion, supporting both bone negatives; the clinical-history ACL question does not override current findings.'),
+]
+freeze('eighth-five', 3, 5, judgments)
+with (G / (Path(__file__).name + '.txt')).open('xb') as stream:
+    stream.write(Path(__file__).read_bytes())

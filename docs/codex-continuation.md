@@ -6,48 +6,48 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Latest verified checkpoint
 
-The local registry contains **425 active accepted corrections**. Wording002
-adds 63: 48 unsupported negatives and one positive become uncertain, ten uncertain
-cells become unmentioned, and four retained states receive better source context.
-All 362 earlier full correction objects and three earlier retirements are preserved.
-Four of the second reader's 67 proposals were already accepted in cartilage001;
-their existing full objects remain unchanged and are not registered twice.
+The local registry contains **491 active accepted corrections**. Wording003
+adds 66: 64 supported second-reader proposals and two first-reader proposals.
+All 425 prior whole correction objects, four selected overlaps and three earlier
+retirements remain unchanged. Two second-reader proposals and one first-reader
+state proposal were rejected with their original evidence retained.
 
-Root personally reread all 46 complete attention reports and froze 552 judgments
-before opening this wording batch's case findings. The later review covers all
-552 comparisons, including 142 attention cells. Twenty-two root state
-reconsiderations are explicit and the initial readings remain immutable. All 67
-original second proposals and 58 first-proposal states are supported. Nine
-first-reader postfreeze state disagreements remain preserved; later agreement
-with the second reader is not presented as initial independent agreement.
-Original-author normalization preserves all 67 original proposal objects and
-their historical118 context, with an exact current362 overlap ledger. The
-independent technical proof checks the source/quote bindings, full prior objects,
-three retirements and zero conflicts across 54 identical-report groups / 204 reports.
+Root reread all 45 complete attention reports and froze 540 judgments before
+opening the current case findings. Five later root state reconsiderations are
+explicit. All 59 first proposals and 68 second proposals remain preserved; the
+original authors separately normalized metadata without changing their clinical
+objects. The actual root integration and independent technical replay reconcile
+539 final states and quotations against the resulting registry. One additional
+root proposal for 026:03 Lateral OA was rejected by a distinct source assessor;
+that real semantic disagreement remains unresolved and unregistered, with the
+current annotation unchanged. It is not claimed as clinical agreement.
 
-The most recent verified publication is Git
-`f648ebce325d8dd78990aa159021308cddc9e369` / private HF
-`a91557908cf62a7ccaba077b9396ad71b4176eff`: 362 corrections and 9,164 files.
-Exact-commit CI 35684206517 passed. Its actual receipt and reconstruction proofs
-are preserved in `cartilage005-verified362-publication-v1/`. The local 425
-milestone needs its separate verified publication receipt. Three global semantic
-QA gates and final release checks remain open; no corrected training export exists.
+The [491 integration proof](../initiative/audits/qualified-negation-focused-003-integration-v1/complete491-integration-validation.json)
+and [independent replay](../initiative/audits/qualified003-integration-independent-verification-v1/independent-integration-validation.json)
+verify the exact additions, preserved objects, three pending semantic gates and
+zero conflicts across 54 identical-report groups / 204 reports.
 
-Both cartilage readers completed the 260-report priority set and root attention
-adjudications 000–005 are complete. Both bone readers completed source/comparison
-passes through 020: 1,050 reports / 2,100 judgments each. All bone proposals still
-await root adjudication. Historical baselines remain recorded and must be rebased
-against the actual registry before integration. Bone007's original author has
-completed its separate canonical source-context normalization; its original six
-clinical objects remain unchanged. Wording005 first-proposal normalization remains
-pending.
+The latest verified publication is Git
+`a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004` / private HF
+`b57d752502d4d31d03adb1bf71868af576798d97`: 425 corrections and 9,530 restorable
+Git files. Exact-commit CI 35688818538 passed. Its actual receipt, both complete
+reconstruction proofs and publication metadata are preserved in
+`qualified002-verified425-publication-v1/`. The local 491 milestone requires its
+own verified publication receipt. No corrected training export exists yet.
 
-Root wording003 has frozen the first 20 of 45 full attention sources / 240 target
-judgments, including 187 exact nonmissing quotations and 53 empty missing states.
-No current003 case findings have been opened; 25 sources remain before comparison.
-Wording004–006 root attention remains pending. Snapshot v16 preserves completed
-stage cutoffs without treating archive copying as clinical acceptance. Keep its
-exact membership and the earlier partial snapshots unchanged.
+Both cartilage readers completed 260 priority reports and root attention
+adjudications 000–005. Both bone readers completed source and comparison passes
+through 024: 1,250 reports / 2,500 target judgments each. Bone024's second comparison
+uses actual 491 and explicitly preserves the first reader's 425 baseline. The
+bone proposals still require root adjudication. Wording005 first metadata
+normalization is complete with all 60 original clinical objects unchanged.
+
+Root wording004 has frozen all 46 complete attention sources / 552 target judgments
+before current case findings, including 448 exact nonmissing quotations and 104
+empty missing states. Its source freeze is `6c9137370c61e43bec5fb2c436a6149e398d5ab1953093d1f74066b09fb1ee1d`.
+Comparison and adjudication remain pending; wording005–006 root attention also
+remains pending. Snapshot v17 preserves completed cutoffs and the original
+partial snapshots without treating archive copying as clinical acceptance.
 
 The finite closure map and registry362 evidence ledger link all 4,407 reports /
 52,884 cells to original review evidence and targeted follow-ups. The ledger has

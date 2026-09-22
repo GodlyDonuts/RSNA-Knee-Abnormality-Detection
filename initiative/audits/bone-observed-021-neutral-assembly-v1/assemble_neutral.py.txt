@@ -1,0 +1,44 @@
+"""Select fixed priority UID order only and bind original full blinded reports."""
+import hashlib,json,re,sys
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=S.parent;R=W/'work/recovered';G=A/'bone-global-candidate-inventory-v1';AG='/root/last_twelve_visual_review'
+CANON='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3';RUB='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+def obj(p):return json.loads(p.read_bytes())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+priority=G/'priority-queue.json';assert sha(priority)=='de068ba5edc97a9e0a1d0b66e75cf376ef2a1ae2856fd1cff833019756fb7407'
+raw_uids=re.findall(r'"study_uid"\s*:\s*"([^"\\]+)"',priority.read_text());uids=list(dict.fromkeys(raw_uids));assert len(uids)==1549
+prior_paths=[A/'bone-observed-000-independent-review-v1/neutral-source-packet.json']+[A/f'bone-observed-{i:03d}-source-review-v1/neutral-source-packet.json' for i in range(1,21)]
+# Verify the earlier pinned chain by its last assembly, then all actual prior source bindings.
+last=A/'bone-observed-020-source-review-v1/neutral-source-packet.json';assert sha(last)=='9c7faf818f2dd1d8404ab533e078af6c138b60c7590e9bfdd26061f29b5ee013'
+prov=obj(last)['selection_provenance']
+for i,p in enumerate(prior_paths[:20]):assert sha(p)==prov['prior_neutral_packets'][i]['sha256']
+prior=[r for p in prior_paths for r in obj(p)['reports']];assert len(prior)==len({r['study_uid'] for r in prior})==1050;assert [r['study_uid'] for r in prior]==uids[:1050]
+selected=uids[1050:1100];assert len(selected)==len(set(selected))==50 and not set(selected)&set(uids[:1050])
+all_reports={};found={};batches={};srefs=[]
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ rows=obj(p);batches[str(p.relative_to(R))]=(sha(p),rows);srefs.append(ref(p))
+ for i,r in enumerate(rows):
+  assert set(r)=={'study_uid','report'} and r['study_uid'] not in all_reports;all_reports[r['study_uid']]=r['report']
+  if r['study_uid'] in selected:found[r['study_uid']]={'study_uid':r['study_uid'],'source_path':str(p.relative_to(R)),'source_sha256':sha(p),'source_index_zero_based':i,'report_sha256':hashlib.sha256(r['report'].encode()).hexdigest(),'report':r['report']}
+assert len(all_reports)==4407 and set(found)==set(selected)
+sys.path.insert(0,str(R));from rsna.labels import source_reports_fingerprint
+assert source_reports_fingerprint(all_reports)==CANON
+for r in prior:
+ h,rows=batches[r['source_path']];assert h==r['source_sha256'];assert rows[r['source_index_zero_based']]=={'study_uid':r['study_uid'],'report':r['report']};assert hashlib.sha256(r['report'].encode()).hexdigest()==r['report_sha256']
+index=G/'neutral-packet-index.json';assert sha(index)=='7fdd0be904ae6972e4e12a70cd602de5638259bf332757302cbd0aa0f882eb65'
+matched={};nrefs=[]
+for e in obj(index)['packets']:
+ p=G/e['path'];assert sha(p)==e['sha256'];rs=obj(p);rs=rs if isinstance(rs,list) else rs.get('reports',rs.get('records'))
+ hits=[r for r in rs if r['study_uid'] in found]
+ if hits:nrefs.append(ref(p))
+ for r in hits:assert r==found[r['study_uid']] and r['study_uid'] not in matched;matched[r['study_uid']]=r
+assert set(matched)==set(selected);rub=R/'protocols/report_weak_v2.md';assert sha(rub)==RUB
+method='The fixed priority file was hashed and scanned only for study_uid key/value pairs; no target, state, evidence or trigger fields were parsed, selected, displayed or used. All prior1050 ordered UIDs and their full original source/index/report hashes were mechanically verified from the twenty-one prior neutral packets, without personally rereading those old reports. Exact positions1050–1099 were matched to original blinded reports and the separately hashed existing neutral inventory. This process-level source/priority access is disclosed; it is not a clinical pass or first-ever blindness.'
+write('neutral-source-packet.json',{'schema_version':1,'scope':'Fixed next50 reports at zero-based priority positions1050–1099; complete original sources for independent Contusion/Fracture reading before current annotations.','selection_provenance':{'assembler_agent_id':AG,'priority_queue':ref(priority),'priority_queue_sha256':sha(priority),'priority_count':1549,'positions_zero_based':[1050,1099],'neutral_packet_index':ref(index),'prior_neutral_packets':[ref(p) for p in prior_paths],'neutral_input_packets':nrefs,'method':method,'target_state_annotation_fields_selected_or_displayed':False},'source_reports_sha256':CANON,'rubric_sha256':RUB,'reports':[found[u] for u in selected]})
+write('neutral-assembly-validation.json',{'agent_id':AG,'session_id':AG,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'source_packet':ref(S/'neutral-source-packet.json'),'priority':ref(priority),'priority_count':1549,'source_reports_sha256':CANON,'runtime_fingerprint_function_executed':'rsna.labels.source_reports_fingerprint','runtime_module':ref(R/'rsna/labels.py'),'rubric':ref(rub),'priority_positions_zero_based':[1050,1099],'prior1050_order_source_index_uid_report_hash_checks':1050,'previous_priority_overlap':0,'selected_original_source_index_uid_report_hash_checks':50,'existing_neutral_inventory_exact_matches':50,'source_input_files':srefs,'packet_hash_is_distinct_from_canonical_fingerprint':True,'method':method,'new_clinical_judgments_authored':0,'current_annotation_fields_selected_or_displayed':False,'registry_or_repository_mutated':False,'helper':ref(Path(__file__).resolve())})
+write('completion-manifest.json',{'agent_id':AG,'session_id':AG,'scope':'Neutral assembly only; no clinical decisions. All files except this manifest.','files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()]})
+print(json.dumps({'neutral_packet':ref(S/'neutral-source-packet.json'),'assembly_proof':ref(S/'neutral-assembly-validation.json'),'manifest':ref(S/'completion-manifest.json')},indent=2))

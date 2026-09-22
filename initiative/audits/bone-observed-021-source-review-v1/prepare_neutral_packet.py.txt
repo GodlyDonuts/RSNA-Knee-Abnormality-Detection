@@ -1,0 +1,44 @@
+"""Verify peer neutral assembly against original sources; no annotation inputs."""
+import hashlib,json,re,shutil,sys
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;D=P.parent;W=D.parents[1];R=W/'work/recovered';N=D/'bone-observed-021-neutral-assembly-v1'
+sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint
+F='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p)}
+def write(n,v):
+ with(P/n).open('x')as f:f.write(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+def records(x):return x if isinstance(x,list)else x.get('reports',x.get('records'))
+assert shutil.disk_usage(W).free>=20*1024**3
+pins={'neutral-source-packet.json':'309415f3e093d3f27c2a3994434c438615a6cd589c4ef6df34dcb338c9fa3137','neutral-assembly-validation.json':'f1202e663ff7928bb3cef1d699fcd1e4df35cca3cd5a5aecb046bd79e47f1dd6','completion-manifest.json':'dfd771100e20e778b09727b8b7145bf706eaa6b05bb5762f81993e38daa773cd'}
+for n,h in pins.items():assert sha(N/n)==h
+packet=read(N/'neutral-source-packet.json');selected=[r['study_uid']for r in packet['reports']]
+q=D/'bone-global-candidate-inventory-v1/priority-queue.json';assert sha(q)=='de068ba5edc97a9e0a1d0b66e75cf376ef2a1ae2856fd1cff833019756fb7407'
+uids=list(dict.fromkeys(re.findall(r'"study_uid"\s*:\s*"([^"\\]+)"',q.read_text())));assert len(uids)==1549 and uids[1050:1100]==selected
+old=[D/'bone-observed-000-independent-review-v1/neutral-source-packet.json']+[D/f'bone-observed-{i:03d}-source-review-v1/neutral-source-packet.json'for i in range(1,21)]
+prior=[r for p in old for r in read(p)['reports']];assert len(prior)==1050 and [r['study_uid']for r in prior]==uids[:1050] and not set(selected)&set(uids[:1050])
+allreports={};batches={}
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ rows=read(p);batches[str(p.relative_to(R))]=(sha(p),rows)
+ for r in rows:assert r['study_uid']not in allreports;allreports[r['study_uid']]=r['report']
+assert len(allreports)==4407 and source_reports_fingerprint(allreports)==F==packet['source_reports_sha256']
+for r in prior+packet['reports']:
+ h,rows=batches[r['source_path']];assert h==r['source_sha256'] and rows[r['source_index_zero_based']]=={'study_uid':r['study_uid'],'report':r['report']} and hashlib.sha256(r['report'].encode()).hexdigest()==r['report_sha256']
+idx=D/'bone-global-candidate-inventory-v1/neutral-packet-index.json';assert sha(idx)=='7fdd0be904ae6972e4e12a70cd602de5638259bf332757302cbd0aa0f882eb65'
+matched={}
+for e in read(idx)['packets']:
+ p=idx.parent/e['path'];assert sha(p)==e['sha256']
+ for r in records(read(p)):
+  if r['study_uid']in selected:assert r['study_uid']not in matched;matched[r['study_uid']]=r
+assert [matched[u]for u in selected]==packet['reports']
+with(P/'neutral-source-packet.json').open('xb')as f:f.write((N/'neutral-source-packet.json').read_bytes())
+previous=read(D/'bone-observed-020-source-review-v1/start.json')['historical_exposure']
+paths=[W/p for p in previous['prior_complete_source_uid_overlaps']]+[old[-1]]
+ov={str(p.relative_to(W)):{'sha256':sha(p),'overlap_uids':sorted(set(selected)&{r['study_uid']for r in records(read(p))})}for p in paths}
+exposure={'mechanical_selection':'Actual neutral assembler is /root/last_twelve_visual_review, bound separately. This agent independently hashed its packet and proof, projected only study_uid keys from the frozen queue, rechecked all prior1050 ordered original sources, selected50 originals and the independent neutral inventory. No target/state/evidence/trigger selection fields or current021 annotations were selected or displayed.','discovery':previous['discovery'],'completed_prior_personal_pass_context':previous['completed_prior_personal_pass_context'],'previous_stage_additional_history':previous['additional_completed_history'],'additional_completed_history':'The earlier bone019/bone020 narrative is retained as explicitly prior-stage history. I subsequently completed all50 bone020 reports and100 source judgments plus their362 comparison. Immediately before this021 task I technically verified root wording002 adjudication552 serializations,22 source reconsiderations and67 second proposals, prepared an unexecuted root integration helper, and mechanically replayed all362 accepted corrections and all600 wording002 cells. This was no new clinical reading. No selected021 annotations or other021 case findings were displayed. Previous runtime validation mechanically loaded original/accepted annotations; no absolute process-level annotation isolation or first-ever blindness is claimed.','prior_complete_source_uid_overlaps':ov,'conceptual':previous['conceptual'],'independence_limit':'This is a new personally reasoned bone021 complete-source pass before its selected current annotations and other021 findings, not first-ever exposure or a new12-target pass. Prior inherited, exact-source, conceptual and mechanical data access is disclosed.'}
+write('start.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','session_id':'/root/quality_temporal_review','identity_kind':'actual_codex_agent_task','started_at_utc':datetime.now(timezone.utc).isoformat(),'stage':'bone021_first_source_reader','source_packet':bind(P/'neutral-source-packet.json'),'source_reports_sha256':F,'rubric':bind(R/'protocols/report_weak_v2.md'),'rubric_version':'report-weak-v2.0','target_order':['Contusion','Fracture'],'scope':{'complete_reports':50,'bone_judgments':100,'new_12_target_pass':False},'historical_exposure':exposure,'current_selected_bone_annotations_opened':False,'other_bone021_reader_findings_opened':False,'gold_accessed':False,'prior_stages_changed':False})
+write('neutral-assembly-validation.json',{'schema_version':1,'actual_verifier_id':'/root/quality_temporal_review','peer_neutral_assembler_id':'/root/last_twelve_visual_review','source_packet':bind(P/'neutral-source-packet.json'),'peer_preserved_artifacts':{n:bind(N/n)for n in pins},'priority':bind(q),'priority_positions_zero_based':[1050,1099],'source_reports_sha256':F,'prior1050_order_source_index_uid_report_hash_checks':1000,'prior_packet_bindings':[bind(p)for p in old],'previous_priority_overlap':0,'selected_original_source_index_uid_report_hash_checks':50,'independent_existing_neutral_matches':50,'unique_known_prior_full_source_overlap':len(set().union(*(set(v['overlap_uids'])for v in ov.values()))),'current_selected_annotations_or_other021_findings_opened':False,'helper':bind(Path(__file__).resolve())})
+print(json.dumps({'packet_sha256':sha(P/'neutral-source-packet.json'),'assembly_sha256':sha(P/'neutral-assembly-validation.json'),'prior_fullsource_overlap':{p:e['overlap_uids']for p,e in ov.items()if e['overlap_uids']}},indent=2))

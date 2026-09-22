@@ -1,0 +1,91 @@
+"""Validate a rejected proposal and preserved source judgments without registration."""
+import hashlib,json,sys,shutil
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';AGENT='/root/quality_temporal_review'
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def check(b):
+ p=W/b['path'];assert sha(p)==b['sha256'];assert 'bytes'not in b or p.stat().st_size==b['bytes']
+def write(n,o):
+ with(P/n).open('x')as f:f.write(json.dumps(o,ensure_ascii=False,indent=2)+'\n')
+def main():
+ assert shutil.disk_usage(W).free>=20*1024**3
+ decision=read(P/'rejected-decision.json');provenance=read(P/'decision-provenance.json');assessment=read(P/'independent-source-assessment.json');freeze=read(P/'source-freeze.json')
+ assert sha(P/'rejected-decision.json')=='7312936234681182b94546673826ccbe6e35004f18fcee802a19758ac44b44d6'
+ assert sha(P/'independent-source-assessment.json')=='968848cd99420ff500c3976bd09745be02675abf6a151df4bc2988e2bf7c7c0d'
+ assert sha(P/'source-freeze.json')=='55a41b75a4737988917b8cb45906f97362ee954cb70a5f26c5252d258dd3185e'
+ check(provenance['decision']);check(provenance['authoring_helper']);check(provenance['protected_bindings'])
+ for k,b in provenance['supporting_evidence'].items():check(b);assert decision[k]==b['sha256']
+ protected=read(P/'postfreeze-protected-bindings.json')['files']
+ for b in protected:check(b)
+ source_manifest=read(P/'source-completion-manifest.json')
+ for b in source_manifest['files']:check(b)
+ for b in read(P/'historical-membership-check.json')['packets']:check(b);assert b['selected_uid_matching_ordinals']==[]
+ context=read(P/'source-pass-context.json');check(context['latest_own_bone_completion'])
+ for b in read(W/context['latest_own_bone_completion']['path'])['files']:check(b)
+ assert decision['proposer_agent_id']=='/root' and decision['adjudicator_agent_id']==decision['adjudicator_session_id']==AGENT
+ assert assessment['agent_id']==assessment['session_id']==freeze['agent_id']==AGENT
+ assert decision['accepted_changes']==decision['held_changes']==[] and decision['n_changes']==0
+ assert len(decision['rejected_changes'])==1 and len(assessment['records'])==1
+ assert provenance['accepted_runtime_case_created']is False and not(P/'proposed-runtime-case.json').exists()
+ prop=read(W/provenance['supporting_evidence']['proposal_sha256']['path']);item=prop['proposed_errata'][0]
+ assert sha(P/'root-proposal-byte-copy.json')==decision['proposal_sha256']=='7441a31d0704d73d1b0db78d78d7ab7b7f0501302a23affdb7ff4620fbbe4704'
+ source=read(P/'neutral-full-sources.json')[0];own=json.loads((P/'source-assessment-frozen.jsonl').read_text());uid=source['study_uid']
+ assert own['target_order']==['Medial OA','Lateral OA','PF OA'] and own['states']==['negative','negative','uncertain']
+ report=source['report'];assert hashlib.sha256(report.encode()).hexdigest()==own['report_sha256']=='8144ea48f47b1fba92a0c3ee801e0cadf7c661b8a42ab8aac222ad79ed863d0a'
+ sp=R/source['source_path'];assert sha(sp)==source['source_sha256'] and read(sp)[source['index']]=={'study_uid':uid,'report':report}
+ comparison=read(P/'all3-bound-comparison.json');dispositions=read(P/'all3-independent-postfreeze-dispositions.json');rows=dispositions['records'];assert len(rows)==len(comparison['records'])==3
+ assert freeze['frozen_at_utc']<comparison['at_utc']<=decision['decided_at_utc']
+ assert freeze['selected_current_root_or_other003_findings_opened']is False
+ assert assessment['new_blinding_claim']is False
+ assert [r['target']for r in rows]==own['target_order']
+ root=read(W/prop['root_source_assessment']['path']);root_disposition=read(W/assessment['root_postfreeze_dispositions']['path'])
+ quote_checks=0
+ for k,(row,before)in enumerate(zip(rows,comparison['records'],strict=True)):
+  assert all(row[key]==value for key,value in before.items())
+  assert row['study_uid']==uid and row['report_sha256']==own['report_sha256']
+  check(row['original_review']);review=next(x for x in map(json.loads,(W/row['original_review']['path']).read_text().splitlines())if x['study_uid']==uid)
+  j=TARGETS.index(row['target']);assert row['original']==row['current_effective']=={'state':review['states'][j],'evidence':review['evidence'][j]}
+  assert row['original_notes']==review['notes'] and row['current_accepted_correction']is None
+  assert row['own_source_frozen']=={'state':own['states'][k],'evidence':own['evidence'][k],'reason':own['rationales'][k]}
+  assert row['independent_postfreeze']['state']==own['states'][k] and row['independent_postfreeze']['evidence']==own['evidence'][k]
+  assert row['own_state_reconsidered']is False and row['own_evidence_reconsidered']is False
+  assert row['retained_root_state_disagreement']==(row['target']=='Lateral OA')
+  assert row['proposal_disposition']==('rejected'if row['target']=='Lateral OA'else'outside_single_proposal_scope')
+  exactroot=next(r for r in root_disposition['records']if r['study_uid']==uid and r['target']==row['target']);assert row['root_original_disposition']==exactroot
+  for version in ['original','current_effective','own_source_frozen','independent_postfreeze']:
+   assert row[version]['evidence'] and row[version]['evidence']in report;quote_checks+=1
+  assert exactroot['root_frozen_evidence']in report and exactroot['root_postfreeze_evidence']in report;quote_checks+=2
+  assert row['current_loss_mask']==int(row['current_effective']['state']in['negative','positive'])
+ rejected=decision['rejected_changes'][0];a=assessment['records'][0]
+ assert all(rejected[k]==v for k,v in a.items()) and rejected['original_proposal_record']==item
+ assert rejected['target']=='Lateral OA' and rejected['study_uid']==uid
+ assert (rejected['before_state'],rejected['before_evidence'])==(item['before_state'],item['before_evidence'])
+ assert (rejected['proposed_after_state'],rejected['proposed_after_evidence'])==(item['proposed_state'],item['source_quote'])
+ assert rejected['independent_source_state']==rejected['retained_current_state']=='negative' and rejected['proposed_after_state']=='uncertain'
+ assert rejected['source_evidence']==rejected['retained_current_evidence']==item['source_quote']in report
+ assert a['reason']==rows[1]['independent_postfreeze']['reason']
+ assert read(P/'explicit-reconsiderations.json')['records']==[]
+ assert decision['own_fresh_state_reconsiderations']==decision['own_fresh_evidence_reconsiderations']==0
+ assert all(decision[k]is False for k in['registry_changed','gold_accessed','global_gate_closed'])
+ reports={r['study_uid']:r['report']for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for r in read(p)}
+ assert len(reports)==4407 and source_reports_fingerprint(reports)==decision['source_reports_sha256']==prop['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+ assert sha(R/'protocols/report_weak_v2.md')==decision['rubric_sha256']==prop['rubric_sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+ replay=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R);assert len(replay['changes'])==425
+ assert hashlib.sha256(json.dumps(replay['changes'],sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()==comparison['runtime425_changes_object_sha256']
+ assert not[r for r in replay['changes']if r['study_uid']==uid and r['target']in own['target_order']]
+ registry=R/'initiative/reviews-v2/adjudications/registry.json'
+ assert sha(registry)==sha(P/'registry-at-comparison425.json')=='17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62'
+ for b in protected:check(b)
+ now=datetime.now(timezone.utc).isoformat()
+ write('validation-and-preservation.json',{'schema_version':1,'agent_id':AGENT,'validated_at_utc':now,'source_freeze':bind(P/'source-freeze.json'),'decision':bind(P/'rejected-decision.json'),'provenance':bind(P/'decision-provenance.json'),'complete_reports':1,'all_OA_cells_compared':3,'accepted_proposals':0,'rejected_proposals':1,'held_proposals':0,'own_state_reconsiderations':0,'own_evidence_reconsiderations':0,'retained_root_state_disagreements':1,'exact_nonempty_quote_checks':quote_checks,'all_original_index_uid_report_review_before_proposed_after_and_retained_state_quote_bindings_passed':True,'actual_registry':bind(registry),'actual_registered_changes':425,'all425_runtime_change_objects_preserved':True,'selected_accepted_overlap':0,'protected_direct_binding_count':len(protected),'own_frozen_source_members_unchanged':True,'neutral_historical_packets_and_latest_bone024_members_unchanged':True,'distinct_actual_proposer_assessor_verified':True,'read_order_self_attestation_limits_preserved':True,'accepted_runtime_case_created':False,'registry_changes_or_global_gate_closure':False,'gold_accessed':False,'validation_scope':'Mechanical binding and preservation validation of a real rejection; not an additional independent clinical reader or proof of diagnostic accuracy. The substantive disagreement remains preserved.','validator':bind(Path(__file__).resolve())})
+ write('completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'completed_at_utc':now,'scope':'Complete one-report three-OA source pass and distinct actual assessment of one root proposal. Zero accepted, one rejected, one retained source-interpretation disagreement; no source-state or quote reconsiderations, no registration or gate closure.','source_freeze':bind(P/'source-freeze.json'),'independent_assessment':bind(P/'independent-source-assessment.json'),'decision':bind(P/'rejected-decision.json'),'validation':bind(P/'validation-and-preservation.json'),'files':[bind(p)for p in sorted(P.iterdir())if p.is_file()],'gold_accessed':False,'R_writes':False,'all_prior_artifacts_unchanged':True,'source_read_order_limits_disclosed':True})
+ print(json.dumps({n:sha(P/n)for n in['rejected-decision.json','independent-source-assessment.json','validation-and-preservation.json','completion-manifest.json']},indent=2))
+if __name__=='__main__':main()

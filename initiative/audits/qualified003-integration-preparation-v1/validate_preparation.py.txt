@@ -1,0 +1,50 @@
+"""Bounded read-only validation; no integration or acceptance is performed."""
+from pathlib import Path
+import hashlib, importlib.util, json, shutil, subprocess, sys
+from datetime import datetime, timezone
+W=Path(__file__).resolve().parents[3]
+S=Path(__file__).resolve().parent
+R=W/'work/recovered'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def put(name,d):
+ with (S/name).open('x') as f:f.write(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+registry=R/'initiative/reviews-v2/adjudications/registry.json'
+reg_before=sha(registry)
+status_before=subprocess.check_output(['git','status','--porcelain=v1','--untracked-files=all'],cwd=R)
+free_before=shutil.disk_usage(W).free
+spec=importlib.util.spec_from_file_location('prepared_wording003',S/'integrate_wording003.py')
+m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m)
+for p in S.iterdir():
+ if p.suffix=='.py':compile(p.read_text(),str(p),'exec')
+plan=m.prepare_plan(W)
+assert plan['expected_total']==491 and sum(len(x['changes']) for x in plan['bundles'])==66
+assert len(plan['c']['old'])==425 and len(plan['c']['pending'])==1
+assert not (plan['R']/'initiative/audits/qualified-negation-focused-003-integration-v1').exists()
+scanner=m.load_module(W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py','preparation_pinned_scanner',m.SCANNER)
+secrets=scanner.secret_values(W/'.env')
+assert secrets
+scanned_files=0
+for b in plan['planned'].values():scanner.Scanner(secrets).feed(b);scanned_files+=1
+for p in S.iterdir():
+ if p.is_file():scanner.Scanner(secrets).feed(p.read_bytes());scanned_files+=1
+rejections=[]
+for path in ('../outside.json','/absolute.json','initiative/../outside.json'):
+ try:m.safe(R,path)
+ except m.GuardError:rejections.append('path_scope')
+ else:raise AssertionError('unsafe path accepted')
+try:m.read(S/'read-only-plan-result.json','0'*64)
+except m.GuardError:rejections.append('changed_hash')
+else:raise AssertionError('changed hash accepted')
+assert len(rejections)==4
+assert sha(registry)==reg_before==m.BASE_REG
+assert subprocess.check_output(['git','status','--porcelain=v1','--untracked-files=all'],cwd=R)==status_before
+assert all(sha(p)==h for p,h in plan['entries'].items())
+assert shutil.disk_usage(W).free>20*2**30
+refs=[{'path':str(p.relative_to(W)),'sha256':h,'bytes':p.stat().st_size} for p,h in sorted(plan['entries'].items())]
+put('final-plan-bound-inputs.json',{'schema_version':1,'agent_id':m.AG,'session_id':m.AG,'references':refs,'clinical_decisions_added':0})
+put('final-read-only-plan.json',{'schema_version':1,'mode':'read_only_no_R_writes','agent_id':m.AG,'session_id':m.AG,'counts':plan['counts'],'expected_total_after_root_execution':491,'unresolved_extra_root_proposal_included':False})
+result={'schema_version':1,'status':'passed_read_only_preparation','agent_id':m.AG,'session_id':m.AG,'validated_at_utc':datetime.now(timezone.utc).isoformat(),'helper_sha256':sha(S/'integrate_wording003.py'),'context_sha256':sha(S/'verify_context.py'),'base_git':m.BASE_GIT,'registry_sha256_before_and_after':reg_before,'base425_whole_objects_verified':425,'proposed_new_second':64,'proposed_new_first':2,'prospective_total':491,'selected_accepted_overlaps_preserved':4,'retirements_preserved':3,'raw_first_proposals':59,'raw_second_proposals':68,'second_rejections_retained':2,'first_rejections_retained':1,'root_reconsiderations_retained':5,'extra_root_unresolved_disagreement':1,'root_extra_current_annotation_preserved':True,'source_scope_reports':45,'source_scope_cells':540,'prospective_root_final_exact_state_and_quote_matches':539,'prospective_duplicate_groups':54,'prospective_duplicate_reports':204,'prospective_duplicate_conflicts':0,'semantic_qa_gates_pending':3,'input_bindings_verified':len(refs),'new_archive_bytes':plan['counts']['new_archive_bytes'],'scanned_inputs_without_credential_output':scanned_files,'targeted_guard_rejections':len(rejections),'disk_free_before':free_before,'disk_free_after':shutil.disk_usage(W).free,'R_git_status_byte_identical':True,'integration_executed':False,'prospective_491_runtime_not_yet_registered':True,'clinical_acceptance_created_by_this_validation':False,'gold_values_inspected':False,'additional_independent_completion':{'path':'work/annotation-staging/qualified003-additional-independent-v1/completion-manifest.json','sha256':'d8487dfb581459c69a4487a7b97ab99bb10c55bebd73e86ce5de636dd801a3ea'},'additional_rejected_decision_sha256':'7312936234681182b94546673826ccbe6e35004f18fcee802a19758ac44b44d6','additional_scope_note':'Root supplied distinct-assessor rejection and retains disagreement unresolved; no optional accepted case is implemented.'}
+extra=W/result['additional_independent_completion']['path']
+assert sha(extra)==result['additional_independent_completion']['sha256']
+put('preparation-validation.json',result)
+print(json.dumps({k:result[k] for k in ('status','helper_sha256','input_bindings_verified','new_archive_bytes','disk_free_after','integration_executed')}))

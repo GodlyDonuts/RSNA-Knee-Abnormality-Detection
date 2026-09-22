@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "stage": "actual_peer_local_qualified002_delta_build_and_streaming_restoration",
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "completed_at_utc": "2026-09-22T04:59:34.086001+00:00",
+  "target_git_commit": "a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004",
+  "target_git_tree": "542887c749bd0492ccb6b528e9150de6e35de13c",
+  "registered_corrections": 425,
+  "registry_sha256": "17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62",
+  "actual_execution": "Executed unchanged helper build locally in this agent, which streamed both original base and new delta, verified every member and exact resulting Git tree, then saved this agent identity in restoration-proof.json.",
+  "counts": {
+    "n_base_git_files": 5850,
+    "n_base_archive_files": 5657,
+    "n_target_git_files": 9530,
+    "n_new": 3681,
+    "n_modified": 13,
+    "n_unchanged_omitted_from_base": 191,
+    "n_delta_files": 3885,
+    "delta_raw_bytes": 756091277
+  },
+  "package_files": [
+    {
+      "path": "work/hf-preparation-deltas/a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004/delta.tar.gz",
+      "bytes": 245029706,
+      "sha256": "22d5d0d09c6fd7261222de35430d5aabc784f645579a41da8cf45e4d2eabc178"
+    },
+    {
+      "path": "work/hf-preparation-deltas/a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004/manifest.json",
+      "bytes": 3816040,
+      "sha256": "05aa10e25bd2ca76fb7cfacbe60ecf8b0f48d587841d0350c43e1308e9068908"
+    },
+    {
+      "path": "work/hf-preparation-deltas/a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004/restoration-proof.json",
+      "bytes": 3095,
+      "sha256": "4d2bb7ad10e96f47b85203c571be9fe01e9dbe8a7eb8f9446aac7a52b67a1ff1"
+    }
+  ],
+  "helper": {
+    "path": "work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py",
+    "bytes": 27915,
+    "sha256": "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8"
+  },
+  "source_preservation": {
+    "n_source_or_rubric_files": 18,
+    "exact_git_identities_unchanged": true,
+    "payloads_parsed": false
+  },
+  "secret_scan_policy": {
+    "version": "v2-exact-bound-test-fixture",
+    "generic_scanner_unchanged": true,
+    "exceptions": [
+      {
+        "path": "initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt",
+        "sha256": "e5b46e5bcbac3b9ed626a9e5a9c8a89519c2ad5058e3a682049625786a1cfc57",
+        "git_blob": "f322d072369b7da379aee487b0fa2007e9817669",
+        "bytes": 9478,
+        "fixture_sha256": "dd061102d0a3cb13e9e87def67200d4cca09af9a13751f386994045b8c807267",
+        "fixture_bytes": 52,
+        "exact_occurrences": 1,
+        "scope": "Omit this literal only from URL scanning after full content verification; original bytes always undergo credential scanning."
+      }
+    ]
+  },
+  "verified_secret_scan_exception_paths": [
+    "initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt"
+  ],
+  "disk_before_build": {
+    "free_bytes": 23156678656,
+    "floor_bytes": 21474836480,
+    "reserve_bytes": 67108864,
+    "additional_bytes": 245029706
+  },
+  "disk_after_verification": {
+    "free_bytes": 22899232768,
+    "floor_bytes": 21474836480,
+    "reserve_bytes": 67108864,
+    "additional_bytes": 0
+  },
+  "disk_free_bytes_at_receipt": 22899208192,
+  "immutable_base_copied_or_extracted": false,
+  "repository_writes": false,
+  "remote_calls": 0,
+  "remote_mutations": 0,
+  "clinical_findings_parsed": false,
+  "process_exposure": "Opaque byte streaming and secret scanning of every target Git member, including preserved reports and annotations. No case-level values displayed and no new clinical source reading or decisions. This mechanical exposure must be disclosed in subsequent source reviews.",
+  "gold_values_accessed": false,
+  "training_ready": false,
+  "future_publication_parent_hf": "a91557908cf62a7ccaba077b9396ad71b4176eff",
+  "publication_authorized_by_this_receipt": false,
+  "root_final_staged_verification": {
+    "path": "work/qualified002-final-staged-verification.json",
+    "bytes": 116441,
+    "sha256": "019c4f2494239e1138819f971ac869f178316e8a8ab10fd2f1bd3662c4d7a802"
+  },
+  "ci_run_id": null,
+  "ci_status": "Root will supply exact target CI; no publication performed by this task.",
+  "ci_success_verification_owned_by_root": true
+}

@@ -1,0 +1,68 @@
+from pathlib import Path
+from qualified004_source_tools import freeze, G
+J=[
+('N N P N U N N U X N U U',[
+'Ligamentos cruzados y colaterales dentro de límites normales.', 'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Rotura periférica de parte del cuerno posterior y cuerpo del menisco medial.',
+'El menisco lateral es de morfología y señal conservada, sin signos de rotura.',
+'Úlcera condral focal de espesor total de la región central de la zona de carga del cóndilo femoral\nmedial.',
+'El resto de los cartílagos femorotibiales y patelofemoral sin alteraciones.',
+'El resto de los cartílagos femorotibiales y patelofemoral sin alteraciones.',
+'No hay significativo derrame articular.', '', 'Pequeño quiste poplíteo no complicado.',
+'Edema óseo asociado a fractura subcortical periférica del cóndilo femoral medial con edema las\npartes blandas regionales. No hay signos que sugieran colapso de la superficie articular.',
+'Edema óseo asociado a fractura subcortical periférica del cóndilo femoral medial con edema las\npartes blandas regionales. No hay signos que sugieran colapso de la superficie articular.'
+], 'LEFT ACL injury is clinical history, while current ligaments explicitly normal. Medial peripheral tear definite; lateral preserved. Focal full-depth medial cartilage ulcer lacks extent; remaining lateral/PF cartilage unchanged. Significant effusion absence qualified; Baker expressly small below threshold. Definite medial femoral and posterior lateral tibial subcortical fractures with marrow/regional soft-tissue edema are current, but no acute temporal statement, clearly acute mechanism, displaced cortical fragment or comparable specific acuity qualifier is given. Edema alone does not settle acute versus ongoing subcortical injury, so fracture uncertain. Associated marrow edema at fracture sites does not establish a separate impact contusion without line. No synovitis.'),
+('N N P P U N N U X X X X',[
+'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+'There is a parrot beak tear of the posterior horn of the medial meniscus.',
+'There is also a horizontal tearing of the body of the lateral meniscus with para meniscal cyst formation.',
+'Mild thinning of the medial compartment articular cartilage is noted.',
+'Normal lateral tibiofemoral and patellofemoral articular cartilage.',
+'Normal lateral tibiofemoral and patellofemoral articular cartilage.',
+'No significant knee effusion.', '', '', '', ''
+], 'Normal ligaments, definite medial parrot-beak and lateral horizontal tears. Medial mild thinning/minor degeneration does not locally bound loss fraction or region extent. Lateral/PF cartilage normal. Significant effusion absence remains qualified. The cyst is specifically parameniscal, not a Baker collection. No synovial lining or bone assessment.'),
+('N U N N N N N U X U U X',[
+'Ligamentos cruzados y colateral lateral sin alteraciones.',
+'Engrosamiento y aumento de señal del componente superficial del ligamento colateral medial con\nrotura parcial de las fibras anteriores y proximales, asociado a edema las partes blandas\nadyacentes. El resto de los componentes del complejo medial sin lesiones significativas.',
+'Meniscos de morfología y señal conservada, sin criterios de una rotura categórica.',
+'Meniscos de morfología y señal conservada, sin criterios de una rotura categórica.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'No hay significativo derrame articular ni quistes poplíteos.', '',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones en significativas de la médula ósea.', ''
+], 'Acute knee trauma context. ACL unchanged; lateral collateral is not MCL. Superficial anterior/proximal MCL partial tearing with edema lacks a >50% fiber bound; gradeI–II range and no-significant remaining-medial-lesion language do not establish uniformly low-grade or high-grade status, hence uncertain. Meniscal morphology and signal are affirmatively preserved apart from qualified no-categorical-tear clause. All named cartilage compartments unchanged. Significant fluid/cyst and marrow absence remain qualified. Acute history alone does not manufacture a current fracture finding or contusion positive. No synovitis.'),
+('N U N N N N X U X X N X',[
+'ACL: unremarkable.',
+'Medial collateral ligament: increased SI in TNC/NAW with thickening of ligament on femoral side; suggested ligamentous sprain.',
+'Medial meniscus: preserved', 'Lateral meniscus: preserved.',
+'Medial cartilage: preserved',
+'Preservation of cartilage at weightbaring lateral femoral condyle and lateral tibial plateau.', '',
+'No significant amount of fluid within knee joint is observed.', '', '',
+'Normal marrow SI of medial femoral condyle and medial tibial plateau are preserved.', ''
+], 'ACL unremarkable. MCL sprain has thickening and increased signal without stated grade/fiber percentage; retain uncertain rather than automatically assuming all ungraded sprains are low grade. MPFL retinacular sprain is separate. Both menisci and TF cartilage explicitly preserved. PF section gives marrow, alignment, tendons/retinacula but no cartilage assessment. Significant fluid absence qualified. Normal marrow is explicitly recorded for both TF compartments and patella, supporting contusion negative. No definite plica does not assess synovial inflammation, and normal fat pad does not fill it. No Baker or fracture-specific finding. Preserve literal tendon0 and TNC/NAW wording without repair.'),
+('N N U U U U U U X U U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.', 'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Meniscos impresionan de morfología y señal conservada, sin signos de rotura.',
+'Meniscos impresionan de morfología y señal conservada, sin signos de rotura.',
+'Úlceras condrales a parcial de la región central de la zona de carga del cóndilo femoral medial y\ndel platillo tibial lateral. No hay cambios óseos secundarios.',
+'Úlceras condrales a parcial de la región central de la zona de carga del cóndilo femoral medial y\ndel platillo tibial lateral. No hay cambios óseos secundarios.',
+'Úlceras condrales superficiales de distribución difusa de la rótula. Cartílago troclear sin\nalteraciones significativas.',
+'No hay derrame articular y quistes poplíteos.', '',
+'No hay derrame articular y quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', ''
+], 'RIGHT knee. Ligaments normal. Meniscos impresionan qualifies the preserved appearance; both uncertain. TF partial ulcers with bare grade2 lack a depth fraction or qualifying region extent. Patellar ulcers are superficial below threshold, but trochlear absence is only significant-change qualified, leaving whole PF target uncertain. Fluid/cyst sentence literally joins with y, not ni: it may jointly negate both or state no fluid and cysts, so preserve ambiguity for both rather than repairing the source. Significant marrow absence qualified. Fat-pad edema/friction changes do not establish synovitis; clinical loose-body query does not establish fracture.'),
+('N N N N U U N N X X U X',[
+'Çapraz ve yan bağlar normal.', 'Çapraz ve yan bağlar normal.',
+'Medyal menisküs arka boynuz-gövdesi bileşkesindeki dejeneratif yapı içi intensite artışına yırtık eşlik etmiyor.',
+'Lateral menisküs normal.',
+"Diz eklemindeki hafif dereceli trikompartmantal dejeneratif eklem hastalığı patellofemoral eklemde en belirgin ve patella apeksi ve çevresindeki kondral kalınlığın %50'sini aşmayan yüzeyel düzensizlik-kayıp ve buna eşlik eden milimetrik subkondral fibrovasküler değişiklikler ve milimetrik marjinal osteofitlerle karakterize.",
+"Diz eklemindeki hafif dereceli trikompartmantal dejeneratif eklem hastalığı patellofemoral eklemde en belirgin ve patella apeksi ve çevresindeki kondral kalınlığın %50'sini aşmayan yüzeyel düzensizlik-kayıp ve buna eşlik eden milimetrik subkondral fibrovasküler değişiklikler ve milimetrik marjinal osteofitlerle karakterize.",
+"Diz eklemindeki hafif dereceli trikompartmantal dejeneratif eklem hastalığı patellofemoral eklemde en belirgin ve patella apeksi ve çevresindeki kondral kalınlığın %50'sini aşmayan yüzeyel düzensizlik-kayıp ve buna eşlik eden milimetrik subkondral fibrovasküler değişiklikler ve milimetrik marjinal osteofitlerle karakterize.",
+'Diz eklemi içi sıvı miktarı hafif derecede artmış.', '', '',
+"Diz eklemindeki hafif dereceli trikompartmantal dejeneratif eklem hastalığı patellofemoral eklemde en belirgin ve patella apeksi ve çevresindeki kondral kalınlığın %50'sini aşmayan yüzeyel düzensizlik-kayıp ve buna eşlik eden milimetrik subkondral fibrovasküler değişiklikler ve milimetrik marjinal osteofitlerle karakterize.", ''
+], 'Ligaments normal. Medial degenerative internal signal expressly without tear and normal lateral meniscus. Tricompartimental mild OA diagnosis mentions both TF compartments but the actual <=50% superficial-loss bound is locally attached to patellar apex/surroundings; do not transfer it to TF compartments. PF described loss is expressly superficial and does not exceed50%, supporting negative. Mild fluid increase below threshold. Associated subchondral fibrovascular change is degenerative rather than explicit impact contusion; contusion uncertain. Mild trochlear dysplasia, patellar translation and fat-pad edema do not establish OA positivity or synovial inflammation. No Baker or fracture-specific finding.')
+]
+freeze('final-six',4,0,J)
+with (G / (Path(__file__).name + '.txt')).open('x') as f: f.write(Path(__file__).read_text())

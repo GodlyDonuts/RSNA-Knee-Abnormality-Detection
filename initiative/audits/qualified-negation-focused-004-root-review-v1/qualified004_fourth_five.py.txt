@@ -1,0 +1,66 @@
+from pathlib import Path
+from qualified004_source_tools import freeze, G
+J=[
+('X X U U U U U U X P U U',[
+'', '',
+'Από τον έλεγχο του έσω µηνίσκου, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+'Εκφύλιση και υπεξάρθρηµα παρατηρείται στον έξω µηνίσκο.',
+'Από τον έλεγχο του έσω µηνίσκου, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+'Από τον έλεγχο του έσω µηνίσκου, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+'Από τον έλεγχο του έσω µηνίσκου, του αρθρικού χόνδρου και του εκτατικού µηχανισµού δεν παρατηρούνται αξιόλογα ευρήµατα.',
+'Συλλογή υγρού παρατηρείται ενδαρθρικά σε επικοινωνία µε ευµεγέθη συνοβιακή κύστη Baker η οποία παρουσιάζει ευρήµατα ρήξεων του τοιχώµατος και παρουσία ελεύθερου υγρού στην ανώτερη γαστροκνηµία.', '',
+'Συλλογή υγρού παρατηρείται ενδαρθρικά σε επικοινωνία µε ευµεγέθη συνοβιακή κύστη Baker η οποία παρουσιάζει ευρήµατα ρήξεων του τοιχώµατος και παρουσία ελεύθερου υγρού στην ανώτερη γαστροκνηµία.',
+'Οίδηµα οστικού µυελού σηµειούται στην έξω κνηµιαία επίφυση ενδεικτικό µικρής έκτασης µικροδοκιδώδους κάκωσης καταπόνησης.',
+'Οίδηµα οστικού µυελού σηµειούται στην έξω κνηµιαία επίφυση ενδεικτικό µικρής έκτασης µικροδοκιδώδους κάκωσης καταπόνησης.'
+], 'RIGHT current knee. No noteworthy findings qualifies the named medial meniscus and broadly assessed cartilage; it does not give direct depth/extent bounds. Lateral degeneration plus subluxation does not here explicitly identify torn tissue or a displaced tear fragment, so remains uncertain. Fluid amount is absent; the Baker collection is expressly sizable/large and supports positive irrespective of rupture. Synovial cyst wording is not inflamed synovial lining. Marrow edema attributed to small stress microtrabecular injury lacks clear impact-only contusion and an acute discrete fracture line; both bone targets uncertain. Cruciate and collateral targets are unmentioned.'),
+('N N N N U U U U X U P N',[
+'Vorderes und hinteres Kreuzband sowie LCL intakt.',
+'Flüssigkeit angrenzend an das MCL bei Bandintegrität.',
+'Regelrechte Konfiguration der Menisken ohne H.a. Rissbildung.',
+'Regelrechte Konfiguration der Menisken ohne H.a. Rissbildung.',
+'Keine höhergradige Chondropathie femoropatellar und femorotibial.',
+'Keine höhergradige Chondropathie femoropatellar und femorotibial.',
+'Keine höhergradige Chondropathie femoropatellar und femorotibial.',
+'Hämarthros.', '', '1,6 cm messende Bakerzyste.',
+'Nach stattgehabter Patellaluxation entsprechendes Knochenmarködem am lateralen Femurcondylus sowie der Patella medialseitig.',
+'Kein Hinweis auf eine Fraktur.'
+], 'ACL intact and MCL fibers intact despite adjacent fluid; MPFL suspicion is a different ligament. Affirmative normal meniscal configuration accompanies no tear evidence. No higher-grade cartilage disease does not define a >50% cutoff and each compartment stays uncertain. Hemarthrosis gives composition but no distending volume. A single 1.6 cm Baker dimension does not independently classify the collection as moderate/large. Current marrow edema expressly corresponding to prior patellar dislocation supports impact contusion, with separate no-fracture assessment. No competing fracture lesion is described. No synovitis finding.'),
+('U U U P U U U N X X U X',[
+'Εσω µηνίσκος, χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος, οστικός µυελός και εκτατικός µηχανισµός δεν παρουσιάζουν αξιόλογα ευρήµατα.',
+'Εσω µηνίσκος, χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος, οστικός µυελός και εκτατικός µηχανισµός δεν παρουσιάζουν αξιόλογα ευρήµατα.',
+'Εσω µηνίσκος, χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος, οστικός µυελός και εκτατικός µηχανισµός δεν παρουσιάζουν αξιόλογα ευρήµατα.',
+'Εκφυλιστική ρήξη, επί εδάφους δισκοειδούς µορφολογίας, του έξω µηνίσκου.',
+'Εσω µηνίσκος, χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος, οστικός µυελός και εκτατικός µηχανισµός δεν παρουσιάζουν αξιόλογα ευρήµατα.',
+'Εσω µηνίσκος, χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος, οστικός µυελός και εκτατικός µηχανισµός δεν παρουσιάζουν αξιόλογα ευρήµατα.',
+'Εσω µηνίσκος, χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος, οστικός µυελός και εκτατικός µηχανισµός δεν παρουσιάζουν αξιόλογα ευρήµατα.',
+'Μικρή συλλογή υγρού παρατηρείται στην άρθρωση του γόνατος.', '', '',
+'Εσω µηνίσκος, χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος, οστικός µυελός και εκτατικός µηχανισµός δεν παρουσιάζουν αξιόλογα ευρήµατα.', ''
+], 'LEFT knee; the lateral meniscus has an affirmative degenerative tear conclusion and free-edge discontinuity, not merely discoid morphology. Small joint fluid is below threshold. The Greek broad sentence says no noteworthy findings and does not affirm normal fibers, cartilage depths or marrow signal; retain uncertainty for its named target structures. Synovial chondromatosis and small cartilage bodies do not by themselves establish synovial inflammation. No Baker or fracture-specific finding; marrow-only language does not supply fracture absence.'),
+('N N N N N N U U X U U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Condropatía superficial de la zona de carga del cóndilo femoral medial.',
+'El resto de los cartílagos\nfemorotibiales y de la tróclea femoral sin alteraciones.',
+'Úlceras condrales espesor parcial y prácticamente total de distribución difusa de la rótula, sin\ncambios óseos secundarios.',
+'No hay significativo derrame articular ni quistes poplíteos.', '',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', ''
+], 'Ligaments normal. Both menisci have affirmative preserved signal and morphology, so the qualified no-categorical-tear clause does not undermine that explicit assessment. Medial cartilage is superficial/below depth and the remaining femorotibial cartilage is directly unaffected. Patellar ulcers mix partial and near-total depths over a diffuse distribution; extent of the near-total component is not specifically established, and bare grades2/3 are not a numerical crosswalk. Significant qualifies fluid/cyst and marrow negations. A Hoffa ganglion is not a Baker cyst or synovitis; no separate fracture assessment.'),
+('U P P N U U U P X N U P',[
+'Il y a une atténuation significative du ligament croisé antérieur sans composante transfixiante toutefois notée, en lien avec une déchirure partielle.',
+'Il y a une déchirure complète du ligament colléral interne distal avec rétraction proximale des fibres déchirées, associées à de multiples zones d\'irrégularités, épaississements et signal anormal intra-substance.',
+'Il y a un émoussement du rebord postérieur de la corne postérieure du ménisque interne suspect d\'une déchirure longitudinale verticale périphérique potentielle.',
+'Le ménisque externe est intact sans déchirure.',
+"Pas d'atteinte chondrale transfixiante fémorotibiale interne.",
+"Pas d'atteinte chondrale transfixiante fémorotibiale externe.",
+"Pas d'atteinte chondrale transfixiante patello-fémorale.",
+"Épanchement intra-articulaire modéré, avec suspicion d'un niveau graisseux au versant externe suggérant un degré de lipohémarthrose.", '',
+"Pas de kyste de Baker significatif avec un liséré de liquide au sein du creux poplité et de la portion supérieure de la patte d'oie.",
+"De plus, contusions probable du plateau tibial externe +/- impaction/fracture sous-chondrale et du versant postérieur du condyle fémoral externe.",
+"Il y a une petite fracture au versant supérieur de la tête du péroné potentiellement à l'insertion du ligament poplité arqué. Minime déplacement et œdème associés."
+], 'ACL partial tear has no >50% bound and the conclusion qualifies probability. MCL has definite complete displaced/retracted fiber tearing, abnormal signal and diffuse acute surrounding soft-tissue edema/muscle sprain in the full report; this supports acute high-grade MCL. Medial posterior-horn edge blunting is an affirmative abnormal morphology; the exact longitudinal tear subtype is suspected, but positive rests on the definite morphology, not extrusion alone. Lateral meniscus intact. No full-thickness cartilage defect does not exclude >50% partial loss in any compartment. Fluid expressly moderate, irrespective of suspected fat-fluid component. The Baker region has only an explicitly described rim of fluid, below collection threshold. Contusion remains probable with competing osteochondral/stress/fracture explanations. The proximal fibular fracture itself is affirmative and current, with slight displacement, edema and associated acute major ligament injury; uncertain insertion does not make the fracture diagnosis equivocal. Chronic tibial tuberosity fragmentation and femoral surface changes are separate. Synovial inflammation not reported.')
+]
+freeze('fourth-five',1,5,J)
+with (G / (Path(__file__).name + '.txt')).open('x') as f: f.write(Path(__file__).read_text())

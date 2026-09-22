@@ -1,0 +1,63 @@
+from pathlib import Path
+from qualified004_source_tools import freeze, G
+J=[
+('N N P N N N N N X X U X',[
+'The ACL, PCL, medial and lateral collateral ligaments are intact.',
+'The ACL, PCL, medial and lateral collateral ligaments are intact.',
+'There is an undisplaced horizontal oblique tear through the posterior horn of the medial meniscus, along with a small bilobed posteriorly located meniscal cyst.',
+'The lateral meniscus is normal.',
+'The medial and lateral tibiofemoral articular cartilage is well preserved.',
+'The medial and lateral tibiofemoral articular cartilage is well preserved.',
+'Mild distal femoral trochlear dysplasia with a tiny focus of high-grade cartilage loss and associated subchondral marrow change being noted along the inferior aspect of the lateral retropatellar facet.',
+'A small joint effusion is present, no loose bodies have been demonstrated.', '', '',
+'Marrow signal characteristics are otherwise reasonably well-maintained.', ''
+], 'ACL/MCL intact. Definite medial horizontal oblique tear, normal lateral. Both TF cartilage compartments well preserved. PF high-grade loss is explicitly a tiny focus, supporting below-extent negative rather than disregarding its size because severity is high. Small effusion negative. The small posterior meniscal cyst is identified as meniscal and is not a Baker cyst. The focal femoral sclerosis has no surrounding edema and is incidental, but PF subchondral marrow change plus otherwise reasonably maintained signal does not give a complete unqualified no-contusion assessment. Fracture-specific and synovitis findings absent.'),
+('N N U N U N P U X U U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.', 'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Aumento de señal central del cuerno posterior y cuerpo del menisco medial que no contacta de\nmanera categórica la superficie articular, sin caracteres propios de rotura.',
+'Menisco lateral es de morfología y señal conservada, sin signos de rotura.',
+'Úlceras condrales de espesor parcial y prácticamente total de la región central de la zona de carga\ndel cóndilo femoral medial.',
+'El resto de los cartílagos femorotibiales y de la tróclea femoral sin\nalteraciones.',
+'Úlceras condrales de espesor total con discretos cambios óseos secundarios a la\nrótula de distribución difusa.',
+'No hay significativo derrame articular ni quistes poplíteos.', '',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', ''
+], 'LEFT current knee. Ligaments and lateral meniscus normal. Medial central signal is not categorically surface-contacting; the combined absence of characteristic tear features leaves that specific boundary qualified, without an affirmative isolated-internal-signal classification. Medial mixed partial/near-total ulcers have no bounded deep-region extent; lateral remainder cartilage normal. Patellar ulcers are explicitly full thickness and diffusely distributed across the patella, supporting both deep loss and broad region by report-level extent inference; the positive does not depend on numbered grades. Significant fluid/cyst and marrow negations remain qualified, with PF reactive bone changes in full report. Tendinosis is not synovitis and no fracture-specific finding.'),
+('P N N P N N X U X N P U',[
+'Chronic complete tear of ACL.',
+'Mild sprain of medial collateral ligament.',
+'Medial meniscus: Myxoid changed.',
+'Multiple chronic lateral meniscus tear at anterior horn, posterior horn and posterior part, however posterior root is preserved.',
+'Medial tibial plateau: Preserved articular cartilage without definite fracture \n- Medial femoral condyle: Preserved articular cartilage without definite fracture.',
+'Lateral tibial plateau: Preserved articular cartilage without definite fracture. \n- Lateral femoral condyle: Preserved articular cartilage without definite fracture.', '',
+'Effusion within patellofemoral joints up to suprapatella bursa.', '',
+'Bursa: Unremarkable',
+'Residual faint bone bruise at lateral condyle and posterior proximal aspect of tibial plateua',
+'Medial tibial plateau: Preserved articular cartilage without definite fracture \n- Medial femoral condyle: Preserved articular cartilage without definite fracture.'
+], 'ACL complete tear is affirmative in conclusion and supported by loss of morphology/discontinuity; ACL criterion has no acute restriction. MCL mild sprain negative. Medial myxoid change without tear is below threshold; multiple lateral tears definite despite preserved root insertion. TF cartilage explicitly preserved; bony sclerosis/osteophytes do not override direct cartilage assessment. PF retinacula/extensor descriptions do not assess its cartilage. Effusion amount unspecified. Unremarkable bursae support absent Baker collection; joint fluid reaching suprapatellar bursa is not a posterior Baker lesion. Current residual faint bone bruise remains explicitly present and is not excluded merely for being residual, as contusion has no acute-only restriction. Repeated without definite fracture remains qualified, especially with bone bruise; fracture uncertain. No synovitis.'),
+('U U N U X X U P U X U X',[
+'Από τον έλεγχο του έξω µηνίσκου, του πρόσθιου χιαστού και των πλάγιων συνδέσµων δεν παρατηρούνται αξιόλογα ευρήµατα.',
+'Από τον έλεγχο του έξω µηνίσκου, του πρόσθιου χιαστού και των πλάγιων συνδέσµων δεν παρατηρούνται αξιόλογα ευρήµατα.',
+'Απλή εκφύλιση χωρίς ρήξη παρά το προσθιοπίσθιο κέρας του έσω µηνίσκου.',
+'Από τον έλεγχο του έξω µηνίσκου, του πρόσθιου χιαστού και των πλάγιων συνδέσµων δεν παρατηρούνται αξιόλογα ευρήµατα.', '', '',
+'Από τον έλεγχο του εκτατικού µηχανισµού και του προσθίου διαµερίσµατος παρατηρείται οστεοχόνδρινη αλλοίωση εκφυλιστικής αρχής στη µέση αρθρική επιφάνεια της επιγονατίδας µε σηµαντική λέπτυνση του χόνδρου και υπαρθρικές οστεοµυελικές αλλοιώσεις στην επιγονατίδα ενώ κατά την έξω µοίρα της επιγονατίδας παρατηρούνται σχισµοειδείς διαβρώσεις (fraying).',
+'Μετρία συλλογή υγρού παρατηρείται υπαρθρικά.',
+'Στην έξω µοίρα της αρθρικής κοιλότητας υπερεπιγονατιδικά παρατηρείται υµενική πτυχή αλλά και παρουσία µικρών εστιών λιπώδους µεταπλασίας του υµένα που συνιστά υπόνοια αρχόµενου "φυλλόµορφου" λιπώµατος.', '',
+'Από τον έλεγχο του εκτατικού µηχανισµού και του προσθίου διαµερίσµατος παρατηρείται οστεοχόνδρινη αλλοίωση εκφυλιστικής αρχής στη µέση αρθρική επιφάνεια της επιγονατίδας µε σηµαντική λέπτυνση του χόνδρου και υπαρθρικές οστεοµυελικές αλλοιώσεις στην επιγονατίδα ενώ κατά την έξω µοίρα της επιγονατίδας παρατηρούνται σχισµοειδείς διαβρώσεις (fraying).', ''
+], 'RIGHT knee. No noteworthy findings qualifies ACL/collaterals/lateral meniscus. Medial simple degeneration expressly without tear negative; PCL myxoid change is not ACL evidence. Only PF cartilage is described: significant thinning and degenerative osteochondral change lack loss fraction/extent; neither TF compartment is informed. Moderate fluid positive. Synovial plica and fatty metaplasia with suspected early lipoma arborescens describe lining abnormality without established inflammatory thickening, so uncertain synovitis rather than using effusion alone. Subarticular bone-marrow changes attributed to degeneration lack impact-contusion criterion. Varicose veins do not establish a Baker cyst. No fracture-specific finding.'),
+('N N N U U U N U X P N N',[
+'Le ligament croisé antérieur est normal.',
+'Ancienne blessure grade 1-2 du ligament collatéral interne. Pas d’évidence de déchirure significative.',
+'Le ménisque interne démontre des signes de dégénérescence mixoïde. Il n’y a pas de déchirure.',
+'Le ménisque externe parait normal.',
+'Il n’y a pas de chondrose ou d’arthrose significative au niveau des compartiments tibio-fémoral interne ou externe.',
+'Il n’y a pas de chondrose ou d’arthrose significative au niveau des compartiments tibio-fémoral interne ou externe.',
+'Le cartilage fémoro-rotulien est normal. Il n’y a pas de chondrose significative.',
+'Il y a un épanchement articulaire petit à modéré.', '',
+'Il y a un kyste poplité qui mesure jusqu’à 4.7 x 3.1 x 2.6cm de diamètre.',
+'Il n’y a pas de contusion osseuse d’œdème de la moelle osseuse ou de fracture.',
+'Il n’y a pas de contusion osseuse d’œdème de la moelle osseuse ou de fracture.'
+], 'ACL normal; PCL old partial tear is another target. MCL is expressly an old grade1–2 injury, below the acute high-grade target rather than relying on no-significant tear. Medial myxoid degeneration and explicit no tear negative; lateral apparently normal remains qualified. Both TF compartments have no significant chondrosis/OA without specified depth/extent. PF cartilage independently called normal, supporting negative. Small-to-moderate effusion spans the threshold. The popliteal cyst has a substantial three-dimensional collection4.7x3.1x2.6cm, which I interpret as at least moderate by report-level volume/extent inference, unlike a lone long narrow dimension; no universal measured cutoff is invented. Explicit no contusion/edema/fracture supports both bone negatives. No bursitis does not negate the separately measured popliteal cyst. Synovitis unmentioned.')
+]
+freeze('eighth-five',3,5,J)
+with (G / (Path(__file__).name + '.txt')).open('x') as f: f.write(Path(__file__).read_text())

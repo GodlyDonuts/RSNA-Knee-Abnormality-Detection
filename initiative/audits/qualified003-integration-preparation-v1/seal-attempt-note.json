@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "stage": "sealing_utility_only",
+  "first_one_off_seal_attempt": "failed before completion manifest creation: dynamic dataclass module was not registered in sys.modules",
+  "correction": "Standalone seal_preparation.py registers the loaded scanner module before import execution. The pinned scanner and integration helper are unchanged.",
+  "R_writes": false,
+  "integration_executed": false
+}

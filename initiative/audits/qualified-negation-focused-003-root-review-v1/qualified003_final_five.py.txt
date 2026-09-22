@@ -1,0 +1,62 @@
+from qualified003_source_tools import freeze, N, G, json, Path
+rows = json.loads((N / 'neutral-root-packets/batch-004.json').read_text())
+def span(i, first, last):
+    s = rows[i]['report']; start = s.index(first)
+    return s[start:s.index(last, start) + len(last)]
+judgments = [
+('N N P N U N N U X N X X', [
+span(0, 'Autrement le ligament croisé antérieur', 'sont sans particularité.'),
+span(0, 'Autrement le ligament croisé antérieur', 'sont sans particularité.'),
+span(0, 'Il y a une déchirure horizontale', 'Il n’y a pas de fragment méniscal déplacé.'),
+'Le ménisque externe est sans particularité.',
+'Il y a léger amincissement du cartilage avec fibrillation superficielle du compartiment interne. Il n’y a pas de région de perte de cartilage complet.',
+'Le compartiment externe et patellofémoral est sans particularité.',
+'Le compartiment externe et patellofémoral est sans particularité.',
+'Il n’y a pas d’épanchement intra-articulaire significatif.', '',
+'Il y a un petit kyste poplité non-rupturé.', '', '',
+], 'ACL/MCL, lateral meniscus and lateral/PF cartilage are directly unremarkable. Medial meniscus has a surface-reaching horizontal tear and slight extrusion, irrespective of no displaced fragment. Medial cartilage combines slight thinning with superficial fibrillation; absence of complete loss does not quantify the thinning relative to50 percent, so retain uncertainty. Effusion is significance-qualified, Baker is explicitly small. No bone or synovial-lining assessment is supplied.'),
+('N N P X X X U U X U U X', [
+'Normaal aspect van de voorste en achterste kruisband alsook de beide collaterale ligamenten.',
+'Normaal aspect van de voorste en achterste kruisband alsook de beide collaterale ligamenten.',
+span(1, 'L ongitudinale ondervlakte scheur posterieure hoorn mediale meniscus', '(passen d bij reactieve oste ïtis).'), '', '', '',
+span(1, 'graad\\~3 kraakbeen lijden patellair', 'centrale deel van de trochlea.'),
+span(1, 'G een significante opzetting', 'inliggende septaties).'), '',
+span(1, 'G een significante opzetting', 'inliggende septaties).'),
+span(1, 'L ongitudinale ondervlakte scheur posterieure hoorn mediale meniscus', '(passen d bij reactieve oste ïtis).'), '',
+], 'Cruciate/collateral ligaments are explicitly normal and the medial meniscal undersurface longitudinal tear is definite. PF cartilage has bare grades3/4 without a source-local depth calibration or extent. Preserved PF/TF joint relationships are alignment statements, not cartilage-thickness assessments; TF cartilage and lateral meniscus remain unmentioned. Suprapatellar distension denial is qualified, and complex/multiloculated Baker morphology does not establish moderate/large size. Subchondral marrow alterations attributed to reactive osteitis lack an impact criterion. Synovitis and acute fracture are unmentioned.'),
+('N N P N N N N U X X N N', [
+'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+'There is a free edge radial tear of the posteromedial corner of the medial meniscus.',
+'Normal lateral meniscus.',
+'The tibiofemoral and patellofemoral articular cartilage is normal.',
+'The tibiofemoral and patellofemoral articular cartilage is normal.',
+'The tibiofemoral and patellofemoral articular cartilage is normal.',
+'There is no significant knee effusion.', '', '',
+'Normal visualized bones and surrounding soft tissues.',
+'Normal visualized bones and surrounding soft tissues.',
+], 'Named ligaments, lateral meniscus and all cartilage compartments are directly normal. The medial meniscal radial tear is definite. Effusion is significance-qualified. Bones are explicitly normal, supporting both bone negatives. The general surrounding-soft-tissue phrase does not specifically assess Baker collection or inflamed synovial lining.'),
+('N N P N N N N U X X X X', [
+'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+'There is a small free edge radial tear of the posteromedial corner of the medial meniscus.',
+'Normal lateral meniscus.',
+'Normal tibiofemoral and patellofemoral articular cartilage.',
+'Normal tibiofemoral and patellofemoral articular cartilage.',
+'Normal tibiofemoral and patellofemoral articular cartilage.',
+'No evidence of significant knee effusion.', '', '', '', '',
+], 'Named ligaments/lateral meniscus and both TF/PF cartilage are normal; definite radial meniscal tear stays positive despite small size. Effusion denial is restricted to significant fluid. No synovial, Baker or bone assessment appears in this report, unlike superficially similar reports that explicitly describe bones.'),
+('N N N N U U U N X N U X', [
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Meniscos de morfología y señal conservada, sin signos de rotura.',
+'Meniscos de morfología y señal conservada, sin signos de rotura.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones significativas.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones significativas.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones significativas.',
+'No hay derrame articular ni quistes poplíteos.', '',
+'No hay derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', '',
+], 'Ligaments and meniscal signal/morphology are affirmatively normal; cartilage and marrow denials are significance-qualified. Joint fluid and popliteal cysts are directly absent. Subcutaneous, vastus-medialis and IT-band friction edema are extra-articular soft-tissue findings, not marrow contusion or inflamed synovial lining. Clinical-history bursitis is not current effusion/synovitis. Acute fracture is unmentioned.'),
+]
+freeze('final-five', 4, 0, judgments)
+with (G / (Path(__file__).name + '.txt')).open('xb') as stream:
+    stream.write(Path(__file__).read_bytes())

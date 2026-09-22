@@ -1,0 +1,62 @@
+from pathlib import Path
+from qualified004_source_tools import freeze, G
+J=[
+('N N N N N N U U X U U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Cartílagos de los compartimentos femorotibiales y de la tróclea femoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y de la tróclea femoral sin alteraciones.',
+'Úlcera condral focal de espesor total de la faceta medial de la rótula, sin cambios óseos\nsecundarios.',
+'No hay significativo derrame articular ni quistes poplíteos.', '',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', ''
+], 'Normal ligaments and affirmatively preserved meniscal morphology/signal support negatives despite qualified no-categorical-tear wording. Both tibiofemoral compartments normal. Focal full-depth patellar ulcer lacks qualifying region extent; neither focal alone nor bare grade3 supplies it. Significant qualifies joint-fluid/cyst and marrow absence. Clinical observation of tibial tuberosity edema is not a current MRI bone finding; current anterior edema is expressly subcutaneous. No synovial inflammation or specific fracture assessment.'),
+('N N P N U U U N X N U X',[
+'Les ligaments croisés antérieur et postérieur sont intacts et sans déchirure.',
+'Entorse de grade 1 du ligament collatéral interne.',
+'Il y a une déchirure longitudinale horizontale impliquant la corne postérieure et le corps du ménisque interne, s’étendant à la racine postérieure, à la jonction avec la corne antérieure et le long de la surface articulaire inférieure.',
+'Le ménisque externe et le complexe ligamentaire collatéral externe sont intacts et sans déchirure.',
+'Il y a une atténuation légère à modérée des surfaces chondrales au compartiment fémorotibial interne , sans atteinte transfixiante.',
+'Il y a une légère atténuation diffuse des surfaces chondrales au compartiment fémorotibial externe avec un foyer de chondropathie sévère à la surface non-portante au versant postérieur du condyle fémoral externe avec une perte focale transfixiante de la surface cartilagineuse et un début de changements sous-chondraux réactionnels associés.',
+'Il y a une légère atténuation des surfaces chondrales au compartiment patellofémoral, principalement à la surface trochléaire avec des foyers de chondropathie sévère le long de l’échancrure intercondylienne et de la facette trochléaire externe avec fissures transfixiantes et des changements sous-chondraux réactionnels associés.',
+'Il y a un minime liséré de liquide au sein du récessus suprapatellaire, sans épanchement intra-articulaire significatif.', '',
+'Il y a un petit kyste de Baker, sans complication significative, mesurant 2,8 cm de diamètre CC.',
+'Il y a de minimes kyste ganglionnaires intra-osseux sous l’insertion distale du ligament croisé antérieur.', ''
+], 'ACL intact; the explicit grade1 MCL sprain is below threshold. Definite medial horizontal tear and intact lateral meniscus. Medial mild-to-moderate thinning/no full-depth loss does not bound above-half partial loss. Lateral full-depth focal loss and PF full-depth fissure foci have no specified qualifying deep-region extent; diffuse modifies the mild background rather than the focal deep lesion. Minimal suprapatellar rim of fluid is below threshold despite qualified no-significant effusion. Baker cyst expressly small, so its 2.8cm long-axis measurement does not override below-threshold narrative classification. Intraosseous ganglia and reactive subchondral changes are bone findings without an explicit impact-contusion assessment; Contusion uncertain. No acute fracture assessment or inflamed synovial lining. Surgery-related artifacts do not by themselves invalidate the current named structures.'),
+('N N P P N U N P X U X X',[
+'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+'There is mild degenerate tearing of the posterior body and horn of the medial meniscus.',
+'There is a horizontal tear of the body and anterior horn of the lateral meniscus.',
+'The medial compartment articular cartilage is well preserved.',
+'There is mild thinning of the weightbearing lateral compartment articular cartilage.',
+'Normal patellofemoral articulation.',
+'There is a moderate knee effusion.', '',
+"Fluid is also noted distending a mild - moderate Baker's cyst.", '', ''
+], 'Normal ACL/MCL. Both meniscal tears are affirmative; mild degeneration does not erase a definite tear. Medial cartilage preserved and PF articulation explicitly normal. Lateral mild thinning remains uncertain for quantitative depth/extent without adding a cutoff. Effusion moderate positive. Baker mild-to-moderate spans below/at threshold and distending alone does not eliminate the mild end. No synovial lining or bone assessment.'),
+('U U N N N N N U X N N X',[
+'Il y a une déchirure du ligament croisé antérieur, près de son insertion fémorale. Il y a des fibres physiquement continues, mais d’apparence laxe. Ceci est suggestif d’une blessure complète fonctionnelle.',
+'Entorse subaiguë de moyen grade impliquant le ligament collatéral interne.',
+'Aucune déchirure méniscale.', 'Aucune déchirure méniscale.',
+'Autrement, le cartilage articulaire, le signal de la moelle osseuse, le ménisque interne, le ménisque externe, le mécanisme des extenseurs, le semi-membraneux, le muscle et le tendon du poplité, le biceps femoris distal, le ligament collatéral externe et la bandelette iliotibiale sont sans particularité.',
+'Autrement, le cartilage articulaire, le signal de la moelle osseuse, le ménisque interne, le ménisque externe, le mécanisme des extenseurs, le semi-membraneux, le muscle et le tendon du poplité, le biceps femoris distal, le ligament collatéral externe et la bandelette iliotibiale sont sans particularité.',
+'Autrement, le cartilage articulaire, le signal de la moelle osseuse, le ménisque interne, le ménisque externe, le mécanisme des extenseurs, le semi-membraneux, le muscle et le tendon du poplité, le biceps femoris distal, le ligament collatéral externe et la bandelette iliotibiale sont sans particularité.',
+'Il n’y a pas d’épanchement significatif ni de kyste poplité.', '',
+'Il n’y a pas d’épanchement significatif ni de kyste poplité.',
+'Autrement, le cartilage articulaire, le signal de la moelle osseuse, le ménisque interne, le ménisque externe, le mécanisme des extenseurs, le semi-membraneux, le muscle et le tendon du poplité, le biceps femoris distal, le ligament collatéral externe et la bandelette iliotibiale sont sans particularité.', ''
+], 'ACL is described as functionally complete injury with physically continuous lax fibers; the conclusion repeats functional completeness. I retain uncertainty because the specified physical disruption/>50% criterion is not directly bounded by functional incompetence here. MCL subacute medium-grade partial anterior fibers likewise lacks high-grade fraction/acute requirement. Both menisci have explicit no-tear conclusion. Broad otherwise unremarkable cartilage and marrow directly assess those structures; no focal conflicting cartilage/bone findings. Significant is the postposed adjective of effusion; the separately introduced ni de kyste poplité is unqualified cyst absence. Marrow normal supports no contusion; no dedicated fracture finding, so fracture is not mentioned. Synovitis unmentioned.'),
+('N N U U N N U N X U N X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Meniscos impresionan de morfología y señal conservada, sin signos de rotura.',
+'Meniscos impresionan de morfología y señal conservada, sin signos de rotura.',
+'Condropatía superficial de la zona de carga de los compartimentos femorotibiales.',
+'Condropatía superficial de la zona de carga de los compartimentos femorotibiales.',
+'Úlceras condrales de espesor parcial del cartílago rotuliano su faceta\nlateral sin cambios óseos secundarios.',
+'Mínimo derrame articular.', '', 'No hay quistes poplíteos patológicos.',
+'Formación quística subcortical del aspecto anterior del platillo tibial medial de 7 x 6 mm en sus\nejes mayores, sin significado patológico específico.\nNo hay otras alteraciones de señal de la médula ósea.', ''
+], 'RIGHT knee. Ligaments normal. Impresionan qualifies the preserved meniscal appearance; I retain uncertainty from that qualified structural assessment rather than silently deleting its qualifier. Both TF compartments have explicitly superficial cartilage changes below depth threshold; PF partial thickness and bare grade2 do not give depth fraction or region extent. Minimal effusion negative. No pathological popliteal cysts has undefined pathologic qualification, so Baker uncertain. Marrow has a specifically identified subcortical cyst and no other signal change; that cyst is not impact edema, and the complete local context supports contusion absence. No fracture-specific finding. Suprapatellar fat edema and tendinosis do not establish synovitis.')
+]
+freeze('fifth-five',2,0,J)
+with (G / (Path(__file__).name + '.txt')).open('x') as f: f.write(Path(__file__).read_text())

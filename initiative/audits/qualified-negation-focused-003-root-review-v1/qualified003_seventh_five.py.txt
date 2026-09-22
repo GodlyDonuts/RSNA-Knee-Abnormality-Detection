@@ -1,0 +1,58 @@
+from qualified003_source_tools import freeze, N, G, json, Path
+rows = json.loads((N / 'neutral-root-packets/batch-003.json').read_text())
+def span(i, first, last):
+    s = rows[i]['report']; start = s.index(first)
+    return s[start:s.index(last, start) + len(last)]
+judgments = [
+('N N N N N N N N X X U X', [
+'Normal menisci, cruciate and collateral ligaments, popliteus musculotendinous unit, extensor tendons, and the distal iliotibial band.',
+'Normal menisci, cruciate and collateral ligaments, popliteus musculotendinous unit, extensor tendons, and the distal iliotibial band.',
+'Normal menisci, cruciate and collateral ligaments, popliteus musculotendinous unit, extensor tendons, and the distal iliotibial band.',
+'Normal menisci, cruciate and collateral ligaments, popliteus musculotendinous unit, extensor tendons, and the distal iliotibial band.',
+'the remaining tricompartmental articular cartilage is well maintained throughout.',
+'the remaining tricompartmental articular cartilage is well maintained throughout.',
+span(0, 'A subcentimeter midline femoral trochlear osteochondral lesion', 'well maintained throughout.'),
+'Minimal intra-articular fluid, probably within normal physiological limits.', '', '',
+'No marrow signal abnormality of concern,', '',
+], 'Ligaments and menisci are explicitly normal. The sole trochlear osteochondral lesion is expressly subcentimeter and the remaining three-compartment cartilage is well maintained, supporting below-extent PF negative and normal TF negatives. Minimal fluid is directly below threshold. Marrow absence is concern-qualified. A stable osteochondral lesion is not a stated acute fracture, and generic extra-articular soft-tissue wording does not identify a Baker or synovial-lining assessment.'),
+('P N P U P N U X X U U X', [
+'Πλήρη χρόνια ρήξη παρουσιάζει ο πρόσθιος χιαστός σύνδεσµος στο εγγύς ήµισυ αυτού, µε µυξοειδή εκφύλιση του κολωβώµατός του.',
+'Εντός φυσιολογικού ελέγχεται ο οστικός µυελός και οι πλάγιοι σύνδεσµοι.',
+'Ο έσω µηνίσκος παρουσιάζει οριζόντια εκφυλιστική ρήξη του σώµατος και οπίσθιου κέρατος και υπεξάρθρηµά του.',
+'Εκφύλιση χωρίς σαφή ρήξη παρουσιάζει ο έξω µηνίσκος.',
+'Εκτεταµένες εκφυλιστικές αλλοιώσεις, µε ολικού πάχους ελλείµµατα χόνδρου, οστεοφύτωση και οίδηµα του υπαρθρικού οστικού µυελού παρατηρούνται στο έσω διαµέρισµα του γόνατος.',
+'Ελάχιστη λέπτυνση παρουσιάζει ο χόνδρος του έξω διαµερίσµατος του γόνατος.',
+'Ολικού πάχους σχισµές παρατηρούνται στον αρθρικό χόνδρο της µηριαίας τροχιλίας µε υπαρθρικό οστεοµυελικό οίδηµα καθώς και µικρά επιχείλια οστεόφυτα.',
+'', '',
+'Κύστη Baker κεφαλουραίου µήκους έως 4,1 εκ παρατηρείται παρά την έσω κεφαλή του γαστροκνηµίου µυός, µε ελάχιστη υγρική διαπότιση των µαλακών µορίων πέριξ των άκρων της ενδεικτική ρήξης της.',
+span(1, 'Εκτεταµένες εκφυλιστικές αλλοιώσεις', 'Εντός φυσιολογικού ελέγχεται ο οστικός µυελός και οι πλάγιοι σύνδεσµοι.'), '',
+], 'Complete chronic ACL tear supports positive without an ACL acuity restriction. Collaterals are normal. Medial meniscus has a definite horizontal tear/subluxation; lateral degeneration has only no-clear-tear qualification. Extensive medial full-thickness cartilage defects support depth and broad extent, lateral thinning is explicitly minimal, and trochlear full-thickness fissures lack extent. Baker has4.1cm measurement and rupture but no validated moderate/large designation. Described subchondral degenerative edema conflicts with the later broad normal-marrow clause and lacks impact attribution; keep contusion uncertain. Joint-fluid, synovial-lining and acute-fracture targets are unmentioned.'),
+('U U P X U X X X X U U X', [
+span(2, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'),
+span(2, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'),
+'Εκφυλιστική ρήξη έσω µηνίσκου και µετατόπιση κατεαγότος τµήµατος αυτού, µε εντόπιση µεταξύ έσω πλαγίου και έσω κνηµιαίας επίφυσης.', '',
+'Συνυπάρχει λέπτυνση του αρθρικού χόνδρου στα πλαίσια εκφυλιστικής οστεοαρθρίτιδας στο έσω µεσάρθριο διάστηµα.', '', '', '', '',
+'Στην έσω ιγνυακή κοιλότητα παρατηρείται συνοβιακή κύστη Baker κεφαλουραίας διαµέτρου 5cm.',
+span(2, 'Από τον έλεγχο των χιαστών', 'αξιόλογα ευρήµατα.'), '',
+], 'Medial meniscus has a definite degenerative tear with displaced meniscal fragment. Its location near MCL does not diagnose MCL injury; cruciate/collateral/marrow findings are significance-qualified. Medial cartilage thinning lacks depth and extent. The5cm Baker measurement lacks a validated moderate/large mapping. Synovial cyst is not synovitis, prepatellar edema is not joint fluid or marrow contusion, and the torn meniscal fragment is not a bony fracture. Other meniscus/cartilage compartments and acute fracture are unmentioned.'),
+('N N P P N N N U X X X X', [
+'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+'There is undersurface horizontal tearing of the posteromedial corner and posterior horn of the medial meniscus.',
+'A small free edge radial tear of the lateral meniscus is noted.',
+'The tibiofemoral and patellofemoral articular cartilage is unremarkable.',
+'The tibiofemoral and patellofemoral articular cartilage is unremarkable.',
+'The tibiofemoral and patellofemoral articular cartilage is unremarkable.',
+'No significant knee effusion.', '', '', '', '',
+], 'ACL/MCL and both TF/PF cartilage are explicitly normal. Both named meniscal tears are definite; the lateral tear being small does not negate abnormal tear morphology. Joint fluid is only significance-qualified. Extensor normality does not supply unmentioned synovitis, Baker or bone target assessments.'),
+('N N U X U U U U X U U N', [
+'Kreuz- und Kollateralbänder intakt.', 'Kreuz- und Kollateralbänder intakt.',
+'Vertikale Signalalteration basisnah im Innenmeniskus am Übergang der Pars intermedia zum Hinterhorn, keine sichere meniskale Rissbildung.', '',
+'Keine höhergradige Chondropathie.', 'Keine höhergradige Chondropathie.', 'Keine höhergradige Chondropathie.',
+'Akzentuierte Gelenkflüssigkeit.', '', 'Flüssigkeitsgefüllte Baker-Zyste mit 4,2 cm cc.',
+'Signalanhebung in metaphysäre Tibia am ehesten Gefäßstrukturen entsprechend (4/21).',
+'Keine frische Fraktur.',
+], 'Cruciate/collateral ligaments are intact. Medial meniscal signal has only a no-secure-tear statement, so remains uncertain. The broad no-higher-grade chondropathy wording does not calibrate the required loss/extent for any compartment. Accentuated joint fluid and a4.2cm Baker cyst lack moderate/large designation. Tibial metaphyseal signal is probably vascular but remains an equivocal marrow finding without a traumatic criterion. No fresh fracture explicitly supports fracture negative. Maltracking/friction is not synovitis; lateral meniscus is unmentioned.'),
+]
+freeze('seventh-five', 3, 0, judgments)
+with (G / (Path(__file__).name + '.txt')).open('xb') as stream:
+    stream.write(Path(__file__).read_bytes())

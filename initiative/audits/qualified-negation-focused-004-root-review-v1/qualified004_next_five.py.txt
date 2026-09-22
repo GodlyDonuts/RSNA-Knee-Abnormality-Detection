@@ -1,0 +1,64 @@
+from qualified004_source_tools import freeze,N,G,json,Path
+rows=json.loads((N/'neutral-root-packets/batch-000.json').read_text())
+def span(i,first,last):
+    s=rows[i]['report'];a=s.index(first)
+    return s[a:s.index(last,a)+len(last)]
+judgments=[
+('N N N N N N N U X N U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Meniscos impresionan de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Meniscos impresionan de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'No hay significativo derrame articular ni quistes poplíteos.','',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'Alteraciones de señal significativas a médula ósea.','',
+],'Named ligaments, meniscal morphology/signal and all cartilage compartments are normal. Effusion is significance-qualified while popliteal cysts are separately denied. The marrow sentence literally states significant signal alterations; it contains no negative particle and must not be silently repaired from a common template. No impact cause is stated, so contusion remains uncertain. Bilateral Hoffitis is history and current Hoffa signal is normal; neither supplies synovitis or acute-fracture evidence.'),
+('N N N P N N N N X X U N',[
+'Çapraz ve yan bağlar normal.', 'Çapraz ve yan bağlar normal.',
+'Medyal menisküs arka boynuzu-gövdesindeki dejenerasyona yırtık eşlik etmiyor.',
+'Lateral menisküs gövdesi düzeyinde serbest kenar düzensizliği bu düzeydeki püsküllenme tarzında yırtık açısından şüpheli.',
+span(6,'Patellofemoral eklem dejenerasyonu','Eklem kıkırdakları ve kemikler bunların dışında normal.'),
+span(6,'Patellofemoral eklem dejenerasyonu','Eklem kıkırdakları ve kemikler bunların dışında normal.'),
+"Patellofemoral eklem dejenerasyonu patella apeksi ve çevresindeki troklear kıkırdağın santralindeki kondral kalınlığın %50'sine ulaşan incelme ve milimetrik çaplı subkondral fibrovasküler değişiklikler ile karakterize.",
+'Diz eklemi içi sıvı miktarı minimal artmış.','','',
+"Patellofemoral eklem dejenerasyonu patella apeksi ve çevresindeki troklear kıkırdağın santralindeki kondral kalınlığın %50'sine ulaşan incelme ve milimetrik çaplı subkondral fibrovasküler değişiklikler ile karakterize.",
+span(6,'Lateral femoral kondildeki kemik adası','Eklem kıkırdakları ve kemikler bunların dışında normal.'),
+],'ACL/MCL are normal; MCL insertional intraosseous ganglion is not ligament disruption. Medial degeneration explicitly lacks a tear. Lateral free-edge irregularity is definite abnormal morphology even though the fraying-tear interpretation is suspected; retain the distinction between morphology and subtype. PF thinning reaches50 percent, not above it; remaining cartilage normality covers TF. Minimal joint fluid is below threshold. Subchondral fibrovascular changes remain non-traumatically attributed marrow abnormalities, so contusion is uncertain. Bones are otherwise normal with described bone-island/ganglion/degenerative exceptions rather than a fracture lesion, supporting fracture negative. Baker and synovitis are unmentioned.'),
+('N N N N N N U N X X U X',[
+'Intact cruciate and collateral ligaments.', 'Intact cruciate and collateral ligaments.',
+'Intact menisci.', 'Intact menisci.',
+span(7,'There is minor chondropathy','Otherwise well maintained tricompartmental articular cartilage.'),
+span(7,'There is minor chondropathy','Otherwise well maintained tricompartmental articular cartilage.'),
+span(7,'There is minor chondropathy','medial plica syndrome.'),
+'Tiny joint effusion.','','','No sinister bone marrow changes.','',
+],'Ligaments and menisci are intact. TF cartilage is in the explicitly preserved remainder after the lateral retropatellar lesion. PF severity is called minor in the body and high-grade in the conclusion, with no loss fraction or extent; preserve uncertainty. Tiny fluid is below threshold. No sinister marrow changes is a restricted assessment and cannot establish no traumatic edema. Marginal medial-plica thickening with possible plica syndrome is not a direct diagnosis of inflamed synovial lining. Cortical irregularity under chondropathy is not an acute fracture-line/disruption assessment; Baker is unmentioned.'),
+('N N N N U U U U X X N N',[
+'Vorderes und hinteres Kreuzband sowie Kollateralbänder intakt.',
+'Vorderes und hinteres Kreuzband sowie Kollateralbänder intakt.',
+'Regelrechte Konfiguration der gering signalalterierten Menisken ohne H.a. Rissbildung.',
+'Regelrechte Konfiguration der gering signalalterierten Menisken ohne H.a. Rissbildung.',
+'Keine höhergradige Chondropathie femoropatellar und femorotibial.',
+'Keine höhergradige Chondropathie femoropatellar und femorotibial.',
+'Keine höhergradige Chondropathie femoropatellar und femorotibial.',
+'Akzentuiert Gelenkflüssigkeit.','','',
+'Allseits regelrechtes Knochenmarksignal. Kein Hinweis auf eine Fraktur oder ein Bone-bruise.',
+'Kein Hinweis auf eine Fraktur oder ein Bone-bruise.',
+],'Ligaments are intact and slightly signal-altered menisci have normal configuration with no evidence of tear. No-higher-grade cartilage disease does not calibrate depth/extent in any compartment. Accentuated fluid lacks a moderate/large designation. All marrow is expressly normal and bone bruise/fracture explicitly denied, supporting both bone negatives. Generic soft-tissue normality does not supply Baker or synovial-lining assessment.'),
+('N N N N N N N U X U U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+span(9,'Aumento de señal central del cuerpo','sugieran roturas.'),
+'Menisco lateral de morfología y señal conservada, sin criterios de rotura.',
+'Cartílagos los compartimentos femorotibiales y patelofemorales sin alteraciones.',
+'Cartílagos los compartimentos femorotibiales y patelofemorales sin alteraciones.',
+'Cartílagos los compartimentos femorotibiales y patelofemorales sin alteraciones.',
+'No hay significativo derrame articular y quistes poplíteos.','',
+'No hay significativo derrame articular y quistes poplíteos.',
+'No hay alteraciones en significativas de la médula ósea.','',
+],'Named ligaments and all cartilage are normal. Central medial signal has no features suggesting tears, supporting internal-signal negative, and lateral morphology/signal is preserved. The fluid/cyst sentence uses y, not the separately negating ni; preserve uncertainty in its awkward negation/significance scope for both targets rather than repairing the source. Marrow normality is significance-qualified despite the extra en. IT-band and tendon inflammation do not diagnose synovitis or acute fracture.'),
+]
+freeze('next-five',0,5,judgments)
+with (G/(Path(__file__).name+'.txt')).open('xb') as f:f.write(Path(__file__).read_bytes())

@@ -1,0 +1,49 @@
+"""Bind staged milestone bytes and scan changed artifacts without exposing secrets."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib, importlib.util, json, subprocess, sys
+
+W=Path(__file__).resolve().parent.parent
+R=W/'work/recovered'
+H=W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+BASE='f648ebce325d8dd78990aa159021308cddc9e369'
+sha=lambda data:hashlib.sha256(data).hexdigest()
+def git(*args):return subprocess.check_output(['git',*args],cwd=R)
+assert sha(H.read_bytes())=='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+spec=importlib.util.spec_from_file_location('staged_delta_v2',H)
+m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m)
+assert git('rev-parse','HEAD').decode().strip()==BASE
+secrets=m.secret_values(W/'.env');assert secrets
+entries={}
+for row in git('ls-files','--stage','-z').split(b'\0'):
+    if not row:continue
+    info,path=row.split(b'\t',1);mode,oid,stage=info.decode().split()
+    assert stage=='0' and mode in {'100644','100755'}
+    entries[path.decode()]={'git_blob':oid,'mode':mode}
+manifest=json.loads(git('show',':initiative/manifest.json'))
+expected={'initiative/'+p for p in manifest}|{'initiative/manifest.json'}
+assert {p for p in entries if p.startswith('initiative/')}==expected
+assert not git('diff','--cached','--name-only','--diff-filter=D').strip()
+changed=[p for p in git('diff','--cached','--name-only','-z').decode().split('\0') if p]
+assert changed
+files=[];exceptions=[]
+for path in changed:
+    assert path.startswith('initiative/') or path in {'docs/adjudications.md','docs/codex-continuation.md','docs/decisions.md','docs/mission-and-training-plan.md'}
+    data=git('cat-file','blob',entries[path]['git_blob'])
+    assert data==(R/path).read_bytes()
+    row={'path':path,**entries[path],'bytes':len(data),'sha256':sha(data)}
+    scanner=m.ArtifactScanner(row,secrets)
+    for start in range(0,len(data),1024*1024):scanner.feed(data[start:start+1024*1024])
+    scanner.finish(row['sha256'])
+    if scanner.exception_used:exceptions.append(path)
+    if path.startswith('initiative/') and path!='initiative/manifest.json':
+        bound=manifest[path.removeprefix('initiative/')]
+        assert bound['bytes']==len(data) and bound['sha256']==row['sha256']
+    assert row['bytes'] < 100_000_000
+    files.append(row)
+assert sha(git('show',':initiative/reviews-v2/adjudications/registry.json'))=='17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62'
+assert not git('ls-files','--others','--exclude-standard').strip()
+doc={'stage':'root_verified_final_staged425_checkpoint','agent_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'baseline_commit':BASE,'files':files,'total_indexed_files':len(entries),'archive_membership_exact':True,'changed_staged_bytes_match_worktree':True,'all_changed_files_scanned_for_credentials_and_authenticated_urls':True,'unchanged_files_basis':'Previously published and fully scanned 362 checkpoint; subsequent full delta restoration verifies the entire resulting tree again.','secret_scan_exception_paths':exceptions,'secret_scan_policy':m.secret_scan_policy(),'helper_sha256':sha(H.read_bytes()),'training_ready':False}
+out=W/'work/qualified002-final-staged-verification.json'
+with out.open('x') as f:f.write(json.dumps(doc,indent=2)+'\n')
+print(json.dumps({'passed':True,'changed_files':len(files),'total_indexed_files':len(entries),'receipt_sha256':sha(out.read_bytes())}))

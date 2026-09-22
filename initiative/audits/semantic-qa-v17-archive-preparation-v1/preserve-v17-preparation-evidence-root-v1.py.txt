@@ -1,0 +1,26 @@
+from pathlib import Path
+import hashlib,json,importlib.util,sys,shutil
+from datetime import datetime,timezone
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';S=W/'work/annotation-staging/semantic-qa-v17-archive-preparation-v1';D=R/'initiative/audits/semantic-qa-v17-archive-preparation-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(S/'completion-manifest.json')=='c0a9f55628181e3e6be83cbbd33481f61c141353d6fc4c76d90c828fc37c476e'
+h=S/'preserve_v17.py';assert sha(h)=='1fb703418d98715793c2876465dfa46b2a1b4a269fad3d506f1ee2d53cac79a0'
+spec=importlib.util.spec_from_file_location('v17_guard',h);m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m);scan=m.scanner_factory(W,W/'.env')
+manifest=json.loads((S/'completion-manifest.json').read_text());entries=manifest['files'];files=[]
+for e in entries:
+ p=W/e['path'];assert p.is_relative_to(S) and sha(p)==e['sha256'] and p.stat().st_size==e['bytes'];files.append(p)
+files.append(S/'completion-manifest.json');assert set(files)=={p for p in S.rglob('*') if p.is_file() and '__pycache__' not in p.parts}
+assert len(files)==17 and not D.exists();need=sum(p.stat().st_size for p in files);assert shutil.disk_usage(W).free-2*need>20*2**30+256*2**20
+pins=[]
+for p in files:
+ m.measure(p,scan());rel=p.relative_to(S);dest=D/rel
+ if dest.suffix=='.py':dest=dest.with_suffix('.py.txt')
+ pins.append((p,dest,sha(p),p.stat().st_size))
+for p,dest,digest,size in pins:
+ assert sha(p)==digest;dest.parent.mkdir(parents=True,exist_ok=True)
+ with dest.open('xb') as f:f.write(p.read_bytes())
+ assert sha(dest)==digest
+record={'agent_id':'/root','prepared_by':'/root/quality_temporal_review','at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Exact completed v17 preparation and guards preserved separately from its32-directory data cutoff. No clinical or registry changes.','completion_manifest_sha256':sha(S/'completion-manifest.json'),'files':[{'original_path':str(p.relative_to(W)),'path':str(d.relative_to(R)),'sha256':h,'bytes':n} for p,d,h,n in pins],'all_originals_unchanged':True}
+with (D/'root-preservation.json').open('x') as f:f.write(json.dumps(record,indent=2)+'\n')
+with (D/(Path(__file__).name+'.txt')).open('xb') as f:f.write(Path(__file__).read_bytes())
+print(json.dumps({'files':len(files),'bytes':need,'preservation_sha256':sha(D/'root-preservation.json')}))

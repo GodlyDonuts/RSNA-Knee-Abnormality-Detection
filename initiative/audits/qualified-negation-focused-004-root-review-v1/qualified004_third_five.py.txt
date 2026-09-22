@@ -1,0 +1,66 @@
+from qualified004_source_tools import freeze,N,G,json,Path
+rows=json.loads((N/'neutral-root-packets/batch-001.json').read_text())
+def span(i,first,last):
+    s=rows[i]['report'];a=s.index(first)
+    return s[a:s.index(last,a)+len(last)]
+judgments=[
+('N N N N U U U U X U U U',[
+'Vorderes und hinteres Kreuzband sowie Kollateralbänder intakt.',
+'Vorderes und hinteres Kreuzband sowie Kollateralbänder intakt.',
+'Regelrechte Konfiguration der Menisken ohne H.a. Rissbildung.',
+'Regelrechte Konfiguration der Menisken ohne H.a. Rissbildung.',
+'Keine höhergradige Chondropathie femoropatellar und femorotibial.',
+'Keine höhergradige Chondropathie femoropatellar und femorotibial.',
+span(0,'Allenfalls minimale Signalalterationen','Keine höhergradige Chondropathie femoropatellar und femorotibial.'),
+'Akzentuiert Gelenkflüssigkeit.','','Bakerzyste.',
+span(0,'Flächige Signalalterationen an der Patellabasis','Kein Hinweis auf eine Fraktur oder ein Bone-bruise.'),
+span(0,'Flächige Signalalterationen an der Patellabasis','Kein Hinweis auf eine Fraktur oder ein Bone-bruise.'),
+],'Ligaments and meniscal configuration are normal without tear evidence. Cartilage receives a no-higher-grade assessment; possibly minimal retropatellar signal does not establish a whole-compartment thickness bound. Accentuated joint fluid and named Baker lack moderate/large size. Focal patellar-base signal has a no-definite-fracture assessment; the following otherwise-normal marrow and no-fracture/bone-bruise wording leave scope ambiguous for that focal exception. Preserve both bone uncertainties instead of applying a remainder-normal statement to the exceptional focus. Synovial lining is unmentioned.'),
+('N N P U X U U N X U P P',[
+'Vorderes und hinteres Kreuzband sowie Kollateralbänder intakt.',
+'Vorderes und hinteres Kreuzband sowie Kollateralbänder intakt.',
+'Horizontale Rissbildung des Innenmeniskus im Pars intermedia und Hinterhorn.',
+'Geringe Signalalterationen des Außenmeniskus, insbesondere am Vorederhorn ohne eindeutige Rissbildung.','',
+span(1,'Impressionsfraktur des lateralen Tibiaplateaus','Keine höhergradige Chondropathie femoropatellar und im lateralen Kompartiment.'),
+'Keine höhergradige Chondropathie femoropatellar und im lateralen Kompartiment.',
+'Geringer Gelenkerguss.','','Bakerzyste.',
+'Geringes Bonebruise Areal auch am medialen Tibiaplateau sowie der medialen Femurcondyle. Darüber hinaus kein weiterer Frakturnachweis an den ossären Strukturen.',
+span(1,'Impressionsfraktur des lateralen Tibiaplateaus','Gering subcutane Einblutungen.'),
+],'ACL/MCL are intact and medial meniscus has a definite horizontal tear. Lateral signal lacks an unequivocal tear exclusion/internal-only classification. Lateral depressed articular fracture has a cartilage defect but no qualifying cartilage-loss extent and a later qualified no-high-grade statement; PF cartilage is likewise qualified. Generic initial degeneration does not explicitly assess medial cartilage. Joint fluid is small, Baker unsized. Definite medial tibial/femoral bone bruises are separate from the lateral fracture and no additional fracture is found there. The definite depressed lateral plateau fracture, adjacent bruising and subcutaneous hemorrhage together support an acute injury context; no size threshold is imposed on the distinct medial bruises.'),
+('N N P P U U U U X N U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+span(2,'Aumento de señal central del cuerno posterior y cuerpo del menisco medial','partes blandas regionales.'),
+span(2,'Signos de una rotura parcial de la unión entre cuerno posterior','lateral.'),
+span(2,'Úlceras condrales de espesor parcial y total de la zona de carga','óseos secundarios.'),
+'Úlceras condrales focales de espesor total lineales del platillo tibial lateral, sin cambios óseos simples.',
+span(2,'Cartílago troclear con','medial con el vértice de la rótula.'),
+'No hay significativo derrame articular ni quistes poplíteos.','',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.','',
+],'Ligaments are normal. Medial signal directly contacts the surface and is compatible with a tear. Lateral body wording is initially suggestive, but the final impression affirmatively reports signs of a partial lateral root/posterior-horn tear without retaining a diagnostic hedge; accept the report-level conclusion. All three cartilage compartments contain partial/full or near-total lesions without a qualifying deep-region size. Effusion is significance-qualified and popliteal cysts separately absent. Clinical contusion is the indication, while actual marrow is assessed only with a significance qualifier; it cannot establish an MRI marrow contusion. Fracture and synovitis are unmentioned.'),
+('N N U N N N N U X U U X',[
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+span(3,'Aumento de señal central del cuerno posterior y cuerpo del menisco medial','pequeña rotura, no desplazada.'),
+span(3,'El menisco lateral impresiona','rotura.'),
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales y patelofemoral sin alteraciones.',
+'No hay significativo derrame articular y quistes poplíteos.','',
+'No hay significativo derrame articular y quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.','',
+],'ACL/MCL, lateral meniscal morphology/signal and all cartilage are normal. Medial surface contact and a small tear remain suggested in both body and conclusion, rather than a definite morphology diagnosis. The fluid/cyst coordination uses y instead of ni and leaves both negation/significance scope ambiguous. Marrow denial is significance-qualified. Tendinopathy does not diagnose synovitis or acute fracture.'),
+('X N P X U X P U X N U U',[
+'','Sprain patroon graad 1 MCL, secundair aan hoger beschreven bevindingen.',
+span(4,'Samengestelde (parti ële tot sub)totale scheur/ maceratie','locoregionale muco ïde degeneratie.'),'',
+span(4,'Chondromalacie mediale femorotibiale gewrichtscompartiment','metafysair).'),'',
+span(4,'"F ull thickness " kraakbeenverlies denudatie','aanscherping van de gewrichtsranden .'),
+span(4,'Geen significante opzetting van de suprapatellaire bursa','bursa semimembranosus/gastrocnemius-semimembranosus .'),'',
+span(4,'Geen significante opzetting van de suprapatellaire bursa','bursa semimembranosus/gastrocnemius-semimembranosus .'),
+span(4,'Chondromalacie mediale femorotibiale gewrichtscompartiment','metafysair).'),
+span(4,'Chondromalacie mediale femorotibiale gewrichtscompartiment','metafysair).'),
+],'MCL grade1 sprain pattern is low-grade without described high-grade disruption; ACL is unmentioned. Medial meniscus has definite complex near-total tearing/maceration and extrusion; lateral meniscus is unmentioned. Medial global cartilage loss and bare grade4 lack a locally defined depth criterion, while PF full-thickness denudation across medial facet/crest extending laterally describes a broad deep-loss region. Lateral TF cartilage is unmentioned. Suprapatellar distension is significance-qualified; the characteristic posterior bursal fluid is limited to mildly increased amount, below moderate/large Baker threshold. Subchondral insufficiency fractures have important edema but are linked to degenerative disease without explicit acute timing or impact origin; preserve fracture and contusion uncertainties. Synovial lining is unmentioned.'),
+]
+freeze('third-five',1,0,judgments)
+with (G/(Path(__file__).name+'.txt')).open('xb') as f:f.write(Path(__file__).read_bytes())

@@ -1,0 +1,26 @@
+"""Package personally chosen intermediate source/current comparisons, not inferred decisions."""
+import json,hashlib
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';O=A/'bone-observed-021-independent-review-v1';F=A/'bone-observed-021-source-review-v1';AG='/root/last_twelve_visual_review'
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def obj(p):return json.loads(p.read_text())
+def jl(p):return [json.loads(x) for x in p.read_text().splitlines()]
+def write(n,d):
+ with (S/n).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+own=jl(O/'source-assessment-frozen.jsonl');first=jl(F/'source-assessment-frozen.jsonl');cur=obj(S/'actual425-original-current-replay.json')['rows'];packet=obj(O/'neutral-source-packet.json')['reports']
+assert ref(O/'source-freeze.json')['sha256']=='f00b7e2940392a675bbb0d2e2dd1fa85805cf31ceae13838dd45f1d5daebd9a0';assert ref(F/'source-freeze.json')['sha256']=='d41908c7bd99329f7f438c371fcbf87a94be7560d42e5e37428144343d10c456'
+recons={(13,1):('not_mentioned','','After reading the distinct first source assessment, I reconsider to not_mentioned. Naming an anatomical bipartite-patella variant does not itself assess fracture/cortical integrity or supply a partial current fracture exclusion. The remaining information concerns marrow signal/edema, not fracture. My initial uncertainty overinterpreted the incidental normal variant as informative target assessment; preserve that original rationale.'),(22,0):('uncertain',first[22]['evidence'][0],'After the distinct first source reading, I reconsider to uncertain. Normal bone form and structure are specifically architectural observations, while no osteochondral lesion is a separate structural exclusion. They do not expressly describe marrow signal/edema or contusion. My original broad normal-bone interpretation extended that limited survey beyond its stated features; preserve the original negative separately.')}
+retained={(25,0):'I retain uncertain after considering the first negative reading. The source explicitly assigns heterogeneous signal to the degenerative tibial bone cyst after a generic normal-signal statement. Its degenerative characterization does not expressly restrict normality to the remaining marrow or provide an unqualified edema/contusion denial. I preserve that conflicting focal signal description rather than assume that all relevant marrow signal is normal; this is not a traumatic contusion diagnosis.'}
+rows=[]
+for j,x in enumerate(cur):
+ i,t=divmod(j,2);assert x['study_uid']==own[i]['study_uid']==first[i]['study_uid']==packet[i]['study_uid'];post=dict(x['own_source_frozen'])
+ if (i,t) in recons:
+  state,q,reason=recons[i,t];post={'state':state,'evidence':q,'reason':reason}
+ if (i,t) in retained:post['reason']=retained[i,t]
+ assert post['evidence'] in packet[i]['report'] and bool(post['evidence'])==(post['state']!='not_mentioned')
+ rows.append({'packet_index':i,'study_uid':x['study_uid'],'target':x['target'],'own_source_frozen':x['own_source_frozen'],'first_source_frozen':{'state':first[i]['states'][t],'evidence':first[i]['evidence'][t],'reason':first[i]['rationales'][t]},'historical362_effective':x['historical362_effective'],'current425_effective':x['current_effective'],'personal_intermediate_judgment':post,'own_reconsidered':(i,t) in recons,'retained_first_source_state_disagreement':post['state']!=first[i]['states'][t],'retained_disagreement_reason':retained.get((i,t))})
+write('after-first-source-personal-choices.json',{'agent_id':AG,'session_id':AG,'scope':'All100 original/current425/both source judgments personally considered. Original362 current100 was personally read before the first source findings and rebase proves all100 unchanged. Two explicit source-state reconsiderations and one retained source-state disagreement; no first post findings opened.','records':rows,'accepted':False})
+write('after-first-source-personal-comparison-freeze.json',{'agent_id':AG,'session_id':AG,'recorded_at_utc':datetime.now(timezone.utc).isoformat(),'own_source_freeze':ref(O/'source-freeze.json'),'first_source_freeze':ref(F/'source-freeze.json'),'first_source_assessment':ref(F/'source-assessment-frozen.jsonl'),'first_assembly_original':ref(F/'neutral-assembly-validation.json'),'first_assembly_count_correction':ref(F/'assembly-count-correction.json'),'current_replay':ref(S/'actual425-original-current-replay.json'),'actual425_rebase_receipt':ref(S/'actual425-rebase-receipt.json'),'historical362_personal_reading_receipt':ref(S/'all100-historical362-personal-reading-receipt.json'),'personal_choices':ref(S/'after-first-source-personal-choices.json'),'helper':ref(Path(__file__)),'source_state_disagreements':3,'own_state_reconsiderations':2,'retained_source_state_disagreements':1,'actual_registered_changes':425,'all100_personally_compared':True,'first_post_findings_opened':False,'accepted':False})
+print(json.dumps({'intermediate':ref(S/'after-first-source-personal-comparison-freeze.json'),'choices':ref(S/'after-first-source-personal-choices.json')},indent=2))

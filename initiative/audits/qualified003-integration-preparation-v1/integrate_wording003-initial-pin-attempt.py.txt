@@ -1,0 +1,179 @@
+"""Unexecuted root-reviewed integration plan:64 second +2 first; pending1 excluded.
+prepare_plan is read-only. Only --execute-root-reviewed-decision writes R.
+An optional separately accepted case requires an explicit exact-hash bundle.
+"""
+from pathlib import Path
+from datetime import datetime,timezone
+import argparse,hashlib,importlib.util,json,os,re,shutil,subprocess,sys
+AG='/root/duplicate_consistency_review';BASE_GIT='a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004';BASE_REG='17d86b86eb93206df50a7320f5e8e1aeb4bec2a991c2e0274d707d14dbcbbd62'
+CANON='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3';RUBRIC='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014';SCANNER='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+CONTEXT_SHA='d062bfe0b9a047c5cee48a2df00d6cf0544fdb61b51c0439faddbe4f2f194cc8'
+PINS={'first':{'stage':'qualified-negation-focused-003-first-canonical-context-normalization-v1','proposal':'d489a2aa61f7d67001dbbbcadc6d7504d13474260b4939cce6bcdffc74624b60','manifest':'7bc3f0435bf631f8d0a9d72cca45ed41ff8519112c6ee8b90e088bb40f51ccc3'},'second':{'stage':'qualified-negation-focused-003-independent-proposal-normalization-v1','proposal':'081aaf6051a9bb18e34a053b488ab1fc4f2042293fbfe60a63a01c5bce4d114e','manifest':'215c388ca72804c179f5bdecbf84bfbe404670dc42f227d03b8681460820ad2'}}
+class GuardError(Exception):pass
+def require(v,code):
+ if not v:raise GuardError(code)
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def data(v):return (json.dumps(v,ensure_ascii=False,indent=2)+'\n').encode()
+def read(p,h=None):
+ require(p.is_file() and not p.is_symlink(),'input_path');require(h is None or sha(p)==h,'input_hash');return json.loads(p.read_text())
+def idx(rows):
+ d={(r['study_uid'],r['target']):r for r in rows};require(len(d)==len(rows),'duplicate_keys');return d
+def safe(root,name):
+ p=Path(name);require(not p.is_absolute() and '..' not in p.parts and str(p)==name and '\\' not in name,'unsafe_path');q=root/p;require(q.resolve().is_relative_to(root.resolve()) and not q.is_symlink(),'path_scope');return q
+def source_ref(W,e):
+ p=safe(W,e['path']);require(sha(p)==e['sha256'] and ('bytes' not in e or p.stat().st_size==e['bytes']),'source_reference');return p
+def put(p,b):
+ p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('xb') as f:f.write(b);f.flush();os.fsync(f.fileno())
+def equal_or_new(p,b):
+ if p.exists():require(p.is_file() and not p.is_symlink() and p.read_bytes()==b,'existing_archive_differs');return 'reused_equal'
+ return 'new'
+def load_module(p,name,h):
+ require(sha(p)==h,'module_pin');spec=importlib.util.spec_from_file_location(name,p);m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
+
+def prepare_plan(W,optional_bundle=None,optional_sha=None):
+ W=W.resolve();R=W/'work/recovered';B=W/'work/annotation-staging';S=Path(__file__).resolve().parent
+ c=load_module(S/'verify_context.py','wording003_bound_context',CONTEXT_SHA).check_all(W)
+ require(len(subprocess.check_output(['git','ls-tree','-r','--name-only','-z',BASE_GIT],cwd=R).split(b'\0'))-1==9530,'base_file_count')
+ publication=R/'initiative/audits/qualified002-verified425-publication-v1';pub=read(publication/'preservation.json','b6c93246e144c8f6c930409a761db0e5d2c6352d2c0746235ab97be502cd7045')
+ allowed={str((publication/'preservation.json').relative_to(R)),str((publication/'preserve-verified425-publication-v1.py.txt').relative_to(R))}
+ require(sha(publication/'preserve-verified425-publication-v1.py.txt')=='cd90a334c9143dd8e8dab8829b3fc4ee3fdadd5b97ebf120918c92fc1fd44103','publication_helper')
+ for e in pub['files']:
+  p=safe(R,e['path']);require(p.parent==publication and sha(p)==e['sha256'] and p.stat().st_size==e['bytes'],'publication_member');allowed.add(e['path'])
+ require(len(allowed)==11 and {str(p.relative_to(R)) for p in publication.iterdir() if p.is_file()}==allowed,'publication_membership')
+ untracked=set(filter(None,subprocess.check_output(['git','ls-files','--others','--exclude-standard','-z'],cwd=R).decode().split('\0')));require(untracked<=allowed,'unexpected_untracked')
+ norm={};entries={W/k:v['sha256'] for k,v in c['bound'].items()}
+ for role,pins in PINS.items():
+  stage=B/pins['stage'];p=read(stage/'proposed-errata.json',pins['proposal']);manifest=read(stage/'completion-manifest.json',pins['manifest']);author=AG if role=='first' else '/root/last_twelve_visual_review'
+  require(p['agent_id']==p['session_id']==manifest['agent_id']==manifest['session_id']==author,'normalization_author')
+  require(p['source_reports_sha256']==CANON and p['rubric_sha256']==RUBRIC,'normalization_context')
+  expected_count=59 if role=='first' else 68;pm=idx(p['proposed_errata']);original=idx(c['first']['proposed_errata'] if role=='first' else c['second']['records'])
+  require(len(pm)==expected_count and list(pm)==list(original),'full_original_proposal_scope')
+  if role=='first':require(p==c['first'] and (stage/'proposed-errata.json').read_bytes()==(c['F']/'proposed-errata.json').read_bytes(),'first_full_file_exact')
+  else:
+   require(p['registered_changes_at_normalization']==425 and p['accepted_by_this_normalization'] is False,'second_normalization_scope')
+   for k,r in pm.items():
+    o=original[k];require(r['original_record']==o and r['before_state']==o['before_current']['state'] and r['before_evidence']==o['before_current']['evidence'] and r['proposed_state']==o['after_proposed']['state'] and r['source_quote']==o['after_proposed']['evidence'] and r['reason']==o['reason'] and r['evidence_reason']==o['evidence_reason'],'second_whole_object_projection')
+  member_paths=set()
+  for e in manifest['files']:
+   path=source_ref(W,e);member_paths.add(path);entries[path]=e['sha256']
+  member_paths.add(stage/'completion-manifest.json');entries[stage/'completion-manifest.json']=pins['manifest']
+  require({p for p in stage.rglob('*') if p.is_file() and '__pycache__' not in p.parts}==member_paths,'normalization_stable_membership')
+  norm[role]={'stage':stage,'proposal':p,'rows':pm,'manifest':manifest,'path':stage/'proposed-errata.json'}
+ # Bind the separately completed technical verification as evidence; this current
+ # plan repeats its read-only validation and does not execute the old writer.
+ V=B/'qualified003-adjudication-technical-verification-v1';v=read(V/'completion-manifest.json','7647e38c86027932e4b4292f78532cc2fb8d83529a692da8989edcfb985d43db')
+ for e in v['files']:entries[source_ref(W,e)]=e['sha256']
+ entries[V/'completion-manifest.json']=sha(V/'completion-manifest.json')
+ def archive(path):
+  if path.is_relative_to(R):return path
+  require(path.is_relative_to(B),'archive_source_scope');dest=R/'initiative/audits'/path.relative_to(B)
+  return dest.with_suffix('.py.txt') if dest.suffix=='.py' else dest
+ for stage in [c['G'],c['SOURCE'],c['M'],V,norm['first']['stage'],norm['second']['stage']]:
+  for p in stage.rglob('*'):
+   if p.is_file() and '__pycache__' not in p.parts:require(not p.is_symlink(),'staged_symlink');entries[p]=sha(p)
+ entries[S/'verify_context.py']=CONTEXT_SHA;entries[Path(__file__).resolve()]=sha(Path(__file__))
+ supports={'root_source_freeze_sha256':c['SOURCE']/'source-freeze.json','root_source_assessment_sha256':c['SOURCE']/'full-source-assessment.json','root_dispositions_sha256':c['G']/'root-postfreeze-dispositions.json','root_reconsiderations_sha256':c['G']/'root-explicit-reconsiderations.json','root_adjudication_manifest_sha256':c['G']/'completion-manifest.json','mechanical_comparison_sha256':c['M']/'all540-root-mechanical-comparison.json','mechanical_completion_sha256':c['M']/'completion-manifest.json','technical_verification_sha256':V/'technical-verification.json','technical_completion_sha256':V/'completion-manifest.json','original_first_proposals_sha256':c['F']/'proposed-errata.json','original_second_proposals_sha256':c['T']/'unintegrated-proposals.json','first_normalization_manifest_sha256':norm['first']['stage']/'completion-manifest.json','second_normalization_manifest_sha256':norm['second']['stage']/'completion-manifest.json','first_exact_preservation_sha256':norm['first']['stage']/'original-to-normalized-exact-comparison.json','second_exact_preservation_sha256':norm['second']['stage']/'original-to-normalized-exact-comparison.json'}
+ for p in supports.values():entries[p]=sha(p)
+ planned={}
+ for p,h in entries.items():
+  require(sha(p)==h,'input_changed');dest=archive(p)
+  if dest==p:continue
+  b=p.read_bytes();require(len(b)<100_000_000,'archive_file_limit');equal_or_new(dest,b);require(dest not in planned or planned[dest]==b,'archive_collision');planned[dest]=b
+ I=R/'initiative/audits/qualified-negation-focused-003-integration-v1';require(not I.exists(),'integration_exists')
+ bundles=[]
+ for role,keys in [('second',c['newsecond']),('first',c['newfirst'])]:
+  rows=norm[role]['rows'];assessment=c['sa'] if role=='second' else c['fa'];am=idx(assessment['records']);changes=[];accepted=[]
+  for k,r in rows.items():
+   if k not in keys:continue
+   change=keys[k];root=c['rows'][k];a=am[k];before={'state':r['before_state'],'evidence':r['before_evidence']};after={'state':r['proposed_state'],'evidence':r['source_quote']}
+   require(before==change['before']==c['original'][k]==c['effective'][k] and after==change['after'],'exact_before_after')
+   require(root['action']==f'accept_{role}_proposal_pending_registry_integration' and change['reason']==root['reason']==a['reason'],'explicit_root_supported_action')
+   changes.append({'study_uid':k[0],'target':k[1],'before':before,'after':after,'base_review':{'path':r['artifact_path'],'sha256':r['artifact_sha256']},'source_batch':{'path':r['source_path'],'sha256':r['source_sha256']}})
+   accepted.append({'study_uid':k[0],'target':k[1],'before_state':before['state'],'before_evidence':before['evidence'],'after_state':after['state'],'after_evidence':after['evidence'],'independent_source_state':a['independent_source_state'],'source_evidence':a['source_evidence'],'source_path':r['source_path'],'source_sha256':r['source_sha256'],'original_review_path':r['artifact_path'],'original_review_sha256':r['artifact_sha256'],'reason':root['reason'],'root_frozen_state':root['root_frozen_state'],'root_state_reconsidered':root['root_state_reconsidered']})
+  require(len(changes)==(64 if role=='second' else 2),'supported_case_count')
+  casepath=R/f'initiative/reviews-v2/adjudications/cases/qualified-negation-focused-003-{role}.json';require(not casepath.exists(),'case_exists');bundles.append({'role':role,'proposer':AG if role=='first' else '/root/last_twelve_visual_review','proposal_path':norm[role]['path'],'assessment_path':c['G']/f'{role}-proposals-independent-assessment.json','casepath':casepath,'decision_path':I/f'accepted-{role}-decision.json','changes':changes,'accepted':accepted})
+ # Optional bundle is a separately accepted case, never a proposal or raw root
+ # preference. It is absent by default. Caller supplies exact source and archive
+ # paths for every new supporting file; no future approval/hash is invented.
+ optional=None
+ require((optional_bundle is None)==(optional_sha is None),'optional_bundle_requires_hash')
+ if optional_bundle is not None:
+  optional_bundle=optional_bundle.resolve();require(optional_bundle.is_relative_to(B),'optional_bundle_scope');d=read(optional_bundle,optional_sha);require(d['schema_version']==1 and d['status']=='accepted_case_ready_for_registration','optional_case_status')
+  optional_files={}
+  for e in d['files']:
+   src=source_ref(W,{'path':e['source_path'],'sha256':e['sha256'],'bytes':e['bytes']});dest=safe(R,e['archive_path']);require(e['archive_path'].startswith('initiative/audits/'),'optional_artifact_scope');b=src.read_bytes();equal_or_new(dest,b);require(dest not in planned or planned[dest]==b,'optional_collision');planned[dest]=b;optional_files[str(dest.relative_to(R))]=b;entries[src]=e['sha256']
+  case_source=source_ref(W,d['case_file']);case=read(case_source);casepath=safe(R,d['case_archive_path']);require(str(casepath.parent.relative_to(R))=='initiative/reviews-v2/adjudications/cases' and not casepath.exists(),'optional_case_path')
+  require(case['schema_version']==1 and case['source_reports_sha256']==CANON and case['rubric_sha256']==RUBRIC,'optional_case_context')
+  changes=idx(case['changes']);require(set(changes)==set(c['pending']) and len(changes)==1,'optional_exact_pending_key_only')
+  for k,x in changes.items():require(x['before']==c['effective'][k]==c['pending'][k]['before'] and x['after']==c['pending'][k]['after'],'optional_pending_before_after')
+  def doc(e):
+   path=safe(R,e['path']);b=optional_files.get(e['path'],path.read_bytes() if path.exists() else None);require(b is not None and hashlib.sha256(b).hexdigest()==e['sha256'],'optional_case_reference');return json.loads(b)
+  proposal=doc(case['proposal']);assessment=doc(case['independent_assessment']);decision=doc(case['decision'])
+  require(proposal['agent_id']=='/root' and assessment['agent_id']==assessment['session_id']=='/root/quality_temporal_review','optional_distinct_actual_author')
+  require(decision['status']=='accepted' and decision['agent_id']==decision['session_id']==assessment['agent_id'],'optional_explicit_distinct_acceptance')
+  require(decision['source_reports_sha256']==CANON and decision['rubric_sha256']==RUBRIC,'optional_decision_context')
+  require(set(idx(decision['accepted_changes']))==set(changes),'optional_decision_scope')
+  for k,x in idx(decision['accepted_changes']).items():require({'state':x['before_state'],'evidence':x['before_evidence']}==changes[k]['before'] and {'state':x['after_state'],'evidence':x['after_evidence']}==changes[k]['after'],'optional_accepted_values')
+  for e in case.get('supporting_evidence',{}).values():doc(e)
+  entries[optional_bundle]=optional_sha;entries[case_source]=d['case_file']['sha256'];optional={'case':case,'casepath':casepath,'case_bytes':case_source.read_bytes(),'changes':changes,'bundle':optional_bundle,'bundle_sha256':optional_sha}
+ required=sum(len(b) for p,b in planned.items() if not p.exists())
+ require(shutil.disk_usage(W).free-required-16*2**20>20*2**30,'planned_disk_floor')
+ return dict(W=W,R=R,B=B,c=c,I=I,archive=archive,entries=entries,planned=planned,supports=supports,bundles=bundles,optional=optional,expected_total=491+(len(optional['changes']) if optional else 0),counts={'supported_second':64,'supported_first':2,'base425':425,'default_result':491,'optional_accepted_changes':len(optional['changes']) if optional else 0,'new_archive_files':sum(not p.exists() for p in planned),'existing_equal_archive_files':sum(p.exists() for p in planned),'new_archive_bytes':required})
+
+def execute(plan):
+ c=plan['c'];R=plan['R'];W=plan['W'];I=plan['I'];archive=plan['archive'];regp=c['registry'];oldbytes=regp.read_bytes();require(sha(regp)==BASE_REG,'prewrite_registry');now=datetime.now(timezone.utc).isoformat()
+ def rb(p,h=None):return {'path':str(p.relative_to(R)),'sha256':h or sha(p)}
+ wrappers=[];decisions=[]
+ for bundle in plan['bundles']:
+  decision={'schema_version':1,'status':'accepted','stage':'independent_adjudication_decision','agent_id':'/root','session_id':'/root','adjudicator_agent_id':'/root','adjudicator_session_id':'/root','proposer_agent_id':bundle['proposer'],'proposer_session_id':bundle['proposer'],'accepted_at_utc':now,'source_reports_sha256':CANON,'rubric_sha256':RUBRIC,'proposal_sha256':sha(bundle['proposal_path']),'independent_assessment_sha256':sha(bundle['assessment_path']),**{k:sha(p) for k,p in plan['supports'].items()},'accepted_changes':bundle['accepted'],'n_changes':len(bundle['accepted']),'original_artifacts_preserved':True,'prepared_by':AG,'execution_role':'actual_root_execution_of_reviewed_helper','decision_statement':'Serialization of root personally authored and frozen support dispositions only. Full59first/68second original proposals, rejections,5reconsiderations and existing overlaps remain preserved. The separately pending root proposal is excluded from these two decisions.','global_semantic_qa_closed':False,'training_ready':False,'gold_values_inspected':False}
+  case={'schema_version':1,'id':'qualified-negation-focused-003-'+bundle['role']+'-20260922','source_reports_sha256':CANON,'rubric_sha256':RUBRIC,'proposal':rb(archive(bundle['proposal_path']),sha(bundle['proposal_path'])),'independent_assessment':rb(archive(bundle['assessment_path']),sha(bundle['assessment_path'])),'decision':rb(bundle['decision_path'],hashlib.sha256(data(decision)).hexdigest()),'supporting_evidence':{k:rb(archive(p),sha(p)) for k,p in plan['supports'].items()},'changes':bundle['changes']}
+  decisions.append((bundle['decision_path'],data(decision)));wrappers.append((bundle['casepath'],data(case)))
+ if plan['optional']:wrappers.append((plan['optional']['casepath'],plan['optional']['case_bytes']))
+ scannerpath=plan['B']/'checkpoint-delta-helper-v2-v1/checkpoint_delta.py';scanner=load_module(scannerpath,'wording003_bound_scanner',SCANNER);secrets=scanner.secret_values(W/'.env');require(bool(secrets),'scanning_secrets_required')
+ for b in list(plan['planned'].values())+[b for _,b in decisions+wrappers]+[Path(__file__).read_bytes()]:scanner.Scanner(secrets).feed(b)
+ require(all(sha(p)==h for p,h in plan['entries'].items()) and regp.read_bytes()==oldbytes,'prewrite_original_drift')
+ require(shutil.disk_usage(W).free-plan['counts']['new_archive_bytes']-16*2**20>20*2**30,'prewrite_disk_floor')
+ # First mutation starts here, only on root's explicit execute flag.
+ preservation=[]
+ for dest,b in sorted(plan['planned'].items()):
+  action=equal_or_new(dest,b)
+  if action=='new':put(dest,b)
+  require(dest.read_bytes()==b,'archive_after_write');preservation.append({**rb(dest),'bytes':len(b),'action':action})
+ for p,b in decisions+wrappers:put(p,b)
+ put(I/'registry-before425.json',oldbytes);put(I/'complete425-inspection-before.json',data(c['runtime']))
+ put(I/'whole-original-proposals-and-pending.json',data({'agent_id':'/root','full59_first_original':c['first'],'full68_second_original':c['second'],'second_rejections':c['disp']['rejected_second_proposals'],'first_support_all59':c['disp']['first_proposal_state_support'],'all4_selected_existing_objects':[r for k,r in c['old'].items() if k in c['rows']],'pending_additional':c['disp']['additional_root_proposals'],'optional_separate_bundle_sha256':plan['optional']['bundle_sha256'] if plan['optional'] else None}))
+ put(I/'archive-preservation.json',data({'agent_id':'/root','files':preservation,'all_existing_equal_bytes_reused':True}))
+ registry=json.loads(oldbytes);newbytes=data({**registry,'cases':registry['cases']+[rb(p) for p,_ in wrappers]});tmp=regp.with_name('registry.wording003-new.json');put(tmp,newbytes);require(regp.read_bytes()==oldbytes,'registry_switch_fence');os.replace(tmp,regp)
+ try:
+  from rsna.adjudications import inspect_adjudications
+  from rsna.schema import TARGETS
+  after=inspect_adjudications(c['reports'],R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R);new=idx(after['changes']);expected_new={**c['new'],**(plan['optional']['changes'] if plan['optional'] else {})}
+  require(after['n_changes']==plan['expected_total'] and all(new[k]==v for k,v in c['old'].items()) and set(new)-set(c['old'])==set(expected_new),'runtime_count_and_preserved425')
+  require(after['semantic_qa']==c['runtime']['semantic_qa'] and after['pending_semantic_qa']==c['runtime']['pending_semantic_qa'],'three_pending_gates_unchanged')
+  final={**c['original'],**{k:v['after'] for k,v in new.items()}}
+  for k,r in c['rows'].items():
+   expected=c['effective'][k] if k in c['pending'] and not plan['optional'] else {'state':r['root_postfreeze_state'],'evidence':r['root_postfreeze_evidence']};require(final[k]==expected,'root_final_with_explicit_pending_exception')
+  for r in c['retire']['restored_original_annotations']:
+   k=r['study_uid'],r['target'];require(k not in new and final[k]==r['restored_annotation'],'retirements_preserved')
+  require(not any(any(len({final[u,t]['state'] for u in uids})>1 for t in TARGETS) for uids in c['groups'].values()),'duplicate_conflict')
+  require(all(p==regp or sha(p)==h for p,h in plan['entries'].items()) and regp.read_bytes()==newbytes,'postwrite_original_preservation')
+ except Exception:
+  if regp.read_bytes()==newbytes:
+   tmp=regp.with_name('registry.wording003-rollback.json');put(tmp,oldbytes);os.replace(tmp,regp)
+  for p,b in wrappers:
+   if p.exists() and p.read_bytes()==b:os.replace(p,I/('failed-'+p.name))
+  raise
+ put(I/f'complete{plan["expected_total"]}-inspection.json',data(after))
+ receipt={'agent_id':'/root','session_id':'/root','prepared_by':AG,'registered_at_utc':now,'registry':rb(regp),'supported_second_new':64,'supported_first_new':2,'optional_separately_accepted_changes':len(plan['optional']['changes']) if plan['optional'] else 0,'total_registered':plan['expected_total'],'all425_whole_objects_preserved':True,'all4_selected_overlaps_preserved':True,'retirements_preserved':3,'pending_additional_cells':0 if plan['optional'] else 1,'root_final_states_and_quotes_matching':540 if plan['optional'] else 539,'source_scope_reports':45,'all540_source_frozen_objects_preserved':True,'first59_second68_full_originals_preserved':True,'first_rejections':1,'second_rejections':2,'root_explicit_reconsiderations':5,'global_semantic_gates_pending':3,'duplicate_groups':54,'duplicate_reports':204,'duplicate_conflicts':0,'clinical_judgments_created_by_helper':0,'gold_values_opened':False,'training_ready':False}
+ put(I/f'complete{plan["expected_total"]}-integration-validation.json',data(receipt));put(I/'integrate-wording003.py.txt',Path(__file__).read_bytes());print(json.dumps({'total_registered':plan['expected_total'],'receipt':rb(I/f'complete{plan["expected_total"]}-integration-validation.json')}))
+
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--workspace',required=True,type=Path);p.add_argument('--optional-accepted-case-bundle',type=Path);p.add_argument('--optional-accepted-case-bundle-sha256');p.add_argument('--execute-root-reviewed-decision',action='store_true');a=p.parse_args()
+ plan=prepare_plan(a.workspace,a.optional_accepted_case_bundle,a.optional_accepted_case_bundle_sha256)
+ if a.execute_root_reviewed_decision:execute(plan)
+ else:print(json.dumps({'mode':'read_only_plan_no_R_writes','counts':plan['counts'],'expected_total':plan['expected_total'],'optional_pending_not_assumed':plan['optional'] is None}))
+if __name__=='__main__':
+ try:main()
+ except Exception as e:
+  print(json.dumps({'status':'integration_not_confirmed','error_class':type(e).__name__,'guard_code':str(e) if isinstance(e,GuardError) else None}));raise SystemExit(2) from None

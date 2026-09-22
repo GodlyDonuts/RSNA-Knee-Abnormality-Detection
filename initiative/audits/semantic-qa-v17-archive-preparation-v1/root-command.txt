@@ -1,0 +1,8 @@
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python \
+  work/annotation-staging/semantic-qa-v17-archive-preparation-v1/preserve_v17.py \
+  --workspace "$PWD" \
+  --pins work/semantic-qa-v17-snapshot-pins-final.json \
+  --pins-sha256 c99544a2c04b3df3818d97ddf49105cf3151b31cc453161118937fe11d82fffa \
+  --secrets-file .env
+
+Default is verify-only. Root appends --execute for the reviewed archival step.
