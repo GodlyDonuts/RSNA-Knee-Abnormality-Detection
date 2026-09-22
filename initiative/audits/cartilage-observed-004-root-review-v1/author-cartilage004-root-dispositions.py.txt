@@ -1,0 +1,72 @@
+"""Preserve root-authored final decisions after39 personally reread sources."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+import hashlib,json
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';A=W/'work/annotation-staging';G=A/'cartilage-observed-004-root-review-v1';S=A/'cartilage-observed-004-independent-postfreeze-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+read=lambda p:json.loads(p.read_text())
+ref=lambda p:dict(path=str(p.relative_to(W)),sha256=sha(p))
+def save(n,d):
+ p=G/n
+ with p.open('x') as f:f.write(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+ return p
+freeze=G/'complete-source-assessment-frozen.json';comp=G/'root-postfreeze-comparison.json';reg=R/'initiative/reviews-v2/adjudications/registry.json'
+assert sha(freeze)=='f5c7dc791dca33f73f8b9db4f943030d6fb47ac8ff16c72d38a9dba96e56bbb9'
+assert sha(comp)=='fd1a208bb514b1da6b6307d08946f084cdfea6b748af61659ef70e13afebe14b'
+assert sha(reg)=='5700efd92b500dbb0470ab79e44020c8be830c0f5f84459fef0b418478d96de0'
+refs=save('terminology-source-check.json',dict(stage='postfreeze_terminology_verification',agent_id='/root',at_utc=datetime.now(timezone.utc).isoformat(),source_freeze=ref(freeze),sources=[dict(url='https://cartilage.org/wp-content/uploads/2024/07/ICRS_evaluation1-1.pdf',title='ICRS Cartilage Injury Evaluation Package',location='Printed page13 / PDF page index12',access='Web text retrieved; diagram screenshot requested but no model-readable image received. Do not claim visual interpretation.',summary='The society document identifies ICRS classes and explicitly distinguishes below-half depth from above-half depth in its second and third classes. Grade4 is presented as a separate advanced class.'),dict(url='https://pmc.ncbi.nlm.nih.gov/articles/PMC4300780/',title='ICRS Recommendations for Clinical Studies in Knee Articular Cartilage Repair',location='Table3',access='Indexed table text retrieved by web search; direct open returned a challenge page.',summary='The society recommendations define named ICRS grade4 as penetration into subchondral bone. This supports a deep/full-depth interpretation of a source report that explicitly names ICRS4; it does not identify an unnamed numeric grading system.'),dict(url='https://pubs.rsna.org/radiographics/doi/10.1148/rg.220051',title='Interpretation of Cartilage Damage at Routine Clinical MRI: How to Match Arthroscopic Findings',location='MRI Interpretation and Morphologic Changes sections',access='Full page text retrieved.',summary='The article describes depth categories separating below-half, above-half and complete cartilage damage, and distinguishes depth from extent. It also explains limitations of MRI depth assessment and why a focal severe lesion should not automatically be called generalized severe OA.')],scope='Named ICRS interpretation is primary-source supported. Direct high-grade partial-thickness and low-grade thinning interpretations below are disclosed report-level morphology inferences, not proof that every center uses a universal numeric grade or that MRI images were reread. No rubric, source, or gold labels changed.'))
+recon={
+ ('065:10','Medial OA'):('uncertain','I withdraw the assumption that diffuse high-grade cartilage loss without a partial-depth morphology description defines a uniformly above-half background. Only the smaller areas are expressly full thickness, and their extent is unstated. This aligns the depth/extent treatment with my separately frozen080:08 readings, without converting the broad distribution into a measured deep region.'),
+ ('066:20','Medial OA'):('uncertain','I withdraw the implicit whole-surface extent assigned to the paired tibial/condylar denudation. The sentence establishes depth at those surfaces but does not say broad, entire or measured denudation. Named paired anatomy alone is insufficient size evidence.'),
+ ('066:20','PF OA'):('uncertain','I reconsider the grammatical scope: nearly completely modifies reduction of thickness, not the area occupied by the deepest loss. Predominant lateral patellar/femoral locations do not separately establish broad loss extent. I retain the full near-total depth finding with extent uncertainty and preserve the first reader\'s broader interpretation.'),
+ ('066:44','Medial OA'):('positive','I reconsider the explicit morphology phrase diffuse high-grade partial-thickness cartilage loss. It qualifies the loss of thickness itself as high while distinguishing it from complete loss, supporting a deep-partial report-level interpretation across the explicitly diffuse region. This differs from an unexplained numeric grade or generic high-grade chondrosis. The full-thickness foci are not used to infer the background extent. This qualitative extraction inference is recorded, not a numeric measurement added to the source.'),
+ ('074:15','Medial OA'):('positive','I withdraw rejecting a specifically named ICRS4 classification as though it were an unidentified numeric grade. The primary ICRS definition links this named class to penetration through cartilage into subchondral bone. The report itself supplies the12mm extent. Together they support qualifying depth and size; no extra axis, altered source or inferred center grading table is needed. See terminology-source-check.json for retrieval scope.'),
+ ('075:02','Lateral OA'):('positive','I reconsider the complete internal context. The report supplies low/high categories and below/above-half depths, and independently identifies the below-half patellar focus as low grade in its conclusion. This resolves the list-order ambiguity sufficiently to interpret the separately measured1.5x1.9cm high-grade lateral focus as above-half. The reversed wording remains verbatim and the evidence is expanded through the conclusion; this is an explicit local terminology inference.'),
+ ('077:00','Medial OA'):('uncertain','I withdraw the assumption that full-thickness loss of the weightbearing portion means the entire weightbearing portion is denuded. Diffuse qualifies the partial loss; no explicit broad or measured extent is assigned to the full-depth component. The location alone does not complete the size criterion.'),
+ ('077:00','Lateral OA'):('positive','I reconsider direct diffuse high-grade partial-thickness loss as a description of deep-partial morphology over a diffuse region. No full-thickness component is compatible with above-half partial loss. This is the same disclosed morphology inference as066:44 medial, not an inference from the generic moderate-to-severe degeneration or from another compartment.'),
+ ('080:08','Lateral OA'):('negative','I withdraw my overly broad scope objection: this dedicated lateral-cartilage sentence describes low-grade loss at the joint-line weightbearing aspect without restricting it to a focal defect or one named surface. Low-grade loss directly characterizes the degree of cartilage loss in that compartment, supporting below-threshold report-level morphology. This matches my frozen068:09 lateral reasoning and the first reader. The second reader\'s depth-interpretation objection is preserved; no universal numerical grade map is asserted.')}
+reject={
+ ('068:09','Lateral OA'):'I retain my frozen negative and the first reader\'s interpretation. Low-grade chondral thinning directly describes the mild degree of cartilage loss in the named compartment, with no separate focal-surface limitation or competing deep lesion. This is a disclosed morphology inference, rather than an assumed mapping of an unidentified numeric grade. Preserve the second reader\'s stricter uncertainty alternative.',
+ ('069:22','Lateral OA'):'I retain unmentioned with empty evidence. The nonspecific concluding gonarthrosis summarizes the explicitly described medial/PF disease and does not independently identify lateral cartilage involvement. Lateral ligament normality cannot fill the gap. The second reader\'s unlocalized-disease interpretation remains preserved; both alternatives stay masked.',
+ ('080:08','Lateral OA'):recon[('080:08','Lateral OA')][1]}
+evidence={
+ ('065:40','Lateral OA'):'Accept the exact expansion through the lateral-compartment introduction, making the compartment of the qualified erosion statement explicit.',
+ ('075:02','Lateral OA'):'Accept the exact contiguous expansion through the report-local depth language and the conclusion that explicitly labels the below-half PF focus low grade. This binds the retained positive\'s terminology inference.',
+ ('075:43','Medial OA'):'Accept the exact expansion through the medial compartment/femoral introduction so the uncertain small cartilage defect is anatomically identified.'}
+raw=S/'unintegrated-proposals.json';proposals=read(raw)['records'];assert len(proposals)==28
+selected={};rejected=[]
+def ck(x):
+ c=x['case'].removeprefix('batch-');b,i=c.split(':');return b+':'+i.zfill(2),x['target']
+for p in proposals:
+ if ck(p) in reject:rejected.append(dict(case=ck(p)[0],study_uid=p['study_uid'],target=p['target'],original_proposal=p,reason=reject[ck(p)],status='root_rejects_proposed_change_retain_current'))
+ else:selected[p['study_uid'],p['target']]=p
+assert len(selected)==25 and len(rejected)==3
+base=dict(schema_version=1,agent_id='/root',session_id='/root',at_utc=datetime.now(timezone.utc).isoformat(),rubric_sha256='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014',source_reports_sha256='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3',source_freeze=ref(freeze),comparison=ref(comp),registry_at_comparison=ref(reg),terminology_check=ref(refs),prior_source_and_decision_exposure_disclosed=True,original_artifacts_preserved=True,gold_values_inspected=False,registry_changed=False,training_ready=False)
+records=[];supported=[];recons=[]
+for x in read(comp)['records']:
+ root=x['root_frozen']
+ if root is None:continue
+ key=x['study_uid'],x['target'];rkey=ck(x)
+ state,reason=recon.get(rkey,(root['state'],root['reason']))
+ if rkey in reject:reason=reject[rkey]
+ adopted=selected[key]['after_proposed'] if key in selected else x['current333']
+ assert adopted['state']==state,(rkey,state,adopted)
+ source=read(R/x['source_path'])[x['source_index_zero_based']]
+ assert source['study_uid']==x['study_uid'] and sha(R/x['source_path'])==x['source_sha256']
+ assert (state=='not_mentioned' and not adopted['evidence']) or (state!='not_mentioned' and adopted['evidence'] and adopted['evidence'] in source['report'])
+ if rkey in evidence:reason+=' '+evidence[rkey]
+ item=dict(case=rkey[0],study_uid=x['study_uid'],target=x['target'],source_path=x['source_path'],source_sha256=x['source_sha256'],current333=x['current333'],root_frozen_state=root['state'],root_frozen_evidence=root['evidence'],root_state_reconsidered=rkey in recon,root_postfreeze_state=state,root_postfreeze_evidence=adopted['evidence'],first_postfreeze_state=x['first_postfreeze']['state'],second_postfreeze_state=x['second_postfreeze']['state'],reason=reason,disposition='support_exact_second_proposal_pending_runtime_integration' if key in selected else 'retain_current_annotation',evidence_disposition=evidence.get(rkey,'Adopted exact quotation retains relevant source information; all alternate frozen excerpts remain unchanged.'),accepted=False)
+ records.append(item)
+ if rkey in recon:recons.append(dict(case=rkey[0],study_uid=x['study_uid'],target=x['target'],before=root,after=adopted,reason=reason,both_readers_alternatives_preserved=True))
+ if key in selected:supported.append(dict(case=rkey[0],study_uid=x['study_uid'],target=x['target'],source_path=x['source_path'],source_sha256=x['source_sha256'],root_frozen_state=root['state'],root_state_reconsidered=rkey in recon,independent_source_state=state,source_evidence=adopted['evidence'],reason=reason))
+assert len(records)==117 and len(recons)==9 and len(supported)==25
+first=A/'cartilage-observed-004-postfreeze-v1/proposed-errata.json';first_props=read(first)['proposed_errata'];first_support=[]
+for p in first_props:
+ key=p['study_uid'],p['target'];assert key in selected and selected[key]['after_proposed']['state']==p['proposed_state']
+ first_support.append(dict(case=p['case'],study_uid=p['study_uid'],target=p['target'],state_supported=True,accepted_via_second_proposal=True,first_quote_equals_adopted_second_quote=p['source_quote']==selected[key]['after_proposed']['evidence'],original_first_proposal_preserved=True))
+assert len(first_support)==21
+save('root-explicit-reconsiderations.json',{**base,'stage':'root_personally_authored_postfreeze_state_reconsiderations','records':recons})
+disp=save('root-postfreeze-dispositions.json',{**base,'stage':'root_source_based_dispositions_pending_runtime_integration','counts':dict(root_reports=39,root_cells=117,own_state_reconsiderations=9,second_proposals_supported=25,second_proposals_rejected=3,first_proposal_states_supported_via_second=21,additional_root_proposals=0),'records':records,'rejected_proposals':rejected,'first_proposal_state_support':first_support,'transition_counts':dict(Counter(x['before_current']['state']+'->'+x['after_proposed']['state'] for x in selected.values())),'authorship':'I personally read39 complete neutral reports and froze117 judgments before current004 reader case findings. After every full source, both reader comparisons and all28 exact proposals were read, I support25 and reject3. Nine own state reconsiderations are individually authored. Agreement does not mechanically determine these decisions.'})
+assess=save('second-proposals-independent-assessment.json',{**base,'stage':'independent_source_assessment','proposer_agent_id':'/root/last_twelve_visual_review','dispositions':ref(disp),'original_proposals':ref(raw),'first_proposals':ref(first),'records':supported,'rejected_proposals':rejected,'n_changes_supported':25,'n_changes_rejected':3,'n_changes_held':0,'authorship':'Actual root source assessment and explicit postfreeze adjudication. No runtime acceptance or proposer normalization has been manufactured.'})
+print(json.dumps(dict(dispositions_sha256=sha(disp),assessment_sha256=sha(assess),cells=117,supported=25,rejected=3,reconsiderations=9,transitions=dict(Counter(x['before_current']['state']+'->'+x['after_proposed']['state'] for x in selected.values())))))

@@ -1,0 +1,52 @@
+"""Bind the completed local build and actual peer restoration without repacking."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import json
+import shutil
+import subprocess
+
+W=Path.cwd().resolve()
+R=W/'work/recovered'
+S=Path(__file__).resolve().parent
+TARGET='dc806961fb99cdbaa5da2e6c9a9d3ee78e062cc4'
+TREE='8aa2b9b562e9b5a524a3686b4788321b0aca03ef'
+P=W/'work/hf-preparation-deltas'/TARGET
+H=W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+AGENT='/root/duplicate_consistency_review'
+
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(2**20),b''):h.update(b)
+ return h.hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'bytes':p.stat().st_size,'sha256':sha(p)}
+def save(name,v):
+ with (S/name).open('x') as f:f.write(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+
+manifest=json.loads((P/'manifest.json').read_text());proof=json.loads((P/'restoration-proof.json').read_text())
+assert sha(H)=='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+assert manifest['target_git_commit']==proof['target_git_commit']==TARGET
+assert manifest['target_git_tree']==proof['target_git_tree']==TREE
+assert manifest['n_target_git_files']==proof['n_result_files_verified']==len(manifest['files'])==8651
+assert proof['verifier_agent_id']==AGENT and proof['status']=='every_target_git_file_restorable_identically'
+assert proof['manifest']['sha256']==sha(P/'manifest.json')
+assert proof['delta_archive']==manifest['delta_archive']
+assert proof['delta_archive']['sha256']==sha(P/'delta.tar.gz')
+assert proof['delta_archive']['bytes']==(P/'delta.tar.gz').stat().st_size
+assert proof['base_git_commit']=='1792f01ed3daab757c5ddb9bf5733ffe8d999f91'
+assert proof['base_hf_revision']=='54949cd5a575ea7027a4a57916e772936a98d38b'
+assert proof['every_file_sha256_git_blob_size_mode_verified'] and proof['membership_exact']
+assert not proof['full_tree_extracted'] and not proof['source_or_clinical_values_parsed']
+assert proof['remote_calls']==proof['remote_mutations']==0
+assert proof['helper']['sha256']==sha(H)
+assert proof['secret_scan_policy']==manifest['secret_scan_policy']
+assert proof['verified_secret_scan_exception_paths']==['initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt']
+assert subprocess.check_output(['git','rev-parse',TARGET+'^{tree}'],cwd=R,text=True).strip()==TREE
+assert sha(R/'initiative/reviews-v2/adjudications/registry.json')=='5700efd92b500dbb0470ab79e44020c8be830c0f5f84459fef0b418478d96de0'
+assert shutil.disk_usage(W).free>20*2**30
+counts={k:manifest[k] for k in ['n_base_git_files','n_base_archive_files','n_target_git_files','n_new','n_modified','n_unchanged_omitted_from_base','n_delta_files','delta_raw_bytes']}
+receipt={'schema_version':1,'stage':'actual_peer_local_cartilage003_delta_build_and_streaming_restoration','agent_id':AGENT,'session_id':AGENT,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'target_git_commit':TARGET,'target_git_tree':TREE,'registered_corrections':333,'registry_sha256':'5700efd92b500dbb0470ab79e44020c8be830c0f5f84459fef0b418478d96de0','actual_execution':'Executed unchanged helper build locally in this agent, which streamed both original base and new delta, verified every member and exact resulting Git tree, then saved this agent identity in restoration-proof.json.','counts':counts,'package_files':[ref(P/n) for n in ['delta.tar.gz','manifest.json','restoration-proof.json']],'helper':ref(H),'source_preservation':proof['source_preservation'],'secret_scan_policy':proof['secret_scan_policy'],'verified_secret_scan_exception_paths':proof['verified_secret_scan_exception_paths'],'disk_before_build':proof['disk_before_build'],'disk_after_verification':proof['disk_after_verification'],'disk_free_bytes_at_receipt':shutil.disk_usage(W).free,'immutable_base_copied_or_extracted':False,'repository_writes':False,'remote_calls':0,'remote_mutations':0,'clinical_findings_parsed':False,'process_exposure':'Opaque byte streaming and secret scanning of every target Git member, including preserved reports and annotations. No case-level values displayed and no new clinical source reading or decisions. This mechanical exposure must be disclosed in subsequent source reviews.','gold_values_accessed':False,'training_ready':False,'future_publication_parent_hf':'543c2d84d62fabb14cc07255de7e5bc056850f5e','publication_authorized_by_this_receipt':False}
+save('build-verification.json',receipt)
+save('completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'created_at_utc':datetime.now(timezone.utc).isoformat(),'files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'package_files':receipt['package_files'],'all_checks_passed':True})
+print(json.dumps({'target':TARGET,'counts':counts,'package_files':receipt['package_files'],'receipt':ref(S/'build-verification.json'),'completion_manifest':ref(S/'completion-manifest.json'),'disk_free_bytes':shutil.disk_usage(W).free}))

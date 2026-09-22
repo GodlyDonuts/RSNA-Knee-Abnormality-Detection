@@ -1,0 +1,58 @@
+"""Bound post-freeze comparison only; never infer or register clinical decisions."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib,json,sys,shutil
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered'
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p):return json.loads(p.read_text())
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'size_bytes':p.stat().st_size}
+def save(n,x):
+    with (S/n).open('x') as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+assert shutil.disk_usage(W).free>20*2**30
+F=W/'work/annotation-staging/bone-observed-014-independent-review-v1'
+assert sha(F/'source-assessment-frozen.json')=='ddd68556fc37297375b95c15a59d6f42d3ca8327de3cb2e7811e12e4dfa4c732'
+protected=read(F/'source-phase-manifest.json')['files']+[ref(F/'source-phase-manifest.json')]
+for r in protected:assert sha(W/r['path'])==r['sha256']
+freeze=read(F/'source-assessment-frozen.json');rows=freeze['reports'];selected={r['study_uid'] for r in rows}
+reports={}
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+    for r in read(p):assert r['study_uid'] not in reports;reports[r['study_uid']]=r['report']
+assert len(reports)==4407
+registry=R/'initiative/reviews-v2/adjudications/registry.json';before=sha(registry)
+inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert sha(registry)==before==inspection['registry_sha256'] and len(inspection['pending_semantic_qa'])==3
+assert inspection['n_changes']==333 and before=='5700efd92b500dbb0470ab79e44020c8be830c0f5f84459fef0b418478d96de0'
+assert inspection['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+save('current-registry-inspection.json',inspection)
+changes={(r['study_uid'],r['target']):r for r in inspection['changes']}
+bindings=[ref(registry),ref(R/'protocols/report_weak_v2.md')]
+reg=read(registry)
+bindings.extend(ref(R/r['path']) for r in reg['cases']+reg['semantic_qa'])
+originals={};reviewpaths={}
+for batch in sorted({Path(r['source_path']).stem for r in rows}):
+    p=R/f'initiative/reviews-v2/reviewed/{batch}-reviewed.jsonl';reviewpaths[batch]=p
+    for r in map(json.loads,p.read_text().splitlines()):
+        if r['study_uid'] in selected:originals[r['study_uid']]=r
+    for p in [p,R/f'initiative/reviews-v2/drafts/{batch}-draft.jsonl',R/f'initiative/reviews/inputs/{batch}.json',R/f'initiative/reviews-v2/provenance/{batch}-draft.json',R/f'initiative/reviews-v2/provenance/{batch}-reviewed.json']:
+        bindings.append(ref(p))
+assert set(originals)==selected
+out=[]
+for r in rows:
+    uid=r['study_uid'];batch=Path(r['source_path']).stem
+    for j,t in enumerate(freeze['targets']):
+        ti=10+j;o=originals[uid];original={'state':o['states'][ti],'evidence':o['evidence'][ti]};change=changes.get((uid,t));effective=change['after'] if change else original
+        frozen={'state':r['states'][j],'evidence':r['evidence'][j]}
+        for cell in [original,effective,frozen]:assert (cell['evidence']=='' if cell['state']=='not_mentioned' else bool(cell['evidence']) and cell['evidence'] in reports[uid])
+        out.append({'packet_ordinal':r['packet_ordinal'],'study_uid':uid,'batch':batch,'index':r['source_index_zero_based'],'target':t,'target_index':ti,'source_path':r['source_path'],'source_sha256':r['source_sha256'],'report_sha256':r['report_sha256'],'original_review_path':str(reviewpaths[batch].relative_to(R)),'original_review_sha256':sha(reviewpaths[batch]),'original':original,'current_effective':effective,'current_correction_case':change['case_id'] if change else None,'source_frozen':frozen,'source_rationale':r['rationales'][j],'state_agrees':effective['state']==frozen['state'],'evidence_agrees':effective['evidence']==frozen['evidence']})
+base={'schema_version':1,'assessor_agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review','comparison_at_utc':datetime.now(timezone.utc).isoformat(),'source_freeze':ref(F/'source-assessment-frozen.json'),'current_inspection':ref(S/'current-registry-inspection.json'),'active_corrections':inspection['n_changes'],'registry_sha256':before,'rubric_sha256':inspection['rubric_sha256'],'source_reports_sha256':inspection['source_reports_sha256']}
+save('all100-original-current-source-comparison.json',dict(base,records=out))
+save('original-source-provenance-bindings.json',dict(base,files=bindings,source_phase_protected_files=protected,originals_unchanged=True))
+first_path=W/'work/annotation-staging/bone-observed-014-postfreeze-v1/all100-postfreeze-dispositions.json'
+first=read(first_path);first_bykey={(r['study_uid'],r['target']):r for r in first['records']}
+drift=[r for r in out if r['current_effective']!=first_bykey[(r['study_uid'],r['target'])]['current_effective']]
+save('current333-rebase-proof.json',dict(base,first_comparison=ref(first_path),selected100_originals_unchanged=all(r['original']==first_bykey[(r['study_uid'],r['target'])]['original'] for r in out),selected100_effective_differences=drift,selected100_unchanged=not drift,current_pending_semantic_qa=inspection['pending_semantic_qa'],all_other_historical_artifacts_preserved=True))
+for r in protected+bindings:assert sha(W/r['path'])==r['sha256']
+print(json.dumps({'active_corrections':inspection['n_changes'],'registry_sha256':before,'state_differences':sum(not r['state_agrees'] for r in out),'same_state_quote_differences':sum(r['state_agrees'] and not r['evidence_agrees'] for r in out),'selected_current_corrections':sum(bool(r['current_correction_case']) for r in out),'first_comparison_selected_drift':len(drift)}))

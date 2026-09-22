@@ -1,0 +1,70 @@
+"""Package explicit second-reader comparison decisions and mechanically validate bindings."""
+import json,hashlib,runpy
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';AGENT='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_bytes())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,d):
+ p=S/n;p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+M=obj(S/'mechanical-full-comparison.json');rows=M['records'];P=A/'qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-006.json';packet=obj(P);D=A/'qualified-negation-focused-006-post-freeze-comparison-v1';replay=obj(S/'original-current-baseline-replay.json');context=obj(S/'canonical-source-context.json');canonical=context['source_reports_sha256']
+for z in M['source_freezes_and_first_postfreeze_inputs']:assert ref(W/z['path'])==z
+assert ref(R/'initiative/reviews-v2/adjudications/registry.json')==replay['current_registry']
+# Historical whole-case bytes prove all 286 existing case objects remain preserved.
+old=obj(D/'current286-registry-inspection.json')['changes'];preserved=[]
+for x in old:
+ p=R/x['case']['path'];assert ref(p)['sha256']==x['case']['sha256'];c=obj(p);actual=[v for v in c['changes'] if (v['study_uid'],v['target'])==(x['study_uid'],x['target'])];assert len(actual)==1
+ for k,v in actual[0].items():assert x[k]==v
+ preserved.append({'study_uid':x['study_uid'],'target':x['target'],'case_file':ref(p),'complete_change':actual[0]})
+assert len(preserved)==286
+priorproof=write('prior286-whole-case-preservation.json',{'agent_id':AGENT,'prior_inspection':ref(D/'current286-registry-inspection.json'),'actual333_registry':replay['current_registry'],'all286_change_objects_and_prior_case_bytes_exact':True,'records':preserved})
+a=runpy.run_path(str(S/'authored_postfreeze_choices.py'));C=a['C'];E=a['E'];EC=a['EVIDENCE_CORRECTIONS'];PS=a['PROPOSE_STATES'];RT=a['RETAINED']
+assert set(E)=={(r['packet_index'],r['target_index']) for r in rows if r['any_evidence_attention']}
+out=[];rec=[];prop=[]
+for r in rows:
+ k=r['packet_index'],r['target_index'];own=r['second_source_frozen'];final=own.copy()
+ if k in C:
+  st,selector,reason=C[k];q={'first_source':r['first_source_frozen']['evidence'],'own':own['evidence']}[selector];final={'state':st,'evidence':q,'reason':reason}
+ elif k in RT:final['reason']=RT[k]
+ state_changed=final['state']!=own['state'];quote_changed=final['evidence']!=own['evidence']
+ if state_changed or quote_changed:rec.append({'packet_index':r['packet_index'],'study_uid':r['study_uid'],'target':r['target'],'source_frozen':own,'second_postfreeze':final,'state_changed':state_changed,'quote_changed':quote_changed})
+ current=r['current_effective'];is_state=final['state']!=current['state'];assert is_state==(k in PS),(k,is_state)
+ assert final['evidence'] in packet[r['packet_index']]['report'];assert bool(final['evidence'])==(final['state']!='not_mentioned')
+ conflict=final['state']!=r['first_postfreeze']['state'];attention=r['any_state_attention'] or r['any_evidence_attention'] or conflict or k in EC
+ disposition='propose_state_change_pending_root' if k in PS else 'propose_evidence_only_pending_root' if k in EC else 'retain_current_annotation_pending_any_root_review'
+ record={**r,'second_postfreeze':final,'second_disposition':disposition,'retained_first_second_state_disagreement':conflict,'evidence_review':E.get(k,'Exact quotation agrees across the compared annotations; retained source-specific reasoning remains applicable.'),'substantive_evidence_correction_recommended':k in EC,'root_attention':attention,'currently_masked':current['state'] in ['uncertain','not_mentioned'],'required_current_report_loss_mask':int(current['state'] in ['positive','negative']),'proposals_unapplied':True}
+ out.append(record)
+ if k in PS or k in EC:
+  assert r['existing_current_correction'] is None
+  reason=final['reason'] if k in PS else E[k]
+  prop.append({'packet_ordinal':r['packet_index'],'case':r['case'],'study_uid':r['study_uid'],'target':r['target'],'batch':packet[r['packet_index']]['batch'],'index':r['source_index_zero_based'],'source_path':r['source_path'],'source_sha256':r['source_sha256'],'report_utf8_sha256':r['report_utf8_sha256'],'artifact_path':str((W/r['original_review']['path']).relative_to(R)),'artifact_sha256':r['original_review']['sha256'],'before_state':current['state'],'before_evidence':current['evidence'],'current_effective_state':current['state'],'current_effective_evidence':current['evidence'],'proposed_state':final['state'],'source_quote':final['evidence'],'reason':reason,'kind':'state_correction' if k in PS else 'evidence_only_correction','first_postfreeze_state':r['first_postfreeze']['state'],'both_postfreeze_states_agree':not conflict,'status':'unintegrated_pending_root_full_source_adjudication','overlaps_existing_accepted_correction':False})
+assert len(out)==len({(r['study_uid'],r['target']) for r in out})==372;assert len(prop)==len(PS)+len(EC)
+attention=[r for r in out if r['root_attention']];indices=sorted({r['packet_index'] for r in attention})
+counts={**M['counts'],'own_state_reconsiderations':sum(x['state_changed'] for x in rec),'own_quote_reconsiderations':sum(x['quote_changed'] for x in rec),'postfreeze_state_disagreements':sum(x['retained_first_second_state_disagreement'] for x in out),'second_proposed_state_changes':len(PS),'second_proposed_evidence_only':len(EC),'proposed_accepted_key_overlaps':0,'complete_union_attention_cells':len(attention),'complete_union_attention_reports':len(indices),'current_masked_cells':sum(x['currently_masked'] for x in out)}
+common={'agent_id':AGENT,'session_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'source_reports_sha256':canonical,'neutral_source_packet_sha256':ref(P)['sha256'],'rubric_sha256':M['rubric']['sha256'],'current_registry':replay['current_registry'],'accepted_registry_count':333,'original_first_baseline_count':286,'all_proposals_unintegrated':True,'accepted_changes':False}
+comparison=write('complete-second-dispositions.json',{**common,'inputs':M['source_freezes_and_first_postfreeze_inputs'],'mechanical_comparison':ref(S/'mechanical-full-comparison.json'),'counts':counts,'records':out,'all372_comparisons_personally_reviewed':True,'authorship':'Each original source judgment, separate reconsideration and evidence disposition was authored by /root/last_twelve_visual_review. Code packages explicit choices and verifies membership/quotes; it does not infer clinical decisions.'})
+recp=write('own-postfreeze-reconsiderations.json',{**common,'records':rec,'source_freeze_unchanged':True,'timestamps_do_not_prove_historical_access_order':True})
+propp=write('proposed-errata.json',{**common,'schema_version':1,'stage':'focused_wording006_second_reader_postfreeze_proposals','source_freeze':ref(A/'qualified-negation-focused-006-independent-review-v1/source-freeze.json'),'source_assessment':ref(A/'qualified-negation-focused-006-independent-review-v1/source-assessment-frozen.jsonl'),'dispositions':ref(comparison),'reconsiderations':ref(recp),'canonical_context':ref(S/'canonical-source-context.json'),'n_changes':len(prop),'proposed_errata':prop})
+att=write('complete-union-attention.json',{**common,'definition':'Union of original/baseline/current/both-source/both-post state differences, all evidence variants (including equivalent excerpts), both proposal sets, and retained disagreements. None are hidden by apparent agreement.','counts':counts,'records':attention})
+mask=write('retained-masks-and-export-requirements.json',{**common,'first_correspondence_policy_check':ref(D/'selected-correspondence-policy-check.json'),'selected_whole_study_exclusions_in_bound_check':0,'requirement':'All current uncertain/not-mentioned target losses remain zero unless separately accepted later. Unintegrated proposals do not change runtime labels or masks. Revalidate current registry and correspondence policy at export.','records':[{'study_uid':r['study_uid'],'target':r['target'],'current_annotation':r['current_effective'],'required_current_report_loss_mask':0,'source_path':r['source_path'],'source_index_zero_based':r['source_index_zero_based'],'source_sha256':r['source_sha256'],'second_preference':r['second_postfreeze'],'first_preference':r['first_postfreeze']} for r in out if r['currently_masked']]})
+packets=[]
+for b,start in enumerate(range(0,len(indices),10)):
+ q=[{k:packet[i][k] for k in ['source_path','source_sha256','index','study_uid','report']} for i in indices[start:start+10]]
+ pp=write(f'neutral-root-packets/batch-{b:03}.json',q);packets.append({**ref(pp),'reports':len(q)})
+idx=write('neutral-root-packet-index.json',{'agent_id':AGENT,'stage':'focused_wording006_second_complete_union_neutral_sources','source_packet':ref(P),'rubric':M['rubric'],'reports':len(indices),'maximum_reports_per_packet':10,'packets':packets,'contains_target_state_proposal_trigger_or_reason_fields':False})
+neutraluids=[]
+for z in packets:
+ for q in obj(W/z['path']):
+  assert set(q)=={'source_path','source_sha256','index','study_uid','report'};sp=R/q['source_path'];assert ref(sp)['sha256']==q['source_sha256'];assert obj(sp)[q['index']]=={'study_uid':q['study_uid'],'report':q['report']};neutraluids.append(q['study_uid'])
+assert len(neutraluids)==len(set(neutraluids))==len(indices);assert set(neutraluids)=={r['study_uid'] for r in attention}
+for z in M['source_freezes_and_first_postfreeze_inputs']:assert ref(W/z['path'])==z
+assert ref(R/'initiative/reviews-v2/adjudications/registry.json')==replay['current_registry']
+val=write('validation.json',{**common,'counts':counts,'all372_unique_original_source_index_uid_hash_and_review_bindings_validated':True,'all_final_nonmissing_evidence_exact_contiguous':True,'neutral_union_full_sources_complete_unique_no_clues':True,'both_source_freezes_and_first_poststage_byte_preserved':True,'prior286_case_bytes_unchanged':ref(priorproof),'canonical4407_fingerprint_recomputed':ref(S/'canonical-source-context.json'),'actual333_registry_stable_through_finalization':True,'selected_drift_from286':counts['current_changes_since_first_baseline'],'no_gold_access_repository_edits_or_registration':True,'registry_replay_required_before_any_integration':True})
+freeze=write('second-comparison-freeze.json',{**common,'inputs':M['source_freezes_and_first_postfreeze_inputs'],'assessment':ref(comparison),'reconsiderations':ref(recp),'proposals':ref(propp),'attention_union':ref(att),'masks':ref(mask),'neutral_root_packets':ref(idx),'validation':ref(val),'counts':counts,'scope':'31 complete original reports, all372 targets. Original first286 baseline preserved; comparison replayed actual333. Root full-source reading must precede case-specific comparison. No accepted changes or global QA closure.','disclosure':'Both independent freezes, first postfreeze findings and selected original/current annotations were opened only for this postfreeze stage. Historical exact-source and conceptual exposure remains disclosed in the original second source freeze; no first-ever blindness or timestamp proof of access order claimed.','authored_helper':ref(S/'authored_postfreeze_choices.py'),'mechanical_helpers':[ref(S/'compare_frozen.py'),ref(Path(__file__))]})
+manifest=write('final-file-list.json',{'agent_id':AGENT,'files':[ref(p) for p in sorted(S.rglob('*')) if p.is_file()],'self_excluded':True})
+assert {x['path'] for x in obj(manifest)['files']}=={str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p!=manifest}
+for x in obj(manifest)['files']:assert ref(W/x['path'])==x
+print(json.dumps({'counts':counts,'freeze':ref(freeze),'proposals':ref(propp),'neutral_packets':ref(idx),'manifest':ref(manifest)},indent=2))

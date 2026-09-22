@@ -77,7 +77,27 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry contains **333 active accepted target corrections**. Cartilage003
+The registry contains **358 active accepted target corrections**. Cartilage004
+adds 25 after 39 complete root source rereads / 117 frozen OA judgments.
+Seventeen positives and five negatives become uncertain; three quotations gain
+anatomical or report-local depth context. Nine actual root state reconsiderations
+remain explicit. Three other second-reader proposals were rejected, retaining
+current annotations. All 333 previous correction objects remain unchanged.
+
+The [358 integration proof](../initiative/audits/cartilage-observed-004-integration-v1/complete358-integration-validation.json)
+reconciles all 117 final states and 25 accepted quotes, preserves the protected
+sources and earlier retirements, and finds no conflicts across 54 identical-report
+groups / 204 reports. All 21 first-reader proposed states are supported through
+accepted second proposals. All 28 original second proposals, including the three
+rejected proposals, remain unchanged. No global QA gate closes.
+
+The bound [terminology check](../initiative/audits/cartilage-observed-004-root-review-v1/terminology-source-check.json)
+distinguishes a specifically named ICRS classification from an unidentified grade
+number. It records primary-source support and retrieval limitations. Direct
+high-grade partial-thickness and low-grade thinning decisions are explicitly
+identified as report-level morphology inferences, not added numeric measurements.
+
+The preceding registry contained **333 active accepted target corrections**. Cartilage003
 adds 47 independently accepted second-reader proposals after 38 complete root
 source rereads / 114 frozen OA judgments. Thirty positives and twelve negatives
 become uncertain; five quotations gain explicit anatomy, normal-remaining-cartilage

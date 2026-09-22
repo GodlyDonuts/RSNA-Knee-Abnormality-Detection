@@ -1,0 +1,33 @@
+"""Preserve root-authored source judgments after exact neutral/source/quote checks."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib, json
+W=Path(__file__).resolve().parent.parent
+R=W/'work/recovered'
+G=W/'work/annotation-staging/cartilage-observed-005-root-review-v1'
+N=W/'work/annotation-staging/cartilage-observed-005-independent-postfreeze-v1'
+PINS=['a5bf47cae7f5cfdd088fe9274c878faa465ebb354ecdfb78dd573002bd029c4f']
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def freeze(name,batch,offset,judgments):
+    packet=N/f'neutral-root-packets/batch-{batch:03d}.json'
+    assert sha(packet)==PINS[batch]
+    rows=json.loads(packet.read_text())[offset:offset+len(judgments)]
+    assert len(rows)==len(judgments)
+    records=[]
+    for row,(states,evidence,notes) in zip(rows,judgments):
+        source=R/row['source_path']
+        assert sha(source)==row['source_sha256']
+        assert json.loads(source.read_text())[row['index']]=={'study_uid':row['study_uid'],'report':row['report']}
+        assert len(states)==len(evidence)==3
+        for state,quote in zip(states,evidence):
+            assert state in {'positive','negative','uncertain','not_mentioned'}
+            assert (state=='not_mentioned' and quote=='') or (state!='not_mentioned' and quote and quote in row['report'])
+        records.append({'case':row['batch'].removeprefix('batch-')+':'+str(row['index']).zfill(2),'study_uid':row['study_uid'],'source_path':row['source_path'],'source_sha256':row['source_sha256'],'source_index_zero_based':row['index'],'report_sha256':hashlib.sha256(row['report'].encode()).hexdigest(),'target_order':['Medial OA','Lateral OA','PF OA'],'states':states,'evidence':evidence,'notes':notes})
+    previous=[x for p in G.glob('*-source-assessment.json') for x in json.loads(p.read_text())['records']]
+    assert not {x['study_uid'] for x in records}&{x['study_uid'] for x in previous}
+    rubric=sha(R/'protocols/report_weak_v2.md')
+    assert rubric=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+    doc={'stage':'partial_root_cartilage005_source_assessment_before_reader_case_findings','agent_id':'/root','session_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'neutral_packet':{'path':str(packet.relative_to(W)),'sha256':sha(packet)},'packet_rows_zero_based':list(range(offset,offset+len(rows))),'rubric_sha256':rubric,'canonical_all4407_source_reports_sha256':'5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3','exposure':'Prior full4407, wording, cartilage000–004 source/adjudication and published333 checkpoint work and local358 cartilage004 source/adjudication work include historical overlaps. Detailed prior088:04 duplicate-image/source examination is recognized explicitly. These complete sources personally reread before current cartilage005 case-specific reader findings or selected annotation rows. Not first-ever blindness. No gold values opened.','full_reports':len(rows),'oa_judgments':3*len(rows),'records':records,'source_index_uid_report_hash_and_exact_quotes_verified':True,'validation_helper_sha256':sha(Path(__file__))}
+    out=G/(name+'-source-assessment.json')
+    with out.open('x') as f:f.write(json.dumps(doc,ensure_ascii=False,indent=2)+'\n')
+    print(json.dumps({'part':name,'sha256':sha(out),'total_root_sources_frozen':len(previous)+len(records),'reader_case_findings_opened':False}))

@@ -2,23 +2,24 @@
 
 ## Current corrective run
 
-The registry now contains 333 active corrections. Cartilage003 adds 47 after
-root's 38 full-source rereads / 114 frozen OA judgments and explicit independent
-acceptance of the second reader's exact proposals. Thirty positives and twelve
-negatives become uncertain; five source quotations gain needed context. All 286
-prior correction objects and the three previous retirements remain unchanged.
+The registry now contains 358 active corrections. Cartilage004 adds 25 after
+root's 39 complete source rereads / 117 frozen OA judgments: 17 positives and
+five negatives become uncertain, and three quotations gain necessary context.
+Nine root reconsiderations are explicit. Three additional second-reader changes
+were rejected with current states retained. All 333 earlier corrections and the
+three previous retirements remain unchanged.
 
-All 114 final root states match inspection, and 54 identical-report groups / 204
-reports have zero conflicts. Four root reconsiderations preserve the distinction
-between lesion location and qualifying extent, and between focal normal/below-
-threshold findings and whole-compartment coverage. The unchanged rubric permits
-qualitative broad extent and does not require two measured axes.
+All 117 final root states and all 25 new quotes match inspection. The 54 identical-
+report groups / 204 reports have zero conflicts. The source-bound terminology
+check separates named grading definitions, source-local calibration and disclosed
+morphology inferences. It does not redefine the frozen rubric or introduce a
+two-axis size requirement.
 
-The latest verified publication contains 286 corrections at Git `76d2c274` /
-private HF `543c2d84`. The 333 milestone needs its own verified publication receipt.
+The latest verified publication contains 333 corrections at Git `dc806961` /
+private HF `0f7134a6`. The 358 milestone needs its own publication receipt.
 All three global semantic QA gates remain pending. See
-[adjudications.md](adjudications.md). The expanded mission also requires a
-competitive training research and experiment plan after data readiness; see
+[adjudications.md](adjudications.md). The expanded mission requires a competitive
+training research and experiment plan after data readiness; see
 [mission-and-training-plan.md](mission-and-training-plan.md).
 
 The required correspondence registry enforces 18 whole-study report-supervision
@@ -140,7 +141,7 @@ Historical outputs and in-progress drafts are not a corrected release.
 ## Remaining acceptance gates
 
 1. All 4,407 reports have two archived review passes with validated evidence and
-   IDs. There are 333 active accepted target corrections, each with exact
+   IDs. There are 358 active accepted target corrections, each with exact
    original/source bindings and preserved prior artifacts. Resolve the remaining cartilage, bone terminology, and qualified-negation/
    duplicate semantic gates against the exact final artifacts and corrections.
 2. Recheck zero report loss masks for all 24 administratively unresolved

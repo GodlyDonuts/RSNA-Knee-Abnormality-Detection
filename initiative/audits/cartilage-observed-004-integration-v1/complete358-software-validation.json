@@ -1,0 +1,77 @@
+{
+  "stage": "required_software_checks_after358",
+  "agent_id": "/root",
+  "registry_sha256": "761ba526baf0c761548e2d5ff41c52ce9ba24ac75e9ac43993a716240ce37693",
+  "initial_tool_results": [
+    {
+      "cmd": "../../.venv/bin/ruff check .",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "0a77b5",
+        "wall_time_seconds": 0.000009917,
+        "exit_code": 0,
+        "original_token_count": 5,
+        "output": "All checks passed!\n"
+      }
+    },
+    {
+      "cmd": "../../.venv/bin/ruff format --check .",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "3cf40f",
+        "wall_time_seconds": 0.000013833,
+        "exit_code": 0,
+        "original_token_count": 7,
+        "output": "42 files already formatted\n"
+      }
+    },
+    {
+      "cmd": "../../.venv/bin/mypy rsna",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "2e7ed8",
+        "wall_time_seconds": 1.002917833,
+        "session_id": 8217,
+        "original_token_count": 0,
+        "output": ""
+      }
+    },
+    {
+      "cmd": "../../.venv/bin/python -m pytest -q",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "369c1f",
+        "wall_time_seconds": 1.003008708,
+        "session_id": 84176,
+        "original_token_count": 167,
+        "output": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/pytest_asyncio/plugin.py:247: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+      }
+    }
+  ],
+  "completion_tool_results": [
+    {
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "1b520f",
+        "wall_time_seconds": 0.000017166,
+        "exit_code": 0,
+        "original_token_count": 11,
+        "output": "Success: no issues found in 20 source files\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "ae8d68",
+        "wall_time_seconds": 0.000009167,
+        "exit_code": 0,
+        "original_token_count": 146,
+        "output": "........................................................................ [ 15%]\n........................................................................ [ 31%]\n........................................................................ [ 46%]\n........................................................................ [ 62%]\n........................................................................ [ 77%]\n........................................................................ [ 93%]\n..............................                                           [100%]\n462 passed in 15.85s\n"
+      }
+    }
+  ],
+  "tests_passed": 462,
+  "pytest_elapsed_seconds": 15.85,
+  "archive_and_coverage_checks": "Pending final evidence archive refresh; tracked separately.",
+  "training_ready": false
+}

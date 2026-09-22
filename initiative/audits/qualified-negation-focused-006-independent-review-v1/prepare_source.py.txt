@@ -1,0 +1,23 @@
+"""Mechanical full-source binding and neutral-UID exposure inventory only."""
+from pathlib import Path
+from datetime import datetime,timezone
+import json,hashlib
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';AG='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_text())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+p=A/'qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-006.json';assert ref(p)['sha256']=='3992e356244ca2de34c40dd472629896fe02b6b77f081de9ad0d5ff79bfd6d03';reports=obj(p);assert len(reports)==len({x['study_uid'] for x in reports})==31
+with (S/'neutral-source-packet.json').open('xb') as f:f.write(p.read_bytes())
+priorpaths=[A/f'cartilage-observed-{i:03}-independent-review-v1/neutral-source-packet.json' for i in range(6)]+[A/f'qualified-negation-focused-{i:03}-independent-review-v1/neutral-source-packet.json' for i in range(1,5)]+[A/'qualified-negation-focused-005-source-review-v1/neutral-source-packet.json',A/'cartilage-legacy-three-independent-review-v1/neutral-source-packet.json']+[A/f'bone-observed-{i:03}-independent-review-v1/neutral-source-packet.json' for i in range(7,13)]
+prior={};prefs=[]
+for q in priorpaths:
+ a=obj(q);a=a['reports'] if isinstance(a,dict) else a;prefs.append(ref(q))
+ for x in a:prior.setdefault(x['study_uid'],[]).append(ref(q))
+bindings=[];overlaps=[]
+for i,x in enumerate(reports):
+ sp=R/x['source_path'];assert ref(sp)['sha256']==x['source_sha256'];assert obj(sp)[x['index']]=={'study_uid':x['study_uid'],'report':x['report']};bindings.append({'packet_index':i,'study_uid':x['study_uid'],'source_path':x['source_path'],'source_sha256':x['source_sha256'],'source_index_zero_based':x['index'],'report_utf8_sha256':hashlib.sha256(x['report'].encode()).hexdigest()})
+ if x['study_uid'] in prior:overlaps.append({'packet_index':i,'study_uid':x['study_uid'],'prior_neutral_packets':prior[x['study_uid']]})
+rub=ref(R/'protocols/report_weak_v2.md');assert rub['sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+d={'agent_id':AG,'session_id':AG,'at_utc':datetime.now(timezone.utc).isoformat(),'source_packet':ref(p),'rubric':rub,'reports':31,'judgments_required':372,'bindings':bindings,'prior_neutral_packet_bindings':prefs,'exact_prior_packet_overlaps':overlaps,'historical_exposure':'Previously personally read technical correspondence/header/selected matrices, wording001-005, cartilage000-005/legacy-three and bone007-012 sources, with associated source/comparison judgments and accepted/unintegrated clinical context. Mechanical registry/case replay and canonical all4407 source fingerprint operations occurred, most recently cartilage003 author normalization and bone012 comparison. Root now reports actual333 after integrating47 original cartilage003 proposals; that aggregate fact and registry SHA are known, but first wording006 and selected current006 case findings remain unopened in this source pass. UID-only neutral packet scan discloses bounded exact overlap, not an exhaustive history of every viewed byte. No first-ever blindness or feedback-free conceptual reading is claimed.','known_current_registry_aggregate':333,'known_current_registry_sha256':'5700efd92b500dbb0470ab79e44020c8be830c0f5f84459fef0b418478d96de0','chronology_limitation':'Recorded declared workflow and timestamps cannot independently prove past access order.','source_only_boundaries':'All31 complete reports and372 judgments must freeze before first006 or selected current006 annotations; no gold or registry mutation.'}
+with (S/'source-bindings-and-exposure.json').open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+print(json.dumps({'reports':31,'overlap_reports':len(overlaps),'overlap_positions':[x['packet_index'] for x in overlaps],'binding':ref(S/'source-bindings-and-exposure.json')},indent=2))

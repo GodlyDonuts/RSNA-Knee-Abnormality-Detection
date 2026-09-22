@@ -1,0 +1,45 @@
+"""Package372 explicit agent-authored source decisions; mechanical checks only."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+import json,hashlib,runpy,sys
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered';AG='/root/last_twelve_visual_review';TARGETS=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture']
+def obj(p):return json.loads(p.read_text())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+ return S/n
+packet=obj(S/'neutral-source-packet.json');binding=obj(S/'source-bindings-and-exposure.json');rub=ref(R/'protocols/report_weak_v2.md');assert rub['sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014';assert ref(S/'neutral-source-packet.json')['sha256']=='3992e356244ca2de34c40dd472629896fe02b6b77f081de9ad0d5ff79bfd6d03'
+assert (S/'neutral-source-packet.json').read_bytes()==(W/binding['source_packet']['path']).read_bytes()
+for e in binding['prior_neutral_packet_bindings']:assert ref(W/e['path'])==e
+helpers=sorted(S.glob('decisions_*.py'));assert len(helpers)==6;rows={}
+for h in helpers:
+ a=runpy.run_path(str(h))['ROWS'];assert not rows.keys()&a.keys();rows.update(a)
+assert len(packet)==31 and set(rows)==set(range(31));out=[];checks=[]
+for i,p in enumerate(packet):
+ b=binding['bindings'][i];sp=R/p['source_path'];assert ref(sp)['sha256']==p['source_sha256'];assert obj(sp)[p['index']]=={'study_uid':p['study_uid'],'report':p['report']};assert b['study_uid']==p['study_uid'] and b['source_index_zero_based']==p['index'];assert b['report_utf8_sha256']==hashlib.sha256(p['report'].encode()).hexdigest();assert len(rows[i])==12
+ for target,(state,quote,reason) in zip(TARGETS,rows[i]):
+  assert state in {'positive','negative','uncertain','not_mentioned'};assert bool(quote)==(state!='not_mentioned');assert quote in p['report'],(i,target,quote);assert reason.strip()
+  checks.append({'packet_index':i,'study_uid':p['study_uid'],'target':target,'exact_contiguous_or_missing_empty':True,'quote_start_character':p['report'].find(quote) if quote else None,'quote_characters':len(quote),'quote_utf8_sha256':hashlib.sha256(quote.encode()).hexdigest()})
+ out.append({'agent_id':AG,'session_id':AG,'packet_index':i,'case':p['batch'].removeprefix('batch-')+':'+str(p['index']),'study_uid':p['study_uid'],'source_path':p['source_path'],'source_sha256':p['source_sha256'],'source_index_zero_based':p['index'],'report_utf8_sha256':b['report_utf8_sha256'],'target_order':TARGETS,'states':[x[0] for x in rows[i]],'evidence':[x[1] for x in rows[i]],'target_reasoning':[x[2] for x in rows[i]],'prior_exact_neutral_overlaps':[x for x in binding['exact_prior_packet_overlaps'] if x['packet_index']==i],'notes':'Personally authored full-source wording006 SECOND pass of31reports/372targets. Historical exact source, technical and clinical context exposures disclosed; first006/current selected006 findings unopened before freeze. Unintegrated opinions only.'})
+assert len(out)==len({x['study_uid'] for x in out})==31 and len(checks)==len({(x['study_uid'],x['target']) for x in checks})==372
+# Execute canonical function over original blinded source reports only, not clinical annotations.
+sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint
+reports={};srefs=[]
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ srefs.append(ref(p))
+ for x in obj(p):
+  assert set(x)=={'study_uid','report'} and x['study_uid'] not in reports;reports[x['study_uid']]=x['report']
+assert len(reports)==4407;canonical=source_reports_fingerprint(reports);assert canonical=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+context=write('canonical-source-context.json',{'agent_id':AG,'actual_runtime_function':'rsna.labels.source_reports_fingerprint','function_executed':True,'runtime_module':ref(R/'rsna/labels.py'),'report_count':4407,'source_reports_sha256':canonical,'neutral_source_packet_sha256':ref(S/'neutral-source-packet.json')['sha256'],'canonical_original_source_bindings':srefs,'scope':'Canonical global context fingerprint and neutral-packet FILE hash are distinct; no clinical-state table or gold used.'})
+assessment=S/'source-assessment-frozen.jsonl'
+with assessment.open('x') as f:
+ for x in out:f.write(json.dumps(x,ensure_ascii=False)+'\n')
+extra=write('recognized-additional-context-exposure.json',{'agent_id':AG,'recognized':[{'packet_index':13,'case':'084:27','recognition':'Previously personally read complete report and selected representative matrices/header correspondence evidence, including two series coverage/selection preferences; also recorded neutral source overlap. No fresh technical/clinical findings opened in this pass.'},{'packet_index':27,'case':'087:20','recognition':'Known historical qualified-marrow accepted-case identifier from prior clinical/registry context and mechanical whole-change replay. This disclosure does not assert exact prior personal full-source reading beyond the neutral UID inventory; no fresh accepted-case state read here.'}],'scope':'Additional historical/context recognition beyond bounded neutral UID inventory; not first-ever blindness. No case state inferred from the identifiers.'})
+chron=write('completed-source-exposure-and-chronology.json',{'agent_id':AG,'session_id':AG,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'source_preparation':ref(S/'source-bindings-and-exposure.json'),'historical_exposure':binding['historical_exposure'],'exact_prior_packet_overlaps':binding['exact_prior_packet_overlaps'],'additional_recognized_context':ref(extra),'personal_reading':'Personally read all31 complete reports, in five groups of five and a final group of six; authored every one of372 target states/evidence/reasons. Code only packages explicit choices and validates provenance/quotes.','first_reader_and_current_boundary':'First wording006 clinical findings and selected current006 annotations were not opened before all372-source freeze. Root aggregate333 notification is recorded, with prior mechanical registry/case exposure disclosed.','chronology_limit':'Timestamps and declared workflow do not independently prove past access order.','source_only_reconsiderations':[],'technical_validation_history':'All372 exact-quotation checks passed before source-assessment creation. No clinical decisions generated by helper.'})
+validation=write('validation.json',{'agent_id':AG,'reports':31,'judgments':372,'target_order':TARGETS,'all_original_filehash_index_uid_fullreport_utf8_bindings_valid':True,'all372_exact_contiguous_or_missing_empty_quotes':True,'all372_individual_reasons_authored':True,'rubric':rub,'canonical_source_context':ref(context),'known_prior_neutral_overlap_reports':2,'checks':checks,'first006_selected_current006_gold_unopened_in_this_pass':True})
+freeze=write('source-freeze.json',{'stage':'qualified_negation_focused006_second_reader_full_source_31_reports_372_targets_v1','agent_id':AG,'session_id':AG,'identity_note':'Actual canonical collaboration agent/session identity; no fabricated UUID.','frozen_at_utc':datetime.now(timezone.utc).isoformat(),'rubric_version':'report-weak-v2.0','rubric':rub,'reports':31,'judgments':372,'target_order':TARGETS,'source_reports_sha256':canonical,'neutral_source_packet_sha256':ref(S/'neutral-source-packet.json')['sha256'],'canonical_source_context':ref(context),'neutral_source_packet':ref(S/'neutral-source-packet.json'),'source_and_exposure_bindings':ref(S/'source-bindings-and-exposure.json'),'completed_exposure_and_chronology':ref(chron),'assessment':ref(assessment),'validation':ref(validation),'authored_helpers':[ref(p) for p in helpers],'packaging_helper':ref(Path(__file__)),'state_counts':dict(Counter(x[0] for r in rows.values() for x in r)),'authorship':'I personally read all31 complete original reports and authored all372 target judgments before first006/current selected006 findings. No first-ever blinding claim; prior source/technical/clinical and registry-process exposures disclosed.','timestamps_do_not_prove_historical_access_order':True,'no_repository_registry_runtime_gold_or_global_qa_changes':True,'unintegrated_source_opinions_only':True})
+files=[ref(p) for p in sorted(S.rglob('*')) if p.is_file() and '__pycache__' not in p.parts];m=write('final-file-list.json',{'agent_id':AG,'files':files,'self_excluded':True});assert all(ref(W/e['path'])==e for e in obj(m)['files'])
+print(json.dumps({'freeze':ref(freeze),'assessment':ref(assessment),'validation':ref(validation),'manifest':ref(m),'reports':31,'judgments':372},indent=2))

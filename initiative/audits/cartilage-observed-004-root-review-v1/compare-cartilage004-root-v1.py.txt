@@ -1,0 +1,37 @@
+"""Compare previously frozen personal judgments with both readers and actual333."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';A=W/'work/annotation-staging';G=A/'cartilage-observed-004-root-review-v1';S=A/'cartilage-observed-004-independent-postfreeze-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+read=lambda p:json.loads(p.read_text())
+ref=lambda p:dict(path=str(p.relative_to(W)),sha256=sha(p))
+freeze=G/'complete-source-assessment-frozen.json';assert sha(freeze)=='f5c7dc791dca33f73f8b9db4f943030d6fb47ac8ff16c72d38a9dba96e56bbb9'
+root={ (r['study_uid'],t):dict(state=st,evidence=q,reason=r['notes']) for r in read(freeze)['records'] for t,st,q in zip(r['target_order'],r['states'],r['evidence'])}
+reg=R/'initiative/reviews-v2/adjudications/registry.json';assert sha(reg)=='5700efd92b500dbb0470ab79e44020c8be830c0f5f84459fef0b418478d96de0'
+accepted={}
+for b in read(reg)['cases']:
+ p=R/b['path'];assert sha(p)==b['sha256']
+ for c in read(p)['changes']:
+  key=c['study_uid'],c['target'];assert key not in accepted;accepted[key]=c
+assert len(accepted)==333
+proposals=read(S/'unintegrated-proposals.json')['records'];proposalmap={(r['study_uid'],r['target']):r for r in proposals};assert len(proposalmap)==len(proposals)==28
+out=[];reviewfiles={};overlap=0;drift=0
+for r in read(S/'second-complete-dispositions.json')['records']:
+ key=r['study_uid'],r['target'];source=R/r['source_path'];assert sha(source)==r['source_sha256'];report=read(source)[r['source_index_zero_based']];assert report['study_uid']==r['study_uid']
+ rp=W/r['original_review']['path'];assert sha(rp)==r['original_review']['sha256']
+ if rp not in reviewfiles:reviewfiles[rp]={x['study_uid']:x for x in map(json.loads,rp.read_text().splitlines())}
+ review=reviewfiles[rp][r['study_uid']];idx=['Medial OA','Lateral OA','PF OA'].index(r['target'])+4
+ original=dict(state=review['states'][idx],evidence=review['evidence'][idx]);assert original==r['original']
+ current=accepted[key]['after'] if key in accepted else original;overlap+=int(key in accepted);drift+=int(current!=r['current_effective'])
+ prop=proposalmap.get(key)
+ if prop:assert prop['before_current']==current
+ out.append(dict(case=r['case'],study_uid=r['study_uid'],target=r['target'],source_path=r['source_path'],source_sha256=r['source_sha256'],source_index_zero_based=r['source_index_zero_based'],root_frozen=root.get(key),first_postfreeze=r['first_postfreeze'],second_postfreeze=r['second_postfreeze'],current333=current,second_proposal=prop))
+assert len(out)==150 and sum(r['root_frozen'] is not None for r in out)==117 and overlap==drift==0
+p=G/'root-postfreeze-comparison.json'
+d=dict(stage='root_postfreeze_actual333_comparison',agent_id='/root',at_utc=datetime.now(timezone.utc).isoformat(),root_freeze=ref(freeze),registry=ref(reg),second_dispositions=ref(S/'second-complete-dispositions.json'),second_proposals=ref(S/'unintegrated-proposals.json'),selected_cells=150,root_source_frozen_cells=117,current333_overlap_cells=overlap,drift_from_second205=drift,records=out,training_ready=False)
+with p.open('x') as f:f.write(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps(dict(comparison_sha256=sha(p),selected_cells=150,root_cells=117,overlap=overlap,drift=drift)))
+for r in out:
+ if r['root_frozen'] and (r['root_frozen']['state']!=r['second_postfreeze']['state'] or r['first_postfreeze']['state']!=r['second_postfreeze']['state']):
+  print(json.dumps(dict(case=r['case'],target=r['target'],root=r['root_frozen'],first=r['first_postfreeze'],second=r['second_postfreeze'],current=r['current333']),ensure_ascii=False))

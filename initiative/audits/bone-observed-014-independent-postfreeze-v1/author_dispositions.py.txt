@@ -1,0 +1,164 @@
+"""Actual second bone014 clinical comparison, individually reasoned after source freeze.
+No acceptance, registry mutation or global semantic clearance is performed.
+"""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib,json,sys,shutil
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered'
+F=W/'work/annotation-staging/bone-observed-014-independent-review-v1'
+A=W/'work/annotation-staging/bone-observed-014-source-review-v1'
+B=W/'work/annotation-staging/bone-observed-014-postfreeze-v1'
+AGENT='/root/duplicate_consistency_review'
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'size_bytes':p.stat().st_size}
+def save(n,x):
+ p=S/n;p.parent.mkdir(exist_ok=True,parents=True)
+ with p.open('x') as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+def cellcheck(c,text):
+ assert c['state'] in {'positive','negative','uncertain','not_mentioned'}
+ assert c['evidence']=='' if c['state']=='not_mentioned' else bool(c['evidence']) and c['evidence'] in text
+assert shutil.disk_usage(W).free>20*2**30
+assert sha(F/'source-assessment-frozen.json')=='ddd68556fc37297375b95c15a59d6f42d3ca8327de3cb2e7811e12e4dfa4c732'
+assert sha(F/'source-phase-manifest.json')=='7ed42be9d044bb5331f9e15486c90bae62122edbbbab5edb933aec2ac6feaa3e'
+assert sha(A/'neutral-source-packet.json')=='69966c862f025d3667266f7ab61b9aeec5c0b90d9ae473da1c0d556a45465bb6'
+assert sha(A/'source-freeze.json')=='6f77f8ce4fed18ae7d09c202d4fda858d6098b7b1f739029da54ac03b1ddf6b7'
+assert sha(B/'completion-manifest.json')=='33a31520b000b400ce8f4b72939dd59e82d93e15d551fe27b74b203ede66c781'
+protected=read(S/'original-source-provenance-bindings.json')
+refs=protected['files']+protected['source_phase_protected_files']+read(B/'completion-manifest.json')['files']+[ref(B/'completion-manifest.json')]
+for p in refs:
+ raw=(W/p['path']).read_bytes();assert hashlib.sha256(raw).hexdigest()==p['sha256'] and len(raw)==p.get('size_bytes',p.get('bytes'))
+comparison=read(S/'all100-original-current-source-comparison.json');rows=comparison['records']
+firstrows=[json.loads(l) for l in (A/'source-assessment-frozen.jsonl').read_text().splitlines()]
+first={(r['study_uid'],t):dict(state=r['states'][j],evidence=r['evidence'][j],rationale=r['rationales'][j]) for r in firstrows for j,t in enumerate(r['target_order'])}
+firstdis={(r['study_uid'],r['target']):r for r in read(B/'all100-postfreeze-dispositions.json')['records']}
+props=read(B/'proposed-errata.json')['proposed_errata'];propmap={(r['ordinal'],r['target']):r for r in props}
+packet=read(A/'neutral-source-packet.json')['reports'];texts={r['study_uid']:r['report'] for r in packet}
+assert len(rows)==100 and len(packet)==50 and len(first)==100
+assert set(propmap)=={(3,'Contusion'),(12,'Fracture'),(32,'Fracture'),(33,'Contusion'),(36,'Contusion'),(36,'Fracture'),(42,'Contusion'),(48,'Contusion')}
+base={k:comparison[k] for k in ['schema_version','assessor_agent_id','session_id','source_freeze','current_inspection','active_corrections','registry_sha256','rubric_sha256','source_reports_sha256']}
+base.update(agent_id=AGENT,review_role='SECOND bone014 source assessor and separate postfreeze comparison',completed_at_utc=datetime.now(timezone.utc).isoformat(),first_assessor_agent_id='/root/quality_temporal_review',first_source_freeze=ref(A/'source-freeze.json'),first_source_assessment=ref(A/'source-assessment-frozen.jsonl'),first_proposals=ref(B/'proposed-errata.json'),first_postfreeze_dispositions=ref(B/'all100-postfreeze-dispositions.json'),neutral_source_packet=ref(A/'neutral-source-packet.json'),status='second_source_assessment_complete_pending_root_adjudication',gold_inspected=False,registry_mutated=False,global_qa_closed=False,accepted_changes=[])
+assert base['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+# Explicitly authored state reconsiderations: retain each actual frozen judgment alongside this change.
+RECON={
+(12,'Fracture'):'I reconsider my frozen positive after rereading the complete source and the first reader rationale. The displaced osteochondral fractures and large lipohemarthrosis establish a fracture diagnosis and suggest a recent injury, but my positive supplied acute timing by inference. No injury date or explicit acute characterization is stated. Under the frozen report criterion I now retain uncertainty about timing; neither osteochondral subtype nor fluid content creates a separate exception.',
+(14,'Fracture'):'I reconsider my positive timing inference. The hairline subchondral fracture, underlying marrow edema, extensive ligament ruptures and soft-tissue swelling strongly support traumatic injury, but the indication only asks to assess ligament injury and does not date it. These associated findings do not expressly establish acute fracture timing. The first reader uncertain judgment and current mask are retained, with the definite fracture morphology preserved.',
+(32,'Fracture'):'I reconsider positive. My frozen judgment inferred acute timing from lipohemarthrosis accompanying the repeated tibial fracture diagnosis. The complete short Spanish source gives neither an acute adjective nor dated injury context. I retain the definite fracture diagnosis but mask its unresolved acute criterion rather than using associated fluid to supply missing chronology.',
+(36,'Contusion'):'I reconsider positive after rereading the full Turkish report. The specific tibial contusion is separate from the femoral fracture and would support positive in isolation, but the later unqualified statement that cartilage and bones are normal conflicts with it. I had acknowledged this same contradiction for Fracture and failed to carry it into Contusion. There is no explicit otherwise limitation allowing me to delete the normal-bones clause. I now preserve uncertainty and the exact conflicting span.',
+(42,'Contusion'):'I reconsider positive after the full Bulgarian reread. The body explicitly names a small medial femoral contusional edema, separate from the fibular fracture. The conclusion names the fibular fracture and then denies other pathological changes in the knee. It is ambiguous whether other means all body-listed findings or only the conclusion-listed fracture. My positive silently treated the body contusion as an exception. I now preserve that unresolved contradiction as uncertain, without introducing a size threshold for contusion.',
+(42,'Fracture'):'I reconsider positive. The transverse fibular fracture line with marked surrounding marrow edema establishes an active reported stress fracture, but edema does not explicitly date it as acute. The complete source contains no acute characterization or injury chronology. I retain the current uncertain mask for missing timing, without excluding the stress subtype itself.',
+(45,'Fracture'):'I reconsider positive. The displaced fibular-head avulsion, nearby soft-tissue edema and posttraumatic PLC findings establish injury morphology and cause, but the complete Greek report supplies no acute timing or dated trauma history. I had converted that trauma context into chronology. I now retain the existing uncertain mask and the documented avulsion rather than inventing a timing statement.'}
+SUPPORT={
+(12,'Fracture'):RECON[(12,'Fracture')],
+(32,'Fracture'):RECON[(32,'Fracture')],
+(33,'Contusion'):'I support the first proposal while retaining my independently frozen not_mentioned state. The full report describes a specifically nonacute cortical impaction/depression with cartilage loss, but no marrow edema or contusion assessment. The separate edema is soft tissue around a ruptured Baker cyst. Structural injury alone is not an informative current marrow finding. Empty evidence and not_mentioned preserve the existing zero loss mask.',
+(36,'Contusion'):RECON[(36,'Contusion')],
+(36,'Fracture'):'I support this evidence-only expansion and explicitly reconsider my own shorter evidence choice. My frozen uncertain rationale already identified both unstated acuity and the discordant normal-bones clause, but its selected quotation showed only the affirmative injury. The proposed exact contiguous span includes both sides of the contradiction. The state and zero mask remain unchanged; the full original report and my initial quote remain preserved.',
+(42,'Contusion'):RECON[(42,'Contusion')]}
+DISPUTE={
+(3,'Contusion'):'I retain my independently frozen negative after rereading the complete report and first rationale. Here no focal bone marrow edema is a direct survey for discrete marrow injury without a severity qualifier such as significant, and no conflicting marrow abnormality is reported. I interpret focal as describing the sought marrow lesion rather than limiting the survey to one named anatomical region. The first reader instead regards diffuse injury as unexcluded. That narrower-scope reading is preserved as unresolved; I do not diagnose or rule out a hypothetical diffuse process from images and no current annotation is changed.',
+(48,'Contusion'):'I retain my independently frozen negative. The osseous section directly states no focal osseous contusion, with no contradictory marrow finding, and separately finds no recent pivot-shift mechanism. My negative rests on the direct contusion denial, not the mechanism sentence or absence of trauma history. I read focal as the morphology of the excluded contusion rather than a severity threshold. The first reader interprets the focal wording as insufficient to exclude diffuse contusion; this genuine extraction-scope disagreement remains pending root review.'}
+ADDITIONAL={(44,'Contusion'):'I retain my independently frozen not_mentioned and propose that masked-to-masked distinction for root review. The complete report contains no marrow edema, marrow signal, bone bruise or contusion assessment. No subchondral bone lesion occurs next to preserved PF cartilage and supplies a local structural exclusion, not a marrow-specific statement. The first reader reasonably treats this as an informative but incomplete osseous assessment and retains uncertain. I preserve that disagreement instead of converting it into either global contusion absence or positive injury; empty evidence represents missing target-specific information.'}
+QUOTE={
+(0,'Fracture'):'The current quote includes the exact qualified fracture denial; the preceding tibial-translation clause does not obscure it. Retain the adequate current evidence.',
+(14,'Contusion'):'The current quote explicitly identifies the medial tibial plateau bruise, a site distinct from the lateral plateau fracture. The longer source quote adds other injuries but is not required to establish this separate focus.',
+(28,'Contusion'):'The current long contiguous quote includes preserved marrow in medial, lateral and PF compartments. Its meniscal contusion wording concerns a different tissue and does not negate the marrow statements. Shortening is optional, not a correction.',
+(40,'Contusion'):'The current exact span includes both opposing patellar/femoral marrow edema and the final dislocation-relocation interpretation, preserving the causal context. Additional neighboring conclusions do not impair the evidence.',
+(41,'Contusion'):'The current quote directly identifies edema as osseous contusions at the two named sites. Adding the adjacent negative fracture sentence is unnecessary because no competing fracture is described.',
+(45,'Contusion'):'The current quote explicitly attributes the medial femoral/tibial marrow edema to posttraumatic bone bruises, separate from the fibular avulsion. Adding lesser lateral edema is not necessary for the target positive.',
+(46,'Contusion'):'The current long exact quote includes normal marrow in all three compartments. Its later soft-tissue findings do not alter that scope; shortening is optional.'}
+allrows=[];recons=[];quote_dispositions=[]
+for r in rows:
+ k=(r['packet_ordinal'],r['target']);u=(r['study_uid'],r['target']);other=firstdis[u];fr=next(q for q in firstrows if q['study_uid']==r['study_uid'])
+ assert r['original']==other['original'] and r['current_effective']==other['current_effective']
+ for field,otherfield in [('source_path','source_path'),('index','source_index_zero_based'),('source_sha256','source_sha256'),('report_sha256','report_sha256')]:
+  assert r[field]==other[otherfield]==fr[otherfield]
+ own=dict(r['source_frozen']);reason=r['source_rationale'];action='retain_current_annotation'
+ if k in RECON:
+  own['state']='uncertain';reason=RECON[k];action='retain_current_mask_after_own_reconsideration'
+ if k in SUPPORT:
+  p=propmap[k];own={'state':p['proposed_state'],'evidence':p['source_quote']};reason=SUPPORT[k];action='support_first_proposal_pending_root_adjudication'
+ elif k in DISPUTE:reason=DISPUTE[k];action='disagree_with_first_proposal_retain_current_pending_root'
+ elif k in ADDITIONAL:reason=ADDITIONAL[k];action='additional_masked_scope_proposal_disputed_pending_root'
+ if k in QUOTE:quote_dispositions.append(dict(packet_ordinal=k[0],study_uid=r['study_uid'],target=k[1],current=r['current_effective'],source_frozen=r['source_frozen'],decision='retain_adequate_current_quote',reason=QUOTE[k]))
+ for c in [r['original'],r['current_effective'],r['source_frozen'],first[u],other['first_postfreeze_judgment'],own]:cellcheck(c,texts[r['study_uid']])
+ out=dict(r,first_source_frozen=first[u],first_postfreeze=other['first_postfreeze_judgment'],first_reader_action=other['action'],independent_postfreeze=own,independent_postfreeze_rationale=reason,action=action,source_state_reconsidered=k in RECON,source_evidence_reconsidered=own['evidence']!=r['source_frozen']['evidence'],source_freeze_states_agree=first[u]['state']==r['source_frozen']['state'],postfreeze_reader_states_agree=other['first_postfreeze_judgment']['state']==own['state'],current_report_observation_mask=int(r['current_effective']['state'] in ('positive','negative')),suggested_report_observation_mask=int(own['state'] in ('positive','negative')))
+ allrows.append(out)
+ if k in RECON or k==(36,'Fracture'):recons.append(dict(out,reconsideration_kind='state' if k in RECON else 'evidence_only',previous_source_freeze_preserved=True))
+bykey={(r['packet_ordinal'],r['target']):r for r in allrows}
+assessments=[];supported=[];disputed=[]
+for p in props:
+ k=(p['ordinal'],p['target']);r=bykey[k]
+ assert r['study_uid']==p['study_uid'] and r['original']=={'state':p['original_state'],'evidence':p['original_evidence']}
+ assert r['current_effective']=={'state':p['before_state'],'evidence':p['before_evidence']}==r['original'] and r['current_correction_case'] is None
+ assert r['source_sha256']==p['source_sha256'] and r['original_review_sha256']==p['artifact_sha256'] and r['report_sha256']==p['source_report_sha256'] and r['index']==p['index']
+ cellcheck({'state':p['proposed_state'],'evidence':p['source_quote']},texts[p['study_uid']])
+ agree=k in SUPPORT
+ item=dict(packet_ordinal=k[0],study_uid=p['study_uid'],target=p['target'],source_path=p['source_path'],source_sha256=p['source_sha256'],source_report_sha256=p['source_report_sha256'],artifact_path=p['artifact_path'],artifact_sha256=p['artifact_sha256'],original_state=p['original_state'],original_evidence=p['original_evidence'],proposed_state=p['proposed_state'],source_quote=p['source_quote'],assessment='agree_with_source_supported_proposal' if agree else 'disagree_pending_root_source_adjudication',independent_source_assessment=dict(r['independent_postfreeze'],rationale=r['independent_postfreeze_rationale']),reason=r['independent_postfreeze_rationale'],source_freeze_state=r['source_frozen']['state'],own_state_reconsidered=r['source_state_reconsidered'],proposer_agent_id='/root/quality_temporal_review',assessor_agent_id=AGENT,assessor_session_id=AGENT,root_adjudication_pending=True,registration_performed=False)
+ assessments.append(item)
+ cp=dict(p,second_assessor_agent_id=AGENT,second_assessor_reason=r['independent_postfreeze_rationale'],source_first_state_agreement=r['source_freeze_states_agree'],accepted=False,status='supported_by_distinct_second_reader_pending_root_adjudication' if agree else 'unresolved_distinct_reader_scope_disagreement_pending_root')
+ (supported if agree else disputed).append(cp)
+additional=[]
+for k,reason in ADDITIONAL.items():
+ r=bykey[k];additional.append(dict(ordinal=k[0],study_uid=r['study_uid'],target=k[1],source_path=r['source_path'],source_sha256=r['source_sha256'],source_report_sha256=r['report_sha256'],index=r['index'],artifact_path=r['original_review_path'],artifact_sha256=r['original_review_sha256'],original_state=r['original']['state'],original_evidence=r['original']['evidence'],before_state=r['current_effective']['state'],before_evidence=r['current_effective']['evidence'],proposed_state=r['independent_postfreeze']['state'],source_quote=r['independent_postfreeze']['evidence'],reason=reason,kind='state_correction',proposer_agent_id=AGENT,source_freeze=ref(F/'source-assessment-frozen.json'),first_reader_state=r['first_postfreeze']['state'],first_reader_rationale=r['first_postfreeze']['rationale'],existing_accepted_key_overlap=False,accepted=False,status='unresolved_distinct_reader_scope_disagreement_pending_root'))
+assert sum(r['source_freeze_states_agree'] for r in allrows)==90 and sum(r['postfreeze_reader_states_agree'] for r in allrows)==97
+assert len(supported)==6 and len(disputed)==2 and len(additional)==1 and len(recons)==8
+save('all100-independent-postfreeze-dispositions.json',dict(base,records=allrows))
+save('independent-source-assessment.json',dict(base,records=assessments,n_first_proposals=8,n_supported_first_proposals=6,n_disputed_first_proposals=2))
+save('supported-proposed-errata.json',dict(base,proposer_agent_id='/root/quality_temporal_review',proposed_errata=supported,n_proposals=6,n_state_changes=5,n_evidence_changes=1))
+save('disputed-first-proposed-errata.json',dict(base,proposed_errata=disputed,n_proposals=2))
+save('additional-proposed-errata.json',dict(base,proposer_agent_id=AGENT,proposed_errata=additional,n_proposals=1,n_state_changes=1,n_evidence_changes=0,all_unresolved=True))
+save('own-reconsiderations.json',dict(base,records=recons,n_reconsiderations=8,n_state_reconsiderations=7,n_evidence_only_reconsiderations=1,original_freeze_unchanged=True))
+disagreements=[r for r in allrows if not r['postfreeze_reader_states_agree']]
+save('unresolved-disagreements.json',dict(base,records=disagreements,n_unresolved_reader_to_reader=3,acceptance_claimed=False))
+save('adequate-current-quote-dispositions.json',dict(base,records=quote_dispositions,n_retained_adequate_current_quote_differences=7,two_other_initial_same_state_quote_differences_became_state_proposals=[[12,'Fracture'],[32,'Fracture']]))
+# Technical study exclusions are checked separately; no official labels are read.
+cp=R/'initiative/audits/correspondence-release-registry.json';policyrefs=[];selectedpolicies=[]
+for p in read(cp)['policies']:
+ path=R/p['path'];assert sha(path)==p['sha256'];policyrefs.append(ref(path));selectedpolicies += [r for r in read(path)['records'] if r['study_uid'] in texts]
+assert not selectedpolicies
+refs += [ref(cp)]+policyrefs
+save('selected-correspondence-policy-check.json',dict(base,correspondence_registry=ref(cp),policies=policyrefs,selected_records=[],selected_whole_study_exclusions=0,all_existing_policies_preserved=True))
+masked=[r for r in allrows if not r['current_report_observation_mask']];assert len(masked)==26
+assert all(r['suggested_report_observation_mask']==0 for r in masked)
+save('retained-masks-and-export-requirements.json',dict(base,n_current_masked_cells=26,records=[dict(study_uid=r['study_uid'],target=r['target'],current=r['current_effective'],independent_postfreeze=r['independent_postfreeze'],required_current_report_loss_mask=0,action=r['action'],reason=r['independent_postfreeze_rationale']) for r in masked],supported_pending_impacts={'observed_to_masked':4,'masked_to_masked':1,'masked_state_unchanged_evidence_only':1},additional_pending_impacts={'masked_to_masked':1},disputed_first_impacts_if_root_later_accepts={'observed_to_masked':2},requirement='All26 current uncertain/not-mentioned cells retain zero report loss. Pending changes and reader disagreements do not change annotations or exports. Four supported observed-to-masked proposals remain unapplied. No masked cell is proposed to become observed.'))
+# Full attention union includes proposals, disagreements, both readers' evidence differences,
+# all current masked cells and any actual reconsideration. Selection never adjudicates.
+attention=[]
+for r in allrows:
+ k=(r['packet_ordinal'],r['target']);reasons=[]
+ if k in propmap:reasons.append('first_proposal')
+ if k in ADDITIONAL:reasons.append('additional_second_proposal')
+ if not r['postfreeze_reader_states_agree']:reasons.append('unresolved_reader_state_disagreement')
+ if not r['source_freeze_states_agree']:reasons.append('frozen_reader_state_difference')
+ if r['source_state_reconsidered'] or k==(36,'Fracture'):reasons.append('second_reconsideration')
+ if r['source_frozen']['evidence']!=r['current_effective']['evidence'] or r['first_source_frozen']['evidence']!=r['source_frozen']['evidence'] or r['first_postfreeze']['evidence']!=r['source_frozen']['evidence']:reasons.append('quote_difference')
+ if not r['current_report_observation_mask']:reasons.append('retained_current_mask')
+ if reasons:attention.append(dict(packet_ordinal=k[0],study_uid=r['study_uid'],target=k[1],reasons=reasons))
+ordinals=sorted({r['packet_ordinal'] for r in attention});neutralrefs=[]
+for start in range(0,len(ordinals),10):
+ selected=[packet[i] for i in ordinals[start:start+10]]
+ n=f'neutral-root-source-packets/packet-{start//10:03d}.json'
+ save(n,{'schema_version':1,'scope':'Complete original source-only packet for root preread. No current/proposed states, selected quotes or clinical rationales.','source_reports_sha256':base['source_reports_sha256'],'rubric_sha256':base['rubric_sha256'],'neutral_parent_packet':ref(A/'neutral-source-packet.json'),'reports':selected})
+ neutralrefs.append(ref(S/n))
+ for r in selected:
+  assert set(r)=={'study_uid','source_path','source_sha256','source_index_zero_based','report_sha256','report'}
+  src=read(R/r['source_path'])[r['source_index_zero_based']]
+  assert src['study_uid']==r['study_uid'] and src['report']==r['report'] and sha(R/r['source_path'])==r['source_sha256'] and hashlib.sha256(r['report'].encode()).hexdigest()==r['report_sha256']
+save('neutral-root-packet-manifest.json',dict(schema_version=1,agent_id=AGENT,scope='Source-only attention packet index; clinical selection details stored separately.',source_reports_sha256=base['source_reports_sha256'],neutral_parent_packet=ref(A/'neutral-source-packet.json'),reports=len(ordinals),packets=neutralrefs))
+save('attention-selection-details.json',dict(base,records=attention,attention_reports=len(ordinals),attention_ordinals=ordinals,neutral_packet_manifest=ref(S/'neutral-root-packet-manifest.json')))
+save('first-reader-artifact-bindings.json',dict(base,files=read(B/'completion-manifest.json')['files']+[ref(B/'completion-manifest.json')],clinical_access_order='All50 full reports and100 second source judgments were frozen and the source-phase receipt was sent to root before first014/current014 access. The first014 completion manifest was validated before the comparison. Earlier discovery, exact-source overlaps and opaque publication-byte exposure are preserved in the frozen historical-exposure file. Both source phases remain unchanged.',historical_exposure=ref(F/'historical-exposure.json')))
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+reports={r['study_uid']:r['report'] for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for r in read(p)}
+fresh=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert fresh==read(S/'current-registry-inspection.json') and fresh['n_changes']==333 and len(fresh['pending_semantic_qa'])==3
+for p in refs:assert sha(W/p['path'])==p['sha256']
+assert not any(r['current_correction_case'] for r in allrows)
+assert all(r['current_effective']==r['original'] for r in allrows)
+counts={'complete_reports':50,'compared_cells':100,'initial_source_state_agreement_between_readers':90,'postfreeze_state_agreement_between_readers':97,'own_state_reconsiderations':7,'own_evidence_only_reconsiderations':1,'first_proposals_assessed':8,'supported_first_proposals':6,'supported_state_changes':5,'supported_evidence_changes':1,'disputed_first_proposals':2,'additional_proposals':1,'unresolved_reader_scope_disagreements':3,'current_masked_cells':26,'pending_own_postfreeze_current_state_differences':6,'selected_accepted_key_overlap':0,'neutral_attention_cells':len(attention),'neutral_attention_reports':len(ordinals),'neutral_attention_packets':len(neutralrefs)}
+save('validation-and-preservation.json',dict(base,counts=counts,all100_compared=True,all100_original_current_both_reader_bindings_exact=True,all_nonmissing_evidence_exact_contiguous_substrings=True,all_not_mentioned_evidence_empty=True,all_source_phase_and_first_reader_artifacts_preserved=True,actual_current333_inspection_replayed=True,selected100_first333_baseline_drift=0,all3_global_qa_pending=fresh['pending_semantic_qa'],all_current_masks_preserved=True,source_first_claim_limited_to_current_stage_not_first_ever_blindness=True,proposals_not_acceptance=True,canonical4407_fingerprint_separate_from_packet_hash=True,remote_calls=0,R_writes=False,disk_free_bytes=shutil.disk_usage(W).free))
+save('postfreeze-disposition-freeze.json',dict(base,counts=counts,files=[ref(S/n) for n in ['all100-independent-postfreeze-dispositions.json','independent-source-assessment.json','supported-proposed-errata.json','disputed-first-proposed-errata.json','additional-proposed-errata.json','own-reconsiderations.json','unresolved-disagreements.json','adequate-current-quote-dispositions.json','retained-masks-and-export-requirements.json','validation-and-preservation.json']],scope='Immutable second bone014 postfreeze dispositions; no acceptance or global clearance.'))
+save('completion-manifest.json',dict(schema_version=1,agent_id=AGENT,session_id=AGENT,review_role='SECOND bone014',completed_at_utc=datetime.now(timezone.utc).isoformat(),counts=counts,source_phase_manifest=ref(F/'source-phase-manifest.json'),files=[ref(p) for p in sorted(S.rglob('*')) if p.is_file()]))
+print(json.dumps({'counts':counts,'assessment':ref(S/'independent-source-assessment.json'),'supported':ref(S/'supported-proposed-errata.json'),'additional':ref(S/'additional-proposed-errata.json'),'neutral_index':ref(S/'neutral-root-packet-manifest.json'),'validation':ref(S/'validation-and-preservation.json'),'disposition_freeze':ref(S/'postfreeze-disposition-freeze.json'),'completion':ref(S/'completion-manifest.json')}))

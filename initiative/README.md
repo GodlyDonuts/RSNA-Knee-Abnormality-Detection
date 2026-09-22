@@ -9,16 +9,17 @@ from a clone of this repository.
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
-The current registry contains **333 active accepted target corrections** and
-18 enforced report-supervision exclusions. Cartilage003 adds 47 independently
-accepted changes: 30 positives and 12 negatives become uncertain, and five
-quotations gain needed supporting context. All 286 prior corrections and the
-three earlier retirements remain unchanged. Three global semantic QA gates and
-final leakage, mask, manifest and training checks remain open. Twenty-four
-unresolved correspondence cases must retain zero report-loss masks.
+The current registry contains **358 active accepted target corrections** and
+18 enforced report-supervision exclusions. Cartilage004 adds 25: 17 positives and
+five negatives become uncertain, and three quotations gain needed context.
+Three other proposed changes were rejected with current annotations retained.
+All 333 earlier corrections and the three earlier retirements remain unchanged.
+Three global semantic QA gates and final leakage, mask, manifest and training
+checks remain open. Twenty-four unresolved correspondence cases must retain zero
+report-loss masks.
 
-The most recent verified private publication contains 286 corrections and 8,211
-restorable Git files at Git `76d2c274` / HF `543c2d84`. The 333 milestone needs its
+The most recent verified private publication contains 333 corrections and 8,651
+restorable Git files at Git `dc806961` / HF `0f7134a6`. The 358 milestone needs its
 own verified publication receipt. After data readiness, the owner's expanded
 mission requires competitive training research and an experiment plan; see
 [mission-and-training-plan.md](../docs/mission-and-training-plan.md).

@@ -6,53 +6,61 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Latest verified checkpoint
 
-The local registry contains **333 active accepted corrections**. Cartilage003
-adds 47 independently accepted second-reader proposals after root read 38 complete
-neutral attention reports and froze 114 OA judgments. Thirty positive and twelve
-negative annotations become uncertain. Five quotations change while preserving
-state: two bind compartment headings, one binds normal remaining cartilage, and
-two bind qualitative extent or the report's own depth definition. All 286 previous
-changes and the earlier three retirements remain unchanged.
+The local registry contains **358 active accepted corrections**. Cartilage004
+adds 25 after root read 39 complete neutral attention reports and froze 117 OA
+judgments. Seventeen positives and five negatives become uncertain; three
+quotations gain anatomy or a report-local depth calibration. Nine root state
+reconsiderations are explicit. Three second-reader proposed changes were rejected:
+068:09 lateral and 080:08 lateral retain negative; 069:22 lateral retains
+not-mentioned. All 333 previous corrections and three retirements remain unchanged.
 
-`cartilage-observed-003-integration-v1/complete333-integration-validation.json`
-reconciles all 114 final root states and all 47 new quotes. The 54 normalized
-identical-report groups / 204 reports retain zero conflicts. Four actual root
-reconsiderations are explicit: two withdraw unsupported region-size inferences
-from named locations, and two withdraw whole-compartment negatives from limited
-scope. Root supports all 39 first-reader proposed states through the accepted
-second proposals and resolves three remaining first/second disagreements in favor
-of preserved uncertainty. Both original readings, every source freeze and all
-reconsiderations remain unchanged. The actual author normalized the proposal with
-the recomputed canonical all-4,407 fingerprint; its neutral-packet hash is separate.
+`cartilage-observed-004-integration-v1/complete358-integration-validation.json`
+reconciles all 117 final states and 25 new quotes. The 54 identical-report groups /
+204 reports retain zero conflicts. All 21 first-reader proposed states are
+supported via the accepted second proposals. All 28 original second proposals,
+the separate root assessment, three rejections and actual-author normalization
+remain bound and preserved. All 150 selected cells were replayed against 333 with
+zero overlap or drift from the historical 193/205 comparisons.
+
+The source-bound terminology check distinguishes named ICRS definitions, source-
+local calibration and explicit morphology inferences. It records primary-source
+references and their retrieval limitations. It does not establish a universal
+center-specific mapping for unnamed grades, infer region size from bone cysts,
+or add a two-axis size requirement. Preserve all contrary initial judgments.
 
 The most recent verified publication is Git
-`76d2c274c0b7b00e4680a1e409575ebf317224fc` / private HF
-`543c2d84d62fabb14cc07255de7e5bc056850f5e`: 286 corrections and 8,211 files,
-restored exactly by two independent streaming checks. The new 333 milestone needs
-its own separate verified publication receipt. Do not infer synchronization from
-local integration. Three global semantic QA gates and final release checks remain
-open; no corrected training export has been made.
+`dc806961fb99cdbaa5da2e6c9a9d3ee78e062cc4` / private HF
+`0f7134a61da52222eda7184d0d46488f6c7caea4`: 333 corrections and 8,651 files,
+restored exactly by two independent streaming checks. Its actual receipt is
+preserved in `cartilage003-verified333-publication-v1/`. The new 358 milestone
+needs its own separate verified publication receipt. Three global semantic QA
+gates and final release checks remain open; no corrected export has been made.
 
 Both cartilage readers completed the 260-report priority set. Root adjudications
-000–003 are complete; continue cartilage004 with its complete neutral attention
-sources before opening that batch's reader findings. Qualifying extent may be an
-explicitly broad anatomical region; do not require two measured axes or area in
-square centimeters. Report-internal low/high depth definitions can be used where
-explicit, but preserve their anatomical scope. Do not infer an external grade scale.
+000–004 are complete. Cartilage005 now has all six neutral attention reports /
+18 root source judgments frozen and archived. Continue with reader comparison and
+adjudication; its reader findings have not yet been opened. Qualifying extent can be
+explicitly broad anatomical loss; named locations alone do not necessarily supply
+extent. Report-internal depth definitions must preserve anatomical scope.
 
-Both bone readers have completed 650 selected full-source readings / 1,300 target
-judgments through bone012, now preserved in the v13 archive (28 directories,
-367 files). Bone012 retains a reader disagreement for root; completion does not
-mean acceptance. Bone013 first reading and comparison against333 are complete
-in staging; bone014 first-source reading is underway.
-Wording006 is the final existing focused packet of 31 reports / 372 targets, not
-50 reports; its first source/comparison is complete and its second source pass is
-underway. Wording005's second comparison is complete. Their current staging
-manifests remain the authority for which work has been preserved in the repository.
-Before wording002 root adjudication, freeze its 46 complete neutral attention
-sources. Check actual registry drift for every historical proposal before integration.
-The wording005 first proposal and bone007 second proposal need separate canonical
-source-context normalization before eventual runtime integration; preserve originals.
+Bone first-reader source/comparison coverage is now 800 selected reports / 1,600
+judgments through 015. Independent source/comparison coverage is also 800 reports /
+1,600 judgments through 015. First015 compared against 333; second015 replayed
+against actual358 with preserved historical bindings. All proposals remain pending
+root adjudication. Wording006 has both source/comparison passes complete across
+31 reports / 372 targets, with 19 retained reader state disagreements and 37 second
+proposals. Its root attention comprises all 31 full reports. Older wording002–005
+root attention remains pending; do not substitute archive copying for clinical
+review. Before each root comparison, read and freeze the complete neutral sources.
+
+Snapshot v14 preserves 18 completed evidence directories and 236 original files,
+including both bone013–015 passes, wording006 second review, the independent358
+technical proof and root cartilage005 source freeze. All original bytes and
+completion bindings are checked; copying does not accept the pending proposals.
+
+The wording005 first proposal and bone007 second proposal still need separate
+canonical source-context normalization before eventual runtime integration;
+preserve originals. Rebase every historical proposal against the actual registry.
 
 Storage consolidation preserved every source path and byte using independent APFS
 copy-on-write files. Original data, caches and publication archives were untouched.
@@ -146,7 +154,7 @@ The required report-similarity registry joins 038:44 and 045:15 before transitiv
 gold-neighbor quarantine. Read `docs/report-similarity.md`. The complete final
 label export remains unfinished.
 
-The latest verified private Hugging Face checkpoint is
+The historical 205-correction private Hugging Face checkpoint is
 `a70f15a39afd38a994aedc72af774817bf53647e`, corresponding to Git
 `7c1225e61974c374245c0656edeb0c47f54582c6` (CI35666396114 passed).
 It reconstructs all7179 tracked Git files exactly from the pinned1792 base and
@@ -159,8 +167,8 @@ operation, manifest and both restoration proofs. The base remains HF54949cd5 /
 Git1792f01; use the pinned v2 helper and its exact fixture-aware scan policy.
 
 That immutable checkpoint contains205 active corrections,18 correspondence
-exclusions and the reviewed sampling preference. The current229 active corrections,
-three retirements and newer semantic snapshots require a later verified publication
+exclusions and the reviewed sampling preference. At that stage, the 229 active corrections,
+three retirements and newer semantic snapshots required a later verified publication
 receipt; do not infer synchronization from a Git commit alone. Earlier118 and205
 checkpoints and their original evidence remain immutable.
 The archive also preserves proof that547 staged DICOM copies now share their
@@ -310,7 +318,7 @@ Per-artifact sidecars go to `initiative/reviews-v2/provenance/batch-NNN-{draft|r
 
 ```bash
 python -m rsna.review_progress --inputs initiative/reviews/inputs --root initiative/reviews-v2 --rubric protocols/report_weak_v2.md
-# The following must fail until all 89 batches have both valid passes:
+# All 89 batches now have both valid passes; this checks review coverage only:
 python -m rsna.review_progress --inputs initiative/reviews/inputs --root initiative/reviews-v2 --rubric protocols/report_weak_v2.md --require-complete
 ```
 
