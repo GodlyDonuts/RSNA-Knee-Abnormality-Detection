@@ -1,0 +1,89 @@
+"""Separate read-only verification of packaged originals, differences and overlap."""
+import hashlib,json,shutil,sys
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';D=P.parent
+sys.path.insert(0,str(R))
+from rsna.schema import TARGETS
+
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def check(e):
+ p=W/e['path'];assert sha(p)==e['sha256'];assert 'bytes'not in e or p.stat().st_size==e['bytes']
+def write(name,obj):
+ with(P/name).open('x')as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+ return ref(P/name)
+
+def main():
+ m=read(P/'completion-manifest.json')
+ assert sha(P/'completion-manifest.json')=='e7201b4fa168fd7574eb48d3f284f988b5d3181aa12ef4733d53702cc5f41927'
+ for e in m['files']:check(e)
+ proof=read(P/'validation-and-preservation.json')
+ for e in proof['protected_inputs']:check(e)
+ root=read(W/m['root_source_assessment']['path']);roots={r['study_uid']:r for r in root['records']}
+ assert (P/'root-source-assessment-original.json').read_bytes()==(W/m['root_source_assessment']['path']).read_bytes()
+ comparison=read(P/'all552-root-mechanical-comparison.json');rows=comparison['records']
+ objects=read(P/'bound-original-source-and-review-objects.json')['records']
+ assert len(objects)==46 and len(rows)==552
+ first=read(D/'qualified-negation-focused-002-source-review-v1/source-assessment-frozen.json');fm={r['study_uid']:r for r in first['records']}
+ second=[json.loads(x)for x in(D/'qualified-negation-focused-002-independent-review-v1/independent-assessment.jsonl').read_text().splitlines()];sm={r['study_uid']:r for r in second}
+ secondpost=read(D/'qualified-negation-focused-002-post-freeze-comparison-v1/complete-second-dispositions.json')['records'];sp={(r['study_uid'],r['target']):r for r in secondpost}
+ firstprops={(r['study_uid'],r['target']):r for r in read(D/'qualified-negation-focused-002-source-review-v1/proposed-errata.json')['proposed_errata']}
+ secondprops={(r['study_uid'],r['target']):r for r in read(D/'qualified-negation-focused-002-post-freeze-comparison-v1/unintegrated-proposals.json')['records']}
+ registry=read(R/'initiative/reviews-v2/adjudications/registry.json');manual={}
+ assert sha(R/'initiative/reviews-v2/adjudications/registry.json')==sha(P/'registry362-original.json')==m['current_registry']['sha256']
+ for e in registry['cases']:
+  p=R/e['path'];assert sha(p)==e['sha256'];case=read(p)
+  for c in case['changes']:
+   key=c['study_uid'],c['target'];assert key not in manual;manual[key]=(case['id'],c)
+ assert len(manual)==362
+ byuid={};originals={};quotes=0
+ for o in objects:
+  r=o['root_source_original_object'];uid=r['study_uid'];s=o['full_source_original_object']
+  assert r==roots[uid] and o['first_source_original_object']==fm[uid] and o['second_source_original_object']==sm[uid]
+  assert s['study_uid']==uid and s['source_path']==r['source_path'] and s['source_sha256']==r['source_sha256'] and s['index']==r['source_index_zero_based']
+  p=R/s['source_path'];assert sha(p)==s['source_sha256'];orig=read(p)[s['index']]
+  assert orig=={'study_uid':uid,'report':s['report']}
+  assert hashlib.sha256(s['report'].encode()).hexdigest()==r['report_sha256']
+  byuid[uid]=s['report']
+  z=o['original_review_original_object'];check(z['artifact']);actual=next(q for q in map(json.loads,(W/z['artifact']['path']).read_text().splitlines())if q['study_uid']==uid)
+  assert z['original_object']==actual;originals[uid]=actual
+ assert [(r['study_uid'],r['target'])for r in rows]==[(r['study_uid'],t)for r in root['records']for t in TARGETS]
+ for r in rows:
+  uid,t=r['study_uid'],r['target'];i=TARGETS.index(t);key=(uid,t);rootrow=roots[uid]
+  assert r['root_frozen']=={'state':rootrow['states'][i],'evidence':rootrow['evidence'][i],'report_notes':rootrow['notes']}
+  assert r['first_source_frozen']==fm[uid]['decisions'][i]
+  assert r['second_source_frozen']=={'state':sm[uid]['states'][i],'evidence':sm[uid]['evidence'][i],'reason':sm[uid]['target_reasoning'][i]}
+  assert r['second_disposition_original']==sp[key]
+  assert r['first_postfreeze']==sp[key]['first_postfreeze'] and r['second_postfreeze']==sp[key]['second_postfreeze']
+  assert r['first_proposal_original']==firstprops.get(key) and r['second_proposal_original']==secondprops.get(key)
+  original={'state':originals[uid]['states'][i],'evidence':originals[uid]['evidence'][i]};assert r['original']==original
+  if key in manual:
+   cid,c=manual[key];assert c['before']==original and r['effective_current362']==c['after']
+   assert r['current_registered_case_original']['case_id']==cid and r['current_registered_case_original']['original_change_object']==c
+  else:assert r['effective_current362']==original and r['current_registered_change']is None
+  for name in ['root_frozen','first_source_frozen','second_source_frozen','first_postfreeze','second_postfreeze','original','first_baseline34','second_baseline118','effective_current362']:
+   a=r[name];assert a['state']in{'negative','positive','uncertain','not_mentioned'}
+   if a['state']=='not_mentioned':assert a['evidence']==''
+   else:assert a['evidence']and a['evidence']in byuid[uid];quotes+=1
+  for names,flag in r['mechanical_differences'].items():
+   a,b=names.split('_vs_');assert flag=={'state_differs':r[a]['state']!=r[b]['state'],'evidence_bytes_differ':r[a]['evidence']!=r[b]['evidence'],'same_state_with_different_evidence':r[a]['state']==r[b]['state']and r[a]['evidence']!=r[b]['evidence']}
+  assert r['historical_baseline_differences']=={'first34_to_current362':r['first_baseline34']!=r['effective_current362'],'second118_to_current362':r['second_baseline118']!=r['effective_current362']}
+ counts=comparison['counts']
+ for name,c in counts['pairwise_difference_counts'].items():
+  assert c=={k:sum(r['mechanical_differences'][name][k]for r in rows)for k in c}
+ assert sum(r['current_registered_change']is not None for r in rows)==counts['selected_current_accepted_overlap_cells']==4
+ overlap=read(P/'intervening-accepted-overlap-and-rebase.json')['records'];assert overlap==[r for r in rows if r['current_registered_change']is not None]
+ packets=read(P/'review-packet-index.json')['packets'];emitted=[]
+ for e in packets:
+  check(e);p=read(W/e['path']);assert len(p['full_source_objects'])<=10;emitted.extend(p['records'])
+ assert emitted==rows
+ for e in proof['protected_inputs']:check(e)
+ assert shutil.disk_usage(W).free>=20*1024**3
+ receipt=write('separate-output-verification.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','role':'technical_verifier_only','verified_at_utc':datetime.now(timezone.utc).isoformat(),'original_completion':ref(P/'completion-manifest.json'),'verified_root_reports':46,'verified_root_cells':552,'exact_root_neutral_original_report_index_uid_sha_checks':46,'exact_reader_and_review_original_objects_preserved':True,'manual_registry_case_replay_count':362,'selected_accepted_overlaps':4,'first_and_second_historical_baselines_preserved':True,'all_pairwise_flags_recomputed':True,'nonmissing_quote_checks_across_nine_selected_object_roles':quotes,'protected_input_files_reverified':len(proof['protected_inputs']),'all_five_review_packets_equal_complete552_order':True,'root_source_original_bytes_unchanged':True,'source_and_registry_changed':False,'gold_values_opened':False,'new_clinical_judgments':0,'acceptance_or_qa_closure':False,'verifier':ref(Path(__file__).resolve())})
+ files=[ref(p)for p in sorted(P.rglob('*'))if p.is_file()and'__pycache__'not in p.parts]
+ supplement=write('completion-supplement.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','completed_at_utc':datetime.now(timezone.utc).isoformat(),'original_completion':ref(P/'completion-manifest.json'),'separate_verification':receipt,'files':files,'scope':'Append-only separate verification of packaged exact originals, root neutral reports, all flags and a direct362 case replay. Base completion and every existing output remain unchanged. No clinical opinions authored.','self_excluded':True})
+ for e in files:check(e)
+ print(json.dumps({'supplement':supplement,'verification':receipt,'bound_files':len(files),'protected_inputs':len(proof['protected_inputs'])},indent=2))
+if __name__=='__main__':main()

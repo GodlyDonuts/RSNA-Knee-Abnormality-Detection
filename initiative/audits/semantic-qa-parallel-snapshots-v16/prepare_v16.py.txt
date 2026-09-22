@@ -1,0 +1,120 @@
+"""Metadata-only v16 fixed cutoff; lossless archive representation, no R writes."""
+from pathlib import Path
+from datetime import datetime, timezone
+import gzip, hashlib, json, shutil
+from preserve_v16 import measure, require, check_disk, scanner_factory
+W=Path(__file__).resolve().parents[3]; B=W/'work/annotation-staging'; R=W/'work/recovered'; HERE=Path(__file__).resolve().parent
+OUT=W/'work/semantic-qa-v16-snapshot-pins-final.json'
+AGENT='/root/duplicate_consistency_review'
+A={
+'bone-observed-018-source-review-v1':{'source-freeze.json':'b600ed6be57ca0ac6c90fccb9d172be5e582ec8e9e28d2b7d4578cad0a3d7241'},
+'bone-observed-018-postfreeze-v1':{'completion-manifest.json':'f176cf25b49c76ce5f5163801ded8819382b83937fd69c45ec06d198ebcf63fb'},
+'bone-observed-018-independent-review-v1':{'source-freeze.json':'3932a8c52c9708a3083f7740483647c997a699630cb6c71010a36976920fe532','final-file-list.json':'531161b0adc3f94324a9f01d3a375943e4f64530c21a324e1e46153eac4f271c'},
+'bone-observed-018-independent-postfreeze-v1':{'final-file-list.json':'3d564d90c02986d342676b28795bc967d0ab61cc014837ba45b19179041bd1f5','second-comparison-freeze.json':'9879f1d621e7c784261fb56b6933a4ad886351c7e2cb708cc439eb143f9a239e'},
+'bone-observed-019-source-review-v1':{'source-freeze.json':'c3c9462a7f350562b3bfdbeb928678d3708e02467cbc3eb974810e529332f52c'},
+'bone-observed-019-postfreeze-v1':{'completion-manifest.json':'3ad7cf0e0b3dce055f4d2fc109b3c0ae40ac6a2b8b895f1a3230b03189e718e6'},
+'bone-observed-019-independent-review-v1':{'source-freeze.json':'a2735130b34f214f9103eac4d3db0f26ca9c351dbd657883811247de6eb40516','final-file-list.json':'5267c438c48d2bf71d77f54f7f09812d9b49adfaa578aa14ddfc0b3d5b4d2dbb'},
+'bone-observed-019-independent-postfreeze-v1':{'final-file-list.json':'9e389bf617b8b76e2ddf1b17f947e0057a1c60fcf93a6d132581595b925742c8','second-comparison-freeze.json':'9330928cdee2dc1f5daa4523a9574d3259450e6787a58955d2655ce99b538ef5'},
+'bone-observed-020-source-review-v1':{'source-freeze.json':'89cd42641a26272d9a30cea4c61ebf63d8cebafac6107dc8e5b020325cc8da36'},
+'bone-observed-020-postfreeze-v1':{'completion-manifest.json':'028ce8e5047e9a93ef7ea8ea78e1197c7b6c26158c073513f1aa81cb94cac18a'},
+'bone-observed-020-independent-review-v1':{'source-freeze.json':'b45ab4b867fde45d38c33c2bb373180fada463bbff525bc1d05836cf94a008b1','final-file-list.json':'b3e44c914aae17fb6a17c73a4a78cda68f03ff57023874c21894f69399c7775f'},
+'bone-observed-020-independent-postfreeze-v1':{'final-file-list.json':'60f44e3993e553f9a4128945411b53328d7b7126b84758a20de4df613bff6844','second-comparison-freeze.json':'61c457e8be627985b56cc811ce412ba87d411da3a5d0d893069cb5fec3d195fa'},
+'bone-observed-007-independent-canonical-context-normalization-v1':{'completion-manifest.json':'4957ac2b51c4b94358263045a8696ba4fd26f3b0f88e9b0a594ba106c6e6adc4'},
+'readiness-closure-map-362-v1':{'readiness-closure-map.json':'d2b7244f61ab1e9f1e628937013f1ff3e909302b219d562fd4b904daf23613f1'},
+'readiness-evidence-ledger-362-v1':{'completion-manifest.json':'b300e5085769a24b593d6bf7c53abea4ee29d54f310b9feb217a2bb89456e2c6','ledger-final/completion-manifest.json':'b929e5ce85a820d980d0fd9e001b4f8560190149764cf9fd533bab5d056c182c'},
+'qualified-negation-focused-002-root-review-v1':{'source-freeze.json':'f0e0edacc93d54363eec5dc4194a9f9dcbad12bc2102a770e18697ac291da39a'},
+'qualified-negation-focused-002-root-adjudication-v1':{'completion-manifest.json':'8e05f0f282c6bac3a2553882e1d4c68e15d30e49b34edfc8028fe4b3c883b251'},
+'qualified002-root-mechanical-comparison-362-v1':{'completion-manifest.json':'e7201b4fa168fd7574eb48d3f284f988b5d3181aa12ef4733d53702cc5f41927','completion-supplement.json':'59ab163a43255a09f0756dd1b7e6c3ed13a40d3ad21a383c8187a7e1ea57a7ad'},
+'qualified002-adjudication-independent-verification-v1':{'completion-manifest.json':'e733d0fddc6ee20d2cf33c02030369635015177456aeffd1454af6e670853f7a'},
+'qualified-negation-focused-002-independent-proposal-normalization-v1':{'completion-manifest.json':'dda032527d66ccf27bc1b071e84da1a74d0e8166c0618120cff7f9d8ef6b31ab'},
+'qualified-negation-focused-003-root-review-v1':{'partial-ten-source-freeze.json':'87711d936d33f71a010118229e6ec28f5d5222df946b5f2bb600ba84a3248564','partial-twenty-source-freeze.json':'98dd485e975028d7eb909036c567420a2bf60e52ac22b29d7cd3eb2c1d57c5e1'},
+'cartilage005-delta-build-verification-v1':{'completion-manifest.json':'c1c86724132967a99c8d60662ba5aeb45ddad1aa51542026af92b23b84019c15'},
+'cartilage005-publisher-bound-verification-v1':{'completion-manifest.json':'9a72ff7773d33ef9fe61d4d2896f89a9e2878df9a8fb9f183fe99789ae04a3cd','operation-completion-manifest.json':'fae81a13f863496ec271ba0525be0cb3510c21764c59898f3032b13a657806a1'},
+'qualified002-integration-preparation-v1':{'completion-manifest.json':'98f42bb4a9e7f47e277a33977a05bd0f56682a6f6900605904518b6f791bc309'},
+}
+cache={}
+def pin(p):
+ p=p.resolve()
+ if p not in cache:cache[p]=measure(p)
+ return cache[p]
+def ref(p):return {'path':str(p.relative_to(W)),**pin(p)}
+def refs(v):
+ if isinstance(v,dict):
+  if isinstance(v.get('path'),str) and isinstance(v.get('sha256'),str):yield v
+  for x in v.values():yield from refs(x)
+ elif isinstance(v,list):
+  for x in v:yield from refs(x)
+def files(folder):return sorted(p for p in folder.rglob('*') if p.is_file() and '__pycache__' not in p.parts)
+
+def main():
+ require(not OUT.exists(),'pins_already_exist');check_disk(W,512*2**20)
+ snapshots=[];allpaths=[];checks=[];unresolved=[]
+ for name,anchors in A.items():
+  folder=B/name;paths=files(folder);allpaths.extend(paths)
+  for p in paths:require(not p.is_symlink(),'symlink_not_allowed');pin(p)
+  snapshots.append({'directory':name,'completion_status':'explicit_partial_source_cutoff_20_of45' if name=='qualified-negation-focused-003-root-review-v1' else 'completed_stable_stage','completion_anchors':[],'files':[]})
+ rootsupp=W/'work/readiness-closure-map-362-root-verification.json'
+ require(pin(rootsupp)['sha256']=='6369e3913ba34f16ea2bbc3bed7cf453a2288f66841ffe8b58db191d70f52215','root_map_verification_hash')
+ allpaths.append(rootsupp)
+ bysha={}
+ for p in allpaths:bysha.setdefault(pin(p)['sha256'],[]).append(p)
+ for snap in snapshots:
+  name=snap['directory'];folder=B/name
+  for n,h in A[name].items():
+   p=folder/n;require(pin(p)['sha256']==h,'completion_anchor_changed')
+   snap['completion_anchors'].append({'path':n,'source_path':str(p.relative_to(W)),**pin(p)})
+   d=json.loads(p.read_text())
+   if n=='partial-twenty-source-freeze.json':
+    require(d['full_reports']==20 and d['target_judgments']==240 and not d['complete45_source_pass'],'partial_source_scope')
+   for r in refs(d):
+    raw=r['path'];q=Path(raw)
+    if not q.is_absolute():
+     q=W/q if raw.startswith('work/') else R/q if raw.startswith(('initiative/','protocols/','docs/')) else p.parent/q
+    q=q.resolve();require(q.is_relative_to(W),'reference_outside_workspace')
+    selected=q;resolution='exact_current_bytes'
+    if q==R/'initiative/reviews-v2/adjudications/registry.json' and r['sha256']=='a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b':
+     # Resolve this one known historical registry identity before425 integration.
+     # Its immutable original reference stays unchanged in every source artifact.
+     selected=B/'qualified002-root-mechanical-comparison-362-v1/registry362-original.json'
+     require(pin(selected)=={'sha256':r['sha256'],'bytes':4472},'historical362_registry_changed')
+     resolution='known_registry362_exact_historical_snapshot_before425_integration'
+    elif not q.is_file() or pin(q)['sha256']!=r['sha256']:
+     unresolved.append({'owner':str(p.relative_to(W)),'reference':raw,'expected':r['sha256']});continue
+    expected_size=r.get('bytes',r.get('size_bytes'))
+    if expected_size is not None:require(pin(selected)['bytes']==expected_size,'reference_size_mismatch')
+    checks.append({'anchor':str(p.relative_to(W)),'original_reference':raw,'verified_file':str(selected.relative_to(W)),**pin(selected),'resolution':resolution})
+ if unresolved:
+  print(json.dumps({'unresolved_reference_metadata':unresolved}));raise SystemExit(2)
+ scan=scanner_factory(W,W/'.env')
+ compressions=[]
+ for snap in snapshots:
+  name=snap['directory'];folder=B/name;paths=files(folder)
+  if name=='readiness-closure-map-362-v1':paths.append(rootsupp)
+  for p in paths:
+   relative=p.relative_to(folder) if p.is_relative_to(folder) else Path(p.name)
+   expected=pin(p);require(measure(p,scan())==expected,'source_changed_while_scanning')
+   archived=Path('initiative/audits')/name/relative
+   if archived.suffix=='.py':archived=archived.with_suffix('.py.txt')
+   storage=p;encoding='identity'
+   if expected['bytes']>50_000_000:
+    require(name=='readiness-evidence-ledger-362-v1' and p.suffix=='.jsonl','unexpected_large_member')
+    storage=HERE/'compressed'/relative.with_suffix('.jsonl.gz');encoding='gzip';archived=archived.with_suffix('.jsonl.gz')
+    storage.parent.mkdir(parents=True,exist_ok=True)
+    if not storage.exists():
+     check_disk(W,expected['bytes'])
+     with p.open('rb') as src,storage.open('xb') as dst:
+      with gzip.GzipFile(filename='',mode='wb',fileobj=dst,mtime=0,compresslevel=9) as z:shutil.copyfileobj(src,z,2**20)
+    require(measure(storage,scan(),decoded=True)==expected,'gzip_roundtrip_failed')
+    compressions.append({'original':ref(p),'compressed':ref(storage),'gzip_mtime':0,'gzip_filename':'','compression_level':9,'streaming_decompression_exact':True})
+   rep={'encoding':encoding,**pin(storage)};require(rep['bytes']<100_000_000,'github_member_too_large')
+   snap['files'].append({'path':str(relative),'source_path':str(p.relative_to(W)),**expected,'archive_path':str(archived),'archive_source_path':str(storage.relative_to(W)),'archive_representation':rep})
+  # Whole stable directories are checked again without reading case fields.
+  require(set(files(folder))==set(x for x in paths if x.is_relative_to(folder)),'source_membership_changed')
+ for p in allpaths:require(measure(p)==pin(p),'source_changed_before_freeze')
+ require(len(compressions)==3,'unexpected_compression_count')
+ require(len({r['archive_path'] for s in snapshots for r in s['files']})==sum(len(s['files']) for s in snapshots),'duplicate_archive_path')
+ original=sum(r['bytes'] for s in snapshots for r in s['files']);archived=sum(r['archive_representation']['bytes'] for s in snapshots for r in s['files'])
+ doc={'schema_version':2,'snapshot_version':16,'agent_id':AGENT,'session_id':AGENT,'created_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Fixed completed evidence since v15, plus root wording003 partial20 source cutoff. Preparation only; root must explicitly execute archival preservation. Ledger retains its earlier362 stable cutoff; later bone020/root002 disposition evidence is preserved separately, not joined into a rebuilt ledger.','integration_or_clinical_acceptance':False,'builder':ref(Path(__file__)),'preserver':ref(HERE/'preserve_v16.py'),'prior_schema_reference':ref(W/'work/semantic-qa-v15-snapshot-pins.json'),'snapshots':snapshots,'completion_reference_validation':checks,'compression_validation':compressions,'counts':{'directories':len(snapshots),'files':sum(len(s['files']) for s in snapshots),'original_bytes':original,'archive_representation_bytes':archived,'compressed_large_members':len(compressions),'completion_references':len(checks),'exact_sha_reference_resolutions':sum(r['resolution']!='exact_current_bytes' for r in checks)},'pending':[{'directory':'bone-observed-021-source-review-v1','included':False,'reason':'Not complete at the fixed cutoff; no live stage is archived.'}],'mapping_rules':{'python':'Only names ending exactly .py append .txt; existing .py.txt names remain exact.','gzip':'For three explicit large JSONL files, archive_path ends .jsonl.gz. source_path/sha256/bytes bind exact original uncompressed bytes; archive_source_path/archive_representation bind stored gzip bytes. Stream-decompress and verify the original SHA and size to recover the original file. Original completion manifests are unchanged and describe decoded JSONL objects. No transitory full build is included.','existing_archive':'Only exact equal existing destination bytes may be reused. Different destinations fail before any R write.','external_reference':'Completion references remain bound in place; do not copy base archives, deltas, images, original sources or caches.','loose_root_verification':'The unchanged work/readiness-closure-map-362-root-verification.json is separately included beside the original sealed map pair with its exact source path.'},'hashing_disclosure':'Metadata-only inventory and completion-anchor path/hash traversal. File contents were hashed and scanned as opaque bytes; no new clinical reading, states, acceptance, labels or gate clearance is created. Gold values were not inspected.','stability':'Exact stable stages and all included bytes checked twice before pins creation. Root003 is explicitly20/45, with all original partial10 members retained. Future stages are excluded unless separately pinned.','preservation_scope':{'R_writes':False,'source_or_registry_changed':False,'global_gate_closed':False,'gold_values_opened':False,'base_or_images_copied':False,'large_full_ledger_rebuild':False,'free_bytes':shutil.disk_usage(W).free,'minimum_free_bytes':20*2**30}}
+ with OUT.open('x') as f:f.write(json.dumps(doc,ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({'pins':ref(OUT),'counts':doc['counts'],'free_bytes':shutil.disk_usage(W).free}))
+if __name__=='__main__':main()

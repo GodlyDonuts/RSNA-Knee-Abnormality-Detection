@@ -1,0 +1,54 @@
+"""Bounded read-only real-data preflight and normalization guard checks."""
+import copy,hashlib,importlib.util,json,shutil,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';N=W/'work/annotation-staging/qualified-negation-focused-002-independent-proposal-normalization-v1';spec=importlib.util.spec_from_file_location('wording002_prepared',P/'integrate_wording002_v2.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(n,x):
+ with(P/n).open('x')as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+status_before=subprocess.check_output(['git','status','--porcelain'],cwd=R)
+plan=m.prepare_plan(W,N/'proposed-errata.json',m.NORMALIZATION_PINS['proposal'],N/'completion-manifest.json',m.NORMALIZATION_PINS['manifest'],N/'current362-overlap-ledger.json',m.NORMALIZATION_PINS['ledger'])
+c=plan['context'];original=(plan['current_proposal'],plan['current_normalization_manifest'],plan['current_ledger']);results=[]
+def reject(name,mutate):
+ p,n,l=copy.deepcopy(original);mutate(p,n,l)
+ try:m.require_normalization(c,p,n,l)
+ except m.GuardError as e:results.append({'test':name,'rejected':True,'guard_code':str(e)})
+ else:raise AssertionError(name)
+reject('boolean_schema_version',lambda p,n,l:p.update(schema_version=True))
+reject('same_author_as_root',lambda p,n,l:p.update(agent_id='/root',session_id='/root'))
+reject('wrong_canonical_source',lambda p,n,l:p.update(source_reports_sha256='0'*64))
+reject('missing_original_proposal',lambda p,n,l:p['proposed_errata'].pop())
+reject('reordered_original_membership',lambda p,n,l:p['proposed_errata'].reverse())
+reject('altered_after_quote',lambda p,n,l:p['proposed_errata'][0].update(source_quote='changed evidence'))
+reject('altered_before_state',lambda p,n,l:p['proposed_errata'][0].update(before_state='positive'))
+reject('altered_original_reason',lambda p,n,l:p['proposed_errata'][0].update(reason='new reason'))
+reject('altered_embedded_original_object',lambda p,n,l:p['proposed_errata'][0]['original_record'].update(reason='changed original'))
+reject('wrong_source_index',lambda p,n,l:p['proposed_errata'][0].update(index=999))
+reject('missing_overlap_ledger_item',lambda p,n,l:l['records'].pop())
+reject('overlap_flag_removed',lambda p,n,l:next(r for r in p['proposed_errata']if r['current_accepted_key_overlap']).update(current_accepted_key_overlap=False))
+reject('altered_existing_overlap_change',lambda p,n,l:next(r for r in l['records']if r['accepted_key_overlap'])['existing_accepted_case_and_change']['change']['after'].update(state='positive'))
+reject('normalization_implies_acceptance',lambda p,n,l:p.update(accepted_by_this_normalization=True))
+try:m.read(N/'proposed-errata.json','0'*64)
+except m.GuardError as e:results.append({'test':'wrong_required_file_pin','rejected':True,'guard_code':str(e)})
+else:raise AssertionError('bad pin accepted')
+# Focused distinction: only exact intended new registry bytes are allowed to change.
+import tempfile
+with tempfile.TemporaryDirectory(prefix='postwrite-guard-',dir=P) as tmp:
+ folder=Path(tmp);reg=folder/'registry.json';other=folder/'source.txt';reg.write_bytes(b'old362');other.write_bytes(b'protected');entries={reg:sha(reg),other:sha(other)};planned=b'new425';reg.write_bytes(planned)
+ m.check_postwrite_inputs(entries,reg,planned);results.append({'test':'intended_registry_change_only','passed':True})
+ for name,regbytes,otherbytes in [('wrong_new_registry',b'wrong',b'protected'),('restored_old_registry_not_new',b'old362',b'protected'),('changed_other_protected_input',planned,b'altered')]:
+  reg.write_bytes(regbytes);other.write_bytes(otherbytes)
+  try:m.check_postwrite_inputs(entries,reg,planned)
+  except m.GuardError as e:results.append({'test':name,'rejected':True,'guard_code':str(e)})
+  else:raise AssertionError(name)
+# No accepted decision or integration wrapper is written by preparation or tests.
+assert not plan['I'].exists()and not plan['case_path'].exists()
+assert subprocess.check_output(['git','status','--porcelain'],cwd=R)==status_before
+assert sha(R/'initiative/reviews-v2/adjudications/registry.json')==m.BASE_REGISTRY
+assert all(sha(p)==h for p,h in plan['entries'].items())
+assert all(sha(R/n)==h for n,h in c['protected'].items())
+preview={'schema_version':1,'agent_id':'/root/quality_temporal_review','stage':'unexecuted_technical_integration_plan_not_acceptance','helper':bind(P/'integrate_wording002_v2.py'),'root_adjudication':bind(c['G']/'completion-manifest.json'),'normalization':{name:bind(path)for name,path in [('proposal',plan['proposal_path']),('manifest',plan['manifest_path']),('overlap_ledger',plan['ledger_path'])]},'baseline_git':m.BASE_GIT,'baseline_tree':m.BASE_TREE,'baseline_registry_sha256':m.BASE_REGISTRY,'baseline_corrections':362,'new_corrections':63,'prospective_total':425,'full_original_proposals':67,'preserved_existing_overlaps':4,'root552_final_states_and_quotes_checked':True,'root22_reconsiderations_preserved':True,'global_gates_remain_pending':c['before']['pending_semantic_qa'],'three_retirements_preserved':True,'new_changes_exact_root_authored_before_after':plan['changes'],'accepted_decision_created':False,'integration_executed':False,'publication_untracked_allowance':plan['publication_allowed'],'archive_plan':[{'path':str(p.relative_to(R)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b),'existing_equal':p.exists()}for p,b in sorted(plan['planned'].items())],'new_archive_bytes':sum(len(b)for p,b in plan['planned'].items()if not p.exists()),'root_execution_requirements':'Supply all three exact original-author normalization paths and mandatory SHA pins plus --execute-root-reviewed-decision. Import and prepare_plan are read-only. Root runtime serialization uses only the already-frozen root acceptance actions and exact reasons; no additional clinical judgments.','failure_recovery':'If post-switch runtime validation fails, restore only the exact preintegration registry bytes and move only the exact newly created case wrapper into the integration audit, preserving failure evidence. No original source/review/QA artifact is removed.'}
+write('unexecuted-integration-plan-v2.json',preview)
+write('preparation-validation-v2.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','at_utc':datetime.now(timezone.utc).isoformat(),'real_full_preflight_passed':True,'normalization_guard_negative_checks':results,'guard_checks_passed':len(results),'new63_exact_before_after_projection':True,'all4_full_original_overlap_objects_verified':True,'all600_normalization_replay_cells_verified_against_actual362':True,'historical118_snapshot_preserved':True,'original67_clinical_objects_and_reasons_unchanged':True,'no_R_or_registry_changes':True,'no_accepted_decision_created':True,'helper_executed':False,'secret_file_opened_by_preparation':False,'global_gates_closed':False,'free_bytes':shutil.disk_usage(W).free,'helper':bind(P/'integrate_wording002_v2.py'),'verifier':bind(Path(__file__).resolve()),'plan':bind(P/'unexecuted-integration-plan-v2.json')})
+print(json.dumps({'real_readonly_preflight':True,'negative_guards_passed':len(results),'planned_changes':63,'planned_archive_members':len(plan['planned']),'new_archive_bytes':preview['new_archive_bytes'],'helper_sha256':sha(P/'integrate_wording002_v2.py'),'plan_sha256':sha(P/'unexecuted-integration-plan-v2.json'),'validation_sha256':sha(P/'preparation-validation-v2.json')}))

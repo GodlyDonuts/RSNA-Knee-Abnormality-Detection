@@ -1,0 +1,66 @@
+from qualified003_source_tools import freeze, N, G, json, Path
+rows = json.loads((N / 'neutral-root-packets/batch-001.json').read_text())
+def span(i, first, last):
+    s = rows[i]['report']; start = s.index(first)
+    return s[start:s.index(last, start) + len(last)]
+judgments = [
+('N N P P U P U N P P U X', [
+'Degenerative changes of the anterior cruciate ligament which remains intact.',
+'Mild thickening of the proximal MCL compatible with remote injury.',
+span(0, 'Complex degenerative tear with a dominant', 'meniscal free edge.'),
+span(0, 'Complex degenerative multidirectional tear', 'lateral meniscus.'),
+span(0, 'Medial compartment (meniscus', 'Diffuse low grade partial-thickness chondral loss.'),
+span(0, 'Lateral compartment (meniscus', 'Marginal osteophytosis.'),
+span(0, "Anterior compartment (extensor mechanism, cartilage, Hoffa's fat pad):", 'Mild chondropathy.'),
+'Small joint effusion with synovitis.', 'Small joint effusion with synovitis.',
+'Large complex popliteal cyst measuring up to 65 mm with an 11 mm osseous body in the superior aspect of the cyst.',
+span(0, 'Lateral compartment (meniscus', 'Marginal osteophytosis.'), '',
+], 'ACL is intact despite degeneration; mild remote MCL thickening is below the acute high-grade criterion. Both meniscal tears/maceration are definite. Medial low-grade partial loss lacks an explicit calibrated depth bound, and PF mild chondropathy lacks depth/extent. Lateral full-thickness loss spans the weightbearing and posterior portion of the compartment, supporting broad extent as a disclosed report-level inference rather than a universal measurement conversion. Small effusion is below threshold; synovitis is directly diagnosed; Baker is explicitly large independently of65mm dimensions. Reactive subchondral marrow change is degenerative without impact attribution. An osseous loose body does not establish acute fracture.'),
+('N N P N P U U N X N U N', [
+'Anterior cruciate ligament: intact',
+'Medial collateral ligament: Superficial and deep components intact. No periligamentous edema.',
+span(1, 'Medial meniscus: Oblique tear', 'inferior articular surface.'),
+span(1, 'Lateral meniscus: Nonsurfacing hyperintensity', 'No para meniscal cyst.'),
+'Medial compartment: Focal full-thickness chondral loss measuring up to 1.3 cm in size associated subchondral edema.',
+'Lateral compartment: Mild chondral irregularity. No significant subchondral edema.',
+'Patellofemoral compartment: Minimal chondrosis..',
+"No joint effusion or loose body. Trace Baker's cyst.", '',
+"No joint effusion or loose body. Trace Baker's cyst.",
+'Medial compartment: Focal full-thickness chondral loss measuring up to 1.3 cm in size associated subchondral edema.',
+'No fracture, stress reaction, or osseous lesion is seen.',
+], 'ACL/MCL are intact, medial surfacing tear definite/current, and lateral signal explicitly nonsurfacing despite the source typo in its degenerative interpretation. Medial full-thickness cartilage loss measures1.3cm and satisfies both criteria. Mild lateral irregularity and minimal PF chondrosis do not give depth/extent. No effusion and only trace Baker support negatives; parameniscal cysts do not alter Baker grade. Associated progressive degenerative edema is not established impact contusion. Fracture is explicitly absent and synovial lining unmentioned.'),
+('U N N N N N N U X N U X', [
+span(2, 'Aumento de señal difuso del LCA', 'rotura categórica.'),
+span(2, 'LCP y ligamentos', 'dentro de límites normales.'),
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.',
+span(2, 'Condropatía superficial', 'sin alteraciones.'),
+span(2, 'Condropatía superficial', 'sin alteraciones.'),
+span(2, 'Condropatía superficial', 'sin alteraciones.'),
+'No hay significativo derrame articular ni quistes poplíteos.', '',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', '',
+], 'ACL diffuse signal abnormality is paired only with a qualified no-categorical-tear statement, not explicit continuity or a definite benign degenerative diagnosis, so high-grade criterion remains unresolved. Collaterals and both meniscal signal/morphology are normal. The sole cartilage lesion is superficial medial loss with other TF/PF cartilage normal, supporting three negatives. Effusion and marrow denials remain significance-qualified, while separately coordinated popliteal cysts are absent. Patellar tendinosis and Hoffa assessment do not supply synovitis or acute fracture.'),
+('X P N N N U U U X X P X', [
+'',
+span(3, 'Medial collateral ligament:   High-grade', 'deep medial collateral ligament.'),
+'Medial meniscus:   Intact.', 'Lateral meniscus:   Intact.',
+'Medial compartment:   normal cartilage',
+'Lateral compartment:  Mild chondrosis.',
+'Patellofemoral joint: Mild chondrosis mainly along the trochlear aspect there',
+'Effusion:  No significant effusion', '', '',
+span(3, 'Marrow:  There is edema', 'secondary valgus injury.'), '',
+], 'The cruciate subsection describes only PCL; it does not assess ACL. MCL is explicitly high-grade partially torn with current valgus-injury bone contusions, supporting the acute high-grade report interpretation; low-grade deep-component injury does not negate the superficial high-grade lesion. Both menisci and medial cartilage are normal. Mild lateral/PF chondrosis has no calibrated depth/extent. Effusion is significance-qualified. Contusions are directly attributed to valgus injury in body and conclusion. No acute fracture, synovial-lining or Baker assessment.'),
+('N N N P N U U X X X X X', [
+'Intact lateral collateral ligament and cruciate ligaments.',
+'Minor thickening of the proximal MCL with no surrounding edema suggestive of previous injury and healing with scarring.',
+'Intact medial meniscus.',
+span(4, 'On a background of severe mucoid degeneration', 'along the lateral joint line.'),
+'Focal 2 mm x 2 mm low-grade cartilage defect in the weightbearing portion of the medial femoral condyle. Otherwise well maintained medial tibiofemoral hyaline articular cartilage.',
+'Low-grade chondral thinning in the lateral tibiofemoral compartment.',
+'Relatively well-maintained patellofemoral hyaline articular cartilage.', '', '', '', '', '',
+], 'ACL is intact and MCL has mild healed scarring without edema, below acute high-grade injury. Medial meniscus is intact and lateral attenuation/complex tearing is definite despite mucoid degeneration. The sole medial cartilage defect is2x2mm with the remainder maintained, explicitly below required extent. Low-grade lateral thinning has no source-calibrated depth bound, and relatively maintained PF cartilage is qualified. PCL ganglion/parameniscal cysts do not identify Baker. Joint fluid, synovial lining, marrow-contusion and acute fracture are unmentioned; patellar enthesopathy does not populate them.'),
+]
+freeze('third-five', 1, 0, judgments)
+with (G / (Path(__file__).name + '.txt')).open('xb') as stream:
+    stream.write(Path(__file__).read_bytes())

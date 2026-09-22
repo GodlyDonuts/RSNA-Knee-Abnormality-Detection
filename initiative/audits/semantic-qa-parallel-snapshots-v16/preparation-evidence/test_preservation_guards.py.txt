@@ -1,0 +1,57 @@
+"""Bounded offline guards: no real repository writes or network use."""
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase, main
+from unittest.mock import patch
+import gzip, hashlib
+import preserve_v16 as m
+
+class NullScanner:
+ def feed(self, block): pass
+
+class Guards(TestCase):
+ def setUp(self):
+  self.tmp=TemporaryDirectory();self.w=Path(self.tmp.name);self.addCleanup(self.tmp.cleanup)
+  self.source=self.w/'work/annotation-staging/example/a.jsonl';self.source.parent.mkdir(parents=True);self.source.write_bytes(b'{"one":1}\n')
+  self.row={'source_path':str(self.source.relative_to(self.w)),**m.measure(self.source),'archive_path':'initiative/audits/example/a.jsonl','archive_source_path':str(self.source.relative_to(self.w)),'archive_representation':{'encoding':'identity',**m.measure(self.source)}}
+  self.pins={'snapshot_version':16,'integration_or_clinical_acceptance':False,'completion_reference_validation':[],'snapshots':[{'directory':'example','completion_anchors':[],'files':[self.row]}]}
+ def validate(self):
+  with patch.object(m,'check_disk',return_value=m.FLOOR+10**9):return m.validate_pins(self.w,self.pins,NullScanner)
+ def test_verify_only_leaves_repository_absent(self):
+  entries,counts=self.validate();self.assertEqual(counts['new_archive_files'],1);self.assertFalse((self.w/'work/recovered').exists())
+ def test_changed_original_rejected(self):
+  self.source.write_bytes(b'changed');self.assertRaises(ValueError,self.validate)
+ def test_path_traversal_rejected(self):
+  self.row['archive_path']='initiative/audits/example/../../other';self.assertRaises(ValueError,self.validate)
+ def test_absolute_path_rejected(self):
+  self.row['archive_path']='/tmp/elsewhere';self.assertRaises(ValueError,self.validate)
+ def test_wrong_directory_rejected(self):
+  self.row['archive_path']='initiative/audits/another/a.jsonl';self.assertRaises(ValueError,self.validate)
+ def test_duplicate_destination_rejected(self):
+  self.pins['snapshots'][0]['files'].append(dict(self.row));self.assertRaises(ValueError,self.validate)
+ def test_existing_equal_destination_reused(self):
+  dest=self.w/'work/recovered'/self.row['archive_path'];dest.parent.mkdir(parents=True);dest.write_bytes(self.source.read_bytes())
+  _,counts=self.validate();self.assertEqual(counts['existing_equal_files'],1);self.assertEqual(m.copy_one(self.row,self.source,dest),'reused_equal')
+ def test_existing_different_destination_preserved(self):
+  dest=self.w/'work/recovered'/self.row['archive_path'];dest.parent.mkdir(parents=True);dest.write_bytes(b'old')
+  self.assertRaises(ValueError,self.validate);self.assertEqual(dest.read_bytes(),b'old')
+ def gzip_row(self):
+  compressed=self.source.with_suffix('.jsonl.gz');compressed.write_bytes(gzip.compress(self.source.read_bytes(),mtime=0))
+  self.row.update(archive_path=self.row['archive_path']+'.gz',archive_source_path=str(compressed.relative_to(self.w)),archive_representation={'encoding':'gzip',**m.measure(compressed)})
+  return compressed
+ def test_gzip_roundtrip_validates_exact_original(self):
+  z=self.gzip_row();self.validate();dest=self.w/'work/recovered'/self.row['archive_path'];self.assertEqual(m.copy_one(self.row,z,dest),'copied_new');self.assertEqual(m.measure(dest,decoded=True),m.measure(self.source))
+ def test_changed_compressed_bytes_rejected(self):
+  z=self.gzip_row();z.write_bytes(z.read_bytes()+b'changed');self.assertRaises(ValueError,self.validate)
+ def test_rebound_wrong_decoded_bytes_rejected(self):
+  z=self.gzip_row();z.write_bytes(gzip.compress(b'different',mtime=0));self.row['archive_representation'].update(m.measure(z));self.assertRaises(ValueError,self.validate)
+ def test_symlink_escape_rejected(self):
+  elsewhere=self.w.parent/'v16-guard-not-created';link=self.w/'link';link.symlink_to(elsewhere);self.assertRaises(ValueError,m.within,self.w,'link/a')
+ def test_github_limit_rejected(self):
+  self.row['archive_representation']['bytes']=m.LIMIT;self.assertRaises(ValueError,self.validate)
+ def test_floor_includes_reserve(self):
+  with patch.object(m.shutil,'disk_usage',return_value=type('Space',(),{'free':m.FLOOR+m.RESERVE+100})()):self.assertRaises(ValueError,m.check_disk,self.w,101)
+ def test_unknown_completion_mismatch_rejected(self):
+  self.pins['completion_reference_validation']=[{'verified_file':self.row['source_path'],'bytes':self.row['bytes'],'sha256':'0'*64}];self.assertRaises(ValueError,self.validate)
+
+if __name__=='__main__':main()

@@ -1,0 +1,146 @@
+"""Separate mechanical replay of the normalized evidence ledger; no gold input."""
+import argparse
+import collections
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+
+def h(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def rows(p):
+    return [json.loads(line) for line in p.read_text().splitlines()]
+
+
+def verify(workspace, folder):
+    w = workspace.resolve()
+    r = w / "work/recovered"
+    manifest = json.loads((folder / "completion-manifest.json").read_text())
+    assert manifest["agent_id"] == "/root/duplicate_consistency_review"
+    for entry in manifest["files"]:
+        p = folder / entry["path"]
+        assert h(p) == entry["sha256"] and p.stat().st_size == entry["bytes"]
+    assert h(w / manifest["builder"]["path"]) == manifest["builder"]["sha256"]
+    artifacts = json.loads((folder / "artifact-index.json").read_text())
+    for entry in artifacts:
+        p = (w / entry["path"]).resolve()
+        assert p.is_relative_to(w) and p != r / "initiative/source/train.csv" and p.name != ".env"
+        assert h(p) == entry["sha256"] and p.stat().st_size == entry["bytes"]
+    aindex = {e["id"]: e for e in artifacts}
+    assert len(aindex) == len(artifacts)
+    source = {x["study_uid"]: x for p in sorted((r / "initiative/reviews/inputs").glob("batch-*.json")) for x in json.loads(p.read_text())}
+    stages = {x["id"]: x for x in json.loads((folder / "stage-index.json").read_text())}
+    evidence = rows(folder / "evidence-records.jsonl")
+    eindex = {e["id"]: e for e in evidence}
+    assert len(eindex) == len(evidence)
+    memberships = collections.defaultdict(set)
+    percell = collections.defaultdict(list)
+    source_authors = collections.defaultdict(lambda: collections.defaultdict(set))
+    missing_sessions = 0
+    for e in evidence:
+        uid, target = e["study_uid"], e["target"]
+        s = stages[e["stage"]]
+        assert target in s["targets"] and e["artifact"] in aindex
+        report = source[uid]["report"]
+        assert hashlib.sha256(report.encode()).hexdigest() == e["report_sha256"]
+        assert e["agent_id"]
+        missing_sessions += e.get("session_id") is None
+        if "state" in e:
+            quote = e["evidence"]
+            assert e["state"] in {"positive", "negative", "uncertain", "not_mentioned"}
+            assert hashlib.sha256(quote.encode()).hexdigest() == e["evidence_sha256"]
+            if e["state"] == "not_mentioned":
+                assert quote == "" and e["first_exact_quote_start"] is None
+            else:
+                assert quote and quote in report and report.index(quote) == e["first_exact_quote_start"]
+        else:
+            assert e["kind"] == "postfreeze_partial_explicit_dispositions"
+            for key in ("first_assessor_evidence", "effective_evidence"):
+                quote = e["original_selected_fields"][key]
+                assert not quote or quote in report
+        memberships[e["stage"]].add((uid, target))
+        percell[(uid, target)].append(e["id"])
+        if e["kind"] == "supplemental_source_frozen":
+            source_authors[(uid, target)][s["family"]].add(e["agent_id"])
+    for sid, s in stages.items():
+        assert len(memberships[sid]) == s["cell_count"]
+        assert len({u for u, _ in memberships[sid]}) == s["report_count"]
+        if s["family"] == "bone":
+            assert s["targets"] == ["Contusion", "Fracture"]
+        elif s["family"] == "cartilage":
+            assert s["targets"] == ["Medial OA", "Lateral OA", "PF OA"]
+        elif s["family"] == "wording":
+            assert len(s["targets"]) == 12
+    inspection = json.loads((r / "initiative/audits/cartilage-observed-005-integration-v1/complete362-inspection.json").read_text())
+    corrections = {(c["study_uid"], c["target"]): c for c in inspection["changes"]}
+    current = {}
+    targets = stages["original:batch-000:draft"]["targets"]
+    for p in sorted((r / "initiative/reviews-v2/reviewed").glob("*-reviewed.jsonl")):
+        for x in rows(p):
+            for target, state, quote in zip(targets, x["states"], x["evidence"]):
+                current[(x["study_uid"], target)] = {"state": state, "evidence": quote}
+    for key, c in corrections.items():
+        assert current[key] == c["before"]
+        current[key] = c["after"]
+    ledger = rows(folder / "cell-ledger.jsonl")
+    assert len(ledger) == len(current) == 52884
+    keys = set()
+    reuse = set()
+    excluded = set()
+    unresolved = set()
+    for cell in ledger:
+        key = cell["study_uid"], cell["target"]
+        assert key not in keys
+        keys.add(key)
+        assert cell["evidence_record_ids"] == percell[key]
+        assert cell["current362_inspection"] == current[key]
+        if key in corrections:
+            assert cell["active_correction"]["case_id"] == corrections[key]["case_id"]
+            assert cell["active_correction"]["before"] == corrections[key]["before"]
+            assert cell["active_correction"]["after"] == corrections[key]["after"]
+        else:
+            assert cell["active_correction"] is None
+        assert cell["clinical_clearance"] is False
+        assert cell["two_distinct_supplemental_source_authors_in_same_family"] == any(len(a) >= 2 for a in source_authors[key].values())
+        if cell["two_distinct_supplemental_source_authors_in_same_family"]:
+            reuse.add(key)
+        mask = cell["mask_obligations"]
+        assert mask["clinical_state_is_observed"] == (current[key]["state"] in {"positive", "negative"})
+        assert mask["uncertain_or_missing_requires_zero_report_loss"] == (current[key]["state"] in {"uncertain", "not_mentioned"})
+        if mask["enforced_correspondence_exclusion_non_gold"]:
+            excluded.add(key[0])
+        if mask["unresolved_correspondence_requires_all12_non_gold_zero"]:
+            unresolved.add(key[0]);assert not mask["clinical_state_is_observed"]
+        assert mask["non_gold_report_loss_required_zero"] == (not mask["clinical_state_is_observed"] or mask["enforced_correspondence_exclusion_non_gold"] or bool(mask["unresolved_correspondence_requires_all12_non_gold_zero"]))
+    assert len(excluded) == 18 and len(unresolved) == 24
+    scope = collections.defaultdict(set)
+    for x in rows(folder / "scope-memberships.jsonl"):
+        key = x["study_uid"], x["target"]
+        assert key in keys and key not in scope[x["scope"]]
+        scope[x["scope"]].add(key)
+        assert x["supplemental_pair_reuse_available"] == (key in reuse)
+    summary = json.loads((folder / "summary.json").read_text())
+    for sid, counts in summary["scope_counts"].items():
+        assert len(scope[sid]) == counts["cells"]
+        assert len(scope[sid] & reuse) == counts["reusable_cells"]
+        assert len(scope[sid] - reuse) == counts["remaining_disposition_cells_without_supplemental_pair"]
+    assert len(reuse) == summary["unique_cells_with_two_distinct_supplemental_source_authors"] == 6454
+    assert missing_sessions == summary["actual_session_missing_record_count"]
+    assert h(r / "initiative/reviews-v2/adjudications/registry.json") == summary["registry_sha256"]
+    assert not any(s.startswith("bone:020") or s == "wording:002:root:postfreeze" for s in stages)
+    return {"agent_id": "/root/duplicate_consistency_review", "status": "separate_mechanical_replay_passed_not_clinical_acceptance", "source_reports": len(source), "cells": len(ledger), "evidence_records": len(evidence), "artifact_hashes_reverified": len(artifacts), "stage_scopes_reconstructed": len(stages), "current_corrections_replayed": len(corrections), "reusable_distinct_author_cells": len(reuse), "sessions_left_explicitly_unrecorded": missing_sessions, "correspondence_exclusion_reports": len(excluded), "unresolved_all12_mask_reports": len(unresolved), "no_gold_or_repository_writes": True, "free_bytes": shutil.disk_usage(w).free}
+
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--workspace", type=Path, required=True)
+    p.add_argument("--ledger", type=Path, required=True)
+    p.add_argument("--output", type=Path, required=True)
+    a = p.parse_args()
+    result = verify(a.workspace, a.ledger)
+    with a.output.open("x") as f:
+        f.write(json.dumps(result, indent=2) + "\n")
+    print(json.dumps(result, indent=2))

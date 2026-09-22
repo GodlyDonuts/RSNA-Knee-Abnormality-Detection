@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "checked_at_utc": "2026-09-22T03:49:05.494496+00:00",
+  "status": "passed_exact_pins_and_offline_guard_review",
+  "publisher": {
+    "path": "work/publish_cartilage005_delta.py",
+    "sha256": "d8a7544b1464b2d68600b2ee3a9ccbe44875df50f723d29a159327297fa39978",
+    "bytes": 14672
+  },
+  "prior_publisher": {
+    "path": "work/publish_cartilage004_delta.py",
+    "sha256": "aedd3199d95f3645e3e834e344bfdfd2d2e35d8d11188871a9f7d59d694a63cb",
+    "bytes": 14672
+  },
+  "helper": {
+    "path": "work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py",
+    "sha256": "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8",
+    "bytes": 27915
+  },
+  "transport": {
+    "path": "work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py",
+    "sha256": "494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f",
+    "bytes": 27855
+  },
+  "substitutions": [
+    {
+      "before": "TARGET = \"3d3b135f3dbc44763f78c60e950d074565850f49\"",
+      "after": "TARGET = \"f648ebce325d8dd78990aa159021308cddc9e369\""
+    },
+    {
+      "before": "PARENT = \"0f7134a61da52222eda7184d0d46488f6c7caea4\"",
+      "after": "PARENT = \"33d5abd36e82e9d0228298dc9aa7d54ab128f04a\""
+    },
+    {
+      "before": "N_FILES = 8955",
+      "after": "N_FILES = 9164"
+    },
+    {
+      "before": "N_CORRECTIONS = 358",
+      "after": "N_CORRECTIONS = 362"
+    },
+    {
+      "before": "CI_RUN = 35682228129",
+      "after": "CI_RUN = 35684206517"
+    },
+    {
+      "before": "N_CORRECTIONS == 358",
+      "after": "N_CORRECTIONS == 362"
+    },
+    {
+      "before": "\"correction_count_not_358\"",
+      "after": "\"correction_count_not_362\""
+    }
+  ],
+  "exactly_seven_substitutions_no_other_bytes_changed": true,
+  "manifest": {
+    "path": "work/hf-preparation-deltas/f648ebce325d8dd78990aa159021308cddc9e369/manifest.json",
+    "sha256": "959a9558deac40b657290546ff904ce6243ffcde2cc7bc546d2fab385e2cc7af",
+    "bytes": 3680344
+  },
+  "actual_peer_restoration_proof": {
+    "path": "work/hf-preparation-deltas/f648ebce325d8dd78990aa159021308cddc9e369/restoration-proof.json",
+    "sha256": "91ed5397e545cb2e3451086d28fe366902e3bfaf2dde4b0991091cd53c93127f",
+    "bytes": 3095
+  },
+  "prior_verified_private_parent_receipt": {
+    "path": "work/hf-preparation-deltas/3d3b135f3dbc44763f78c60e950d074565850f49/root-publication-receipt.json",
+    "sha256": "d616fe2bc33e716d1468f167e185af67999e7d0a1c02245bf03c37675176a3cb",
+    "bytes": 4278
+  },
+  "target_git_commit": "f648ebce325d8dd78990aa159021308cddc9e369",
+  "expected_hf_parent": "33d5abd36e82e9d0228298dc9aa7d54ab128f04a",
+  "immutable_base_hf_revision": "54949cd5a575ea7027a4a57916e772936a98d38b",
+  "immutable_base_git_commit": "1792f01ed3daab757c5ddb9bf5733ffe8d999f91",
+  "target_file_count": 9164,
+  "registered_corrections": 362,
+  "ci_run": 35684206517,
+  "fresh_ci_network_check_performed": false,
+  "ci_guard_tests_use_offline_fixtures": true,
+  "n_offline_guard_checks": 32,
+  "reviewed_scope": [
+    "Exact target/base/parent/count/CI bindings and fail-closed placeholders",
+    "Six additions under exact new checkpoint prefix, no source or root-card writes",
+    "Frozen operation/object/helper/publisher/transport hashes and object sizes",
+    "Actual private-head and original/base/parent source identities checked before write",
+    "Expected-parent compare-and-swap and repeated exact-CI guard immediately before commit",
+    "All six remote objects verified by LFS hashes/sizes or full-byte hash/size streaming, exact prefix membership",
+    "Changed-head retry verifies exact content without another commit and explicitly makes no ancestry claim",
+    "Secrets remain in environment memory; bounded transport, secret scans and sanitized exception classes preserved"
+  ],
+  "findings": [],
+  "required_before_execution": "Root must finish distinct streaming replay, obtain actual exact-commit CI success and freeze its six-object operation. Publisher performs fresh remote privacy, parent, source/base and object checks itself.",
+  "publisher_main_executed": false,
+  "credentials_read": false,
+  "network_calls": 0,
+  "network_mutations": 0,
+  "repository_writes": false,
+  "training_ready": false
+}

@@ -1,0 +1,83 @@
+"""Project only priority UIDs, then bind complete original blinded sources."""
+import hashlib
+import json
+import re
+import shutil
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+P=Path(__file__).resolve().parent; W=P.parents[2]; D=P.parent; R=W/'work/recovered'; G=D/'bone-global-candidate-inventory-v1'
+sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint
+SOURCE_FINGERPRINT='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p)}
+def write(name,obj):
+    with(P/name).open('x')as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+def records(x):return x if isinstance(x,list)else x.get('reports',x.get('records'))
+def main():
+    assert shutil.disk_usage(W).free>=20*1024**3
+    priority=G/'priority-queue.json';assert sha(priority)=='de068ba5edc97a9e0a1d0b66e75cf376ef2a1ae2856fd1cff833019756fb7407'
+    raw_uids=re.findall(r'"study_uid"\s*:\s*"([^"\\]+)"',priority.read_text())
+    uids=list(dict.fromkeys(raw_uids));assert len(uids)>=1000
+    old0=D/'bone-observed-000-independent-review-v1/neutral-source-packet.json';old1=D/'bone-observed-001-source-review-v1/neutral-source-packet.json'
+    assert sha(old0)=='0f8b0e53d04442a97d8b9b6e9f50d899e3f5d38a40d479f865f89a42c4e9d79c'
+    assert sha(old1)=='21eaafcf594238411b690791f2cf17d5c26f5decbae39480f72ce16c0bce9da2'
+    old2=D/'bone-observed-002-source-review-v1/neutral-source-packet.json';assert sha(old2)=='a43da3e7f9d52554d5437da09fbff19426a336fa4d57622fd826adef524d3b14'
+    old3=D/'bone-observed-003-source-review-v1/neutral-source-packet.json';assert sha(old3)=='6874b5c4c66c442cde8eaaff62b7927583d9c914df17064fefebdb14412531ca'
+    old4=D/'bone-observed-004-source-review-v1/neutral-source-packet.json';assert sha(old4)=='8b3126ae3deaefba13a99419f3073937f690b9fd6599076be09d9226d8add4a9'
+    old5=D/'bone-observed-005-source-review-v1/neutral-source-packet.json';assert sha(old5)=='dc10252d7928876d8881689cfc7ac905ebe18398e1d53a79ce5c82ad4a213fd9'
+    old6=D/'bone-observed-006-source-review-v1/neutral-source-packet.json';assert sha(old6)=='15c011b291ecee021533c7ced669506711def7fab26ed8c86e9b6bc94fad160c'
+    old7=D/'bone-observed-007-source-review-v1/neutral-source-packet.json';assert sha(old7)=='3ec063461a87375534a51d06b38af6ee01dd0e59ad484962bb79bae7477e37c5'
+    old8=D/'bone-observed-008-source-review-v1/neutral-source-packet.json';assert sha(old8)=='db3b44a1c722ca55e9f794ef3dacea37e74d0578ac064a1805ac703add0ff9c8'
+    old9=D/'bone-observed-009-source-review-v1/neutral-source-packet.json';assert sha(old9)=='aa78848775f2eff63a3d940bf187647202ef977e90c377d95fc8ade4ada321d8'
+    old10=D/'bone-observed-010-source-review-v1/neutral-source-packet.json';assert sha(old10)=='2f13a11840353cb327e5dc0f3452a2c3e8304b1bdf76f7720b90e5c897eeefb4'
+    old11=D/'bone-observed-011-source-review-v1/neutral-source-packet.json';assert sha(old11)=='df964a0042a0faf9135fed03be0279992fc8dbe516f7983445db5e5c3a997769'
+    old12=D/'bone-observed-012-source-review-v1/neutral-source-packet.json';assert sha(old12)=='eeee75e31d05fc1bc21c0222285c6a6989388bd7b530cb5260596cc1c2450cf2'
+    old13=D/'bone-observed-013-source-review-v1/neutral-source-packet.json';assert sha(old13)=='8763001aa5034e25893e6d565f745ca6e0b0f8c479e2152349771d1ec3de7c59'
+    old14=D/'bone-observed-014-source-review-v1/neutral-source-packet.json';assert sha(old14)=='69966c862f025d3667266f7ab61b9aeec5c0b90d9ae473da1c0d556a45465bb6'
+    old15=D/'bone-observed-015-source-review-v1/neutral-source-packet.json';assert sha(old15)=='1ba26e3757c91952d1cccc046028bbd7b977fb5543cb029407971ef1826c38dc'
+    old16=D/'bone-observed-016-source-review-v1/neutral-source-packet.json';assert sha(old16)=='605669109d63b6b39f95820bb403f0c56ba8da74fe263f1c76dbdd11d867cce9'
+    old17=D/'bone-observed-017-source-review-v1/neutral-source-packet.json';assert sha(old17)=='8de2741346b40b8b087e2e81fa49854808c191b7772b443ff8aeb9b81c3d28ae'
+    old18=D/'bone-observed-018-source-review-v1/neutral-source-packet.json';assert sha(old18)=='6d7dc172e77c36ce42d04dd56b35043da9f51a88d58ed07b21a1f2b2ef27875e'
+    assert uids[:950]==[r['study_uid']for r in read(old0)['reports']+read(old1)['reports']+read(old2)['reports']+read(old3)['reports']+read(old4)['reports']+read(old5)['reports']+read(old6)['reports']+read(old7)['reports']+read(old8)['reports']+read(old9)['reports']+read(old10)['reports']+read(old11)['reports']+read(old12)['reports']+read(old13)['reports']+read(old14)['reports']+read(old15)['reports']+read(old16)['reports']+read(old17)['reports']+read(old18)['reports']]
+    selected=uids[950:1000];assert len(selected)==len(set(selected))==50 and not set(selected)&set(uids[:950])
+    found={};all_reports={}
+    for path in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+        for i,r in enumerate(read(path)):
+            assert r['study_uid'] not in all_reports;all_reports[r['study_uid']]=r['report']
+            if r['study_uid']in selected:
+                assert r['study_uid']not in found and set(r)=={'study_uid','report'}
+                found[r['study_uid']]={'study_uid':r['study_uid'],'source_path':str(path.relative_to(R)),'source_sha256':sha(path),'source_index_zero_based':i,'report_sha256':hashlib.sha256(r['report'].encode()).hexdigest(),'report':r['report']}
+    assert len(all_reports)==4407 and source_reports_fingerprint(all_reports)==SOURCE_FINGERPRINT
+    assert set(found)==set(selected)
+    prior_sources=[r for op in [old0,old1,old2,old3,old4,old5,old6,old7,old8,old9,old10,old11,old12,old13,old14,old15,old16,old17,old18] for r in read(op)['reports']]
+    source_batches={}
+    for r in prior_sources:
+        sp=R/r['source_path']
+        if sp not in source_batches:source_batches[sp]=(sha(sp),read(sp))
+        digest,originals=source_batches[sp]
+        assert digest==r['source_sha256'] and originals[r['source_index_zero_based']]=={'study_uid':r['study_uid'],'report':r['report']}
+        assert hashlib.sha256(r['report'].encode()).hexdigest()==r['report_sha256'] and all_reports[r['study_uid']]==r['report']
+    assert len(prior_sources)==950 and len({r['study_uid'] for r in prior_sources})==950
+    index=G/'neutral-packet-index.json';assert sha(index)=='7fdd0be904ae6972e4e12a70cd602de5638259bf332757302cbd0aa0f882eb65'
+    neutral_found={};refs=[]
+    for e in read(index)['packets']:
+        path=G/e['path'];assert sha(path)==e['sha256']
+        matches=[r for r in records(read(path))if r['study_uid']in found]
+        if matches:refs.append(bind(path))
+        for r in matches:
+            assert r==found[r['study_uid']]and r['study_uid']not in neutral_found
+            neutral_found[r['study_uid']]=r
+    assert set(neutral_found)==set(selected)
+    method='Priority file bytes were hashed and scanned only for study_uid key/value pairs. No clinical target/state/evidence/trigger value was parsed, selected, displayed or used. The first950 ordered UIDs were checked against all nineteen previous50-source bone packets. Positions950–999 were matched to complete original blinded input reports and independently matched against the existing hashed neutral inventory. This process-level priority-file access is disclosed and does not imply first-ever blindness.'
+    write('neutral-source-packet.json',{'schema_version':1,'scope':'Next50 distinct reports in frozen observed-bone priority order, zero-based positions950–999; assess Contusion and Fracture from complete sources before current annotations.','selection_provenance':{'priority_queue_sha256':sha(priority),'neutral_packet_index':bind(index),'prior_bone000_neutral_packet':bind(old0),'prior_bone001_neutral_packet':bind(old1),'prior_bone002_neutral_packet':bind(old2),'prior_bone003_neutral_packet':bind(old3),'prior_bone004_neutral_packet':bind(old4),'prior_bone005_neutral_packet':bind(old5),'prior_bone006_neutral_packet':bind(old6),'prior_bone007_neutral_packet':bind(old7),'prior_bone008_neutral_packet':bind(old8),'prior_bone009_neutral_packet':bind(old9),'prior_bone010_neutral_packet':bind(old10),'prior_bone011_neutral_packet':bind(old11),'prior_bone012_neutral_packet':bind(old12),'prior_bone013_neutral_packet':bind(old13),'prior_bone014_neutral_packet':bind(old14),'prior_bone015_neutral_packet':bind(old15),'prior_bone016_neutral_packet':bind(old16),'prior_bone017_neutral_packet':bind(old17),'prior_bone018_neutral_packet':bind(old18),'method':method,'neutral_input_packets':refs,'target_state_annotation_fields_selected_or_displayed':False},'source_reports_sha256':SOURCE_FINGERPRINT,'rubric_sha256':'138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014','reports':[found[uid]for uid in selected]})
+    prior=[D/'cartilage-observed-000-source-review-v1/neutral-first-50-full-reports.json']+[D/f'cartilage-observed-{i:03d}-source-review-v1/neutral-full-reports.json'for i in range(1,6)]+[D/'qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-000.json',old0,old1,old2,old3,old4,old5,old6,old7,old8,old9,old10,old11,old12,old13,old14,old15,old16,old17,old18,D/'cartilage-observed-000-additional-independent-v1/neutral-full-sources.json',D/'cartilage-observed-001-additional-independent-v1/neutral-full-sources.json',D/'cartilage-observed-002-additional-independent-v1/neutral-full-sources.json']
+    overlaps={str(path.relative_to(W)):{'sha256':sha(path),'overlap_uids':sorted(set(selected)&{r['study_uid']for r in records(read(path))})}for path in prior}
+    exposure={'mechanical_selection':method,'discovery':'This agent authored full4407 cartilage discovery using original/current annotation data and the historical34 registry. It has original/inherited run context and selected earlier QA findings. No first-ever blinding is claimed.','completed_passes':'Personally completed qualified00050 reports600 targets plus additional10 adjudications; all260 cartilage priority reports780 OA judgments and their own comparisons; seven cartilage000 sources21 OA reconsideration plus the later nine root-proposal adjudication; bone00050 reports100 bone judgments and its independent comparison, and bone001, bone002, bone003, bone004, bone005, bone006, bone007, bone008, bone009, bone010, bone011, bone012, bone013, bone014, bone015, bone016, bone017 and bone018 each50 reports100 judgments and their own postfreeze comparisons. Earlier read-only publication verification, completed bone passes and cartilage001 additional adjudication validation mechanically loaded historical229 and current254 correction evidence and original review batches through the runtime validator for aggregate and selected-prior-batch checks; no future bone019 candidate-specific state, evidence or finding was selected or displayed. That process-level annotation access is explicitly disclosed, and the source-order claim concerns this personally read case-level pass. The agent also reread one cartilage001 full source for three OA judgments and independently adjudicated its additional root proposal, with prior legacy-three and cartilage000 exposure disclosed. The earlier publisher254 read-only verification replayed all254 accepted corrections and original review records mechanically for count/hash checks, without selecting or displaying future bone019 case values. The immediately preceding cartilage002 additional reread/adjudication included one full report and all three OA judgments, then one independent PF correction acceptance with earlier first002 positive explicitly reconsidered. Its runtime validation replayed actual254 original/correction evidence mechanically without selecting future bone019 case annotations. Bone008, bone009, bone010, bone011 and bone012 postfreeze validations additionally replayed actual286 evidence mechanically for aggregate and selected earlier-batch checks without displaying future bone019 case values. The bone013, bone014 and bone015 postfreeze passes replayed actual333 correction evidence and original reviews mechanically, displaying selected bone013, bone014 and bone015 cells only, without selecting future bone019 annotations. The intervening actual358 technical integration verification mechanically loaded original and accepted-review values for exact checks, and root cartilage004 arrays for equality, without displaying or judging case findings. No new clinical reading was claimed. The completed bone016 pass additionally compared its selected100 cells against actual358 and mechanically replayed all original/accepted records for validation; no future bone019 case values were selected or displayed. Bone017 personally compared its selected100 bone cells against actual358. The intervening cartilage005 technical integration verification mechanically loaded original/accepted annotations and root005 source/disposition arrays to check exact equality at362, including a separate all100 Bone017 replay, without displaying or clinically judging other018 findings. No new clinical reading was claimed during that technical check. Bone018 personally compared all100 selected bone cells against actual362 after its own source freeze, preserving four pending proposals and two reason-only wording clarifications; runtime validation loaded all original/accepted records mechanically without selecting or displaying future bone019 values. No other bone018 reader findings have been opened by this agent. Technical original064:14/46 source exposure also occurred; the additional exact064:14 recognition in bone015 is preserved by its separate exposure supplement. Bone text may have appeared within any previously read complete report.','prior_complete_source_uid_overlaps':overlaps,'conceptual':'Known issues include marrow negation scope, structural bone survey versus signal-only text, fracture acuity, marrow impact cause, and fracture-site edema versus separate contusion. These prior concepts inform the reading but do not replace each full source.','independence_limit':'No current bone019 case annotation values or other bone019 source findings are selected or displayed before the100-judgment freeze. Prior exact-source and conceptual exposure remains disclosed.'}
+    write('start.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','session_id':'/root/quality_temporal_review','identity_kind':'actual_codex_agent_task','started_at_utc':datetime.now(timezone.utc).isoformat(),'stage':'bone019_first_source_reader','source_packet':bind(P/'neutral-source-packet.json'),'source_reports_sha256':SOURCE_FINGERPRINT,'rubric':bind(R/'protocols/report_weak_v2.md'),'rubric_version':'report-weak-v2.0','target_order':['Contusion','Fracture'],'scope':{'complete_reports':50,'bone_judgments':100,'new_12_target_pass':False},'historical_exposure':exposure,'current_selected_bone_annotations_opened':False,'other_bone019_reader_findings_opened':False,'gold_accessed':False,'prior_stages_changed':False})
+    write('neutral-assembly-validation.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','source_packet':bind(P/'neutral-source-packet.json'),'priority':bind(priority),'source_reports_sha256':SOURCE_FINGERPRINT,'packet_hash_is_distinct_from_all4407_fingerprint':True,'priority_positions_zero_based':[950,999],'prior950_order_verified':True,'prior950_original_source_index_uid_report_hash_checks':950,'previous_bone000_001_002_003_004_005_006_007_008_009_010_011_012_013_014_015_016_017_018_uid_overlap':0,'complete_original_source_index_uid_report_hash_checks':50,'independent_existing_neutral_matches':50,'unique_known_prior_full_source_overlap':len(set().union(*(set(v['overlap_uids'])for v in overlaps.values()))),'current_clinical_candidate_fields_selected_or_displayed':False,'method':method,'helper':bind(Path(__file__).resolve())})
+    print(json.dumps({'reports':50,'packet_sha256':sha(P/'neutral-source-packet.json'),'assembly_sha256':sha(P/'neutral-assembly-validation.json'),'prior_fullsource_overlap':len(set().union(*(set(v['overlap_uids'])for v in overlaps.values())))},indent=2))
+if __name__=='__main__':main()

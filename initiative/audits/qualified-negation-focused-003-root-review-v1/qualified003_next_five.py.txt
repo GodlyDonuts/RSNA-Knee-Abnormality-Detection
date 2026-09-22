@@ -1,0 +1,63 @@
+from qualified003_source_tools import freeze, N, G, json, Path
+rows = json.loads((N / 'neutral-root-packets/batch-000.json').read_text())
+def span(i, first, last):
+    s = rows[i]['report']; start = s.index(first)
+    return s[start:s.index(last, start) + len(last)]
+judgments = [
+('N N N N N N U U X N U X', [
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+span(5, 'Ambos meniscos', 'rotura.'), span(5, 'Ambos meniscos', 'rotura.'),
+'Cartílagos de los compartimentos femorotibiales sin alteraciones.',
+'Cartílagos de los compartimentos femorotibiales sin alteraciones.',
+span(5, 'Úlceras condrales', 'secundarios.'),
+'No hay significativo derrame articular ni quistes poplíteos.', '',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', '',
+], 'Named ligaments and both preserved meniscal morphology/signal support negatives; no-categorical-tear wording is not the sole meniscal evidence. TF cartilage is explicitly normal. Full-thickness patellar ulcers have no qualifying size and normal trochlea cannot negate them. Effusion is significance-qualified while popliteal cysts are separately denied with ni. Marrow denial is qualified and patellar secondary bone changes do not establish impact. Tendinosis and friction-related soft-tissue edema are neither synovial lining nor acute fracture findings.'),
+('N N P N N N U N X X X X', [
+'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+'There is degenerate complex tearing of the posteromedial corner of the medial meniscus.',
+'Normal lateral meniscus.',
+'The tibiofemoral articular cartilage is well preserved.',
+'The tibiofemoral articular cartilage is well preserved.',
+'Mild fissuring of the medial patellar facet articular cartilage is noted. Normal trochlear articular cartilage.',
+'There is a mild knee effusion.', '', '', '', '',
+], 'Ligaments/lateral meniscus are normal and medial complex tearing is definite despite its degenerative character. TF cartilage is directly preserved. Mild patellar fissuring is not expressly superficial or bounded below half depth; normal trochlea does not quantify the patellar lesion. Effusion is mild/below threshold. Neither bones, Baker collection nor synovial lining are assessed.'),
+('N N N N U U U U X U U X', [
+'Intacte voorste kruisband.', 'Intact mediaal collateraal ligament.',
+'Intacte mediale meniscus.', 'Intacte laterale meniscus.',
+'Geen majeure kraakbeendefecten mediaal femorotibiaal.',
+'Volledige dikte dikte kraakbeenfissuur posterocentraal op de laterale femurcondyl met subchondraal oedeem.',
+'Geen majeure kraakbeendefecten patellofemoraal.',
+'Geen significante hydrops.', '',
+'Bakercyste met weke delen oedeem afdalend tegenaan de mediale gastrocnemius spierbuik: ruptuur.',
+span(7, 'Volledige dikte dikte kraakbeenfissuur', 'Geen botoedeem.'), '',
+], 'Named ligaments and both menisci are intact. No major medial/PF defects is qualified without a depth/size bound; the full-depth lateral fissure is unsized. Effusion is significant-qualified. Ruptured Baker identity is explicit but neither present/original collection size nor moderate/large grade is provided; separate PCL ganglion must not supply it. A general no-bone-edema statement conflicts with repeated focal subchondral edema; impact is not stated, so retain contusion uncertainty instead of a global negative. Synovitis and acute fracture are unmentioned.'),
+('N N P P U N U U X N U X', [
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+'Ligamentos cruzados y colaterales dentro de límites normales.',
+span(8, 'Rotura horizontal oblicuo', 'nivel del cuerpo.'),
+span(8, 'Rotura horizontal del cuerno anterior', 'de segmentos.'),
+span(8, 'Úlceras condrales de espesor parcial de la región', 'femorotibial medial.'),
+'Cartílagos del compartimento femorotibial lateral sin alteraciones.',
+'Úlceras condrales de espesor parcial de la articulación patelofemoral.',
+'No hay significativo derrame articular ni quistes poplíteos.', '',
+'No hay significativo derrame articular ni quistes poplíteos.',
+'No hay alteraciones de señal significativas de la médula ósea.', '',
+], 'Ligaments are normal, both meniscal tears definite, and displacement is not required for meniscal positive. Partial-depth medial/PF ulcers and bare grade2 do not establish fraction of loss or region size. Lateral cartilage is normal. Significant qualifies effusion, with popliteal cysts separately denied. Marrow denial is also qualified. No informative synovitis or acute fracture mention.'),
+('N N N N U U U U X N X X', [
+'Les ligaments croisés antérieur et postérieur sont intacts.',
+'Le ménisque interne et le ligament collatéral interne sont sans particularité.',
+'Le ménisque interne et le ligament collatéral interne sont sans particularité.',
+'Il y a des changements de signal hyperintense T2 intrasubstance à la corne antérieure/racine antérieure du ménisque latéral suggérant des changements dégénératifs.',
+span(9, 'Compartiment interne :', 'sans particularité.'),
+span(9, 'Compartiment externe :', 'Légère chondropathie.'),
+span(9, 'Il y a des fissure de cartilage', 'central et médial.'),
+'Il n’y a pas d’épanchement intra-articulaire significatif au genou.', '',
+'Il n’y a pas de kyste poplité. Minime liséré de liquide dans la bourse semi-membraneuse.', '', '',
+], 'ACL/MCL and medial meniscus are normal; lateral signal is explicitly intrasubstance degeneration without tear morphology, supporting negative. Mild diffuse medial thinning, bare mild lateral chondropathy and moderate/high PF fissures do not provide the required calibrated depth and size. Effusion denial is significance-qualified. Baker is categorically absent with only minimal semimembranosus bursal fluid; the intercruciate ganglion is a separate collection. No bone or synovial-lining assessment is given.'),
+]
+freeze('next-five', 0, 5, judgments)
+with (G / (Path(__file__).name + '.txt')).open('xb') as stream:
+    stream.write(Path(__file__).read_bytes())

@@ -1,0 +1,361 @@
+"""Mechanical provenance and value comparison only; no clinical decisions."""
+import hashlib
+import json
+import shutil
+import sys
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+D = P.parent
+R = W / 'work/recovered'
+ROOT = D / 'qualified-negation-focused-002-root-review-v1'
+FIRST = D / 'qualified-negation-focused-002-source-review-v1'
+SECOND = D / 'qualified-negation-focused-002-independent-review-v1'
+POST = D / 'qualified-negation-focused-002-post-freeze-comparison-v1'
+AGENT = '/root/quality_temporal_review'
+SOURCE = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+REGISTRY = 'a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b'
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+TARGETS = list(TARGETS)
+
+protected = {}
+binding_checks = 0
+quote_checks = Counter()
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+def pin(p):
+    p = p.resolve()
+    value = {'path': str(p.relative_to(W)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+    old = protected.setdefault(value['path'], value)
+    assert old == value, ('input changed', value['path'])
+    return value
+
+def read(p):
+    pin(p)
+    return json.loads(p.read_text())
+
+def lines(p):
+    pin(p)
+    return [json.loads(line) for line in p.read_text().splitlines()]
+
+def check(ref):
+    global binding_checks
+    p = W / ref['path']
+    actual = pin(p)
+    assert actual['sha256'] == ref['sha256'], ('binding mismatch', ref['path'])
+    if 'bytes' in ref:
+        assert actual['bytes'] == ref['bytes']
+    binding_checks += 1
+    return p
+
+def validate_refs(x):
+    if isinstance(x, dict):
+        if isinstance(x.get('path'), str) and 'sha256' in x:
+            check(x)
+        for v in x.values():
+            validate_refs(v)
+    elif isinstance(x, list):
+        for v in x:
+            validate_refs(v)
+
+def check_dict_manifest(stage, name):
+    d = read(stage / name)
+    for name, digest in d['files'].items():
+        assert pin(stage / name)['sha256'] == digest
+    return d
+
+def indexed(rows):
+    out = {(r['study_uid'], r['target']): r for r in rows}
+    assert len(out) == len(rows)
+    return out
+
+def annotation(state, evidence):
+    return {'state': state, 'evidence': evidence}
+
+def validate_annotation(a, report, tag):
+    assert a['state'] in {'negative', 'positive', 'uncertain', 'not_mentioned'}
+    assert isinstance(a['evidence'], str)
+    if a['state'] == 'not_mentioned':
+        assert a['evidence'] == ''
+    else:
+        assert a['evidence'] and a['evidence'] in report, ('noncontiguous or changed quote', tag)
+        quote_checks[tag] += 1
+
+def write(name, data):
+    path = P / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('x') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+    return {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+
+def main():
+    assert shutil.disk_usage(W).free >= 20 * 1024**3
+    started = datetime.now(timezone.utc).isoformat()
+    expected = {
+        ROOT / 'source-freeze.json': 'f0e0edacc93d54363eec5dc4194a9f9dcbad12bc2102a770e18697ac291da39a',
+        ROOT / 'full-source-assessment.json': 'bd9b1cba1deb00e99c49326c3723a3dbb16ab484f414e1188fe5bea7a3b9545f',
+        FIRST / 'source-assessment-frozen.json': '85b2a7430144f7146f03b777f4564eb4194f2eb0c52a7e4c90aae624cb0c2bc1',
+        FIRST / 'source-freeze-receipt.json': '7124aeec6ce3d701db6d92541d956c80040448a9f79620ba012a6665784f58f7',
+        FIRST / 'postfreeze-disposition-assessment.json': 'aa357b2bc95c3c4dd21545ad6b76bfb4e0658cda1725e65f57f33c74f6e51788',
+        FIRST / 'proposed-errata.json': '26a6218bb753ad9e4e920966a16ef6197416bf7d29b2cd0dabd1ba94eb162f2d',
+        FIRST / 'artifact-manifest.json': '5e872b954732a4d437516dabdccbcafe3cbb4a62e403b433c210ca43c6c45df4',
+        SECOND / 'independent-freeze.json': 'fa504a6a940f1e084104faf7a4e54e18cc18097b0e9d7de7378df6495d00fd52',
+        SECOND / 'independent-assessment.jsonl': 'c3696ea1eba43f19ba5b8748aca421f0240626f0a3f542b2e65ca152f0935c25',
+        SECOND / 'final-file-list.json': '92c1ff100cb070006b7b542f1ffa51d55763a49441b7c8332f6eeb4c54ab4d6a',
+        R / 'protocols/report_weak_v2.md': RUBRIC,
+        R / 'initiative/reviews-v2/adjudications/registry.json': REGISTRY,
+    }
+    for path, digest in expected.items():
+        assert pin(path)['sha256'] == digest, ('pinned input differs', str(path))
+    # Preserve current completed-stage bytes. New files outside these stages are not inspected.
+    for stage in [ROOT, FIRST, SECOND, POST]:
+        for path in sorted(stage.rglob('*')):
+            if path.is_file() and '__pycache__' not in path.parts:
+                pin(path)
+    root_freeze = read(ROOT / 'source-freeze.json')
+    root_doc = read(ROOT / 'full-source-assessment.json')
+    assert root_freeze['agent_id'] == root_freeze['session_id'] == root_doc['agent_id'] == root_doc['session_id'] == '/root'
+    assert root_freeze['reports'] == root_doc['full_reports'] == 46
+    assert root_freeze['target_judgments'] == root_doc['target_judgments'] == 552
+    assert root_doc['target_order'] == TARGETS
+    assert root_freeze['canonical_source_sha256'] == SOURCE
+    assert root_freeze['at_utc'] < started
+    assert root_freeze['current002_reader_case_findings_opened'] is False
+    assert root_freeze['current002_selected_registry_rows_opened'] is False
+    validate_refs(root_freeze)
+    partial_roots = []
+    for ref in root_freeze['partial_assessments']:
+        d = read(check(ref))
+        assert d['agent_id'] == d['session_id'] == '/root'
+        assert d['rubric_sha256'] == RUBRIC and d['canonical_all4407_source_reports_sha256'] == SOURCE
+        assert d['current002_reader_case_findings_opened'] is False
+        partial_roots.extend(d['records'])
+    assert partial_roots == root_doc['records'], 'root source objects changed during concatenation'
+    neutral = []
+    for ref in root_freeze['neutral_packets']:
+        rows = read(check(ref))
+        assert len(rows) == ref['reports'] and len(rows) <= 10
+        neutral.extend(rows)
+    roots = {r['study_uid']: r for r in root_doc['records']}
+    assert len(roots) == len(neutral) == 46
+    assert [r['study_uid'] for r in root_doc['records']] == [r['study_uid'] for r in neutral]
+    first_doc = read(FIRST / 'source-assessment-frozen.json')
+    first_freeze = check_dict_manifest(FIRST, 'source-freeze-receipt.json')
+    first_manifest = check_dict_manifest(FIRST, 'artifact-manifest.json')
+    second_freeze = read(SECOND / 'independent-freeze.json')
+    validate_refs(second_freeze)
+    validate_refs(read(SECOND / 'final-file-list.json'))
+    validate_refs(read(POST / 'second-comparison-freeze.json'))
+    validate_refs(read(POST / 'final-file-list.json'))
+    assert first_doc['agent_id'] == first_freeze['agent_id'] == first_manifest['agent_id'] == '/root/duplicate_consistency_review'
+    assert second_freeze['agent_id'] == second_freeze['session_id'] == '/root/last_twelve_visual_review'
+    assert len({AGENT, '/root', first_doc['agent_id'], second_freeze['agent_id']}) == 4
+    assert first_doc['source_reports_sha256'] == first_freeze['source_reports_sha256'] == SOURCE
+    assert first_doc['rubric_sha256'] == first_freeze['rubric_sha256'] == RUBRIC
+    assert first_doc['target_order'] == second_freeze['target_order'] == TARGETS
+    first = {r['study_uid']: r for r in first_doc['records']}
+    second_list = lines(SECOND / 'independent-assessment.jsonl')
+    second = {r['study_uid']: r for r in second_list}
+    packet = read(check(second_freeze['preserved_neutral_packet']))
+    assert len(first) == len(second) == len(packet) == 50
+    assert set(first) == set(second) == {r['study_uid'] for r in packet}
+    assert set(roots) <= set(first)
+    first_post_doc = read(FIRST / 'postfreeze-disposition-assessment.json')
+    assert first_post_doc['source_assessment_sha256'] == sha(FIRST / 'source-assessment-frozen.json')
+    assert first_post_doc['source_freeze_receipt_sha256'] == sha(FIRST / 'source-freeze-receipt.json')
+    first_proposal_doc = read(FIRST / 'proposed-errata.json')
+    first_props = indexed(first_proposal_doc['proposed_errata'])
+    first_state = indexed(first_post_doc['state_difference_records'])
+    first_evidence = indexed(first_post_doc['evidence_difference_records'])
+    first_baseline_doc = read(FIRST / 'full-target-comparison.json')
+    first_baseline = indexed(first_baseline_doc['records'])
+    first_old_inspection = read(FIRST / 'current-adjudications-inspection.json')
+    old_changes = indexed(first_old_inspection['changes'])
+    assert first_baseline_doc['adjudication_registry_sha256'] == first_old_inspection['registry_sha256'] == first_post_doc['adjudication_registry_sha256']
+    assert first_old_inspection['n_changes'] == len(old_changes) == 34
+    second_post_doc = read(POST / 'complete-second-dispositions.json')
+    second_post = indexed(second_post_doc['records'])
+    second_proposal_doc = read(POST / 'unintegrated-proposals.json')
+    second_props = indexed(second_proposal_doc['records'])
+    second_replay = read(POST / 'original-current-baseline-replay.json')
+    second_old = indexed(second_replay['records'])
+    assert second_replay['counts']['current_registered_changes'] == second_proposal_doc['accepted_registry_count'] == 118
+    assert second_post_doc['agent_id'] == second_proposal_doc['agent_id'] == second_freeze['agent_id']
+    assert len(first_props) == 58 and len(second_props) == 67
+    assert len(first_baseline) == len(second_post) == len(second_old) == 600
+    assert len(roots) * len(TARGETS) == 552
+    reports, batches = {}, {}
+    for path in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')):
+        rows = read(path)
+        batches[str(path.relative_to(R))] = rows
+        for row in rows:
+            assert set(row) == {'study_uid', 'report'} and row['study_uid'] not in reports
+            reports[row['study_uid']] = row['report']
+    assert len(reports) == 4407 and source_reports_fingerprint(reports) == SOURCE
+    rubric = R / 'protocols/report_weak_v2.md'
+    registry = R / 'initiative/reviews-v2/adjudications/registry.json'
+    registry_bytes = registry.read_bytes()
+    runtime = inspect_adjudications(reports, R / 'initiative/reviews-v2/reviewed', rubric, R)
+    assert registry.read_bytes() == registry_bytes
+    assert runtime['registry_sha256'] == REGISTRY and runtime['source_reports_sha256'] == SOURCE and runtime['rubric_sha256'] == RUBRIC
+    changes = indexed(runtime['changes'])
+    assert runtime['n_changes'] == len(changes) == 362 and len(runtime['pending_semantic_qa']) == 3
+    for path in ['rsna/adjudications.py', 'rsna/labels.py', 'rsna/schema.py']:
+        pin(R / path)
+    case_by_key = {}
+    for entry in json.loads(registry_bytes)['cases']:
+        path = R / entry['path']
+        assert pin(path)['sha256'] == entry['sha256']
+        obj = read(path)
+        for change in obj['changes']:
+            key = change['study_uid'], change['target']
+            assert key not in case_by_key
+            case_by_key[key] = {'case_id': obj['id'], 'case_file': pin(path), 'original_change_object': change}
+    assert set(case_by_key) == set(changes)
+    original_reviews = {}
+    original_rows = {}
+    all_verified = {}
+    # Validate every original reader object, including the four reports outside root scope.
+    for i, src in enumerate(packet):
+        uid = src['study_uid']; report = src['report']; path = R / src['source_path']
+        assert pin(path)['sha256'] == src['source_sha256']
+        assert batches[src['source_path']][src['index']] == {'study_uid': uid, 'report': report}
+        assert reports[uid] == report
+        digest = hashlib.sha256(report.encode()).hexdigest()
+        f = first[uid]; s = second[uid]
+        assert f['report'] == report and f['source_report_sha256'] == s['report_utf8_sha256'] == digest
+        assert f['source_path'] == s['source_path'] == src['source_path']
+        assert f['source_sha256'] == s['source_sha256'] == src['source_sha256']
+        assert f['index'] == s['source_index_zero_based'] == src['index']
+        assert f['packet_index'] == s['packet_index_zero_based'] == i
+        assert s['reader_id'] == second_freeze['agent_id'] and s['rubric_sha256'] == RUBRIC and s['target_order'] == TARGETS
+        assert len(f['decisions']) == len(s['states']) == len(s['evidence']) == len(s['target_reasoning']) == 12
+        if uid in roots:
+            root = roots[uid]
+            assert root['source_path'] == src['source_path'] and root['source_sha256'] == src['source_sha256']
+            assert root['source_index_zero_based'] == src['index'] and root['report_sha256'] == digest
+            assert root['target_order'] == TARGETS and len(root['states']) == len(root['evidence']) == 12
+        for ti, target in enumerate(TARGETS):
+            key = uid, target; a = f['decisions'][ti]; old = first_baseline[key]; post = second_post[key]
+            assert a['target'] == target
+            assert old['packet_index'] == i and old['index'] == src['index']
+            assert old['source_path'] == src['source_path'] and old['source_sha256'] == src['source_sha256']
+            assert post['source_path'] == src['source_path'] and post['source_sha256'] == src['source_sha256']
+            assert post['source_index_zero_based'] == src['index'] and post['report_utf8_sha256'] == digest and post['target_index'] == ti
+            rp = R / old['original_review_path']
+            assert pin(rp)['sha256'] == old['original_review_sha256']
+            assert check(post['original_review']) == rp
+            if rp not in original_reviews:
+                original_reviews[rp] = {x['study_uid']: x for x in lines(rp)}
+            original_record = original_reviews[rp][uid]
+            original_rows[uid] = {'artifact': pin(rp), 'original_object': original_record}
+            original = annotation(original_record['states'][ti], original_record['evidence'][ti])
+            assert original == annotation(old['original_state'], old['original_evidence']) == post['original_annotation']
+            assert old['original_notes'] == original_record['notes']
+            baseline34 = old_changes[key]['after'] if key in old_changes else original
+            assert baseline34 == annotation(old['effective_state'], old['effective_evidence']) == post['first_baseline34']
+            assert (a['state'], a['evidence'], a['reason']) == (old['first_assessor_state'], old['first_assessor_evidence'], old['first_assessor_reason'])
+            assert post['first_source_frozen'] == a
+            s_projection = {'state': s['states'][ti], 'evidence': s['evidence'][ti], 'reason': s['target_reasoning'][ti]}
+            assert s_projection == post['second_source_frozen']
+            first_final = {'state': a['state'], 'evidence': a['evidence'], 'reason': a['reason'], 'disposition': 'source_state_agrees_with_baseline'}
+            if key in first_state:
+                obj = first_state[key]
+                first_final.update(state=obj['final_first_assessor_state'], reason=obj['postfreeze_reason'], disposition=obj['disposition'])
+                if obj['disposition'] == 'reconsider_keep_effective':
+                    first_final['evidence'] = baseline34['evidence']
+            if key in first_evidence:
+                first_final.update(evidence_disposition=first_evidence[key]['disposition'], evidence_reason=first_evidence[key]['postfreeze_reason'])
+            if key in first_props:
+                obj = first_props[key]
+                assert obj['source_path'] == src['source_path'] and obj['source_sha256'] == src['source_sha256'] and obj['index'] == src['index']
+                assert pin(R / obj['artifact_path'])['sha256'] == obj['artifact_sha256'] == old['original_review_sha256']
+                assert annotation(obj['before_state'], obj['before_evidence']) == baseline34
+                first_final.update(state=obj['proposed_state'], evidence=obj['source_quote'], reason=obj['reason'])
+            assert first_final == post['first_postfreeze'], ('first disposition reconstruction mismatch', key)
+            assert post['first_state_disposition'] == first_state.get(key) and post['first_evidence_disposition'] == first_evidence.get(key) and post['first_separate_proposal'] == first_props.get(key)
+            baseline118 = second_old[key]['current_effective']
+            assert baseline118 == post['current_effective']
+            old_c = second_old[key]['existing_current_correction']
+            assert baseline118 == (old_c['change']['after'] if old_c else original)
+            current = changes[key]['after'] if key in changes else original
+            if key in changes:
+                assert changes[key]['before'] == original
+                assert case_by_key[key]['original_change_object']['after'] == current
+            if key in second_props:
+                obj = second_props[key]
+                assert obj['source_path'] == src['source_path'] and obj['source_sha256'] == src['source_sha256'] and obj['source_index_zero_based'] == src['index']
+                assert obj['report_utf8_sha256'] == digest and obj['original_review'] == post['original_review']
+                assert obj['before_current'] == baseline118
+                assert obj['after_proposed'] == annotation(post['second_postfreeze']['state'], post['second_postfreeze']['evidence'])
+            for tag, value in [('original', original), ('first_baseline34', baseline34), ('second_baseline118', baseline118), ('current362', current), ('first_source', a), ('first_postfreeze', first_final), ('second_source', s_projection), ('second_postfreeze', post['second_postfreeze'])]:
+                validate_annotation(value, report, tag)
+            if uid in roots:
+                validate_annotation(annotation(roots[uid]['states'][ti], roots[uid]['evidence'][ti]), report, 'root_frozen')
+            all_verified[key] = {'source': src, 'source_report_sha256': digest, 'original': original, 'baseline34': baseline34, 'baseline118': baseline118, 'current': current, 'first_final': first_final, 'second': s_projection, 'post': post, 'original_review': pin(rp)}
+    records = []
+    pairs = [('root_frozen', 'effective_current362'), ('root_frozen', 'first_source_frozen'), ('root_frozen', 'second_source_frozen'), ('root_frozen', 'first_postfreeze'), ('root_frozen', 'second_postfreeze'), ('first_source_frozen', 'second_source_frozen'), ('first_postfreeze', 'second_postfreeze')]
+    for ordinal, root in enumerate(root_doc['records']):
+        uid = root['study_uid']
+        for ti, target in enumerate(TARGETS):
+            key = uid, target; v = all_verified[key]; old = v['post']
+            values = {'root_frozen': {'state': root['states'][ti], 'evidence': root['evidence'][ti], 'report_notes': root['notes']}, 'effective_current362': v['current'], 'first_source_frozen': first[uid]['decisions'][ti], 'second_source_frozen': v['second'], 'first_postfreeze': v['first_final'], 'second_postfreeze': old['second_postfreeze']}
+            flags = {a + '_vs_' + b: {'state_differs': values[a]['state'] != values[b]['state'], 'evidence_bytes_differ': values[a]['evidence'] != values[b]['evidence'], 'same_state_with_different_evidence': values[a]['state'] == values[b]['state'] and values[a]['evidence'] != values[b]['evidence']} for a,b in pairs}
+            historical = {'first34_to_current362': v['baseline34'] != v['current'], 'second118_to_current362': v['baseline118'] != v['current']}
+            flag = bool(first_props.get(key) or second_props.get(key) or old['root_attention'] or old['first_reader_deferred'] or any(z['state_differs'] or z['evidence_bytes_differ'] for z in flags.values()) or any(historical.values()))
+            records.append({'root_report_ordinal': ordinal, 'case': root['case'], 'study_uid': uid, 'target': target, 'target_index': ti, 'source_path': root['source_path'], 'source_sha256': root['source_sha256'], 'source_index_zero_based': root['source_index_zero_based'], 'report_sha256': root['report_sha256'], 'root_source_object_pointer': f'/records/{ordinal}', 'first_source_object_pointer': f"/records/{first[uid]['packet_index']}/decisions/{ti}", 'second_source_jsonl_line_one_based': second[uid]['packet_index_zero_based'] + 1, 'original_review': v['original_review'], 'original': v['original'], 'first_baseline34': v['baseline34'], 'second_baseline118': v['baseline118'], **values, 'first_state_disposition_original': first_state.get(key), 'first_evidence_disposition_original': first_evidence.get(key), 'first_proposal_original': first_props.get(key), 'second_disposition_original': old, 'second_proposal_original': second_props.get(key), 'current_registered_change': changes.get(key), 'current_registered_case_original': case_by_key.get(key), 'historical_baseline_differences': historical, 'mechanical_differences': flags, 'first_proposal_before_matches_current362': annotation(first_props[key]['before_state'], first_props[key]['before_evidence']) == v['current'] if key in first_props else None, 'second_proposal_before_matches_current362': second_props[key]['before_current'] == v['current'] if key in second_props else None, 'mechanical_attention_only': flag, 'accepted_or_adjudicated': False})
+    expected_keys = [(r['study_uid'], t) for r in root_doc['records'] for t in TARGETS]
+    assert [(r['study_uid'], r['target']) for r in records] == expected_keys and len(set(expected_keys)) == 552
+    selected_keys = set(expected_keys)
+    overlap = [r for r in records if r['current_registered_change'] is not None]
+    excluded = [uid for uid in first if uid not in roots]
+    counts = {'root_reports': 46, 'root_judgments': 552, 'original_reader_reports_validated': 50, 'original_reader_judgments_each': 600, 'reader_reports_outside_root_frozen_scope': len(excluded), 'actual_registry_count': 362, 'historical_first_registry_count': 34, 'historical_second_registry_count': 118, 'selected_current_accepted_overlap_cells': len(overlap), 'selected_current_accepted_overlap_reports': len({r['study_uid'] for r in overlap}), 'first34_to_current362_changed_cells': sum(r['historical_baseline_differences']['first34_to_current362'] for r in records), 'second118_to_current362_changed_cells': sum(r['historical_baseline_differences']['second118_to_current362'] for r in records), 'first_proposals_total': len(first_props), 'first_proposals_in_root_scope': len(selected_keys & set(first_props)), 'second_proposals_total': len(second_props), 'second_proposals_in_root_scope': len(selected_keys & set(second_props)), 'first_proposals_overlapping_current_accepted_keys': len(selected_keys & set(first_props) & set(changes)), 'second_proposals_overlapping_current_accepted_keys': len(selected_keys & set(second_props) & set(changes)), 'mechanical_attention_cells_including_raw_quote_differences': sum(r['mechanical_attention_only'] for r in records), 'mechanical_attention_reports': len({r['study_uid'] for r in records if r['mechanical_attention_only']}), 'pending_global_semantic_gates': len(runtime['pending_semantic_qa']), 'clinical_judgments_authored_here': 0, 'acceptances_created': 0}
+    counts['pairwise_difference_counts'] = {a+'_vs_'+b: {field: sum(r['mechanical_differences'][a+'_vs_'+b][field] for r in records) for field in ['state_differs', 'evidence_bytes_differ', 'same_state_with_different_evidence']} for a,b in pairs}
+    assert len(excluded) == 4 and quote_checks['root_frozen'] == 423
+    for value in list(protected.values()):
+        check(value)
+    assert registry.read_bytes() == registry_bytes and shutil.disk_usage(W).free >= 20 * 1024**3
+    common = {'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT, 'stage': 'technical_comparison_after_complete_root552_source_freeze', 'started_at_utc': started, 'completed_at_utc': datetime.now(timezone.utc).isoformat(), 'root_source_freeze': pin(ROOT / 'source-freeze.json'), 'root_source_assessment': pin(ROOT / 'full-source-assessment.json'), 'first_source_freeze': pin(FIRST / 'source-freeze-receipt.json'), 'second_source_freeze': pin(SECOND / 'independent-freeze.json'), 'rubric': pin(rubric), 'rubric_version': 'report-weak-v2.0', 'canonical_all4407_source_reports_sha256': SOURCE, 'current_registry': pin(registry), 'actual_roles': {'root_source_assessor': '/root', 'original_first_source_assessor': first_doc['agent_id'], 'original_second_source_assessor': second_freeze['agent_id'], 'mechanical_verifier_only': AGENT}, 'scope': 'Mechanical equality, exact source/quote/provenance and runtime replay only. Raw evidence differences are not automatically errors. Reader final opinions are not root source judgments. Root must personally adjudicate; no new clinical reading, credential, fresh-blinding, training-readiness or QA-closure claim.', 'read_order_limit': 'Root source-freeze hash and timestamp precede this comparison; preserved assessor attestations are not independent instrumentation of all historical access.', 'gold_values_opened': False, 'root_originals_or_registry_changed': False, 'clinical_adjudications_created': False, 'qa_closed': False}
+    with (P / 'registry362-original.json').open('xb') as f:
+        f.write(registry_bytes)
+    with (P / 'root-source-assessment-original.json').open('xb') as f:
+        f.write((ROOT / 'full-source-assessment.json').read_bytes())
+    assert sha(P / 'root-source-assessment-original.json') == expected[ROOT / 'full-source-assessment.json']
+    inspection_ref = write('current362-inspection.json', runtime)
+    source_objects = [{'root_ordinal': i, 'root_source_original_object': root, 'full_source_original_object': next(s for s in neutral if s['study_uid'] == root['study_uid']), 'first_source_original_object': first[root['study_uid']], 'second_source_original_object': second[root['study_uid']], 'original_review_original_object': original_rows[root['study_uid']]} for i,root in enumerate(root_doc['records'])]
+    objects_ref = write('bound-original-source-and-review-objects.json', {**common, 'records': source_objects, 'outside_root_source_scope_uid_only': excluded, 'outside_scope_states_not_imported_as_root_judgments': True})
+    comparison_ref = write('all552-root-mechanical-comparison.json', {**common, 'counts': counts, 'source_objects': objects_ref, 'current_runtime_inspection': inspection_ref, 'records': records})
+    packet_refs = []
+    for offset in range(0, 46, 10):
+        row_subset = [r for r in records if offset <= r['root_report_ordinal'] < offset + 10]
+        packet_refs.append(write(f'review-packets/packet-{offset//10:03d}.json', {**common, 'root_report_ordinals': list(range(offset,min(offset+10,46))), 'full_source_objects': source_objects[offset:offset+10], 'records': row_subset, 'new_clinical_dispositions': []}))
+    packet_index_ref = write('review-packet-index.json', {**common, 'reports': 46, 'cells': 552, 'packets': packet_refs, 'complete_comparison': comparison_ref, 'no_automatically_accepted_items': True})
+    overlap_ref = write('intervening-accepted-overlap-and-rebase.json', {**common, 'counts': {k:v for k,v in counts.items() if 'overlap' in k or 'changed_cells' in k or 'registry_count' in k}, 'records': overlap, 'source_first_root_judgments_unchanged': True, 'must_rebase_before_any_later_registration': True})
+    validation_ref = write('validation-and-preservation.json', {**common, 'counts': counts, 'nonmissing_exact_quote_checks_by_object_role': dict(quote_checks), 'root_source_objects_equal_all_nine_original_partial_assessments': True, 'all552_current_cells_independently_replayed': True, 'all600_both_reader_sources_and_historical_baselines_validated': True, 'first_postfreeze_values_reconstructed_from_original_decisions_and_explicit_dispositions': True, 'second_original_disposition_and_proposal_objects_preserved': True, 'all_proposal_before_values_checked_against_actual_historical_baselines': True, 'input_binding_checks': binding_checks, 'protected_inputs': sorted(protected.values(), key=lambda v:v['path']), 'packet_index': packet_index_ref, 'overlap_and_rebase': overlap_ref, 'builder': {'path':str(Path(__file__).resolve().relative_to(W)), 'sha256':sha(Path(__file__).resolve())}, 'free_bytes_after_outputs':shutil.disk_usage(W).free})
+    # Verify new output objects directly against their original sources before completion.
+    made = json.loads((P / 'all552-root-mechanical-comparison.json').read_text())
+    assert made['records'] == records and made['counts'] == counts
+    for row in made['records']:
+        key = row['study_uid'], row['target']; root = roots[key[0]]; ti = TARGETS.index(key[1])
+        assert row['root_frozen']['state'] == root['states'][ti] and row['root_frozen']['evidence'] == root['evidence'][ti] and row['root_frozen']['report_notes'] == root['notes']
+        assert row['second_disposition_original'] == second_post[key]
+        assert row['first_proposal_original'] == first_props.get(key) and row['second_proposal_original'] == second_props.get(key)
+    emitted = [r for ref in packet_refs for r in json.loads((W/ref['path']).read_text())['records']]
+    assert emitted == made['records']
+    for value in protected.values():
+        assert sha(W / value['path']) == value['sha256']
+    assert registry.read_bytes() == registry_bytes
+    output_refs = [{'path':str(path.relative_to(W)), 'sha256':sha(path), 'bytes':path.stat().st_size} for path in sorted(P.rglob('*')) if path.is_file() and '__pycache__' not in path.parts]
+    completion = write('completion-manifest.json', {**common, 'counts': counts, 'files': output_refs, 'complete_comparison': comparison_ref, 'review_packet_index': packet_index_ref, 'validation': validation_ref, 'all_output_packets_equal_complete_ordered552': True, 'all_inputs_reverified_after_output': True, 'self_excluded': True})
+    print(json.dumps({'counts': counts, 'completion': completion, 'comparison': comparison_ref, 'packet_index': packet_index_ref, 'validation': validation_ref}, indent=2))
+
+if __name__ == '__main__':
+    main()

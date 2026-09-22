@@ -9,19 +9,22 @@ from a clone of this repository.
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
-The current registry contains **362 active accepted target corrections** and
-18 enforced report-supervision exclusions. Cartilage005 adds four: two negatives
-become uncertain, and two quotations gain supporting context. All 358 earlier
-correction objects and the three earlier retirements remain unchanged. Both
-readers and root attention adjudication have finished the priority cartilage set;
-three global semantic QA gates and final leakage, mask, manifest and training
-checks remain open. Twenty-four unresolved correspondence cases must retain zero
-report-loss masks.
+The current registry contains **425 active accepted target corrections** and
+18 enforced report-supervision exclusions. Wording002 adds 63 changes while
+preserving all 362 earlier whole correction objects and three earlier retirements.
+Four overlapping proposals retain their existing accepted objects. All initial
+judgments and 22 later root reconsiderations remain explicit. Three semantic QA
+gates and final leakage, mask, manifest and training checks remain open; 24
+unresolved correspondence cases must retain zero report-loss masks.
 
-The most recent verified private publication contains 358 corrections and 8,955
-restorable Git files at Git `3d3b135f` / HF `33d5abd3`. The local 362 milestone needs
-its own verified publication receipt. After data readiness, the owner's expanded
-mission requires competitive training research and an experiment plan; see
+The latest verified private publication contains 362 corrections and 9,164
+restorable Git files at Git `f648ebce` / HF `a9155790`; its actual receipt is archived.
+The local 425 milestone needs its own verified publication receipt. Completed
+bone passes cover 1,050 priority reports each. Root wording003 has 20 of 45 sources
+frozen before case findings. The fixed362 evidence ledger links every target to
+existing reviews and remaining work, with separate later snapshots. After data
+readiness, the owner's expanded mission requires competitive training research
+and an experiment plan; see
 [mission-and-training-plan.md](../docs/mission-and-training-plan.md).
 
 The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and

@@ -1,0 +1,579 @@
+"""Bounded mechanical evidence join; never exports labels or decides clinical states."""
+from __future__ import annotations
+
+import argparse
+import collections
+import hashlib
+import json
+import shutil
+import sys
+from pathlib import Path
+
+IDENTITY = "/root/duplicate_consistency_review"
+CANON = "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3"
+RUBRIC = "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+REGISTRY = "a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b"
+MAP_SHA = "d2b7244f61ab1e9f1e628937013f1ff3e909302b219d562fd4b904daf23613f1"
+STATES = {"positive", "negative", "uncertain", "not_mentioned"}
+OA = ["Medial OA", "Lateral OA", "PF OA"]
+BONE = ["Contusion", "Fracture"]
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def string_values(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for child in value.values():
+            yield from string_values(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from string_values(child)
+
+
+def actor(*objects):
+    agent = session = None
+    for ob in objects:
+        if not isinstance(ob, dict):
+            continue
+        for key in ("agent_id", "assessor_agent_id", "assessor_id", "reader_id"):
+            if isinstance(ob.get(key), str):
+                agent = agent or ob[key]
+        for key in ("session_id", "assessor_session_id"):
+            if isinstance(ob.get(key), str):
+                session = session or ob[key]
+        if isinstance(ob.get("assessor"), dict):
+            a, s = actor(ob["assessor"])
+            agent, session = agent or a, session or s
+    return agent, session
+
+
+def records(path):
+    if path.suffix == ".jsonl":
+        return {}, [(f"line:{i}", json.loads(line)) for i, line in enumerate(path.read_text().splitlines(), 1)]
+    doc = read(path)
+    if isinstance(doc, list):
+        return {}, [(f"/{i}", r) for i, r in enumerate(doc)]
+    for key in ("records", "reports", "judgments"):
+        if isinstance(doc.get(key), list):
+            return doc, [(f"/{key}/{i}", r) for i, r in enumerate(doc[key])]
+    raise ValueError(f"Unsupported record container: {path.name}")
+
+
+def validate_judgment(report, state, evidence):
+    if state not in STATES or not isinstance(evidence, str):
+        raise ValueError("Invalid state/evidence type")
+    if state == "not_mentioned":
+        if evidence:
+            raise ValueError("Missing state has nonempty evidence")
+        return None
+    if not evidence or evidence not in report:
+        raise ValueError("Evidence is not an exact contiguous original source quote")
+    return report.index(evidence)
+
+
+def main(workspace, output):
+    w = workspace.resolve()
+    r = w / "work/recovered"
+    b = w / "work/annotation-staging"
+    if output.exists():
+        raise ValueError("Output must be new")
+    if shutil.disk_usage(w).free <= 20 * 1024**3:
+        raise ValueError("20 GiB floor")
+    sys.path.insert(0, str(r))
+    from rsna.adjudications import inspect_adjudications
+    from rsna.correspondence import inspect_correspondence
+    from rsna.schema import TARGETS
+
+    targets = list(TARGETS)
+    artifacts, artifact_ids, stages, evidence, notices = [], {}, [], [], []
+    cell_records = collections.defaultdict(list)
+    scope_memberships = collections.defaultdict(set)
+    source = {}
+
+    def bind(p, expected=None):
+        p = Path(p).resolve()
+        if not p.is_relative_to(w) or not p.is_file():
+            raise ValueError("Artifact outside workspace or missing")
+        # No official label table is ever a ledger input.
+        if p == r / "initiative/source/train.csv" or p.name == ".env":
+            raise ValueError("Forbidden sensitive/gold input")
+        digest = sha(p.read_bytes())
+        if expected and digest != expected:
+            raise ValueError(f"Changed bound artifact: {p.name}")
+        path = str(p.relative_to(w))
+        if path not in artifact_ids:
+            aid = f"a{len(artifacts):04d}"
+            artifact_ids[path] = aid
+            artifacts.append({"id": aid, "path": path, "sha256": digest, "bytes": p.stat().st_size})
+        return artifact_ids[path]
+
+    def resolve(p, owner):
+        p = Path(p)
+        choices = [p] if p.is_absolute() else [w / p, w / "work" / p, r / p, owner / p]
+        for q in choices:
+            if q.is_file():
+                return q.resolve()
+        raise ValueError(f"Unresolved artifact basename: {p.name}")
+
+    def bound_ref(d, owner):
+        p = resolve(d["path"], owner)
+        bind(p, d.get("sha256"))
+        return p
+
+    def choose(folder, names):
+        for name in names:
+            if (folder / name).is_file():
+                return folder / name
+        raise ValueError(f"Missing named assessment in {folder.name}")
+
+    mpath = b / "readiness-closure-map-362-v1/readiness-closure-map.json"
+    bind(mpath, MAP_SHA)
+    plan = read(mpath)
+    bind(b / "readiness-closure-map-362-v1/readiness-closure-map.md", "295488024a9a947ae83cef62c75a11221cf6df9962b627adfb7c81552a18149b")
+    bind(w / "work/readiness-closure-map-362-root-verification.json", "6369e3913ba34f16ea2bbc3bed7cf453a2288f66841ffe8b58db191d70f52215")
+    bind(r / "protocols/report_weak_v2.md", RUBRIC)
+    bind(r / "initiative/reviews-v2/adjudications/registry.json", REGISTRY)
+    for p in sorted((r / "initiative/reviews/inputs").glob("batch-*.json")):
+        aid = bind(p)
+        for index, row in enumerate(read(p)):
+            uid = row["study_uid"]
+            if uid in source:
+                raise ValueError("Duplicate source UID")
+            source[uid] = {"study_uid": uid, "report": row["report"], "report_sha256": sha(row["report"].encode()), "source_artifact": aid, "source_path": str(p.relative_to(r)), "source_sha256": sha(p.read_bytes()), "source_index_zero_based": index, "case": f"{p.stem[-3:]}:{index:02d}"}
+    reports = {uid: row["report"] for uid, row in source.items()}
+    assert len(source) == 4407
+    inspection = inspect_adjudications(reports, r / "initiative/reviews-v2/reviewed", r / "protocols/report_weak_v2.md", r)
+    assert inspection["source_reports_sha256"] == CANON and inspection["rubric_sha256"] == RUBRIC
+    assert inspection["n_changes"] == 362 and inspection["registry_sha256"] == REGISTRY
+    assert len(inspection["pending_semantic_qa"]) == 3
+    inspection_aid = bind(r / "initiative/audits/cartilage-observed-005-integration-v1/complete362-inspection.json")
+    assert inspection == read(r / "initiative/audits/cartilage-observed-005-integration-v1/complete362-inspection.json")
+    correspondence = inspect_correspondence(reports, r)
+    correspondence_aid = bind(r / "initiative/audits/correspondence-release-registry.json")
+
+    def source_check(row, allowed=None):
+        uid = row["study_uid"]
+        if uid not in source or (allowed is not None and uid not in allowed):
+            raise ValueError("UID outside exact source packet")
+        canonical = source[uid]
+        for key in ("report_sha256", "source_report_sha256", "report_utf8_sha256"):
+            if row.get(key) and row[key] != canonical["report_sha256"]:
+                raise ValueError("Report hash mismatch")
+        if row.get("report") is not None and row["report"] != canonical["report"]:
+            raise ValueError("Full report byte mismatch")
+        for key in ("source_sha256", "source_batch_sha256", "source_file_sha256"):
+            if row.get(key) and row[key] != canonical["source_sha256"]:
+                raise ValueError("Source batch hash mismatch")
+        if row.get("source_path") and Path(row["source_path"]).name != Path(canonical["source_path"]).name:
+            raise ValueError("Source batch path mismatch")
+        for key in ("source_index_zero_based", "source_index"):
+            if key in row and row[key] != canonical["source_index_zero_based"]:
+                raise ValueError("Source index mismatch")
+        return canonical
+
+    def emit(stage, aid, selector, row, target, state, quote, agent, session, allowed=None, reason=None, raw_fields=None):
+        original = source_check(row, allowed)
+        if target not in stage["targets"] or target not in targets:
+            raise ValueError("Target outside actual reader scope")
+        offset = validate_judgment(original["report"], state, quote)
+        eid = f"e{len(evidence):06d}"
+        item = {"id": eid, "study_uid": row["study_uid"], "target": target, "report_sha256": original["report_sha256"], "stage": stage["id"], "kind": stage["kind"], "artifact": aid, "selector": selector, "agent_id": agent, "session_id": session, "session_recorded": session is not None, "state": state, "evidence": quote, "evidence_sha256": sha(quote.encode()), "first_exact_quote_start": offset}
+        if reason is not None:
+            item["rationale"] = reason
+        if raw_fields:
+            item["original_selected_fields"] = raw_fields
+        if not agent:
+            raise ValueError("Missing actual author identity")
+        evidence.append(item)
+        cell_records[(row["study_uid"], target)].append(eid)
+        scope_memberships[stage["id"]].add((row["study_uid"], target))
+        return eid
+
+    def newstage(sid, kind, actual_targets, anchor=None, author=None, session=None, family=None):
+        stage = {"id": sid, "kind": kind, "targets": actual_targets, "family": family, "source_reports_sha256": CANON, "rubric_sha256": RUBRIC, "coverage_is_not_clinical_clearance": True}
+        if anchor:
+            stage["anchor_artifact"] = bind(anchor)
+        stage.update(agent_id=author, session_id=session, session_missing_is_not_inferred=session is None)
+        stages.append(stage)
+        return stage
+
+    def import_source(path, stage, frozen=None, allowed=None):
+        aid = bind(path)
+        header, rows = records(path)
+        freeze = read(frozen) if frozen else {}
+        if frozen and path.resolve() != frozen.resolve() and sha(path.read_bytes()) not in set(string_values(freeze)):
+            raise ValueError(f"Source assessment is not hash-bound by freeze: {path.parent.name}/{path.name}")
+        stage.setdefault("original_declared_context_fields", []).append({
+            "assessment_artifact": aid,
+            "assessment": {k: v for k, v in header.items() if k in ("stage", "rubric_version", "rubric_sha256", "source_reports_sha256", "canonical_all4407_source_reports_sha256")},
+            "freeze": {k: v for k, v in freeze.items() if k in ("stage", "rubric_version", "rubric_sha256", "source_reports_sha256", "canonical_all4407_source_reports_sha256")},
+            "canonical_ledger_join_does_not_rewrite_original_metadata": True,
+        })
+        expected_agent, expected_session = actor(header, freeze)
+        if expected_agent:
+            stage["agent_id"] = expected_agent
+        if expected_session:
+            stage["session_id"] = expected_session
+        seen = set()
+        for selector, row in rows:
+            author, session = actor(row, header, freeze)
+            author, session = author or stage.get("agent_id"), session or stage.get("session_id")
+            order = row.get("target_order", header.get("target_order", header.get("targets", stage["targets"])))
+            if "decisions" in row:
+                pairs = [(x["target"], x["state"], x.get("evidence", ""), x.get("rationale", x.get("reason")), f"{selector}/decisions/{i}") for i, x in enumerate(row["decisions"])]
+            else:
+                if len(row["states"]) != len(order) or len(row["evidence"]) != len(order):
+                    raise ValueError("Parallel source judgment arrays differ")
+                reasons = row.get("rationales", row.get("target_reasoning", [None] * len(order)))
+                pairs = [(t, state, ev, reasons[i], f"{selector}/states/{i}") for i, (t, state, ev) in enumerate(zip(order, row["states"], row["evidence"]))]
+            for target, state, quote, reason, loc in pairs:
+                key = (row["study_uid"], target)
+                if key in seen:
+                    raise ValueError("Duplicate source cell in stage")
+                seen.add(key)
+                emit(stage, aid, loc, row, target, state, quote, author, session, allowed, reason)
+        if allowed is not None and seen != {(u, t) for u in allowed for t in stage["targets"]}:
+            raise ValueError("Source pass does not cover its exact packet/target scope")
+        stage["assessment_artifacts"] = stage.get("assessment_artifacts", []) + [aid]
+
+    originals = {}
+    for n in range(89):
+        basename = f"batch-{n:03d}"
+        metas = {}
+        for role in ("draft", "reviewed"):
+            sidecar = r / f"initiative/reviews-v2/provenance/{basename}-{role}.json"
+            meta = read(sidecar)
+            bind(sidecar)
+            assert meta["rubric_sha256"] == RUBRIC
+            assert meta["source_reports_sha256"] == CANON
+            assert meta["source_sha256"] == sha((r / f"initiative/reviews/inputs/{basename}.json").read_bytes())
+            metas[role] = meta
+        assert metas["draft"]["agent_id"] != metas["reviewed"]["agent_id"]
+        assert metas["draft"]["session_id"] != metas["reviewed"]["session_id"]
+        for role, kind, folder in (("draft", "original_first_source", "drafts"), ("preread", "original_second_source_preread", "prereads"), ("reviewed", "original_second_postcomparison", "reviewed")):
+            meta = metas["draft" if role == "draft" else "reviewed"]
+            path = r / f"initiative/reviews-v2/{folder}/{basename}-{role}.jsonl"
+            if role == "preread":
+                prefix = next(k for k in ("independent_source_read", "independent_preread", "preread") if meta.get(k + "_path"))
+                path = resolve(meta[prefix + "_path"], r)
+                expected = meta[prefix + "_sha256"]
+            else:
+                expected = meta.get("sha256", meta.get("output_sha256"))
+            bind(path, expected)
+            sid = f"original:{basename}:{role}"
+            st = newstage(sid, kind, targets, r / f"initiative/reviews-v2/provenance/{basename}-{'draft' if role == 'draft' else 'reviewed'}.json", meta["agent_id"], meta["session_id"], "original")
+            allowed = {uid for uid, x in source.items() if Path(x["source_path"]).stem == basename}
+            import_source(path, st, allowed=allowed)
+            if role == "reviewed":
+                for _, row in records(path)[1]:
+                    for t, state, ev in zip(targets, row["states"], row["evidence"]):
+                        originals[(row["study_uid"], t)] = {"state": state, "evidence": ev, "artifact": bind(path)}
+
+    def neutral(p):
+        bind(p)
+        _, rows = records(p)
+        out = set()
+        for _, row in rows:
+            source_check(row)
+            if "report" not in row:
+                raise ValueError("Neutral packet lacks full original report")
+            out.add(row["study_uid"])
+        if len(out) != len(rows):
+            raise ValueError("Repeated neutral UID")
+        return out
+
+    supplemental = []
+    for row in plan["source_coverage"]["wording"]:
+        n = int(row["batch"])
+        packet = bound_ref(row["neutral_packet"], w)
+        allowed = neutral(packet)
+        for role in ("first", "second"):
+            d = b / f"qualified-negation-focused-{n:03d}-{'source' if role == 'first' else 'independent'}-review-v1"
+            freeze = bound_ref(row["source_freezes"][0 if role == "first" else 1], w)
+            path = choose(d, ["source-assessment-frozen.json", "source-assessment-frozen.jsonl"] if role == "first" else ["independent-source-judgments.jsonl", "independent-assessment.jsonl", "source-assessment-frozen.json", "source-assessment-frozen.jsonl"])
+            st = newstage(f"wording:{n:03d}:{role}:source", "supplemental_source_frozen", targets, freeze, family="wording")
+            import_source(path, st, freeze, allowed)
+            supplemental.append(("wording", n, role, st, d, allowed))
+    for row in plan["source_coverage"]["bone"]:
+        n = int(row["batch"])
+        allowed = neutral(bound_ref(row["neutral_packet"], w))
+        for role in ("first", "second"):
+            d = b / f"bone-observed-{n:03d}-{'source' if role == 'first' else 'independent'}-review-v1"
+            freeze = bound_ref(row[f"{role}_source_freeze"], w)
+            path = choose(d, ["source-assessment.json", "source-assessment-frozen.jsonl", "source-assessment-frozen.json"] if role == "first" else ["independent-source-assessment.jsonl", "source-assessment-frozen.json", "source-assessment-frozen.jsonl"])
+            st = newstage(f"bone:{n:03d}:{role}:source", "supplemental_source_frozen", BONE, freeze, family="bone")
+            import_source(path, st, freeze, allowed)
+            supplemental.append(("bone", n, role, st, d, allowed))
+    for n in range(6):
+        allowed = None
+        for role in ("first", "second"):
+            d = b / f"cartilage-observed-{n:03d}-{'source' if role == 'first' else 'independent'}-review-v1"
+            freeze = choose(d, ["source-freeze.json", "independent-freeze.json"])
+            path = choose(d, ["source-assessment-frozen.jsonl"] if role == "first" else ["independent-oa-assessment.jsonl", "independent-assessment.jsonl"])
+            if role == "first":
+                allowed = {x["study_uid"] for _, x in records(path)[1]}
+            st = newstage(f"cartilage:{n:03d}:{role}:source", "supplemental_source_frozen", OA, freeze, family="cartilage")
+            import_source(path, st, freeze, allowed)
+            supplemental.append(("cartilage", n, role, st, d, allowed))
+
+    postkeys = ["second_postfreeze", "own_postfreeze", "independent_postfreeze", "independent_postfreeze_judgment", "postfreeze_assessor_judgment", "first_postfreeze_judgment", "postfreeze_opinion", "final_first_assessor_preference"]
+
+    def import_post(path, st, base, allowed):
+        aid = bind(path)
+        header, rows = records(path)
+        agent, session = actor(header)
+        agent, session = agent or base["agent_id"], session or base["session_id"]
+        if agent != base["agent_id"]:
+            raise ValueError("Postfreeze author does not match source author")
+        st.update(agent_id=agent, session_id=session)
+        for loc, row in rows:
+            opinion = None
+            for key in postkeys:
+                if isinstance(row.get(key), dict):
+                    opinion = row[key]
+                    field = key
+                    break
+            if opinion is None:
+                for prefix in ("root_postfreeze", "independent_postfreeze", "postfreeze"):
+                    if prefix + "_state" in row and prefix + "_evidence" in row:
+                        opinion = {"state": row[prefix + "_state"], "evidence": row[prefix + "_evidence"]}
+                        field = prefix
+                        break
+            if opinion is None:
+                raise ValueError(f"Unrecognized postfreeze opinion in {path.name}")
+            reason = opinion.get("reason", opinion.get("rationale", row.get("postfreeze_reason", row.get("reason"))))
+            emit(st, aid, loc + "/" + field, row, row["target"], opinion["state"], opinion["evidence"], agent, session, allowed, reason, {k: row[k] for k in ("action", "disposition", "accepted", "registered_or_accepted", "acceptance_or_registration") if k in row})
+        st["assessment_artifacts"] = [aid]
+
+    for family, n, role, base, sourcedir, allowed in supplemental:
+        if family == "wording":
+            if role == "first" and n < 4:
+                # Early first-pass artifacts store differences, not a manufactured complete final table.
+                p = sourcedir / "postfreeze-disposition-assessment.json"
+                h = read(p);aid = bind(p)
+                st = newstage(f"wording:{n:03d}:first:postfreeze-differences", "postfreeze_partial_explicit_dispositions", targets, p, base["agent_id"], base["session_id"], family)
+                for group in ("state_difference_records", "evidence_difference_records"):
+                    for i, row in enumerate(h[group]):
+                        opinion = {"final_first_assessor_state": row.get("final_first_assessor_state"), "first_assessor_state": row.get("first_assessor_state"), "first_assessor_evidence": row.get("first_assessor_evidence"), "effective_state": row.get("effective_state"), "effective_evidence": row.get("effective_evidence"), "disposition": row.get("disposition"), "postfreeze_reason": row.get("postfreeze_reason")}
+                        original = source_check(row, allowed)
+                        for key in ("first_assessor_evidence", "effective_evidence"):
+                            ev = opinion[key]
+                            if ev and ev not in original["report"]:
+                                raise ValueError("Partial disposition quote mismatch")
+                        eid = f"e{len(evidence):06d}"
+                        evidence.append({"id": eid, "study_uid": row["study_uid"], "target": row["target"], "report_sha256": original["report_sha256"], "stage": st["id"], "kind": st["kind"], "artifact": aid, "selector": f"/{group}/{i}", "agent_id": base["agent_id"], "session_id": base["session_id"], "original_selected_fields": opinion, "reason_no_synthetic_final_quote": "Original difference record has multiple quote fields; preserve them without inferring the author's final quote choice."})
+                        cell_records[(row["study_uid"], row["target"])].append(eid)
+                        scope_memberships[st["id"]].add((row["study_uid"], row["target"]))
+                continue
+            if role == "first":
+                d = sourcedir if n == 4 else b / f"qualified-negation-focused-{n:03d}-post-freeze-comparison-v1"
+                p = choose(d, ["complete-first-dispositions.json", "complete-postfreeze-dispositions.json", "postfreeze-disposition-assessment.json"])
+            elif n == 0:
+                d = sourcedir / "postfreeze-comparison-v1";p = d / "independent-postfreeze-dispositions.json"
+            elif n in (1, 2, 3, 4):
+                d = b / f"qualified-negation-focused-{n:03d}-post-freeze-comparison-v1";p = choose(d, ["second-postfreeze-assessment.json", "complete-second-dispositions.json"])
+            else:
+                d = b / f"qualified-negation-focused-{n:03d}-independent-postfreeze-v1";p = choose(d, ["all600-independent-postfreeze-dispositions.json", "complete-second-dispositions.json"])
+        elif family == "bone":
+            d = b / f"bone-observed-{n:03d}-{'postfreeze' if role == 'first' else 'independent-postfreeze'}-v1"
+            p = choose(d, ["all100-postfreeze-dispositions.json"] if role == "first" else ["all100-independent-postfreeze-dispositions.json", "complete-second-dispositions.json"])
+        else:
+            d = b / f"cartilage-observed-{n:03d}-{'postfreeze' if role == 'first' else 'independent-postfreeze'}-v1"
+            p = choose(d, ["first-postfreeze-dispositions.json"] if role == "first" else ["second-postfreeze-dispositions.json", "second-complete-dispositions.json"])
+        anchor = choose(d, ["completion-supplement-manifest.json", "completion-manifest.json", "final-file-list.json", "postfreeze-disposition-freeze.json", "disposition-freeze.json", "first-disposition-freeze.json", "postfreeze-summary.json", "postfreeze-validation-receipt.json"])
+        st = newstage(f"{family}:{n:03d}:{role}:postfreeze", "postfreeze_complete_opinions", base["targets"], anchor, base["agent_id"], base["session_id"], family)
+        import_post(p, st, base, allowed)
+        if scope_memberships[st["id"]] != {(u, t) for u in allowed for t in st["targets"]}:
+            raise ValueError("Postfreeze table lacks complete exact scope")
+
+    root_stages = []
+    for family, ns, scope in (("cartilage", range(6), OA), ("wording", range(3), targets)):
+        for n in ns:
+            d = b / (f"cartilage-observed-{n:03d}-root-review-v1" if family == "cartilage" else f"qualified-negation-focused-{n:03d}-root-review-v1")
+            freeze = choose(d, ["complete-source-freeze.json", "complete-source-assessment-frozen.json", "root48-source-freeze.json", "source-freeze.json"])
+            if family == "wording" and n == 2:
+                bind(freeze, "f0e0edacc93d54363eec5dc4194a9f9dcbad12bc2102a770e18697ac291da39a")
+            st = newstage(f"{family}:{n:03d}:root:source", "root_source_frozen", scope, freeze, family=family)
+            fh = read(freeze)
+            st["agent_id"], st["session_id"] = actor(fh)
+            if family == "wording" and n == 0:
+                for x in fh["source_assessments"]:
+                    pp = bound_ref(x, d);import_source(pp, st, freeze)
+            else:
+                pp = choose(d, ["source-assessment-frozen.jsonl", "full-source-assessment.json", "complete-source-assessment-frozen.json", "complete-source-freeze.json"])
+                import_source(pp, st, freeze)
+            root_stages.append(st)
+            if family == "wording" and n == 2:
+                continue  # Root002 comparison was explicitly unfinished at the sealed cutoff.
+            pp = d / "root-postfreeze-dispositions.json"
+            post = newstage(f"{family}:{n:03d}:root:postfreeze", "root_postfreeze_dispositions", scope, pp, st["agent_id"], st["session_id"], family)
+            allowed = {u for u, _ in scope_memberships[st["id"]]}
+            import_post(pp, post, st, allowed)
+
+    # Append-only identity/context clarifications; they never create extra readers or coverage.
+    supplement_paths = [
+        b / "bone-observed-007-independent-canonical-context-normalization-v1/completion-manifest.json",
+        b / "bone-observed-011-postfreeze-v1/source-freeze-batch-label-correction.json",
+        b / "bone-observed-016-independent-postfreeze-v1/completion-supplement-manifest.json",
+        b / "bone-observed-017-postfreeze-v1/completion-supplement.json",
+        b / "cartilage-observed-005-independent-proposal-normalization-v1/original-stage-identity-clarification.json",
+        b / "cartilage-observed-005-independent-proposal-normalization-v1/original-exposure-and-authoring-clarification.json",
+    ]
+    supplement_ids = []
+    for p in supplement_paths:
+        expected = "4957ac2b51c4b94358263045a8696ba4fd26f3b0f88e9b0a594ba106c6e6adc4" if "canonical-context-normalization" in str(p) else None
+        supplement_ids.append(bind(p, expected))
+        ob = read(p)
+        if isinstance(ob.get("files"), list):
+            for x in ob["files"]:
+                if isinstance(x, dict) and "path" in x and "sha256" in x:
+                    bound_ref(x, p.parent)
+
+    membership_inputs = [
+        ("bone_inventory", b / "bone-global-candidate-inventory-v1/all-8814-cell-partition.jsonl"),
+        ("cartilage_inventory", b / "cartilage-global-candidate-inventory-v1/full-cartilage-coverage.jsonl"),
+        ("wording_inventory", b / "qualified-negation-all4407-candidates-v1/candidate-details.jsonl"),
+    ]
+    cell_scopes = collections.defaultdict(list)
+    # Neutral attention packets describe root source-reading scope, not accepted clinical changes.
+    for row in plan["source_coverage"]["bone"]:
+        sid = f"attention_source_scope:bone:{row['batch']}:root_pending"
+        for packet in row["root_attention_source_packets"]:
+            p = bound_ref(packet, w)
+            aid = bind(p)
+            for uid in neutral(p):
+                for target in BONE:
+                    key = (uid, target)
+                    scope_memberships[sid].add(key)
+                    cell_scopes[key].append({"scope": sid, "artifact": aid, "kind": "neutral_full_source_attention_not_target_acceptance"})
+    for row in plan["source_coverage"]["wording"]:
+        if int(row["batch"]) < 2:
+            continue
+        index_path = bound_ref(row["attention_index"], w)
+        index = read(index_path)
+        packet_refs = index.get("packets", index.get("batches"))
+        if not isinstance(packet_refs, list):
+            raise ValueError("Unknown root attention index schema")
+        sid = f"attention_source_scope:wording:{row['batch']}:root_pending"
+        for packet in packet_refs:
+            p = bound_ref(packet, index_path.parent)
+            aid = bind(p)
+            for uid in neutral(p):
+                for target in targets:
+                    key = (uid, target)
+                    scope_memberships[sid].add(key)
+                    cell_scopes[key].append({"scope": sid, "artifact": aid, "kind": "neutral_full_source_attention_not_target_acceptance"})
+    for family, p in membership_inputs:
+        aid = bind(p)
+        for i, line in enumerate(p.read_text().splitlines(), 1):
+            row = json.loads(line);source_check(row)
+            category = row.get("partition", "candidate" if row.get("selected", True) else "noncandidate")
+            sid = f"inventory:{family}:{category}"
+            key = (row["study_uid"], row["target"])
+            scope_memberships[sid].add(key)
+            cell_scopes[key].append({"scope": sid, "artifact": aid, "selector": f"line:{i}"})
+    for sid, p, field in [
+        ("inventory:cartilage:residual_negative_candidate", b / "cartilage-observed-priority-v1/other-observed-candidates-retained.json", "candidate_cells"),
+        ("inventory:bone:priority", b / "bone-global-candidate-inventory-v1/priority-queue.json", "cells"),
+        ("inventory:wording:focused", b / "qualified-negation-all4407-candidates-v1/focused-qualified-candidate-details.json", "records"),
+    ]:
+        aid = bind(p)
+        for i, row in enumerate(read(p)[field]):
+            source_check(row)
+            key = (row["study_uid"], row["target"])
+            scope_memberships[sid].add(key)
+            cell_scopes[key].append({"scope": sid, "artifact": aid, "selector": f"/{field}/{i}"})
+
+    corrections = {}
+    for i, c in enumerate(inspection["changes"]):
+        key = (c["study_uid"], c["target"])
+        assert key not in corrections
+        assert {k: originals[key][k] for k in ("state", "evidence")} == c["before"]
+        validate_judgment(source[key[0]]["report"], c["after"]["state"], c["after"]["evidence"])
+        corrections[key] = {"inspection_artifact": inspection_aid, "selector": f"/changes/{i}", "case_id": c["case_id"], "case": c["case"], "before": c["before"], "after": c["after"], "proposer_agent_id": c["proposer_agent_id"], "adjudicator_agent_id": c["adjudicator_agent_id"], "adjudicator_session_id": c["adjudicator_session_id"], "proposal": c["proposal"], "independent_assessment": c["independent_assessment"], "decision": c["decision"]}
+    # Select exact exclusion keys from the validated runtime inspection, without a gold table.
+    excluded = {row["study_uid"] for row in correspondence["decisions"]}
+    assert len(excluded) == 18
+    c28path = r / "initiative/audits/correspondence-source-header-v1/correspondence28-consolidated-closure.json"
+    c28aid = bind(c28path)
+    unresolved = {}
+    for i, row in enumerate(read(c28path)["records"]):
+        if row.get("required_final_export_non_gold_report_loss_mask") in (0, [0] * 12) and row["study_uid"] not in excluded:
+            unresolved[row["study_uid"]] = {"artifact": c28aid, "selector": f"/records/{i}"}
+    assert len(unresolved) == 24
+
+    indexed = {x["id"]: x for x in evidence}
+    stage_index = {s["id"]: s for s in stages}
+    source_pairs = collections.defaultdict(lambda: collections.defaultdict(set))
+    for x in evidence:
+        if x["kind"] == "supplemental_source_frozen":
+            source_pairs[(x["study_uid"], x["target"])][stage_index[x["stage"]]["family"]].add(x["agent_id"])
+    reused = {key for key, by_family in source_pairs.items() if any(len(actors) >= 2 for actors in by_family.values())}
+    cells = []
+    for uid in sorted(source):
+        for target in targets:
+            key = (uid, target)
+            original = originals[key]
+            current = corrections[key]["after"] if key in corrections else {k: original[k] for k in ("state", "evidence")}
+            clinical_observed = current["state"] in {"positive", "negative"}
+            matching = [indexed[e] for e in cell_records[key]]
+            reuse = key in reused
+            current_diffs = [e["id"] for e in matching if "state" in e and e["kind"] not in {"original_first_source", "original_second_source_preread", "original_second_postcomparison"} and (e["state"] != current["state"] or e["evidence"] != current["evidence"])]
+            if uid in unresolved and clinical_observed:
+                raise ValueError("Unresolved correspondence mask obligation became observed")
+            cells.append({"study_uid": uid, "target": target, "case": source[uid]["case"], "report_sha256": source[uid]["report_sha256"], "original_reviewed": original, "current362_inspection": current, "active_correction": corrections.get(key), "evidence_record_ids": cell_records[key], "supplemental_source_authors_by_family": {k: sorted(v) for k, v in source_pairs[key].items()}, "two_distinct_supplemental_source_authors_in_same_family": reuse, "original_and_later_evidence_retained_separately": True, "nonoriginal_records_different_from_current": current_diffs, "inventory_memberships": cell_scopes[key], "mask_obligations": {"clinical_state_is_observed": clinical_observed, "uncertain_or_missing_requires_zero_report_loss": not clinical_observed, "enforced_correspondence_exclusion_non_gold": uid in excluded, "correspondence_registry_artifact": correspondence_aid if uid in excluded else None, "unresolved_correspondence_requires_all12_non_gold_zero": unresolved.get(uid), "non_gold_report_loss_required_zero": not clinical_observed or uid in excluded or uid in unresolved, "not_final_export_or_gold_mask": True}, "readiness_disposition": "source_evidence_reusable_pending_current_comparison_or_attention" if reuse else "original_two_pass_evidence_available_no_automatic_new_reread_assignment", "clinical_clearance": False})
+    assert len(cells) == 52884
+    membership_rows = []
+    for sid, members in sorted(scope_memberships.items()):
+        for uid, t in sorted(members):
+            membership_rows.append({"scope": sid, "study_uid": uid, "target": t, "report_sha256": source[uid]["report_sha256"], "supplemental_pair_reuse_available": (uid, t) in reused})
+    for s in stages:
+        members = scope_memberships[s["id"]]
+        s.update(cell_count=len(members), report_count=len({u for u, _ in members}))
+    counts = {sid: {"cells": len(m), "reports": len({u for u, _ in m}), "reusable_cells": len(m & reused), "remaining_disposition_cells_without_supplemental_pair": len(m - reused), "remaining_disposition_reports_without_supplemental_pair": len({u for u, _ in m - reused})} for sid, m in scope_memberships.items() if sid.startswith(("inventory:", "attention_source_scope:"))}
+    summary = {"schema_version": 1, "agent_id": IDENTITY, "session_id": IDENTITY, "source_reports_sha256": CANON, "rubric_sha256": RUBRIC, "registry_sha256": REGISTRY, "active_corrections": 362, "all_three_qa_pending": inspection["pending_semantic_qa"], "reports": 4407, "cells": len(cells), "evidence_records": len(evidence), "artifacts": len(artifacts), "stages": len(stages), "evidence_record_kind_counts": dict(collections.Counter(x["kind"] for x in evidence)), "unique_cells_with_two_distinct_supplemental_source_authors": len(reused), "scope_counts": counts, "actual_session_missing_record_count": sum(x.get("session_id") is None for x in evidence), "actual_session_policy": "Missing session identifiers remain null; author IDs are never silently copied into session fields. Distinct-author reuse is explicitly not a fresh-session attestation.", "current_correction_and_mask_context": {"enforced_exclusions": len(excluded), "unresolved_all12_zero_reports": len(unresolved), "gold_not_read": True}, "completed_metadata_supplements": supplement_ids, "excluded_live_scope": ["bone020 and later", "root wording002 comparison/adjudication; only its full46 source freeze is included"], "clinical_clearance_or_labels_created": False, "fresh_reread_mandate_for_unmatched_cells": False, "limits": ["A join authenticates matching recorded evidence, not clinical correctness or historical access order.", "Multiple stages by one author do not create extra independent readers.", "Original second prereads and final reviewed annotations are separate, as are source freezes and postfreeze reconsiderations.", "Early first wording000–004 difference-only postfreeze records are preserved with their explicit fields; no final evidence quote is synthesized.", "Inventory membership retains historical34/118 baselines; current362 annotations are kept separately.", "Mask obligations apply to report supervision and are not final gold masks or labels."]}
+    # Final input rehash and bounded writes. No original/source/registry path is writable output.
+    if output.resolve().is_relative_to(r):
+        raise ValueError("No repository writes")
+    for a in artifacts:
+        assert sha((w / a["path"]).read_bytes()) == a["sha256"]
+    assert sha((r / "initiative/reviews-v2/adjudications/registry.json").read_bytes()) == REGISTRY
+    if shutil.disk_usage(w).free <= 20 * 1024**3 + 512 * 1024**2:
+        raise ValueError("Insufficient bounded output reserve")
+    output.mkdir(parents=True)
+
+    def dump(name, value):
+        (output / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+
+    def lines(name, values):
+        with (output / name).open("w") as f:
+            for value in values:
+                f.write(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+    dump("artifact-index.json", artifacts)
+    dump("stage-index.json", stages)
+    lines("source-report-index.jsonl", ({k: v for k, v in x.items() if k != "report"} for x in source.values()))
+    lines("evidence-records.jsonl", evidence)
+    lines("cell-ledger.jsonl", cells)
+    lines("scope-memberships.jsonl", membership_rows)
+    dump("summary.json", summary)
+    dump("validation.json", {"agent_id": IDENTITY, "source_reports_sha256": CANON, "rubric_sha256": RUBRIC, "registry_sha256": REGISTRY, "reports": len(source), "target_cells": len(cells), "all_original_pass_cells": sum(len(scope_memberships[s["id"]]) for s in stages if s["family"] == "original"), "every_imported_state_and_quote_validated": True, "all_source_uid_batch_index_and_available_hashes_validated": True, "all_bound_artifacts_rehashed_before_write": True, "no_gold_values_or_labels_opened": True, "no_repo_or_registry_changes": True, "no_global_qa_closed": True, "free_bytes_after_write": shutil.disk_usage(w).free, "notices": notices})
+    files = [{"path": p.name, "sha256": sha(p.read_bytes()), "bytes": p.stat().st_size} for p in sorted(output.iterdir())]
+    dump("completion-manifest.json", {"agent_id": IDENTITY, "session_id": IDENTITY, "builder": {"path": str(Path(__file__).resolve().relative_to(w)), "sha256": sha(Path(__file__).read_bytes())}, "status": "mechanical_evidence_ledger_complete_not_semantic_clearance", "files": files})
+    print(json.dumps({k: summary[k] for k in ("reports", "cells", "evidence_records", "artifacts", "stages", "unique_cells_with_two_distinct_supplemental_source_authors", "actual_session_missing_record_count")}, indent=2))
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--workspace", type=Path, required=True)
+    ap.add_argument("--output", type=Path, required=True)
+    args = ap.parse_args()
+    main(args.workspace, args.output)

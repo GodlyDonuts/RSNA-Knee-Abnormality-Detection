@@ -1,0 +1,123 @@
+"""Offline review of exact publisher pins and inherited fail-closed guards."""
+from pathlib import Path
+from datetime import datetime, timezone
+from types import SimpleNamespace, ModuleType
+from unittest.mock import patch
+import copy
+import difflib
+import hashlib
+import importlib.util
+import json
+import sys
+
+W=Path.cwd().resolve();S=Path(__file__).resolve().parent
+OLD=W/'work/publish_cartilage004_delta.py';NEW=W/'work/publish_cartilage005_delta.py'
+H=W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+T=W/'work/annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py'
+TARGET='f648ebce325d8dd78990aa159021308cddc9e369';P=W/'work/hf-preparation-deltas'/TARGET
+AGENT='/root/duplicate_consistency_review'
+
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def load(name,p):
+ spec=importlib.util.spec_from_file_location(name,p);obj=importlib.util.module_from_spec(spec);sys.modules[name]=obj;spec.loader.exec_module(obj);return obj
+def save(name,obj):
+ with (S/name).open('x') as f:f.write(json.dumps(obj,indent=2)+'\n')
+
+assert sha(OLD)=='aedd3199d95f3645e3e834e344bfdfd2d2e35d8d11188871a9f7d59d694a63cb'
+assert sha(NEW)=='d8a7544b1464b2d68600b2ee3a9ccbe44875df50f723d29a159327297fa39978'
+assert sha(H)=='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+assert sha(T)=='494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f'
+substitutions=[('TARGET = "3d3b135f3dbc44763f78c60e950d074565850f49"','TARGET = "'+TARGET+'"'),('PARENT = "0f7134a61da52222eda7184d0d46488f6c7caea4"','PARENT = "33d5abd36e82e9d0228298dc9aa7d54ab128f04a"'),('N_FILES = 8955','N_FILES = 9164'),('N_CORRECTIONS = 358','N_CORRECTIONS = 362'),('CI_RUN = 35682228129','CI_RUN = 35684206517'),('N_CORRECTIONS == 358','N_CORRECTIONS == 362'),('"correction_count_not_358"','"correction_count_not_362"')]
+expected=OLD.read_text()
+for before,after in substitutions:
+ assert expected.count(before)==1;expected=expected.replace(before,after,1)
+assert expected==NEW.read_text()
+# No context lines prevents adding another historical single-space diff marker.
+with (S/'publisher-only-pin-diff.txt').open('x') as f:f.write(''.join(difflib.unified_diff(OLD.read_text().splitlines(True),NEW.read_text().splitlines(True),fromfile=OLD.name,tofile=NEW.name,n=0)))
+pub=load('offline_review_cartilage005',NEW);transport=load('offline_review_transport',T)
+manifest=json.loads((P/'manifest.json').read_text());proof=json.loads((P/'restoration-proof.json').read_text())
+assert proof['target_git_commit']==pub.TARGET==TARGET and proof['n_result_files_verified']==pub.N_FILES==9164
+assert pub.BASE_HF==proof['base_hf_revision']=='54949cd5a575ea7027a4a57916e772936a98d38b'
+assert pub.BASE_GIT==proof['base_git_commit']=='1792f01ed3daab757c5ddb9bf5733ffe8d999f91'
+assert pub.HELPER==H and pub.TRANSPORT==T and pub.N_CORRECTIONS==362 and pub.CI_RUN==35684206517
+prior_receipt_path=W/'work/hf-preparation-deltas/3d3b135f3dbc44763f78c60e950d074565850f49/root-publication-receipt.json'
+prior_receipt=json.loads(prior_receipt_path.read_text())
+assert prior_receipt['private'] is True and prior_receipt['hf_revision']==pub.PARENT=='33d5abd36e82e9d0228298dc9aa7d54ab128f04a'
+checks=[]
+def passes(name,fn):fn();checks.append({'name':name,'expected':'pass','passed':True})
+def rejects(name,fn,code):
+ try:fn()
+ except Exception as error:
+  assert str(error)==code,(name,type(error).__name__)
+ else:raise AssertionError(name)
+ checks.append({'name':name,'expected_guard':code,'passed':True})
+def bad_global(name,value):
+ with patch.object(pub,name,value):pub.local_binding_guard(manifest)
+passes('correct_bound_manifest',lambda:pub.local_binding_guard(manifest))
+for name,val,code in [('TARGET','UNBOUND','target_not_bound'),('CI_RUN',None,'ci_run_not_bound'),('CI_RUN',True,'ci_run_not_bound'),('N_FILES',None,'file_count_not_bound'),('N_FILES',True,'file_count_not_bound'),('N_CORRECTIONS',358,'correction_count_not_362'),('N_CORRECTIONS',True,'correction_count_not_362'),('PREFIX','wrong/','prefix_binding')]:rejects(name+'_'+str(val),lambda n=name,v=val:bad_global(n,v),code)
+for name,val,code in [('base_git_commit','0'*40,'base_git_binding'),('n_target_git_files',9163,'manifest_file_count'),('files',manifest['files'][:-1],'manifest_file_count')]:
+ bad=copy.copy(manifest);bad[name]=val;rejects('manifest_'+name,lambda b=bad:pub.local_binding_guard(b),code)
+success={'conclusion':'success','headSha':TARGET,'status':'completed'}
+with patch.object(pub.subprocess,'check_output',return_value=json.dumps(success).encode()) as mock:
+ passes('exact_ci_success',pub.ci);assert mock.call_args.args[0]==['gh','run','view','35684206517','--json','conclusion,headSha,status'];assert mock.call_args.kwargs['timeout']==60
+for field,value in [('headSha','0'*40),('conclusion','failure'),('status','in_progress')]:
+ bad={**success,field:value}
+ with patch.object(pub.subprocess,'check_output',return_value=json.dumps(bad).encode()):rejects('ci_'+field,pub.ci,'ci_mismatch')
+source={'source':'immutable'}
+class FakeTransport:
+ def __init__(self,head=pub.PARENT,bad_revision=None):self.head=head;self.bad_revision=bad_revision
+ def private_head(self,api):return self.head
+ def source_identity(self,api,revision):return {'source':'changed'} if revision==self.bad_revision else source
+helper=SimpleNamespace(OID=__import__('re').compile('[0-9a-f]{40}'))
+def guard(ft,current=success):pub.publication_guard(None,current,ft,helper,source)
+passes('expected_parent_source_and_ci',lambda:guard(FakeTransport()))
+rejects('changed_parent',lambda:guard(FakeTransport('0'*40)),'remote_parent_mismatch')
+rejects('parent_source_changed',lambda:guard(FakeTransport(bad_revision=pub.PARENT)),'parent_sources_changed')
+rejects('immutable_base_source_changed',lambda:guard(FakeTransport(bad_revision=pub.BASE_HF)),'immutable_base_sources_changed')
+rejects('publication_wrong_ci',lambda:guard(FakeTransport(),{**success,'headSha':'0'*40}),'exact_commit_ci_not_success')
+api=SimpleNamespace(repo_info=lambda *a,**k:SimpleNamespace(private=True,sha=pub.PARENT))
+passes('private_repository',lambda:transport.private_head(api))
+api.repo_info=lambda *a,**k:SimpleNamespace(private=False,sha=pub.PARENT)
+rejects('public_repository',lambda:transport.private_head(api),'repository_not_private')
+api.repo_info=lambda *a,**k:SimpleNamespace(private=True,sha='invalid')
+rejects('invalid_private_head',lambda:transport.private_head(api),'repository_not_private')
+entries=[SimpleNamespace(path=p,tree_id='a'*40,blob_id='b'*40) for p in transport.SOURCE_TREES+transport.SOURCE_CSVS]
+api.list_repo_tree=lambda *a,**k:entries
+passes('complete_immutable_source_metadata',lambda:transport.source_identity(api,pub.PARENT))
+api.list_repo_tree=lambda *a,**k:entries[:-1]
+rejects('missing_source_entry',lambda:transport.source_identity(api,pub.PARENT),'source_entries_missing')
+api.list_repo_tree=lambda *a,**k:entries+[entries[0]]
+rejects('duplicate_source_entry',lambda:transport.source_identity(api,pub.PARENT),'duplicate_source_entry')
+# Exercise metadata verification locally; no actual Hub setup, token or network.
+http=ModuleType('huggingface_hub.utils._http');http.get_session=lambda:None
+names=['delta.tar.gz','manifest.json','restoration-proof.json','root-restoration-proof.json','README.md','checkpoint_delta.py']
+refs=[{'path':pub.PREFIX+n,'bytes':j+1,'sha256':hashlib.sha256(n.encode()).hexdigest()} for j,n in enumerate(names)]
+remote=[SimpleNamespace(path=r['path'],size=r['bytes'],lfs=SimpleNamespace(sha256=r['sha256'])) for r in refs]
+api.get_paths_info=lambda *a,**k:remote
+with patch.dict(sys.modules,{'huggingface_hub.utils._http':http}):
+ passes('all_six_remote_lfs_objects',lambda:transport.verify_remote(api,None,'unused',pub.PARENT,refs))
+ api.get_paths_info=lambda *a,**k:remote[:-1]
+ rejects('missing_remote_object',lambda:transport.verify_remote(api,None,'unused',pub.PARENT,refs),'remote_membership_mismatch')
+ api.get_paths_info=lambda *a,**k:remote+[remote[0]]
+ rejects('duplicate_remote_object',lambda:transport.verify_remote(api,None,'unused',pub.PARENT,refs),'duplicate_remote_entry')
+ api.get_paths_info=lambda *a,**k:remote
+ remote[0].size+=1
+ rejects('wrong_remote_size',lambda:transport.verify_remote(api,None,'unused',pub.PARENT,refs),'remote_size_mismatch')
+ remote[0].size-=1;remote[0].lfs.sha256='0'*64
+ rejects('wrong_remote_hash',lambda:transport.verify_remote(api,None,'unused',pub.PARENT,refs),'remote_lfs_oid_mismatch')
+
+code=NEW.read_text()
+assert 'parent_commit=PARENT' in code and 'publication_guard(api, ci(), transport, helper, source_before)' in code
+assert 'require(len(refs) == 6 and {r["path"] for r in refs} == names, "upload_scope")' in code
+assert 'require(found == names, "published_prefix_membership")' in code
+assert 'require(root_card_after == root_card_before, "root_card_changed")' in code
+assert 'verified_parent = None' in code and 'verified_parent = PARENT' in code
+assert '"parent_binding_scope"' in code and 'changed-head reconciliation proves exact content, not ancestry or author' in code
+assert 'str(error) if isinstance(error, PublicationGuardError) else None' in code
+assert 'helper.Scanner(secrets).feed(p.read_bytes())' in code
+save('offline-guard-tests.json',{'agent_id':AGENT,'n_checks':len(checks),'checks':checks,'actual_network_calls':0,'credentials_read':False,'main_publisher_not_executed':True})
+review={'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'checked_at_utc':datetime.now(timezone.utc).isoformat(),'status':'passed_exact_pins_and_offline_guard_review','publisher':ref(NEW),'prior_publisher':ref(OLD),'helper':ref(H),'transport':ref(T),'substitutions':[{'before':a,'after':b} for a,b in substitutions],'exactly_seven_substitutions_no_other_bytes_changed':True,'manifest':ref(P/'manifest.json'),'actual_peer_restoration_proof':ref(P/'restoration-proof.json'),'prior_verified_private_parent_receipt':ref(prior_receipt_path),'target_git_commit':TARGET,'expected_hf_parent':pub.PARENT,'immutable_base_hf_revision':pub.BASE_HF,'immutable_base_git_commit':pub.BASE_GIT,'target_file_count':9164,'registered_corrections':362,'ci_run':pub.CI_RUN,'fresh_ci_network_check_performed':False,'ci_guard_tests_use_offline_fixtures':True,'n_offline_guard_checks':len(checks),'reviewed_scope':['Exact target/base/parent/count/CI bindings and fail-closed placeholders','Six additions under exact new checkpoint prefix, no source or root-card writes','Frozen operation/object/helper/publisher/transport hashes and object sizes','Actual private-head and original/base/parent source identities checked before write','Expected-parent compare-and-swap and repeated exact-CI guard immediately before commit','All six remote objects verified by LFS hashes/sizes or full-byte hash/size streaming, exact prefix membership','Changed-head retry verifies exact content without another commit and explicitly makes no ancestry claim','Secrets remain in environment memory; bounded transport, secret scans and sanitized exception classes preserved'],'findings':[],'required_before_execution':'Root must finish distinct streaming replay, obtain actual exact-commit CI success and freeze its six-object operation. Publisher performs fresh remote privacy, parent, source/base and object checks itself.','publisher_main_executed':False,'credentials_read':False,'network_calls':0,'network_mutations':0,'repository_writes':False,'training_ready':False}
+save('publisher-bound-verification.json',review)
+save('completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'created_at_utc':datetime.now(timezone.utc).isoformat(),'files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'all_checks_passed':True})
+print(json.dumps({'status':review['status'],'offline_checks':len(checks),'review':ref(S/'publisher-bound-verification.json'),'manifest':ref(S/'completion-manifest.json')}))

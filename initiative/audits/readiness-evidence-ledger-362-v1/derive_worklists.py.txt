@@ -1,0 +1,64 @@
+"""Exact remaining/reuse memberships over the sealed362 ledger; no decisions."""
+import argparse
+import collections
+import hashlib
+import json
+from pathlib import Path
+
+
+def rows(p):
+    return [json.loads(x) for x in p.read_text().splitlines()]
+
+
+def main(w, ledger, output):
+    if output.exists():
+        raise ValueError("Output must be new")
+    b = w / "work/annotation-staging"
+    cells = {(x["study_uid"], x["target"]): x for x in rows(ledger / "cell-ledger.jsonl")}
+    ev = {x["id"]: x for x in rows(ledger / "evidence-records.jsonl")}
+    scopes = collections.defaultdict(set)
+    for row in rows(ledger / "scope-memberships.jsonl"):
+        if row["scope"].startswith(("inventory:", "attention_source_scope:")):
+            scopes[row["scope"]].add((row["study_uid"], row["target"]))
+    for row in rows(b / "cartilage-global-candidate-inventory-v1/full-cartilage-coverage.jsonl"):
+        key = row["study_uid"], row["target"]
+        if not row["selected"] and row["inspection_effective_state"] == "negative":
+            scopes["historical34:cartilage:noncandidate_negative"].add(key)
+        if row["selected"] and row["inspection_effective_state"] in ("uncertain", "not_mentioned"):
+            scopes["historical34:cartilage:masked_candidate"].add(key)
+    counts = {}
+    output.mkdir()
+    with (output / "exact-worklist-memberships.jsonl").open("w") as f:
+        for scope, members in sorted(scopes.items()):
+            c = collections.Counter()
+            reports = set()
+            for key in sorted(members):
+                cell = cells[key]
+                sources = [i for i in cell["evidence_record_ids"] if ev[i]["kind"] == "supplemental_source_frozen"]
+                roots = [i for i in cell["evidence_record_ids"] if ev[i]["kind"] == "root_source_frozen"]
+                posts = [i for i in cell["evidence_record_ids"] if ev[i]["kind"] == "root_postfreeze_dispositions"]
+                status = "recorded_root_postfreeze_available_topic_context_still_requires_review" if posts else "recorded_root_source_available_comparison_pending" if roots else "two_supplemental_source_authors_available_disposition_pending" if cell["two_distinct_supplemental_source_authors_in_same_family"] else "original_two_passes_available_targeted_disposition_pending"
+                value = {"scope": scope, "study_uid": key[0], "target": key[1], "case": cell["case"], "report_sha256": cell["report_sha256"], "supplemental_source_evidence_ids": sources, "root_source_evidence_ids": roots, "root_postfreeze_evidence_ids": posts, "two_distinct_supplemental_authors_in_same_family": cell["two_distinct_supplemental_source_authors_in_same_family"], "active_correction_case": cell["active_correction"]["case_id"] if cell["active_correction"] else None, "non_gold_zero_mask_required": cell["mask_obligations"]["non_gold_report_loss_required_zero"], "join_status_not_clinical_decision": status, "clinical_clearance": False, "new_reading_automatically_required": False}
+                f.write(json.dumps(value, separators=(",", ":")) + "\n")
+                c[status] += 1
+                c["cells"] += 1
+                c["supplemental_pair_cells"] += value["two_distinct_supplemental_authors_in_same_family"]
+                c["root_source_cells"] += bool(roots)
+                c["root_postfreeze_cells"] += bool(posts)
+                c["non_gold_zero_mask_required_cells"] += value["non_gold_zero_mask_required"]
+                reports.add(key[0])
+            counts[scope] = {**c, "reports": len(reports)}
+    assert counts["historical34:cartilage:noncandidate_negative"]["cells"] == 3002
+    assert counts["historical34:cartilage:masked_candidate"]["cells"] == 3325
+    result = {"agent_id": "/root/duplicate_consistency_review", "registry_sha256": "a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b", "ledger_completion_sha256": hashlib.sha256((ledger / "completion-manifest.json").read_bytes()).hexdigest(), "scope_counts": counts, "interpretation": "Exact memberships only. Root source/postfreeze from another topic is an explicitly linked reuse opportunity, not automatic gate disposition or acceptance. All unmatched cells retain their original two-pass evidence; no fresh-pass mandate is inferred."}
+    (output / "worklist-summary.json").write_text(json.dumps(result, indent=2) + "\n")
+    print(json.dumps({"scopes": len(counts), "membership_rows": sum(c["cells"] for c in counts.values()), "root_attention_bone_reports": sum(c["reports"] for k, c in counts.items() if k.startswith("attention_source_scope:bone:")), "root_attention_wording_reports": sum(c["reports"] for k, c in counts.items() if k.startswith("attention_source_scope:wording:"))}))
+
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--workspace", type=Path, required=True)
+    p.add_argument("--ledger", type=Path, required=True)
+    p.add_argument("--output", type=Path, required=True)
+    a = p.parse_args()
+    main(a.workspace.resolve(), a.ledger, a.output)

@@ -1,0 +1,69 @@
+from qualified003_source_tools import freeze, N, G, json, Path
+rows = json.loads((N / 'neutral-root-packets/batch-000.json').read_text())
+def span(i, first, last):
+    s = rows[i]['report']; start = s.index(first)
+    return s[start:s.index(last, start) + len(last)]
+
+judgments = [
+('N N N U U U U N X N U N', [
+'Anterior cruciate ligament: intact',
+'Medial collateral ligament: Superficial and deep components intact. No periligamentous edema.',
+'Medial meniscus: Nonsurfacing hyperintensity of the posterior horn probably represents intrasubstance degeneration. No definite meniscal tear. No para meniscal cyst.',
+'Lateral meniscus: No definite meniscal tear, no evidence of para meniscal cyst.',
+'Medial compartment: Minimal chondrosis.',
+'Lateral compartment: Minimal chondrosis.',
+'Patellofemoral compartment: Full thickness chondral loss most observable at the lateral patella facet and apex associated subchondral chondral edema. Chondral irregularity at the trochlea is also seen associated with subchondral cysts.',
+"Small joint effusion is seen. No loose body. Small Baker's cyst.", '',
+"Small joint effusion is seen. No loose body. Small Baker's cyst.",
+'Patellofemoral compartment: Full thickness chondral loss most observable at the lateral patella facet and apex associated subchondral chondral edema. Chondral irregularity at the trochlea is also seen associated with subchondral cysts.',
+'Bones: No fracture, stress reaction, or osseous lesion is seen.',
+], 'ACL/MCL are intact. Medial meniscal signal is explicitly nonsurfacing and probably internal degeneration, supporting a below-tear negative; lateral meniscus has only a no-definite-tear denial and no affirmative normal morphology. Minimal TF chondrosis has no calibrated depth or size; severe/full-depth PF loss has no extent. Small fluid and Baker are below threshold. Degenerative PF marrow edema is not impact-related and prevents a whole-marrow negative; fracture is explicitly absent. Hoffitis/retinacular change does not identify inflamed synovial lining.'),
+('N N P N N N U U X X U X', [
+span(1, 'The lateral meniscus is intact', 'throughout.'),
+span(1, 'The lateral meniscus is intact', 'throughout.'),
+'There is a complex, undisplaced tear through the posterior horn of the medial meniscus.',
+span(1, 'The lateral meniscus is intact', 'throughout.'),
+'Tricompartmental articular cartilage is otherwise well preserved.',
+'Tricompartmental articular cartilage is otherwise well preserved.',
+'Solitary grade 3 cartilage fissure noted at the medial retropatellar facet.',
+'No significant knee effusion, there are no intra-articular bodies either.', '', '',
+span(1, 'There is associated high signal', 'such appearances?'), '',
+], 'The complete report explicitly preserves ACL/collaterals/lateral meniscus and diagnoses medial complex tearing. Otherwise well-preserved tricompartmental cartilage, with only a PF fissure described, supports TF negatives. Bare grade3 PF fissure lacks a calibrated depth and size. Effusion denial is significance-qualified. The marrow abnormality is only potentially/suspected contusion and trauma is queried, so retain uncertainty; normal remaining marrow cannot negate that focus. A separately named PCL ganglion is not Baker. No acute fracture or synovial-lining assessment.'),
+('N N P N U N U U X X N X', [
+'The ACL, PCL, collaterals and visualized ileo-tibial band are normal.',
+'The ACL, PCL, collaterals and visualized ileo-tibial band are normal.',
+'There is a degenerate, complex but predominantly horizontal tear of the body and posterior horn of the medial meniscus.',
+'Lateral meniscus is intact.',
+'Allowing for thinning of the articular cartilage of the medial femoral condyle, the remaining cartilage is well preserved.',
+'Allowing for thinning of the articular cartilage of the medial femoral condyle, the remaining cartilage is well preserved.',
+'Grade II (fissuring) chondropathy of the patellar cartilage is appreciated.',
+'No clinically significant intra articular effusion.', '', '', 'No bone marrow oedema.', '',
+], 'Named ligaments and lateral meniscus are normal; degenerative complex/horizontal medial tearing is definite. Medial cartilage thinning has no depth/extent, and bare gradeII patellar fissuring has no explicit depth map or size. Remaining cartilage preservation supports lateral negative. Clinically significant effusion denial does not calibrate moderate/large. No marrow edema supports no contusion but does not supply a cortical fracture assessment. Gross extra-articular normality does not specifically characterize Baker or synovial lining.'),
+('N N P N N N N N X N U X', [
+'Ligamentos cruzados y colateral lateral sin alteraciones.',
+span(3, 'Leve engrosamiento impresiona secuelar', 'alteraciones significativas.'),
+span(3, 'Rotura horizontal oblicua', 'posterior.'),
+'Menisco lateral de morfología y señal conservada, sin signos de rotura.',
+span(3, 'Condropatía superficial', 'sin alteraciones.'),
+span(3, 'Condropatía superficial', 'sin alteraciones.'),
+span(3, 'Condropatía superficial', 'sin alteraciones.'),
+'Leve derrame articular. Pequeño quiste poplíteo no complicado.', '',
+'Leve derrame articular. Pequeño quiste poplíteo no complicado.',
+'No hay alteraciones de señal significativas de la médula ósea.', '',
+], 'ACL is normal; MCL has only slight chronic thickening below the acute high-grade target. Displaced medial tearing is definite; lateral meniscal morphology/signal are normal. The sole medial cartilage change is explicitly superficial with remaining TF/PF cartilage normal, supporting all three negatives. Effusion and Baker are explicitly small. Marrow denial is significance-qualified. Friction-related soft-tissue edema does not supply synovitis or acute fracture.'),
+('N N P N N N N N X U U X', [
+'Çapraz ve yan bağlar normal.', 'Çapraz ve yan bağlar normal.',
+span(4, 'Medyal menisküsün', 'bileşeni de eşlik ediyor.'),
+'Lateral menisküs normal.',
+span(4, 'Diz eklemindeki', 'osteofitlerle karakterize.'),
+span(4, 'Diz eklemindeki', 'osteofitlerle karakterize.'),
+span(4, 'Diz eklemindeki', 'osteofitlerle karakterize.'),
+'Diz eklemi içi sıvı miktarı hafif derecede artmış.', '',
+'Gastroknemyus-semimembranozus bursiti 2 cm maksimum boyutlu.',
+span(4, 'Diz eklemindeki', 'osteofitlerle karakterize.'), '',
+], 'Cruciate/collateral ligaments and lateral meniscus are normal. Medial free-edge blunting/surface irregularity and degenerative radial tearing are definite; only an accompanying horizontal-oblique component is qualified. Tricompartmental cartilage loss is explicitly not above50 percent, so all OA targets are below depth threshold regardless of PF predominance. Fluid is mild. The characteristic gastrocnemius-semimembranosus collection measures2cm but lacks a validated size-grade mapping, so Baker remains uncertain. Subchondral medullary fibrovascular change is nonspecific/degenerative rather than established impact contusion, with no whole-marrow normal assertion. Benign red-marrow hyperplasia alone is not contusion evidence. No acute fracture or inflamed synovial-lining assessment.'),
+]
+freeze('first-five', 0, 0, judgments)
+for path in [Path(__file__), Path(__file__).with_name('qualified003_source_tools.py')]:
+    dest = G / (path.name + '.txt')
+    with dest.open('xb') as stream: stream.write(path.read_bytes())

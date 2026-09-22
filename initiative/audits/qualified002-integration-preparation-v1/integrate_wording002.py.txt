@@ -1,0 +1,188 @@
+"""Unexecuted guarded integration prepared for /root's frozen wording002 decision.
+Import and prepare_plan are read-only. Only explicit future root execution writes
+63 corrections. Normalization pins are mandatory; full67 remains preserved.
+"""
+import argparse,hashlib,importlib.util,json,os,re,shutil,subprocess,sys
+from collections import Counter,defaultdict
+from datetime import datetime,timezone
+from pathlib import Path
+BASE_GIT='f648ebce325d8dd78990aa159021308cddc9e369'
+BASE_TREE='b97532f76b418cf6db0285216f2f8f65c4049e3c'
+BASE_REGISTRY='a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b'
+SOURCE_HASH='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC_HASH='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+VERIFIER_HASH='54dcebf1c6e758bc39af1bbbfab87372ecbff54fbc191392cbb41e2f729cfafa'
+VERIFICATION_MANIFEST='e733d0fddc6ee20d2cf33c02030369635015177456aeffd1454af6e670853f7a'
+NORMALIZATION_PINS={'proposal':'743ad95184edd3293e05b78c44ed0468e84ce948094fda8055ddbca5c76ce81e','manifest':'dda032527d66ccf27bc1b071e84da1a74d0e8166c0618120cff7f9d8ef6b31ab','ledger':'c1c7946864d9465692d54242be81540332c65d24458aac9f867080a897f4d308'}
+SCANNER_HASH='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+class GuardError(Exception):pass
+def require(v,code):
+ if not v:raise GuardError(code)
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def encoded(x):return (json.dumps(x,ensure_ascii=False,indent=2)+'\n').encode()
+def read(p,pin=None):
+ if pin is not None:require(re.fullmatch('[0-9a-f]{64}',pin)is not None and sha(p)==pin,'mandatory_input_pin')
+ return json.loads(p.read_text())
+def unique(rows):
+ out={}
+ for r in rows:
+  k=r['study_uid'],r['target'];require(k not in out,'duplicate_key');out[k]=r
+ return out
+def pin_path(W,e):
+ require(isinstance(e,dict)and {'path','sha256'}<=e.keys(),'missing_reference');p=(W/e['path']).resolve();require(p.is_relative_to(W)and p.is_file()and not p.is_symlink(),'reference_scope');require(sha(p)==e['sha256'],'reference_hash');require('bytes'not in e or p.stat().st_size==e['bytes'],'reference_size');return p
+def write_new(p,b):
+ p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('xb')as f:f.write(b);f.flush();os.fsync(f.fileno())
+def archive_state(p,b):
+ require(not p.is_symlink(),'archive_symlink')
+ if p.exists():require(p.is_file()and p.read_bytes()==b,'archive_bytes_differ');return 'reused_existing_equal'
+ return 'new_file'
+def check_current_wrapper(W,R,wrapper,key,old):
+ if key not in old:
+  require(wrapper is None,'unexpected_overlap_wrapper');return
+ require(isinstance(wrapper,dict)and set(wrapper)=={'case','change'},'overlap_wrapper_shape')
+ path=pin_path(W,wrapper['case']);require(path==R/old[key]['case']['path']and wrapper['case']['sha256']==old[key]['case']['sha256'],'overlap_case_identity')
+ require(unique(read(path)['changes'])[key]==wrapper['change'],'overlap_original_change_object')
+ require(wrapper['change']['before']==old[key]['before']and wrapper['change']['after']==old[key]['after'],'overlap_runtime_annotation')
+
+def require_normalization(c,p,n,l):
+ W,R=c['W'],c['R'];old=c['old'];sm=unique(c['second']['records']);pm=unique(p['proposed_errata']);lm=unique(l['records'])
+ require(type(p.get('schema_version'))is int and p['schema_version']==1,'normalization_schema')
+ require(p['agent_id']==p['session_id']==n['agent_id']==n['session_id']==l['agent_id']==l['session_id']=='/root/last_twelve_visual_review','actual_original_author')
+ require(p['source_reports_sha256']==SOURCE_HASH and p['rubric_sha256']==RUBRIC_HASH and p['source_reports_sha256']!=p['neutral_source_packet_sha256'],'canonical_source_context')
+ require(p['n_changes']==len(pm)==len(lm)==67 and list(pm)==list(sm)==list(lm),'full67_order')
+ require(p['registered_changes_at_normalization']==l['actual_registered_changes']==362 and p['n_current_exact_accepted_overlaps']==l['proposal_overlaps']==4 and p['n_remaining_unintegrated']==l['remaining_unintegrated_proposals']==63,'normalization_counts')
+ require(p['accepted_by_this_normalization'] is False and p['registry_changed'] is False and p['global_qa_closed'] is False and l['no_automatic_acceptance'] is True,'no_normalization_acceptance')
+ require(n['counts']['normalized_proposals']==67 and n['counts']['clinical_field_differences']==0 and n['counts']['dropped_originals']==0,'normalization_manifest_counts')
+ overlaps=[]
+ for index,(key,o)in enumerate(sm.items()):
+  r=pm[key];x=lm[key];overlap=key in old
+  require(r['original_record']==o and r['original_proposal_index']==x['original_proposal_index']==index,'exact_original_object_order')
+  require(r['before_state']==o['before_current']['state'] and r['before_evidence']==o['before_current']['evidence'] and r['proposed_state']==o['after_proposed']['state'] and r['source_quote']==o['after_proposed']['evidence'],'exact_clinical_projection')
+  require(r['reason']==o['reason']and r['evidence_reason']==o['evidence_reason'] and r['original_kind']==o['kind'],'exact_original_reason')
+  require(r['source_path']==o['source_path']and r['source_sha256']==o['source_sha256']and r['index']==o['source_index_zero_based']and r['report_utf8_sha256']==o['report_utf8_sha256'],'source_projection')
+  require((R/r['artifact_path']).resolve()==pin_path(W,o['original_review'])and r['artifact_sha256']==o['original_review']['sha256'],'review_projection')
+  require(r['current_accepted_key_overlap'] is overlap and x['accepted_key_overlap'] is overlap,'exact_overlap_objects')
+  check_current_wrapper(W,R,x['existing_accepted_case_and_change'],key,old)
+  require(x['historical118_before']==o['before_current']and x['original_proposed_after']==o['after_proposed']and x['actual362_effective']==c['effective'][key],'ledger_annotations')
+  require(x['current_exactly_equals_original_proposal']==(c['effective'][key]==o['after_proposed']) and x['eligible_for_new_integration_only_after_separate_root_acceptance'] is (not overlap),'overlap_handling')
+  if overlap:require(old[key]['after']==o['after_proposed'],'existing_after_exact');overlaps.append(key)
+  else:require(c['new'][key]['before']==o['before_current']and c['new'][key]['after']==o['after_proposed'],'new63_root_acceptance')
+ require(set(overlaps)==set(c['overlap'])and set(pm)-set(overlaps)==set(c['new']),'exact_exclusion_partition')
+ return pm
+
+def publication_allowance(R):
+ P=R/'initiative/audits/cartilage005-verified362-publication-v1';manifest=P/'preservation.json';doc=read(manifest,'781705ee81e7d96bb179f868bef21e32584fff06937e9979b5a52d682cdc4413');allowed={str(manifest.relative_to(R))};pins={manifest:sha(manifest)}
+ for e in doc['files']:
+  p=R/e['path'];require(p.parent==P and not p.is_symlink()and sha(p)==e['sha256']and p.stat().st_size==e['bytes'],'publication_binding');allowed.add(e['path']);pins[p]=e['sha256']
+ helper=P/'preserve-verified362-publication-v1.py.txt';require(sha(helper)=='74b544abcfe937d98b0d96635a204691072c567b4ed0805b35968412d85389f1','publication_helper');allowed.add(str(helper.relative_to(R)));pins[helper]=sha(helper)
+ require(len(allowed)==11 and {str(p.relative_to(R))for p in P.iterdir()if p.is_file()}==allowed,'publication_exact_membership')
+ return allowed,pins
+
+def prepare_plan(W,proposal_path,proposal_pin,manifest_path,manifest_pin,ledger_path,ledger_pin):
+ W=W.resolve();R=W/'work/recovered';D=W/'work/annotation-staging';V=D/'qualified002-adjudication-independent-verification-v1';I=R/'initiative/audits/qualified-negation-focused-002-integration-v1'
+ git=lambda *a:subprocess.check_output(['git',*a],cwd=R).decode().strip()
+ require(git('rev-parse','HEAD')==BASE_GIT and git('rev-parse','HEAD^{tree}')==BASE_TREE,'git_baseline')
+ require(not git('diff','--name-only')and not git('diff','--cached','--name-only'),'tracked_not_clean')
+ require(len(subprocess.check_output(['git','ls-tree','-r','-z','--name-only','HEAD'],cwd=R).split(b'\0'))-1==9164,'git_file_count')
+ allowed,pubpins=publication_allowance(R);untracked=set(filter(None,subprocess.check_output(['git','ls-files','--others','--exclude-standard','-z'],cwd=R).decode().split('\0')));require(untracked<=allowed,'unexpected_untracked')
+ require(sha(V/'verify_adjudication.py')==VERIFIER_HASH and sha(V/'completion-manifest.json')==VERIFICATION_MANIFEST,'technical_verification_pins')
+ spec=importlib.util.spec_from_file_location('wording002_verified_sources',V/'verify_adjudication.py');verifier=importlib.util.module_from_spec(spec);spec.loader.exec_module(verifier);c=verifier.check_all(W)
+ paths=[p.resolve()for p in [proposal_path,manifest_path,ledger_path]];proposal_path,manifest_path,ledger_path=paths;N=proposal_path.parent
+ require(all(p.is_relative_to(D)and p.parent==N and not p.is_symlink()for p in paths),'normalization_paths')
+ require((proposal_pin,manifest_pin,ledger_pin)==tuple(NORMALIZATION_PINS[k]for k in ['proposal','manifest','ledger']),'expected_actual_author_pins')
+ p=read(proposal_path,proposal_pin);n=read(manifest_path,manifest_pin);l=read(ledger_path,ledger_pin);pm=require_normalization(c,p,n,l)
+ for e in n['files']+n['protected_originals']:pin_path(W,e)
+ require(pin_path(W,p['current_registry'])==R/'initiative/reviews-v2/adjudications/registry.json'and pin_path(W,p['current_overlap_ledger'])==ledger_path,'normalization_current_references')
+ # The historical live-path reference is preserved metadata, resolved only through its exact old snapshot.
+ require(p['historical118_registry']['sha256']==sha(pin_path(W,p['historical118_registry_snapshot']))=='64b6b8b51efb693738e8a3f70743afe4b160c5b3acd1f4ec3300cc699e8fee12','historical118_snapshot')
+ replay=read(pin_path(W,p['current_all600_replay']));rr=unique(replay['records']);require(len(rr)==600 and replay['cells']==600,'normalization600_scope')
+ secondrows=unique(read(pin_path(W,p['original_dispositions']))['records'])
+ require(set(rr)==set(secondrows),'second600_membership')
+ drift=0
+ for k,r in rr.items():
+  require(r['original']==c['original'][k]and r['actual362']==c['effective'][k],'actual600_replay')
+  check_current_wrapper(W,R,r['accepted_overlap'],k,c['old'])
+  require(r['historical118']==secondrows[k]['current_effective'],'historical118_cells')
+  require(r['selected_drift_since118']==(r['historical118']!=r['actual362']),'rebase_flag');drift+=r['selected_drift_since118']
+ require(drift==4,'four_intervening_cells')
+ def archived(path):
+  if path.is_relative_to(R):return path
+  require(path.is_relative_to(D),'support_outside_staging')
+  dest=R/'initiative/audits'/path.relative_to(D);return dest.with_suffix('.py.txt')if dest.suffix=='.py'else dest
+ def rb(path):return {'path':str(path.relative_to(R)),'sha256':sha(path)}
+ entries=dict(c['bound']);entries.update(pubpins)
+ for stage in [c['G'],D/'qualified-negation-focused-002-root-review-v1',c['M'],V,N]:
+  for path in stage.rglob('*'):
+   if path.is_file()and '__pycache__'not in path.parts:require(not path.is_symlink(),'staged_symlink');entries[path]=sha(path)
+ require({path.resolve()for path in N.rglob('*')if path.is_file()and '__pycache__'not in path.parts}=={pin_path(W,e)for e in n['files']}|{manifest_path},'normalization_exact_membership')
+ supports={'root_source_freeze_sha256':D/'qualified-negation-focused-002-root-review-v1/source-freeze.json','root_source_assessment_sha256':D/'qualified-negation-focused-002-root-review-v1/full-source-assessment.json','root_dispositions_sha256':c['G']/'root-postfreeze-dispositions.json','root_reconsiderations_sha256':c['G']/'root-explicit-reconsiderations.json','root_adjudication_manifest_sha256':c['G']/'completion-manifest.json','mechanical_comparison_sha256':c['M']/'all552-root-mechanical-comparison.json','mechanical_completion_sha256':c['M']/'completion-supplement.json','technical_verification_sha256':V/'technical-verification.json','technical_completion_sha256':V/'completion-manifest.json','original_first_proposals_sha256':D/'qualified-negation-focused-002-source-review-v1/proposed-errata.json','normalization_manifest_sha256':manifest_path,'normalization_overlap_ledger_sha256':ledger_path}
+ for name in ['canonical_source_context','original_proposal','original_source_freeze','original_source_assessment','original_disposition_freeze','original_dispositions','original_reconsiderations','historical118_registry_snapshot','current_all600_replay','exact_comparison_proof','author_and_context_clarification']:supports['normalized_'+name+'_sha256']=pin_path(W,p[name])
+ for path in supports.values():entries[path]=sha(path)
+ planned={}
+ for path,h in entries.items():
+  require(sha(path)==h,'input_changed')
+  if path.is_relative_to(R):continue
+  dest=archived(path);data=path.read_bytes();require(dest not in planned or planned[dest]==data,'archive_path_collision');archive_state(dest,data);planned[dest]=data
+ changes=[];accepted=[];am=unique(c['assessment']['records']);dm=unique(c['dispositions']['records'])
+ for key in pm:
+  if key in c['overlap']:continue
+  item=pm[key];new=c['new'][key];a=am[key];d=dm[key]
+  require(d['action']=='accept_second_proposal_pending_registry_integration'and new['reason']==d['reason']==a['reason'],'explicit_root_acceptance')
+  changes.append({'study_uid':key[0],'target':key[1],'before':new['before'],'after':new['after'],'base_review':{'path':item['artifact_path'],'sha256':item['artifact_sha256']},'source_batch':{'path':item['source_path'],'sha256':item['source_sha256']}})
+  accepted.append({'study_uid':key[0],'target':key[1],'before_state':new['before']['state'],'before_evidence':new['before']['evidence'],'after_state':new['after']['state'],'after_evidence':new['after']['evidence'],'independent_source_state':a['independent_source_state'],'source_evidence':a['source_evidence'],'source_path':item['source_path'],'source_sha256':item['source_sha256'],'original_review_path':item['artifact_path'],'original_review_sha256':item['artifact_sha256'],'reason':d['reason'],'root_frozen_state':d['root_frozen_state'],'root_state_reconsidered':d['root_state_reconsidered']})
+ require(len(changes)==len(accepted)==63 and { (r['study_uid'],r['target'])for r in changes}==set(c['new']),'only63_new_changes')
+ case_path=R/'initiative/reviews-v2/adjudications/cases/qualified-negation-focused-002-second.json';require(not I.exists()and not case_path.exists(),'integration_already_exists')
+ require(shutil.disk_usage(W).free-sum(len(b)for pth,b in planned.items()if not pth.exists())-4*2**20>20*2**30,'disk_floor_after_plan')
+ return {'context':c,'proposal_path':proposal_path,'manifest_path':manifest_path,'ledger_path':ledger_path,'supports':supports,'entries':entries,'planned':planned,'changes':changes,'accepted':accepted,'I':I,'case_path':case_path,'archived':archived,'publication_allowed':sorted(allowed),'current_proposal':p,'current_normalization_manifest':n,'current_ledger':l}
+
+def execute_root_reviewed_plan(plan):
+ """Only called by main with the explicit root-reviewed execution flag."""
+ c=plan['context'];W,R,D=c['W'],c['R'],c['D'];I=plan['I'];archive=plan['archived'];supports=plan['supports'];case_path=plan['case_path'];registry_path=R/'initiative/reviews-v2/adjudications/registry.json';registry_bytes=registry_path.read_bytes();require(sha(registry_path)==BASE_REGISTRY,'prewrite_registry')
+ def rb(path,digest=None):return {'path':str(path.relative_to(R)),'sha256':digest or sha(path)}
+ decision={'schema_version':1,'status':'accepted','stage':'independent_adjudication_decision','agent_id':'/root','session_id':'/root','proposer_agent_id':'/root/last_twelve_visual_review','proposer_session_id':'/root/last_twelve_visual_review','adjudicator_agent_id':'/root','adjudicator_session_id':'/root','accepted_at_utc':datetime.now(timezone.utc).isoformat(),'source_reports_sha256':SOURCE_HASH,'rubric_sha256':RUBRIC_HASH,'proposal_sha256':sha(plan['proposal_path']),'independent_assessment_sha256':sha(c['G']/'second-proposals-independent-assessment.json'),**{name:sha(path)for name,path in supports.items()},'original_artifacts_preserved':True,'n_changes':63,'n_studies':len({r['study_uid']for r in plan['changes']}),'accepted_changes':plan['accepted'],'decision_statement':'Runtime serialization of the63 accept_second_proposal_pending_registry_integration dispositions already personally authored and frozen by /root in the bound adjudication. All per-cell clinical reasons are copied exactly from that artifact. Four exact existing corrections are excluded from new registration; the full67 original-author proposals and all22 root reconsiderations remain preserved. This wrapper creates no additional clinical judgments.','prepared_by':'/root/quality_temporal_review','execution_role':'root_execution_after_review_of_guarded_helper_and_actual_normalization','global_semantic_qa_closed':False,'training_ready':False,'gold_values_inspected':False}
+ decision_path=I/'accepted-decision.json';case={'schema_version':1,'id':'qualified-negation-focused-002-second-20260922','source_reports_sha256':SOURCE_HASH,'rubric_sha256':RUBRIC_HASH,'proposal':rb(archive(plan['proposal_path']),sha(plan['proposal_path'])),'independent_assessment':rb(archive(c['G']/'second-proposals-independent-assessment.json'),sha(c['G']/'second-proposals-independent-assessment.json')),'decision':rb(decision_path,hashlib.sha256(encoded(decision)).hexdigest()),'supporting_evidence':{name:rb(archive(path),sha(path))for name,path in supports.items()},'changes':plan['changes']}
+ scanner_path=D/'checkpoint-delta-helper-v2-v1/checkpoint_delta.py';require(sha(scanner_path)==SCANNER_HASH,'secret_scanner_pin');spec=importlib.util.spec_from_file_location('wording002_secret_guard',scanner_path);scanner=importlib.util.module_from_spec(spec);sys.modules[spec.name]=scanner;spec.loader.exec_module(scanner);secrets=scanner.secret_values(W/'.env');require(bool(secrets),'secret_guard_required')
+ for b in list(plan['planned'].values())+[encoded(decision),encoded(case),Path(__file__).read_bytes()]:scanner.Scanner(secrets).feed(b)
+ require(all(sha(p)==h for p,h in plan['entries'].items())and all(sha(R/n)==h for n,h in c['protected'].items())and registry_path.read_bytes()==registry_bytes,'protected_prewrite_drift')
+ # First mutation: every preceding operation was read-only.
+ preservation=[]
+ for dest,b in sorted(plan['planned'].items()):
+  action=archive_state(dest,b)
+  if action=='new_file':write_new(dest,b)
+  require(dest.read_bytes()==b,'preserved_bytes');preservation.append({**rb(dest),'bytes':len(b),'action':action})
+ write_new(decision_path,encoded(decision));write_new(case_path,encoded(case));write_new(I/'registry-before362.json',registry_bytes);write_new(I/'complete362-inspection-before.json',encoded(c['before']))
+ write_new(I/'original-full67-and-explicit4-exclusions.json',encoded({'original_proposal':rb(archive(plan['context']['D']/'qualified-negation-focused-002-post-freeze-comparison-v1/unintegrated-proposals.json')),'original67_records':c['second']['records'],'excluded4_full_objects':list(c['overlap'].values()),'new63_keys':[{'study_uid':r['study_uid'],'target':r['target']}for r in plan['changes']]}))
+ write_new(I/'archive-addition-and-preservation.json',encoded({'agent_id':'/root','files':preservation,'protected_repository_files':c['protected'],'publication_archive_allowance':plan['publication_allowed'],'all_existing_equal_files_reused_without_rewrite':True}))
+ registry=read(registry_path);new_registry=encoded({**registry,'cases':registry['cases']+[rb(case_path)]});require(registry_path.read_bytes()==registry_bytes,'registry_switch_fence');tmp=registry_path.with_name('registry.wording002-new.json');write_new(tmp,new_registry);os.replace(tmp,registry_path)
+ try:
+  from rsna.adjudications import inspect_adjudications
+  from rsna.schema import TARGETS
+  after=inspect_adjudications(c['reports'],R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R);new=unique(after['changes'])
+  require(after['n_changes']==425 and after['pending_semantic_qa']==c['before']['pending_semantic_qa']and after['semantic_qa']==c['before']['semantic_qa'],'runtime425_gates')
+  require(all(new[k]==v for k,v in c['old'].items())and set(new)-set(c['old'])==set(c['new']),'all362_whole_objects_preserved')
+  final={**c['original'],**{k:v['after']for k,v in new.items()}};require(all(final[k]==v for k,v in c['anticipated'].items()),'exact_full_final_annotations')
+  require(all(final[r['study_uid'],r['target']]=={'state':r['root_postfreeze_state'],'evidence':r['root_postfreeze_evidence']}for r in c['dispositions']['records']),'all552_runtime_exact')
+  require(all(new[k]==c['old'][k]for k in c['overlap']),'four_existing_objects_unchanged')
+  for r in c['retirement']['restored_original_annotations']:require((r['study_uid'],r['target'])not in new and final[r['study_uid'],r['target']]==r['restored_annotation'],'three_retirements_unchanged')
+  require(not any(any(len({final[u,t]['state']for u in uids})>1 for t in TARGETS)for uids in c['groups'].values()),'duplicate_conflict')
+  require(all(sha(R/n)==h for n,h in c['protected'].items())and all(p==registry_path or sha(p)==h for p,h in plan['entries'].items()),'postwrite_original_drift')
+ except Exception:
+  if registry_path.read_bytes()==new_registry:
+   tmp=registry_path.with_name('registry.wording002-rollback.json');write_new(tmp,registry_bytes);os.replace(tmp,registry_path)
+  if case_path.exists()and case_path.read_bytes()==encoded(case):os.replace(case_path,I/'failed-case-wrapper-preserved.json')
+  raise
+ write_new(I/'complete425-inspection.json',encoded(after))
+ receipt={'agent_id':'/root','stage':'executed_root_wording002_63_registration','at_utc':datetime.now(timezone.utc).isoformat(),'registry':rb(registry_path),'case':rb(case_path),'root_full_reports':46,'root_final_states_and_quotes_exact':552,'root_explicit_reconsiderations_preserved':22,'full_original_second_proposals_preserved':67,'excluded_existing_exact_full_objects':4,'new_corrections':63,'new_state_changes':59,'new_evidence_changes':4,'all58_first_proposal_states_supported':True,'all362_prior_full_objects_preserved':True,'three_retirements_preserved':True,'total_registered':425,'transition_counts':c['transitions'],'pending_semantic_qa':after['pending_semantic_qa'],'duplicate_groups':54,'duplicate_reports':204,'duplicate_conflicts':0,'all_protected_originals_unchanged':True,'source_reports_sha256':SOURCE_HASH,'rubric_sha256':RUBRIC_HASH,'gold_values_accessed':False,'label_export_performed':False,'training_ready':False,'clinical_judgments_added_by_helper':0,'script_preparer':'/root/quality_temporal_review'}
+ write_new(I/'complete425-integration-validation.json',encoded(receipt));write_new(I/'integrate-wording002.py.txt',Path(__file__).read_bytes());print(json.dumps({'total_registered':425,'new_changes':63,'receipt':rb(I/'complete425-integration-validation.json')}))
+
+def arguments():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--workspace',type=Path,required=True)
+ for name in ['proposal','manifest','ledger']:p.add_argument('--normalization-'+name,type=Path,required=True);p.add_argument('--normalization-'+name+'-sha256',required=True)
+ p.add_argument('--execute-root-reviewed-decision',action='store_true',required=True);return p.parse_args()
+def main():
+ a=arguments();plan=prepare_plan(a.workspace,a.normalization_proposal,a.normalization_proposal_sha256,a.normalization_manifest,a.normalization_manifest_sha256,a.normalization_ledger,a.normalization_ledger_sha256);execute_root_reviewed_plan(plan)
+if __name__=='__main__':
+ try:main()
+ except Exception as e:
+  print(json.dumps({'status':'integration_not_confirmed','error_class':type(e).__name__,'guard_code':str(e)if isinstance(e,GuardError)else None}));raise SystemExit(2)from None

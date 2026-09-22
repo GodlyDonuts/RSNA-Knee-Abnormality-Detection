@@ -1,0 +1,26 @@
+"""Package explicit personally chosen intermediate judgments; no inferred clinical decisions."""
+import json,hashlib
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';O=A/'bone-observed-020-independent-review-v1';F=A/'bone-observed-020-source-review-v1';AG='/root/last_twelve_visual_review'
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def read(p):return json.loads(p.read_text())
+def jl(p):return [json.loads(x) for x in p.read_text().splitlines()]
+def write(n,d):
+ with (S/n).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+own=jl(O/'source-assessment-frozen.jsonl');first=jl(F/'source-assessment-frozen.jsonl');cur=read(S/'initial-original-current-replay.json')['rows'];packet=read(O/'neutral-source-packet.json')['reports']
+assert ref(O/'source-freeze.json')['sha256']=='b45ab4b867fde45d38c33c2bb373180fada463bbff525bc1d05836cf94a008b1'
+assert ref(F/'source-freeze.json')['sha256']=='89cd42641a26272d9a30cea4c61ebf63d8cebafac6107dc8e5b020325cc8da36'
+reconsider_reason='On reconsideration after the distinct first source reading, the explicit normal bone-signal statement and the explicit post-traumatic marrow edema at lateral femoral/tibial sites conflict. The diagnostic conclusion repeats the edema but does not explicitly retract or correct the normal statement. My original prioritization of the focal diagnosis silently resolved that contradiction. Preserve both statements and mark Contusion uncertain under the frozen contradictory-report rule.'
+ec={(22,0):'Include the adjacent posterior tibial fracture and upper-patellar contusion together, preserving that the bruise is at a separate nonfracture site.',(35,0):'Replace the isolated edema fragment with its contiguous medial cartilage-loss and queried insufficiency-fracture context; the edema cause and local no-line assessment must remain visible.',(49,0):'Include the preceding cartilage and bursal findings to show what remaining normal bones excludes; the antecedents are not abnormal marrow.',(49,1):'Include the preceding cartilage and bursal findings to preserve the scope of remaining normal bony morphology; no osseous structural exception is described.'}
+rows=[]
+for j,x in enumerate(cur):
+ i,t=divmod(j,2);assert x['study_uid']==own[i]['study_uid']==first[i]['study_uid']==packet[i]['study_uid'];z=dict(x['own_source_frozen']);recon=(i,t)==(40,0)
+ if recon:z={'state':'uncertain','evidence':first[i]['evidence'][t],'reason':reconsider_reason}
+ assert z['evidence'] in packet[i]['report'];assert bool(z['evidence'])==(z['state']!='not_mentioned')
+ rows.append({'packet_index':i,'study_uid':x['study_uid'],'target':x['target'],'own_source_frozen':x['own_source_frozen'],'first_source_frozen':{'state':first[i]['states'][t],'evidence':first[i]['evidence'][t],'reason':first[i]['rationales'][t]},'current_effective':x['current_effective'],'personal_intermediate_judgment':z,'own_reconsidered':recon,'evidence_context_proposal_reason':ec.get((i,t)),'first_postfindings_opened':False})
+assert len(rows)==100
+write('after-first-source-personal-choices.json',{'agent_id':AG,'session_id':AG,'scope':'All100 current/original annotations and distinct first frozen source judgments personally inspected after own complete source freeze; retain own99 source judgments and explicitly reconsider one state/evidence. Four evidence-context proposals are separately identified. These are intermediate personal opinions before first postfreeze findings, not acceptance.','reconsideration_reason':reconsider_reason,'records':rows,'accepted':False})
+write('after-first-source-personal-comparison-freeze.json',{'agent_id':AG,'session_id':AG,'recorded_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Intermediate second personal all100 comparison after first source reading but before first postfreeze findings. Recorded sequence is a disclosure, not timestamp proof of historical access.','own_source_freeze':ref(O/'source-freeze.json'),'first_source_freeze':ref(F/'source-freeze.json'),'first_source_assessment':ref(F/'source-assessment-frozen.jsonl'),'current_replay':ref(S/'initial-original-current-replay.json'),'current_replay_receipt':ref(S/'current-replay-receipt.json'),'personal_choices':ref(S/'after-first-source-personal-choices.json'),'helper':ref(Path(__file__)),'all100_current_and_first_source_personally_inspected':True,'first_postfindings_opened':False,'source_state_disagreements':1,'own_state_reconsiderations':1,'intermediate_retained_state_disagreements':0,'actual_registry_changes':362,'accepted':False})
+print(json.dumps({'intermediate':ref(S/'after-first-source-personal-comparison-freeze.json'),'choices':ref(S/'after-first-source-personal-choices.json')},indent=2))

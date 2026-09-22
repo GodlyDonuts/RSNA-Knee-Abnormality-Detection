@@ -1,0 +1,26 @@
+"""Mechanical current/original replay after independent source freeze; no clinical inference."""
+import json,hashlib
+from pathlib import Path
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';O=A/'bone-observed-020-independent-review-v1'
+def obj(p):return json.loads(p.read_text())
+def jl(p):return [json.loads(x) for x in p.read_text().splitlines()]
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+assert ref(O/'source-freeze.json')['sha256']=='b45ab4b867fde45d38c33c2bb373180fada463bbff525bc1d05836cf94a008b1'
+regp=R/'initiative/reviews-v2/adjudications/registry.json';reg=obj(regp);acc={};cases=[]
+for e in reg['cases']:
+ cp=R/e['path'];assert ref(cp)['sha256']==e['sha256'];cases.append(ref(cp))
+ for c in obj(cp)['changes']:
+  k=c['study_uid'],c['target'];assert k not in acc;acc[k]={'case':ref(cp),'change':c}
+assert len(acc)==362 and ref(regp)['sha256']=='a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b'
+with (S/'registry-at-comparison.json').open('xb') as f:f.write(regp.read_bytes())
+rows=[]
+for i,o in enumerate(jl(O/'source-assessment-frozen.jsonl')):
+ rp=R/'initiative/reviews-v2/reviewed'/f"{Path(o['source_path']).stem}-reviewed.jsonl";rev=next(x for x in jl(rp) if x['study_uid']==o['study_uid'])
+ for t,target in enumerate(['Contusion','Fracture']):
+  orig={'state':rev['states'][10+t],'evidence':rev['evidence'][10+t]};a=acc.get((o['study_uid'],target));cur=a['change']['after'] if a else orig
+  if a:assert a['change']['before']==orig
+  rows.append({'packet_index':i,'case':o['case'],'study_uid':o['study_uid'],'target':target,'original_review':ref(rp),'original':orig,'current_effective':cur,'own_source_frozen':{'state':o['states'][t],'evidence':o['evidence'][t],'reason':o['target_reasoning'][t]},'accepted_overlap':a})
+with (S/'initial-original-current-replay.json').open('x') as f:json.dump({'agent_id':'/root/last_twelve_visual_review','scope':'Complete mechanical100 original/current replay after own source freeze, before first020 findings available/opened.','actual_registry':ref(regp),'registered_changes':len(acc),'accepted_cases':cases,'rows':rows},f,ensure_ascii=False,indent=2);f.write('\n')
+assert ref(regp)==ref(S/'registry-at-comparison.json')|{'path':str(regp.relative_to(W))}
+print('Recorded100 actual362 cells; no clinical decision inferred.')

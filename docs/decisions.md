@@ -2,23 +2,28 @@
 
 ## Current corrective run
 
-The registry now contains 362 active corrections. Cartilage005 adds four after
-six complete root source rereads / 18 frozen OA judgments: two negatives become
-uncertain, and two quotations support retained states. All 18 root states and all
-358 earlier correction objects remain unchanged. One anatomical reason is explicitly
-clarified; original judgments, source files and earlier retirements are preserved.
+The registry now contains 425 active corrections. Wording002 contributes 63
+new accepted changes: 59 state changes and four evidence fixes. Four additional
+proposals were already accepted and retain their exact existing correction objects.
+All 362 prior whole objects and three retirements remain unchanged. Root froze 552
+source judgments across 46 full reports before case findings; 22 later state
+reconsiderations are explicit. Both original source passes, all 67 second proposals,
+all 58 first proposals and nine retained first/root postfreeze disagreements remain
+preserved. The independent technical replay found no source/quote defects or
+conflicts across 54 identical-report groups / 204 reports.
 
-All 18 final states and four new quotes match inspection. The 54 identical-report
-groups / 204 reports have zero conflicts. All three first-reader proposals are
-supported through four exact original second proposals. The complete priority
-cartilage set has two readers plus completed root attention adjudication; broader
-cartilage, bone and wording QA remain unfinished.
+All original 4,407 reports have two completed passes. Priority cartilage review is
+complete; bone passes cover 1,050 priority reports each, and root wording003 has
+20of45 attention reports source-frozen. The registry362 evidence ledger and finite
+closure map link existing evidence to remaining work. They do not accept labels
+or mandate fresh blanket rereads; original and supplemental roles stay distinct.
 
-The latest verified publication contains 358 corrections at Git `3d3b135f` /
-private HF `33d5abd3`, with all 8,955 files independently reconstructable. The local
-362 milestone needs its own publication receipt. All three global semantic QA
-gates remain pending. See [adjudications.md](adjudications.md). The expanded mission
-requires competitive training research and an experiment plan after data readiness;
+The latest verified publication contains 362 corrections at Git `f648ebce` /
+private HF `a9155790`, with all 9,164 files independently reconstructable. Its
+receipt is archived; the local 425 milestone needs its own publication receipt.
+All three semantic QA gates, final export, leakage/mask and actual training checks
+remain pending. See [adjudications.md](adjudications.md). After readiness, the
+expanded mission requires a competitive training strategy and experiment plan;
 see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 The required correspondence registry enforces 18 whole-study report-supervision
@@ -140,7 +145,7 @@ Historical outputs and in-progress drafts are not a corrected release.
 ## Remaining acceptance gates
 
 1. All 4,407 reports have two archived review passes with validated evidence and
-   IDs. There are 358 active accepted target corrections, each with exact
+   IDs. There are 425 active accepted target corrections, each with exact
    original/source bindings and preserved prior artifacts. Resolve the remaining cartilage, bone terminology, and qualified-negation/
    duplicate semantic gates against the exact final artifacts and corrections.
 2. Recheck zero report loss masks for all 24 administratively unresolved

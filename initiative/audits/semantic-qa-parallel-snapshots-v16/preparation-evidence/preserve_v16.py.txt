@@ -1,0 +1,223 @@
+"""Verify fixed v16 preservation pins; repository writes require explicit --execute.
+
+Original stage manifests stay byte-identical. Three large JSONL members use a
+lossless gzip representation, whose decoded bytes remain the manifest objects.
+No annotation, source, registry, release flag or initiative manifest is changed.
+"""
+from pathlib import Path, PurePosixPath
+from datetime import datetime, timezone
+import argparse
+import gzip
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+
+AGENT = '/root/duplicate_consistency_review'
+FLOOR = 20 * 2**30
+RESERVE = 256 * 2**20  # bounded next delta / metadata reserve, in addition to floor
+LIMIT = 100_000_000
+HELPER = 'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+HELPER_SHA = '58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+
+
+def require(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+
+def safe_relative(value):
+    require(isinstance(value, str) and value and '\\' not in value, 'unsafe_path')
+    p = PurePosixPath(value)
+    require(not p.is_absolute() and str(p) == value and all(x not in {'', '.', '..'} for x in p.parts), 'unsafe_path')
+    return Path(*p.parts)
+
+
+def within(root, value):
+    p = root / safe_relative(value)
+    require(p.resolve().is_relative_to(root.resolve()), 'path_outside_root')
+    require(not p.is_symlink(), 'symlink_not_allowed')
+    return p
+
+
+def measure(path, scanner=None, decoded=False):
+    h = hashlib.sha256()
+    count = 0
+    opener = gzip.open if decoded else open
+    with opener(path, 'rb') as f:
+        for block in iter(lambda: f.read(2**20), b''):
+            h.update(block)
+            count += len(block)
+            if scanner is not None:
+                scanner.feed(block)
+    return {'sha256': h.hexdigest(), 'bytes': count}
+
+
+def check_measure(path, expected, scanner=None, decoded=False):
+    actual = measure(path, scanner, decoded)
+    require(actual == {k: expected[k] for k in ('sha256', 'bytes')}, 'member_hash_or_size_mismatch')
+    return actual
+
+
+def check_disk(workspace, required):
+    free = shutil.disk_usage(workspace).free
+    require(free - required > FLOOR + RESERVE, 'disk_floor_or_reserve')
+    return free
+
+
+def scanner_factory(workspace, secrets_file):
+    helper = within(workspace, HELPER)
+    require(measure(helper)['sha256'] == HELPER_SHA, 'scanner_helper_hash_mismatch')
+    spec = importlib.util.spec_from_file_location('v16_bound_scanner', helper)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    from dotenv import dotenv_values
+    values = dotenv_values(secrets_file)
+    secrets = [values[k].encode() for k in ('HF_TOKEN', 'KAGGLE_API_TOKEN') if values.get(k)]
+    require(len(secrets) == 2, 'required_scanning_secrets_unavailable')
+    return lambda: module.Scanner(secrets)
+
+
+def validate_pins(workspace, pins, scanner):
+    require(pins['snapshot_version'] == 16 and pins['integration_or_clinical_acceptance'] is False, 'wrong_scope')
+    repo = within(workspace, 'work/recovered')
+    entries, targets = [], set()
+    references_checked = 0
+    for ref in pins['completion_reference_validation']:
+        check_measure(within(workspace, ref['verified_file']), ref)
+        references_checked += 1
+    for snapshot in pins['snapshots']:
+        for anchor in snapshot['completion_anchors']:
+            check_measure(within(workspace, anchor['source_path']), anchor)
+        for row in snapshot['files']:
+            dest = within(repo, row['archive_path'])
+            require(row['archive_path'].startswith('initiative/audits/' + snapshot['directory'] + '/'), 'wrong_archive_directory')
+            require(row['archive_path'] not in targets, 'duplicate_archive_target')
+            targets.add(row['archive_path'])
+            source = within(workspace, row['source_path'])
+            check_measure(source, row, scanner())
+            stored = within(workspace, row['archive_source_path'])
+            storage = row['archive_representation']
+            require(storage['bytes'] < LIMIT, 'github_file_limit')
+            if storage['encoding'] == 'gzip':
+                require(source.suffix == '.jsonl' and row['archive_path'].endswith('.jsonl.gz'), 'invalid_compression_mapping')
+                check_measure(stored, storage)
+                check_measure(stored, row, scanner(), decoded=True)
+            else:
+                require(storage['encoding'] == 'identity' and stored == source, 'invalid_identity_mapping')
+                require(storage['sha256'] == row['sha256'] and storage['bytes'] == row['bytes'], 'invalid_identity_binding')
+            exists = dest.exists()
+            if exists:
+                require(dest.is_file(), 'destination_not_file')
+                check_measure(dest, storage)
+            entries.append((row, stored, dest, exists))
+    required = sum(row['archive_representation']['bytes'] for row, _, _, exists in entries if not exists)
+    # Allow root's Git object creation as well as the archive copy before reserving
+    # another 256 MiB for the upcoming delta. Reused equal files cost zero here.
+    free = check_disk(workspace, required * 2 + 2**20)
+    return entries, {'source_files': len(entries), 'source_bytes': sum(r['bytes'] for r, *_ in entries),
+                     'archive_bytes': sum(r['archive_representation']['bytes'] for r, *_ in entries),
+                     'new_archive_files': sum(not e for *_, e in entries),
+                     'existing_equal_files': sum(e for *_, e in entries),
+                     'new_archive_bytes': required, 'completion_reference_checks': references_checked,
+                     'free_bytes': free, 'floor_bytes': FLOOR, 'extra_delta_reserve_bytes': RESERVE}
+
+
+def copy_one(row, stored, dest):
+    """Write only absent targets; independently verify source and destination bytes."""
+    expected = row['archive_representation']
+    check_measure(stored, expected)
+    if dest.exists():
+        check_measure(dest, expected)
+        return 'reused_equal'
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with stored.open('rb') as src, dest.open('xb') as out:
+        shutil.copyfileobj(src, out, 2**20)
+        out.flush()
+        os.fsync(out.fileno())
+    check_measure(dest, expected)
+    if expected['encoding'] == 'gzip':
+        check_measure(dest, row, decoded=True)
+    return 'copied_new'
+
+
+def write_once(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        require(path.read_bytes() == data, 'existing_metadata_differs')
+        return
+    with path.open('xb') as f:
+        f.write(data)
+
+
+def run(workspace, pins_path, pins_sha, secrets_file, execute=False):
+    require(measure(pins_path)['sha256'] == pins_sha, 'pins_hash_mismatch')
+    pins = json.loads(pins_path.read_text())
+    scan = scanner_factory(workspace, secrets_file)
+    require(within(workspace, pins['preserver']['path']) == Path(__file__).resolve(), 'preserver_path_mismatch')
+    check_measure(Path(__file__), pins['preserver'], scan())
+    check_measure(within(workspace, pins['builder']['path']), pins['builder'], scan())
+    measure(pins_path, scan())
+    entries, summary = validate_pins(workspace, pins, scan)
+    result = {'schema_version': 1, 'verifier_agent_id': '/root' if execute else AGENT,
+              'prepared_by': AGENT,
+              'mode': 'execute' if execute else 'verify_only_no_R_writes',
+              'pins_sha256': pins_sha, 'counts': summary,
+              'three_global_gates_closed': False, 'clinical_acceptance': False,
+              'original_manifests_unchanged': True, 'all_checks_passed': True}
+    if not execute:
+        return result
+    repo = workspace / 'work/recovered'
+    receipt_path = repo / 'initiative/audits/semantic-qa-parallel-snapshots-v16/snapshots.json'
+    require(not receipt_path.exists(), 'write_once_receipt_already_exists')
+    # No R write occurs before every source, reference, existing target and size
+    # guard has passed. Recheck free space during the bounded copy loop too.
+    actions = []
+    for row, stored, dest, _ in entries:
+        check_disk(workspace, row['archive_representation']['bytes'] + 2**20)
+        actions.append({'source_path': row['source_path'], 'archive_path': row['archive_path'],
+                        'action': copy_one(row, stored, dest),
+                        'original': {k: row[k] for k in ('sha256', 'bytes')},
+                        'archive_representation': row['archive_representation']})
+    for row, _, dest, _ in entries:
+        check_measure(dest, row['archive_representation'])
+        if row['archive_representation']['encoding'] == 'gzip':
+            check_measure(dest, row, decoded=True)
+    # Preserve the exact pins and executable used, plus its bound preparer.
+    target = receipt_path.parent
+    write_once(target / pins_path.name, pins_path.read_bytes())
+    own = Path(__file__)
+    write_once(target / (own.name + '.txt'), own.read_bytes())
+    preparer = within(workspace, pins['builder']['path'])
+    check_measure(preparer, pins['builder'])
+    write_once(target / (preparer.name + '.txt'), preparer.read_bytes())
+    result.update(executed_by='/root', prepared_by=AGENT,
+                  at_utc=datetime.now(timezone.utc).isoformat(), files=actions,
+                  actual_executor_identity_note='The process is invoked by root; preparation and verify-only run belong to the distinct peer agent. No new clinical decision is created.')
+    write_once(receipt_path, (json.dumps(result, ensure_ascii=False, indent=2) + '\n').encode())
+    return result
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--workspace', required=True, type=Path)
+    p.add_argument('--pins', required=True, type=Path)
+    p.add_argument('--pins-sha256', required=True)
+    p.add_argument('--secrets-file', required=True, type=Path)
+    p.add_argument('--execute', action='store_true', help='Root-only explicit bounded archive write; default verifies without R writes.')
+    a = p.parse_args()
+    try:
+        result = run(a.workspace.resolve(), a.pins.resolve(), a.pins_sha256, a.secrets_file.resolve(), a.execute)
+    except Exception as exc:
+        # Avoid printing arbitrary exception content or credential-bearing paths.
+        print(json.dumps({'all_checks_passed': False, 'error_type': type(exc).__name__,
+                          'safe_error': str(exc) if isinstance(exc, ValueError) and str(exc).replace('_', '').isalnum() else 'validation_failed'}))
+        raise SystemExit(1)
+    print(json.dumps(result, ensure_ascii=False))
+
+
+if __name__ == '__main__':
+    main()

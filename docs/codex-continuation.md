@@ -6,67 +6,69 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Latest verified checkpoint
 
-The local registry contains **362 active accepted corrections**. Cartilage005
-adds four after root read six complete neutral attention reports and froze 18 OA
-judgments. Two negatives become uncertain; one positive and one negative gain
-supporting evidence. All 18 frozen root states are retained. One explicit reason
-clarification avoids assigning an unsided tibial lesion to a compartment; the
-separate medial femoral finding independently supports its retained positive.
+The local registry contains **425 active accepted corrections**. Wording002
+adds 63: 48 unsupported negatives and one positive become uncertain, ten uncertain
+cells become unmentioned, and four retained states receive better source context.
+All 362 earlier full correction objects and three earlier retirements are preserved.
+Four of the second reader's 67 proposals were already accepted in cartilage001;
+their existing full objects remain unchanged and are not registered twice.
 
-`cartilage-observed-005-integration-v1/complete362-integration-validation.json`
-reconciles all 18 final states and four new quotes. It preserves all 358 earlier
-whole correction objects, all four original second proposals and all three first
-proposals. Historical205/current358 replay of all 30 selected cells has no overlap
-or drift. The existing v14 root source files and receipt remain unchanged. The
-54 identical-report groups / 204 reports retain zero conflicts. No proposals were
-rejected and no root states reconsidered in this batch.
-
-The source-bound terminology check distinguishes named ICRS definitions, source-
-local calibration and explicit morphology inferences. It records primary-source
-references and their retrieval limitations. It does not establish a universal
-center-specific mapping for unnamed grades, infer region size from bone cysts,
-or add a two-axis size requirement. Preserve all contrary initial judgments.
+Root personally reread all 46 complete attention reports and froze 552 judgments
+before opening this wording batch's case findings. The later review covers all
+552 comparisons, including 142 attention cells. Twenty-two root state
+reconsiderations are explicit and the initial readings remain immutable. All 67
+original second proposals and 58 first-proposal states are supported. Nine
+first-reader postfreeze state disagreements remain preserved; later agreement
+with the second reader is not presented as initial independent agreement.
+Original-author normalization preserves all 67 original proposal objects and
+their historical118 context, with an exact current362 overlap ledger. The
+independent technical proof checks the source/quote bindings, full prior objects,
+three retirements and zero conflicts across 54 identical-report groups / 204 reports.
 
 The most recent verified publication is Git
-`3d3b135f3dbc44763f78c60e950d074565850f49` / private HF
-`33d5abd36e82e9d0228298dc9aa7d54ab128f04a`: 358 corrections and 8,955 files,
-restored exactly by two independent streaming checks; CI 35682228129 passed.
-Its actual receipt is preserved in `cartilage004-verified358-publication-v1/`.
-The 362 milestone still needs its separate publication receipt. Three global
-semantic QA gates and final release checks remain open; no corrected export exists.
+`f648ebce325d8dd78990aa159021308cddc9e369` / private HF
+`a91557908cf62a7ccaba077b9396ad71b4176eff`: 362 corrections and 9,164 files.
+Exact-commit CI 35684206517 passed. Its actual receipt and reconstruction proofs
+are preserved in `cartilage005-verified362-publication-v1/`. The local 425
+milestone needs its separate verified publication receipt. Three global semantic
+QA gates and final release checks remain open; no corrected training export exists.
 
-Both cartilage readers completed the 260-report priority set, and root
-adjudications 000–005 are complete. This does not clear the remaining observed-
-negative candidates or required masked-cell checks. Qualifying extent can be
-explicitly broad anatomical loss; named locations alone do not supply extent.
-Report-internal depth definitions must preserve anatomical scope.
+Both cartilage readers completed the 260-report priority set and root attention
+adjudications 000–005 are complete. Both bone readers completed source/comparison
+passes through 020: 1,050 reports / 2,100 judgments each. All bone proposals still
+await root adjudication. Historical baselines remain recorded and must be rebased
+against the actual registry before integration. Bone007's original author has
+completed its separate canonical source-context normalization; its original six
+clinical objects remain unchanged. Wording005 first-proposal normalization remains
+pending.
 
-Both bone readers completed source/comparison passes through 017: 900 selected
-reports / 1,800 judgments each. First 017 compared against 358; second 017 replayed
-against actual 362 with zero overlap or drift. Its two retained state disagreements
-remain explicit. All bone proposals await root adjudication. Preserve each
-historical baseline and rebase before integration.
+Root wording003 has frozen the first 20 of 45 full attention sources / 240 target
+judgments, including 187 exact nonmissing quotations and 53 empty missing states.
+No current003 case findings have been opened; 25 sources remain before comparison.
+Wording004–006 root attention remains pending. Snapshot v16 preserves completed
+stage cutoffs without treating archive copying as clinical acceptance. Keep its
+exact membership and the earlier partial snapshots unchanged.
 
-Root wording002 has personally read and frozen the first ten of 46 neutral
-attention reports (120 target judgments); 36 full sources remain before opening
-that batch's case-specific reader findings. Wording003–006 root review also remains
-pending. Wording006 has both source/comparison passes across 31 reports / 372 targets,
-19 retained reader state disagreements and 37 second proposals. Its root attention
-includes all 31 reports. Do not substitute archive copying for clinical review.
+The finite closure map and registry362 evidence ledger link all 4,407 reports /
+52,884 cells to original review evidence and targeted follow-ups. The ledger has
+187,755 historical records across 416 stages; these are not independent readings.
+Missing session identifiers remain null. Its fixed cutoff includes bone000–019
+and root002 source judgments, and excludes bone020/root002 final adjudication.
+Use the separately preserved later evidence for those scopes; do not silently
+rewrite the historical ledger. Its 37 exact worklists identify evidence reuse and
+remaining dispositions, not automatic QA clearance or a mandate for another
+blanket two-pass campaign. Large ledger members are losslessly compressed with
+their original hashes and decompression checks.
 
-Snapshot v15 preserves 12 completed-stage cutoffs / 146 original files, including
-both bone016–017 passes, cartilage004 publication checks, the 005 integration
-preparation and the explicitly partial first ten wording002 sources. It preserves
-the original bone016 author helper alongside its later version and the recorded
-alias resolution; the initial archive-helper reference failure occurred before
-any archive write and is retained with its strict resolution. Copying does not
-accept pending proposals. The separate independent 362 technical proof preserves
-all 358 earlier whole objects, all 18 final states/four quotes and all 499 protected
-file hashes; all three QA gates remain pending.
-
-The wording005 first proposal and bone007 second proposal still need separate
-canonical source-context normalization before eventual runtime integration;
-preserve originals. Rebase every historical proposal against the actual registry.
+Close remaining target-specific reviews, account for observed and masked cells,
+then resolve the three gates against the exact final review/correction hashes.
+Recheck the 18 report-supervision exclusions and 24 unresolved all-target masks,
+build final leakage-isolated manifests, and run one final-input real optimizer,
+exact CPU resume, 58-study gold inference and three-study submission validation.
+Keep gold evaluation-only. Reuse unchanged image/cache checks; do not invent a
+full-image clinical reread or a GPU benchmark as a new readiness requirement.
+After this release passes, deliver the competitive training strategy required by
+[mission-and-training-plan.md](mission-and-training-plan.md).
 
 Storage consolidation preserved every source path and byte using independent APFS
 copy-on-write files. Original data, caches and publication archives were untouched.

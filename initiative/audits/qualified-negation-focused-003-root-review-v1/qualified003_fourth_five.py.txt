@@ -1,0 +1,62 @@
+from qualified003_source_tools import freeze, N, G, json, Path
+rows = json.loads((N / 'neutral-root-packets/batch-001.json').read_text())
+def span(i, first, last):
+    s = rows[i]['report']; start = s.index(first)
+    return s[start:s.index(last, start) + len(last)]
+judgments = [
+('N N N N N N U U X X X X', [
+'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+'Normal medial and lateral menisci. No evidence of tears.',
+'Normal medial and lateral menisci. No evidence of tears.',
+'The tibiofemoral articular cartilage is preserved.',
+'The tibiofemoral articular cartilage is preserved.',
+'Moderate - severe thinning of the lateral patellofemoral articular cartilage is noted with mild lateral patellar facet. Underlying bony change.',
+'No significant knee effusion.', '', '', '', '',
+], 'Ligaments and menisci are affirmatively normal and TF cartilage preserved. Moderate/severe PF thinning is neither a loss-depth fraction nor a qualifying region size. Effusion denial is significance-qualified. Underlying bony change does not assess marrow-contusion or acute fracture, and synovial lining/Baker are unmentioned.'),
+('N N N P P N U U X X N X', [
+span(6, 'Intakte Darstellung des HKB und VKB.', 'vollständige Diskontinuität.'),
+'Reizzustand des medialen Kollateralbandes. Mediales und laterales Kollateralband intakt ohne Läsion.',
+'Diffuse Signalanhebung des Innenmeniskus Hinterhornes ohne Rissbildung, in erster Linie mukoide Degeneration.',
+'Horizontale Rissbildung des Außenmeniskusvorderhornes bis in die Pars intermedia und in das Hinterhorn (5/25).',
+'Bekannt höhergradige Chondropathie mit langstreckig aufgebrauchtem Knorpelbelag der medialen femoralen Kondyle (6/10) ohne Eindeutig assoziiertes Ödem Signal.',
+'Lateral oberflächliche Chondropathie, keine tief greifende Läsion des Knorpelbesatz des.',
+'Ausgedehnter Knorpelbesatz an der medialen Facette der Patella mit lokal bis tiefergreifende Chondropathie. Gering ausgedünnter Knorpelbesatz der Trochlea.',
+'Gelenkkapsel nicht verdickt, kein wesentlicher Erguss.', '', '',
+'Knochen: Kein Bone Bruise der erfassten knöchernen Strukturen.', '',
+], 'ACL is directly intact with only slight fraying/signal; MCL is intact without lesion despite irritation. Medial signal is explicitly mucoid degeneration without tearing, lateral horizontal tearing definite. Long-segment exhausted medial femoral cartilage supports full-depth/broad extent as a disclosed source-language inference; the word bekannt does not turn an ongoing lesion into resolved history. Lateral cartilage is superficial with no deep lesion. PF locally deep change has no qualifying extent: extensive cartilage covering is not necessarily extensive deep loss. Effusion is substantial-qualified. Capsule thickness and parameniscal cyst denial do not assess synovial lining or Baker. Explicit no bone bruise supports contusion negative despite separately described nonspecific marrow change. No acute fracture assessment.'),
+('U U U U U U U N X X U X', [
+span(7, 'Μειωµένο', 'του συνδέσµου.'),
+span(7, 'Απο τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(7, 'Απο τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(7, 'Απο τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(7, 'Απο τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(7, 'Απο τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+span(7, 'Απο τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'),
+'Μόλις υποσηµαίνεται συλλογή υγρού στην άρθρωση.', '', '',
+span(7, 'Απο τον έλεγχο των µηνίσκων', 'αξιόλογα ευρήµατα.'), '',
+], 'ACL edema/thickening has decreased but an old partial tear remains the interpretation, without fiber-loss severity or current intactness, so uncertain. Named menisci, collaterals, all3 cartilage compartments and marrow have only no-noteworthy-findings wording, without an affirmative normal/below-threshold assessment. Joint fluid is barely perceptible, supporting trace/below-distending negative. No Baker, synovial-lining or acute fracture assessment.'),
+('N N N N N N N U X X N N', [
+'Normal ACL, PCL, MCL and LCL.', 'Normal ACL, PCL, MCL and LCL.',
+'Normal medial and lateral menisci. No evidence of tears.',
+'Normal medial and lateral menisci. No evidence of tears.',
+'The tibiofemoral and patellofemoral articular cartilage is normal.',
+'The tibiofemoral and patellofemoral articular cartilage is normal.',
+'The tibiofemoral and patellofemoral articular cartilage is normal.',
+'No significant knee effusion.', '', '',
+'Normal visualized bones and surrounding soft tissues.',
+'Normal visualized bones and surrounding soft tissues.',
+], 'Explicit named ligament/meniscus/cartilage normality in the body supports negatives independently of the qualified summary. General normal visualized bones supports both bone negatives at report level. Effusion denial is qualified, while generic surrounding soft-tissue normality does not specifically assess Baker or synovial lining.'),
+('U U N N U U U X X X U X', [
+'Χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος και οστικός µυελός αναγνωρίζονται χωρίς αξιόλογα ευρήµατα.',
+'Χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος και οστικός µυελός αναγνωρίζονται χωρίς αξιόλογα ευρήµατα.',
+'Από τον έλεγχο των µηνίσκων παρατηρούνται ευρήµατα απλής εκφύλισης χωρίς ενδείξεις ρήξης.',
+'Από τον έλεγχο των µηνίσκων παρατηρούνται ευρήµατα απλής εκφύλισης χωρίς ενδείξεις ρήξης.',
+'Χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος και οστικός µυελός αναγνωρίζονται χωρίς αξιόλογα ευρήµατα.',
+'Χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος και οστικός µυελός αναγνωρίζονται χωρίς αξιόλογα ευρήµατα.',
+'Χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος και οστικός µυελός αναγνωρίζονται χωρίς αξιόλογα ευρήµατα.', '', '', '',
+'Χιαστοί και πλάγιοι σύνδεσµοι, αρθρικός χόνδρος και οστικός µυελός αναγνωρίζονται χωρίς αξιόλογα ευρήµατα.', '',
+], 'Both menisci have simple degeneration explicitly without tear evidence, supporting below-tear negatives. Cruciate/collateral ligaments, cartilage and marrow have only no-noteworthy-findings wording, so categorical normality is not inferred. Trochlear shape, patellar maltracking predisposition and local metallic soft-tissue artifact do not supply cartilage-loss severity or any acute fracture. Fluid, synovial lining and Baker are unmentioned.'),
+]
+freeze('fourth-five', 1, 5, judgments)
+with (G / (Path(__file__).name + '.txt')).open('xb') as stream:
+    stream.write(Path(__file__).read_bytes())

@@ -1,0 +1,34 @@
+"""Preserve the actual362 publication evidence; do not republish or copy the tar."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib, importlib.util, json, shutil, sys
+from dotenv import dotenv_values
+W = Path(__file__).resolve().parents[1]
+R = W / "work/recovered"
+A = R / "initiative/audits/cartilage005-verified362-publication-v1"
+D = W / "work/hf-preparation-deltas/f648ebce325d8dd78990aa159021308cddc9e369"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+expected = {'README.md': '99aae9fbc9ee37a053b73566157d313f9f431c11aa71fc88d146ea09843b0007', 'manifest.json': '959a9558deac40b657290546ff904ce6243ffcde2cc7bc546d2fab385e2cc7af', 'restoration-proof.json': '91ed5397e545cb2e3451086d28fe366902e3bfaf2dde4b0991091cd53c93127f', 'root-restoration-proof.json': '182afee60a97abbdf181cda54372490f503e49215cc4e2addd9626a2e8b9a8ac', 'root-publication-operation.json': 'd4843076acf3b1f70c9bbf17cbe8fad2b7b0e5af3adc2194cd0836812e42229c', 'root-publication-receipt.json': '0a84adbed0451ee1076a37d15fd9fa8a4ff8be3cccaf2d2794f355ff6cf3cf94', 'root-publication-journal.jsonl': 'd10fb58afeba1821993537c60e1de294fa9fc0ca3bded2d5543f68730a742e24'}
+files = [(D / name, digest) for name, digest in expected.items()]
+files += [(W / 'work/cartilage005-synchronized-publication.json', 'ca0ab9e2a0aac726281d554de965968d315749bb0259dda5f137ca29228ae315'), (W / 'work/cartilage005-final-staged-verification.json', '95b76c9970dc4fa2deb8d9386cedefde31bd21462c6bd19aa6746b8ef7b12933')]
+helper = W / "work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py"
+assert sha(helper) == "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8"
+spec = importlib.util.spec_from_file_location("checkpoint_delta362_preserve", helper)
+mod = importlib.util.module_from_spec(spec); sys.modules[spec.name] = mod; spec.loader.exec_module(mod)
+secrets = [v.encode() for k,v in dotenv_values(W / ".env").items() if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+assert len(secrets) == 2 and not A.exists()
+assert shutil.disk_usage(W).free - sum(p.stat().st_size for p,h in files) > 20 * 2**30
+for p, h in files:
+    assert sha(p) == h
+    mod.Scanner(secrets).feed(p.read_bytes())
+A.mkdir()
+entries = []
+for p, h in files:
+    out = A / p.name
+    with out.open("xb") as f: f.write(p.read_bytes())
+    assert sha(out) == h
+    entries.append({"original_path": str(p.relative_to(W)), "path": str(out.relative_to(R)), "sha256": h, "bytes": out.stat().st_size})
+receipt = {"stage": "preserved_verified362_private_publication", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "github_commit": "f648ebce325d8dd78990aa159021308cddc9e369", "hf_revision": "a91557908cf62a7ccaba077b9396ad71b4176eff", "files": entries, "registered_corrections_at_publication": 362, "current_local_registry_is_newer": False, "new_network_publication_performed": False, "source_and_official_metadata_unchanged_in_bound_publication": True, "training_ready": False}
+with (A / "preservation.json").open("x") as f: f.write(json.dumps(receipt,indent=2)+"\n")
+(A / "preserve-verified362-publication-v1.py.txt").write_bytes(Path(__file__).read_bytes())
+print(json.dumps({"files": len(entries), "proof_sha256": sha(A / "preservation.json")}))

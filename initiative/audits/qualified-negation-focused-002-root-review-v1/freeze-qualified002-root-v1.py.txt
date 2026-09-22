@@ -1,0 +1,88 @@
+"""Bind actual root-authored complete sources before current reader findings."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib
+import json
+
+W = Path(__file__).resolve().parent.parent
+R = W / 'work/recovered'
+G = W / 'work/annotation-staging/qualified-negation-focused-002-root-review-v1'
+N = W / 'work/annotation-staging/qualified-negation-focused-002-post-freeze-comparison-v1'
+SHA = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+read = lambda p: json.loads(p.read_text())
+pin = lambda p: dict(path=str(p.relative_to(W)), sha256=SHA(p), bytes=p.stat().st_size)
+PARTS = [
+    ('first-five', '8a6bd6b270c78bfa06ba024be3552d1bf463c10c3f9b7c00c2d7fd25bcd18dff'),
+    ('next-five', '29d29aa979beaeaee98a2121a847180d78ee1743a75aae1a0ff035d7f25622d4'),
+    ('third-five', '2f79c623b1d402a9b9c73c4b3de104490466569b5d40fdf63b64cfe4eb5f7880'),
+    ('fourth-five', '7d94664c449db3df6c48f3a7755029b081870385ff298411c878175280f6f23c'),
+    ('fifth-five', '7e055ac5e9f4070e77887b90153d9b82774f4c885a18149f1127caa3726ef83e'),
+    ('sixth-five', 'ae31156209ce2a04cc7a1aa65e9648dfa6aee7ed80d93ecc89afe0ec5520cc74'),
+    ('seventh-five', '381cc7dd9da643ef6345e88c7dc84e8aeb4cb79786af81ad6bdc2d6955ff5281'),
+    ('eighth-five', 'aeb3417f7f973273e8c9c10e56697a9b7dd7f89d855c0da5e9d46cdaa8a86c71'),
+    ('final-six', '99cc83feac273eb97943e606ebb715a1f9d35fdd7f0879d42804092dfb9abb66'),
+]
+index = N / 'neutral-root-packet-index.json'
+assert SHA(index) == '17732525224b81bc8b5882d6de16ee8f60e58f50a13ab9dccd1a6a25e6087e60'
+rubric = R / 'protocols/report_weak_v2.md'
+assert SHA(rubric) == '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+assert SHA(G / 'partial-ten-source-freeze.json') == '106aca618f695d68a60e2efc517eb11cc30ba92b0a1cf14f9d4a0ca0c8d3aec9'
+before = {p: SHA(p) for p in G.iterdir() if p.is_file()}
+sources = []
+for p in read(index)['packets']:
+    path = W / p['path']
+    assert SHA(path) == p['sha256'] and path.stat().st_size == p['bytes']
+    rows = read(path)
+    assert len(rows) == p['reports']
+    sources.extend(rows)
+assert len(sources) == len({r['study_uid'] for r in sources}) == 46
+records = []
+for name, digest in PARTS:
+    p = G / (name + '-source-assessment.json')
+    assert SHA(p) == digest
+    d = read(p)
+    assert d['agent_id'] == d['session_id'] == '/root'
+    assert d['current002_reader_case_findings_opened'] is False
+    assert d['source_index_uid_report_hash_and_exact_quotes_verified']
+    assert d['full_reports'] * 12 == d['target_judgments']
+    assert d['rubric_sha256'] == SHA(rubric)
+    assert d['validation_helper_sha256'] == SHA(G / 'qualified002_source_tools.py.txt')
+    records.extend(d['records'])
+assert len(records) == 46
+assert [r['study_uid'] for r in records] == [r['study_uid'] for r in sources]
+assert len({r['study_uid'] for r in records}) == 46
+targets = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+counts = Counter()
+for rec, src in zip(records, sources):
+    p = R / src['source_path']
+    assert SHA(p) == src['source_sha256'] == rec['source_sha256']
+    assert rec['source_path'] == src['source_path']
+    assert rec['source_index_zero_based'] == src['index']
+    assert read(p)[src['index']] == dict(study_uid=src['study_uid'], report=src['report'])
+    assert hashlib.sha256(src['report'].encode()).hexdigest() == rec['report_sha256']
+    assert rec['target_order'] == targets and len(rec['states']) == len(rec['evidence']) == 12
+    for state, quote in zip(rec['states'], rec['evidence']):
+        assert state in {'positive', 'negative', 'uncertain', 'not_mentioned'}
+        assert (state == 'not_mentioned' and quote == '') or (state != 'not_mentioned' and quote and quote in src['report'])
+        counts[state] += 1
+all_sources = [r for p in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')) for r in read(p)]
+assert len(all_sources) == len({r['study_uid'] for r in all_sources}) == 4407
+all_sources.sort(key=lambda r: r['study_uid'])
+fingerprint = hashlib.sha256(json.dumps(all_sources, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+assert fingerprint == '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+for p in before:
+    assert SHA(p) == before[p]
+now = datetime.now(timezone.utc).isoformat()
+full = dict(stage='complete_qualified002_root_source_assessment_before_current_reader_findings', agent_id='/root', session_id='/root', at_utc=now, full_reports=46, target_judgments=552, target_order=targets, records=records, notes='These are actual personally authored source-first judgments. They are not final adjudications or proof of clinical diagnosis. Initial originals, including interpretations later reconsidered, must remain unchanged.', current002_reader_case_findings_opened=False, training_ready=False)
+with (G / 'full-source-assessment.json').open('x') as f:
+    f.write(json.dumps(full, ensure_ascii=False, indent=2) + '\n')
+helper = G / 'freeze-qualified002-root-v1.py.txt'
+with helper.open('xb') as f:
+    f.write(Path(__file__).read_bytes())
+freeze = dict(stage='complete_root_qualified002_source_freeze_v1', agent_id='/root', session_id='/root', at_utc=now, reports=46, target_judgments=552, nonmissing_exact_quotes=552-counts['not_mentioned'], empty_not_mentioned_quotes=counts['not_mentioned'], state_counts=dict(counts), full_source_assessment=pin(G / 'full-source-assessment.json'), neutral_index=pin(index), neutral_packets=read(index)['packets'], rubric=pin(rubric), canonical_source_sha256=fingerprint, canonical_sources_recomputed=4407, partial_assessments=[pin(G / (name + '-source-assessment.json')) for name, _ in PARTS], existing_files_preserved=[pin(p) for p in sorted(before)], helper=pin(helper), history='Prior root full4407 work, wording000/001, cartilage000-005 and technical/image work include possible historical overlaps. This is source-before-current-wording002 comparison, not first-ever blindness.', personally_read_full_sources_before_current_case_findings=True, current002_reader_case_findings_opened=False, current002_selected_registry_rows_opened=False, gold_values_opened=False, states_or_evidence_changed=False, registry_changed=False, qa_gate_closed=False, training_ready=False)
+with (G / 'source-freeze.json').open('x') as f:
+    f.write(json.dumps(freeze, ensure_ascii=False, indent=2) + '\n')
+for p in before:
+    assert SHA(p) == before[p]
+print(json.dumps(dict(status='complete_source_freeze', reports=46, target_judgments=552, full_source_sha256=SHA(G/'full-source-assessment.json'), source_freeze_sha256=SHA(G/'source-freeze.json'), state_counts=dict(counts), current_reader_findings_opened=False, training_ready=False)))

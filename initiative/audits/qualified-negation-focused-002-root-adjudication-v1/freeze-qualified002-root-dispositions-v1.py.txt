@@ -1,0 +1,177 @@
+"""Record /root's personally completed wording002 adjudication; no registry edits.
+
+The explicit choices below are authored decisions, not an agreement or voting
+algorithm. Original source-only judgments and other agents' outputs stay intact.
+"""
+import hashlib
+import json
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+W = Path(__file__).resolve().parent.parent
+R = W / 'work/recovered'
+S = W / 'work/annotation-staging'
+G = S / 'qualified-negation-focused-002-root-review-v1'
+M = S / 'qualified002-root-mechanical-comparison-362-v1'
+D = S / 'qualified-negation-focused-002-root-adjudication-v1'
+SOURCE = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+REGISTRY = 'a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b'
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def ref(p):
+    return {'path': str(p.relative_to(W)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+def read(p, pin=None):
+    if pin:
+        assert sha(p) == pin, p
+    return json.loads(p.read_text())
+
+def write(name, doc):
+    p = D / name
+    with p.open('x') as f:
+        f.write(json.dumps(doc, ensure_ascii=False, indent=2) + '\n')
+    return ref(p)
+
+assert not D.exists()
+j = read(M / 'all552-root-mechanical-comparison.json', '5366ef01dd5c6a08263b667d6f07d52d4991d611bab5dfd64f745f5e565f4ab8')
+read(G / 'source-freeze.json', 'f0e0edacc93d54363eec5dc4194a9f9dcbad12bc2102a770e18697ac291da39a')
+read(G / 'full-source-assessment.json', 'bd9b1cba1deb00e99c49326c3723a3dbb16ab484f414e1188fe5bea7a3b9545f')
+read(R / 'initiative/reviews-v2/adjudications/registry.json', REGISTRY)
+assert sha(R / 'protocols/report_weak_v2.md') == RUBRIC
+protected = {p: sha(p) for parent in [G, M] for p in parent.rglob('*') if p.is_file()}
+protected[R / 'initiative/reviews-v2/adjudications/registry.json'] = REGISTRY
+
+# Each changed initial judgment and its source-based reason is stated explicitly.
+# None is inferred from reader agreement.
+reconsider = {
+    ('012:16', 'PF OA'): ('uncertain', 'Reasonably well-maintained is a qualified preservation statement. My initial negative treated that phrase as categorical normality, but this source supplies neither an independent normal/no-loss assertion nor explicit below-threshold loss morphology. I withdraw that inference and mask the target.'),
+    ('012:20', 'Medial Meniscus'): ('positive', 'Definite undersurface fraying is an actual surface morphology abnormality, even though mild. The frozen meniscal rubric accepts abnormal morphology and supplies no minimum fraying grade; my initial uncertainty imposed an extra severity requirement. The definite source morphology supports the report-level positive without claiming an image reread.'),
+    ('013:47', "Baker's"): ('uncertain', 'The measured 27 x 29 x 59 mm leaking popliteal cyst establishes identity and dimensions, but the frozen rubric has no validated conversion from these dimensions to moderate/large. My initial positive supplied an unsupported size-grade mapping. Retain the current masked uncertainty.'),
+    ('014:32', "Baker's"): ('uncertain', 'The actual Spanish coordination uses y, not ni. The unusual phrasing leaves the scope of both the negation and significativo across effusion and popliteal cysts ambiguous. My initial negative silently treated that wording like the separately negated ni examples; preserve the actual text and uncertainty.'),
+    ('014:44', 'Medial Meniscus'): ('negative', 'The full passage describes central/internal degenerative signal and no tear characteristics. It does not assert definite surface-reaching signal or abnormal tear morphology. My initial judgment over-weighted a qualified contact denial despite the affirmative internal-signal characterization; isolated internal degeneration is below the meniscal target.'),
+    ('015:06', 'Medial OA'): ('uncertain', 'Slight diffuse cartilage attenuation and lack of full-thickness involvement do not bound loss below half thickness or establish the qualifying size. I withdraw the initial inference that mild wording alone gives a below-threshold depth.'),
+    ('015:06', 'PF OA'): ('uncertain', 'Slight diffuse cartilage attenuation and lack of full-thickness involvement do not bound loss below half thickness or establish the qualifying size. I withdraw the initial inference that mild wording alone gives a below-threshold depth.'),
+    ('015:45', 'Medial OA'): ('uncertain', 'This source describes actual mild thinning as well as fraying, rather than only superficial fraying with otherwise maintained cartilage. Neither depth fraction nor extent is supplied. My initial negative inferred a numeric depth bound from mild and is withdrawn.'),
+    ('016:03', 'PF OA'): ('uncertain', 'Reasonably well-maintained alone remains qualified; this PF passage has no separate categorical normality or defined below-threshold lesion. I withdraw my initial negative for the same source-specific reason as 012:16.'),
+    ('016:41', 'Medial OA'): ('uncertain', 'The body describes generalized intra-articular wear that is more severe laterally. This broader cartilage mention is insufficiently localized, rather than an exclusively lateral body finding followed only by a generic OA summary. I retain current masked uncertainty and withdraw my initial assertion of no informative mention; no medial positive or negative is inferred.'),
+    ('016:41', 'PF OA'): ('uncertain', 'The body describes generalized intra-articular wear that is more severe laterally. This broader cartilage mention is insufficiently localized, rather than an exclusively lateral body finding followed only by a generic OA summary. I retain current masked uncertainty and withdraw my initial assertion of no informative mention; no PF positive or negative is inferred.'),
+    ('018:31', 'PF OA'): ('negative', 'The report directly calls patellar cartilage intact and describes no competing PF cartilage lesion. My initial uncertainty added an exhaustive requirement that both patella and trochlea be separately named, which is not in this report-level protocol. Accept the direct normal PF structure assessment without claiming an exhaustive MRI inspection.'),
+    ('019:20', 'Lateral OA'): ('uncertain', 'The body describes joint narrowing more marked medially and femoral cartilage changes without complete localization. That broader description leaves lateral involvement unresolved; my initial no-mention assertion was too strong. Retain the current masked uncertainty and its exact cartilage excerpt, without transferring a medial or retropatellar positive into lateral OA.'),
+    ('019:20', "Baker's"): ('uncertain', 'A named approximately 3 cm Baker cyst has a dimension but no moderate/large designation or validated rubric conversion. My initial positive inferred a severity grade from one dimension. Withdraw it and preserve current uncertainty.'),
+    ('019:22', 'Medial OA'): ('uncertain', 'The body describes intra-articular cartilage thinning more severe in PF, not only a PF-specific lesion plus a generic summary. Its incompletely localized cartilage mention leaves medial involvement unresolved. Withdraw initial no-mention and retain current masked uncertainty without imputing positive severity.'),
+    ('019:22', 'Lateral OA'): ('uncertain', 'The body describes intra-articular cartilage thinning more severe in PF, not only a PF-specific lesion plus a generic summary. Its incompletely localized cartilage mention leaves lateral involvement unresolved. Withdraw initial no-mention and retain current masked uncertainty without imputing positive severity.'),
+    ('019:25', 'Medial OA'): ('uncertain', 'Well-maintained overall is a qualified preservation assessment without separate categorical normality or a defined below-threshold lesion. My initial negative treated qualified preservation as sufficient and is withdrawn.'),
+    ('019:25', 'Lateral OA'): ('uncertain', 'Reasonably well-maintained is qualified preservation without separate categorical normality or a defined below-threshold lesion. My initial negative treated qualified preservation as sufficient and is withdrawn.'),
+    ('021:06', "Baker's"): ('uncertain', 'The 7 x 2 cm posterior collection establishes Baker identity and dimensions, but the frozen rubric does not define a dimension-to-size-grade mapping. My initial large interpretation was an unvalidated severity inference. Retain current masked uncertainty.'),
+    ('022:26', 'PF OA'): ('negative', 'The source directly describes unremarkable retropatellar cartilage and supplies no competing PF lesion. Normal trochlear geometry is not cartilage evidence, but my initial requirement for a separately named trochlear cartilage assessment was an additional exhaustive-surface rule absent from the report protocol. The affirmative retropatellar normality supports a report-level negative.'),
+    ('022:26', 'Synovitis'): ('not_mentioned', 'The source says the joint capsule is not thickened; it does not identify or assess inflamed synovial lining. My initial uncertainty borrowed the target from a different anatomical structure. There is no informative synovitis mention, so retain current not-mentioned and empty evidence.'),
+    ('022:44', 'Contusion'): ('not_mentioned', 'Benign marrow hyperplasia concerns marrow composition without impact, edema, or an assertion that all marrow is normal. My initial uncertainty treated any marrow mention as contusion evidence. No informative contusion assessment is given, so retain current not-mentioned with empty evidence.'),
+}
+
+# Additional reasons for retained source states or necessary source context.
+clarify = {
+    ('014:13', 'ACL'): 'The Greek satisfactory-appearance sentence is an affirmative normal assessment of ACL; the grade-II partial injury is expressly PCL. The first assessor deferred to uncertainty, which remains preserved, but I retain the source-supported ACL negative.',
+    ('014:13', 'MCL'): 'The same Greek source positively describes satisfactory collateral appearances and assigns partial injury to PCL. I retain MCL negative; the first assessor\'s later deferral is preserved rather than called initial agreement.',
+    ('014:13', 'PF OA'): 'Bare grade I does not specify a grade system or qualifying depth/extent. Retain my frozen uncertain state and the already accepted expanded quote; do not replace the existing full correction object.',
+    ('015:06', 'Effusion'): 'Retain negative from the initial categorical no intra-articular fluid statement and only a liquid rim. Expand the quote to include that categorical assessment: the shorter later no-significant-effusion clause alone cannot justify a negative.',
+    ('015:09', 'Contusion'): 'Underlying bony change is not an informative marrow-edema, impact-contusion, or normal-marrow assessment. Retain my frozen not-mentioned and empty evidence rather than a target borrowed from adjacent bone wording.',
+    ('016:46', 'Medial OA'): 'Actual cartilage findings are localized to the medial patellar facet, which is PF anatomy; a generic OA conclusion does not supply medial tibiofemoral cartilage evidence. Retain not-mentioned, unlike the broader body cartilage descriptions in 016:41 and 019:22.',
+    ('016:46', 'Lateral OA'): 'Actual cartilage findings are PF-specific, and posterior bone edema is not lateral cartilage evidence. Generic OA in the summary does not establish an informative lateral cartilage finding. Retain not-mentioned.',
+    ('017:10', 'Medial OA'): 'The TF subsection describes normal bones, not medial cartilage. Retain not-mentioned and empty evidence; the first assessor\'s uncertainty is preserved. Bone normality cannot become cartilage normality.',
+    ('017:10', 'Lateral OA'): 'The TF subsection describes normal bones, not lateral cartilage. Retain not-mentioned and empty evidence; the first assessor\'s uncertainty is preserved. Bone normality cannot become cartilage normality.',
+    ('018:10', 'Medial OA'): 'Complete cartilage erosion over at least 12 mm is explicitly in the medial compartment, satisfying both report criteria. Preserve the already accepted full medial passage, which includes localization omitted from my shorter initial excerpt.',
+    ('018:10', 'Contusion'): 'Retain uncertain: edema with a low-signal area is not explicitly impact-related or definitely line-free. Replace the old fracture-diagnosis excerpt with the actual marrow-edema/low-signal source passage that supports this contusion uncertainty.',
+    ('019:20', 'Medial OA'): 'Retain uncertain, but quote the actual medial-predominant joint narrowing instead of an excerpt about retropatellar/unlocalized femoral cartilage. Neither excerpt supplies cartilage loss depth and size; anatomical traceability still requires the medial context.',
+    ('022:00', 'Effusion'): 'Marked fluid is in the patellar bursa and around the joint without clear distending intra-articular location. Retain my frozen uncertainty rather than transfer bursal/periarticular severity to joint effusion.',
+    ('022:44', 'Effusion'): 'Retain positive, with the source explicitly stating large intra-articular fluid. Expand the earlier fragment to preserve intra-articular location as well as the amount.',
+}
+
+reports = {}
+for p in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')):
+    for r in read(p):
+        assert r['study_uid'] not in reports
+        reports[r['study_uid']] = r['report']
+assert len(reports) == 4407
+rows = j['records']
+assert len(rows) == 552 and len({r['study_uid'] for r in rows}) == 46
+assert set(reconsider) <= {(r['case'], r['target']) for r in rows}
+out, changes, own, first_support, second_support, overlaps, additional = [], [], [], [], [], [], []
+for r in rows:
+    k = (r['case'], r['target'])
+    initial = r['root_frozen']
+    state, why = reconsider.get(k, (initial['state'], clarify.get(k, initial['report_notes'])))
+    if k in clarify and k not in reconsider:
+        why = clarify[k]
+    current = r['effective_current362']
+    p = r['second_proposal_original']
+    # The full original second proposals were personally inspected and supported;
+    # this branch serializes the chosen exact quote, not a state decision.
+    if r['current_registered_change']:
+        evidence = current['evidence']
+        evidence_action = 'preserve_current_accepted_quote_and_full_correction_object'
+    elif p:
+        evidence = p['after_proposed']['evidence']
+        evidence_action = 'support_exact_original_second_proposed_quote'
+    else:
+        evidence = current['evidence']
+        evidence_action = 'retain_current_exact_quote_without_brevity_churn'
+    if state == 'not_mentioned':
+        assert evidence == ''
+    else:
+        assert evidence and evidence in reports[r['study_uid']], k
+    assert sha(R / r['source_path']) == r['source_sha256']
+    assert hashlib.sha256(reports[r['study_uid']].encode()).hexdigest() == r['report_sha256']
+    reconsidered = initial['state'] != state
+    assert reconsidered == (k in reconsider)
+    supported = p is not None and state == p['after_proposed']['state']
+    if p:
+        assert supported, k
+        if r['current_registered_change']:
+            assert current == p['after_proposed'], k
+            action = 'already_accepted_preserve_existing_full_object'
+            overlaps.append({'case': r['case'], 'study_uid': r['study_uid'], 'target': r['target'], 'original_second_proposal': p, 'current_registered_change': r['current_registered_change'], 'current_registered_case_original': r['current_registered_case_original'], 'root_state': state, 'root_evidence': evidence, 'reason': why})
+        else:
+            assert current == p['before_current'], k
+            assert current != {'state': state, 'evidence': evidence}
+            action = 'accept_second_proposal_pending_registry_integration'
+            changes.append({'case': r['case'], 'study_uid': r['study_uid'], 'target': r['target'], 'before': current, 'after': {'state': state, 'evidence': evidence}, 'reason': why})
+        second_support.append({'case': r['case'], 'study_uid': r['study_uid'], 'target': r['target'], 'state_supported': True, 'exact_proposed_evidence_supported': evidence == p['after_proposed']['evidence'], 'action': action, 'original_proposal_preserved': p, 'root_reason': why})
+    else:
+        action = 'retain_current_after_source_adjudication'
+        if current != {'state': state, 'evidence': evidence}:
+            additional.append({'case': r['case'], 'study_uid': r['study_uid'], 'target': r['target'], 'before': current, 'after': {'state': state, 'evidence': evidence}})
+    f = r['first_proposal_original']
+    if f:
+        assert f['proposed_state'] == state, k
+        assert f['source_quote'] == '' if state == 'not_mentioned' else f['source_quote'] in reports[r['study_uid']]
+        first_support.append({'case': r['case'], 'study_uid': r['study_uid'], 'target': r['target'], 'state_supported': True, 'original_quote_is_exact_source_substring': True, 'final_quote_same_bytes': f['source_quote'] == evidence, 'accepted_via_second_proposal_or_prior_case': p is not None, 'original_first_proposal': f, 'final_evidence': evidence, 'reason': why, 'quote_choice': evidence_action})
+    rec = {'case': r['case'], 'root_report_ordinal': r['root_report_ordinal'], 'study_uid': r['study_uid'], 'target': r['target'], 'target_index': r['target_index'], 'source_path': r['source_path'], 'source_sha256': r['source_sha256'], 'source_index_zero_based': r['source_index_zero_based'], 'report_sha256': r['report_sha256'], 'original_review': r['original_review'], 'root_frozen_state': initial['state'], 'root_frozen_evidence': initial['evidence'], 'root_frozen_report_notes': initial['report_notes'], 'root_postfreeze_state': state, 'root_postfreeze_evidence': evidence, 'root_state_reconsidered': reconsidered, 'reason': why, 'evidence_action': evidence_action, 'effective_current362': current, 'first_source_frozen': r['first_source_frozen'], 'second_source_frozen': r['second_source_frozen'], 'first_postfreeze': r['first_postfreeze'], 'second_postfreeze': r['second_postfreeze'], 'retained_first_postfreeze_state_disagreement': state != r['first_postfreeze']['state'], 'retained_second_postfreeze_state_disagreement': state != r['second_postfreeze']['state'], 'mechanical_attention_reviewed': r['mechanical_attention_only'], 'action': action, 'exact_nonmissing_quote_validated': state == 'not_mentioned' or evidence in reports[r['study_uid']]}
+    out.append(rec)
+    if reconsidered:
+        own.append(rec)
+
+assert len(own) == 22
+assert len(changes) == 63 and len(overlaps) == 4 and len(second_support) == 67
+assert len(first_support) == 58 and all(r['accepted_via_second_proposal_or_prior_case'] for r in first_support)
+assert additional == []
+assert sum(r['mechanical_attention_reviewed'] for r in out) == 142
+counts = {'root_reports': 46, 'root_judgments': 552, 'mechanical_attention_cells_personally_reviewed': 142, 'own_state_reconsiderations': len(own), 'first_proposals_state_supported': len(first_support), 'second_proposals_supported': len(second_support), 'second_proposals_rejected': 0, 'second_proposals_already_accepted': len(overlaps), 'new_second_proposals_supported': len(changes), 'additional_root_proposals': len(additional), 'final_vs_first_postfreeze_state_disagreements': sum(r['retained_first_postfreeze_state_disagreement'] for r in out), 'final_vs_second_postfreeze_state_disagreements': sum(r['retained_second_postfreeze_state_disagreement'] for r in out), 'new_state_changes': sum(r['before']['state'] != r['after']['state'] for r in changes), 'new_evidence_only_changes': sum(r['before']['state'] == r['after']['state'] for r in changes), 'final_state_counts': dict(Counter(r['root_postfreeze_state'] for r in out)), 'new_transition_counts': dict(Counter(r['before']['state'] + '->' + r['after']['state'] for r in changes))}
+common = {'schema_version': 1, 'agent_id': '/root', 'session_id': '/root', 'identity_kind': 'codex_agent_task', 'created_at_utc': datetime.now(timezone.utc).isoformat(), 'source_reports_sha256': SOURCE, 'rubric_sha256': RUBRIC, 'rubric_version': 'report-weak-v2.0', 'root_source_freeze': ref(G / 'source-freeze.json'), 'root_source_assessment': ref(G / 'full-source-assessment.json'), 'mechanical_comparison': ref(M / 'all552-root-mechanical-comparison.json'), 'registry_before': ref(R / 'initiative/reviews-v2/adjudications/registry.json'), 'registered_corrections_at_review': 362, 'gold_values_inspected': False, 'original_artifacts_changed': False, 'training_ready': False, 'global_semantic_qa_closed': False}
+D.mkdir()
+write('root-explicit-reconsiderations.json', {**common, 'stage': 'explicit_postfreeze_root_reconsiderations', 'n_state_reconsiderations': 22, 'records': own, 'reason_clarifications': [{'case': k[0], 'target': k[1], 'reason': v} for k, v in clarify.items()], 'interpretation': 'Initial 552 source judgments remain byte-preserved. These 22 later changes are disclosed, not reported as original independent agreement.'})
+write('root-postfreeze-dispositions.json', {**common, 'stage': 'root_personal_source_adjudication_after_complete_source_freeze', 'counts': counts, 'review_statement': 'I, /root, personally read the 46 complete attention reports and froze all552 source-only judgments before opening wording002 case findings. After that freeze I personally reviewed all552 mechanical comparison cells including142 attention cells against actual362, both original source passes, both postfreeze opinions and all67 second/58 first proposals. The explicit22 reconsiderations are my later source-and-rubric decisions, not an automatic consensus rule. Earlier full4407 and focused review exposure is disclosed in the preserved source freeze; this is not first-ever blindness, an MRI diagnosis or clinical credential.', 'scope': 'Four of the67 second proposals are already accepted at actual362 and must retain their existing full correction objects. Accept the other63 exact second proposals only through a distinct original-author proposal and this root assessment. Raw quotation differences alone are not errors. The four reader reports outside the46 root sources receive no invented root judgments. All three global gates remain pending.', 'records': out, 'new_supported_changes': changes, 'already_accepted_overlaps': overlaps, 'first_proposal_state_support': first_support, 'second_proposal_support': second_support, 'additional_root_proposals': [], 'rejected_proposals': []})
+assessment = []
+for rec in out:
+    if rec['action'] not in {'accept_second_proposal_pending_registry_integration', 'already_accepted_preserve_existing_full_object'}:
+        continue
+    assessment.append({'study_uid': rec['study_uid'], 'target': rec['target'], 'case': rec['case'], 'independent_source_state': rec['root_postfreeze_state'], 'source_evidence': rec['root_postfreeze_evidence'], 'source_path': rec['source_path'], 'source_sha256': rec['source_sha256'], 'report_sha256': rec['report_sha256'], 'root_frozen_state': rec['root_frozen_state'], 'root_frozen_evidence': rec['root_frozen_evidence'], 'root_state_reconsidered': rec['root_state_reconsidered'], 'reason': rec['reason'], 'disposition': rec['action']})
+write('second-proposals-independent-assessment.json', {**common, 'stage': 'independent_source_assessment', 'proposer_agent_id': '/root/last_twelve_visual_review', 'n_changes_supported': 67, 'n_new_changes_supported': 63, 'n_already_accepted': 4, 'n_changes_rejected': 0, 'n_changes_held': 0, 'n_root_source_reports': 46, 'n_root_source_judgments': 552, 'assessment_read_order': 'Full root source freeze preceded case findings; final assessment includes explicitly recorded postfreeze reconsiderations and must not be called initial independent agreement.', 'records': assessment, 'rejected_proposals': []})
+assert all(sha(p) == h for p, h in protected.items())
+write('validation.json', {**common, 'stage': 'exact_serialization_and_preservation_validation', 'counts': counts, 'all552_source_and_quote_bindings_validated': True, 'all67_second_proposal_states_and_exact_quotes_supported': True, 'all58_first_proposal_states_supported': True, 'four_existing_full_correction_objects_preserved': True, 'new63_before_values_match_actual362': True, 'registry_mutated': False, 'protected_files': [ref(p) for p in sorted(protected)], 'all_protected_unchanged': True})
+(D / 'freeze-qualified002-root-dispositions-v1.py.txt').write_bytes(Path(__file__).read_bytes())
+write('completion-manifest.json', {**common, 'stage': 'complete_root_wording002_adjudication_freeze', 'counts': counts, 'files': [ref(p) for p in sorted(D.iterdir()) if p.is_file()], 'next_step': 'Original second author canonical proposal normalization; exact integration of63 new supported proposals while preserving362 prior changes and4 overlaps, followed by required repository checks and publication. This stage itself changes no registry.'})
+print(json.dumps({'completion': ref(D / 'completion-manifest.json'), 'dispositions': ref(D / 'root-postfreeze-dispositions.json'), 'assessment': ref(D / 'second-proposals-independent-assessment.json'), 'counts': counts}, indent=2))

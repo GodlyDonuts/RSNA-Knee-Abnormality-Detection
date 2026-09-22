@@ -1,0 +1,48 @@
+import unittest
+from build_ledger import actor, string_values, validate_judgment
+
+
+class EvidenceGuardTests(unittest.TestCase):
+    def test_exact_quote_is_case_sensitive(self):
+        with self.assertRaises(ValueError):
+            validate_judgment("Literal alpha.", "negative", "literal alpha")
+
+    def test_changed_quote_rejected(self):
+        with self.assertRaises(ValueError):
+            validate_judgment("Literal alpha.", "uncertain", "Literal beta.")
+
+    def test_empty_observed_evidence_rejected(self):
+        with self.assertRaises(ValueError):
+            validate_judgment("Literal alpha.", "positive", "")
+
+    def test_missing_state_cannot_carry_quote(self):
+        with self.assertRaises(ValueError):
+            validate_judgment("Literal alpha.", "not_mentioned", "alpha")
+
+    def test_unknown_state_rejected(self):
+        with self.assertRaises(ValueError):
+            validate_judgment("Literal alpha.", "accepted", "alpha")
+
+    def test_missing_state_stays_empty(self):
+        self.assertIsNone(validate_judgment("Literal alpha.", "not_mentioned", ""))
+
+    def test_exact_unicode_quote_offset(self):
+        self.assertEqual(validate_judgment("αβ — γδ", "uncertain", "γδ"), 5)
+
+    def test_missing_session_is_not_invented(self):
+        self.assertEqual(actor({"agent_id": "/root/example"}), ("/root/example", None))
+
+    def test_nested_actual_identity_preserved(self):
+        self.assertEqual(actor({"assessor": {"agent_id": "/root/example", "session_id": "actual-session"}}), ("/root/example", "actual-session"))
+
+    def test_other_reader_identity_is_not_own_author(self):
+        self.assertEqual(actor({"first_proposer_agent_id": "/root/other", "agent_id": "/root/example"}), ("/root/example", None))
+
+    def test_hash_binding_requires_whole_string(self):
+        values = set(string_values({"files": [{"sha256": "abc123"}], "notes": "contains def456 here"}))
+        self.assertIn("abc123", values)
+        self.assertNotIn("def456", values)
+
+
+if __name__ == "__main__":
+    unittest.main()

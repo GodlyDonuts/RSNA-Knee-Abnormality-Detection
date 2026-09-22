@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "at_utc": "2026-09-22T04:46:50.461478+00:00",
+  "real_full_preflight_passed": true,
+  "normalization_guard_negative_checks": [
+    {
+      "test": "boolean_schema_version",
+      "rejected": true,
+      "guard_code": "normalization_schema"
+    },
+    {
+      "test": "same_author_as_root",
+      "rejected": true,
+      "guard_code": "actual_original_author"
+    },
+    {
+      "test": "wrong_canonical_source",
+      "rejected": true,
+      "guard_code": "canonical_source_context"
+    },
+    {
+      "test": "missing_original_proposal",
+      "rejected": true,
+      "guard_code": "full67_order"
+    },
+    {
+      "test": "reordered_original_membership",
+      "rejected": true,
+      "guard_code": "full67_order"
+    },
+    {
+      "test": "altered_after_quote",
+      "rejected": true,
+      "guard_code": "exact_clinical_projection"
+    },
+    {
+      "test": "altered_before_state",
+      "rejected": true,
+      "guard_code": "exact_clinical_projection"
+    },
+    {
+      "test": "altered_original_reason",
+      "rejected": true,
+      "guard_code": "exact_original_reason"
+    },
+    {
+      "test": "altered_embedded_original_object",
+      "rejected": true,
+      "guard_code": "exact_original_object_order"
+    },
+    {
+      "test": "wrong_source_index",
+      "rejected": true,
+      "guard_code": "source_projection"
+    },
+    {
+      "test": "missing_overlap_ledger_item",
+      "rejected": true,
+      "guard_code": "full67_order"
+    },
+    {
+      "test": "overlap_flag_removed",
+      "rejected": true,
+      "guard_code": "exact_overlap_objects"
+    },
+    {
+      "test": "altered_existing_overlap_change",
+      "rejected": true,
+      "guard_code": "overlap_original_change_object"
+    },
+    {
+      "test": "normalization_implies_acceptance",
+      "rejected": true,
+      "guard_code": "no_normalization_acceptance"
+    },
+    {
+      "test": "wrong_required_file_pin",
+      "rejected": true,
+      "guard_code": "mandatory_input_pin"
+    }
+  ],
+  "negative_checks_passed": 15,
+  "new63_exact_before_after_projection": true,
+  "all4_full_original_overlap_objects_verified": true,
+  "all600_normalization_replay_cells_verified_against_actual362": true,
+  "historical118_snapshot_preserved": true,
+  "original67_clinical_objects_and_reasons_unchanged": true,
+  "no_R_or_registry_changes": true,
+  "no_accepted_decision_created": true,
+  "helper_executed": false,
+  "secret_file_opened_by_preparation": false,
+  "global_gates_closed": false,
+  "free_bytes": 23405236224,
+  "helper": {
+    "path": "work/annotation-staging/qualified002-integration-preparation-v1/integrate_wording002.py",
+    "sha256": "b34a21ab805e99146564267214a128477dc768f97efea454991ec3d1af111f1c",
+    "bytes": 23599
+  },
+  "verifier": {
+    "path": "work/annotation-staging/qualified002-integration-preparation-v1/verify_prepared_helper.py",
+    "sha256": "d0fc14cc31c4adf7c54836bf90cd5167bb457ad8aade6b44e5626a045d33a6af",
+    "bytes": 6652
+  },
+  "plan": {
+    "path": "work/annotation-staging/qualified002-integration-preparation-v1/unexecuted-integration-plan.json",
+    "sha256": "592c13320281923b1004c151599840683b084f769e3ea32d5a8e2b4c159e6382",
+    "bytes": 88799
+  }
+}

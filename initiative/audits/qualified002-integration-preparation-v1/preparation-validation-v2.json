@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "at_utc": "2026-09-22T04:47:47.493666+00:00",
+  "real_full_preflight_passed": true,
+  "normalization_guard_negative_checks": [
+    {
+      "test": "boolean_schema_version",
+      "rejected": true,
+      "guard_code": "normalization_schema"
+    },
+    {
+      "test": "same_author_as_root",
+      "rejected": true,
+      "guard_code": "actual_original_author"
+    },
+    {
+      "test": "wrong_canonical_source",
+      "rejected": true,
+      "guard_code": "canonical_source_context"
+    },
+    {
+      "test": "missing_original_proposal",
+      "rejected": true,
+      "guard_code": "full67_order"
+    },
+    {
+      "test": "reordered_original_membership",
+      "rejected": true,
+      "guard_code": "full67_order"
+    },
+    {
+      "test": "altered_after_quote",
+      "rejected": true,
+      "guard_code": "exact_clinical_projection"
+    },
+    {
+      "test": "altered_before_state",
+      "rejected": true,
+      "guard_code": "exact_clinical_projection"
+    },
+    {
+      "test": "altered_original_reason",
+      "rejected": true,
+      "guard_code": "exact_original_reason"
+    },
+    {
+      "test": "altered_embedded_original_object",
+      "rejected": true,
+      "guard_code": "exact_original_object_order"
+    },
+    {
+      "test": "wrong_source_index",
+      "rejected": true,
+      "guard_code": "source_projection"
+    },
+    {
+      "test": "missing_overlap_ledger_item",
+      "rejected": true,
+      "guard_code": "full67_order"
+    },
+    {
+      "test": "overlap_flag_removed",
+      "rejected": true,
+      "guard_code": "exact_overlap_objects"
+    },
+    {
+      "test": "altered_existing_overlap_change",
+      "rejected": true,
+      "guard_code": "overlap_original_change_object"
+    },
+    {
+      "test": "normalization_implies_acceptance",
+      "rejected": true,
+      "guard_code": "no_normalization_acceptance"
+    },
+    {
+      "test": "wrong_required_file_pin",
+      "rejected": true,
+      "guard_code": "mandatory_input_pin"
+    },
+    {
+      "test": "intended_registry_change_only",
+      "passed": true
+    },
+    {
+      "test": "wrong_new_registry",
+      "rejected": true,
+      "guard_code": "postwrite_planned_registry_bytes"
+    },
+    {
+      "test": "restored_old_registry_not_new",
+      "rejected": true,
+      "guard_code": "postwrite_planned_registry_bytes"
+    },
+    {
+      "test": "changed_other_protected_input",
+      "rejected": true,
+      "guard_code": "postwrite_original_drift"
+    }
+  ],
+  "guard_checks_passed": 19,
+  "new63_exact_before_after_projection": true,
+  "all4_full_original_overlap_objects_verified": true,
+  "all600_normalization_replay_cells_verified_against_actual362": true,
+  "historical118_snapshot_preserved": true,
+  "original67_clinical_objects_and_reasons_unchanged": true,
+  "no_R_or_registry_changes": true,
+  "no_accepted_decision_created": true,
+  "helper_executed": false,
+  "secret_file_opened_by_preparation": false,
+  "global_gates_closed": false,
+  "free_bytes": 23382278144,
+  "helper": {
+    "path": "work/annotation-staging/qualified002-integration-preparation-v1/integrate_wording002_v2.py",
+    "sha256": "69e9a04f0eb438ee8453cd8c2633bf481c06386ba9719752dfd8cce3cff26829",
+    "bytes": 23862
+  },
+  "verifier": {
+    "path": "work/annotation-staging/qualified002-integration-preparation-v1/verify_prepared_helper_v2.py",
+    "sha256": "74b3951a6e6f5ffac1de294f4b10415459811aa3040ab5f472124a8318eeceed",
+    "bytes": 7610
+  },
+  "plan": {
+    "path": "work/annotation-staging/qualified002-integration-preparation-v1/unexecuted-integration-plan-v2.json",
+    "sha256": "a1f72e1ce3b8d781b86498dba422737e67e183c3f5aeaa8907be2e88e558597d",
+    "bytes": 88802
+  }
+}

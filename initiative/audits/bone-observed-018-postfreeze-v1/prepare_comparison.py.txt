@@ -1,0 +1,28 @@
+"""Bind only the current bone018100 cells after the complete source freeze."""
+import hashlib,json,sys
+from datetime import datetime,timezone
+from pathlib import Path
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';S=P.parent/'bone-observed-018-source-review-v1';sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def main():
+ assert sha(S/'source-freeze.json')=='b600ed6be57ca0ac6c90fccb9d172be5e582ec8e9e28d2b7d4578cad0a3d7241'
+ reports={r['study_uid']:r['report']for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for r in read(p)};assert len(reports)==4407 and source_reports_fingerprint(reports)=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+ registry=R/'initiative/reviews-v2/adjudications/registry.json';pin=sha(registry);replay=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R);assert sha(registry)==pin;changes={(r['study_uid'],r['target']):r for r in replay['changes']}
+ with(P/'registry-at-comparison.json').open('xb')as f:f.write(registry.read_bytes())
+ sources=read(S/'neutral-source-packet.json')['reports'];own=[json.loads(l)for l in(S/'source-assessment-frozen.jsonl').read_text().splitlines()];rows=[]
+ for source,a in zip(sources,own,strict=True):
+  sp=R/source['source_path'];rp=R/'initiative/reviews-v2/reviewed'/(sp.stem+'-reviewed.jsonl');original=next(r for r in map(json.loads,rp.read_text().splitlines())if r['study_uid']==source['study_uid']);assert a['study_uid']==source['study_uid']
+  for k,target in enumerate(a['target_order']):
+   j=TARGETS.index(target);o={'state':original['states'][j],'evidence':original['evidence'][j]};change=changes.get((source['study_uid'],target));current=change['after']if change else o
+   rows.append({'ordinal':a['packet_index'],'study_uid':source['study_uid'],'target':target,'source_path':source['source_path'],'source_index_zero_based':source['source_index_zero_based'],'source_sha256':source['source_sha256'],'report_sha256':source['report_sha256'],'original_review_path':str(rp.relative_to(R)),'original_review_sha256':sha(rp),'original':o,'original_notes':original['notes'],'current_effective':current,'current_accepted_correction':change,'own_source_frozen':{'state':a['states'][k],'evidence':a['evidence'][k],'rationale':a['rationales'][k]}})
+ assert len(rows)==100
+ x={'schema_version':1,'agent_id':'/root/quality_temporal_review','created_at_utc':datetime.now(timezone.utc).isoformat(),'source_freeze':bind(S/'source-freeze.json'),'source_assessment':bind(S/'source-assessment-frozen.jsonl'),'registry':bind(registry),'registered_changes':len(changes),'source_reports_sha256':source_reports_fingerprint(reports),'records':rows,'mechanical_comparison_not_clinical_judgment':True,'other_bone018_reader_findings_opened':False,'helper':bind(Path(__file__).resolve())}
+ with(P/'all100-bound-comparison.json').open('x')as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({'cells':100,'registered_changes':len(changes),'own_source_vs_current_state_differences':sum(r['current_effective']['state']!=r['own_source_frozen']['state']for r in rows),'existing_correction_overlap':sum(r['current_accepted_correction']is not None for r in rows),'comparison_sha256':sha(P/'all100-bound-comparison.json')},indent=2))
+if __name__=='__main__':main()
