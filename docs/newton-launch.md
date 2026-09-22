@@ -307,9 +307,21 @@ PIDs. It nevertheless completed all 26 training updates, with a normal trainer
 receipt and no checkpoint-stop receipt. This is a failed recovery gate. The
 corrective supervisor now atomically writes an invocation-bound stop request,
 which both trainer ranks check at update boundaries and during final inference.
-Local real-trainer stop/resume passes; redeploy and rerun a bounded actual Slurm
-stop and separate resume before production. The [full 82.83 GB cache archive](../initiative/audits/full-cache-newton-stage-v1/)
-has its matching final local and remote receipts. The prepared primary fold-0
-ten-epoch script is staged on Newton with exact script/config hashes, but no
-production GPU job has been submitted. First full-data epoch timing will
-determine whether its four-hour limit is sufficient.
+Local real-trainer stop/resume passed, and the exact corrected source is now
+deployed at `/home/sa305415/rsna-knee/code-stopfix-1f486765` with
+[frozen receipts](../initiative/audits/newton-stopfix-deployment-v1/). The
+interactive job ended and file quota dropped below its soft limit without
+removing the older checkout. The [v5/v6 recovery record](../initiative/audits/newton-slurm-signal-v2/)
+shows v5 failed preflight before training: Git's threaded lstat exceeded the
+process limit, though a single-threaded Git status verified the checkout clean.
+The v6 wrapper uses that setting, but its bounded two-H100 stop job 840508
+also failed before training. A one-CPU diagnostic 840513 measured the same
+clean Git status on evc49 at 111.87 seconds, beyond preflight's 15-second
+timeout. The source now grants this mandatory single-threaded check five
+minutes; publish and deploy it before another recovery rehearsal. The
+[full 82.83 GB cache archive](../initiative/audits/full-cache-newton-stage-v1/)
+has matching final local and remote receipts. The corrected source's v3
+ten-epoch script was staged only against the earlier 1f486765 code pin and
+must be regenerated for the next source commit. No production GPU job has been submitted;
+actual Slurm stop and separate resume still gate it. First full-data epoch
+timing will determine whether its four-hour limit is sufficient.

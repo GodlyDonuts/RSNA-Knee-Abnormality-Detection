@@ -41,7 +41,12 @@ completed a real two-H100 DINOv3-L diagnostic: 100 training studies, two epochs,
 after interruption/resume. Its uninterrupted trainer elapsed time was 109.06
 seconds including prediction. The [full-cache transfer](audits/full-cache-newton-stage-v1/)
 is verified at 48,772 files and 82.83 GB; the actual Slurm signal stop-and-resume
-check still gates production. No Kaggle score has been measured. The accepted
+check still gates production; [actual Slurm attempts](audits/newton-slurm-signal-v1/)
+found worker signal delivery insufficient, and the [session-bound fallback](audits/newton-stopfix-deployment-v1/)
+is deployed. A [corrected rerun and one-CPU diagnostic](audits/newton-slurm-signal-v2/)
+found that clean Git status took 111.87 seconds on the GPU node, longer than
+the preflight timeout; the timeout correction awaits deployment. No Kaggle score
+has been measured. The accepted
 data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 
 ## Contents

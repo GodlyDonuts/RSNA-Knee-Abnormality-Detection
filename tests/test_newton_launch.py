@@ -144,6 +144,34 @@ def test_provenance_removes_paths_tokens_urls():
     assert "hf_" not in value and "token=private" not in value
 
 
+def test_preflight_checkout_gate_checks_clean_modified_untracked_and_failed_status(
+    tmp_path, monkeypatch
+):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    subprocess.run(["git", "config", "user.name", "RSNA Test"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "rsna@example.invalid"], cwd=tmp_path, check=True
+    )
+    tracked = tmp_path / "tracked.txt"
+    tracked.write_text("accepted\n")
+    subprocess.run(["git", "add", "tracked.txt"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "accepted"], cwd=tmp_path, check=True)
+    assert preflight.git_checkout_clean(tmp_path)
+    tracked.write_text("changed\n")
+    assert not preflight.git_checkout_clean(tmp_path)
+    tracked.write_text("accepted\n")
+    untracked = tmp_path / "untracked.txt"
+    untracked.write_text("unexpected\n")
+    assert not preflight.git_checkout_clean(tmp_path)
+    untracked.unlink()
+    monkeypatch.setattr(
+        preflight,
+        "command",
+        lambda *args, **kwargs: {"available": False, "returncode": None, "output": ""},
+    )
+    assert not preflight.git_checkout_clean(tmp_path)
+
+
 def test_encoder_preflight_hashes_local_files_without_paths(tmp_path):
     config, weights = tmp_path / "config.json", tmp_path / "weights.pt"
     config.write_text("{}")

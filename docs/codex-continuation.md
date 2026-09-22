@@ -31,9 +31,32 @@ all 26 updates and predictions normally, so the required checkpoint-stop
 receipt is absent. Job 839411 completed 0:0, which is a **failed recovery
 rehearsal**, not a successful checkpoint stop. The corrective source now has an
 atomic, session-bound stop request that both ranks check at update boundaries;
-its local real-trainer stop/resume test passed. Re-deploy that source and repeat
-the actual Slurm stop and separate resume before production. No signal job
-remains active. Original failures are in `initiative/audits/newton-slurm-signal-v1/`.
+its local real-trainer stop/resume test passed. Git main
+`1f4867650042a8cf8a14e9721f4d19b6f61e67d6` passed CI 35795653804 and was
+byte-verified in private HF revision `e0ef7d0ec194237a6c857015f4cdafd90df9ce96`.
+It was deployed as a fresh, exact 11,943-tracked-file Newton worktree at
+`/home/sa305415/rsna-knee/code-stopfix-1f486765`; the older e7b checkout was
+preserved. Repeat the actual Slurm stop and separate resume before production.
+The v5 two-H100 stop job 840243 failed preflight before training because Git's
+threaded lstat exceeded Newton's process limit. The v6 wrapper forced a
+single-threaded status, but its job 840508 still failed preflight before training.
+A separate one-CPU Slurm job 840513 measured a clean status on the same evc49
+node at **111.87 seconds**, while preflight allowed only 15 seconds. The
+mandatory, single-threaded status now has a five-minute timeout and a regression
+test for clean, modified, untracked and failed checks. Publish and deploy this
+source fix, then repeat actual Slurm stop and separate resume; neither has passed
+yet. The prior ten-epoch fold-0 script was staged only against the 1f486765
+source and must be regenerated for the next code pin. No production GPU job or
+Kaggle entry has been submitted. Original failures are in
+`initiative/audits/newton-slurm-signal-v1/`, the measured v5/v6 rerun in
+`initiative/audits/newton-slurm-signal-v2/`, and deployment receipts in
+`initiative/audits/newton-stopfix-deployment-v1/`.
+
+Newton Lustre file quota had reached 1,016,723 files while a separate
+interactive one-GPU Bash job 840217 was active. That job ended; the file count
+fell to 981,978, under the 1,000,000 soft limit, without deleting or sparsifying
+the older checkout. The verified full-cache archive is unaffected. Recheck
+quota before further staging or extraction.
 
 The full-cache byte-resume operation is **complete and verified**. The v3 plan
 rechecked every one of the 48,772 source files and the interrupted

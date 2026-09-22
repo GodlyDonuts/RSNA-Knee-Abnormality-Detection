@@ -33,9 +33,11 @@ def safe_output(value: str) -> str:
     return value[:16384]
 
 
-def command(argv: list[str], cwd: Path | None = None) -> dict:
+def command(argv: list[str], cwd: Path | None = None, *, timeout_seconds: int = 15) -> dict:
     try:
-        result = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, timeout=15)
+        result = subprocess.run(
+            argv, cwd=cwd, capture_output=True, text=True, timeout=timeout_seconds
+        )
         return {
             "available": True,
             "returncode": result.returncode,
@@ -43,6 +45,25 @@ def command(argv: list[str], cwd: Path | None = None) -> dict:
         }
     except (OSError, subprocess.SubprocessError):
         return {"available": False, "returncode": None, "output": ""}
+
+
+def git_checkout_clean(repo: Path) -> bool:
+    """Fail closed on changes or an incomplete status scan of a large checkout."""
+    # Lustre metadata can make a clean, full release checkout take minutes to scan.
+    # Keep the check mandatory while avoiding Git's account-limited lstat threads.
+    dirty = command(
+        [
+            "git",
+            "-c",
+            "core.preloadIndex=false",
+            "status",
+            "--porcelain",
+            "--untracked-files=normal",
+        ],
+        repo,
+        timeout_seconds=300,
+    )
+    return dirty["returncode"] == 0 and not dirty["output"].strip()
 
 
 def probe_torch(torch_module: object | None = None) -> dict:
@@ -167,8 +188,7 @@ def inspect(args: argparse.Namespace) -> dict:
     commit = actual_git["output"].strip()
     if not re.fullmatch(r"[0-9a-f]{40}", args.expected_git) or commit != args.expected_git:
         errors.append("code_git_pin_mismatch")
-    dirty = command(["git", "status", "--porcelain", "--untracked-files=normal"], args.repo)
-    if dirty["returncode"] != 0 or dirty["output"].strip():
+    if not git_checkout_clean(args.repo):
         errors.append("code_checkout_not_clean")
     artifacts = {}
     try:

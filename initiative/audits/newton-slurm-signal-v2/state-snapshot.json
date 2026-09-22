@@ -1,0 +1,78 @@
+{
+  "at_utc": "2026-09-22T23:45:16.546255+00:00",
+  "production_v3_stage": {
+    "archive_bytes": 82834493440,
+    "config_sha256": "9c69708be0379d34c0ec4e998023dbf1c149f13d66732b8be22055293822f8fd",
+    "file_quota_raw_before_stage": "Disk quotas for usr sa305415 (uid 1227834669):\n     Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace\n          /home 941661300  1048576000 1059061760       -  981996  1000000 1010000       -\n",
+    "files": {
+      "plan.json": {
+        "bytes": 1530,
+        "sha256": "7fee1bf1abf0ea2e7f4f0fcd2bfec21aada11d0b32e434384bf958407a92bf31"
+      },
+      "production.sbatch": {
+        "bytes": 13329,
+        "sha256": "57d7cb04f88afa893fb1c153f6f322ab67a31858341d8fe09ae8436a46999c20"
+      }
+    },
+    "no_gpu_job_submitted": true,
+    "status": "staged_only"
+  },
+  "quota": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "Disk quotas for usr sa305415 (uid 1227834669):\n     Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace\n          /home 941661328  1048576000 1059061760       -  982000  1000000 1010000       -\n"
+  },
+  "v5_preflight_blocked": true,
+  "v5_sacct": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "840243           FAILED      2:0   00:01:58 \n840243.batch     FAILED      2:0   00:01:58 \n840243.exte+  COMPLETED      0:0   00:01:58 \n"
+  },
+  "v5_signal_intent": null,
+  "v5_signal_result": null,
+  "v5_stdout_bytes": 6940,
+  "v5_stdout_sha256": "f0b823fd85baacca1d2b0810e473f05d4df826278ea790432b10b23c799077b3",
+  "v6_dispatch": {
+    "created_at_utc": "2026-09-22T23:41:44.664651+00:00",
+    "job_id": 840508,
+    "returncode": 0,
+    "script_sha256": "a82ccb2565b2a1ec62bb81791df2cc46e9da1cb1170cabbcebb4ac5ce21261a3",
+    "status": "submitted",
+    "stderr": "",
+    "stdout": "840508\n"
+  },
+  "v6_sacct": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "840508          PENDING      0:0   00:00:00 \n"
+  },
+  "v6_signal_intent": null,
+  "v6_signal_result": null,
+  "v6_squeue": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "JOBID|STATE|TIME|NODELIST(REASON)\n840508|PENDING|0:00|(Resources)\n"
+  },
+  "v6_stage": {
+    "clean_git_check": true,
+    "file_quota_raw_before_stage": "Disk quotas for usr sa305415 (uid 1227834669):\n     Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace\n          /home 941661248  1048576000 1059061760       -  981989  1000000 1010000       -\n",
+    "files": {
+      "plan.json": {
+        "bytes": 767,
+        "sha256": "60b27eea19471392dfbcaf9d6fc35524e67b8b67926c88a7dfb258f67531fa82"
+      },
+      "resume.sbatch": {
+        "bytes": 13411,
+        "sha256": "e90fe68fe16d8f214d4c05bfa41e411228527275a6b49680de62313fced38060"
+      },
+      "stop.sbatch": {
+        "bytes": 13397,
+        "sha256": "a82ccb2565b2a1ec62bb81791df2cc46e9da1cb1170cabbcebb4ac5ce21261a3"
+      }
+    },
+    "no_gpu_job_submitted": true,
+    "source_git": "1f4867650042a8cf8a14e9721f4d19b6f61e67d6",
+    "squeue_user": "",
+    "status": "staged_only"
+  }
+}
