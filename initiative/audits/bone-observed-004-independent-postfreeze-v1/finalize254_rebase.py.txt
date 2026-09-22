@@ -1,0 +1,54 @@
+"""Preserve the completed 229-bound assessment and append the actual registry rebase."""
+from pathlib import Path
+from datetime import datetime,timezone
+import json,hashlib,sys
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered'
+F=W/'work/annotation-staging/bone-observed-004-independent-review-v1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p):return json.loads(p.read_text())
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'size_bytes':p.stat().st_size}
+def save(n,x):
+    with (S/n).open('x') as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+reports={r['study_uid']:r['report'] for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for r in read(p)}
+fresh=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert fresh==read(S/'current-registry-inspection-after-comparison.json')
+assert fresh['n_changes']==254 and fresh['registry_sha256']=='3ff636fcc2bbda0db3ff47500a1018769d3ab78be8a49b8b6cf3409081b93b2a'
+old=read(S/'current-registry-inspection.json');assert old['n_changes']==229
+rows=read(S/'all100-original-current-source-comparison.json')['records']
+dispositions=read(S/'all100-independent-postfreeze-dispositions.json');allrows=dispositions['records']
+changes={(r['study_uid'],r['target']):r for r in fresh['changes']}
+oldchanges={(r['study_uid'],r['target']):r for r in old['changes']}
+assert all(changes[k]==v for k,v in oldchanges.items())
+rebase=[]
+for r in rows:
+    c=changes.get((r['study_uid'],r['target']));effective=c['after'] if c else r['original']
+    assert effective==r['current_effective']
+    rebase.append({'packet_ordinal':r['packet_ordinal'],'study_uid':r['study_uid'],'target':r['target'],'baseline229_effective':r['current_effective'],'current254_effective':effective,'identical':True,'current_case_id':c['case_id'] if c else None})
+base={'schema_version':1,'agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review','completed_at_utc':datetime.now(timezone.utc).isoformat(),'source_freeze':ref(F/'source-assessment-frozen.json'),'baseline229_inspection':ref(S/'current-registry-inspection.json'),'current254_inspection':ref(S/'current-registry-inspection-after-comparison.json'),'actual_registry_sha256':fresh['registry_sha256'],'n_active_corrections':254,'n_pending_global_qa':len(fresh['pending_semantic_qa']),'no_acceptance_or_registration':True}
+save('current254-rebase-proof.json',dict(base,all100_effective_annotations_unchanged=True,prior229_changes_preserved=True,n_new_global_changes=25,selected100_new_correction_overlaps=0,rows=rebase,qualification='This rebase preserves 229 and confirms its exact selected100 cells against actual254. It does not claim all historical205 changes survived the separately documented earlier legacy retirement.'))
+protected=read(S/'original-source-provenance-bindings.json');first_bindings=read(S/'first-reader-artifact-bindings.json')['files']
+changed=[]
+for item in protected['files']+protected['source_phase_protected_files']+first_bindings:
+    actual=sha(W/item['path'])
+    if actual!=item['sha256']:
+        assert item['path']=='work/recovered/initiative/reviews-v2/adjudications/registry.json'
+        assert actual==fresh['registry_sha256']
+        changed.append({'path':item['path'],'before_sha256':item['sha256'],'after_sha256':actual,'reason':'Concurrent root integration; original229 inspection retained and exact selected100 rebase separately validated.'})
+assert len(changed)==1
+neutral=read(S/'neutral-root-full-source-attention-packet.json')
+for source in neutral['reports']:
+    assert not {'states','evidence','target','rationale','proposed_state','current_state'}&source.keys()
+    original=read(R/source['source_path'])[source['source_index_zero_based']]
+    assert original['study_uid']==source['study_uid'] and original['report']==source['report']
+    assert sha(R/source['source_path'])==source['source_sha256'] and hashlib.sha256(source['report'].encode()).hexdigest()==source['report_sha256']
+for r in allrows:
+    assert r['study_uid'] in reports
+    for key in ['original','current_effective','source_frozen','first_source_frozen','first_postfreeze','independent_postfreeze']:
+        c=r[key];assert (c['evidence']=='' if c['state']=='not_mentioned' else bool(c['evidence']) and c['evidence'] in reports[r['study_uid']])
+masked=[r for r in allrows if not r['current_report_observation_mask']]
+counts={'source_reports':50,'source_judgments':100,'initial_source_state_agreement_between_readers':97,'postfreeze_state_agreement_between_readers':100,'own_state_reconsiderations':3,'first_proposals_assessed':4,'supported_first_proposals':4,'disputed_first_proposals':0,'supported_state_changes':1,'supported_evidence_changes':3,'additional_proposals':0,'current_masked_cells':len(masked),'neutral_attention_reports':len(neutral['reports'])}
+save('validation-and-preservation.json',dict(base,all100_compared=True,all100_exact_evidence_original_and_first_reader_bindings=True,all_source_phase_and_first_reader_artifacts_preserved=True,actual_current_inspection_replayed=True,existing_selected_corrections=0,historical205_223_229_and_current254_selected100_annotations_unchanged=True,global_prior205_preservation_claim=False,retirement_proof=ref(R/'initiative/audits/cartilage-legacy-three-retirement-integration-v1/retirement-integration-validation.json'),counts=counts,concurrent_changes=changed,authoring_run_note='The authoring script wrote its complete229-bound clinical dispositions, then intentionally failed its exact registry-equality guard because root had concurrently integrated25 changes. No prior clinical output was replaced. This separate finalizer verifies and binds the254 rebase.',remote_calls=0,R_writes=False))
+save('completion-manifest.json',{'schema_version':1,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'agent_id':'/root/duplicate_consistency_review','files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'source_phase_manifest':ref(F/'source-phase-manifest.json')})
+print(json.dumps({'assessment':ref(S/'independent-source-assessment.json'),'supported_proposals':ref(S/'supported-proposed-errata.json'),'reconsiderations':ref(S/'own-reconsiderations.json'),'neutral_root_packet':ref(S/'neutral-root-full-source-attention-packet.json'),'rebase254':ref(S/'current254-rebase-proof.json'),'validation':ref(S/'validation-and-preservation.json'),'manifest':ref(S/'completion-manifest.json'),'counts':counts,'registry_sha256':fresh['registry_sha256']}))

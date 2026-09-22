@@ -9,18 +9,17 @@ from a clone of this repository.
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
-The current registry contains254 active accepted target corrections and retains
-18 enforced report-supervision exclusions. The latest cartilage001 milestone adds
-25 independently accepted changes:21 observed annotations become uncertain, and
-four quotes gain anatomical context without changing positive state. All229 prior
-corrections and the three earlier retirements remain unchanged. Three global
-semantic QA gates and final leakage, mask, manifest and training checks remain
-open. Twenty-four unresolved correspondence cases must retain zero report loss
-masks at final export.
-The latest verified private Hugging Face checkpoint is Git `001eff697` / HF
-`72f2f065`, covering229 corrections. Its full publication/restoration evidence is
-archived under `audits/cartilage000-verified229-publication-v1/`. This254 milestone
-is newer; a later publication receipt must establish its synchronization.
+The current registry contains 286 active accepted target corrections and retains
+18 enforced report-supervision exclusions. The latest cartilage002 milestone adds
+32 independently accepted changes: 12 positive and 19 negative annotations become
+uncertain, and one positive quote expands to include its extent evidence. All 254
+prior corrections and the three earlier retirements remain unchanged. Three global
+semantic QA gates and final leakage, mask, manifest and training checks remain open.
+Twenty-four unresolved correspondence cases must retain zero report loss masks.
+The most recent private publication receipt archived here covers Git `254b7103`
+/ HF `1c5e0063`, containing 254 corrections and 7,816 verified Git files. Its full
+publication/restoration evidence is in `audits/cartilage001-verified254-publication-v1/`.
+This 286 milestone is newer; its separate publication receipt must establish synchronization.
 
 The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and
 [agent procedure](../protocols/agent_tasks.md). The `reviews/` outputs and index

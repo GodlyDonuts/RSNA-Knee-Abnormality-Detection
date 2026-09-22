@@ -1,0 +1,86 @@
+"""Actual additional002 assessment; preserve fresh and historical source decisions."""
+import hashlib
+import json
+import shutil
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+P=Path(__file__).resolve().parent;W=P.parents[2];D=P.parent;R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+A='/root/quality_temporal_review';SH='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3';RH='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def arc(p):return {'path':'initiative/audits/'+str(p.relative_to(D)),'sha256':sha(p)}
+def write(n,x):
+ with(P/n).open('x')as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+
+def main():
+ assert shutil.disk_usage(W).free>=20*1024**3
+ protected=[bind(p)for p in sorted(P.iterdir())if p.is_file()and p.name!='author_adjudication.py']
+ assert sha(P/'source-freeze.json')=='b80ba1765ec11eb728e1a5615502ee1eebce13cd7deb0913e8d7f1720169a928'
+ prop_path=D/'cartilage-observed-002-root-review-v1/additional-root-proposed-errata.json'
+ assert sha(prop_path)=='27eb44202b16a1663441b5826013510f9d91928be1801c9f1dd500fc83784783'
+ proposal=read(prop_path);assert proposal['agent_id']=='/root'and proposal['n_changes']==1
+ p=proposal['proposed_errata'][0];s=read(P/'neutral-full-sources.json')[0]
+ assert p['study_uid']==s['study_uid']and p['target']=='PF OA'
+ for name in ['source_freeze','comparison','dispositions','registry_at_comparison']:
+  b=proposal[name];assert sha(W/b['path'])==b['sha256']
+ assert proposal['source_reports_sha256']==SH and proposal['rubric_sha256']==RH==sha(R/'protocols/report_weak_v2.md')
+ assert sha(R/p['source_path'])==p['source_sha256']==s['source_sha256']
+ assert read(R/p['source_path'])[s['index']]=={'study_uid':s['study_uid'],'report':s['report']}
+ original_path=R/p['artifact_path'];assert sha(original_path)==p['artifact_sha256']
+ original=next(x for x in map(json.loads,original_path.read_text().splitlines())if x['study_uid']==s['study_uid'])
+ reports={x['study_uid']:x['report']for f in sorted((R/'initiative/reviews/inputs').glob('batch-*.json'))for x in read(f)}
+ assert len(reports)==4407 and source_reports_fingerprint(reports)==SH
+ registry=R/'initiative/reviews-v2/adjudications/registry.json';baseline=sha(registry)
+ assert baseline=='3ff636fcc2bbda0db3ff47500a1018769d3ab78be8a49b8b6cf3409081b93b2a'
+ inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+ assert sha(registry)==baseline and len(inspection['changes'])==254
+ changes={(r['study_uid'],r['target']):r for r in inspection['changes']}
+ assert (s['study_uid'],'PF OA')not in changes
+ with(P/'registry-at-comparison254.json').open('xb')as f:f.write(registry.read_bytes())
+ own_rows=[json.loads(l)for l in(P/'source-assessment-frozen.jsonl').read_text().splitlines()];assert len(own_rows)==1
+ own=own_rows[0];assert own['study_uid']==s['study_uid']
+ histp=D/'cartilage-observed-002-source-review-v1/source-assessment-frozen.jsonl'
+ hist=next(x for x in map(json.loads,histp.read_text().splitlines())if x['study_uid']==s['study_uid'])
+ histpostp=D/'cartilage-observed-002-postfreeze-v1/first-postfreeze-dispositions.json'
+ histpost={x['target']:x for x in read(histpostp)['records']if x['study_uid']==s['study_uid']}
+ targets=['Medial OA','Lateral OA','PF OA'];assert own['target_order']==hist['target_order']==targets and set(histpost)==set(targets)
+ rows=[]
+ for k,target in enumerate(targets):
+  j=TARGETS.index(target);before={'state':original['states'][j],'evidence':original['evidence'][j]};accepted=changes.get((s['study_uid'],target));current=accepted['after']if accepted else before
+  rows.append({'study_uid':s['study_uid'],'target':target,'source_path':s['source_path'],'source_index_zero_based':s['index'],'source_sha256':s['source_sha256'],'report_sha256':own['report_sha256'],'original_review_path':p['artifact_path'],'original_review_sha256':p['artifact_sha256'],'original':before,'original_notes':original['notes'],'current_effective':current,'current_accepted_correction':accepted,'own_historical_cartilage002_source':{'state':hist['states'][k],'evidence':hist['evidence'][k],'rationale':hist['rationales'][k]},'own_historical_cartilage002_postfreeze':histpost[target],'own_new_preproposal_source':{'state':own['states'][k],'evidence':own['evidence'][k],'rationale':own['rationales'][k]},'new_root_proposal':p if target=='PF OA'else None})
+ common={'schema_version':1,'agent_id':A,'session_id':A,'identity_kind':'actual_codex_agent_task','at_utc':datetime.now(timezone.utc).isoformat(),'source_reports_sha256':SH,'rubric_sha256':RH,'own_source_freeze':bind(P/'source-freeze.json'),'own_source_assessment':bind(P/'source-assessment-frozen.jsonl'),'root_proposal':bind(prop_path),'root_source_freeze':proposal['source_freeze'],'root_postfreeze_dispositions':proposal['dispositions'],'actual_registry':bind(P/'registry-at-comparison254.json'),'actual_registered_changes':254,'historical_exposure':bind(P/'source-pass-context.json'),'new_exposure':'After the fresh three-state freeze, I opened the exact new root proposal/rationale, this source\'s original/current three OA cells and notes, and my own earlier cartilage002 source/postfreeze records. Root complete40-source/comparison/disposition files are bound by hash without presenting their other cases. The separate004:35 retirement was not reopened for this adjudication; prior conceptual exposure is disclosed and is not proof for this source.','gold_accessed':False,'registry_changed':False,'global_gate_closed':False}
+ write('postfreeze-protected-bindings.json',{'schema_version':1,'agent_id':A,'files':protected,'root_proposal_and_supporting_bindings':[bind(prop_path)]+[proposal[n]for n in ['source_freeze','comparison','dispositions']],'historical_own_assessment':bind(histp),'historical_own_dispositions':bind(histpostp)})
+ write('all3-bound-comparison.json',{**common,'records':rows,'historical_own_source_assessment':bind(histp),'historical_own_postfreeze_dispositions':bind(histpostp),'mechanical_binding_not_clinical_judgment':True})
+ reasons={
+ 'Medial OA':'I retain the fresh and historical negative. Medial femorotibial cartilage is explicitly without alteration; lateral and PF lesions do not propagate into this compartment. No change or acceptance for this target is authored.',
+ 'Lateral OA':'I retain the fresh and historical uncertainty. Mixed partial/full-thickness posterior weightbearing ulcers lack a qualifying lesion-region extent. The summary calls lesions focal grade3 without a named grading convention; it supplies neither a measured footprint nor an explicit confluent deep-loss region. No change or acceptance for this target is authored.',
+ 'PF OA':'I retain my fresh preproposal uncertain state and actually accept the exact root positive-to-uncertain proposal. I explicitly withdraw my earlier first002 source/postfreeze positive interpretation: that earlier reasoning equated diffuse distribution of plural full-thickness ulcers with broad qualifying cartilage loss. Full thickness establishes depth at each described ulcer, but distribution across the trochlea does not establish the size of any qualifying loss region. I do not require two measured dimensions or forbid qualitative extent evidence; an explicit broad/confluent region would be informative, but this sentence describes distribution of separate ulcers. The partial patellar ulcers cannot supply the trochlear lesion footprint. Unnamed grades2/3 do not establish a contradictory depth convention or fill missing extent. The proposal is accepted because the report leaves the rubric\'s region extent unresolved, not because root agrees or because another case was retired. The narrower accepted quote is the exact trochlear sentence already inside my longer frozen PF quote; the removed sentence concerned partial patellar ulcers and does not change the conclusion.'}
+ dispositions=[]
+ for row in rows:
+  target=row['target'];fresh=row['own_new_preproposal_source'];quote=p['source_quote']if target=='PF OA'else fresh['evidence'];state=fresh['state']
+  assert quote and quote in s['report']
+  dispositions.append({**row,'independent_postproposal_assessment':{'state':state,'evidence':quote,'rationale':reasons[target]},'own_new_state_reconsidered':False,'own_new_evidence_reconsidered':quote!=fresh['evidence'],'own_historical_state_reconsidered':state!=row['own_historical_cartilage002_source']['state'],'proposed_action':'accept_exact_root_additional_proposal'if target=='PF OA'else 'retain_current_no_new_acceptance','actual_accepted_in_this_stage':target=='PF OA','registry_or_mask_mutated':False})
+ write('all3-independent-postfreeze-dispositions.json',{**common,'records':dispositions,'scope':'All three OA targets compared; only the one exact PF OA root proposal is adjudicated. Fresh source states are retained; the earlier first002 PF positive is expressly reconsidered.','new_source_freeze_preserved':True,'current_report_masks_preserved_pending_registration':True})
+ reconsidered=[r for r in dispositions if r['own_historical_state_reconsidered']or r['own_new_state_reconsidered']or r['own_new_evidence_reconsidered']]
+ assert len(reconsidered)==1 and reconsidered[0]['target']=='PF OA'
+ write('explicit-reconsiderations.json',{**common,'records':reconsidered,'n_historical_source_state_reconsiderations':1,'n_new_source_state_reconsiderations':0,'n_new_source_quote_selections':1,'quote_selection_is_new_registry_evidence_change':False,'historical_source_states_preserved':True,'new_preproposal_source_states_preserved':True,'chronology':'Fresh source uncertainty was frozen before the new root proposal. Only after that freeze did I reopen my earlier positive and its reasoning; this record explicitly acknowledges and explains that historical reconsideration. The accepted runtime quote narrows my longer fresh evidence to the unchanged exact original/proposal sentence.'})
+ pf=dispositions[2];assert pf['current_effective']=={'state':p['before_state'],'evidence':p['before_evidence']}
+ assert p['proposed_state']==pf['independent_postproposal_assessment']['state']=='uncertain'and p['source_quote']==pf['independent_postproposal_assessment']['evidence']
+ base={'study_uid':s['study_uid'],'target':'PF OA','case':'029:16','source_path':s['source_path'],'source_sha256':s['source_sha256'],'source_report_sha256':own['report_sha256'],'index':s['index'],'original_review_path':p['artifact_path'],'original_review_sha256':p['artifact_sha256'],'independent_source_state':'uncertain','source_evidence':p['source_quote'],'reason':reasons['PF OA'],'own_frozen_state':pf['own_new_preproposal_source']['state'],'own_frozen_evidence':pf['own_new_preproposal_source']['evidence'],'own_new_state_reconsidered':False,'own_historical_state_reconsidered':True,'proposal_disposition':'accepted'}
+ write('independent-source-assessment.json',{**common,'stage':'independent_source_assessment','records':[base],'source_assessment_kind':'fresh_source_uncertainty_confirmed_with_historical_positive_explicitly_reconsidered','dispositions':bind(P/'all3-independent-postfreeze-dispositions.json'),'reconsiderations':bind(P/'explicit-reconsiderations.json'),'new_blinding_claim':False,'scope':'One actual accepted additional PF OA proposal after a complete-source three-target reread; no other OA target is accepted by this artifact.'})
+ supporting={'independent_source_freeze_sha256':arc(P/'source-freeze.json'),'independent_original_source_assessment_sha256':arc(P/'source-assessment-frozen.jsonl'),'independent_postfreeze_dispositions_sha256':arc(P/'all3-independent-postfreeze-dispositions.json'),'independent_reconsiderations_sha256':arc(P/'explicit-reconsiderations.json'),'comparison_sha256':arc(P/'all3-bound-comparison.json'),'source_completion_manifest_sha256':arc(P/'source-completion-manifest.json'),'historical_exposure_sha256':arc(P/'source-pass-context.json'),'comparison_registry_sha256':arc(P/'registry-at-comparison254.json'),'historical_first002_assessment_sha256':arc(histp),'historical_first002_dispositions_sha256':arc(histpostp),'root_source_freeze_sha256':arc(W/proposal['source_freeze']['path']),'root_postfreeze_dispositions_sha256':arc(W/proposal['dispositions']['path'])}
+ accepted={**base,'before_state':p['before_state'],'before_evidence':p['before_evidence'],'after_state':p['proposed_state'],'after_evidence':p['source_quote']}
+ write('accepted-decision.json',{'schema_version':1,'status':'independently_adjudicated_pending_release_integration','proposer_agent_id':'/root','adjudicator_agent_id':A,'adjudicator_session_id':A,'decided_at_utc':datetime.now(timezone.utc).isoformat(),'source_reports_sha256':SH,'rubric_sha256':RH,'proposal_sha256':sha(prop_path),'independent_assessment_sha256':sha(P/'independent-source-assessment.json'),**{k:v['sha256']for k,v in supporting.items()},'n_changes':1,'accepted_changes':[accepted],'rejected_changes':[],'held_changes':[],'original_artifacts_preserved':True,'fresh_preproposal_uncertainty_preserved':True,'historical_first002_positive_preserved':True,'own_fresh_state_reconsiderations':0,'own_historical_state_reconsiderations':1,'own_fresh_quote_selections':1,'registry_changed':False,'gold_accessed':False,'global_gate_closed':False,'acceptance_statement':'I, /root/quality_temporal_review, actually accept the exact one PF OA positive-to-uncertain proposal after reading the complete source, freezing all three OA judgments, and independently comparing the original/current annotations and root proposal. The report establishes full-depth ulcers but not the footprint of a qualifying loss region. My historical positive is preserved and explicitly reconsidered; the fresh preproposal uncertainty is retained. No other target acceptance is inferred.'})
+ write('proposed-runtime-case.json',{'schema_version':1,'id':'cartilage-observed-002-additional-20260922','source_reports_sha256':SH,'rubric_sha256':RH,'proposal':arc(prop_path),'independent_assessment':arc(P/'independent-source-assessment.json'),'decision':arc(P/'accepted-decision.json'),'supporting_evidence':supporting,'changes':[{'study_uid':s['study_uid'],'target':'PF OA','source_batch':{'path':s['source_path'],'sha256':s['source_sha256']},'base_review':{'path':p['artifact_path'],'sha256':p['artifact_sha256']},'before':pf['current_effective'],'after':{'state':'uncertain','evidence':p['source_quote']}}]})
+ for b in protected:assert sha(W/b['path'])==b['sha256']
+ assert sha(registry)==baseline
+ print(json.dumps({'accepted':1,'all_OA_compared':3,'fresh_state_reconsiderations':0,'historical_state_reconsiderations':1,'fresh_quote_selections':1,'assessment_sha256':sha(P/'independent-source-assessment.json'),'decision_sha256':sha(P/'accepted-decision.json'),'case_sha256':sha(P/'proposed-runtime-case.json')},indent=2))
+
+if __name__=='__main__':main()

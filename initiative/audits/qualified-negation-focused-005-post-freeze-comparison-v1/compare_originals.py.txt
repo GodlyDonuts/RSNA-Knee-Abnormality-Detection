@@ -1,0 +1,47 @@
+"""Mechanical first-reader600-cell source/original/current comparison; no labels inferred."""
+import hashlib,json
+from datetime import datetime,timezone
+from pathlib import Path
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered'
+O=A/'qualified-negation-focused-005-source-review-v1';AGENT='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_bytes())
+def jl(p):return [json.loads(x) for x in p.read_text().splitlines()]
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,x):
+ p=S/n
+ with p.open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+assert ref(O/'source-freeze.json')['sha256']=='4acd804b0d0ea378cc606babc9e0a6c9ef08002fff85d2dd0b5a63224fcfebc2'
+assert ref(O/'source-assessment-frozen.jsonl')['sha256']=='90f5a55f574ed21fda0cb86d4818920dfbcb7080b456c5c293dc923548ef1db1'
+for e in obj(O/'final-file-list.json')['files']:assert ref(W/e['path'])==e
+freeze=obj(O/'source-freeze.json');own=jl(O/'source-assessment-frozen.jsonl');packet=obj(O/'neutral-source-packet.json');targets=freeze['target_order']
+regp=R/'initiative/reviews-v2/adjudications/registry.json';rr=ref(regp);reg=obj(regp)
+assert rr['sha256']=='3ff636fcc2bbda0db3ff47500a1018769d3ab78be8a49b8b6cf3409081b93b2a'
+with (S/'registry-at-comparison.json').open('xb') as f:f.write(regp.read_bytes())
+registered={};cases=[]
+for e in reg['cases']:
+ p=R/e['path'];assert ref(p)['sha256']==e['sha256'];cases.append(ref(p));c=obj(p)
+ for x in c['changes']:
+  k=x['study_uid'],x['target'];assert k not in registered;registered[k]={'case_id':c['id'],'case':ref(p),'change':x}
+assert len(registered)==254
+rows=[];reviews={}
+for i,p in enumerate(packet):
+ sp=R/p['source_path'];assert ref(sp)['sha256']==p['source_sha256'];assert obj(sp)[p['index']]=={'study_uid':p['study_uid'],'report':p['report']}
+ assert own[i]['study_uid']==p['study_uid']
+ rp=R/'initiative/reviews-v2/reviewed'/f"{p['batch']}-reviewed.jsonl"
+ if rp not in reviews:reviews[rp]={x['study_uid']:x for x in jl(rp)}
+ row=reviews[rp][p['study_uid']]
+ for t,target in enumerate(targets):
+  original={'state':row['states'][t],'evidence':row['evidence'][t]};k=p['study_uid'],target;existing=registered.get(k)
+  if existing:assert existing['change']['before']==original
+  current=existing['change']['after'] if existing else original
+  source={'state':own[i]['states'][t],'evidence':own[i]['evidence'][t],'reason':own[i]['target_reasoning'][t]}
+  for z in [original,current,source]:assert bool(z['evidence'])==(z['state']!='not_mentioned') and z['evidence'] in p['report']
+  rows.append({'packet_index':i,'case':own[i]['case'],'study_uid':p['study_uid'],'target':target,'target_index':t,'source_path':p['source_path'],'source_sha256':p['source_sha256'],'source_index_zero_based':p['index'],'report_utf8_sha256':own[i]['report_utf8_sha256'],'original_review':ref(rp),'original_annotation':original,'current_effective':current,'existing_current_correction':existing,'source_frozen':source,'source_state_agrees_current':source['state']==current['state'],'source_evidence_agrees_current':source['evidence']==current['evidence'],'current_differs_original':current!=original})
+assert len(rows)==len({(x['study_uid'],x['target']) for x in rows})==600
+counts={'reports':50,'cells':600,'registered_changes':254,'selected_accepted_key_overlap':sum(x['existing_current_correction'] is not None for x in rows),'source_current_state_differences':sum(not x['source_state_agrees_current'] for x in rows),'source_current_evidence_differences':sum(not x['source_evidence_agrees_current'] for x in rows),'raw_union_attention_reports':len({x['study_uid'] for x in rows if not x['source_state_agrees_current'] or not x['source_evidence_agrees_current']})}
+proof=write('original-current-replay.json',{'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'current_registry':rr,'current_snapshot':ref(S/'registry-at-comparison.json'),'current_cases':cases,'source_freeze':ref(O/'source-freeze.json'),'counts':counts,'all_source_and_original_index_uid_hash_and_quotes_valid':True,'records':rows,'scope':'Original and actual254 clinical annotations only; technical report-loss exclusions are distinct and do not silently replace clinical states.'})
+assert ref(regp)==rr
+for e in obj(O/'final-file-list.json')['files']:assert ref(W/e['path'])==e
+print(json.dumps({'counts':counts,'replay':ref(proof)},indent=2))

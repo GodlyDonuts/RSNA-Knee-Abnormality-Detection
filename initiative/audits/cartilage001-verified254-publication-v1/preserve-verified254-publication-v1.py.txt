@@ -1,0 +1,33 @@
+"""Preserve the actual254 publication evidence; do not republish or copy the tar."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib, importlib.util, json, shutil, sys
+from dotenv import dotenv_values
+W = Path(__file__).resolve().parents[1]
+R = W / "work/recovered"
+A = R / "initiative/audits/cartilage001-verified254-publication-v1"
+D = W / "work/hf-preparation-deltas/254b7103dc2577cd9189da081416c458ffdadf92"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+expected = {'README.md': '940f1179db32c8182845a791ea5d85d5482faa2c96865bc85723036f29767969', 'manifest.json': '7f86571e3cea94a9e965ec55f786c70387427554539b7455a330bdc145528b6a', 'restoration-proof.json': '2d835e2e7ee232901d7c8ff2e85bb0e4fce29a898a91449feefe37129e0f4e1e', 'root-restoration-proof.json': 'b8326d5e1c9b51cf4707fb3ed98e8cba7f6756169f4d1194420e0196ca9f588d', 'root-publication-operation.json': 'c7add97831db9961d7a612e8a8866488ac1069dcab0559aeed03b64d0266dd04', 'root-publication-receipt.json': '3abcb5b61a3e302c3d5df1fc6dad921886f9b9c055e9c4b606ef9991f27ec268', 'root-publication-journal.jsonl': 'ea58148b796f2320043fde1ed9ae6be78dc92efe15636650b6312f9e9128b1fe'}
+files = [(D / name, digest) for name, digest in expected.items()]
+files += [(W / "work/cartilage001-synchronized-publication.json", "ce44b33982d1b781fc5cb05436443aa5276af16b1cac69017a768031acabc203"), (W / "work/cartilage001-final-staged-verification.json", "44b9e3adc43b637c0fd2970efddc6dbc12f9fa51c6dd74421fed59bf778918ee"), (W / "work/cartilage001-archival-whitespace-exception.json", "d954f3aaeca163966b32944da810fa5ba6f61e9bb8cc20bbe7eac785b3866582")]
+helper = W / "work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py"
+spec = importlib.util.spec_from_file_location("checkpoint_delta254_preserve", helper)
+mod = importlib.util.module_from_spec(spec); sys.modules[spec.name] = mod; spec.loader.exec_module(mod)
+secrets = [v.encode() for k,v in dotenv_values(W / ".env").items() if k in {"HF_TOKEN", "KAGGLE_API_TOKEN"} and v]
+assert len(secrets) == 2 and not A.exists()
+assert shutil.disk_usage(W).free - sum(p.stat().st_size for p,h in files) > 20 * 2**30
+for p, h in files:
+    assert sha(p) == h
+    mod.Scanner(secrets).feed(p.read_bytes())
+A.mkdir()
+entries = []
+for p, h in files:
+    out = A / p.name
+    with out.open("xb") as f: f.write(p.read_bytes())
+    assert sha(out) == h
+    entries.append({"original_path": str(p.relative_to(W)), "path": str(out.relative_to(R)), "sha256": h, "bytes": out.stat().st_size})
+receipt = {"stage": "preserved_verified254_private_publication", "agent_id": "/root", "at_utc": datetime.now(timezone.utc).isoformat(), "github_commit": "254b7103dc2577cd9189da081416c458ffdadf92", "hf_revision": "1c5e00633df896821f15793b9c5a21f7d8b0c521", "files": entries, "registered_corrections_at_publication": 254, "current_local_registry_is_newer": False, "new_network_publication_performed": False, "source_and_official_metadata_unchanged_in_bound_publication": True, "training_ready": False}
+with (A / "preservation.json").open("x") as f: f.write(json.dumps(receipt,indent=2)+"\n")
+(A / "preserve-verified254-publication-v1.py.txt").write_bytes(Path(__file__).read_bytes())
+print(json.dumps({"files": len(entries), "proof_sha256": sha(A / "preservation.json")}))

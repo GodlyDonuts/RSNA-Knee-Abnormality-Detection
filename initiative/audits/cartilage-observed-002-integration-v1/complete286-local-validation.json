@@ -1,0 +1,48 @@
+{
+  "stage": "required_local_validation_after_286_registration",
+  "agent_id": "/root",
+  "recorded_at_utc": "2026-09-22T01:50:53.169674+00:00",
+  "registry_sha256": "e99baf5824104ea69c528ade4594100d8198a2171a68518195ba0d128e718d95",
+  "integration_validation_sha256": "38c6869b7b2ed42213eea205a82f25dbe64ccedb7b6383b589d262096b687493",
+  "checks": [
+    {
+      "command": "ruff check .",
+      "exit_code": 0,
+      "result": "All checks passed!"
+    },
+    {
+      "command": "ruff format --check .",
+      "exit_code": 0,
+      "result": "42 files already formatted"
+    },
+    {
+      "command": "mypy rsna",
+      "exit_code": 0,
+      "result": "Success: no issues found in 20 source files"
+    },
+    {
+      "command": "python -m pytest -q",
+      "exit_code": 0,
+      "result": "462 passed in 19.69s"
+    },
+    {
+      "command": "python -m rsna.archive",
+      "exit_code": 0,
+      "result": "All recorded archive hashes verified; historical v1 incomplete as documented"
+    },
+    {
+      "command": "python -m rsna.review_progress --inputs initiative/reviews/inputs --root initiative/reviews-v2 --rubric protocols/report_weak_v2.md --require-complete",
+      "exit_code": 0,
+      "result": "89 draft and 89 reviewed batches, 4407 reports, complete true, training_ready false"
+    }
+  ],
+  "raw_tool_results_sha256": "0a91e1c509f3d510717b366751ef86eeec1b58386fc2c7e1cab71d9123b5b03f",
+  "pytest_terminal_completion": {
+    "session_id": 96802,
+    "exit_code": 0,
+    "provenance": "Final terminal poll observed before conversation compaction; its raw chunk was not retained in functions store. The preceding retained poll contains the 462 passed summary."
+  },
+  "tests_passed": 462,
+  "training_ready": false,
+  "scope": "Software checks and archived evidence integrity; not closure of the three global semantic QA gates."
+}

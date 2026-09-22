@@ -77,9 +77,25 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry contains **254 active accepted target corrections**. The latest
-cartilage001 milestone adds25 after root's34 complete attention-source reads and
-102 frozen OA judgments. Root actually accepts24 proposals from the distinct
+The registry contains **286 active accepted target corrections**. Cartilage002
+adds 32 after 40 complete root attention-source rereads and 120 frozen OA judgments.
+Root independently accepts 31 exact second-reader proposals; a distinct assessor
+accepts the additional root proposal. Twelve positive and nineteen negative targets
+become uncertain, and one positive quotation expands to include its extent evidence.
+All 254 prior corrections and the earlier three retirements remain unchanged.
+
+The [286 integration proof](../initiative/audits/cartilage-observed-002-integration-v1/complete286-integration-validation.json)
+reconciles all 120 final root states and all 32 exact new quotations, preserves all
+prior corrections and protected source artifacts, and verifies zero conflicts in
+54 identical-report groups/204 studies. Seven root state reconsiderations remain
+explicit. The additional assessor's fresh uncertainty and historical positive are
+both preserved with its actual independent acceptance. The actual proposer's separate
+canonical source-context correction changes no clinical content and preserves the
+original normalized proposal and manifest.
+
+The preceding milestone contained **254 active accepted target corrections**. Its
+cartilage001 milestone adds 25 after root's 34 complete attention-source reads and
+102 frozen OA judgments. Root actually accepts 24 proposals from the distinct
 second reader; a separate source assessor accepts root's additional fraying
 proposal. The25 changes mask nine previously positive and twelve previously
 negative targets, and expand four positive quotations to include compartment

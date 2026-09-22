@@ -1,0 +1,57 @@
+"""Mechanical schema normalization of this agent's31 existing proposals; no clinical choices."""
+import json,hashlib
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';O=A/'cartilage-observed-002-independent-review-v1';P=A/'cartilage-observed-002-independent-postfreeze-v1';AG='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_text())
+def jl(p):return [json.loads(x) for x in p.read_text().splitlines()]
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+oldprop=P/'unintegrated-proposals.json';assert ref(oldprop)['sha256']=='6bd8dd17c3e72e19e66d9dbf68c6a17bd44fb11d60ed98d787ebf231cc4dd685';old=obj(oldprop);assert old['agent_id']==AG
+frozenfiles=[]
+for stage in [O,P]:
+ m=stage/'final-file-list.json'; frozenfiles.append(ref(m))
+ for e in obj(m)['files']:assert ref(W/e['path'])==e;frozenfiles.append(e)
+sourcefreeze=obj(O/'source-freeze.json');postfreeze=obj(P/'second-disposition-freeze.json');assert sourcefreeze['agent_id']==postfreeze['agent_id']==AG
+for e in postfreeze['inputs']:assert ref(W/e['path'])==e
+regp=R/'initiative/reviews-v2/adjudications/registry.json';rr=ref(regp);assert rr['sha256']=='3ff636fcc2bbda0db3ff47500a1018769d3ab78be8a49b8b6cf3409081b93b2a'
+with (S/'registry-at-normalization.json').open('xb') as f:f.write(regp.read_bytes())
+accepted={};caserefs=[]
+for e in obj(regp)['cases']:
+ p=R/e['path'];assert ref(p)['sha256']==e['sha256'];caserefs.append(ref(p));c=obj(p)
+ for q in c['changes']:
+  k=q['study_uid'],q['target'];assert k not in accepted;accepted[k]={'case':ref(p),'change':q}
+assert len(accepted)==254
+rows=obj(P/'second-complete-dispositions.json')['records'];hist=obj(P/'final-registry-rebase.json');histmap={(x['study_uid'],x['target']):x for x in hist['records']};pack=obj(O/'neutral-source-packet.json');lookup={(x['study_uid'],x['target']):x for x in rows};assert len(rows)==len(lookup)==150
+replay=[]
+for r in rows:
+ k=r['study_uid'],r['target'];p=next(x for x in pack if x['study_uid']==r['study_uid']);sp=R/r['source_path'];assert ref(sp)['sha256']==r['source_sha256'];src=obj(sp)[r['source_index_zero_based']];assert src['study_uid']==r['study_uid'] and src['report']==p['report'];assert hashlib.sha256(src['report'].encode()).hexdigest()==r['report_utf8_sha256']
+ rp=W/r['original_review']['path'];assert ref(rp)==r['original_review'];original=next(x for x in jl(rp) if x['study_uid']==r['study_uid']);t={'Medial OA':4,'Lateral OA':5,'PF OA':6}[r['target']];before={'state':original['states'][t],'evidence':original['evidence'][t]};assert before==r['original']
+ acc=accepted.get(k)
+ if acc:assert acc['change']['before']==before
+ cur=acc['change']['after'] if acc else before;h=histmap[k]
+ assert cur==r['baseline118']==r['current_effective']==h['baseline118']==h['initial_comparison_current']==h['final_current'];assert acc is None
+ for z in [before,cur,r['second_source'],r['second_postfreeze']]:assert bool(z['evidence'])==(z['state']!='not_mentioned') and z['evidence'] in src['report']
+ replay.append({'packet_index':r['packet_index'],'priority_index':r['priority_index'],'study_uid':r['study_uid'],'target':r['target'],'source_path':r['source_path'],'source_sha256':r['source_sha256'],'source_index_zero_based':r['source_index_zero_based'],'report_utf8_sha256':r['report_utf8_sha256'],'original_review':r['original_review'],'original':before,'baseline118':r['baseline118'],'historical193':h['initial_comparison_current'],'historical205':h['final_current'],'actual254':cur,'changed_since118':False,'changed_since193':False,'changed_since205':False,'accepted_overlap':None})
+assert len(old['records'])==31;normal=[];preservation=[]
+for n,x in enumerate(old['records']):
+ k=x['study_uid'],x['target'];r=lookup[k];p=next(q for q in pack if q['study_uid']==x['study_uid']);rp=W/x['original_review']['path'];assert x['before_current']==r['current_effective'];assert x['after_proposed']['state']==r['second_postfreeze']['state'];assert x['after_proposed']['evidence'] in p['report'];assert x['after_proposed']!=x['before_current'];assert x['existing_accepted_key'] is None
+ out={'packet_index':x['packet_index'],'priority_index':r['priority_index'],'case':x['case'],'study_uid':x['study_uid'],'target':x['target'],'batch':Path(x['source_path']).stem,'index':x['source_index_zero_based'],'source_path':x['source_path'],'source_sha256':x['source_sha256'],'report_utf8_sha256':x['report_utf8_sha256'],'artifact_path':str(rp.relative_to(R)),'artifact_sha256':x['original_review']['sha256'],'before_state':x['before_current']['state'],'before_evidence':x['before_current']['evidence'],'proposed_state':x['after_proposed']['state'],'source_quote':x['after_proposed']['evidence'],'reason':x['reason'],'evidence_reason':x['evidence_reason'],'kind':'state_correction' if x['kind']=='state_change' else 'evidence_context_correction','original_kind':x['kind'],'status':'proposed_unintegrated','own_frozen_state':r['second_source']['state'],'own_state_reconsidered':r['second_source']['state']!=r['second_postfreeze']['state'],'overlaps_existing_accepted_correction':False,'first_postfreeze_agrees_state':x['first_postfreeze_agrees_state']}
+ assert out['proposed_state']==x['after_proposed']['state'] and out['source_quote']==x['after_proposed']['evidence'] and out['reason']==x['reason'] and out['evidence_reason']==x['evidence_reason']
+ assert bool(out['source_quote'])==(out['proposed_state']!='not_mentioned')
+ preservation.append({'original_proposal_index':n,'study_uid':x['study_uid'],'target':x['target'],'before_state_exact':out['before_state']==x['before_current']['state'],'before_evidence_exact':out['before_evidence']==x['before_current']['evidence'],'proposed_state_exact':True,'proposed_evidence_exact':True,'reason_exact':True,'evidence_reason_exact':True,'original_record_canonical_utf8_sha256':hashlib.sha256(json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()});normal.append(out)
+assert len(normal)==len({(x['study_uid'],x['target']) for x in normal})==31
+rub=ref(R/'protocols/report_weak_v2.md');assert rub['sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+proofname='actual254-rebase-and-exact-preservation.json'
+write(proofname,{'agent_id':AG,'session_id':AG,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'original_proposal':ref(oldprop),'original_source_freeze':ref(O/'source-freeze.json'),'original_disposition_freeze':ref(P/'second-disposition-freeze.json'),'historical205_rebase':ref(P/'final-registry-rebase.json'),'actual_registry':rr,'registry_snapshot':ref(S/'registry-at-normalization.json'),'accepted_case_bindings':caserefs,'registered_changes':254,'selected_reports':50,'selected_cells':150,'current_drift_since118':0,'current_drift_since193':0,'current_drift_since205':0,'selected_accepted_key_overlap':0,'proposal_accepted_key_overlap':0,'all150_source_uid_index_hash_quote_checks_passed':True,'selected_replay':replay,'all31_original_proposal_states_evidence_reasons_exact':True,'per_proposal_exact_preservation':preservation,'protected_prior_files':frozenfiles,'scope':'Mechanical schema normalization of existing personal proposals only, not a new clinical choice or root approval. Prior118/193/205 histories preserved exactly; no registry/gold/repository changes.'})
+write('proposed-errata.json',{'schema_version':1,'agent_id':AG,'session_id':AG,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'rubric_version':'report-weak-v2.0','rubric_sha256':rub['sha256'],'source_reports_sha256':ref(O/'neutral-source-packet.json')['sha256'],'stage':'personally_endorsed_cartilage002_proposal_schema_normalization','status':'proposed_unintegrated','accepted':False,'n_changes':31,'n_studies_with_proposals':len({x['study_uid'] for x in normal}),'authorship':'These are my original31 personally authored cartilage002 clinical proposals, now normalized by the same actual agent/session /root/last_twelve_visual_review. Every original state, source quotation, reason and evidence reason is preserved exactly. This normalization is not root-authored approval, a fresh clinical assessment, or an accepted correction.','exposure':'Performed after the already frozen source and postfreeze clinical comparisons; historical source/conceptual exposure and all reconsiderations remain in those unchanged stages.','original_proposal':ref(oldprop),'original_source_freeze':ref(O/'source-freeze.json'),'original_source_assessment':ref(O/'independent-assessment.jsonl'),'original_disposition_freeze':ref(P/'second-disposition-freeze.json'),'original_reconsiderations':ref(P/'own-reconsiderations.json'),'current_registry':rr,'registered_changes_at_normalization':254,'current_rebase':ref(S/proofname),'production_registry_changed':False,'gold_accessed':False,'global_qa_gates_closed':False,'proposed_errata':normal})
+for e in frozenfiles:assert ref(W/e['path'])==e
+for e in postfreeze['inputs']:assert ref(W/e['path'])==e
+for e in caserefs:assert ref(W/e['path'])==e
+assert ref(regp)==rr
+files=[ref(p) for p in sorted(S.iterdir()) if p.is_file()];write('final-file-list.json',{'agent_id':AG,'session_id':AG,'scope':'All authored normalization files except this manifest; existing artifacts remain exact.','counts':{'proposals':31,'state_proposals':30,'evidence_only_proposals':1,'selection_cells_rebased':150,'drift':0,'accepted_overlap':0},'files':files})
+assert all(ref(W/e['path'])==e for e in obj(S/'final-file-list.json')['files'])
+print(json.dumps({'proposal':ref(S/'proposed-errata.json'),'proof':ref(S/proofname),'manifest':ref(S/'final-file-list.json'),'counts':Counter(x['kind'] for x in normal)},indent=2))

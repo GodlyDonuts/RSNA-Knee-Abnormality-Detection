@@ -1,0 +1,35 @@
+"""Individual second-reader postfreeze choices; /root/last_twelve_visual_review."""
+RECONSIDER={
+(1,0):('not_mentioned','empty','I reconsider uncertain to not_mentioned. No marrow infiltration screens infiltrative disease; it neither describes edema/contusion nor supplies a general normal-marrow survey. I previously counted the word marrow as informative to this target too broadly. Both states remain masked; no negative is inferred.'),
+(9,0):('uncertain','source','I reconsider my positive. The impression only says most compatible with contusion, while the body establishes edema without a fracture line but gives no definite impact attribution. I initially treated the favored interpretation as an unqualified direct diagnosis; the remaining causal qualifier warrants preserving uncertainty.'),
+(32,0):('uncertain','source','I reconsider the normal-background inference. The exostosis is a focal osseous exception immediately after no focal osseous lesion, and background normality does not explicitly evaluate marrow at that exception. A bright cartilage cap is not marrow edema, but absence of described local edema is not proof of its absence. Retain the existing uncertainty.'),
+(42,0):('not_mentioned','empty','I reconsider uncertain to not_mentioned. The two exclusions address osteochondral impaction and marrow infiltration, neither an actual marrow-edema/contusion assessment. Hyperextension alone supplies no contusion diagnosis. The original uncertainty remains preserved, but this is a missing target assessment rather than equivocal target evidence.')
+}
+RETAINED={
+(14,1):'I retain uncertain against the first reader positive. Recent gym injury, current tendon rupture/hematoma and avulsive enthesophyte fragmentation make acute bone injury plausible, but the age/current fracture status of the osseous fragments is not itself expressly established. I would mask this report-derived target pending root adjudication, preserving both readers and the existing positive; I do not diagnose a different fracture.',
+(24,1):'I retain negative against the first reader uncertain. The specific edema concerns signal in degenerative subchondral bone; it does not contradict normal cortical/structural integrity or describe a fracture. I read the general normal-bones field as covering the remaining osseous assessment after that signal exception. This scope interpretation remains disputed and needs root adjudication; no state or loss mask is changed here.'
+}
+EC={
+(0,0):'Expand the original medial-only marrow excerpt through explicit lateral and patellar marrow normality. Both independent source readings used this same contiguous span. It makes the whole-knee negative scope reviewable without inferring absence in unmentioned bones.',
+(34,0):'The current fragment says associated edema without its medial compartment/anatomical antecedent. Include the contiguous medial cartilage-loss context and named femoral/tibial sites; uncertainty about impact cause remains unchanged.'
+}
+EVIDENCE={
+(0,0):'Original medial-only quote needs lateral and patellar context for the whole-knee negative; propose evidence expansion.',
+(1,0):'Source uncertainty quote concerned marrow infiltration rather than edema/contusion; separate reconsideration restores missing/empty evidence.',
+(14,1):'Both expanded source spans preserve the injury timing and avulsion context absent from the current tendon-only quote. I nevertheless retain uncertainty; first reader supports positive. Preserve both interpretations and all quotes for root.',
+(15,0):'All versions localize tibial-tubercle edema. The longer quotes explain its tendon association; the original already supports uncertainty because impact cause is unestablished. No required evidence correction.',
+(20,0):'Generic subchondral bone change is not marrow/contusion evidence. Both source readers favor missing with empty evidence, preserving zero mask.',
+(22,0):'The additional medial cartilage heading is redundant to the already explicit peripheral medial tibial-plateau site. Original quote adequate.',
+(23,0):'The extra dorsal-defect sentence clarifies an anatomic variant but does not change the direct bruise exclusion. Current quote sufficient.',
+(23,1):'The anatomic variant context is consistent with direct acute-fracture absence; no mandatory expansion.',
+(24,1):'First reader includes focal reactive edema before Bones: Normal to support a scope concern. I retain the shorter explicit normal-bones evidence for structural fracture absence; preserve the disagreement and expanded quote rather than erase it.',
+(26,0):'Added degenerative edema context is useful but direct no-bone-bruise is already adequate for this target. No correction required.',
+(26,1):'Added cartilage-related edema does not undermine the direct acute-fracture exclusion. Current quote adequate.',
+(32,0):'My quote and first postfreeze quote include the osteochondroma exception omitted in the first source quote. This supports the separately recorded reconsideration about background scope.',
+(34,0):'Current edema fragment lacks anatomical antecedent. My focused medial span supplies it; first longer span also retains otherwise-normal marrow. Both support uncertainty.',
+(39,0):'The current positive quote truncates the same-focus possible occult fracture. My final-impression quote and first body quote both preserve that limitation; propose uncertain with my full contiguous impression sentence.',
+(39,1):'Both body and final-impression quotes express an unresolved occult fracture at the same focus. Current uncertain evidence remains adequate.',
+(42,0):'Own initial longer quote joins two non-target exclusions. Separate reconsideration to missing preserves empty evidence without turning those exclusions into a negative.'
+}
+EVIDENCE[(9,1)]='The current excerpt directly excludes a discrete fracture line. Both readers add the edema-focus antecedent, but the report contains no competing structural defect; original negative evidence remains adequate.'
+EVIDENCE[(24,0)]='Both readers retain uncertain for the focal reactive edema. First reader appends the general normal-bones field; the specific localized edema and missing impact cause already support the current uncertainty, so no evidence edit is required.'

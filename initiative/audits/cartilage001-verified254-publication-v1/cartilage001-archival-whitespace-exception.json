@@ -1,0 +1,13 @@
+{
+  "stage": "verified_archival_diff_context_whitespace_exception",
+  "agent_id": "/root",
+  "at_utc": "2026-09-22T00:45:09.380789+00:00",
+  "git_commit": "254b7103dc2577cd9189da081416c458ffdadf92",
+  "git_diff_check_exit_code": 2,
+  "finding": "initiative/audits/cartilage000-publisher-bound-verification-v1/publisher-only-pin-diff.txt:4: trailing whitespace.\n+ \n",
+  "archived_path": "initiative/audits/cartilage000-publisher-bound-verification-v1/publisher-only-pin-diff.txt",
+  "sha256": "8ddbfd06d4574b71dbeb77e1c334bcd1bd559ce3bb50c760f81b9aad7569ba2e",
+  "byte_identical_to_original": true,
+  "explanation": "The only whitespace finding is the required single-space context prefix for an empty context line inside the archived unified diff. Rewriting it would change the preserved verifier evidence. Source code, current docs and all other new files have no diff-check findings. This is an explicit historical artifact exception, not a claim that unqualified git diff --check passed.",
+  "training_ready": false
+}

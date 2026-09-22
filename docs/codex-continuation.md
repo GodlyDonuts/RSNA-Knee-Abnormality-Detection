@@ -2,47 +2,64 @@
 
 ## Latest verified checkpoint
 
-The registry contains **254 active accepted corrections**. Cartilage001 adds25:
-24 second-reader proposals accepted by root after34 full-source rereads/102 frozen
-OA judgments, plus one additional root proposal accepted by a distinct assessor.
-Nine positive and twelve negative annotations become uncertain; four positive
-annotations retain their state with expanded quotes that establish compartment
-identity. All229 previous corrections and the earlier three retirements remain
-unchanged. All102 final root states match current inspection, and54 normalized
-identical-report groups/204 studies have zero conflicting states.
+The registry contains **286 active accepted corrections**. Cartilage002 adds 32:
+31 second-reader proposals accepted by root after 40 complete attention-source
+rereads/120 frozen OA judgments, and one additional root proposal accepted by a
+distinct source assessor. Twelve positive and nineteen negative annotations become
+uncertain; one positive quotation expands to include the source's explicit extent
+statement. All 254 previous changes and the three earlier retirements remain exact.
+All 120 final root states match current inspection. The 54 normalized identical-report
+groups/204 studies still have zero target-state conflicts.
 
-Use `cartilage-observed-001-integration-v1/complete254-integration-validation.json`
-and `complete254-inspection.json`. The original two reader passes, root's source
-freeze, all disagreements, and four explicit root state reconsiderations are
-preserved. Three reconsiderations withdraw root's unsupported requirement for two
-measured axes; the frozen rubric specifies approximate centimeter extent without
-a two-axis or square-centimeter minimum. One further reconsideration accepts a
-qualitative near-complete loss of a named weightbearing surface. The distinct
-assessor's new fraying judgment also preserves its actual reconsideration.
+Use `cartilage-observed-002-integration-v1/complete286-integration-validation.json`
+and `complete286-inspection.json`. Seven root state reconsiderations are preserved:
+four withdraw unsupported region-size inferences from confluence or plural surface
+denudation, and three retain informative but incomplete or ambiguously localized
+scope. Root supports29 of31 first-reader proposals and rejects two with reasons.
+The additional assessor retains its fresh uncertain judgment for diffusely distributed
+full-depth ulcers and explicitly reconsiders its historical positive. Distribution
+of separate ulcers is not itself the size of a qualifying loss region. Source
+freezes, opposite opinions, original annotations and the rubric remain unchanged.
+Do not reinstate the previously withdrawn two-axis or square-centimeter requirement.
 
-The last verified private publication is Git `001eff697a6dae5c83213a82948fc4dfda520354`
-/ HF `72f2f065cb2d4af3168499df82d78627d662991d`, containing229 corrections and7493
-Git files. Its actual receipts, both independent restorations and publication
-operation are archived in `cartilage000-verified229-publication-v1/`. This254
-milestone is newer; its synchronization requires a later verified receipt.
+The normalized proposal initially bound its 50-report packet hash in the global
+source-context field. A separate actual-author correction changes only that field
+to the recomputed all 4,407 fingerprint. The original proposal/manifest, correction
+note and corrected proposal are preserved and bound by the accepted decision.
+The archived wording005 first proposal and bone007 second proposal also need
+separate canonical-context normalization before eventual runtime integration;
+their original clinical choices and freezes must not be overwritten.
 
-Both cartilage readers completed the260-report priority set. Root's cartilage000
-and001 attention adjudications are complete. Root has read and frozen the first
-five of40 full attention reports for cartilage002; read/freeze the other35 before
-opening its reader case findings. The partial source record is preserved under
-`cartilage-observed-002-root-review-v1/`. It includes a primary ICRS reference check
-for one report that explicitly names that grading system; do not infer a system
-from report language or bare grade numerals.
+The most recent private publication receipt archived here is Git
+`254b7103dc2577cd9189da081416c458ffdadf92` / HF
+`1c5e00633df896821f15793b9c5a21f7d8b0c521`, containing 254 corrections and 7,816
+Git files. Actual receipts, both streaming restorations, the publication operation
+and the preserved-diff whitespace exception are archived in
+`cartilage001-verified254-publication-v1/`. This 286 milestone needs its own separate
+verified publication receipt; do not claim synchronization from preparation alone.
 
-Parallel snapshotv9 preserves sixteen completed staging directories/215 files,
-including bone001–003 second readings, bone002–004 first readings, wording003's
-second source/comparison, and the229 publication verifier evidence. Snapshotv10
-adds wording004's second source freeze and the explicitly partial cartilage002
-root source record. Bone004 second comparison and bone005 first reading continue
-locally; inspect fresh completion evidence before claiming either complete.
-Wording004 second comparison continues. Before wording002 root adjudication,
-read/freeze all46 full neutral attention sources. Pending proposals are not
-acceptances; all three global semantic gates remain open.
+Both cartilage readers completed the 260-report priority set. Root's cartilage000,
+001 and002 attention adjudications are complete. Continue cartilage003 by reading
+and freezing its neutral attention sources before opening its case-specific findings.
+The cartilage002 root source record preserves the direct primary ICRS reference
+check for an explicitly named scale; do not infer a grading system from language
+or bare numerals.
+
+Snapshots v11 and v12 preserve 21 completed staging directories / 288 files, including
+both bone005–007 comparisons, bone004's second comparison, wording004's second
+comparison/rebase, both wording005 source freezes and its first comparison, and
+254 publication-verifier evidence. These are completed partial queues, not global
+clearance. Both bone readers have archived 400 full-source readings/800 judgments;
+bone008 work is continuing locally. Wording005's second comparison has completed
+locally with a separate 286 rebase; its newest files are not yet in these snapshots.
+Before wording002 root adjudication, read/freeze its 46 complete neutral attention
+sources. Preserve historical baselines and check actual current-registry overlaps.
+
+The storage pause was resolved using independent APFS copy-on-write copies of
+2,687 identical committed evidence files. All paths, file bytes and tracked modes
+were verified; original data, image caches and publication archives were untouched.
+`storage-copy-consolidation-v1/` preserves the actual receipts and per-file hashes.
+Keep at least 20 GiB free. Existing NPZ hardlinks remain immutable.
 
 The cartilage discovery snapshot covers all 4,407 reports/13,221 OA cells, with
 6,034 candidate cells. Priority covers 302 cells in 260 reports; all 260 first-reader

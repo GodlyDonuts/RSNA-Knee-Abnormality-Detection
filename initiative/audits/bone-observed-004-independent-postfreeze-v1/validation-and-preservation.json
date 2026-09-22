@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "completed_at_utc": "2026-09-22T00:43:42.322207+00:00",
+  "source_freeze": {
+    "path": "work/annotation-staging/bone-observed-004-independent-review-v1/source-assessment-frozen.json",
+    "sha256": "74b1cd3502a0f37c6d03a922b29769696b1108e0b56de3b2c924a1545e3e036e",
+    "size_bytes": 55758
+  },
+  "baseline229_inspection": {
+    "path": "work/annotation-staging/bone-observed-004-independent-postfreeze-v1/current-registry-inspection.json",
+    "sha256": "83ef4104a4a1d874b286a9c968cb7be45dc3979b1a37aab572c0b74f6da2b135",
+    "size_bytes": 993586
+  },
+  "current254_inspection": {
+    "path": "work/annotation-staging/bone-observed-004-independent-postfreeze-v1/current-registry-inspection-after-comparison.json",
+    "sha256": "ec74e7f48d7ba24e19e54bd47ff5df62999f6971b79a3c65d9cf497c64a1490f",
+    "size_bytes": 1111536
+  },
+  "actual_registry_sha256": "3ff636fcc2bbda0db3ff47500a1018769d3ab78be8a49b8b6cf3409081b93b2a",
+  "n_active_corrections": 254,
+  "n_pending_global_qa": 3,
+  "no_acceptance_or_registration": true,
+  "all100_compared": true,
+  "all100_exact_evidence_original_and_first_reader_bindings": true,
+  "all_source_phase_and_first_reader_artifacts_preserved": true,
+  "actual_current_inspection_replayed": true,
+  "existing_selected_corrections": 0,
+  "historical205_223_229_and_current254_selected100_annotations_unchanged": true,
+  "global_prior205_preservation_claim": false,
+  "retirement_proof": {
+    "path": "work/recovered/initiative/audits/cartilage-legacy-three-retirement-integration-v1/retirement-integration-validation.json",
+    "sha256": "a3a679f7358e19ebddade4d7a41bc8cd2784b25634e2ef5aa5ccf6e5e2eeeccb",
+    "size_bytes": 50769
+  },
+  "counts": {
+    "source_reports": 50,
+    "source_judgments": 100,
+    "initial_source_state_agreement_between_readers": 97,
+    "postfreeze_state_agreement_between_readers": 100,
+    "own_state_reconsiderations": 3,
+    "first_proposals_assessed": 4,
+    "supported_first_proposals": 4,
+    "disputed_first_proposals": 0,
+    "supported_state_changes": 1,
+    "supported_evidence_changes": 3,
+    "additional_proposals": 0,
+    "current_masked_cells": 24,
+    "neutral_attention_reports": 7
+  },
+  "concurrent_changes": [
+    {
+      "path": "work/recovered/initiative/reviews-v2/adjudications/registry.json",
+      "before_sha256": "c12a18164cc4e62d8a8f9aa7a0e05bf002a0deb24b583a16724ec8e4c60a1600",
+      "after_sha256": "3ff636fcc2bbda0db3ff47500a1018769d3ab78be8a49b8b6cf3409081b93b2a",
+      "reason": "Concurrent root integration; original229 inspection retained and exact selected100 rebase separately validated."
+    }
+  ],
+  "authoring_run_note": "The authoring script wrote its complete229-bound clinical dispositions, then intentionally failed its exact registry-equality guard because root had concurrently integrated25 changes. No prior clinical output was replaced. This separate finalizer verifies and binds the254 rebase.",
+  "remote_calls": 0,
+  "R_writes": false
+}

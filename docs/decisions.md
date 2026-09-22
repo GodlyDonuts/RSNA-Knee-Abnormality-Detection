@@ -2,22 +2,25 @@
 
 ## Current corrective run
 
-The registry now contains254 active corrections. Cartilage001 adds25 independently
-accepted changes after root's34 full-source rereads/102 frozen OA judgments.
-Twenty-four proposals were authored by a distinct second reader and explicitly
-accepted by root. The additional fraying proposal was authored by root and
-accepted by a separate source assessor. Nine positive and twelve negative states
-become uncertain; four positive-state quotations gain compartment localization.
-All229 prior corrections and the prior three retirements are preserved unchanged.
+The registry now contains 286 active corrections. Cartilage002 adds 32 independently
+accepted changes after root's 40 complete source rereads/120 frozen OA judgments.
+Root accepts 31 exact proposals from the distinct second reader; another source
+assessor accepts the additional root proposal. Twelve positive and nineteen
+negative targets become uncertain, and one positive quotation gains extent evidence.
+All 254 prior changes and the earlier three retirements remain unchanged.
 
-All102 final root states match inspection, and54 identical-report groups/204
-studies have zero target-state conflicts. Every original source judgment and
-reconsideration remains archived. Root explicitly withdrew an unsupported
-requirement for two measured cartilage-loss dimensions; the rubric is unchanged.
-The latest verified archived publication receipt covers229 corrections at Git
-`001eff697` / HF `72f2f065`; this254 milestone awaits its own receipt. See
-[adjudications.md](adjudications.md). The three global semantic QA gates remain
-pending; inventories or priority subsets do not close them.
+All 120 final root states match inspection; 54 identical-report groups/204 studies
+have zero state conflicts. Seven root source-state reconsiderations and the
+additional assessor's fresh/historical judgments are explicitly preserved.
+Confluence and multiple named cartilage surfaces do not automatically supply a
+qualifying loss-region size; the unchanged rubric still allows explicit broad
+anatomical extent and does not require two measured axes. The separate normalization
+metadata correction preserves the original proposal and changes no clinical choice.
+
+The latest publication receipt archived here covers 254 corrections at Git
+`254b7103` / HF `1c5e0063`. The 286 checkpoint needs its own verified external receipt.
+See [adjudications.md](adjudications.md). All three global semantic QA gates remain
+pending; inventories, software checks and priority subsets do not close them.
 
 The required correspondence registry enforces 18 whole-study report-supervision
 exclusions. The latest is 069:10, accepted independently from its full RIGHT
@@ -137,8 +140,8 @@ Historical outputs and in-progress drafts are not a corrected release.
 
 ## Remaining acceptance gates
 
-1. All4,407 reports have two archived review passes with validated evidence and
-   IDs. There are254 active accepted target corrections, each with exact
+1. All 4,407 reports have two archived review passes with validated evidence and
+   IDs. There are 286 active accepted target corrections, each with exact
    original/source bindings and preserved prior artifacts. Resolve the remaining cartilage, bone terminology, and qualified-negation/
    duplicate semantic gates against the exact final artifacts and corrections.
 2. Recheck zero report loss masks for all 24 administratively unresolved

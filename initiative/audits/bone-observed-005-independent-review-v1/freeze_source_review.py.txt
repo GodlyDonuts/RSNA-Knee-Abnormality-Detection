@@ -1,0 +1,67 @@
+"""Validate and freeze this agent's personally authored source judgments once."""
+from pathlib import Path
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import json
+
+S=Path(__file__).resolve().parent
+W=S.parents[2]
+R=W/'work/recovered'
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p): return {'path':str(p.relative_to(W)),'sha256':sha(p),'size_bytes':p.stat().st_size}
+def write(name,data):
+    p=S/name
+    assert not p.exists(),f'Will not replace {name}'
+    p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+    return ref(p)
+ns={'__file__':str(S/'author_source_assessment.py'),'__name__':'source_authoring'}
+for name in ['author_source_assessment.py']+[f'author_part{i}.py' for i in range(1,6)]:
+    exec(compile((S/name).read_text(),str(S/name),'exec'),ns)
+records=ns['records']; sources=ns['sources']; targets=ns['TARGETS']
+assert len(records)==50 and len({r['study_uid'] for r in records})==50
+rubric=R/'protocols/report_weak_v2.md'
+assert sha(rubric)=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+now=datetime.now(timezone.utc).isoformat()
+prior=[W/f'work/annotation-staging/qualified-negation-focused-{i:03}-source-review-v1/source-assessment-frozen.json' for i in range(5)]
+prior += [W/'work/annotation-staging/bone-observed-000-source-review-v1/source-assessment.json',W/'work/annotation-staging/independent-duplicate-assessment-v1/source-preread-frozen.json',W/'work/annotation-staging/qualified-negation-focused-001-additional-independent-v1/preproposal-reread-frozen.json']
+prior.append(W/'work/annotation-staging/bone-observed-001-independent-review-v1/source-assessment-frozen.json')
+prior.append(W/'work/annotation-staging/bone-observed-002-independent-review-v1/source-assessment-frozen.json')
+prior.append(W/'work/annotation-staging/bone-observed-003-independent-review-v1/source-assessment-frozen.json')
+prior.append(W/'work/annotation-staging/bone-observed-004-independent-review-v1/source-assessment-frozen.json')
+def uid_strings(x):
+    if isinstance(x,str): return {x} if x.startswith('1.2.826.') else set()
+    if isinstance(x,dict): return set().union(*(uid_strings(v) for v in x.values()))
+    if isinstance(x,list): return set().union(*(uid_strings(v) for v in x)) if x else set()
+    return set()
+overlaps=[]; all_overlap=set()
+for p in prior:
+    found=uid_strings(json.loads(p.read_text()))
+    selected=[{k:r[k] for k in ('packet_ordinal','study_uid','source_path','source_index_zero_based','report_sha256')} for r in records if r['study_uid'] in found]
+    overlaps.append({'prior_artifact':ref(p),'exact_overlap_count':len(selected),'exact_overlaps':selected})
+    all_overlap.update(r['study_uid'] for r in selected)
+exposure=write('historical-exposure.json',{
+    'schema_version':1,'agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review',
+    'role':'Second source assessor for bone005; distinct from first proposer /root/quality_temporal_review; not distinct from own historical work.',
+    'historical_work':'Authored duplicate-nine, qualified-negation discovery and focused000–004, bone discovery and bone000 first pass, bone001 through bone004 second source/postfreeze assessments, additional focused001 adjudication and grading review; performed integration and publication verification.',
+    'discovery_exposure':'Prior inventory code inspected all 4407 original/effective records and lexical snippets/states. Aggregate categories, selected examples and earlier case content were exposed. No claim of first-ever source blindness; every incidental snippet from earlier compacted history cannot be reconstructed.',
+    'current_pass_access':'All 50 complete neutral sources personally read and all 100 decisions authored before displaying bone005 first-reader/current clinical findings for this pass. Prior own artifacts parsed only for UID overlap/binding metadata at freeze.',
+    'mechanical_access':'Before beginning bone005, I completed the bounded build and actual streaming restoration of Git254b7103dc2577cd9189da081416c458ffdadf92, then earlier completed the bounded build/streaming verification of Git001eff697a6dae5c83213a82948fc4dfda520354 and earlier Git7c122 preparation using the reviewed helper. This mechanically scanned and hashed all tracked members, potentially including clinical artifacts, without displaying case contents or using them for source judgments. The prior bone001 through bone004 current/first-reader comparisons are known. Their masked-versus-observed disagreements, source-scope distinctions and reconsiderations are conceptual prior exposure. Required project instructions include current254 aggregate status and earlier known adjudication context. The earlier focused001 work also incidentally displayed original batch008 clinical annotation notes; overlapping selected UIDs are explicitly identified below, without claiming fresh blindness.',
+    'prior_uid_overlap_artifacts':overlaps,'unique_exact_historical_source_uid_overlaps':len(all_overlap),
+    'prior_incidental_batch008_annotation_exposure':{'disclosure_artifact':ref(W/'work/annotation-staging/qualified-negation-focused-001-additional-independent-v1/postcomparison-access-disclosure.json'),'selected_overlap_uids':[r['study_uid'] for r in records if r['source_path'].endswith('/batch-008.json')],'qualification':'This is historical clinical-note exposure, not a claim that each complete original source was personally read then.'},
+    'gold_values_inspected':False,'source_blinding_limit':'Distinct current source-first assessment with disclosed historical exposure, not a claim of fresh blindness or an image reread.'})
+packet=write('neutral-packet-reference.json',{'schema_version':1,'packet':ref(ns['PACKET']),'n_reports':50,'contents':'Existing complete neutral original reports, reused without another archive copy.'})
+validation=[]
+for record,source in zip(records,sources):
+    assert record['study_uid']==source['study_uid']
+    cells=[]
+    for t,state,q in zip(targets,record['states'],record['evidence']):
+        assert state in {'positive','negative','uncertain','not_mentioned'}
+        assert (q=='' if state=='not_mentioned' else bool(q) and q in source['report'])
+        cells.append({'target':t,'state':state,'exact_contiguous_evidence':state!='not_mentioned','empty_evidence_if_not_mentioned':state=='not_mentioned'})
+    validation.append({'study_uid':record['study_uid'],'source':ref(R/record['source_path']),'source_index_zero_based':record['source_index_zero_based'],'report_sha256':record['report_sha256'],'uid_index_original_text_and_hash_match':True,'cells':cells})
+vref=write('source-binding-validation.json',{'schema_version':1,'n_reports':50,'n_cells':100,'all_passed':True,'records':validation})
+assessment=write('source-assessment-frozen.json',{'schema_version':1,'stage':'bone-observed-005-independent-source-freeze','agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review','identity_kind':'codex_agent_task','first_proposer_agent_id':'/root/quality_temporal_review','frozen_at_utc':now,'rubric_version':'report-weak-v2.0','rubric':ref(rubric),'source_reports_sha256':'5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3','neutral_source_packet':ref(ns['PACKET']),'historical_exposure':exposure,'targets':targets,'n_reports':50,'n_target_judgments':100,'full_sources_personally_read':True,'code_role':'Assemble explicit individually reasoned decisions and mechanically validate source evidence; no automatic clinical classification.','current_bone005_first_reader_clinical_findings_displayed_before_freeze':False,'current_bone005_annotations_displayed_before_freeze':False,'registration_performed':False,'reports':records})
+receipt=write('source-freeze-receipt.json',{'schema_version':1,'frozen_at_utc':now,'agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review','assessment':assessment,'validation':vref,'historical_exposure':exposure,'n_reports':50,'n_cells':100,'state_counts':dict(Counter(v for r in records for v in r['states'])),'source_phase_complete':True,'clinical_postfreeze_comparison_started':False,'global_semantic_qa_closed':False})
+manifest=write('source-phase-manifest.json',{'schema_version':1,'frozen_at_utc':now,'files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'scope':'Immutable source phase only; comparisons belong in a separate stage.'})
+print(json.dumps({'assessment':assessment,'receipt':receipt,'manifest':manifest,'n_reports':50,'n_cells':100,'state_counts':dict(Counter(v for r in records for v in r['states'])),'historical_uid_overlaps':len(all_overlap)}))

@@ -1,0 +1,49 @@
+"""Preserve the frozen proposal and correct only its canonical source context binding."""
+import hashlib,json,sys,ast
+from datetime import datetime,timezone
+from pathlib import Path
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered';AG='/root/last_twelve_visual_review'
+sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint
+
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def obj(p):return json.loads(p.read_bytes())
+def write(n,x):
+ p=S/n
+ with p.open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+oldp=S/'proposed-errata.json';oldm=S/'final-file-list.json'
+assert ref(oldp)['sha256']=='fccbfdece72ed9566286480c8ab2be2735316cb9bb65e6527977ebbeb14f59ae'
+assert ref(oldm)['sha256']=='997863c839f13cc9bbc93221bd4d46972b44bab162f582e61f725c9149b359fd'
+protected=[ref(oldm)]+obj(oldm)['files']
+for e in protected:assert ref(W/e['path'])==e
+reports={};source_refs=[]
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ source_refs.append(ref(p));batch=obj(p)
+ assert isinstance(batch,list)
+ for row in batch:
+  assert set(row)=={'study_uid','report'} and row['study_uid'] not in reports
+  assert isinstance(row['report'],str) and row['report']
+  reports[row['study_uid']]=row['report']
+assert len(reports)==4407
+actual=source_reports_fingerprint(reports)
+assert actual=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+registry=R/'initiative/reviews-v2/adjudications/registry.json';assert obj(registry)['source_reports_sha256']==actual
+old=obj(oldp);oldhash=old['source_reports_sha256'];assert oldhash=='80ca364ce979ab0270cee9fa4c8f2936dd91745190fdea1532b1000aae6fd8c4'
+needle=f'"source_reports_sha256": "{oldhash}"'.encode();replacement=f'"source_reports_sha256": "{actual}"'.encode();oldbytes=oldp.read_bytes();assert oldbytes.count(needle)==1
+newbytes=oldbytes.replace(needle,replacement);newp=S/'proposed-errata-canonical-source-context-v2.json'
+with newp.open('xb') as f:f.write(newbytes)
+new=obj(newp);assert {k for k in old if old[k]!=new[k]}=={'source_reports_sha256'}
+assert set(old)==set(new);assert new['proposed_errata']==old['proposed_errata'];assert len(new['proposed_errata'])==31
+assert newbytes.replace(replacement,needle)==oldbytes
+module=R/'rsna/labels.py';module_text=module.read_text();node=next(n for n in ast.parse(module_text).body if isinstance(n,ast.FunctionDef) and n.name=='source_reports_fingerprint');function_text=ast.get_source_segment(module_text,node)
+per_item=[]
+for i,(before,after) in enumerate(zip(old['proposed_errata'],new['proposed_errata'])):
+ assert before==after
+ per_item.append({'proposal_index':i,'study_uid':before['study_uid'],'target':before['target'],'whole_proposal_object_exact':True,'state_exact':before['proposed_state']==after['proposed_state'],'source_quote_exact':before['source_quote']==after['source_quote'],'reason_exact':before['reason']==after['reason'],'evidence_reason_exact':before['evidence_reason']==after['evidence_reason']})
+note=write('technical-source-context-supersession-v2.json',{'schema_version':1,'agent_id':AG,'session_id':AG,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'type':'technical_context_binding_correction_only','original_frozen_proposal':ref(oldp),'original_frozen_manifest':ref(oldm),'corrected_proposal':ref(newp),'only_changed_json_field':'source_reports_sha256','old_value':oldhash,'new_value':actual,'cause':'The original normalization mistakenly used the neutral50 packet file SHA-256 in the runtime-wide source_reports_sha256 field. Runtime requires the canonical fingerprint over all4407 blinded original reports.','technical_supersession':'Use the separately named corrected proposal for runtime context binding. The original proposal, original manifest and all original clinical content remain byte-preserved. This is not a clinical reconsideration, acceptance, new proposal, or registry change. The corrected proposal retains the original creation timestamp because every other byte is preserved; this note records correction chronology.','actual_recomputation':{'function':'rsna.labels.source_reports_fingerprint','executed_actual_imported_runtime_function':True,'runtime_module':ref(module),'runtime_function_source_utf8_sha256':hashlib.sha256(function_text.encode()).hexdigest(),'report_count':len(reports),'source_file_count':len(source_refs),'input_fields':['study_uid','report'],'source_inputs':source_refs,'computed_value':actual,'canonical_semantics':'UID-sorted records serialized as UTF-8 JSON with ensure_ascii=False, sort_keys=True and separators=(comma,colon), then SHA-256.','matches_registry_source_context':True,'registry_at_recomputation':ref(registry)},'validation':{'exactly_one_named_field_changed':True,'raw_bytes_restored_by_reversing_only_field_replacement':True,'all31_entire_clinical_proposal_objects_exact':True,'all_original_frozen_files_byte_identical':True,'per_proposal':per_item},'clinical_reconsiderations':0,'registered_changes':0,'repository_changed':False,'gold_accessed':False,'global_gate_closed':False})
+for e in protected+source_refs:assert ref(W/e['path'])==e
+manifest=write('technical-context-supersession-manifest-v2.json',{'schema_version':1,'agent_id':AG,'session_id':AG,'created_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Immutable extension manifest binding the original normalization freeze and its protected files, plus the separately corrected proposal, technical note and helper. Original final-file-list remains unchanged. This manifest excludes itself.','protected_original_files':protected,'corrected_files':[ref(newp),ref(note),ref(Path(__file__))],'clinical_proposal_count':31,'clinical_content_exact':True,'only_changed_proposal_field':'source_reports_sha256','actual_recomputed_source_reports_sha256':actual})
+for e in obj(manifest)['protected_original_files']+obj(manifest)['corrected_files']:assert ref(W/e['path'])==e
+print(json.dumps({'corrected_proposal':ref(newp),'supersession_note':ref(note),'new_manifest':ref(manifest),'recomputed_report_count':4407,'unchanged_clinical_proposals':31},indent=2))

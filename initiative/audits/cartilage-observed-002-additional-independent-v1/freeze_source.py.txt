@@ -1,0 +1,131 @@
+"""Freeze three personally reasoned OA decisions from the complete neutral source."""
+import hashlib
+import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+D = P.parent
+R = W / 'work/recovered'
+AGENT = '/root/quality_temporal_review'
+RUBRIC = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def bind(path):
+    return {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+
+
+def write(name, value):
+    with (P / name).open('x') as f:
+        f.write(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+
+
+def main():
+    assert shutil.disk_usage(W).free >= 20 * 1024**3
+    supplied = D / 'cartilage-observed-002-root-review-v1/additional-neutral-full-source-packet.json'
+    assert sha(supplied) == '9ce2fca78fbcd5709b5f6591dd0a0594e8931639c854bebe40f9455609be842a'
+    sources = read(supplied)
+    assert len(sources) == 1
+    source = sources[0]
+    assert source['study_uid'] == '1.2.826.0.1.3680043.8.498.21012635480218712816069264326295410954'
+    original = R / source['source_path']
+    assert sha(original) == source['source_sha256']
+    assert original.stem == source['batch'] == 'batch-029' and source['index'] == 16
+    assert read(original)[source['index']] == {'study_uid': source['study_uid'], 'report': source['report']}
+    rubric = R / 'protocols/report_weak_v2.md'
+    assert sha(rubric) == RUBRIC
+    prior_source = D / 'cartilage-observed-002-source-review-v1/source-freeze.json'
+    prior_dispositions = D / 'cartilage-observed-002-postfreeze-v1/first-disposition-freeze.json'
+    prior_complete = D / 'cartilage-observed-002-postfreeze-v1/completion-manifest.json'
+    assert sha(prior_source) == '043253f7442c7fb9727f4d73a603a8589dcc9c963c112f07414e312384fae411'
+    assert sha(prior_dispositions) == '4b94e52f83e52f51515690fc2fd103e2ed7740e1719dbeba2541123bc512bc0f'
+    assert sha(prior_complete) == 'b64a1d6b67b30004aceaadf6e9f7142d2fa9d8e4fb1a0890663d4b0f298549b2'
+    prior_packet = D / 'cartilage-observed-002-source-review-v1/neutral-full-reports.json'
+    assert sum(r['study_uid'] == source['study_uid'] for r in read(prior_packet)) == 1
+    with (P / 'neutral-full-sources.json').open('xb') as f:
+        f.write(supplied.read_bytes())
+    targets = ['Medial OA', 'Lateral OA', 'PF OA']
+    states = ['negative', 'uncertain', 'uncertain']
+    evidence = [
+        'Cartílagos del compartimento\nfemorotibial medial sin alteraciones.',
+        'La\nlínea úlceras condrales de espesor parcial y total del aspecto posterior de carga del\ncompartimento femorotibial lateral sin cambios óseos secundarios.',
+        'Úlceras condrales de espesor total de distribución difusa de la\ntróclea femoral. Úlceras condral de espesor parcial de la faceta lateral de la rótula.',
+    ]
+    reasons = [
+        'Medial femorotibial cartilage is explicitly without alterations. The separately described lateral and trochlear/patellar lesions do not propagate into the medial compartment.',
+        'Partial- and full-thickness ulcers establish cartilage abnormality and focal full-depth involvement, but no qualifying roughly1 cm cartilage-loss region is measured or clearly described. Posterior weightbearing location is anatomical location, not lesion extent. The summary calls lesions focal grade3 without a named grading framework; that cannot fill the missing extent or negate the full-depth body finding. Preserve uncertainty rather than label every ulcer positive or use an unnamed numeric grade as negative.',
+        'The body establishes full-thickness trochlear ulcers distributed diffusely and partial-thickness lateral patellar ulcers. Diffuse distribution of plural ulcers does not establish that a qualifying roughly1 cm region has greater-than50 percent loss; individual lesion extent or confluent regional loss is not specified. The summary grades2 and3 are unnamed and cannot be assigned a calibrated depth convention or used to resolve the body wording. I retain PF uncertainty on the missing region extent, without requiring two measured dimensions or inferring a contradiction solely from those numbers.',
+    ]
+    assert len(targets) == len(states) == len(evidence) == len(reasons) == 3
+    for q in evidence:
+        assert q and q in source['report']
+    now = datetime.now(timezone.utc).isoformat()
+    context = {
+        'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT,
+        'stage': 'additional_cartilage002_complete_source_reread_before_new_root_proposal',
+        'recorded_at_utc': now, 'supplied_neutral_packet': bind(supplied),
+        'rubric_version': 'report-weak-v2.0', 'rubric': bind(rubric),
+        'prior_same_source_pass': bind(prior_source), 'prior_same_source_dispositions': bind(prior_dispositions),
+        'prior_same_source_completion': bind(prior_complete), 'prior_neutral_packet': bind(prior_packet),
+        'historical_exposure': 'This is a reread after my complete first cartilage002 source150 and postfreeze comparison, including this exact report. I have prior all260 cartilage first-source/OA comparisons, qualified000 full-source judgments and later additional adjudications, cartilage000/001 additional rereads and decisions, bone000 through007 source/comparison context, original/inherited report-review context, and technical064:14/46 source exposure. My discovery code consumed full4407 original/current annotation data at the historical34 baseline; later runtime validation mechanically loaded correction/original review evidence up to254 for prior-case and aggregate checks. Earlier cartilage grade/morphology/extent debates and legacy-three retirement are known concepts. This is not first-ever blindness, a new12-target pass, a diagnostic MRI reread or a clinical credential claim. Historical same-source judgments are bound by hash but were not reopened before this new three-judgment freeze; root new case-specific002 findings/proposal and current selected annotation values have not been opened in this reread.',
+        'read_order_attestation': 'Actual assessor personally read the complete neutral report and authored all three OA states, exact quotes and reasons before opening the new root002 findings/proposal. This is self-attestation, not an independently instrumented historical access log.',
+        'new_root002_clinical_findings_opened': False, 'new_root002_proposal_opened': False,
+        'current_selected_annotation_values_opened_in_this_reread': False,
+        'gold_accessed': False, 'R_writes': False, 'prior_artifacts_changed': False,
+    }
+    write('source-pass-context.json', context)
+    row = {
+        'agent_id': AGENT, 'session_id': AGENT, 'study_uid': source['study_uid'],
+        'source_path': source['source_path'], 'source_index_zero_based': source['index'],
+        'source_sha256': source['source_sha256'],
+        'report_sha256': hashlib.sha256(source['report'].encode()).hexdigest(),
+        'rubric_version': 'report-weak-v2.0', 'rubric_sha256': RUBRIC,
+        'target_order': targets, 'states': states, 'evidence': evidence, 'rationales': reasons,
+        'complete_source_personally_read': True,
+    }
+    with (P / 'source-assessment-frozen.jsonl').open('x') as f:
+        f.write(json.dumps(row, ensure_ascii=False) + '\n')
+    write('source-validation.json', {
+        'schema_version': 1, 'agent_id': AGENT, 'validated_at_utc': now,
+        'complete_reports': 1, 'OA_judgments': 3, 'exact_contiguous_quotes': 3,
+        'source': bind(original), 'neutral_packet': bind(P / 'neutral-full-sources.json'),
+        'assessment': bind(P / 'source-assessment-frozen.jsonl'), 'rubric': bind(rubric),
+        'original_uid_index_fullreport_and_hash_match': True, 'distinct_exact_target_order_verified': True,
+        'all_quotes_and_rationales_present': True, 'prior_stages_preserved': True,
+        'gold_accessed': False, 'new_root_findings_or_proposal_opened': False,
+        'limit': 'Traceability checks do not establish semantic correctness or historical access order.',
+    })
+    write('source-freeze.json', {
+        'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT,
+        'identity_kind': 'actual_codex_agent_task', 'frozen_at_utc': now,
+        'stage': 'additional_cartilage002_source3_frozen_before_new_root_findings_or_proposal',
+        'complete_reports_read': 1, 'target_judgments': 3, 'target_order': targets,
+        'source_packet': bind(P / 'neutral-full-sources.json'), 'assessment': bind(P / 'source-assessment-frozen.jsonl'),
+        'context': bind(P / 'source-pass-context.json'), 'validation': bind(P / 'source-validation.json'),
+        'rubric': bind(rubric), 'authoring_validator': bind(Path(__file__).resolve()),
+        'historical_same_source_exposure_disclosed': True, 'first_ever_blinding_claimed': False,
+        'new_root_findings_or_proposal_opened': False, 'gold_accessed': False,
+        'registry_changed': False, 'acceptance_or_registration': False,
+        'next_action': 'Await root proposal path before a separate actual independent assessment. Preserve this source freeze and all reconsiderations.',
+    })
+    write('source-completion-manifest.json', {
+        'schema_version': 1, 'agent_id': AGENT, 'completed_at_utc': now,
+        'source_only_complete_reports': 1, 'OA_judgments': 3,
+        'files': [bind(p) for p in sorted(P.iterdir()) if p.is_file()],
+        'adjudication_started': False, 'gold_accessed': False, 'R_writes': False,
+    })
+    print(json.dumps({name: sha(P / name) for name in ['source-freeze.json', 'source-assessment-frozen.jsonl', 'source-validation.json', 'source-completion-manifest.json']}, indent=2))
+
+
+if __name__ == '__main__':
+    main()

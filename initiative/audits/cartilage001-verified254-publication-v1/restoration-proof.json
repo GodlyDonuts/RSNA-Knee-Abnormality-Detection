@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "status": "every_target_git_file_restorable_identically",
+  "verified_at_utc": "2026-09-22T00:46:38.087148+00:00",
+  "verifier_agent_id": "/root/duplicate_consistency_review",
+  "target_git_commit": "254b7103dc2577cd9189da081416c458ffdadf92",
+  "target_git_tree": "c624975fe6b84745c16007ef67c2a4371afe84ea",
+  "manifest": {
+    "path": "manifest.json",
+    "sha256": "7f86571e3cea94a9e965ec55f786c70387427554539b7455a330bdc145528b6a",
+    "bytes": 3181074
+  },
+  "delta_archive": {
+    "path": "delta.tar.gz",
+    "bytes": 207600503,
+    "sha256": "429b10603a7b772d90984b5473f07b20c066538ce3c7371ef96ab0400b4cff3c"
+  },
+  "base_hf_revision": "54949cd5a575ea7027a4a57916e772936a98d38b",
+  "base_git_commit": "1792f01ed3daab757c5ddb9bf5733ffe8d999f91",
+  "base_archive_sha256": "10206b752cce97cb671de607291785eef10d7fd9154c4dd4a0612b6686327271",
+  "base_manifest_sha256": "5f879ae740356e21ff5ed4c34fa31daf1cce4b5ffa9dafdd044a0658b9ad850b",
+  "n_base_archive_members_verified": 5657,
+  "n_delta_members_verified": 2171,
+  "n_result_files_verified": 7816,
+  "n_deletions_applied": 1,
+  "every_file_sha256_git_blob_size_mode_verified": true,
+  "membership_exact": true,
+  "source_preservation": {
+    "n_source_or_rubric_files": 18,
+    "exact_git_identities_unchanged": true,
+    "payloads_parsed": false
+  },
+  "secret_scan_policy": {
+    "version": "v2-exact-bound-test-fixture",
+    "generic_scanner_unchanged": true,
+    "exceptions": [
+      {
+        "path": "initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt",
+        "sha256": "e5b46e5bcbac3b9ed626a9e5a9c8a89519c2ad5058e3a682049625786a1cfc57",
+        "git_blob": "f322d072369b7da379aee487b0fa2007e9817669",
+        "bytes": 9478,
+        "fixture_sha256": "dd061102d0a3cb13e9e87def67200d4cca09af9a13751f386994045b8c807267",
+        "fixture_bytes": 52,
+        "exact_occurrences": 1,
+        "scope": "Omit this literal only from URL scanning after full content verification; original bytes always undergo credential scanning."
+      }
+    ]
+  },
+  "verified_secret_scan_exception_paths": [
+    "initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt"
+  ],
+  "proof_method": "Stream both archives, verify every payload SHA256 and Git blob identity, apply explicit deletions and delta precedence in memory, compare exact resulting membership/modes/sizes/OIDs/SHA256 to pinned target tree manifest.",
+  "full_tree_extracted": false,
+  "source_or_clinical_values_parsed": false,
+  "remote_calls": 0,
+  "remote_mutations": 0,
+  "training_ready": false,
+  "disk_before_build": {
+    "free_bytes": 21967196160,
+    "floor_bytes": 21474836480,
+    "reserve_bytes": 67108864,
+    "additional_bytes": 207600503
+  },
+  "disk_after_verification": {
+    "free_bytes": 21719015424,
+    "floor_bytes": 21474836480,
+    "reserve_bytes": 67108864,
+    "additional_bytes": 0
+  },
+  "helper": {
+    "path": "checkpoint_delta.py",
+    "sha256": "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8",
+    "bytes": 27915
+  }
+}

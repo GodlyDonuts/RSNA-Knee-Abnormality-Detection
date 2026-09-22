@@ -1,0 +1,75 @@
+"""Personally authored complete-source judgments25–29."""
+import json
+from pathlib import Path
+_r=json.loads((Path(__file__).parent/'neutral-source-packet.json').read_text())[28]['report']
+_a='Normal marrow SI of medial femoral condyle and medial tibial plateau are preserved.'
+_b='Preserve normal marrow SI within patella'
+Q28=_r[_r.index(_a):_r.index(_b)+len(_b)]
+Q29='Subchondral edema in in distal femur with suspicious of bone erosion and subchondral cyst in medial femoral condyle (srs: [ID]; wearing of articular cartilage and spur formation..'
+ROWS={
+25:[
+('negative','Intact cruciate and collateral ligaments.','Intact cruciates include ACL.'),
+('negative','Intact cruciate and collateral ligaments.','Intact collaterals include MCL.'),
+('negative','Intact menisci.','Both menisci intact includes medial.'),
+('negative','Intact menisci.','Both menisci intact includes lateral.'),
+('uncertain','Otherwise relatively well-maintained tricompartmental hyaline articular cartilage.','Relative preservation of remaining cartilage is qualified, not explicit medial depth normality.'),
+('uncertain','Low-grade chondral thinning along the anterior aspect of the lateral femoral condyle. Otherwise relatively well-maintained tricompartmental hyaline articular cartilage.','Local low-grade actual thinning is a below-depth descriptor, but remaining lateral cartilage is only relatively preserved and anterior condylar surface localization is not fully specified. Whole lateral criterion remains unresolved.'),
+('uncertain','Low-grade chondral thinning along the anterior aspect of the lateral femoral condyle. Otherwise relatively well-maintained tricompartmental hyaline articular cartilage.','PF remaining cartilage only relatively preserved; anterior condylar thinning lacks exact trochlear-versus-femorotibial scope.'),
+('uncertain','No significant joint effusion.','Significant fluid exclusion lacks amount.'),
+('not_mentioned','','No lining finding.'),
+('not_mentioned','','No Baker finding.'),
+('uncertain','No sinister bone marrow changes. 6 mm hypointense focus in the lateral aspect of the medial femoral condyle. No surrounding bone marrow edema. Findings likely represent an incidental enostosis.','Local focus lacks surrounding edema, but global marrow assessment excludes only sinister changes; no categorical whole-knee contusion absence.'),
+('not_mentioned','','Likely bone island/no marrow edema is not fracture-line assessment.')],
+26:[
+('negative','Ligament croisé antérieur : Normal.','ACL normal.'),
+('negative','Ligament collatéral médial : Normal.','MCL normal.'),
+('positive',"Ménisque médial : Déchirure horizontale oblique intéressant le corps et la corne postérieure, pas de fragment déplacé. Léger émoussement de l'apex du corps méniscal.",'Definite medial horizontal oblique tear with blunting.'),
+('negative','Ménisque latéral : Normal.','Lateral meniscus normal.'),
+('uncertain','Chondropatie légère à modérée du compartiment médial, plus prononcée sur les surfaces portantes, avec de petits foyers centraux de fissuration profonde et un œdème osseux réactionnel du côté tibial et fémoral [chondropathie de grade 4].','Small deep medial fissure foci have no measured size/fraction; bare grade4 and reactive edema do not supply extent.'),
+('not_mentioned','','No lateral cartilage assessment; conclusion specifically limits chondropathy to medial/trochlea.'),
+('uncertain','Chondropatie profonde et focale de grade 4 préexistante au niveau de la face inférieure de la gorge trochléaire avec œdème osseux réactionnel.','Persistent focal deep trochlear disease lacks region extent; preexisting is still currently described.'),
+('uncertain','Épanchement articulaire : Pas de liquide significatif.','Significant-fluid exclusion lacks amount.'),
+('not_mentioned','','No lining finding.'),
+('negative','Kyste de Baker : Kyste de Baker minuscule et non significatif.','Explicit tiny Baker size supports below threshold independently of significance qualifier.'),
+('uncertain','Chondropatie profonde et focale de grade 4 préexistante au niveau de la face inférieure de la gorge trochléaire avec œdème osseux réactionnel.','Reactive osseous edema accompanies cartilage disease, not definite impact contusion.'),
+('negative','Fractures :\nAucune.','Fracture explicitly absent.')],
+27:[
+('negative','Intact cruciate and lateral collateral ligaments, popliteus musculotendinous unit, extensor tendons and the distal iliotibial band.','Intact cruciates includes ACL.'),
+('negative','A thickened proximal superficial MCL is noted, with mild overlying subcutaneous edema like signal change - overall appearances very much suggest an acute-on-chronic sprain.\nNo associated fibre discontinuity appreciated at present.','MCL thickening/edema without any current fiber discontinuity is below disrupted high-grade tear criterion despite acute-on-chronic sprain query.'),
+('negative','There are no medial or lateral meniscal tears.','Medial tear explicitly absent.'),
+('negative','There are no medial or lateral meniscal tears.','Lateral tear explicitly absent.'),
+('negative','well-maintained medial and lateral weightbearing hyaline articular cartilage surfaces.','Medial cartilage maintained.'),
+('negative','well-maintained medial and lateral weightbearing hyaline articular cartilage surfaces.','Lateral cartilage maintained.'),
+('uncertain','Intermediate-grade retropatellar chondral damage is present','Intermediate cartilage grade lacks direct depth/extent; no named scheme.'),
+('negative','Tiny suprapatellar effusion, with no overt synovitis nor any intra-articular bodies.','Tiny fluid below moderate threshold.'),
+('uncertain','Tiny suprapatellar effusion, with no overt synovitis nor any intra-articular bodies.','No overt synovitis is qualified, not categorical absence.'),
+('negative',"Tiny, non ruptured Baker's cyst appreciated posteromedially.",'Explicit tiny Baker collection below threshold.'),
+('uncertain','No skeletal abnormality of note.','Broad skeletal assessment is noteworthy-qualified and does not establish categorical osseous/contusion normality.'),
+('uncertain','No skeletal abnormality of note.','Qualified skeletal-normality statement does not categorically exclude structural fracture.')],
+28:[
+('negative','ACL: unremarkable.','ACL explicitly unremarkable.'),
+('negative','Medial collateral ligament: preserved.','MCL preserved.'),
+('negative','Medial meniscus: preserved.','Medial meniscus affirmatively preserved beyond later no-definite-injury qualifier.'),
+('negative','Lateral meniscus: preserved.','Lateral meniscus affirmatively preserved.'),
+('not_mentioned','','Medial section has bone/meniscus/ligaments but no cartilage assessment.'),
+('negative','Preservation of cartilage at weightbaring lateral femoral condyle and lateral tibial plateau.','Lateral cartilage explicitly preserved.'),
+('not_mentioned','','PF section has marrow/tendons/retinacula but no cartilage finding.'),
+('negative','Minimal fluid SI along suprapatellar bursa is seen; physiologic fluid.','Physiological minimal fluid below threshold.'),
+('not_mentioned','','Incidental thin synovial plica describes a fold, not inflammatory lining assessment; no thickness abnormality diagnosed.'),
+('not_mentioned','','Fabella/accessory bone is not a posterior fluid collection.'),
+('negative',Q28,'Explicit normal marrow spans medial/lateral bones and patella. Named bone island has no edema and is not an impact lesion; malformed dimensions not repaired.'),
+('not_mentioned','','Normal marrow and bone variant do not explicitly assess acute fracture line/cortex.')],
+29:[
+('negative','Grade 1 ACL and PCL injury or mucoid degeneration.','Final grade1 injury/mucoid alternatives are below ACL complete/high-grade disruption criterion.'),
+('not_mentioned','','No MCL finding; pes anserine bursitis is separate.'),
+('positive','Linear signal intensity in posterior horn of medial meniscus, with extending into the surface and unclear contour of meniscal root, in favor of tear of posterior horn of medial meniscus.','Surfacing abnormal root morphology with final definite posterior medial tear supports positive.'),
+('negative','Linear signal intensity in lateral meniscus, without significant extending into the surface, in favor of  grade 2 intrasubstance signal, maybe due to degeneration.','Explicit internal lateral signal with no tear morphology is below target.'),
+('uncertain',Q29,'Medial cartilage wear/subchondral change lacks loss fraction/extent.'),
+('uncertain','Osteoarthritis of left knee.','General knee OA lacks lateral specific qualifying depth/extent.'),
+('uncertain','Osteoarthritis of left knee.','General knee OA leaves PF localization/severity unresolved.'),
+('uncertain','Fluid accumulation in the suprapatellar bursa and femorotibial joint cavity','Joint fluid present without amount.'),
+('positive',"Synovitis of left knee and suprapatellar bursitis and deep infrapatellar bursitis; the possibility of gouty arthritis or other inflammatory arthritis can't excluded.",'Synovitis definite; only underlying arthritis etiology is equivocal.'),
+('uncertain',"A well define lesion with internal septums which was hyperintense in the T2 FS and hypointense in the T1 FS, connected with femorotibial joint cavity and extended to the space between seminmembranosus and medial head of gastrocnemius. It is compatible with baker's cyst, more than 11 cm in length.",'Characteristic posterior Baker collection is established; length alone has no supplied moderate/large mapping and transverse/volume severity absent.'),
+('uncertain',Q29,'Subchondral edema with possible erosion/cyst and degenerative/inflammatory arthritis query lacks impact cause.'),
+('not_mentioned','','Suspicious erosion is a degenerative/inflammatory cortical process, not an acute fracture-line description.')],
+}

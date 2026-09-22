@@ -1,0 +1,58 @@
+"""Mechanical current-registry rebase; preserve all prior source/comparison bytes."""
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+S=Path(__file__).resolve().parent
+W=S.parents[2];R=W/'work/recovered';A=W/'work/annotation-staging'
+P=A/'qualified-negation-focused-004-post-freeze-comparison-v1'
+AGENT='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_bytes())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,x):
+ p=S/n
+ with p.open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+prior_refs=[ref(P/n) for n in ['second-comparison-freeze.json','final-file-list.json','original-current-baseline-replay.json','complete-second-dispositions.json','unintegrated-proposals.json','neutral-root-packet-index.json']]
+prior=obj(P/'original-current-baseline-replay.json')
+for e in obj(P/'final-file-list.json')['files']:assert ref(W/e['path'])==e
+regp=R/'initiative/reviews-v2/adjudications/registry.json';rr=ref(regp);reg=obj(regp)
+assert rr['sha256']=='3ff636fcc2bbda0db3ff47500a1018769d3ab78be8a49b8b6cf3409081b93b2a'
+snapshot=S/'registry-at-rebase.json'
+with snapshot.open('xb') as f:f.write(regp.read_bytes())
+current={};cases=[]
+for entry in reg['cases']:
+ p=R/entry['path'];assert ref(p)['sha256']==entry['sha256'];cases.append(ref(p));c=obj(p)
+ for v in c['changes']:
+  k=(v['study_uid'],v['target']);assert k not in current
+  current[k]={'case_id':c['id'],'case':ref(p),'change':v}
+for e in prior['current_registry_cases']:assert ref(W/e['path'])==e and e in cases
+proof_rows=[]
+for x in prior['records']:
+ k=x['study_uid'],x['target'];v=current.get(k);now=v['change']['after'] if v else x['original_annotation']
+ if v:assert v['change']['before']==x['original_annotation']
+ assert now==x['current_effective'],k
+ proof_rows.append({'study_uid':x['study_uid'],'target':x['target'],'original_review':x['original_review'],
+                    'comparison229':x['current_effective'],'current':now,'accepted_overlap':v,'changed':False})
+props=obj(P/'unintegrated-proposals.json')['records']
+assert not any((x['study_uid'],x['target']) in current for x in props)
+assert len(proof_rows)==len({(x['study_uid'],x['target']) for x in proof_rows})==600
+for e in prior_refs:assert ref(W/e['path'])==e
+assert ref(regp)==rr
+proof=write('current-registry-rebase-proof.json',{
+ 'agent_id':AGENT,'session_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),
+ 'comparison_inputs':prior_refs,'preserved_comparison_registry':prior['current_registry'],
+ 'live_registry_at_rebase':rr,'immutable_registry_snapshot':ref(snapshot),'current_case_bindings':cases,
+ 'comparison_registered_changes':229,'current_registered_changes':len(current),
+ 'all_prior229_case_files_byte_identical':True,'selected_cells':600,'changed_selected_cells':0,
+ 'selected_current_accepted_key_overlap':sum(x['accepted_overlap'] is not None for x in proof_rows),
+ 'unintegrated_second_proposals':len(props),'proposed_current_accepted_key_overlap':0,
+ 'all_source_and_comparison_files_preserved':True,'new_clinical_decisions':0,
+ 'status':'mechanical_rebase_only_no_registration_or_acceptance',
+ 'limitation':'Current snapshot does not replace or revise prior229-bound opinions. Replay must be repeated if registry changes before integration.',
+ 'records':proof_rows})
+manifest=write('completion-manifest.json',{'agent_id':AGENT,'files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'self_excluded':True})
+for e in obj(manifest)['files']:assert ref(W/e['path'])==e
+assert len(list(S.iterdir()))==len(obj(manifest)['files'])+1
+print(json.dumps({'current_count':len(current),'selected_drift':0,'proof':ref(proof),'manifest':ref(manifest)},indent=2))

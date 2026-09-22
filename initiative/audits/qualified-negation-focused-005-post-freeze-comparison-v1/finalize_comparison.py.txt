@@ -1,0 +1,91 @@
+"""Package explicit human-authored choices and mechanically validate bindings."""
+import hashlib,json
+from collections import Counter
+from datetime import datetime,timezone
+from pathlib import Path
+from authored_postfreeze_choices import RECONSIDER,EVIDENCE_CORRECTIONS,EVIDENCE_REVIEW
+S=Path(__file__).resolve().parent; W=S.parents[2]; A=W/'work/annotation-staging'; R=W/'work/recovered'; O=A/'qualified-negation-focused-005-source-review-v1'; AGENT='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_bytes())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,x):
+ p=S/n;p.parent.mkdir(exist_ok=True)
+ with p.open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+ return p
+now=datetime.now(timezone.utc).isoformat(); replay=obj(S/'original-current-replay.json'); packet=obj(O/'neutral-source-packet.json'); rows=replay['records']; targets=obj(O/'source-freeze.json')['target_order']
+for e in obj(O/'final-file-list.json')['files']: assert ref(W/e['path'])==e
+assert ref(O/'source-freeze.json')['sha256']=='4acd804b0d0ea378cc606babc9e0a6c9ef08002fff85d2dd0b5a63224fcfebc2'
+assert ref(R/'initiative/reviews-v2/adjudications/registry.json')==replay['current_registry']
+assert set(EVIDENCE_REVIEW)=={(r['packet_index'],r['target_index']) for r in rows if not r['source_evidence_agrees_current']}, (set(EVIDENCE_REVIEW)-{(r['packet_index'],r['target_index']) for r in rows if not r['source_evidence_agrees_current']},{(r['packet_index'],r['target_index']) for r in rows if not r['source_evidence_agrees_current']}-set(EVIDENCE_REVIEW))
+assert set(EVIDENCE_CORRECTIONS)<=set(EVIDENCE_REVIEW)
+# Only the already accepted, selected technical correspondence policy is examined.
+crp=R/'initiative/audits/correspondence-release-registry.json'; cp=R/'initiative/audits/correspondence-release-dispositions-v5.json'; cr=obj(crp); cpj=obj(cp)
+assert any(e['path']==str(cp.relative_to(R)) and e['sha256']==ref(cp)['sha256'] for e in cr['policies'])
+policy=next(x for x in cpj['records'] if x['study_uid']==packet[12]['study_uid'])
+assert policy['case']=='064:46' and policy['source_path']==packet[12]['source_path'] and policy['source_batch_sha256']==packet[12]['source_sha256']
+assert policy['source_report_sha256']==hashlib.sha256(packet[12]['report'].encode()).hexdigest()
+assert policy['required_report_loss_mask']==[False]*12 and policy['report_derived_training_supervision_allowed'] is False
+pb=R/policy['verified_technical_proof']['path'];assert ref(pb)['sha256']==policy['verified_technical_proof']['sha256']
+write('selected-existing-correspondence-policy-binding.json',{'agent_id':AGENT,'read_after_source_freeze':ref(O/'source-freeze.json'),'registry':ref(crp),'policy':ref(cp),'technical_proof':ref(pb),'record':policy,'action':'Preserve existing clinical annotations and existing whole-study non-gold report-loss exclusion. No new policy or clinical correction from this correspondence ambiguity.','chronology_caveat':'Source freeze precedes this recorded binding operation; timestamps do not independently prove historical access order. Historical exact-source/policy exposure is separately disclosed.'})
+rec=[];dispositions=[];proposals=[];attention=[]
+for r in rows:
+ i,t=r['packet_index'],r['target_index'];k=i,t;f=dict(r['source_frozen']); current=r['current_effective']; orig=r['original_annotation'];p=packet[i]
+ if k in RECONSIDER:
+  state,sel,reason=RECONSIDER[k];quote='' if sel=='empty' else (current['evidence'] if sel=='current' else f['evidence'])
+  f={'state':state,'evidence':quote,'reason':reason}
+  rec.append({'packet_index':i,'case':r['case'],'study_uid':r['study_uid'],'target':r['target'],'source_frozen':r['source_frozen'],'postfreeze':f,'current_effective':current,'author':AGENT,'reason':reason})
+ # Explicit preservation of context in one state-changing and one evidence-only item.
+ if k==(17,4):f['evidence']=current['evidence']
+ if k==(10,7):
+  report=p['report'];start=report.index('Effusion:  none');end=report.index('Trace fluid in the patellofemoral compartment')+len('Trace fluid in the patellofemoral compartment');f['evidence']=report[start:end]
+ assert f['state'] in {'positive','negative','uncertain','not_mentioned'}
+ assert bool(f['evidence'])==(f['state']!='not_mentioned') and f['evidence'] in p['report']
+ technical_defer=i==12
+ state_change=f['state']!=current['state']
+ evidence_change=k in EVIDENCE_CORRECTIONS
+ if technical_defer:
+  disposition='retain_existing_clinical_annotation_and_accepted_correspondence_exclusion'
+ elif state_change:disposition='propose_state_correction'
+ elif evidence_change:disposition='propose_evidence_context_correction'
+ elif k in RECONSIDER:disposition='reconsider_to_current_state_preserve_original_source_opinion'
+ else:disposition='retain_current_annotation'
+ d=dict(r,postfreeze_opinion=f,state_reconsideration=k in RECONSIDER,evidence_difference_review=EVIDENCE_REVIEW.get(k),evidence_context_correction_reason=EVIDENCE_CORRECTIONS.get(k),disposition=disposition,source_and_final_state_differ=f['state']!=r['source_frozen']['state'],postfreeze_state_agrees_current=f['state']==current['state'],existing_clinical_annotation_retained=not(state_change or evidence_change) or technical_defer,technical_correspondence_deferred=technical_defer,loss_status_note=('Existing whole-study non-gold report-loss exclusion stays separate from preserved clinical states.' if technical_defer else ('Current clinical mask remains; no accepted change in this stage.' if current['state'] in {'uncertain','not_mentioned'} else 'Current observed annotation remains unchanged until independent assessment and acceptance.')))
+ dispositions.append(d)
+ if (state_change or evidence_change) and not technical_defer:
+  assert current==orig and r['existing_current_correction'] is None
+  assert (f['state'],f['evidence'])!=(current['state'],current['evidence'])
+  rr=r['original_review']; ap=str((W/rr['path']).relative_to(R))
+  proposals.append({'packet_index':i,'case':r['case'],'study_uid':r['study_uid'],'target':r['target'],'batch':p['batch'],'index':p['index'],'source_path':p['source_path'],'source_sha256':p['source_sha256'],'report_utf8_sha256':r['report_utf8_sha256'],'artifact_path':ap,'artifact_sha256':rr['sha256'],'before_state':current['state'],'before_evidence':current['evidence'],'proposed_state':f['state'],'source_quote':f['evidence'],'reason':f['reason'],'evidence_reason':EVIDENCE_CORRECTIONS.get(k),'kind':'state_correction' if state_change else 'evidence_context_correction','status':'proposed_unintegrated','own_frozen_state':r['source_frozen']['state'],'own_state_reconsidered':k in RECONSIDER,'overlaps_existing_accepted_correction':False})
+ if not r['source_state_agrees_current'] or not r['source_evidence_agrees_current'] or k in RECONSIDER or evidence_change:
+  attention.append({'packet_index':i,'case':r['case'],'study_uid':r['study_uid'],'target':r['target'],'source_state_difference':not r['source_state_agrees_current'],'source_evidence_difference':not r['source_evidence_agrees_current'],'state_reconsidered':k in RECONSIDER,'postfreeze_disposition':disposition,'postfreeze_state_disagreement_retained':state_change,'technical_correspondence_deferred':technical_defer})
+assert len(dispositions)==len({(r['study_uid'],r['target']) for r in dispositions})==600
+assert len(proposals)==len({(r['study_uid'],r['target']) for r in proposals})
+assert len(rec)==6
+scope={'clinical_decisions_authored_by':AGENT,'code_role':'Packaging explicit personally authored choices, source/current replay and validation only; no automatic clinical label inference.','comparison_status':'First005 postfreeze clinical opinion, not acceptance. Distinct second source reading and root adjudication remain pending.','prior_exposure':'Historical technical/source/visual, focused001-004, cartilage000-005 and prior policy/reconsideration context; exact six packet overlaps plus separately recognized temporal source exposure are bound in the preserved source stage. No first-ever blindness claim.','source_freeze_unchanged':True,'repository_modified':False,'gold_accessed':False,'registry_changed':False,'global_qa_closed':False}
+write('own-postfreeze-reconsiderations.json',{'agent_id':AGENT,'source_freeze':ref(O/'source-freeze.json'),'at_utc':now,'reconsiderations':rec,'quote_context_choices':[{'packet_index':17,'target':'Medial OA','reason':EVIDENCE_REVIEW[(17,4)]},{'packet_index':10,'target':'Effusion','reason':EVIDENCE_CORRECTIONS[(10,7)]}],'scope':scope})
+write('complete-first-dispositions.json',{'agent_id':AGENT,'session_id':AGENT,'source_freeze':ref(O/'source-freeze.json'),'source_assessment':ref(O/'source-assessment-frozen.jsonl'),'current_registry':replay['current_registry'],'registered_changes':254,'target_order':targets,'records':dispositions,'scope':scope})
+write('proposed-errata.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'completed_at_utc':now,'rubric_version':'report-weak-v2.0','rubric_sha256':ref(R/'protocols/report_weak_v2.md')['sha256'],'source_reports_sha256':ref(O/'neutral-source-packet.json')['sha256'],'stage':'first_focused005_postfreeze_proposals','status':'proposed_unintegrated','accepted':False,'n_changes':len(proposals),'n_studies_with_proposals':len({p['study_uid'] for p in proposals}),'authorship':'Original clinical proposals personally endorsed by /root/last_twelve_visual_review after its own600-source freeze and complete original/current comparison; no root approval or distinct second assessment represented.','source_freeze':ref(O/'source-freeze.json'),'current_registry':replay['current_registry'],'registered_changes_at_comparison':254,'scope':scope,'proposed_errata':proposals})
+write('complete-union-attention.json',{'agent_id':AGENT,'definition':'Union of every source/current state or evidence difference, all reconsiderations and evidence-only proposals, including unchanged adequate quotes and deferred correspondence. No differing cell omitted.','cells':attention,'reports':sorted({x['packet_index'] for x in attention}),'scope':scope})
+indices=sorted({x['packet_index'] for x in attention}); packetrefs=[]
+for n,start in enumerate(range(0,len(indices),10)):
+ idx=indices[start:start+10]; pp=write(f'neutral-root-packets/packet-{n:03}.json',[packet[i] for i in idx]);packetrefs.append(dict(ref(pp),report_count=len(idx),study_uids=[packet[i]['study_uid'] for i in idx]))
+indexp=write('neutral-root-packet-index.json',{'source_packet':ref(O/'neutral-source-packet.json'),'report_count':len(indices),'packets':packetrefs,'format':'Exact full original report text and immutable source/index/UID/hash only. No added target/state/reason/proposal clues.'})
+counts={'reports':50,'cells':600,'registered_changes':254,'selected_accepted_key_overlap':0,'source_current_state_differences':sum(not r['source_state_agrees_current'] for r in rows),'source_current_evidence_differences':len(EVIDENCE_REVIEW),'state_reconsiderations':len(rec),'final_state_differences_from_current':sum(not x['postfreeze_state_agrees_current'] for x in dispositions),'state_proposals':sum(p['kind']=='state_correction' for p in proposals),'evidence_only_proposals':sum(p['kind']=='evidence_context_correction' for p in proposals),'unintegrated_proposals':len(proposals),'proposed_reports':len({p['study_uid'] for p in proposals}),'attention_cells':len(attention),'attention_reports':len(indices),'neutral_packets':len(packetrefs),'deferred_correspondence_reports':1,'deferred_correspondence_cells':12,'deferred_source_current_state_differences':sum(not x['source_state_agrees_current'] and x['technical_correspondence_deferred'] for x in dispositions),'unchanged_current_masked_cells':sum(x['current_effective']['state'] in {'uncertain','not_mentioned'} and x['existing_clinical_annotation_retained'] for x in dispositions),'all_proposals_pending_independent_review':True}
+# Revalidate every original report and immutable review, exact cell membership and proposal before/after.
+for r in dispositions:
+ p=packet[r['packet_index']];sp=R/p['source_path'];assert ref(sp)['sha256']==p['source_sha256'];assert obj(sp)[p['index']]=={'study_uid':p['study_uid'],'report':p['report']};assert ref(W/r['original_review']['path'])==r['original_review'];assert hashlib.sha256(p['report'].encode()).hexdigest()==r['report_utf8_sha256']
+ for a in [r['original_annotation'],r['current_effective'],r['source_frozen'],r['postfreeze_opinion']]:assert a['evidence'] in p['report'] and bool(a['evidence'])==(a['state']!='not_mentioned')
+for e in replay['current_cases']:assert ref(W/e['path'])==e
+assert ref(R/'initiative/reviews-v2/adjudications/registry.json')==replay['current_registry']
+for e in obj(O/'final-file-list.json')['files']:assert ref(W/e['path'])==e
+for p in packetrefs:
+ content=obj(W/p['path']);assert len(content)<=10
+ for q in content:assert q in packet and set(q)==set(packet[0])
+assert len([q for p in packetrefs for q in obj(W/p['path'])])==len(indices)
+write('validation.json',{'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'counts':counts,'checks':{'all600_members_unique_and_complete':True,'all50_full_report_original_source_index_uid_hash_bindings':True,'all_current254_original_before_and_accepted_case_hash_bindings':True,'zero_selected_accepted_correction_overlap':True,'all_source_freeze_files_byte_identical':True,'all_quotes_exact_contiguous_substrings_and_missing_empty':True,'all100_quote_differences_individually_reviewed':True,'six_source_state_reconsiderations_separate':True,'all_state_evidence_reconsideration_differences_in_attention_union':True,'all_neutral_packets_source_only_max10_reports':True,'proposals_unique_and_no_noops':True,'selected_existing_technical_exclusion_kept_separate_from_clinical_states':True,'live_registry_still_exact254_snapshot':True},'rubric':ref(R/'protocols/report_weak_v2.md'),'source_freeze':ref(O/'source-freeze.json'),'original_current_replay':ref(S/'original-current-replay.json'),'scope':scope})
+write('first-comparison-freeze.json',{'agent_id':AGENT,'session_id':AGENT,'frozen_at_utc':datetime.now(timezone.utc).isoformat(),'counts':counts,'source_freeze':ref(O/'source-freeze.json'),'assessment':ref(S/'complete-first-dispositions.json'),'reconsiderations':ref(S/'own-postfreeze-reconsiderations.json'),'proposals':ref(S/'proposed-errata.json'),'complete_attention_union':ref(S/'complete-union-attention.json'),'neutral_packet_index':ref(indexp),'validation':ref(S/'validation.json'),'current_registry':replay['current_registry'],'scope':scope,'chronology':'Declared source pass completed and froze before selected current annotations; prior source/conceptual exposures disclosed. File times do not prove all historical access order.'})
+files=[ref(p) for p in sorted(S.rglob('*')) if p.is_file() and '__pycache__' not in p.parts]
+write('final-file-list.json',{'agent_id':AGENT,'created_at_utc':datetime.now(timezone.utc).isoformat(),'manifest_scope':'Every authored stage file except this manifest; Python bytecode is not authored evidence.','files':files,'counts':counts})
+manifest=obj(S/'final-file-list.json');assert all(ref(W/e['path'])==e for e in manifest['files'])
+assert {e['path'] for e in manifest['files']}=={str(p.relative_to(W)) for p in S.rglob('*') if p.is_file() and p.name!='final-file-list.json' and '__pycache__' not in p.parts}
+print(json.dumps({'counts':counts,'freeze':ref(S/'first-comparison-freeze.json'),'proposals':ref(S/'proposed-errata.json'),'neutral_packets':ref(indexp),'manifest':ref(S/'final-file-list.json')},indent=2))

@@ -1,0 +1,97 @@
+"""Personally reasoned second bone004 assessment; no acceptance or registration."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib, json, sys
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered'
+F=W/'work/annotation-staging/bone-observed-004-independent-review-v1'
+A=W/'work/annotation-staging/bone-observed-004-source-review-v1'
+B=W/'work/annotation-staging/bone-observed-004-postfreeze-v1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def read(p):return json.loads(p.read_text())
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'size_bytes':p.stat().st_size}
+def save(n,x):
+    with (S/n).open('x') as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+assert sha(F/'source-assessment-frozen.json')=='74b1cd3502a0f37c6d03a922b29769696b1108e0b56de3b2c924a1545e3e036e'
+assert sha(A/'source-assessment-frozen.jsonl')=='c9af47c6a6d0d88cddbc08ae6ab1f78374880b76d7ec7aa47a43f0df79176bba'
+assert sha(B/'proposed-errata.json')=='4611d40547ddf5420ea00b00e0e6f91d8e46c24f54dad3c91e0f3143d1a82580'
+comparison=read(S/'all100-original-current-source-comparison.json');rows=comparison['records'];bykey={(r['packet_ordinal'],r['target']):r for r in rows}
+first_rows=[json.loads(l) for l in (A/'source-assessment-frozen.jsonl').read_text().splitlines()]
+first={(r['study_uid'],t):{'state':r['states'][j],'evidence':r['evidence'][j],'rationale':r['rationales'][j]} for r in first_rows for j,t in enumerate(r['target_order'])}
+first_final={(r['study_uid'],r['target']):r['first_postfreeze_judgment'] for r in read(B/'all100-postfreeze-dispositions.json')['records']}
+proposals=read(B/'proposed-errata.json')['proposed_errata']
+assert {(p['ordinal'],p['target']) for p in proposals}=={(25,'Contusion'),(29,'Fracture'),(35,'Fracture'),(41,'Contusion')}
+packet=read(A/'neutral-source-packet.json')['reports'];texts={r['study_uid']:r['report'] for r in packet}
+base={k:comparison[k] for k in ['schema_version','assessor_agent_id','session_id','source_freeze','current_inspection','active_corrections','registry_sha256','rubric_sha256','source_reports_sha256']}
+base.update(agent_id='/root/duplicate_consistency_review',completed_at_utc=datetime.now(timezone.utc).isoformat(),first_assessor_agent_id='/root/quality_temporal_review',first_source_freeze=ref(A/'source-assessment-frozen.jsonl'),first_proposals=ref(B/'proposed-errata.json'),first_postfreeze_dispositions=ref(B/'all100-postfreeze-dispositions.json'),status='second_source_assessment_complete_pending_root_adjudication',gold_inspected=False,registry_mutated=False,global_qa_closed=False,accepted_changes=[])
+support={
+(25,'Contusion'):'I independently froze positive with this complete contiguous quotation. The dislocation-associated bone bruise conclusion links to edema in lateral tibia and lateral femur outside the localized medial tibial fracture. The current short quote omits the anatomical distinction required by the rubric. I support the exact evidence expansion without changing the positive state.',
+(29,'Fracture'):'I independently froze negative using the proposed no-acute-fracture sentence. The current evidence denies only the clinically queried insufficiency subtype. The full source supplies an explicit general acute-fracture denial, so this evidence replacement makes the existing negative adequately scoped without deriving it from a narrower subtype exclusion.',
+(35,'Fracture'):'I independently froze negative. The Bulgarian source describes the bones forming the right knee as normal in shape and preserved in structure, not merely normal in marrow signal and not an otherwise-normal clause excluding the abnormal foci. The subsequent focal femoral signal and tibial contusional edema do not themselves negate this global structural assessment. I support the negative proposal while preserving the original uncertain interpretation and zero mask until root adjudication.',
+(41,'Contusion'):'I independently froze uncertain with the proposed complete conclusion. Both marrow-edema sites also have definite fractures: medial patellar avulsion and lateral femoral impaction. The current quote mentions only the femoral fracture and could leave an apparently separate patellar contusion. The proposed exact quote makes both locations explicit, preserving the uncertain state and its zero mask.'}
+reconsider={
+(1,'Fracture'):('uncertain','After rereading the complete original and the first reader rationale, I withdraw my source-stage inference that hemarthrosis, bruising and subcutaneous hemorrhage establish the fracture as acute. They strongly suggest active injury but are not a supplied date or explicit acute/recent characterization of this fracture. I had allowed contextual plausibility to fill the acute requirement. The definite depression fracture remains structurally real, with timing uncertain. Preserve my original positive judgment and its inference as historical disagreement, while retaining the current zero mask.'),
+(9,'Fracture'):('uncertain','After rereading the complete report, I withdraw my source-stage equation of a one-month football-injury history and severe ongoing stress response with a current acute fracture. This history is useful and dates trauma, but the report does not explicitly date the fracture or describe its healing status; the rubric supplies no one-month cutoff. Current severe edema and a partially resorbed ACL can coexist with a nonacute injury. I therefore retain acute-timing uncertainty rather than manufacture an acute/subacute boundary. The original positive source inference remains frozen and available to root.'),
+(44,'Contusion'):('positive','After rereading the complete Turkish source and the first reader rationale, I withdraw my source-stage assumption that coexisting joint narrowing and degenerative bone signal necessarily make the direct contusional diagnosis causally ambiguous. The source affirmatively calls the medial osseous edema contusional and separately describes diffuse degenerative signal, without hedging, denial or an alternative causal attribution to that edema. Under the frozen report-level direct-diagnosis rule, coexistence alone is insufficient to replace the stated contusional cause with presumed degeneration. I support the existing positive and preserve the earlier cautious uncertainty as an actual reconsideration.')}
+quote_reasons={
+(15,'Contusion'):'The current full-report quotation includes every named normal bone and the explicitly soft-tissue contusion; it is broad but sufficient. My shorter contiguous normal-bone survey adds no necessary evidence correction.',
+(15,'Fracture'):'The current full-report quotation contains the complete structurally unremarkable bone survey. Its length alone is not a clinical evidence error; retain it.',
+(25,'Fracture'):'The current exact sentence identifies the definite medial tibial fracture line. That supplies the structural finding underlying the retained acute-timing uncertainty; adjacent undated edema does not need an evidence correction.',
+(34,'Contusion'):'The current impression quote explicitly links the same osseous contusions to recent patellar dislocation. It is more causally explicit than my body quote and is adequate.',
+(47,'Contusion'):'The current quote directly names the reactive subchondral marrow edema at the abnormal medial site. This is sufficient to trace the retained causal uncertainty; adding normal background marrow does not change its meaning.'}
+allrows=[];assessments=[];supported=[];recons=[];qdispositions=[]
+for r in rows:
+    k=(r['packet_ordinal'],r['target']);u=(r['study_uid'],r['target']);preferred=dict(r['source_frozen']);reason=r['source_rationale'];action='retain_current_annotation'
+    if k in support:
+        p=next(p for p in proposals if (p['ordinal'],p['target'])==k)
+        assert preferred['state']==p['proposed_state']
+        preferred={'state':p['proposed_state'],'evidence':p['source_quote']};reason=support[k];action='support_first_proposal_pending_root_adjudication'
+    elif k in reconsider:
+        preferred['state'],reason=reconsider[k];action='reconsider_own_source_state_retain_current_state'
+        assert preferred['state']==r['current_effective']['state']==first_final[u]['state']
+        recons.append(dict(r,source_original=dict(r['source_frozen'],rationale=r['source_rationale']),own_postfreeze=dict(preferred,rationale=reason),first_source=first[u],first_postfreeze=first_final[u],complete_original_reread_after_freeze=True,original_source_freeze_preserved=True,current_annotation_unchanged=True,disagreement_status='historical_source_disagreement_preserved_reconsidered_after_comparison',trigger='Own full-source reread after comparison with the distinct first reader; not an independent blind acceptance.'))
+    elif k in quote_reasons:
+        qdispositions.append({'packet_ordinal':k[0],'study_uid':r['study_uid'],'target':k[1],'current':r['current_effective'],'source_frozen':r['source_frozen'],'decision':'retain_adequate_current_quote','reason':quote_reasons[k]})
+    for cell in [preferred,first[u],first_final[u]]:
+        assert (cell['evidence']=='' if cell['state']=='not_mentioned' else bool(cell['evidence']) and cell['evidence'] in texts[r['study_uid']])
+    allrows.append(dict(r,first_source_frozen=first[u],first_postfreeze=first_final[u],independent_postfreeze=preferred,independent_postfreeze_rationale=reason,action=action,source_state_reconsidered=k in reconsider,source_freeze_states_agree=first[u]['state']==r['source_frozen']['state'],postfreeze_reader_states_agree=first_final[u]['state']==preferred['state'],current_report_observation_mask=int(r['current_effective']['state'] in ('positive','negative')),suggested_report_observation_mask=int(preferred['state'] in ('positive','negative'))))
+for p in proposals:
+    k=(p['ordinal'],p['target']);r=bykey[k];final=next(x for x in allrows if (x['packet_ordinal'],x['target'])==k)
+    assert r['original']=={'state':p['original_state'],'evidence':p['original_evidence']} and r['current_effective']==r['original'] and r['current_correction_case'] is None
+    assert r['source_sha256']==p['source_sha256'] and r['original_review_sha256']==p['artifact_sha256'] and r['report_sha256']==p['source_report_sha256']
+    assert p['source_quote'] in texts[p['study_uid']]
+    assessments.append({'packet_ordinal':p['ordinal'],'study_uid':p['study_uid'],'target':p['target'],'source_path':p['source_path'],'source_sha256':p['source_sha256'],'source_report_sha256':p['source_report_sha256'],'artifact_path':p['artifact_path'],'artifact_sha256':p['artifact_sha256'],'original_state':p['original_state'],'original_evidence':p['original_evidence'],'proposed_state':p['proposed_state'],'source_quote':p['source_quote'],'assessment':'agree_with_source_supported_proposal','independent_source_assessment':dict(final['independent_postfreeze'],rationale=final['independent_postfreeze_rationale']),'reason':support[k],'source_freeze_state':r['source_frozen']['state'],'own_state_reconsidered':False,'proposer_agent_id':'/root/quality_temporal_review','assessor_agent_id':'/root/duplicate_consistency_review','assessor_session_id':'/root/duplicate_consistency_review','root_adjudication_pending':True,'registration_performed':False})
+    supported.append(dict(p,second_assessor_agent_id='/root/duplicate_consistency_review',second_assessor_reason=support[k],source_first_agreement=True,accepted=False,status='supported_by_distinct_second_reader_pending_root_adjudication'))
+assert len(allrows)==100 and len(assessments)==4 and len(supported)==4 and len(recons)==3 and len(qdispositions)==5
+assert sum(r['source_freeze_states_agree'] for r in allrows)==97
+assert all(r['postfreeze_reader_states_agree'] for r in allrows)
+save('all100-independent-postfreeze-dispositions.json',dict(base,records=allrows))
+save('independent-source-assessment.json',dict(base,records=assessments,n_supported_first_proposals=4,n_disputed_first_proposals=0))
+save('supported-proposed-errata.json',dict(base,proposer_agent_id='/root/quality_temporal_review',proposed_errata=supported,n_proposals=4,n_state_changes=1,n_evidence_changes=3))
+save('own-reconsiderations.json',dict(base,records=recons,n_reconsiderations=3,original_freeze_unchanged=True))
+save('unresolved-disagreements.json',dict(base,records=[],n_unresolved_reader_to_reader=0,n_historical_source_state_disagreements_preserved=3,own_reconsiderations=ref(S/'own-reconsiderations.json'),acceptance_claimed=False,qualification='The original uncertain state of the one supported state proposal remains operative pending root adjudication. Agreement after three disclosed reconsiderations does not erase initial disagreement or authorize registration.'))
+save('adequate-current-quote-dispositions.json',dict(base,records=qdispositions))
+masked=[r for r in allrows if not r['current_report_observation_mask']]
+save('retained-masks-and-export-requirements.json',dict(base,n_current_masked_cells=len(masked),records=[{'study_uid':r['study_uid'],'target':r['target'],'current':r['current_effective'],'independent_postfreeze':r['independent_postfreeze'],'action':r['action'],'reason':r['independent_postfreeze_rationale'],'required_current_report_loss_mask':0} for r in masked],pending_supported_impacts={'observed_to_masked':0,'masked_to_observed':1,'masked_to_masked_state_changes':0,'evidence_only_changes':3},requirement='All existing masked cells remain zero until separate acceptance, including the supported negative proposal. The two acute-timing masks are expressly retained after reconsideration. No acceptance, final export or global semantic release is claimed.'))
+attention=sorted({p['ordinal'] for p in proposals}|{k[0] for k in reconsider})
+assert len(attention)==7
+neutral={'schema_version':1,'scope':'Seven complete original sources for root source-first attention; no current/proposed states, selected quotes or clinical rationales.','rubric_sha256':base['rubric_sha256'],'reports':[packet[i] for i in attention]}
+save('neutral-root-full-source-attention-packet.json',neutral)
+save('attention-selection-details.json',dict(base,attention_ordinals=attention,first_proposal_report_ordinals=sorted({p['ordinal'] for p in proposals}),own_reconsideration_report_ordinals=sorted({k[0] for k in reconsider}),neutral_packet=ref(S/'neutral-root-full-source-attention-packet.json')))
+first_bindings=[ref(p) for p in [A/'source-freeze.json',A/'source-assessment-frozen.jsonl',A/'start.json',B/'proposed-errata.json',B/'own-reconsiderations.json',B/'all100-postfreeze-dispositions.json',B/'completion-manifest.json']]
+save('first-reader-artifact-bindings.json',dict(base,files=first_bindings,clinical_access_order='First-reader and current case-specific content displayed only after the complete second100-cell source freeze. Historical exposure is bound separately.'))
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+reports={r['study_uid']:r['report'] for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for r in read(p)}
+fresh=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert fresh==read(S/'current-registry-inspection.json')
+protected=read(S/'original-source-provenance-bindings.json')
+for item in protected['files']+protected['source_phase_protected_files']+first_bindings:assert sha(W/item['path'])==item['sha256']
+for source in neutral['reports']:
+    assert not {'states','evidence','target'}&source.keys()
+    original=read(R/source['source_path'])[source['source_index_zero_based']]
+    assert original['study_uid']==source['study_uid'] and original['report']==source['report']
+    assert sha(R/source['source_path'])==source['source_sha256'] and hashlib.sha256(source['report'].encode()).hexdigest()==source['report_sha256']
+counts={'source_reports':50,'source_judgments':100,'initial_source_state_agreement_between_readers':97,'postfreeze_state_agreement_between_readers':100,'own_state_reconsiderations':3,'first_proposals_assessed':4,'supported_first_proposals':4,'disputed_first_proposals':0,'supported_state_changes':1,'supported_evidence_changes':3,'additional_proposals':0,'current_masked_cells':len(masked),'neutral_attention_reports':len(attention)}
+save('validation-and-preservation.json',dict(base,all100_compared=True,all100_exact_evidence_original_and_first_reader_bindings=True,all_source_phase_and_first_reader_artifacts_preserved=True,actual_current_inspection_replayed=True,n_active_corrections=fresh['n_changes'],n_pending_global_qa=len(fresh['pending_semantic_qa']),existing_selected_corrections=0,historical205_and223_selected100_annotations_unchanged=True,global_prior205_preservation_claim=False,retirement_context='The three legacy corrections were retired globally; only the selected100 bone annotations are claimed unchanged across these baselines.',retirement_proof=ref(R/'initiative/audits/cartilage-legacy-three-retirement-integration-v1/retirement-integration-validation.json'),counts=counts,remote_calls=0,R_writes=False))
+save('completion-manifest.json',{'schema_version':1,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'agent_id':'/root/duplicate_consistency_review','files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'source_phase_manifest':ref(F/'source-phase-manifest.json')})
+print(json.dumps({'assessment':ref(S/'independent-source-assessment.json'),'supported_proposals':ref(S/'supported-proposed-errata.json'),'reconsiderations':ref(S/'own-reconsiderations.json'),'neutral_root_packet':ref(S/'neutral-root-full-source-attention-packet.json'),'validation':ref(S/'validation-and-preservation.json'),'manifest':ref(S/'completion-manifest.json'),'counts':counts,'registry_sha256':fresh['registry_sha256']}))

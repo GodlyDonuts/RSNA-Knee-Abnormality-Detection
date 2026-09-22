@@ -1,0 +1,61 @@
+"""Bind the completed local build and actual peer streaming proof without publication."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,shutil,subprocess
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered'
+TARGET='254b7103dc2577cd9189da081416c458ffdadf92'
+TREE='c624975fe6b84745c16007ef67c2a4371afe84ea'
+P=W/'work/hf-preparation-deltas'/TARGET
+H=W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+BASE=W/'work/hf-preparation-checkpoints/1792f01ed3daab757c5ddb9bf5733ffe8d999f91'
+def digest(p):
+    h=hashlib.sha256()
+    with p.open('rb') as f:
+        for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+    return h.hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':digest(p),'size_bytes':p.stat().st_size}
+def read(p):return json.loads(p.read_text())
+def save(n,v):
+    with (S/n).open('x') as f:f.write(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+proof=read(P/'restoration-proof.json');plan=read(P/'manifest.json')
+assert digest(H)=='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+assert proof['helper']['sha256']==digest(H)
+assert proof['verifier_agent_id']=='/root/duplicate_consistency_review'
+assert proof['status']=='every_target_git_file_restorable_identically'
+assert proof['target_git_commit']==plan['target_git_commit']==TARGET
+assert proof['target_git_tree']==plan['target_git_tree']==TREE
+assert proof['n_result_files_verified']==plan['n_target_git_files']==7816
+assert proof['n_base_archive_members_verified']==5657 and proof['n_delta_members_verified']==2171
+assert proof['n_deletions_applied']==1
+assert proof['every_file_sha256_git_blob_size_mode_verified'] and proof['membership_exact']
+assert proof['full_tree_extracted'] is False and proof['source_or_clinical_values_parsed'] is False
+assert proof['remote_calls']==proof['remote_mutations']==0
+assert plan['training_ready'] is False and plan['private_destination_required'] is True
+assert proof['source_preservation']['n_source_or_rubric_files']==18
+assert proof['source_preservation']['exact_git_identities_unchanged']
+assert digest(P/'manifest.json')==proof['manifest']['sha256']=='7f86571e3cea94a9e965ec55f786c70387427554539b7455a330bdc145528b6a'
+assert digest(P/'delta.tar.gz')==proof['delta_archive']['sha256']=='429b10603a7b772d90984b5473f07b20c066538ce3c7371ef96ab0400b4cff3c'
+assert (P/'delta.tar.gz').stat().st_size==207600503
+assert digest(BASE/'manifest.json')==proof['base_manifest_sha256']=='5f879ae740356e21ff5ed4c34fa31daf1cce4b5ffa9dafdd044a0658b9ad850b'
+assert proof['base_archive_sha256']=='10206b752cce97cb671de607291785eef10d7fd9154c4dd4a0612b6686327271'
+assert (BASE/'checkpoint.tar.gz').stat().st_size==1335583564
+fixture='initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt'
+assert proof['verified_secret_scan_exception_paths']==[fixture]
+entry=next(r for r in plan['files'] if r['path']==fixture)
+assert entry['sha256']=='e5b46e5bcbac3b9ed626a9e5a9c8a89519c2ad5058e3a682049625786a1cfc57'
+assert entry['git_blob']=='f322d072369b7da379aee487b0fa2007e9817669' and entry['bytes']==9478
+assert proof['secret_scan_policy']==plan['secret_scan_policy']
+inspection=W/'work/annotation-staging/bone-observed-004-independent-postfreeze-v1/current-registry-inspection-after-comparison.json'
+bound=read(inspection)
+registry_blob=subprocess.check_output(['git','show',TARGET+':initiative/reviews-v2/adjudications/registry.json'],cwd=R,stderr=subprocess.DEVNULL)
+registry_sha=hashlib.sha256(registry_blob).hexdigest()
+assert registry_sha==bound['registry_sha256']=='3ff636fcc2bbda0db3ff47500a1018769d3ab78be8a49b8b6cf3409081b93b2a'
+assert bound['n_changes']==254 and len(bound['pending_semantic_qa'])==3
+free=shutil.disk_usage(W).free
+assert free>=20*2**30
+assert proof['disk_before_build']['free_bytes']>=proof['disk_before_build']['floor_bytes']+proof['disk_before_build']['reserve_bytes']+proof['disk_before_build']['additional_bytes']
+assert proof['disk_after_verification']['free_bytes']>=20*2**30
+receipt={'schema_version':1,'agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review','completed_at_utc':datetime.now(timezone.utc).isoformat(),'status':'actual_peer_build_and_streaming_restoration_passed','target_git_commit':TARGET,'target_git_tree':TREE,'target_files':7816,'active_corrections':254,'registry_sha256':registry_sha,'registry_count_binding':ref(inspection),'global_qa_pending':3,'helper':ref(H),'package_objects':[ref(P/n) for n in ['delta.tar.gz','manifest.json','restoration-proof.json']],'base_manifest':ref(BASE/'manifest.json'),'base_archive':{'path':str((BASE/'checkpoint.tar.gz').relative_to(W)),'sha256':proof['base_archive_sha256'],'size_bytes':1335583564},'base_hf_revision':'54949cd5a575ea7027a4a57916e772936a98d38b','later_publication_parent_supplied_by_root':'72f2f065cb2d4af3168499df82d78627d662991d','ci_run_supplied_by_root':35673114044,'remote_parent_private_status_and_ci_rechecked_by_this_agent':False,'n_base_members_stream_verified':5657,'n_delta_members_stream_verified':2171,'n_result_files_verified':7816,'n_deletions_applied':1,'all_resulting_membership_modes_sizes_sha256_and_git_ids_match':True,'source_or_rubric_files_unchanged':18,'known_exact_fixture_exception_verified':entry,'secret_values_used_from_local_env_without_display':True,'all_other_url_and_credential_checks_unchanged':True,'disk_before_build':proof['disk_before_build'],'disk_after_verification':proof['disk_after_verification'],'free_bytes_at_completion':free,'base_extracted_or_copied':False,'clinical_files_read_as_opaque_bytes_only_by_builder':True,'known_registry_count_lookup_only_for_this_receipt':True,'R_writes':False,'network_calls':0,'remote_mutations':0,'source_freezes_changed':False,'publication_authorization_claimed':False,'training_ready':False}
+save('build-verification-receipt.json',receipt)
+save('completion-manifest.json',{'schema_version':1,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'agent_id':'/root/duplicate_consistency_review','files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'package_objects':receipt['package_objects']})
+print(json.dumps({'receipt':ref(S/'build-verification-receipt.json'),'stage_manifest':ref(S/'completion-manifest.json'),'package_objects':receipt['package_objects'],'target_files':7816,'delta_members':2171,'free_gib':round(free/2**30,3)}))
