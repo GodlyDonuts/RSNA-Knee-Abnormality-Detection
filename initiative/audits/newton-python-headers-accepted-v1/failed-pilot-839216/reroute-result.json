@@ -1,0 +1,23 @@
+{
+  "intent": {
+    "operation": "update existing PENDING839216 requested node; no new submission",
+    "job_id": 839216,
+    "from_node": "evc37",
+    "to_node": "evc44",
+    "reason": "evc37 scheduler forecast2026-09-24T15:46:58; evc44 currentlyidle dualH100",
+    "created_at_utc": "2026-09-22T20:06:48.349471+00:00",
+    "same_script_sha256": "9da1f0bd060491dc8450a49ad1ae680e54ef57c598fe6d35a57b841357bd566b",
+    "excluded_nodes": [
+      "evc38",
+      "evc50"
+    ],
+    "actual_node_abi_and_driver_guard_required": true
+  },
+  "before": "JobId=839216 JobName=rsna-dinov3-pilot-v5 UserId=sa305415(1227834669) GroupId=domain_users(1224200513) MCS_label=N/A Priority=5488 Nice=0 Account=skattel QOS=normal JobState=PENDING Reason=Resources Dependency=(null) Requeue=0 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0 RunTime=00:00:00 TimeLimit=00:30:00 TimeMin=N/A SubmitTime=2026-09-22T16:05:21 EligibleTime=2026-09-22T16:05:21 AccrueTime=2026-09-22T16:05:21 StartTime=2026-09-24T15:46:58 EndTime=2026-09-24T16:16:58 Deadline=N/A SuspendTime=None SecsPreSuspend=0 LastSchedEval=2026-09-22T16:06:48 Scheduler=Main Partition=normal AllocNode:Sid=evuser1:3995178 ReqNodeList=evc37 ExcNodeList=evc[38,50] NodeList= NumNodes=1-1 NumCPUs=4 NumTasks=1 CPUs/Task=4 ReqB:S:C:T=0:0:*:* ReqTRES=cpu=4,mem=32G,node=1,billing=8,gres/gpu=2 AllocTRES=(null) Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=* MinCPUsNode=4 MinMemoryNode=32G MinTmpDiskNode=0 Features=(null) DelayBoot=00:00:00 OverSubscribe=YES Contiguous=0 Licenses=(null) LicensesAlloc=(null) Network=(null) Command=/home/sa305415/rsna-knee/pilot-launch-v5/pilot.sbatch SubmitLine=sbatch --parsable /home/sa305415/rsna-knee/pilot-launch-v5/pilot.sbatch WorkDir=/lustre/fs1/home/sa305415 StdErr=/home/sa305415/rsna-knee/logs/rsna-dinov3-pilot-v5-839216.err StdIn=/dev/null StdOut=/home/sa305415/rsna-knee/logs/rsna-dinov3-pilot-v5-839216.out TresPerNode=gres/gpu:nvidia_h100_pcie:2 TresPerTask=cpu=4\n",
+  "target_node": "NodeName=evc44 Arch=x86_64 CoresPerSocket=16  CPUAlloc=0 CPUEfctv=64 CPUTot=64 CPULoad=2.88 AvailableFeatures=proc64,speed290,icelake,sse4,avx,avx2,avx512,h100,switchB6U1,hdr,gpu80 ActiveFeatures=proc64,speed290,icelake,sse4,avx,avx2,avx512,h100,switchB6U1,hdr,gpu80 Gres=gpu:nvidia_h100_pcie:2(S:0-1) NodeAddr=ivc44 NodeHostName=evc44 Version=25.11.0 OS=Linux 4.18.0-553.123.1.el8_10.0.1.x86_64 #1 SMP Fri May 8 16:40:43 UTC 2026  RealMemory=514785 AllocMem=0 FreeMem=397338 Sockets=2 Boards=1 State=IDLE ThreadsPerCore=2 TmpDisk=0 Weight=200 Owner=N/A MCS_label=N/A Partitions=normal,preemptable  BootTime=2026-08-27T11:00:54 SlurmdStartTime=2026-09-22T03:13:33 LastBusyTime=2026-09-22T15:51:13 ResumeAfterTime=None CfgTRES=cpu=64,mem=514785M,billing=68,gres/gpu=2 AllocTRES= CurrentWatts=0 AveWatts=0\n",
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "",
+  "after": "JobId=839216 JobName=rsna-dinov3-pilot-v5 UserId=sa305415(1227834669) GroupId=domain_users(1224200513) MCS_label=N/A Priority=5488 Nice=0 Account=skattel QOS=normal JobState=PENDING Reason=None Dependency=(null) Requeue=0 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0 RunTime=00:00:00 TimeLimit=00:30:00 TimeMin=N/A SubmitTime=2026-09-22T16:05:21 EligibleTime=2026-09-22T16:05:21 AccrueTime=2026-09-22T16:05:21 StartTime=2026-09-24T15:46:58 EndTime=2026-09-24T16:16:58 Deadline=N/A SuspendTime=None SecsPreSuspend=0 LastSchedEval=2026-09-22T16:06:48 Scheduler=Main Partition=normal AllocNode:Sid=evuser1:3995178 ReqNodeList=evc44 ExcNodeList=evc[38,50] NodeList= NumNodes=1-1 NumCPUs=4 NumTasks=1 CPUs/Task=4 ReqB:S:C:T=0:0:*:* ReqTRES=cpu=4,mem=32G,node=1,billing=8,gres/gpu=2 AllocTRES=(null) Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=* MinCPUsNode=4 MinMemoryNode=32G MinTmpDiskNode=0 Features=(null) DelayBoot=00:00:00 OverSubscribe=YES Contiguous=0 Licenses=(null) LicensesAlloc=(null) Network=(null) Command=/home/sa305415/rsna-knee/pilot-launch-v5/pilot.sbatch SubmitLine=sbatch --parsable /home/sa305415/rsna-knee/pilot-launch-v5/pilot.sbatch WorkDir=/lustre/fs1/home/sa305415 StdErr=/home/sa305415/rsna-knee/logs/rsna-dinov3-pilot-v5-839216.err StdIn=/dev/null StdOut=/home/sa305415/rsna-knee/logs/rsna-dinov3-pilot-v5-839216.out TresPerNode=gres/gpu:nvidia_h100_pcie:2 TresPerTask=cpu=4\n",
+  "recorded_at_utc": "2026-09-22T20:06:48.722617+00:00"
+}

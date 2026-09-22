@@ -1,0 +1,94 @@
+"""One-shot authorized pilot dispatch; existing intent prohibits automatic retry."""
+import base64
+import datetime
+import hashlib
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+HERE=Path(__file__).resolve().parent
+ROOT=HERE.parents[1]
+EXPECTED='e7b08625854de692b9266ccfc25c90fc22169f58'
+ADAPTER='f318c0d437d8bcc7834a2304e8379a9f37b698bee5cf8b5fb2d9ea3e0de37c9e'
+
+def save_exclusive(path,value):
+    with path.open('x') as out:
+        json.dump(value,out,indent=2);out.write('\n');out.flush();os.fsync(out.fileno())
+
+
+def main():
+    if len(sys.argv)!=3:raise ValueError('Expected verified remote source receipt path and SHA256')
+    source_path,source_sha=sys.argv[1:]
+    if not re.fullmatch(r'/home/sa305415/rsna-knee/code-staging-control/[a-f0-9]{32}/receipt.json',source_path):raise ValueError('Unexpected source receipt path')
+    if not re.fullmatch('[a-f0-9]{64}',source_sha):raise ValueError('Invalid source SHA')
+    plan=json.loads((HERE/'plan.json').read_text());script=(HERE/'pilot.sbatch').read_bytes()
+    if plan['expected_git']!=EXPECTED or hashlib.sha256(script).hexdigest()!=plan['script_sha256']:raise ValueError('Plan binding mismatch')
+    if hashlib.sha256((ROOT/'rsna/competitive/backbones.py').read_bytes()).hexdigest()!=ADAPTER:raise ValueError('Locally accepted adapter changed')
+    payload={'plan':plan,'script_b64':base64.b64encode(script).decode(),'source_receipt':source_path,'source_sha':source_sha}
+    intent={'schema_version':1,'status':'intent_before_one_remote_sbatch','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'expected_git':EXPECTED,'script_sha256':plan['script_sha256'],'source_receipt_sha256':source_sha,'requested_gpus':2,'cpus':4,'memory_gib':32,'walltime':'00:30:00','node_selection':'evc37_excluding_evc38_evc44_evc50','automatic_retry':False,'prior_failed_job':839216,'cpu_model_acceptance_job':838689,'header_supplement':plan['header_supplement']}
+    save_exclusive(HERE/'dispatch-intent.json',intent)
+    payload['intent']=intent
+    code=r'''
+import base64,datetime,getpass,hashlib,json,os,pathlib,re,subprocess,sys
+p=json.load(sys.stdin);plan=p['plan'];base=pathlib.Path('/home/sa305415/rsna-knee');code=base/'code';control=base/'pilot-launch-v6'
+def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+def run(args):return subprocess.check_output(args,text=True,stderr=subprocess.PIPE).strip()
+def write(path,value):
+ with path.open('x') as f:json.dump(value,f,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+receipt_path=pathlib.Path(p['source_receipt'])
+assert sha(receipt_path)==p['source_sha'],'Source receipt changed'
+src=json.loads(receipt_path.read_text())
+assert src['status']=='verified_exact_detached_checkout' and src['commit']==plan['expected_git'] and src['clean'] and src['detached'] and src['auth_file_removed'] and src['requested_gpus']==0,'Source proof incomplete'
+assert run(['git','-C',str(code),'rev-parse','HEAD'])==plan['expected_git'],'Wrong deployed Git HEAD'
+assert not run(['git','-c','core.preloadIndex=false','-c','index.threads=1','-C',str(code),'status','--porcelain','--untracked-files=normal']),'Dirty source'
+assert sha(code/'rsna/competitive/backbones.py')==plan['adapter_sha256'],'Adapter changed'
+assert not pathlib.Path(plan['remote_output']).exists(),'Output already exists'
+active=run(['squeue','-h','-u',getpass.getuser(),'-o','%i|%j|%T'])
+assert not any('rsna-dinov3-pilot' in row for row in active.splitlines()),'Another owned pilot is active'
+prior_accounting=run(['sacct','-n','-P','-j','839216','--format=JobID,State'])
+assert prior_accounting.splitlines()[0].split('|')[1]=='FAILED','Prior pilot not terminal'
+config=base/'encoder-stage/run-configs/pilot100-fold0.json'
+assert sha(config)=='47db22dd179d900cf017dc13d78e09429c4ac8b3c701df4b92de2aa9abfe0109','Pilot config changed'
+assert sha(base/'encoder-stage/configs/competitive/weights/dinov3-large.json')=='d41104bb647f6444dbd1549048730d8ba6900ea7af36bfd5e7c938dca48a9a43','Model manifest changed'
+assert (base/'encoder-stage/artifacts/encoder-weights/dinov3-large/model.safetensors').stat().st_size==1212559808,'Model size changed'
+envdir=base/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1'
+assert sha(envdir/'receipt.json')==plan['environment_cpu_receipt_sha256'],'Environment CPU proof changed'
+assert (envdir/'environment-cp312-cu130.tar').stat().st_size==6401699840,'Environment archive size changed'
+cache=base/'cache/pilot100-fold0-v1.tar';cacheproof=json.loads((base/'cache/pilot100-fold0-v1.tar.receipt.json').read_text())
+assert cacheproof['sha256']=='8d50e027f66e91beb6afa2b56877b8da59059f6d43e7c13aa0103059d447d715' and cacheproof['status']=='published_verified_archive','Cache proof changed'
+assert cache.stat().st_size==4078970880 and cache.stat().st_ino==cacheproof['inode'] and cache.stat().st_mtime_ns==cacheproof['mtime_ns'],'Cache file identity changed'
+header=plan['header_supplement'];headerroot=pathlib.Path(header['remote_root'])
+assert sha(headerroot/'cpu-proof.json')==header['cpu_proof_sha256'],'Header CPU proof changed'
+assert sha(headerroot/'staging-receipt.json')==header['staging_receipt_sha256'],'Header staging proof changed'
+assert sha(headerroot/'system-header-verified.json')==header['generated_header_provenance_sha256'],'Generated header provenance changed'
+headerproof=json.loads((headerroot/'cpu-proof.json').read_text())
+assert headerproof['status']=='actual_triton_helper_compile_and_import_passed' and headerproof['actual_installed_builder_replayed'] and headerproof['header_tree_sha256']==header['header_tree_sha256'],'Header CPU proof incomplete'
+header_accounting=run(['sacct','-n','-P','-j','839074','--format=JobID,State,ExitCode'])
+assert header_accounting.splitlines()[0].split('|')[1:3]==['COMPLETED','0:0'],'Header CPU job not completed successfully'
+script=base64.b64decode(p['script_b64']);assert hashlib.sha256(script).hexdigest()==plan['script_sha256'],'Script binding mismatch'
+os.umask(0o077);control.mkdir(mode=0o700)
+with (control/'pilot.sbatch').open('xb') as f:f.write(script);f.flush();os.fsync(f.fileno())
+write(control/'plan.json',plan)
+prereq={'status':'prerequisites_verified','checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'git_commit':plan['expected_git'],'code_clean':True,'source_receipt_sha256':p['source_sha'],'source_tree':src['tree_sha'],'source_verified_files':src['tracked_files'],'source_runtime_hashes':src['verified_source_hash_count'],'environment_cpu_receipt_sha256':plan['environment_cpu_receipt_sha256'],'cache_archive_sha256':cacheproof['sha256'],'full_model_cpu_acceptance_job':838689,'full_archive_byte_checks_required_at_job_start':True,'header_supplement':header,'complete_header_tree_check_required_on_allocated_node_before_extraction':True}
+write(control/'prerequisites.json',prereq);write(control/'dispatch-intent.json',p['intent'])
+fd=os.open(control,os.O_RDONLY);os.fsync(fd);os.close(fd)
+result=subprocess.run(['sbatch','--parsable',str(control/'pilot.sbatch')],capture_output=True,text=True)
+answer={'schema_version':1,'sbatch_returncode':result.returncode,'script_sha256':plan['script_sha256'],'expected_git':plan['expected_git'],'node_selection':'evc37_excluding_evc38_evc44_evc50','automatic_retry':False,'recorded_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+if result.returncode==0 and re.fullmatch(r'[0-9]+(?:;[A-Za-z0-9_.-]+)?\n?',result.stdout):answer.update(status='submitted',job_id=int(result.stdout.strip().split(';')[0]))
+else:answer.update(status='dispatch_uncertain_or_rejected_reconcile_read_only',stdout=result.stdout[-3000:],stderr=result.stderr[-3000:])
+write(control/'dispatch-result.json',answer)
+print(json.dumps({'dispatch':answer,'prerequisites':prereq}))
+'''
+    connection=json.loads((ROOT/'artifacts/newton-access-control/connection.json').read_text())
+    ssh=['/usr/bin/ssh','-S',connection['control_socket'],'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ControlMaster=no',connection['user']+'@'+connection['host']]
+    result=subprocess.run(ssh+['/usr/bin/python3.12 -c '+shlex.quote(code)],input=json.dumps(payload),capture_output=True,text=True,timeout=90)
+    if result.returncode:
+        save_exclusive(HERE/'dispatch-error.json',{'status':'remote_failed_reconcile_read_only','returncode':result.returncode,'stdout':result.stdout[-4000:],'stderr':result.stderr[-4000:],'automatic_retry':False})
+        print(result.stderr[-4000:]);raise SystemExit(1)
+    response=json.loads(result.stdout);save_exclusive(HERE/'prerequisites.json',response['prerequisites']);save_exclusive(HERE/'dispatch-result.json',response['dispatch']);print(json.dumps(response['dispatch']))
+
+if __name__=='__main__':main()

@@ -1,0 +1,44 @@
+import hashlib,json,os,platform,shutil,subprocess,sys,sysconfig,tarfile
+from pathlib import Path
+os.umask(0o077)
+old=Path('/home/sa305415/rsna-knee/python-headers-3.12.13-2-v2').resolve();root=Path('/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3').resolve()
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def save(n,v):
+ with (root/n).open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+def run(a):
+ p=subprocess.run(a,capture_output=True,text=True,timeout=30)
+ return {'args':a,'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+assert sha(root/'stage_and_verify.py')=='7a3d3ba22c08fd8d61e7d2759ac8f69cd5ffc0bfab747e51ca69e13c680b20d1'
+files=json.loads((old/'header-tree.json').read_text())['files']
+assert len(files)==214 and hashlib.sha256(json.dumps(files,sort_keys=True,separators=(',',':')).encode()).hexdigest()=='8f74e91e12767cc8ac92bbcf9abfb0353fbbd7fc5921008963663025def13125'
+actual=[]
+for p in sorted((old/'extracted').rglob('*')):
+ assert not p.is_symlink()
+ if p.is_file():actual.append({'path':str(p.relative_to(old/'extracted')),'bytes':p.stat().st_size,'sha256':sha(p)})
+assert actual==files
+system=Path('/usr/include/python3.12/pyconfig-64.h')
+identity=run(['rpm','-qf','--qf','%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\n',str(system),'/usr/bin/python3.12','/usr/lib64/libpython3.12.so.1.0'])
+v={'node':platform.node(),'job_id':os.environ['SLURM_JOB_ID'],'identity':identity,'source_file':str(system),'source_exists':system.is_file(),'sysconfig':{k:sysconfig.get_config_var(k) for k in ['SOABI','EXT_SUFFIX','Py_DEBUG','ABIFLAGS','CONFIG_ARGS','SIZEOF_VOID_P']}}
+save('system-header-before-guard.json',v)
+assert system.is_file() and not system.is_symlink()
+assert identity['returncode']==0 and identity['stdout'].splitlines()==['python3.12-libs|3.12.13|2.el8_10|x86_64','python3.12|3.12.13|2.el8_10|x86_64','python3.12-libs|3.12.13|2.el8_10|x86_64']
+algorithm=run(['rpm','-q','--qf','%{FILEDIGESTALGO}','python3.12-libs']);assert algorithm['returncode']==0 and algorithm['stdout']=='8'
+dump=run(['rpm','-q','--dump','python3.12-libs']);assert dump['returncode']==0
+rows=[line.split() for line in dump['stdout'].splitlines() if line.split()[0]==str(system)];assert len(rows)==1
+row=rows[0];assert int(row[1])==system.stat().st_size and row[3]==sha(system)
+v.update(file_sha256=sha(system),file_bytes=system.stat().st_size,rpm_digest_algorithm='sha256',rpm_expected_sha256=row[3],rpm_dump_record=' '.join(row))
+save('system-header-verified.json',v)
+x=root/'extracted';x.mkdir(mode=0o700)
+for item in files:
+ p=x/item['path'];p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(old/'extracted'/item['path'],p);assert sha(p)==item['sha256']
+dest=x/'usr/include/python3.12/pyconfig-64.h';shutil.copyfile(system,dest);assert sha(dest)==v['file_sha256']
+files=sorted(files+[{'path':str(dest.relative_to(x)),'bytes':dest.stat().st_size,'sha256':sha(dest)}],key=lambda v:v['path'])
+tree=hashlib.sha256(json.dumps(files,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+save('header-tree.json',{'files':files,'canonical_tree_sha256':tree})
+with (root/'headers.tar').open('xb') as out:
+ with tarfile.open(fileobj=out,mode='w',format=tarfile.PAX_FORMAT) as tar:
+  for item in files:tar.add(x/item['path'],arcname='headers/'+str(Path(item['path']).relative_to('usr/include/python3.12')),recursive=False)
+ out.flush();os.fsync(out.fileno())
+save('staging-receipt.json',{'status':'private_complete_headers_verified','cpu_only':True,'job_id':os.environ['SLURM_JOB_ID'],'node':platform.node(),'parent_rpm_sha256':'d822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3','parent_header_tree_sha256':'8f74e91e12767cc8ac92bbcf9abfb0353fbbd7fc5921008963663025def13125','generated_header_sha256':v['file_sha256'],'generated_header_provenance_sha256':sha(root/'system-header-verified.json'),'header_tree_sha256':tree,'header_files':len(files),'header_bytes':sum(f['bytes'] for f in files),'header_archive_sha256':sha(root/'headers.tar'),'header_archive_bytes':(root/'headers.tar').stat().st_size,'CPATH':str(x/'usr/include/python3.12'),'system_mutations':False})
+print(str(x/'usr/include/python3.12'))

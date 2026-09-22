@@ -6,6 +6,32 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 22
 
+The user stopped the subagents after reconnecting. Root alone owns further
+remote dispatches, transfers and publication; do not restart agents. Preserve
+their completed originals and inspect receipts before taking over operations.
+Pilot 839216 failed on evc44 during its early driver check (exit 2, 1:59),
+before any optimizer update. Keep evc44 out of subsequent training allocations
+until allocated-device health is established. The fresh bounded pilot 839321 is recorded
+under local `artifacts/newton-pilot-launch-v6/`; it requests the previously
+verified evc37 with two GPUs and four CPUs. Inspect its dispatch receipt and
+live scheduler state; do not reroute it to an unverified node to shorten waiting.
+
+The interrupted full-cache upload left exactly 71,862,845,440 bytes remotely.
+The original sender is gone. The byte-resume plan under local
+`artifacts/newton-cache-resume-v2/` must compare a stable remote-prefix hash with
+a deterministic USTAR replay and all accepted per-file lineage hashes before
+appending. `scripts/newton/resume_cache_archive.py` implements separate `plan`
+and `execute` phases without a local archive. Never start a second operation
+while that planning/execute PID is alive. An existing execute intent, remote
+resume lock or uncertain commit requires read-only reconciliation, not retry.
+Only `completed.json` plus the matching final remote receipt establishes staging.
+The first full replay passed all 48,772 file hashes and the remote prefix, but
+its read-only process scan encountered root-owned SSH/PAM session descriptors.
+The narrowly corrected scan still refuses an uninspectable receiver or arbitrary
+process. The v2 plan rechecks complete source/prefix bytes with that receiver.
+The full archive is 82,834,493,440 bytes, SHA
+`6acf433e16c4832503103dd045943bbafa01dfb65fde8f56d93911fe1caac338`.
+
 The final `initiative/releases/report-supervision-v1/` export and real runtime
 acceptance passed. Start with [data-readiness-report.md](data-readiness-report.md),
 [training-strategy.md](training-strategy.md), and the final receipt. The exact
@@ -52,7 +78,8 @@ verification: 2,248 files / 4,077,105,588 unpacked bytes; archive SHA
 `8d50e027f66e91beb6afa2b56877b8da59059f6d43e7c13aa0103059d447d715`.
 Use `/home/sa305415/rsna-knee/encoder-stage/run-configs/pilot100-fold0.json`
 and the archive under the private `cache/` directory. The full 82.8 GB cache
-transfer continues separately. The offline Python 3.12 / Torch 2.14 environment
+transfer was interrupted; use the byte-bound continuation described above.
+The offline Python 3.12 / Torch 2.14 environment
 passed installation, relocation and CPU acceptance in jobs 838473 and 838493.
 The original Newton deployment used `06816e6b698901bd5148d47a3cdf73252c5a3a89`;
 its source, environment and publication receipts are preserved in
@@ -101,6 +128,20 @@ accepted environment archive; do not install into the system interpreter or
 silently change model/backend behavior. The exact GPU resume and separate real
 Slurm USR1 forwarding rehearsals remain open.
 
+The matching private header repair subsequently passed CPU job 839074 on evc37
+in 21 seconds. Compute nodes evc22/evc37 have Python/libpython package release
+`3.12.13-2.el8_10`, unlike the login node's `-3`; the first signature-verified
+candidate was correctly withheld by that identity check. Two further preserved
+checks exposed a `/home` versus `/lustre` path-alias assertion and a generated
+`pyconfig-64.h` dependency supplied by the matching runtime package. The complete
+private successor contains 215 byte-bound headers. Manual and actual installed
+Triton helper builds/imports plus version/pointer/PyObject ABI checks passed;
+the environment archive and numerical backend remain unchanged. See
+`initiative/audits/newton-runtime-repair-v1/`,
+`initiative/audits/newton-python-headers-accepted-v1/`, and the Newton guide for
+exact hashes and operational paths. Inspect the sole dispatcher's current pilot
+receipts; no optimizer update or epoch is implied by this CPU milestone.
+
 The exact offline Kaggle wheelhouse also passed an actual T4 probe. Its dedicated
 private Dataset and notebook remain at version 1, with all small receipts under
 `initiative/audits/dinov3-deployment-v1/kaggle-t4-acceptance/`. Reuse the archived
@@ -119,6 +160,12 @@ correction, and prior e7b GitHub/HF receipts are preserved under
 from the committed helper version against the actual training commit; do not
 mutate the active clean training checkout. Large epoch payloads stay on Newton. All 941 local tests, Ruff and mypy passed
 for this integration; root check logs are preserved in the same audit.
+That helper milestone is published on GitHub main as
+`018a43f4a8cf4061a2cbae493a19a171d15916e9`, with successful exact-head CI
+35770990593 and byte-verified private HF revision
+`b3b8e6660b0b495e069218b7f841b5479fbf7951`. Its 45-file minimal projection passed
+an actual clean-process bootstrap check and preserves the e7b training runtime.
+These publication/projection receipts are in the runtime-repair archive.
 
 Remote Lustre has about 212.66 GiB of byte quota available at discovery but only
 45,004 remaining file slots; the 48,772-file cache must not be unpacked there.

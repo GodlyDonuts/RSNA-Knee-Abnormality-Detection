@@ -1,0 +1,12 @@
+{
+  "node": "evc37",
+  "excluded_nodes": [
+    "evc38"
+  ],
+  "scope": "This job selection only; no scheduler or node mutation.",
+  "reason": "838579 verified both assigned H100 devices on evc37. 838502 on evc38 failed visibility.",
+  "pilot_only": true,
+  "production_requires_full_cache_verification": true,
+  "source_fix": "Only accepted narrow official DINOv3 Transformers5.6.1 key mapping, full CPU proof838689.",
+  "retry_reason": "Previous pilot838580 failed before any optimizer update on strict official weight key mismatch; diagnosed mapping fixed, not a blind resubmission."
+}

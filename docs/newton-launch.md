@@ -100,6 +100,57 @@ automatic retry. There is no access-token argument, gate acceptance, floating
 revision, or arbitrary URL option. A verified result prints hashes and sizes,
 not workspace paths or signed transfer URLs. Use the ConvNext manifest analogously.
 
+## Python headers for native GPU kernels
+
+The pinned Torch 2.14 runtime can compile Triton helpers during ordinary eager
+backpropagation. Freezing DINOv3 does not remove this requirement: the attention
+head's outer-product BMM gradient reached that path in pilot 838921. The first
+backward pass failed because `Python.h` was absent, before any optimizer update.
+Tiny tensor and forward-only checks therefore do not establish training readiness.
+
+Use development headers matching the **allocated compute node's** interpreter
+and mapped libpython, together with its compiler. Actual evc22 and evc37 identities
+are `python3.12` and `python3.12-libs` version `3.12.13-2.el8_10.x86_64`; the login
+node has release `-3`. That difference invalidated the original exact-package
+check; it does not by itself prove ABI incompatibility. Verify node identities,
+SOABI, version hex, pointer/PyObject size and build flags from measured receipts.
+
+The matching official Rocky development RPM is 299,160 bytes, SHA-256
+`d822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3`.
+Its catalog checksum chain is preserved with the runtime-repair evidence. Check
+its signature using the system's trusted Rocky keys before privately extracting
+the complete header tree, including generated `pyconfig` wrappers. Do not install
+the RPM or replace the accepted interpreter/environment archive. The devel RPM
+provides 214 files; its wrapper also needs the generated `pyconfig-64.h` supplied
+by the matching installed `python3.12-libs` package. Its 53,693 bytes matched the
+installed RPM's SHA-256 metadata. The complete private successor tree contains
+215 files / 1,285,903 bytes, with canonical tree SHA
+`08c760c1938c53debf9a2ed133609d7ed07049902b4eae54da6ee93454372241`.
+Keep the original 214-file tree and its earlier receipts unchanged.
+
+Set a single canonical `CPATH` for the allocated job and verify that exact header
+tree before use. Newton's `/home` and `/lustre/fs1/home` can name the same location;
+resolve the path before comparing it with a resolved receipt. Keep a fresh,
+private Triton cache for compilation acceptance. A CPU check must compile/import
+the actual installed driver helper and verify the header/runtime ABI; it cannot
+claim that a GPU kernel or optimizer update ran. Complete the subsequent real
+GPU backward/recovery pilot before production. Do not silently disable native
+JIT or change numerical backends as a workaround. The supplement is Newton-specific;
+Kaggle's own interpreter/headers require their own actual inference check.
+
+CPU job 839074 on evc37 passed actual manual helper compilation/import, a fresh
+installed Triton-builder replay and ABI comparisons in 21 seconds. The complete
+header archive is 1,679,360 bytes, SHA
+`88e52792fbf80236f8c576809b815a73b1223d079720f0986771a2ed072d39ad`.
+Its CPU proof SHA is
+`95c1d9aa2a9676cbdc4fa46e3d3ffda0bb721f24221365953ce23819c01f1695`.
+The operational include directory is
+`/lustre/fs1/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3/extracted/usr/include/python3.12`.
+Every new pilot/production invocation must recheck that supplement and its node's
+actual interpreter/library identity. The accepted environment archive remains
+unchanged. See the separate CPU acceptance and historical failure archives;
+neither receipt establishes a GPU training update.
+
 ## Generate and review a job
 
 Run `python scripts/newton/launch.py --help`. Required options include:

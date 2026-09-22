@@ -1,0 +1,64 @@
+"""CPU-only synthetic head-shape diagnostic; run from repository root."""
+import json
+import sys
+from pathlib import Path
+
+import torch
+from torch import nn
+from torch.utils._python_dispatch import TorchDispatchMode
+
+sys.path.insert(0, str(Path.cwd()))
+from rsna.competitive.loss import effective_batch_loss
+from rsna.competitive.model import CompetitiveStudyNet
+
+
+class Frozen(nn.Module):
+    def forward(self, images):
+        return torch.zeros((len(images), 1024), device=images.device)
+
+
+class Trace(TorchDispatchMode):
+    def __init__(self):
+        self.bmm = []
+
+    def __torch_dispatch__(self, func, types, args=(), kwargs=None):
+        if str(func) == "aten.bmm.default":
+            self.bmm.append([list(a.shape) for a in args])
+        return func(*args, **(kwargs or {}))
+
+
+def main():
+    torch.manual_seed(0)
+    model = CompetitiveStudyNet(Frozen(), 1024, hidden_dim=128)
+    b, s, k = 2, 6, 16
+    logits = model(
+        torch.zeros(b, s, k, 1, 4, 4),
+        torch.zeros(b, s, 5),
+        torch.ones(b, s, dtype=torch.bool),
+        torch.ones(b, s, k, dtype=torch.bool),
+        torch.zeros(b, s, k, 2),
+    )
+    mask = torch.ones(b, 12)
+    loss = effective_batch_loss(logits, torch.zeros(b, 12), mask, mask.double().sum(0))
+    trace = Trace()
+    with trace:
+        loss.backward()
+    result = {
+        "scope": "local CPU synthetic head-only shape trace; not Newton Triton execution",
+        "torch": str(torch.__version__),
+        "encoder_parameter_count": sum(p.numel() for p in model.encoder.parameters()),
+        "backward_bmm_operands": trace.bmm,
+        "outer_product_bmm_count": sum(a[2] == 1 and b[1] == 1 for a, b in trace.bmm),
+        "finite_head_gradients": all(
+            torch.isfinite(p.grad).all().item()
+            for p in model.parameters() if p.grad is not None
+        ),
+    }
+    assert result["encoder_parameter_count"] == 0
+    assert result["outer_product_bmm_count"] == 3
+    assert result["finite_head_gradients"]
+    print(json.dumps(result, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

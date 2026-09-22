@@ -1,0 +1,59 @@
+<ns0:package xmlns:ns0="http://linux.duke.edu/metadata/common" xmlns:ns1="http://linux.duke.edu/metadata/rpm" type="rpm">
+  <ns0:name>python3.12-devel</ns0:name>
+  <ns0:arch>x86_64</ns0:arch>
+  <ns0:version epoch="0" ver="3.12.13" rel="3.el8_10" />
+  <ns0:checksum type="sha256" pkgid="YES">0b2b188bf7c920e92ff0f3952ad43100dce29d565dc2c27adea7b4d0dda34dd2</ns0:checksum>
+  <ns0:summary>Libraries and header files needed for Python development</ns0:summary>
+  <ns0:description>This package contains the header files and configuration needed to compile
+Python extension modules (typically written in C or C++), to embed Python
+into other programs, and to make binary distributions for Python libraries.
+
+It also contains the necessary macros to build RPM packages with Python modules
+and 2to3 tool, an automatic source converter from Python 2.X.</ns0:description>
+  <ns0:packager>infrastructure@rockylinux.org</ns0:packager>
+  <ns0:url>https://www.python.org/</ns0:url>
+  <ns0:time file="1784132447" build="1784131515" />
+  <ns0:size package="299268" installed="1336876" archive="1375308" />
+  <ns0:location href="Packages/p/python3.12-devel-3.12.13-3.el8_10.x86_64.rpm" />
+  <ns0:format>
+    <ns1:license>Python-2.0.1</ns1:license>
+    <ns1:vendor>Rocky</ns1:vendor>
+    <ns1:group>Unspecified</ns1:group>
+    <ns1:buildhost>ord1-prod-x86build009.svc.aws.rockylinux.org</ns1:buildhost>
+    <ns1:sourcerpm>python3.12-3.12.13-3.el8_10.src.rpm</ns1:sourcerpm>
+    <ns1:header-range start="4504" end="47584" />
+    <ns1:provides>
+      <ns1:entry name="pkgconfig(python-3.12)" flags="EQ" epoch="0" ver="3.12" />
+      <ns1:entry name="pkgconfig(python-3.12-embed)" flags="EQ" epoch="0" ver="3.12" />
+      <ns1:entry name="python3.12-2to3" flags="EQ" epoch="0" ver="3.12.13" rel="3.el8_10" />
+      <ns1:entry name="python3.12-devel" flags="EQ" epoch="0" ver="3.12.13" rel="3.el8_10" />
+      <ns1:entry name="python3.12-devel(x86-64)" flags="EQ" epoch="0" ver="3.12.13" rel="3.el8_10" />
+    </ns1:provides>
+    <ns1:requires>
+      <ns1:entry name="(python-rpm-macros if rpm-build)" />
+      <ns1:entry name="(python3-rpm-generators if rpm-build)" />
+      <ns1:entry name="(python3-rpm-macros if rpm-build)" />
+      <ns1:entry name="/bin/sh" pre="1" />
+      <ns1:entry name="/bin/sh" />
+      <ns1:entry name="/usr/bin/pkg-config" />
+      <ns1:entry name="alternatives" flags="GE" epoch="0" ver="1.19.2" rel="1" />
+      <ns1:entry name="libpython3.12.so.1.0()(64bit)" />
+      <ns1:entry name="python3.12" pre="1" />
+      <ns1:entry name="python3.12" />
+      <ns1:entry name="python3.12" flags="EQ" epoch="0" ver="3.12.13" rel="3.el8_10" />
+      <ns1:entry name="python3.12-libs(x86-64)" flags="EQ" epoch="0" ver="3.12.13" rel="3.el8_10" />
+    </ns1:requires>
+    <ns1:conflicts>
+      <ns1:entry name="python3.12" flags="LT" epoch="0" ver="3.12.13" rel="3.el8_10" />
+    </ns1:conflicts>
+    <ns1:supplements>
+      <ns1:entry name="tox" />
+    </ns1:supplements>
+    <ns0:file>/usr/bin/2to3-3.12</ns0:file>
+    <ns0:file>/usr/bin/msgfmt3.12.py</ns0:file>
+    <ns0:file>/usr/bin/pygettext3.12.py</ns0:file>
+    <ns0:file type="ghost">/usr/bin/python3-config</ns0:file>
+    <ns0:file>/usr/bin/python3.12-config</ns0:file>
+    <ns0:file>/usr/bin/python3.12-x86_64-config</ns0:file>
+  </ns0:format>
+</ns0:package>

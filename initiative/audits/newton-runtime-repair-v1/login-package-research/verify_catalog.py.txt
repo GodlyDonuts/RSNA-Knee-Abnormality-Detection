@@ -1,0 +1,67 @@
+"""Read official Rocky metadata; no RPM download, install, SSH or job submission."""
+from pathlib import Path
+import gzip
+import hashlib
+import io
+import json
+import time
+from urllib.parse import urljoin
+import xml.etree.ElementTree as ET
+import requests
+
+stage = Path(__file__).resolve().parent
+head = json.loads((stage / 'catalog-head.json').read_text())
+url = urljoin('https://download.rockylinux.org/pub/rocky/8.10/AppStream/x86_64/os/', head['primary_location'])
+started = time.monotonic()
+response = requests.get(url, timeout=(15, 60), stream=True)
+response.raise_for_status()
+blob = bytearray()
+for chunk in response.iter_content(1024**2):
+    blob.extend(chunk)
+    if len(blob) > head['primary_bytes'] or time.monotonic() - started > 180:
+        raise ValueError('Bounded primary metadata read exceeded')
+if len(blob) != head['primary_bytes'] or hashlib.sha256(blob).hexdigest() != head['primary_checksum']:
+    raise ValueError('Primary metadata differs from repomd checksum')
+
+class VerifiedOpen:
+    def __init__(self, raw):
+        self.raw = raw
+        self.hash = hashlib.sha256()
+        self.count = 0
+    def read(self, size=-1):
+        value = self.raw.read(size)
+        self.count += len(value)
+        if self.count > head['primary_open_bytes']:
+            raise ValueError('Decompressed metadata exceeds catalog declaration')
+        self.hash.update(value)
+        return value
+
+opened = VerifiedOpen(gzip.GzipFile(fileobj=io.BytesIO(blob)))
+ns = {'c': 'http://linux.duke.edu/metadata/common', 'rpm': 'http://linux.duke.edu/metadata/rpm'}
+found = []
+for _, elem in ET.iterparse(opened, events=['end']):
+    if elem.tag != '{http://linux.duke.edu/metadata/common}package':
+        continue
+    if elem.findtext('c:name', namespaces=ns) == 'python3.12-devel':
+        version = elem.find('c:version', ns).attrib
+        if version['ver'] == '3.12.13' and version['rel'] == '3.el8_10' and elem.findtext('c:arch', namespaces=ns) == 'x86_64':
+            found.append({
+                'name': 'python3.12-devel', 'version': version,
+                'arch': 'x86_64', 'checksum_type': elem.find('c:checksum', ns).attrib['type'],
+                'checksum': elem.findtext('c:checksum', namespaces=ns),
+                'location': elem.find('c:location', ns).attrib['href'],
+                'size': elem.find('c:size', ns).attrib,
+                'requires': [x.attrib for x in elem.findall('c:format/rpm:requires/rpm:entry', ns)],
+            })
+            (stage / 'exact-package-element.xml').write_bytes(ET.tostring(elem, encoding='utf-8'))
+    elem.clear()
+if opened.count != head['primary_open_bytes'] or opened.hash.hexdigest() != head['primary_open_checksum']:
+    raise ValueError('Open metadata checksum or length differs')
+proof = {'schema_version': 1, 'author': '/root/competition_contract', 'primary_url': url,
+         'compressed_sha256': hashlib.sha256(blob).hexdigest(), 'compressed_bytes': len(blob),
+         'open_sha256': opened.hash.hexdigest(), 'open_bytes': opened.count,
+         'repomd_sha256': head['sha256'], 'matching_packages': found,
+         'rpm_downloaded': False, 'remote_cluster_actions': False,
+         'verifier_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+(stage / 'catalog-proof.json').write_text(json.dumps(proof, sort_keys=True, indent=2) + '\n')
+print(json.dumps(proof, sort_keys=True))

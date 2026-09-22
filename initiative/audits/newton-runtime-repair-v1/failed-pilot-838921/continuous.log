@@ -1,0 +1,193 @@
+/tmp/rsna-environment-838921-jul5w6s9/environment/lib/python3.12/site-packages/triton/backends/nvidia/driver.c:9:10: fatal error: Python.h: No such file or directory
+ #include <Python.h>
+          ^~~~~~~~~~
+compilation terminated.
+/tmp/rsna-environment-838921-jul5w6s9/environment/lib/python3.12/site-packages/triton/backends/nvidia/driver.c:9:10: fatal error: Python.h: No such file or directory
+ #include <Python.h>
+          ^~~~~~~~~~
+compilation terminated.
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "<frozen runpy>", line 198, in _run_module_as_main
+[rank1]:   File "<frozen runpy>", line 88, in _run_code
+[rank1]:   File "/lustre/fs1/home/sa305415/rsna-knee/code/rsna/competitive/train.py", line 668, in <module>
+[rank1]:     main()
+[rank1]:   File "/lustre/fs1/home/sa305415/rsna-knee/code/rsna/competitive/train.py", line 664, in main
+[rank1]:     raise SystemExit(run(args, stop_requested))
+[rank1]:                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/lustre/fs1/home/sa305415/rsna-knee/code/rsna/competitive/train.py", line 249, in run
+[rank1]:     return _run_locked(
+[rank1]:            ^^^^^^^^^^^^
+[rank1]:   File "/lustre/fs1/home/sa305415/rsna-knee/code/rsna/competitive/train.py", line 483, in _run_locked
+[rank1]:     loss.backward()
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_tensor.py", line 623, in backward
+[rank1]:     torch.autograd.backward(
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/autograd/__init__.py", line 395, in backward
+[rank1]:     _engine_run_backward(
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/autograd/graph.py", line 1072, in _engine_run_backward
+[rank1]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/registry.py", line 956, in eager_router
+[rank1]:     result = _dispatch(args, kwargs, swallow_cond_exceptions=False)
+[rank1]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/registry.py", line 935, in _dispatch
+[rank1]:     return getattr(torch.ops._native, impl_name)(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_ops.py", line 1350, in __call__
+[rank1]:     return self._op(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/ops/bmm_outer_product/triton_impl.py", line 27, in _bmm_outer_product_impl
+[rank1]:     return bmm_outer_product(a, b)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/ops/bmm_outer_product/triton_kernels.py", line 87, in bmm_outer_product
+[rank1]:     _bmm_outer_product_kernel[(B * triton.cdiv(M, BLOCK_M) * triton.cdiv(N, BLOCK_N),)](
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/instrumentation.py", line 208, in wrapper
+[rank1]:     return fn(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/jit.py", line 374, in <lambda>
+[rank1]:     return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+[rank1]:                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/jit.py", line 731, in run
+[rank1]:     device = driver.active.get_current_device()
+[rank1]:              ^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 39, in active
+[rank1]:     self._active = self.default
+[rank1]:                    ^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 33, in default
+[rank1]:     self._default = _create_driver()
+[rank1]:                     ^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 21, in _create_driver
+[rank1]:     return active_drivers[0]()
+[rank1]:            ^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/backends/nvidia/driver.py", line 342, in __init__
+[rank1]:     self.utils = CudaUtils()  # TODO: make static
+[rank1]:                  ^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/backends/nvidia/driver.py", line 101, in __init__
+[rank1]:     mod = compile_module_from_file(
+[rank1]:           ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 196, in compile_module_from_file
+[rank1]:     return _compile_so_from_file(src_path, name, library_dirs, include_dirs, libraries, ccflags, load_module=True)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 165, in _compile_so_from_file
+[rank1]:     return _compile_so(src=src, src_path=src_path, name=name, library_dirs=library_dirs, include_dirs=include_dirs,
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 149, in _compile_so
+[rank1]:     so = _build(name, src_path, tmpdir, library_dirs or [], include_dirs or [], libraries or [], ccflags or [],
+[rank1]:          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 83, in _build
+[rank1]:     subprocess.check_call(cc_cmd, stdout=subprocess.DEVNULL)
+[rank1]:   File "/usr/lib64/python3.12/subprocess.py", line 413, in check_call
+[rank1]:     raise CalledProcessError(retcode, cmd)
+[rank1]: subprocess.CalledProcessError: Command '['/usr/bin/gcc', '/tmp/rsna-environment-838921-jul5w6s9/environment/lib/python3.12/site-packages/triton/backends/nvidia/driver.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpozzh2pcb/cuda_utils.cpython-312-x86_64-linux-gnu.so', '-l:libcuda.so.1', '-L/tmp/rsna-environment-838921-jul5w6s9/environment/lib/python3.12/site-packages/triton/backends/nvidia/lib', '-L/lib64', '-L/lib', '-I/tmp/rsna-environment-838921-jul5w6s9/environment/lib/python3.12/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpozzh2pcb', '-I/usr/include/python3.12']' returned non-zero exit status 1.
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "<frozen runpy>", line 198, in _run_module_as_main
+[rank0]:   File "<frozen runpy>", line 88, in _run_code
+[rank0]:   File "/lustre/fs1/home/sa305415/rsna-knee/code/rsna/competitive/train.py", line 668, in <module>
+[rank0]:     main()
+[rank0]:   File "/lustre/fs1/home/sa305415/rsna-knee/code/rsna/competitive/train.py", line 664, in main
+[rank0]:     raise SystemExit(run(args, stop_requested))
+[rank0]:                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/lustre/fs1/home/sa305415/rsna-knee/code/rsna/competitive/train.py", line 249, in run
+[rank0]:     return _run_locked(
+[rank0]:            ^^^^^^^^^^^^
+[rank0]:   File "/lustre/fs1/home/sa305415/rsna-knee/code/rsna/competitive/train.py", line 483, in _run_locked
+[rank0]:     loss.backward()
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_tensor.py", line 623, in backward
+[rank0]:     torch.autograd.backward(
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/autograd/__init__.py", line 395, in backward
+[rank0]:     _engine_run_backward(
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/autograd/graph.py", line 1072, in _engine_run_backward
+[rank0]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/registry.py", line 956, in eager_router
+[rank0]:     result = _dispatch(args, kwargs, swallow_cond_exceptions=False)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/registry.py", line 935, in _dispatch
+[rank0]:     return getattr(torch.ops._native, impl_name)(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_ops.py", line 1350, in __call__
+[rank0]:     return self._op(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/ops/bmm_outer_product/triton_impl.py", line 27, in _bmm_outer_product_impl
+[rank0]:     return bmm_outer_product(a, b)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/ops/bmm_outer_product/triton_kernels.py", line 87, in bmm_outer_product
+[rank0]:     _bmm_outer_product_kernel[(B * triton.cdiv(M, BLOCK_M) * triton.cdiv(N, BLOCK_N),)](
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/_native/instrumentation.py", line 208, in wrapper
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/jit.py", line 374, in <lambda>
+[rank0]:     return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+[rank0]:                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/jit.py", line 731, in run
+[rank0]:     device = driver.active.get_current_device()
+[rank0]:              ^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 39, in active
+[rank0]:     self._active = self.default
+[rank0]:                    ^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 33, in default
+[rank0]:     self._default = _create_driver()
+[rank0]:                     ^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 21, in _create_driver
+[rank0]:     return active_drivers[0]()
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/backends/nvidia/driver.py", line 342, in __init__
+[rank0]:     self.utils = CudaUtils()  # TODO: make static
+[rank0]:                  ^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/backends/nvidia/driver.py", line 101, in __init__
+[rank0]:     mod = compile_module_from_file(
+[rank0]:           ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 196, in compile_module_from_file
+[rank0]:     return _compile_so_from_file(src_path, name, library_dirs, include_dirs, libraries, ccflags, load_module=True)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 165, in _compile_so_from_file
+[rank0]:     return _compile_so(src=src, src_path=src_path, name=name, library_dirs=library_dirs, include_dirs=include_dirs,
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 149, in _compile_so
+[rank0]:     so = _build(name, src_path, tmpdir, library_dirs or [], include_dirs or [], libraries or [], ccflags or [],
+[rank0]:          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 83, in _build
+[rank0]:     subprocess.check_call(cc_cmd, stdout=subprocess.DEVNULL)
+[rank0]:   File "/usr/lib64/python3.12/subprocess.py", line 413, in check_call
+[rank0]:     raise CalledProcessError(retcode, cmd)
+[rank0]: subprocess.CalledProcessError: Command '['/usr/bin/gcc', '/tmp/rsna-environment-838921-jul5w6s9/environment/lib/python3.12/site-packages/triton/backends/nvidia/driver.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmpot9di44_/cuda_utils.cpython-312-x86_64-linux-gnu.so', '-l:libcuda.so.1', '-L/tmp/rsna-environment-838921-jul5w6s9/environment/lib/python3.12/site-packages/triton/backends/nvidia/lib', '-L/lib64', '-L/lib', '-I/tmp/rsna-environment-838921-jul5w6s9/environment/lib/python3.12/site-packages/triton/backends/nvidia/include', '-I/tmp/tmpot9di44_', '-I/usr/include/python3.12']' returned non-zero exit status 1.
+W0922 14:58:36.446000 2640219 torch/distributed/elastic/multiprocessing/api.py:1028] Sending process 2640250 closing signal SIGTERM
+E0922 14:58:36.611000 2640219 torch/distributed/elastic/multiprocessing/api.py:1002] failed (exitcode: 1) local_rank: 1 (pid: 2640251) of binary: /tmp/rsna-environment-838921-jul5w6s9/environment/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1142, in <module>
+    main()
+  File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 380, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1138, in main
+    run(args)
+  File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1129, in run
+    elastic_launch(
+  File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 197, in __call__
+    return launch_agent(
+           ^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-838921-jul5w6s9/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 386, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+rsna.competitive.train FAILED
+------------------------------------------------------------
+Failures:
+[1]:
+  time      : 2026-09-22_14:58:36
+  host      : evc37.ucfarcc.org
+  rank      : 0 (local_rank: 0)
+  exitcode  : -15 (pid: 2640250)  (SIGTERM)
+  error_file: <N/A>
+  traceback : Signal 15 (SIGTERM) received by PID 2640250
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-22_14:58:36
+  host      : evc37.ucfarcc.org
+  rank      : 1 (local_rank: 1)
+  exitcode  : 1 (pid: 2640251) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

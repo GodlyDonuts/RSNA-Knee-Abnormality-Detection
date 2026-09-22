@@ -1,0 +1,78 @@
+{
+  "node": "evc22",
+  "job_id": "838977",
+  "python_version": "3.12.13 (main, Apr 27 2026, 15:38:13) [GCC 8.5.0 20210514 (Red Hat 8.5.0-28)]",
+  "sysconfig": {
+    "SOABI": "cpython-312-x86_64-linux-gnu",
+    "EXT_SUFFIX": ".cpython-312-x86_64-linux-gnu.so",
+    "INCLUDEPY": "/usr/include/python3.12",
+    "CONFINCLUDEPY": "/usr/include/python3.12",
+    "Py_DEBUG": 0,
+    "ABIFLAGS": "",
+    "VERSION": "3.12",
+    "CONFIG_ARGS": "'--build=x86_64-redhat-linux-gnu' '--host=x86_64-redhat-linux-gnu' '--program-prefix=' '--disable-dependency-tracking' '--prefix=/usr' '--exec-prefix=/usr' '--bindir=/usr/bin' '--sbindir=/usr/sbin' '--sysconfdir=/etc' '--datadir=/usr/share' '--includedir=/usr/include' '--libdir=/usr/lib64' '--libexecdir=/usr/libexec' '--localstatedir=/var' '--sharedstatedir=/var/lib' '--mandir=/usr/share/man' '--infodir=/usr/share/info' '--with-platlibdir=lib64' '--enable-ipv6' '--enable-shared' '--with-computed-gotos=yes' '--with-dbmliborder=gdbm:ndbm:bdb' '--with-system-expat' '--with-system-ffi' '--with-system-libmpdec' '--enable-loadable-sqlite-extensions' '--with-dtrace' '--with-lto' '--with-ssl-default-suites=openssl' '--with-builtin-hashlib-hashes=blake2' '--without-static-libpython' '--with-wheel-pkg-dir=/usr/share/python3.12-wheels' '--with-valgrind' '--without-ensurepip' '--enable-optimizations' 'build_alias=x86_64-redhat-linux-gnu' 'host_alias=x86_64-redhat-linux-gnu' 'PKG_CONFIG_PATH=:/usr/lib64/pkgconfig:/usr/share/pkgconfig' 'CFLAGS= -O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -grecord-gcc-switches   -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection ' 'LDFLAGS= -Wl,-z,relro  -Wl,-z,now  ' 'CPPFLAGS='",
+    "LDLIBRARY": "libpython3.12.so",
+    "LIBDIR": "/usr/lib64",
+    "SIZEOF_VOID_P": 8
+  },
+  "os_release": {
+    "NAME": "Rocky Linux",
+    "ID": "rocky",
+    "PRETTY_NAME": "Rocky Linux 8.10 (Green Obsidian)",
+    "VERSION": "8.10 (Green Obsidian)",
+    "ID_LIKE": "rhel centos fedora",
+    "VERSION_ID": "8.10",
+    "PLATFORM_ID": "platform:el8",
+    "ANSI_COLOR": "0;32",
+    "LOGO": "fedora-logo-icon",
+    "CPE_NAME": "cpe:/o:rocky:rocky:8:GA",
+    "HOME_URL": "https://rockylinux.org/",
+    "BUG_REPORT_URL": "https://bugs.rockylinux.org/",
+    "SUPPORT_END": "2029-05-31",
+    "ROCKY_SUPPORT_PRODUCT": "Rocky-Linux-8",
+    "ROCKY_SUPPORT_PRODUCT_VERSION": "8.10",
+    "REDHAT_SUPPORT_PRODUCT": "Rocky Linux",
+    "REDHAT_SUPPORT_PRODUCT_VERSION": "8.10"
+  },
+  "sizeof_pyobject": 16,
+  "requested_gpus": 0,
+  "read_only": true,
+  "mapped_libpython_paths": [
+    "/usr/lib64/libpython3.12.so.1.0"
+  ],
+  "exact_failed_query": {
+    "command": [
+      "rpm",
+      "-q",
+      "--qf",
+      "%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\n",
+      "python3.12",
+      "python3.12-libs"
+    ],
+    "returncode": 0,
+    "stdout": "python3.12|3.12.13|2.el8_10|x86_64\npython3.12-libs|3.12.13|2.el8_10|x86_64\n",
+    "stderr": ""
+  },
+  "actual_file_owners": {
+    "command": [
+      "rpm",
+      "-qf",
+      "--qf",
+      "%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\n",
+      "/usr/bin/python3.12",
+      "/usr/lib64/libpython3.12.so.1.0"
+    ],
+    "returncode": 0,
+    "stdout": "python3.12|3.12.13|2.el8_10|x86_64\npython3.12-libs|3.12.13|2.el8_10|x86_64\n",
+    "stderr": ""
+  },
+  "compiler": {
+    "command": [
+      "gcc",
+      "--version"
+    ],
+    "returncode": 0,
+    "stdout": "gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-28)\nCopyright (C) 2018 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+    "stderr": ""
+  }
+}

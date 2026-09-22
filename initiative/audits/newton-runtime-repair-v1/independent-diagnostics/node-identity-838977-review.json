@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-22T19:12:13.331923+00:00",
+  "status": "allocated_node_identity_verified_exact_minus2_candidate",
+  "prior_review": {
+    "path": "artifacts/triton-python-header-independent-review-v1/review.json",
+    "sha256": "9bb02674395c9f2c6b886fdc9ba91220891722d4bc258557857a23b5964045fb",
+    "bytes": 9898
+  },
+  "failed_attempt_review": {
+    "path": "artifacts/triton-python-header-independent-review-v1/supplement-attempt-838967-review.json",
+    "sha256": "41c56b1b472d6d9d8980a0fc68d048f0d67730f517bce7d83ba41093cf43191a",
+    "bytes": 4572
+  },
+  "reviewed_evidence": [
+    {
+      "path": "artifacts/newton-python-node-identity-v1/evc22.json",
+      "sha256": "ad1091d191555c89ed9b9c63b505ca8197a38bcecaf6ca08011c0cc92a92fd4f",
+      "bytes": 3740,
+      "snapshot": "node-identity-838977/evc22.json"
+    },
+    {
+      "path": "artifacts/newton-python-node-identity-v1/evc37.json",
+      "sha256": "7f931fcf728b5304c0afbea83aa686d94f2842553eae98a14d991823ce40edaf",
+      "bytes": 3740,
+      "snapshot": "node-identity-838977/evc37.json"
+    },
+    {
+      "path": "artifacts/newton-python-node-identity-v1/inspect.py",
+      "sha256": "958db8dd896ee117c306ffa9ab0ed339af3a935395bf6c65adcfa3514b718bd2",
+      "bytes": 1516,
+      "snapshot": "node-identity-838977/inspect.py.txt"
+    },
+    {
+      "path": "artifacts/newton-python-node-identity-v1/inspect.sbatch",
+      "sha256": "f5cb3627389c7ba103c1391849c436b4d34ab7129e86a8beebb8b9e7273dcf4a",
+      "bytes": 667,
+      "snapshot": "node-identity-838977/inspect.sbatch"
+    },
+    {
+      "path": "artifacts/newton-python-node-identity-v1/accounting.txt",
+      "sha256": "876429228bd746699976538647fa47769582fd3aa535782c9e03979d0ec197e3",
+      "bytes": 174,
+      "snapshot": "node-identity-838977/accounting.txt"
+    },
+    {
+      "path": "artifacts/newton-python-node-identity-v1/dispatch-intent.json",
+      "sha256": "5d3fd4c6e03e063afcbe1ca0243813b9860df096641b2c7b5930ea2868c08dfe",
+      "bytes": 362,
+      "snapshot": "node-identity-838977/dispatch-intent.json"
+    }
+  ],
+  "observed": {
+    "job_id": 838977,
+    "requested_gpus": 0,
+    "nodes": [
+      "evc22",
+      "evc37"
+    ],
+    "actual_interpreter_and_mapped_library_release": "3.12.13-2.el8_10.x86_64",
+    "mapped_libpython": "/usr/lib64/libpython3.12.so.1.0",
+    "SOABI": "cpython-312-x86_64-linux-gnu",
+    "sizeof_pointer": 8,
+    "sizeof_PyObject_runtime": 16,
+    "Py_DEBUG": 0,
+    "ABIFLAGS": "",
+    "full_sysconfig_objects_equal_between_nodes": true
+  },
+  "interpretation": "The login-node -3 package identity did not describe these allocated compute nodes. The old guard correctly rejected the wrong exact build expectation. This discrepancy alone is not a demonstrated C ABI incompatibility between -2 and -3, but the available exact -2 development package is preferred. The actual pilot must recheck interpreter and mapped-library identity.",
+  "candidate": {
+    "name": "python3.12-devel-3.12.13-2.el8_10.x86_64.rpm",
+    "url": "https://download.rockylinux.org/pub/rocky/8.10/AppStream/x86_64/os/Packages/p/python3.12-devel-3.12.13-2.el8_10.x86_64.rpm",
+    "official_directory_url": "https://download.rockylinux.org/pub/rocky/8.10/AppStream/x86_64/os/Packages/p/",
+    "listed_bytes": 299160,
+    "official_directory_entry_independently_read": true,
+    "package_payload_or_signature_verified_by_this_assessor": false,
+    "checksum_chain_review_pending": true
+  },
+  "supersession": "Only the preferred allocated-node package release in the earlier diagnosis changes to -2. Original login evidence and failed -3 attempt remain preserved.",
+  "no_cluster_actions_by_assessor": true,
+  "cpu_repair_accepted": false,
+  "gpu_training_accepted": false
+}

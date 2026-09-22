@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-22T19:06:37.971248+00:00",
+  "status": "independent_diagnosis_complete_repair_not_executed",
+  "scope": "Read-only local failure/source/ABI inspection, official primary documentation, and synthetic CPU head shape trace. No SSH, credentials, package installs, GPU execution, runtime mutation or backend override.",
+  "inputs": [
+    {
+      "path": "artifacts/newton-pilot-launch-v4/failed-838921/continuous.log",
+      "sha256": "ec43e9835671e439f90853e5a8c1f3299bc9065f9d097da23cb5070a381e516d",
+      "bytes": 17165
+    },
+    {
+      "path": "artifacts/newton-pilot-launch-v4/failed-838921/run.json",
+      "sha256": "370609d9f76b430aee1c36fc8730e0b06db4106a1afc93e94d8231e6424c8f75",
+      "bytes": 6377
+    },
+    {
+      "path": "artifacts/newton-pilot-launch-v4/failed-838921/manifest.json",
+      "sha256": "38802544de81fbe876bb4e8ff4d24f56a2a9535d9b08ef0c31e2ec7190987216",
+      "bytes": 1991
+    },
+    {
+      "path": "artifacts/newton-python-headers-v1/system-python-readonly.json",
+      "sha256": "5d5f91d4cef310b667dc34c6e08c9eeaa0578d12b0f6f1c1bef01b20b7df3590",
+      "bytes": 4250
+    },
+    {
+      "path": "rsna/competitive/model.py",
+      "sha256": "5a410cad358f70bfd0adc779ccae0af2d86e6be293ef6d9cbda7e7bef3bd49f6",
+      "bytes": 6668
+    },
+    {
+      "path": "rsna/competitive/loss.py",
+      "sha256": "a6bd607163589b0209af4bc88483124309e499b3adea412d7d1a49c8a905cf40",
+      "bytes": 2510
+    },
+    {
+      "path": "rsna/competitive/train.py",
+      "sha256": "b48af0770dc9f4a9451203dc57ce46f45b2d19e7b0e931fe2b766d04a3e1652b",
+      "bytes": 27242
+    },
+    {
+      "path": "artifacts/triton-python-header-independent-review-v1/local-head-shape-trace.json",
+      "sha256": "4eda51803ef585e1ca4aac06de49214d1a1841200be53cfe4b60e863664053e2",
+      "bytes": 457
+    },
+    {
+      "path": "artifacts/triton-python-header-independent-review-v1/reproduce_head_shape_trace.py",
+      "sha256": "8104fa6c023b63a178462c7d17db1fa15912f74dce4a43687084afa47e8ada72",
+      "bytes": 2070
+    },
+    {
+      "path": "artifacts/triton-python-header-independent-review-v1/reproduction-result.json",
+      "sha256": "6d13f6a398bd78de3972dc24eb4b96a5cc8bf8ccdb56ed75026749a6de05c146",
+      "bytes": 528
+    },
+    {
+      "path": "artifacts/triton-python-header-independent-review-v1/local-torch-sources.json",
+      "sha256": "d854baf23d700b658ca9dc12aada4d4b834940c91eaf27a2c1004a9316d1853a",
+      "bytes": 1499
+    }
+  ],
+  "failure": {
+    "job_id": 838921,
+    "node": "evc37",
+    "first_failing_operation": "loss.backward() before optimizer step",
+    "path": [
+      "torch native eager aten::bmm outer-product override",
+      "Triton NVIDIA CudaUtils",
+      "gcc shared-extension compile of driver.c"
+    ],
+    "immediate_error": "Python.h is absent from /usr/include/python3.12; python3.12-devel not installed",
+    "not_established": [
+      "A model math defect",
+      "A need to unfreeze the encoder",
+      "Failure of an explicit torch.compile graph",
+      "Any failure beyond the first missing header"
+    ]
+  },
+  "head_only_trace": {
+    "device": "CPU",
+    "encoder_parameters": 0,
+    "backward_bmm_calls": 8,
+    "outer_product_bmm_calls": 3,
+    "head_gradients_finite": true,
+    "rerun_matches_preserved_result": true,
+    "interpretation": "Actual hierarchical attention head and masked loss can create outer-product BMM gradients without encoder gradients; Newton stack independently identifies this native eager override. CPU trace does not execute the CUDA override."
+  },
+  "abi": {
+    "evidence_scope": "Read-only login-node system query supplied by dispatcher; compare allocated-node runtime at proof time",
+    "interpreter": "/usr/bin/python3.12",
+    "rpm": "python3.12-3.12.13-3.el8_10.x86_64",
+    "libraries_rpm": "python3.12-libs-3.12.13-3.el8_10.x86_64",
+    "recommended_devel": "python3.12-devel-3.12.13-3.el8_10.x86_64",
+    "soabi": "cpython-312-x86_64-linux-gnu",
+    "extension_suffix": ".cpython-312-x86_64-linux-gnu.so",
+    "Py_DEBUG": 0,
+    "ABIFLAGS": "",
+    "SIZEOF_VOID_P": 8,
+    "Py_ENABLE_SHARED": 1,
+    "compiler": "GCC 8.5.0-28.el8_10",
+    "required_headers": "Complete matching development include tree, including generated pyconfig.h and dependent cpython/internal subdirectories present in the package. Copying only Python.h is insufficient. Honor distinct include and platform-include directories if present.",
+    "qualification": "Exact distribution build is preferred and minimizes unknowns. CPython documents same-minor release compatibility when compiled the same way; exact patch equality is not presented as a universal ABI requirement. No fallback build has been accepted."
+  },
+  "proposed_minimal_repair": [
+    "Obtain the matching authentic distribution development package and preserve URL, NEVRA/architecture, repository digest and signature verification evidence. Privately extract, without installing to or changing /usr or the accepted environment archive.",
+    "Bind every extracted regular file by relative path/SHA/size, reject unexpected links/paths, and record immutable supplement hash. Verify patchlevel and generated platform configuration against the actual shared interpreter/sysconfig.",
+    "Add the private complete include tree to the compiler include search in an explicit reviewed invocation (for example a scoped CPATH), preserving the former runtime environment and source. Do not silently replace the interpreter or disable the native backend."
+  ],
+  "minimum_cpu_proof": [
+    "On an authorized zero-GPU compute job, use the same shared interpreter and exact accepted environment. Record interpreter/package/source versions, compiler, sysconfig, selected include tree and library resolution.",
+    "Preserve hashes of the installed Torch outer-product files, Triton runtime/build.py, NVIDIA driver.py and driver.c; local Mac Torch source snapshots are supporting evidence, not proof of identical Newton wheel bytes.",
+    "Use a fresh isolated TRITON_CACHE_DIR and no pre-existing compiled object. Inspect actual installed driver.c PyInit and build helper signature before choosing a GPU-free import route.",
+    "Compile and load the exact installed NVIDIA driver.c through the installed build helper and actual libcuda path, without constructing driver.active or invoking CUDA methods. Capture compile invocation and produced extension hash. If its actual module initializer needs a GPU, report compile-only honestly and defer import to allocated GPU proof.",
+    "A minimal separate C-extension ABI probe may additionally report compile-time PY_VERSION, pointer size, Py_DEBUG and Py_GetVersion under the actual interpreter. This supports but does not replace the exact Triton helper build.",
+    "Preserve return codes/stdout/stderr and clean only owned temporary outputs. CPU compilation/import is not evidence of a functioning GPU kernel, optimizer or distributed training."
+  ],
+  "later_gpu_proof": [
+    "Use a fresh isolated compiler cache and the explicitly bound header supplement under the accepted interpreter, unchanged model/data/config/backend, on an authorized healthy allocated GPU node.",
+    "Execute actual competitive head forward, masked loss backward, finite gradients and a real optimizer update; preserve shape/dtype, source/config/weight/supplement hashes, exact operation counters and CUDA synchronization result. The full actual pilot additionally validates the frozen official encoder path.",
+    "Then the authorized two-GPU diagnostic continuous/interrupted/resume workflow must pass; an earlier CPU forward or extension import cannot satisfy this gate."
+  ],
+  "backend_alternative_not_applied": {
+    "name": "TORCH_DISABLE_NATIVE_JIT=1",
+    "source": "torch/_native/common_utils.py at local torch git08187d9e0fba026dc8217405802ab5381dc88d90",
+    "effect": "Disables native DSL overrides globally when set before initialization. It can avoid this eager override but changes backend execution/performance and proof lineage. No switch was set and no fallback was tested.",
+    "recommendation": "Prefer matching headers; any fallback needs explicit configuration/provenance and its own backward, optimizer, numerical and resume validation."
+  },
+  "primary_sources": [
+    {
+      "url": "https://docs.python.org/3.12/c-api/intro.html",
+      "use": "Python.h and both include/platform-include search paths"
+    },
+    {
+      "url": "https://docs.python.org/3.12/c-api/stable.html",
+      "use": "Same-minor ABI compatibility depends on compatible platform/compiler/build options; private API limits"
+    },
+    {
+      "url": "https://docs.python.org/3.12/library/sysconfig.html",
+      "use": "Interpreter build configuration and generated pyconfig.h"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/pytorch/pytorch/08187d9e0fba026dc8217405802ab5381dc88d90/torch/_native/common_utils.py",
+      "use": "Pinned public native JIT disable switch corresponding to local package revision"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/triton-lang/triton/main/python/triton/runtime/build.py",
+      "use": "General extension build/cache mechanism only; unpinned main is not Newton source identity"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/triton-lang/triton/main/third_party/nvidia/backend/driver.c",
+      "use": "General current initializer structure only; actual installed source inspection remains a CPU proof prerequisite"
+    }
+  ],
+  "remaining_uncertainty": [
+    "No repair package or CPU build proof reviewed yet",
+    "No actual Newton wheel source byte comparison performed by this assessor",
+    "No GPU backward or optimizer step accepted by this review",
+    "Missing Python.h is the first observed blocker; exact subsequent compilation may reveal another dependency"
+  ]
+}

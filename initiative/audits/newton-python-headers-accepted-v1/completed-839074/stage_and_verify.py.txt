@@ -1,0 +1,135 @@
+"""Private exact Rocky development headers; CPU compilation only, no RPM install."""
+import argparse,base64,gzip,hashlib,importlib.util,json,os,platform,re,shutil,stat,subprocess,sys,sysconfig,tarfile,tempfile,urllib.request,xml.etree.ElementTree as ET
+from pathlib import Path
+ROOT=Path(__file__).resolve().parent
+BASE='https://download.rockylinux.org/pub/rocky/8.10/devel/x86_64/os/'
+RPM='python3.12-devel-3.12.13-2.el8_10.x86_64.rpm'
+RPM_SHA='d822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3'
+PRIMARY='81dff09b350250a1df040deaea829d469d5708ce5e67652a2ba4a5d290e1e3d6'
+
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(4*1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def save(path,value):
+ with path.open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+def download(url,path,expected,size):
+ with urllib.request.urlopen(url,timeout=30) as r,path.open('xb') as out:
+  total=0
+  for b in iter(lambda:r.read(1024*1024),b''):
+   total+=len(b)
+   if total>size:raise ValueError('download exceeds bound')
+   out.write(b)
+  out.flush();os.fsync(out.fileno())
+ assert total==size and sha(path)==expected,'download hash/size mismatch'
+def command(args,**kw):
+ p=subprocess.run(args,capture_output=True,text=True,timeout=120,**kw)
+ return {'command':args,'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
+def stage():
+ assert platform.python_version()=='3.12.13' and sysconfig.get_config_var('SOABI')=='cpython-312-x86_64-linux-gnu'
+ pkg=ROOT/RPM
+ download(BASE+'Packages/p/'+RPM,pkg,RPM_SHA,299160)
+ signature=command(['rpmkeys','--checksig','--verbose',str(pkg)])
+ save(ROOT/'rpm-signature.json',signature)
+ text=signature['stdout']+signature['stderr']
+ assert signature['returncode']==0 and 'Signature' in text and ': OK' in text and not any(x in text.upper() for x in ['NOKEY','NOT OK','NOTTRUSTED','BAD SIGNATURE'])
+ identity=command(['rpm','-qp','--qf','%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}|%{EPOCHNUM}\n',str(pkg)])
+ assert identity['returncode']==0 and identity['stdout'].strip()=='python3.12-devel|3.12.13|2.el8_10|x86_64|0'
+ installed=command(['rpm','-q','--qf','%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\n','python3.12','python3.12-libs'])
+ save(ROOT/'package-identities-before-guard.json',{'development':identity,'installed_runtime':installed,'node':platform.node(),'python':sys.version,'sysconfig':{k:sysconfig.get_config_var(k) for k in ['SOABI','EXT_SUFFIX','INCLUDEPY','CONFINCLUDEPY','Py_DEBUG','ABIFLAGS','CONFIG_ARGS','SIZEOF_VOID_P']}})
+ assert installed['returncode']==0 and set(installed['stdout'].splitlines())=={'python3.12|3.12.13|2.el8_10|x86_64','python3.12-libs|3.12.13|2.el8_10|x86_64'}
+ save(ROOT/'package-identities.json',{'development':identity,'installed_runtime':installed})
+ primary=ROOT/'primary.xml.gz';download(BASE+'repodata/'+PRIMARY+'-primary.xml.gz',primary,PRIMARY,103702027)
+ assert sha(ROOT/'repomd.xml')=='339cc3d01258d7c0bd6aba4c80619a94457ef5f0d929dc2d821ff83895b555ca'
+ repo=ET.parse(ROOT/'repomd.xml').getroot();rns={'r':'http://linux.duke.edu/metadata/repo'}
+ entries=[x for x in repo.findall('r:data',rns) if x.attrib.get('type')=='primary'];assert len(entries)==1
+ assert entries[0].findtext('r:checksum',namespaces=rns)==PRIMARY
+ assert entries[0].findtext('r:open-checksum',namespaces=rns)=='98bb008f92b49c4cd5e1b2fc0f0dcbcd3b2555f1751a003d7960103c78a75f0c'
+ class CountHash:
+  def __init__(self,stream):self.stream=stream;self.count=0;self.h=hashlib.sha256()
+  def read(self,n=-1):
+   b=self.stream.read(n);self.count+=len(b);self.h.update(b);return b
+ ns={'c':'http://linux.duke.edu/metadata/common'};matches=[]
+ with gzip.open(primary,'rb') as source:
+  counted=CountHash(source)
+  for event,item in ET.iterparse(counted,events=('end',)):
+   if item.tag!='{http://linux.duke.edu/metadata/common}package':continue
+   ver=item.find('c:version',ns)
+   if item.findtext('c:name',namespaces=ns)=='python3.12-devel' and item.findtext('c:arch',namespaces=ns)=='x86_64' and ver.attrib=={'epoch':'0','ver':'3.12.13','rel':'2.el8_10'}:matches.append(ET.fromstring(ET.tostring(item)))
+   item.clear()
+  assert counted.count==737832742 and counted.h.hexdigest()=='98bb008f92b49c4cd5e1b2fc0f0dcbcd3b2555f1751a003d7960103c78a75f0c'
+ assert len(matches)==1
+ item=matches[0];assert item.find('c:checksum',ns).attrib['type']=='sha256' and item.findtext('c:checksum',namespaces=ns)==RPM_SHA
+ assert item.find('c:location',ns).attrib['href']=='Packages/p/'+RPM and item.find('c:size',ns).attrib['package']=='299160'
+ (ROOT/'verified-package-element.xml').write_bytes(ET.tostring(item))
+ listing=command(['rpm','-qpl',str(pkg)]);assert listing['returncode']==0
+ expected={p for p in listing['stdout'].splitlines() if p.startswith('/usr/include/python3.12/')}
+ assert '/usr/include/python3.12/Python.h' in expected and '/usr/include/python3.12/pyconfig.h' in expected
+ extract=ROOT/'extracted';extract.mkdir(mode=0o700)
+ first=subprocess.Popen(['rpm2cpio',str(pkg)],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+ second=subprocess.run(['cpio','--extract','--make-directories','--no-absolute-filenames','--no-preserve-owner','--quiet','./usr/include/python3.12/*'],stdin=first.stdout,cwd=extract,capture_output=True,timeout=60)
+ first.stdout.close();first_error=first.stderr.read();first_rc=first.wait(timeout=30)
+ save(ROOT/'header-extraction.json',{'rpm2cpio_returncode':first_rc,'cpio_returncode':second.returncode,'rpm2cpio_stderr':first_error.decode(),'cpio_stderr':second.stderr.decode(),'selection':'only ./usr/include/python3.12/*'})
+ assert first_rc==0 and second.returncode==0
+ headers=extract/'usr/include/python3.12';assert (headers/'Python.h').is_file() and (headers/'pyconfig.h').is_file()
+ files=[]
+ for p in sorted(extract.rglob('*')):
+  assert not p.is_symlink(),'Unexpected header symlink'
+  if p.is_file():
+   rel=str(p.relative_to(extract));assert '/'+rel in expected and rel.startswith('usr/include/python3.12/')
+   files.append({'path':rel,'bytes':p.stat().st_size,'sha256':sha(p)})
+ assert files
+ canonical=json.dumps(files,sort_keys=True,separators=(',',':')).encode();tree=hashlib.sha256(canonical).hexdigest()
+ save(ROOT/'header-tree.json',{'files':files,'canonical_tree_sha256':tree})
+ with (ROOT/'headers.tar').open('xb') as out:
+  with tarfile.open(fileobj=out,mode='w',format=tarfile.PAX_FORMAT) as tar:
+   for f in files:tar.add(extract/f['path'],arcname='headers/'+str(Path(f['path']).relative_to('usr/include/python3.12')),recursive=False)
+  out.flush();os.fsync(out.fileno())
+ save(ROOT/'staging-receipt.json',{'status':'private_headers_verified','rpm_sha256':RPM_SHA,'rpm_signature_verified_with_system_trusted_keys':True,'rpm_installed':False,'system_mutations':False,'header_tree_sha256':tree,'header_files':len(files),'header_bytes':sum(x['bytes'] for x in files),'header_archive_sha256':sha(ROOT/'headers.tar'),'header_archive_bytes':(ROOT/'headers.tar').stat().st_size,'cpath':str(headers),'runtime_python':'3.12.13','SOABI':sysconfig.get_config_var('SOABI'),'cpu_only':True,'job_id':os.environ['SLURM_JOB_ID']})
+
+def proof():
+ import importlib.metadata
+ cache=Path(os.environ['TRITON_CACHE_DIR']);assert not cache.exists();cache.mkdir(mode=0o700)
+ assert importlib.metadata.version('triton')=='3.8.0'
+ import triton
+ site=Path(triton.__file__).parent.parent;backend=site/'triton/backends/nvidia'
+ headers=ROOT/'extracted/usr/include/python3.12'
+ assert os.environ.get('CPATH')==str(headers)
+ sources=['triton/backends/nvidia/driver.c','triton/backends/nvidia/driver.py','triton/runtime/build.py','torch/_native/registry.py','torch/_native/ops/bmm_outer_product/triton_impl.py','torch/_native/ops/bmm_outer_product/triton_kernels.py']
+ sourceproof=[];copies=ROOT/'installed-sources';copies.mkdir(mode=0o700)
+ for name in sources:
+  p=site/name;dest=copies/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,dest);sourceproof.append({'path':name,'sha256':sha(p),'bytes':p.stat().st_size})
+ driver=backend/'driver.c';data=driver.read_text();init=data.split('PyMODINIT_FUNC PyInit_cuda_utils(void)',1)[1]
+ assert not re.search(r'\bcu[A-Z]\w*\s*\(',init),'Unexpected CUDA operation during module init'
+ output=ROOT/('cuda_utils'+sysconfig.get_config_var('EXT_SUFFIX'))
+ args=['/usr/bin/gcc',str(driver),'-O3','-shared','-fPIC','-Wno-psabi','-o',str(output),'-l:libcuda.so.1','-L'+str(backend/'lib'),'-L/lib64','-L/lib','-I'+str(backend/'include'),'-I/usr/include/python3.12']
+ compilation=command(args);save(ROOT/'actual-triton-compilation.json',compilation);assert compilation['returncode']==0,'Actual Triton driver helper compile failed'
+ spec=importlib.util.spec_from_file_location('cuda_utils',output);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ result=module.build_signature_metadata(['*fp32','fp32']);assert isinstance(result,bytes) and len(result)==2
+ from triton.backends.nvidia import driver as actual_driver
+ from triton.runtime.build import compile_module_from_file
+ invoked=[];real_check_call=subprocess.check_call
+ def record_check_call(args,*a,**kw):
+  invoked.append(args);return real_check_call(args,*a,**kw)
+ subprocess.check_call=record_check_call
+ try:
+  built=compile_module_from_file(src_path=str(driver),name='cuda_utils',library_dirs=actual_driver.library_dirs(),include_dirs=actual_driver.include_dirs,libraries=actual_driver.libraries)
+ finally:subprocess.check_call=real_check_call
+ assert invoked and built.build_signature_metadata(['*fp32','fp32'])==result
+ built_path=Path(built.__file__);assert built_path.resolve().is_relative_to(cache.resolve())
+ shutil.copyfile(built_path,ROOT/'installed-builder-cuda_utils.so')
+ save(ROOT/'installed-builder-replay.json',{'status':'passed','actual_commands':invoked,'actual_library_dirs':actual_driver.library_dirs(),'actual_libraries':actual_driver.libraries,'actual_include_dirs':actual_driver.include_dirs,'fresh_cache':str(cache),'driver_sha256':sha(driver),'build_py_sha256':sha(site/'triton/runtime/build.py'),'compiled_so_sha256':sha(built_path),'gpu_functions_called':False})
+ # Runtime/header ABI values, compiled using the same CPATH supplement.
+ abi=ROOT/'abi.c';abi.write_text('#include <Python.h>\n#include <stdio.h>\nint main(void){printf("%s|%u|%zu|%zu\\n",PY_VERSION,PY_VERSION_HEX,sizeof(void*),sizeof(PyObject));return 0;}\n')
+ cc=command(['/usr/bin/gcc',str(abi),'-o',str(ROOT/'abi')]);save(ROOT/'abi-compilation.json',cc);assert cc['returncode']==0
+ abi_result=command([str(ROOT/'abi')]);assert abi_result['returncode']==0 and abi_result['stdout'].split('|')[0]=='3.12.13' and abi_result['stdout'].split('|')[2]=='8' and int(abi_result['stdout'].split('|')[3])==object.__basicsize__ and int(abi_result['stdout'].split('|')[1])==sys.hexversion
+ save(ROOT/'cpu-proof.json',{'status':'actual_triton_helper_compile_and_import_passed','job_id':os.environ['SLURM_JOB_ID'],'requested_gpus':0,'gpu_work_performed':False,'original_environment_sha256':'89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','runtime_python':platform.python_version(),'SOABI':sysconfig.get_config_var('SOABI'),'Py_DEBUG':sysconfig.get_config_var('Py_DEBUG'),'ABIFLAGS':sysconfig.get_config_var('ABIFLAGS'),'header_tree_sha256':json.loads((ROOT/'header-tree.json').read_text())['canonical_tree_sha256'],'rpm_sha256':RPM_SHA,'CPATH':str(headers),'actual_driver_source_sha256':sha(driver),'compiled_extension_sha256':sha(output),'CPU_signature_metadata_hex':result.hex(),'actual_installed_builder_replayed':True,'installed_builder_receipt_sha256':sha(ROOT/'installed-builder-replay.json'),'target_node':platform.node(),'abi_compiled_values':abi_result['stdout'].strip(),'installed_sources':sourceproof,'system_mutations':False,'backend_disable_or_replacement':False})
+ print(json.dumps({'status':'CPU header and actual Triton compiler/import proof passed','job_id':os.environ['SLURM_JOB_ID']}),flush=True)
+
+if __name__=='__main__':
+ os.umask(0o077)
+ assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS'),'CPU-only allocation required'
+ if sys.argv[1]=='stage':stage()
+ elif sys.argv[1]=='proof':proof()
+ else:raise ValueError('Unknown phase')

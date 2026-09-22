@@ -1,0 +1,12 @@
+import hashlib,json,os,platform,socket,subprocess,sys,sysconfig
+from pathlib import Path
+node=socket.gethostname().split('.')[0]
+assert node in {'evc22','evc37'} and os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+keys=['SOABI','EXT_SUFFIX','INCLUDEPY','CONFINCLUDEPY','Py_DEBUG','ABIFLAGS','VERSION','CONFIG_ARGS','LDLIBRARY','LIBDIR','SIZEOF_VOID_P']
+r={'node':node,'job_id':os.environ['SLURM_JOB_ID'],'python_version':sys.version,'sysconfig':{k:sysconfig.get_config_var(k) for k in keys},'os_release':platform.freedesktop_os_release(),'sizeof_pyobject':object.__basicsize__,'requested_gpus':0,'read_only':True}
+paths=sorted({line.split()[-1] for line in Path('/proc/self/maps').read_text().splitlines() if '/libpython3.12' in line and line.split()[-1].startswith('/')});r['mapped_libpython_paths']=paths
+commands=[('exact_failed_query',['rpm','-q','--qf','%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\n','python3.12','python3.12-libs']),('actual_file_owners',['rpm','-qf','--qf','%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\n','/usr/bin/python3.12',*paths]),('compiler',['gcc','--version'])]
+for name,args in commands:
+ p=subprocess.run(args,capture_output=True,text=True,timeout=20);r[name]={'command':args,'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
+with (Path(__file__).parent/(node+'.json')).open('x') as f:json.dump(r,f,indent=2);f.write('\n')
+print(json.dumps({'node':node,'exact_failed_query':r['exact_failed_query'],'actual_file_owners':r['actual_file_owners']}),flush=True)
