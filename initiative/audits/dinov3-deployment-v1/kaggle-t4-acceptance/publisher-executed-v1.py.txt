@@ -1,0 +1,129 @@
+"""One authorized private Dataset upload on an allocated CPU node; never submits."""
+import contextlib
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import tarfile
+import tempfile
+from pathlib import Path
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with path.open('rb') as handle:
+        for block in iter(lambda: handle.read(4 * 1024**2), b''):
+            h.update(block)
+    return h.hexdigest()
+
+
+def write(path, record):
+    with path.open('x') as handle:
+        json.dump(record, handle, sort_keys=True, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.chmod(path, 0o600)
+
+
+def main():
+    if not os.environ.get('SLURM_JOB_ID') or os.environ.get('SLURM_JOB_GPUS'):
+        raise RuntimeError('CPU-only allocation required')
+    if sys.version_info[:2] != (3, 12):
+        raise RuntimeError('Python3.12 required')
+    incoming = json.load(sys.stdin)
+    token = incoming.pop('token')
+    if set(incoming) != {'expected_receipt_sha256'}:
+        raise RuntimeError('Unexpected operation input')
+    base = Path.home() / 'rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1'
+    receipt_file = base / 'receipt.json'
+    if sha(receipt_file) != incoming['expected_receipt_sha256']:
+        raise RuntimeError('CPU acceptance receipt changed')
+    receipt = json.loads(receipt_file.read_text())
+    if receipt.get('status') != 'passed' or receipt.get('relocated_environment_verified') is not True:
+        raise RuntimeError('Accepted CPU runtime required')
+    archive = base / receipt['wheelhouse']['file']
+    if sha(archive) != receipt['wheelhouse']['sha256']:
+        raise RuntimeError('Archive bytes changed')
+    with tarfile.open(archive) as handle:
+        member = handle.getmember('wheelhouse/wheelhouse.json')
+        if not member.isfile() or member.size > 1024**2:
+            raise RuntimeError('Invalid manifest')
+        manifest_bytes = handle.extractfile(member).read()
+    manifest_sha = hashlib.sha256(manifest_bytes).hexdigest()
+    slug = 'godlydonuts/rsna-wheels-cp312-' + receipt['wheelhouse']['sha256'][:12]
+    stage = Path.home() / 'rsna-knee/kaggle-wheelhouse-gpu-probe-v1'
+    stage.mkdir(mode=0o700, exist_ok=True)
+    intent = stage / 'dataset-create-intent.json'
+    if intent.exists():
+        raise RuntimeError('Existing intent: read-only reconciliation required')
+    upload = stage / 'upload'
+    upload.mkdir(mode=0o700)
+    os.link(archive, upload / 'wheelhouse-cp312-cu130.bin')
+    write(upload / 'dataset-metadata.json', {
+        'id': slug, 'title': 'RSNA pinned CUDA wheels ' + receipt['wheelhouse']['sha256'][:12],
+        'licenses': [{'name': 'other'}],
+        'description': 'Private reproducible offline runtime. Original component licenses remain inside the wheel archives. No model weights or competition data. Python3.12 and CUDA13.0.',
+    })
+    with tempfile.TemporaryDirectory(prefix='rsna-kaggle-control-', dir='/tmp') as temp:
+        runtime = Path(temp) / 'environment'
+        with (Path(temp) / 'install-private.log').open('wb') as log:
+            subprocess.run([sys.executable, '-m', 'venv', str(runtime)], stdout=log, stderr=log, check=True, timeout=120)
+            subprocess.run([str(runtime/'bin/python'), '-m', 'pip', 'install', '--disable-pip-version-check', '--no-cache-dir', 'kaggle==2.2.3', 'kagglesdk==0.1.30'], stdout=log, stderr=log, check=True, timeout=600)
+        # Use the management installation only, not the training runtime.
+        sys.path.insert(0, str(runtime/'lib/python3.12/site-packages'))
+        import requests
+        original_send = requests.Session.send
+        def bounded_send(self, request, **kwargs):
+            kwargs['timeout'] = (15, 180)
+            return original_send(self, request, **kwargs)
+        requests.Session.send = bounded_send
+        session = requests.Session()
+        session.headers['Authorization'] = 'Bearer ' + token
+        def call(method, body):
+            session.cookies.clear()
+            r = session.post('https://api.kaggle.com/v1/' + method, json=body, allow_redirects=False)
+            if r.status_code != 200:
+                return r.status_code, None
+            return r.status_code, r.json()
+        status, identity = call('security.OAuthService/IntrospectToken', {'token': token})
+        if status != 200 or identity.get('active') is not True or identity.get('username') != 'godlydonuts':
+            raise RuntimeError('Account identity rejected')
+        status, existing = call('datasets.DatasetApiService/GetDataset', {'ownerSlug':'godlydonuts','datasetSlug':slug.split('/')[1]})
+        if status != 404:
+            raise RuntimeError('Destination absent status not verified')
+        os.environ['KAGGLE_API_TOKEN'] = token
+        with open(os.devnull, 'w') as silence, contextlib.redirect_stdout(silence), contextlib.redirect_stderr(silence):
+            from kaggle.api.kaggle_api_extended import KaggleApi
+            api = KaggleApi()
+            api.authenticate()
+        api.with_retry = lambda function: function
+        record = {
+            'schema_version':1,'kind':'one_private_dataset_create','slug':slug,'private':True,
+            'version':1,'archive_sha256':receipt['wheelhouse']['sha256'],'archive_bytes':archive.stat().st_size,
+            'manifest_sha256':manifest_sha,'cpu_receipt_sha256':sha(receipt_file),
+            'publisher_sha256':sha(Path(__file__)),'job_id':os.environ['SLURM_JOB_ID'],
+            'sdk':{'kaggle':'2.2.3','kagglesdk':'0.1.30'},'mutation_retry_disabled':True,
+            'competition_submission':False,
+        }
+        write(intent, record)
+        try:
+            with open(os.devnull, 'w') as silence, contextlib.redirect_stdout(silence), contextlib.redirect_stderr(silence):
+                result = api.dataset_create_new(str(upload), public=False, quiet=True, convert_to_csv=False, dir_mode='skip')
+            if getattr(result, 'error', None):
+                raise RuntimeError('CreateDataset result uncertain; reconcile only')
+            write(stage/'dataset-create-response.json', {**record,'status':str(getattr(result,'status','')),'remote_mutation_returned':True})
+            print(json.dumps({'status':'mutation_returned','slug':slug,'archive_sha256':record['archive_sha256'],'manifest_sha256':manifest_sha}))
+        except Exception as exc:
+            write(stage/'dataset-create-uncertain.json', {'status':'uncertain','error_type':type(exc).__name__,'retry_prohibited':True})
+            raise
+        finally:
+            os.environ.pop('KAGGLE_API_TOKEN', None)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as exc:
+        print(json.dumps({'status':'blocked','error_type':type(exc).__name__,'retry_requires_read_only_reconciliation':True}))
+        raise SystemExit(1) from None

@@ -154,6 +154,56 @@ class Remote:
                 return result
         raise RemoteError("Submission pagination exceeded its finite bound")
 
+    def require_absent_kernel(self, slug):
+        owner, name = slug.split("/")
+        if owner != self.username:
+            raise ValueError("Dedicated notebook must belong to the authenticated account")
+        try:
+            self.call(
+                "kernels.KernelsApiService", "GetKernel", {"userName": owner, "kernelSlug": name}
+            )
+        except RemoteError as exc:
+            if str(exc) == "Kaggle GetKernel HTTP 404":
+                return {"method": "GetKernel404"}
+            if str(exc) != "Kaggle GetKernel HTTP 403":
+                raise
+        else:
+            raise ValueError("Dedicated notebook already exists; do not overwrite")
+        # Kaggle hides some absent private resources behind403. That response
+        # alone never proves absence; exhaust the authenticated profile listing.
+        refs = []
+        for page in range(1, 101):
+            result = self.call(
+                "kernels.KernelsApiService",
+                "ListKernels",
+                {
+                    "group": "PROFILE",
+                    "page": page,
+                    "pageSize": 100,
+                    "language": "all",
+                    "kernelType": "all",
+                    "outputType": "all",
+                },
+            )
+            rows = result.get("kernels", [])
+            if not isinstance(rows, list):
+                raise RemoteError("Owned notebook listing is invalid")
+            if not rows:
+                return {
+                    "method": "complete_authenticated_profile_after403",
+                    "pages": page,
+                    "refs_sha256": object_hash(sorted(refs)),
+                    "count": len(refs),
+                }
+            for row in rows:
+                ref = row.get("ref")
+                if not isinstance(ref, str) or not ref.startswith(owner + "/") or ref in refs:
+                    raise RemoteError("Owned notebook listing has invalid or repeated identities")
+                if ref == slug:
+                    raise ValueError("Dedicated notebook already exists; do not overwrite")
+                refs.append(ref)
+        raise RemoteError("Owned notebook pagination did not terminate")
+
     def kernel(self, method, slug, version):
         owner, name = slug.split("/")
         body = {"userName": owner, "kernelSlug": name}
@@ -369,6 +419,7 @@ def prepare_bundle(
     license_source,
     license_sha256,
     repo=ROOT,
+    shared_wheelhouse=None,
 ):
     """Local only. Requires real epoch + completed Linux wheel lock; no placeholders."""
     if not SLUG.fullmatch(dataset_slug) or not SLUG.fullmatch(kernel_slug):
@@ -407,6 +458,16 @@ def prepare_bundle(
     lock = relative_file(wheelhouse, "requirements.lock")
     if not lock.read_text().strip() or "--hash=sha256:" not in lock.read_text():
         raise ValueError("A complete hash-pinned dependency lock is required")
+    shared = None
+    if shared_wheelhouse is not None:
+        shared = json.loads(shared_wheelhouse.read_text())
+        validate_shared_wheelhouse(shared)
+        if (
+            shared["manifest_sha256"] != digest(wheelhouse / "wheelhouse.json")
+            or shared["pyproject_sha256"] != digest(repo / "pyproject.toml")
+            or shared["dataset_slug"] == dataset_slug
+        ):
+            raise ValueError("Shared wheelhouse binding differs from this accepted runtime")
     sources = {
         "checkpoint.pt": checkpoint,
         "snapshot.json": sidecar,
@@ -430,8 +491,9 @@ def prepare_bundle(
     trained_encoder = binding["config"]["encoder"]
     if any(trained_encoder.get(k) != v for k, v in expected_encoder.items()):
         raise ValueError("Bundled encoder differs from training")
-    for name in wheel_manifest["files"]:
-        sources["wheels/" + name] = relative_file(wheelhouse, name)
+    if shared is None:
+        for name in wheel_manifest["files"]:
+            sources["wheels/" + name] = relative_file(wheelhouse, name)
     if shutil.disk_usage(output.parent).free < FLOOR + sum(
         p.stat().st_size for p in sources.values()
     ):
@@ -466,6 +528,7 @@ def prepare_bundle(
         "diagnostic_only": False,
         "python": wheel_manifest["python"],
         "cuda": wheel_manifest["cuda"],
+        "shared_wheelhouse": shared,
         "runtime_validated": False,
         "hidden_test_score_observed": False,
     }
@@ -496,7 +559,7 @@ def prepare_bundle(
         "is_private": True,
         "enable_gpu": True,
         "enable_internet": False,
-        "dataset_sources": [dataset_slug],
+        "dataset_sources": [dataset_slug] + ([shared["dataset_slug"]] if shared else []),
         "competition_sources": [COMPETITION],
         "kernel_sources": [],
         "model_sources": [],
@@ -513,6 +576,7 @@ def prepare_bundle(
         "kernel_source_sha256": digest(kernel / "run.py"),
         "kernel_metadata_sha256": digest(kernel / "kernel-metadata.json"),
         "dataset_metadata_sha256": digest(data / "dataset-metadata.json"),
+        "shared_wheelhouse": shared,
         "bundle_path": "dataset",
         "kernel_path": "kernel",
         "prepared_at": utcnow(),
@@ -534,6 +598,10 @@ def load_operation(path):
     ):
         raise ValueError("Prepared operation changed")
     manifest = json.loads((data / "bundle-manifest.json").read_text())
+    if manifest.get("shared_wheelhouse") != operation.get("shared_wheelhouse"):
+        raise ValueError("Shared runtime differs from bound notebook manifest")
+    if operation.get("shared_wheelhouse") is not None:
+        validate_shared_wheelhouse(operation["shared_wheelhouse"])
     expected = set(manifest["files"]) | {"bundle-manifest.json", "dataset-metadata.json"}
     actual = {str(p.relative_to(data)) for p in data.rglob("*") if p.is_file() or p.is_symlink()}
     if actual != expected:
@@ -542,11 +610,98 @@ def load_operation(path):
     return operation
 
 
+def validate_shared_wheelhouse(shared):
+    hashes = (
+        "archive_sha256",
+        "manifest_sha256",
+        "pyproject_sha256",
+        "gpu_probe_source_sha256",
+        "gpu_receipt_sha256",
+    )
+    if (
+        shared.get("schema_version") != 1
+        or not all(isinstance(shared.get(k), str) and SHA.fullmatch(shared[k]) for k in hashes)
+        or not SLUG.fullmatch(shared.get("dataset_slug", ""))
+        or not SLUG.fullmatch(shared.get("gpu_probe_slug", ""))
+        or type(shared.get("dataset_version")) is not int
+        or shared.get("dataset_version") != 1
+        or type(shared.get("gpu_probe_version")) is not int
+        or shared.get("gpu_probe_version") != 1
+        or type(shared.get("dataset_id")) is not int
+        or shared["dataset_id"] < 1
+        or type(shared.get("archive_bytes")) is not int
+        or shared["archive_bytes"] < 1
+        or shared.get("archive_file") != "wheelhouse-cp312-cu130.bin"
+    ):
+        raise ValueError("A complete exact private shared-wheelhouse proof is required")
+
+
+def dataset_sources(operation):
+    result = [operation["dataset_slug"]]
+    if operation.get("shared_wheelhouse") is not None:
+        validate_shared_wheelhouse(operation["shared_wheelhouse"])
+        result.append(operation["shared_wheelhouse"]["dataset_slug"])
+    return result
+
+
+def verify_shared_wheelhouse(remote, shared):
+    validate_shared_wheelhouse(shared)
+    if any(
+        shared[key].split("/")[0] != remote.username for key in ("dataset_slug", "gpu_probe_slug")
+    ):
+        raise ValueError("Shared wheelhouse belongs to another account")
+    dataset = remote.dataset(shared["dataset_slug"])
+    if (
+        dataset.get("isPrivate") is not True
+        or dataset.get("currentVersionNumber") != 1
+        or dataset.get("id") != shared["dataset_id"]
+    ):
+        raise ValueError("Shared wheelhouse Dataset identity/privacy/version drift")
+    kernel = remote.kernel("GetKernel", shared["gpu_probe_slug"], 1)
+    meta = kernel.get("metadata", {})
+    if (
+        hashlib.sha256(kernel.get("blob", {}).get("source", "").encode()).hexdigest()
+        != shared["gpu_probe_source_sha256"]
+        or meta.get("isPrivate") is not True
+        or meta.get("enableInternet") is not False
+        or meta.get("machineShape") != "NvidiaTeslaT4"
+        or meta.get("datasetDataSources") != [shared["dataset_slug"]]
+        or meta.get("competitionDataSources")
+    ):
+        raise ValueError("Shared wheelhouse GPU acceptance source drift")
+    if (
+        remote.kernel("GetKernelSessionStatus", shared["gpu_probe_slug"], 1).get("status")
+        != "COMPLETE"
+    ):
+        raise ValueError("Shared wheelhouse GPU probe has not completed")
+    receipt = remote.output_json(shared["gpu_probe_slug"], 1, "wheelhouse-gpu-acceptance.json")
+    if (
+        object_hash(receipt) != shared["gpu_receipt_sha256"]
+        or receipt.get("status") != "passed"
+        or receipt.get("wheelhouse_archive_sha256") != shared["archive_sha256"]
+        or receipt.get("wheelhouse_manifest_sha256") != shared["manifest_sha256"]
+        or receipt.get("cuda_tensor_backward") is not True
+        or receipt.get("random_tiny_dinov3_cuda_forward") is not True
+    ):
+        raise ValueError("Shared wheelhouse GPU acceptance bytes differ")
+    return {
+        "id": dataset["id"],
+        "version": 1,
+        "is_private": True,
+        "gpu_receipt_sha256": shared["gpu_receipt_sha256"],
+    }
+
+
 def verify_remote_dataset(remote, operation):
     data = remote.dataset(operation["dataset_slug"])
     if data.get("isPrivate") is not True or data.get("currentVersionNumber") != 1:
         raise ValueError("Dataset must be private and remain at dedicated version 1")
-    return {"id": data.get("id"), "version": 1, "is_private": True}
+    result = {"id": data.get("id"), "version": 1, "is_private": True}
+    if operation.get("shared_wheelhouse") is not None:
+        result["shared_wheelhouse"] = verify_shared_wheelhouse(
+            remote, operation["shared_wheelhouse"]
+        )
+    return result
 
 
 def kernel_request(operation_path, operation):
@@ -555,7 +710,7 @@ def kernel_request(operation_path, operation):
         raise ValueError("Only private offline kernels are permitted")
     if (
         meta["id"] != operation["kernel_slug"]
-        or meta["dataset_sources"] != [operation["dataset_slug"]]
+        or meta["dataset_sources"] != dataset_sources(operation)
         or meta["competition_sources"] != [COMPETITION]
     ):
         raise ValueError("Unexpected notebook identity or sources")
@@ -590,7 +745,9 @@ def push(remote, db, operation_path):
         raise ValueError("Prepared resources must belong to the authenticated account")
     dataset = verify_remote_dataset(remote, operation)
     request = kernel_request(operation_path, operation)
+    absence = remote.require_absent_kernel(operation["kernel_slug"])
     entry.update(
+        kernel_absence_proof=absence,
         state="push_intent",
         operation=operation,
         operation_sha256=digest(operation_path),
@@ -622,7 +779,7 @@ def check_kernel(remote, entry, version):
         or meta.get("enableInternet") is not False
         or meta.get("machineShape") != "NvidiaTeslaT4"
         or meta.get("competitionDataSources") != [COMPETITION]
-        or meta.get("datasetDataSources") != [op["dataset_slug"]]
+        or meta.get("datasetDataSources") != dataset_sources(op)
         or hashlib.sha256(source.encode()).hexdigest() != op["kernel_source_sha256"]
     ):
         raise ValueError("Remote kernel is not the exact prepared private offline source")
@@ -791,6 +948,7 @@ def main():
     p = sub.add_parser("prepare", help="local complete Dataset/notebook bundle; no upload")
     for name in ("snapshot", "encoder-spec", "wheelhouse", "output", "license-file"):
         p.add_argument("--" + name, required=True, type=Path)
+    p.add_argument("--shared-wheelhouse", type=Path)
     p.add_argument("--dataset-slug", required=True)
     p.add_argument("--kernel-slug", required=True)
     p.add_argument("--license-source", required=True)
@@ -821,6 +979,7 @@ def main():
                 args.license_file,
                 args.license_source,
                 args.license_sha256,
+                shared_wheelhouse=args.shared_wheelhouse,
             )
         else:
             with ledger(args.ledger, args.account) as db:

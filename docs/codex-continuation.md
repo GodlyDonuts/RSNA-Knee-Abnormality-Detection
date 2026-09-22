@@ -52,8 +52,36 @@ verification: 2,248 files / 4,077,105,588 unpacked bytes; archive SHA
 `8d50e027f66e91beb6afa2b56877b8da59059f6d43e7c13aa0103059d447d715`.
 Use `/home/sa305415/rsna-knee/encoder-stage/run-configs/pilot100-fold0.json`
 and the archive under the private `cache/` directory. The full 82.8 GB cache
-transfer continues separately. The offline environment and exact code deployment
-must pass before the two-H100 pilot; no epoch time has been measured yet.
+transfer continues separately. The offline Python 3.12 / Torch 2.14 environment
+passed installation, relocation and CPU acceptance in jobs 838473 and 838493.
+Newton has a clean detached checkout of `06816e6b698901bd5148d47a3cdf73252c5a3a89`;
+all 69 runtime/configuration hashes match that commit. Its GitHub CI passed, and
+the private HF code overlay is verified at `b3223f263bc5d0b017b18bcc6c83964ba82b9c28`.
+The source, environment and publication receipts are preserved in
+`initiative/audits/dinov3-deployment-v1/`.
+
+The first two-H100 pilot, job 838502 on evc38, stopped at the GPU preflight after
+41 seconds, before training. Slurm allocated two GPUs, the driver inventory
+reported one, and Torch could not initialize CUDA. A separate bounded probe,
+838579 on evc37, passed tiny tensor allocation on both H100s with the same
+environment, in both batch and Slurm-step execution. Both original and PCI bus
+device ordering worked without changing the scheduler's visible devices. This
+points to an evc38-specific issue; its underlying cause is unproven. Exclude
+evc38 from our jobs until verified healthy. The recovery-pilot retry is job
+838580 on evc37, with the same code/configuration and a fresh output directory.
+That retry passed CUDA/NCCL preflight but stopped before training: the official
+checkpoint uses `layer.N.*`, while Transformers 5.6.1 expects `model.layer.N.*`.
+The complete strict-load failure is preserved. Implement a narrow source-bound
+key mapping, keep full strict loading and original weight hashes, and require an
+actual full pretrained CPU load before another GPU pilot. No epoch time or
+competitive score has been measured at this checkpoint.
+
+The exact offline Kaggle wheelhouse also passed an actual T4 probe. Its dedicated
+private Dataset and notebook remain at version 1, with all small receipts under
+`initiative/audits/dinov3-deployment-v1/kaggle-t4-acceptance/`. Reuse the archived
+`shared-wheelhouse.json` for epoch bundles; do not upload the same 3.18 GB wheel
+archive for every checkpoint. The probe used no competition data or pretrained
+weights, and no new competition submission has been made.
 
 Remote Lustre has about 212.66 GiB of byte quota available at discovery but only
 45,004 remaining file slots; the 48,772-file cache must not be unpacked there.
@@ -68,7 +96,7 @@ within-epoch recovery, scheduled snapshot eligibility and public-template infere
 Failed earlier disk/rendezvous attempts are preserved in
 `initiative/audits/competitive-runtime-acceptance-v1/`; CUDA/NCCL acceptance is
 still separate. The active task heartbeat `rsna-dinov3-training-and-submissions`
-checks progress every fifteen minutes. It uses actual job/transfer/submission
+checks progress every five minutes. It uses actual job/transfer/submission
 receipts and one account ledger; it must never duplicate active work.
 
 The correspondence final check clarifies one historical shorthand: among the

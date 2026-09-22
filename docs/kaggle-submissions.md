@@ -26,13 +26,18 @@ that limitation. An overflow entry receives a **00:05 UTC inspection time**, not
 a claimed quota reset. A fresh server query must permit the next submission.
 Do not substitute a locally calculated midnight allowance for this check.
 
-No Dataset or competition submission has been created. One separately authorized
-private, five-minute environment-probe notebook completed with no competition
-data sources: Python 3.12.13, PyTorch 2.10.0+cu128, driver 580.159.04, and two
-Tesla T4 GPUs. There is no eligible production checkpoint yet. Actual execution needs the accepted
-DINOv3 weights, a trained epoch snapshot, a tested Linux/CUDA wheelhouse, private
-Dataset publication and a successful Kaggle notebook execution. Local synthetic
-tests are not a Kaggle or CUDA acceptance test.
+No competition submission has been created. The initial private environment
+probe measured Python 3.12.13, PyTorch 2.10.0+cu128, driver 580.159.04 and two T4s.
+A subsequent private Dataset, `godlydonuts/rsna-wheels-cp312-e326c50a4a6a`
+(ID 12139697, version 1), now holds the exact wheel archive. Its separate private
+offline notebook, `godlydonuts/rsna-wheels-test-e326c50a4a6a` version 1, passed
+fresh installation of PyTorch 2.14.0+cu130 and Transformers 5.6.1, CUDA tensor
+backward, tiny random DINOv3 forward and decoder checks on a T4. Neither probe
+accessed competition data or pretrained weights. The small proofs and reusable
+`shared-wheelhouse.json` are archived under
+`initiative/audits/dinov3-deployment-v1/kaggle-t4-acceptance/`.
+There is no eligible production checkpoint yet. A trained epoch snapshot and
+successful complete model inference remain required before a competition entry.
 
 ## Local preparation
 
@@ -148,7 +153,9 @@ then invokes `rsna.competitive.infer` with `--encoder-config`, `--scheduled-epoc
 despite BF16 training on H100; numerical/runtime acceptance on the actual Kaggle
 GPU remains required. The selected PyTorch 2.14 Linux wheel uses CUDA 13, so
 Pascal/P100 is **not** supported by this package. The measured Kaggle T4/driver
-580 and Newton H100/driver580 are candidates pending actual GPU forwards.
+580 passed the exact offline runtime probe. Both H100s on Newton evc37 also
+passed tiny CUDA tensor checks with the same environment; the pretrained
+DINOv3 recovery pilot remains separate.
 [NVIDIA driver compatibility](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html). It discovers studies from Kaggle's current test
 template, decodes the provided test DICOMs, and never reads test reports.
 
@@ -213,10 +220,11 @@ Focused validation covers synthetic quota exhaustion across runs, UTC staleness,
 durable timeout/reopen/reconciliation, idempotency, wrong accounts, notebook
 tampering, Dataset privacy/version drift, incomplete runs, output checkpoint
 mismatch, payload traversal/tampering and diagnostic/unscheduled snapshots.
-Live acceptance so far covers authenticated account/quota reads and the small
-private Kaggle environment probe. The Newton CPU wheelhouse job is separate
-from actual pretrained CUDA inference acceptance. No training result, full hidden-set runtime, score, ranking or competition
-success is claimed.
+Live acceptance covers authenticated account/quota reads, the initial environment
+probe, and the exact shared-wheelhouse offline T4 probe described above. The
+private version-bound production shared-runtime guard passed against those actual
+resources. No trained-model result, full hidden-set runtime, score, ranking or
+competition success is claimed.
 
 ## Linux dependency preparation
 
@@ -234,7 +242,8 @@ proofs on private Lustre, then re-extracts the environment locally and repeats
 the checks with its relocated interpreter. Invoke `environment/bin/python`
 directly and use `python -m pip`/`python -m pytest`; archived executable shebangs
 can retain their old temporary path. The measured shared base Python3.12 path
-must exist on the eventual node. Actual H100/T4 forwards remain required.
+must exist on the eventual node. Basic H100 CUDA and the offline T4 runtime have
+now passed; full pretrained model inference and throughput remain separate gates.
 The first CPU-only probe failed before inspection due to a missing module-init
 path; the corrected login-shell probe passed. Preserve both records.
 
@@ -261,3 +270,27 @@ Active stdout alone is not treated as bound history. No outer validation, gold,
 confirmation labels, checkpoint ranking or training changes are involved. The
 projection opens the canonical ledger read-only and preserves a logical snapshot
 hash; use a new output directory for each observation.
+
+## Reusing the verified wheelhouse
+
+After the dedicated private T4 wheelhouse probe passes, its
+`shared-wheelhouse.json` records the private Dataset ID/version 1, full archive
+SHA/size, original wheel-manifest SHA, project SHA and exact private GPU-probe
+source/version/result. `gpu_receipt_sha256` hashes canonical JSON, not the
+formatted receipt file. Add `--shared-wheelhouse PRIVATE/shared-wheelhouse.json`
+to `prepare` to reuse it. Supply the same verified local `--wheelhouse` directory
+for preparation checks; its large wheel files are then omitted from the new
+checkpoint Dataset. No optimizer or checkpoint bytes are rewritten.
+
+The notebook attaches exactly two private Datasets: the new checkpoint bundle
+and the shared immutable wheelhouse. Before a push or submission, the coordinator
+rechecks both private version-1 identities, the exact completed GPU probe source,
+and its archive-bound acceptance. The notebook independently verifies the full
+archive bytes, extracts only confined ordinary files/directories, verifies every
+wheel and lock byte, then installs offline in its fresh environment. Version,
+source, receipt, manifest, payload or additional-file drift blocks execution.
+Each checkpoint's notebook slug must be absent before the one SaveKernel call;
+an existing notebook is never intentionally overwritten. The preflight absence
+check is not a server-side compare-and-swap; use the single account coordinator.
+The shared Dataset avoids repeated multi-gigabyte uploads; the checkpoint bundle
+still contains its measured immutable snapshot, exact code/config and license.

@@ -1,0 +1,104 @@
+"""Offline successor acceptance after a Python-minimum-only project metadata change."""
+import ast
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import tomllib
+from pathlib import Path
+
+
+def sha(path):
+    h=hashlib.sha256()
+    with path.open('rb') as f:
+        for b in iter(lambda:f.read(4*1024**2),b''):h.update(b)
+    return h.hexdigest()
+
+
+def write(path,value):
+    with path.open('x') as f:
+        json.dump(value,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+
+
+def main():
+    if not os.environ.get('SLURM_JOB_ID') or os.environ.get('SLURM_JOB_GPUS') or sys.version_info[:2]!=(3,12):
+        raise RuntimeError('CPU-only Python3.12 allocation required')
+    base=Path.home()/'rsna-knee/kaggle-wheelhouse-v1'
+    old=base/'result-cp312-cu130-v2'
+    inp=base/'final-project-replay-input-v1'
+    target=base/'result-cp312-cu130-finalmain-v1'
+    target.mkdir(mode=0o700)
+    prior=json.loads((old/'receipt.json').read_text())
+    if prior.get('status')!='passed' or prior.get('relocated_environment_verified') is not True:
+        raise RuntimeError('Original CPU acceptance absent')
+    builder=base/'build-input-v2/build_wheelhouse.py'
+    oldproject=base/'build-input-v2/pyproject.toml'
+    newproject=inp/'pyproject.toml'
+    if sha(builder)!=prior['acceptance']['builder_sha256'] or sha(oldproject)!=prior['acceptance']['pyproject_sha256']:
+        raise RuntimeError('Original execution bindings differ')
+    a=tomllib.loads(oldproject.read_text());b=tomllib.loads(newproject.read_text())
+    oldminimum=a['project'].pop('requires-python');newminimum=b['project'].pop('requires-python')
+    if a!=b or newminimum!='>=3.11':
+        raise RuntimeError('Only reviewed Python minimum change is allowed')
+    spec=importlib.util.spec_from_file_location('accepted_builder',builder)
+    helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+    checks=[n.value for n in ast.walk(ast.parse(builder.read_text())) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='check' for t in n.targets)]
+    if len(checks)!=1:raise RuntimeError('Acceptance source ambiguous')
+    check=ast.literal_eval(checks[0])
+    if shutil.disk_usage('/tmp').free < 20*1024**3 + sum(prior[k]['unpacked_bytes'] for k in ('wheelhouse','environment')):
+        raise RuntimeError('Node-local free-space reserve insufficient')
+    with tempfile.TemporaryDirectory(prefix='rsna-final-wheel-replay-',dir='/tmp') as temp:
+        root=Path(temp)
+        for key in ('wheelhouse','environment'):
+            archive=old/prior[key]['file']
+            if sha(archive)!=prior[key]['sha256']:raise RuntimeError('Original archive bytes changed')
+            with tarfile.open(archive) as t:
+                # This is the exact hash-bound locally generated archive; arbitrary input is not admitted.
+                t.extractall(root)
+        wheels=root/'wheelhouse';environment=root/'environment'
+        prior_manifest_bytes=(wheels/'wheelhouse.json').read_bytes()
+        manifest=json.loads(prior_manifest_bytes)
+        for name,row in manifest['files'].items():
+            path=wheels/name
+            if Path(name).name!=name or sha(path)!=row['sha256'] or path.stat().st_size!=row['bytes']:
+                raise RuntimeError('Original wheel payload differs')
+        os.environ.update({'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','HF_HUB_DISABLE_XET':'1','OMP_NUM_THREADS':'2','MKL_NUM_THREADS':'2'})
+        completed=subprocess.run([str(environment/'bin/python'),'-c',check],capture_output=True,text=True,check=True,timeout=180)
+        actual=json.loads(completed.stdout)
+        for name,version in manifest['resolved_versions'].items():
+            if actual['versions'].get(name)!=version:raise RuntimeError('Installed version differs from hash lock')
+        if actual['torch'].split('+')[0]!='2.14.0' or actual['torch_cuda']!='13.0':raise RuntimeError('Torch/CUDA changed')
+        acceptance={**actual,'schema_version':1,'status':'cpu_offline_install_passed','job_id':os.environ['SLURM_JOB_ID'],
+            'pyproject_sha256':sha(newproject),'builder_sha256':sha(Path(__file__)),
+            'requirements':prior['acceptance']['requirements'],'requirement_lock_sha256':sha(wheels/'requirements.lock'),
+            'gpu_runtime_accepted':False,'original_cpu_receipt_sha256':sha(old/'receipt.json'),
+            'original_wheelhouse_archive_sha256':prior['wheelhouse']['sha256'],
+            'original_environment_archive_sha256':prior['environment']['sha256'],
+            'acceptance_code_sha256':hashlib.sha256(check.encode()).hexdigest(),
+            'metadata_only_change':{'requires_python_before':oldminimum,'requires_python_after':newminimum},
+            'method':'Exact accepted environment relocated and CPU acceptance rerun offline; dependency tables unchanged.'}
+        (wheels/'acceptance.json').unlink();write(wheels/'acceptance.json',acceptance)
+        manifest['pyproject_sha256']=sha(newproject)
+        manifest['files']['acceptance.json']={'sha256':sha(wheels/'acceptance.json'),'bytes':(wheels/'acceptance.json').stat().st_size}
+        manifest['parent_manifest_sha256']=hashlib.sha256(prior_manifest_bytes).hexdigest()
+        (wheels/'wheelhouse.json').unlink();write(wheels/'wheelhouse.json',manifest)
+        archive=helper.archive(wheels,target/'wheelhouse-cp312-cu130.tar','wheelhouse')
+        # Preserve the exact installed environment archive; the new receipt binds the actual replay.
+        os.link(old/prior['environment']['file'],target/prior['environment']['file'])
+        receipt={**prior,'job_id':os.environ['SLURM_JOB_ID'],'wheelhouse':archive,'acceptance':acceptance,
+            'original_cpu_receipt_sha256':sha(old/'receipt.json'),'replay_script_sha256':sha(Path(__file__)),
+            'wheelhouse_manifest_sha256':sha(wheels/'wheelhouse.json'),
+            'elapsed_seconds':None,'method':'Offline final-project metadata replay; original archives preserved.'}
+        write(target/'receipt.json',receipt)
+        print(json.dumps({'status':'passed','receipt_sha256':sha(target/'receipt.json'),'wheelhouse':archive,'environment':prior['environment']}))
+
+
+if __name__=='__main__':
+    try:main()
+    except Exception as exc:
+        print(json.dumps({'status':'blocked','error_type':type(exc).__name__}));raise SystemExit(1) from None

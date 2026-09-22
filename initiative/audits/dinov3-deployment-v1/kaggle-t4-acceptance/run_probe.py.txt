@@ -1,0 +1,103 @@
+"""One private offline GPU compatibility kernel; never a competition submission."""
+import argparse
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+O = Path(__file__).resolve().parents[2]
+SPEC = importlib.util.spec_from_file_location('workflow', O/'scripts/kaggle/workflow.py')
+w = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(w)
+STAGE = Path(__file__).resolve().parent
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('action',choices=['push','status','output'])
+    args=p.parse_args()
+    receipt=json.loads((STAGE/'dataset-create-response.json').read_text())
+    remote=w.Remote()
+    if remote.username != 'godlydonuts':
+        raise ValueError('Wrong authorized account')
+    data=remote.dataset(receipt['slug'])
+    if data.get('isPrivate') is not True or data.get('currentVersionNumber') != 1:
+        raise ValueError('Private immutable Dataset version1 required')
+    ready=remote.call('datasets.DatasetApiService','GetDatasetStatus',{'ownerSlug':'godlydonuts','datasetSlug':receipt['slug'].split('/')[1]})
+    if ready.get('status') not in ('READY',5):
+        raise ValueError('Private Dataset ingestion is not ready')
+    slug='godlydonuts/rsna-wheels-test-'+receipt['archive_sha256'][:12]
+    source=(
+        'EXPECTED_ARCHIVE_SHA256 = '+repr(receipt['archive_sha256'])+'\n'
+        'EXPECTED_MANIFEST_SHA256 = '+repr(receipt['manifest_sha256'])+'\n'
+        +(STAGE/'probe.py').read_text()
+    )
+    source_sha=hashlib.sha256(source.encode()).hexdigest()
+    request={
+        'slug':slug,'newTitle':slug.split('/')[1],'text':source,'language':'python','kernelType':'script',
+        'isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,
+        'datasetDataSources':[receipt['slug']],'competitionDataSources':[],
+        'sessionTimeoutSeconds':600,
+    }
+    if args.action == 'push':
+        absence=remote.require_absent_kernel(slug)
+        w.new_json(STAGE/'kernel-create-intent.json',{
+            'status':'intent_before_one_SaveKernel','source_sha256':source_sha,'absence_proof':absence,
+            'request_sha256':w.object_hash(request),'kernel_slug':slug,
+            'dataset_slug':receipt['slug'],'dataset_version':1,'max_runtime_seconds':600,
+            'created_at':w.utcnow(),'competition_submission':False,
+            'archive_sha256':receipt['archive_sha256'],'manifest_sha256':receipt['manifest_sha256'],
+        })
+        result=remote.call('kernels.KernelsApiService','SaveKernel',request)
+        w.new_json(STAGE/'kernel-create-response.json',result)
+        if result.get('versionNumber') != 1 or result.get('error'):
+            raise ValueError('Unexpected response; read-only reconciliation required')
+        print(json.dumps({'status':'pushed','kernel_slug':slug,'version':1,'competition_submission':False}))
+        return
+    intent=json.loads((STAGE/'kernel-create-intent.json').read_text())
+    response=json.loads((STAGE/'kernel-create-response.json').read_text())
+    if intent['request_sha256'] != w.object_hash(request) or response.get('versionNumber') != 1:
+        raise ValueError('Local request binding changed')
+    found=remote.kernel('GetKernel',slug,1)
+    meta=found.get('metadata',{})
+    if (hashlib.sha256(found.get('blob',{}).get('source','').encode()).hexdigest()!=source_sha
+        or meta.get('isPrivate') is not True or meta.get('enableInternet') is not False
+        or meta.get('machineShape') != 'NvidiaTeslaT4'
+        or meta.get('datasetDataSources') != [receipt['slug']]
+        or meta.get('competitionDataSources')):
+        raise ValueError('Remote source/settings differ')
+    status=remote.kernel('GetKernelSessionStatus',slug,1)
+    if args.action=='status':
+        print(json.dumps({'status':status.get('status'),'kernel_slug':slug,'version':1}))
+        return
+    if status.get('status') != 'COMPLETE':
+        raise ValueError('Probe not successfully complete')
+    result=remote.output_json(slug,1,'wheelhouse-gpu-acceptance.json')
+    if (result.get('status')!='passed' or result.get('wheelhouse_archive_sha256')!=receipt['archive_sha256']
+        or result.get('wheelhouse_manifest_sha256')!=receipt['manifest_sha256']
+        or result.get('pretrained_weights_accessed') is not False
+        or result.get('competition_submission_created') is not False):
+        raise ValueError('GPU acceptance binding mismatch')
+    w.new_json(STAGE/'gpu-acceptance.json',result)
+    w.new_json(STAGE/'gpu-acceptance-provenance.json',{'kernel_slug':slug,'version':1,'source_sha256':source_sha,
+        'dataset_slug':receipt['slug'],'dataset_version':1,'receipt_sha256':w.digest(STAGE/'gpu-acceptance.json'),
+        'checked_at':w.utcnow(),'code_competition_submission':False})
+    cpu=json.loads((STAGE/'final-project-cpu-receipt.json').read_text())
+    shared={
+        'schema_version':1,'dataset_slug':receipt['slug'],'dataset_id':data['id'],'dataset_version':1,
+        'archive_file':'wheelhouse-cp312-cu130.bin','archive_bytes':receipt['archive_bytes'],
+        'archive_sha256':receipt['archive_sha256'],'manifest_sha256':receipt['manifest_sha256'],
+        'pyproject_sha256':cpu['acceptance']['pyproject_sha256'],
+        'gpu_probe_slug':slug,'gpu_probe_version':1,'gpu_probe_source_sha256':source_sha,
+        'gpu_receipt_sha256':w.object_hash(result),
+    }
+    w.new_json(STAGE/'shared-wheelhouse.json',shared)
+    print(json.dumps(result,sort_keys=True))
+
+
+if __name__=='__main__':
+    try:
+        main()
+    except Exception as exc:
+        print(json.dumps({'status':'blocked','error_type':type(exc).__name__,'retry_automatically':False}))
+        raise SystemExit(1) from None

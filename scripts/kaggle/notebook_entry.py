@@ -4,8 +4,10 @@ import hashlib
 import json
 import os
 import platform
+import shutil
 import subprocess
 import sys
+import tarfile
 from pathlib import Path
 
 
@@ -15,6 +17,66 @@ def sha256(path):
         for block in iter(lambda: handle.read(4 * 1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def resolve_wheels(
+    bundle, manifest, inputs=Path("/kaggle/input"), destination=Path("/tmp/rsna-shared-wheels")
+):
+    expected = json.loads((bundle / "wheelhouse.json").read_text())
+    shared = manifest.get("shared_wheelhouse")
+    if shared is None:
+        return bundle / "wheels", expected
+    name = shared["archive_file"]
+    if Path(name).name != name:
+        raise ValueError("Invalid shared archive path")
+    candidates = [
+        p
+        for p in inputs.rglob(name)
+        if p.is_file()
+        and p.stat().st_size == shared["archive_bytes"]
+        and sha256(p) == shared["archive_sha256"]
+    ]
+    if len(candidates) != 1:
+        raise ValueError("Exactly one full-byte-bound shared wheel archive required")
+    destination.mkdir(exist_ok=False)
+    with tarfile.open(candidates[0]) as handle:
+        members = handle.getmembers()
+        if len(members) > 1000:
+            raise ValueError("Unexpected shared archive size")
+        for member in members:
+            path = Path(member.name)
+            if (
+                path.is_absolute()
+                or ".." in path.parts
+                or not path.parts
+                or path.parts[0] != "wheelhouse"
+                or not (member.isfile() or member.isdir())
+            ):
+                raise ValueError("Unexpected shared archive member")
+        for member in members:
+            target = destination / member.name
+            if member.isdir():
+                target.mkdir(mode=0o700, parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                with handle.extractfile(member) as source, target.open("xb") as output:
+                    shutil.copyfileobj(source, output, length=4 * 1024 * 1024)
+    wheels = destination / "wheelhouse"
+    if sha256(wheels / "wheelhouse.json") != shared["manifest_sha256"]:
+        raise ValueError("Shared wheel manifest bytes differ")
+    found = json.loads((wheels / "wheelhouse.json").read_text())
+    if found != expected:
+        raise ValueError("Shared runtime differs from checkpoint package dependency contract")
+    actual = {str(p.relative_to(wheels)) for p in wheels.rglob("*") if p.is_file()}
+    if actual != set(found["files"]) | {"wheelhouse.json"}:
+        raise ValueError("Shared archive contains missing or extraneous files")
+    for name, row in found["files"].items():
+        if Path(name).name != name:
+            raise ValueError("Invalid wheel payload path")
+        path = wheels / name
+        if sha256(path) != row["sha256"] or path.stat().st_size != row["bytes"]:
+            raise ValueError("Shared wheel payload bytes differ")
+    return wheels, found
 
 
 def run():
@@ -57,6 +119,7 @@ def run():
             "MKL_NUM_THREADS": "2",
         }
     )
+    wheels, dependencies = resolve_wheels(bundle, manifest)
     runtime = Path("/tmp/rsna-knee-offline-environment")
     if runtime.exists():
         raise ValueError("Offline runtime must be newly created")
@@ -73,13 +136,12 @@ def run():
             "--no-index",
             "--require-hashes",
             "--find-links",
-            str(bundle / "wheels"),
+            str(wheels),
             "-r",
-            str(bundle / "wheels/requirements.lock"),
+            str(wheels / "requirements.lock"),
         ],
         check=True,
     )
-    dependencies = json.loads((bundle / "wheelhouse.json").read_text())
     subprocess.run([str(python), "-m", "pip", "check"], check=True)
     installed = json.loads(
         subprocess.check_output(

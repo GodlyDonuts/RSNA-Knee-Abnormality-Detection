@@ -1,0 +1,190 @@
+[
+  {
+    "cgroup": "12:perf_event:/\n11:rdma:/\n10:freezer:/slurm/uid_1227834669/job_838579/step_batch\n9:cpu,cpuacct:/slurm/uid_1227834669/job_838579/step_batch/task_0\n8:net_cls,net_prio:/\n7:pids:/system.slice/slurmd.service\n6:memory:/slurm/uid_1227834669/job_838579/step_batch/task_0\n5:blkio:/system.slice/slurmd.service\n4:hugetlb:/\n3:cpuset:/slurm/uid_1227834669/job_838579/step_batch/task_0\n2:devices:/slurm/uid_1227834669/job_838579/step_batch/task_0\n1:name=systemd:/system.slice/slurmd.service\n",
+    "cpu_affinity": [
+      0,
+      1,
+      32,
+      33
+    ],
+    "devices": [
+      {
+        "major": 0,
+        "minor": 0,
+        "mode": "0o755",
+        "name": "nvidia-caps",
+        "read_write": false
+      },
+      {
+        "major": 195,
+        "minor": 254,
+        "mode": "0o666",
+        "name": "nvidia-modeset",
+        "read_write": true
+      },
+      {
+        "major": 510,
+        "minor": 0,
+        "mode": "0o666",
+        "name": "nvidia-uvm",
+        "read_write": true
+      },
+      {
+        "major": 510,
+        "minor": 1,
+        "mode": "0o666",
+        "name": "nvidia-uvm-tools",
+        "read_write": true
+      },
+      {
+        "major": 195,
+        "minor": 0,
+        "mode": "0o666",
+        "name": "nvidia0",
+        "read_write": true
+      },
+      {
+        "major": 195,
+        "minor": 1,
+        "mode": "0o666",
+        "name": "nvidia1",
+        "read_write": true
+      },
+      {
+        "major": 195,
+        "minor": 255,
+        "mode": "0o666",
+        "name": "nvidiactl",
+        "read_write": true
+      }
+    ],
+    "driver": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"cuInit\": 0, \"cuDeviceGetCount\": 0, \"count\": 2, \"mapped_driver_paths\": [\"/usr/lib64/libcuda.so.580.105.08\"]}\n"
+    },
+    "environment": {
+      "CUDA_DEVICE_ORDER": null,
+      "CUDA_VISIBLE_DEVICES": "0,1",
+      "LD_LIBRARY_PATH": null,
+      "LD_PRELOAD": null,
+      "PYTHONHOME": null,
+      "SLURM_GPUS_ON_NODE": "2",
+      "SLURM_GPUS_PER_TASK": null,
+      "SLURM_JOB_GPUS": "0,1",
+      "SLURM_JOB_ID": "838579",
+      "SLURM_STEP_GPUS": null,
+      "SLURM_STEP_ID": null
+    },
+    "nvidia_smi": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, GPU-b9f8e123-d296-20e8-1c46-ca42e6f6b491, 00000000:17:00.0, NVIDIA H100 PCIe, 580.105.08\n1, GPU-05cd9916-b293-ab65-3ca7-53201efc447f, 00000000:CA:00.0, NVIDIA H100 PCIe, 580.105.08\n"
+    },
+    "phase": "batch",
+    "torch_original_order": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"torch\": \"2.14.0+cu130\", \"cuda_build\": \"13.0\", \"device_count\": 2, \"init\": \"passed\", \"devices\": [{\"index\": 0, \"name\": \"NVIDIA H100 PCIe\", \"sum\": 1.0}, {\"index\": 1, \"name\": \"NVIDIA H100 PCIe\", \"sum\": 1.0}], \"mapped_driver_paths\": [\"/tmp/rsna-environment-838579-k_ae1k3e/environment/lib/python3.12/site-packages/nvidia/cu13/lib/libcudart.so.13\", \"/usr/lib64/libcuda.so.580.105.08\", \"/usr/lib64/libnvidia-ml.so.580.105.08\"]}\n"
+    },
+    "torch_pci_order": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"torch\": \"2.14.0+cu130\", \"cuda_build\": \"13.0\", \"device_count\": 2, \"init\": \"passed\", \"devices\": [{\"index\": 0, \"name\": \"NVIDIA H100 PCIe\", \"sum\": 1.0}, {\"index\": 1, \"name\": \"NVIDIA H100 PCIe\", \"sum\": 1.0}], \"mapped_driver_paths\": [\"/tmp/rsna-environment-838579-k_ae1k3e/environment/lib/python3.12/site-packages/nvidia/cu13/lib/libcudart.so.13\", \"/usr/lib64/libcuda.so.580.105.08\", \"/usr/lib64/libnvidia-ml.so.580.105.08\"]}\n"
+    }
+  },
+  {
+    "cgroup": "12:perf_event:/\n11:rdma:/\n10:freezer:/slurm/uid_1227834669/job_838579/step_0\n9:cpu,cpuacct:/slurm/uid_1227834669/job_838579/step_0/task_0\n8:net_cls,net_prio:/\n7:pids:/system.slice/slurmd.service\n6:memory:/slurm/uid_1227834669/job_838579/step_0/task_0\n5:blkio:/system.slice/slurmd.service\n4:hugetlb:/\n3:cpuset:/slurm/uid_1227834669/job_838579/step_0/task_0\n2:devices:/slurm/uid_1227834669/job_838579/step_0/task_0\n1:name=systemd:/system.slice/slurmd.service\n",
+    "cpu_affinity": [
+      0,
+      1,
+      32,
+      33
+    ],
+    "devices": [
+      {
+        "major": 0,
+        "minor": 0,
+        "mode": "0o755",
+        "name": "nvidia-caps",
+        "read_write": false
+      },
+      {
+        "major": 195,
+        "minor": 254,
+        "mode": "0o666",
+        "name": "nvidia-modeset",
+        "read_write": true
+      },
+      {
+        "major": 510,
+        "minor": 0,
+        "mode": "0o666",
+        "name": "nvidia-uvm",
+        "read_write": true
+      },
+      {
+        "major": 510,
+        "minor": 1,
+        "mode": "0o666",
+        "name": "nvidia-uvm-tools",
+        "read_write": true
+      },
+      {
+        "major": 195,
+        "minor": 0,
+        "mode": "0o666",
+        "name": "nvidia0",
+        "read_write": true
+      },
+      {
+        "major": 195,
+        "minor": 1,
+        "mode": "0o666",
+        "name": "nvidia1",
+        "read_write": true
+      },
+      {
+        "major": 195,
+        "minor": 255,
+        "mode": "0o666",
+        "name": "nvidiactl",
+        "read_write": true
+      }
+    ],
+    "driver": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"cuInit\": 0, \"cuDeviceGetCount\": 0, \"count\": 2, \"mapped_driver_paths\": [\"/usr/lib64/libcuda.so.580.105.08\"]}\n"
+    },
+    "environment": {
+      "CUDA_DEVICE_ORDER": null,
+      "CUDA_VISIBLE_DEVICES": "0,1",
+      "LD_LIBRARY_PATH": null,
+      "LD_PRELOAD": null,
+      "PYTHONHOME": null,
+      "SLURM_GPUS_ON_NODE": "2",
+      "SLURM_GPUS_PER_TASK": null,
+      "SLURM_JOB_GPUS": "0,1",
+      "SLURM_JOB_ID": "838579",
+      "SLURM_STEP_GPUS": "0,1",
+      "SLURM_STEP_ID": "0"
+    },
+    "nvidia_smi": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, GPU-b9f8e123-d296-20e8-1c46-ca42e6f6b491, 00000000:17:00.0, NVIDIA H100 PCIe, 580.105.08\n1, GPU-05cd9916-b293-ab65-3ca7-53201efc447f, 00000000:CA:00.0, NVIDIA H100 PCIe, 580.105.08\n"
+    },
+    "phase": "step",
+    "torch_original_order": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"torch\": \"2.14.0+cu130\", \"cuda_build\": \"13.0\", \"device_count\": 2, \"init\": \"passed\", \"devices\": [{\"index\": 0, \"name\": \"NVIDIA H100 PCIe\", \"sum\": 1.0}, {\"index\": 1, \"name\": \"NVIDIA H100 PCIe\", \"sum\": 1.0}], \"mapped_driver_paths\": [\"/tmp/rsna-environment-838579-k_ae1k3e/environment/lib/python3.12/site-packages/nvidia/cu13/lib/libcudart.so.13\", \"/usr/lib64/libcuda.so.580.105.08\", \"/usr/lib64/libnvidia-ml.so.580.105.08\"]}\n"
+    },
+    "torch_pci_order": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"torch\": \"2.14.0+cu130\", \"cuda_build\": \"13.0\", \"device_count\": 2, \"init\": \"passed\", \"devices\": [{\"index\": 0, \"name\": \"NVIDIA H100 PCIe\", \"sum\": 1.0}, {\"index\": 1, \"name\": \"NVIDIA H100 PCIe\", \"sum\": 1.0}], \"mapped_driver_paths\": [\"/tmp/rsna-environment-838579-k_ae1k3e/environment/lib/python3.12/site-packages/nvidia/cu13/lib/libcudart.so.13\", \"/usr/lib64/libcuda.so.580.105.08\", \"/usr/lib64/libnvidia-ml.so.580.105.08\"]}\n"
+    }
+  }
+]

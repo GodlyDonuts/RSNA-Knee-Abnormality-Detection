@@ -1,0 +1,53 @@
+"""Exact pinned checkout dispatch; secrets remain stdin-only and transient."""
+import hashlib,json,os,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+ROOT=Path.cwd()
+STAGE=Path(__file__).resolve().parent
+INTENT=json.loads((STAGE/"mutation-intent.json").read_text())
+ASKPASS="#!/usr/bin/python3.12\nimport os,sys\nfrom pathlib import Path\nif 'username' in ' '.join(sys.argv[1:]).lower():\n    print('x-access-token')\nelse:\n    sys.stdout.write(Path(os.environ['RSNA_GIT_AUTH_FILE']).read_text().strip()+'\\n')\n"
+RUNNER=(STAGE/"pin_runner.py").read_text()
+REMOTE="import json,os,subprocess,sys\nfrom pathlib import Path\nos.umask(0o077)\npayload=json.load(sys.stdin)\nintent=payload['intent'];control=Path(intent['control_directory'])\ntoken=payload.pop('token')\nif not token or any(c.isspace()for c in token):raise ValueError('invalid_authorization')\nif not Path(intent['target']).is_dir() or Path(intent['target']).is_symlink():raise ValueError('existing_regular_checkout_required')\ncontrol.parent.mkdir(mode=0o700,exist_ok=True)\nif control.parent.stat().st_mode&0o777!=0o700:raise ValueError('private_control_parent_required')\ncontrol.mkdir(mode=0o700)\nauth=control/'auth.token'\nwith auth.open('x')as handle:handle.write(token)\nauth.chmod(0o600)\ntoken=None\ntry:\n    for name in ['askpass.py','pin_runner.py','job.sbatch','initial-clone-proof.json']:\n        path=control/name\n        with path.open('x')as handle:handle.write(payload[name])\n        path.chmod(0o700 if name=='askpass.py' else 0o600)\n    (control/'intent.json').write_text(json.dumps(intent,indent=2,sort_keys=True)+'\\n')\n    result=subprocess.run(['sbatch','--parsable',str(control/'job.sbatch')],capture_output=True,text=True,timeout=30)\n    if result.returncode:raise RuntimeError('slurm_submission_failed')\n    job_id=result.stdout.strip().split(';',1)[0]\n    if not job_id.isdigit():raise ValueError('unexpected_submission_response')\n    receipt={'status':'submitted','job_id':job_id,'operation_id':intent['operation_id'],\n             'auth_mode':oct(auth.stat().st_mode&0o777),'control_mode':oct(control.stat().st_mode&0o777)}\n    (control/'submission.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\\n')\n    print(json.dumps(receipt))\nexcept BaseException:\n    auth.unlink(missing_ok=True)\n    raise\n"
+
+def main():
+    control = INTENT["control_directory"]
+    job = "\n".join([
+        "#!/bin/bash", "#SBATCH --job-name=rsna-source-pin", "#SBATCH --account=skattel",
+        "#SBATCH --partition=normal", "#SBATCH --nodes=1", "#SBATCH --ntasks=1",
+        "#SBATCH --cpus-per-task=2", "#SBATCH --mem=4G", "#SBATCH --time=00:15:00",
+        "#SBATCH --export=NONE", "#SBATCH --output=" + control + "/job.out",
+        "#SBATCH --error=" + control + "/job.err", "set -euo pipefail", "umask 077",
+        "trap " + shlex.quote("rm -f -- " + shlex.quote(control + "/auth.token")) + " EXIT",
+        "/usr/bin/python3.12 " + shlex.quote(control + "/pin_runner.py"), "",
+    ])
+    if (STAGE / 'submission.json').exists():
+        raise SystemExit('operation_already_dispatched')
+    token_result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=30)
+    if token_result.returncode or not token_result.stdout.strip():
+        print(json.dumps({"status": "blocked", "reason": "local_gh_authorization_unavailable"}))
+        return 2
+    token = token_result.stdout.strip()
+    token_result = None
+    connection = json.loads((ROOT / "artifacts/newton-access-control/connection.json").read_text())
+    ssh = ["/usr/bin/ssh", "-S", connection["control_socket"], "-o", "BatchMode=yes", "-o",
+           "StrictHostKeyChecking=yes", "-o", "ControlMaster=no", connection["user"] + "@" + connection["host"]]
+    payload = dict(intent=INTENT, token=token, **{"askpass.py": ASKPASS, "pin_runner.py": RUNNER, "job.sbatch": job, "initial-clone-proof.json": (STAGE / "initial-clone-proof.json").read_text()})
+    result = subprocess.run(ssh + [shlex.join(["/usr/bin/python3.12", "-c", REMOTE])], input=json.dumps(payload),
+                            capture_output=True, text=True, timeout=60)
+    payload = token = None
+    if result.returncode:
+        record = {"status": "dispatch_failed_or_uncertain", "ssh_returncode": result.returncode,
+                  "operation_id": INTENT["operation_id"], "read_only_reconciliation_required": True}
+    else:
+        record = json.loads(result.stdout)
+    record.update(executor="/root/image_pipeline_audit", observed_at_utc=datetime.now(timezone.utc).isoformat(),
+                  local_script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+    with (STAGE / "submission.json").open("x") as handle:
+        json.dump(record, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    print(json.dumps(record))
+    return int(result.returncode != 0)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

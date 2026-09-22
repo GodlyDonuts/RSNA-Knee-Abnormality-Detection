@@ -57,6 +57,9 @@ class FakeRemote:
         self.code = "source"
         self.reported_sha = "a" * 64
 
+    def require_absent_kernel(self, slug):
+        return None
+
     def dataset(self, slug):
         return {"id": 12, "isPrivate": self.private, "currentVersionNumber": self.version}
 
@@ -514,3 +517,47 @@ def test_kernel_request_pins_verified_t4_machine_shape(tmp_path):
         tmp_path / "operation.json", {"kernel_slug": "owner/kernel", "dataset_slug": "owner/data"}
     )
     assert result["machineShape"] == "NvidiaTeslaT4" and result["enableGpu"] is True
+
+
+@pytest.mark.parametrize("outcome", ["exists", "forbidden", "missing"])
+def test_private_kernel_creation_requires_authoritative_absence(outcome):
+    remote = workflow.Remote.__new__(workflow.Remote)
+    remote.username = "owner"
+
+    def fake_call(*args):
+        if outcome == "missing":
+            raise workflow.RemoteError("Kaggle GetKernel HTTP 404")
+        if outcome == "forbidden":
+            raise workflow.RemoteError("Kaggle GetKernel HTTP 403")
+        return {"metadata": {"currentVersionNumber": 1}}
+
+    remote.call = fake_call
+    if outcome == "missing":
+        remote.require_absent_kernel("owner/kernel")
+    else:
+        with pytest.raises((ValueError, workflow.RemoteError)):
+            remote.require_absent_kernel("owner/kernel")
+
+
+@pytest.mark.parametrize("exists", [False, True])
+def test_private_kernel_403_requires_complete_owned_listing(exists):
+    remote = workflow.Remote.__new__(workflow.Remote)
+    remote.username = "owner"
+    calls = []
+
+    def call(service, method, body):
+        calls.append((method, body))
+        if method == "GetKernel":
+            raise workflow.RemoteError("Kaggle GetKernel HTTP 403")
+        if body["page"] == 1:
+            return {"kernels": [{"ref": "owner/kernel" if exists else "owner/previous"}]}
+        return {}
+
+    remote.call = call
+    if exists:
+        with pytest.raises(ValueError, match="already exists"):
+            remote.require_absent_kernel("owner/kernel")
+    else:
+        result = remote.require_absent_kernel("owner/kernel")
+        assert result["pages"] == 2 and result["count"] == 1
+        assert len(calls) == 3

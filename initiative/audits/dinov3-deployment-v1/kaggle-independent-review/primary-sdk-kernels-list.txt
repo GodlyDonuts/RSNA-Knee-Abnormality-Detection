@@ -1,0 +1,87 @@
+    def kernels_list(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        dataset: Optional[str] = None,
+        competition: Optional[str] = None,
+        parent_kernel: Optional[str] = None,
+        search: Optional[str] = None,
+        mine: bool = False,
+        user: Optional[str] = None,
+        language: Optional[str] = None,
+        kernel_type: Optional[str] = None,
+        output_type: Optional[str] = None,
+        sort_by: Optional[str] = None,
+    ) -> list[ApiKernelMetadata | None] | None:
+        """Lists kernels based on a set of search criteria.
+
+        Args:
+            page (int): The page of results to return (default is 1).
+            page_size (int): The number of results per page (default is 20).
+            dataset (Optional[str]): If defined, filter to this dataset (default is None).
+            competition (Optional[str]): If defined, filter to this competition (default is None).
+            parent_kernel (Optional[str]): If defined, filter to those with the specified parent.
+            search (Optional[str]): A custom search string to pass to the list query.
+            mine (bool): If True, return personal kernels.
+            user (Optional[str]): Filter results to a specific user.
+            language (Optional[str]): The programming language of the kernel.
+            kernel_type (Optional[str]): The type of kernel, one of valid_list_kernel_types.
+            output_type (Optional[str]): The output type, one of valid_list_output_types.
+            sort_by (Optional[str]): How to sort the result, see valid_list_sort_by for options.
+
+        Returns:
+            Union[List[ApiKernelMetadata, None], None]: A list of ApiKernelMetadata objects.
+        """
+        if int(page) <= 0:
+            raise ValueError("Page number must be >= 1")
+
+        page_size = int(page_size)
+        if page_size <= 0:
+            raise ValueError("Page size must be >= 1")
+        if page_size > 100:
+            page_size = 100
+
+        if language and language not in self.valid_list_languages:
+            raise ValueError("Invalid language specified. Valid options are " + str(self.valid_list_languages))
+
+        if kernel_type and kernel_type not in self.valid_list_kernel_types:
+            raise ValueError("Invalid kernel type specified. Valid options are " + str(self.valid_list_kernel_types))
+
+        if output_type and output_type not in self.valid_list_output_types:
+            raise ValueError("Invalid output type specified. Valid options are " + str(self.valid_list_output_types))
+
+        if sort_by:
+            if sort_by not in self.valid_list_sort_by:
+                raise ValueError("Invalid sort by type specified. Valid options are " + str(self.valid_list_sort_by))
+            if sort_by == "relevance" and search == "":
+                raise ValueError("Cannot sort by relevance without a search term.")
+            sort_by_val = self.lookup_enum(KernelsListSortType, KernelsListSortType.HOTNESS, sort_by)
+        else:
+            sort_by_val = KernelsListSortType.HOTNESS
+
+        self.validate_dataset_string(dataset)
+        self.validate_kernel_string(parent_kernel)
+
+        group = "everyone"
+        if mine:
+            group = "profile"
+        group_val = self.lookup_enum(KernelsListViewType, KernelsListViewType.EVERYONE, group)
+
+        with self.build_kaggle_client() as kaggle:
+            request = ApiListKernelsRequest()
+            request.page = page
+            request.page_size = page_size
+            request.group = group_val
+            request.user = user or ""
+            request.language = language or "all"
+            request.kernel_type = kernel_type or "all"
+            request.output_type = output_type or "all"
+            request.sort_by = sort_by_val
+            request.dataset = dataset or ""
+            request.competition = competition or ""
+            request.parent_kernel = parent_kernel or ""
+            request.search = search or ""
+            result: list[ApiKernelMetadata | None] | None = kaggle.kernels.kernels_api_client.list_kernels(
+                request
+            ).kernels
+            return result

@@ -1,0 +1,91 @@
+{
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "attributed_live_evidence": {
+    "author": "/root/competition_contract",
+    "independent_live_requests_performed": false,
+    "sha256": "2bba13a7dc844a510dcdb1c1382da57432e957c97cc4379054bd202a2d7950b6",
+    "source": "artifacts/kaggle-shared-wheelhouse-v1/live-owned-list-absence.json"
+  },
+  "base_commit": "06816e6b698901bd5148d47a3cdf73252c5a3a89",
+  "blocking_findings": [],
+  "findings": [
+    "The optional shared runtime is bound equally in the operation and inference manifest; preparation binds original wheelhouse and current project hashes while retaining exact trained model/code bytes.",
+    "Shared Dataset owner/ID/private/version1 and source-bound private offline T4 probe version1/completion/receipt hashes are verified before push and submission. The notebook independently binds full archive bytes and exact wheel/lock payload membership before offline install.",
+    "The existing durable SQLite intent/reconciliation logic remains in force; kernel absence preflight precedes the single SaveKernel mutation. Existing and additional focused tests refuse ambiguous mutation/retry paths.",
+    "The notebook keeps the checkpoint-only encoder config path and full strict trained-state inference route, uses extracted shared wheels with --no-index/--require-hashes, and never re-fetches original pretrained weights.",
+    "The PROFILE403 fallback is supported by attributed fresh read-only evidence:40 owned references on page1 including private probe, then valid empty protobuf page2 omitting kernels. Independent tests accept this omission but refuse later-page target presence, duplicate/foreign identities, invalid rows and nontermination. Primary installed SDK kernels_list sets group=profile when mine=True, then maps through KernelsListViewType; excerpt preserved."
+  ],
+  "operational_limits": [
+    "This review did not execute live Kaggle GPU inference, create or update Datasets/notebooks, submit a competition entry, download wheels, or alter Newton. A real accepted version-bound probe remains required operationally.",
+    "Kaggle slug attachment plus preflight version checks is not server-side compare-and-swap. Exact input byte hashes prevent silent payload drift; keep the single account coordinator and never advance dedicated source versions.",
+    "The archive verification/extraction is appropriate to immutable Kaggle input mounts; no guarantee for concurrent hostile mutation of those mounted files is claimed.",
+    "Inherited tests emit a pytest_asyncio fixture-loop-scope deprecation warning; no failed tests."
+  ],
+  "production_files_edited": false,
+  "remote_mutations": 0,
+  "reviewed_at_utc": "2026-09-22T17:59:00.335525+00:00",
+  "reviewed_files": [
+    {
+      "bytes": 43747,
+      "path": "scripts/kaggle/workflow.py",
+      "sha256": "02cb9c10679cd7133d606acfc2bed0f9fb5d3f6a749d96a55662d608fadc9023",
+      "snapshot": "source/scripts/kaggle/workflow.py"
+    },
+    {
+      "bytes": 8839,
+      "path": "scripts/kaggle/notebook_entry.py",
+      "sha256": "26209dd06cc8ca486d898162205cdc49f5ebd883a23d2c890f6e0467d8dc818f",
+      "snapshot": "source/scripts/kaggle/notebook_entry.py"
+    },
+    {
+      "bytes": 17886,
+      "path": "docs/kaggle-submissions.md",
+      "sha256": "547cd4e1b8e7b6f2144235697592d4852d0253b4724eab82e5278d9f915febd0",
+      "snapshot": "source/docs/kaggle-submissions.md"
+    },
+    {
+      "bytes": 6795,
+      "path": "tests/test_kaggle_shared_wheelhouse.py",
+      "sha256": "498e29800389ebae44339e120c8c33e978bb6f90d70a8d39e0327e333b2fab73",
+      "snapshot": "source/tests/test_kaggle_shared_wheelhouse.py"
+    }
+  ],
+  "schema_version": 1,
+  "status": "accepted_for_integration_with_explicit_operational_limits",
+  "tests": {
+    "command": "python -m pytest -q tests/test_kaggle_submission.py tests/test_kaggle_progress.py tests/test_kaggle_shared_wheelhouse.py artifacts/kaggle-shared-wheelhouse-review-v1/test_review.py",
+    "elapsed_seconds": 2.6,
+    "execution": "Local existing workspace virtualenv; synthetic files/remotes; subprocess stub for offline notebook command construction. No actual package install or inference claimed by that stub.",
+    "independent_added_cases": 27,
+    "log": "focused-tests.txt",
+    "owner_cases": 49,
+    "passed": 76,
+    "returncode": 0
+  },
+  "training_code_changed": false,
+  "training_code_comparison_scope": [
+    "rsna",
+    "pyproject.toml",
+    "configs/competitive"
+  ],
+  "validation_inputs": [
+    {
+      "bytes": 21230,
+      "path": "tests/test_kaggle_submission.py",
+      "sha256": "fe793a9df44f0372a65d9accf7f38e1dba645afba631d27f3e91c13fb9276057",
+      "snapshot": "supporting-source/tests/test_kaggle_submission.py"
+    },
+    {
+      "bytes": 1858,
+      "path": "tests/test_kaggle_progress.py",
+      "sha256": "fa3e512e1a34592a02b1c3aeb3a67821407bb96fecfedc528db2d37b265d184f",
+      "snapshot": "supporting-source/tests/test_kaggle_progress.py"
+    },
+    {
+      "bytes": 5388,
+      "path": "scripts/kaggle/progress.py",
+      "sha256": "a6e6159c816a6583dd15eeb46969dce042a011bdefaba7758a3ba301d5ab440a",
+      "snapshot": "supporting-source/scripts/kaggle/progress.py"
+    }
+  ]
+}

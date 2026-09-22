@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "submitted": false,
+  "mode": "ddp",
+  "runs": 1,
+  "script": "#!/bin/bash\n#SBATCH --job-name=rsna-dinov3-pilot-v2\n#SBATCH --account=skattel\n#SBATCH --partition=normal\n#SBATCH --nodes=1\n#SBATCH --nodelist=evc37\n#SBATCH --ntasks=1\n#SBATCH --gres=gpu:nvidia_h100_pcie:2\n#SBATCH --cpus-per-task=4\n#SBATCH --mem=32G\n#SBATCH --time=00:30:00\n#SBATCH --signal=B:USR1@300\n#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out\n#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err\nset -euo pipefail\numask 077\n: \"${SLURM_JOB_ID:?Run through Slurm}\"\n: \"${CUDA_VISIBLE_DEVICES:?Slurm must expose the assigned GPUs}\"\ncd -- /home/sa305415/rsna-knee/code\nexport HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\nexport TOKENIZERS_PARALLELISM=false\nexport OMP_NUM_THREADS=2\nexport MKL_NUM_THREADS=2\nexport PYTHONNOUSERSITE=1\nunset PYTHONPATH\nsupervisors=()\nstop_requested=0\nrequest_checkpoint() {\n  stop_requested=1\n  for pid in \"${supervisors[@]}\"; do kill -USR1 \"$pid\" 2>/dev/null || true; done\n}\ntrap request_checkpoint USR1 TERM INT\nruntime_root=\nenvironment_root=\ncleanup_runtime() {\n  local previous_status=\"$?\"\n  if [[ -n \"$runtime_root\" ]]; then\n    /usr/bin/python3.12 scripts/newton/runtime_archive.py cleanup --root \"$runtime_root\" || previous_status=2\n  fi\n  if [[ -n \"$environment_root\" ]]; then\n    /usr/bin/python3.12 scripts/newton/runtime_environment.py cleanup --root \"$environment_root\" || previous_status=2\n  fi\n  return \"$previous_status\"\n}\ntrap cleanup_runtime EXIT\nenvironment_json=$(/usr/bin/python3.12 scripts/newton/runtime_environment.py extract --archive /home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar --sha256 89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338 --expected-files 40403 --expected-bytes 6322691335 --scratch-base /tmp --shared-python /usr/bin/python3.12 --min-free-gib 20)\nenvironment_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)[\"runtime_root\"])' <<< \"$environment_json\")\nruntime_python=\"$environment_root/environment/bin/python\"\nif (( stop_requested )); then exit 75; fi\nruntime_json=$(/usr/bin/python3.12 scripts/newton/runtime_archive.py extract --archive /home/sa305415/rsna-knee/cache/pilot100-fold0-v1.tar --sha256 8d50e027f66e91beb6afa2b56877b8da59059f6d43e7c13aa0103059d447d715 --expected-files 2248 --expected-bytes 4077105588 --scratch-base /tmp --min-free-gib 20)\nruntime_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)[\"runtime_root\"])' <<< \"$runtime_json\")\nruntime_cache=\"$runtime_root/cache\"\n\"$runtime_python\" scripts/newton/preflight.py --device cuda --expected-gpus 2 --repo /home/sa305415/rsna-knee/code --expected-git 06816e6b698901bd5148d47a3cdf73252c5a3a89 --cache \"$runtime_cache\" --cache-manifest /home/sa305415/rsna-knee/code/initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet --storage /home/sa305415/rsna-knee/logs --min-free-gb 20 --config /home/sa305415/rsna-knee/encoder-stage/run-configs/pilot100-fold0.json --require-nccl\nif (( stop_requested )); then exit 75; fi\nIFS=\",\" read -r -a assigned_gpus <<< \"$CUDA_VISIBLE_DEVICES\"\nif (( ${#assigned_gpus[@]} != 2 )); then exit 2; fi\n\"$runtime_python\" scripts/local_competitive_acceptance.py --cache \"$runtime_cache\" --output /home/sa305415/rsna-knee/runs/dinov3-l16-pilot100-fold0-06816e6b-v2 --world-size 2 --config /home/sa305415/rsna-knee/encoder-stage/run-configs/pilot100-fold0.json --device cuda --skip-public-examples &\nsupervisors+=(\"$!\")\nif (( stop_requested )); then kill -USR1 \"$!\" 2>/dev/null || true; fi\nresult=0\nfor pid in \"${supervisors[@]}\"; do\n  code=0\n  while true; do\n    set +e\n    wait \"$pid\"\n    code=$?\n    set -e\n    if ! kill -0 \"$pid\" 2>/dev/null; then break; fi\n  done\n  if (( code != 0 && code != 75 )); then result=$code;\n  elif (( code == 75 && result == 0 )); then result=75; fi\ndone\nexit \"$result\"\n",
+  "script_sha256": "f19e977b5030842a27b293a4faf957f9dd6b6fe706ae2f7eb29690b28468cc77",
+  "before_manual_submission": "mkdir -p -- /home/sa305415/rsna-knee/logs",
+  "manual_submission_command": "sbatch /home/sa305415/rsna-knee/pilot-launch-v2/pilot.sbatch",
+  "note": "Create the log directory on Newton before sbatch. No command was executed.",
+  "generator_sha256": "ba23cf931e5c83dadc068ea7ba04071cfb03fee7e2e638757c8ac88c30483ebe",
+  "expected_git": "06816e6b698901bd5148d47a3cdf73252c5a3a89",
+  "environment_cpu_receipt_sha256": "e3303fe06445bcdfc1b185308a88c8bb008ed03c0fd0d0b636e3a52711440336",
+  "environment_archive": {
+    "bytes": 6401699840,
+    "file": "environment-cp312-cu130.tar",
+    "links": [
+      {
+        "kind": "symlink",
+        "name": "environment/bin/python",
+        "target": "python3.12"
+      },
+      {
+        "kind": "symlink",
+        "name": "environment/bin/python3",
+        "target": "python3.12"
+      },
+      {
+        "kind": "symlink",
+        "name": "environment/bin/python3.12",
+        "target": "/usr/bin/python3.12"
+      },
+      {
+        "kind": "symlink",
+        "name": "environment/lib64",
+        "target": "lib"
+      }
+    ],
+    "regular_files": 40403,
+    "sha256": "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338",
+    "unpacked_bytes": 6322691335
+  },
+  "reviewed_adjustments": {
+    "OMP_NUM_THREADS": "2 per rank within4 CPUs total",
+    "MKL_NUM_THREADS": "2 per rank",
+    "PYTHONNOUSERSITE": "1 to isolate relocated environment",
+    "PYTHONPATH": "unset"
+  },
+  "remote_script": "/home/sa305415/rsna-knee/pilot-launch-v2/pilot.sbatch",
+  "remote_output": "/home/sa305415/rsna-knee/runs/dinov3-l16-pilot100-fold0-06816e6b-v2",
+  "status": "prepared_known_good_node_retry_not_submitted",
+  "prior_failed_job": 838502,
+  "diagnostic_probe_job": 838579,
+  "node": "evc37",
+  "base_plan_sha256": "7b388e28a42753ac62eb0d634bc66214702715fe707d54a004273c334e6ac84a",
+  "created_at_utc": "2026-09-22T18:04:24.311491+00:00"
+}

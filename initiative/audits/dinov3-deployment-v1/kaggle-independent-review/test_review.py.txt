@@ -1,0 +1,183 @@
+"""Independent synthetic regressions; no real API or trained checkpoint required."""
+import hashlib
+import importlib.util
+import io
+import json
+import tarfile
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+spec = importlib.util.spec_from_file_location('owner_shared_fixtures', ROOT/'tests/test_kaggle_shared_wheelhouse.py')
+f = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(f)
+w, n = f.w, f.n
+
+
+def test_private_probe_receipt_tamper_rejected():
+    remote = f.Remote()
+    proof = f.proof()
+    proof['gpu_receipt_sha256'] = w.object_hash(remote.receipt)
+    remote.receipt['cuda_tensor_backward'] = False
+    with pytest.raises(ValueError):
+        w.verify_shared_wheelhouse(remote, proof)
+
+
+@pytest.mark.parametrize('key,value', [('dataset_id',43),('dataset_slug','other/wheels'),('gpu_probe_slug','other/probe'),('dataset_version',True),('gpu_probe_version',2)])
+def test_identity_and_exact_version_contract(key, value):
+    remote = f.Remote()
+    proof = f.proof()
+    proof['gpu_receipt_sha256'] = w.object_hash(remote.receipt)
+    proof[key] = value
+    with pytest.raises(ValueError):
+        w.verify_shared_wheelhouse(remote, proof)
+
+
+@pytest.mark.parametrize('key,value', [('isPrivate',False),('enableInternet',True),('machineShape','Cpu'),('datasetDataSources',['owner/other']),('competitionDataSources',['competition'])])
+def test_probe_runtime_metadata_drift(key, value):
+    remote = f.Remote()
+    original = remote.kernel
+    def kernel(method,*args):
+        result = original(method,*args)
+        if method == 'GetKernel':
+            result['metadata'][key] = value
+        return result
+    remote.kernel = kernel
+    proof = f.proof()
+    proof['gpu_receipt_sha256'] = w.object_hash(remote.receipt)
+    with pytest.raises(ValueError):
+        w.verify_shared_wheelhouse(remote, proof)
+
+
+def test_probe_not_completed_blocks():
+    remote = f.Remote()
+    original = remote.kernel
+    remote.kernel = lambda method,*args: {'status':'RUNNING'} if method=='GetKernelSessionStatus' else original(method,*args)
+    proof = f.proof()
+    proof['gpu_receipt_sha256'] = w.object_hash(remote.receipt)
+    with pytest.raises(ValueError):
+        w.verify_shared_wheelhouse(remote, proof)
+
+
+@pytest.mark.parametrize('extra', ['traversal','absolute','duplicate','hardlink','payload_tamper','manifest_tamper'])
+def test_archive_structure_or_member_tamper_blocks(tmp_path, extra):
+    bundle,inputs,manifest=f.fixture_archive(tmp_path)
+    archive=inputs/'wheelhouse-cp312-cu130.bin'
+    if extra in {'payload_tamper','manifest_tamper'}:
+        with tarfile.open(archive)as handle:
+            contents={item.name:handle.extractfile(item).read()for item in handle.getmembers()}
+        name='wheelhouse/fixture.whl' if extra=='payload_tamper' else 'wheelhouse/wheelhouse.json'
+        contents[name]+=b' '
+        with tarfile.open(archive,'w')as handle:
+            for name,data in contents.items():
+                item=tarfile.TarInfo(name);item.size=len(data);handle.addfile(item,io.BytesIO(data))
+    else:
+        with tarfile.open(archive,'a')as handle:
+            name={'traversal':'wheelhouse/../../escape','absolute':'/escape','duplicate':'wheelhouse/fixture.whl','hardlink':'wheelhouse/link'}[extra]
+            item=tarfile.TarInfo(name)
+            if extra=='hardlink':
+                item.type=tarfile.LNKTYPE;item.linkname='wheelhouse/fixture.whl';handle.addfile(item)
+            else:
+                item.size=1;handle.addfile(item,io.BytesIO(b'x'))
+    # Simulates a newly bound but invalid archive; payload/structure checks must still fail.
+    manifest['shared_wheelhouse']['archive_sha256']=w.digest(archive)
+    manifest['shared_wheelhouse']['archive_bytes']=archive.stat().st_size
+    with pytest.raises((ValueError,FileExistsError)):
+        n.resolve_wheels(bundle,manifest,inputs,tmp_path/'output')
+    assert not(tmp_path/'escape').exists()
+
+
+def test_same_archive_in_two_mounts_blocks_ambiguity(tmp_path):
+    bundle,inputs,manifest=f.fixture_archive(tmp_path)
+    nested=inputs/'other';nested.mkdir()
+    (nested/'wheelhouse-cp312-cu130.bin').write_bytes((inputs/'wheelhouse-cp312-cu130.bin').read_bytes())
+    with pytest.raises(ValueError,match='Exactly one'):
+        n.resolve_wheels(bundle,manifest,inputs,tmp_path/'output')
+
+
+def test_changed_checkpoint_wheel_contract_rejected(tmp_path):
+    bundle,inputs,manifest=f.fixture_archive(tmp_path)
+    value=json.loads((bundle/'wheelhouse.json').read_text());value['unexpected_runtime']=True
+    (bundle/'wheelhouse.json').write_text(json.dumps(value))
+    with pytest.raises(ValueError,match='checkpoint package dependency'):
+        n.resolve_wheels(bundle,manifest,inputs,tmp_path/'output')
+
+
+@pytest.mark.parametrize('case',['later_target','duplicate_page','foreign_ref','bad_rows','unbounded','valid_omitted_empty'])
+def test_owned_listing_403_refusals_and_exact_empty_semantics(case):
+    remote=w.Remote.__new__(w.Remote);remote.username='owner';calls=[]
+    def call(service,method,body):
+        calls.append((method,body))
+        if method=='GetKernel':raise w.RemoteError('Kaggle GetKernel HTTP 403')
+        page=body['page']
+        if case=='later_target':return {'kernels':[{'ref':'owner/previous' if page==1 else 'owner/target'}]}
+        if case=='duplicate_page':return {'kernels':[{'ref':'owner/repeated'}]}
+        if case=='foreign_ref':return {'kernels':[{'ref':'someone/target'}]}
+        if case=='bad_rows':return {'kernels':None}
+        if case=='unbounded':return {'kernels':[{'ref':f'owner/page-{page}'}]}
+        return {'kernels':[{'ref':'owner/previous'}]} if page==1 else {}
+    remote.call=call
+    if case=='valid_omitted_empty':
+        result=remote.require_absent_kernel('owner/target')
+        assert result['pages']==2 and result['count']==1
+        assert result['refs_sha256']==w.object_hash(['owner/previous'])
+    else:
+        with pytest.raises((ValueError,w.RemoteError)):
+            remote.require_absent_kernel('owner/target')
+    assert len(calls)<=101
+    assert all(method!='SaveKernel' for method,_ in calls)
+
+
+def test_notebook_offline_invocation_uses_extracted_wheels_and_bound_config(tmp_path,monkeypatch):
+    bundle,inputs,manifest=f.fixture_archive(tmp_path)
+    bundle.rename(inputs/'checkpoint');bundle=inputs/'checkpoint'
+    expected=json.loads((bundle/'wheelhouse.json').read_text());expected['resolved_versions']={'torch':'fixture'}
+    serialized=json.dumps(expected).encode();(bundle/'wheelhouse.json').write_bytes(serialized)
+    archive=inputs/'wheelhouse-cp312-cu130.bin'
+    with tarfile.open(archive)as handle:contents={item.name:handle.extractfile(item).read()for item in handle.getmembers()}
+    contents['wheelhouse/wheelhouse.json']=serialized
+    with tarfile.open(archive,'w')as handle:
+        for name,data in contents.items():
+            item=tarfile.TarInfo(name);item.size=len(data);handle.addfile(item,io.BytesIO(data))
+    manifest['shared_wheelhouse'].update(archive_sha256=w.digest(archive),archive_bytes=archive.stat().st_size,manifest_sha256=hashlib.sha256(serialized).hexdigest())
+    (bundle/'encoder').mkdir();(bundle/'encoder/config.json').write_text('{}')
+    (bundle/'encoder.json').write_text(json.dumps({'config_path':'encoder/config.json'}))
+    manifest.update(python='3.12',competition='test-competition',checkpoint_sha256='a'*64,files={})
+    for rel in ['wheelhouse.json','encoder.json','encoder/config.json']:
+        p=bundle/rel;manifest['files'][rel]={'sha256':w.digest(p),'bytes':p.stat().st_size}
+    (bundle/'bundle-manifest.json').write_text(json.dumps(manifest))
+    monkeypatch.setattr(n,'EXPECTED_MANIFEST_SHA256',w.digest(bundle/'bundle-manifest.json'),raising=False)
+    monkeypatch.setattr(n.platform,'system',lambda:'Linux');monkeypatch.setattr(n.platform,'machine',lambda:'x86_64');monkeypatch.setattr(n.platform,'python_version_tuple',lambda:('3','12','0'))
+    working=tmp_path/'working';working.mkdir();scratch=tmp_path/'scratch';scratch.mkdir()
+    competition=inputs/'test-competition';competition.mkdir()
+    for name in ['sample_submission.csv','test_series.csv']:(competition/name).write_text('fixture')
+    (competition/'test_series').mkdir()
+    def mapped(value):
+        value=str(value)
+        for prefix,destination in [('/kaggle/input',inputs),('/kaggle/working',working),('/tmp',scratch)]:
+            if value==prefix or value.startswith(prefix+'/'):return destination/value[len(prefix):].lstrip('/')
+        return Path(value)
+    monkeypatch.setattr(n,'Path',mapped)
+    resolver=n.resolve_wheels
+    monkeypatch.setattr(n,'resolve_wheels',lambda b,m:resolver(b,m,inputs,scratch/'wheels'))
+    calls=[]
+    def run(args,**kwargs):
+        calls.append((args,kwargs))
+        if 'rsna.competitive.infer' in args:
+            (working/'submission.metrics.json').write_text(json.dumps({'diagnostic_only':False,'checkpoint_sha256':'a'*64,'studies':3}))
+            (working/'submission.csv').write_text('fixture')
+    monkeypatch.setattr(n.subprocess,'run',run)
+    monkeypatch.setattr(n.subprocess,'check_output',lambda *a,**k:json.dumps(expected['resolved_versions']))
+    monkeypatch.setattr(n.sys,'path',list(n.sys.path))
+    for key in ['HF_HUB_OFFLINE','TRANSFORMERS_OFFLINE','HF_HUB_DISABLE_XET','TOKENIZERS_PARALLELISM','OMP_NUM_THREADS','MKL_NUM_THREADS']:monkeypatch.setenv(key,n.os.environ.get(key,''))
+    n.run()
+    pip=next(args for args,_ in calls if 'install' in args)
+    assert '--no-index' in pip and '--require-hashes' in pip
+    assert pip[pip.index('--find-links')+1]==str(scratch/'wheels/wheelhouse')
+    infer,kwargs=next((args,kwargs)for args,kwargs in calls if 'rsna.competitive.infer' in args)
+    assert infer[infer.index('--encoder-config')+1]==str(bundle/'encoder/config.json')
+    assert '--encoder-spec' not in infer and infer[infer.index('--precision')+1]=='fp32'
+    assert kwargs['env']['HF_HUB_OFFLINE']=='1'
+    assert kwargs['env']['PYTHONPATH']==str(bundle/'code')
+    assert json.loads((working/'kaggle-inference-receipt.json').read_text())['status']=='offline_inference_complete'

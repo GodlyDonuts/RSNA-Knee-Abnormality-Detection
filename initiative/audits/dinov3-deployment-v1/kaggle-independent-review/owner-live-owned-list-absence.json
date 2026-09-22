@@ -1,0 +1,50 @@
+{
+  "account": "godlydonuts",
+  "observed_at": "2026-09-22T17:56:17.394838+00:00",
+  "operations": [
+    {
+      "method": "GetKernel",
+      "outcome": "Kaggle GetKernel HTTP 403"
+    },
+    {
+      "count": 40,
+      "kernels_field_present": true,
+      "known_private_environment_probe_present": true,
+      "method": "ListKernels",
+      "refs_sha256": "5078da961c5c0ce03145d1d5e133de03e78db1d22ecdcb4a36f198bae4a17540",
+      "request": {
+        "group": "PROFILE",
+        "kernelType": "all",
+        "language": "all",
+        "outputType": "all",
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    {
+      "count": 0,
+      "kernels_field_present": false,
+      "known_private_environment_probe_present": false,
+      "method": "ListKernels",
+      "refs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "request": {
+        "group": "PROFILE",
+        "kernelType": "all",
+        "language": "all",
+        "outputType": "all",
+        "page": 2,
+        "pageSize": 100
+      }
+    }
+  ],
+  "proof": {
+    "count": 40,
+    "method": "complete_authenticated_profile_after403",
+    "pages": 2,
+    "refs_sha256": "5078da961c5c0ce03145d1d5e133de03e78db1d22ecdcb4a36f198bae4a17540"
+  },
+  "remote_writes": false,
+  "sdk_contract": "kaggle2.2.3 KaggleApi.kernels_list(mine=True) uses KernelsListViewType.PROFILE, page/pageSize; metadata.ref identifies owner/slug.",
+  "target": "godlydonuts/rsna-wheels-test-e326c50a4a6a",
+  "workflow_sha256": "02cb9c10679cd7133d606acfc2bed0f9fb5d3f6a749d96a55662d608fadc9023"
+}
