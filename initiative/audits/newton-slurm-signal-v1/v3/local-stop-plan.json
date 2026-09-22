@@ -1,0 +1,25 @@
+{
+  "status": "prepared_after_first_usr1_rehearsal_completed_without_stop",
+  "phase": "stop",
+  "actual_executor": "/root",
+  "script_sha256": "e5ff384926f7d7b24f657cb849a3679aa3a942aeb222f9465e73140746e88eca",
+  "runtime_commit": "e7b08625854de692b9266ccfc25c90fc22169f58",
+  "pilot_prerequisite": 839321,
+  "resources": {
+    "gpus": 2,
+    "cpus": 4,
+    "memory_gib": 32,
+    "minutes": 30,
+    "node": "evc49"
+  },
+  "base_pilot_script_sha256": "359a572b7cd73e402617cabf76516183c2202fd9d9fc3cbd2070b4d05206f7b1",
+  "prior_signal_script_sha256": "2888503d33a3bc2d95e7fbd6d6e2f04fbfb1884e527517d3dd8712b036fd70ec",
+  "scope": "same 100-study diagnostic config; actual production supervisor and explicit batch USR1; no competition eligibility",
+  "signal_delivery": "root delivers exactly one scancel --batch --signal=USR1 after positive optimizer event",
+  "resume_prerequisites": "terminal stopped job with checkpoint_stop_verified true, workers_signaled 2, grace_expired false and exit75; immutable stopped checkpoint and sidecars preserved",
+  "prior_failed_signal_job": 839401,
+  "diagnostic_change": "Batch trap timestamp using Bash EPOCHREALTIME; same training code, cache, model, config and resources",
+  "staged": false,
+  "submitted": false,
+  "created_at_utc": "2026-09-22T20:57:53.902421+00:00"
+}

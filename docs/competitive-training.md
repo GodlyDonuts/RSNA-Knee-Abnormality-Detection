@@ -9,9 +9,10 @@ and the [research strategy](training-strategy.md).
 The current tooling requires Python 3.11 or newer. Newton, Kaggle and CI use
 Python 3.12; the existing local CPU verification environment uses Python 3.11.
 
-This is the initial global-embedding experiment implementation. Winning accuracy,
-H100 throughput, CUDA/NCCL behavior and the full hidden-test time budget remain
-unmeasured. Do not infer those results from local software checks.
+This is the initial global-embedding experiment. The two-H100 100-study diagnostic
+measured 26 optimizer updates and exact same-world-size recovery; see
+`initiative/audits/dinov3-h100-pilot-v6/`. Full-data throughput, competitive
+accuracy and the hidden-test time budget remain unmeasured.
 
 ## Frozen development data
 
@@ -125,12 +126,16 @@ Random data augmentation uses per-study/epoch CPU seeds and cannot reset model
 CUDA generators. Partial gradient accumulation is never serialized as a completed
 optimizer update.
 
-`SIGUSR1` coordinates a checkpoint request across ranks and exits with 75. During
-final evaluation, balanced schedules allow all ranks to stop at a batch boundary;
-resume uses the already saved final training checkpoint. The Newton supervisor
-checks the explicit stop receipt, binding and checkpoint SHA before calling an
-exit a successful preemption. A periodic checkpoint plus an unrelated crash is
-not reported as successful recovery.
+The Newton supervisor responds to `SIGUSR1` by forwarding it to workers and
+writing an atomic, invocation-bound stop request beside the checkpoint. Both
+training ranks check that request at optimizer boundaries and during final
+prediction. This file fallback was added after actual Slurm job 839411 reported
+worker signal forwarding but completed normally; see
+`initiative/audits/newton-slurm-signal-v1/`. The local real-trainer stop/resume
+test passes, while a new actual Newton stop and separate resume remain required
+before production. The supervisor requires an explicit exit-75 stop receipt,
+binding and checkpoint SHA; a periodic checkpoint plus an unrelated crash is
+not successful recovery.
 
 Resume by repeating the same command with `--resume "$RSNA_RUN/checkpoint.pt"`.
 Changed world size, source, model files, code, device type or numerical settings
@@ -199,6 +204,18 @@ also supports a configurable two-epoch CUDA diagnostic using `--config`,
 it with the verified 100-training/100-outer-study pilot cache. It checks real
 continuous/interrupted/resumed training before production. Acceptance records
 and failed-attempt disclosures are archived separately from the immutable release.
+The first actual two-H100 DINOv3-L diagnostic, Newton job 839321, completed two
+epochs over 100 training studies and 100 outer studies. Its uninterrupted run
+performed 26 optimizer updates in 109.06 seconds including prediction, with a
+1,759,206,400-byte peak CUDA allocation on rank zero. The deliberate one-update
+stop and same-world-size resume produced elementwise identical final model and
+optimizer state and byte-identical outer predictions. Raw PyTorch checkpoint
+file hashes differed despite exact decoded state equality. The original records
+are preserved in `initiative/audits/dinov3-h100-pilot-v6/`. Its diagnostic
+submission cadence is zero and it established no Kaggle score. Fold-0 production
+has 2,247 eligible training studies and 281 effective batches per epoch; a linear
+pilot extrapolation is roughly 14 minutes per epoch, pending a full-data measure.
+The separate actual Slurm USR1 delivery and full cache staging remain open.
 An actual pinned ConvNeXt CPU load/forward/head-backward check and DINOv2 checkpoint
 header compatibility inspection are recorded under
 `initiative/audits/competitive-pretrained-local-check-v1/`.
@@ -209,4 +226,5 @@ fold-local MRI self-supervision, regional-token pooling, native 448-pixel caches
 experiments in the strategy. Adding all of them before measuring the reference
 pipeline would not establish that they help. The next executable gate is the
 actual Newton environment, pinned pretrained model, throughput/memory and recovery
-pilot, followed by the primary DINOv3-L run and measured fine-tuning experiments.
+pilot, the actual Slurm signal rehearsal and full-cache staging, followed by the
+primary DINOv3-L run and measured fine-tuning experiments.

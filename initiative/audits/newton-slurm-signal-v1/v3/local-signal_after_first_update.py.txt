@@ -1,0 +1,86 @@
+"""Send one explicit batch USR1 after the accepted job's first flushed update."""
+
+import json
+import shlex
+import subprocess
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+HERE = Path(__file__).resolve().parent
+JOB = 839409
+PLAN = json.loads((HERE / "stop-plan.json").read_text())
+DISPATCH = json.loads((HERE / "stop-dispatch-local-result.json").read_text())
+assert PLAN["script_sha256"] == "e5ff384926f7d7b24f657cb849a3679aa3a942aeb222f9465e73140746e88eca"
+assert json.loads(DISPATCH["stdout"])["job_id"] == JOB and DISPATCH["returncode"] == 0
+connection = json.loads((ROOT / "artifacts/newton-access-control/connection.json").read_text())
+
+REMOTE = r'''
+import hashlib,json,os,re,subprocess
+from pathlib import Path
+root=Path('/home/sa305415/rsna-knee');control=root/'signal-rehearsal-v3'
+job=839409;dispatch=json.loads((control/'stop-dispatch-result.json').read_text())
+assert dispatch['status']=='submitted' and dispatch['job_id']==job
+assert dispatch['script_sha256']=='e5ff384926f7d7b24f657cb849a3679aa3a942aeb222f9465e73140746e88eca'
+intent=control/'stop-signal-intent.json';result=control/'stop-signal-result.json'
+if intent.exists() or result.exists():
+ print(json.dumps({'status':'signal_operation_already_exists_reconcile_read_only','intent':intent.exists(),'result':result.exists()}));raise SystemExit(0)
+listing=subprocess.check_output(['squeue','-j',str(job),'-h','-o','%i|%T|%j|%N'],text=True).strip()
+if not listing:
+ print(json.dumps({'status':'job_terminal_before_explicit_signal'}));raise SystemExit(0)
+assert listing.split('|')[0]==str(job) and listing.split('|')[2]=='rsna-signal-stop-v3'
+if listing.split('|')[1]!='RUNNING':
+ print(json.dumps({'status':'waiting_for_running_job','job':listing}));raise SystemExit(0)
+assert listing.split('|')[3]=='evc49'
+stdout=root/f'logs/rsna-signal-stop-v3-{job}.out'
+assert not stdout.is_symlink()
+if not stdout.exists():
+ print(json.dumps({'status':'waiting_for_first_optimizer_update'}));raise SystemExit(0)
+assert stdout.stat().st_size<5_000_000
+raw=stdout.read_bytes();events=[]
+for line in raw.decode(errors='replace').splitlines():
+ try:value=json.loads(line)
+ except ValueError:continue
+ if isinstance(value,dict) and all(k in value for k in ('epoch','update','optimizer_steps','loss','gradient_norm','observed_cells','elapsed_seconds')):
+  if value['optimizer_steps']>0:events.append(value)
+if not events:
+ print(json.dumps({'status':'waiting_for_first_optimizer_update'}));raise SystemExit(0)
+event=events[0]
+record={'status':'intent_before_one_batch_usr1','job_id':job,'first_event':event,'event_count_seen':len(events),'stdout_sha256_at_delivery':hashlib.sha256(raw).hexdigest(),'slurm_line':listing}
+with intent.open('x') as f:json.dump(record,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+fd=os.open(control,os.O_RDONLY);os.fsync(fd);os.close(fd)
+sent=subprocess.run(['scancel','--batch','--signal=USR1',str(job)],capture_output=True,text=True)
+answer={'status':'one_signal_sent' if sent.returncode==0 else 'signal_delivery_uncertain_reconcile_read_only','job_id':job,'returncode':sent.returncode,'stdout':sent.stdout,'stderr':sent.stderr,'first_event':event}
+with result.open('x') as f:json.dump(answer,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+fd=os.open(control,os.O_RDONLY);os.fsync(fd);os.close(fd)
+print(json.dumps(answer))
+'''
+
+ssh = [
+    "/usr/bin/ssh",
+    "-S",
+    connection["control_socket"],
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "StrictHostKeyChecking=yes",
+    "-o",
+    "ControlMaster=no",
+    connection["user"] + "@" + connection["host"],
+    shlex.join(["/usr/bin/python3.12", "-c", REMOTE]),
+]
+until = time.monotonic() + 20 * 60
+while time.monotonic() < until:
+    attempt = subprocess.run(ssh, capture_output=True, text=True, timeout=30)
+    if attempt.returncode:
+        raise RuntimeError("Signal monitor read failed; reconcile before any manual action")
+    state = json.loads(attempt.stdout)
+    if state["status"] not in {"waiting_for_running_job", "waiting_for_first_optimizer_update"}:
+        with (HERE / "stop-signal-monitor-result.json").open("x") as handle:
+            json.dump(dict(state, observed_at_utc=datetime.now(timezone.utc).isoformat()), handle, indent=2)
+        print(json.dumps(state), flush=True)
+        break
+    time.sleep(5)
+else:
+    raise TimeoutError("No first optimizer event during bounded signal window")

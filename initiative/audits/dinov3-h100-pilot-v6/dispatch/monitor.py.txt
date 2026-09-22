@@ -1,0 +1,47 @@
+"""Read only this pilot's accounting/logs through the existing private SSH connection."""
+import datetime
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+O=Path(__file__).resolve().parents[2]
+S=Path(__file__).resolve().parent
+connection=json.loads((O/'artifacts/newton-access-control/connection.json').read_text())
+ssh=['/usr/bin/ssh','-S',connection['control_socket'],'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ControlMaster=no',connection['user']+'@'+connection['host']]
+job=json.loads((S/'dispatch-result.json').read_text())['job_id']
+if not isinstance(job,int) or job<=0:raise ValueError('Verified positive job id required')
+code=r'''import json,subprocess
+from pathlib import Path
+b=Path('/home/sa305415/rsna-knee');o=b/'runs/dinov3-l16-pilot100-fold0-e7b08625-v6';r={'job_id':__PILOT_JOB_ID__}
+r['accounting']=subprocess.check_output(['sacct','-j','__PILOT_JOB_ID__','--format=JobID,State,ExitCode,Elapsed,AllocTRES,NodeList','--parsable2','--noheader'],text=True)
+paths={'batch_stdout':b/'logs/rsna-dinov3-pilot-v6-__PILOT_JOB_ID__.out','batch_stderr':b/'logs/rsna-dinov3-pilot-v6-__PILOT_JOB_ID__.err'}
+for label in ['continuous','interrupted','resumed']:paths[label]=o/(label+'.log')
+for key,p in paths.items():
+ if p.exists():
+  with p.open('rb') as f:f.seek(max(0,p.stat().st_size-48000));r[key]=f.read().decode(errors='replace')
+r['output_exists']=o.exists()
+for label in ['continuous','resumed']:
+ path=o/label/'result.json'
+ if path.is_file():
+  value=json.loads(path.read_text());r[label+'_result']={k:value.get(k) for k in ['status','elapsed_seconds','training_studies','outer_studies','optimizer_steps']}
+if (o/'acceptance.json').is_file():r['acceptance']=json.loads((o/'acceptance.json').read_text())
+print(json.dumps(r))
+'''
+code=code.replace('__PILOT_JOB_ID__',str(job))
+result=subprocess.run(ssh+['/usr/bin/python3.12 -c '+shlex.quote(code)],capture_output=True,text=True,timeout=25)
+if result.returncode:
+ print(json.dumps({'status':'readonly_check_failed','ssh_returncode':result.returncode}));raise SystemExit(1)
+record=json.loads(result.stdout);record['checked_at_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+(S/'latest-status.json').write_text(json.dumps(record,indent=2)+'\n')
+summary={k:record.get(k) for k in ['job_id','accounting','checked_at_utc','output_exists','continuous_result','resumed_result']}
+for label in ['continuous','interrupted','resumed']:
+ events=[]
+ for line in record.get(label,'').splitlines():
+  try:value=json.loads(line)
+  except ValueError:continue
+  if isinstance(value,dict) and 'epoch' in value and 'update' in value:events.append(value)
+ summary[label]={'events_seen':len(events),'last_events':events[-2:],'log_tail':record.get(label,'')[-2500:] if not events else None}
+summary['batch_stderr']=record.get('batch_stderr','')[-2000:]
+if record.get('acceptance'):summary['acceptance_status']=record['acceptance'].get('status')
+print(json.dumps(summary,indent=2))

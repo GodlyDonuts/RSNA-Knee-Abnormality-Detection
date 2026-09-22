@@ -6,13 +6,52 @@ import argparse
 import hashlib
 import json
 import os
+import secrets
 import signal
 import subprocess
 import time
 from pathlib import Path
 
+STOP_REQUEST_NAME = ".checkpoint-stop-request.json"
 
-def checkpoint_stop_verified(checkpoint: Path, requested_wall: float) -> bool:
+
+def write_stop_request(checkpoint: Path, session: str, requested_wall: float) -> None:
+    """Persist an update-boundary request for workers when OS signals are missed."""
+    output = checkpoint.parent
+    if output.is_symlink() or not output.is_dir():
+        raise OSError("Trainer output is unavailable for a stop request")
+    request = output / STOP_REQUEST_NAME
+    if request.is_symlink():
+        raise OSError("Stop request path is a symlink")
+    temporary = output / f".{STOP_REQUEST_NAME}.{os.getpid()}.partial"
+    try:
+        with temporary.open("x") as handle:
+            json.dump(
+                {
+                    "status": "checkpoint_requested",
+                    "session": session,
+                    "checkpoint_name": checkpoint.name,
+                    "requested_wall": requested_wall,
+                },
+                handle,
+                sort_keys=True,
+            )
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, request)
+        directory = os.open(output, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def checkpoint_stop_verified(
+    checkpoint: Path, requested_wall: float, session: str | None = None
+) -> bool:
     """A periodic save alone is insufficient: require the trainer's exact stop receipt."""
     receipt_path, run_path = checkpoint.parent / "invocation.json", checkpoint.parent / "run.json"
     try:
@@ -21,6 +60,20 @@ def checkpoint_stop_verified(checkpoint: Path, requested_wall: float) -> bool:
                 return False
         if receipt_path.stat().st_mtime < requested_wall:
             return False
+        if session is not None:
+            request_path = checkpoint.parent / STOP_REQUEST_NAME
+            if request_path.is_symlink() or not request_path.is_file():
+                return False
+            if request_path.stat().st_size > 4096:
+                return False
+            request = json.loads(request_path.read_text())
+            if request != {
+                "status": "checkpoint_requested",
+                "session": session,
+                "checkpoint_name": checkpoint.name,
+                "requested_wall": requested_wall,
+            }:
+                return False
         if max(receipt_path.stat().st_size, run_path.stat().st_size) > 50_000_000:
             return False
         receipt, run = json.loads(receipt_path.read_text()), json.loads(run_path.read_text())
@@ -72,6 +125,7 @@ def worker_pids(parent: int) -> list[int]:
 def supervise(command: list[str], checkpoint: Path, grace: int) -> int:
     requested = 0.0
     requested_wall = 0.0
+    session = secrets.token_hex(16)
 
     def request(_signum: int, _frame: object) -> None:
         nonlocal requested, requested_wall
@@ -80,12 +134,18 @@ def supervise(command: list[str], checkpoint: Path, grace: int) -> int:
 
     for sig in (signal.SIGUSR1, signal.SIGTERM, signal.SIGINT):
         signal.signal(sig, request)
-    child = subprocess.Popen(command, start_new_session=True)
+    child = subprocess.Popen(
+        command, start_new_session=True, env={**os.environ, "RSNA_STOP_SESSION": session}
+    )
     signaled: set[int] = set()
+    request_written = False
     timed_out = False
     try:
         while child.poll() is None:
             if requested:
+                if not request_written:
+                    write_stop_request(checkpoint, session, requested_wall)
+                    request_written = True
                 for pid in worker_pids(child.pid):
                     if pid not in signaled:
                         try:
@@ -112,7 +172,7 @@ def supervise(command: list[str], checkpoint: Path, grace: int) -> int:
                 os.killpg(child.pid, signal.SIGKILL)
                 child.wait()
     if requested:
-        stop_verified = checkpoint_stop_verified(checkpoint, requested_wall)
+        stop_verified = checkpoint_stop_verified(checkpoint, requested_wall, session)
         success = bool(signaled) and stop_verified and not timed_out
         print(
             json.dumps(

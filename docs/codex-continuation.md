@@ -11,26 +11,40 @@ remote dispatches, transfers and publication; do not restart agents. Preserve
 their completed originals and inspect receipts before taking over operations.
 Pilot 839216 failed on evc44 during its early driver check (exit 2, 1:59),
 before any optimizer update. Keep evc44 out of subsequent training allocations
-until allocated-device health is established. The fresh bounded pilot 839321 is recorded
-under local `artifacts/newton-pilot-launch-v6/`; it requests the previously
-verified evc37 with two GPUs and four CPUs. Inspect its dispatch receipt and
-live scheduler state; do not reroute it to an unverified node to shorten waiting.
+until allocated-device health is established. After a fresh resource inventory,
+root rerouted the **same pending** successor job 839321 to free evc49. Its strict
+driver and full private-header guards passed. Job 839321 completed 0:0 on two
+H100s/four CPUs, with 26 real optimizer updates over two diagnostic epochs,
+same-world-size interruption/resume, elementwise identical final checkpoint
+state and byte-identical outer prediction CSVs. The complete original records
+and exact timings are in `initiative/audits/dinov3-h100-pilot-v6/`. Serialized
+checkpoint files have different hashes; tensor and metadata content matched.
+This is a 100-study diagnostic, with no Kaggle submission or competitive score.
+The separate real Slurm USR1 rehearsal remains open. Job 839401 received a late
+signal and completed normally, so it did not prove a stop. Job 839409 received
+an early signal after two optimizer updates, but the batch trap used unsupported
+`EPOCHREALTIME` under Newton's Bash and exited before forwarding to workers.
+Both failures are preserved. The narrow trap repair used `/usr/bin/date` in job
+839411; Slurm accepted the early signal, the batch trap ran, and the supervisor
+reported sending USR1 to both worker PIDs. The trainer nevertheless completed
+all 26 updates and predictions normally, so the required checkpoint-stop
+receipt is absent. Job 839411 completed 0:0, which is a **failed recovery
+rehearsal**, not a successful checkpoint stop. The corrective source now has an
+atomic, session-bound stop request that both ranks check at update boundaries;
+its local real-trainer stop/resume test passed. Re-deploy that source and repeat
+the actual Slurm stop and separate resume before production. No signal job
+remains active. Original failures are in `initiative/audits/newton-slurm-signal-v1/`.
 
-The interrupted full-cache upload left exactly 71,862,845,440 bytes remotely.
-The original sender is gone. The byte-resume plan under local
-`artifacts/newton-cache-resume-v2/` must compare a stable remote-prefix hash with
-a deterministic USTAR replay and all accepted per-file lineage hashes before
-appending. `scripts/newton/resume_cache_archive.py` implements separate `plan`
-and `execute` phases without a local archive. Never start a second operation
-while that planning/execute PID is alive. An existing execute intent, remote
-resume lock or uncertain commit requires read-only reconciliation, not retry.
-Only `completed.json` plus the matching final remote receipt establishes staging.
-The first full replay passed all 48,772 file hashes and the remote prefix, but
-its read-only process scan encountered root-owned SSH/PAM session descriptors.
-The narrowly corrected scan still refuses an uninspectable receiver or arbitrary
-process. The v2 plan rechecks complete source/prefix bytes with that receiver.
-The full archive is 82,834,493,440 bytes, SHA
-`6acf433e16c4832503103dd045943bbafa01dfb65fde8f56d93911fe1caac338`.
+The full-cache byte-resume operation is **complete and verified**. The v3 plan
+rechecked every one of the 48,772 source files and the interrupted
+75,434,622,976-byte remote prefix. Its `completed.json` agrees exactly with the
+independent remote full-file/TAR receipt: 82,834,493,440 bytes, SHA
+`6acf433e16c4832503103dd045943bbafa01dfb65fde8f56d93911fe1caac338`,
+48,772 members and 82,794,366,615 unpacked bytes. See
+`initiative/audits/full-cache-newton-stage-v1/` for the immutable small records.
+Do not start another transfer. The archive remains on private Newton storage;
+its membership will be rechecked when extracted to node-local scratch. The
+hash-pinned production launch script is staged only, with no GPU job submitted.
 
 The final `initiative/releases/report-supervision-v1/` export and real runtime
 acceptance passed. Start with [data-readiness-report.md](data-readiness-report.md),
@@ -69,7 +83,8 @@ SSH access to Newton and Stokes works. Use account `skattel`, partition `normal`
 and `gpu:nvidia_h100_pcie:2`; credentials live only in ignored local `.env` files.
 DINOv3-L access was approved, and authenticated official config and license bytes
 are verified in `configs/competitive/weights/dinov3-large.json`.
-No actual pretrained DINOv3 training or competitive submission has completed.
+The official pretrained DINOv3-L has completed the two-H100 100-study pilot
+described above. No competitive ten-epoch run or submission has completed.
 The official config SHA is
 `135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5`.
 The 1,212,559,808-byte weights passed full SHA verification on Newton in CPU-only

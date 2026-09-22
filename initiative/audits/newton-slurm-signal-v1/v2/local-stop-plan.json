@@ -1,0 +1,20 @@
+{
+  "status": "prepared_not_dispatched",
+  "phase": "stop",
+  "actual_executor": "/root",
+  "script_sha256": "f960e94a8ee73719552e6f9ab8d5c3c0f9213a2a1cb6ae8c44c58090e6ab1b8e",
+  "runtime_commit": "e7b08625854de692b9266ccfc25c90fc22169f58",
+  "pilot_prerequisite": 839321,
+  "resources": {
+    "gpus": 2,
+    "cpus": 4,
+    "memory_gib": 32,
+    "minutes": 30,
+    "node": "evc49"
+  },
+  "base_pilot_script_sha256": "359a572b7cd73e402617cabf76516183c2202fd9d9fc3cbd2070b4d05206f7b1",
+  "prior_signal_script_sha256": "2888503d33a3bc2d95e7fbd6d6e2f04fbfb1884e527517d3dd8712b036fd70ec",
+  "scope": "same 100-study diagnostic config; actual production supervisor and explicit batch USR1; no competition eligibility",
+  "signal_delivery": "root delivers exactly one scancel --batch --signal=USR1 after positive optimizer event",
+  "resume_prerequisites": "terminal stopped job with checkpoint_stop_verified true, workers_signaled 2, grace_expired false and exit75; immutable stopped checkpoint and sidecars preserved"
+}

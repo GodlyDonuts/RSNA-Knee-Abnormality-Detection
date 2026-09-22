@@ -33,14 +33,16 @@ The next experiment uses DINOv3-L on Newton. The [competitive training handoff](
 and [DINOv3 recipe](../configs/competitive/dinov3-campaign.json) describe the new
 training-only folds, two-GPU runtime, and authorized two-epoch Kaggle cadence.
 The pinned weights, pilot cache, exact Newton source and offline CPU environment
-are verified. The first GPU pilot stopped before training because its allocated
-GPUs were not correctly available to the process. Basic CUDA checks passed on
-another Newton node, and the exact offline Kaggle T4 runtime also passed. The
-recovery-pilot retry then exposed a strict weight-key compatibility mismatch.
-The corrected adapter passed full official-weight CPU loading and exact
-restoration; the corrected GPU pilot and full-cache transfer remain. No
-competitive DINOv3 result has been measured yet. The
-accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
+are verified. Earlier GPU attempts exposed device visibility, checkpoint-key
+and missing Python-header failures. The corrected adapter and private headers
+then passed CPU loading and exact runtime checks. [Newton job 839321](audits/dinov3-h100-pilot-v6/)
+completed a real two-H100 DINOv3-L diagnostic: 100 training studies, two epochs,
+26 optimizer updates and exact decoded checkpoint state and outer predictions
+after interruption/resume. Its uninterrupted trainer elapsed time was 109.06
+seconds including prediction. The [full-cache transfer](audits/full-cache-newton-stage-v1/)
+is verified at 48,772 files and 82.83 GB; the actual Slurm signal stop-and-resume
+check still gates production. No Kaggle score has been measured. The accepted
+data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 
 ## Contents
 

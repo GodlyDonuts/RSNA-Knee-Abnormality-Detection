@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "submitted": false,
+  "mode": "ddp",
+  "runs": 1,
+  "script": "#!/bin/bash\n#SBATCH --job-name=rsna-dinov3-pilot-v6\n#SBATCH --account=skattel\n#SBATCH --partition=normal\n#SBATCH --nodes=1\n#SBATCH --nodelist=evc37\n#SBATCH --exclude=evc38,evc44,evc50\n#SBATCH --ntasks=1\n#SBATCH --gres=gpu:nvidia_h100_pcie:2\n#SBATCH --cpus-per-task=4\n#SBATCH --mem=32G\n#SBATCH --time=00:30:00\n#SBATCH --signal=B:USR1@300\n#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out\n#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err\nset -euo pipefail\numask 077\n: \"${SLURM_JOB_ID:?Run through Slurm}\"\n: \"${CUDA_VISIBLE_DEVICES:?Slurm must expose the assigned GPUs}\"\ncd -- /home/sa305415/rsna-knee/code\nexport HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\nexport TOKENIZERS_PARALLELISM=false\nexport OMP_NUM_THREADS=2\nexport MKL_NUM_THREADS=2\nexport PYTHONNOUSERSITE=1\nexport PYTHONDONTWRITEBYTECODE=1\nunset PYTHONPATH\nprobe_allocated_driver() {\n  \"$@\" /usr/bin/timeout --kill-after=5s 25s /usr/bin/python3.12 - <<'RSNA_ALLOCATED_DRIVER_PROBE'\n\"\"\"Fast read-only CUDA/NVML visibility check inside the scheduler allocation.\"\"\"\nimport ctypes\nimport json\nimport os\nimport subprocess\nimport sys\nfrom pathlib import Path\n\nrecord = {\n    'scope': 'allocated devices only; no visibility changes or GPU computation',\n    'job_id': os.environ.get('SLURM_JOB_ID'),\n    'node': os.uname().nodename,\n    'allocation': {key: os.environ.get(key) for key in (\n        'CUDA_VISIBLE_DEVICES', 'SLURM_JOB_GPUS', 'SLURM_GPUS_ON_NODE',\n        'SLURM_CPUS_PER_TASK', 'SLURM_STEP_GPUS', 'CUDA_DEVICE_ORDER')},\n    'cpu_affinity': sorted(os.sched_getaffinity(0)),\n}\nerrors = []\nif not record['job_id'] or len((os.environ.get('CUDA_VISIBLE_DEVICES') or '').split(',')) != 2:\n    errors.append('two scheduler-visible devices required')\ntry:\n    result = subprocess.run(\n        ['nvidia-smi', '--query-gpu=index,name,uuid,driver_version,pci.bus_id', '--format=csv,noheader'],\n        capture_output=True, text=True, timeout=15,\n    )\n    record['nvidia_inventory'] = {'returncode': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr}\n    count = len([line for line in result.stdout.splitlines() if line.strip()])\n    if result.returncode != 0 or count != 2:\n        errors.append('NVML must expose both allocated GPUs')\nexcept (OSError, subprocess.TimeoutExpired) as error:\n    errors.append('NVML inventory failed: '+type(error).__name__)\ntry:\n    driver = ctypes.CDLL('libcuda.so.1')\n    driver.cuInit.argtypes = [ctypes.c_uint]\n    driver.cuInit.restype = ctypes.c_int\n    driver.cuDeviceGetCount.argtypes = [ctypes.POINTER(ctypes.c_int)]\n    driver.cuDeviceGetCount.restype = ctypes.c_int\n    result = driver.cuInit(0)\n    record['cuda_driver_init_code'] = result\n    if result != 0:\n        errors.append('CUDA driver initialization failed')\n    else:\n        count = ctypes.c_int()\n        code = driver.cuDeviceGetCount(ctypes.byref(count))\n        record['cuda_driver_count_code'] = code\n        record['cuda_driver_device_count'] = count.value\n        if code != 0 or count.value != 2:\n            errors.append('CUDA driver must expose both allocated GPUs')\nexcept (OSError, AttributeError) as error:\n    errors.append('CUDA driver load failed: '+type(error).__name__)\ntry:\n    record['mapped_libcuda_paths'] = sorted({\n        line.split()[-1] for line in Path('/proc/self/maps').read_text().splitlines()\n        if '/libcuda.so' in line and line.split()[-1].startswith('/')\n    })\nexcept OSError:\n    record['mapped_libcuda_paths'] = None\nif errors:\n    record['device_nodes'] = []\n    for path in sorted(Path('/dev').glob('nvidia[0-9]*')):\n        try:\n            st = path.stat()\n            record['device_nodes'].append({'path': str(path), 'major': os.major(st.st_rdev),\n                                          'minor': os.minor(st.st_rdev), 'mode': oct(st.st_mode & 0o777)})\n        except OSError:\n            pass\n    try:\n        record['self_cgroup'] = Path('/proc/self/cgroup').read_text()\n        record['readable_devices_lists'] = []\n        for line in record['self_cgroup'].splitlines():\n            _, controllers, relative = line.split(':', 2)\n            if 'devices' in controllers.split(',') and '..' not in Path(relative).parts:\n                path = Path('/sys/fs/cgroup/devices') / relative.lstrip('/') / 'devices.list'\n                if path.is_file():\n                    record['readable_devices_lists'].append({'path': str(path), 'contents': path.read_text()})\n    except OSError:\n        record['self_cgroup'] = None\n    record['readable_driver_gpu_metadata'] = []\n    for path in sorted(Path('/proc/driver/nvidia/gpus').glob('*/information')):\n        try:\n            rows = [line for line in path.read_text().splitlines()\n                    if line.startswith(('Model:', 'GPU UUID:', 'Bus Location:', 'Device Minor:'))]\n            record['readable_driver_gpu_metadata'].append({'path': str(path), 'fields': rows})\n        except OSError:\n            pass\nrecord['errors'] = errors\nrecord['status'] = 'passed' if not errors else 'blocked'\nprint(json.dumps(record, sort_keys=True), flush=True)\nsys.exit(2 if errors else 0)\nRSNA_ALLOCATED_DRIVER_PROBE\n}\nif ! probe_allocated_driver; then\n  probe_allocated_driver srun --nodes=1 --ntasks=1 --cpus-per-task=4 --gres=gpu:nvidia_h100_pcie:2 || true\n  exit 2\nfi\nCPATH=$(/usr/bin/python3.12 - <<'RSNA_HEADER_GUARD'\nimport hashlib,json,os,platform,struct,subprocess,sys,sysconfig\nfrom pathlib import Path\nroot=Path('/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3').resolve();pins={'cpu_proof_sha256': '95c1d9aa2a9676cbdc4fa46e3d3ffda0bb721f24221365953ce23819c01f1695', 'header_tree_sha256': '08c760c1938c53debf9a2ed133609d7ed07049902b4eae54da6ee93454372241', 'staging_receipt_sha256': '85d88b7d4076564f86ddc49e2e670a855617d752f38766856276de03f10768a3', 'generated_header_provenance_sha256': '38913bdb4e683d0c00446de75e0b103469e81a7eb5f47c4fc5c5828e25af47bb', 'rpm_sha256': 'd822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3', 'generated_header_sha256': 'bf85b811c1ac1c8c5f62935da14ee3738305bb2ffd9bfb63af6ebad2a475f681', 'cpu_proof_job': 839074, 'remote_root': '/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3'}\ncontrol=Path('/home/sa305415/rsna-knee/pilot-launch-v6')\ndef sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()\ndef write(n,v):\n with (control/n).open('x') as out:json.dump(v,out,indent=2,sort_keys=True);out.write('\\n');out.flush();os.fsync(out.fileno())\nassert os.environ.get('SLURM_JOB_ID')\nassert sha(root/'cpu-proof.json')==pins['cpu_proof_sha256']\nassert sha(root/'staging-receipt.json')==pins['staging_receipt_sha256']\nassert sha(root/'system-header-verified.json')==pins['generated_header_provenance_sha256']\nproof=json.loads((root/'cpu-proof.json').read_text());source=json.loads((root/'system-header-verified.json').read_text())\nassert proof['status']=='actual_triton_helper_compile_and_import_passed' and proof['actual_installed_builder_replayed'] and proof['requested_gpus']==0\nassert proof['header_tree_sha256']==pins['header_tree_sha256'] and proof['rpm_sha256']==pins['rpm_sha256']\nassert not proof['system_mutations'] and not proof['backend_disable_or_replacement']\nassert sha(root.parent/'python-headers-3.12.13-2-v2/python3.12-devel-3.12.13-2.el8_10.x86_64.rpm')==pins['rpm_sha256']\nmanifest=json.loads((root/'header-tree.json').read_text());rows=manifest['files']\nassert len(rows)==215 and hashlib.sha256(json.dumps(rows,sort_keys=True,separators=(',',':')).encode()).hexdigest()==manifest['canonical_tree_sha256']==pins['header_tree_sha256']\nactual=[];extract=root/'extracted'\nfor p in sorted(extract.rglob('*')):\n assert not p.is_symlink()\n if p.is_file():actual.append({'path':str(p.relative_to(extract)),'bytes':p.stat().st_size,'sha256':sha(p)})\nassert actual==rows\nheaders=extract/'usr/include/python3.12'\nassert sha(headers/'pyconfig-64.h')==pins['generated_header_sha256']\nmapped=sorted({line.split()[-1] for line in Path('/proc/self/maps').read_text().splitlines() if '/libpython3.12.so' in line and line.split()[-1].startswith('/')})\nassert mapped==['/usr/lib64/libpython3.12.so.1.0']\np=subprocess.run(['rpm','-qf','--qf','%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\\n',str(Path(sys.executable).resolve()),mapped[0]],capture_output=True,text=True,timeout=15)\nrecord={'job_id':os.environ['SLURM_JOB_ID'],'node':platform.node(),'pins':pins,'mapped_libpython':mapped,'package_query':{'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr},'sysconfig':{k:sysconfig.get_config_var(k) for k in source['sysconfig']},'CPATH':str(headers),'python':platform.python_version(),'pointer_bytes':struct.calcsize('P'),'PyObject_bytes':object.__basicsize__}\nwrite('node-header-identity-'+os.environ['SLURM_JOB_ID']+'.json',record)\nassert p.returncode==0 and p.stdout.splitlines()==['python3.12|3.12.13|2.el8_10|x86_64','python3.12-libs|3.12.13|2.el8_10|x86_64']\nassert record['sysconfig']==source['sysconfig'] and record['python']==proof['runtime_python']=='3.12.13'\nassert record['pointer_bytes']==8 and record['PyObject_bytes']==16 and sys.hexversion==51121648\nassert str(headers)==proof['CPATH'] and ':' not in str(headers) and headers.is_absolute()\nwrite('node-header-verified-'+os.environ['SLURM_JOB_ID']+'.json',dict(record,status='passed',all_215_header_hashes_verified=True))\nprint(str(headers))\nRSNA_HEADER_GUARD\n)\nexport CPATH\nsupervisors=()\nstop_requested=0\nrequest_checkpoint() {\n  stop_requested=1\n  for pid in \"${supervisors[@]}\"; do kill -USR1 \"$pid\" 2>/dev/null || true; done\n}\ntrap request_checkpoint USR1 TERM INT\nruntime_root=\nenvironment_root=\ncleanup_runtime() {\n  local previous_status=\"$?\"\n  if [[ -n \"$runtime_root\" ]]; then\n    /usr/bin/python3.12 scripts/newton/runtime_archive.py cleanup --root \"$runtime_root\" || previous_status=2\n  fi\n  if [[ -n \"$environment_root\" ]]; then\n    /usr/bin/python3.12 scripts/newton/runtime_environment.py cleanup --root \"$environment_root\" || previous_status=2\n  fi\n  return \"$previous_status\"\n}\ntrap cleanup_runtime EXIT\nenvironment_json=$(/usr/bin/python3.12 scripts/newton/runtime_environment.py extract --archive /home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar --sha256 89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338 --expected-files 40403 --expected-bytes 6322691335 --scratch-base /tmp --shared-python /usr/bin/python3.12 --min-free-gib 20)\nenvironment_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)[\"runtime_root\"])' <<< \"$environment_json\")\nruntime_python=\"$environment_root/environment/bin/python\"\nif (( stop_requested )); then exit 75; fi\nruntime_json=$(/usr/bin/python3.12 scripts/newton/runtime_archive.py extract --archive /home/sa305415/rsna-knee/cache/pilot100-fold0-v1.tar --sha256 8d50e027f66e91beb6afa2b56877b8da59059f6d43e7c13aa0103059d447d715 --expected-files 2248 --expected-bytes 4077105588 --scratch-base /tmp --min-free-gib 20)\nruntime_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)[\"runtime_root\"])' <<< \"$runtime_json\")\nruntime_cache=\"$runtime_root/cache\"\nexport TRITON_CACHE_DIR=\"$runtime_root/triton-cache\"\nif [[ -e \"$TRITON_CACHE_DIR\" || -L \"$TRITON_CACHE_DIR\" ]]; then exit 2; fi\nmkdir -- \"$TRITON_CACHE_DIR\"\n\"$runtime_python\" scripts/newton/preflight.py --device cuda --expected-gpus 2 --repo /home/sa305415/rsna-knee/code --expected-git e7b08625854de692b9266ccfc25c90fc22169f58 --cache \"$runtime_cache\" --cache-manifest /home/sa305415/rsna-knee/code/initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet --storage /home/sa305415/rsna-knee/logs --min-free-gb 20 --config /home/sa305415/rsna-knee/encoder-stage/run-configs/pilot100-fold0.json --require-nccl\nif (( stop_requested )); then exit 75; fi\nIFS=\",\" read -r -a assigned_gpus <<< \"$CUDA_VISIBLE_DEVICES\"\nif (( ${#assigned_gpus[@]} != 2 )); then exit 2; fi\n\"$runtime_python\" scripts/local_competitive_acceptance.py --cache \"$runtime_cache\" --output /home/sa305415/rsna-knee/runs/dinov3-l16-pilot100-fold0-e7b08625-v6 --world-size 2 --config /home/sa305415/rsna-knee/encoder-stage/run-configs/pilot100-fold0.json --device cuda --skip-public-examples &\nsupervisors+=(\"$!\")\nif (( stop_requested )); then kill -USR1 \"$!\" 2>/dev/null || true; fi\nresult=0\nfor pid in \"${supervisors[@]}\"; do\n  code=0\n  while true; do\n    set +e\n    wait \"$pid\"\n    code=$?\n    set -e\n    if ! kill -0 \"$pid\" 2>/dev/null; then break; fi\n  done\n  if (( code != 0 && code != 75 )); then result=$code;\n  elif (( code == 75 && result == 0 )); then result=75; fi\ndone\nexit \"$result\"\n",
+  "script_sha256": "359a572b7cd73e402617cabf76516183c2202fd9d9fc3cbd2070b4d05206f7b1",
+  "before_manual_submission": "mkdir -p -- /home/sa305415/rsna-knee/logs",
+  "manual_submission_command": "sbatch /home/sa305415/rsna-knee/pilot-launch-v6/pilot.sbatch",
+  "note": "Create the log directory on Newton before sbatch. No command was executed.",
+  "generator_sha256": "ba23cf931e5c83dadc068ea7ba04071cfb03fee7e2e638757c8ac88c30483ebe",
+  "expected_git": "e7b08625854de692b9266ccfc25c90fc22169f58",
+  "environment_cpu_receipt_sha256": "e3303fe06445bcdfc1b185308a88c8bb008ed03c0fd0d0b636e3a52711440336",
+  "environment_archive": {
+    "bytes": 6401699840,
+    "file": "environment-cp312-cu130.tar",
+    "links": [
+      {
+        "kind": "symlink",
+        "name": "environment/bin/python",
+        "target": "python3.12"
+      },
+      {
+        "kind": "symlink",
+        "name": "environment/bin/python3",
+        "target": "python3.12"
+      },
+      {
+        "kind": "symlink",
+        "name": "environment/bin/python3.12",
+        "target": "/usr/bin/python3.12"
+      },
+      {
+        "kind": "symlink",
+        "name": "environment/lib64",
+        "target": "lib"
+      }
+    ],
+    "regular_files": 40403,
+    "sha256": "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338",
+    "unpacked_bytes": 6322691335
+  },
+  "reviewed_adjustments": {
+    "OMP_NUM_THREADS": "2 per rank within4 CPUs total",
+    "MKL_NUM_THREADS": "2 per rank",
+    "PYTHONNOUSERSITE": "1 to isolate relocated environment",
+    "PYTHONPATH": "unset",
+    "PYTHONDONTWRITEBYTECODE": "1 avoids generated bytecode in the clean immutable source checkout",
+    "CPATH": "single canonical complete215-header private supplement, reverified on actual node before extraction",
+    "TRITON_CACHE_DIR": "fresh node-local owned runtime directory, removed with runtime cleanup"
+  },
+  "remote_script": "/home/sa305415/rsna-knee/pilot-launch-v6/pilot.sbatch",
+  "remote_output": "/home/sa305415/rsna-knee/runs/dinov3-l16-pilot100-fold0-e7b08625-v6",
+  "status": "prepared_fresh_output_known_healthy_node",
+  "prior_failed_job": 839216,
+  "diagnostic_probe_job": 838579,
+  "node": "evc37",
+  "base_plan_sha256": "ffcd0fc929c86e00bdfe07c8462f29b2e5308ca923abc4d541141c71da3e9f3d",
+  "created_at_utc": "2026-09-22T20:23:27.298049+00:00",
+  "full_pretrained_cpu_proof_job": 838689,
+  "full_pretrained_cpu_proof_sha256": "15a695fb68d0c5ac149e1ed81cae47a2290fd450fe0b91ae0fb6c7edab4dca0b",
+  "adapter_sha256": "f318c0d437d8bcc7834a2304e8379a9f37b698bee5cf8b5fb2d9ea3e0de37c9e",
+  "automatic_retry": false,
+  "excluded_nodes": [
+    "evc38",
+    "evc44",
+    "evc50"
+  ],
+  "early_driver_probe_sha256": "dcb4db81d732f1d9092cb4be9e06fc8647d9ee93f49ae7eebf43f53497d87e10",
+  "batch_failure_comparison": "Same allocation typed srun step repeats read-only probe then job exits2; never visibility override or extra job",
+  "header_supplement": {
+    "cpu_proof_sha256": "95c1d9aa2a9676cbdc4fa46e3d3ffda0bb721f24221365953ce23819c01f1695",
+    "header_tree_sha256": "08c760c1938c53debf9a2ed133609d7ed07049902b4eae54da6ee93454372241",
+    "staging_receipt_sha256": "85d88b7d4076564f86ddc49e2e670a855617d752f38766856276de03f10768a3",
+    "generated_header_provenance_sha256": "38913bdb4e683d0c00446de75e0b103469e81a7eb5f47c4fc5c5828e25af47bb",
+    "rpm_sha256": "d822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3",
+    "generated_header_sha256": "bf85b811c1ac1c8c5f62935da14ee3738305bb2ffd9bfb63af6ebad2a475f681",
+    "cpu_proof_job": 839074,
+    "remote_root": "/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3"
+  },
+  "header_guard_sha256": "7ab968f6794435126e6fcbc688705652055a8bb8458228325e77d521252d3eea",
+  "actual_executor": "/root",
+  "user_agent_preference": "All agents stopped; root only dispatches",
+  "node_selection_policy": "Keep evc37; do not reroute to unverified nodes just to avoid waiting"
+}

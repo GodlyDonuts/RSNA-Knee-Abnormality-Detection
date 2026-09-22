@@ -315,3 +315,22 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monk
     actual = torch.load(args.output / "checkpoint.pt", weights_only=True)
     _assert_tree_equal(full, actual)
     assert expected_predictions == (args.output / "outer_predictions.csv").read_bytes()
+
+    # The Slurm supervisor's durable request must stop the real trainer at an
+    # optimizer boundary even if a worker misses the OS signal. A later resume
+    # session ignores the old request and reaches the exact uninterrupted state.
+    args.output = tmp_path / "external-stop"
+    args.output.mkdir()
+    args.resume = None
+    monkeypatch.setenv("RSNA_STOP_SESSION", "current-session")
+    (args.output / train.STOP_REQUEST_NAME).write_text(
+        '{"status":"checkpoint_requested","session":"current-session",'
+        '"checkpoint_name":"checkpoint.pt","requested_wall":1.25}'
+    )
+    assert execute() == 75
+    assert not (args.output / "outer_predictions.csv").exists()
+    args.resume = args.output / "checkpoint.pt"
+    monkeypatch.setenv("RSNA_STOP_SESSION", "next-session")
+    assert execute() == 0
+    _assert_tree_equal(full, torch.load(args.output / "checkpoint.pt", weights_only=True))
+    assert expected_predictions == (args.output / "outer_predictions.csv").read_bytes()

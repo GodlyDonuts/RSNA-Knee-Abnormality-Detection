@@ -286,3 +286,30 @@ supervisor instead. The initial explicitly selected resource plan is account
 32 GiB host RAM, and 30 minutes, subject to actual pilot measurements. No launch
 is submitted by the generator. It uses a localhost rendezvous endpoint for
 single-node production torchrun.
+
+## Measured DINOv3-L pilot and current gates
+
+The bounded job 839321 completed on evc49 with two H100s and four CPUs. The
+uninterrupted 100-study/two-epoch diagnostic took 109.06 seconds inside the
+trainer, completed 26 optimizer updates and produced 100 outer predictions. The
+one-update interruption and resume produced equal decoded checkpoint trees and
+byte-identical predictions. The serialized checkpoint files differ in hash;
+their actual tensor/metadata comparison passed. See
+`initiative/audits/dinov3-h100-pilot-v6/` for exact archived source and receipts.
+This pilot did not create a competition submission or measure a leaderboard score.
+
+The real Slurm signal gate is still open. Job 839401 received a late signal and
+completed normally. Job 839409 received an early signal, but an added batch
+timestamp marker used Bash's unavailable `EPOCHREALTIME` and exited before
+forwarding to workers. Corrected job 839411 received its single early signal,
+its batch trap ran, and the supervisor reported forwarding USR1 to both worker
+PIDs. It nevertheless completed all 26 training updates, with a normal trainer
+receipt and no checkpoint-stop receipt. This is a failed recovery gate. The
+corrective supervisor now atomically writes an invocation-bound stop request,
+which both trainer ranks check at update boundaries and during final inference.
+Local real-trainer stop/resume passes; redeploy and rerun a bounded actual Slurm
+stop and separate resume before production. The [full 82.83 GB cache archive](../initiative/audits/full-cache-newton-stage-v1/)
+has its matching final local and remote receipts. The prepared primary fold-0
+ten-epoch script is staged on Newton with exact script/config hashes, but no
+production GPU job has been submitted. First full-data epoch timing will
+determine whether its four-hour limit is sufficient.

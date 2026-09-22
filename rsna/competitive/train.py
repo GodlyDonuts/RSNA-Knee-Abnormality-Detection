@@ -11,6 +11,7 @@ import math
 import os
 import random
 import signal
+import stat
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -38,6 +39,32 @@ from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
 from rsna.model import auc_metrics
 from rsna.release import load_verified_release
 from rsna.schema import CACHE_VERSION, TARGETS
+
+STOP_REQUEST_NAME = ".checkpoint-stop-request.json"
+
+
+def external_stop_requested(output: Path) -> bool:
+    """Accept only this supervisor invocation's atomic request file."""
+    session = os.environ.get("RSNA_STOP_SESSION")
+    if not session:
+        return False
+    request = output / STOP_REQUEST_NAME
+    try:
+        metadata = request.lstat()
+    except FileNotFoundError:
+        return False
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > 4096:
+        raise ValueError("Invalid checkpoint stop request")
+    record = json.loads(request.read_text())
+    if (
+        not isinstance(record, dict)
+        or record.get("status") != "checkpoint_requested"
+        or record.get("checkpoint_name") != "checkpoint.pt"
+        or not isinstance(record.get("session"), str)
+        or not isinstance(record.get("requested_wall"), (float, int))
+    ):
+        raise ValueError("Malformed checkpoint stop request")
+    return record["session"] == session
 
 
 @dataclass(frozen=True)
@@ -192,13 +219,17 @@ def predict(
     device: torch.device,
     config: TrainConfig,
     stop_requested: list[bool] | None = None,
+    output: Path | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     model.eval()
     identifiers: list[str] = []
     scores, labels, masks = [], [], []
     for batch in loader:
         if stop_requested is not None:
-            stopping = torch.tensor(int(stop_requested[0]), device=device)
+            stopping = torch.tensor(
+                int(stop_requested[0] or (output is not None and external_stop_requested(output))),
+                device=device,
+            )
             if dist.is_initialized():
                 dist.all_reduce(stopping, op=dist.ReduceOp.MAX)
             if stopping.item():
@@ -505,6 +536,7 @@ def _run_locked(
             stopping = torch.tensor(
                 int(
                     stop_requested[0]
+                    or external_stop_requested(args.output)
                     or (
                         args.stop_after_updates is not None
                         and updates_this_invocation >= args.stop_after_updates
@@ -565,7 +597,9 @@ def _run_locked(
         generator=torch.Generator().manual_seed(config.seed),
     )
     try:
-        local_predictions, _ = predict(model, outer_loader, device, config, stop_requested)
+        local_predictions, _ = predict(
+            model, outer_loader, device, config, stop_requested, args.output
+        )
     except PredictionInterrupted:
         if rank == 0:
             atomic_json(

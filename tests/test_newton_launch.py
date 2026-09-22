@@ -309,9 +309,28 @@ def test_periodic_checkpoint_is_not_proof_of_clean_preemption(tmp_path):
     path = tmp_path / "invocation.json"
     path.write_text(json.dumps(receipt))
     assert supervise.checkpoint_stop_verified(checkpoint, 0)
+    supervise.write_stop_request(checkpoint, "current-session", 0)
+    assert supervise.checkpoint_stop_verified(checkpoint, 0, "current-session")
+    assert not supervise.checkpoint_stop_verified(checkpoint, 0, "stale-session")
     assert not supervise.checkpoint_stop_verified(checkpoint, time.time() + 10)
     checkpoint.write_bytes(b"unrelated-checkpoint")
     assert not supervise.checkpoint_stop_verified(checkpoint, 0)
+
+
+def test_atomic_stop_request_is_bound_to_current_trainer_session(tmp_path, monkeypatch):
+    from rsna.competitive.train import external_stop_requested
+
+    checkpoint = tmp_path / "checkpoint.pt"
+    supervise.write_stop_request(checkpoint, "current-session", 1.25)
+    monkeypatch.setenv("RSNA_STOP_SESSION", "current-session")
+    assert external_stop_requested(tmp_path)
+    monkeypatch.setenv("RSNA_STOP_SESSION", "next-session")
+    assert not external_stop_requested(tmp_path)
+    request = tmp_path / supervise.STOP_REQUEST_NAME
+    request.unlink()
+    request.symlink_to(tmp_path / "elsewhere")
+    with pytest.raises(ValueError, match="Invalid checkpoint stop request"):
+        external_stop_requested(tmp_path)
 
 
 def staged_manifest(tmp_path):

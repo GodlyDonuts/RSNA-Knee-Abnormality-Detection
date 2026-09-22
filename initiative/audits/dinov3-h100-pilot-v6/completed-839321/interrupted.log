@@ -1,0 +1,43 @@
+/tmp/rsna-environment-839321-zhvhy6wn/environment/lib64/python3.12/site-packages/torch/distributed/c10d_logger.py:83: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  return func(*args, **kwargs)
+{"epoch": 0, "update": 1, "optimizer_steps": 1, "loss": 0.9166954755783081, "gradient_norm": 5.142601013183594, "observed_cells": 54.0, "elapsed_seconds": 5.634960084920749}
+E0922 16:42:02.887000 1805359 torch/distributed/elastic/multiprocessing/api.py:1002] failed (exitcode: 75) local_rank: 0 (pid: 1805390) of binary: /tmp/rsna-environment-839321-zhvhy6wn/environment/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/rsna-environment-839321-zhvhy6wn/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1142, in <module>
+    main()
+  File "/tmp/rsna-environment-839321-zhvhy6wn/environment/lib64/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 380, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-839321-zhvhy6wn/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1138, in main
+    run(args)
+  File "/tmp/rsna-environment-839321-zhvhy6wn/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1129, in run
+    elastic_launch(
+  File "/tmp/rsna-environment-839321-zhvhy6wn/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 197, in __call__
+    return launch_agent(
+           ^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-839321-zhvhy6wn/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 386, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+rsna.competitive.train FAILED
+------------------------------------------------------------
+Failures:
+[1]:
+  time      : 2026-09-22_16:42:02
+  host      : evc49.ucfarcc.org
+  rank      : 1 (local_rank: 1)
+  exitcode  : 75 (pid: 1805391) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-22_16:42:02
+  host      : evc49.ucfarcc.org
+  rank      : 0 (local_rank: 0)
+  exitcode  : 75 (pid: 1805390) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
