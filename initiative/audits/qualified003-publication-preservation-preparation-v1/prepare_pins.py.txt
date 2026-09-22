@@ -1,0 +1,29 @@
+"""Freeze exact local491 publication preservation membership; no repository writes."""
+from pathlib import Path
+import hashlib,json,stat
+W=Path(__file__).resolve().parents[3];P=Path(__file__).resolve().parent;D=W/'work/hf-preparation-deltas/fec046253168083514749226987dda5b6c2505ce';H=W/'work/annotation-staging/qualified003-hf-publication-preparation-v1';R=W/'work/recovered'
+A='initiative/audits/qualified003-verified491-publication-v1';AR='initiative/audits/qualified003-hf-publication-preparation-v1'
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def row(p,target=None,h=None):
+ digest=sha(p);assert h is None or digest==h
+ d={'original_path':str(p.relative_to(W)),'sha256':digest,'bytes':p.stat().st_size,'mode':stat.S_IMODE(p.stat().st_mode)}
+ if target:d['archive_path']=target
+ return d
+package={'README.md':'90bd0f8c7b027a30116b88234fd10f7cd33b5f384c90bd2e0fadeba21475d3ed','manifest.json':'a716480c9404687994b370392bb9fc157a1d8d7cc5a6f977527db87c7d5ef179','restoration-proof.json':'c63fb750ab7ba87a0f9d3491ee7e4dc970806c5f7fae4761cb99eaee11818237','peer-restoration-proof.json':'c63fb750ab7ba87a0f9d3491ee7e4dc970806c5f7fae4761cb99eaee11818237','root-restoration-proof.json':'68ebc22528a7a68d35308add28f0ace0be04750462ac14c20a8d4cf4d2c73443','root-publication-operation.json':'c15beaecc6ca5322665749b6fc221c49ae25ac80019d06802396da143709d001','root-publication-receipt.json':'1f35b26a54a5e59bd5dcffe2be9c577d7df82e893fae20a229c29a356374a5cd','root-publication-journal.jsonl':'10333d94a793914cd20b3574d162ae137f7dd1cd08afd322fe300dc2d4d7fa2b','peer-build-receipt.json':'436b32b6792f204153c0253a4635f18d1fd3098e57b14d0afe0ca9509b6ef6b7'}
+files=[row(D/n,A+'/'+n,h) for n,h in package.items()]
+for name,h in [('verify-qualified003-delta-root-v1.py','211036c23325e7b149dd024830151692f036fa5c1963243b910d58cd9894c324'),('finalize-qualified003-publication-status-v1.py','a7fb74a81aed1e10c695877d03ebcc93fa721b1e6f9890c7f2038fdffe6ec8aa'),('qualified003-synchronized-publication.json','7e1b50e3d0a130d4bf7df28183556a9ae6594fdad54ebc9e0de45efe3bfa3c6e'),('qualified003-final-staged-verification.json','a71371148beee6a9b941ca290cc8d3e52086aed35faa99c938c3252b980bf312')]:files.append(row(W/'work'/name,A+'/'+name+('.txt' if name.endswith('.py') else ''),h))
+manifest=H/'completion-manifest.json';assert sha(manifest)=='b6b896271f0e0dd94d914a12732cabff5e726a3e6c79f1a1894a414fa3eac4a1';hm=json.loads(manifest.read_text());assert len(hm['members'])==8
+for e in hm['members']:
+ p=W/e['path'];assert p.parent==H and p.stat().st_size==e['bytes'];files.append(row(p,AR+'/'+p.name+('.txt' if p.suffix=='.py' else ''),e['sha256']))
+files.append(row(manifest,AR+'/'+manifest.name))
+assert {p for p in H.iterdir() if p.is_file()}=={W/e['path'] for e in hm['members']}|{manifest}
+base=W/'work/hf-preparation-checkpoints/1792f01ed3daab757c5ddb9bf5733ffe8d999f91';external=[row(base/'checkpoint.tar.gz',h='10206b752cce97cb671de607291785eef10d7fd9154c4dd4a0612b6686327271'),row(base/'manifest.json',h='5f879ae740356e21ff5ed4c34fa31daf1cce4b5ffa9dafdd044a0658b9ad850b'),row(D/'delta.tar.gz',h='3bd64d1006f214642f701b4cb35237554f98d9e7f9f786089eb4ded3a027304f')]
+for e in external:e['copy_or_extract']=False
+assert len(files)==len({e['archive_path'] for e in files})==22
+out={'schema_version':1,'prepared_by':'/root/duplicate_consistency_review','target_git':'fec046253168083514749226987dda5b6c2505ce','target_tree':'77321d30b1e6970c062e0a4c64791bc03b203638','target_files':10020,'registered_corrections':491,'registry_at_publication_sha256':'685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2','hf_revision':'d2804e1da6fdaa6e77e01c224480c5b31aefc186','hf_parent':'b57d752502d4d31d03adb1bf71868af576798d97','base_git':'1792f01ed3daab757c5ddb9bf5733ffe8d999f91','base_hf':'54949cd5a575ea7027a4a57916e772936a98d38b','receipt_sha256':package['root-publication-receipt.json'],'destination_publication_audit':A,'destination_preparation_archive':AR,'files':files,'external_only':external,'scanner':row(W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py',h='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'),'modeled_on':row(W/'work/preserve-verified425-publication-v1.py'),'original_preparation_members':8,'original_preparation_completion_manifest':row(manifest),'peer_proof_aliases_identical_one_actual_execution':True,'actual_streaming_peer':'/root/last_twelve_visual_review','actual_streaming_root':'/root','preservation_is_not_new_streaming_restoration':True}
+with (P/'publication-input-pins.json').open('x') as f:f.write(json.dumps(out,indent=2)+'\n')
+print(json.dumps({'input_pins_sha256':sha(P/'publication-input-pins.json'),'original_files_to_preserve':len(files),'original_copy_bytes':sum(e['bytes'] for e in files),'external_objects_no_copy':len(external)}))

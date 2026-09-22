@@ -1,0 +1,71 @@
+"""Bind root's later withdrawal separately, without rewriting the core548+4 proof."""
+from pathlib import Path
+import hashlib
+import json
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+B, R = P.parent, W / 'work/recovered'
+refs = {}
+
+
+def read(path, expected=None):
+    raw = path.read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    assert expected is None or digest == expected
+    refs[str(path.relative_to(W))] = {'path': str(path.relative_to(W)), 'sha256': digest, 'bytes': len(raw)}
+    return json.loads(raw)
+
+
+def idx(rows):
+    out = {(row['study_uid'], row['target']): row for row in rows}
+    assert len(out) == len(rows)
+    return out
+
+
+root = read(B / 'qualified004-additional-root-resolution-v1/root-later-resolution.json', 'f2329efcf766c95cab94470ce3b00e6d94d40c15e888bb7a615f1cdc85c5bdc0')
+assert root['agent_id'] == root['session_id'] == '/root'
+assert root['original_four_proposals_withdrawn'] == root['later_root_state_reconsiderations'] == 4
+assert not root['registry_changed'] and not root['core78_accepted_corrections_changed'] and not root['other_unresolved003_additional_disagreement_closed']
+core = read(B / 'qualified004-integration-independent-verification-v1/independent-integration-validation.json', 'f083adebf71bc8e39792b0677cd554cd0b57323a6042cbadfd04755fc270a1a9')
+runtime = read(B / 'qualified004-integration-independent-verification-v1/actual569-inspection.json', 'f65c2f3328971cbd86f6a600added3e7b0cb65a948536e283bbd463ed5a00114')
+assert runtime['n_changes'] == 569 and len(runtime['pending_semantic_qa']) == 3
+changes = idx(runtime['changes'])
+disposition = read(B / 'qualified-negation-focused-004-root-adjudication-v1/root-postfreeze-dispositions.json', '1c28ac5dc20db1634ca83248fedc84e541398c16f29d98f23e33bb4c4ced2d02')
+original_proposals = idx(read(B / 'qualified-negation-focused-004-root-adjudication-v1/additional-root-proposals.json', '7f0a979b00eeda4ad92365757533e5e95c1553776e4bbff45590c1ce79561bc3')['proposed_errata'])
+quality = read(B / 'qualified004-additional-independent-v1/four-independent-postfreeze-dispositions.json')
+quality_rows = idx(quality['records'])
+rows, later = idx(disposition['records']), idx(root['records'])
+assert len(rows) == 552 and len(later) == 4 and set(later) == set(original_proposals) == set(quality_rows)
+targets = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+base = {}
+for row in rows.values():
+    reference = row['original_review']
+    path = W / reference['path']
+    raw = path.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == reference['sha256']
+    refs[str(path.relative_to(W))] = {'path': str(path.relative_to(W)), 'sha256': reference['sha256'], 'bytes': len(raw)}
+    if str(path) not in base:
+        base[str(path)] = {record['study_uid']: record for record in map(json.loads, raw.decode().splitlines())}
+matched = 0
+for key, row in rows.items():
+    record = base[str(W / row['original_review']['path'])][key[0]]
+    target_index = targets.index(key[1])
+    actual = changes[key]['after'] if key in changes else {'state': record['states'][target_index], 'evidence': record['evidence'][target_index]}
+    expected = {'state': row['root_postfreeze_state'], 'evidence': row['root_postfreeze_evidence']}
+    if key in later:
+        item = later[key]
+        assert item['original_root_proposal'] == original_proposals[key] and item['original_root_disposition'] == row
+        assert item['distinct_assessor_disposition'] == quality_rows[key]
+        assert item['registry_change'] is False and item['root_state_reconsidered'] is True and key not in changes
+        expected = item['root_later_final_annotation']
+    assert expected == actual
+    matched += 1
+assert matched == 552
+registry = R / 'initiative/reviews-v2/adjudications/registry.json'
+assert hashlib.sha256(registry.read_bytes()).hexdigest() == runtime['registry_sha256'] == '7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'
+result = {'schema_version': 1, 'agent_id': '/root/duplicate_consistency_review', 'session_id': '/root/duplicate_consistency_review', 'status': 'passed_separate_mechanical_later_resolution_binding', 'root_later_records_verified': 4, 'root_effective_later552_annotations_match_verified569': True, 'core78_registry_changes_unchanged': True, 'earlier548_plus4_core_proof_preserved': True, 'other003_disagreement_not_closed': True, 'root_and_distinct_assessor_objects_exact': True, 'references': list(refs.values()), 'R_writes': False, 'clinical_interpretation_or_acceptance': False, 'gold_values_opened': False, 'QA_closed': False}
+out = P / 'later-resolution-technical-binding.json'
+with out.open('x') as handle:
+    handle.write(json.dumps(result, indent=2) + '\n')
+print(json.dumps({'status': result['status'], 'sha256': hashlib.sha256(out.read_bytes()).hexdigest(), 'matched_later_annotations': matched}))

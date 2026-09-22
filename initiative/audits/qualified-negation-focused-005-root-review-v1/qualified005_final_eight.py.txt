@@ -1,0 +1,56 @@
+"""Root personally authored full-source initial judgments40–47 before005 findings."""
+import json
+from qualified005_source_tools import N,freeze
+reports=json.loads((N/'neutral-root-attention-004.json').read_text())['reports']
+def span(i,start,end):
+ s=reports[i]['report'];assert s.count(start)==1
+ a=s.index(start);return s[a:s.index(end,a)+len(end)]
+ambig0=span(0,'Lateral meniscus:','Outerbridge classification)')
+medbone0='Medial tibial plateau: Normal  \n  Medial femoral condyle: Normal'
+latbone0='Lateral tibial plateau: Normal \n  Lateral femoral condyle: Normal  \n  Fibular head: Normal'
+allbone0=span(0,'Medial tibial plateau: Normal','Fibular head: Normal')
+cart1='Tibiofemoral eklem  medialinde eklem aralığında daralma, ekleme komşu kemik yüzlerde subkondral skleroz, ödem ve dejeneratif kistler izlenmiştir. Bu düzeylerde kartilajlarda desktrüksiyon izlenmiştir.'
+pf1='Patella medial fasette kartilajda destrüksiyon, subkondral alanda kemik iliği ödemi izlenmiştir.'
+men1='Lateral menisküs anterior hornu ve gövde kesiminde grade III dejenerasyon izlenmektedir.'
+normal2='Vorderes und hinteres Kreuzband sowie Kollateralbänder intakt.'
+cart2='Keine höhergradige Chondropathie femoropatellar und femorotibial.'
+men2='Regelrechte Konfiguration der Menisken ohne H.a. Rissbildung.'
+bone2='Allseits regelrechtes Knochenmarksignal. Kein Hinweis auf eine Fraktur oder ein Bone-bruise.'
+men3='Regelrechte Konfiguration der gering signalalterierten Menisken ohne H.a. Rissbildung.'
+cont4=span(4,'There is evidence of resolving bone contusions','There is also edema in the posterior aspect of the medial tibial plateau.')
+normal5='Ligamentos cruzados y colaterales dentro de límites normales.'
+men5='Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.'
+cart5='Cartílagos de los compartimentos femorotibiales y patelofemorales sin alteraciones.'
+fluid5='No hay significativo derrame articular ni quistes poplíteos.'
+marrow5='No hay alteraciones de señal significativas de la médula ósea.'
+lesion6=span(6,'Fokale vollschichtige','keine Stufenbildung oder Impression der Kortikalis.')
+men6='Unauffällige Signalgebung und Konfiguration der Menisci, kein Nachweis einer Rissbildung oder degenerativer Signalveränderungen.'
+cart7='No se observan lesiones condrales categóricas de los compartimentos femorotibiales y de la\ntróclea femoral.'
+pf7=span(7,'No se observan lesiones condrales categóricas','óseos secundarios.')
+judgments=[
+ ('P U U U U U X U X X U U',
+ ['Anterior cruciate ligament (ACL): Chronic highgrade partial tear of tibial side of ACL without definite anterior translation of tibia',span(0,'Medial collateral ligament:','Deep ligament: 0'),ambig0,ambig0,ambig0,ambig0,'','Effusion within suprapatellar bursa is noted.','','',allbone0,allbone0],
+ 'Chronic high-grade ACL partial tear meets ACL criterion which has no acute-only rule. Literal zero-code collateral/medial-meniscus entries are uninterpretable rather than invented normal. The lateral heading explicitly names medial meniscus and unspecified femoral cartilage, with suspected shortening in conclusion: both menisci and TF cartilage localization remain uncertain; gradeII partial-thickness additionally omits qualifying depth. Normal named osseous surfaces/fibular head do not establish whole-knee marrow/cortical assessment, especially against the contradictory local cartilage text; retain informative but limited bone scope as uncertain. PF cartilage unmentioned. Fluid amount missing. LCL injury is anatomically separate from MCL. No synovitis/Baker mention.'),
+ ('P U P U U X U U P U U X',
+ ['Anterior çapraz bağda komplet rüptüre sekonder bütünlük kaybı izlenmiştir.','Medial kollateral ligamanda periligamantöz ödem izlenmiştir.','Medial menisküs diz eklem mesafesinden 9 mm tümü ile mediale ekstrüdedir. Ekstrüde menisküste belirgin volüm kaybı ve kompleks yırtıklar izlenmiştir.',men1,cart1,'',pf1,'Suprapatellar bursa ve diz eklem mesafesinde yaygın sıvı artışı izlenmiştir.',span(1,'Sonuç:','popliteal fossada baker kisti .'),'Popliteal fossada 7x4 cm boyutlu baker kisti izlenmiştir.',cart1,''],
+ 'Complete ACL rupture and medial complex tears with volume loss are explicit. MCL edema alone lacks fiber disruption/grade. Lateral gradeIII degeneration/meniscopathy lacks a named grading system or definite tear diagnosis/surfacing morphology, so do not assume its grade encodes the positive tear rule. Medial cartilage destruction and patellar grade4 omit deep-region extent; lateral osteophytes alone are not cartilage assessment. Diffuse fluid increase omits amount grade; conclusion directly diagnoses synovitis. Baker two dimensions do not supply a calibrated moderate-large label; retain uncertainty, without assuming volume. Degenerative subchondral edema does not establish impact contusion; no fracture-line assessment.'),
+ ('N N N N U U U U X X N N',
+ [normal2,normal2,men2,men2,cart2,cart2,cart2,'Akzentuiere Gelenkflüssigkeit.','','',bone2,bone2],
+ 'Ligaments intact and both menisci affirmatively normally configured with no tear evidence. No-higher-grade cartilage assessment is qualified in all compartments. Accentuated fluid has no moderate-large or explicit small grade. Direct normal marrow and no fracture/bone bruise support negatives. Unremarkable soft tissues alone does not assert absence of Baker or inflamed lining.'),
+ ('N U N N U U U U X X N N',
+ ['Vorderes und hinteres Kreuzband sowie laterales Kollatralband intakt.','Flüssigkeit angrenzend an das gering signalalterierte durchgängige MCL, DD bei Partialläsion.',men3,men3,cart2,cart2,cart2,'Akzentuiert Gelenkflüssigkeit.','','',bone2,bone2],
+ 'ACL intact; possible MCL partial lesion with mild signal/adjacent fluid and continuity lacks injured-fiber fraction, so uncertain. Both menisci normally configured with slight intrinsic signal and no tear evidence, below threshold. Cartilage exclusions are grade-qualified and fluid accentuation ungraded. Direct normal marrow/no fracture or bruise negatives. No Baker/synovial lining assessment.'),
+ ('P N P N N N N U P U P U',
+ ['There are no normal intact fibers of the anterior cruciate ligament in keeping with a complete mid fiber tear of the anterior cruciate ligament.','The medial collateral ligament is intact. There is some mild intrinsic signal around the deep fibers of the medial collateral ligament in keeping with a low-grade medial collateral ligament sprain.','There is an undisplaced vertical tear of the peripheral one third of the posterior horn of the medial meniscus extending into the posterior aspect of the posterior body.','The lateral meniscus is intact.','The articular cartilage of the medial joint compartment are well-maintained.','The articular cartilage of the lateral joint compartment is well-maintained.','Articular cartilage of the patellofemoral joint is well-maintained.',"There is no significant Baker's cyst or significant knee effusion.",'There is mild reactive synovitis within the joint.',"There is no significant Baker's cyst or significant knee effusion.",cont4,cont4],
+ 'Complete ACL rupture, definite medial tear despite radial-versus-vertical description difference, and normal lateral meniscus. MCL explicitly low-grade with intact fibers is negative. All cartilage well maintained. Both fluid targets have separately significance-qualified denials, so uncertain. Current MRI directly diagnoses mild reactive synovitis independently of historical ultrasound. Resolving pivot-shift kissing contusions include posterior plateau bruise without a stated line, supporting current impact contusion. Slightly depressed anterior femoral sulcus is potentially structural impact injury but no explicit acute fracture diagnosis/line; preserve fracture uncertainty with full context rather than infer either state.'),
+ ('N N N N N N N U X U U X',
+ [normal5,normal5,men5,men5,cart5,cart5,cart5,fluid5,'',fluid5,marrow5,''],
+ 'Ligaments/cartilage directly normal; meniscal morphology and signal are unqualified preserved and lack tear criteria, supporting negatives. Significant preposed fluid qualifier can extend across coordinated effusion and popliteal cyst objects; no confident Baker absence. Significant marrow-signal qualifier insufficient for contusion negative. Tendinopathy/friction soft-tissue edema is not marrow injury. No fracture-line or synovial lining assessment.'),
+ ('N N N N X U X U X X U U',
+ ['Intakte Darstellung der Kreuzbänder, kein Shift der Tibia.','Intakte Darstellung der Kollateralbänder.',men6,men6,'',lesion6,'','Kein wesentlicher Gelenkserguss.','','',lesion6,lesion6],
+ 'Ligaments and menisci normal/intact. Focal full-thickness T2 signal in a lateral tibial cartilage lesion does not itself quantify cartilage thickness lost or region size, so lateralOA uncertain. Other cartilage compartments unmentioned; patellar position and surrounding ligaments do not assess PF cartilage. Fluid significance-qualified. Focal marrow edema is principally degenerative with no impact criterion; no cortical step or impression excludes those signs only rather than all acute lines, so fracture informative but uncertain. No Baker or synovial lining finding.'),
+ ('N N U N U U U U X U U X',
+ [normal5,normal5,span(7,'Aumento de señal\ndel cuerno posterior','sin caracteres propios de rotura.'),'El menisco lateral es de morfología y señal conservada, sin signos de rotura.',cart7,cart7,pf7,fluid5,'',fluid5,marrow5,''],
+ 'Ligaments/lateral meniscus unqualified normal/preserved. Medial signal only does not seem to contact the surface, leaving surfacing uncertain despite no characteristic tear features. TF/trochlear lesions denied only categorically; patellar partial ulcers/grades2–3 lack qualifying deep-region extent. Both coordinated fluid targets remain significance-qualified. Marrow only denies significant signal abnormality; no fracture or synovial lining assessment. Soft-tissue tendinopathy/friction does not supply bone or synovial findings.')
+]
+freeze('final-eight',4,0,judgments)

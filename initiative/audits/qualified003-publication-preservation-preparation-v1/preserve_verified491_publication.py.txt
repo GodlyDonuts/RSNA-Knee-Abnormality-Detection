@@ -1,0 +1,104 @@
+"""Preserve verified491 small artifacts after root review; no publication or archive copies.
+Default mode validates and prints a plan. Only --execute-root-preservation writes R.
+"""
+from pathlib import Path
+from datetime import datetime,timezone
+import argparse,hashlib,importlib.util,json,os,shutil,stat,subprocess,sys
+AG='/root/duplicate_consistency_review';PINS_SHA='584ad842dc9153df7d0c3f1ca51e45893af5ca9787adf3e727d9f7669d3abd87';SCANNER_SHA='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8';FLOOR=20*2**30;RESERVE=64*2**20
+class GuardError(Exception):pass
+def require(ok,code):
+ if not ok:raise GuardError(code)
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+ return h.hexdigest()
+def safe(root,name):
+ raw=Path(name);require(not raw.is_absolute() and '..' not in raw.parts and '\\' not in name,'unsafe_relative_path');p=root/raw;require(p.resolve().is_relative_to(root.resolve()),'path_outside_root');require(not p.is_symlink(),'symlink_input_or_output');return p
+def verify(p,e):
+ require(p.is_file() and not p.is_symlink(),'missing_or_symlink_input');require(p.stat().st_size==e['bytes'] and sha(p)==e['sha256'],'exact_input_mismatch');require(stat.S_IMODE(p.stat().st_mode)==e.get('mode',stat.S_IMODE(p.stat().st_mode)),'source_mode_mismatch')
+def serialized(d):return (json.dumps(d,ensure_ascii=False,indent=2)+'\n').encode()
+def read(p):return json.loads(p.read_text())
+def existing(p,data,mode):
+ if p.exists():require(p.is_file() and not p.is_symlink() and p.read_bytes()==data and stat.S_IMODE(p.stat().st_mode)==mode,'existing_destination_differs');return True
+ return False
+def plan(workspace,pins_path):
+ W=workspace.resolve();R=W/'work/recovered';require(pins_path.is_file() and not pins_path.is_symlink() and sha(pins_path)==PINS_SHA,'pins_changed');pins=read(pins_path)
+ require(pins['schema_version']==1 and pins['prepared_by']==AG and pins['registered_corrections']==491 and pins['target_files']==10020,'pinned_scope')
+ sources={};planned={}
+ for e in pins['files']:
+  source=safe(W,e['original_path']);target=safe(R,e['archive_path']);verify(source,e);require(e['bytes']<100_000_000,'git_file_size_cap');raw=source.read_bytes();require(target not in planned,'duplicate_archive_target');planned[target]=(raw,e['mode'],e['original_path']);sources[source]=e
+ require(len(sources)==22 and len(planned)==22,'original_membership')
+ A=safe(R,pins['destination_publication_audit']);AR=safe(R,pins['destination_preparation_archive'])
+ require(all(q.parent in {A,AR} for q in planned),'destination_scope')
+ helper_path=Path(__file__).resolve();require(helper_path.is_relative_to(W),'helper_scope')
+ for source,name in [(helper_path,'preserve_verified491_publication.py.txt'),(pins_path,'publication-input-pins.json')]:
+  raw=source.read_bytes();mode=stat.S_IMODE(source.stat().st_mode);target=A/name;require(target not in planned,'preparation_target_collision');planned[target]=(raw,mode,str(source.relative_to(W)));sources[source]={'original_path':str(source.relative_to(W)),'sha256':sha(source),'bytes':len(raw),'mode':mode}
+ require(not (A/'preservation.json').exists(),'preservation_already_completed')
+ for folder in (A,AR):
+  if folder.exists():require(folder.is_dir() and {p for p in folder.rglob('*') if p.is_file()}<={p for p in planned if p.is_relative_to(folder)},'unexpected_destination_members')
+ reused=sum(existing(q,raw,mode) for q,(raw,mode,source) in planned.items());new_bytes=sum(len(raw) for q,(raw,mode,source) in planned.items() if not q.exists())
+ require(shutil.disk_usage(W).free-new_bytes-RESERVE>FLOOR,'disk_floor')
+ # Verify external bytes by streaming SHA only; never extract, parse or copy them.
+ for e in pins['external_only']:
+  require(e['copy_or_extract'] is False,'external_copy_forbidden');source=safe(W,e['original_path']);verify(source,e);require(source not in sources,'external_object_in_copy_scope')
+ scanner_path=safe(W,pins['scanner']['original_path']);verify(scanner_path,pins['scanner']);require(sha(scanner_path)==SCANNER_SHA,'scanner_changed')
+ spec=importlib.util.spec_from_file_location('bound_preservation491_scanner',scanner_path);mod=importlib.util.module_from_spec(spec);sys.modules[spec.name]=mod;spec.loader.exec_module(mod);secrets=mod.secret_values(W/'.env');require(bool(secrets),'secret_scan_values_missing')
+ for raw,mode,source in planned.values():mod.Scanner(secrets).feed(raw)
+ D=W/'work/hf-preparation-deltas'/pins['target_git'];H=W/'work/annotation-staging/qualified003-hf-publication-preparation-v1'
+ receipt=read(D/'root-publication-receipt.json');manifest=read(D/'manifest.json');operation=read(D/'root-publication-operation.json');peer=read(D/'restoration-proof.json');root=read(D/'root-restoration-proof.json');build=read(D/'peer-build-receipt.json');prep=read(H/'completion-manifest.json');sync=read(W/'work/qualified003-synchronized-publication.json')
+ require(sha(D/'root-publication-receipt.json')==pins['receipt_sha256'],'publication_receipt_pin')
+ require(receipt['status']=='verified_private_complete_tree_preparation_delta' and receipt['private'] is True and receipt['training_ready'] is False,'actual_private_preparation_required')
+ require(receipt['actual_executor']=='/root' and receipt['workflow_preparation_author']=='/root/last_twelve_visual_review','publication_actual_roles')
+ require(receipt['github_commit']==manifest['target_git_commit']==pins['target_git'] and receipt['github_tree']==manifest['target_git_tree']==pins['target_tree'],'target_git_bindings')
+ require(receipt['hf_revision']==pins['hf_revision'] and receipt['expected_hf_parent']==receipt['verified_hf_parent']==pins['hf_parent'],'verified_private_revision_and_parent')
+ require(receipt['github_ci']==operation['github_ci']=={'conclusion':'success','headSha':pins['target_git'],'status':'completed'} and receipt['github_ci_run']==operation['github_ci_run']==35693648375,'exact_successful_ci')
+ require(receipt['complete_result_files']==manifest['n_target_git_files']==pins['target_files'] and receipt['registered_corrections']==operation['registered_corrections']==491 and receipt['registry_sha256']==operation['registry_sha256']==pins['registry_at_publication_sha256'],'491_result_scope')
+ require(manifest['base_git_commit']==pins['base_git'] and manifest['base_hf_revision']==receipt['base_hf_revision']==pins['base_hf'],'immutable_base_context')
+ require(manifest['private_destination_required'] is True and operation['private_required'] is True and receipt['source_and_official_metadata_unchanged'] is True,'private_and_source_guards')
+ require(receipt['operation_sha256']==sha(D/'root-publication-operation.json') and operation['peer_proof_sha256']==receipt['peer_proof_sha256']==sha(D/'restoration-proof.json') and operation['root_proof_sha256']==receipt['root_proof_sha256']==sha(D/'root-restoration-proof.json'),'operation_and_proof_pins')
+ require((D/'restoration-proof.json').read_bytes()==(D/'peer-restoration-proof.json').read_bytes(),'peer_alias_not_identical')
+ for proof,agent in [(peer,'/root/last_twelve_visual_review'),(root,'/root')]:
+  require(proof['actual_executor']==proof['verifier_agent_id']==agent and proof['helper_default_is_not_evidence_of_actual_execution'] is True and proof['generated_helper_default_identity']==AG,'actual_streaming_identity')
+  require(proof['status']=='every_target_git_file_restorable_identically' and proof['n_result_files_verified']==10020 and proof['n_delta_members_verified']==4375 and proof['target_git_commit']==pins['target_git'] and proof['target_git_tree']==pins['target_tree'],'complete_restoration_proof_scope')
+  require(proof['manifest']['sha256']==sha(D/'manifest.json') and proof['helper_sha256']==SCANNER_SHA and proof['full_tree_extracted'] is False,'restoration_original_bindings')
+ require(build['actual_executor']==prep['actual_author_and_executor']=='/root/last_twelve_visual_review' and build['target_git_commit']==prep['target_git_commit']==pins['target_git'],'build_preparation_actual_identity')
+ require(len(prep['members'])==8 and {W/e['path'] for e in prep['members']}|{H/'completion-manifest.json'}=={p for p in H.iterdir() if p.is_file()},'full_eight_member_preparation')
+ for e in prep['members']:verify(W/e['path'],e)
+ uploaded={e['path']:e for e in operation['uploaded_files']};remote={e['path']:e for e in receipt['uploaded_objects']};require(len(uploaded)==len(remote)==6 and set(uploaded)==set(remote),'six_object_scope')
+ for path,e in uploaded.items():
+  lp=Path(e['local_path']);lp=lp if lp.is_absolute() else W/lp;require(lp.resolve().is_relative_to(W),'uploaded_local_scope');verify(lp,e);require((remote[path]['sha256'],remote[path]['bytes'])==(e['sha256'],e['bytes']),'uploaded_receipt_exact_match')
+ external={e['sha256']:e for e in pins['external_only']}
+ require(manifest['base_archive']['sha256'] in external and manifest['base_manifest']['sha256'] in external and manifest['delta_archive']['sha256'] in external and len(receipt['immutable_base_objects_verified'])==2,'external_base_delta_pins')
+ for e in receipt['immutable_base_objects_verified']:require(e['sha256'] in external and external[e['sha256']]['bytes']==e['bytes'],'verified_base_metadata_matches')
+ require(sync['github_commit']==pins['target_git'] and sync['github_tree']==pins['target_tree'] and sync['hf_revision']==pins['hf_revision'] and sync['registered_corrections']==491 and sync['receipt']['sha256']==pins['receipt_sha256'],'synchronized_status_exact')
+ require(subprocess.check_output(['git','rev-parse',pins['target_git']+'^{tree}'],cwd=R,text=True).strip()==pins['target_tree'],'local_target_tree')
+ require(len(subprocess.check_output(['git','ls-tree','-r','--name-only','-z',pins['target_git']],cwd=R).split(b'\0'))-1==10020,'local_target_membership')
+ for source,e in sources.items():verify(source,e)
+ return {'W':W,'R':R,'A':A,'AR':AR,'pins':pins,'planned':planned,'sources':sources,'scanner':mod,'secrets':secrets,'new_bytes':new_bytes,'reused_files':reused,'current_registry_sha256':sha(R/'initiative/reviews-v2/adjudications/registry.json')}
+def execute(p):
+ W=p['W'];R=p['R'];pins=p['pins'];entries=[]
+ require(shutil.disk_usage(W).free-p['new_bytes']-RESERVE>FLOOR,'prewrite_disk_floor')
+ for source,e in p['sources'].items():verify(source,e)
+ for target,(raw,mode,origin) in sorted(p['planned'].items()):
+  equal=existing(target,raw,mode)
+  if not equal:
+   target.parent.mkdir(parents=True,exist_ok=True)
+   with target.open('xb') as f:f.write(raw);f.flush();os.fsync(f.fileno());os.fchmod(f.fileno(),mode)
+  require(existing(target,raw,mode),'copy_verification')
+  entries.append({'original_path':origin,'path':str(target.relative_to(R)),'sha256':sha(target),'bytes':len(raw),'mode':mode,'action':'reused_equal' if equal else 'copied_new'})
+ for source,e in p['sources'].items():verify(source,e)
+ require(shutil.disk_usage(W).free>FLOOR,'postcopy_disk_floor')
+ current=sha(R/'initiative/reviews-v2/adjudications/registry.json')
+ receipt={'schema_version':1,'stage':'preserved_verified491_private_publication','agent_id':'/root','session_id':'/root','executed_by':'/root','prepared_by':AG,'at_utc':datetime.now(timezone.utc).isoformat(),'github_commit':pins['target_git'],'github_tree':pins['target_tree'],'hf_revision':pins['hf_revision'],'verified_hf_parent':pins['hf_parent'],'registered_corrections_at_publication':491,'result_files':10020,'original_files_preserved':22,'original_preparation_members':8,'files':entries,'external_only':pins['external_only'],'current_local_registry_sha256':current,'current_local_registry_differs_from_published491':current!=pins['registry_at_publication_sha256'],'original_streaming_peer':'/root/last_twelve_visual_review','original_streaming_root':'/root','peer_proof_aliases_preserved_identical_one_execution':True,'new_streaming_restoration_performed':False,'new_network_publication_performed':False,'network_calls':0,'large_archives_copied_or_extracted':False,'source_and_official_metadata_unchanged_in_bound_publication':True,'scope':'Exact preservation and binding checks only. Original private publication and two distinct streaming proofs are unchanged; this copy operation adds no clinical assessment, acceptance or QA clearance.','training_ready':False,'global_semantic_qa_closed':False}
+ raw=serialized(receipt);p['scanner'].Scanner(p['secrets']).feed(raw);out=p['A']/'preservation.json'
+ with out.open('xb') as f:f.write(raw);f.flush();os.fsync(f.fileno())
+ require(read(out)==receipt,'receipt_after_write')
+ print(json.dumps({'mode':'root_preservation_executed','files_preserved':len(entries),'receipt_sha256':sha(out),'new_network_publication_performed':False}))
+def main():
+ parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,required=True);parser.add_argument('--pins',type=Path,default=Path(__file__).resolve().parent/'publication-input-pins.json');parser.add_argument('--execute-root-preservation',action='store_true');a=parser.parse_args();p=plan(a.workspace,a.pins.resolve())
+ if a.execute_root_preservation:execute(p)
+ else:print(json.dumps({'mode':'read_only_unexecuted_preservation_plan','prepared_by':AG,'original_files':22,'copy_files_including_helper_and_pins':len(p['planned']),'existing_equal_files':p['reused_files'],'new_copy_bytes':p['new_bytes'],'external_objects_no_copy':len(p['pins']['external_only']),'new_network_calls':0,'R_writes':False,'actual_streaming_peer':'/root/last_twelve_visual_review','actual_streaming_root':'/root'}))
+if __name__=='__main__':
+ try:main()
+ except Exception as exc:print(json.dumps({'status':'preservation_not_confirmed','error_class':type(exc).__name__,'guard':str(exc) if isinstance(exc,GuardError) else None}));raise SystemExit(2) from None

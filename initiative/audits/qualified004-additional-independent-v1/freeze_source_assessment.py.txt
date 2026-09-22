@@ -1,0 +1,193 @@
+"""Seal personally authored source decisions; no current annotations are inputs."""
+import hashlib
+import json
+import re
+import shutil
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+from author_source_assessment import authored_records
+
+W = Path(__file__).resolve().parents[3]
+P = Path(__file__).resolve().parent
+AGENT = "/root/quality_temporal_review"
+PACKET_HASH = "3a4ba739d705ee9dac8702b49c23cb473f6c7c9a404b0e042c721d3663eec07b"
+RUBRIC_HASH = "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+GLOBAL_HASH = "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3"
+TARGETS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA", "PF OA", "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def ref(p):
+    return {"path": str(p.relative_to(W)), "sha256": sha(p), "bytes": p.stat().st_size}
+
+
+def checked_ref(r):
+    p = W / r["path"]
+    assert sha(p) == r["sha256"], r["path"]
+    if "bytes" in r:
+        assert p.stat().st_size == r["bytes"], r["path"]
+    return p
+
+
+def write(name, obj):
+    p = P / name
+    with p.open("x") as f:
+        f.write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
+    return ref(p)
+
+
+def main():
+    free = shutil.disk_usage(W).free
+    assert free > 20 * 1024**3 + 1024**2, free
+    started = json.loads((P / "source-start.json").read_text())
+    assert sha(P / "source-start.json") == "0b534597fd6d4b995e53a6e7f3794675715ace1c226b8b534323a04143eaa100"
+    protected = []
+    for key in ("neutral_packet_original", "own_byte_exact_neutral_packet", "rubric", "canonical_context_verified_in_prior_actual_source_only_check"):
+        protected.append(ref(checked_ref(started[key])))
+    protected.append(ref(checked_ref(started["prior_exposure"]["bound_full_history"])))
+    assert started["agent_id"] == started["session_id"] == AGENT
+    assert started["complete_reports"] == 3 and started["target_judgments"] == 36
+    assert started["target_order"] == TARGETS
+    assert started["source_reports_sha256"] == GLOBAL_HASH
+    packet = json.loads((P / "neutral-full-sources.json").read_text())
+    assert sha(P / "neutral-full-sources.json") == PACKET_HASH
+    assert (P / "neutral-full-sources.json").read_bytes() == checked_ref(started["neutral_packet_original"]).read_bytes()
+    assert packet["target_order"] == TARGETS
+    assert packet["rubric"]["sha256"] == RUBRIC_HASH
+    assert packet["rubric_version"] == "report-weak-v2.0"
+    assert packet["canonical_all4407_source_reports_sha256"] == GLOBAL_HASH != PACKET_HASH
+    assert json.loads(checked_ref(started["canonical_context_verified_in_prior_actual_source_only_check"]).read_text())["whole4407_source_reports_sha256"] == GLOBAL_HASH
+    sources = packet["records"]
+    rows = authored_records()
+    assert len(sources) == len(rows) == 3
+    uids = {s["study_uid"] for s in sources}
+    assert len(uids) == 3
+    for i, (s, r) in enumerate(zip(sources, rows, strict=True)):
+        original_path = checked_ref(s["source_batch"])
+        protected.append(ref(original_path))
+        original = json.loads(original_path.read_text())[s["source_index_zero_based"]]
+        assert original == {"study_uid": s["study_uid"], "report": s["report"]}
+        report_bytes = s["report"].encode("utf-8")
+        assert hashlib.sha256(report_bytes).hexdigest() == s["report_utf8_sha256"]
+        assert len(report_bytes) == s["report_utf8_bytes"]
+        assert s["packet_ordinal_zero_based"] == r["packet_ordinal_zero_based"] == i
+        assert s["source_case"] == f"{original_path.stem.removeprefix('batch-')}:{s['source_index_zero_based']:02d}"
+        assert r["agent_id"] == r["session_id"] == AGENT
+        assert r["study_uid"] == s["study_uid"] and r["source_case"] == s["source_case"]
+        assert r["source_path"] == s["source_batch"]["path"]
+        assert r["source_sha256"] == s["source_batch"]["sha256"]
+        assert r["source_index_zero_based"] == s["source_index_zero_based"]
+        assert r["report_sha256"] == s["report_utf8_sha256"]
+        assert r["target_order"] == TARGETS and r["rubric_sha256"] == RUBRIC_HASH
+        assert r["rubric_version"] == "report-weak-v2.0"
+        assert len(r["states"]) == len(r["evidence"]) == len(r["rationales"]) == 12
+        for state, quote, reason in zip(r["states"], r["evidence"], r["rationales"], strict=True):
+            assert isinstance(reason, str) and reason.strip()
+            assert state in {"positive", "negative", "uncertain", "not_mentioned"}
+            assert (quote == "") if state == "not_mentioned" else (bool(quote) and quote in s["report"])
+    observed_overlaps = set()
+    history = started["prior_exposure"]["own_prior_neutral_collection_uid_overlap_checks"]
+    for path, entry in history.items():
+        p = checked_ref({"path": path, "sha256": entry["sha256"]})
+        protected.append(ref(p))
+        prior_uids = set(re.findall(r'"study_uid"\s*:\s*"([^"]+)"', p.read_text()))
+        actual = sorted(prior_uids & uids)
+        assert actual == entry["overlap_uids"], path
+        observed_overlaps.update(actual)
+    assert sorted(observed_overlaps) == started["prior_exposure"]["known_unique_prior_fullsource_overlaps"]
+    assert len(observed_overlaps) == 1
+    for field in ("current_selected_annotations_opened", "root004_new_proposals_opened", "other004_case_findings_opened", "gold_accessed", "prior_stages_changed"):
+        assert started[field] is False
+    now = datetime.now(timezone.utc).isoformat()
+    assessment = write("source-assessment-frozen.json", {
+        "schema_version": 1,
+        "stage": "qualified004_additional_independent_source_only",
+        "agent_id": AGENT,
+        "session_id": AGENT,
+        "authored_at_freeze_utc": now,
+        "source_start": ref(P / "source-start.json"),
+        "neutral_packet": ref(P / "neutral-full-sources.json"),
+        "source_reports_sha256": GLOBAL_HASH,
+        "rubric": started["rubric"],
+        "target_order": TARGETS,
+        "records": rows,
+        "scope": "Three complete original reports and all36 personally reasoned report-extraction judgments. No new MRI reread or credential claim.",
+        "initial_source_judgments_preserved": True,
+        "source_phase_state_or_evidence_reconsiderations": [],
+        "read_order": "Full sources and frozen rubric read, then all36 personal judgments authored before any new root004 proposal or selected current004/other004 findings. Historical exposure is separately disclosed; no claim of first-ever blindness or instrumented process isolation.",
+        "new_proposal_comparison_authorized_or_started": False,
+    })
+    counts = dict(Counter(state for r in rows for state in r["states"]))
+    nonmissing = 36 - counts.get("not_mentioned", 0)
+    validation = write("source-validation.json", {
+        "schema_version": 1, "validated_at_utc": now, "actual_assessor_id": AGENT,
+        "assessment": assessment,
+        "complete_reports": 3, "target_judgments": 36,
+        "exact_contiguous_nonmissing_quotes": nonmissing,
+        "empty_not_mentioned_quotes": 36 - nonmissing,
+        "state_counts": counts,
+        "all_original_index_uid_fullreport_and_hash_bindings_verified": True,
+        "all_individual_rationales_present": True,
+        "all_actual_source_assessor_and_target_order_bindings_verified": True,
+        "known_unique_prior_fullsource_overlaps": len(observed_overlaps),
+        "historical_neutral_collections_verified": len(history),
+        "source_reports_sha256": GLOBAL_HASH,
+        "canonical_context_scope": "Exact prior actual bone027 source validation reused; all three present source batches verified again. No repeated whole-dataset campaign.",
+        "packet_sha256": PACKET_HASH,
+        "protected_input_bindings": list({r["path"]: r for r in protected}.values()),
+        "free_bytes_before": free,
+        "no_current_annotation_or_other_reader_findings_as_validation_inputs": True,
+        "no_gold_access_or_repository_writes": True,
+        "limits": "Checks establish coverage and traceability, not independent clinical validity or instrumented historical access order.",
+    })
+    freeze = write("source-freeze.json", {
+        "schema_version": 1,
+        "frozen_at_utc": now,
+        "actual_assessor_id": AGENT,
+        "session_id": AGENT,
+        "stage": "qualified004_additional_three_fullsource_all36_source_freeze",
+        "source_start": ref(P / "source-start.json"),
+        "assessment": assessment,
+        "validation": validation,
+        "authoring_helper": ref(P / "author_source_assessment.py"),
+        "freeze_helper": ref(Path(__file__).resolve()),
+        "complete_reports": 3,
+        "personally_authored_target_judgments": 36,
+        "source_before_new_root004_proposals_and_current_or_other004_case_findings": True,
+        "historical_exposure_disclosed": True,
+        "known_unique_prior_fullsource_overlaps": 1,
+        "packet_preparer_identity": packet["prepared_by"],
+        "packet_preparer_role": "Original FIRST reader and technical packet preparer, not an additional source reader in this task.",
+        "actual_assessor_role": "Distinct author of this bounded source extraction assessment; no clinical credentials or image reread asserted.",
+        "comparison_status": "Not begun; wait for root's exact new proposal pin and explicit postfreeze authorization.",
+        "acceptance_registry_export_mask_or_QA_changes": False,
+        "prior_originals_changed": False,
+    })
+    for r in protected:
+        checked_ref(r)
+    members = [ref(p) for p in sorted(P.iterdir()) if p.is_file()]
+    manifest = write("source-completion-manifest.json", {
+        "schema_version": 1, "completed_at_utc": now,
+        "actual_preparer_id": AGENT,
+        "stage": "qualified004-additional-independent-v1 source-only completed cutoff",
+        "complete_reports": 3, "target_judgments": 36,
+        "source_freeze": freeze,
+        "members": members,
+        "member_count_excluding_this_manifest": len(members),
+        "all_protected_input_hashes_reverified": True,
+        "source_phase_stable": True,
+        "postfreeze_comparison_pending_separate_root_authorization": True,
+    })
+    for r in members:
+        checked_ref(r)
+    assert shutil.disk_usage(W).free > 20 * 1024**3
+    print(json.dumps({"reports": 3, "judgments": 36, "exact_nonmissing_quotes": nonmissing, "empty_missing_quotes": 36 - nonmissing, "known_prior_fullsource_overlaps": 1, "assessment": assessment, "validation": validation, "freeze": freeze, "manifest": manifest}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

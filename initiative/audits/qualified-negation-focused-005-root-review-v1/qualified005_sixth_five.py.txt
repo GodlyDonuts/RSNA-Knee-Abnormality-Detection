@@ -1,0 +1,40 @@
+"""Root's individually authored initial judgments after reading full005 sources25–29."""
+import json
+from qualified005_source_tools import N, freeze
+reports = json.loads((N / 'neutral-root-attention-002.json').read_text())['reports']
+
+def span(i, start, end):
+    s = reports[i]['report']
+    assert s.count(start) == 1
+    a = s.index(start)
+    return s[a:s.index(end, a) + len(end)]
+
+cart0 = 'Low-grade chondral thinning along the anterior aspect of the lateral femoral condyle. Otherwise relatively well-maintained tricompartmental hyaline articular cartilage.'
+cont0 = 'No sinister bone marrow changes. 6 mm hypointense focus in the lateral aspect of the medial femoral condyle. No surrounding bone marrow edema. Findings likely represent an incidental enostosis.'
+medoa1 = 'Chondropatie légère à modérée du compartiment médial, plus prononcée sur les surfaces portantes, avec de petits foyers centraux de fissuration profonde et un œdème osseux réactionnel du côté tibial et fémoral [chondropathie de grade 4].'
+pfoa1 = 'Chondropatie profonde et focale de grade 4 préexistante au niveau de la face inférieure de la gorge trochléaire avec œdème osseux réactionnel.'
+mcl2 = 'A thickened proximal superficial MCL is noted, with mild overlying subcutaneous edema like signal change - overall appearances very much suggest an acute-on-chronic sprain.\nNo associated fibre discontinuity appreciated at present.'
+lig2 = 'Intact cruciate and lateral collateral ligaments, popliteus musculotendinous unit, extensor tendons and the distal iliotibial band.'
+fluid2 = "Tiny suprapatellar effusion, with no overt synovitis nor any intra-articular bodies.  Tiny, non ruptured Baker's cyst appreciated posteromedially."
+cart2 = 'Intermediate-grade retropatellar chondral damage is present, well-maintained medial and lateral weightbearing hyaline articular cartilage surfaces.'
+bone3 = span(8, 'Normal marrow SI of medial femoral condyle', 'Preserve normal marrow SI within patella')
+oa4 = '> Subchondral edema in in distal femur with suspicious of bone erosion and subchondral cyst in medial femoral condyle (srs: [ID]; wearing of articular cartilage and spur formation..'
+baker4 = "> A well define lesion with internal septums which was hyperintense in the T2 FS and hypointense in the T1 FS, connected with femorotibial joint cavity and extended to the space between seminmembranosus and medial head of gastrocnemius. It is compatible with baker's cyst, more than 11 cm in length."
+judgments = [
+    ('N N N N U U U U X X U X',
+     ['Intact cruciate and collateral ligaments.'] * 2 + ['Intact menisci.'] * 2 + [cart0] * 3 + ['No significant joint effusion.', '', '', cont0, ''],
+     'Ligaments and menisci are intact. Low-grade anterior lateral-condylar cartilage thinning is uncalibrated and the remaining tricompartmental cartilage is only relatively maintained; no categorical negative or qualifying positive is established for any compartment. Effusion is significance-qualified. No edema surrounds the likely enostosis, but the rest of the marrow is only cleared of sinister change; retain uncertainty rather than extend the local absence to all marrow. The focal likely bone island is not a fracture assessment; Baker and synovitis unmentioned.'),
+    ('N N P N U X U U X N U N',
+     ['Ligament croisé antérieur : Normal.', 'Ligament collatéral médial : Normal.', "Ménisque médial : Déchirure horizontale oblique intéressant le corps et la corne postérieure, pas de fragment déplacé. Léger émoussement de l'apex du corps méniscal.", 'Ménisque latéral : Normal.', medoa1, '', pfoa1, 'Épanchement articulaire : Pas de liquide significatif.', '', 'Kyste de Baker : Kyste de Baker minuscule et non significatif.', medoa1 + '\n' + pfoa1, 'Fractures :\nAucune.'],
+     'ACL/MCL and lateral meniscus are normal; medial horizontal tear is definite. The cartilage assessment is specifically medial and trochlear without an assessment of remaining lateral cartilage. Deep focal grade4 lesions omit qualifying region extent; prior presence does not mean resolved cartilage damage. Fluid absence is significance-qualified. Baker is explicitly minuscule independent of significance wording, supporting negative. Reactive marrow edema remains uncertain for impact contusion; the malformed status-post ganglion sentence is preserved without reconstruction. Fracture is directly absent; no synovial lining assessment.'),
+    ('N N N N N N U N U N U U',
+     [lig2, mcl2, 'There are no medial or lateral meniscal tears.', 'There are no medial or lateral meniscal tears.', cart2, cart2, cart2, fluid2, fluid2, fluid2, 'No skeletal abnormality of note.', 'No skeletal abnormality of note.'],
+     'ACL intact and MCL thickening/possible acute-on-chronic sprain has no appreciated fiber discontinuity, supporting below-high-grade negative. Both menisci are directly without tear. TF cartilage is maintained; intermediate PF grade omits depth/extent. Effusion and Baker are explicitly tiny. No overt synovitis is qualified and stays uncertain. Global skeletal assessment excludes only abnormalities of note, not categorically all marrow or fracture abnormalities; unlike a local cartilage-related subchondral-change phrase, this is a qualified whole-bone assessment. Retain masks for both bone targets.'),
+    ('N N N N X N X N X X N X',
+     ['ACL: unremarkable.', 'Medial collateral ligament: preserved.', 'Medial meniscus: preserved.', 'Lateral meniscus: preserved.', '', 'Preservation of cartilage at weightbaring lateral femoral condyle and lateral tibial plateau.', '', 'Minimal fluid SI along suprapatellar bursa is seen; physiologic fluid.', '', '', bone3, ''],
+     'ACL/MCL and both menisci are directly preserved independently of later no-definite injury wording. Only lateral cartilage is assessed; medial/PF marrow and extensor/retinacular normality are not cartilage statements. Fluid is physiologic minimal. An incidental thin1.1mm plica is not an inflamed-lining assessment. Full marrow quote binds normal medial, lateral and patellar signal with named bone-island exception; literal intact4/intact8 measurements are not repaired. The suggested fabella is a different structure from a Baker cyst and not an acute fracture assessment.'),
+    ('N X P N U U U U P U U U',
+     ['7. Grade 1 ACL and PCL injury or mucoid degeneration.', '', '2. Tear of posterior horn of medial meniscus.Degeneration of meniscus.', '> Linear signal intensity in lateral meniscus, without significant extending into the surface, in favor of  grade 2 intrasubstance signal, maybe due to degeneration.', oa4, oa4, oa4, '> Fluid accumulation in the suprapatellar bursa and femorotibial joint cavity', "4. Synovitis of left knee and suprapatellar bursitis and deep infrapatellar bursitis; the possibility of gouty arthritis or other inflammatory arthritis can't excluded.", baker4, oa4, oa4],
+     'The final ACL diagnosis gives grade1 injury versus mucoid degeneration, both below the high-grade threshold. MCL fibers are not assessed by pes-anserine soft-tissue changes. Medial meniscal tear is definite in the impression; lateral signal is affirmatively intrasubstance with tentative degenerative cause. General knee OA/cartilage wear lacks compartmental depth/extent. Joint fluid is unsized. Synovitis is directly diagnosed; only inflammatory-arthritis etiology is uncertain. Baker anatomy is definite but more-than11cm length alone does not supply moderate/large collection amount without transverse dimensions or size grade. Subchondral edema and suspected erosion are informative but do not establish impact contusion or acute fracture-line/disruption; preserve uncertainty and literal malformed text.')
+]
+freeze('sixth-five', 2, 5, judgments)

@@ -1,0 +1,33 @@
+"""Root's individually authored initial judgments after reading full005 sources15–19."""
+from qualified005_source_tools import freeze
+lig0 = 'Ligamentos cruzados y colaterales dentro de límites normales.'
+men0 = 'Meniscos de morfología y señal conservada, sin criterios categóricos de rotura.'
+medoa0 = 'Úlceras condrales de espesor parcial de la región central de la zona de carga del cóndilo femoral\nmedial. El resto de los cartílagos femorotibiales y de la tróclea femoral sin alteraciones.'
+pfoa0 = 'El resto de los cartílagos femorotibiales y de la tróclea femoral sin alteraciones.\nCondropatía rotuliana superficial difusa.'
+fluid0 = 'No hay significativo derrame articular ni quistes poplíteos.'
+cart2 = 'Les surfaces cartilagineuses tibio-fémorale et patellofémorale sont relativement préservées sans atteinte transfixiante ou changements sous-chondraux réactionnels associés. Au plus, minime atténuation à la surface portante interne du compartiment fémoro-tibial interne.'
+lig2 = 'Le ligament collatéral interne, le complexe ligamentaire collatéral externe de même que les ligaments croisés antérieur et postérieur sont intacts sans déchirure.'
+men2 = 'Les ménisques interne et externe sont intacts sans déchirure significative.'
+tf3 = 'Cartílagos de los compartimentos femorotibiales y de la tróclea femoral sin alteraciones.'
+pf3 = tf3 + '\nCondropatía superficial difusa de la rótula.'
+lig4 = 'Les ligaments croisés antérieur et postérieur, le ligament collatéral médial et le complexe tendino-ligamentaire latéral sont intacts et sans particularité.'
+cart4 = "Il n'y a pas d'évidence de chondropathie significative."
+fluid4 = "Il n'y a pas d'épanchement articulaire significatif, pas de kyste de Baker."
+judgments = [
+    ('N N N N U N N U X U U X',
+     [lig0, lig0, men0, men0, medoa0, medoa0, pfoa0, fluid0, '', fluid0, 'No hay alteraciones de señal significativas de la médula ósea.', ''],
+     'Named ligaments are normal and meniscal morphology/signal is affirmatively preserved without an impressionistic verb; that independent normality supports negatives despite the categorical-tear phrase. Medial partial-depth ulcers and unnamed grade2 omit fractional depth/extent. Remaining lateral cartilage is normal; patellar disease is superficial and trochlea normal. Significance-qualified joint fluid and grammatically potentially shared cyst qualifier remain uncertain; no singular-agreement shortcut. Marrow denial is qualified. No synovial lining or fracture assessment.'),
+    ('U N P N X X U N X X X X',
+     ['Ön çapraz bağ sinyali diffüz hafif artmıştır.', 'Medial kollateral ligaman çevresinde belirgin sıvı artışı izlenmiştir ( grade I sprain).', 'Medial menisküste grade III dejenerasyon ve posterior hornunda gövdeye doğru ulaşan kompleks yırtık izlenmiştir.', 'Lateral menisküste grade I dejenerasyon izlenmiştir.', '', '', 'Ayrıca patellar kıkırdak medial fasette kıkırdakta fokal incelme izlenmiştir (tip II kondromalazi).', 'Suprapatellar burada ve diz eklemi içerisinde hafif sıvı artışı izlenmiştir.', '', '', '', ''],
+     'ACL only has mildly increased signal without explicit intact fibers, degeneration diagnosis or tear assessment; retain uncertainty. MCL gradeI is below threshold despite surrounding fluid. Medial complex tear is definite, lateral has isolated degeneration. TF cartilage is not assessed; focal patellar thinning/typeII omits loss fraction/extent. Joint fluid is explicitly mild. The32x15mm cyst is a ganglion behind PCL, not a characteristic posterior Baker collection; intercondylar cysts do not constitute marrow edema. Possible bipartite patellar configuration is not an acute fracture-line/cortical assessment. No inflamed lining.'),
+    ('N N N N N U U N X U X X',
+     [lig2, lig2, men2, men2, cart2, cart2, cart2, 'Minime liséré de liquide intra-articulaire dans les limites physiologiques.', '', 'Il n’y a pas de kyste de Baker significatif.', '', ''],
+     'Ligaments and menisci are affirmatively intact; the separate significant-tear modifier does not remove that intact statement. At most minimal medial cartilage attenuation is explicitly below deep loss. Lateral/PF cartilage is only relatively preserved with no full-thickness damage, leaving deep partial loss undefined; broad normal-exam conclusion does not silently erase the qualified detailed findings. Physiologic minimal/no fluid is below threshold. Baker denial remains significance-qualified despite broad normal-exam conclusion. No marrow or acute fracture assessment; absent subchondral reactive change is not a marrow statement. Synovial lining unmentioned.'),
+    ('N N U N N N N U X U U X',
+     [lig0, lig0, 'Aumento de señal central del cuerno posterior y parte del cuerpo del menisco medial que no\nimpresiona contactar con la superficie articular, sin caracteres propios de rotura.', 'Menisco lateral de morfología y señal conservada, sin criterios de rotura.', tf3, tf3, pf3, fluid0, '', fluid0, 'No hay alteraciones en significativas de la médula ósea.', ''],
+     'Ligaments are normal, lateral meniscus has preserved morphology/signal and unqualified absent tear criteria. Medial central signal has only impressionistic noncontact; no intrinsic tear features does not conclusively resolve the stated surface-contact uncertainty. TF/trochlear cartilage is normal and patellar disease superficial. Fluid/cyst qualification remains unresolved as in the same literal sentence elsewhere. Preserve the malformed en in the significance-qualified marrow sentence rather than repairing it. Regional pes-anserine friction edema is soft tissue, not contusion or synovitis. Fracture unmentioned.'),
+    ('N N N P U U U U X N N X',
+     [lig4, lig4, 'Il y a des légers changements dégénératifs de signal dans le corps du ménisque médial sans franche déchirure.', "Il y a une déchirure horizontale oblique du corps du ménisque latéral, s'étendant à la surface tibiale sans fragment déplacé.", cart4, cart4, cart4, fluid4, '', fluid4, 'Le signal osseux est normal.', ''],
+     'Ligaments are intact. Medial signal changes are affirmatively degenerative without a competing tear morphology; lateral horizontal surfacing tear is definite. General significance-qualified cartilage denial does not establish any compartmental depth/extent. Effusion is qualified, but the separate repeated pas de kyste de Baker clause categorically excludes cyst without a shared preposed modifier. Bone signal is explicitly normal. Suprapatellar fat-pad impingement edema is not synovial lining or marrow edema; no fracture assessment.')
+]
+freeze('fourth-five', 1, 5, judgments)

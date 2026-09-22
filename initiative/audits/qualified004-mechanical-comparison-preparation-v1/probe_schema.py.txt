@@ -1,0 +1,23 @@
+"""Opaque reader-schema probe; emit field names, types, hashes and scalar identity/scope only."""
+from pathlib import Path
+import hashlib,json
+W=Path(__file__).resolve().parents[3];B=W/'work/annotation-staging';P=Path(__file__).resolve().parent
+F=B/'qualified-negation-focused-004-source-review-v1';S=B/'qualified-negation-focused-004-independent-review-v1';T=B/'qualified-negation-focused-004-post-freeze-comparison-v1';Z=B/'qualified-negation-focused-004-current-rebase-v1'
+files=[F/n for n in ['source-assessment-frozen.json','source-freeze-receipt.json','artifact-manifest.json','postfreeze-disposition-assessment.json','full-target-comparison.json','proposed-errata.json','current205-adjudications-inspection.json','current223-adjudications-inspection.json','current223-rebase-proof.json']]+[S/n for n in ['source-freeze.json','independent-assessment.jsonl','final-file-list.json']]+[T/n for n in ['complete-second-dispositions.json','unintegrated-proposals.json','original-current-baseline-replay.json','second-comparison-freeze.json','final-file-list.json','neutral-root-packet-index.json']]+[Z/n for n in ['current-registry-rebase-proof.json','registry-at-rebase.json','completion-manifest.json']]
+whitelist={'agent_id','session_id','n_changes','registered_corrections','comparison_registered_corrections','rebase_registered_corrections','accepted_registry_count','comparison_registered_changes','current_registered_changes','registry_sha256','adjudication_registry_sha256','source_reports_sha256','rubric_sha256','judgments','reports','judgment_count','target_judgments','full_reports','n_reports','n_targets','n_judgments'}
+def describe(d):
+ if isinstance(d,dict):return {'type':'dict','keys':list(d),'child_object_keys':{k:list(v) for k,v in d.items() if isinstance(v,dict)}}
+ return {'type':type(d).__name__}
+records=[]
+for p in files:
+ d=[json.loads(z) for z in p.read_text().splitlines()] if p.suffix=='.jsonl' else json.loads(p.read_text())
+ row={'path':str(p.relative_to(W)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+ if isinstance(d,dict):
+  row['top_keys']=list(d)
+  row['scalar_identity_and_scope']={k:v for k,v in d.items() if k in whitelist and type(v) in (str,int,bool)}
+  row['arrays']={k:{'length':len(v),'first_object_structure':describe(v[0]) if v else None} for k,v in d.items() if isinstance(v,list)}
+ else:row['rows']={'length':len(d),'first_object_structure':describe(d[0])}
+ records.append(row)
+out={'schema_version':1,'agent_id':'/root/duplicate_consistency_review','session_id':'/root/duplicate_consistency_review','scope':'Corrected metadata-only probe. Reader values remain process-side; no root source/current491 clinical artifacts are loaded.','records':records}
+with (P/'reader-schema-metadata.json').open('x') as f:f.write(json.dumps(out,indent=2)+'\n')
+print(json.dumps(out))

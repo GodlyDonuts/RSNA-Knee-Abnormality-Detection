@@ -1,0 +1,140 @@
+"""Bounded offline validation only; never calls preservation execute()."""
+from datetime import datetime, timezone
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import stat
+import sys
+import tempfile
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+R = W / "work/recovered"
+AGENT = "/root/duplicate_consistency_review"
+spec = importlib.util.spec_from_file_location("preservation491_validation", P / "preserve_verified491_publication.py")
+helper = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = helper
+spec.loader.exec_module(helper)
+
+
+def binding(path):
+    return {"path": str(path.relative_to(W)), "sha256": helper.sha(path), "bytes": path.stat().st_size}
+
+
+def write_once(name, obj):
+    raw = helper.serialized(obj)
+    plan["scanner"].Scanner(plan["secrets"]).feed(raw)
+    with (P / name).open("xb") as out:
+        out.write(raw)
+
+
+def target_snapshot():
+    result = {}
+    for name in ("qualified003-verified491-publication-v1", "qualified003-hf-publication-preparation-v1"):
+        folder = R / "initiative/audits" / name
+        result[name] = None if not folder.exists() else {
+            str(p.relative_to(folder)): (helper.sha(p), p.stat().st_size, stat.S_IMODE(p.stat().st_mode))
+            for p in folder.rglob("*") if p.is_file()
+        }
+    return result
+
+
+before = target_snapshot()
+free_before = shutil.disk_usage(W).free
+plan = helper.plan(W, P / "publication-input-pins.json")
+checks = []
+with tempfile.TemporaryDirectory(prefix="bounded-guards-", dir=P) as folder:
+    tmp = Path(folder)
+    source = tmp / "source.bin"
+    source.write_bytes(b"original preservation bytes")
+    source.chmod(0o640)
+    item = {"sha256": helper.sha(source), "bytes": source.stat().st_size, "mode": 0o640}
+    helper.verify(source, item)
+    checks.append("exact input bytes and mode accepted")
+
+    def rejected(label, function, code):
+        try:
+            function()
+        except helper.GuardError as exc:
+            assert str(exc) == code
+            checks.append(label)
+        else:
+            raise AssertionError(label)
+
+    rejected("changed hash rejected", lambda: helper.verify(source, dict(item, sha256="0" * 64)), "exact_input_mismatch")
+    rejected("changed mode rejected", lambda: helper.verify(source, dict(item, mode=0o600)), "source_mode_mismatch")
+    rejected("relative traversal rejected", lambda: helper.safe(tmp, "../escape"), "unsafe_relative_path")
+    rejected("absolute destination rejected", lambda: helper.safe(tmp, str(source)), "unsafe_relative_path")
+    assert helper.existing(source, source.read_bytes(), 0o640)
+    checks.append("existing equal bytes and mode reusable")
+    rejected("existing unequal bytes rejected without overwrite", lambda: helper.existing(source, b"different", 0o640), "existing_destination_differs")
+    alias = tmp / "alias.bin"
+    alias.symlink_to(source)
+    rejected("symlink destination rejected", lambda: helper.safe(tmp, "alias.bin"), "symlink_input_or_output")
+    assert source.read_bytes() == b"original preservation bytes"
+
+assert target_snapshot() == before
+free_after = shutil.disk_usage(W).free
+assert free_after > helper.FLOOR
+plan_receipt = {
+    "schema_version": 1,
+    "status": "read_only_unexecuted_preservation_plan_verified",
+    "verifier_agent_id": AGENT,
+    "executed_by": AGENT,
+    "prepared_by": AGENT,
+    "at_utc": datetime.now(timezone.utc).isoformat(),
+    "helper": binding(P / "preserve_verified491_publication.py"),
+    "pins": binding(P / "publication-input-pins.json"),
+    "original_files": 22,
+    "planned_copies_including_helper_and_pins": len(plan["planned"]),
+    "planned_new_bytes": plan["new_bytes"],
+    "existing_equal_files": plan["reused_files"],
+    "planned_files": [
+        {"original_path": origin, "archive_path": str(target.relative_to(R)), "sha256": __import__("hashlib").sha256(raw).hexdigest(), "bytes": len(raw), "mode": mode}
+        for target, (raw, mode, origin) in sorted(plan["planned"].items())
+    ],
+    "external_only_objects": plan["pins"]["external_only"],
+    "current_registry_sha256": plan["current_registry_sha256"],
+    "original_streaming_peer": "/root/last_twelve_visual_review",
+    "original_streaming_root": "/root",
+    "peer_alias_represents_one_execution": True,
+    "preservation_execution_performed": False,
+    "R_writes": False,
+    "new_network_calls": 0,
+    "archives_copied_or_extracted": False,
+    "new_streaming_restoration_performed": False,
+    "scope": "Preservation preparation and offline technical binding verification; no clinical assessment, acceptance, registry update or QA closure.",
+}
+write_once("read-only-plan-verification.json", plan_receipt)
+validation = {
+    "schema_version": 1,
+    "status": "passed",
+    "verifier_agent_id": AGENT,
+    "executed_by": AGENT,
+    "at_utc": datetime.now(timezone.utc).isoformat(),
+    "helper": binding(P / "preserve_verified491_publication.py"),
+    "validator": binding(Path(__file__)),
+    "pins": binding(P / "publication-input-pins.json"),
+    "read_only_result": binding(P / "read-only-plan-verification.json"),
+    "bounded_guard_checks": checks,
+    "n_bounded_guard_checks": len(checks),
+    "all_original_file_hashes_sizes_modes_verified": True,
+    "external_three_object_hashes_sizes_modes_streamed_without_copy_or_extraction": True,
+    "original_eight_member_preparation_plus_completion_preserved": True,
+    "six_object_operation_receipt_and_two_base_bindings_verified": True,
+    "two_actual_streaming_identities_and_one_peer_alias_verified": True,
+    "private_parent_successful_exact_ci_and_target_git_tree_membership_verified": True,
+    "ordinary_pinned_scanner_used_for_all_planned_small_bytes": True,
+    "source_originals_reverified_after_plan": True,
+    "bounded_destination_snapshots_equal": True,
+    "free_bytes_before": free_before,
+    "free_bytes_after": free_after,
+    "floor_bytes": helper.FLOOR,
+    "copy_reserve_bytes": helper.RESERVE,
+    "R_writes": False,
+    "network_calls": 0,
+    "preservation_execute_function_called": False,
+}
+write_once("preparation-validation.json", validation)
+print(json.dumps({"status": "passed", "guard_checks": len(checks), "planned_files": len(plan["planned"]), "new_copy_bytes": plan["new_bytes"], "R_writes": False, "plan_sha256": helper.sha(P / "read-only-plan-verification.json"), "validation_sha256": helper.sha(P / "preparation-validation.json")}))

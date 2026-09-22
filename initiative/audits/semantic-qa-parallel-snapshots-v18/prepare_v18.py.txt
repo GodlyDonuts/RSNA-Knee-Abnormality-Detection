@@ -1,0 +1,142 @@
+"""Prepare finite completed v18 metadata pins; never write R or inspect clinical values."""
+from pathlib import Path
+from datetime import datetime, timezone
+import argparse
+import json
+from preserve_v18 import measure, require, check_disk, scanner_factory, HISTORICAL_REGISTRY_RESOLUTIONS, within
+
+W = Path(__file__).resolve().parents[3]
+B, R, HERE = W / 'work/annotation-staging', W / 'work/recovered', Path(__file__).resolve().parent
+AGENT = '/root/duplicate_consistency_review'
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def ref(path):
+    return {'path': str(path.relative_to(W)), **measure(path)}
+
+
+def refs(value):
+    if isinstance(value, dict):
+        if isinstance(value.get('path'), str) and isinstance(value.get('sha256'), str):
+            yield value
+            if isinstance(value.get('original_path'), str):
+                yield {**value, 'path': value['original_path']}
+        for child in value.values():
+            yield from refs(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from refs(child)
+
+
+def files(folder):
+    return sorted(path for path in folder.rglob('*') if path.is_file() and '__pycache__' not in path.parts)
+
+
+def normalized(owner, raw):
+    path = Path(raw)
+    if not path.is_absolute():
+        path = W / path if raw.startswith('work/') else R / path if raw.startswith(('initiative/', 'protocols/', 'docs/')) else owner.parent / path
+    path = path.resolve()
+    require(path.is_relative_to(W), 'reference_outside_workspace')
+    return path
+
+
+def main(config_path, output, preflight=False):
+    require(not output.exists(), 'output_already_exists')
+    check_disk(W, 256 * 2**20)
+    config = read(config_path)
+    snapshots, checks, unresolved, initial = [], [], [], {}
+    for name, anchors in config['anchors'].items():
+        folder = within(B, name)
+        paths = files(folder)
+        require(paths, 'empty_snapshot')
+        for path in paths:
+            require(not path.is_symlink(), 'symlink_not_allowed')
+            initial[path] = measure(path)
+        status = config.get('partial_cutoffs', {}).get(name, {}).get('status', 'completed_stable_stage')
+        snapshot = {'directory': name, 'completion_status': status, 'completion_anchors': [], 'files': []}
+        snapshots.append(snapshot)
+        for filename, digest in anchors.items():
+            anchor = within(folder, filename)
+            require(measure(anchor)['sha256'] == digest, 'completion_anchor_changed')
+            snapshot['completion_anchors'].append({'path': filename, 'source_path': str(anchor.relative_to(W)), **measure(anchor)})
+            # Only explicit metadata path/hash pairs are selected; clinical
+            # contents remain uninterpreted and are never sent to model output.
+            for row in refs(read(anchor)):
+                raw = row['path']
+                original = normalized(anchor, raw)
+                selected, resolution = original, 'exact_current_bytes'
+                alias = HISTORICAL_REGISTRY_RESOLUTIONS.get(row['sha256'])
+                if original == R / 'initiative/reviews-v2/adjudications/registry.json' and alias:
+                    selected = within(W, alias[0])
+                    require(measure(selected) == {'sha256': row['sha256'], 'bytes': alias[1]}, 'historical_registry_changed')
+                    resolution = 'explicit_historical_live_registry_identity'
+                if not selected.is_file() or measure(selected)['sha256'] != row['sha256']:
+                    unresolved.append({'anchor': str(anchor.relative_to(W)), 'reference': raw, 'expected_sha256': row['sha256'], 'normalized_reference': str(original.relative_to(W))})
+                    continue
+                size = row.get('bytes', row.get('size_bytes'))
+                if size is not None:
+                    require(measure(selected)['bytes'] == size, 'reference_size_mismatch')
+                checks.append({'anchor': str(anchor.relative_to(W)), 'original_reference': raw, 'normalized_reference': str(original.relative_to(W)), 'verified_file': str(selected.relative_to(W)), **measure(selected), 'resolution': resolution})
+    if unresolved:
+        with output.open('x') as out:
+            out.write(json.dumps({'status': 'stopped_unresolved_exact_reference', 'preflight_only': True, 'unresolved': unresolved}, indent=2) + '\n')
+        print(json.dumps({'status': 'stopped_unresolved_exact_reference', 'count': len(unresolved), 'diagnostic': str(output.relative_to(W))}))
+        return
+    # Verified491 publication preservation remains unchanged and equality-only.
+    equality = []
+    publication = R / 'initiative/audits/qualified003-verified491-publication-v1'
+    preservation = read(publication / 'preservation.json')
+    require(measure(publication / 'preservation.json')['sha256'] == 'b3467a123a3d680b60ac6e8105e1e3de3608d66180227ce4512fe5baeecf5bb6', 'published491_preservation_receipt_changed')
+    for path in files(publication):
+        equality.append(ref(path))
+    for row in preservation['files']:
+        original, target = within(W, row['original_path']), within(R, row['path'])
+        require(measure(original) == measure(target) == {key: row[key] for key in ['sha256', 'bytes']}, 'existing491_publication_original_mismatch')
+    if preflight:
+        result = {'status': 'metadata_preflight_passed', 'directories': len(snapshots), 'files': len(initial), 'references_checked': len(checks), 'historical_aliases': sum(row['resolution'] != 'exact_current_bytes' for row in checks), 'equality_only491_files': len(equality), 'source_bytes': sum(row['bytes'] for row in initial.values())}
+        with output.open('x') as out:
+            out.write(json.dumps(result, indent=2) + '\n')
+        print(json.dumps(result))
+        return
+    require(config.get('preliminary_metadata_only') is False, 'unsealed_cutoff_config')
+    scan = scanner_factory(W, W / '.env')
+    for snapshot in snapshots:
+        folder = B / snapshot['directory']
+        for path in files(folder):
+            expected = initial[path]
+            require(measure(path, scan()) == expected, 'source_changed_while_scanning')
+            relative = path.relative_to(folder)
+            archive = Path('initiative/audits') / snapshot['directory'] / relative
+            if archive.suffix == '.py':
+                archive = archive.with_suffix('.py.txt')
+            require(expected['bytes'] < 50_000_000, 'unexpected_large_member_requires_explicit_lossless_representation')
+            snapshot['files'].append({'path': str(relative), 'source_path': str(path.relative_to(W)), **expected, 'archive_path': str(archive), 'archive_source_path': str(path.relative_to(W)), 'archive_representation': {'encoding': 'identity', **expected}})
+        require(set(files(folder)) == {path for path in initial if path.is_relative_to(folder)}, 'source_membership_changed')
+    for path, expected in initial.items():
+        require(measure(path) == expected, 'source_changed_before_pins')
+    for row in equality:
+        require(measure(W / row['path']) == {key: row[key] for key in ['sha256', 'bytes']}, 'equality_archive_changed')
+    prior = W / 'work/semantic-qa-v17-snapshot-pins-final.json'
+    require(measure(prior)['sha256'] == 'c99544a2c04b3df3818d97ddf49105cf3151b31cc453161118937fe11d82fffa', 'prior_v17_pins_changed')
+    targets = [row['archive_path'] for snapshot in snapshots for row in snapshot['files']]
+    require(len(targets) == len(set(targets)), 'duplicate_archive_target')
+    current_registry = R / 'initiative/reviews-v2/adjudications/registry.json'
+    require(measure(current_registry)['sha256'] == '7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae', 'current569_registry_changed')
+    totals = {'directories': len(snapshots), 'files': len(initial), 'source_bytes': sum(row['bytes'] for row in initial.values()), 'completion_references': len(checks), 'explicit_historical_registry_resolutions': sum(row['resolution'] != 'exact_current_bytes' for row in checks), 'equality_only_existing491_files': len(equality), 'compressed_or_rebuilt_members': 0}
+    result = {'schema_version': 2, 'snapshot_version': 18, 'agent_id': AGENT, 'session_id': AGENT, 'created_at_utc': datetime.now(timezone.utc).isoformat(), 'scope': config['scope'], 'integration_or_clinical_acceptance': False, 'builder': ref(Path(__file__)), 'preserver': ref(HERE / 'preserve_v18.py'), 'completed_cutoff_config': ref(config_path), 'prior_schema_reference': ref(prior), 'current569_registry': ref(current_registry), 'snapshots': snapshots, 'completion_reference_validation': checks, 'existing_archive_equality_checks': equality, 'compression_validation': [], 'counts': totals, 'pending': config.get('pending', []), 'partial_cutoffs': config.get('partial_cutoffs', {}), 'mapping_rules': {'python': 'Only a final .py suffix gains .txt; all other names and bytes remain unchanged.', 'compression': 'No new compressed members. Prior v16 gzip ledgers are not rebuilt or recopied.', 'existing_archive': 'Existing equal bytes are reused; any mismatch stops before copying. Verified491 publication originals are equality-only.', 'historical_registry': 'Only the exact live registry path and one of the named491/425/362 hashes resolves to its specific immutable historical snapshot. Original reference objects remain unchanged.', 'external_reference': 'References are checked in place. Base/delta archives, gold/source collections, images and caches are never copy targets.'}, 'hashing_disclosure': 'Metadata-only path/hash traversal, opaque content hashing and credential scanning. This does not add clinical reading, acceptance, first-ever blindness or QA clearance. Root005 clinical payload remains opaque.', 'root_document_edits': 'Existing root-owned continuation, mission, decisions, README and adjudication document changes are outside the archive write set; no clean-working-tree assumption is imposed. Exact stage/reference bindings still fail closed on mismatch.', 'stability': 'Every included complete directory was measured twice at the fixed cutoff. New569 publication preparation and bone029/later stages are excluded.', 'preservation_scope': {'R_writes': False, 'gold_values_opened': False, 'registry_or_source_changed': False, 'global_gate_closed': False, 'minimum_free_bytes': 20 * 2**30}}
+    with output.open('x') as out:
+        out.write(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({'pins': ref(output), 'counts': totals}))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--preflight', action='store_true')
+    args = parser.parse_args()
+    main(args.config.resolve(), args.output.resolve(), args.preflight)

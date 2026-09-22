@@ -1,0 +1,129 @@
+"""Append late metadata bindings and seal the existing passed technical verification."""
+from datetime import datetime, timezone
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import sys
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+A = P.parent / 'qualified-negation-focused-004-independent-context-amendment-v1'
+AGENT = '/root/duplicate_consistency_review'
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def pin(path):
+    return {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+
+
+def verify(row):
+    path = Path(row['path'])
+    path = path if path.is_absolute() else W / path
+    assert path.is_relative_to(W) and path.is_file() and not path.is_symlink()
+    assert sha(path) == row['sha256'] and path.stat().st_size == row['bytes']
+
+
+def write(name, value):
+    raw = (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
+    scanner.Scanner(secrets).feed(raw)
+    with (P / name).open('xb') as out:
+        out.write(raw)
+    return pin(P / name)
+
+
+scanner_path = P.parent / 'checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+assert sha(scanner_path) == '58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+spec = importlib.util.spec_from_file_location('qualified004_final_scanner', scanner_path)
+scanner = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = scanner
+spec.loader.exec_module(scanner)
+secrets = scanner.secret_values(W / '.env')
+assert secrets
+assert sha(P / 'technical-verification.json') == '98a82378f968fa7dd207e563bcbce7418c672a177861242d599c8b1f55b28e51'
+core = json.loads((P / 'technical-verification.json').read_text())
+assert core['status'] == 'passed_independent_technical_verification_no_new_clinical_assessment'
+for row in core['bound_inputs']:
+    verify(row)
+verify(core['actual491_inspection'])
+supplement_path = A / 'completion-supplement-v2.json'
+assert sha(supplement_path) == '57a615fdaa6bb6c55d22f74db4c947eb58283a7424a5aebc502daa9ae7f92610'
+supplement = json.loads(supplement_path.read_text())
+assert supplement['agent_id'] == '/root/last_twelve_visual_review'
+assert supplement['context_amendments'] == 2 and supplement['clinical_state_changes'] == 0 and not supplement['registry_changed']
+assert len(supplement['files']) == 16
+for row in supplement['files']:
+    verify(row)
+verify(supplement['supersedes_manifest_scope_only'])
+assert supplement['supersedes_manifest_scope_only']['sha256'] == 'effbf532c15dabf86673aa86b0e32eec86ead375a235bd14039cf8539cf3ceb7'
+assert {W / row['path'] for row in supplement['files']} | {supplement_path} == {path for path in A.rglob('*') if path.is_file()}
+preservation = W / 'work/recovered/initiative/audits/qualified003-verified491-publication-v1/preservation.json'
+assert sha(preservation) == 'b3467a123a3d680b60ac6e8105e1e3de3608d66180227ce4512fe5baeecf5bb6'
+write('append-only-metadata-binding-supplement.json', {
+    'schema_version': 1,
+    'agent_id': AGENT,
+    'session_id': AGENT,
+    'status': 'passed_append_only_binding_verification',
+    'core_verification_preserved': pin(P / 'technical-verification.json'),
+    'new_amendment_completion_scope': pin(supplement_path),
+    'all16_members_verified': supplement['files'],
+    'previous_completion_scope_preserved': supplement['supersedes_manifest_scope_only'],
+    'selection_range_clarification': pin(A / 'selection-range-clarification.json'),
+    'published491_root_preservation_receipt': pin(preservation),
+    'original_core_bound_inputs_reverified': len(core['bound_inputs']),
+    'clinical_amendment_objects_changed_since_core_verification': False,
+    'new_clinical_interpretation': False,
+    'new_runtime_replay_needed_or_performed_for_metadata_only_append': False,
+    'R_writes': False,
+    'network_calls': 0,
+})
+write('preserved-attempt-note.json', {
+    'schema_version': 1,
+    'agent_id': AGENT,
+    'session_id': AGENT,
+    'initial_helper': pin(P / 'verify_adjudication-attempt-01.py.txt'),
+    'initial_failure_log': pin(P / 'attempt-01.log'),
+    'final_helper': pin(P / 'verify_adjudication.py'),
+    'successful_run_log': pin(P / 'attempt-02.log'),
+    'failure_origin': 'Verifier-only overconstraint: it initially required FIRST-selected and SECOND-rejected case-target selectors to be disjoint. Root can deliberately choose the original FIRST proposal where the SECOND proposal is rejected. The helper was narrowly corrected to preserve that valid author-specific distinction; final selected FIRST and SECOND change sets remain disjoint and exact.',
+    'root_artifact_defect_found': False,
+    'initial_attempt_clinical_output_files_written': False,
+    'root_originals_or_R_changed': False,
+    'all_failed_attempt_bytes_preserved': True,
+})
+members = []
+for path in sorted(P.iterdir()):
+    assert path.is_file() and not path.is_symlink() and path.name != 'completion-manifest.json'
+    raw = path.read_bytes()
+    scanner.Scanner(secrets).feed(raw)
+    if path.suffix == '.py':
+        compile(raw, str(path), 'exec')
+    members.append(pin(path))
+assert len(members) == 10
+assert shutil.disk_usage(W).free > 20 * 2**30
+out = write('completion-manifest.json', {
+    'schema_version': 1,
+    'stage': 'qualified004-adjudication-independent-verification-v1',
+    'status': 'sealed_passed_independent_technical_verification',
+    'agent_id': AGENT,
+    'session_id': AGENT,
+    'completed_at_utc': datetime.now(timezone.utc).isoformat(),
+    'counts': core['counts'],
+    'technical_verification': pin(P / 'technical-verification.json'),
+    'append_only_metadata_supplement': pin(P / 'append-only-metadata-binding-supplement.json'),
+    'actual491_inspection': pin(P / 'actual491-inspection.json'),
+    'files': members,
+    'actual_role': 'Original FIRST author and independent mechanical verifier of root serialization; no new clinical assessment or acceptance.',
+    'R_writes': False,
+    'registry_changes': False,
+    'gold_values_opened': False,
+    'new_network_calls': 0,
+    'global_QA_closed': False,
+})
+for row in members:
+    verify(row)
+print(json.dumps({'status': 'sealed_passed', 'completion_sha256': out['sha256'], 'validation_sha256': sha(P / 'technical-verification.json'), 'metadata_supplement_sha256': sha(P / 'append-only-metadata-binding-supplement.json'), 'helper_sha256': sha(P / 'verify_adjudication.py'), 'files_including_completion': len(members) + 1}))

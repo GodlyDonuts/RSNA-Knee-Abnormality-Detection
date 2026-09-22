@@ -1,0 +1,264 @@
+"""Serialize root's completed source adjudication; never infer or register labels."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import argparse
+import hashlib
+import json
+
+W = Path(__file__).resolve().parent.parent
+R = W / 'work/recovered'
+S = W / 'work/annotation-staging'
+G = S / 'qualified-negation-focused-004-root-review-v1'
+M = S / 'qualified004-root-mechanical-comparison-491-v1'
+D = S / 'qualified-negation-focused-004-root-adjudication-v1'
+SOURCE = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+REGISTRY = '685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def ref(p):
+    return dict(path=str(p.relative_to(W)), sha256=sha(p), bytes=p.stat().st_size)
+
+def read(p, pin=None):
+    if pin:
+        assert sha(p) == pin, p
+    return json.loads(p.read_text())
+
+def write(name, doc):
+    p = D / name
+    with p.open('x') as f:
+        f.write(json.dumps(doc, ensure_ascii=False, indent=2) + '\n')
+    return ref(p)
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--decisions-sha256', required=True)
+parser.add_argument('--amendment', nargs=2, action='append', required=True,
+                    metavar=('WORKSPACE_PATH', 'SHA256'))
+a = parser.parse_args()
+assert not D.exists()
+decisions_path = W / 'work/qualified004-root-decisions-v1.json'
+decisions = read(decisions_path, a.decisions_sha256)
+comparison = read(M / 'all552-root-mechanical-comparison.json', decisions['comparison_sha256'])
+read(G / 'source-freeze.json', decisions['source_freeze_sha256'])
+read(G / 'full-source-assessment.json', 'fdc63b9c6eec09a0e92220e66cc6e5348604a142bdd3e768cfd50df20522b68c')
+read(G / 'postfreeze-case-findings-exposure.json', '5c9f34bb88dac40cb76bd4b5a230fdc0182402d02722d57c15294673b837cb49')
+read(R / 'initiative/reviews-v2/adjudications/registry.json', REGISTRY)
+assert sha(R / 'protocols/report_weak_v2.md') == RUBRIC
+first_doc = read(S / 'qualified-negation-focused-004-first-canonical-context-normalization-v1/proposed-errata.json',
+                 '82dc6c19bd9b6a7474503aad9353a98ce80e72c20538e9f7ee04ac9dd352ef3d')
+second_doc = read(S / 'qualified-negation-focused-004-independent-proposal-normalization-v1/proposed-errata.json',
+                  'c37a8a29e96145c562f8f62cf8f88e2bce7d98b7e16637c12032409ac4c8a4a4')
+first = {(p['study_uid'], p['target']): p for p in first_doc['proposed_errata']}
+second = {(p['study_uid'], p['target']): p for p in second_doc['proposed_errata']}
+assert len(first) == 63 and len(second) == 73
+amendments = {}
+amendment_refs = []
+for name, pin in a.amendment:
+    path = (W / name).resolve()
+    assert path.is_relative_to(S.resolve())
+    doc = read(path, pin)
+    assert doc['agent_id'] == '/root/last_twelve_visual_review'
+    assert doc['source_reports_sha256'] == SOURCE and doc['rubric_sha256'] == RUBRIC
+    amendment_refs.append(ref(path))
+    for p in doc['proposed_errata']:
+        k = (p['study_uid'], p['target'])
+        assert k in second and k not in amendments
+        original = second[k]
+        assert {key: value for key, value in p.items() if key not in {'source_quote', 'evidence_reason'}} == {
+            key: value for key, value in original.items() if key not in {'source_quote', 'evidence_reason'}
+        }, k
+        amendments[k] = p
+assert {(p['case'], p['target']) for p in amendments.values()} == {
+    ('037:49', 'Fracture'), ('040:42', 'Fracture')
+}
+reconsider = {(x[0], x[1]): (x[2], x[3]) for x in decisions['reconsiderations']}
+clarify = {(x[0], x[1]): x[2] for x in decisions['clarifications']}
+first_only = set(map(tuple, decisions['first_only_selected']))
+rejected = set(map(tuple, decisions['second_rejected']))
+additional_keys = set(map(tuple, decisions['additional_root_proposals']))
+sources = {}
+for p in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')):
+    for report in read(p):
+        assert report['study_uid'] not in sources
+        sources[report['study_uid']] = report['report']
+assert len(sources) == 4407
+protected = {p: sha(p) for parent in [G, M] for p in parent.rglob('*') if p.is_file()}
+protected[decisions_path] = a.decisions_sha256
+protected[R / 'initiative/reviews-v2/adjudications/registry.json'] = REGISTRY
+for e in amendment_refs:
+    protected[W / e['path']] = e['sha256']
+for directory in ['qualified-negation-focused-004-first-canonical-context-normalization-v1',
+                  'qualified-negation-focused-004-independent-proposal-normalization-v1']:
+    for p in (S / directory).rglob('*'):
+        if p.is_file():
+            protected[p] = sha(p)
+rows = comparison['records']
+assert len(rows) == 552 and len({r['study_uid'] for r in rows}) == 46
+assert sum(r['mechanical_attention_only'] for r in rows) == 177
+assert not any(r['current_registered_change'] for r in rows)
+keys = {(r['case'], r['target']) for r in rows}
+assert set(reconsider) | set(clarify) | first_only | rejected | additional_keys <= keys
+out, own, first_new, second_new, extra = [], [], [], [], []
+first_dispositions, second_dispositions = [], []
+selected_first, selected_second = [], []
+for r in rows:
+    k = r['case'], r['target']
+    uk = r['study_uid'], r['target']
+    initial, current = r['root_frozen'], r['effective_current491']
+    state, reason = reconsider.get(k, (initial['state'], clarify.get(k, initial['report_notes'])))
+    if r['target'] == "Baker's" and k in first_only:
+        reason += ' ' + decisions['grammar_reference']['root_application']
+    f, p = first.get(uk), second.get(uk)
+    original_p = r['second_proposal_original']
+    assert (f is not None) == (r['first_proposal_original'] is not None)
+    assert (p is not None) == (original_p is not None)
+    chosen_p = amendments.get(uk, p)
+    if f:
+        assert f['proposed_state'] == r['first_proposal_original']['proposed_state']
+        assert f['source_quote'] == r['first_proposal_original']['source_quote']
+    if p:
+        assert p['original_record'] == original_p
+        assert dict(state=p['before_state'], evidence=p['before_evidence']) == current
+    if k in first_only:
+        assert f and state == f['proposed_state']
+        evidence, action = f['source_quote'], 'accept_first_proposal_pending_registry_integration'
+        selected_first.append(f)
+    elif k in additional_keys:
+        assert not f and not p and state != current['state']
+        evidence, action = initial['evidence'], 'additional_root_proposal_pending_distinct_assessment'
+    elif p and k not in rejected:
+        assert chosen_p and chosen_p['proposed_state'] == state
+        evidence, action = chosen_p['source_quote'], 'accept_second_proposal_pending_registry_integration'
+        selected_second.append(chosen_p)
+    else:
+        evidence, action = current['evidence'], 'retain_current_after_source_adjudication'
+        assert state == current['state'], k
+    after = dict(state=state, evidence=evidence)
+    assert (state == 'not_mentioned' and evidence == '') or (
+        state != 'not_mentioned' and evidence and evidence in sources[r['study_uid']]
+    ), k
+    assert sha(R / r['source_path']) == r['source_sha256']
+    assert sha(R / r['original_review']['path'].removeprefix('work/recovered/')) == r['original_review']['sha256']
+    assert hashlib.sha256(sources[r['study_uid']].encode()).hexdigest() == r['report_sha256']
+    changed = state != initial['state']
+    assert changed == (k in reconsider), k
+    change = dict(case=r['case'], study_uid=r['study_uid'], target=r['target'],
+                  before=current, after=after, reason=reason)
+    if action.startswith('accept_'):
+        assert current != after
+        if k in first_only:
+            assert current == dict(state=f['before_state'], evidence=f['before_evidence'])
+            first_new.append(change)
+        else:
+            second_new.append(change)
+    elif k in additional_keys:
+        extra.append(change)
+    if f:
+        first_dispositions.append(dict(case=r['case'], study_uid=r['study_uid'], target=r['target'],
+            state_supported=state == f['proposed_state'], original_first_proposal=f,
+            root_final=after, root_reason=reason, selected_for_separate_first_integration=k in first_only))
+    if p:
+        second_dispositions.append(dict(case=r['case'], study_uid=r['study_uid'], target=r['target'],
+            state_supported=state == p['proposed_state'], exact_original_quote_selected=evidence == p['source_quote'],
+            context_amendment_selected=uk in amendments, original_second_proposal=p,
+            selected_context_amendment=amendments.get(uk), root_final=after, root_reason=reason,
+            supported=k not in rejected, action=action))
+        assert (k not in rejected) == (after == dict(state=chosen_p['proposed_state'], evidence=chosen_p['source_quote'])), k
+    rec = dict(case=r['case'], root_report_ordinal=r['root_report_ordinal'], study_uid=r['study_uid'],
+        target=r['target'], target_index=r['target_index'], source_path=r['source_path'],
+        source_sha256=r['source_sha256'], source_index_zero_based=r['source_index_zero_based'],
+        report_sha256=r['report_sha256'], original_review=r['original_review'],
+        root_frozen_state=initial['state'], root_frozen_evidence=initial['evidence'],
+        root_frozen_report_notes=initial['report_notes'], root_postfreeze_state=state,
+        root_postfreeze_evidence=evidence, root_state_reconsidered=changed, reason=reason,
+        effective_current491=current, first_source_frozen=r['first_source_frozen'],
+        second_source_frozen=r['second_source_frozen'], first_postfreeze=r['first_postfreeze'],
+        second_postfreeze=r['second_postfreeze'],
+        retained_first_postfreeze_state_disagreement=state != r['first_postfreeze']['state'],
+        retained_second_postfreeze_state_disagreement=state != r['second_postfreeze']['state'],
+        mechanical_attention_reviewed=r['mechanical_attention_only'], action=action,
+        original_author_context_amendment_selected=uk in amendments, exact_quote_validated=True)
+    out.append(rec)
+    if changed:
+        own.append(rec)
+assert (len(own), len(first_new), len(second_new), len(extra)) == (27, 14, 64, 4)
+assert len(first_dispositions) == 63 and len(second_dispositions) == 73
+assert sum(not p['supported'] for p in second_dispositions) == 9
+counts = dict(root_reports=46, root_judgments=552, mechanical_attention_cells_personally_reviewed=177,
+    own_state_reconsiderations=27, first_proposals_state_supported=sum(x['state_supported'] for x in first_dispositions),
+    first_proposals_state_rejected=sum(not x['state_supported'] for x in first_dispositions),
+    second_proposals_supported=64, second_proposals_rejected=9, new_second_proposals_supported=64,
+    new_first_only_proposals_supported=14, new_independently_supported_changes=78,
+    original_author_context_amendments=2, additional_root_proposals_pending_distinct_assessment=4,
+    selected_current_accepted_overlaps=0, final_state_counts=dict(Counter(x['root_postfreeze_state'] for x in out)),
+    final_vs_first_postfreeze_state_disagreements=sum(x['retained_first_postfreeze_state_disagreement'] for x in out),
+    final_vs_second_postfreeze_state_disagreements=sum(x['retained_second_postfreeze_state_disagreement'] for x in out),
+    supported_new_transition_counts=dict(Counter(x['before']['state'] + '->' + x['after']['state'] for x in first_new + second_new)))
+common = dict(schema_version=1, agent_id='/root', session_id='/root', identity_kind='codex_agent_task',
+    created_at_utc=datetime.now(timezone.utc).isoformat(), source_reports_sha256=SOURCE,
+    rubric_sha256=RUBRIC, rubric_version='report-weak-v2.0', root_source_freeze=ref(G / 'source-freeze.json'),
+    root_source_assessment=ref(G / 'full-source-assessment.json'), decisions=ref(decisions_path),
+    mechanical_comparison=ref(M / 'all552-root-mechanical-comparison.json'),
+    registry_before=ref(R / 'initiative/reviews-v2/adjudications/registry.json'),
+    registered_corrections_at_review=491, original_author_amendments=amendment_refs,
+    gold_values_inspected=False, original_artifacts_changed=False, training_ready=False, global_semantic_qa_closed=False)
+assert all(sha(p) == h for p, h in protected.items())
+D.mkdir()
+write('root-explicit-reconsiderations.json', dict(**common, records=own,
+    reason_clarifications=decisions['clarifications'], grammar_reference=decisions['grammar_reference'],
+    interpretation='All552 initial source judgments remain exact.27 later changes are disclosed, not initial agreement.'))
+write('root-postfreeze-dispositions.json', dict(**common, counts=counts,
+    review_statement='Root personally read all46 complete reports and froze552 source judgments before this004 case comparison. Root then personally compared all552 cells, all177 attention cells, both initial and later reader states and original63/73 proposals. Decisions are individual source/rubric assessments. Prior4407 and focused-review exposure remains disclosed; there is no first-ever blindness claim, new clinical reader identity, MRI diagnosis, gold tuning or automatic consensus.',
+    scope='Support78 new changes:64 second-author proposals including two separately preserved context amendments, and14 first-author proposals. Reject nine second proposals and preserve all63 first-state dispositions. Four additional root proposals require distinct source assessment. No registry mutation or QA-gate closure occurs here. Four original reader reports outside this46-report root attention scope receive no invented root judgment.',
+    records=out, new_second_supported_changes=second_new, new_first_supported_changes=first_new,
+    first_proposal_state_support=first_dispositions, second_proposal_support=second_dispositions,
+    rejected_second_proposals=[p for p in second_dispositions if not p['supported']], additional_root_proposals=extra))
+
+def assessment(records):
+    return [dict(study_uid=x['study_uid'], target=x['target'], case=x['case'],
+        independent_source_state=x['root_postfreeze_state'], source_evidence=x['root_postfreeze_evidence'],
+        source_path=x['source_path'], source_sha256=x['source_sha256'], report_sha256=x['report_sha256'],
+        root_frozen_state=x['root_frozen_state'], root_frozen_evidence=x['root_frozen_evidence'],
+        root_state_reconsidered=x['root_state_reconsidered'], reason=x['reason'], disposition=x['action']) for x in records]
+
+for role, proposals, count, proposer in [
+    ('first', selected_first, 14, '/root/duplicate_consistency_review'),
+    ('second', selected_second, 64, '/root/last_twelve_visual_review')
+]:
+    selected = [x for x in out if x['action'] == f'accept_{role}_proposal_pending_registry_integration']
+    write(f'{role}-proposals-independent-assessment.json', dict(**common, stage='independent_source_assessment',
+        proposer_agent_id=proposer, n_changes_supported=count, n_new_changes_supported=count,
+        n_already_accepted=0, n_changes_rejected=9 if role == 'second' else 0,
+        n_changes_held=0, records=assessment(selected),
+        scope='Selected proposals only; complete original reader dispositions and all rejections remain in root-postfreeze-dispositions.json.'))
+    write(f'selected-{role}-proposals.json', dict(**common, stage='exact_selected_original_author_objects',
+        proposer_agent_id=proposer, n_changes=count, proposed_errata=proposals,
+        scope='Clinical records are exact original-author normalized proposals or exact separately frozen original-author context amendments. Root selected this subset; root did not author the embedded proposals.'))
+root_props = []
+for x in out:
+    if x['action'] != 'additional_root_proposal_pending_distinct_assessment':
+        continue
+    c = x['effective_current491']
+    root_props.append(dict(study_uid=x['study_uid'], target=x['target'], batch=Path(x['source_path']).stem,
+        index=x['source_index_zero_based'], source_path=x['source_path'], source_sha256=x['source_sha256'],
+        artifact_path=x['original_review']['path'].removeprefix('work/recovered/'),
+        artifact_sha256=x['original_review']['sha256'], before_state=c['state'], before_evidence=c['evidence'],
+        proposed_state=x['root_postfreeze_state'], source_quote=x['root_postfreeze_evidence'], reason=x['reason'],
+        kind='state_correction', status='proposed_pending_distinct_source_assessment_and_adjudication'))
+write('additional-root-proposals.json', dict(**common, stage='root_additional_proposals_pending_distinct_assessment',
+    n_changes=4, proposed_errata=root_props))
+assert all(sha(p) == h for p, h in protected.items())
+write('validation.json', dict(**common, counts=counts, all552_source_and_quote_bindings_validated=True,
+    original73_second_and63_first_proposals_preserved=True, context_amendments_only_quote_and_evidence_reason=True,
+    new78_before_values_match_actual491=True, additional_root_proposals_not_accepted=True,
+    registry_mutated=False, protected_files=[ref(p) for p in sorted(protected)], all_protected_unchanged=True))
+(D / (Path(__file__).name + '.txt')).write_bytes(Path(__file__).read_bytes())
+(D / decisions_path.name).write_bytes(decisions_path.read_bytes())
+write('completion-manifest.json', dict(**common, stage='complete_root_wording004_adjudication_with_four_additional_proposals_pending',
+    counts=counts, files=[ref(p) for p in sorted(D.iterdir()) if p.is_file()],
+    next_step='Independent mechanical verification, separate source assessment of four additional root proposals, exact78 integration preparation preserving all491 objects, required checks and private publication. Three global QA gates remain pending.'))
+print(json.dumps(dict(completion=ref(D / 'completion-manifest.json'), dispositions=ref(D / 'root-postfreeze-dispositions.json'),
+    root_proposals=ref(D / 'additional-root-proposals.json'), counts=counts), indent=2))

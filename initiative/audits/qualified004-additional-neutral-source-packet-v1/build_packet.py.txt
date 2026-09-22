@@ -1,0 +1,190 @@
+"""Write a strict source-only packet from exact canonical sources and M4 bindings."""
+from datetime import datetime, timezone
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import sys
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+R = W / "work/recovered"
+M = P.parent / "qualified004-root-mechanical-comparison-491-v1"
+AGENT = "/root/duplicate_consistency_review"
+CANONICAL = "5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3"
+RUBRIC = "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014"
+M4_COMPLETION = "2f8979d9a72905306e9286c10b02e3b15a7fd57352aaa15175f38cdf9fe76c08"
+CASES = ["050:34", "056:12", "057:03"]
+TARGETS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA", "PF OA", "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
+bound = {}
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def pin(path):
+    path = path.resolve()
+    item = {"path": str(path.relative_to(W)), "sha256": sha(path), "bytes": path.stat().st_size}
+    previous = bound.setdefault(item["path"], item)
+    assert item == previous
+    return item
+
+
+def read(path):
+    pin(path)
+    return json.loads(path.read_text())
+
+
+def write(name, value):
+    raw = (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode()
+    scanner.Scanner(secrets).feed(raw)
+    with (P / name).open("xb") as out:
+        out.write(raw)
+    assert json.loads((P / name).read_text()) == value
+    return {"path": str((P / name).relative_to(W)), "sha256": sha(P / name), "bytes": len(raw)}
+
+
+assert shutil.disk_usage(W).free > 20 * 2**30 + 64 * 2**20
+scanner_path = P.parent / "checkpoint-delta-helper-v2-v1/checkpoint_delta.py"
+assert pin(scanner_path)["sha256"] == "58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8"
+spec = importlib.util.spec_from_file_location("qualified004_neutral_scanner", scanner_path)
+scanner = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = scanner
+spec.loader.exec_module(scanner)
+secrets = scanner.secret_values(W / ".env")
+assert secrets
+
+assert pin(M / "completion-manifest.json")["sha256"] == M4_COMPLETION
+manifest = read(M / "completion-manifest.json")
+m4_files = {e["path"]: e for e in manifest["files"]}
+source_path = M / "bound-original-source-and-review-objects.json"
+comparison_path = M / "all552-root-mechanical-comparison.json"
+for path in (source_path, comparison_path):
+    assert pin(path) == m4_files[str(path.relative_to(W))]
+source_objects = read(source_path)
+comparison = read(comparison_path)
+assert source_objects["canonical_all4407_source_reports_sha256"] == comparison["canonical_all4407_source_reports_sha256"] == CANONICAL
+assert source_objects["actual_roles"]["original_first_source_assessor"] == AGENT
+
+rubric = pin(R / "protocols/report_weak_v2.md")
+assert rubric["sha256"] == RUBRIC
+schema_path = R / "rsna/schema.py"
+schema = {}
+exec(compile(schema_path.read_bytes(), str(schema_path), "exec"), schema)
+assert list(schema["TARGETS"]) == TARGETS
+pin(schema_path)
+pin(R / "rsna/labels.py")
+
+all_reports = {}
+batches = {}
+canonical_sources = []
+for path in sorted((R / "initiative/reviews/inputs").glob("batch-*.json")):
+    rows = read(path)
+    canonical_sources.append(pin(path))
+    batches[str(path.relative_to(R))] = rows
+    for row in rows:
+        assert set(row) == {"study_uid", "report"}
+        assert row["study_uid"] not in all_reports
+        all_reports[row["study_uid"]] = row["report"]
+assert len(all_reports) == 4407 and len(batches) == 89
+canonical_records = [{"study_uid": uid, "report": all_reports[uid]} for uid in sorted(all_reports)]
+fingerprint = hashlib.sha256(json.dumps(canonical_records, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+assert fingerprint == CANONICAL
+
+records = []
+order = []
+for ordinal, case in enumerate(CASES):
+    # Only these source/identity fields are selected; no clinical object is emitted.
+    matched = [r for r in comparison["records"] if r["case"] == case]
+    assert len(matched) == 12 and [r["target"] for r in matched] == TARGETS
+    identities = {
+        (r["study_uid"], r["source_path"], r["source_sha256"], r["source_index_zero_based"], r["report_sha256"], r["root_report_ordinal"])
+        for r in matched
+    }
+    assert len(identities) == 1
+    uid, relative, batch_sha, index, report_sha, root_ordinal = identities.pop()
+    assert relative == f"initiative/reviews/inputs/batch-{case.split(':')[0]}.json"
+    assert index == int(case.split(":")[1])
+    candidates = [r["full_source_original_object"] for r in source_objects["records"] if r["root_ordinal"] == root_ordinal]
+    assert len(candidates) == 1
+    neutral = candidates[0]
+    assert set(neutral) == {"source_path", "source_sha256", "index", "study_uid", "report"}
+    batch_binding = pin(R / relative)
+    assert batch_binding["sha256"] == batch_sha == neutral["source_sha256"]
+    original = batches[relative][index]
+    assert original == {"study_uid": uid, "report": neutral["report"]}
+    assert neutral["source_path"] == relative and neutral["index"] == index and neutral["study_uid"] == uid
+    report = original["report"]
+    assert report == all_reports[uid] and hashlib.sha256(report.encode()).hexdigest() == report_sha
+    record = {
+        "packet_ordinal_zero_based": ordinal,
+        "source_case": case,
+        "study_uid": uid,
+        "source_batch": batch_binding,
+        "source_index_zero_based": index,
+        "report_utf8_sha256": report_sha,
+        "report_utf8_bytes": len(report.encode()),
+        "report": report,
+    }
+    assert set(record) == {"packet_ordinal_zero_based", "source_case", "study_uid", "source_batch", "source_index_zero_based", "report_utf8_sha256", "report_utf8_bytes", "report"}
+    records.append(record)
+    order.append({k: v for k, v in record.items() if k != "report"} | {"M4_root_report_ordinal_zero_based": root_ordinal})
+assert len({r["study_uid"] for r in records}) == 3
+packet = {
+    "schema_version": 1,
+    "packet_kind": "neutral_complete_original_reports",
+    "prepared_by": AGENT,
+    "prepared_at_utc": datetime.now(timezone.utc).isoformat(),
+    "rubric": rubric,
+    "rubric_version": "report-weak-v2.0",
+    "canonical_all4407_source_reports_sha256": CANONICAL,
+    "full_report_count": 3,
+    "target_order": TARGETS,
+    "expected_full_scope_judgments": 36,
+    "source_order": "Requested case order; packet ordinals and original zero-based batch positions are explicit.",
+    "exposure_disclosure": {
+        "preparer": "The preparer was the original FIRST wording004 source reader and later technical comparison builder. These three complete sources were in that earlier reading. Prior source and clinical exposure is retained; this packet preparation is mechanical and adds no new source assessment.",
+        "recipient": "A later assessor must disclose their actual prior exact-source, conceptual, inventory and opaque technical exposure before their own reading. This packet does not establish first-ever blindness or an absence of prior source overlap.",
+    },
+    "records": records,
+}
+packet_binding = write("neutral-three-full-report-packet.json", packet)
+for e in bound.values():
+    path = W / e["path"]
+    assert sha(path) == e["sha256"] and path.stat().st_size == e["bytes"]
+proof = {
+    "schema_version": 1,
+    "status": "source_only_packet_mechanically_verified",
+    "agent_id": AGENT,
+    "session_id": AGENT,
+    "packet": packet_binding,
+    "reports": 3,
+    "targets_per_report": 12,
+    "judgments_for_future_assessor": 36,
+    "canonical_full_report_count": 4407,
+    "canonical_source_batch_count": 89,
+    "canonical_source_fingerprint_recomputed": fingerprint,
+    "packet_hash_is_separate_from_canonical_fingerprint": True,
+    "rubric": rubric,
+    "requested_order_and_exact_source_mapping": order,
+    "all_complete_report_strings_equal_canonical_and_M4_neutral_objects": True,
+    "all_report_utf8_sizes_hashes_and_source_batch_pins_verified": True,
+    "strict_packet_record_field_allowlist_verified": True,
+    "all12_targets_identical_for_each_report_no_selected_target_subset": True,
+    "clinical_objects_emitted": False,
+    "prior_M4_clinical_objects_parsed_tool_side_for_identity_mapping_only": True,
+    "model_case_findings_output": False,
+    "source_assessment_performed_in_this_step": False,
+    "recipient_blinding_history_not_inferred": True,
+    "inputs": list(bound.values()),
+    "R_writes": False,
+    "gold_values_opened": False,
+    "clinical_decisions_created": False,
+    "new_network_calls": 0,
+    "free_bytes_after": shutil.disk_usage(W).free,
+}
+validation_binding = write("mechanical-source-binding-validation.json", proof)
+assert shutil.disk_usage(W).free > 20 * 2**30
+print(json.dumps({"packet_sha256": packet_binding["sha256"], "packet_bytes": packet_binding["bytes"], "validation_sha256": validation_binding["sha256"], "reports": 3, "target_scope": 36, "R_writes": False}))

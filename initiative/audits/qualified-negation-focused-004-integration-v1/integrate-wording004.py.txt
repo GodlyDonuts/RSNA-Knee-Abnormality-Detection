@@ -1,0 +1,341 @@
+"""Root-reviewed core78 only: FIRST14 + SECOND62 + two author amendments, 491 to569.
+Default execution is a read-only preflight. Only root's explicit execute flag mutates R.
+Four additional root proposals remain pending and excluded, irrespective of later work.
+"""
+from datetime import datetime, timezone
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import stat
+import subprocess
+import sys
+
+AGENT = '/root/duplicate_consistency_review'
+BASE_GIT = 'fec046253168083514749226987dda5b6c2505ce'
+BASE_REGISTRY = '685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+CANONICAL = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+SCANNER = '58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+CONTEXT = '3d658bd17ad248319f8673e7f9a53bc12ebad0f42ae6348cb884b95249b7f651'
+PINS = 'e7fe35780d2dd89e098add5858586cef21238da5cd559e5983269c90d49c2a4d'
+FLOOR = 20 * 2**30
+RESERVE = 64 * 2**20
+
+
+class GuardError(Exception):
+    pass
+
+
+def require(value, code):
+    if not value:
+        raise GuardError(code)
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def data(value):
+    return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
+
+
+def read(path, expected=None):
+    require(path.is_file() and not path.is_symlink(), 'input_path')
+    require(expected is None or sha(path) == expected, 'input_hash')
+    return json.loads(path.read_text())
+
+
+def idx(rows):
+    result = {(row['study_uid'], row['target']): row for row in rows}
+    require(len(result) == len(rows), 'duplicate_keys')
+    return result
+
+
+def safe(root, name):
+    relative = Path(name)
+    require(not relative.is_absolute() and '..' not in relative.parts and str(relative) == name and '\\' not in name, 'unsafe_relative_path')
+    path = root / relative
+    require(path.resolve().is_relative_to(root.resolve()) and not path.is_symlink(), 'path_outside_scope_or_symlink')
+    return path
+
+
+def check_file(path, record):
+    require(path.is_file() and not path.is_symlink(), 'missing_or_symlink_input')
+    require(path.stat().st_size == record['bytes'] and sha(path) == record['sha256'], 'input_bytes_changed')
+    require('mode' not in record or stat.S_IMODE(path.stat().st_mode) == record['mode'], 'input_mode_changed')
+
+
+def module(path, name, expected):
+    require(sha(path) == expected, 'module_hash')
+    spec = importlib.util.spec_from_file_location(name, path)
+    result = importlib.util.module_from_spec(spec)
+    sys.modules[name] = result
+    spec.loader.exec_module(result)
+    return result
+
+
+def equal_or_new(path, raw, mode=0o644):
+    if path.exists():
+        require(path.is_file() and not path.is_symlink() and path.read_bytes() == raw and stat.S_IMODE(path.stat().st_mode) == mode, 'existing_archive_differs')
+        return 'reused_equal'
+    return 'new'
+
+
+def put(path, raw, mode=0o644):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('xb') as out:
+        out.write(raw)
+        out.flush()
+        os.fsync(out.fileno())
+        os.fchmod(out.fileno(), mode)
+
+
+def prepare_plan(workspace):
+    W = workspace.resolve()
+    R, B, P = W / 'work/recovered', W / 'work/annotation-staging', Path(__file__).resolve().parent
+    pins = read(P / 'input-pins.json', PINS)
+    require(pins['base_git'] == BASE_GIT and pins['base_registry_sha256'] == BASE_REGISTRY and pins['supported_new'] == 78 and pins['expected_core_result'] == 569, 'fixed_core_scope')
+    context = module(P / 'verify_context.py', 'wording004_readonly_context', CONTEXT).check_all(W)
+    require(len(subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', '-z', BASE_GIT], cwd=R).split(b'\0')) - 1 == 10020, 'base_git_membership')
+    entries, archive_targets = {}, {}
+    for row in pins['files']:
+        source = safe(W, row['path'])
+        check_file(source, row)
+        entries[source] = row
+        if row['archive_path'] is not None:
+            archive_targets[source] = safe(R, row['archive_path'])
+    for source, row in context['bound'].items():
+        require(W / source in entries and entries[W / source]['sha256'] == row['sha256'], 'context_not_in_finite_pins')
+    for stage in pins['stage_memberships']:
+        actual = {str(path.relative_to(W)) for path in (B / stage['stage']).rglob('*') if path.is_file() and '__pycache__' not in path.parts}
+        require(actual == set(stage['files']), 'stage_membership_changed')
+    # Only the already completed491 publication preservation may be untracked.
+    pub_path = safe(W, pins['publication_preservation_receipt'])
+    publication = read(pub_path, 'b3467a123a3d680b60ac6e8105e1e3de3608d66180227ce4512fe5baeecf5bb6')
+    allowed = {str(pub_path.relative_to(R))}
+    for row in publication['files']:
+        path = safe(R, row['path'])
+        check_file(path, row)
+        allowed.add(row['path'])
+    require(len(allowed) == 25, 'published491_preservation_membership')
+    untracked = set(filter(None, subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard', '-z'], cwd=R).decode().split('\0')))
+    require(untracked <= allowed, 'unexpected_untracked_R_files')
+    for source in [P / 'input-pins.json', Path(__file__).resolve()]:
+        entries[source] = {'path': str(source.relative_to(W)), 'sha256': sha(source), 'bytes': source.stat().st_size, 'mode': stat.S_IMODE(source.stat().st_mode)}
+        destination = R / 'initiative/audits' / source.relative_to(B)
+        archive_targets[source] = destination.with_suffix('.py.txt') if destination.suffix == '.py' else destination
+
+    def archive(path):
+        if path.is_relative_to(R):
+            return path
+        require(path in archive_targets, 'unbound_archive_reference')
+        return archive_targets[path]
+
+    planned = {}
+    for source, destination in archive_targets.items():
+        row = entries[source]
+        check_file(source, row)
+        raw = source.read_bytes()
+        require(len(raw) < 100_000_000, 'archive_member_size_limit')
+        equal_or_new(destination, raw, row['mode'])
+        require(destination not in planned or planned[destination]['raw'] == raw and planned[destination]['mode'] == row['mode'], 'archive_collision')
+        if destination not in planned:
+            planned[destination] = {'raw': raw, 'mode': row['mode'], 'original_paths': []}
+        planned[destination]['original_paths'].append(str(source.relative_to(W)))
+    I = R / 'initiative/audits/qualified-negation-focused-004-integration-v1'
+    require(not I.exists(), 'integration_stage_already_exists')
+    D, G, M, F, S, A = (context[key] for key in ['D', 'G', 'M', 'F', 'S', 'A'])
+    V = B / 'qualified004-adjudication-independent-verification-v1'
+    supports = {
+        'root_source_freeze_sha256': G / 'source-freeze.json',
+        'root_source_assessment_sha256': G / 'full-source-assessment.json',
+        'root_authored_decisions_sha256': D / 'qualified004-root-decisions-v1.json',
+        'root_dispositions_sha256': D / 'root-postfreeze-dispositions.json',
+        'root_reconsiderations_sha256': D / 'root-explicit-reconsiderations.json',
+        'root_adjudication_completion_sha256': D / 'completion-manifest.json',
+        'root_selected_first_objects_sha256': D / 'selected-first-proposals.json',
+        'root_selected_second_objects_sha256': D / 'selected-second-proposals.json',
+        'mechanical_comparison_sha256': M / 'all552-root-mechanical-comparison.json',
+        'mechanical_completion_sha256': M / 'completion-manifest.json',
+        'technical_verification_sha256': V / 'technical-verification.json',
+        'technical_completion_sha256': V / 'completion-manifest.json',
+        'technical_metadata_supplement_sha256': V / 'append-only-metadata-binding-supplement.json',
+        'original_first_proposals_sha256': M / 'first-proposals-original.json',
+        'original_second_proposals_sha256': M / 'second-proposals-original.json',
+        'first_normalization_manifest_sha256': F / 'completion-manifest.json',
+        'second_normalization_manifest_sha256': S / 'completion-manifest.json',
+        'first_exact_preservation_sha256': F / 'original-to-normalized-exact-comparison.json',
+        'second_exact_preservation_sha256': S / 'original-to-normalized-exact-comparison.json',
+        'original_author_amendment_completion_v2_sha256': A / 'completion-supplement-v2.json',
+        'original_author_amendment_completion_v1_sha256': A / 'completion-supplement.json',
+        'original_author_range_clarification_sha256': A / 'selection-range-clarification.json',
+        'pending_additional_root_proposals_sha256': D / 'additional-root-proposals.json',
+        'published491_preservation_sha256': pub_path,
+        'integration_input_pins_sha256': P / 'input-pins.json',
+        'integration_readonly_context_sha256': P / 'verify_context.py',
+        'integration_helper_sha256': Path(__file__).resolve(),
+    }
+    require(all(path in entries for path in supports.values()), 'support_outside_pins')
+    amendment_paths = [safe(W, row['path']) for row in read(D / 'completion-manifest.json')['original_author_amendments']]
+    amended_keys = set(context['amendments'])
+    groups = [('first', 'first', F / 'proposed-errata.json', set(context['new_first'])), ('second', 'second', S / 'proposed-errata.json', set(context['new_second']) - amended_keys)]
+    for number, path in enumerate(amendment_paths, 1):
+        keys = set(idx(read(path)['proposed_errata']))
+        require(len(keys) == 1 and keys <= amended_keys, 'amendment_singleton')
+        groups.append((f'second-context-{number:02d}', 'second', path, keys))
+    require([len(group[3]) for group in groups] == [14, 62, 1, 1], 'four_original_author_groups')
+    bundles, seen = [], set()
+    for name, role, proposal_path, keys in groups:
+        proposal = read(proposal_path)
+        author = AGENT if role == 'first' else '/root/last_twelve_visual_review'
+        require(proposal['agent_id'] == proposal.get('session_id', author) == author, 'actual_proposal_author')
+        require(proposal['source_reports_sha256'] == CANONICAL and proposal['rubric_sha256'] == RUBRIC, 'proposal_context')
+        require(not keys & seen and keys <= set(context['new']), 'new_case_disjoint_scope')
+        seen |= keys
+        proposals = idx(proposal['proposed_errata'])
+        assessment_path = D / f'{role}-proposals-independent-assessment.json'
+        assessment = read(assessment_path)
+        require(assessment['agent_id'] == assessment['session_id'] == '/root' and assessment['stage'] == 'independent_source_assessment', 'actual_root_assessor')
+        assessed = idx(assessment['records'])
+        changes, accepted = [], []
+        for key, original_proposal in proposals.items():
+            if key not in keys:
+                continue
+            selected = context['new'][key]
+            root, checked = context['rows'][key], assessed[key]
+            before = {'state': original_proposal['before_state'], 'evidence': original_proposal['before_evidence']}
+            after = {'state': original_proposal['proposed_state'], 'evidence': original_proposal['source_quote']}
+            require(before == selected['before'] == context['original'][key] == context['effective'][key] and after == selected['after'], 'exact_before_after')
+            require(root['action'] == f'accept_{role}_proposal_pending_registry_integration' and selected['reason'] == root['reason'] == checked['reason'], 'root_explicit_selected_action')
+            require(checked['independent_source_state'] == after['state'] and checked['source_evidence'] == after['evidence'], 'assessment_exact_annotation')
+            changes.append({'study_uid': key[0], 'target': key[1], 'before': before, 'after': after, 'base_review': {'path': original_proposal['artifact_path'], 'sha256': original_proposal['artifact_sha256']}, 'source_batch': {'path': original_proposal['source_path'], 'sha256': original_proposal['source_sha256']}})
+            accepted.append({'study_uid': key[0], 'target': key[1], 'before_state': before['state'], 'before_evidence': before['evidence'], 'after_state': after['state'], 'after_evidence': after['evidence'], 'independent_source_state': checked['independent_source_state'], 'source_evidence': checked['source_evidence'], 'source_path': original_proposal['source_path'], 'source_sha256': original_proposal['source_sha256'], 'original_review_path': original_proposal['artifact_path'], 'original_review_sha256': original_proposal['artifact_sha256'], 'reason': root['reason'], 'root_frozen_state': root['root_frozen_state'], 'root_state_reconsidered': root['root_state_reconsidered']})
+        require(len(changes) == len(keys), 'case_complete_membership')
+        case_path = R / f'initiative/reviews-v2/adjudications/cases/qualified-negation-focused-004-{name}.json'
+        require(not case_path.exists(), 'case_output_already_exists')
+        bundles.append({'name': name, 'role': role, 'proposer': author, 'proposal_path': proposal_path, 'assessment_path': assessment_path, 'case_path': case_path, 'decision_path': I / f'accepted-{name}-decision.json', 'changes': changes, 'accepted_rows_for_root_execution': accepted})
+    require(seen == set(context['new']) and len(seen) == 78 and seen.isdisjoint(context['pending']), 'core78_exact_union')
+    scanner = module(B / 'checkpoint-delta-helper-v2-v1/checkpoint_delta.py', 'wording004_pinned_scanner', SCANNER)
+    secrets = scanner.secret_values(W / '.env')
+    require(bool(secrets), 'secret_values_required_for_scan')
+    for item in planned.values():
+        scanner.Scanner(secrets).feed(item['raw'])
+    for bundle in bundles:
+        scanner.Scanner(secrets).feed(data({'scope': 'unexecuted_root_change_serialization', 'changes': bundle['changes'], 'rows_for_later_root_decision': bundle['accepted_rows_for_root_execution']}))
+    required_bytes = sum(len(item['raw']) for path, item in planned.items() if not path.exists())
+    require(shutil.disk_usage(W).free - required_bytes - RESERVE > FLOOR, 'planned_disk_floor')
+    for path, row in entries.items():
+        check_file(path, row)
+    counts = {'base_registered': 491, 'first': 14, 'second_unamended': 62, 'second_author_amendments': 2, 'new_case_wrappers': 4, 'new_corrections': 78, 'expected_registered_after_root_execution': 569, 'pending_additional_root_proposals_excluded': 4, 'new_archive_files': sum(not path.exists() for path in planned), 'existing_equal_archive_files': sum(path.exists() for path in planned), 'new_archive_bytes': required_bytes, 'pinned_sources': len(entries), 'source_scope_reports': 46, 'source_scope_cells': 552, 'prospective_root_final_exact_matches': 548, 'retirements_preserved': 3, 'pending_QA_gates': 3}
+    return dict(W=W, R=R, B=B, P=P, I=I, context=context, entries=entries, planned=planned, archive=archive, supports=supports, bundles=bundles, counts=counts, scanner=scanner, secrets=secrets)
+
+
+def execute_root(plan):
+    c, R, W, I = plan['context'], plan['R'], plan['W'], plan['I']
+    registry_path = c['registry_path']
+    original_registry = registry_path.read_bytes()
+    require(sha(registry_path) == BASE_REGISTRY, 'registry_prewrite_fence')
+    require(shutil.disk_usage(W).free - plan['counts']['new_archive_bytes'] - RESERVE > FLOOR, 'prewrite_disk_floor')
+    now = datetime.now(timezone.utc).isoformat()
+
+    def reference(path, digest=None):
+        return {'path': str(path.relative_to(R)), 'sha256': digest or sha(path)}
+
+    decisions, wrappers = [], []
+    for bundle in plan['bundles']:
+        decision = {'schema_version': 1, 'status': 'accepted', 'stage': 'independent_adjudication_decision', 'agent_id': '/root', 'session_id': '/root', 'adjudicator_agent_id': '/root', 'adjudicator_session_id': '/root', 'proposer_agent_id': bundle['proposer'], 'proposer_session_id': bundle['proposer'], 'accepted_at_utc': now, 'source_reports_sha256': CANONICAL, 'rubric_sha256': RUBRIC, 'proposal_sha256': sha(bundle['proposal_path']), 'independent_assessment_sha256': sha(bundle['assessment_path']), **{field: sha(path) for field, path in plan['supports'].items()}, 'accepted_changes': bundle['accepted_rows_for_root_execution'], 'n_changes': len(bundle['changes']), 'prepared_by': AGENT, 'executed_by': '/root', 'original_artifacts_preserved': True, 'decision_statement': 'Actual root execution serializes root personally authored and frozen support only. All63 FIRST and73 SECOND original objects, two original-author evidence amendments,27 root reconsiderations and nine SECOND/four FIRST state rejections remain exact. Four additional root proposals are excluded and retain their current annotations. Original proposal reasons remain separate from root reasons.', 'global_semantic_qa_closed': False, 'training_ready': False, 'gold_values_inspected': False}
+        wrapper = {'schema_version': 1, 'id': f"qualified-negation-focused-004-{bundle['name']}-20260922", 'source_reports_sha256': CANONICAL, 'rubric_sha256': RUBRIC, 'proposal': reference(plan['archive'](bundle['proposal_path']), sha(bundle['proposal_path'])), 'independent_assessment': reference(plan['archive'](bundle['assessment_path']), sha(bundle['assessment_path'])), 'decision': reference(bundle['decision_path'], hashlib.sha256(data(decision)).hexdigest()), 'supporting_evidence': {field: reference(plan['archive'](path), sha(path)) for field, path in plan['supports'].items()}, 'changes': bundle['changes']}
+        decisions.append((bundle['decision_path'], data(decision)))
+        wrappers.append((bundle['case_path'], data(wrapper)))
+    for _, raw in decisions + wrappers:
+        require(len(raw) < 100_000_000, 'generated_member_size_limit')
+        plan['scanner'].Scanner(plan['secrets']).feed(raw)
+    for path, row in plan['entries'].items():
+        check_file(path, row)
+    require(registry_path.read_bytes() == original_registry, 'original_registry_changed')
+    # First mutation: reached only after root explicitly supplies the execute flag.
+    preservation = []
+    for path, item in sorted(plan['planned'].items()):
+        action = equal_or_new(path, item['raw'], item['mode'])
+        if action == 'new':
+            put(path, item['raw'], item['mode'])
+        require(equal_or_new(path, item['raw'], item['mode']) == 'reused_equal', 'archive_after_write')
+        preservation.append({**reference(path), 'bytes': len(item['raw']), 'mode': item['mode'], 'action': action, 'original_paths': item['original_paths']})
+    for path, raw in decisions + wrappers:
+        put(path, raw)
+    put(I / 'registry-before491.json', original_registry)
+    put(I / 'complete491-inspection-before.json', data(c['runtime']))
+    retained = {'agent_id': '/root', 'session_id': '/root', 'prepared_by': AGENT, 'original_first63': c['first_doc'], 'original_second73_raw': c['raw_second'], 'original_second73_normalized': c['second_doc'], 'two_original_author_amendment_objects': list(c['amendments'].values()), 'first_all63_dispositions': c['disposition']['first_proposal_state_support'], 'second_all73_dispositions': c['disposition']['second_proposal_support'], 'second9_rejections': c['disposition']['rejected_second_proposals'], 'pending_additional_root4': c['disposition']['additional_root_proposals'], 'additional_changes_included': False, 'additional_current_annotations': [{'study_uid': key[0], 'target': key[1], 'annotation': c['effective'][key]} for key in c['pending']], 'selected_prior_accepted_overlap': []}
+    plan['scanner'].Scanner(plan['secrets']).feed(data(retained))
+    put(I / 'whole-original-proposals-rejections-and-pending.json', data(retained))
+    put(I / 'archive-preservation.json', data({'agent_id': '/root', 'session_id': '/root', 'prepared_by': AGENT, 'files': preservation, 'equal_existing_files_reused': True, 'originals_overwritten': False}))
+    registry = json.loads(original_registry)
+    updated_registry = data({**registry, 'cases': registry['cases'] + [reference(path) for path, _ in wrappers]})
+    temporary = registry_path.with_name('registry.wording004-new.json')
+    put(temporary, updated_registry)
+    require(registry_path.read_bytes() == original_registry, 'registry_switch_fence')
+    os.replace(temporary, registry_path)
+    try:
+        from rsna.adjudications import inspect_adjudications
+        from rsna.schema import TARGETS
+        after = inspect_adjudications(c['reports'], R / 'initiative/reviews-v2/reviewed', R / 'protocols/report_weak_v2.md', R)
+        changes = idx(after['changes'])
+        require(after['n_changes'] == 569 and all(changes[key] == value for key, value in c['old'].items()) and set(changes) - set(c['old']) == set(c['new']), 'exact569_and_prior491_objects')
+        require(after['semantic_qa'] == c['runtime']['semantic_qa'] and after['pending_semantic_qa'] == c['runtime']['pending_semantic_qa'], 'three_pending_QA_gates_unchanged')
+        for key, change in c['new'].items():
+            require(changes[key]['before'] == change['before'] and changes[key]['after'] == change['after'] and changes[key]['reason'] == change['reason'], 'new78_exact_states_quotes_reasons')
+        final = {**c['original'], **{key: change['after'] for key, change in changes.items()}}
+        for key, row in c['rows'].items():
+            expected = c['effective'][key] if key in c['pending'] else {'state': row['root_postfreeze_state'], 'evidence': row['root_postfreeze_evidence']}
+            require(final[key] == expected, 'root548_exact_and_pending4_current_preserved')
+        for row in c['retirement']['restored_original_annotations']:
+            key = row['study_uid'], row['target']
+            require(key not in changes and final[key] == row['restored_annotation'], 'retirements_preserved')
+        require(not any(any(len({final[uid, target]['state'] for uid in uids}) > 1 for target in TARGETS) for uids in c['groups'].values()), 'normalized_duplicate_conflict')
+        for path, row in plan['entries'].items():
+            if path != registry_path:
+                check_file(path, row)
+        require(registry_path.read_bytes() == updated_registry, 'postwrite_registry_fence')
+        require(shutil.disk_usage(W).free > FLOOR, 'postwrite_disk_floor')
+    except Exception:
+        if registry_path.read_bytes() == updated_registry:
+            rollback = registry_path.with_name('registry.wording004-rollback.json')
+            put(rollback, original_registry)
+            os.replace(rollback, registry_path)
+        for path, raw in wrappers:
+            if path.exists() and path.read_bytes() == raw:
+                os.replace(path, I / ('failed-' + path.name))
+        raise
+    inspection_raw = data(after)
+    plan['scanner'].Scanner(plan['secrets']).feed(inspection_raw)
+    put(I / 'complete569-inspection.json', inspection_raw)
+    receipt = {'schema_version': 1, 'agent_id': '/root', 'session_id': '/root', 'executed_by': '/root', 'prepared_by': AGENT, 'registered_at_utc': now, 'registry': reference(registry_path), 'registered_total': 569, 'supported_first': 14, 'supported_second_unamended': 62, 'supported_original_author_amendments': 2, 'new_correction_cases': 4, 'new_changes': 78, 'all491_whole_prior_objects_preserved': True, 'all_original_case_bytes_preserved': True, 'selected_prior_overlap': 0, 'prior_retirements_preserved': 3, 'root552_initial_source_judgments_preserved': True, 'root_final_exact_state_and_quote_matches': 548, 'additional_root4_current_annotations_preserved': True, 'additional_changes_included': 0, 'raw_first63_second73_objects_preserved': True, 'first_state_rejections_preserved': 4, 'second_rejections_preserved': 9, 'explicit_root_state_reconsiderations_preserved': 27, 'global_semantic_QA_gates_pending': 3, 'duplicate_groups': 54, 'duplicate_reports': 204, 'duplicate_conflicts': 0, 'new_clinical_judgments_created_by_helper': 0, 'gold_values_opened': False, 'training_ready': False, 'network_calls': 0}
+    receipt_raw = data(receipt)
+    plan['scanner'].Scanner(plan['secrets']).feed(receipt_raw)
+    put(I / 'complete569-integration-validation.json', receipt_raw)
+    put(I / 'integrate-wording004.py.txt', Path(__file__).read_bytes())
+    print(json.dumps({'status': 'root_core78_integration_verified', 'registered_total': 569, 'receipt': reference(I / 'complete569-integration-validation.json')}))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--workspace', required=True, type=Path)
+    parser.add_argument('--execute-root-reviewed-decision', action='store_true')
+    args = parser.parse_args()
+    plan = prepare_plan(args.workspace)
+    if args.execute_root_reviewed_decision:
+        execute_root(plan)
+    else:
+        print(json.dumps({'mode': 'read_only_preflight_no_R_writes', 'counts': plan['counts'], 'additional_root_changes_included': 0}))
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as exc:
+        print(json.dumps({'status': 'integration_not_confirmed', 'error_class': type(exc).__name__, 'guard_code': str(exc) if isinstance(exc, GuardError) else None}))
+        raise SystemExit(2) from None

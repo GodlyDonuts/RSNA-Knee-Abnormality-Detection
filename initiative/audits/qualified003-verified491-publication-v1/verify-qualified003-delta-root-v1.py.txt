@@ -1,0 +1,24 @@
+"""Actual root streams the complete target tree, preserving the distinct peer proof."""
+from pathlib import Path
+import hashlib,importlib.util,json,sys
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';T=W/'work';target='fec046253168083514749226987dda5b6c2505ce';P=T/'hf-preparation-deltas'/target;B=T/'hf-preparation-checkpoints/1792f01ed3daab757c5ddb9bf5733ffe8d999f91';H=T/'annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(H)=='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+manifest_sha='a716480c9404687994b370392bb9fc157a1d8d7cc5a6f977527db87c7d5ef179';peer_sha='c63fb750ab7ba87a0f9d3491ee7e4dc970806c5f7fae4761cb99eaee11818237'
+assert sha(P/'manifest.json')==manifest_sha
+assert sha(P/'restoration-proof.json')==sha(P/'peer-restoration-proof.json')==peer_sha
+assert sha(P/'peer-build-receipt.json')=='436b32b6792f204153c0253a4635f18d1fd3098e57b14d0afe0ca9509b6ef6b7'
+peer=json.loads((P/'peer-restoration-proof.json').read_text());assert peer['verifier_agent_id']==peer['actual_executor']=='/root/last_twelve_visual_review'
+out=P/'root-restoration-proof.json';assert not out.exists()
+spec=importlib.util.spec_from_file_location('root_qualified003_delta_v2',H);m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m);m.disk_guard(P)
+proof=m.verify_package(R,target,B/'checkpoint.tar.gz',B/'manifest.json',P,manifest_sha,secrets=m.secret_values(W/'.env'))
+assert proof['n_result_files_verified']==10020 and proof['n_delta_members_verified']==4375
+assert proof['target_git_tree']=='77321d30b1e6970c062e0a4c64791bc03b203638'
+assert proof['delta_archive']=={'path':'delta.tar.gz','bytes':249999460,'sha256':'3bd64d1006f214642f701b4cb35237554f98d9e7f9f786089eb4ded3a027304f'}
+assert proof['verifier_agent_id']=='/root/duplicate_consistency_review'
+assert sha(P/'restoration-proof.json')==sha(P/'peer-restoration-proof.json')==peer_sha
+assert sha(P/'peer-build-receipt.json')=='436b32b6792f204153c0253a4635f18d1fd3098e57b14d0afe0ca9509b6ef6b7'
+proof.update(verifier_agent_id='/root',actual_executor='/root',generated_helper_default_identity='/root/duplicate_consistency_review',helper_default_is_not_evidence_of_actual_execution=True,helper_sha256=sha(H),root_runner_sha256=sha(Path(__file__)),independent_peer_proof_sha256=peer_sha,peer_artifact_unchanged=True,actual_role='Actual root independently executed full streaming base-plus-delta verification. This is separate from the peer build verification; the two peer proof filenames are byte-identical aliases of one peer execution.',process_exposure='Opaque hashing and credential/signed-URL scanning of all archive bytes. No clinical adjudication, gold-label interpretation or pixel reread.')
+m.Scanner(m.secret_values(W/'.env')).feed((json.dumps(proof)+'\n').encode())
+with out.open('x') as f:json.dump(proof,f,indent=2);f.write('\n')
+print(json.dumps({'root_streaming_verification':'passed','target':target,'all_files':10020,'root_proof_sha256':sha(out),'root_runner_sha256':sha(Path(__file__)),'peer_proof_unchanged':True}))

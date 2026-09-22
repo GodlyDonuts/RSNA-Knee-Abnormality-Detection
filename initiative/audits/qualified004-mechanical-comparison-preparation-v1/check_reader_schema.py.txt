@@ -1,0 +1,45 @@
+"""Tool-side historical reader schema checks only; no root or current491 values loaded."""
+from pathlib import Path
+from collections import Counter
+import hashlib,importlib.util,json,sys
+P=Path(__file__).resolve().parent;W=P.parents[2]
+spec=importlib.util.spec_from_file_location('wording004_builder_schema',P/'build_comparison.py');m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m)
+F=m.FIRST;S=m.SECOND;T=m.POST
+first=m.read(F/'source-assessment-frozen.json');post=m.indexed(m.read(F/'postfreeze-disposition-assessment.json')['records']);base=m.indexed(m.read(F/'full-target-comparison.json')['records']);props=m.indexed(m.read(F/'proposed-errata.json')['proposed_errata']);old=m.read(F/'current205-adjudications-inspection.json');old223=m.read(F/'current223-adjudications-inspection.json');oldmap=m.indexed(old['changes']);map223=m.indexed(old223['changes'])
+second=m.lines(S/'independent-assessment.jsonl');secondmap={r['study_uid']:r for r in second};secondpost=m.indexed(m.read(T/'complete-second-dispositions.json')['records']);secondprops=m.indexed(m.read(T/'unintegrated-proposals.json')['records']);replay=m.read(T/'original-current-baseline-replay.json');old229=m.indexed(replay['records']);later=m.indexed(m.read(m.REBASE/'current-registry-rebase-proof.json')['records'])
+packet=m.read(m.check(m.read(S/'source-freeze.json')['neutral_source_packet']))
+assert first['agent_id']==first['session_id']==m.AGENT and all(r['agent_id']==r['session_id']=='/root/last_twelve_visual_review' for r in second)
+assert len(first['reports'])==len(second)==len(packet)==50 and len(base)==len(post)==len(secondpost)==len(old229)==len(later)==600
+assert old['n_changes']==len(oldmap)==205 and old223['n_changes']==len(map223)==223 and all(map223[k]==v for k,v in oldmap.items())
+for stage,name in [(F,'source-freeze-receipt.json'),(F,'artifact-manifest.json'),(S,'source-freeze.json'),(S,'final-file-list.json'),(T,'second-comparison-freeze.json'),(T,'final-file-list.json'),(m.REBASE,'completion-manifest.json')]:m.validate_refs(m.read(stage/name))
+m.check(replay['current_registry']);m.validate_refs(replay['current_registry_cases'])
+laterreg=m.read(m.REBASE/'registry-at-rebase.json');case254={}
+for ref in laterreg['cases']:
+ for k,r in m.indexed(m.read(m.check(ref))['changes']).items():assert k not in case254;case254[k]=r
+assert len(case254)==254
+checked=0
+for i,src in enumerate(packet):
+ f=first['reports'][i];s=secondmap[src['study_uid']];uid=src['study_uid'];assert f['study_uid']==uid and f['packet_ordinal']==s['packet_index']==i
+ assert f['source_file_sha256']==s['source_sha256']==src['source_sha256']==m.sha(m.R/src['source_path'])
+ assert f['index']==s['source_index_zero_based']==src['index'] and f['report_sha256']==s['report_utf8_sha256']==hashlib.sha256(src['report'].encode()).hexdigest()
+ assert json.loads((m.R/src['source_path']).read_text())[src['index']]=={'study_uid':uid,'report':src['report']}
+ assert len(f['states'])==len(f['evidence'])==len(f['rationales'])==len(s['states'])==len(s['evidence'])==len(s['target_reasoning'])==12
+ for ti,target in enumerate(m.TARGETS):
+  k=uid,target;b=base[k];p=post[k];q=secondpost[k]
+  a={'target':target,'state':f['states'][ti],'evidence':f['evidence'][ti],'reason':f['rationales'][ti]};ss={'state':s['states'][ti],'evidence':s['evidence'][ti],'reason':s['target_reasoning'][ti]}
+  assert q['first_source_frozen']==a and q['second_source_frozen']==ss
+  assert b['source_frozen']==m.annotation(a['state'],a['evidence']) and b['source_reason']==a['reason']
+  final={**p['final_first_assessor_preference'],'reason':p['postfreeze_reason'],'disposition':p['postfreeze_disposition']}
+  if k in props:
+   x=props[k];assert m.annotation(x['before_state'],x['before_evidence'])==b['effective'];assert m.annotation(x['proposed_state'],x['source_quote'])==p['final_first_assessor_preference'];final['proposal_reason']=x['reason']
+  assert final==q['first_postfreeze'] and p==q['first_state_disposition']==q['first_evidence_disposition'] and props.get(k)==q['first_separate_proposal']
+  original=b['original'];assert b['effective']==(oldmap[k]['after'] if k in oldmap else original)==(map223[k]['after'] if k in map223 else original)==q['first_baseline205']
+  assert q['current_effective']==old229[k]['current_effective']==later[k]['comparison229']
+  assert later[k]['current']==(case254[k]['after'] if k in case254 else original)
+  if k in secondprops:assert secondprops[k]['before_current']==q['current_effective'] and secondprops[k]['after_proposed']==m.annotation(q['second_postfreeze']['state'],q['second_postfreeze']['evidence'])
+  for value in (a,ss,final,q['second_postfreeze'],original,b['effective'],q['current_effective'],later[k]['current']):m.validate_annotation(value,src['report'],'opaque_stored_role')
+  checked+=1
+assert checked==600 and len(props)==63 and len(secondprops)==73
+out={'schema_version':1,'agent_id':m.AGENT,'session_id':m.AGENT,'status':'passed_opaque_reader_schema_and_historical_projection_only','reader_reports_each':50,'reader_cells_each':600,'first_historical_registry':205,'first_later_rebase':223,'second_historical_registry':229,'second_later_rebase':254,'full_original_proposals_preserved':True,'source_and_postfreeze_projections_equal_stored_objects':True,'root_judgments_loaded':False,'current491_cell_values_loaded':False,'current_runtime_inspection_executed':False,'comparison_builder_executed':False,'clinical_values_emitted':False,'R_writes':False,'bound_source_references':sorted(m.protected.values(),key=lambda x:x['path']),'code_sha256':m.sha(Path(__file__))}
+with (P/'schema-validation.json').open('x') as f:f.write(json.dumps(out,indent=2)+'\n')
+print(json.dumps({k:out[k] for k in ['status','reader_reports_each','reader_cells_each','comparison_builder_executed','clinical_values_emitted']}))

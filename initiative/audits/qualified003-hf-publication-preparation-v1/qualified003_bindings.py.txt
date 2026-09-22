@@ -1,0 +1,171 @@
+"""Future491 checkpoint guards. Importing this module performs no I/O."""
+from pathlib import Path
+import hashlib
+import importlib.util
+import json
+import re
+import sys
+
+STAGE = Path(__file__).resolve().parent
+W = STAGE.parents[2]
+R = W / 'work/recovered'
+WORK = W / 'work'
+BASE_GIT = '1792f01ed3daab757c5ddb9bf5733ffe8d999f91'
+BASE_HF = '54949cd5a575ea7027a4a57916e772936a98d38b'
+SOURCE_HF = '0b5e410288232f570c69ba4f44723356e6ae6ab7'
+PARENT_HF = 'b57d752502d4d31d03adb1bf71868af576798d97'
+PREVIOUS_GIT = 'a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004'
+TARGET_GIT = 'fec046253168083514749226987dda5b6c2505ce'
+TARGET_TREE = '77321d30b1e6970c062e0a4c64791bc03b203638'
+TARGET_FILE_COUNT = 10020
+TARGET_CI_RUN = 35693648375
+STAGED_PROOF = WORK / 'qualified003-final-staged-verification.json'
+STAGED_PROOF_SHA = 'a71371148beee6a9b941ca290cc8d3e52086aed35faa99c938c3252b980bf312'
+BASE_ARCHIVE_SHA = '10206b752cce97cb671de607291785eef10d7fd9154c4dd4a0612b6686327271'
+BASE_MANIFEST_SHA = '5f879ae740356e21ff5ed4c34fa31daf1cce4b5ffa9dafdd044a0658b9ad850b'
+BASE_ARCHIVE_BYTES = 1335583564
+BASE_MANIFEST_BYTES = 1865355
+REGISTRY_SHA = '685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+N_CORRECTIONS = 491
+HELPER = WORK / 'annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+HELPER_SHA = '58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+TRANSPORT = WORK / 'annotation-staging/hf-targeted4407-preparation-v1/publish_checkpoint.py'
+TRANSPORT_SHA = '494f8f6e345697df2dee83cb4c90e77ced09edf18107546c860a8c684c846c8f'
+SOURCE_INVENTORY = STAGE / 'protected-source-576.json'
+SOURCE_INVENTORY_SHA = '0e12da42dc91e43799eeecddb7bfffda1dd9b598e93610a836ad3428a1fae527'
+PEER = '/root/last_twelve_visual_review'
+ROOT = '/root'
+SHA = re.compile(r'[0-9a-f]{64}')
+OID = re.compile(r'[0-9a-f]{40}')
+HF_REPO = 'GodlyDonuts/RSNA-Data'
+SOURCE_IDENTITIES = {
+ 'test_series': {'tree_id': 'f3f3d6366d9225d0c692feafa41e3bba35d16435'},
+ 'train_series': {'tree_id': '0c49bf2f3b1ab21577c13eb333237b98f976e5e2'},
+ 'sample_submission.csv': {'blob_id': '516a03db91c3e341c8ee29b6f56549495fc2d491'},
+ 'test.csv': {'blob_id': '01eb5d04b535d47366cbe8aec93548ed108ce6c5'},
+ 'test_series.csv': {'blob_id': 'f586546aeec103b6fc34613592c7f95197cda790'},
+ 'train.csv': {'blob_id': 'b6df25004c5d3a9e68e4d8c99b2aa436c9a8c330'},
+ 'train_series.csv': {'blob_id': 'c1a27611e39d6d8f522c64d4cf4082b56925b154'},
+}
+ROOT_CARD = {'README.md': '7a38f07821269b2099088be1a3952ccbf946fb3a'}
+
+class GuardError(Exception):
+    """Fixed nonsensitive codes only."""
+
+def require(value, code):
+    if not value:
+        raise GuardError(code)
+
+def sha(path):
+    require(path.is_file() and not path.is_symlink(), 'missing_or_symlink_file')
+    h = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(2**20), b''):
+            h.update(block)
+    return h.hexdigest()
+
+def read(path):
+    require(path.is_file() and not path.is_symlink(), 'missing_or_symlink_json')
+    return json.loads(path.read_text())
+
+def ref(path):
+    return {'local_path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+
+def save(path, value):
+    require(path.resolve().is_relative_to(WORK) and not path.resolve().is_relative_to(R), 'output_scope')
+    with path.open('x') as f:
+        f.write(json.dumps(value, indent=2) + '\n')
+
+def module(name, path, expected):
+    require(sha(path) == expected, 'dependency_hash_changed')
+    spec = importlib.util.spec_from_file_location(name, path)
+    obj = importlib.util.module_from_spec(spec)
+    sys.modules[name] = obj
+    spec.loader.exec_module(obj)
+    return obj
+
+def helper():
+    h = module('qualified003_shared_delta', HELPER, HELPER_SHA)
+    require((h.BASE_GIT, h.BASE_HF, h.SOURCE_HF) == (BASE_GIT, BASE_HF, SOURCE_HF), 'shared_base_changed')
+    require(h.FLOOR == 20 * 2**30 and h.RESERVE == 64 * 2**20, 'disk_floor_changed')
+    return h
+
+def add_inputs(parser):
+    parser.add_argument('--target-commit', required=True)
+    parser.add_argument('--target-tree', required=True)
+    parser.add_argument('--expected-file-count', type=int, required=True)
+    parser.add_argument('--package', type=Path, required=True)
+    parser.add_argument('--manifest-sha256', required=True)
+
+def argument_guard(args):
+    require(isinstance(args.target_commit, str) and OID.fullmatch(args.target_commit), 'future_commit_required')
+    require(args.target_commit not in {PREVIOUS_GIT, BASE_GIT}, 'historical_commit_not_491')
+    require(isinstance(args.target_tree, str) and OID.fullmatch(args.target_tree), 'future_tree_required')
+    require(type(args.expected_file_count) is int and args.expected_file_count > 0, 'future_file_count_required')
+    require(isinstance(args.manifest_sha256, str) and SHA.fullmatch(args.manifest_sha256), 'future_manifest_required')
+    require((args.target_commit, args.target_tree, args.expected_file_count) == (TARGET_GIT, TARGET_TREE, TARGET_FILE_COUNT), 'exact491_milestone_required')
+    package = args.package.resolve()
+    require(package == WORK / 'hf-preparation-deltas' / args.target_commit, 'exact_package_location')
+    require(args.package.absolute() == package and package.is_dir(), 'package_symlink_or_missing')
+    return package
+
+def source576_guard(h, target_rows):
+    require(sha(SOURCE_INVENTORY) == SOURCE_INVENTORY_SHA, 'source576_inventory_changed')
+    inv = read(SOURCE_INVENTORY)
+    require(inv['count'] == len(inv['files']) == len({x['path'] for x in inv['files']}) == 576, 'source576_count')
+    require(inv['source_hf_revision'] == SOURCE_HF and inv['baseline_git_commit'] == PREVIOUS_GIT, 'source576_origin')
+    for row in inv['files']:
+        h.safe_path(row['path'])
+        require(row['path'].startswith('train_series/'), 'source576_remote_scope')
+        expected = dict(path=row['archived_git_path'], mode=row['baseline_git_mode'], git_blob=row['baseline_git_blob'], bytes=row['bytes'])
+        require(target_rows.get(row['archived_git_path']) == expected, 'source576_target_changed')
+    return inv
+
+def local_guard(args, h):
+    package = argument_guard(args)
+    h.disk_guard(package)
+    require(sha(STAGED_PROOF) == STAGED_PROOF_SHA, 'root491_staged_proof_changed')
+    require(sha(package / 'manifest.json') == args.manifest_sha256, 'manifest_hash_changed')
+    manifest = read(package / 'manifest.json')
+    require(manifest['target_git_commit'] == args.target_commit and manifest['target_git_tree'] == args.target_tree, 'future_git_binding')
+    require(manifest['n_target_git_files'] == len(manifest['files']) == args.expected_file_count, 'future_file_count_mismatch')
+    require(manifest['base_git_commit'] == BASE_GIT and manifest['base_hf_revision'] == BASE_HF, 'base_binding')
+    require(manifest['training_ready'] is False and manifest['private_destination_required'] is True, 'preparation_only')
+    require(manifest['secret_scan_policy'] == h.secret_scan_policy(), 'scanner_exception_policy_changed')
+    require(manifest['base_archive'] == {'path': 'preparation-checkpoints/' + BASE_GIT + '/checkpoint.tar.gz', 'sha256': BASE_ARCHIVE_SHA, 'bytes': BASE_ARCHIVE_BYTES}, 'base_archive_binding')
+    require(manifest['base_manifest'] == {'path': 'preparation-checkpoints/' + BASE_GIT + '/manifest.json', 'sha256': BASE_MANIFEST_SHA}, 'base_manifest_binding')
+    require(h.git(R, 'rev-parse', args.target_commit + '^{tree}').decode().strip() == args.target_tree, 'actual_git_tree_mismatch')
+    require(h.git(R, 'merge-base', PREVIOUS_GIT, args.target_commit).decode().strip() == PREVIOUS_GIT, 'target_not_descendant_of425')
+    rows = h.tree(R, args.target_commit)
+    require(len(rows) == args.expected_file_count, 'actual_git_file_count_mismatch')
+    registry = h.git(R, 'show', args.target_commit + ':initiative/reviews-v2/adjudications/registry.json')
+    require(hashlib.sha256(registry).hexdigest() == REGISTRY_SHA, 'target_not_known491_registry')
+    inv = source576_guard(h, rows)
+    require(sha(package / 'delta.tar.gz') == manifest['delta_archive']['sha256'], 'delta_sha_changed')
+    require((package / 'delta.tar.gz').stat().st_size == manifest['delta_archive']['bytes'], 'delta_size_changed')
+    return package, manifest, inv
+
+def proof_guard(proof, args, manifest, identity):
+    require(proof['verifier_agent_id'] == identity and proof['actual_executor'] == identity, 'actual_executor_mismatch')
+    require(proof['status'] == 'every_target_git_file_restorable_identically', 'restoration_incomplete')
+    require(proof['target_git_commit'] == args.target_commit and proof['target_git_tree'] == args.target_tree, 'proof_future_git_binding')
+    require(proof['manifest']['sha256'] == args.manifest_sha256 and proof['n_result_files_verified'] == args.expected_file_count, 'proof_manifest_count_binding')
+    require(proof['delta_archive'] == manifest['delta_archive'], 'proof_delta_binding')
+    require(proof['base_git_commit'] == BASE_GIT and proof['base_hf_revision'] == BASE_HF, 'proof_base_binding')
+    require(proof['base_archive_sha256'] == BASE_ARCHIVE_SHA and proof['base_manifest_sha256'] == BASE_MANIFEST_SHA, 'proof_base_hash_binding')
+    require(proof['every_file_sha256_git_blob_size_mode_verified'] is True and proof['membership_exact'] is True, 'proof_full_tree_missing')
+    require(proof['full_tree_extracted'] is False and proof['training_ready'] is False, 'proof_scope')
+    require(proof['helper_sha256'] == HELPER_SHA, 'proof_helper_binding')
+    require(proof['secret_scan_policy'] == manifest['secret_scan_policy'], 'proof_scanner_policy')
+    fixture = 'initiative/audits/primary74-integration-and-hf-delta-verification-v1/test_checkpoint_delta.py.txt'
+    expected_exceptions = [fixture] if any(x['path'] == fixture for x in manifest['files']) else []
+    require(proof['verified_secret_scan_exception_paths'] == expected_exceptions, 'proof_exception_scope_changed')
+    require(proof['n_delta_members_verified'] == manifest['n_delta_files'], 'proof_delta_count')
+    require(proof['n_base_archive_members_verified'] == manifest['n_base_archive_files'], 'proof_base_count')
+    require(proof['n_deletions_applied'] == len(manifest['deleted_paths']), 'proof_deletion_count')
+
+def error_result(error):
+    # Never serialize exception payloads from HTTP/Hub/subprocess dependencies.
+    return {'status': 'not_completed', 'error_class': type(error).__name__,
+            'guard_code': str(error) if type(error) is GuardError else 'external_or_unexpected_error',
+            'training_ready': False}

@@ -1,0 +1,50 @@
+"""Seal root's actual48 source readings, preserving both prefreeze quote failures."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+import hashlib,json
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';B=W/'work/annotation-staging';G=B/'qualified-negation-focused-005-root-review-v1';N=B/'qualified-negation-focused-005-independent-postfreeze-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+read=lambda p:json.loads(p.read_text())
+pin=lambda p:dict(path=str(p.relative_to(W)),sha256=sha(p),bytes=p.stat().st_size)
+parts=[('first-five','09d27be337507901ec4d53a67e3c8c9972fb97431abe1e52695e98f78309587a'),('next-five','560ef9bf8e99bee485181c2b0039466ad03959bbd326f4e43dce41192a7a1e9b'),('third-five','6b9ea39a54ffdeb48f7bda4fb9d018f8f7d6adee4aa94eb41e7fa8cd6d762253'),('fourth-five','297f1aad92abe0674e30fc5d97da5c1555f7a840b0145337fe06cd5fa53a436d'),('fifth-five','46ab2af2ce0178a38cfb5af04cdb5d8dc7766dd952e1d601707155bf7c034c00'),('sixth-five','cadcf42e4b85afc8b402141bdf9d4e4ab5370f724cc1be68ee9858a81c649c73'),('seventh-five','c5521a1aeb0e148669089059fafee9c45cccc79e325a9923d3740f67a9f693c2'),('eighth-five','5d41f928a9cf2b1e38aa94db1bc61eb96aa3ee0cf64273cae122f82c7d9d9177'),('final-eight','4439c5bc2e7b2cd61b49b96a02ce1d297e8a4dc3b419a6d821119b9943c2f39e')]
+index=N/'neutral-root-packet-index.json';rubric=R/'protocols/report_weak_v2.md'
+assert sha(index)=='fd9ff5c333497df8a30d4204fff23afe1eb20f325a1acf8c0304fb30ba41c9ec'
+assert sha(rubric)=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+assert sha(G/'source-reading-boundary.json')=='2b61ea7f32dc25a74b3cfeaa481949b6c4aa9ba377c2a0c15c0a5d347ca134b5'
+before={p:sha(p) for p in G.iterdir() if p.is_file()};sources=[]
+for ref in read(index)['packets']:
+ p=W/ref['path'];assert sha(p)==ref['sha256'] and p.stat().st_size==ref['bytes'];sources.extend(read(p)['reports'])
+assert len(sources)==len({r['study_uid'] for r in sources})==48
+records=[]
+for name,digest in parts:
+ p=G/(name+'-source-assessment.json');assert sha(p)==digest;d=read(p)
+ assert d['agent_id']==d['session_id']=='/root' and not d['current005_reader_case_findings_opened']
+ assert d['target_judgments']==12*d['full_reports'] and d['rubric_sha256']==sha(rubric)
+ assert d['validation_helper_sha256']==sha(W/'work/qualified005_source_tools.py')
+ records.extend(d['records'])
+assert len(records)==48 and [r['study_uid'] for r in records]==[r['study_uid'] for r in sources]
+targets=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture'];counts=Counter()
+for rec,src in zip(records,sources):
+ p=R/src['source_path'];assert sha(p)==rec['source_sha256']==src['source_sha256']
+ assert rec['source_path']==src['source_path'] and rec['source_index_zero_based']==src['index']
+ assert read(p)[src['index']]=={'study_uid':src['study_uid'],'report':src['report']}
+ assert rec['report_sha256']==hashlib.sha256(src['report'].encode()).hexdigest()
+ assert rec['target_order']==targets and len(rec['states'])==len(rec['evidence'])==12
+ for state,q in zip(rec['states'],rec['evidence']):
+  assert state in {'positive','negative','uncertain','not_mentioned'}
+  assert (state=='not_mentioned' and q=='') or (state!='not_mentioned' and q and q in src['report']);counts[state]+=1
+all_sources=[r for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for r in read(p)];assert len(all_sources)==len({r['study_uid'] for r in all_sources})==4407
+all_sources.sort(key=lambda r:r['study_uid']);canonical=hashlib.sha256(json.dumps(all_sources,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest();assert canonical=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+helpers=[W/'work/qualified005_source_tools.py',*(W/('work/qualified005_'+name.replace('-','_')+'.py') for name,_ in parts),W/'work/qualified005_eighth_five_failed_exact_quote_v1.py.txt',W/'work/qualified005_final_eight_failed_exact_quote_v1.py.txt',Path(__file__)]
+for p in helpers:
+ out=G/(p.name+'.txt' if p.suffix=='.py' else p.name)
+ with out.open('xb') as f:f.write(p.read_bytes())
+ assert sha(out)==sha(p)
+now=datetime.now(timezone.utc).isoformat()
+def write(name,obj):
+ with (G/name).open('x') as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+write('full-source-assessment.json',dict(stage='complete_qualified005_root_source_assessment_before_current_reader_findings',agent_id='/root',session_id='/root',at_utc=now,full_reports=48,target_judgments=576,target_order=targets,records=records,notes='Actual personally authored initial source judgments, preserved unchanged even when subsequently reconsidered. Not final adjudications or diagnostic rereads.',current005_reader_case_findings_opened=False,training_ready=False))
+write('source-freeze.json',dict(stage='complete_root_qualified005_source_freeze_v1',agent_id='/root',session_id='/root',at_utc=now,reports=48,target_judgments=576,nonmissing_exact_quotes=576-counts['not_mentioned'],empty_not_mentioned_quotes=counts['not_mentioned'],state_counts=dict(counts),full_source_assessment=pin(G/'full-source-assessment.json'),neutral_index=pin(index),neutral_packets=read(index)['packets'],rubric=pin(rubric),canonical_source_sha256=canonical,canonical_sources_recomputed=4407,partial_assessments=[pin(G/(name+'-source-assessment.json')) for name,_ in parts],existing_files_preserved=[pin(p) for p in sorted(before)],preserved_authored_helpers=[pin(G/(p.name+'.txt' if p.suffix=='.py' else p.name)) for p in helpers],history='See original source-reading boundary. Root also read the distinct assessor additional004 four rejections after first35 sources and before last13; those are disjoint current004 findings, not current005 findings. Actual569 integration was executed during last13 source work, without selected005 current rows being displayed. Earlier47-report first neutral metadata was replaced by latest48-report union. Historical prior exposure is not first-ever blindness.',prefreeze_helper_failures=[dict(part='eighth-five',reason='Literal Greek accent placement in PF quotation failed substring check. Original failed helper preserved; corrected to exact visible source before successful freeze. No state change or partial artifact written.'),dict(part='final-eight',reason='MCL literal template spacing failed substring check. Original failed helper preserved; replaced with exact source span before successful freeze. No state change or partial artifact written.')],personally_read_full_sources_before_current_case_findings=True,current005_reader_case_findings_opened=False,current005_selected_registry_rows_opened=False,gold_values_opened=False,states_or_evidence_changed=False,registry_changed_by_this_helper=False,qa_gate_closed=False,training_ready=False))
+for p,d in before.items():assert sha(p)==d
+print(json.dumps(dict(status='complete_source_freeze',reports=48,target_judgments=576,full_source_sha256=sha(G/'full-source-assessment.json'),source_freeze_sha256=sha(G/'source-freeze.json'),state_counts=dict(counts),current_reader_findings_opened=False)))

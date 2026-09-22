@@ -57,8 +57,8 @@ to an actionable, costed sequence whose assumptions can be tested.
 
 ## Goal tracking
 
-Both phases are now required by the user. The current app goal remains active;
-the available goal-status control cannot edit its objective text in place. This
-document records the user's expanded scope for continuation and completion audits.
+Both phases are now required by the user. The available goal-status control cannot edit
+the original app objective text in place or reactivate its current blocked status.
+The work is continuing under the owner’s expanded instruction. This document records the user's expanded scope for continuation and completion audits.
 Do not mark the expanded mission complete until the data-release evidence and
 the competitive training research/plan have both been delivered and verified.

@@ -1,0 +1,33 @@
+"""Root personally authored source35–39 judgments before current005 findings."""
+import json
+from qualified005_source_tools import N, freeze
+reports=json.loads((N/'neutral-root-attention-003.json').read_text())['reports']
+def span(i,start,end):
+ s=reports[i]['report']; assert s.count(start)==1
+ a=s.index(start); return s[a:s.index(end,a)+len(end)]
+general='Από τον έλεγχο του έξω διαµερίσµατος και των συνδέσµων έξω πλαγίου και χιαστών, δεν σηµειώνονται αξιόλογα παθολογικά ευρήµατα.'
+medoa=span(5,'Στο έσω διαµέρισµα αναγνωρίζεται','στο έσω κνηµιαίο plateau.')
+normal36='Ligamentos cruzados y colaterales dentro de límites normales.'
+cart36='Cartílagos los compartimentos femorotibiales y patelofemoral sin alteraciones.'
+normal38='Normal ACL, PCL, MCL and LCL.'
+cart38='The tibiofemoral and patellofemoral articular cartilage is normal.'
+bones38='Normal visualized bones and surrounding soft tissues.'
+bones39='Allseits regelrechtes Knochenmarksignal. Kein Hinweis auf eine Fraktur oder ein Bone-bruise.'
+judgments=[
+ ('U X P U U U N U P X U X',
+ [general,'','Εκφυλιστική οστεοαρθρίτιδα έσω διαµερίσµατος του ∆Ε γόνατος µε εκφυλιστική ρήξη του οµηνίσκου και ύδραρθρο.',general,medoa,general,'Από τον έλεγχο του πρόσθιου διαµέρισµατος, παρατηρείται µονήρης επιφανειακή διάβρωση του αρθρικού χόνδρου της έσω επιφάνειας της επιγονατίδας, χωρίς άλλες αλλοιώσεις.','Σηµειώνεται σηµαντική ποσότητα ύδραρθρου και υµενίτιδα.','Σηµειώνεται σηµαντική ποσότητα ύδραρθρου και υµενίτιδα.','',medoa,''],
+ 'The no-noteworthy-pathological-findings statement is qualified and covers cruciates and lateral compartment, not the unmentioned medial collateral ligament. Medial meniscus is degenerative and subluxed in body, with definite degenerative tear in the medial-compartment conclusion despite a malformed meniscus word. Medial ICRS3 cartilage disease lacks qualifying deep-region extent; lateral cartilage remains qualified. Patellar lesion is expressly solitary superficial with no other changes. Significant fluid is ungraded; direct synovitis diagnosis supports weak positive. Subchondral marrow edema accompanies degeneration without impact causation. No Baker or fracture-line assessment.'),
+ ('N N N P N N N U X N U X',
+ [normal36,normal36,span(6,'El menisco medial es','sin caracteres propios de rotura.'),span(6,'Rotura horizontal del cuerno anterior','de las partes blandas adyacentes.'),cart36,cart36,cart36,'No hay significativo derrame articular.','', 'Pequeño quiste poplíteo, no complicado.','No hay alteraciones de señal significativas de la médula ósea.',''],
+ 'Ligaments and all cartilage are explicitly normal. Medial meniscal internal signal expressly does not contact articular surface and lacks tear features; lateral horizontal tear is definite despite uncertainty about displaced fragments. No significant effusion and no significant marrow signal abnormality are qualified and insufficient for confident threshold negatives. Baker is expressly small. Parameniscal cysts are separate. No synovitis or fracture-line assessment.'),
+ ('N N P N U N N U X X U X',
+ ['Hinteres und vorderes Kreuzband intakt.','Kollateralbänder intakt.',span(7,'Schräge Rissbildung im Innenmeniskushinterhorn','T2 Signalanhebungen.'),'Der Außenmeniskus ist intakt.','Entsprechende teils hochgradige Chondropathie an der medialen Femurkondyle über bis zu 10 x 5\u00a0mm (7/11 und 8/27). Auch am medialen Tibiaplateau zum Rand hin zunehmende Chondropathie.','Unauffälliger Knorpelbelag lateralseitig femorotibial.','Unauffälliger Knorpelbelag femoropatellar ohne relevante Chondropathie.','Hämarthros.','','','Geringes Knochenmarködem in der medialen Femurkondyle sowie am medialen Tibiaplateau (8/27 und 8/26).',''],
+ 'Ligaments/lateral meniscus intact; medial oblique tear and extrusion definite. The overall medial cartilage region is10x5mm but only partly high-grade, so the qualifying deep portion extent is not established. Lateral and PF cartilage are affirmatively unremarkable independently of a later qualifier. Hemarthrosis has no amount. Mild marrow edema lacks impact attribution. Small patellar-pole ossicle without injury or fracture suspicion is not an informative acute-fracture assessment; no Baker or synovial lining mention.'),
+ ('N N N N N N N N X X N N',
+ [normal38,normal38,'Early degeneration of the posteromedial corner of the medial meniscus is noted but no definite tear.','Normal lateral meniscus.',cart38,cart38,cart38,'There is a mild knee effusion.','','',bones38,bones38],
+ 'Ligaments, lateral meniscus, all cartilage and visualized bones are directly normal. Medial finding is isolated early degeneration with no definite tear, without a tear-like morphology or surfacing signal; treat the affirmative isolated degeneration as below threshold. Mild effusion below moderate-large. No Baker or synovial assessment. Direct normal-bones statement supports both bone-target negatives; no gold inspected.'),
+ ('N X P N U U U N X X N N',
+ ['Vorderes und hinteres Kreuzband sowie LCL intakt.','','Der Innenmeniskus mukoide mit horizontaler Rissbildung.','Auch der Außenmeniskus mukoid verändert ohne Nachweis einer Rissbildung.','Stigmata der medial betonten Gonarthrose mit Gelenkspaltverschmälerung und osteophytären Randausziehungen sowie Chondropathie femorotibial bds.','Stigmata der medial betonten Gonarthrose mit Gelenkspaltverschmälerung und osteophytären Randausziehungen sowie Chondropathie femorotibial bds.','Keine höhergradige Chondropathie femoropatellar.','Geringer Gelenkerguss.','','',bones39,bones39],
+ 'ACL intact; LCL statement does not assess MCL. Medial horizontal tear definite, lateral mucoid degeneration without tear negative. TF cartilage degeneration lacks depth/extent and PF only denies higher-grade disease. Small effusion below threshold. Direct normal marrow and no fracture/bone bruise support bone negatives. Soft-tissue unremarkability alone does not supply an absent Baker or absent inflamed-lining statement.')
+]
+freeze('eighth-five',3,5,judgments)

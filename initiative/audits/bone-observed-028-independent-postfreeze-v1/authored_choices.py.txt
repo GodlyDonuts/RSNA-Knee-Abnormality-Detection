@@ -1,0 +1,55 @@
+"""Personal postfreeze decisions; literal choices and rationale, not text-inferred states."""
+RECONSIDER={
+ (28,1):('uncertain','own','I reconsider my source negative after rereading the full cyst passage, original scope objection and first reconsideration. Remaining bone morphology is explicitly normal, but the separate subchondral cyst is outside that statement. Its cystic characterization describes the focal lesion without assessing cortical integrity or a fracture line at that site. My initial negative overextended the named benign-appearing lesion into a whole-bone structural exclusion. Preserve the old negative; retain current uncertainty with my complete cyst-plus-remaining-bones quote and zero mask.'),
+ (31,1):('uncertain','own','I reconsider my source negative to uncertainty. The 4 mm cyst is a separately described osseous site excluded from normal remaining-bone morphology; naming a cyst does not itself evaluate cortex or a fracture line there. I initially bridged this gap with its benign-appearing characterization. The incomplete cartilage sentence supplies no missing bone assessment. Preserve the original negative, keep the full context quote, and retain current uncertainty and zero mask.'),
+}
+CLARIFY={}
+RETAINED={
+ (1,1):'I retain source/current negative from normal form and signal of the knee-forming bones. Normal form provides morphological information beyond marrow intensity, without a focal structural exception. The first reader requires explicit cortical/fracture-line scope. This remains an open report-semantics disagreement; the separately known source/image correspondence exclusion remains untouched and is not resolved by either opinion.',
+ (19,1):'I retain source/current missing with empty evidence. The otherwise-normal conclusion does not explicitly indicate that bone cortical structure was evaluated beyond the body statement of no edema. The first reader interprets the conclusion as whole-examination structural normality; I preserve that disagreement rather than unmasking a fracture negative from nonspecific concluding language.',
+ (30,1):'I retain source/current negative because normal form explicitly assesses the bones in addition to signal. Meniscal and ACL signal findings are separate. The first reader considers form insufficient cortical scope; both interpretations remain available for root adjudication.',
+ (32,1):'I retain source/current negative based on normal bone form and signal. The named fabella and patellar tendon findings are not an excluded pathological osseous site. The first reader requires more explicit cortex/line assessment; preserve this unresolved structural-scope disagreement.',
+ (35,1):'I retain the negative state but expand the quote through the 4 mm cyst. Unlike a normal remaining-bones clause, this source first describes the form of all knee-forming bones as normal, including the named cyst context. The first reader considers form and absent edema inadequate; I rely on global morphology rather than edema alone. The evidence expansion does not accept the first uncertainty proposal.',
+ (38,1):'I retain source/current negative from explicit normal bone form and signal. The oblique lesion is meniscal, leaving no focal bony exception to the structural normality. The first reader requires additional cortical/line wording; that remains an open interpretation difference.',
+ (48,1):'I retain source/current missing. The rest-of-examination within-normal-limits conclusion does not explicitly add cortical or bony morphology evaluation to the no-edema body finding. The first reader takes this as a broad structural negative; preserve both opinions and the current zero mask pending distinct root adjudication.',
+}
+EC={
+ (2,0):'Expand normal remaining-bone signal through the preceding osteophytes and degenerative insertion/ganglion context; this makes the considered osseous findings visible.',
+ (2,1):'Expand normal remaining-bone morphology backward through the specifically degenerative osseous/insertional findings rather than presenting the remainder as the complete skeleton.',
+ (6,0):'Retain the small named osteophytes with the normal bone-signal statement; no marrow edema or traumatic cause is inferred.',
+ (16,0):'Extend normal background/no-focal-lesion evidence through distal femoral remodeling/flattening, preserving the structural finding characterized as chronic in the full source.',
+ (17,0):'Include the sharpened intercondylar eminence alongside normal bone signal so the actual osseous finding remains inspectable.',
+ (17,1):'Include the sharpened eminence beside normal bone structure and form without relabeling it as acute cortical injury.',
+ (25,0):'Expand normal bone signal through the small condylar/epicondylar osteophytes; the state remains negative.',
+ (25,1):'Preserve the small osteophytes with the normal-form/structure statement so the structural negative retains the named exception.',
+ (28,1):'Keep current uncertainty but expand its cyst-only quote through normal remaining-bone morphology. My separate N-to-U source reconsideration preserves the local structural-scope gap and current zero mask.',
+ (31,0):'Expand normal remaining-bone signal through the explicitly named cyst and intervening context; subcutaneous edema stays anatomically separate.',
+ (31,1):'Keep current uncertainty and expand the cyst-only quote through the actual final normal-remaining-bones clause. The source-state reconsideration is explicit and does not alter the old freeze.',
+ (34,0):'Expand the direct no-contusion quote through the faint femoral marrow focus and unresolved red-marrow-island interpretation. The exclusion remains negative but must not hide the focal signal context.',
+ (35,0):'Add the small tibial cyst to the direct no-edema evidence, preserving its osseous context without inventing contusion.',
+ (35,1):'Retain negative but extend normal-form/no-edema evidence through the named tibial cyst. The first reader uncertainty remains unresolved; matching quote context is not acceptance of that state.',
+ (39,0):'Expand normal remaining-bone signal backward to the explicitly anatomical bipartite patella, retaining its nonacute variant characterization.',
+ (42,0):'Include the specifically OA-related marginal osteophytes with normal remaining bone signal.',
+ (42,1):'Include the degenerative osteophytes with normal remaining bone morphology so the scope underlying the negative remains visible.',
+ (45,0):'Expand the isolated medial subchondral quote to include normal background marrow and both medial and patellar signal exceptions. Uncertainty and zero mask remain unchanged.',
+ (46,0):'Expand normal all-bone signal through the tiny subchondral cyst and marginal osteophytes. My source span includes both bony findings; the first shorter cyst-only expansion remains preserved.',
+}
+EVIDENCE={
+ (2,0):EC[(2,0)],(2,1):EC[(2,1)],
+ (4,0):'Current direct no-edema evidence is adequate. First also quotes the homogeneous bone structure/signal sentence, which adds compatible detail rather than a missing qualifier.',
+ (4,1):'Current/own homogeneous bone structure/signal quote is sufficient for the agreed negative. First adds no edema; the fracture decision rests on structure, not that added marrow sentence.',
+ (6,0):EC[(6,0)],
+ (9,1):'My source and current quote the body with literal split spacing; first quotes the same chronic-fragment assessment from the impression with different spacing. Both are exact contiguous source passages. I retain my original quote and negative state: sequelar sclerotic morphology establishes a chronic finding, while possibly qualifies its old-avulsion origin. The current uncertainty objection about an unreported acute lesion elsewhere does not undo this below-acute-target characterization. Any unmasking remains a proposal only.',
+ (11,0):'Current directly excludes marrow edema; both source readers include preceding normal signal. The shorter current quote has complete relevant negation and needs no expansion.',
+ (16,0):EC[(16,0)],(17,0):EC[(17,0)],(17,1):EC[(17,1)],
+ (19,1):'First uses the otherwise-normal conclusion for a structural negative. I retain empty missing evidence because no bone cortex/morphology assessment is explicit beyond edema; this scope difference remains open.',
+ (25,0):EC[(25,0)],(25,1):EC[(25,1)],(28,1):EC[(28,1)],(31,0):EC[(31,0)],(31,1):EC[(31,1)],
+ (33,0):'Current/first directly exclude bone bruise. My longer source passage also displays possible low-signal enostoses and physiological marrow. Those specifically low-signal foci do not contradict the direct no-bruise statement; current evidence is adequate without requiring my longer span.',
+ (34,0):EC[(34,0)],(35,0):EC[(35,0)],(35,1):EC[(35,1)],(39,0):EC[(39,0)],
+ (40,0):'Current/first include homogeneous structure and no edema; my source uses the direct edema exclusion alone. Current evidence is complete and should not be shortened merely to match mine.',
+ (40,1):'Current/first include the no-edema sentence after homogeneous bone structure/signal; my shorter structural quote is adequate too. No current context is missing.',
+ (42,0):EC[(42,0)],(42,1):EC[(42,1)],
+ (44,1):'All readers/current retain uncertainty from limited structural exclusion. Current quotes no osteochondral lesion; first adds intact PF joint/surface, and my source includes the preceding contusions/injuries. The limited exclusion itself adequately supports uncertainty rather than a global negative; no required current evidence correction is proposed.',
+ (45,0):EC[(45,0)],(46,0):EC[(46,0)],
+ (48,1):'First quotes the concluding rest-of-examination within-normal-limits statement. I retain missing because it does not establish a separate bone structural assessment; empty current evidence remains appropriate pending root resolution.',
+}

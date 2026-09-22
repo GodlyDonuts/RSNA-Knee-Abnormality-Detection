@@ -1,0 +1,9 @@
+The independent technical replay of actual569 passed. It verifies the exact78 additions in four original-author groups (14/62/1/1), all491 unchanged prior whole runtime objects and case bindings, and the three unchanged retirements and pending QA records.
+
+The runtime matches root's complete569 inspection exactly. All548 non-additional root final state/evidence pairs match, while the four then-pending additional-root cells preserve their prior annotations. The core integration imported no additional-assessor outcome. Root's later separate withdrawal/resolution is outside this historically accurate core receipt and must be bound separately.
+
+All63 FIRST and73 SECOND original full proposal objects, both original-author quote amendments,27 root reconsiderations, nine SECOND rejections and four FIRST state rejections remain exact. Every new before/after/reason and actual proposer/adjudicator identity was checked against root's frozen support and the sealed change preview. All54 normalized duplicate groups /204 reports have zero state conflicts.
+
+The verifier checked all447 finite preparation inputs, all211 archive members (109 new and102 reused equal), and all15 generated execution files. The live491 registry reference in the old preparation is preserved unchanged and resolves only through the exact `registry-before491.json` snapshot. All other protected references still resolve directly. Original source metadata was compared only as opaque hashes against the published491 Git baseline; no gold values were inspected.
+
+Actual identity: `/root/duplicate_consistency_review`, original FIRST004 author and technical runtime verifier. Root remains the actual adjudicator and integration executor. This work made no R/registry/network changes, clinical decisions or QA clearance. The script, actual replay, report and run log are sealed together in `completion-manifest.json` for bounded archival.

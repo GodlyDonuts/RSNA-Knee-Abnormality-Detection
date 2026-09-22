@@ -1,0 +1,15 @@
+"""Package explicitly authored assessments of fourteen first-reader proposals."""
+from pathlib import Path
+import json,hashlib
+from authored_choices import RETAINED,EC,RECONSIDER
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';P=A/'bone-observed-025-postfreeze-v1';O=A/'bone-observed-025-independent-review-v1'
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+packet=json.loads((O/'neutral-source-packet.json').read_text())['reports'];pos={x['study_uid']:i for i,x in enumerate(packet)}
+# Clinical support/disagreement choices are literal, not derived from state agreement.
+choices={(2,0):'retained_state_disagreement',(5,1):'quote_expansion_supported_state_disagreement',(7,1):'supported_pending_root_adjudication',(8,0):'supported_pending_root_adjudication',(15,1):'supported_pending_root_adjudication',(19,1):'retained_state_disagreement',(33,0):'supported_pending_root_adjudication',(33,1):'supported_pending_root_adjudication',(42,1):'retained_state_disagreement',(43,0):'supported_pending_root_adjudication',(46,1):'retained_state_disagreement',(47,0):'supported_pending_root_adjudication',(47,1):'supported_pending_root_adjudication',(48,0):'supported_pending_root_adjudication'}
+props=json.loads((P/'proposed-errata.json').read_text())['proposed_errata'];records=[]
+for x in props:
+ i=pos[x['study_uid']];t=['Contusion','Fracture'].index(x['target']);k=i,t;reason=RETAINED.get(k) or EC.get(k) or RECONSIDER[k][2]
+ records.append({'packet_index':i,'study_uid':x['study_uid'],'target':x['target'],'first_proposed_item':x,'independent_assessment_status':choices[k],'personally_authored_assessment':reason,'accepted':False})
+assert len(records)==len(choices)==14
+with (S/'first-post-personal-assessment.json').open('x') as f:json.dump({'agent_id':'/root/last_twelve_visual_review','actual_distinct_first':'/root/quality_temporal_review','own_source_freeze':ref(O/'source-freeze.json'),'first_proposal_artifact':ref(P/'proposed-errata.json'),'first_completion':ref(P/'completion-manifest.json'),'scope':'Personally considered all100 first source/post/current cells and all14 explicit first proposals after own source freeze. These opinions do not accept or register corrections.','records':records,'no_global_qa_closure':True,'no_registry_changes':True},f,ensure_ascii=False,indent=2);f.write('\n')

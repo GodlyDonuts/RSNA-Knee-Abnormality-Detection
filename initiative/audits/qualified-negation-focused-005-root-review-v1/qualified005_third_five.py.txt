@@ -1,0 +1,38 @@
+"""Root's individually authored initial judgments after reading full005 sources10–14."""
+import json
+from qualified005_source_tools import N, freeze
+reports = json.loads((N / 'neutral-root-attention-001.json').read_text())['reports']
+
+def span(i, start, end):
+    s = reports[i]['report']
+    assert s.count(start) == 1
+    a = s.index(start)
+    return s[a:s.index(end, a) + len(end)]
+
+med0 = 'Medial meniscus:   Linear high signal extending to the inferior surface of the posterior horn extending into the body in keeping with nondisplaced horizontal tear. No definite extrusion.'
+fract1 = 'A small subarticular, horizontally oriented fracture line is noted at the medial tibial plateau, with accompanying surrounding marrow oedema like signal change but with no associated articular surface collapse being demonstrated.'
+fluid1 = "Diffuse grade 2/3 medial weightbearing articular cartilage damage, there is furthermore a moderate suprapatellar effusion that is communicating with a leaking, 5 cm maximal diameter Baker's cyst."
+normal1 = 'Grossly intact lateral meniscus, cruciate and lateral collateral ligaments, a grade 1 superficial MCL sprain is present.'
+cart1 = 'No other skeletal abnormality of note, minor, focal medial retropatellar articular cartilage damage.\nWell-maintained remaining patellofemoral and lateral weightbearing articular cartilage surfaces.'
+cart2 = 'Minor fibrillation of the hyaline articular cartilage in the lateral tibiofemoral compartment. Otherwise well maintained tricompartmental hyaline articular cartilage.'
+syn2 = span(2, 'Possibly represents a small focus of PVNS', 'There are no intra-articular soft tissue foci which demonstrate blooming artefact to suggest PVNS.')
+cart3 = span(3, 'Changements dégénératifs :', 'avec un œdème réactionnel de la moelle osseuse associé.')
+pf4 = 'There is mild - moderate thinning of the lateral patellar facet articular cartilage with minor underlying bony change. Normal trochlear articular cartilage.'
+judgments = [
+    ('X N P N U U U N X U N X',
+     ['', 'Medial collateral ligament:   Low-grade partial thickness tear of the superficial mid fibers of the medial collateral ligament.', med0, 'Lateral meniscus:   normal', 'Medial compartment: Mild chondrosis', 'Lateral compartment: Mild chondrosis', 'Patellofemoral joint: Mild chondrosis. Trace fluid in the patellofemoral compartment', 'Patellofemoral joint: Mild chondrosis. Trace fluid in the patellofemoral compartment', '', "Baker's cyst measuring up to 1.1 cm", 'Marrow:  Normal', ''],
+     'The cruciate section describes only PCL; do not transfer its historical low-grade injury to ACL. MCL is explicitly low grade. Definite medial horizontal surfacing tear is positive regardless of absent definite extrusion; lateral is normal. Mild chondrosis is uncalibrated in each compartment, and severe OA in the indication is not a current severity label. No/trace joint fluid stays below threshold; moderate pes-anserine bursal fluid is separate. Baker has only one1.1cm dimension, with no size grade. Marrow is directly normal, but fracture and synovial lining are unmentioned.'),
+    ('U N P U U N U P X U U U',
+     [normal1, 'a grade 1 superficial MCL sprain is present.', 'There is a complex degenerative tear through the posterior horn and root of the medial meniscus, with a predominantly radial component, with consequent significant medial extrusion at the level of the body.', normal1, 'Diffuse grade 2/3 medial weightbearing articular cartilage damage', cart1, cart1, fluid1, '', fluid1, fract1, fract1],
+     'Grossly intact ACL and lateral meniscus retain a qualified structural assessment; MCL grade1 is below threshold. Medial meniscal tear is definite. Diffuse medial grade2/3 damage omits a defined depth scale. Lateral cartilage is maintained; minor focal patellar damage with normal remaining PF surfaces does not itself quantify loss depth/region. Moderate effusion is explicit, while a leaking5cm maximum-diameter Baker has no volume/size grade; rupture is not a size upgrade. Fracture-associated edema is not a separate definite contusion and insufficiency-type fracture-line evidence lacks acute timing. No synovial-lining assessment.'),
+    ('N N N P N N N N U X U X',
+     ['Intact cruciate and collateral ligaments.'] * 2 + ['Intact medial meniscus.', 'Horizontal tear of the posterior horn of the lateral meniscus which breaches the inferior meniscal surface.', cart2, cart2, cart2, 'Small suprapatellar knee joint effusion.', syn2, '', 'No sinister bone marrow changes.', ''],
+     'Current ligaments and medial meniscus are intact, lateral meniscal surfacing tear definite. Minor lateral surface fibrillation with maintained remaining cartilage supports below-threshold lateral and normal medial/PF cartilage. Small effusion is below threshold. Initial possible PVNS/retropatellar soft-tissue focus is followed by recall where the focus is not readily visible and no blooming supports PVNS; preserve the full temporal workup as uncertain synovial-process evidence, not confirmed inflammatory synovitis or global synovial absence. No-sinister marrow is qualified. Baker and fracture are unmentioned. This source assessment does not override separately enforced report/image correspondence exclusion for this case.'),
+    ('N N N N U U U N X N U N',
+     ['Ligament croisé antérieur : Normal.', 'Ligament collatéral médial : Normal.', 'Ménisque médial : Normal.', 'Ménisque latéral : Normal.', cart3, cart3, cart3, 'Épanchement articulaire : Minuscule épanchement articulaire non significatif.', '', 'Kyste de Baker : Aucun.', cart3, 'Fractures :\nAucune.'],
+     'All named ligaments and menisci are directly normal. Compartmental OA/chondropathy adjectives and severe focal patellar/medial disease omit explicit depth and qualifying extent; no automatic grade conversion. Minuscule fluid is explicitly below threshold despite an added significance qualifier. Baker and fracture are directly absent. Reactive marrow edema at cartilage lesions remains informative uncertainty for impact contusion; normal remaining marrow excludes those exceptions. Popliteus ganglion is not Baker, and no inflamed lining is described.'),
+    ('N N N N N N U N X X X X',
+     ['Normal ACL, PCL, MCL and LCL.'] * 2 + ['Normal medial and lateral menisci. No evidence of tears.'] * 2 + ['The tibiofemoral articular cartilage is well preserved.'] * 2 + [pf4, 'There is a minor knee effusion.', '', '', '', ''],
+     'Named ligaments/menisci and TF cartilage are normal/preserved. Mild-to-moderate patellar thinning has no explicit thickness fraction, with normal trochlea; PF remains uncertain. Minor fluid is a directly small amount, below moderate/large. Minor underlying bony change is generic structure wording without marrow edema/signal or fracture-line assessment. Synovitis and Baker are unmentioned.')
+]
+freeze('third-five', 1, 0, judgments)

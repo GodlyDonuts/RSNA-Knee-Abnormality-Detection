@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/quality_temporal_review",
+  "at_utc": "2026-09-22T07:05:08.136617+00:00",
+  "failed_helper": "prepare_postfreeze_comparison.py",
+  "failed_helper_sha256": "662d78b526520ad7711a6a9e9ceb863237a5be2da9df057be466e5abab80d6dd",
+  "failure": "A mechanical assertion compared runtime semantic_qa and pending_semantic_qa lists directly with integer3; the runtime uses lists. All491 inspection equality checks preceding it passed. This is a helper representation mistake, not a clinical or registry failure.",
+  "correction": "New v2 helper uses len on both lists and permits only byte-exact reuse of the two neutral/proposal registry copies already created. Failed helper and all previous bytes preserved.",
+  "selected_current_cells_displayed_before_stop": 0,
+  "R_writes": false
+}

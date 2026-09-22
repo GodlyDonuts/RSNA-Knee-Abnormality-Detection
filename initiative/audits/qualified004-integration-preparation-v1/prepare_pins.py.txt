@@ -1,0 +1,93 @@
+"""Freeze finite existing input membership for the core78 integration preparation."""
+from pathlib import Path
+import hashlib
+import json
+import stat
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+B = P.parent
+R = W / 'work/recovered'
+V = B / 'qualified004-adjudication-independent-verification-v1'
+STAGES = [
+    'qualified-negation-focused-004-root-adjudication-v1',
+    'qualified-negation-focused-004-root-review-v1',
+    'qualified004-root-mechanical-comparison-491-v1',
+    'qualified-negation-focused-004-first-canonical-context-normalization-v1',
+    'qualified-negation-focused-004-independent-proposal-normalization-v1',
+    'qualified-negation-focused-004-independent-context-amendment-v1',
+    'qualified004-adjudication-independent-verification-v1',
+    'qualified004-mechanical-comparison-preparation-v1',
+    'qualified004-additional-neutral-source-packet-v1',
+]
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+entries = {}
+
+
+def add(path, expected=None, size=None):
+    path = path.resolve()
+    assert path.is_relative_to(W) and path.is_file() and not path.is_symlink()
+    digest = sha(path)
+    assert expected is None or digest == expected
+    assert size is None or size == path.stat().st_size
+    dest = None
+    if path.is_relative_to(B):
+        dest_path = Path('initiative/audits') / path.relative_to(B)
+        if dest_path.suffix == '.py':
+            dest_path = dest_path.with_suffix('.py.txt')
+        dest = str(dest_path)
+    elif path == W / 'work/qualified004-root-decisions-v1.json':
+        assert digest == '5204569b3e14329b69e5136b32132bdf04ee24f6b0b0308b12b0044468ed7bad'
+        dest = 'initiative/audits/qualified-negation-focused-004-root-adjudication-v1/qualified004-root-decisions-v1.json'
+    else:
+        assert path.is_relative_to(R)
+    item = {'path': str(path.relative_to(W)), 'sha256': digest, 'bytes': path.stat().st_size, 'mode': stat.S_IMODE(path.stat().st_mode), 'archive_path': dest}
+    assert entries.setdefault(item['path'], item) == item
+    return item
+
+
+assert sha(V / 'completion-manifest.json') == '59a52c19544f96abe6deeabcbc11967d3a4cbc8c459ee0a94da0675ad382ef85'
+core = json.loads((V / 'technical-verification.json').read_text())
+assert sha(V / 'technical-verification.json') == '98a82378f968fa7dd207e563bcbce7418c672a177861242d599c8b1f55b28e51'
+for row in core['bound_inputs']:
+    add(W / row['path'], row['sha256'], row['bytes'])
+stage_memberships = []
+for name in STAGES:
+    paths = sorted(path for path in (B / name).rglob('*') if path.is_file() and '__pycache__' not in path.parts)
+    assert paths
+    stage_memberships.append({'stage': name, 'files': [add(path)['path'] for path in paths]})
+for name in ['verify_context.py', 'prepare_context.py', 'prepare_pins.py']:
+    add(P / name)
+pub = R / 'initiative/audits/qualified003-verified491-publication-v1/preservation.json'
+add(pub, 'b3467a123a3d680b60ac6e8105e1e3de3608d66180227ce4512fe5baeecf5bb6')
+publication = json.loads(pub.read_text())
+for row in publication['files']:
+    add(R / row['path'], row['sha256'], row['bytes'])
+assert publication['agent_id'] == publication['session_id'] == publication['executed_by'] == '/root'
+result = {
+    'schema_version': 1,
+    'prepared_by': '/root/duplicate_consistency_review',
+    'base_git': 'fec046253168083514749226987dda5b6c2505ce',
+    'base_tree': '77321d30b1e6970c062e0a4c64791bc03b203638',
+    'base_git_files': 10020,
+    'base_registry_sha256': '685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2',
+    'base_corrections': 491,
+    'supported_new': 78,
+    'expected_core_result': 569,
+    'case_groups': {'first': 14, 'second': 62, 'second-context-01': 1, 'second-context-02': 1},
+    'pending_additional_root_proposals_excluded': 4,
+    'stage_memberships': stage_memberships,
+    'files': sorted(entries.values(), key=lambda row: row['path']),
+    'publication_preservation_receipt': str(pub.relative_to(W)),
+    'known_work_decisions_alias': {'original': 'work/qualified004-root-decisions-v1.json', 'equal_stage_copy': 'work/annotation-staging/qualified-negation-focused-004-root-adjudication-v1/qualified004-root-decisions-v1.json', 'sha256': '5204569b3e14329b69e5136b32132bdf04ee24f6b0b0308b12b0044468ed7bad'},
+    'clinical_values_changed': False,
+    'additional_assessor_outputs_included': False,
+}
+with (P / 'input-pins.json').open('x') as out:
+    out.write(json.dumps(result, indent=2) + '\n')
+print(json.dumps({'input_pins_sha256': sha(P / 'input-pins.json'), 'source_files': len(entries), 'fixed_complete_stages': len(STAGES), 'archive_candidates': sum(row['archive_path'] is not None for row in entries.values()), 'R_writes': False}))

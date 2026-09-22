@@ -1,0 +1,46 @@
+"""Original-author source-context amendment; one personally reread report, no registration."""
+from pathlib import Path
+import json,hashlib,sys
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[3];R=W/'work/recovered';A=W/'work/annotation-staging';N=A/'qualified-negation-focused-004-independent-proposal-normalization-v1';O=A/'qualified-negation-focused-004-independent-review-v1';P=A/'qualified-negation-focused-004-post-freeze-comparison-v1';AG='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_text())
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def ch(x):return hashlib.sha256(json.dumps(x,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+def save(n,x):
+ with (S/n).open('x') as f:json.dump(x,f,ensure_ascii=False,indent=2);f.write('\n')
+assert ref(N/'proposed-errata.json')['sha256']=='c37a8a29e96145c562f8f62cf8f88e2bce7d98b7e16637c12032409ac4c8a4a4'
+assert ref(N/'completion-manifest.json')['sha256']=='bf85658f1bdb6ed78b494a7b6a52774b7ebce10318d658b3eb5b415f64031e67'
+protected=obj(N/'completion-manifest.json')['files']+obj(N/'completion-manifest.json')['protected_originals']+[ref(N/'completion-manifest.json')]
+for x in protected:assert ref(W/x['path'])==x
+allnorm=obj(N/'proposed-errata.json');old=next(x for x in allnorm['proposed_errata'] if x['case']=='037:49' and x['target']=='Fracture');assert old['original_proposal_index']==6 and old['proposed_state']=='negative'
+sp=R/old['source_path'];src=obj(sp)[old['index']];assert ref(sp)['sha256']==old['source_sha256'];assert src['study_uid']==old['study_uid'];assert hashlib.sha256(src['report'].encode()).hexdigest()==old['report_utf8_sha256']
+# Explicit personal quote selection after full-report rereading, not automated clinical inference.
+start='Lateral femoral kondildeki kemik adası 6 mm çapında.';end='Eklem kıkırdakları ve kemikler bunların dışında normal.'
+assert src['report'].count(start)==src['report'].count(end)==1
+quote=src['report'][src['report'].index(start):src['report'].index(end)+len(end)];assert quote in src['report'] and quote.endswith(old['source_quote'])
+evidence_reason='I personally reread this entire original report after root identified that my short otherwise-normal-bones quote omitted its referent. I retain the original negative state and exact original state reason. The two named bone islands, the intraosseous ganglion and cartilage-associated subchondral fibrovascular changes are characterized exceptions; the following statement explicitly calls the remaining bones normal. The earlier quote concealed those exceptions on which my reasoning depends. Extend the single contiguous quote from the lateral femoral 6 mm bone-island sentence through the otherwise-normal-bones sentence, preserving exact spacing, both bone islands, the ganglion and fibrovascular context. This is a source-scope evidence amendment, not a new state choice or clinical acceptance.'
+new=dict(old);new['source_quote']=quote;new['evidence_reason']=evidence_reason
+assert {k:v for k,v in new.items() if k not in {'source_quote','evidence_reason'}}=={k:v for k,v in old.items() if k not in {'source_quote','evidence_reason'}}
+regp=R/'initiative/reviews-v2/adjudications/registry.json';regref=ref(regp);assert regref['sha256']=='685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2';assert regp.read_bytes()==(N/'registry-at-normalization491.json').read_bytes()
+acc={}
+for e in obj(regp)['cases']:
+ cp=R/e['path'];assert ref(cp)['sha256']==e['sha256']
+ for c in obj(cp)['changes']:assert (c['study_uid'],c['target']) not in acc;acc[c['study_uid'],c['target']]=c
+assert len(acc)==491 and (old['study_uid'],old['target']) not in acc
+sys.path.insert(0,str(R));from rsna.labels import source_reports_fingerprint
+sources={}
+for cp in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ for x in obj(cp):assert set(x)=={'study_uid','report'} and x['study_uid'] not in sources;sources[x['study_uid']]=x['report']
+canon=source_reports_fingerprint(sources);assert len(sources)==4407 and canon==allnorm['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+rub=ref(R/'protocols/report_weak_v2.md');assert rub['sha256']==allnorm['rubric_sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+save('neutral-original-full-source.json',{'study_uid':src['study_uid'],'source_path':old['source_path'],'source_sha256':old['source_sha256'],'source_index_zero_based':old['index'],'report_sha256':old['report_utf8_sha256'],'report':src['report']})
+save('original-normalized-item.json',old)
+save('amendment-assessment.json',{'agent_id':AG,'session_id':AG,'recorded_at_utc':datetime.now(timezone.utc).isoformat(),'status':'original_author_endorsed_evidence_context_amendment_pending_root_acceptance','personal_full_source_reread':True,'original_proposal':ref(P/'unintegrated-proposals.json'),'full73_normalization':ref(N/'proposed-errata.json'),'original_source_freeze':ref(O/'source-freeze.json'),'original_initial_reconsiderations':ref(O/'pre-freeze-own-reconsiderations.json'),'original_postfreeze_reconsiderations':ref(P/'own-postfreeze-reconsiderations.json'),'original_disposition_freeze':ref(P/'second-comparison-freeze.json'),'source':ref(S/'neutral-original-full-source.json'),'old_normalized_item':ref(S/'original-normalized-item.json'),'same_negative_state':True,'original_reason_unchanged':True,'personally_authored_amendment_reason':evidence_reason,'postfreeze_exposure':'Root explicitly supplied this case/target and the contextual quote concern, plus its supporting opinion, after both my original source/disposition freeze and the full73 technical normalization. This reread is not independent of that feedback. I personally checked the entire original source; no root assessment artifact was opened. During the separate026 source pass this side task concerns source037:49, outside its fixed048–052-era selected positions; exact nonoverlap is mechanically checked below.','actual_registry':regref,'registered_changes':491,'selected_key_overlap':False,'canonical_runtime_function_reexecuted':True,'source_reports_sha256':canon,'rubric':rub,'no_new_clinical_state_choice':True,'no_registry_or_original_writes':True,'accepted':False})
+packet026=obj(A/'bone-observed-026-independent-review-v1/neutral-source-packet.json')['reports'];assert old['study_uid'] not in {x['study_uid'] for x in packet026}
+save('proposed-errata-context-amendment.json',{'schema_version':1,'agent_id':AG,'session_id':AG,'stage':'wording004_original_author_one_item_evidence_context_amendment','status':'one_context_amendment_pending_root_acceptance_not_additional_duplicate_key','source_reports_sha256':canon,'rubric_version':'report-weak-v2.0','rubric_sha256':rub['sha256'],'neutral_source_packet_sha256':allnorm['neutral_source_packet_sha256'],'n_changes':1,'n_studies_with_proposals':1,'original_full73':ref(N/'proposed-errata.json'),'supersession_scope':'For future independently accepted integration, replace only original proposal6 source_quote and evidence_reason with this item. Keep original73 and its normalization immutable; this is not a74th proposed key, a state reconsideration, or an accepted correction. Embedded original_record remains the literal historical item.','original_source_freeze':ref(O/'source-freeze.json'),'original_disposition_freeze':ref(P/'second-comparison-freeze.json'),'amendment_assessment':ref(S/'amendment-assessment.json'),'actual_registry':regref,'registered_changes_at_amendment':491,'accepted':False,'registry_changed':False,'proposed_errata':[new]})
+save('exact-amendment-comparison.json',{'agent_id':AG,'original_full73':ref(N/'proposed-errata.json'),'original_item':ref(S/'original-normalized-item.json'),'amended_proposal':ref(S/'proposed-errata-context-amendment.json'),'changed_fields':['source_quote','evidence_reason'],'unchanged_all_other_item_fields':True,'original_record_still_literal':new['original_record']==old['original_record'],'original_before_state_evidence_and_proposed_state_and_reason_exact':True,'old_item_sha256':ch(old),'new_item_sha256':ch(new),'old_quote_sha256':hashlib.sha256(old['source_quote'].encode()).hexdigest(),'new_quote_sha256':hashlib.sha256(quote.encode()).hexdigest(),'new_quote_contiguous_source_match':True,'no_overlap_with_source_only026_selection':True,'current491_unchanged_no_key_overlap':True,'scope':'An explicitly disclosed evidence amendment, never a retroactive rewrite of the source freeze or normalization.'})
+for x in protected:assert ref(W/x['path'])==x
+assert ref(regp)==regref
+files=[ref(p) for p in sorted(S.iterdir()) if p.is_file()];save('completion-manifest.json',{'agent_id':AG,'session_id':AG,'files':files,'protected_originals':protected,'accepted':False,'registry_changed':False,'clinical_state_changes':0,'explicit_evidence_context_amendments':1})
+assert all(ref(W/x['path'])==x for x in obj(S/'completion-manifest.json')['files'])
+print(json.dumps({'proposal':ref(S/'proposed-errata-context-amendment.json'),'comparison':ref(S/'exact-amendment-comparison.json'),'manifest':ref(S/'completion-manifest.json'),'members':len(files)},indent=2))

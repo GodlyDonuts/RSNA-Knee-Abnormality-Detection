@@ -1,0 +1,47 @@
+"""Root's individually authored initial judgments after reading full005 sources0–4."""
+import json
+from qualified005_source_tools import N, freeze
+reports = json.loads((N / 'neutral-root-attention-000.json').read_text())['reports']
+
+def span(i, start, end):
+    s = reports[i]['report']
+    assert s.count(start) == 1 and end in s[s.index(start):]
+    a = s.index(start)
+    b = s.index(end, a) + len(end)
+    return s[a:b]
+
+lig0 = '∆εν αναγνωρίζονται παθολογικά ευρήµατα από τον έλεγχο των µηνίσκων, των χιαστών και πλαγίων συνδέσµων.'
+tf0 = 'Μικρά πλάγια επιχείλια οστεόφυτα αναδεικνύονται σε αµφότερα τα ηµιδιαµερίσµατα, χωρίς ωστόσο στένωση του µεσάρθριου ή εικόνα χονδροπάθειας ισοϋψώς.'
+pf0 = 'Αναγνωρίζεται ολικού πάχους απώλεια του αρθρικού χόνδρου στην επιγονατιδοµηριαία συµβολή µε σηµαντική στένωση του µεσάρθριου διαστήµατος ισοϋψώς και αρχόµενες υπαρθρικές κύστεις στον οστικό µυελό της επιγονατίδας.'
+cont0 = 'Μόλις υποσηµαίνεται περιοχή οιδήµατος οστικού µυελού έσω µηριαίου κονδύλου προσθίως (τραυµατικής αρχής?).'
+med1 = span(1, 'Αναγνωρίζονται έντονες', '2.3 Χ 0.9 cm.')
+lat1 = span(1, 'Μικρότερης έκτασης', 'οπισθίου κέρατος.')
+pf1 = span(1, 'Αναγνωρίζονται έντονες', 'Εντός του φυσιολογικού ελέγχεται ο λοιπός αρθρικός χόνδρος.')
+cont1 = span(1, 'Αναγνωρίζονται έντονες', 'Με σήµα εντός του φυσιολογικού ελέγχεται ο λοιπός οστικός µυελός.')
+men2 = span(2, '> High signal intensity', '3. Myxoid degeneration of medial and lateral meniscus')
+oa2 = '> Spur formation in left knee joint and patella with subchondral edema and cysts, indicating osteoarthritis.'
+oa3 = '> Spur formation and subchondral bone marrow edema of knee and irregular thining of intra-articular cartilage and some intra-articular loose bodies, reflecting osteoarthritis of knee, more severe at patellofemoral joint and lateral femorotibial joint .'
+syn3 = '> Joint effusion and suprapatellar bursitis with suprapatellar and medial plicae; hypertrophy of the synovium, indicative of synovitis. Small Baker\'s cyst'
+med4 = span(4, 'En corrélation avec les radiographies', 'à la surface articulaire inférieure.')
+medoa4 = span(4, 'Également dans l’intervalle', 'Ostéophytes marginaux modérés.')
+latmen4 = 'Légers changements de signal au sein de la corne antérieure du ménisque externe suggérant des changements de nature mucoïde dégénératifs. Pas de franche déchirure notée.'
+latoa4 = 'Changements dégénératifs légers à modérés au compartiment fémoro-tibial externe avec atténuation/fissure chondrale partielle à la surface portante et petits ostéophytes marginaux associés.'
+pfoa4 = span(4, 'L’alignement patellofémoral', 'Petits ostéophytes marginaux.')
+judgments = [
+    ('N N N N N N U N X X U X',
+     [lig0, lig0, lig0, lig0, tf0, tf0, pf0, '∆εν παρατηρείται ενδαρθρική συλλογή υγρού.', '', '', cont0, ''],
+     'No pathological findings is a direct abnormality denial for named ligaments and menisci, unlike no noteworthy/significant findings. Both TF compartments explicitly lack chondropathy despite osteophytes. PF full-depth loss is definite but region extent is unspecified. Joint fluid is directly absent. Possible traumatic focal marrow edema remains uncertain; normal remaining marrow does not negate the exception. No synovial lining, Baker collection or acute fracture assessment.'),
+    ('N N P P U U N U X X N X',
+     ['Φυσιολογικά απεικονίζονται οι χιαστοί και πλάγιοι σύνδεσµοι.'] * 2 + [med1, lat1, med1, lat1, pf1, 'Χωρίς αξιόλογη ενδαρθρική συλλογή υγρού.', '', '', cont1, ''],
+     'Ligaments are explicitly normal. Medial meniscal architectural disruption plus subluxation is abnormal morphology; lateral substantial meniscal mass loss is definite despite only possible folding. These are more than isolated positional variation. Medial full-depth and lateral partial-depth cartilage loss lack a defined qualifying region/fraction; severity of the mixed degeneration is not an extent measurement. Both TF exceptions precede normal remaining cartilage, supporting PF negative. No noteworthy effusion remains qualified. Named degenerative cysts with normal remaining marrow and no edema support the marrow negative; parameniscal/anterior ganglion cysts and posterior osteochondromatosis body do not establish Baker or inflamed lining. No fracture assessment.'),
+    ('U X N N U U U P X X U U',
+     ['> The contour of anterior and posterior cruciate ligaments appearing within normal limit', '', men2, men2, oa2, oa2, '> Full thickness cartilage loss of patella, suggestive of chondromalacia', '> Large amount of joint effusion with suprapatellar bursitis', '', '', oa2, '> Bony fragement in posterior knee joint, suspecious of loose body.'],
+     'ACL has only normal-appearing contour; no collateral assessment. Final impression affirmatively classifies both menisci as myxoid degeneration, providing the internal-degeneration interpretation beyond the qualified body description; no competing tear/morphology is described. General knee OA leaves TF localization/depth/extent unresolved, and full-depth patellar loss lacks extent. Large effusion is explicit; bursitis does not establish inflamed lining. Degenerative edema is not definite impact contusion. A described bone fragment with only suspected loose-body identity is informative but supplies neither acute fracture evidence nor exclusion. No posterior fluid collection.'),
+    ('N U U N U U U U P N U X',
+     ['> The contour of ACL in a straight line and increase signal intensity inside on F/S T2WI, in favor of grade 1 injury or mucoid degeneration.', '> Both medial & lateral collateral ligaments appear to be within normal.', '> Small size of medial meniscal root with increased signal  on F/S T2WI, R/O tear.', 'Linear signal intensity in anterior horn of lateral meniscus, without significant extending into the surface, in favor of  grade 2 intrasubstance signal , maybe due to degeneration.', oa3, oa3, oa3, syn3, syn3, "Small Baker's cyst", oa3, ''],
+     'Straight-contour ACL with grade1 injury versus mucoid degeneration supplies a below-severe injury pattern, without disruption. Collaterals only appear normal. Small medial root with rule-out tear is equivocal; lateral signal is affirmatively classified intrasubstance with uncertainty in degenerative cause. General irregular cartilage thinning and relative lateral/PF predominance do not supply loss fraction/extent for any compartment. Joint fluid is unsized, synovial hypertrophy with direct synovitis is positive, Baker is explicitly small. Degenerative subchondral edema remains uncertain contusion. Named loose bodies without an acute cortical/line assessment do not establish a fracture statement.'),
+    ('N N P U U U U N X U X X',
+     ['Les ligaments croisés antérieur et postérieur sont intacts sans déchirure.', 'Le ligament collatéral interne est intact sans déchirure.', med4, latmen4, medoa4, latoa4, pfoa4, 'Il y a un petit épanchement intra-articulaire.', '', 'Pas de kyste de Baker significatif avec un liséré de liquide au sein du récessus poplité.', '', ''],
+     'Cruciates and MCL are intact without tear. Definite new radial and stable horizontal medial tears remain positive current findings; only the meniscal ossicle is suspected. Lateral signal suggests mucoid degeneration and no frank tear, without a definite isolated-intrasubstance classification. Medial transfixing cartilage loss and PF transfixing fissures lack explicitly qualifying regional extent; lateral partial loss lacks depth. Small fluid is below threshold. Qualified Baker absence is not graded by separate thin popliteal-recess fluid. Reactive subchondral changes and a small intraosseous cyst have no marrow-edema/contusion assertion; suspected meniscal ossicle is not an acute fracture assessment. Synovitis is unmentioned.')
+]
+freeze('first-five', 0, 0, judgments)

@@ -2,26 +2,34 @@
 
 ## Current corrective run
 
-The registry now contains 491 active corrections. Wording003 contributes 66
-new accepted changes: 51 negative-to-uncertain, five uncertain-to-unmentioned,
-one uncertain-to-negative, one uncertain-to-positive, one negative-to-unmentioned,
-and seven evidence-only changes. All 425 prior whole objects, four selected
-overlaps and three retirements are unchanged. Root froze 540 judgments across 45
-full sources before case findings; five later state reconsiderations are explicit.
-Both original readers' proposals and the two second/one first rejections remain
-preserved. One additional root/assessor disagreement is unresolved and excluded.
-The independent replay found no conflicts across 54 identical-report groups / 204
-reports. See [adjudications.md](adjudications.md) for exact evidence.
+The registry now contains 569 active corrections. Wording004 adds 78: 14
+first-reader proposals, 62 second-reader proposals and two second-reader proposals
+with separate original-author quote amendments. All 491 earlier whole correction
+objects and three retirements remain unchanged. Root froze 552 judgments across
+46 full sources before current case findings, with 27 subsequent reconsiderations.
+All 63 first and 73 second original proposals, nine second rejections and four
+first state rejections are preserved. Independent replay verifies the exact
+additions and zero conflicts across 54 identical-report groups / 204 reports.
+See [adjudications.md](adjudications.md) for evidence.
 
-All original 4,407 reports have two completed passes. Priority cartilage
-adjudication is complete; both bone passes now cover 1,250 priority reports each.
-Root wording004 has frozen all 46 sources / 552 judgments before current case
-findings; its comparison is pending. The fixed registry362 ledger and finite
-closure map remain historical evidence, supplemented by later snapshots.
+Four additional root proposals received a distinct assessment and were rejected.
+Root then reread the three complete sources and explicitly withdrew all four,
+recording three uncertainty-to-negative and one positive-to-uncertain later
+reconsiderations. No original judgment was rewritten and no extra correction
+was registered. The effective later root resolution matches all 552 annotations
+at 569. The older wording003 extra disagreement for 026:03 Lateral OA remains
+unresolved and unregistered.
 
-The latest verified publication contains 425 corrections at Git `a9b388f6` /
-private HF `b57d7525`, with all 9,530 files independently reconstructable. Its
-receipt is archived. This local 491 milestone requires its own verified receipt.
+All 4,407 original reports have two passes. Priority cartilage adjudication is
+complete. Both bone readers completed source and comparison passes through 028
+(1,450 reports each). FIRST028 preserves its original491 comparison and a later
+569 rebase; SECOND028 compares against actual569. Root wording005 has all
+48 sources / 576 initial judgments frozen; its comparison and wording006 remain.
+The fixed registry362 ledger and closure map remain historical evidence.
+
+The latest verified publication contains 491 corrections at Git `fec04625` /
+private HF `d2804e1d`, with all 10,020 files reconstructed by two actual executors.
+Its receipt is archived. This local 569 milestone requires its own publication.
 All three semantic QA gates, final export, leakage/mask and actual training checks
 remain pending. After readiness, the expanded mission requires a competitive
 training strategy and experiment plan; see

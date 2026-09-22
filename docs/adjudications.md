@@ -77,7 +77,23 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry contains **491 active accepted target corrections**. Wording003
+The registry contains **569 active accepted target corrections**. Wording004
+adds 78 in four author-preserving cases: FIRST14, SECOND62 and two separate
+original-author context amendments. All 491 earlier whole correction objects and
+three retirements remain unchanged. The [root integration](../initiative/audits/qualified-negation-focused-004-integration-v1/complete569-integration-validation.json)
+and [independent replay](../initiative/audits/qualified004-integration-independent-verification-v1/independent-integration-validation.json)
+verify those exact additions and zero conflicts across 54 identical-report groups
+/ 204 reports. All 552 initial source judgments, 27 subsequent root
+reconsiderations, 63 first/73 second proposals and retained rejections are preserved.
+
+The four additional root proposals were separately rejected, then explicitly
+withdrawn after root reread the sources. The [later resolution](../initiative/audits/qualified004-additional-root-resolution-v1/root-later-resolution.json)
+preserves four further reconsiderations and proves all 552 effective later states
+and quotes match 569. It adds no registry correction and does not rewrite the
+original integration's 548-match/four-pending history. The older wording003 extra
+disagreement remains open. All three global semantic gates remain pending.
+
+The preceding registry contained **491 active accepted target corrections**. Wording003
 adds 64 second-reader changes and two first-reader changes, while preserving all 425
 prior whole objects, four selected overlaps and three earlier retirements. All 540
 root source judgments preceded the current comparison; five later state changes

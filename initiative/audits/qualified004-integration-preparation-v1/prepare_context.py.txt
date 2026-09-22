@@ -1,0 +1,23 @@
+"""Derive a read-only callable from the sealed passed technical verifier."""
+from pathlib import Path
+import hashlib
+import json
+
+P = Path(__file__).resolve().parent
+V = P.parent / 'qualified004-adjudication-independent-verification-v1'
+source = V / 'verify_adjudication.py'
+raw = source.read_bytes()
+assert hashlib.sha256(raw).hexdigest() == '05b5aa531d3931c3af39dbcb2052d1e2dcaa22c1281edee4c3d274f763400ba7'
+text = raw.decode()
+header, body = text.split('started = datetime.now(timezone.utc).isoformat()\n', 1)
+body, unused_writer = body.split("scanner_path = B / 'checkpoint-delta-helper-v2-v1/checkpoint_delta.py'\n", 1)
+header = header.split('def write(name, value):\n', 1)[0]
+header = header.replace('Independent technical validation of root\'s authored004 serialization; no adjudication.', 'Read-only current491 context, derived from the sealed passed technical verifier.')
+function = "def check_all(workspace):\n    global bound, quote_checks, reports\n    assert workspace.resolve() == W\n    bound = {}\n    quote_checks = 0\n    started = datetime.now(timezone.utc).isoformat()\n"
+function += ''.join('    ' + line + '\n' if line else '\n' for line in body.splitlines())
+function += "    return dict(W=W, B=B, R=R, D=D, G=G, M=M, F=F, S=S, A=A, bound=dict(bound), registry_path=registry_path, runtime=runtime, reports=reports, original=original, effective=effective, old=old, case_objects=case_objects, rows=rows, first_doc=first_doc, second_doc=second_doc, first=first, second=second, amendments=amendments, raw_second=raw_second, disposition=disposition, first_assessment=first_assessment, second_assessment=second_assessment, first_selected=first_selected, second_selected=second_selected, new_first=new_first, new_second=new_second, new=new, pending=pending, additional=additional, retirement=retirement, groups=groups, anticipated=anticipated, quote_checks=quote_checks)\n"
+result = header + function
+compile(result, str(P / 'verify_context.py'), 'exec')
+with (P / 'verify_context.py').open('xb') as out:
+    out.write(result.encode())
+print(json.dumps({'context_sha256': hashlib.sha256(result.encode()).hexdigest(), 'origin_sha256': hashlib.sha256(raw).hexdigest(), 'writer_removed': True, 'context_executed': False}))

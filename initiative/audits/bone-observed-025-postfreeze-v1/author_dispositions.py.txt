@@ -1,0 +1,105 @@
+"""Assemble personally authored bone025 decisions; no clinical rule engine."""
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+S = P.parent / 'bone-observed-025-source-review-v1'
+AGENT = '/root/quality_temporal_review'
+
+def read(p):
+    return json.loads(p.read_text())
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def bind(p):
+    return {'path': str(p.relative_to(W)), 'sha256': sha(p), 'bytes': p.stat().st_size}
+
+def write(name, obj):
+    path = P / name
+    path.parent.mkdir(exist_ok=True)
+    with path.open('x') as f:
+        f.write(json.dumps(obj, ensure_ascii=False, indent=2) + '\n')
+
+# Individual source decisions below are authored by the named agent, after the
+# full source freeze and personally reading every selected original/current cell.
+AUTHORED = read(P / 'postfreeze-authored-decisions.json')
+REASONS = {(ordinal, target): reason for ordinal, target, reason in AUTHORED['reasons']}
+REASON_CLARIFICATIONS = {tuple(k) for k in AUTHORED['reason_clarifications']}
+STATE_RECONSIDERATIONS = {(r['ordinal'], r['target']): r['state'] for r in AUTHORED['state_reconsiderations']}
+EXPANSIONS = {(r['ordinal'], r['target']): r for r in AUTHORED['evidence_expansions']}
+EVIDENCE_ONLY = {tuple(k) for k in AUTHORED['evidence_only_proposals']}
+
+def main():
+    assert sha(S / 'source-freeze.json') == '382b9a5276700dee133525f4580e0b471285041238f1b8d475c48bfa1af71802'
+    c = read(P / 'all100-bound-comparison.json')
+    assert c['registered_changes'] == 491
+    sources = read(S / 'neutral-source-packet.json')['reports']
+    protected = [bind(p) for p in sorted(S.iterdir()) if p.is_file()]
+    prior = P.parent / 'bone-observed-024-postfreeze-v1/completion-manifest.json'
+    protected.append(bind(prior))
+    for item in read(prior)['files']:
+        assert sha(W / item['path']) == item['sha256']
+        protected.append(item)
+    write('protected-prior-bindings.json', {'schema_version': 1, 'agent_id': AGENT, 'files': protected, 'prior_stages_must_remain_unchanged': True})
+    rows, proposals, reconsiderations = [], [], []
+    for old in c['records']:
+        key = old['ordinal'], old['target']
+        own = old['own_source_frozen']
+        state, quote = own['state'], own['evidence']
+        reconsidered = key in STATE_RECONSIDERATIONS
+        if reconsidered:
+            state = STATE_RECONSIDERATIONS[key]
+        if key in EXPANSIONS:
+            expansion = EXPANSIONS[key]
+            if expansion.get('empty'):
+                quote = ''
+            elif expansion.get('use_current'):
+                quote = old['current_effective']['evidence']
+            else:
+                raise AssertionError('Unexpected expansion request')
+
+        reason = REASONS.get(key, 'I retain my personally authored source state after comparing the complete source, original review and selected current annotation. ' + own['rationale'])
+        if old['current_accepted_correction']:
+            reason += ' The existing accepted correction already supports this state and remains untouched; my source quotation is preserved as assessment evidence, not an additional evidence-change proposal.'
+        source = sources[old['ordinal']]
+        assert (state == 'not_mentioned' and quote == '') or (state != 'not_mentioned' and quote and quote in source['report'])
+        state_change = state != old['current_effective']['state']
+        evidence_only = key in EVIDENCE_ONLY
+        action = 'propose_state_change_pending_distinct_review' if state_change else 'propose_evidence_correction_pending_distinct_review' if evidence_only else 'retain_current_mask' if state in {'uncertain', 'not_mentioned'} else 'retain_current_observed_state'
+        row = {**old, 'first_postfreeze_judgment': {'state': state, 'evidence': quote, 'rationale': reason}, 'own_state_reconsidered': reconsidered, 'own_reason_clarified': key in REASON_CLARIFICATIONS, 'own_evidence_reconsidered': quote != own['evidence'], 'state_differs_from_current': state_change, 'evidence_only_proposal': evidence_only, 'action': action, 'current_report_observation_mask': int(old['current_effective']['state'] in {'positive', 'negative'}), 'proposed_report_observation_mask': int(state in {'positive', 'negative'}), 'distinct_bone025_reader_comparison_done': False, 'acceptance_or_registration': False}
+        rows.append(row)
+        if reconsidered or quote != own['evidence']:
+            reconsiderations.append(row)
+        if state_change or evidence_only:
+            assert old['current_accepted_correction'] is None
+            proposals.append({'ordinal': old['ordinal'], 'study_uid': old['study_uid'], 'target': old['target'], 'source_path': old['source_path'], 'source_sha256': old['source_sha256'], 'source_report_sha256': old['report_sha256'], 'index': old['source_index_zero_based'], 'artifact_path': old['original_review_path'], 'artifact_sha256': old['original_review_sha256'], 'original_state': old['original']['state'], 'original_evidence': old['original']['evidence'], 'before_state': old['current_effective']['state'], 'before_evidence': old['current_effective']['evidence'], 'proposed_state': state, 'source_quote': quote, 'reason': reason, 'kind': 'state_correction' if state_change else 'evidence_correction', 'proposer_agent_id': AGENT, 'source_freeze': bind(S / 'source-freeze.json'), 'existing_accepted_key_overlap': False, 'status': 'pending_distinct_source_review_and_root_adjudication', 'accepted': False})
+    common = {'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT, 'identity_kind': 'actual_codex_agent_task', 'completed_at_utc': datetime.now(timezone.utc).isoformat(), 'rubric_version': 'report-weak-v2.0', 'rubric_sha256': '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014', 'source_reports_sha256': c['source_reports_sha256'], 'source_freeze': bind(S / 'source-freeze.json'), 'source_assessment': bind(S / 'source-assessment-frozen.jsonl'), 'comparison': bind(P / 'all100-bound-comparison.json'), 'actual_registry': bind(P / 'registry-at-comparison.json'), 'actual_registered_changes': 491, 'historical_exposure_binding': bind(S / 'start.json'), 'exposure': 'All50 complete bone025 sources and100 own judgments were personally frozen before selected current025 annotation values. This agent assembled the exact source-only packet with actual1250 prior bindings and dynamic metadata. Five prior cartilage002 full-source overlaps, original/inherited context, full4407 discovery and earlier bone/qualified/cartilage work plus technical validator process-level annotation loading are disclosed in the bound source history. Earlier runtime checks and v17 opaque preservation scans loaded original/accepted records mechanically without selecting future025 case values. This separate comparison personally read all100 current/original cells; no other025 opinions were opened. This is not first-ever blindness, absolute process-level annotation isolation or an MRI reread.', 'other_bone025_reader_findings_opened': False, 'accepted_changes': [], 'registry_changed': False, 'gold_accessed': False, 'global_gate_closed': False}
+    masks = []
+    for r in rows:
+        if not r['current_report_observation_mask']:
+            masks.append({'ordinal': r['ordinal'], 'study_uid': r['study_uid'], 'target': r['target'], 'source_path': r['source_path'], 'source_index_zero_based': r['source_index_zero_based'], 'source_sha256': r['source_sha256'], 'report_sha256': r['report_sha256'], 'current_effective_state': r['current_effective']['state'], 'current_effective_evidence': r['current_effective']['evidence'], 'first_postfreeze_judgment': r['first_postfreeze_judgment'], 'required_final_report_loss_mask': 0, 'existing_accepted_correction': r['current_accepted_correction']})
+    counts = {'complete_reports': 50, 'all_cells_compared': 100, 'initial_source_vs_current_state_differences': sum(r['own_source_frozen']['state'] != r['current_effective']['state'] for r in rows), 'postfreeze_vs_current_state_differences': sum(r['state_differs_from_current'] for r in rows), 'own_state_reconsiderations': sum(r['own_state_reconsidered'] for r in rows), 'own_reason_clarifications': sum(r['own_reason_clarified'] for r in rows), 'own_evidence_reconsiderations': sum(r['own_evidence_reconsidered'] for r in rows), 'proposed_changes': len(proposals), 'proposed_state_changes': sum(p['kind'] == 'state_correction' for p in proposals), 'proposed_evidence_changes': sum(p['kind'] == 'evidence_correction' for p in proposals), 'pending_proposal_reports': len({p['study_uid'] for p in proposals}), 'retained_current_cells': sum(not r['state_differs_from_current'] and not r['evidence_only_proposal'] for r in rows), 'current_masked_cells': len(masks), 'retained_uncertain_cells': sum(r['current_effective']['state'] == 'uncertain' and not r['state_differs_from_current'] for r in rows), 'existing_accepted_corrections_preserved': sum(r['current_accepted_correction'] is not None for r in rows), 'distinct_reader_agreement_assessed': False}
+    write('all100-postfreeze-dispositions.json', {**common, 'counts': counts, 'records': rows})
+    write('own-reconsiderations.json', {**common, 'n_reconsiderations': len(reconsiderations), 'n_state_reconsiderations': sum(r['own_state_reconsidered'] for r in rows), 'n_evidence_reconsiderations': sum(r['own_evidence_reconsidered'] for r in rows), 'records': reconsiderations, 'original_source_freeze_preserved': True})
+    write('own-reason-clarifications.json', {**common, 'n_reason_clarifications': len(REASON_CLARIFICATIONS), 'scope': 'Explicit wording clarifications only; no own state or evidence change, and no new non-bone target judgments.', 'records': [r for r in rows if r['own_reason_clarified']]})
+    write('proposed-errata.json', {**common, 'status': 'proposed_not_accepted', 'n_changes': len(proposals), 'proposed_errata': proposals})
+    write('retained-masks-and-export-requirements.json', {**common, 'current_masked_cells': len(masks), 'records': masks, 'actual_final_export_checked': False, 'pending_state_change_mask_directions': {'observed_to_masked': sum(r['state_differs_from_current'] and r['current_report_observation_mask'] == 1 and r['proposed_report_observation_mask'] == 0 for r in rows), 'masked_to_observed': sum(r['state_differs_from_current'] and r['current_report_observation_mask'] == 0 and r['proposed_report_observation_mask'] == 1 for r in rows), 'masked_to_masked': sum(r['state_differs_from_current'] and r['current_report_observation_mask'] == 0 and r['proposed_report_observation_mask'] == 0 for r in rows), 'observed_to_observed': sum(r['state_differs_from_current'] and r['current_report_observation_mask'] == 1 and r['proposed_report_observation_mask'] == 1 for r in rows)}, 'requirement': 'Replay the actual registry at final export. Every current uncertain/not_mentioned cell requires zero report-loss mask unless a later explicit accepted correction changes it. Preserve correspondence and duplicate/gold exclusions independently. Any proposed change to an observed or masked state requires source-based adjudication before it can affect export. All current masks remain unchanged in this stage. No uncertain or missing cell may be automatically converted to negative, and reader agreement alone cannot authorize unmasking.'})
+    attention = {p['study_uid'] for p in proposals} | {r['study_uid'] for r in reconsiderations} | {r['study_uid'] for r in rows if r['own_reason_clarified']}
+    neutral = [r for r in sources if r['study_uid'] in attention]
+    details = [{'ordinal': i, 'study_uid': s['study_uid'], 'proposal_targets': [p['target'] for p in proposals if p['study_uid'] == s['study_uid']], 'own_reconsideration_targets': [r['target'] for r in reconsiderations if r['study_uid'] == s['study_uid']], 'own_reason_clarification_targets': [r['target'] for r in rows if r['study_uid'] == s['study_uid'] and r['own_reason_clarified']]} for i, s in enumerate(sources) if s['study_uid'] in attention]
+    write('attention-selection-details.json', {**common, 'reports': len(neutral), 'records': details, 'scope': 'Pending first-reader proposals, own reconsiderations and explicit reason clarifications only. Current uncertain/missing cells outside this selection retain exact export-mask requirements; omission is not global clinical clearance.'})
+    packets = []
+    for offset in range(0, len(neutral), 10):
+        name = f'neutral-root-source-packets/packet-{offset // 10:03d}.json'
+        write(name, neutral[offset:offset + 10])
+        packets.append({**bind(P / name), 'n_reports': len(neutral[offset:offset + 10])})
+    write('neutral-root-packet-manifest.json', {'schema_version': 1, 'agent_id': AGENT, 'source_packet': bind(S / 'neutral-source-packet.json'), 'reports': len(neutral), 'max_reports_per_packet': 10, 'packets': packets, 'source_and_identity_only': True})
+    write('postfreeze-disposition-freeze.json', {**common, 'counts': {**counts, 'neutral_attention_reports': len(neutral)}, 'stage': 'first_bone025_postfreeze_comparison_preserved_for_distinct_source_review', 'files': {p.name: sha(p) for p in sorted(P.glob('*.json'))}, 'authoring_helper': bind(Path(__file__).resolve()), 'root_adjudication_pending': True, 'no_distinct_reader_agreement_claim': True})
+    print(json.dumps({'counts': counts, 'freeze_sha256': sha(P / 'postfreeze-disposition-freeze.json'), 'neutral_manifest_sha256': sha(P / 'neutral-root-packet-manifest.json')}, indent=2))
+
+if __name__ == '__main__':
+    main()

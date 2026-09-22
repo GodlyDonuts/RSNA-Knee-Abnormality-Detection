@@ -1,0 +1,34 @@
+"""Package eighteen personally considered first proposals; statuses are literal authored choices."""
+from pathlib import Path
+import json,hashlib
+from authored_choices import RETAINED,EC,RECONSIDER,EVIDENCE
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';P=A/'bone-observed-027-postfreeze-v1';O=A/'bone-observed-027-independent-review-v1'
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+packet=json.loads((O/'neutral-source-packet.json').read_text())['reports'];pos={x['study_uid']:i for i,x in enumerate(packet)}
+choices={
+ (9,1):'supported_after_explicit_own_state_reconsideration_pending_root',
+ (10,1):'retained_state_disagreement',
+ (12,1):'retained_state_disagreement',
+ (20,0):'supported_pending_root_adjudication',
+ (27,1):'retained_state_disagreement',
+ (30,1):'retained_state_disagreement',
+ (31,0):'supported_pending_root_adjudication',
+ (31,1):'supported_pending_root_adjudication',
+ (33,1):'retained_state_disagreement',
+ (37,0):'supported_pending_root_adjudication',
+ (37,1):'quote_expansion_supported_state_disagreement',
+ (39,0):'supported_after_explicit_own_quote_reconsideration_pending_root',
+ (40,0):'supported_context_with_own_longer_quote_preserved',
+ (41,1):'state_supported_first_quote_inadequate_own_complete_context_proposed',
+ (42,1):'supported_pending_root_adjudication',
+ (45,1):'retained_state_disagreement',
+ (46,0):'supported_after_explicit_own_quote_reconsideration_pending_root',
+ (46,1):'supported_pending_root_adjudication',
+}
+props=json.loads((P/'proposed-errata.json').read_text())['proposed_errata'];records=[]
+for x in props:
+ i=pos[x['study_uid']];t=['Contusion','Fracture'].index(x['target']);k=i,t
+ reason=RETAINED.get(k) or (RECONSIDER[k][2] if k in RECONSIDER else None) or EC.get(k) or EVIDENCE[k]
+ records.append({'packet_index':i,'study_uid':x['study_uid'],'target':x['target'],'first_proposed_item':x,'independent_assessment_status':choices[k],'personally_authored_assessment':reason,'accepted':False})
+assert len(records)==len(choices)==18
+with (S/'first-post-personal-assessment.json').open('x') as f:json.dump({'agent_id':'/root/last_twelve_visual_review','session_id':'/root/last_twelve_visual_review','actual_distinct_first':'/root/quality_temporal_review','own_source_freeze':ref(O/'source-freeze.json'),'first_proposal_artifact':ref(P/'proposed-errata.json'),'first_completion':ref(P/'completion-manifest.json'),'scope':'Personally considered all100 original/current/own/first source/post cells, all first source/post rationales and all18 explicit first proposals after own source freeze. These opinions do not accept or register corrections.','records':records,'no_global_qa_closure':True,'no_registry_changes':True},f,ensure_ascii=False,indent=2);f.write('\n')

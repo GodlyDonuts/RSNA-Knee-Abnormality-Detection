@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "agent_id": "/root/duplicate_consistency_review",
+  "session_id": "/root/duplicate_consistency_review",
+  "recorded_at_utc": "2026-09-22T06:10:50.226039+00:00",
+  "role": "Actual original FIRST004 author and current technical builder; not a new source assessor.",
+  "prior_exposure": "Historical FIRST004 full source judgments and own postfreeze comparisons, other completed source work, and opaque publication/integration byte access are preserved in earlier artifacts. No first-ever-blinding claim.",
+  "preparation_probe_error": {
+    "path": "work/annotation-staging/qualified-negation-focused-004-source-review-v1/source-assessment-frozen.json",
+    "sha256": "409a10957791027d9f4512054633efab5451e73dfafe18556c9faec8889a185b",
+    "mistake": "A one-off schema probe included the top-level reports field in its scalar metadata whitelist without checking its type. It serialized the entire historical first-source report array into the tool output. Tool truncation limited the model-visible content; no claim is made that every emitted report was personally reread during this preparation.",
+    "affected_content": "Historical original FIRST004 source states, quotes and rationales; no current491 selected cell values or root004 source judgments were printed.",
+    "disclosure": "Parent root was notified immediately with process-only details and no clinical findings.",
+    "correction": "probe_schema.py now checks scalar types before emitting whitelisted metadata; nested arrays emit lengths and field names only."
+  },
+  "current_preparation_limits": {
+    "root_full_source_assessment_case_values_opened_to_model": false,
+    "current491_selected_case_values_opened_to_model": false,
+    "root004_comparison_executed": false,
+    "clinical_judgments_authored": 0,
+    "root_or_readers_originals_modified": false
+  },
+  "later_execution_requires_explicit_root_trigger_after_publication": true
+}

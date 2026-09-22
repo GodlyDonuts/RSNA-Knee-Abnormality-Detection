@@ -1,0 +1,378 @@
+"""Independent technical validation of root's authored004 serialization; no adjudication."""
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+B = P.parent
+R = W / 'work/recovered'
+D = B / 'qualified-negation-focused-004-root-adjudication-v1'
+G = B / 'qualified-negation-focused-004-root-review-v1'
+M = B / 'qualified004-root-mechanical-comparison-491-v1'
+F = B / 'qualified-negation-focused-004-first-canonical-context-normalization-v1'
+S = B / 'qualified-negation-focused-004-independent-proposal-normalization-v1'
+A = B / 'qualified-negation-focused-004-independent-context-amendment-v1'
+AGENT = '/root/duplicate_consistency_review'
+REGISTRY = '685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+CANONICAL = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+bound = {}
+quote_checks = 0
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def pin(path, expected=None):
+    path = path.resolve()
+    assert path.is_relative_to(W) and path.is_file() and not path.is_symlink()
+    row = {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+    assert expected is None or row['sha256'] == expected, ('binding_hash', row['path'])
+    assert bound.setdefault(row['path'], row) == row
+    return row
+
+
+def ref(row):
+    name = Path(row['path'])
+    path = name if name.is_absolute() else (R / name if str(name).startswith(('initiative/', 'protocols/')) else W / name)
+    actual = pin(path, row['sha256'])
+    assert 'bytes' not in row or row['bytes'] == actual['bytes']
+    return path
+
+
+def read(path):
+    pin(path)
+    return json.loads(path.read_text())
+
+
+def refs(value):
+    if isinstance(value, dict):
+        if isinstance(value.get('path'), str) and 'sha256' in value:
+            ref(value)
+        for v in value.values():
+            refs(v)
+    elif isinstance(value, list):
+        for v in value:
+            refs(v)
+
+
+def idx(rows):
+    out = {(r['study_uid'], r['target']): r for r in rows}
+    assert len(out) == len(rows)
+    return out
+
+
+def ann(state, evidence):
+    return {'state': state, 'evidence': evidence}
+
+
+def git(*args):
+    return subprocess.check_output(['git', *args], cwd=R, text=True).strip()
+
+
+def quote(value, uid):
+    global quote_checks
+    assert value['state'] in {'positive', 'negative', 'uncertain', 'not_mentioned'}
+    if value['state'] == 'not_mentioned':
+        assert value['evidence'] == ''
+    else:
+        assert value['evidence'] and value['evidence'] in reports[uid]
+        quote_checks += 1
+
+
+def write(name, value):
+    raw = (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
+    scanner.Scanner(secrets).feed(raw)
+    with (P / name).open('xb') as out:
+        out.write(raw)
+    return {'path': str((P / name).relative_to(W)), 'sha256': sha(P / name), 'bytes': len(raw)}
+
+
+started = datetime.now(timezone.utc).isoformat()
+assert shutil.disk_usage(W).free > 20 * 2**30 + 64 * 2**20
+assert git('rev-parse', 'HEAD') == 'fec046253168083514749226987dda5b6c2505ce'
+assert git('rev-parse', 'HEAD^{tree}') == '77321d30b1e6970c062e0a4c64791bc03b203638'
+assert not git('diff', '--name-only') and not git('diff', '--cached', '--name-only')
+pin(D / 'completion-manifest.json', 'eef414988f446343bfbc5e07edb7efa232a9762f3896436be4c5d103eab8972d')
+pin(D / 'root-postfreeze-dispositions.json', '1c28ac5dc20db1634ca83248fedc84e541398c16f29d98f23e33bb4c4ced2d02')
+pin(D / 'additional-root-proposals.json', '7f0a979b00eeda4ad92365757533e5e95c1553776e4bbff45590c1ce79561bc3')
+pin(D / 'qualified004-root-decisions-v1.json', '5204569b3e14329b69e5136b32132bdf04ee24f6b0b0308b12b0044468ed7bad')
+pin(W / 'work/qualified004-root-decisions-v1.json', '5204569b3e14329b69e5136b32132bdf04ee24f6b0b0308b12b0044468ed7bad')
+pin(M / 'completion-manifest.json', '2f8979d9a72905306e9286c10b02e3b15a7fd57352aaa15175f38cdf9fe76c08')
+pin(G / 'source-freeze.json', '6c9137370c61e43bec5fb2c436a6149e398d5ab1953093d1f74066b09fb1ee1d')
+pin(G / 'full-source-assessment.json', 'fdc63b9c6eec09a0e92220e66cc6e5348604a142bdd3e768cfd50df20522b68c')
+pin(A / 'completion-supplement.json', 'effbf532c15dabf86673aa86b0e32eec86ead375a235bd14039cf8539cf3ceb7')
+for folder in [D, M, F, S, A, A / '037-49']:
+    manifest = read(folder / 'completion-manifest.json')
+    refs(manifest['files'] if 'files' in manifest else manifest['members'])
+refs(read(A / 'completion-supplement.json'))
+for e in read(D / 'validation.json')['protected_files']:
+    ref(e)
+for e in read(M / 'validation-and-preservation.json')['protected_inputs']:
+    ref(e)
+
+root_manifest = read(D / 'completion-manifest.json')
+decisions = read(D / 'qualified004-root-decisions-v1.json')
+freeze = read(G / 'source-freeze.json')
+source = read(G / 'full-source-assessment.json')
+exposure = read(G / 'postfreeze-case-findings-exposure.json')
+mechanical = read(M / 'all552-root-mechanical-comparison.json')
+disposition = read(D / 'root-postfreeze-dispositions.json')
+recons = read(D / 'root-explicit-reconsiderations.json')
+additional = read(D / 'additional-root-proposals.json')
+first_assessment = read(D / 'first-proposals-independent-assessment.json')
+second_assessment = read(D / 'second-proposals-independent-assessment.json')
+first_selected = read(D / 'selected-first-proposals.json')
+second_selected = read(D / 'selected-second-proposals.json')
+first_doc = read(F / 'proposed-errata.json')
+second_doc = read(S / 'proposed-errata.json')
+assert first_doc['agent_id'] == first_doc['session_id'] == AGENT
+assert second_doc['agent_id'] == '/root/last_twelve_visual_review'
+for document in [freeze, source, exposure, disposition, recons, additional, first_assessment, second_assessment, first_selected, second_selected, root_manifest]:
+    assert document['agent_id'] == document['session_id'] == '/root'
+for document in [disposition, recons, additional, first_assessment, second_assessment, first_selected, second_selected, root_manifest]:
+    assert document['source_reports_sha256'] == CANONICAL and document['rubric_sha256'] == RUBRIC
+    assert not document['gold_values_inspected'] and not document['global_semantic_qa_closed']
+    assert document['registered_corrections_at_review'] == 491
+    for field in ['root_source_freeze', 'root_source_assessment', 'decisions', 'mechanical_comparison', 'registry_before', 'original_author_amendments']:
+        refs(document[field])
+assert decisions['agent_id'] == '/root' and decisions['reports_personally_compared'] == 46 and decisions['judgments_personally_compared'] == 552
+assert decisions['source_freeze_sha256'] == sha(G / 'source-freeze.json') and decisions['comparison_sha256'] == sha(M / 'all552-root-mechanical-comparison.json')
+assert freeze['current004_reader_case_findings_opened'] is False and freeze['current004_selected_registry_rows_opened'] is False
+assert freeze['at_utc'] < mechanical['started_at_utc'] <= mechanical['completed_at_utc'] <= exposure['at_utc'] < disposition['created_at_utc']
+assert exposure['root_source_freeze_sha256'] == sha(G / 'source-freeze.json') and exposure['root_source_assessment_sha256'] == sha(G / 'full-source-assessment.json')
+parts = []
+for e in freeze['partial_assessments']:
+    parts.extend(read(ref(e))['records'])
+assert parts == source['records'] and len(parts) == 46
+refs(freeze)
+
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint, report_group
+from rsna.schema import TARGETS
+TARGETS = list(TARGETS)
+assert source['target_order'] == TARGETS and len(TARGETS) == 12
+reports, batches = {}, {}
+for path in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')):
+    records = read(path)
+    batches[str(path.relative_to(R))] = records
+    for row in records:
+        assert set(row) == {'study_uid', 'report'} and row['study_uid'] not in reports
+        reports[row['study_uid']] = row['report']
+assert len(reports) == 4407 and source_reports_fingerprint(reports) == CANONICAL
+registry_path = R / 'initiative/reviews-v2/adjudications/registry.json'
+pin(registry_path, REGISTRY)
+pin(R / 'protocols/report_weak_v2.md', RUBRIC)
+for name in ['rsna/adjudications.py', 'rsna/labels.py', 'rsna/schema.py']:
+    pin(R / name)
+runtime = inspect_adjudications(reports, R / 'initiative/reviews-v2/reviewed', R / 'protocols/report_weak_v2.md', R)
+assert runtime == read(M / 'current491-inspection.json') and runtime['n_changes'] == 491 and len(runtime['pending_semantic_qa']) == 3
+assert read(registry_path) == read(M / 'registry491-original.json')
+old = idx(runtime['changes'])
+case_objects = {}
+for e in read(registry_path)['cases']:
+    path = R / e['path']
+    pin(path, e['sha256'])
+    obj = read(path)
+    for change in obj['changes']:
+        key = change['study_uid'], change['target']
+        assert key not in case_objects
+        case_objects[key] = {'case_id': obj['id'], 'case_file': pin(path), 'original_change_object': change}
+archived_case_objects = read(M / 'all491-current-registered-case-objects.json')['records']
+assert len(case_objects) == len(archived_case_objects) == 491
+assert { (x['original_change_object']['study_uid'], x['original_change_object']['target']): x for x in archived_case_objects} == case_objects
+original = {}
+for path in sorted((R / 'initiative/reviews-v2/reviewed').glob('*-reviewed.jsonl')):
+    pin(path)
+    for row in map(json.loads, path.read_text().splitlines()):
+        for i, target in enumerate(TARGETS):
+            key = row['study_uid'], target
+            assert key not in original
+            original[key] = ann(row['states'][i], row['evidence'][i])
+assert len(original) == 4407 * 12
+effective = {**original, **{key: change['after'] for key, change in old.items()}}
+frozen = {}
+for ordinal, row in enumerate(source['records']):
+    uid = row['study_uid']
+    assert row['target_order'] == TARGETS and len(row['states']) == len(row['evidence']) == 12
+    assert row['source_sha256'] == sha(R / row['source_path'])
+    assert batches[row['source_path']][row['source_index_zero_based']] == {'study_uid': uid, 'report': reports[uid]}
+    assert row['report_sha256'] == hashlib.sha256(reports[uid].encode()).hexdigest()
+    for i, target in enumerate(TARGETS):
+        frozen[uid, target] = {'state': row['states'][i], 'evidence': row['evidence'][i], 'notes': row['notes'], 'ordinal': ordinal}
+rows, mr = idx(disposition['records']), idx(mechanical['records'])
+assert list(rows) == list(mr) == list(frozen) and len(rows) == 552
+assert not set(rows) & set(old)
+first, second = idx(first_doc['proposed_errata']), idx(second_doc['proposed_errata'])
+assert len(first) == 63 and len(second) == 73
+assert first_doc == read(M / 'first-proposals-original.json')
+raw_second = read(M / 'second-proposals-original.json')
+raw_second_records = idx(raw_second['records'])
+assert len(raw_second_records) == 73
+assert {key: p['original_record'] for key, p in second.items()} == raw_second_records
+amendments = {}
+for e in root_manifest['original_author_amendments']:
+    doc = read(ref(e))
+    assert doc['agent_id'] == '/root/last_twelve_visual_review' and doc['source_reports_sha256'] == CANONICAL and doc['rubric_sha256'] == RUBRIC
+    for proposal in doc['proposed_errata']:
+        key = proposal['study_uid'], proposal['target']
+        assert key in second and key not in amendments
+        assert {k: v for k, v in proposal.items() if k not in {'source_quote', 'evidence_reason'}} == {k: v for k, v in second[key].items() if k not in {'source_quote', 'evidence_reason'}}
+        assert proposal['source_quote'] != second[key]['source_quote']
+        quote(ann(proposal['proposed_state'], proposal['source_quote']), key[0])
+        amendments[key] = proposal
+assert len(amendments) == 2 and read(A / 'completion-supplement.json')['amendment_count'] == 2
+reconsider = {(x[0], x[1]): (x[2], x[3]) for x in decisions['reconsiderations']}
+clarify = {(x[0], x[1]): x[2] for x in decisions['clarifications']}
+first_only = set(map(tuple, decisions['first_only_selected']))
+reject_second = set(map(tuple, decisions['second_rejected']))
+extra_keys = set(map(tuple, decisions['additional_root_proposals']))
+assert (len(reconsider), len(clarify), len(first_only), len(reject_second), len(extra_keys)) == (27, 24, 14, 9, 4)
+all_named_keys = {(r['case'], r['target']) for r in rows.values()}
+assert set(reconsider) | set(clarify) | first_only | reject_second | extra_keys <= all_named_keys
+# Root can select a FIRST proposal at the same cell where SECOND is rejected.
+# The resulting selected FIRST/SECOND change sets are checked disjoint below.
+assert not extra_keys & (first_only | reject_second)
+for key, row in rows.items():
+    f, m = frozen[key], mr[key]
+    named_key = row['case'], row['target']
+    assert (row['root_frozen_state'], row['root_frozen_evidence'], row['root_frozen_report_notes'], row['root_report_ordinal']) == (f['state'], f['evidence'], f['notes'], f['ordinal'])
+    assert m['root_frozen'] == {'state': f['state'], 'evidence': f['evidence'], 'report_notes': f['notes']}
+    for field in ['case', 'target_index', 'source_path', 'source_sha256', 'source_index_zero_based', 'report_sha256', 'original_review', 'effective_current491', 'first_source_frozen', 'second_source_frozen', 'first_postfreeze', 'second_postfreeze']:
+        assert row[field] == m[field], ('serialized_projection', field)
+    ref(row['original_review'])
+    assert row['effective_current491'] == effective[key] and m['original'] == original[key]
+    state, reason = reconsider.get(named_key, (f['state'], clarify.get(named_key, f['notes'])))
+    if row['target'] == "Baker's" and named_key in first_only:
+        reason += ' ' + decisions['grammar_reference']['root_application']
+    if named_key in first_only:
+        evidence, action = first[key]['source_quote'], 'accept_first_proposal_pending_registry_integration'
+    elif named_key in extra_keys:
+        evidence, action = f['evidence'], 'additional_root_proposal_pending_distinct_assessment'
+        assert key not in first and key not in second and state != effective[key]['state']
+    elif key in second and named_key not in reject_second:
+        evidence, action = amendments.get(key, second[key])['source_quote'], 'accept_second_proposal_pending_registry_integration'
+    else:
+        evidence, action = effective[key]['evidence'], 'retain_current_after_source_adjudication'
+        assert state == effective[key]['state']
+    assert (row['root_postfreeze_state'], row['root_postfreeze_evidence'], row['reason'], row['action']) == (state, evidence, reason, action)
+    assert reason.strip() and row['root_state_reconsidered'] == (state != f['state']) == (named_key in reconsider)
+    assert row['original_author_context_amendment_selected'] == (key in amendments)
+    assert row['retained_first_postfreeze_state_disagreement'] == (state != row['first_postfreeze']['state'])
+    assert row['retained_second_postfreeze_state_disagreement'] == (state != row['second_postfreeze']['state'])
+    assert row['mechanical_attention_reviewed'] == m['mechanical_attention_only']
+    for value in [ann(f['state'], f['evidence']), ann(state, evidence), effective[key], original[key], row['first_source_frozen'], row['second_source_frozen'], row['first_postfreeze'], row['second_postfreeze']]:
+        quote(value, key[0])
+changed_rows = [r for r in disposition['records'] if r['root_state_reconsidered']]
+assert len(changed_rows) == 27 and changed_rows == recons['records']
+assert recons['reason_clarifications'] == decisions['clarifications'] and recons['grammar_reference'] == decisions['grammar_reference']
+first_support = idx(disposition['first_proposal_state_support'])
+second_support = idx(disposition['second_proposal_support'])
+new_first, new_second = idx(disposition['new_first_supported_changes']), idx(disposition['new_second_supported_changes'])
+pending = idx(disposition['additional_root_proposals'])
+assert len(new_first) == 14 and len(new_second) == 64 and len(pending) == 4
+assert set(new_first).isdisjoint(new_second) and (set(new_first) | set(new_second) | set(pending)).isdisjoint(old)
+assert set(first_support) == set(first) and set(second_support) == set(second)
+assert len(first_assessment['records']) == 14 and len(second_assessment['records']) == 64
+assert first_assessment['stage'] == second_assessment['stage'] == 'independent_source_assessment'
+assert first_assessment['proposer_agent_id'] == first_selected['proposer_agent_id'] == AGENT
+assert second_assessment['proposer_agent_id'] == second_selected['proposer_agent_id'] == '/root/last_twelve_visual_review'
+assert idx(first_selected['proposed_errata']) == {key: first[key] for key in new_first}
+assert idx(second_selected['proposed_errata']) == {key: amendments.get(key, second[key]) for key in new_second}
+assert set(amendments) <= set(new_second)
+for key, proposal in first.items():
+    row, support = rows[key], first_support[key]
+    final = ann(row['root_postfreeze_state'], row['root_postfreeze_evidence'])
+    assert support['original_first_proposal'] == proposal == mr[key]['first_proposal_original']
+    assert support['root_final'] == final and support['root_reason'] == row['reason']
+    assert support['state_supported'] == (proposal['proposed_state'] == final['state'])
+    assert support['selected_for_separate_first_integration'] == (key in new_first)
+    assert ann(proposal['before_state'], proposal['before_evidence']) == effective[key]
+    quote(ann(proposal['proposed_state'], proposal['source_quote']), key[0])
+for key, proposal in second.items():
+    row, support = rows[key], second_support[key]
+    final = ann(row['root_postfreeze_state'], row['root_postfreeze_evidence'])
+    chosen = amendments.get(key, proposal)
+    assert support['original_second_proposal'] == proposal and proposal['original_record'] == mr[key]['second_proposal_original']
+    assert support['selected_context_amendment'] == amendments.get(key)
+    assert support['context_amendment_selected'] == (key in amendments)
+    assert support['root_final'] == final and support['root_reason'] == row['reason'] and support['action'] == row['action']
+    assert support['state_supported'] == (proposal['proposed_state'] == final['state'])
+    assert support['exact_original_quote_selected'] == (proposal['source_quote'] == final['evidence'])
+    assert support['supported'] == (key in new_second) == ((row['case'], row['target']) not in reject_second) == (ann(chosen['proposed_state'], chosen['source_quote']) == final)
+    assert ann(proposal['before_state'], proposal['before_evidence']) == effective[key] == proposal['original_record']['before_current']
+    quote(ann(proposal['proposed_state'], proposal['source_quote']), key[0])
+assert sum(not r['state_supported'] for r in first_support.values()) == 4
+assert disposition['rejected_second_proposals'] == [r for r in disposition['second_proposal_support'] if not r['supported']]
+assert len(disposition['rejected_second_proposals']) == 9
+new = {**new_first, **new_second}
+for selected, assessment, role in [(new_first, first_assessment, 'first'), (new_second, second_assessment, 'second')]:
+    am = idx(assessment['records'])
+    assert set(am) == set(selected)
+    assert assessment['n_changes_supported'] == assessment['n_new_changes_supported'] == len(selected)
+    assert assessment['n_already_accepted'] == assessment['n_changes_held'] == 0
+    for key, change in selected.items():
+        row, evaluation = rows[key], am[key]
+        final = ann(row['root_postfreeze_state'], row['root_postfreeze_evidence'])
+        assert change == {'case': row['case'], 'study_uid': key[0], 'target': key[1], 'before': effective[key], 'after': final, 'reason': row['reason']}
+        assert final != effective[key]
+        proposal = first[key] if role == 'first' else amendments.get(key, second[key])
+        assert final == ann(proposal['proposed_state'], proposal['source_quote'])
+        assert ann(evaluation['independent_source_state'], evaluation['source_evidence']) == final
+        for name in ['case', 'source_path', 'source_sha256', 'report_sha256', 'root_frozen_state', 'root_frozen_evidence', 'root_state_reconsidered', 'reason']:
+            assert evaluation[name] == row[name]
+        assert evaluation['disposition'] == row['action']
+root_proposals = idx(additional['proposed_errata'])
+assert set(root_proposals) == set(pending) and additional['n_changes'] == 4
+for key, proposal in root_proposals.items():
+    row, change = rows[key], pending[key]
+    assert proposal['status'] == 'proposed_pending_distinct_source_assessment_and_adjudication'
+    assert change['before'] == effective[key] == ann(proposal['before_state'], proposal['before_evidence'])
+    assert change['after'] == ann(row['root_postfreeze_state'], row['root_postfreeze_evidence']) == ann(proposal['proposed_state'], proposal['source_quote'])
+    assert change['reason'] == proposal['reason'] == row['reason']
+    assert proposal['source_path'] == row['source_path'] and proposal['source_sha256'] == row['source_sha256'] and proposal['index'] == row['source_index_zero_based']
+    assert proposal['artifact_sha256'] == row['original_review']['sha256']
+anticipated = {**effective, **{key: change['after'] for key, change in new.items()}}
+matched = {key for key, row in rows.items() if anticipated[key] == ann(row['root_postfreeze_state'], row['root_postfreeze_evidence'])}
+assert len(matched) == 548 and set(rows) - matched == set(pending)
+retirement = read(R / 'initiative/audits/cartilage-legacy-three-retirement-integration-v1/accepted-retirement-decision.json')
+assert retirement['retired_corrections'] == 3
+for row in retirement['restored_original_annotations']:
+    key = row['study_uid'], row['target']
+    assert key not in old and key not in new and original[key] == effective[key] == anticipated[key] == row['restored_annotation']
+groups = defaultdict(list)
+for uid, report in reports.items():
+    groups[report_group(report)].append(uid)
+groups = {key: values for key, values in groups.items() if len(values) > 1}
+assert len(groups) == 54 and sum(map(len, groups.values())) == 204
+assert not [group for group, uids in groups.items() if any(len({anticipated[uid, target]['state'] for uid in uids}) > 1 for target in TARGETS)]
+assert sum(r['mechanical_attention_reviewed'] for r in rows.values()) == 177
+assert disposition['counts']['final_state_counts'] == dict(Counter(r['root_postfreeze_state'] for r in rows.values()))
+assert disposition['counts']['supported_new_transition_counts'] == dict(Counter(r['before']['state'] + '->' + r['after']['state'] for r in new.values()))
+assert sha(registry_path) == REGISTRY
+assert not git('diff', '--name-only') and not git('diff', '--cached', '--name-only')
+for entry in bound.values():
+    ref(entry)
+scanner_path = B / 'checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+pin(scanner_path, '58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8')
+spec = importlib.util.spec_from_file_location('qualified004_verification_scanner', scanner_path)
+scanner = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = scanner
+spec.loader.exec_module(scanner)
+secrets = scanner.secret_values(W / '.env')
+assert secrets
+runtime_ref = write('actual491-inspection.json', runtime)
+counts = {'root_reports': 46, 'root_cells': 552, 'raw_first_proposals_preserved': 63, 'raw_second_proposals_preserved': 73, 'exact_original_author_quote_amendments': 2, 'root_explicit_reconsiderations': 27, 'root_reason_clarifications': 24, 'new_supported_first': 14, 'new_supported_second': 64, 'supported_new_total': 78, 'first_state_rejected': 4, 'second_rejected': 9, 'additional_root_proposals_pending_distinct_assessment': 4, 'selected_current_accepted_overlap': 0, 'current_whole_registered_objects_preserved': 491, 'retired_changes_preserved': 3, 'prospective_supported_only_registered_count': 569, 'prospective_root_final_exact_matches': 548, 'prospective_root_pending_extra_cells': 4, 'duplicate_groups': 54, 'duplicate_reports': 204, 'prospective_supported_only_duplicate_state_conflicts': 0, 'pending_global_QA_gates': 3, 'exact_nonmissing_quotes_checked': quote_checks}
+result = {'schema_version': 1, 'status': 'passed_independent_technical_verification_no_new_clinical_assessment', 'agent_id': AGENT, 'session_id': AGENT, 'started_at_utc': started, 'completed_at_utc': datetime.now(timezone.utc).isoformat(), 'actual_roles': {'technical_verifier_and_original_first_author': AGENT, 'original_second_author_and_quote_amendment_author': '/root/last_twelve_visual_review', 'actual_root_source_assessor_and_final_disposition_author': '/root'}, 'counts': counts, 'actual491_inspection': runtime_ref, 'root_authored_decisions': pin(D / 'qualified004-root-decisions-v1.json'), 'root_adjudication_completion': pin(D / 'completion-manifest.json'), 'root_dispositions': pin(D / 'root-postfreeze-dispositions.json'), 'root_source_freeze': pin(G / 'source-freeze.json'), 'root_full_source_assessment': pin(G / 'full-source-assessment.json'), 'amendment_completion_supplement': pin(A / 'completion-supplement.json'), 'canonical_source_fingerprint': CANONICAL, 'rubric_sha256': RUBRIC, 'current_registry_sha256': REGISTRY, 'all552_initial_source_objects_and_later_serialization_checked': True, 'all63_and73_original_full_proposal_objects_preserved': True, 'amendments_change_only_source_quote_and_evidence_reason': True, 'selected14_and64_objects_and_assessments_exact': True, 'all_original_and_current_before_values_exact': True, 'all491_full_case_change_objects_exact_M4_equality': True, 'root_reasons_intentionally_separate_from_preserved_original_author_reasons': True, 'source_freeze_and_postfreeze_access_chronology_verified': True, 'root_reason_selection_reconstructed_from_root_authored_decisions_without_executing_serializer': True, 'additional_four_proposals_not_accepted_or_integrated': True, 'first_assessment_rejection_count_scoped_to_selected14_with_all_four_first_state_rejections_preserved_in_full_dispositions': True, 'bound_inputs': list(bound.values()), 'R_writes': False, 'registry_changed': False, 'gold_values_opened': False, 'new_network_calls': 0, 'clinical_reinterpretation_or_acceptance_created': False, 'qa_closed': False, 'free_bytes_after': shutil.disk_usage(W).free}
+validation_ref = write('technical-verification.json', result)
+assert shutil.disk_usage(W).free > 20 * 2**30
+print(json.dumps({'status': 'passed', 'counts': counts, 'validation_sha256': validation_ref['sha256'], 'inspection_sha256': runtime_ref['sha256'], 'bound_inputs': len(bound), 'R_writes': False}))

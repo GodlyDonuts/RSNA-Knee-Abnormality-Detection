@@ -1,0 +1,236 @@
+"""Independent actual569 runtime and preservation verification, with no R mutations."""
+from collections import defaultdict
+from datetime import datetime, timezone
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import stat
+import subprocess
+import sys
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+B, R = P.parent, W / 'work/recovered'
+I = R / 'initiative/audits/qualified-negation-focused-004-integration-v1'
+PREP = B / 'qualified004-integration-preparation-v1'
+D = B / 'qualified-negation-focused-004-root-adjudication-v1'
+AGENT = '/root/duplicate_consistency_review'
+OLD = '685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+CURRENT = '7fd6372938fe3c4e40a1ba655b32d00431627c7b268922b261cf61c6688f02ae'
+ROOT_RECEIPT = 'a2b2646bec65fb9990a358880031810b8cd5b5d4884dbdb9a027e285247ea6b8'
+BASE_GIT = 'fec046253168083514749226987dda5b6c2505ce'
+CANONICAL = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+bound = {}
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def pin(path, expected=None):
+    path = path.resolve()
+    assert path.is_file() and not path.is_symlink() and path.is_relative_to(W)
+    row = {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+    assert expected is None or row['sha256'] == expected, ('hash_mismatch', row['path'])
+    assert bound.setdefault(row['path'], row) == row
+    return row
+
+
+def read(path, expected=None):
+    pin(path, expected)
+    return json.loads(path.read_text())
+
+
+def idx(rows):
+    result = {(row['study_uid'], row['target']): row for row in rows}
+    assert len(result) == len(rows)
+    return result
+
+
+def write(name, value):
+    raw = (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
+    scanner.Scanner(secrets).feed(raw)
+    with (P / name).open('xb') as out:
+        out.write(raw)
+    return pin(P / name)
+
+
+started = datetime.now(timezone.utc).isoformat()
+assert shutil.disk_usage(W).free > 20 * 2**30 + 64 * 2**20
+assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=R, text=True).strip() == BASE_GIT
+registry_path = R / 'initiative/reviews-v2/adjudications/registry.json'
+registry = read(registry_path, CURRENT)
+receipt = read(I / 'complete569-integration-validation.json', ROOT_RECEIPT)
+assert receipt['agent_id'] == receipt['session_id'] == receipt['executed_by'] == '/root'
+assert receipt['prepared_by'] == AGENT and receipt['registered_total'] == 569
+assert receipt['new_changes'] == 78 and receipt['new_correction_cases'] == 4 and receipt['additional_changes_included'] == 0
+prep_manifest = read(PREP / 'completion-manifest.json', '70a51ee06caa07c62ceb2454fe4387c673424666b011ec70c1ae9d20f7187130')
+assert len(prep_manifest['files']) == 15
+for row in prep_manifest['files']:
+    path = W / row['path']
+    pin(path, row['sha256'])
+    assert path.stat().st_size == row['bytes']
+inputs = read(PREP / 'read-only-bound-inputs.json')
+assert len(inputs['files']) == 447
+aliases = []
+for row in inputs['files']:
+    path = W / row['path']
+    if path == registry_path:
+        assert row['sha256'] == OLD
+        restored = I / 'registry-before491.json'
+        actual = pin(restored, OLD)
+        assert actual['bytes'] == row['bytes']
+        aliases.append({'original_reference_unchanged': row, 'exact_historical_snapshot': actual, 'reason': 'The authorized registry append replaces only this known live491 reference; its exact original bytes remain preserved.'})
+    else:
+        pin(path, row['sha256'])
+        assert path.stat().st_size == row['bytes']
+        assert 'mode' not in row or stat.S_IMODE(path.stat().st_mode) == row['mode']
+assert len(aliases) == 1
+before_registry = read(I / 'registry-before491.json', OLD)
+assert {key: value for key, value in registry.items() if key != 'cases'} == {key: value for key, value in before_registry.items() if key != 'cases'}
+assert registry['cases'][:-4] == before_registry['cases']
+
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint, report_group
+from rsna.schema import TARGETS
+for name in ['adjudications.py', 'labels.py', 'schema.py']:
+    pin(R / 'rsna' / name)
+reports = {}
+for path in sorted((R / 'initiative/reviews/inputs').glob('batch-*.json')):
+    for row in read(path):
+        assert set(row) == {'study_uid', 'report'} and row['study_uid'] not in reports
+        reports[row['study_uid']] = row['report']
+assert len(reports) == 4407 and source_reports_fingerprint(reports) == CANONICAL
+pin(R / 'protocols/report_weak_v2.md', RUBRIC)
+after = inspect_adjudications(reports, R / 'initiative/reviews-v2/reviewed', R / 'protocols/report_weak_v2.md', R)
+assert after['registry_sha256'] == CURRENT and after['n_changes'] == 569 and after == read(I / 'complete569-inspection.json')
+before = read(I / 'complete491-inspection-before.json', '5c0847136532b58b45d62bcf33f7003138826839b308bba4f1afdf024846d3b9')
+assert before == read(B / 'qualified004-adjudication-independent-verification-v1/actual491-inspection.json')
+old, current = idx(before['changes']), idx(after['changes'])
+assert len(old) == 491 and all(current[key] == value for key, value in old.items())
+assert after['semantic_qa'] == before['semantic_qa'] and after['pending_semantic_qa'] == before['pending_semantic_qa'] and len(after['pending_semantic_qa']) == 3
+disposition = read(D / 'root-postfreeze-dispositions.json', '1c28ac5dc20db1634ca83248fedc84e541398c16f29d98f23e33bb4c4ced2d02')
+rows = idx(disposition['records'])
+first = idx(disposition['new_first_supported_changes'])
+second = idx(disposition['new_second_supported_changes'])
+extra = idx(disposition['additional_root_proposals'])
+selected = {**first, **second}
+assert len(rows) == 552 and len({key[0] for key in rows}) == 46
+assert (len(first), len(second), len(extra), len(selected)) == (14, 64, 4, 78)
+assert set(current) - set(old) == set(selected) and not (set(extra) & set(current)) and not (set(rows) & set(old))
+for key, change in selected.items():
+    actual = current[key]
+    assert actual['before'] == change['before'] and actual['after'] == change['after'] and actual['reason'] == change['reason']
+    assert actual['adjudicator_agent_id'] == actual['adjudicator_session_id'] == '/root'
+    assert actual['proposer_agent_id'] == (AGENT if key in first else '/root/last_twelve_visual_review')
+previews = read(PREP / 'unexecuted-case-change-previews.json')
+new_case_records = {row['path']: row for row in registry['cases'][-4:]}
+seen = set()
+assert [len(bundle['changes']) for bundle in previews['case_groups']] == [14, 62, 1, 1]
+for bundle in previews['case_groups']:
+    path = R / f"initiative/reviews-v2/adjudications/cases/qualified-negation-focused-004-{bundle['name']}.json"
+    entry = new_case_records[str(path.relative_to(R))]
+    case = read(path, entry['sha256'])
+    assert case['changes'] == bundle['changes']
+    proposal = read(R / case['proposal']['path'], case['proposal']['sha256'])
+    assert sha(W / bundle['proposal']['path']) == case['proposal']['sha256'] == bundle['proposal']['sha256']
+    assert proposal['agent_id'] == proposal.get('session_id', bundle['original_proposer']) == bundle['original_proposer']
+    assessment = read(R / case['independent_assessment']['path'], case['independent_assessment']['sha256'])
+    assert case['independent_assessment']['sha256'] == bundle['root_independent_assessment']['sha256']
+    assert assessment['agent_id'] == assessment['session_id'] == '/root'
+    decision = read(R / case['decision']['path'], case['decision']['sha256'])
+    assert decision['agent_id'] == decision['session_id'] == decision['executed_by'] == decision['adjudicator_agent_id'] == decision['adjudicator_session_id'] == '/root'
+    assert decision['prepared_by'] == AGENT and decision['proposer_agent_id'] == bundle['original_proposer']
+    assert decision['accepted_at_utc'] == receipt['registered_at_utc']
+    keys = set(idx(case['changes']))
+    assert not keys & seen and keys <= set(selected) and keys == set(idx(decision['accepted_changes']))
+    seen |= keys
+    for support in case['supporting_evidence'].values():
+        pin(R / support['path'], support['sha256'])
+assert seen == set(selected)
+original = {}
+for path in sorted((R / 'initiative/reviews-v2/reviewed').glob('*-reviewed.jsonl')):
+    pin(path)
+    for row in map(json.loads, path.read_text().splitlines()):
+        for index, target in enumerate(TARGETS):
+            original[row['study_uid'], target] = {'state': row['states'][index], 'evidence': row['evidence'][index]}
+assert len(original) == 4407 * 12
+effective = {**original, **{key: change['after'] for key, change in current.items()}}
+previous = {**original, **{key: change['after'] for key, change in old.items()}}
+quote_checks = 0
+for key, row in rows.items():
+    expected = previous[key] if key in extra else {'state': row['root_postfreeze_state'], 'evidence': row['root_postfreeze_evidence']}
+    assert effective[key] == expected
+    assert row['source_sha256'] == sha(R / row['source_path']) and row['report_sha256'] == hashlib.sha256(reports[key[0]].encode()).hexdigest()
+    for state, evidence in [(row['root_frozen_state'], row['root_frozen_evidence']), (row['root_postfreeze_state'], row['root_postfreeze_evidence'])]:
+        assert (state == 'not_mentioned' and evidence == '') or (state != 'not_mentioned' and evidence and evidence in reports[key[0]])
+        quote_checks += bool(evidence)
+assert sum(row['root_state_reconsidered'] for row in rows.values()) == 27
+assert len(disposition['rejected_second_proposals']) == 9 and sum(not row['state_supported'] for row in disposition['first_proposal_state_support']) == 4
+whole = read(I / 'whole-original-proposals-rejections-and-pending.json')
+assert whole['original_first63'] == read(B / 'qualified-negation-focused-004-first-canonical-context-normalization-v1/proposed-errata.json')
+assert whole['original_second73_normalized'] == read(B / 'qualified-negation-focused-004-independent-proposal-normalization-v1/proposed-errata.json')
+assert whole['original_second73_raw'] == read(B / 'qualified004-root-mechanical-comparison-491-v1/second-proposals-original.json')
+assert len(whole['original_first63']['proposed_errata']) == 63 and len(whole['original_second73_raw']['records']) == 73
+assert whole['first_all63_dispositions'] == disposition['first_proposal_state_support'] and whole['second_all73_dispositions'] == disposition['second_proposal_support']
+assert whole['second9_rejections'] == disposition['rejected_second_proposals'] and whole['pending_additional_root4'] == disposition['additional_root_proposals']
+amendments = []
+for row in read(D / 'completion-manifest.json')['original_author_amendments']:
+    doc = read(W / row['path'], row['sha256'])
+    amendments.extend(doc['proposed_errata'])
+assert whole['two_original_author_amendment_objects'] == amendments and len(amendments) == 2
+assert not whole['additional_changes_included'] and whole['selected_prior_accepted_overlap'] == []
+assert idx(whole['additional_current_annotations']) == {key: {'study_uid': key[0], 'target': key[1], 'annotation': previous[key]} for key in extra}
+retirement = read(R / 'initiative/audits/cartilage-legacy-three-retirement-integration-v1/accepted-retirement-decision.json')
+assert retirement['retired_corrections'] == 3
+for row in retirement['restored_original_annotations']:
+    key = row['study_uid'], row['target']
+    assert key not in current and effective[key] == row['restored_annotation']
+groups = defaultdict(list)
+for uid, report in reports.items():
+    groups[report_group(report)].append(uid)
+groups = {key: values for key, values in groups.items() if len(values) > 1}
+assert len(groups) == 54 and sum(map(len, groups.values())) == 204
+assert not any(any(len({effective[uid, target]['state'] for uid in uids}) > 1 for target in TARGETS) for uids in groups.values())
+preservation = read(I / 'archive-preservation.json')
+intended = read(PREP / 'intended-file-changes.json')
+actual_archives = {row['path']: row for row in preservation['files']}
+assert len(actual_archives) == 211 and set(actual_archives) == {row['path'] for row in intended['archive_files']}
+for planned in intended['archive_files']:
+    actual = actual_archives[planned['path']]
+    assert actual == planned
+    path = R / actual['path']
+    pin(path, actual['sha256'])
+    assert path.stat().st_size == actual['bytes'] and stat.S_IMODE(path.stat().st_mode) == actual['mode']
+    for original_path in actual['original_paths']:
+        source_path = W / original_path
+        assert source_path.read_bytes() == path.read_bytes()
+assert sum(row['action'] == 'new' for row in actual_archives.values()) == 109
+assert sum(row['action'] == 'reused_equal' for row in actual_archives.values()) == 102
+for row in intended['new_generated_files_on_root_execution']:
+    pin(R / row['path'])
+assert sha(I / 'integrate-wording004.py.txt') == sha(PREP / 'integrate_wording004.py') == 'e59d9e8ecbd8421f9bbc439bfb569ead3d2d2ab277b8390eaa67851164417cf0'
+opaque_source_metadata = []
+for path in sorted((R / 'initiative/source').glob('*.csv')):
+    baseline_bytes = subprocess.check_output(['git', 'show', BASE_GIT + ':' + str(path.relative_to(R))], cwd=R)
+    assert hashlib.sha256(baseline_bytes).hexdigest() == sha(path)
+    opaque_source_metadata.append(pin(path))
+for row in list(bound.values()):
+    pin(W / row['path'], row['sha256'])
+assert sha(registry_path) == CURRENT and shutil.disk_usage(W).free > 20 * 2**30
+scanner_path = B / 'checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+pin(scanner_path, '58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8')
+spec = importlib.util.spec_from_file_location('actual569_scanner', scanner_path)
+scanner = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = scanner
+spec.loader.exec_module(scanner)
+secrets = scanner.secret_values(W / '.env')
+assert secrets
+runtime_ref = write('actual569-inspection.json', after)
+result = {'schema_version': 1, 'status': 'passed_independent_technical_runtime_verification', 'agent_id': AGENT, 'session_id': AGENT, 'role': 'Original FIRST004 author and technical verifier; no new clinical source assessment or acceptance.', 'started_at_utc': started, 'completed_at_utc': datetime.now(timezone.utc).isoformat(), 'actual_registry_sha256': CURRENT, 'actual_registered_changes': 569, 'root_execution_receipt': pin(I / 'complete569-integration-validation.json'), 'all491_whole_prior_objects_and_case_bindings_preserved': True, 'new_changes': 78, 'four_case_groups': [14, 62, 1, 1], 'root548_final_state_and_quote_matches': True, 'four_additional_root_cells_retain_previous_annotations': True, 'additional_assessor_results_not_imported': True, 'all63_first_and73_second_original_full_objects_preserved': True, 'original_author_quote_amendments_preserved': 2, 'root_reconsiderations_preserved': 27, 'first_state_rejections_preserved': 4, 'second_rejections_preserved': 9, 'selected_prior_accepted_overlaps': 0, 'retirements_preserved': 3, 'root_source_reports': 46, 'root_source_cells': 552, 'source_quote_checks_nonmissing': quote_checks, 'duplicate_groups': 54, 'duplicate_reports': 204, 'duplicate_conflicts': 0, 'three_QA_records_exact_and_pending': True, 'archive_members_verified': 211, 'new_archive_files': 109, 'existing_equal_archives_reused': 102, 'generated_execution_files_verified': 15, 'historical_registry_exact_aliases': aliases, 'opaque_original_metadata_files_verified': len(opaque_source_metadata), 'runtime': runtime_ref, 'protected_references': list(bound.values()), 'R_writes': False, 'gold_values_inspected': False, 'new_clinical_decisions': 0, 'network_calls': 0, 'QA_closed': False, 'disk_free_bytes': shutil.disk_usage(W).free}
+validation_ref = write('independent-integration-validation.json', result)
+print(json.dumps({'status': result['status'], 'actual_registered': 569, 'validation_sha256': validation_ref['sha256'], 'runtime_sha256': runtime_ref['sha256'], 'bound_inputs': len(bound), 'new_changes': 78, 'R_writes': False}))

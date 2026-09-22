@@ -22,19 +22,21 @@ to check the current review run.
 ## Status
 
 All 4,407 reports have completed both initial review passes, and the image cache
-has passed its full technical integrity audit. Subsequent consistency review has
-491 active target corrections; 18 studies have enforced exclusions from report
-training loss. Both priority cartilage readers completed 260 reports, and both
-bone readers completed 1,250 priority reports. Remaining review and adjudication
-continue; original judgments, rejections and reconsiderations are preserved.
-Cartilage, bone terminology and qualified-wording QA remain open. Final manifests,
-leakage isolation and final-data training/resume/inference checks are still
-required. See [the correction evidence](docs/adjudications.md).
+has passed its full technical integrity audit. Consistency review has produced
+569 active target corrections; 18 studies have enforced exclusions from report
+training loss. Priority cartilage adjudication covers 260 reports. Both bone
+reviewers have completed 1,450 priority reports; later batch progress is recorded
+in the continuation guide. Original judgments, rejected proposals and later
+reconsiderations are preserved. Cartilage, bone terminology and qualified-wording
+QA, final manifests, leakage isolation and final-data training/resume/inference
+checks remain open. See [the correction evidence](docs/adjudications.md).
 
-The latest verified private GitHub/Hugging Face checkpoint contains 425 corrections;
-the local 491 milestone awaits its own verified publication. After data readiness,
-the [expanded mission](docs/mission-and-training-plan.md) requires a researched
-training strategy and prioritized experiments to measure competitive performance.
+The latest verified private publication contains 491 corrections at Git
+`fec04625` / Hugging Face `d2804e1d`. Its receipt and two actual reconstruction
+checks are preserved. The local 569 milestone needs its own verified publication.
+After data readiness, the [expanded mission](docs/mission-and-training-plan.md)
+requires a researched training strategy, prioritized experiments and compute plan.
+Data quality and competitive benefit must be measured, not inferred from effort.
 
 The original mirror contains 4,407 training studies (58 with complete official
 labels), 819,078 training DICOMs, and 557 DICOMs from the three released sample test

@@ -1,0 +1,26 @@
+"""Mechanical selected100 original/current/source/first binding; no clinical inference."""
+from pathlib import Path
+import json,hashlib
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';O=A/'bone-observed-026-independent-review-v1';F=A/'bone-observed-026-source-review-v1';P=A/'bone-observed-026-postfreeze-v1'
+def j(p):return json.loads(p.read_text())
+def jl(p):return [json.loads(x) for x in p.read_text().splitlines()]
+def ref(p):b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+assert ref(P/'completion-manifest.json')['sha256']=='4a6012c7315dd665e5cdcdb275e01f03fab2861b2e1d1b126205a1d5ef7fc080'
+for stage,manifest in [(O,'final-file-list.json'),(P,'completion-manifest.json')]:
+ for x in j(stage/manifest)['files']:assert ref(W/x['path'])==x
+regp=R/'initiative/reviews-v2/adjudications/registry.json';reg=j(regp);assert ref(regp)['sha256']=='685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+with (S/'registry-at-comparison-start.json').open('xb') as f:f.write(regp.read_bytes())
+acc={}
+for x in reg['cases']:
+ pp=R/x['path'];assert ref(pp)['sha256']==x['sha256']
+ for c in j(pp)['changes']:k=c['study_uid'],c['target'];assert k not in acc;acc[k]=c
+assert len(acc)==491
+packet=j(O/'neutral-source-packet.json')['reports'];own=jl(O/'source-assessment-frozen.jsonl');first=jl(F/'source-assessment-frozen.jsonl');post=j(P/'all100-postfreeze-dispositions.json')['records'];fps={(x['study_uid'],x['target']):x for x in post};props=j(P/'proposed-errata.json')['proposed_errata'];pk={(x['study_uid'],x['target']) for x in props};rows=[]
+for i,x in enumerate(packet):
+ rev=next(y for y in jl(R/'initiative/reviews-v2/reviewed'/f'{Path(x["source_path"]).stem}-reviewed.jsonl') if y['study_uid']==x['study_uid'])
+ for t,target in enumerate(['Contusion','Fracture']):
+  k=x['study_uid'],target;before={'state':rev['states'][10+t],'evidence':rev['evidence'][10+t]};c=acc[k]['after'] if k in acc else before;fp=fps[k];assert fp['original']==before and fp['current_effective']==c
+  me={'state':own[i]['states'][t],'evidence':own[i]['evidence'][t],'reason':own[i]['target_reasoning'][t]};ff={'state':first[i]['states'][t],'evidence':first[i]['evidence'][t],'reason':first[i]['rationales'][t]};pf=fp['first_postfreeze_judgment'];row={'packet_index':i,'target_index':t,'case':own[i]['case'],'target':target,'original':before,'current':c,'own':me,'first_source':ff,'first_post':pf,'first_proposal':k in pk,'first_reason_clarified':fp.get('own_reason_clarified',False),'accepted_overlap':acc.get(k),'original_review_notes':rev.get('notes')};rows.append(row)
+  print(i,target[0],own[i]['case'],'current',c['state'],'own',me['state'],'first',ff['state'],'post',pf['state'],'quotes',len({c['evidence'],me['evidence'],ff['evidence'],pf['evidence']}),'firstproposal',k in pk)
+with (S/'mechanical-all100-preview.json').open('x') as f:json.dump({'actual_registry':ref(regp),'n_registered':len(acc),'first_source_freeze':ref(F/'source-freeze.json'),'first_source_assessment':ref(F/'source-assessment-frozen.jsonl'),'first_postfreeze':ref(P/'postfreeze-disposition-freeze.json'),'first_completion':ref(P/'completion-manifest.json'),'rows':rows},f,ensure_ascii=False,indent=2);f.write('\n')
+print('firstprops',len(props),'overlap',sum(x['accepted_overlap'] is not None for x in rows),'variantkeys',[(x['packet_index'],x['target_index']) for x in rows if len({x[k]['evidence'] for k in ['current','own','first_source','first_post']})>1])

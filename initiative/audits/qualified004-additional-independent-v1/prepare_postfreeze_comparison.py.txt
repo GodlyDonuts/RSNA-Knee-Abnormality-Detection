@@ -1,0 +1,83 @@
+"""Bounded four-proposal replay after the independently frozen36 source judgments."""
+import hashlib,json,shutil,sys
+from pathlib import Path
+from datetime import datetime,timezone
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';D=P.parent;AG='/root/quality_temporal_review'
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint
+from rsna.schema import TARGETS
+GH='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3';RH='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014';REG='685284a75bf5eba5e04bfb6bd21946f48a095ce1a1e19c446a6421b41818f1a2'
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def objsha(x):return hashlib.sha256(json.dumps(x,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(n,x):
+ with(P/n).open('x')as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+ return ref(P/n)
+def copy(p,n):
+ with(P/n).open('xb')as f:f.write(p.read_bytes())
+ return ref(P/n)
+def main():
+ assert shutil.disk_usage(W).free>20*1024**3
+ assert sha(P/'source-freeze.json')=='741842d3d37b1436431be87d9831e8cb3fcadf9411bffdbd568dbad4d1fe90c1'
+ assert sha(P/'source-assessment-frozen.json')=='f6dd1f2f5c9b27badca5f1a8b7c06b11ce2598cff35a28913e50a7548141dbf4'
+ prop_path=D/'qualified-negation-focused-004-root-adjudication-v1/additional-root-proposals.json'
+ assert sha(prop_path)=='7f0a979b00eeda4ad92365757533e5e95c1553776e4bbff45590c1ce79561bc3'
+ prop=read(prop_path);assert prop['agent_id']==prop['session_id']=='/root'!=AG and prop['n_changes']==len(prop['proposed_errata'])==4
+ assert prop['source_reports_sha256']==GH and prop['rubric_sha256']==RH
+ protected={}
+ def pin(p,h=None):
+  b=ref(p);assert h is None or b['sha256']==h;protected[b['path']]=b;return b
+ for b in read(P/'source-completion-manifest.json')['members']:pin(W/b['path'],b['sha256'])
+ pin(P/'source-completion-manifest.json','5797823abf7d61b45d1cec718c9f514fffd8e4612a30e7f62d615449d80733b4')
+ for b in read(P/'source-validation.json')['protected_input_bindings']:pin(W/b['path'],b['sha256'])
+ pin(prop_path);copy(prop_path,'root-four-proposals-byte-copy.json')
+ for k in ['root_source_freeze','root_source_assessment','decisions','mechanical_comparison']:
+  b=prop[k];pin(W/b['path'],b['sha256'])
+ for b in prop['original_author_amendments']:pin(W/b['path'],b['sha256'])
+ registry=R/'initiative/reviews-v2/adjudications/registry.json';pin(registry,REG);copy(registry,'registry-at-comparison491.json')
+ rubric=R/'protocols/report_weak_v2.md';pin(rubric,RH)
+ reportrows={};source_files={}
+ for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+  pin(p)
+  for r in read(p):reportrows[r['study_uid']]=r['report'];source_files[r['study_uid']]=p
+ assert len(reportrows)==4407 and source_reports_fingerprint(reportrows)==GH
+ replay=inspect_adjudications(reportrows,R/'initiative/reviews-v2/reviewed',rubric,R);assert len(replay['changes'])==491 and replay['registry_sha256']==REG
+ prior=D/'bone-observed-027-postfreeze-v1/whole491-runtime-inspection-at-comparison.json';pin(prior)
+ assert replay==read(prior),'whole491_runtime_differs_from_prior_preserved_baseline'
+ changes={(x['study_uid'],x['target']):x for x in replay['changes']};assert len(changes)==491
+ for c in replay['changes']:
+  for key in ['case','base_review','source_batch','proposal','independent_assessment','decision']:
+   b=c[key];pin(R/b['path'],b['sha256'])
+  for b in c['supporting_evidence'].values():pin(R/b['path'],b['sha256'])
+ for b in read(registry)['semantic_qa']:pin(R/b['path'],b['sha256'])
+ assert replay['semantic_qa']==replay['pending_semantic_qa']==3
+ inspection=write('whole491-runtime-inspection.json',replay)
+ ledger=write('whole491-correction-preservation.json',{'schema_version':1,'agent_id':AG,'prior_inspection':ref(prior),'fresh_inspection':inspection,'all491_whole_objects_exactly_equal':True,'whole_changes_sha256':objsha(replay['changes']),'objects':[{'study_uid':c['study_uid'],'target':c['target'],'whole_object_sha256':objsha(c)}for c in replay['changes']],'three_QA_records_unchanged_pending':True})
+ retirement=R/'initiative/audits/cartilage-legacy-three-retirement-integration-v1/accepted-retirement-decision.json';pin(retirement);ret=read(retirement);assert ret['retired_corrections']==3
+ for key in ['retired_case_original','original_case_decision','root_reconsideration','independent_retirement_assessment','prior_registry']:
+  b=ret[key];pin(R/b['path'],b['sha256'])
+ retired=[]
+ for x in ret['restored_original_annotations']:
+  key=x['study_uid'],x['target'];assert key not in changes
+  rp=R/'initiative/reviews-v2/reviewed'/(source_files[key[0]].stem+'-reviewed.jsonl');pin(rp)
+  original=next(r for r in map(json.loads,rp.read_text().splitlines())if r['study_uid']==key[0]);j=TARGETS.index(key[1]);assert {'state':original['states'][j],'evidence':original['evidence'][j]}==x['restored_annotation']
+  retired.append({'study_uid':key[0],'target':key[1],'retirement_object_sha256':objsha(x),'restored_annotation_matches_exact_original':True,'absent_from_active491':True,'original_review':ref(rp)})
+ assert ret['retired_case_id']not in{c['case_id']for c in replay['changes']}
+ write('three-retirements-preserved.json',{'schema_version':1,'agent_id':AG,'retirement_decision':ref(retirement),'retired_corrections':3,'whole_original_retirement_objects_preserved':True,'records':retired,'no_new_retirement_or_replacement_changes':True})
+ sources={r['study_uid']:r for r in read(P/'neutral-full-sources.json')['records']};own={r['study_uid']:r for r in read(P/'source-assessment-frozen.json')['records']};rows=[]
+ for item in prop['proposed_errata']:
+  uid=item['study_uid'];target=item['target'];s=sources[uid];a=own[uid];j=TARGETS.index(target);rp=R/item['artifact_path'];pin(rp,item['artifact_sha256']);sp=R/item['source_path'];pin(sp,item['source_sha256'])
+  assert read(sp)[item['index']]=={'study_uid':uid,'report':s['report']};assert item['index']==s['source_index_zero_based'] and item['batch']==sp.stem
+  original=next(r for r in map(json.loads,rp.read_text().splitlines())if r['study_uid']==uid);base={'state':original['states'][j],'evidence':original['evidence'][j]};correction=changes.get((uid,target));current=correction['after']if correction else base
+  assert current=={'state':item['before_state'],'evidence':item['before_evidence']};assert correction is None
+  assert item['source_quote']in s['report'] and current['evidence']in s['report']
+  assert a['target_order']==list(TARGETS)
+  rows.append({'source_case':s['source_case'],'study_uid':uid,'target':target,'source_path':item['source_path'],'source_index_zero_based':item['index'],'source_sha256':item['source_sha256'],'report_sha256':s['report_utf8_sha256'],'original_review':ref(rp),'original':base,'current_effective491':current,'active_correction':correction,'own_frozen':{'state':a['states'][j],'evidence':a['evidence'][j],'reason':a['rationales'][j]},'original_root_proposal_record':item})
+ now=datetime.now(timezone.utc).isoformat();assert read(P/'source-freeze.json')['frozen_at_utc']<now
+ comparison=write('four-bound-comparison.json',{'schema_version':1,'agent_id':AG,'session_id':AG,'created_at_utc':now,'source_reports_sha256':GH,'rubric_sha256':RH,'source_freeze':ref(P/'source-freeze.json'),'root_proposals':ref(prop_path),'registry_snapshot':ref(P/'registry-at-comparison491.json'),'whole491_preservation':ledger,'records':rows,'selected_current_cells_opened':4,'selected_accepted_overlap':0,'full36_source_objects_preserved':True,'other004_case_findings_opened':False,'access_disclosure':'After root authorized postfreeze comparison, I opened the exact four proposals and runtime schema plus prior003 assessment helpers. Root retried after a reported transient capacity failure; proposal access had already occurred and is not represented as unaccessed. Only these four current annotations were displayed for assessment. Runtime all491 evidence, source reports and retirement rows were parsed or hash-checked mechanically; root004 other judgments/dispositions and referenced original-author amendments were hash-bound without clinical reading. Previously known retirement evidence was inspected for preservation. No claim of first-ever blindness or instrumented access isolation.'})
+ write('postfreeze-protected-bindings.json',{'schema_version':1,'agent_id':AG,'files':list(protected.values()),'live_registry_preflight_sha256':REG,'scope':'Source phase allmembers and prior exposure refs, original full sources, selected reviews, root proposal/reference bytes, all491 runtime evidence and prior retirement/QA artifacts. No original may be changed by this task.'})
+ for b in protected.values():assert sha(W/b['path'])==b['sha256']
+ print(json.dumps({'comparison':comparison,'registered_changes':491,'whole_objects_preserved':491,'retirements_preserved':3,'current_cells':rows,'protected_files':len(protected)},ensure_ascii=False,indent=2))
+if __name__=='__main__':main()

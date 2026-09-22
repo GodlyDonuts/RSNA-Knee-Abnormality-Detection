@@ -1,0 +1,31 @@
+"""Preserve the sealed actual v18 preparation and root execution evidence."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,importlib.util,sys,shutil
+W=Path(__file__).resolve().parent.parent;R=W/'work/recovered';S=W/'work/annotation-staging/semantic-qa-v18-archive-preparation-v1';D=R/'initiative/audits/semantic-qa-v18-archive-preparation-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+m=S/'completion-manifest.json';assert sha(m)=='c30dab035d8b85bac4796f71417f5ca81bcbd79f81794fbd9cf30914d7b8ca6b';doc=json.loads(m.read_text())
+assert {W/r['path'] for r in doc['files']}=={p for p in S.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p!=m}
+H=W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py';assert sha(H)=='58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+spec=importlib.util.spec_from_file_location('v18_root_preservation_scanner',H);h=importlib.util.module_from_spec(spec);sys.modules[spec.name]=h;spec.loader.exec_module(h);secrets=h.secret_values(W/'.env');assert secrets
+rows=[]
+for r in doc['files']:
+ p=W/r['path'];assert sha(p)==r['sha256'] and p.stat().st_size==r['bytes']
+rows.extend(W/r['path'] for r in doc['files']);rows.extend([m,Path(__file__),W/'work/semantic-qa-v18-root-execution-result.json',W/'work/qualified004-precommit-code-checks-v1.json'])
+assert shutil.disk_usage(W).free-sum(p.stat().st_size for p in rows)>20*2**30+64*2**20
+copied=[]
+for p in rows:
+ rel=p.relative_to(S) if p.is_relative_to(S) else Path(p.name)
+ out=D/(str(rel)+'.txt' if rel.suffix=='.py' else rel)
+ raw=p.read_bytes();h.Scanner(secrets).feed(raw);assert len(raw)<100_000_000
+ out.parent.mkdir(parents=True,exist_ok=True)
+ if out.exists():assert out.read_bytes()==raw
+ else:
+  with out.open('xb') as f:f.write(raw)
+ assert sha(out)==sha(p)
+ copied.append({'path':str(out.relative_to(R)),'sha256':sha(out),'bytes':len(raw),'source_path':str(p.relative_to(W))})
+assert sha(m)=='c30dab035d8b85bac4796f71417f5ca81bcbd79f81794fbd9cf30914d7b8ca6b'
+receipt={'stage':'root_preservation_of_completed_v18_preparation_and_execution','executor':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'files':copied,'source_members_unchanged':True,'new_clinical_decisions':False,'training_ready':False}
+out=D/'root-preservation.json'
+with out.open('x') as f:f.write(json.dumps(receipt,indent=2)+'\n')
+print(json.dumps({'preserved_files':len(copied),'receipt_sha256':sha(out)}))

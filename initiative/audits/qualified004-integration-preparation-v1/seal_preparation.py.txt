@@ -1,0 +1,61 @@
+"""Seal completed core78 preparation without executing or mutating R."""
+from datetime import datetime, timezone
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+R = W / 'work/recovered'
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def binding(path):
+    return {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+
+
+scanner_path = P.parent / 'checkpoint-delta-helper-v2-v1/checkpoint_delta.py'
+assert sha(scanner_path) == '58defa944734a6010f74feaf78362649dd9f23244fe5164f0587278197848dc8'
+spec = importlib.util.spec_from_file_location('seal_wording004_preparation', scanner_path)
+scanner = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = scanner
+spec.loader.exec_module(scanner)
+secrets = scanner.secret_values(W / '.env')
+assert secrets
+assert sha(P / 'integrate_wording004.py') == 'e59d9e8ecbd8421f9bbc439bfb569ead3d2d2ab277b8390eaa67851164417cf0'
+assert sha(P / 'verify_context.py') == '3d658bd17ad248319f8673e7f9a53bc12ebad0f42ae6348cb884b95249b7f651'
+assert sha(P / 'input-pins.json') == 'e7fe35780d2dd89e098add5858586cef21238da5cd559e5983269c90d49c2a4d'
+validation = json.loads((P / 'preparation-validation.json').read_text())
+assert sha(P / 'preparation-validation.json') == '568971e7bc492f4ccef839f676232671854f0ba42a1e2058f9c8bb215c898055'
+assert validation['status'] == 'passed_read_only_integration_preparation' and validation['root_execution_function_called'] is False
+for row in json.loads((P / 'read-only-bound-inputs.json').read_text())['files']:
+    path = W / row['path']
+    assert sha(path) == row['sha256'] and path.stat().st_size == row['bytes']
+assert sha(R / 'initiative/reviews-v2/adjudications/registry.json') == validation['registry_sha256_before_and_after']
+assert not subprocess.check_output(['git', 'diff', '--name-only'], cwd=R).strip()
+assert not subprocess.check_output(['git', 'diff', '--cached', '--name-only'], cwd=R).strip()
+assert not (R / 'initiative/audits/qualified-negation-focused-004-integration-v1').exists()
+assert shutil.disk_usage(W).free > 20 * 2**30
+members = []
+for path in sorted(P.iterdir()):
+    assert path.is_file() and not path.is_symlink() and path.name != 'completion-manifest.json'
+    raw = path.read_bytes()
+    scanner.Scanner(secrets).feed(raw)
+    if path.suffix == '.py':
+        compile(raw, str(path), 'exec')
+    members.append(binding(path))
+assert len(members) == 15
+result = {'schema_version': 1, 'stage': 'qualified004-integration-preparation-v1', 'status': 'sealed_unexecuted_core78_integration_preparation', 'agent_id': '/root/duplicate_consistency_review', 'session_id': '/root/duplicate_consistency_review', 'intended_root_executor': '/root', 'sealed_at_utc': datetime.now(timezone.utc).isoformat(), 'helper': binding(P / 'integrate_wording004.py'), 'context': binding(P / 'verify_context.py'), 'pins': binding(P / 'input-pins.json'), 'validation': binding(P / 'preparation-validation.json'), 'intended_changes': binding(P / 'intended-file-changes.json'), 'counts': validation['counts'], 'files': members, 'execution_case_groups': {'first': 14, 'second': 62, 'second-context-01': 1, 'second-context-02': 1}, 'additional_root_changes_included': 0, 'actual569_registry_not_yet_created': True, 'R_writes': False, 'new_clinical_decisions_or_acceptances_created': False, 'gold_values_opened': False, 'network_calls': 0, 'QA_closed': False}
+raw = (json.dumps(result, indent=2) + '\n').encode()
+scanner.Scanner(secrets).feed(raw)
+with (P / 'completion-manifest.json').open('xb') as out:
+    out.write(raw)
+assert all(sha(W / row['path']) == row['sha256'] for row in members)
+print(json.dumps({'status': result['status'], 'completion_sha256': sha(P / 'completion-manifest.json'), 'helper_sha256': sha(P / 'integrate_wording004.py'), 'context_sha256': sha(P / 'verify_context.py'), 'pins_sha256': sha(P / 'input-pins.json'), 'validation_sha256': sha(P / 'preparation-validation.json'), 'stage_files_including_completion': len(members) + 1, 'free_bytes': shutil.disk_usage(W).free}))

@@ -1,0 +1,92 @@
+"""Actual read-only preflight, exact intended changes and narrow guard verification."""
+from datetime import datetime, timezone
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+
+P = Path(__file__).resolve().parent
+W = P.parents[2]
+R = W / 'work/recovered'
+REGISTRY = R / 'initiative/reviews-v2/adjudications/registry.json'
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def binding(path):
+    return {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+
+
+def write(name, value):
+    raw = helper.data(value)
+    plan['scanner'].Scanner(plan['secrets']).feed(raw)
+    with (P / name).open('xb') as out:
+        out.write(raw)
+    return binding(P / name)
+
+
+registry_before = sha(REGISTRY)
+status_before = subprocess.check_output(['git', 'status', '--porcelain=v1', '--untracked-files=all'], cwd=R)
+free_before = shutil.disk_usage(W).free
+spec = importlib.util.spec_from_file_location('wording004_unexecuted_preparation', P / 'integrate_wording004.py')
+helper = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = helper
+spec.loader.exec_module(helper)
+plan = helper.prepare_plan(W)
+assert sum(len(bundle['changes']) for bundle in plan['bundles']) == 78 and len(plan['bundles']) == 4
+assert len(plan['context']['old']) == 491 and len(plan['context']['pending']) == 4
+assert not plan['I'].exists()
+checks = []
+
+
+def rejected(label, function, code):
+    try:
+        function()
+    except helper.GuardError as exc:
+        assert str(exc) == code
+        checks.append(label)
+    else:
+        raise AssertionError(label)
+
+
+for name in ('../outside', '/absolute', 'initiative/../outside'):
+    rejected('unsafe relative/absolute path', lambda: helper.safe(R, name), 'unsafe_relative_path')
+rejected('changed pinned hash', lambda: helper.read(P / 'input-pins.json', '0' * 64), 'input_hash')
+with tempfile.TemporaryDirectory(prefix='bounded-guard-', dir=P) as folder:
+    path = Path(folder) / 'original.bin'
+    path.write_bytes(b'preserved original')
+    path.chmod(0o644)
+    assert helper.equal_or_new(path, b'preserved original') == 'reused_equal'
+    checks.append('equal existing bytes reusable')
+    rejected('unequal existing bytes', lambda: helper.equal_or_new(path, b'changed'), 'existing_archive_differs')
+    rejected('unequal existing mode', lambda: helper.equal_or_new(path, b'preserved original', 0o600), 'existing_archive_differs')
+    assert path.read_bytes() == b'preserved original'
+assert len(checks) == 7
+assert sha(REGISTRY) == registry_before == helper.BASE_REGISTRY
+assert subprocess.check_output(['git', 'status', '--porcelain=v1', '--untracked-files=all'], cwd=R) == status_before
+for path, row in plan['entries'].items():
+    helper.check_file(path, row)
+assert shutil.disk_usage(W).free > helper.FLOOR
+archive_plan = [
+    {'path': str(path.relative_to(R)), 'sha256': hashlib.sha256(item['raw']).hexdigest(), 'bytes': len(item['raw']), 'mode': item['mode'], 'action': 'reused_equal' if path.exists() else 'new', 'original_paths': item['original_paths']}
+    for path, item in sorted(plan['planned'].items())
+]
+generated = []
+for bundle in plan['bundles']:
+    generated.extend([{'path': str(bundle['case_path'].relative_to(R)), 'kind': 'new_registered_case', 'n_changes': len(bundle['changes'])}, {'path': str(bundle['decision_path'].relative_to(R)), 'kind': 'root_execution_accepted_decision', 'n_changes': len(bundle['changes'])}])
+for name in ['registry-before491.json', 'complete491-inspection-before.json', 'whole-original-proposals-rejections-and-pending.json', 'archive-preservation.json', 'complete569-inspection.json', 'complete569-integration-validation.json', 'integrate-wording004.py.txt']:
+    generated.append({'path': str((plan['I'] / name).relative_to(R)), 'kind': 'new_execution_audit'})
+assert len(generated) == 15
+changes_ref = write('intended-file-changes.json', {'schema_version': 1, 'status': 'unexecuted_exact_path_plan', 'agent_id': helper.AGENT, 'session_id': helper.AGENT, 'archive_files': archive_plan, 'new_generated_files_on_root_execution': generated, 'only_existing_file_to_replace_on_success': {'path': str(REGISTRY.relative_to(R)), 'before_sha256': registry_before, 'mutation': 'append exactly four case references; preserve all existing registry fields, case references and QA references'}, 'new_archive_files': plan['counts']['new_archive_files'], 'equal_existing_archive_files': plan['counts']['existing_equal_archive_files'], 'new_generated_files': len(generated), 'new_total_files_on_success': plan['counts']['new_archive_files'] + len(generated), 'no_original_source_or_prior_case_overwrites': True, 'no_deletions': True, 'R_writes_performed': False})
+preview_ref = write('unexecuted-case-change-previews.json', {'schema_version': 1, 'status': 'unexecuted_mechanical_projection_of_root_supported_objects', 'agent_id': helper.AGENT, 'session_id': helper.AGENT, 'not_an_accepted_decision': True, 'case_groups': [{'name': bundle['name'], 'role': bundle['role'], 'original_proposer': bundle['proposer'], 'proposal': binding(bundle['proposal_path']), 'root_independent_assessment': binding(bundle['assessment_path']), 'changes': bundle['changes']} for bundle in plan['bundles']], 'new_changes': 78, 'pending_additional_root_changes_included': 0})
+inputs_ref = write('read-only-bound-inputs.json', {'schema_version': 1, 'agent_id': helper.AGENT, 'session_id': helper.AGENT, 'files': [row for path, row in sorted(plan['entries'].items())], 'clinical_decisions_added': 0})
+plan_ref = write('read-only-plan.json', {'schema_version': 1, 'mode': 'read_only_no_R_writes', 'agent_id': helper.AGENT, 'session_id': helper.AGENT, 'counts': plan['counts'], 'intended_files': changes_ref, 'unexecuted_previews': preview_ref, 'inputs': inputs_ref, 'new_acceptance_metadata_created': False})
+validation = {'schema_version': 1, 'status': 'passed_read_only_integration_preparation', 'agent_id': helper.AGENT, 'session_id': helper.AGENT, 'validated_at_utc': datetime.now(timezone.utc).isoformat(), 'helper': binding(P / 'integrate_wording004.py'), 'context': binding(P / 'verify_context.py'), 'input_pins': binding(P / 'input-pins.json'), 'plan': plan_ref, 'counts': plan['counts'], 'full491_case_change_objects_preserved': True, 'all136_original_proposals_and_two_amendments_exact': True, 'root548_final_annotations_match_supported_only_projection': True, 'additional_four_current_annotations_preserved': True, 'retired_changes_preserved': 3, 'all3_QA_gates_unchanged_pending': True, 'normalized_duplicate_groups': 54, 'normalized_duplicate_reports': 204, 'normalized_duplicate_conflicts': 0, 'credential_scan_of_planned_copies_and_unexecuted_changes_passed': True, 'scanner_sha256': helper.SCANNER, 'guard_checks': checks, 'R_status_bytes_unchanged': True, 'registry_sha256_before_and_after': registry_before, 'free_bytes_before': free_before, 'free_bytes_after': shutil.disk_usage(W).free, 'disk_floor_bytes': helper.FLOOR, 'post_copy_reserve_bytes': helper.RESERVE, 'root_execution_function_called': False, 'prospective569_not_registered_yet': True, 'new_clinical_judgments': False, 'gold_values_opened': False, 'network_calls': 0}
+result = write('preparation-validation.json', validation)
+print(json.dumps({'status': validation['status'], 'validation_sha256': result['sha256'], 'helper_sha256': sha(P / 'integrate_wording004.py'), 'context_sha256': sha(P / 'verify_context.py'), 'intended_changes_sha256': changes_ref['sha256'], 'counts': plan['counts'], 'new_total_files_on_execution': len(generated) + plan['counts']['new_archive_files'], 'guard_checks': len(checks), 'R_writes': False}))

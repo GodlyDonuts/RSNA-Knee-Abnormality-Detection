@@ -6,48 +6,53 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Latest verified checkpoint
 
-The local registry contains **491 active accepted corrections**. Wording003
-adds 66: 64 supported second-reader proposals and two first-reader proposals.
-All 425 prior whole correction objects, four selected overlaps and three earlier
-retirements remain unchanged. Two second-reader proposals and one first-reader
-state proposal were rejected with their original evidence retained.
+The local registry contains **569 active accepted corrections**. Wording004
+adds 78 across four cases: FIRST14, SECOND62 and two single-item original-author
+context amendments. All 491 earlier whole objects and three retirements remain
+unchanged. The integration preserves all 63 first/73 second proposals, 27 initial
+postfreeze root reconsiderations, nine second rejections and four first state
+rejections. Root's 46 complete sources / 552 initial judgments preceded current
+case findings.
 
-Root reread all 45 complete attention reports and froze 540 judgments before
-opening the current case findings. Five later root state reconsiderations are
-explicit. All 59 first proposals and 68 second proposals remain preserved; the
-original authors separately normalized metadata without changing their clinical
-objects. The actual root integration and independent technical replay reconcile
-539 final states and quotations against the resulting registry. One additional
-root proposal for 026:03 Lateral OA was rejected by a distinct source assessor;
-that real semantic disagreement remains unresolved and unregistered, with the
-current annotation unchanged. It is not claimed as clinical agreement.
+The [569 integration proof](../initiative/audits/qualified-negation-focused-004-integration-v1/complete569-integration-validation.json)
+and [independent replay](../initiative/audits/qualified004-integration-independent-verification-v1/independent-integration-validation.json)
+verify exact additions, preserved objects, three pending semantic gates and zero
+conflicts across 54 identical-report groups / 204 reports. Their original 548
+matches plus four pending-cell account remains historically correct.
 
-The [491 integration proof](../initiative/audits/qualified-negation-focused-003-integration-v1/complete491-integration-validation.json)
-and [independent replay](../initiative/audits/qualified003-integration-independent-verification-v1/independent-integration-validation.json)
-verify the exact additions, preserved objects, three pending semantic gates and
-zero conflicts across 54 identical-report groups / 204 reports.
+A distinct source assessor rejected the four additional root proposals. Root
+then reread those three complete sources and withdrew all four in a
+[later explicit resolution](../initiative/audits/qualified004-additional-root-resolution-v1/root-later-resolution.json).
+Three normal-appearance statements retain their negatives; one dimension-only
+Baker cyst retains uncertainty because no calibrated moderate/large threshold
+was supplied. These are four later root reconsiderations, not initial agreement.
+The later effective 552 states and quotes all match 569; no extra corrections
+were registered. The older wording003 additional proposal for 026:03 Lateral OA
+remains a real semantic disagreement and is still unregistered.
 
 The latest verified publication is Git
-`a9b388f6bbe5c1c289eb4bc7554d1d741fcdd004` / private HF
-`b57d752502d4d31d03adb1bf71868af576798d97`: 425 corrections and 9,530 restorable
-Git files. Exact-commit CI 35688818538 passed. Its actual receipt, both complete
-reconstruction proofs and publication metadata are preserved in
-`qualified002-verified425-publication-v1/`. The local 491 milestone requires its
-own verified publication receipt. No corrected training export exists yet.
+`fec046253168083514749226987dda5b6c2505ce` / private HF
+`d2804e1da6fdaa6e77e01c224480c5b31aefc186`: 491 corrections and 10,020 restorable
+Git files. Exact-commit CI 35693648375 passed. Its actual receipt and two complete
+reconstruction executions are preserved in
+`qualified003-verified491-publication-v1/`. The peer proof and local alias describe
+one execution; the distinct root proof is the second. The local 569 milestone
+requires its own verified publication. No corrected training export exists yet.
 
-Both cartilage readers completed 260 priority reports and root attention
-adjudications 000–005. Both bone readers completed source and comparison passes
-through 024: 1,250 reports / 2,500 target judgments each. Bone024's second comparison
-uses actual 491 and explicitly preserves the first reader's 425 baseline. The
-bone proposals still require root adjudication. Wording005 first metadata
-normalization is complete with all 60 original clinical objects unchanged.
+Both cartilage readers completed 260 priority reports and root adjudications
+000–005. Both bone readers completed source and comparison passes through 028:
+1,450 reports / 2,900 target judgments each. FIRST028 preserves its actual491
+comparison and separate verified569 rebase; SECOND028 compares against actual569. Bone proposals remain
+unintegrated until a supported disposition; no reading count is clinical approval.
 
-Root wording004 has frozen all 46 complete attention sources / 552 target judgments
-before current case findings, including 448 exact nonmissing quotations and 104
-empty missing states. Its source freeze is `6c9137370c61e43bec5fb2c436a6149e398d5ab1953093d1f74066b09fb1ee1d`.
-Comparison and adjudication remain pending; wording005–006 root attention also
-remains pending. Snapshot v17 preserves completed cutoffs and the original
-partial snapshots without treating archive copying as clinical acceptance.
+Root wording005 has frozen all 48 complete neutral attention sources / 576 target
+judgments before current case findings: 462 exact nonmissing quotations and 114
+empty missing states. Source freeze:
+`b66019833e7d2f9773afa83aafdfb2417f314dc5ced5536712520e99cd9ae881`.
+The helper preserves two prefreeze literal-quote validation failures and exact
+source corrections; neither changed an initial state. Comparison/adjudication
+and wording006 attention remain. Snapshot v18 preserves bounded completed
+cutoffs; archive copying does not itself approve clinical annotations.
 
 The finite closure map and registry362 evidence ledger link all 4,407 reports /
 52,884 cells to original review evidence and targeted follow-ups. The ledger has
