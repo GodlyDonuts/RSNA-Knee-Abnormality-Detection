@@ -1,0 +1,193 @@
+"""Verify and unpack one cache archive in private job-local disk; clean only owned roots."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import shutil
+import signal
+import subprocess
+import tarfile
+import tempfile
+from pathlib import Path, PurePosixPath
+
+
+def local_disk(path: Path) -> bool:
+    result = subprocess.run(
+        ["findmnt", "--noheadings", "--output", "FSTYPE", "--target", str(path)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    kind = result.stdout.strip()
+    return (
+        result.returncode == 0
+        and kind not in {"", "lustre", "nfs", "nfs4", "tmpfs", "ramfs"}
+        and path.stat().st_dev != Path.home().stat().st_dev
+    )
+
+
+def cleanup(root: Path, job_id: str) -> None:
+    if not re.fullmatch(r"[1-9][0-9]*", job_id):
+        raise ValueError("real_job_required_for_cleanup")
+    if (
+        root.is_symlink()
+        or not root.is_dir()
+        or not root.name.startswith("rsna-knee-" + job_id + "-")
+    ):
+        raise ValueError("not_an_owned_job_runtime")
+    marker = root / ".rsna-runtime.json"
+    if marker.is_symlink():
+        raise ValueError("linked_runtime_marker")
+    record = json.loads(marker.read_text())
+    if (
+        record.get("kind") != "rsna-newton-runtime-v1"
+        or record.get("job_id") != job_id
+        or record.get("uid") != os.getuid()
+    ):
+        raise ValueError("runtime_owner_or_job_mismatch")
+    if root.stat().st_uid != os.getuid():
+        raise ValueError("runtime_not_owned_by_current_user")
+    shutil.rmtree(root)
+
+
+def extract(
+    archive: Path,
+    sha256: str,
+    expected_files: int,
+    expected_bytes: int,
+    scratch_base: Path,
+    min_free_gib: int,
+    job_id: str,
+) -> dict:
+    if not re.fullmatch(r"[1-9][0-9]*", job_id) or not re.fullmatch(r"[0-9a-f]{64}", sha256):
+        raise ValueError("real_job_and_exact_archive_hash_required")
+    if min(expected_files, expected_bytes, min_free_gib) <= 0:
+        raise ValueError("positive_archive_bounds_required")
+    if (
+        archive.is_symlink()
+        or not archive.is_file()
+        or not scratch_base.is_dir()
+        or not local_disk(scratch_base)
+    ):
+        raise ValueError("regular_archive_and_real_local_disk_required")
+    if shutil.disk_usage(scratch_base).free < max(
+        100 * 2**30, expected_bytes + min_free_gib * 2**30
+    ):
+        raise ValueError("insufficient_job_local_disk")
+    root = Path(tempfile.mkdtemp(prefix="rsna-knee-" + job_id + "-", dir=scratch_base))
+    marker = {
+        "kind": "rsna-newton-runtime-v1",
+        "job_id": job_id,
+        "uid": os.getuid(),
+        "archive_sha256": sha256,
+    }
+    (root / ".rsna-runtime.json").write_text(json.dumps(marker))
+    count, total, names = 0, 0, set()
+    previous_handlers = {}
+
+    def interrupted(signum, _frame):
+        raise InterruptedError("archive_extraction_interrupted")
+
+    try:
+        for signum in (signal.SIGTERM, signal.SIGINT):
+            previous_handlers[signum] = signal.signal(signum, interrupted)
+        with archive.open("rb") as raw:
+            verified = HashingReader(raw)
+            with tarfile.open(fileobj=verified, mode="r|") as source:
+                for member in source:
+                    name = PurePosixPath(member.name)
+                    if (
+                        name.is_absolute()
+                        or ".." in name.parts
+                        or not name.parts
+                        or name.parts[0] != "cache"
+                        or str(name) != member.name.rstrip("/")
+                        or member.name in names
+                    ):
+                        raise ValueError("unsafe_or_duplicate_archive_member")
+                    names.add(member.name)
+                    if len(names) > expected_files * 8 + 1:
+                        raise ValueError("archive_directory_count_exceeds_bound")
+                    target = root.joinpath(*name.parts)
+                    if member.isdir():
+                        target.mkdir(parents=True, exist_ok=True, mode=0o700)
+                    elif member.isfile() and name.suffix in {".npz", ".json"}:
+                        count += 1
+                        total += member.size
+                        if count > expected_files or total > expected_bytes:
+                            raise ValueError("archive_exceeds_declared_bounds")
+                        target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                        stream = source.extractfile(member)
+                        if stream is None:
+                            raise ValueError("missing_regular_member_stream")
+                        with stream, target.open("xb") as output:
+                            shutil.copyfileobj(stream, output, length=4 * 1024 * 1024)
+                        target.chmod(0o600)
+                    else:
+                        raise ValueError("links_or_unexpected_members_rejected")
+            while verified.read(4 * 1024 * 1024):
+                pass
+            if verified.digest.hexdigest() != sha256:
+                raise ValueError("archive_sha256_mismatch")
+        if count != expected_files or total != expected_bytes:
+            raise ValueError("archive_membership_or_bytes_mismatch")
+        return {
+            "runtime_root": str(root),
+            "cache_path": str(root / "cache"),
+            "archive_sha256": sha256,
+            "file_members": count,
+            "unpacked_file_bytes": total,
+        }
+    except BaseException:
+        cleanup(root, job_id)
+        raise
+    finally:
+        for signum, handler in previous_handlers.items():
+            signal.signal(signum, handler)
+
+
+class HashingReader:
+    """Hash the exact stream consumed by tarfile, including trailing tar padding."""
+
+    def __init__(self, source):
+        self.source = source
+        self.digest = hashlib.sha256()
+
+    def read(self, size=-1):
+        block = self.source.read(size)
+        self.digest.update(block)
+        return block
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    unpack = commands.add_parser("extract")
+    unpack.add_argument("--archive", type=Path, required=True)
+    unpack.add_argument("--sha256", required=True)
+    unpack.add_argument("--expected-files", type=int, required=True)
+    unpack.add_argument("--expected-bytes", type=int, required=True)
+    unpack.add_argument("--scratch-base", type=Path, required=True)
+    unpack.add_argument("--min-free-gib", type=int, default=20)
+    remove = commands.add_parser("cleanup")
+    remove.add_argument("--root", type=Path, required=True)
+    args = parser.parse_args()
+    job_id = os.environ.get("SLURM_JOB_ID", "")
+    try:
+        if args.command == "cleanup":
+            cleanup(args.root, job_id)
+        else:
+            fields = vars(args).copy()
+            fields.pop("command")
+            print(json.dumps(extract(**fields, job_id=job_id)))
+    except (OSError, ValueError, KeyError, tarfile.TarError):
+        print(json.dumps({"status": "blocked", "reason": "job_local_cache_failed"}))
+        raise SystemExit(2) from None
+
+
+if __name__ == "__main__":
+    main()

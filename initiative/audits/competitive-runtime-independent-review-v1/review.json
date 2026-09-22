@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "stage": "independent_competitive_runtime_source_review_and_cpu_tests",
+  "actual_agent_id": "/root/competition_contract",
+  "actual_session_id": "/root/competition_contract",
+  "runtime_author": "/root",
+  "at_utc": "2026-09-22T16:10:43.234265+00:00",
+  "verdict": "no_remaining_material_blocker_identified_within_bounded_review",
+  "files": {
+    "rsna/competitive/train.py": "824c04c0cfd671b3408edbec335388198a68d082972a8ef8995c069e5092d7fd",
+    "rsna/competitive/loss.py": "a6bd607163589b0209af4bc88483124309e499b3adea412d7d1a49c8a905cf40",
+    "rsna/competitive/sampling.py": "c39153f13075c14ae0135accf9db12525b4e17f15637519e83362c9291d274c9",
+    "rsna/competitive/checkpoint.py": "a582266feda8bed89c8b29e957fddce540260ee2f378e1100fefb81dae0cf206",
+    "rsna/competitive/infer.py": "fdcc419d2521bda99aec45f755a2c51e55bf24507bd83269f3b95b9177a2c222",
+    "tests/test_competitive_training.py": "e0724284e0282b6562b49663e08dfcf91f480deefaa35e4dfbd3fad53a9c63f5",
+    "tests/test_competitive_runtime_independent.py": "1f2a7e106a94c15774485fd1f49afea2457c792d7500203a2f2a83cb47f03050"
+  },
+  "independent_adversarial_tests": 7,
+  "root_training_tests_independently_rerun": 20,
+  "total_tests_passed": 27,
+  "commands": [
+    "python -m pytest -q tests/test_competitive_training.py tests/test_competitive_runtime_independent.py",
+    "ruff check tests/test_competitive_runtime_independent.py",
+    "ruff format --check tests/test_competitive_runtime_independent.py"
+  ],
+  "closed_findings": [
+    "dataset broad CUDA RNG seeding replaced by CPU-only default generator seeding",
+    "inference code-hash scope expanded to complete rsna Python tree",
+    "rank-zero-only final inference replaced with balanced cancellable distributed prediction"
+  ],
+  "tested_cases": [
+    "changed model/preprocessing/decoder/sharedinfer rejected before encoder loading",
+    "two-rank final inference with no real study on one rank",
+    "two-rank padded tail exports each real UID exactly once",
+    "single-rank stop request cancels both final inference schedules",
+    "root synthetic mid-epoch optimizer/resume/prediction equality independently rerun",
+    "root DDP effective-batch global gradient test independently rerun"
+  ],
+  "not_tested": [
+    "CUDA/BF16/NCCL numerical behavior",
+    "GPU-hardware-change bitwise resume",
+    "real Slurm interruption timing",
+    "full hidden-test inference time",
+    "competitive quality"
+  ],
+  "notes": [
+    "No runtime implementation file edited by reviewer.",
+    "First collection on system Python lacked pydicom; successful run used existing project dependency environment.",
+    "Actual accepted-data acceptance is root-owned, separate from this synthetic review.",
+    "Reviewed source hashes identify current files, not a claim of immutable Git integration."
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "author_agent": "/root/competition_contract/medical_encoder_sources",
+  "checked_at_utc": "2026-09-22T17:28:38.692268+00:00",
+  "ssh_access": {
+    "newton": true,
+    "stokes": true,
+    "auth_failures": 0,
+    "host_key_policy": "OpenSSH known_hosts verification with accept-new; changed keys never ignored",
+    "password_recorded": false
+  },
+  "newton": {
+    "account": "skattel",
+    "partition": "normal",
+    "qos": "normal",
+    "dual_h100_gres": "gpu:nvidia_h100_pcie:2",
+    "dual_h100_nodes_listed": 29,
+    "requested_initial_cpus_per_node": 4,
+    "requested_initial_gpus_per_node": 2,
+    "scheduler": "Slurm25.11.0",
+    "account_monthly_gpu_hours": 2000,
+    "account_monthly_gpu_hours_used": 0,
+    "account_monthly_cpu_hours": 10000,
+    "account_monthly_cpu_hours_used": 0,
+    "usage_period": "2026-09-01 to2026-10-01",
+    "kill_wait_seconds": 30,
+    "preempt_mode": "CANCEL",
+    "preempt_grace_seconds": 0,
+    "availability_snapshot_is_not_reservation": true
+  },
+  "storage": {
+    "staging_root": "/home/sa305415/rsna-knee",
+    "mode": "effective permissions 0700; inherited setgid may yield 02700",
+    "cache_archive_target": "/home/sa305415/rsna-knee/cache/cache256-v3-official-recovery-v1.tar",
+    "shared_between_stokes_newton": true,
+    "quota_used_kib": 825588120,
+    "quota_soft_kib": 1048576000,
+    "quota_hard_kib": 1059061760,
+    "quota_soft_remaining_gib": 212.6578140258789,
+    "quota_files_used": 954996,
+    "quota_files_soft": 1000000,
+    "quota_files_hard": 1010000,
+    "quota_files_soft_remaining": 45004,
+    "group_storage_still_charges_user_quota": true,
+    "cache_files": 48772,
+    "cache_directories": 4413,
+    "node_local_capacity_confirmed": true,
+    "slurm_tmp_disk_report": 0,
+    "interpretation": "TmpDisk0 is unconfigured Slurm metadata. Actual allocated evc22 /tmp has sufficient measured capacity; each runtime node is checked again.",
+    "node_local_probe_job_id": 838365,
+    "node_local_probe_node": "evc22",
+    "node_local_probe_free_bytes": 769039626240,
+    "node_local_filesystem": "xfs"
+  },
+  "software": {
+    "confirmed_python_command": "module load python/python-3.11.4-gcc-12.2.0 && python3 --version",
+    "confirmed_python_version": "3.11.4",
+    "default_python_version": "3.6.8",
+    "cluster_rsync": "3.1.3",
+    "compute_gpu_driver_not_yet_observed": true
+  },
+  "authorized_remote_changes": [
+    "Created private rsna-knee, access-probe-v1, cache directories",
+    "Uploaded one4.4MB existing public release manifest and verified SHA256; retained at mode0600",
+    "Completed zero-GPU filesystem probe job838365; temporary 64KiB probes removed",
+    "Started direct full-cache and pilot-cache archive streams into exclusive private partials; neither completion assumed",
+    "Completed approved DINOv3-L staging in zero-GPU job838408; exact full SHA verified and transient token file deleted",
+    "Created verified pilot and production fold0 configs in zero-GPU job838452 after correcting helper placement; first failed job838434 preserved"
+  ],
+  "not_performed": [
+    "No GPU training or allocation by this agent",
+    "No raw 569GB image transfer",
+    "No overwrite of existing environment or model files"
+  ],
+  "next_requirements": [
+    "Verify Linux environment archive and relocation acceptance",
+    "Complete and verify pilot archive transfer",
+    "Stage clean committed code clone and generate launch from actual artifact receipts",
+    "Run bounded allocated H100 pilot only when prerequisites are ready"
+  ],
+  "sources": [
+    "https://arcc.ist.ucf.edu/docs/data/files/",
+    "https://arcc.ist.ucf.edu/docs/data/globus/"
+  ]
+}

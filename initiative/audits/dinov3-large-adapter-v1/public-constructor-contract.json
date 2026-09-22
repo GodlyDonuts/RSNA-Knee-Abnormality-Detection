@@ -1,0 +1,64 @@
+{
+  "actual_executor": "/root/image_pipeline_audit",
+  "checked_at_utc": "2026-09-22T16:53:37.218208+00:00",
+  "constructor_static_arguments": {
+    "check_hash": {
+      "expression": "check_hash"
+    },
+    "compact_arch_name": "vitl",
+    "depth": 24,
+    "drop_path_rate": 0.0,
+    "embed_dim": 1024,
+    "ffn_bias": true,
+    "ffn_layer": "mlp",
+    "ffn_ratio": 4,
+    "img_size": 224,
+    "in_chans": 3,
+    "layerscale_init": 1e-05,
+    "mask_k_bias": true,
+    "n_storage_tokens": 4,
+    "norm_layer": "layernormbf16",
+    "num_heads": 16,
+    "patch_size": 16,
+    "pos_embed_rope_base": 100,
+    "pos_embed_rope_dtype": "fp32",
+    "pos_embed_rope_normalize_coords": "separate",
+    "pos_embed_rope_rescale_coords": 2,
+    "pretrained": {
+      "expression": "pretrained"
+    },
+    "proj_bias": true,
+    "qkv_bias": true,
+    "untie_global_and_local_cls_norm": {
+      "expression": "untie_global_and_local_cls_norm"
+    },
+    "weights": {
+      "expression": "weights"
+    }
+  },
+  "layernormbf16_eps": 1e-05,
+  "limitations": [
+    "Public code architecture contract only; gated HF config bytes and weight header are not verified",
+    "Learned LayerScale values cannot be inferred from initialization scalar",
+    "No official weights downloaded or pretrained Large execution"
+  ],
+  "official_upstream_revision": "6876159a11b4df116f30f667f8c9888617df0751",
+  "satellite_variant_untied_norm": true,
+  "schema_version": 1,
+  "sources": [
+    {
+      "bytes": 17247,
+      "path": "dinov3/hub/backbones.py",
+      "sha256": "6c9a18aca0b5fcb1fce439213a94a528e072376a6023718e03dbd9fcfaa10deb",
+      "source_url": "https://raw.githubusercontent.com/facebookresearch/dinov3/6876159a11b4df116f30f667f8c9888617df0751/dinov3/hub/backbones.py"
+    },
+    {
+      "bytes": 15084,
+      "path": "dinov3/models/vision_transformer.py",
+      "sha256": "1af05405e19bc42188f80bfcb204b87ed1ec72af998e0bbd4658a85d7fae93f2",
+      "source_url": "https://raw.githubusercontent.com/facebookresearch/dinov3/6876159a11b4df116f30f667f8c9888617df0751/dinov3/models/vision_transformer.py"
+    }
+  ],
+  "status": "public_upstream_constructor_verified_gated_hf_config_still_unreadable",
+  "web_variant_shared_norm": true
+}

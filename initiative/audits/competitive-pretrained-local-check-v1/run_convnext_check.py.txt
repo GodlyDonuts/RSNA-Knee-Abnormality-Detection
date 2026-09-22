@@ -1,0 +1,114 @@
+"""Bounded local-only CPU acceptance; the created weight file is evicted afterward."""
+from __future__ import annotations
+import hashlib
+import json
+import shutil
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+import requests
+import torch
+
+from rsna.competitive.backbones import create_encoder
+from rsna.competitive.model import CompetitiveStudyNet
+
+ROOT = Path(__file__).resolve().parents[3]
+OUT = Path(__file__).resolve().parent
+FLOOR = 20 * 1024**3
+
+def sha(path):
+    value = hashlib.sha256()
+    with path.open('rb') as f:
+        for block in iter(lambda: f.read(1024**2), b''):
+            value.update(block)
+    return value.hexdigest()
+
+def main():
+    manifest_path = ROOT / 'configs/competitive/weights/convnext-tiny-224.json'
+    manifest = json.loads(manifest_path.read_text())
+    spec = manifest['encoder']
+    size = manifest['download']['weights_bytes']
+    destination = ROOT / spec['weights_path']
+    partial = destination.with_suffix('.local-check-partial')
+    if destination.exists() or partial.exists():
+        raise RuntimeError('Audit never overwrites pre-existing weight or partial files')
+    before = shutil.disk_usage(ROOT).free
+    if before - size - 4 * 1024**2 < FLOOR:
+        raise RuntimeError('Insufficient 20GiB reserve')
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    url = f"https://huggingface.co/{spec['source_id']}/resolve/{spec['source_revision']}/{manifest['download']['weights_filename']}"
+    report = dict(schema_version=1, actual_executor='/root/image_pipeline_audit',
+                  started_at_utc=datetime.now(timezone.utc).isoformat(),
+                  scope='Actual complete pretrained ConvNeXt weights and CPU forward/head backward; no GPU or competitive score',
+                  script_sha256=sha(Path(__file__)), manifest_sha256=sha(manifest_path),
+                  config_sha256=sha(ROOT / spec['config_path']), source_id=spec['source_id'],
+                  source_revision=spec['source_revision'], expected_weight_sha256=spec['weights_sha256'],
+                  expected_weight_bytes=size, disk_free_before=before,
+                  code={name:sha(ROOT / name) for name in ['rsna/competitive/backbones.py','rsna/competitive/model.py']})
+    created = False
+    try:
+        start = time.monotonic()
+        count = 0
+        digest = hashlib.sha256()
+        with requests.get(url, stream=True, timeout=(15, 60)) as response:
+            response.raise_for_status()
+            with partial.open('xb') as f:
+                for block in response.iter_content(1024**2):
+                    count += len(block)
+                    if count > size or shutil.disk_usage(ROOT).free - len(block) < FLOOR:
+                        raise RuntimeError('Download exceeds bound/reserve')
+                    f.write(block); digest.update(block)
+        if count != size or digest.hexdigest() != spec['weights_sha256']:
+            raise RuntimeError('Official complete weights checksum/size mismatch')
+        partial.rename(destination)
+        created = True
+        report.update(actual_weight_sha256=digest.hexdigest(), actual_weight_bytes=count,
+                      download_seconds=time.monotonic()-start,
+                      disk_free_with_weights=shutil.disk_usage(ROOT).free)
+        local_spec = dict(spec, config_path=str(ROOT/spec['config_path']), weights_path=str(destination))
+        torch.manual_seed(20260922)
+        torch.set_num_threads(2)
+        start = time.monotonic()
+        encoder, dim, provenance = create_encoder(local_spec)
+        encoder.requires_grad_(False)
+        model = CompetitiveStudyNet(encoder, dim, hidden_dim=32, encode_chunk_size=1).train()
+        image = torch.linspace(0, 1, 224*224).reshape(1,1,1,1,224,224)
+        inputs=(image, torch.tensor([[[1.,0.,0.,1.,0.]]]), torch.ones(1,1,dtype=torch.bool),
+                torch.ones(1,1,1,dtype=torch.bool), torch.tensor([[[[0.,1.]]]]))
+        with torch.no_grad():
+            embedding=encoder(image.reshape(1,1,224,224))
+        output=model(*inputs)
+        output.square().mean().backward()
+        trainable=[p for p in model.parameters() if p.requires_grad]
+        gradients_pass=all(p.grad is not None and torch.isfinite(p.grad).all() for p in trainable)
+        assert embedding.shape==(1,768) and output.shape==(1,12)
+        assert torch.isfinite(embedding).all() and torch.isfinite(output).all() and gradients_pass
+        assert not any(p.grad is not None for p in encoder.parameters())
+        report.update(status='passed', encoder_provenance=provenance,
+                      device='cpu', torch_version=torch.__version__,
+                      actual_load_forward_head_backward_seconds=time.monotonic()-start,
+                      input='deterministic synthetic grayscale ramp, no clinical image inference',
+                      embedding_shape=list(embedding.shape), logits_shape=list(output.shape),
+                      outputs_finite=True, trainable_head_tensors=len(trainable),
+                      all_trainable_head_gradients_finite=True, frozen_encoder_gradients_absent=True,
+                      embedding_sha256=hashlib.sha256(embedding.numpy().tobytes()).hexdigest(),
+                      logits_sha256=hashlib.sha256(output.detach().numpy().tobytes()).hexdigest())
+    except BaseException as exc:
+        report.update(status='failed', error_type=type(exc).__name__)
+        raise
+    finally:
+        if created and sha(destination)==spec['weights_sha256']:
+            destination.unlink()
+            report['ephemeral_weight_eviction']={'removed':True,'sha256':spec['weights_sha256'],'bytes':size,
+                                                'reason':'Restore storage headroom after authorized bounded acceptance'}
+        if partial.exists():
+            partial.unlink()
+        report['disk_free_after']=shutil.disk_usage(ROOT).free
+        report['finished_at_utc']=datetime.now(timezone.utc).isoformat()
+        output_path=OUT/'convnext-actual-cpu-receipt.json'
+        with output_path.open('x') as f: json.dump(report,f,indent=2,sort_keys=True);f.write('\n')
+        print(json.dumps({'status':report.get('status'),'receipt_sha256':sha(output_path),
+                          'disk_free_after':report['disk_free_after']}))
+
+if __name__=='__main__':main()

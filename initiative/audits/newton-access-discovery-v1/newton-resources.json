@@ -1,0 +1,109 @@
+{
+  "server": "newton",
+  "host": "newton.ist.ucf.edu",
+  "user": "sa305415",
+  "connection_attempt": 2,
+  "read_only": true,
+  "exit_code": 0,
+  "status": "connected",
+  "discovery": {
+    "schema_version": 1,
+    "read_only": true,
+    "hostname": "evuser2",
+    "utc": "2026-09-22T16:50:15.534628+00:00",
+    "user": "sa305415",
+    "groups": [
+      "domain_users",
+      "arcc_pi_skattel",
+      "arcc_users",
+      "arcc_stokes_users",
+      "arcc_newton_users"
+    ],
+    "system": "Linux",
+    "python": "3.6.8",
+    "own_existing_storage_paths": {
+      "/home/sa305415": {
+        "resolved": "/lustre/fs1/home/sa305415",
+        "writable": true,
+        "filesystem_free_bytes": 327276175548416,
+        "filesystem_total_bytes": 1254981848137728,
+        "quota_confirmed": false
+      }
+    },
+    "commands": [
+      {
+        "label": "slurm_version",
+        "returncode": 0,
+        "stdout": "slurm 25.11.0\n",
+        "stderr": ""
+      },
+      {
+        "label": "partition_gpu_inventory",
+        "returncode": 0,
+        "stdout": "normal*|up|infinite|9|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785|proc64,speed290,icelake,sse4,avx,avx2,avx512,h100,switchB3U1,hdr,gpu80\nnormal*|up|infinite|10|gpu:tesla_v100-pcie-16gb:2(S:0-1)|32|190884|proc32,speed210,skylake,sse4,avx,avx2,avx512,v100,switchB1U1,edr,gpu16\nnormal*|up|infinite|1|gpu:tesla_v100-pcie-32gb:2(S:0-1)|32|190884|proc32,speed290,cascadelake,sse4,avx,avx2,avx512,v100,switchB3U1,edr,gpu32\nnormal*|up|infinite|20|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785|proc64,speed290,icelake,sse4,avx,avx2,avx512,h100,switchB6U1,hdr,gpu80\nnormal*|up|infinite|9|gpu:tesla_v100-pcie-32gb:2(S:0-1)|32|190884|proc32,speed210,skylake,sse4,avx,avx2,avx512,v100,switchB1U1,edr,gpu32\npreemptable|up|2-00:00:00|9|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785|proc64,speed290,icelake,sse4,avx,avx2,avx512,h100,switchB3U1,hdr,gpu80\npreemptable|up|2-00:00:00|10|gpu:tesla_v100-pcie-16gb:2(S:0-1)|32|190884|proc32,speed210,skylake,sse4,avx,avx2,avx512,v100,switchB1U1,edr,gpu16\npreemptable|up|2-00:00:00|1|gpu:tesla_v100-pcie-32gb:2(S:0-1)|32|190884|proc32,speed290,cascadelake,sse4,avx,avx2,avx512,v100,switchB3U1,edr,gpu32\npreemptable|up|2-00:00:00|20|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785|proc64,speed290,icelake,sse4,avx,avx2,avx512,h100,switchB6U1,hdr,gpu80\npreemptable|up|2-00:00:00|9|gpu:tesla_v100-pcie-32gb:2(S:0-1)|32|190884|proc32,speed210,skylake,sse4,avx,avx2,avx512,v100,switchB1U1,edr,gpu32\nshort|up|4:00:00|1|gpu:nvidia_h200_nvl:4(S:0)|192|2063364|proc192,speed250,graniterapids,sse4,avx,avx2,avx512,h100,switchA9U1,hdr,gpu80\nhighgpu|up|infinite|4|gpu:nvidia_h100_80gb_hbm3:8(S:0-1)|128|1030790|proc128,speed250,emeraldrapids,sse4,avx,avx2,avx512,h100,switchA9U1,hdr,gpu80\nucfit|up|infinite|1|gpu:nvidia_h200_nvl:4(S:0)|192|2063364|proc192,speed250,graniterapids,sse4,avx,avx2,avx512,h100,switchA9U1,hdr,gpu80\n",
+        "stderr": ""
+      },
+      {
+        "label": "partitions",
+        "returncode": 0,
+        "stdout": "PartitionName=normal\n   AllowGroups=ALL AllowAccounts=ALL DenyQos=preemptable\n   AllocNodes=ALL Default=YES QoS=N/A\n   DefaultTime=00:10:00 DisableRootJobs=NO ExclusiveUser=NO ExclusiveTopo=NO GraceTime=0 Hidden=NO\n   MaxNodes=UNLIMITED MaxTime=UNLIMITED MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED\n   Nodes=evc[1-13,15-50]\n   PriorityJobFactor=100 PriorityTier=100 RootOnly=NO ReqResv=NO OverSubscribe=FORCE:4\n   OverTimeLimit=NONE PreemptMode=CANCEL\n   State=UP TotalCPUs=2496 TotalNodes=49 SelectTypeParameters=NONE\n   JobDefaults=(null)\n   DefMemPerNode=UNLIMITED MaxMemPerNode=UNLIMITED\n   TRES=cpu=2496,mem=18746445M,node=49,billing=2692,gres/gpu=98\n   TRESBillingWeights=CPU=1.0,GRES/gpu=2.0\n\nPartitionName=preemptable\n   AllowGroups=ALL AllowAccounts=ALL AllowQos=preemptable\n   AllocNodes=ALL Default=NO QoS=N/A\n   DefaultTime=00:10:00 DisableRootJobs=NO ExclusiveUser=NO ExclusiveTopo=NO GraceTime=0 Hidden=NO\n   MaxNodes=UNLIMITED MaxTime=2-00:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED\n   Nodes=evc[1-13,15-50]\n   PriorityJobFactor=1 PriorityTier=1 RootOnly=NO ReqResv=NO OverSubscribe=FORCE:4\n   OverTimeLimit=NONE PreemptMode=CANCEL\n   State=UP TotalCPUs=2496 TotalNodes=49 SelectTypeParameters=NONE\n   JobDefaults=(null)\n   DefMemPerNode=UNLIMITED MaxMemPerNode=UNLIMITED\n   TRES=cpu=2496,mem=18746445M,node=49,gres/gpu=98\n   TRESBillingWeights=CPU=0.0,Mem=0.0G,GRES/gpu=0.0\n\nPartitionName=short\n   AllowGroups=ALL AllowAccounts=arcc AllowQos=ALL\n   AllocNodes=ALL Default=NO QoS=N/A\n   DefaultTime=00:10:00 DisableRootJobs=NO ExclusiveUser=NO ExclusiveTopo=NO GraceTime=0 Hidden=NO\n   MaxNodes=UNLIMITED MaxTime=04:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED\n   Nodes=evc105\n   PriorityJobFactor=1 PriorityTier=1 RootOnly=NO ReqResv=NO OverSubscribe=FORCE:4\n   OverTimeLimit=NONE PreemptMode=CANCEL\n   State=UP TotalCPUs=192 TotalNodes=1 SelectTypeParameters=NONE\n   JobDefaults=(null)\n   DefMemPerNode=UNLIMITED MaxMemPerNode=UNLIMITED\n   TRES=cpu=192,mem=2063364M,node=1,gres/gpu=4\n   TRESBillingWeights=CPU=0.0,Mem=0.0G,GRES/gpu=0.0\n\nPartitionName=highgpu\n   AllowGroups=ALL AllowAccounts=arcc,gmartin,mshah,sernam,chenchen,adutta,ywang2,xli,svyas,sibrahim,abedi,cakcora,skarmaker,gsukthankar,ai,medt,dwu2,amantzaris,asiahkoohi,yrawat,ytian,yshang,ckuemmerle,igaribay,cvelissaris,zwang,wlin AllowQos=ALL\n   AllocNodes=ALL Default=NO QoS=N/A\n   DefaultTime=00:10:00 DisableRootJobs=NO ExclusiveUser=NO ExclusiveTopo=NO GraceTime=0 Hidden=NO\n   MaxNodes=UNLIMITED MaxTime=UNLIMITED MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED\n   Nodes=evc[101-104]\n   PriorityJobFactor=1 PriorityTier=1 RootOnly=NO ReqResv=NO OverSubscribe=FORCE:4\n   OverTimeLimit=NONE PreemptMode=CANCEL\n   State=UP TotalCPUs=512 TotalNodes=4 SelectTypeParameters=NONE\n   JobDefaults=(null)\n   DefMemPerNode=UNLIMITED MaxMemPerNode=UNLIMITED\n   TRES=cpu=512,mem=4123160M,node=4,billing=512,gres/gpu=32\n\nPartitionName=ucfit\n   AllowGroups=ALL AllowAccounts=arcc,gmartin,ucfit AllowQos=ALL\n   AllocNodes=ALL Default=NO QoS=N/A\n   DefaultTime=00:10:00 DisableRootJobs=NO ExclusiveUser=NO ExclusiveTopo=NO GraceTime=0 Hidden=NO\n   MaxNodes=UNLIMITED MaxTime=UNLIMITED MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED\n   Nodes=evc105\n   PriorityJobFactor=1 PriorityTier=1 RootOnly=NO ReqResv=NO OverSubscribe=FORCE:4\n   OverTimeLimit=NONE PreemptMode=CANCEL\n   State=UP TotalCPUs=192 TotalNodes=1 SelectTypeParameters=NONE\n   JobDefaults=(null)\n   DefMemPerNode=UNLIMITED MaxMemPerNode=UNLIMITED\n   TRES=cpu=192,mem=2063364M,node=1,billing=192,gres/gpu=4\n\n",
+        "stderr": ""
+      },
+      {
+        "label": "own_associations",
+        "returncode": 0,
+        "stdout": "newton|skattel|sa305415||normal,ood,preemptable|normal|||50||\n",
+        "stderr": ""
+      },
+      {
+        "label": "own_allocation_usage",
+        "returncode": 0,
+        "stdout": "Usage for Account skattel on the newton cluster for start=2026-09-01 end=2026-10-01\n==================================================\n    CPU Used: 0.0 hours of 10000.0 (0.0%)\n    GPU Used: 0.0 hours of 2000.0 (0.0%)\n==================================================\nUSER                      CPU Hours   GPU Hours\n----                      ---------   ---------\n\n",
+        "stderr": "",
+        "scope_note": "Only account totals and current-user usage retained; other-user rows omitted."
+      },
+      {
+        "label": "own_quota",
+        "returncode": 1,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "home_filesystem",
+        "returncode": 0,
+        "stdout": "1024-blocks Used Available Capacity Mounted on\n1225568211072 893559257728 319605640184 74% /lustre/fs1\n",
+        "stderr": "",
+        "scope_note": "Filesystem transport endpoints omitted; capacity and mount retained."
+      },
+      {
+        "label": "home_inode_capacity",
+        "returncode": 0,
+        "stdout": "Inodes IUsed IFree IUse% Mounted on\n599293952 539489507 59804445 91% /lustre/fs1\n",
+        "stderr": "",
+        "scope_note": "Filesystem transport endpoints omitted; capacity and mount retained."
+      },
+      {
+        "label": "available_software_modules",
+        "returncode": 0,
+        "stdout": "anaconda/anaconda-2023.09\nanaconda/anaconda-2024.10\ncuda/cuda-11.3\ncuda/cuda-11.6.0\ncuda/cuda-11.8.0\ncuda/cuda-12.1.0\ncuda/cuda-12.1\ncuda/cuda-12.2.2\ncuda/cuda-12.3.0\ncuda/cuda-12.4.0\ncuda/cuda-12.6.0\ncuda/cuda-13.1.0\ngcc/gcc-11.2.0\ngcc/gcc-12.2.0\nlibtorch/libtorch-1.10.1-gcc-8.3.0\nlibtorch/libtorch-2.1.0-gcc-12.2.0\npython/python-3.10.13-gcc-7.1.0\npython/python-3.11.4-gcc-7.1.0\npython/python-3.11.4-gcc-12.2.0\npython/python-3.11.4-oneapi-2023.1.0\ngcc/gcc-9.1.0\n",
+        "stderr": ""
+      },
+      {
+        "label": "default_python",
+        "returncode": 0,
+        "stdout": "Python 3.6.8\n",
+        "stderr": ""
+      },
+      {
+        "label": "login_gpu_driver_inventory",
+        "error_type": "FileNotFoundError"
+      },
+      {
+        "label": "rsync_version",
+        "returncode": 0,
+        "stdout": "rsync  version 3.1.3  protocol version 31\nCopyright (C) 1996-2018 by Andrew Tridgell, Wayne Davison, and others.\nWeb site: http://rsync.samba.org/\nCapabilities:\n    64-bit files, 64-bit inums, 64-bit timestamps, 64-bit long ints,\n    socketpairs, hardlinks, symlinks, IPv6, batchfiles, inplace,\n    append, ACLs, xattrs, iconv, symtimes, prealloc\n\nrsync comes with ABSOLUTELY NO WARRANTY.  This is free software, and you\nare welcome to redistribute it under certain conditions.  See the GNU\nGeneral Public Licence for details.\n",
+        "stderr": ""
+      }
+    ]
+  }
+}

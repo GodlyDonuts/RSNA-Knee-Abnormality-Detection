@@ -1,0 +1,100 @@
+{
+  "files": [
+    {
+      "bytes": 8532,
+      "path": "scripts/newton/stream_cache_archive.py",
+      "sha256": "5ac4c925cc3be2b57706a29dd66bfe4264a663c261d6316d9113e556078f1188",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/scripts/newton/stream_cache_archive.py.txt"
+    },
+    {
+      "bytes": 9444,
+      "path": "scripts/newton/stage_weights.py",
+      "sha256": "982d8096671c27613814a018ef8dda621ff2ecdd59b70e8d4d5aa8e74750fd0a",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/scripts/newton/stage_weights.py.txt"
+    },
+    {
+      "bytes": 7259,
+      "path": "scripts/newton/runtime_archive.py",
+      "sha256": "ad3f0c6f77fc2ff53b7aafc0781668116bd36ba9fdb5f17e011cd2b3cd15592c",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/scripts/newton/runtime_archive.py.txt"
+    },
+    {
+      "bytes": 3653,
+      "path": "scripts/newton/materialize_config.py",
+      "sha256": "9172e41c346956f89023f8f9fc129f357e4a87857348d37c474f4f24f62a320e",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/scripts/newton/materialize_config.py.txt"
+    },
+    {
+      "bytes": 13213,
+      "path": "scripts/newton/launch.py",
+      "sha256": "5c8aa4ebe3187848897e7c222b6ae132a9be2b235ab1162c62b8d8cb0c38466c",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/scripts/newton/launch.py.txt"
+    },
+    {
+      "bytes": 10595,
+      "path": "scripts/newton/preflight.py",
+      "sha256": "9b02837da7f3a2b0e7b230a381ac16025d541fa3b154fcf8e2d99e9009ce9cd7",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/scripts/newton/preflight.py.txt"
+    },
+    {
+      "bytes": 5585,
+      "path": "scripts/newton/supervise.py",
+      "sha256": "28d9a74df6100f3145a28f58fa7d5eabdf220b738fed032e559ab8fdf7091938",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/scripts/newton/supervise.py.txt"
+    },
+    {
+      "bytes": 19840,
+      "path": "tests/test_newton_archive_review.py",
+      "sha256": "5b94cd359c3ebd6a0b4c80c9fab5d2d4603fe389584925922f1232cd6fb9e69f",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/tests/test_newton_archive_review.py.txt"
+    },
+    {
+      "bytes": 18171,
+      "path": "tests/test_newton_launch.py",
+      "sha256": "d2d2a74f395631de1e69dc94a4d4b7b8fb60d27b5e01af6299df1a3197a36a0d",
+      "snapshot_path": "work/annotation-staging/newton-archive-independent-review-v1/reviewed-source/tests/test_newton_launch.py.txt"
+    }
+  ],
+  "findings": [
+    {
+      "basis": "Initial synthetic same-size/same-count replacement regression failed: changed bytes extracted while old SHA returned. Initial source and reproduction preserved.",
+      "id": "extracted_bytes_not_bound_to_prechecked_hash",
+      "resolution": "Owner changed extraction to hash the exact stream consumed and drain tar padding; regression passes and failures clean owned cache."
+    },
+    {
+      "basis": "Read-only code inspection: default SIGTERM bypasses Python exception cleanup before Bash receives runtime_root. Owner fixed before first actual cancellation test; no pre-fix experimental reproduction claimed.",
+      "id": "sigterm_during_extraction_leaves_unreported_partial",
+      "resolution": "Owner installs/restores TERM/INT handlers within extraction, cleans marked root on caught interruption; actual child-process SIGTERM regression passes."
+    }
+  ],
+  "initial_reproduction": {
+    "path": "work/annotation-staging/newton-archive-independent-review-v1/initial-reproduction.json",
+    "sha256": "21d1f52642e35dc4fcf551457822de34266ceed443ca30ff1159fd4092610d46"
+  },
+  "reviewed_at_utc": "2026-09-22T17:23:01.791770+00:00",
+  "reviewed_behavior": [
+    "Receiver/commit exact streamed and reread SHA, path/type/count checks, private archive permissions, no overwrite, preserved failed partials.",
+    "Local extractor exact consumed-stream SHA, declared byte/file bounds, private directories/files, ownership-checked cleanup and TERM handling.",
+    "Offline model staging configuration/license/weight hash validation, HTTPS origin-limited authorization forwarding, bounded response and no overwrite.",
+    "Materializer campaign source binding, diagnostic pilot submission disabling, production cadence, no network and no existing config mutation.",
+    "Generated archive Bash sends exact dynamically quoted cache path to preflight and trainer, cleans owned extraction, preserves trainer status0/75/8 and exposes cleanup failure2."
+  ],
+  "reviewer_agent": "/root/image_pipeline_audit",
+  "schema_version": 1,
+  "scope_limits": [
+    "Only synthetic small archives, synthetic model-byte fixtures, local subprocesses and generated-shell stubs exercised. No SSH, scheduler, large transfer, native MRI, pretrained model or GPU acceptance performed by this reviewer.",
+    "Transfer success proves bytes shipped from the specified immutable source; accepted cache-index/source validation remains the training pipeline contract.",
+    "SIGKILL or host power loss cannot run cleanup; a marked orphan requires owner/job-checked recovery. Ambiguous archive commit publication requires read-only reconciliation, not overwrite.",
+    "Environment archive/bootstrap extension is not included in this review and will receive a separate review.",
+    "Reviewer modified only new independent test file, not production scripts or rsna runtime."
+  ],
+  "status": "accepted_after_owner_fixes",
+  "validation": {
+    "command": "python -m pytest -q tests/test_newton_archive_review.py tests/test_newton_launch.py",
+    "existing_owner_tests": 29,
+    "independent_new_tests": 38,
+    "passed": 67,
+    "ruff_check_and_format_new_review_test_passed": true,
+    "seconds": 3.19
+  }
+}

@@ -184,3 +184,29 @@ because software tests pass.
 There is no claim that all images have been diagnostically reread by a
 radiologist, that report labels are optimal, that the hidden test set is
 available, or that winning performance has been demonstrated.
+
+## September 22: DINOv3 execution and submission cadence
+
+The owner selected DINOv3 and authorized one or two two-GPU Newton nodes with
+minimal CPU use. Start with DINOv3-L, one node, four CPUs total, zero loader
+workers and an actual GPU recovery/throughput pilot before a ten-epoch primary
+fold-0 run. Do not allocate an idle GPU while access or staging is blocked.
+The successor recipe is `configs/competitive/dinov3-campaign.json`; previous
+DINOv2/ConvNeXt comparison plans remain historical, not the current allocation.
+
+The owner explicitly requested submissions every couple of epochs. Queue the
+primary run's completed epochs 2/4/6/8/10 through version-bound, offline Kaggle
+notebooks, with a single account-wide ledger, live allowance checks and at most
+five submissions per day. An uncertain submission is reconciled read-only before
+any retry. Diagnostic runs cannot submit. Public leaderboard feedback is now
+part of development; gold and reserved confirmation remain unused for selection.
+The original final-only submission plan is superseded by this explicit request.
+
+DINOv3-L official model metadata is pinned, but the saved account's access request
+is awaiting Meta review. No official config hash, trained weights, hidden-test
+runtime or competitive score is claimed before it is actually obtained/measured.
+
+Meta approval subsequently arrived during the same session. Authenticated official
+config and license retrieval passed at the pinned revision; a new source manifest
+records their actual hashes. The earlier pending-access receipts are preserved as
+historical facts. Full weights, GPU runtime and score checks remain separate gates.

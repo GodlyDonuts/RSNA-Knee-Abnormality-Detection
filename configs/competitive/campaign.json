@@ -1,0 +1,40 @@
+{
+  "accepted_data_manifest_sha256": "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7",
+  "dinov3_status": "adapter implemented; gated exact artifact unavailable without access, excluded until separately pinned and tested",
+  "effective_batch": 8,
+  "epoch_policy": "fixed 10 epochs; evaluate each outer fold only after its final epoch",
+  "finetune_initialization": "fresh pinned pretrained encoder and matched random head, not a continuation of frozen-head training",
+  "fold_membership_sha256": "8699248177042dc2e95b1e1947e25cbe5bc39e42c43ee4919398afc219665e07",
+  "folds": [
+    0,
+    1,
+    2
+  ],
+  "gates": [
+    "Actual allocated-node preflight",
+    "Real pretrained state load",
+    "Matched 1GPU/2GPU pilot and interruption recovery",
+    "Measure GPU memory, throughput and input wait",
+    "Then full frozen screen across three folds",
+    "Bounded matched fine-tuning before rejecting a backbone",
+    "Repeat finalists with second seed",
+    "Locked confirmation only after shortlist and deployment rule freeze"
+  ],
+  "initial_frozen_screen_seeds": [
+    20260922
+  ],
+  "input": {
+    "series": 6,
+    "side": 224,
+    "slices_per_series": 16
+  },
+  "matched_seeds": [
+    20260922,
+    20260923
+  ],
+  "no_performance_claim": true,
+  "precision_policy": "FP32 pilot first; BF16 is a new explicit config after numerical/hardware comparison",
+  "production_input_rule": "diagnostic_study_limit must be null",
+  "schema_version": 1,
+  "status": "preregistered_starting_configs_not_score_selected"
+}

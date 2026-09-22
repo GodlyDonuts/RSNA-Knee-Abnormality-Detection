@@ -1,0 +1,72 @@
+{
+  "job_id": "838365",
+  "accounting_returncode": 0,
+  "accounting": "838365|COMPLETED|0:0|00:00:00|billing=2,cpu=2,mem=1G,node=1|evc22\n838365.batch|COMPLETED|0:0|00:00:00|cpu=2,mem=1G,node=1|evc22\n838365.extern|COMPLETED|0:0|00:00:00|billing=2,cpu=2,mem=1G,node=1|evc22\n",
+  "stderr": "",
+  "probe": {
+    "schema_version": 1,
+    "job_id": "838365",
+    "hostname": "evc22",
+    "cpus_per_task": "1",
+    "requested_gpu_count": 0,
+    "job_gpu_allocation": "",
+    "filesystems": [
+      {
+        "path": "/tmp",
+        "resolved_path": "/tmp",
+        "filesystem_type": "xfs",
+        "filesystem_free_bytes": 769039626240,
+        "filesystem_total_bytes": 894682980352,
+        "same_device_as_home": false,
+        "local_disk_candidate": true,
+        "writable": true,
+        "at_least_100_gib_free": true,
+        "write_test": "65536_bytes_written_and_removed"
+      },
+      {
+        "path": "/var/tmp",
+        "resolved_path": "/var/tmp",
+        "filesystem_type": "xfs",
+        "filesystem_free_bytes": 769039626240,
+        "filesystem_total_bytes": 894682980352,
+        "same_device_as_home": false,
+        "local_disk_candidate": true,
+        "writable": true,
+        "at_least_100_gib_free": true,
+        "write_test": "65536_bytes_written_and_removed"
+      },
+      {
+        "path": "/dev/shm",
+        "resolved_path": "/dev/shm",
+        "filesystem_type": "tmpfs",
+        "filesystem_free_bytes": 268073046016,
+        "filesystem_total_bytes": 269895847936,
+        "same_device_as_home": false,
+        "local_disk_candidate": false,
+        "writable": true,
+        "at_least_100_gib_free": true,
+        "write_test": "not_attempted"
+      }
+    ],
+    "tools_available": {
+      "apptainer": false,
+      "singularity": false,
+      "squashfuse": true,
+      "squashfuse_ll": true,
+      "fusermount": true,
+      "fusermount3": true,
+      "mksquashfs": true,
+      "unsquashfs": true,
+      "tar": true
+    },
+    "container_modules": [
+      "apptainer/",
+      "apptainer/apptainer-1.3.3-go-1.22.5",
+      "apptainer/apptainer-1.5.3-go-1.25.7"
+    ],
+    "dev_fuse_exists": true,
+    "dev_fuse_read_write": true,
+    "persistent_scratch_files_created": 0,
+    "policy_limit": "Capacity and writability are measurements, not an ARCC retention or permitted-use policy."
+  }
+}

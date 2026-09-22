@@ -1,0 +1,61 @@
+{
+  "actual_executor": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-22T16:05:53.689877+00:00",
+  "dinov2_header_receipt": {
+    "path": "initiative/audits/competitive-pretrained-local-check-v1/dinov2-header-compatibility.json",
+    "sha256": "66ecd93e4c9ba4e59f3b8f4e4258d95f23cdda9f97d4bfe3138ac6f0b40463ce"
+  },
+  "files": [
+    {
+      "bytes": 8315,
+      "path": "rsna/competitive/data.py",
+      "sha256": "ab98ca4c869e7682a4927cfe180e5de35fba154c73cbdb1a0eb806b78bce324a"
+    },
+    {
+      "bytes": 9783,
+      "path": "rsna/competitive/backbones.py",
+      "sha256": "8ff902e9c12f0cc726e256052c2a7d9f1f06908f5af9ef57575dd3b94748c410"
+    },
+    {
+      "bytes": 6668,
+      "path": "rsna/competitive/model.py",
+      "sha256": "5a410cad358f70bfd0adc779ccae0af2d86e6be293ef6d9cbda7e7bef3bd49f6"
+    },
+    {
+      "bytes": 8059,
+      "path": "tests/test_competitive_data.py",
+      "sha256": "de4abd6c50d33daf756b2a40b9d06c32ddc9b3a90705a3a5a6b211c9a1426cd3"
+    },
+    {
+      "bytes": 11109,
+      "path": "tests/test_competitive_model.py",
+      "sha256": "3fb5e22205170b660e4403b1188e41e32e85fca4f10dc6b5f384ddc681f7988b"
+    },
+    {
+      "bytes": 8094,
+      "path": "docs/competitive-image-model.md",
+      "sha256": "d9a90847034ab7544373a3526f3f685cdbc2472aa7537ae327fbacbaee964845"
+    }
+  ],
+  "real_pretrained_receipt": {
+    "path": "initiative/audits/competitive-pretrained-local-check-v1/convnext-actual-cpu-receipt.json",
+    "sha256": "8a724d35befd07888b94885459a73c92c9d9636cf8187fec206a7d17c9529fd8"
+  },
+  "schema_version": 1,
+  "scope_limits": [
+    "No GPU execution or competitive score",
+    "DINOv2 complete pretrained weights not downloaded or whole-file verified;224 tensor keys/shapes compared from official pinned header",
+    "DINOv3 gated repository not accessed; local tiny random topology test only",
+    "Accepted data/source/runtime release files unchanged",
+    "No commit or publication performed"
+  ],
+  "status": "integration_ready_cpu_checks_passed",
+  "verification": {
+    "all_passed": true,
+    "mypy_source_files": 3,
+    "ruff_check_files": 5,
+    "ruff_format_check_files": 5,
+    "targeted_pytest_passed": 44,
+    "targeted_pytest_seconds": 4.98
+  }
+}

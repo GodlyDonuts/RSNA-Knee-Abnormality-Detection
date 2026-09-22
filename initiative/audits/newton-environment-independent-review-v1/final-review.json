@@ -1,0 +1,91 @@
+{
+  "files": [
+    {
+      "bytes": 8461,
+      "path": "scripts/newton/runtime_environment.py",
+      "sha256": "f1bfa0693a2d2c7afe9070ccd307b12206c24b89231223b93c2ccf3d7d97f8fd",
+      "snapshot_path": "work/annotation-staging/newton-environment-independent-review-v1/reviewed-source/scripts/newton/runtime_environment.py.txt"
+    },
+    {
+      "bytes": 7259,
+      "path": "scripts/newton/runtime_archive.py",
+      "sha256": "ad3f0c6f77fc2ff53b7aafc0781668116bd36ba9fdb5f17e011cd2b3cd15592c",
+      "snapshot_path": "work/annotation-staging/newton-environment-independent-review-v1/reviewed-source/scripts/newton/runtime_archive.py.txt"
+    },
+    {
+      "bytes": 17415,
+      "path": "scripts/newton/launch.py",
+      "sha256": "ba23cf931e5c83dadc068ea7ba04071cfb03fee7e2e638757c8ac88c30483ebe",
+      "snapshot_path": "work/annotation-staging/newton-environment-independent-review-v1/reviewed-source/scripts/newton/launch.py.txt"
+    },
+    {
+      "bytes": 5585,
+      "path": "scripts/newton/supervise.py",
+      "sha256": "28d9a74df6100f3145a28f58fa7d5eabdf220b738fed032e559ab8fdf7091938",
+      "snapshot_path": "work/annotation-staging/newton-environment-independent-review-v1/reviewed-source/scripts/newton/supervise.py.txt"
+    },
+    {
+      "bytes": 10401,
+      "path": "scripts/local_competitive_acceptance.py",
+      "sha256": "15a141afcd0d8706ca2ff71cdd70963b4385c43aab734f78a41afe9fc40268d4",
+      "snapshot_path": "work/annotation-staging/newton-environment-independent-review-v1/reviewed-source/scripts/local_competitive_acceptance.py.txt"
+    },
+    {
+      "bytes": 28682,
+      "path": "tests/test_newton_archive_review.py",
+      "sha256": "706f29e3a96deef4adaed1d7690fcd07bc08b297d52b1e00a80072a35ac94a1b",
+      "snapshot_path": "work/annotation-staging/newton-environment-independent-review-v1/reviewed-source/tests/test_newton_archive_review.py.txt"
+    },
+    {
+      "bytes": 26247,
+      "path": "tests/test_newton_launch.py",
+      "sha256": "56df3c31364281cf1ec1feb2d5d5f9697fa8882eba04d4ed63bca65c81760306",
+      "snapshot_path": "work/annotation-staging/newton-environment-independent-review-v1/reviewed-source/tests/test_newton_launch.py.txt"
+    }
+  ],
+  "findings": [
+    {
+      "basis": "Six fixture setup failures occurred before production extraction because USTAR cannot encode the long current venv symlink.76 other tests passed.",
+      "id": "environment_test_fixture_ustar_link_length",
+      "resolution": "Owner changed synthetic environment fixture to PAX format; all82 tests pass. Production source was unaffected by this fixture issue."
+    },
+    {
+      "basis": "Code review identified a normal nonzero launcher return could bypass exception-only group cleanup. Root separately fixed TERM-ignoring descendants before final tests. No pre-fix experiment claimed for this successor issue.",
+      "id": "acceptance_launcher_can_exit_before_descendant",
+      "resolution": "Root helper finally block ignores repeated stop signals during cleanup, terminates owned group on every path, waits boundedly then kills remaining descendants, reaps primary and restores original handlers. Actual five cases pass."
+    }
+  ],
+  "predecessor_review": {
+    "path": "initiative/audits/newton-archive-independent-review-v1/final-review.json",
+    "sha256": "a4817a2c616638f65d44a531f43d2580c46324a7fd7a0fd07f1cf82d54e22003"
+  },
+  "reviewed_at_utc": "2026-09-22T17:32:16.177025+00:00",
+  "reviewed_behavior": [
+    "Environment extraction verifies the exact raw stream hash, regular-file count and expanded bytes, rejects traversal/duplicate/nonregular members and creates private roots/files.",
+    "Absolute archive symlinks are restricted to designated Python aliases targeting the exact supplied executable; relative links must remain lexically within environment. All links installed only after regular writes and hash acceptance.",
+    "Only owner/job-marked environment and cache roots are cleaned; archive/config/source files remain untouched. Catchable extraction TERM/INT leads to partial cleanup.",
+    "Generated Bash executes preflight/supervisor/torchrun with node-local interpreter and cache; cleanup uses stable shared interpreter after children finish.",
+    "Actual generated-shell USR1 tests cover one and two independent supervisors through a relocated interpreter alias, exit75 and both roots removed without hang.",
+    "Acceptance launch admits one DDP diagnostic run without external resume; forwards warning to acceptance helper.",
+    "Actual run_child tests use a real launcher and a TERM-ignoring grandchild; USR1,TERM,timeout,launcher exit7 and launcher exit0 all leave no active descendant and restore original signal handlers."
+  ],
+  "reviewer_agent": "/root/image_pipeline_audit",
+  "schema_version": 1,
+  "scope_limits": [
+    "Synthetic small archives and model-byte fixtures only. No real Newton SSH/job submission, GPU compute, environment distribution, native MRI or large transfer performed by this reviewer.",
+    "Bootstrap relocation checks establish implementation behavior; actual pinned environment compatibility with allocated Newton hardware remains a separate runtime acceptance.",
+    "Signal tests distinguish failed acceptance from successful checkpoint preemption; interruption does not manufacture an accepted receipt.",
+    "SIGKILL and host failure cannot execute cleanup and require later owner/job-checked orphan recovery.",
+    "Reviewer changed only the new independent test file; production code changes are root/cluster-agent authored. Existing evidence remains immutable."
+  ],
+  "status": "accepted_with_bounded_local_validation",
+  "validation": {
+    "command": "python -m pytest -q tests/test_newton_archive_review.py tests/test_newton_launch.py",
+    "independent_tests": 45,
+    "owner_tests": 37,
+    "passed": 82,
+    "portable_long_venv_interpreter_path_exercised": true,
+    "ruff_check_and_format_independent_test_passed": true,
+    "seconds": 9.91
+  }
+}

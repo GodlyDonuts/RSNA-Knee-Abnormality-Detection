@@ -1,0 +1,58 @@
+{
+  "accepted_source_or_data_changed": false,
+  "actual_executor": "/root/image_pipeline_audit",
+  "checks": {
+    "all_passed": true,
+    "complete_24_block_topology": "meta_device_only_no_weight_allocation",
+    "executed_random_model": "one_block_1024_hidden_4096_MLP_16_heads_4_registers_to_12_study_logits_backward",
+    "mask_token": "remains_frozen_after_backbone_unfreeze_all_other_trainable_parameters_receive_finite_gradients",
+    "model_tests_passed": 49,
+    "mypy_source_files": 1,
+    "pytest_seconds": 6.69,
+    "ruff_files": 2
+  },
+  "committed_or_published": false,
+  "created_at_utc": "2026-09-22T16:54:06.012229+00:00",
+  "evidence": [
+    {
+      "bytes": 1045,
+      "path": "work/annotation-staging/dinov3-large-adapter-v1/authenticated-access-probe.json",
+      "sha256": "a832da0441b3e21bb6501756c49610b62769441cf0c88450776c388506f32500"
+    },
+    {
+      "bytes": 512,
+      "path": "work/annotation-staging/dinov3-large-adapter-v1/access-denial-detail.json",
+      "sha256": "f34470eb62af1a4e774387b1c3eca10120bd38d5b14dd8774419f938120a882e"
+    },
+    {
+      "bytes": 2213,
+      "path": "work/annotation-staging/dinov3-large-adapter-v1/public-constructor-contract.json",
+      "sha256": "3900d29b36ede869f51a5a98bd59a487cf7ef6777d7e8711f13b5392de113a19"
+    }
+  ],
+  "executable_large_manifest_written": false,
+  "files": [
+    {
+      "bytes": 11488,
+      "path": "rsna/competitive/backbones.py",
+      "sha256": "6a7ebbc0d9dba5884b95da43e681be0ed84f4d295f576199b6731f630753598f"
+    },
+    {
+      "bytes": 16715,
+      "path": "tests/test_competitive_model.py",
+      "sha256": "d45d180b070e56de536b34dbfeef79d75b258d7263f49bf7e76fe1e953268426"
+    },
+    {
+      "bytes": 10323,
+      "path": "docs/competitive-image-model.md",
+      "sha256": "32fa0a671956721adad75f225f2b88ae47a8d9e4206bea9b9ae047b560e8dd73"
+    }
+  ],
+  "large_weights_downloaded": false,
+  "official_access_state": "existing_request_awaiting_repo_author_review_HTTP403_GatedRepo",
+  "official_pretrained_large_ready": false,
+  "other_runtime_modules_changed": false,
+  "prior_backbones_sha256": "8ff902e9c12f0cc726e256052c2a7d9f1f06908f5af9ef57575dd3b94748c410",
+  "schema_version": 1,
+  "status": "adapter_cpu_checks_passed_official_artifact_access_pending"
+}

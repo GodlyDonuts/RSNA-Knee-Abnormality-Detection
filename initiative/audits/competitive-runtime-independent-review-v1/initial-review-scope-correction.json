@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "stage": "review_record_concurrent_change_scope_correction",
+  "actual_agent_id": "/root/competition_contract",
+  "original_review_sha256": "068112a9ebac4940b1bb4b42bc63a62823ff43990ff961e569bb857746cbd7eb",
+  "affected_path": "rsna/competitive/train.py",
+  "original_recorded_sha256": "824c04c0cfd671b3408edbec335388198a68d082972a8ef8995c069e5092d7fd",
+  "actually_reviewed_and_27_tests_executed_sha256": "ee2bb76bea956aa3e1c945dc6ec8d2e83ff24b39629dfdc2739219a013ca634d",
+  "reason": "Root added verified_job_release broadcast and progress guards after completed test execution but before reviewer collected final file hashes. The first record incorrectly binds its prior test result to the newer train.py hash. Original retained; final successor review will separately inspect and execute the new code.",
+  "status": "first_record_not_final_for_new_train_code"
+}

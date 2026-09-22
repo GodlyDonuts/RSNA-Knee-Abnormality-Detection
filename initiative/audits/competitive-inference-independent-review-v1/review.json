@@ -1,0 +1,58 @@
+{
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "code_and_tests": [
+    {
+      "bytes": 9820,
+      "path": "rsna/competitive/infer.py",
+      "sha256": "f724a3a0d4b430d4169ff6fafc815a44d7d36afc1565829407b20cfe0a3e8d58"
+    },
+    {
+      "bytes": 2542,
+      "path": "rsna/competitive/snapshots.py",
+      "sha256": "01da138522da7a5dc8f47b51f4c8e3f10caa78b73a8fbff027c0dc67de4a6ed2"
+    },
+    {
+      "bytes": 16221,
+      "path": "rsna/competitive/backbones.py",
+      "sha256": "164571bde3128f863578242fe6abe968000ce1b947e6637e15ce18894cacadb2"
+    },
+    {
+      "bytes": 12684,
+      "path": "tests/test_competitive_inference.py",
+      "sha256": "7e7caf59725d2374fefa9f1aefdc3ac7ebb23c6755f727bca0db1c7b0c76afc2"
+    },
+    {
+      "bytes": 4196,
+      "path": "tests/test_competitive_snapshots.py",
+      "sha256": "e09c3d353435320f3569b2700529aeb23a9d409499aaf23dc399b0547ce648b7"
+    }
+  ],
+  "findings": [
+    {
+      "disposition": "Root fixed exact integer counters and optimizer_boundary is True; reproducing tests pass",
+      "problem": "Numeric-equality/truthiness admission allowed malformed completed checkpoint counters/boundary"
+    },
+    {
+      "disposition": "Root conditions claim on actual pretrained provenance; both encoder routes pass",
+      "problem": "Diagnostic spec route falsely reported initial pretrained weight read"
+    }
+  ],
+  "reviewed_at_utc": "2026-09-22T17:10:24.795853+00:00",
+  "schema_version": 1,
+  "scope": [
+    "Synthetic study metadata/images only, no clinical or official gold inspection",
+    "Actual CPU inference through both loader routes with explicit BF16-to-FP32 override and unchanged checkpoint provenance",
+    "Strict encoder/head state and source/config/code binding; missing/corrupted inputs fail before submission",
+    "Cadence/final eligibility, diagnostic permissions/three-study limit, exact template order and immutable snapshot metadata",
+    "No real pretrained inference, GPU runtime, hidden test runtime or competition submission certified",
+    "Reviewer did not edit runtime files; original trained checkpoint authenticity remains caller/package responsibility"
+  ],
+  "status": "accepted_after_two_root_fixes",
+  "validation": {
+    "new_independent_tests": 20,
+    "passed": 33,
+    "ruff_check_and_format_new_file_passed": true,
+    "seconds": 3.25,
+    "total_with_existing_snapshot_tests": 33
+  }
+}

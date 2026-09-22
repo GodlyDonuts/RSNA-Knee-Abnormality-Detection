@@ -1,0 +1,14 @@
+{
+  "actual_reviewer": "/root/image_pipeline_audit",
+  "created_at_utc": "2026-09-22T17:18:41.749064+00:00",
+  "observed": "Regression failed because extraction returned successfully after same-count and same-size archive content changed between the full SHA precheck and tarfile.open. Returned digest described old bytes, extracted file contained changed bytes.",
+  "regression": "tests/test_newton_archive_review.py::test_archive_changed_between_precheck_and_extraction_cannot_claim_old_digest",
+  "safety_scope": "Synthetic tar only, no SSH, scheduler, real cache arrays or model weights used. No production edits by reviewer.",
+  "schema_version": 1,
+  "source": {
+    "path": "scripts/newton/runtime_archive.py",
+    "sha256": "a646bec24d1565eeafb914a0d5743247351d89e0e84150f93bc52234fa7714b1"
+  },
+  "status": "reproduced_defect_awaiting_owner_fix",
+  "suggested_fix": "Hash the same open byte stream consumed by extraction and verify before success; cleanup on mismatch."
+}

@@ -1,0 +1,64 @@
+{
+  "actual_executor": "/root/image_pipeline_audit",
+  "actual_load_forward_head_backward_seconds": 6.5784844170557335,
+  "actual_weight_bytes": 114423189,
+  "actual_weight_sha256": "1fe15b2eba9e355de14c4e244e6365bf61ffef84da7d3442c0afbb2d8564f477",
+  "all_trainable_head_gradients_finite": true,
+  "code": {
+    "rsna/competitive/backbones.py": "8ff902e9c12f0cc726e256052c2a7d9f1f06908f5af9ef57575dd3b94748c410",
+    "rsna/competitive/model.py": "5a410cad358f70bfd0adc779ccae0af2d86e6be293ef6d9cbda7e7bef3bd49f6"
+  },
+  "config_sha256": "441f982e839a9ea96df7c1678422dc4e65cd5632731a6957f6aa03728195423d",
+  "device": "cpu",
+  "disk_free_after": 21920522240,
+  "disk_free_before": 21918011392,
+  "disk_free_with_weights": 21802082304,
+  "download_seconds": 8.576992916001473,
+  "embedding_sha256": "f723352d35d838d0cff47458d84dd278c7ed9cbcd82f5d91482242b3b5c02366",
+  "embedding_shape": [
+    1,
+    768
+  ],
+  "encoder_provenance": {
+    "architecture": "convnext_tiny",
+    "config_sha256": "441f982e839a9ea96df7c1678422dc4e65cd5632731a6957f6aa03728195423d",
+    "embedding_dim": 768,
+    "input_contract": "gray_0_1_imagenet_rgb_v1",
+    "license": "apache-2.0",
+    "model_class": "ConvNextForImageClassification",
+    "pooling": "layer_normalized_global_mean",
+    "pretrained": true,
+    "source_id": "facebook/convnext-tiny-224",
+    "source_revision": "6166b7613034066690a621d8bf25ffdf181a34f0",
+    "state_dict_format": "pytorch",
+    "transformers_version": "5.6.1",
+    "weights_sha256": "1fe15b2eba9e355de14c4e244e6365bf61ffef84da7d3442c0afbb2d8564f477"
+  },
+  "ephemeral_weight_eviction": {
+    "bytes": 114423189,
+    "reason": "Restore storage headroom after authorized bounded acceptance",
+    "removed": true,
+    "sha256": "1fe15b2eba9e355de14c4e244e6365bf61ffef84da7d3442c0afbb2d8564f477"
+  },
+  "expected_weight_bytes": 114423189,
+  "expected_weight_sha256": "1fe15b2eba9e355de14c4e244e6365bf61ffef84da7d3442c0afbb2d8564f477",
+  "finished_at_utc": "2026-09-22T16:03:28.365282+00:00",
+  "frozen_encoder_gradients_absent": true,
+  "input": "deterministic synthetic grayscale ramp, no clinical image inference",
+  "logits_sha256": "35b9c1641e574ddef19654f57e42f3ab9f30448a8633b3346f76cd7d2bf9c296",
+  "logits_shape": [
+    1,
+    12
+  ],
+  "manifest_sha256": "bbccdf6d91c29600a2732d2f33650c29b2000060dcefd1d9b54913dddbbe1301",
+  "outputs_finite": true,
+  "schema_version": 1,
+  "scope": "Actual complete pretrained ConvNeXt weights and CPU forward/head backward; no GPU or competitive score",
+  "script_sha256": "a3edf64fc5375680f1110767b0f97aab46ee86e09a7d9df28b456172cd24dd7a",
+  "source_id": "facebook/convnext-tiny-224",
+  "source_revision": "6166b7613034066690a621d8bf25ffdf181a34f0",
+  "started_at_utc": "2026-09-22T16:03:13.126746+00:00",
+  "status": "passed",
+  "torch_version": "2.14.0",
+  "trainable_head_tensors": 18
+}

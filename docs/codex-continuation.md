@@ -30,13 +30,46 @@ complete-tree checkpoint `c0b2c8b041120ae6d27891145f1a19e48a6d498f` has two actu
 covering 11,145 files. The publication record is
 `initiative/provenance/report-supervision-v1-publication.json`.
 
-The next phase requires cluster access: implement and benchmark the proposed
-pretrained/distributed experiments on UCF Newton. The strategy is reviewed, but
-competitive training has not run. Preserve the accepted masks, exclusions and
-fold/evaluation restrictions. Do not repeat completed report passes or change the
-release to accommodate a preferred score. Keep at least 20 GiB free locally;
-verified transfer-cache eviction and immutable-copy deduplication have receipts
-under `final-publication-storage-maintenance-v1/`.
+The owner has selected DINOv3 and authorized one initial two-H100 Newton node
+with four CPUs total, up to a second node for useful independent work, and Kaggle
+submissions every two epochs within the account-wide five-per-day limit. Read
+[competitive-training.md](competitive-training.md), [newton-launch.md](newton-launch.md)
+and [kaggle-submissions.md](kaggle-submissions.md). The new competitive package
+implements training-only three-fold development, offline pretrained encoders,
+target-specific slice/series attention, exact distributed masked loss, recovery,
+and scheduled checkpoint packaging. It preserves the accepted release unchanged.
+
+SSH access to Newton and Stokes works. Use account `skattel`, partition `normal`,
+and `gpu:nvidia_h100_pcie:2`; credentials live only in ignored local `.env` files.
+DINOv3-L access was approved, and authenticated official config and license bytes
+are verified in `configs/competitive/weights/dinov3-large.json`.
+No actual pretrained DINOv3 training or competitive submission has completed.
+The official config SHA is
+`135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5`.
+The 1,212,559,808-byte weights passed full SHA verification on Newton in CPU-only
+job 838408. The pilot cache also passed streaming and independent remote archive
+verification: 2,248 files / 4,077,105,588 unpacked bytes; archive SHA
+`8d50e027f66e91beb6afa2b56877b8da59059f6d43e7c13aa0103059d447d715`.
+Use `/home/sa305415/rsna-knee/encoder-stage/run-configs/pilot100-fold0.json`
+and the archive under the private `cache/` directory. The full 82.8 GB cache
+transfer continues separately. The offline environment and exact code deployment
+must pass before the two-H100 pilot; no epoch time has been measured yet.
+
+Remote Lustre has about 212.66 GiB of byte quota available at discovery but only
+45,004 remaining file slots; the 48,772-file cache must not be unpacked there.
+Consult the current Newton discovery/staging receipts before allocating a GPU.
+Local storage must retain at least 20 GiB free. Training, model access and queued
+submissions must be checked against actual receipts rather than inferred from
+implemented software. Keep gold and reserved confirmation out of model selection;
+public leaderboard feedback is now explicitly part of development.
+
+The actual local one-process and two-process CPU/Gloo checks both passed exact
+within-epoch recovery, scheduled snapshot eligibility and public-template inference.
+Failed earlier disk/rendezvous attempts are preserved in
+`initiative/audits/competitive-runtime-acceptance-v1/`; CUDA/NCCL acceptance is
+still separate. The active task heartbeat `rsna-dinov3-training-and-submissions`
+checks progress every fifteen minutes. It uses actual job/transfer/submission
+receipts and one account ledger; it must never duplicate active work.
 
 The correspondence final check clarifies one historical shorthand: among the
 24 unresolved cases, 23 non-gold studies have twelve zero masks, and 032:35 is

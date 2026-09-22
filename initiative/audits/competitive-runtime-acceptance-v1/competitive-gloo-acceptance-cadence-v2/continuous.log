@@ -1,0 +1,65 @@
+W0922 13:15:46.380000 25856 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+{"epoch": 0, "update": 1, "optimizer_steps": 1, "loss": 0.6769052743911743, "gradient_norm": 0.6970253586769104, "observed_cells": 44.0, "elapsed_seconds": 0.36186091596027836}
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "<frozen runpy>", line 198, in _run_module_as_main
+[rank0]:   File "<frozen runpy>", line 88, in _run_code
+[rank0]:   File "<REPOSITORY>/rsna/competitive/train.py", line 668, in <module>
+[rank0]:     main()
+[rank0]:   File "<REPOSITORY>/rsna/competitive/train.py", line 664, in main
+[rank0]:     raise SystemExit(run(args, stop_requested))
+[rank0]:                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "<REPOSITORY>/rsna/competitive/train.py", line 249, in run
+[rank0]:     return _run_locked(
+[rank0]:            ^^^^^^^^^^^^
+[rank0]:   File "<REPOSITORY>/rsna/competitive/train.py", line 522, in _run_locked
+[rank0]:     save(checkpoint_epoch, checkpoint_update, step)
+[rank0]:   File "<REPOSITORY>/rsna/competitive/train.py", line 403, in save
+[rank0]:     save_checkpoint(
+[rank0]:   File "<REPOSITORY>/rsna/competitive/checkpoint.py", line 76, in save_checkpoint
+[rank0]:     raise OSError("Insufficient free disk to write a checkpoint while preserving the reserve")
+[rank0]: OSError: Insufficient free disk to write a checkpoint while preserving the reserve
+W0922 13:16:50.249000 25856 torch/distributed/elastic/multiprocessing/api.py:1028] Sending process 25858 closing signal SIGTERM
+E0922 13:16:50.274000 25856 torch/distributed/elastic/multiprocessing/api.py:1002] failed (exitcode: 1) local_rank: 0 (pid: 25857) of binary: <LOCAL_RUNTIME>/.venv/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "<LOCAL_RUNTIME>/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 1142, in <module>
+    main()
+  File "<LOCAL_RUNTIME>/.venv/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 380, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "<LOCAL_RUNTIME>/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 1138, in main
+    run(args)
+  File "<LOCAL_RUNTIME>/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 1129, in run
+    elastic_launch(
+  File "<LOCAL_RUNTIME>/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 197, in __call__
+    return launch_agent(
+           ^^^^^^^^^^^^^
+  File "<LOCAL_RUNTIME>/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 386, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+rsna.competitive.train FAILED
+------------------------------------------------------------
+Failures:
+[1]:
+  time      : 2026-09-22_13:16:50
+  host      : 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa
+  rank      : 1 (local_rank: 1)
+  exitcode  : -15 (pid: 25858)  (SIGTERM)
+  error_file: <N/A>
+  traceback : Signal 15 (SIGTERM) received by PID 25858
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-22_13:16:50
+  host      : 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 25857) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

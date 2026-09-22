@@ -1,0 +1,470 @@
+"""Generate a reviewed Slurm plan; this program never invokes sbatch or trains."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import shlex
+from pathlib import Path
+
+
+def checked_text(value: str) -> str:
+    if not value or any(ord(c) < 32 for c in value):
+        raise ValueError("empty_or_control_character_argument")
+    if re.search(r"[<>$`~]|TODO|CHANGEME|REPLACE|YOUR_|PLACEHOLDER", value, re.I):
+        raise ValueError("unresolved_placeholder_or_expansion")
+    if re.search(r"hf_[A-Za-z0-9]{20,}|KGAT_[A-Za-z0-9]{20,}|://", value):
+        raise ValueError("credentials_or_url_not_allowed")
+    return value
+
+
+def absolute(value: str) -> str:
+    checked_text(value)
+    p = Path(value)
+    if not p.is_absolute() or ".." in p.parts or str(p) != value or "%" in value:
+        raise ValueError("normalized_absolute_path_required")
+    return value
+
+
+def identifier(value: str) -> str:
+    checked_text(value)
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", value):
+        raise ValueError("invalid_scheduler_identifier")
+    return value
+
+
+def wall_seconds(value: str) -> int:
+    match = re.fullmatch(r"(?:(\d+)-)?(\d{1,3}):([0-5]\d):([0-5]\d)", value)
+    if not match:
+        raise ValueError("time_requires_D_HH_MM_SS_or_HH_MM_SS")
+    days, hours, minutes, seconds = (int(x or 0) for x in match.groups())
+    if days and hours > 23:
+        raise ValueError("day_time_hour_out_of_range")
+    return days * 86400 + hours * 3600 + minutes * 60 + seconds
+
+
+def parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description=__doc__)
+    for name in (
+        "account",
+        "partition",
+        "time",
+        "job-name",
+        "repo",
+        "python",
+        "studies",
+        "series",
+        "cache-manifest",
+        "folds",
+        "artifact-root",
+        "logs",
+        "expected-git",
+    ):
+        p.add_argument("--" + name, required=True)
+    p.add_argument("--config", action="append", required=True)
+    cache = p.add_mutually_exclusive_group(required=True)
+    cache.add_argument("--cache")
+    cache.add_argument("--cache-archive")
+    p.add_argument("--cache-archive-sha256")
+    p.add_argument("--cache-archive-files", type=int)
+    p.add_argument("--cache-unpacked-bytes", type=int)
+    p.add_argument("--scratch-base")
+    p.add_argument("--environment-archive")
+    p.add_argument("--environment-archive-sha256")
+    p.add_argument("--environment-archive-files", type=int)
+    p.add_argument("--environment-unpacked-bytes", type=int)
+    p.add_argument("--output", action="append", required=True)
+    p.add_argument("--resume", action="append")
+    p.add_argument("--cpus", type=int, required=True)
+    p.add_argument("--memory-gb", type=int, required=True)
+    p.add_argument("--min-free-gb", type=int, required=True)
+    p.add_argument("--gpus", type=int, choices=(1, 2), default=1)
+    p.add_argument("--gpu-type")
+    p.add_argument("--mode", choices=("independent", "ddp"), default="independent")
+    p.add_argument(
+        "--acceptance",
+        action="store_true",
+        help="Run the diagnostic continuous/interrupted/resumed acceptance helper.",
+    )
+    p.add_argument("--signal-seconds", type=int, default=300)
+    p.add_argument("--checkpoint-grace-seconds", type=int, default=120)
+    p.add_argument("--write-script", type=Path)
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=True,
+        help="Always enabled: output a plan, never submit it.",
+    )
+    return p
+
+
+def generate(args: argparse.Namespace) -> dict:
+    for name in ("account", "partition", "job_name"):
+        identifier(getattr(args, name))
+    for name in (
+        "repo",
+        "python",
+        "studies",
+        "series",
+        "cache_manifest",
+        "folds",
+        "artifact_root",
+        "logs",
+    ):
+        absolute(getattr(args, name))
+    archive = getattr(args, "cache_archive", None)
+    environment = getattr(args, "environment_archive", None)
+    if environment:
+        if not archive:
+            raise ValueError("environment_archive_requires_archive_launch")
+        absolute(environment)
+        if not re.fullmatch(r"[0-9a-f]{64}", getattr(args, "environment_archive_sha256", "") or ""):
+            raise ValueError("exact_environment_archive_sha256_required")
+        for field in ("environment_archive_files", "environment_unpacked_bytes"):
+            value = getattr(args, field, None)
+            if type(value) is not int or value <= 0:
+                raise ValueError("positive_exact_environment_bounds_required")
+    elif any(
+        getattr(args, field, None) is not None
+        for field in (
+            "environment_archive_sha256",
+            "environment_archive_files",
+            "environment_unpacked_bytes",
+        )
+    ):
+        raise ValueError("environment_options_require_archive")
+    if bool(archive) == bool(args.cache):
+        raise ValueError("exactly_one_cache_source_required")
+    if archive:
+        absolute(archive)
+        absolute(getattr(args, "scratch_base", "") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", getattr(args, "cache_archive_sha256", "") or ""):
+            raise ValueError("exact_archive_sha256_required")
+        for field in ("cache_archive_files", "cache_unpacked_bytes"):
+            value = getattr(args, field, None)
+            if type(value) is not int or value <= 0:
+                raise ValueError("positive_exact_archive_bounds_required")
+    else:
+        absolute(args.cache)
+        if any(
+            getattr(args, field, None) is not None
+            for field in (
+                "cache_archive_sha256",
+                "cache_archive_files",
+                "cache_unpacked_bytes",
+                "scratch_base",
+            )
+        ):
+            raise ValueError("archive_options_require_archive")
+    for value in [*args.config, *args.output, *(args.resume or [])]:
+        absolute(value)
+    if any(c in args.logs for c in "'\"\\"):
+        raise ValueError("log_path_contains_unsupported_directive_quote")
+    if not re.fullmatch(r"[0-9a-f]{40}", args.expected_git) or set(args.expected_git) == {"0"}:
+        raise ValueError("full_git_commit_required")
+    if min(args.cpus, args.memory_gb, args.min_free_gb) <= 0 or args.cpus < args.gpus:
+        raise ValueError("positive_explicit_resources_required")
+    if not 1 <= args.checkpoint_grace_seconds <= 65000:
+        raise ValueError("invalid_checkpoint_grace")
+    if not args.checkpoint_grace_seconds + 120 <= args.signal_seconds <= 65535:
+        raise ValueError("signal_must_precede_grace_by_120_seconds")
+    if wall_seconds(args.time) <= args.signal_seconds + 60:
+        raise ValueError("walltime_too_short_for_checkpoint_warning")
+    jobs = args.gpus if args.mode == "independent" else 1
+    acceptance = getattr(args, "acceptance", False)
+    if acceptance and (args.mode != "ddp" or args.resume):
+        raise ValueError("acceptance_requires_one_ddp_run_without_external_resume")
+    if len(args.config) != jobs or len(args.output) != jobs:
+        raise ValueError("one_config_and_output_per_independent_run_required")
+    if len(set(args.output)) != jobs or (args.resume and len(args.resume) != jobs):
+        raise ValueError("distinct_outputs_and_matching_resume_count_required")
+    if args.gpu_type:
+        identifier(args.gpu_type)
+    gres = "gpu:" + (args.gpu_type + ":" if args.gpu_type else "") + str(args.gpus)
+    q = shlex.quote
+    cache_value = "__RSNA_RUNTIME_CACHE__" if archive else args.cache
+    python_value = "__RSNA_RUNTIME_PYTHON__" if environment else args.python
+
+    def command(parts):
+        return " ".join(
+            '"$runtime_cache"'
+            if part == "__RSNA_RUNTIME_CACHE__"
+            else '"$runtime_python"'
+            if part == "__RSNA_RUNTIME_PYTHON__"
+            else q(part)
+            for part in parts
+        )
+
+    lines = [
+        "#!/bin/bash",
+        f"#SBATCH --job-name={args.job_name}",
+        f"#SBATCH --account={args.account}",
+        f"#SBATCH --partition={args.partition}",
+        "#SBATCH --nodes=1",
+        "#SBATCH --ntasks=1",
+        f"#SBATCH --gres={gres}",
+        f"#SBATCH --cpus-per-task={args.cpus}",
+        f"#SBATCH --mem={args.memory_gb}G",
+        f"#SBATCH --time={args.time}",
+        f"#SBATCH --signal=B:USR1@{args.signal_seconds}",
+        f"#SBATCH --output={q(args.logs + '/%x-%j.out')}",
+        f"#SBATCH --error={q(args.logs + '/%x-%j.err')}",
+        "set -euo pipefail",
+        "umask 077",
+        ': "${SLURM_JOB_ID:?Run through Slurm}"',
+        ': "${CUDA_VISIBLE_DEVICES:?Slurm must expose the assigned GPUs}"',
+        f"cd -- {q(args.repo)}",
+        "export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1",
+        "export TOKENIZERS_PARALLELISM=false",
+        f"export OMP_NUM_THREADS={max(1, args.cpus // jobs)}",
+        "supervisors=()",
+        "stop_requested=0",
+        "request_checkpoint() {",
+        "  stop_requested=1",
+        '  for pid in "${supervisors[@]}"; do kill -USR1 "$pid" 2>/dev/null || true; done',
+        "}",
+        "trap request_checkpoint USR1 TERM INT",
+    ]
+    if archive:
+        extraction = [
+            args.python,
+            "scripts/newton/runtime_archive.py",
+            "extract",
+            "--archive",
+            archive,
+            "--sha256",
+            args.cache_archive_sha256,
+            "--expected-files",
+            str(args.cache_archive_files),
+            "--expected-bytes",
+            str(args.cache_unpacked_bytes),
+            "--scratch-base",
+            args.scratch_base,
+            "--min-free-gib",
+            str(args.min_free_gb),
+        ]
+        lines.extend(
+            [
+                "runtime_root=",
+                "environment_root=",
+                "cleanup_runtime() {",
+                '  local previous_status="$?"',
+                '  if [[ -n "$runtime_root" ]]; then',
+                "    "
+                + shlex.join(
+                    [args.python, "scripts/newton/runtime_archive.py", "cleanup", "--root"]
+                )
+                + ' "$runtime_root" || previous_status=2',
+                "  fi",
+                '  if [[ -n "$environment_root" ]]; then',
+                "    "
+                + shlex.join(
+                    [args.python, "scripts/newton/runtime_environment.py", "cleanup", "--root"]
+                )
+                + ' "$environment_root" || previous_status=2',
+                "  fi",
+                '  return "$previous_status"',
+                "}",
+                "trap cleanup_runtime EXIT",
+            ]
+        )
+        if environment:
+            environment_extraction = [
+                args.python,
+                "scripts/newton/runtime_environment.py",
+                "extract",
+                "--archive",
+                environment,
+                "--sha256",
+                args.environment_archive_sha256,
+                "--expected-files",
+                str(args.environment_archive_files),
+                "--expected-bytes",
+                str(args.environment_unpacked_bytes),
+                "--scratch-base",
+                args.scratch_base,
+                "--shared-python",
+                args.python,
+                "--min-free-gib",
+                str(args.min_free_gb),
+            ]
+            lines.extend(
+                [
+                    "environment_json=$(" + shlex.join(environment_extraction) + ")",
+                    "environment_root=$("
+                    + shlex.join(
+                        [
+                            args.python,
+                            "-c",
+                            'import json,sys; print(json.load(sys.stdin)["runtime_root"])',
+                        ]
+                    )
+                    + ' <<< "$environment_json")',
+                    'runtime_python="$environment_root/environment/bin/python"',
+                    "if (( stop_requested )); then exit 75; fi",
+                ]
+            )
+        lines.extend(
+            [
+                "runtime_json=$(" + shlex.join(extraction) + ")",
+                "runtime_root=$("
+                + shlex.join(
+                    [
+                        args.python,
+                        "-c",
+                        'import json,sys; print(json.load(sys.stdin)["runtime_root"])',
+                    ]
+                )
+                + ' <<< "$runtime_json")',
+                'runtime_cache="$runtime_root/cache"',
+            ]
+        )
+    preflight = [
+        python_value,
+        "scripts/newton/preflight.py",
+        "--device",
+        "cuda",
+        "--expected-gpus",
+        str(args.gpus),
+        "--repo",
+        args.repo,
+        "--expected-git",
+        args.expected_git,
+        "--cache",
+        cache_value,
+        "--cache-manifest",
+        args.cache_manifest,
+        "--storage",
+        args.logs,
+        "--min-free-gb",
+        str(args.min_free_gb),
+    ]
+    for config in args.config:
+        preflight.extend(["--config", config])
+    if args.mode == "ddp" and args.gpus == 2:
+        preflight.append("--require-nccl")
+    lines.append(command(preflight))
+    lines.extend(
+        [
+            "if (( stop_requested )); then exit 75; fi",
+            'IFS="," read -r -a assigned_gpus <<< "$CUDA_VISIBLE_DEVICES"',
+            f"if (( ${{#assigned_gpus[@]}} != {args.gpus} )); then exit 2; fi",
+        ]
+    )
+    if acceptance:
+        acceptance_command = [
+            python_value,
+            "scripts/local_competitive_acceptance.py",
+            "--cache",
+            cache_value,
+            "--output",
+            args.output[0],
+            "--world-size",
+            str(args.gpus),
+            "--config",
+            args.config[0],
+            "--device",
+            "cuda",
+            "--skip-public-examples",
+        ]
+        lines.extend(
+            [
+                command(acceptance_command) + " &",
+                'supervisors+=("$!")',
+                'if (( stop_requested )); then kill -USR1 "$!" 2>/dev/null || true; fi',
+            ]
+        )
+    for i in range(0 if acceptance else jobs):
+        train = [
+            python_value,
+            "-m",
+            "torch.distributed.run",
+            "--rdzv-backend=c10d",
+            "--rdzv-endpoint=127.0.0.1:0",
+            "--nnodes=1",
+            f"--nproc-per-node={args.gpus if args.mode == 'ddp' else 1}",
+            "--max-restarts=0",
+            "--module",
+            "rsna.competitive.train",
+        ]
+        for name in ("studies", "series", "cache", "folds", "artifact_root"):
+            train.extend(
+                [
+                    "--" + name.replace("_", "-"),
+                    cache_value if name == "cache" else getattr(args, name),
+                ]
+            )
+        train.extend(["--config", args.config[i], "--output", args.output[i], "--device", "cuda"])
+        if args.resume:
+            train.extend(["--resume", args.resume[i]])
+        supervise = [
+            python_value,
+            "scripts/newton/supervise.py",
+            "--grace-seconds",
+            str(args.checkpoint_grace_seconds),
+            "--checkpoint",
+            args.output[i] + "/checkpoint.pt",
+            "--",
+            *train,
+        ]
+        prefix = f'CUDA_VISIBLE_DEVICES="${{assigned_gpus[{i}]}}" ' if jobs == 2 else ""
+        lines.extend(
+            [
+                prefix + command(supervise) + " &",
+                'supervisors+=("$!")',
+                'if (( stop_requested )); then kill -USR1 "$!" 2>/dev/null || true; fi',
+            ]
+        )
+    lines.extend(
+        [
+            "result=0",
+            'for pid in "${supervisors[@]}"; do',
+            "  code=0",
+            "  while true; do",
+            "    set +e",
+            '    wait "$pid"',
+            "    code=$?",
+            "    set -e",
+            '    if ! kill -0 "$pid" 2>/dev/null; then break; fi',
+            "  done",
+            "  if (( code != 0 && code != 75 )); then result=$code;",
+            "  elif (( code == 75 && result == 0 )); then result=75; fi",
+            "done",
+            'exit "$result"',
+            "",
+        ]
+    )
+    script = "\n".join(lines)
+    script_path = absolute(str(args.write_script.absolute())) if args.write_script else "job.sbatch"
+    return {
+        "schema_version": 1,
+        "submitted": False,
+        "mode": args.mode,
+        "runs": jobs,
+        "script": script,
+        "script_sha256": hashlib.sha256(script.encode()).hexdigest(),
+        "before_manual_submission": shlex.join(["mkdir", "-p", "--", args.logs]),
+        "manual_submission_command": shlex.join(["sbatch", script_path]),
+        "note": "Create the log directory on Newton before sbatch. No command was executed.",
+    }
+
+
+def main() -> None:
+    args = parser().parse_args()
+    try:
+        plan = generate(args)
+        if args.write_script:
+            with args.write_script.open("x") as stream:
+                stream.write(plan["script"])
+        print(json.dumps(plan, indent=2))
+    except (ValueError, OSError) as error:
+        # Do not serialize filesystem exceptions containing private paths.
+        message = str(error) if type(error) is ValueError else "script_write_failed"
+        print(json.dumps({"status": "blocked", "reason": message}))
+        raise SystemExit(2) from None
+
+
+if __name__ == "__main__":
+    main()

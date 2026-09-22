@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "<REPOSITORY>/rsna/competitive/train.py", line 619, in <module>
+    main()
+  File "<REPOSITORY>/rsna/competitive/train.py", line 615, in main
+    raise SystemExit(run(args, stop_requested))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<REPOSITORY>/rsna/competitive/train.py", line 220, in run
+    return _run_locked(
+           ^^^^^^^^^^^^
+  File "<REPOSITORY>/rsna/competitive/train.py", line 473, in _run_locked
+    save(checkpoint_epoch, checkpoint_update, step)
+  File "<REPOSITORY>/rsna/competitive/train.py", line 363, in save
+    save_checkpoint(
+  File "<REPOSITORY>/rsna/competitive/checkpoint.py", line 76, in save_checkpoint
+    raise OSError("Insufficient free disk to write a checkpoint while preserving the reserve")
+OSError: Insufficient free disk to write a checkpoint while preserving the reserve

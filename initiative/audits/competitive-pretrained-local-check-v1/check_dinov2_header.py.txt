@@ -1,0 +1,65 @@
+"""Compare bounded public safetensors header with explicit HF model topology only."""
+import hashlib
+import json
+import re
+import struct
+from datetime import datetime, timezone
+from pathlib import Path
+
+import requests
+import torch
+
+from rsna.competitive.backbones import _construct, _validate_architecture
+
+ROOT=Path(__file__).resolve().parents[3]
+OUT=Path(__file__).resolve().parent
+sha=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
+manifest_path=ROOT/'configs/competitive/weights/dinov2-registers-base.json'
+manifest=json.loads(manifest_path.read_text())
+spec=manifest['encoder']
+config_path=ROOT/spec['config_path']
+config=json.loads(config_path.read_text())
+assert sha(config_path)==spec['config_sha256']
+_validate_architecture(spec['architecture'],config)
+url=f"https://huggingface.co/{spec['source_id']}/resolve/{spec['source_revision']}/{manifest['download']['weights_filename']}"
+with requests.get(url,headers={'Range':'bytes=0-65535','Accept-Encoding':'identity'},stream=True,timeout=(15,30)) as response:
+    response.raise_for_status()
+    status=response.status_code
+    content_range=response.headers.get('Content-Range')
+    if status==206:
+        match=re.fullmatch(r'bytes 0-(\d+)/(\d+)',content_range or '')
+        assert match and int(match[2])==manifest['download']['weights_bytes']
+    elif status==200:
+        assert int(response.headers['Content-Length'])==manifest['download']['weights_bytes']
+    else:raise RuntimeError('Unexpected header status')
+    first=response.raw.read(8)
+    assert len(first)==8
+    length=struct.unpack('<Q',first)[0]
+    assert 1<=length<=65528
+    payload=response.raw.read(length)
+    assert len(payload)==length
+header=json.loads(payload)
+header_path=OUT/'dinov2-safetensors-header.json'
+with header_path.open('x') as f:json.dump(header,f,indent=2,sort_keys=True);f.write('\n')
+with torch.device('meta'):
+    model=_construct(spec['architecture'],config,'ConvNextForImageClassification')
+expected={key:list(value.shape) for key,value in model.state_dict().items()}
+actual={key:value['shape'] for key,value in header.items() if key!='__metadata__'}
+assert actual==expected
+result=dict(schema_version=1,status='passed_header_topology_only',actual_executor='/root/image_pipeline_audit',
+            checked_at_utc=datetime.now(timezone.utc).isoformat(),script_sha256=sha(Path(__file__)),
+            manifest_sha256=sha(manifest_path),config_sha256=sha(config_path),
+            header_artifact_sha256=sha(header_path),raw_header_sha256=hashlib.sha256(first+payload).hexdigest(),
+            source_id=spec['source_id'],source_revision=spec['source_revision'],
+            expected_whole_weight_sha256=spec['weights_sha256'],expected_whole_weight_bytes=manifest['download']['weights_bytes'],
+            whole_weight_hash_verified=False,whole_weights_downloaded=False,pretrained_forward_executed=False,
+            http_status=status,content_range=content_range,requested_range='bytes=0-65535',
+            application_bytes_read=8+length,stream_closed_after_header=True,
+            bound_tensor_key_shape_count=len(expected),exact_keys_and_shapes_match=True,
+            dtype_counts={dtype:sum(v.get('dtype')==dtype for k,v in header.items() if k!='__metadata__')
+                          for dtype in sorted({v['dtype'] for k,v in header.items() if k!='__metadata__'})},
+            limitation='Header-only official pinned metadata comparison, not full tensor/hash/pretrained inference verification',
+            code_sha256=sha(ROOT/'rsna/competitive/backbones.py'))
+output=OUT/'dinov2-header-compatibility.json'
+with output.open('x') as f:json.dump(result,f,indent=2,sort_keys=True);f.write('\n')
+print(json.dumps({'status':result['status'],'receipt_sha256':sha(output),'tensor_count':len(expected),'application_bytes_read':8+length}))

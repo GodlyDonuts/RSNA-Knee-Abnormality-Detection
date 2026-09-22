@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "status": "authorized_access_approved_staging_in_progress",
+  "supersedes_starting_backbone_choice_in": "configs/competitive/campaign.json",
+  "architecture": "dinov3_l16",
+  "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+  "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+  "weights_sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179",
+  "weights_bytes": 1212559808,
+  "configuration_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+  "configuration_status": "Authenticated official config and LICENSE retrieved and verified; see exact pinned encoder manifest",
+  "initial_resource_budget": {
+    "partition": "normal",
+    "account": "skattel",
+    "nodes": 1,
+    "gpus_per_node": 2,
+    "gpu_type": "nvidia_h100_pcie",
+    "cpus_per_node": 4,
+    "dataloader_workers_per_rank": 0,
+    "maximum_simultaneous_nodes": 2,
+    "second_node_condition": "First GPU recovery/throughput pilot passes and an independent fold is ready"
+  },
+  "pilot": {
+    "diagnostic_study_limit": 100,
+    "epochs": 2,
+    "initial_precision": "fp32",
+    "bf16_condition": "Explicit separate configuration after finite forward/backward and numerical comparison on the allocated H100",
+    "submission_eligible": false,
+    "checks": [
+      "Official weights full SHA and strict load",
+      "Peak memory and throughput",
+      "Same-world-size interrupted checkpoint recovery",
+      "Full Kaggle-compatible decode and inference timing"
+    ]
+  },
+  "train_config_without_encoder": {
+    "accumulation_steps": 4,
+    "augment": false,
+    "batch_size": 1,
+    "checkpoint_every_updates": 25,
+    "clip_grad_norm": 1.0,
+    "diagnostic_study_limit": null,
+    "encode_chunk_size": 32,
+    "encoder_lr": 1e-05,
+    "epochs": 10,
+    "fold": 0,
+    "freeze_encoder": true,
+    "head_lr": 0.001,
+    "hidden_dim": 128,
+    "max_series": 6,
+    "min_free_gib": 20.0,
+    "pooling": "attention",
+    "precision": "fp32",
+    "seed": 20260922,
+    "side": 224,
+    "slices": 16,
+    "submission_every_epochs": 2,
+    "warmup_updates": 0,
+    "weight_decay": 0.0001,
+    "workers": 0
+  },
+  "submission_policy": {
+    "epochs": [
+      2,
+      4,
+      6,
+      8,
+      10
+    ],
+    "daily_account_limit": 5,
+    "cadence_run": "Primary production fold-0 run; other folds require an explicit queue assignment within the same account-wide quota",
+    "overflow": "Queue and recheck the authoritative live allowance; a calendar rollover does not establish that quota reset",
+    "hidden_test_execution": "Exact private version-bound Kaggle notebook, internet disabled, MRI-only inference",
+    "selection_disclosure": "Repeated public leaderboard feedback is development evidence; reserved confirmation and gold remain unused"
+  },
+  "next_model_experiments": [
+    "DINOv3-L partial or full fine-tuning after frozen reference",
+    "Additional leakage-isolated folds",
+    "Higher-capacity DINOv3 or regional features only after measured generalization and inference budget"
+  ],
+  "competitive_performance_established": false,
+  "encoder_manifest": "configs/competitive/weights/dinov3-large.json"
+}

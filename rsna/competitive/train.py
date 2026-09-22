@@ -1,0 +1,668 @@
+"""Fixed-schedule outer-fold experiments; no gold or confirmation-set selection."""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import hashlib
+import io
+import json
+import math
+import os
+import random
+import signal
+import time
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import torch
+import torch.distributed as dist
+from torch import nn
+from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data import DataLoader
+
+from rsna.competitive.checkpoint import (
+    atomic_json,
+    capture_rng,
+    file_sha256,
+    load_checkpoint,
+    restore_rng,
+    run_lock,
+    save_checkpoint,
+)
+from rsna.competitive.loss import effective_batch_loss, observed_counts
+from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
+from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
+from rsna.model import auc_metrics
+from rsna.release import load_verified_release
+from rsna.schema import CACHE_VERSION, TARGETS
+
+
+@dataclass(frozen=True)
+class TrainConfig:
+    encoder: dict = field(
+        default_factory=lambda: {"architecture": "diagnostic_tiny", "embedding_dim": 16}
+    )
+    fold: int = 0
+    seed: int = 20260922
+    epochs: int = 10
+    batch_size: int = 1
+    accumulation_steps: int = 4
+    slices: int = 16
+    side: int = 224
+    max_series: int = 6
+    workers: int = 0
+    head_lr: float = 0.001
+    encoder_lr: float = 0.00001
+    weight_decay: float = 0.0001
+    freeze_encoder: bool = True
+    precision: str = "fp32"
+    pooling: str = "attention"
+    hidden_dim: int = 128
+    encode_chunk_size: int = 32
+    augment: bool = False
+    warmup_updates: int = 0
+    clip_grad_norm: float = 1.0
+    checkpoint_every_updates: int = 25
+    submission_every_epochs: int = 0
+    min_free_gib: float = 20.0
+    diagnostic_study_limit: int | None = None
+
+    def validate(self) -> None:
+        positive = (
+            "epochs",
+            "batch_size",
+            "accumulation_steps",
+            "slices",
+            "side",
+            "max_series",
+            "hidden_dim",
+            "encode_chunk_size",
+            "checkpoint_every_updates",
+        )
+        nonnegative = ("fold", "seed", "workers", "warmup_updates", "submission_every_epochs")
+        for name in positive + nonnegative:
+            value = getattr(self, name)
+            if type(value) is not int or value < (1 if name in positive else 0):
+                raise ValueError(f"Invalid integer configuration: {name}")
+        for name in ("head_lr", "encoder_lr", "clip_grad_norm", "weight_decay", "min_free_gib"):
+            value = getattr(self, name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (float, int))
+                or not math.isfinite(value)
+                or value < 0
+                or (name in ("head_lr", "encoder_lr", "clip_grad_norm") and value == 0)
+            ):
+                raise ValueError(f"Invalid numeric configuration: {name}")
+        if self.side < 16 or self.max_series < 3:
+            raise ValueError("Need side >=16 and at least three series slots")
+        if self.precision not in {"fp32", "bf16"} or self.pooling not in {"attention", "max"}:
+            raise ValueError("Unknown precision or pooling policy")
+        if any(type(getattr(self, name)) is not bool for name in ("freeze_encoder", "augment")):
+            raise ValueError("Freeze and augmentation settings must be booleans")
+        if self.diagnostic_study_limit is not None and (
+            type(self.diagnostic_study_limit) is not int or self.diagnostic_study_limit < 1
+        ):
+            raise ValueError("Diagnostic study limit must be positive")
+        if not isinstance(self.encoder, dict):
+            raise ValueError("Encoder specification must be an object")
+        if (
+            self.encoder.get("architecture") == "diagnostic_tiny"
+            and self.diagnostic_study_limit is None
+        ):
+            raise ValueError("The diagnostic encoder requires an explicit diagnostic study limit")
+
+
+def _hash(value: object) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    ).hexdigest()
+
+
+def _uid_hash(frame: pd.DataFrame) -> str:
+    return _hash(sorted(frame.study_uid.tolist()))
+
+
+def verified_job_release(
+    studies: Path, artifact_root: Path, rank: int, world: int
+) -> tuple[pd.DataFrame, dict]:
+    """Replay full release evidence once per job, then share the verified table.
+
+    Repeating the same large provenance replay on every GPU wastes host memory.
+    Every rank still checks its local manifest against the verified byte hash.
+    """
+    if world == 1:
+        return load_verified_release(studies, artifact_root)
+    shared: list = [None]
+    if rank == 0:
+        try:
+            manifest, binding = load_verified_release(studies, artifact_root)
+            shared[0] = {"manifest": manifest, "binding": binding}
+        except Exception as exc:
+            shared[0] = {"error_type": type(exc).__name__}
+    dist.broadcast_object_list(shared, src=0)
+    result = shared[0]
+    if "error_type" in result:
+        raise ValueError("Full data-release validation failed on the coordinating rank")
+    if file_sha256(studies) != result["binding"]["manifest_sha256"]:
+        raise ValueError("Local manifest differs from the verified distributed job release")
+    return result["manifest"], result["binding"]
+
+
+def select_development(
+    manifest: pd.DataFrame, folds: pd.DataFrame, fold: int
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    development = manifest[manifest.split == "train"].copy()
+    if fold not in set(folds.fold) or development.study_uid.duplicated().any():
+        raise ValueError("Invalid outer fold or duplicate studies")
+    if set(development.study_uid) != set(folds.study_uid) or folds.study_uid.duplicated().any():
+        raise ValueError("Folds must cover exactly the accepted training split")
+    joined = development.merge(folds[["study_uid", "fold"]], on="study_uid", validate="one_to_one")
+    observed = joined[[f"{target}__mask" for target in TARGETS]].sum(axis=1) > 0
+    train = joined[observed & (joined.fold != fold)].sort_values("study_uid").reset_index(drop=True)
+    outer = joined[observed & (joined.fold == fold)].sort_values("study_uid").reset_index(drop=True)
+    forbidden = manifest[manifest.split != "train"]
+    if train.empty or outer.empty or set(train.leakage_group) & set(outer.leakage_group):
+        raise ValueError("Development folds are empty or share leakage groups")
+    if set(joined.leakage_group) & set(forbidden.leakage_group):
+        raise ValueError("Development folds overlap a held-out split")
+    if any(joined[f"{target}__provenance"].eq("official_gold").any() for target in TARGETS):
+        raise ValueError("Official labels cannot enter model development")
+    return train, outer
+
+
+def _model_inputs(batch: dict, device: torch.device) -> tuple:
+    return tuple(
+        batch[name].to(device, non_blocking=True)
+        for name in ("images", "features", "series_mask", "slice_mask", "positions")
+    )
+
+
+class PredictionInterrupted(Exception):
+    """All evaluation ranks agreed to stop; the final training checkpoint exists."""
+
+
+@torch.inference_mode()
+def predict(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    config: TrainConfig,
+    stop_requested: list[bool] | None = None,
+) -> tuple[pd.DataFrame, dict]:
+    model.eval()
+    identifiers: list[str] = []
+    scores, labels, masks = [], [], []
+    for batch in loader:
+        if stop_requested is not None:
+            stopping = torch.tensor(int(stop_requested[0]), device=device)
+            if dist.is_initialized():
+                dist.all_reduce(stopping, op=dist.ReduceOp.MAX)
+            if stopping.item():
+                raise PredictionInterrupted()
+        with torch.autocast(device.type, dtype=torch.bfloat16, enabled=config.precision == "bf16"):
+            logits = model(*_model_inputs(batch, device))
+        valid = batch.get("sample_valid", torch.ones(len(batch["study_uid"]), dtype=torch.bool))
+        scores.append(logits.float().sigmoid().cpu().numpy()[valid.numpy()])
+        labels.append(batch["labels"].numpy()[valid.numpy()])
+        masks.append(batch["label_mask"].numpy()[valid.numpy()])
+        identifiers.extend(uid for uid, keep in zip(batch["study_uid"], valid.tolist()) if keep)
+    probabilities = np.concatenate(scores)
+    frame = pd.DataFrame(probabilities, columns=TARGETS)
+    frame.insert(0, "seed", config.seed)
+    frame.insert(0, "fold", config.fold)
+    frame.insert(0, "study_uid", identifiers)
+    return frame, auc_metrics(np.concatenate(labels), probabilities, np.concatenate(masks))
+
+
+def run(args: argparse.Namespace, stop_requested: list[bool]) -> int:
+    # Imports are deliberately local: --help/config/loss tests do not load optional backbones.
+    from rsna.competitive.backbones import create_encoder
+    from rsna.competitive.data import CompetitiveStudyDataset
+    from rsna.competitive.folds import load_folds
+    from rsna.competitive.model import CompetitiveStudyNet
+
+    config = TrainConfig(**json.loads(args.config.read_text()))
+    config.validate()
+    rank, world, local_rank = (
+        int(os.environ.get(name, default))
+        for name, default in (("RANK", "0"), ("WORLD_SIZE", "1"), ("LOCAL_RANK", "0"))
+    )
+    if world < 1 or not 0 <= rank < world or local_rank < 0:
+        raise ValueError("Invalid distributed environment")
+    device = torch.device(f"cuda:{local_rank}" if args.device == "cuda" else "cpu")
+    if device.type == "cuda":
+        if not torch.cuda.is_available() or local_rank >= torch.cuda.device_count():
+            raise ValueError("CUDA was requested but no assigned CUDA device is available")
+        torch.cuda.set_device(device)
+        if config.precision == "bf16" and not torch.cuda.is_bf16_supported():
+            raise ValueError("BF16 is unsupported on the assigned GPU")
+    elif config.precision != "fp32":
+        raise ValueError("CPU acceptance uses FP32; BF16 requires an actual GPU pilot")
+    if world > 1:
+        dist.init_process_group("nccl" if device.type == "cuda" else "gloo")
+    try:
+        with run_lock(args.output) if rank == 0 else contextlib.nullcontext():
+            return _run_locked(
+                args,
+                config,
+                stop_requested,
+                rank,
+                world,
+                device,
+                create_encoder,
+                CompetitiveStudyDataset,
+                CompetitiveStudyNet,
+                load_folds,
+            )
+    finally:
+        if dist.is_initialized():
+            dist.destroy_process_group()
+
+
+def _run_locked(
+    args,
+    config,
+    stop_requested,
+    rank,
+    world,
+    device,
+    create_encoder,
+    dataset_class,
+    model_class,
+    load_folds,
+) -> int:
+    torch.set_num_threads(2)
+    random.seed(config.seed)
+    np.random.seed(config.seed % 2**32)
+    torch.manual_seed(config.seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    if (
+        rank == 0
+        and not args.resume
+        and any(
+            (args.output / name).exists()
+            for name in ("checkpoint.pt", "run.json", "outer_predictions.csv")
+        )
+    ):
+        raise ValueError(
+            "Output already contains a run; resume explicitly or choose a new directory"
+        )
+    manifest, release_binding = verified_job_release(args.studies, args.artifact_root, rank, world)
+    folds = load_folds(args.folds, manifest, release_binding)
+    train, outer = select_development(manifest, folds, config.fold)
+    if config.diagnostic_study_limit is not None:
+        train, outer = (
+            train.head(config.diagnostic_study_limit),
+            outer.head(config.diagnostic_study_limit),
+        )
+    series_bytes = args.series.read_bytes()
+    if hashlib.sha256(series_bytes).hexdigest() != release_binding["series_sha256"]:
+        raise ValueError("Series sampling table differs from the accepted data release")
+    series = pd.read_csv(io.BytesIO(series_bytes))
+    data_config = {name: getattr(config, name) for name in ("slices", "side", "max_series")}
+    training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
+    outer_data = dataset_class(outer, series, args.cache, **data_config)
+    if (training_data.cache_side, training_data.source_revision) != (
+        outer_data.cache_side,
+        outer_data.source_revision,
+    ) or training_data.source_revision != release_binding["source_revision"]:
+        raise ValueError("Image cache transform/source differs from the accepted release")
+    encoder, embedding_dim, encoder_provenance = create_encoder(config.encoder)
+    encoder.requires_grad_(not config.freeze_encoder)
+    model = model_class(
+        encoder,
+        embedding_dim,
+        pooling=config.pooling,
+        hidden_dim=config.hidden_dim,
+        encode_chunk_size=config.encode_chunk_size,
+    ).to(device)
+    encoder_parameters = {id(parameter) for parameter in encoder.parameters()}
+    groups = [
+        {
+            "params": [
+                p for p in model.parameters() if p.requires_grad and id(p) not in encoder_parameters
+            ],
+            "lr": config.head_lr,
+        }
+    ]
+    if not config.freeze_encoder:
+        groups.append(
+            {
+                "params": [p for p in encoder.parameters() if p.requires_grad],
+                "lr": config.encoder_lr,
+            }
+        )
+    optimizer = torch.optim.AdamW(groups, weight_decay=config.weight_decay)
+    wrapped = (
+        DistributedDataParallel(model, device_ids=[device.index] if device.type == "cuda" else None)
+        if world > 1
+        else model
+    )
+    # Bind numerical configuration and content, never machine-specific paths.
+    bound_config = asdict(config)
+    bound_config["encoder"] = encoder_provenance
+    package_root = Path(__file__).resolve().parents[1]
+    code_hashes = {
+        str(path.relative_to(package_root)): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(package_root.rglob("*.py"))
+    }
+    binding = {
+        "config": bound_config,
+        "release": release_binding,
+        "folds_sha256": _hash(folds.sort_values("study_uid").to_dict("records")),
+        "training_uids_sha256": _uid_hash(train),
+        "outer_uids_sha256": _uid_hash(outer),
+        "world_size": world,
+        "device_type": device.type,
+        "torch_version": str(torch.__version__),
+        "targets": list(TARGETS),
+        "code_sha256": code_hashes,
+        "cache_side": training_data.cache_side,
+        "cache_version": CACHE_VERSION,
+        "source_revision": training_data.source_revision,
+    }
+    if world > 1:
+        rank_bindings: list = [None] * world
+        dist.all_gather_object(rank_bindings, _hash(binding))
+        if len(set(rank_bindings)) != 1:
+            raise ValueError("Distributed ranks disagree on source, settings, weights or code")
+    epoch, next_update, step = 0, 0, 0
+    if args.resume:
+        checkpoint = load_checkpoint(args.resume, binding)
+        model.load_state_dict(checkpoint["model"], strict=True)
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        epoch, next_update, step = (
+            checkpoint["epoch"],
+            checkpoint["next_update"],
+            checkpoint["step"],
+        )
+        if (
+            any(type(value) is not int or value < 0 for value in (epoch, next_update, step))
+            or epoch > config.epochs
+            or (epoch == config.epochs and next_update != 0)
+        ):
+            raise ValueError("Checkpoint progress counters are invalid")
+        restore_rng(checkpoint["rng_by_rank"][rank], device)
+    started = time.monotonic()
+    updates_this_invocation = 0
+    history = []
+
+    def save(current_epoch: int, current_update: int, completed_step: int) -> None:
+        state = capture_rng(device)
+        rng_states: list = [None] * world
+        if world > 1:
+            dist.all_gather_object(rng_states, state)
+        else:
+            rng_states[0] = state
+        if rank == 0:
+            save_checkpoint(
+                args.output / "checkpoint.pt",
+                {
+                    "schema_version": 1,
+                    "binding": binding,
+                    "optimizer_boundary": True,
+                    "model": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "epoch": current_epoch,
+                    "next_update": current_update,
+                    "step": completed_step,
+                    "rng_by_rank": rng_states,
+                    "scheduled_epoch": scheduled_epoch(current_epoch, current_update, bound_config),
+                },
+                min_free_gib=config.min_free_gib,
+            )
+            if scheduled_epoch(current_epoch, current_update, bound_config):
+                write_epoch_snapshot(
+                    args.output / "checkpoint.pt",
+                    args.output / "epoch-checkpoints",
+                    binding,
+                    current_epoch,
+                    completed_step,
+                )
+        if world > 1:
+            dist.barrier()
+
+    if rank == 0:
+        atomic_json(
+            args.output / "run.json",
+            {
+                "schema_version": 1,
+                "status": "running",
+                "binding": binding,
+                "diagnostic_run": config.diagnostic_study_limit is not None,
+                "training_studies": len(train),
+                "outer_studies": len(outer),
+                "selection_policy": "fixed_epoch_count; outer_predictions_only_after_final_epoch",
+                "held_out_confirmation_and_gold_used": False,
+            },
+        )
+    while epoch < config.epochs:
+        sampler = EffectiveBatchSampler(
+            len(training_data),
+            config.batch_size,
+            config.accumulation_steps,
+            seed=config.seed,
+            epoch=epoch,
+            rank=rank,
+            world_size=world,
+            start_update=next_update,
+        )
+        loader = DataLoader(
+            SeededDataset(training_data),
+            batch_sampler=sampler,
+            num_workers=config.workers,
+            pin_memory=device.type == "cuda",
+            generator=torch.Generator().manual_seed(config.seed + epoch + rank),
+        )
+        iterator = iter(loader)
+        wrapped.train()
+        if config.freeze_encoder:
+            encoder.eval()
+        for update in range(next_update, sampler.updates):
+            batches = [next(iterator) for _ in range(config.accumulation_steps)]
+            masks = [batch["label_mask"].to(device) for batch in batches]
+            counts = observed_counts(masks)
+            optimizer.zero_grad(set_to_none=True)
+            loss_total = torch.zeros((), device=device)
+            if counts.any():
+                for micro, (batch, mask) in enumerate(zip(batches, masks)):
+                    synchronize = micro == len(batches) - 1 or world == 1
+                    with contextlib.nullcontext() if synchronize else wrapped.no_sync():
+                        with torch.autocast(
+                            device.type, dtype=torch.bfloat16, enabled=config.precision == "bf16"
+                        ):
+                            logits = wrapped(*_model_inputs(batch, device))
+                            loss = effective_batch_loss(
+                                logits, batch["labels"].to(device), mask, counts
+                            )
+                        loss.backward()
+                    loss_total += loss.detach()
+                norm = nn.utils.clip_grad_norm_(
+                    model.parameters(), config.clip_grad_norm, error_if_nonfinite=True
+                )
+                multiplier = min(1.0, (step + 1) / max(1, config.warmup_updates))
+                for group, base_lr in zip(
+                    optimizer.param_groups, [config.head_lr, config.encoder_lr]
+                ):
+                    group["lr"] = base_lr * multiplier
+                optimizer.step()
+                step += 1
+            else:
+                norm = torch.tensor(0.0)
+            if world > 1:
+                dist.all_reduce(loss_total)
+                loss_total /= world
+            updates_this_invocation += 1
+            epoch_finished = update + 1 == sampler.updates
+            checkpoint_epoch, checkpoint_update = (
+                (epoch + 1, 0) if epoch_finished else (epoch, update + 1)
+            )
+            stopping = torch.tensor(
+                int(
+                    stop_requested[0]
+                    or (
+                        args.stop_after_updates is not None
+                        and updates_this_invocation >= args.stop_after_updates
+                    )
+                ),
+                device=device,
+            )
+            if world > 1:
+                dist.all_reduce(stopping, op=dist.ReduceOp.MAX)
+            if (
+                stopping.item()
+                or epoch_finished
+                or updates_this_invocation % config.checkpoint_every_updates == 0
+            ):
+                save(checkpoint_epoch, checkpoint_update, step)
+            if rank == 0:
+                event = {
+                    "epoch": epoch,
+                    "update": update + 1,
+                    "optimizer_steps": step,
+                    "loss": float(loss_total),
+                    "gradient_norm": float(norm),
+                    "observed_cells": float(counts.sum()),
+                    "elapsed_seconds": time.monotonic() - started,
+                }
+                history.append(event)
+                print(json.dumps(event, allow_nan=False), flush=True)
+            if stopping.item():
+                if rank == 0:
+                    atomic_json(
+                        args.output / "invocation.json",
+                        {
+                            "status": "checkpointed_for_resume",
+                            "exit_code": 75,
+                            "updates": history,
+                            "binding_sha256": _hash(binding),
+                            "checkpoint_sha256": file_sha256(args.output / "checkpoint.pt"),
+                        },
+                    )
+                return 75
+        epoch += 1
+        next_update = 0
+    # Equal-length rank schedules allow coordinated cancellation even in the
+    # final partial evaluation batch. Padding produces no exported prediction.
+    outer_sampler = EffectiveBatchSampler(
+        len(outer_data),
+        config.batch_size,
+        1,
+        seed=config.seed,
+        epoch=0,
+        rank=rank,
+        world_size=world,
+    )
+    outer_loader = DataLoader(
+        SeededDataset(outer_data),
+        batch_sampler=outer_sampler,
+        num_workers=config.workers,
+        generator=torch.Generator().manual_seed(config.seed),
+    )
+    try:
+        local_predictions, _ = predict(model, outer_loader, device, config, stop_requested)
+    except PredictionInterrupted:
+        if rank == 0:
+            atomic_json(
+                args.output / "invocation.json",
+                {
+                    "status": "final_inference_interrupted_resume_final_checkpoint",
+                    "exit_code": 75,
+                    "binding_sha256": _hash(binding),
+                    "checkpoint_sha256": file_sha256(args.output / "checkpoint.pt"),
+                },
+            )
+        return 75
+    prediction_parts: list = [None] * world
+    if world > 1:
+        dist.all_gather_object(prediction_parts, local_predictions)
+    else:
+        prediction_parts[0] = local_predictions
+    if rank == 0:
+        predictions = (
+            pd.concat(prediction_parts, ignore_index=True)
+            .sort_values("study_uid")
+            .reset_index(drop=True)
+        )
+        if (
+            set(predictions.study_uid) != set(outer.study_uid)
+            or predictions.study_uid.duplicated().any()
+        ):
+            raise ValueError("Outer predictions do not cover the exact declared evaluation pool")
+        actual = outer.set_index("study_uid").loc[predictions.study_uid]
+        metrics = auc_metrics(
+            actual[list(TARGETS)].to_numpy(),
+            predictions[list(TARGETS)].to_numpy(),
+            actual[[f"{target}__mask" for target in TARGETS]].to_numpy(),
+        )
+        temporary = args.output / "outer_predictions.csv.partial"
+        predictions.to_csv(temporary, index=False)
+        os.replace(temporary, args.output / "outer_predictions.csv")
+        atomic_json(
+            args.output / "result.json",
+            {
+                "schema_version": 1,
+                "status": "completed",
+                "binding_sha256": _hash(binding),
+                "checkpoint_sha256": file_sha256(args.output / "checkpoint.pt"),
+                "diagnostic_run": config.diagnostic_study_limit is not None,
+                "outer_fold": config.fold,
+                "seed": config.seed,
+                "optimizer_steps": step,
+                "training_studies": len(train),
+                "outer_studies": len(outer),
+                "evaluation_source": "accepted_train_outer_fold_report_supervision",
+                "checkpoint_selection": "fixed_final_epoch_no_outer_selection",
+                "metrics": metrics,
+                "elapsed_seconds": time.monotonic() - started,
+                "cuda_peak_memory_bytes": torch.cuda.max_memory_allocated(device)
+                if device.type == "cuda"
+                else None,
+                "predictions_sha256": hashlib.sha256(
+                    (args.output / "outer_predictions.csv").read_bytes()
+                ).hexdigest(),
+            },
+        )
+        atomic_json(
+            args.output / "invocation.json",
+            {
+                "status": "completed",
+                "exit_code": 0,
+                "updates": history,
+                "binding_sha256": _hash(binding),
+            },
+        )
+        run_record = json.loads((args.output / "run.json").read_text())
+        run_record["status"] = "completed"
+        atomic_json(args.output / "run.json", run_record)
+    if world > 1:
+        dist.barrier()
+    return 0
+
+
+def main() -> None:
+    stop_requested = [False]
+    signal.signal(signal.SIGUSR1, lambda *_: stop_requested.__setitem__(0, True))
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ("config", "studies", "series", "cache", "folds", "artifact-root", "output"):
+        parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--resume", type=Path)
+    parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument(
+        "--stop-after-updates",
+        type=int,
+        help="Diagnostic interruption at an optimizer boundary; exits 75",
+    )
+    args = parser.parse_args()
+    if args.stop_after_updates is not None and args.stop_after_updates < 1:
+        parser.error("--stop-after-updates must be positive")
+    raise SystemExit(run(args, stop_requested))
+
+
+if __name__ == "__main__":
+    main()

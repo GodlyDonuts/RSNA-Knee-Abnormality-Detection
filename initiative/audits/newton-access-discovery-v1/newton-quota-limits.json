@@ -1,0 +1,57 @@
+{
+  "server": "newton",
+  "connection_attempt": 3,
+  "read_only": true,
+  "exit_code": 0,
+  "status": "connected",
+  "discovery": {
+    "schema_version": 1,
+    "read_only": true,
+    "utc": "2026-09-22T16:52:02.020108+00:00",
+    "own_group_storage_paths": {
+      "/groups/skattel": {
+        "resolved": "/lustre/fs1/groups/skattel",
+        "writable": true,
+        "filesystem_free_bytes": 327267652984832
+      }
+    },
+    "commands": [
+      {
+        "label": "own_lustre_quota",
+        "returncode": 0,
+        "stdout": "Disk quotas for usr sa305415 (uid 1227834669):\n     Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace\n    /lustre/fs1 825588120  1048576000 1059061760       -  954996  1000000 1010000       -\n",
+        "stderr": ""
+      },
+      {
+        "label": "own_pi_group_quota",
+        "returncode": 0,
+        "stdout": "Disk quotas for grp arcc_pi_skattel (gid 1227692506):\n     Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace\n    /lustre/fs1 1187038304       0       0       -  884104       0       0       -\ngid 1227692506 is using default block quota setting\ngid 1227692506 is using default file quota setting\n",
+        "stderr": ""
+      },
+      {
+        "label": "own_allowed_qos_limits",
+        "returncode": 0,
+        "stdout": "normal|||||||preemptable|cluster|00:00:00\npreemptable|NoReserve|||||||cluster|00:00:00\n",
+        "stderr": ""
+      },
+      {
+        "label": "scheduler_resource_signal_settings",
+        "returncode": 0,
+        "stdout": "AccountingStorageEnforce = associations,limits,qos,safe\nJobSubmitPlugins        = lua\nKillWait                = 30 sec\nPreemptMode             = CANCEL\nPreemptType             = preempt/partition_prio\nSelectType              = select/cons_tres\nSelectTypeParameters    = CR_CORE_MEMORY\nTaskPlugin              = task/cgroup,task/affinity",
+        "stderr": ""
+      },
+      {
+        "label": "normal_partition_state_snapshot",
+        "returncode": 0,
+        "stdout": "mix-|8|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785\ndown*|1|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785\nmix|10|gpu:tesla_v100-pcie-16gb:2(S:0-1)|32|190884\nmix|4|gpu:tesla_v100-pcie-32gb:2(S:0-1)|32|190884\nmix|18|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785\nalloc|1|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785\nidle|6|gpu:tesla_v100-pcie-32gb:2(S:0-1)|32|190884\nidle|1|gpu:nvidia_h100_pcie:2(S:0-1)|64|514785\n",
+        "stderr": ""
+      },
+      {
+        "label": "python311_module_version",
+        "returncode": 0,
+        "stdout": "Python 3.11.4\n",
+        "stderr": ""
+      }
+    ]
+  }
+}

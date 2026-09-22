@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "stage": "record_of_distinct_agent_fold_evaluation_review",
+  "recorded_by": "/root/competition_contract",
+  "actual_reviewer_agent_id": "/root/competition_contract/medical_encoder_sources",
+  "assessment_delivery": "direct agent message; this wrapper was written by the implementation author, not independently signed",
+  "verdict": "no_material_blockers_found",
+  "focused_tests_passed": 30,
+  "files": {
+    "rsna/competitive/folds.py": "cd3bf1726065c24745c751e8403ac27ab321cb728a8162dfd5fcf8256d7c3570",
+    "rsna/competitive/evaluation.py": "726a63dbd65b9da292ba4746aa4ca4334286b27b6edb6dc782e7c7c9aa802783"
+  },
+  "confirmed_scope": [
+    "train-only label access",
+    "cross-split group exclusion",
+    "stable whole-group deterministic replay bound to source/release hashes",
+    "exact prediction UID/fold/one-seed membership",
+    "masked labels excluded",
+    "within-fold observed P*N AUC weighting with separate pooled OOF",
+    "paired whole-group multiplicities within folds and explicit undefined bootstrap counts"
+  ],
+  "reviewer_edits": false
+}

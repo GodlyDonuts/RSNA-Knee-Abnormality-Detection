@@ -1,0 +1,75 @@
+"""Offline replay of the retrieved official configuration; no weight reads."""
+
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+import torch
+
+from rsna.competitive.backbones import (
+    _construct,
+    _encoder_dimensions,
+    _validate_architecture,
+    _validate_pretrained_metadata,
+)
+
+root = Path.cwd()
+path = root / "configs/competitive/weights/dinov3-large.json"
+manifest = json.loads(path.read_text())
+spec = manifest["encoder"]
+config_path = root / spec["config_path"]
+license_path = root / manifest["license_policy"]["path"]
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(config_path) == spec["config_sha256"]
+assert sha(license_path) == manifest["license_policy"]["sha256"]
+assert config_path.stat().st_size == manifest["download"]["config_bytes"]
+assert license_path.stat().st_size == manifest["license_policy"]["bytes"]
+config = json.loads(config_path.read_text())
+_validate_pretrained_metadata(spec)
+_validate_architecture(spec["architecture"], config)
+with torch.device("meta"):
+    model = _construct(spec["architecture"], config, "DINOv3ViTModel")
+state = model.state_dict()
+assert state["model.layer.23.mlp.up_proj.weight"].shape == (4096, 1024)
+assert state["model.layer.23.attention.q_proj.weight"].shape == (1024, 1024)
+assert not any("model.layer.24." in key for key in state)
+assert model.config.num_hidden_layers == 24
+assert model.config.hidden_size == 1024
+assert _encoder_dimensions(spec["architecture"]) == (16, 1024)
+assert all(t.device.type == "meta" for t in state.values())
+proof = {
+    "schema_version": 1,
+    "status": "authorized_small_artifacts_and_architecture_verified",
+    "author_agent": "/root/image_pipeline_audit",
+    "checked_at_utc": datetime.now(timezone.utc).isoformat(),
+    "source_id": spec["source_id"],
+    "source_revision": spec["source_revision"],
+    "authenticated_http_status": {"config.json": 200, "LICENSE.md": 200},
+    "source_blob_identity_verified": True,
+    "manifest": {"path": path.relative_to(root).as_posix(), "sha256": sha(path)},
+    "files": [
+        {"path": p.relative_to(root).as_posix(), "sha256": sha(p), "bytes": p.stat().st_size}
+        for p in [config_path, license_path, root / "rsna/competitive/backbones.py", Path(__file__)]
+    ],
+    "factory_architecture_validation_passed": True,
+    "full_meta_constructor": {
+        "layers": model.config.num_hidden_layers,
+        "embedding_dim": model.config.hidden_size,
+        "parameters": sum(p.numel() for p in model.parameters()),
+        "state_tensors": len(state),
+        "device": "meta",
+    },
+    "limits": [
+        "No local Large pretrained weights fetched or verified; weight SHA and size are exact pinned official LFS metadata.",
+        "Meta construction verifies topology only; no Large pretrained forward or accuracy measured.",
+        "Original pending-access evidence remains immutable; this later successful authorized fetch supersedes only access status.",
+        "No gate acceptance interaction or source fallback performed; existing supplied authorization used.",
+        "Initial ad-hoc topology check used the wrong module attribute and failed before producing a receipt; this script checks actual state keys.",
+    ],
+}
+output = Path(__file__).parent / "validation.json"
+with output.open("x") as handle:
+    json.dump(proof, handle, indent=2, sort_keys=True)
+    handle.write("\n")
+print(json.dumps({"path": output.relative_to(root).as_posix(), "sha256": sha(output), "topology": proof["full_meta_constructor"]}))

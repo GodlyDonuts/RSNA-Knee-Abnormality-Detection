@@ -1,0 +1,43 @@
+{
+  "actual_executor": "/root/image_pipeline_audit",
+  "api": "create_encoder_from_training_checkpoint(provenance,config_path,*,encoder_state)->(encoder,embedding_dim,unchanged_provenance)",
+  "created_at_utc": "2026-09-22T17:00:14.083460+00:00",
+  "files": [
+    {
+      "bytes": 16221,
+      "path": "rsna/competitive/backbones.py",
+      "sha256": "164571bde3128f863578242fe6abe968000ce1b947e6637e15ce18894cacadb2"
+    },
+    {
+      "bytes": 24220,
+      "path": "tests/test_competitive_model.py",
+      "sha256": "f75c9a0a8f0353fb60a8a2fcb79ff7f5836617dbeede1225fb3aae8fc7176981"
+    },
+    {
+      "bytes": 11734,
+      "path": "docs/competitive-image-model.md",
+      "sha256": "d6e8cf451c80eba5313ad3b82246e1062471b45ab8c5f9bf8cbf864a6a6f93c6"
+    }
+  ],
+  "previous_backbones_sha256": "6a7ebbc0d9dba5884b95da43e681be0ed84f4d295f576199b6731f630753598f",
+  "schema_version": 1,
+  "scope": [
+    "Production encoders only; explicit diagnostic factory path retained",
+    "Caller must verify trained checkpoint hash/release lineage and still strict-load full study model",
+    "Full trained encoder required, finite and strict-loaded before return; fixed mean/std buffers verified",
+    "Original pretrained SHA remains ancestry and is not reverified; no original weight download/read",
+    "No training CLI bypass, inference CLI edits, accepted data changes, gate reattempt or remote mutation"
+  ],
+  "status": "implemented_and_targeted_tests_passed",
+  "verification": {
+    "all_passed": true,
+    "missing_study_head_rejected_by_full_strict_load": true,
+    "model_tests_passed": 75,
+    "mypy_source_files": 1,
+    "original_weight_read_forbidden_in_test": true,
+    "pytest_seconds": 6.09,
+    "real_random_dino_roundtrip": "one_block_real_HF_DINOv3_768_width_model_and_study_head_exact_output_after_full_strict_restore",
+    "ruff_files": 2,
+    "tampering_cases": 24
+  }
+}

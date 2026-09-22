@@ -29,6 +29,12 @@ The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and
 preserve the historical v1 run; its blinded `inputs/` are reused unchanged.
 Verified milestones go directly to main under the owner's explicit authorization.
 
+The next experiment uses DINOv3-L on Newton. The [competitive training handoff](../docs/competitive-training.md)
+and [DINOv3 recipe](../configs/competitive/dinov3-campaign.json) describe the new
+training-only folds, two-GPU runtime, and authorized two-epoch Kaggle cadence.
+Cluster access and official DINOv3 config access are verified; staging is underway. No competitive
+DINOv3 result has been measured yet. The accepted data release is unchanged.
+
 ## Contents
 
 | Location | Contents |
