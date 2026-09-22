@@ -1,0 +1,70 @@
+"""Package root's personally reviewed clinical decisions; no inferred acceptance."""
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+import hashlib, json
+W=Path(__file__).resolve().parent.parent; R=W/'work/recovered'; A=W/'work/annotation-staging'
+G=A/'cartilage-observed-003-root-review-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+read=lambda p:json.loads(p.read_text())
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p)}
+def save(name,doc):
+    p=G/name
+    with p.open('x') as f:f.write(json.dumps(doc,ensure_ascii=False,indent=2)+'\n')
+    return p
+freeze=G/'complete-source-assessment-frozen.json';compare=G/'root-postfreeze-comparison.json'
+assert sha(freeze)=='ffb347238b4c05fcec2bca0ab520255fd2c176044315a2947030f950c7b30bd9'
+assert sha(compare)=='e0eff950ac700c137522a1baf6ce12a4f36a794d8f8af3673b91fa61a20c7388'
+raw=A/'cartilage-observed-003-independent-postfreeze-v1/unintegrated-proposals.json'
+first=A/'cartilage-observed-003-postfreeze-v1/proposed-errata.json'
+proposals=read(raw)['records'];first_proposals=read(first)['proposed_errata']
+assert len(proposals)==47 and len(first_proposals)==39
+selected={(x['study_uid'],x['target']):x for x in proposals}
+assert len(selected)==47
+# These four changes are explicitly authored after full-source and reader comparison.
+reconsider={
+ ('050:30','Lateral OA'): 'I withdraw my inference that central-to-posterior sites on opposing surfaces necessarily describe a large continuous loss region. They localize full-depth loss but do not explicitly quantify or describe broad/entire extent. The generic moderate-OA conclusion adds no such extent. Retain uncertainty consistently with the cartilage002 treatment of plural denuded sites.',
+ ('053:12','Medial OA'): 'I withdraw my inference that involvement of weightbearing portions means loss throughout those portions. The wording supplies locations on two surfaces, not a qualifying size or explicit broad/entire regional loss. I retain the severe depth finding with extent uncertainty, consistent with my separately frozen 060:15 reading.',
+ ('058:33','Lateral OA'): 'I withdraw the compartment-wide negative inferred from the 6-by-4-mm focus. That specific osteochondral lesion remains below the size threshold, but tricompartmental osteophytes/general gonarthrosis and absence of an otherwise-normal lateral-cartilage statement leave other lateral cartilage scope unresolved. This is a scope correction, not a claim that the measured lesion qualifies.',
+ ('063:16','Lateral OA'): 'I retain the report-internal less/more-than-half calibration but withdraw its extension from femoral cartilage to the whole lateral compartment. The below-half wording describes femoral sites only; lateral tibial cartilage is not cleared by a normal-remaining-cartilage statement. Keep the known femoral below-threshold finding with whole-target uncertainty.'
+}
+evidence_decisions={
+ ('060:47','Lateral OA'): 'I accept the exact expansion through the lateral-compartment heading: it makes the anatomy of the mixed partial/full-depth fissures explicit while preserving uncertain extent.',
+ ('060:47','PF OA'): 'I accept the exact expansion through the anterior-compartment heading: it makes PF anatomy explicit for the partial-thickness fissures while preserving the unknown loss fraction.',
+ ('061:26','Medial OA'): 'I accept the exact expansion through the normal-remaining-cartilage sentence. The focal superficial medial finding plus the explicit remainder scope supports a whole-medial below-threshold negative.',
+ ('061:31','Lateral OA'): 'I accept the exact expansion through the extensive lateral-predominant degeneration conclusion. It binds the qualitative extent inference supporting the full-thickness lateral positive. This is report-level qualitative interpretation, not a measured size or new rubric.',
+ ('061:45','Lateral OA'): 'I accept the exact expansion through this report’s own low/high less/more-than-half definition. Combined with the 1.2-by-1.1-cm lateral high-grade defect, that source-local definition supports the retained positive without an external grading-scale assumption.'
+}
+base={'schema_version':1,'agent_id':'/root','session_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'rubric_sha256':'138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014','source_reports_sha256':'5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3','source_freeze':ref(freeze),'comparison':ref(compare),'registry_at_comparison':ref(R/'initiative/reviews-v2/adjudications/registry.json'),'prior_source_and_decision_exposure_disclosed':True,'original_artifacts_preserved':True,'gold_values_inspected':False,'registry_changed':False,'training_ready':False}
+assert base['registry_at_comparison']['sha256']=='e99baf5824104ea69c528ade4594100d8198a2171a68518195ba0d128e718d95'
+records=[];changes=[];recons=[]
+for x in read(compare)['records']:
+    root=x['root_frozen']
+    if root is None:continue
+    key=x['study_uid'],x['target'];case=x['case'].removeprefix('batch-');b,i=case.split(':');case=b+':'+i.zfill(2)
+    rkey=case,x['target'];is_reconsidered=rkey in reconsider
+    state='uncertain' if is_reconsidered else root['state']
+    assert state==x['second_postfreeze']['state']
+    adopted=selected[key]['after_proposed'] if key in selected else x['current286']
+    assert adopted['state']==state
+    source=read(R/x['source_path'])[x['source_index_zero_based']]
+    assert source['study_uid']==x['study_uid'] and sha(R/x['source_path'])==x['source_sha256']
+    assert adopted['evidence'] in source['report'] and bool(adopted['evidence'])==(state!='not_mentioned')
+    reason=reconsider[rkey] if is_reconsidered else root['reason']
+    if rkey in evidence_decisions:reason+=' '+evidence_decisions[rkey]
+    item={'case':case,'study_uid':x['study_uid'],'target':x['target'],'source_path':x['source_path'],'source_sha256':x['source_sha256'],'current286':x['current286'],'root_frozen_state':root['state'],'root_frozen_evidence':root['evidence'],'root_state_reconsidered':is_reconsidered,'root_postfreeze_state':state,'root_postfreeze_evidence':adopted['evidence'],'first_postfreeze_state':x['first_postfreeze']['state'],'second_postfreeze_state':x['second_postfreeze']['state'],'reason':reason,'disposition':'support_exact_second_proposal_pending_runtime_integration' if key in selected else 'retain_current_annotation','evidence_disposition':evidence_decisions.get(rkey,'The adopted exact quotation preserves the relevant source information; all alternate frozen excerpts remain unchanged.'),'accepted':False}
+    records.append(item)
+    if is_reconsidered:recons.append({'case':case,'study_uid':x['study_uid'],'target':x['target'],'before':root,'after':adopted,'reason':reconsider[rkey],'both_readers_alternatives_preserved':True})
+    if key in selected:
+        assert selected[key]['before_current']==x['current286'] and adopted!=x['current286']
+        changes.append({'case':case,'study_uid':x['study_uid'],'target':x['target'],'source_path':x['source_path'],'source_sha256':x['source_sha256'],'root_frozen_state':root['state'],'root_state_reconsidered':is_reconsidered,'independent_source_state':state,'source_evidence':adopted['evidence'],'reason':reason})
+assert len(records)==114 and len(changes)==47 and len(recons)==4
+first_support=[]
+for x in first_proposals:
+    key=x['study_uid'],x['target'];assert key in selected
+    assert selected[key]['after_proposed']['state']==x['proposed_state']
+    first_support.append({'case':x['case'],'study_uid':x['study_uid'],'target':x['target'],'state_supported':True,'accepted_via_second_proposal':True,'first_quote_equals_adopted_second_quote':x['source_quote']==selected[key]['after_proposed']['evidence'],'original_first_proposal_preserved':True})
+save('root-explicit-reconsiderations.json',{**base,'stage':'root_personally_authored_postfreeze_state_reconsiderations','records':recons})
+disposition=save('root-postfreeze-dispositions.json',{**base,'stage':'root_source_based_dispositions_pending_runtime_integration','counts':{'root_reports':38,'root_cells':114,'own_state_reconsiderations':4,'second_proposals_supported':47,'first_proposal_states_supported_via_second':39,'additional_root_proposals':0,'remaining_first_second_state_disagreements_resolved_by_root':3},'records':records,'first_proposal_state_support':first_support,'transition_counts':dict(Counter(x['before_current']['state']+'->'+x['after_proposed']['state'] for x in proposals)),'authorship':'I, /root, personally read all38 neutral complete sources and froze114 judgments before current003 case findings. After reading both readers’ comparisons and every one of the47 exact proposed outcomes/quotations, I support these47 proposals. Four actual own reconsiderations are explicit; no agreement rule creates this decision.'})
+assessment=save('second-proposals-independent-assessment.json',{**base,'stage':'independent_source_assessment','proposer_agent_id':'/root/last_twelve_visual_review','dispositions':ref(disposition),'original_proposals':ref(raw),'first_proposals':ref(first),'records':changes,'n_changes_supported':47,'n_changes_rejected':0,'n_changes_held':0,'authorship':'Actual independent/root clinical assessment following the preserved source-first pass and explicit comparison; normalization and runtime integration remain separate.'})
+print(json.dumps({'dispositions_sha256':sha(disposition),'assessment_sha256':sha(assessment),'root_cells':114,'supported47':True,'transitions':dict(Counter(x['before_current']['state']+'->'+x['after_proposed']['state'] for x in proposals))}))

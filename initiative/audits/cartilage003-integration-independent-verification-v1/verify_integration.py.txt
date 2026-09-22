@@ -1,0 +1,288 @@
+"""Read-only technical verification of recorded decisions; no clinical acceptance."""
+from pathlib import Path
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+import unicodedata
+
+W = Path.cwd().resolve()
+R = W / 'work/recovered'
+S = Path(__file__).resolve().parent
+A = R / 'initiative/audits'
+I = A / 'cartilage-observed-003-integration-v1'
+G = A / 'cartilage-observed-003-root-review-v1'
+N = A / 'cartilage-observed-003-independent-proposal-normalization-v1'
+E = A / 'cartilage-observed-003-additional-independent-v1'
+AGENT = '/root/duplicate_consistency_review'
+BASE_GIT = '76d2c274c0b7b00e4680a1e409575ebf317224fc'
+SOURCE_HASH = '5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC_HASH = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+REGISTRY_HASH = '5700efd92b500dbb0470ab79e44020c8be830c0f5f84459fef0b418478d96de0'
+BASE_REGISTRY_HASH = 'e99baf5824104ea69c528ade4594100d8198a2171a68518195ba0d128e718d95'
+sys.path.insert(0, str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+checked = {}
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+def sha(path):
+    h = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(2**20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+def bind(path):
+    return {'path': str(path.relative_to(W)), 'sha256': sha(path), 'bytes': path.stat().st_size}
+
+def read(path, expected=None):
+    if expected is not None:
+        assert sha(path) == expected, ('hash', str(path.relative_to(W)))
+    checked[str(path.relative_to(W))] = bind(path)
+    return json.loads(path.read_text())
+
+def locate(name):
+    path = Path(name)
+    if path.is_absolute():
+        assert path.is_relative_to(W)
+        return path
+    return (W if name.startswith('work/') else R) / path
+
+def refcheck(ref):
+    path = locate(ref['path'])
+    assert path.is_file() and not path.is_symlink(), ('file', ref['path'])
+    assert sha(path) == ref['sha256'], ('refhash', ref['path'])
+    if 'bytes' in ref:
+        assert path.stat().st_size == ref['bytes'], ('size', ref['path'])
+    checked[str(path.relative_to(W))] = bind(path)
+    return path
+
+def archive_peer(path, expected):
+    staging = W / 'work/annotation-staging'
+    if path.is_relative_to(staging):
+        peer = A / path.relative_to(staging)
+        if peer.suffix == '.py':
+            peer = peer.with_suffix('.py.txt')
+        assert peer.is_file() and sha(peer) == expected, ('archived_peer', str(peer.relative_to(W)))
+        checked[str(peer.relative_to(W))] = bind(peer)
+
+def key(record):
+    return record['study_uid'], record['target']
+
+def keyed(rows):
+    result = {key(row): row for row in rows}
+    assert len(result) == len(rows)
+    return result
+
+def save(name, obj):
+    with (S / name).open('x') as stream:
+        stream.write(json.dumps(obj, ensure_ascii=False, indent=2) + '\n')
+
+assert shutil.disk_usage(W).free > 20 * 2**30
+registry_path = R / 'initiative/reviews-v2/adjudications/registry.json'
+registry = read(registry_path, REGISTRY_HASH)
+old_registry = read(I / 'registry-before286.json', BASE_REGISTRY_HASH)
+old_registry_git = subprocess.check_output(['git', 'show', BASE_GIT + ':initiative/reviews-v2/adjudications/registry.json'], cwd=R)
+assert old_registry_git == (I / 'registry-before286.json').read_bytes()
+old_inspection_path = A / 'cartilage-observed-002-integration-v1/complete286-inspection.json'
+old = read(old_inspection_path)
+assert old_inspection_path.read_bytes() == subprocess.check_output(['git', 'show', BASE_GIT + ':' + str(old_inspection_path.relative_to(R))], cwd=R)
+assert old['n_changes'] == 286 and old['registry_sha256'] == BASE_REGISTRY_HASH
+assert registry['cases'][:-1] == old_registry['cases']
+assert {k:v for k,v in registry.items() if k != 'cases'} == {k:v for k,v in old_registry.items() if k != 'cases'}
+
+reports, source_bindings = {}, {}
+source_paths = sorted((R / 'initiative/reviews/inputs').glob('batch-*.json'))
+assert len(source_paths) == 89
+for path in source_paths:
+    rows = read(path)
+    for index, row in enumerate(rows):
+        assert set(row) == {'study_uid', 'report'} and row['study_uid'] not in reports
+        reports[row['study_uid']] = row['report']
+        source_bindings[row['study_uid']] = (str(path.relative_to(R)), sha(path), index)
+assert len(reports) == 4407
+canonical = json.dumps([{'study_uid': uid, 'report': reports[uid]} for uid in sorted(reports)], ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+assert digest(canonical.encode()) == SOURCE_HASH
+assert sha(R / 'protocols/report_weak_v2.md') == RUBRIC_HASH
+fresh = inspect_adjudications(reports, R / 'initiative/reviews-v2/reviewed', R / 'protocols/report_weak_v2.md', R)
+assert fresh == read(I / 'complete333-inspection.json')
+assert fresh['n_changes'] == 333 and fresh['registry_sha256'] == REGISTRY_HASH
+assert fresh['source_reports_sha256'] == SOURCE_HASH and fresh['rubric_sha256'] == RUBRIC_HASH
+assert fresh['semantic_qa'] == old['semantic_qa'] and fresh['pending_semantic_qa'] == old['pending_semantic_qa']
+assert set(fresh['pending_semantic_qa']) == {'cartilage-consistency-all-release-reviews', 'bone-terminology-all-release-reviews', 'duplicate-qualified-negation-consistency-all-release-reviews'}
+old_map, new_map = keyed(old['changes']), keyed(fresh['changes'])
+assert all(new_map[k] == v for k,v in old_map.items())
+added = set(new_map) - set(old_map)
+assert len(added) == 47
+receipt = read(I / 'complete333-integration-validation.json', 'b5808f8b634cc87a4cb16afe9fbe8af6d3c44bba364b507251adda8dfb5fe500')
+for ref in receipt['protected_artifacts']:
+    refcheck(ref)  # Hash raw source files only; never parse official label columns.
+
+reviews = {}
+review_paths = sorted((R / 'initiative/reviews-v2/reviewed').glob('*-reviewed.jsonl'))
+assert len(review_paths) == 89
+for path in review_paths:
+    checked[str(path.relative_to(W))] = bind(path)
+    for line in path.read_text().splitlines():
+        row = json.loads(line)
+        assert row['study_uid'] not in reviews
+        assert len(row['states']) == len(row['evidence']) == 12
+        reviews[row['study_uid']] = row
+assert set(reviews) == set(reports)
+effective = {uid: {t: {'state': row['states'][j], 'evidence': row['evidence'][j]} for j,t in enumerate(TARGETS)} for uid,row in reviews.items()}
+for change in fresh['changes']:
+    assert effective[change['study_uid']][change['target']] == change['before']
+    effective[change['study_uid']][change['target']] = change['after']
+
+freeze = read(G / 'complete-source-assessment-frozen.json', 'ffb347238b4c05fcec2bca0ab520255fd2c176044315a2947030f950c7b30bd9')
+assert freeze['agent_id'] == freeze['session_id'] == '/root'
+assert freeze['full_reports'] == 38 and freeze['oa_judgments'] == 114 and freeze['current003_reader_case_findings_opened'] is False
+frozen_cells = {}
+for ref in freeze['parts'] + [freeze['neutral_packet_index']]:
+    archive_peer(refcheck(ref), ref['sha256'])
+for ref in read(refcheck(freeze['neutral_packet_index']))['packets']:
+    archive_peer(refcheck(ref), ref['sha256'])
+for row in freeze['records']:
+    uid = row['study_uid']
+    assert (row['source_path'], row['source_sha256'], row['source_index_zero_based']) == source_bindings[uid]
+    assert row['report_sha256'] == digest(reports[uid].encode())
+    assert row['target_order'] == ['Medial OA', 'Lateral OA', 'PF OA']
+    assert len(row['states']) == len(row['evidence']) == 3 and row['notes']
+    for target, state, evidence in zip(row['target_order'], row['states'], row['evidence']):
+        assert evidence in reports[uid] if state != 'not_mentioned' else not evidence
+        frozen_cells[uid,target] = {'state': state, 'evidence': evidence}
+assert len(frozen_cells) == 114
+root_dispositions = read(G / 'root-postfreeze-dispositions.json', '86cb2c90650fbf99b433cabd98c0ad1b7cbde31ea3ed397f6d2d276a52dabb0e')
+disposed = keyed(root_dispositions['records'])
+assert set(disposed) == set(frozen_cells)
+reconsiderations = keyed(read(G / 'root-explicit-reconsiderations.json')['records'])
+assert len(reconsiderations) == 4
+for k, row in disposed.items():
+    assert row['root_frozen_state'] == frozen_cells[k]['state'] and row['root_frozen_evidence'] == frozen_cells[k]['evidence']
+    assert effective[k[0]][k[1]]['state'] == row['root_postfreeze_state']
+    if k in added:
+        assert effective[k[0]][k[1]]['evidence'] == row['root_postfreeze_evidence']
+    changed = row['root_frozen_state'] != row['root_postfreeze_state']
+    assert changed == row['root_state_reconsidered'] == (k in reconsiderations)
+    if changed:
+        assert reconsiderations[k]['before']['state'] == row['root_frozen_state']
+        assert reconsiderations[k]['after']['state'] == row['root_postfreeze_state']
+
+case_checks = []
+for case_ref in registry['cases'][-1:]:
+    case = read(refcheck(case_ref))
+    proposal = read(refcheck(case['proposal']))
+    assessed = read(refcheck(case['independent_assessment']))
+    decision = read(refcheck(case['decision']))
+    for field, ref in case['supporting_evidence'].items():
+        refcheck(ref)
+        assert decision[field] == ref['sha256']
+    assert proposal['agent_id'] == decision['proposer_agent_id']
+    assert assessed['agent_id'] == decision['adjudicator_agent_id']
+    assert proposal['agent_id'] != assessed['agent_id']
+    assert proposal.get('session_id', proposal['agent_id']) != assessed['session_id']
+    for document in [case, proposal, assessed, decision]:
+        assert document['source_reports_sha256'] == SOURCE_HASH and document['rubric_sha256'] == RUBRIC_HASH
+    pmap, amap, dmap = keyed(proposal['proposed_errata']), keyed(assessed['records']), keyed(decision['accepted_changes'])
+    for change in case['changes']:
+        k = key(change)
+        p,a,d = pmap[k],amap[k],dmap[k]
+        assert k in added
+        assert change['before'] == {'state': p['before_state'], 'evidence': p['before_evidence']}
+        assert change['after'] == {'state': p['proposed_state'], 'evidence': p['source_quote']}
+        assert change['after'] == {'state': a['independent_source_state'], 'evidence': a['source_evidence']}
+        assert change['after'] == {'state': d['after_state'], 'evidence': d['after_evidence']}
+        assert change['after'] == effective[k[0]][k[1]]
+        assert change['after']['evidence'] in reports[k[0]]
+        refcheck(change['base_review']); refcheck(change['source_batch'])
+    case_checks.append({'case': case_ref, 'n_changes': len(case['changes']), 'proposer_agent_id': proposal['agent_id'], 'adjudicator_agent_id': assessed['agent_id'], 'all_source_base_proposal_assessment_decision_runtime_states_and_quotes_exact': True})
+assert [(c['n_changes'], c['proposer_agent_id'], c['adjudicator_agent_id']) for c in case_checks] == [(47, '/root/last_twelve_visual_review', '/root')]
+
+normal = read(N / 'proposed-errata.json', '02dd78181931a6ff513f8b693ae517ca493a9caaf7de6e116d5e0e67a854c3f3')
+original_proposals = keyed(read(refcheck(normal['original_proposal']))['records'])
+assert len(original_proposals) == 47
+for p in normal['proposed_errata']:
+    orig = original_proposals[key(p)]
+    assert orig['after_proposed'] == {'state': p['proposed_state'], 'evidence': p['source_quote']}
+    assert orig['before_current'] == {'state': p['before_state'], 'evidence': p['before_evidence']}
+    assert orig['reason'] == p['reason'] and orig['evidence_reason'] == p['evidence_reason']
+    assert p['report_utf8_sha256'] == digest(reports[p['study_uid']].encode())
+for name in ['original_source_freeze', 'original_source_assessment', 'original_disposition_freeze', 'original_dispositions', 'original_reconsiderations']:
+    ref = normal[name]
+    archive_peer(refcheck(ref), ref['sha256'])
+canonical_context = read(refcheck(normal['canonical_source_context']))
+assert canonical_context['source_reports_sha256'] == normal['source_reports_sha256'] == SOURCE_HASH
+assert canonical_context['report_count'] == 4407 and len(canonical_context['all4407_sources']) == 89
+packet_path = refcheck(canonical_context['neutral_source_packet'])
+assert sha(packet_path) == canonical_context['neutral_source_packet_sha256'] == normal['neutral_source_packet_sha256']
+assert normal['neutral_source_packet_sha256'] != SOURCE_HASH
+for ref in canonical_context['all4407_sources']:
+    refcheck(ref)
+normal_manifest = read(N / 'final-file-list.json', '3b05000694f058e09a9762981c7835b304af459cdb02a67101a0b817c3529227')
+for ref in normal_manifest['files']:
+    archive_peer(refcheck(ref), ref['sha256'])
+
+preservation_count = 0
+for folder in [G, N, A / 'cartilage-observed-003-source-review-v1', A / 'cartilage-observed-003-postfreeze-v1', A / 'cartilage-observed-003-independent-review-v1', A / 'cartilage-observed-003-independent-postfreeze-v1']:
+    for path in folder.glob('preservation*.json'):
+        preservation = read(path)
+        for ref in preservation['files']:
+            refcheck(ref)
+            original_path = locate(ref['original_path'])
+            assert sha(original_path) == ref['sha256']
+            checked[str(original_path.relative_to(W))] = bind(original_path)
+            preservation_count += 1
+
+groups = defaultdict(list)
+for uid, report in reports.items():
+    text = ' '.join(unicodedata.normalize('NFKC', report).casefold().split())
+    groups[digest(text.encode())].append(uid)
+groups = {h: sorted(uids) for h,uids in groups.items() if len(uids) > 1}
+duplicates = []
+for group_hash, uids in sorted(groups.items()):
+    conflicts = [t for t in TARGETS if len({effective[uid][t]['state'] for uid in uids}) != 1]
+    assert not conflicts
+    duplicates.append({'normalized_report_sha256': group_hash, 'study_uids': uids, 'n_reports': len(uids), 'conflicting_targets': conflicts})
+assert len(duplicates) == 54 and sum(x['n_reports'] for x in duplicates) == 204
+assert sha(registry_path) == REGISTRY_HASH and shutil.disk_usage(W).free > 20 * 2**30
+transitions = dict(Counter(new_map[k]['before']['state'] + '->' + new_map[k]['after']['state'] for k in added))
+assert transitions == {'negative->uncertain': 12, 'positive->uncertain': 30, 'positive->positive': 2, 'negative->negative': 1, 'uncertain->uncertain': 2}
+for name, ref in checked.items():
+    assert sha(W / name) == ref['sha256'], ('changed_during_verification', name)
+
+save('fresh-complete333-inspection.json', fresh)
+save('normalized-duplicate-consistency.json', {'agent_id': AGENT, 'source_reports_sha256': SOURCE_HASH, 'registry_sha256': REGISTRY_HASH, 'normalization': 'NFKC, casefold, whitespace collapse, SHA256', 'group_count': 54, 'report_count': 204, 'conflict_count': 0, 'groups': duplicates})
+save('verified-file-bindings.json', {'agent_id': AGENT, 'files': [checked[k] for k in sorted(checked)], 'unique_files': len(checked), 'all_hashes_rechecked_at_completion': True})
+validation = {
+ 'schema_version': 1, 'stage': 'independent_technical_cartilage003_integration_verification',
+ 'agent_id': AGENT, 'session_id': AGENT, 'completed_at_utc': datetime.now(timezone.utc).isoformat(),
+ 'scope': 'Technical replay and exact binding verification of recorded clinical decisions. Not a fresh source reading or new clinical acceptance.',
+ 'registry': bind(registry_path), 'baseline_registry': bind(I / 'registry-before286.json'),
+ 'baseline_git': BASE_GIT, 'baseline_inspection': bind(old_inspection_path),
+ 'fresh_runtime_identical_to_root_inspection': True, 'source_reports_sha256': SOURCE_HASH, 'rubric_sha256': RUBRIC_HASH,
+ 'source_batches': 89, 'reviewed_batches': 89, 'reports': 4407,
+ 'prior_change_objects_exact': 286, 'registered_changes': 333, 'new_changes': 47,
+ 'new_state_changes': 42, 'new_evidence_only_changes': 5, 'new_transition_counts': transitions,
+ 'root_frozen_source_reports': 38, 'root_frozen_cells_verified': 114, 'root_final_states_match_runtime': 114,
+ 'new_quotes_match_root_dispositions': 47, 'root_reconsiderations_preserved': 4,
+ 'registered_case_checks': case_checks, 'canonical_all4407_context_recomputed': True,
+ 'neutral_packet_sha256_kept_separate': True, 'normalized_original_clinical_proposals_preserved': 47,
+ 'original_archive_preservation_entries_verified': preservation_count,
+ 'protected_root_artifacts_verified': len(receipt['protected_artifacts']), 'unique_bound_files_verified': len(checked),
+ 'normalized_duplicate_groups': 54, 'duplicate_reports': 204, 'duplicate_state_conflicts': 0,
+ 'pending_semantic_qa': fresh['pending_semantic_qa'], 'all_three_global_gates_unchanged': True,
+ 'old_registry_case_membership_preserved_including_prior_retirements': True,
+ 'repository_writes': False, 'gold_source_files_hashed_as_opaque_bytes_only': True,
+ 'gold_values_accessed': False, 'label_export_performed': False, 'fresh_clinical_acceptance': False,
+ 'training_ready': False, 'disk_free_bytes': shutil.disk_usage(W).free,
+}
+save('validation.json', validation)
+save('completion-manifest.json', {'schema_version': 1, 'agent_id': AGENT, 'session_id': AGENT, 'created_at_utc': datetime.now(timezone.utc).isoformat(), 'files': [bind(p) for p in sorted(S.iterdir()) if p.is_file()], 'all_checks_passed': True, 'scope': validation['scope']})
+print(json.dumps({'status': 'passed', 'registered_changes': 333, 'prior_changes_exact': 286, 'new_changes': 47, 'root_final_states': 114, 'duplicate_groups': 54, 'duplicate_reports': 204, 'duplicate_conflicts': 0, 'files_verified': len(checked), 'preservation_entries': preservation_count, 'validation': bind(S / 'validation.json'), 'completion_manifest': bind(S / 'completion-manifest.json')}))

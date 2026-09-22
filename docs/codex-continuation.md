@@ -1,65 +1,62 @@
 # Corrective data preparation, 2026-09-20
 
+The owner has expanded the mission: after data readiness, research and deliver a
+competitive training strategy and prioritized experiment plan. Both phases are
+required; see [mission-and-training-plan.md](mission-and-training-plan.md).
+
 ## Latest verified checkpoint
 
-The registry contains **286 active accepted corrections**. Cartilage002 adds 32:
-31 second-reader proposals accepted by root after 40 complete attention-source
-rereads/120 frozen OA judgments, and one additional root proposal accepted by a
-distinct source assessor. Twelve positive and nineteen negative annotations become
-uncertain; one positive quotation expands to include the source's explicit extent
-statement. All 254 previous changes and the three earlier retirements remain exact.
-All 120 final root states match current inspection. The 54 normalized identical-report
-groups/204 studies still have zero target-state conflicts.
+The local registry contains **333 active accepted corrections**. Cartilage003
+adds 47 independently accepted second-reader proposals after root read 38 complete
+neutral attention reports and froze 114 OA judgments. Thirty positive and twelve
+negative annotations become uncertain. Five quotations change while preserving
+state: two bind compartment headings, one binds normal remaining cartilage, and
+two bind qualitative extent or the report's own depth definition. All 286 previous
+changes and the earlier three retirements remain unchanged.
 
-Use `cartilage-observed-002-integration-v1/complete286-integration-validation.json`
-and `complete286-inspection.json`. Seven root state reconsiderations are preserved:
-four withdraw unsupported region-size inferences from confluence or plural surface
-denudation, and three retain informative but incomplete or ambiguously localized
-scope. Root supports29 of31 first-reader proposals and rejects two with reasons.
-The additional assessor retains its fresh uncertain judgment for diffusely distributed
-full-depth ulcers and explicitly reconsiders its historical positive. Distribution
-of separate ulcers is not itself the size of a qualifying loss region. Source
-freezes, opposite opinions, original annotations and the rubric remain unchanged.
-Do not reinstate the previously withdrawn two-axis or square-centimeter requirement.
+`cartilage-observed-003-integration-v1/complete333-integration-validation.json`
+reconciles all 114 final root states and all 47 new quotes. The 54 normalized
+identical-report groups / 204 reports retain zero conflicts. Four actual root
+reconsiderations are explicit: two withdraw unsupported region-size inferences
+from named locations, and two withdraw whole-compartment negatives from limited
+scope. Root supports all 39 first-reader proposed states through the accepted
+second proposals and resolves three remaining first/second disagreements in favor
+of preserved uncertainty. Both original readings, every source freeze and all
+reconsiderations remain unchanged. The actual author normalized the proposal with
+the recomputed canonical all-4,407 fingerprint; its neutral-packet hash is separate.
 
-The normalized proposal initially bound its 50-report packet hash in the global
-source-context field. A separate actual-author correction changes only that field
-to the recomputed all 4,407 fingerprint. The original proposal/manifest, correction
-note and corrected proposal are preserved and bound by the accepted decision.
-The archived wording005 first proposal and bone007 second proposal also need
-separate canonical-context normalization before eventual runtime integration;
-their original clinical choices and freezes must not be overwritten.
+The most recent verified publication is Git
+`76d2c274c0b7b00e4680a1e409575ebf317224fc` / private HF
+`543c2d84d62fabb14cc07255de7e5bc056850f5e`: 286 corrections and 8,211 files,
+restored exactly by two independent streaming checks. The new 333 milestone needs
+its own separate verified publication receipt. Do not infer synchronization from
+local integration. Three global semantic QA gates and final release checks remain
+open; no corrected training export has been made.
 
-The most recent private publication receipt archived here is Git
-`254b7103dc2577cd9189da081416c458ffdadf92` / HF
-`1c5e00633df896821f15793b9c5a21f7d8b0c521`, containing 254 corrections and 7,816
-Git files. Actual receipts, both streaming restorations, the publication operation
-and the preserved-diff whitespace exception are archived in
-`cartilage001-verified254-publication-v1/`. This 286 milestone needs its own separate
-verified publication receipt; do not claim synchronization from preparation alone.
+Both cartilage readers completed the 260-report priority set. Root adjudications
+000–003 are complete; continue cartilage004 with its complete neutral attention
+sources before opening that batch's reader findings. Qualifying extent may be an
+explicitly broad anatomical region; do not require two measured axes or area in
+square centimeters. Report-internal low/high depth definitions can be used where
+explicit, but preserve their anatomical scope. Do not infer an external grade scale.
 
-Both cartilage readers completed the 260-report priority set. Root's cartilage000,
-001 and002 attention adjudications are complete. Continue cartilage003 by reading
-and freezing its neutral attention sources before opening its case-specific findings.
-The cartilage002 root source record preserves the direct primary ICRS reference
-check for an explicitly named scale; do not infer a grading system from language
-or bare numerals.
+Both bone readers have completed 650 selected full-source readings / 1,300 target
+judgments through bone012, now preserved in the v13 archive (28 directories,
+367 files). Bone012 retains a reader disagreement for root; completion does not
+mean acceptance. Bone013 first reading and comparison against333 are complete
+in staging; bone014 first-source reading is underway.
+Wording006 is the final existing focused packet of 31 reports / 372 targets, not
+50 reports; its first source/comparison is complete and its second source pass is
+underway. Wording005's second comparison is complete. Their current staging
+manifests remain the authority for which work has been preserved in the repository.
+Before wording002 root adjudication, freeze its 46 complete neutral attention
+sources. Check actual registry drift for every historical proposal before integration.
+The wording005 first proposal and bone007 second proposal need separate canonical
+source-context normalization before eventual runtime integration; preserve originals.
 
-Snapshots v11 and v12 preserve 21 completed staging directories / 288 files, including
-both bone005–007 comparisons, bone004's second comparison, wording004's second
-comparison/rebase, both wording005 source freezes and its first comparison, and
-254 publication-verifier evidence. These are completed partial queues, not global
-clearance. Both bone readers have archived 400 full-source readings/800 judgments;
-bone008 work is continuing locally. Wording005's second comparison has completed
-locally with a separate 286 rebase; its newest files are not yet in these snapshots.
-Before wording002 root adjudication, read/freeze its 46 complete neutral attention
-sources. Preserve historical baselines and check actual current-registry overlaps.
-
-The storage pause was resolved using independent APFS copy-on-write copies of
-2,687 identical committed evidence files. All paths, file bytes and tracked modes
-were verified; original data, image caches and publication archives were untouched.
-`storage-copy-consolidation-v1/` preserves the actual receipts and per-file hashes.
-Keep at least 20 GiB free. Existing NPZ hardlinks remain immutable.
+Storage consolidation preserved every source path and byte using independent APFS
+copy-on-write files. Original data, caches and publication archives were untouched.
+Keep at least 20 GiB free and keep existing NPZ hardlinks immutable.
 
 The cartilage discovery snapshot covers all 4,407 reports/13,221 OA cells, with
 6,034 candidate cells. Priority covers 302 cells in 260 reports; all 260 first-reader

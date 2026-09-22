@@ -1,0 +1,26 @@
+"""Source/index/hash and UID-only historical neutral-packet overlap inventory."""
+import hashlib,json
+from pathlib import Path
+from datetime import datetime,timezone
+S=Path(__file__).resolve().parent;W=S.parents[2];A=W/'work/annotation-staging';R=W/'work/recovered';AGENT='/root/last_twelve_visual_review'
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def obj(p):return json.loads(p.read_text())
+def write(n,d):
+ with (S/n).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+p=A/'bone-observed-010-source-review-v1/neutral-source-packet.json';assert ref(p)['sha256']=='2f13a11840353cb327e5dc0f3452a2c3e8304b1bdf76f7720b90e5c897eeefb4'
+d=obj(p);reports=d['reports'];assert len(reports)==len({x['study_uid'] for x in reports})==50
+with (S/'neutral-source-packet.json').open('xb') as f:f.write(p.read_bytes())
+rub=ref(R/'protocols/report_weak_v2.md');assert rub['sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'==d['rubric_sha256']
+prior_paths=[A/f'cartilage-observed-{i:03}-independent-review-v1/neutral-source-packet.json' for i in range(6)]+[A/f'qualified-negation-focused-{i:03}-independent-review-v1/neutral-source-packet.json' for i in range(1,5)]+[A/'cartilage-legacy-three-independent-review-v1/neutral-source-packet.json',A/'qualified-negation-focused-005-source-review-v1/neutral-source-packet.json',A/'bone-observed-007-independent-review-v1/neutral-source-packet.json',A/'bone-observed-008-independent-review-v1/neutral-source-packet.json',A/'bone-observed-009-independent-review-v1/neutral-source-packet.json']
+prior={};prior_refs=[]
+for p in prior_paths:
+ a=obj(p);a=a.get('reports',a) if isinstance(a,dict) else a
+ assert isinstance(a,list);prior_refs.append(ref(p))
+ for x in a:prior.setdefault(x['study_uid'],[]).append(ref(p))
+rows=[]
+for i,x in enumerate(reports):
+ sp=R/x['source_path'];assert ref(sp)['sha256']==x['source_sha256'];assert obj(sp)[x['source_index_zero_based']]=={'study_uid':x['study_uid'],'report':x['report']};assert hashlib.sha256(x['report'].encode()).hexdigest()==x['report_sha256']
+ rows.append({'packet_index':i,'case':sp.stem.removeprefix('batch-')+':'+str(x['source_index_zero_based']),'study_uid':x['study_uid'],'source':ref(sp),'source_index_zero_based':x['source_index_zero_based'],'report_utf8_sha256':x['report_sha256'],'prior_exact_uid_neutral_packets':prior.get(x['study_uid'],[])})
+write('source-bindings-and-exposure.json',{'agent_id':AGENT,'session_id':AGENT,'created_at_utc':datetime.now(timezone.utc).isoformat(),'source_packet':ref(S/'neutral-source-packet.json'),'rubric':rub,'target_order':['Contusion','Fracture'],'reports':rows,'prior_neutral_packets_scanned_uid_only':prior_refs,'known_exact_overlap_count':sum(bool(x['prior_exact_uid_neutral_packets']) for x in rows),'disclosure':'This agent previously read technical correspondence, selected matrices/header evidence, focused wording001-005, cartilage000-005, bone007-009 and legacy-three sources and authored related assessments/comparisons. Prior conceptual debates, accepted and unintegrated clinical corrections, temporal report-loss exclusions and current aggregate286 registry context are known. A mechanical all4407 blinded-source canonical fingerprint was recomputed for a separate technical correction; no all4407 clinical rereading or selected010 annotations occurred. Exact overlaps are reported from neutral source packet UIDs only without reopening prior clinical states. Historical technical report exposure may not all be represented in this bounded15-packet scan; any separately recognized exact source will be disclosed. No first-ever blindness claimed. No first bone010 clinical findings, current selected010 annotations or gold are opened before the complete100 source freeze.','chronology_limitation':'This records intended and actual declared workflow; timestamps cannot independently prove all past access order.','source_validations_passed':True,'repository_modified':False})
+print(json.dumps({'reports':len(rows),'exact_overlap_count':sum(bool(x['prior_exact_uid_neutral_packets']) for x in rows),'overlap_positions':[x['packet_index'] for x in rows if x['prior_exact_uid_neutral_packets']],'bindings':ref(S/'source-bindings-and-exposure.json')},indent=2))

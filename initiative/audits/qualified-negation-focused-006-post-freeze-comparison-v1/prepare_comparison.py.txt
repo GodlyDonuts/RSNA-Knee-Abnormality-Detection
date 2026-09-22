@@ -1,0 +1,36 @@
+from pathlib import Path
+import hashlib,json,sys
+W=Path.cwd().resolve();R=W/'work/recovered';S=Path(__file__).resolve().parent;F=W/'work/annotation-staging/qualified-negation-focused-006-source-review-v1';AGENT='/root/duplicate_consistency_review'
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.schema import TARGETS
+
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def save(n,o):
+ with (S/n).open('x') as f:f.write(json.dumps(o,ensure_ascii=False,indent=2)+'\n')
+freeze=json.loads((F/'source-assessment-frozen.json').read_text());assert sha(F/'source-assessment-frozen.json')=='bcefc965705d2b47af52d46972de839ea8c18ece8bb611a1e6cf0e2050587797'
+for r in json.loads((F/'source-phase-manifest.json').read_text())['files']:assert sha(W/r['path'])==r['sha256']
+reports={row['study_uid']:row['report'] for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')) for row in json.loads(p.read_text())}
+inspection=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+assert inspection['n_changes']==286 and inspection['registry_sha256']=='e99baf5824104ea69c528ade4594100d8198a2171a68518195ba0d128e718d95'
+changes={(c['study_uid'],c['target']):c for c in inspection['changes']}
+originals={};bindings={}
+for row in freeze['reports']:
+ p=R/'initiative/reviews-v2/reviewed'/f"{row['batch']}-reviewed.jsonl"
+ data=[json.loads(line) for line in p.read_text().splitlines()];original=next(x for x in data if x['study_uid']==row['study_uid']);originals[row['study_uid']]=original;bindings[str(p.relative_to(W))]=ref(p)
+rows=[]
+for row in freeze['reports']:
+ old=originals[row['study_uid']];p=R/'initiative/reviews-v2/reviewed'/f"{row['batch']}-reviewed.jsonl"
+ for j,target in enumerate(TARGETS):
+  orig={'state':old['states'][j],'evidence':old['evidence'][j]};change=changes.get((row['study_uid'],target));current=change['after'] if change else orig;own={'state':row['states'][j],'evidence':row['evidence'][j]}
+  for a in [orig,current,own]:assert not a['evidence'] if a['state']=='not_mentioned' else a['evidence'] and a['evidence'] in reports[row['study_uid']]
+  rows.append({'packet_ordinal':row['packet_ordinal'],'study_uid':row['study_uid'],'target_index':j,'target':target,'batch':row['batch'],'index':row['index'],'source_path':row['source_path'],'source_sha256':row['source_file_sha256'],'report_sha256':row['report_sha256'],'artifact_path':str(p.relative_to(R)),'artifact_sha256':sha(p),'original':orig,'current_effective':current,'source_frozen':own,'source_rationale':row['rationales'][j],'current_correction_case':change['case'] if change else None,'state_difference':current['state']!=own['state'],'quote_difference':current['evidence']!=own['evidence']})
+base={'agent_id':AGENT,'source_reports_sha256':inspection['source_reports_sha256'],'rubric_sha256':inspection['rubric_sha256'],'source_freeze':ref(F/'source-assessment-frozen.json'),'registry_sha256':inspection['registry_sha256'],'n_registered_changes':286}
+save('current286-registry-inspection.json',inspection)
+save('original-reviewed-file-bindings.json',{'agent_id':AGENT,'files':list(bindings.values())})
+save('all372-source-original-current-comparison.json',{**base,'records':rows})
+print(json.dumps({'cells':len(rows),'state_differences':sum(r['state_difference'] for r in rows),'same_state_quote_differences':sum(r['quote_difference'] and not r['state_difference'] for r in rows),'selected_correction_overlap':sum(r['current_correction_case'] is not None for r in rows)}))
+for r in rows:
+ if r['state_difference']:
+  print(json.dumps({'i':r['packet_ordinal'],'t':r['target'],'current':r['current_effective'],'frozen':r['source_frozen']},ensure_ascii=False))

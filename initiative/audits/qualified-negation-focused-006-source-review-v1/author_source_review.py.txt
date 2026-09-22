@@ -1,0 +1,45 @@
+"""Assemble this agent's individually authored judgments; no text classifier."""
+from pathlib import Path
+import hashlib
+import json
+from datetime import datetime, timezone
+
+W = Path(__file__).resolve().parents[3]
+R = W / 'work/recovered'
+S = Path(__file__).resolve().parent
+PACKET = W / 'work/annotation-staging/qualified-negation-all4407-candidates-v1/focused-neutral-batches/batch-006.json'
+PACKET_SHA = '3992e356244ca2de34c40dd472629896fe02b6b77f081de9ad0d5ff79bfd6d03'
+RUBRIC_SHA = '138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+TARGETS = ['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture']
+STATES = dict(P='positive',N='negative',U='uncertain',M='not_mentioned')
+raw = PACKET.read_bytes()
+assert hashlib.sha256(raw).hexdigest() == PACKET_SHA
+sources = json.loads(raw)
+assert len(sources) == 31
+records = []
+
+def case(i, codes, entries):
+    """Codes and evidence spans below are decisions made after personal source reading."""
+    assert i == len(records)
+    row = sources[i]
+    codes = codes.split()
+    assert len(codes) == 12, (i,codes)
+    evidence = [''] * 12
+    reasons = [f'{t}: no informative report statement establishes or excludes this target; silence is masked.' for t in TARGETS]
+    covered = set()
+    for targets, start, reason, *ending in entries:
+        a = row['report'].index(start)
+        b = row['report'].index(ending[0], a) + len(ending[0]) if ending else a + len(start)
+        quote = row['report'][a:b]
+        for j in targets:
+            assert j not in covered and codes[j] != 'M', (i,j)
+            evidence[j] = quote
+            reasons[j] = f'{TARGETS[j]}: {reason}'
+            covered.add(j)
+    assert covered == {j for j,c in enumerate(codes) if c != 'M'}, (i,covered,codes)
+    p = R / row['source_path']
+    assert hashlib.sha256(p.read_bytes()).hexdigest() == row['source_sha256']
+    original = json.loads(p.read_text())[row['index']]
+    assert original['study_uid'] == row['study_uid'] and original['report'] == row['report']
+    records.append(dict(packet_ordinal=i,study_uid=row['study_uid'],batch=row['batch'],index=row['index'],source_path=row['source_path'],source_file_sha256=row['source_sha256'],report_sha256=hashlib.sha256(row['report'].encode()).hexdigest(),states=[STATES[c] for c in codes],evidence=evidence,rationales=reasons,notes='Personally read the entire original neutral report before authoring these twelve judgments. No current batch006 clinical comparison has been opened.'))
+

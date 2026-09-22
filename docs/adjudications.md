@@ -77,7 +77,20 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry contains **286 active accepted target corrections**. Cartilage002
+The registry contains **333 active accepted target corrections**. Cartilage003
+adds 47 independently accepted second-reader proposals after 38 complete root
+source rereads / 114 frozen OA judgments. Thirty positives and twelve negatives
+become uncertain; five quotations gain explicit anatomy, normal-remaining-cartilage
+scope, qualitative extent or a report-internal depth definition. Four root state
+reconsiderations are preserved, and all 286 earlier corrections remain exact.
+
+The [333 integration proof](../initiative/audits/cartilage-observed-003-integration-v1/complete333-integration-validation.json)
+reconciles all 114 root final states and 47 new quotes and finds no conflict in the
+54 identical-report groups / 204 reports. All 39 first-reader proposed states are
+supported via the accepted second proposals. Three first/second state disagreements
+are resolved in favor of uncertainty after source review. No global QA gate closes.
+
+The preceding registry contained **286 active accepted target corrections**. Cartilage002
 adds 32 after 40 complete root attention-source rereads and 120 frozen OA judgments.
 Root independently accepts 31 exact second-reader proposals; a distinct assessor
 accepts the additional root proposal. Twelve positive and nineteen negative targets

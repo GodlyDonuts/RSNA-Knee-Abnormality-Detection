@@ -1,0 +1,79 @@
+"""Explicit decisions authored after personally reading all sources and comparing both passes."""
+# Keys are (neutral packet ordinal, frozen target index). The original600 freeze is immutable.
+RECONSIDER={
+(4,4):'I withdraw my extent inference. Full-thickness loss of named weightbearing surfaces specifies location and depth, but does not say that a roughly1cm field is depleted. Progressive or severe disease cannot supply the missing extent; retain uncertain.',
+(4,9):'The thin liquid rim is in the popliteal recess, not explicitly graded within a characteristic Baker collection. It cannot repair the significance-qualified cyst denial. I retain uncertainty rather than equate separate recess fluid with a small cyst.',
+(4,10):'Generic reactive subchondral change and a cyst are not explicit marrow edema or a contusion assessment. My initial uncertainty overstated target-specific content; not_mentioned with empty evidence is more precise.',
+(5,3):'Minimal signal at a meniscal root could be artifact or contusional injury, but the source does not explicitly confine it to internal degeneration or state preserved meniscal morphology. No thickening alone does not exclude surfacing disruption; change my negative to uncertain.',
+(6,4):'The operational OA target is cartilage loss, not merely a degenerative diagnosis. Medial articular collapse from fracture makes the cartilage-bearing surface abnormal without quantified depth/extent; absence of degenerative changes does not justify my initial negative.',
+(6,5):'Lateral osteochondral impaction is informative structural cartilage/bone injury with unknown loss extent/depth. No degenerative changes does not establish absence of this operational cartilage-loss target; retain uncertain.',
+(6,6):'PF cartilage is not assessed. I incorrectly treated global absence of degeneration as a normal-cartilage survey; no informative PF cartilage assertion is supplied, so not_mentioned is appropriate.',
+(7,5):'I withdraw the broad-extent inference from opposing full-thickness cartilage loss and marked narrowing. The exact deep-loss region is not sized or explicitly described as a region-wide depleted field; extent remains uncertain.',
+(8,2):'The named medial meniscal field contains a literal zero with no supplied decoding. This is uninterpretable target-specific source content rather than complete silence; uncertain preserves the ambiguity without substituting normal.',
+(8,3):'The named lateral meniscal field contains an undefined zero token. Uncertain records the target-specific ambiguity; neither missing nor normal should silently repair the token.',
+(9,4):'Diffuse partial-thickness loss and a focal full-thickness area are distinct descriptions. The high-grade conclusion may refer to that focal area and does not establish that the whole diffuse region exceeds50% loss; I withdraw my combined extent/depth inference.',
+(9,6):'The diffuse partial-thickness description and high-grade summary do not unequivocally size the deep-loss region; a small full-thickness patellar focus is unmeasured. I retain uncertain rather than transfer a severity grade across the entire diffuse area.',
+(10,4):'Bare mild medial chondrosis is a disease descriptor without an explicit superficial/low-grade thickness-loss description. I withdraw the automatic below-threshold mapping and retain uncertainty.',
+(10,5):'Bare mild lateral chondrosis does not provide explicit thickness loss or extent. It is not synonymous with explicitly mild cartilage thinning; retain uncertain.',
+(10,6):'Bare mild PF chondrosis lacks defined structural depth/extent. The severe-OA clinical indication is not a current finding; uncertainty is retained.',
+(11,6):'Minor focal retropatellar damage lacks both explicit superficial depth and a lesion dimension. Normal remaining surfaces do not quantify the exception; my initial negative was too definite.',
+(12,0):'The report appends a distinct MR recall that assesses only a soft-tissue focus. Earlier ACL normality cannot be assigned to the current image study without correspondence. My source opinion becomes uncertain; retain clinical originals under the already accepted whole-study supervision exclusion.',
+(12,1):'MCL normality belongs to the antecedent examination, while the later recall does not reassess it. Preserve temporal uncertainty separately from original clinical states and the existing whole-study report-loss exclusion.',
+(12,2):'Earlier medial meniscal intactness is not reconfirmed by the appended recall. The source-to-current-study relation is unresolved; retain temporal uncertainty without rewriting the clinical annotation.',
+(12,3):'The initial lateral tear is definite within its examination, but the appended recall only studies a focus. I cannot map that earlier tear to the current image study; retain uncertain source opinion with the existing technical exclusion.',
+(12,4):'Earlier normal medial cartilage is not a current recall cartilage assessment. I preserve the original clinical state and existing whole-study exclusion while recording temporal uncertainty in this assessment.',
+(12,5):'The initially minor lateral fibrillation is below threshold within its examination, but its relation to the current recall study is unresolved. Temporal uncertainty remains separate from the immutable original clinical finding.',
+(12,6):'Earlier preserved PF cartilage is not reassessed at the recall. I retain temporal uncertainty and the already accepted whole-study supervision exclusion rather than transfer the finding across examinations.',
+(12,7):'An initially small effusion is below threshold within that exam, but no size assessment is made at the later recall. The unresolved timepoint requires source uncertainty and continued technical exclusion, not an unsupported new clinical correction.',
+(13,5):'Mild lateral arthrosis with proportional chondropathy is a general severity diagnosis, not a direct superficial/low-grade thickness-loss description. My automatic negative was too definite; retain uncertain.',
+(14,10):'Minor underlying bony change is not explicitly marrow edema, abnormal marrow signal or contusion assessment. I change uncertain to not_mentioned rather than infer a marrow target from generic bone change.',
+(16,0):'Mild diffuse ACL signal does not establish degeneration-only pathology, continuity or a low-grade tear. My initial negative inferred a benign cause not supplied by the source; retain uncertain.',
+(24,6):'The1.5mm value measures a slit width, not its longest cartilage-loss region. I cannot infer that the entire defect is below1cm or superficial; retain uncertain instead of my initial negative.',
+(25,5):'Low-grade anterior-condylar thinning is locally below threshold, but the rest is only relatively preserved and anterior-condylar localization may include PF cartilage. The whole lateral target remains insufficiently assessed; retain uncertain.',
+(30,6):'The named medial patellar lesion is superficial, but no remaining PF/trochlear cartilage assessment excludes a qualifying lesion elsewhere. I preserve the local below-threshold finding and change the whole-compartment judgment to uncertain.',
+(30,11):'I missed the intact fibular-tip statement. It is a limited osseous-integrity assessment, so informative uncertainty is more precise than not_mentioned; it does not imply whole-knee fracture absence.',
+(32,5):'Mild lateral chondropathy with diffuse attenuation does not explicitly grade the actual thickness lost. Diffuse extent does not replace missing depth; withdraw my below-threshold inference.',
+(32,6):'Full-thickness attenuation of named PF surfaces establishes depth and location but not a measured or explicit regional extent. I withdraw the inferred broad deep-loss field and retain uncertain.',
+(32,10):'Generic reactive subchondral changes and intraosseous ganglia are not explicit marrow/contusion assessments. Not_mentioned is more precise than my original target uncertainty.',
+(39,2):'Bare early regional meniscal degeneration is not explicitly confined to intrasubstance signal or normal morphology, and no-definite-tear remains qualified. I withdraw the inferred internal-only restriction and retain uncertain.',
+(41,1):'Undefined zero tokens in named superficial/deep MCL fields are ambiguous target-specific content. Retain uncertain rather than empty-evidence silence; do not infer normality.'}
+
+RETAIN_DISAGREEMENT={
+(1,10):'I retain negative: the explicit normal remaining marrow follows cystic, not edematous, degenerative exceptions. I do not infer impact edema from cysts. The first reader treats the excluded cystic regions as an incomplete contusion survey; both readings remain explicit and no mask changes without root review.',
+(7,7):'I retain positive for the affirmative substantial quantity of fluid. This Greek amount phrase is stronger than a mere presence statement in my reading; the first reader considers the moderate/large threshold unproven. Preserve the language-severity disagreement rather than present either translation as a new rubric rule.',
+(11,0):'I retain uncertain because grossly modifies intactness, leaving a qualified ACL survey. The first reader treats intactness as sufficient to exclude high-grade disruption. This scope/severity disagreement remains unresolved.',
+(11,3):'I retain uncertain: grossly intact does not expressly exclude a meniscal surface tear. The first reader accepts the broad intact description. Preserve both interpretations with the original quote.',
+(15,9):'I retain uncertain under shared significant-qualified denial. The first reader reads the singular qualifier as limited to effusion and the ni cyst clause as categorical. Spanish coordination permits this scope disagreement; do not silently resolve it.',
+(18,2):'I retain uncertainty because surface contact is only impressionistically excluded. The first reader gives decisive weight to the no intrinsic tear-character clause. Both interpretations remain source-bound; I do not convert equivocal surface extension into a reliable negative.',
+(18,9):'I retain uncertainty under shared significance scope, while the first reader treats the separate ni cyst clause as an unqualified denial. Preserve the grammatical-scope disagreement.',
+(29,5):'I retain not_mentioned: the actual cartilage/bone findings localize medially and no lateral cartilage is assessed. The first reader treats general knee OA as informative compartmental uncertainty. Both remain masked and neither establishes a lateral negative.',
+(29,6):'I retain not_mentioned because PF cartilage is not anatomically assessed. The general knee OA diagnosis does not locate disease to PF; the first reader retains broad localization uncertainty. Both states stay masked.',
+(29,9):'I retain positive for the explicitly septated characteristic posterior collection extending more than11cm. The first reader declines a size-severity mapping without an explicit moderate/large adjective or volume. This is a substantive measurement interpretation, not an accepted numeric cutoff; root adjudication is required.',
+(29,11):'I retain uncertain because suspected bone erosion is an informative structural abnormality with unresolved cortical/acute characterization. The first reader treats it as a nonfracture degenerative/inflammatory process with no fracture mention. Neither reading affirms fracture; preserve this masked-state dispute.',
+(35,7):'I retain positive for the affirmative substantial suprapatellar fluid quantity. The first reader finds the moderate/large grade unproven. Preserve this translation/amount judgment as unresolved.',
+(36,7):'I retain positive for substantial joint-fluid quantity and separate direct synovitis. The first reader accepts synovitis but not the amount threshold. Preserve the effusion-language disagreement.',
+(42,9):'I retain positive for a characteristic Baker collection measuring7x4cm in two axes. The first reader requires an explicit size category beyond measurements. Preserve both and do not encode a new universal dimension cutoff.',
+(47,9):'I retain uncertainty because I read significant as shared across the coordinated fluid/cyst denial; the first reader reads the ni cyst clause as categorical. Keep the source and both alternatives unchanged.',
+(49,2):'I retain uncertain: no apparent surface contact remains qualified despite absence of typical tear features. The first reader interprets the latter clause as enough for isolated internal degeneration. This disagreement is not forced to consensus.',
+(49,9):'I retain uncertain under shared significance scope; the first reader treats the separate cyst clause as categorical. Preserve the grammar-based disagreement without applying either proposal.'}
+
+EVIDENCE_SUPPORT={
+(10,7):'The exact expanded span retains both general no effusion and later trace PF fluid, distinguishing explicit absence from below-threshold fluid while excluding moderate pes anserine bursal fluid from the knee target. I support the context-only correction.',
+(13,10):'The expanded quote restores cartilage/PF-medial localization and reactive cause of marrow edema; it makes the uncertainty traceable rather than leaving an anaphoric associated-edema fragment.',
+(15,6):'The expanded quote includes normal trochlea as well as superficial patellar disease, correctly documenting the whole PF negative rather than only a patellar subregion.',
+(18,6):'The exact adjacent span restores normal trochlear cartilage alongside superficial patellar disease, supporting the complete PF scope of the unchanged negative.',
+(24,4):'Restoring the medial-compartment lead-in prevents an unlocalized numerical-grade fragment. ICRS depth remains established while extent remains missing; the state stays uncertain.',
+(24,10):'The expanded quote links the medial marrow edema to the cartilage/sclerotic degenerative context and preserves the missing impact cause. I support this evidence-only correction.',
+(29,4):'Replacing a general knee OA quote with the actual medial femoral cartilage/bone findings fixes localization while retaining uncertain depth/extent.'}
+
+ADDITIONAL_EVIDENCE={
+(13,4):'The current quote mentions only mild-to-moderate overall medial OA and omits the separately severe medial femoral cartilage foci. Retain uncertainty but include the contiguous severe-focus description so material severity evidence is not lost.',
+(46,10):'The current conclusion-only quote gives cause but no anatomy. Expand to the distinct femoral/tibial contusion foci and the femoral sulcus depression, preserving the separate tibial basis outside that structural concern.'}
+
+# These explicit lists enumerate every current-vs-own frozen same-state quote difference.
+# Entries that become a state reconsideration/proposal receive that more specific disposition.
+ADEQUATE_CURRENT_QUOTE={
+1:[2,3],3:[0,8,10],4:[5],5:[10],6:[0,3,11],7:[0,7,9],8:[10],9:[2],10:[1,2],
+11:[0,2,7,9],12:[8],16:[6],17:[0,7],19:[7,9],21:[4,5],23:[2,4,5,6],24:[2,7],
+26:[2,10],27:[7,8,9],28:[10],29:[2,8,10,11],30:[10],32:[2,4,9],33:[10],34:[1],
+36:[2,4,6,10],37:[3],38:[0,1,10],41:[0,10,11],42:[2,4,10],46:[11],48:[0,5,10]}

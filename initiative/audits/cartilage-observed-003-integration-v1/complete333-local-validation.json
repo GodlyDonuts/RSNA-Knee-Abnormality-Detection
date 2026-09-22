@@ -1,0 +1,129 @@
+{
+  "stage": "required_local_validation_after_333_registration",
+  "agent_id": "/root",
+  "registry_sha256": "5700efd92b500dbb0470ab79e44020c8be830c0f5f84459fef0b418478d96de0",
+  "initial_tool_results": [
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "ruff",
+        "command": "../../.venv/bin/ruff check .",
+        "chunk_id": "9bf8c3",
+        "wall_time_seconds": 0.000009917,
+        "exit_code": 0,
+        "original_token_count": 5,
+        "output": "All checks passed!\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "format",
+        "command": "../../.venv/bin/ruff format --check .",
+        "chunk_id": "df9813",
+        "wall_time_seconds": 0.000027166,
+        "exit_code": 0,
+        "original_token_count": 7,
+        "output": "42 files already formatted\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "types",
+        "command": "../../.venv/bin/mypy rsna",
+        "chunk_id": "d6c861",
+        "wall_time_seconds": 1.002519084,
+        "session_id": 57517,
+        "original_token_count": 0,
+        "output": ""
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "tests",
+        "command": "../../.venv/bin/python -m pytest -q",
+        "chunk_id": "864e65",
+        "wall_time_seconds": 1.00128425,
+        "session_id": 29940,
+        "original_token_count": 167,
+        "output": "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/pytest_asyncio/plugin.py:247: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "archive",
+        "command": "../../.venv/bin/python -m rsna.archive",
+        "chunk_id": "b03e64",
+        "wall_time_seconds": 1.001372292,
+        "session_id": 23718,
+        "original_token_count": 0,
+        "output": ""
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "coverage",
+        "command": "../../.venv/bin/python -m rsna.review_progress --inputs initiative/reviews/inputs --root initiative/reviews-v2 --rubric protocols/report_weak_v2.md --require-complete",
+        "chunk_id": "5d5b92",
+        "wall_time_seconds": 1.0008915,
+        "session_id": 86657,
+        "original_token_count": 0,
+        "output": ""
+      }
+    }
+  ],
+  "completion_tool_results": [
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "types",
+        "chunk_id": "41396c",
+        "wall_time_seconds": 0.000023417,
+        "exit_code": 0,
+        "original_token_count": 11,
+        "output": "Success: no issues found in 20 source files\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "tests",
+        "chunk_id": "0d0a66",
+        "wall_time_seconds": 0.000026917,
+        "exit_code": 0,
+        "original_token_count": 146,
+        "output": "........................................................................ [ 15%]\n........................................................................ [ 31%]\n........................................................................ [ 46%]\n........................................................................ [ 62%]\n........................................................................ [ 77%]\n........................................................................ [ 93%]\n..............................                                           [100%]\n462 passed in 17.03s\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "archive",
+        "chunk_id": "46f0a2",
+        "wall_time_seconds": 0.000012458,
+        "exit_code": 0,
+        "original_token_count": 138,
+        "output": "{\n  \"studies\": 4407,\n  \"targets\": [\n    \"ACL\",\n    \"MCL\",\n    \"Medial Meniscus\",\n    \"Lateral Meniscus\",\n    \"Medial OA\",\n    \"Lateral OA\",\n    \"PF OA\",\n    \"Effusion\",\n    \"Synovitis\",\n    \"Baker's\",\n    \"Contusion\",\n    \"Fracture\"\n  ],\n  \"batch_size\": 50,\n  \"counts\": {\n    \"draft\": {\n      \"valid\": 76,\n      \"invalid\": 0,\n      \"not_archived\": 13\n    },\n    \"reviewed\": {\n      \"valid\": 0,\n      \"invalid\": 0,\n      \"not_archived\": 89\n    }\n  },\n  \"complete\": false,\n  \"scope\": \"Report/evidence validation only; no diagnostic image rereading\"\n}\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "coverage",
+        "chunk_id": "f2ba0e",
+        "wall_time_seconds": 0.000008459,
+        "exit_code": 0,
+        "original_token_count": 114,
+        "output": "{\n  \"rubric_sha256\": \"138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014\",\n  \"source_reports_sha256\": \"5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3\",\n  \"studies\": 4407,\n  \"counts\": {\n    \"draft\": {\n      \"valid\": 89\n    },\n    \"reviewed\": {\n      \"valid\": 89\n    }\n  },\n  \"complete\": true,\n  \"training_ready\": false,\n  \"scope\": \"Evidence, identity and coverage checks only; label semantics require independent reading\"\n}\n"
+      }
+    }
+  ],
+  "tests_passed": 462,
+  "pytest_elapsed_seconds": 17.03,
+  "archive_scope_note": "Historical v1 remains incomplete; current v2 coverage passes89 draft/89 reviewed batches and4407 reports. These are integrity checks, not semantic QA closure.",
+  "training_ready": false
+}

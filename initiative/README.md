@@ -9,17 +9,19 @@ from a clone of this repository.
 validation. Drafts awaiting independent review must not be promoted as final
 labels. Review completion alone does not establish image audit or training
 readiness.
-The current registry contains 286 active accepted target corrections and retains
-18 enforced report-supervision exclusions. The latest cartilage002 milestone adds
-32 independently accepted changes: 12 positive and 19 negative annotations become
-uncertain, and one positive quote expands to include its extent evidence. All 254
-prior corrections and the three earlier retirements remain unchanged. Three global
-semantic QA gates and final leakage, mask, manifest and training checks remain open.
-Twenty-four unresolved correspondence cases must retain zero report loss masks.
-The most recent private publication receipt archived here covers Git `254b7103`
-/ HF `1c5e0063`, containing 254 corrections and 7,816 verified Git files. Its full
-publication/restoration evidence is in `audits/cartilage001-verified254-publication-v1/`.
-This 286 milestone is newer; its separate publication receipt must establish synchronization.
+The current registry contains **333 active accepted target corrections** and
+18 enforced report-supervision exclusions. Cartilage003 adds 47 independently
+accepted changes: 30 positives and 12 negatives become uncertain, and five
+quotations gain needed supporting context. All 286 prior corrections and the
+three earlier retirements remain unchanged. Three global semantic QA gates and
+final leakage, mask, manifest and training checks remain open. Twenty-four
+unresolved correspondence cases must retain zero report-loss masks.
+
+The most recent verified private publication contains 286 corrections and 8,211
+restorable Git files at Git `76d2c274` / HF `543c2d84`. The 333 milestone needs its
+own verified publication receipt. After data readiness, the owner's expanded
+mission requires competitive training research and an experiment plan; see
+[mission-and-training-plan.md](../docs/mission-and-training-plan.md).
 
 The current run uses the frozen [v2 rubric](../protocols/report_weak_v2.md) and
 [agent procedure](../protocols/agent_tasks.md). The `reviews/` outputs and index

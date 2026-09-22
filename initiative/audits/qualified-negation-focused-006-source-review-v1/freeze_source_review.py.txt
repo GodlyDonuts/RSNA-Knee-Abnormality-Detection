@@ -1,0 +1,63 @@
+"""Freeze individually authored first006 decisions before any current006 comparison."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+import hashlib,json,shutil
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered'
+assert shutil.disk_usage(W).free>20*2**30
+ns={'__file__':str(S/'author_source_review.py'),'__name__':'source_authoring'}
+for name in ['author_source_review.py']+[f'author_part{i}.py' for i in range(1,5)]:exec(compile((S/name).read_text(),str(S/name),'exec'),ns)
+records,sources=ns['records'],ns['sources'];assert len(records)==31 and sum(map(lambda x:len(x['states']),records))==372
+AGENT='/root/duplicate_consistency_review'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def save(n,o):
+ with (S/n).open('x') as f:f.write(json.dumps(o,ensure_ascii=False,indent=2)+'\n')
+def strings(v):
+ if isinstance(v,str):yield v
+ elif isinstance(v,dict):
+  for x in v.values():yield from strings(x)
+ elif isinstance(v,list):
+  for x in v:yield from strings(x)
+prior_exposure=json.loads((W/'work/annotation-staging/qualified-negation-focused-005-independent-review-v1/historical-exposure.json').read_text())
+paths=[x['prior_source_freeze']['path'] for x in prior_exposure['previous_source_freezes_and_exact_uid_overlap']]
+paths.append('work/annotation-staging/qualified-negation-focused-005-independent-review-v1/source-assessment-frozen.json')
+uids={r['study_uid'] for r in records};overlaps=[]
+for name in paths:
+ p=W/name;matched=uids & set(strings(json.loads(p.read_text())))
+ overlaps.append({'prior_source_freeze':ref(p),'n_overlap':len(matched),'overlapping_sources':[{'study_uid':r['study_uid'],'packet_ordinal':r['packet_ordinal'],'batch':r['batch'],'index':r['index']} for r in records if r['study_uid'] in matched],'access':'UID strings and file hashes only extracted for this disclosure; prior clinical judgments not displayed.'})
+mechanical_root=W/'work/recovered/initiative/audits/cartilage-observed-002-root-review-v1/complete-source-assessment-frozen.json'
+mechanical_overlap=uids & set(strings(json.loads(mechanical_root.read_text())))
+exposure={'agent_id':AGENT,'session_id':AGENT,'role':'First focused006 source assessor, actual same agent as previous discovery and own reviews. Not a distinct second reader of own earlier work.','disclosure':'I authored all4407 qualified-negation and bone inventories, which processed original/effective annotations and exposed aggregate rules and some case snippets/states. I personally read focused000–004 as first assessor, focused005 as second assessor, duplicate-nine, bone000 first and bone001–006 second, and focused001 additional proposals/grading dispute. I preserve prior exposure rather than claim first-ever blinding; exact known full-source overlaps are below. This source pass read only this unchanged neutral006 packet, frozen rubric, earlier own source-authoring helper and UID/hash metadata before freezing. Current006 target annotations, candidate details and any other006 case findings were not opened for this pass before freeze. Prior compacted incidental discovery exposure cannot be fully reconstructed.','mechanical_process_exposure':'Earlier checkpoint builds/streaming proofs mechanically scanned every tracked Git member, most recently all8211 Git76d2c274 files; no case-level source/clinical findings were displayed by publication work. Technical286 registration verification read original/effective all4407 annotations in code and compared all120 root cartilage002 final cells and32 registered states/quotes; it was not personal full-source reading. Only schema/metadata and validation aggregates were displayed. This global technical access is explicitly disclosed and cannot be called clinical blindness. Publication publisher review and GitHub CI checks added no clinical exposure.','prior_full_source_freezes_and_exact_uid_overlaps':overlaps,'technical_root_cartilage002_metadata_overlap':{'artifact':ref(mechanical_root),'selected_uids':sorted(mechanical_overlap),'not_claimed_as_own_prior_full_source_reading':True},'earlier_incidental_batch008_annotation_exposure':{'artifact':ref(W/'work/annotation-staging/qualified-negation-focused-001-additional-independent-v1/postcomparison-access-disclosure.json'),'selected_uids':[r['study_uid'] for r in records if r['source_path'].endswith('/batch-008.json')]},'source_first_scope':'All31 complete neutral006 reports were personally read, then all372 target judgments authored and validated before current006 comparison. Exact predetermined queue order preserved; no invented extra19 reports.','gold_values_opened':False,'rubric_changed':False}
+all_reports={}
+source_refs=[]
+for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+ source_refs.append(ref(p))
+ for r in json.loads(p.read_text()):
+  assert set(r)=={'study_uid','report'} and r['study_uid'] not in all_reports
+  all_reports[r['study_uid']]=r['report']
+canonical=hashlib.sha256(json.dumps([{'study_uid':u,'report':all_reports[u]} for u in sorted(all_reports)],ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+assert len(all_reports)==4407 and len(source_refs)==89 and canonical=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+rubric=R/'protocols/report_weak_v2.md';assert sha(rubric)==ns['RUBRIC_SHA']
+validation=[]
+for row,source in zip(records,sources,strict=True):
+ p=R/source['source_path'];original=json.loads(p.read_text())[source['index']]
+ assert row['study_uid']==source['study_uid']==original['study_uid']
+ assert original['report']==source['report']==all_reports[row['study_uid']]
+ assert sha(p)==source['source_sha256']==row['source_file_sha256']
+ assert len(row['states'])==len(row['evidence'])==len(row['rationales'])==12
+ assert all(reason for reason in row['rationales'])
+ for state,quote in zip(row['states'],row['evidence'],strict=True):
+  assert state in ns['STATES'].values()
+  assert not quote if state=='not_mentioned' else quote and quote in original['report']
+ validation.append({'packet_ordinal':row['packet_ordinal'],'study_uid':row['study_uid'],'batch':row['batch'],'index':row['index'],'source_file':ref(p),'report_sha256':row['report_sha256'],'original_source_binding_exact':True,'all12_states_and_exact_contiguous_quotes_validated':True})
+save('historical-exposure.json',exposure)
+save('source-binding-validation.json',{'agent_id':AGENT,'n_reports':31,'n_judgments':372,'all_valid':True,'rows':validation})
+save('canonical-source-context.json',{'source_reports_sha256':canonical,'n_reports':4407,'n_batches':89,'source_batches':source_refs,'method':'Sorted UID/report JSON; ensure_ascii=False,sort_keys=True,separators comma/colon; UTF8 SHA256.','packet_hash_is_separate':True,'official_gold_columns_not_loaded':True})
+save('neutral-packet-reference.json',{'packet':ref(ns['PACKET']),'n_reports':31,'predetermined_final_focused_batch':6,'contains_current_or_proposed_states':False,'copied_again':False})
+now=datetime.now(timezone.utc).isoformat()
+save('source-assessment-frozen.json',{'schema_version':1,'stage':'first_focused006_source_assessment_frozen_before_case_comparison','agent_id':AGENT,'session_id':AGENT,'frozen_at_utc':now,'rubric':ref(rubric),'rubric_sha256':ns['RUBRIC_SHA'],'source_reports_sha256':canonical,'neutral_source_packet':ref(ns['PACKET']),'targets':ns['TARGETS'],'historical_exposure':ref(S/'historical-exposure.json'),'judgment_count':372,'reports':records,'code_role':'Assemble personally authored per-report/per-target decisions and exact chosen evidence spans; no keyword label classification.','training_ready':False,'adjudication_registration':False})
+counts=dict(Counter(s for r in records for s in r['states']))
+save('source-freeze-receipt.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'frozen_at_utc':now,'assessment':ref(S/'source-assessment-frozen.json'),'source_reports_sha256':canonical,'binding_validation':ref(S/'source-binding-validation.json'),'historical_exposure':ref(S/'historical-exposure.json'),'packet':ref(ns['PACKET']),'rubric':ref(rubric),'n_reports':31,'n_targets_per_report':12,'n_judgments':372,'state_counts':counts,'current_selected_or_candidate_clinical_findings_opened_for_this_pass_before_freeze':False,'historical_and_technical_exposure_disclosed':True,'source_judgments_must_remain_immutable':True})
+save('source-phase-manifest.json',{'schema_version':1,'agent_id':AGENT,'files':[ref(p) for p in sorted(S.iterdir()) if p.is_file()],'phase':'source freeze complete; all later comparisons must preserve these exact bytes'})
+print(json.dumps({'assessment':ref(S/'source-assessment-frozen.json'),'receipt':ref(S/'source-freeze-receipt.json'),'manifest':ref(S/'source-phase-manifest.json'),'state_counts':counts,'exact_prior_full_source_overlap_count':len(set(u for x in overlaps for r in x['overlapping_sources'] for u in [r['study_uid']])),'technical_cartilage002_uid_overlap_count':len(mechanical_overlap)}))
