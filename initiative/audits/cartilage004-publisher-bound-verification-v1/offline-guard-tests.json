@@ -1,0 +1,169 @@
+{
+  "agent_id": "/root/duplicate_consistency_review",
+  "n_checks": 32,
+  "checks": [
+    {
+      "name": "correct_bound_manifest",
+      "expected": "pass",
+      "passed": true
+    },
+    {
+      "name": "TARGET_UNBOUND",
+      "expected_guard": "target_not_bound",
+      "passed": true
+    },
+    {
+      "name": "CI_RUN_None",
+      "expected_guard": "ci_run_not_bound",
+      "passed": true
+    },
+    {
+      "name": "CI_RUN_True",
+      "expected_guard": "ci_run_not_bound",
+      "passed": true
+    },
+    {
+      "name": "N_FILES_None",
+      "expected_guard": "file_count_not_bound",
+      "passed": true
+    },
+    {
+      "name": "N_FILES_True",
+      "expected_guard": "file_count_not_bound",
+      "passed": true
+    },
+    {
+      "name": "N_CORRECTIONS_333",
+      "expected_guard": "correction_count_not_358",
+      "passed": true
+    },
+    {
+      "name": "N_CORRECTIONS_True",
+      "expected_guard": "correction_count_not_358",
+      "passed": true
+    },
+    {
+      "name": "PREFIX_wrong/",
+      "expected_guard": "prefix_binding",
+      "passed": true
+    },
+    {
+      "name": "manifest_base_git_commit",
+      "expected_guard": "base_git_binding",
+      "passed": true
+    },
+    {
+      "name": "manifest_n_target_git_files",
+      "expected_guard": "manifest_file_count",
+      "passed": true
+    },
+    {
+      "name": "manifest_files",
+      "expected_guard": "manifest_file_count",
+      "passed": true
+    },
+    {
+      "name": "exact_ci_success",
+      "expected": "pass",
+      "passed": true
+    },
+    {
+      "name": "ci_headSha",
+      "expected_guard": "ci_mismatch",
+      "passed": true
+    },
+    {
+      "name": "ci_conclusion",
+      "expected_guard": "ci_mismatch",
+      "passed": true
+    },
+    {
+      "name": "ci_status",
+      "expected_guard": "ci_mismatch",
+      "passed": true
+    },
+    {
+      "name": "expected_parent_source_and_ci",
+      "expected": "pass",
+      "passed": true
+    },
+    {
+      "name": "changed_parent",
+      "expected_guard": "remote_parent_mismatch",
+      "passed": true
+    },
+    {
+      "name": "parent_source_changed",
+      "expected_guard": "parent_sources_changed",
+      "passed": true
+    },
+    {
+      "name": "immutable_base_source_changed",
+      "expected_guard": "immutable_base_sources_changed",
+      "passed": true
+    },
+    {
+      "name": "publication_wrong_ci",
+      "expected_guard": "exact_commit_ci_not_success",
+      "passed": true
+    },
+    {
+      "name": "private_repository",
+      "expected": "pass",
+      "passed": true
+    },
+    {
+      "name": "public_repository",
+      "expected_guard": "repository_not_private",
+      "passed": true
+    },
+    {
+      "name": "invalid_private_head",
+      "expected_guard": "repository_not_private",
+      "passed": true
+    },
+    {
+      "name": "complete_immutable_source_metadata",
+      "expected": "pass",
+      "passed": true
+    },
+    {
+      "name": "missing_source_entry",
+      "expected_guard": "source_entries_missing",
+      "passed": true
+    },
+    {
+      "name": "duplicate_source_entry",
+      "expected_guard": "duplicate_source_entry",
+      "passed": true
+    },
+    {
+      "name": "all_six_remote_lfs_objects",
+      "expected": "pass",
+      "passed": true
+    },
+    {
+      "name": "missing_remote_object",
+      "expected_guard": "remote_membership_mismatch",
+      "passed": true
+    },
+    {
+      "name": "duplicate_remote_object",
+      "expected_guard": "duplicate_remote_entry",
+      "passed": true
+    },
+    {
+      "name": "wrong_remote_size",
+      "expected_guard": "remote_size_mismatch",
+      "passed": true
+    },
+    {
+      "name": "wrong_remote_hash",
+      "expected_guard": "remote_lfs_oid_mismatch",
+      "passed": true
+    }
+  ],
+  "actual_network_calls": 0,
+  "credentials_read": false,
+  "main_publisher_not_executed": true
+}

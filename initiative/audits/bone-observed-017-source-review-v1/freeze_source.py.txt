@@ -1,0 +1,58 @@
+"""Verify and freeze this actual agent's50 complete-source100-bone judgment pass."""
+import hashlib,json,shutil,sys
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+from author_judgments import S as SOURCES,authored_rows
+OUT=authored_rows();TARGETS=['Contusion','Fracture']
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered';sys.path.insert(0,str(R))
+from rsna.labels import source_reports_fingerprint
+
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+BATCH='bone'+S.name.split('-')[2]
+assert BATCH == 'bone017'
+def read(p):return json.loads(p.read_text())
+def bind(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def write(name,obj):
+ with (S/name).open('x')as f:f.write(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
+def main():
+ start=read(S/'start.json');packet=S/'neutral-source-packet.json';rubric=R/'protocols/report_weak_v2.md'
+ assert sha(packet)==start['source_packet']['sha256']=='8de2741346b40b8b087e2e81fa49854808c191b7772b443ff8aeb9b81c3d28ae'
+ assert read(S/'neutral-assembly-validation.json')['source_packet']['sha256']==sha(packet)
+ assert sha(rubric)==start['rubric']['sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+ assert read(packet)['rubric_sha256']==sha(rubric)
+ assert read(packet)['source_reports_sha256']==start['source_reports_sha256']=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+ assert sha(packet)!=read(packet)['source_reports_sha256']
+ assert TARGETS==['Contusion','Fracture'] and len(OUT)==len(SOURCES)==50 and len({r['study_uid']for r in SOURCES})==50
+ reports={};source_cache={}
+ for p in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+  items=read(p);source_cache[str(p.relative_to(R))]=(sha(p),items)
+  for r in items:
+   assert r['study_uid']not in reports;reports[r['study_uid']]=r['report']
+ assert len(reports)==4407 and source_reports_fingerprint(reports)=='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+ quotes=missing=0;bindings={}
+ for i,(source,a)in enumerate(zip(SOURCES,OUT,strict=True)):
+  assert a['packet_index']==i and a['study_uid']==source['study_uid'] and a['agent_id']=='/root/quality_temporal_review'
+  h,items=source_cache[source['source_path']];assert h==source['source_sha256']==a['source_sha256']
+  assert a['source_index_zero_based']==source['source_index_zero_based']
+  assert items[source['source_index_zero_based']]=={'study_uid':source['study_uid'],'report':source['report']}
+  assert source['report_sha256']==a['report_sha256']==hashlib.sha256(source['report'].encode()).hexdigest()
+  assert source['report']==reports[source['study_uid']]
+  assert a['target_order']==TARGETS and len(a['states'])==len(a['evidence'])==len(a['rationales'])==2
+  for state,evidence,reason in zip(a['states'],a['evidence'],a['rationales'],strict=True):
+   assert reason.strip()
+   if state=='not_mentioned':assert evidence=='';missing+=1
+   else:assert state in {'positive','negative','uncertain'} and evidence and evidence in source['report'];quotes+=1
+  bindings[source['source_path']]=h
+ assert quotes+missing==100
+ overlaps=set()
+ for path,e in start['historical_exposure']['prior_complete_source_uid_overlaps'].items():
+  p=W/path;assert sha(p)==e['sha256'];prior=read(p);prior_rows=prior.get('reports',prior.get('records'))if isinstance(prior,dict)else prior;actual={r['study_uid']for r in prior_rows}&{r['study_uid']for r in SOURCES};assert sorted(actual)==e['overlap_uids'];overlaps|=actual
+ assert shutil.disk_usage(W).free>=20*1024**3
+ path=S/'source-assessment-frozen.jsonl'
+ with path.open('x')as f:f.write(''.join(json.dumps(r,ensure_ascii=False)+'\n'for r in OUT))
+ now=datetime.now(timezone.utc).isoformat()
+ write('source-validation.json',{'schema_version':1,'actual_assessor_id':'/root/quality_temporal_review','validated_at_utc':now,'source_packet':bind(packet),'assessment':bind(path),'rubric':bind(rubric),'whole4407_source_reports_sha256':source_reports_fingerprint(reports),'source_batch_bindings':bindings,'complete_reports':50,'bone_judgments':100,'exact_contiguous_nonmissing_quotes':quotes,'empty_not_mentioned_quotes':missing,'target_order':TARGETS,'all_original_index_uid_fullreport_and_hash_bindings_verified':True,'all_individual_rationales_present':True,'prior_exact_fullsource_overlap_unique_reports':len(overlaps),'state_counts':dict(Counter(s for r in OUT for s in r['states'])),'current_selected_bone_annotations_opened':False,f'other_{BATCH}_reader_findings_opened':False,'gold_accessed':False,'limit':'Traceability and coverage validation does not independently establish semantic correctness or instrument historical access order.'})
+ write('source-freeze.json',{'schema_version':1,'agent_id':'/root/quality_temporal_review','session_id':'/root/quality_temporal_review','identity_kind':'actual_codex_agent_task','stage':f'{BATCH}_first_complete_source_assessment_frozen_before_current_case_annotation_comparison_or_other_{BATCH}_reader_findings','started_at_utc':start['started_at_utc'],'frozen_at_utc':now,'rubric_version':'report-weak-v2.0','rubric':bind(rubric),'neutral_assembly_validation':bind(S/'neutral-assembly-validation.json'),'prefreeze_metadata_identity_check':bind(S/'prefreeze-metadata-identity-check.json'),'neutral_assembly_helper':bind(S/'prepare_neutral_packet.py'),'source_packet':bind(packet),'source_assessment':bind(path),'validation':bind(S/'source-validation.json'),'start':bind(S/'start.json'),'authored_judgment_assembler':bind(S/'author_judgments.py'),'freeze_validator':bind(Path(__file__).resolve()),'target_order':TARGETS,'complete_reports_read':50,'target_judgments':100,'exact_ordered_uids':[r['study_uid']for r in SOURCES],'historical_exposure':start['historical_exposure'],'read_order_attestation':{'all50_complete_reports_personally_read':True,'all100_bone_judgments_personally_authored':True,'own_full_source_judgments_frozen_before_current_selected_case_annotation_values_displayed':True,f'other_{BATCH}_reader_findings_opened':False,'basis':f'Actual assessor self-attestation, not an independently instrumented historical-access log. Prior exact-source and conceptual exposure remains disclosed. Earlier publisher and prior-batch validation mechanically loaded correction/original-review records for aggregate and prior-case validation; no selected {BATCH} case values were displayed. This claims source-before-case-comparison order, not absolute process-level annotation isolation.'},'scope':'Supplemental Contusion and Fracture report-evidence pass only; not a new12-target pass, first-ever blinded exposure, MRI reread, or clinical credential claim.','preservation':{'prior_stages_changed':False,'original_reports_or_reviews_changed':False,'registry_changed':False,'gold_accessed':False},'next_step':'Root has authorized a separate post-freeze comparison with actual current annotations after this full freeze. Preserve every disagreement and reconsideration without modifying this source freeze or registering labels.'})
+ print(json.dumps({'complete_reports':50,'bone_judgments':100,'nonmissing_quotes':quotes,'missing_quotes':missing,'unique_previous_fullsource_overlaps':len(overlaps),'source_freeze_sha256':sha(S/'source-freeze.json'),'assessment_sha256':sha(path),'validation_sha256':sha(S/'source-validation.json')},indent=2))
+if __name__=='__main__':main()

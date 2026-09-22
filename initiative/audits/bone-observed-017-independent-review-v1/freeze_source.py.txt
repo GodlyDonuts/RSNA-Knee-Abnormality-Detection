@@ -1,0 +1,34 @@
+"""Package100 personally authored decisions; no clinical inference in this helper."""
+import hashlib,json,runpy
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+S=Path(__file__).resolve().parent;W=S.parents[2];R=W/'work/recovered';AGENT='/root/last_twelve_visual_review'
+def obj(p):return json.loads(p.read_text())
+def ref(p):
+ b=p.read_bytes();return {'path':str(p.relative_to(W)),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+def write(n,d):
+ with (S/n).open('x') as f:json.dump(d,f,ensure_ascii=False,indent=2);f.write('\n')
+packet=obj(S/'neutral-source-packet.json')['reports'];binding=obj(S/'source-bindings-and-exposure.json');decisions={}
+for p in sorted(S.glob('decisions_*.py')):
+ x=runpy.run_path(str(p))['D'];assert not set(x)&set(decisions);decisions.update(x)
+assert set(decisions)==set(range(50));targets=['Contusion','Fracture'];rows=[];checks=[]
+for i,p in enumerate(packet):
+ original=R/p['source_path'];assert ref(original)['sha256']==p['source_sha256'];assert obj(original)[p['source_index_zero_based']]=={'study_uid':p['study_uid'],'report':p['report']};assert hashlib.sha256(p['report'].encode()).hexdigest()==p['report_sha256']
+ assert len(decisions[i])==2;states=[];quotes=[];reasons=[]
+ for t,(state,quote,reason) in enumerate(decisions[i]):
+  if isinstance(quote,tuple):
+   start,end=quote;assert p['report'].count(start)==1 and p['report'].count(end)==1;lo=p['report'].index(start);hi=p['report'].index(end)+len(end);assert lo<hi;quote=p['report'][lo:hi]
+  assert state in {'positive','negative','uncertain','not_mentioned'};assert bool(quote)==(state!='not_mentioned');assert quote in p['report'],(i,targets[t],quote)
+  assert reason;states.append(state);quotes.append(quote);reasons.append(reason)
+  checks.append({'packet_index':i,'study_uid':p['study_uid'],'target':targets[t],'state':state,'exact_contiguous_evidence_valid':True,'evidence_char_count':len(quote),'evidence_utf8_sha256':hashlib.sha256(quote.encode()).hexdigest()})
+ rows.append({'agent_id':AGENT,'session_id':AGENT,'packet_index':i,'case':binding['reports'][i]['case'],'study_uid':p['study_uid'],'source_path':p['source_path'],'source_sha256':p['source_sha256'],'source_index_zero_based':p['source_index_zero_based'],'report_utf8_sha256':p['report_sha256'],'targets':targets,'states':states,'evidence':quotes,'target_reasoning':reasons,'prior_exact_uid_neutral_packets':binding['reports'][i]['prior_exact_uid_neutral_packets']})
+assert len(checks)==len({(x['study_uid'],x['target']) for x in checks})==100
+with (S/'source-assessment-frozen.jsonl').open('x') as f:
+ for row in rows:f.write(json.dumps(row,ensure_ascii=False)+'\n')
+rub=ref(R/'protocols/report_weak_v2.md');assert rub['sha256']=='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+write('validation.json',{'agent_id':AGENT,'rubric':rub,'source_packet':ref(S/'neutral-source-packet.json'),'reports':50,'judgments':100,'source_binding_index_uid_filehash_reporthash_valid':True,'all_members_unique_complete':True,'exact_quotes_or_missing_empty':True,'checks':checks})
+write('source-freeze.json',{'agent_id':AGENT,'session_id':AGENT,'frozen_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Independent second source-only bone017 assessment: all50 complete original reports personally read and100 Contusion/Fracture judgments personally authored before selected current017 or first017 clinical findings. No current clinical registration, gold access or repository mutation.','target_order':targets,'report_count':50,'judgment_count':100,'source_packet':ref(S/'neutral-source-packet.json'),'neutral_assembly_validation':ref(W/'work/annotation-staging/bone-observed-017-source-review-v1/neutral-assembly-validation.json'),'source_reports_sha256':obj(S/'neutral-source-packet.json')['source_reports_sha256'],'rubric_version':'report-weak-v2.0','rubric':rub,'source_assessment':ref(S/'source-assessment-frozen.jsonl'),'source_binding_and_historical_exposure':ref(S/'source-bindings-and-exposure.json'),'known_exact_overlap_count':binding['known_exact_overlap_count'],'other_recognized_exact_source_exposures':ref(S/'recognized-additional-context-exposure.json'),'validation':ref(S/'validation.json'),'state_counts':dict(Counter(x['state'] for x in checks)),'authorship':'All clinical states/evidence/reasons are individually authored by this agent; helpers only package literal choices, select explicitly specified contiguous source spans and mechanically validate.','access_disclosure':'Prior source/technical/visual, wording001-006, bone007-013 and bone015-016, plus cartilage000-005/legacy-three context disclosed; bone014 has not been read; not first-ever blinding. No claim timestamps prove access order.','accepted':False,'global_qa_closed':False})
+files=[ref(p) for p in sorted(S.iterdir()) if p.is_file()];write('final-file-list.json',{'agent_id':AGENT,'scope':'All authored stage files except this manifest.','files':files})
+assert all(ref(W/e['path'])==e for e in obj(S/'final-file-list.json')['files'])
+print(json.dumps({'freeze':ref(S/'source-freeze.json'),'assessment':ref(S/'source-assessment-frozen.jsonl'),'validation':ref(S/'validation.json'),'manifest':ref(S/'final-file-list.json')},indent=2))

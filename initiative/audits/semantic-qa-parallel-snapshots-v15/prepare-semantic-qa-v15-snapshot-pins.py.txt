@@ -1,0 +1,106 @@
+"""Metadata-only fixed v15 pin inventory; never reads case fields or writes R."""
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,shutil
+W=Path(__file__).resolve().parent.parent;S=W/'work/annotation-staging';R=W/'work/recovered'
+OUT=W/'work/semantic-qa-v15-snapshot-pins.json'
+AGENT='/root/duplicate_consistency_review'
+CANDIDATES={
+'bone-observed-016-source-review-v1':{'source-freeze.json':'090fa10062b605c0798391a6bd0b09839d99adefcbd2302f6391812d27aae2bd'},
+'bone-observed-016-postfreeze-v1':{'completion-manifest.json':'1164c516412df4a5552fc6da05d1c4e31a1c8a7d60a2774ea649622ea82b4290'},
+'bone-observed-016-independent-review-v1':{'final-file-list.json':'dddaf94a9571ac2d6a3aba80d4edaab3ac6a81a842dcb3aab0850b4a2e8c907d','source-freeze.json':'48eda92128ee84be6f08213323ef8e2b796ffe20574da823a2fea551853e5f71'},
+'bone-observed-016-independent-postfreeze-v1':{'final-file-list.json':'8e4be53e16c4242e1bf154333425c5684a60a40c03ac59af082d236389c22852','completion-supplement-manifest.json':'395544e509c2e6f682f4c240af84fa516bf36dfa7016cbb8fba1fcbaeec33594','second-comparison-freeze.json':'b5f0f64f1a790a7b58dcacd824602be09b5eb445e7791e44a540d0b6437e8356','historical-author-file-binding-resolution.json':'185d5370d49f6ec6cccf5333a5471de0f6992c3abcccd3cdf8c4c26cdb6d5528'},
+'bone-observed-017-source-review-v1':{'source-freeze.json':'eeb4487ea2ef9397579a103aece0295523f7603c2efde52483083e556a82d8e8'},
+'bone-observed-017-postfreeze-v1':{'completion-manifest.json':'b49461b805fcd00336d4d26f3b5bb8ae52adedb432315e1aeec0fffc6d0b57a3','completion-supplement.json':'cd34e0e568344fae442c465d0cc7187327b92e1e7e8d0d838026e083b65cf6f0'},
+'bone-observed-017-independent-review-v1':{'final-file-list.json':'a3fe071b869ee78c9a298922e2a57ff2e216865ecdde31d76f7289e9d1f44e52','source-freeze.json':'e0655eaba6643a0bffc57745992acb8269f0af1b815078aecfd1b555969f22aa'},
+'cartilage004-delta-build-verification-v1':{'completion-manifest.json':'e7caf2cacf1651cd5106dab2a57dd00dbd3c906e942faca74b693cb2f739413f'},
+'cartilage004-publisher-bound-verification-v1':{'completion-manifest.json':'8ccccf5f6960273d951bbc11d1515e83d2336bb877da8c625a897c35988d8ba2','operation-completion-manifest.json':'2760bca8c06cc5a99373988844d3ac3bf477cc55abd417a2df23859c8ff520ad'},
+'cartilage005-integration-preparation-v1':{'completion-manifest.json':'56c5c0cf826a076dd32a61d22bb139bc2477626760b4172edd2bccc6a61ef0c2'},
+'qualified-negation-focused-002-root-review-v1':{'partial-ten-source-freeze.json':'106aca618f695d68a60e2efc517eb11cc30ba92b0a1cf14f9d4a0ca0c8d3aec9'},
+}
+cache={};reference_checks=[];resolutions=[]
+def sha(p,fresh=False):
+ p=p.resolve()
+ if not fresh and p in cache:return cache[p]
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(2**20),b''):h.update(b)
+ cache[p]=h.hexdigest();return cache[p]
+def ref(p):return {'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size}
+def read(p):return json.loads(p.read_text())
+def extract(value):
+ if isinstance(value,dict):
+  if isinstance(value.get('path'),str) and isinstance(value.get('sha256'),str):yield value
+  for item in value.values():yield from extract(item)
+ elif isinstance(value,list):
+  for item in value:yield from extract(item)
+def resolve_path(name,owner):
+ p=Path(name)
+ if p.is_absolute():q=p
+ elif name.startswith('work/'):q=W/name
+ elif name.startswith(('initiative/','protocols/')):q=R/name
+ else:q=owner.parent/name
+ q=q.resolve();assert q.is_relative_to(W), 'Reference outside workspace';return q
+
+def check(reference,owner):
+ q=resolve_path(reference['path'],owner);expected=reference['sha256'];actual=sha(q) if q.is_file() else None
+ selected=q;resolution=None
+ if actual!=expected:
+  # Historical current-registry references bind the exact preserved baseline copy.
+  if q==R/'initiative/reviews-v2/adjudications/registry.json':
+   candidate=owner.parent/'registry-at-comparison.json'
+   assert candidate.is_file() and sha(candidate)==expected, ('Unresolved historical registry',str(owner.relative_to(W)))
+   selected=candidate;resolution='historical_registry_exact_preserved_snapshot'
+  elif (q==S/'bone-observed-016-independent-postfreeze-v1/authored_choices.py' and expected=='cdd0ca5aabe8567d295f008029bbb3031ac3f4b7209666a42c2d0910f3d0c983'):
+   candidate=q.with_name('authored_choices-before-first-post.py.txt')
+   resolution_doc=q.with_name('historical-author-file-binding-resolution.json')
+   assert sha(resolution_doc)=='185d5370d49f6ec6cccf5333a5471de0f6992c3abcccd3cdf8c4c26cdb6d5528'
+   assert candidate.is_file() and sha(candidate)==expected
+   selected=candidate;resolution='explicit_bone016_historical_helper_alias_preserved_by_actual_author'
+  else:raise AssertionError(('Unresolved reference hash',str(owner.relative_to(W)),reference['path'],expected,actual))
+ size=reference.get('bytes',reference.get('size_bytes'))
+ if size is not None:assert selected.stat().st_size==size
+ item={'anchor':str(owner.relative_to(W)),'original_reference':reference['path'],'sha256':expected,'verified_file':str(selected.relative_to(W)),'bytes':selected.stat().st_size,'resolution':resolution or 'exact_current_bytes'}
+ reference_checks.append(item)
+ if resolution:resolutions.append(item)
+
+def inventory(folder):
+ rows=[]
+ for p in sorted(folder.rglob('*')):
+  if p.is_file() and '__pycache__' not in p.parts:
+   assert not p.is_symlink()
+   rel=p.relative_to(folder);archive=Path('initiative/audits')/folder.name/rel
+   if archive.suffix=='.py':archive=archive.with_suffix('.py.txt')
+   rows.append({'path':str(rel),'sha256':sha(p,True),'bytes':p.stat().st_size,'archive_path':str(archive)})
+ return rows
+assert not OUT.exists() and shutil.disk_usage(W).free>20*2**30
+prior=W/'work/semantic-qa-v14-snapshot-pins.json';assert sha(prior)=='df8fbe096b98104b87c830633e804919072ae26ab1a340242423a8199ffe1f4a'
+snapshots=[];metadata=[]
+fields=['agent_id','session_id','stage','frozen_at_utc','completed_at_utc','created_at_utc','at_utc','complete_reports_read','target_judgments','report_count','judgment_count','n_reports','n_cells','source_phase_complete','all_checks_passed','full_reports_read','total_attention_reports','remaining_attention_reports','all_attention_sources_complete','integration_not_executed']
+for name,anchors in CANDIDATES.items():
+ folder=S/name;files=inventory(folder);anchor_meta=[]
+ for n,pin in anchors.items():
+  p=folder/n;assert sha(p)==pin
+  d=read(p)
+  for r in extract(d):check(r,p)
+  anchor_meta.append({'anchor':n,**{k:d[k] for k in fields if k in d and not isinstance(d[k],(list,dict))}})
+ partial=name=='qualified-negation-focused-002-root-review-v1'
+ if partial:
+  d=read(folder/'partial-ten-source-freeze.json')
+  assert (d['full_reports_read'],d['target_judgments'],d['total_attention_reports'],d['remaining_attention_reports'])==(10,120,46,36)
+  assert not d['all_attention_sources_complete'] and not d['current002_reader_case_findings_opened'] and len(files)==6
+ snapshots.append({'directory':name,'completion_status':'completed_partial_source_cutoff_10_of46_only' if partial else 'completed_stable_stage','completion_anchors':[{'path':p,'sha256':h} for p,h in anchors.items()],'files':files})
+ metadata.append({'directory':name,'checked_anchor_metadata':anchor_meta})
+ assert inventory(folder)==files
+# Technical verification004 was added by root to v14 after the initial v14 config.
+old=S/'cartilage004-integration-independent-verification-v1';arch=R/'initiative/audits'/old.name
+old_manifest=old/'completion-manifest.json';assert sha(old_manifest)=='6ad54c12008c4897a84cfe6cf283b5457f397277754d8f32384296225d7cc3f3'
+old_rows=inventory(old)
+for row in old_rows:
+ p=R/row['archive_path'];assert p.is_file() and sha(p)==row['sha256'] and p.stat().st_size==row['bytes']
+for item in snapshots:assert inventory(S/item['directory'])==item['files']
+assert len({r['archive_path'] for x in snapshots for r in x['files']})==sum(len(x['files']) for x in snapshots)
+pending=[{'directory':'bone-observed-017-independent-postfreeze-v1','included':False,'reason':'Actual second reader confirmed this comparison remains live at the fixed candidate cutoff; its separately completed source stage is included.'},{'directory':'cartilage005-integration-independent-verification-v1','included':False,'reason':'Actual technical verifier confirmed work had just started; no completion received before this cutoff.'}]
+doc={'scope':'Frozen metadata-only directory cutoffs for completed bone016 passes, completed bone017 first/source-only second stage, new358 publication technical evidence and005 integration preparation, plus an explicitly partial10-of46 root wording002 source cutoff. Live stages remain excluded.','snapshots':snapshots,'schema_version':1,'snapshot_version':15,'agent_id':AGENT,'session_id':AGENT,'created_at_utc':datetime.now(timezone.utc).isoformat(),'prior_schema_reference':ref(prior),'builder':ref(Path(__file__)),'counts':{'completed_stable_directories':len(snapshots)-1,'explicit_partial_directories':1,'snapshot_directories':len(snapshots),'all_files_excluding_pycache':sum(len(x['files']) for x in snapshots),'source_bytes':sum(r['bytes'] for x in snapshots for r in x['files']),'completion_anchor_reference_checks':len(reference_checks),'historical_reference_resolutions':len(resolutions),'pending_directories':len(pending)},'pending':pending,'already_preserved_exclusions':[{'directory':old.name,'reason':'Root already preserved this completed technical verification byte-for-byte in v14; no duplicate snapshot copy is proposed.','completion_anchor':ref(old_manifest),'files_verified':len(old_rows)}],'metadata_validation':metadata,'completion_reference_validation':reference_checks,'historical_reference_resolutions':resolutions,'mapping_rules':{'source_root':'work/annotation-staging','archive_root':'initiative/audits','directory_membership':'Each snapshot preserves the exact listed original relative path, bytes and SHA. No renaming of JSON or historical .py.txt artifacts.','python_suffix':'For a path ending exactly .py, append .txt: script.py becomes script.py.txt. Original filename and original bytes stay in the snapshot pins.','already_archived':'Reuse only independently verified equal bytes; never overwrite different destination content. Snapshotting itself copies nothing.','external_references':'Immediate completion reference members are verified where stored. External package objects and the already-integrated005 script are bound as references, not duplicated into directory snapshots.'},'hashing_disclosure':'Only the named candidate directories and completion/source-freeze/supplement metadata were inspected. All selected artifacts and immediate reference members were read as opaque bytes for hash/size; no clinical state/evidence/proposal values were selected or displayed. JSON anchors were parsed only for completion metadata and path/hash references. This mechanical exposure is not clinical review.','stability_validation':'Each exact selected directory membership/hash/size list was captured twice and the complete selected set rechecked before the write-once cutoff. This is not a lock; root must reverify before archive preservation.','preservation_scope':{'staging_or_original_files_changed':False,'repository_files_written_or_copied':False,'gold_values_accessed':False,'registry_changed':False,'acceptance_or_global_gate_closure':False,'pycache_excluded':True,'base_archive_copied_or_extracted':False,'tests_rerun':False,'free_bytes_at_cutoff':shutil.disk_usage(W).free,'minimum_free_bytes':20*2**30}}
+with OUT.open('x') as f:f.write(json.dumps(doc,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'snapshot':ref(OUT),'counts':doc['counts'],'directories':[x['directory'] for x in snapshots],'pending':[x['directory'] for x in pending]}))

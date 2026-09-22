@@ -77,7 +77,22 @@ every reviewed JSONL path to its exact checksum. Its `correction_cases` maps eve
 registered case path to its checksum. A new or changed reviewed batch or correction
 case invalidates that scope binding and requires further assessment.
 
-The registry contains **358 active accepted target corrections**. Cartilage004
+The registry contains **362 active accepted target corrections**. Cartilage005
+adds four after six complete root source rereads / 18 frozen OA judgments. Two
+negatives become uncertain, and one positive and one negative gain exact evidence
+that supports the retained state. All 18 root states are unchanged; one reason
+clarifies that a measured tibial lesion is not explicitly sided. The medial femoral
+finding independently supports that report's retained positive.
+
+The [362 integration proof](../initiative/audits/cartilage-observed-005-integration-v1/complete362-integration-validation.json)
+reconciles all 18 final states and four accepted quotes. It preserves all 358 prior
+correction objects, original proposal objects, source/report files, three previous
+retirements and the existing v14 source freeze. All three first-reader proposals
+are supported through the four exact second-reader proposals. All 30 selected
+cells replayed from historical205 to358 without overlap or drift. The 54 identical-
+report groups / 204 reports still have no conflicting states. No global QA gate closes.
+
+The preceding registry contained **358 active accepted target corrections**. Cartilage004
 adds 25 after 39 complete root source rereads / 117 frozen OA judgments.
 Seventeen positives and five negatives become uncertain; three quotations gain
 anatomical or report-local depth context. Nine actual root state reconsiderations

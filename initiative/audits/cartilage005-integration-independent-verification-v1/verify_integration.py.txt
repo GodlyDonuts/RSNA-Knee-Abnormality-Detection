@@ -1,0 +1,251 @@
+"""Independent technical replay only; no new clinical judgments or repository writes."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import defaultdict,Counter
+import hashlib,json,shutil,subprocess,sys
+P=Path(__file__).resolve().parent;W=P.parents[2];R=W/'work/recovered';D=P.parent
+sys.path.insert(0,str(R))
+from rsna.adjudications import inspect_adjudications
+from rsna.labels import source_reports_fingerprint,report_group
+from rsna.schema import TARGETS
+AGENT='/root/quality_temporal_review'
+I=R/'initiative/audits/cartilage-observed-005-integration-v1'
+G=R/'initiative/audits/cartilage-observed-005-root-review-v1'
+N=R/'initiative/audits/cartilage-observed-005-independent-proposal-normalization-v1'
+FP='5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3'
+RUBRIC='138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014'
+REG='a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b'
+PRIOR='761ba526baf0c761548e2d5ff41c52ce9ba24ac75e9ac43993a716240ce37693'
+bindings={}
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb')as f:
+  for block in iter(lambda:f.read(1024*1024),b''):h.update(block)
+ return h.hexdigest()
+def bind(p):
+ b={'path':str(p.relative_to(W)),'sha256':sha(p),'bytes':p.stat().st_size};bindings[b['path']]=b;return b
+def read(p,pin=None):
+ b=bind(p)
+ if pin:assert b['sha256']==pin,str(p)
+ return json.loads(p.read_text())
+def resolve(s):
+ p=Path(s)
+ return p if p.is_absolute() else W/p if s.startswith('work/') else R/p
+def checked(b):
+ p=resolve(b['path']);a=bind(p);assert a['sha256']==b['sha256'],str(p)
+ assert b.get('bytes',b.get('size_bytes',a['bytes']))==a['bytes'],str(p)
+ return p
+def check_refs(x):
+ if isinstance(x,dict):
+  if isinstance(x.get('path'),str) and isinstance(x.get('sha256'),str):checked(x)
+  for v in x.values():check_refs(v)
+ elif isinstance(x,list):
+  for v in x:check_refs(v)
+def key(x):return x['study_uid'],x['target']
+def write(name,x):
+ with(P/name).open('x')as f:f.write(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
+def archived(p):
+ if p.is_relative_to(D):
+  q=R/'initiative/audits'/p.relative_to(D)
+  return q.with_suffix('.py.txt')if q.suffix=='.py'else q
+ return p
+
+def main():
+ assert shutil.disk_usage(W).free>20*1024**3
+ head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=R,text=True).strip()
+ assert head=='3d3b135f3dbc44763f78c60e950d074565850f49'
+ receipt=read(I/'complete362-integration-validation.json','361ce0b47041862b074b5d840224c4bfd5da6522d933fde36b3753c03b34fb91')
+ registry_path=R/'initiative/reviews-v2/adjudications/registry.json';registry=read(registry_path,REG)
+ prior_registry=read(I/'registry-before358.json',PRIOR)
+ assert hashlib.sha256(subprocess.check_output(['git','show',f'{head}:initiative/reviews-v2/adjudications/registry.json'],cwd=R)).hexdigest()==PRIOR
+ old_inspection=read(I/'complete358-inspection-before.json')
+ assert old_inspection==read(R/'initiative/audits/cartilage-observed-004-integration-v1/complete358-inspection.json')
+ assert old_inspection['registry_sha256']==PRIOR and old_inspection['n_changes']==358
+ reports={};source_index={}
+ for path in sorted((R/'initiative/reviews/inputs').glob('batch-*.json')):
+  for i,r in enumerate(read(path)):
+   assert set(r)=={'study_uid','report'} and r['study_uid']not in reports
+   reports[r['study_uid']]=r['report'];source_index[r['study_uid']]=(path,i)
+ assert len(reports)==4407 and source_reports_fingerprint(reports)==FP
+ assert sha(R/'protocols/report_weak_v2.md')==RUBRIC
+ current=inspect_adjudications(reports,R/'initiative/reviews-v2/reviewed',R/'protocols/report_weak_v2.md',R)
+ assert sha(registry_path)==REG and current['n_changes']==362 and current==read(I/'complete362-inspection.json')
+ old={key(c):c for c in old_inspection['changes']};new={key(c):c for c in current['changes']}
+ assert len(old)==358 and len(new)==362 and all(new[k]==v for k,v in old.items())
+ assert registry['cases'][:-1]==prior_registry['cases'] and registry['semantic_qa']==prior_registry['semantic_qa']
+ assert current['semantic_qa']==old_inspection['semantic_qa']
+ assert current['pending_semantic_qa']==old_inspection['pending_semantic_qa']==receipt['pending_semantic_qa'] and len(current['pending_semantic_qa'])==3
+ # Protected official-source and gold-bearing files are hashed only as opaque bytes.
+ tree={}
+ for entry in subprocess.check_output(['git','ls-tree','-rz',head],cwd=R).split(b'\0'):
+  if entry:
+   info,path=entry.split(b'\t',1);tree[path.decode()]=info.decode().split()[2]
+ protected=receipt['protected_artifacts'];names=[b['path']for b in protected]
+ assert len(names)==len(set(names))
+ archive_receipt=read(I/'archive-addition-and-preservation.json')
+ assert archive_receipt['prior_protected_artifacts']=={b['path']:b['sha256']for b in protected}
+ oids=subprocess.check_output(['git','hash-object','--stdin-paths'],cwd=R,input=''.join(n+'\n'for n in names),text=True).splitlines()
+ git_pinned=0;not_in_head=[]
+ for b,oid in zip(protected,oids,strict=True):
+  checked(b)
+  if b['path']in tree:assert tree[b['path']]==oid,b['path'];git_pinned+=1
+  else:not_in_head.append(b)
+ # Prior retirement objects and their absence from active corrections are checked mechanically.
+ T=R/'initiative/audits/cartilage-legacy-three-retirement-integration-v1'
+ retired_before=read(T/'inspection-before223.json');retired_after=read(T/'inspection-after220.json')
+ retired_keys={key(c)for c in retired_before['changes']}-{key(c)for c in retired_after['changes']}
+ assert len(retired_keys)==3 and not retired_keys&set(old) and not retired_keys&set(new)
+ retirement_files=[]
+ for path in sorted(T.iterdir()):
+  if path.is_file():
+   b=bind(path);oid=subprocess.check_output(['git','hash-object',str(path)],cwd=R,text=True).strip();assert tree[str(path.relative_to(R))]==oid;retirement_files.append(b)
+ case_path=checked(registry['cases'][-1]);case=read(case_path)
+ assert case_path==R/'initiative/reviews-v2/adjudications/cases/cartilage-observed-005-second.json'
+ assert case['source_reports_sha256']==FP and case['rubric_sha256']==RUBRIC
+ check_refs({k:v for k,v in case.items()if k!='changes'})
+ prop=read(checked(case['proposal']));assessment=read(checked(case['independent_assessment']));decision=read(checked(case['decision']))
+ assert prop['agent_id']==prop['session_id']=='/root/last_twelve_visual_review'
+ assert assessment['agent_id']==assessment['session_id']==decision['agent_id']==decision['session_id']=='/root'
+ assert assessment['proposer_agent_id']==decision['proposer_agent_id']==prop['agent_id']
+ assert decision['adjudicator_agent_id']!=decision['proposer_agent_id'] and AGENT not in {'/root','/root/last_twelve_visual_review'}
+ assert decision['status']=='accepted' and decision['n_changes']==4
+ for name,ref in case['supporting_evidence'].items():assert decision[name]==ref['sha256']
+ freeze=read(checked(case['supporting_evidence']['root_source_freeze_sha256']))
+ disposition=read(checked(case['supporting_evidence']['root_dispositions_sha256']))
+ reconsider=read(checked(case['supporting_evidence']['root_reconsiderations_sha256']))
+ comparison=read(checked(case['supporting_evidence']['root_comparison_sha256']))
+ assert freeze['agent_id']==freeze['session_id']=='/root' and freeze['full_reports']==6 and freeze['oa_judgments']==18
+ assert freeze['current005_reader_case_findings_opened']is False and freeze['canonical_all4407_source_reports_sha256']==FP and freeze['rubric_sha256']==RUBRIC
+ assert freeze['at_utc']<comparison['at_utc']<=disposition['at_utc']<decision['accepted_at_utc']
+ parts=[]
+ for ref in freeze['parts']:
+  part=read(checked(ref));assert part['agent_id']==part['session_id']=='/root';parts.extend(part['records'])
+ assert parts==freeze['records'] and len(parts)==6 and len({r['study_uid']for r in parts})==6
+ packet_index=read(checked(freeze['neutral_packet_index']));neutral=[]
+ for ref in packet_index['packets']:
+  packet=read(checked(ref));neutral.extend(packet if isinstance(packet,list)else packet['reports'])
+ assert {r['study_uid']for r in neutral}=={r['study_uid']for r in parts}
+ for r in neutral:
+  sp,i=source_index[r['study_uid']];assert r['report']==reports[r['study_uid']] and r['source_path']==str(sp.relative_to(R)) and r['index']==i and r['source_sha256']==sha(sp)
+  assert next(q for q in parts if q['study_uid']==r['study_uid'])['report_sha256']==hashlib.sha256(r['report'].encode()).hexdigest()
+ root_source={};quote_count=0
+ for r in parts:
+  sp,i=source_index[r['study_uid']];assert str(sp.relative_to(R))==r['source_path'] and sha(sp)==r['source_sha256'] and i==r['source_index_zero_based']
+  report=reports[r['study_uid']];assert hashlib.sha256(report.encode()).hexdigest()==r['report_sha256']
+  assert r['target_order']==['Medial OA','Lateral OA','PF OA']
+  for target,state,evidence in zip(r['target_order'],r['states'],r['evidence'],strict=True):
+   assert (state=='not_mentioned'and evidence=='')or(state in {'positive','negative','uncertain'}and evidence and evidence in report)
+   root_source[r['study_uid'],target]={'state':state,'evidence':evidence};quote_count+=state!='not_mentioned'
+ original_reviews={}
+ for path in sorted((R/'initiative/reviews-v2/reviewed').glob('batch-*-reviewed.jsonl')):
+  bind(path)
+  for r in map(json.loads,path.read_text().splitlines()):original_reviews[r['study_uid']]=r
+ assert len(original_reviews)==4407
+ effective={(uid,t):{'state':r['states'][i],'evidence':r['evidence'][i]}for uid,r in original_reviews.items()for i,t in enumerate(TARGETS)}
+ prior_effective=dict(effective)
+ for k,c in old.items():prior_effective[k]=c['after']
+ for k,c in new.items():effective[k]=c['after']
+ disposed={key(r):r for r in disposition['records']};assert set(disposed)==set(root_source)and len(disposed)==18
+ assert reconsider['state_reconsiderations']==[] and len(reconsider['reason_clarifications'])==1
+ for k,r in disposed.items():
+  assert r['root_frozen_state']==r['root_postfreeze_state']==root_source[k]['state']==effective[k]['state']
+  assert r['root_frozen_evidence']==root_source[k]['evidence'] and r['root_state_reconsidered']is False
+  assert r['current358']==prior_effective[k]
+  q=r['root_postfreeze_evidence'];assert (q in reports[k[0]] and q)if r['root_postfreeze_state']!='not_mentioned'else q==''
+ clarification=reconsider['reason_clarifications'][0]
+ assert clarification['original_reason_preserved']is True and clarification['clarification']
+ assert len([r for r in disposition['records']if (r['case'],r['target'])==(clarification['case'],clarification['target'])])==1
+ original=read(checked(prop['original_proposal']));omap={key(r):r for r in original['records']}
+ proposals={key(r):r for r in prop['proposed_errata']};assessed={key(r):r for r in assessment['records']};accepted={key(r):r for r in decision['accepted_changes']}
+ assert len(omap)==len(proposals)==len(assessed)==len(accepted)==4 and assessment['rejected_proposals']==[]
+ assert set(proposals)==set(assessed)==set(accepted)==set(omap)==set(new)-set(old)
+ full_originals=read(I/'all-four-original-proposal-objects.json');saved={key(r):r for r in full_originals['records']};assert len(saved)==4
+ for k,p in proposals.items():
+  o=omap[k];a=assessed[k];d=disposed[k];ac=accepted[k]
+  assert saved[k]['original_object']==o and saved[k]['original_object_canonical_sha256']==hashlib.sha256(json.dumps(o,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+  assert p['proposed_state']==o['after_proposed']['state']==a['independent_source_state']==d['root_postfreeze_state']==new[k]['after']['state']==ac['after_state']
+  assert p['source_quote']==o['after_proposed']['evidence']==a['source_evidence']==d['root_postfreeze_evidence']==new[k]['after']['evidence']==ac['after_evidence']
+  assert p['reason']==o['reason'] and p['evidence_reason']==o['evidence_reason']
+  assert {'state':p['before_state'],'evidence':p['before_evidence']}==o['before_current']==prior_effective[k]==new[k]['before']
+  assert p['source_quote']and p['source_quote']in reports[k[0]]
+  sp,i=source_index[k[0]];assert i==p['index']==o['source_index_zero_based'] and sha(sp)==p['source_sha256']==o['source_sha256'] and str(sp.relative_to(R))==p['source_path']==o['source_path']
+  assert p['report_utf8_sha256']==o['report_utf8_sha256']==hashlib.sha256(reports[k[0]].encode()).hexdigest()
+  assert p['artifact_sha256']==o['original_review']['sha256'];checked({'path':p['artifact_path'],'sha256':p['artifact_sha256']})
+ first=read(checked(case['supporting_evidence']['original_first_proposals_sha256']))['proposed_errata'];supports=disposition['first_proposal_state_support']
+ assert len(first)==len(supports)==3
+ for p in first:
+  k=key(p);r=next(s for s in supports if key(s)==k)
+  assert k in proposals and p['proposed_state']==effective[k]['state'] and r['state_supported']and r['accepted_via_second_proposal']and r['original_first_proposal_preserved']
+ norm=read(checked(case['supporting_evidence']['normalization_rebase_sha256']))
+ check_refs({k:v for k,v in norm.items()if k not in ['actual_registry','selected_replay']})
+ assert norm['actual_registry']['sha256']==PRIOR and sha(checked(norm['registry_snapshot']))==PRIOR
+ assert norm['agent_id']==norm['session_id']==prop['agent_id'] and norm['registered_changes']==358 and norm['selected_reports']==10 and norm['selected_cells']==30
+ assert norm['selected_drift_since205']==norm['selected_accepted_key_overlap']==norm['proposal_accepted_key_overlap']==0
+ hist=read(checked(norm['historical205_rebase']));hmap={key(r):r for r in hist['records']}
+ assert hist['initial_registry_count']==hist['final_registry_count']==205 and hist['changed_cells_since_initial']==hist['changed_cells_since205']==hist['accepted_overlap_cells']==0
+ second=read(checked(prop['original_dispositions']));second_map={key(r):r for r in second['records']}
+ assert len(norm['selected_replay'])==len(comparison['records'])==len(second_map)==30
+ for r in norm['selected_replay']:
+  k=key(r);h=hmap[k];sr=second_map[k]
+  assert k not in old and r['original']==r['historical205']==r['actual358']==prior_effective[k]==h['baseline205']==h['initial_comparison_current']==h['final_current']==sr['baseline205']==sr['current_effective']
+  assert not r['selected_drift'] and r['accepted_overlap']is None and not h['registered_overlap'] and not h['changed_since205']
+  sp,i=source_index[k[0]];assert str(sp.relative_to(R))==r['source_path'] and sha(sp)==r['source_sha256'] and i==r['source_index_zero_based'];checked(r['original_review'])
+  assert hashlib.sha256(reports[k[0]].encode()).hexdigest()==r['report_utf8_sha256']
+ for r in comparison['records']:assert r['current358']==prior_effective[key(r)]
+ context=read(checked(case['supporting_evidence']['canonical_source_context_sha256']));check_refs(context)
+ assert context['report_count']==4407 and context['source_reports_sha256']==FP and len(context['all4407_sources'])==89 and context['neutral_source_packet_sha256']!=FP
+ assert prop['source_reports_sha256']==FP and prop['neutral_source_packet_sha256']==context['neutral_source_packet_sha256']
+ second_freeze=read(checked(case['supporting_evidence']['original_second_source_freeze_sha256']))
+ assert second_freeze['agent_id']==second_freeze['session_id']==prop['agent_id']!=freeze['agent_id']
+ second_assessment=checked(case['supporting_evidence']['original_second_source_assessment_sha256']);second_rows=[json.loads(l)for l in second_assessment.read_text().splitlines()]
+ assert len(second_rows)==10 and {r['study_uid']for r in second_rows}=={r['study_uid']for r in norm['selected_replay']}
+ for r in second_rows:
+  assert r['agent_id']==prop['agent_id'] and r['target_order']==['Medial OA','Lateral OA','PF OA']
+  sp,i=source_index[r['study_uid']];assert r['source_index_zero_based']==i and r['source_sha256']==sha(sp) and r['report_utf8_sha256']==hashlib.sha256(reports[r['study_uid']].encode()).hexdigest()
+  for state,q in zip(r['states'],r['evidence'],strict=True):assert (state=='not_mentioned'and q=='')or(state!='not_mentioned'and q and q in reports[r['study_uid']])
+ clar=read(checked(prop['original_stage_identity_clarification']));entry=next(e for e in clar['entries']if e['batch']=='005')
+ assert clar['agent_id']==prop['agent_id'] and entry['original_stage_field']==second_freeze['stage'] and entry['correct_descriptive_stage']=='cartilage_observed005_second_full_source_10_reports_30_OA_targets_v1'
+ assert entry['exact_reports']==10 and entry['exact_judgments']==30 and entry['verified_priority_positions']==[250,259]
+ for field,filename in [('original_exposure_and_authoring_clarification','original-exposure-and-authoring-clarification.json'),('original_stage_identity_clarification','original-stage-identity-clarification.json')]:
+  original_path=checked(prop[field]);assert sha(original_path)==sha(N/filename);check_refs(read(N/filename))
+ preserved_copies=[]
+ for directory in [G,N]:
+  preservation=read(directory/'preservation-completed-review-cartilage005.json')
+  for b in preservation['files']:
+   dest=checked(b);rel=dest.relative_to(R/'initiative/audits');candidates=[D/rel]
+   if dest.name.endswith('.py.txt'):candidates.append((D/rel).with_suffix(''))
+   src=next((q for q in candidates if q.is_file()and sha(q)==sha(dest)),None);assert src is not None,str(dest);preserved_copies.append({'source':bind(src),'archive':bind(dest)})
+  for path in sorted(directory.rglob('*')):
+   if path.is_file():bind(path)
+ snapshot=read(G/'root-snapshot-preservation-v14.json');assert len(snapshot['files'])==3
+ for b in snapshot['files']:
+  src=resolve(b['original_path']);dst=resolve(b['archived_path']);assert sha(src)==sha(dst)==b['sha256'] and src.stat().st_size==dst.stat().st_size==b['bytes'];bind(src);bind(dst)
+  oid=subprocess.check_output(['git','hash-object',str(dst)],cwd=R,text=True).strip();assert tree[str(dst.relative_to(R))]==oid
+ assert tree[str((G/'root-snapshot-preservation-v14.json').relative_to(R))]==subprocess.check_output(['git','hash-object',str(G/'root-snapshot-preservation-v14.json')],cwd=R,text=True).strip()
+ groups=defaultdict(list)
+ for uid,report in reports.items():groups[report_group(report)].append(uid)
+ duplicates={k:v for k,v in groups.items()if len(v)>1}
+ conflicts=sum(any(len({effective[uid,t]['state']for uid in uids})>1 for t in TARGETS)for uids in duplicates.values())
+ assert len(duplicates)==54 and sum(map(len,duplicates.values()))==204 and conflicts==0
+ transitions=Counter(new[k]['before']['state']+'->'+new[k]['after']['state']for k in proposals)
+ assert dict(transitions)=={'negative->uncertain':2,'positive->positive':1,'negative->negative':1}
+ # Bone017 completed before362 was announced; retain its exact358 snapshots and replay separately.
+ B=D/'bone-observed-017-postfreeze-v1'
+ bone_manifest=read(B/'completion-supplement.json','cd34e0e568344fae442c465d0cc7187327b92e1e7e8d0d838026e083b65cf6f0')
+ for b in bone_manifest['files']:checked(b)
+ bone=read(B/'all100-postfreeze-dispositions.json');assert bone['actual_registered_changes']==358 and sha(B/'registry-at-comparison.json')==PRIOR
+ bone_replay=[]
+ for r in bone['records']:
+  k=key(r);assert r['target']in {'Contusion','Fracture'} and r['current_effective']==prior_effective[k]==effective[k] and k not in new
+  bone_replay.append({'study_uid':k[0],'target':k[1],'baseline358_effective':r['current_effective'],'actual362_effective':effective[k],'changed':False,'accepted_key_overlap':False})
+ assert len(bone_replay)==100
+ assert sha(registry_path)==REG and all(sha(resolve(b['path']))==b['sha256']for b in protected)
+ assert shutil.disk_usage(W).free>20*1024**3
+ write('bone017-baseline358-replay362.json',{'schema_version':1,'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'original_bone017_completion':bind(B/'completion-manifest.json'),'original_bone017_completion_supplement':bind(B/'completion-supplement.json'),'actual362_registry':bind(registry_path),'original_baseline_registered_changes':358,'actual_registered_changes':362,'selected_cells':100,'changed_cells':0,'accepted_key_overlap':0,'all_original_bone017_members_preserved':True,'records':bone_replay,'scope':'Mechanical rebase only, no new clinical decisions; all pending proposals and export masks remain governed by the unchanged358 first-comparison artifacts until an actual accepted correction.'})
+ write('independent-runtime-inspection362.json',current)
+ result={'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'scope':'Independent technical consistency verification of actual362 integration only; no new clinical reading, clinical acceptance or fresh-blindness claim. Historical first cartilage005 source/30-cell comparison and prior technical/source exposure are disclosed.','git_head':head,'registry':bind(registry_path),'root_integration_receipt':bind(I/'complete362-integration-validation.json'),'runtime_inspection':bind(P/'independent-runtime-inspection362.json'),'counts':{'registered_changes':362,'prior358_whole_objects_exact':358,'new_accepted_changes':4,'original_actual_second_author_objects_preserved':4,'rejected_proposals':0,'first_proposals_supported':3,'root_full_sources_bound':6,'root_source_judgments':18,'root_source_nonempty_quotes_validated':quote_count,'root_final_states_equal_effective_registry':18,'accepted_exact_quotes_equal_all_versions':4,'root_state_reconsiderations':0,'root_reason_only_clarifications':1,'historical205_to358_selected_cells_checked':30,'historical_selected_drift':0,'historical_accepted_key_overlap':0,'prior_retirements_still_inactive':3,'protected_files_sha256_verified':len(protected),'protected_files_also_equal_prior_git_blob':git_pinned,'preexisting_G005_v14_files_preserved':3,'preexisting_v14_receipt_preserved':1,'unchanged_pending_qa_gates':3,'duplicate_groups':54,'duplicate_reports':204,'duplicate_conflicts':0,'bone017_cells_replayed358_to362':100,'bone017_drift':0},'transition_counts':dict(transitions),'actual_proposer':prop['agent_id'],'actual_independent_assessor_and_adjudicator':assessment['agent_id'],'original_stale_second_stage_preserved_with_actual_author_clarification':True,'prior_retirement_archive_files':retirement_files,'prior_protected_files_not_in_current_git_head':not_in_head,'non_git_protection_limit':'Any preexisting publication evidence absent from the Git358 tree is checked against the separate before-integration protection map and receipt plus its existing provenance; its past existence is not reconstructed from a Git blob.','preserved_stage_archive_copies':preserved_copies,'bone017_rebase':bind(P/'bone017-baseline358-replay362.json'),'source_reports_sha256':FP,'rubric_sha256':RUBRIC,'opaque_access':'Official source/gold-bearing files were hashed as opaque bytes only. Already blinded report strings and annotation arrays were loaded mechanically for exact source/quote/proposal equality and runtime validation; no case findings were printed or newly judged.','root_source_order_limit':'The root source-order attestation and earlier frozen timestamp are bound, not represented as independently instrumented historical access proof.','gold_values_inspected':False,'new_clinical_judgments':0,'repository_files_written':False,'registry_changed_by_this_agent':False,'global_gate_closed':False,'software_checks_repeated':False,'all_checks_passed':True,'verifier':bind(Path(__file__).resolve()),'all_supporting_files':list(sorted(bindings.values(),key=lambda b:b['path']))}
+ write('independent-technical-verification.json',result)
+ files=[bind(f)for f in sorted(P.iterdir())if f.is_file()]
+ write('completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'session_id':AGENT,'completed_at_utc':datetime.now(timezone.utc).isoformat(),'scope':result['scope'],'files':files,'all_checks_passed':True,'no_new_clinical_acceptance':True,'registry_sha256':REG})
+ print(json.dumps({'all_checks_passed':True,'registered_changes':362,'prior_preserved':358,'new_changes':4,'root_final_states':18,'retirements_preserved':3,'protected_files':len(protected),'git_blob_matched':git_pinned,'bone017_drift':0,'verification_sha256':sha(P/'independent-technical-verification.json'),'completion_sha256':sha(P/'completion-manifest.json')},indent=2))
+if __name__=='__main__':main()

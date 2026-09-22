@@ -1,0 +1,81 @@
+"""Bind root's actual prepared operation after the immutable offline review."""
+from pathlib import Path
+from datetime import datetime, timezone
+import argparse,hashlib,json,re,subprocess
+W=Path.cwd().resolve();R=W/'work/recovered';S=Path(__file__).resolve().parent
+TARGET='3d3b135f3dbc44763f78c60e950d074565850f49';P=W/'work/hf-preparation-deltas'/TARGET
+AGENT='/root/duplicate_consistency_review'
+parser=argparse.ArgumentParser()
+parser.add_argument('--root-proof-sha256',required=True)
+parser.add_argument('--operation-sha256',required=True)
+args=parser.parse_args()
+assert re.fullmatch('[0-9a-f]{64}',args.root_proof_sha256) and re.fullmatch('[0-9a-f]{64}',args.operation_sha256)
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(2**20),b''):h.update(b)
+ return h.hexdigest()
+def ref(p):return {'path':str(p.relative_to(W)),'bytes':p.stat().st_size,'sha256':sha(p)}
+def read(p,h=None):
+ if h:assert sha(p)==h
+ return json.loads(p.read_text())
+def save(n,v):
+ with (S/n).open('x') as f:f.write(json.dumps(v,indent=2)+'\n')
+review=read(S/'publisher-bound-verification.json','1e016344672e3d2900a6afa83f56de2c740e3ab273bf021d2ff83df590c44efb')
+oldmanifest=read(S/'completion-manifest.json','8ccccf5f6960273d951bbc11d1515e83d2336bb877da8c625a897c35988d8ba2')
+for r in oldmanifest['files']:assert ref(W/r['path'])==r
+op=read(P/'root-publication-operation.json',args.operation_sha256)
+root=read(P/'root-restoration-proof.json',args.root_proof_sha256)
+peer=read(P/'restoration-proof.json','c84cd394fb7f06eb318cce7776f7e5d977de5677bc7220077e642184c5437c14')
+manifest=read(P/'manifest.json','ff71c97af5fae320cbaa83dc97e29bdadb742f2bb5bf063a3e5b2558184c2b8d')
+assert op['agent_id']=='/root' and op['target_git']==TARGET
+assert op['expected_hf_parent']=='0f7134a61da52222eda7184d0d46488f6c7caea4' and op['private_required'] is True and op['training_ready'] is False
+ci=json.loads(subprocess.check_output(['gh','run','view','35682228129','--json','conclusion,headSha,status'],cwd=R,stderr=subprocess.DEVNULL,timeout=60))
+assert ci==op['github_ci']=={'conclusion':'success','headSha':TARGET,'status':'completed'}
+assert root['verifier_agent_id']=='/root' and peer['verifier_agent_id']==AGENT
+for field in ['status','target_git_commit','target_git_tree','manifest','delta_archive','base_hf_revision','base_git_commit','base_archive_sha256','base_manifest_sha256','n_base_archive_members_verified','n_delta_members_verified','n_result_files_verified','n_deletions_applied','every_file_sha256_git_blob_size_mode_verified','membership_exact','source_preservation','secret_scan_policy','verified_secret_scan_exception_paths']:
+ assert root[field]==peer[field],field
+assert root['n_result_files_verified']==8955 and root['target_git_commit']==TARGET
+names={'delta.tar.gz','manifest.json','restoration-proof.json','root-restoration-proof.json','README.md','checkpoint_delta.py'}
+prefix='preparation-checkpoints/'+TARGET+'/'
+assert len(op['uploaded_files'])==6 and {r['path'] for r in op['uploaded_files']}=={prefix+n for n in names}
+refs=[]
+for r in op['uploaded_files']:
+ p=(W/r['local_path']).resolve();n=r['path'][len(prefix):]
+ assert p.is_relative_to(W/'work') and not p.is_relative_to(R)
+ assert sha(p)==r['sha256'] and p.stat().st_size==r['bytes']
+ expected=W/'work/annotation-staging/checkpoint-delta-helper-v2-v1/checkpoint_delta.py' if n=='checkpoint_delta.py' else P/n
+ assert p==expected
+ refs.append({'path':r['path'],'local':ref(p)})
+for k in ['helper','transport','publisher']:
+ r=op[k];prior=review[k];assert r['local_path']==prior['path'] and r['sha256']==prior['sha256'] and r['bytes']==prior['bytes']
+ assert sha(W/r['local_path'])==r['sha256']
+assert manifest['source_preservation']==root['source_preservation'] and manifest['private_destination_required'] is True and manifest['training_ready'] is False
+card=(P/'README.md').read_text()
+for text in [TARGET,'35682228129','358','8955','Training readiness is false','54949cd5a575ea7027a4a57916e772936a98d38b','1792f01ed3daab757c5ddb9bf5733ffe8d999f91']:
+ assert text in card
+
+helper_stage=W/'work/annotation-staging/checkpoint-delta-helper-v2-v1'
+historical=read(helper_stage/'completion-manifest.json','4a08c36bf9f27b34dcd8a4a40b3a3b680b72a42bd6408cf15854f500b420086d')
+assert historical['tests_passed']==55
+for name,r in historical['files'].items():
+ assert sha(helper_stage/name)==r['sha256'] and (helper_stage/name).stat().st_size==r['bytes']
+validation=read(helper_stage/'implementation-validation.json','186b338ec7bffc6aa6a676d46a79ea6dc41e440bf7091f957c7037e760d80a44')
+assert validation['total_tests_passed']==55 and validation['original_test_suite']['tests_passed']==28 and validation['new_tests']['tests_passed']==27
+assert sha(W/validation['original_test_suite']['path'])==validation['original_test_suite']['sha256']
+assert validation['policy']==manifest['secret_scan_policy']==root['secret_scan_policy']==peer['secret_scan_policy']
+assert manifest['target_git_tree']=='7ce8f5ce6a0f5d5740843ee1deb46387611b193c'
+assert sha(R/'initiative/reviews-v2/adjudications/registry.json')=='761ba526baf0c761548e2d5ff41c52ce9ba24ac75e9ac43993a716240ce37693'
+assert not subprocess.check_output(['git','status','--porcelain'],cwd=R)
+assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=R,text=True).strip()==TARGET
+assert not any(stale in (W/'work/publish_cartilage004_delta.py').read_text() for stale in ['N_FILES = 8651','N_CORRECTIONS = 333','correction_count_not_333','dc806961fb99cdbaa5da2e6c9a9d3ee78e062cc4','CI_RUN = 35679684402'])
+
+result={'schema_version':1,'stage':'actual_prepared_six_object_operation_bound_after_offline_publisher_review','agent_id':AGENT,'session_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'status':'passed','offline_review':ref(S/'publisher-bound-verification.json'),'offline_completion_manifest':ref(S/'completion-manifest.json'),'operation':ref(P/'root-publication-operation.json'),'root_restoration_proof':ref(P/'root-restoration-proof.json'),'peer_restoration_proof':ref(P/'restoration-proof.json'),'manifest':ref(P/'manifest.json'),'objects':refs,'objects_verified':6,'target_git_commit':TARGET,'target_git_tree':manifest['target_git_tree'],'resulting_git_files':8955,'registered_corrections':358,'actual_fresh_ci_run':35682228129,'actual_fresh_ci':ci,'expected_hf_parent':op['expected_hf_parent'],'immutable_base_hf_revision':manifest['base_hf_revision'],'actual_distinct_root_and_peer_proofs_preserved':True,'exact_secret_scan_policy_and_exception_bindings':True,'operation_private_required':True,'scope':'Exact operation, local six-object content and fresh GitHub CI verified. No HF network call or fresh remote-head claim; publisher rechecks actual private head/source identities and parent compare-and-swap immediately before mutation.','credentials_opened':False,'publisher_executed':False,'hf_calls':0,'network_mutations':0,'repository_writes':False,'training_ready':False,'findings':[]}
+result['unchanged_v2_55_test_receipt']=ref(helper_stage/'implementation-validation.json')
+result['unchanged_v2_test_manifest']=ref(helper_stage/'completion-manifest.json')
+result['historical_55_tests_rebound_not_rerun']=True
+result['no_stale_333_or8651_publisher_bindings']=True
+result['registry_sha256']='761ba526baf0c761548e2d5ff41c52ce9ba24ac75e9ac43993a716240ce37693'
+save('prepared-operation-verification.json',result)
+save('operation-completion-manifest.json',{'schema_version':1,'agent_id':AGENT,'at_utc':datetime.now(timezone.utc).isoformat(),'files':[ref(S/n) for n in ['verify_prepared_operation.py','prepared-operation-verification.json','completion-manifest.json']],'all_checks_passed':True,'original_offline_review_unchanged':True})
+print(json.dumps({'status':'passed','objects':6,'files':8955,'ci':ci,'receipt':ref(S/'prepared-operation-verification.json'),'manifest':ref(S/'operation-completion-manifest.json')}))

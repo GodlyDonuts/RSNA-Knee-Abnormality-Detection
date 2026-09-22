@@ -1,0 +1,49 @@
+{
+  "stage": "archive_and_v2_coverage_validation_after362",
+  "agent_id": "/root",
+  "registry_sha256": "a43543c77e17d7d02996bdf68cc7f238c4a0842a6a5b9bb3978017352b30c73b",
+  "initial_tool_results": [
+    {
+      "cmd": "../../.venv/bin/python -m rsna.archive",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "8eb67a",
+        "wall_time_seconds": 1.002314125,
+        "session_id": 56935,
+        "original_token_count": 0,
+        "output": ""
+      }
+    },
+    {
+      "cmd": "../../.venv/bin/python -m rsna.review_progress --inputs initiative/reviews/inputs --root initiative/reviews-v2 --rubric protocols/report_weak_v2.md --require-complete",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "f534c5",
+        "wall_time_seconds": 0.8956205,
+        "exit_code": 0,
+        "original_token_count": 114,
+        "output": "{\n  \"rubric_sha256\": \"138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014\",\n  \"source_reports_sha256\": \"5c18838a09e9eec6522966555694fca83a9bae67e4d7c5c68592207ee4b60ed3\",\n  \"studies\": 4407,\n  \"counts\": {\n    \"draft\": {\n      \"valid\": 89\n    },\n    \"reviewed\": {\n      \"valid\": 89\n    }\n  },\n  \"complete\": true,\n  \"training_ready\": false,\n  \"scope\": \"Evidence, identity and coverage checks only; label semantics require independent reading\"\n}\n"
+      }
+    },
+    {
+      "cmd": "git diff --check",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "cf9703",
+        "wall_time_seconds": 0.000008084,
+        "exit_code": 0,
+        "original_token_count": 0,
+        "output": ""
+      }
+    }
+  ],
+  "archive_completion_tool_result": {
+    "chunk_id": "881938",
+    "wall_time_seconds": 0.000015667,
+    "exit_code": 0,
+    "original_token_count": 138,
+    "output": "{\n  \"studies\": 4407,\n  \"targets\": [\n    \"ACL\",\n    \"MCL\",\n    \"Medial Meniscus\",\n    \"Lateral Meniscus\",\n    \"Medial OA\",\n    \"Lateral OA\",\n    \"PF OA\",\n    \"Effusion\",\n    \"Synovitis\",\n    \"Baker's\",\n    \"Contusion\",\n    \"Fracture\"\n  ],\n  \"batch_size\": 50,\n  \"counts\": {\n    \"draft\": {\n      \"valid\": 76,\n      \"invalid\": 0,\n      \"not_archived\": 13\n    },\n    \"reviewed\": {\n      \"valid\": 0,\n      \"invalid\": 0,\n      \"not_archived\": 89\n    }\n  },\n  \"complete\": false,\n  \"scope\": \"Report/evidence validation only; no diagnostic image rereading\"\n}\n"
+  },
+  "interpretation": "Archive integrity passed while preserving incomplete historical v1 coverage. Current v2 --require-complete passed all89 drafts and89 reviewed batches /4407 reports. Neither command closes semantic QA or certifies training readiness.",
+  "training_ready": false
+}

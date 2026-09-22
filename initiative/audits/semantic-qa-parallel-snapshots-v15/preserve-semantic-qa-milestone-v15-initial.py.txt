@@ -1,0 +1,55 @@
+"""Archive fixed completed-stage cutoffs; preserve all original bytes and old baselines."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import defaultdict
+import argparse,hashlib,json,shutil
+from dotenv import dotenv_values
+W=Path(__file__).resolve().parent.parent;T=W/'work';S=T/'annotation-staging';R=T/'recovered'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+config=T/'semantic-qa-v15-snapshot-pins.json'
+assert sha(config)=='9c0214c525116a9f9658afd24b58ed80e982e4a9864fabc9007112037f629a81'
+snapshots=json.loads(config.read_text())['snapshots']
+parser=argparse.ArgumentParser()
+parser.add_argument('--additional-pins',type=Path,required=True)
+parser.add_argument('--additional-pins-sha256',required=True)
+args=parser.parse_args()
+additional=args.additional_pins.resolve()
+assert additional.is_relative_to(T) and sha(additional)==args.additional_pins_sha256
+snapshots.extend(json.loads(additional.read_text())['snapshots'])
+assert len({s['directory'] for s in snapshots})==len(snapshots)
+entries={};anchors=[]
+def verify_local_refs(value,folder):
+    if isinstance(value,dict):
+        if isinstance(value.get('path'),str) and isinstance(value.get('sha256'),str):
+            rel=value['path'];q=W/rel if rel.startswith('work/') else folder/rel
+            if q.is_relative_to(folder) and q.is_file():assert sha(q)==value['sha256'],q
+        for v in value.values():verify_local_refs(v,folder)
+    elif isinstance(value,list):
+        for v in value:verify_local_refs(v,folder)
+for item in snapshots:
+    folder=S/item['directory'];assert not (R/'initiative/audits'/folder.name).exists()
+    for anchor in item['completion_anchors']:
+        p=folder/anchor['path'];assert sha(p)==anchor['sha256'];verify_local_refs(json.loads(p.read_text()),folder);anchors.append({'path':str(p.relative_to(W)),'sha256':sha(p)})
+    for row in item['files']:
+        p=folder/row['path'];assert p.is_file() and not p.is_symlink() and sha(p)==row['sha256'] and p.stat().st_size==row['bytes'];entries[p]=row
+secrets=[v.encode() for k,v in dotenv_values(W/'.env').items() if k in {'HF_TOKEN','KAGGLE_API_TOKEN'} and v];assert len(secrets)==2
+total=sum(x['bytes'] for x in entries.values());assert shutil.disk_usage(W).free-total>20*2**30+32*2**20
+receipts=defaultdict(list)
+for p,row in sorted(entries.items()):
+    rel=p.relative_to(S);dest=R/'initiative/audits'/rel
+    if dest.suffix=='.py':dest=dest.with_suffix('.py.txt')
+    raw=p.read_bytes();assert hashlib.sha256(raw).hexdigest()==row['sha256'] and all(s not in raw for s in secrets)
+    dest.parent.mkdir(parents=True,exist_ok=True)
+    with dest.open('xb') as f:f.write(raw)
+    assert sha(dest)==sha(p)==row['sha256']
+    receipts[rel.parts[0]].append({'original_path':str(p.relative_to(W)),'archived_path':str(dest.relative_to(R)),'sha256':sha(dest),'bytes':len(raw)})
+for name,files in receipts.items():
+    out=R/'initiative/audits'/name/'root-snapshot-preservation-v15.json'
+    with out.open('x') as f:json.dump({'agent_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'files':files,'all_original_bytes_preserved':True,'root_opened_clinical_findings_for_copy':False,'scope':'Completed partial review evidence and technical proofs, not new clinical acceptance or global QA closure. Original358 and older baselines remain historical; future integration must rebase against actual362 or newer. Copied batch-label mistakes and their explicit correction artifacts both remain preserved.','training_ready':False},f,indent=2);f.write('\n')
+out=R/'initiative/audits/semantic-qa-parallel-snapshots-v15';out.mkdir()
+(out/'preserve-semantic-qa-milestone-v15.py.txt').write_bytes(Path(__file__).read_bytes());(out/config.name).write_bytes(config.read_bytes())
+(out/additional.name).write_bytes(additional.read_bytes())
+builder=json.loads(config.read_text())['builder'];bp=W/builder['path'];assert sha(bp)==builder['sha256'] and bp.stat().st_size==builder['bytes'];(out/(bp.name+'.txt')).write_bytes(bp.read_bytes())
+proof={'agent_id':'/root','at_utc':datetime.now(timezone.utc).isoformat(),'directories':{n:len(v) for n,v in sorted(receipts.items())},'completion_anchors':anchors,'base_pins_sha256':sha(config),'additional_pins_sha256':sha(additional),'source_files':len(entries),'bytes':total,'training_ready':False}
+(out/'snapshots.json').write_text(json.dumps(proof,indent=2)+'\n')
+print(json.dumps({'directories':len(receipts),'files':len(entries),'bytes':total,'snapshot_sha256':sha(out/'snapshots.json')}))

@@ -2,25 +2,24 @@
 
 ## Current corrective run
 
-The registry now contains 358 active corrections. Cartilage004 adds 25 after
-root's 39 complete source rereads / 117 frozen OA judgments: 17 positives and
-five negatives become uncertain, and three quotations gain necessary context.
-Nine root reconsiderations are explicit. Three additional second-reader changes
-were rejected with current states retained. All 333 earlier corrections and the
-three previous retirements remain unchanged.
+The registry now contains 362 active corrections. Cartilage005 adds four after
+six complete root source rereads / 18 frozen OA judgments: two negatives become
+uncertain, and two quotations support retained states. All 18 root states and all
+358 earlier correction objects remain unchanged. One anatomical reason is explicitly
+clarified; original judgments, source files and earlier retirements are preserved.
 
-All 117 final root states and all 25 new quotes match inspection. The 54 identical-
-report groups / 204 reports have zero conflicts. The source-bound terminology
-check separates named grading definitions, source-local calibration and disclosed
-morphology inferences. It does not redefine the frozen rubric or introduce a
-two-axis size requirement.
+All 18 final states and four new quotes match inspection. The 54 identical-report
+groups / 204 reports have zero conflicts. All three first-reader proposals are
+supported through four exact original second proposals. The complete priority
+cartilage set has two readers plus completed root attention adjudication; broader
+cartilage, bone and wording QA remain unfinished.
 
-The latest verified publication contains 333 corrections at Git `dc806961` /
-private HF `0f7134a6`. The 358 milestone needs its own publication receipt.
-All three global semantic QA gates remain pending. See
-[adjudications.md](adjudications.md). The expanded mission requires a competitive
-training research and experiment plan after data readiness; see
-[mission-and-training-plan.md](mission-and-training-plan.md).
+The latest verified publication contains 358 corrections at Git `3d3b135f` /
+private HF `33d5abd3`, with all 8,955 files independently reconstructable. The local
+362 milestone needs its own publication receipt. All three global semantic QA
+gates remain pending. See [adjudications.md](adjudications.md). The expanded mission
+requires competitive training research and an experiment plan after data readiness;
+see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 The required correspondence registry enforces 18 whole-study report-supervision
 exclusions. The latest is 069:10, accepted independently from its full RIGHT

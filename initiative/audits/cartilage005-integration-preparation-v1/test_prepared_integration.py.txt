@@ -1,0 +1,71 @@
+"""Bounded offline guard tests; never call the integration main or write R."""
+from pathlib import Path
+from contextlib import redirect_stderr
+import ast
+import hashlib
+import importlib.util
+import io
+import json
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+W=Path(__file__).resolve().parents[3]
+SCRIPT=W/'work/integrate-cartilage005-v1.py'
+spec=importlib.util.spec_from_file_location('cartilage005_preparation_only',SCRIPT)
+mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+
+class GuardTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory(dir=Path(__file__).parent)
+        self.root=Path(self.tmp.name).resolve()
+    def tearDown(self):
+        self.tmp.cleanup()
+    def test_new_archive_written_once(self):
+        p=self.root/'stage/new.txt'
+        self.assertEqual(mod.preserve_bytes(p,b'preserved'),'new_file')
+        self.assertEqual(p.read_bytes(),b'preserved')
+    def test_equal_archive_reused_without_inode_or_mtime_change(self):
+        p=self.root/'existing';p.write_bytes(b'v14 original')
+        stat=p.stat();self.assertEqual(mod.preserve_bytes(p,b'v14 original'),'reused_existing_equal')
+        self.assertEqual((p.stat().st_ino,p.stat().st_mtime_ns),(stat.st_ino,stat.st_mtime_ns))
+    def test_conflicting_archive_rejected_and_original_retained(self):
+        p=self.root/'existing';p.write_bytes(b'original')
+        with self.assertRaisesRegex(mod.GuardError,'archive_existing_bytes_differ'):mod.preserve_bytes(p,b'changed')
+        self.assertEqual(p.read_bytes(),b'original')
+    def test_archive_symlink_rejected(self):
+        p=self.root/'original';p.write_bytes(b'original');link=self.root/'link';link.symlink_to(p)
+        with self.assertRaisesRegex(mod.GuardError,'archive_symlink'):mod.preserve_bytes(link,b'original')
+    def test_write_new_cannot_overwrite(self):
+        p=self.root/'receipt';mod.write_new(p,b'first')
+        with self.assertRaises(FileExistsError):mod.write_new(p,b'second')
+        self.assertEqual(p.read_bytes(),b'first')
+    def test_changed_required_pin_rejected(self):
+        p=self.root/'input.json';p.write_text('{}')
+        with self.assertRaisesRegex(mod.GuardError,'input_hash_mismatch'):mod.read(p,'0'*64)
+    def test_pending_placeholder_pin_rejected(self):
+        p=self.root/'input.json';p.write_text('{}')
+        with self.assertRaisesRegex(mod.GuardError,'invalid_required_pin'):mod.read(p,'PENDING_ACTUAL_AUTHOR')
+    def test_reference_escape_rejected(self):
+        with self.assertRaisesRegex(mod.GuardError,'reference_escapes_workspace'):mod.pin_path(self.root,{'path':'../outside','sha256':'0'*64})
+    def test_duplicate_change_key_rejected(self):
+        row={'study_uid':'synthetic','target':'Medial OA'}
+        with self.assertRaisesRegex(mod.GuardError,'duplicate_target_key'):mod.unique([row,row])
+    def test_all_pending_pins_required_before_any_workspace_access(self):
+        with patch.object(sys,'argv',['script']),redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):mod.arguments()
+    def test_root_execution_flag_required(self):
+        args=['script','--normalized-proposal','pending.json','--normalized-proposal-sha256','0'*64,'--normalization-manifest','pending-list.json','--normalization-manifest-sha256','0'*64,'--normalization-rebase','pending-rebase.json','--normalization-rebase-sha256','0'*64]
+        with patch.object(sys,'argv',args),redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):mod.arguments()
+    def test_parser_and_module_have_no_top_level_integration_call(self):
+        tree=ast.parse(SCRIPT.read_text())
+        calls=[node for node in tree.body if isinstance(node,ast.Expr) and isinstance(node.value,ast.Call)]
+        self.assertEqual(calls,[])
+
+if __name__=='__main__':
+    suite=unittest.defaultTestLoader.loadTestsFromTestCase(GuardTests)
+    result=unittest.TextTestRunner(verbosity=1).run(suite)
+    assert result.wasSuccessful()
+    print(json.dumps({'tests_run':result.testsRun,'integration_main_executed':False,'repository_writes':False,'normalized_artifacts_fabricated':False}))
