@@ -23,12 +23,16 @@ justify shrinking those tasks or inventing labels.
 
 The current Kaggle notebooks use MRI only, an exact private offline wheelhouse,
 and a version-bound public-example receipt. Epochs 1, 2, 4, 6 and 10 were
-submitted once; their hidden rerun scores and runtime are pending. Epoch 10's
+submitted once; Kaggle later marked all five hidden reruns complete with
+unhandled notebook errors and zero output bytes, so none received a score. Epoch 10's
 exact version-1 notebook passed its receipt and was submitted as entry 56485356.
 Epoch 8's original notebook slug remains uncertain; a distinct exact-source
 private version-1 notebook completed its MRI-only public-example receipt and
-awaits a new live submission allowance. A three-study public
+must not be submitted in version 1. A three-study public
 execution checks the package but cannot establish hidden-test speed or AUC.
+The [failure audit](../initiative/audits/kaggle-hidden-rerun-failure-v1/) records
+the exact API outcomes and an unconfirmed three-row roster hypothesis. Correct
+and validate hidden-size MRI-only inference before spending another slot.
 Do not choose a new training recipe from an unscored or failed code submission.
 
 ## Next bounded experiment

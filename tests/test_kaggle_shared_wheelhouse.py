@@ -166,6 +166,14 @@ def test_loader_rejects_changed_archive(tmp_path):
         n.resolve_wheels(bundle, manifest, inputs, tmp_path / "extracted")
 
 
+def test_hidden_competition_mount_uses_test_csv_without_sample(tmp_path):
+    root = tmp_path / "input" / "competitions" / "example-competition"
+    (root / "test_series").mkdir(parents=True)
+    (root / "test.csv").write_text("StudyInstanceUID\n1.2.3\n")
+    (root / "test_series.csv").write_text("StudyInstanceUID,SeriesInstanceUID\n1.2.3,1.2.3.4\n")
+    assert n.resolve_competition(tmp_path / "input", "example-competition") == root
+
+
 def test_shared_bundle_has_two_sources_and_omits_wheel_copies(tmp_path, monkeypatch):
     legacy = load("legacy_bundle_fixture", "test_legacy_compatibility.py")
     original = legacy.workflow.prepare_bundle

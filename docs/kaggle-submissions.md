@@ -28,6 +28,13 @@ Kaggle reruns that code with its hidden inputs. Never upload the local three-row
 CSV as evidence of useful model performance. Competition constraints are in
 [the current contract](competition-contract-20260922.md).
 
+**Current incident:** Kaggle subsequently marked all five submitted hidden
+reruns `COMPLETE` with zero output bytes and the same unhandled-notebook-error
+message. None received a score. The [failure audit](../initiative/audits/kaggle-hidden-rerun-failure-v1/)
+preserves the exact API fields. Do not submit the prepared epoch-8 version 1
+when quota returns. Correct and verify a distinct MRI-only notebook first;
+the old submissions remain immutable failed attempts in the ledger.
+
 ## Verified account access and remaining prerequisites
 
 Read-only authenticated checks on September 22, 2026 confirmed `godlydonuts` has
@@ -60,23 +67,23 @@ verification. The first notebook slug returned an uncertain push and then
 HTTP 409 while remaining absent from complete owned listings. The same source
 and Dataset were bound to a distinct notebook slug and accepted as private
 offline T4 version 1. Its MRI-only three-study execution passed a version-bound
-receipt and the exact notebook version was submitted once as 56482890. Kaggle
-has not returned its score or hidden-test runtime yet. The epoch-2 private
+receipt and the exact notebook version was submitted once as 56482890. Its
+hidden rerun failed without a score. The epoch-2 private
 Dataset also passed full download/hash verification, and its dedicated notebook
 version 1 completed its MRI-only public-example receipt and was submitted once
-as competition entry 56483451. Its score is pending. The epoch-4 private Dataset also passed full byte
+as competition entry 56483451; its hidden rerun failed. The epoch-4 private Dataset also passed full byte
 verification after one read-only Kaggle API error and its own version-1
 notebook completed a valid MRI-only receipt and was submitted once as entry
-56483949. Its score is pending. Epoch 6's private Dataset passed full byte
+56483949; its hidden rerun failed. Epoch 6's private Dataset passed full byte
 verification and its dedicated version-1 notebook completed valid MRI-only
-inference, then was submitted once as entry 56483731 with score pending.
+inference, then was submitted once as entry 56483731; its hidden rerun failed.
 Epoch 8's private Dataset passed full byte verification, but its single
 notebook push has an uncertain outcome after a Kaggle server error. An exact
 authenticated search associates an unnamed listing placeholder with that old
 slug; do not repeat its mutation. A new notebook identity with the same
 hard-linked Dataset and source was pushed once as private offline version 1;
-its MRI-only three-study public-example receipt passed. It is ready for a
-new live account allowance. Epoch 10's private
+its MRI-only three-study public-example receipt passed. Its version 1 must not
+be submitted while the hidden-run failure is unresolved. Epoch 10's private
 Dataset appeared as version 1, ID 12146648, and all 43 payload files passed
 full download/hash verification. Its first push dispatch stopped in preflight.
 The reviewed exact-search guard then proved the epoch-10 slug absent with a
@@ -84,7 +91,8 @@ known-notebook positive control, and one recovery pushed the unchanged private
 offline notebook as version 1. Its MRI-only public-example receipt passed and
 the exact version was submitted once as entry **56485356** after a fresh live
 allowance of one. The follow-up account check showed five submissions today
-and zero slots. Its score is pending; epoch 8 awaits a future live allowance.
+and zero slots. Its hidden rerun failed; epoch 8 awaits a corrected notebook
+and a future live allowance.
 See the
 [epoch-1 audit](../initiative/audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/) and
@@ -206,8 +214,8 @@ then invokes the byte-bound `code/chunked_infer.py` wrapper. It runs the exact
 trained `rsna.competitive.infer` source on successive 32-study subsets with
 `--encoder-config`, `--scheduled-epoch`, `--precision fp32`, two CPU threads and
 zero loader workers. Each subset is checked against its output receipt and the
-official template order before its decoded cache is removed. The merged output
-is checked again against the full official template. The wrapper changes only
+`test.csv` study order before its decoded cache is removed. The merged output
+is checked again against the full `test.csv` roster. The wrapper changes only
 Kaggle orchestration: `rsna/**/*.py`, the trained checkpoint, masks and folds
 remain the exact training version. The training cache average is about 18.8 MB
 per study, so caching approximately 1,300 hidden studies at once could need
@@ -221,8 +229,8 @@ Pascal/P100 is **not** supported by this package. The measured Kaggle T4/driver
 580 passed the exact offline runtime probe. Both H100s on Newton evc37 also
 passed tiny CUDA tensor checks with the same environment; the pretrained
 DINOv3 recovery pilot remains separate.
-[NVIDIA driver compatibility](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html). It discovers studies from Kaggle's current test
-template, decodes the provided test DICOMs, and never reads test reports.
+[NVIDIA driver compatibility](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html). The corrected wrapper discovers studies from Kaggle's
+replaced `test.csv`, decodes the provided test DICOMs, and never reads test reports.
 
 A successful public execution writes `kaggle-inference-receipt.json` binding the
 manifest, trained checkpoint and output CSV. Its three-example status is explicit.

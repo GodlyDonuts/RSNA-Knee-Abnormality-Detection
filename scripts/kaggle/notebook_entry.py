@@ -79,6 +79,18 @@ def resolve_wheels(
     return wheels, found
 
 
+def resolve_competition(inputs, slug):
+    candidates = [inputs / slug, inputs / "competitions" / slug]
+    present = [path for path in candidates if (path / "test.csv").is_file()]
+    if len(present) != 1:
+        raise ValueError("Cannot identify exactly one official competition input mount")
+    competition = present[0]
+    for name in ("test_series.csv", "test_series"):
+        if not (competition / name).exists():
+            raise ValueError("Official runtime competition input is missing")
+    return competition
+
+
 def run():
     expected = globals().get("EXPECTED_MANIFEST_SHA256")
     if not isinstance(expected, str) or len(expected) != 64:
@@ -162,17 +174,7 @@ def run():
     env = os.environ.copy()
     env["PYTHONPATH"] = str(bundle / "code")
     encoder = json.loads((bundle / "encoder.json").read_text())
-    candidates = [
-        Path("/kaggle/input") / manifest["competition"],
-        Path("/kaggle/input/competitions") / manifest["competition"],
-    ]
-    present = [path for path in candidates if (path / "sample_submission.csv").is_file()]
-    if len(present) != 1:
-        raise ValueError("Cannot identify exactly one official competition input mount")
-    competition = present[0]
-    for name in ("test_series.csv", "sample_submission.csv", "test_series"):
-        if not (competition / name).exists():
-            raise ValueError("Official runtime competition input is missing")
+    competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
     command = [
         str(python),
         str(bundle / "code/chunked_infer.py"),
@@ -182,8 +184,8 @@ def run():
         str(bundle / encoder["config_path"]),
         "--series",
         str(competition / "test_series.csv"),
-        "--template",
-        str(competition / "sample_submission.csv"),
+        "--test-studies",
+        str(competition / "test.csv"),
         "--dicom-root",
         str(competition),
         "--cache-root",
@@ -199,6 +201,8 @@ def run():
         "--chunk-size",
         "32",
     ]
+    if (competition / "sample_submission.csv").is_file():
+        command.extend(("--template", str(competition / "sample_submission.csv")))
     if manifest.get("baseline_epoch_one") is True:
         command.extend(
             [

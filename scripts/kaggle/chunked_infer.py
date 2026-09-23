@@ -35,7 +35,21 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         raise ValueError("Chunk scratch must be new")
     if args.output.exists():
         raise ValueError("Refusing to replace an existing submission")
-    template = pd.read_csv(args.template)
+    test_studies = getattr(args, "test_studies", None)
+    sample = pd.read_csv(args.template) if args.template is not None else None
+    if sample is not None and list(sample.columns) != ["StudyInstanceUID", *TARGETS]:
+        raise ValueError("Official sample submission column order differs")
+    if test_studies is not None:
+        roster = pd.read_csv(test_studies)
+        if "StudyInstanceUID" not in roster.columns:
+            raise ValueError("Official test.csv lacks study identities")
+        template = pd.DataFrame({"StudyInstanceUID": roster.StudyInstanceUID})
+        for target in TARGETS:
+            template[target] = 0.5
+    elif sample is not None:
+        template = sample
+    else:
+        raise ValueError("A test.csv roster or submission template is required")
     series = pd.read_csv(args.series)
     if list(template.columns) != ["StudyInstanceUID", *TARGETS]:
         raise ValueError("Official template column order differs")
@@ -181,11 +195,20 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         "studies": len(template),
         "checkpoint_sha256": checkpoint_sha,
         "submission_sha256": sha256(args.output),
-        "test_inputs": {
-            "series_sha256": sha256(args.series),
-            "template_sha256": sha256(args.template),
-            "metadata_binding": "separate_test_inputs_not_checkpoint_bound",
-        },
+        "test_inputs": (
+            {
+                "series_sha256": sha256(args.series),
+                "test_studies_sha256": sha256(test_studies),
+                "sample_template_sha256": sha256(args.template) if args.template else None,
+                "metadata_binding": "test_csv_authoritative_not_checkpoint_bound",
+            }
+            if test_studies is not None
+            else {
+                "series_sha256": sha256(args.series),
+                "template_sha256": sha256(args.template),
+                "metadata_binding": "separate_test_inputs_not_checkpoint_bound",
+            }
+        ),
         "chunk_size": args.chunk_size,
         "chunk_count": len(receipts),
         "peak_chunk_cache_bytes": max(row["cache_bytes_before_cleanup"] for row in receipts),
@@ -202,8 +225,10 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("checkpoint", "encoder-config", "series", "template", "cache-root", "output"):
+    for name in ("checkpoint", "encoder-config", "series", "cache-root", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--test-studies", type=Path)
+    parser.add_argument("--template", type=Path)
     parser.add_argument("--dicom-root", type=Path)
     parser.add_argument("--source-revision", default="kaggle-runtime-test")
     parser.add_argument("--chunk-size", type=int, default=32)

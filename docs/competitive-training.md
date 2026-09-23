@@ -40,7 +40,9 @@ actual Kaggle code submissions finish. The owner has also
 requested one extra epoch-1 baseline submission and private Hugging Face
 preservation of every completed epoch. The baseline was submitted as Kaggle
 entry 56482890; scheduled epochs 2, 4, 6 and 10 were submitted as entries
-56483451, 56483949, 56483731 and 56485356. Their scores are pending. See the current
+56483451, 56483949, 56483731 and 56485356. Kaggle later reported all five
+hidden reruns failed with zero output bytes; see the
+[failure audit](../initiative/audits/kaggle-hidden-rerun-failure-v1/). See the current
 continuation and Kaggle guide for its separate replay proof and queue handling.
 The next measured comparison is defined in the
 [post-fold-0 DINOv3 plan](post-fold0-dinov3-plan.md).

@@ -1004,12 +1004,25 @@ def reconcile_submission(remote, db, sha):
         state="submitted",
         submission_id=found["ref"],
         remote_status=found.get("status"),
+        remote_error_description=found.get("errorDescription"),
+        remote_total_bytes=found.get("totalBytes"),
+        remote_outcome=submission_outcome(found),
         reconciled_at=utcnow(),
     )
     # Scores are recorded only as operational results; never select checkpoints.
     entry["public_score"] = found.get("publicScore")
     save_entry(db, entry, "read-only exact identity reconciliation")
     return entry
+
+
+def submission_outcome(found):
+    if found.get("errorDescription"):
+        return "failed"
+    if found.get("status") == "COMPLETE" and found.get("publicScore") is not None:
+        return "scored"
+    if found.get("status") == "COMPLETE":
+        return "complete_unscored"
+    return "pending_or_unknown"
 
 
 def status(remote, db, sha):
@@ -1024,7 +1037,11 @@ def status(remote, db, sha):
         found = [x for x in remote.submissions() if x.get("ref") == entry["submission_id"]]
         if len(found) != 1:
             raise ValueError("Submission ID is missing or ambiguous")
-        result["submission"] = {key: found[0].get(key) for key in ("ref", "status", "publicScore")}
+        result["submission"] = {
+            key: found[0].get(key)
+            for key in ("ref", "status", "errorDescription", "totalBytes", "publicScore")
+        }
+        result["submission"]["outcome"] = submission_outcome(found[0])
     return result
 
 

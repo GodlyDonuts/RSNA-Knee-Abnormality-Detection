@@ -70,24 +70,27 @@ studies; this is neither a Kaggle score nor a three-fold estimate. The first
 completed-epoch private Kaggle Dataset
 passed full byte verification, and its exact-source MRI-only T4 notebook
 completed after a recorded slug migration. It was submitted once as competition
-entry 56482890; the score and hidden-test runtime are still pending. The
+entry 56482890; its hidden rerun later failed without a score. The
 epoch-2 private Dataset also passed full byte verification and its version-1
 notebook completed MRI-only inference; it was submitted once as entry 56483451
-with score pending. The epoch-6 notebook also completed MRI-only inference and
-was submitted once as entry 56483731 with score pending. The epoch-4 notebook
+but its hidden rerun failed. The epoch-6 notebook also completed MRI-only inference and
+was submitted once as entry 56483731; its hidden rerun failed. The epoch-4 notebook
 also completed MRI-only inference and was submitted once as entry 56483949
-with score pending. Epoch 8's private Dataset is byte-verified, but its single
+but its hidden rerun failed. Epoch 8's private Dataset is byte-verified, but its single
 notebook push is uncertain after a Kaggle server error and awaits read-only
 reconciliation. The epoch-10 private Dataset appeared later and passed full
 download/hash verification. An exact-search guard separated the epoch-8
 unnamed placeholder from the absent epoch-10 slug; one CPU-only recovery pushed
 the unchanged private offline epoch-10 notebook as version 1. Its MRI-only
 public-example receipt passed and that version was submitted once as Kaggle
-entry 56485356, with score pending. The account's five daily slots are now
+entry 56485356; its hidden rerun failed. The account's five daily slots are now
 used. A separate exact-source epoch-8 notebook identity
 was pushed as private offline version 1 without copying Dataset bytes; its
-three-study MRI-only public-example receipt passed. It awaits a new live
-Kaggle allowance. See the
+three-study MRI-only public-example receipt passed. Its version-1 notebook is
+held from submission pending a corrected full-roster version. Kaggle's exact
+[failure audit](audits/kaggle-hidden-rerun-failure-v1/) shows all five submissions
+`COMPLETE` with zero output bytes and unhandled notebook errors; none scored.
+The cause is still under investigation. See the
 [epoch-1 Kaggle audit](audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](audits/kaggle-epoch2-v1/), [epoch-4 audit](audits/kaggle-epoch4-v1/),
 [epoch-6 audit](audits/kaggle-epoch6-v1/), [epoch-8 audit](audits/kaggle-epoch8-v1/),

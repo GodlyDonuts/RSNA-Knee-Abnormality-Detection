@@ -79,7 +79,7 @@ def fake_infer(command: list[str], *, check: bool, reverse: bool = False) -> Non
         [
             {
                 "StudyInstanceUID": uid,
-                **{target: int(uid.split(".")[-1]) / 10 for target in TARGETS},
+                **{target: int(uid.split(".")[-1]) % 10 / 10 for target in TARGETS},
             }
             for uid in rows.StudyInstanceUID
         ],
@@ -144,6 +144,54 @@ def test_misordered_chunk_output_never_becomes_a_submission(tmp_path):
             args, invoke=lambda command, **kwargs: fake_infer(command, reverse=True, **kwargs)
         )
     assert not args.output.exists()
+
+
+def test_hidden_test_roster_replaces_three_row_public_sample(tmp_path):
+    args = fixture(tmp_path)
+    sample = pd.read_csv(args.template).iloc[:3]
+    sample["StudyInstanceUID"] = ["9.9.1", "9.9.2", "9.9.3"]
+    sample.to_csv(args.template, index=False)
+    args.test_studies = tmp_path / "test.csv"
+    expected_ids = ["1.2.5", "1.2.1", "1.2.4", "1.2.2", "1.2.3"]
+    pd.DataFrame({"StudyInstanceUID": expected_ids}).to_csv(args.test_studies, index=False)
+    result = chunked.run(args, invoke=fake_infer)
+    assert pd.read_csv(args.output).StudyInstanceUID.tolist() == expected_ids
+    assert result["studies"] == 5
+    assert (
+        result["test_inputs"]["metadata_binding"] == "test_csv_authoritative_not_checkpoint_bound"
+    )
+    assert result["test_inputs"]["sample_template_sha256"] == chunked.sha256(args.template)
+
+
+def test_hidden_test_roster_works_without_sample_submission(tmp_path):
+    args = fixture(tmp_path)
+    args.test_studies = tmp_path / "test.csv"
+    args.template = None
+    expected_ids = ["1.2.5", "1.2.1", "1.2.4", "1.2.2", "1.2.3"]
+    pd.DataFrame({"StudyInstanceUID": expected_ids}).to_csv(args.test_studies, index=False)
+    result = chunked.run(args, invoke=fake_infer)
+    assert pd.read_csv(args.output).StudyInstanceUID.tolist() == expected_ids
+    assert result["test_inputs"]["sample_template_sha256"] is None
+
+
+def test_thirteen_hundred_study_roster_stays_chunked(tmp_path):
+    args = fixture(tmp_path)
+    args.test_studies = tmp_path / "test.csv"
+    args.chunk_size = 32
+    expected_ids = [f"1.2.{i}" for i in range(1, 1302)]
+    pd.DataFrame({"StudyInstanceUID": expected_ids}).to_csv(args.test_studies, index=False)
+    pd.DataFrame(
+        {
+            "StudyInstanceUID": expected_ids,
+            "SeriesInstanceUID": [uid + ".1" for uid in expected_ids],
+            "Anatomical_Plane": "Sagittal",
+        }
+    ).to_csv(args.series, index=False)
+    result = chunked.run(args, invoke=fake_infer)
+    assert result["studies"] == 1301 and result["chunk_count"] == 41
+    assert result["peak_chunk_cache_bytes"] == 32 * 1024
+    assert pd.read_csv(args.output).StudyInstanceUID.tolist() == expected_ids
+    assert not list(args.cache_root.rglob("*.npz"))
 
 
 def test_actual_checkpoint_inference_matches_full_three_study_run(tmp_path, monkeypatch):

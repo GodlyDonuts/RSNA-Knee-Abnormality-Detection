@@ -31,7 +31,7 @@ The completed fixed-final-epoch result reports **0.7783102649** fold-0 macro
 AUC across twelve targets on 1,156 accepted-train outer-fold studies, with
 2,810 optimizer updates. The final prediction file and result are archived in
 the preservation audit and have matching SHA-256/provenance. This is an internal
-one-fold report-label metric; the Kaggle score remains pending.
+one-fold report-label metric; no Kaggle score has been obtained.
 
 The rolling first-epoch checkpoint had already been replaced when the owner
 requested an epoch-1 baseline. Separate two-H100 job **841126** resumed the
@@ -48,7 +48,7 @@ per-epoch journal before any attempted repeat. The normal
 2/4/6/8/10 Kaggle cadence remains unchanged; the explicit baseline is one
 additional submission, so six total entries may span multiple quota days.
 Epoch-1 Kaggle competition submission **56482890** was made once, after a fresh
-live allowance of five; its public score is pending.
+live allowance of five; its hidden rerun later failed.
 The [epoch-1 Kaggle deployment audit](../initiative/audits/kaggle-epoch1-baseline-v1/)
 records a private version-1 Dataset (ID 12145591) whose 46 payload files were
 fully downloaded and rehashed. The first notebook slug was absent after an
@@ -61,7 +61,7 @@ does not establish hidden-test runtime or a leaderboard score. The epoch-2
 private Dataset was fully downloaded and rehashed; its distinct version-1
 notebook completed a version-bound MRI-only public-example receipt and was
 submitted once as Kaggle entry **56483451** after a live allowance of four;
-the leaderboard score is pending. Epoch 4's private Dataset was created once, fully
+its hidden rerun later failed. Epoch 4's private Dataset was created once, fully
 downloaded and rehashed in a second read-only reconciliation after the first
 encountered a Kaggle API error; its dedicated private notebook version 1 was
 then pushed once. Its MRI-only public-example receipt passed, and the exact
@@ -69,14 +69,15 @@ version was submitted once as Kaggle entry **56483949** after a live allowance
 of two. Epoch 6's private Dataset passed full byte verification; its
 dedicated notebook version 1 completed a valid MRI-only receipt and was
 submitted once as Kaggle entry **56483731** after a live allowance of three.
-The epoch-1, epoch-2, epoch-4 and epoch-6 scores are pending. Epoch 8's private
+All four of those hidden reruns failed without a score. Epoch 8's private
 Dataset passed full byte verification, but its first notebook push is recorded
 as uncertain after a Kaggle server error. An exact search associates an unnamed
 private placeholder with the original slug; do not repeat that mutation. A
 second notebook identity using the same hard-linked Dataset and source was
 pushed once as private offline version 1. Its three-study MRI-only public-example
 receipt passed. It remains in the canonical ledger as `pushed`, ready for a
-future live Kaggle allowance. Epoch 10's private Dataset appeared as version 1,
+future live Kaggle allowance, but version 1 is now held from submission pending
+a corrected full-roster notebook. Epoch 10's private Dataset appeared as version 1,
 ID 12146648; all 43 payload files were downloaded and hash-verified. Its first
 notebook-push dispatch stopped before `SaveKernel` on the unnamed listing item.
 A reviewed exact-search guard with a known-notebook positive control then
@@ -85,7 +86,13 @@ private offline epoch-10 notebook as version 1. Its MRI-only public-example
 receipt passed; the exact version was submitted once as Kaggle entry **56485356**
 after a fresh allowance of one. The follow-up account check showed five
 submissions today and zero available slots. Epoch 8 has no competition
-submission yet. No public scores have returned. The epoch-10 checkpoint is also fully verified on private
+submission yet. Kaggle later marked all five submitted hidden reruns `COMPLETE`
+with zero output bytes and the same unhandled-notebook-error message; none has
+a score. See the [hidden-rerun failure audit](../initiative/audits/kaggle-hidden-rerun-failure-v1/).
+The leading unconfirmed cause is the notebook using the three-row
+`sample_submission.csv` instead of the replaced `test.csv` as its study roster.
+Do not submit any original version-1 notebook when quota returns; validate and
+publish a corrected, distinct version first. The epoch-10 checkpoint is also fully verified on private
 Hugging Face. See the
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/),
 [epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/),

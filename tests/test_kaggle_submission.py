@@ -191,6 +191,22 @@ def test_missing_uncertain_submission_never_implies_safe_retry(tmp_path):
         assert workflow.read_entry(db, "a" * 64)["state"] == "submit_uncertain"
 
 
+def test_complete_hidden_error_is_failed_even_without_score():
+    result = {
+        "ref": 42,
+        "status": "COMPLETE",
+        "totalBytes": 0,
+        "publicScore": None,
+        "errorDescription": "Hidden notebook failed before writing output",
+    }
+    assert workflow.submission_outcome(result) == "failed"
+    assert workflow.submission_outcome({**result, "errorDescription": None}) == "complete_unscored"
+    assert (
+        workflow.submission_outcome({**result, "errorDescription": None, "publicScore": "0.7"})
+        == "scored"
+    )
+
+
 def test_reconciliation_cannot_overwrite_concurrent_success(tmp_path):
     path = tmp_path / "ledger"
     remote = FakeRemote()
