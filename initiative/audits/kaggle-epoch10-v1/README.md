@@ -18,15 +18,21 @@ payload files, including the checkpoint, were then fully downloaded and
 rehashed against the original publication intent. No Dataset creation retry
 occurred.
 
-The first notebook-push dispatch stopped during preflight. The canonical ledger
-is still `queued`, before a durable push intent or `SaveKernel` call. Kaggle's
-owned notebook listing contains one item with no `ref`, so the exact notebook
-slug cannot be proven absent by the current guard. No notebook push or
-competition submission has occurred for epoch 10. Reconcile that listing before
-a new notebook mutation; the epoch-10 checkpoint is also fully verified on
-Newton and private Hugging Face.
+The first notebook-push dispatch stopped during preflight, before a durable
+push intent or `SaveKernel` call. An exact authenticated search isolated the
+unnamed listing item to the uncertain epoch-8 slug: the same search found an
+existing epoch-4 notebook and no epoch-10 notebook. The reviewed guard at Git
+`c02863c` requires that positive control, and rejects an exact search that
+returns a nameless placeholder. Its one CPU-only recovery accepted the unchanged
+MRI-only epoch-10 notebook as **private offline version 1** under
+`godlydonuts/rsna-knee-epoch10-1464f64063d2`. The canonical ledger records
+`pushed`; Kaggle reported its public-example execution `RUNNING` at the last
+read-only check. A valid version-bound receipt and competition submission remain
+pending. The checkpoint is also fully verified on Newton and private Hugging
+Face.
 
 `source-files.json` maps the exact small Newton files and publication
-intent/response/verification; `local-files.json` maps the scripts and dispatch
-results. The two reconciliation files record the bounded Kaggle checks.
+intent/response/verification, one-shot recovery records and ledger states;
+`local-files.json` maps the scripts and dispatch results. The two reconciliation
+files record the bounded Kaggle checks.
 Large checkpoint and transport bytes remain on Newton.

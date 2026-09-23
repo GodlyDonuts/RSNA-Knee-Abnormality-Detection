@@ -16,14 +16,24 @@ and rehashed every payload file, including the 1.215 GB checkpoint.
 One guarded push of the dedicated private notebook
 `godlydonuts/rsna-knee-epoch8-e156bcf1d4e0` returned a Kaggle server error.
 The canonical ledger records `push_uncertain`; there has been no second push
-or competition submission. Subsequent read-only checks found no entry in the
-complete authenticated owned-notebook listing and `GetKernelSessionStatus`
-returned HTTP 404, while `GetKernel` returned HTTP 500 for this slug. Those
-responses do not establish a valid completed notebook. Preserve the original
-intent and reconcile the slug before any new notebook mutation. The epoch-8
-Dataset and checkpoint bytes need no reupload.
+or competition submission. `GetKernelSessionStatus` returned HTTP 404 and
+`GetKernel` returned HTTP 500. A later exact authenticated search returned one
+unnamed `[Private Notebook]` placeholder for the old slug. It is not a valid
+completed version and must never receive a repeated `SaveKernel` call.
+
+A second *notebook identity*, `godlydonuts/rsna-knee-epoch8-k2-e156bcf1d4e0`,
+is prepared from the same version-1 private Dataset and byte-identical MRI-only
+notebook source. Its 44 source Dataset files are hard-linked, so no checkpoint
+or Dataset payload was copied or uploaded. The derived operation SHA is
+`dbb632e7e3afffbbc9324eb484f4cf4185fe0142abb71d68d6042c3998cb5ce1`.
+The first derivation preflight counted the separate Dataset metadata sidecar as
+a payload receipt member and stopped before linking any bytes. The empty
+temporary directory was removed after an exact contents check; the corrected
+second derivation passed. No mutation of the new Kaggle notebook slug has yet
+occurred. Its exact search currently returns no result, while a known owned
+notebook is found as a positive control.
 
 `source-files.json` maps the exact small Newton files and canonical ledger
-record; `local-files.json` maps scripts and dispatch results. The separate
+record and derived operation; `local-files.json` maps scripts and dispatch results. The separate
 `reconciliation-readonly-20260923.json` records the bounded Kaggle checks.
 Large private artifacts remain on Newton and Kaggle.

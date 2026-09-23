@@ -1,0 +1,127 @@
+"""Derive a second epoch-8 notebook slug without copying Dataset payload bytes."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+R = Path("/home/sa305415/rsna-knee")
+OLD = R / "kaggle/bundles/epoch008-e156bcf1d4e0-2bc2695-v1"
+NEW = R / "kaggle/bundles/epoch008-e156bcf1d4e0-kernel2-v1"
+CHECKPOINT_SHA = "e156bcf1d4e0d7509d9a48ac0630af80e7119ee232e23082371c575ffc207373"
+OLD_OPERATION_SHA = "40be2ad0df346be3ea9185ea16936113bde4b1fdb6d0a1a6edee5b97613d3adf"
+OLD_SLUG = "godlydonuts/rsna-knee-epoch8-e156bcf1d4e0"
+NEW_SLUG = "godlydonuts/rsna-knee-epoch8-k2-e156bcf1d4e0"
+DATASET_SLUG = "godlydonuts/rsna-knee-e008-e156bcf1d4e0"
+DATASET_ID = 12146499
+
+
+def digest(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(4 * 1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def write_json(path: Path, value: dict) -> None:
+    with path.open("x") as stream:
+        json.dump(value, stream, sort_keys=True, indent=2, allow_nan=False)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def main() -> None:
+    if not os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOB_GPUS"):
+        raise ValueError("CPU-only Slurm allocation required")
+    old_op_path = OLD / "operation.json"
+    if digest(old_op_path) != OLD_OPERATION_SHA:
+        raise ValueError("Original epoch-8 operation differs")
+    op = json.loads(old_op_path.read_text())
+    if (
+        op["checkpoint_sha256"] != CHECKPOINT_SHA
+        or op["kernel_slug"] != OLD_SLUG
+        or op["dataset_slug"] != DATASET_SLUG
+        or op["dataset_version"] != 1
+        or op["epoch"] != 8
+        or digest(OLD / "kernel/run.py") != op["kernel_source_sha256"]
+    ):
+        raise ValueError("Original epoch-8 identity differs")
+    verified_path = R / "kaggle/dataset-publications" / CHECKPOINT_SHA / "verified.json"
+    verified = json.loads(verified_path.read_text())
+    if (
+        verified.get("status") != "all_payload_bytes_verified"
+        or verified.get("operation_sha256") != OLD_OPERATION_SHA
+        or verified.get("id") != DATASET_ID
+        or verified.get("version") != 1
+        or verified.get("slug") != DATASET_SLUG
+        or verified.get("private") is not True
+    ):
+        raise ValueError("Original private Dataset proof differs")
+    old_meta = json.loads((OLD / "kernel/kernel-metadata.json").read_text())
+    if (
+        old_meta.get("id") != OLD_SLUG
+        or old_meta.get("title") != OLD_SLUG.split("/")[1].replace("-", " ")
+        or digest(OLD / "kernel/kernel-metadata.json") != op["kernel_metadata_sha256"]
+    ):
+        raise ValueError("Original kernel metadata differs")
+    if NEW.exists() or NEW.is_symlink():
+        raise ValueError("Second notebook operation already exists")
+    old_files = sorted(p for p in (OLD / "dataset").rglob("*") if p.is_file())
+    actual_names = {str(p.relative_to(OLD / "dataset")) for p in old_files}
+    expected_names = set(verified["files"]) | {"dataset-metadata.json"}
+    if (
+        actual_names != expected_names
+        or any(p.is_symlink() for p in old_files)
+        or digest(OLD / "dataset/dataset-metadata.json") != op["dataset_metadata_sha256"]
+    ):
+        raise ValueError("Original Dataset file membership differs")
+    temp = NEW.with_name(NEW.name + ".tmp")
+    temp.mkdir(mode=0o700)
+    (temp / "dataset").mkdir()
+    (temp / "kernel").mkdir()
+    for source in old_files:
+        relative = source.relative_to(OLD / "dataset")
+        target = temp / "dataset" / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        os.link(source, target)
+    os.link(OLD / "kernel/run.py", temp / "kernel/run.py")
+    new_meta = {**old_meta, "id": NEW_SLUG, "title": NEW_SLUG.split("/")[1].replace("-", " ")}
+    write_json(temp / "kernel/kernel-metadata.json", new_meta)
+    new_op = {
+        **op,
+        "kernel_slug": NEW_SLUG,
+        "kernel_metadata_sha256": digest(temp / "kernel/kernel-metadata.json"),
+        "prepared_at": datetime.now(timezone.utc).isoformat(),
+    }
+    write_json(temp / "operation.json", new_op)
+    new_sha = digest(temp / "operation.json")
+    derivation = {
+        "schema_version": 1,
+        "status": "second_notebook_identity_prepared",
+        "checkpoint_sha256": CHECKPOINT_SHA,
+        "old_operation_sha256": OLD_OPERATION_SHA,
+        "new_operation_sha256": new_sha,
+        "old_kernel_slug": OLD_SLUG,
+        "new_kernel_slug": NEW_SLUG,
+        "dataset_verified_sha256": digest(verified_path),
+        "dataset_hardlinked_files": len(old_files),
+        "notebook_source_sha256": op["kernel_source_sha256"],
+        "no_new_dataset_or_checkpoint_bytes": True,
+    }
+    write_json(temp / "derivation.json", derivation)
+    temp.rename(NEW)
+    print(
+        json.dumps(
+            {"status": derivation["status"], "operation_sha256": new_sha, "files": len(old_files)},
+            sort_keys=True,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

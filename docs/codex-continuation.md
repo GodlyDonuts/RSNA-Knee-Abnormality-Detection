@@ -69,16 +69,20 @@ version was submitted once as Kaggle entry **56483949** after a live allowance
 of two. Epoch 6's private Dataset passed full byte verification; its
 dedicated notebook version 1 completed a valid MRI-only receipt and was
 submitted once as Kaggle entry **56483731** after a live allowance of three.
-The epoch-1, epoch-2, epoch-4 and epoch-6 scores are pending. Epoch 8's private Dataset
-passed full byte verification, but its first notebook push is recorded as
-uncertain after a Kaggle server error; do not repeat that mutation without
-read-only reconciliation. Epoch 10's private Dataset later appeared as version
-1, ID 12146648; all 43 payload files were downloaded and hash-verified. Its
-first notebook-push dispatch stopped before a durable push intent or `SaveKernel`
-because the owned notebook listing has an item without a `ref`, so the slug's
-absence cannot be proven. The ledger remains queued. Do not repeat the push
-without resolving that preflight check. The epoch-10 checkpoint is also fully
-verified on private Hugging Face. See the
+The epoch-1, epoch-2, epoch-4 and epoch-6 scores are pending. Epoch 8's private
+Dataset passed full byte verification, but its first notebook push is recorded
+as uncertain after a Kaggle server error. An exact search associates an unnamed
+private placeholder with the original slug; do not repeat that mutation. A
+second notebook identity using the same hard-linked Dataset and source is
+prepared but not pushed. Epoch 10's private Dataset appeared as version 1,
+ID 12146648; all 43 payload files were downloaded and hash-verified. Its first
+notebook-push dispatch stopped before `SaveKernel` on the unnamed listing item.
+A reviewed exact-search guard with a known-notebook positive control then
+proved the epoch-10 slug absent, and one CPU-only recovery pushed the unchanged
+private offline epoch-10 notebook as version 1. The ledger records `pushed`;
+its Kaggle public-example execution is running. Neither epoch has a competition
+submission yet. The epoch-10 checkpoint is also fully verified on private
+Hugging Face. See the
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/),
 [epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/),
 [epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/) and

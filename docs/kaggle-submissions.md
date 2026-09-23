@@ -71,13 +71,15 @@ notebook completed a valid MRI-only receipt and was submitted once as entry
 verification and its dedicated version-1 notebook completed valid MRI-only
 inference, then was submitted once as entry 56483731 with score pending.
 Epoch 8's private Dataset passed full byte verification, but its single
-notebook push has an uncertain outcome after a Kaggle server error. Its slug
-requires read-only reconciliation before any new mutation. Epoch 10's private
-Dataset later appeared as version 1, ID 12146648, and all 43 payload files
-passed full download/hash verification. Its first notebook-push dispatch stopped
-in preflight because the owned notebook listing has an item without a `ref`;
-the canonical ledger remains queued and `SaveKernel` was not called. Resolve
-that preflight ambiguity before a new notebook push.
+notebook push has an uncertain outcome after a Kaggle server error. An exact
+authenticated search associates an unnamed listing placeholder with that old
+slug; do not repeat its mutation. A new notebook identity with the same
+hard-linked Dataset and source is prepared but not pushed. Epoch 10's private
+Dataset appeared as version 1, ID 12146648, and all 43 payload files passed
+full download/hash verification. Its first push dispatch stopped in preflight.
+The reviewed exact-search guard then proved the epoch-10 slug absent with a
+known-notebook positive control, and one recovery pushed the unchanged private
+offline notebook as version 1. Its public-example runtime receipt is pending.
 See the
 [epoch-1 audit](../initiative/audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/) and
