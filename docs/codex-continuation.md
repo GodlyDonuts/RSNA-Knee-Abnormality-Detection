@@ -74,6 +74,14 @@ stop with a checkpoint at update 26. Its pending time limit was reduced to
 30 minutes on the same job for backfill. Exact checkpoint preservation and
 resume scripts are staged, but not dispatched. Reconcile job 840991 before
 the one-CPU checkpoint proof or any full resume.
+The prepared Kaggle notebook now runs exact trained inference in 32-study
+chunks, checking each receipt and cleaning each temporary image cache. This
+bounds test-cache space without changing the pinned `rsna/**/*.py` trainer
+or model. Synthetic three-study checkpoint equivalence and local bundle tests
+pass; hidden-test runtime and scores are still unmeasured. Stage the new exact
+Kaggle code projection separately from the active b740 training checkout after
+its packaging commit is verified. Do not use the older monolithic projection
+for a newly scheduled epoch bundle.
 Both failure audits are in
 `initiative/audits/newton-production-stall-v1/` and
 `initiative/audits/newton-repeatable-stall-v1/`. The canonical Kaggle ledger

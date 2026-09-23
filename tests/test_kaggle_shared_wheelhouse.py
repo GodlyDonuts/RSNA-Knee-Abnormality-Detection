@@ -186,6 +186,10 @@ def test_shared_bundle_has_two_sources_and_omits_wheel_copies(tmp_path, monkeypa
     prepared = tmp_path / "prepared"
     assert not (prepared / "dataset/wheels").exists()
     assert (prepared / "dataset/wheelhouse.json").exists()
+    assert (prepared / "dataset/code/chunked_infer.py").read_bytes() == (
+        Path(__file__).resolve().parents[1] / "scripts/kaggle/chunked_infer.py"
+    ).read_bytes()
+    assert "code/chunked_infer.py" in (prepared / "kernel/run.py").read_text()
     operation = json.loads((prepared / "operation.json").read_text())
     metadata = json.loads((prepared / "kernel/kernel-metadata.json").read_text())
     assert metadata["dataset_sources"] == [operation["dataset_slug"], "owner/wheels"]

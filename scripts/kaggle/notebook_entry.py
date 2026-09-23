@@ -176,8 +176,7 @@ def run():
     subprocess.run(
         [
             str(python),
-            "-m",
-            "rsna.competitive.infer",
+            str(bundle / "code/chunked_infer.py"),
             "--checkpoint",
             str(bundle / "checkpoint.pt"),
             "--encoder-config",
@@ -188,7 +187,7 @@ def run():
             str(competition / "sample_submission.csv"),
             "--dicom-root",
             str(competition),
-            "--cache",
+            "--cache-root",
             "/tmp/rsna-knee-test-cache",
             "--output",
             str(working / "submission.csv"),
@@ -198,15 +197,19 @@ def run():
             "cuda",
             "--precision",
             "fp32",
-            "--scheduled-epoch",
+            "--chunk-size",
+            "32",
         ],
         env=env,
         check=True,
     )
     metrics = json.loads((working / "submission.metrics.json").read_text())
     if (
-        metrics.get("diagnostic_only") is not False
+        metrics.get("status") != "passed"
+        or metrics.get("diagnostic_only") is not False
         or metrics.get("checkpoint_sha256") != manifest["checkpoint_sha256"]
+        or metrics.get("submission_sha256") != sha256(working / "submission.csv")
+        or metrics.get("chunk_count", 0) < 1
     ):
         raise ValueError("Inference output is diagnostic or used a different checkpoint")
     # Public notebook execution normally has three examples. This validates only

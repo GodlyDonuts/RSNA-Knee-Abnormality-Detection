@@ -148,8 +148,19 @@ python scripts/kaggle/workflow.py status FULL_CHECKPOINT_SHA256
 exact notebook version. The notebook is private, explicitly requests `NvidiaTeslaT4`, and has internet disabled,
 with a nine-hour session timeout and only the private bundle and competition
 as inputs. It installs from the local hash-locked wheelhouse with `--no-index`;
-then invokes `rsna.competitive.infer` with `--encoder-config`, `--scheduled-epoch`,
-`--precision fp32`, two CPU threads and zero loader workers. FP32 permits a T4
+then invokes the byte-bound `code/chunked_infer.py` wrapper. It runs the exact
+trained `rsna.competitive.infer` source on successive 32-study subsets with
+`--encoder-config`, `--scheduled-epoch`, `--precision fp32`, two CPU threads and
+zero loader workers. Each subset is checked against its output receipt and the
+official template order before its decoded cache is removed. The merged output
+is checked again against the full official template. The wrapper changes only
+Kaggle orchestration: `rsna/**/*.py`, the trained checkpoint, masks and folds
+remain the exact training version. The training cache average is about 18.8 MB
+per study, so caching approximately 1,300 hidden studies at once could need
+about 24.4 GB; this estimate is not a hidden-test measurement. Repeated model
+loads add runtime, and the nine-hour hidden run remains unvalidated until a
+real completed checkpoint runs in Kaggle.
+FP32 permits a T4
 despite BF16 training on H100; numerical/runtime acceptance on the actual Kaggle
 GPU remains required. The selected PyTorch 2.14 Linux wheel uses CUDA 13, so
 Pascal/P100 is **not** supported by this package. The measured Kaggle T4/driver

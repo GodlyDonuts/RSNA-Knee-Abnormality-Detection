@@ -475,6 +475,7 @@ def prepare_bundle(
     }
     for path in sorted((repo / "rsna").rglob("*.py")):
         sources["code/rsna/" + str(path.relative_to(repo / "rsna"))] = path
+    sources["code/chunked_infer.py"] = Path(__file__).with_name("chunked_infer.py")
     # The complete trained checkpoint already contains the encoder tensors.
     # Retain pretrained weight hashes as lineage, without duplicating/fetching them.
     for kind in ("config",):
