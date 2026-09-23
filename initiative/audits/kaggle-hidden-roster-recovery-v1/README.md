@@ -61,3 +61,9 @@ Hugging Face revision `a54f598118f1bb58ec3df6bbf4d3292e92f947e5`.
 [The private milestone receipt](hf-verified.json) confirms full download and
 hash verification of all 14 files. This mirror precedes the Dataset and notebook
 publication receipts; it does not claim that hidden scoring passed.
+
+The subsequent completed public-example receipt at GitHub commit
+`fab79ef5385ea0f7122cbac74ede0cdbf82d9c38` is separately mirrored at
+private Hugging Face revision `fbec172bf54c5857e5988050ad5051a6d721facf`.
+[The follow-up verification](hf-public-verified.json) downloaded and hashed all
+seven small files. Neither private mirror is a Kaggle competition submission.

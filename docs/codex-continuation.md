@@ -98,13 +98,16 @@ Hugging Face. See the
 for the separately staged full-roster package. Its private Kaggle Dataset was
 created once and fully downloaded/hash verified; the distinct private offline
 notebook version 1 was pushed once. Its MRI-only three-study public-example
-execution completed
-with a version-bound exact-source receipt and valid 13-column output; the
+execution completed with a version-bound exact-source receipt and valid
+13-column output; the
 corrected `test.csv` roster path was exercised. There is no corrected competition
 submission or hidden-run result, and the live allowance was still zero.
 The exact code/audit milestone is privately mirrored and downloaded/hash
 verified at Hugging Face revision
-`a54f598118f1bb58ec3df6bbf4d3292e92f947e5`. See also the
+`a54f598118f1bb58ec3df6bbf4d3292e92f947e5`. The
+[public receipt mirror](../initiative/audits/kaggle-hidden-roster-recovery-v1/hf-public-verified.json)
+was separately verified at private HF revision
+`fbec172bf54c5857e5988050ad5051a6d721facf`. See also the
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/),
 [epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/),
 [epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/) and
