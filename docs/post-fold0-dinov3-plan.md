@@ -26,7 +26,8 @@ and a version-bound public-example receipt. Epochs 1, 2, 4, 6 and 10 were
 submitted once; their hidden rerun scores and runtime are pending. Epoch 10's
 exact version-1 notebook passed its receipt and was submitted as entry 56485356.
 Epoch 8's original notebook slug remains uncertain; a distinct exact-source
-private version-1 notebook was pushed and is running. A three-study public
+private version-1 notebook completed its MRI-only public-example receipt and
+awaits a new live submission allowance. A three-study public
 execution checks the package but cannot establish hidden-test speed or AUC.
 Do not choose a new training recipe from an unscored or failed code submission.
 

@@ -86,7 +86,8 @@ public-example receipt passed and that version was submitted once as Kaggle
 entry 56485356, with score pending. The account's five daily slots are now
 used. A separate exact-source epoch-8 notebook identity
 was pushed as private offline version 1 without copying Dataset bytes; its
-public-example inference is also running. See the
+three-study MRI-only public-example receipt passed. It awaits a new live
+Kaggle allowance. See the
 [epoch-1 Kaggle audit](audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](audits/kaggle-epoch2-v1/), [epoch-4 audit](audits/kaggle-epoch4-v1/),
 [epoch-6 audit](audits/kaggle-epoch6-v1/), [epoch-8 audit](audits/kaggle-epoch8-v1/),

@@ -75,7 +75,8 @@ notebook push has an uncertain outcome after a Kaggle server error. An exact
 authenticated search associates an unnamed listing placeholder with that old
 slug; do not repeat its mutation. A new notebook identity with the same
 hard-linked Dataset and source was pushed once as private offline version 1;
-its public-example execution is running. Epoch 10's private
+its MRI-only three-study public-example receipt passed. It is ready for a
+new live account allowance. Epoch 10's private
 Dataset appeared as version 1, ID 12146648, and all 43 payload files passed
 full download/hash verification. Its first push dispatch stopped in preflight.
 The reviewed exact-search guard then proved the epoch-10 slug absent with a

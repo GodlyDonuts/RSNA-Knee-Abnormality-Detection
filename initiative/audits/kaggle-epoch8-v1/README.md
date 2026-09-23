@@ -33,11 +33,17 @@ second derivation passed. The reviewed exact-search guard found a known owned
 notebook as a positive control and proved the new slug absent. One CPU-only
 migration recorded a durable intent, preserved the uncertain old slug in the
 canonical ledger, and pushed the unchanged MRI-only notebook as **private
-offline version 1** under the new slug. Kaggle reported its public-example
-execution `RUNNING` at the last read-only check. A version-bound receipt and
-competition submission remain pending.
+offline version 1** under the new slug. Kaggle completed its three-study
+public-example run and returned a version-bound MRI-only receipt. The canonical
+ledger remains `pushed`, without a competition submission. A fresh live account
+check showed five submissions today and **zero slots available**. The exact
+notebook is ready to submit when a new authoritative allowance appears; no
+quota reset time is asserted. The public three-study output is only a package
+check, not a leaderboard score.
 
 `source-files.json` maps the exact small Newton files and canonical ledger
 record and derived operation; `local-files.json` maps scripts and dispatch results. The separate
 `reconciliation-readonly-20260923.json` records the bounded Kaggle checks.
-Large private artifacts remain on Newton and Kaggle.
+`public-example-receipt.json` and `submission-readiness.json` bind the completed
+version and zero-slot account observation. Large private artifacts remain on
+Newton and Kaggle.
