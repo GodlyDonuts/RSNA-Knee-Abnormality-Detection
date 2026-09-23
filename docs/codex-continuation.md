@@ -20,6 +20,9 @@ optimizer progress. CPU-only Slurm watcher **843923** has dependency
 jobs before any retry, preserve/publish each immutable completed epoch, and then run the
 same recipe on fold 2 subject to cluster quotas. The accepted data masks and
 reserved confirmation/gold partitions remain untouched.
+The fold-1 launch and watcher receipts were also fully re-downloaded and
+hash-verified in the private Hugging Face dataset at revision
+`e4306333812bff9413a594e381cb56a168b6c4f8`; no fold-1 score is claimed.
 
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary

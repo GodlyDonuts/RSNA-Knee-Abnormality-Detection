@@ -36,3 +36,9 @@ watcher code, job script and dispatch receipts are preserved here and hashed
 against the private cluster copies. Reconcile job 843923 read-only before any
 retry. Publishing to the private Hugging Face dataset still requires separate
 per-epoch byte and SHA-256 verification.
+
+The launch milestone itself was committed to the [private Hugging Face dataset](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/e4306333812bff9413a594e381cb56a168b6c4f8/experiments/dinov3-v1/milestones/fold1-launch-bbe206a)
+at revision `e4306333812bff9413a594e381cb56a168b6c4f8`. All twelve small
+source/manifest files were downloaded again and matched the original byte
+counts and SHA-256 hashes; the operation intent and verification receipt are
+archived here. No fold-1 checkpoint or score was claimed in that milestone.
