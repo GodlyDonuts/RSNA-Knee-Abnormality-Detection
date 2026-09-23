@@ -14,7 +14,10 @@ Newton job **843914** was submitted at 18:13 UTC on September 23. It was
 script, configuration, hashes, dispatch intent and scheduler receipt are in the
 [fold-1 launch audit](../initiative/audits/dinov3-fold1-launch-v1/). Reconcile
 this job before any retry; when allocated, verify the device preflight and
-optimizer progress, preserve each immutable completed epoch, and then run the
+optimizer progress. CPU-only Slurm watcher **843923** has dependency
+`after:843914` and is queued to hard-link and verify the odd completed epochs
+1/3/5/7/9; the trainer creates the scheduled even snapshots. Reconcile both
+jobs before any retry, preserve/publish each immutable completed epoch, and then run the
 same recipe on fold 2 subject to cluster quotas. The accepted data masks and
 reserved confirmation/gold partitions remain untouched.
 

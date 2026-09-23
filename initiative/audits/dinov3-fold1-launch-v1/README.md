@@ -25,7 +25,14 @@ used of a 1,000 GiB soft quota and 989,142 files of a 1,000,000-file soft quota
 before dispatch; recheck quotas before another fold or checkpoint transfer.
 
 The user's request to preserve every completed epoch privately still applies.
-The trainer creates its scheduled even-epoch snapshots. A CPU-only watcher for
-odd-epoch preservation should be staged only after the training node and log
-are known, using the proven fold-0 watcher as reference. Publishing to the
-private Hugging Face dataset requires separate exact per-epoch verification.
+The trainer creates its scheduled even-epoch snapshots. CPU-only watcher
+**843923** was submitted once with Slurm dependency `after:843914` and was
+`PENDING (Dependency)` at the first check. It requests one CPU, no GPU, and
+checks the training log and exact checkpoint binding at odd completed epochs
+1, 3, 5, 7 and 9. Its step count is derived from the fold-1 training-study
+count and DDP effective batch size, rather than the fold-0 count. A synthetic
+epoch-1 capture and idempotent verification passed before staging. The exact
+watcher code, job script and dispatch receipts are preserved here and hashed
+against the private cluster copies. Reconcile job 843923 read-only before any
+retry. Publishing to the private Hugging Face dataset still requires separate
+per-epoch byte and SHA-256 verification.
