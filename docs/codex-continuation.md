@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+After the completed fold-0 run, the owner explicitly asked to keep training.
+The unchanged ten-epoch frozen DINOv3-L recipe was prepared for fold 1; only
+the fold value changes in its training configuration. One two-H100/four-CPU
+Newton job **843914** was submitted at 18:13 UTC on September 23. It was
+`PENDING (Resources)` at the first check, with no new result yet. Its exact
+script, configuration, hashes, dispatch intent and scheduler receipt are in the
+[fold-1 launch audit](../initiative/audits/dinov3-fold1-launch-v1/). Reconcile
+this job before any retry; when allocated, verify the device preflight and
+optimizer progress, preserve each immutable completed epoch, and then run the
+same recipe on fold 2 subject to cluster quotas. The accepted data masks and
+reserved confirmation/gold partitions remain untouched.
+
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
 Slurm job **841107** is the ten-epoch, two-H100/four-training-CPU fold-0
