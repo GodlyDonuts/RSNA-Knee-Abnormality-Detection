@@ -70,7 +70,10 @@ guard. The loader fix clips that roundoff. Job **840938** then verified all
 eight studies on Newton with the committed fix: seven image hashes were
 unchanged, the affected one now has maximum one, and Slurm completed `0:0`.
 Single bounded two-H100 job **840991** was submitted to cross update 23 and
-stop with a checkpoint at update 26. Reconcile that job before any full resume.
+stop with a checkpoint at update 26. Its pending time limit was reduced to
+30 minutes on the same job for backfill. Exact checkpoint preservation and
+resume scripts are staged, but not dispatched. Reconcile job 840991 before
+the one-CPU checkpoint proof or any full resume.
 Both failure audits are in
 `initiative/audits/newton-production-stall-v1/` and
 `initiative/audits/newton-repeatable-stall-v1/`. The canonical Kaggle ledger

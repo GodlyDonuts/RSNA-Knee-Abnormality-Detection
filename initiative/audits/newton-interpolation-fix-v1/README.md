@@ -37,6 +37,12 @@ checkpoint bundle, notebook, ledger entry or competition submission exists yet.
 The single bounded two-H100/four-CPU job **840991** has been submitted to run
 26 full-data updates, cross the prior update-23 stall, and stop at an exact
 checkpoint. Its frozen script, plan, stage and dispatch receipts are in
-`pilot/`. Reconcile its actual Slurm state, log and checkpoint before deciding
-whether to resume the ten-epoch campaign. `files.json` binds every preserved
-small original in this audit.
+`pilot/`. While still pending for resources, the **same job** had its time
+limit reduced from one hour to 30 minutes for scheduler backfill; the live
+Slurm change and receipt are preserved, and no second job was submitted.
+`resume-prep/` contains the staged, byte-verified one-CPU checkpoint proof and
+four-hour GPU continuation scripts. Neither has been submitted. The CPU proof
+will preserve the pilot checkpoint and original run/invocation records by hard
+link before any resume, then the GPU script will verify that proof. Reconcile
+the pilot's actual Slurm state, log and checkpoint before running them.
+`files.json` binds every preserved small original in this audit.

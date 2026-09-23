@@ -337,6 +337,8 @@ then failed its strict CPU image-range assertion. Follow-up one-CPU job 840800
 completed and identified 20 pixels at 1.000000238 in a rank-1 microbatch,
 with no negative or nonfinite values. The loader now clips FP32 interpolation roundoff to
 `[0,1]`; CPU job 840938 verified the exact eight studies with the committed
-fix. Bounded two-H100 job 840991 is queued to checkpoint after update 26.
-Check its actual result before a full resume. The [fix audit](../initiative/audits/newton-interpolation-fix-v1/)
+fix. Bounded two-H100 job 840991 is queued to checkpoint after update 26;
+its pending time limit was reduced to 30 minutes on the same job. The one-CPU
+checkpoint proof and four-hour GPU resume scripts are staged but not submitted.
+Check the pilot result before using them. The [fix audit](../initiative/audits/newton-interpolation-fix-v1/)
 records exact source, projection and job receipts.
