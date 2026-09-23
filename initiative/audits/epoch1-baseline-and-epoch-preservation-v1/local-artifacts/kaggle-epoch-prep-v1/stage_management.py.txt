@@ -1,0 +1,113 @@
+"""Build the isolated, pinned Kaggle Dataset management interpreter."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path("/home/sa305415/rsna-knee/kaggle")
+CONTROL = ROOT / "preparation-stage-v1"
+PARTIAL = ROOT / "management-cp312-v1.partial"
+FINAL = ROOT / "management-cp312-v1"
+RECEIPT = CONTROL / "management-receipt.json"
+FREEZE = CONTROL / "management-freeze.txt"
+INSTALL_LOG = CONTROL / "management-install.log"
+PINNED = {"kaggle": "2.2.3", "kagglesdk": "0.1.30"}
+
+
+def main() -> None:
+    os.umask(0o077)
+    if any(path.exists() or path.is_symlink() for path in (PARTIAL, FINAL, RECEIPT, FREEZE)):
+        raise ValueError("Management environment staging already attempted")
+    if sys.version_info[:3] != (3, 12, 13):
+        raise ValueError("Accepted Newton Python release differs")
+    subprocess.run([sys.executable, "-m", "venv", str(PARTIAL)], check=True)
+    python = PARTIAL / "bin/python"
+    env = os.environ.copy()
+    env.update(
+        PIP_CONFIG_FILE="/dev/null",
+        PIP_INDEX_URL="https://pypi.org/simple",
+        PIP_EXTRA_INDEX_URL="",
+        PIP_NO_CACHE_DIR="1",
+        PIP_NO_INPUT="1",
+        PIP_DISABLE_PIP_VERSION_CHECK="1",
+        PYTHONDONTWRITEBYTECODE="1",
+    )
+    install = subprocess.run(
+        [
+            str(python),
+            "-m",
+            "pip",
+            "install",
+            "--only-binary=:all:",
+            "kaggle==2.2.3",
+            "kagglesdk==0.1.30",
+        ],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=900,
+    )
+    INSTALL_LOG.write_text(install.stdout)
+    if install.returncode:
+        raise ValueError("Pinned management SDK installation failed; inspect private log")
+    subprocess.run([str(python), "-m", "pip", "check"], env=env, check=True)
+    probe = subprocess.check_output(
+        [
+            str(python),
+            "-c",
+            "import importlib.metadata,json,sys; "
+            "from kaggle.api.kaggle_api_extended import "
+            "ApiBlobType,ApiCreateDatasetRequest,KaggleApi,ResumableUploadContext; "
+            "print(json.dumps({'python':sys.version.split()[0],"
+            "'versions':{n:importlib.metadata.version(n) "
+            "for n in ('kaggle','kagglesdk','requests')}}))",
+        ],
+        env=env,
+        text=True,
+        timeout=30,
+    )
+    accepted = json.loads(probe)
+    if accepted["python"] != "3.12.13" or any(
+        accepted["versions"].get(name) != value for name, value in PINNED.items()
+    ):
+        raise ValueError("Management SDK import or pinned versions differ")
+    frozen = subprocess.check_output(
+        [str(python), "-m", "pip", "freeze", "--all"], env=env, timeout=30
+    )
+    with FREEZE.open("xb") as writer:
+        writer.write(frozen)
+        writer.flush()
+        os.fsync(writer.fileno())
+    os.replace(PARTIAL, FINAL)
+    proof = {
+        "schema_version": 1,
+        "status": "isolated_management_sdk_verified",
+        "checked_at_utc": datetime.now(timezone.utc).isoformat(),
+        "job_id": os.environ.get("SLURM_JOB_ID"),
+        "python_path": str(FINAL / "bin/python"),
+        "python_version": accepted["python"],
+        "versions": accepted["versions"],
+        "required_sdk_symbols_imported": True,
+        "pip_check_passed": True,
+        "freeze_sha256": hashlib.sha256(frozen).hexdigest(),
+        "freeze_bytes": len(frozen),
+        "public_pypi_only": True,
+        "model_environment_modified": False,
+    }
+    with RECEIPT.open("x") as writer:
+        json.dump(proof, writer, sort_keys=True, indent=2)
+        writer.write("\n")
+        writer.flush()
+        os.fsync(writer.fileno())
+    print(json.dumps(proof, sort_keys=True), flush=True)
+
+
+if __name__ == "__main__":
+    main()

@@ -27,9 +27,14 @@ checkpoint. One-CPU proof job 841091 preserved and decoded that checkpoint;
 the first two-H100 continuation 841094 failed at evc27's CUDA visibility
 preflight before training. Job 841107 resumes the same verified state on evc28.
 See the [fix audit](../initiative/audits/newton-interpolation-fix-v1/).
-First-epoch throughput,
-competitive accuracy and the hidden-test time budget remain unmeasured until
-actual completed epochs and Kaggle notebook runs finish.
+Continuation 841107 has since completed the first four full-data epochs.
+The first epoch made 281 optimizer updates on 2,247 eligible training studies;
+its completion marker and subsequent scheduled epoch-2, captured epoch-3 and
+scheduled epoch-4 snapshots are verified. Competitive accuracy and the hidden-test time budget
+remain unmeasured until actual Kaggle notebook runs finish. The owner has also
+requested one extra epoch-1 baseline submission and private Hugging Face
+preservation of every completed epoch; see the current continuation and Kaggle
+guide for its separate replay proof and queue handling.
 
 ## Frozen development data
 

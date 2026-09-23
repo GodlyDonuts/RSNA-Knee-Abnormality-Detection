@@ -6,6 +6,50 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 22
 
+The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
+completed training epoch supersede the earlier monitoring-only cadence. Primary
+Slurm job **841107** remains the ten-epoch, two-H100/four-training-CPU fold-0
+run on evc28. It completed epochs 1, 2, 3 and 4 and continues with unchanged
+accepted masks, folds, official DINOv3-L weights and training source Git
+`b74060b98f01bff1b924070ccba5ce44dd002f40`. Its immutable epoch-2
+snapshot SHA is `f56c0d64519fbf2fde5433ef4ff3dcc59d8f01394d80515ebf5cebf97726fa02`.
+CPU-only watcher **841134** shares evc28 and captured completed epoch 3 before
+the rolling recovery file advanced; its verified snapshot SHA is
+`caaa821440a1e880ba95744223ac693d30a5f8d3ad62a4d0a0f29d46e2b494f4`.
+The watcher is expected to capture odd epochs 5, 7 and 9 likewise; check its
+Slurm state and actual sidecars before assuming success. Even epochs 4/6/8/10
+remain trainer-scheduled snapshots. Epochs 2, 3 and 4 were separately committed
+to private `GodlyDonuts/RSNA-Data` and fully downloaded back for SHA/size
+verification at revisions `1ef2a32c33fa635b5c9498e14eeb11afaf0e428d`,
+`2d777a58bf4a8a247c6be7b5943ac11ee40d67f3` and
+`fc78e3d40b5a00a69bcab7be30d5cf732eb552de`.
+
+The rolling first-epoch checkpoint had already been replaced when the owner
+requested an epoch-1 baseline. Separate two-H100 job **841126** resumed the
+verified update-26 source and reached the completed `(epoch=1,next_update=0,
+step=281)` checkpoint. Torchrun propagated the trainer's deliberate exit 75 as
+wrapper failure `1:0`; this did **not** change primary job 841107. CPU-only
+job **841157** verified the saved 1,215,174,821-byte checkpoint SHA
+`01d56458c54f4f2811ecfd5b997e99baec765e850345001960b953304ff3d28e`
+and all 255 replayed update records against the primary run. CPU job **841160**
+then hard-linked immutable epoch-1 weights and wrote a bound one-off sidecar.
+The private epoch-1 checkpoint was fully downloaded and verified from HF
+revision `94d95aa232f41e2859dd56e5134901efd066a406`; inspect its
+per-epoch journal before any attempted repeat. The normal
+2/4/6/8/10 Kaggle cadence remains unchanged; the explicit baseline is one
+additional submission, so six total entries may span multiple quota days.
+No Kaggle competition submission has yet been made.
+
+The accepted Kaggle wheelhouse was staged and rehashed in CPU job **841116**.
+An isolated pinned Kaggle management environment was installed in CPU job
+841121; its import-only probe encountered the SDK's automatic authentication
+on import. Recovery job **841131** completed `0:0` using a nonsecret offline
+legacy placeholder solely for the symbol import check, with `pip check` and
+exact versions. The separate offline Hugging Face upload client passed CPU
+job **841139**. Tokens remain in local ignored `.env` and are streamed through
+SSH/stdin only during the bounded network phase. The epoch publisher's durable
+intents and receipts are under Newton `hf-epoch-publisher-v1/epochs/`.
+
 The user stopped the subagents after reconnecting. Root alone owns further
 remote dispatches, transfers and publication; do not restart agents. Preserve
 their completed originals and inspect receipts before taking over operations.
@@ -81,7 +125,8 @@ the checkpoint and proof unchanged. The single retry **841107** allocated evc28
 with evc27 excluded and uses the same proof. Check its
 Slurm state, `run.json`, `invocation.json`, epoch sidecars and logs before
 acting; do not submit a second continuation. The [fix audit](../initiative/audits/newton-interpolation-fix-v1/)
-holds the immutable small proof and dispatch records. No epoch or Kaggle
+holds the immutable small proof and dispatch records. The completed epochs and
+private preservation results are recorded at the top of this guide; no Kaggle
 submission is yet claimed.
 The prepared Kaggle notebook now runs exact trained inference in 32-study
 chunks, checking each receipt and cleaning each temporary image cache. This

@@ -337,29 +337,56 @@ def rollback_on_error(function):
 
 def validate_snapshot(sidecar, repo=ROOT):
     """Read trusted weights_only snapshot; validate internal state as well as sidecar."""
+    import importlib.util
+
     import torch
 
     sys.path.insert(0, str(repo))
     from rsna.competitive.infer import validate_inference_checkpoint
 
     meta = json.loads(sidecar.read_text())
+    baseline = meta.get("status") == "explicit_epoch1_baseline_snapshot"
     if (
-        meta.get("status") != "scheduled_epoch_snapshot"
-        or meta.get("epoch") not in CADENCE
+        (meta.get("status") != "scheduled_epoch_snapshot" and not baseline)
+        or type(meta.get("epoch")) is not int
+        or (baseline and meta["epoch"] != 1)
+        or (not baseline and meta["epoch"] not in CADENCE)
         or meta.get("submission_every_epochs") != 2
         or meta.get("submission_eligible") is not True
         or meta.get("diagnostic_only") is not False
         or type(meta.get("optimizer_steps")) is not int
         or meta["optimizer_steps"] <= 0
     ):
-        raise ValueError("Only trained, non-diagnostic epochs 2/4/6/8/10 are eligible")
+        raise ValueError("Only trained, completed, non-diagnostic authorized epochs are eligible")
     path = relative_file(sidecar.parent, meta["checkpoint_file"])
     if digest(path) != meta.get("checkpoint_sha256") or path.stat().st_size != meta.get(
         "checkpoint_bytes"
     ):
         raise ValueError("Epoch snapshot hash/size changed")
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
-    binding = validate_inference_checkpoint(checkpoint, allow_scheduled_epoch=True)
+    if baseline:
+        proof_path = relative_file(sidecar.parent, meta.get("baseline_proof_file", ""))
+        if digest(proof_path) != meta.get("baseline_proof_sha256"):
+            raise ValueError("Baseline replay proof changed")
+        proof = json.loads(proof_path.read_text())
+        if (
+            proof.get("status") != "completed_epoch1_replay"
+            or proof.get("checkpoint_sha256") != meta["checkpoint_sha256"]
+            or proof.get("checkpoint_bytes") != meta["checkpoint_bytes"]
+            or proof.get("optimizer_steps") != meta["optimizer_steps"]
+            or proof.get("source_checkpoint_sha256")
+            != "b50ae5591b7b5b02f36423676f1f7fcbedacd69c8d848172bee459e4ae8d044a"
+        ):
+            raise ValueError("Baseline proof does not bind the replay")
+        adapter = Path(__file__).with_name("baseline_infer.py")
+        spec = importlib.util.spec_from_file_location("rsna_baseline_infer", adapter)
+        if spec is None or spec.loader is None:
+            raise ValueError("Baseline inference adapter is missing")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        binding = module.validate_baseline(checkpoint)
+    else:
+        binding = validate_inference_checkpoint(checkpoint, allow_scheduled_epoch=True)
     config = binding["config"]
     code = {
         str(p.relative_to(repo / "rsna")): digest(p) for p in sorted((repo / "rsna").rglob("*.py"))
@@ -367,7 +394,7 @@ def validate_snapshot(sidecar, repo=ROOT):
     if binding.get("code_sha256") != code or object_hash(binding) != meta.get("binding_sha256"):
         raise ValueError("Snapshot code or binding differs from the exact trained package")
     if (
-        checkpoint.get("scheduled_epoch") is not True
+        checkpoint.get("scheduled_epoch") is not (not baseline)
         or checkpoint.get("epoch") != meta["epoch"]
         or checkpoint.get("next_update") != 0
         or checkpoint.get("step") != meta["optimizer_steps"]
@@ -473,9 +500,14 @@ def prepare_bundle(
         "snapshot.json": sidecar,
         "DINOv3-LICENSE.md": license_file,
     }
+    baseline = meta.get("status") == "explicit_epoch1_baseline_snapshot"
+    if baseline:
+        sources["baseline-proof.json"] = relative_file(sidecar.parent, meta["baseline_proof_file"])
     for path in sorted((repo / "rsna").rglob("*.py")):
         sources["code/rsna/" + str(path.relative_to(repo / "rsna"))] = path
     sources["code/chunked_infer.py"] = Path(__file__).with_name("chunked_infer.py")
+    if baseline:
+        sources["code/baseline_infer.py"] = Path(__file__).with_name("baseline_infer.py")
     # The complete trained checkpoint already contains the encoder tensors.
     # Retain pretrained weight hashes as lineage, without duplicating/fetching them.
     for kind in ("config",):
@@ -518,6 +550,7 @@ def prepare_bundle(
         "competition": COMPETITION,
         "checkpoint_sha256": meta["checkpoint_sha256"],
         "epoch": meta["epoch"],
+        "baseline_epoch_one": baseline,
         "snapshot_sidecar_sha256": digest(sidecar),
         "release_binding_sha256": meta["release_binding_sha256"],
         "dataset_slug": dataset_slug,

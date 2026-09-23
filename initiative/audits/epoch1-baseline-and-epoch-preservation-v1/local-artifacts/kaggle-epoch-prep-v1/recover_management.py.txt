@@ -1,0 +1,100 @@
+"""Finalize the already-installed Kaggle management venv after offline import auth probe."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path("/home/sa305415/rsna-knee/kaggle")
+CONTROL = ROOT / "preparation-stage-v1"
+PARTIAL = ROOT / "management-cp312-v1.partial"
+FINAL = ROOT / "management-cp312-v1"
+RECEIPT = CONTROL / "management-receipt.json"
+FREEZE = CONTROL / "management-freeze.txt"
+
+
+def main() -> None:
+    os.umask(0o077)
+    if sys.version_info[:3] != (3, 12, 13):
+        raise ValueError("Accepted Newton Python differs")
+    if not PARTIAL.is_dir() or any(path.exists() for path in (FINAL, RECEIPT, FREEZE)):
+        raise ValueError("Management staging state changed")
+    p = subprocess.run(
+        ["sacct", "-j", "841121", "--format=JobID,State,ExitCode", "-P", "--noheader"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    if not any(line.startswith("841121|FAILED|1:0") for line in p.stdout.splitlines()):
+        raise ValueError("Original installation attempt state changed")
+    python = PARTIAL / "bin/python"
+    env = os.environ.copy()
+    env.update(
+        KAGGLE_USERNAME="offline-import-probe",
+        KAGGLE_KEY="offline-import-probe",
+        PYTHONDONTWRITEBYTECODE="1",
+    )
+    env.pop("KAGGLE_API_TOKEN", None)
+    subprocess.run([str(python), "-m", "pip", "check"], env=env, check=True)
+    probe = subprocess.run(
+        [
+            str(python),
+            "-c",
+            "import importlib.metadata,json,sys; "
+            "from kaggle.api.kaggle_api_extended import "
+            "ApiBlobType,ApiCreateDatasetRequest,KaggleApi,ResumableUploadContext; "
+            "print(json.dumps({'python':sys.version.split()[0],"
+            "'versions':{n:importlib.metadata.version(n) "
+            "for n in ('kaggle','kagglesdk','requests')}}))",
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if probe.returncode:
+        raise ValueError("Offline SDK symbol import failed")
+    accepted = json.loads(probe.stdout)
+    if accepted["python"] != "3.12.13" or any(
+        accepted["versions"].get(k) != v
+        for k, v in {"kaggle": "2.2.3", "kagglesdk": "0.1.30"}.items()
+    ):
+        raise ValueError("Pinned management versions differ")
+    frozen = subprocess.check_output([str(python), "-m", "pip", "freeze", "--all"], env=env)
+    with FREEZE.open("xb") as writer:
+        writer.write(frozen)
+        writer.flush()
+        os.fsync(writer.fileno())
+    os.replace(PARTIAL, FINAL)
+    proof = {
+        "schema_version": 1,
+        "status": "isolated_management_sdk_verified",
+        "checked_at_utc": datetime.now(timezone.utc).isoformat(),
+        "job_id": os.environ.get("SLURM_JOB_ID"),
+        "original_install_job_id": 841121,
+        "python_path": str(FINAL / "bin/python"),
+        "python_version": accepted["python"],
+        "versions": accepted["versions"],
+        "required_sdk_symbols_imported": True,
+        "pip_check_passed": True,
+        "freeze_sha256": hashlib.sha256(frozen).hexdigest(),
+        "freeze_bytes": len(frozen),
+        "offline_import_used_nonsecret_legacy_placeholder": True,
+        "public_pypi_only": True,
+        "model_environment_modified": False,
+    }
+    with RECEIPT.open("x") as writer:
+        json.dump(proof, writer, sort_keys=True, indent=2)
+        writer.write("\n")
+        writer.flush()
+        os.fsync(writer.fileno())
+    print(json.dumps(proof, sort_keys=True), flush=True)
+
+
+if __name__ == "__main__":
+    main()

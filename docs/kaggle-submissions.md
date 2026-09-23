@@ -6,6 +6,22 @@ leaderboard, gold labels, or the reserved 441-study confirmation set. There are
 at most five submissions per competition/team/day across all runs. Extra ready
 checkpoints wait in the shared queue; they do not each receive five slots.
 
+The owner additionally requested **epoch 1 as a one-off baseline** after the
+first full-data epoch had completed. Its rolling recovery file had already been
+replaced, so separate job 841126 deterministically replayed updates 27–281
+from the verified update-26 source. The trainer saved `(epoch=1,next_update=0,
+step=281)` and intentionally exited 75; Torchrun propagated that as wrapper
+failure. CPU job 841157 checked the actual checkpoint, complete trainer stop
+receipt, exact source binding and all 255 matching primary-run update records.
+CPU job 841160 hard-linked the immutable checkpoint with an explicit baseline
+sidecar. `baseline_infer.py` authorizes only this completed fold-0 epoch-1 state
+and then runs the unchanged trained `rsna.competitive.infer` model/data path.
+The usual cadence and training configuration remain unchanged. This makes six
+requested monitoring submissions total, so the last one may wait for another
+day's live allowance. Use the same single ledger and coordinator for all six.
+Private Hugging Face preservation of every epoch is separate from Kaggle's
+five-per-day submission limit.
+
 This is a **code competition**. The three public example studies test execution
 only. We submit an exact saved notebook version that produces `submission.csv`;
 Kaggle reruns that code with its hidden inputs. Never upload the local three-row
@@ -36,8 +52,10 @@ backward, tiny random DINOv3 forward and decoder checks on a T4. Neither probe
 accessed competition data or pretrained weights. The small proofs and reusable
 `shared-wheelhouse.json` are archived under
 `initiative/audits/dinov3-deployment-v1/kaggle-t4-acceptance/`.
-There is no eligible production checkpoint yet. A trained epoch snapshot and
-successful complete model inference remain required before a competition entry.
+Completed full-data epoch 1, 2, 3 and 4 checkpoint snapshots now exist; epochs 1
+and 3 are preserved separately from the trainer's scheduled Kaggle cadence.
+No competition entry has been created yet. Complete exact private notebook
+execution is still required before any code submission.
 
 ## Local preparation
 
@@ -333,7 +351,10 @@ pins manifest SHA-256
 `94d9d84d8a71addeae015fd0c833cb71c82268929c2616beb21f99837447923b`
 and TAR SHA-256
 `b9c3e6b4675bf3163e9169b07116d6735cdb85bcac736d963482f93ec6b217e5`.
-No submission artifact exists before a scheduled checkpoint completes.
+The current baseline and scheduled-epoch packaging source must use a new exact
+projection with `rsna/**/*.py` identical to the b740 training commit. The
+earlier c220 projection predates the explicit epoch-1 exception. Keep both
+historical projections intact and verify the successor manifest before use.
 
 Use one finite CPU-only Slurm allocation after a real scheduled snapshot exists:
 2 CPUs initially, no GPU, accepted Python3.12 environment unpacked on node-local

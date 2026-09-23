@@ -1,0 +1,50 @@
+"""Prepare a private offline Hugging Face client for large cluster-side uploads."""
+from __future__ import annotations
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path('/home/sa305415/rsna-knee/hf-epoch-publisher-v1')
+PARTIAL = ROOT / 'env-cp312.partial'
+FINAL = ROOT / 'env-cp312'
+RECEIPT = ROOT / 'environment-receipt.json'
+WHEELS = Path('/home/sa305415/rsna-knee/kaggle/wheelhouse-cp312-cu130-v1')
+
+def main() -> None:
+    os.umask(0o077)
+    if sys.version_info[:3] != (3, 12, 13) or any(p.exists() for p in (PARTIAL, FINAL, RECEIPT)):
+        raise ValueError('Publisher environment state or interpreter changed')
+    if not WHEELS.is_dir():
+        raise ValueError('Accepted private wheelhouse is missing')
+    subprocess.run([sys.executable, '-m', 'venv', str(PARTIAL)], check=True)
+    python = PARTIAL / 'bin/python'
+    env = os.environ.copy()
+    env.update(PIP_CONFIG_FILE='/dev/null', PIP_NO_INDEX='1', PIP_NO_INPUT='1',
+               PIP_DISABLE_PIP_VERSION_CHECK='1', PIP_NO_CACHE_DIR='1', PYTHONDONTWRITEBYTECODE='1')
+    p = subprocess.run([str(python), '-m', 'pip', 'install', '--no-index', '--find-links',
+                        str(WHEELS), 'huggingface_hub==1.32.0', 'hf_xet==1.6.0'],
+                       env=env, capture_output=True, text=True, timeout=600)
+    (ROOT / 'install.log').write_text(p.stdout + p.stderr)
+    if p.returncode:
+        raise ValueError('Offline Hugging Face client install failed')
+    subprocess.run([str(python), '-m', 'pip', 'check'], env=env, check=True)
+    q = subprocess.run([str(python), '-c', 'import huggingface_hub,hf_xet; print(huggingface_hub.__version__)'],
+                       env=env, capture_output=True, text=True, timeout=30)
+    if q.returncode or q.stdout.strip() != '1.32.0':
+        raise ValueError('Offline Hub client import or version differs')
+    frozen = subprocess.check_output([str(python), '-m', 'pip', 'freeze', '--all'], env=env)
+    with (ROOT / 'freeze.txt').open('xb') as f:f.write(frozen);f.flush();os.fsync(f.fileno())
+    os.replace(PARTIAL, FINAL)
+    proof={'schema_version':1,'status':'offline_hf_publisher_environment_verified',
+           'job_id':os.environ['SLURM_JOB_ID'],'checked_at_utc':datetime.now(timezone.utc).isoformat(),
+           'python':str(FINAL / 'bin/python'),'python_version':'3.12.13',
+           'huggingface_hub':'1.32.0','hf_xet':'1.6.0','pip_check_passed':True,
+           'freeze_sha256':hashlib.sha256(frozen).hexdigest(),'model_environment_modified':False}
+    with RECEIPT.open('x') as f:json.dump(proof,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+    print(json.dumps(proof,sort_keys=True),flush=True)
+
+if __name__ == '__main__':main()

@@ -173,36 +173,43 @@ def run():
     for name in ("test_series.csv", "sample_submission.csv", "test_series"):
         if not (competition / name).exists():
             raise ValueError("Official runtime competition input is missing")
-    subprocess.run(
-        [
-            str(python),
-            str(bundle / "code/chunked_infer.py"),
-            "--checkpoint",
-            str(bundle / "checkpoint.pt"),
-            "--encoder-config",
-            str(bundle / encoder["config_path"]),
-            "--series",
-            str(competition / "test_series.csv"),
-            "--template",
-            str(competition / "sample_submission.csv"),
-            "--dicom-root",
-            str(competition),
-            "--cache-root",
-            "/tmp/rsna-knee-test-cache",
-            "--output",
-            str(working / "submission.csv"),
-            "--workers",
-            "0",
-            "--device",
-            "cuda",
-            "--precision",
-            "fp32",
-            "--chunk-size",
-            "32",
-        ],
-        env=env,
-        check=True,
-    )
+    command = [
+        str(python),
+        str(bundle / "code/chunked_infer.py"),
+        "--checkpoint",
+        str(bundle / "checkpoint.pt"),
+        "--encoder-config",
+        str(bundle / encoder["config_path"]),
+        "--series",
+        str(competition / "test_series.csv"),
+        "--template",
+        str(competition / "sample_submission.csv"),
+        "--dicom-root",
+        str(competition),
+        "--cache-root",
+        "/tmp/rsna-knee-test-cache",
+        "--output",
+        str(working / "submission.csv"),
+        "--workers",
+        "0",
+        "--device",
+        "cuda",
+        "--precision",
+        "fp32",
+        "--chunk-size",
+        "32",
+    ]
+    if manifest.get("baseline_epoch_one") is True:
+        command.extend(
+            [
+                "--baseline-epoch-one",
+                "--baseline-sidecar",
+                str(bundle / "snapshot.json"),
+                "--baseline-proof",
+                str(bundle / "baseline-proof.json"),
+            ]
+        )
+    subprocess.run(command, env=env, check=True)
     metrics = json.loads((working / "submission.metrics.json").read_text())
     if (
         metrics.get("status") != "passed"
@@ -210,6 +217,7 @@ def run():
         or metrics.get("checkpoint_sha256") != manifest["checkpoint_sha256"]
         or metrics.get("submission_sha256") != sha256(working / "submission.csv")
         or metrics.get("chunk_count", 0) < 1
+        or metrics.get("checkpoint_epoch") != manifest["epoch"]
     ):
         raise ValueError("Inference output is diagnostic or used a different checkpoint")
     # Public notebook execution normally has three examples. This validates only

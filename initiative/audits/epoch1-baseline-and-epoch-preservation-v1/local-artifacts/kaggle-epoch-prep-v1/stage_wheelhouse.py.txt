@@ -1,0 +1,114 @@
+"""Extract the accepted Kaggle wheelhouse once to private persistent storage."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import shutil
+import tarfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path("/home/sa305415/rsna-knee")
+ARCHIVE = ROOT / "kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/wheelhouse-cp312-cu130.tar"
+PARENT = ROOT / "kaggle"
+PARTIAL = PARENT / "wheelhouse-cp312-cu130-v1.partial"
+FINAL = PARENT / "wheelhouse-cp312-cu130-v1"
+RECEIPT = PARENT / "wheelhouse-cp312-cu130-v1-receipt.json"
+ARCHIVE_SHA = "e326c50a4a6ac3c2a69423d9b97405952f815e8f55ea7867cf92e3185539416f"
+MANIFEST_SHA = "dba3733c133afe3776673f3374c467953bf3c297a1eb4d3d4c8c2241e4fbfd70"
+PYPROJECT_SHA = "b1a1ef32284e03c96d98d9c72f5431cb731f407a8d75b158cb577b8ebafdb5f7"
+ARCHIVE_BYTES = 3178014720
+UNPACKED_BYTES = 3177871617
+REGULAR_FILES = 79
+
+
+def sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as reader:
+        for block in iter(lambda: reader.read(8 * 1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def main() -> None:
+    if any(path.exists() or path.is_symlink() for path in (PARTIAL, FINAL, RECEIPT)):
+        raise ValueError("Wheelhouse staging already attempted")
+    if ARCHIVE.stat().st_size != ARCHIVE_BYTES or sha256(ARCHIVE) != ARCHIVE_SHA:
+        raise ValueError("Accepted wheelhouse archive bytes differ")
+    PARTIAL.mkdir(mode=0o700)
+    count = size = 0
+    with tarfile.open(ARCHIVE, "r:") as archive:
+        for member in archive:
+            if member.isdir():
+                if member.name != "wheelhouse":
+                    raise ValueError("Unexpected archive directory")
+                continue
+            parts = Path(member.name).parts
+            if not member.isfile() or len(parts) != 2 or parts[0] != "wheelhouse":
+                raise ValueError("Unexpected archive member")
+            name = parts[1]
+            if name in ("", ".", "..") or "/" in name:
+                raise ValueError("Unsafe archive member")
+            target = PARTIAL / name
+            with archive.extractfile(member) as source, target.open("xb") as destination:
+                shutil.copyfileobj(source, destination, length=8 * 1024 * 1024)
+            os.chmod(target, 0o600)
+            if target.stat().st_size != member.size:
+                raise ValueError("Extracted wheel size differs")
+            count += 1
+            size += member.size
+    if count != REGULAR_FILES or size != UNPACKED_BYTES:
+        raise ValueError("Wheelhouse archive membership differs")
+    if sha256(PARTIAL / "wheelhouse.json") != MANIFEST_SHA:
+        raise ValueError("Accepted wheel manifest bytes differ")
+    manifest = json.loads((PARTIAL / "wheelhouse.json").read_text())
+    if (
+        manifest["pyproject_sha256"] != PYPROJECT_SHA
+        or manifest["offline_install_verified"] is not True
+        or manifest["platform"] != "linux_x86_64"
+        or manifest["python"] != "3.12"
+    ):
+        raise ValueError("Wheelhouse project or environment binding differs")
+    expected = set(manifest["files"]) | {"wheelhouse.json"}
+    actual = {p.name for p in PARTIAL.iterdir() if p.is_file() and not p.is_symlink()}
+    if expected != actual or len(actual) != REGULAR_FILES:
+        raise ValueError("Wheelhouse files differ from accepted manifest")
+    for name, record in manifest["files"].items():
+        path = PARTIAL / name
+        if Path(name).name != name or path.stat().st_size != record["bytes"]:
+            raise ValueError("Unsafe or mismatched wheelhouse payload")
+        if sha256(path) != record["sha256"]:
+            raise ValueError("Wheelhouse payload hash differs")
+    acceptance = json.loads((PARTIAL / "acceptance.json").read_text())
+    if (
+        acceptance["status"] != "cpu_offline_install_passed"
+        or acceptance["pyproject_sha256"] != PYPROJECT_SHA
+    ):
+        raise ValueError("Offline install acceptance differs")
+    os.replace(PARTIAL, FINAL)
+    proof = {
+        "schema_version": 1,
+        "status": "persistent_wheelhouse_verified",
+        "checked_at_utc": datetime.now(timezone.utc).isoformat(),
+        "job_id": os.environ.get("SLURM_JOB_ID"),
+        "archive_sha256": ARCHIVE_SHA,
+        "manifest_sha256": MANIFEST_SHA,
+        "pyproject_sha256": PYPROJECT_SHA,
+        "regular_files": count,
+        "unpacked_bytes": size,
+        "path": str(FINAL),
+        "shared_dataset_slug": "godlydonuts/rsna-wheels-cp312-e326c50a4a6a",
+        "shared_dataset_version": 1,
+    }
+    with RECEIPT.open("x") as writer:
+        json.dump(proof, writer, sort_keys=True, indent=2)
+        writer.write("\n")
+        writer.flush()
+        os.fsync(writer.fileno())
+    print(json.dumps(proof, sort_keys=True), flush=True)
+
+
+if __name__ == "__main__":
+    main()

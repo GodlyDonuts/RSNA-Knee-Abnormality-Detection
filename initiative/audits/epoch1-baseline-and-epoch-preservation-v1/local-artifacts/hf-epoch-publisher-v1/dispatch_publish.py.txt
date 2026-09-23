@@ -1,0 +1,68 @@
+"""Stream a local HF secret to one bounded CPU-side private epoch upload."""
+from __future__ import annotations
+import argparse
+import datetime
+import hashlib
+import json
+import os
+import pathlib
+import shlex
+import subprocess
+
+ROOT = pathlib.Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection')
+REMOTE = '/home/sa305415/rsna-knee'
+ARTIFACTS = ROOT / 'artifacts/hf-epoch-publisher-v1'
+
+def main() -> None:
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('epoch',type=int)
+    p.add_argument('--node',default='evc42')
+    args=p.parse_args()
+    if args.epoch not in range(1,11) or args.node!='evc42':raise ValueError('Unexpected epoch or node')
+    run_name=('dinov3-l16-epoch1-baseline-b740-v1' if args.epoch==1
+              else 'dinov3-l16-production-fold0-b74060b-v1')
+    run=REMOTE+'/runs/'+run_name
+    snapshot=run+f'/epoch-checkpoints/epoch-{args.epoch:03d}.json'
+    digest=hashlib.sha256((ROOT/'scripts/hf/publish_epoch.py').read_bytes()).hexdigest()
+    intent_path=ARTIFACTS/f'epoch{args.epoch:03d}-upload-dispatch-intent.json'
+    result_path=ARTIFACTS/f'epoch{args.epoch:03d}-upload-dispatch-result.json'
+    if intent_path.exists() or result_path.exists():raise ValueError('Upload dispatch already attempted')
+    intent={'status':'local_dispatch_intent','epoch':args.epoch,'remote_job_node':args.node,
+            'cpu_count':1,'script_sha256':digest,'hf_repo':'GodlyDonuts/RSNA-Data',
+            'hf_path':f'experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-{args.epoch:03d}',
+            'created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'credential_transport':'local_secret_to_ssh_stdin_to_srun_stdin_only'}
+    with intent_path.open('x') as f:json.dump(intent,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+    values={}
+    for line in (ROOT/'.env').read_text().splitlines():
+        if '=' in line and not line.lstrip().startswith('#'):
+            k,v=line.split('=',1);values[k.strip()]=v.strip().strip('"').strip("'")
+    token=values.get('HF_TOKEN') or values.get('HUGGINGFACE_TOKEN')
+    if not token or not token.startswith('hf_'):raise ValueError('HF token unavailable')
+    connection=json.loads((ROOT/'artifacts/newton-access-control/connection.json').read_text())
+    publisher=[REMOTE+'/hf-epoch-publisher-v1/env-cp312/bin/python',
+               REMOTE+'/hf-epoch-publisher-v1/publish_epoch.py','publish',
+               '--snapshot',snapshot,'--run',run,
+               '--license-file',REMOTE+'/encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md',
+               '--journal',REMOTE+'/hf-epoch-publisher-v1/epochs',
+               '--code-root',REMOTE+'/code-stopfix-1f486765']
+    shell=('set -euo pipefail; upload_cache=$(mktemp -d /tmp/rsna-hf-epoch'
+           +f'{args.epoch:03d}.XXXXXXXX)'
+           +'; trap \'rm -rf "$upload_cache"\' EXIT; '
+           +'export HF_HOME="$upload_cache" HF_HUB_DISABLE_PROGRESS_BARS=1 PYTHONDONTWRITEBYTECODE=1; '
+           +shlex.join(publisher))
+    remote=['srun','--account=skattel','--partition=normal','--nodes=1',
+            '--nodelist='+args.node,'--ntasks=1','--cpus-per-task=1','--mem=8G',
+            '--time=01:30:00','/bin/bash','-c',shell]
+    command=['ssh','-S',connection['control_socket'],'-o','BatchMode=yes',
+             f"{connection['user']}@{connection['host']}",shlex.join(remote)]
+    result=subprocess.run(command,input=json.dumps({'token':token}),capture_output=True,
+                          text=True,timeout=6000)
+    public={'remote_exit':result.returncode,'stdout_tail':result.stdout[-2500:],
+            'stderr_tail':result.stderr[-1200:],
+            'completed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    with result_path.open('x') as f:json.dump(public,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+    print(json.dumps(public,sort_keys=True))
+    if result.returncode:raise SystemExit(result.returncode)
+
+if __name__=='__main__':main()

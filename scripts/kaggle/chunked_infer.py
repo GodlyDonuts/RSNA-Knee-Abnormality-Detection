@@ -26,6 +26,9 @@ def sha256(path: Path) -> str:
 
 
 def run(args: argparse.Namespace, invoke=None) -> dict:
+    baseline = getattr(args, "baseline_epoch_one", False)
+    if baseline and args.allow_diagnostic:
+        raise ValueError("A completed training baseline cannot be diagnostic")
     if args.chunk_size < 1 or args.workers < 0:
         raise ValueError("Chunk size and worker count must be valid")
     if args.cache_root.exists() or args.cache_root.is_symlink():
@@ -68,8 +71,11 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         selected_series.to_csv(series_path, index=False)
         command = [
             sys.executable,
-            "-m",
-            "rsna.competitive.infer",
+            *(
+                [str(Path(__file__).with_name("baseline_infer.py"))]
+                if baseline
+                else ["-m", "rsna.competitive.infer"]
+            ),
             "--checkpoint",
             str(args.checkpoint),
             "--encoder-config",
@@ -90,8 +96,18 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             args.precision,
             "--source-revision",
             args.source_revision,
-            "--scheduled-epoch",
         ]
+        if baseline:
+            command.extend(
+                (
+                    "--baseline-sidecar",
+                    str(args.baseline_sidecar),
+                    "--baseline-proof",
+                    str(args.baseline_proof),
+                )
+            )
+        else:
+            command.append("--scheduled-epoch")
         if args.dicom_root is not None:
             command.extend(("--dicom-root", str(args.dicom_root)))
         if args.allow_diagnostic:
@@ -110,7 +126,8 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             or metrics.get("diagnostic_only") is not args.allow_diagnostic
             or metrics.get("submission_sha256") != sha256(output)
             or metrics.get("test_inputs") != expected_inputs
-            or metrics.get("scheduled_epoch_authorized") is not True
+            or metrics.get("scheduled_epoch_authorized") is not (not baseline)
+            or (baseline and metrics.get("checkpoint_epoch") != 1)
             or metrics.get("initial_pretrained_weights_read") is not False
             or metrics.get("cache_source_revision") != args.source_revision
             or metrics.get("inference_precision") != args.precision
@@ -194,7 +211,15 @@ def main() -> None:
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--precision", choices=("checkpoint", "fp32", "bf16"), default="fp32")
     parser.add_argument("--allow-diagnostic", action="store_true")
-    print(json.dumps(run(parser.parse_args()), sort_keys=True), flush=True)
+    parser.add_argument("--baseline-epoch-one", action="store_true")
+    parser.add_argument("--baseline-sidecar", type=Path)
+    parser.add_argument("--baseline-proof", type=Path)
+    args = parser.parse_args()
+    if args.baseline_epoch_one and (args.baseline_sidecar is None or args.baseline_proof is None):
+        parser.error("Epoch-1 baseline requires its byte-bound sidecar and replay proof")
+    if not args.baseline_epoch_one and (args.baseline_sidecar or args.baseline_proof):
+        parser.error("Baseline evidence supplied without baseline mode")
+    print(json.dumps(run(args), sort_keys=True), flush=True)
 
 
 if __name__ == "__main__":
