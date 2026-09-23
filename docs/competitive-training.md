@@ -15,7 +15,9 @@ also recovered its exact checkpoint payload and predictions. See
 `initiative/audits/dinov3-h100-pilot-v6/` and
 `initiative/audits/newton-recovery-production-v1/`. Primary ten-epoch fold-0
 job 840562 reached 22 epoch-0 optimizer updates on 2,247 eligible optimization
-studies in its first read-only running snapshot. First-epoch throughput,
+studies, then stalled in CUDA synchronization and ended without a checkpoint.
+The same pinned configuration was relaunched once as job 840578 on evc40 after
+excluding the stalled node. First-epoch throughput,
 competitive accuracy and the hidden-test time budget remain unmeasured until
 actual completed epochs and Kaggle notebook runs finish.
 

@@ -314,11 +314,20 @@ remains verified. One-CPU probe 840559 found 850.95 GB free on evc49's node-loca
 XFS `/tmp`, well above the unpacked archive plus 20 GiB reserve. The first
 production wrapper 840560 failed after nine seconds because a header receipt
 used an obsolete control directory; it trained no images. Its corrected v5
-script, source-bound to c58090e, was submitted once as job **840562** and was
-observed running through preflight. It requests one evc49 node, two H100s,
-four CPUs and four hours. The accepted masks, folds, model weights and ten-epoch
-configuration are unchanged. A later read-only snapshot found 2,247 eligible
-optimization studies, 1,156 outer-fold studies and 22 completed epoch-0
-optimizer updates in 62.60 trainer seconds. No full-data epoch or Kaggle
-submission had completed. Measure first-epoch timing before judging
-whether the four-hour limit needs a checkpointed continuation.
+script, source-bound to c58090e, was submitted once as job **840562** and
+reached 22 epoch-0 optimizer updates in 62.60 trainer seconds on 2,247 eligible
+optimization studies and 1,156 outer-fold studies. Its rank zero then blocked
+in CUDA synchronization for over ten minutes. The tested stop protocol
+signaled both workers, but the blocked GPU prevented an update-boundary save;
+the 120-second grace expired and the job ended `FAILED 2:0` without a checkpoint.
+No full-data epoch or Kaggle submission completed. Keep evc49 excluded pending
+a sustained GPU-health diagnosis. The [failure and replacement receipts](../initiative/audits/newton-production-stall-v1/)
+preserve this attempt.
+
+The same accepted data, official weights, exact c58090e code and production
+configuration were staged in a new v6 wrapper with a fresh output directory.
+It excludes evc38, evc44, evc49 and evc50, asks for one two-H100 node, four
+CPUs and four hours, and was submitted once as job **840578**. Slurm allocated
+evc40 and its allocated-device driver probe passed. Verify first real updates
+and a completed epoch before estimating full-run throughput or packaging an
+eligible Kaggle snapshot.

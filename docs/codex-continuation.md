@@ -44,13 +44,21 @@ One-CPU probe **840559** confirmed evc49's XFS `/tmp` has over 850 GB free for
 the full cache extraction. The first production wrapper, job 840560, exited in
 nine seconds before training because a header receipt used an obsolete control
 path. The corrected, exact-script-hash v5 ten-epoch fold-0 job **840562** was
-submitted once and observed running through preflight. It uses two H100s, four
-CPUs, the unchanged accepted masks/folds and official pinned DINOv3-L. A later
-read-only snapshot found 2,247 eligible optimization studies, 1,156 outer-fold
-studies, and 22 completed epoch-0 optimizer updates in 62.60 trainer seconds.
-No full-data epoch, eligible snapshot or Kaggle submission had completed.
-Reconcile the live job and its output before any retry, queue operation or
-submission.
+submitted once and reached 22 epoch-0 optimizer updates on 2,247 eligible
+optimization studies and 1,156 outer-fold studies. It then made no progress
+for over ten minutes: one rank was blocked in CUDA stream synchronization with
+its H100 busy while the other rank waited. A single batch USR1 requested a
+checkpoint; both workers were signaled, but the 120-second grace expired
+without one. Slurm reported `FAILED 2:0`. No epoch or checkpoint can be
+resumed from this attempt. Exclude evc49 until sustained GPU health is resolved.
+
+The exact same committed source, accepted masks/folds, official DINOv3-L weights
+and production configuration were staged in a fresh v6 wrapper, excluding
+evc38, evc44, evc49 and evc50. Replacement job **840578** was submitted once
+and allocated evc40 with two H100s and four CPUs. Its allocated-device driver
+probe passed. Reconcile the live job, its output and the single Kaggle ledger
+before any further retry, queue operation or submission. The failure and
+replacement receipts are in `initiative/audits/newton-production-stall-v1/`.
 
 Newton Lustre file quota had reached 1,016,723 files while a separate
 interactive one-GPU Bash job 840217 was active. That job ended; the file count
@@ -67,8 +75,8 @@ independent remote full-file/TAR receipt: 82,834,493,440 bytes, SHA
 `initiative/audits/full-cache-newton-stage-v1/` for the immutable small records.
 Do not start another transfer. The archive remains on private Newton storage;
 its membership will be rechecked when extracted to node-local scratch. The
-corrected hash-pinned production job is 840562; full archive extraction and the
-first epoch still need live verification.
+corrected hash-pinned replacement is job 840578; its full archive extraction
+and first epoch still need live verification.
 
 The final `initiative/releases/report-supervision-v1/` export and real runtime
 acceptance passed. Start with [data-readiness-report.md](data-readiness-report.md),

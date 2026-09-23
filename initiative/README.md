@@ -45,9 +45,12 @@ stop and separate resume](audits/newton-recovery-production-v1/) passed: a
 checkpoint was preserved after three updates, the resume completed all 26,
 and one-CPU comparison found equal final checkpoint payloads and outer
 predictions against the uninterrupted pilot. The corrected ten-epoch fold-0
-production job 840562 was submitted and reached 22 epoch-0 optimizer updates
-on 2,247 eligible optimization studies in a read-only snapshot. No full-data
-epoch or Kaggle score had been measured at that snapshot.
+production job 840562 reached 22 epoch-0 optimizer updates on 2,247 eligible
+optimization studies, then stalled in CUDA synchronization and ended without a
+checkpoint after the verified stop grace expired. The [replacement audit](audits/newton-production-stall-v1/)
+records its failure and the single v6 job 840578 dispatch on evc40. The same
+accepted data, code, weights and training configuration are used. No full-data
+epoch or Kaggle score had been measured at that dispatch.
 The accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 
 ## Contents

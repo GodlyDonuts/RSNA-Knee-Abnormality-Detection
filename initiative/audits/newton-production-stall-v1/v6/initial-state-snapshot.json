@@ -1,0 +1,45 @@
+{
+  "control_files": [
+    "node-header-verified-840578.json",
+    "production.sbatch",
+    "plan.json",
+    "node-header-identity-840578.json"
+  ],
+  "driver_probe": {
+    "allocation": {
+      "CUDA_DEVICE_ORDER": null,
+      "CUDA_VISIBLE_DEVICES": "0,1",
+      "SLURM_CPUS_PER_TASK": "4",
+      "SLURM_GPUS_ON_NODE": "2",
+      "SLURM_JOB_GPUS": "0,1",
+      "SLURM_STEP_GPUS": null
+    },
+    "cpu_affinity": [
+      0,
+      1,
+      32,
+      33
+    ],
+    "cuda_driver_count_code": 0,
+    "cuda_driver_device_count": 2,
+    "cuda_driver_init_code": 0,
+    "errors": [],
+    "job_id": "840578",
+    "mapped_libcuda_paths": [
+      "/usr/lib64/libcuda.so.580.105.08"
+    ],
+    "node": "evc40",
+    "nvidia_inventory": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, NVIDIA H100 PCIe, GPU-71901a3e-84aa-0d2d-0df7-63eff879606c, 580.105.08, 00000000:17:00.0\n1, NVIDIA H100 PCIe, GPU-22f11c32-2343-86a3-3d5d-4e39a2b3465f, 580.105.08, 00000000:CA:00.0\n"
+    },
+    "scope": "allocated devices only; no visibility changes or GPU computation",
+    "status": "passed"
+  },
+  "last_line": "{\"allocation\": {\"CUDA_DEVICE_ORDER\": null, \"CUDA_VISIBLE_DEVICES\": \"0,1\", \"SLURM_CPUS_PER_TASK\": \"4\", \"SLURM_GPUS_ON_NODE\": \"2\", \"SLURM_JOB_GPUS\": \"0,1\", \"SLURM_STEP_GPUS\": null}, \"cpu_affinity\": [0, 1, 32, 33], \"cuda_driver_count_code\": 0, \"cuda_driver_device_count\": 2, \"cuda_driver_init_code\": 0, \"errors\": [], \"job_id\": \"840578\", \"mapped_libcuda_paths\": [\"/usr/lib64/libcuda.so.580.105.08\"], \"node\": \"evc40\", \"nvidia_inventory\": {\"returncode\": 0, \"stderr\": \"\", \"stdout\": \"0, NVIDIA H100 PCIe, GPU-71901a3e-84aa-0d2d-0df7-63eff879606c, 580.105.08, 00000000:17:00.0\\n1, NVIDIA H100 PCIe, GPU-22f11c32-2343-86a3-3d5d-4e39a2b3465f, 580.105.08, 00000000:CA:00.0\\n\"}, \"scope\": \"allocated devices only; no visibility changes or GPU computation\", \"status\": \"passed\"}",
+  "log_lines": 1,
+  "run_files": [],
+  "squeue": "840578 RUNNING 1:23 evc40",
+  "utc": "2026-09-23T00:49:34.982569+00:00"
+}
