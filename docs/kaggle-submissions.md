@@ -52,7 +52,7 @@ backward, tiny random DINOv3 forward and decoder checks on a T4. Neither probe
 accessed competition data or pretrained weights. The small proofs and reusable
 `shared-wheelhouse.json` are archived under
 `initiative/audits/dinov3-deployment-v1/kaggle-t4-acceptance/`.
-Completed full-data epochs 1 through 5 checkpoint snapshots now exist; epochs 1
+Completed full-data epochs 1 through 6 checkpoint snapshots now exist; epochs 1
 and 3 are preserved separately from the trainer's scheduled Kaggle cadence.
 No competition entry has been created yet. Complete exact private notebook
 execution is still required before any code submission.

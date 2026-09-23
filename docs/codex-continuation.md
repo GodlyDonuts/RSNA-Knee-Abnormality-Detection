@@ -9,7 +9,7 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
 Slurm job **841107** remains the ten-epoch, two-H100/four-training-CPU fold-0
-run on evc28. It completed epochs 1, 2, 3, 4 and 5 and continues with unchanged
+run on evc28. It completed epochs 1 through 6 and continues with unchanged
 accepted masks, folds, official DINOv3-L weights and training source Git
 `b74060b98f01bff1b924070ccba5ce44dd002f40`. Its immutable epoch-2
 snapshot SHA is `f56c0d64519fbf2fde5433ef4ff3dcc59d8f01394d80515ebf5cebf97726fa02`.
@@ -20,12 +20,13 @@ The watcher captured epoch 5 with SHA
 `8ea11a5b513e369b1cb7e26861b3135b657b3d4b85c02c57ce9a8fc963ef1dd4`.
 It is expected to capture odd epochs 7 and 9 likewise; check its
 Slurm state and actual sidecars before assuming success. Even epochs 4/6/8/10
-remain trainer-scheduled snapshots. Epochs 2, 3, 4 and 5 were separately committed
+remain trainer-scheduled snapshots. Epochs 2, 3, 4, 5 and 6 were separately committed
 to private `GodlyDonuts/RSNA-Data` and fully downloaded back for SHA/size
 verification at revisions `1ef2a32c33fa635b5c9498e14eeb11afaf0e428d`,
 `2d777a58bf4a8a247c6be7b5943ac11ee40d67f3` and
 `fc78e3d40b5a00a69bcab7be30d5cf732eb552de` and
-`eac9a18621048c395713eb81d40e6a0955120fc0`.
+`eac9a18621048c395713eb81d40e6a0955120fc0` and
+`6d6cdeb6434114d7508a6d0bf8b992c68b72b90b`.
 
 The rolling first-epoch checkpoint had already been replaced when the owner
 requested an epoch-1 baseline. Separate two-H100 job **841126** resumed the

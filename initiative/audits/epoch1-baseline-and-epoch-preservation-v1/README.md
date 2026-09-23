@@ -1,4 +1,4 @@
-# First five full-data epochs and private preservation
+# First six full-data epochs and private preservation
 
 The accepted report-supervision release, masks, folds, source cache and official
 DINOv3-L weights are unchanged. The exact trainer source is Git
@@ -32,7 +32,7 @@ It must remain healthy to capture epochs 5, 7 and 9; a submitted watcher alone
 does not prove those future snapshots. Even epochs 4, 6, 8 and 10 remain the
 trainer's own scheduled snapshots.
 
-All first five checkpoint files were committed to the **private**
+All first six checkpoint files were committed to the **private**
 [`GodlyDonuts/RSNA-Data`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data)
 dataset from CPU allocations on Newton. Each returned revision was followed by
 a complete private download of the checkpoint, sidecar, official DINOv3
@@ -47,6 +47,7 @@ Hugging Face, not in Git or on the laptop.
 | 3 | `caaa821440a1` | [`2d777a58`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/2d777a58bf4a8a247c6be7b5943ac11ee40d67f3/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-003) |
 | 4 | `90a72a4f203d` | [`fc78e3d4`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/fc78e3d40b5a00a69bcab7be30d5cf732eb552de/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-004) |
 | 5 | `8ea11a5b513e` | [`eac9a186`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/eac9a18621048c395713eb81d40e6a0955120fc0/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-005) |
+| 6 | `22f6badee0c5` | [`6d6cdeb6`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/6d6cdeb6434114d7508a6d0bf8b992c68b72b90b/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-006) |
 
 The Kaggle wheelhouse was staged and fully rehashed in CPU job **841116**.
 The Kaggle management environment was installed in CPU job 841121, whose
