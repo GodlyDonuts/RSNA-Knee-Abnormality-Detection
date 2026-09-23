@@ -11,8 +11,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+import torch
+from test_image_integrity import modified_dicom
 
 from rsna.competitive import infer
+from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.data import select_series
 from rsna.schema import TARGETS
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/kaggle/chunked_infer.py"
@@ -248,3 +252,211 @@ def test_actual_checkpoint_inference_matches_full_three_study_run(tmp_path, monk
     assert np.allclose(actual[list(TARGETS)].to_numpy(), expected[list(TARGETS)].to_numpy())
     assert result["chunk_count"] == 2 and result["studies"] == 3
     assert result["diagnostic_only"] is True
+
+
+def test_resilient_selection_ignores_unneeded_series_and_preserves_model_inputs(
+    tmp_path, monkeypatch
+):
+    study = "1.2.5"
+    rows = [
+        {
+            "StudyInstanceUID": study,
+            "SeriesInstanceUID": f"{study}.{index}",
+            "Anatomical_Plane": ("Sagittal", "Coronal", "Axial")[index % 3],
+            "Fluid_Sensitive": index % 2,
+            "Fat_Suppression": index % 2,
+        }
+        for index in range(1, 9)
+    ]
+    frame = pd.DataFrame(rows)
+    root = tmp_path / "dicoms"
+    for row in rows:
+        folder = root / "test_series" / study / row["SeriesInstanceUID"]
+        folder.mkdir(parents=True)
+        (folder / "slice.dcm").write_bytes(b"synthetic")
+    seen = []
+
+    def cache(_source, paths, _cache, side, revision):
+        assert side == 256 and revision == "test"
+        seen.append(Path(paths[0]).parts[-2])
+
+    monkeypatch.setattr(chunked, "cache_series", cache)
+    selected, receipt = chunked.prepare_usable_series(
+        frame,
+        [study],
+        dicom_root=root,
+        cache=tmp_path / "cache",
+        cache_side=256,
+        max_series=6,
+        source_revision="test",
+    )
+    expected = {row["SeriesInstanceUID"] for row in select_series(rows, 6, False)}
+    assert set(selected.SeriesInstanceUID) == expected == set(seen)
+    assert receipt == {
+        "selected_series": 6,
+        "skipped_series": {"missing_dicoms": 0, "invalid_dicoms": 0, "invalid_series": 0},
+    }
+
+
+def test_resilient_selection_uses_same_plane_alternate_after_bad_dicom(tmp_path, monkeypatch):
+    study = "1.2.5"
+    rows = [
+        {
+            "StudyInstanceUID": study,
+            "SeriesInstanceUID": f"{study}.{index}",
+            "Anatomical_Plane": plane,
+            "Fluid_Sensitive": 1 if index == 1 else 0,
+            "Fat_Suppression": 0,
+        }
+        for index, plane in enumerate(("Sagittal", "Sagittal", "Coronal", "Axial"), 1)
+    ]
+    frame = pd.DataFrame(rows)
+    root = tmp_path / "dicoms"
+    for row in rows:
+        folder = root / "test_series" / study / row["SeriesInstanceUID"]
+        folder.mkdir(parents=True)
+        (folder / "slice.dcm").write_bytes(b"synthetic")
+
+    def cache(_source, paths, *_args):
+        if Path(paths[0]).parts[-2] == f"{study}.1":
+            raise ValueError("Constant-intensity series")
+
+    monkeypatch.setattr(chunked, "cache_series", cache)
+    selected, receipt = chunked.prepare_usable_series(
+        frame,
+        [study],
+        dicom_root=root,
+        cache=tmp_path / "cache",
+        cache_side=256,
+        max_series=6,
+        source_revision="test",
+    )
+    assert set(selected.SeriesInstanceUID) == {f"{study}.{i}" for i in (2, 3, 4)}
+    assert receipt["skipped_series"]["invalid_series"] == 1
+
+
+def test_resilient_selection_never_hides_cache_integrity_errors(tmp_path, monkeypatch):
+    study = "1.2.5"
+    sid = f"{study}.1"
+    folder = tmp_path / "dicoms" / "test_series" / study / sid
+    folder.mkdir(parents=True)
+    (folder / "slice.dcm").write_bytes(b"synthetic")
+    frame = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": study,
+                "SeriesInstanceUID": sid,
+                "Anatomical_Plane": "Sagittal",
+                "Fluid_Sensitive": 0,
+                "Fat_Suppression": 0,
+            }
+        ]
+    )
+
+    def cache(*_args):
+        raise ValueError("Stale/corrupted cache: deliberate fault")
+
+    monkeypatch.setattr(chunked, "cache_series", cache)
+    with pytest.raises(ValueError, match="Stale/corrupted cache"):
+        chunked.prepare_usable_series(
+            frame,
+            [study],
+            dicom_root=tmp_path / "dicoms",
+            cache=tmp_path / "cache",
+            cache_side=256,
+            max_series=6,
+            source_revision="test",
+        )
+
+
+def test_real_dicom_fallback_produces_bound_model_cache(tmp_path):
+    study = "2.3"
+    planes = ("Sagittal", "Sagittal", "Coronal", "Axial")
+    frame = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": study,
+                "SeriesInstanceUID": f"{study}.{index}",
+                "Anatomical_Plane": plane,
+                "Fluid_Sensitive": 1 if index == 1 else 0,
+                "Fat_Suppression": 0,
+            }
+            for index, plane in enumerate(planes, 1)
+        ]
+    )
+    root = tmp_path / "dicoms"
+    for row in frame.to_dict("records"):
+        sid = row["SeriesInstanceUID"]
+        folder = root / "test_series" / study / sid
+        folder.mkdir(parents=True)
+        data = (
+            b"invalid DICOM"
+            if sid == f"{study}.1"
+            else modified_dicom(
+                StudyInstanceUID=study,
+                SeriesInstanceUID=sid,
+                SOPInstanceUID=f"{sid}.1",
+            )
+        )
+        (folder / f"{sid}.1.dcm").write_bytes(data)
+    cache = tmp_path / "cache"
+    selected, receipt = chunked.prepare_usable_series(
+        frame,
+        [study],
+        dicom_root=root,
+        cache=cache,
+        cache_side=16,
+        max_series=3,
+        source_revision="test",
+    )
+    assert set(selected.SeriesInstanceUID) == {f"{study}.{i}" for i in (2, 3, 4)}
+    assert receipt["skipped_series"]["invalid_dicoms"] == 1
+    dataset = CompetitiveStudyDataset(
+        pd.DataFrame({"study_uid": [study]}),
+        selected,
+        cache,
+        slices=1,
+        side=16,
+        max_series=3,
+        raw_split="test_series",
+    )
+    item = dataset[0]
+    assert item["series_mask"].tolist() == [True, True, True]
+    assert item["images"].shape == (3, 1, 1, 16, 16)
+
+
+def test_resilient_contract_checks_checkpoint_not_cli_assertions(tmp_path):
+    path = tmp_path / "checkpoint.pt"
+    torch.save({"binding": {"config": {"max_series": 6}, "cache_side": 256}}, path)
+    chunked.verify_cache_contract(path, max_series=6, cache_side=256)
+    with pytest.raises(ValueError, match="differs from the trained checkpoint"):
+        chunked.verify_cache_contract(path, max_series=5, cache_side=256)
+    with pytest.raises(ValueError, match="differs from the trained checkpoint"):
+        chunked.verify_cache_contract(path, max_series=6, cache_side=224)
+
+
+def test_resilient_run_uses_prepared_cache_without_redecoding(tmp_path, monkeypatch):
+    args = fixture(tmp_path)
+    args.dicom_root = tmp_path / "dicoms"
+    args.resilient_series = True
+    args.cache_side = 256
+    args.max_series = 6
+    verified = []
+
+    def verify(_checkpoint, *, max_series, cache_side):
+        verified.append((max_series, cache_side))
+
+    def prepare(frame, study_ids, **kwargs):
+        assert kwargs["cache_side"] == 256
+        assert set(frame.StudyInstanceUID) == set(study_ids)
+        return frame, {"selected_series": len(frame), "skipped_series": {}}
+
+    def invoke(command, *, check):
+        assert "--dicom-root" not in command
+        fake_infer(command, check=check)
+
+    monkeypatch.setattr(chunked, "verify_cache_contract", verify)
+    monkeypatch.setattr(chunked, "prepare_usable_series", prepare)
+    result = chunked.run(args, invoke=invoke)
+    assert verified == [(6, 256)]
+    assert all("series_preparation" in row for row in result["chunks"])

@@ -39,6 +39,17 @@ notebook checks sample/test study-ID equality. That [comparison](../initiative/a
 strongly disfavors the initially suspected three-row-sample failure. The
 subsequent corrected epoch-8 notebook is therefore also on hold pending a
 broader hidden-run failure investigation.
+An [opt-in MRI series recovery candidate](../initiative/audits/kaggle-series-recovery-candidate-v1/)
+now lives in `scripts/kaggle/chunked_infer.py`. It checks the checkpoint's
+series limit and cache resolution, then caches only MRI series the trained
+sampler can use. When a selected series has a recognized DICOM or image-geometry
+failure, it tries another series of the same plane. Cache-integrity, disk and
+unexpected software failures still stop the run. The trained `rsna/**/*.py`
+files, weights and data folds are unchanged. Focused synthetic-DICOM and
+model-cache tests pass, but this candidate has **not** been packaged into a new
+Kaggle notebook, run at hidden-test scale or submitted. The existing corrected
+epoch-8 version 1 remains held; a new immutable bundle/version and full offline
+runtime check are required before using a competition slot.
 The corrected epoch-8 Dataset `godlydonuts/rsna-knee-e008-fix2-e156bcf1d4e0`
 is now private version 1 (ID 12150743) with every payload byte re-downloaded
 and hashed. Its distinct private offline notebook

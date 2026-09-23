@@ -96,7 +96,11 @@ disfavor that explanation](../initiative/audits/kaggle-successful-submission-com
 the 0.942 notebook checks sample/test study-ID equality. The current corrected
 epoch-8 notebook passed its public example but is **held from competition
 submission**, even if quota opens, until the broader hidden failure is
-investigated. Do not submit any old version-1 notebook. The epoch-10 checkpoint is also fully verified on private
+investigated. An [opt-in MRI series recovery candidate](../initiative/audits/kaggle-series-recovery-candidate-v1/)
+now filters out unused series and tries a same-plane alternative after a
+recognized DICOM failure, while preserving the checkpoint-bound trained code.
+Focused local tests pass; no new bundle, full-size offline run or Kaggle
+submission exists. Do not submit any old version-1 notebook. The epoch-10 checkpoint is also fully verified on private
 Hugging Face. See the
 [corrected epoch-8 package audit](../initiative/audits/kaggle-hidden-roster-recovery-v1/)
 for the separately staged full-roster package. Its private Kaggle Dataset was

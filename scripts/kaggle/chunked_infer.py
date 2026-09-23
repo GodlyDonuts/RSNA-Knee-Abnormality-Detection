@@ -13,8 +13,29 @@ from pathlib import Path
 
 import pandas as pd
 
+from rsna.data import PLANES, select_series
 from rsna.infer import write_submission
+from rsna.preprocess import Source, cache_series
 from rsna.schema import TARGETS
+
+# Only image/geometry failures may exclude a series. Cache integrity, disk,
+# environment, and model failures still stop inference.
+DATA_ERROR_PREFIXES = (
+    "DICOM UID mismatch:",
+    "Only single-frame grayscale slices are supported",
+    "Unsupported photometric interpretation:",
+    "Invalid DICOM rescale parameters",
+    "Non-finite pixel values",
+    "Non-finite DICOM geometry",
+    "Malformed DICOM position/orientation",
+    "Invalid DICOM pixel spacing",
+    "Invalid image orientation vectors",
+    "Neither geometry nor unique InstanceNumber can order series",
+    "Mixed pixel matrix dimensions within series",
+    "Mixed photometric interpretation within series",
+    "Constant-intensity series",
+    "Mixed pixel spacing within series",
+)
 
 
 def sha256(path: Path) -> str:
@@ -23,6 +44,84 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def verify_cache_contract(checkpoint: Path, *, max_series: int, cache_side: int) -> None:
+    """Read the saved training contract without changing its bound model code."""
+    import torch
+
+    saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    binding = saved["binding"]
+    if binding["config"].get("max_series") != max_series or binding.get("cache_side") != cache_side:
+        raise ValueError("Series limit/cache resolution differs from the trained checkpoint")
+    del saved
+
+
+def prepare_usable_series(
+    frame: pd.DataFrame,
+    study_ids: list[str],
+    *,
+    dicom_root: Path,
+    cache: Path,
+    cache_side: int,
+    max_series: int,
+    source_revision: str,
+) -> tuple[pd.DataFrame, dict]:
+    """Cache only useful MRI series; use an alternate when source pixels are invalid."""
+    from pydicom.errors import InvalidDicomError
+
+    source = Source(dicom_root)
+    usable_ids: set[str] = set()
+    failures = {"missing_dicoms": 0, "invalid_dicoms": 0, "invalid_series": 0}
+    for study_uid in study_ids:
+        rows = frame.loc[frame.StudyInstanceUID == study_uid].to_dict("records")
+        ordered = select_series(rows, len(rows), False)
+        attempted: set[str] = set()
+        accepted: list[dict] = []
+
+        def attempt(row: dict) -> bool:
+            sid = row["SeriesInstanceUID"]
+            attempted.add(sid)
+            folder = dicom_root / "test_series" / study_uid / sid
+            paths = sorted(str(path.relative_to(dicom_root)) for path in folder.glob("*.dcm"))
+            if not paths:
+                failures["missing_dicoms"] += 1
+                return False
+            try:
+                cache_series(source, paths, cache, cache_side, source_revision)
+            except InvalidDicomError:
+                failures["invalid_dicoms"] += 1
+                return False
+            except ValueError as exc:
+                if not str(exc).startswith(DATA_ERROR_PREFIXES):
+                    raise
+                failures["invalid_series"] += 1
+                return False
+            usable_ids.add(sid)
+            accepted.append(row)
+            return True
+
+        # Match the trained sampler's plane-first selection. If its preferred
+        # series is corrupt, seek another of that plane before filling slots.
+        for plane in PLANES:
+            for row in ordered:
+                if row["Anatomical_Plane"] != plane or row["SeriesInstanceUID"] in attempted:
+                    continue
+                if attempt(row):
+                    break
+        for row in ordered:
+            if len(accepted) >= max_series:
+                break
+            if row["SeriesInstanceUID"] not in attempted:
+                attempt(row)
+        if not accepted:
+            raise ValueError("No decodable MRI series for a test study")
+        if len(accepted) > max_series:
+            raise ValueError("Prepared more series than the trained model accepts")
+    selected = frame.loc[frame.SeriesInstanceUID.isin(usable_ids)].copy()
+    if set(selected.StudyInstanceUID) != set(study_ids):
+        raise ValueError("Prepared MRI series do not cover the test study chunk")
+    return selected, {"selected_series": len(selected), "skipped_series": failures}
 
 
 def run(args: argparse.Namespace, invoke=None) -> dict:
@@ -65,6 +164,19 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         raise ValueError("A test study has no series")
 
     checkpoint_sha = sha256(args.checkpoint)
+    resilient = getattr(args, "resilient_series", False)
+    if resilient:
+        if (
+            args.dicom_root is None
+            or type(args.cache_side) is not int
+            or type(args.max_series) is not int
+            or args.cache_side < 16
+            or args.max_series < 3
+        ):
+            raise ValueError("Resilient MRI preparation needs source, cache side and series limit")
+        verify_cache_contract(
+            args.checkpoint, max_series=args.max_series, cache_side=args.cache_side
+        )
     args.cache_root.mkdir(parents=True, mode=0o700)
     invoke = invoke or subprocess.run
     started = time.monotonic()
@@ -81,6 +193,17 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         series_path = chunk / "test_series.csv"
         cache = chunk / "cache"
         output = chunk / "submission.csv"
+        preparation = None
+        if resilient:
+            selected_series, preparation = prepare_usable_series(
+                selected_series,
+                part.StudyInstanceUID.tolist(),
+                dicom_root=args.dicom_root,
+                cache=cache,
+                cache_side=args.cache_side,
+                max_series=args.max_series,
+                source_revision=args.source_revision,
+            )
         part.to_csv(template_path, index=False)
         selected_series.to_csv(series_path, index=False)
         command = [
@@ -122,7 +245,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             )
         else:
             command.append("--scheduled-epoch")
-        if args.dicom_root is not None:
+        if args.dicom_root is not None and not resilient:
             command.extend(("--dicom-root", str(args.dicom_root)))
         if args.allow_diagnostic:
             command.append("--allow-diagnostic")
@@ -179,6 +302,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
                 "submission_sha256": sha256(output),
                 "cache_bytes_before_cleanup": cache_bytes,
                 "elapsed_seconds": metrics["elapsed_seconds"],
+                **({"series_preparation": preparation} if preparation is not None else {}),
             }
         )
         if cache.exists():
@@ -239,6 +363,9 @@ def main() -> None:
     parser.add_argument("--baseline-epoch-one", action="store_true")
     parser.add_argument("--baseline-sidecar", type=Path)
     parser.add_argument("--baseline-proof", type=Path)
+    parser.add_argument("--resilient-series", action="store_true")
+    parser.add_argument("--cache-side", type=int)
+    parser.add_argument("--max-series", type=int)
     args = parser.parse_args()
     if args.baseline_epoch_one and (args.baseline_sidecar is None or args.baseline_proof is None):
         parser.error("Epoch-1 baseline requires its byte-bound sidecar and replay proof")
