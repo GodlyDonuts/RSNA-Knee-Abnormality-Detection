@@ -107,7 +107,9 @@ execution completed with a version-bound exact-source receipt and valid
 corrected `test.csv` roster path was exercised. There is no corrected competition
 submission or hidden-run result, and the live allowance was still zero. Its
 prior submit-when-quota-opens instruction is superseded by the
-successful-notebook comparison above.
+successful-notebook comparison above. That comparison was also fully
+download/hash-verified in the private Hugging Face dataset at revision
+`ee6fd646ad64d72c93abceed33735a92d657cfe8`.
 The exact code/audit milestone is privately mirrored and downloaded/hash
 verified at Hugging Face revision
 `a54f598118f1bb58ec3df6bbf4d3292e92f947e5`. The

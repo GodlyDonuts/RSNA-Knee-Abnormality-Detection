@@ -42,3 +42,11 @@ binding, publish any deployment change under a new immutable notebook identity,
 and use at most one newly verified hidden submission when quota permits. Do not
 reuse a failed or uncertain submission mutation, and do not claim the earlier
 0.936/0.942 scores for our DINOv3 model.
+
+The six small source/audit files from GitHub commit
+`55e1073f5269aa72e12d0d7f014418dae2abb04f` and a byte manifest were
+committed once to the private Hugging Face dataset at revision
+`ee6fd646ad64d72c93abceed33735a92d657cfe8`. The
+[verification receipt](hf-verified.json) confirms that all seven objects were
+downloaded and hashed. The private source notebooks themselves were not
+republished.
