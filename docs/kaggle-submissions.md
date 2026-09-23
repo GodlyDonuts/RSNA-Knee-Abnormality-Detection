@@ -34,6 +34,14 @@ message. None received a score. The [failure audit](../initiative/audits/kaggle-
 preserves the exact API fields. Do not submit the prepared epoch-8 version 1
 when quota returns. Correct and verify a distinct MRI-only notebook first;
 the old submissions remain immutable failed attempts in the ledger.
+The corrected epoch-8 Dataset `godlydonuts/rsna-knee-e008-fix2-e156bcf1d4e0`
+is now private version 1 (ID 12150743) with every payload byte re-downloaded
+and hashed. Its distinct private offline notebook
+`godlydonuts/rsna-knee-epoch8-fix2-e156bcf1d4e0` was pushed once as version 1
+and is awaiting a completed public-example receipt. The original version-1
+epoch-8 notebook remains held; the canonical ledger preserves it as superseded.
+There is no corrected competition submission or score yet. See the
+[recovery audit](../initiative/audits/kaggle-hidden-roster-recovery-v1/).
 
 ## Verified account access and remaining prerequisites
 

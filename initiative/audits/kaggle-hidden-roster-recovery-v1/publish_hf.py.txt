@@ -1,0 +1,80 @@
+"""One-shot small private HF mirror of reviewed hidden-roster recovery."""
+import hashlib
+import json
+import os
+import pathlib
+import shutil
+import subprocess
+import tempfile
+from datetime import datetime, timezone
+from huggingface_hub import CommitOperationAdd, HfApi
+
+ROOT=pathlib.Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection')
+ART=ROOT/'artifacts/kaggle-hidden-fix-hf-milestone-v1'
+REPO='GodlyDonuts/RSNA-Data'
+GIT='758b9ea8c9d501cec016c61d778e0fed179ce7eb'
+PREFIX='experiments/dinov3-v1/milestones/hidden-roster-fix-758b9ea'
+FILES=(
+ 'docs/codex-continuation.md',
+ 'docs/kaggle-submissions.md',
+ 'initiative/audits/kaggle-hidden-rerun-failure-v1/README.md',
+ 'initiative/audits/kaggle-hidden-rerun-failure-v1/submissions.json',
+ 'initiative/audits/kaggle-hidden-roster-recovery-v1/README.md',
+ 'initiative/audits/kaggle-hidden-roster-recovery-v1/bundle-manifest.json',
+ 'initiative/audits/kaggle-hidden-roster-recovery-v1/operation.json',
+ 'initiative/audits/kaggle-hidden-roster-recovery-v1/run.py.txt',
+ 'initiative/audits/kaggle-hidden-roster-recovery-v1/projection-receipt.json',
+ 'scripts/kaggle/chunked_infer.py',
+ 'scripts/kaggle/notebook_entry.py',
+ 'scripts/kaggle/coordinator.py',
+ 'tests/test_kaggle_coordinator_binding.py',
+)
+def sha(path):
+ h=hashlib.sha256()
+ with path.open('rb') as stream:
+  for block in iter(lambda:stream.read(1024*1024),b''):h.update(block)
+ return h.hexdigest()
+def save(path,value):
+ with path.open('x') as stream:
+  json.dump(value,stream,sort_keys=True,indent=2);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+def credential():
+ env=ROOT/'.env'
+ if env.stat().st_mode & 0o077:raise ValueError('Credential file not private')
+ values={}
+ for line in env.read_text().splitlines():
+  if '=' in line and not line.lstrip().startswith('#'):
+   k,v=line.split('=',1);values[k.strip()]=v.strip().strip('"').strip("'")
+ token=values.get('HF_TOKEN','')
+ if not token.startswith('hf_'):raise ValueError('HF credential unavailable')
+ return token
+def main():
+ if subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()!=GIT:raise ValueError('Git HEAD differs')
+ if subprocess.check_output(['git','status','--porcelain','--',*FILES],cwd=ROOT):raise ValueError('Selected files uncommitted')
+ files={n:ROOT/n for n in FILES}
+ if any(not p.is_file() or p.is_symlink() for p in files.values()):raise ValueError('Invalid source file')
+ total=sum(p.stat().st_size for p in files.values())
+ if total>5*1024*1024 or shutil.disk_usage(ROOT).free<20*1024**3+2*total:raise ValueError('Size/disk reserve')
+ if ART.exists():raise ValueError('One-shot mirror already attempted')
+ api=HfApi(token=credential()); info=api.repo_info(REPO,repo_type='dataset')
+ if info.private is not True:raise ValueError('Dataset not private')
+ names=[f'{PREFIX}/{n}' for n in FILES]+[f'{PREFIX}/manifest.json']
+ if list(api.get_paths_info(REPO,paths=names,repo_type='dataset')):raise ValueError('Dedicated mirror path exists')
+ ART.mkdir(mode=0o700)
+ manifest={'schema_version':1,'status':'reviewed_hidden_roster_recovery_milestone','git_commit':GIT,'repo_id':REPO,'checkpoint_sha256':'e156bcf1d4e0d7509d9a48ac0630af80e7119ee232e23082371c575ffc207373','hidden_fix_confirmed':False,'public_kaggle_score_claimed':False,'files':{n:{'bytes':p.stat().st_size,'sha256':sha(p)} for n,p in files.items()}}
+ save(ART/'manifest.json',manifest)
+ save(ART/'intent.json',{'status':'one_private_commit_intent','created_at_utc':datetime.now(timezone.utc).isoformat(),'repo_id':REPO,'prefix':PREFIX,'parent_commit':info.sha,'git_commit':GIT,'manifest_sha256':sha(ART/'manifest.json'),'paths':sorted(names),'publisher_sha256':sha(pathlib.Path(__file__))})
+ sources={**files,'manifest.json':ART/'manifest.json'}
+ try:
+  commit=api.create_commit(repo_id=REPO,repo_type='dataset',parent_commit=info.sha,commit_message='Archive tested Kaggle hidden-roster recovery',operations=[CommitOperationAdd(path_in_repo=f'{PREFIX}/{n}',path_or_fileobj=p) for n,p in sources.items()])
+ except Exception as exc:
+  save(ART/'uncertain.json',{'status':'commit_result_uncertain','error_type':type(exc).__name__})
+  raise
+ revision=commit.oid;save(ART/'commit-result.json',{'status':'commit_returned','revision':revision,'repo_id':REPO})
+ if api.repo_info(REPO,repo_type='dataset',revision=revision).private is not True:raise ValueError('Revision not private')
+ with tempfile.TemporaryDirectory(prefix='rsna-hf-hiddenfix-') as temp:
+  for n,p in sources.items():
+   got=pathlib.Path(api.hf_hub_download(REPO,f'{PREFIX}/{n}',repo_type='dataset',revision=revision,local_dir=temp))
+   if got.stat().st_size!=p.stat().st_size or sha(got)!=sha(p):raise ValueError('Remote bytes differ')
+ save(ART/'verified.json',{'schema_version':1,'status':'private_milestone_fully_verified','repo_id':REPO,'revision':revision,'prefix':PREFIX,'file_count':len(sources),'manifest_sha256':sha(ART/'manifest.json'),'downloaded_all_bytes':True})
+ print(json.dumps({'status':'private_milestone_fully_verified','revision':revision,'files':len(sources)},sort_keys=True))
+if __name__=='__main__':main()

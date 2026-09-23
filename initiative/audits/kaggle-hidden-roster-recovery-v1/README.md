@@ -30,10 +30,29 @@ and the notebook's `--test-studies` input. The new Dataset and notebook slugs
 are `godlydonuts/rsna-knee-e008-fix2-e156bcf1d4e0` and
 `godlydonuts/rsna-knee-epoch8-fix2-e156bcf1d4e0`.
 
-This is **prepared and locally validated only**. It is not yet a published
-Dataset, a completed Kaggle notebook version, a competition submission, or a
-hidden-run fix proven by a score. The original epoch-8 version 1 remains held.
-Publish the corrected Dataset under a distinct immutable journal, fully
-download/hash verify it, then push and validate one distinct private offline
-notebook under the single Newton account ledger. Submit only after a fresh live
-allowance and inspect that hidden run before using another slot.
+The corrected Dataset was created **once** as private version 1, ID **12150743**.
+Its first read-only reconciliation received transient `PERMISSION_DENIED`,
+including for the older Dataset; no create retry was made. A later owned listing
+and `GetDataset` found the new Dataset, and the second read-only reconciliation
+downloaded and hash-verified all **43** logical payload files, including the
+1.2 GB checkpoint. The exact [verification](kaggle-dataset-verified.json),
+[publication intent](kaggle-intent.json), and [create result](kaggle-response.json)
+are preserved. The distinct revision journal is at
+`/home/sa305415/rsna-knee/kaggle/dataset-publications/e156bcf1d4e0d7509d9a48ac0630af80e7119ee232e23082371c575ffc207373-61bff283e65d`.
+
+The corrected private offline T4 notebook was then pushed **once** under the
+new slug as version 1. [The canonical ledger entry](ledger-epoch008-after-corrected-push.json)
+preserves the previous unsubmitted version and binds the new exact operation.
+Its public-example run was still in progress at the last recorded check. There
+is **no completed public receipt, competition submission, hidden-run result, or
+Kaggle score** from this correction yet. The live account allowance remained
+five used and zero available. Check the version-bound MRI-only public receipt,
+then submit one corrected code version only when a fresh live allowance permits;
+inspect its hidden outcome before using another slot.
+
+The reviewed recovery code and this audit at GitHub commit
+`758b9ea8c9d501cec016c61d778e0fed179ce7eb` were also published to private
+Hugging Face revision `a54f598118f1bb58ec3df6bbf4d3292e92f947e5`.
+[The private milestone receipt](hf-verified.json) confirms full download and
+hash verification of all 14 files. This mirror precedes the Dataset and notebook
+publication receipts; it does not claim that hidden scoring passed.
