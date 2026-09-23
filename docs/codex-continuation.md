@@ -64,11 +64,26 @@ submitted once as Kaggle entry **56483451** after a live allowance of four;
 the leaderboard score is pending. Epoch 4's private Dataset was created once, fully
 downloaded and rehashed in a second read-only reconciliation after the first
 encountered a Kaggle API error; its dedicated private notebook version 1 was
-then pushed once. Epoch 6's private Dataset also passed full byte verification
-and its dedicated notebook version 1 was pushed once. See the
+then pushed once. Its MRI-only public-example receipt passed, and the exact
+version was submitted once as Kaggle entry **56483949** after a live allowance
+of two. Epoch 6's private Dataset passed full byte verification; its
+dedicated notebook version 1 completed a valid MRI-only receipt and was
+submitted once as Kaggle entry **56483731** after a live allowance of three.
+The epoch-1, epoch-2, epoch-4 and epoch-6 scores are pending. Epoch 8's private Dataset
+passed full byte verification, but its first notebook push is recorded as
+uncertain after a Kaggle server error; do not repeat that mutation without
+read-only reconciliation. Epoch 10's private Dataset later appeared as version
+1, ID 12146648; all 43 payload files were downloaded and hash-verified. Its
+first notebook-push dispatch stopped before a durable push intent or `SaveKernel`
+because the owned notebook listing has an item without a `ref`, so the slug's
+absence cannot be proven. The ledger remains queued. Do not repeat the push
+without resolving that preflight check. The epoch-10 checkpoint is also fully
+verified on private Hugging Face. See the
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/),
-[epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/) and
-[epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/).
+[epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/),
+[epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/) and
+[epoch-8 audit](../initiative/audits/kaggle-epoch8-v1/) and
+[epoch-10 audit](../initiative/audits/kaggle-epoch10-v1/).
 
 The accepted Kaggle wheelhouse was staged and rehashed in CPU job **841116**.
 An isolated pinned Kaggle management environment was installed in CPU job

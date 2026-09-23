@@ -73,11 +73,19 @@ completed after a recorded slug migration. It was submitted once as competition
 entry 56482890; the score and hidden-test runtime are still pending. The
 epoch-2 private Dataset also passed full byte verification and its version-1
 notebook completed MRI-only inference; it was submitted once as entry 56483451
-with score pending. The epoch-4 and epoch-6 private Datasets are fully
-byte-verified and their separate notebook versions 1 were pushed once. See the
+with score pending. The epoch-6 notebook also completed MRI-only inference and
+was submitted once as entry 56483731 with score pending. The epoch-4 notebook
+also completed MRI-only inference and was submitted once as entry 56483949
+with score pending. Epoch 8's private Dataset is byte-verified, but its single
+notebook push is uncertain after a Kaggle server error and awaits read-only
+reconciliation. The epoch-10 private Dataset appeared later and passed full
+download/hash verification. Its notebook-push preflight stopped before
+`SaveKernel` because the owned listing includes one item without a `ref`;
+resolve that ambiguity before another push. See the
 [epoch-1 Kaggle audit](audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](audits/kaggle-epoch2-v1/), [epoch-4 audit](audits/kaggle-epoch4-v1/),
-[epoch-6 audit](audits/kaggle-epoch6-v1/),
+[epoch-6 audit](audits/kaggle-epoch6-v1/), [epoch-8 audit](audits/kaggle-epoch8-v1/),
+[epoch-10 audit](audits/kaggle-epoch10-v1/),
 and current [continuation guide](../docs/codex-continuation.md).
 The accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 

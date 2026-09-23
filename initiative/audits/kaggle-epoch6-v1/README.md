@@ -14,9 +14,13 @@ was created once as version 1. A separate read-only reconciliation downloaded
 and rehashed every payload file, including the 1.215 GB checkpoint. The
 dedicated private notebook `godlydonuts/rsna-knee-epoch6-22f6badee0c5` was
 pushed once as version 1, with the accepted offline T4 wheelhouse and MRI-only
-inference. Its public-example runtime receipt and any competition submission
-remain pending.
+inference. The three-study public-example execution completed with a valid
+version-bound receipt. The canonical ledger submitted the exact notebook
+version once as Kaggle entry **56483731**, after a fresh live allowance of
+three. Its score and hidden-test runtime remain pending; the three-row public
+output is only a runtime check.
 
 `source-files.json` maps the exact small Newton files and canonical ledger
-record; `local-files.json` maps the scripts and dispatch results. Large private
+records before and after submission; `local-files.json` maps the scripts and
+dispatch results. Large private
 artifacts remain on Newton and Kaggle.

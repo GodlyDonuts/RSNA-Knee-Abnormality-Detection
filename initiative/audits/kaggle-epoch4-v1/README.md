@@ -17,7 +17,10 @@ including the 1.215 GB checkpoint. No Dataset creation was retried.
 
 The dedicated private notebook `godlydonuts/rsna-knee-epoch4-90a72a4f203d`
 was pushed once as version 1. It uses the accepted offline T4 wheelhouse and
-MRI-only inference. Its public-example runtime receipt and any competition
-submission remain pending. `source-files.json` maps the exact small Newton
-files and canonical ledger record; `local-files.json` maps the scripts and
+MRI-only inference. Its three-study public-example execution completed with a
+valid version-bound receipt. The canonical ledger submitted the exact notebook
+version once as Kaggle entry **56483949**, after a fresh live allowance of two.
+Its score and hidden-test runtime remain pending; the three-row public output
+is only a runtime check. `source-files.json` maps the exact small Newton
+files and canonical ledger records before and after submission; `local-files.json` maps the scripts and
 dispatch results. Large private artifacts remain on Newton and Kaggle.

@@ -66,12 +66,25 @@ Dataset also passed full download/hash verification, and its dedicated notebook
 version 1 completed its MRI-only public-example receipt and was submitted once
 as competition entry 56483451. Its score is pending. The epoch-4 private Dataset also passed full byte
 verification after one read-only Kaggle API error and its own version-1
-notebook was pushed once. Epoch 6's private Dataset passed full byte
-verification and its dedicated version-1 notebook was pushed once. See the
+notebook completed a valid MRI-only receipt and was submitted once as entry
+56483949. Its score is pending. Epoch 6's private Dataset passed full byte
+verification and its dedicated version-1 notebook completed valid MRI-only
+inference, then was submitted once as entry 56483731 with score pending.
+Epoch 8's private Dataset passed full byte verification, but its single
+notebook push has an uncertain outcome after a Kaggle server error. Its slug
+requires read-only reconciliation before any new mutation. Epoch 10's private
+Dataset later appeared as version 1, ID 12146648, and all 43 payload files
+passed full download/hash verification. Its first notebook-push dispatch stopped
+in preflight because the owned notebook listing has an item without a `ref`;
+the canonical ledger remains queued and `SaveKernel` was not called. Resolve
+that preflight ambiguity before a new notebook push.
+See the
 [epoch-1 audit](../initiative/audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/) and
 [epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/) and
-[epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/).
+[epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/) and
+[epoch-8 audit](../initiative/audits/kaggle-epoch8-v1/) and
+[epoch-10 audit](../initiative/audits/kaggle-epoch10-v1/).
 
 ## Local preparation
 
