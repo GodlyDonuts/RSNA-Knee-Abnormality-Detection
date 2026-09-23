@@ -1,0 +1,16 @@
+{
+  "created_at_utc": "2026-09-23T19:21:24.017406+00:00",
+  "node_state_before_dispatch": "evc38|idle|gpu:nvidia_h100_pcie:2(S:0-1)\nevc38|idle|gpu:nvidia_h100_pcie:2(S:0-1)",
+  "owner_jobs_before_dispatch": "843935|rsna-dinov3-fold1-b740-v2|PENDING\n843936|rsna-dinov3-fold1-archive-v2|PENDING",
+  "purpose": "verify evc38 before changing pending fold1 training job",
+  "resources": {
+    "cpus": 2,
+    "gpus": "2xH100",
+    "memory": "8G",
+    "time": "00:15:00"
+  },
+  "script": "/home/sa305415/rsna-knee/evc38-health-recheck-v1/probe.sbatch",
+  "script_sha256": "8cc24df9c90499a721437e062424132d58c9db5c649f7b557270f3b6da04141f",
+  "status": "bounded_health_probe_one_attempt",
+  "training_job": 843935
+}

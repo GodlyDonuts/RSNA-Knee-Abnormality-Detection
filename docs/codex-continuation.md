@@ -33,6 +33,16 @@ CPU-only odd-epoch watcher **843936** depends on it. They were pending at the
 first check. Reconcile these IDs and their exact receipts before any retry.
 The failure/retry audit was privately mirrored and fully download/hash-verified
 at Hugging Face revision `1dfcb3dfd6fa0761dc73080aa693eac9cb22fe53`.
+After the owner pointed out apparently free evc30/evc38, fresh Slurm state
+showed evc30 under maintenance/reservation. A bounded two-H100 health check
+on idle evc38, job **843973**, again exposed only one assigned GPU and
+failed `cuInit` with code 999 in three seconds. The
+[evc38 recheck audit](../initiative/audits/evc38-health-recheck-v1/) preserves
+the exact script, logs and scheduler receipt. Keep evc38 excluded; fold-1
+retry 843935 and watcher 843936 remain unchanged.
+The owner's evc32 suggestion was checked separately: Slurm reports one of its
+two GPUs already allocated (`MIXED+PLANNED`). The remaining single GPU cannot
+host the current two-GPU single-node recipe, regardless of available CPUs.
 
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
