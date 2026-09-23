@@ -39,3 +39,10 @@ mutation. The user still expects every completed epoch privately preserved;
 the watcher captures odd epochs 1/3/5/7/9, and the trainer saves even
 epochs 2/4/6/8/10. A snapshot is not a private Hugging Face publication
 until its full upload and download/hash verification receipt exists.
+
+The failure and retry milestone was also committed to the [private Hugging
+Face dataset](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/1dfcb3dfd6fa0761dc73080aa693eac9cb22fe53/experiments/dinov3-v1/milestones/fold1-recovery-064b2b7)
+at revision `1dfcb3dfd6fa0761dc73080aa693eac9cb22fe53`. All 20
+source/manifest files were downloaded again and verified byte for byte and
+by SHA-256. The exact private commit intent and verification receipt are
+archived here; the milestone contains no trained fold-1 checkpoint.

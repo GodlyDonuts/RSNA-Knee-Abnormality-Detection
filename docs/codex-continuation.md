@@ -31,6 +31,8 @@ One new-output retry **843935** excludes evc43 and requires both ranks to
 create CUDA contexts and complete a NCCL collective before cache extraction;
 CPU-only odd-epoch watcher **843936** depends on it. They were pending at the
 first check. Reconcile these IDs and their exact receipts before any retry.
+The failure/retry audit was privately mirrored and fully download/hash-verified
+at Hugging Face revision `1dfcb3dfd6fa0761dc73080aa693eac9cb22fe53`.
 
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
