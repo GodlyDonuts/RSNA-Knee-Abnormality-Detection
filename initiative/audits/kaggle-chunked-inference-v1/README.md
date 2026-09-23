@@ -24,3 +24,13 @@ cross-chunk duplicate SeriesInstanceUID and a misordered output failure. These
 checks do not prove hidden DICOM decoding, T4 throughput, or a Kaggle score.
 An eligible production checkpoint and exact private offline notebook version
 are still required before any competition submission.
+
+Git `c220cc29d32dcb7c1ad008e86ed0975feb245289` passed 971 tests, Ruff,
+Mypy, archive verification and complete v2 review coverage. Its private Hugging
+Face overlay is byte-verified at revision
+`fdf218798f5f6d269e7f13331538333cfbd146b2`; `publication.json` binds its
+three uploaded files. `projection.json` and `receipt.json` bind a 46-file
+minimal code projection: packaging commit `c220cc2` and unchanged training
+commit `b74060b`. `staging.json` records the independently checked remote
+source directory, which is distinct from the active training checkout. This
+projection is for scheduled checkpoint packaging only, not another GPU job.

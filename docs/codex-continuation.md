@@ -82,6 +82,13 @@ pass; hidden-test runtime and scores are still unmeasured. Stage the new exact
 Kaggle code projection separately from the active b740 training checkout after
 its packaging commit is verified. Do not use the older monolithic projection
 for a newly scheduled epoch bundle.
+The exact packaging source projection is verified at
+`/home/sa305415/rsna-knee/kaggle/code-projections/c220cc2-b740-v1/source`;
+its receipt and private Hugging Face revision are under
+`initiative/audits/kaggle-chunked-inference-v1/`. It binds package Git
+`c220cc29d32dcb7c1ad008e86ed0975feb245289` to unchanged training Git
+`b74060b98f01bff1b924070ccba5ce44dd002f40`. Keep Kaggle coordination on
+the one canonical ledger when an eligible epoch snapshot exists.
 Both failure audits are in
 `initiative/audits/newton-production-stall-v1/` and
 `initiative/audits/newton-repeatable-stall-v1/`. The canonical Kaggle ledger
