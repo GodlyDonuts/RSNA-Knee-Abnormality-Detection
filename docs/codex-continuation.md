@@ -54,6 +54,10 @@ there is no fold-2 optimizer result yet. Fold-1 jobs 843935/843936 remain
 unchanged. The exact scripts, hashes, receipts and prepared, unlaunched
 ten-epoch fold-2 production plan are in the
 [single-GPU launch audit](../initiative/audits/dinov3-fold2-1gpu-launch-v1/).
+The pilot/node-health milestone was privately committed and all 33 files
+re-downloaded/hash-verified at Hugging Face revision
+`479b880a436f69b4b760bee13640509f13a3c5eb`. This is a launch receipt,
+not a training result.
 
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary

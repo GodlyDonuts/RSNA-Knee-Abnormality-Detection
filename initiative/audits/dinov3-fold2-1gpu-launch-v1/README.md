@@ -46,3 +46,10 @@ is rechecked, and the live job state is reconciled. At most two GPU nodes may
 run concurrently. Publish each immutable completed production checkpoint to
 the private Hugging Face dataset with full download/hash verification. The
 pilot is diagnostic and not eligible for a Kaggle submission.
+
+This launch and the evc38 node-health audit were also committed to the
+[private Hugging Face dataset](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/479b880a436f69b4b760bee13640509f13a3c5eb/experiments/dinov3-v1/milestones/fold2-1gpu-507f03e)
+at revision `479b880a436f69b4b760bee13640509f13a3c5eb`. All 33 source and
+manifest files were downloaded and matched byte counts and SHA-256 hashes.
+The one-shot intent and full verification receipts are archived here. This
+milestone has no fold-2 checkpoint or Kaggle score.
