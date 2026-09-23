@@ -1,0 +1,193 @@
+"""Move one 409-blocked baseline notebook identity to an unused exact-source slug."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import os
+from pathlib import Path
+
+R = Path("/home/sa305415/rsna-knee")
+PROJECTION = R / "kaggle/code-projections/2bc2695-b740-epoch1-v1"
+OLD = R / "kaggle/bundles/epoch001-01d56458c54f-2bc2695-v1"
+NEW = R / "kaggle/bundles/epoch001-01d56458c54f-kernel2-v1"
+SNAPSHOT = R / "runs/dinov3-l16-epoch1-baseline-b740-v1/epoch-checkpoints/epoch-001.json"
+PROJECTION_SHA = "098a3b351305af4166fd7fe57f33bdf8387d3f42c3b255210985f25205e6459b"
+CHECKPOINT_SHA = "01d56458c54f4f2811ecfd5b997e99baec765e850345001960b953304ff3d28e"
+OLD_SHA = "5c6f9f3a3741a90d9fc197a169d19ec7e355d7cd93c216ca925215bafe531ed5"
+NEW_SHA = "a55bb0c54a9f08849d28c104dd20ce16d7b2858e2f54389ac46bf8e37e6af24d"
+OLD_SLUG = "godlydonuts/rsna-knee-e001-01d56458c54f"
+NEW_SLUG = "godlydonuts/rsna-knee-epoch1-01d56458c54f"
+
+
+def main() -> None:
+    if not os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOB_GPUS"):
+        raise ValueError("CPU-only Slurm allocation required")
+    spec = importlib.util.spec_from_file_location(
+        "epoch_coordinator", PROJECTION / "source/scripts/kaggle/coordinator.py"
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("Pinned coordinator missing")
+    coordinator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(coordinator)
+    workflow, projection = coordinator.load_workflow(
+        PROJECTION / "source", PROJECTION / "projection.json", PROJECTION_SHA
+    )
+    if projection["package_git_commit"] != "2bc26959c4b7d3c82a7cba41f8b8f662970a91ac":
+        raise ValueError("Unexpected source projection")
+    op_path = NEW / "operation.json"
+    op, meta, files = coordinator.validate_operation(
+        workflow,
+        type(
+            "Args",
+            (),
+            {
+                "operation": op_path,
+                "snapshot": SNAPSHOT,
+                "projection": PROJECTION / "source",
+            },
+        )(),
+    )
+    derivation = json.loads((NEW / "derivation.json").read_text())
+    if (
+        workflow.digest(OLD / "operation.json") != OLD_SHA
+        or workflow.digest(op_path) != NEW_SHA
+        or derivation.get("old_operation_sha256") != OLD_SHA
+        or derivation.get("new_operation_sha256") != NEW_SHA
+        or derivation.get("dataset_manifest_sha256") != op["manifest_sha256"]
+        or derivation.get("kernel_source_sha256") != op["kernel_source_sha256"]
+        or meta["checkpoint_sha256"] != CHECKPOINT_SHA
+        or op["kernel_slug"] != NEW_SLUG
+        or op["dataset_slug"] != OLD_SLUG
+    ):
+        raise ValueError("Derived notebook identity/provenance changed")
+    old_files = sorted(
+        x.relative_to(OLD / "dataset") for x in (OLD / "dataset").rglob("*") if x.is_file()
+    )
+    if len(old_files) != derivation["dataset_hardlinked_files"] or not all(
+        (OLD / "dataset" / name).samefile(NEW / "dataset" / name) for name in old_files
+    ):
+        raise ValueError("New operation does not reference the same private Dataset bytes")
+    if workflow.digest(OLD / "kernel/run.py") != workflow.digest(NEW / "kernel/run.py"):
+        raise ValueError("MRI-only notebook source changed")
+    base = R / "kaggle"
+    migration = base / "kernel-push-migrations" / CHECKPOINT_SHA
+    if migration.exists() or migration.is_symlink():
+        raise ValueError("Baseline notebook migration already attempted")
+    dataset_journal = base / "dataset-publications" / CHECKPOINT_SHA
+    verified = json.loads((dataset_journal / "verified.json").read_text())
+    if (
+        verified.get("status") != "all_payload_bytes_verified"
+        or verified.get("files") != files
+        or verified.get("operation_sha256") != OLD_SHA
+        or verified.get("intent_sha256") != workflow.digest(dataset_journal / "intent.json")
+        or verified.get("slug") != OLD_SLUG
+        or verified.get("private") is not True
+        or verified.get("version") != 1
+    ):
+        raise ValueError("Original private Dataset proof differs")
+    recovery = json.loads(
+        (base / "kernel-push-recoveries" / CHECKPOINT_SHA / "uncertain.json").read_text()
+    )
+    if (
+        recovery.get("error") != "Kaggle SaveKernel HTTP 409"
+        or recovery.get("retry_prohibited") is not True
+    ):
+        raise ValueError("Original slug does not have the recorded 409 recovery outcome")
+    remote, _ = coordinator.remote_from_stdin(workflow)
+    with coordinator.single_coordinator(base):
+        if coordinator.p.metadata(remote, OLD_SLUG) != {
+            key: verified[key] for key in ("id", "version", "slug", "private")
+        }:
+            raise ValueError("Private Dataset identity drifted")
+        workflow.verify_remote_dataset(remote, op)
+        with workflow.ledger(base / "account-ledger.sqlite3", remote.username) as db:
+            workflow.verify_account(db, remote)
+            entry = workflow.read_entry(db, CHECKPOINT_SHA)
+            if (
+                entry.get("state") != "push_uncertain"
+                or entry.get("kernel_version") is not None
+                or entry.get("recovery_error") != "Kaggle SaveKernel HTTP 409"
+                or entry.get("operation_sha256") != OLD_SHA
+                or entry.get("operation", {}).get("kernel_slug") != OLD_SLUG
+                or entry.get("dataset", {}).get("id") != verified["id"]
+            ):
+                raise ValueError("Canonical ledger no longer has the single blocked epoch-1 push")
+            # Both complete owned-kernel listings are read-only. The old slug is
+            # retained in the history, and a distinct new slug is required.
+            old_absence = remote.require_absent_kernel(OLD_SLUG)
+            new_absence = remote.require_absent_kernel(NEW_SLUG)
+            request = workflow.kernel_request(op_path, op)
+            if request.pop("sessionTimeoutSeconds") != 32400:
+                raise ValueError("Unexpected optional timeout")
+            migration.mkdir(mode=0o700, parents=True)
+            coordinator.p.exclusive_json(
+                migration / "intent.json",
+                {
+                    "schema_version": 1,
+                    "status": "one_new_slug_migration_intent",
+                    "checkpoint_sha256": CHECKPOINT_SHA,
+                    "old_operation_sha256": OLD_SHA,
+                    "new_operation_sha256": NEW_SHA,
+                    "old_kernel_slug": OLD_SLUG,
+                    "new_kernel_slug": NEW_SLUG,
+                    "old_absence_proof": old_absence,
+                    "new_absence_proof": new_absence,
+                    "original_ledger_entry_sha256": workflow.object_hash(entry),
+                    "dataset_verified_sha256": workflow.digest(dataset_journal / "verified.json"),
+                    "notebook_source_sha256": op["kernel_source_sha256"],
+                    "request_sha256_without_optional_timeout": workflow.object_hash(request),
+                    "no_new_dataset_or_checkpoint_bytes": True,
+                },
+            )
+            entry.update(
+                state="queued",
+                operation=op,
+                operation_sha256=NEW_SHA,
+                superseded_kernel_slug=OLD_SLUG,
+                superseded_operation_sha256=OLD_SHA,
+                migration_intent_sha256=workflow.digest(migration / "intent.json"),
+                kernel_version=None,
+            )
+            workflow.save_entry(db, entry, "migrated absent 409 slug to new exact-source operation")
+            try:
+                # workflow.push has its own fresh absence proof and durable
+                # push intent before its single SaveKernel mutation.
+                result = workflow.push(remote, db, op_path)
+                if result.get("kernel_version") != 1:
+                    raise ValueError("New slug did not return exact version 1")
+                coordinator.p.exclusive_json(
+                    migration / "push-result.json",
+                    {
+                        "status": "pushed",
+                        "kernel_slug": NEW_SLUG,
+                        "kernel_version": 1,
+                        "source_sha256": op["kernel_source_sha256"],
+                        "ledger_entry_sha256": workflow.object_hash(result),
+                    },
+                )
+                print(
+                    json.dumps(
+                        {"status": "pushed", "kernel_slug": NEW_SLUG, "version": 1}, sort_keys=True
+                    )
+                )
+            except Exception as exc:
+                error = str(exc) if isinstance(exc, workflow.RemoteError) else type(exc).__name__
+                coordinator.p.exclusive_json(
+                    migration / "push-uncertain.json",
+                    {
+                        "status": "new_slug_push_uncertain",
+                        "error": error,
+                        "retry_prohibited": True,
+                    },
+                )
+                raise RuntimeError(error) from None
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        error = str(exc) if isinstance(exc, RuntimeError) else type(exc).__name__
+        print(json.dumps({"status": "blocked", "error": error, "automatic_retry": False}))
+        raise SystemExit(1) from None

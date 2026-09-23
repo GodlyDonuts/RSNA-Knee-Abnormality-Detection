@@ -1,0 +1,79 @@
+"""Run one version-bound migrated epoch-1 Kaggle phase from local stdin token."""
+from __future__ import annotations
+
+import argparse
+import datetime
+import json
+import os
+from pathlib import Path
+import shlex
+import subprocess
+
+ROOT = Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection')
+ART = ROOT / 'artifacts/kaggle-epoch1-submission-v1'
+REMOTE = '/home/sa305415/rsna-knee'
+SCRIPT = REMOTE + '/kaggle/epoch1-push-migration-v1/migrated_coordinator.py'
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('mode', choices=('status', 'receipt', 'submit', 'reconcile'))
+    parser.add_argument('--attempt', type=int, default=1)
+    args = parser.parse_args()
+    if args.attempt < 1 or args.attempt > 30:
+        raise ValueError('Bounded attempt number required')
+    if args.mode == 'submit' and args.attempt != 1:
+        raise ValueError('A submission mutation is dispatched only once')
+    stem = f'migrated-{args.mode}-attempt{args.attempt:02d}'
+    intent = ART / (stem + '-intent.json')
+    result_file = ART / (stem + '-result.json')
+    if intent.exists() or result_file.exists():
+        raise ValueError('Phase already dispatched; inspect its outcome before acting')
+    connection = json.loads((ROOT / 'artifacts/newton-access-control/connection.json').read_text())
+    values = {}
+    for line in (ROOT / '.env').read_text().splitlines():
+        if '=' in line and not line.lstrip().startswith('#'):
+            key, value = line.split('=', 1)
+            values[key.strip()] = value.strip().strip('"').strip("'")
+    token = values.get('KAGGLE_API_TOKEN')
+    if not token or not token.startswith('KGAT_'):
+        raise ValueError('Kaggle token unavailable')
+    record = {
+        'mode': args.mode, 'attempt': args.attempt,
+        'kernel_slug': 'godlydonuts/rsna-knee-epoch1-01d56458c54f',
+        'checkpoint_sha256': '01d56458c54f4f2811ecfd5b997e99baec765e850345001960b953304ff3d28e',
+        'script': SCRIPT,
+        'created_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'credential_transport': 'local_secret_to_ssh_stdin_to_srun_stdin_only',
+    }
+    with intent.open('x') as stream:
+        json.dump(record, stream, sort_keys=True, indent=2)
+        stream.write('\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+    remote = ['srun', '--account=skattel', '--partition=normal', '--nodes=1',
+              '--nodelist=evc42', '--ntasks=1', '--cpus-per-task=1', '--mem=6G',
+              '--time=00:30:00', '--export=ALL,PYTHONDONTWRITEBYTECODE=1',
+              REMOTE + '/kaggle/management-cp312-v1/bin/python', SCRIPT, args.mode]
+    command = ['ssh', '-S', connection['control_socket'], '-o', 'BatchMode=yes',
+               f"{connection['user']}@{connection['host']}", shlex.join(remote)]
+    response = subprocess.run(command, input=json.dumps({'token': token}), capture_output=True,
+                              text=True, timeout=2100)
+    result = {
+        'mode': args.mode, 'attempt': args.attempt,
+        'returncode': response.returncode,
+        'stdout_tail': response.stdout[-2500:],
+        'stderr_tail': response.stderr[-1000:],
+        'completed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+    with result_file.open('x') as stream:
+        json.dump(result, stream, sort_keys=True, indent=2)
+        stream.write('\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+    print(json.dumps(result, sort_keys=True))
+    raise SystemExit(response.returncode)
+
+
+if __name__ == '__main__':
+    main()

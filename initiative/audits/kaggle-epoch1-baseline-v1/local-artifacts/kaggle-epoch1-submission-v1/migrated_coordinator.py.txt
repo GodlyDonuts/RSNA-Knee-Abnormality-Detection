@@ -1,0 +1,170 @@
+"""Complete the exact version-1 epoch-1 baseline from its migrated Kaggle slug."""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import os
+from pathlib import Path
+
+R = Path("/home/sa305415/rsna-knee")
+PROJECTION = R / "kaggle/code-projections/2bc2695-b740-epoch1-v1"
+OLD = R / "kaggle/bundles/epoch001-01d56458c54f-2bc2695-v1"
+NEW = R / "kaggle/bundles/epoch001-01d56458c54f-kernel2-v1"
+CHECKPOINT_SHA = "01d56458c54f4f2811ecfd5b997e99baec765e850345001960b953304ff3d28e"
+OLD_SHA = "5c6f9f3a3741a90d9fc197a169d19ec7e355d7cd93c216ca925215bafe531ed5"
+NEW_SHA = "a55bb0c54a9f08849d28c104dd20ce16d7b2858e2f54389ac46bf8e37e6af24d"
+OLD_SLUG = "godlydonuts/rsna-knee-e001-01d56458c54f"
+NEW_SLUG = "godlydonuts/rsna-knee-epoch1-01d56458c54f"
+PROJECTION_SHA = "098a3b351305af4166fd7fe57f33bdf8387d3f42c3b255210985f25205e6459b"
+
+
+def run(mode: str) -> dict:
+    if not os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOB_GPUS"):
+        raise ValueError("CPU-only Slurm allocation required")
+    spec = importlib.util.spec_from_file_location(
+        "epoch_coordinator", PROJECTION / "source/scripts/kaggle/coordinator.py"
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("Pinned coordinator missing")
+    coordinator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(coordinator)
+    workflow, projection = coordinator.load_workflow(
+        PROJECTION / "source", PROJECTION / "projection.json", PROJECTION_SHA
+    )
+    if projection["package_git_commit"] != "2bc26959c4b7d3c82a7cba41f8b8f662970a91ac":
+        raise ValueError("Source projection differs")
+    old_op = OLD / "operation.json"
+    new_op = NEW / "operation.json"
+    if workflow.digest(old_op) != OLD_SHA or workflow.digest(new_op) != NEW_SHA:
+        raise ValueError("Operation provenance changed")
+    operation = workflow.load_operation(new_op)
+    derivation = json.loads((NEW / "derivation.json").read_text())
+    if (
+        operation["checkpoint_sha256"] != CHECKPOINT_SHA
+        or operation["kernel_slug"] != NEW_SLUG
+        or operation["dataset_slug"] != OLD_SLUG
+        or operation["kernel_source_sha256"] != derivation["kernel_source_sha256"]
+        or operation["manifest_sha256"] != derivation["dataset_manifest_sha256"]
+        or derivation["old_operation_sha256"] != OLD_SHA
+        or derivation["new_operation_sha256"] != NEW_SHA
+        or workflow.digest(OLD / "kernel/run.py") != workflow.digest(NEW / "kernel/run.py")
+    ):
+        raise ValueError("Derived operation or source differs")
+    base = R / "kaggle"
+    verified = json.loads(
+        (base / "dataset-publications" / CHECKPOINT_SHA / "verified.json").read_text()
+    )
+    manifest = json.loads((NEW / "dataset/bundle-manifest.json").read_text())
+    files = coordinator.p.expected_files(NEW / "dataset", manifest)
+    if (
+        verified.get("status") != "all_payload_bytes_verified"
+        or verified.get("operation_sha256") != OLD_SHA
+        or verified.get("files") != files
+        or verified.get("slug") != OLD_SLUG
+        or verified.get("private") is not True
+        or verified.get("version") != 1
+    ):
+        raise ValueError("Private Dataset proof differs")
+    migration = base / "kernel-push-migrations" / CHECKPOINT_SHA
+    intent = json.loads((migration / "intent.json").read_text())
+    result = json.loads((migration / "push-result.json").read_text())
+    if (
+        intent.get("old_operation_sha256") != OLD_SHA
+        or intent.get("new_operation_sha256") != NEW_SHA
+        or intent.get("notebook_source_sha256") != operation["kernel_source_sha256"]
+        or result.get("status") != "pushed"
+        or result.get("kernel_slug") != NEW_SLUG
+        or result.get("kernel_version") != 1
+        or result.get("source_sha256") != operation["kernel_source_sha256"]
+    ):
+        raise ValueError("The new slug was not proven from the single migration")
+    remote, _ = coordinator.remote_from_stdin(workflow)
+    with coordinator.single_coordinator(base):
+        if coordinator.p.metadata(remote, OLD_SLUG) != {
+            key: verified[key] for key in ("id", "version", "slug", "private")
+        }:
+            raise ValueError("Private Dataset version changed")
+        with workflow.ledger(base / "account-ledger.sqlite3", remote.username) as db:
+            workflow.verify_account(db, remote)
+            entry = workflow.read_entry(db, CHECKPOINT_SHA)
+            if (
+                entry.get("operation_sha256") != NEW_SHA
+                or entry.get("operation") != operation
+                or entry.get("kernel_version") != 1
+                or entry.get("superseded_kernel_slug") != OLD_SLUG
+                or entry.get("superseded_operation_sha256") != OLD_SHA
+                or entry.get("migration_intent_sha256")
+                != workflow.digest(migration / "intent.json")
+            ):
+                raise ValueError("Canonical ledger differs from exact migrated operation")
+            if mode == "status":
+                state = workflow.status(remote, db, CHECKPOINT_SHA)
+                return {
+                    "status": state.get("state"),
+                    "kernel_status": state.get("kernel_status", {}).get("status"),
+                    "kernel_version": state.get("kernel_version"),
+                    "submission": state.get("submission"),
+                }
+            if mode == "receipt":
+                state = workflow.check_kernel(remote, entry, 1)
+                if state.get("status") != "COMPLETE":
+                    return {"status": "kernel_not_complete", "kernel_status": state.get("status")}
+                receipt = remote.output_json(NEW_SLUG, 1, "kaggle-inference-receipt.json")
+                if (
+                    receipt.get("status") != "offline_inference_complete"
+                    or receipt.get("bundle_manifest_sha256") != operation["manifest_sha256"]
+                    or receipt.get("checkpoint_sha256") != CHECKPOINT_SHA
+                    or type(receipt.get("studies")) is not int
+                    or receipt["studies"] < 1
+                ):
+                    raise ValueError("Completed notebook did not prove trained MRI inference")
+                return {
+                    "status": receipt["status"],
+                    "studies": receipt["studies"],
+                    "receipt_sha256": workflow.object_hash(receipt),
+                    "checkpoint_sha256": CHECKPOINT_SHA,
+                    "kernel_version": 1,
+                }
+            if mode == "submit":
+                entry = workflow.submit(remote, db, CHECKPOINT_SHA)
+                return {
+                    "state": entry["state"],
+                    "submission_id": entry.get("submission_id"),
+                    "kernel_slug": NEW_SLUG,
+                    "kernel_version": 1,
+                    "live_allowance_before": entry.get("quota_before", {}).get("num_allowed_now"),
+                }
+            if mode == "reconcile":
+                entry = workflow.reconcile_submission(remote, db, CHECKPOINT_SHA)
+                return {
+                    "state": entry["state"],
+                    "submission_id": entry.get("submission_id"),
+                    "remote_status": entry.get("remote_status"),
+                    "public_score": entry.get("public_score"),
+                }
+            raise ValueError("Unsupported coordinator action")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("mode", choices=("status", "receipt", "submit", "reconcile"))
+    args = parser.parse_args()
+    try:
+        print(json.dumps(run(args.mode), sort_keys=True))
+    except Exception as exc:
+        print(
+            json.dumps(
+                {
+                    "status": "blocked",
+                    "error": str(exc) if isinstance(exc, RuntimeError) else type(exc).__name__,
+                    "automatic_retry": False,
+                }
+            )
+        )
+        raise SystemExit(1) from None
+
+
+if __name__ == "__main__":
+    main()

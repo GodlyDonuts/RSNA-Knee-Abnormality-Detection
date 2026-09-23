@@ -9,7 +9,7 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
 Slurm job **841107** remains the ten-epoch, two-H100/four-training-CPU fold-0
-run on evc28. It completed epochs 1 through 6 and continues with unchanged
+run on evc28. It completed epochs 1 through 8 and continues with unchanged
 accepted masks, folds, official DINOv3-L weights and training source Git
 `b74060b98f01bff1b924070ccba5ce44dd002f40`. Its immutable epoch-2
 snapshot SHA is `f56c0d64519fbf2fde5433ef4ff3dcc59d8f01394d80515ebf5cebf97726fa02`.
@@ -18,15 +18,19 @@ the rolling recovery file advanced; its verified snapshot SHA is
 `caaa821440a1e880ba95744223ac693d30a5f8d3ad62a4d0a0f29d46e2b494f4`.
 The watcher captured epoch 5 with SHA
 `8ea11a5b513e369b1cb7e26861b3135b657b3d4b85c02c57ce9a8fc963ef1dd4`.
-It is expected to capture odd epochs 7 and 9 likewise; check its
+It captured odd epoch 7 with SHA
+`998530993c80d4cb1c632ba9aa5b4ff175d862590b352c9caea8c30fccb05fd8`.
+It is expected to capture epoch 9 likewise; check its
 Slurm state and actual sidecars before assuming success. Even epochs 4/6/8/10
-remain trainer-scheduled snapshots. Epochs 2, 3, 4, 5 and 6 were separately committed
+remain trainer-scheduled snapshots. Epochs 2 through 8 were separately committed
 to private `GodlyDonuts/RSNA-Data` and fully downloaded back for SHA/size
 verification at revisions `1ef2a32c33fa635b5c9498e14eeb11afaf0e428d`,
 `2d777a58bf4a8a247c6be7b5943ac11ee40d67f3` and
 `fc78e3d40b5a00a69bcab7be30d5cf732eb552de` and
 `eac9a18621048c395713eb81d40e6a0955120fc0` and
-`6d6cdeb6434114d7508a6d0bf8b992c68b72b90b`.
+`6d6cdeb6434114d7508a6d0bf8b992c68b72b90b`,
+`af3be629981a3d4255cae7cc54c72d480b1f285a` and
+`0d90e6a19288615bb882bca1a84b70c6047179dd`.
 
 The rolling first-epoch checkpoint had already been replaced when the owner
 requested an epoch-1 baseline. Separate two-H100 job **841126** resumed the
@@ -43,6 +47,13 @@ per-epoch journal before any attempted repeat. The normal
 2/4/6/8/10 Kaggle cadence remains unchanged; the explicit baseline is one
 additional submission, so six total entries may span multiple quota days.
 No Kaggle competition submission has yet been made.
+The [epoch-1 Kaggle deployment audit](../initiative/audits/kaggle-epoch1-baseline-v1/)
+records a private version-1 Dataset (ID 12145591) whose 46 payload files were
+fully downloaded and rehashed. The first notebook slug was absent after an
+uncertain push and an HTTP 409 recovery. An exact-source operation under a new
+slug was accepted as private offline T4 notebook version 1 and is running.
+The canonical single ledger preserves both failed intents and the migration;
+its MRI-only receipt and competition score remain pending.
 
 The accepted Kaggle wheelhouse was staged and rehashed in CPU job **841116**.
 An isolated pinned Kaggle management environment was installed in CPU job

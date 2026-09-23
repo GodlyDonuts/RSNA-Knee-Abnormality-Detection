@@ -52,10 +52,15 @@ backward, tiny random DINOv3 forward and decoder checks on a T4. Neither probe
 accessed competition data or pretrained weights. The small proofs and reusable
 `shared-wheelhouse.json` are archived under
 `initiative/audits/dinov3-deployment-v1/kaggle-t4-acceptance/`.
-Completed full-data epochs 1 through 6 checkpoint snapshots now exist; epochs 1
+Completed full-data epochs 1 through 8 checkpoint snapshots now exist; epochs 1
 and 3 are preserved separately from the trainer's scheduled Kaggle cadence.
-No competition entry has been created yet. Complete exact private notebook
-execution is still required before any code submission.
+No competition entry has been created yet. The epoch-1 private Dataset is
+version 1, ID 12145591, and all 46 files passed full remote download/hash
+verification. The first notebook slug returned an uncertain push and then
+HTTP 409 while remaining absent from complete owned listings. The same source
+and Dataset were bound to a distinct notebook slug and accepted as private
+offline T4 version 1. Its run and exact MRI-only receipt are still required
+before any code submission; see the [deployment audit](../initiative/audits/kaggle-epoch1-baseline-v1/).
 
 ## Local preparation
 

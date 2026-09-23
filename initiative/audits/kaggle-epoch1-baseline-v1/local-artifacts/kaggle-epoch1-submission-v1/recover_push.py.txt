@@ -1,0 +1,176 @@
+"""One guarded recovery after an uncertain, read-only reconciled kernel push.
+
+The notebook source and attached private Dataset are unchanged. The optional
+requested timeout is omitted so Kaggle applies its own allowed maximum.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import os
+from pathlib import Path
+
+R = Path("/home/sa305415/rsna-knee")
+PROJECTION = R / "kaggle/code-projections/2bc2695-b740-epoch1-v1"
+OUTPUT = R / "kaggle/bundles/epoch001-01d56458c54f-2bc2695-v1"
+SNAPSHOT = R / "runs/dinov3-l16-epoch1-baseline-b740-v1/epoch-checkpoints/epoch-001.json"
+PROJECTION_SHA = "098a3b351305af4166fd7fe57f33bdf8387d3f42c3b255210985f25205e6459b"
+CHECKPOINT_SHA = "01d56458c54f4f2811ecfd5b997e99baec765e850345001960b953304ff3d28e"
+
+
+def main() -> None:
+    if not os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOB_GPUS"):
+        raise ValueError("CPU-only Slurm allocation required")
+    spec = importlib.util.spec_from_file_location(
+        "epoch_coordinator", PROJECTION / "source/scripts/kaggle/coordinator.py"
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("Pinned coordinator missing")
+    coordinator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(coordinator)
+    workflow, projection = coordinator.load_workflow(
+        PROJECTION / "source", PROJECTION / "projection.json", PROJECTION_SHA
+    )
+    op_path = OUTPUT / "operation.json"
+    operation, meta, files = coordinator.validate_operation(
+        workflow,
+        type(
+            "Arguments",
+            (),
+            {
+                "operation": op_path,
+                "snapshot": SNAPSHOT,
+                "projection": PROJECTION / "source",
+            },
+        )(),
+    )
+    if (
+        meta["checkpoint_sha256"] != CHECKPOINT_SHA
+        or projection["package_git_commit"] != "2bc26959c4b7d3c82a7cba41f8b8f662970a91ac"
+        or operation["kernel_slug"] != "godlydonuts/rsna-knee-e001-01d56458c54f"
+    ):
+        raise ValueError("Unexpected epoch-1 recovery target")
+    base = R / "kaggle"
+    journal = base / "kernel-push-recoveries" / CHECKPOINT_SHA
+    if journal.exists() or journal.is_symlink():
+        raise ValueError("This uncertain push already has a recovery attempt")
+    dataset_journal = base / "dataset-publications" / CHECKPOINT_SHA
+    verified = json.loads((dataset_journal / "verified.json").read_text())
+    if (
+        verified.get("status") != "all_payload_bytes_verified"
+        or verified.get("files") != files
+        or verified.get("operation_sha256") != workflow.digest(op_path)
+        or verified.get("intent_sha256") != workflow.digest(dataset_journal / "intent.json")
+        or verified.get("private") is not True
+        or verified.get("version") != 1
+        or verified.get("slug") != operation["dataset_slug"]
+    ):
+        raise ValueError("Original private Dataset bytes were not fully verified")
+    remote, _ = coordinator.remote_from_stdin(workflow)
+    with coordinator.single_coordinator(base):
+        if coordinator.p.metadata(remote, operation["dataset_slug"]) != {
+            key: verified[key] for key in ("id", "version", "slug", "private")
+        }:
+            raise ValueError("Private Dataset identity changed")
+        workflow.verify_remote_dataset(remote, operation)
+        with workflow.ledger(base / "account-ledger.sqlite3", remote.username) as db:
+            workflow.verify_account(db, remote)
+            entry = workflow.read_entry(db, CHECKPOINT_SHA)
+            if (
+                entry.get("state") != "push_uncertain"
+                or entry.get("kernel_version") is not None
+                or entry.get("operation_sha256") != workflow.digest(op_path)
+                or entry.get("operation") != operation
+                or entry.get("dataset", {}).get("id") != verified["id"]
+                or not entry.get("kernel_absence_proof")
+            ):
+                raise ValueError("Original uncertain mutation or ledger identity differs")
+            request = workflow.kernel_request(op_path, operation)
+            if request.pop("sessionTimeoutSeconds") != 32400:
+                raise ValueError("Unexpected original timeout")
+            if workflow.digest(OUTPUT / "kernel/run.py") != operation["kernel_source_sha256"]:
+                raise ValueError("Notebook source changed")
+            # GetKernel 403 alone proves nothing. Complete the owned profile listing
+            # immediately before the one recovery mutation.
+            absence = remote.require_absent_kernel(operation["kernel_slug"])
+            if absence.get("method") not in {
+                "GetKernel404",
+                "complete_authenticated_profile_after403",
+            }:
+                raise ValueError("Kernel absence remains ambiguous")
+            journal.mkdir(mode=0o700, parents=True)
+            coordinator.p.exclusive_json(
+                journal / "intent.json",
+                {
+                    "schema_version": 1,
+                    "status": "one_guarded_push_recovery_intent",
+                    "checkpoint_sha256": CHECKPOINT_SHA,
+                    "operation_sha256": workflow.digest(op_path),
+                    "original_ledger_entry_sha256": workflow.object_hash(entry),
+                    "original_absence_proof": entry["kernel_absence_proof"],
+                    "fresh_absence_proof": absence,
+                    "request_sha256": workflow.object_hash(request),
+                    "request_change": "omit optional 32400-second timeout; Kaggle uses its allowed default",
+                    "source_sha256": operation["kernel_source_sha256"],
+                    "dataset_verified_sha256": workflow.digest(dataset_journal / "verified.json"),
+                    "retry_prohibited_after_this_attempt": True,
+                },
+            )
+            entry.update(
+                state="push_recovery_intent",
+                recovery_intent_sha256=workflow.digest(journal / "intent.json"),
+                recovery_request_sha256=workflow.object_hash(request),
+                recovery_absence_proof=absence,
+            )
+            workflow.save_entry(
+                db, entry, "durable guarded recovery intent after full absence check"
+            )
+            try:
+                response = remote.call("kernels.KernelsApiService", "SaveKernel", request)
+                version = response.get("versionNumber")
+                if type(version) is not int or version != 1 or response.get("error"):
+                    raise workflow.RemoteError("SaveKernel recovery returned no exact version 1")
+                coordinator.p.exclusive_json(
+                    journal / "response.json",
+                    {
+                        "status": "save_returned",
+                        "version": version,
+                        "response_keys": sorted(response),
+                    },
+                )
+                entry.update(state="pushed", kernel_version=version)
+                workflow.save_entry(db, entry, "guarded recovery returned exact kernel version 1")
+                print(
+                    json.dumps(
+                        {
+                            "status": "pushed",
+                            "kernel_slug": operation["kernel_slug"],
+                            "version": version,
+                            "source_sha256": operation["kernel_source_sha256"],
+                        },
+                        sort_keys=True,
+                    )
+                )
+            except Exception as exc:
+                error = str(exc) if isinstance(exc, workflow.RemoteError) else type(exc).__name__
+                coordinator.p.exclusive_json(
+                    journal / "uncertain.json",
+                    {
+                        "status": "push_recovery_uncertain",
+                        "error": error,
+                        "retry_prohibited": True,
+                    },
+                )
+                entry.update(state="push_uncertain", recovery_error=error)
+                workflow.save_entry(db, entry, "guarded recovery uncertain; no further retry")
+                raise RuntimeError(error) from None
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        error = str(exc) if isinstance(exc, RuntimeError) else type(exc).__name__
+        print(json.dumps({"status": "blocked", "error": error, "automatic_retry": False}))
+        raise SystemExit(1) from None
