@@ -69,11 +69,20 @@ This points to FP32 interpolation roundoff against the model's strict `[0,1]`
 guard. The loader fix clips that roundoff. Job **840938** then verified all
 eight studies on Newton with the committed fix: seven image hashes were
 unchanged, the affected one now has maximum one, and Slurm completed `0:0`.
-Single bounded two-H100 job **840991** was submitted to cross update 23 and
-stop with a checkpoint at update 26. Its pending time limit was reduced to
-30 minutes on the same job for backfill. Exact checkpoint preservation and
-resume scripts are staged, but not dispatched. Reconcile job 840991 before
-the one-CPU checkpoint proof or any full resume.
+Bounded two-H100 job **840991** crossed update 23 and completed `0:0` at
+update 26. Its 1,215,174,757-byte checkpoint SHA-256 is
+`b50ae5591b7b5b02f36423676f1f7fcbedacd69c8d848172bee459e4ae8d044a`.
+The first one-CPU proof job 841089 failed before proof creation because the
+absolute script path omitted the pinned Python package. The narrowly repaired
+one-CPU job **841091** completed `0:0`, decoded `(epoch=0,next_update=26,step=26)`
+and hard-linked the original checkpoint and records. Two-H100/four-CPU job
+**841094** failed at evc27's CUDA visibility preflight before training, leaving
+the checkpoint and proof unchanged. The single retry **841107** allocated evc28
+with evc27 excluded and uses the same proof. Check its
+Slurm state, `run.json`, `invocation.json`, epoch sidecars and logs before
+acting; do not submit a second continuation. The [fix audit](../initiative/audits/newton-interpolation-fix-v1/)
+holds the immutable small proof and dispatch records. No epoch or Kaggle
+submission is yet claimed.
 The prepared Kaggle notebook now runs exact trained inference in 32-study
 chunks, checking each receipt and cleaning each temporary image cache. This
 bounds test-cache space without changing the pinned `rsna/**/*.py` trainer

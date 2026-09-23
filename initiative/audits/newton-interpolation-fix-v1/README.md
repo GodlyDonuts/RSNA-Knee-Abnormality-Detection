@@ -34,15 +34,37 @@ and TAR SHA-256 is
 `kaggle-projection/` preserves the small manifest and byte proof. No
 checkpoint bundle, notebook, ledger entry or competition submission exists yet.
 
-The single bounded two-H100/four-CPU job **840991** has been submitted to run
-26 full-data updates, cross the prior update-23 stall, and stop at an exact
-checkpoint. Its frozen script, plan, stage and dispatch receipts are in
-`pilot/`. While still pending for resources, the **same job** had its time
-limit reduced from one hour to 30 minutes for scheduler backfill; the live
-Slurm change and receipt are preserved, and no second job was submitted.
-`resume-prep/` contains the staged, byte-verified one-CPU checkpoint proof and
-four-hour GPU continuation scripts. Neither has been submitted. The CPU proof
-will preserve the pilot checkpoint and original run/invocation records by hard
-link before any resume, then the GPU script will verify that proof. Reconcile
-the pilot's actual Slurm state, log and checkpoint before running them.
-`files.json` binds every preserved small original in this audit.
+The single bounded two-H100/four-CPU job **840991** completed `0:0` on evc28
+in 9:53 wall time. It crossed the old stall: update 23 completed at 65.53
+trainer seconds, and update 26 completed at 78.75 seconds. Its intentional
+optimizer-boundary stop wrote a 1,215,174,757-byte checkpoint with SHA-256
+`b50ae5591b7b5b02f36423676f1f7fcbedacd69c8d848172bee459e4ae8d044a`.
+The wrapper verified all 26 events and the checkpoint. `pilot/` preserves the
+original dispatch; `pilot-success/` preserves immutable logs (stderr as a
+lossless deterministic gzip), run/invocation records, checkpoint proof, and
+byte receipts. The intentional trainer exit 75 appears in stderr, while the
+wrapper and Slurm job completed successfully.
+
+The first one-CPU proof job **841089** failed `1:0` before examining the
+checkpoint: executing the proof script by absolute path omitted the pinned
+source checkout from Python's import path. It created no proof files. The
+original staged script remains in `resume-prep/`; the separately archived
+`prepare_resume.repaired.sbatch` adds `PYTHONPATH` only to that proof command.
+Its staged bytes were verified before the one-CPU retry **841091**, which
+completed `0:0`. It decoded checkpoint `(epoch=0, next_update=26, step=26)`,
+checked the exact source, release, configuration and binding, and hard-linked
+the checkpoint plus the original run/invocation records to `pilot-checkpoints/`.
+The proof SHA-256 is
+`9b40f9f9f5c4a3b82ca2cb05ae9dc0861066d557d754c64da5f38175e7457aba`.
+
+The first four-hour two-H100/four-CPU continuation **841094** was submitted
+after that proof and allocated evc27. Its allocated CUDA visibility probe
+timed out before training; Slurm reported `FAILED 2:0` after 1:54, and the
+original checkpoint and proof hashes remained unchanged. The single retry
+**841107** excludes evc27 and the previously excluded nodes; it allocated
+evc28, the successful pilot node. It resumes the same ten-epoch fold-0 run
+from update 26; no epoch or Kaggle snapshot is claimed yet. `resume-launch/`
+preserves both submit intents/results, original failure output and Slurm state
+snapshots. The earlier `files.json` binds the original audit artifacts; each
+new subdirectory has its own byte receipt. The accepted masks, folds, image cache, official
+weights and pinned `rsna/**/*.py` training source remain unchanged.

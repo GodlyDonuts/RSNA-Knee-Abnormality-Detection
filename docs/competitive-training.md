@@ -22,8 +22,11 @@ checkpoint. An exact eight-study CPU probe found 20 interpolated pixels at
 1.000000238 in one rank-1 microbatch, above the model's strict 0–1 guard.
 The loader now clips FP32 interpolation roundoff to that range. The exact
 eight-study CPU replay passed with only the affected image changed. Bounded
-two-H100 job 840991 is queued to cross the stall and checkpoint at update 26;
-it must pass before full-data training resumes. See the [fix audit](../initiative/audits/newton-interpolation-fix-v1/).
+two-H100 job 840991 crossed update 23 and completed with a verified update-26
+checkpoint. One-CPU proof job 841091 preserved and decoded that checkpoint;
+the first two-H100 continuation 841094 failed at evc27's CUDA visibility
+preflight before training. Job 841107 resumes the same verified state on evc28.
+See the [fix audit](../initiative/audits/newton-interpolation-fix-v1/).
 First-epoch throughput,
 competitive accuracy and the hidden-test time budget remain unmeasured until
 actual completed epochs and Kaggle notebook runs finish.
