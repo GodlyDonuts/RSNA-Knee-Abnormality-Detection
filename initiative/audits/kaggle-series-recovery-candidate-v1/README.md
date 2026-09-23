@@ -36,3 +36,11 @@ build a distinct immutable private notebook/Dataset from this candidate, run
 the exact offline public version, rehearse a large MRI-only roster within
 Kaggle's nine-hour limit, verify hashes and the canonical ledger, and use one
 live slot only after the remaining failure risks are reviewed.
+
+The exact five small source/audit files from GitHub main commit
+`e6822215223a3203e11d90aeda74faa43f408ae3` and a byte manifest were
+committed to the private Hugging Face dataset at revision
+`b87a5e5a766724f224e42012c0308e793f485cbf`. The
+[verification receipt](hf-verified.json) confirms all six objects were
+downloaded and hashed. This preserves a **candidate**, not a deployed or
+scored model. The checkpoint and previous notebook versions were not mutated.

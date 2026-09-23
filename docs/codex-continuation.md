@@ -100,7 +100,10 @@ investigated. An [opt-in MRI series recovery candidate](../initiative/audits/kag
 now filters out unused series and tries a same-plane alternative after a
 recognized DICOM failure, while preserving the checkpoint-bound trained code.
 Focused local tests pass; no new bundle, full-size offline run or Kaggle
-submission exists. Do not submit any old version-1 notebook. The epoch-10 checkpoint is also fully verified on private
+submission exists. The candidate source/audit at GitHub `e6822215` is privately
+mirrored and full-download verified at Hugging Face revision
+`b87a5e5a766724f224e42012c0308e793f485cbf`.
+Do not submit any old version-1 notebook. The epoch-10 checkpoint is also fully verified on private
 Hugging Face. See the
 [corrected epoch-8 package audit](../initiative/audits/kaggle-hidden-roster-recovery-v1/)
 for the separately staged full-roster package. Its private Kaggle Dataset was
