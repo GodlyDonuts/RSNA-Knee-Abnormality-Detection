@@ -172,6 +172,7 @@ class Remote:
         # Kaggle hides some absent private resources behind403. That response
         # alone never proves absence; exhaust the authenticated profile listing.
         refs = []
+        unnamed = 0
         for page in range(1, 101):
             result = self.call(
                 "kernels.KernelsApiService",
@@ -189,14 +190,74 @@ class Remote:
             if not isinstance(rows, list):
                 raise RemoteError("Owned notebook listing is invalid")
             if not rows:
-                return {
+                proof = {
                     "method": "complete_authenticated_profile_after403",
                     "pages": page,
                     "refs_sha256": object_hash(sorted(refs)),
                     "count": len(refs),
                 }
+                if not unnamed:
+                    return proof
+                # Kaggle can return a private notebook placeholder with no ref.
+                # Search the exact slug only after verifying that the same
+                # authenticated search finds a known owned notebook. A matching
+                # placeholder remains ambiguous and blocks a new SaveKernel.
+                if not refs:
+                    raise RemoteError("Owned notebook listing has only unnamed identities")
+
+                def search(query):
+                    found = []
+                    for search_page in range(1, 101):
+                        response = self.call(
+                            "kernels.KernelsApiService",
+                            "ListKernels",
+                            {
+                                "group": "PROFILE",
+                                "page": search_page,
+                                "pageSize": 100,
+                                "language": "all",
+                                "kernelType": "all",
+                                "outputType": "all",
+                                "search": query,
+                            },
+                        )
+                        matches = response.get("kernels", [])
+                        if not isinstance(matches, list):
+                            raise RemoteError("Owned notebook search is invalid")
+                        if not matches:
+                            return found, search_page
+                        for match in matches:
+                            ref = match.get("ref")
+                            if (
+                                not isinstance(ref, str)
+                                or not ref.startswith(owner + "/")
+                                or ref in found
+                            ):
+                                raise RemoteError("Owned notebook search has ambiguous identities")
+                            found.append(ref)
+                    raise RemoteError("Owned notebook search pagination did not terminate")
+
+                control = sorted(refs)[0]
+                control_refs, control_pages = search(control)
+                if control not in control_refs:
+                    raise RemoteError("Owned notebook search missed a known notebook")
+                target_refs, target_pages = search(slug)
+                if slug in target_refs:
+                    raise ValueError("Dedicated notebook already exists; do not overwrite")
+                return {
+                    **proof,
+                    "method": "complete_authenticated_profile_search_after403",
+                    "unnamed_count": unnamed,
+                    "positive_control_ref": control,
+                    "positive_control_pages": control_pages,
+                    "target_search_pages": target_pages,
+                    "target_refs_sha256": object_hash(sorted(target_refs)),
+                }
             for row in rows:
                 ref = row.get("ref")
+                if ref is None:
+                    unnamed += 1
+                    continue
                 if not isinstance(ref, str) or not ref.startswith(owner + "/") or ref in refs:
                     raise RemoteError("Owned notebook listing has invalid or repeated identities")
                 if ref == slug:

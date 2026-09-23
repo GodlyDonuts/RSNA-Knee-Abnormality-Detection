@@ -561,3 +561,30 @@ def test_private_kernel_403_requires_complete_owned_listing(exists):
         result = remote.require_absent_kernel("owner/kernel")
         assert result["pages"] == 2 and result["count"] == 1
         assert len(calls) == 3
+
+
+@pytest.mark.parametrize("target_unnamed", [False, True])
+def test_private_kernel_403_search_resolves_only_unrelated_unnamed_stub(target_unnamed):
+    remote = workflow.Remote.__new__(workflow.Remote)
+    remote.username = "owner"
+
+    def call(service, method, body):
+        if method == "GetKernel":
+            raise workflow.RemoteError("Kaggle GetKernel HTTP 403")
+        if body["page"] > 1:
+            return {}
+        if body.get("search") == "owner/previous":
+            return {"kernels": [{"ref": "owner/previous"}]}
+        if body.get("search") == "owner/kernel":
+            return {"kernels": [{"title": "[Private Notebook]"}]} if target_unnamed else {}
+        return {"kernels": [{"ref": "owner/previous"}, {"title": "[Private Notebook]"}]}
+
+    remote.call = call
+    if target_unnamed:
+        with pytest.raises(workflow.RemoteError, match="ambiguous identities"):
+            remote.require_absent_kernel("owner/kernel")
+    else:
+        proof = remote.require_absent_kernel("owner/kernel")
+        assert proof["method"] == "complete_authenticated_profile_search_after403"
+        assert proof["unnamed_count"] == 1
+        assert proof["positive_control_ref"] == "owner/previous"
