@@ -72,10 +72,12 @@ passed full byte verification, and its exact-source MRI-only T4 notebook
 completed after a recorded slug migration. It was submitted once as competition
 entry 56482890; the score and hidden-test runtime are still pending. The
 epoch-2 private Dataset also passed full byte verification and its version-1
-notebook is running. The epoch-4 private Dataset is fully byte-verified and
-its separate notebook version 1 was pushed once. See the
+notebook completed MRI-only inference; it was submitted once as entry 56483451
+with score pending. The epoch-4 and epoch-6 private Datasets are fully
+byte-verified and their separate notebook versions 1 were pushed once. See the
 [epoch-1 Kaggle audit](audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](audits/kaggle-epoch2-v1/), [epoch-4 audit](audits/kaggle-epoch4-v1/),
+[epoch-6 audit](audits/kaggle-epoch6-v1/),
 and current [continuation guide](../docs/codex-continuation.md).
 The accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 

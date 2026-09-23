@@ -63,12 +63,15 @@ offline T4 version 1. Its MRI-only three-study execution passed a version-bound
 receipt and the exact notebook version was submitted once as 56482890. Kaggle
 has not returned its score or hidden-test runtime yet. The epoch-2 private
 Dataset also passed full download/hash verification, and its dedicated notebook
-version 1 is running. The epoch-4 private Dataset also passed full byte
+version 1 completed its MRI-only public-example receipt and was submitted once
+as competition entry 56483451. Its score is pending. The epoch-4 private Dataset also passed full byte
 verification after one read-only Kaggle API error and its own version-1
-notebook was pushed once. See the
+notebook was pushed once. Epoch 6's private Dataset passed full byte
+verification and its dedicated version-1 notebook was pushed once. See the
 [epoch-1 audit](../initiative/audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/) and
-[epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/).
+[epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/) and
+[epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/).
 
 ## Local preparation
 

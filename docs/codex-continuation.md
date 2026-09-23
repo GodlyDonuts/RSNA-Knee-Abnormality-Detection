@@ -59,11 +59,16 @@ submission. The canonical single ledger preserves both failed intents, the
 migration and the successful code submission. This public example execution
 does not establish hidden-test runtime or a leaderboard score. The epoch-2
 private Dataset was fully downloaded and rehashed; its distinct version-1
-notebook is running. Epoch 4's private Dataset was created once, fully
+notebook completed a version-bound MRI-only public-example receipt and was
+submitted once as Kaggle entry **56483451** after a live allowance of four;
+the leaderboard score is pending. Epoch 4's private Dataset was created once, fully
 downloaded and rehashed in a second read-only reconciliation after the first
 encountered a Kaggle API error; its dedicated private notebook version 1 was
-then pushed once. See the [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/)
-and [epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/).
+then pushed once. Epoch 6's private Dataset also passed full byte verification
+and its dedicated notebook version 1 was pushed once. See the
+[epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/),
+[epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/) and
+[epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/).
 
 The accepted Kaggle wheelhouse was staged and rehashed in CPU job **841116**.
 An isolated pinned Kaggle management environment was installed in CPU job

@@ -39,7 +39,8 @@ Competitive accuracy and the hidden-test time budget remain unmeasured until
 actual Kaggle code submissions finish. The owner has also
 requested one extra epoch-1 baseline submission and private Hugging Face
 preservation of every completed epoch. The baseline was submitted as Kaggle
-entry 56482890; its score is pending. See the current continuation and Kaggle
+entry 56482890, and scheduled epoch 2 as entry 56483451; both scores are
+pending. See the current continuation and Kaggle
 guide for its separate replay proof and queue handling.
 
 ## Frozen development data

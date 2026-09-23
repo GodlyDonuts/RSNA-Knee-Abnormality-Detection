@@ -13,13 +13,15 @@ The private Dataset `godlydonuts/rsna-knee-e002-f56c0d64519f`, ID **12146012**,
 was created once as version 1. An independent read-only reconciliation downloaded
 all payload files, including the 1.215 GB checkpoint, and verified their bytes
 against the bound publication intent. The distinct private notebook slug
-`godlydonuts/rsna-knee-epoch2-f56c0d64519f` was pushed once as version 1 and
-was running when this audit was captured. It uses MRI-only inference, the
-accepted shared offline wheelhouse and a T4. No epoch-2 competition submission
-or score is claimed here.
+`godlydonuts/rsna-knee-epoch2-f56c0d64519f` was pushed once as version 1. It
+completed MRI-only inference for the three public example studies using the
+accepted shared offline wheelhouse and a T4; its version-bound receipt passed.
+The canonical ledger then submitted that exact notebook version once as Kaggle
+entry **56483451**, after a fresh live allowance of four. The Kaggle score and
+hidden-test runtime remain pending. The three-row public output is not a
+leaderboard score.
 
 `source-files.json` binds the exact small Newton files and the one canonical
-ledger record at this checkpoint. `local-files.json` binds the dispatch scripts,
+ledger records before and after submission. `local-files.json` binds the dispatch scripts,
 intents and results. The large checkpoint, wheels and Dataset remain on private
-Newton and Kaggle storage. Submission requires a successful version-bound
-inference receipt and a fresh account-wide allowance check.
+Newton and Kaggle storage.
