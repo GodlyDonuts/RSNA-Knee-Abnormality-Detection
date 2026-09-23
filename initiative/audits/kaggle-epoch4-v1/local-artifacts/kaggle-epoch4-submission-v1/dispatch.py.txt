@@ -1,0 +1,117 @@
+"""Run one pinned Kaggle coordinator phase with a stdin-only local credential."""
+import argparse
+import datetime
+import json
+import os
+from pathlib import Path
+import shlex
+import subprocess
+
+ROOT = Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection')
+ART = ROOT / 'artifacts/kaggle-epoch4-submission-v1'
+R = '/home/sa305415/rsna-knee'
+PROJECTION = R + '/kaggle/code-projections/2bc2695-b740-epoch1-v1'
+OUTPUT = R + '/kaggle/bundles/epoch004-90a72a4f203d-2bc2695-v1'
+SNAPSHOT = R + '/runs/dinov3-l16-production-fold0-b74060b-v1/epoch-checkpoints/epoch-004.json'
+PROJECTION_SHA = '098a3b351305af4166fd7fe57f33bdf8387d3f42c3b255210985f25205e6459b'
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('phase', choices=('prepare-transport', 'create-dataset',
+                                         'reconcile-dataset', 'push-kernel', 'submit'))
+    parser.add_argument('--attempt', type=int, default=1)
+    args = parser.parse_args()
+    if args.attempt < 1 or args.attempt > 10:
+        raise ValueError('Bounded read-only attempt required')
+    if args.phase not in ('reconcile-dataset',) and args.attempt != 1:
+        raise ValueError('Mutation phase cannot be repeated')
+    stem = f'{args.phase}-attempt{args.attempt:02d}'
+    intent = ART / (stem + '-intent.json')
+    result_file = ART / (stem + '-result.json')
+    if intent.exists() or result_file.exists():
+        raise ValueError('Phase was already dispatched; reconcile state')
+    record = {'phase': args.phase, 'attempt': args.attempt,
+              'operation': OUTPUT + '/operation.json',
+              'projection_sha256': PROJECTION_SHA,
+              'created_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'credential_transport': 'local-to-SSH-stdin-to-srun-stdin-only'}
+    with intent.open('x') as stream:
+        json.dump(record, stream, sort_keys=True, indent=2)
+        stream.write('\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+    values = {}
+    for line in (ROOT / '.env').read_text().splitlines():
+        if '=' in line and not line.lstrip().startswith('#'):
+            key, value = line.split('=', 1)
+            values[key.strip()] = value.strip().strip('"').strip("'")
+    token = values.get('KAGGLE_API_TOKEN')
+    if not token or not token.startswith('KGAT_'):
+        raise ValueError('Kaggle token unavailable')
+    connection = json.loads((ROOT / 'artifacts/newton-access-control/connection.json').read_text())
+    remote_code = '''import json,os,subprocess,sys
+ACTION = __ACTION__
+R = __ROOT__
+PROJECTION = __PROJECTION__
+OUTPUT = __OUTPUT__
+SNAPSHOT = __SNAPSHOT__
+PROJECTION_SHA = __PROJECTION_SHA__
+if not os.environ.get('SLURM_JOB_ID') or os.environ.get('SLURM_JOB_GPUS'):
+    raise ValueError('CPU-only Slurm allocation required')
+value=json.load(sys.stdin)
+if set(value)!={'token'} or not isinstance(value['token'],str) or not value['token'].startswith('KGAT_'):
+    raise ValueError('Kaggle token missing')
+env=os.environ.copy()
+env.update(PYTHONDONTWRITEBYTECODE='1',PYTHONNOUSERSITE='1',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',PYTHONPATH=PROJECTION+'/source')
+extract=["/usr/bin/python3.12",R+'/code-stopfix-1f486765/scripts/newton/runtime_environment.py','extract','--archive',R+'/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar','--sha256','89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','--expected-files','40403','--expected-bytes','6322691335','--scratch-base','/tmp','--shared-python','/usr/bin/python3.12','--min-free-gib','20']
+p=subprocess.run(extract,capture_output=True,text=True,env=env,timeout=900)
+if p.returncode:
+    print(json.dumps({'stage':'environment_extract','returncode':p.returncode,'stderr_tail':p.stderr[-500:]}))
+    raise SystemExit(p.returncode)
+root=json.loads(p.stdout)['runtime_root']
+try:
+    cmd=[root+'/environment/bin/python',PROJECTION+'/source/scripts/kaggle/coordinator.py',ACTION,
+         '--projection',PROJECTION+'/source','--projection-manifest',PROJECTION+'/projection.json',
+         '--projection-sha256',PROJECTION_SHA,'--operation',OUTPUT+'/operation.json',
+         '--snapshot',SNAPSHOT,'--management-python',R+'/kaggle/management-cp312-v1/bin/python']
+    response=subprocess.run(cmd,input=json.dumps(value),capture_output=True,text=True,env=env,timeout=3600)
+    print(json.dumps({'stage':'coordinator','phase':ACTION,'returncode':response.returncode,
+                      'stdout_tail':response.stdout[-3000:],'stderr_tail':response.stderr[-1000:]}))
+    code=response.returncode
+finally:
+    cleanup=subprocess.run(['/usr/bin/python3.12',R+'/code-stopfix-1f486765/scripts/newton/runtime_environment.py','cleanup','--root',root],capture_output=True,text=True,env=env,timeout=600)
+    if cleanup.returncode:
+        print(json.dumps({'stage':'environment_cleanup','returncode':cleanup.returncode,'stderr_tail':cleanup.stderr[-500:]}))
+        code=2
+raise SystemExit(code)
+'''
+    for key, value in {
+        '__ACTION__': args.phase,
+        '__ROOT__': R,
+        '__PROJECTION__': PROJECTION,
+        '__OUTPUT__': OUTPUT,
+        '__SNAPSHOT__': SNAPSHOT,
+        '__PROJECTION_SHA__': PROJECTION_SHA,
+    }.items():
+        remote_code = remote_code.replace(key, repr(value))
+    remote = ['srun', '--account=skattel', '--partition=normal', '--nodes=1',
+              '--nodelist=evc42', '--ntasks=1', '--cpus-per-task=1', '--mem=8G',
+              '--time=01:15:00', '/usr/bin/python3.12', '-c', remote_code]
+    cmd = ['ssh', '-S', connection['control_socket'], '-o', 'BatchMode=yes',
+           f"{connection['user']}@{connection['host']}", shlex.join(remote)]
+    p = subprocess.run(cmd, input=json.dumps({'token': token}), capture_output=True,
+                       text=True, timeout=4800)
+    result = {'phase': args.phase, 'attempt': args.attempt, 'returncode': p.returncode,
+              'stdout_tail': p.stdout[-3500:], 'stderr_tail': p.stderr[-1000:],
+              'completed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    with result_file.open('x') as stream:
+        json.dump(result, stream, sort_keys=True, indent=2)
+        stream.write('\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+    print(json.dumps(result, sort_keys=True))
+    raise SystemExit(p.returncode)
+
+if __name__ == '__main__':
+    main()

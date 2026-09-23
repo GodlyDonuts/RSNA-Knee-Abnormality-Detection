@@ -9,7 +9,7 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
 Slurm job **841107** is the ten-epoch, two-H100/four-training-CPU fold-0
-run on evc28. It completed all ten epoch boundaries with unchanged
+run on evc28. Slurm completed `0:0` after all ten epoch boundaries with unchanged
 accepted masks, folds, official DINOv3-L weights and training source Git
 `b74060b98f01bff1b924070ccba5ce44dd002f40`. Its immutable epoch-2
 snapshot SHA is `f56c0d64519fbf2fde5433ef4ff3dcc59d8f01394d80515ebf5cebf97726fa02`.
@@ -27,9 +27,11 @@ All ten epochs were separately committed to private `GodlyDonuts/RSNA-Data`
 and fully downloaded back for SHA/size verification. The exact per-epoch
 revisions and small receipts are in the [preservation audit](../initiative/audits/epoch1-baseline-and-epoch-preservation-v1/);
 epoch 10 is pinned to revision `8e41da9c831af6bf777daf48b81109257f7e4b82`.
-Check job 841107's terminal state and final outer predictions separately;
-reaching the completed epoch-10 snapshot does not prove that final evaluation
-finished.
+The completed fixed-final-epoch result reports **0.7783102649** fold-0 macro
+AUC across twelve targets on 1,156 accepted-train outer-fold studies, with
+2,810 optimizer updates. The final prediction file and result are archived in
+the preservation audit and have matching SHA-256/provenance. This is an internal
+one-fold report-label metric; the Kaggle score remains pending.
 
 The rolling first-epoch checkpoint had already been replaced when the owner
 requested an epoch-1 baseline. Separate two-H100 job **841126** resumed the
@@ -57,7 +59,11 @@ submission. The canonical single ledger preserves both failed intents, the
 migration and the successful code submission. This public example execution
 does not establish hidden-test runtime or a leaderboard score. The epoch-2
 private Dataset was fully downloaded and rehashed; its distinct version-1
-notebook is running. See the [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/).
+notebook is running. Epoch 4's private Dataset was created once, fully
+downloaded and rehashed in a second read-only reconciliation after the first
+encountered a Kaggle API error; its dedicated private notebook version 1 was
+then pushed once. See the [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/)
+and [epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/).
 
 The accepted Kaggle wheelhouse was staged and rehashed in CPU job **841116**.
 An isolated pinned Kaggle management environment was installed in CPU job

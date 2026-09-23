@@ -6,7 +6,8 @@ DINOv3-L weights are unchanged. The exact trainer source is Git
 continued from the verified update-26 recovery point on evc28 with two H100s
 and four training CPUs. It reached all ten full-data epoch boundaries on 2,247
 eligible training studies and produced a verified immutable checkpoint for each.
-Final outer-fold prediction and job completion are checked separately. The
+Slurm reported `COMPLETED 0:0`; the final result and outer-fold prediction files
+were separately checked. The
 trainer's fixed monitoring cadence made immutable epoch-2 sidecar/checkpoint
 SHA `f56c0d64519fbf2fde5433ef4ff3dcc59d8f01394d80515ebf5cebf97726fa02`.
 
@@ -70,6 +71,19 @@ one-off baseline adapter and epoch publisher; its pipeline checks passed at
 [run 35815247444](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/actions/runs/35815247444).
 The exact committed-code overlay passed full private HF byte verification at
 revision `dabd9b0ea40f12f334f226b4a9163a0becd737ba`.
+
+The completed primary run made **2,810** optimizer updates in **8,014.1**
+elapsed seconds. Its fixed-final-epoch result reports fold-0 macro AUC
+**0.7783102649** across all twelve targets against the accepted report-derived
+supervision. The 1,156 outer-fold prediction rows have unique study IDs,
+the expected target order, finite 0–1 probabilities, and exact SHA-256
+`51c99298464c325b47762b24e180170e122dcefa11b91f3ff9aa2eae614ee92a`.
+The result binds that file and the epoch-10 checkpoint SHA; the exact run,
+result and predictions are archived here. This is one development fold measured
+against weak report labels, not a three-fold estimate, clinical diagnostic
+validation or a Kaggle score. MCL (0.5973) and lateral meniscus (0.6472) are
+the lowest target AUCs in this fold; sparse target evidence limits their
+interpretation.
 
 The epoch-1 MRI-only Kaggle notebook completed its three-study public execution
 and was submitted once as competition entry 56482890. Kaggle has not returned a

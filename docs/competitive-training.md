@@ -27,7 +27,11 @@ checkpoint. One-CPU proof job 841091 preserved and decoded that checkpoint;
 the first two-H100 continuation 841094 failed at evc27's CUDA visibility
 preflight before training. Job 841107 resumes the same verified state on evc28.
 See the [fix audit](../initiative/audits/newton-interpolation-fix-v1/).
-Continuation 841107 has since reached all ten full-data epoch boundaries.
+Continuation 841107 completed all ten full-data epochs and final outer-fold
+prediction with Slurm `COMPLETED 0:0`. Its fixed-final-epoch fold-0 macro AUC
+is **0.7783102649** across twelve report-derived targets on 1,156 held-out
+development studies. This is one weak-label development fold, not a Kaggle
+score or a three-fold estimate.
 The first epoch made 281 optimizer updates on 2,247 eligible training studies;
 its completion marker and subsequent scheduled even-epoch and captured odd-epoch
 snapshots are verified and preserved in the private Hugging Face dataset.
