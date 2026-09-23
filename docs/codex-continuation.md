@@ -73,8 +73,9 @@ The epoch-1, epoch-2, epoch-4 and epoch-6 scores are pending. Epoch 8's private
 Dataset passed full byte verification, but its first notebook push is recorded
 as uncertain after a Kaggle server error. An exact search associates an unnamed
 private placeholder with the original slug; do not repeat that mutation. A
-second notebook identity using the same hard-linked Dataset and source is
-prepared but not pushed. Epoch 10's private Dataset appeared as version 1,
+second notebook identity using the same hard-linked Dataset and source was
+pushed once as private offline version 1 and is running its public-example
+execution. Epoch 10's private Dataset appeared as version 1,
 ID 12146648; all 43 payload files were downloaded and hash-verified. Its first
 notebook-push dispatch stopped before `SaveKernel` on the unnamed listing item.
 A reviewed exact-search guard with a known-notebook positive control then

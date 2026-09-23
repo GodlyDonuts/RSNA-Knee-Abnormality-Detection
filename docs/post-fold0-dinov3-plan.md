@@ -12,10 +12,12 @@ or evidence that ten epochs is the best stopping point.
 
 The lowest target AUCs were MCL **0.5973** and lateral meniscus **0.6472**.
 The MCL result is fragile: the entire 3,904-study development pool has only
-seven accepted MCL-positive leakage components, and fold 0 has two. Lateral
-meniscus has 446 accepted positive studies in the training pool, so its weaker
+seven accepted MCL-positive leakage components, and fold 0 has two. Removing
+either fold-0 positive moves MCL AUC to **0.4514–0.7431**. Lateral meniscus
+has 149 observed positive and 821 negative outer-fold studies, so its weaker
 ranking is a more actionable test of whether global slice embeddings lose
-focal meniscal detail. High AUCs for synovitis **0.9504** and fracture **0.8494**
+focal meniscal detail. The [independent score recomputation](../initiative/audits/post-fold0-score-analysis-v1/)
+preserves all twelve observed-cell counts and source hashes. High AUCs for synovitis **0.9504** and fracture **0.8494**
 must likewise be interpreted with their sparse opposing classes; they do not
 justify shrinking those tasks or inventing labels.
 
@@ -23,7 +25,8 @@ The current Kaggle notebooks use MRI only, an exact private offline wheelhouse,
 and a version-bound public-example receipt. Epochs 1, 2, 4 and 6 were submitted
 once; their hidden rerun scores and runtime are pending. Epoch 10's exact
 version-1 notebook has been pushed and must pass its receipt before submission.
-Epoch 8's original notebook slug remains uncertain. A three-study public
+Epoch 8's original notebook slug remains uncertain; a distinct exact-source
+private version-1 notebook was pushed and is running. A three-study public
 execution checks the package but cannot establish hidden-test speed or AUC.
 Do not choose a new training recipe from an unscored or failed code submission.
 

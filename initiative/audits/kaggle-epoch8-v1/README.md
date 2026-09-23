@@ -29,9 +29,13 @@ or Dataset payload was copied or uploaded. The derived operation SHA is
 The first derivation preflight counted the separate Dataset metadata sidecar as
 a payload receipt member and stopped before linking any bytes. The empty
 temporary directory was removed after an exact contents check; the corrected
-second derivation passed. No mutation of the new Kaggle notebook slug has yet
-occurred. Its exact search currently returns no result, while a known owned
-notebook is found as a positive control.
+second derivation passed. The reviewed exact-search guard found a known owned
+notebook as a positive control and proved the new slug absent. One CPU-only
+migration recorded a durable intent, preserved the uncertain old slug in the
+canonical ledger, and pushed the unchanged MRI-only notebook as **private
+offline version 1** under the new slug. Kaggle reported its public-example
+execution `RUNNING` at the last read-only check. A version-bound receipt and
+competition submission remain pending.
 
 `source-files.json` maps the exact small Newton files and canonical ledger
 record and derived operation; `local-files.json` maps scripts and dispatch results. The separate

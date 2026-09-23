@@ -83,7 +83,8 @@ download/hash verification. An exact-search guard separated the epoch-8
 unnamed placeholder from the absent epoch-10 slug; one CPU-only recovery pushed
 the unchanged private offline epoch-10 notebook as version 1. It is running
 its public-example inference. A separate exact-source epoch-8 notebook identity
-is prepared without copying Dataset bytes and awaits its guarded push. See the
+was pushed as private offline version 1 without copying Dataset bytes; its
+public-example inference is also running. See the
 [epoch-1 Kaggle audit](audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](audits/kaggle-epoch2-v1/), [epoch-4 audit](audits/kaggle-epoch4-v1/),
 [epoch-6 audit](audits/kaggle-epoch6-v1/), [epoch-8 audit](audits/kaggle-epoch8-v1/),
