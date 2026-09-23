@@ -10,9 +10,14 @@ The current tooling requires Python 3.11 or newer. Newton, Kaggle and CI use
 Python 3.12; the existing local CPU verification environment uses Python 3.11.
 
 This is the initial global-embedding experiment. The two-H100 100-study diagnostic
-measured 26 optimizer updates and exact same-world-size recovery; see
-`initiative/audits/dinov3-h100-pilot-v6/`. Full-data throughput, competitive
-accuracy and the hidden-test time budget remain unmeasured.
+measured 26 optimizer updates; a real Slurm signal stop and separate resume
+also recovered its exact checkpoint payload and predictions. See
+`initiative/audits/dinov3-h100-pilot-v6/` and
+`initiative/audits/newton-recovery-production-v1/`. Primary ten-epoch fold-0
+job 840562 reached 22 epoch-0 optimizer updates on 2,247 eligible optimization
+studies in its first read-only running snapshot. First-epoch throughput,
+competitive accuracy and the hidden-test time budget remain unmeasured until
+actual completed epochs and Kaggle notebook runs finish.
 
 ## Frozen development data
 

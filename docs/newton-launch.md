@@ -298,30 +298,27 @@ their actual tensor/metadata comparison passed. See
 `initiative/audits/dinov3-h100-pilot-v6/` for exact archived source and receipts.
 This pilot did not create a competition submission or measure a leaderboard score.
 
-The real Slurm signal gate is still open. Job 839401 received a late signal and
-completed normally. Job 839409 received an early signal, but an added batch
-timestamp marker used Bash's unavailable `EPOCHREALTIME` and exited before
-forwarding to workers. Corrected job 839411 received its single early signal,
-its batch trap ran, and the supervisor reported forwarding USR1 to both worker
-PIDs. It nevertheless completed all 26 training updates, with a normal trainer
-receipt and no checkpoint-stop receipt. This is a failed recovery gate. The
-corrective supervisor now atomically writes an invocation-bound stop request,
-which both trainer ranks check at update boundaries and during final inference.
-Local real-trainer stop/resume passed, and the exact corrected source is now
-deployed at `/home/sa305415/rsna-knee/code-stopfix-1f486765` with
-[frozen receipts](../initiative/audits/newton-stopfix-deployment-v1/). The
-interactive job ended and file quota dropped below its soft limit without
-removing the older checkout. The [v5/v6 recovery record](../initiative/audits/newton-slurm-signal-v2/)
-shows v5 failed preflight before training: Git's threaded lstat exceeded the
-process limit, though a single-threaded Git status verified the checkout clean.
-The v6 wrapper uses that setting, but its bounded two-H100 stop job 840508
-also failed before training. A one-CPU diagnostic 840513 measured the same
-clean Git status on evc49 at 111.87 seconds, beyond preflight's 15-second
-timeout. The source now grants this mandatory single-threaded check five
-minutes; publish and deploy it before another recovery rehearsal. The
-[full 82.83 GB cache archive](../initiative/audits/full-cache-newton-stage-v1/)
-has matching final local and remote receipts. The corrected source's v3
-ten-epoch script was staged only against the earlier 1f486765 code pin and
-must be regenerated for the next source commit. No production GPU job has been submitted;
-actual Slurm stop and separate resume still gate it. First full-data epoch
-timing will determine whether its four-hour limit is sufficient.
+The real Slurm signal gate passed at Git
+`c58090e7c7a238461a5ac69293b32b64b74c6721`, with [frozen receipts](../initiative/audits/newton-recovery-production-v1/).
+After the earlier [failed attempts](../initiative/audits/newton-slurm-signal-v1/)
+and [measured Git status timeout](../initiative/audits/newton-slurm-signal-v2/),
+job 840527 stopped at a verified optimizer-boundary checkpoint after one batch
+USR1. Its separate resume job 840537 completed all 26 diagnostic updates and
+100 outer predictions. One-CPU comparison 840557 found an elementwise identical
+checkpoint payload and byte-identical predictions against the uninterrupted
+pilot; the only binding difference is the expected `competitive/train.py`
+stop-handling revision. This is a recovery result, not a Kaggle score.
+
+The [full 82.83 GB cache archive](../initiative/audits/full-cache-newton-stage-v1/)
+remains verified. One-CPU probe 840559 found 850.95 GB free on evc49's node-local
+XFS `/tmp`, well above the unpacked archive plus 20 GiB reserve. The first
+production wrapper 840560 failed after nine seconds because a header receipt
+used an obsolete control directory; it trained no images. Its corrected v5
+script, source-bound to c58090e, was submitted once as job **840562** and was
+observed running through preflight. It requests one evc49 node, two H100s,
+four CPUs and four hours. The accepted masks, folds, model weights and ten-epoch
+configuration are unchanged. A later read-only snapshot found 2,247 eligible
+optimization studies, 1,156 outer-fold studies and 22 completed epoch-0
+optimizer updates in 62.60 trainer seconds. No full-data epoch or Kaggle
+submission had completed. Measure first-epoch timing before judging
+whether the four-hour limit needs a checkpointed continuation.

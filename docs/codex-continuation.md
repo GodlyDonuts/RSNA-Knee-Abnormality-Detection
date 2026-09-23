@@ -20,37 +20,37 @@ state and byte-identical outer prediction CSVs. The complete original records
 and exact timings are in `initiative/audits/dinov3-h100-pilot-v6/`. Serialized
 checkpoint files have different hashes; tensor and metadata content matched.
 This is a 100-study diagnostic, with no Kaggle submission or competitive score.
-The separate real Slurm USR1 rehearsal remains open. Job 839401 received a late
-signal and completed normally, so it did not prove a stop. Job 839409 received
-an early signal after two optimizer updates, but the batch trap used unsupported
-`EPOCHREALTIME` under Newton's Bash and exited before forwarding to workers.
-Both failures are preserved. The narrow trap repair used `/usr/bin/date` in job
-839411; Slurm accepted the early signal, the batch trap ran, and the supervisor
-reported sending USR1 to both worker PIDs. The trainer nevertheless completed
-all 26 updates and predictions normally, so the required checkpoint-stop
-receipt is absent. Job 839411 completed 0:0, which is a **failed recovery
-rehearsal**, not a successful checkpoint stop. The corrective source now has an
-atomic, session-bound stop request that both ranks check at update boundaries;
-its local real-trainer stop/resume test passed. Git main
-`1f4867650042a8cf8a14e9721f4d19b6f61e67d6` passed CI 35795653804 and was
-byte-verified in private HF revision `e0ef7d0ec194237a6c857015f4cdafd90df9ce96`.
-It was deployed as a fresh, exact 11,943-tracked-file Newton worktree at
-`/home/sa305415/rsna-knee/code-stopfix-1f486765`; the older e7b checkout was
-preserved. Repeat the actual Slurm stop and separate resume before production.
-The v5 two-H100 stop job 840243 failed preflight before training because Git's
-threaded lstat exceeded Newton's process limit. The v6 wrapper forced a
-single-threaded status, but its job 840508 still failed preflight before training.
-A separate one-CPU Slurm job 840513 measured a clean status on the same evc49
-node at **111.87 seconds**, while preflight allowed only 15 seconds. The
-mandatory, single-threaded status now has a five-minute timeout and a regression
-test for clean, modified, untracked and failed checks. Publish and deploy this
-source fix, then repeat actual Slurm stop and separate resume; neither has passed
-yet. The prior ten-epoch fold-0 script was staged only against the 1f486765
-source and must be regenerated for the next code pin. No production GPU job or
-Kaggle entry has been submitted. Original failures are in
-`initiative/audits/newton-slurm-signal-v1/`, the measured v5/v6 rerun in
-`initiative/audits/newton-slurm-signal-v2/`, and deployment receipts in
-`initiative/audits/newton-stopfix-deployment-v1/`.
+The earlier actual Slurm attempts and preflight failures are preserved in
+`initiative/audits/newton-slurm-signal-v1/` and
+`initiative/audits/newton-slurm-signal-v2/`. The measured fix at Git
+`c58090e7c7a238461a5ac69293b32b64b74c6721` passed CI 35799881539,
+was byte-verified in private HF revision
+`997a7758e2b529e0888a2097c2c511316236bd54`, and is the verified Newton
+checkout HEAD. The checkout path `code-stopfix-1f486765` retained its historical
+name when updated; rely on its verified HEAD and file hashes.
+
+The real two-H100 Slurm stop job **840527** received one batch USR1 after its
+first optimizer update and exited intentionally with code 75 after three
+updates. Its supervisor verified the checkpoint stop and both worker signals.
+The checkpoint was hash-verified and preserved by hard link. Separate resume
+job **840537** completed 0:0 through 26 updates and 100 outer predictions.
+One-CPU comparison job **840557** found the final checkpoint payload elementwise
+identical to the uninterrupted pilot after excluding the expected changed
+`competitive/train.py` source binding; outer prediction bytes also matched.
+This closes the distributed recovery gate, not a Kaggle score. Exact receipts
+are in `initiative/audits/newton-recovery-production-v1/`.
+
+One-CPU probe **840559** confirmed evc49's XFS `/tmp` has over 850 GB free for
+the full cache extraction. The first production wrapper, job 840560, exited in
+nine seconds before training because a header receipt used an obsolete control
+path. The corrected, exact-script-hash v5 ten-epoch fold-0 job **840562** was
+submitted once and observed running through preflight. It uses two H100s, four
+CPUs, the unchanged accepted masks/folds and official pinned DINOv3-L. A later
+read-only snapshot found 2,247 eligible optimization studies, 1,156 outer-fold
+studies, and 22 completed epoch-0 optimizer updates in 62.60 trainer seconds.
+No full-data epoch, eligible snapshot or Kaggle submission had completed.
+Reconcile the live job and its output before any retry, queue operation or
+submission.
 
 Newton Lustre file quota had reached 1,016,723 files while a separate
 interactive one-GPU Bash job 840217 was active. That job ended; the file count
@@ -67,7 +67,8 @@ independent remote full-file/TAR receipt: 82,834,493,440 bytes, SHA
 `initiative/audits/full-cache-newton-stage-v1/` for the immutable small records.
 Do not start another transfer. The archive remains on private Newton storage;
 its membership will be rechecked when extracted to node-local scratch. The
-hash-pinned production launch script is staged only, with no GPU job submitted.
+corrected hash-pinned production job is 840562; full archive extraction and the
+first epoch still need live verification.
 
 The final `initiative/releases/report-supervision-v1/` export and real runtime
 acceptance passed. Start with [data-readiness-report.md](data-readiness-report.md),
