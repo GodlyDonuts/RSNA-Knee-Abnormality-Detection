@@ -1,4 +1,4 @@
-# First four full-data epochs and private preservation
+# First five full-data epochs and private preservation
 
 The accepted report-supervision release, masks, folds, source cache and official
 DINOv3-L weights are unchanged. The exact trainer source is Git
@@ -32,7 +32,7 @@ It must remain healthy to capture epochs 5, 7 and 9; a submitted watcher alone
 does not prove those future snapshots. Even epochs 4, 6, 8 and 10 remain the
 trainer's own scheduled snapshots.
 
-All first four checkpoint files were committed to the **private**
+All first five checkpoint files were committed to the **private**
 [`GodlyDonuts/RSNA-Data`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data)
 dataset from CPU allocations on Newton. Each returned revision was followed by
 a complete private download of the checkpoint, sidecar, official DINOv3
@@ -46,6 +46,7 @@ Hugging Face, not in Git or on the laptop.
 | 2 | `f56c0d64519f` | [`1ef2a32c`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/1ef2a32c33fa635b5c9498e14eeb11afaf0e428d/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-002) |
 | 3 | `caaa821440a1` | [`2d777a58`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/2d777a58bf4a8a247c6be7b5943ac11ee40d67f3/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-003) |
 | 4 | `90a72a4f203d` | [`fc78e3d4`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/fc78e3d40b5a00a69bcab7be30d5cf732eb552de/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-004) |
+| 5 | `8ea11a5b513e` | [`eac9a186`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/eac9a18621048c395713eb81d40e6a0955120fc0/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-005) |
 
 The Kaggle wheelhouse was staged and fully rehashed in CPU job **841116**.
 The Kaggle management environment was installed in CPU job 841121, whose
@@ -58,6 +59,12 @@ each upload, without persistent remote secret files. The selected original
 dispatches, scripts and receipts are under `local-artifacts/`; exact small
 cluster receipts, snapshot sidecars and HF publication journals are bound by
 `source-files.json`.
+
+GitHub main commit `2bc26959c4b7d3c82a7cba41f8b8f662970a91ac` includes the
+one-off baseline adapter and epoch publisher; its pipeline checks passed at
+[run 35815247444](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/actions/runs/35815247444).
+The exact committed-code overlay passed full private HF byte verification at
+revision `dabd9b0ea40f12f334f226b4a9163a0becd737ba`.
 
 No MRI-only Kaggle notebook execution or competition submission has completed
 at this audit point. The three-row public example CSV is not a leaderboard

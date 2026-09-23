@@ -61,7 +61,7 @@ the first two-H100 continuation 841094 failed at evc27's CUDA preflight before
 training. The single retry 841107 allocated evc28 with the same verified
 checkpoint. The [fix audit](audits/newton-interpolation-fix-v1/) preserves the pinned source,
 checkpoint proof and dispatch. Continuation 841107 has since completed the first
-four full-data epochs; immutable epoch 2, 3 and 4 checkpoints are in the private
+five full-data epochs; immutable epoch 2, 3, 4 and 5 checkpoints are in the private
 Hugging Face dataset with full download verification. The separately replayed
 epoch-1 checkpoint passed CPU proof and full private HF download verification.
 No Kaggle score has
