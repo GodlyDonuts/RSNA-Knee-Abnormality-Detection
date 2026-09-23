@@ -1,0 +1,59 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-stopfix-1f486765/rsna/competitive/train.py", line 702, in <module>
+    main()
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-stopfix-1f486765/rsna/competitive/train.py", line 698, in main
+    raise SystemExit(run(args, stop_requested))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-stopfix-1f486765/rsna/competitive/train.py", line 271, in run
+    torch.cuda.set_device(device)
+  File "/tmp/rsna-environment-843914-ha336b3r/environment/lib64/python3.12/site-packages/torch/cuda/__init__.py", line 751, in set_device
+    torch._C._cuda_setDevice(device)
+torch.AcceleratorError: CUDA error: CUDA-capable device(s) is/are busy or unavailable
+Search for `cudaErrorDevicesUnavailable' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+The CUDA driver logged these messages, which may provide useful details:
+Returning 999 (CUDA_ERROR_UNKNOWN) from cuDevicePrimaryCtxRetain
+
+
+W0923 14:36:11.898000 3849453 torch/distributed/elastic/multiprocessing/api.py:1028] Sending process 3849490 closing signal SIGTERM
+E0923 14:36:12.012000 3849453 torch/distributed/elastic/multiprocessing/api.py:1002] failed (exitcode: 1) local_rank: 1 (pid: 3849491) of binary: /tmp/rsna-environment-843914-ha336b3r/environment/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/rsna-environment-843914-ha336b3r/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1142, in <module>
+    main()
+  File "/tmp/rsna-environment-843914-ha336b3r/environment/lib64/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 380, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-843914-ha336b3r/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1138, in main
+    run(args)
+  File "/tmp/rsna-environment-843914-ha336b3r/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1129, in run
+    elastic_launch(
+  File "/tmp/rsna-environment-843914-ha336b3r/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 197, in __call__
+    return launch_agent(
+           ^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-843914-ha336b3r/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 386, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+rsna.competitive.train FAILED
+------------------------------------------------------------
+Failures:
+[1]:
+  time      : 2026-09-23_14:36:12
+  host      : evc43.ucfarcc.org
+  rank      : 0 (local_rank: 0)
+  exitcode  : -15 (pid: 3849490)  (SIGTERM)
+  error_file: <N/A>
+  traceback : Signal 15 (SIGTERM) received by PID 3849490
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-23_14:36:11
+  host      : evc43.ucfarcc.org
+  rank      : 1 (local_rank: 1)
+  exitcode  : 1 (pid: 3849491) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

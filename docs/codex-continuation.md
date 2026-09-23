@@ -23,6 +23,14 @@ reserved confirmation/gold partitions remain untouched.
 The fold-1 launch and watcher receipts were also fully re-downloaded and
 hash-verified in the private Hugging Face dataset at revision
 `e4306333812bff9413a594e381cb56a168b6c4f8`; no fold-1 score is claimed.
+The first fold-1 allocation on evc43 failed before training because PyTorch
+could not activate rank 1's H100, although the earlier visibility checks had
+passed. Jobs **843914/843923** are `FAILED 1:0`; no checkpoint or fold-1
+result exists from them. See the [bounded recovery audit](../initiative/audits/dinov3-fold1-recovery-v1/).
+One new-output retry **843935** excludes evc43 and requires both ranks to
+create CUDA contexts and complete a NCCL collective before cache extraction;
+CPU-only odd-epoch watcher **843936** depends on it. They were pending at the
+first check. Reconcile these IDs and their exact receipts before any retry.
 
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
