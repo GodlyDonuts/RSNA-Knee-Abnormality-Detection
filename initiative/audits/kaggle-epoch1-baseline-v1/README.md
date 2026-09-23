@@ -27,10 +27,10 @@ a distinct slug, `godlydonuts/rsna-knee-epoch1-01d56458c54f`. Its one guarded
 push returned version **1**. Read-only inspection confirmed the exact source
 SHA-256 `928fdbd9884f5f803b6093018d17eb92c5cd65d25e5a83e237a75c273681a02d`,
 private T4 execution, internet disabled, both intended private Dataset sources,
-and the competition source. The notebook is currently running. The server now
+and the competition source. The notebook completed its three-study public
+execution. The server now
 applies its default allowed session timeout; the explicit 32,400-second request
-was removed during the guarded recovery. No competition slot or score has been
-used or claimed at this milestone.
+was removed during the guarded recovery.
 
 The one canonical Kaggle ledger is
 `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. It records the
@@ -38,6 +38,10 @@ superseded slug, both uncertain pushes, the byte-bound migration and the
 accepted version-1 notebook. The exact small cluster receipts are mapped in
 `source-files.json`; code projection, dispatches and recovery scripts are mapped
 in `local-files.json`. Large private checkpoint, wheelhouse and Dataset bytes
-remain on Newton and Kaggle. The next gate is a successful MRI-only inference
-receipt from the completed notebook, followed by one live-quota-checked code
-submission of that exact version.
+remain on Newton and Kaggle. A version-bound MRI-only inference receipt passed
+for three public example studies; that execution is a transport and runtime
+check, not a public leaderboard score or hidden-test runtime proof. The canonical
+ledger records one code submission of the exact private notebook version 1,
+Kaggle submission **56482890**, after a fresh live allowance of five. Kaggle had
+not returned a public score in either of the first two read-only reconciliations.
+The exact ledger record and local dispatch results are preserved here.

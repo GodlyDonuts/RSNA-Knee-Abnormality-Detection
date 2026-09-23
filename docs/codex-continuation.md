@@ -4,12 +4,12 @@ The owner has expanded the mission: after data readiness, research and deliver a
 competitive training strategy and prioritized experiment plan. Both phases are
 required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
-## Current local release: September 22
+## Current local release: September 23
 
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
-Slurm job **841107** remains the ten-epoch, two-H100/four-training-CPU fold-0
-run on evc28. It completed epochs 1 through 8 and continues with unchanged
+Slurm job **841107** is the ten-epoch, two-H100/four-training-CPU fold-0
+run on evc28. It completed all ten epoch boundaries with unchanged
 accepted masks, folds, official DINOv3-L weights and training source Git
 `b74060b98f01bff1b924070ccba5ce44dd002f40`. Its immutable epoch-2
 snapshot SHA is `f56c0d64519fbf2fde5433ef4ff3dcc59d8f01394d80515ebf5cebf97726fa02`.
@@ -20,17 +20,16 @@ The watcher captured epoch 5 with SHA
 `8ea11a5b513e369b1cb7e26861b3135b657b3d4b85c02c57ce9a8fc963ef1dd4`.
 It captured odd epoch 7 with SHA
 `998530993c80d4cb1c632ba9aa5b4ff175d862590b352c9caea8c30fccb05fd8`.
-It is expected to capture epoch 9 likewise; check its
-Slurm state and actual sidecars before assuming success. Even epochs 4/6/8/10
-remain trainer-scheduled snapshots. Epochs 2 through 8 were separately committed
-to private `GodlyDonuts/RSNA-Data` and fully downloaded back for SHA/size
-verification at revisions `1ef2a32c33fa635b5c9498e14eeb11afaf0e428d`,
-`2d777a58bf4a8a247c6be7b5943ac11ee40d67f3` and
-`fc78e3d40b5a00a69bcab7be30d5cf732eb552de` and
-`eac9a18621048c395713eb81d40e6a0955120fc0` and
-`6d6cdeb6434114d7508a6d0bf8b992c68b72b90b`,
-`af3be629981a3d4255cae7cc54c72d480b1f285a` and
-`0d90e6a19288615bb882bca1a84b70c6047179dd`.
+It captured epoch 9 with checkpoint SHA
+`41cdb0f8e618b76bdf40962ba43f7b9751204afbb5be015932a3f9b0fda44707`
+and completed `0:0`. Even epochs 4/6/8/10 are trainer-scheduled snapshots.
+All ten epochs were separately committed to private `GodlyDonuts/RSNA-Data`
+and fully downloaded back for SHA/size verification. The exact per-epoch
+revisions and small receipts are in the [preservation audit](../initiative/audits/epoch1-baseline-and-epoch-preservation-v1/);
+epoch 10 is pinned to revision `8e41da9c831af6bf777daf48b81109257f7e4b82`.
+Check job 841107's terminal state and final outer predictions separately;
+reaching the completed epoch-10 snapshot does not prove that final evaluation
+finished.
 
 The rolling first-epoch checkpoint had already been replaced when the owner
 requested an epoch-1 baseline. Separate two-H100 job **841126** resumed the
@@ -46,14 +45,19 @@ revision `94d95aa232f41e2859dd56e5134901efd066a406`; inspect its
 per-epoch journal before any attempted repeat. The normal
 2/4/6/8/10 Kaggle cadence remains unchanged; the explicit baseline is one
 additional submission, so six total entries may span multiple quota days.
-No Kaggle competition submission has yet been made.
+Epoch-1 Kaggle competition submission **56482890** was made once, after a fresh
+live allowance of five; its public score is pending.
 The [epoch-1 Kaggle deployment audit](../initiative/audits/kaggle-epoch1-baseline-v1/)
 records a private version-1 Dataset (ID 12145591) whose 46 payload files were
 fully downloaded and rehashed. The first notebook slug was absent after an
 uncertain push and an HTTP 409 recovery. An exact-source operation under a new
-slug was accepted as private offline T4 notebook version 1 and is running.
-The canonical single ledger preserves both failed intents and the migration;
-its MRI-only receipt and competition score remain pending.
+slug was accepted as private offline T4 notebook version 1. It completed its
+MRI-only three-study public execution and passed a version-bound receipt before
+submission. The canonical single ledger preserves both failed intents, the
+migration and the successful code submission. This public example execution
+does not establish hidden-test runtime or a leaderboard score. The epoch-2
+private Dataset was fully downloaded and rehashed; its distinct version-1
+notebook is running. See the [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/).
 
 The accepted Kaggle wheelhouse was staged and rehashed in CPU job **841116**.
 An isolated pinned Kaggle management environment was installed in CPU job
@@ -141,8 +145,8 @@ with evc27 excluded and uses the same proof. Check its
 Slurm state, `run.json`, `invocation.json`, epoch sidecars and logs before
 acting; do not submit a second continuation. The [fix audit](../initiative/audits/newton-interpolation-fix-v1/)
 holds the immutable small proof and dispatch records. The completed epochs and
-private preservation results are recorded at the top of this guide; no Kaggle
-submission is yet claimed.
+private preservation results are recorded at the top of this guide; the one
+epoch-1 baseline submission is described there.
 The prepared Kaggle notebook now runs exact trained inference in 32-study
 chunks, checking each receipt and cleaning each temporary image cache. This
 bounds test-cache space without changing the pinned `rsna/**/*.py` trainer
@@ -221,8 +225,9 @@ SSH access to Newton and Stokes works. Use account `skattel`, partition `normal`
 and `gpu:nvidia_h100_pcie:2`; credentials live only in ignored local `.env` files.
 DINOv3-L access was approved, and authenticated official config and license bytes
 are verified in `configs/competitive/weights/dinov3-large.json`.
-The official pretrained DINOv3-L has completed the two-H100 100-study pilot
-described above. No competitive ten-epoch run or submission has completed.
+The official pretrained DINOv3-L completed the two-H100 100-study pilot
+described above. At that earlier checkpoint, no competitive ten-epoch run or
+submission had completed; the current status is at the top of this guide.
 The official config SHA is
 `135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5`.
 The 1,212,559,808-byte weights passed full SHA verification on Newton in CPU-only

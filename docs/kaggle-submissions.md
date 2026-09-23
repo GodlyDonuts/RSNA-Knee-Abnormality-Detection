@@ -31,10 +31,10 @@ CSV as evidence of useful model performance. Competition constraints are in
 ## Verified account access and remaining prerequisites
 
 Read-only authenticated checks on September 22, 2026 confirmed `godlydonuts` has
-entered competition `154281`. The new helper rechecked at **17:01:03 UTC**:
-zero submissions today, five currently available, two lifetime submissions.
-The two existing completed submissions are from September 20 and September 2;
-this workflow did not create them or inspect their scores.
+entered competition `154281`. Two earlier completed submissions predate this
+workflow. A fresh server check immediately before the September 23 epoch-1
+baseline returned five available slots; that baseline used one as submission
+**56482890**. Query the live allowance again before each subsequent submission.
 
 `GetSubmissionLimits` does **not** supply an exact reset timestamp. Its current
 allowance is authoritative; `reset_at=null` and `reset_verified=false` preserve
@@ -42,7 +42,7 @@ that limitation. An overflow entry receives a **00:05 UTC inspection time**, not
 a claimed quota reset. A fresh server query must permit the next submission.
 Do not substitute a locally calculated midnight allowance for this check.
 
-No competition submission has been created. The initial private environment
+The initial private environment
 probe measured Python 3.12.13, PyTorch 2.10.0+cu128, driver 580.159.04 and two T4s.
 A subsequent private Dataset, `godlydonuts/rsna-wheels-cp312-e326c50a4a6a`
 (ID 12139697, version 1), now holds the exact wheel archive. Its separate private
@@ -52,15 +52,19 @@ backward, tiny random DINOv3 forward and decoder checks on a T4. Neither probe
 accessed competition data or pretrained weights. The small proofs and reusable
 `shared-wheelhouse.json` are archived under
 `initiative/audits/dinov3-deployment-v1/kaggle-t4-acceptance/`.
-Completed full-data epochs 1 through 8 checkpoint snapshots now exist; epochs 1
-and 3 are preserved separately from the trainer's scheduled Kaggle cadence.
-No competition entry has been created yet. The epoch-1 private Dataset is
+Completed full-data epochs 1 through 10 checkpoint snapshots now exist and each
+was fully downloaded back from private Hugging Face for byte verification.
+The epoch-1 private Dataset is
 version 1, ID 12145591, and all 46 files passed full remote download/hash
 verification. The first notebook slug returned an uncertain push and then
 HTTP 409 while remaining absent from complete owned listings. The same source
 and Dataset were bound to a distinct notebook slug and accepted as private
-offline T4 version 1. Its run and exact MRI-only receipt are still required
-before any code submission; see the [deployment audit](../initiative/audits/kaggle-epoch1-baseline-v1/).
+offline T4 version 1. Its MRI-only three-study execution passed a version-bound
+receipt and the exact notebook version was submitted once as 56482890. Kaggle
+has not returned its score or hidden-test runtime yet. The epoch-2 private
+Dataset also passed full download/hash verification, and its dedicated notebook
+version 1 is running. See the [epoch-1 audit](../initiative/audits/kaggle-epoch1-baseline-v1/)
+and [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/).
 
 ## Local preparation
 

@@ -60,14 +60,16 @@ checkpoint. One-CPU job 841091 decoded and preserved that checkpoint, then
 the first two-H100 continuation 841094 failed at evc27's CUDA preflight before
 training. The single retry 841107 allocated evc28 with the same verified
 checkpoint. The [fix audit](audits/newton-interpolation-fix-v1/) preserves the pinned source,
-checkpoint proof and dispatch. Continuation 841107 has since completed the first
-eight full-data epochs; immutable epoch 2 through 8 checkpoints are in the private
-Hugging Face dataset with full download verification. The separately replayed
-epoch-1 checkpoint passed CPU proof and full private HF download verification.
-The first completed-epoch private Kaggle Dataset passed full byte
-verification, and an exact-source MRI-only T4 notebook version 1 is running
-after a recorded slug migration. No competition submission or score has yet
-been measured. See the [epoch-1 Kaggle audit](audits/kaggle-epoch1-baseline-v1/)
+checkpoint proof and dispatch. Continuation 841107 reached all ten full-data
+epoch boundaries; each immutable checkpoint is in the private Hugging Face
+dataset with full download verification. The separately replayed epoch-1
+checkpoint passed CPU proof. The first completed-epoch private Kaggle Dataset
+passed full byte verification, and its exact-source MRI-only T4 notebook
+completed after a recorded slug migration. It was submitted once as competition
+entry 56482890; the score and hidden-test runtime are still pending. The
+epoch-2 private Dataset also passed full byte verification and its version-1
+notebook is running. See the [epoch-1 Kaggle audit](audits/kaggle-epoch1-baseline-v1/),
+[epoch-2 audit](audits/kaggle-epoch2-v1/),
 and current [continuation guide](../docs/codex-continuation.md).
 The accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 

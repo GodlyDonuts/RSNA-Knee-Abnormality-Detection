@@ -1,11 +1,12 @@
-# First eight full-data epochs and private preservation
+# All ten full-data epochs and private preservation
 
 The accepted report-supervision release, masks, folds, source cache and official
 DINOv3-L weights are unchanged. The exact trainer source is Git
 `b74060b98f01bff1b924070ccba5ce44dd002f40`. Primary Newton job **841107**
 continued from the verified update-26 recovery point on evc28 with two H100s
-and four training CPUs. It completed three full-data epochs on 2,247 eligible
-training studies while this audit was captured, and remained running. The
+and four training CPUs. It reached all ten full-data epoch boundaries on 2,247
+eligible training studies and produced a verified immutable checkpoint for each.
+Final outer-fold prediction and job completion are checked separately. The
 trainer's fixed monitoring cadence made immutable epoch-2 sidecar/checkpoint
 SHA `f56c0d64519fbf2fde5433ef4ff3dcc59d8f01394d80515ebf5cebf97726fa02`.
 
@@ -23,16 +24,15 @@ CPU job **841160** then hard-linked that unchanged checkpoint into an immutable
 epoch-1 sidecar. This is an explicit one-off exception for Kaggle inference;
 the trained two-epoch submission cadence remains unchanged.
 
-CPU-only watcher **841134** shares physical node evc28, detects completed odd
+CPU-only watcher **841134** shared physical node evc28, detected completed odd
 epoch boundaries from the primary trainer log, hard-links the recovery inode
 before its next replacement, then checks the checkpoint with Torch. Its first
 capture, epoch 3 / step 843, passed with SHA
 `caaa821440a1e880ba95744223ac693d30a5f8d3ad62a4d0a0f29d46e2b494f4`.
-It must remain healthy to capture epochs 5, 7 and 9; a submitted watcher alone
-does not prove those future snapshots. Even epochs 4, 6, 8 and 10 remain the
-trainer's own scheduled snapshots.
+It subsequently captured epochs 5, 7 and 9; its job completed `0:0`. Even
+epochs 4, 6, 8 and 10 are the trainer's own scheduled snapshots.
 
-All first eight checkpoint files were committed to the **private**
+All ten checkpoint files were committed to the **private**
 [`GodlyDonuts/RSNA-Data`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data)
 dataset from CPU allocations on Newton. Each returned revision was followed by
 a complete private download of the checkpoint, sidecar, official DINOv3
@@ -50,6 +50,8 @@ Hugging Face, not in Git or on the laptop.
 | 6 | `22f6badee0c5` | [`6d6cdeb6`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/6d6cdeb6434114d7508a6d0bf8b992c68b72b90b/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-006) |
 | 7 | `998530993c80` | [`af3be629`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/af3be629981a3d4255cae7cc54c72d480b1f285a/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-007) |
 | 8 | `e156bcf1d4e0` | [`0d90e6a1`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/0d90e6a19288615bb882bca1a84b70c6047179dd/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-008) |
+| 9 | `41cdb0f8e618` | [`84aff49a`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/84aff49a776b81284d54db312c67c8d2576f8cce/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-009) |
+| 10 | `1464f64063d2` | [`8e41da9c`](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/8e41da9c831af6bf777daf48b81109257f7e4b82/experiments/dinov3-v1/training-epochs/fold0-seed20260922/epoch-010) |
 
 The Kaggle wheelhouse was staged and fully rehashed in CPU job **841116**.
 The Kaggle management environment was installed in CPU job 841121, whose
@@ -69,6 +71,7 @@ one-off baseline adapter and epoch publisher; its pipeline checks passed at
 The exact committed-code overlay passed full private HF byte verification at
 revision `dabd9b0ea40f12f334f226b4a9163a0becd737ba`.
 
-No MRI-only Kaggle notebook execution or competition submission has completed
-at this audit point. The three-row public example CSV is not a leaderboard
-baseline, and no score or hidden-test runtime is claimed.
+The epoch-1 MRI-only Kaggle notebook completed its three-study public execution
+and was submitted once as competition entry 56482890. Kaggle has not returned a
+score or measured hidden-test runtime yet. The three-row public example CSV is
+not a leaderboard baseline; see the separate Kaggle audit for the exact receipt.
