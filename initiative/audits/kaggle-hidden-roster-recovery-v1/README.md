@@ -43,12 +43,17 @@ are preserved. The distinct revision journal is at
 The corrected private offline T4 notebook was then pushed **once** under the
 new slug as version 1. [The canonical ledger entry](ledger-epoch008-after-corrected-push.json)
 preserves the previous unsubmitted version and binds the new exact operation.
-Its public-example run was still in progress at the last recorded check. There
-is **no completed public receipt, competition submission, hidden-run result, or
-Kaggle score** from this correction yet. The live account allowance remained
-five used and zero available. Check the version-bound MRI-only public receipt,
-then submit one corrected code version only when a fresh live allowance permits;
-inspect its hidden outcome before using another slot.
+Its MRI-only three-study public run completed. The
+[version-bound receipt](corrected-public-example-receipt.json),
+[metrics](corrected-public-example-metrics.json), and
+[readiness check](corrected-public-readiness.json) verify the saved source,
+private/offline T4 configuration, corrected `test.csv` roster binding, checkpoint,
+manifest, output hash, 13-column schema, three unique rows, and finite
+probabilities. The inference step took 65.0 seconds; this does not estimate
+hidden-test runtime reliably. **No corrected competition submission, hidden-run
+result, or Kaggle score exists yet.** The live account allowance remained five
+used and zero available. Submit one corrected code version only when a fresh
+live allowance permits; inspect its hidden outcome before using another slot.
 
 The reviewed recovery code and this audit at GitHub commit
 `758b9ea8c9d501cec016c61d778e0fed179ce7eb` were also published to private
