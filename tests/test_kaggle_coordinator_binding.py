@@ -6,6 +6,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -110,6 +111,67 @@ def test_second_coordinator_cannot_remove_or_reuse_first_claim(tmp_path):
                 pytest.fail("Second coordinator entered protected scope")
         assert (claim / "owner.json").read_bytes() == before
     assert not claim.exists()
+
+
+def test_corrected_publication_uses_distinct_verified_journal(tmp_path):
+    sha = "a" * 64
+    original = tmp_path / "dataset-publications" / sha
+    original.mkdir(parents=True)
+    (original / "verified.json").write_text(
+        json.dumps({"status": "all_payload_bytes_verified", "slug": "user/old"})
+    )
+    meta = {"checkpoint_sha256": sha}
+    operation = {"manifest_sha256": "b" * 64, "dataset_slug": "user/corrected"}
+    assert c.publication_journal(tmp_path, meta, operation, False) == original
+    assert c.publication_journal(tmp_path, meta, operation, True) == original.with_name(
+        sha + "-" + "b" * 12
+    )
+    operation["dataset_slug"] = "user/old"
+    with pytest.raises(ValueError, match="distinct Dataset"):
+        c.publication_journal(tmp_path, meta, operation, True)
+
+
+def test_corrected_push_preserves_unsubmitted_notebook_record():
+    original = {
+        "state": "pushed",
+        "operation": {"kernel_slug": "user/old", "dataset_slug": "user/old-data"},
+        "operation_sha256": "a" * 64,
+        "kernel_version": 1,
+        "dataset": {"id": 7},
+        "kernel_absence_proof": {"count": 3},
+    }
+    saved = []
+    workflow = SimpleNamespace(
+        verify_account=lambda *_: None,
+        read_entry=lambda *_: dict(original),
+        check_kernel=lambda *_: {"status": "COMPLETE"},
+        save_entry=lambda _db, entry, event: saved.append((dict(entry), event)),
+    )
+    db = SimpleNamespace(execute=lambda *_: None)
+    operation = {
+        "checkpoint_sha256": "c" * 64,
+        "kernel_slug": "user/corrected",
+        "dataset_slug": "user/corrected-data",
+    }
+    c.supersede_unsubmitted_kernel(workflow, None, db, operation, "a" * 64)
+    entry, event = saved.pop()
+    assert entry["state"] == "queued"
+    assert "kernel_version" not in entry and "operation" not in entry
+    assert entry["superseded_operations"] == [
+        {
+            "operation": original["operation"],
+            "operation_sha256": "a" * 64,
+            "kernel_version": 1,
+            "dataset": {"id": 7},
+            "state": "pushed_unsubmitted",
+        }
+    ]
+    assert "corrected push" in event
+    with pytest.raises(ValueError, match="exact unsubmitted"):
+        c.supersede_unsubmitted_kernel(workflow, None, db, operation, "b" * 64)
+    original["submission_id"] = 9
+    with pytest.raises(ValueError, match="exact unsubmitted"):
+        c.supersede_unsubmitted_kernel(workflow, None, db, operation, "a" * 64)
 
 
 @pytest.fixture

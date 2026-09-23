@@ -94,6 +94,9 @@ The leading unconfirmed cause is the notebook using the three-row
 Do not submit any original version-1 notebook when quota returns; validate and
 publish a corrected, distinct version first. The epoch-10 checkpoint is also fully verified on private
 Hugging Face. See the
+[corrected epoch-8 package audit](../initiative/audits/kaggle-hidden-roster-recovery-v1/)
+for the separately staged and locally validated full-roster package. It is not
+yet published to Kaggle and has no hidden-run result. See also the
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/),
 [epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/),
 [epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/) and

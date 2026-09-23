@@ -1,0 +1,246 @@
+EXPECTED_MANIFEST_SHA256 = '61bff283e65d7bcade0cfa7531c33af16a5dd452bac5be34096c1d269c2926d2'
+"""Single-file offline Kaggle entry; workflow prepends EXPECTED_MANIFEST_SHA256."""
+
+import hashlib
+import json
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tarfile
+from pathlib import Path
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(4 * 1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def resolve_wheels(
+    bundle, manifest, inputs=Path("/kaggle/input"), destination=Path("/tmp/rsna-shared-wheels")
+):
+    expected = json.loads((bundle / "wheelhouse.json").read_text())
+    shared = manifest.get("shared_wheelhouse")
+    if shared is None:
+        return bundle / "wheels", expected
+    name = shared["archive_file"]
+    if Path(name).name != name:
+        raise ValueError("Invalid shared archive path")
+    candidates = [
+        p
+        for p in inputs.rglob(name)
+        if p.is_file()
+        and p.stat().st_size == shared["archive_bytes"]
+        and sha256(p) == shared["archive_sha256"]
+    ]
+    if len(candidates) != 1:
+        raise ValueError("Exactly one full-byte-bound shared wheel archive required")
+    destination.mkdir(exist_ok=False)
+    with tarfile.open(candidates[0]) as handle:
+        members = handle.getmembers()
+        if len(members) > 1000:
+            raise ValueError("Unexpected shared archive size")
+        for member in members:
+            path = Path(member.name)
+            if (
+                path.is_absolute()
+                or ".." in path.parts
+                or not path.parts
+                or path.parts[0] != "wheelhouse"
+                or not (member.isfile() or member.isdir())
+            ):
+                raise ValueError("Unexpected shared archive member")
+        for member in members:
+            target = destination / member.name
+            if member.isdir():
+                target.mkdir(mode=0o700, parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                with handle.extractfile(member) as source, target.open("xb") as output:
+                    shutil.copyfileobj(source, output, length=4 * 1024 * 1024)
+    wheels = destination / "wheelhouse"
+    if sha256(wheels / "wheelhouse.json") != shared["manifest_sha256"]:
+        raise ValueError("Shared wheel manifest bytes differ")
+    found = json.loads((wheels / "wheelhouse.json").read_text())
+    if found != expected:
+        raise ValueError("Shared runtime differs from checkpoint package dependency contract")
+    actual = {str(p.relative_to(wheels)) for p in wheels.rglob("*") if p.is_file()}
+    if actual != set(found["files"]) | {"wheelhouse.json"}:
+        raise ValueError("Shared archive contains missing or extraneous files")
+    for name, row in found["files"].items():
+        if Path(name).name != name:
+            raise ValueError("Invalid wheel payload path")
+        path = wheels / name
+        if sha256(path) != row["sha256"] or path.stat().st_size != row["bytes"]:
+            raise ValueError("Shared wheel payload bytes differ")
+    return wheels, found
+
+
+def resolve_competition(inputs, slug):
+    candidates = [inputs / slug, inputs / "competitions" / slug]
+    present = [path for path in candidates if (path / "test.csv").is_file()]
+    if len(present) != 1:
+        raise ValueError("Cannot identify exactly one official competition input mount")
+    competition = present[0]
+    for name in ("test_series.csv", "test_series"):
+        if not (competition / name).exists():
+            raise ValueError("Official runtime competition input is missing")
+    return competition
+
+
+def run():
+    expected = globals().get("EXPECTED_MANIFEST_SHA256")
+    if not isinstance(expected, str) or len(expected) != 64:
+        raise ValueError("Prepared notebook manifest binding is required")
+    matches = [
+        p for p in Path("/kaggle/input").rglob("bundle-manifest.json") if sha256(p) == expected
+    ]
+    if len(matches) != 1:
+        raise ValueError("Exactly one byte-bound inference bundle must be attached")
+    manifest = json.loads(matches[0].read_text())
+    bundle = matches[0].parent
+    if platform.system() != "Linux" or platform.machine() != "x86_64":
+        raise ValueError("Pinned Linux x86_64 runtime required")
+    if ".".join(platform.python_version_tuple()[:2]) != manifest["python"]:
+        raise ValueError("Kaggle Python ABI differs from the accepted offline wheelhouse")
+    for name, record in manifest["files"].items():
+        relative = Path(name)
+        path = bundle / relative
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or not path.resolve().is_relative_to(bundle.resolve())
+        ):
+            raise ValueError("Invalid bundle path")
+        if (
+            not path.is_file()
+            or sha256(path) != record["sha256"]
+            or path.stat().st_size != record["bytes"]
+        ):
+            raise ValueError("Bundle bytes differ from the prepared checkpoint/environment")
+    os.environ.update(
+        {
+            "HF_HUB_OFFLINE": "1",
+            "TRANSFORMERS_OFFLINE": "1",
+            "HF_HUB_DISABLE_XET": "1",
+            "TOKENIZERS_PARALLELISM": "false",
+            "OMP_NUM_THREADS": "2",
+            "MKL_NUM_THREADS": "2",
+        }
+    )
+    wheels, dependencies = resolve_wheels(bundle, manifest)
+    runtime = Path("/tmp/rsna-knee-offline-environment")
+    if runtime.exists():
+        raise ValueError("Offline runtime must be newly created")
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(runtime)], check=True)
+    python = runtime / "bin/python"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "--python",
+            str(python),
+            "install",
+            "--no-index",
+            "--require-hashes",
+            "--find-links",
+            str(wheels),
+            "-r",
+            str(wheels / "requirements.lock"),
+        ],
+        check=True,
+    )
+    subprocess.run([str(python), "-m", "pip", "check"], check=True)
+    installed = json.loads(
+        subprocess.check_output(
+            [
+                str(python),
+                "-c",
+                "import importlib.metadata,json,sys; "
+                "print(json.dumps({n:importlib.metadata.version(n) for n in json.loads(sys.argv[1])}))",
+                json.dumps(list(dependencies["resolved_versions"])),
+            ],
+            text=True,
+        )
+    )
+    if installed != dependencies["resolved_versions"]:
+        raise ValueError("Installed package differs from the accepted dependency lock")
+    working = Path("/kaggle/working")
+    sys.path.insert(0, str(bundle / "code"))
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(bundle / "code")
+    encoder = json.loads((bundle / "encoder.json").read_text())
+    competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
+    command = [
+        str(python),
+        str(bundle / "code/chunked_infer.py"),
+        "--checkpoint",
+        str(bundle / "checkpoint.pt"),
+        "--encoder-config",
+        str(bundle / encoder["config_path"]),
+        "--series",
+        str(competition / "test_series.csv"),
+        "--test-studies",
+        str(competition / "test.csv"),
+        "--dicom-root",
+        str(competition),
+        "--cache-root",
+        "/tmp/rsna-knee-test-cache",
+        "--output",
+        str(working / "submission.csv"),
+        "--workers",
+        "0",
+        "--device",
+        "cuda",
+        "--precision",
+        "fp32",
+        "--chunk-size",
+        "32",
+    ]
+    if (competition / "sample_submission.csv").is_file():
+        command.extend(("--template", str(competition / "sample_submission.csv")))
+    if manifest.get("baseline_epoch_one") is True:
+        command.extend(
+            [
+                "--baseline-epoch-one",
+                "--baseline-sidecar",
+                str(bundle / "snapshot.json"),
+                "--baseline-proof",
+                str(bundle / "baseline-proof.json"),
+            ]
+        )
+    subprocess.run(command, env=env, check=True)
+    metrics = json.loads((working / "submission.metrics.json").read_text())
+    if (
+        metrics.get("status") != "passed"
+        or metrics.get("diagnostic_only") is not False
+        or metrics.get("checkpoint_sha256") != manifest["checkpoint_sha256"]
+        or metrics.get("submission_sha256") != sha256(working / "submission.csv")
+        or metrics.get("chunk_count", 0) < 1
+        or metrics.get("checkpoint_epoch") != manifest["epoch"]
+    ):
+        raise ValueError("Inference output is diagnostic or used a different checkpoint")
+    # Public notebook execution normally has three examples. This validates only
+    # execution: the submitted code is rerun by Kaggle on the hidden test set.
+    receipt = {
+        "schema_version": 1,
+        "status": "offline_inference_complete",
+        "bundle_manifest_sha256": expected,
+        "checkpoint_sha256": manifest["checkpoint_sha256"],
+        "studies": metrics["studies"],
+        "submission_sha256": sha256(working / "submission.csv"),
+        "public_example_only": metrics["studies"] <= 3,
+        "hidden_score_claimed": False,
+    }
+    (working / "kaggle-inference-receipt.json").write_text(
+        json.dumps(receipt, sort_keys=True, indent=2)
+    )
+
+
+if __name__ == "__main__":
+    run()

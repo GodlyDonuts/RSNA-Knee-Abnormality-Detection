@@ -115,6 +115,61 @@ def validate_operation(workflow, args):
     return op, meta, files
 
 
+def publication_journal(base, meta, op, revision):
+    original = base / "dataset-publications" / meta["checkpoint_sha256"]
+    if not revision:
+        return original
+    proof_file = original / "verified.json"
+    if not proof_file.is_file():
+        raise ValueError("The original Dataset must be fully verified before correction")
+    proof = json.loads(proof_file.read_text())
+    if (
+        proof.get("status") != "all_payload_bytes_verified"
+        or proof.get("slug") == op["dataset_slug"]
+    ):
+        raise ValueError("Correction must use a distinct Dataset after full original verification")
+    return original.with_name(original.name + "-" + op["manifest_sha256"][:12])
+
+
+def supersede_unsubmitted_kernel(workflow, remote, db, op, expected_old_sha):
+    """Preserve an old notebook before one corrected push attempt."""
+    db.execute("BEGIN IMMEDIATE")
+    workflow.verify_account(db, remote)
+    entry = workflow.read_entry(db, op["checkpoint_sha256"])
+    old = entry.get("operation", {})
+    if (
+        entry.get("state") != "pushed"
+        or entry.get("submission_id") is not None
+        or entry.get("operation_sha256") != expected_old_sha
+        or old.get("kernel_slug") == op["kernel_slug"]
+        or old.get("dataset_slug") == op["dataset_slug"]
+        or not entry.get("kernel_version")
+    ):
+        raise ValueError("Only an exact unsubmitted old notebook can be superseded")
+    state = workflow.check_kernel(remote, entry, entry["kernel_version"])
+    if state.get("status") != "COMPLETE":
+        raise ValueError("Old notebook state differs from the verified public run")
+    history = entry.get("superseded_operations", [])
+    if history:
+        raise ValueError("This narrowly scoped correction cannot migrate twice")
+    entry["superseded_operations"] = [
+        {
+            "operation": old,
+            "operation_sha256": expected_old_sha,
+            "kernel_version": entry["kernel_version"],
+            "dataset": entry["dataset"],
+            "state": "pushed_unsubmitted",
+        }
+    ]
+    entry.pop("kernel_version")
+    entry.pop("kernel_absence_proof", None)
+    entry.pop("dataset", None)
+    entry.pop("operation", None)
+    entry.pop("operation_sha256", None)
+    entry["state"] = "queued"
+    workflow.save_entry(db, entry, "preserved exact unsubmitted notebook for corrected push")
+
+
 def management_create(python):
     def create(token, slug, title, upload):
         request = {
@@ -151,7 +206,7 @@ def run(args):
         args.projection, args.projection_manifest, args.projection_sha256
     )
     op, meta, files = validate_operation(workflow, args)
-    journal = base / "dataset-publications" / meta["checkpoint_sha256"]
+    journal = publication_journal(base, meta, op, args.publication_revision)
     journal.mkdir(mode=0o700, parents=True, exist_ok=True)
     with single_coordinator(base):
         if args.action == "prepare-transport":
@@ -234,9 +289,21 @@ def run(args):
             raise ValueError("Dataset version or identity drifted")
         with workflow.ledger(base / "account-ledger.sqlite3", remote.username) as db:
             workflow.enqueue(db, args.snapshot, repo=args.projection)
+            if args.action == "push-corrected-kernel":
+                if not args.publication_revision or not args.superseded_operation_sha256:
+                    raise ValueError("Corrected push requires a revision and exact old operation")
+                supersede_unsubmitted_kernel(
+                    workflow, remote, db, op, args.superseded_operation_sha256
+                )
+                return workflow.push(remote, db, args.operation)
             if args.action == "push-kernel":
                 return workflow.push(remote, db, args.operation)
             if args.action == "submit":
+                entry = workflow.read_entry(db, meta["checkpoint_sha256"])
+                if entry.get("operation_sha256") != p.digest(args.operation):
+                    raise ValueError(
+                        "Submission operation differs from the exact current ledger entry"
+                    )
                 return workflow.submit(remote, db, meta["checkpoint_sha256"])
             raise ValueError("Unsupported phase")
 
@@ -250,12 +317,15 @@ def main():
             "create-dataset",
             "reconcile-dataset",
             "push-kernel",
+            "push-corrected-kernel",
             "submit",
         ],
     )
     for name in ("projection", "projection-manifest", "operation", "snapshot"):
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--projection-sha256", required=True)
+    parser.add_argument("--publication-revision", action="store_true")
+    parser.add_argument("--superseded-operation-sha256")
     parser.add_argument("--management-python", type=Path)
     args = parser.parse_args()
     try:
