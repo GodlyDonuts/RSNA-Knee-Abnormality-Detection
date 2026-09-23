@@ -1,0 +1,110 @@
+"""Derive the isolated fold-2 one-H100 pilot from the pinned fold-1 retry."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+REFERENCE = ROOT.parent / "dinov3-fold1-recovery-v1/retry-843935/fold1-retry.sbatch"
+
+
+def one(old: str, new: str, value: str) -> str:
+    count = value.count(old)
+    if count != 1:
+        raise ValueError(f"Expected one source occurrence, got {count}: {old!r}")
+    return value.replace(old, new)
+
+
+def build() -> None:
+    original = json.loads((ROOT / "fold1-reference.json").read_text())
+    assert original["fold"] == 1 and original["accumulation_steps"] == 4
+    assert original["batch_size"] == 1 and original["epochs"] == 10
+    assert original["diagnostic_study_limit"] is None
+    assert original["encoder"]["weights_sha256"] == (
+        "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+    )
+    pilot = dict(original)
+    pilot.update(
+        fold=2,
+        accumulation_steps=8,
+        epochs=2,
+        diagnostic_study_limit=100,
+        submission_every_epochs=0,
+    )
+    (ROOT / "pilot-config.json").write_text(json.dumps(pilot, indent=2, sort_keys=True) + "\n")
+
+    script = REFERENCE.read_text()
+    replacements = (
+        (
+            "#SBATCH --job-name=rsna-dinov3-fold1-b740-v2",
+            "#SBATCH --job-name=rsna-dinov3-fold2-1gpu-pilot",
+        ),
+        ("#SBATCH --exclude=evc27,evc38,evc43,evc44,evc49,evc50", "#SBATCH --nodelist=evc32"),
+        ("#SBATCH --gres=gpu:nvidia_h100_pcie:2", "#SBATCH --gres=gpu:nvidia_h100_pcie:1"),
+        ("#SBATCH --cpus-per-task=4", "#SBATCH --cpus-per-task=2"),
+        ("#SBATCH --time=04:00:00", "#SBATCH --time=01:00:00"),
+        ("two scheduler-visible devices required", "one scheduler-visible device required"),
+        (
+            "len((os.environ.get('CUDA_VISIBLE_DEVICES') or '').split(',')) != 2",
+            "len((os.environ.get('CUDA_VISIBLE_DEVICES') or '').split(',')) != 1",
+        ),
+        ("result.returncode != 0 or count != 2", "result.returncode != 0 or count != 1"),
+        ("NVML must expose both allocated GPUs", "NVML must expose the allocated GPU"),
+        ("code != 0 or count.value != 2", "code != 0 or count.value != 1"),
+        (
+            "CUDA driver must expose both allocated GPUs",
+            "CUDA driver must expose the allocated GPU",
+        ),
+        (
+            "srun --nodes=1 --ntasks=1 --cpus-per-task=4 --gres=gpu:nvidia_h100_pcie:2",
+            "srun --nodes=1 --ntasks=1 --cpus-per-task=2 --gres=gpu:nvidia_h100_pcie:1",
+        ),
+        ("--expected-gpus 2", "--expected-gpus 1"),
+        (" --require-nccl", ""),
+        ("if (( ${#assigned_gpus[@]} != 2 ));", "if (( ${#assigned_gpus[@]} != 1 ));"),
+        (
+            "--nproc-per-node=2 --max-restarts=0 --module",
+            "--nproc-per-node=1 --max-restarts=0 --module",
+        ),
+    )
+    for old, new in replacements:
+        script = one(old, new, script)
+    old_control = "/home/sa305415/rsna-knee/production-launch-b740-fold1-v2"
+    assert script.count(old_control) == 2
+    script = script.replace(
+        old_control, "/home/sa305415/rsna-knee/production-launch-b740-fold2-1gpu-v1"
+    )
+    context_probe = """"$runtime_python" - <<'RSNA_SINGLE_GPU_CONTEXT'
+import json
+import torch
+
+assert torch.cuda.device_count() == 1
+torch.cuda.set_device(0)
+value = torch.ones(8, device='cuda')
+assert float(value.sum().item()) == 8.0
+torch.cuda.synchronize()
+print(json.dumps({'status': 'passed', 'cuda_context': True, 'gpu_count': 1}), flush=True)
+RSNA_SINGLE_GPU_CONTEXT"""
+    script = one(
+        '"$runtime_python" -m torch.distributed.run --standalone --nnodes=1 --nproc-per-node=2 /home/sa305415/rsna-knee/production-launch-b740-fold2-1gpu-v1/cuda_context_probe.py',
+        context_probe,
+        script,
+    )
+    script = script.replace(
+        "/home/sa305415/rsna-knee/encoder-stage/run-configs/production-fold1-b740-v1.json",
+        "/home/sa305415/rsna-knee/production-launch-b740-fold2-1gpu-v1/pilot-config.json",
+    )
+    if "production-fold1-b740-v1.json" in script:
+        raise ValueError("Old training configuration remains")
+    script = script.replace(
+        "/home/sa305415/rsna-knee/runs/dinov3-l16-production-fold1-b74060b-v2",
+        "/home/sa305415/rsna-knee/runs/dinov3-l16-fold2-b74060b-1gpu-pilot-v1",
+    )
+    if "fold1" in script or "--expected-gpus 2" in script:
+        raise ValueError("Old fold or device count remains")
+    (ROOT / "pilot.sbatch").write_text(script)
+
+
+if __name__ == "__main__":
+    build()

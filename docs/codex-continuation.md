@@ -43,6 +43,17 @@ retry 843935 and watcher 843936 remain unchanged.
 The owner's evc32 suggestion was checked separately: Slurm reports one of its
 two GPUs already allocated (`MIXED+PLANNED`). The remaining single GPU cannot
 host the current two-GPU single-node recipe, regardless of available CPUs.
+The owner then explicitly authorized training with one GPU while waiting for
+two. A distinct fold-2, one-H100, two-CPU, 100-study/two-epoch pilot was
+submitted once as **844019**. It keeps the eight-study effective batch with
+eight accumulation steps and tests the single-rank CUDA/optimizer path before
+full training. evc32's second GPU was allocated during preparation, so the
+same pending job was updated once to allow other H100 nodes while excluding
+the previously failing nodes. At the latest check it was `PENDING (Priority)`;
+there is no fold-2 optimizer result yet. Fold-1 jobs 843935/843936 remain
+unchanged. The exact scripts, hashes, receipts and prepared, unlaunched
+ten-epoch fold-2 production plan are in the
+[single-GPU launch audit](../initiative/audits/dinov3-fold2-1gpu-launch-v1/).
 
 The owner's one-off epoch-1 Kaggle baseline and private preservation of **every**
 completed training epoch supersede the earlier monitoring-only cadence. Primary
