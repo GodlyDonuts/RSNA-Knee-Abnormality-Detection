@@ -320,14 +320,21 @@ optimization studies and 1,156 outer-fold studies. Its rank zero then blocked
 in CUDA synchronization for over ten minutes. The tested stop protocol
 signaled both workers, but the blocked GPU prevented an update-boundary save;
 the 120-second grace expired and the job ended `FAILED 2:0` without a checkpoint.
-No full-data epoch or Kaggle submission completed. Keep evc49 excluded pending
-a sustained GPU-health diagnosis. The [failure and replacement receipts](../initiative/audits/newton-production-stall-v1/)
-preserve this attempt.
+No full-data epoch or Kaggle submission completed. The [first failure and replacement receipts](../initiative/audits/newton-production-stall-v1/)
+preserve this attempt; the original evc49-specific suspicion was provisional.
 
 The same accepted data, official weights, exact c58090e code and production
 configuration were staged in a new v6 wrapper with a fresh output directory.
 It excludes evc38, evc44, evc49 and evc50, asks for one two-H100 node, four
 CPUs and four hours, and was submitted once as job **840578**. Slurm allocated
-evc40 and its allocated-device driver probe passed. Verify first real updates
-and a completed epoch before estimating full-run throughput or packaging an
-eligible Kaggle snapshot.
+evc40 and its allocated-device driver probe passed. It reached the same update
+22 with the same loss and then blocked in CUDA synchronization. All 22
+non-time optimizer events matched job 840562. Its stop grace again expired
+without a checkpoint, and Slurm reported `FAILED 2:0`. The [repeatability audit](../initiative/audits/newton-repeatable-stall-v1/)
+preserves the exact records. Do not repeat the unchanged full-data run. CPU-only
+job 840735 extracted the eight update-23 studies and 98 required cache files,
+then failed its strict CPU image-range assertion. Follow-up one-CPU job 840800
+completed and identified 20 pixels at 1.000000238 in a rank-1 microbatch,
+with no negative or nonfinite values. The loader now clips FP32 interpolation roundoff to
+`[0,1]`; validate this exact batch and two-rank CUDA progress in a bounded
+pilot before launching another full-data job.

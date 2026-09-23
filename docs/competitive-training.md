@@ -16,8 +16,13 @@ also recovered its exact checkpoint payload and predictions. See
 `initiative/audits/newton-recovery-production-v1/`. Primary ten-epoch fold-0
 job 840562 reached 22 epoch-0 optimizer updates on 2,247 eligible optimization
 studies, then stalled in CUDA synchronization and ended without a checkpoint.
-The same pinned configuration was relaunched once as job 840578 on evc40 after
-excluding the stalled node. First-epoch throughput,
+The same pinned configuration was relaunched once as job 840578 on evc40. It
+reproduced the identical update-22 CUDA stall and also ended without a
+checkpoint. An exact eight-study CPU probe found 20 interpolated pixels at
+1.000000238 in one rank-1 microbatch, above the model's strict 0–1 guard.
+The loader now clips FP32 interpolation roundoff to that range. This candidate
+fix still needs a bounded CUDA verification before full-data training resumes.
+First-epoch throughput,
 competitive accuracy and the hidden-test time budget remain unmeasured until
 actual completed epochs and Kaggle notebook runs finish.
 

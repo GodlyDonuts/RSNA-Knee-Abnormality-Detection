@@ -48,9 +48,14 @@ predictions against the uninterrupted pilot. The corrected ten-epoch fold-0
 production job 840562 reached 22 epoch-0 optimizer updates on 2,247 eligible
 optimization studies, then stalled in CUDA synchronization and ended without a
 checkpoint after the verified stop grace expired. The [replacement audit](audits/newton-production-stall-v1/)
-records its failure and the single v6 job 840578 dispatch on evc40. The same
-accepted data, code, weights and training configuration are used. No full-data
-epoch or Kaggle score had been measured at that dispatch.
+records its failure and the single v6 job 840578 dispatch on evc40. That job
+reproduced the identical update-22 CUDA stall and also ended without a
+checkpoint. The [repeatability audit](audits/newton-repeatable-stall-v1/)
+records the evidence: CPU-only job 840735 extracted the exact update-23 cache
+members but failed an image-range assertion; CPU-only job 840800 isolated 20
+interpolated pixels at 1.000000238 in one rank-1 study. The loader now clips
+this FP32 roundoff. A bounded two-rank GPU check is still required before
+restarting full training. No full-data epoch or Kaggle score has been measured.
 The accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 
 ## Contents

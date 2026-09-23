@@ -96,6 +96,25 @@ def test_missing_geometry_does_not_invent_physical_positions(tmp_path):
     assert row["positions"].count_nonzero() == 0
 
 
+def test_interpolation_keeps_uint16_white_within_normalized_range(tmp_path):
+    studies, series, paths = fixture(tmp_path, counts=(1,))
+    volume = np.full((1, 256, 256), 65535, dtype=np.uint16)
+    np.savez_compressed(paths[0], volume=volume)
+    meta_path = paths[0].with_suffix(".json")
+    meta = json.loads(meta_path.read_text())
+    meta.update(
+        side=256,
+        original_shape=[1, 256, 256],
+        cache_sha256=hashlib.sha256(paths[0].read_bytes()).hexdigest(),
+        cache_bytes=paths[0].stat().st_size,
+    )
+    meta_path.write_text(json.dumps(meta))
+    image = CompetitiveStudyDataset(studies, series, tmp_path, slices=1, side=224)[0]["images"]
+    assert torch.isfinite(image).all()
+    assert image.min() >= 0 and image.max() <= 1
+    assert torch.equal(image[0, 0], torch.ones_like(image[0, 0]))
+
+
 def test_unique_sampling_for_all_short_and_long_series():
     for count in [1, 2, 3, 5, 17, 30]:
         for requested in [1, 2, 4, 16, 40]:

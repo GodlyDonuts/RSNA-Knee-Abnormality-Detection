@@ -50,15 +50,28 @@ for over ten minutes: one rank was blocked in CUDA stream synchronization with
 its H100 busy while the other rank waited. A single batch USR1 requested a
 checkpoint; both workers were signaled, but the 120-second grace expired
 without one. Slurm reported `FAILED 2:0`. No epoch or checkpoint can be
-resumed from this attempt. Exclude evc49 until sustained GPU health is resolved.
+resumed from this attempt. The initial evc49 hardware suspicion was provisional.
 
 The exact same committed source, accepted masks/folds, official DINOv3-L weights
 and production configuration were staged in a fresh v6 wrapper, excluding
 evc38, evc44, evc49 and evc50. Replacement job **840578** was submitted once
 and allocated evc40 with two H100s and four CPUs. Its allocated-device driver
-probe passed. Reconcile the live job, its output and the single Kaggle ledger
-before any further retry, queue operation or submission. The failure and
-replacement receipts are in `initiative/audits/newton-production-stall-v1/`.
+probe passed, but it reproduced the **same update-22 loss and CUDA stall** on
+evc40. All 22 non-time optimizer events matched job 840562 exactly. A single
+batch USR1 again signaled both workers, but no checkpoint completed before the
+120-second grace; job 840578 ended `FAILED 2:0`. This rules out a simple
+evc49-only explanation. Do not relaunch the unchanged full-data job. CPU-only
+job **840735** extracted all 98 selected cache members with one CPU and no GPU,
+then failed its exact image-range assertion. One-CPU follow-up job **840800**
+completed and found 20 pixels at 1.000000238 in the rank-1 third microbatch;
+the other seven studies passed and no sampled pixels were nonfinite or negative.
+This points to FP32 interpolation roundoff against the model's strict `[0,1]`
+guard. The loader fix clips that roundoff, but causal GPU verification remains
+outstanding. Run only a bounded two-H100 diagnostic next, then resume full
+training only after that gate passes. Both failure audits are in
+`initiative/audits/newton-production-stall-v1/` and
+`initiative/audits/newton-repeatable-stall-v1/`. The canonical Kaggle ledger
+remains untouched because no eligible snapshot exists.
 
 Newton Lustre file quota had reached 1,016,723 files while a separate
 interactive one-GPU Bash job 840217 was active. That job ended; the file count
@@ -75,8 +88,10 @@ independent remote full-file/TAR receipt: 82,834,493,440 bytes, SHA
 `initiative/audits/full-cache-newton-stage-v1/` for the immutable small records.
 Do not start another transfer. The archive remains on private Newton storage;
 its membership will be rechecked when extracted to node-local scratch. The
-corrected hash-pinned replacement is job 840578; its full archive extraction
-and first epoch still need live verification.
+unchanged production jobs 840562 and 840578 both stalled at update 22 and are
+terminal without a checkpoint. The CPU probes 840735 and 840800 isolated an
+FP32 interpolation range overshoot in the exact next batch. The fixed loader
+needs a bounded two-rank GPU check before full training can restart.
 
 The final `initiative/releases/report-supervision-v1/` export and real runtime
 acceptance passed. Start with [data-readiness-report.md](data-readiness-report.md),

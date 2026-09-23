@@ -141,13 +141,15 @@ class CompetitiveStudyDataset(StudyDataset):
             indices = _indices(count, self.slices, self.augment)
             valid = len(indices)
             sampled = torch.from_numpy(volume[indices].astype(np.float32))[:, None] / 65535
+            # Bilinear antialiasing can round a source value of 1 slightly above
+            # 1 in FP32. Keep the normalized image contract exact for the model.
             images[slot, :valid] = F.interpolate(
                 sampled,
                 (self.side, self.side),
                 mode="bilinear",
                 align_corners=False,
                 antialias=True,
-            )
+            ).clamp_(0, 1)
             positions[slot, :valid] = _positions(meta, count)[indices]
             features[slot, PLANES[entry["Anatomical_Plane"]]] = 1
             features[slot, 3] = entry["Fluid_Sensitive"]

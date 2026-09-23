@@ -299,11 +299,21 @@ still contains its measured immutable snapshot, exact code/config and license.
 
 `scripts/kaggle/project_code.py` builds a small exact-Git source projection for a
 separate coordinator directory. It requires the packaging and training commits
-to have identical `rsna` source hashes. The corrected training source is
-`e7b08625854de692b9266ccfc25c90fc22169f58` (CI 35766826230 passed; verified HF
-revision `6f30d9def9b411c3adf2517ec683a22b2adf1bb4`). Build the eventual packaging
-projection from the commit containing these new helpers, with that exact training
-commit while its runtime remains unchanged. Keep the training checkout clean.
+to have identical `rsna` source hashes. The current production training source
+is `c58090e7c7a238461a5ac69293b32b64b74c6721` (CI 35799881539 passed;
+private HF revision `997a7758e2b529e0888a2097c2c511316236bd54`). An exact
+45-file coordinator projection was built from packaging commit
+`ef56d312c980577869da7e4124421c988bd97119` and that training commit;
+their `rsna/**/*.py` hashes match. The [projection proof](../initiative/audits/kaggle-projection-c580-v1/)
+pins manifest SHA-256 `30fd9a1831eb51d297c107e59ea5c57fc46bd929ea89ca00cbfc61f9a3f75479`
+and TAR SHA-256 `e3a83121f8347b5bea4e1deda40139fbe4edab2881fc35dfa092f5d98adae753`.
+Both were byte-verified on private Newton storage at
+`$HOME/rsna-knee/kaggle/projections/ef56d312-c58090e`. Keep the active training
+checkout clean; build future packaging projections only against identical
+trained runtime hashes. The c580 production jobs stalled before a checkpoint;
+this projection is retained as their exact historical source proof. The loader
+range correction changes `rsna/competitive/data.py`, so any successful
+replacement run needs a newly pinned projection matching its committed code.
 
 Use one finite CPU-only Slurm allocation after a real scheduled snapshot exists:
 2 CPUs initially, no GPU, accepted Python3.12 environment unpacked on node-local
