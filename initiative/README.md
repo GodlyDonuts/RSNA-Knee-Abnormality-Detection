@@ -93,6 +93,9 @@ Kaggle allowance. See the
 [epoch-6 audit](audits/kaggle-epoch6-v1/), [epoch-8 audit](audits/kaggle-epoch8-v1/),
 [epoch-10 audit](audits/kaggle-epoch10-v1/),
 and current [continuation guide](../docs/codex-continuation.md).
+The [post-fold-0 audit mirror](audits/hf-post-fold0-milestone-v1/) preserves the
+plan, recomputed metrics and Kaggle receipts in the private Hugging Face dataset
+with full re-download verification.
 The accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 
 ## Contents

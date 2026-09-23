@@ -92,6 +92,8 @@ Hugging Face. See the
 [epoch-6 audit](../initiative/audits/kaggle-epoch6-v1/) and
 [epoch-8 audit](../initiative/audits/kaggle-epoch8-v1/) and
 [epoch-10 audit](../initiative/audits/kaggle-epoch10-v1/).
+The fold-0 analysis, next-plan and submission receipts are also fully
+download/hash-verified in the [private Hugging Face milestone](../initiative/audits/hf-post-fold0-milestone-v1/).
 
 The accepted Kaggle wheelhouse was staged and rehashed in CPU job **841116**.
 An isolated pinned Kaggle management environment was installed in CPU job
