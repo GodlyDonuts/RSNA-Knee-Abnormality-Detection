@@ -89,10 +89,14 @@ submissions today and zero available slots. Epoch 8 has no competition
 submission yet. Kaggle later marked all five submitted hidden reruns `COMPLETE`
 with zero output bytes and the same unhandled-notebook-error message; none has
 a score. See the [hidden-rerun failure audit](../initiative/audits/kaggle-hidden-rerun-failure-v1/).
-The leading unconfirmed cause is the notebook using the three-row
+The initial unconfirmed cause was the notebook using the three-row
 `sample_submission.csv` instead of the replaced `test.csv` as its study roster.
-Do not submit any original version-1 notebook when quota returns; validate and
-publish a corrected, distinct version first. The epoch-10 checkpoint is also fully verified on private
+The owner's earlier **0.936 and 0.942** scored submissions now [strongly
+disfavor that explanation](../initiative/audits/kaggle-successful-submission-comparison-v1/):
+the 0.942 notebook checks sample/test study-ID equality. The current corrected
+epoch-8 notebook passed its public example but is **held from competition
+submission**, even if quota opens, until the broader hidden failure is
+investigated. Do not submit any old version-1 notebook. The epoch-10 checkpoint is also fully verified on private
 Hugging Face. See the
 [corrected epoch-8 package audit](../initiative/audits/kaggle-hidden-roster-recovery-v1/)
 for the separately staged full-roster package. Its private Kaggle Dataset was
@@ -101,7 +105,9 @@ notebook version 1 was pushed once. Its MRI-only three-study public-example
 execution completed with a version-bound exact-source receipt and valid
 13-column output; the
 corrected `test.csv` roster path was exercised. There is no corrected competition
-submission or hidden-run result, and the live allowance was still zero.
+submission or hidden-run result, and the live allowance was still zero. Its
+prior submit-when-quota-opens instruction is superseded by the
+successful-notebook comparison above.
 The exact code/audit milestone is privately mirrored and downloaded/hash
 verified at Hugging Face revision
 `a54f598118f1bb58ec3df6bbf4d3292e92f947e5`. The

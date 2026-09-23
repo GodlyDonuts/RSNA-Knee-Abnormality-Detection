@@ -17,14 +17,17 @@ says `test.csv`, `test_series.csv` and `test_series/` are replaced for scoring.
 It does not explicitly say that the three-row `sample_submission.csv` is
 replaced. The version-1 notebook used the sample file to choose test study
 IDs. If the sample file stays at three rows, it conflicts with the replaced
-series metadata and raises before writing a submission. **This is a leading
-hypothesis, not a confirmed hidden traceback.** The API error is generic, and
-the browser available to this session was not signed in for hidden logs.
+series metadata and raises before writing a submission. This was an initial
+hypothesis, not a confirmed hidden traceback. A subsequent comparison with
+the owner's earlier scored notebooks [strongly disfavors that hypothesis](../kaggle-successful-submission-comparison-v1/):
+the 0.942 notebook checks that `sample_submission.csv` and `test.csv` have the
+same study IDs. The API error is generic and Kaggle intentionally withholds
+specific hidden-run traceback details.
 
 The local correction makes `test.csv` authoritative and treats
 `sample_submission.csv` as an optional schema check. Focused tests cover a
 larger hidden roster with an unchanged three-row sample and an absent sample.
-No corrected Kaggle version or new competition submission is claimed by this
-audit. Keep the old epoch-8 version 1 out of the account-wide submission queue
-while this failure is diagnosed and a distinct corrected private notebook is
-verified. Hidden runtime and score remain unknown.
+The distinct corrected epoch-8 private notebook later passed its three-study
+public run but has not been submitted. Hold it while the broader failure is
+investigated; the sample-roster change alone is no longer a justified basis
+for spending a competition slot. Hidden runtime and score remain unknown.

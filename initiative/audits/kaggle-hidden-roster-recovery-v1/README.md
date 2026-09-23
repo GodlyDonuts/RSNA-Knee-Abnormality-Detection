@@ -1,5 +1,12 @@
 # Corrected hidden-test roster package, September 23
 
+**Later evidence changes the submission decision.** The owner's two earlier
+scored notebooks include an unconditional sample/test study-ID equality check
+in the 0.942 notebook. See the [successful submission comparison](../kaggle-successful-submission-comparison-v1/).
+The previous three-row-sample explanation is now strongly disfavored. Preserve
+this verified package and public receipt, but do not submit its current version
+solely on the strength of the roster correction.
+
 All five first-round Kaggle hidden reruns failed without output or scores; see
 [the failure audit](../kaggle-hidden-rerun-failure-v1/). The reason is not proven
 because Kaggle exposed only a generic error. The first-round notebooks used the
@@ -52,8 +59,9 @@ manifest, output hash, 13-column schema, three unique rows, and finite
 probabilities. The inference step took 65.0 seconds; this does not estimate
 hidden-test runtime reliably. **No corrected competition submission, hidden-run
 result, or Kaggle score exists yet.** The live account allowance remained five
-used and zero available. Submit one corrected code version only when a fresh
-live allowance permits; inspect its hidden outcome before using another slot.
+used and zero available. The current version is on hold pending a broader
+hidden-run failure investigation; a fresh quota alone does not authorize this
+version for submission.
 
 The reviewed recovery code and this audit at GitHub commit
 `758b9ea8c9d501cec016c61d778e0fed179ce7eb` were also published to private
