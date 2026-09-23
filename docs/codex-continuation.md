@@ -80,9 +80,11 @@ ID 12146648; all 43 payload files were downloaded and hash-verified. Its first
 notebook-push dispatch stopped before `SaveKernel` on the unnamed listing item.
 A reviewed exact-search guard with a known-notebook positive control then
 proved the epoch-10 slug absent, and one CPU-only recovery pushed the unchanged
-private offline epoch-10 notebook as version 1. The ledger records `pushed`;
-its Kaggle public-example execution is running. Neither epoch has a competition
-submission yet. The epoch-10 checkpoint is also fully verified on private
+private offline epoch-10 notebook as version 1. Its MRI-only public-example
+receipt passed; the exact version was submitted once as Kaggle entry **56485356**
+after a fresh allowance of one. The follow-up account check showed five
+submissions today and zero available slots. Epoch 8 has no competition
+submission yet. No public scores have returned. The epoch-10 checkpoint is also fully verified on private
 Hugging Face. See the
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/),
 [epoch-4 audit](../initiative/audits/kaggle-epoch4-v1/),

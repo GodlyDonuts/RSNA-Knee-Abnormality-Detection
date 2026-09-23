@@ -26,13 +26,18 @@ existing epoch-4 notebook and no epoch-10 notebook. The reviewed guard at Git
 returns a nameless placeholder. Its one CPU-only recovery accepted the unchanged
 MRI-only epoch-10 notebook as **private offline version 1** under
 `godlydonuts/rsna-knee-epoch10-1464f64063d2`. The canonical ledger records
-`pushed`; Kaggle reported its public-example execution `RUNNING` at the last
-read-only check. A valid version-bound receipt and competition submission remain
-pending. The checkpoint is also fully verified on Newton and private Hugging
-Face.
+`pushed`. Kaggle completed that exact version's MRI-only three-study public
+execution with a version-bound receipt. A fresh live account allowance of one
+permitted one `CreateCodeSubmission`; the canonical ledger and Kaggle listing
+agree on competition entry **56485356**. The follow-up live account check
+showed five submissions today and zero remaining slots. Kaggle has not returned
+a public score or hidden-test runtime. The three-row public output is only a
+package check. The checkpoint is also fully verified on Newton and private
+Hugging Face.
 
 `source-files.json` maps the exact small Newton files and publication
 intent/response/verification, one-shot recovery records and ledger states;
 `local-files.json` maps the scripts and dispatch results. The two reconciliation
-files record the bounded Kaggle checks.
+files record the bounded Kaggle checks; `public-example-receipt.json` and
+`submission-reconciliation.json` bind the finished version and entry.
 Large checkpoint and transport bytes remain on Newton.

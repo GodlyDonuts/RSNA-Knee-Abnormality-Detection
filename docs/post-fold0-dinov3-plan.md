@@ -22,9 +22,9 @@ must likewise be interpreted with their sparse opposing classes; they do not
 justify shrinking those tasks or inventing labels.
 
 The current Kaggle notebooks use MRI only, an exact private offline wheelhouse,
-and a version-bound public-example receipt. Epochs 1, 2, 4 and 6 were submitted
-once; their hidden rerun scores and runtime are pending. Epoch 10's exact
-version-1 notebook has been pushed and must pass its receipt before submission.
+and a version-bound public-example receipt. Epochs 1, 2, 4, 6 and 10 were
+submitted once; their hidden rerun scores and runtime are pending. Epoch 10's
+exact version-1 notebook passed its receipt and was submitted as entry 56485356.
 Epoch 8's original notebook slug remains uncertain; a distinct exact-source
 private version-1 notebook was pushed and is running. A three-study public
 execution checks the package but cannot establish hidden-test speed or AUC.

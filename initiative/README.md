@@ -81,8 +81,10 @@ notebook push is uncertain after a Kaggle server error and awaits read-only
 reconciliation. The epoch-10 private Dataset appeared later and passed full
 download/hash verification. An exact-search guard separated the epoch-8
 unnamed placeholder from the absent epoch-10 slug; one CPU-only recovery pushed
-the unchanged private offline epoch-10 notebook as version 1. It is running
-its public-example inference. A separate exact-source epoch-8 notebook identity
+the unchanged private offline epoch-10 notebook as version 1. Its MRI-only
+public-example receipt passed and that version was submitted once as Kaggle
+entry 56485356, with score pending. The account's five daily slots are now
+used. A separate exact-source epoch-8 notebook identity
 was pushed as private offline version 1 without copying Dataset bytes; its
 public-example inference is also running. See the
 [epoch-1 Kaggle audit](audits/kaggle-epoch1-baseline-v1/),

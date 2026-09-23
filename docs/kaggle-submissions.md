@@ -80,7 +80,10 @@ Dataset appeared as version 1, ID 12146648, and all 43 payload files passed
 full download/hash verification. Its first push dispatch stopped in preflight.
 The reviewed exact-search guard then proved the epoch-10 slug absent with a
 known-notebook positive control, and one recovery pushed the unchanged private
-offline notebook as version 1. Its public-example runtime receipt is pending.
+offline notebook as version 1. Its MRI-only public-example receipt passed and
+the exact version was submitted once as entry **56485356** after a fresh live
+allowance of one. The follow-up account check showed five submissions today
+and zero slots. Its score is pending; epoch 8 awaits a future live allowance.
 See the
 [epoch-1 audit](../initiative/audits/kaggle-epoch1-baseline-v1/),
 [epoch-2 audit](../initiative/audits/kaggle-epoch2-v1/) and
