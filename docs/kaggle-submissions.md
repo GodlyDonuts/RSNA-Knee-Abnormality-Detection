@@ -314,6 +314,15 @@ trained runtime hashes. The c580 production jobs stalled before a checkpoint;
 this projection is retained as their exact historical source proof. The loader
 range correction changes `rsna/competitive/data.py`, so any successful
 replacement run needs a newly pinned projection matching its committed code.
+The fixed source commit is `b74060b98f01bff1b924070ccba5ce44dd002f40`;
+its 45-file projection was built from that exact packaging/training commit and
+byte-verified on private Newton storage at
+`$HOME/rsna-knee/kaggle/projections/b74060b-b74060b`. The [fix audit](../initiative/audits/newton-interpolation-fix-v1/)
+pins manifest SHA-256
+`94d9d84d8a71addeae015fd0c833cb71c82268929c2616beb21f99837447923b`
+and TAR SHA-256
+`b9c3e6b4675bf3163e9169b07116d6735cdb85bcac736d963482f93ec6b217e5`.
+No submission artifact exists before a scheduled checkpoint completes.
 
 Use one finite CPU-only Slurm allocation after a real scheduled snapshot exists:
 2 CPUs initially, no GPU, accepted Python3.12 environment unpacked on node-local

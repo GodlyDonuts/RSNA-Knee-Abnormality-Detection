@@ -66,9 +66,12 @@ then failed its exact image-range assertion. One-CPU follow-up job **840800**
 completed and found 20 pixels at 1.000000238 in the rank-1 third microbatch;
 the other seven studies passed and no sampled pixels were nonfinite or negative.
 This points to FP32 interpolation roundoff against the model's strict `[0,1]`
-guard. The loader fix clips that roundoff, but causal GPU verification remains
-outstanding. Run only a bounded two-H100 diagnostic next, then resume full
-training only after that gate passes. Both failure audits are in
+guard. The loader fix clips that roundoff. Job **840938** then verified all
+eight studies on Newton with the committed fix: seven image hashes were
+unchanged, the affected one now has maximum one, and Slurm completed `0:0`.
+Single bounded two-H100 job **840991** was submitted to cross update 23 and
+stop with a checkpoint at update 26. Reconcile that job before any full resume.
+Both failure audits are in
 `initiative/audits/newton-production-stall-v1/` and
 `initiative/audits/newton-repeatable-stall-v1/`. The canonical Kaggle ledger
 remains untouched because no eligible snapshot exists.
@@ -91,7 +94,8 @@ its membership will be rechecked when extracted to node-local scratch. The
 unchanged production jobs 840562 and 840578 both stalled at update 22 and are
 terminal without a checkpoint. The CPU probes 840735 and 840800 isolated an
 FP32 interpolation range overshoot in the exact next batch. The fixed loader
-needs a bounded two-rank GPU check before full training can restart.
+passed CPU job 840938; bounded GPU job 840991 is the current gate before full
+training can restart. See the [fix audit](../initiative/audits/newton-interpolation-fix-v1/).
 
 The final `initiative/releases/report-supervision-v1/` export and real runtime
 acceptance passed. Start with [data-readiness-report.md](data-readiness-report.md),

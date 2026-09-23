@@ -336,5 +336,7 @@ job 840735 extracted the eight update-23 studies and 98 required cache files,
 then failed its strict CPU image-range assertion. Follow-up one-CPU job 840800
 completed and identified 20 pixels at 1.000000238 in a rank-1 microbatch,
 with no negative or nonfinite values. The loader now clips FP32 interpolation roundoff to
-`[0,1]`; validate this exact batch and two-rank CUDA progress in a bounded
-pilot before launching another full-data job.
+`[0,1]`; CPU job 840938 verified the exact eight studies with the committed
+fix. Bounded two-H100 job 840991 is queued to checkpoint after update 26.
+Check its actual result before a full resume. The [fix audit](../initiative/audits/newton-interpolation-fix-v1/)
+records exact source, projection and job receipts.

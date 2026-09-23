@@ -54,8 +54,10 @@ checkpoint. The [repeatability audit](audits/newton-repeatable-stall-v1/)
 records the evidence: CPU-only job 840735 extracted the exact update-23 cache
 members but failed an image-range assertion; CPU-only job 840800 isolated 20
 interpolated pixels at 1.000000238 in one rank-1 study. The loader now clips
-this FP32 roundoff. A bounded two-rank GPU check is still required before
-restarting full training. No full-data epoch or Kaggle score has been measured.
+this FP32 roundoff. CPU job 840938 verified the exact eight-study fix;
+bounded H100 job 840991 is queued to cross the previous stall and checkpoint
+at update 26. The [fix audit](audits/newton-interpolation-fix-v1/) preserves
+its pinned source and dispatch. No full-data epoch or Kaggle score has been measured.
 The accepted data release is unchanged. See the [deployment evidence](audits/dinov3-deployment-v1/).
 
 ## Contents

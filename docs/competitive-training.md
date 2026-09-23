@@ -20,8 +20,10 @@ The same pinned configuration was relaunched once as job 840578 on evc40. It
 reproduced the identical update-22 CUDA stall and also ended without a
 checkpoint. An exact eight-study CPU probe found 20 interpolated pixels at
 1.000000238 in one rank-1 microbatch, above the model's strict 0–1 guard.
-The loader now clips FP32 interpolation roundoff to that range. This candidate
-fix still needs a bounded CUDA verification before full-data training resumes.
+The loader now clips FP32 interpolation roundoff to that range. The exact
+eight-study CPU replay passed with only the affected image changed. Bounded
+two-H100 job 840991 is queued to cross the stall and checkpoint at update 26;
+it must pass before full-data training resumes. See the [fix audit](../initiative/audits/newton-interpolation-fix-v1/).
 First-epoch throughput,
 competitive accuracy and the hidden-test time budget remain unmeasured until
 actual completed epochs and Kaggle notebook runs finish.
