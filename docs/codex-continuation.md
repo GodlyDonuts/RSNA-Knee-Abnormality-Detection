@@ -6,6 +6,34 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, 18:20 UTC live state (supersedes the earlier Kaggle hold):**
+The owner authorized three available competition submissions before the UTC
+reset, used one, and asked for outcome-guided spacing. The separately packaged
+fold-2 epoch-8 DINOv3-L notebook
+`godlydonuts/rsna-knee-epoch8-f2-pixelfix-eb280864bd1c` private offline
+version 1 completed its three-study public Kaggle run. Its generated CSV had
+the official IDs/order, all 13 required columns, finite `[0,1]` probabilities
+and a matching receipt hash. The single Newton coordinator submitted the
+**code notebook** once as **56528793** at 18:19 UTC; the three-row public CSV
+was not uploaded. Its hidden rerun had no score or terminal result at the
+first read-only observation; two account slots remained. Do not infer hidden
+success from the public example, or repeat that submission. The first fold-2
+epoch-10 private Dataset was fully verified, but its notebook push is
+`push_uncertain` and that slug must not be retried. See the
+[deployment audit](../initiative/audits/kaggle-fold2-pixelfix-v1/README.md)
+and the single Newton account ledger.
+
+Patch-attention fold-0 job **845218** completed ten epochs, 2,810 updates and
+fixed-final held-out macro AUC **0.7451169387** on 1,156 studies, below its
+matched global-CLS baseline **0.7783102649**. Its predeclared primary lateral
+meniscus target improved from 0.6472 to 0.6816, while MCL and fracture fell;
+one fold is insufficient to select a target-specific architecture. All ten
+immutable patch-attention checkpoints were privately published and verified.
+The final result is on GitHub main `ac02b524` and privately mirrored with
+three-file full-byte verification at HF revision
+`542072d33a46e85a7c9bf85a4be4b138d9f22a93`. See the
+[fold result](../initiative/audits/dinov3-patch-attention-epochs-v1/final-result.json).
+
 **September 24, concrete deployment defect found:** The `fix4` fallback let
 pydicom's truncated-pixel `ValueError` escape and abort inference before trying
 another MRI series. A real synthetic-DICOM regression reproduced the crash;
