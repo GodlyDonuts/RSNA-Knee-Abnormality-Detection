@@ -201,6 +201,10 @@ def run():
         "--chunk-size",
         "32",
         "--resilient-series",
+        "--cache-side",
+        "256",
+        "--max-series",
+        "6",
     ]
     if (competition / "sample_submission.csv").is_file():
         command.extend(("--template", str(competition / "sample_submission.csv")))
