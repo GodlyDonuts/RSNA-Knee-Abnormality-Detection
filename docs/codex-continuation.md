@@ -6,6 +6,23 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24 update:** fold-1 retry 843935 and odd-epoch watcher 843936
+completed `0:0`. The fixed final-epoch fold-1 result is **0.7128332913**
+macro AUC across all twelve report-label targets on 1,125 accepted outer-fold
+studies. Ten epoch sidecars are present; their private Hugging Face publication
+and full download/hash checks remain outstanding. The distinct fold-2
+single-H100 diagnostic pilot 844019 completed `0:0` with 26 optimizer updates,
+allocated CUDA and header checks passed. Its 100-study metric is diagnostic
+and not a Kaggle score. The ten-epoch fold-2 production job **844305** and
+one-CPU odd-epoch watcher **844306** were dispatched once and were running at
+the first check. See the [completion/launch audit](../initiative/audits/dinov3-fold1-completion-fold2-production-v1/).
+The owner's newer direction authorizes up to five Kaggle submissions spaced
+by evidence. The five earlier DINOv3 hidden submissions remain failed; do not
+submit any of their old notebook versions. A distinct epoch-8 MRI-series
+recovery notebook is being prepared under a new immutable identity. Its
+public execution and hidden scoring must be checked before choosing the next
+submission. The canonical Newton account ledger remains authoritative.
+
 After the completed fold-0 run, the owner explicitly asked to keep training.
 The unchanged ten-epoch frozen DINOv3-L recipe was prepared for fold 1; only
 the fold value changes in its training configuration. One two-H100/four-CPU
