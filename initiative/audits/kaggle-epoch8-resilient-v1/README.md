@@ -69,3 +69,11 @@ The failure receipt and updated handoff were committed on GitHub main
 `a614143533a5119a5c89494ceb077f2a29513c77`. All six milestone files were
 downloaded and SHA-256 verified; see
 [the private mirror receipt](hf-hidden-outcome-verified.json).
+
+The owner later supplied [the visible notebook log](public-notebook-log.txt).
+It records the **public three-study** run: offline wheel installation and
+`pip check` succeeded, the epoch-8 model processed three studies, and both
+inference receipts report `status=passed`. `sitecustomize` emitted
+`ModuleNotFoundError: No module named 'wrapt'` before and after installation,
+but execution continued to the valid output, so that warning is not evidence
+of the hidden rerun's cause. The provided log has no hidden-test traceback.

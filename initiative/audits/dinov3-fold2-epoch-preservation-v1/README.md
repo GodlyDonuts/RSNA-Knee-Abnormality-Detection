@@ -45,3 +45,18 @@ The small Git audit milestone at
 the private Hugging Face dataset at revision
 `935942f6341305640397f3f136fe77be5a073d68`. All six files were downloaded
 and hash-verified; see [the milestone receipt](hf-epochs23-milestone-verified.json).
+
+The same production job and watcher later completed `0:0`. Completed epochs
+5–10 were found as distinct immutable snapshots. Each was published **once**
+to its dedicated private path and all four files of each were downloaded and
+SHA-256 verified. The verified revisions are epoch 5
+`8d91f0da1f86515cfe9eb897f8d5efa264300886`, epoch 6
+`012a2a616246f8be529a7fda026cecf8d4e166b0`, epoch 7
+`97babe49904c683c785d3d05e00abcb2f037751b`, epoch 8
+`fbdb38c8ab5c9edf087e0970381f2a13fb94e516`, epoch 9
+`d7144e74457bf06c02c785f07e8ed102dbada8c8`, and epoch 10
+`50f5af72e996684193e63f0e0528ce04300fa850`. See the six corresponding
+`epoch-005-verified.json` through `epoch-010-verified.json` receipts. All ten
+fold-2 epochs are now privately preserved and verified; no publication should
+be repeated. The fixed final-epoch fold-2 validation result is in the
+[completion audit](../dinov3-fold2-completion-v1/).

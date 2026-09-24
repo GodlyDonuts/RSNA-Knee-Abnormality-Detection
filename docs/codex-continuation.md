@@ -6,6 +6,42 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, 10:43 UTC:** Newton access returned. Fold-2 single-H100
+production job **844305** and CPU watcher **844306** completed `0:0`. Its
+fixed-final-epoch internal macro AUC is **0.7590158139992688** on 1,122
+outer-fold-2 accepted studies, with 2,860 optimizer updates; this is not a
+Kaggle score. Completed epochs 5–10 were each privately published exactly once
+to `GodlyDonuts/RSNA-Data`, and all four files per epoch passed full
+download/hash verification. All ten fold-2 epochs are now preserved; see the
+[epoch receipts](../initiative/audits/dinov3-fold2-epoch-preservation-v1/)
+and [completion result](../initiative/audits/dinov3-fold2-completion-v1/).
+The single Newton Kaggle ledger still binds failed hidden entry **56507997**
+to the exact fix4 notebook version; no CSV was uploaded and no new competition
+submission was made. The user-provided notebook log shows the public
+three-study inference completed despite nonfatal `sitecustomize`/`wrapt`
+warnings. It does not contain the hidden rerun's traceback, so the hidden
+failure cause remains unproven. A new submission needs a distinct, validated
+inference correction.
+
+The private offline T4 notebook
+`godlydonuts/rsna-dinov3-e8-train1300-p01` version 1 now runs a bounded
+1,300-study **training-image** inference diagnostic with the exact fix4
+deployment bundle. Its source, one-time push and remote version/configuration
+read-back are in the [probe audit](../initiative/audits/kaggle-hidden-scale-probe-v1/).
+It uses no labels and is not a competition submission. Inspect its terminal
+status and logs before inferring a cause or using another of the four remaining
+competition slots. The two earlier scored OSS notebooks use percentile ranks,
+which explains the tidy thirds in a three-study public CSV; raw DINOv3 sigmoid
+probabilities are continuous, and their formatting cannot cause an unhandled
+notebook exception.
+A fresh authenticated account query at 10:54 UTC found an additional
+submission **56519354** of the *same old fix4 notebook* at 10:49 UTC, before
+the private diagnostic push at 10:51. Its origin is unverified and it is
+absent from the canonical ledger. Kaggle reported **three** remaining slots;
+the new submission had no status or score at this check. See the
+[account receipt](../initiative/audits/kaggle-hidden-scale-probe-v1/account-reconciliation-20260924.json).
+Do not send more entries or assume the diagnostic consumed a slot.
+
 **September 24, 06:17 UTC:** Kaggle submission **56507997** finished its hidden
 rerun with an unhandled-notebook error, zero output bytes and **no score**.
 This is verified by the authenticated read-only

@@ -13,6 +13,16 @@ until a distinct candidate has a justified correction and verification; first
 reconcile the canonical Newton ledger when the cluster connection returns. This new
 owner direction supersedes the earlier hold on a *new* candidate; it does not
 authorize re-submitting the older failed or uncertain notebook versions.
+Newton access and the unchanged ledger were read back. A distinct private
+offline [1,300-study training-image probe](../initiative/audits/kaggle-hidden-scale-probe-v1/)
+is running with the exact fix4 bundle to investigate scale and MRI-series
+variability. This is a saved diagnostic notebook, **not** a competition
+submission. An independent repeat of the old fix4 version appeared at
+10:49 UTC as **56519354**, before the diagnostic push; the single ledger does
+not record it. A 10:54 UTC account query showed three slots remaining and no
+result yet for this repeat. See the [read-only receipt](../initiative/audits/kaggle-hidden-scale-probe-v1/account-reconciliation-20260924.json).
+Do not use another slot until this repeat and the diagnostic have actual
+outcomes and a justified new candidate passes validation.
 
 Submit the completed production checkpoints from epochs **2, 4, 6, 8 and 10**.
 These are a fixed monitoring cadence, not checkpoint selection using the public
