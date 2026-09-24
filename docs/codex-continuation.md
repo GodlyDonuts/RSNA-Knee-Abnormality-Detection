@@ -14,9 +14,14 @@ weights, accepted labels/masks/folds, cache, optimizer, effective batch and
 ten-epoch schedule are unchanged. The bounded fold-0 pilot and production
 configs are in [the patch-attention experiment](../initiative/experiments/competitive-v1/patch-attention-v1/).
 Local model, masking, gradient, exact-restoration and real random-DINOv3
-forward tests pass. This is a new architecture, not an already trained or
-scored checkpoint. Stage the exact committed source on Newton and run the
-one-H100/two-CPU pilot before dispatching a full fold.
+forward tests pass. Source Git `203f419` was staged as a clean sparse shared
+checkout on Newton, and bounded one-H100/two-CPU diagnostic Slurm pilot
+**845214** was submitted once. Its allocated CUDA driver, Python headers,
+and PyTorch context passed on evc30 at the first read-only check. Real
+optimizer completion and terminal result remain to be verified. The distinct
+ten-epoch full-fold launcher is staged but **not submitted**; dispatch only
+after the pilot and fresh quota/job review. See the
+[launch audit](../initiative/audits/dinov3-patch-attention-launch-v1/).
 
 **September 24, three-fold evaluation:** The completed fixed-final DINOv3-L
 folds were evaluated as one 3,403-study observed-training OOF cohort using
