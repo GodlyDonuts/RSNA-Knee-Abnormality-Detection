@@ -200,6 +200,7 @@ def run():
         "fp32",
         "--chunk-size",
         "32",
+        "--resilient-series",
     ]
     if (competition / "sample_submission.csv").is_file():
         command.extend(("--template", str(competition / "sample_submission.csv")))

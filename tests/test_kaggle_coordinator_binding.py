@@ -174,6 +174,40 @@ def test_corrected_push_preserves_unsubmitted_notebook_record():
         c.supersede_unsubmitted_kernel(workflow, None, db, operation, "a" * 64)
 
 
+def test_second_correction_keeps_both_prior_notebook_versions():
+    previous = {"operation_sha256": "a" * 64, "state": "pushed_unsubmitted"}
+    current = {
+        "state": "pushed",
+        "operation": {"kernel_slug": "user/fix2", "dataset_slug": "user/fix2-data"},
+        "operation_sha256": "b" * 64,
+        "kernel_version": 1,
+        "dataset": {"id": 8},
+        "superseded_operations": [previous],
+    }
+    saved = []
+    workflow = SimpleNamespace(
+        verify_account=lambda *_: None,
+        read_entry=lambda *_: dict(current),
+        check_kernel=lambda *_: {"status": "COMPLETE"},
+        save_entry=lambda _db, entry, event: saved.append(dict(entry)),
+    )
+    db = SimpleNamespace(execute=lambda *_: None)
+    operation = {
+        "checkpoint_sha256": "c" * 64,
+        "kernel_slug": "user/fix3",
+        "dataset_slug": "user/fix3-data",
+    }
+    c.supersede_unsubmitted_kernel(workflow, None, db, operation, "b" * 64)
+    assert saved[0]["superseded_operations"][0] == previous
+    assert saved[0]["superseded_operations"][1]["operation_sha256"] == "b" * 64
+    current["superseded_operations"] = [
+        previous,
+        {"operation_sha256": "b" * 64},
+    ]
+    with pytest.raises(ValueError, match="already preserved"):
+        c.supersede_unsubmitted_kernel(workflow, None, db, operation, "b" * 64)
+
+
 @pytest.fixture
 def clean_cli_projection(tmp_path):
     import os

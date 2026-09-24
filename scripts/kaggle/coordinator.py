@@ -150,16 +150,19 @@ def supersede_unsubmitted_kernel(workflow, remote, db, op, expected_old_sha):
     if state.get("status") != "COMPLETE":
         raise ValueError("Old notebook state differs from the verified public run")
     history = entry.get("superseded_operations", [])
-    if history:
-        raise ValueError("This narrowly scoped correction cannot migrate twice")
+    if not isinstance(history, list) or any(
+        item.get("operation_sha256") == expected_old_sha for item in history
+    ):
+        raise ValueError("Prior operation history is invalid or already preserved")
     entry["superseded_operations"] = [
+        *history,
         {
             "operation": old,
             "operation_sha256": expected_old_sha,
             "kernel_version": entry["kernel_version"],
             "dataset": entry["dataset"],
             "state": "pushed_unsubmitted",
-        }
+        },
     ]
     entry.pop("kernel_version")
     entry.pop("kernel_absence_proof", None)
