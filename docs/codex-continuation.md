@@ -6,6 +6,17 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, 14:42 UTC patch-attention training:** Production job
+**845218** is still running on one H100 and two CPUs. Five of ten full fold-0
+epochs have completed; all five immutable checkpoints were published exactly
+once to private `GodlyDonuts/RSNA-Data` and all four files per epoch were fully
+downloaded and hash verified. The latest private revision is
+`261a56f2ba825ad30519a94fb8be66308d5b6db2`. The next epoch is making
+finite optimizer progress with empty stderr. See the
+[epoch receipts](../initiative/audits/dinov3-patch-attention-epochs-v1/).
+Continue preserving each newly completed epoch once. The fixed-final holdout
+result is not available yet; Kaggle submissions remain on hold.
+
 **Next training challenger, September 24:** The owner asked to keep improving
 the model while Kaggle deployment is diagnosed. A controlled DINOv3-L
 `patch_attention` head now consumes normalized spatial patch tokens in addition
@@ -23,10 +34,10 @@ does not provide a reliable score. After a fresh job/quota check, distinct
 ten-epoch full-fold job **845218** was submitted once; it was running on
 evc30 at the first check. Its full 2,247-study run binding and first five
 finite optimizer updates have since been verified. Do not duplicate this job.
-The dedicated epoch publisher is staged but has uploaded **zero** patch-head
-checkpoints so far. The local one-CPU dispatch coordinator is prepared and
+The dedicated epoch publisher and local one-CPU dispatch coordinator preserved
+the first five completed patch-head checkpoints. Its earlier read-only call
 correctly refused incomplete epoch 1 before any upload intent. Preserve each
-immutable completed epoch to private HF
+newly completed immutable epoch to private HF
 with full download/hash verification, and report fixed-final internal results
 only after completion. No Kaggle submission was made for this experiment. See the
 [launch audit](../initiative/audits/dinov3-patch-attention-launch-v1/).
