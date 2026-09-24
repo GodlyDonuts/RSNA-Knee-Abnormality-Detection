@@ -6,12 +6,12 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
-**September 24, 14:42 UTC patch-attention training:** Production job
-**845218** is still running on one H100 and two CPUs. Five of ten full fold-0
-epochs have completed; all five immutable checkpoints were published exactly
+**September 24, 15:53 UTC patch-attention training:** Production job
+**845218** is still running on one H100 and two CPUs. Eight of ten full fold-0
+epochs have completed; all eight immutable checkpoints were published exactly
 once to private `GodlyDonuts/RSNA-Data` and all four files per epoch were fully
 downloaded and hash verified. The latest private revision is
-`261a56f2ba825ad30519a94fb8be66308d5b6db2`. The next epoch is making
+`d7cb2a29e2268d3ece624bfe717de52fb4fe1bc6`. The next epoch is making
 finite optimizer progress with empty stderr. See the
 [epoch receipts](../initiative/audits/dinov3-patch-attention-epochs-v1/).
 Continue preserving each newly completed epoch once. The fixed-final holdout
@@ -35,7 +35,7 @@ ten-epoch full-fold job **845218** was submitted once; it was running on
 evc30 at the first check. Its full 2,247-study run binding and first five
 finite optimizer updates have since been verified. Do not duplicate this job.
 The dedicated epoch publisher and local one-CPU dispatch coordinator preserved
-the first five completed patch-head checkpoints. Its earlier read-only call
+the first eight completed patch-head checkpoints. Its earlier read-only call
 correctly refused incomplete epoch 1 before any upload intent. Preserve each
 newly completed immutable epoch to private HF
 with full download/hash verification, and report fixed-final internal results

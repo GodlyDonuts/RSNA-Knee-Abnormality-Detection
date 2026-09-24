@@ -53,7 +53,7 @@ and exact [run binding](production-run.json). This confirms training has
 started, but supplies no full-fold result yet. The separate
 [publisher](../../../scripts/hf/publish_patch_attention_epoch.py) is staged
 on Newton with exact SHA-256 and a private path distinct from the global-CLS
-baseline. It has now preserved the first five completed epochs; see the
+baseline. It has now preserved the first eight completed epochs; see the
 [private verification receipts](../dinov3-patch-attention-epochs-v1/). A local coordinator must stream
 the Hugging Face credential through SSH into a one-CPU Slurm allocation only
 after verifying a completed immutable snapshot. The publisher checks 281
