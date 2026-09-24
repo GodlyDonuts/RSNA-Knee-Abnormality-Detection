@@ -425,6 +425,57 @@ def test_real_dicom_fallback_produces_bound_model_cache(tmp_path):
     assert item["images"].shape == (3, 1, 1, 16, 16)
 
 
+def test_truncated_pixel_payload_uses_healthy_same_plane_alternate(tmp_path):
+    study = "2.3"
+    frame = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": study,
+                "SeriesInstanceUID": f"{study}.{index}",
+                "Anatomical_Plane": plane,
+                "Fluid_Sensitive": 1 if index == 1 else 0,
+                "Fat_Suppression": 0,
+            }
+            for index, plane in enumerate(("Sagittal", "Sagittal", "Coronal", "Axial"), 1)
+        ]
+    )
+    root = tmp_path / "dicoms"
+    for row in frame.to_dict("records"):
+        sid = row["SeriesInstanceUID"]
+        folder = root / "test_series" / study / sid
+        folder.mkdir(parents=True)
+        attributes = {
+            "StudyInstanceUID": study,
+            "SeriesInstanceUID": sid,
+            "SOPInstanceUID": f"{sid}.1",
+        }
+        if sid == f"{study}.1":
+            attributes["PixelData"] = b"\0" * 512  # half the 16x32x16-bit payload
+        (folder / f"{sid}.1.dcm").write_bytes(modified_dicom(**attributes))
+    cache = tmp_path / "cache"
+    selected, receipt = chunked.prepare_usable_series(
+        frame,
+        [study],
+        dicom_root=root,
+        cache=cache,
+        cache_side=16,
+        max_series=3,
+        source_revision="test",
+    )
+    assert set(selected.SeriesInstanceUID) == {f"{study}.{i}" for i in (2, 3, 4)}
+    assert receipt["skipped_series"]["invalid_series"] == 1
+    dataset = CompetitiveStudyDataset(
+        pd.DataFrame({"study_uid": [study]}),
+        selected,
+        cache,
+        slices=1,
+        side=16,
+        max_series=3,
+        raw_split="test_series",
+    )
+    assert dataset[0]["series_mask"].tolist() == [True, True, True]
+
+
 def test_resilient_contract_checks_checkpoint_not_cli_assertions(tmp_path):
     path = tmp_path / "checkpoint.pt"
     torch.save({"binding": {"config": {"max_series": 6}, "cache_side": 256}}, path)

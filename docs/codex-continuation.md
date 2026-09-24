@@ -6,6 +6,17 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, concrete deployment defect found:** The `fix4` fallback let
+pydicom's truncated-pixel `ValueError` escape and abort inference before trying
+another MRI series. A real synthetic-DICOM regression reproduced the crash;
+the wrapper now recognizes this specific invalid-series error and a healthy
+same-plane alternate passes. The two known half-payload training DICOMs were
+outside the first-1,300-study Kaggle rehearsal. This is a verified code defect,
+**not** proof of the hidden rerun's root cause. No Kaggle submission was made;
+the corrected wrapper needs a distinct pinned offline notebook and further
+checks after the owner's current training priority. See the
+[recovery audit](../initiative/audits/kaggle-pixel-payload-recovery-v1/README.md).
+
 **September 24, Kaggle deployment diagnosis:** The exact private, offline
 epoch-8 `fix4` diagnostic completed inference on 1,300 official training-image
 studies inside Kaggle T4 in 41 chunks. Its 1,300-row private output was

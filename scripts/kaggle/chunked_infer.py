@@ -22,6 +22,7 @@ from rsna.schema import TARGETS
 # environment, and model failures still stop inference.
 DATA_ERROR_PREFIXES = (
     "DICOM UID mismatch:",
+    "The number of bytes of pixel data is less than expected",
     "Only single-frame grayscale slices are supported",
     "Unsupported photometric interpretation:",
     "Invalid DICOM rescale parameters",
