@@ -24,6 +24,7 @@ The most recent verified revision is
 `0b2f3d85471267cf86cfc7eb301a2a7d3ecabc4d`.
 
 All ten epoch publications are complete. Do not repeat an epoch with an
-existing local dispatch intent or Newton journal. Matched fold-1/fold-2
-patch-attention runs are on hold pending diagnosis of the fold-0 regression.
+existing local dispatch intent or Newton journal. A matched fold-1 run was
+subsequently dispatched once to test the predeclared lateral-meniscus gain on
+a different holdout; see the [fold-1 launch audit](../dinov3-patch-attention-fold1-launch-v1/).
 No patch-attention checkpoint has been submitted to Kaggle.

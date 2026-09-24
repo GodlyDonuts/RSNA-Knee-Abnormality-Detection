@@ -27,7 +27,14 @@ FOLD_SPECS = {
         "training_studies": 2247,
         "epoch_one_baseline": False,
         "world_size": 1,
-    }
+    },
+    1: {
+        "prefix": "experiments/dinov3-v1/training-epochs/patchattention-fold1-203f419-seed20260922",
+        "optimizer_updates_per_epoch": 285,
+        "training_studies": 2278,
+        "epoch_one_baseline": False,
+        "world_size": 1,
+    },
 }
 TRAINING_GIT = "203f419ffac058496cdc3fbce0976bcedbb63286"
 LICENSE_SHA = "25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e"

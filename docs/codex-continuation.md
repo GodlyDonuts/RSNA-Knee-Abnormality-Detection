@@ -6,6 +6,21 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, 18:43 UTC training continuation:** The completed ten-epoch
+patch-attention fold-0 run scored 0.7451169387 internal macro AUC, below its
+matched global-CLS fold-0 result 0.7783102649, but the predeclared lateral-
+meniscus target rose from 0.6472 to 0.6816. To test whether that target gain
+generalizes, one matched fold-1 ten-epoch job **847119** was submitted at
+18:41 UTC on one H100/two CPUs; it was `PENDING (Resources)` at first check.
+Do not submit a duplicate. Its exact intent, script, config and control paths
+are in the [fold-1 launch audit](../initiative/audits/dinov3-patch-attention-fold1-launch-v1/).
+The fold-1 publisher/one-CPU coordinator is pinned and refuses incomplete
+epochs; publish each new snapshot once after its completion and verify the
+private bytes. Local fold-0 epochs 1–9 `.pt` copies were removed only after
+their private HF copies had been fully verified, reclaiming 10.95 GB; final
+checkpoint, sidecars and all private copies remain. Kaggle submission 56528793
+still had no hidden status or score at 18:43 UTC; two live slots remained.
+
 **September 24, 18:20 UTC live state (supersedes the earlier Kaggle hold):**
 The owner authorized three available competition submissions before the UTC
 reset, used one, and asked for outcome-guided spacing. The separately packaged
