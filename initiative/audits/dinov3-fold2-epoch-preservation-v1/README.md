@@ -32,6 +32,14 @@ of each were downloaded and hash-verified at revisions
 [epoch 2](epoch-002-verified.json) and [epoch 3](epoch-003-verified.json).
 No fold-2 validation metric or Kaggle score is available yet.
 
+Epoch 4 also completed its scheduled 1,144-update boundary. Its immutable
+checkpoint SHA-256 is
+`9f85d010fba40ae9c4e8329049c9f931a906e1e74758196bf7f8364a493d2426`.
+The private [epoch-4 receipt](epoch-004-verified.json) records full download/hash
+verification of all four files at HF revision
+`fd2231a6aab2affc777bb707cdf896ce45d81ea0`. Production job 844305 was
+still running into epoch 5 at the 02:30 UTC check.
+
 The small Git audit milestone at
 `370b5f6e31901d6579f30c3aa5b326a5a9c9c127` was separately mirrored to
 the private Hugging Face dataset at revision

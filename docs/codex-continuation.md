@@ -26,6 +26,10 @@ and fully download/hash verified at distinct revisions; the training job was
 progressing through epoch 4. Submission 56507997 still had null hidden-run
 status and score at the 02:20 UTC read-only Kaggle check. Keep all four other
 slots unused until it has an actual outcome.
+By 02:30 UTC, fold-2 epoch 4 had also finished and been privately published
+with full download/hash verification; see the same fold-2 audit. Submission
+56507997 still had null hidden-run status and score at 02:29 UTC. No further
+Kaggle slot was used.
 
 **September 24 update:** fold-1 retry 843935 and odd-epoch watcher 843936
 completed `0:0`. The fixed final-epoch fold-1 result is **0.7128332913**
