@@ -20,6 +20,13 @@ private bytes. Local fold-0 epochs 1–9 `.pt` copies were removed only after
 their private HF copies had been fully verified, reclaiming 10.95 GB; final
 checkpoint, sidecars and all private copies remain. Kaggle submission 56528793
 still had no hidden status or score at 18:43 UTC; two live slots remained.
+By 19:21 UTC, fold-1 job 847119 was running on evc32 with its allocated H100
+and CUDA checks passed, epoch 1 complete at 285 updates, and finite progress
+into epoch 2. The epoch-1 checkpoint was privately published exactly once and
+all four objects fully downloaded/hash verified at Hugging Face revision
+`063b77e002cf9b942434e41db8a3bff4a3dbea60`. Its small receipts are in
+the [fold-1 launch audit](../initiative/audits/dinov3-patch-attention-fold1-launch-v1/epoch-001/).
+Submission 56528793 still had no hidden score at the 19:16 UTC read-only check.
 
 **September 24, 18:20 UTC live state (supersedes the earlier Kaggle hold):**
 The owner authorized three available competition submissions before the UTC
