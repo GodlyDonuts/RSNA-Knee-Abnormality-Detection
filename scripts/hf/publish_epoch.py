@@ -20,7 +20,20 @@ from pathlib import Path
 from huggingface_hub import CommitOperationAdd, HfApi
 
 REPO = "GodlyDonuts/RSNA-Data"
-PREFIX = "experiments/dinov3-v1/training-epochs/fold0-seed20260922"
+FOLD_SPECS = {
+    0: {
+        "prefix": "experiments/dinov3-v1/training-epochs/fold0-seed20260922",
+        "optimizer_updates_per_epoch": 281,
+        "training_studies": 2247,
+        "epoch_one_baseline": True,
+    },
+    1: {
+        "prefix": "experiments/dinov3-v1/training-epochs/fold1-seed20260922",
+        "optimizer_updates_per_epoch": 285,
+        "training_studies": 2278,
+        "epoch_one_baseline": False,
+    },
+}
 TRAINING_GIT = "b74060b98f01bff1b924070ccba5ce44dd002f40"
 LICENSE_SHA = "25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e"
 LICENSE_SOURCE = (
@@ -46,8 +59,9 @@ def atomic_new(path: Path, record: dict) -> None:
 
 
 def source_files(
-    snapshot: Path, run: Path, license_file: Path, code_root: Path
+    snapshot: Path, run: Path, license_file: Path, code_root: Path, fold: int = 0
 ) -> tuple[dict, dict]:
+    spec = FOLD_SPECS[fold]
     meta = json.loads(snapshot.read_text())
     epoch = meta.get("epoch")
     if type(epoch) is not int or epoch not in range(1, 11):
@@ -55,7 +69,7 @@ def source_files(
     status = meta.get("status")
     expected = (
         "explicit_epoch1_baseline_snapshot"
-        if epoch == 1
+        if epoch == 1 and spec["epoch_one_baseline"]
         else "scheduled_epoch_snapshot"
         if epoch % 2 == 0
         else "verified_unscheduled_epoch_archive"
@@ -70,8 +84,8 @@ def source_files(
         or not checkpoint.is_file()
         or checkpoint.stat().st_size != meta.get("checkpoint_bytes")
         or sha(checkpoint) != meta.get("checkpoint_sha256")
-        or meta.get("optimizer_steps") != epoch * 281
-        or meta.get("fold") != 0
+        or meta.get("optimizer_steps") != epoch * spec["optimizer_updates_per_epoch"]
+        or meta.get("fold") != fold
         or meta.get("seed") != 20260922
         or meta.get("diagnostic_only", False) is not False
     ):
@@ -91,11 +105,11 @@ def source_files(
         or binding["config"].get("submission_every_epochs") != 2
         or binding["config"].get("diagnostic_study_limit") is not None
         or binding["config"].get("seed") != 20260922
-        or binding["config"].get("fold") != 0
+        or binding["config"].get("fold") != fold
         or binding["world_size"] != 2
         or git_head.decode().strip() != TRAINING_GIT
         or binding.get("code_sha256") != current_code
-        or run_record.get("training_studies") != 2247
+        or run_record.get("training_studies") != spec["training_studies"]
         or binding["release"]["binding_sha256"] != meta.get("release_binding_sha256")
         or sha(license_file) != LICENSE_SHA
     ):
@@ -105,7 +119,7 @@ def source_files(
         "snapshot.json": snapshot,
         "DINOv3-LICENSE.md": license_file,
     }
-    if epoch == 1:
+    if epoch == 1 and spec["epoch_one_baseline"]:
         if Path(meta.get("baseline_proof_file", "")).name != meta.get("baseline_proof_file", ""):
             raise ValueError("Epoch-1 proof path is not a file name")
         proof = snapshot.parent / meta.get("baseline_proof_file", "")
@@ -128,7 +142,7 @@ def source_files(
         "repo_id": REPO,
         "training_git_commit": TRAINING_GIT,
         "epoch": epoch,
-        "fold": 0,
+        "fold": fold,
         "seed": 20260922,
         "optimizer_steps": meta["optimizer_steps"],
         "checkpoint_sha256": meta["checkpoint_sha256"],
@@ -192,9 +206,10 @@ def run(args: argparse.Namespace) -> dict:
     info = api.repo_info(REPO, repo_type="dataset")
     if info.private is not True:
         raise ValueError("Training checkpoints may only enter the private dataset")
-    manifest, files = source_files(args.snapshot, args.run, args.license_file, args.code_root)
+    fold = getattr(args, "fold", 0)
+    manifest, files = source_files(args.snapshot, args.run, args.license_file, args.code_root, fold)
     epoch = manifest["epoch"]
-    prefix = f"{PREFIX}/epoch-{epoch:03d}"
+    prefix = f"{FOLD_SPECS[fold]['prefix']}/epoch-{epoch:03d}"
     journal = args.journal / f"epoch-{epoch:03d}"
     journal.mkdir(mode=0o700, parents=True, exist_ok=True)
     manifest_path = journal / "manifest.json"
@@ -230,7 +245,7 @@ def run(args: argparse.Namespace) -> dict:
             REPO,
             repo_type="dataset",
             parent_commit=info.sha,
-            commit_message=f"Preserve verified DINOv3-L fold-0 epoch {epoch}",
+            commit_message=f"Preserve verified DINOv3-L fold-{fold} epoch {epoch}",
             operations=[
                 CommitOperationAdd(path_in_repo=f"{prefix}/{name}", path_or_fileobj=path)
                 for name, path in expected.items()
@@ -293,6 +308,7 @@ def run(args: argparse.Namespace) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("publish", "reconcile"))
+    parser.add_argument("--fold", type=int, choices=sorted(FOLD_SPECS), default=0)
     for name in ("snapshot", "run", "license-file", "journal", "code-root"):
         parser.add_argument("--" + name, type=Path, required=True)
     args = parser.parse_args()
