@@ -60,6 +60,16 @@ updates per epoch, 2,247 training studies, the source code and official license,
 and re-downloads every private object for size/SHA-256 verification. Reconcile
 an uncertain publication read-only before any retry.
 
+The local [single-epoch coordinator](../../../scripts/hf/dispatch_patch_attention_epoch.py)
+is prepared to read the ignored `.env`, check a completed snapshot and the
+private destination, write a durable dispatch intent, then stream the token
+through SSH to a one-CPU, zero-GPU Slurm upload. Its first read-only call for
+epoch 1 correctly refused an incomplete snapshot before writing an intent or
+making an upload; see [the acceptance receipt](publisher-dispatch-acceptance.json).
+Once an epoch completes, run it once with that epoch number and an active
+`--ssh-control` socket. On any uncertain result, inspect its local and Newton
+journals and the private HF path read-only; do not repeat the mutation.
+
 GitHub main `500ef60974e117db5d7aa84dae95479070f18045` is also mirrored
 to the private [Hugging Face milestone](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/da04bef5f6d886692e2829cb18123c9d586f0f18/experiments/dinov3-v1/milestones/patch-attention-launch-500ef60).
 All 16 source, configuration, audit, publisher and manifest files were fully

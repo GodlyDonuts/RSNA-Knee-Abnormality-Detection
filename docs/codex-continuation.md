@@ -24,7 +24,9 @@ ten-epoch full-fold job **845218** was submitted once; it was running on
 evc30 at the first check. Its full 2,247-study run binding and first five
 finite optimizer updates have since been verified. Do not duplicate this job.
 The dedicated epoch publisher is staged but has uploaded **zero** patch-head
-checkpoints so far. Preserve each immutable completed epoch to private HF
+checkpoints so far. The local one-CPU dispatch coordinator is prepared and
+correctly refused incomplete epoch 1 before any upload intent. Preserve each
+immutable completed epoch to private HF
 with full download/hash verification, and report fixed-final internal results
 only after completion. No Kaggle submission was made for this experiment. See the
 [launch audit](../initiative/audits/dinov3-patch-attention-launch-v1/).
