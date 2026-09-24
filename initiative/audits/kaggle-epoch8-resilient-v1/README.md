@@ -47,3 +47,8 @@ The sole mutable account ledger remains
 epoch-8 notebook identities and their uncertainty/history are preserved there;
 do not repeat any Dataset, notebook, or submission mutation. Large bundles and
 credentials remain private on authorized storage.
+
+The small Git milestone at `a6c18476436915151972c8b24692c60d867b68d2`
+was also mirrored to the private Hugging Face dataset at revision
+`f1164d6f6fc13657f5ae87d3d7b4b7033e7a8e03`; all eleven files were
+downloaded and hash-verified. See [the private mirror receipt](hf-milestone-verified.json).
