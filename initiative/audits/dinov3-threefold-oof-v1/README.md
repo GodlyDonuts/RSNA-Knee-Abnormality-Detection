@@ -34,3 +34,8 @@ new architecture. The next controlled test in the
 patch-token/slice attention using the same accepted data and folds, with
 lateral-meniscus ranking as the main hypothesis. Hidden Kaggle deployment
 must also be repaired before a leaderboard comparison is possible.
+
+This exact evaluation was committed to GitHub main at `734dc4f` and mirrored
+to the private `GodlyDonuts/RSNA-Data` dataset at revision
+`d143f247f08a04087f3fe5d9a7f6367039b6eb26`. All nine milestone files
+were downloaded and SHA-256 verified; see [the receipt](hf-milestone-verified.json).
