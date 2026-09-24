@@ -45,8 +45,27 @@ The pilot checkpoint is not reused for production. Every completed production
 epoch has an immutable scheduled snapshot and must be privately published and
 download/hash verified once. No Kaggle submission was created.
 
+The production job then bound the full 2,247-study fold-0 training set,
+one-GPU world size, `patch_attention`, and a ten-epoch/every-epoch snapshot
+schedule. Its first five real optimizer updates had finite losses and
+gradients with zero stderr bytes; see the [progress receipt](production-first-progress.json)
+and exact [run binding](production-run.json). This confirms training has
+started, but supplies no full-fold result yet. The separate
+[publisher](../../../scripts/hf/publish_patch_attention_epoch.py) is staged
+on Newton with exact SHA-256 and a private path distinct from the global-CLS
+baseline. It has not yet uploaded any epoch. A local coordinator must stream
+the Hugging Face credential through SSH into a one-CPU Slurm allocation only
+after verifying a completed immutable snapshot. The publisher checks 281
+updates per epoch, 2,247 training studies, the source code and official license,
+and re-downloads every private object for size/SHA-256 verification. Reconcile
+an uncertain publication read-only before any retry.
+
 GitHub main `500ef60974e117db5d7aa84dae95479070f18045` is also mirrored
 to the private [Hugging Face milestone](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/da04bef5f6d886692e2829cb18123c9d586f0f18/experiments/dinov3-v1/milestones/patch-attention-launch-500ef60).
 All 16 source, configuration, audit, publisher and manifest files were fully
 downloaded and matched by byte size and SHA-256. The pilot result and
-production dispatch are newer than that mirror and recorded here on GitHub.
+production dispatch were separately mirrored to the private
+[pilot milestone](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/e180a9d16caf4dcf2f09d0cdd8f1dbfb182ec1dd/experiments/dinov3-v1/milestones/patch-attention-pilot-2236bd7)
+at revision `e180a9d16caf4dcf2f09d0cdd8f1dbfb182ec1dd`. All 12 files
+passed full download/size/SHA-256 checks. The first production updates are
+newer than that mirror and recorded here on GitHub.

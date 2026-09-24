@@ -21,8 +21,10 @@ headers, PyTorch context, 26 finite optimizer updates, a SHA-verified terminal
 checkpoint, and 100-study held-out predictions. Its tiny diagnostic sample
 does not provide a reliable score. After a fresh job/quota check, distinct
 ten-epoch full-fold job **845218** was submitted once; it was running on
-evc30 at the first check. Do not duplicate this job. Inspect its real
-optimizer progress, preserve each immutable completed epoch to private HF
+evc30 at the first check. Its full 2,247-study run binding and first five
+finite optimizer updates have since been verified. Do not duplicate this job.
+The dedicated epoch publisher is staged but has uploaded **zero** patch-head
+checkpoints so far. Preserve each immutable completed epoch to private HF
 with full download/hash verification, and report fixed-final internal results
 only after completion. No Kaggle submission was made for this experiment. See the
 [launch audit](../initiative/audits/dinov3-patch-attention-launch-v1/).
