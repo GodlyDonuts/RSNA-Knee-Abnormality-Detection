@@ -25,14 +25,28 @@ pilot and a Lustre quota of 1,006,788,836/1,048,576,000 kB and
 The durable [dispatch intent](dispatch-intent.json) was saved locally and on
 Newton before one `sbatch --parsable` call. Slurm accepted diagnostic pilot
 **845214**, requesting one H100, two CPUs, 32 GiB memory, and four hours on
-the normal partition. At the first read-only check it was running on evc30;
-the scheduler-visible one-GPU NVML/CUDA driver probe, Python header identity,
-and actual one-GPU PyTorch CUDA-context check passed. Cache extraction and
-real optimizer checks were still in progress. This 100-study, two-epoch pilot
-is not a competition model or Kaggle submission.
+the normal partition. It completed `0:0` on evc30 after 9:40. The
+scheduler-visible one-GPU NVML/CUDA driver probe, Python header identity,
+actual one-GPU PyTorch CUDA context, and 26 finite optimizer updates passed.
+The result, run binding, predictions SHA-256, and checkpoint SHA-256 were
+verified; see [the outcome](pilot-outcome.json). The diagnostic restricted
+both training and outer evaluation to 100 studies. One target had no AUC in
+this tiny sample, so its macro AUC is null and the available-target AUC is
+not a meaningful architecture comparison or Kaggle score.
 
-The distinct ten-epoch [production script](production.sbatch) is only staged.
-It must not be submitted until this pilot has finite optimizer updates,
-terminal checkpoint/result, exact source and binding checks, and a fresh
-job/quota review. Every completed production epoch has an immutable scheduled
-snapshot and must be privately published and download/hash verified once.
+After the pilot, the source remained clean, no account jobs were running,
+the distinct production output was absent, and Lustre used
+1,007,977,604/1,048,576,000 kB and 989,745/1,000,000 files. The separate
+[production intent](production-dispatch-intent.json) preceded one submission
+of the exact staged [ten-epoch script](production.sbatch). Slurm accepted full
+fold-0 job **845218** on one H100 and two CPUs; it was running on evc30 at
+the first check, with the allocated CUDA and PyTorch context gates passed.
+The pilot checkpoint is not reused for production. Every completed production
+epoch has an immutable scheduled snapshot and must be privately published and
+download/hash verified once. No Kaggle submission was created.
+
+GitHub main `500ef60974e117db5d7aa84dae95479070f18045` is also mirrored
+to the private [Hugging Face milestone](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/da04bef5f6d886692e2829cb18123c9d586f0f18/experiments/dinov3-v1/milestones/patch-attention-launch-500ef60).
+All 16 source, configuration, audit, publisher and manifest files were fully
+downloaded and matched by byte size and SHA-256. The pilot result and
+production dispatch are newer than that mirror and recorded here on GitHub.

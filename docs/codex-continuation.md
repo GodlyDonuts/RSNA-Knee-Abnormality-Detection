@@ -16,11 +16,15 @@ configs are in [the patch-attention experiment](../initiative/experiments/compet
 Local model, masking, gradient, exact-restoration and real random-DINOv3
 forward tests pass. Source Git `203f419` was staged as a clean sparse shared
 checkout on Newton, and bounded one-H100/two-CPU diagnostic Slurm pilot
-**845214** was submitted once. Its allocated CUDA driver, Python headers,
-and PyTorch context passed on evc30 at the first read-only check. Real
-optimizer completion and terminal result remain to be verified. The distinct
-ten-epoch full-fold launcher is staged but **not submitted**; dispatch only
-after the pilot and fresh quota/job review. See the
+**845214** completed `0:0` on evc30, with allocated CUDA driver, Python
+headers, PyTorch context, 26 finite optimizer updates, a SHA-verified terminal
+checkpoint, and 100-study held-out predictions. Its tiny diagnostic sample
+does not provide a reliable score. After a fresh job/quota check, distinct
+ten-epoch full-fold job **845218** was submitted once; it was running on
+evc30 at the first check. Do not duplicate this job. Inspect its real
+optimizer progress, preserve each immutable completed epoch to private HF
+with full download/hash verification, and report fixed-final internal results
+only after completion. No Kaggle submission was made for this experiment. See the
 [launch audit](../initiative/audits/dinov3-patch-attention-launch-v1/).
 
 **September 24, three-fold evaluation:** The completed fixed-final DINOv3-L
