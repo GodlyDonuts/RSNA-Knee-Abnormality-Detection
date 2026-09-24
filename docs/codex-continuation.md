@@ -18,6 +18,9 @@ once. The hidden rerun has no actual result or score yet, so the remaining
 four live account slots are held. See the [submission audit](../initiative/audits/kaggle-epoch8-resilient-v1/)
 and the single Newton account ledger. The five older DINOv3 hidden submissions
 remain failed without scores. Do not submit their old notebook versions.
+Fold-2 epoch 1 later completed 286 real updates and its immutable checkpoint
+was published privately with full download/hash verification. See the
+[fold-2 epoch receipt](../initiative/audits/dinov3-fold2-epoch-preservation-v1/).
 
 **September 24 update:** fold-1 retry 843935 and odd-epoch watcher 843936
 completed `0:0`. The fixed final-epoch fold-1 result is **0.7128332913**

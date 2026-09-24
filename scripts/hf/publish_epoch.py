@@ -26,12 +26,21 @@ FOLD_SPECS = {
         "optimizer_updates_per_epoch": 281,
         "training_studies": 2247,
         "epoch_one_baseline": True,
+        "world_size": 2,
     },
     1: {
         "prefix": "experiments/dinov3-v1/training-epochs/fold1-seed20260922",
         "optimizer_updates_per_epoch": 285,
         "training_studies": 2278,
         "epoch_one_baseline": False,
+        "world_size": 2,
+    },
+    2: {
+        "prefix": "experiments/dinov3-v1/training-epochs/fold2-seed20260922",
+        "optimizer_updates_per_epoch": 286,
+        "training_studies": 2281,
+        "epoch_one_baseline": False,
+        "world_size": 1,
     },
 }
 TRAINING_GIT = "b74060b98f01bff1b924070ccba5ce44dd002f40"
@@ -106,7 +115,7 @@ def source_files(
         or binding["config"].get("diagnostic_study_limit") is not None
         or binding["config"].get("seed") != 20260922
         or binding["config"].get("fold") != fold
-        or binding["world_size"] != 2
+        or binding["world_size"] != spec["world_size"]
         or git_head.decode().strip() != TRAINING_GIT
         or binding.get("code_sha256") != current_code
         or run_record.get("training_studies") != spec["training_studies"]
