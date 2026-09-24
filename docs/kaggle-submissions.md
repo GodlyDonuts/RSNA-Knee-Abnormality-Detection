@@ -1,5 +1,16 @@
 # Scheduled Kaggle code submissions
 
+**Current owner-authorized first hidden execution test, September 24:** A new
+private, offline, exact-source epoch-8 resilient-series notebook version 1 was
+submitted once as code submission **56507997** after its three-study public
+MRI-only execution, 13-column output and full private Dataset byte verification
+passed. The [audit](../initiative/audits/kaggle-epoch8-resilient-v1/) binds the
+Dataset, saved notebook, checkpoint and canonical ledger. The hidden rerun is
+unscored at the first read-only check; use no other slot until its actual
+outcome is known. Four slots remained in that live account check. This new
+owner direction supersedes the earlier hold on a *new* candidate; it does not
+authorize re-submitting the older failed or uncertain notebook versions.
+
 Submit the completed production checkpoints from epochs **2, 4, 6, 8 and 10**.
 These are a fixed monitoring cadence, not checkpoint selection using the public
 leaderboard, gold labels, or the reserved 441-study confirmation set. There are

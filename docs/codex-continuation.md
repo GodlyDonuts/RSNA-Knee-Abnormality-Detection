@@ -6,6 +6,19 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, 01:16 UTC:** All ten completed fold-1 epochs are now privately
+published to `GodlyDonuts/RSNA-Data`, each with full download/hash verification;
+see the [epoch preservation receipts](../initiative/audits/dinov3-fold1-private-epochs-v1/).
+The distinct fold-2 one-H100/two-CPU ten-epoch job 844305 is running and has
+made more than 250 real optimizer updates; dependent CPU watcher 844306 is
+running. Do not duplicate either job. The first corrected, resilient-series
+fold-0 epoch-8 private offline notebook passed exact-source and three-study
+MRI-only public checks and was submitted as Kaggle code entry **56507997**
+once. The hidden rerun has no actual result or score yet, so the remaining
+four live account slots are held. See the [submission audit](../initiative/audits/kaggle-epoch8-resilient-v1/)
+and the single Newton account ledger. The five older DINOv3 hidden submissions
+remain failed without scores. Do not submit their old notebook versions.
+
 **September 24 update:** fold-1 retry 843935 and odd-epoch watcher 843936
 completed `0:0`. The fixed final-epoch fold-1 result is **0.7128332913**
 macro AUC across all twelve report-label targets on 1,125 accepted outer-fold
