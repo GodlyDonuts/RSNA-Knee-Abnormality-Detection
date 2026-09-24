@@ -21,6 +21,11 @@ remain failed without scores. Do not submit their old notebook versions.
 Fold-2 epoch 1 later completed 286 real updates and its immutable checkpoint
 was published privately with full download/hash verification. See the
 [fold-2 epoch receipt](../initiative/audits/dinov3-fold2-epoch-preservation-v1/).
+By 02:22 UTC, completed fold-2 epochs 2 and 3 were also privately published
+and fully download/hash verified at distinct revisions; the training job was
+progressing through epoch 4. Submission 56507997 still had null hidden-run
+status and score at the 02:20 UTC read-only Kaggle check. Keep all four other
+slots unused until it has an actual outcome.
 
 **September 24 update:** fold-1 retry 843935 and odd-epoch watcher 843936
 completed `0:0`. The fixed final-epoch fold-1 result is **0.7128332913**

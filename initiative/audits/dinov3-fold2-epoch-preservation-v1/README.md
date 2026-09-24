@@ -18,3 +18,16 @@ private `GodlyDonuts/RSNA-Data` dataset. All four published files were
 downloaded from exact revision `4a9fd0d1edcd2d61bda2d2655001ff288d79e841`
 and hash-verified. See [the receipt](epoch-001-verified.json). Later completed
 epochs must use the same per-epoch verification before being called preserved.
+
+At the September 24, 02:22 UTC check, the same production job had completed
+epochs 2 and 3 and was making real optimizer updates in epoch 4. Epoch 2 has
+572 total updates and scheduled checkpoint SHA-256
+`092c3eed133f73d7a167c6eb7b55068c2684f82a3714f337839e81874c533605`;
+epoch 3 has 858 updates and watcher-preserved checkpoint SHA-256
+`420c4f292d00267db5c86ef228f6a3af6341aa98a7a0d35f2d765be992b794da`.
+Both were published once to their distinct private epoch paths. All four files
+of each were downloaded and hash-verified at revisions
+`1521fc8e5ebab9bdbda4b0f6fde784cabf14a332` and
+`92fed04b0983904543df5e2c203c4425c0912893`, respectively. See
+[epoch 2](epoch-002-verified.json) and [epoch 3](epoch-003-verified.json).
+No fold-2 validation metric or Kaggle score is available yet.
