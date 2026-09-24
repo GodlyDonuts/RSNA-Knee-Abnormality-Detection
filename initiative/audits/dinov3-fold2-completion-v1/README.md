@@ -17,3 +17,9 @@ completed job and its SHA-256 matches `predictions_sha256` in the result.
 the reserved confirmation and gold sets. This is an internal holdout result,
 **not a Kaggle score**. The fold-0 and fold-1 scores use different holdouts;
 they should not be compared as checkpoint improvements on a common test set.
+
+The completion result, checkpoint preservation receipts, and private
+Kaggle diagnostic were committed to GitHub main at `a0011e7`. All 24 small
+files in that milestone were mirrored to private `GodlyDonuts/RSNA-Data`
+revision `cc472ccbeecd0f40494d14cb2219ea10fc432f41` and fully
+download/hash verified; see [the mirror receipt](hf-milestone-verified.json).

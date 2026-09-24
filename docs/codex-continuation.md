@@ -15,6 +15,9 @@ to `GodlyDonuts/RSNA-Data`, and all four files per epoch passed full
 download/hash verification. All ten fold-2 epochs are now preserved; see the
 [epoch receipts](../initiative/audits/dinov3-fold2-epoch-preservation-v1/)
 and [completion result](../initiative/audits/dinov3-fold2-completion-v1/).
+The small completion and diagnostic milestone on GitHub main `a0011e7` was
+also fully downloaded/hash verified from private Hugging Face revision
+`cc472ccbeecd0f40494d14cb2219ea10fc432f41`.
 The single Newton Kaggle ledger still binds failed hidden entry **56507997**
 to the exact fix4 notebook version; no CSV was uploaded and no new competition
 submission was made. The user-provided notebook log shows the public
