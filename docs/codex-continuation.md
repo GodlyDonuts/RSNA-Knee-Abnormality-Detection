@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, Kaggle deployment diagnosis:** The exact private, offline
+epoch-8 `fix4` diagnostic completed inference on 1,300 official training-image
+studies inside Kaggle T4 in 41 chunks. Its 1,300-row private output was
+downloaded and SHA-256 verified. This did not use hidden test images, create a
+competition submission, or produce a Kaggle score; see the
+[diagnostic outcome](../initiative/audits/kaggle-hidden-scale-probe-v1/diagnostic-outcome.json).
+The unledgered repeat of the old `fix4` code entry **56519354** also finished
+with zero output and the same generic hidden error. The hidden traceback and
+root cause remain unknown. A new code submission needs a distinct, tested
+hidden-data-resilient deployment path; the owner's current priority remains
+training, so Kaggle submissions are on hold.
+
 **September 24, 16:38 UTC patch-attention training:** Production job
 **845218** is still running on one H100 and two CPUs. All ten full fold-0
 training epochs have completed; all ten immutable checkpoints were published exactly

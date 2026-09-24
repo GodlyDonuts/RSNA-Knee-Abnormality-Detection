@@ -22,13 +22,23 @@ The frozen [plan](plan.json), [source](notebook-source.txt), one-call
 [remote verification](remote-kernel-verified.json) bind private offline notebook
 `godlydonuts/rsna-dinov3-e8-train1300-p01` version 1 to source SHA-256
 `9dd8e8963d0cc227adce0c5267b14a7733f669618171030f086196a928a8e5aa`.
-The remote settings and source bytes were read back and verified; the notebook
-was `RUNNING` immediately after the push. Do not repeat `SaveKernel` or create
-another competition entry from its public-example CSV. Inspect the exact
-version's terminal session status, logs, metrics and output receipt. A passed
-1,300-study training-image diagnostic would narrow hidden-scale runtime and
-ordinary DICOM-path hypotheses; it would not prove the hidden rerun will pass
-or establish a Kaggle score.
+The remote settings and source bytes were read back and verified. An authenticated
+read-only check on September 24 found the exact version `COMPLETE`. Its
+1,300-study training-image inference passed in 41 chunks over 14,866.6 seconds,
+selected 6,728 MRI series, and reported no skipped series. The private
+`pseudo_submission.csv` was re-downloaded: 1,300 rows, 268,385 bytes and SHA-256
+`4f80ef4f922c831aa6c7a325eda013603f79f86a265bd7dcf2be4d0851ed2e6a`,
+matching the versioned log. The [read-only outcome](diagnostic-outcome.json)
+also preserves the terminal receipt and confirms the separate, unledgered
+repeat of the old `fix4` code submission **56519354** failed with the same
+generic hidden error and zero output. Do not repeat the diagnostic push or use
+its public-example CSV as a competition submission.
+
+This full-size rehearsal narrows ordinary scale, Kaggle T4 environment and
+known training-image DICOM-path failure hypotheses. It is **not** a hidden-test
+run and supplies no hidden traceback or score. A hidden-specific MRI metadata,
+decoder or missing-series case remains possible; so does another hidden-only
+execution difference. The root cause is still unproven.
 
 The owner's earlier 0.936 and 0.942 OSS notebooks apply percentile-rank
 transforms. With just three public studies, these can produce visible fractions
