@@ -31,3 +31,9 @@ of each were downloaded and hash-verified at revisions
 `92fed04b0983904543df5e2c203c4425c0912893`, respectively. See
 [epoch 2](epoch-002-verified.json) and [epoch 3](epoch-003-verified.json).
 No fold-2 validation metric or Kaggle score is available yet.
+
+The small Git audit milestone at
+`370b5f6e31901d6579f30c3aa5b326a5a9c9c127` was separately mirrored to
+the private Hugging Face dataset at revision
+`935942f6341305640397f3f136fe77be5a073d68`. All six files were downloaded
+and hash-verified; see [the milestone receipt](hf-epochs23-milestone-verified.json).
