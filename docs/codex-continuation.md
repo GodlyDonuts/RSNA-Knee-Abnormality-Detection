@@ -6,6 +6,17 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, 06:17 UTC:** Kaggle submission **56507997** finished its hidden
+rerun with an unhandled-notebook error, zero output bytes and **no score**.
+This is verified by the authenticated read-only
+[outcome receipt](../initiative/audits/kaggle-epoch8-resilient-v1/hidden-rerun-outcome.json).
+The cause is unknown; the public three-study pass is not hidden-test validation.
+Four slots remained unused. The Newton hostname was not resolvable and Stokes
+SSH timed out from the current network, so the canonical Newton ledger and
+fold-2 jobs could not be freshly inspected. Reconnect to the cluster, reconcile
+the ledger and actual fold-2 snapshots read-only, publish each completed epoch
+once, then diagnose hidden-scale failure before any new Kaggle submission.
+
 **September 24, 01:16 UTC:** All ten completed fold-1 epochs are now privately
 published to `GodlyDonuts/RSNA-Data`, each with full download/hash verification;
 see the [epoch preservation receipts](../initiative/audits/dinov3-fold1-private-epochs-v1/).

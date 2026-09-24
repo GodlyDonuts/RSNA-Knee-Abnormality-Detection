@@ -5,9 +5,12 @@ private, offline, exact-source epoch-8 resilient-series notebook version 1 was
 submitted once as code submission **56507997** after its three-study public
 MRI-only execution, 13-column output and full private Dataset byte verification
 passed. The [audit](../initiative/audits/kaggle-epoch8-resilient-v1/) binds the
-Dataset, saved notebook, checkpoint and canonical ledger. The hidden rerun is
-unscored at the first read-only check; use no other slot until its actual
-outcome is known. Four slots remained in that live account check. This new
+Dataset, saved notebook, checkpoint and canonical ledger. Its hidden rerun later
+finished with an unhandled-notebook error, zero output bytes and **no score**;
+the [read-only result](../initiative/audits/kaggle-epoch8-resilient-v1/hidden-rerun-outcome.json)
+does not expose the underlying traceback. Four slots remained unused. Hold them
+until a distinct candidate has a justified correction and verification; first
+reconcile the canonical Newton ledger when the cluster connection returns. This new
 owner direction supersedes the earlier hold on a *new* candidate; it does not
 authorize re-submitting the older failed or uncertain notebook versions.
 

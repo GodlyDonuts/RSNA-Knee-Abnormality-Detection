@@ -52,3 +52,15 @@ The small Git milestone at `a6c18476436915151972c8b24692c60d867b68d2`
 was also mirrored to the private Hugging Face dataset at revision
 `f1164d6f6fc13657f5ae87d3d7b4b7033e7a8e03`; all eleven files were
 downloaded and hash-verified. See [the private mirror receipt](hf-milestone-verified.json).
+
+**Hidden rerun outcome, September 24, 06:17 UTC:** Authenticated Kaggle
+`ListSubmissions` now reports entry **56507997** `COMPLETE` with zero output
+bytes, no public score, and an unhandled-notebook-error description. The exact
+read-only account/submission fields are in
+[hidden-rerun-outcome.json](hidden-rerun-outcome.json). The public three-study
+pass did not transfer to the hidden rerun; the cause is still unproven. Four
+live submission slots remained, and no second submission was made. Newton was
+unreachable from the local network at this check, so its single canonical
+ledger has **not** yet been reconciled with this terminal result. Do not reuse
+the `fix4` notebook or spend another slot until the failure is diagnosed and a
+new immutable candidate is verified.
