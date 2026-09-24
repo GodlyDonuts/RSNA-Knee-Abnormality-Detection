@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**Next training challenger, September 24:** The owner asked to keep improving
+the model while Kaggle deployment is diagnosed. A controlled DINOv3-L
+`patch_attention` head now consumes normalized spatial patch tokens in addition
+to CLS, then applies the existing masked slice/series aggregation. Frozen
+weights, accepted labels/masks/folds, cache, optimizer, effective batch and
+ten-epoch schedule are unchanged. The bounded fold-0 pilot and production
+configs are in [the patch-attention experiment](../initiative/experiments/competitive-v1/patch-attention-v1/).
+Local model, masking, gradient, exact-restoration and real random-DINOv3
+forward tests pass. This is a new architecture, not an already trained or
+scored checkpoint. Stage the exact committed source on Newton and run the
+one-H100/two-CPU pilot before dispatching a full fold.
+
 **September 24, three-fold evaluation:** The completed fixed-final DINOv3-L
 folds were evaluated as one 3,403-study observed-training OOF cohort using
 the frozen component-aware folds and predeclared within-fold pair weighting.

@@ -27,6 +27,11 @@ class RecordingEncoder(nn.Module):
         self.seen.append(x.detach().clone())
         return self.dropout(self.linear(x.mean(dim=(2, 3))))
 
+    def forward_features(self, x):
+        global_embedding = self.forward(x)
+        local = nn.functional.adaptive_avg_pool2d(x, (2, 2)).permute(0, 2, 3, 1)
+        return global_embedding, self.dropout(self.linear(local))
+
 
 def inputs():
     torch.manual_seed(12)
@@ -38,7 +43,7 @@ def inputs():
     return images, torch.rand(2, 2, 5), sm, km, torch.zeros(2, 2, 3, 2)
 
 
-@pytest.mark.parametrize("pooling", ["attention", "max"])
+@pytest.mark.parametrize("pooling", ["attention", "max", "patch_attention"])
 def test_padding_never_encoded_and_does_not_change_predictions(pooling):
     encoder = RecordingEncoder()
     model = CompetitiveStudyNet(
@@ -60,7 +65,7 @@ def test_padding_never_encoded_and_does_not_change_predictions(pooling):
     assert torch.allclose(model(images, features, sm, km, positions), baseline, atol=1e-6)
 
 
-@pytest.mark.parametrize("pooling", ["attention", "max"])
+@pytest.mark.parametrize("pooling", ["attention", "max", "patch_attention"])
 def test_trainable_gradients_and_masked_image_gradients(pooling):
     model = CompetitiveStudyNet(RecordingEncoder(), 8, pooling=pooling, hidden_dim=12)
     batch = list(inputs())
@@ -101,6 +106,25 @@ def test_one_valid_slice_frozen_encoder_eval_and_resume():
     bad.pop("output_bias")
     with pytest.raises(RuntimeError):
         restored.load_state_dict(bad, strict=True)
+
+
+def test_patch_attention_uses_spatial_positions_and_restores_exact_state():
+    torch.manual_seed(92)
+    encoder = RecordingEncoder().eval()
+    model = CompetitiveStudyNet(encoder, 8, pooling="patch_attention", hidden_dim=12).eval()
+    batch = list(inputs())
+    batch[0] = torch.zeros_like(batch[0])
+    batch[0][:, :, :, :, :8, :8] = 1
+    first = model(*batch)
+    shifted = batch.copy()
+    shifted[0] = batch[0].flip(-1)
+    second = model(*shifted)
+    assert not torch.allclose(first, second, atol=1e-6)
+    restored = CompetitiveStudyNet(
+        RecordingEncoder(), 8, pooling="patch_attention", hidden_dim=12
+    ).eval()
+    restored.load_state_dict(model.state_dict(), strict=True)
+    torch.testing.assert_close(restored(*batch), first, rtol=0, atol=0)
 
 
 @pytest.mark.parametrize(
@@ -553,7 +577,9 @@ def test_large_width_reduced_depth_real_forward_head_and_unused_mask_token():
     encoder = backbones._GrayEncoder(base, 16)
     encoder.requires_grad_(False)
     encoder.requires_grad_(True)
-    model = CompetitiveStudyNet(encoder, 1024, hidden_dim=16, encode_chunk_size=1).eval()
+    model = CompetitiveStudyNet(
+        encoder, 1024, pooling="patch_attention", hidden_dim=16, encode_chunk_size=1
+    ).eval()
     batch = (
         torch.rand(1, 1, 1, 1, 32, 32),
         torch.zeros(1, 1, 5),

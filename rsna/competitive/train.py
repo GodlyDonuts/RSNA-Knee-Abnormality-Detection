@@ -126,7 +126,11 @@ class TrainConfig:
                 raise ValueError(f"Invalid numeric configuration: {name}")
         if self.side < 16 or self.max_series < 3:
             raise ValueError("Need side >=16 and at least three series slots")
-        if self.precision not in {"fp32", "bf16"} or self.pooling not in {"attention", "max"}:
+        if self.precision not in {"fp32", "bf16"} or self.pooling not in {
+            "attention",
+            "max",
+            "patch_attention",
+        }:
             raise ValueError("Unknown precision or pooling policy")
         if any(type(getattr(self, name)) is not bool for name in ("freeze_encoder", "augment")):
             raise ValueError("Freeze and augmentation settings must be booleans")
@@ -136,6 +140,11 @@ class TrainConfig:
             raise ValueError("Diagnostic study limit must be positive")
         if not isinstance(self.encoder, dict):
             raise ValueError("Encoder specification must be an object")
+        if self.pooling == "patch_attention" and self.encoder.get("architecture") not in {
+            "dinov3_l16",
+            "diagnostic_tiny",
+        }:
+            raise ValueError("Patch attention requires the pinned DINOv3-L encoder")
         if (
             self.encoder.get("architecture") == "diagnostic_tiny"
             and self.diagnostic_study_limit is None

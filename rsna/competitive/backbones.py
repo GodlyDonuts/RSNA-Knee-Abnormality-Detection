@@ -198,15 +198,35 @@ class _GrayEncoder(nn.Module):
                 parameter.requires_grad_(False)
         return self
 
-    def forward(self, images: Tensor) -> Tensor:
+    def _normalized_rgb(self, images: Tensor) -> Tensor:
         if images.ndim != 4 or images.shape[1] != 1 or not images.is_floating_point():
             raise ValueError("Encoder requires floating grayscale [N,1,H,W]")
         if not torch.isfinite(images).all() or (images < 0).any() or (images > 1).any():
             raise ValueError("Encoder grayscale values must be finite in [0,1]")
         if any(n < self.patch_multiple or n % self.patch_multiple for n in images.shape[-2:]):
             raise ValueError("Image dimensions must be divisible by encoder patch/stride size")
-        rgb = (images.expand(-1, 3, -1, -1) - self.mean) / self.std
-        return self.backbone(pixel_values=rgb).pooler_output
+        return (images.expand(-1, 3, -1, -1) - self.mean) / self.std
+
+    def forward(self, images: Tensor) -> Tensor:
+        return self.backbone(pixel_values=self._normalized_rgb(images)).pooler_output
+
+    def forward_features(self, images: Tensor) -> tuple[Tensor, Tensor]:
+        """Return normalized DINOv3 CLS and spatial patch tokens, excluding registers."""
+        config = getattr(self.backbone, "config", None)
+        if config is None or getattr(config, "model_type", None) != "dinov3_vit":
+            raise ValueError("Spatial patch features require the pinned DINOv3 ViT")
+        output = self.backbone(pixel_values=self._normalized_rgb(images))
+        height, width = (n // self.patch_multiple for n in images.shape[-2:])
+        prefix = 1 + config.num_register_tokens
+        tokens = output.last_hidden_state
+        pooled = output.pooler_output
+        if tokens.shape != (
+            len(images),
+            prefix + height * width,
+            pooled.shape[-1],
+        ) or not torch.equal(tokens[:, 0], pooled):
+            raise ValueError("DINOv3 patch/register layout differs from the pinned contract")
+        return pooled, tokens[:, prefix:].reshape(len(images), height, width, pooled.shape[-1])
 
 
 class _DiagnosticEncoder(nn.Module):
@@ -222,6 +242,11 @@ class _DiagnosticEncoder(nn.Module):
 
     def forward(self, images: Tensor) -> Tensor:
         return self.layers(images)
+
+    def forward_features(self, images: Tensor) -> tuple[Tensor, Tensor]:
+        maps = self.layers[1](self.layers[0](images))
+        local = nn.functional.adaptive_avg_pool2d(maps, (2, 2)).permute(0, 2, 3, 1)
+        return self.forward(images), self.layers[-1](local)
 
 
 def _validate_pretrained_metadata(spec: Mapping[str, Any]) -> None:

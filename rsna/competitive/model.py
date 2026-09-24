@@ -1,4 +1,4 @@
-"""Masked slice/series pooling of global image embeddings."""
+"""Masked slice/series pooling of global or spatial DINOv3 embeddings."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ class CompetitiveStudyNet(nn.Module):
     ):
         super().__init__()
         if (
-            pooling not in {"attention", "max"}
+            pooling not in {"attention", "max", "patch_attention"}
             or min(embedding_dim, hidden_dim, encode_chunk_size) < 1
         ):
             raise ValueError("Invalid pooling or model dimensions")
@@ -37,6 +37,22 @@ class CompetitiveStudyNet(nn.Module):
         self.projection = nn.Sequential(
             nn.Linear(embedding_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU()
         )
+        if pooling == "patch_attention":
+            if not callable(getattr(encoder, "forward_features", None)):
+                raise ValueError("Spatial pooling needs an encoder with patch features")
+            self.patch_projection: nn.Module | None = nn.Sequential(
+                nn.Linear(embedding_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU()
+            )
+            self.patch_position: nn.Module | None = nn.Linear(2, hidden_dim, bias=False)
+            self.patch_tanh: nn.Module | None = nn.Linear(hidden_dim, hidden_dim)
+            self.patch_gate: nn.Module | None = nn.Linear(hidden_dim, hidden_dim)
+            self.patch_score: nn.Module | None = nn.Linear(hidden_dim, len(TARGETS), bias=False)
+        else:
+            self.patch_projection = None
+            self.patch_position = None
+            self.patch_tanh = None
+            self.patch_gate = None
+            self.patch_score = None
         self.position_embedding = nn.Linear(2, hidden_dim, bias=False)
         self.series_embedding = nn.Linear(5, hidden_dim, bias=False)
         self.slice_tanh = nn.Linear(hidden_dim, hidden_dim)
@@ -103,16 +119,61 @@ class CompetitiveStudyNet(nn.Module):
         if not ((known == 0) | (known == 1)).all() or (valid_positions[known == 0, 0] != 0).any():
             raise ValueError("Position known flags must be binary; unknown distances must be zero")
         # Invalid images (including NaN padding) never reach the encoder.
-        chunks = [self.encoder(part) for part in valid_images.split(self.encode_chunk_size)]
-        encoded = torch.cat(chunks, dim=0)
+        if self.pooling == "patch_attention":
+            forward_features = getattr(self.encoder, "forward_features")
+            spatial_chunks = [
+                forward_features(part) for part in valid_images.split(self.encode_chunk_size)
+            ]
+            encoded = torch.cat([chunk[0] for chunk in spatial_chunks], dim=0)
+            patches = torch.cat([chunk[1] for chunk in spatial_chunks], dim=0)
+            if (
+                patches.ndim != 4
+                or patches.shape[0] != len(valid_images)
+                or patches.shape[-1] != self.embedding_dim
+                or not torch.isfinite(patches).all()
+            ):
+                raise ValueError("Encoder must return finite spatial patch embeddings")
+        else:
+            chunks = [self.encoder(part) for part in valid_images.split(self.encode_chunk_size)]
+            encoded = torch.cat(chunks, dim=0)
         if (
             encoded.shape != (len(valid_images), self.embedding_dim)
             or not torch.isfinite(encoded).all()
         ):
             raise ValueError("Encoder must return finite [valid_slices,embedding_dim]")
         projected = self.projection(encoded)
-        full = projected.new_zeros((b, s, k, projected.shape[-1]))
-        full[slice_mask] = projected + self.position_embedding(valid_positions.to(projected.dtype))
+        slice_position = self.position_embedding(valid_positions.to(projected.dtype))
+        if self.pooling == "patch_attention":
+            assert (
+                self.patch_projection is not None
+                and self.patch_position is not None
+                and self.patch_tanh is not None
+                and self.patch_gate is not None
+                and self.patch_score is not None
+            )
+            height, width = patches.shape[1:3]
+            if min(height, width) < 1:
+                raise ValueError("Encoder returned an empty patch grid")
+            y = torch.linspace(-1, 1, height, device=patches.device, dtype=patches.dtype)
+            x = torch.linspace(-1, 1, width, device=patches.device, dtype=patches.dtype)
+            coordinates = torch.stack(torch.meshgrid(y, x, indexing="ij"), dim=-1)
+            if height == 1:
+                coordinates[..., 0] = 0
+            if width == 1:
+                coordinates[..., 1] = 0
+            patch_features = self.patch_projection(patches) + self.patch_position(coordinates)
+            patch_features = patch_features.flatten(1, 2)
+            gated_patches = torch.tanh(self.patch_tanh(patch_features)) * torch.sigmoid(
+                self.patch_gate(patch_features)
+            )
+            patch_weights = torch.softmax(self.patch_score(gated_patches), dim=1)
+            patch_context = torch.einsum("npt,nph->nth", patch_weights, patch_features)
+            target_slices = (projected[:, None, :] + patch_context) * 0.5
+            full = projected.new_zeros((b, s, k, len(TARGETS), projected.shape[-1]))
+            full[slice_mask] = target_slices + slice_position[:, None, :]
+        else:
+            full = projected.new_zeros((b, s, k, projected.shape[-1]))
+            full[slice_mask] = projected + slice_position
         series_features = full.new_zeros((b, s, full.shape[-1]))
         series_features[series_mask] = self.series_embedding(valid_features.to(full.dtype))
         if self.pooling == "max":
@@ -121,11 +182,18 @@ class CompetitiveStudyNet(nn.Module):
             pooled = pooled + series_features
             study = pooled.masked_fill(~series_mask[..., None], -torch.inf).amax(dim=1)
             return torch.einsum("bh,th->bt", study, self.output_weight) + self.output_bias
-        scores = self.slice_score(
-            torch.tanh(self.slice_tanh(full)) * torch.sigmoid(self.slice_gate(full))
+        gated_slices = torch.tanh(self.slice_tanh(full)) * torch.sigmoid(self.slice_gate(full))
+        scores = (
+            torch.einsum("bskth,th->bskt", gated_slices, self.slice_score.weight)
+            if self.pooling == "patch_attention"
+            else self.slice_score(gated_slices)
         )
         weights = _masked_softmax(scores, slice_mask[..., None], dim=2)
-        pooled = torch.einsum("bskt,bskh->bsth", weights, full) + series_features[:, :, None, :]
+        pooled = (
+            torch.einsum("bskt,bskth->bsth", weights, full)
+            if self.pooling == "patch_attention"
+            else torch.einsum("bskt,bskh->bsth", weights, full)
+        ) + series_features[:, :, None, :]
         gated = torch.tanh(self.series_tanh(pooled)) * torch.sigmoid(self.series_gate(pooled))
         series_scores = torch.einsum("bsth,th->bst", gated, self.series_score)
         series_weights = _masked_softmax(series_scores, series_mask[..., None], dim=1)

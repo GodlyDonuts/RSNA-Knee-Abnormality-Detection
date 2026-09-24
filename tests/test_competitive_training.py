@@ -185,6 +185,11 @@ def test_failed_checkpoint_reserve_preserves_previous_file(tmp_path):
         {"diagnostic_study_limit": 2, "batch_size": True},
         {"diagnostic_study_limit": 2, "precision": "fp16"},
         {"diagnostic_study_limit": 2, "head_lr": float("nan")},
+        {
+            "diagnostic_study_limit": 2,
+            "pooling": "patch_attention",
+            "encoder": {"architecture": "dinov2_b14_reg"},
+        },
     ],
 )
 def test_invalid_training_config_fails_closed(changes):
@@ -194,6 +199,13 @@ def test_invalid_training_config_fails_closed(changes):
 
 def test_diagnostic_configuration_is_explicit():
     TrainConfig(diagnostic_study_limit=4, slices=2, side=32, max_series=3).validate()
+    TrainConfig(
+        diagnostic_study_limit=4,
+        slices=2,
+        side=32,
+        max_series=3,
+        pooling="patch_attention",
+    ).validate()
 
 
 class SyntheticStudies(Dataset):
