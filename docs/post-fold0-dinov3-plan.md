@@ -1,5 +1,16 @@
 # DINOv3-L plan after the first full fold
 
+**September 24 three-fold update:** All three fixed-final ten-epoch DINOv3-L
+fold runs are complete, and all 30 epoch checkpoints are privately preserved.
+The predeclared positive-negative-pair-weighted outer-fold macro AUC is
+**0.7522657161782244** on 3,403 accepted observed-training studies; the
+secondary pooled OOF macro is **0.725385883462049**. MCL has only seven
+observed positives across the three folds and 0.498 pair-weighted AUC;
+lateral meniscus has 0.689. See the [exact three-fold evaluation](../initiative/audits/dinov3-threefold-oof-v1/).
+These are internal report-label scores, not Kaggle scores. Complete the
+hidden-scale deployment diagnostic and then test the predeclared patch-token
+attention challenger against this frozen baseline.
+
 The frozen DINOv3-L global-embedding baseline completed ten epochs on fold 0
 using two H100s and four CPUs. It made 2,810 optimizer updates in 8,014.1
 seconds (4.45 allocated H100-hours) and scored **0.7783102649 macro AUC**

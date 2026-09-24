@@ -6,6 +6,16 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, three-fold evaluation:** The completed fixed-final DINOv3-L
+folds were evaluated as one 3,403-study observed-training OOF cohort using
+the frozen component-aware folds and predeclared within-fold pair weighting.
+Primary macro AUC is **0.7522657161782244**; MCL is 0.498 from seven
+observed positives and lateral meniscus is 0.689. The separately reported
+pooled macro is 0.725385883462049 and is secondary because fold score scales
+can differ. See [the source-bound OOF audit](../initiative/audits/dinov3-threefold-oof-v1/).
+None of these is a Kaggle score. Keep the deployment investigation separate
+from the next controlled patch-token attention experiment.
+
 **September 24, 10:43 UTC:** Newton access returned. Fold-2 single-H100
 production job **844305** and CPU watcher **844306** completed `0:0`. Its
 fixed-final-epoch internal macro AUC is **0.7590158139992688** on 1,122
