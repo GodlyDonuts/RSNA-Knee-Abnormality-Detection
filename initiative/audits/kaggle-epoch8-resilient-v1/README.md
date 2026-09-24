@@ -64,3 +64,8 @@ unreachable from the local network at this check, so its single canonical
 ledger has **not** yet been reconciled with this terminal result. Do not reuse
 the `fix4` notebook or spend another slot until the failure is diagnosed and a
 new immutable candidate is verified.
+The failure receipt and updated handoff were committed on GitHub main
+`f61189a` and mirrored to the private Hugging Face dataset at revision
+`a614143533a5119a5c89494ceb077f2a29513c77`. All six milestone files were
+downloaded and SHA-256 verified; see
+[the private mirror receipt](hf-hidden-outcome-verified.json).
