@@ -17,6 +17,16 @@ do not submit another candidate until its actual result is known. The next
 candidate's 51-file exact source projection is staged on Newton with all bytes
 verified, but has not created a Dataset, notebook or competition submission.
 
+**September 25, 09:36 UTC fold-2 epoch preservation:** Patch-attention fold-2
+job 848958 completed epoch 1's 286 optimizer updates and continued into epoch
+2. Its immutable checkpoint was privately published exactly once and all four
+objects fully re-downloaded/size/SHA verified at Hugging Face revision
+`30daa7e41aadb3811fb896852b1eebbac74c0c44`; see the
+[epoch-1 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-001/).
+Do not repeat that upload. The Kaggle code submission 56546143 still had no
+actual hidden status or score at the 09:36 UTC read-only check; preserve the
+remaining slots until its terminal outcome.
+
 **September 25, 09:03 UTC fold-2 continuation:** One matched ten-epoch
 patch-attention fold-2 job **848958** was dispatched on one H100/two CPUs.
 It allocated `evc47` and passed the visible-GPU/CUDA context preflight; actual

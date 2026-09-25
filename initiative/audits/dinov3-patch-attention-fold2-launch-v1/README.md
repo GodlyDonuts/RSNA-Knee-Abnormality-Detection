@@ -30,6 +30,16 @@ The job later allocated `evc47` and passed scheduler-visible H100, NVML and
 CUDA-context preflight. Verify optimizer progress and terminal outcome in the
 live logs before calling the run successful; never duplicate the job.
 
+Epoch 1 completed all 286 finite optimizer updates and the run advanced into
+epoch 2. The immutable 1,217,168,665-byte checkpoint has SHA-256
+`3fdf0589c7e8cb3fa3cced46055f6ef46cddf5f24f4c2d6b27c64ff2f7b69521`.
+The single CPU-only publisher privately committed it at Hugging Face revision
+`30daa7e41aadb3811fb896852b1eebbac74c0c44`. All four objects were fully
+re-downloaded and size/SHA-256 verified; independent read-only path metadata
+also matches. Exact [epoch-1 receipts](epoch-001/) include the snapshot,
+manifest, upload intent, commit and verification result. Do not dispatch epoch
+1 again. Continue preserving each newly completed epoch exactly once.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).
