@@ -66,13 +66,21 @@ def files_at(repo, commit):
     return result
 
 
-def build(repo, package_commit, training_commit, output):
+def build(repo, package_commit, training_commit, output, preserve_training_code=False):
     package = files_at(repo, package_commit)
     training = files_at(repo, training_commit)
     train_code = {p: digest(b) for p, (b, _) in training.items() if p.startswith("rsna/")}
     package_code = {p: digest(b) for p, (b, _) in package.items() if p.startswith("rsna/")}
     if train_code != package_code:
-        raise ValueError("Packaging projection changes the pinned training runtime")
+        if not preserve_training_code:
+            raise ValueError("Packaging projection changes the pinned training runtime")
+        # Deployment wrappers may advance after training. Use the exact training
+        # revision for every model/runtime module, including files since deleted
+        # or added in the newer package commit.
+        package = {p: value for p, value in package.items() if not p.startswith("rsna/")}
+        package.update({p: value for p, value in training.items() if p.startswith("rsna/")})
+    if {p: digest(b) for p, (b, _) in package.items() if p.startswith("rsna/")} != train_code:
+        raise ValueError("Pinned training runtime could not be preserved")
     output.mkdir(parents=True, exist_ok=False)
     manifest = {
         "schema_version": 1,
@@ -81,6 +89,8 @@ def build(repo, package_commit, training_commit, output):
         "training_git_commit": training_commit,
         "package_git_tree": git(repo, "rev-parse", package_commit + "^{tree}").decode().strip(),
         "training_code_sha256": train_code,
+        "training_code_origin": training_commit,
+        "packaging_code_origin": package_commit,
         "files": {
             p: {"sha256": digest(b), "bytes": len(b), "mode": mode}
             for p, (b, mode) in sorted(package.items())
@@ -118,6 +128,12 @@ if __name__ == "__main__":
     p.add_argument("--repo", required=True, type=Path)
     p.add_argument("--package-commit", required=True)
     p.add_argument("--training-commit", required=True)
+    p.add_argument("--preserve-training-code", action="store_true")
     p.add_argument("--output", required=True, type=Path)
     a = p.parse_args()
-    print(json.dumps(build(a.repo, a.package_commit, a.training_commit, a.output), sort_keys=True))
+    print(
+        json.dumps(
+            build(a.repo, a.package_commit, a.training_commit, a.output, a.preserve_training_code),
+            sort_keys=True,
+        )
+    )

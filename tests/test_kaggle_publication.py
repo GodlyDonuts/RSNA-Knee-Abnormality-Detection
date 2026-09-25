@@ -262,6 +262,36 @@ def test_exact_projection_rejects_unbound_cached_or_native_code(tmp_path):
     assert not project.selected("initiative/source/train.csv")
 
 
+def test_projection_preserves_exact_training_runtime_with_newer_wrapper(tmp_path, monkeypatch):
+    project = load("epoch_project_code_overlay", "project_code.py")
+    training = {
+        "rsna/__init__.py": (b"TRAINING = 1\n", 0o644),
+        "rsna/old_only.py": (b"PINNED = 1\n", 0o644),
+    }
+    package = {
+        "rsna/__init__.py": (b"TRAINING = 2\n", 0o644),
+        "rsna/new_only.py": (b"NEW = 1\n", 0o644),
+        "scripts/kaggle/chunked_infer.py": (b"WRAPPER = 2\n", 0o644),
+    }
+    monkeypatch.setattr(
+        project,
+        "files_at",
+        lambda _repo, commit: package if commit == "package" else training,
+    )
+    monkeypatch.setattr(project, "git", lambda *_args: b"a" * 40)
+    with pytest.raises(ValueError, match="pinned training runtime"):
+        project.build(tmp_path, "package", "training", tmp_path / "strict")
+    output = tmp_path / "overlay"
+    project.build(tmp_path, "package", "training", output, preserve_training_code=True)
+    manifest = json.loads((output / "projection.json").read_text())
+    assert manifest["training_code_origin"] == "training"
+    assert manifest["packaging_code_origin"] == "package"
+    assert manifest["files"]["rsna/__init__.py"]["sha256"] == hashed(b"TRAINING = 1\n")["sha256"]
+    assert "rsna/old_only.py" in manifest["files"]
+    assert "rsna/new_only.py" not in manifest["files"]
+    assert "scripts/kaggle/chunked_infer.py" in manifest["files"]
+
+
 def test_zip_change_rejected_before_any_remote_call(payload, tmp_path):
     data, _, files = payload
     upload = tmp_path / "upload"
