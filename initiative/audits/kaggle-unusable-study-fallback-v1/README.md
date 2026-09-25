@@ -26,3 +26,9 @@ was unreadable. Before another competition submission, package and verify a
 distinct private Dataset and offline notebook, inspect the canonical Newton
 ledger and live account allowance, and obtain a passing public MRI-only run.
 Do not submit the earlier epoch-6 backup with the unchanged inference code.
+
+The source-only milestone is on GitHub main `8282a9f7` and its six small
+objects were privately re-downloaded and hash verified at Hugging Face
+revision `ea2c78d2fe8b1cc2241e4796b0b2a3a296f51226`; see the
+[publication receipt](private-mirror-receipt.json). No checkpoint bytes or
+Kaggle competition result are part of this milestone.
