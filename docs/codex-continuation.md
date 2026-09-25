@@ -6,6 +6,21 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, fold-1 completion and connection recovery:** UCF SSH is
+available again. Patch-attention fold-1 Slurm job 847119 completed `0:0`, ten
+epochs and 2,850 updates. Its fixed-final internal macro AUC was
+**0.7214765382** on 1,125 outer studies, versus matched global-CLS fold-1
+**0.7128332913**; lateral meniscus also improved, while fracture declined.
+This is not a Kaggle score. All ten immutable fold-1 epochs were privately
+published exactly once and fully downloaded/hash verified. The epoch-10
+revision is `7bc52efec2141405be9e3a0fddb973398df9da1f`. A verified
+retention operation reclaimed 10.95 GB of redundant local epoch copies while
+preserving the final checkpoint and every private copy. See the
+[fold-1 result audit](../initiative/audits/dinov3-patch-attention-fold1-result-v1/README.md).
+The canonical Kaggle ledger has no new submission; authenticated Kaggle reports
+five live slots. The distinct fallback source now also handles specific
+malformed-DICOM attribute errors, but no hidden rerun has yet proven this fix.
+
 **September 25, hidden-data recovery candidate:** The latest Kaggle
 submission 56528793 remains `COMPLETE` with no output or score. Its hidden
 traceback is unavailable, so the failure cause is not established. A distinct

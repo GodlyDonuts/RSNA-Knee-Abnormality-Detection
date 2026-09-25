@@ -37,6 +37,11 @@ DATA_ERROR_PREFIXES = (
     "Constant-intensity series",
     "Mixed pixel spacing within series",
 )
+DICOM_ATTRIBUTE_ERROR_PREFIXES = (
+    "'FileDataset' object has no attribute '",
+    "The dataset has no 'Pixel Data'",
+    "Missing required element:",
+)
 
 
 def sha256(path: Path) -> str:
@@ -93,6 +98,11 @@ def prepare_usable_series(
             try:
                 cache_series(source, paths, cache, cache_side, source_revision)
             except InvalidDicomError:
+                failures["invalid_dicoms"] += 1
+                return False
+            except AttributeError as exc:
+                if not str(exc).startswith(DICOM_ATTRIBUTE_ERROR_PREFIXES):
+                    raise
                 failures["invalid_dicoms"] += 1
                 return False
             except ValueError as exc:

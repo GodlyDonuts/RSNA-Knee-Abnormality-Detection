@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import shutil
 from argparse import Namespace
@@ -10,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pydicom
 import pytest
 import torch
 from test_image_integrity import modified_dicom
@@ -641,3 +643,85 @@ def test_all_bad_real_dicoms_mark_only_that_study_unusable(tmp_path):
     assert selected.StudyInstanceUID.tolist() == [good]
     assert receipt["unusable_study_ids"] == [bad]
     assert receipt["skipped_series"]["invalid_dicoms"] == 1
+
+
+@pytest.mark.parametrize("missing_field", ["StudyInstanceUID", "PixelData", "Rows"])
+def test_missing_required_dicom_field_uses_healthy_series_alternate(tmp_path, missing_field):
+    study = "2.3"
+    frame = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": study,
+                "SeriesInstanceUID": f"{study}.{index}",
+                "Anatomical_Plane": "Sagittal",
+                "Fluid_Sensitive": 1 if index == 1 else 0,
+                "Fat_Suppression": 0,
+            }
+            for index in (1, 2)
+        ]
+    )
+    root = tmp_path / "dicoms"
+    for row in frame.to_dict("records"):
+        sid = row["SeriesInstanceUID"]
+        folder = root / "test_series" / study / sid
+        folder.mkdir(parents=True)
+        ds = pydicom.dcmread(
+            io.BytesIO(
+                modified_dicom(
+                    StudyInstanceUID=study,
+                    SeriesInstanceUID=sid,
+                    SOPInstanceUID=f"{sid}.1",
+                )
+            )
+        )
+        if sid.endswith(".1"):
+            delattr(ds, missing_field)
+        ds.save_as(folder / f"{sid}.1.dcm", enforce_file_format=True)
+    selected, receipt = chunked.prepare_usable_series(
+        frame,
+        [study],
+        dicom_root=root,
+        cache=tmp_path / "cache",
+        cache_side=16,
+        max_series=3,
+        source_revision="test",
+        allow_unusable_studies=True,
+    )
+    assert selected.SeriesInstanceUID.tolist() == [f"{study}.2"]
+    assert receipt["skipped_series"]["invalid_dicoms"] == 1
+    assert receipt["unusable_study_ids"] == []
+
+
+def test_unexpected_attribute_error_still_stops_inference(tmp_path, monkeypatch):
+    study = "2.3"
+    sid = f"{study}.1"
+    frame = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": study,
+                "SeriesInstanceUID": sid,
+                "Anatomical_Plane": "Sagittal",
+                "Fluid_Sensitive": 0,
+                "Fat_Suppression": 0,
+            }
+        ]
+    )
+    folder = tmp_path / "dicoms" / "test_series" / study / sid
+    folder.mkdir(parents=True)
+    (folder / f"{sid}.1.dcm").write_bytes(b"synthetic")
+
+    def crash(*_args):
+        raise AttributeError("application bug")
+
+    monkeypatch.setattr(chunked, "cache_series", crash)
+    with pytest.raises(AttributeError, match="application bug"):
+        chunked.prepare_usable_series(
+            frame,
+            [study],
+            dicom_root=tmp_path / "dicoms",
+            cache=tmp_path / "cache",
+            cache_side=16,
+            max_series=3,
+            source_revision="test",
+            allow_unusable_studies=True,
+        )

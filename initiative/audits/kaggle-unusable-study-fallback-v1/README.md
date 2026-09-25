@@ -27,6 +27,13 @@ distinct private Dataset and offline notebook, inspect the canonical Newton
 ledger and live account allowance, and obtain a passing public MRI-only run.
 Do not submit the earlier epoch-6 backup with the unchanged inference code.
 
+A follow-up bound the same fallback to malformed DICOM header cases: a
+`FileDataset` missing an expected attribute or pixel data is skipped in favor
+of a healthy same-plane series. Real synthetic DICOM regressions cover missing
+`StudyInstanceUID`, `Rows`, and pixel data. Unrelated `AttributeError`s still
+propagate. This is an additional candidate defense; it does not establish the
+hidden failure cause.
+
 The source-only milestone is on GitHub main `8282a9f7` and its six small
 objects were privately re-downloaded and hash verified at Hugging Face
 revision `ea2c78d2fe8b1cc2241e4796b0b2a3a296f51226`; see the
