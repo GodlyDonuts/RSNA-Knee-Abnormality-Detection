@@ -31,3 +31,15 @@ Do not mutate or resubmit 56546143 while its outcome is unresolved. Any later
 candidate requires a distinct exact-source package and notebook, a successful
 public-example run, a fresh live account allowance, and the single Newton
 submission ledger. The three-row public CSV is not a competition submission.
+
+The distinct [source projection](projection.json) was built from packaging Git
+`90d879a74de55af2bdf6cb2186e61989ad9e6161` while preserving every trained
+`rsna/**/*.py` file from Git `b74060b98f01bff1b924070ccba5ce44dd002f40`.
+All 51 TAR members were independently re-read against the manifest's hashes,
+sizes and modes; the metadata safeguard is present in the wrapper. The
+[build receipt](projection-receipt.json) binds the 675,840-byte source TAR SHA
+`e8f5ce803ccbf9837df5f311a0bac8865b8bec0d982daf0623b68ca7fe5bdf79`.
+The TAR remains in ignored local artifacts and can be rebuilt with
+`scripts/kaggle/project_code.py` using those full commits and
+`--preserve-training-code`. This is source preparation only: no Kaggle Dataset,
+notebook or competition entry was created from it.

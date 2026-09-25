@@ -80,6 +80,18 @@ training source, official weights and license. The
 [epoch-5 receipts](epoch-005/) bind the scheduled snapshot, manifest,
 intent, commit and verification. Do not repeat this upload.
 
+Epoch 6 completed 1,716 cumulative optimizer updates, and job 848958
+continued into epoch 7 with finite losses and empty stderr. Its immutable
+1,217,168,665-byte checkpoint SHA-256 is
+`802041c7ea7ba1d0369ba6e370d12c76fdcf6ff024e478429a46f2b24b99cd17`.
+The single CPU-only publisher committed it exactly once to the private dataset
+at revision `bcaca20cf58ece9c635b8a36bf0b99035cff2aba`; all four objects
+were fully re-downloaded and hash/size verified. Independent read-only private
+path metadata confirms all four paths and the checkpoint LFS SHA/size.
+The [epoch-6 receipts](epoch-006/) locally match the remote snapshot, upload
+intent, manifest, commit and full-verification records byte for byte. Do not
+repeat this upload.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).

@@ -6,6 +6,23 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 11:41 UTC fold-2 epoch 6:** Patch-attention job 848958
+completed 1,716 cumulative optimizer updates and continued into epoch 7.
+Its immutable checkpoint was privately published exactly once, and all four
+objects were fully re-downloaded/hash verified at Hugging Face revision
+`bcaca20cf58ece9c635b8a36bf0b99035cff2aba`; see the
+[epoch-6 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-006/).
+Do not repeat epochs 1–6. Authenticated Kaggle still showed no hidden status,
+error or score for code entry 56546143, with four slots remaining; do not
+duplicate its submission or spend another slot while unresolved.
+
+**September 25, exact metadata-recovery source:** The distinct 51-file
+projection from Git `90d879a74de55af2bdf6cb2186e61989ad9e6161` preserves
+the pinned training runtime and includes the bounded metadata safeguard.
+All TAR members passed independent hash/size/mode checks. See the
+[source projection audit](../initiative/audits/kaggle-series-metadata-recovery-v1/).
+This is neither a Kaggle notebook nor a competition submission.
+
 **September 25, test-series metadata safeguard:** A bounded review found a
 reproducible crash path in the optional Kaggle series-recovery wrapper when a
 hidden series has an unknown plane or invalid fluid/fat flags. It now excludes
