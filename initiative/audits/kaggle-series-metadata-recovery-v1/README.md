@@ -1,10 +1,49 @@
 # Bounded test-series metadata recovery
 
+At the September 25, 12:14 UTC authenticated check, the previously pending
+submission **56546143** became terminal: Kaggle reported `COMPLETE`, its generic
+unhandled-notebook-error description, zero output bytes, and no public score.
+`GetSubmission` and `ListSubmissions` agreed; the exact account-ledger entry was
+reconciled to `remote_outcome=failed` without a new Kaggle mutation. Four live
+submission slots remained. The [terminal receipt](hidden-outcome.json) does not
+contain a hidden traceback, so it does not prove that malformed metadata caused
+this failure. The public `submission.csv` had passed, and this was a code
+submission pointing to `submission.csv`, not a CSV file upload.
+
+Preparation of a distinct correction has begun without spending a Kaggle slot.
+The first CPU-only transport job 849424 failed at exact-source membership
+preflight: a read-only ledger reconciliation import had left two Python bytecode
+files in the staged 51-file source tree. Their hashes and the exact cleanup are
+recorded in [the retry intent](transport-retry-intent.json). No transport journal
+or Kaggle mutation was created. The 51 bound source files remained intact; a
+second CPU-only transport job 849425 completed `0:0` after cleanup. Its
+[transport receipt](transport-result.json) binds the distinct 1,215,678,819-byte
+archive SHA `0852edd9148dab9c3fd4744138d009ad30e943ea4c5fb7d98a3db64ac355cd13`.
+A [durable create intent](create-dataset-dispatch-intent.json) preceded the
+single private Dataset publication attempt. The server returned once, then a
+separate CPU-only read-only reconciliation downloaded and hash verified all 43
+logical files. The [verified receipt](dataset-verified.json) binds private Dataset
+`godlydonuts/rsna-knee-f2e008-metaguard-eb280864bd1c` version 1, ID
+**12188112**, to the exact prepared operation. Its [create intent](dataset-intent.json)
+and [server response](dataset-create-response.json) are preserved. A distinct
+private offline T4 notebook was pushed once only after that verification. Its
+[dispatch intent](push-kernel-dispatch-intent.json) and [exact-source receipt](kernel-push-receipt.json)
+bind `godlydonuts/rsna-knee-epoch8-f2-metaguard-eb280864bd1c` version 1,
+private, internet off, Nvidia T4, and precisely the two intended private
+Datasets plus this competition. The exact source SHA is
+`9a44b8c9dc0de88cef1f0559710faef3aceb24829bcff0e807670326d5084903`.
+Its public execution was `RUNNING` at the first read-only check; this is not a
+competition submission or score. No competition slot was used by these Dataset
+and notebook steps.
+The CPU-only create and reconciliation allocations were Slurm 849426 and
+849427; the notebook push used CPU-only allocation 849428. The next read-only
+[Newton quota check](quota-after-publication.json) recorded 1,025,820,112 of
+1,048,576,000 kB and 990,875 of 1,000,000 files against the soft limits.
+
 The DINOv3 Kaggle code submissions that reached hidden reruns failed without a
 public score. Kaggle's generic notebook error does not expose a hidden-test
-traceback, so their cause remains unknown. The current submission 56546143 is
-still awaiting a terminal result at the September 25, 11:30 UTC check; this
-change is **not** part of that immutable notebook.
+traceback, so their cause remains unknown. This change is **not** part of the
+immutable notebook submitted as 56546143.
 
 The opt-in `scripts/kaggle/chunked_infer.py` series-recovery path previously
 passed each `test_series.csv` row directly to the trained selector and dataset.
@@ -27,7 +66,7 @@ and their plane labels unchanged. These local checks establish the behavior of
 this recovery path, **not** that malformed hidden metadata caused an earlier
 failure or that a future Kaggle entry will score.
 
-Do not mutate or resubmit 56546143 while its outcome is unresolved. Any later
+Do not mutate or resubmit the failed 56546143. Any later
 candidate requires a distinct exact-source package and notebook, a successful
 public-example run, a fresh live account allowance, and the single Newton
 submission ledger. The three-row public CSV is not a competition submission.
@@ -63,11 +102,11 @@ before the commit; the [result](hf-commit-result.json) and
 [verification](hf-verified.json) confirm all 52 objects were fully downloaded
 and hash/size matched. The Newton and local journals are byte-identical, and
 a separate read-only private path metadata check matched all 52 sizes. This
-is private source preservation only. The current Kaggle submission 56546143
-still has no terminal result, and this source has no Kaggle Dataset or notebook.
+is private source preservation only. Kaggle publication happened later, as
+recorded above; the Hugging Face commit itself created no Kaggle object.
 
-The distinct fold-2 epoch-8 bundle has now been prepared on Newton without a
-Kaggle publication. Its [one-CPU script](prepare.sbatch) and durable
+The distinct fold-2 epoch-8 bundle was prepared on Newton before Kaggle
+publication. Its [one-CPU script](prepare.sbatch) and durable
 [dispatch intent](prepare-dispatch-intent.json) bind the staged source,
 unchanged 1,215,161,641-byte checkpoint and source snapshot. Slurm accepted
 CPU-only job **849389** once; it completed `0:0` in one minute with empty
@@ -81,9 +120,7 @@ the checkpoint, generated notebook and metadata. See the
 and [notebook source](prepared-kernel-run.py.txt) match the remote bytes. The
 bundle is privately stored at
 `/home/sa305415/rsna-knee/kaggle/bundles/fold2-epoch008-eb280864bd1c-metadata-v1`.
-It has **no** Kaggle Dataset ID, notebook version, public execution receipt or
-competition score. A future Kaggle submission would require the current entry
-56546143's terminal result, a fresh live allowance, one distinct private
-Dataset/notebook creation through the canonical Newton ledger, and a verified
-MRI-only public run. Do not upload the three-row CSV or reuse the older
+The subsequent private Dataset ID and notebook version are recorded above; a
+verified MRI-only public run and fresh live allowance remain prerequisites for
+a future Kaggle competition submission. Do not upload the three-row CSV or reuse the older
 decoder-error bundle under this operation identity.
