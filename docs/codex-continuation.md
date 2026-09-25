@@ -21,6 +21,16 @@ The canonical Kaggle ledger has no new submission; authenticated Kaggle reports
 five live slots. The distinct fallback source now also handles specific
 malformed-DICOM attribute errors, but no hidden rerun has yet proven this fix.
 
+**September 25, 08:51 UTC Kaggle correction:** The distinct, private, offline
+fold-2 epoch-8 `studyfallback2` Dataset version 1 was fully byte verified and
+its notebook version 1 completed MRI-only inference on the three public
+studies. The exact code notebook was submitted once as **56546143**; the
+three-row public CSV was not uploaded. At first authenticated observation the
+hidden rerun had **no status or score**, and four live account slots remained.
+The earlier failed submission 56528793 is preserved in the single Newton
+ledger's history. Wait for the actual hidden result before using another slot;
+see the [deployment audit](../initiative/audits/kaggle-studyfallback2-v1/README.md).
+
 **September 25, hidden-data recovery candidate:** The latest Kaggle
 submission 56528793 remains `COMPLETE` with no output or score. Its hidden
 traceback is unavailable, so the failure cause is not established. A distinct

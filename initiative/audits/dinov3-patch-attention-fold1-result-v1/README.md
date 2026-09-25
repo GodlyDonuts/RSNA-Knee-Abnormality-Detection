@@ -25,3 +25,9 @@ reclaiming 10,954,517,985 bytes. The final local checkpoint, result files,
 sidecars and all private epoch copies remain; see
 `local-retention-fold1-result.json`. This experiment has not been submitted to
 Kaggle.
+
+The 49 small result, journal and source objects were separately mirrored to
+the same private Hugging Face dataset and fully re-downloaded/hash verified at
+revision `6055fd9507ae45893b7aff083c4dc4423d292b32`; see
+`private-mirror-receipt.json`. The large checkpoints remain in their ten
+immutable per-epoch private paths.
