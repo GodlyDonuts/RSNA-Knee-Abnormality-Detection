@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 13:30 UTC patch-attention three-fold result:** Fold-2 job
+848958 completed `0:0`; exact predictions and accepted-fold verification show
+0.7197381600 internal macro AUC on 1,122 outer studies versus 0.7590158140
+for the matched global-CLS fold. The predeclared three-fold pair-weighted
+aggregate is 0.7360400218 for patch attention versus 0.7522657162 for CLS
+across 3,403 outer studies. Patch attention improves aggregate lateral-meniscus
+AUC by 0.0185916049 but does not improve overall macro AUC. See the
+[completed result audit](../initiative/audits/dinov3-patch-attention-fold2-result-v1/).
+These are report-supervision holdouts, not Kaggle scores. All ten fold-2 epoch
+checkpoints remain privately published and verified. Kaggle entry 56550973
+still had no hidden result at the latest check; preserve its three unused slots.
+
 **September 25, 13:20 UTC patch-attention fold-2 epoch 10:** Job 848958
 completed all 2,860 finite optimizer updates; its immutable epoch-10 checkpoint
 SHA `e9bdd7d535e4d4bc3061343167dcebdeda014910d4897250dfb82b30d695bcaf`

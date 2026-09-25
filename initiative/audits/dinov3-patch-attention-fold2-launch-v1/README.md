@@ -146,6 +146,12 @@ credential through stdin into a one-CPU, zero-GPU allocation and verifies all
 private objects by re-download, byte size and SHA-256. An existing or
 uncertain upload intent must be reconciled read-only; do not retry it.
 
+The same job subsequently completed `0:0`. Its fixed-final outer-fold-2
+predictions and independent matched-baseline evaluation are preserved in the
+[fold-2 result audit](../dinov3-patch-attention-fold2-result-v1/). The patch
+head scored 0.7197381600 internal macro AUC versus 0.7590158140 for global
+CLS on the same 1,122 studies. Do not label this a Kaggle score.
+
 Kaggle code submission 56546143 is a separate global-CLS epoch-8 deployment
 candidate. Its hidden rerun failed with a generic notebook error and no score.
 The subsequent distinct global-CLS notebook completed its public run and was
