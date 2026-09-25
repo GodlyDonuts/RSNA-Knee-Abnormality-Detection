@@ -6,6 +6,36 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 12:59 UTC patch-attention fold-2 epoch 9:** Job 848958
+completed 2,574 cumulative optimizer updates and continues. Its immutable
+checkpoint SHA `66a45fa54b8d3d73e572612cfec192a6b7642b342e125c07f123e40cc7fc6bd1`
+was privately published once at Hugging Face revision
+`ea0beca5a2990ae684a0f8f628da19bc484fd214`, fully re-downloaded/hash
+verified and independently matched by private LFS metadata. See the
+[epoch-9 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-009/).
+Do not repeat epochs 1–9. New Kaggle entry 56550973 has no hidden result yet;
+preserve the remaining three live slots until it does.
+
+**September 25, 12:57 UTC private submission milestone:** Six small exact
+public-run and code-submission receipts were privately mirrored at Hugging Face
+revision `e53703f0c50c450180bf9801e92ca21f0098ed7c` and all 15,851 bytes
+downloaded/hash verified. See the [mirror receipt](../initiative/audits/kaggle-series-metadata-recovery-v1/hf-submission-milestone-verified.json).
+
+**September 25, 12:54 UTC distinct Kaggle code submission:** The private offline
+T4 notebook `godlydonuts/rsna-knee-epoch8-f2-metaguard-eb280864bd1c` version
+1 completed its MRI-only three-study public run with three inferred studies,
+zero fallbacks and matching manifest/checkpoint/CSV hashes in two notebook
+receipts. A direct public CSV download returned HTTP 403, so do not claim
+independent byte verification of that CSV. The single Newton coordinator
+submitted the saved code version **once** as **56550973**, linked to private
+Dataset ID 12188112 and unchanged global-CLS fold-2 epoch-8 checkpoint SHA
+`eb280864bd1c2f896210ce360e1ae36d59649c854a9051523c2454a34d08c7b1`.
+The canonical ledger and both authenticated Kaggle submission methods agree.
+The hidden status/error/score were all null on first inspection and three live
+slots remained. Await its actual hidden result before any further competition
+submission. Never duplicate this version or upload the public three-row CSV;
+see the [submission receipt](../initiative/audits/kaggle-series-metadata-recovery-v1/submission-accepted.json).
+
 **September 25, 12:32 UTC patch-attention fold-2 epoch 8:** Job 848958
 completed 2,288 cumulative optimizer updates and continues. Its immutable
 checkpoint SHA `f3d686c6bfcc8ad1088b30883c85d8b7d85619f4e6e5839b9e8bc116196ee776`

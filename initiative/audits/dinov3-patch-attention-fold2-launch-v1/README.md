@@ -112,6 +112,15 @@ re-downloaded and hash/size verified. The [epoch-8 receipts](epoch-008/) locally
 match the remote journal, and an independent private path metadata check
 matched all four paths and the checkpoint LFS SHA/size. Do not repeat it.
 
+Epoch 9 completed 2,574 cumulative optimizer updates while job 848958
+continued. Its immutable 1,217,168,665-byte checkpoint SHA-256 is
+`66a45fa54b8d3d73e572612cfec192a6b7642b342e125c07f123e40cc7fc6bd1`.
+The single CPU-only publisher privately committed it exactly once at revision
+`ea0beca5a2990ae684a0f8f628da19bc484fd214`; all four objects were fully
+re-downloaded/hash verified. The [epoch-9 receipts](epoch-009/) match the
+remote journal byte for byte, and independent private path metadata matched
+all four paths and the checkpoint LFS SHA/size. Do not repeat it.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).
@@ -127,5 +136,6 @@ uncertain upload intent must be reconciled read-only; do not retry it.
 
 Kaggle code submission 56546143 is a separate global-CLS epoch-8 deployment
 candidate. Its hidden rerun failed with a generic notebook error and no score.
-The subsequent distinct private notebook awaits a public execution result;
-do not treat these training backups as Kaggle submissions.
+The subsequent distinct global-CLS notebook completed its public run and was
+submitted once as 56550973, whose hidden result remains unknown. Do not treat
+these patch-attention training backups as Kaggle submissions.

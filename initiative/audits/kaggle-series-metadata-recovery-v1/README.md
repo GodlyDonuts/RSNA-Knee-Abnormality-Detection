@@ -1,5 +1,28 @@
 # Bounded test-series metadata recovery
 
+**Current result, September 25, 12:54 UTC:** The distinct private offline
+notebook completed its three-study public MRI-only execution with all three
+studies inferred on CUDA and no fallback. Its saved version, source SHA,
+attached private Datasets, manifest/checkpoint bindings and two agreeing
+notebook output receipts are preserved in the [public verification](public-execution-verification.json),
+[inference receipt](public-inference-receipt.json), and
+[metrics](public-inference-metrics.json). Kaggle returned HTTP 403 for a direct
+download of the public CSV, so the CSV itself was **not** independently
+download-hash verified; both saved notebook receipts report the same SHA and
+the exact code validates the output schema and probability range before writing.
+The single coordinator then submitted this exact code version **once** as
+competition entry **56550973**, not as a local CSV upload. The canonical ledger,
+`GetSubmission` and `ListSubmissions` agree on its identity. At the first
+[submission check](submission-accepted.json), Kaggle had no hidden status,
+error or score; three live slots remained. Do not resubmit this version or spend
+another slot until its actual hidden result is known.
+The [private mirror intent](hf-submission-milestone-intent.json),
+[commit](hf-submission-milestone-commit-result.json) and
+[download verification](hf-submission-milestone-verified.json) bind six small
+public-run/submission audit files (15,851 bytes) to Hugging Face revision
+`e53703f0c50c450180bf9801e92ca21f0098ed7c`. This is provenance storage,
+not a second competition submission.
+
 At the September 25, 12:14 UTC authenticated check, the previously pending
 submission **56546143** became terminal: Kaggle reported `COMPLETE`, its generic
 unhandled-notebook-error description, zero output bytes, and no public score.
