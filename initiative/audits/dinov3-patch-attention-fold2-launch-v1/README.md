@@ -121,6 +121,18 @@ re-downloaded/hash verified. The [epoch-9 receipts](epoch-009/) match the
 remote journal byte for byte, and independent private path metadata matched
 all four paths and the checkpoint LFS SHA/size. Do not repeat it.
 
+Epoch 10 completed all 2,860 finite optimizer updates. Its immutable
+1,217,168,665-byte checkpoint SHA-256 is
+`e9bdd7d535e4d4bc3061343167dcebdeda014910d4897250dfb82b30d695bcaf`.
+The single CPU-only publisher privately committed it exactly once at revision
+`e5d1cf64d2f0696f7177ff4ad887bc38b527a4c2`; all four objects were fully
+re-downloaded/hash verified. The [epoch-10 receipts](epoch-010/) match the
+remote journal byte for byte, and independent private path metadata matched
+all four paths and the checkpoint LFS SHA/size. Do not repeat any fold-2 epoch.
+The same training job was still computing its fixed-final outer-fold result at
+the first post-publication check; do not infer a held-out score from the
+completed snapshot.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).

@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 13:20 UTC patch-attention fold-2 epoch 10:** Job 848958
+completed all 2,860 finite optimizer updates; its immutable epoch-10 checkpoint
+SHA `e9bdd7d535e4d4bc3061343167dcebdeda014910d4897250dfb82b30d695bcaf`
+was privately published exactly once at Hugging Face revision
+`e5d1cf64d2f0696f7177ff4ad887bc38b527a4c2`. All four objects were
+re-downloaded and hash verified; an independent metadata check confirmed the
+checkpoint LFS SHA and size. See the [epoch-10 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-010/).
+Do not republish any fold-2 epoch. The training job was still calculating its
+fixed-final held-out result at the first check; inspect Slurm and exact output
+before reporting fold-2 AUC. Kaggle entry 56550973 still had no hidden result
+at the same check; preserve the three remaining account slots.
+
 **September 25, 12:59 UTC patch-attention fold-2 epoch 9:** Job 848958
 completed 2,574 cumulative optimizer updates and continues. Its immutable
 checkpoint SHA `66a45fa54b8d3d73e572612cfec192a6b7642b342e125c07f123e40cc7fc6bd1`
