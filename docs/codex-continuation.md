@@ -6,6 +6,17 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 09:03 UTC fold-2 continuation:** One matched ten-epoch
+patch-attention fold-2 job **848958** was dispatched on one H100/two CPUs.
+It allocated `evc47` and passed the visible-GPU/CUDA context preflight; actual
+optimizer and terminal results remain to be verified. Do not duplicate the
+job. The distinct output, exact training source, config, hashes and first
+Slurm receipt are in the [fold-2 launch audit](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/README.md).
+The fold-2 epoch publisher and local single coordinator are pinned there.
+The completed baseline fold-2 private backups were verified before 10.94 GB
+of redundant local epoch 1–9 copies were reclaimed. Kaggle submission
+56546143 still has no actual hidden status or score; four slots remain.
+
 **September 25, fold-1 completion and connection recovery:** UCF SSH is
 available again. Patch-attention fold-1 Slurm job 847119 completed `0:0`, ten
 epochs and 2,850 updates. Its fixed-final internal macro AUC was

@@ -1,0 +1,48 @@
+# Matched patch-attention fold-2 launch
+
+The global-CLS DINOv3-L baseline finished three fixed ten-epoch folds. Patch
+attention finished fold 0 at 0.7451169387 internal macro AUC and fold 1 at
+0.7214765382. The matched CLS scores were 0.7783102649 and 0.7128332913,
+respectively. Fold 1 improved the predeclared lateral-meniscus target, but the
+mixed macro and rare-target results do not yet establish an architecture win.
+This matched fold-2 run completes the planned three-fold comparison. None of
+these values is a Kaggle score.
+
+The accepted masks, outer splits, official pinned DINOv3-L weights, cache,
+seed, optimizer, effective eight-study batch, and ten-epoch stopping schedule
+remain unchanged. The [production config](production-config.json) differs from
+the fold-1 patch-attention config only in `fold: 2`. Training source is clean
+Git `203f419ffac058496cdc3fbce0976bcedbb63286`. Fold 2 has 2,281 training
+studies and expects 286 optimizer updates per epoch on one H100 and two CPUs.
+The distinct output is
+`/home/sa305415/rsna-knee/runs/dinov3-l16-patchattention-fold2-203f419-production-v1`.
+
+Before dispatch, the ten baseline fold-2 private checkpoint copies were
+verified. The [retention receipt](baseline-fold2-retention-result.json) records
+removal of only redundant local epoch 1–9 `.pt` copies, reclaiming
+10,936,454,769 bytes. The local final checkpoint, sidecars, result, and all ten
+private Hugging Face copies remain. Newton then had no concurrent GPU job for
+this account, the output directory was absent, and the staged script and
+config matched their local SHA-256 hashes. `bash -n` passed. The
+[intent](dispatch-intent.json) preceded exactly one `sbatch --parsable` call;
+[Slurm accepted job 848958](dispatch-result.json) at 2026-09-25 09:00 UTC.
+The job later allocated `evc47` and passed scheduler-visible H100, NVML and
+CUDA-context preflight. Verify optimizer progress and terminal outcome in the
+live logs before calling the run successful; never duplicate the job.
+
+The [publisher stage receipt](publisher-stage.json) binds the pinned
+[private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
+and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).
+The publisher recognizes the fold-2 286-step schedule, 2,281-study binding and
+dedicated private path
+`experiments/dinov3-v1/training-epochs/patchattention-fold2-203f419-seed20260922`.
+Its source SHA-256 `0c8aa81779c8bebc0927fb6c3deac099d99d4096c0020e6142d2713453b8318d`
+was matched on Newton. For each completed immutable epoch, use the coordinator
+with the live SSH control socket. It streams the ignored local Hugging Face
+credential through stdin into a one-CPU, zero-GPU allocation and verifies all
+private objects by re-download, byte size and SHA-256. An existing or
+uncertain upload intent must be reconciled read-only; do not retry it.
+
+Kaggle code submission 56546143 is a separate global-CLS epoch-8 deployment
+candidate. Its hidden rerun had no score or status at the last check. Hold the
+remaining account slots until its actual result is known.
