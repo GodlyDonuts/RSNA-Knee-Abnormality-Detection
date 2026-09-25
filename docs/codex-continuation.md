@@ -6,6 +6,21 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, hidden-data recovery candidate:** The latest Kaggle
+submission 56528793 remains `COMPLETE` with no output or score. Its hidden
+traceback is unavailable, so the failure cause is not established. A distinct
+opt-in MRI-study fallback has been added to the inference wrapper: if every
+recognized series for one study is unusable or its series metadata is absent,
+that row receives neutral 0.5 probabilities while valid studies still use the
+trained model. An all-unusable roster and unexpected infrastructure/model
+errors still fail. See the
+[bounded fallback audit](../initiative/audits/kaggle-unusable-study-fallback-v1/README.md).
+This is source code only; no new Dataset, notebook or competition submission
+has been made. Five live account slots were reported at 03:31 UTC, after the
+daily reset. Newton DNS and Stokes SSH remained inaccessible from the Mac at
+the latest check, so fold-1 Slurm state and the remote epoch-4 publication
+journal must be reconciled before any remote mutation.
+
 **September 24, 21:57 UTC Kaggle outcome:** Authenticated Kaggle marked the
 exact fold-2 epoch-8 code submission **56528793** `COMPLETE` with zero output
 bytes, an unhandled hidden-notebook error and **no score**. The public

@@ -201,6 +201,7 @@ def run():
         "--chunk-size",
         "32",
         "--resilient-series",
+        "--fallback-on-unusable-study",
         "--cache-side",
         "256",
         "--max-series",

@@ -67,12 +67,14 @@ def prepare_usable_series(
     cache_side: int,
     max_series: int,
     source_revision: str,
+    allow_unusable_studies: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """Cache only useful MRI series; use an alternate when source pixels are invalid."""
     from pydicom.errors import InvalidDicomError
 
     source = Source(dicom_root)
     usable_ids: set[str] = set()
+    unusable_study_ids: list[str] = []
     failures = {"missing_dicoms": 0, "invalid_dicoms": 0, "invalid_series": 0}
     for study_uid in study_ids:
         rows = frame.loc[frame.StudyInstanceUID == study_uid].to_dict("records")
@@ -116,13 +118,19 @@ def prepare_usable_series(
             if row["SeriesInstanceUID"] not in attempted:
                 attempt(row)
         if not accepted:
-            raise ValueError("No decodable MRI series for a test study")
+            if not allow_unusable_studies:
+                raise ValueError("No decodable MRI series for a test study")
+            unusable_study_ids.append(study_uid)
+            continue
         if len(accepted) > max_series:
             raise ValueError("Prepared more series than the trained model accepts")
     selected = frame.loc[frame.SeriesInstanceUID.isin(usable_ids)].copy()
-    if set(selected.StudyInstanceUID) != set(study_ids):
+    if set(selected.StudyInstanceUID) != set(study_ids) - set(unusable_study_ids):
         raise ValueError("Prepared MRI series do not cover the test study chunk")
-    return selected, {"selected_series": len(selected), "skipped_series": failures}
+    receipt = {"selected_series": len(selected), "skipped_series": failures}
+    if allow_unusable_studies:
+        receipt["unusable_study_ids"] = unusable_study_ids
+    return selected, receipt
 
 
 def run(args: argparse.Namespace, invoke=None) -> dict:
@@ -161,11 +169,14 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         raise ValueError("Test series metadata lacks required identities")
     if series.SeriesInstanceUID.isna().any() or series.SeriesInstanceUID.duplicated().any():
         raise ValueError("Missing or duplicate test series identities")
-    if set(template.StudyInstanceUID) - set(series.StudyInstanceUID):
+    fallback_unusable = getattr(args, "fallback_on_unusable_study", False)
+    if set(template.StudyInstanceUID) - set(series.StudyInstanceUID) and not fallback_unusable:
         raise ValueError("A test study has no series")
 
     checkpoint_sha = sha256(args.checkpoint)
     resilient = getattr(args, "resilient_series", False)
+    if fallback_unusable and not resilient:
+        raise ValueError("Unusable-study fallback requires resilient MRI preparation")
     if resilient:
         if (
             args.dicom_root is None
@@ -204,8 +215,35 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
                 cache_side=args.cache_side,
                 max_series=args.max_series,
                 source_revision=args.source_revision,
+                allow_unusable_studies=fallback_unusable,
             )
-        part.to_csv(template_path, index=False)
+        unusable = set(preparation.get("unusable_study_ids", [])) if preparation else set()
+        if unusable - ids:
+            raise ValueError("Unusable-study receipt contains an unrelated identity")
+        part_for_model = part.loc[~part.StudyInstanceUID.isin(unusable)].copy()
+        if part_for_model.empty:
+            frame = part.copy()
+            for target in TARGETS:
+                frame[target] = 0.5
+            predictions.append(frame)
+            receipts.append(
+                {
+                    "first_row": start,
+                    "studies": len(part),
+                    "inferred_studies": 0,
+                    "fallback_studies": len(part),
+                    "submission_sha256": None,
+                    "cache_bytes_before_cleanup": 0,
+                    "elapsed_seconds": 0.0,
+                    "series_preparation": preparation,
+                }
+            )
+            if cache.exists():
+                if cache.is_symlink():
+                    raise ValueError("Chunk cache became a symlink")
+                shutil.rmtree(cache)
+            continue
+        part_for_model.to_csv(template_path, index=False)
         selected_series.to_csv(series_path, index=False)
         command = [
             sys.executable,
@@ -260,7 +298,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         if (
             metrics.get("status") != "passed"
             or metrics.get("checkpoint_sha256") != checkpoint_sha
-            or metrics.get("studies") != len(part)
+            or metrics.get("studies") != len(part_for_model)
             or metrics.get("diagnostic_only") is not args.allow_diagnostic
             or metrics.get("submission_sha256") != sha256(output)
             or metrics.get("test_inputs") != expected_inputs
@@ -292,14 +330,27 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         frame = pd.read_csv(output)
         if list(frame.columns) != ["StudyInstanceUID", *TARGETS]:
             raise ValueError("Chunk output column order differs")
-        if frame.StudyInstanceUID.tolist() != part.StudyInstanceUID.tolist():
+        if frame.StudyInstanceUID.tolist() != part_for_model.StudyInstanceUID.tolist():
             raise ValueError("Chunk output identities or order differ")
+        if unusable:
+            neutral = part.loc[part.StudyInstanceUID.isin(unusable)].copy()
+            for target in TARGETS:
+                neutral[target] = 0.5
+            frame = pd.concat([frame, neutral], ignore_index=True)
+            if frame.StudyInstanceUID.duplicated().any() or set(frame.StudyInstanceUID) != ids:
+                raise ValueError("Merged MRI and fallback identities differ")
+            frame = frame.set_index("StudyInstanceUID").loc[part.StudyInstanceUID].reset_index()
         predictions.append(frame)
         cache_bytes = sum(path.stat().st_size for path in cache.rglob("*") if path.is_file())
         receipts.append(
             {
                 "first_row": start,
                 "studies": len(part),
+                **(
+                    {"inferred_studies": len(part_for_model), "fallback_studies": len(unusable)}
+                    if fallback_unusable
+                    else {}
+                ),
                 "submission_sha256": sha256(output),
                 "cache_bytes_before_cleanup": cache_bytes,
                 "elapsed_seconds": metrics["elapsed_seconds"],
@@ -310,7 +361,8 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             if cache.is_symlink():
                 raise ValueError("Chunk cache became a symlink")
             shutil.rmtree(cache)
-    assert common is not None
+    if common is None:
+        raise ValueError("No predictions from MRI-backed studies")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     write_submission(pd.concat(predictions, ignore_index=True), template, args.output)
     result = {
@@ -365,6 +417,7 @@ def main() -> None:
     parser.add_argument("--baseline-sidecar", type=Path)
     parser.add_argument("--baseline-proof", type=Path)
     parser.add_argument("--resilient-series", action="store_true")
+    parser.add_argument("--fallback-on-unusable-study", action="store_true")
     parser.add_argument("--cache-side", type=int)
     parser.add_argument("--max-series", type=int)
     args = parser.parse_args()

@@ -511,3 +511,133 @@ def test_resilient_run_uses_prepared_cache_without_redecoding(tmp_path, monkeypa
     result = chunked.run(args, invoke=invoke)
     assert verified == [(6, 256)]
     assert all("series_preparation" in row for row in result["chunks"])
+
+
+@pytest.mark.parametrize("unusable_first_chunk", [("1.2.1",), ("1.2.5", "1.2.1")])
+def test_unusable_mri_studies_get_neutral_rows_without_losing_other_predictions(
+    tmp_path, monkeypatch, unusable_first_chunk
+):
+    args = fixture(tmp_path)
+    args.dicom_root = tmp_path / "dicoms"
+    args.resilient_series = True
+    args.fallback_on_unusable_study = True
+    args.cache_side = 256
+    args.max_series = 6
+    monkeypatch.setattr(chunked, "verify_cache_contract", lambda *_args, **_kwargs: None)
+
+    def prepare(frame, study_ids, **kwargs):
+        assert kwargs["allow_unusable_studies"] is True
+        missing = [uid for uid in study_ids if uid in unusable_first_chunk]
+        valid = frame.loc[~frame.StudyInstanceUID.isin(missing)].copy()
+        return valid, {
+            "selected_series": len(valid),
+            "skipped_series": {"invalid_series": len(missing)},
+            "unusable_study_ids": missing,
+        }
+
+    monkeypatch.setattr(chunked, "prepare_usable_series", prepare)
+    result = chunked.run(args, invoke=fake_infer)
+    output = pd.read_csv(args.output)
+    assert output.StudyInstanceUID.tolist() == pd.read_csv(args.template).StudyInstanceUID.tolist()
+    for uid in unusable_first_chunk:
+        assert output.loc[output.StudyInstanceUID == uid, list(TARGETS)].eq(0.5).all().all()
+    assert output.loc[output.StudyInstanceUID == "1.2.4", TARGETS[0]].item() == 0.4
+    assert result["chunks"][0]["fallback_studies"] == len(unusable_first_chunk)
+    assert result["chunks"][0]["inferred_studies"] == 2 - len(unusable_first_chunk)
+    assert not list(args.cache_root.rglob("*.npz"))
+
+
+def test_all_invalid_mri_studies_still_fail_instead_of_claiming_model_inference(
+    tmp_path, monkeypatch
+):
+    args = fixture(tmp_path)
+    args.dicom_root = tmp_path / "dicoms"
+    args.resilient_series = True
+    args.fallback_on_unusable_study = True
+    args.cache_side = 256
+    args.max_series = 6
+    monkeypatch.setattr(chunked, "verify_cache_contract", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        chunked,
+        "prepare_usable_series",
+        lambda frame, study_ids, **kwargs: (
+            frame.iloc[:0],
+            {"selected_series": 0, "skipped_series": {}, "unusable_study_ids": study_ids},
+        ),
+    )
+    with pytest.raises(ValueError, match="No predictions from MRI-backed studies"):
+        chunked.run(args, invoke=fake_infer)
+    assert not args.output.exists()
+
+
+def test_missing_series_metadata_study_gets_neutral_row_when_fallback_enabled(
+    tmp_path, monkeypatch
+):
+    args = fixture(tmp_path)
+    args.dicom_root = tmp_path / "dicoms"
+    args.resilient_series = True
+    args.fallback_on_unusable_study = True
+    args.cache_side = 256
+    args.max_series = 6
+    missing = "1.2.1"
+    series = pd.read_csv(args.series)
+    series.loc[series.StudyInstanceUID != missing].to_csv(args.series, index=False)
+    monkeypatch.setattr(chunked, "verify_cache_contract", lambda *_args, **_kwargs: None)
+
+    def prepare(frame, study_ids, **kwargs):
+        unavailable = [uid for uid in study_ids if uid == missing]
+        return frame, {
+            "selected_series": len(frame),
+            "skipped_series": {},
+            "unusable_study_ids": unavailable,
+        }
+
+    monkeypatch.setattr(chunked, "prepare_usable_series", prepare)
+    result = chunked.run(args, invoke=fake_infer)
+    output = pd.read_csv(args.output)
+    assert output.StudyInstanceUID.tolist() == pd.read_csv(args.template).StudyInstanceUID.tolist()
+    assert output.loc[output.StudyInstanceUID == missing, list(TARGETS)].eq(0.5).all().all()
+    assert sum(chunk["fallback_studies"] for chunk in result["chunks"]) == 1
+
+
+def test_all_bad_real_dicoms_mark_only_that_study_unusable(tmp_path):
+    good, bad = "2.3", "2.4"
+    frame = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": study,
+                "SeriesInstanceUID": f"{study}.1",
+                "Anatomical_Plane": "Sagittal",
+                "Fluid_Sensitive": 0,
+                "Fat_Suppression": 0,
+            }
+            for study in (good, bad)
+        ]
+    )
+    root = tmp_path / "dicoms"
+    for study in (good, bad):
+        folder = root / "test_series" / study / f"{study}.1"
+        folder.mkdir(parents=True)
+        data = (
+            modified_dicom(
+                StudyInstanceUID=study,
+                SeriesInstanceUID=f"{study}.1",
+                SOPInstanceUID=f"{study}.1.1",
+            )
+            if study == good
+            else b"not a DICOM"
+        )
+        (folder / f"{study}.1.1.dcm").write_bytes(data)
+    selected, receipt = chunked.prepare_usable_series(
+        frame,
+        [good, bad],
+        dicom_root=root,
+        cache=tmp_path / "cache",
+        cache_side=16,
+        max_series=3,
+        source_revision="test",
+        allow_unusable_studies=True,
+    )
+    assert selected.StudyInstanceUID.tolist() == [good]
+    assert receipt["unusable_study_ids"] == [bad]
+    assert receipt["skipped_series"]["invalid_dicoms"] == 1
