@@ -6,6 +6,16 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, decoder fallback candidate:** The optional Kaggle wrapper
+now isolates two additional, precisely recognized pydicom 3.0.2 decoder
+failures: unsupported Transfer Syntax UID and all compressed-pixel plugins
+failing. A real synthetic DICOM and negative infrastructure-error tests passed
+in the 28-test chunked-inference module. See the [bounded audit](../initiative/audits/kaggle-decoder-exception-fallback-v1/README.md).
+This source has **not** been staged into a new Kaggle Dataset or submitted;
+the older transfer-syntax bundle remains immutable. The hidden root cause is
+unproven, and entry 56546143 still had no result at 10:39 UTC. Preserve the
+four unused slots until its terminal outcome.
+
 **September 25, 10:28 UTC fold-2 preservation:** Patch-attention fold-2 job
 848958 remains running and completed epoch 3's 858 cumulative optimizer
 updates. Its immutable checkpoint was privately published once; all four

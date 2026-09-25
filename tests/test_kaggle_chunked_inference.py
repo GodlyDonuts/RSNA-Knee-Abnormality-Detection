@@ -692,7 +692,8 @@ def test_missing_required_dicom_field_uses_healthy_series_alternate(tmp_path, mi
     assert receipt["unusable_study_ids"] == []
 
 
-def test_missing_dicom_transfer_syntax_uses_healthy_series_alternate(tmp_path):
+@pytest.mark.parametrize("invalid_syntax", ["missing", "unsupported"])
+def test_invalid_dicom_transfer_syntax_uses_healthy_series_alternate(tmp_path, invalid_syntax):
     study = "2.3"
     frame = pd.DataFrame(
         [
@@ -721,8 +722,16 @@ def test_missing_dicom_transfer_syntax_uses_healthy_series_alternate(tmp_path):
             )
         )
         if sid.endswith(".1"):
-            del ds.file_meta.TransferSyntaxUID
-        ds.save_as(folder / f"{sid}.1.dcm", enforce_file_format=False)
+            if invalid_syntax == "missing":
+                del ds.file_meta.TransferSyntaxUID
+        path = folder / f"{sid}.1.dcm"
+        ds.save_as(path, enforce_file_format=invalid_syntax != "missing")
+        if sid.endswith(".1") and invalid_syntax == "unsupported":
+            original = b"1.2.840.10008.1.2.1"
+            unsupported = b"1.2.840.10008.1.2.9"
+            data = path.read_bytes()
+            assert data.count(original) == 1 and len(original) == len(unsupported)
+            path.write_bytes(data.replace(original, unsupported))
     selected, receipt = chunked.prepare_usable_series(
         frame,
         [study],
@@ -736,6 +745,74 @@ def test_missing_dicom_transfer_syntax_uses_healthy_series_alternate(tmp_path):
     assert selected.SeriesInstanceUID.tolist() == [f"{study}.2"]
     assert receipt["skipped_series"]["invalid_dicoms"] == 1
     assert receipt["unusable_study_ids"] == []
+
+
+@pytest.mark.parametrize(
+    ("error", "handled"),
+    [
+        (
+            RuntimeError(
+                "Unable to decode as exceptions were raised by all available plugins: bad frame"
+            ),
+            True,
+        ),
+        (RuntimeError("CUDA out of memory"), False),
+        (NotImplementedError("application bug"), False),
+    ],
+)
+def test_decoder_plugin_errors_only_skip_recognized_dicom_failures(
+    tmp_path, monkeypatch, error, handled
+):
+    study = "2.3"
+    frame = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": study,
+                "SeriesInstanceUID": f"{study}.{index}",
+                "Anatomical_Plane": "Sagittal",
+                "Fluid_Sensitive": 1 if index == 1 else 0,
+                "Fat_Suppression": 0,
+            }
+            for index in (1, 2)
+        ]
+    )
+    root = tmp_path / "dicoms"
+    for row in frame.to_dict("records"):
+        sid = row["SeriesInstanceUID"]
+        folder = root / "test_series" / study / sid
+        folder.mkdir(parents=True)
+        (folder / f"{sid}.1.dcm").write_bytes(b"synthetic")
+
+    def cache(_source, paths, _cache, _side, _revision):
+        if Path(paths[0]).parts[-2].endswith(".1"):
+            raise error
+
+    monkeypatch.setattr(chunked, "cache_series", cache)
+    if not handled:
+        with pytest.raises(type(error), match=str(error)):
+            chunked.prepare_usable_series(
+                frame,
+                [study],
+                dicom_root=root,
+                cache=tmp_path / "cache",
+                cache_side=16,
+                max_series=3,
+                source_revision="test",
+                allow_unusable_studies=True,
+            )
+        return
+    selected, receipt = chunked.prepare_usable_series(
+        frame,
+        [study],
+        dicom_root=root,
+        cache=tmp_path / "cache",
+        cache_side=16,
+        max_series=3,
+        source_revision="test",
+        allow_unusable_studies=True,
+    )
+    assert selected.SeriesInstanceUID.tolist() == [f"{study}.2"]
+    assert receipt["skipped_series"]["invalid_dicoms"] == 1
 
 
 def test_unexpected_attribute_error_still_stops_inference(tmp_path, monkeypatch):

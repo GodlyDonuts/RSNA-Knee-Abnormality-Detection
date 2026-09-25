@@ -44,6 +44,14 @@ DICOM_ATTRIBUTE_ERROR_PREFIXES = (
     "Unable to decode the pixel data as the dataset's 'file_meta' has no "
     "(0002,0010) 'Transfer Syntax UID' element",
 )
+DICOM_NOT_IMPLEMENTED_PREFIXES = (
+    "Unable to decode the pixel data as a (0002,0010) 'Transfer Syntax UID' value of ",
+    "No pixel data decoders have been implemented for ",
+    "The data type '",
+)
+DICOM_DECODER_RUNTIME_PREFIX = (
+    "Unable to decode as exceptions were raised by all available plugins:"
+)
 
 
 def sha256(path: Path) -> str:
@@ -104,6 +112,16 @@ def prepare_usable_series(
                 return False
             except AttributeError as exc:
                 if not str(exc).startswith(DICOM_ATTRIBUTE_ERROR_PREFIXES):
+                    raise
+                failures["invalid_dicoms"] += 1
+                return False
+            except NotImplementedError as exc:
+                if not str(exc).startswith(DICOM_NOT_IMPLEMENTED_PREFIXES):
+                    raise
+                failures["invalid_dicoms"] += 1
+                return False
+            except RuntimeError as exc:
+                if not str(exc).startswith(DICOM_DECODER_RUNTIME_PREFIX):
                     raise
                 failures["invalid_dicoms"] += 1
                 return False
