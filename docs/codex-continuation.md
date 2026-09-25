@@ -13,7 +13,9 @@ decoder message and tries a healthy alternate series; unexpected software
 attribute errors still stop. See the [bounded audit](../initiative/audits/kaggle-transfer-syntax-fallback-v1/README.md).
 This source change is for a future distinct notebook only. Kaggle submission
 56546143 remains immutable and without a hidden outcome at this observation;
-do not submit another candidate until its actual result is known.
+do not submit another candidate until its actual result is known. The next
+candidate's 51-file exact source projection is staged on Newton with all bytes
+verified, but has not created a Dataset, notebook or competition submission.
 
 **September 25, 09:03 UTC fold-2 continuation:** One matched ten-epoch
 patch-attention fold-2 job **848958** was dispatched on one H100/two CPUs.

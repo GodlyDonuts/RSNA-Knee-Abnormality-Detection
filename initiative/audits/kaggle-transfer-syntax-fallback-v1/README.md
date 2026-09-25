@@ -28,3 +28,12 @@ regression. This is a bounded synthetic behavior proof, not a hidden-test
 diagnosis. Do not spend another Kaggle slot on this contingency while 56546143
 has no actual terminal outcome; any later submission needs a distinct exact
 private bundle and saved notebook version with full provenance checks.
+
+The [code projection stage](projection-stage.json) now preserves this
+contingency at Newton without creating a Kaggle Dataset or notebook. It combines
+packaging source Git `e4bc97339e4ab613a0e9ef67ca5e72d788e9ea4e` with the
+unchanged exact trained `rsna/**/*.py` runtime from Git
+`b74060b98f01bff1b924070ccba5ce44dd002f40`. Local and Newton independently
+matched the 51-file manifest SHA-256 and every staged file's size, SHA-256 and
+mode. This is a ready code input for a distinct candidate if evidence warrants
+one; no weights or submission artifact have been packaged.
