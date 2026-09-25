@@ -49,6 +49,15 @@ re-downloaded and size/SHA-256 verified. The [epoch-2 receipts](epoch-002/)
 and an independent read-only path metadata check confirm the exact snapshot,
 license and manifest. Do not dispatch epoch 2 again.
 
+Epoch 3 completed 858 cumulative optimizer updates while job 848958 remained
+running. Its immutable checkpoint SHA-256 is
+`6ae7b8e9266f78343e986d77509c8d91f42d8ed8f165bdccbb31473d67bfdfa1`.
+The dedicated one-CPU publisher committed it once to the private dataset at
+revision `f606163f049f148461e36b40e69265892230f324`. All four objects were
+fully re-downloaded and size/SHA-256 verified, with an empty publisher stderr
+and zero remote exit. The [epoch-3 receipts](epoch-003/) preserve the exact
+snapshot, manifest, dispatch, commit and verification. Do not repeat it.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).

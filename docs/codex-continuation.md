@@ -6,6 +6,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 10:28 UTC fold-2 preservation:** Patch-attention fold-2 job
+848958 remains running and completed epoch 3's 858 cumulative optimizer
+updates. Its immutable checkpoint was privately published once; all four
+objects were re-downloaded and size/SHA-256 verified at Hugging Face revision
+`f606163f049f148461e36b40e69265892230f324`. See the
+[epoch-3 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-003/).
+Do not repeat the upload. Kaggle code submission 56546143 still had no hidden
+status or score at the 10:26 UTC authenticated check; four slots remain.
+
 **September 25, transfer-syntax contingency:** A real synthetic DICOM missing
 File Meta Transfer Syntax UID exposed one uncaught pydicom `AttributeError` in
 the opt-in Kaggle series fallback. The wrapper now recognizes only that exact
