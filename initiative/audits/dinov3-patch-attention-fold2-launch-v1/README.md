@@ -58,6 +58,16 @@ fully re-downloaded and size/SHA-256 verified, with an empty publisher stderr
 and zero remote exit. The [epoch-3 receipts](epoch-003/) preserve the exact
 snapshot, manifest, dispatch, commit and verification. Do not repeat it.
 
+Epoch 4 completed 1,144 cumulative optimizer updates, and the same job
+continued into epoch 5. Its immutable checkpoint SHA-256 is
+`6c7c464069b18d8756d32009ca3dd047351499fd69125aa84a8890d7501fd436`.
+The one-CPU publisher privately committed it exactly once at revision
+`977d0379ff5d7dbb526dc48ca4e4e06b6009f518`; all four objects were fully
+re-downloaded and hash/size verified. Independent private path metadata also
+matches, including the 1,217,168,665-byte checkpoint LFS SHA-256. The
+[epoch-4 receipts](epoch-004/) bind the scheduled snapshot, manifest, intent,
+commit and verification. Do not repeat this upload.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).
