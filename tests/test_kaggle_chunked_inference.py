@@ -296,8 +296,102 @@ def test_resilient_selection_ignores_unneeded_series_and_preserves_model_inputs(
     assert set(selected.SeriesInstanceUID) == expected == set(seen)
     assert receipt == {
         "selected_series": 6,
-        "skipped_series": {"missing_dicoms": 0, "invalid_dicoms": 0, "invalid_series": 0},
+        "skipped_series": {
+            "missing_dicoms": 0,
+            "invalid_dicoms": 0,
+            "invalid_series": 0,
+            "invalid_metadata": 0,
+        },
     }
+
+
+def test_resilient_selection_skips_bad_metadata_without_losing_valid_mri(tmp_path):
+    good, unusable = "2.3", "2.4"
+    frame = pd.DataFrame(
+        [
+            {
+                "StudyInstanceUID": good,
+                "SeriesInstanceUID": f"{good}.1",
+                "Anatomical_Plane": " sagittal ",
+                "Fluid_Sensitive": "1",
+                "Fat_Suppression": "0",
+            },
+            {
+                "StudyInstanceUID": good,
+                "SeriesInstanceUID": f"{good}.2",
+                "Anatomical_Plane": "Coronal",
+                "Fluid_Sensitive": "0",
+                "Fat_Suppression": "1",
+            },
+            {
+                "StudyInstanceUID": good,
+                "SeriesInstanceUID": f"{good}.3",
+                "Anatomical_Plane": "Oblique",
+                "Fluid_Sensitive": "1",
+                "Fat_Suppression": "0",
+            },
+            {
+                "StudyInstanceUID": good,
+                "SeriesInstanceUID": f"{good}.4",
+                "Anatomical_Plane": "Axial",
+                "Fluid_Sensitive": None,
+                "Fat_Suppression": "0",
+            },
+            {
+                "StudyInstanceUID": unusable,
+                "SeriesInstanceUID": f"{unusable}.1",
+                "Anatomical_Plane": "Oblique",
+                "Fluid_Sensitive": "1",
+                "Fat_Suppression": "0",
+            },
+        ]
+    )
+    root = tmp_path / "dicoms"
+    for sid in (f"{good}.1", f"{good}.2"):
+        folder = root / "test_series" / good / sid
+        folder.mkdir(parents=True)
+        (folder / f"{sid}.1.dcm").write_bytes(
+            modified_dicom(
+                StudyInstanceUID=good,
+                SeriesInstanceUID=sid,
+                SOPInstanceUID=f"{sid}.1",
+            )
+        )
+    cache = tmp_path / "cache"
+    selected, receipt = chunked.prepare_usable_series(
+        frame,
+        [good, unusable],
+        dicom_root=root,
+        cache=cache,
+        cache_side=16,
+        max_series=3,
+        source_revision="test",
+        allow_unusable_studies=True,
+    )
+    assert selected.SeriesInstanceUID.tolist() == [f"{good}.1", f"{good}.2"]
+    assert selected.Anatomical_Plane.tolist() == ["Sagittal", "Coronal"]
+    assert selected[["Fluid_Sensitive", "Fat_Suppression"]].to_numpy().tolist() == [
+        [1, 0],
+        [0, 1],
+    ]
+    assert receipt["skipped_series"] == {
+        "missing_dicoms": 0,
+        "invalid_dicoms": 0,
+        "invalid_series": 0,
+        "invalid_metadata": 3,
+    }
+    assert receipt["unusable_study_ids"] == [unusable]
+    dataset = CompetitiveStudyDataset(
+        pd.DataFrame({"study_uid": [good]}),
+        selected,
+        cache,
+        slices=1,
+        side=16,
+        max_series=3,
+        raw_split="test_series",
+    )
+    assert dataset[0]["series_mask"].tolist() == [True, True, False]
+    assert torch.isfinite(dataset[0]["features"]).all()
 
 
 def test_resilient_selection_uses_same_plane_alternate_after_bad_dicom(tmp_path, monkeypatch):

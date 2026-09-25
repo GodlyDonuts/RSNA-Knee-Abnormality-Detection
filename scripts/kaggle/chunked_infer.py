@@ -90,9 +90,37 @@ def prepare_usable_series(
     source = Source(dicom_root)
     usable_ids: set[str] = set()
     unusable_study_ids: list[str] = []
-    failures = {"missing_dicoms": 0, "invalid_dicoms": 0, "invalid_series": 0}
+    required = {
+        "StudyInstanceUID",
+        "SeriesInstanceUID",
+        "Anatomical_Plane",
+        "Fluid_Sensitive",
+        "Fat_Suppression",
+    }
+    if not required <= set(frame):
+        raise ValueError("Test series metadata lacks required MRI features")
+    normalized = frame.copy()
+    normalized["Anatomical_Plane"] = (
+        normalized["Anatomical_Plane"].astype("string").str.strip().str.title()
+    )
+    for name in ("Fluid_Sensitive", "Fat_Suppression"):
+        normalized[name] = pd.to_numeric(normalized[name], errors="coerce")
+    valid_metadata = (
+        normalized["Anatomical_Plane"].isin(PLANES)
+        & normalized["Fluid_Sensitive"].isin((0, 1))
+        & normalized["Fat_Suppression"].isin((0, 1))
+    )
+    valid_frame = normalized.loc[valid_metadata].copy()
+    for name in ("Fluid_Sensitive", "Fat_Suppression"):
+        valid_frame[name] = valid_frame[name].astype(int)
+    failures = {
+        "missing_dicoms": 0,
+        "invalid_dicoms": 0,
+        "invalid_series": 0,
+        "invalid_metadata": int((~valid_metadata).sum()),
+    }
     for study_uid in study_ids:
-        rows = frame.loc[frame.StudyInstanceUID == study_uid].to_dict("records")
+        rows = valid_frame.loc[valid_frame.StudyInstanceUID == study_uid].to_dict("records")
         ordered = select_series(rows, len(rows), False)
         attempted: set[str] = set()
         accepted: list[dict] = []
@@ -154,7 +182,7 @@ def prepare_usable_series(
             continue
         if len(accepted) > max_series:
             raise ValueError("Prepared more series than the trained model accepts")
-    selected = frame.loc[frame.SeriesInstanceUID.isin(usable_ids)].copy()
+    selected = valid_frame.loc[valid_frame.SeriesInstanceUID.isin(usable_ids)].copy()
     if set(selected.StudyInstanceUID) != set(study_ids) - set(unusable_study_ids):
         raise ValueError("Prepared MRI series do not cover the test study chunk")
     receipt = {"selected_series": len(selected), "skipped_series": failures}

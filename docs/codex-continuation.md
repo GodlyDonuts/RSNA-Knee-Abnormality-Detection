@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, test-series metadata safeguard:** A bounded review found a
+reproducible crash path in the optional Kaggle series-recovery wrapper when a
+hidden series has an unknown plane or invalid fluid/fat flags. It now excludes
+such rows before calling the unchanged trained selector and dataset, retaining
+valid alternate MRI series. A real-DICOM regression and 29 focused tests pass;
+all 24,371 official training and 15 released test metadata rows stay valid.
+See [the bounded audit](../initiative/audits/kaggle-series-metadata-recovery-v1/README.md).
+This is **not** proof of the hidden error and is absent from the already
+submitted immutable notebook. Authenticated Kaggle still reported null status,
+error and score for code entry 56546143 at 11:30 UTC, with four available
+slots. Do not duplicate or spend another slot while it is unresolved.
+
 **September 25, 11:16 UTC fold-2 epoch 5:** Patch-attention fold-2 job
 848958 completed 1,430 cumulative optimizer updates and advanced into epoch
 6. Its immutable checkpoint was privately published exactly once, with all
