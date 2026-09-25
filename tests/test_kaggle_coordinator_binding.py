@@ -208,6 +208,56 @@ def test_second_correction_keeps_both_prior_notebook_versions():
         c.supersede_unsubmitted_kernel(workflow, None, db, operation, "b" * 64)
 
 
+def test_failed_hidden_submission_can_be_archived_for_distinct_corrected_push():
+    old = {
+        "state": "submitted",
+        "operation": {"kernel_slug": "user/old", "dataset_slug": "user/old-data"},
+        "operation_sha256": "a" * 64,
+        "kernel_version": 1,
+        "dataset": {"id": 7},
+        "submission_id": 42,
+        "description": "exact-code-attempt",
+        "attempted_at": "2026-09-25T08:00:00+00:00",
+    }
+    row = {
+        "ref": 42,
+        "description": "exact-code-attempt",
+        "status": "COMPLETE",
+        "totalBytes": 0,
+        "publicScore": None,
+        "errorDescription": "hidden notebook failed",
+    }
+    saved = []
+    workflow = SimpleNamespace(
+        verify_account=lambda *_: None,
+        read_entry=lambda *_: dict(old),
+        submission_outcome=lambda found: "failed" if found["errorDescription"] else "scored",
+        check_kernel=lambda *_: {"status": "COMPLETE"},
+        save_entry=lambda _db, entry, event: saved.append((dict(entry), event)),
+    )
+    remote = SimpleNamespace(submissions=lambda: [row])
+    db = SimpleNamespace(execute=lambda *_: None)
+    operation = {
+        "checkpoint_sha256": "c" * 64,
+        "kernel_slug": "user/new",
+        "dataset_slug": "user/new-data",
+    }
+    c.supersede_failed_submission_kernel(workflow, remote, db, operation, "a" * 64)
+    entry, event = saved.pop()
+    assert entry["state"] == "queued"
+    assert "submission_id" not in entry and "operation" not in entry
+    assert entry["superseded_operations"][0]["submission_id"] == 42
+    assert entry["superseded_operations"][0]["attempted_at"] == old["attempted_at"]
+    assert "failed hidden submission" in event
+    row["publicScore"] = 0.7
+    with pytest.raises(ValueError, match="Prior hidden failure"):
+        c.supersede_failed_submission_kernel(workflow, remote, db, operation, "a" * 64)
+    row["publicScore"] = None
+    operation["kernel_slug"] = "user/old"
+    with pytest.raises(ValueError, match="exact, distinct failed"):
+        c.supersede_failed_submission_kernel(workflow, remote, db, operation, "a" * 64)
+
+
 @pytest.fixture
 def clean_cli_projection(tmp_path):
     import os

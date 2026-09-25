@@ -173,6 +173,81 @@ def supersede_unsubmitted_kernel(workflow, remote, db, op, expected_old_sha):
     workflow.save_entry(db, entry, "preserved exact unsubmitted notebook for corrected push")
 
 
+def supersede_failed_submission_kernel(workflow, remote, db, op, expected_old_sha):
+    """Archive one scored-as-failed code attempt before a distinct correction."""
+    db.execute("BEGIN IMMEDIATE")
+    workflow.verify_account(db, remote)
+    entry = workflow.read_entry(db, op["checkpoint_sha256"])
+    old = entry.get("operation", {})
+    if (
+        entry.get("state") != "submitted"
+        or entry.get("operation_sha256") != expected_old_sha
+        or not entry.get("submission_id")
+        or not entry.get("kernel_version")
+        or old.get("kernel_slug") == op["kernel_slug"]
+        or old.get("dataset_slug") == op["dataset_slug"]
+    ):
+        raise ValueError("Only an exact, distinct failed code submission can be corrected")
+    found = [
+        row
+        for row in remote.submissions()
+        if row.get("ref") == entry["submission_id"]
+        and row.get("description") == entry.get("description")
+    ]
+    if (
+        len(found) != 1
+        or workflow.submission_outcome(found[0]) != "failed"
+        or found[0].get("status") != "COMPLETE"
+        or found[0].get("totalBytes") != 0
+        or found[0].get("publicScore") is not None
+        or workflow.check_kernel(remote, entry, entry["kernel_version"]).get("status") != "COMPLETE"
+    ):
+        raise ValueError("Prior hidden failure or exact public notebook is unverified")
+    history = entry.get("superseded_operations", [])
+    if not isinstance(history, list) or any(
+        item.get("operation_sha256") == expected_old_sha for item in history
+    ):
+        raise ValueError("Prior operation history is invalid or already preserved")
+    entry["superseded_operations"] = [
+        *history,
+        {
+            "operation": old,
+            "operation_sha256": expected_old_sha,
+            "kernel_version": entry["kernel_version"],
+            "dataset": entry["dataset"],
+            "state": "failed_hidden_submission",
+            "submission_id": entry["submission_id"],
+            "description": entry["description"],
+            "attempted_at": entry["attempted_at"],
+            "remote_status": found[0]["status"],
+            "remote_total_bytes": found[0]["totalBytes"],
+            "remote_outcome": "failed",
+        },
+    ]
+    for key in (
+        "kernel_version",
+        "kernel_absence_proof",
+        "dataset",
+        "operation",
+        "operation_sha256",
+        "submission_id",
+        "description",
+        "attempted_at",
+        "submission_identity",
+        "submitted_at",
+        "remote_status",
+        "remote_error_description",
+        "remote_total_bytes",
+        "remote_outcome",
+        "public_score",
+        "inference_receipt",
+        "inference_receipt_sha256",
+    ):
+        entry.pop(key, None)
+    entry["state"] = "queued"
+    workflow.save_entry(db, entry, "preserved exact failed hidden submission for corrected push")
+
+
 def management_create(python):
     def create(token, slug, title, upload):
         request = {
@@ -299,6 +374,13 @@ def run(args):
                     workflow, remote, db, op, args.superseded_operation_sha256
                 )
                 return workflow.push(remote, db, args.operation)
+            if args.action == "push-after-failed-submission":
+                if not args.publication_revision or not args.superseded_operation_sha256:
+                    raise ValueError("Failed-submission correction needs exact prior operation")
+                supersede_failed_submission_kernel(
+                    workflow, remote, db, op, args.superseded_operation_sha256
+                )
+                return workflow.push(remote, db, args.operation)
             if args.action == "push-kernel":
                 return workflow.push(remote, db, args.operation)
             if args.action == "submit":
@@ -321,6 +403,7 @@ def main():
             "reconcile-dataset",
             "push-kernel",
             "push-corrected-kernel",
+            "push-after-failed-submission",
             "submit",
         ],
     )

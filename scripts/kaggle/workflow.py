@@ -905,7 +905,11 @@ def allowance(db, account, now=None):
     if any(x["state"] in {"submit_intent", "submit_uncertain"} for x in records):
         raise ValueError("Uncertain submission requires reconciliation before any next mutation")
     today = now.date().isoformat()
-    local = sum(x.get("attempted_at", "").startswith(today) for x in records)
+    local = sum(
+        item.get("attempted_at", "").startswith(today)
+        for entry in records
+        for item in [entry, *entry.get("superseded_operations", [])]
+    )
     return max(0, min(5 - local, 5 - account["num_today"], account["num_allowed_now"]))
 
 

@@ -125,6 +125,16 @@ def test_live_allowance_includes_other_account_submissions(tmp_path):
         assert workflow.allowance(db, account()) == 0
 
 
+def test_allowance_counts_archived_failed_attempt(tmp_path):
+    with workflow.ledger(tmp_path / "ledger", "owner") as db:
+        record = entry()
+        record["superseded_operations"] = [
+            {"state": "failed_hidden_submission", "attempted_at": workflow.utcnow()}
+        ]
+        workflow.save_entry(db, record, "archived failure")
+        assert workflow.allowance(db, account(5, 0)) == 4
+
+
 @pytest.mark.parametrize(
     "field,value", [("entered", False), ("checked_at", "2001-01-01T00:00:00+00:00")]
 )
