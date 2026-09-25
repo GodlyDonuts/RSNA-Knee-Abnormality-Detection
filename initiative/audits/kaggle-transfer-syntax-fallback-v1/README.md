@@ -37,3 +37,14 @@ unchanged exact trained `rsna/**/*.py` runtime from Git
 matched the 51-file manifest SHA-256 and every staged file's size, SHA-256 and
 mode. This is a ready code input for a distinct candidate if evidence warrants
 one; no weights or submission artifact have been packaged.
+
+The exact 51 source files plus `projection.json` were also committed once to
+the private `GodlyDonuts/RSNA-Data` dataset at revision
+`ac1f01513ce21685dbbb63f07ae87d459fe876b7`. The
+[publisher](publish-projection.py) reconstructed the mixed-commit source in
+memory, checked the staged Newton manifest and private target path, wrote an
+intent before mutation, then fully re-downloaded and SHA-256/size verified all
+52 objects. Its [intent](intent.json), [commit result](commit-result.json) and
+[verification receipt](verified.json) match the separate Newton journal by
+full-file SHA-256. No Kaggle Dataset, notebook version or competition entry was
+created by this preservation step. Do not repeat the private commit.

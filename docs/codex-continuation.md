@@ -15,7 +15,11 @@ This source change is for a future distinct notebook only. Kaggle submission
 56546143 remains immutable and without a hidden outcome at this observation;
 do not submit another candidate until its actual result is known. The next
 candidate's 51-file exact source projection is staged on Newton with all bytes
-verified, but has not created a Dataset, notebook or competition submission.
+verified. It was also privately committed as 52 fully download/hash-verified
+objects at Hugging Face revision `ac1f01513ce21685dbbb63f07ae87d459fe876b7`;
+the [distinct journal](../initiative/audits/kaggle-transfer-syntax-fallback-v1/)
+prevents duplicate publication. This has not created a Kaggle Dataset, notebook
+or competition submission.
 
 **September 25, 09:36 UTC fold-2 epoch preservation:** Patch-attention fold-2
 job 848958 completed epoch 1's 286 optimizer updates and continued into epoch
