@@ -68,6 +68,18 @@ matches, including the 1,217,168,665-byte checkpoint LFS SHA-256. The
 [epoch-4 receipts](epoch-004/) bind the scheduled snapshot, manifest, intent,
 commit and verification. Do not repeat this upload.
 
+Epoch 5 completed 1,430 cumulative optimizer updates, and the same job
+continued into epoch 6 with finite loss and gradients and empty stderr. The
+immutable 1,217,168,665-byte checkpoint SHA-256 is
+`e30e0b7a21a5e905043f35bdee8fbdd15687f254ca57cd8ed9f36c4b178db1b7`.
+The one-CPU publisher privately committed it exactly once at revision
+`7a667e9fdaea9e2ffe0b41b502d5d5a8c2aeafc5`; all four objects were fully
+re-downloaded and hash/size verified. A separate private path-metadata check
+matched the LFS checkpoint SHA and size; the manifest records the pinned
+training source, official weights and license. The
+[epoch-5 receipts](epoch-005/) bind the scheduled snapshot, manifest,
+intent, commit and verification. Do not repeat this upload.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).

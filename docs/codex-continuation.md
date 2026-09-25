@@ -6,6 +6,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 11:16 UTC fold-2 epoch 5:** Patch-attention fold-2 job
+848958 completed 1,430 cumulative optimizer updates and advanced into epoch
+6. Its immutable checkpoint was privately published exactly once, with all
+four objects fully re-downloaded/hash verified at Hugging Face revision
+`7a667e9fdaea9e2ffe0b41b502d5d5a8c2aeafc5`; see the
+[epoch-5 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-005/).
+Do not repeat epochs 1–5. Kaggle entry 56546143 still had no hidden status or
+score at the latest read-only check, so preserve the four unused slots.
+
 **September 25, 11:04 UTC Kaggle contingency:** The distinct decoder-error
 fallback source has been bundled on Newton by one CPU-only job 849283. Its
 42 Dataset files, including the 1.215 GB unchanged fold-2 epoch-8 checkpoint,
