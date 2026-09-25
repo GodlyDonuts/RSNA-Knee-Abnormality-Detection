@@ -6,6 +6,25 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 12:06 UTC fold-2 epoch 7:** Patch-attention job 848958
+completed 2,002 optimizer updates and advanced into epoch 8. Its immutable
+checkpoint was privately published once and all four objects fully
+re-downloaded/hash verified at revision
+`9990df21fa6288325cd4a1ba167e737d9db0be80`; see the
+[epoch-7 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-007/).
+Do not repeat epochs 1–7. Kaggle entry 56546143 still had null hidden
+status/error/score at this check; keep the four other slots unused.
+
+**September 25, 12:01 UTC Kaggle recovery preparation:** The exact
+metadata-recovery source was prepared with the unchanged fold-2 epoch-8
+checkpoint in a distinct private Newton bundle. One-CPU Slurm job **849389**
+completed `0:0`; independent one-CPU job **849399** rehashed all 42 payload
+files and the generated notebook, also `0:0`. See the
+[bundle audit](../initiative/audits/kaggle-series-metadata-recovery-v1/).
+No Kaggle Dataset, notebook, or competition submission was created. Entry
+56546143 still had null hidden status/error/score and four unused slots at
+12:01 UTC. Fold-2 patch-attention job 848958 remained healthy into epoch 7.
+
 **September 25, metadata-recovery Newton stage:** The 51-file exact-source
 projection from packaging Git `90d879a74de55af2bdf6cb2186e61989ad9e6161`
 and unchanged training runtime Git `b74060b98f01bff1b924070ccba5ce44dd002f40`

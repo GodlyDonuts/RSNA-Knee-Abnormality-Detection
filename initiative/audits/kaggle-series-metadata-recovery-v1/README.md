@@ -65,3 +65,25 @@ and hash/size matched. The Newton and local journals are byte-identical, and
 a separate read-only private path metadata check matched all 52 sizes. This
 is private source preservation only. The current Kaggle submission 56546143
 still has no terminal result, and this source has no Kaggle Dataset or notebook.
+
+The distinct fold-2 epoch-8 bundle has now been prepared on Newton without a
+Kaggle publication. Its [one-CPU script](prepare.sbatch) and durable
+[dispatch intent](prepare-dispatch-intent.json) bind the staged source,
+unchanged 1,215,161,641-byte checkpoint and source snapshot. Slurm accepted
+CPU-only job **849389** once; it completed `0:0` in one minute with empty
+stderr. A separate one-CPU, zero-GPU read-only verifier job **849399**
+completed `0:0`, rehashing all 42 Dataset payload files, exact membership,
+the checkpoint, generated notebook and metadata. See the
+[terminal result](prepare-terminal-result.json) and
+[independent verification](independent-verification.json). The prepared
+[operation](prepared-operation.json), [manifest](prepared-bundle-manifest.json),
+[snapshot](prepared-snapshot.json), [notebook metadata](prepared-kernel-metadata.json)
+and [notebook source](prepared-kernel-run.py.txt) match the remote bytes. The
+bundle is privately stored at
+`/home/sa305415/rsna-knee/kaggle/bundles/fold2-epoch008-eb280864bd1c-metadata-v1`.
+It has **no** Kaggle Dataset ID, notebook version, public execution receipt or
+competition score. A future Kaggle submission would require the current entry
+56546143's terminal result, a fresh live allowance, one distinct private
+Dataset/notebook creation through the canonical Newton ledger, and a verified
+MRI-only public run. Do not upload the three-row CSV or reuse the older
+decoder-error bundle under this operation identity.

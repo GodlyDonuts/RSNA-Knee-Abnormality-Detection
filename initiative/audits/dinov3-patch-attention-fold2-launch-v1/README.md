@@ -92,6 +92,17 @@ The [epoch-6 receipts](epoch-006/) locally match the remote snapshot, upload
 intent, manifest, commit and full-verification records byte for byte. Do not
 repeat this upload.
 
+Epoch 7 completed 2,002 cumulative optimizer updates, and job 848958
+continued into epoch 8 with finite losses and empty stderr. Its immutable
+1,217,168,665-byte checkpoint SHA-256 is
+`ab87a692c1b65de4c417a661f017a49ab1217b6183505a8fcc745f470689383b`.
+The single CPU-only publisher privately committed it exactly once at revision
+`9990df21fa6288325cd4a1ba167e737d9db0be80`; all four objects were fully
+re-downloaded and hash/size verified. Independent private path metadata
+matched all four paths and the checkpoint LFS SHA/size. The
+[epoch-7 receipts](epoch-007/) locally match the remote snapshot, manifest,
+intent, commit and verification records byte for byte. Do not repeat it.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).
