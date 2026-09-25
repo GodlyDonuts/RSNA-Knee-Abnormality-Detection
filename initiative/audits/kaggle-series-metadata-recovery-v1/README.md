@@ -39,6 +39,13 @@ The CPU-only create and reconciliation allocations were Slurm 849426 and
 849427; the notebook push used CPU-only allocation 849428. The next read-only
 [Newton quota check](quota-after-publication.json) recorded 1,025,820,112 of
 1,048,576,000 kB and 990,875 of 1,000,000 files against the soft limits.
+Nine small failure, Dataset, notebook and training epoch-8 audit objects were
+also preserved at private Hugging Face revision
+`4010a5b05ed7b990d0daa024044829cec612210d`. The
+[intent](hf-small-milestone-intent.json), [commit result](hf-small-milestone-commit-result.json)
+and [verification](hf-small-milestone-verified.json) show all 23,080 bytes were
+fully downloaded back and hash verified. This is provenance preservation, not a
+competition submission.
 
 The DINOv3 Kaggle code submissions that reached hidden reruns failed without a
 public score. Kaggle's generic notebook error does not expose a hidden-test

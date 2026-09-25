@@ -36,6 +36,9 @@ version 1 was pushed once and was `RUNNING` at its exact-source check. Await
 its MRI-only public receipt before considering a new competition submission;
 four live slots remained. Never resubmit 56546143 or duplicate either new
 publication. See the [recovery audit](../initiative/audits/kaggle-series-metadata-recovery-v1/).
+Nine small audit files were separately mirrored to private Hugging Face
+revision `4010a5b05ed7b990d0daa024044829cec612210d` and all 23,080 bytes
+downloaded/hash verified. This does not change the Kaggle notebook or use a slot.
 
 **September 25, 12:06 UTC fold-2 epoch 7:** Patch-attention job 848958
 completed 2,002 optimizer updates and advanced into epoch 8. Its immutable
