@@ -6,6 +6,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, transfer-syntax contingency:** A real synthetic DICOM missing
+File Meta Transfer Syntax UID exposed one uncaught pydicom `AttributeError` in
+the opt-in Kaggle series fallback. The wrapper now recognizes only that exact
+decoder message and tries a healthy alternate series; unexpected software
+attribute errors still stop. See the [bounded audit](../initiative/audits/kaggle-transfer-syntax-fallback-v1/README.md).
+This source change is for a future distinct notebook only. Kaggle submission
+56546143 remains immutable and without a hidden outcome at this observation;
+do not submit another candidate until its actual result is known.
+
 **September 25, 09:03 UTC fold-2 continuation:** One matched ten-epoch
 patch-attention fold-2 job **848958** was dispatched on one H100/two CPUs.
 It allocated `evc47` and passed the visible-GPU/CUDA context preflight; actual

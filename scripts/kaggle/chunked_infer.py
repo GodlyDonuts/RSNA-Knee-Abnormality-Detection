@@ -41,6 +41,8 @@ DICOM_ATTRIBUTE_ERROR_PREFIXES = (
     "'FileDataset' object has no attribute '",
     "The dataset has no 'Pixel Data'",
     "Missing required element:",
+    "Unable to decode the pixel data as the dataset's 'file_meta' has no "
+    "(0002,0010) 'Transfer Syntax UID' element",
 )
 
 
