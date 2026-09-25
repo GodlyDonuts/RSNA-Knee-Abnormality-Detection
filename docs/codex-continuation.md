@@ -6,6 +6,25 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 24, 21:57 UTC Kaggle outcome:** Authenticated Kaggle marked the
+exact fold-2 epoch-8 code submission **56528793** `COMPLETE` with zero output
+bytes, an unhandled hidden-notebook error and **no score**. The public
+three-study execution remains valid but does not diagnose the hidden failure.
+See the [failure receipt](../initiative/audits/kaggle-fold2-pixelfix-v1/hidden-outcome.json).
+Two account slots remained. Do not resubmit that notebook or spend a slot on
+the same deployment path under a different checkpoint. The epoch-6 backup
+Dataset was created once but has not passed full download/hash verification;
+its notebook and competition submission were not created. Newton DNS and
+Stokes SSH were inaccessible at the latest cluster check; verify Slurm and
+the single canonical ledger once UCF access returns. Fold-1 patch-attention
+training had reached at least epoch 5 when last inspected. Epochs 1 and 2
+were privately published with full byte checks; epoch 3 had a completed
+verified private journal despite a lost local SSH response, and its exact
+private revision was reconciled read-only. The epoch-4 local dispatcher hung
+before writing its upload intent and was stopped; the remote epoch-4 journal
+is uninspected. Check Slurm, journal, checkpoint sidecars and quota when UCF
+connectivity returns before any new publication.
+
 **September 24, 18:43 UTC training continuation:** The completed ten-epoch
 patch-attention fold-0 run scored 0.7451169387 internal macro AUC, below its
 matched global-CLS fold-0 result 0.7783102649, but the predeclared lateral-

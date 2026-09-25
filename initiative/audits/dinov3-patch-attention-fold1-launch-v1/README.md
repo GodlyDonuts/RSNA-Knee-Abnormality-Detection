@@ -13,3 +13,18 @@ The pinned private [epoch publisher](../../../scripts/hf/publish_patch_attention
 This is an internal training experiment, not a Kaggle score. The fixed-final fold-1 result should be compared with the same global-CLS fold only after the job completes. Rare-target movement and the full three-fold macro need separate scrutiny before any architecture decision.
 
 **First completed epoch:** Job 847119 allocated evc32 and passed the scheduler-visible H100/NVML/CUDA, Python-header, runtime, and cache preflights. It completed 285 finite optimizer updates for epoch 1 and continued into epoch 2 without stderr. The [epoch-1 snapshot and publication receipts](epoch-001/) bind checkpoint SHA-256 `95de8a6739f160af09ef339a2440e376e58c97fff306da8cd38dee125d8ef1e9` to private HF revision `063b77e002cf9b942434e41db8a3bff4a3dbea60`. All four private objects were re-downloaded and checked by size and SHA-256. Do not repeat this publication. This is training progress, not a held-out fold result or Kaggle score.
+
+Epoch 2 was likewise published and fully re-downloaded/hash verified at private
+revision `940aec06a5140e593edaa5a8b427ad93c417081b`; its exact checkpoint
+and receipts are in [epoch-002](epoch-002/). Epoch 3's remote publisher also
+finished its four-object full-byte verification at private revision
+`dbc8895a326e43c224634fe207afff267416328f`, but the local SSH dispatch
+response later returned 255. The [read-only reconciliation](epoch-003/read-only-reconciliation.json)
+checked the durable Newton verified journal, matching private revision and
+LFS checkpoint SHA-256, and re-downloaded/hash-checked the three small objects.
+The epoch-3 upload was **not retried**. Epoch 4's local dispatcher hung during
+SSH prechecks while UCF connectivity was unstable. It was stopped after
+confirming that no local epoch-4 dispatch intent or result had been written;
+the remote epoch-4 journal is uninspected. Do not dispatch that epoch or
+publish later ones until actual remote state, Slurm progress and quota are
+inspected.

@@ -61,3 +61,16 @@ runtime and Dataset artifacts remain on private Newton storage. Credentials
 remain in the ignored local `.env` and are streamed to bounded CPU-only Slurm
 coordinator phases over SSH stdin. Each mutation has a durable intent; an
 uncertain outcome must be reconciled read-only, never retried blindly.
+
+**Hidden outcome:** Authenticated Kaggle `ListSubmissions` subsequently marked
+submission 56528793 `COMPLETE` with zero output bytes, an unhandled-notebook
+error and **no public score**; see the [exact read-only receipt](hidden-outcome.json).
+The underlying hidden traceback is not available, so a corrupt test series or
+larger runtime is a hypothesis, not a proven cause. Do not resubmit this
+version or send another checkpoint through the same inference path. Two live
+slots remained at observation. The fold-2 epoch-6 backup was packaged and its
+private Dataset was created once, but full remote checkpoint-download
+verification encountered intermittent Kaggle API errors and a broken Mac-side
+transfer; no epoch-6 notebook or competition entry has been created. Its
+Dataset create must never be repeated. The distinct fold-2 epoch-10 notebook
+push remains uncertain and its old slug must never be retried.
