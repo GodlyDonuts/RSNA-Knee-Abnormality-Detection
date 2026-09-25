@@ -73,3 +73,26 @@ notebook was pushed, and no competition submission was made. The prospective
 Dataset lookup returned an ambiguous 403, while an authenticated profile
 search proved the distinct notebook slug absent. Do not publish or submit this
 candidate while submission 56546143 lacks a terminal hidden outcome.
+
+The single Kaggle coordinator revalidates a snapshot beside its checkpoint for
+every publication phase. The retained training run no longer has that local
+epoch-8 file, so a separate private [snapshot staging pair](coordinator-snapshot-result.json)
+now uses the bundle's exact sidecar bytes and a same-inode checkpoint hardlink
+outside the frozen Dataset payload. Its [intent](coordinator-snapshot-intent.json)
+precedes that reversible staging. The exact 51 source files were independently
+copied and hash/mode verified into a dedicated [coordinator source directory](coordinator-source-result.json)
+with [stage intent](coordinator-source-intent.json), leaving `projection.json`
+outside source membership. The original training run stays in its prior
+retention state, and the Dataset directory contains no extra files.
+
+The one-CPU, zero-GPU [transport job](transport.sbatch) **849181** completed
+`0:0` after a distinct [dispatch intent](transport-dispatch-intent.json) and
+[result](transport-dispatch-result.json). The single coordinator produced the
+1,215,677,035-byte ZIP with SHA-256
+`aff415fb567deb95440be708c8a3a20bc409bc7a6e56c9328755285e17211561`
+and 43 exact members; the [transport journal](transport-result.json) and
+[terminal verification](transport-terminal-result.json) bind the checkpoint,
+trained source and operation SHA-256. The full ZIP hash was checked again after
+job completion. This transport is **prepared but not published**: no Kaggle
+Dataset creation, notebook push or competition submission occurred. Wait for
+the current hidden outcome before the next external mutation.

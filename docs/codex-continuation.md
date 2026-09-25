@@ -34,6 +34,15 @@ re-downloaded/hash verified at Hugging Face revision
 `927e51907dd1777bfd56a861edbdb926546e099a`; see the
 [epoch-2 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-002/).
 
+**September 25, 10:18 UTC deployment staging:** The transfer-syntax candidate
+now has a separate exact snapshot/checkpoint hardlink for the single Kaggle
+coordinator and a clean 51-file source staging directory; the training run's
+retention state and frozen Dataset payload remain unchanged. One CPU-only
+Slurm job **849181** prepared and rehashed the 43-member, 1,215,677,035-byte
+transport ZIP. See the [transport audit](../initiative/audits/kaggle-transfer-syntax-fallback-v1/README.md).
+No Kaggle Dataset, notebook or competition submission was created. Hold that
+publication while code submission 56546143 has no terminal hidden outcome.
+
 **September 25, 09:36 UTC fold-2 epoch preservation:** Patch-attention fold-2
 job 848958 completed epoch 1's 286 optimizer updates and continued into epoch
 2. Its immutable checkpoint was privately published exactly once and all four
