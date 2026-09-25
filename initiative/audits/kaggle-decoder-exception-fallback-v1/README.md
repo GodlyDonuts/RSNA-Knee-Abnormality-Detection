@@ -43,7 +43,24 @@ before the commit. Its [result](hf-commit-result.json) and
 re-downloaded and SHA-256/size matched; the local and Newton publication
 journals are byte-identical. This was private source preservation only.
 
-This change still requires a **new** bundle, private Kaggle Dataset and exact
-notebook version before a future competition slot could be considered. Wait
+This change still requires a private Kaggle Dataset and exact notebook version
+before a future competition slot could be considered. Wait
 for 56546143's actual terminal outcome and use the single Newton account
 ledger before any Kaggle publication or submission.
+
+The new, distinct local bundle has now been prepared without a Kaggle
+publication. One-CPU, zero-GPU Slurm job **849283** completed `0:0` in 62
+seconds. Its pinned [script](prepare.sbatch), durable [dispatch
+intent](prepare-dispatch-intent.json), [acceptance](prepare-dispatch-result.json)
+and [terminal verification](prepare-terminal-result.json) record the exact
+operation. The 42 Dataset payload files, including the 1,215,161,641-byte
+fold-2 epoch-8 checkpoint, were independently SHA-256 and size verified on
+Newton. The small [operation](prepared-operation.json), [manifest](prepared-bundle-manifest.json),
+[snapshot](prepared-snapshot.json), [notebook metadata](prepared-kernel-metadata.json)
+and [notebook source](prepared-kernel-run.py.txt) were copied back and checked
+against their exact hashes. The bundle is at
+`/home/sa305415/rsna-knee/kaggle/bundles/fold2-epoch008-eb280864bd1c-decodererrors-v1`.
+No Kaggle Dataset, notebook or competition submission was created; this is a
+contingency only while entry 56546143 remains unresolved. The Lustre soft
+quota after preparation was 1,018,689,196/1,048,576,000 kbytes and
+990,708/1,000,000 files. Preserve room for the ongoing fold-2 checkpoints.

@@ -6,6 +6,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, 11:04 UTC Kaggle contingency:** The distinct decoder-error
+fallback source has been bundled on Newton by one CPU-only job 849283. Its
+42 Dataset files, including the 1.215 GB unchanged fold-2 epoch-8 checkpoint,
+passed independent full-byte verification; see the [preparation receipts](../initiative/audits/kaggle-decoder-exception-fallback-v1/).
+No Kaggle Dataset, notebook or competition entry was created. Authenticated
+Kaggle still showed no terminal status or score for entry 56546143 at 11:04
+UTC, so the four remaining slots stay unused. Patch-attention fold-2 job
+848958 remains running into epoch 5; epochs 1–4 are privately verified.
+
 **September 25, 10:52 UTC fold-2 epoch 4:** Patch-attention fold-2 job 848958
 completed epoch 4's 1,144 optimizer updates and advanced into epoch 5. The
 immutable checkpoint was privately published exactly once, with all four
