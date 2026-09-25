@@ -6,6 +6,20 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 25, metadata-recovery Newton stage:** The 51-file exact-source
+projection from packaging Git `90d879a74de55af2bdf6cb2186e61989ad9e6161`
+and unchanged training runtime Git `b74060b98f01bff1b924070ccba5ce44dd002f40`
+is staged at
+`/home/sa305415/rsna-knee/kaggle/code-projections/90d879a-b740-metadata-v1`.
+Every extracted source file and the archive/manifest passed independent
+read-only hash, size, mode and membership checks; see the
+[stage audit](../initiative/audits/kaggle-series-metadata-recovery-v1/).
+The 51 files plus manifest were also privately committed once to Hugging Face
+revision `35bd8c8fa2add6da4d3f6f8a4ad4e3dfd485cb8f` and all 52 objects
+fully downloaded/hash verified, with matching local/Newton journals.
+No Kaggle Dataset, notebook or submission was created. Entry 56546143 still
+had no hidden result at the latest check, and its four other slots stay unused.
+
 **September 25, 11:41 UTC fold-2 epoch 6:** Patch-attention job 848958
 completed 1,716 cumulative optimizer updates and continued into epoch 7.
 Its immutable checkpoint was privately published exactly once, and all four

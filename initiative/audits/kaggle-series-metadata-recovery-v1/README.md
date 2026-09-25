@@ -43,3 +43,25 @@ The TAR remains in ignored local artifacts and can be rebuilt with
 `scripts/kaggle/project_code.py` using those full commits and
 `--preserve-training-code`. This is source preparation only: no Kaggle Dataset,
 notebook or competition entry was created from it.
+
+The exact projection is now staged on private Newton storage at
+`/home/sa305415/rsna-knee/kaggle/code-projections/90d879a-b740-metadata-v1`.
+A durable [stage intent](stage-intent.json) preceded the one remote directory
+creation and transfer. A separate read-only pass rehashed the archive,
+manifest, and all 51 extracted files, checked modes and membership, and
+confirmed the trained runtime came from the pinned training commit; see the
+[stage verification](stage-verified.json). This created no Kaggle Dataset,
+notebook, ledger operation or competition submission. Do not reuse an older
+prepared bundle for this newer source; any future bundle needs a distinct
+operation and exact manifest.
+
+The same exact 51 source files plus projection manifest were privately
+preserved once in `GodlyDonuts/RSNA-Data` at revision
+`35bd8c8fa2add6da4d3f6f8a4ad4e3dfd485cb8f`. The pinned
+[publisher](publish-projection.py) wrote a durable [intent](hf-intent.json)
+before the commit; the [result](hf-commit-result.json) and
+[verification](hf-verified.json) confirm all 52 objects were fully downloaded
+and hash/size matched. The Newton and local journals are byte-identical, and
+a separate read-only private path metadata check matched all 52 sizes. This
+is private source preservation only. The current Kaggle submission 56546143
+still has no terminal result, and this source has no Kaggle Dataset or notebook.
