@@ -21,6 +21,19 @@ the [distinct journal](../initiative/audits/kaggle-transfer-syntax-fallback-v1/)
 prevents duplicate publication. This has not created a Kaggle Dataset, notebook
 or competition submission.
 
+**September 25, 10:02 UTC new progress:** The distinct transfer-syntax
+contingency bundle was prepared by one CPU-only Slurm job **849132**, completed
+`0:0`, and its checkpoint and small artifacts were SHA-256 verified. The
+temporary exact hardlink used to restore the retained epoch-8 checkpoint for
+packaging was removed after validation. See the [staging audit](../initiative/audits/kaggle-transfer-syntax-fallback-v1/README.md).
+This did not create a Kaggle Dataset, notebook or competition submission;
+submission 56546143 still had no hidden status or score at the latest check.
+Patch-attention fold-2 completed epoch 2's 572 cumulative updates and its
+checkpoint was privately published exactly once with all four files fully
+re-downloaded/hash verified at Hugging Face revision
+`927e51907dd1777bfd56a861edbdb926546e099a`; see the
+[epoch-2 receipts](../initiative/audits/dinov3-patch-attention-fold2-launch-v1/epoch-002/).
+
 **September 25, 09:36 UTC fold-2 epoch preservation:** Patch-attention fold-2
 job 848958 completed epoch 1's 286 optimizer updates and continued into epoch
 2. Its immutable checkpoint was privately published exactly once and all four

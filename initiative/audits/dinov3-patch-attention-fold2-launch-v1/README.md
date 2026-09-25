@@ -40,6 +40,15 @@ also matches. Exact [epoch-1 receipts](epoch-001/) include the snapshot,
 manifest, upload intent, commit and verification result. Do not dispatch epoch
 1 again. Continue preserving each newly completed epoch exactly once.
 
+Epoch 2 then completed 572 total optimizer updates and the run advanced into
+epoch 3. Its immutable checkpoint SHA-256 is
+`0d89e49099f9be32bd9036ee8f1720b1f9a81d413140d80aae271927904a38f5`.
+The single CPU-only publisher privately committed it at Hugging Face revision
+`927e51907dd1777bfd56a861edbdb926546e099a`; all four objects were fully
+re-downloaded and size/SHA-256 verified. The [epoch-2 receipts](epoch-002/)
+and an independent read-only path metadata check confirm the exact snapshot,
+license and manifest. Do not dispatch epoch 2 again.
+
 The [publisher stage receipt](publisher-stage.json) binds the pinned
 [private epoch publisher](../../../scripts/hf/publish_patch_attention_epoch.py)
 and [fold-2 coordinator](../../../scripts/hf/dispatch_patch_attention_fold2_epoch.py).

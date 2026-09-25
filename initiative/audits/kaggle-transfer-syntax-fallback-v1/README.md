@@ -48,3 +48,28 @@ intent before mutation, then fully re-downloaded and SHA-256/size verified all
 [verification receipt](verified.json) match the separate Newton journal by
 full-file SHA-256. No Kaggle Dataset, notebook version or competition entry was
 created by this preservation step. Do not repeat the private commit.
+
+A distinct CPU-only future inference bundle is now staged on Newton at
+`/home/sa305415/rsna-knee/kaggle/bundles/fold2-epoch008-eb280864bd1c-transfersyntax-v1`.
+The [one-CPU Slurm preparation](prepare.sbatch) was submitted once as job
+**849132** and completed `0:0` on `evc21`. It combines the exact projection
+above with the already trained fold-2 global-CLS epoch-8 checkpoint SHA-256
+`eb280864bd1c2f896210ce360e1ae36d59649c854a9051523c2454a34d08c7b1`.
+The [terminal receipt](prepare-terminal-result.json), [operation](prepared-operation.json),
+[bundle manifest](prepared-bundle-manifest.json), [snapshot](prepared-snapshot.json),
+[kernel metadata](prepared-kernel-metadata.json), and [exact notebook source](prepared-kernel-run.py.txt)
+record the unique slugs and byte hashes. The full new 1,215,161,641-byte
+checkpoint and all five copied small files matched the remote SHA-256 values.
+
+The previously retained epoch-8 checkpoint had been removed from the run
+directory after its private backup. For packaging, a hash-verified hardlink
+to the existing older bundle restored those exact bytes without another copy;
+see the [link intent](checkpoint-link-intent.json) and [result](checkpoint-link-result.json).
+After the new bundle was fully validated, the temporary link was removed under
+a separate [cleanup intent](checkpoint-link-cleanup-intent.json) and
+[result](checkpoint-link-cleanup-result.json). Both original and new bundles
+retain their verified checkpoint copies. No Kaggle Dataset was created, no
+notebook was pushed, and no competition submission was made. The prospective
+Dataset lookup returned an ambiguous 403, while an authenticated profile
+search proved the distinct notebook slug absent. Do not publish or submit this
+candidate while submission 56546143 lacks a terminal hidden outcome.
