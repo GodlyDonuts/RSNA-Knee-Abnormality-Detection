@@ -15,7 +15,10 @@ across 3,403 outer studies. Patch attention improves aggregate lateral-meniscus
 AUC by 0.0185916049 but does not improve overall macro AUC. See the
 [completed result audit](../initiative/audits/dinov3-patch-attention-fold2-result-v1/).
 These are report-supervision holdouts, not Kaggle scores. All ten fold-2 epoch
-checkpoints remain privately published and verified. Kaggle entry 56550973
+checkpoints remain privately published and verified. The completed fold-2
+result and three-fold comparison were separately mirrored as eight fully
+download/hash-verified small objects at private Hugging Face revision
+`e073cb5d09388ee8d73d0beee23021179dcfe915`. Kaggle entry 56550973
 still had no hidden result at the latest check; preserve its three unused slots.
 
 **September 25, 13:20 UTC patch-attention fold-2 epoch 10:** Job 848958

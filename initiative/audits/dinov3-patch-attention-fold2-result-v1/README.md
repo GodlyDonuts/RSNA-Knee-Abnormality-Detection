@@ -31,3 +31,12 @@ support replacing the global head wholesale. The aggregate derives fold-0's
 score from its archived result rather than replaying its prediction CSV.
 These numbers should guide a new, separately validated experiment, not be
 treated as a hidden Kaggle result.
+
+The seven small result files and a byte-bound manifest were also committed
+once to the same private Hugging Face dataset at revision
+`e073cb5d09388ee8d73d0beee23021179dcfe915`. All eight objects were
+re-downloaded and size/SHA-256 verified. The [manifest](hf-milestone-manifest.json),
+[single-commit intent](hf-milestone-intent.json),
+[server result](hf-milestone-commit-result.json), and
+[download receipt](hf-milestone-verified.json) preserve the exact Git commit
+and source bytes. This private audit publication is not a Kaggle submission.
