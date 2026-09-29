@@ -117,3 +117,12 @@ The A32 epoch preservation coordinator and publisher are bound to this corrected
 Git, fold-0 schedule and unique private HF prefix. It requires each immutable
 completed epoch and exact adapter/base/source lineage before upload, then verifies
 all four objects by downloading all bytes. No upload is repeated on uncertainty.
+
+The source/dispatch milestone was privately mirrored at HF revision
+`07af9ff00b5cb9475bb7a7005c3009f080a0c907`, with all 44 objects fully
+re-downloaded and byte/SHA verified. This preserves implementation and receipts,
+not a newly trained checkpoint or score. The later optional retention precheck
+for five baseline fold-2 odd snapshots found those files already absent; it
+refused before an intent or deletion. That unexecuted proposal is ignored local
+evidence only and is not counted as reclaimed space. Production storage budgeting
+will use the actual pilot checkpoint size and hard-link snapshot behavior.
