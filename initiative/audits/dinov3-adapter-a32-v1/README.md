@@ -206,3 +206,9 @@ re-downloaded and hash verified. Active goal: obtain honest held-out evidence,
 continue solo DINOv3 improvements (native detail and slice context next), and
 measure competition performance before introducing other models/ensembles.
 Do not call the goal achieved based on this launch or its diagnostic pilot.
+
+Real production progress and its exact source/acceptance were privately mirrored
+at HF revision `530e692aee440bbf94e9b6ee1902f2fbe436f711`, all 58 objects
+fully re-downloaded and size/SHA verified. A later live read still showed job
+864856 RUNNING on evc32, 27 completed optimizer updates, finite losses/gradients
+and zero stderr bytes. This observation does not claim a completed epoch or score.
