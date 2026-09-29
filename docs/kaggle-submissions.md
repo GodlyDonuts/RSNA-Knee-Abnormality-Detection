@@ -1,5 +1,14 @@
 # Scheduled Kaggle code submissions
 
+The September 29 owner-authorized matched checkpoint comparison is tracked in
+[comparison-v1](../initiative/audits/kaggle-checkpoint-comparison-v1/). Epochs
+10/6/8 are accepted as 56663180/56663606/56663742; at 05:23 UTC all hidden
+scores were null and two live slots remained. Current epoch-4/epoch-2 k2 version-1
+notebooks are saved and running public checks. Their original unreadable
+placeholder pushes are preserved and must never be retried/submitted. Use the
+canonical ledger and actual completion receipts for the two remaining slots.
+
+
 **Current owner-authorized first hidden execution test, September 24:** A new
 private, offline, exact-source epoch-8 resilient-series notebook version 1 was
 submitted once as code submission **56507997** after its three-study public

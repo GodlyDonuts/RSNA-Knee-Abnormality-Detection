@@ -6,6 +6,28 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 29, five-checkpoint comparison:** Newton is connected. The owner
+requested five matched global-CLS fold-2 epochs 10/8/6/4/2 using the tested
+input-recovery wrappers, with unchanged training runtime and raw sigmoid outputs.
+All five distinct private Datasets are fully download/hash verified. Epochs 10,
+6 and 8 were submitted once as **56663180**, **56663606** and **56663742**;
+all three exact private version-1 public runs passed. At 05:23 UTC their hidden
+statuses/errors/scores were null and two live slots remained. Do not resubmit.
+Epoch 8's healthy public CSV matches its prior metadata-recovery output hash.
+The original epoch-4 and epoch-2 notebook pushes remain uncertain private
+placeholders and are preserved, never retried/submitted. Numeric version-label
+404s are not absence evidence: the same query fails on the known good control.
+Distinct k2 identities with the same fully verified Datasets/source were each
+saved once as private offline T4 version 1. Their public runs are running; use
+only these current ledger operations after actual completion receipts pass.
+See [comparison-v1](../initiative/audits/kaggle-checkpoint-comparison-v1/) for
+exact source hashes, intents, restoration, recovery and per-epoch receipts.
+The old absent epoch-10 push and failed 56550973 were reconciled/preserved before
+this campaign. Earlier files were restored with full hashes by CPU job 863396.
+No GPU training job is reserved. All 1,064 tests and source checks pass. Finish
+the two remaining exact code submissions under fresh allowance and the one
+canonical Newton ledger; record actual hidden outcomes without guessing scores.
+
 **September 28, authorized deployment correction:** The owner asked to fix the
 remaining deployment issues and submit one new version, keeping sigmoid
 probabilities unchanged. The wrapper now validates model geometry before

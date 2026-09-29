@@ -1,0 +1,104 @@
+{
+  "checked_at": "2026-09-29T05:18:18.496811+00:00",
+  "healthy_output_matches_prior_metaguard": true,
+  "kernel_slug": "godlydonuts/rsna-knee-epoch8-f2-inputguard-eb280864bd1c",
+  "metrics": {
+    "cache_side": 256,
+    "cache_version": "series-u16-v3",
+    "checkpoint_epoch": 8,
+    "checkpoint_sha256": "eb280864bd1c2f896210ce360e1ae36d59649c854a9051523c2454a34d08c7b1",
+    "chunk_count": 1,
+    "chunk_size": 32,
+    "chunks": [
+      {
+        "cache_bytes_before_cleanup": 52592948,
+        "elapsed_seconds": 22.80558846799977,
+        "failed_study_ids": [],
+        "fallback_studies": 0,
+        "first_row": 0,
+        "inference_attempts": [
+          {
+            "attempt": "chunk-0000/attempt-0000",
+            "elapsed_seconds": 22.80558846799977,
+            "study_ids": [
+              "1.2.826.0.1.3680043.8.498.10047035057544427318018579121635276191",
+              "1.2.826.0.1.3680043.8.498.10062861783145312629332250977456991776",
+              "1.2.826.0.1.3680043.8.498.10067514707072572280263481548497591402"
+            ],
+            "submission_sha256": "a3d29bc7f8c6908b6db13162bb495e76623f837c3caa4d3bb40067250acf0350"
+          }
+        ],
+        "inferred_studies": 3,
+        "series_preparation": {
+          "selected_series": 15,
+          "skipped_series": {
+            "invalid_dicoms": 0,
+            "invalid_metadata": 0,
+            "invalid_series": 0,
+            "missing_dicoms": 0
+          },
+          "source_recovery": [],
+          "unusable_study_ids": []
+        },
+        "studies": 3,
+        "submission_sha256": "a3d29bc7f8c6908b6db13162bb495e76623f837c3caa4d3bb40067250acf0350"
+      }
+    ],
+    "device_type": "cuda",
+    "diagnostic_only": false,
+    "elapsed_seconds": 63.96673753599998,
+    "encoder": {
+      "architecture": "dinov3_l16",
+      "config_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+      "embedding_dim": 1024,
+      "input_contract": "gray_0_1_imagenet_rgb_v1",
+      "license": "other",
+      "model_class": "dinov3_vit",
+      "pooling": "normalized_cls",
+      "pretrained": true,
+      "pretrained_state_key_mapping": "dinov3_official_layer_to_model_layer_transformers_5_6_1_v1",
+      "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+      "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+      "state_dict_format": "safetensors",
+      "transformers_version": "5.6.1",
+      "weights_sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+    },
+    "hidden_test_runtime_validated": false,
+    "inference_precision": "fp32",
+    "peak_chunk_cache_bytes": 52592948,
+    "schema_version": 1,
+    "status": "passed",
+    "studies": 3,
+    "submission_sha256": "a3d29bc7f8c6908b6db13162bb495e76623f837c3caa4d3bb40067250acf0350",
+    "test_inputs": {
+      "metadata_binding": "test_csv_authoritative_not_checkpoint_bound",
+      "sample_template_sha256": "bf96706cfea74f089b0450290206e659bf5ee2a17a8d732774e1f2a5bcac53e4",
+      "series_sha256": "d8b0402ccd4d1383bf8b154b781e53f156a5438778fadca04fca3c64592f4f2d",
+      "test_studies_sha256": "7539466fe487069345c233352b2632edeec1dd24128b08eda318de99ff7650ff"
+    },
+    "training_precision": "fp32",
+    "training_release_binding": {
+      "binding_sha256": "e2ecb283915a5b1810bfc9a2f6e1dda1f1d0d762f91cf2487140af3d05cb6c35",
+      "manifest_sha256": "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7",
+      "release_receipt_sha256": "6453a8ff31373c40556dc857e15fa0025f122195388a2b46c81ecd9cff0b8833",
+      "schema_version": 1,
+      "semantic_registry_sha256": "d7e513e444b9639b0797f6e9034a075256d9b32d33abed41964eabfe32210f36",
+      "series_sha256": "14eb050d081abe9fce638f5dcfb2cedc688fdac5ace9a62bf9b1cf152421eada",
+      "source_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+    }
+  },
+  "receipt": {
+    "bundle_manifest_sha256": "a203abb4d44bb31d68f5cec7525fa021ec45e72da7cc47caae33b1d6a17ca92e",
+    "checkpoint_sha256": "eb280864bd1c2f896210ce360e1ae36d59649c854a9051523c2454a34d08c7b1",
+    "hidden_score_claimed": false,
+    "public_example_only": true,
+    "schema_version": 1,
+    "status": "offline_inference_complete",
+    "studies": 3,
+    "submission_sha256": "a3d29bc7f8c6908b6db13162bb495e76623f837c3caa4d3bb40067250acf0350"
+  },
+  "state": {
+    "status": "COMPLETE"
+  },
+  "version": 1
+}
