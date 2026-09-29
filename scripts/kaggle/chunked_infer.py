@@ -54,6 +54,89 @@ DICOM_DECODER_RUNTIME_PREFIX = (
 )
 
 
+class FrozenSeriesSource:
+    """Use the exact source bytes inspected at the per-slice decoding boundary."""
+
+    def __init__(self, payloads: dict[str, bytes]):
+        self.payloads = payloads
+
+    def read_series(self, paths: list[str]) -> list[bytes]:
+        return [self.payloads[path] for path in paths]
+
+
+def healthy_slices(source: Source, paths: list[str]) -> tuple[list[str], FrozenSeriesSource, list]:
+    """Exclude undecodable source slices without inventing replacement MRI pixels."""
+    from pydicom.errors import InvalidDicomError
+
+    from rsna.dicom import decode_slice
+
+    payloads = {}
+    failures = []
+    for path in paths:
+        data = source.read(path)  # Filesystem and transport errors must remain fatal.
+        _, study, series, filename = Path(path).parts
+        try:
+            decode_slice(data, study, series, Path(filename).stem)
+        except (
+            InvalidDicomError,
+            ValueError,
+            TypeError,
+            KeyError,
+            IndexError,
+            AttributeError,
+            NotImplementedError,
+            EOFError,
+            OverflowError,
+        ) as exc:
+            failures.append({"path": path, "error_type": type(exc).__name__, "detail": str(exc)})
+        except RuntimeError as exc:
+            if not str(exc).startswith(DICOM_DECODER_RUNTIME_PREFIX):
+                raise
+            failures.append({"path": path, "error_type": type(exc).__name__, "detail": str(exc)})
+        else:
+            payloads[path] = data
+    return list(payloads), FrozenSeriesSource(payloads), failures
+
+
+def data_failure(exc: subprocess.CalledProcessError) -> bool:
+    """Only isolate Python failures originating in MRI input handling."""
+    if exc.returncode != 1:
+        return False
+    trace = exc.stderr or ""
+    if not any(
+        name in trace
+        for name in ("/rsna/competitive/data.py", "/rsna/dicom.py", "/rsna/preprocess.py")
+    ):
+        return False
+    # Do not neutralize CUDA, memory, disk, environment, or model failures.
+    last = trace.strip().splitlines()[-1] if trace.strip() else ""
+    return last.startswith(
+        (
+            "ValueError:",
+            "TypeError:",
+            "KeyError:",
+            "IndexError:",
+            "AttributeError:",
+            "InvalidDicomError:",
+            "NotImplementedError:",
+            "EOFError:",
+            "OverflowError:",
+        )
+    ) and not any(
+        message in trace
+        for message in (
+            "checksum",
+            "fingerprint",
+            "Stale/corrupted",
+            "Incomplete cache pair",
+            "binding mismatch",
+            "changed after dataset",
+            "CUDA",
+            "out of memory",
+        )
+    )
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -83,6 +166,8 @@ def prepare_usable_series(
     max_series: int,
     source_revision: str,
     allow_unusable_studies: bool = False,
+    recover_slices: bool = False,
+    validate_geometry: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """Cache only useful MRI series; use an alternate when source pixels are invalid."""
     from pydicom.errors import InvalidDicomError
@@ -119,6 +204,7 @@ def prepare_usable_series(
         "invalid_series": 0,
         "invalid_metadata": int((~valid_metadata).sum()),
     }
+    recovery = []
     for study_uid in study_ids:
         rows = valid_frame.loc[valid_frame.StudyInstanceUID == study_uid].to_dict("records")
         ordered = select_series(rows, len(rows), False)
@@ -133,8 +219,23 @@ def prepare_usable_series(
             if not paths:
                 failures["missing_dicoms"] += 1
                 return False
+            cache_source = source
+            if recover_slices:
+                paths, cache_source, rejected = healthy_slices(source, paths)
+                if rejected:
+                    recovery.append(
+                        {
+                            "study_uid": study_uid,
+                            "series_uid": sid,
+                            "retained_slices": len(paths),
+                            "rejected_slices": rejected,
+                        }
+                    )
+                if not paths:
+                    failures["invalid_dicoms"] += 1
+                    return False
             try:
-                cache_series(source, paths, cache, cache_side, source_revision)
+                metadata = cache_series(cache_source, paths, cache, cache_side, source_revision)
             except InvalidDicomError:
                 failures["invalid_dicoms"] += 1
                 return False
@@ -158,6 +259,21 @@ def prepare_usable_series(
                     raise
                 failures["invalid_series"] += 1
                 return False
+            if validate_geometry:
+                from rsna.competitive.data import _positions
+
+                try:
+                    _positions(metadata, metadata["n_slices"])
+                except ValueError as exc:
+                    failures["invalid_series"] += 1
+                    recovery.append(
+                        {
+                            "study_uid": study_uid,
+                            "series_uid": sid,
+                            "rejected_model_geometry": str(exc),
+                        }
+                    )
+                    return False
             usable_ids.add(sid)
             accepted.append(row)
             return True
@@ -188,6 +304,8 @@ def prepare_usable_series(
     receipt = {"selected_series": len(selected), "skipped_series": failures}
     if allow_unusable_studies:
         receipt["unusable_study_ids"] = unusable_study_ids
+    if recover_slices or validate_geometry:
+        receipt["source_recovery"] = recovery
     return selected, receipt
 
 
@@ -231,9 +349,14 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
     if set(template.StudyInstanceUID) - set(series.StudyInstanceUID) and not fallback_unusable:
         raise ValueError("A test study has no series")
 
+    isolate = getattr(args, "isolate_study_errors", False)
+    recover_slices = getattr(args, "recover_slices", False)
+    validate_geometry = getattr(args, "validate_model_geometry", False)
+    if isolate and not fallback_unusable:
+        raise ValueError("Study error isolation requires explicit unusable-study fallback")
     checkpoint_sha = sha256(args.checkpoint)
     resilient = getattr(args, "resilient_series", False)
-    if fallback_unusable and not resilient:
+    if (fallback_unusable or recover_slices or validate_geometry) and not resilient:
         raise ValueError("Unusable-study fallback requires resilient MRI preparation")
     if resilient:
         if (
@@ -253,56 +376,19 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
     predictions = []
     receipts = []
     common = None
-    for start in range(0, len(template), args.chunk_size):
-        part = template.iloc[start : start + args.chunk_size].copy()
-        ids = set(part.StudyInstanceUID)
-        selected_series = series[series.StudyInstanceUID.isin(ids)]
-        chunk = args.cache_root / f"chunk-{start // args.chunk_size:04d}"
-        chunk.mkdir(mode=0o700)
-        template_path = chunk / "sample_submission.csv"
-        series_path = chunk / "test_series.csv"
-        cache = chunk / "cache"
-        output = chunk / "submission.csv"
-        preparation = None
-        if resilient:
-            selected_series, preparation = prepare_usable_series(
-                selected_series,
-                part.StudyInstanceUID.tolist(),
-                dicom_root=args.dicom_root,
-                cache=cache,
-                cache_side=args.cache_side,
-                max_series=args.max_series,
-                source_revision=args.source_revision,
-                allow_unusable_studies=fallback_unusable,
-            )
-        unusable = set(preparation.get("unusable_study_ids", [])) if preparation else set()
-        if unusable - ids:
-            raise ValueError("Unusable-study receipt contains an unrelated identity")
-        part_for_model = part.loc[~part.StudyInstanceUID.isin(unusable)].copy()
-        if part_for_model.empty:
-            frame = part.copy()
-            for target in TARGETS:
-                frame[target] = 0.5
-            predictions.append(frame)
-            receipts.append(
-                {
-                    "first_row": start,
-                    "studies": len(part),
-                    "inferred_studies": 0,
-                    "fallback_studies": len(part),
-                    "submission_sha256": None,
-                    "cache_bytes_before_cleanup": 0,
-                    "elapsed_seconds": 0.0,
-                    "series_preparation": preparation,
-                }
-            )
-            if cache.exists():
-                if cache.is_symlink():
-                    raise ValueError("Chunk cache became a symlink")
-                shutil.rmtree(cache)
-            continue
-        part_for_model.to_csv(template_path, index=False)
-        selected_series.to_csv(series_path, index=False)
+
+    def infer_subset(subset, prepared, cache, chunk):
+        nonlocal common
+        attempt = chunk / f"attempt-{len(attempt_receipts):04d}" if isolate else chunk
+        if isolate:
+            attempt.mkdir(mode=0o700)
+        template_path = attempt / "sample_submission.csv"
+        series_path = attempt / "test_series.csv"
+        output = attempt / "submission.csv"
+        subset.to_csv(template_path, index=False)
+        prepared.loc[prepared.StudyInstanceUID.isin(subset.StudyInstanceUID)].to_csv(
+            series_path, index=False
+        )
         command = [
             sys.executable,
             *(
@@ -346,7 +432,43 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             command.extend(("--dicom-root", str(args.dicom_root)))
         if args.allow_diagnostic:
             command.append("--allow-diagnostic")
-        invoke(command, check=True)
+        attempt_started = time.monotonic()
+        try:
+            if isolate:
+                completed = invoke(command, check=True, capture_output=True, text=True)
+                (attempt / "stdout.log").write_text(completed.stdout or "")
+                (attempt / "stderr.log").write_text(completed.stderr or "")
+            else:
+                invoke(command, check=True)
+        except subprocess.CalledProcessError as exc:
+            if not isolate or not data_failure(exc):
+                if exc.stderr:
+                    print(exc.stderr, file=sys.stderr, flush=True)
+                raise
+            (attempt / "stdout.log").write_text(exc.stdout or "")
+            (attempt / "stderr.log").write_text(exc.stderr or "")
+            event = {
+                "study_ids": subset.StudyInstanceUID.tolist(),
+                "attempt": attempt.relative_to(args.cache_root).as_posix(),
+                "error": (exc.stderr or "").strip().splitlines()[-1],
+                "elapsed_seconds": time.monotonic() - attempt_started,
+            }
+            attempt_receipts.append(event)
+            print(json.dumps({"phase": "isolate_mri_input_failure", **event}), flush=True)
+            if len(subset) == 1:
+                failed_ids.extend(subset.StudyInstanceUID.tolist())
+                neutral = subset.copy()
+                for target in TARGETS:
+                    neutral[target] = 0.5
+                return neutral
+            midpoint = len(subset) // 2
+            return pd.concat(
+                [
+                    infer_subset(subset.iloc[:midpoint].copy(), prepared, cache, chunk),
+                    infer_subset(subset.iloc[midpoint:].copy(), prepared, cache, chunk),
+                ],
+                ignore_index=True,
+            )
         metrics = json.loads(output.with_suffix(".metrics.json").read_text())
         expected_inputs = {
             "series_sha256": sha256(series_path),
@@ -356,7 +478,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         if (
             metrics.get("status") != "passed"
             or metrics.get("checkpoint_sha256") != checkpoint_sha
-            or metrics.get("studies") != len(part_for_model)
+            or metrics.get("studies") != len(subset)
             or metrics.get("diagnostic_only") is not args.allow_diagnostic
             or metrics.get("submission_sha256") != sha256(output)
             or metrics.get("test_inputs") != expected_inputs
@@ -388,10 +510,75 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         frame = pd.read_csv(output)
         if list(frame.columns) != ["StudyInstanceUID", *TARGETS]:
             raise ValueError("Chunk output column order differs")
-        if frame.StudyInstanceUID.tolist() != part_for_model.StudyInstanceUID.tolist():
+        if frame.StudyInstanceUID.tolist() != subset.StudyInstanceUID.tolist():
             raise ValueError("Chunk output identities or order differ")
+        attempt_receipts.append(
+            {
+                "study_ids": subset.StudyInstanceUID.tolist(),
+                "attempt": attempt.relative_to(args.cache_root).as_posix(),
+                "submission_sha256": metrics["submission_sha256"],
+                "elapsed_seconds": metrics["elapsed_seconds"],
+            }
+        )
+        return frame
+
+    for start in range(0, len(template), args.chunk_size):
+        part = template.iloc[start : start + args.chunk_size].copy()
+        ids = set(part.StudyInstanceUID)
+        selected_series = series[series.StudyInstanceUID.isin(ids)]
+        chunk = args.cache_root / f"chunk-{start // args.chunk_size:04d}"
+        chunk.mkdir(mode=0o700)
+        cache = chunk / "cache"
+        output = chunk / "submission.csv"
+        preparation = None
+        if resilient:
+            selected_series, preparation = prepare_usable_series(
+                selected_series,
+                part.StudyInstanceUID.tolist(),
+                dicom_root=args.dicom_root,
+                cache=cache,
+                cache_side=args.cache_side,
+                max_series=args.max_series,
+                source_revision=args.source_revision,
+                allow_unusable_studies=fallback_unusable,
+                recover_slices=recover_slices,
+                validate_geometry=validate_geometry,
+            )
+        unusable = set(preparation.get("unusable_study_ids", [])) if preparation else set()
+        if unusable - ids:
+            raise ValueError("Unusable-study receipt contains an unrelated identity")
+        part_for_model = part.loc[~part.StudyInstanceUID.isin(unusable)].copy()
+        if part_for_model.empty:
+            frame = part.copy()
+            for target in TARGETS:
+                frame[target] = 0.5
+            predictions.append(frame)
+            receipts.append(
+                {
+                    "first_row": start,
+                    "studies": len(part),
+                    "inferred_studies": 0,
+                    "fallback_studies": len(part),
+                    "submission_sha256": None,
+                    "cache_bytes_before_cleanup": 0,
+                    "elapsed_seconds": 0.0,
+                    "series_preparation": preparation,
+                }
+            )
+            if cache.exists():
+                if cache.is_symlink():
+                    raise ValueError("Chunk cache became a symlink")
+                shutil.rmtree(cache)
+            continue
+        failed_ids = []
+        attempt_receipts = []
+        frame = infer_subset(part_for_model, selected_series, cache, chunk)
+        if isolate:
+            frame.to_csv(output, index=False)
+        if failed_ids:
+            unusable.update(failed_ids)
         if unusable:
-            neutral = part.loc[part.StudyInstanceUID.isin(unusable)].copy()
+            neutral = part.loc[part.StudyInstanceUID.isin(unusable - set(failed_ids))].copy()
             for target in TARGETS:
                 neutral[target] = 0.5
             frame = pd.concat([frame, neutral], ignore_index=True)
@@ -405,13 +592,21 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
                 "first_row": start,
                 "studies": len(part),
                 **(
-                    {"inferred_studies": len(part_for_model), "fallback_studies": len(unusable)}
+                    {
+                        "inferred_studies": len(part_for_model) - len(failed_ids),
+                        "fallback_studies": len(unusable),
+                    }
                     if fallback_unusable
                     else {}
                 ),
                 "submission_sha256": sha256(output),
                 "cache_bytes_before_cleanup": cache_bytes,
-                "elapsed_seconds": metrics["elapsed_seconds"],
+                "elapsed_seconds": sum(row["elapsed_seconds"] for row in attempt_receipts),
+                **(
+                    {"inference_attempts": attempt_receipts, "failed_study_ids": failed_ids}
+                    if isolate
+                    else {}
+                ),
                 **({"series_preparation": preparation} if preparation is not None else {}),
             }
         )
@@ -422,7 +617,9 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
     if common is None:
         raise ValueError("No predictions from MRI-backed studies")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    write_submission(pd.concat(predictions, ignore_index=True), template, args.output)
+    temporary_output = args.output.with_suffix(".partial.csv")
+    write_submission(pd.concat(predictions, ignore_index=True), template, temporary_output)
+    temporary_output.replace(args.output)
     result = {
         "schema_version": 1,
         "status": "passed",
@@ -476,6 +673,9 @@ def main() -> None:
     parser.add_argument("--baseline-proof", type=Path)
     parser.add_argument("--resilient-series", action="store_true")
     parser.add_argument("--fallback-on-unusable-study", action="store_true")
+    parser.add_argument("--recover-slices", action="store_true")
+    parser.add_argument("--validate-model-geometry", action="store_true")
+    parser.add_argument("--isolate-study-errors", action="store_true")
     parser.add_argument("--cache-side", type=int)
     parser.add_argument("--max-series", type=int)
     args = parser.parse_args()

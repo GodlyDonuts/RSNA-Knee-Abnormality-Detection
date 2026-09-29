@@ -6,6 +6,20 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 28, authorized deployment correction:** The owner asked to fix the
+remaining deployment issues and submit one new version, keeping sigmoid
+probabilities unchanged. The wrapper now validates model geometry before
+accepting a series, retains actual decodable source slices, and can isolate
+later input errors to one study while preserving global integrity/runtime
+checks. The real DICOM/model-route and chunking regressions pass; see
+[input-recovery-v1](../initiative/audits/kaggle-input-recovery-v1/).
+The candidate retains global-CLS fold-2 epoch-8 and every training `rsna` byte
+from `b74060b98f01bff1b924070ccba5ce44dd002f40`. Newton DNS still fails and
+Stokes SSH times out. Finish local verification and exact projection preparation;
+when access returns, reconcile failed 56550973 in the canonical Newton ledger
+before distinct publication and one guarded code submission. No new submission
+has been made, and the hidden cause remains unproven.
+
 **September 28, successful-submission comparison and terminal result:** Both
 authenticated Kaggle status methods mark DINOv3 entry 56550973 `COMPLETE` with
 an unhandled notebook error, zero bytes and no score. The earlier OSS entries
