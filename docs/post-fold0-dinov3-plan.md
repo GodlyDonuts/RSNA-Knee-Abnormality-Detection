@@ -1,5 +1,15 @@
 # DINOv3-L plan after the first full fold
 
+**September 29 adapter direction:** The owner's newer request is to keep original
+pretrained weights frozen while learning substantial internal adapters and
+improving use of each MRI series. The current
+[adapter and supervision plan](dinov3-adapter-and-supervision-plan.md) supersedes
+the historical next-experiment order below. It begins with a controlled rank-32
+adapter comparison, then separately tests native detail, sequential coverage and
+qualified label confidence. Public source comparison has started and exposes
+dependent label tables and differing missingness semantics; it is not a new
+training-label release. No adapter run has been dispatched.
+
 **September 29 public-leaderboard update:** Five matched fold-2 global-CLS
 checkpoints scored 0.611/0.628/0.637/0.638/0.635 at epochs 2/4/6/8/10.
 Epoch 8 is the best observed public score; epoch 10 has already plateaued.

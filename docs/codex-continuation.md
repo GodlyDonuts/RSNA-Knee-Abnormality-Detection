@@ -6,6 +6,22 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 29, adapter and source-research plan:** The owner requested substantial
+internal adapters while preserving original DINOv3 weights, better series use,
+and public-label agreement analysis. See
+[the proposed experiment sequence](dinov3-adapter-and-supervision-plan.md) and
+[the measured source audit](../initiative/audits/adapter-source-research-v1/).
+Seven HF repositories were inspected; five label tables were compared only on
+the 2,603 accepted training rows outside fold 0. Two tables share nine exact
+columns, one exceeds probability bounds, and a mirrored blend was byte-matched
+to its original Kaggle source, whose card declares gold-guided changes. No public
+labels were imported. The proposed first comparison is rank-32 LoRA within the
+encoder (10,223,616 adapter parameters plus the existing head), with original
+inputs/labels; native detail, sequential context and qualified label confidence
+follow as separate experiments. This is a plan and source audit, not implemented
+adapters, a launched job, or a new submission. Accepted data/masks/folds remain
+unchanged. Inspect live cluster jobs/quota before any subsequent launch.
+
 **September 29, scored checkpoint result (17:14 UTC):** All five fold-2
 DINOv3 global-CLS code submissions finished hidden reruns without errors. Public
 mean 12-target ROC AUC by epoch 2/4/6/8/10 is **0.611/0.628/0.637/0.638/0.635**.
