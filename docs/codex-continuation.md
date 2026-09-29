@@ -34,6 +34,15 @@ logs/run records and terminal verification before the distinct prepared producti
 launch. The pinned per-epoch private HF coordinator is
 `scripts/hf/dispatch_adapter_a32_epoch.py`; no production epoch exists yet.
 Do not repeat the completed old snapshot evictions or any terminal pilot.
+Pilot 864825 is now terminal FAILED 2:0 after a completed four-update full
+diagnostic run and a valid intentional one-update stop. The shell harness misread
+torchrun's wrapper exit code; optimizer training remained finite. A CPU-only full
+SHA/binding check passed. Distinct resume-only job **864840** was dispatched once
+on evc32 under the unchanged `6f1ee6d` source/config, preserving the completed
+full output and resuming only its saved partial output. Inspect exact current
+Slurm/logs and require terminal `pilot-verified.json`; do not repeat the full
+diagnostic training or dispatch another recovery job blindly. No production job
+has been submitted. See the A32 audit for prepared evc32 production script/hash.
 
 **September 29, public visual teachers and depth-context investigation:** The
 owner supplied three high-scoring public notebook candidates and asked about

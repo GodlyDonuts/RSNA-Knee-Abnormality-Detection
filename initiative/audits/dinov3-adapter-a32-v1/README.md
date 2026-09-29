@@ -126,3 +126,33 @@ for five baseline fold-2 odd snapshots found those files already absent; it
 refused before an intent or deletion. That unexecuted proposal is ignored local
 evidence only and is not counted as reclaimed space. Production storage budgeting
 will use the actual pilot checkpoint size and hard-link snapshot behavior.
+
+## Intentional-stop recovery
+
+Corrected pilot 864825 completed its uninterrupted two-epoch diagnostic run
+(16 training and 16 outer studies, four finite optimizer updates), with exactly
+10,426,636 trainable parameters including 10,223,616 in the encoder. It then
+completed the intentional one-update stop and wrote a valid recovery checkpoint.
+The shell harness expected raw exit 75; torchrun wraps that worker exit as its
+own exit 1, so the harness ended the allocation (terminal FAILED 2:0) without
+resuming. This is not a model optimizer failure.
+
+The [terminal receipt](pilot-four-terminal.txt) and
+[full diagnostic summary](pilot-full-diagnostic-summary.json) are preserved.
+A CPU-only one-core Python 3.12 check validated the stopped checkpoint's entire
+SHA and exact binding against the trainer's stop receipt. A prior read-only check
+using the system Python failed on its older syntax support before any mutation.
+Distinct **resume-only Slurm 864840** was dispatched once on evc32. It preserves
+the original complete full-run output and resumes only the existing valid partial
+output under unchanged source/config. It repeats neither the full run nor the
+stopped update. It must finish and write terminal `pilot-verified.json` before
+production. The existing supervisor remains deliberately conservative about
+unsolicited worker exits; launch-script handling of this deliberate stop is corrected
+by validating the exact receipt, rather than accepting a bare launcher code.
+
+The actual pilot checkpoint is 1,338,164,716 bytes. Production worst-case budgeting
+allows eleven unique checkpoint inodes (ten immutable snapshots and a transient
+recovery save) plus the two pilot checkpoints. Against the original 37.54 GiB
+soft-byte reserve, projected remaining space is 21.34 GiB; use a fresh quota check
+with overhead before dispatch. The prepared production script now selects the
+same CUDA-accepted evc32 node, one H100 and two CPUs, and is still unsubmitted.
