@@ -86,3 +86,12 @@ The pinned DICOM replay passed twice (the second from the archived script).
 Repository validation passed: 1,023 tests, Ruff lint/format, mypy for all 35
 source files, archive verification, and complete v2 review coverage. No
 production inference code was modified or deployed by this comparison.
+
+The seven small comparison/failure/source records from GitHub main `592c071`
+and a byte manifest were committed once to private `GodlyDonuts/RSNA-Data` at
+revision `71afb9a202c2d10ed0d4e59d6b252619eb245e65`. All eight objects were
+fully downloaded and matched by size and SHA-256. The durable
+[hf-mirror-intent.json](hf-mirror-intent.json),
+[hf-mirror-commit-result.json](hf-mirror-commit-result.json), and
+[hf-mirror-verified.json](hf-mirror-verified.json) preserve that one operation.
+No large model/image artifact or Kaggle submission was created.
