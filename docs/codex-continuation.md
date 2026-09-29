@@ -6,27 +6,31 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
-**September 29, five-checkpoint comparison:** Newton is connected. The owner
-requested five matched global-CLS fold-2 epochs 10/8/6/4/2 using the tested
-input-recovery wrappers, with unchanged training runtime and raw sigmoid outputs.
-All five distinct private Datasets are fully download/hash verified. Epochs 10,
-6 and 8 were submitted once as **56663180**, **56663606** and **56663742**;
-all three exact private version-1 public runs passed. At 05:23 UTC their hidden
-statuses/errors/scores were null and two live slots remained. Do not resubmit.
-Epoch 8's healthy public CSV matches its prior metadata-recovery output hash.
-The original epoch-4 and epoch-2 notebook pushes remain uncertain private
-placeholders and are preserved, never retried/submitted. Numeric version-label
-404s are not absence evidence: the same query fails on the known good control.
-Distinct k2 identities with the same fully verified Datasets/source were each
-saved once as private offline T4 version 1. Their public runs are running; use
-only these current ledger operations after actual completion receipts pass.
+**September 29, five-checkpoint comparison complete:** The owner's five matched
+global-CLS fold-2 epochs **10/8/6/4/2** were each submitted once as exact
+private offline T4 version-1 code notebooks. IDs respectively:
+**56663180 / 56663742 / 56663606 / 56663969 / 56664013**. Every private Dataset
+passed full download/hash verification, and all five MRI-only public runs
+passed exact checkpoint/manifest/output receipts with finite 13-column outputs,
+three inferred studies and zero fallbacks. Raw FP32 sigmoid and training runtime
+remain unchanged. Epoch 8's normal public CSV hash matches its prior version.
+At **05:35 UTC**, CPU-only job **863548** reconciled all five identities and
+actual outcomes into the one canonical Newton ledger. All hidden statuses,
+errors and scores were null; these are **pending/unknown**, not failed or scored.
+Live account allowance is **five today, zero slots**. Never resubmit any of these
+versions or upload a public-example CSV. Check their actual hidden outcomes
+read-only; do not claim learning progress from public examples or null scores.
+The original epoch-4/epoch-2 notebook pushes remain uncertain placeholders,
+preserved in ledger history forever and never retried/submitted. Distinct k2
+identities reuse the same byte-verified Datasets/source. Numeric version-label
+404s also fail on the known good control and are not absence evidence.
 See [comparison-v1](../initiative/audits/kaggle-checkpoint-comparison-v1/) for
-exact source hashes, intents, restoration, recovery and per-epoch receipts.
-The old absent epoch-10 push and failed 56550973 were reconciled/preserved before
-this campaign. Earlier files were restored with full hashes by CPU job 863396.
-No GPU training job is reserved. All 1,064 tests and source checks pass. Finish
-the two remaining exact code submissions under fresh allowance and the one
-canonical Newton ledger; record actual hidden outcomes without guessing scores.
+bindings, all dispatch/submission receipts, restoration and justified recovery.
+The three-submission/saved-five stage is privately mirrored at HF revision
+`2d0d249861480160278164fb3c75264caf8dcccc`: all 163 objects re-downloaded/hash
+verified. The complete five-submission milestone follows separately. No GPU
+training job is reserved. All 1,064 repository tests and required source checks
+passed; the final low-impact reconciler also executed successfully on Newton.
 
 **September 28, authorized deployment correction:** The owner asked to fix the
 remaining deployment issues and submit one new version, keeping sigmoid

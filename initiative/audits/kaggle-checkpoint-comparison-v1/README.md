@@ -124,3 +124,45 @@ submission state. The canonical ledger's `state`, submission ID and exact
 identity reconciliation are authoritative. Keep two slots for epochs 4 and 2
 only after their actual public completion receipts pass. Preserve the accepted
 masks/folds, source/weight/license bindings and raw FP32 sigmoid output.
+
+## Completed five-checkpoint submission campaign
+
+All five requested checkpoints were accepted once. All five private Dataset
+payloads passed full download/hash verification; every exact-source private
+offline T4 notebook version 1 completed MRI-only public inference. Each output
+has the expected 13 columns, three inferred studies and zero fallback studies,
+finite probabilities, and matching receipt/CSV/manifest hashes. The public
+example CSV is never a competition submission. The actual saved code version
+regenerates `submission.csv` with Kaggle's hidden inputs.
+
+| Epoch | Accepted submission | Optimizer steps |
+| --- | --- | --- |
+| 10 | 56663180 | 2,860 |
+| 8 | 56663742 | 2,288 |
+| 6 | 56663606 | 1,716 |
+| 4 | 56663969 | 1,144 |
+| 2 | 56664013 | 572 |
+
+The final submission order was 10/6/8/4/2, determined by public notebook readiness;
+the selected checkpoints remain evenly spaced. CPU-only job **863548** used the
+pinned exact coordinator to reconcile every accepted identity and actual remote
+outcome into the one canonical ledger. At **2026-09-29 05:35 UTC**, all five
+hidden statuses, errors and scores were null (`pending_or_unknown`). Initial
+zero bytes without a terminal error are not evidence of failure. See
+[the final live receipt](final-hidden-outcomes.json) and
+[exact identity bindings](final-campaign-bindings.json). Live account limits
+confirmed five submissions today and zero slots. Never repeat these submissions.
+
+The [read-only outcome helper](reconcile_five.py) rejects changed canonical
+identities before recording remote outcomes; it performs no Kaggle mutation.
+The historical immutable snapshot's `submitted=false` field remains untouched;
+current ledger state and IDs are authoritative. No root cause or score is
+inferred from successful public execution. Accepted data masks/folds, original
+training/runtime bytes, checkpoint bytes and raw sigmoid probabilities remain
+unchanged. No GPU training allocation was used for this campaign.
+
+The three-submission stage and all five saved notebook bindings were preserved
+privately at Hugging Face revision
+`2d0d249861480160278164fb3c75264caf8dcccc`; all **163** small objects were fully
+re-downloaded and size/SHA verified. Preserve the complete campaign in a
+separate bound small milestone, with its own no-retry intent and verification.

@@ -1,13 +1,16 @@
 # Scheduled Kaggle code submissions
 
-The September 29 owner-authorized matched checkpoint comparison is tracked in
-[comparison-v1](../initiative/audits/kaggle-checkpoint-comparison-v1/). Epochs
-10/6/8 are accepted as 56663180/56663606/56663742; at 05:23 UTC all hidden
-scores were null and two live slots remained. Current epoch-4/epoch-2 k2 version-1
-notebooks are saved and running public checks. Their original unreadable
-placeholder pushes are preserved and must never be retried/submitted. Use the
-canonical ledger and actual completion receipts for the two remaining slots.
-
+The September 29 matched checkpoint comparison is **fully submitted**; see
+[comparison-v1](../initiative/audits/kaggle-checkpoint-comparison-v1/).
+Global-CLS fold-2 epochs **10/8/6/4/2** are accepted as
+**56663180/56663742/56663606/56663969/56664013**. All five exact private offline
+T4 version-1 public inference receipts passed. The canonical Newton ledger was
+reconciled by CPU-only job 863548 at 05:35 UTC: all five hidden statuses,
+errors and public scores were null, so no hidden success or score is claimed.
+Authoritative live allowance: **five today, zero slots**. Query outcomes read-only;
+never repeat these code submissions or upload the public three-row CSV.
+Original epoch-4/epoch-2 uncertain placeholder pushes remain preserved and may
+never be retried or submitted. Only their distinct k2 versions were submitted.
 
 **Current owner-authorized first hidden execution test, September 24:** A new
 private, offline, exact-source epoch-8 resilient-series notebook version 1 was
