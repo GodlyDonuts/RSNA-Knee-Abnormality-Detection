@@ -189,3 +189,20 @@ and allocation acceptance. No Kaggle candidate was submitted or score obtained
 for this adapter. Training code is also available as a 52-file, 696,320-byte exact
 Git deployment projection in ignored local artifacts; all members are SHA checked
 and include adapters, with no weights/data/credentials or notebook execution.
+
+## Real production learning acceptance
+
+The [production acceptance](production-progress-acceptance.json) records ten
+actual optimizer updates on the full accepted 2,247-study training pool with a
+1,156-study outer pool, finite loss/gradient events, nonzero encoder-adapter
+gradients and zero stderr bytes. Early steady throughput was 9.19 seconds per
+effective-eight update, approximately 43 minutes per 281-update epoch before
+evaluation and variable case/checkpoint overhead. This is a small timing sample;
+no new competitive metric or epoch publication exists at this acceptance point.
+
+The terminal pilot and primary dispatch milestone was privately preserved at HF
+revision `bf7bc42ebfd6c38555dd1a77b73511a1145d47eb` with all 57 objects fully
+re-downloaded and hash verified. Active goal: obtain honest held-out evidence,
+continue solo DINOv3 improvements (native detail and slice context next), and
+measure competition performance before introducing other models/ensembles.
+Do not call the goal achieved based on this launch or its diagnostic pilot.

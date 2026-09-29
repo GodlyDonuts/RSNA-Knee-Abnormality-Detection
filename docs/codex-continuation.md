@@ -27,6 +27,14 @@ prepared only. The fixed-final outer result is outstanding; tiny diagnostic metr
 are not competitive evidence. The active goal stays incomplete until measured
 competitive solo DINOv3 progress; teachers/ensembles and new Kaggle submissions
 are not part of this launch. See [the A32 audit](../initiative/audits/dinov3-adapter-a32-v1/).
+Real full-pool production acceptance subsequently verified ten finite optimizer
+updates, nonzero adapter gradients, exactly 10,426,636 trainable parameters, and
+empty stderr. Early throughput was 9.19 seconds per eight-study update, roughly
+43 minutes per epoch before evaluation/variable overhead. No completed new epoch
+or competitive result exists at this observation. Terminal pilot/launch private HF
+revision `bf7bc42ebfd6c38555dd1a77b73511a1145d47eb` passed full download/hash
+verification for all 57 files. Continue the active goal; do not mark it complete
+merely for the production launch.
 
 **September 29, solo DINOv3 adapter implementation:** The owner explicitly asked
 to implement and run the solo model before other mechanisms, and an active goal
