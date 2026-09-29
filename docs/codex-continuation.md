@@ -26,6 +26,14 @@ indexed-buffer dtype mismatch before any optimizer update. The evidenced correct
 and three aggregation-mode autocast/gradient regression tests are implemented.
 Require a newly pinned source and distinct corrected pilot; do not repeat any
 terminal dispatch or submit the prepared old production payload.
+Corrected source `6f1ee6d332de29a8d6e5807aeac4777620865933` is staged cleanly.
+Corrected pilot Slurm **864825** was dispatched once and is RUNNING on evc32
+at the first check. Control: `production-launch-adapter-a32-6f1ee6d-v1`;
+output: `runs/dinov3-l16-adapter-a32-fold0-6f1ee6d-pilot-v1`. Inspect actual
+logs/run records and terminal verification before the distinct prepared production
+launch. The pinned per-epoch private HF coordinator is
+`scripts/hf/dispatch_adapter_a32_epoch.py`; no production epoch exists yet.
+Do not repeat the completed old snapshot evictions or any terminal pilot.
 
 **September 29, public visual teachers and depth-context investigation:** The
 owner supplied three high-scoring public notebook candidates and asked about

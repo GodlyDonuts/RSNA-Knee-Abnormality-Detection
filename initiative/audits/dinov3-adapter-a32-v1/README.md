@@ -96,3 +96,24 @@ full-download receipts, then fully hashed locally before removal. See the second
 Current soft-byte reserve is about 37.5 GiB and file reserve about 8,500, subject
 to a fresh check before dispatch. Old source data, masks/folds and final checkpoints
 remain intact. No competition submission was made in this implementation milestone.
+
+## Corrected pilot dispatch
+
+Corrected training source is Git `6f1ee6d332de29a8d6e5807aeac4777620865933`.
+It is staged as a clean sparse shared checkout at
+`/home/sa305415/rsna-knee/code-adapter-a32-6f1ee6d`. The corrected distinct
+pilot is Slurm **864825**, submitted once, RUNNING on evc32 at its initial check.
+Its private control directory is
+`/home/sa305415/rsna-knee/production-launch-adapter-a32-6f1ee6d-v1` and unique
+output root is `runs/dinov3-l16-adapter-a32-fold0-6f1ee6d-pilot-v1`.
+The [launch plan](bf16-fixed-launch-plan.json), script, precheck, intent and
+result preserve exact dispatch lineage. Source acceptance passed 1,080 tests
+and repository source/archive/coverage checks. This dispatch is a diagnostic
+pilot, not completed training or competitive holdout evidence.
+
+Corrected production has a distinct prepared script/config, remains unsubmitted,
+and requires the pilot's terminal `pilot-verified.json` and fresh quota/job checks.
+The A32 epoch preservation coordinator and publisher are bound to this corrected
+Git, fold-0 schedule and unique private HF prefix. It requires each immutable
+completed epoch and exact adapter/base/source lineage before upload, then verifies
+all four objects by downloading all bytes. No upload is repeated on uncertainty.
