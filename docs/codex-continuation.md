@@ -18,7 +18,14 @@ from `b74060b98f01bff1b924070ccba5ce44dd002f40`. Newton DNS still fails and
 Stokes SSH times out. Finish local verification and exact projection preparation;
 when access returns, reconcile failed 56550973 in the canonical Newton ledger
 before distinct publication and one guarded code submission. No new submission
-has been made, and the hidden cause remains unproven.
+has been made, and the hidden cause remains unproven. All 1,036 repository
+tests and required checks pass; 42 recovery/chunking tests also pass under the
+exact projected historical runtime. Package Git `f4f90bcf81c20da4b1e53e5132b270ffabb14fbc`
+is projected at ignored `artifacts/kaggle-inputguard-projection-f4f90bc-v1`;
+all 52 source/manifest objects are privately download/hash verified at HF
+revision `ff6f37895bf2206d9a1b2ac625ecf763319c6889`. The distinct launch
+scripts in the audit are prepared only. No cluster job or Kaggle Dataset,
+notebook or submission has been created for this candidate.
 
 **September 28, successful-submission comparison and terminal result:** Both
 authenticated Kaggle status methods mark DINOv3 entry 56550973 `COMPLETE` with
