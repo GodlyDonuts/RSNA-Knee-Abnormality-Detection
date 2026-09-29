@@ -6,6 +6,21 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 29, solo DINOv3 adapter implementation:** The owner explicitly asked
+to implement and run the solo model before other mechanisms, and an active goal
+was created. A32 encoder adapters, adapter-aware freezing/optimizer setup,
+non-reentrant activation checkpointing, cosine scheduling and strict inference
+reconstruction are implemented. Local zero-residual, gradient/base-integrity,
+production-graph count and exact resume tests passed. See
+[adapter-a32-v1](../initiative/audits/dinov3-adapter-a32-v1/). Newton is reachable;
+the initial account queue was empty. About 28 GiB was reclaimed by verifying and
+evicting 25 redundant privately preserved old snapshots, retaining all final
+checkpoints and source data. The prepared bounded H100 pilot must pass actual
+learning/base-integrity/recovery checks before distinct ten-epoch fold-0 production
+dispatch. No teacher or ensemble is part of this candidate. Inspect live dispatch
+receipts, Slurm and quota before acting; the prepared production config alone is
+not a submitted job.
+
 **September 29, public visual teachers and depth-context investigation:** The
 owner supplied three high-scoring public notebook candidates and asked about
 whole-MRI context. Exact public source snapshots are inspected in

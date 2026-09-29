@@ -14,6 +14,8 @@ from typing import Any, cast
 import torch
 from torch import Tensor, nn
 
+from rsna.competitive.adapters import ResidualLinear, adapter_provenance, install_adapters
+
 TRANSFORMERS_VERSION = "5.6.1"
 ARCHITECTURES = {"dinov2_b14_reg", "dinov3_b16", "dinov3_l16", "convnext_tiny"}
 _DINOV3_L16_LEGACY_SOURCE = {
@@ -191,6 +193,12 @@ class _GrayEncoder(nn.Module):
 
     def requires_grad_(self, requires_grad: bool = True) -> _GrayEncoder:
         super().requires_grad_(requires_grad)
+        adapted = [m for m in self.backbone.modules() if isinstance(m, ResidualLinear)]
+        if requires_grad and adapted:
+            self.backbone.requires_grad_(False)
+            for module in adapted:
+                module.lora_A.requires_grad_(True)
+                module.lora_B.requires_grad_(True)
         # The unmasked global-embedding task never consumes the pretrained mask
         # token. Keep it outside DDP/optimizer even when the backbone is unfrozen.
         for name, parameter in self.backbone.named_parameters():
@@ -308,6 +316,18 @@ def _encoder_provenance(spec: Mapping[str, Any], config: dict, model_class: str)
     mapping = _pretrained_key_mapping(spec)
     if mapping is not None:
         result["pretrained_state_key_mapping"] = mapping
+    if "adapter" in spec:
+        if architecture != "dinov3_l16":
+            raise ValueError("Production adapters require the pinned DINOv3-L")
+        policy = spec["adapter"]
+        if not isinstance(policy, Mapping):
+            raise ValueError("Adapter policy must be an object")
+        # Input manifests contain the policy; saved provenance also binds derived facts.
+        policy = {
+            key: policy[key]
+            for key in ("rank", "alpha", "dropout", "ffn_last_layers", "gradient_checkpointing")
+        }
+        result["adapter"] = adapter_provenance(policy, config)
     return result
 
 
@@ -351,7 +371,7 @@ def create_encoder(spec: Mapping[str, Any]) -> tuple[nn.Module, int, dict[str, A
         "license",
         "state_dict_format",
     }
-    if not required <= set(spec) or set(spec) - required - {"model_class"}:
+    if not required <= set(spec) or set(spec) - required - {"model_class", "adapter"}:
         raise ValueError("Missing or unknown encoder manifest fields")
     _validate_pretrained_metadata(spec)
     config_path = _checked_file(spec, "config")
@@ -386,6 +406,10 @@ def create_encoder(spec: Mapping[str, Any]) -> tuple[nn.Module, int, dict[str, A
         model = cast(nn.Module, model.convnext)
     patch, embedding_dim = _encoder_dimensions(architecture)
     provenance = _encoder_provenance(spec, config, model_class)
+    if "adapter" in spec:
+        installed = install_adapters(model, spec["adapter"])
+        if installed != provenance["adapter"]:
+            raise ValueError("Installed adapters differ from encoder provenance")
     return _GrayEncoder(model, patch), embedding_dim, provenance
 
 
@@ -445,6 +469,13 @@ def create_encoder_from_training_checkpoint(
     model = _construct(architecture, config, model_class)
     if architecture == "convnext_tiny" and model_class == "ConvNextForImageClassification":
         model = cast(nn.Module, model.convnext)
+    if "adapter" in expected:
+        policy = {
+            key: expected["adapter"][key]
+            for key in ("rank", "alpha", "dropout", "ffn_last_layers", "gradient_checkpointing")
+        }
+        if install_adapters(model, policy) != expected["adapter"]:
+            raise ValueError("Checkpoint adapter architecture differs from its provenance")
     patch, dimension = _encoder_dimensions(architecture)
     encoder = _GrayEncoder(model, patch)
     # Buffers describe the fixed transform, not learned weights. Strict key/shape

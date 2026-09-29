@@ -24,6 +24,7 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 
+from rsna.competitive.adapters import configure_encoder_training, validate_adapter
 from rsna.competitive.checkpoint import (
     atomic_json,
     capture_rng,
@@ -91,6 +92,7 @@ class TrainConfig:
     encode_chunk_size: int = 32
     augment: bool = False
     warmup_updates: int = 0
+    lr_schedule: str = "constant"
     clip_grad_norm: float = 1.0
     checkpoint_every_updates: int = 25
     submission_every_epochs: int = 0
@@ -140,6 +142,26 @@ class TrainConfig:
             raise ValueError("Diagnostic study limit must be positive")
         if not isinstance(self.encoder, dict):
             raise ValueError("Encoder specification must be an object")
+        if self.lr_schedule not in {"constant", "cosine"}:
+            raise ValueError("Unknown learning-rate schedule")
+        if "adapter" in self.encoder:
+            if self.encoder.get("architecture") != "dinov3_l16" or not self.freeze_encoder:
+                raise ValueError("DINOv3-L adapters require a frozen original encoder")
+            policy = self.encoder["adapter"]
+            if not isinstance(policy, dict):
+                raise ValueError("Adapter policy must be an object")
+            policy_keys = {"rank", "alpha", "dropout", "ffn_last_layers", "gradient_checkpointing"}
+            derived_keys = {
+                "method",
+                "scaling",
+                "base_frozen",
+                "zero_initial_residual",
+                "target_modules",
+                "trainable_parameters",
+            }
+            if not policy_keys <= set(policy) or set(policy) - policy_keys - derived_keys:
+                raise ValueError("Missing or unknown adapter policy fields")
+            validate_adapter({key: policy[key] for key in policy_keys}, 24)
         if self.pooling == "patch_attention" and self.encoder.get("architecture") not in {
             "dinov3_l16",
             "diagnostic_tiny",
@@ -156,6 +178,14 @@ def _hash(value: object) -> str:
     return hashlib.sha256(
         json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     ).hexdigest()
+
+
+def learning_rate_multiplier(step: int, total: int, warmup: int, policy: str) -> float:
+    warm = min(1.0, (step + 1) / max(1, warmup))
+    if policy == "constant" or step < warmup:
+        return warm
+    progress = min(1.0, max(0.0, (step - warmup) / max(1, total - warmup - 1)))
+    return 0.5 * (1.0 + math.cos(math.pi * progress))
 
 
 def _uid_hash(frame: pd.DataFrame) -> str:
@@ -353,7 +383,7 @@ def _run_locked(
     ) or training_data.source_revision != release_binding["source_revision"]:
         raise ValueError("Image cache transform/source differs from the accepted release")
     encoder, embedding_dim, encoder_provenance = create_encoder(config.encoder)
-    encoder.requires_grad_(not config.freeze_encoder)
+    configure_encoder_training(encoder, config.freeze_encoder)
     model = model_class(
         encoder,
         embedding_dim,
@@ -370,7 +400,7 @@ def _run_locked(
             "lr": config.head_lr,
         }
     ]
-    if not config.freeze_encoder:
+    if any(p.requires_grad for p in encoder.parameters()):
         groups.append(
             {
                 "params": [p for p in encoder.parameters() if p.requires_grad],
@@ -378,6 +408,16 @@ def _run_locked(
             }
         )
     optimizer = torch.optim.AdamW(groups, weight_decay=config.weight_decay)
+    epoch_updates = EffectiveBatchSampler(
+        len(training_data),
+        config.batch_size,
+        config.accumulation_steps,
+        seed=config.seed,
+        epoch=0,
+        rank=rank,
+        world_size=world,
+    ).updates
+    total_updates = epoch_updates * config.epochs
     wrapped = (
         DistributedDataParallel(model, device_ids=[device.index] if device.type == "cuda" else None)
         if world > 1
@@ -477,6 +517,12 @@ def _run_locked(
                 "diagnostic_run": config.diagnostic_study_limit is not None,
                 "training_studies": len(train),
                 "outer_studies": len(outer),
+                "trainable_parameters": sum(
+                    p.numel() for p in model.parameters() if p.requires_grad
+                ),
+                "encoder_trainable_parameters": sum(
+                    p.numel() for p in encoder.parameters() if p.requires_grad
+                ),
                 "selection_policy": "fixed_epoch_count; outer_predictions_only_after_final_epoch",
                 "held_out_confirmation_and_gold_used": False,
             },
@@ -501,7 +547,7 @@ def _run_locked(
         )
         iterator = iter(loader)
         wrapped.train()
-        if config.freeze_encoder:
+        if not any(p.requires_grad for p in encoder.parameters()):
             encoder.eval()
         for update in range(next_update, sampler.updates):
             batches = [next(iterator) for _ in range(config.accumulation_steps)]
@@ -525,7 +571,9 @@ def _run_locked(
                 norm = nn.utils.clip_grad_norm_(
                     model.parameters(), config.clip_grad_norm, error_if_nonfinite=True
                 )
-                multiplier = min(1.0, (step + 1) / max(1, config.warmup_updates))
+                multiplier = learning_rate_multiplier(
+                    step, total_updates, config.warmup_updates, config.lr_schedule
+                )
                 for group, base_lr in zip(
                     optimizer.param_groups, [config.head_lr, config.encoder_lr]
                 ):
@@ -571,6 +619,24 @@ def _run_locked(
                     "observed_cells": float(counts.sum()),
                     "elapsed_seconds": time.monotonic() - started,
                 }
+                if "adapter" in config.encoder and step == 1:
+                    gradients = [p.grad for p in encoder.parameters() if p.requires_grad]
+                    if any(gradient is None for gradient in gradients):
+                        raise ValueError("An intended adapter parameter has no gradient")
+                    encoder_norm = torch.linalg.vector_norm(
+                        torch.stack(
+                            [
+                                gradient.float().norm()
+                                for gradient in gradients
+                                if gradient is not None
+                            ]
+                        )
+                    )
+                    if not torch.isfinite(encoder_norm) or encoder_norm <= 0:
+                        raise ValueError("Adapter gradients are zero or nonfinite")
+                    event["encoder_gradient_norm"] = float(encoder_norm)
+                if device.type == "cuda":
+                    event["peak_gpu_allocated_bytes"] = torch.cuda.max_memory_allocated(device)
                 history.append(event)
                 print(json.dumps(event, allow_nan=False), flush=True)
             if stopping.item():
