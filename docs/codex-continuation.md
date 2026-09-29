@@ -20,7 +20,9 @@ See [the exact scored comparison](../initiative/audits/kaggle-checkpoint-compari
 Newton DNS was unavailable and Stokes SSH timed out at this check; the single
 canonical ledger's score fields await read-only reconciliation when connected.
 The authenticated Kaggle API and separate GetSubmission checks confirm all
-five actual public scores. No new submission was made or slot consumed.
+five actual public scores. The scored audit is privately preserved and full
+byte-verified at HF revision `bdbebde85811124609a0cd612fcb2ad76db022a8` (185 objects).
+No new submission was made or slot consumed.
 
 **September 29, five-checkpoint comparison complete:** The owner's five matched
 global-CLS fold-2 epochs **10/8/6/4/2** were each submitted once as exact

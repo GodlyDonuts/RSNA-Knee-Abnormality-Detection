@@ -241,3 +241,11 @@ Face revision `94f33ae7bf0a37328fd807bc5d9d1adfbb8bff9d`, bound to Git source
 and full SHA-256. The separate intent/result/verification receipts here bind
 that immutable revision; no checkpoint weights were uploaded again. GitHub main
 contains the complete campaign and both private milestone receipts.
+
+The scored audit and current handoff files were separately preserved in the
+private Hugging Face dataset at revision `bdbebde85811124609a0cd612fcb2ad76db022a8`, with
+all **185** objects forced-downloaded and matched by byte size and SHA-256.
+The [score-publication intent](hf-score-mirror-intent.json),
+[commit result](hf-score-mirror-commit-result.json) and
+[verification record](hf-score-mirror-verified.json) bind this one publication.
+No model checkpoint was re-uploaded and no Kaggle submission was made.
