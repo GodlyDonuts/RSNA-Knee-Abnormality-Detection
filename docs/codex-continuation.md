@@ -6,6 +6,20 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 29, public visual teachers and depth-context investigation:** The
+owner supplied three high-scoring public notebook candidates and asked about
+whole-MRI context. Exact public source snapshots are inspected in
+[public-teacher-notebooks-v1](../initiative/audits/public-teacher-notebooks-v1/).
+They share 14 named Dataset dependencies and a DINO prefix hash; their agreement
+is not three independent votes. Percentile-ranked outputs are not calibrated
+label confidence. Training membership and evaluation exposure are unresolved;
+no teacher is yet admitted for distillation. The plan now specifies per-target
+review, outer-fold-safe teacher generation, and raw pre-rank predictions.
+Our existing model already aggregates up to 16 slices across each of six series;
+the proposed change adds explicit neighboring-slice interaction before pooling.
+No third-party notebook was executed, weights downloaded, labels changed, GPU
+job launched, or Kaggle submission made in this research milestone.
+
 **September 29, adapter and source-research plan:** The owner requested substantial
 internal adapters while preserving original DINOv3 weights, better series use,
 and public-label agreement analysis. See

@@ -178,6 +178,40 @@ independent outer-fold teacher.
 
 ## 4. Learning from images with missing labels
 
+### Public visual teachers and depth context: September 29 extension
+
+The owner's three proposed public teachers were inspected as exact source
+snapshots in [this audit](../initiative/audits/public-teacher-notebooks-v1/).
+All share 14 named Dataset dependencies, DINOv2-small, two training notebooks,
+and a pinned DINO prefix hash; one explicitly depends on another. They cannot
+be treated as three independent judges. Their rank-based output also cannot be
+read as a probability of label correctness.
+
+Public visual teachers can first prioritize study-target disagreements. Admit
+them for an experimental teacher loss only after license/eligibility, training
+membership, label ancestry and evaluation exposure are established. Use raw
+pre-rank predictions with training-only calibration; retain fallbacks and
+missing-series counts. Unknown-membership models remain exploratory reviewers.
+Preserve accepted labels and masks, including when introducing an explicitly
+versioned pseudo-supervision overlay. All teacher fitting and inner OOF target
+generation must exclude the student's outer leakage components, confirmation
+and official evaluation cases. Do not generate pseudo-labels globally and then
+assume splitting them removes teacher leakage. Compare against observed-only
+training on unchanged evaluation labels before accepting distillation.
+
+Our baseline already pools up to 16 slices per series and six series per study.
+The context intervention therefore adds **interaction before pooling**, not the
+first access to multiple slices. A cheap control uses three ordered neighboring
+slices as channels. The stronger candidate retains regional patch features and
+uses a residual local depth module before target-specific slice/series attention.
+Use physical spacing within each series; different planes are fused later rather
+than treated as adjacent frames. The three-channel public implementation provides
+a concrete baseline, but its selected cached slices are not necessarily adjacent
+in the original volume. Neither a contact sheet nor a single slice represents
+the proposed examination model. Add context only after measuring isolated A32.
+
+### Training-only image consistency
+
 After the supervised adapter establishes a useful reference, test a separate
 image-only consistency stage on eligible training-fold images, including
 fully masked rows that pass image/source checks. Exclude the outer fold,
