@@ -1,0 +1,54 @@
+{
+  "adjacent_score_deltas": {
+    "2_to_4": "0.017",
+    "4_to_6": "0.009",
+    "6_to_8": "0.001",
+    "8_to_10": "-0.003"
+  },
+  "best_epoch": 8,
+  "best_minus_epoch10": "0.003",
+  "best_minus_epoch2": "0.027",
+  "best_public_score": "0.638",
+  "causal_claims": [
+    "All five scored, so this version passes hidden execution and CSV validation.",
+    "Epoch continuation alone yields small gains through epoch 8 and no gain at epoch 10 on the public slice.",
+    "The 0.304 gap to a multi-model earlier OSS-copy entry does not isolate DINOv3-versus-DINOv2 backbone quality.",
+    "Raw decimal sigmoid values are valid; per-target monotone formatting/calibration cannot change ROC AUC ranking.",
+    "Weak-label sparsity, domain mismatch, architecture capacity and unmeasured hidden-run fallback behavior are plausible hypotheses, not proven causes.",
+    "Two rare targets alone cannot explain the 0.304 gap: improving any two AUCs from 0 to 1 raises a 12-target mean by at most 0.167."
+  ],
+  "internal_fold2_final_weak_macro_auc": "0.7590158140",
+  "internal_fold2_minus_best_public": "0.1210158140",
+  "internal_vs_public_directly_comparable": false,
+  "metric": "public Kaggle mean ROC AUC over 12 targets",
+  "no_new_submission": true,
+  "old_0_942_minus_best": "0.304",
+  "old_oss_copy_scores": {
+    "55969300": "0.936",
+    "56407271": "0.942"
+  },
+  "private_leaderboard_unavailable": true,
+  "recommended_followups": [
+    "If Kaggle permits access to the hidden generated CSV or aggregate notebook receipt, check output coverage, fallback rates and per-target prediction diversity without accessing hidden labels.",
+    "Confirm per-target data and prediction polarity against the accepted release and fixed internal gold diagnostic without tuning on the gold set.",
+    "Compare the OSS ensemble and our DINOv3 branch on a common leak-safe internal validation protocol, reviewing third-party licensing and exact MRI-only inference.",
+    "Prioritize a bounded last-block or LoRA encoder adaptation and higher-resolution target localization with three-fold OOF evaluation; compare to a fixed ensemble before spending another submission."
+  ],
+  "same_fold_architecture_supervision_preprocessing_output": true,
+  "schema_version": 1,
+  "score_rounding": "API exposes three decimals; differences of 0.001-0.003 may be fragile",
+  "scores_in_epoch_order": {
+    "10": "0.635",
+    "2": "0.611",
+    "4": "0.628",
+    "6": "0.637",
+    "8": "0.638"
+  },
+  "source_receipts": [
+    "live-scored-outcomes-20260929.json",
+    "live-scored-independent-confirmation.json"
+  ],
+  "target_level_public_scores_available": false,
+  "two_rare_targets_alone_cannot_close_0_304_gap": true,
+  "two_targets_max_possible_macro_gain": "0.1666666666666667"
+}

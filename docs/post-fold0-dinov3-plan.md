@@ -1,5 +1,17 @@
 # DINOv3-L plan after the first full fold
 
+**September 29 public-leaderboard update:** Five matched fold-2 global-CLS
+checkpoints scored 0.611/0.628/0.637/0.638/0.635 at epochs 2/4/6/8/10.
+Epoch 8 is the best observed public score; epoch 10 has already plateaued.
+The scored OSS-copy control is 0.942. Hidden code execution now succeeds. The low rank-based score could involve
+model quality, labels, domain shift or fallback-heavy hidden inference; it
+does not diagnose one cause. Prioritize target-label
+checks and a common-fold OSS-ensemble comparison before another later-epoch
+submission; then test bounded encoder adaptation or higher-resolution spatial
+modeling. Do not use public scores to fit a blend, touch reserved sets, or
+claim an isolated DINOv3-versus-DINOv2 result.
+[Live receipts and analysis](../initiative/audits/kaggle-checkpoint-comparison-v1/).
+
 **September 24 three-fold update:** All three fixed-final ten-epoch DINOv3-L
 fold runs are complete, and all 30 epoch checkpoints are privately preserved.
 The predeclared positive-negative-pair-weighted outer-fold macro AUC is

@@ -1,5 +1,15 @@
 # Scheduled Kaggle code submissions
 
+**Scored results, checked September 29 at 17:14 UTC:** All five matched
+fold-2 DINOv3 submissions completed with nonzero output and no hidden error.
+Public macro AUC for epochs **2/4/6/8/10** is
+**0.611/0.628/0.637/0.638/0.635**. The best observed epoch 8 is still
+0.304 below the earlier 0.942 OSS-copy entry. Kaggle exposed no private or
+per-target score. The exact authenticated [score audit](../initiative/audits/kaggle-checkpoint-comparison-v1/)
+contains independent GetSubmission confirmations. The canonical Newton ledger
+still awaits read-only score reconciliation because UCF SSH was unavailable;
+no second ledger or new submission was created.
+
 The September 29 matched checkpoint comparison is **fully submitted**; see
 [comparison-v1](../initiative/audits/kaggle-checkpoint-comparison-v1/).
 Global-CLS fold-2 epochs **10/8/6/4/2** are accepted as

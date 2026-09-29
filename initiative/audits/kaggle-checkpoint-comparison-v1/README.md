@@ -18,6 +18,74 @@ training-runtime files from `b74060b98f01bff1b924070ccba5ce44dd002f40`.
 Raw FP32 sigmoid probabilities remain unchanged. No labels/reports enter Kaggle
 inference and the public three-study CSV is not uploaded as a submission.
 
+## Actual public scores, checked September 29 at 17:14 UTC
+
+Two separate authenticated Kaggle methods, `ListSubmissions` and
+`GetSubmission`, agree on all five exact submission IDs. Every hidden rerun is
+`COMPLETE`, has a nonzero output file, has no reported error and has a public
+score. Kaggle did **not** provide private scores or per-target AUCs.
+
+| Epoch | Submission ID | Public macro ROC AUC | Change from prior checkpoint |
+| ---: | ---: | ---: | ---: |
+| 2 | 56664013 | 0.611 | baseline |
+| 4 | 56663969 | 0.628 | +0.017 |
+| 6 | 56663606 | 0.637 | +0.009 |
+| 8 | 56663742 | **0.638** | +0.001 |
+| 10 | 56663180 | 0.635 | −0.003 |
+
+Epoch 8 improves 0.027 over epoch 2, while epochs 6–10 lie within 0.003.
+The returned scores have only three decimal places; a 0.001 difference is weak
+evidence of a real ranking improvement. The final-epoch checkpoint is not the
+best observed public score. Because all five share the exact fold, training
+binding, architecture, inference code and FP32 sigmoid output, the comparison
+isolates training progress on the public scoring slice. It does not prove the
+best epoch for the private leaderboard or for unseen deployment data.
+
+The owner's two earlier OSS-copy submissions scored 0.936 and 0.942. The best
+current DINOv3 checkpoint trails the latter by **0.304** macro AUC points.
+Those notebooks use multiple DINOv2/CNN/CoAtNet branches and percentile-rank
+fusion, whereas the current result is one DINOv3-L global-CLS checkpoint.
+Their notebook-to-submission linkage is supported by the prior read-only
+source/timing review, not a direct reference returned by the score API. This
+comparison therefore cannot isolate pretrained backbone quality. Decimal
+sigmoid probabilities were accepted; ROC AUC depends on ranking, so rounding
+or a per-target monotone transform is not a remedy for this gap.
+
+The fold-2 final-epoch internal weak-report macro AUC was 0.7590, versus 0.635
+on this public leaderboard. The 0.124 difference is descriptive, **not a
+same-label generalization estimate**: labels, population and aggregation may
+differ. The accepted release has only seven MCL positives and five fracture
+positives in the entire 3,904-study training split, making those internal
+per-target estimates unstable. Even a maximal 0-to-1 repair of only MCL and fracture would raise a
+12-target mean by at most 0.167, less than the 0.304 gap to the OSS-copy entry.
+The gap cannot be attributed solely to those two rare targets.
+Kaggle does not disclose target-level AUC, so
+label mismatch, weak supervision, resolution, missing spatial detail and
+undetected hidden-run fallbacks are hypotheses to test, not diagnosed causes.
+
+The next controlled work should inspect full hidden output and fallback counts
+if Kaggle exposes them, then audit target polarity and prediction diversity
+against accepted source rows; compare the scored OSS ensemble and this single
+branch on a common leak-safe internal protocol; then test bounded encoder
+adaptation and higher-resolution localization against the frozen three-fold
+baseline. The patch-attention challenger already lost the matched internal
+three-fold macro comparison (0.7360 vs 0.7523), so its mere newer date does not
+make it a stronger next submission. Do not spend another Kaggle slot simply on
+later epochs of the same run. Preserve the 441-study confirmation set and 58
+official evaluation studies for their established roles, without fitting to
+them or repeated public leaderboard tuning.
+
+[Exact live score receipt](live-scored-outcomes-20260929.json),
+[independent API confirmation](live-scored-independent-confirmation.json), and
+[computed deltas and hypotheses](score-analysis.json) preserve the evidence.
+The single canonical Newton ledger still has the accepted submission IDs but
+its outcome fields reflect the 05:35 UTC pending observation. At this score
+check, `newton.ist.ucf.edu` did not resolve locally and the Stokes SSH port
+timed out; no second ledger was created and no remote mutation was retried.
+Update that same ledger by read-only submission reconciliation once UCF access
+returns. The authenticated live Kaggle API is authoritative for this score
+report.
+
 ## Ledger recovery and actual checkpoint restoration
 
 Newton connectivity returned. The initial scheduler view had no active jobs,

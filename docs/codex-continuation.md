@@ -6,6 +6,22 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 29, scored checkpoint result (17:14 UTC):** All five fold-2
+DINOv3 global-CLS code submissions finished hidden reruns without errors. Public
+mean 12-target ROC AUC by epoch 2/4/6/8/10 is **0.611/0.628/0.637/0.638/0.635**.
+The best observed epoch 8 is 0.304 below the owner's earlier 0.942 OSS-copy
+entry. This verifies that the hidden notebooks completed with scored outputs, but
+shows a substantial performance gap. Model quality, labels, domain shift and
+hidden-run fallback behavior remain separate explanations to test. Longer continuation of the same run plateaus by
+epoch 6–8; do not claim that raw sigmoid decimals caused the loss or that
+DINOv3 itself is inferior to DINOv2. AUC is rank based; the old entries use
+multiple models and rank fusion. The per-target and private scores are unavailable.
+See [the exact scored comparison](../initiative/audits/kaggle-checkpoint-comparison-v1/).
+Newton DNS was unavailable and Stokes SSH timed out at this check; the single
+canonical ledger's score fields await read-only reconciliation when connected.
+The authenticated Kaggle API and separate GetSubmission checks confirm all
+five actual public scores. No new submission was made or slot consumed.
+
 **September 29, five-checkpoint comparison complete:** The owner's five matched
 global-CLS fold-2 epochs **10/8/6/4/2** were each submitted once as exact
 private offline T4 version-1 code notebooks. IDs respectively:
