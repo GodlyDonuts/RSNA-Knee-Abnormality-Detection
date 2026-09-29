@@ -5,6 +5,13 @@ better use of MRI series, and comparison against public labels. This milestone
 contains an executable **descriptive** source audit and an experiment design. It
 contains no new model, training-label release, GPU dispatch, or submission.
 
+The plan and source audit are on GitHub main at `98471a2`. Eight small objects,
+including their manifest, were separately published to private `GodlyDonuts/RSNA-Data`
+at revision `71ba4de55d2d16cee310f5005520221a37a57fed`; every object was fully
+re-downloaded and size/SHA verified. See `hf-verified.json`. All 1,064 repository
+tests, Ruff, formatting, mypy, archive integrity and current v2 coverage checks
+passed. The source comparison also reproduced byte-for-byte.
+
 ## Measured source findings
 
 Seven Hugging Face repositories were inspected through public metadata APIs.

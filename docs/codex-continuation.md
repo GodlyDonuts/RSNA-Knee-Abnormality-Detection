@@ -20,7 +20,10 @@ encoder (10,223,616 adapter parameters plus the existing head), with original
 inputs/labels; native detail, sequential context and qualified label confidence
 follow as separate experiments. This is a plan and source audit, not implemented
 adapters, a launched job, or a new submission. Accepted data/masks/folds remain
-unchanged. Inspect live cluster jobs/quota before any subsequent launch.
+unchanged. Inspect live cluster jobs/quota before any subsequent launch. The
+plan/audit milestone is Git `98471a2`, privately mirrored at HF revision
+`71ba4de55d2d16cee310f5005520221a37a57fed` with all eight objects fully
+re-downloaded/size/SHA verified; all 1,064 repository tests and source checks passed.
 
 **September 29, scored checkpoint result (17:14 UTC):** All five fold-2
 DINOv3 global-CLS code submissions finished hidden reruns without errors. Public
