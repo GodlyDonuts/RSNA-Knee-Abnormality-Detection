@@ -20,6 +20,12 @@ learning/base-integrity/recovery checks before distinct ten-epoch fold-0 product
 dispatch. No teacher or ensemble is part of this candidate. Inspect live dispatch
 receipts, Slurm and quota before acting; the prepared production config alone is
 not a submitted job.
+Pilot jobs 864755/864757 terminated in allocated-driver checks. Pilot 864759
+on evc32 passed CUDA acceptance but failed its first MRI forward with a BF16
+indexed-buffer dtype mismatch before any optimizer update. The evidenced correction
+and three aggregation-mode autocast/gradient regression tests are implemented.
+Require a newly pinned source and distinct corrected pilot; do not repeat any
+terminal dispatch or submit the prepared old production payload.
 
 **September 29, public visual teachers and depth-context investigation:** The
 owner supplied three high-scoring public notebook candidates and asked about

@@ -1,0 +1,61 @@
+864759           FAILED      1:0   00:07:34           evc32 
+864759.batch     FAILED      1:0   00:07:34           evc32 
+864759.exte+  COMPLETED      0:0   00:07:34           evc32 
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-adapter-a32-8f32778/rsna/competitive/train.py", line 777, in <module>
+    main()
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-adapter-a32-8f32778/rsna/competitive/train.py", line 773, in main
+    raise SystemExit(run(args, stop_requested))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-adapter-a32-8f32778/rsna/competitive/train.py", line 319, in run
+    return _run_locked(
+           ^^^^^^^^^^^^
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-adapter-a32-8f32778/rsna/competitive/train.py", line 565, in _run_locked
+    logits = wrapped(*_model_inputs(batch, device))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-864759-ggmm13ng/environment/lib64/python3.12/site-packages/torch/nn/modules/module.py", line 1783, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-864759-ggmm13ng/environment/lib64/python3.12/site-packages/torch/nn/modules/module.py", line 1794, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-adapter-a32-8f32778/rsna/competitive/model.py", line 178, in forward
+    series_features[series_mask] = self.series_embedding(valid_features.to(full.dtype))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+RuntimeError: Index put requires the source and destination dtypes match, got Float for the destination and BFloat16 for the source.
+E0929 15:25:46.474000 2207867 torch/distributed/elastic/multiprocessing/api.py:1002] failed (exitcode: 1) local_rank: 0 (pid: 2207887) of binary: /tmp/rsna-environment-864759-ggmm13ng/environment/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/rsna-environment-864759-ggmm13ng/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1142, in <module>
+    main()
+  File "/tmp/rsna-environment-864759-ggmm13ng/environment/lib64/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 380, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-864759-ggmm13ng/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1138, in main
+    run(args)
+  File "/tmp/rsna-environment-864759-ggmm13ng/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1129, in run
+    elastic_launch(
+  File "/tmp/rsna-environment-864759-ggmm13ng/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 197, in __call__
+    return launch_agent(
+           ^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-864759-ggmm13ng/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 386, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+rsna.competitive.train FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-29_15:25:46
+  host      : evc32.ucfarcc.org
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2207887) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

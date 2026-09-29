@@ -70,3 +70,29 @@ Slurm identity, actual logs and GPU acceptance receipts must be inspected before
 claiming a launched or successful training run. Every completed production epoch
 is to be privately preserved and fully downloaded/hash verified once. The active
 goal is not complete merely because code or a pilot passes.
+
+## Allocated pilot findings and correction
+
+The first two distinct pilots, Slurm 864755 on evc45 and 864757 on evc22,
+terminated during bounded allocated-driver checks before model construction.
+They are terminal and their dispatches are preserved. Pilot 864759 on evc32
+passed both allocated NVML/CUDA checks and a real torch CUDA context, staged the
+verified environment/cache and reached its first MRI forward. It failed before
+any optimizer update with an exact BF16 indexed-write dtype mismatch in
+`CompetitiveStudyNet.series_features`. CUDA autocast keeps some normalization
+outputs FP32 while linear output is BF16; an indexed destination requires matching
+dtypes. The correction explicitly converts the series embedding to the destination
+buffer dtype. CPU autocast regression tests reproduce that mixed dtype boundary,
+check all three aggregation modes, padding invariance and finite gradients.
+
+See [pilot-three-terminal.txt](pilot-three-terminal.txt). This is an evidenced
+code correction, not an inference about prior Kaggle failures. A new pinned source
+and distinct pilot output are required; no production run has been submitted.
+
+Three additional redundant baseline fold-2 snapshots (epochs 2/4/6, retaining
+best epoch 8 and final) were freshly checked against private HF metadata and prior
+full-download receipts, then fully hashed locally before removal. See the second
+[plan](storage-retention-plan2.json) and [receipt](storage-retention-receipt2.json).
+Current soft-byte reserve is about 37.5 GiB and file reserve about 8,500, subject
+to a fresh check before dispatch. Old source data, masks/folds and final checkpoints
+remain intact. No competition submission was made in this implementation milestone.

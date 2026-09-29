@@ -1,0 +1,14 @@
+{
+  "failed_pilot_job": "864759",
+  "files": {
+    "rsna/competitive/model.py": "7816118f8b6bb26041c6684219e25d415a7f4ed1558d136102786ec77edbeb7d",
+    "tests/test_competitive_model.py": "acfb10f592b6e9231a167ea6c033bdc15880353e755f06c8a1bfa71cab6fa973"
+  },
+  "fix": "explicit conversion to destination buffer dtype",
+  "focused_suite_passed": 109,
+  "new_regression_cases": 3,
+  "optimizer_updates_before_failure": 0,
+  "production_launched": false,
+  "root_cause": "BF16 series embedding indexed into FP32 aggregation buffer",
+  "status": "autocast_dtype_regression_passed"
+}

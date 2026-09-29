@@ -175,7 +175,11 @@ class CompetitiveStudyNet(nn.Module):
             full = projected.new_zeros((b, s, k, projected.shape[-1]))
             full[slice_mask] = projected + slice_position
         series_features = full.new_zeros((b, s, full.shape[-1]))
-        series_features[series_mask] = self.series_embedding(valid_features.to(full.dtype))
+        # Autocast linear output can be BF16 while LayerNorm/pooling buffers are
+        # FP32. Indexed writes require exact dtype agreement on CUDA.
+        series_features[series_mask] = self.series_embedding(valid_features.to(full.dtype)).to(
+            series_features.dtype
+        )
         if self.pooling == "max":
             pooled = full.masked_fill(~slice_mask[..., None], -torch.inf).amax(dim=2)
             pooled = torch.where(series_mask[..., None], pooled, torch.zeros_like(pooled))

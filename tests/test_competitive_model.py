@@ -80,6 +80,35 @@ def test_trainable_gradients_and_masked_image_gradients(pooling):
             assert torch.isfinite(parameter.grad).all(), name
 
 
+@pytest.mark.parametrize("pooling", ["attention", "max", "patch_attention"])
+def test_bf16_linear_with_fp32_projection_buffer_preserves_padding_and_gradients(pooling):
+    class FP32Output(nn.Module):
+        def forward(self, x):
+            # Reproduce CUDA autocast's FP32 normalization output on CPU, where
+            # LayerNorm's policy can differ, with actual BF16 linear operations.
+            return x.float()
+
+    model = CompetitiveStudyNet(RecordingEncoder(), 8, pooling=pooling, hidden_dim=12).eval()
+    model.projection.append(FP32Output())
+    batch = list(inputs())
+    batch[0].requires_grad_()
+    with torch.autocast("cpu", dtype=torch.bfloat16):
+        baseline = model(*batch)
+        padded = [tensor.clone() for tensor in batch]
+        padded[0][~batch[3]] = torch.nan
+        padded[1][~batch[2]] = torch.nan
+        padded[4][~batch[3]] = torch.nan
+        changed = model(*padded)
+    torch.testing.assert_close(changed, baseline, rtol=0, atol=0)
+    assert baseline.shape == (2, 12) and torch.isfinite(baseline).all()
+    baseline.float().square().sum().backward()
+    assert torch.count_nonzero(batch[0].grad[~batch[3]]) == 0
+    for name, parameter in model.named_parameters():
+        if parameter.requires_grad:
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
+
+
 def test_one_valid_slice_frozen_encoder_eval_and_resume():
     encoder, dim, provenance = create_encoder(
         {"architecture": "diagnostic_tiny", "embedding_dim": 16}
