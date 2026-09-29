@@ -28,7 +28,9 @@ See [comparison-v1](../initiative/audits/kaggle-checkpoint-comparison-v1/) for
 bindings, all dispatch/submission receipts, restoration and justified recovery.
 The three-submission/saved-five stage is privately mirrored at HF revision
 `2d0d249861480160278164fb3c75264caf8dcccc`: all 163 objects re-downloaded/hash
-verified. The complete five-submission milestone follows separately. No GPU
+verified. The complete five-submission milestone is separately private-HF
+verified at revision `94f33ae7bf0a37328fd807bc5d9d1adfbb8bff9d` (181 objects), bound to Git
+`5ef7e92`. No GPU
 training job is reserved. All 1,064 repository tests and required source checks
 passed; the final low-impact reconciler also executed successfully on Newton.
 

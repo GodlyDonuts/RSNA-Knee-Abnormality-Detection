@@ -166,3 +166,10 @@ privately at Hugging Face revision
 `2d0d249861480160278164fb3c75264caf8dcccc`; all **163** small objects were fully
 re-downloaded and size/SHA verified. Preserve the complete campaign in a
 separate bound small milestone, with its own no-retry intent and verification.
+
+The **complete five-submission** milestone is privately preserved at Hugging
+Face revision `94f33ae7bf0a37328fd807bc5d9d1adfbb8bff9d`, bound to Git source
+`5ef7e92`. All **181 objects** were forced-downloaded and matched by byte size
+and full SHA-256. The separate intent/result/verification receipts here bind
+that immutable revision; no checkpoint weights were uploaded again. GitHub main
+contains the complete campaign and both private milestone receipts.
