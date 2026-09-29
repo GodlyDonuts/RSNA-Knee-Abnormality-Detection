@@ -6,6 +6,21 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 28, successful-submission comparison and terminal result:** Both
+authenticated Kaggle status methods mark DINOv3 entry 56550973 `COMPLETE` with
+an unhandled notebook error, zero bytes and no score. The earlier OSS entries
+remain scored at 0.936 and 0.942; five live slots are available, but no new
+submission was made. The exact source comparison and real synthetic-DICOM
+replay identify a remaining gap: cache preparation accepts tied slice positions,
+then the pinned model dataset rejects them outside its recovery handler; the
+successful notebook reader handles the same input. This is a confirmed deployment
+weakness, **not a proven hidden root cause**. See
+[comparison-v2](../initiative/audits/kaggle-successful-submission-comparison-v2/).
+Newton DNS is unavailable from this Mac. Reconcile this exact terminal result in
+the canonical cluster ledger when accessible; do not create a second ledger or
+resubmit the failed notebook. Preserve all completed training checkpoints and
+continue a comprehensive data-boundary recovery review before another candidate.
+
 **September 25, 13:30 UTC patch-attention three-fold result:** Fold-2 job
 848958 completed `0:0`; exact predictions and accepted-fold verification show
 0.7197381600 internal macro AUC on 1,122 outer studies versus 0.7590158140

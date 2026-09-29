@@ -1,5 +1,13 @@
 # Bounded test-series metadata recovery
 
+**Terminal result confirmed September 28:** Entry 56550973 failed its hidden
+rerun with the same generic unhandled-notebook error, zero bytes and no score.
+Both authenticated status methods agree. The successful-source comparison and
+a newly reproduced geometry recovery gap are recorded in
+[comparison-v2](../kaggle-successful-submission-comparison-v2/). The root cause
+of the hidden rerun remains unproven. Do not repeat this notebook or submission.
+Newton DNS prevented canonical-ledger reconciliation at this observation.
+
 **Current result, September 25, 12:54 UTC:** The distinct private offline
 notebook completed its three-study public MRI-only execution with all three
 studies inferred on CUDA and no fallback. Its saved version, source SHA,

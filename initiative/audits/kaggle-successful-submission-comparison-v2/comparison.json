@@ -1,0 +1,67 @@
+{
+  "common_contracts": [
+    "test.csv roster",
+    "13 columns in organizer order",
+    "finite probabilities in [0,1]",
+    "submission.csv in Kaggle working directory",
+    "private offline GPU notebook"
+  ],
+  "comparison_type": "read-only source inspection plus bounded synthetic DICOM replay",
+  "differences": [
+    {
+      "area": "slice failures",
+      "ours": "decodes all slices of selected series; only enumerated error-message prefixes exclude series",
+      "successful": "read_slot catches per-slice exceptions, retains majority pixel shape, fills missing sampled slices from a healthy neighbor"
+    },
+    {
+      "area": "geometry",
+      "ours": "cache warning can pass preparation but strict CompetitiveStudyDataset geometry validation then aborts chunk subprocess",
+      "successful": "order_slices tolerates repeated geometric positions and falls back to InstanceNumber/natural ordering where needed"
+    },
+    {
+      "area": "study failures",
+      "ours": "neutral fallback only for studies classified unusable during preparation; later dataset/model/subprocess failures still stop entire notebook",
+      "successful": "0.942 Raptor arm logs failed study and fills missing/nonfinite arm rows with cohort mean or neutral 0.5; optional residual branches may fail without deleting healthy base"
+    },
+    {
+      "area": "runtime",
+      "ours": "recreates isolated pinned runtime, FP32 CUDA default device, fresh model subprocess every 32 studies",
+      "successful": "mostly Kaggle installed runtime, both T4 GPUs, model sharing, mixed precision, bounded prefetch"
+    },
+    {
+      "area": "predictions",
+      "ours": "one scheduled global-CLS DINOv3-L checkpoint with raw sigmoid probabilities",
+      "successful": "multiple DINOv2/CNN/CoAtNet model arms and percentile-rank fusion"
+    }
+  ],
+  "full_upstream_notebook_executed": false,
+  "hidden_cause_proven": false,
+  "kaggle_mutation": false,
+  "not_root_cause_evidence": [
+    "sigmoid decimal formatting",
+    "nonfatal public-run sitecustomize warning",
+    "model AUC"
+  ],
+  "our_notebook_source_sha256": "9a44b8c9dc0de88cef1f0559710faef3aceb24829bcff0e807670326d5084903",
+  "our_submission": 56550973,
+  "our_wrapper_source_sha256": "1b57a2b675a95a8866f54fb5820ff646fbce8a1202d9dc725d42e47799f1244f",
+  "schema_version": 1,
+  "successful_notebook_association": "ownership/version/title/timing support association; submission API exposes no kernel reference",
+  "successful_sources": [
+    {
+      "public_score": "0.936",
+      "slug": "godlydonuts/head-and-shoulders-knees-and-toes",
+      "source_sha256": "49d4cd8a447253d97c3130138577befad7f1203de0aa2a5f1ed8261e2480625e",
+      "submission": 55969300,
+      "version": 1
+    },
+    {
+      "public_score": "0.942",
+      "slug": "godlydonuts/rsna-knee-0942-restructured",
+      "source_sha256": "86fb30039835bac99f82bca9af8c35718dc33b79372597bb68a8401b320ffeb8",
+      "submission": 56407271,
+      "version": 1
+    }
+  ],
+  "training_code_or_masks_modified": false
+}

@@ -1,0 +1,48 @@
+{
+  "diagnostic_only": true,
+  "fixture": "valid synthetic grayscale DICOM series with z positions [0,0,2], healthy same-plane alternate and two other planes",
+  "hidden_cause_proven": false,
+  "kaggle_mutation": false,
+  "model_weights_modified": false,
+  "our_cache_warnings": [
+    "duplicate_slice_positions"
+  ],
+  "our_dataset_construction_error": "Patient-geometry cache slices must be strictly ordered",
+  "our_neutral_fallback_triggered": false,
+  "our_preparation": {
+    "selected_series": 3,
+    "skipped_series": {
+      "invalid_dicoms": 0,
+      "invalid_metadata": 0,
+      "invalid_series": 0,
+      "missing_dicoms": 0
+    },
+    "unusable_study_ids": []
+  },
+  "our_selected_series": [
+    "2.3.1",
+    "2.3.3",
+    "2.3.4"
+  ],
+  "schema_version": 1,
+  "source_sha256": {
+    "rsna/competitive/data.py": "04f9b0e3c6e70c6a462775f130d8ec58c8d476233a690762bb2ea26097085aec",
+    "rsna/data.py": "3e9a7f87ae2a956b04fcfcaf755e17f92c1f78ddb6c9a2ca534b621d982a4833",
+    "rsna/dicom.py": "a26a16d296fc913a1c3f1f33e8c4d8b38d73c5fb9718e663242e6c7ec077b269",
+    "rsna/preprocess.py": "07da6625045099b085d2afd76d49203fe15826dc40a00b881b1080aaa8b6ae22",
+    "scripts/kaggle/chunked_infer.py": "1b57a2b675a95a8866f54fb5820ff646fbce8a1202d9dc725d42e47799f1244f"
+  },
+  "status": "reproduced_deployment_difference",
+  "successful_notebook_reader": {
+    "dtype": "torch.uint8",
+    "events": [],
+    "finite": true,
+    "output_shape": [
+      3,
+      16,
+      16
+    ]
+  },
+  "successful_notebook_source_sha256": "86fb30039835bac99f82bca9af8c35718dc33b79372597bb68a8401b320ffeb8",
+  "upstream_execution_scope": "only manually reviewed order_slices/read_slot functions; no model/notebook execution"
+}
