@@ -6,6 +6,28 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 29, verified A32 pilot and primary production launch:** Resume-only
+Slurm **864840 COMPLETED 0:0**, with full model/optimizer/RNG recovery equality,
+byte-equal predictions, all 120 adapters updated, original official base tensors
+unchanged and exact checkpoint-only real MRI reload. The primary ten-epoch fold-0
+production **864856** was submitted once after fresh acceptance and is RUNNING
+on evc32 at dispatch: one H100/two CPUs, 2,247 training studies, 281 updates per
+epoch, effective batch eight. Source Git is `6f1ee6d332de29a8d6e5807aeac4777620865933`,
+clean shared checkout `/home/sa305415/rsna-knee/code-adapter-a32-6f1ee6d`.
+Unique output: `/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-fold0-6f1ee6d-production-v1`.
+Control: `/home/sa305415/rsna-knee/production-launch-adapter-a32-6f1ee6d-v1`.
+Inspect exact live Slurm/logs/run records and immutable epoch sidecars before action;
+do not duplicate the production job or any terminal pilots. Preserve every completed
+epoch with `scripts/hf/dispatch_adapter_a32_epoch.py` through a live authenticated
+SSH control socket, once only, fully download/size/SHA verify each private HF payload
+and license/source/fold/weight lineage. Existing intents require read-only
+reconciliation. Production storage projected a 21.33 GiB reserve at dispatch;
+check fresh byte/file quota before further work. The frozen BF16 control remains
+prepared only. The fixed-final outer result is outstanding; tiny diagnostic metrics
+are not competitive evidence. The active goal stays incomplete until measured
+competitive solo DINOv3 progress; teachers/ensembles and new Kaggle submissions
+are not part of this launch. See [the A32 audit](../initiative/audits/dinov3-adapter-a32-v1/).
+
 **September 29, solo DINOv3 adapter implementation:** The owner explicitly asked
 to implement and run the solo model before other mechanisms, and an active goal
 was created. A32 encoder adapters, adapter-aware freezing/optimizer setup,

@@ -156,3 +156,36 @@ recovery save) plus the two pilot checkpoints. Against the original 37.54 GiB
 soft-byte reserve, projected remaining space is 21.34 GiB; use a fresh quota check
 with overhead before dispatch. The prepared production script now selects the
 same CUDA-accepted evc32 node, one H100 and two CPUs, and is still unsubmitted.
+
+## Terminal acceptance and primary production
+
+Resume-only job **864840 completed 0:0**. The
+[pilot verification](pilot-verified.json) confirms full model/optimizer/RNG payload
+equality, byte-identical outer predictions, all 120 residual modules changed, all
+original official base tensors unchanged and checkpoint-only real MRI prediction
+reproduction. Four-update/16-study diagnostic results are not accuracy evidence.
+
+After a fresh clean-source/config/script/publisher/Slurm/output/quota check, primary
+production **864856** was submitted once and is RUNNING on evc32 at dispatch.
+It trains fold 0 for ten epochs on 2,247 studies, 281 effective-eight updates per
+epoch, with immutable snapshots every epoch. Its unique output is
+`/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-fold0-6f1ee6d-production-v1`;
+control is `production-launch-adapter-a32-6f1ee6d-v1`, source is the clean
+`code-adapter-a32-6f1ee6d` checkout. See
+[the intent](production-dispatch-intent.json),
+[result](production-dispatch-result.json) and quota precheck. One H100/two CPUs,
+12-hour bounded allocation; inspect exact stop/final state before resuming.
+
+The publisher/coordinator preserve completed epochs under the private prefix
+`experiments/dinov3-v1/training-epochs/adapter-a32-fold0-6f1ee6d-seed20260922`.
+Inspect each immutable sidecar and existing local/remote HF intent before action.
+Never repeat an uncertain upload; validate all downloaded bytes and exact license,
+source, fold, official weight and encoder-adapter lineage.
+
+At dispatch the remaining soft-byte space was 35.04 GiB after the two pilot
+checkpoints; worst-case production checkpoints leave a projected 21.33 GiB.
+Do not start the prepared control or any additional GPU work without fresh storage
+and allocation acceptance. No Kaggle candidate was submitted or score obtained
+for this adapter. Training code is also available as a 52-file, 696,320-byte exact
+Git deployment projection in ignored local artifacts; all members are SHA checked
+and include adapters, with no weights/data/credentials or notebook execution.
