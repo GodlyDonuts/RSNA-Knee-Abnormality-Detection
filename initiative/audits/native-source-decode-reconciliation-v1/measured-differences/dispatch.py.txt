@@ -1,0 +1,20 @@
+import hashlib,json,os,re,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+r=Path.cwd();d=r/'artifacts/native-source-decode-reconcile-v1';intent=d/'dispatch-intent.json';assert not intent.exists()
+check="""import hashlib,json,subprocess\nfrom pathlib import Path\np=Path('/home/sa305415/rsna-knee/native-source-decode-reconcile-v1');assert p.exists() and not (p/'result').exists();v=json.loads((p/'files.json').read_text())\nfor n,r in v['files'].items():\n f=p/n;assert f.is_file() and f.stat().st_size==r['bytes'] and hashlib.sha256(f.read_bytes()).hexdigest()==r['sha256']\nq=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,nfiles,file_soft=[int(q[i]) for i in (1,2,5,6)];future=3*1338164780+2*1338706190+12*128*1024**2+2*1340000000+132*1024**2+256*1024**2+1024*1024**2;left=(soft-used)*1024-future;assert left>=20*1024**3 and file_soft-nfiles-250>=5000\nprint(json.dumps({'staged_files_verified':True,'projected_remaining_gib':left/1024**3,'projected_remaining_files':file_soft-nfiles-250}))\n"""
+ssh=['ssh','-S','/tmp/rsna-a32-reconnect-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu']
+p=subprocess.run([*ssh,shlex.join(['/usr/bin/python3.12','-c',check])],capture_output=True,text=True,timeout=30);assert p.returncode==0;checked=json.loads(p.stdout)
+assert (r/'.env').stat().st_mode&0o077==0;values={}
+for line in (r/'.env').read_text().splitlines():
+ k,s,v=line.partition('=')
+ if s:values[k.strip()]=v.strip().strip('"').strip("'")
+token=values['HF_TOKEN'];assert token.startswith('hf_')
+plan={'status':'single_native_cpu_decode_dispatch_intent','created_at':datetime.now(timezone.utc).isoformat(),'control':'/home/sa305415/rsna-knee/native-source-decode-reconcile-v1','staged_files':json.loads((d/'files.json').read_text()),'precheck':checked,'cpus':1,'gpus':0,'memory_gib':8,'time_limit_minutes':30,'credential_transport':'ignored_local_env_to_ssh_stdin_to_srun_stdin_only','automatic_retry':False}
+with intent.open('x') as f:json.dump(plan,f,sort_keys=True,indent=2);f.flush();os.fsync(f.fileno())
+args=['srun','--job-name=rsna-native-reconcile-probe','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--mem=8G','--time=00:30:00','/bin/bash','/home/sa305415/rsna-knee/native-source-decode-reconcile-v1/probe.sh']
+p=subprocess.run([*ssh,shlex.join(args)],input=json.dumps({'token':token}),capture_output=True,text=True,timeout=2600)
+assert token not in p.stdout and token not in p.stderr
+out={'status':'native_cpu_probe_returned' if p.returncode==0 else 'native_cpu_probe_failed_or_uncertain','finished_at':datetime.now(timezone.utc).isoformat(),'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
+with (d/'dispatch-result.json').open('x') as f:json.dump(out,f,sort_keys=True,indent=2)
+print(json.dumps(out));assert p.returncode==0

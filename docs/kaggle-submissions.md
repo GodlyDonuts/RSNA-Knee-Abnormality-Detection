@@ -1,5 +1,18 @@
 # Scheduled Kaggle code submissions
 
+September 30 final-fit candidate: primary 865263 completed 10 epochs / 4,260
+updates on all 3,403 usable development studies. E10 is privately fully verified.
+Private Dataset **12293124 v1** was created once and all 44 payload objects
+fully downloaded/hash verified. Exact private offline T4 notebook
+**godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** was pushed once
+and is RUNNING at the latest read. Public MRI acceptance and competition
+submission are still outstanding. Do not repeat its create/push. Use the
+one canonical ledger and the prepared phase coordinator only after exact
+source/MRI/CSV checks and fresh live allowance; never upload the three-row CSV.
+See `initiative/audits/kaggle-a32-all-final-preparation-v1/completed-epoch10/`.
+Latest actual solo score remains **0.769 / 56697342**.
+
+
 Authenticated September 30 13:40 UTC: submission **56697342 COMPLETE**, score
 **0.769**, no hidden error, one submission today and four live slots. The single
 Newton ledger read agrees; do not repeat this submission. The owner permits

@@ -6,6 +6,54 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, primary final fit complete and rank-64 production launched:**
+Primary **865263 COMPLETED 0:0**, all **4,260 updates / 3,403 development
+studies / ten epochs**. Every E1–E10 checkpoint is privately fully download/
+size/SHA verified; E10 revision **8ddd8a87c3360b7fba3439eefa61c2f1bbb0470d**.
+Do not repeat publication. CPU final packaging **865552 COMPLETED 0:0**.
+Private Dataset **12293124 v1** was created once and its complete payload
+fully downloaded/hash verified. Exact private offline T4
+**godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** was pushed once,
+source SHA **6e4de71960093464ead65d220cc87154e35ab26d2fc3e9607107228fd43ee2b2**.
+At the latest read it is RUNNING; exact public MRI receipt and competition
+submission are outstanding. See the completed-epoch10 final-preparation audit.
+Never repeat its Dataset create or notebook push; do not upload the public CSV.
+The owner's useful-checkpoint authorization remains in force. Refresh actual
+live allowance and submit code only after exact offline MRI/source checks.
+Latest solo competition score is **0.769 / 56697342**; no new score is claimed.
+
+Rank-64 pilot **865556 COMPLETED 0:0**, four finite updates, all 120 adapter
+projections changed, 415 official base tensors unchanged and exact full/delta/
+stop/resume/prediction/MRI reload accepted. First pilot **865551** timed out
+on evc22 before optimizer work; preserve its terminal failure. Actual full
+rank-64 comparison **865578** was staged/submitted ONCE on evc31 (one H100/
+two CPUs) and is RUNNING with allocated device/header/CUDA checks passed;
+47 finite real optimizer updates were verified at 15:16 UTC.
+Do not duplicate it. Scientific C9, sampled inputs, masks and outer fold remain
+unchanged; higher rank has no accuracy result yet. Fresh complete budget
+leaves **21.436870 GiB / 6,259 files**, after all current and future roles;
+primary is actually terminal and final deployment copies already exist.
+Use the separate pinned `scripts/hf/dispatch_adapter_a64_epoch.py` for newly
+completed, unattempted snapshots; never reuse another role's publisher.
+Other GPU job **865357** is healthy on evc28, nearing completion of whole-
+series control epoch 6; E1–E5 are privately fully verified. E5 private revision
+**9aa61a2e3539eeee2523bb1735d3f03b108676ce** verifies all four objects.
+Never repeat E1–E5. At most two nodes.
+
+A distinct bounded original-DICOM reconstruction **865553 COMPLETED 0:0**
+verified **eight development series / 215 slices / 161,939,848 raw bytes** and
+built actual 256/384/448 volumes. Five accepted-256 arrays match exactly;
+three differ by at most one unsigned-16-bit level. Cause is unproven. Initial
+exact-equality probe **865547** failed and is preserved. Four matched central
+slice previews were actually inspected; this is engineering image review,
+not diagnosis or accuracy. No reports/target values/gold/confirmation labels
+were read; accepted cache/masks/folds unchanged. Derived ~147-MB artifacts
+remain private on Newton, with complete hashes/rebuild bindings in
+`initiative/audits/native-source-decode-reconciliation-v1/`. No full native
+cache or native-resolution training is launched. Keep this goal active;
+competitive solo results remain outstanding.
+
+
 **September 30, whole-series control epoch 4 preserved:** Control 865357 completed
 epoch 4 / 1,124 updates and its four private objects were fully downloaded/size/
 SHA verified at **10e9edd8c3e85b4422fbddb93fc96e2dba8f8b46**. Do not repeat

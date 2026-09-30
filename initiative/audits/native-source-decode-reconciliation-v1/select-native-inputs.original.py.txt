@@ -1,0 +1,64 @@
+"""Select a bounded original-pixel engineering probe using metadata only."""
+import ast,gzip,hashlib,json
+from pathlib import Path
+import pandas as pd
+
+root=Path.cwd();output=root/'artifacts/native-source-decode-v1/selection.json'
+assert not output.exists()
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+studies=root/'initiative/releases/report-supervision-v1/studies.parquet'
+series=root/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'
+index=root/'initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet'
+headers=root/'initiative/audits/header-endpoint-full-v1/endpoint-headers.jsonl.gz'
+assert sha(studies)=='2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7'
+assert sha(series)=='14eb050d081abe9fce638f5dcfb2cedc688fdac5ace9a62bf9b1cf152421eada'
+assert sha(index)=='0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81'
+assert sha(headers)=='c823cd7a4e7cf451c240ab852b0ab29eb8b5361338ac2984a4d25f8bb5a7f9a4'
+from rsna.schema import TARGETS
+masks=[t+'__mask' for t in TARGETS]
+f=pd.read_parquet(studies,columns=['study_uid','split',*masks],filters=[('split','==','train')]); assert len(f)==3904
+uids=set(f.loc[f[masks].any(axis=1),'study_uid']);assert len(uids)==3403
+s=pd.read_csv(series,dtype=str,usecols=['StudyInstanceUID','SeriesInstanceUID','Anatomical_Plane','Fluid_Sensitive','Fat_Suppression','Selection_Tier'])
+s=s.loc[s.StudyInstanceUID.isin(uids)]
+c=pd.read_parquet(index); c=c.loc[(c.raw_split=='train_series') & c.study_uid.isin(uids) & c.n_slices.between(16,48) & c.warnings.map(lambda x:len(x)==0)]
+expected=set(zip(s.StudyInstanceUID,s.SeriesInstanceUID)); endpoint={};digest=hashlib.sha256()
+with gzip.open(headers,'rb') as stream:
+ for line in stream:
+  digest.update(line); row=json.loads(line);key=row['study_uid'],row['series_uid']
+  if key not in expected:continue
+  fields=row['header_fields']; shape=(int(fields['Rows']),int(fields['Columns']))
+  spacing=ast.literal_eval(fields.get('PixelSpacing','[]'))
+  if key in endpoint:assert endpoint[key]['matrix']==shape
+  endpoint[key]={'matrix':shape,'spacing':spacing}
+assert digest.hexdigest()=='d5569c33e453bb1ccdf4600c39e2093821af7ffc1e7e9691f3a5d0ff97e258f3'
+meta=s.merge(c,left_on=['StudyInstanceUID','SeriesInstanceUID'],right_on=['study_uid','series_uid'],validate='one_to_one')
+meta=meta.loc[(meta.Selection_Tier=='0') & meta.Fluid_Sensitive.isin(['0','1']) & meta.Fat_Suppression.isin(['0','1'])].sort_values(['study_uid','series_uid'])
+selected=[];seen=set()
+criteria=[(256,'Sagittal','0'),(320,'Coronal','1'),(384,'Sagittal','1'),(512,'Axial','1'),(640,'Coronal','0'),(1024,'Sagittal','0'),(512,'Coronal','1'),(640,'Sagittal','1')]
+for dim,plane,fluid in criteria:
+ choices=meta.loc[(meta.Anatomical_Plane==plane)&(meta.Fluid_Sensitive==fluid)]
+ row=next((r for r in choices.itertuples(index=False) if r.study_uid not in seen and max(endpoint[(r.study_uid,r.series_uid)]['matrix'])==dim),None)
+ assert row is not None, (dim,plane,fluid)
+ seen.add(row.study_uid)
+ selected.append({'study_uid':row.study_uid,'series_uid':row.series_uid,'matrix':list(endpoint[(row.study_uid,row.series_uid)]['matrix']),'spacing':endpoint[(row.study_uid,row.series_uid)]['spacing'],'plane':plane,'fluid_sensitive':int(fluid),'fat_suppression':int(row.Fat_Suppression),'cache_path':row.cache_path,'cache_bytes':int(row.cache_bytes),'cache_sha256':row.cache_sha256,'n_slices':int(row.n_slices)})
+selected_series={r['series_uid'] for r in selected};inventory=[];source_parts={}
+for p in sorted((root/'initiative/source/inventory').glob('part-*.parquet')):
+ source_parts[str(p.relative_to(root))]={'sha256':sha(p),'bytes':p.stat().st_size}
+ d=pd.read_parquet(p,filters=[('series_uid','in',list(selected_series))]);inventory.extend(d.to_dict('records'))
+assert len(inventory)==sum(r['n_slices'] for r in selected)
+for row in selected:
+ rows=sorted((x for x in inventory if x['series_uid']==row['series_uid']),key=lambda x:x['path'])
+ assert len(rows)==row['n_slices'] and all(x['study_uid']==row['study_uid'] and x['split']=='train_series' for x in rows)
+ row['objects']=[{k:x[k] for k in ['path','sop_uid','sha256','bytes','storage']} for x in rows]
+plan=json.loads((root/'initiative/audits/full-image-recovery-v1/train-selection/series_selection_plan.json').read_text())
+assert plan['source_revision']=='0b5e410288232f570c69ba4f44723356e6ae6ab7'
+lookup={x['series_uid']:x for x in plan['series']}
+for row in selected:
+ x=lookup[row['series_uid']];assert x['retained'] is True
+ row['cache_metadata_sha256']=x['cache_metadata']['sha256'];row['cache_metadata_bytes']=x['cache_metadata']['bytes']
+raw_bytes=sum(x['bytes'] for row in selected for x in row['objects']);assert raw_bytes<=256*1024**2
+bound=sum(row['n_slices'] for row in selected)*sum(side**2*2 for side in [256,384,448])
+assert bound<512*1024**2
+record={'schema_version':1,'status':'metadata_only_native_probe_selected','repo_id':'GodlyDonuts/RSNA-Data','source_revision':'0b5e410288232f570c69ba4f44723356e6ae6ab7','scientific_source_git':'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab','selection_criteria':'deterministic matrix/plane/sequence coverage, 16-48 slices, accepted development masks and tier0, no warnings','series':selected,'series_count':len(selected),'slices':sum(x['n_slices'] for x in selected),'raw_download_bytes':raw_bytes,'upper_bound_uncompressed_uint16_outputs_bytes':bound,'persistent_output_budget_bytes':512*1024**2,'cache_sides':[256,384,448],'source_part_bindings':source_parts,'accepted_input_bindings':{str(p.relative_to(root)):{'sha256':sha(p),'bytes':p.stat().st_size} for p in [studies,series,index,headers]},'target_values_or_reports_read':False,'gold_or_confirmation_labels_read':False,'clinical_label_quality_claim':False,'training_or_accepted_cache_changed':False}
+output.write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')
+print(json.dumps({k:record[k] for k in ['series_count','slices','raw_download_bytes','upper_bound_uncompressed_uint16_outputs_bytes']}))

@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+[[ -n "${SLURM_JOB_ID:-}" && -z "${SLURM_JOB_GPUS:-}" && "${SLURM_CPUS_PER_TASK:-}" == 1 ]] || exit 2
+root=/home/sa305415/rsna-knee
+control=$root/native-source-decode-reconcile-v1
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+export PYTHONPATH=$root/code-delta-recovery-c9fcc7e
+cd "$root/code-stopfix-1f486765"
+environment_root=
+cleanup() {
+  local prior="$?"
+  if [[ -n "$environment_root" ]]; then
+    /usr/bin/python3.12 scripts/newton/runtime_environment.py cleanup --root "$environment_root" || prior=2
+  fi
+  return "$prior"
+}
+trap cleanup EXIT
+record=$(/usr/bin/python3.12 scripts/newton/runtime_environment.py extract --archive "$root/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar" --sha256 89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338 --expected-files 40403 --expected-bytes 6322691335 --scratch-base /tmp --shared-python /usr/bin/python3.12 --min-free-gib 20)
+environment_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)["runtime_root"])' <<< "$record")
+"$environment_root/environment/bin/python" "$control/probe.py"

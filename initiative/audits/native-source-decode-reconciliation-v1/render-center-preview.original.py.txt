@@ -1,0 +1,27 @@
+"""Export only four central planes and render engineering resolution comparisons."""
+import ast,base64,hashlib,json,shlex,subprocess
+from pathlib import Path
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+root=Path.cwd();audit=root/'initiative/audits/native-source-decode-reconciliation-v1';indices=[2,4,5,6]
+p=r'''import ast,base64,hashlib,json,struct,zipfile;from pathlib import Path
+b=Path('/home/sa305415/rsna-knee/native-source-decode-reconcile-v1/result');out=[]
+for i in [2,4,5,6]:
+ for side in [256,448]:
+  path=b/f'series-{i:02d}-side-{side}.npz'
+  with zipfile.ZipFile(path) as z:
+   with z.open('volume.npy') as f:
+    assert f.read(6)==b'\x93NUMPY';v=f.read(2);n=struct.unpack('<H' if v[0]==1 else '<I',f.read(2 if v[0]==1 else 4))[0];h=ast.literal_eval(f.read(n).decode());assert h['descr']=='<u2' and not h['fortran_order'];shape=h['shape'];index=shape[0]//2;assert shape[1:]==(side,side);f.read(index*side*side*2);data=f.read(side*side*2);assert len(data)==side*side*2
+  out.append({'series_index':i,'side':side,'slice_index':index,'shape':list(shape),'central_plane_sha256':hashlib.sha256(data).hexdigest(),'npz_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'data':base64.b64encode(data).decode()})
+print(json.dumps(out))'''
+r=subprocess.run(['ssh','-S','/tmp/rsna-a32-reconnect-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-c',p])],capture_output=True,text=True,timeout=30);assert r.returncode==0,r.stderr
+rows=json.loads(r.stdout);selection=json.loads((audit/'measured-differences/selection.json').read_text());fig,axes=plt.subplots(4,2,figsize=(10,19),constrained_layout=True)
+for row in rows:
+ data=base64.b64decode(row.pop('data'));assert hashlib.sha256(data).hexdigest()==row['central_plane_sha256'];volume=np.frombuffer(data,dtype='<u2').reshape(row['side'],row['side']);ii=indices.index(row['series_index']);jj=0 if row['side']==256 else 1
+ case=selection['series'][row['series_index']-1];ax=axes[ii,jj];ax.imshow(volume,cmap='gray',vmin=0,vmax=65535,interpolation='nearest');ax.axis('off');ax.set_title(f"Series {row['series_index']:02d}: source {case['matrix'][0]} x {case['matrix'][1]}\nRebuilt side {row['side']}, center slice {row['slice_index']}")
+fig.suptitle('Original-DICOM reconstruction: matched central slices\nIdentical intensity scale; display uses nearest-neighbor interpolation\nEngineering image review only; no diagnostic labels',fontsize=13)
+output=audit/'matched-center-slices.png';assert not output.exists();fig.savefig(output,dpi=140);plt.close(fig)
+receipt={'status':'original_dicom_center_planes_exported_and_comparison_rendered','series_count':4,'slice_selection':'floor(n_slices/2)','full_volumes_transferred_locally':False,'clinical_interpretation':False,'display_interpolation':'nearest','display_intensity_scale':[0,65535],'plane_records':rows,'preview_sha256':hashlib.sha256(output.read_bytes()).hexdigest(),'preview_bytes':output.stat().st_size}
+(audit/'center-preview-render.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');print(json.dumps({'preview':str(output),'bytes':output.stat().st_size}))

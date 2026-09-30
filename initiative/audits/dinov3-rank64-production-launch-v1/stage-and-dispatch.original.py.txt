@@ -1,0 +1,101 @@
+"""Once-only matched rank-64 production stage and dispatch after real acceptance."""
+import base64
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+root = Path.cwd()
+local = root / 'artifacts/dinov3-rank64-production-v1'
+local.mkdir(exist_ok=True)
+intent = local / 'stage-intent.json'
+assert not intent.exists() and not (local / 'dispatch-intent.json').exists()
+protocol = root / 'initiative/experiments/competitive-v1/adapter-rank-capacity-v1'
+manifest = json.loads((protocol / 'production-files.json').read_text())
+files = {}
+for name, row in manifest['files'].items():
+    data = (root / row['repo_path']).read_bytes()
+    assert len(data) == row['bytes'] and hashlib.sha256(data).hexdigest() == row['sha256']
+    files[name] = dict(row, data=base64.b64encode(data).decode())
+data = (protocol / 'production-files.json').read_bytes()
+files['production-files.json'] = {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(), 'data': base64.b64encode(data).decode()}
+request = {'manifest': manifest, 'files': files, 'preparation_source_git': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+program = r'''
+import base64, hashlib, json, os, subprocess, sys, time
+from pathlib import Path
+b=Path('/home/sa305415/rsna-knee'); request=json.load(sys.stdin)
+c=Path(request['manifest']['control']); run=Path(request['manifest']['run']); code=b/'code-delta-recovery-c9fcc7e'; pilot=b/'rank-capacity-a64-c9-pilot-v1'
+assert c.parent==b and c.name=='production-launch-adapter-a64-sampled-c9fcc7e-v1'
+assert run.parent==b/'runs' and not c.exists() and not run.exists()
+assert subprocess.check_output(['git','-C',str(code),'rev-parse','HEAD'],text=True).strip()==request['manifest']['scientific_runtime_git']=='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+def terminal(job):
+ rows=subprocess.check_output(['sacct','--noheader','--parsable2','-j',str(job),'--format=JobIDRaw,State,ExitCode'],text=True).splitlines()
+ return next(x.split('|') for x in rows if x.split('|')[0]==str(job))
+assert terminal(865263)[1:3]==['COMPLETED','0:0']
+assert terminal(865556)[1:3]==['COMPLETED','0:0']
+accept=json.loads((pilot/'pilot-verified.json').read_text())
+assert accept['status']=='adapter_pilot_and_exact_recovery_verified' and accept['production_model'] is False
+assert accept['adapter_parameters']==20447232 and accept['optimizer_steps']==4 and accept['changed_residual_modules']==120 and accept['unchanged_official_base_tensors']==415
+for key in ('full_payload_resume_equal','full_storage_reference_equal','checkpoint_requires_verified_base','outer_predictions_byte_equal','checkpoint_only_real_mri_reload_equal'):
+ assert accept[key] is True
+actual={str(p.relative_to(code/'rsna')):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((code/'rsna').rglob('*.py'))}
+assert actual==accept['binding']['code_sha256']
+stage=json.loads((pilot/'stage-receipt.json').read_text())
+for name,row in stage['accepted_data_files_verified'].items():
+ p=Path(name); assert p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+primary=b/'runs/dinov3-l16-adapter-a32-all-8911f90-production-v1'
+record=json.loads((primary/'run.json').read_text()); assert record['training_studies']==3403 and record['outer_studies']==0
+snap=json.loads((primary/'epoch-checkpoints/epoch-010.json').read_text()); assert snap['optimizer_steps']==4260 and snap['epoch']==10
+publication=json.loads((b/'production-launch-adapter-a32-all-8911f90-v1/epoch-publication/epoch-010/verified.json').read_text())
+assert publication['status']=='private_epoch_fully_verified' and publication['files_verified_by_download']==4 and publication['checkpoint_sha256']==snap['checkpoint_sha256']
+prepared=b/'kaggle/a32-all-final-prepare-v1'; assert terminal(865552)[1:3]==['COMPLETED','0:0']
+transport=json.loads((b/'kaggle/dataset-publications'/snap['checkpoint_sha256']/'transport.json').read_text())
+assert transport['operation_sha256']=='1e130e8de0e129189aee4094290267da92223c2383bd3647e31fbf4ec1546c29'
+bundle=b/'kaggle/bundles/a32-all-epoch010-54a1415dc932-v1'
+assert (bundle/'dataset/checkpoint.pt').stat().st_size==snap['checkpoint_bytes']
+archive=b/'kaggle/dataset-publications'/snap['checkpoint_sha256']/'upload/bundle.zip'
+assert archive.stat().st_size==transport['archive_bytes']
+def capacity():
+ quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+ numeric=quota.splitlines()[-1].split()
+ if not numeric[0].rstrip('*').isdigit(): numeric=numeric[1:]
+ assert len(numeric)==8, quota
+ used,soft,nfiles,file_soft=[int(numeric[i].rstrip('*')) for i in (0,1,4,5)]
+ future={'remaining_primary_checkpoint_writes':0,'primary_bundle_zip_already_materialized':0,'control_delta_live_atomic':12*128*1024**2,'control_bundle_and_zip':2*1340000000,'other_metadata':132*1024**2,'pilot_diagnostic_conservative_extra':256*1024**2,**request['manifest']['new_storage_upper_bounds_bytes']}
+ projected=(soft-used)*1024-sum(future.values()); projected_files=file_soft-nfiles-650
+ assert projected>=20*1024**3 and projected_files>=5000
+ live=subprocess.check_output(['squeue','--noheader','-u','sa305415','-o','%i|%T|%b|%N'],text=True).splitlines()
+ gpu=[line for line in live if 'gpu' in line.split('|')[2]]; assert len(gpu)<=1
+ return {'quota_used_kib':used,'quota_soft_kib':soft,'quota_used_files':nfiles,'quota_soft_files':file_soft,'future_obligations_bytes':future,'projected_remaining_gib':projected/1024**3,'projected_remaining_files':projected_files,'active_gpu_jobs':gpu,'maximum_gpu_nodes_after_dispatch':len(gpu)+1}
+budget=capacity()
+proof={'schema_version':1,'status':'rank64_production_prerequisites_verified','checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'pilot_job_id':865556,'pilot_terminal_state':'COMPLETED','pilot_terminal_exit':'0:0','pilot_receipt_sha256':hashlib.sha256((pilot/'pilot-verified.json').read_bytes()).hexdigest(),'scientific_runtime_git':request['manifest']['scientific_runtime_git'],'preparation_source_git':request['preparation_source_git'],'private_role_publisher_ready':True,'accepted_data_and_scientific_code_bytes_verified':True,'primary_terminal_completed_and_private_e10_verified':True,'primary_final_packaging_terminal_and_actual_copies_verified':True,'rank64_accuracy_measured':False,**budget}
+c.mkdir(mode=0o700)
+for name,row in request['files'].items():
+ assert Path(name).name==name
+ data=base64.b64decode(row['data'],validate=True); assert len(data)==row['bytes'] and hashlib.sha256(data).hexdigest()==row['sha256']
+ with (c/name).open('xb') as f:f.write(data);f.flush();os.fsync(f.fileno())
+subprocess.run(['/bin/bash','-n',str(c/'production.sbatch')],check=True)
+with (c/'dispatch-acceptance.json').open('x') as f:json.dump(proof,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+print(json.dumps(proof))
+'''
+ssh = ['ssh', '-S', '/tmp/rsna-a32-reconnect-501.sock', '-o', 'BatchMode=yes', 'sa305415@newton.ist.ucf.edu']
+def save(name, value):
+    with (local / name).open('x') as f:
+        json.dump(value, f, sort_keys=True, indent=2)
+        f.write('\n'); f.flush(); os.fsync(f.fileno())
+save('stage-intent.json', {'created_at': datetime.now(timezone.utc).isoformat(), 'files': {n: {k: v[k] for k in ('bytes', 'sha256')} for n, v in files.items()}, 'control': manifest['control'], 'scientific_runtime_git': manifest['scientific_runtime_git'], 'one_stage_only': True})
+result = subprocess.run([*ssh, shlex.join(['/usr/bin/python3.12', '-c', program])], input=json.dumps(request), capture_output=True, text=True, timeout=60)
+save('stage-result.json', {'returncode': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr})
+assert result.returncode == 0, result.stderr
+proof = json.loads(result.stdout)
+save('dispatch-acceptance.json', proof)
+save('dispatch-intent.json', {'created_at': datetime.now(timezone.utc).isoformat(), 'script': manifest['control'] + '/production.sbatch', 'script_sha256': files['production.sbatch']['sha256'], 'gpus': 1, 'cpus': 2, 'precheck': proof, 'automatic_retry': False})
+result = subprocess.run([*ssh, shlex.join(['sbatch', '--parsable', '--nodelist=evc31', manifest['control'] + '/production.sbatch'])], capture_output=True, text=True, timeout=40)
+output = {'returncode': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr, 'dispatched_at': datetime.now(timezone.utc).isoformat()}
+if result.returncode == 0:
+    job = result.stdout.strip().split(';')[0]; assert job.isdecimal(); output['job_id'] = int(job)
+save('dispatch-result.json', output)
+print(json.dumps(output)); assert result.returncode == 0

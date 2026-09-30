@@ -1,0 +1,99 @@
+"""Decode pinned original DICOMs and test native-detail cache preparation."""
+from __future__ import annotations
+import hashlib,io,json,os,subprocess,sys,tarfile,time,traceback
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path,PurePosixPath
+import numpy as np
+import torch
+from rsna.dicom import decode_slice,make_volume
+from rsna.preprocess import Source
+
+BASE=Path('/home/sa305415/rsna-knee')
+CONTROL=BASE/'native-source-decode-v1'
+REVISION='0b5e410288232f570c69ba4f44723356e6ae6ab7'
+CODE=BASE/'code-delta-recovery-c9fcc7e'
+SCIENCE='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+
+def sha_bytes(b): return hashlib.sha256(b).hexdigest()
+def save(path,value):
+ with path.open('x') as f:
+  json.dump(value,f,sort_keys=True,indent=2,allow_nan=False);f.write('\n');f.flush();os.fsync(f.fileno())
+def array_sha(a):
+ h=hashlib.sha256();h.update(str(a.dtype).encode());h.update(np.asarray(a.shape,dtype='<i8').tobytes());h.update(a.tobytes(order='C'));return h.hexdigest()
+def quota(additional):
+ q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,nfiles,file_soft=[int(q[i]) for i in (1,2,5,6)]
+ future={'primary_future_full':3*1338164780,'primary_deployment':2*1338706190,'control_delta_live_atomic':12*128*1024**2,'control_deployment':2*1340000000,'metadata':132*1024**2,'rank64_diagnostic':256*1024**2,'native_probe':additional}
+ left=(soft-used)*1024-sum(future.values());assert left>=20*1024**3 and file_soft-nfiles-250>=5000
+ return {'projected_remaining_bytes':left,'projected_remaining_gib':left/1024**3,'future_bytes':future,'projected_remaining_files':file_soft-nfiles-250}
+def main():
+ assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+ assert int(os.environ.get('SLURM_CPUS_PER_TASK','0'))==1
+ assert subprocess.check_output(['git','-C',str(CODE),'rev-parse','HEAD'],text=True).strip()==SCIENCE
+ plan=json.loads((CONTROL/'selection.json').read_text());source=json.loads((CONTROL/'source-metadata-verified.json').read_text());files=json.loads((CONTROL/'files.json').read_text())
+ for name,record in files['files'].items():
+  p=CONTROL/name;assert p.is_file() and not p.is_symlink() and p.stat().st_size==record['bytes'] and sha_bytes(p.read_bytes())==record['sha256']
+ for name,digest in files['scientific_modules'].items():assert sha_bytes((CODE/name).read_bytes())==digest
+ assert plan['source_revision']==source['source_revision']==REVISION and plan['series_count']==8 and plan['slices']==215
+ assert source['selection_sha256']==sha_bytes((CONTROL/'selection.json').read_bytes())
+ assert plan['persistent_output_budget_bytes']==512*1024**2
+ output=CONTROL/'result';assert not output.exists();budget=quota(plan['persistent_output_budget_bytes']);output.mkdir(mode=0o700)
+ save(output/'intent.json',{'job_id':os.environ['SLURM_JOB_ID'],'selection_sha256':sha_bytes((CONTROL/'selection.json').read_bytes()),'source_revision':REVISION,'scientific_source_git':SCIENCE,'budget':budget,'once_only':True})
+ payload=json.load(sys.stdin);token=payload.pop('token');assert token.startswith('hf_');os.environ['HF_TOKEN']=token;del token,payload
+ torch.set_num_threads(1);torch.set_num_interop_threads(1)
+ objects={x['path']:x for row in plan['series'] for x in row['objects']};assert len(objects)==215
+ source_reader=Source(None,objects,repo_id=plan['repo_id'],revision=REVISION)
+ source_reader.downloads.shutdown(wait=True);source_reader.downloads=ThreadPoolExecutor(max_workers=2)
+ archive=BASE/'cache/cache256-v3-official-recovery-v1.tar';assert archive.is_file() and not archive.is_symlink() and archive.stat().st_size==82834493440
+ # Only selected, independently SHA-bound regular members are read. This does
+ # not claim a fresh hash verification of the entire 82 GB archive.
+ results=[];start=time.monotonic()
+ try:
+  with tarfile.open(archive,'r:') as cache:
+   for index,row in enumerate(plan['series']):
+    tick=time.monotonic();uid,series=row['study_uid'],row['series_uid'];relative=PurePosixPath(row['cache_path']);assert not relative.is_absolute() and '..' not in relative.parts and relative.parts[0]=='train_series'
+    bound={'.npz':(row['cache_bytes'],row['cache_sha256']),'.json':(row['cache_metadata_bytes'],row['cache_metadata_sha256'])};reference={}
+    for suffix,(size,digest) in bound.items():
+     member=cache.getmember('cache/'+str(relative.with_suffix(suffix)));assert member.isfile() and member.size==size
+     f=cache.extractfile(member);assert f is not None
+     with f:b=f.read()
+     assert len(b)==size and sha_bytes(b)==digest
+     reference[suffix]=b
+    meta=json.loads(reference['.json']);assert meta['study_uid']==uid and meta['series_uid']==series and meta['side']==256 and meta['source_revision']==REVISION
+    paths=[x['path'] for x in row['objects']];raw=source_reader.read_series(paths);assert len(raw)==row['n_slices']
+    decoded=[decode_slice(b,uid,series,Path(p).stem) for p,b in zip(paths,raw)];del raw
+    assert all(list(s.pixels.shape)==row['matrix'] and np.isfinite(s.pixels).all() for s in decoded)
+    assert all(np.allclose(s.spacing,row['spacing'],atol=1e-6,rtol=1e-5) for s in decoded)
+    volumes={};infos={};file_records={}
+    for side in plan['cache_sides']:
+     v,info=make_volume(decoded,side);assert v.dtype==np.uint16 and v.shape==(row['n_slices'],side,side)
+     assert info['sop_uids']==meta['sop_uids'] and info['slice_sha256']==meta['slice_sha256']
+     assert info['pixel_sha256']==meta['pixel_sha256'] and info['positions']==meta['positions'] and info['orientation']==meta['orientation']
+     assert info['ordering']=='patient_geometry' and not info['warnings']
+     assert info['intensity_min']==meta['intensity_min'] and info['intensity_max']==meta['intensity_max']
+     assert info['original_shape']==meta['original_shape'] and info['photometric_interpretation']==meta['photometric_interpretation']
+     volumes[side]=v;infos[side]=info
+    with np.load(io.BytesIO(reference['.npz']),allow_pickle=False) as old:assert np.array_equal(volumes[256],old['volume'])
+    for side,v in volumes.items():
+     path=output/f'series-{index+1:02d}-side-{side}.npz'
+     with path.open('xb') as f:np.savez_compressed(f,volume=v)
+     mp=path.with_suffix('.json');save(mp,infos[side])
+     file_records[str(side)]={'file':path.name,'bytes':path.stat().st_size,'sha256':sha_bytes(path.read_bytes()),'decoded_uint16_array_sha256':array_sha(v),'metadata_file':mp.name,'metadata_sha256':sha_bytes(mp.read_bytes())}
+    base=torch.from_numpy(volumes[256].astype(np.float32)/65535)[:,None]
+    differences={}
+    for side in [384,448]:
+     enlarged=torch.nn.functional.interpolate(base,size=(side,side),mode='bilinear',align_corners=False,antialias=True)[:,0].numpy()
+     target=volumes[side].astype(np.float32)/65535;differences[str(side)]={'mean_absolute_difference_from_upsampled_256':float(np.abs(target-enlarged).mean()),'max_absolute_difference_from_upsampled_256':float(np.abs(target-enlarged).max()),'original_matrix_exceeds_input_both_axes':min(row['matrix'])>side,'no_clinical_accuracy_inference':True}
+    result={'series_number':index+1,'study_uid':uid,'series_uid':series,'matrix':row['matrix'],'plane':row['plane'],'fluid_sensitive':row['fluid_sensitive'],'fat_suppression':row['fat_suppression'],'slices':row['n_slices'],'raw_bytes':sum(x['bytes'] for x in row['objects']),'source_256_uint16_exact_match':True,'all_source_uid_byte_hash_order_geometry_verified':True,'files':file_records,'difference_diagnostics':differences,'elapsed_seconds':time.monotonic()-tick}
+    save(output/f'series-{index+1:02d}-verified.json',result);results.append(result)
+    assert sum(p.stat().st_size for p in output.rglob('*') if p.is_file())<=plan['persistent_output_budget_bytes']
+    print(json.dumps({'series_completed':index+1,'slices':row['n_slices'],'exact_256_match':True,'elapsed_seconds':result['elapsed_seconds']}),flush=True)
+ finally:
+  source_reader.downloads.shutdown(wait=True);os.environ.pop('HF_TOKEN',None)
+ receipt={'status':'bounded_original_dicom_native_cache_probe_verified','job_id':os.environ['SLURM_JOB_ID'],'source_revision':REVISION,'scientific_source_git':SCIENCE,'selection_sha256':sha_bytes((CONTROL/'selection.json').read_bytes()),'series':results,'series_verified':8,'slices_verified':215,'full_original_object_bytes_verified':plan['raw_download_bytes'],'exact_256_cache_volume_matches':8,'actual_cache_sides':[256,384,448],'total_elapsed_seconds':time.monotonic()-start,'target_values_or_reports_read':False,'gold_or_confirmation_labels_read':False,'accepted_data_or_cache_mutated':False,'model_training_or_accuracy_claim':False,'whole_archive_rehashed':False,'selected_reference_members_independently_sha_verified':True,'persisted_files_bytes':sum(p.stat().st_size for p in output.rglob('*') if p.is_file()),'retained_storage_bound_bytes':plan['persistent_output_budget_bytes'],'future_native_full_cache_dispatched':False}
+ save(output/'verified.json',receipt);print(json.dumps({'status':receipt['status'],'series':8,'slices':215,'elapsed_seconds':receipt['total_elapsed_seconds'],'persistent_bytes':receipt['persisted_files_bytes']}),flush=True)
+
+if __name__=='__main__':
+ try:main()
+ except Exception as error:
+  # Never disclose private source signed URLs, request headers or credentials.
+  print(json.dumps({'status':'native_probe_failed','error_type':type(error).__name__,'frames':[{'file':Path(f.filename).name,'line':f.lineno,'function':f.name} for f in traceback.extract_tb(error.__traceback__)]}),flush=True);raise SystemExit(2) from None

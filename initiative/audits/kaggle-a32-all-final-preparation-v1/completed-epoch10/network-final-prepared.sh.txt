@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+[[ -n "${SLURM_JOB_ID:-}" && -z "${SLURM_JOB_GPUS:-}" ]] || exit 2
+phase="${1:?phase required}"
+case "$phase" in create-dataset|reconcile-dataset|push-kernel|submit) ;; *) exit 2 ;; esac
+root=/home/sa305415/rsna-knee
+projection=$root/kaggle/a32-all-final-prepare-v1/projection
+control=$root/kaggle/a32-all-final-prepare-v1
+sha12=$(/usr/bin/python3.12 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"]=="final_all_development_checkpoint_and_packaging_budget_accepted" and p["epoch"]==10 and p["optimizer_steps"]==4260 and p["training_studies"]==3403 and p["outer_studies"]==0; print(p["checkpoint_sha256"][:12])' "$control/final-preparation-acceptance.json")
+bundle=$root/kaggle/bundles/a32-all-epoch010-${sha12}-v1
+snapshot=/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1/epoch-checkpoints/epoch-010.json
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+export PYTHONPATH=$projection/code
+cd "$root/code-stopfix-1f486765"
+environment_root=
+cleanup() {
+  local prior="$?"
+  if [[ -n "$environment_root" ]]; then
+    /usr/bin/python3.12 scripts/newton/runtime_environment.py cleanup --root "$environment_root" || prior=2
+  fi
+  return "$prior"
+}
+trap cleanup EXIT
+record=$(/usr/bin/python3.12 scripts/newton/runtime_environment.py extract --archive "$root/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar" --sha256 89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338 --expected-files 40403 --expected-bytes 6322691335 --scratch-base /tmp --shared-python /usr/bin/python3.12 --min-free-gib 20)
+environment_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)["runtime_root"])' <<< "$record")
+python=$environment_root/environment/bin/python
+args=(
+  --projection "$projection/code"
+  --projection-manifest "$projection/projection.json"
+  --projection-sha256 d46919481839709443fd866373d99ef1e9a07733b3ac53555fdfc0f065c20996
+  --operation "$bundle/operation.json"
+  --snapshot "$snapshot"
+)
+if [[ "$phase" == create-dataset ]]; then args+=(--management-python "$root/kaggle/management-cp312-v1/bin/python"); fi
+"$python" "$projection/code/scripts/kaggle/coordinator.py" "$phase" "${args[@]}"

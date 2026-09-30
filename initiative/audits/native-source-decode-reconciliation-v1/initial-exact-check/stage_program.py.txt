@@ -1,0 +1,18 @@
+import base64,hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+request=json.load(sys.stdin);base=Path('/home/sa305415/rsna-knee');control=base/'native-source-decode-v1';code=base/'code-delta-recovery-c9fcc7e'
+assert not control.exists()
+assert subprocess.check_output(['git','-C',str(code),'rev-parse','HEAD'],text=True).strip()==request['scientific_source_git']=='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+for n,h in request['scientific_modules'].items():assert hashlib.sha256((code/n).read_bytes()).hexdigest()==h
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,nfiles,file_soft=[int(q[i]) for i in (1,2,5,6)]
+future={'primary_full_inodes':3*1338164780,'primary_final_deployment':2*1338706190,'control_delta_live_atomic':12*128*1024**2,'control_deployment':2*1340000000,'metadata':132*1024**2,'rank64_diagnostic':256*1024**2,'native_probe':512*1024**2,'native_small_stage':sum(v['bytes'] for v in request['files'].values())+65536}
+left=(soft-used)*1024-sum(future.values());assert left>=20*1024**3 and file_soft-nfiles-250>=5000
+control.mkdir(mode=0o700)
+for n,r in request['files'].items():
+ assert Path(n).name==n and not n.startswith('.')
+ data=base64.b64decode(r['data'],validate=True);assert len(data)==r['bytes'] and hashlib.sha256(data).hexdigest()==r['sha256']
+ with (control/n).open('xb') as f:f.write(data);f.flush();os.fsync(f.fileno())
+subprocess.run(['/bin/bash','-n',str(control/'probe.sh')],check=True)
+receipt={'status':'bounded_native_probe_cpu_files_staged_verified','staged_at_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'control':str(control),'source_git':request['source_git'],'scientific_source_git':request['scientific_source_git'],'scientific_modules':request['scientific_modules'],'files':{k:{x:v[x] for x in ['bytes','sha256']} for k,v in request['files'].items()},'future_bytes':future,'projected_remaining_gib':left/1024**3,'projected_remaining_files':file_soft-nfiles-250,'gpu_job_reserved':False,'cpu_decode_dispatched':False}
+with (control/'stage-receipt.json').open('x') as f:json.dump(receipt,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+print(json.dumps(receipt))

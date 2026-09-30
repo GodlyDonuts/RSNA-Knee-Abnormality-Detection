@@ -1,10 +1,17 @@
 # Solo DINOv3 rank-capacity comparison
 
-Rank-64 sampled-input recipes are prepared; the bounded recovery pilot files
-are CPU-staged and hash verified on Newton. **No
-GPU job has been reserved or dispatched.** The completed rank-32 reference
-scored 0.8620940794 internal macro AUC on 1,156 development studies and 0.769
-on Kaggle. Rank 64 has no training or accuracy result yet.
+The bounded rank-64 real-MRI recovery pilot **865556 COMPLETED 0:0** on
+September 30. Full/delta/stop/resume state and predictions match; all 120
+residual projections learned and the official base stayed frozen. The matched
+full ten-epoch production **865578** was staged/submitted once and is RUNNING
+on evc31, one H100/two CPUs. See the actual
+[launch and budget audit](../../../audits/dinov3-rank64-production-launch-v1/).
+The completed rank-32 reference scored 0.8620940794 internal macro AUC on
+1,156 development studies and 0.769 on Kaggle. Rank 64 has no accuracy result yet.
+
+Preparation-time statements below remain historical; actual acceptance and
+launch receipts supersede their dispatch/storage status. Frozen scientific
+payload bytes and manifests are unchanged.
 
 The prepared reference and challenger differ only in adapter rank. They keep
 the same official DINOv3-L base, 120 projection locations, alpha 8 with
