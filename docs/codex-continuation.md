@@ -6,6 +6,19 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30 rank-64 third epoch preserved:** The same production job
+**865578** completed E3 / **843 optimizer updates**. All four private objects
+were fully re-downloaded/size/SHA verified at
+**06618b46ce73bec9ec254b8b3bc570bb1c39b6cb**; exact sidecar and once-only
+publication journals are in the rank-64 production audit's `epoch-003/`.
+Never repeat E1–E3. Whole-series control **865357** remains live with E1–E6
+preserved. Both final accuracy results remain outstanding. The authenticated
+**17:14:52 UTC** read of submission **56711823** still returned null status,
+score and error; do not infer a hidden outcome or spend another slot yet.
+Fresh Lustre quota was 1,015,352,828 kB / 992,672 files; the conservative
+remaining-role projection leaves **21.175666 GiB / 6,428 files** before the
+small E3 publication journal. Recheck before any further transfer or launch.
+
 **September 30 native/epoch evidence synchronized:** GitHub main **d98a748**
 records the completed original-pixel cache pilot and rank-64 E2/control E6
 preservation. Private HF **d1b7337f6ee7ee555e5e5af02b01a15497909839** fully re-downloaded/size/SHA

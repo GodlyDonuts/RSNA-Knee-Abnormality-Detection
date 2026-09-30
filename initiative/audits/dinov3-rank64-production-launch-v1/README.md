@@ -65,3 +65,15 @@ contract passed before publication. Do not repeat E1; inspect existing intents
 before each new epoch. Exact snapshot/journals are in `epoch-publication/epoch-001/`.
 The same job entered E2 with finite updates and empty stderr. No rank-64
 held-out result exists yet.
+
+Production E2 / **562 updates** and E3 / **843 updates** have now also passed
+the exact production snapshot contract. Each epoch's four private objects
+were fully re-downloaded/size/SHA verified once: E2 at
+**dd7a323eaf3ffdbf429febb070789f0f7ef618b5**, E3 at
+**06618b46ce73bec9ec254b8b3bc570bb1c39b6cb**. E3 checkpoint SHA is
+`0120b4cd0efa21e0718ded9ab1d7b6a28ad1214b671603ec7ca5922689c3e030`.
+Exact immutable sidecars, local dispatch records and remote journals are in
+`epoch-publication/epoch-002/` and `epoch-publication/epoch-003/`.
+Do not repeat E1–E3. The same job continues; no final held-out accuracy is
+available yet. The new source-based native384 caches are engineering artifacts
+for a separate future comparison, not inputs to this rank-64 run.
