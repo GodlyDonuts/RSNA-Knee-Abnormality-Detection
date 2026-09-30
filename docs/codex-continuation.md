@@ -6,6 +6,23 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, whole-series control epoch 4 preserved:** Control 865357 completed
+epoch 4 / 1,124 updates and its four private objects were fully downloaded/size/
+SHA verified at **10e9edd8c3e85b4422fbddb93fc96e2dba8f8b46**. Do not repeat
+control E1–E4 publications. Exact sidecar and publication journals are in
+`initiative/audits/dinov3-delta-recovery-launch-v1/control-epoch-publication/epoch-004/`.
+The control has no final holdout result yet; it remains separate from the next
+planned all-development final E10 competition candidate.
+
+**September 30, final-preparation milestone synchronized:** GitHub main
+**71ef81f** records the exact staged inference projection and privately verified
+primary epoch 9. The private HF milestone at
+**30d106fcbb3385dd099ed7671f86d7153f805cc5** has all **89 small objects** fully
+downloaded/size/SHA verified. Never repeat its commit or staging. The exact
+parent, file map and verification receipts are in
+`initiative/audits/kaggle-a32-all-final-preparation-v1/`. Final preparation,
+candidate MRI acceptance and competition submission are still outstanding.
+
 **September 30, all-data epoch 9 privately preserved:** Primary 865263 has
 entered epoch 10, reaching 3,960 / 4,260 finite updates; whole-series control
 865357 has 1,107 updates in epoch 4. Both are RUNNING with empty stderr.
