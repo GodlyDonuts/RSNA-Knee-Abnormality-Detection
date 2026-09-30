@@ -6,6 +6,16 @@ training Git `6f1ee6d332de29a8d6e5807aeac4777620865933`, 2,810 optimizer updates
 Internal fixed-final macro AUC 0.8620940794 on 1,156 held-out development studies
 is not a Kaggle score. All ten original checkpoints are privately HF verified.
 
+**Actual hidden outcome, September 30 09:48 UTC:** authenticated Kaggle marks
+exact submission **56697342 COMPLETE**, no error, 262,975 output bytes and
+public score **0.769**. The saved result is `scored-20260930.json`. This is an
+actual competition score and successful deployment, distinct from the internal
+0.8620940794. It improves the earlier solo frozen DINOv3 best 0.638 by 0.131.
+It remains below the owner's earlier copied OSS submissions (0.936 / 0.942).
+Four live slots remain at that read. Do not repeat this exact submission.
+Use clean internal comparisons and validated deployment for later candidates;
+the all-development final fit and whole-series control are still live.
+
 The deployment projection uses packaging Git `57aaca6320d745538d169b76cea34ecaea40e076`
 and byte-exact historical training rsna modules. The only eligibility change
 accepts completed even checkpoints from cadence-one preservation as well as the

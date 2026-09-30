@@ -1,5 +1,21 @@
 # Scheduled Kaggle code submissions
 
+**September 30 scored adapter result:** exact sampled A32 fold-0 epoch-10
+submission **56697342 COMPLETE** with **0.769 public score**, no error and
+262,975 output bytes. Authenticated read at 09:48 UTC and the canonical Newton
+ledger reconciliation at 09:54 UTC agree. This improves the earlier solo frozen
+DINOv3 best 0.638; the copied OSS scores are still higher. Four live slots remain
+at that read. Do not repeat the scored submission. The requested all-data final
+fit and whole-series comparison are still running; later candidates require
+immutable completion, exact offline acceptance and fresh live allowance.
+
+Distinct private offline T4 diagnostic `godlydonuts/rsna-delta-t4-fix2-5d1b3b562160`
+v1 is RUNNING after actual CPU expansion verified the corrected 415-backbone plus
+two-normalization-buffer partition. It is explicitly competition ineligible,
+reads no labels and uses no submission slot. Successful T4 MRI equivalence is
+still outstanding. Preserve the earlier failed diagnostic and never retry its
+push. See the [deployment audit](../initiative/audits/kaggle-whole-series-delta-deployment-v1/).
+
 September 30: external wrappers now support schema-2 frozen-base deltas and
 full-series inference for models bound to `series_sampling=all`. They bundle the
 exact official original weights and reject changed base tensors or sampling

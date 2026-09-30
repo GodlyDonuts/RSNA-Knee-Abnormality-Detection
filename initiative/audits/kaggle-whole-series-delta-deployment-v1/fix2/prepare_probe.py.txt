@@ -1,0 +1,107 @@
+"""CPU-only exact engineering bundle, explicitly barred from competition use."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+import torch
+
+BASE=Path('/home/sa305415/rsna-knee')
+STAGE=BASE/'kaggle/delta-probe-c9-5d1b3b562160-fix2-v1'
+PROJECTION=Path(sys.argv[1]);sys.path.insert(0,str(PROJECTION))
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+def load(name):
+ spec=importlib.util.spec_from_file_location(name,PROJECTION/'scripts/kaggle'/f'{name}.py')
+ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+w=load('workflow');publication=load('publication')
+from rsna.competitive.infer import validate_inference_checkpoint
+
+assert not (STAGE/'preparation-intent.json').exists()
+projection=json.loads((PROJECTION.parent/'projection.json').read_text())
+assert projection['training_git_commit']=='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+for name,rec in projection['files'].items():
+ p=PROJECTION/name;assert p.stat().st_size==rec['bytes'] and w.digest(p)==rec['sha256']
+checkpoint=BASE/'delta-recovery-pilot-c9fcc7e-v1/delta-diagnostic.pt'
+assert w.digest(checkpoint)=='5d1b3b562160e803442d33316779401a4fa4721370b182187802b14c78a1c22e'
+saved=torch.load(checkpoint,map_location='cpu',weights_only=True)
+binding=validate_inference_checkpoint(saved,allow_diagnostic=True)
+assert saved['schema_version']==2 and saved['step']==4
+assert binding['config']['diagnostic_study_limit']==16
+assert binding['code_sha256']=={str(p.relative_to(PROJECTION/'rsna')):w.digest(p) for p in (PROJECTION/'rsna').rglob('*.py')}
+encoder=json.loads((BASE/'delta-recovery-pilot-c9fcc7e-v1/pilot-config.json').read_text())['encoder']
+w.validate_delta_base(checkpoint,encoder,binding)
+
+# Exercise the exact old failing helper and the corrected helper with real assets.
+import tempfile,importlib,gc
+old_file=BASE/'kaggle/code-projections/whole-series-c9-ec79816-v1/code/scripts/kaggle/delta_probe.py'
+old_spec=importlib.util.spec_from_file_location('failed_probe',old_file)
+old_module=importlib.util.module_from_spec(old_spec);old_spec.loader.exec_module(old_module)
+new_module=load('delta_probe')
+raw_spec=BASE/'delta-recovery-pilot-c9fcc7e-v1/pilot-config.json'
+spec_file=STAGE/'cpu-encoder-spec.json';w.new_json(spec_file,encoder)
+with tempfile.TemporaryDirectory(prefix='rsna-delta-expansion-fix2-',dir='/tmp') as temporary:
+ reference=Path(temporary)/'reference.pt'
+ try:old_module.expanded_reference(checkpoint,spec_file,reference)
+ except ValueError as error:
+  assert str(error)=='Original frozen base or adapter partition differs'
+ else:raise AssertionError('The original exact failure did not reproduce')
+ assert not reference.exists()
+ gc.collect()
+ partition=new_module.expanded_reference(checkpoint,spec_file,reference)
+ assert partition=={'frozen_base_tensors_verified':415,'frozen_encoder_tensors_verified':417,'normalization_buffers_verified':2,'adapter_modules_verified':120}
+ full=torch.load(reference,map_location='cpu',weights_only=True)
+ validate_inference_checkpoint(full,allow_diagnostic=True)
+ assert full['schema_version']==1 and 'model_storage' not in full
+ assert set(full['model'])==set(saved['model'])|set(saved['model_storage']['frozen_tensors'])
+ for name,tensor in saved['model'].items():assert torch.equal(full['model'][name],tensor),name
+ from rsna.competitive.delta_checkpoint import _tensor_record
+ for name,record in saved['model_storage']['frozen_tensors'].items():assert _tensor_record(full['model'][name])==record,name
+ proof={'status':'actual_base_delta_expansion_verified_on_cpu','original_exact_guard_error_reproduced':True,'corrected_full_model_frozen_and_learned_values_exact':True,'full_reference_bytes':reference.stat().st_size,'full_reference_sha256':w.digest(reference),'diagnostic_only':True,'competition_submission_eligible':False,'checkpoint_sha256':w.digest(checkpoint),'source_git':projection['package_git_commit'],'training_source_git':projection['training_git_commit'],'job_id':os.environ['SLURM_JOB_ID'],**partition}
+ del full;gc.collect();reference.unlink()
+ proof['full_reference_shared_storage_created']=False
+ proof['temporary_full_reference_removed']=True
+ w.new_json(STAGE/'cpu-expansion-verified.json',proof)
+
+wheelhouse=BASE/'kaggle/wheelhouse-cp312-cu130-v1'
+wheel_manifest=json.loads((wheelhouse/'wheelhouse.json').read_text())
+shared=json.loads((BASE/'kaggle/preparation-stage-v1/shared-wheelhouse.json').read_text())
+w.validate_shared_wheelhouse(shared)
+assert shared['dataset_id']==12139697 and shared['dataset_version']==1
+assert shared['manifest_sha256']==w.digest(wheelhouse/'wheelhouse.json')
+assert wheel_manifest['offline_install_verified'] is True
+assert shared['pyproject_sha256']==wheel_manifest['pyproject_sha256']==w.digest(PROJECTION/'pyproject.toml')
+assert shared['dataset_slug']=='godlydonuts/rsna-wheels-cp312-e326c50a4a6a'
+
+root=BASE/'runs/dinov3-l16-adapter-a32-all-8911f90-production-v1'
+assert not (root/'epoch-checkpoints/epoch-005.pt').exists()
+retention=json.loads((BASE/'production-launch-adapter-a32-all-8911f90-v1/epoch-publication/epoch-005/retention.json').read_text())
+assert retention['status']=='privately_verified_redundant_snapshot_removed_active_checkpoint_retained'
+files=list((root/'epoch-checkpoints').glob('*.pt'))+list(root.glob('checkpoint*.pt'))+list(root.glob('*.tmp'))
+inodes={(p.stat().st_dev,p.stat().st_ino) for p in files if p.is_file()}
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+parts=next(l for l in quota.splitlines() if l.strip().startswith('/home/sa305415')).split()
+reserve=(max(0,7-len(inodes))*1338164780+2*1338706190+12*128*1024**2+3*1340000000+132*1024**2)
+remaining=int(parts[2])*1024-int(parts[1])*1024-reserve
+assert remaining>=20*1024**3 and int(parts[6])-int(parts[5])>=5000
+w.new_json(STAGE/'preparation-intent.json',{'status':'intent_before_cpu_diagnostic_bundle','diagnostic_only':True,'competition_submission_eligible':False,'job_id':os.environ['SLURM_JOB_ID'],'projection_sha256':w.digest(PROJECTION.parent/'projection.json'),'checkpoint_sha256':w.digest(checkpoint),'projected_reserve_gib':remaining/1024**3,'original_base_verified':True,'code_binding_verified':True})
+data=STAGE/'dataset';data.mkdir(exist_ok=False)
+sources={'checkpoint.pt':checkpoint,'DINOv3-LICENSE.md':BASE/'encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md','pyproject.toml':PROJECTION/'pyproject.toml'}
+for p in (PROJECTION/'rsna').rglob('*.py'):sources['code/rsna/'+str(p.relative_to(PROJECTION/'rsna'))]=p
+for name in ('chunked_infer.py','delta_probe.py'):sources['code/'+name]=PROJECTION/'scripts/kaggle'/name
+for kind in ('config','weights'):
+ p=Path(encoder[kind+'_path']);assert w.digest(p)==encoder[kind+'_sha256']
+ name='encoder/'+kind+p.suffix;sources[name]=p;encoder[kind+'_path']=name
+assert w.digest(sources['DINOv3-LICENSE.md'])=='25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e'
+for name,source in sources.items():
+ target=data/name;target.parent.mkdir(parents=True,exist_ok=True)
+ if name in ('checkpoint.pt','encoder/weights.safetensors'):os.link(source,target)
+ else:shutil.copyfile(source,target)
+w.new_json(data/'encoder.json',encoder);w.new_json(data/'wheelhouse.json',wheel_manifest)
+w.new_json(data/'probe-plan.json',{'schema_version':1,'largest_training_study_ids':['1.2.826.0.1.3680043.8.498.11799272823743145498601173910069737855','1.2.826.0.1.3680043.8.498.11302750434639976191333636496428935632','1.2.826.0.1.3680043.8.498.96425049974772570897047688166336162674'],'prior_workload_proof_sha256':'4666ad543412e8d2f8224326156bb6f11070f6ef4fd229431139793950874a9e','labels_read':False,'diagnostic_only':True})
+manifest={'schema_version':1,'competition':w.COMPETITION,'dataset_slug':'godlydonuts/rsna-delta-base-probe-fix2-5d1b3b562160','dataset_version':1,'checkpoint_sha256':w.digest(checkpoint),'checkpoint_format':'frozen_base_delta','diagnostic_only':True,'competition_submission_eligible':False,'python':wheel_manifest['python'],'cuda':wheel_manifest['cuda'],'shared_wheelhouse':shared,'license_source':'https://github.com/facebookresearch/dinov3/blob/ffb4bb89c6558ca3244655c25a3955d01788b732/LICENSE.md','license_sha256':w.digest(sources['DINOv3-LICENSE.md']),'training_source_git':projection['training_git_commit'],'packaging_source_git':projection['package_git_commit'],'projection_sha256':w.digest(PROJECTION.parent/'projection.json'),'training_binding_sha256':w.object_hash(binding),'inference_policy':{'series_sampling':'all','slice_sampling':'all','slice_context':'neighbor3','cache_side':256,'max_series':6},'files':{str(p.relative_to(data)):{'sha256':w.digest(p),'bytes':p.stat().st_size} for p in sorted(data.rglob('*')) if p.is_file()}}
+w.new_json(data/'bundle-manifest.json',manifest)
+w.new_json(data/'dataset-metadata.json',{'id':manifest['dataset_slug'],'title':'RSNA exact base delta T4 diagnostic','isPrivate':True,'licenses':[{'name':'other'}],'description':'Private engineering-only original DINOv3 base and bounded learned delta. No labels, competition submission or accuracy claim. Full official license and immutable source included.'})
+expected=publication.expected_files(data,manifest)
+upload=STAGE/'upload';upload.mkdir(exist_ok=False)
+archive=publication.build_zip(data,expected,upload/'bundle.zip');assert archive['bytes']<=1340000000
+source='EXPECTED_MANIFEST_SHA256 = '+repr(w.digest(data/'bundle-manifest.json'))+'\nDELTA_DIAGNOSTIC_PROBE = True\n'+(PROJECTION/'scripts/kaggle/notebook_entry.py').read_text()
+(STAGE/'probe-entry.py').write_text(source)
+w.new_json(STAGE/'preparation-verified.json',{'status':'cpu_bound_diagnostic_bundle_prepared','diagnostic_only':True,'competition_submission_eligible':False,'job_id':os.environ['SLURM_JOB_ID'],'archive':archive,'manifest_sha256':w.digest(data/'bundle-manifest.json'),'source_sha256':w.digest(STAGE/'probe-entry.py'),'dataset_slug':manifest['dataset_slug'],'kernel_slug':'godlydonuts/rsna-delta-t4-fix2-5d1b3b562160','checkpoint_sha256':manifest['checkpoint_sha256'],'training_source_git':projection['training_git_commit'],'packaging_source_git':projection['package_git_commit'],'payload_files':expected,'original_base_verified':True,'full_checkpoint_materialized_on_shared_storage':False,'large_payloads_hardlinked':True})
+print(json.dumps({'status':'cpu_bound_diagnostic_bundle_prepared','archive':archive,'manifest_sha256':w.digest(data/'bundle-manifest.json')}))

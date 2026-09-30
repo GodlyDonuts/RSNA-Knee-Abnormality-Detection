@@ -1,0 +1,13 @@
+import os,sys,json,importlib.util
+from pathlib import Path
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+spec=importlib.util.spec_from_file_location('coordinator',Path('/home/sa305415/rsna-knee/kaggle/code-projections/whole-series-c9-a678b63-fix2-v1')/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(spec);spec.loader.exec_module(c)
+w,manifest=c.load_workflow(Path('/home/sa305415/rsna-knee/kaggle/code-projections/whole-series-c9-a678b63-fix2-v1')/'code',Path('/home/sa305415/rsna-knee/kaggle/code-projections/whole-series-c9-a678b63-fix2-v1')/'projection.json','23cd33eb94f1cf71226bf4be3c4030748064f2dd57a734ffa49966945e0124b9')
+r,token=c.remote_from_stdin(w)
+base=Path('/home/sa305415/rsna-knee/kaggle')
+with c.single_coordinator(base),w.ledger(base/'account-ledger.sqlite3','godlydonuts') as db:
+ row=w.reconcile_submission(r,db,'3ed9a08f144fb0b3e30dee7bfc65df13f5c4647b2a0532a8d04d3241da0d4db0')
+ result={key:row.get(key) for key in ['state','submission_id','kernel_version','remote_status','remote_error_description','remote_total_bytes','remote_outcome','public_score','reconciled_at']}
+ assert result['submission_id']==56697342 and result['remote_outcome']=='scored' and result['public_score']=='0.769'
+ out=Path('/home/sa305415/rsna-knee/kaggle/delta-probe-c9-5d1b3b562160-fix2-v1/canonical-a32-scored.json');w.new_json(out,result)
+ print(json.dumps(result))

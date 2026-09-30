@@ -1,5 +1,18 @@
 # DINOv3-L plan after the first full fold
 
+**September 30 actual competition result:** sampled A32 fold-0 epoch 10 scored
+**0.769** in successful exact Kaggle submission **56697342**, versus the earlier
+solo frozen DINOv3 best 0.638. Its internal 0.8620940794 is a different measure
+on report-supervised development data. The broader recipe changed several
+settings, so this is not an isolated estimate of adapter rank's effect.
+All-development A32 final fitting and the same-fold whole-series control remain
+live; completed primary epochs 1–5 and control epoch 1 are privately verified.
+Use the requested all-data final checkpoint after deployment checks, then judge
+whole-series fixed-final accuracy against the matched sampled control. Reserved
+confirmation and gold remain untouched. The owner permits worthwhile checkpoint
+submissions; use evidence and exact offline acceptance within fresh live allowance
+rather than filling five slots with redundant early snapshots.
+
 **September 29 completed adapter update:** A32 fold-0 production completed ten
 epochs successfully. Its fixed-final internal macro AUC is **0.8620940794**,
 versus **0.7783102649** on the identical original fold-0 holdout; every target

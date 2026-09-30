@@ -49,6 +49,25 @@ them; no hypothetical future cleanup is credited.
 
 ## Exact terminal failure and correction
 
+CPU-only corrected preparation **865385 completed 0:0 in 1:55**. Using the
+actual verified official base and diagnostic delta, it reproduced the old
+helper's error, expanded the corrected helper, and checked all frozen and learned
+values exactly against the checkpoint. The 1,338,961,540-byte full reference
+existed only in owned `/tmp` scratch and was removed; no shared full copy was
+made. Exact helper/projection/CPU receipts are archived in `fix2/`.
+
+Distinct corrected private Dataset **godlydonuts/rsna-delta-base-probe-fix2-5d1b3b562160**
+v1 / ID **12288274** was created once and all 49 payload objects were fully
+downloaded/size/SHA verified. Distinct private offline T4 notebook
+**godlydonuts/rsna-delta-t4-fix2-5d1b3b562160 v1** was pushed once, with title
+and slug aligned and returned identity checked. Successful actual T4 MRI
+equivalence remains outstanding; neither private diagnostic is competition
+eligible. The exact preparation ZIP is 1,339,497,581 bytes,
+SHA `c385b73ea88e445e1faec0de88473d7609e19d0f56c2961655de044eef1a447d`.
+The fresh post-preparation quota projection leaves **21.009223 GiB** and
+**7,258 files**, budgeting both production deployment pairs, future snapshots,
+live and atomic writes; both existing diagnostic ZIPs count in actual usage.
+
 The actual private v1 later ended ERROR. The preserved visible log identifies
 `delta_probe.py:83`: the engineering assertion compared the complete frozen
 encoder state count with 415, the count of official backbone tensors alone.

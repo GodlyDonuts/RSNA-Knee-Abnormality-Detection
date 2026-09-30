@@ -6,6 +6,38 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, actual A32 Kaggle result and real CPU delta correction:**
+Authenticated Kaggle at 09:48 UTC reports exact sampled A32 epoch-10 submission
+**56697342 COMPLETE, public score 0.769**, no error and 262,975 output bytes.
+This is the actual Kaggle result, distinct from 0.8620940794 internal macro AUC.
+It improves the earlier solo frozen DINOv3 best 0.638 but remains below the
+owner's copied OSS scores. Four live slots remain; never repeat this submission.
+
+Corrected external projection **a678b63bda265af30d41716bf64c772f5bea6572**
+retains scientific `c9fcc7e` byte-exactly. CPU-only preparation **865385
+COMPLETED 0:0 in 1:55** reproduced the old partition error on the real official
+base/diagnostic, then expanded the corrected helper successfully. Every frozen
+and learned tensor equals the exact schema-2 payload; all 415 official tensors,
+417 frozen encoder values and both normalization buffers are checked. Expanded
+full reference existed only in owned temporary CPU scratch and was removed.
+Distinct corrected private Dataset `godlydonuts/rsna-delta-base-probe-fix2-5d1b3b562160`
+v1 / ID 12288274 has all 49 payload objects fully re-downloaded/size/SHA verified.
+One private offline T4 push returned exact aligned identity
+**godlydonuts/rsna-delta-t4-fix2-5d1b3b562160 v1 / ID 136510814**; its exact
+source/privacy/offline MRI inputs were checked and it is RUNNING. Neither
+diagnostic is a competition candidate or score; actual T4 MRI equivalence still
+requires its completed receipt. Local finite coordinator/read-only status helper:
+`artifacts/kaggle-wholeseries-delta-deployment-fix2-v1/dispatch_network.py`.
+Create/verify/push intents already exist: never repeat them. The original failed
+v1 notebook and private Dataset remain intact. Canonical Newton ledger records
+the separate production submission as scored 0.769 at 09:54 UTC.
+
+Exact verified epoch-5 retention **865384** removed only its privately preserved
+redundant snapshot, retaining live recovery/sidecar/private bytes. Seven maximum
+remaining primary full inodes are now budgeted. CPU preparation accepted a fresh
+20 GiB projected byte and 5,000-file reserve including its additional ZIP and
+both production deployment pairs. Keep the original failed Dataset/notebook.
+
 **September 30, private diagnostic failure isolated and wrapper corrected:**
 Private notebook `godlydonuts/rsna-whole-series-exact-delta-t4-diagnostic` v1
 ended ERROR before MRI inference. Its visible terminal trace identifies the
