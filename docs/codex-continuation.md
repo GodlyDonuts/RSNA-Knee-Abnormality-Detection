@@ -57,6 +57,9 @@ Two-hour quiet-on-unchanged follow-up `rsna-a32-final-fitting-and-submissions`
 is ACTIVE, inspecting exact job/submission state and preserving each completed
 epoch. Pause it after the requested final fit, ten private epoch verifications
 and actual submission outcomes finish.
+The source/launch, pilot, actual full-pool progress and epoch-10 submission
+milestone is privately mirrored at HF `f51a2182d4384f4928beeb4edc26676b022f7ca2`,
+all 69 objects fully re-downloaded/size/SHA verified.
 The owner also authorized using Kaggle slots for useful checkpoints. Keep the
 five-per-day/live-account safeguards and use the first new actual outcome before
 choosing further candidates. Rank 64 doubles encoder adapters to 20,447,232;

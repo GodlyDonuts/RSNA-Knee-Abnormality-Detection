@@ -95,3 +95,12 @@ into one study representation. A flat montage is not a substitute for depth or
 native detail, and changing deployment sampling only would create a training/
 inference mismatch. Architecture/coverage changes require their own held-out
 comparison before another all-data final fit.
+
+## Verified external milestone
+
+Source/launch, pilot, storage retention, real optimizer acceptance and the exact
+epoch-10 code submission are on GitHub main `fcb3c1d`. The private HF milestone
+at revision `f51a2182d4384f4928beeb4edc26676b022f7ca2` fully re-downloaded and
+size/SHA verified all 69 objects. It records submission **56697342** without
+claiming a hidden score. The new production epochs are separate objects and
+require their own immutable publication receipts as they finish.
