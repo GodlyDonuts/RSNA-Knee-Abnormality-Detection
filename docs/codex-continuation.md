@@ -6,6 +6,19 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September30 original-DICOM shard worker locally validated:**
+`scripts/newton/build_native_cache_shard.py` builds bounded paired256/384
+archives from the corrected pinned original sources, compares the reconstructed
+256 arrays/metadata with the accepted cache, checks the actual MRI loader, and
+fully verifies archive members with a fresh-extraction helper. All28 new
+synthetic-DICOM/rejection/restoration tests passed; the full suite is1254 passed,
+Ruff/format and mypy passed. Actual metadata/source membership for all75 shards
+(3403studies/18906series/643501slices) also passed. See
+`initiative/audits/native-full-cache-worker-v1/`. No worker job or full-cohort
+cache rebuild/publication was dispatched. Private per-shard publication,
+orchestration and whole-cohort runtime assembly still need completion. Keep
+the native GPU pilot prerequisites and two-node/storage gates in force.
+
 **September30 ninth-epoch/full-native metadata milestone privately verified:**
 GitHub main `f48031766d90a8304db979ee4c55d4f6184d0b53` is mirrored at private
 HF revision `f9f15bd33cdc8133eacfd13b6acf2eb038ac4011`. All135 source/evidence
