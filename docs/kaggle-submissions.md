@@ -1,12 +1,22 @@
 # Scheduled Kaggle code submissions
 
+September 30 at 15:34:39 UTC, the exact all-development E10 code notebook
+**godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** was submitted ONCE
+as **56711823**, after public MRI-only source/receipt/CSV acceptance with all
+three studies inferred and zero fallback. Do not repeat create/push/submit;
+read actual hidden outcome in the canonical ledger/API before any score claim.
+No new hidden score yet; latest scored solo result is **0.769 / 56697342**.
+The three-row public CSV was not itself submitted. Details and exact bindings
+are in the completed-epoch10 final-preparation audit.
+
+
 September 30 final-fit candidate: primary 865263 completed 10 epochs / 4,260
 updates on all 3,403 usable development studies. E10 is privately fully verified.
 Private Dataset **12293124 v1** was created once and all 44 payload objects
 fully downloaded/hash verified. Exact private offline T4 notebook
 **godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** was pushed once
-and is RUNNING at the latest read. Public MRI acceptance and competition
-submission are still outstanding. Do not repeat its create/push. Use the
+completed its public MRI-only run and was submitted once as56711823;
+its actual hidden score/outcome are still outstanding. Do not repeat its create/push. Use the
 one canonical ledger and the prepared phase coordinator only after exact
 source/MRI/CSV checks and fresh live allowance; never upload the three-row CSV.
 See `initiative/audits/kaggle-a32-all-final-preparation-v1/completed-epoch10/`.

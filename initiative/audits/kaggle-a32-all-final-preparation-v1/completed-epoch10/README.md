@@ -31,15 +31,22 @@ through the single canonical Newton ledger. Source SHA
 `6e4de71960093464ead65d220cc87154e35ab26d2fc3e9607107228fd43ee2b2`.
 Operation SHA `1e130e8de0e129189aee4094290267da92223c2383bd3647e31fbf4ec1546c29`.
 
-At the first exact-source/settings check the public MRI-only notebook was
-RUNNING. Public completion receipt, test-roster/13-column/finite-probability/
-zero-fallback CSV checks and competition submission are still outstanding.
-Never repeat Dataset creation or notebook push. A public three-study CSV is
-never itself uploaded as a competition submission. After exact offline
-acceptance and fresh authoritative allowance, submit the completed code version
-once, then read the actual hidden outcome before making a score claim.
+The exact version completed its public MRI-only execution. All three studies
+were inferred with **zero fallback**, finite probabilities, exact test roster
+and all 13 output columns. CSV SHA is
+`77a8ed721e49e248daa724d35be28fc417a22cd4e9cf0e44b90b6a3db973c6ea`.
+Measured MRI preparation/inference elapsed **80.365229 seconds**, excluding
+Kaggle queue, dependency setup and hidden execution. This is public engineering
+acceptance, not a hidden accuracy estimate.
 
-The latest actual solo score remains **0.769**, scored entry **56697342**
+The exact code version was submitted **ONCE** as **56711823** at September 30
+15:34:39 UTC through the canonical coordinator after fresh live allowance
+(four slots before submission). The new hidden outcome/score is outstanding.
+Never repeat Dataset creation or notebook push. A public three-study CSV is
+never itself uploaded as a competition submission. Never resubmit this notebook or create another submission for its checkpoint.
+Read the actual hidden outcome before making any score claim.
+
+The latest scored solo result remains **0.769**, scored entry **56697342**
 from the sampled fold-0 reference. On September 30 at 15:05 UTC, the live
 account reported one submission today and four available slots. This quota
 observation must be refreshed before a later submission. No score for the

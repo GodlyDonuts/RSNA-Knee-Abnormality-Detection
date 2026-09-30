@@ -6,6 +6,20 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30 final all-data model submitted once:** Exact private offline
+**godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** completed public
+MRI-only execution; all three studies inferred, zero fallback, correct test
+roster/13 columns, finite probabilities and exact CSV/weight/manifest hashes.
+Measured preparation/inference was **80.365229 s**, excluding queue/setup and
+hidden execution. After fresh authoritative four-slot allowance, the single
+canonical coordinator submitted it ONCE as **56711823** at **15:34:39 UTC**.
+Never resubmit it or repeat create/push/submit phases. Hidden score/outcome are
+outstanding; latest scored solo result remains **0.769 / 56697342**. Inspect
+actual API/ledger outcome read-only. Candidate receipts and exact code/weight/
+notebook provenance are in the completed-epoch10 audit. Public three-row CSV
+was verified locally and was never uploaded as a competition submission.
+
+
 **September 30 completed-fit/capacity/native milestone synchronized:**
 GitHub main **2f85557** records the completed primary E10/private preservation,
 exact private Kaggle candidate push, verified rank-64 real recovery and full
@@ -27,8 +41,8 @@ Private Dataset **12293124 v1** was created once and its complete payload
 fully downloaded/hash verified. Exact private offline T4
 **godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** was pushed once,
 source SHA **6e4de71960093464ead65d220cc87154e35ab26d2fc3e9607107228fd43ee2b2**.
-At the latest read it is RUNNING; exact public MRI receipt and competition
-submission are outstanding. See the completed-epoch10 final-preparation audit.
+It completed public MRI-only acceptance and was submitted once as56711823;
+actual hidden outcome/score remain outstanding. See the completed-epoch10 audit.
 Never repeat its Dataset create or notebook push; do not upload the public CSV.
 The owner's useful-checkpoint authorization remains in force. Refresh actual
 live allowance and submit code only after exact offline MRI/source checks.
