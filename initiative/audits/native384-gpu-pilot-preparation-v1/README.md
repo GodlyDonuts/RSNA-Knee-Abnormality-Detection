@@ -67,3 +67,8 @@ at `0fd4689e648ece1569cde7a8c030e132e7105bdd`; its separate audit is the rank64
 production `epoch-publication/epoch-004/`. Never repeat E1–E4. No rank64 or
 whole-series final held-out result exists yet. Submission56711823 still had
 null status/score/error at the authenticated18:10:23UTC read.
+
+The source/evidence handoff is on GitHub main **55b85e7** and privately mirrored
+at **5a23d61c6de4c7200d74ae732ddbd05d6ef8961d**. All **40 small objects** were
+fully re-downloaded/size/SHA verified. This distinct mirror did not repeat
+checkpoint publication or the original cache publication. Never repeat it.

@@ -1,0 +1,152 @@
+"""Once-only private mirror of the verified native cache and new epoch evidence."""
+
+import hashlib, json, os, shutil, subprocess, tempfile
+from pathlib import Path
+
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+from huggingface_hub import HfApi, CommitOperationAdd, hf_hub_download
+
+root = Path.cwd()
+local = root / "artifacts/native384-gpu-pilot-preparation-v1"
+audit = root / "initiative/audits/native384-gpu-pilot-preparation-v1"
+assert not (audit / "hf-milestone-intent.json").exists()
+assert (root / ".env").stat().st_mode & 0o077 == 0
+values = {}
+for line in (root / ".env").read_text().splitlines():
+    key, sep, value = line.partition("=")
+    if sep:
+        values[key.strip()] = value.strip().strip("\"'")
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def save(name, value):
+    with (audit / name).open("x") as f:
+        json.dump(value, f, sort_keys=True, indent=2)
+        f.write("\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
+folders = [
+    "initiative/audits/native384-gpu-pilot-preparation-v1",
+    "initiative/audits/dinov3-rank64-production-launch-v1/epoch-publication/epoch-004",
+]
+paths = []
+for folder in folders:
+    paths += [
+        p
+        for p in sorted((root / folder).rglob("*"))
+        if p.is_file() and not p.name.startswith("hf-")
+    ]
+paths += [root / "docs/codex-continuation.md"]
+assert all(p.is_file() and not p.is_symlink() for p in paths)
+files = {
+    p.relative_to(root).as_posix(): {"sha256": sha(p), "bytes": p.stat().st_size} for p in paths
+}
+assert (
+    sum(v["bytes"] for v in files.values()) < 16 * 1024**2
+    and shutil.disk_usage(root).free > 20 * 1024**3
+)
+assert not subprocess.check_output(["git", "status", "--porcelain", "--", *files], text=True)
+head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+repo = "GodlyDonuts/RSNA-Data"
+prefix = "experiments/dinov3-v1/milestones/native384-cpu-stage-rank64-e4-20260930"
+api = HfApi(token=values["HF_TOKEN"])
+info = api.repo_info(repo, repo_type="dataset")
+assert info.private is True
+assert not api.get_paths_info(
+    repo,
+    [prefix + "/manifest.json", *[prefix + "/" + n for n in files]],
+    repo_type="dataset",
+    revision=info.sha,
+)
+manifest = {
+    "schema_version": 1,
+    "source_git_commit": head,
+    "scientific_source_git": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab",
+    "files": files,
+    "native_cpu_initial_stage_job": 865898,
+    "native_cpu_initial_stage_terminal": "FAILED1:0",
+    "native_cpu_distinct_layout_recovery_job": 865906,
+    "native_cpu_layout_recovery_terminal": "COMPLETED0:0",
+    "native_private_cache_revision": "3f23826ff226992204380d34a2956f3805f8b960",
+    "native_cache_staged_objects": 5,
+    "native_archive_members_fully_sha_verified_each": 370,
+    "native_recovery_redownloads": 0,
+    "native_gpu_job_dispatched": False,
+    "native_full_cache_built": False,
+    "rank64_completed_privately_verified_epochs": 4,
+    "rank64_e4_private_revision": "0fd4689e648ece1569cde7a8c030e132e7105bdd",
+    "whole_series_control_completed_privately_verified_epochs": 6,
+    "new_accuracy_or_throughput_result": False,
+    "last_solo_kaggle_score": 0.769,
+    "pending_submission_id": 56711823,
+    "pending_submission_score": None,
+}
+mp = local / "hf-milestone-manifest.json"
+mp.write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n")
+save(
+    "hf-milestone-intent.json",
+    {
+        "repo_id": repo,
+        "prefix": prefix,
+        "source_git_commit": head,
+        "parent_commit": info.sha,
+        "files": files,
+        "manifest_sha256": sha(mp),
+        "private_required": True,
+        "one_commit_only": True,
+    },
+)
+ops = [
+    CommitOperationAdd(path_in_repo=prefix + "/" + name, path_or_fileobj=str(root / name))
+    for name in files
+] + [CommitOperationAdd(path_in_repo=prefix + "/manifest.json", path_or_fileobj=str(mp))]
+commit = api.create_commit(
+    repo_id=repo,
+    repo_type="dataset",
+    parent_commit=info.sha,
+    operations=ops,
+    commit_message="Preserve actual native-pilot CPU staging and verified rank64 epoch four evidence",
+)
+save("hf-milestone-commit.json", {"revision": commit.oid, "prefix": prefix})
+assert api.repo_info(repo, repo_type="dataset", revision=commit.oid).private is True
+expected = {**files, "manifest.json": {"sha256": sha(mp), "bytes": mp.stat().st_size}}
+with tempfile.TemporaryDirectory(prefix="rsna-native-cache-mirror-") as temporary:
+    for name, record in expected.items():
+        p = Path(
+            hf_hub_download(
+                repo,
+                filename=prefix + "/" + name,
+                repo_type="dataset",
+                revision=commit.oid,
+                token=values["HF_TOKEN"],
+                local_dir=temporary,
+                force_download=True,
+            )
+        )
+        assert p.stat().st_size == record["bytes"] and sha(p) == record["sha256"], name
+save(
+    "hf-milestone-verified.json",
+    {
+        "status": "private_full_download_size_sha_verified",
+        "repo_id": repo,
+        "prefix": prefix,
+        "revision": commit.oid,
+        "source_git_commit": head,
+        "file_count": len(expected),
+        "files": expected,
+    },
+)
+print(
+    json.dumps(
+        {
+            "status": "private_full_download_size_sha_verified",
+            "revision": commit.oid,
+            "files": len(expected),
+        }
+    )
+)

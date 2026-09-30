@@ -20,6 +20,9 @@ remaining writes; no cleanup is credited. Source/config/CPU receipts are here.
 Rank64 E4 /1124updates is privately fully verified at
 **0fd4689e648ece1569cde7a8c030e132e7105bdd**; do not repeat E1–E4 or controlE1–E6.
 Authenticated **18:10:23UTC** still shows no outcome for submission56711823.
+GitHub main **55b85e7** records the actual CPU stage and rank64 E4; private
+HF **5a23d61c6de4c7200d74ae732ddbd05d6ef8961d** fully re-downloaded/size/SHA
+verified all **40 small source/evidence objects**. Never repeat that mirror.
 
 **September 30 rank-64 third epoch preserved:** The same production job
 **865578** completed E3 / **843 optimizer updates**. All four private objects
