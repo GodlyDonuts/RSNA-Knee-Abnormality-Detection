@@ -44,3 +44,11 @@ from the sampled fold-0 reference. On September 30 at 15:05 UTC, the live
 account reported one submission today and four available slots. This quota
 observation must be refreshed before a later submission. No score for the
 all-data fit is inferred from its loss or the reference holdout AUC.
+
+The distinct ready-only verifier is preserved byte-for-byte as
+`verify-final-public.original.py.txt`; from the repository root it can be run
+with Python once the exact version is COMPLETE. It checks public MRI metrics,
+zero neutral fallbacks, no isolated inference failures, the authoritative test
+roster and exact CSV/weight/manifest hashes. Its durable receipts use exclusive
+creation; inspect existing outputs before any repeat. The phase coordinator's
+submit intent is also exclusive. Pending public execution is not a score.

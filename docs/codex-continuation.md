@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30 completed-fit/capacity/native milestone synchronized:**
+GitHub main **2f85557** records the completed primary E10/private preservation,
+exact private Kaggle candidate push, verified rank-64 real recovery and full
+production launch, whole-series control E5 and bounded original-DICOM evidence.
+Private HF revision **e0090eb0976aa0969f64d6d68cf8dc11a93ad3d3** has all
+**178 small evidence/source/preview objects** fully re-downloaded/size/SHA
+verified. Never repeat this mirror. Its parent, exact file map and receipts
+are in the rank-64 production launch audit. This mirrors source and small
+provenance/preview only; full derived native volumes remain privately on
+Newton and the final candidate has no new hidden score yet.
+
+
 **September 30, primary final fit complete and rank-64 production launched:**
 Primary **865263 COMPLETED 0:0**, all **4,260 updates / 3,403 development
 studies / ten epochs**. Every E1–E10 checkpoint is privately fully download/

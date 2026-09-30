@@ -51,3 +51,9 @@ size/SHA verified. The original production-files manifest retains its immutable
 preparation-time status; actual staging/launch state is in these separate
 receipts. At most two GPU nodes remain authorized. Current other job is whole-
 series rank-32 control **865357** on evc28; primary **865263** is COMPLETED 0:0.
+
+The complete milestone is on GitHub main **2f85557**, privately mirrored at
+HF **e0090eb0976aa0969f64d6d68cf8dc11a93ad3d3**. All **178 source/evidence/
+preview objects** were fully re-downloaded/size/SHA verified. The exact parent,
+manifest and object map are in `hf-completed-fit-*.json`. Never repeat its
+commit. This small mirror does not publish the ~147-MB derived native volumes.
