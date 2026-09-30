@@ -1,6 +1,32 @@
 # Whole-series GPU pilot dispatch
 
-Current state: **865321 FAILED 1:0** after both finite training paths and the
+Final engineering outcome: **865323 COMPLETED 0:0 in 17:28**. Exact full versus
+resumed model/optimizer/RNG equality, byte-equal predictions, strict checkpoint
+MRI reload, all 120 learned residuals and 415 unchanged official base tensors
+passed. The five largest fold-0 training workload probes include 443–621 actual
+slices; all full-coverage counts, finite learning and inference checks passed.
+Peak allocation is 14.519 GiB in training and 2.438 GiB in inference. Per-scan
+GPU work took 4.98–8.07 seconds for training and 0.86–1.20 for inference, excluding
+data loading. This validates neither an entire production epoch nor T4 execution.
+
+The separately typed 126,258,027-byte diagnostic delta and 15 accompanying
+objects are privately preserved at HF
+`519395df7d00ed9d88339a09f8632294fd2b1bf7`, all 16 fully re-downloaded/size/SHA
+verified. Delta SHA is
+`f049ad2d75243562fdaa38224da8721360040c5d8cec66a4673af14f48cbe2b6`.
+No full diagnostic files remain on node-local storage after owned cleanup. This
+delta is neither a trainer-resume checkpoint nor a competition candidate. Tiny
+diagnostic accuracy is not a clean held-out improvement. Production configs are
+prepared only, and need separate storage acceptance before launch.
+
+The corrected launch/source milestone is private HF
+`104caea59c1566167928cdd3c1a066d9c71ddeee` (75 fully verified objects). Primary
+all-development epochs 1/2 are separately privately verified; epoch 2 revision is
+`2a9e38a7e38799a6abbbd1b0aa3ad78d469527fb`. No Kaggle slot was spent by this
+pilot or its preservation. Exact submitted A32 epoch 10 remains pending/unknown
+with no reported error/score at 06:42 UTC and four live slots.
+
+Earlier attempt: **865321 FAILED 1:0** after both finite training paths and the
 exact intentional stop guard passed. The final verification command used a
 script path without the repository import root and failed to import `rsna`.
 Full node-local diagnostic files were cleaned; no final recovery/profile or
@@ -11,7 +37,7 @@ Control is `whole-series-pilot-615d0fe-v3`; one H100/two CPUs, 45 minutes, 64 Gi
 RAM. The prior job peaked at 33,555,652 kB host RSS. The extra RAM protects the
 largest-input probe; it changes no scientific parameters. Never repeat dispatch.
 
-Latest state: first pilot **865318 FAILED 2:0** after finite full training and
+First attempt: **865318 FAILED 2:0** after finite full training and
 the intentional saved-stop update. The trainer emitted exit 75; torchrun wrapped
 it as exit 1, which the harness rejected. No compact or recovery/profile proof
 was produced, and owned node-local diagnostics were cleaned. Corrected distinct

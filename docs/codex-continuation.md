@@ -6,6 +6,36 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, whole-series GPU engineering gates and private preservation complete:**
+Exact corrected pilot **865323 COMPLETED 0:0 in 17:28**. Full and resumed
+model/optimizer/RNG payloads match, outer predictions are byte-identical, strict
+checkpoint-only real MRI reconstruction matches, all 120 adapters learned and
+all 415 original official tensors remain unchanged. All five largest fold-0
+training workloads pass complete series/slice coverage and finite forward,
+backward, optimizer and inference checks: 443–621 real slices each, maximum
+14.519 GiB training and 2.438 GiB inference allocation. Per-scan GPU training
+4.98–8.07 seconds and inference 0.86–1.20 seconds exclude data loading and are
+not a full epoch or T4 estimate. Compact diagnostic delta is 126,258,027 bytes,
+SHA `f049ad2d75243562fdaa38224da8721360040c5d8cec66a4673af14f48cbe2b6`.
+Its private HF revision **519395df7d00ed9d88339a09f8632294fd2b1bf7** passed
+full re-download/size/SHA verification for all 16 objects. Do not repeat this
+publication or any terminal pilot. The delta is not trainer-resume or competition
+eligible; its tiny diagnostic metric is not evidence of improved MRI accuracy.
+The separate corrected source/launch milestone is HF
+`104caea59c1566167928cdd3c1a066d9c71ddeee`, all 75 objects fully verified.
+Matched whole-coverage control/context production runs remain prepared only;
+the additional full-run storage acceptance is still required before dispatch.
+
+Primary all-development **865263** completed epochs 1 and 2 and is healthy into
+epoch 3. Epoch 2 completed 852 total optimizer updates and is privately preserved
+at **2a9e38a7e38799a6abbbd1b0aa3ad78d469527fb**, all four objects fully
+re-downloaded/size/SHA verified. SHA
+`ee7320cf534abfce3f6a1d471a59caf308b4e9642ce1aecedb06621ff91942d1`.
+Do not repeat epochs 1/2. At 06:42 UTC, Kaggle submission **56697342** still has
+null status/error/score, pending or unknown, with four authoritative live slots.
+No further submission was made. Continue terminal/preservation checks on this
+primary fit and actual submission outcome; never infer a score while null.
+
 **September 30, verification import correction:** Second whole-series bounded
 pilot **865321 FAILED 1:0** after finite full and resumed diagnostics and a
 passed exact stop receipt. The final helper was invoked by script path without
