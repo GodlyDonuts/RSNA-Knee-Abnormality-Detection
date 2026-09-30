@@ -30,6 +30,8 @@ model improvement mission remains incomplete. Fresh storage acceptance is needed
 before another full run; no additional GPU job is launched. Continue with the
 matched control and justified independent-fold/native-detail/slice-context work,
 without changing accepted masks/folds or admitting unqualified teachers.
+The result/receipt milestone is on GitHub main `eab7b1f` and privately mirrored
+at HF `de7e6c799bd661dde42e93e707de563b1ae5e0b1`, all 94 objects fully download/size/SHA verified.
 
 **September 29, verified A32 pilot and primary production launch:** Resume-only
 Slurm **864840 COMPLETED 0:0**, with full model/optimizer/RNG recovery equality,

@@ -69,3 +69,7 @@ supervision. Fresh storage acceptance is required before another full run:
 approximately 22.6 GiB remain under the Lustre soft byte quota, and no additional
 GPU job is currently launched. No first-place or private-leaderboard prediction
 is inferred from this development-fold improvement.
+
+The complete result/receipt milestone is privately mirrored at HF revision
+`de7e6c799bd661dde42e93e707de563b1ae5e0b1`; all **94 objects** were fully re-downloaded and size/SHA
+verified. The preserved source milestone is Git `eab7b1f`.

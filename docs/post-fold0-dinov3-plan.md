@@ -1,5 +1,15 @@
 # DINOv3-L plan after the first full fold
 
+**September 29 completed adapter update:** A32 fold-0 production completed ten
+epochs successfully. Its fixed-final internal macro AUC is **0.8620940794**,
+versus **0.7783102649** on the identical original fold-0 holdout; every target
+improved on this split. All ten private checkpoints are fully download/hash
+verified. See the [complete result audit](../initiative/audits/dinov3-adapter-a32-fold0-result-v1/).
+No A32 Kaggle score exists. Recipe changes include precision, head learning rate
+and scheduling, so the prepared matched frozen control is still useful. Native
+input detail and explicit slice interaction remain untrained future experiments.
+Fresh storage acceptance is required before additional full runs.
+
 **September 29 adapter direction:** The owner's newer request is to keep original
 pretrained weights frozen while learning substantial internal adapters and
 improving use of each MRI series. The current
@@ -8,7 +18,7 @@ the historical next-experiment order below. It begins with a controlled rank-32
 adapter comparison, then separately tests native detail, sequential coverage and
 qualified label confidence. Public source comparison has started and exposes
 dependent label tables and differing missingness semantics; it is not a new
-training-label release. No adapter run has been dispatched.
+training-label release. The subsequent completed A32 experiment is recorded above.
 
 **September 29 public-leaderboard update:** Five matched fold-2 global-CLS
 checkpoints scored 0.611/0.628/0.637/0.638/0.635 at epochs 2/4/6/8/10.
