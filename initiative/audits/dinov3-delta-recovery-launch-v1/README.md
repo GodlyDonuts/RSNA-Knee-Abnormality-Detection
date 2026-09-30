@@ -80,3 +80,12 @@ null status/error/score and four live slots at **07:55 UTC**; its canonical ledg
 is `submitted`, exact notebook v1. No new competition submission was made.
 Use useful, fully accepted completed candidates and authoritative live allowance;
 never upload the three-row public CSV or this diagnostic.
+
+
+The source/recovery/control-launch/epoch-3 small milestone is on GitHub main
+`0dba237` and separately privately mirrored at HF
+**acc7d4f2a7317b32b13ab473ecfb3755b97f5769**. All 104 objects were fully
+re-downloaded/size/SHA verified. `hf-terminal-*` records pin the exact public
+source commit and private file manifest; do not repeat this publication. Subsequent
+read-only checks observed control update 14 and all-data update 240 of epoch 4,
+both RUNNING and finite. These are training progress, not final accuracy.

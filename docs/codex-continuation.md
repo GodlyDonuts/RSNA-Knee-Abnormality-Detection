@@ -7,6 +7,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 ## Current local release: September 23
 
 
+**September 30, synchronized verified milestone:** GitHub main `0dba237` records
+the exact delta/control launch and epoch-3 preservation. The separate private
+HF source/receipt mirror **acc7d4f2a7317b32b13ab473ecfb3755b97f5769** passed
+full size/SHA re-download verification for all 104 objects. Do not repeat it.
+At the subsequent read-only check both runs are RUNNING and finite: control
+865357 has 14 optimizer updates, primary 865263 is at epoch-4 update 240/426.
+No new final accuracy or Kaggle score is available. The two-hour follow-up was
+updated for both live runs, their distinct publishers and quota/deployment gates.
+
 **September 30, exact recovery passed and whole-series control launched:**
 Bounded 865346 COMPLETED 0:0 in 18:42 on evc28. Full-storage/delta expanded
 model, optimizer, RNG/progress and interrupted/resumed recovery are exact;
