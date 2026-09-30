@@ -6,6 +6,42 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, bounded real-checkpoint CPU proof and distinct private T4 rerun:**
+CPU-only **865394 COMPLETED 0:0 in 1:08**, using external source
+`1630cc864be808f3a3d67d46826c1fe34f554c38` and unchanged scientific `c9fcc7e`.
+With the scratch check deliberately supplied 6 GiB, the actual official-base
+plus diagnostic-delta expansion passed every frozen/learned tensor check.
+Measured required bytes were 4,669,188,465; the exact expanded reference was
+1,338,961,540 bytes and was removed from owned CPU scratch. The 415 backbone,
+417 encoder, two normalization-buffer and 120-adapter checks all passed.
+
+One distinct private offline T4 **godlydonuts/rsna-delta-t4-fix3-5d1b3b562160
+v1 / ID 136514660** was pushed once and its exact source/settings verified
+RUNNING. It reuses the fully byte-verified private Dataset **12288274 v1**;
+no new Dataset or large ZIP was created. The replacement helper is embedded
+and separately byte-bound; scientific runtime and shared inference bytes remain
+unchanged. Exact source SHA is
+`2a0a20fb4b3b94bdb57cd5169f8c84e4a98421287e01efcb143f0f7166fec393`,
+helper SHA `241ad55c935b962a34734858817395407c45953977ece26f196ed70a29f575d7`.
+Actual six-study T4 MRI full/delta FP32 probability and CSV-byte equivalence
+is still outstanding. Neither diagnostic is competition eligible. Never repeat
+its push; read-only status and a once-only successful output phase are in
+`artifacts/kaggle-wholeseries-delta-deployment-fix3-v1/dispatch_network.py`.
+The earlier fix2 v1 is terminal ERROR; its old RUNNING observations below are
+historical. See `initiative/audits/kaggle-whole-series-delta-deployment-v1/fix3/`.
+
+Primary **865263** completed epoch **6 / 2,556 updates**, privately fully
+re-downloaded/size/SHA verified at **ce416ddf72340078acbea63934b2a90375171e10**.
+CPU retention **865400** removed only its redundant privately preserved full
+snapshot, retaining the immutable sidecar, active recovery and private bytes.
+Do not repeat publication or retention. Primary is finite in epoch 7 at 2,630
+updates; control **865357** is finite in epoch 2 at 506, both stderr empty.
+The fresh projected byte reserve is **21.008990 GiB**, including six maximum
+remaining primary full inodes, both final deployment pairs, control delta/live/
+atomic writes and metadata. Fresh byte/file quota checks remain mandatory.
+Authenticated Kaggle at 10:37 UTC reconfirms **56697342 scored 0.769** and four
+live slots. No new competition submission was made. Source checks: **1,168 tests**.
+
 **September 30, second private diagnostic failure isolated:** exact private
 `godlydonuts/rsna-delta-t4-fix2-5d1b3b562160` v1 ended ERROR in 615.4 seconds.
 Its visible terminal log shows the strict original-base and 417-entry partition

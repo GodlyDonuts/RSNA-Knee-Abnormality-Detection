@@ -49,6 +49,24 @@ them; no hypothetical future cleanup is credited.
 
 ## Exact terminal failure and correction
 
+**Actual bounded CPU acceptance and new private execution:** job **865394
+COMPLETED 0:0 in 1:08**. Real official-base/delta expansion with a deliberately
+limited six-GiB reported scratch budget passed all frozen and learned tensor
+checks. Required budget: 4,669,188,465 bytes; exact expanded file:
+1,338,961,540 bytes. The temporary reference was removed. Scientific source
+`c9fcc7e` is unchanged; external correction is source `1630cc8`.
+
+One distinct private offline T4 **godlydonuts/rsna-delta-t4-fix3-5d1b3b562160
+v1 / ID 136514660** is RUNNING with exact source/settings checked. It reuses
+the existing fully verified private Dataset **12288274 v1**, without another
+Dataset or large ZIP. Separately hashed replacement code is embedded in the
+saved bootstrap and confined to owned runtime scratch; original mounted bytes
+and shared inference source remain intact. `fix3/` preserves the exact CPU
+contract, scripts, returned notebook identity and dispatch/status evidence.
+Full-versus-delta FP32 six-study MRI and CSV-byte acceptance is still a gate;
+this is not an accuracy claim or a competition submission. Source checks pass
+**1,168 tests**, Ruff/format, mypy, archive and v2 complete coverage.
+
 **Later fix2 terminal outcome:** the exact private T4 v1 ended ERROR in 615.4s.
 The second trace passed the 415+2 partition checks and then stopped at the
 reference-file scratch guard, which required 22 GiB free before writing a

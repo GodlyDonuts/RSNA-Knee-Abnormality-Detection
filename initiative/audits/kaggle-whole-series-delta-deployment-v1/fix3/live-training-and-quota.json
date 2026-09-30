@@ -1,0 +1,54 @@
+{
+  "checked_at": "2026-09-30T10:39:36Z",
+  "training": [
+    {
+      "job_id": "865263",
+      "run": "dinov3-l16-adapter-a32-all-8911f90-production-v1",
+      "latest_optimizer": {
+        "epoch": 6,
+        "update": 74,
+        "optimizer_steps": 2630,
+        "loss": 0.07268967479467392,
+        "gradient_norm": 0.47246071696281433,
+        "observed_cells": 51.0,
+        "elapsed_seconds": 22075.92182669486,
+        "peak_gpu_allocated_bytes": 3757546496
+      },
+      "stderr_bytes": 0
+    },
+    {
+      "job_id": "865357",
+      "run": "dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1",
+      "latest_optimizer": {
+        "epoch": 1,
+        "update": 225,
+        "optimizer_steps": 506,
+        "loss": 0.2892150580883026,
+        "gradient_norm": 0.8067969679832458,
+        "observed_cells": 45.0,
+        "elapsed_seconds": 9559.059653592762,
+        "peak_gpu_allocated_bytes": 15837182464
+      },
+      "stderr_bytes": 0
+    }
+  ],
+  "slurm": "             JOBID                                NAME    STATE       TIME  NODES NODELIST(REASON)\n            865357           rsna-whole-series-control  RUNNING    2:45:51      1 evc28\n            865263            rsna-a32-all-development  RUNNING    6:13:58      1 evc31\n",
+  "storage": {
+    "actual_used_kbytes": 1011765788,
+    "soft_quota_kbytes": 1048576000,
+    "actual_files": 992766,
+    "soft_file_quota": 1000000,
+    "future_bytes_budget": {
+      "primary_full_inodes": 8028988680,
+      "primary_final_bundle_and_zip": 2677412380,
+      "control_delta_and_live_atomic": 1610612736,
+      "control_bundle_and_zip": 2680000000,
+      "metadata_and_source": 138412032
+    },
+    "projected_remaining_bytes": 22558231260,
+    "projected_remaining_gib": 21.00899001583457,
+    "remaining_files_before_small_future_outputs": 7234,
+    "existing_diagnostic_archives_already_in_actual_usage": true,
+    "no_new_large_diagnostic_payload": true
+  }
+}

@@ -1,0 +1,37 @@
+"""Bounded CPU proof of real full/delta expansion under a limited scratch budget."""
+import hashlib,importlib.util,json,os,sys,tempfile,gc
+from pathlib import Path
+from types import SimpleNamespace
+import torch
+BASE=Path('/home/sa305415/rsna-knee');STAGE=BASE/'kaggle/delta-probe-c9-5d1b3b562160-fix3-v1'
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+source=STAGE/'delta_probe.py';expected=json.loads((STAGE/'source-contract.json').read_text())
+assert hashlib.sha256(source.read_bytes()).hexdigest()==expected['probe_source_sha256']
+spec=importlib.util.spec_from_file_location('bounded_scratch_probe',source);probe=importlib.util.module_from_spec(spec);spec.loader.exec_module(probe)
+from rsna.competitive.delta_checkpoint import _tensor_record
+from rsna.competitive.infer import validate_inference_checkpoint
+checkpoint=BASE/'delta-recovery-pilot-c9fcc7e-v1/delta-diagnostic.pt'
+assert hashlib.sha256(checkpoint.read_bytes()).hexdigest()=='5d1b3b562160e803442d33316779401a4fa4721370b182187802b14c78a1c22e'
+saved=torch.load(checkpoint,map_location='cpu',weights_only=True)
+encoder=json.loads((BASE/'delta-recovery-pilot-c9fcc7e-v1/pilot-config.json').read_text())['encoder']
+spec_file=STAGE/'encoder-cpu.json'
+with spec_file.open('x') as f:json.dump(encoder,f)
+with tempfile.TemporaryDirectory(prefix='rsna-delta-fix3-reference-',dir='/tmp') as temporary:
+ reference=Path(temporary)/'reference.pt';disk_usage=probe.shutil.disk_usage
+ assert disk_usage(reference.parent).free>6*1024**3
+ probe.shutil.disk_usage=lambda _:SimpleNamespace(free=6*1024**3)
+ result=probe.expanded_reference(checkpoint,spec_file,reference)
+ probe.shutil.disk_usage=disk_usage
+ assert result['frozen_base_tensors_verified']==415 and result['frozen_encoder_tensors_verified']==417
+ assert result['reference_scratch']['required_free_bytes']<6*1024**3<22*1024**3
+ assert reference.stat().st_size<=result['reference_scratch']['reference_upper_bound_bytes']
+ full=torch.load(reference,map_location='cpu',weights_only=True);validate_inference_checkpoint(full,allow_diagnostic=True)
+ assert full['schema_version']==1 and 'model_storage' not in full
+ assert set(full['model'])==set(saved['model'])|set(saved['model_storage']['frozen_tensors'])
+ for name,tensor in saved['model'].items():assert torch.equal(full['model'][name],tensor),name
+ for name,record in saved['model_storage']['frozen_tensors'].items():assert _tensor_record(full['model'][name])==record,name
+ receipt={'status':'actual_cpu_full_delta_expansion_with_bounded_scratch_verified','job_id':os.environ['SLURM_JOB_ID'],'source_contract':expected,'full_reference_bytes':reference.stat().st_size,'full_reference_sha256':hashlib.sha256(reference.read_bytes()).hexdigest(),'frozen_and_learned_tensors_equal':True,'competition_submission_eligible':False,'real_training_accuracy_claimed':False,**result}
+ del full;gc.collect();reference.unlink()
+ receipt['temporary_full_reference_removed']=True
+with (STAGE/'cpu-verified.json').open('x') as f:json.dump(receipt,f,indent=2)
+print(json.dumps(receipt),flush=True)

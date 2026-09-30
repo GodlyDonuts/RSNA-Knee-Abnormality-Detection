@@ -1,0 +1,103 @@
+"""Single diagnostic notebook mutation, reusing byte-verified private inputs."""
+
+import importlib.util
+import json
+import os
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+BASE = Path('/home/sa305415/rsna-knee')
+STAGE = BASE / 'kaggle/delta-probe-c9-5d1b3b562160-fix3-v1'
+OLD = BASE / 'kaggle/delta-probe-c9-5d1b3b562160-fix2-v1'
+PROJECTION = BASE / 'kaggle/code-projections/whole-series-c9-a678b63-fix2-v1'
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+spec = importlib.util.spec_from_file_location('coordinator', PROJECTION / 'code/scripts/kaggle/coordinator.py')
+c = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(c)
+w, projection = c.load_workflow(PROJECTION / 'code', PROJECTION / 'projection.json', '23cd33eb94f1cf71226bf4be3c4030748064f2dd57a734ffa49966945e0124b9')
+p = c.p
+
+
+def run(phase):
+    assert phase in ('push-kernel', 'status', 'output')
+    contract = json.loads((STAGE / 'source-contract.json').read_text())
+    cpu = json.loads((STAGE / 'cpu-verified.json').read_text())
+    assert cpu['status'] == 'actual_cpu_full_delta_expansion_with_bounded_scratch_verified'
+    assert cpu['source_contract'] == contract
+    assert cpu['frozen_and_learned_tensors_equal'] is True and cpu['temporary_full_reference_removed'] is True
+    assert cpu['frozen_base_tensors_verified'] == 415 and cpu['frozen_encoder_tensors_verified'] == 417
+    assert cpu['normalization_buffers_verified'] == 2 and cpu['adapter_modules_verified'] == 120
+    assert cpu['reference_scratch']['required_free_bytes'] < 6 * 1024**3
+    assert contract['diagnostic_only'] is True and contract['competition_submission_eligible'] is False
+    assert contract['no_new_large_dataset_or_archive'] is True
+    assert p.digest(STAGE / 'probe-entry.py') == contract['source_sha256']
+    assert p.digest(STAGE / 'delta_probe.py') == contract['probe_source_sha256']
+    proof = json.loads((OLD / 'preparation-verified.json').read_text())
+    manifest = json.loads((OLD / 'dataset/bundle-manifest.json').read_text())
+    assert p.digest(OLD / 'dataset/bundle-manifest.json') == contract['manifest_sha256'] == proof['manifest_sha256']
+    assert manifest['diagnostic_only'] is True and manifest['competition_submission_eligible'] is False
+    assert manifest['checkpoint_sha256'] == contract['checkpoint_sha256']
+    files = p.expected_files(OLD / 'dataset', manifest)
+    assert files == proof['payload_files']
+    verified_file = OLD / 'dataset-publication/verified.json'
+    assert p.digest(verified_file) == contract['dataset_verification_receipt_sha256']
+    verified = json.loads(verified_file.read_text())
+    assert verified['status'] == 'all_payload_bytes_verified' and verified['files'] == files
+    assert verified['private'] is True and verified['version'] == contract['dataset_version'] == 1
+    assert verified['id'] == contract['dataset_id'] == 12288274
+    assert verified['slug'] == contract['dataset_slug']
+    remote, token = c.remote_from_stdin(w)
+    slug, kernel = contract['dataset_slug'], contract['kernel_slug']
+    source = (STAGE / 'probe-entry.py').read_text()
+    request = {'slug': kernel, 'newTitle': 'RSNA delta T4 fix3 5d1b3b562160', 'text': source, 'language': 'python', 'kernelType': 'script', 'isPrivate': True, 'enableGpu': True, 'machineShape': 'NvidiaTeslaT4', 'enableInternet': False, 'datasetDataSources': [slug, manifest['shared_wheelhouse']['dataset_slug']], 'competitionDataSources': [w.COMPETITION], 'sessionTimeoutSeconds': 3600}
+    with c.single_coordinator(BASE / 'kaggle'):
+        w.verify_shared_wheelhouse(remote, manifest['shared_wheelhouse'])
+        assert p.metadata(remote, slug) == {k: verified[k] for k in ('id', 'version', 'slug', 'private')}
+        if phase == 'push-kernel':
+            absent = remote.require_absent_kernel(kernel)
+            p.exclusive_json(STAGE / 'kernel-create-intent.json', {'status': 'intent_before_one_SaveKernel', 'request_sha256': w.object_hash(request), 'source_sha256': contract['source_sha256'], 'probe_source_sha256': contract['probe_source_sha256'], 'kernel_slug': kernel, 'dataset_slug': slug, 'dataset_id': verified['id'], 'dataset_version': 1, 'absence_proof': absent, 'cpu_proof_sha256': p.digest(STAGE / 'cpu-verified.json'), 'competition_submission': False, 'diagnostic_only': True})
+            result = remote.call('kernels.KernelsApiService', 'SaveKernel', request)
+            p.exclusive_json(STAGE / 'kernel-create-response.json', result)
+            assert result.get('versionNumber') == 1 and not result.get('error')
+            assert result.get('ref') == '/code/' + kernel, 'Returned identity needs read-only reconciliation'
+            print(json.dumps({'status': 'private_offline_diagnostic_pushed_once', 'kernel_slug': kernel, 'kernel_id': result.get('kernelId'), 'version': 1, 'existing_verified_dataset_reused': True, 'competition_submission': False}))
+            return
+        frozen = json.loads((STAGE / 'kernel-create-intent.json').read_text())
+        assert frozen['request_sha256'] == w.object_hash(request)
+        found = remote.kernel('GetKernel', kernel, 1)
+        meta = found.get('metadata', {})
+        assert w.object_hash(found.get('blob', {}).get('source', '')) == w.object_hash(source)
+        for key in ('isPrivate', 'enableInternet', 'machineShape', 'datasetDataSources', 'competitionDataSources'):
+            assert meta.get(key) == request[key], key
+        status = remote.kernel('GetKernelSessionStatus', kernel, 1)
+        if phase == 'status':
+            print(json.dumps({'status': status.get('status'), 'kernel_slug': kernel, 'version': 1, 'exact_source_verified': True, 'private_offline_t4_verified': True, 'existing_verified_dataset_reused': True, 'competition_submission': False}))
+            return
+        assert status.get('status') == 'COMPLETE', 'Diagnostic is not successfully complete'
+        result = remote.output_json(kernel, 1, 'delta-deployment-acceptance.json')
+        assert result['status'] == 'verified_offline_base_delta_fp32_equivalence'
+        assert result['checkpoint_sha256'] == contract['checkpoint_sha256']
+        assert result['bundle_manifest_sha256'] == contract['manifest_sha256']
+        assert result['probe_source_sha256'] == contract['probe_source_sha256']
+        infer_file = manifest['files']['code/chunked_infer.py']
+        assert result['chunked_inference_sha256'] == infer_file['sha256']
+        assert result['diagnostic_only'] is True and result['competition_submission_eligible'] is False
+        assert result['competition_submission_created'] is False and result['labels_read'] is False
+        assert result['kaggle_score'] is None and result['precision'] == 'fp32'
+        assert result['frozen_base_tensors_verified'] == 415 and result['adapter_modules_verified'] == 120
+        assert result['frozen_encoder_tensors_verified'] == 417 and result['normalization_buffers_verified'] == 2
+        scratch = result['reference_scratch']
+        assert scratch['free_before_reference_bytes'] >= scratch['required_free_bytes']
+        assert {x['name'] for x in result['workloads']} == {'public', 'largest-training-images'}
+        assert all(x['studies'] == 3 and x['prediction_values_equal'] is True and x['csv_bytes_equal'] is True for x in result['workloads'])
+        p.exclusive_json(STAGE / 'delta-deployment-acceptance.json', result)
+        p.exclusive_json(STAGE / 'acceptance-provenance.json', {'kernel_slug': kernel, 'kernel_version': 1, 'source_sha256': contract['source_sha256'], 'probe_source_sha256': contract['probe_source_sha256'], 'dataset_id': verified['id'], 'dataset_slug': slug, 'dataset_version': 1, 'manifest_sha256': contract['manifest_sha256'], 'training_git': contract['scientific_training_source_git'], 'packaging_git': contract['source_git'], 'checked_at': w.utcnow(), 'receipt_sha256': p.digest(STAGE / 'delta-deployment-acceptance.json'), 'competition_submission': False})
+        print(json.dumps({'status': result['status'], 'kernel_slug': kernel, 'version': 1, 'mri_studies': 6, 'comparison_models': 2, 'competition_submission': False}))
+
+
+try:
+    run(sys.argv[1])
+except Exception as exc:
+    print(json.dumps({'status': 'stopped_requires_readonly_reconciliation', 'error_type': type(exc).__name__, 'phase': sys.argv[1] if len(sys.argv) > 1 else None, 'automatic_retry': False}))
+    raise SystemExit(1) from None
