@@ -7,6 +7,56 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 ## Current local release: September 23
 
 
+**September 30, exact recovery passed and whole-series control launched:**
+Bounded 865346 COMPLETED 0:0 in 18:42 on evc28. Full-storage/delta expanded
+model, optimizer, RNG/progress and interrupted/resumed recovery are exact;
+predictions byte equal, 120 adapters learned, 415 official tensors unchanged,
+and verified-base plus delta real MRI inference passed. Its 126,363,429-byte
+schema-2 diagnostic and 19 companions are privately fully download/hash verified
+at HF **111f78f91f37537564f8c109904511e501ee2757**. Do not repeat any pilot or
+publication. Diagnostic-only weights have no competitive metric.
+
+Full held-out whole-series control **865357 RUNNING on evc28**, one H100/two
+CPUs/64 GiB RAM/48-hour bound, source **c9fcc7eefb09103942be89bf4fa87410eb9ec5ab**,
+uses all accepted cached slices/series, no context, original rank-32 recipe,
+2,247 train/1,156 outer studies, 281 updates per epoch/ten epochs. This output is
+`/home/sa305415/rsna-knee/runs/dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1`;
+control is `/home/sa305415/rsna-knee/production-launch-whole-series-control-c9fcc7e-v1`.
+Allocated driver/actual CUDA/full preflight passed; finite real updates began.
+Compare fixed final to sampled A32 .8620940794 internal macro AUC. Preserve each
+completed unattempted epoch via `scripts/hf/dispatch_whole_series_epoch.py N
+--variant control --ssh-control SOCKET`, publisher SHA
+`7ff5db4f1cd6b0b338f6244ff78375bd814c93cd72e3bc8e0eb11573c036aa02`.
+Existing intents need read-only reconciliation. Current Kaggle packager rejects
+schema-2 until distinct original-base/offline deployment acceptance. The matched
+neighbor-context production remains prepared, not submitted. Maximum two GPU
+nodes; do not duplicate either live job.
+
+All-development 865263 is healthy in epoch 4. Completed epochs 1–3 are each
+privately fully download/hash verified; epoch 3 (1,278 updates) revision
+**8e1a49f3d28e49b449b83b53f73fd7863dadcd98**, SHA
+`11be2e0e739da3c55ace8d966e5337521d6838e0992089e5d3dc0e70dcc2ef73`.
+Do not repeat their publications. CPU retention 865354 removed only their
+already privately verified redundant epoch-2/3 files and redundant submitted
+Kaggle bundle checkpoint/ZIP; all active recovery/original finals/private bytes
+and sidecars remain. First retention V1 failed before any deletion due /home's
+Lustre resolution; exact read-only reconciliation and corrected V2 receipts are
+preserved. Fresh two-run storage projection leaves **20.005379 GiB**, including
+future primary snapshots/live/atomic writes, two primary deployment copies,
+12 control delta files, three control deployment copies and 132 MiB source/
+metadata. Recheck tight byte/file quota before any transfer or further launch.
+Required source/publication checks passed **1,136 tests**, mypy 38 modules,
+Ruff/format, archive and v2 89/89 complete. Full audit:
+`initiative/audits/dinov3-delta-recovery-launch-v1/`.
+
+At **07:55 UTC**, exact Kaggle submission 56697342 remains pending/unknown with
+null status/error/score, submitted v1 in the canonical Newton ledger, four live
+slots. No further submission made. The owner explicitly authorizes worthwhile
+checkpoint comparisons; use actual evidence, exact offline deployment and fresh
+live allowance, five/day, one coordinator. Continue primary final fitting and its
+requested submission; do not infer success or a Kaggle score while null.
+
+
 **September 30, opt-in exact delta recovery implemented:** A new production
 checkpoint schema stores learned adapter/head/context tensors, full optimizer,
 counters and per-rank RNG against checksummed frozen base tensors. Original

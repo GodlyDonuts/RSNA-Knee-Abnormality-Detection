@@ -1,0 +1,92 @@
+import hashlib,json,os,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+from huggingface_hub import HfApi
+root=Path.cwd();local=root/'artifacts/dinov3-delta-recovery-v1';base='/home/sa305415/rsna-knee'
+sock='/tmp/rsna-a32-reconnect-501.sock';host='sa305415@newton.ist.ucf.edu';intent=local/'verified-copy-retention-intent.json';assert not intent.exists()
+def ssh(args):return subprocess.check_output(['ssh','-S',sock,'-o','BatchMode=yes',host,shlex.join(args)],text=True)
+assert (root/'.env').stat().st_mode&0o077==0
+values={}
+for line in (root/'.env').read_text().splitlines():
+ key,sep,val=line.partition('=')
+ if sep:values[key.strip()]=val.strip().strip('"').strip("'")
+api=HfApi(token=values['HF_TOKEN']);repo='GodlyDonuts/RSNA-Data'
+plans=[]
+for control,run,epoch in [
+ ('production-launch-adapter-a32-all-8911f90-v1','dinov3-l16-adapter-a32-all-8911f90-production-v1',2),
+ ('production-launch-adapter-a32-all-8911f90-v1','dinov3-l16-adapter-a32-all-8911f90-production-v1',3),
+ ('production-launch-adapter-a32-6f1ee6d-v1','dinov3-l16-adapter-a32-fold0-6f1ee6d-production-v1',10),
+]:
+ journal=base+'/'+control+f'/epoch-publication/epoch-{epoch:03d}'
+ receipt=json.loads(ssh(['cat',journal+'/verified.json']));text=ssh(['cat',journal+'/manifest.json']);manifest=json.loads(text)
+ assert receipt['status']=='private_epoch_fully_verified' and receipt['files_verified_by_download']==4
+ assert hashlib.sha256(text.encode()).hexdigest()==receipt['manifest_sha256']
+ assert api.repo_info(repo,repo_type='dataset',revision=receipt['revision']).private is True
+ paths=api.get_paths_info(repo,[receipt['prefix']+'/'+n for n in ('checkpoint.pt','snapshot.json','DINOv3-LICENSE.md','manifest.json')],repo_type='dataset',revision=receipt['revision']);assert len(paths)==4
+ checkpoint=next(x for x in paths if x.path.endswith('/checkpoint.pt'))
+ assert checkpoint.size==manifest['checkpoint_bytes'] and checkpoint.lfs.sha256==receipt['checkpoint_sha256']==manifest['checkpoint_sha256']
+ if epoch!=10:
+  plans.append({'path':base+'/runs/'+run+f'/epoch-checkpoints/epoch-{epoch:03d}.pt','bytes':checkpoint.size,'sha256':receipt['checkpoint_sha256'],'preservation':receipt,'run':base+'/runs/'+run})
+ else:
+  final_preservation=receipt
+  final_path=base+'/runs/'+run+'/checkpoint.pt'
+audit=root/'initiative/audits/dinov3-adapter-a32-kaggle-e10-v1'
+verified=json.loads((audit/'dataset-verified.json').read_text());transport=json.loads((audit/'transport.json').read_text())
+assert verified['status']=='all_payload_bytes_verified' and verified['downloaded_all_bytes'] is True and verified['private'] is True and verified['id']==12282965 and verified['version']==1
+sha=final_preservation['checkpoint_sha256'];assert verified['files']['checkpoint.pt']['sha256']==sha==transport['checkpoint_sha256']
+plans.extend([
+ {'path':base+'/kaggle/bundles/a32-fold0-epoch010-3ed9a08f144f-v1/dataset/checkpoint.pt','bytes':verified['files']['checkpoint.pt']['bytes'],'sha256':sha,'preservation':final_preservation,'retained_final':final_path,'kaggle_dataset_id':12282965},
+ {'path':base+'/kaggle/dataset-publications/'+sha+'/upload/bundle.zip','bytes':transport['archive_bytes'],'sha256':transport['archive_sha256'],'preservation':final_preservation,'retained_final':final_path,'kaggle_dataset_id':12282965},
+])
+record={'status':'verified_private_redundant_copy_retention_intent','at_utc':datetime.now(timezone.utc).isoformat(),'plans':plans,'retains':'active all-data checkpoint, all sidecars/journals, original trained A32 final, accepted data/cache, private HF bytes and immutable Kaggle Dataset','new_primary_max_future_inodes':9}
+with intent.open('x') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+program=r'''import hashlib,json,os,sqlite3,time
+from pathlib import Path
+plan=json.load(__import__('sys').stdin);base=Path('/home/sa305415/rsna-knee')
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+allowed={
+str(base/'runs/dinov3-l16-adapter-a32-all-8911f90-production-v1/epoch-checkpoints/epoch-002.pt'),
+str(base/'runs/dinov3-l16-adapter-a32-all-8911f90-production-v1/epoch-checkpoints/epoch-003.pt'),
+str(base/'kaggle/bundles/a32-fold0-epoch010-3ed9a08f144f-v1/dataset/checkpoint.pt'),
+str(base/'kaggle/dataset-publications/3ed9a08f144fb0b3e30dee7bfc65df13f5c4647b2a0532a8d04d3241da0d4db0/upload/bundle.zip'),
+}
+assert {p['path'] for p in plan['plans']}==allowed
+def sha(path):
+ h=hashlib.sha256()
+ with path.open('rb') as f:
+  for b in iter(lambda:f.read(4*1024**2),b''):h.update(b)
+ return h.hexdigest()
+for item in plan['plans']:
+ path=Path(item['path'])
+ assert path.is_file() and not path.is_symlink() and path.resolve()==path and path.stat().st_size==item['bytes']
+ assert sha(path)==item['sha256']
+ if 'run' in item:
+  assert (Path(item['run'])/'checkpoint.pt').is_file() and path.with_suffix('.json').is_file()
+ else:
+  assert sha(Path(item['retained_final']))==item['preservation']['checkpoint_sha256']
+  if path.name=='checkpoint.pt':assert path.stat().st_nlink==1
+journal=base/'delta-recovery-pilot-c9fcc7e-v1/verified-copy-retention.json';assert not journal.exists()
+claim=base/'kaggle/coordinator-claim';claim.mkdir(mode=0o700)
+try:
+ with (claim/'owner.json').open('x') as f:json.dump({'pid':os.getpid(),'slurm_job_id':os.environ['SLURM_JOB_ID'],'host':os.uname().nodename,'recovery':'manual after scheduler and intent reconciliation'},f)
+ db=sqlite3.connect('file:'+str(base/'kaggle/account-ledger.sqlite3')+'?mode=ro',uri=True)
+ entry=json.loads(db.execute('SELECT record FROM entries WHERE sha=?',('3ed9a08f144fb0b3e30dee7bfc65df13f5c4647b2a0532a8d04d3241da0d4db0',)).fetchone()[0]);db.close()
+ assert entry['submission_id']==56697342 and entry['state']=='submitted' and entry['kernel_version']==1
+ record={**plan,'job_id':os.environ['SLURM_JOB_ID'],'status':'exact_redundant_copy_eviction_intent','removed':[]}
+ with journal.open('x') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+ for item in plan['plans']:
+  path=Path(item['path']);nlink=path.stat().st_nlink;path.unlink()
+  record['removed'].append({'path':str(path),'bytes':item['bytes'],'sha256':item['sha256'],'former_nlink':nlink})
+  with journal.open('w') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+ record['status']='exact_redundant_copies_removed_private_bytes_and_active_finals_retained'
+ record['completed_at_utc']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+ with journal.open('w') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+ print(json.dumps(record))
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()
+'''
+args=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--mem=2G','--time=00:10:00','/usr/bin/python3.12','-c',program]
+result=subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,shlex.join(args)],input=json.dumps(record),text=True,capture_output=True,timeout=750)
+receipt={'returncode':result.returncode,'stdout':result.stdout,'stderr':result.stderr}
+with (local/'verified-copy-retention-result.json').open('x') as f:json.dump(receipt,f,indent=2)
+print(json.dumps(receipt));assert result.returncode==0

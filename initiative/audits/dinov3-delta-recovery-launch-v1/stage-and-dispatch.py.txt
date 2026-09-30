@@ -1,0 +1,50 @@
+import hashlib,json,os,re,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+
+root=Path.cwd(); local=root/'artifacts/dinov3-delta-recovery-v1'
+sock='/tmp/rsna-a32-reconnect-501.sock';host='sa305415@newton.ist.ucf.edu';base='/home/sa305415/rsna-knee'
+source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert source.startswith('c9fcc7e') and not subprocess.check_output(['git','status','--porcelain'],text=True).strip()
+code=base+'/code-delta-recovery-'+source[:7];control=base+'/delta-recovery-pilot-'+source[:7]+'-v1'
+intent=local/'stage-dispatch-intent.json';assert not intent.exists(),'Reconcile existing intent read-only'
+def ssh(args):return subprocess.check_output(['ssh','-S',sock,'-o','BatchMode=yes',host,shlex.join(args)],text=True,timeout=60)
+queue=ssh(['squeue','-u','sa305415','-h','-o','%i|%j|%b']);gpu_jobs=[x for x in queue.splitlines() if 'gres/gpu:' in x]
+assert len(gpu_jobs)==1 and gpu_jobs[0].startswith('865263|') and 'delta-recovery' not in queue
+quota=ssh(['lfs','quota','-u','sa305415','/home/sa305415']);fields=next(x for x in quota.splitlines() if x.lstrip().startswith('/home/sa305415')).split()
+primary=base+'/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1'
+owned=json.loads(ssh(['/usr/bin/python3.12','-c','from pathlib import Path; import json; p=Path('+repr(primary)+'); paths=[p/"checkpoint.pt",*(p/"epoch-checkpoints").glob("*.pt")]; unique={(x.stat().st_dev,x.stat().st_ino):x.stat().st_size for x in paths if x.is_file()}; print(json.dumps({"unique_inodes":len(unique),"bytes":sum(unique.values())}))']))
+# Eleven retained future primary inodes after the verified epoch-1 removal,
+# including a concurrent atomic checkpoint write. Budget the final bundle/ZIP.
+future_primary=max(0,11-owned['unique_inodes'])*1338164780
+stage_budget=32*1024**2;pilot_budget=128*1024**2
+projected=(int(fields[2])-int(fields[1]))*1024-future_primary-2*1338706190-100*1024**2-stage_budget-pilot_budget
+assert projected>=20*1024**3 and int(fields[6])-int(fields[5])>=5000
+config_root=root/'initiative/experiments/competitive-v1/whole-series-context-v1'
+script=(local/'pilot.sbatch.template').read_text().replace('SOURCE40',source).replace('SOURCE7',source[:7])
+script_path=local/'pilot.sbatch';script_path.write_text(script);subprocess.run(['bash','-n',str(script_path)],check=True)
+bundle=local/('source-'+source[:7]+'.bundle');subprocess.run(['git','bundle','create',str(bundle),'HEAD','^615d0fe4602798a9fe46278b2e5443bfbb49669e'],check=True)
+files={'pilot.sbatch':script_path,'pilot-config.json':config_root/'pilot-delta-config.json','reference-config.json':config_root/'pilot-full-reference-config.json'}
+record={'schema_version':1,'created_at':datetime.now(timezone.utc).isoformat(),'source_git':source,'code':code,'control':control,'status':'exact_delta_recovery_pilot_stage_and_dispatch_intent','queue_before':queue,'quota_before':quota,'projected_primary_and_pilot_reserve_gib':projected/1024**3,'primary_future_inodes':11,'primary_current_unique_inodes':owned['unique_inodes'],'bundle_sha256':hashlib.sha256(bundle.read_bytes()).hexdigest(),'files':{name:{'local':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for name,p in files.items()},'gpus':1,'cpus':2,'memory_gib':64,'minutes':60,'pilot_shared_checkpoint_budget_bytes':pilot_budget,'diagnostic_only':True,'prior_engineering_pilot_job':865323}
+with intent.open('x') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+remote_bundle=base+'/source-delta-recovery-'+source[:7]+'.bundle'
+subprocess.run(['scp','-o','ControlPath='+sock,str(bundle),host+':'+remote_bundle],check=True,timeout=60)
+remote='set -euo pipefail\numask 077\n[[ ! -e '+shlex.quote(code)+' && ! -e '+shlex.quote(control)+' ]]\n'
+remote+='[[ $(sha256sum '+shlex.quote(remote_bundle)+' | cut -d " " -f1) == '+record['bundle_sha256']+' ]]\n'
+git=['git','-c','pack.threads=1','-c','index.threads=1','-c','core.preloadIndex=false']
+remote+=shlex.join(git+['clone','--shared','--no-checkout',base+'/code-whole-series-615d0fe',code])+'\n'
+remote+='cd '+shlex.quote(code)+'\n'
+for args in [['fetch',remote_bundle,source],['sparse-checkout','init','--cone'],['sparse-checkout','set','rsna','scripts','configs/competitive'],['checkout','--detach',source]]:remote+=shlex.join(git+args)+'\n'
+remote+='[[ $(git rev-parse HEAD) == '+source+' ]]\n[[ -z $(git -c core.preloadIndex=false -c index.threads=1 status --porcelain) ]]\nmkdir '+shlex.quote(control)+'\n'
+subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,'/bin/bash -s'],input=remote,text=True,check=True,timeout=60)
+for name,p in files.items():subprocess.run(['scp','-o','ControlPath='+sock,str(p),host+':'+control+'/'+name],check=True,timeout=60)
+remote='set -euo pipefail\n'
+for name,p in files.items():remote+='[[ $(sha256sum '+shlex.quote(control+'/'+name)+' | cut -d " " -f1) == '+record['files'][name]['sha256']+' ]]\n'
+remote+=shlex.join(['/usr/bin/python3.12','-c','import pathlib; pathlib.Path('+repr(control+'/dispatch-intent.json')+').open("x").write('+repr(json.dumps(record))+')'])+'\n'
+remote+='job=$(sbatch --parsable '+shlex.quote(control+'/pilot.sbatch')+')\n[[ "$job" =~ ^[0-9]+$ ]]\n'
+remote+=shlex.join(['/usr/bin/python3.12','-c','import pathlib,sys; pathlib.Path('+repr(control+'/dispatch-job-id.txt')+').open("x").write(sys.argv[1]+"\\n")'])+' "$job"\nprintf \'%s\\n\' "$job"\n'
+returned=subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,'/bin/bash -s'],input=remote,text=True,capture_output=True,timeout=60)
+receipt={**record,'returned_at':datetime.now(timezone.utc).isoformat(),'returncode':returned.returncode,'stdout':returned.stdout,'stderr':returned.stderr,'status':'dispatch_returned' if returned.returncode==0 else 'uncertain_readonly_reconciliation_required'}
+if returned.returncode==0:receipt['job_id']=int(returned.stdout.strip())
+with (local/'dispatch-receipt.json').open('x') as f:json.dump(receipt,f,indent=2);f.flush();os.fsync(f.fileno())
+print(json.dumps(receipt,indent=2));assert returned.returncode==0

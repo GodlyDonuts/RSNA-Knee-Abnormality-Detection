@@ -1,0 +1,35 @@
+import hashlib,json,os,re,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+from huggingface_hub import HfApi
+
+root=Path.cwd();folder=root/'artifacts/dinov3-delta-recovery-v1';sock='/tmp/rsna-a32-reconnect-501.sock';host='sa305415@newton.ist.ucf.edu';base='/home/sa305415/rsna-knee';control=base+'/delta-recovery-pilot-c9fcc7e-v1'
+intent=folder/'delta-publication-intent.json';assert not intent.exists()
+def ssh(args):return subprocess.check_output(['ssh','-S',sock,'-o','BatchMode=yes',host,shlex.join(args)],text=True)
+state=ssh(['sacct','-j','865346','-o','JobID,State,ExitCode','-P']);assert '865346|COMPLETED|0:0' in state
+proof=json.loads(ssh(['cat',control+'/pilot-verified.json']))
+assert proof['status']=='adapter_pilot_and_exact_recovery_verified' and proof['full_payload_resume_equal'] and proof['outer_predictions_byte_equal']
+assert proof['full_storage_reference_equal'] and proof['checkpoint_schema_version']==2 and proof['checkpoint_requires_verified_base']
+assert ssh(['/usr/bin/python3.12','-c','from pathlib import Path; print(int(Path('+repr(control+'/private-preservation')+').exists()))'])=='0\n'
+assert (root/'.env').stat().st_mode&0o077==0
+values={}
+for line in (root/'.env').read_text().splitlines():
+ key,sep,val=line.partition('=')
+ if sep:values[key.strip()]=val.strip().strip('"').strip("'")
+token=values['HF_TOKEN'];api=HfApi(token=token);repo='GodlyDonuts/RSNA-Data'
+assert api.repo_info(repo,repo_type='dataset').private is True
+prefix='experiments/dinov3-v1/diagnostics/exact-delta-recovery-c9fcc7e-pilot-v1'
+assert not api.get_paths_info(repo,[prefix+'/manifest.json',prefix+'/delta-diagnostic.pt'],repo_type='dataset')
+script=folder/'publish_delta_pilot.py';script_sha=hashlib.sha256(script.read_bytes()).hexdigest();remote_script=control+'/publish_delta_pilot.py'
+record={'created_at':datetime.now(timezone.utc).isoformat(),'status':'single_cpu_private_compact_publication_dispatch_intent','job_id':865346,'repo_id':repo,'prefix':prefix,'publisher_sha256':script_sha,'compact_checkpoint_sha256':proof['full_checkpoint_sha256'],'compact_checkpoint_bytes':126363429,'cpus':1,'gpus':0,'credential_transport':'ignored_local_env_to_ssh_stdin_to_srun_stdin_only','diagnostic_only':True,'source_git':'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'}
+with intent.open('x') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+subprocess.run(['scp','-o','ControlPath='+sock,str(script),host+':'+remote_script],check=True)
+assert ssh(['sha256sum',remote_script]).split()[0]==script_sha
+python=base+'/hf-epoch-publisher-v1/env-cp312/bin/python'
+shell='set -euo pipefail; cache=$(mktemp -d /tmp/rsna-whole-series-private.XXXXXXXX); trap \'rm -rf "$cache"\' EXIT; export HF_HOME="$cache" HF_HUB_DISABLE_PROGRESS_BARS=1 PYTHONDONTWRITEBYTECODE=1; '+shlex.join([python,remote_script])
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--mem=2G','--time=00:30:00','/bin/bash','-c',shell]
+result=subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,shlex.join(cmd)],input=json.dumps({'token':token}),capture_output=True,text=True,timeout=2400)
+redact=lambda text:re.sub(r'hf_[A-Za-z0-9]{10,}','[redacted]',text)
+receipt={**record,'returncode':result.returncode,'stdout':redact(result.stdout[-5000:]),'stderr':redact(result.stderr[-2000:]),'returned_at':datetime.now(timezone.utc).isoformat(),'status':'cpu_publication_returned' if result.returncode==0 else 'uncertain_readonly_reconciliation_required'}
+with (folder/'delta-publication-result.json').open('x') as f:json.dump(receipt,f,indent=2);f.flush();os.fsync(f.fileno())
+print(json.dumps(receipt));assert result.returncode==0

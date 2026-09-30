@@ -1,0 +1,46 @@
+"""Private preservation only after exact terminal diagnostic verification."""
+import hashlib,json,os,subprocess,tempfile
+from datetime import datetime,timezone
+from pathlib import Path
+from huggingface_hub import HfApi,CommitOperationAdd,hf_hub_download
+
+base=Path('/home/sa305415/rsna-knee');control=base/'delta-recovery-pilot-c9fcc7e-v1'
+journal=control/'private-preservation';assert not journal.exists()
+source='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+code=base/'code-delta-recovery-c9fcc7e';assert subprocess.check_output(['git','-C',str(code),'rev-parse','HEAD'],text=True).strip()==source
+state=subprocess.check_output(['sacct','-j','865346','-o','JobID,State,ExitCode','-P'],text=True)
+assert '865346|COMPLETED|0:0' in state
+proof=json.loads((control/'pilot-verified.json').read_text())
+assert proof['status']=='adapter_pilot_and_exact_recovery_verified' and proof['full_payload_resume_equal'] and proof['outer_predictions_byte_equal'] and proof['checkpoint_only_real_mri_reload_equal']
+assert proof['changed_residual_modules']==120 and proof['unchanged_official_base_tensors']==415 and proof['optimizer_steps']==4
+assert proof['slice_context']=='neighbor3' and proof['slice_sampling']==proof['series_sampling']=='all'
+assert proof['full_storage_reference_equal'] and proof['checkpoint_schema_version']==2 and proof['checkpoint_requires_verified_base']
+def sha(path):
+ h=hashlib.sha256()
+ with path.open('rb') as f:
+  for chunk in iter(lambda:f.read(4*1024**2),b''):h.update(chunk)
+ return h.hexdigest()
+compact=control/'delta-diagnostic.pt';assert compact.stat().st_size==126363429<128*1024**2
+assert sha(compact)==proof['full_checkpoint_sha256']=='5d1b3b562160e803442d33316779401a4fa4721370b182187802b14c78a1c22e'
+paths={n:control/n for n in ['delta-diagnostic.pt','pilot-verified.json','pilot-config.json','reference-config.json','intentional-stop-verified.json',*[role+'-'+kind for role in ['reference','full','resumed'] for kind in ['run.json','result.json','invocation.json','outer_predictions.csv']],'pilot.sbatch']}
+paths['DINOv3-LICENSE.md']=base/'encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md'
+assert sha(paths['DINOv3-LICENSE.md'])=='25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e'
+files={n:{'bytes':p.stat().st_size,'sha256':sha(p)} for n,p in paths.items()}
+token=json.load(__import__('sys').stdin)['token'];assert token.startswith('hf_')
+api=HfApi(token=token);repo='GodlyDonuts/RSNA-Data';info=api.repo_info(repo,repo_type='dataset');assert info.private is True
+prefix='experiments/dinov3-v1/diagnostics/exact-delta-recovery-c9fcc7e-pilot-v1'
+assert not api.get_paths_info(repo,[prefix+'/'+n for n in [*paths,'manifest.json']],repo_type='dataset',revision=info.sha)
+journal.mkdir(mode=0o700)
+manifest={'schema_version':1,'status':'fully_verified_bounded_diagnostic_only','competition_submission_eligible':False,'trainer_resume_eligible':True,'training_format':'frozen_base_delta','requires_verified_original_weights':True,'checkpoint_schema_version':2,'full_storage_reference_equal':True,'source_git':source,'job_id':865346,'fit_scope':'outer_fold_diagnostic','training_studies':16,'evaluation_studies':16,'optimizer_steps':4,'official_base_unchanged':True,'official_base_sha256':proof['binding']['config']['encoder']['weights_sha256'],'prior_largest_input_proof_job':865323,'heldout_competitive_accuracy_claimed':False,'kaggle_score':None,'repo_id':repo,'prefix':prefix,'files':files,'license_source':'https://github.com/facebookresearch/dinov3/blob/ffb4bb89c6558ca3244655c25a3955d01788b732/LICENSE.md'}
+mp=journal/'manifest.json';mp.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+def save_new(name,value):
+ with (journal/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+save_new('intent.json',{'at_utc':datetime.now(timezone.utc).isoformat(),'parent_commit':info.sha,'repo_id':repo,'prefix':prefix,'files':files,'manifest_sha256':sha(mp),'private_required':True})
+commit=api.create_commit(repo_id=repo,repo_type='dataset',parent_commit=info.sha,operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=str(p)) for n,p in paths.items()]+[CommitOperationAdd(path_in_repo=prefix+'/manifest.json',path_or_fileobj=str(mp))],commit_message='Preserve exact frozen-base delta versus full-storage and interrupted-training GPU recovery proof')
+save_new('commit-result.json',{'revision':commit.oid,'prefix':prefix});assert api.repo_info(repo,repo_type='dataset',revision=commit.oid).private is True
+verify={**files,'manifest.json':{'bytes':mp.stat().st_size,'sha256':sha(mp)}}
+with tempfile.TemporaryDirectory(prefix='rsna-whole-series-verified-') as temporary:
+ for name,rec in verify.items():
+  p=Path(hf_hub_download(repo,filename=prefix+'/'+name,repo_type='dataset',revision=commit.oid,token=token,local_dir=temporary,force_download=True));assert p.stat().st_size==rec['bytes'] and sha(p)==rec['sha256'],name
+save_new('verified.json',{'status':'private_full_download_size_sha_verified','revision':commit.oid,'repo_id':repo,'prefix':prefix,'files':verify,'file_count':len(verify),'job_id':865346,'diagnostic_only':True})
+print(json.dumps({'status':'private_full_download_size_sha_verified','revision':commit.oid,'file_count':len(verify),'diagnostic_only':True}))

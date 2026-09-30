@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "single_full_coverage_control_production_dispatch_intent",
+  "created_at": "2026-09-30T07:53:42.308846+00:00",
+  "source_git": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab",
+  "code": "/home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e",
+  "control": "/home/sa305415/rsna-knee/production-launch-whole-series-control-c9fcc7e-v1",
+  "run": "/home/sa305415/rsna-knee/runs/dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1",
+  "prior_exact_recovery_pilot": 865346,
+  "private_pilot_revision": "111f78f91f37537564f8c109904511e501ee2757",
+  "gpus": 1,
+  "cpus": 2,
+  "memory_gib": 64,
+  "time_bound_hours": 48,
+  "training_studies": 2247,
+  "heldout_studies": 1156,
+  "epochs": 10,
+  "updates_per_epoch": 281,
+  "effective_batch": 8,
+  "evaluation_policy": "fixed_final_only; no_internal_epoch_selection",
+  "context": "none",
+  "checkpoint_format": "frozen_base_delta",
+  "storage_precheck": {
+    "at_utc": "2026-09-30T07:53:42.295469+00:00",
+    "quota": "Disk quotas for usr sa305415 (uid 1227834669):\n     Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace\n /home/sa305415 1008899744  1048576000 1059061760       -  992439  1000000 1010000       -\n",
+    "queue": "865263|rsna-a32-all-development|RUNNING|gres/gpu:nvidia_h100_pcie:1\n",
+    "primary_current_unique": {
+      "unique_inodes": 1,
+      "bytes": 1338164780
+    },
+    "primary_max_future_inodes": 9,
+    "primary_remaining_full_bytes": 10705318240,
+    "primary_future_bundle_zip_bytes": 2677412380,
+    "new_delta_snapshot_live_atomic_bytes": 1610612736,
+    "new_deployment_three_copy_budget_bytes": 4016118570,
+    "metadata_source_budget_bytes": 138412032,
+    "projected_free_gib": 20.005379045382142,
+    "file_reserve": 7561,
+    "minimum_free_gib": 20
+  },
+  "files": {
+    "production.sbatch": {
+      "sha256": "acd2f8d2be58e4e92fede91be0e02e5e136f7dfa59056c71fe5b3da5efe5eb5f",
+      "bytes": 13653
+    },
+    "config.json": {
+      "sha256": "55cc0033237e13de26ffee17d1ed0274fb7506bb404d861807426dc3dadd92b2",
+      "bytes": 1579
+    },
+    "publish_whole_series_epoch.py": {
+      "sha256": "7ff5db4f1cd6b0b338f6244ff78375bd814c93cd72e3bc8e0eb11573c036aa02",
+      "bytes": 13744
+    }
+  }
+}

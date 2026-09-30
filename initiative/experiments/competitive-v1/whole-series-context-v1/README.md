@@ -66,3 +66,11 @@ separate offline deployment path is accepted. The diagnostic pilot cannot be
 submitted. Full-coverage production still needs a fresh projected quota check,
 including all ten immutable delta snapshots, one live recovery checkpoint and
 the atomic-write transient, alongside the primary fit's remaining full files.
+
+
+September 30 operational update: exact resumable frozen-base delta engineering
+passed actual Newton pilot 865346 (full-storage reference and interrupted recovery
+exact). Distinct full no-context control 865357 is now RUNNING, source c9fcc7e,
+one H100/two CPUs. Neighbor-context production remains prepared only. The control
+has no held-out result yet. See `initiative/audits/dinov3-delta-recovery-launch-v1/`
+for launch, quota projection, strict private publication and recovery evidence.
