@@ -6,6 +6,22 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, whole-series pilot recovery harness correction:** First bounded
+pilot **865318 FAILED 2:0** after its finite four-update full diagnostic and
+one-update intentional saved stop. The trainer's valid exit 75 was wrapped as
+torchrun exit 1; the old shell harness refused it. No verified compact/recovery
+receipt exists for that attempt. Distinct corrected **865321 RUNNING**, same
+unchanged `615d0fe` source/config, one H100/two CPUs/45 minutes; control
+`/home/sa305415/rsna-knee/whole-series-pilot-615d0fe-v2`. It checks the exact stop
+receipt, optimizer boundary, binding and checkpoint SHA before accepting wrapper
+1 or 75. Six harness acceptance/rejection cases pass under Newton's disabled
+user-site setting. Do not repeat either dispatch; require actual exact resumed
+payload, frozen-base and largest-training-scan acceptance. Initial source/launch
+milestone is privately mirrored/download-hash verified at HF
+`c64f882bafd52f27968005abad3a71529b4ceb42` (54 objects). All-data 865263 continues
+healthy, with its first epoch privately preserved; Kaggle 56697342 still has null
+status/score and four live slots at 06:05 UTC.
+
 **September 30, whole-series bounded pilot dispatched and all-data epoch 1 preserved:**
 Slurm **865318 RUNNING on evc32**, one H100/two CPUs/45 minutes, from source
 `615d0fe4602798a9fe46278b2e5443bfbb49669e`. Allocated driver and actual CUDA

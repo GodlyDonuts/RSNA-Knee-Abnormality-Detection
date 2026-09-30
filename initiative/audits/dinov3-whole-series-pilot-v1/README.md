@@ -1,5 +1,21 @@
 # Whole-series GPU pilot dispatch
 
+Latest state: first pilot **865318 FAILED 2:0** after finite full training and
+the intentional saved-stop update. The trainer emitted exit 75; torchrun wrapped
+it as exit 1, which the harness rejected. No compact or recovery/profile proof
+was produced, and owned node-local diagnostics were cleaned. Corrected distinct
+pilot **865321 RUNNING** uses the identical source/config and a distinct
+`whole-series-pilot-615d0fe-v2` control. It accepts a wrapper 1 or 75 only after
+verifying the exact trainer stop receipt, completed first optimizer update,
+binding and checkpoint SHA. Six positive/negative harness cases passed under the
+same disabled-user-site setting as Newton. This correction changes no model,
+labels or recipe. Never repeat either dispatch. Production remains gated on the
+actual corrected recovery and largest-input outcome.
+
+Source/initial dispatch and epoch-1 preservation are privately mirrored at HF
+`c64f882bafd52f27968005abad3a71529b4ceb42`, all 54 objects fully re-downloaded,
+size/SHA verified. That is the initial launch milestone, not a completed pilot.
+
 September 30, 2026. Source `615d0fe4602798a9fe46278b2e5443bfbb49669e`
 implements full cached series/slice coverage and neighboring feature context.
 The unchanged accepted masks/folds and official DINOv3-L base remain pinned.

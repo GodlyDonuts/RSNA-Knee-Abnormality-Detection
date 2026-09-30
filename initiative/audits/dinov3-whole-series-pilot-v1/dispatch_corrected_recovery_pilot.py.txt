@@ -1,0 +1,57 @@
+import hashlib,json,os,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+
+root=Path.cwd();folder=root/'artifacts/dinov3-whole-series-v1';sock='/tmp/rsna-a32-reconnect-501.sock';host='sa305415@newton.ist.ucf.edu'
+base='/home/sa305415/rsna-knee';control=base+'/whole-series-pilot-615d0fe-v2';code=base+'/code-whole-series-615d0fe';source='615d0fe4602798a9fe46278b2e5443bfbb49669e'
+intent=folder/'recovery-pilot-v2-intent.json';assert not intent.exists()
+def ssh(args):return subprocess.check_output(['ssh','-S',sock,'-o','BatchMode=yes',host,shlex.join(args)],text=True)
+prior=ssh(['sacct','-j','865318','-o','JobID,State,ExitCode,Elapsed,NodeList','-P'])
+assert '865318|FAILED|2:0|' in prior
+queue=ssh(['squeue','-u','sa305415','-h','-o','%i %j %b']);assert 'rsna-whole-series-pilot' not in queue
+assert queue.count('gres/gpu:')==1 and '865263' in queue
+quota=ssh(['lfs','quota','-u','sa305415','/home/sa305415'])
+fields=next(x for x in quota.splitlines() if x.lstrip().startswith('/home/sa305415')).split()
+projected=(int(fields[2])-int(fields[1]))*1024-10*1338164780-2*1338706190-100*1024**2-182*1024**2
+assert projected>=20*1024**3
+script=(folder/'pilot.sbatch').read_text().replace(base+'/whole-series-pilot-615d0fe-v1',control)
+script=script.replace('if [[ "$stop_code" != 75 ]]; then exit 2; fi', '''if [[ "$stop_code" != 1 && "$stop_code" != 75 ]]; then exit 2; fi
+"$runtime_python" - "$resume_output" "$stop_code" CONTROL <<'RSNA_EXACT_INTENTIONAL_STOP_GUARD'
+import hashlib,json,sys
+from pathlib import Path
+from scripts.newton.supervise import checkpoint_stop_verified
+partial,wrapper,control=Path(sys.argv[1]),int(sys.argv[2]),Path(sys.argv[3])
+receipt=json.loads((partial/'invocation.json').read_text())
+assert receipt['status']=='checkpointed_for_resume' and receipt['exit_code']==75
+assert len(receipt['updates'])==1 and receipt['updates'][0]['optimizer_steps']==1
+assert checkpoint_stop_verified(partial/'checkpoint.pt',0)
+record={'status':'exact_intentional_optimizer_boundary_stop_verified','launcher_exit_code':wrapper,'trainer_exit_code':75,'invocation':receipt}
+with (control/'intentional-stop-verified.json').open('x') as f:json.dump(record,f,indent=2)
+print(json.dumps({'status':record['status'],'launcher_exit_code':wrapper,'trainer_exit_code':75}),flush=True)
+RSNA_EXACT_INTENTIONAL_STOP_GUARD'''.replace('CONTROL',control))
+script=script.replace('  return "$code"\n}', '  supervisors=()\n  return "$code"\n}')
+p=folder/'pilot-recovery-v2.sbatch';p.write_text(script);subprocess.run(['bash','-n',str(p)],check=True)
+files={}
+for path,name in [(p,'pilot.sbatch'),(root/'initiative/experiments/competitive-v1/whole-series-context-v1/pilot-config.json','pilot-config.json'),(root/'initiative/audits/dinov3-whole-series-implementation-v1/metadata-coverage-summary.json','workloads.json')]:files[name]={'local':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+record={'schema_version':1,'created_at':datetime.now(timezone.utc).isoformat(),'source_git':source,'prior_terminal_job':865318,'prior_terminal_state':prior,'prior_failure':'intentional trainer exit75 wrapped as torchrun exit1; shell exited2; no compact checkpoint or verification receipt produced','scientific_source_or_config_changed':False,'code':code,'control':control,'files':files,'gpus':1,'cpus':2,'time_limit_minutes':45,'projected_remaining_gib':projected/1024**3,'quota':quota,'queue_before':queue,'status':'distinct_corrected_recovery_pilot_dispatch_intent'}
+with intent.open('x') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+ssh(['/usr/bin/python3.12','-c','from pathlib import Path; p=Path('+repr(control)+'); assert not p.exists(); p.mkdir(mode=0o700)'])
+for name,rec in files.items():subprocess.run(['scp','-o','ControlPath='+sock,rec['local'],host+':'+control+'/'+name],check=True)
+checks='\n'.join('[[ $(sha256sum '+shlex.quote(control+'/'+name)+' | cut -d " " -f1) == '+rec['sha256']+' ]]' for name,rec in files.items())
+write_intent=shlex.join(['/usr/bin/python3.12','-c','import pathlib; pathlib.Path('+repr(control+'/dispatch-intent.json')+').open("x").write('+repr(json.dumps(record))+')'])
+write_job=shlex.join(['/usr/bin/python3.12','-c','import pathlib,sys; pathlib.Path('+repr(control+'/dispatch-job-id.txt')+').open("x").write(sys.argv[1]+"\\n")'])
+remote=f'''set -euo pipefail
+[[ $(git -C {shlex.quote(code)} rev-parse HEAD) == {source} ]]
+[[ -z $(git -c core.preloadIndex=false -c index.threads=1 -C {shlex.quote(code)} status --porcelain) ]]
+{checks}
+{write_intent}
+job=$(sbatch --parsable {shlex.quote(control+'/pilot.sbatch')})
+[[ "$job" =~ ^[0-9]+$ ]]
+{write_job} "$job"
+printf '%s\\n' "$job"
+'''
+result=subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,'/bin/bash -s'],input=remote,text=True,capture_output=True,timeout=60)
+receipt={**record,'returncode':result.returncode,'stdout':result.stdout,'stderr':result.stderr,'returned_at':datetime.now(timezone.utc).isoformat(),'status':'dispatch_returned' if result.returncode==0 else 'uncertain_readonly_reconciliation_required'}
+if result.returncode==0:receipt['job_id']=int(result.stdout.strip())
+with (folder/'recovery-pilot-v2-receipt.json').open('x') as f:json.dump(receipt,f,indent=2);f.flush();os.fsync(f.fileno())
+print(json.dumps(receipt));assert result.returncode==0
