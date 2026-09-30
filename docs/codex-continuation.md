@@ -18,6 +18,9 @@ score and error; do not infer a hidden outcome or spend another slot yet.
 Fresh Lustre quota was 1,015,352,828 kB / 992,672 files; the conservative
 remaining-role projection leaves **21.175666 GiB / 6,428 files** before the
 small E3 publication journal. Recheck before any further transfer or launch.
+The E3 handoff is on GitHub main **c8636ba** and privately mirrored at
+**55755d354d9d40b7aebdcbe75acf684d88b69cfc**; all **12 small objects** were
+fully re-downloaded/size/SHA verified. Never repeat that mirror.
 
 **September 30 native/epoch evidence synchronized:** GitHub main **d98a748**
 records the completed original-pixel cache pilot and rank-64 E2/control E6

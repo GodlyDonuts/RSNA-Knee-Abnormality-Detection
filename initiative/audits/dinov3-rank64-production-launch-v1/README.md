@@ -77,3 +77,9 @@ Exact immutable sidecars, local dispatch records and remote journals are in
 Do not repeat E1–E3. The same job continues; no final held-out accuracy is
 available yet. The new source-based native384 caches are engineering artifacts
 for a separate future comparison, not inputs to this rank-64 run.
+
+The E3 handoff source **c8636ba** is privately mirrored at
+**55755d354d9d40b7aebdcbe75acf684d88b69cfc**, with all **12 small objects**
+fully re-downloaded/size/SHA verified. This distinct receipt mirror did not
+repeat the checkpoint publication. Its exclusive intent/commit/verification
+records are in `epoch-publication/epoch-003/hf-milestone-*.json`.
