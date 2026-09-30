@@ -6,6 +6,17 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30 final submission evidence privately synchronized:** GitHub main
+**cf004e3** records the exact public MRI acceptance and once-only competition
+entry **56711823**. Private HF revision
+**c096cc95fa649f2f05ecf843a8f2bcdf9581fdd1** fully re-downloaded/size/SHA
+verified all **36** submission/source/provenance objects. Do not repeat the
+mirror or the submission. At 15:37 UTC the actual hidden API status/score/error
+were null; the account showed two submissions today and three available slots.
+The previous scored solo result remains 0.769. Read actual outcomes before
+further competition mutations; there is no new score to report yet.
+
+
 **September 30 final all-data model submitted once:** Exact private offline
 **godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** completed public
 MRI-only execution; all three studies inferred, zero fallback, correct test
@@ -41,7 +52,7 @@ Private Dataset **12293124 v1** was created once and its complete payload
 fully downloaded/hash verified. Exact private offline T4
 **godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** was pushed once,
 source SHA **6e4de71960093464ead65d220cc87154e35ab26d2fc3e9607107228fd43ee2b2**.
-It completed public MRI-only acceptance and was submitted once as56711823;
+It completed public MRI-only acceptance and was submitted once as 56711823;
 actual hidden outcome/score remain outstanding. See the completed-epoch10 audit.
 Never repeat its Dataset create or notebook push; do not upload the public CSV.
 The owner's useful-checkpoint authorization remains in force. Refresh actual

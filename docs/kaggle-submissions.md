@@ -15,7 +15,7 @@ updates on all 3,403 usable development studies. E10 is privately fully verified
 Private Dataset **12293124 v1** was created once and all 44 payload objects
 fully downloaded/hash verified. Exact private offline T4 notebook
 **godlydonuts/rsna-knee-a32all-epoch10-54a1415dc932 v1** was pushed once
-completed its public MRI-only run and was submitted once as56711823;
+completed its public MRI-only run and was submitted once as 56711823;
 its actual hidden score/outcome are still outstanding. Do not repeat its create/push. Use the
 one canonical ledger and the prepared phase coordinator only after exact
 source/MRI/CSV checks and fresh live allowance; never upload the three-row CSV.

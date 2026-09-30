@@ -59,3 +59,12 @@ zero neutral fallbacks, no isolated inference failures, the authoritative test
 roster and exact CSV/weight/manifest hashes. Its durable receipts use exclusive
 creation; inspect existing outputs before any repeat. The phase coordinator's
 submit intent is also exclusive. Pending public execution is not a score.
+
+The once-only submission evidence is on GitHub main **cf004e3**, privately
+mirrored at **c096cc95fa649f2f05ecf843a8f2bcdf9581fdd1**. All **36** source/
+receipt/provenance objects were fully re-downloaded/size/SHA verified. Exact
+parent, intent and file map are in `hf-submission-*.json`. Never repeat this
+mirror or submission. At 15:37 UTC ListSubmissions returned null hidden status/
+score/error; live allowance showed two today and three slots. Latest actual
+scored result remains 0.769 from 56697342. These observations are not a new
+hidden success or score.
