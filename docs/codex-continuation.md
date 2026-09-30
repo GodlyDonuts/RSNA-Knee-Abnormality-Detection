@@ -6,6 +6,31 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 29, completed A32 fold-0 improvement:** Production Slurm **864856
+COMPLETED 0:0** in 7:03:29. Its fixed-final ten-epoch result is **0.8620940794
+internal macro AUC** on the identical 1,156-study development holdout, compared
+with **0.7783102649** for the original frozen fold-0 model: **+0.0837838145**.
+Independent recomputation reproduced every target; all twelve improved on this
+split. The result is report-derived internal evaluation, not Kaggle, reserved
+confirmation or three-fold evidence. Training/outer UID, fold, release, cache and
+source bindings match; precision, head learning rate, scheduling, encoder adapters,
+chunking and world size changed, so adapter-only causality is not established.
+The matched BF16 frozen control remains prepared only. See
+[the complete result audit](../initiative/audits/dinov3-adapter-a32-fold0-result-v1/).
+All **ten** immutable A32 checkpoints were privately published once and all **40
+objects** fully downloaded/size/SHA verified. Final epoch-10 HF revision is
+`37065d5fa12296d84e6a7e88354eae9cbda0d3e7`; checkpoint SHA is
+`3ed9a08f144fb0b3e30dee7bfc65df13f5c4647b2a0532a8d04d3241da0d4db0`.
+Do not repeat the training job or any epoch publication. The separate CPU-only final verification **865225 completed 0:0**: all 120
+residual modules learned, all model tensors are finite, all 415 original official
+base tensors unchanged and checkpoint-only strict reconstruction passed. The
+original 865224 import-only failure ended before reading weights; the distinct
+correction changed only the pinned import path. No A32 competition submission was made and the solo
+model improvement mission remains incomplete. Fresh storage acceptance is needed
+before another full run; no additional GPU job is launched. Continue with the
+matched control and justified independent-fold/native-detail/slice-context work,
+without changing accepted masks/folds or admitting unqualified teachers.
+
 **September 29, verified A32 pilot and primary production launch:** Resume-only
 Slurm **864840 COMPLETED 0:0**, with full model/optimizer/RNG recovery equality,
 byte-equal predictions, all 120 adapters updated, original official base tensors

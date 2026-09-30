@@ -4,6 +4,11 @@ This folder contains actual data and evidence, not only links to a previous
 session. A new agent can recover the report-review work and source inventory
 from a clone of this repository.
 
+The September 29 DINOv3 encoder-adapter fold-0 run completed with **0.8621 internal
+macro AUC**, versus 0.7783 for the earlier model on the identical held-out pool.
+All ten checkpoints are privately download/hash verified. See the
+[A32 result audit](audits/dinov3-adapter-a32-fold0-result-v1/); this is not a Kaggle score.
+
 **The local report-supervision release has passed data and runtime acceptance.**
 Use [the readiness report](../docs/data-readiness-report.md), the final
 [manifest and receipt](releases/report-supervision-v1/), and the
