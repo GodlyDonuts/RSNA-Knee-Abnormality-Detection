@@ -1,0 +1,20 @@
+usage: profile_native.py [-h] --checkpoint CHECKPOINT --config CONFIG
+                         --studies STUDIES --series SERIES --cache CACHE
+                         --folds FOLDS --artifact-root ARTIFACT_ROOT --output
+                         OUTPUT
+
+Measure a restored adapter on a bounded real-MRI effective batch of eight.
+This diagnostic does not write a new model or estimate competitive accuracy.
+Its timings exclude cache decoding and checkpoint writes; trainer invocation
+receipts supply the separate end-to-end measurement.
+
+options:
+  -h, --help            show this help message and exit
+  --checkpoint CHECKPOINT
+  --config CONFIG
+  --studies STUDIES
+  --series SERIES
+  --cache CACHE
+  --folds FOLDS
+  --artifact-root ARTIFACT_ROOT
+  --output OUTPUT

@@ -1,0 +1,67 @@
+"""Check identical seeded learned tensors for the two resolution configurations."""
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+import torch
+
+from rsna.competitive.adapters import configure_encoder_training
+from rsna.competitive.backbones import create_encoder
+from rsna.competitive.checkpoint import atomic_json
+from rsna.competitive.model import CompetitiveStudyNet
+from rsna.competitive.train import TrainConfig
+
+
+def learned_hashes(path):
+    config = TrainConfig(**json.loads(path.read_text()))
+    config.validate()
+    torch.manual_seed(config.seed)
+    encoder, dimension, provenance = create_encoder(config.encoder)
+    configure_encoder_training(encoder, config.freeze_encoder)
+    model = CompetitiveStudyNet(
+        encoder,
+        dimension,
+        pooling=config.pooling,
+        hidden_dim=config.hidden_dim,
+        encode_chunk_size=config.encode_chunk_size,
+        slice_context=config.slice_context,
+    )
+    tensors = {
+        name: hashlib.sha256(
+            p.detach().contiguous().view(torch.uint8).numpy().tobytes()
+        ).hexdigest()
+        for name, p in model.named_parameters()
+        if p.requires_grad
+    }
+    assert provenance["adapter"]["trainable_parameters"] == 10223616
+    return tensors
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ("native", "control", "output"):
+        parser.add_argument("--" + name, type=Path, required=True)
+    args = parser.parse_args()
+    assert not args.output.exists()
+    native = json.loads(args.native.read_text())
+    control = json.loads(args.control.read_text())
+    assert native["side"] == 384 and control["side"] == 224
+    assert {**control, "side": 384} == native
+    first, second = learned_hashes(args.native), learned_hashes(args.control)
+    assert first == second
+    atomic_json(
+        args.output,
+        {
+            "status": "same_seeded_head_and_all_adapter_initial_tensors_verified",
+            "diagnostic_only": True,
+            "seed": native["seed"],
+            "learned_tensor_sha256": first,
+            "actual_training_or_accuracy_claim": False,
+        },
+    )
+
+
+if __name__ == "__main__":
+    main()

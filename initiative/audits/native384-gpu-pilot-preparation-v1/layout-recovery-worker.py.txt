@@ -1,0 +1,47 @@
+
+import hashlib,io,json,os,subprocess,sys,tarfile
+from pathlib import Path
+request=json.load(sys.stdin);control=Path('/home/sa305415/rsna-knee/native384-recovery-c9-pilot-v1')
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+assert not (control/'cpu-stage-layout-recovery-intent.json').exists()
+intent=json.loads((control/'cpu-stage-intent.json').read_text());plan=intent['plan'];original=intent['job_id']
+accounting=subprocess.check_output(['sacct','-X','--noheader','-j',original,'--format=JobIDRaw,State,ExitCode','--parsable2'],text=True)
+assert accounting.strip()==original+'|FAILED|1:0'
+plan['phase']='staged_payloads';namespace={'__name__':'layout_recovery_admission'}
+exec(compile(request['admission_source'],'layout_recovery_admission','exec'),namespace)
+sys.stdin=io.StringIO(json.dumps(plan));old=sys.stdout;sys.stdout=io.StringIO()
+try:namespace['main']();admission=json.loads(sys.stdout.getvalue())
+finally:sys.stdout=old
+assert admission['cpu_stage_admitted'] is True
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for block in iter(lambda:f.read(4*1024**2),b''):h.update(block)
+ return h.hexdigest()
+def save(name,value):
+ with (control/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+for name,row in plan['files'].items():assert (control/name).stat().st_size==row['bytes'] and sha(control/name)==row['sha256']
+publication=plan['pinned_private_cache_publication'];payloads=control/'payloads';nested=payloads/publication['prefix']
+assert payloads.resolve()==control.resolve()/'payloads' and nested.resolve().is_relative_to(payloads.resolve())
+for name,row in publication['files'].items():
+ source=nested/name;target=payloads/name
+ assert not target.exists() and not source.is_symlink() and source.stat().st_size==row['bytes'] and sha(source)==row['sha256']
+ assert source.stat().st_dev==payloads.stat().st_dev
+save('cpu-stage-layout-recovery-intent.json',{'job_id':os.environ['SLURM_JOB_ID'],'original_failed_job':original,'accounting':accounting,'admission':admission,'private_publication':publication,'zero_redownloads':True,'no_payload_copy_or_deletion':True})
+for name in publication['files']:os.rename(nested/name,payloads/name)
+assert sha(payloads/'manifest.json')==sha(control/'cache-manifest.json')
+assert sha(payloads/'selection.json')==sha(control/'selection.json')
+manifest=json.loads((payloads/'manifest.json').read_text());archives=[]
+for name in ('cache-side-256.tar','cache-side-384.tar'):
+ expected=manifest['archives'][name];seen=set()
+ with tarfile.open(payloads/name,'r|') as source:
+  for member in source:
+   assert member.isreg() and member.name in expected['members'] and member.name not in seen
+   seen.add(member.name);row=expected['members'][member.name];assert member.size==row['bytes']
+   stream=source.extractfile(member);assert stream is not None;digest=hashlib.sha256()
+   for block in iter(lambda:stream.read(4*1024**2),b''):digest.update(block)
+   stream.close();assert digest.hexdigest()==row['sha256']
+ assert seen==set(expected['members']) and len(seen)==370
+ archives.append({'archive':name,'all_regular_members_sha_verified':len(seen)})
+save('cpu-stage-verified.json',{'schema_version':1,'status':'private_native_pilot_payloads_cpu_staged_fully_verified','job_id':os.environ['SLURM_JOB_ID'],'original_failed_stage_job':original,'node':os.uname().nodename,'scientific_runtime_git':plan['scientific_runtime_git'],'files':plan['files'],'private_publication':publication,'archive_member_receipts':archives,'admission':admission,'gpu_job_dispatched':False,'credential_file_written':False,'redownloads':0,'same_filesystem_layout_rename_only':True})
+print(json.dumps({'status':'private_native_pilot_payloads_cpu_staged_fully_verified','job_id':os.environ['SLURM_JOB_ID'],'original_failed_job':original,'archives_members_verified_each':370,'redownloads':0,'gpu_job_dispatched':False}))

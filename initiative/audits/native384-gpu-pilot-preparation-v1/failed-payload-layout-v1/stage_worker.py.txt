@@ -1,0 +1,152 @@
+"""One CPU-only private payload stage; no scheduler or HF publication mutations."""
+
+import base64
+import hashlib
+import io
+import json
+import os
+import subprocess
+import sys
+import tarfile
+from pathlib import Path, PurePosixPath
+
+from huggingface_hub import HfApi, hf_hub_download
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(4 * 1024**2), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def write_new(path, value):
+    with path.open("x") as stream:
+        json.dump(value, stream, indent=2, sort_keys=True)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def main():
+    request = json.load(sys.stdin)
+    plan = request["plan"]
+    assert os.environ.get("SLURM_JOB_ID") and not os.environ.get("SLURM_JOB_GPUS")
+    assert os.environ.get("CUDA_VISIBLE_DEVICES") in (None, "", "NoDevFiles")
+    control = Path(plan["control"])
+    assert control == Path("/home/sa305415/rsna-knee/native384-recovery-c9-pilot-v1")
+    assert not control.exists()
+    sys.stdin = io.StringIO(json.dumps(plan))
+    namespace = {"__name__": "read_only_stage_admission"}
+    exec(compile(request["admission_source"], "read_only_stage_admission", "exec"), namespace)
+    previous = sys.stdout
+    sys.stdout = io.StringIO()
+    try:
+        namespace["main"]()
+        admission = json.loads(sys.stdout.getvalue())
+    finally:
+        sys.stdout = previous
+    assert admission["cpu_stage_admitted"] is True
+    code = Path("/home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e")
+    for name, expected in request["scientific_files"].items():
+        assert sha(code / name) == expected
+    control.mkdir(mode=0o700)
+    write_new(
+        control / "cpu-stage-intent.json",
+        {
+            "job_id": os.environ["SLURM_JOB_ID"],
+            "plan": plan,
+            "admission": admission,
+            "one_stage_only": True,
+            "gpu_reserved": False,
+            "token_saved": False,
+        },
+    )
+    for name, row in request["stage_files"].items():
+        assert Path(name).name == name
+        data = base64.b64decode(row["data"], validate=True)
+        assert len(data) == row["bytes"] and hashlib.sha256(data).hexdigest() == row["sha256"]
+        with (control / name).open("xb") as stream:
+            stream.write(data)
+        (control / name).chmod(0o600)
+    subprocess.run(["bash", "-n", str(control / "pilot.sbatch")], check=True)
+    publication = plan["pinned_private_cache_publication"]
+    api = HfApi(token=request["token"])
+    assert (
+        api.repo_info(
+            publication["repo_id"], repo_type="dataset", revision=publication["revision"]
+        ).private
+        is True
+    )
+    payload = control / "payloads"
+    payload.mkdir(mode=0o700)
+    for name, row in publication["files"].items():
+        downloaded = Path(
+            hf_hub_download(
+                publication["repo_id"],
+                filename=publication["prefix"] + "/" + name,
+                repo_type="dataset",
+                revision=publication["revision"],
+                token=request["token"],
+                local_dir=payload,
+                force_download=True,
+            )
+        )
+        assert downloaded.stat().st_size == row["bytes"] and sha(downloaded) == row["sha256"]
+        downloaded.chmod(0o600)
+    assert sha(payload / "manifest.json") == sha(control / "cache-manifest.json")
+    assert sha(payload / "selection.json") == sha(control / "selection.json")
+    manifest = json.loads((payload / "manifest.json").read_text())
+    archive_receipts = []
+    for name in ("cache-side-256.tar", "cache-side-384.tar"):
+        expected = manifest["archives"][name]
+        seen = set()
+        with tarfile.open(payload / name, "r|") as archive:
+            for member in archive:
+                path = PurePosixPath(member.name)
+                assert member.isreg() and not path.is_absolute() and ".." not in path.parts
+                assert member.name in expected["members"] and member.name not in seen
+                seen.add(member.name)
+                record = expected["members"][member.name]
+                assert member.size == record["bytes"]
+                stream = archive.extractfile(member)
+                assert stream is not None
+                digest = hashlib.sha256()
+                for block in iter(lambda: stream.read(4 * 1024**2), b""):
+                    digest.update(block)
+                stream.close()
+                assert digest.hexdigest() == record["sha256"]
+        assert seen == set(expected["members"]) and len(seen) == 370
+        archive_receipts.append({"archive": name, "all_regular_members_sha_verified": len(seen)})
+    write_new(
+        control / "cpu-stage-verified.json",
+        {
+            "schema_version": 1,
+            "status": "private_native_pilot_payloads_cpu_staged_fully_verified",
+            "job_id": os.environ["SLURM_JOB_ID"],
+            "node": os.uname().nodename,
+            "scientific_runtime_git": plan["scientific_runtime_git"],
+            "files": plan["files"],
+            "private_publication": publication,
+            "archive_member_receipts": archive_receipts,
+            "scientific_files": request["scientific_files"],
+            "admission": admission,
+            "gpu_job_dispatched": False,
+            "credential_file_written": False,
+        },
+    )
+    print(
+        json.dumps(
+            {
+                "status": "private_native_pilot_payloads_cpu_staged_fully_verified",
+                "job_id": os.environ["SLURM_JOB_ID"],
+                "archives_members_verified_each": 370,
+                "gpu_job_dispatched": False,
+            }
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

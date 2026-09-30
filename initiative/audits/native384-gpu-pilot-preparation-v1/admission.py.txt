@@ -1,0 +1,206 @@
+"""Read-only Newton admission check for a distinct native384 recovery pilot.
+
+Consume the prepared nonsecret file manifest on stdin. Never reserve resources,
+create directories, write credentials, delete artifacts or release future write
+obligations for retained completed physical inodes already charged in actual quota.
+"""
+
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+def digest(path):
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(4 * 1024**2), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def main():
+    prepared = json.load(sys.stdin)
+    base = Path("/home/sa305415/rsna-knee")
+    assert prepared["control"] == str(base / "native384-recovery-c9-pilot-v1")
+    science = base / "code-delta-recovery-c9fcc7e"
+    git = [
+        "git",
+        "-c",
+        "core.preloadIndex=false",
+        "-c",
+        "index.threads=1",
+        "-c",
+        "status.renames=false",
+        "-C",
+        str(science),
+    ]
+    assert (
+        subprocess.check_output(git + ["rev-parse", "HEAD"], text=True).strip()
+        == prepared["scientific_runtime_git"]
+    )
+    assert not subprocess.check_output(
+        git + ["status", "--porcelain", "--untracked-files=no"], text=True
+    ).strip()
+    quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", str(base)], text=True)
+    fields = quota.splitlines()[-1].split()
+    if not fields[0].rstrip("*").isdigit():
+        fields = fields[1:]
+    assert len(fields) == 8
+    used, soft, files_used, files_soft = [int(fields[i].rstrip("*")) for i in (0, 1, 4, 5)]
+    live = subprocess.check_output(
+        ["squeue", "--noheader", "-u", "sa305415", "-o", "%i|%T|%b|%N"], text=True
+    )
+    gpu_jobs = [line for line in live.splitlines() if "gpu" in line.split("|")[2]]
+    accounting = subprocess.check_output(
+        [
+            "sacct",
+            "-X",
+            "--noheader",
+            "-j",
+            "865357,865578",
+            "--format=JobIDRaw,State,ExitCode",
+            "--parsable2",
+        ],
+        text=True,
+    )
+    terminal = {
+        parts[0]: parts[1:3]
+        for parts in (line.split("|") for line in accounting.splitlines())
+        if parts[0] in ("865357", "865578")
+    }
+    obligations = {
+        "control_future_delta_live_atomic": 12 * 128 * 1024**2,
+        "rank64_future_delta_live_atomic": 3 * 1024**3,
+        "control_deployment_bundle_zip": 2680000000,
+        "rank64_deployment_bundle_zip": 3096208256,
+        "prior_metadata_and_diagnostics": (132 + 128 + 256 + 128) * 1024**2,
+        "new_native_stage_payloads": prepared["durable_stage_upper_bound_bytes"],
+        "new_native_diagnostic_checkpoint_receipts": prepared[
+            "durable_pilot_checkpoint_receipts_bound_bytes"
+        ],
+    }
+    released = []
+    roles = [
+        (
+            "865357",
+            "control_future_delta_live_atomic",
+            "production-launch-whole-series-control-c9fcc7e-v1",
+            "dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1",
+        ),
+        (
+            "865578",
+            "rank64_future_delta_live_atomic",
+            "production-launch-adapter-a64-sampled-c9fcc7e-v1",
+            "dinov3-l16-adapter-a64-sampled-fold0-c9fcc7e-production-v1",
+        ),
+    ]
+    for job, obligation, control, run in roles:
+        unit = 128 * 1024**2 if job == "865357" else 256 * 1024**2
+        retained = set()
+        accepted = []
+        for epoch in range(1, 11):
+            sidecar = base / "runs" / run / "epoch-checkpoints" / f"epoch-{epoch:03d}.json"
+            journal = base / control / "epoch-publication" / f"epoch-{epoch:03d}" / "verified.json"
+            if not sidecar.is_file() or not journal.is_file():
+                continue
+            snapshot = json.loads(sidecar.read_text())
+            receipt = json.loads(journal.read_text())
+            assert (
+                receipt["status"] == "private_epoch_fully_verified"
+                and receipt["files_verified_by_download"] == 4
+            )
+            assert (
+                snapshot["checkpoint_sha256"] == receipt["checkpoint_sha256"]
+                and snapshot["epoch"] == receipt["epoch"] == epoch
+            )
+            assert (
+                snapshot["status"] == "scheduled_epoch_snapshot"
+                and snapshot["diagnostic_only"] is False
+            )
+            checkpoint = sidecar.parent / snapshot["checkpoint_file"]
+            assert checkpoint.name == f"epoch-{epoch:03d}.pt" and not checkpoint.is_symlink()
+            stat = checkpoint.stat()
+            assert stat.st_size == snapshot["checkpoint_bytes"] and stat.st_size <= unit
+            retained.add((stat.st_dev, stat.st_ino))
+            accepted.append(epoch)
+        # The original bound funded twelve future inodes (ten snapshots plus
+        # recovery/atomic writes). Retained completed physical inodes are already
+        # charged in actual lfs usage. Remove only those spent future obligations;
+        # no file deletion, hypothetical cleanup or unverified upload is credited.
+        assert len(retained) == len(accepted)
+        obligations[obligation] = (12 - len(retained)) * unit
+        completed = terminal.get(job) == ["COMPLETED", "0:0"] and accepted == list(range(1, 11))
+        if completed:
+            obligations[obligation] = 0
+        released.append(
+            {
+                "job_id": int(job),
+                "private_completed_epochs_with_retained_unique_inodes": accepted,
+                "already_accounted_in_actual_quota": True,
+                "cleanup_credited": False,
+                "terminal_all_ten_complete_verified": completed,
+            }
+        )
+    phase = prepared.get("phase", "stage")
+    assert phase in ("stage", "staged_payloads")
+    if phase == "staged_payloads":
+        publication = prepared["pinned_private_cache_publication"]
+        payloads = Path(prepared["control"]) / "payloads"
+        for name, record in publication["files"].items():
+            path = payloads / name
+            if not path.exists():
+                path = payloads / publication["prefix"] / name
+            assert not path.is_symlink() and path.stat().st_size == record["bytes"]
+            assert digest(path) == record["sha256"]
+        obligations["new_native_stage_payloads"] = 0
+    remaining = (soft - used) * 1024 - sum(obligations.values())
+    remaining_files = files_soft - files_used - 650 - prepared["maximum_new_durable_files"]
+    reasons = []
+    if remaining < 20 * 1024**3:
+        reasons.append("native_payloads_plus_all_future_obligations_leave_less_than_20_gib")
+    if remaining_files < 5000:
+        reasons.append("all_future_files_leave_less_than_5000_files")
+    if phase == "stage" and Path(prepared["control"]).exists():
+        reasons.append("distinct_control_already_exists_reconcile_read_only")
+    gpu_reasons = reasons + (
+        ["two_gpu_roles_currently_occupy_the_authorized_node_budget"] if len(gpu_jobs) > 1 else []
+    )
+    ready = Path(prepared["control"]) / "cpu-stage-verified.json"
+    if (
+        not ready.exists()
+        or json.loads(ready.read_text()).get("status")
+        != "private_native_pilot_payloads_cpu_staged_fully_verified"
+    ):
+        gpu_reasons.append("cpu_stage_not_yet_verified_for_gpu_dispatch")
+    print(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "cpu_stage_admitted_read_only" if not reasons else "not_admitted_yet",
+                "cpu_stage_admitted": not reasons,
+                "gpu_dispatch_admitted": not gpu_reasons,
+                "gpu_dispatch_reasons": gpu_reasons,
+                "reasons": reasons,
+                "actual_gpu_jobs": gpu_jobs,
+                "actual_role_accounting": terminal,
+                "used_kbytes": used,
+                "soft_kbytes": soft,
+                "used_files": files_used,
+                "soft_files": files_soft,
+                "future_obligations_bytes": obligations,
+                "released_obligations": released,
+                "projected_remaining_gib": remaining / 1024**3,
+                "projected_remaining_files": remaining_files,
+                "gpu_job_reserved": False,
+                "files_or_credentials_written": False,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,61 @@
+"""Verify an extracted native cache against its exact private member inventory."""
+
+import argparse
+import hashlib
+import json
+from pathlib import Path, PurePosixPath
+
+
+def verify_members(root: Path, expected: dict) -> dict:
+    if root.is_symlink() or not root.is_dir() or not expected:
+        raise ValueError("A real extracted runtime and nonempty member inventory are required")
+    cache = root / "cache"
+    if cache.is_symlink() or not cache.is_dir():
+        raise ValueError("A real cache directory is required")
+    actual = {}
+    for path in sorted(cache.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("Linked cache entries are not permitted")
+        if path.is_file():
+            actual[path.relative_to(root).as_posix()] = path
+    if set(actual) != set(expected):
+        raise ValueError("Extracted member inventory differs from the pinned manifest")
+    size = 0
+    for name, record in expected.items():
+        relative = PurePosixPath(name)
+        if relative.is_absolute() or ".." in relative.parts or relative.parts[0] != "cache":
+            raise ValueError("Unsafe manifest member")
+        path = actual[name]
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(4 * 1024**2), b""):
+                digest.update(block)
+        if path.stat().st_size != record["bytes"] or digest.hexdigest() != record["sha256"]:
+            raise ValueError("Extracted member bytes differ from the pinned manifest")
+        size += record["bytes"]
+    return {
+        "status": "exact_extracted_member_inventory_verified",
+        "members": len(actual),
+        "bytes": size,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--side", type=int, choices=(256, 384), required=True)
+    args = parser.parse_args()
+    manifest = json.loads(args.manifest.read_text())
+    assert manifest["scientific_source_git"] == "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab"
+    assert manifest["source_revision"] == "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+    assert manifest["training_studies"] == manifest["outer_studies"] == 16
+    archive = manifest["archives"][f"cache-side-{args.side}.tar"]
+    result = verify_members(args.root, archive["members"])
+    assert result["members"] == archive["regular_members"] == 370
+    assert result["bytes"] == archive["unpacked_file_bytes"]
+    print(json.dumps({**result, "side": args.side}), flush=True)
+
+
+if __name__ == "__main__":
+    main()

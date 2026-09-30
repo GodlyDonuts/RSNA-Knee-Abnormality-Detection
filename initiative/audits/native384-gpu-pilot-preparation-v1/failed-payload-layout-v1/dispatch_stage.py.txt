@@ -1,0 +1,117 @@
+"""Stream one ignored local credential to a single zero-GPU native cache stage."""
+
+import base64
+import hashlib
+import json
+import os
+import re
+import shlex
+import subprocess
+from pathlib import Path
+
+root = Path.cwd()
+folder = root / "artifacts/native384-gpu-pilot-preparation-v1"
+assert not (folder / "cpu-stage-dispatch-intent.json").exists()
+plan = json.loads((folder / "prepared.json").read_text())
+files = {}
+for name, row in plan["files"].items():
+    data = (folder / name).read_bytes()
+    assert len(data) == row["bytes"] and hashlib.sha256(data).hexdigest() == row["sha256"]
+    files[name] = {**row, "data": base64.b64encode(data).decode()}
+scientific = {}
+paths = sorted((root / "rsna").rglob("*.py"))
+paths += [
+    root / "scripts/newton" / name
+    for name in (
+        "runtime_archive.py",
+        "runtime_environment.py",
+        "preflight.py",
+        "supervise.py",
+        "verify_adapter_pilot.py",
+    )
+]
+for path in paths:
+    name = path.relative_to(root).as_posix()
+    expected = subprocess.check_output(["git", "show", plan["scientific_runtime_git"] + ":" + name])
+    if name.startswith("rsna/"):
+        assert path.read_bytes() == expected
+    scientific[name] = hashlib.sha256(expected).hexdigest()
+assert (root / ".env").stat().st_mode & 0o077 == 0
+values = {}
+for line in (root / ".env").read_text().splitlines():
+    key, sep, value = line.partition("=")
+    if sep and not key.lstrip().startswith("#"):
+        values[key.strip()] = value.strip().strip("\"'")
+token = values["HF_TOKEN"]
+assert token.startswith("hf_")
+request = {
+    "plan": plan,
+    "stage_files": files,
+    "scientific_files": scientific,
+    "token": token,
+    "admission_source": (folder / "admission.py").read_text(),
+}
+with (folder / "cpu-stage-dispatch-intent.json").open("x") as stream:
+    json.dump(
+        {
+            "plan": plan,
+            "requested_cpus": 1,
+            "requested_gpus": 0,
+            "one_attempt_only": True,
+            "credential_transport": "ignored_local_env_to_ssh_srun_stdin_only",
+        },
+        stream,
+        indent=2,
+    )
+    stream.flush()
+    os.fsync(stream.fileno())
+python = "/home/sa305415/rsna-knee/hf-epoch-publisher-v1/env-cp312/bin/python"
+code = (folder / "stage_worker.py").read_text()
+shell = (
+    'set -euo pipefail; umask 077; cache=$(mktemp -d /tmp/rsna-native-stage.XXXXXXXX); trap \'rm -rf "$cache"\' EXIT; export HF_HOME="$cache" HF_HUB_DISABLE_PROGRESS_BARS=1 PYTHONDONTWRITEBYTECODE=1; '
+    + shlex.join([python, "-B", "-c", code])
+)
+remote = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--nodes=1",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--mem=8G",
+    "--time=00:30:00",
+    "/bin/bash",
+    "-c",
+    shell,
+]
+result = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-a32-reconnect-501.sock",
+        "-o",
+        "BatchMode=yes",
+        "sa305415@newton.ist.ucf.edu",
+        shlex.join(remote),
+    ],
+    input=json.dumps(request),
+    text=True,
+    capture_output=True,
+    timeout=2400,
+)
+
+
+def redact(value):
+    return re.sub(r"hf_[A-Za-z0-9]{10,}", "[redacted]", value)
+
+
+record = {
+    "returncode": result.returncode,
+    "stdout_tail": redact(result.stdout[-3000:]),
+    "stderr_tail": redact(result.stderr[-2000:]),
+    "once_only_cpu_stage": True,
+}
+with (folder / "cpu-stage-dispatch-result.json").open("x") as stream:
+    json.dump(record, stream, indent=2)
+print(json.dumps(record))
+assert result.returncode == 0

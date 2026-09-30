@@ -6,6 +6,21 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September30 native GPU runtime prepared and CPU payloads actually staged:**
+See `initiative/audits/native384-gpu-pilot-preparation-v1/`. Failed CPU stage
+865898 was reconciled read-only; distinct zero-GPU layout recovery865906
+COMPLETED0:0 and verified all five existing private objects plus370 members
+in each archive, without redownloading or copying payloads. Exact pilot bytes
+are staged at `/home/sa305415/rsna-knee/native384-recovery-c9-pilot-v1`.
+The native384 GPU job is **not submitted**; its once-only dispatcher still
+needs completion and fresh admission after a current GPU role frees. Both
+existing model jobs remain live. The improved quota calculation counts
+retained completed physical checkpoint inodes in actual usage and funds only
+remaining writes; no cleanup is credited. Source/config/CPU receipts are here.
+Rank64 E4 /1124updates is privately fully verified at
+**0fd4689e648ece1569cde7a8c030e132e7105bdd**; do not repeat E1–E4 or controlE1–E6.
+Authenticated **18:10:23UTC** still shows no outcome for submission56711823.
+
 **September 30 rank-64 third epoch preserved:** The same production job
 **865578** completed E3 / **843 optimizer updates**. All four private objects
 were fully re-downloaded/size/SHA verified at

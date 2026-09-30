@@ -1,0 +1,179 @@
+"""Prepare a native384 recovery allocation without dispatching or transferring data."""
+
+import hashlib
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+root = Path.cwd()
+folder = root / "artifacts/native384-gpu-pilot-preparation-v1"
+audit = root / "initiative/audits/native384-gpu-pilot-preparation-v1"
+control = "/home/sa305415/rsna-knee/native384-recovery-c9-pilot-v1"
+science = "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab"
+assert not list(folder.glob("*-intent.json")), "Do not rewrite attempted staging/dispatch bytes"
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+configs = root / "initiative/experiments/competitive-v1/native-detail-v1"
+mapping = {
+    "pilot-config.json": "native384-pilot-delta-config.json",
+    "reference-config.json": "native384-pilot-full-reference-config.json",
+    "control-config.json": "rebuilt256-pilot-control-config.json",
+}
+for dest, src in mapping.items():
+    shutil.copyfile(configs / src, folder / dest)
+shutil.copyfile(
+    root / "initiative/audits/native-pilot-cache384-v1/result/cache-verified.json",
+    folder / "cache-manifest.json",
+)
+publication = json.loads(
+    (
+        root / "initiative/audits/native-pilot-cache384-v1/result/publication-verified.json"
+    ).read_text()
+)
+shutil.copyfile(
+    root / "initiative/audits/native-pilot-cache384-v1/selection.json", folder / "selection.json"
+)
+assert sha(folder / "cache-manifest.json") == publication["files"]["manifest.json"]["sha256"]
+assert sha(folder / "selection.json") == publication["files"]["selection.json"]["sha256"]
+source = root / "initiative/audits/dinov3-delta-recovery-launch-v1/pilot.sbatch.txt"
+shell = source.read_text().replace("rsna-delta-recovery-pilot", "rsna-native384-recovery-pilot")
+shell = shell.replace("--time=01:00:00", "--time=02:00:00")
+shell = shell.replace("/home/sa305415/rsna-knee/delta-recovery-pilot-c9fcc7e-v1", control)
+shell = shell.replace(
+    "runtime_root=\nenvironment_root=", "runtime_root=\ncontrol_runtime_root=\nenvironment_root="
+)
+cleanup = '  if [[ -n "$environment_root" ]]; then'
+assert shell.count(cleanup) == 1
+shell = shell.replace(
+    cleanup,
+    '  if [[ -n "$control_runtime_root" ]]; then\n    /usr/bin/python3.12 scripts/newton/runtime_archive.py cleanup --root "$control_runtime_root" || previous_status=2\n  fi\n'
+    + cleanup,
+)
+old = next(line for line in shell.splitlines() if line.startswith("runtime_json="))
+shell = shell.replace(
+    old,
+    f"runtime_json=$(/usr/bin/python3.12 scripts/newton/runtime_archive.py extract --archive {control}/payloads/cache-side-384.tar --sha256 3090e83304d26f43bbf733c6ef7bae9db70e29922c8e60d4e45a3e3ad2acd963 --expected-files 370 --expected-bytes 1382757254 --scratch-base /tmp --min-free-gib 20)",
+)
+needle = 'runtime_cache="$runtime_root/cache"'
+assert shell.count(needle) == 1
+shell = shell.replace(
+    needle,
+    needle
+    + f"""
+control_json=$(/usr/bin/python3.12 scripts/newton/runtime_archive.py extract --archive {control}/payloads/cache-side-256.tar --sha256 951fda9eecece5087444c22773edf1b541b9d524320ac6e3211c4e1e163c6239 --expected-files 370 --expected-bytes 636495115 --scratch-base /tmp --min-free-gib 20)
+control_runtime_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)["runtime_root"])' <<< "$control_json")
+rebuilt_cache="$control_runtime_root/cache"
+/usr/bin/python3.12 {control}/verify_members.py --root "$runtime_root" --manifest {control}/cache-manifest.json --side 384
+/usr/bin/python3.12 {control}/verify_members.py --root "$control_runtime_root" --manifest {control}/cache-manifest.json --side 256
+""",
+)
+shell = shell.replace(
+    "--cache-manifest /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet",
+    f"--cache-manifest {control}/cache-manifest.json",
+)
+shell = shell.replace("--storage /home/sa305415/rsna-knee/logs", '--storage "$runtime_root"')
+shell = shell.replace(
+    'resume_output="$runtime_root/diagnostic-resumed"',
+    'resume_output="$runtime_root/diagnostic-resumed"\ncontrol_output="$runtime_root/diagnostic-rebuilt256"',
+)
+shell = shell.replace(
+    "run_phase() {\n", "run_phase() {\n  if (( stop_requested )); then return 75; fi\n"
+)
+first = f'run_phase "$reference_output" {control}/reference-config.json'
+assert shell.count(first) == 1
+shell = shell.replace(
+    first,
+    f""""$runtime_python" -c 'import runpy,sys; p=sys.argv.pop(1); runpy.run_path(p,run_name="__main__")' {control}/verify_initialization.py --native {control}/pilot-config.json --control {control}/control-config.json --output {control}/initialization-verified.json
+native_cache="$runtime_cache"
+runtime_cache="$rebuilt_cache"
+run_phase "$control_output" {control}/control-config.json
+runtime_cache="$native_cache"
+{first}""",
+)
+shell = shell.replace(
+    '"$reference_output" "$full_output" "$resume_output" '
+    + control
+    + " <<'RSNA_COPY_SMALL_PILOT_RECEIPTS'",
+    '"$reference_output" "$full_output" "$resume_output" "$control_output" '
+    + control
+    + " <<'RSNA_COPY_SMALL_PILOT_RECEIPTS'",
+)
+shell = shell.replace(
+    "reference,full,resumed,control=map(pathlib.Path,sys.argv[1:])",
+    "reference,full,resumed,rebuilt,control=map(pathlib.Path,sys.argv[1:])",
+)
+shell = shell.replace(
+    "[('reference',reference),('full',full),('resumed',resumed)]",
+    "[('reference',reference),('full',full),('resumed',resumed),('rebuilt256',rebuilt)]",
+)
+for cache, output, config, receipt in (
+    ("$runtime_cache", "$full_output", "pilot-config.json", "native384-profile.json"),
+    ("$rebuilt_cache", "$control_output", "control-config.json", "rebuilt256-profile.json"),
+):
+    shell += f'''
+if (( stop_requested )); then exit 75; fi
+"$runtime_python" -c 'import runpy,sys; p=sys.argv.pop(1); runpy.run_path(p,run_name="__main__")' {control}/profile_native.py --checkpoint "{output}/checkpoint.pt" --config {control}/{config} --studies /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet --series /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache "{cache}" --folds /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds --artifact-root /home/sa305415/rsna-knee/code-stopfix-1f486765 --output {control}/{receipt}
+'''
+assert "cache256-v3-official-recovery-v1.tar" not in shell
+assert "delta-recovery-pilot-c9fcc7e-v1" not in shell
+assert shell.count("--expected-files 370") == 2 and shell.count("--nproc-per-node=1") == 1
+(folder / "pilot.sbatch").write_text(shell)
+subprocess.run(["bash", "-n", str(folder / "pilot.sbatch")], check=True)
+paths = [
+    folder / name
+    for name in (
+        "pilot.sbatch",
+        "pilot-config.json",
+        "reference-config.json",
+        "control-config.json",
+        "cache-manifest.json",
+        "selection.json",
+        "profile_native.py",
+        "verify_members.py",
+        "verify_initialization.py",
+    )
+]
+files = {p.name: {"sha256": sha(p), "bytes": p.stat().st_size} for p in paths}
+manifest = {
+    "schema_version": 1,
+    "status": "native384_gpu_runtime_prepared_not_staged_or_dispatched",
+    "scientific_runtime_git": science,
+    "preparation_source_git": subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], text=True
+    ).strip(),
+    "source_pilot_sbatch_sha256": sha(source),
+    "control": control,
+    "files": files,
+    "pinned_private_cache_publication": publication,
+    "gpu_nodes": 1,
+    "gpus": 1,
+    "cpus": 2,
+    "memory_gib": 64,
+    "maximum_hours": 2,
+    "maximum_owned_ephemeral_runtime_gib": 30,
+    "minimum_remaining_local_gib": 20,
+    "durable_stage_upper_bound_bytes": sum(x["bytes"] for x in publication["files"].values())
+    + 8 * 1024**2,
+    "durable_pilot_checkpoint_receipts_bound_bytes": 136 * 1024**2,
+    "maximum_new_durable_files": 250,
+    "requires_absent_control_and_once_only_phase_intents": True,
+    "requires_cpu_stage_full_archive_and_member_sha_before_gpu_dispatch": True,
+    "requires_fresh_complete_projected_quota_and_at_most_one_other_gpu_job": True,
+    "cpu_stage_or_gpu_job_dispatched": False,
+    "actual_native_gpu_acceptance": False,
+    "new_accuracy_or_throughput_claim": False,
+}
+(folder / "prepared.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+for path in paths:
+    shutil.copyfile(
+        path, audit / (path.name + ".txt" if path.suffix in (".py", ".sbatch") else path.name)
+    )
+shutil.copyfile(folder / "admission.py", audit / "admission.py.txt")
+shutil.copyfile(folder / "prepare.py", audit / "prepare.py.txt")
+shutil.copyfile(folder / "prepared.json", audit / "prepared.json")
+print(json.dumps({"status": manifest["status"], "files": len(files), "shell_syntax_passed": True}))

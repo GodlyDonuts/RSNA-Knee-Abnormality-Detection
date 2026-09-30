@@ -1,0 +1,194 @@
+"""Measure a restored adapter on a bounded real-MRI effective batch of eight.
+
+This diagnostic does not write a new model or estimate competitive accuracy.
+Its timings exclude cache decoding and checkpoint writes; trainer invocation
+receipts supply the separate end-to-end measurement.
+"""
+
+import argparse
+import json
+import math
+import random
+import time
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import torch
+
+from rsna.competitive.adapters import configure_encoder_training
+from rsna.competitive.backbones import create_encoder
+from rsna.competitive.checkpoint import atomic_json, file_sha256
+from rsna.competitive.data import CompetitiveStudyDataset, collate_studies
+from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
+from rsna.competitive.folds import load_folds
+from rsna.competitive.loss import effective_batch_loss, observed_counts
+from rsna.competitive.model import CompetitiveStudyNet
+from rsna.competitive.train import TrainConfig, _model_inputs, select_development
+from rsna.release import load_verified_release
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in (
+        "checkpoint",
+        "config",
+        "studies",
+        "series",
+        "cache",
+        "folds",
+        "artifact-root",
+        "output",
+    ):
+        parser.add_argument("--" + name, type=Path, required=True)
+    args = parser.parse_args()
+    assert not args.output.exists()
+    torch.set_num_threads(2)
+    config = TrainConfig(**json.loads(args.config.read_text()))
+    config.validate()
+    random.seed(config.seed)
+    np.random.seed(config.seed % 2**32)
+    torch.manual_seed(config.seed)
+    assert config.diagnostic_study_limit == 16 and config.batch_size == 1
+    assert config.accumulation_steps == 8 and config.checkpoint_format == "frozen_base_delta"
+    assert config.slice_context == "none" and config.slice_sampling == "uniform"
+    assert config.series_sampling == "selected" and config.max_series == 6 and config.slices == 16
+    assert config.side in (224, 384) and config.precision == "bf16"
+    assert torch.cuda.device_count() == 1
+    device = torch.device("cuda", 0)
+    manifest, release = load_verified_release(args.studies, args.artifact_root)
+    folds = load_folds(args.folds, manifest, release)
+    train, _ = select_development(manifest, folds, config.fold)
+    selected = train.head(config.diagnostic_study_limit)
+    dataset = CompetitiveStudyDataset(
+        selected,
+        pd.read_csv(args.series),
+        args.cache,
+        slices=config.slices,
+        side=config.side,
+        max_series=config.max_series,
+        augment=False,
+        slice_sampling=config.slice_sampling,
+        series_sampling=config.series_sampling,
+    )
+    assert dataset.cache_side == (384 if config.side == 384 else 256)
+    all_batches = [collate_studies([dataset[i]]) for i in range(len(dataset))]
+    batches = sorted(all_batches, key=lambda b: (-int(b["slice_mask"].sum()), b["study_uid"][0]))[
+        :8
+    ]
+    assert len(batches) == 8 and len({b["study_uid"][0] for b in batches}) == 8
+    encoder, dimension, provenance = create_encoder(config.encoder)
+    configure_encoder_training(encoder, config.freeze_encoder)
+    model = CompetitiveStudyNet(
+        encoder,
+        dimension,
+        pooling=config.pooling,
+        hidden_dim=config.hidden_dim,
+        encode_chunk_size=config.encode_chunk_size,
+        slice_context=config.slice_context,
+    ).to(device)
+    checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
+    assert checkpoint["schema_version"] == 2 and checkpoint["epoch"] == 2
+    assert checkpoint["binding"]["cache_side"] == dataset.cache_side
+    assert checkpoint["binding"]["source_revision"] == dataset.source_revision
+    assert checkpoint["binding"]["config"]["encoder"] == provenance
+    guard = FrozenBaseDelta(model, provenance)
+    restore_checkpoint_model(model, checkpoint, guard)
+    encoder_ids = {id(parameter) for parameter in encoder.parameters()}
+    optimizer = torch.optim.AdamW(
+        [
+            {
+                "params": [
+                    p for p in model.parameters() if p.requires_grad and id(p) not in encoder_ids
+                ],
+                "lr": config.head_lr,
+            },
+            {
+                "params": [p for p in encoder.parameters() if p.requires_grad],
+                "lr": config.encoder_lr,
+            },
+        ],
+        weight_decay=config.weight_decay,
+    )
+    optimizer.load_state_dict(checkpoint["optimizer"])
+    del checkpoint, all_batches
+    masks = [b["label_mask"].to(device) for b in batches]
+    counts = observed_counts(masks)
+    assert (counts > 0).any()
+    records = []
+    for repetition in range(4):
+        model.train()
+        optimizer.zero_grad(set_to_none=True)
+        torch.cuda.synchronize()
+        torch.cuda.reset_peak_memory_stats()
+        started = time.monotonic()
+        total_loss = 0.0
+        for batch, mask in zip(batches, masks, strict=True):
+            with torch.autocast("cuda", dtype=torch.bfloat16):
+                logits = model(*_model_inputs(batch, device))
+                loss = effective_batch_loss(logits, batch["labels"].to(device), mask, counts)
+            assert torch.isfinite(loss)
+            total_loss += float(loss.detach())
+            loss.backward()
+        norm = torch.nn.utils.clip_grad_norm_(
+            [p for p in model.parameters() if p.requires_grad],
+            config.clip_grad_norm,
+            error_if_nonfinite=True,
+        )
+        optimizer.step()
+        torch.cuda.synchronize()
+        elapsed = time.monotonic() - started
+        assert math.isfinite(elapsed) and elapsed > 0 and torch.isfinite(norm)
+        records.append(
+            {
+                "repetition": repetition,
+                "warmup": repetition == 0,
+                "effective_batch_studies": 8,
+                "seconds": elapsed,
+                "studies_per_second": 8 / elapsed,
+                "loss": total_loss,
+                "gradient_norm": float(norm),
+                "peak_allocated_gpu_bytes": torch.cuda.max_memory_allocated(),
+                "peak_reserved_gpu_bytes": torch.cuda.max_memory_reserved(),
+            }
+        )
+    guard.checkpoint_model(model)  # Verify every frozen tensor after the diagnostic updates.
+    model.eval()
+    torch.cuda.synchronize()
+    started = time.monotonic()
+    with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+        for batch in batches:
+            probabilities = model(*_model_inputs(batch, device)).float().sigmoid()
+            assert (
+                torch.isfinite(probabilities).all()
+                and ((probabilities >= 0) & (probabilities <= 1)).all()
+            )
+    torch.cuda.synchronize()
+    inference_seconds = time.monotonic() - started
+    measured = records[1:]
+    atomic_json(
+        args.output,
+        {
+            "schema_version": 1,
+            "status": "bounded_native_effective_batch_profile_passed",
+            "diagnostic_only": True,
+            "competition_submission_eligible": False,
+            "accuracy_or_full_cohort_throughput_claim": False,
+            "cache_decode_and_checkpoint_io_included_in_timing": False,
+            "checkpoint_sha256": file_sha256(args.checkpoint),
+            "config_sha256": file_sha256(args.config),
+            "side": config.side,
+            "cache_side": dataset.cache_side,
+            "workload_training_uids": [b["study_uid"][0] for b in batches],
+            "valid_slices_each": [int(b["slice_mask"].sum()) for b in batches],
+            "gpu_total_memory_bytes": torch.cuda.get_device_properties(0).total_memory,
+            "mean_effective_update_seconds": sum(r["seconds"] for r in measured) / len(measured),
+            "max_peak_allocated_gpu_bytes": max(r["peak_allocated_gpu_bytes"] for r in measured),
+            "inference_eight_studies_seconds": inference_seconds,
+            "records": records,
+        },
+    )
+
+
+if __name__ == "__main__":
+    main()
