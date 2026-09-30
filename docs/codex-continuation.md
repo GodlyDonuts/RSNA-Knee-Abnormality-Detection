@@ -6,6 +6,17 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, stage/native/epoch milestone synchronized:** GitHub main
+**bb154fc42cc31b9ead0ba84bbc71f461b010dadd** records the staged rank-64 pilot,
+separate publisher, original-matrix metadata and privately preserved primary
+E8/control E3. Private HF **5460fd1fc3591f7216b5216dbf7da0885582969c** has
+all **142 small objects** fully re-downloaded/size/SHA verified. Never repeat
+this mirror; its exact intent, parent and file map are in
+`initiative/audits/dinov3-rank64-stage-native-profile-v1/`. Production rank 64
+is still not staged/dispatched and its current extra storage budget fails the
+reserve. Authenticated Kaggle at 12:41 UTC reconfirms 0.769 and four live slots.
+
+
 **September 30, rank-64 pilot staged, publisher ready and two new epochs preserved:**
 See `initiative/audits/dinov3-rank64-stage-native-profile-v1/`. The five rank-64
 pilot files are staged/hash verified at
