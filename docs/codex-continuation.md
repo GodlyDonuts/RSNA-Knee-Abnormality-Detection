@@ -6,6 +6,39 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September30 both ninth epochs preserved:** At21:05:47UTC both same jobs
+were RUNNING with completed E9/2529updates. Rank64 and whole-series control E9
+were each published once and all four private objects fully re-downloaded/
+size/SHA verified. Their sidecar/intents/verification journals are in epoch-009
+of the corresponding audits. All E1–E9 from both runs are now preserved; never
+repeat them. Fixed-final held-out evaluation remains outstanding after E10.
+Native GPU dispatch is still unattempted while both model roles are live.
+
+
+**September30 reconnection, eighth-epoch preservation and full-native metadata:**
+The owner-restored connection was reauthenticated without logging credentials;
+current SSH socket is `/tmp/rsna-a32-reconnect-20260930-501.sock`. At20:46:59UTC,
+same jobs865578/865357 were RUNNING in epoch9 with finite real updates and empty
+stderr. Rank64E5–E8 and controlE8 were each privately published once and all four
+objects/epoch fully re-downloaded/size/SHA verified. All E1–E8 from both runs are
+now preserved; do not repeat them. Rank64E8 revisione7460d4a7f52fdc0bd97e0d6d2988fce91adff28;
+controlE8 revision7b215d5a9650de794dda8c79fcf24807afce0fb8. Their exact sidecars,
+intents and verification journals are archived in the respective epoch audits.
+Both final matched held-out results remain outstanding. Native GPU dispatch is
+still waiting for one actual GPU role to finish; existing jobs stay untouched.
+At20:45:13UTC submission56711823 still had null outcome/score/error.
+
+New `scripts/newton/native_cache_shards.py` and the full-cache metadata under
+`initiative/experiments/competitive-v1/native-detail-v1/full-cache-shards384-v1/`
+cover all3403 eligible studies/18906series/643501slices/449644551848source bytes
+as75 complete-study bounded shards, with all75 file hashes and global membership
+verified and10 local rejection/bounds tests passed. It explicitly uses the
+corrected effective inventory including restored encodings; no target values,
+reports, gold or confirmation labels are read. No full cache arrays, build job,
+native GPU job or new accuracy result exists yet. Full worker/publication/runtime
+restoration remains to be implemented after native H100 acceptance. Keep goal ACTIVE.
+
+
 **September30 dispatcher/E7 handoff privately verified; network changed:**
 Git239d48f contains the canonical native GPU coordinator and24 passing rejection
 cases; all17 small source/evidence objects are privately fully re-downloaded/
