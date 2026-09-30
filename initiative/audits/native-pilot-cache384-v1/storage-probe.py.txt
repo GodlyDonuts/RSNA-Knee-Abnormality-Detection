@@ -1,0 +1,13 @@
+import json,os,subprocess,shutil
+from pathlib import Path
+assert os.environ.get("SLURM_JOB_ID") and not os.environ.get("SLURM_JOB_GPUS")
+assert int(os.environ.get("SLURM_CPUS_PER_TASK","0"))==1
+b=Path("/home/sa305415/rsna-knee")
+print(json.dumps({"job_id":os.environ["SLURM_JOB_ID"],"node":os.uname().nodename,"scratch_variables":{k:os.environ.get(k) for k in ["SLURM_TMPDIR","TMPDIR","LOCAL_SCRATCH","SCRATCH"]},"read_only":True}))
+for name in ["/tmp","/scratch","/local_scratch","/local","/home/sa305415/rsna-knee"]:
+ p=Path(name)
+ if p.exists():
+  u=shutil.disk_usage(p)
+  fs=subprocess.check_output(["findmnt","-T",str(p),"-n","-o","FSTYPE,SOURCE,TARGET"],text=True).strip()
+  print(json.dumps({"path":str(p),"total":u.total,"free":u.free,"filesystem":fs,"permission_owner_uid":p.stat().st_uid,"mode":oct(p.stat().st_mode&0o777),"persistent_private_storage_accepted":False}))
+print(subprocess.check_output(["du","-x","-B1","--max-depth=1",str(b)],text=True))

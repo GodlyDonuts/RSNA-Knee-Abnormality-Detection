@@ -1,0 +1,527 @@
+"""Prepare typed, privately verified native diagnostic caches on owned allocated disk."""
+
+from __future__ import annotations
+
+import hashlib
+import io
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import tarfile
+import tempfile
+import time
+import traceback
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import requests
+import torch
+from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_url
+
+from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.dicom import decode_slice, make_volume
+from rsna.preprocess import Source
+from rsna.schema import CACHE_VERSION
+
+BASE = Path("/home/sa305415/rsna-knee")
+CONTROL = BASE / "native-pilot-cache384-v1"
+CODE = BASE / "code-delta-recovery-c9fcc7e"
+SCIENCE = "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab"
+SOURCE = "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+REPO = "GodlyDonuts/RSNA-Data"
+
+
+def digest(path):
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(4 * 1024**2), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def save(path, value):
+    with path.open("x") as f:
+        json.dump(value, f, sort_keys=True, indent=2, allow_nan=False)
+        f.write("\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
+def interrupted(signum, frame):
+    raise InterruptedError("native_cache_pilot_interrupted")
+
+
+def archive_tree(cache, target):
+    files = {}
+    with tarfile.open(target, "x", format=tarfile.PAX_FORMAT) as tar:
+        for p in sorted(cache.rglob("*")):
+            if not p.is_file():
+                continue
+            assert not p.is_symlink() and p.suffix in (".npz", ".json")
+            name = "cache/" + str(p.relative_to(cache))
+            data = p.read_bytes()
+            item = tarfile.TarInfo(name)
+            item.size = len(data)
+            item.mode = 0o600
+            item.mtime = 0
+            item.uid = item.gid = 0
+            tar.addfile(item, io.BytesIO(data))
+            files[name] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+    return {
+        "bytes": target.stat().st_size,
+        "sha256": digest(target),
+        "regular_members": len(files),
+        "unpacked_file_bytes": sum(r["bytes"] for r in files.values()),
+        "members": files,
+    }
+
+
+def main():
+    assert (
+        os.environ.get("SLURM_JOB_ID")
+        and not os.environ.get("SLURM_JOB_GPUS")
+        and int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) == 1
+    )
+    assert (
+        subprocess.check_output(["git", "-C", str(CODE), "rev-parse", "HEAD"], text=True).strip()
+        == SCIENCE
+    )
+    binding = json.loads((CONTROL / "files.json").read_text())
+    for name, r in binding["files"].items():
+        p = CONTROL / name
+        assert p.stat().st_size == r["bytes"] and digest(p) == r["sha256"]
+    for name, h in binding["scientific_modules"].items():
+        assert digest(CODE / name) == h
+    plan = json.loads((CONTROL / "selection.json").read_text())
+    plan_sha = digest(CONTROL / "selection.json")
+    assert (
+        plan["source_revision"] == SOURCE
+        and plan["scientific_source_git"] == SCIENCE
+        and plan["series_count"] == 185
+        and plan["slices"] == 6105
+    )
+    assert len(plan["training_uids"]) == len(plan["outer_uids"]) == 16 and not set(
+        plan["training_uids"]
+    ) & set(plan["outer_uids"])
+    assert plan["cache_side"] == 384 and plan["future_cache_is_diagnostic_only"] is True
+    result = CONTROL / "result"
+    assert not result.exists()
+    result.mkdir(mode=0o700)
+    save(
+        result / "intent.json",
+        {
+            "job_id": os.environ["SLURM_JOB_ID"],
+            "selection_sha256": plan_sha,
+            "once_only": True,
+            "scratch_bound_bytes": plan["bounded_scratch_bytes"],
+            "durable_bound_bytes": plan["durable_output_bound_bytes"],
+            "gpus": 0,
+            "cpus": 1,
+            "target_values_or_reports_read": False,
+        },
+    )
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+    scratch = Path(
+        tempfile.mkdtemp(prefix="rsna-knee-" + os.environ["SLURM_JOB_ID"] + "-native-", dir="/tmp")
+    )
+    assert (
+        scratch.stat().st_uid == os.getuid()
+        and scratch.stat().st_mode & 0o077 == 0
+        and scratch.stat().st_dev != BASE.stat().st_dev
+    )
+    save(
+        scratch / ".rsna-runtime.json",
+        {
+            "kind": "rsna-newton-runtime-v1",
+            "job_id": os.environ["SLURM_JOB_ID"],
+            "uid": os.getuid(),
+        },
+    )
+    save(
+        result / "scratch-record.json", {"runtime_root": str(scratch), "retained_after_exit": False}
+    )
+    reader = None
+    try:
+        assert shutil.disk_usage(scratch).free >= plan["bounded_scratch_bytes"] + 20 * 1024**3
+        payload = json.load(sys.stdin)
+        token = payload.pop("token")
+        assert token.startswith("hf_")
+        del payload
+        api = HfApi(token=token)
+        assert api.repo_info(REPO, repo_type="dataset").private is True
+        objects = {o["path"]: o for row in plan["series"] for o in row["objects"]}
+        assert len(objects) == 6105
+        paths = sorted(objects)
+        for start in range(0, len(paths), 500):
+            info = list(
+                api.get_paths_info(
+                    REPO, paths=paths[start : start + 500], revision=SOURCE, repo_type="dataset"
+                )
+            )
+            assert len(info) == len(paths[start : start + 500])
+            for item in info:
+                obj = objects[item.path]
+                assert item.size == obj["bytes"] and item.lfs and item.lfs.sha256 == obj["sha256"]
+        save(
+            result / "source-verified.json",
+            {
+                "source_revision": SOURCE,
+                "source_objects_verified": len(objects),
+                "source_bytes": sum(r["bytes"] for r in objects.values()),
+                "selection_sha256": plan_sha,
+                "target_values_or_reports_read": False,
+            },
+        )
+        os.environ["HF_TOKEN"] = token
+        reader = Source(None, objects, repo_id=REPO, revision=SOURCE)
+        reader.downloads.shutdown(wait=True)
+        reader.downloads = ThreadPoolExecutor(max_workers=2)
+        archive = BASE / "cache/cache256-v3-official-recovery-v1.tar"
+        assert (
+            archive.is_file() and not archive.is_symlink() and archive.stat().st_size == 82834493440
+        )
+        wanted = {}
+        for row in plan["series"]:
+            stem = str(Path(row["cache_path"]).with_suffix(""))
+            wanted["cache/" + stem + ".npz"] = (row["cache_bytes"], row["cache_sha256"])
+            wanted["cache/" + stem + ".json"] = (
+                row["cache_metadata_bytes"],
+                row["cache_metadata_sha256"],
+            )
+        offsets = {}
+        with tarfile.open(archive, "r:") as tar:
+            for item in tar:
+                if item.name not in wanted:
+                    continue
+                assert (
+                    item.isfile() and item.size == wanted[item.name][0] and item.name not in offsets
+                )
+                offsets[item.name] = (item.offset_data, item.size)
+                if len(offsets) == len(wanted):
+                    break
+        assert set(offsets) == set(wanted)
+
+        def reference(name):
+            offset, size = offsets[name]
+            with archive.open("rb") as f:
+                f.seek(offset)
+                data = f.read(size)
+            assert len(data) == size and hashlib.sha256(data).hexdigest() == wanted[name][1]
+            return data
+
+        roots = {side: scratch / ("side-" + str(side)) / "cache" for side in (256, 384)}
+        results = []
+        start = time.monotonic()
+        for number, row in enumerate(plan["series"], 1):
+            tick = time.monotonic()
+            uid, sid = row["study_uid"], row["series_uid"]
+            names = [o["path"] for o in row["objects"]]
+            old_meta = json.loads(
+                reference("cache/" + str(Path(row["cache_path"]).with_suffix(".json")))
+            )
+            assert (
+                old_meta["study_uid"] == uid
+                and old_meta["series_uid"] == sid
+                and old_meta["side"] == 256
+                and old_meta["source_revision"] == SOURCE
+            )
+            raw = reader.read_series(names)
+            decoded = [
+                decode_slice(data, uid, sid, Path(name).stem) for name, data in zip(names, raw)
+            ]
+            del raw
+            output = {}
+            differences = None
+            for side in (256, 384):
+                volume, info = make_volume(decoded, side)
+                assert volume.dtype == np.uint16 and volume.shape == (row["n_slices"], side, side)
+                for key in (
+                    "sop_uids",
+                    "slice_sha256",
+                    "pixel_sha256",
+                    "positions",
+                    "orientation",
+                    "ordering",
+                    "warnings",
+                    "intensity_min",
+                    "intensity_max",
+                    "original_shape",
+                    "photometric_interpretation",
+                ):
+                    assert info[key] == old_meta[key], (number, key)
+                if side == 256:
+                    with np.load(
+                        io.BytesIO(reference("cache/" + row["cache_path"])), allow_pickle=False
+                    ) as old:
+                        delta = volume.astype(np.int32) - old["volume"].astype(np.int32)
+                    differences = {
+                        "max_absolute_uint16_difference": int(np.abs(delta).max()),
+                        "differing_pixels": int(np.count_nonzero(delta)),
+                        "exact": bool((delta == 0).all()),
+                        "cause_proven": False,
+                    }
+                    assert differences["max_absolute_uint16_difference"] <= 1, number
+                destination = roots[side] / row["cache_path"]
+                destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                with destination.open("xb") as f:
+                    np.savez_compressed(f, volume=volume)
+                info.update(
+                    {
+                        "cache_version": CACHE_VERSION,
+                        "source_revision": SOURCE,
+                        "path_fingerprint": hashlib.sha256(
+                            "\n".join(sorted(names)).encode()
+                        ).hexdigest(),
+                        "study_uid": uid,
+                        "series_uid": sid,
+                        "split": "train_series",
+                        "side": side,
+                        "n_slices": row["n_slices"],
+                        "cache_path": row["cache_path"],
+                        "cache_sha256": digest(destination),
+                        "cache_bytes": destination.stat().st_size,
+                    }
+                )
+                save(destination.with_suffix(".json"), info)
+                output[str(side)] = {
+                    "bytes": destination.stat().st_size,
+                    "sha256": info["cache_sha256"],
+                    "metadata_sha256": digest(destination.with_suffix(".json")),
+                }
+            summary = {
+                "series_number": number,
+                "study_uid": uid,
+                "series_uid": sid,
+                "slices": row["n_slices"],
+                "accepted256_difference": differences,
+                "files": output,
+                "elapsed_seconds": time.monotonic() - tick,
+            }
+            save(result / f"series-{number:03d}.json", summary)
+            results.append(summary)
+            assert (
+                sum(p.stat().st_size for p in scratch.rglob("*") if p.is_file())
+                < plan["bounded_scratch_bytes"]
+            )
+            print(
+                json.dumps(
+                    {
+                        "series_completed": number,
+                        "series_total": len(plan["series"]),
+                        "elapsed_seconds": summary["elapsed_seconds"],
+                    }
+                ),
+                flush=True,
+            )
+        table = pd.DataFrame(
+            [
+                {
+                    "StudyInstanceUID": r["study_uid"],
+                    "SeriesInstanceUID": r["series_uid"],
+                    "Anatomical_Plane": r["plane"],
+                    "Fluid_Sensitive": r["fluid_sensitive"],
+                    "Fat_Suppression": r["fat_suppression"],
+                    "Selection_Tier": r["selection_tier"],
+                }
+                for r in plan["series"]
+            ]
+        )
+        studies = pd.DataFrame({"study_uid": sorted(plan["training_uids"] + plan["outer_uids"])})
+        loaders = {}
+        for cache_side, input_side in ((256, 224), (384, 384)):
+            dataset = CompetitiveStudyDataset(
+                studies,
+                table,
+                roots[cache_side],
+                slices=16,
+                side=input_side,
+                max_series=6,
+                augment=False,
+            )
+            count = 0
+            valid_slices = 0
+            for i in range(len(dataset)):
+                item = dataset[i]
+                assert item["study_uid"] == studies.iloc[i].study_uid
+                assert (
+                    torch.isfinite(item["images"]).all()
+                    and item["images"].min() >= 0
+                    and item["images"].max() <= 1
+                )
+                assert (
+                    item["images"].shape == (6, 16, 1, input_side, input_side)
+                    and not item["label_mask"].any()
+                )
+                count += 1
+                valid_slices += int(item["slice_mask"].sum())
+            loaders[str(cache_side)] = {
+                "studies": count,
+                "input_side": input_side,
+                "source_cache_side": dataset.cache_side,
+                "valid_sampled_slices": valid_slices,
+                "original_source_revision": dataset.source_revision,
+                "real_training_loader_passed": True,
+                "labels_read": False,
+            }
+        archives = {}
+        for side in (256, 384):
+            name = f"cache-side-{side}.tar"
+            archives[name] = archive_tree(roots[side], scratch / name)
+        report = {
+            "schema_version": 1,
+            "status": "native_diagnostic_cache_and_loader_verified",
+            "job_id": os.environ["SLURM_JOB_ID"],
+            "source_revision": SOURCE,
+            "scientific_source_git": SCIENCE,
+            "selection_sha256": plan_sha,
+            "diagnostic_only": True,
+            "training_studies": 16,
+            "outer_studies": 16,
+            "series": 185,
+            "slices": 6105,
+            "source_bytes_verified": plan["raw_download_bytes"],
+            "cache_reconstruction_max_uint16_difference": max(
+                r["accepted256_difference"]["max_absolute_uint16_difference"] for r in results
+            ),
+            "cache_reconstruction_exact_series": sum(
+                r["accepted256_difference"]["exact"] for r in results
+            ),
+            "rounding_cause_proven": False,
+            "accepted_cache_modified": False,
+            "loaders": loaders,
+            "archives": archives,
+            "elapsed_seconds": time.monotonic() - start,
+            "target_values_or_reports_read": False,
+            "gold_or_confirmation_labels_read": False,
+            "model_training_or_accuracy_claim": False,
+            "full_native_cache_built": False,
+        }
+        save(result / "cache-verified.json", report)
+        prefix = "experiments/dinov3-v1/native-cache-pilots/fold0-16x2-side384-" + plan_sha[:12]
+        publication = {name: scratch / name for name in archives}
+        publication.update(
+            {
+                "manifest.json": result / "cache-verified.json",
+                "selection.json": CONTROL / "selection.json",
+                "DINOv3-LICENSE.md": BASE
+                / "encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md",
+            }
+        )
+        remote = [prefix + "/" + name for name in publication]
+        assert not list(api.get_paths_info(REPO, paths=remote, repo_type="dataset"))
+        head = api.repo_info(REPO, repo_type="dataset")
+        assert head.private
+        records = {
+            name: {"bytes": path.stat().st_size, "sha256": digest(path)}
+            for name, path in publication.items()
+        }
+        save(
+            result / "publication-intent.json",
+            {
+                "repo_id": REPO,
+                "prefix": prefix,
+                "parent_commit": head.sha,
+                "files": records,
+                "automatic_retry": False,
+                "once_only": True,
+            },
+        )
+        commit = api.create_commit(
+            REPO,
+            repo_type="dataset",
+            parent_commit=head.sha,
+            operations=[
+                CommitOperationAdd(path_in_repo=prefix + "/" + name, path_or_fileobj=str(path))
+                for name, path in publication.items()
+            ],
+            commit_message="Preserve verified original-pixel 384 diagnostic cache and matching 256 control",
+        )
+        save(
+            result / "publication-commit.json",
+            {"revision": commit.oid, "repo_id": REPO, "prefix": prefix},
+        )
+        for name, r in records.items():
+            h = hashlib.sha256()
+            size = 0
+            with requests.get(
+                hf_hub_url(REPO, prefix + "/" + name, repo_type="dataset", revision=commit.oid),
+                headers={"Authorization": "Bearer " + token},
+                stream=True,
+                timeout=(20, 180),
+            ) as response:
+                response.raise_for_status()
+                for block in response.iter_content(4 * 1024**2):
+                    h.update(block)
+                    size += len(block)
+            assert size == r["bytes"] and h.hexdigest() == r["sha256"]
+        save(
+            result / "publication-verified.json",
+            {
+                "status": "private_native_diagnostic_cache_fully_download_verified",
+                "revision": commit.oid,
+                "repo_id": REPO,
+                "prefix": prefix,
+                "files": records,
+                "files_fully_download_size_sha_verified": len(records),
+                "diagnostic_only": True,
+                "full_native_cache_built": False,
+            },
+        )
+        assert (
+            sum(p.stat().st_size for p in result.rglob("*") if p.is_file())
+            < plan["durable_output_bound_bytes"]
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "private_native_diagnostic_cache_fully_download_verified",
+                    "revision": commit.oid,
+                    "archives": {
+                        k: {
+                            x: v[x]
+                            for x in ("bytes", "sha256", "regular_members", "unpacked_file_bytes")
+                        }
+                        for k, v in archives.items()
+                    },
+                    "loader_studies": 32,
+                }
+            ),
+            flush=True,
+        )
+    finally:
+        if reader:
+            reader.downloads.shutdown(wait=True)
+        os.environ.pop("HF_TOKEN", None)
+        marker = json.loads((scratch / ".rsna-runtime.json").read_text())
+        assert (
+            marker["job_id"] == os.environ["SLURM_JOB_ID"]
+            and marker["uid"] == os.getuid()
+            and scratch.stat().st_uid == os.getuid()
+        )
+        shutil.rmtree(scratch)
+
+
+if __name__ == "__main__":
+    for signum in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(signum, interrupted)
+    try:
+        main()
+    except BaseException as error:
+        failure = {
+            "status": "native_cache_pilot_failed",
+            "error_type": type(error).__name__,
+            "frames": [
+                {"file": Path(f.filename).name, "line": f.lineno, "function": f.name}
+                for f in traceback.extract_tb(error.__traceback__)
+            ],
+        }
+        if (CONTROL / "result").is_dir() and not (CONTROL / "result/failure.json").exists():
+            save(CONTROL / "result/failure.json", failure)
+        print(json.dumps(failure), flush=True)
+        raise SystemExit(2) from None

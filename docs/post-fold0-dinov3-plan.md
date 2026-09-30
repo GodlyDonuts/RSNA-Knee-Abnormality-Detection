@@ -1,5 +1,19 @@
 # DINOv3-L plan after the first full fold
 
+**September 30 current execution:** all-development A32 completed all ten epochs
+and all ten private checkpoint byte checks. Exact final submission **56711823**
+is awaiting its actual hidden outcome; do not duplicate it. Rank-64 production
+**865578** is in E3 with E1–E2 privately fully verified; whole-series control
+**865357** is in E7 with E1–E6 privately fully verified. Their older prepared-only
+notes below describe earlier stages; exact launch/epoch receipts are authoritative.
+The [native-detail comparison](../initiative/experiments/competitive-v1/native-detail-v1/)
+now has actual original-pixel 384 diagnostic caches, matching rebuilt-256
+controls and successful unmodified loader/private-byte acceptance on 32 studies.
+CPU 865808 completed 0:0; HF **3f23826ff226992204380d34a2956f3805f8b960**.
+Next native gate is a real H100 recovery/throughput pilot when a GPU role is free
+and complete storage prerequisites pass. Full native cache/training remain unlaunched.
+All accepted masks/folds and reserved evaluation remain unchanged.
+
 **September 30 next controlled capacity experiment:** the matched sampled-input
 [rank-32/rank-64 protocol](../initiative/experiments/competitive-v1/adapter-rank-capacity-v1/)
 is prepared and validated against complete production graphs. Rank 64 doubles

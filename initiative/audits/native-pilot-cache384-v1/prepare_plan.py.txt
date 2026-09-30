@@ -1,0 +1,136 @@
+"""Bind a native-cache engineering pilot to the exact next diagnostic study pool."""
+
+import hashlib
+import json
+from pathlib import Path
+
+import pandas as pd
+
+from rsna.schema import TARGETS
+
+root = Path.cwd()
+out = root / "artifacts/native-pilot-cache-v1/selection.json"
+assert not out.exists()
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+paths = {
+    "studies": root / "initiative/releases/report-supervision-v1/studies.parquet",
+    "series": root
+    / "initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv",
+    "index": root / "initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet",
+    "folds": root / "initiative/experiments/competitive-v1/folds/fold.csv",
+    "accepted_plan": root
+    / "initiative/audits/full-image-recovery-v1/train-selection/series_selection_plan.json",
+}
+assert sha(paths["studies"]) == "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7"
+assert sha(paths["series"]) == "14eb050d081abe9fce638f5dcfb2cedc688fdac5ace9a62bf9b1cf152421eada"
+assert sha(paths["index"]) == "0d1e3b69fd7c527cf3fd980012751a68a13d38439bd71bc029b2c641a9f46a81"
+masks = [t + "__mask" for t in TARGETS]
+studies = pd.read_parquet(
+    paths["studies"], columns=["study_uid", "split", *masks], filters=[("split", "==", "train")]
+)
+folds = pd.read_csv(paths["folds"], dtype={"study_uid": str, "leakage_group": str})
+x = studies.merge(folds[["study_uid", "fold"]], on="study_uid", validate="one_to_one")
+x = x.loc[x[masks].any(axis=1)].sort_values("study_uid")
+train = x.loc[x.fold != 0].head(16).study_uid.tolist()
+outer = x.loc[x.fold == 0].head(16).study_uid.tolist()
+assert len(train) == len(outer) == 16 and not set(train) & set(outer)
+uids = set(train + outer)
+series = pd.read_csv(paths["series"], dtype={"StudyInstanceUID": str, "SeriesInstanceUID": str})
+series = series.loc[series.StudyInstanceUID.isin(uids)].sort_values(
+    ["StudyInstanceUID", "SeriesInstanceUID"]
+)
+index = pd.read_parquet(paths["index"])
+index = index.loc[index.study_uid.isin(uids) & index.raw_split.eq("train_series")]
+selected = series.merge(
+    index,
+    left_on=["StudyInstanceUID", "SeriesInstanceUID"],
+    right_on=["study_uid", "series_uid"],
+    validate="one_to_one",
+)
+accepted = json.loads(paths["accepted_plan"].read_text())
+assert accepted["source_revision"] == "0b5e410288232f570c69ba4f44723356e6ae6ab7"
+lookup = {r["series_uid"]: r for r in accepted["series"]}
+objects = []
+source_bindings = {}
+for path in sorted((root / "initiative/source/inventory").glob("part-*.parquet")):
+    source_bindings[str(path.relative_to(root))] = {
+        "bytes": path.stat().st_size,
+        "sha256": sha(path),
+    }
+    frame = pd.read_parquet(path, filters=[("study_uid", "in", sorted(uids))])
+    objects.extend(frame.loc[frame.series_uid.isin(set(selected.series_uid))].to_dict("records"))
+rows = []
+for r in selected.itertuples(index=False):
+    parent = lookup[r.series_uid]
+    assert parent["retained"] and parent["study_uid"] == r.study_uid
+    membership = sorted(
+        (a for a in objects if a["study_uid"] == r.study_uid and a["series_uid"] == r.series_uid),
+        key=lambda a: a["path"],
+    )
+    assert len(membership) == r.n_slices and all(a["split"] == "train_series" for a in membership)
+    rows.append(
+        {
+            "study_uid": r.study_uid,
+            "series_uid": r.series_uid,
+            "plane": r.Anatomical_Plane,
+            "fluid_sensitive": int(r.Fluid_Sensitive),
+            "fat_suppression": int(r.Fat_Suppression),
+            "selection_tier": int(r.Selection_Tier),
+            "cache_path": r.cache_path,
+            "cache_bytes": int(r.cache_bytes),
+            "cache_sha256": r.cache_sha256,
+            "cache_metadata_bytes": parent["cache_metadata"]["bytes"],
+            "cache_metadata_sha256": parent["cache_metadata"]["sha256"],
+            "n_slices": int(r.n_slices),
+            "objects": [
+                {k: a[k] for k in ("path", "sop_uid", "bytes", "sha256", "storage")}
+                for a in membership
+            ],
+        }
+    )
+source_bytes = sum(a["bytes"] for r in rows for a in r["objects"])
+slices = sum(r["n_slices"] for r in rows)
+assert source_bytes < 16 * 1024**3 and slices < 16000
+record = {
+    "schema_version": 1,
+    "status": "native_cache_engineering_pilot_metadata_selected",
+    "source_revision": accepted["source_revision"],
+    "scientific_source_git": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab",
+    "repo_id": "GodlyDonuts/RSNA-Data",
+    "diagnostic_study_limit": 16,
+    "diagnostic_fold": 0,
+    "training_uids": train,
+    "outer_uids": outer,
+    "series": rows,
+    "series_count": len(rows),
+    "slices": slices,
+    "raw_download_bytes": source_bytes,
+    "cache_side": 384,
+    "bounded_scratch_bytes": 16 * 1024**3,
+    "durable_output_bound_bytes": 128 * 1024**2,
+    "target_values_or_reports_read": False,
+    "gold_or_confirmation_labels_read": False,
+    "accepted_cache_labels_masks_folds_mutated": False,
+    "future_cache_is_diagnostic_only": True,
+    "input_bindings": {
+        str(p.relative_to(root)): {"bytes": p.stat().st_size, "sha256": sha(p)}
+        for p in paths.values()
+    },
+    "source_part_bindings": source_bindings,
+}
+with out.open("x") as f:
+    json.dump(record, f, sort_keys=True, indent=2)
+    f.write("\n")
+print(
+    json.dumps(
+        {
+            k: record[k]
+            for k in ["series_count", "slices", "raw_download_bytes", "bounded_scratch_bytes"]
+        }
+    )
+)

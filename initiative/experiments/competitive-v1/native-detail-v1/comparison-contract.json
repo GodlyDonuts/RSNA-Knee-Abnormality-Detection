@@ -1,0 +1,87 @@
+{
+  "accepted_labels_masks_folds_unchanged": true,
+  "alpha": 8,
+  "cache_source_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7",
+  "comparison_axes": {
+    "control": {
+      "input_side": 224,
+      "reconstructed_from_original_dicom": true,
+      "source_cache_side": 256
+    },
+    "native": {
+      "input_side": 384,
+      "reconstructed_from_original_dicom": true,
+      "source_cache_side": 384
+    }
+  },
+  "effective_batch": 8,
+  "encoder_adapter_parameters": 10223616,
+  "fixed_final_epochs": 10,
+  "full_native_cache_built": false,
+  "future_storage_design": "Owned job-local reproducible cache; pinned private sharded archives and small durable manifests; no full cache on Lustre or laptop",
+  "head_parameters": 203020,
+  "max_series": 6,
+  "native_gpu_job_dispatched": false,
+  "native_production_dispatched": false,
+  "no_teacher_or_ensemble": true,
+  "original_encoder_tensors_frozen": true,
+  "outer_studies": 1156,
+  "planned_input_tokens_per_slice": {
+    "224": 196,
+    "384": 576
+  },
+  "promotion_requires": [
+    "Completed private original-pixel 32-study cache and full download/size/SHA acceptance",
+    "Actual allocated H100 native384 finite optimizer and all-120-adapter learning, frozen base and strict MRI reload",
+    "Exact continuous versus interrupted/resumed delta model, optimizer, RNG and predictions",
+    "Actual native384 full-versus-delta payload and prediction equivalence",
+    "Measured memory, runtime and throughput with fixed effective batch and sampled coverage",
+    "All-development series/slices source-cache reconstruction and complete private sharded archive acceptance before production",
+    "Complete projected Lustre byte/file and allocated local scratch budgets before staging or transfer",
+    "Fixed-final same-fold 1156-study evaluation with exact target supports; no tiny-pilot accuracy promotion",
+    "Independent fold/seed replication before broad model-quality attribution"
+  ],
+  "rank": 32,
+  "reference_config_sha256": "b4121c19fded5a28ff8462198b39bfa4aab5f8e343f5b8c32417a625e9ef2d0f",
+  "reserved_confirmation_or_gold_accessed": false,
+  "same_shared_head_rng_required_for_resolution_pair": true,
+  "schema_version": 1,
+  "scientific_runtime_git": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab",
+  "seed": 20260922,
+  "series_sampling": "selected",
+  "slice_context": "none",
+  "slice_sampling": "uniform",
+  "slices": 16,
+  "source_cache_pilot": {
+    "actual_loader_passed_studies": 32,
+    "archives": {
+      "cache-side-256.tar": {
+        "bytes": 637173760,
+        "regular_members": 370,
+        "sha256": "951fda9eecece5087444c22773edf1b541b9d524320ac6e3211c4e1e163c6239",
+        "unpacked_file_bytes": 636495115
+      },
+      "cache-side-384.tar": {
+        "bytes": 1383434240,
+        "regular_members": 370,
+        "sha256": "3090e83304d26f43bbf733c6ef7bae9db70e29922c8e60d4e45a3e3ad2acd963",
+        "unpacked_file_bytes": 1382757254
+      }
+    },
+    "job_id": 865808,
+    "no_model_training": true,
+    "outer_studies": 16,
+    "pilot_selection_sha256": "e42dea48f6260ddca0ecf36cfe4223770dcc9f2ae3490afa3ca8010f6f8dc285",
+    "private_objects_fully_download_verified": 5,
+    "private_prefix": "experiments/dinov3-v1/native-cache-pilots/fold0-16x2-side384-e42dea48f626",
+    "private_revision": "3f23826ff226992204380d34a2956f3805f8b960",
+    "series": 185,
+    "slices": 6105,
+    "target_values_or_reports_read": false,
+    "terminal": "COMPLETED 0:0",
+    "training_studies": 16
+  },
+  "status": "cpu_cache_and_private_bytes_accepted_gpu_prepared_only",
+  "throughput_or_accuracy_claim": false,
+  "training_studies": 2247
+}

@@ -1,0 +1,32 @@
+"""Stream the local HF credential to one once-only CPU cache builder allocation."""
+import json
+import os
+import re
+import shlex
+import subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+root=Path.cwd();out=root/'artifacts/native-pilot-cache-v1'
+assert not (out/'dispatch-intent.json').exists() and not (out/'dispatch-result.json').exists()
+stage=json.loads((out/'stage-result.json').read_text());assert stage['returncode']==0
+proof=json.loads(stage['stdout']);assert proof['projected_remaining_gib']>=20 and proof['projected_remaining_files']>=5000
+assert (root/'.env').stat().st_mode&0o077==0
+values={}
+for line in (root/'.env').read_text().splitlines():
+ if '=' in line and not line.lstrip().startswith('#'):
+  key,value=line.split('=',1);values[key.strip()]=value.strip().strip('\"\'')
+token=values['HF_TOKEN'];assert token.startswith('hf_')
+intent={'created_utc':datetime.now(timezone.utc).isoformat(),'control':proof['control'],'cpu_job_only':True,'gpus':0,'cpus':1,'memory_gib':8,'node':'evc31','credential_transport':'ignored local env through SSH/srun stdin only','automatic_retry':False,'purpose':'32-study original-pixel native cache and loader/private-byte engineering acceptance; no model training or accuracy','stage_proof':proof}
+with (out/'dispatch-intent.json').open('x') as f:json.dump(intent,f,indent=2);f.flush();os.fsync(f.fileno())
+args=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--mem=8G','--time=04:00:00','--nodelist=evc31','--job-name=rsna-native-cache384-cpu','/bin/bash',proof['control']+'/build.sh']
+cmd=['ssh','-S','/tmp/rsna-a32-reconnect-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(args)]
+try:
+ p=subprocess.run(cmd,input=json.dumps({'token':token}),text=True,capture_output=True,timeout=14520)
+ result={'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr,'finished_utc':datetime.now(timezone.utc).isoformat()}
+except subprocess.TimeoutExpired:
+ result={'returncode':None,'status':'uncertain existing job; reconcile read-only, never redispatch'}
+for key in ('stdout','stderr'):
+ if key in result:result[key]=re.sub(r'(?:hf_|KGAT_)[A-Za-z0-9]{10,}','[redacted]',result[key].replace(token,'[redacted]'))
+with (out/'dispatch-result.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+print(json.dumps({'returncode':result['returncode'],'status':result.get('status'),'stdout_tail':result.get('stdout','')[-2200:],'stderr_tail':result.get('stderr','')[-1000:]}))
+if result['returncode']!=0:raise SystemExit(1)

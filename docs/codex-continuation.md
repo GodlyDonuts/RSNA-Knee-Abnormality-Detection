@@ -6,6 +6,31 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30 native-cache pilot accepted, two new model epochs preserved:**
+CPU **865808 COMPLETED 0:0** in 14:27 rebuilt both 256 and original-pixel 384
+caches for **32 diagnostic development studies / 185 series / 6,105 slices**.
+The actual unmodified training loader passed both caches on all 32 studies;
+all **five private objects** were fully re-downloaded/size/SHA verified at
+**3f23826ff226992204380d34a2956f3805f8b960**. 96 source-256 arrays match the
+accepted cache exactly; 89 differ by at most one uint16 level, with cause and
+accuracy effect unproven. Original data/masks/folds/cache stay unchanged.
+See `initiative/audits/native-pilot-cache384-v1/` and the prepared native-detail
+configs/protocol. Native GPU recovery/throughput and full-cache production are
+NOT launched. Never repeat this CPU job or private commit; large archives are
+private on HF and owned temporary arrays were cleaned on exit.
+
+Rank-64 **865578** completed E2 / 562 updates and entered E3; its four objects
+are privately fully verified at **dd7a323eaf3ffdbf429febb070789f0f7ef618b5**.
+Whole-series control **865357** completed E6 / 1,686 updates and entered E7;
+its four objects are privately fully verified at
+**214036cc2d2593504af326df9bb8f1975e516246**. Both same jobs remain live;
+do not duplicate them or publications. No final accuracy exists for either.
+Authenticated **16:46:56 UTC**: all-development submission **56711823** still
+has null status/score/error. Do not resubmit it or infer its outcome. The last
+measured solo score remains 0.769; only two slots were used at the latest
+allowance check, with three remaining. Use actual outcomes before another slot.
+
+
 **September 30 rank-64 first full epoch privately preserved:** Production
 865578 completed **E1 / 281 updates** and entered E2 with finite optimizer
 progress and empty stderr. Its separate role-bound publisher passed the

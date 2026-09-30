@@ -1,0 +1,54 @@
+"""Stage the once-only CPU native cache pilot with source and complete quota checks."""
+import base64
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+from pathlib import Path
+
+root=Path.cwd();folder=root/'artifacts/native-pilot-cache-v1'
+assert not (folder/'stage-intent.json').exists()
+def sha(data):return hashlib.sha256(data).hexdigest()
+science='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+modules={}
+for name in ('rsna/dicom.py','rsna/preprocess.py','rsna/schema.py','rsna/data.py','rsna/competitive/data.py'):
+ data=subprocess.check_output(['git','show',science+':'+name]);assert (root/name).read_bytes()==data;modules[name]=sha(data)
+files={}
+for name in ('selection.json','build.py','build.sh'):
+ data=(folder/name).read_bytes();files[name]={'bytes':len(data),'sha256':sha(data),'data':base64.b64encode(data).decode()}
+manifest={'scientific_source_git':science,'files':{n:{k:r[k] for k in ('bytes','sha256')} for n,r in files.items()},'scientific_modules':modules}
+data=(json.dumps(manifest,sort_keys=True,indent=2)+'\n').encode();(folder/'files.json').write_bytes(data)
+files['files.json']={'bytes':len(data),'sha256':sha(data),'data':base64.b64encode(data).decode()}
+request={'files':files,'scientific_modules':modules,'selection':json.loads((folder/'selection.json').read_text()),'preparation_git':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()}
+program=r'''
+import base64,hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+r=json.load(sys.stdin);b=Path('/home/sa305415/rsna-knee');c=b/'native-pilot-cache384-v1';code=b/'code-delta-recovery-c9fcc7e';assert not c.exists()
+assert subprocess.check_output(['git','-C',str(code),'rev-parse','HEAD'],text=True).strip()=='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+for name,h in r['scientific_modules'].items():assert hashlib.sha256((code/name).read_bytes()).hexdigest()==h
+for name in ('initiative/releases/report-supervision-v1/studies.parquet','initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv','initiative/experiments/competitive-v1/folds/fold.csv'):
+ p=b/'code-stopfix-1f486765'/name;x=r['selection']['input_bindings'][name];assert p.stat().st_size==x['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==x['sha256']
+lines=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines();q=lines[-1].split()
+if not q[0].rstrip('*').isdigit():q=q[1:]
+assert len(q)==8
+used,soft,count,file_soft=[int(q[i].rstrip('*')) for i in (0,1,4,5)]
+obligations={'remaining_primary':0,'control_delta_live_atomic':12*128*1024**2,'control_bundle_zip':2680000000,'rank64_delta_live_atomic':3*1024**3,'rank64_bundle_zip':3096208256,'prior_metadata':(132+128+256)*1024**2,'native_diagnostic_durable':128*1024**2}
+left=(soft-used)*1024-sum(obligations.values());remaining_files=file_soft-count-650-250
+assert left>=20*1024**3 and remaining_files>=5000
+c.mkdir(mode=0o700)
+for name,x in r['files'].items():
+ assert Path(name).name==name;data=base64.b64decode(x['data'],validate=True);assert len(data)==x['bytes'] and hashlib.sha256(data).hexdigest()==x['sha256']
+ with (c/name).open('xb') as f:f.write(data);f.flush();os.fsync(f.fileno())
+subprocess.run(['bash','-n',str(c/'build.sh')],check=True)
+proof={'status':'native_cpu_pilot_staged','control':str(c),'scientific_source_git':'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab','preparation_git':r['preparation_git'],'projected_remaining_gib':left/1024**3,'projected_remaining_files':remaining_files,'future_obligations_bytes':obligations,'cache_development_studies':32,'series':185,'slices':6105,'allocated_scratch_max_bytes':17179869184,'durable_bytes_bound':134217728,'private_cache_archives_planned':True,'gpu_training_launched':False,'target_values_or_reports_read':False,'no_job_dispatched':True}
+with (c/'stage-receipt.json').open('x') as f:json.dump(proof,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+print(json.dumps(proof))
+'''
+for name,value in [('stage-intent.json',{'control':'/home/sa305415/rsna-knee/native-pilot-cache384-v1','files':manifest['files'],'once_only':True,'gpu_reservation':False})]:
+ with (folder/name).open('x') as f:json.dump(value,f,indent=2);f.flush();os.fsync(f.fileno())
+command=['ssh','-S','/tmp/rsna-a32-reconnect-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-c',program])]
+p=subprocess.run(command,input=json.dumps(request),text=True,capture_output=True,timeout=60)
+result={'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
+with (folder/'stage-result.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps(result));assert p.returncode==0
