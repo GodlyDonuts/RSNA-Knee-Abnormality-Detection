@@ -1,0 +1,70 @@
+"""Finite private diagnostic phases. There is deliberately no submit phase."""
+import importlib.util,json,os,sys
+from pathlib import Path
+sys.dont_write_bytecode=True
+BASE=Path('/home/sa305415/rsna-knee');STAGE=BASE/'kaggle/delta-probe-c9-5d1b3b562160-v1'
+PROJECTION=BASE/'kaggle/code-projections/whole-series-c9-ec79816-v1'
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+spec=importlib.util.spec_from_file_location('coordinator',PROJECTION/'code/scripts/kaggle/coordinator.py')
+c=importlib.util.module_from_spec(spec);spec.loader.exec_module(c)
+w,projection=c.load_workflow(PROJECTION/'code',PROJECTION/'projection.json','e46c6fc921157fa1283902554a7eb37eac3884aadc3a0672004eced9c502a966')
+p=c.p
+def run(phase):
+ assert phase in ('create-dataset','verify-dataset','push-kernel','status','output')
+ proof=json.loads((STAGE/'preparation-verified.json').read_text())
+ assert proof['status']=='cpu_bound_diagnostic_bundle_prepared' and proof['diagnostic_only'] is True and proof['competition_submission_eligible'] is False
+ manifest=json.loads((STAGE/'dataset/bundle-manifest.json').read_text())
+ assert w.digest(STAGE/'dataset/bundle-manifest.json')==proof['manifest_sha256']
+ assert manifest['diagnostic_only'] is True and manifest['competition_submission_eligible'] is False
+ files=p.expected_files(STAGE/'dataset',manifest);assert files==proof['payload_files']
+ assert p.digest(STAGE/'probe-entry.py')==proof['source_sha256']
+ remote,token=c.remote_from_stdin(w);slug=proof['dataset_slug'];kernel=proof['kernel_slug'];journal=STAGE/'dataset-publication'
+ with c.single_coordinator(BASE/'kaggle'):
+  w.verify_shared_wheelhouse(remote,manifest['shared_wheelhouse'])
+  if phase=='create-dataset':
+   for other in (BASE/'kaggle/dataset-publications').iterdir():
+    assert not ((other/'intent.json').exists() and not (other/'verified.json').exists()),'Other mutation needs reconciliation'
+   context={'archive_sha256':proof['archive']['sha256'],'archive_bytes':proof['archive']['bytes'],'manifest_sha256':proof['manifest_sha256'],'diagnostic_only':True,'competition_submission_eligible':False,'training_git':projection['training_git_commit'],'package_git':projection['package_git_commit']}
+   result=p.create_once(remote,token,slug,files,STAGE/'upload',journal,context)
+   print(json.dumps({'status':'created_once','private_requested':True,'competition_submission':False,**result}));return
+  intent=json.loads((journal/'intent.json').read_text());assert intent['files']==files and intent['slug']==slug
+  if phase=='verify-dataset':
+   result=p.reconcile(remote,slug,files)
+   assert result['private'] is True and result['version']==1
+   p.exclusive_json(journal/'verified.json',result)
+   print(json.dumps({'status':result['status'],'id':result['id'],'version':result['version'],'private':result['private'],'files':len(files),'downloaded_all_bytes':True,'competition_submission':False}));return
+  verified=json.loads((journal/'verified.json').read_text());assert verified['status']=='all_payload_bytes_verified' and verified['files']==files and verified['private'] is True and verified['version']==1
+  assert p.metadata(remote,slug)=={k:verified[k] for k in ('id','version','slug','private')}
+  source=(STAGE/'probe-entry.py').read_text()
+  request={'slug':kernel,'newTitle':'RSNA whole-series exact delta T4 diagnostic','text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[slug,manifest['shared_wheelhouse']['dataset_slug']],'competitionDataSources':[w.COMPETITION],'sessionTimeoutSeconds':3600}
+  if phase=='push-kernel':
+   absent=remote.require_absent_kernel(kernel)
+   p.exclusive_json(STAGE/'kernel-create-intent.json',{'status':'intent_before_one_SaveKernel','request_sha256':w.object_hash(request),'source_sha256':proof['source_sha256'],'kernel_slug':kernel,'dataset_slug':slug,'dataset_version':1,'absence_proof':absent,'competition_submission':False,'diagnostic_only':True})
+   result=remote.call('kernels.KernelsApiService','SaveKernel',request)
+   p.exclusive_json(STAGE/'kernel-create-response.json',result)
+   assert result.get('versionNumber')==1 and not result.get('error')
+   print(json.dumps({'status':'private_offline_diagnostic_pushed_once','kernel_slug':kernel,'version':1,'competition_submission':False}));return
+  frozen=json.loads((STAGE/'kernel-create-intent.json').read_text());assert frozen['request_sha256']==w.object_hash(request)
+  found=remote.kernel('GetKernel',kernel,1);meta=found.get('metadata',{})
+  assert w.object_hash(found.get('blob',{}).get('source',''))==w.object_hash(source)
+  for key in ('isPrivate','enableInternet','machineShape','datasetDataSources','competitionDataSources'):
+   assert meta.get(key)==request[key],key
+  status=remote.kernel('GetKernelSessionStatus',kernel,1)
+  if phase=='status':
+   print(json.dumps({'status':status.get('status'),'kernel_slug':kernel,'version':1,'exact_source_verified':True,'private_offline_t4_verified':True,'competition_submission':False}));return
+  assert status.get('status')=='COMPLETE','Diagnostic is not successfully complete'
+  result=remote.output_json(kernel,1,'delta-deployment-acceptance.json')
+  assert result['status']=='verified_offline_base_delta_fp32_equivalence'
+  assert result['checkpoint_sha256']==proof['checkpoint_sha256'] and result['bundle_manifest_sha256']==proof['manifest_sha256']
+  assert result['diagnostic_only'] is True and result['competition_submission_eligible'] is False and result['competition_submission_created'] is False and result['labels_read'] is False
+  assert result['kaggle_score'] is None and result['precision']=='fp32'
+  assert result['frozen_base_tensors_verified']==415 and result['adapter_modules_verified']==120
+  assert {x['name'] for x in result['workloads']}=={'public','largest-training-images'}
+  assert all(x['studies']==3 and x['prediction_values_equal'] is True and x['csv_bytes_equal'] is True for x in result['workloads'])
+  p.exclusive_json(STAGE/'delta-deployment-acceptance.json',result)
+  p.exclusive_json(STAGE/'acceptance-provenance.json',{'kernel_slug':kernel,'kernel_version':1,'source_sha256':proof['source_sha256'],'dataset_id':verified['id'],'dataset_slug':slug,'dataset_version':1,'manifest_sha256':proof['manifest_sha256'],'training_git':projection['training_git_commit'],'packaging_git':projection['package_git_commit'],'checked_at':w.utcnow(),'receipt_sha256':p.digest(STAGE/'delta-deployment-acceptance.json'),'competition_submission':False})
+  print(json.dumps({'status':result['status'],'kernel_slug':kernel,'version':1,'mri_studies':6,'comparison_models':2,'competition_submission':False}))
+
+try:run(sys.argv[1])
+except Exception as exc:
+ print(json.dumps({'status':'stopped_requires_readonly_reconciliation','error_type':type(exc).__name__,'phase':sys.argv[1] if len(sys.argv)>1 else None,'automatic_retry':False}));raise SystemExit(1) from None

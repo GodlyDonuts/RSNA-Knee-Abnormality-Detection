@@ -46,3 +46,32 @@ remaining primary snapshots/live/atomic files, both production deployment pairs,
 12 control delta files, this diagnostic ZIP and 132 MiB metadata/source. The
 diag payload will hard-link immutable original base/delta instead of duplicating
 them; no hypothetical future cleanup is credited.
+
+## Actual private diagnostic dispatch
+
+CPU preparation 865374 COMPLETED 0:0 in 1:21 with exact original-base and
+scientific-source verification; stderr empty. The 49-object ZIP is 1,339,497,052
+bytes, SHA `ac73b7ffbdc501657179b679ebc7414790e85153d2a304458264865c0ec786fd`;
+manifest SHA `5fed97851e14ede738d3f18c811eb50b837f51976741171076b460251a0b3ea5`.
+Packaging projection `ec798167f47786d8ffa4105a5e97ee4812425e28` retains the entire
+unchanged scientific `c9fcc7e` runtime. The diagnostic checkpoint and original
+weights are hard-linked to immutable retained inputs; no expanded full checkpoint
+was created on shared storage. Fresh pre-preparation projected reserve was
+21.129356 GiB inclusive of the one diagnostic ZIP and both production bundles.
+
+Private Dataset `godlydonuts/rsna-delta-base-probe-5d1b3b562160`, ID **12287425**,
+version 1 was created once, and all 49 payload objects were fully downloaded and
+size/SHA verified. Its attached exact source is SHA
+`cfc7920ed1e1ac43d7cbe3ce199deb929361cef014ff84d6098c088a25febc5a`.
+SaveKernel was called once and returned version 1 / ID **136505806**. Kaggle derived
+the actual notebook slug from the supplied title:
+`godlydonuts/rsna-whole-series-exact-delta-t4-diagnostic`. A first read against the
+original requested slug returned 403. Read-only reconciliation of the returned
+identity verified exact source, private/offline T4 settings, both private Dataset
+inputs and official MRI input; **no push was retried**. At 09:08 UTC actual v1 was
+RUNNING. Do not use the originally requested absent slug or repeat any creation.
+
+Use the archived `read_probe.py.txt` / owned local helper to inspect the actual
+returned identity read-only. Only successful exact terminal acceptance permits
+the separate whole-series deployment route. This probe remains ineligible for
+competition, and no new submission slot has been consumed.

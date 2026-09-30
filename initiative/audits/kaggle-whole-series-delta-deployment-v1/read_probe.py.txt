@@ -1,0 +1,35 @@
+"""Read-only reconciliation of the title-derived notebook returned by Kaggle."""
+import hashlib,importlib.util,json,sys
+from pathlib import Path
+root=Path.cwd();stage=root/'artifacts/kaggle-wholeseries-delta-deployment-v1';audit=root/'initiative/audits/kaggle-whole-series-delta-deployment-v1'
+spec=importlib.util.spec_from_file_location('workflow',root/'scripts/kaggle/workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+response=json.loads((audit/'kernel-create-response.json').read_text());intent=json.loads((audit/'kernel-create-intent.json').read_text());proof=json.loads((audit/'preparation-verified.json').read_text());manifest=json.loads((audit/'bundle-manifest.json').read_text())
+assert response['versionNumber']==1 and response['kernelId']==136505806 and not response.get('error')
+ref=response['ref'];assert ref.startswith('/code/godlydonuts/') and ref.count('/')==3
+slug=ref.removeprefix('/code/');assert slug=='godlydonuts/rsna-whole-series-exact-delta-t4-diagnostic'
+assert hashlib.sha256((audit/'probe-entry.py.txt').read_bytes()).hexdigest()==intent['source_sha256']==proof['source_sha256']
+r=w.Remote();assert r.username=='godlydonuts';found=r.kernel('GetKernel',slug,1);meta=found['metadata']
+assert hashlib.sha256(found['blob']['source'].encode()).hexdigest()==proof['source_sha256']
+expected={'isPrivate':True,'enableInternet':False,'machineShape':'NvidiaTeslaT4','datasetDataSources':[proof['dataset_slug'],manifest['shared_wheelhouse']['dataset_slug']],'competitionDataSources':[w.COMPETITION]}
+for key,value in expected.items():assert meta.get(key)==value,key
+d=r.dataset(proof['dataset_slug']);assert d['id']==12287425 and d['currentVersionNumber']==1 and d['isPrivate'] is True
+identity={'status':'title_derived_identity_reconciled_readonly','returned_ref':ref,'actual_kernel_slug':slug,'kernel_id':response['kernelId'],'version':1,'original_requested_slug':intent['kernel_slug'],'source_sha256':proof['source_sha256'],'dataset_id':d['id'],'dataset_version':1,'exact_source_private_offline_t4_verified':True,'competition_submission':False,'mutations_retried':False}
+identity_path=audit/'kernel-identity-readonly-reconciled.json'
+if identity_path.exists():assert json.loads(identity_path.read_text())==identity
+else:w.new_json(identity_path,identity)
+status=r.kernel('GetKernelSessionStatus',slug,1)
+result={**identity,'checked_at':w.utcnow(),'session_status':status.get('status')}
+(stage/'status-readonly.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
+if sys.argv[1:]!=['output']:raise SystemExit(0)
+assert status.get('status')=='COMPLETE','Diagnostic not successfully complete'
+receipt=r.output_json(slug,1,'delta-deployment-acceptance.json')
+assert receipt['status']=='verified_offline_base_delta_fp32_equivalence'
+assert receipt['checkpoint_sha256']==proof['checkpoint_sha256'] and receipt['bundle_manifest_sha256']==proof['manifest_sha256']
+assert receipt['diagnostic_only'] is True and receipt['competition_submission_eligible'] is False and receipt['competition_submission_created'] is False and receipt['labels_read'] is False
+assert receipt['kaggle_score'] is None and receipt['precision']=='fp32'
+assert receipt['frozen_base_tensors_verified']==415 and receipt['adapter_modules_verified']==120
+assert {x['name'] for x in receipt['workloads']}=={'public','largest-training-images'}
+assert all(x['studies']==3 and x['prediction_values_equal'] is True and x['csv_bytes_equal'] is True for x in receipt['workloads'])
+w.new_json(audit/'delta-deployment-acceptance.json',receipt)
+w.new_json(audit/'acceptance-provenance.json',{**identity,'checked_at':w.utcnow(),'receipt_sha256':w.digest(audit/'delta-deployment-acceptance.json'),'manifest_sha256':proof['manifest_sha256'],'training_git':proof['training_source_git'],'packaging_git':proof['packaging_source_git']})
+print(json.dumps({'status':receipt['status'],'actual_kernel_slug':slug,'mri_studies':6,'full_delta_bytes_equal':True,'competition_submission':False}))

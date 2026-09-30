@@ -6,6 +6,22 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, private offline original-base delta diagnostic launched:** CPU
+865374 completed 0:0 and verified the source/base contract. Private Dataset
+`godlydonuts/rsna-delta-base-probe-5d1b3b562160` ID 12287425 v1 was created once;
+all 49 objects fully downloaded/size/SHA verified. One SaveKernel returned actual
+title-derived private notebook **godlydonuts/rsna-whole-series-exact-delta-t4-diagnostic**
+v1 / ID 136505806, exact source SHA
+`cfc7920ed1e1ac43d7cbe3ce199deb929361cef014ff84d6098c088a25febc5a`.
+Read-only reconciliation verified exact source/privacy/offline T4/MRI inputs;
+it was RUNNING at 09:08 UTC. The originally requested slug is absent: do not push
+again or read that wrong identity. The diagnostic must prove full/delta FP32
+probability and CSV-byte equivalence on three public and three largest training
+MRI inputs before deployment acceptance. It reads no labels and is never
+competition eligible. Local read-only helper is
+`artifacts/kaggle-wholeseries-delta-deployment-v1/read_probe.py`; exact archived
+sources/receipts are in the deployment audit. No competition slot was spent.
+
 **September 30, full-series delta deployment wrappers implemented:** Scientific
 source `c9fcc7eefb09103942be89bf4fa87410eb9ec5ab` and both live jobs remain
 unchanged. External wrappers now retain every healthy series for the declared
