@@ -412,7 +412,8 @@ def validate_snapshot(sidecar, repo=ROOT):
         or type(meta.get("epoch")) is not int
         or (baseline and meta["epoch"] != 1)
         or (not baseline and meta["epoch"] not in CADENCE)
-        or meta.get("submission_every_epochs") != 2
+        or type(meta.get("submission_every_epochs")) is not int
+        or meta.get("submission_every_epochs") not in ({2} if baseline else {1, 2})
         or meta.get("submission_eligible") is not True
         or meta.get("diagnostic_only") is not False
         or type(meta.get("optimizer_steps")) is not int

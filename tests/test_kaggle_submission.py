@@ -294,7 +294,8 @@ def test_bundle_rejects_tamper_and_traversal(tmp_path):
         {"submission_eligible": False},
         {"diagnostic_only": True},
         {"optimizer_steps": 0},
-        {"submission_every_epochs": 1},
+        {"submission_every_epochs": 3},
+        {"submission_every_epochs": True},
     ],
 )
 def test_queue_rejects_unscheduled_untrained_diagnostic_sidecars_before_loading_weights(
@@ -315,7 +316,8 @@ def test_queue_rejects_unscheduled_untrained_diagnostic_sidecars_before_loading_
         workflow.validate_snapshot(sidecar)
 
 
-def test_snapshot_internal_provenance_is_checked_not_only_sidecar(tmp_path, monkeypatch):
+@pytest.mark.parametrize("cadence", [1, 2])
+def test_snapshot_internal_provenance_is_checked_not_only_sidecar(tmp_path, monkeypatch, cadence):
     import rsna.competitive.infer as inference
 
     repo = tmp_path / "repo"
@@ -326,7 +328,7 @@ def test_snapshot_internal_provenance_is_checked_not_only_sidecar(tmp_path, monk
         "config": {
             "fold": 0,
             "seed": 42,
-            "submission_every_epochs": 2,
+            "submission_every_epochs": cadence,
             "encoder": {"architecture": "dinov3_l16"},
         },
         "release": {"binding_sha256": "b" * 64},
@@ -339,7 +341,7 @@ def test_snapshot_internal_provenance_is_checked_not_only_sidecar(tmp_path, monk
     meta = {
         "status": "scheduled_epoch_snapshot",
         "epoch": 2,
-        "submission_every_epochs": 2,
+        "submission_every_epochs": cadence,
         "submission_eligible": True,
         "diagnostic_only": False,
         "optimizer_steps": 3,
