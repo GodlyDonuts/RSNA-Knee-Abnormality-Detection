@@ -74,6 +74,7 @@ class TrainConfig:
         default_factory=lambda: {"architecture": "diagnostic_tiny", "embedding_dim": 16}
     )
     fold: int = 0
+    fit_scope: str = "outer_fold"
     seed: int = 20260922
     epochs: int = 10
     batch_size: int = 1
@@ -144,6 +145,8 @@ class TrainConfig:
             raise ValueError("Encoder specification must be an object")
         if self.lr_schedule not in {"constant", "cosine"}:
             raise ValueError("Unknown learning-rate schedule")
+        if self.fit_scope not in {"outer_fold", "all_development"}:
+            raise ValueError("Unknown training pool policy")
         if "adapter" in self.encoder:
             if self.encoder.get("architecture") != "dinov3_l16" or not self.freeze_encoder:
                 raise ValueError("DINOv3-L adapters require a frozen original encoder")
@@ -219,7 +222,7 @@ def verified_job_release(
 
 
 def select_development(
-    manifest: pd.DataFrame, folds: pd.DataFrame, fold: int
+    manifest: pd.DataFrame, folds: pd.DataFrame, fold: int, fit_scope: str = "outer_fold"
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     development = manifest[manifest.split == "train"].copy()
     if fold not in set(folds.fold) or development.study_uid.duplicated().any():
@@ -237,6 +240,12 @@ def select_development(
         raise ValueError("Development folds overlap a held-out split")
     if any(joined[f"{target}__provenance"].eq("official_gold").any() for target in TARGETS):
         raise ValueError("Official labels cannot enter model development")
+    if fit_scope == "all_development":
+        # The same accepted development membership and masks, with no model
+        # selection or evaluation on studies now entering the training pool.
+        return joined[observed].sort_values("study_uid").reset_index(drop=True), outer.iloc[:0]
+    if fit_scope != "outer_fold":
+        raise ValueError("Unknown training pool policy")
     return train, outer
 
 
@@ -364,7 +373,7 @@ def _run_locked(
         )
     manifest, release_binding = verified_job_release(args.studies, args.artifact_root, rank, world)
     folds = load_folds(args.folds, manifest, release_binding)
-    train, outer = select_development(manifest, folds, config.fold)
+    train, outer = select_development(manifest, folds, config.fold, config.fit_scope)
     if config.diagnostic_study_limit is not None:
         train, outer = (
             train.head(config.diagnostic_study_limit),
@@ -376,11 +385,12 @@ def _run_locked(
     series = pd.read_csv(io.BytesIO(series_bytes))
     data_config = {name: getattr(config, name) for name in ("slices", "side", "max_series")}
     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
-    outer_data = dataset_class(outer, series, args.cache, **data_config)
-    if (training_data.cache_side, training_data.source_revision) != (
-        outer_data.cache_side,
-        outer_data.source_revision,
-    ) or training_data.source_revision != release_binding["source_revision"]:
+    outer_data = dataset_class(outer, series, args.cache, **data_config) if len(outer) else None
+    if training_data.source_revision != release_binding["source_revision"] or (
+        outer_data is not None
+        and (training_data.cache_side, training_data.source_revision)
+        != (outer_data.cache_side, outer_data.source_revision)
+    ):
         raise ValueError("Image cache transform/source differs from the accepted release")
     encoder, embedding_dim, encoder_provenance = create_encoder(config.encoder)
     configure_encoder_training(encoder, config.freeze_encoder)
@@ -523,7 +533,9 @@ def _run_locked(
                 "encoder_trainable_parameters": sum(
                     p.numel() for p in encoder.parameters() if p.requires_grad
                 ),
-                "selection_policy": "fixed_epoch_count; outer_predictions_only_after_final_epoch",
+                "selection_policy": "fixed_epoch_count; no_internal_evaluation"
+                if config.fit_scope == "all_development"
+                else "fixed_epoch_count; outer_predictions_only_after_final_epoch",
                 "held_out_confirmation_and_gold_used": False,
             },
         )
@@ -654,6 +666,45 @@ def _run_locked(
                 return 75
         epoch += 1
         next_update = 0
+    if config.fit_scope == "all_development":
+        if rank == 0:
+            atomic_json(
+                args.output / "result.json",
+                {
+                    "schema_version": 1,
+                    "status": "completed",
+                    "binding_sha256": _hash(binding),
+                    "checkpoint_sha256": file_sha256(args.output / "checkpoint.pt"),
+                    "diagnostic_run": config.diagnostic_study_limit is not None,
+                    "fit_scope": config.fit_scope,
+                    "outer_fold": None,
+                    "seed": config.seed,
+                    "optimizer_steps": step,
+                    "training_studies": len(train),
+                    "outer_studies": 0,
+                    "evaluation_source": None,
+                    "checkpoint_selection": "fixed_final_epoch_no_internal_selection",
+                    "metrics": None,
+                    "predictions_sha256": None,
+                    "elapsed_seconds": time.monotonic() - started,
+                },
+            )
+            atomic_json(
+                args.output / "invocation.json",
+                {
+                    "status": "completed",
+                    "exit_code": 0,
+                    "updates": history,
+                    "binding_sha256": _hash(binding),
+                },
+            )
+            run_record = json.loads((args.output / "run.json").read_text())
+            run_record["status"] = "completed"
+            atomic_json(args.output / "run.json", run_record)
+        if world > 1:
+            dist.barrier()
+        return 0
+    assert outer_data is not None
     # Equal-length rank schedules allow coordinated cancellation even in the
     # final partial evaluation batch. Padding produces no exported prediction.
     outer_sampler = EffectiveBatchSampler(

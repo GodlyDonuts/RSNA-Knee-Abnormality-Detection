@@ -1,5 +1,6 @@
 import argparse
 import hashlib
+import json
 import random
 from pathlib import Path
 
@@ -185,6 +186,7 @@ def test_failed_checkpoint_reserve_preserves_previous_file(tmp_path):
         {"diagnostic_study_limit": 2, "batch_size": True},
         {"diagnostic_study_limit": 2, "precision": "fp16"},
         {"diagnostic_study_limit": 2, "head_lr": float("nan")},
+        {"diagnostic_study_limit": 2, "fit_scope": "include_gold"},
         {
             "diagnostic_study_limit": 2,
             "pooling": "patch_attention",
@@ -250,7 +252,8 @@ def _assert_tree_equal(first, second):
         assert first == second
 
 
-def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monkeypatch):
+@pytest.mark.parametrize("fit_scope", ["outer_fold", "all_development"])
+def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monkeypatch, fit_scope):
     from rsna.competitive import train
     from rsna.competitive.backbones import create_encoder
     from rsna.competitive.model import CompetitiveStudyNet
@@ -275,6 +278,7 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monk
         train, "load_verified_release", lambda *args: (manifest.copy(), release_binding)
     )
     config = TrainConfig(
+        fit_scope=fit_scope,
         diagnostic_study_limit=20,
         epochs=2,
         batch_size=2,
@@ -314,7 +318,14 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monk
 
     assert execute() == 0
     full = torch.load(args.output / "checkpoint.pt", weights_only=True)
-    expected_predictions = (args.output / "outer_predictions.csv").read_bytes()
+    prediction_file = args.output / "outer_predictions.csv"
+    expected_predictions = prediction_file.read_bytes() if prediction_file.exists() else None
+    if fit_scope == "all_development":
+        result = json.loads((args.output / "result.json").read_text())
+        assert result["training_studies"] == 14 and result["outer_studies"] == 0
+        assert result["metrics"] is None and result["evaluation_source"] is None
+        assert result["optimizer_steps"] == 8  # ceil(14/4) per epoch, including masked tail
+        assert expected_predictions is None
     args.output = tmp_path / "resumed"
     args.stop_after_updates = 1
     assert execute() == 75
@@ -326,7 +337,10 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monk
     assert execute() == 0
     actual = torch.load(args.output / "checkpoint.pt", weights_only=True)
     _assert_tree_equal(full, actual)
-    assert expected_predictions == (args.output / "outer_predictions.csv").read_bytes()
+    assert expected_predictions == (
+        (args.output / "outer_predictions.csv").read_bytes() if fit_scope == "outer_fold" else None
+    )
+    assert (args.output / "outer_predictions.csv").exists() == (fit_scope == "outer_fold")
 
     # The Slurm supervisor's durable request must stop the real trainer at an
     # optimizer boundary even if a worker misses the OS signal. A later resume
@@ -345,4 +359,35 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monk
     monkeypatch.setenv("RSNA_STOP_SESSION", "next-session")
     assert execute() == 0
     _assert_tree_equal(full, torch.load(args.output / "checkpoint.pt", weights_only=True))
-    assert expected_predictions == (args.output / "outer_predictions.csv").read_bytes()
+    assert expected_predictions == (
+        (args.output / "outer_predictions.csv").read_bytes() if fit_scope == "outer_fold" else None
+    )
+    assert (args.output / "outer_predictions.csv").exists() == (fit_scope == "outer_fold")
+
+
+def test_all_development_membership_preserves_masks_and_excludes_reserved_data():
+    from rsna.competitive.train import select_development
+
+    rows = []
+    for i, split in enumerate(
+        ("train", "train", "train", "weak_validation", "gold_evaluation", "quarantine")
+    ):
+        row = {"study_uid": str(i), "leakage_group": str(i), "split": split}
+        for target in TARGETS:
+            row[target] = i % 2
+            row[target + "__mask"] = int(i != 2)
+            row[target + "__provenance"] = "official_gold" if split == "gold_evaluation" else "weak"
+        rows.append(row)
+    frame = pd.DataFrame(rows)
+    folds = pd.DataFrame({"study_uid": ["0", "1", "2"], "fold": [0, 1, 1]})
+    pool, outer = select_development(frame, folds, 0, "all_development")
+    assert pool.study_uid.tolist() == ["0", "1"] and outer.empty
+    pd.testing.assert_frame_equal(pool.drop(columns="fold"), frame.iloc[:2].reset_index(drop=True))
+    poisoned = frame.copy()
+    poisoned.loc[0, TARGETS[0] + "__provenance"] = "official_gold"
+    with pytest.raises(ValueError, match="Official labels"):
+        select_development(poisoned, folds, 0, "all_development")
+    leaked = frame.copy()
+    leaked.loc[3, "leakage_group"] = "0"
+    with pytest.raises(ValueError, match="held-out split"):
+        select_development(leaked, folds, 0, "all_development")
