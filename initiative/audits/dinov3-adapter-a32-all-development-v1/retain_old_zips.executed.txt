@@ -1,0 +1,16 @@
+import hashlib,json,os,sys
+from pathlib import Path
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+r=Path('/home/sa305415/rsna-knee/all-development-storage-v1'); receipt=r/'old-zip-retention-receipt.json'; assert not receipt.exists() and not receipt.with_suffix('.intent.json').exists()
+plan=json.loads((r/'verified-old-kaggle-zips.json').read_text());records=plan['records']; assert len(records)==6
+for v in records:
+ p=Path(v['path']);proof=json.loads(Path(v['proof']).read_text()); assert p.parent.name=='upload' and p.name=='bundle.zip' and not p.is_symlink() and p.is_file() and p.stat().st_size==v['bytes']; assert proof['status']=='all_payload_bytes_verified' and {k:proof[k] for k in ('id','version','slug','private')}==v['remote']; assert v['remote']['private'] is True
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(8*1024**2),b''):h.update(b)
+ assert h.hexdigest()==v['sha256']
+intent={'status':'all_old_zip_hashes_verified','records':records,'job_id':os.environ['SLURM_JOB_ID'],'bytes':sum(v['bytes'] for v in records)}
+with receipt.with_suffix('.intent.json').open('x') as f:json.dump(intent,f,indent=2);f.flush();os.fsync(f.fileno())
+for v in records:Path(v['path']).unlink()
+with receipt.open('x') as f:json.dump(dict(intent,status='redundant_upload_zips_evicted'),f,indent=2);f.flush();os.fsync(f.fileno())
+print(json.dumps({'status':'redundant_upload_zips_evicted','files':len(records),'bytes':intent['bytes']}))

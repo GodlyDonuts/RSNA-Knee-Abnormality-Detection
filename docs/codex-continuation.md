@@ -6,6 +6,59 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, owner-authorized A32 final fitting and epoch-10 submission:**
+The owner requested the completed A32 fold-0 epoch 10 on Kaggle, plus a separate
+ten-epoch fit on all usable development data and its eventual submission. The
+explicit `all_development` training mode is Git
+`8911f90910ab8892b8324f6985c18d3ab146ec0c`: 3,403 usable studies, unchanged masks
+and folds, excluding 501 fully masked, 441 confirmation, 58 gold and four
+quarantine rows. It exports no internal holdout metric or outer predictions.
+Each study occurs once per epoch with masked tail padding: 426 updates per epoch,
+4,260 in ten epochs. Same official base/A32 recipe; initialize a fresh final fit,
+not an extra ten epochs on the already trained fold-0 subset.
+
+Real pilot **865261 COMPLETED 0:0** and CPU verification **865262 COMPLETED 0:0**:
+four finite updates, all 120 adapters changed, 415 original base tensors unchanged,
+strict checkpoint-only reconstruction passed. Prior **865258** failed during
+allocated driver checks on evc29 before training; do not repeat it. The full
+one-H100/two-CPU, 16-hour-bounded production **865263** was submitted once and
+is RUNNING on evc31 with allocated CUDA acceptance passed. Source checkout:
+`/home/sa305415/rsna-knee/code-adapter-a32-all-8911f90`; control:
+`/home/sa305415/rsna-knee/production-launch-adapter-a32-all-8911f90-v1`; output:
+`/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1`.
+Inspect actual optimizer progress and terminal/recovery records before action;
+never duplicate dispatch. The new per-epoch coordinator is
+`scripts/hf/dispatch_adapter_a32_all_epoch.py`, with distinct all-development
+prefix and pinned publisher SHA
+`258e1e9e4766146c947fcca6d4886819284f1da25804bbf48ecc5982d1a762bb`.
+Preserve each completed immutable epoch exactly once, fully download/hash verify,
+and reconcile an existing intent read-only. Final all-data metrics stay null.
+
+The A32 fold-0 epoch-10 private Kaggle Dataset ID **12282965**, version **1**,
+was created once and fully download/size/SHA verified. Exact private offline T4
+notebook `godlydonuts/rsna-knee-a32f0-epoch10-3ed9a08f144f` version **1** was pushed
+once and was RUNNING at its last inspection. Do not submit until exact public
+MRI-only completion/output checks pass and fresh live allowance permits. Use
+only the canonical Newton account ledger; no public three-row CSV uploads.
+Training source remains `6f1ee6d`, packaging projection `57aaca6` preserves every
+trained rsna module. No score or competition submission exists for this candidate
+at this observation. See [the candidate audit](../initiative/audits/dinov3-adapter-a32-kaggle-e10-v1/)
+and [the all-development audit](../initiative/audits/dinov3-adapter-a32-all-development-v1/).
+
+Verified redundant local A32 snapshots and obsolete Kaggle upload ZIPs were
+reclaimed by CPU jobs 865250/865254, retaining every final, accepted source data,
+licenses, sidecars and private copies. The full dispatch projected **20.54 GiB**
+remaining after eleven checkpoint inodes, a final Kaggle bundle/ZIP and 100 MiB
+metadata overhead. This is tight: recheck live byte/file quotas before transfers
+or any second experiment. Credentials remain in ignored local .env/stdin only.
+The owner also authorized using Kaggle slots for useful checkpoints. Keep the
+five-per-day/live-account safeguards and use the first new actual outcome before
+choosing further candidates. Rank 64 doubles encoder adapters to 20,447,232;
+test it on the same held-out fold before claiming more capacity improves MRI
+accuracy. Keep rank 32 for this all-data comparison. Whole-series ordered
+feature/depth context is another separate experiment, not positive labels on
+every slice or a deployment-only change in sampling.
+
 **September 29, completed A32 fold-0 improvement:** Production Slurm **864856
 COMPLETED 0:0** in 7:03:29. Its fixed-final ten-epoch result is **0.8620940794
 internal macro AUC** on the identical 1,156-study development holdout, compared

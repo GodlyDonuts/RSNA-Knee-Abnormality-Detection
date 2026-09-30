@@ -21,6 +21,8 @@ def load(name: str, filename: str):
 
 publisher = load("adapter_a32_publisher_test", "publish_adapter_a32_epoch.py")
 dispatcher = load("adapter_a32_dispatcher_test", "dispatch_adapter_a32_epoch.py")
+all_publisher = load("adapter_a32_all_publisher_test", "publish_adapter_a32_all_epoch.py")
+all_dispatcher = load("adapter_a32_all_dispatcher_test", "dispatch_adapter_a32_all_epoch.py")
 
 
 def digest(value: bytes) -> str:
@@ -42,7 +44,22 @@ def test_adapter_a32_dispatcher_and_publisher_bind_the_same_schedule() -> None:
     assert dispatcher.RUN.endswith("adapter-a32-fold0-6f1ee6d-production-v1")
 
 
-def test_adapter_a32_source_accepts_only_exact_completed_snapshot(tmp_path, monkeypatch) -> None:
+def test_all_development_dispatcher_binds_an_independent_pool_and_prefix() -> None:
+    spec = all_publisher.FOLD_SPECS[0]
+    assert spec["prefix"] == all_dispatcher.PREFIX != dispatcher.PREFIX
+    assert spec["optimizer_updates_per_epoch"] == 426
+    assert spec["training_studies"] == 3403
+    assert all_dispatcher.PUBLISHER_SHA == all_publisher.sha(
+        ROOT / "scripts/hf/publish_adapter_a32_all_epoch.py"
+    )
+
+
+@pytest.mark.parametrize("publisher", [publisher, all_publisher])
+def test_adapter_a32_source_accepts_only_exact_completed_snapshot(
+    tmp_path, monkeypatch, publisher
+) -> None:
+    specification = publisher.FOLD_SPECS[0]
+    all_development = publisher is all_publisher
     run = tmp_path / "run"
     snapshots = run / "epoch-checkpoints"
     snapshots.mkdir(parents=True)
@@ -61,6 +78,7 @@ def test_adapter_a32_source_accepts_only_exact_completed_snapshot(tmp_path, monk
     )
     binding = {
         "config": {
+            **({"fit_scope": "all_development"} if all_development else {}),
             "submission_every_epochs": 1,
             "pooling": "attention",
             "diagnostic_study_limit": None,
@@ -97,7 +115,8 @@ def test_adapter_a32_source_accepts_only_exact_completed_snapshot(tmp_path, monk
         json.dumps(
             {
                 "binding": binding,
-                "training_studies": 2247,
+                "training_studies": specification["training_studies"],
+                "outer_studies": 0 if all_development else 1156,
                 "encoder_trainable_parameters": 10_223_616,
             }
         )
@@ -109,7 +128,7 @@ def test_adapter_a32_source_accepts_only_exact_completed_snapshot(tmp_path, monk
         "checkpoint_file": checkpoint.name,
         "checkpoint_bytes": checkpoint.stat().st_size,
         "checkpoint_sha256": publisher.sha(checkpoint),
-        "optimizer_steps": 281,
+        "optimizer_steps": specification["optimizer_updates_per_epoch"],
         "fold": 0,
         "seed": 20260922,
         "diagnostic_only": False,
@@ -119,7 +138,7 @@ def test_adapter_a32_source_accepts_only_exact_completed_snapshot(tmp_path, monk
     sidecar.write_text(json.dumps(record))
     manifest, files = publisher.source_files(sidecar, run, license_file, code_root, 0)
     assert manifest["fold"] == 0
-    assert manifest["optimizer_steps"] == 281
+    assert manifest["optimizer_steps"] == specification["optimizer_updates_per_epoch"]
     assert manifest["competition_score_claimed"] is False
     assert files["checkpoint.pt"] == checkpoint
 
@@ -129,10 +148,11 @@ def test_adapter_a32_source_accepts_only_exact_completed_snapshot(tmp_path, monk
             publisher.source_files(sidecar, run, license_file, code_root, 0)
 
     sidecar.write_text(json.dumps(record))
-    (run / "run.json").write_text(
-        json.dumps(
-            {"binding": binding, "training_studies": 2247, "encoder_trainable_parameters": 0}
-        )
-    )
+    run_record = json.loads((run / "run.json").read_text())
+    if all_development:
+        (run / "run.json").write_text(json.dumps(run_record | {"outer_studies": 1156}))
+        with pytest.raises(ValueError, match="run binding"):
+            publisher.source_files(sidecar, run, license_file, code_root, 0)
+    (run / "run.json").write_text(json.dumps(run_record | {"encoder_trainable_parameters": 0}))
     with pytest.raises(ValueError, match="actual trainable count"):
         publisher.source_files(sidecar, run, license_file, code_root, 0)
