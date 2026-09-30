@@ -1,4 +1,10 @@
-# Reconnected eighth-epoch preservation and full-cohort native metadata
+# Reconnected ninth-epoch preservation and full-cohort native metadata
+
+GitHub main `f48031766d90a8304db979ee4c55d4f6184d0b53` and private Hugging
+Face revision `f9f15bd33cdc8133eacfd13b6acf2eb038ac4011` preserve this
+milestone. All 135 private mirror objects were fully re-downloaded and their
+sizes and SHA256 hashes verified. The once-only intent, commit response and
+verification receipt are retained here; do not repeat the publication.
 
 At20:46:59 UTC, existing rank64 job865578 and whole-series job865357 were RUNNING
 with finite epoch-nine updates and empty stderr. All eight completed checkpoints

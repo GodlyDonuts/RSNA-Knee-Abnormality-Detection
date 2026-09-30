@@ -6,6 +6,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September30 ninth-epoch/full-native metadata milestone privately verified:**
+GitHub main `f48031766d90a8304db979ee4c55d4f6184d0b53` is mirrored at private
+HF revision `f9f15bd33cdc8133eacfd13b6acf2eb038ac4011`. All135 source/evidence
+objects were fully re-downloaded/size/SHA verified, including the75 full-cohort
+shard plans and new checkpoint preservation receipts. Exact once-only intent,
+commit and verification journals are in `initiative/audits/native-full-shard-plan-v1/`.
+Do not repeat that mirror. This is metadata and checkpoint preservation, not
+a full native cache build or a new measured accuracy result.
+
 **September30 both ninth epochs preserved:** At21:05:47UTC both same jobs
 were RUNNING with completed E9/2529updates. Rank64 and whole-series control E9
 were each published once and all four private objects fully re-downloaded/
