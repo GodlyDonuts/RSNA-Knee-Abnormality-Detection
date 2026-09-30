@@ -6,6 +6,20 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September30 dispatcher/E7 handoff privately verified; network changed:**
+Git239d48f contains the canonical native GPU coordinator and24 passing rejection
+cases; all17 small source/evidence objects are privately fully re-downloaded/
+size/SHA verified at **462d13fa2c7a41cd8bb9d4e872ba173c5e1c0488**. Original HF
+create response was lost, but read-only reconciliation and complete-byte checks
+verified success; **no mutation was retried**. Preserve the original intent and
+reconciliation; never republish it. E7 checkpoint remains separately verified
+atdf4730b6e546fa680befe89e555edce89de504ad. Newton DNS later stopped resolving
+from this Mac; no training job was interrupted. On reconnection inspect actual
+jobs/sidecars/publication journals/quota before action or the native dispatcher.
+At **20:26:05UTC**, submission56711823 still had null status/score/error. No new
+Kaggle result or native GPU job is claimed. Goal remains ACTIVE.
+
+
 **September30 native GPU coordinator verified and control E7 preserved:**
 The canonical `scripts/newton/dispatch_native384_pilot.py --ssh-control SOCKET`
 is read-only by default; `--dispatch` performs allocated CPU full-hash proof,

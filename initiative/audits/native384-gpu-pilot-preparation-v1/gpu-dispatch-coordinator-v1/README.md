@@ -27,3 +27,13 @@ must never be repeated; uncertainty is reconciled read-only.
 
 The native runtime and 32-study caches remain described in the parent audit.
 Actual H100 acceptance and full-cohort native sharding/training are outstanding.
+
+The source/evidence milestone is Git239d48f. Private HF mirror462d13fa2c7a41cd8bb9d4e872ba173c5e1c0488 has all17 objects fully
+re-downloaded/size/SHA verified. The original create response was lost;
+read-only reconciliation found the exact prefix and verified every byte.
+No publication was repeated. Original intent and reconciliation remain preserved.
+
+Newton DNS later stopped resolving from this Mac. Existing training was never
+interrupted; inspect actual jobs/epochs/quota before continuing on reconnection.
+Kaggle56711823 still had null status/score/error at20:26:05UTC. Latest confirmed
+solo score remains0.769. No native GPU job or new accuracy result is claimed.
