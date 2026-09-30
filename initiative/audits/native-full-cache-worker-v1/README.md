@@ -1,5 +1,10 @@
 # Bounded original-DICOM shard worker and restoration checks
 
+Source milestone GitHub main `36eedd6` is privately mirrored at HF revision
+`a69d588da7bced8224b5340b38696da07a4ce210`. All seven source/evidence objects
+were fully re-downloaded and size/SHA verified. The original once-only intent,
+commit and complete verification receipts are retained here; never repeat it.
+
 `scripts/newton/build_native_cache_shard.py` implements the next CPU cache
 worker. It builds both256 and384 directly from corrected pinned original
 DICOM bytes, without an intermediate resized image. It validates every object

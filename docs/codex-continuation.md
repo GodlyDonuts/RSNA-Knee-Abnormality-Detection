@@ -7,6 +7,10 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 ## Current local release: September 23
 
 **September30 original-DICOM shard worker locally validated:**
+Source GitHub main `36eedd6` is privately mirrored at HF revision
+`a69d588da7bced8224b5340b38696da07a4ce210`, with all7 source/evidence objects
+fully re-downloaded/size/SHA verified. Its once-only journals are in the audit;
+do not repeat that publication.
 `scripts/newton/build_native_cache_shard.py` builds bounded paired256/384
 archives from the corrected pinned original sources, compares the reconstructed
 256 arrays/metadata with the accepted cache, checks the actual MRI loader, and
