@@ -1,5 +1,12 @@
 # Rank-64 real acceptance and matched production launch
 
+At21:45UTC the same production run completed its immutable E10 /2810 updates.
+All four private objects are fully re-downloaded/size/SHA verified at
+`4b81ebc1b9fd099287247cc72061be1a620d02a2`. All E1–E10 are preserved; do not
+repeat them. Exact small receipts are in `epoch-publication/epoch-010/`.
+Fixed-final1156-study evaluation and authoritative terminal review remain
+outstanding; no final rank64 metric is available yet.
+
 Recovery pilot **865556 COMPLETED 0:0** on evc31 in 15:58. It used 16
 training/16 development outer studies for two epochs/four optimizer updates.
 All **120** residual projections changed, **415** original DINOv3 tensors stayed

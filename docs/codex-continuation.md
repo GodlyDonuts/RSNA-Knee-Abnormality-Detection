@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September30 rank64 tenth epoch privately preserved:**
+Job865578 completed all2810 scheduled training updates and produced immutable
+E10; all4 private objects were fully re-downloaded/size/SHA verified at
+`4b81ebc1b9fd099287247cc72061be1a620d02a2`, checkpoint SHA
+`0f1a410916b6f9c6bc8bd7dc9d9cfe84a86e5dc1075bc615c2454fa0fb622615`.
+All rank64 E1–E10 are now preserved; never repeat them. The7 exact E10 audit
+files are in the rank64 production epoch-publication audit. At21:45:28UTC no
+final result.json existed yet; final held-out evaluation/terminal review remains
+outstanding. Whole-series job865357 was still in E10 without its E10 sidecar.
+Submission56711823 still had null status/score/error at21:45:09UTC. No new
+Kaggle score or final rank64 AUC is claimed.
+
 **September30 original-DICOM shard worker locally validated:**
 Source GitHub main `36eedd6` is privately mirrored at HF revision
 `a69d588da7bced8224b5340b38696da07a4ce210`, with all7 source/evidence objects
