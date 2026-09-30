@@ -6,6 +6,52 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, rank-64 pilot staged, publisher ready and two new epochs preserved:**
+See `initiative/audits/dinov3-rank64-stage-native-profile-v1/`. The five rank-64
+pilot files are staged/hash verified at
+`/home/sa305415/rsna-knee/rank-capacity-a64-c9-pilot-v1`; **no GPU dispatch**
+or Slurm identity exists. Do not repeat staging. Both existing GPU jobs remain
+healthy: primary **865263** entered epoch **9**, and whole-series control
+**865357** entered epoch **4**. Primary completed epoch **8 / 3,408 updates**,
+fully privately verified at **c67c658406524986fa38076f47122905e7961247**;
+control epoch **3 / 843 updates** is fully privately verified at
+**a5e39b7332a8d0bd5be06e474fcea6219e90c421**. Never repeat primary 1–8 or
+control 1–3 publications. Retention **865438** removed only the verified
+redundant primary epoch-8 full file; active recovery/sidecar/private bytes remain.
+
+The new separate rank-64 sampled epoch publisher/coordinator reject wrong
+scientific roles and bind all 120 sites, 20,447,232 encoder adapter parameters,
+unchanged official base and the exact accepted sampled recipe. **1,192 tests**,
+Ruff/format and mypy 38 modules pass. Production script/file map are prepared
+only, neither staged nor dispatched. After a genuinely free GPU slot and fresh
+quota/source checks, dispatch the existing staged pilot once; actual gradients,
+full/delta/stop/resume equivalence and MRI reload must pass before production.
+Do not queue a third node. Rank-64 production additionally needs storage:
+fresh projected reserve is **23.017225 GiB / 7,197 files**, including four
+remaining maximum primary full inodes, current deployments and bounded rank-64
+diagnostic. Additional rank-64 production would leave **17.008656 GiB**, so its
+budget is not accepted. Never credit hypothetical cleanup.
+
+Native metadata profiling covers **18,906 development model series**; **95.0439%**
+have original first/last matrices larger than 256 in both axes. It reads only
+UIDs, split and masks, with no targets/reports/gold/confirmation labels. The
+profile/limitations and separate controlled native-detail plan are in
+`initiative/experiments/competitive-v1/native-resolution-profile-v1/`.
+Stokes authentication succeeds, but its home uses the same Lustre quota;
+no separate storage or native-cache launch is established. Upsampling the
+256 cache is not a native-detail experiment. Higher matrices do not prove a
+cause of the public score gap.
+
+The latest actual competition score remains **0.769 / 56697342**. The owner
+permits useful checkpoints; choose genuine comparisons after exact production
+offline/runtime and fresh account gates rather than filling quota. All-data
+fixed final epoch 10 is the next planned candidate. No competition mutation
+occurred for the staging/publication milestone. The private six-MRI T4 full/delta
+restoration acceptance remains valid; it does not establish hidden-scale runtime
+for a new production candidate. Keep this goal active until actual competitive
+results; old preparation-only statements below are historical.
+
+
 **September 30, verified terminal/capacity milestone synchronized:** GitHub main
 **2c36db36e2e4ed578656f01263c7399bf14f16a2** records private T4 acceptance,
 matched capacity preparation, whole-series epoch 2 and all-data epoch 7.

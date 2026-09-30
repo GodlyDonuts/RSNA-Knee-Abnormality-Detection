@@ -1,0 +1,39 @@
+import json
+import subprocess
+import time
+from pathlib import Path
+
+base = Path('/home/sa305415/rsna-knee')
+quota = subprocess.check_output(['lfs', 'quota', '-u', 'sa305415', '/home/sa305415'], text=True)
+parts = quota.splitlines()[-1].split()
+used, soft, files, file_soft = [int(parts[i]) for i in (1, 2, 5, 6)]
+runs = []
+for name, job in [
+    ('dinov3-l16-adapter-a32-all-8911f90-production-v1', '865263'),
+    ('dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1', '865357'),
+]:
+    log = next((base/'logs').glob('*'+job+'.out'))
+    updates = [json.loads(line) for line in log.read_text().splitlines() if line.startswith('{') and 'optimizer_steps' in line]
+    runs.append({'job_id': job, 'run': name, 'latest_optimizer': updates[-1], 'stderr_bytes': next((base/'logs').glob('*'+job+'.err')).stat().st_size})
+future = {
+    'primary_full_inodes': 4*1338164780,
+    'primary_final_bundle_and_zip': 2*1338706190,
+    'control_delta_and_live_atomic': 12*128*1024**2,
+    'control_bundle_and_zip': 2*1340000000,
+    'metadata_and_source': 132*1024**2,
+}
+projected = (soft-used)*1024-sum(future.values())
+assert projected >= 20*1024**3 and file_soft-files >= 5000
+storage = {
+    'actual_used_kbytes': used,
+    'soft_quota_kbytes': soft,
+    'actual_files': files,
+    'soft_file_quota': file_soft,
+    'future_bytes_budget': future,
+    'projected_remaining_bytes': projected,
+    'projected_remaining_gib': projected/1024**3,
+    'remaining_files_before_small_future_outputs': file_soft-files,
+    'existing_diagnostic_archives_already_in_actual_usage': True,
+    'no_new_large_diagnostic_payload': True,
+}
+print(json.dumps({'checked_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'training': runs, 'slurm': subprocess.check_output(['squeue', '-u', 'sa305415', '-o', '%.18i %.35j %.8T %.10M %.6D %R'], text=True), 'storage': storage}))

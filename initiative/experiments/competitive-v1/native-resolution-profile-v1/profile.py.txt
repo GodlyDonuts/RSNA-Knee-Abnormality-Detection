@@ -1,0 +1,132 @@
+"""Read accepted development membership and original endpoint matrix metadata only."""
+
+import argparse
+import gzip
+import hashlib
+import json
+from collections import Counter, defaultdict
+from pathlib import Path
+
+import pandas as pd
+
+from rsna.schema import TARGETS
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def run():
+    root = Path.cwd()
+    header_root = root / "initiative/audits/header-endpoint-full-v1"
+    headers = header_root / "endpoint-headers.jsonl.gz"
+    manifest = json.loads((header_root / "manifest.json").read_text())
+    compression = json.loads((header_root / "root-verification.json").read_text())[
+        "archive_compression"
+    ]
+    assert sha(headers) == compression["sha256"]
+    studies = root / "initiative/releases/report-supervision-v1/studies.parquet"
+    series = root / "initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv"
+    assert sha(studies) == "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7"
+    assert sha(series) == "14eb050d081abe9fce638f5dcfb2cedc688fdac5ace9a62bf9b1cf152421eada"
+    # Read masks only for the training partition. No report, target values,
+    # confirmation labels or gold labels are read by this analysis.
+    masks = [target + "__mask" for target in TARGETS]
+    frame = pd.read_parquet(
+        studies, columns=["study_uid", "split", *masks], filters=[("split", "==", "train")]
+    )
+    assert len(frame) == 3904 and set(frame.split) == {"train"}
+    uids = set(frame.loc[frame[masks].any(axis=1), "study_uid"])
+    assert len(uids) == 3403
+    table = pd.read_csv(series, usecols=["StudyInstanceUID", "SeriesInstanceUID"])
+    table = table.loc[table.StudyInstanceUID.isin(uids)]
+    expected = set(table.itertuples(index=False, name=None))
+    assert len(expected) == len(table) and set(table.StudyInstanceUID) == uids
+    digest = hashlib.sha256()
+    total = 0
+    sizes = Counter()
+    grouped = defaultdict(list)
+    with gzip.open(headers, "rb") as stream:
+        for line in stream:
+            digest.update(line)
+            total += 1
+            row = json.loads(line)
+            key = row["study_uid"], row["series_uid"]
+            if key not in expected:
+                continue
+            fields = row["header_fields"]
+            raw = [fields["Rows"], fields["Columns"]]
+            assert all(
+                type(value) is int
+                or (isinstance(value, str) and value.isascii() and value.isdecimal())
+                for value in raw
+            )
+            rows, columns = map(int, raw)
+            assert min(rows, columns) > 0
+            assert row["reached_pixel_data_header"] is True
+            sizes[(rows, columns)] += 1
+            grouped[key].append((rows, columns))
+    assert digest.hexdigest() == compression["uncompressed_sha256"]
+    assert total == manifest["n_endpoints"] == 48772
+    assert set(grouped) == expected
+    assert all(len(values) == 2 for values in grouped.values())
+    agreements = {key: values[0] for key, values in grouped.items() if values[0] == values[1]}
+    series_sizes = Counter(agreements.values())
+    endpoint_count = sum(sizes.values())
+    larger = sum(count for (rows, columns), count in sizes.items() if max(rows, columns) > 256)
+    both_larger = sum(
+        count for (rows, columns), count in sizes.items() if min(rows, columns) > 256
+    )
+    result = {
+        "schema_version": 1,
+        "status": "accepted_development_original_endpoint_matrix_profile_verified",
+        "studies": len(uids),
+        "accepted_model_series": len(expected),
+        "profiled_endpoints": endpoint_count,
+        "total_archived_endpoints_rehashed": total,
+        "matching_first_last_dimensions_series": len(agreements),
+        "differing_first_last_dimensions_series": len(expected) - len(agreements),
+        "endpoints_larger_than_256_in_at_least_one_axis": larger,
+        "endpoints_larger_than_256_in_both_axes": both_larger,
+        "fraction_endpoints_larger_than_256_in_at_least_one_axis": larger / endpoint_count,
+        "fraction_endpoints_larger_than_256_in_both_axes": both_larger / endpoint_count,
+        "current_cache_side": 256,
+        "current_adapter_input_side": 224,
+        "matrix_counts_by_endpoint": {
+            f"{rows}x{columns}": count for (rows, columns), count in sorted(sizes.items())
+        },
+        "matrix_counts_by_series_with_endpoint_agreement": {
+            f"{rows}x{columns}": count for (rows, columns), count in sorted(series_sizes.items())
+        },
+        "gold_labels_read": False,
+        "reserved_confirmation_labels_read": False,
+        "target_values_or_reports_read": False,
+        "pixels_decoded_or_diagnostically_reviewed": False,
+        "full_slice_header_coverage": False,
+        "source_header_revision": manifest["source_revision"],
+        "accepted_source_revision": "0b5e410288232f570c69ba4f44723356e6ae6ab7",
+        "header_archive_sha256": sha(headers),
+        "header_uncompressed_sha256": digest.hexdigest(),
+        "accepted_studies_sha256": sha(studies),
+        "accepted_series_sha256": sha(series),
+        "limitations": [
+            "Original archived first/last SOP headers, not every source slice.",
+            "Header revision predates the two official encoding recoveries; new native-cache rebuild must verify current original bytes and geometry.",
+            "Larger matrices do not establish acquisition resolution, lesion visibility or a cause of the Kaggle score gap.",
+            "Upsampling the existing 256 cache cannot restore native information; higher-detail experiments require original DICOM decoding.",
+        ],
+        "training_data_or_masks_changed": False,
+        "native_training_dispatched": False,
+    }
+    return result
+
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--output", type=Path)
+args = parser.parse_args()
+result = run()
+if args.output:
+    with args.output.open("x") as handle:
+        json.dump(result, handle, sort_keys=True, indent=2)
+        handle.write("\n")
+print(json.dumps(result, sort_keys=True))

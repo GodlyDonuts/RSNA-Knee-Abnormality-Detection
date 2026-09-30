@@ -1,0 +1,61 @@
+{
+  "checked_at": "2026-09-30T12:35:12Z",
+  "rank64_production_additional_gib": {
+    "delta_snapshots_live_atomic": 3221225472,
+    "deployment_bundle_and_zip": 3096208256,
+    "source_receipts_metadata": 134217728
+  },
+  "rank64_production_budget_accepted": false,
+  "slurm": "             JOBID                                NAME    STATE       TIME  NODES NODELIST(REASON)\n            865357           rsna-whole-series-control  RUNNING    4:41:27      1 evc28\n            865263            rsna-a32-all-development  RUNNING    8:09:34      1 evc31\n",
+  "storage": {
+    "actual_files": 992803,
+    "actual_used_kbytes": 1012011456,
+    "existing_diagnostic_archives_already_in_actual_usage": true,
+    "future_bytes_budget": {
+      "control_bundle_and_zip": 2680000000,
+      "control_delta_and_live_atomic": 1610612736,
+      "metadata_and_source": 138412032,
+      "primary_final_bundle_and_zip": 2677412380,
+      "primary_full_inodes": 6690823900
+    },
+    "no_new_large_diagnostic_payload": true,
+    "projected_remaining_bytes": 23376396552,
+    "projected_remaining_gib": 21.770965822041035,
+    "rank64_diagnostic_additional_budget": 268435456,
+    "remaining_files_before_small_future_outputs": 7197,
+    "soft_file_quota": 1000000,
+    "soft_quota_kbytes": 1048576000
+  },
+  "training": [
+    {
+      "job_id": "865263",
+      "latest_optimizer": {
+        "elapsed_seconds": 29010.621067153057,
+        "epoch": 8,
+        "gradient_norm": 0.5326753854751587,
+        "loss": 0.055012296885252,
+        "observed_cells": 55.0,
+        "optimizer_steps": 3463,
+        "peak_gpu_allocated_bytes": 3757546496,
+        "update": 55
+      },
+      "run": "dinov3-l16-adapter-a32-all-8911f90-production-v1",
+      "stderr_bytes": 0
+    },
+    {
+      "job_id": "865357",
+      "latest_optimizer": {
+        "elapsed_seconds": 16501.090485061053,
+        "epoch": 3,
+        "gradient_norm": 0.40307897329330444,
+        "loss": 0.13372951745986938,
+        "observed_cells": 44.0,
+        "optimizer_steps": 882,
+        "peak_gpu_allocated_bytes": 15837182464,
+        "update": 39
+      },
+      "run": "dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1",
+      "stderr_bytes": 0
+    }
+  ]
+}

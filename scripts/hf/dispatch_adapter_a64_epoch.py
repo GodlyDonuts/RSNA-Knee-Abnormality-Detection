@@ -1,0 +1,234 @@
+"""Stream one local HF credential to a CPU-only Newton epoch publisher.
+
+An intent makes an uncertain dispatch terminal until its remote state is
+reconciled read-only. This command never retries an epoch upload.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import shlex
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+from huggingface_hub import HfApi
+
+ROOT = Path(__file__).resolve().parents[2]
+REMOTE = "/home/sa305415/rsna-knee"
+HOST = "sa305415@newton.ist.ucf.edu"
+CONTROL = f"{REMOTE}/production-launch-adapter-a64-sampled-c9fcc7e-v1"
+RUN = f"{REMOTE}/runs/dinov3-l16-adapter-a64-sampled-fold0-c9fcc7e-production-v1"
+CODE = f"{REMOTE}/code-delta-recovery-c9fcc7e"
+SCRIPT = f"{CONTROL}/publish_adapter_a64_epoch.py"
+PYTHON = f"{REMOTE}/hf-epoch-publisher-v1/env-cp312/bin/python"
+LICENSE = f"{REMOTE}/encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md"
+JOURNAL = f"{CONTROL}/epoch-publication"
+PREFIX = "experiments/dinov3-v1/training-epochs/adapter-a64-sampled-fold0-c9fcc7e-seed20260922"
+REPO = "GodlyDonuts/RSNA-Data"
+PUBLISHER_SHA = "ca430ec5df834c0dfc2744f24c54ff853eb5a86713ce2aa5738aadfbb5cb740c"
+
+
+def sha(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(4 * 1024**2), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def save_new(path: Path, value: dict) -> None:
+    with path.open("x") as stream:
+        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def credential() -> str:
+    env = ROOT / ".env"
+    if env.stat().st_mode & 0o077:
+        raise ValueError("Local credential file must be private")
+    values = {}
+    for line in env.read_text().splitlines():
+        if "=" in line and not line.lstrip().startswith("#"):
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip().strip('"').strip("'")
+    token = values.get("HF_TOKEN", "")
+    if not token.startswith("hf_"):
+        raise ValueError("Hugging Face token unavailable")
+    return token
+
+
+def ssh(socket: Path, remote_args: list[str], *, timeout: int = 30) -> str:
+    command = [
+        "ssh",
+        "-S",
+        str(socket),
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=8",
+        HOST,
+        shlex.join(remote_args),
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    if result.returncode:
+        raise ValueError(f"Read-only Newton precheck failed: {result.returncode}")
+    return result.stdout.strip()
+
+
+def inspect_snapshot(socket: Path, epoch: int) -> dict:
+    code = """
+import hashlib,importlib.util,json,sys
+from pathlib import Path
+sidecar,run,source,license_file,publisher=map(Path,sys.argv[1:])
+spec=importlib.util.spec_from_file_location('rank64_epoch_precheck',publisher)
+module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+manifest,files=module.source_files(sidecar,run,license_file,source)
+print(json.dumps({'sidecar_sha256':hashlib.sha256(sidecar.read_bytes()).hexdigest(),
+                  'checkpoint_sha256':manifest['checkpoint_sha256'],
+                  'checkpoint_bytes':manifest['checkpoint_bytes'],
+                  'epoch':manifest['epoch']}))
+"""
+    sidecar = f"{RUN}/epoch-checkpoints/epoch-{epoch:03d}.json"
+    output = ssh(
+        socket, [PYTHON, "-B", "-c", code, sidecar, RUN, CODE, LICENSE, SCRIPT], timeout=60
+    )
+    snapshot = json.loads(output)
+    if snapshot.get("epoch") != epoch:
+        raise ValueError("The validated snapshot is from a different epoch")
+    return snapshot
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("epoch", type=int)
+    parser.add_argument("--ssh-control", type=Path, required=True)
+    args = parser.parse_args()
+    if args.epoch not in range(1, 11) or not args.ssh_control.is_socket():
+        raise ValueError("Completed epoch 1-10 and active SSH control socket required")
+    if sha(ROOT / "scripts/hf/publish_adapter_a64_epoch.py") != PUBLISHER_SHA:
+        raise ValueError("Reviewed publisher source changed")
+    if ssh(args.ssh_control, ["sha256sum", SCRIPT]).split()[0] != PUBLISHER_SHA:
+        raise ValueError("Staged Newton publisher changed")
+    if ssh(args.ssh_control, ["git", "-C", CODE, "rev-parse", "HEAD"]) != (
+        "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab"
+    ):
+        raise ValueError("Training source changed")
+    epoch = args.epoch
+    snapshot = inspect_snapshot(args.ssh_control, epoch)
+    folder = ROOT / "artifacts/hf-adapter-a64-epochs-v1"
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    intent = folder / f"epoch-{epoch:03d}-dispatch-intent.json"
+    result_path = folder / f"epoch-{epoch:03d}-dispatch-result.json"
+    if intent.exists() or result_path.exists():
+        raise ValueError("Epoch dispatch already attempted; reconcile read-only")
+    journal_exists = ssh(
+        args.ssh_control,
+        [
+            "/usr/bin/python3.12",
+            "-c",
+            "from pathlib import Path; import sys; print(int(Path(sys.argv[1]).exists()))",
+            f"{JOURNAL}/epoch-{epoch:03d}",
+        ],
+        timeout=20,
+    )
+    if journal_exists == "1":
+        raise ValueError("Remote publication journal already exists")
+    token = credential()
+    api = HfApi(token=token)
+    if api.repo_info(REPO, repo_type="dataset").private is not True:
+        raise ValueError("Hugging Face dataset is not private")
+    prefix = f"{PREFIX}/epoch-{epoch:03d}"
+    paths = [
+        f"{prefix}/{name}"
+        for name in ("checkpoint.pt", "snapshot.json", "DINOv3-LICENSE.md", "manifest.json")
+    ]
+    if list(api.get_paths_info(REPO, paths=paths, repo_type="dataset")):
+        raise ValueError("Private epoch path already exists")
+    save_new(
+        intent,
+        {
+            "schema_version": 1,
+            "status": "single_cpu_publication_dispatch_intent",
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "epoch": epoch,
+            "publisher_sha256": PUBLISHER_SHA,
+            "snapshot": snapshot,
+            "repo_id": REPO,
+            "prefix": prefix,
+            "cpus": 1,
+            "gpus": 0,
+            "credential_transport": "local_ignored_env_to_ssh_stdin_to_srun_stdin_only",
+        },
+    )
+    publisher = [
+        PYTHON,
+        SCRIPT,
+        "publish",
+        "--snapshot",
+        f"{RUN}/epoch-checkpoints/epoch-{epoch:03d}.json",
+        "--run",
+        RUN,
+        "--license-file",
+        LICENSE,
+        "--journal",
+        JOURNAL,
+        "--code-root",
+        CODE,
+    ]
+    shell = (
+        "set -euo pipefail; cache=$(mktemp -d /tmp/rsna-adapter-epoch.XXXXXXXX); "
+        'trap \'rm -rf "$cache"\' EXIT; export HF_HOME="$cache" '
+        "HF_HUB_DISABLE_PROGRESS_BARS=1 PYTHONDONTWRITEBYTECODE=1; " + shlex.join(publisher)
+    )
+    remote = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--nodes=1",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--mem=8G",
+        "--time=01:30:00",
+        "/bin/bash",
+        "-c",
+        shell,
+    ]
+    command = [
+        "ssh",
+        "-S",
+        str(args.ssh_control),
+        "-o",
+        "BatchMode=yes",
+        HOST,
+        shlex.join(remote),
+    ]
+    outcome = subprocess.run(
+        command, input=json.dumps({"token": token}), capture_output=True, text=True, timeout=6000
+    )
+    secret_pattern = re.compile(r"hf_[A-Za-z0-9]{10,}")
+    public = {
+        "schema_version": 1,
+        "status": "cpu_publication_returned"
+        if outcome.returncode == 0
+        else "publication_uncertain_or_failed",
+        "epoch": epoch,
+        "remote_exit": outcome.returncode,
+        "stdout_tail": secret_pattern.sub("[redacted]", outcome.stdout[-2500:]),
+        "stderr_tail": secret_pattern.sub("[redacted]", outcome.stderr[-1200:]),
+        "completed_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    save_new(result_path, public)
+    print(json.dumps(public, sort_keys=True))
+    if outcome.returncode:
+        raise SystemExit(outcome.returncode)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,34 @@
+import base64,hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+request=json.load(sys.stdin);base=Path('/home/sa305415/rsna-knee');control=Path(request['control']);code=base/'code-delta-recovery-c9fcc7e'
+assert control.name=='rank-capacity-a64-c9-pilot-v1' and control.parent.resolve()==base.resolve() and not control.exists()
+assert subprocess.check_output(['git','-C',str(code),'rev-parse','HEAD'],text=True).strip()==request['scientific_source_git']=='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+actual={str(p.relative_to(code/'rsna')):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((code/'rsna').rglob('*.py'))}
+assert actual==request['expected_code_sha256']
+for name,row in request['inputs'].items():
+ p=Path(name);assert p.is_file() and p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+assets={
+ 'cache_archive':base/'cache/cache256-v3-official-recovery-v1.tar',
+ 'environment_archive':base/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar',
+ 'weights':base/'encoder-stage/artifacts/encoder-weights/dinov3-large/model.safetensors',
+ 'config':base/'encoder-stage/configs/competitive/weights/dinov3-large.config.json',
+ 'license':base/'encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md'}
+for p in assets.values():assert p.is_file()
+assert assets['weights'].stat().st_size==1212559808
+assert hashlib.sha256(assets['config'].read_bytes()).hexdigest()=='135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5'
+assert hashlib.sha256(assets['license'].read_bytes()).hexdigest()=='25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e'
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);parts=quota.splitlines()[-1].split();used,soft,nfiles,file_soft=[int(parts[i]) for i in (1,2,5,6)]
+future={'primary_full_inodes':5*1338164780,'primary_final_bundle_and_zip':2*1338706190,'control_delta_live_atomic':12*128*1024**2,'control_bundle_and_zip':2*1340000000,'metadata':132*1024**2,'rank64_preserved_diagnostic':256*1024**2,'rank64_staged_files':sum(x['bytes'] for x in request['files'].values())+65536}
+projected=(soft-used)*1024-sum(future.values());assert projected>=20*1024**3 and file_soft-nfiles-7>=5000
+slurm=subprocess.check_output(['squeue','--noheader','-u','sa305415','-o','%i|%T|%b|%N'],text=True);gpu_rows=[line for line in slurm.splitlines() if 'gpu' in line.split('|')[2]];assert len(gpu_rows)<=2
+record={'schema_version':1,'status':'cpu_stage_prerequisites_verified_no_gpu_dispatch','checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'source_git':request['source_git'],'scientific_source_git':request['scientific_source_git'],'control':str(control),'files':{k:{z:x[z] for z in ('bytes','sha256')} for k,x in request['files'].items()},'accepted_data_files_verified':request['inputs'],'all_scientific_code_bytes_verified':True,'assets_present_and_sizes':{k:p.stat().st_size for k,p in assets.items()},'large_archives_and_weight_bytes_reverify_inside_allocated_pilot':True,'projected_remaining_gib':projected/1024**3,'future_budget':future,'projected_remaining_files':file_soft-nfiles-7,'live_gpu_jobs':gpu_rows,'gpu_job_reserved':False,'slurm_job_id':None}
+control.mkdir(mode=0o700)
+for name,row in request['files'].items():
+ assert Path(name).name==name
+ data=base64.b64decode(row['data'],validate=True);assert len(data)==row['bytes'] and hashlib.sha256(data).hexdigest()==row['sha256']
+ with (control/name).open('xb') as f:f.write(data);f.flush();os.fsync(f.fileno())
+ assert hashlib.sha256((control/name).read_bytes()).hexdigest()==row['sha256']
+subprocess.run(['/bin/bash','-n',str(control/'pilot.sbatch')],check=True)
+with (control/'stage-receipt.json').open('x') as f:json.dump(record,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+record['status']='rank64_pilot_bytes_staged_verified_no_gpu_dispatch'
+print(json.dumps(record))

@@ -13,17 +13,17 @@ Production output: `/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-all-891
 
 ## Membership and interpretation
 
-Latest preservation: completed **epoch 6 / 2,556 updates** has all four private
+Latest preservation: completed **epoch 8 / 3,408 updates** has all four private
 objects fully re-downloaded/size/SHA verified at HF
-**ce416ddf72340078acbea63934b2a90375171e10**, checkpoint SHA
-`6162d0c3e7164862ddc64dd5a0ccece60944e7b35ca73cee61c073491a7fd6e1`.
-Epochs 1–6 are preserved; never repeat their publication. CPU retention **865400**
-removed only the redundant epoch-006.pt after exact local hash/private proof,
+**c67c658406524986fa38076f47122905e7961247**, checkpoint SHA
+`6f04f07ab9d1c1a9bcca9061b75dd222caefccb71a9d5071489cd3ff5137a597`.
+Epochs 1–8 are preserved; never repeat their publication. CPU retention **865438**
+removed only the redundant epoch-008.pt after exact local hash/private proof,
 retaining active recovery, sidecar and private bytes. Its former link count was
 one and 1,338,164,780 shared bytes were freed. Fresh projected reserve is
-21.008990 GiB with six remaining maximum full inodes and both production
-deployment pairs budgeted. Latest real optimizer update 2,630 is in epoch 7;
-stderr remains empty. No internal holdout metric exists for this final fit.
+23.017225 GiB with four remaining maximum full inodes, both production
+pairs and the bounded rank-64 diagnostic budget. Latest real update 3,469 is in
+epoch 9; stderr remains empty. No internal holdout metric exists for this fit.
 
 `fit_scope=all_development` selects the same accepted training split with at
 least one observed target: 3,403 studies. It retains the original target masks,

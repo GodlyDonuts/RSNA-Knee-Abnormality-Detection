@@ -1,6 +1,7 @@
 # Solo DINOv3 rank-capacity comparison
 
-Rank-64 sampled-input recipes and a bounded recovery pilot are prepared. **No
+Rank-64 sampled-input recipes are prepared; the bounded recovery pilot files
+are CPU-staged and hash verified on Newton. **No
 GPU job has been reserved or dispatched.** The completed rank-32 reference
 scored 0.8620940794 internal macro AUC on 1,156 development studies and 0.769
 on Kaggle. Rank 64 has no training or accuracy result yet.
@@ -59,16 +60,32 @@ must learn, all official base tensors must remain unchanged, and a strict
 real-MRI reload must pass. Its tiny predictions are engineering evidence only;
 the preserved diagnostic is never competition eligible.
 
-`pilot-files.json` binds the exact configs, script and verifier source. Actual
-staging must check those bytes, the complete cache/environment/data bindings,
-live jobs and projected byte/file quota **before** a single dispatch intent.
+`pilot-files.json` binds the exact configs, script and verifier source. CPU staging on September 30 verified all five files, scientific code and
+accepted data/fold/cache-index bytes at the unique control path. The exact
+receipt is in `initiative/audits/dinov3-rank64-stage-native-profile-v1/`. Large
+weights/environment/cache archive bytes are reverified inside the allocation.
+Recheck the staged bytes, live jobs and projected quota before a single dispatch
+intent; do not repeat staging into this existing directory.
 The script also checks its bound inputs inside the allocation. Both current
 Newton GPU slots are occupied; do not queue this as a third node. Use a newly
 available slot only after authoritative terminal job review and fresh storage
 acceptance. Do not reuse output paths or retry uncertain dispatches.
 
-Production also needs a role-bound private publisher and a fresh storage plan
-covering ten rank-64 delta snapshots, live/atomic writes and deployment copies.
+A separate role-bound private publisher and single coordinator are now
+implemented: `scripts/hf/publish_adapter_a64_epoch.py` and
+`scripts/hf/dispatch_adapter_a64_epoch.py`. Twenty focused tests check the actual
+factory provenance and reject wrong-rank, whole-series, all-data, diagnostic,
+source, membership, runtime and schedule payloads. Full QA passes 1,192 tests.
+Every production epoch must satisfy the exact recipe before its private
+publication intent; original rank-32 publishers remain byte unchanged.
+
+`production-prepared.sbatch.txt` and `production-files.json` bind the exact
+one-H100/two-CPU/32-GiB ten-epoch recipe and publisher. They are not staged or
+dispatched. Its guard requires the actual rank-64 pilot recovery receipt,
+terminal 0:0 dispatch acceptance and budget proof. The additional conservative
+6.008569-GiB budget for ten delta snapshots, live/atomic writes and deployment
+copies is **not accepted** against the current quota. A fresh budget must
+preserve 20 GiB and 5,000 files; do not credit future cleanup.
 The current rank-32 publisher must not be reused for a rank-64 payload. The
 prepared ten-epoch config is not a launched training run. Every completed
 production epoch must later be privately uploaded once and fully download/hash

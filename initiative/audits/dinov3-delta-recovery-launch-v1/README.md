@@ -28,6 +28,16 @@ packaging rejects schema 2 until separate offline deployment acceptance.
 
 ## Full held-out control is running
 
+Latest completed **epoch 3 / 843 updates** has all four private objects fully
+re-downloaded/size/SHA verified at HF
+**a5e39b7332a8d0bd5be06e474fcea6219e90c421**. Epochs 1–3 are preserved;
+never repeat them. At 12:35 UTC the job was finite in epoch 4 at 884 updates,
+with empty stderr. The fixed-final held-out result remains outstanding.
+Separate six-MRI private T4 full/delta restoration acceptance has since passed;
+see the deployment audit. Each production candidate still needs its own
+source-bound offline and hidden-scale runtime checks.
+
+
 Full production **865357 RUNNING on evc28**, one H100/two CPUs/64 GiB RAM,
 48-hour bound, was dispatched ONCE after exact recovery and private preservation.
 Allocated driver, actual CUDA context and full cache/source/environment preflight
