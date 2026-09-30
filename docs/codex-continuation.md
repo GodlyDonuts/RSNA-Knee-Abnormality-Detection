@@ -7,6 +7,10 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 ## Current local release: September 23
 
 **September30 authoritative scored result and native recovery:**
+Source/result/receipt milestone GitHub main `a1443be` is privately mirrored at
+HF revision `00f183c20de54d95a4c14b70ba56d3f609d2ade7`; all43 small objects
+were fully re-downloaded/size/SHA verified. Journals are in
+`initiative/audits/hf-sep30-score-rank64-native-v1/`. Do not repeat this mirror.
 At22:19UTC authenticated Kaggle marked all-development A32 E10 submission
 **56711823 COMPLETE, score0.792, no error,264173 output bytes**. At22:22UTC
 CPU-only coordinator866174 reconciled its exact identity in the single canonical
