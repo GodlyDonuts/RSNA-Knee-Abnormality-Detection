@@ -75,3 +75,8 @@ Use the archived `read_probe.py.txt` / owned local helper to inspect the actual
 returned identity read-only. Only successful exact terminal acceptance permits
 the separate whole-series deployment route. This probe remains ineligible for
 competition, and no new submission slot has been consumed.
+
+The separately verified small source/epoch-4/launch milestone is private HF
+`1d05f5604c863aede26f22dd5338239245283675`, all 102 objects fully re-downloaded
+and size/SHA checked, bound to GitHub main `360c99b`. This mirror does not
+represent successful T4 terminal acceptance or a competitive accuracy result.

@@ -6,6 +6,13 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, verified deployment source/receipt mirror:** GitHub main
+`360c99b` records the actual private T4 diagnostic dispatch and title-derived
+identity reconciliation. The small source/epoch-4/launch milestone is privately
+mirrored at HF **1d05f5604c863aede26f22dd5338239245283675**; all 102 objects
+passed full re-download/size/SHA verification. Do not repeat this publication.
+Terminal private T4 acceptance and production accuracy are still separate gates.
+
 **September 30, private offline original-base delta diagnostic launched:** CPU
 865374 completed 0:0 and verified the source/base contract. Private Dataset
 `godlydonuts/rsna-delta-base-probe-5d1b3b562160` ID 12287425 v1 was created once;
