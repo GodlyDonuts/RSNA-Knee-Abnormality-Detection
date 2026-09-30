@@ -316,7 +316,9 @@ def test_diagnostic_reference_requires_identical_finite_mri_probabilities(tmp_pa
             probe.compare_outputs(delta, full)
 
 
-@pytest.mark.parametrize("change", [None, "normalization", "backbone_count"])
+@pytest.mark.parametrize(
+    "change", [None, "normalization", "backbone_count", "low_space", "existing"]
+)
 def test_expanded_probe_binds_official_tensors_and_gray_normalization_buffers(
     tmp_path, monkeypatch, change
 ):
@@ -342,7 +344,8 @@ def test_expanded_probe_binds_official_tensors_and_gray_normalization_buffers(
         return encoder, 8, copy.deepcopy(provenance)
 
     monkeypatch.setattr(probe, "create_encoder", create)
-    monkeypatch.setattr(probe.shutil, "disk_usage", lambda _: Namespace(free=24 * 1024**3))
+    available = (3 if change == "low_space" else 6) * 1024**3
+    monkeypatch.setattr(probe.shutil, "disk_usage", lambda _: Namespace(free=available))
     encoder, dimension, _ = create(None)
     configure_encoder_training(encoder, True)
     model = CompetitiveStudyNet(encoder, dimension, hidden_dim=8, slice_context="neighbor3")
@@ -362,21 +365,89 @@ def test_expanded_probe_binds_official_tensors_and_gray_normalization_buffers(
         state["model_storage"]["frozen_tensors"]["encoder.mean"]["sha256"] = "f" * 64
     torch.save(state, original.checkpoint)
     output = tmp_path / "probe-expanded.pt"
+    if change == "existing":
+        output.write_bytes(b"prior reference is never replaced")
     if change is not None:
-        with pytest.raises(ValueError, match="frozen base|partition differs"):
+        with pytest.raises(
+            ValueError, match="frozen base|partition differs|workload budget|must be new"
+        ):
             probe.expanded_reference(original.checkpoint, original.encoder_spec, output)
-        assert not output.exists()
+        if change == "existing":
+            assert output.read_bytes() == b"prior reference is never replaced"
+        else:
+            assert not output.exists()
         return
     result = probe.expanded_reference(original.checkpoint, original.encoder_spec, output)
-    assert result == {
+    assert {key: value for key, value in result.items() if key != "reference_scratch"} == {
         "frozen_base_tensors_verified": 415,
         "frozen_encoder_tensors_verified": 417,
         "normalization_buffers_verified": 2,
         "adapter_modules_verified": 120,
     }
+    budget = result["reference_scratch"]
+    assert output.stat().st_size <= budget["reference_upper_bound_bytes"]
+    assert budget["free_before_reference_bytes"] == available < 22 * 1024**3
+    assert budget["required_free_bytes"] <= available
     expanded = torch.load(output, weights_only=True)
     assert expanded["schema_version"] == 1 and "model_storage" not in expanded
     assert expanded["binding"]["config"]["checkpoint_format"] == "full"
     assert expanded["model"].keys() == model.state_dict().keys()
     for name, tensor in model.state_dict().items():
         assert torch.equal(tensor, expanded["model"][name])
+
+
+@pytest.mark.parametrize("change", [None, "helper_hash", "chunked_bytes", "eligible"])
+def test_private_probe_source_override_reuses_verified_base_without_modifying_dataset(
+    tmp_path, change
+):
+    import hashlib
+
+    entry, bundle, working, manifest = notebook_fixture(tmp_path)
+    manifest.update(diagnostic_only=True, competition_submission_eligible=change == "eligible")
+    code = bundle / "code"
+    code.mkdir()
+    chunked = code / "chunked_infer.py"
+    chunked.write_text("# pinned shared inference source\n")
+    (code / "delta_probe.py").write_text("# preserved old private probe\n")
+    manifest["files"]["code/chunked_infer.py"] = {
+        "bytes": chunked.stat().st_size,
+        "sha256": entry.sha256(chunked),
+    }
+    source = "# corrected private engineering probe\n"
+    digest = hashlib.sha256(source.encode()).hexdigest()
+    if change == "helper_hash":
+        digest = "f" * 64
+    if change == "chunked_bytes":
+        chunked.write_text("# unbound modified inference\n")
+    if change is not None:
+        with pytest.raises(ValueError, match="byte-bound|source differs|ineligible"):
+            entry.diagnostic_probe_command(
+                bundle,
+                working,
+                manifest,
+                tmp_path,
+                "python",
+                probe_source=source,
+                probe_source_sha256=digest,
+            )
+        assert not list(working.iterdir())
+        return
+    before = {p.relative_to(bundle): p.read_bytes() for p in bundle.rglob("*") if p.is_file()}
+    command = entry.diagnostic_probe_command(
+        bundle,
+        working,
+        manifest,
+        tmp_path,
+        "python",
+        probe_source=source,
+        probe_source_sha256=digest,
+    )
+    runtime = working / "delta-probe-runtime-code"
+    assert Path(command[1]) == runtime / "delta_probe.py"
+    assert (runtime / "delta_probe.py").read_text() == source
+    assert (runtime / "chunked_infer.py").read_bytes() == chunked.read_bytes()
+    assert command[command.index("--output") + 1] == str(working / "delta-diagnostic")
+    assert "submission.csv" not in command
+    assert {
+        p.relative_to(bundle): p.read_bytes() for p in bundle.rglob("*") if p.is_file()
+    } == before

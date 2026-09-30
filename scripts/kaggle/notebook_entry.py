@@ -122,7 +122,9 @@ def encoder_arguments(bundle, working, manifest):
     return ["--encoder-spec", str(runtime_spec)]
 
 
-def diagnostic_probe_command(bundle, working, manifest, competition, python):
+def diagnostic_probe_command(
+    bundle, working, manifest, competition, python, *, probe_source=None, probe_source_sha256=None
+):
     """Separate engineering execution from the competition output path."""
     if (
         manifest.get("diagnostic_only") is not True
@@ -130,12 +132,39 @@ def diagnostic_probe_command(bundle, working, manifest, competition, python):
         or manifest.get("checkpoint_format") != "frozen_base_delta"
     ):
         raise ValueError("Only an explicitly ineligible delta diagnostic can use this entry")
+    probe_path = bundle / "code/delta_probe.py"
+    if probe_source is not None or probe_source_sha256 is not None:
+        # A corrected private engineering wrapper can reuse immutable, fully
+        # verified base/delta inputs. Its exact source is part of the saved
+        # notebook, separately hashed, and never replaces mounted Dataset bytes.
+        if (
+            not isinstance(probe_source, str)
+            or len(probe_source.encode()) > 128 * 1024
+            or hashlib.sha256(probe_source.encode()).hexdigest() != probe_source_sha256
+        ):
+            raise ValueError("Diagnostic replacement source is not byte-bound")
+        chunked = bundle / "code/chunked_infer.py"
+        record = manifest["files"].get("code/chunked_infer.py", {})
+        if (
+            chunked.is_symlink()
+            or not chunked.is_file()
+            or not chunked.resolve().is_relative_to(bundle.resolve())
+            or sha256(chunked) != record.get("sha256")
+            or chunked.stat().st_size != record.get("bytes")
+        ):
+            raise ValueError("Diagnostic shared inference source differs")
+        runtime_code = working / "delta-probe-runtime-code"
+        runtime_code.mkdir(mode=0o700)
+        probe_path = runtime_code / "delta_probe.py"
+        with probe_path.open("x") as handle:
+            handle.write(probe_source)
+        shutil.copyfile(chunked, runtime_code / "chunked_infer.py")
     encoder = encoder_arguments(bundle, working, manifest)
     if encoder[0] != "--encoder-spec":
         raise ValueError("Diagnostic must load the pinned original base")
     return [
         str(python),
-        str(bundle / "code/delta_probe.py"),
+        str(probe_path),
         "--bundle",
         str(bundle),
         *encoder,
@@ -231,7 +260,15 @@ def run():
     if globals().get("DELTA_DIAGNOSTIC_PROBE") is True:
         competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
         subprocess.run(
-            diagnostic_probe_command(bundle, working, manifest, competition, python),
+            diagnostic_probe_command(
+                bundle,
+                working,
+                manifest,
+                competition,
+                python,
+                probe_source=globals().get("DELTA_DIAGNOSTIC_PROBE_SOURCE"),
+                probe_source_sha256=globals().get("DELTA_DIAGNOSTIC_PROBE_SOURCE_SHA256"),
+            ),
             env=env,
             check=True,
         )

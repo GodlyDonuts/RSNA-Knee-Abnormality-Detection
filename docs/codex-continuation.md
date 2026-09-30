@@ -6,6 +6,21 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, second private diagnostic failure isolated:** exact private
+`godlydonuts/rsna-delta-t4-fix2-5d1b3b562160` v1 ended ERROR in 615.4 seconds.
+Its visible terminal log shows the strict original-base and 417-entry partition
+checks passed; the disposable reference guard then required 22 GiB free and
+stopped before MRI inference. The actual free-space number was not logged.
+The known expanded reference is only 1,338,961,540 bytes. The corrected helper
+budgets measured full-state/delta-envelope bytes, 64 MiB metadata, a 1 GiB MRI
+chunk and 2 GiB safety headroom, logging actual and required bytes. This changes
+only disposable Kaggle scratch; Newton and Mac reserves remain unchanged.
+Limited-space regression tests preserve exact expansion and reject insufficient
+space and existing output. A separately byte-bound private source replacement
+can reuse the fully verified immutable Dataset instead of duplicating its base
+and ZIP. Real CPU expansion and a distinct private offline T4 run remain gates;
+do not repeat either failed private notebook or call them accepted.
+
 **September 30, verified scored-result/correction mirror:** GitHub main
 `3275e1f` records actual score 0.769, canonical ledger reconciliation,
 real-checkpoint CPU expansion and the distinct corrected private T4 dispatch.

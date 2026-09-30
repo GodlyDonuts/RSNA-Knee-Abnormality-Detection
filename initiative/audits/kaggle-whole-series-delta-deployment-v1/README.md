@@ -49,6 +49,25 @@ them; no hypothetical future cleanup is credited.
 
 ## Exact terminal failure and correction
 
+**Later fix2 terminal outcome:** the exact private T4 v1 ended ERROR in 615.4s.
+The second trace passed the 415+2 partition checks and then stopped at the
+reference-file scratch guard, which required 22 GiB free before writing a
+1,338,961,540-byte temporary file. Free space was not logged; no MRI inference
+ran. Exact evidence is `fix2/terminal-failure.json` and the visible log. Both
+failed private versions remain immutable and no competition slot was consumed.
+
+The next helper uses a measured reference upper bound (model tensors plus delta
+envelope and 64 MiB metadata), a one-GiB bounded MRI chunk and two-GiB temporary
+safety headroom. It logs actual/required bytes, refuses insufficient space and
+existing paths, and checks actual serialization against its bound. Newton and
+Mac reserve policies are unchanged. The exact replacement source is embedded
+and separately hashed in a distinct private diagnostic notebook; shared inference
+source must match the preserved Dataset manifest. It copies only small owned
+runtime code and leaves the already fully verified original Dataset bytes intact.
+Private role checks forbid this route for competition-eligible bundles.
+Real-checkpoint CPU expansion and actual T4 full/delta six-study MRI equivalence
+are still required before accepting this route.
+
 The exact small scored-result, correction, CPU proof and private T4 dispatch
 milestone is on GitHub main **3275e1f** and privately mirrored at HF
 **726f8691785403af71340b1583a04ea768ffd8e7**. All **163 objects** were fully

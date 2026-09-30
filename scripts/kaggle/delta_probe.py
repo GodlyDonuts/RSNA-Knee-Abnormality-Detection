@@ -95,15 +95,43 @@ def expanded_reference(checkpoint: Path, spec: Path, output: Path) -> dict:
     full["schema_version"] = 1
     full["binding"]["config"]["checkpoint_format"] = "full"
     full["model"] = model.state_dict()
-    if output.exists() or shutil.disk_usage(output.parent).free < 20 * 1024**3 + 2 * 1024**3:
-        raise ValueError("Reference scratch is not new or lacks the reserve")
+    # This is disposable Kaggle scratch, not Newton's shared quota or the Mac's
+    # disk reserve. Budget the full state plus the delta envelope (an upper bound
+    # on optimizer/metadata), one bounded MRI chunk and separate safety headroom.
+    reference_bound = (
+        sum(tensor.numel() * tensor.element_size() for tensor in full["model"].values())
+        + checkpoint.stat().st_size
+        + 64 * 1024**2
+    )
+    scratch = {
+        "reference_upper_bound_bytes": reference_bound,
+        "mri_chunk_budget_bytes": 1024**3,
+        "safety_headroom_bytes": 2 * 1024**3,
+        "free_before_reference_bytes": shutil.disk_usage(output.parent).free,
+    }
+    scratch["required_free_bytes"] = sum(
+        scratch[key]
+        for key in (
+            "reference_upper_bound_bytes",
+            "mri_chunk_budget_bytes",
+            "safety_headroom_bytes",
+        )
+    )
+    print(json.dumps({"reference_scratch_preflight": scratch}, sort_keys=True), flush=True)
+    if output.exists() or output.is_symlink():
+        raise ValueError("Reference scratch must be new")
+    if scratch["free_before_reference_bytes"] < scratch["required_free_bytes"]:
+        raise ValueError("Reference scratch lacks the measured workload budget")
     with output.open("xb") as handle:
         torch.save(full, handle)
+    if output.stat().st_size > reference_bound:
+        raise ValueError("Expanded reference exceeds its measured scratch bound")
     return {
         "frozen_base_tensors_verified": len(backbone),
         "frozen_encoder_tensors_verified": len(guard.frozen),
         "normalization_buffers_verified": len(normalization),
         "adapter_modules_verified": 120,
+        "reference_scratch": scratch,
     }
 
 
@@ -219,6 +247,8 @@ def run(args: Namespace) -> dict:
         "precision": "fp32",
         "workloads": results,
         "original_weights_sha256": json.loads(spec.read_text())["weights_sha256"],
+        "probe_source_sha256": module.sha256(Path(__file__)),
+        "chunked_inference_sha256": module.sha256(Path(__file__).with_name("chunked_infer.py")),
         **partition,
     }
     (args.output / "delta-deployment-acceptance.json").write_text(
