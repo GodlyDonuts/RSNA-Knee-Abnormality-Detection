@@ -1,12 +1,28 @@
 # DINOv3-L plan after the first full fold
 
+**September 30 next controlled capacity experiment:** the matched sampled-input
+[rank-32/rank-64 protocol](../initiative/experiments/competitive-v1/adapter-rank-capacity-v1/)
+is prepared and validated against complete production graphs. Rank 64 doubles
+encoder adapter capacity to 20,447,232 parameters while retaining 120 residual
+modules, the frozen original encoder and the same data/input/schedule recipe.
+A real exact-recovery pilot is required after one of the two current GPU jobs
+finishes; nothing is dispatched or reserved for rank 64. A higher rank is a
+testable capacity hypothesis, not a promised score improvement.
+
+Whole-series original-base/delta restoration passed an exact private offline
+T4 six-MRI full-versus-delta comparison. The three public MRI studies took
+96.26 seconds and three profiled large studies 186.35 seconds with no fallback.
+This clears the reconstruction gate; production accuracy and representative
+hidden-scale inference remain separate. Whole-series control epochs 1–2 and
+all-development epochs 1–7 are privately fully verified. Both fits continue.
+
 **September 30 actual competition result:** sampled A32 fold-0 epoch 10 scored
 **0.769** in successful exact Kaggle submission **56697342**, versus the earlier
 solo frozen DINOv3 best 0.638. Its internal 0.8620940794 is a different measure
 on report-supervised development data. The broader recipe changed several
 settings, so this is not an isolated estimate of adapter rank's effect.
 All-development A32 final fitting and the same-fold whole-series control remain
-live; completed primary epochs 1–5 and control epoch 1 are privately verified.
+live; completed primary epochs 1–7 and control epochs 1–2 are privately verified.
 Use the requested all-data final checkpoint after deployment checks, then judge
 whole-series fixed-final accuracy against the matched sampled control. Reserved
 confirmation and gold remain untouched. The owner permits worthwhile checkpoint

@@ -6,6 +6,52 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, private T4 delta acceptance and capacity comparison prepared:**
+Exact private offline **godlydonuts/rsna-delta-t4-fix3-5d1b3b562160 v1**
+completed successfully. Its once-only output acceptance verifies identical FP32
+probabilities and CSV bytes between original-base/delta and expanded-full
+checkpoints on three public and three largest-profiled training MRI studies.
+No labels, neutral fallbacks or competition submission were used. All 415
+official tensors, 417 frozen encoder entries, two normalization buffers and
+120 adapter modules passed. See the terminal receipts and four actual timing
+files in `initiative/audits/kaggle-whole-series-delta-deployment-v1/fix3/`.
+Delta inference including MRI preparation took 96.26 seconds for the three
+public studies and 186.35 seconds for the three large workloads. These six
+studies prove exact restoration and bounded execution, not hidden-scale speed
+or competitive accuracy. Do not repeat its Dataset, notebook push or output
+mutation; the prior private fix1/fix2 failures are historical and preserved.
+
+Primary **865263** completed epoch **7 / 2,982 updates** and entered epoch 8;
+epoch 7's four private objects are fully re-downloaded/size/SHA verified at
+**58b0a1e72ba700fc1570acc60ef42e89b2195d85**. Control **865357** completed
+epoch **2 / 562 updates** and entered epoch 3; its four private objects are
+fully verified at **ebaa49a9b897d20f75fbfdb5f28a015a41c9b1ac**. Never repeat
+either publication. CPU retention **865415** removed only the redundant,
+fully privately preserved epoch-7 full file; active recovery and sidecar remain.
+The fresh projected reserve is **22.138134 GiB** and 7,218 files before small
+future outputs, including five remaining maximum primary full inodes, both
+production deployment pairs and whole-series delta/live/atomic writes.
+Inspect actual current Slurm/logs and publication intents
+before preserving each newly completed distinct checkpoint. The requested
+all-development final epoch 10 remains the next planned competition candidate
+after its own immutable completion, offline receipt and fresh live allowance.
+
+`initiative/experiments/competitive-v1/adapter-rank-capacity-v1/` prepares a
+rank-64 sampled-input challenger against the completed rank-32 reference.
+Complete production DINOv3-L meta graphs verify **20,447,232 versus 10,223,616**
+encoder adapter parameters, 120 modules and a frozen official base; head capacity
+is unchanged. Scientific configuration changes only adapter rank, retaining
+the same inputs, outer fold, masks and schedule. Same seed does not guarantee
+identical random head initialization; broader rank claims require repeated
+seeds/folds. The external pilot verifier now measures learned graph capacity
+against factory-verified provenance instead of hardcoding rank 32. Its tests
+reject false counts, missing projections and a trainable base. **1,172 tests**
+pass. The unique one-H100/two-CPU exact-recovery pilot payload is prepared only,
+not staged or dispatched. Both GPU slots are occupied. It requires a genuinely
+free slot, fresh projected storage and real gradient/recovery acceptance;
+production additionally requires a role-bound private epoch publisher.
+No rank-64 MRI accuracy or new Kaggle score is claimed.
+
 **September 30, bounded-scratch/epoch-6 milestone synchronized:** GitHub main
 `26cdfb1` records the exact real-checkpoint CPU proof, distinct private T4 dispatch
 and fully preserved primary epoch 6. Private HF

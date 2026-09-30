@@ -1,5 +1,18 @@
 # Scheduled Kaggle code submissions
 
+**September 30 private delta deployment gate passed:** exact private offline
+T4 `godlydonuts/rsna-delta-t4-fix3-5d1b3b562160` v1 completed successfully.
+The once-only acceptance receipt confirms original-base/delta and expanded-full
+FP32 probabilities and CSV bytes match on six MRI studies, without labels or
+neutral fallback. This diagnostic remains competition ineligible and has no
+score; no competition slot was spent. Actual delta runtimes including MRI
+preparation were 96.26 seconds for the three public studies and 186.35 seconds
+for three largest-profiled training inputs. These bounded workloads do not
+establish hidden-scale feasibility. Preserve both earlier failed private probes.
+The owner permits worthwhile checkpoints. The next planned scored comparison
+is the requested completed all-development final epoch 10, after its distinct
+private Dataset/source/offline receipt and fresh live account allowance.
+
 **September 30 scored adapter result:** exact sampled A32 fold-0 epoch-10
 submission **56697342 COMPLETE** with **0.769 public score**, no error and
 262,975 output bytes. Authenticated read at 09:48 UTC and the canonical Newton
@@ -9,12 +22,12 @@ at that read. Do not repeat the scored submission. The requested all-data final
 fit and whole-series comparison are still running; later candidates require
 immutable completion, exact offline acceptance and fresh live allowance.
 
-Distinct private offline T4 diagnostic `godlydonuts/rsna-delta-t4-fix2-5d1b3b562160`
-v1 is RUNNING after actual CPU expansion verified the corrected 415-backbone plus
-two-normalization-buffer partition. It is explicitly competition ineligible,
-reads no labels and uses no submission slot. Successful T4 MRI equivalence is
-still outstanding. Preserve the earlier failed diagnostic and never retry its
-push. See the [deployment audit](../initiative/audits/kaggle-whole-series-delta-deployment-v1/).
+Earlier private offline T4 diagnostic `godlydonuts/rsna-delta-t4-fix2-5d1b3b562160`
+v1 ended ERROR at the disposable scratch guard before MRI inference. The distinct
+fix3 acceptance above supersedes its pending observations. Both are explicitly
+competition ineligible, read no labels and use no submission slot. Preserve
+the failed version and never retry its push. See the
+[deployment audit](../initiative/audits/kaggle-whole-series-delta-deployment-v1/).
 
 September 30: external wrappers now support schema-2 frozen-base deltas and
 full-series inference for models bound to `series_sampling=all`. They bundle the
@@ -27,9 +40,10 @@ not create a submission or use the competition ledger. See
 `initiative/audits/kaggle-whole-series-delta-deployment-v1/`.
 
 The owner permits worthwhile checkpoints, but quota alone is not evidence to
-submit. Exact A32 epoch-10 56697342 was submitted once and remains pending/unknown
-at the latest September 30 08:45 UTC live query; four slots remain. Never repeat
-that submission, an old uncertain notebook, or a public three-row CSV upload.
+submit. Exact A32 epoch-10 56697342 was submitted once and scored 0.769.
+Four slots remained at the September 30 10:37 UTC authoritative query; requery
+before a later submission. Never repeat that submission, an old uncertain
+notebook, or a public three-row CSV upload.
 
 **Scored results, checked September 29 at 17:14 UTC:** All five matched
 fold-2 DINOv3 submissions completed with nonzero output and no hidden error.

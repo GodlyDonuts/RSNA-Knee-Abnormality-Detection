@@ -1,5 +1,24 @@
 # Whole-series original-base delta deployment acceptance
 
+**Actual terminal acceptance, September 30:** distinct exact private offline
+T4 **godlydonuts/rsna-delta-t4-fix3-5d1b3b562160 v1** completed successfully.
+The single output phase checked its unchanged source/private/offline/input
+bindings and recorded `verified_offline_base_delta_fp32_equivalence`.
+Original-base/delta and expanded-full FP32 probabilities and CSV bytes match
+on three public and three largest-profiled training MRI studies. The strict
+415 backbone/417 frozen encoder/two normalization/120 adapter checks passed;
+no labels, neutral fallback, competition submission or score was involved.
+Actual scratch free space was 20,940,431,360 bytes against a measured
+4,669,188,465-byte requirement. The disposable full reference was removed.
+`fix3/delta-deployment-acceptance.json`, `acceptance-provenance.json` and the
+four version-bound timing files preserve the measured evidence. Delta workload
+times including MRI preparation were **96.26 s** for the three public studies
+and **186.35 s** for three profiled large studies; expanded-full times were
+80.76 s and 166.84 s. All 15 public and 28 large-workload series were available.
+This clears exact offline reconstruction, not production accuracy or a complete
+hidden-scale throughput gate. Do not repeat its push, Dataset or output mutation.
+The prior private fix1/fix2 failures below are historical evidence.
+
 The live whole-series control uses scientific source
 `c9fcc7eefb09103942be89bf4fa87410eb9ec5ab`. Its core `rsna` runtime remains
 unchanged. The external Kaggle deployment wrappers now preserve all accepted

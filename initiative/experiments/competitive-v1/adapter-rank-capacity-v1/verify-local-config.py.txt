@@ -1,0 +1,54 @@
+"""Validate prepared capacity recipes against the real production graph.
+
+No checkpoint is created, no MRI accuracy is measured, and no GPU is reserved.
+"""
+
+import copy
+import hashlib
+import json
+import math
+from dataclasses import asdict
+from pathlib import Path
+
+import torch
+from transformers import DINOv3ViTConfig, DINOv3ViTModel
+
+from rsna.competitive.adapters import install_adapters
+from rsna.competitive.train import TrainConfig
+
+root = Path.cwd()
+experiment = root / 'initiative/experiments/competitive-v1/adapter-rank-capacity-v1'
+files = [experiment / name for name in ('rank32-reference-delta-config.json', 'rank64-production-delta-config.json', 'rank64-pilot-delta-config.json')]
+configs = [TrainConfig(**json.loads(path.read_text())) for path in files]
+for config in configs:
+    config.validate()
+left, right, pilot = [asdict(config) for config in configs]
+assert right['encoder']['adapter']['rank'] == 64 and left['encoder']['adapter']['rank'] == 32
+normalized = copy.deepcopy(right)
+normalized['encoder']['adapter']['rank'] = 32
+assert normalized == left
+legacy = asdict(TrainConfig(**json.loads((root/'initiative/audits/dinov3-adapter-a32-v1/production-config.json').read_text())))
+assert {key for key in legacy if legacy[key] != left[key]} == {'checkpoint_format'}
+assert pilot['diagnostic_study_limit'] == 16 and pilot['submission_every_epochs'] == 0 and pilot['epochs'] == 2
+graph_config_path = root/'configs/competitive/weights/dinov3-large.config.json'
+assert hashlib.sha256(graph_config_path.read_bytes()).hexdigest() == left['encoder']['config_sha256']
+graph_config = DINOv3ViTConfig.from_dict(json.loads(graph_config_path.read_text()))
+records = []
+for config in configs[:2]:
+    with torch.device('meta'):
+        model = DINOv3ViTModel(graph_config)
+        record = install_adapters(model, config.encoder['adapter'])
+    learned = {name: tuple(parameter.shape) for name, parameter in model.named_parameters() if parameter.requires_grad}
+    assert len(record['target_modules']) == 120 and len(learned) == 240
+    assert all(name.endswith(('.lora_A', '.lora_B')) for name in learned)
+    actual = sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
+    assert actual == record['trainable_parameters']
+    assert len([name for name in model.state_dict() if not name.endswith(('.lora_A', '.lora_B'))]) == 415
+    records.append({'rank': record['rank'], 'adapter_parameters': actual, 'head_parameters': 203020, 'total_trainable_parameters': actual+203020, 'target_modules': len(record['target_modules']), 'learned_tensors': len(learned), 'official_backbone_tensors': 415, 'residual_scaling': record['alpha']/math.sqrt(record['rank']), 'full_production_graph_enumerated_on_meta': True, 'base_frozen': all(not parameter.requires_grad for name, parameter in model.named_parameters() if not name.endswith(('.lora_A', '.lora_B')))})
+assert records[0]['adapter_parameters'] == 10223616
+assert records[1]['adapter_parameters'] == 20447232
+result = {'schema_version': 1, 'status': 'prepared_capacity_configs_and_full_graph_verified_without_gpu_dispatch', 'configuration_difference': ['encoder.adapter.rank'], 'reference_storage_only_difference': ['checkpoint_format'], 'configs': {path.name: {'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'bytes': path.stat().st_size} for path in files}, 'graphs': records, 'real_h100_training_acceptance': False, 'real_mri_accuracy_claimed': False, 'production_dispatched': False, 'source_runtime_git': 'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'}
+with (experiment/'local-config-and-graph-verified.json').open('x') as stream:
+    json.dump(result, stream, indent=2, sort_keys=True)
+    stream.write('\n')
+print(json.dumps(result))

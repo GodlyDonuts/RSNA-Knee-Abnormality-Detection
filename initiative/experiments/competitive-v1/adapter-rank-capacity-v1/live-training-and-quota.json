@@ -1,0 +1,54 @@
+{
+  "checked_at": "2026-09-30T11:36:17Z",
+  "slurm": "             JOBID                                NAME    STATE       TIME  NODES NODELIST(REASON)\n            865357           rsna-whole-series-control  RUNNING    3:42:32      1 evc28\n            865263            rsna-a32-all-development  RUNNING    7:10:39      1 evc31\n",
+  "storage": {
+    "actual_files": 992782,
+    "actual_used_kbytes": 1011888596,
+    "existing_diagnostic_archives_already_in_actual_usage": true,
+    "future_bytes_budget": {
+      "control_bundle_and_zip": 2680000000,
+      "control_delta_and_live_atomic": 1610612736,
+      "metadata_and_source": 138412032,
+      "primary_final_bundle_and_zip": 2677412380,
+      "primary_full_inodes": 6690823900
+    },
+    "no_new_large_diagnostic_payload": true,
+    "projected_remaining_bytes": 23770640648,
+    "projected_remaining_gib": 22.138134248554707,
+    "remaining_files_before_small_future_outputs": 7218,
+    "soft_file_quota": 1000000,
+    "soft_quota_kbytes": 1048576000
+  },
+  "training": [
+    {
+      "job_id": "865263",
+      "latest_optimizer": {
+        "elapsed_seconds": 25481.354198544053,
+        "epoch": 7,
+        "gradient_norm": 0.30757224559783936,
+        "loss": 0.03328637033700943,
+        "observed_cells": 58.0,
+        "optimizer_steps": 3039,
+        "peak_gpu_allocated_bytes": 3757546496,
+        "update": 57
+      },
+      "run": "dinov3-l16-adapter-a32-all-8911f90-production-v1",
+      "stderr_bytes": 0
+    },
+    {
+      "job_id": "865357",
+      "latest_optimizer": {
+        "elapsed_seconds": 12975.126707436051,
+        "epoch": 2,
+        "gradient_norm": 0.366290420293808,
+        "loss": 0.1622784286737442,
+        "observed_cells": 48.0,
+        "optimizer_steps": 691,
+        "peak_gpu_allocated_bytes": 15837182464,
+        "update": 129
+      },
+      "run": "dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1",
+      "stderr_bytes": 0
+    }
+  ]
+}

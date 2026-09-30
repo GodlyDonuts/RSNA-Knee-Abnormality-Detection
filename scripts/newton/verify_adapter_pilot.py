@@ -25,6 +25,20 @@ from rsna.competitive.train import TrainConfig, _model_inputs
 from rsna.schema import TARGETS
 
 
+def adapter_parameter_count(encoder: torch.nn.Module, provenance: dict) -> int:
+    """Check the actual learned graph against factory-verified adapter provenance."""
+    learned = {name: value for name, value in encoder.named_parameters() if value.requires_grad}
+    adapter = provenance["adapter"]
+    if not learned or any(not name.endswith((".lora_A", ".lora_B")) for name in learned):
+        raise ValueError("Only declared residual tensors may be trained in the encoder")
+    count = sum(value.numel() for value in learned.values())
+    if count != adapter["trainable_parameters"] or len(learned) != 2 * len(
+        adapter["target_modules"]
+    ):
+        raise ValueError("Actual adapter capacity differs from verified encoder provenance")
+    return count
+
+
 def same(left, right) -> None:
     if isinstance(left, torch.Tensor):
         assert isinstance(right, torch.Tensor) and torch.equal(left, right)
@@ -81,7 +95,8 @@ def main() -> None:
                 if name.startswith("encoder.")
             },
         )
-    assert provenance == expected and expected["adapter"]["trainable_parameters"] == 10_223_616
+    assert provenance == expected
+    adapter_parameters = adapter_parameter_count(encoder, provenance)
     model = (
         CompetitiveStudyNet(
             encoder,
@@ -186,7 +201,7 @@ def main() -> None:
             "status": "adapter_pilot_and_exact_recovery_verified",
             "production_model": False,
             "diagnostic_studies": config.diagnostic_study_limit,
-            "adapter_parameters": 10_223_616,
+            "adapter_parameters": adapter_parameters,
             "changed_residual_modules": changed,
             "unchanged_official_base_tensors": base_count,
             "full_payload_resume_equal": True,
