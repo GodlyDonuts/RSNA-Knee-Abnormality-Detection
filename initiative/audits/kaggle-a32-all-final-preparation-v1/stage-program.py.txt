@@ -1,0 +1,42 @@
+"""Small exact source staging only: no checkpoint, Dataset, GPU or Slurm mutation."""
+import base64,hashlib,io,json,os,subprocess,sys,tarfile,time
+from pathlib import Path
+request=json.load(sys.stdin);base=Path('/home/sa305415/rsna-knee');control=base/'kaggle/a32-all-final-prepare-v1'
+assert not control.exists()
+assert request['control']==str(control)
+files={name:base64.b64decode(row['data'],validate=True) for name,row in request['files'].items()}
+for name,blob in files.items():
+ assert len(blob)==request['files'][name]['bytes'] and hashlib.sha256(blob).hexdigest()==request['files'][name]['sha256']
+manifest=json.loads(files['projection/projection.json'])
+assert manifest['training_git_commit']=='8911f90910ab8892b8324f6985c18d3ab146ec0c'
+assert manifest['package_git_commit']=='cb5527ee1f1f3cffb71973b6561abd0e57e33234'
+code=base/'code-adapter-a32-all-8911f90/rsna'
+actual={str(path.relative_to(code)):hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(code.rglob('*.py'))}
+assert actual=={k.removeprefix('rsna/'):v for k,v in manifest['training_code_sha256'].items()}
+assert subprocess.check_output(['git','-C',str(code.parent),'rev-parse','HEAD'],text=True).strip()==manifest['training_git_commit']
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split()
+used,soft,nfiles,file_soft=[int(quota[i]) for i in (1,2,5,6)]
+future={'primary_full_inodes':4*1338164780,'primary_final_bundle_and_zip':2*1338706190,'control_delta_live_atomic':12*128*1024**2,'control_bundle_and_zip':2*1340000000,'metadata':132*1024**2,'rank64_diagnostic':256*1024**2,'new_small_projection_stage':sum(map(len,files.values()))+sum(x['bytes'] for x in manifest['files'].values())+65536}
+remaining=(soft-used)*1024-sum(future.values());assert remaining>=20*1024**3 and file_soft-nfiles-200>=5000
+rows=subprocess.check_output(['squeue','--noheader','-u','sa305415','-o','%i|%T|%b|%N'],text=True).splitlines()
+gpu_rows=[row for row in rows if 'gpu' in row.split('|')[2]];assert len(gpu_rows)<=2
+control.mkdir(mode=0o700)
+for name,blob in files.items():
+ parts=Path(name).parts;assert not Path(name).is_absolute() and '..' not in parts
+ p=control/name;p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('xb') as f:f.write(blob);f.flush();os.fsync(f.fileno())
+code=control/'projection/code';code.mkdir()
+with tarfile.open(fileobj=io.BytesIO(files['projection/projection.tar'])) as archive:
+ members=archive.getmembers();assert len(members)==len(manifest['files']) and {m.name for m in members}==set(manifest['files'])
+ for member in members:
+  assert member.isfile() and not member.name.startswith('/') and '..' not in Path(member.name).parts
+  record=manifest['files'][member.name];blob=archive.extractfile(member).read()
+  assert len(blob)==record['bytes'] and hashlib.sha256(blob).hexdigest()==record['sha256']
+  p=code/member.name;p.parent.mkdir(parents=True,exist_ok=True)
+  with p.open('xb') as f:f.write(blob);f.flush();os.fsync(f.fileno())
+  p.chmod(record['mode'])
+assert {str(p.relative_to(code)) for p in code.rglob('*') if p.is_file()}==set(manifest['files'])
+subprocess.run(['/bin/bash','-n',str(control/'prepare-final.sbatch')],check=True)
+record={'schema_version':1,'status':'all_final_small_inference_preparation_staged_hash_verified_not_dispatched','checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'control':str(control),'files':{name:{key:row[key] for key in ('bytes','sha256')} for name,row in request['files'].items()},'training_git_commit':manifest['training_git_commit'],'packaging_git_commit':manifest['package_git_commit'],'training_code_sha256':actual,'projection_files':len(manifest['files']),'projected_remaining_gib':remaining/1024**3,'projected_remaining_files':file_soft-nfiles-200,'future_bytes_budget':future,'live_gpu_jobs':gpu_rows,'gpu_job_reserved':False,'slurm_dispatch':False,'large_checkpoint_or_bundle_staged':False,'competition_mutation':False}
+with (control/'stage-receipt.json').open('x') as f:json.dump(record,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+print(json.dumps(record))

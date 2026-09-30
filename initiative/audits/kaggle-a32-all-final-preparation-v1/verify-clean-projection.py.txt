@@ -1,0 +1,14 @@
+import json,runpy,sys
+from pathlib import Path
+base=Path('/home/sa305415/rsna-knee');control=base/'kaggle/a32-all-final-prepare-v1';projection=control/'projection';code=projection/'code'
+sys.path.insert(0,str(code/'scripts/kaggle'))
+coordinator=runpy.run_path(str(code/'scripts/kaggle/coordinator.py'))
+workflow,manifest=coordinator['load_workflow'](code,projection/'projection.json','d46919481839709443fd866373d99ef1e9a07733b3ac53555fdfc0f065c20996')
+record=json.loads((base/'runs/dinov3-l16-adapter-a32-all-8911f90-production-v1/run.json').read_text())
+assert record['binding']['code_sha256']=={key.removeprefix('rsna/'):value for key,value in manifest['training_code_sha256'].items()}
+assert record['training_studies']==3403 and record['outer_studies']==0
+assert record['binding']['config']['fit_scope']=='all_development' and record['binding']['config']['epochs']==10 and record['binding']['config']['diagnostic_study_limit'] is None
+shared=json.loads((base/'kaggle/preparation-stage-v1/shared-wheelhouse.json').read_text());workflow.validate_shared_wheelhouse(shared)
+assert shared['pyproject_sha256']==manifest['files']['pyproject.toml']['sha256']
+assert {str(path.relative_to(code)) for path in code.rglob('*') if path.is_file()}==set(manifest['files'])
+print(json.dumps({'status':'exact_clean_projection_loaded_and_actual_all_data_binding_matched','training_modules':len(manifest['training_code_sha256']),'projection_files':len(manifest['files']),'actual_training_studies':record['training_studies'],'actual_outer_studies':record['outer_studies'],'cached_or_extra_code_files':False,'shared_runtime_binding_validated':True,'snapshot_validated':False,'gpu_or_competition_mutation':False}))

@@ -1,0 +1,87 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-a32all-final-prepare
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=8G
+#SBATCH --time=01:00:00
+#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err
+set -euo pipefail
+umask 077
+[[ -n "${SLURM_JOB_ID:-}" && -z "${SLURM_JOB_GPUS:-}" ]] || exit 2
+root=/home/sa305415/rsna-knee
+projection=/home/sa305415/rsna-knee/kaggle/a32-all-final-prepare-v1/projection/code
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+export PYTHONPATH=$projection
+cd "$root/code-stopfix-1f486765"
+environment_root=
+cleanup() {
+  local prior="$?"
+  if [[ -n "$environment_root" ]]; then
+    /usr/bin/python3.12 scripts/newton/runtime_environment.py cleanup --root "$environment_root" || prior=2
+  fi
+  return "$prior"
+}
+trap cleanup EXIT
+record=$(/usr/bin/python3.12 scripts/newton/runtime_environment.py extract --archive "$root/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar" --sha256 89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338 --expected-files 40403 --expected-bytes 6322691335 --scratch-base /tmp --shared-python /usr/bin/python3.12 --min-free-gib 20)
+environment_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)["runtime_root"])' <<< "$record")
+python=$environment_root/environment/bin/python
+
+snapshot=$root/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1/epoch-checkpoints/epoch-010.json
+"$python" - "$snapshot" <<'RSNA_ALL_FINAL_COMPLETION_GUARD'
+import hashlib,importlib.util,json,os,subprocess,sys
+from pathlib import Path
+root=Path('/home/sa305415/rsna-knee');run=root/'runs/dinov3-l16-adapter-a32-all-8911f90-production-v1';control=root/'kaggle/a32-all-final-prepare-v1'
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+files=json.loads((control/'preparation-files.json').read_text())
+for name,record in files['files'].items():
+ p=control/name
+ assert p.is_file() and not p.is_symlink() and p.stat().st_size==record['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==record['sha256']
+lines=subprocess.check_output(['sacct','--noheader','--parsable2','-j','865263','--format=JobIDRaw,State,ExitCode'],text=True).splitlines()
+job=next(line.split('|') for line in lines if line.split('|')[0]=='865263')
+assert job[1]=='COMPLETED' and job[2]=='0:0'
+snapshot=Path(sys.argv[1]);meta=json.loads(snapshot.read_text());record=json.loads((run/'run.json').read_text())
+assert snapshot.resolve()==(run/'epoch-checkpoints/epoch-010.json').resolve()
+assert meta['epoch']==10 and meta['optimizer_steps']==4260 and meta['diagnostic_only'] is False and meta['submission_eligible'] is True
+assert record['training_studies']==3403 and record['outer_studies']==0 and record['binding']['config']['fit_scope']=='all_development'
+assert not (run/'outer_predictions.csv').exists()
+journal=root/'production-launch-adapter-a32-all-8911f90-v1/epoch-publication/epoch-010'
+receipt=json.loads((journal/'verified.json').read_text())
+assert receipt['status']=='private_epoch_fully_verified' and receipt['files_verified_by_download']==4
+assert receipt['checkpoint_sha256']==meta['checkpoint_sha256']
+assert hashlib.sha256((journal/'manifest.json').read_bytes()).hexdigest()==receipt['manifest_sha256']
+publisher=root/'production-launch-adapter-a32-all-8911f90-v1/publish_adapter_a32_all_epoch.py'
+assert hashlib.sha256(publisher.read_bytes()).hexdigest()=='258e1e9e4766146c947fcca6d4886819284f1da25804bbf48ecc5982d1a762bb'
+spec=importlib.util.spec_from_file_location('all_final_role',publisher);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+module.source_files(snapshot,run,root/'encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md',root/'code-adapter-a32-all-8911f90')
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split()
+used,soft,nfiles,file_soft=[int(quota[i]) for i in (1,2,5,6)]
+future={'primary_bundle_and_zip':2*1338706190,'control_delta_live_atomic':12*128*1024**2,'control_bundle_and_zip':2*1340000000,'metadata':132*1024**2,'rank64_diagnostic':256*1024**2}
+remaining=(soft-used)*1024-sum(future.values())
+assert remaining>=20*1024**3 and file_soft-nfiles-200>=5000
+proof={'status':'final_all_development_checkpoint_and_packaging_budget_accepted','primary_job':865263,'primary_terminal_state':job[1],'primary_exit':job[2],'checkpoint_sha256':meta['checkpoint_sha256'],'private_checkpoint_revision':receipt['revision'],'epoch':10,'optimizer_steps':4260,'training_studies':3403,'outer_studies':0,'projected_remaining_gib':remaining/1024**3,'projected_remaining_files':file_soft-nfiles-200,'future_bytes_budget':future,'competition_mutation':False}
+with (control/'final-preparation-acceptance.json').open('x') as f:json.dump(proof,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+print(json.dumps(proof),flush=True)
+RSNA_ALL_FINAL_COMPLETION_GUARD
+sha12=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1]))["checkpoint_sha256"][:12])' "$snapshot")
+bundle=$root/kaggle/bundles/a32-all-epoch010-${sha12}-v1
+"$python" "$projection/scripts/kaggle/workflow.py" prepare \
+ --snapshot "$snapshot" \
+ --encoder-spec "$root/kaggle/preparation-stage-v1/encoder-spec.json" \
+ --wheelhouse "$root/kaggle/wheelhouse-cp312-cu130-v1" \
+ --shared-wheelhouse "$root/kaggle/preparation-stage-v1/shared-wheelhouse.json" \
+ --license-file "$root/encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md" \
+ --license-source https://github.com/facebookresearch/dinov3/blob/ffb4bb89c6558ca3244655c25a3955d01788b732/LICENSE.md \
+ --license-sha256 25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e \
+ --output "$bundle" \
+ --dataset-slug "godlydonuts/rsna-knee-a32all-e010-${sha12}" \
+ --kernel-slug "godlydonuts/rsna-knee-a32all-epoch10-${sha12}"
+"$python" "$projection/scripts/kaggle/workflow.py" validate "$bundle/operation.json"
+"$python" "$projection/scripts/kaggle/coordinator.py" prepare-transport \
+ --projection "$projection" \
+ --projection-manifest "${projection%/code}/projection.json" \
+ --projection-sha256 d46919481839709443fd866373d99ef1e9a07733b3ac53555fdfc0f065c20996 \
+ --snapshot "$snapshot" --operation "$bundle/operation.json"

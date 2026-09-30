@@ -1,5 +1,21 @@
 # Scheduled Kaggle code submissions
 
+Authenticated September 30 13:40 UTC: submission **56697342 COMPLETE**, score
+**0.769**, no hidden error, one submission today and four live slots. The single
+Newton ledger read agrees; do not repeat this submission. The owner permits
+worthwhile checkpoints. Primary all-data E9 is privately fully preserved and
+E10 is still training. Its completed final checkpoint is the next useful
+comparison after candidate-specific offline acceptance and a fresh allowance.
+
+The all-development final candidate now has a staged exact 53-file inference
+projection and bounded CPU preparation script. See
+[the preparation audit](../initiative/audits/kaggle-a32-all-final-preparation-v1/).
+No final weights, bundle, Dataset, notebook or new submission exists yet. Wait
+for primary terminal 0:0 and privately fully verified immutable epoch 10 before
+a once-only CPU preparation dispatch. The staged source matched the actual
+3,403-study/zero-outer run binding; actual candidate MRI acceptance is still
+outstanding.
+
 **September 30 private delta deployment gate passed:** exact private offline
 T4 `godlydonuts/rsna-delta-t4-fix3-5d1b3b562160` v1 completed successfully.
 The once-only acceptance receipt confirms original-base/delta and expanded-full

@@ -6,6 +6,45 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, all-data epoch 9 privately preserved:** Primary 865263 has
+entered epoch 10, reaching 3,960 / 4,260 finite updates; whole-series control
+865357 has 1,107 updates in epoch 4. Both are RUNNING with empty stderr.
+Primary epoch 9 / 3,834 updates has all four private objects fully downloaded/
+size/SHA verified at **e02d57912b6ae888534d7135263acf8c51e1bccc**. Never repeat
+primary E1–E9 publication. CPU retention 865532 removed only the privately
+verified redundant E9 full file, preserving recovery/sidecar/private bytes.
+Its exact journals are under the all-development epoch-009 audit. Fresh complete
+current budget leaves 24.261848 GiB and 7,124 files before small future outputs;
+additional rank-64 production still fails the 20 GiB reserve. Authenticated
+Kaggle at 13:40 UTC confirms scored submission 56697342 remains 0.769 with
+four live slots; canonical ledger was inspected read-only, with workflow state
+`submitted` and its score stored. The owner permits worthwhile checkpoints.
+The next planned submission is the completed all-data final E10 after its own
+private preservation and exact offline MRI/source/runtime checks. No final
+checkpoint or new competition mutation exists yet. The staged preparation
+audit now also records a fresh **1,192-test** suite and source checks.
+
+**September 30, all-data final inference preparation staged:**
+`initiative/audits/kaggle-a32-all-final-preparation-v1/` preserves the exact
+small source stage at `/home/sa305415/rsna-knee/kaggle/a32-all-final-prepare-v1`.
+The 53-file projection keeps all 36 trained `8911f90` runtime modules byte exact
+and uses packaging `cb5527e`. Projection SHA
+`d46919481839709443fd866373d99ef1e9a07733b3ac53555fdfc0f065c20996`.
+Actual clean import/source binding and shared runtime checks passed on Newton,
+with 99 focused coordinator/publication tests. No weights were packaged and no
+Slurm or Kaggle mutation occurred. Do not repeat staging. Only after primary
+865263 is COMPLETED 0:0 and epoch 10 / 4,260 updates is immutably complete and
+privately fully verified, inspect fresh source/quota and record a new once-only
+CPU dispatch intent for the staged `prepare-final.sbatch` (one CPU, zero GPUs,
+8 GiB, one hour). Its guard repeats terminal/private/source/budget checks before
+creating a validated full-checkpoint bundle and ZIP. Network wrapper is prepared
+locally only, neither staged nor run; bind it to the resulting exact operation
+before the single private Dataset/notebook/submission sequence. Do not reserve
+resources while prerequisites are missing. The last real optimizer observation
+at 13:15 UTC was primary epoch 9 / 3,752 updates and control epoch 4 / 1,012
+updates, both finite with empty stderr. No final checkpoint or new accuracy.
+
+
 **September 30, stage/native/epoch milestone synchronized:** GitHub main
 **bb154fc42cc31b9ead0ba84bbc71f461b010dadd** records the staged rank-64 pilot,
 separate publisher, original-matrix metadata and privately preserved primary

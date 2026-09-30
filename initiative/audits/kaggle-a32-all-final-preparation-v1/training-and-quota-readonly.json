@@ -1,0 +1,55 @@
+{
+  "checked_at": "2026-09-30T13:44:05Z",
+  "slurm": "             JOBID                                NAME    STATE       TIME  NODES NODELIST(REASON)\n            865357           rsna-whole-series-control  RUNNING    5:50:20      1 evc28\n            865263            rsna-a32-all-development  RUNNING    9:18:27      1 evc31\n",
+  "storage": {
+    "actual_files": 992876,
+    "actual_used_kbytes": 1012013180,
+    "existing_diagnostic_archives_already_in_actual_usage": true,
+    "future_bytes_budget": {
+      "control_bundle_and_zip": 2680000000,
+      "control_delta_and_live_atomic": 1610612736,
+      "metadata_and_source": 138412032,
+      "primary_final_bundle_and_zip": 2677412380,
+      "primary_full_inodes": 4014494340,
+      "rank64_diagnostic": 268435456
+    },
+    "no_new_large_diagnostic_payload": true,
+    "projected_remaining_bytes": 26050960736,
+    "projected_remaining_gib": 24.26184782385826,
+    "remaining_files_before_small_future_outputs": 7124,
+    "soft_file_quota": 1000000,
+    "soft_quota_kbytes": 1048576000
+  },
+  "training": [
+    {
+      "job_id": "865263",
+      "latest_optimizer": {
+        "elapsed_seconds": 33148.04880191991,
+        "epoch": 9,
+        "gradient_norm": 0.36712023615837097,
+        "loss": 0.03365778923034668,
+        "observed_cells": 47.0,
+        "optimizer_steps": 3960,
+        "peak_gpu_allocated_bytes": 3757546496,
+        "update": 126
+      },
+      "run": "dinov3-l16-adapter-a32-all-8911f90-production-v1",
+      "stderr_bytes": 0
+    },
+    {
+      "job_id": "865357",
+      "latest_optimizer": {
+        "elapsed_seconds": 20640.975379649084,
+        "epoch": 3,
+        "gradient_norm": 0.33138370513916016,
+        "loss": 0.1523127555847168,
+        "observed_cells": 58.0,
+        "optimizer_steps": 1107,
+        "peak_gpu_allocated_bytes": 15837182464,
+        "update": 264
+      },
+      "run": "dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1",
+      "stderr_bytes": 0
+    }
+  ]
+}

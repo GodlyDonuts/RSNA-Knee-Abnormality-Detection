@@ -1,0 +1,18 @@
+import ast,base64,hashlib,json,os,subprocess,shlex
+from pathlib import Path
+from datetime import datetime,timezone
+folder=Path('artifacts/kaggle-a32-all-final-preparation-v1');control='/home/sa305415/rsna-knee/kaggle/a32-all-final-prepare-v1'
+script=(folder/'prepare-final.sbatch').read_text();section=script.split("<<'RSNA_ALL_FINAL_COMPLETION_GUARD'\n",1)[1].split('\nRSNA_ALL_FINAL_COMPLETION_GUARD',1)[0];ast.parse(section)
+files={}
+for name,p in {'prepare-final.sbatch':folder/'prepare-final.sbatch','preparation-files.json':folder/'preparation-files.json','projection/projection.tar':folder/'source-projection/projection.tar','projection/projection.json':folder/'source-projection/projection.json','projection/receipt.json':folder/'source-projection/receipt.json'}.items():
+ blob=p.read_bytes();files[name]={'bytes':len(blob),'sha256':hashlib.sha256(blob).hexdigest(),'data':base64.b64encode(blob).decode()}
+request={'control':control,'files':files}
+intent=folder/'stage-intent.json';assert not intent.exists() and not (folder/'stage-result.json').exists()
+with intent.open('x') as f:json.dump({'at_utc':datetime.now(timezone.utc).isoformat(),'status':'one_small_source_stage_intent','control':control,'files':{n:{k:v for k,v in row.items() if k!='data'} for n,row in files.items()},'gpu_or_slurm_or_competition_mutation':False},f,sort_keys=True,indent=2);f.flush();os.fsync(f.fileno())
+try:
+ r=subprocess.run(['ssh','-S','/tmp/rsna-a32-reconnect-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-c',(folder/'stage-program.py').read_text()])],input=json.dumps(request),capture_output=True,text=True,timeout=45)
+ result={'returncode':r.returncode,'result':json.loads(r.stdout) if r.returncode==0 else None,'stderr':r.stderr,'automatic_retry':False}
+except subprocess.TimeoutExpired:
+ result={'returncode':None,'status':'uncertain_no_retry'}
+with (folder/'stage-result.json').open('x') as f:json.dump(result,f,sort_keys=True,indent=2);f.write('\n')
+print(json.dumps(result));assert result['returncode']==0
