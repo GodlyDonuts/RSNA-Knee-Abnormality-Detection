@@ -1,0 +1,239 @@
+{
+  "admission_source": "\"\"\"Read-only Newton admission check for a distinct native384 recovery pilot.\n\nConsume the prepared nonsecret file manifest on stdin. Never reserve resources,\ncreate directories, write credentials, delete artifacts or release future write\nobligations for retained completed physical inodes already charged in actual quota.\n\"\"\"\n\nimport hashlib\nimport json\nimport subprocess\nimport sys\nfrom pathlib import Path\n\n\ndef digest(path):\n    h = hashlib.sha256()\n    with path.open(\"rb\") as stream:\n        for block in iter(lambda: stream.read(4 * 1024**2), b\"\"):\n            h.update(block)\n    return h.hexdigest()\n\n\ndef main():\n    prepared = json.load(sys.stdin)\n    base = Path(\"/home/sa305415/rsna-knee\")\n    assert prepared[\"control\"] == str(base / \"native384-recovery-c9-pilot-evc31-v2\")\n    science = base / \"code-delta-recovery-c9fcc7e\"\n    git = [\n        \"git\",\n        \"-c\",\n        \"core.preloadIndex=false\",\n        \"-c\",\n        \"index.threads=1\",\n        \"-c\",\n        \"status.renames=false\",\n        \"-C\",\n        str(science),\n    ]\n    assert (\n        subprocess.check_output(git + [\"rev-parse\", \"HEAD\"], text=True).strip()\n        == prepared[\"scientific_runtime_git\"]\n    )\n    assert not subprocess.check_output(\n        git + [\"status\", \"--porcelain\", \"--untracked-files=no\"], text=True\n    ).strip()\n    quota = subprocess.check_output([\"lfs\", \"quota\", \"-u\", \"sa305415\", str(base)], text=True)\n    fields = quota.splitlines()[-1].split()\n    if not fields[0].rstrip(\"*\").isdigit():\n        fields = fields[1:]\n    assert len(fields) == 8\n    used, soft, files_used, files_soft = [int(fields[i].rstrip(\"*\")) for i in (0, 1, 4, 5)]\n    live = subprocess.check_output(\n        [\"squeue\", \"--noheader\", \"-u\", \"sa305415\", \"-o\", \"%i|%T|%b|%N\"], text=True\n    )\n    gpu_jobs = [line for line in live.splitlines() if \"gpu\" in line.split(\"|\")[2]]\n    accounting = subprocess.check_output(\n        [\n            \"sacct\",\n            \"-X\",\n            \"--noheader\",\n            \"-j\",\n            \"865357,865578\",\n            \"--format=JobIDRaw,State,ExitCode\",\n            \"--parsable2\",\n        ],\n        text=True,\n    )\n    terminal = {\n        parts[0]: parts[1:3]\n        for parts in (line.split(\"|\") for line in accounting.splitlines())\n        if parts[0] in (\"865357\", \"865578\")\n    }\n    obligations = {\n        \"control_future_delta_live_atomic\": 12 * 128 * 1024**2,\n        \"rank64_future_delta_live_atomic\": 3 * 1024**3,\n        \"control_deployment_bundle_zip\": 2680000000,\n        \"rank64_deployment_bundle_zip\": 3096208256,\n        \"prior_metadata_and_diagnostics\": (132 + 128 + 256 + 128) * 1024**2,\n        \"new_native_stage_payloads\": prepared[\"durable_stage_upper_bound_bytes\"],\n        \"new_native_diagnostic_checkpoint_receipts\": prepared[\n            \"durable_pilot_checkpoint_receipts_bound_bytes\"\n        ],\n    }\n    released = []\n    roles = [\n        (\n            \"865357\",\n            \"control_future_delta_live_atomic\",\n            \"production-launch-whole-series-control-c9fcc7e-v1\",\n            \"dinov3-l16-wholeseries-control-a32-fold0-c9fcc7e-production-v1\",\n        ),\n        (\n            \"865578\",\n            \"rank64_future_delta_live_atomic\",\n            \"production-launch-adapter-a64-sampled-c9fcc7e-v1\",\n            \"dinov3-l16-adapter-a64-sampled-fold0-c9fcc7e-production-v1\",\n        ),\n    ]\n    for job, obligation, control, run in roles:\n        unit = 128 * 1024**2 if job == \"865357\" else 256 * 1024**2\n        retained = set()\n        accepted = []\n        for epoch in range(1, 11):\n            sidecar = base / \"runs\" / run / \"epoch-checkpoints\" / f\"epoch-{epoch:03d}.json\"\n            journal = base / control / \"epoch-publication\" / f\"epoch-{epoch:03d}\" / \"verified.json\"\n            if not sidecar.is_file() or not journal.is_file():\n                continue\n            snapshot = json.loads(sidecar.read_text())\n            receipt = json.loads(journal.read_text())\n            assert (\n                receipt[\"status\"] == \"private_epoch_fully_verified\"\n                and receipt[\"files_verified_by_download\"] == 4\n            )\n            assert (\n                snapshot[\"checkpoint_sha256\"] == receipt[\"checkpoint_sha256\"]\n                and snapshot[\"epoch\"] == receipt[\"epoch\"] == epoch\n            )\n            assert (\n                snapshot[\"status\"] == \"scheduled_epoch_snapshot\"\n                and snapshot[\"diagnostic_only\"] is False\n            )\n            checkpoint = sidecar.parent / snapshot[\"checkpoint_file\"]\n            assert checkpoint.name == f\"epoch-{epoch:03d}.pt\" and not checkpoint.is_symlink()\n            stat = checkpoint.stat()\n            assert stat.st_size == snapshot[\"checkpoint_bytes\"] and stat.st_size <= unit\n            retained.add((stat.st_dev, stat.st_ino))\n            accepted.append(epoch)\n        # The original bound funded twelve future inodes (ten snapshots plus\n        # recovery/atomic writes). Retained completed physical inodes are already\n        # charged in actual lfs usage. Remove only those spent future obligations;\n        # no file deletion, hypothetical cleanup or unverified upload is credited.\n        assert len(retained) == len(accepted)\n        obligations[obligation] = (12 - len(retained)) * unit\n        completed = terminal.get(job) == [\"COMPLETED\", \"0:0\"] and accepted == list(range(1, 11))\n        if completed:\n            obligations[obligation] = 0\n        released.append(\n            {\n                \"job_id\": int(job),\n                \"private_completed_epochs_with_retained_unique_inodes\": accepted,\n                \"already_accounted_in_actual_quota\": True,\n                \"cleanup_credited\": False,\n                \"terminal_all_ten_complete_verified\": completed,\n            }\n        )\n    phase = prepared.get(\"phase\", \"stage\")\n    assert phase in (\"stage\", \"staged_payloads\")\n    if phase == \"staged_payloads\":\n        publication = prepared[\"pinned_private_cache_publication\"]\n        payloads = Path(prepared[\"control\"]) / \"payloads\"\n        for name, record in publication[\"files\"].items():\n            path = payloads / name\n            if not path.exists():\n                path = payloads / publication[\"prefix\"] / name\n            assert not path.is_symlink() and path.stat().st_size == record[\"bytes\"]\n            assert digest(path) == record[\"sha256\"]\n        obligations[\"new_native_stage_payloads\"] = 0\n    remaining = (soft - used) * 1024 - sum(obligations.values())\n    remaining_files = files_soft - files_used - 650 - prepared[\"maximum_new_durable_files\"]\n    reasons = []\n    if remaining < 20 * 1024**3:\n        reasons.append(\"native_payloads_plus_all_future_obligations_leave_less_than_20_gib\")\n    if remaining_files < 5000:\n        reasons.append(\"all_future_files_leave_less_than_5000_files\")\n    if phase == \"stage\" and Path(prepared[\"control\"]).exists():\n        reasons.append(\"distinct_control_already_exists_reconcile_read_only\")\n    gpu_reasons = reasons + (\n        [\"two_gpu_roles_currently_occupy_the_authorized_node_budget\"] if len(gpu_jobs) > 1 else []\n    )\n    ready = Path(prepared[\"control\"]) / \"cpu-stage-recovery-v3-verified.json\"\n    if (\n        not ready.exists()\n        or json.loads(ready.read_text()).get(\"status\")\n        != \"private_native_pilot_payloads_cpu_staged_fully_verified\"\n    ):\n        gpu_reasons.append(\"cpu_stage_not_yet_verified_for_gpu_dispatch\")\n    print(\n        json.dumps(\n            {\n                \"schema_version\": 1,\n                \"status\": \"cpu_stage_admitted_read_only\" if not reasons else \"not_admitted_yet\",\n                \"cpu_stage_admitted\": not reasons,\n                \"gpu_dispatch_admitted\": not gpu_reasons,\n                \"gpu_dispatch_reasons\": gpu_reasons,\n                \"reasons\": reasons,\n                \"actual_gpu_jobs\": gpu_jobs,\n                \"actual_role_accounting\": terminal,\n                \"used_kbytes\": used,\n                \"soft_kbytes\": soft,\n                \"used_files\": files_used,\n                \"soft_files\": files_soft,\n                \"future_obligations_bytes\": obligations,\n                \"released_obligations\": released,\n                \"projected_remaining_gib\": remaining / 1024**3,\n                \"projected_remaining_files\": remaining_files,\n                \"gpu_job_reserved\": False,\n                \"files_or_credentials_written\": False,\n            },\n            indent=2,\n            sort_keys=True,\n        )\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n",
+  "cpu_accept_source": "\nimport hashlib,io,json,os,subprocess,sys,time\nfrom pathlib import Path\nr=json.load(sys.stdin);p=r['plan'];c=Path(p['control']);assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')\nassert not (c/'gpu-prerequisites-v3-intent.json').exists()\ndef save(n,v):\n with (c/n).open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\\n');f.flush();os.fsync(f.fileno())\nsave('gpu-prerequisites-v3-intent.json',{'job_id':os.environ['SLURM_JOB_ID'],'created_unix':time.time(),'gpu_reserved':False,'one_cpu_phase_only':True})\nns={'__name__':'native_gpu_cpu_admission'};exec(compile(r['admission_source'],'native_gpu_cpu_admission','exec'),ns)\nsys.stdin=io.StringIO(json.dumps({**p,'phase':'staged_payloads'}));old=sys.stdout;sys.stdout=io.StringIO()\ntry:ns['main']();admission=json.loads(sys.stdout.getvalue())\nfinally:sys.stdout=old\nassert admission['gpu_dispatch_admitted'] is True\ncode=Path('/home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e')\nfor n,h in r['scientific_files'].items():assert ns['digest'](code/n)==h\nselection=json.loads((c/'selection.json').read_text())\nfor n,x in selection['input_bindings'].items():\n q=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765')/n;assert q.stat().st_size==x['bytes'] and ns['digest'](q)==x['sha256']\nassets={str(c/'payloads'/n):x for n,x in p['pinned_private_cache_publication']['files'].items()}\nencoder=json.loads((c/'pilot-config.json').read_text())['encoder']\nassets[encoder['weights_path']]={'bytes':1212559808,'sha256':encoder['weights_sha256']}\nassets[encoder['config_path']]={'bytes':Path(encoder['config_path']).stat().st_size,'sha256':encoder['config_sha256']}\nassets['/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar']={'sha256':'89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338'}\ndef signature(q):\n s=q.stat();assert not q.is_symlink() and q.is_file()\n return {'dev':s.st_dev,'ino':s.st_ino,'bytes':s.st_size,'mtime_ns':s.st_mtime_ns,'ctime_ns':s.st_ctime_ns}\nverified={}\nfor n,x in assets.items():\n q=Path(n);before=signature(q);assert x.get('bytes',before['bytes'])==before['bytes']\n assert ns['digest'](q)==x['sha256'] and signature(q)==before\n verified[n]={'sha256':x['sha256'],'stat':before}\nsave('gpu-prerequisites-v3-verified.json',{'status':'native_gpu_prerequisites_cpu_hash_verified','job_id':os.environ['SLURM_JOB_ID'],'verified_unix':time.time(),'assets':verified,'scientific_files':r['scientific_files'],'accepted_input_bindings':selection['input_bindings'],'plan_sha256':hashlib.sha256(json.dumps(p,sort_keys=True,separators=(',',':')).encode()).hexdigest(),'admission_source_sha256':hashlib.sha256(r['admission_source'].encode()).hexdigest(),'admission':admission,'gpu_reserved':False})\nprint(json.dumps({'status':'native_gpu_prerequisites_cpu_hash_verified','job_id':os.environ['SLURM_JOB_ID'],'assets_verified':len(verified),'gpu_reserved':False}))\n",
+  "intent_name": "gpu-prerequisites-v3-intent.json",
+  "original_plan": {
+    "actual_native_gpu_acceptance": false,
+    "control": "/home/sa305415/rsna-knee/native384-recovery-c9-pilot-v1",
+    "cpu_stage_or_gpu_job_dispatched": false,
+    "cpus": 2,
+    "durable_pilot_checkpoint_receipts_bound_bytes": 142606336,
+    "durable_stage_upper_bound_bytes": 2032331543,
+    "files": {
+      "cache-manifest.json": {
+        "bytes": 217503,
+        "sha256": "e283fa6eff5502488a28750d20a01a9500c7bb09c3181e69671a76d711971bc8"
+      },
+      "control-config.json": {
+        "bytes": 1582,
+        "sha256": "7238e435cff0544e9ab7f0a9407d40b005ca2398ee30745683d290859e245935"
+      },
+      "pilot-config.json": {
+        "bytes": 1582,
+        "sha256": "4e6129090a7d5ce42ad64a595be2beb1d22ee855f132bdfbad404960e77719f8"
+      },
+      "pilot.sbatch": {
+        "bytes": 20590,
+        "sha256": "fddce26a228830ab3e7dae9d5a65de4090200094ba8c919d6406f49150d1dd51"
+      },
+      "profile_native.py": {
+        "bytes": 8062,
+        "sha256": "10af0d558ae97b2c68626861fc80a84ca14b8c6aa31cb77be85f30cb4463d5bb"
+      },
+      "reference-config.json": {
+        "bytes": 1569,
+        "sha256": "8cdbcba7ed6589bf0ac270009d37aed81280af8b325c374eb56672b596f1862a"
+      },
+      "selection.json": {
+        "bytes": 3109929,
+        "sha256": "e42dea48f6260ddca0ecf36cfe4223770dcc9f2ae3490afa3ca8010f6f8dc285"
+      },
+      "verify_initialization.py": {
+        "bytes": 2191,
+        "sha256": "9fca68e3390b2d68fb336c113128bffd6b2c5b9458f9ebb8e2aceab9b63bb1d6"
+      },
+      "verify_members.py": {
+        "bytes": 2662,
+        "sha256": "00482e85e02a990e70eba274cf2b353b30d81c8a8f8afc48edeff82d1fb9c997"
+      }
+    },
+    "gpu_nodes": 1,
+    "gpus": 1,
+    "maximum_hours": 2,
+    "maximum_new_durable_files": 250,
+    "maximum_owned_ephemeral_runtime_gib": 30,
+    "memory_gib": 64,
+    "minimum_remaining_local_gib": 20,
+    "new_accuracy_or_throughput_claim": false,
+    "pinned_private_cache_publication": {
+      "diagnostic_only": true,
+      "files": {
+        "DINOv3-LICENSE.md": {
+          "bytes": 7503,
+          "sha256": "25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e"
+        },
+        "cache-side-256.tar": {
+          "bytes": 637173760,
+          "sha256": "951fda9eecece5087444c22773edf1b541b9d524320ac6e3211c4e1e163c6239"
+        },
+        "cache-side-384.tar": {
+          "bytes": 1383434240,
+          "sha256": "3090e83304d26f43bbf733c6ef7bae9db70e29922c8e60d4e45a3e3ad2acd963"
+        },
+        "manifest.json": {
+          "bytes": 217503,
+          "sha256": "e283fa6eff5502488a28750d20a01a9500c7bb09c3181e69671a76d711971bc8"
+        },
+        "selection.json": {
+          "bytes": 3109929,
+          "sha256": "e42dea48f6260ddca0ecf36cfe4223770dcc9f2ae3490afa3ca8010f6f8dc285"
+        }
+      },
+      "files_fully_download_size_sha_verified": 5,
+      "full_native_cache_built": false,
+      "prefix": "experiments/dinov3-v1/native-cache-pilots/fold0-16x2-side384-e42dea48f626",
+      "repo_id": "GodlyDonuts/RSNA-Data",
+      "revision": "3f23826ff226992204380d34a2956f3805f8b960",
+      "status": "private_native_diagnostic_cache_fully_download_verified"
+    },
+    "preparation_source_git": "a618bb76f85818b4bf2fdd585cb6d35f1d900ae8",
+    "requires_absent_control_and_once_only_phase_intents": true,
+    "requires_cpu_stage_full_archive_and_member_sha_before_gpu_dispatch": true,
+    "requires_fresh_complete_projected_quota_and_at_most_one_other_gpu_job": true,
+    "schema_version": 1,
+    "scientific_runtime_git": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab",
+    "source_pilot_sbatch_sha256": "852a58b619640596e155e49cd86cf9b08c9ff0c21b0dce025bdaf64301a8b8ca",
+    "status": "native384_gpu_runtime_prepared_not_staged_or_dispatched"
+  },
+  "plan": {
+    "actual_native_gpu_acceptance": false,
+    "control": "/home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2",
+    "cpu_stage_or_gpu_job_dispatched": false,
+    "cpus": 2,
+    "durable_pilot_checkpoint_receipts_bound_bytes": 146800640,
+    "durable_stage_upper_bound_bytes": 2032331543,
+    "files": {
+      "cache-manifest.json": {
+        "bytes": 217503,
+        "sha256": "e283fa6eff5502488a28750d20a01a9500c7bb09c3181e69671a76d711971bc8"
+      },
+      "control-config.json": {
+        "bytes": 1582,
+        "sha256": "7238e435cff0544e9ab7f0a9407d40b005ca2398ee30745683d290859e245935"
+      },
+      "pilot-config.json": {
+        "bytes": 1582,
+        "sha256": "4e6129090a7d5ce42ad64a595be2beb1d22ee855f132bdfbad404960e77719f8"
+      },
+      "pilot.sbatch": {
+        "bytes": 20783,
+        "sha256": "c16e16335fedb064755c454d7651384316ea72ec965204cd37636ab96476444d"
+      },
+      "profile_native.py": {
+        "bytes": 8062,
+        "sha256": "10af0d558ae97b2c68626861fc80a84ca14b8c6aa31cb77be85f30cb4463d5bb"
+      },
+      "reference-config.json": {
+        "bytes": 1569,
+        "sha256": "8cdbcba7ed6589bf0ac270009d37aed81280af8b325c374eb56672b596f1862a"
+      },
+      "selection.json": {
+        "bytes": 3109929,
+        "sha256": "e42dea48f6260ddca0ecf36cfe4223770dcc9f2ae3490afa3ca8010f6f8dc285"
+      },
+      "verify_initialization.py": {
+        "bytes": 2191,
+        "sha256": "9fca68e3390b2d68fb336c113128bffd6b2c5b9458f9ebb8e2aceab9b63bb1d6"
+      },
+      "verify_members.py": {
+        "bytes": 2662,
+        "sha256": "00482e85e02a990e70eba274cf2b353b30d81c8a8f8afc48edeff82d1fb9c997"
+      }
+    },
+    "gpu_nodes": 1,
+    "gpus": 1,
+    "maximum_hours": 2,
+    "maximum_new_durable_files": 250,
+    "maximum_owned_ephemeral_runtime_gib": 30,
+    "memory_gib": 64,
+    "minimum_remaining_local_gib": 20,
+    "new_accuracy_or_throughput_claim": false,
+    "pinned_private_cache_publication": {
+      "diagnostic_only": true,
+      "files": {
+        "DINOv3-LICENSE.md": {
+          "bytes": 7503,
+          "sha256": "25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e"
+        },
+        "cache-side-256.tar": {
+          "bytes": 637173760,
+          "sha256": "951fda9eecece5087444c22773edf1b541b9d524320ac6e3211c4e1e163c6239"
+        },
+        "cache-side-384.tar": {
+          "bytes": 1383434240,
+          "sha256": "3090e83304d26f43bbf733c6ef7bae9db70e29922c8e60d4e45a3e3ad2acd963"
+        },
+        "manifest.json": {
+          "bytes": 217503,
+          "sha256": "e283fa6eff5502488a28750d20a01a9500c7bb09c3181e69671a76d711971bc8"
+        },
+        "selection.json": {
+          "bytes": 3109929,
+          "sha256": "e42dea48f6260ddca0ecf36cfe4223770dcc9f2ae3490afa3ca8010f6f8dc285"
+        }
+      },
+      "files_fully_download_size_sha_verified": 5,
+      "full_native_cache_built": false,
+      "prefix": "experiments/dinov3-v1/native-cache-pilots/fold0-16x2-side384-e42dea48f626",
+      "repo_id": "GodlyDonuts/RSNA-Data",
+      "revision": "3f23826ff226992204380d34a2956f3805f8b960",
+      "status": "private_native_diagnostic_cache_fully_download_verified"
+    },
+    "preparation_source_git": "a618bb76f85818b4bf2fdd585cb6d35f1d900ae8",
+    "requires_absent_control_and_once_only_phase_intents": true,
+    "requires_cpu_stage_full_archive_and_member_sha_before_gpu_dispatch": true,
+    "requires_fresh_complete_projected_quota_and_at_most_one_other_gpu_job": true,
+    "schema_version": 1,
+    "scientific_runtime_git": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab",
+    "source_pilot_sbatch_sha256": "852a58b619640596e155e49cd86cf9b08c9ff0c21b0dce025bdaf64301a8b8ca",
+    "status": "native384_gpu_runtime_prepared_not_staged_or_dispatched"
+  },
+  "proof_name": "gpu-prerequisites-v3-verified.json",
+  "ready_name": "cpu-stage-recovery-v3-verified.json",
+  "recovery_shell": "#!/bin/bash\n#SBATCH --job-name=rsna-native384-evc31-recovery\n#SBATCH --nodelist=evc31\n#SBATCH --account=skattel\n#SBATCH --partition=normal\n#SBATCH --nodes=1\n#SBATCH --exclude=evc27,evc29,evc38,evc43,evc44,evc49,evc50\n#SBATCH --ntasks=1\n#SBATCH --gres=gpu:nvidia_h100_pcie:1\n#SBATCH --cpus-per-task=2\n#SBATCH --mem=64G\n#SBATCH --time=02:00:00\n#SBATCH --signal=B:USR1@300\n#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out\n#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err\nset -euo pipefail\numask 077\n: \"${SLURM_JOB_ID:?Run through Slurm}\"\n: \"${CUDA_VISIBLE_DEVICES:?Slurm must expose the assigned GPUs}\"\ncd -- /home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e\nexport HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\nexport TOKENIZERS_PARALLELISM=false\nexport OMP_NUM_THREADS=2\nexport MKL_NUM_THREADS=2\nexport PYTHONNOUSERSITE=1\nexport PYTHONDONTWRITEBYTECODE=1\nexport GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=core.preloadIndex GIT_CONFIG_VALUE_0=false GIT_CONFIG_KEY_1=index.threads GIT_CONFIG_VALUE_1=1 GIT_CONFIG_KEY_2=status.renames GIT_CONFIG_VALUE_2=false\nunset PYTHONPATH\nprobe_allocated_driver() {\n  \"$@\" /usr/bin/timeout --kill-after=5s 25s /usr/bin/python3.12 - <<'RSNA_ALLOCATED_DRIVER_PROBE'\n\"\"\"Fast read-only CUDA/NVML visibility check inside the scheduler allocation.\"\"\"\nimport ctypes\nimport json\nimport os\nimport subprocess\nimport sys\nfrom pathlib import Path\n\nrecord = {\n    'scope': 'allocated devices only; no visibility changes or GPU computation',\n    'job_id': os.environ.get('SLURM_JOB_ID'),\n    'node': os.uname().nodename,\n    'allocation': {key: os.environ.get(key) for key in (\n        'CUDA_VISIBLE_DEVICES', 'SLURM_JOB_GPUS', 'SLURM_GPUS_ON_NODE',\n        'SLURM_CPUS_PER_TASK', 'SLURM_STEP_GPUS', 'CUDA_DEVICE_ORDER')},\n    'cpu_affinity': sorted(os.sched_getaffinity(0)),\n}\nerrors = []\nif not record['job_id'] or len((os.environ.get('CUDA_VISIBLE_DEVICES') or '').split(',')) != 1:\n    errors.append('one scheduler-visible device required')\ntry:\n    result = subprocess.run(\n        ['nvidia-smi', '--query-gpu=index,name,uuid,driver_version,pci.bus_id', '--format=csv,noheader'],\n        capture_output=True, text=True, timeout=15,\n    )\n    record['nvidia_inventory'] = {'returncode': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr}\n    count = len([line for line in result.stdout.splitlines() if line.strip()])\n    if result.returncode != 0 or count != 1:\n        errors.append('NVML must expose the allocated GPU')\nexcept (OSError, subprocess.TimeoutExpired) as error:\n    errors.append('NVML inventory failed: '+type(error).__name__)\ntry:\n    driver = ctypes.CDLL('libcuda.so.1')\n    driver.cuInit.argtypes = [ctypes.c_uint]\n    driver.cuInit.restype = ctypes.c_int\n    driver.cuDeviceGetCount.argtypes = [ctypes.POINTER(ctypes.c_int)]\n    driver.cuDeviceGetCount.restype = ctypes.c_int\n    result = driver.cuInit(0)\n    record['cuda_driver_init_code'] = result\n    if result != 0:\n        errors.append('CUDA driver initialization failed')\n    else:\n        count = ctypes.c_int()\n        code = driver.cuDeviceGetCount(ctypes.byref(count))\n        record['cuda_driver_count_code'] = code\n        record['cuda_driver_device_count'] = count.value\n        if code != 0 or count.value != 1:\n            errors.append('CUDA driver must expose the allocated GPU')\nexcept (OSError, AttributeError) as error:\n    errors.append('CUDA driver load failed: '+type(error).__name__)\ntry:\n    record['mapped_libcuda_paths'] = sorted({\n        line.split()[-1] for line in Path('/proc/self/maps').read_text().splitlines()\n        if '/libcuda.so' in line and line.split()[-1].startswith('/')\n    })\nexcept OSError:\n    record['mapped_libcuda_paths'] = None\nif errors:\n    record['device_nodes'] = []\n    for path in sorted(Path('/dev').glob('nvidia[0-9]*')):\n        try:\n            st = path.stat()\n            record['device_nodes'].append({'path': str(path), 'major': os.major(st.st_rdev),\n                                          'minor': os.minor(st.st_rdev), 'mode': oct(st.st_mode & 0o777)})\n        except OSError:\n            pass\n    try:\n        record['self_cgroup'] = Path('/proc/self/cgroup').read_text()\n        record['readable_devices_lists'] = []\n        for line in record['self_cgroup'].splitlines():\n            _, controllers, relative = line.split(':', 2)\n            if 'devices' in controllers.split(',') and '..' not in Path(relative).parts:\n                path = Path('/sys/fs/cgroup/devices') / relative.lstrip('/') / 'devices.list'\n                if path.is_file():\n                    record['readable_devices_lists'].append({'path': str(path), 'contents': path.read_text()})\n    except OSError:\n        record['self_cgroup'] = None\n    record['readable_driver_gpu_metadata'] = []\n    for path in sorted(Path('/proc/driver/nvidia/gpus').glob('*/information')):\n        try:\n            rows = [line for line in path.read_text().splitlines()\n                    if line.startswith(('Model:', 'GPU UUID:', 'Bus Location:', 'Device Minor:'))]\n            record['readable_driver_gpu_metadata'].append({'path': str(path), 'fields': rows})\n        except OSError:\n            pass\nrecord['errors'] = errors\nrecord['status'] = 'passed' if not errors else 'blocked'\nprint(json.dumps(record, sort_keys=True), flush=True)\nsys.exit(2 if errors else 0)\nRSNA_ALLOCATED_DRIVER_PROBE\n}\nif ! probe_allocated_driver; then\n  probe_allocated_driver srun --nodes=1 --ntasks=1 --cpus-per-task=2 --gres=gpu:nvidia_h100_pcie:1 || true\n  exit 2\nfi\nCPATH=$(/usr/bin/python3.12 - <<'RSNA_HEADER_GUARD'\nimport hashlib,json,os,platform,struct,subprocess,sys,sysconfig\nfrom pathlib import Path\nroot=Path('/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3').resolve();pins={'cpu_proof_sha256': '95c1d9aa2a9676cbdc4fa46e3d3ffda0bb721f24221365953ce23819c01f1695', 'header_tree_sha256': '08c760c1938c53debf9a2ed133609d7ed07049902b4eae54da6ee93454372241', 'staging_receipt_sha256': '85d88b7d4076564f86ddc49e2e670a855617d752f38766856276de03f10768a3', 'generated_header_provenance_sha256': '38913bdb4e683d0c00446de75e0b103469e81a7eb5f47c4fc5c5828e25af47bb', 'rpm_sha256': 'd822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3', 'generated_header_sha256': 'bf85b811c1ac1c8c5f62935da14ee3738305bb2ffd9bfb63af6ebad2a475f681', 'cpu_proof_job': 839074, 'remote_root': '/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3'}\ncontrol=Path('/home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2')\ndef sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()\ndef write(n,v):\n with (control/n).open('x') as out:json.dump(v,out,indent=2,sort_keys=True);out.write('\\n');out.flush();os.fsync(out.fileno())\nassert os.environ.get('SLURM_JOB_ID')\nassert sha(root/'cpu-proof.json')==pins['cpu_proof_sha256']\nassert sha(root/'staging-receipt.json')==pins['staging_receipt_sha256']\nassert sha(root/'system-header-verified.json')==pins['generated_header_provenance_sha256']\nproof=json.loads((root/'cpu-proof.json').read_text());source=json.loads((root/'system-header-verified.json').read_text())\nassert proof['status']=='actual_triton_helper_compile_and_import_passed' and proof['actual_installed_builder_replayed'] and proof['requested_gpus']==0\nassert proof['header_tree_sha256']==pins['header_tree_sha256'] and proof['rpm_sha256']==pins['rpm_sha256']\nassert not proof['system_mutations'] and not proof['backend_disable_or_replacement']\nassert sha(root.parent/'python-headers-3.12.13-2-v2/python3.12-devel-3.12.13-2.el8_10.x86_64.rpm')==pins['rpm_sha256']\nmanifest=json.loads((root/'header-tree.json').read_text());rows=manifest['files']\nassert len(rows)==215 and hashlib.sha256(json.dumps(rows,sort_keys=True,separators=(',',':')).encode()).hexdigest()==manifest['canonical_tree_sha256']==pins['header_tree_sha256']\nactual=[];extract=root/'extracted'\nfor p in sorted(extract.rglob('*')):\n assert not p.is_symlink()\n if p.is_file():actual.append({'path':str(p.relative_to(extract)),'bytes':p.stat().st_size,'sha256':sha(p)})\nassert actual==rows\nheaders=extract/'usr/include/python3.12'\nassert sha(headers/'pyconfig-64.h')==pins['generated_header_sha256']\nmapped=sorted({line.split()[-1] for line in Path('/proc/self/maps').read_text().splitlines() if '/libpython3.12.so' in line and line.split()[-1].startswith('/')})\nassert mapped==['/usr/lib64/libpython3.12.so.1.0']\np=subprocess.run(['rpm','-qf','--qf','%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\\n',str(Path(sys.executable).resolve()),mapped[0]],capture_output=True,text=True,timeout=15)\nrecord={'job_id':os.environ['SLURM_JOB_ID'],'node':platform.node(),'pins':pins,'mapped_libpython':mapped,'package_query':{'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr},'sysconfig':{k:sysconfig.get_config_var(k) for k in source['sysconfig']},'CPATH':str(headers),'python':platform.python_version(),'pointer_bytes':struct.calcsize('P'),'PyObject_bytes':object.__basicsize__}\nwrite('node-header-identity-'+os.environ['SLURM_JOB_ID']+'.json',record)\nassert p.returncode==0 and p.stdout.splitlines()==['python3.12|3.12.13|2.el8_10|x86_64','python3.12-libs|3.12.13|2.el8_10|x86_64']\nassert record['sysconfig']==source['sysconfig'] and record['python']==proof['runtime_python']=='3.12.13'\nassert record['pointer_bytes']==8 and record['PyObject_bytes']==16 and sys.hexversion==51121648\nassert str(headers)==proof['CPATH'] and ':' not in str(headers) and headers.is_absolute()\nwrite('node-header-verified-'+os.environ['SLURM_JOB_ID']+'.json',dict(record,status='passed',all_215_header_hashes_verified=True))\nprint(str(headers))\nRSNA_HEADER_GUARD\n)\nexport CPATH\nsupervisors=()\nstop_requested=0\nrequest_checkpoint() {\n  stop_requested=1\n  for pid in \"${supervisors[@]}\"; do kill -USR1 \"$pid\" 2>/dev/null || true; done\n}\ntrap request_checkpoint USR1 TERM INT\nruntime_root=\ncontrol_runtime_root=\nenvironment_root=\ncleanup_runtime() {\n  local previous_status=\"$?\"\n  if [[ -n \"$runtime_root\" ]]; then\n    /usr/bin/python3.12 scripts/newton/runtime_archive.py cleanup --root \"$runtime_root\" || previous_status=2\n  fi\n  if [[ -n \"$control_runtime_root\" ]]; then\n    /usr/bin/python3.12 scripts/newton/runtime_archive.py cleanup --root \"$control_runtime_root\" || previous_status=2\n  fi\n  if [[ -n \"$environment_root\" ]]; then\n    /usr/bin/python3.12 scripts/newton/runtime_environment.py cleanup --root \"$environment_root\" || previous_status=2\n  fi\n  return \"$previous_status\"\n}\ntrap cleanup_runtime EXIT\nenvironment_json=$(/usr/bin/python3.12 scripts/newton/runtime_environment.py extract --archive /home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar --sha256 89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338 --expected-files 40403 --expected-bytes 6322691335 --scratch-base /tmp --shared-python /usr/bin/python3.12 --min-free-gib 20)\nenvironment_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)[\"runtime_root\"])' <<< \"$environment_json\")\nruntime_python=\"$environment_root/environment/bin/python\"\n\"$runtime_python\" - <<'RSNA_SINGLE_GPU_CONTEXT'\nimport json\nimport torch\n\nassert torch.cuda.device_count() == 1\ntorch.cuda.set_device(0)\nvalue = torch.ones(8, device='cuda')\nassert float(value.sum().item()) == 8.0\ntorch.cuda.synchronize()\nprint(json.dumps({'status': 'passed', 'cuda_context': True, 'gpu_count': 1}), flush=True)\nRSNA_SINGLE_GPU_CONTEXT\nif (( stop_requested )); then exit 75; fi\nruntime_json=$(/usr/bin/python3.12 scripts/newton/runtime_archive.py extract --archive /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/payloads/cache-side-384.tar --sha256 3090e83304d26f43bbf733c6ef7bae9db70e29922c8e60d4e45a3e3ad2acd963 --expected-files 370 --expected-bytes 1382757254 --scratch-base /tmp --min-free-gib 20)\nruntime_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)[\"runtime_root\"])' <<< \"$runtime_json\")\nruntime_cache=\"$runtime_root/cache\"\ncontrol_json=$(/usr/bin/python3.12 scripts/newton/runtime_archive.py extract --archive /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/payloads/cache-side-256.tar --sha256 951fda9eecece5087444c22773edf1b541b9d524320ac6e3211c4e1e163c6239 --expected-files 370 --expected-bytes 636495115 --scratch-base /tmp --min-free-gib 20)\ncontrol_runtime_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)[\"runtime_root\"])' <<< \"$control_json\")\nrebuilt_cache=\"$control_runtime_root/cache\"\n/usr/bin/python3.12 /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/verify_members.py --root \"$runtime_root\" --manifest /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/cache-manifest.json --side 384\n/usr/bin/python3.12 /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/verify_members.py --root \"$control_runtime_root\" --manifest /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/cache-manifest.json --side 256\n\nexport TRITON_CACHE_DIR=\"$runtime_root/triton-cache\"\nif [[ -e \"$TRITON_CACHE_DIR\" || -L \"$TRITON_CACHE_DIR\" ]]; then exit 2; fi\nmkdir -- \"$TRITON_CACHE_DIR\"\n\"$runtime_python\" scripts/newton/preflight.py --device cuda --expected-gpus 1 --repo /home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e --expected-git c9fcc7eefb09103942be89bf4fa87410eb9ec5ab --cache \"$runtime_cache\" --cache-manifest /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/cache-manifest.json --storage \"$runtime_root\" --min-free-gb 20 --config /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/pilot-config.json\nif (( stop_requested )); then exit 75; fi\nIFS=\",\" read -r -a assigned_gpus <<< \"$CUDA_VISIBLE_DEVICES\"\nif (( ${#assigned_gpus[@]} != 1 )); then exit 2; fi\n\n\"$runtime_python\" -c 'from scripts.newton.verify_adapter_pilot import main; from scripts.newton.profile_whole_series import main; print(\"verification_modules_imported_from_pinned_source\")'\nreference_output=\"$runtime_root/diagnostic-reference\"\nfull_output=\"$runtime_root/diagnostic-full\"\nresume_output=\"$runtime_root/diagnostic-resumed\"\ncontrol_output=\"$runtime_root/diagnostic-rebuilt256\"\nrun_phase() {\n  if (( stop_requested )); then return 75; fi\n  local phase_output=\"$1\"\n  local phase_config=\"$2\"\n  shift 2\n  \"$runtime_python\" scripts/newton/supervise.py --grace-seconds 120 --checkpoint \"$phase_output/checkpoint.pt\" -- \"$runtime_python\" -m torch.distributed.run --rdzv-backend=c10d --rdzv-endpoint=127.0.0.1:0 --nnodes=1 --nproc-per-node=1 --max-restarts=0 --module rsna.competitive.train --studies /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet --series /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache \"$runtime_cache\" --folds /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds --artifact-root /home/sa305415/rsna-knee/code-stopfix-1f486765 --config \"$phase_config\" --output \"$phase_output\" --device cuda \"$@\" &\n  local pid=\"$!\"\n  supervisors+=(\"$pid\")\n  local code=0\n  while true; do\n    set +e\n    wait \"$pid\"\n    code=\"$?\"\n    set -e\n    if ! kill -0 \"$pid\" 2>/dev/null; then break; fi\n  done\n  supervisors=()\n  return \"$code\"\n}\n\"$runtime_python\" -c 'import runpy,sys; p=sys.argv.pop(1); runpy.run_path(p,run_name=\"__main__\")' /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/verify_initialization.py --native /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/pilot-config.json --control /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/control-config.json --output /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/initialization-verified.json\nnative_cache=\"$runtime_cache\"\nruntime_cache=\"$rebuilt_cache\"\nrun_phase \"$control_output\" /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/control-config.json\nruntime_cache=\"$native_cache\"\nrun_phase \"$reference_output\" /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/reference-config.json\nrun_phase \"$full_output\" /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/pilot-config.json\nif run_phase \"$resume_output\" /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/pilot-config.json --stop-after-updates 1; then\n  stop_code=0\nelse\n  stop_code=\"$?\"\nfi\nif [[ \"$stop_code\" != 1 && \"$stop_code\" != 75 ]]; then exit 2; fi\n\"$runtime_python\" - \"$resume_output\" \"$stop_code\" /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2 <<'RSNA_EXACT_INTENTIONAL_STOP_GUARD'\nimport hashlib,json,sys\nfrom pathlib import Path\nfrom scripts.newton.supervise import checkpoint_stop_verified\npartial,wrapper,control=Path(sys.argv[1]),int(sys.argv[2]),Path(sys.argv[3])\nreceipt=json.loads((partial/'invocation.json').read_text())\nassert receipt['status']=='checkpointed_for_resume' and receipt['exit_code']==75\nassert len(receipt['updates'])==1 and receipt['updates'][0]['optimizer_steps']==1\nassert checkpoint_stop_verified(partial/'checkpoint.pt',0)\nrecord={'status':'exact_intentional_optimizer_boundary_stop_verified','launcher_exit_code':wrapper,'trainer_exit_code':75,'invocation':receipt}\nwith (control/'intentional-stop-verified.json').open('x') as f:json.dump(record,f,indent=2)\nprint(json.dumps({'status':record['status'],'launcher_exit_code':wrapper,'trainer_exit_code':75}),flush=True)\nRSNA_EXACT_INTENTIONAL_STOP_GUARD\nrun_phase \"$resume_output\" /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/pilot-config.json --resume \"$resume_output/checkpoint.pt\"\n\"$runtime_python\" -m scripts.newton.verify_adapter_pilot --full \"$full_output\" --resumed \"$resume_output\" --config /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/pilot-config.json --studies /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet --series /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache \"$runtime_cache\" --output /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/pilot-verified.json --reference \"$reference_output\"\n\"$runtime_python\" - \"$reference_output\" \"$full_output\" \"$resume_output\" \"$control_output\" /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2 <<'RSNA_COPY_SMALL_PILOT_RECEIPTS'\nimport json,pathlib,shutil,sys\nreference,full,resumed,rebuilt,control=map(pathlib.Path,sys.argv[1:])\nfor prefix,folder in [('reference',reference),('full',full),('resumed',resumed),('rebuilt256',rebuilt)]:\n for name in ['run.json','result.json','invocation.json','outer_predictions.csv']:\n  source=folder/name\n  assert source.is_file() and source.stat().st_size<2*1024**2\n  shutil.copyfile(source,control/(prefix+'-'+name))\ncheckpoint=full/'checkpoint.pt'\nassert checkpoint.stat().st_size<128*1024**2\nassert not (control/'delta-diagnostic.pt').exists()\nshutil.copyfile(checkpoint,control/'delta-diagnostic.pt')\nprint(json.dumps({'status':'exact_delta_recovery_and_full_storage_equivalence_passed','competition_eligible':False,'delta_checkpoint_bytes':checkpoint.stat().st_size}),flush=True)\nRSNA_COPY_SMALL_PILOT_RECEIPTS\n\nif (( stop_requested )); then exit 75; fi\n\"$runtime_python\" -c 'import runpy,sys; p=sys.argv.pop(1); runpy.run_path(p,run_name=\"__main__\")' /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/profile_native.py --checkpoint \"$full_output/checkpoint.pt\" --config /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/pilot-config.json --studies /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet --series /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache \"$runtime_cache\" --folds /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds --artifact-root /home/sa305415/rsna-knee/code-stopfix-1f486765 --output /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/native384-profile.json\n\nif (( stop_requested )); then exit 75; fi\n\"$runtime_python\" -c 'import runpy,sys; p=sys.argv.pop(1); runpy.run_path(p,run_name=\"__main__\")' /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/profile_native.py --checkpoint \"$control_output/checkpoint.pt\" --config /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/control-config.json --studies /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet --series /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache \"$rebuilt_cache\" --folds /home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds --artifact-root /home/sa305415/rsna-knee/code-stopfix-1f486765 --output /home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2/rebuilt256-profile.json\n",
+  "scientific_files": {
+    "rsna/__init__.py": "ecf9ff9807f088bffd497458b28d2163c74d8c8d0b3ce5a84948ade85067622e",
+    "rsna/adjudications.py": "2b7af816e9caff240daf02af1dd3bf08e193438ac568478651f0b49868e1eac0",
+    "rsna/archive.py": "9ae68183576b349bec5d5d9b4988aa2c8d0473c66587d4a948c1ab4266022a1e",
+    "rsna/audit.py": "f284e48c266245c0969358559626390c5d4a89fddd48e5aed8010c5a432d81ca",
+    "rsna/competitive/__init__.py": "ff098e00adb13fdb1292452f77fe38dcf44d04ccd62bc9f8bfa6bb8a5b8f6cd1",
+    "rsna/competitive/adapters.py": "690e585623bae944d7cff987cd5dc6ee807d4ac845b8814d9962f09c287eda22",
+    "rsna/competitive/backbones.py": "4921d49d0c9079b7a895fd1c52b6d51621637ac0a5da64518cbd7c92db462b57",
+    "rsna/competitive/checkpoint.py": "a70ef871e200bac89e4f071d9394ce8b0abc1c2ba0017eaba3692d25dde31e21",
+    "rsna/competitive/context.py": "6a12876d0771c5539b272a22737c30a456e1503a8514f0e1a69d4aab3d609410",
+    "rsna/competitive/data.py": "f67da12badb27b132a128a3af56d44fe074f53652a25b06ae7bb3d5f4c0cf738",
+    "rsna/competitive/delta_checkpoint.py": "0b61d3ff94f824a1dba5c3539868bb3b5e5486bf9d32fd8d6a755c4a3072846d",
+    "rsna/competitive/evaluation.py": "726a63dbd65b9da292ba4746aa4ca4334286b27b6edb6dc782e7c7c9aa802783",
+    "rsna/competitive/folds.py": "cd3bf1726065c24745c751e8403ac27ab321cb728a8162dfd5fcf8256d7c3570",
+    "rsna/competitive/infer.py": "6a1c1d6b75a39287a4266c952b51eff8012408382f70a8560abec6f11f48a7c7",
+    "rsna/competitive/loss.py": "a6bd607163589b0209af4bc88483124309e499b3adea412d7d1a49c8a905cf40",
+    "rsna/competitive/model.py": "b53dc79ebfe9861612ca8e58bdd93e2e50efe1266ce5105f217f3815d138c414",
+    "rsna/competitive/sampling.py": "c39153f13075c14ae0135accf9db12525b4e17f15637519e83362c9291d274c9",
+    "rsna/competitive/snapshots.py": "01da138522da7a5dc8f47b51f4c8e3f10caa78b73a8fbff027c0dc67de4a6ed2",
+    "rsna/competitive/train.py": "1cfc5ce73cce855861f36076403c7411bc334b940709a5709bb760d622d43a44",
+    "rsna/correspondence.py": "b5de41060bfc922007947551ce7229d07de36efee5e306470106f2663cb0111c",
+    "rsna/data.py": "3e9a7f87ae2a956b04fcfcaf755e17f92c1f78ddb6c9a2ca534b621d982a4833",
+    "rsna/dicom.py": "a26a16d296fc913a1c3f1f33e8c4d8b38d73c5fb9718e663242e6c7ec077b269",
+    "rsna/infer.py": "346840196d89f56c92284258bacf4a75048f07b79ea95d5977eb1f98d776ced5",
+    "rsna/inventory.py": "b0667bbe2add42f92fe180973a8906b5b87e83b28d426a7ef5ef56c606be1c4e",
+    "rsna/labels.py": "c4506b51ec40c9d2b9a3ecdb90662f9bf7cd4358bef72a06fafc0cfa7ab92dc3",
+    "rsna/model.py": "f62331039151a26f94474ecce0251bbe995f47330ed8a5d5fa002b41b1551aa9",
+    "rsna/preflight.py": "eb7200f9938372d956afa12d0700e8a2987f01105b23d5d155e38859c9c8570f",
+    "rsna/preprocess.py": "07da6625045099b085d2afd76d49203fe15826dc40a00b881b1080aaa8b6ae22",
+    "rsna/release.py": "d4f0fd4f6d5aad63ad50397d6f6d0ae6203f84a14690b5ad1385cc57d6a811a6",
+    "rsna/report_similarity.py": "728cf2faba14900e3d6477c47b2a9b6ab8c28c8ff5cdaf6006c1f6e5312fb764",
+    "rsna/review_progress.py": "d48597eca9759e46d7ab3296e43c95e837600b3773e06d61cfa4c7520d9ca8bf",
+    "rsna/schema.py": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948",
+    "rsna/semantic_supervision.py": "5b0f4bf68e2b1c4ffe4396f37b946d4cbf48ee4ec12ade10ec0149f2db0765a7",
+    "rsna/series_equivalence.py": "313304800f91b1157d5d631c3758e27accb03ca022d4e1f7a9285a3054c440ff",
+    "rsna/series_metadata.py": "7f520f14872170fdd9a837334d508c8b30a929a0c393591fd3dbe97a8d8d84b7",
+    "rsna/source_recovery.py": "17fc6c3330b90e5e449472a7457f374ceb3e6f02a6a825cdd248468792f6c3ae",
+    "rsna/train.py": "c409ddb87588cddc7dc3af012d8b58f6a9504bc6975a0ef2b85e543834eae5c2",
+    "rsna/weak_split.py": "aeea2320daf8d05d459ad94a9ff0219681d14706e0832ebd75303344597642ef",
+    "scripts/newton/preflight.py": "2821659e3be5ef02935d78761dcbf878f4ea08511b586b15ac37dedd711c6fdb",
+    "scripts/newton/runtime_archive.py": "ad3f0c6f77fc2ff53b7aafc0781668116bd36ba9fdb5f17e011cd2b3cd15592c",
+    "scripts/newton/runtime_environment.py": "f1bfa0693a2d2c7afe9070ccd307b12206c24b89231223b93c2ccf3d7d97f8fd",
+    "scripts/newton/supervise.py": "e7631ca4139021d794923a0f05368d847e8dab08a5b124b754ffe51345db69e1",
+    "scripts/newton/verify_adapter_pilot.py": "0911e4585f0e89676f82b3dcb7535ef5c4d15af09dcb6ef6f8bb379a0b6de61c"
+  }
+}

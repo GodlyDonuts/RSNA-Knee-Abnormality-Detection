@@ -6,6 +6,47 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September30 authoritative scored result and native recovery:**
+At22:19UTC authenticated Kaggle marked all-development A32 E10 submission
+**56711823 COMPLETE, score0.792, no error,264173 output bytes**. At22:22UTC
+CPU-only coordinator866174 reconciled its exact identity in the single canonical
+Newton ledger without a competition mutation. Receipt:
+`initiative/audits/kaggle-a32-all-final-preparation-v1/completed-epoch10/hidden-scored-canonical-entry.json`.
+This improves on sampled fold0 submission0.769 by0.023; it does not isolate
+the effect of more data or prove private leaderboard performance. Live allowance
+then was2 today/3 slots; refresh before another submission. Never resubmit this
+model/version or recreate its Dataset.
+
+Rank64 job865578 **COMPLETED0:0** with independently replayed fixed-final
+internal macro AUC **0.8340496537270812**, versus rank32 **0.8620940794159951**
+on the same1156-study development pool. All ten rank64 checkpoints are privately
+fully verified. Keep all12 targets: MCL has only2 positive components and
+contributes most of this macro decline. Shape/RNG/head changes prevent a pure
+causal rank claim. See `initiative/audits/dinov3-rank64-fold0-result-v1/`.
+Whole-series865357 completed all2810 training updates and immutable E10 was
+privately fully re-downloaded/size/SHA verified at22:28UTC, revision
+`39728bcd954b451511328a3bd5c1a332a1a49192`, checkpoint SHA
+`89118b2f83e73c1a883faceb79c2c46297705dda0c3eee25c229c4ca4799e124`.
+AllE1–E10 are preserved; never repeat publication. Final held-out evaluation
+was still running at22:29UTC; no control final AUC is claimed yet.
+
+Native original dispatch was attempted: CPU866143 completed0:0, but GPU866144
+**FAILED2:0 on evc22 before initialization**, with driver probe timeout and
+empty stdout. Never rerun that dispatcher. Distinct evc31 recovery CPU866157
+failed its old control-basename assertion; failed intents/partial stage receipt
+are preserved. Versioned CPU prerequisites866165 completed0:0 after full8-asset
+hashes and source/input/quota checks. **GPU866172 submitted ONCE**, oneH100/
+twoCPUs on evc31, RUNNING at22:29UTC with device/header/model initialization
+verified and empty stderr. Exact control:
+`/home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2`.
+Inspect `initiative/audits/native384-evc31-recovery-v1/` and actual jobs before
+action; never rerun its CPU helper or GPU dispatch. No native GPU acceptance
+or full native cache build is claimed. Projected reserve after all obligations
+was21.5358GiB/6296files. Goal remains ACTIVE.
+
+The older entries below are historical observations; the scored outcome and
+actual dispatches above supersede their pending/unattempted states.
+
 **September30 rank64 tenth epoch privately preserved:**
 Job865578 completed all2810 scheduled training updates and produced immutable
 E10; all4 private objects were fully re-downloaded/size/SHA verified at

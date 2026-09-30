@@ -1,5 +1,18 @@
 # Completed all-development epoch 10 and exact Kaggle candidate
 
+**Authoritative September30 outcome:** authenticated ListSubmissions at22:19UTC
+reported **56711823 COMPLETE, public score0.792, no error,264173 output bytes**.
+At22:22UTC CPU-only job866174 reconciled the exact submission in the canonical
+Newton ledger under its single coordinator. See hidden-scored-canonical-entry.json.
+No further competition mutation was made. The live account then reported2
+today/3 slots; refresh before any later submission.
+
+This is an actual public score, improving on sampled-fold0 entry56697342's
+0.769 by0.023. Different training coverage means this is not a causal ablation
+or a private-leaderboard guarantee. Never resubmit this exact model/version,
+recreate its Dataset or republish its verified checkpoints. Pending observations
+below are historical and superseded by this terminal scored outcome.
+
 Primary **865263 COMPLETED 0:0** on one H100/two CPUs in 10:00:20. Its fixed
 10-epoch schedule completed **4,260 updates / 3,403 usable development studies**,
 with zero outer studies in this final fit. The reserved 441-study confirmation

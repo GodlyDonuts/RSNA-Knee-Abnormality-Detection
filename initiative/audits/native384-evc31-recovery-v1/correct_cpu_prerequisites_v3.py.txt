@@ -1,0 +1,81 @@
+"""One distinct CPU correction; retain failed journals and reuse immutable bytes."""
+import hashlib
+import importlib.util
+import json
+import subprocess
+import time
+from pathlib import Path
+
+ROOT = Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection')
+FOLDER = ROOT / 'artifacts/native384-evc31-recovery-v2'
+OLD = '/home/sa305415/rsna-knee/native384-recovery-c9-pilot-v1'
+NEW = '/home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2'
+SOCKET = '/tmp/rsna-a32-reconnect-20260930-501.sock'
+READY = 'cpu-stage-recovery-v3-verified.json'
+INTENT = 'gpu-prerequisites-v3-intent.json'
+PROOF = 'gpu-prerequisites-v3-verified.json'
+spec = importlib.util.spec_from_file_location('native_original_coordinator', ROOT / 'scripts/newton/dispatch_native384_pilot.py')
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+CPU = r'''
+import hashlib,io,json,os,subprocess,sys,time
+from pathlib import Path
+r=json.load(sys.stdin);p=r['plan'];c=Path(p['control'])
+assert str(c)=='/home/sa305415/rsna-knee/native384-recovery-c9-pilot-evc31-v2'
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS') and int(os.environ['SLURM_CPUS_PER_TASK'])==1
+assert not (c/'gpu-dispatch-intent.json').exists() and not (c/'gpu-dispatch-result.json').exists()
+assert not (c/r['ready_name']).exists() and not (c/r['proof_name']).exists() and not (c/r['intent_name']).exists()
+assert subprocess.check_output(['sacct','-X','--noheader','-j','866157','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip()=='866157|FAILED|1:0'
+assert not (c/'gpu-prerequisites-verified.json').exists()
+def digest(q):
+ h=hashlib.sha256()
+ with q.open('rb') as f:
+  for b in iter(lambda:f.read(4*1024**2),b''):h.update(b)
+ return h.hexdigest()
+for n,x in p['files'].items():
+ q=c/n;assert not q.is_symlink() and q.is_file() and q.stat().st_size==x['bytes'] and digest(q)==x['sha256']
+for n,x in p['pinned_private_cache_publication']['files'].items():
+ q=c/'payloads'/n;assert not q.is_symlink() and q.is_file() and q.stat().st_size==x['bytes'] and digest(q)==x['sha256']
+v={'status':'private_native_pilot_payloads_cpu_staged_fully_verified','job_id':os.environ['SLURM_JOB_ID'],'files':p['files'],'private_publication':p['pinned_private_cache_publication'],'recovery_from_failed_cpu_job':866157,'payload_full_sha_verified':True,'large_payload_copies_or_redownloads':0}
+with (c/r['ready_name']).open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+sys.stdin=io.StringIO(json.dumps(r))
+exec(compile(r['cpu_accept_source'],'native_corrected_cpu_acceptance_v3','exec'),{'__name__':'native_corrected_cpu_acceptance_v3'})
+'''
+
+def main():
+    assert not (FOLDER / 'cpu-prerequisites-v3-local-intent.json').exists()
+    assert not (FOLDER / 'gpu-dispatch-intent.json').exists()
+    request = json.loads((FOLDER / 'request.json').read_text())
+    original = m.request_data()
+    assert request['scientific_files'] == original['scientific_files']
+    assert request['plan']['control'] == NEW
+    assert request['original_plan'] == original['plan']
+    shell = (FOLDER / 'pilot.sbatch').read_bytes()
+    assert hashlib.sha256(shell).hexdigest() == request['plan']['files']['pilot.sbatch']['sha256']
+    subprocess.run(['bash', '-n', str(FOLDER / 'pilot.sbatch')], check=True)
+    request['admission_source'] = original['admission_source'].replace(Path(OLD).name, Path(NEW).name).replace('cpu-stage-verified.json', READY)
+    assert Path(OLD).name not in request['admission_source']
+    request['ready_name'], request['intent_name'], request['proof_name'] = READY, INTENT, PROOF
+    request['cpu_accept_source'] = m.CPU_ACCEPT.replace(OLD, NEW).replace('gpu-prerequisites-intent.json', INTENT).replace('gpu-prerequisites-verified.json', PROOF)
+    m.save_new(FOLDER / 'corrected-request-v3.json', request)
+    m.save_new(FOLDER / 'cpu-prerequisites-v3-local-intent.json', {'created_at':m.now(),'one_attempt_only':True,'gpus':0,'cpus':1,'reuse_existing_payloads':True,'corrected_admission_sha256':hashlib.sha256(request['admission_source'].encode()).hexdigest()})
+    cpu = m.ssh(SOCKET, ['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--mem=8G','--time=00:15:00',m.CPU_PYTHON,'-c',CPU], request, timeout=1200)
+    m.save_new(FOLDER / 'cpu-prerequisites-v3-local-result.json', cpu)
+    print(json.dumps(cpu), flush=True)
+    for _ in range(5):
+        acct = m.ssh(SOCKET,[m.CPU_PYTHON,'-c',"import json,subprocess;print(json.dumps({'accounting':subprocess.check_output(['sacct','-X','--noheader','-j',"+repr(cpu['job_id'])+",'--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip()}))"])
+        if acct['accounting'] == cpu['job_id']+'|COMPLETED|0:0':
+            break
+        time.sleep(2)
+    assert acct['accounting'] == cpu['job_id']+'|COMPLETED|0:0'
+    checked = m.ssh(SOCKET,[m.CPU_PYTHON,'-c',m.CHECK.replace(OLD,NEW).replace('cpu-stage-verified.json',READY).replace('rsna-native384-recovery-pilot','rsna-native384-evc31-recovery')],request)
+    assert checked['status']=='ready_for_cpu_prerequisites'
+    m.save_new(FOLDER/'cpu-prerequisites-v3-final-read.json',checked)
+    m.save_new(FOLDER/'gpu-dispatch-intent.json',{'created_at':m.now(),'one_attempt_only':True,'control':NEW,'script_sha256':request['plan']['files']['pilot.sbatch']['sha256'],'cpu_job_id':cpu['job_id'],'node':'evc31'})
+    result=m.ssh(SOCKET,[m.CPU_PYTHON,'-c',m.DISPATCH.replace('gpu-prerequisites-verified.json',PROOF)],request,timeout=70)
+    m.save_new(FOLDER/'gpu-dispatch-result.json',result)
+    print(json.dumps(result),flush=True)
+
+if __name__=='__main__':
+    main()
