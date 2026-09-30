@@ -6,6 +6,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, bounded-scratch/epoch-6 milestone synchronized:** GitHub main
+`26cdfb1` records the exact real-checkpoint CPU proof, distinct private T4 dispatch
+and fully preserved primary epoch 6. Private HF
+**8c1d68ecec49a747435eee0009a768d1b8beb964** has all **180 small objects**
+fully re-downloaded/size/SHA verified. Never repeat that mirror. Actual private
+fix3 v1 remains RUNNING at the subsequent exact-source/settings read; no T4
+terminal acceptance or new competition score is claimed. The two-hour follow-up
+must inspect the same immutable notebook and existing intent before any action.
+
 **September 30, bounded real-checkpoint CPU proof and distinct private T4 rerun:**
 CPU-only **865394 COMPLETED 0:0 in 1:08**, using external source
 `1630cc864be808f3a3d67d46826c1fe34f554c38` and unchanged scientific `c9fcc7e`.

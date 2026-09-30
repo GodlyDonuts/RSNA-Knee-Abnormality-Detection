@@ -49,6 +49,13 @@ them; no hypothetical future cleanup is credited.
 
 ## Exact terminal failure and correction
 
+The bounded-scratch CPU proof/private dispatch/epoch-6 milestone is on GitHub
+main **26cdfb1** and privately mirrored at HF
+**8c1d68ecec49a747435eee0009a768d1b8beb964**. All **180 small objects** were
+fully re-downloaded/size/SHA verified. `hf-fix3-*` preserves the manifest and
+receipt; never repeat the upload. The subsequent exact private fix3 v1 read
+remains RUNNING, so successful terminal MRI acceptance is not yet claimed.
+
 **Actual bounded CPU acceptance and new private execution:** job **865394
 COMPLETED 0:0 in 1:08**. Real official-base/delta expansion with a deliberately
 limited six-GiB reported scratch budget passed all frozen and learned tensor
