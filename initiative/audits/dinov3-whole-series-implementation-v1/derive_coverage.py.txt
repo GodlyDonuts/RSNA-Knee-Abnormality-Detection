@@ -1,0 +1,19 @@
+import hashlib,json
+from pathlib import Path
+import pandas as pd
+from rsna.competitive.train import select_development
+from rsna.competitive.folds import load_folds
+from rsna.release import load_verified_release
+from rsna.data import select_series
+root=Path.cwd();index_path=root/'initiative/audits/full-image-recovery-v1/audit/series_cache_index.parquet';series_path=root/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'
+manifest,binding=load_verified_release(root/'initiative/releases/report-supervision-v1/studies.parquet',root);folds=load_folds(root/'initiative/experiments/competitive-v1/folds',manifest,binding);train,outer=select_development(manifest,folds,0)
+index=pd.read_parquet(index_path);index=index.loc[index.raw_split=='train_series'];series=pd.read_csv(series_path);merged=series.merge(index[['study_uid','series_uid','n_slices','cache_sha256']],left_on=['StudyInstanceUID','SeriesInstanceUID'],right_on=['study_uid','series_uid'],how='left',validate='one_to_one');assert merged.n_slices.notna().all()
+train_uids=set(train.study_uid);outer_uids=set(outer.study_uid);accepted_uids=train_uids|outer_uids
+rows=[]
+for uid,group in merged.groupby('StudyInstanceUID'):
+ if uid not in accepted_uids:continue
+ values=group.to_dict('records');selected=select_series(values,6,False);total=int(group.n_slices.sum());sampled=sum(min(16,int(r['n_slices'])) for r in selected);pad=len(group)*int(group.n_slices.max());rows.append({'study_uid':uid,'pool':'outer_fold0' if uid in outer_uids else 'training_fold0','series':len(group),'valid_slices':total,'maximum_series_slices':int(group.n_slices.max()),'baseline_sampled_slices':sampled,'all_padded_slices':pad,'all_padded_image_bytes_fp32':pad*224*224*4,'source_coverage_fraction':sampled/total})
+frame=pd.DataFrame(rows).sort_values('study_uid');assert set(frame.study_uid)==set(pd.concat([train,outer]).study_uid)
+p=Path('initiative/audits/dinov3-whole-series-implementation-v1');frame.to_csv(p/'full-pool-coverage.csv',index=False)
+summary={'schema_version':1,'scope':'accepted observed development image metadata only; no target evaluation or relabeling','image_input_side':224,'base_cache_side':256,'native_detail_claimed':False,'studies':len(frame),'training_fold0_studies':len(train),'outer_fold0_studies':len(outer),'all_valid_slices':int(frame.valid_slices.sum()),'baseline_sampled_slices':int(frame.baseline_sampled_slices.sum()),'baseline_aggregate_slice_coverage':float(frame.baseline_sampled_slices.sum()/frame.valid_slices.sum()),'all_series_count':int(frame.series.sum()),'valid_slices_quantiles':{str(q):float(frame.valid_slices.quantile(q)) for q in [0,0.5,0.9,0.95,0.99,1]},'padded_image_bytes_quantiles':{str(q):int(frame.all_padded_image_bytes_fp32.quantile(q)) for q in [0.5,0.95,0.99,1]},'worst_training_inputs':frame.loc[frame.pool=='training_fold0'].nlargest(5,'all_padded_image_bytes_fp32').to_dict('records'),'input_sha256':{str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [index_path,series_path,root/'initiative/releases/report-supervision-v1/studies.parquet']}}
+(p/'metadata-coverage-summary.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps({k:summary[k] for k in ['studies','all_valid_slices','baseline_sampled_slices','baseline_aggregate_slice_coverage','valid_slices_quantiles','padded_image_bytes_quantiles','worst_training_inputs']}))

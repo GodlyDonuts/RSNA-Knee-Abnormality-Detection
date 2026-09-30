@@ -33,7 +33,9 @@ class SyntheticHF(nn.Module):
         return SimpleNamespace(pooler_output=self.projection(pixel_values.mean((2, 3))))
 
 
-def _fixture(tmp_path, monkeypatch, *, checkpoint_only=False, precision="fp32", size=2):
+def _fixture(
+    tmp_path, monkeypatch, *, checkpoint_only=False, precision="fp32", size=2, whole=False
+):
     torch.manual_seed(123)
     config = TrainConfig(
         epochs=2,
@@ -44,6 +46,9 @@ def _fixture(tmp_path, monkeypatch, *, checkpoint_only=False, precision="fp32", 
         max_series=3,
         hidden_dim=8,
         precision=precision,
+        slice_context="neighbor3" if whole else "none",
+        slice_sampling="all" if whole else "uniform",
+        series_sampling="all" if whole else "selected",
     )
     spec_path = tmp_path / "encoder-spec.json"
     config_path = tmp_path / "encoder-config.json"
@@ -80,7 +85,7 @@ def _fixture(tmp_path, monkeypatch, *, checkpoint_only=False, precision="fp32", 
         spec_path.write_text(json.dumps(spec))
         encoder, dim, provenance = backbones.create_encoder(spec)
     encoder.requires_grad_(False)
-    model = CompetitiveStudyNet(encoder, dim, hidden_dim=8)
+    model = CompetitiveStudyNet(encoder, dim, hidden_dim=8, slice_context=config.slice_context)
     release = dict(
         schema_version=1,
         manifest_sha256="a" * 64,
@@ -119,11 +124,14 @@ def _fixture(tmp_path, monkeypatch, *, checkpoint_only=False, precision="fp32", 
     cache = tmp_path / "cache"
     for uid in ids:
         sid = uid + ".1"
-        sops = [sid + ".1", sid + ".2"]
+        count = 2 + int(uid.rsplit(".", 1)[1]) if whole else 2
+        sops = [sid + f".{i + 1}" for i in range(count)]
         relative = f"test_series/{uid}/{sid}.npz"
         path = cache / relative
         path.parent.mkdir(parents=True)
-        np.savez_compressed(path, volume=np.arange(512, dtype=np.uint16).reshape(2, 16, 16))
+        np.savez_compressed(
+            path, volume=np.arange(count * 256, dtype=np.uint16).reshape(count, 16, 16)
+        )
         source_paths = sorted(f"test_series/{uid}/{sid}/{sop}.dcm" for sop in sops)
         metadata = dict(
             cache_version=CACHE_VERSION,
@@ -135,14 +143,14 @@ def _fixture(tmp_path, monkeypatch, *, checkpoint_only=False, precision="fp32", 
             cache_path=relative,
             cache_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
             cache_bytes=path.stat().st_size,
-            n_slices=2,
-            original_shape=[2, 16, 16],
+            n_slices=count,
+            original_shape=[count, 16, 16],
             sop_uids=sops,
-            slice_sha256=["a" * 64, "b" * 64],
+            slice_sha256=["a" * 64] * count if whole else ["a" * 64, "b" * 64],
             path_fingerprint=hashlib.sha256("\n".join(source_paths).encode()).hexdigest(),
             ordering="patient_geometry",
             orientation=[1, 0, 0, 0, 1, 0],
-            positions=[[0, 0, 0], [0, 0, 2]],
+            positions=[[0, 0, i * 2] for i in range(count)],
         )
         path.with_suffix(".json").write_text(json.dumps(metadata))
         rows.append(
@@ -179,6 +187,25 @@ def _fixture(tmp_path, monkeypatch, *, checkpoint_only=False, precision="fp32", 
         output=tmp_path / "submission.csv",
     )
     return args, checkpoint
+
+
+def test_full_coverage_context_checkpoint_infers_variable_batch_and_preserves_roster(
+    tmp_path, monkeypatch
+):
+    args, state = _fixture(tmp_path, monkeypatch, size=3, whole=True)
+    args.batch_size = 2
+    infer.run(args)
+    first = pd.read_csv(args.output)
+    assert first.StudyInstanceUID.tolist() == pd.read_csv(args.template).StudyInstanceUID.tolist()
+    assert list(first.columns) == ["StudyInstanceUID", *TARGETS]
+    assert np.isfinite(first[list(TARGETS)].to_numpy()).all()
+    assert ((first[list(TARGETS)] >= 0) & (first[list(TARGETS)] <= 1)).all().all()
+    args.batch_size = 1
+    args.output = tmp_path / "single-submission.csv"
+    infer.run(args)
+    second = pd.read_csv(args.output)
+    np.testing.assert_allclose(first[list(TARGETS)], second[list(TARGETS)], rtol=0, atol=1e-6)
+    assert state["binding"]["config"]["slice_context"] == "neighbor3"
 
 
 @pytest.mark.parametrize("checkpoint_only", [False, True])

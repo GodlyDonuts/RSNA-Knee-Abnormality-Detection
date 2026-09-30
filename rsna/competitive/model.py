@@ -5,6 +5,7 @@ from __future__ import annotations
 import torch
 from torch import Tensor, nn
 
+from rsna.competitive.context import NeighborSliceContext
 from rsna.schema import TARGETS
 
 
@@ -23,6 +24,7 @@ class CompetitiveStudyNet(nn.Module):
         pooling: str = "attention",
         hidden_dim: int = 128,
         encode_chunk_size: int = 64,
+        slice_context: str = "none",
     ):
         super().__init__()
         if (
@@ -31,6 +33,10 @@ class CompetitiveStudyNet(nn.Module):
         ):
             raise ValueError("Invalid pooling or model dimensions")
         self.encoder = encoder
+        if slice_context not in {"none", "neighbor3"} or (
+            slice_context != "none" and pooling != "attention"
+        ):
+            raise ValueError("Neighbor context requires global-feature attention pooling")
         self.embedding_dim = embedding_dim
         self.pooling = pooling
         self.encode_chunk_size = encode_chunk_size
@@ -77,6 +83,12 @@ class CompetitiveStudyNet(nn.Module):
             ]:
                 module.requires_grad_(False)
             self.series_score.requires_grad_(False)
+        # Preserve shared initial weights and the caller's CPU RNG stream in a
+        # matched context/no-context comparison. The new residual starts at zero.
+        self.slice_context: NeighborSliceContext | None = None
+        if slice_context == "neighbor3":
+            with torch.random.fork_rng(devices=[]):
+                self.slice_context = NeighborSliceContext(hidden_dim)
 
     def train(self, mode: bool = True) -> CompetitiveStudyNet:
         super().train(mode)
@@ -174,6 +186,8 @@ class CompetitiveStudyNet(nn.Module):
         else:
             full = projected.new_zeros((b, s, k, projected.shape[-1]))
             full[slice_mask] = projected + slice_position
+        if self.slice_context is not None:
+            full = self.slice_context(full, slice_mask, positions)
         series_features = full.new_zeros((b, s, full.shape[-1]))
         # Autocast linear output can be BF16 while LayerNorm/pooling buffers are
         # FP32. Indexed writes require exact dtype agreement on CUDA.

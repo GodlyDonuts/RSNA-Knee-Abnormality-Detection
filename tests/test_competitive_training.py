@@ -187,6 +187,9 @@ def test_failed_checkpoint_reserve_preserves_previous_file(tmp_path):
         {"diagnostic_study_limit": 2, "precision": "fp16"},
         {"diagnostic_study_limit": 2, "head_lr": float("nan")},
         {"diagnostic_study_limit": 2, "fit_scope": "include_gold"},
+        {"diagnostic_study_limit": 2, "slice_sampling": "silent_truncate"},
+        {"diagnostic_study_limit": 2, "series_sampling": "omit_axial"},
+        {"diagnostic_study_limit": 2, "slice_context": "neighbor3", "pooling": "patch_attention"},
         {
             "diagnostic_study_limit": 2,
             "pooling": "patch_attention",
@@ -218,18 +221,20 @@ class SyntheticStudies(Dataset):
 
     def __init__(self, studies, series, cache, augment=False, **kwargs):
         self.studies = studies.reset_index(drop=True)
+        self.variable = kwargs.get("slice_sampling") == "all"
 
     def __len__(self):
         return len(self.studies)
 
     def __getitem__(self, index):
         row = self.studies.iloc[index]
+        s, k = (3 + index % 2, 2 + index % 3) if self.variable else (3, 2)
         return {
-            "images": torch.rand(3, 2, 1, 16, 16),
-            "features": torch.eye(3, 5),
-            "series_mask": torch.ones(3, dtype=torch.bool),
-            "slice_mask": torch.ones(3, 2, dtype=torch.bool),
-            "positions": torch.zeros(3, 2, 2),
+            "images": torch.rand(s, k, 1, 16, 16),
+            "features": torch.eye(s, 5),
+            "series_mask": torch.ones(s, dtype=torch.bool),
+            "slice_mask": torch.ones(s, k, dtype=torch.bool),
+            "positions": torch.zeros(s, k, 2),
             "labels": torch.tensor([float(row[t]) for t in TARGETS]),
             "label_mask": torch.tensor([float(row[t + "__mask"]) for t in TARGETS]),
             "study_uid": row.study_uid,
@@ -253,7 +258,10 @@ def _assert_tree_equal(first, second):
 
 
 @pytest.mark.parametrize("fit_scope", ["outer_fold", "all_development"])
-def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monkeypatch, fit_scope):
+@pytest.mark.parametrize("slice_context", ["none", "neighbor3"])
+def test_training_mid_epoch_resume_matches_every_checkpoint_value(
+    tmp_path, monkeypatch, fit_scope, slice_context
+):
     from rsna.competitive import train
     from rsna.competitive.backbones import create_encoder
     from rsna.competitive.model import CompetitiveStudyNet
@@ -278,6 +286,9 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(tmp_path, monk
         train, "load_verified_release", lambda *args: (manifest.copy(), release_binding)
     )
     config = TrainConfig(
+        slice_context=slice_context,
+        slice_sampling="all" if slice_context == "neighbor3" else "uniform",
+        series_sampling="all" if slice_context == "neighbor3" else "selected",
         fit_scope=fit_scope,
         diagnostic_study_limit=20,
         epochs=2,

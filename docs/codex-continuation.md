@@ -6,6 +6,26 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, separate whole-series candidate implemented:** The accepted
+3,403-study cohort has 643,501 cached source slices; the original deterministic
+sampler exposes 282,326 (43.8734%). This is source exposure, not missed-disease
+measurement. An opt-in full-slice/full-series loader and masked neighboring
+feature context are implemented, retaining 224 inputs from the same 256 cache.
+The context adds 66,433 parameters to A32, starts at zero residual and preserves
+shared initialization/RNG versus the no-context control. Variable-batch inference
+and exact interrupted/resumed model/optimizer/RNG/prediction checks pass; all
+1,106 tests and mypy pass. No GPU pilot or full context production job exists yet.
+The prepared diagnostic and matched ten-epoch configurations are in
+`initiative/experiments/competitive-v1/whole-series-context-v1/`; metadata exposure
+and largest-input evidence are in
+`initiative/audits/dinov3-whole-series-implementation-v1/`. This does not change
+active all-development job 865263 or Kaggle submission 56697342. Prove actual
+allocated GPU acceptance, recovery and largest-examination throughput/memory
+before any production launch. Keep full diagnostic recovery files on owned
+node-local disk, and privately preserve the separately typed compact diagnostic
+delta only after verification; it is not a competition checkpoint. Fresh quota
+must preserve the existing all-data run's projected 20 GiB reserve.
+
 **September 30, owner-authorized A32 final fitting and epoch-10 submission:**
 The owner requested the completed A32 fold-0 epoch 10 on Kaggle, plus a separate
 ten-epoch fit on all usable development data and its eventual submission. The

@@ -89,6 +89,9 @@ class TrainConfig:
     freeze_encoder: bool = True
     precision: str = "fp32"
     pooling: str = "attention"
+    slice_context: str = "none"
+    slice_sampling: str = "uniform"
+    series_sampling: str = "selected"
     hidden_dim: int = 128
     encode_chunk_size: int = 32
     augment: bool = False
@@ -137,6 +140,15 @@ class TrainConfig:
             raise ValueError("Unknown precision or pooling policy")
         if any(type(getattr(self, name)) is not bool for name in ("freeze_encoder", "augment")):
             raise ValueError("Freeze and augmentation settings must be booleans")
+        if self.slice_sampling not in {"uniform", "all"} or self.series_sampling not in {
+            "selected",
+            "all",
+        }:
+            raise ValueError("Unknown examination coverage policy")
+        if self.slice_context not in {"none", "neighbor3"} or (
+            self.slice_context != "none" and self.pooling != "attention"
+        ):
+            raise ValueError("Unknown or incompatible neighboring-slice context")
         if self.diagnostic_study_limit is not None and (
             type(self.diagnostic_study_limit) is not int or self.diagnostic_study_limit < 1
         ):
@@ -383,7 +395,12 @@ def _run_locked(
     if hashlib.sha256(series_bytes).hexdigest() != release_binding["series_sha256"]:
         raise ValueError("Series sampling table differs from the accepted data release")
     series = pd.read_csv(io.BytesIO(series_bytes))
-    data_config = {name: getattr(config, name) for name in ("slices", "side", "max_series")}
+    from rsna.competitive.data import collate_studies
+
+    data_config = {
+        name: getattr(config, name)
+        for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
+    }
     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
     outer_data = dataset_class(outer, series, args.cache, **data_config) if len(outer) else None
     if training_data.source_revision != release_binding["source_revision"] or (
@@ -400,6 +417,7 @@ def _run_locked(
         pooling=config.pooling,
         hidden_dim=config.hidden_dim,
         encode_chunk_size=config.encode_chunk_size,
+        slice_context=config.slice_context,
     ).to(device)
     encoder_parameters = {id(parameter) for parameter in encoder.parameters()}
     groups = [
@@ -556,6 +574,7 @@ def _run_locked(
             num_workers=config.workers,
             pin_memory=device.type == "cuda",
             generator=torch.Generator().manual_seed(config.seed + epoch + rank),
+            collate_fn=collate_studies,
         )
         iterator = iter(loader)
         wrapped.train()
@@ -721,6 +740,7 @@ def _run_locked(
         batch_sampler=outer_sampler,
         num_workers=config.workers,
         generator=torch.Generator().manual_seed(config.seed),
+        collate_fn=collate_studies,
     )
     try:
         local_predictions, _ = predict(

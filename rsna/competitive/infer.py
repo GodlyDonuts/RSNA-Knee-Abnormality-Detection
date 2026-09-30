@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from rsna.competitive.backbones import create_encoder, create_encoder_from_training_checkpoint
 from rsna.competitive.checkpoint import atomic_json, file_sha256
-from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.competitive.data import CompetitiveStudyDataset, collate_studies
 from rsna.competitive.model import CompetitiveStudyNet
 from rsna.competitive.snapshots import scheduled_epoch
 from rsna.competitive.train import TrainConfig, predict
@@ -124,7 +124,10 @@ def run(args: argparse.Namespace) -> dict:
         series,
         args.cache,
         raw_split="test_series",
-        **{name: getattr(config, name) for name in ("slices", "side", "max_series")},
+        **{
+            name: getattr(config, name)
+            for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
+        },
     )
     if dataset.cache_side != binding["cache_side"]:
         raise ValueError("Inference cache resolution differs from the trained transform")
@@ -135,6 +138,7 @@ def run(args: argparse.Namespace) -> dict:
         pooling=config.pooling,
         hidden_dim=config.hidden_dim,
         encode_chunk_size=config.encode_chunk_size,
+        slice_context=config.slice_context,
     ).to(device)
     model.load_state_dict(checkpoint["model"], strict=True)
     loader = DataLoader(
@@ -142,6 +146,7 @@ def run(args: argparse.Namespace) -> dict:
         batch_size=args.batch_size,
         num_workers=args.workers,
         generator=torch.Generator().manual_seed(config.seed),
+        collate_fn=collate_studies,
     )
     predictions, _ = predict(model, loader, device, config)
     predictions = predictions.rename(columns={"study_uid": "StudyInstanceUID"})[

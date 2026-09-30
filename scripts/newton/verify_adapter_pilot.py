@@ -16,7 +16,7 @@ from rsna.competitive.backbones import (
     create_encoder_from_training_checkpoint,
 )
 from rsna.competitive.checkpoint import atomic_json, file_sha256
-from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.competitive.data import CompetitiveStudyDataset, collate_studies
 from rsna.competitive.model import CompetitiveStudyNet
 from rsna.competitive.train import TrainConfig, _model_inputs
 from rsna.schema import TARGETS
@@ -46,6 +46,7 @@ def main() -> None:
     parser.add_argument("--series", type=Path, required=True)
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--compact-output", type=Path)
     args = parser.parse_args()
     assert not args.output.exists()
     torch.set_num_threads(2)
@@ -85,6 +86,7 @@ def main() -> None:
             pooling=config.pooling,
             hidden_dim=config.hidden_dim,
             encode_chunk_size=config.encode_chunk_size,
+            slice_context=config.slice_context,
         )
         .cuda()
         .eval()
@@ -100,8 +102,10 @@ def main() -> None:
         slices=config.slices,
         side=config.side,
         max_series=config.max_series,
+        slice_sampling=config.slice_sampling,
+        series_sampling=config.series_sampling,
     )
-    batch = next(iter(DataLoader(dataset, batch_size=1)))
+    batch = next(iter(DataLoader(dataset, batch_size=1, collate_fn=collate_studies)))
     with (
         torch.inference_mode(),
         torch.autocast("cuda", dtype=torch.bfloat16, enabled=config.precision == "bf16"),
@@ -113,6 +117,36 @@ def main() -> None:
         rtol=0,
         atol=1e-7,
     )
+    if config.slice_context == "neighbor3":
+        assert full["model"]["slice_context.output.weight"].abs().sum() > 0
+    compact_sha = None
+    compact_bytes = None
+    if args.compact_output is not None:
+        if config.slice_context != "neighbor3" or args.compact_output.exists():
+            raise ValueError(
+                "Distinct compact preservation is only for the whole-series diagnostic"
+            )
+        compact = {
+            "schema_version": 1,
+            "status": "diagnostic_adapter_context_delta_only",
+            "competition_eligible": False,
+            "binding": full["binding"],
+            "base_weights_sha256": expected["weights_sha256"],
+            "model_trainable": {
+                name: value
+                for name, value in full["model"].items()
+                if not name.startswith("encoder.") or ".lora_A" in name or ".lora_B" in name
+            },
+            "optimizer": full["optimizer"],
+            "epoch": full["epoch"],
+            "optimizer_steps": full["step"],
+            "full_payload_verified": True,
+        }
+        args.compact_output.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(compact, args.compact_output)
+        compact_bytes = args.compact_output.stat().st_size
+        assert compact_bytes < 180 * 1024**2
+        compact_sha = file_sha256(args.compact_output)
     atomic_json(
         args.output,
         {
@@ -127,6 +161,11 @@ def main() -> None:
             "checkpoint_only_real_mri_reload_equal": True,
             "precision": config.precision,
             "optimizer_steps": full["step"],
+            "slice_context": config.slice_context,
+            "slice_sampling": config.slice_sampling,
+            "series_sampling": config.series_sampling,
+            "compact_checkpoint_sha256": compact_sha,
+            "compact_checkpoint_bytes": compact_bytes,
             "full_checkpoint_sha256": file_sha256(args.full / "checkpoint.pt"),
             "resumed_checkpoint_sha256": file_sha256(args.resumed / "checkpoint.pt"),
             "outer_predictions_sha256": file_sha256(args.full / "outer_predictions.csv"),

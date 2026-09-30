@@ -12,6 +12,7 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 from torch import Tensor
+from torch.utils.data import default_collate
 
 from rsna.data import PLANES, StudyDataset, select_series
 from rsna.schema import TARGETS
@@ -66,10 +67,15 @@ class CompetitiveStudyDataset(StudyDataset):
         max_series: int = 6,
         augment: bool = False,
         raw_split: str = "train_series",
+        slice_sampling: str = "uniform",
+        series_sampling: str = "selected",
     ):
         if raw_split not in {"train_series", "test_series"}:
             raise ValueError("Unknown raw split")
+        if slice_sampling not in {"uniform", "all"} or series_sampling not in {"selected", "all"}:
+            raise ValueError("Unknown slice or series coverage policy")
         super().__init__(studies, series, Path(cache), slices, side, max_series, augment, raw_split)
+        self.slice_sampling, self.series_sampling = slice_sampling, series_sampling
         self._metadata: dict[tuple[str, str], tuple[str, dict]] = {}
         for uid in self.studies.study_uid:
             for entry in self.series[uid]:
@@ -113,12 +119,21 @@ class CompetitiveStudyDataset(StudyDataset):
     def __getitem__(self, index: int) -> dict[str, Tensor | str]:
         row = self.studies.iloc[index]
         uid = row.study_uid
-        selected = select_series(self.series[uid], self.max_series, self.augment)
-        images = torch.zeros(self.max_series, self.slices, 1, self.side, self.side)
-        features = torch.zeros(self.max_series, 5)
-        series_mask = torch.zeros(self.max_series, dtype=torch.bool)
-        slice_mask = torch.zeros(self.max_series, self.slices, dtype=torch.bool)
-        positions = torch.zeros(self.max_series, self.slices, 2)
+        slots = len(self.series[uid]) if self.series_sampling == "all" else self.max_series
+        selected = select_series(self.series[uid], slots, self.augment)
+        depth = (
+            max(
+                self._metadata[(uid, entry["SeriesInstanceUID"])][1]["n_slices"]
+                for entry in selected
+            )
+            if self.slice_sampling == "all"
+            else self.slices
+        )
+        images = torch.zeros(slots, depth, 1, self.side, self.side)
+        features = torch.zeros(slots, 5)
+        series_mask = torch.zeros(slots, dtype=torch.bool)
+        slice_mask = torch.zeros(slots, depth, dtype=torch.bool)
+        positions = torch.zeros(slots, depth, 2)
         for slot, entry in enumerate(selected):
             sid = entry["SeriesInstanceUID"]
             path = self.cache / self.raw_split / uid / f"{sid}.npz"
@@ -138,7 +153,11 @@ class CompetitiveStudyDataset(StudyDataset):
             count = meta["n_slices"]
             if volume.dtype != np.uint16 or volume.shape != (count, meta["side"], meta["side"]):
                 raise ValueError("Cache volume dtype/shape mismatch")
-            indices = _indices(count, self.slices, self.augment)
+            indices = (
+                np.arange(count)
+                if self.slice_sampling == "all"
+                else _indices(count, self.slices, self.augment)
+            )
             valid = len(indices)
             sampled = torch.from_numpy(volume[indices].astype(np.float32))[:, None] / 65535
             # Bilinear antialiasing can round a source value of 1 slightly above
@@ -185,3 +204,53 @@ class CompetitiveStudyDataset(StudyDataset):
             label_mask=label_mask,
             study_uid=uid,
         )
+
+
+def collate_studies(rows: list[dict]) -> dict:
+    """Pad variable series/depth for batching; no source slice is repeated or dropped."""
+    if not rows:
+        raise ValueError("Cannot collate an empty study batch")
+    shapes = [row["images"].shape for row in rows]
+    first = rows[0]["images"]
+    if any(len(shape) != 5 or min(shape) < 1 or shape[2:] != shapes[0][2:] for shape in shapes):
+        raise ValueError("Studies need compatible [S,K,1,H,W] images")
+    if shapes[0][2] != 1 or not first.is_floating_point():
+        raise ValueError("Study images must be floating grayscale")
+    variable = ("images", "features", "series_mask", "slice_mask", "positions")
+    for row in rows:
+        s, k = row["images"].shape[:2]
+        expected = {
+            "features": (s, 5),
+            "series_mask": (s,),
+            "slice_mask": (s, k),
+            "positions": (s, k, 2),
+        }
+        if any(row[name].shape != shape for name, shape in expected.items()):
+            raise ValueError("Study metadata shape differs from images")
+        if row["images"].dtype != first.dtype or any(
+            row[name].device != first.device for name in variable
+        ):
+            raise ValueError("Collated image dtype and input devices must match")
+        if row["slice_mask"].dtype != torch.bool or row["series_mask"].dtype != torch.bool:
+            raise ValueError("Study masks must be boolean")
+    if len(set(shapes)) == 1:
+        return default_collate(rows)
+    b, s, k = len(rows), max(shape[0] for shape in shapes), max(shape[1] for shape in shapes)
+    batch = default_collate(
+        [{name: value for name, value in row.items() if name not in variable} for row in rows]
+    )
+    batch.update(
+        images=first.new_zeros((b, s, k, *first.shape[2:])),
+        features=rows[0]["features"].new_zeros((b, s, 5)),
+        positions=rows[0]["positions"].new_zeros((b, s, k, 2)),
+        series_mask=torch.zeros((b, s), dtype=torch.bool, device=first.device),
+        slice_mask=torch.zeros((b, s, k), dtype=torch.bool, device=first.device),
+    )
+    for index, row in enumerate(rows):
+        size, depth = row["images"].shape[:2]
+        batch["images"][index, :size, :depth] = row["images"]
+        batch["features"][index, :size] = row["features"]
+        batch["positions"][index, :size, :depth] = row["positions"]
+        batch["series_mask"][index, :size] = row["series_mask"]
+        batch["slice_mask"][index, :size, :depth] = row["slice_mask"]
+    return batch

@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 import torch
 
-from rsna.competitive.data import CompetitiveStudyDataset, _indices
+from rsna.competitive.data import CompetitiveStudyDataset, _indices, collate_studies
 from rsna.schema import CACHE_VERSION, TARGETS
 
 
@@ -94,6 +94,82 @@ def test_missing_geometry_does_not_invent_physical_positions(tmp_path):
     studies, series, _ = fixture(tmp_path, geometry=False)
     row = CompetitiveStudyDataset(studies, series, tmp_path, slices=2, side=16)[0]
     assert row["positions"].count_nonzero() == 0
+
+
+def test_complete_coverage_uses_every_real_slice_and_series_even_above_caps(tmp_path):
+    counts = (1, 2, 3, 5, 8, 11, 17)
+    studies, series, _ = fixture(tmp_path, counts=counts)
+    row = CompetitiveStudyDataset(
+        studies,
+        series,
+        tmp_path,
+        slices=2,
+        max_series=3,
+        side=16,
+        slice_sampling="all",
+        series_sampling="all",
+    )[0]
+    assert row["images"].shape == (7, 17, 1, 16, 16)
+    assert row["series_mask"].all()
+    assert sorted(row["slice_mask"].sum(1).tolist()) == sorted(counts)
+    assert row["slice_mask"].sum() == sum(counts)
+    for slot in range(7):
+        count = row["slice_mask"][slot].sum().item()
+        expected = torch.arange(1, count + 1) * 1000 / 65535
+        torch.testing.assert_close(row["images"][slot, :count, 0, 0, 0], expected)
+    assert row["label_mask"].sum() == 1 and row["labels"][0] == 1
+
+
+def test_complete_coverage_padding_in_variable_batch_preserves_uid_masks_and_positions(tmp_path):
+    first, first_series, _ = fixture(tmp_path / "first", counts=(2, 4))
+    second, second_series, _ = fixture(tmp_path / "second", counts=(1, 3, 5, 7))
+    second.loc[0, "study_uid"] = "1.2.3"  # separate fixture roots, no production UID overlap
+    rows = [
+        CompetitiveStudyDataset(
+            studies, series, root, side=16, slice_sampling="all", series_sampling="all"
+        )[0]
+        for studies, series, root in [
+            (first, first_series, tmp_path / "first"),
+            (second, second_series, tmp_path / "second"),
+        ]
+    ]
+    batch = collate_studies(rows)
+    assert batch["images"].shape == (2, 4, 7, 1, 16, 16)
+    assert batch["slice_mask"].sum((1, 2)).tolist() == [6, 16]
+    for i, row in enumerate(rows):
+        s, k = row["images"].shape[:2]
+        for name in ["images", "positions", "slice_mask"]:
+            torch.testing.assert_close(batch[name][i, :s, :k], row[name], rtol=0, atol=0)
+        torch.testing.assert_close(batch["label_mask"][i], row["label_mask"], rtol=0, atol=0)
+        assert batch["study_uid"][i] == row["study_uid"]
+    assert not batch["images"][~batch["slice_mask"]].any()
+
+
+def test_default_coverage_and_collation_remain_byte_equal(tmp_path):
+    from torch.utils.data import default_collate
+
+    studies, series, _ = fixture(tmp_path, counts=(5, 9))
+    original = CompetitiveStudyDataset(studies, series, tmp_path, slices=3, side=16)[0]
+    explicit = CompetitiveStudyDataset(
+        studies,
+        series,
+        tmp_path,
+        slices=3,
+        side=16,
+        slice_sampling="uniform",
+        series_sampling="selected",
+    )[0]
+    for name, value in original.items():
+        if isinstance(value, torch.Tensor):
+            torch.testing.assert_close(explicit[name], value, rtol=0, atol=0)
+        else:
+            assert explicit[name] == value
+    expected, result = default_collate([original, explicit]), collate_studies([original, explicit])
+    for name, value in expected.items():
+        if isinstance(value, torch.Tensor):
+            torch.testing.assert_close(result[name], value, rtol=0, atol=0)
+        else:
+            assert result[name] == value
 
 
 def test_interpolation_keeps_uint16_white_within_normalized_range(tmp_path):
