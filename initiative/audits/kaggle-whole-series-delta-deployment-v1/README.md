@@ -49,6 +49,12 @@ them; no hypothetical future cleanup is credited.
 
 ## Exact terminal failure and correction
 
+The exact small scored-result, correction, CPU proof and private T4 dispatch
+milestone is on GitHub main **3275e1f** and privately mirrored at HF
+**726f8691785403af71340b1583a04ea768ffd8e7**. All **163 objects** were fully
+re-downloaded/size/SHA verified. This does not imply terminal T4 MRI acceptance;
+that distinct private run remains in progress.
+
 CPU-only corrected preparation **865385 completed 0:0 in 1:55**. Using the
 actual verified official base and diagnostic delta, it reproduced the old
 helper's error, expanded the corrected helper, and checked all frozen and learned

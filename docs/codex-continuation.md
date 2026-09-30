@@ -6,6 +6,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, verified scored-result/correction mirror:** GitHub main
+`3275e1f` records actual score 0.769, canonical ledger reconciliation,
+real-checkpoint CPU expansion and the distinct corrected private T4 dispatch.
+The source/receipt milestone is private HF
+**726f8691785403af71340b1583a04ea768ffd8e7**; all **163 objects** passed full
+re-download/size/SHA verification. Do not repeat this mirror. Latest live read:
+primary 865263 is finite in epoch 6 at 2,346 updates; control 865357 is finite
+in epoch 2 at 379 updates, both stderr empty. No new terminal training metric.
+
 **September 30, actual A32 Kaggle result and real CPU delta correction:**
 Authenticated Kaggle at 09:48 UTC reports exact sampled A32 epoch-10 submission
 **56697342 COMPLETE, public score 0.769**, no error and 262,975 output bytes.
