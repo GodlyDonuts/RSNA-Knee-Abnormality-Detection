@@ -1,5 +1,16 @@
 # Whole-series GPU pilot dispatch
 
+Current state: **865321 FAILED 1:0** after both finite training paths and the
+exact intentional stop guard passed. The final verification command used a
+script path without the repository import root and failed to import `rsna`.
+Full node-local diagnostic files were cleaned; no final recovery/profile or
+compact preservation claim follows. Distinct **865323 RUNNING** retains the
+same scientific source/config, with module execution and an import precheck
+before training. Both module commands pass locally with user site disabled.
+Control is `whole-series-pilot-615d0fe-v3`; one H100/two CPUs, 45 minutes, 64 GiB
+RAM. The prior job peaked at 33,555,652 kB host RSS. The extra RAM protects the
+largest-input probe; it changes no scientific parameters. Never repeat dispatch.
+
 Latest state: first pilot **865318 FAILED 2:0** after finite full training and
 the intentional saved-stop update. The trainer emitted exit 75; torchrun wrapped
 it as exit 1, which the harness rejected. No compact or recovery/profile proof

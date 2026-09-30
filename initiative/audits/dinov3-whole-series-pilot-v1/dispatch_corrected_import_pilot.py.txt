@@ -1,0 +1,38 @@
+import hashlib,json,os,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+
+root=Path.cwd();folder=root/'artifacts/dinov3-whole-series-v1';sock='/tmp/rsna-a32-reconnect-501.sock';host='sa305415@newton.ist.ucf.edu'
+base='/home/sa305415/rsna-knee';control=base+'/whole-series-pilot-615d0fe-v3';code=base+'/code-whole-series-615d0fe';source='615d0fe4602798a9fe46278b2e5443bfbb49669e'
+intent=folder/'recovery-pilot-v3-intent.json';assert not intent.exists()
+def ssh(args):return subprocess.check_output(['ssh','-S',sock,'-o','BatchMode=yes',host,shlex.join(args)],text=True)
+prior=ssh(['sacct','-j','865321','-o','JobID,State,ExitCode,Elapsed,NodeList','-P']);assert '865321|FAILED|1:0|' in prior
+queue=ssh(['squeue','-u','sa305415','-h','-o','%i %j %b']);assert 'rsna-whole-series-pilot' not in queue
+assert queue.count('gres/gpu:')==1 and '865263' in queue
+quota=ssh(['lfs','quota','-u','sa305415','/home/sa305415']);fields=next(x for x in quota.splitlines() if x.lstrip().startswith('/home/sa305415')).split()
+projected=(int(fields[2])-int(fields[1]))*1024-10*1338164780-2*1338706190-100*1024**2-182*1024**2;assert projected>=20*1024**3
+script=(folder/'pilot-recovery-v2.sbatch').read_text().replace(base+'/whole-series-pilot-615d0fe-v2',control)
+script=script.replace('"$runtime_python" scripts/newton/verify_adapter_pilot.py','"$runtime_python" -m scripts.newton.verify_adapter_pilot')
+script=script.replace('"$runtime_python" scripts/newton/profile_whole_series.py','"$runtime_python" -m scripts.newton.profile_whole_series')
+script=script.replace('#SBATCH --mem=32G','#SBATCH --mem=64G')
+import_check='"$runtime_python" -c '+shlex.quote('from scripts.newton.verify_adapter_pilot import main; from scripts.newton.profile_whole_series import main; print("verification_modules_imported_from_pinned_source")')
+script=script.replace('full_output="$runtime_root/diagnostic-full"',import_check+'\nfull_output="$runtime_root/diagnostic-full"')
+p=folder/'pilot-recovery-v3.sbatch';p.write_text(script);subprocess.run(['bash','-n',str(p)],check=True)
+for module in ['scripts.newton.verify_adapter_pilot','scripts.newton.profile_whole_series']:
+ check=subprocess.run([str(root/'artifacts/qa-env/bin/python'),'-m',module,'--help'],env={**os.environ,'PYTHONNOUSERSITE':'1'},capture_output=True,text=True,check=True)
+ (folder/(module.rsplit('.',1)[-1]+'-module-import-proof.txt')).write_text(check.stdout)
+files={}
+for path,name in [(p,'pilot.sbatch'),(root/'initiative/experiments/competitive-v1/whole-series-context-v1/pilot-config.json','pilot-config.json'),(root/'initiative/audits/dinov3-whole-series-implementation-v1/metadata-coverage-summary.json','workloads.json')]:files[name]={'local':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+record={'schema_version':1,'created_at':datetime.now(timezone.utc).isoformat(),'source_git':source,'prior_terminal_job':865321,'prior_terminal_state':prior,'prior_failure':'finite full and resumed training and exact intentional stop passed; verification command direct script invocation lacked repository import root; rsna ModuleNotFoundError, no verification/compact proof','scientific_source_or_config_changed':False,'code':code,'control':control,'files':files,'gpus':1,'cpus':2,'memory_gib':64,'time_limit_minutes':45,'projected_remaining_gib':projected/1024**3,'quota':quota,'queue_before':queue,'status':'distinct_corrected_import_pilot_dispatch_intent'}
+with intent.open('x') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+ssh(['/usr/bin/python3.12','-c','from pathlib import Path; p=Path('+repr(control)+'); assert not p.exists(); p.mkdir(mode=0o700)'])
+for name,rec in files.items():subprocess.run(['scp','-o','ControlPath='+sock,rec['local'],host+':'+control+'/'+name],check=True)
+checks='\n'.join('[[ $(sha256sum '+shlex.quote(control+'/'+name)+' | cut -d " " -f1) == '+rec['sha256']+' ]]' for name,rec in files.items())
+write_intent=shlex.join(['/usr/bin/python3.12','-c','import pathlib; pathlib.Path('+repr(control+'/dispatch-intent.json')+').open("x").write('+repr(json.dumps(record))+')'])
+write_job=shlex.join(['/usr/bin/python3.12','-c','import pathlib,sys; pathlib.Path('+repr(control+'/dispatch-job-id.txt')+').open("x").write(sys.argv[1]+"\\n")'])
+remote='set -euo pipefail\n[[ $(git -C '+shlex.quote(code)+' rev-parse HEAD) == '+source+' ]]\n[[ -z $(git -c core.preloadIndex=false -c index.threads=1 -C '+shlex.quote(code)+' status --porcelain) ]]\n'+checks+'\n'+write_intent+'\njob=$(sbatch --parsable '+shlex.quote(control+'/pilot.sbatch')+')\n[[ "$job" =~ ^[0-9]+$ ]]\n'+write_job+' "$job"\nprintf \'%s\\n\' "$job"\n'
+result=subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,'/bin/bash -s'],input=remote,text=True,capture_output=True,timeout=60)
+receipt={**record,'returncode':result.returncode,'stdout':result.stdout,'stderr':result.stderr,'returned_at':datetime.now(timezone.utc).isoformat(),'status':'dispatch_returned' if result.returncode==0 else 'uncertain_readonly_reconciliation_required'}
+if result.returncode==0:receipt['job_id']=int(result.stdout.strip())
+with (folder/'recovery-pilot-v3-receipt.json').open('x') as f:json.dump(receipt,f,indent=2);f.flush();os.fsync(f.fileno())
+print(json.dumps(receipt));assert result.returncode==0

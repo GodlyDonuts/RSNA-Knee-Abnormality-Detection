@@ -1,0 +1,48 @@
+"""Private preservation only after exact terminal diagnostic verification."""
+import hashlib,json,os,subprocess,tempfile
+from datetime import datetime,timezone
+from pathlib import Path
+from huggingface_hub import HfApi,CommitOperationAdd,hf_hub_download
+
+base=Path('/home/sa305415/rsna-knee');control=base/'whole-series-pilot-615d0fe-v3'
+journal=control/'private-preservation';assert not journal.exists()
+source='615d0fe4602798a9fe46278b2e5443bfbb49669e'
+code=base/'code-whole-series-615d0fe';assert subprocess.check_output(['git','-C',str(code),'rev-parse','HEAD'],text=True).strip()==source
+state=subprocess.check_output(['sacct','-j','865323','-o','JobID,State,ExitCode','-P'],text=True)
+assert '865323|COMPLETED|0:0' in state
+proof=json.loads((control/'pilot-verified.json').read_text());profile=json.loads((control/'largest-inputs-profile.json').read_text())
+assert proof['status']=='adapter_pilot_and_exact_recovery_verified' and proof['full_payload_resume_equal'] and proof['outer_predictions_byte_equal'] and proof['checkpoint_only_real_mri_reload_equal']
+assert proof['changed_residual_modules']==120 and proof['unchanged_official_base_tensors']==415 and proof['optimizer_steps']==4
+assert proof['slice_context']=='neighbor3' and proof['slice_sampling']==proof['series_sampling']=='all'
+assert profile['status']=='largest_training_examinations_full_coverage_probe_passed' and len(profile['records'])==5
+assert profile['competition_submission_eligible'] is False and profile['t4_runtime_validated'] is False
+assert profile['compact_checkpoint_sha256']==proof['compact_checkpoint_sha256']
+def sha(path):
+ h=hashlib.sha256()
+ with path.open('rb') as f:
+  for chunk in iter(lambda:f.read(4*1024**2),b''):h.update(chunk)
+ return h.hexdigest()
+compact=control/'pilot-compact.pt';assert compact.stat().st_size==proof['compact_checkpoint_bytes']<180*1024**2
+assert sha(compact)==proof['compact_checkpoint_sha256']
+paths={n:control/n for n in ['pilot-compact.pt','pilot-verified.json','largest-inputs-profile.json','pilot-config.json','intentional-stop-verified.json','full-run.json','full-result.json','full-invocation.json','full-outer_predictions.csv','resumed-run.json','resumed-result.json','resumed-invocation.json','resumed-outer_predictions.csv','pilot.sbatch']}
+paths['DINOv3-LICENSE.md']=base/'encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md'
+assert sha(paths['DINOv3-LICENSE.md'])=='25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e'
+files={n:{'bytes':p.stat().st_size,'sha256':sha(p)} for n,p in paths.items()}
+token=json.load(__import__('sys').stdin)['token'];assert token.startswith('hf_')
+api=HfApi(token=token);repo='GodlyDonuts/RSNA-Data';info=api.repo_info(repo,repo_type='dataset');assert info.private is True
+prefix='experiments/dinov3-v1/diagnostics/whole-series-context-615d0fe-pilot-v3'
+assert not api.get_paths_info(repo,[prefix+'/'+n for n in [*paths,'manifest.json']],repo_type='dataset',revision=info.sha)
+journal.mkdir(mode=0o700)
+manifest={'schema_version':1,'status':'fully_verified_bounded_diagnostic_only','competition_submission_eligible':False,'trainer_resume_eligible':False,'source_git':source,'job_id':865323,'fit_scope':'outer_fold_diagnostic','training_studies':16,'evaluation_studies':16,'optimizer_steps':4,'official_base_unchanged':True,'official_base_sha256':proof['binding']['config']['encoder']['weights_sha256'],'largest_training_inputs_verified':5,'heldout_competitive_accuracy_claimed':False,'kaggle_score':None,'repo_id':repo,'prefix':prefix,'files':files,'license_source':'https://github.com/facebookresearch/dinov3/blob/ffb4bb89c6558ca3244655c25a3955d01788b732/LICENSE.md'}
+mp=journal/'manifest.json';mp.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+def save_new(name,value):
+ with (journal/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+save_new('intent.json',{'at_utc':datetime.now(timezone.utc).isoformat(),'parent_commit':info.sha,'repo_id':repo,'prefix':prefix,'files':files,'manifest_sha256':sha(mp),'private_required':True})
+commit=api.create_commit(repo_id=repo,repo_type='dataset',parent_commit=info.sha,operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=str(p)) for n,p in paths.items()]+[CommitOperationAdd(path_in_repo=prefix+'/manifest.json',path_or_fileobj=str(mp))],commit_message='Preserve verified whole-series context diagnostic and exact recovery plus largest-scan resource evidence')
+save_new('commit-result.json',{'revision':commit.oid,'prefix':prefix});assert api.repo_info(repo,repo_type='dataset',revision=commit.oid).private is True
+verify={**files,'manifest.json':{'bytes':mp.stat().st_size,'sha256':sha(mp)}}
+with tempfile.TemporaryDirectory(prefix='rsna-whole-series-verified-') as temporary:
+ for name,rec in verify.items():
+  p=Path(hf_hub_download(repo,filename=prefix+'/'+name,repo_type='dataset',revision=commit.oid,token=token,local_dir=temporary,force_download=True));assert p.stat().st_size==rec['bytes'] and sha(p)==rec['sha256'],name
+save_new('verified.json',{'status':'private_full_download_size_sha_verified','revision':commit.oid,'repo_id':repo,'prefix':prefix,'files':verify,'file_count':len(verify),'job_id':865323,'diagnostic_only':True})
+print(json.dumps({'status':'private_full_download_size_sha_verified','revision':commit.oid,'file_count':len(verify),'diagnostic_only':True}))

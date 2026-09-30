@@ -1,0 +1,38 @@
+E0930 02:11:31.455000 2249403 torch/distributed/elastic/multiprocessing/api.py:1002] failed (exitcode: 75) local_rank: 0 (pid: 2249423) of binary: /tmp/rsna-environment-865321-vez1l360/environment/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/rsna-environment-865321-vez1l360/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1142, in <module>
+    main()
+  File "/tmp/rsna-environment-865321-vez1l360/environment/lib64/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 380, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-865321-vez1l360/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1138, in main
+    run(args)
+  File "/tmp/rsna-environment-865321-vez1l360/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1129, in run
+    elastic_launch(
+  File "/tmp/rsna-environment-865321-vez1l360/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 197, in __call__
+    return launch_agent(
+           ^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-865321-vez1l360/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 386, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+rsna.competitive.train FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-30_02:11:31
+  host      : evc32.ucfarcc.org
+  rank      : 0 (local_rank: 0)
+  exitcode  : 75 (pid: 2249423) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+Traceback (most recent call last):
+  File "/lustre/fs1/home/sa305415/rsna-knee/code-whole-series-615d0fe/scripts/newton/verify_adapter_pilot.py", line 14, in <module>
+    from rsna.competitive.backbones import (
+ModuleNotFoundError: No module named 'rsna'

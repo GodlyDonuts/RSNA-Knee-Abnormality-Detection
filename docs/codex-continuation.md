@@ -6,6 +6,22 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, verification import correction:** Second whole-series bounded
+pilot **865321 FAILED 1:0** after finite full and resumed diagnostics and a
+passed exact stop receipt. The final helper was invoked by script path without
+the repository import root and raised `ModuleNotFoundError: rsna`. This was a
+harness command error; exact final payload equality and largest-input checks
+remain unproven. Owned node-local diagnostic files were cleaned. Distinct
+**865323 RUNNING on evc32** uses identical `615d0fe` scientific source/config,
+one H100/two CPUs/45 minutes and 64 GiB RAM, control
+`/home/sa305415/rsna-knee/whole-series-pilot-615d0fe-v3`. Verification/profiling
+now run as modules from the pinned repository, with a module import precheck
+before training; both exact local module invocations passed under disabled user
+site. Preserve all earlier dispatch/failure receipts; never repeat any of these
+jobs. Prepared compact-pilot publishers remain unexecuted and cannot run before
+this exact job completes 0:0 with all terminal proofs. Keep primary 865263
+untouched; it is healthy near the end of epoch 2. No further Kaggle slot spent.
+
 **September 30, whole-series pilot recovery harness correction:** First bounded
 pilot **865318 FAILED 2:0** after its finite four-update full diagnostic and
 one-update intentional saved stop. The trainer's valid exit 75 was wrapped as
