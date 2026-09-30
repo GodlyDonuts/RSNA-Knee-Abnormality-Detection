@@ -174,7 +174,8 @@ def test_hidden_competition_mount_uses_test_csv_without_sample(tmp_path):
     assert n.resolve_competition(tmp_path / "input", "example-competition") == root
 
 
-def test_shared_bundle_has_two_sources_and_omits_wheel_copies(tmp_path, monkeypatch):
+@pytest.mark.parametrize("delta", [False, True])
+def test_shared_bundle_has_two_sources_and_omits_wheel_copies(tmp_path, monkeypatch, delta):
     legacy = load("legacy_bundle_fixture", "test_legacy_compatibility.py")
     original = legacy.workflow.prepare_bundle
 
@@ -190,7 +191,9 @@ def test_shared_bundle_has_two_sources_and_omits_wheel_copies(tmp_path, monkeypa
         return original(*args, **kwargs, shared_wheelhouse=path)
 
     monkeypatch.setattr(legacy.workflow, "prepare_bundle", prepare)
-    legacy.test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monkeypatch)
+    legacy.test_complete_local_bundle_binding_and_no_extra_upload_files(
+        tmp_path, monkeypatch, delta=delta
+    )
     prepared = tmp_path / "prepared"
     assert not (prepared / "dataset/wheels").exists()
     assert (prepared / "dataset/wheelhouse.json").exists()

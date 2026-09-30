@@ -6,6 +6,27 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, full-series delta deployment wrappers implemented:** Scientific
+source `c9fcc7eefb09103942be89bf4fa87410eb9ec5ab` and both live jobs remain
+unchanged. External wrappers now retain every healthy series for the declared
+`all` policy and support exact offline original-base plus schema-2 learned
+tensors. CPU tests prove identical full/delta probabilities and reject wrong
+base bytes and sampling contracts. Separate private T4 engineering acceptance is
+still required before any whole-series production submission. The diagnostic
+entry is explicitly ineligible, reads no labels and never creates a competition
+submission. See `initiative/audits/kaggle-whole-series-delta-deployment-v1/`.
+
+Primary 865263 completed epoch 4 / 1,704 updates; all four private objects are
+fully re-downloaded/hash verified at HF
+**27e8f49faf26bccd12a6d8fb8aa6d7112fc82a8b**. Epochs 1–4 must not be
+republished. Exact CPU retention 865372 removed only the redundant preserved
+epoch-004.pt and retained active recovery/private bytes/sidecar, lowering the
+primary maximum remaining full inodes from nine to eight. Fresh quota projection
+is still mandatory before deployment staging. Control 865357 remains live.
+At 08:45 UTC submission 56697342 remains pending/unknown, no score, four live
+slots; no new competition submission was made. Owner authorization covers
+worthwhile comparisons after exact completed-state, offline and live quota gates.
+
 
 **September 30, synchronized verified milestone:** GitHub main `0dba237` records
 the exact delta/control launch and epoch-3 preservation. The separate private

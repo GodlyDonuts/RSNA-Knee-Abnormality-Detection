@@ -317,7 +317,10 @@ def test_queue_rejects_unscheduled_untrained_diagnostic_sidecars_before_loading_
 
 
 @pytest.mark.parametrize("cadence", [1, 2])
-def test_snapshot_internal_provenance_is_checked_not_only_sidecar(tmp_path, monkeypatch, cadence):
+@pytest.mark.parametrize("schema", [1, 2])
+def test_snapshot_internal_provenance_is_checked_not_only_sidecar(
+    tmp_path, monkeypatch, cadence, schema
+):
     import rsna.competitive.infer as inference
 
     repo = tmp_path / "repo"
@@ -337,8 +340,15 @@ def test_snapshot_internal_provenance_is_checked_not_only_sidecar(tmp_path, monk
     # fixture isolates our additional sidecar/internal-state consistency guards.
     monkeypatch.setattr(inference, "validate_inference_checkpoint", lambda *a, **kw: binding)
     checkpoint = tmp_path / "epoch-002.pt"
+    state = dict(schema_version=schema, scheduled_epoch=True, epoch=2, next_update=0, step=3)
+    if schema == 2:
+        binding["config"]["checkpoint_format"] = "frozen_base_delta"
+        state["model_storage"] = {
+            "format": "frozen_base_delta_v1",
+            "encoder_provenance": binding["config"]["encoder"],
+        }
     torch.save(
-        {"schema_version": 1, "scheduled_epoch": True, "epoch": 2, "next_update": 0, "step": 3},
+        state,
         checkpoint,
     )
     meta = {
@@ -359,6 +369,22 @@ def test_snapshot_internal_provenance_is_checked_not_only_sidecar(tmp_path, monk
     sidecar = tmp_path / "epoch-002.json"
     sidecar.write_text(json.dumps(meta))
     workflow.validate_snapshot(sidecar, repo)
+    if schema == 2:
+        state["model_storage"]["encoder_provenance"] = {"architecture": "wrong_base"}
+        torch.save(state, checkpoint)
+        meta.update(
+            checkpoint_sha256=workflow.digest(checkpoint),
+            checkpoint_bytes=checkpoint.stat().st_size,
+        )
+        sidecar.write_text(json.dumps(meta))
+        with pytest.raises(ValueError, match="original encoder provenance"):
+            workflow.validate_snapshot(sidecar, repo)
+        state["model_storage"]["encoder_provenance"] = binding["config"]["encoder"]
+        torch.save(state, checkpoint)
+        meta.update(
+            checkpoint_sha256=workflow.digest(checkpoint),
+            checkpoint_bytes=checkpoint.stat().st_size,
+        )
     meta["optimizer_steps"] = 4
     sidecar.write_text(json.dumps(meta))
     with pytest.raises(ValueError, match="contents"):
@@ -389,7 +415,8 @@ def test_version_inspection_rejects_concurrent_new_kernel_version():
         remote.kernel("GetKernelSessionStatus", "owner/kernel", 7)
 
 
-def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monkeypatch):
+@pytest.mark.parametrize("delta", [False, True])
+def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monkeypatch, delta):
     repo = tmp_path / "repo"
     (repo / "rsna").mkdir(parents=True)
     (repo / "rsna/__init__.py").write_text("")
@@ -400,6 +427,8 @@ def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monke
     checkpoint.write_bytes(b"synthetic fixture, never a real submitted checkpoint")
     config = tmp_path / "config.json"
     config.write_text("{}")
+    base_weights = tmp_path / "base.safetensors"
+    base_weights.write_bytes(b"assembler fixture; not a pretrained model")
     spec = tmp_path / "encoder.json"
     spec.write_text(
         json.dumps(
@@ -407,8 +436,8 @@ def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monke
                 "architecture": "dinov3_l16",
                 "config_path": str(config),
                 "config_sha256": workflow.digest(config),
-                "weights_path": "/not-copied/pretrained.bin",
-                "weights_sha256": "c" * 64,
+                "weights_path": str(base_weights) if delta else "/not-copied/pretrained.bin",
+                "weights_sha256": workflow.digest(base_weights) if delta else "c" * 64,
             }
         )
     )
@@ -423,8 +452,21 @@ def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monke
         for key, value in json.loads(spec.read_text()).items()
         if not key.endswith("_path")
     }
-    binding = {"config": {"encoder": provenance}}
+    binding = {
+        "config": {
+            "encoder": provenance,
+            "checkpoint_format": "frozen_base_delta" if delta else "full",
+        }
+    }
     monkeypatch.setattr(workflow, "validate_snapshot", lambda *a: (meta, binding, checkpoint))
+    checked = []
+
+    def check_original(saved, encoder, bound):
+        assert saved == checkpoint and bound is binding
+        assert Path(encoder["weights_path"]).read_bytes() == base_weights.read_bytes()
+        checked.append(True)
+
+    monkeypatch.setattr(workflow, "validate_delta_base", check_original)
     monkeypatch.setattr(workflow, "FLOOR", 0)
     wheels = tmp_path / "wheelhouse"
     wheels.mkdir()
@@ -470,7 +512,14 @@ def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monke
         repo,
     )
     assert workflow.load_operation(output / "operation.json") == result
-    assert "weights_path" not in json.loads((output / "dataset/encoder.json").read_text())
+    bundled_encoder = json.loads((output / "dataset/encoder.json").read_text())
+    assert checked == ([True] if delta else [])
+    if delta:
+        assert (
+            output / "dataset" / bundled_encoder["weights_path"]
+        ).read_bytes() == base_weights.read_bytes()
+    else:
+        assert "weights_path" not in bundled_encoder
     assert (output / "dataset/DINOv3-LICENSE.md").exists()
     (output / "dataset/unexpected.txt").write_text("must not upload")
     with pytest.raises(ValueError, match="extraneous"):

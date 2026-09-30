@@ -145,13 +145,19 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def verify_cache_contract(checkpoint: Path, *, max_series: int, cache_side: int) -> None:
+def verify_cache_contract(
+    checkpoint: Path, *, max_series: int, cache_side: int, series_sampling: str = "selected"
+) -> None:
     """Read the saved training contract without changing its bound model code."""
     import torch
 
     saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
     binding = saved["binding"]
-    if binding["config"].get("max_series") != max_series or binding.get("cache_side") != cache_side:
+    if (
+        binding["config"].get("max_series") != max_series
+        or binding.get("cache_side") != cache_side
+        or binding["config"].get("series_sampling", "selected") != series_sampling
+    ):
         raise ValueError("Series limit/cache resolution differs from the trained checkpoint")
     del saved
 
@@ -168,11 +174,14 @@ def prepare_usable_series(
     allow_unusable_studies: bool = False,
     recover_slices: bool = False,
     validate_geometry: bool = False,
+    series_sampling: str = "selected",
 ) -> tuple[pd.DataFrame, dict]:
     """Cache only useful MRI series; use an alternate when source pixels are invalid."""
     from pydicom.errors import InvalidDicomError
 
     source = Source(dicom_root)
+    if series_sampling not in {"selected", "all"}:
+        raise ValueError("Unknown MRI series coverage policy")
     usable_ids: set[str] = set()
     unusable_study_ids: list[str] = []
     required = {
@@ -208,6 +217,7 @@ def prepare_usable_series(
     for study_uid in study_ids:
         rows = valid_frame.loc[valid_frame.StudyInstanceUID == study_uid].to_dict("records")
         ordered = select_series(rows, len(rows), False)
+        limit = len(ordered) if series_sampling == "all" else max_series
         attempted: set[str] = set()
         accepted: list[dict] = []
 
@@ -287,7 +297,7 @@ def prepare_usable_series(
                 if attempt(row):
                     break
         for row in ordered:
-            if len(accepted) >= max_series:
+            if len(accepted) >= limit:
                 break
             if row["SeriesInstanceUID"] not in attempted:
                 attempt(row)
@@ -296,12 +306,14 @@ def prepare_usable_series(
                 raise ValueError("No decodable MRI series for a test study")
             unusable_study_ids.append(study_uid)
             continue
-        if len(accepted) > max_series:
+        if len(accepted) > limit:
             raise ValueError("Prepared more series than the trained model accepts")
     selected = valid_frame.loc[valid_frame.SeriesInstanceUID.isin(usable_ids)].copy()
     if set(selected.StudyInstanceUID) != set(study_ids) - set(unusable_study_ids):
         raise ValueError("Prepared MRI series do not cover the test study chunk")
     receipt = {"selected_series": len(selected), "skipped_series": failures}
+    if series_sampling == "all":
+        receipt["series_sampling"] = "all"
     if allow_unusable_studies:
         receipt["unusable_study_ids"] = unusable_study_ids
     if recover_slices or validate_geometry:
@@ -356,6 +368,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         raise ValueError("Study error isolation requires explicit unusable-study fallback")
     checkpoint_sha = sha256(args.checkpoint)
     resilient = getattr(args, "resilient_series", False)
+    series_sampling = getattr(args, "series_sampling", "selected")
     if (fallback_unusable or recover_slices or validate_geometry) and not resilient:
         raise ValueError("Unusable-study fallback requires resilient MRI preparation")
     if resilient:
@@ -368,7 +381,10 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         ):
             raise ValueError("Resilient MRI preparation needs source, cache side and series limit")
         verify_cache_contract(
-            args.checkpoint, max_series=args.max_series, cache_side=args.cache_side
+            args.checkpoint,
+            max_series=args.max_series,
+            cache_side=args.cache_side,
+            series_sampling=series_sampling,
         )
     args.cache_root.mkdir(parents=True, mode=0o700)
     invoke = invoke or subprocess.run
@@ -398,8 +414,11 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             ),
             "--checkpoint",
             str(args.checkpoint),
-            "--encoder-config",
-            str(args.encoder_config),
+            *(
+                ["--encoder-spec", str(args.encoder_spec)]
+                if getattr(args, "encoder_spec", None) is not None
+                else ["--encoder-config", str(args.encoder_config)]
+            ),
             "--series",
             str(series_path),
             "--template",
@@ -484,7 +503,8 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             or metrics.get("test_inputs") != expected_inputs
             or metrics.get("scheduled_epoch_authorized") is not (not baseline)
             or (baseline and metrics.get("checkpoint_epoch") != 1)
-            or metrics.get("initial_pretrained_weights_read") is not False
+            or metrics.get("initial_pretrained_weights_read")
+            is not (getattr(args, "encoder_spec", None) is not None)
             or metrics.get("cache_source_revision") != args.source_revision
             or metrics.get("inference_precision") != args.precision
             or metrics.get("device_type") != args.device
@@ -543,6 +563,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
                 allow_unusable_studies=fallback_unusable,
                 recover_slices=recover_slices,
                 validate_geometry=validate_geometry,
+                series_sampling=series_sampling,
             )
         unusable = set(preparation.get("unusable_study_ids", [])) if preparation else set()
         if unusable - ids:
@@ -657,8 +678,11 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("checkpoint", "encoder-config", "series", "cache-root", "output"):
+    for name in ("checkpoint", "series", "cache-root", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    encoder = parser.add_mutually_exclusive_group(required=True)
+    encoder.add_argument("--encoder-config", type=Path)
+    encoder.add_argument("--encoder-spec", type=Path)
     parser.add_argument("--test-studies", type=Path)
     parser.add_argument("--template", type=Path)
     parser.add_argument("--dicom-root", type=Path)
@@ -678,6 +702,7 @@ def main() -> None:
     parser.add_argument("--isolate-study-errors", action="store_true")
     parser.add_argument("--cache-side", type=int)
     parser.add_argument("--max-series", type=int)
+    parser.add_argument("--series-sampling", choices=("selected", "all"), default="selected")
     args = parser.parse_args()
     if args.baseline_epoch_one and (args.baseline_sidecar is None or args.baseline_proof is None):
         parser.error("Epoch-1 baseline requires its byte-bound sidecar and replay proof")

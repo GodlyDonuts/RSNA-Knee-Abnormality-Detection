@@ -91,6 +91,61 @@ def resolve_competition(inputs, slug):
     return competition
 
 
+def encoder_arguments(bundle, working, manifest):
+    """Bind mounted original weights for delta inference without an online fetch."""
+    spec = json.loads((bundle / "encoder.json").read_text())
+    storage = manifest.get("checkpoint_format", "full")
+    if storage not in {"full", "frozen_base_delta"}:
+        raise ValueError("Unknown inference checkpoint storage")
+    for kind in ("config", "weights") if storage == "frozen_base_delta" else ("config",):
+        relative = Path(spec[f"{kind}_path"])
+        path = bundle / relative
+        record = manifest["files"].get(relative.as_posix(), {})
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or path.is_symlink()
+            or not path.resolve().is_relative_to(bundle.resolve())
+            or not path.is_file()
+            or record.get("sha256") != spec.get(f"{kind}_sha256")
+            or sha256(path) != record.get("sha256")
+            or path.stat().st_size != record.get("bytes")
+        ):
+            raise ValueError("Bundled encoder bytes/path differ from the pinned source")
+        spec[f"{kind}_path"] = str(path.resolve())
+    if storage == "full":
+        return ["--encoder-config", spec["config_path"]]
+    runtime_spec = working / "encoder-runtime.json"
+    with runtime_spec.open("x") as handle:
+        json.dump(spec, handle, sort_keys=True, indent=2)
+        handle.write("\n")
+    return ["--encoder-spec", str(runtime_spec)]
+
+
+def diagnostic_probe_command(bundle, working, manifest, competition, python):
+    """Separate engineering execution from the competition output path."""
+    if (
+        manifest.get("diagnostic_only") is not True
+        or manifest.get("competition_submission_eligible") is not False
+        or manifest.get("checkpoint_format") != "frozen_base_delta"
+    ):
+        raise ValueError("Only an explicitly ineligible delta diagnostic can use this entry")
+    encoder = encoder_arguments(bundle, working, manifest)
+    if encoder[0] != "--encoder-spec":
+        raise ValueError("Diagnostic must load the pinned original base")
+    return [
+        str(python),
+        str(bundle / "code/delta_probe.py"),
+        "--bundle",
+        str(bundle),
+        *encoder,
+        "--competition",
+        str(competition),
+        "--output",
+        str(working / "delta-diagnostic"),
+    ]
+
+
 def run():
     expected = globals().get("EXPECTED_MANIFEST_SHA256")
     if not isinstance(expected, str) or len(expected) != 64:
@@ -173,15 +228,26 @@ def run():
     sys.path.insert(0, str(bundle / "code"))
     env = os.environ.copy()
     env["PYTHONPATH"] = str(bundle / "code")
-    encoder = json.loads((bundle / "encoder.json").read_text())
+    if globals().get("DELTA_DIAGNOSTIC_PROBE") is True:
+        competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
+        subprocess.run(
+            diagnostic_probe_command(bundle, working, manifest, competition, python),
+            env=env,
+            check=True,
+        )
+        shutil.copyfile(
+            working / "delta-diagnostic/delta-deployment-acceptance.json",
+            working / "delta-deployment-acceptance.json",
+        )
+        return
+    policy = manifest.get("inference_policy", {})
     competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
     command = [
         str(python),
         str(bundle / "code/chunked_infer.py"),
         "--checkpoint",
         str(bundle / "checkpoint.pt"),
-        "--encoder-config",
-        str(bundle / encoder["config_path"]),
+        *encoder_arguments(bundle, working, manifest),
         "--series",
         str(competition / "test_series.csv"),
         "--test-studies",
@@ -206,9 +272,11 @@ def run():
         "--validate-model-geometry",
         "--isolate-study-errors",
         "--cache-side",
-        "256",
+        str(policy.get("cache_side", 256)),
         "--max-series",
-        "6",
+        str(policy.get("max_series", 6)),
+        "--series-sampling",
+        policy.get("series_sampling", "selected"),
     ]
     if (competition / "sample_submission.csv").is_file():
         command.extend(("--template", str(competition / "sample_submission.csv")))
@@ -244,6 +312,7 @@ def run():
         "submission_sha256": sha256(working / "submission.csv"),
         "public_example_only": metrics["studies"] <= 3,
         "hidden_score_claimed": False,
+        "checkpoint_format": manifest.get("checkpoint_format", "full"),
     }
     (working / "kaggle-inference-receipt.json").write_text(
         json.dumps(receipt, sort_keys=True, indent=2)

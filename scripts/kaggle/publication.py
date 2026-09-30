@@ -18,7 +18,7 @@ API = "https://api.kaggle.com/v1/"
 FLOOR = 20 * 1024**3
 SHA = re.compile(r"[0-9a-f]{64}")
 SLUG = re.compile(r"[a-z0-9_-]+/[a-z0-9-]+")
-ALLOWED_SUFFIXES = {".json", ".py", ".md", ".pt", ".toml", ".txt"}
+ALLOWED_SUFFIXES = {".json", ".py", ".md", ".pt", ".safetensors", ".toml", ".txt"}
 
 
 def canonical(value):

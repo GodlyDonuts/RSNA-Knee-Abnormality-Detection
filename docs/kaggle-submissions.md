@@ -1,5 +1,20 @@
 # Scheduled Kaggle code submissions
 
+September 30: external wrappers now support schema-2 frozen-base deltas and
+full-series inference for models bound to `series_sampling=all`. They bundle the
+exact official original weights and reject changed base tensors or sampling
+contracts. Production snapshots still need completed-epoch eligibility, source
+binding, a verified private Dataset and an exact offline T4 receipt. The separate
+ineligible diagnostic probe must pass actual full-versus-delta MRI prediction and
+CSV-byte equivalence before this route is accepted for competition use. It does
+not create a submission or use the competition ledger. See
+`initiative/audits/kaggle-whole-series-delta-deployment-v1/`.
+
+The owner permits worthwhile checkpoints, but quota alone is not evidence to
+submit. Exact A32 epoch-10 56697342 was submitted once and remains pending/unknown
+at the latest September 30 08:45 UTC live query; four slots remain. Never repeat
+that submission, an old uncertain notebook, or a public three-row CSV upload.
+
 **Scored results, checked September 29 at 17:14 UTC:** All five matched
 fold-2 DINOv3 submissions completed with nonzero output and no hidden error.
 Public macro AUC for epochs **2/4/6/8/10** is

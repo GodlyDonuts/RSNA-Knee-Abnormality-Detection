@@ -1,0 +1,316 @@
+"""Offline base/delta equivalence and whole-examination deployment regressions."""
+
+import copy
+import importlib.util
+import json
+import shutil
+from argparse import Namespace
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+import torch
+from test_competitive_inference import _fixture
+from test_kaggle_chunked_inference import chunked
+from test_kaggle_submission import workflow
+from torch import nn
+
+from rsna.competitive import backbones, infer
+from rsna.competitive.adapters import ResidualLinear, configure_encoder_training
+from rsna.competitive.delta_checkpoint import FrozenBaseDelta
+from rsna.competitive.model import CompetitiveStudyNet
+from rsna.schema import TARGETS
+
+
+class SyntheticBase(nn.Module):
+    """A real residual-linear partition, with no large pretrained-model fixture."""
+
+    def __init__(self):
+        super().__init__()
+        self.projection = nn.Linear(1, 8)
+        self.residual = ResidualLinear(nn.Linear(8, 8), 2, 2, 0)
+        self.projection.requires_grad_(False)
+
+    def forward(self, value):
+        return self.residual(self.projection(value.mean((-1, -2))))
+
+
+def delta_fixture(tmp_path, monkeypatch, context):
+    original, state = _fixture(tmp_path, monkeypatch, size=3, whole=True)
+    provenance = {
+        "architecture": "dinov3_l16",
+        "pretrained": True,
+        "weights_sha256": "a" * 64,
+        "config_sha256": "b" * 64,
+        "adapter": dict(
+            rank=2, alpha=2, dropout=0, ffn_last_layers=0, gradient_checkpointing=False
+        ),
+    }
+    source_spec = {"architecture": "dinov3_l16", "adapter": provenance["adapter"]}
+
+    def create(spec):
+        assert spec == source_spec
+        with torch.random.fork_rng():
+            torch.manual_seed(45)
+            encoder = SyntheticBase()
+        return encoder, 8, copy.deepcopy(provenance)
+
+    monkeypatch.setattr(infer, "create_encoder", create)
+    monkeypatch.setattr(backbones, "create_encoder", create)
+    encoder, dimension, _ = create(source_spec)
+    configure_encoder_training(encoder, True)
+    model = CompetitiveStudyNet(encoder, dimension, hidden_dim=8, slice_context=context)
+    with torch.no_grad():
+        encoder.residual.lora_B.fill_(0.15)
+    state["binding"]["config"].update(
+        encoder=provenance, checkpoint_format="frozen_base_delta", slice_context=context
+    )
+    state.update(FrozenBaseDelta(model, provenance).checkpoint_model(model))
+    torch.save(state, original.checkpoint)
+    original.encoder_spec.write_text(json.dumps(source_spec))
+    original.scheduled_epoch = True
+    original.precision = "fp32"
+    full = copy.deepcopy(state)
+    full.pop("model_storage")
+    full["schema_version"] = 1
+    full["model"] = model.state_dict()
+    full["binding"]["config"]["checkpoint_format"] = "full"
+    full_file = tmp_path / "full-reference.pt"
+    torch.save(full, full_file)
+    return original, state, full_file, create
+
+
+@pytest.mark.parametrize("context", ["none", "neighbor3"])
+def test_offline_chunked_delta_matches_expanded_full_model_and_direct_delta(
+    tmp_path, monkeypatch, context
+):
+    original, _, full_file, _ = delta_fixture(tmp_path, monkeypatch, context)
+    reference = Namespace(**vars(original))
+    reference.checkpoint = full_file
+    reference.output = tmp_path / "full.csv"
+    infer.run(reference)
+    expected = pd.read_csv(reference.output)
+    infer.run(original)
+    np.testing.assert_array_equal(
+        pd.read_csv(original.output)[list(TARGETS)], expected[list(TARGETS)]
+    )
+    args = Namespace(
+        checkpoint=original.checkpoint,
+        encoder_config=None,
+        encoder_spec=original.encoder_spec,
+        series=original.series,
+        template=original.template,
+        cache_root=tmp_path / "chunk-cache",
+        output=tmp_path / "chunked.csv",
+        dicom_root=None,
+        source_revision="synthetic-test",
+        chunk_size=2,
+        workers=0,
+        device="cpu",
+        precision="fp32",
+        allow_diagnostic=True,
+    )
+
+    def invoke(command, *, check):
+        assert check and "--encoder-spec" in command and "--encoder-config" not in command
+
+        def option(name):
+            return Path(command[command.index(name) + 1])
+
+        cache = option("--cache")
+        for uid in pd.read_csv(option("--template")).StudyInstanceUID:
+            destination = cache / "test_series" / uid
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(original.cache / "test_series" / uid, destination)
+        selected = Namespace(**vars(original))
+        for name in ("series", "template", "cache", "output", "encoder_spec"):
+            setattr(selected, name, option("--" + name.replace("_", "-")))
+        infer.run(selected)
+
+    receipt = chunked.run(args, invoke=invoke)
+    actual = pd.read_csv(args.output)
+    assert actual.StudyInstanceUID.tolist() == expected.StudyInstanceUID.tolist()
+    np.testing.assert_allclose(actual[list(TARGETS)], expected[list(TARGETS)], rtol=0, atol=1e-7)
+    assert receipt["chunk_count"] == 2 and receipt["diagnostic_only"] is True
+    assert not list(args.cache_root.rglob("*.npz"))
+
+
+def test_delta_packaging_rejects_a_different_original_base(tmp_path, monkeypatch):
+    args, state, _, create = delta_fixture(tmp_path, monkeypatch, "neighbor3")
+    spec = json.loads(args.encoder_spec.read_text())
+    workflow.validate_delta_base(args.checkpoint, spec, state["binding"])
+
+    def wrong_base(value):
+        encoder, dim, provenance = create(value)
+        with torch.no_grad():
+            encoder.projection.weight.add_(1)
+        return encoder, dim, provenance
+
+    monkeypatch.setattr(backbones, "create_encoder", wrong_base)
+    with pytest.raises(ValueError, match="frozen base"):
+        workflow.validate_delta_base(args.checkpoint, spec, state["binding"])
+
+
+def test_all_series_deployment_retains_every_healthy_series_beyond_six(tmp_path, monkeypatch):
+    study = "1.2.5"
+    rows = [
+        dict(
+            StudyInstanceUID=study,
+            SeriesInstanceUID=f"{study}.{n}",
+            Anatomical_Plane=("Sagittal", "Coronal", "Axial")[n % 3],
+            Fluid_Sensitive=n % 2,
+            Fat_Suppression=0,
+        )
+        for n in range(1, 10)
+    ]
+    root = tmp_path / "dicoms"
+    for row in rows:
+        p = root / "test_series" / study / row["SeriesInstanceUID"]
+        p.mkdir(parents=True)
+        (p / "slice.dcm").write_bytes(b"cache-boundary fixture")
+    seen = []
+
+    def cache(source, paths, directory, side, revision):
+        seen.append(Path(paths[0]).parts[-2])
+
+    monkeypatch.setattr(chunked, "cache_series", cache)
+    selected, receipt = chunked.prepare_usable_series(
+        pd.DataFrame(rows),
+        [study],
+        dicom_root=root,
+        cache=tmp_path / "cache",
+        cache_side=256,
+        max_series=6,
+        source_revision="fixture",
+        series_sampling="all",
+    )
+    assert set(selected.SeriesInstanceUID) == set(seen) == {r["SeriesInstanceUID"] for r in rows}
+    assert receipt["selected_series"] == 9 and receipt["series_sampling"] == "all"
+    checkpoint = tmp_path / "checkpoint.pt"
+    torch.save(
+        {"binding": {"config": {"max_series": 6, "series_sampling": "all"}, "cache_side": 256}},
+        checkpoint,
+    )
+    chunked.verify_cache_contract(checkpoint, max_series=6, cache_side=256, series_sampling="all")
+    with pytest.raises(ValueError, match="differs from the trained checkpoint"):
+        chunked.verify_cache_contract(checkpoint, max_series=6, cache_side=256)
+
+
+def notebook_module():
+    spec = importlib.util.spec_from_file_location(
+        "delta_notebook", Path(workflow.__file__).with_name("notebook_entry.py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def notebook_fixture(tmp_path):
+    entry = notebook_module()
+    bundle = tmp_path / "dataset"
+    bundle.mkdir()
+    weights = bundle / "base.safetensors"
+    weights.write_bytes(b"synthetic local original bytes")
+    config = bundle / "config.json"
+    config.write_text("{}")
+    spec = {
+        "weights_path": weights.name,
+        "weights_sha256": entry.sha256(weights),
+        "config_path": config.name,
+        "config_sha256": entry.sha256(config),
+    }
+    (bundle / "encoder.json").write_text(json.dumps(spec))
+    manifest = {
+        "checkpoint_format": "frozen_base_delta",
+        "files": {
+            p.name: {"bytes": p.stat().st_size, "sha256": entry.sha256(p)}
+            for p in [weights, config]
+        },
+    }
+    working = tmp_path / "working"
+    working.mkdir()
+    return entry, bundle, working, manifest
+
+
+def test_offline_notebook_resolves_bundled_weights_without_changing_lineage(tmp_path):
+    entry, bundle, working, manifest = notebook_fixture(tmp_path)
+    command = entry.encoder_arguments(bundle, working, manifest)
+    assert command[0] == "--encoder-spec"
+    runtime = json.loads(Path(command[1]).read_text())
+    assert Path(runtime["weights_path"]).is_absolute()
+    assert Path(runtime["weights_path"]).read_bytes() == (bundle / "base.safetensors").read_bytes()
+    assert runtime["weights_sha256"] == entry.sha256(bundle / "base.safetensors")
+    manifest["checkpoint_format"] = "full"
+    assert entry.encoder_arguments(bundle, working, manifest) == [
+        "--encoder-config",
+        str((bundle / "config.json").resolve()),
+    ]
+
+
+@pytest.mark.parametrize("role", ["diagnostic", "production", "missing", "eligible"])
+def test_probe_entry_never_uses_the_competition_output_path(tmp_path, role):
+    entry, bundle, working, manifest = notebook_fixture(tmp_path)
+    if role != "missing":
+        manifest.update(
+            diagnostic_only=role != "production",
+            competition_submission_eligible=role == "eligible",
+        )
+    if role != "diagnostic":
+        with pytest.raises(ValueError, match="ineligible delta diagnostic"):
+            entry.diagnostic_probe_command(bundle, working, manifest, tmp_path, "python")
+        assert not list(working.iterdir())
+        return
+    command = entry.diagnostic_probe_command(bundle, working, manifest, tmp_path, "python")
+    assert "submission.csv" not in " ".join(command)
+    assert command[command.index("--output") + 1] == str(working / "delta-diagnostic")
+    assert command[command.index("--encoder-spec") + 1] == str(working / "encoder-runtime.json")
+
+
+@pytest.mark.parametrize("change", ["weights", "path", "source_hash", "manifest_hash"])
+def test_offline_notebook_refuses_wrong_base_before_inference(tmp_path, change):
+    entry, bundle, working, manifest = notebook_fixture(tmp_path)
+    spec = json.loads((bundle / "encoder.json").read_text())
+    if change == "weights":
+        (bundle / "base.safetensors").write_bytes(b"changed weights")
+    elif change == "path":
+        spec["weights_path"] = "../unbound.safetensors"
+    elif change == "source_hash":
+        spec["weights_sha256"] = "f" * 64
+    else:
+        manifest["files"]["base.safetensors"]["sha256"] = "f" * 64
+    (bundle / "encoder.json").write_text(json.dumps(spec))
+    with pytest.raises(ValueError, match="encoder bytes/path"):
+        entry.encoder_arguments(bundle, working, manifest)
+    assert not list(working.iterdir())
+
+
+@pytest.mark.parametrize("change", [None, "order", "probability", "nan", "out_of_range"])
+def test_diagnostic_reference_requires_identical_finite_mri_probabilities(tmp_path, change):
+    path = Path(workflow.__file__).with_name("delta_probe.py")
+    spec = importlib.util.spec_from_file_location("delta_probe_test", path)
+    probe = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(probe)
+    frame = pd.DataFrame(
+        [
+            {"StudyInstanceUID": f"1.2.{n}", **{target: (n + 1) / 4 for target in TARGETS}}
+            for n in range(3)
+        ],
+        columns=["StudyInstanceUID", *TARGETS],
+    )
+    delta, full = tmp_path / "delta.csv", tmp_path / "reference.csv"
+    frame.to_csv(delta, index=False)
+    if change == "order":
+        frame = frame.iloc[::-1]
+    elif change == "probability":
+        frame.loc[0, TARGETS[0]] += 0.01
+    elif change == "nan":
+        frame.loc[0, TARGETS[0]] = float("nan")
+    elif change == "out_of_range":
+        frame.loc[0, TARGETS[0]] = 1.01
+    frame.to_csv(full, index=False)
+    if change is None:
+        assert probe.compare_outputs(delta, full)["csv_bytes_equal"] is True
+    else:
+        with pytest.raises(ValueError, match="differs|differ"):
+            probe.compare_outputs(delta, full)

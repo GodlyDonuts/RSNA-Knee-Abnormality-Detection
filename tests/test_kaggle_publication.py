@@ -56,6 +56,22 @@ def test_single_zip_preserves_logical_paths(payload, tmp_path):
         p.build_zip(data, files, archive)
 
 
+def test_original_safetensors_are_byte_bound_in_the_offline_archive(payload, tmp_path):
+    data, manifest, _ = payload
+    weights = b"synthetic original encoder fixture"
+    (data / "encoder/weights.safetensors").write_bytes(weights)
+    manifest["files"]["encoder/weights.safetensors"] = hashed(weights)
+    (data / "bundle-manifest.json").write_text(json.dumps(manifest))
+    files = p.expected_files(data, manifest)
+    archive = tmp_path / "delta-with-original.zip"
+    p.build_zip(data, files, archive)
+    with zipfile.ZipFile(archive) as handle:
+        assert handle.read("encoder/weights.safetensors") == weights
+    (data / "encoder/weights.safetensors").write_bytes(b"different base")
+    with pytest.raises(ValueError, match="changed"):
+        p.expected_files(data, manifest)
+
+
 @pytest.mark.parametrize("kind", ["extra", "tamper", "link", "csv"])
 def test_payload_rejects_unbound_or_convertible(payload, kind):
     data, manifest, _ = payload

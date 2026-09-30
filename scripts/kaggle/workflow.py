@@ -426,10 +426,8 @@ def validate_snapshot(sidecar, repo=ROOT):
     ):
         raise ValueError("Epoch snapshot hash/size changed")
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
-    if checkpoint.get("schema_version") != 1:
-        raise ValueError(
-            "This Kaggle packager requires a full checkpoint; delta deployment is not yet accepted"
-        )
+    if checkpoint.get("schema_version") not in {1, 2}:
+        raise ValueError("Unknown inference checkpoint storage schema")
     if baseline:
         proof_path = relative_file(sidecar.parent, meta.get("baseline_proof_file", ""))
         if digest(proof_path) != meta.get("baseline_proof_sha256"):
@@ -454,6 +452,12 @@ def validate_snapshot(sidecar, repo=ROOT):
     else:
         binding = validate_inference_checkpoint(checkpoint, allow_scheduled_epoch=True)
     config = binding["config"]
+    if checkpoint["schema_version"] == 2 and (
+        config.get("checkpoint_format") != "frozen_base_delta"
+        or checkpoint.get("model_storage", {}).get("format") != "frozen_base_delta_v1"
+        or checkpoint["model_storage"].get("encoder_provenance") != config.get("encoder")
+    ):
+        raise ValueError("Delta storage does not bind the original encoder provenance")
     code = {
         str(p.relative_to(repo / "rsna")): digest(p) for p in sorted((repo / "rsna").rglob("*.py"))
     }
@@ -501,6 +505,38 @@ def verify_payload(directory, manifest):
             raise ValueError("Inference bundle file changed")
 
 
+def validate_delta_base(checkpoint_file, encoder_spec, binding):
+    """Reconstruct the saved partition from local checked weights before packaging."""
+    import torch
+
+    from rsna.competitive.adapters import configure_encoder_training
+    from rsna.competitive.backbones import create_encoder
+    from rsna.competitive.delta_checkpoint import FrozenBaseDelta
+    from rsna.competitive.model import CompetitiveStudyNet
+
+    previous_threads = torch.get_num_threads()
+    torch.set_num_threads(1)
+    try:
+        encoder, dimension, provenance = create_encoder(encoder_spec)
+        if provenance != binding["config"]["encoder"]:
+            raise ValueError("Original encoder source differs from the delta training binding")
+        config = binding["config"]
+        configure_encoder_training(encoder, config["freeze_encoder"])
+        model = CompetitiveStudyNet(
+            encoder,
+            dimension,
+            pooling=config["pooling"],
+            hidden_dim=config["hidden_dim"],
+            encode_chunk_size=config["encode_chunk_size"],
+            slice_context=config.get("slice_context", "none"),
+        )
+        guard = FrozenBaseDelta(model, provenance)
+        checkpoint = torch.load(checkpoint_file, map_location="cpu", weights_only=True)
+        guard.restore(model, checkpoint)
+    finally:
+        torch.set_num_threads(previous_threads)
+
+
 def prepare_bundle(
     sidecar,
     encoder_spec,
@@ -518,6 +554,7 @@ def prepare_bundle(
     if not SLUG.fullmatch(dataset_slug) or not SLUG.fullmatch(kernel_slug):
         raise ValueError("Use explicit owner/slug identifiers")
     meta, binding, checkpoint = validate_snapshot(sidecar, repo)
+    delta = binding["config"].get("checkpoint_format") == "frozen_base_delta"
     if (
         meta["checkpoint_sha256"][:12] not in dataset_slug
         or meta["checkpoint_sha256"][:12] not in kernel_slug
@@ -574,9 +611,9 @@ def prepare_bundle(
     sources["code/chunked_infer.py"] = Path(__file__).with_name("chunked_infer.py")
     if baseline:
         sources["code/baseline_infer.py"] = Path(__file__).with_name("baseline_infer.py")
-    # The complete trained checkpoint already contains the encoder tensors.
-    # Retain pretrained weight hashes as lineage, without duplicating/fetching them.
-    for kind in ("config",):
+    # Delta storage needs the exact original base; full storage is self-contained.
+    local_encoder = dict(encoder)
+    for kind in ("config", "weights") if delta else ("config",):
         path = Path(encoder[f"{kind}_path"])
         if not path.is_absolute():
             path = encoder_spec.parent / path
@@ -584,12 +621,20 @@ def prepare_bundle(
             raise ValueError("Encoder file differs from its provenance")
         name = "encoder/" + kind + path.suffix
         sources[name] = path
+        local_encoder[f"{kind}_path"] = str(path.resolve())
         encoder[f"{kind}_path"] = name
-    encoder.pop("weights_path", None)
+    if not delta:
+        encoder.pop("weights_path", None)
     expected_encoder = {k: v for k, v in encoder.items() if not k.endswith("_path")}
     trained_encoder = binding["config"]["encoder"]
-    if any(trained_encoder.get(k) != v for k, v in expected_encoder.items()):
+    if any(
+        trained_encoder.get(k) != v
+        for k, v in expected_encoder.items()
+        if not (delta and k == "adapter")
+    ):
         raise ValueError("Bundled encoder differs from training")
+    if delta:
+        validate_delta_base(checkpoint, local_encoder, binding)
     if shared is None:
         for name in wheel_manifest["files"]:
             sources["wheels/" + name] = relative_file(wheelhouse, name)
@@ -631,6 +676,14 @@ def prepare_bundle(
         "shared_wheelhouse": shared,
         "runtime_validated": False,
         "hidden_test_score_observed": False,
+        "checkpoint_format": "frozen_base_delta" if delta else "full",
+        "inference_policy": {
+            "series_sampling": binding["config"].get("series_sampling", "selected"),
+            "slice_sampling": binding["config"].get("slice_sampling", "uniform"),
+            "slice_context": binding["config"].get("slice_context", "none"),
+            "max_series": binding["config"].get("max_series", 6),
+            "cache_side": binding.get("cache_side", 256),
+        },
     }
     new_json(data / "bundle-manifest.json", manifest)
     manifest_sha = digest(data / "bundle-manifest.json")

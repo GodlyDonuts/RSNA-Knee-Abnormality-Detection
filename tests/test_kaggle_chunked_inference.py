@@ -590,7 +590,8 @@ def test_resilient_run_uses_prepared_cache_without_redecoding(tmp_path, monkeypa
     args.max_series = 6
     verified = []
 
-    def verify(_checkpoint, *, max_series, cache_side):
+    def verify(_checkpoint, *, max_series, cache_side, series_sampling):
+        assert series_sampling == "selected"
         verified.append((max_series, cache_side))
 
     def prepare(frame, study_ids, **kwargs):
