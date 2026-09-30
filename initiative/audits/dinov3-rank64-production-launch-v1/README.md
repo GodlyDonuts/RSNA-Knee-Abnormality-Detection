@@ -57,3 +57,11 @@ HF **e0090eb0976aa0969f64d6d68cf8dc11a93ad3d3**. All **178 source/evidence/
 preview objects** were fully re-downloaded/size/SHA verified. The exact parent,
 manifest and object map are in `hf-completed-fit-*.json`. Never repeat its
 commit. This small mirror does not publish the ~147-MB derived native volumes.
+
+Production E1 / **281 updates** is now complete and privately preserved once,
+all four objects fully re-downloaded/size/SHA verified at
+**1d76bece2114c6770bd889959f4212443bde2e83**. The actual production role
+contract passed before publication. Do not repeat E1; inspect existing intents
+before each new epoch. Exact snapshot/journals are in `epoch-publication/epoch-001/`.
+The same job entered E2 with finite updates and empty stderr. No rank-64
+held-out result exists yet.

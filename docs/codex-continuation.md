@@ -6,6 +6,18 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30 rank-64 first full epoch privately preserved:** Production
+865578 completed **E1 / 281 updates** and entered E2 with finite optimizer
+progress and empty stderr. Its separate role-bound publisher passed the
+actual production snapshot contract; all four private objects were fully
+re-downloaded/size/SHA verified at
+**1d76bece2114c6770bd889959f4212443bde2e83**, checkpoint SHA
+**58afaf2c513623b525efbfa029dfef2f7c5da873cf96824605419b1bd980bf6f**.
+Never repeat E1 publication. Exact sidecar and journals are under the rank-64
+production launch epoch-publication/epoch-001 audit. This is preservation,
+not a rank-64 accuracy result. The same job remains RUNNING on evc31.
+
+
 **September 30 final submission evidence privately synchronized:** GitHub main
 **cf004e3** records the exact public MRI acceptance and once-only competition
 entry **56711823**. Private HF revision
