@@ -6,6 +6,14 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30 native/epoch evidence synchronized:** GitHub main **d98a748**
+records the completed original-pixel cache pilot and rank-64 E2/control E6
+preservation. Private HF **d1b7337f6ee7ee555e5e5af02b01a15497909839** fully re-downloaded/size/SHA
+verified all **282 small source/evidence objects**. Do not repeat the mirror
+or native cache publication. Actual native GPU work and full-cache training
+remain outstanding; the two current model runs continue.
+
+
 **September 30 native-cache pilot accepted, two new model epochs preserved:**
 CPU **865808 COMPLETED 0:0** in 14:27 rebuilt both 256 and original-pixel 384
 caches for **32 diagnostic development studies / 185 series / 6,105 slices**.

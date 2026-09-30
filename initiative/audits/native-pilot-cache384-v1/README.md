@@ -44,3 +44,9 @@ archives and transients. The 32-study cache uses a 16-GiB ephemeral bound and
 128-MiB durable receipt bound, within the freshly accepted complete quota
 projection. Plan private immutable shards and owned runtime extraction for a
 full cache; do not grow a 41,215-file cache in the current Lustre inode reserve.
+
+The complete small source/evidence milestone at GitHub main **d98a748** was
+privately mirrored at **d1b7337f6ee7ee555e5e5af02b01a15497909839**. All **282 objects** were fully
+re-downloaded/size/SHA verified. This separate small mirror does not repeat the
+2.02-GB cache publication; preserve both exact revisions and never retry either
+commit. Original private publication journals and mirror helper are archived.

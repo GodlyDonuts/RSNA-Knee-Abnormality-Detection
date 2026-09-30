@@ -1,0 +1,40 @@
+"""Once-only private mirror of the verified native cache and new epoch evidence."""
+import hashlib,json,os,shutil,subprocess,tempfile
+from pathlib import Path
+os.environ['HF_HUB_DISABLE_PROGRESS_BARS']='1'
+from huggingface_hub import HfApi,CommitOperationAdd,hf_hub_download
+root=Path.cwd();local=root/'artifacts/native-pilot-cache-v1';audit=root/'initiative/audits/native-pilot-cache384-v1'
+assert not (audit/'hf-milestone-intent.json').exists()
+assert (root/'.env').stat().st_mode&0o077==0
+values={}
+for line in (root/'.env').read_text().splitlines():
+ key,sep,value=line.partition('=')
+ if sep:values[key.strip()]=value.strip().strip('\"\'')
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def save(name,value):
+ with (audit/name).open('x') as f:json.dump(value,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+folders=['initiative/audits/native-pilot-cache384-v1','initiative/experiments/competitive-v1/native-detail-v1','initiative/audits/dinov3-rank64-production-launch-v1/epoch-publication/epoch-002','initiative/audits/dinov3-delta-recovery-launch-v1/control-epoch-publication/epoch-006']
+paths=[]
+for folder in folders:paths += [p for p in sorted((root/folder).rglob('*')) if p.is_file() and not p.name.startswith('hf-')]
+paths += sorted((root/'rsna').rglob('*.py'))
+paths += [root/name for name in ['docs/codex-continuation.md','docs/post-fold0-dinov3-plan.md','scripts/newton/runtime_archive.py','scripts/newton/runtime_environment.py','scripts/newton/verify_adapter_pilot.py','scripts/hf/dispatch_adapter_a64_epoch.py','scripts/hf/publish_adapter_a64_epoch.py','scripts/hf/dispatch_whole_series_epoch.py','scripts/hf/publish_whole_series_epoch.py','pyproject.toml','configs/competitive/weights/dinov3-large.LICENSE.md','configs/competitive/weights/dinov3-large.config.json','configs/competitive/weights/dinov3-large.json']]
+assert all(p.is_file() and not p.is_symlink() for p in paths)
+files={p.relative_to(root).as_posix():{'sha256':sha(p),'bytes':p.stat().st_size} for p in paths}
+assert sum(v['bytes'] for v in files.values())<16*1024**2 and shutil.disk_usage(root).free>20*1024**3
+assert not subprocess.check_output(['git','status','--porcelain','--',*files],text=True)
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head.startswith('d98a748')
+repo='GodlyDonuts/RSNA-Data';prefix='experiments/dinov3-v1/milestones/native384-cache-rank64-e2-control-e6-20260930'
+api=HfApi(token=values['HF_TOKEN']);info=api.repo_info(repo,repo_type='dataset');assert info.private is True
+assert not api.get_paths_info(repo,[prefix+'/manifest.json',*[prefix+'/'+n for n in files]],repo_type='dataset',revision=info.sha)
+manifest={'schema_version':1,'source_git_commit':head,'scientific_source_git':'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab','files':files,'native_cpu_job':865808,'native_cpu_terminal':'COMPLETED 0:0','native_diagnostic_studies':32,'native_original_series_verified':185,'native_original_slices_verified':6105,'native_original_bytes_verified':4543651168,'native_cache_private_revision':'3f23826ff226992204380d34a2956f3805f8b960','native_cache_private_objects_fully_download_verified':5,'native_actual_training_loader_passed_studies_each_cache':32,'native_reconstruction_exact_256_series':96,'native_max_uint16_difference':1,'native_rounding_cause_proven':False,'native_gpu_model_training':False,'native_full_cache_built':False,'rank64_job':865578,'rank64_completed_epochs':2,'rank64_e2_private_revision':'dd7a323eaf3ffdbf429febb070789f0f7ef618b5','whole_series_control_job':865357,'control_completed_epochs':6,'control_e6_private_revision':'214036cc2d2593504af326df9bb8f1975e516246','new_training_accuracy_claim':False,'last_actual_solo_kaggle_score':0.769,'pending_all_development_submission_id':56711823,'pending_submission_score':None,'accepted_masks_folds_or_cache_changed':False,'gold_or_reserved_confirmation_used':False}
+mp=local/'hf-milestone-manifest.json';mp.write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\n')
+save('hf-milestone-intent.json',{'repo_id':repo,'prefix':prefix,'source_git_commit':head,'parent_commit':info.sha,'files':files,'manifest_sha256':sha(mp),'private_required':True,'one_commit_only':True})
+ops=[CommitOperationAdd(path_in_repo=prefix+'/'+name,path_or_fileobj=str(root/name)) for name in files]+[CommitOperationAdd(path_in_repo=prefix+'/manifest.json',path_or_fileobj=str(mp))]
+commit=api.create_commit(repo_id=repo,repo_type='dataset',parent_commit=info.sha,operations=ops,commit_message='Preserve verified original-pixel diagnostic caches and new adapter/control epoch evidence')
+save('hf-milestone-commit.json',{'revision':commit.oid,'prefix':prefix});assert api.repo_info(repo,repo_type='dataset',revision=commit.oid).private is True
+expected={**files,'manifest.json':{'sha256':sha(mp),'bytes':mp.stat().st_size}}
+with tempfile.TemporaryDirectory(prefix='rsna-native-cache-mirror-') as temporary:
+ for name,record in expected.items():
+  p=Path(hf_hub_download(repo,filename=prefix+'/'+name,repo_type='dataset',revision=commit.oid,token=values['HF_TOKEN'],local_dir=temporary,force_download=True));assert p.stat().st_size==record['bytes'] and sha(p)==record['sha256'],name
+save('hf-milestone-verified.json',{'status':'private_full_download_size_sha_verified','repo_id':repo,'prefix':prefix,'revision':commit.oid,'source_git_commit':head,'file_count':len(expected),'files':expected})
+print(json.dumps({'status':'private_full_download_size_sha_verified','revision':commit.oid,'files':len(expected)}))
