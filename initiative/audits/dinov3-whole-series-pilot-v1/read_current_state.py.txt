@@ -1,0 +1,18 @@
+import json, subprocess, time
+from pathlib import Path
+
+base=Path('/home/sa305415/rsna-knee')
+run=base/'runs/dinov3-l16-adapter-a32-all-8911f90-production-v1'
+control=base/'whole-series-pilot-615d0fe-v1'
+record={'checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+record['queue']=subprocess.run(['squeue','-u','sa305415','-o','%.18i %.30j %.10T %.10M %.10D %R'],capture_output=True,text=True,check=True).stdout
+record['quota']=subprocess.run(['lfs','quota','-u','sa305415','/home/sa305415'],capture_output=True,text=True,check=True).stdout
+record['snapshots']={p.name:json.loads(p.read_text()) for p in sorted((run/'epoch-checkpoints').glob('*.json'))}
+checkpoints=[p for p in run.rglob('*.pt') if p.is_file()]
+record['checkpoint_paths']=[{'path':str(p),'bytes':p.stat().st_size,'device':p.stat().st_dev,'inode':p.stat().st_ino} for p in checkpoints]
+record['stdout_tail']=(base/'logs/rsna-a32-all-development-865263.out').read_text().splitlines()[-4:]
+record['stderr']=(base/'logs/rsna-a32-all-development-865263.err').read_text()[-5000:]
+record['pilot_control_files']=[p.name for p in control.iterdir()]
+record['pilot_code_head']=subprocess.run(['git','-C',str(base/'code-whole-series-615d0fe'),'rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
+record['pilot_code_dirty']=subprocess.run(['git','-c','core.preloadIndex=false','-c','index.threads=1','-C',str(base/'code-whole-series-615d0fe'),'status','--porcelain'],capture_output=True,text=True,check=True).stdout
+print(json.dumps(record,indent=2))

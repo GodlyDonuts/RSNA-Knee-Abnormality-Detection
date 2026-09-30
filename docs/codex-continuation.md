@@ -6,6 +6,37 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, whole-series bounded pilot dispatched and all-data epoch 1 preserved:**
+Slurm **865318 RUNNING on evc32**, one H100/two CPUs/45 minutes, from source
+`615d0fe4602798a9fe46278b2e5443bfbb49669e`. Allocated driver and actual CUDA
+tensor acceptance passed. Full environment/cache preflight and three finite
+real optimizer updates subsequently passed; terminal recovery/profile acceptance
+remains outstanding. Control is
+`/home/sa305415/rsna-knee/whole-series-pilot-615d0fe-v1`; clean sparse checkout
+`/home/sa305415/rsna-knee/code-whole-series-615d0fe`. Do not duplicate it.
+Require actual full-cache acceptance, finite diagnostic learning, exact full versus
+interrupted/resumed payload/prediction equality and five-largest-training-study
+resource checks before any separate production proposal. Full diagnostic
+checkpoints stay on owned node-local disk; `pilot-compact.pt` is a separately
+typed diagnostic delta, not a competition or trainer-resume checkpoint. See
+`initiative/audits/dinov3-whole-series-pilot-v1/` for pinned script/config hashes,
+the initial wrapper's evidenced pre-dispatch parse failure and corrected single
+dispatch. Matched full-coverage control/context production configs are not jobs.
+
+Primary all-development **865263** is healthy into epoch 2. Epoch 1 completed
+426 optimizer updates and was privately published once with all four objects
+fully re-downloaded/size/SHA verified: revision
+`8b3bf285d846f93e776f9dc8fa5d877ffd40c861`, checkpoint SHA
+`c34cf514d3aa83a024dbe9e59d76d30222ded4189240230b1c2265ce27715424`.
+Do not repeat its publication. CPU retention **865316 COMPLETED 0:0** removed
+only that fully privately verified redundant local immutable checkpoint, retaining
+the sidecar, private bytes and active checkpoint. Fresh projected reserve is
+**20.358 GiB**, including the atomic-write transient, all remaining primary
+snapshots, final Kaggle bundle/ZIP and bounded pilot. Recheck both quotas before
+further transfers; a second full production still needs a separate storage plan.
+At 05:40 UTC, exact A32 fold-0 epoch-10 submission **56697342** remains
+pending/unknown with four live slots; no new Kaggle slot was consumed.
+
 **September 30, separate whole-series candidate implemented:** The accepted
 3,403-study cohort has 643,501 cached source slices; the original deterministic
 sampler exposes 282,326 (43.8734%). This is source exposure, not missed-disease

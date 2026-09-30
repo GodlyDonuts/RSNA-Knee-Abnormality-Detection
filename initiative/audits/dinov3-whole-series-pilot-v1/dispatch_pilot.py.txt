@@ -1,0 +1,62 @@
+import hashlib,json,os,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+
+root=Path.cwd();folder=root/'artifacts/dinov3-whole-series-v1'
+intent=folder/'dispatch-v2-intent.json';assert not intent.exists()
+prior=json.loads((folder/'dispatch-receipt.json').read_text())
+reconciliation=(folder/'dispatch-v1-readonly-reconciliation.txt').read_text()
+assert prior['returncode']==1 and 'SyntaxError: invalid decimal literal' in prior['stderr']
+assert 'rsna-whole-series-pilot' not in reconciliation
+assert 'dispatch-intent.json' not in reconciliation and 'dispatch-job-id.txt' not in reconciliation
+stage=json.loads((folder/'staging-receipt.json').read_text())
+state=json.loads((folder/'current-state-dispatch-gate.json').read_text())
+assert state['pilot_code_head']==stage['source_git'] and not state['pilot_code_dirty']
+assert sorted(state['pilot_control_files'])==['pilot-config.json','pilot.sbatch','workloads.json']
+quota_line=next(x for x in state['quota'].splitlines() if x.lstrip().startswith('/home/sa305415'))
+fields=quota_line.split();used_kb,soft_kb=int(fields[1]),int(fields[2]);used_files,file_soft=int(fields[5]),int(fields[6])
+checkpoint_bytes=1338164780
+unique={(r['device'],r['inode']):r['bytes'] for r in state['checkpoint_paths']}
+retention_result=json.loads((folder/'epoch1-retention-result.json').read_text())
+assert retention_result['returncode']==0
+retention=json.loads(retention_result['stdout'])
+assert retention['status']=='private_checkpoint_preserved_redundant_local_file_removed'
+assert retention['private_preservation']['status']=='private_epoch_fully_verified'
+assert retention['bytes']==checkpoint_bytes
+future_checkpoint_bytes=(12-1)*checkpoint_bytes-sum(unique.values())
+packaging_budget_bytes=2*1338706190
+small_overhead_bytes=100*1024**2
+pilot_budget_bytes=180*1024**2+2*1024**2
+future=future_checkpoint_bytes+packaging_budget_bytes+small_overhead_bytes+pilot_budget_bytes
+remaining=(soft_kb-used_kb)*1024-future
+assert remaining>=20*1024**3,remaining/1024**3
+assert file_soft-used_files-1000>=5000
+assert 'rsna-whole-series-pilot' not in state['queue']
+sock='/tmp/rsna-a32-reconnect-501.sock';host='sa305415@newton.ist.ucf.edu'
+control=stage['control'];code=stage['code'];source=stage['source_git']
+hashes={n:hashlib.sha256((folder/n).read_bytes()).hexdigest() for n in ('pilot.sbatch',)}
+hashes['pilot-config.json']=hashlib.sha256((root/'initiative/experiments/competitive-v1/whole-series-context-v1/pilot-config.json').read_bytes()).hexdigest()
+hashes['workloads.json']=hashlib.sha256((root/'initiative/audits/dinov3-whole-series-implementation-v1/metadata-coverage-summary.json').read_bytes()).hexdigest()
+record={'source_git':source,'created_at':datetime.now(timezone.utc).isoformat(),'status':'single_bounded_gpu_pilot_dispatch_intent','dispatch_recovery':'v1 Python quoting failed before any remote intent or sbatch; remote files, sacct and squeue confirm no prior pilot dispatch','code':code,'control':control,'file_hashes':hashes,'gpus':1,'cpus':2,'time_limit_minutes':45,'quota_review':{'used_kbytes':used_kb,'soft_kbytes':soft_kb,'used_files':used_files,'soft_files':file_soft,'primary_total_checkpoint_inodes_including_atomic_transient':11,'privately_preserved_removed_immutable_epoch_files':1,'currently_present_unique_checkpoint_bytes':sum(unique.values()),'future_checkpoint_bytes':future_checkpoint_bytes,'future_final_kaggle_bundle_and_zip_bytes':packaging_budget_bytes,'small_overhead_bytes':small_overhead_bytes,'bounded_pilot_shared_bytes':pilot_budget_bytes,'projected_remaining_gib':remaining/1024**3,'projected_file_reserve':file_soft-used_files-1000},'fresh_state_checked_at':state['checked_at']}
+with intent.open('x') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+checks='\n'.join('[[ $(sha256sum '+shlex.quote(control+'/'+n)+' | cut -d " " -f1) == '+sha+' ]]' for n,sha in hashes.items())
+write_intent=shlex.join(['/usr/bin/python3.12','-c','import pathlib; pathlib.Path('+repr(control+'/dispatch-intent.json')+').open("x").write('+repr(json.dumps(record))+')'])
+write_job=shlex.join(['/usr/bin/python3.12','-c','import pathlib,sys; pathlib.Path('+repr(control+'/dispatch-job-id.txt')+').open("x").write(sys.argv[1]+"\\n")'])
+remote=f'''set -euo pipefail
+umask 077
+[[ $(git -C {shlex.quote(code)} rev-parse HEAD) == {source} ]]
+[[ -z $(git -c core.preloadIndex=false -c index.threads=1 -C {shlex.quote(code)} status --porcelain) ]]
+[[ ! -e {shlex.quote(control+'/dispatch-job-id.txt')} && ! -e {shlex.quote(control+'/dispatch-intent.json')} ]]
+{checks}
+squeue -u sa305415 -h -o "%i %j %b"
+{write_intent}
+job=$(sbatch --parsable {shlex.quote(control+'/pilot.sbatch')})
+[[ "$job" =~ ^[0-9]+$ ]]
+{write_job} "$job"
+printf '%s\\n' "$job"
+'''
+result=subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,'/bin/bash -s'],input=remote,text=True,capture_output=True,timeout=60)
+receipt={**record,'returncode':result.returncode,'stdout':result.stdout,'stderr':result.stderr,'returned_at':datetime.now(timezone.utc).isoformat(),'status':'dispatch_returned' if result.returncode==0 else 'dispatch_uncertain_read_only_reconciliation_required'}
+if result.returncode==0:receipt['job_id']=int(result.stdout.splitlines()[-1])
+with (folder/'dispatch-v2-receipt.json').open('x') as f:json.dump(receipt,f,indent=2);f.flush();os.fsync(f.fileno())
+print(json.dumps(receipt));assert result.returncode==0

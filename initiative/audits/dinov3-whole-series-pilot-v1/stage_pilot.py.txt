@@ -1,0 +1,71 @@
+import hashlib,json,re,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();local=root/'artifacts/dinov3-whole-series-v1';sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert sha.startswith('615d0fe')
+base='/home/sa305415/rsna-knee';code=base+'/code-whole-series-'+sha[:7];control=base+'/whole-series-pilot-'+sha[:7]+'-v1';bundle=local/('source-'+sha[:7]+'.bundle');remote_bundle=base+'/source-whole-series-'+sha[:7]+'.bundle';sock='/tmp/rsna-a32-reconnect-501.sock';host='sa305415@newton.ist.ucf.edu'
+assert not (local/'stage-intent.json').exists(), 'Existing stage intent requires read-only reconciliation'
+subprocess.run(['git','bundle','create',str(bundle),'HEAD','^8911f90910ab8892b8324f6985c18d3ab146ec0c'],check=True)
+script=(root/'artifacts/dinov3-all-development-v1/pilot-evc31-v2.sbatch').read_text().split('"$runtime_python" scripts/newton/supervise.py --grace-seconds')[0]
+script=re.sub(r'^#SBATCH --job-name=.*$', '#SBATCH --job-name=rsna-whole-series-pilot',script,flags=re.M);script=re.sub(r'^#SBATCH --nodelist=.*$', '#SBATCH --exclude=evc27,evc29,evc38,evc43,evc44,evc49,evc50',script,flags=re.M);script=re.sub(r'^#SBATCH --time=.*$', '#SBATCH --time=00:45:00',script,flags=re.M)
+script=script.replace(base+'/code-adapter-a32-all-8911f90',code).replace(base+'/production-launch-adapter-a32-all-8911f90-v1',control).replace('8911f90910ab8892b8324f6985c18d3ab146ec0c',sha)
+script+='''\nfull_output="$runtime_root/diagnostic-full"
+resume_output="$runtime_root/diagnostic-resumed"
+run_phase() {
+  local phase_output="$1"
+  shift
+  "$runtime_python" scripts/newton/supervise.py --grace-seconds 120 --checkpoint "$phase_output/checkpoint.pt" -- "$runtime_python" -m torch.distributed.run --rdzv-backend=c10d --rdzv-endpoint=127.0.0.1:0 --nnodes=1 --nproc-per-node=1 --max-restarts=0 --module rsna.competitive.train --studies DATA/initiative/releases/report-supervision-v1/studies.parquet --series DATA/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache "$runtime_cache" --folds DATA/initiative/experiments/competitive-v1/folds --artifact-root DATA --config CONTROL/pilot-config.json --output "$phase_output" --device cuda "$@" &
+  local pid="$!"
+  supervisors+=("$pid")
+  local code=0
+  while true; do
+    set +e
+    wait "$pid"
+    code="$?"
+    set -e
+    if ! kill -0 "$pid" 2>/dev/null; then break; fi
+  done
+  return "$code"
+}
+run_phase "$full_output"
+if run_phase "$resume_output" --stop-after-updates 1; then
+  stop_code=0
+else
+  stop_code="$?"
+fi
+if [[ "$stop_code" != 75 ]]; then exit 2; fi
+run_phase "$resume_output" --resume "$resume_output/checkpoint.pt"
+"$runtime_python" scripts/newton/verify_adapter_pilot.py --full "$full_output" --resumed "$resume_output" --config CONTROL/pilot-config.json --studies DATA/initiative/releases/report-supervision-v1/studies.parquet --series DATA/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache "$runtime_cache" --output CONTROL/pilot-verified.json --compact-output CONTROL/pilot-compact.pt
+"$runtime_python" scripts/newton/profile_whole_series.py --config CONTROL/pilot-config.json --compact CONTROL/pilot-compact.pt --studies DATA/initiative/releases/report-supervision-v1/studies.parquet --series DATA/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv --cache "$runtime_cache" --folds DATA/initiative/experiments/competitive-v1/folds --artifact-root DATA --workloads CONTROL/workloads.json --output CONTROL/largest-inputs-profile.json
+"$runtime_python" - "$full_output" "$resume_output" CONTROL <<'RSNA_COPY_SMALL_PILOT_RECEIPTS'
+import json,pathlib,shutil,sys
+full,resumed,control=map(pathlib.Path,sys.argv[1:])
+for prefix,folder in [('full',full),('resumed',resumed)]:
+ for name in ['run.json','result.json','invocation.json','outer_predictions.csv']:
+  source=folder/name
+  assert source.is_file() and source.stat().st_size<2*1024**2
+  shutil.copyfile(source,control/(prefix+'-'+name))
+print(json.dumps({'status':'whole_series_pilot_and_largest_training_input_checks_passed','competition_eligible':False}),flush=True)
+RSNA_COPY_SMALL_PILOT_RECEIPTS
+'''
+script=script.replace('DATA',base+'/code-stopfix-1f486765').replace('CONTROL',control)
+p=local/'pilot.sbatch';p.write_text(script);subprocess.run(['bash','-n',str(p)],check=True)
+intent={'source_git':sha,'code':code,'control':control,'bundle_sha256':hashlib.sha256(bundle.read_bytes()).hexdigest(),'script_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'compact_shared_budget_bytes':180*1024**2,'full_checkpoint_storage':'owned node-local disk only; compact diagnostic preservation after exact verification','gpus':1,'cpus':2,'minutes':45}
+(local/'stage-intent.json').write_text(json.dumps(intent,indent=2)+'\n')
+subprocess.run(['scp','-o','ControlPath='+sock,str(bundle),host+':'+remote_bundle],check=True)
+remote=f'''set -euo pipefail
+umask 077
+[[ ! -e {shlex.quote(code)} && ! -e {shlex.quote(control)} ]]
+git -c pack.threads=1 -c index.threads=1 -c core.preloadIndex=false clone --shared --no-checkout {base}/code-adapter-a32-all-8911f90 {code}
+cd {code}
+git -c pack.threads=1 -c index.threads=1 -c core.preloadIndex=false fetch {remote_bundle} {sha}
+git -c pack.threads=1 -c index.threads=1 -c core.preloadIndex=false sparse-checkout init --cone
+git -c pack.threads=1 -c index.threads=1 -c core.preloadIndex=false sparse-checkout set rsna scripts configs/competitive
+GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=pack.threads GIT_CONFIG_VALUE_0=1 GIT_CONFIG_KEY_1=index.threads GIT_CONFIG_VALUE_1=1 GIT_CONFIG_KEY_2=core.preloadIndex GIT_CONFIG_VALUE_2=false git checkout --detach {sha}
+[[ $(git rev-parse HEAD) == {sha} ]]
+[[ -z $(git -c core.preloadIndex=false -c index.threads=1 status --porcelain) ]]
+mkdir {control}
+'''
+subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,'/bin/bash -s'],input=remote,text=True,check=True)
+for source,name in [(p,'pilot.sbatch'),(root/'initiative/experiments/competitive-v1/whole-series-context-v1/pilot-config.json','pilot-config.json'),(root/'initiative/audits/dinov3-whole-series-implementation-v1/metadata-coverage-summary.json','workloads.json')]:
+ subprocess.run(['scp','-o','ControlPath='+sock,str(source),host+':'+control+'/'+name],check=True)
+result=subprocess.run(['ssh','-S',sock,'-o','BatchMode=yes',host,'sha256sum '+shlex.quote(control+'/pilot.sbatch')+' '+shlex.quote(control+'/pilot-config.json')+' '+shlex.quote(control+'/workloads.json')],capture_output=True,text=True,check=True)
+receipt={**intent,'remote_file_hashes':result.stdout,'status':'staged_clean_source_and_exact_pilot_files; not submitted'};(local/'staging-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps({'status':receipt['status'],'source_git':sha,'code':code,'control':control,'bundle_bytes':bundle.stat().st_size}))

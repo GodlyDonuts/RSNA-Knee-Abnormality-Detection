@@ -1,0 +1,72 @@
+{
+  "checked_at": "2026-09-30T05:43:23Z",
+  "queue": "             JOBID                           NAME      STATE       TIME      NODES NODELIST(REASON)\n            865263       rsna-a32-all-development    RUNNING    1:17:45          1 evc31\n",
+  "quota": "Disk quotas for usr sa305415 (uid 1227834669):\n     Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace\n /home/sa305415 1011257656  1048576000 1059061760       -  992175  1000000 1010000       -\n",
+  "snapshots": {
+    "epoch-001-local-retention.json": {
+      "schema_version": 1,
+      "at_utc": "2026-09-30T05:43:05.727491+00:00",
+      "path": "/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1/epoch-checkpoints/epoch-001.pt",
+      "bytes": 1338164780,
+      "sha256": "c34cf514d3aa83a024dbe9e59d76d30222ded4189240230b1c2265ce27715424",
+      "private_preservation": {
+        "checkpoint_sha256": "c34cf514d3aa83a024dbe9e59d76d30222ded4189240230b1c2265ce27715424",
+        "epoch": 1,
+        "files_verified_by_download": 4,
+        "manifest_sha256": "766600590fdb082e150b474b1b6f20209d07ba42bbdb19f754237ca3d900ae01",
+        "prefix": "experiments/dinov3-v1/training-epochs/adapter-a32-all-8911f90-seed20260922/epoch-001",
+        "repo_id": "GodlyDonuts/RSNA-Data",
+        "revision": "8b3bf285d846f93e776f9dc8fa5d877ffd40c861",
+        "schema_version": 1,
+        "status": "private_epoch_fully_verified",
+        "verified_at_utc": "2026-09-30T05:41:09.037937+00:00"
+      },
+      "manifest_sha256": "766600590fdb082e150b474b1b6f20209d07ba42bbdb19f754237ca3d900ae01",
+      "retain_live_checkpoint": true,
+      "retain_snapshot_sidecar": true,
+      "reason": "Reserve includes primary final checkpoints, final competition bundle and atomic checkpoint-write transient; remove only this fully privately re-downloaded/hash-verified redundant epoch file.",
+      "job_id": "865316",
+      "completed_at": "2026-09-30T05:43:09Z",
+      "status": "private_checkpoint_preserved_redundant_local_file_removed"
+    },
+    "epoch-001.json": {
+      "binding_sha256": "06bf0fa50ce29845c65be433fe6464def5a050bd5304c3f41070a637bdc90253",
+      "checkpoint_bytes": 1338164780,
+      "checkpoint_file": "epoch-001.pt",
+      "checkpoint_sha256": "c34cf514d3aa83a024dbe9e59d76d30222ded4189240230b1c2265ce27715424",
+      "diagnostic_only": false,
+      "epoch": 1,
+      "fold": 0,
+      "optimizer_steps": 426,
+      "release_binding_sha256": "e2ecb283915a5b1810bfc9a2f6e1dda1f1d0d762f91cf2487140af3d05cb6c35",
+      "schema_version": 1,
+      "seed": 20260922,
+      "status": "scheduled_epoch_snapshot",
+      "submission_eligible": true,
+      "submission_every_epochs": 1,
+      "submitted": false
+    }
+  },
+  "checkpoint_paths": [
+    {
+      "path": "/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1/checkpoint.pt",
+      "bytes": 1338164780,
+      "device": 2121101648,
+      "inode": 144116967920396562
+    }
+  ],
+  "stdout_tail": [
+    "{\"epoch\": 1, \"update\": 73, \"optimizer_steps\": 499, \"loss\": 0.19839736819267273, \"gradient_norm\": 0.3834582567214966, \"observed_cells\": 45.0, \"elapsed_seconds\": 4278.26501770108, \"peak_gpu_allocated_bytes\": 3757546496}",
+    "{\"epoch\": 1, \"update\": 74, \"optimizer_steps\": 500, \"loss\": 0.29859110713005066, \"gradient_norm\": 1.1528165340423584, \"observed_cells\": 47.0, \"elapsed_seconds\": 4288.3966364378575, \"peak_gpu_allocated_bytes\": 3757546496}",
+    "{\"epoch\": 1, \"update\": 75, \"optimizer_steps\": 501, \"loss\": 0.24251613020896912, \"gradient_norm\": 0.7578009366989136, \"observed_cells\": 54.0, \"elapsed_seconds\": 4296.515082062921, \"peak_gpu_allocated_bytes\": 3757546496}",
+    "{\"epoch\": 1, \"update\": 76, \"optimizer_steps\": 502, \"loss\": 0.26674023270606995, \"gradient_norm\": 0.6235083937644958, \"observed_cells\": 50.0, \"elapsed_seconds\": 4304.684707426932, \"peak_gpu_allocated_bytes\": 3757546496}"
+  ],
+  "stderr": "",
+  "pilot_control_files": [
+    "workloads.json",
+    "pilot-config.json",
+    "pilot.sbatch"
+  ],
+  "pilot_code_head": "615d0fe4602798a9fe46278b2e5443bfbb49669e",
+  "pilot_code_dirty": ""
+}

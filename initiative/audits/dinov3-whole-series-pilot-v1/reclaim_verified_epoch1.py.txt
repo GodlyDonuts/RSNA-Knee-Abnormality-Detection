@@ -1,0 +1,53 @@
+import hashlib,json,os,shlex,subprocess
+from datetime import datetime,timezone
+from pathlib import Path
+from huggingface_hub import HfApi
+
+root=Path.cwd();folder=root/'artifacts/dinov3-whole-series-v1'
+intent=folder/'epoch1-retention-intent.json';assert not intent.exists()
+sock='/tmp/rsna-a32-reconnect-501.sock';host='sa305415@newton.ist.ucf.edu'
+control='/home/sa305415/rsna-knee/production-launch-adapter-a32-all-8911f90-v1'
+run='/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1'
+def ssh(args):return subprocess.check_output(['ssh','-S',sock,host,shlex.join(args)],text=True)
+receipt=json.loads(ssh(['cat',control+'/epoch-publication/epoch-001/verified.json']))
+manifest_text=ssh(['cat',control+'/epoch-publication/epoch-001/manifest.json']);manifest=json.loads(manifest_text)
+assert receipt['status']=='private_epoch_fully_verified' and receipt['files_verified_by_download']==4
+assert hashlib.sha256(manifest_text.encode()).hexdigest()==receipt['manifest_sha256']
+assert (root/'.env').stat().st_mode&0o077==0
+values={}
+for line in (root/'.env').read_text().splitlines():
+ key,sep,val=line.partition('=')
+ if sep:values[key.strip()]=val.strip().strip('"').strip("'")
+api=HfApi(token=values['HF_TOKEN']);repo='GodlyDonuts/RSNA-Data'
+assert api.repo_info(repo,repo_type='dataset',revision=receipt['revision']).private is True
+paths=api.get_paths_info(repo,[receipt['prefix']+'/'+n for n in ('checkpoint.pt','snapshot.json','DINOv3-LICENSE.md','manifest.json')],repo_type='dataset',revision=receipt['revision'])
+assert len(paths)==4
+checkpoint=next(p for p in paths if p.path.endswith('/checkpoint.pt'))
+assert checkpoint.size==manifest['checkpoint_bytes'] and checkpoint.lfs.sha256==receipt['checkpoint_sha256']==manifest['checkpoint_sha256']
+plan={'schema_version':1,'at_utc':datetime.now(timezone.utc).isoformat(),'path':run+'/epoch-checkpoints/epoch-001.pt','bytes':checkpoint.size,'sha256':receipt['checkpoint_sha256'],'private_preservation':receipt,'manifest_sha256':receipt['manifest_sha256'],'retain_live_checkpoint':True,'retain_snapshot_sidecar':True,'reason':'Reserve includes primary final checkpoints, final competition bundle and atomic checkpoint-write transient; remove only this fully privately re-downloaded/hash-verified redundant epoch file.'}
+with intent.open('x') as f:json.dump(plan,f,indent=2);f.flush();os.fsync(f.fileno())
+program='''import hashlib,json,os,time
+from pathlib import Path
+plan=json.load(__import__('sys').stdin)
+assert os.environ.get('SLURM_JOB_ID')
+path=Path(plan['path']);run=path.parent.parent
+assert str(path)=='/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1/epoch-checkpoints/epoch-001.pt'
+assert path.is_file() and not path.is_symlink() and path.stat().st_size==plan['bytes']
+assert (run/'checkpoint.pt').is_file() and (path.with_suffix('.json')).is_file()
+receipt_path=path.parent/'epoch-001-local-retention.json';assert not receipt_path.exists()
+h=hashlib.sha256()
+with path.open('rb') as f:
+ for block in iter(lambda:f.read(4*1024**2),b''):h.update(block)
+assert h.hexdigest()==plan['sha256']
+record={**plan,'job_id':os.environ['SLURM_JOB_ID'],'completed_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'status':'verified_redundant_local_checkpoint_eviction_intent'}
+with receipt_path.open('x') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+path.unlink()
+record['status']='private_checkpoint_preserved_redundant_local_file_removed'
+with receipt_path.open('w') as f:json.dump(record,f,indent=2);f.flush();os.fsync(f.fileno())
+print(json.dumps(record))
+'''
+command=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--mem=2G','--time=00:05:00','/usr/bin/python3.12','-c',program]
+result=subprocess.run(['ssh','-S',sock,host,shlex.join(command)],input=json.dumps(plan),text=True,capture_output=True,timeout=450)
+record={'returncode':result.returncode,'stdout':result.stdout,'stderr':result.stderr}
+with (folder/'epoch1-retention-result.json').open('x') as f:json.dump(record,f,indent=2)
+print(json.dumps(record));assert result.returncode==0

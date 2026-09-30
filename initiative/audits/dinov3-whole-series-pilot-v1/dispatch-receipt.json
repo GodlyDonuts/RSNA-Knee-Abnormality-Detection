@@ -1,0 +1,35 @@
+{
+  "source_git": "615d0fe4602798a9fe46278b2e5443bfbb49669e",
+  "created_at": "2026-09-30T05:45:23.081943+00:00",
+  "status": "dispatch_uncertain_read_only_reconciliation_required",
+  "code": "/home/sa305415/rsna-knee/code-whole-series-615d0fe",
+  "control": "/home/sa305415/rsna-knee/whole-series-pilot-615d0fe-v1",
+  "file_hashes": {
+    "pilot.sbatch": "f88e59141c9e4e7767916f5f3a674069cbc784a38b0e76d8fd99d1cd91c52426",
+    "pilot-config.json": "26e25e359168ebe95ed85a0089383ea895bb23f18a52845e66894498ce9b7ae5",
+    "workloads.json": "4666ad543412e8d2f8224326156bb6f11070f6ef4fd229431139793950874a9e"
+  },
+  "gpus": 1,
+  "cpus": 2,
+  "time_limit_minutes": 45,
+  "quota_review": {
+    "used_kbytes": 1011257656,
+    "soft_kbytes": 1048576000,
+    "used_files": 992175,
+    "soft_files": 1000000,
+    "primary_total_checkpoint_inodes_including_atomic_transient": 11,
+    "privately_preserved_removed_immutable_epoch_files": 1,
+    "currently_present_unique_checkpoint_bytes": 1338164780,
+    "future_checkpoint_bytes": 13381647800,
+    "future_final_kaggle_bundle_and_zip_bytes": 2677412380,
+    "small_overhead_bytes": 104857600,
+    "bounded_pilot_shared_bytes": 190840832,
+    "projected_remaining_gib": 20.35799030587077,
+    "projected_file_reserve": 6825
+  },
+  "fresh_state_checked_at": "2026-09-30T05:43:23Z",
+  "returncode": 1,
+  "stdout": "865263 rsna-a32-all-development gres/gpu:nvidia_h100_pcie:1\n",
+  "stderr": "  File \"<string>\", line 1\n    import json,pathlib; p=pathlib.Path(/home/sa305415/rsna-knee/whole-series-pilot-615d0fe-v1/dispatch-intent.json); p.open(\"x\").write({source_git:\n                                                                                      ^\nSyntaxError: invalid decimal literal\n",
+  "returned_at": "2026-09-30T05:45:23.531003+00:00"
+}
