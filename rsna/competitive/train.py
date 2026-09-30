@@ -34,6 +34,7 @@ from rsna.competitive.checkpoint import (
     run_lock,
     save_checkpoint,
 )
+from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.loss import effective_batch_loss, observed_counts
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
@@ -99,6 +100,7 @@ class TrainConfig:
     lr_schedule: str = "constant"
     clip_grad_norm: float = 1.0
     checkpoint_every_updates: int = 25
+    checkpoint_format: str = "full"
     submission_every_epochs: int = 0
     min_free_gib: float = 20.0
     diagnostic_study_limit: int | None = None
@@ -159,6 +161,11 @@ class TrainConfig:
             raise ValueError("Unknown learning-rate schedule")
         if self.fit_scope not in {"outer_fold", "all_development"}:
             raise ValueError("Unknown training pool policy")
+        if self.checkpoint_format not in {"full", "frozen_base_delta"} or (
+            self.checkpoint_format == "frozen_base_delta"
+            and (not self.freeze_encoder or "adapter" not in self.encoder)
+        ):
+            raise ValueError("Delta checkpoints require a frozen pretrained base and adapters")
         if "adapter" in self.encoder:
             if self.encoder.get("architecture") != "dinov3_l16" or not self.freeze_encoder:
                 raise ValueError("DINOv3-L adapters require a frozen original encoder")
@@ -419,6 +426,11 @@ def _run_locked(
         encode_chunk_size=config.encode_chunk_size,
         slice_context=config.slice_context,
     ).to(device)
+    delta_guard = (
+        FrozenBaseDelta(model, encoder_provenance)
+        if config.checkpoint_format == "frozen_base_delta"
+        else None
+    )
     encoder_parameters = {id(parameter) for parameter in encoder.parameters()}
     groups = [
         {
@@ -482,7 +494,7 @@ def _run_locked(
     epoch, next_update, step = 0, 0, 0
     if args.resume:
         checkpoint = load_checkpoint(args.resume, binding)
-        model.load_state_dict(checkpoint["model"], strict=True)
+        restore_checkpoint_model(model, checkpoint, delta_guard)
         optimizer.load_state_dict(checkpoint["optimizer"])
         epoch, next_update, step = (
             checkpoint["epoch"],
@@ -511,10 +523,13 @@ def _run_locked(
             save_checkpoint(
                 args.output / "checkpoint.pt",
                 {
-                    "schema_version": 1,
+                    **(
+                        delta_guard.checkpoint_model(model)
+                        if delta_guard is not None
+                        else {"schema_version": 1, "model": model.state_dict()}
+                    ),
                     "binding": binding,
                     "optimizer_boundary": True,
-                    "model": model.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "epoch": current_epoch,
                     "next_update": current_update,

@@ -12,9 +12,11 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
+from rsna.competitive.adapters import configure_encoder_training
 from rsna.competitive.backbones import create_encoder, create_encoder_from_training_checkpoint
 from rsna.competitive.checkpoint import atomic_json, file_sha256
 from rsna.competitive.data import CompetitiveStudyDataset, collate_studies
+from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.model import CompetitiveStudyNet
 from rsna.competitive.snapshots import scheduled_epoch
 from rsna.competitive.train import TrainConfig, predict
@@ -27,7 +29,10 @@ from rsna.schema import CACHE_VERSION, TARGETS
 def validate_inference_checkpoint(
     checkpoint: dict, *, allow_diagnostic: bool = False, allow_scheduled_epoch: bool = False
 ) -> dict:
-    if checkpoint.get("schema_version") != 1 or checkpoint.get("optimizer_boundary") is not True:
+    if (
+        checkpoint.get("schema_version") not in {1, 2}
+        or checkpoint.get("optimizer_boundary") is not True
+    ):
         raise ValueError("Unsupported competitive checkpoint")
     binding = checkpoint["binding"]
     validate_checkpoint_binding(binding["release"])
@@ -36,6 +41,9 @@ def validate_inference_checkpoint(
     if binding.get("source_revision") != binding["release"]["source_revision"]:
         raise ValueError("Checkpoint image source conflicts with supervision release")
     config = binding["config"]
+    expected_schema = 2 if config.get("checkpoint_format") == "frozen_base_delta" else 1
+    if checkpoint["schema_version"] != expected_schema:
+        raise ValueError("Checkpoint schema conflicts with its bound storage format")
     if any(
         type(checkpoint.get(name)) is not int or checkpoint[name] < 0
         for name in ("epoch", "next_update")
@@ -76,6 +84,10 @@ def run(args: argparse.Namespace) -> dict:
     if binding.get("code_sha256") != current_code:
         raise ValueError("Inference architecture/preprocessing code differs from training")
     if getattr(args, "encoder_config", None) is not None:
+        if checkpoint["schema_version"] == 2:
+            raise ValueError(
+                "Delta inference requires --encoder-spec with the pinned original weights"
+            )
         encoder_spec = dict(binding["config"]["encoder"])
         encoder, dimension, provenance = create_encoder_from_training_checkpoint(
             encoder_spec,
@@ -140,7 +152,9 @@ def run(args: argparse.Namespace) -> dict:
         encode_chunk_size=config.encode_chunk_size,
         slice_context=config.slice_context,
     ).to(device)
-    model.load_state_dict(checkpoint["model"], strict=True)
+    configure_encoder_training(encoder, config.freeze_encoder)
+    guard = FrozenBaseDelta(model, provenance) if checkpoint["schema_version"] == 2 else None
+    restore_checkpoint_model(model, checkpoint, guard)
     loader = DataLoader(
         dataset,
         batch_size=args.batch_size,

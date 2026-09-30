@@ -114,7 +114,10 @@ def restore_rng(state: dict, device: torch.device) -> None:
 
 def load_checkpoint(path: Path, binding: dict) -> dict:
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
-    if checkpoint.get("schema_version") != 1 or checkpoint.get("binding") != binding:
+    expected_schema = (
+        2 if binding.get("config", {}).get("checkpoint_format") == "frozen_base_delta" else 1
+    )
+    if checkpoint.get("schema_version") != expected_schema or checkpoint.get("binding") != binding:
         raise ValueError("Checkpoint source, configuration, code, device or world size differs")
     if not checkpoint.get("optimizer_boundary"):
         raise ValueError("Checkpoint is not a complete effective-batch boundary")

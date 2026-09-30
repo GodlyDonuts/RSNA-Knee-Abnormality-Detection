@@ -6,6 +6,22 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+
+**September 30, opt-in exact delta recovery implemented:** A new production
+checkpoint schema stores learned adapter/head/context tensors, full optimizer,
+counters and per-rank RNG against checksummed frozen base tensors. Original
+full checkpoints remain the default; active all-development job 865263 and
+submitted epoch-10 source are unchanged. Saving/recovery reject altered frozen
+weights or tensor partitions, and recovery rejects malformed learned payloads.
+CPU context/no-context recovery is exact through subsequent updates and
+predictions; the bounded Newton full-storage-equivalence/recovery pilot remains
+undispatched pending source checks and fresh quota acceptance. New delta recipe
+variants preserve the whole-coverage scientific control/context designs. Current
+Kaggle packaging rejects schema 2 until its separate deployment gate passes.
+At 07:01 UTC, exact submission 56697342 remained pending or unknown, with no
+score/error/status and four live slots. No additional submission was made.
+See `initiative/experiments/competitive-v1/whole-series-context-v1/`.
+
 **September 30, whole-series GPU engineering gates and private preservation complete:**
 Exact corrected pilot **865323 COMPLETED 0:0 in 17:28**. Full and resumed
 model/optimizer/RNG payloads match, outer predictions are byte-identical, strict

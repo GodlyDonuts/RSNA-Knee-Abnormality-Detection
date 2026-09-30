@@ -11,12 +11,15 @@ import torch
 from safetensors.torch import load_file
 from torch.utils.data import DataLoader
 
+from rsna.competitive.adapters import configure_encoder_training
 from rsna.competitive.backbones import (
     _adapt_pretrained_state,
+    create_encoder,
     create_encoder_from_training_checkpoint,
 )
 from rsna.competitive.checkpoint import atomic_json, file_sha256
 from rsna.competitive.data import CompetitiveStudyDataset, collate_studies
+from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.model import CompetitiveStudyNet
 from rsna.competitive.train import TrainConfig, _model_inputs
 from rsna.schema import TARGETS
@@ -47,6 +50,7 @@ def main() -> None:
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--compact-output", type=Path)
+    parser.add_argument("--reference", type=Path, help="Same-recipe full-storage reference run")
     args = parser.parse_args()
     assert not args.output.exists()
     torch.set_num_threads(2)
@@ -59,25 +63,24 @@ def main() -> None:
         args.resumed / "outer_predictions.csv"
     ).read_bytes()
     del resumed
-    original = _adapt_pretrained_state(config.encoder, load_file(config.encoder["weights_path"]))
-    for name, tensor in original.items():
-        assert torch.equal(tensor, full["model"]["encoder.backbone." + name]), name
-    base_count = len(original)
-    del original
     residuals = {name: tensor for name, tensor in full["model"].items() if name.endswith(".lora_B")}
     assert residuals and all(torch.isfinite(tensor).all() for tensor in residuals.values())
     changed = sum(bool(tensor.abs().sum() > 0) for tensor in residuals.values())
     assert changed == 120, "Every declared residual projection must have actually learned"
     expected = full["binding"]["config"]["encoder"]
-    encoder, dim, provenance = create_encoder_from_training_checkpoint(
-        expected,
-        Path(config.encoder["config_path"]),
-        encoder_state={
-            name.removeprefix("encoder."): value
-            for name, value in full["model"].items()
-            if name.startswith("encoder.")
-        },
-    )
+    if full["schema_version"] == 2:
+        encoder, dim, provenance = create_encoder(config.encoder)
+        configure_encoder_training(encoder, config.freeze_encoder)
+    else:
+        encoder, dim, provenance = create_encoder_from_training_checkpoint(
+            expected,
+            Path(config.encoder["config_path"]),
+            encoder_state={
+                name.removeprefix("encoder."): value
+                for name, value in full["model"].items()
+                if name.startswith("encoder.")
+            },
+        )
     assert provenance == expected and expected["adapter"]["trainable_parameters"] == 10_223_616
     model = (
         CompetitiveStudyNet(
@@ -91,7 +94,33 @@ def main() -> None:
         .cuda()
         .eval()
     )
-    model.load_state_dict(full["model"], strict=True)
+    guard = FrozenBaseDelta(model, provenance) if full["schema_version"] == 2 else None
+    restore_checkpoint_model(model, full, guard)
+    original = _adapt_pretrained_state(config.encoder, load_file(config.encoder["weights_path"]))
+    expanded = model.state_dict()
+    for name, tensor in original.items():
+        assert torch.equal(tensor, expanded["encoder.backbone." + name].cpu()), name
+    base_count = len(original)
+    del original
+    if args.reference is not None:
+        assert full["schema_version"] == 2
+        reference = torch.load(
+            args.reference / "checkpoint.pt", map_location="cpu", weights_only=True
+        )
+        assert reference["schema_version"] == 1
+        reference_binding = dict(reference["binding"])
+        reference_binding["config"] = {
+            **reference_binding["config"],
+            "checkpoint_format": "frozen_base_delta",
+        }
+        assert reference_binding == full["binding"]
+        for name in ("epoch", "next_update", "step", "rng_by_rank", "optimizer", "scheduled_epoch"):
+            same(reference[name], full[name])
+        same(reference["model"], {name: value.cpu() for name, value in expanded.items()})
+        assert (args.reference / "outer_predictions.csv").read_bytes() == (
+            args.full / "outer_predictions.csv"
+        ).read_bytes()
+        del reference
     predictions = pd.read_csv(args.full / "outer_predictions.csv")
     studies = pd.read_parquet(args.studies)
     study = studies[studies.study_uid == predictions.study_uid.iloc[0]].copy()
@@ -122,7 +151,11 @@ def main() -> None:
     compact_sha = None
     compact_bytes = None
     if args.compact_output is not None:
-        if config.slice_context != "neighbor3" or args.compact_output.exists():
+        if (
+            full["schema_version"] != 1
+            or config.slice_context != "neighbor3"
+            or args.compact_output.exists()
+        ):
             raise ValueError(
                 "Distinct compact preservation is only for the whole-series diagnostic"
             )
@@ -157,6 +190,9 @@ def main() -> None:
             "changed_residual_modules": changed,
             "unchanged_official_base_tensors": base_count,
             "full_payload_resume_equal": True,
+            "checkpoint_schema_version": full["schema_version"],
+            "full_storage_reference_equal": args.reference is not None,
+            "checkpoint_requires_verified_base": full["schema_version"] == 2,
             "outer_predictions_byte_equal": True,
             "checkpoint_only_real_mri_reload_equal": True,
             "precision": config.precision,

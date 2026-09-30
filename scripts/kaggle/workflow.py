@@ -426,6 +426,10 @@ def validate_snapshot(sidecar, repo=ROOT):
     ):
         raise ValueError("Epoch snapshot hash/size changed")
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+    if checkpoint.get("schema_version") != 1:
+        raise ValueError(
+            "This Kaggle packager requires a full checkpoint; delta deployment is not yet accepted"
+        )
     if baseline:
         proof_path = relative_file(sidecar.parent, meta.get("baseline_proof_file", ""))
         if digest(proof_path) != meta.get("baseline_proof_sha256"):

@@ -41,3 +41,28 @@ recovery comparison, then preserve a separately typed, hash-bound diagnostic
 adapter/context delta and optimizer state on private storage. That compact file
 is not a competition model or the production trainer's resume format. Preserve
 the official base revision, license and exact source/config/hash receipts.
+
+## Exact recovery with smaller production checkpoints
+
+An additional opt-in `frozen_base_delta` format stores every learned tensor,
+complete optimizer state, progress counters and per-rank RNG. It omits only the
+immutable pretrained tensors and records each omitted tensor's name, shape,
+dtype and SHA256, together with pinned encoder provenance. Saving refuses any
+changed frozen tensor or partition. Recovery requires the original verified
+weights/config and rejects any different base, missing/extra learned tensor,
+incorrect dtype/shape or nonfinite learned value before loading the model.
+The existing all-development run and submitted A32 checkpoint remain unchanged.
+
+The new `*-delta-config.json` variants preserve the scientific recipes. The
+same-seed full-storage reference config permits a bounded Newton comparison of
+full versus delta storage and interrupted/resumed delta recovery. Both context
+and no-context CPU recovery checks cover optimizer, RNG, weights and predictions;
+actual Newton acceptance is still required before production. The previous
+compact diagnostic file remains a separate, non-resumable artifact.
+
+Schema-2 delta inference requires an explicit checksummed original-weight spec.
+The current Kaggle packager deliberately rejects these checkpoints until its
+separate offline deployment path is accepted. The diagnostic pilot cannot be
+submitted. Full-coverage production still needs a fresh projected quota check,
+including all ten immutable delta snapshots, one live recovery checkpoint and
+the atomic-write transient, alongside the primary fit's remaining full files.

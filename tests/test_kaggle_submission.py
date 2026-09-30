@@ -337,7 +337,10 @@ def test_snapshot_internal_provenance_is_checked_not_only_sidecar(tmp_path, monk
     # fixture isolates our additional sidecar/internal-state consistency guards.
     monkeypatch.setattr(inference, "validate_inference_checkpoint", lambda *a, **kw: binding)
     checkpoint = tmp_path / "epoch-002.pt"
-    torch.save({"scheduled_epoch": True, "epoch": 2, "next_update": 0, "step": 3}, checkpoint)
+    torch.save(
+        {"schema_version": 1, "scheduled_epoch": True, "epoch": 2, "next_update": 0, "step": 3},
+        checkpoint,
+    )
     meta = {
         "status": "scheduled_epoch_snapshot",
         "epoch": 2,
