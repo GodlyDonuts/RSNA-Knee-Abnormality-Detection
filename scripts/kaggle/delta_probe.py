@@ -79,7 +79,15 @@ def expanded_reference(checkpoint: Path, spec: Path, output: Path) -> dict:
     )
     guard = FrozenBaseDelta(model, provenance)
     guard.restore(model, saved)
-    if len(guard.frozen) != 415 or len(provenance["adapter"]["target_modules"]) != 120:
+    # The official backbone has 415 tensors. The grayscale wrapper also stores
+    # two normalization buffers; delta restoration binds all 417 frozen values.
+    backbone = [name for name in guard.frozen if name.startswith("encoder.backbone.")]
+    normalization = set(guard.frozen) - set(backbone)
+    if (
+        len(backbone) != 415
+        or normalization != {"encoder.mean", "encoder.std"}
+        or len(provenance["adapter"]["target_modules"]) != 120
+    ):
         raise ValueError("Original frozen base or adapter partition differs")
     full = copy.deepcopy(
         {key: value for key, value in saved.items() if key not in {"model", "model_storage"}}
@@ -91,7 +99,12 @@ def expanded_reference(checkpoint: Path, spec: Path, output: Path) -> dict:
         raise ValueError("Reference scratch is not new or lacks the reserve")
     with output.open("xb") as handle:
         torch.save(full, handle)
-    return {"frozen_base_tensors_verified": len(guard.frozen), "adapter_modules_verified": 120}
+    return {
+        "frozen_base_tensors_verified": len(backbone),
+        "frozen_encoder_tensors_verified": len(guard.frozen),
+        "normalization_buffers_verified": len(normalization),
+        "adapter_modules_verified": 120,
+    }
 
 
 def run(args: Namespace) -> dict:

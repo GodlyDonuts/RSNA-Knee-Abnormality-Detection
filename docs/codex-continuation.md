@@ -6,6 +6,30 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, private diagnostic failure isolated and wrapper corrected:**
+Private notebook `godlydonuts/rsna-whole-series-exact-delta-t4-diagnostic` v1
+ended ERROR before MRI inference. Its visible terminal trace identifies the
+external probe's incorrect 415-frozen-tensor assertion. The strict original-base
+delta restore passed; the saved partition contains 415 official backbone
+tensors plus `encoder.mean` and `encoder.std`, for 417 frozen encoder values.
+The corrected wrapper checks both parts explicitly and retains strict tensor
+hash/schema restoration. Regression tests exercise expansion and reject changed
+normalization hashes and an extra backbone tensor. Real-checkpoint CPU expansion
+and a distinct private offline T4 rerun are still required. This engineering
+failure consumed no competition slot and does not explain older hidden failures.
+Preserve the old Dataset/notebook and never repeat its push.
+
+Both training jobs remain healthy. All-development epoch 5 / 2,130 updates is
+privately fully re-downloaded/size/SHA verified at HF
+**b6602f0fac4341959e6af3285053edb3385a1648**, SHA
+`933897282c6d7c0473ba300ae680de88e9b7c1672f487bb4fce9c23208835722`.
+Whole-series control epoch 1 / 281 updates is privately fully verified at
+**52632c5e5ca704a31d0d8e626bb8e03624bd6748**, SHA
+`b3e1a84f436fd763b7d039f2b103595ab155e72c73e13089724019c35a612f15`.
+Do not repeat either publication. No new held-out metric or Kaggle score is
+available for these live fits. Exact error and preservation receipts are in the
+current deployment, all-development and delta-recovery audits.
+
 **September 30, verified deployment source/receipt mirror:** GitHub main
 `360c99b` records the actual private T4 diagnostic dispatch and title-derived
 identity reconciliation. The small source/epoch-4/launch milestone is privately

@@ -314,3 +314,69 @@ def test_diagnostic_reference_requires_identical_finite_mri_probabilities(tmp_pa
     else:
         with pytest.raises(ValueError, match="differs|differ"):
             probe.compare_outputs(delta, full)
+
+
+@pytest.mark.parametrize("change", [None, "normalization", "backbone_count"])
+def test_expanded_probe_binds_official_tensors_and_gray_normalization_buffers(
+    tmp_path, monkeypatch, change
+):
+    path = Path(workflow.__file__).with_name("delta_probe.py")
+    spec = importlib.util.spec_from_file_location("delta_probe_partition_test", path)
+    probe = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(probe)
+    original, state, _, _ = delta_fixture(tmp_path, monkeypatch, "neighbor3")
+    provenance = copy.deepcopy(state["binding"]["config"]["encoder"])
+    provenance["adapter"]["target_modules"] = [f"projection.{n}" for n in range(120)]
+
+    def create(_):
+        with torch.random.fork_rng():
+            torch.manual_seed(45)
+            backbone = nn.Module()
+            backbone.residuals = nn.ModuleList(
+                [ResidualLinear(nn.Linear(1, 1), 1, 1, 0) for _ in range(120)]
+            )
+            backbone.other = nn.ParameterList(
+                [nn.Parameter(torch.ones(1)) for _ in range(175 + (change == "backbone_count"))]
+            )
+            encoder = backbones._GrayEncoder(backbone, 16)
+        return encoder, 8, copy.deepcopy(provenance)
+
+    monkeypatch.setattr(probe, "create_encoder", create)
+    monkeypatch.setattr(probe.shutil, "disk_usage", lambda _: Namespace(free=24 * 1024**3))
+    encoder, dimension, _ = create(None)
+    configure_encoder_training(encoder, True)
+    model = CompetitiveStudyNet(encoder, dimension, hidden_dim=8, slice_context="neighbor3")
+    config = state["binding"]["config"]
+    config.update(
+        encoder=provenance,
+        diagnostic_study_limit=16,
+        slice_sampling="all",
+        series_sampling="all",
+        pooling="attention",
+        hidden_dim=8,
+        encode_chunk_size=64,
+    )
+    state["step"] = 4
+    state.update(FrozenBaseDelta(model, provenance).checkpoint_model(model))
+    if change == "normalization":
+        state["model_storage"]["frozen_tensors"]["encoder.mean"]["sha256"] = "f" * 64
+    torch.save(state, original.checkpoint)
+    output = tmp_path / "probe-expanded.pt"
+    if change is not None:
+        with pytest.raises(ValueError, match="frozen base|partition differs"):
+            probe.expanded_reference(original.checkpoint, original.encoder_spec, output)
+        assert not output.exists()
+        return
+    result = probe.expanded_reference(original.checkpoint, original.encoder_spec, output)
+    assert result == {
+        "frozen_base_tensors_verified": 415,
+        "frozen_encoder_tensors_verified": 417,
+        "normalization_buffers_verified": 2,
+        "adapter_modules_verified": 120,
+    }
+    expanded = torch.load(output, weights_only=True)
+    assert expanded["schema_version"] == 1 and "model_storage" not in expanded
+    assert expanded["binding"]["config"]["checkpoint_format"] == "full"
+    assert expanded["model"].keys() == model.state_dict().keys()
+    for name, tensor in model.state_dict().items():
+        assert torch.equal(tensor, expanded["model"][name])

@@ -47,6 +47,27 @@ remaining primary snapshots/live/atomic files, both production deployment pairs,
 diag payload will hard-link immutable original base/delta instead of duplicating
 them; no hypothetical future cleanup is credited.
 
+## Exact terminal failure and correction
+
+The actual private v1 later ended ERROR. The preserved visible log identifies
+`delta_probe.py:83`: the engineering assertion compared the complete frozen
+encoder state count with 415, the count of official backbone tensors alone.
+Its strict base/delta restore had already passed. The saved state has 417 frozen
+encoder entries: 415 official tensors and two grayscale normalization buffers,
+`encoder.mean` and `encoder.std`. The correction checks both parts explicitly,
+retaining strict hashes, shapes, dtypes and learned membership. Regression tests
+execute expansion and reject changed normalization hashes or backbone membership.
+Real-checkpoint CPU expansion and a distinct exact private T4 acceptance remain
+outstanding. No MRI inference ran in v1 and no competition slot was spent. This
+does not identify the cause of earlier hidden competition errors.
+
+`private-probe-v1-terminal.json` binds the actual private identity/source and
+`private-probe-v1-terminal.log.txt` preserves the visible terminal trace. Never
+retry the old create/push or call this notebook accepted. Completed all-data
+epoch 5 and control epoch 1 were separately privately published and all four
+objects per epoch fully re-downloaded/size/SHA verified; see their distinct
+epoch-publication audits.
+
 ## Actual private diagnostic dispatch
 
 CPU preparation 865374 COMPLETED 0:0 in 1:21 with exact original-base and

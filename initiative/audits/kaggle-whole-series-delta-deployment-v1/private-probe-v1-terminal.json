@@ -1,0 +1,26 @@
+{
+  "status": "private_offline_diagnostic_failed_before_MRI_inference",
+  "kernel_slug": "godlydonuts/rsna-whole-series-exact-delta-t4-diagnostic",
+  "version": 1,
+  "kernel_id": 136505806,
+  "source_sha256": "cfc7920ed1e1ac43d7cbe3ce199deb929361cef014ff84d6098c088a25febc5a",
+  "dataset_id": 12287425,
+  "dataset_version": 1,
+  "visible_log_sha256": "8c7e8b427b15b51fea6bb4d9915138d6342c0af8a9b2ed8bc4b501cbbd307871",
+  "visible_log_bytes": 18834,
+  "terminal_exception": "ValueError: Original frozen base or adapter partition differs",
+  "line": 83,
+  "frozen_partition_expected_by_bad_assertion": 415,
+  "checkpoint_frozen_encoder_state_count": 417,
+  "official_backbone_state_count": 415,
+  "normalization_buffers": [
+    "encoder.mean",
+    "encoder.std"
+  ],
+  "strict_base_delta_restore_before_bad_assertion_passed": true,
+  "MRI_inference_reached": false,
+  "competition_submission_created": false,
+  "competition_slot_spent": false,
+  "old_hidden_competition_failure_explained": false,
+  "correction": "Bind 415 backbone tensors plus both normalization buffers after unchanged strict FrozenBaseDelta.restore; verify the real expanded helper on a CPU allocation before a distinct private T4 run."
+}
