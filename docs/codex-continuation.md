@@ -6,6 +6,15 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September 30, verified terminal/capacity milestone synchronized:** GitHub main
+**2c36db36e2e4ed578656f01263c7399bf14f16a2** records private T4 acceptance,
+matched capacity preparation, whole-series epoch 2 and all-data epoch 7.
+Private HF **548be598bcfdb37fec79bdfde2c47158f4bab708** has all **209 small
+objects** fully re-downloaded/size/SHA verified. Never repeat this mirror.
+`initiative/audits/dinov3-capacity-and-t4-acceptance-v1/` preserves its exact
+intent, parent, file map and verification receipt. The rank-64 payload remains
+prepared only, with no staged control or scheduler identity.
+
 **September 30, private T4 delta acceptance and capacity comparison prepared:**
 Exact private offline **godlydonuts/rsna-delta-t4-fix3-5d1b3b562160 v1**
 completed successfully. Its once-only output acceptance verifies identical FP32
