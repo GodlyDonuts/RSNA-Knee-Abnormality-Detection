@@ -26,6 +26,11 @@ all-development epochs 1/2 are separately privately verified; epoch 2 revision i
 pilot or its preservation. Exact submitted A32 epoch 10 remains pending/unknown
 with no reported error/score at 06:42 UTC and four live slots.
 
+The complete engineering/source/epoch-2 small milestone is private HF
+`78de0793419c779f66dc9976ef464ce13871559d`, bound to Git `f3f69cb`; all 103
+objects fully re-downloaded/size/SHA verified. This supplements the separately
+preserved 16-object compact pilot and four-object full training epoch.
+
 Earlier attempt: **865321 FAILED 1:0** after both finite training paths and the
 exact intentional stop guard passed. The final verification command used a
 script path without the repository import root and failed to import `rsna`.

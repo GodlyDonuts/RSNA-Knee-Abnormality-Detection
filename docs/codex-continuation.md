@@ -21,6 +21,9 @@ Its private HF revision **519395df7d00ed9d88339a09f8632294fd2b1bf7** passed
 full re-download/size/SHA verification for all 16 objects. Do not repeat this
 publication or any terminal pilot. The delta is not trainer-resume or competition
 eligible; its tiny diagnostic metric is not evidence of improved MRI accuracy.
+The complete engineering, source and epoch-2 small milestone is separately
+privately mirrored at HF `78de0793419c779f66dc9976ef464ce13871559d`, all 103
+objects fully re-downloaded/size/SHA verified, bound to Git `f3f69cb`.
 The separate corrected source/launch milestone is HF
 `104caea59c1566167928cdd3c1a066d9c71ddeee`, all 75 objects fully verified.
 Matched whole-coverage control/context production runs remain prepared only;
