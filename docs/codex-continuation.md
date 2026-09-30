@@ -6,6 +6,24 @@ required; see [mission-and-training-plan.md](mission-and-training-plan.md).
 
 ## Current local release: September 23
 
+**September30 native GPU coordinator verified and control E7 preserved:**
+The canonical `scripts/newton/dispatch_native384_pilot.py --ssh-control SOCKET`
+is read-only by default; `--dispatch` performs allocated CPU full-hash proof,
+fresh bound source/input/quota/job checks and one exclusive sbatch intent. All
+**24 local rejection/transport cases passed**. At **18:51:30UTC** it verified
+actual CPU stage865906 and nine small file hashes, then correctly deferred
+because both GPU roles865578/865357 remain live. No GPU-prerequisite CPU phase
+or native GPU dispatch has occurred. Do not repeat stages or downloads. See
+`initiative/audits/native384-gpu-pilot-preparation-v1/gpu-dispatch-coordinator-v1/`.
+Whole-series control E7 / **1967updates** has all four private objects fully
+re-downloaded/size/SHA verified at
+**df4730b6e546fa680befe89e555edce89de504ad**; seven small audit receipts are
+preserved. Never repeat controlE1–E7 or rank64E1–E4. Both final held-out metrics
+remain outstanding. At **18:51:31UTC** Kaggle56711823 still had null status,
+score and error; latest actual solo score remains **0.769 /56697342**. Do not
+infer the new outcome or use another slot before reviewing it.
+
+
 **September30 native GPU runtime prepared and CPU payloads actually staged:**
 See `initiative/audits/native384-gpu-pilot-preparation-v1/`. Failed CPU stage
 865898 was reconciled read-only; distinct zero-GPU layout recovery865906

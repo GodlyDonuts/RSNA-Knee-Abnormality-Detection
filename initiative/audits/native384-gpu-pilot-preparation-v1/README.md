@@ -54,7 +54,9 @@ dispatch was refused because both authorized GPU roles were live. The post-stage
 usage was1,017,697,992kB /992,728files; recheck complete projected quota and
 actual job states before any later action.
 
-Next: finish the separate once-only GPU dispatcher and obtain a fresh admission
+The separate once-only GPU dispatcher is now implemented and locally verified;
+see `gpu-dispatch-coordinator-v1/` and
+`scripts/newton/dispatch_native384_pilot.py`. Obtain a fresh admission
 using phase `staged_payloads`. It must verify this CPU receipt and the exact
 prepared bytes, retain a dedicated dispatch intent, admit at most one other
 GPU role, and reconcile an uncertain sbatch read-only. Launch only when this
