@@ -22,7 +22,8 @@ four finite updates, all 120 adapters changed, 415 original base tensors unchang
 strict checkpoint-only reconstruction passed. Prior **865258** failed during
 allocated driver checks on evc29 before training; do not repeat it. The full
 one-H100/two-CPU, 16-hour-bounded production **865263** was submitted once and
-is RUNNING on evc31 with allocated CUDA acceptance passed. Source checkout:
+is RUNNING on evc31 with allocated CUDA acceptance and 48 finite full-pool
+optimizer updates verified; stderr is empty. Source checkout:
 `/home/sa305415/rsna-knee/code-adapter-a32-all-8911f90`; control:
 `/home/sa305415/rsna-knee/production-launch-adapter-a32-all-8911f90-v1`; output:
 `/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-all-8911f90-production-v1`.
@@ -37,12 +38,13 @@ and reconcile an existing intent read-only. Final all-data metrics stay null.
 The A32 fold-0 epoch-10 private Kaggle Dataset ID **12282965**, version **1**,
 was created once and fully download/size/SHA verified. Exact private offline T4
 notebook `godlydonuts/rsna-knee-a32f0-epoch10-3ed9a08f144f` version **1** was pushed
-once and was RUNNING at its last inspection. Do not submit until exact public
-MRI-only completion/output checks pass and fresh live allowance permits. Use
-only the canonical Newton account ledger; no public three-row CSV uploads.
+once and completed its exact-source public MRI-only run. Receipt, 13-column CSV,
+public UID order, finite probabilities and full CSV SHA passed. The single exact
+code submission returned **56697342** at 2026-09-30 04:39 UTC; its first authenticated
+hidden status and score remain null, with four live slots. Never resubmit it or
+upload the public three-row CSV. Use only the canonical Newton account ledger.
 Training source remains `6f1ee6d`, packaging projection `57aaca6` preserves every
-trained rsna module. No score or competition submission exists for this candidate
-at this observation. See [the candidate audit](../initiative/audits/dinov3-adapter-a32-kaggle-e10-v1/)
+trained rsna module. See [the candidate audit](../initiative/audits/dinov3-adapter-a32-kaggle-e10-v1/)
 and [the all-development audit](../initiative/audits/dinov3-adapter-a32-all-development-v1/).
 
 Verified redundant local A32 snapshots and obsolete Kaggle upload ZIPs were
@@ -51,6 +53,10 @@ licenses, sidecars and private copies. The full dispatch projected **20.54 GiB**
 remaining after eleven checkpoint inodes, a final Kaggle bundle/ZIP and 100 MiB
 metadata overhead. This is tight: recheck live byte/file quotas before transfers
 or any second experiment. Credentials remain in ignored local .env/stdin only.
+Two-hour quiet-on-unchanged follow-up `rsna-a32-final-fitting-and-submissions`
+is ACTIVE, inspecting exact job/submission state and preserving each completed
+epoch. Pause it after the requested final fit, ten private epoch verifications
+and actual submission outcomes finish.
 The owner also authorized using Kaggle slots for useful checkpoints. Keep the
 five-per-day/live-account safeguards and use the first new actual outcome before
 choosing further candidates. Rank 64 doubles encoder adapters to 20,447,232;

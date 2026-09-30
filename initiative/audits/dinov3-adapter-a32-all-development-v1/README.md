@@ -44,6 +44,10 @@ four real finite optimizer updates, completed all-development diagnostic
 metadata, all 120 learned adapters, every original base tensor unchanged, and
 strict checkpoint-only reconstruction. Production **865263** was submitted once after fresh acceptance and is **RUNNING
 on evc31** with one allocated H100/two CPUs and allocated driver checks passed.
+Full-pool learning acceptance verified 48 real finite optimizer updates, exact
+3,403 training/zero outer binding, rank-32 adapter count and empty stderr. At that
+observation the latest loss was 0.3592521 and gradient norm 1.4037193, after
+415.3 seconds of optimizer progress. These are training diagnostics, not accuracy.
 Its distinct ten-epoch output has not yet produced a completed epoch at this
 observation. Do not duplicate it or restart without terminal/recovery review.
 

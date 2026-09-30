@@ -20,10 +20,14 @@ was fully downloaded and every payload's size/SHA verified. The private offline
 T4 notebook `godlydonuts/rsna-knee-a32f0-epoch10-3ed9a08f144f` version **1**
 was pushed once through the canonical Newton coordinator/ledger. Its exact
 source, privacy, offline GPU configuration and Dataset sources were verified.
-The first authenticated status was **RUNNING**; no competition submission has
-been made at this audit. Submit this exact code version once only after its
-public MRI-only inference receipt passes and fresh live allowance permits.
-The public three-study CSV must never be uploaded as a competition prediction.
+The public MRI-only execution completed. Exact source, checkpoint/bundle receipt,
+13-column output, public test UID order, finite probabilities and CSV SHA all
+passed. One version-bound code submission returned Kaggle entry **56697342** at
+2026-09-30 04:39 UTC. The submission names the exact notebook version and its
+`submission.csv` output; the three-row public CSV was not uploaded. The first
+read-only authenticated outcome remains null status/score, with four live slots
+remaining. Do not resubmit this candidate or infer hidden success from its public
+run. Inspect the actual hidden outcome before selecting another checkpoint.
 
 The bundle retains original sigmoid probabilities, licenses, physical cache
 geometry, corrected series/pixel handling and chunked hidden-scale inference.
