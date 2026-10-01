@@ -1,3 +1,17 @@
+## October 1 creative experiment funding milestone privately verified
+
+Exact Git1a6bc0f is privately mirrored at HF342e3239b57c39325473a23858c55be806ee1a06;
+all46objects were fully re-downloaded and size/SHA verified under the shared
+atomic publication lock. The prefix is experiments/dinov3-v1/milestones/
+creative-experiment-funding-20261001-v1. Journals are in initiative/audits/
+hf-creative-experiment-funding-20261001-v1/; NEVER repeat this publication.
+The milestone preserves the standing creative directive, controlled observation
+hypotheses, actual duplicate ZIP retention and26native cache receipts. No new
+trained model or accuracy result is claimed. Full1434tests, Ruff205files,
+mypy38modules, archive and complete v2 evidence coverage passed. The existing
+quiet two-hour follow-up now includes the verified retention/source state;
+no extra automation or cadence change.
+
 ## October 1 experiment funding and native-cache progress
 
 The owner's creative and unconventional research priority remains standing in
