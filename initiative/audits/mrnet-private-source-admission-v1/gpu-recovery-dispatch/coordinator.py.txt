@@ -1,0 +1,62 @@
+import subprocess,shlex,json,hashlib,tarfile,io
+from pathlib import Path
+root=Path.cwd();head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert subprocess.check_output(['git','status','--porcelain','--','rsna','scripts/newton','tests/test_mrnet_adapter.py'],text=True)==''
+local=root/'artifacts/external-knee-research-20261001-v1/mrnet-adapter-dispatch';local.mkdir()
+control='/home/sa305415/rsna-knee/mrnet-adapter-recovery-20261001-v1'
+acquisition='/home/sa305415/rsna-knee/mrnet-original-research-ingestion-20261001-v1'
+prefix=['ssh','-S','/tmp/rsna-research-20261001-501.sock','-o','BatchMode=yes','-o','ConnectTimeout=8','sa305415@newton.ist.ucf.edu']
+def ssh(code,*args,payload=None):
+ r=subprocess.run(prefix+[shlex.join(['/usr/bin/python3.12','-B','-c',code,*args])],input=payload,capture_output=True,timeout=60)
+ assert r.returncode==0,'remote_prerequisite_or_mutation_failed_readonly_reconciliation_required'
+ return r.stdout
+probe=r'''import json,subprocess,sys
+from pathlib import Path
+c=Path(sys.argv[1]);a=Path(sys.argv[2]);assert not c.exists()
+s=subprocess.check_output(['sacct','-X','-j','867378','-n','-P','--format=JobIDRaw,State,ExitCode'],text=True).strip();assert s=='867378|COMPLETED|0:0'
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();u,soft,f,lim=[int(q[i]) for i in (1,2,5,6)]
+gib=((soft-u)*1024-5246914048-12*1024**2-272*1024**2-64*1024**2)/1024**3;remain=lim-f-190-400-160
+assert gib>=20 and remain>=5000
+queue=subprocess.check_output(['squeue','-h','-u','sa305415','-o','%i|%T|%b'],text=True).splitlines();assert sum('gpu' in row.split('|')[2] for row in queue)<2
+p=Path('/home/sa305415/rsna-knee/mrnet-inputs-b5f37ab-v1/input-verified.json');assert p.is_file()
+import hashlib
+assert hashlib.sha256(p.read_bytes()).hexdigest()=='146197f268471e167b2e16fb5e0724b24a58b714d3882567ec0bc09d9c95caf1'
+print(json.dumps({'shared_reserve_gib':gib,'shared_file_reserve':remain,'node_local_runtime_bytes':6322691335,'node_local_reserve_gib':20,'node_local_checkpoint_cap_bytes':2*1024**3,'new_GPUs':1,'CPUs':2}))'''
+funding=json.loads(ssh(probe,control,acquisition))
+names=subprocess.check_output(['git','ls-files','rsna'],text=True).splitlines();names=[n for n in names if n.endswith('.py')]
+names+=['scripts/newton/runtime_environment.py','scripts/newton/runtime_archive.py','scripts/newton/launch_mrnet_adapter_probe.py','scripts/newton/probe_mrnet_adapter_recovery.py']
+files={n:{'bytes':(root/n).stat().st_size,'sha256':hashlib.sha256((root/n).read_bytes()).hexdigest()} for n in names}
+pack=io.BytesIO()
+with tarfile.open(fileobj=pack,mode='w') as tar:
+ for name in names:
+  assert subprocess.check_output(['git','show',head+':'+name])==(root/name).read_bytes()
+  tar.add(root/name,arcname=name,recursive=False)
+raw=pack.getvalue()
+receipt=root/'initiative/audits/mrnet-private-source-admission-v1/acquisition/accepted.json'
+source={'source_git':head,'files':files,'tar_sha256':hashlib.sha256(raw).hexdigest(),'acquisition_control':acquisition,'acquisition_receipt_sha256':hashlib.sha256(receipt.read_bytes()).hexdigest(),'environment_archive':'/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar','environment_sha256':'89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','funding':funding,'input_admission_path':'/home/sa305415/rsna-knee/mrnet-inputs-b5f37ab-v1/input-verified.json','input_admission_sha256':'146197f268471e167b2e16fb5e0724b24a58b714d3882567ec0bc09d9c95caf1'}
+def save(name,value):
+ with (local/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n')
+save('intent.json',{'control':control,'source':source,'automatic_retry':False,'phase':'bounded_private_Stanford_adapter_recovery','no_external_weight_publication':True})
+batch=(root/'initiative/audits/slice-relations-gradient-header-recovery-v1/gpu.sbatch.txt').read_text()
+batch=batch.replace('/home/sa305415/rsna-knee/relation-full224-gradient-header-v2',control)
+batch=batch.replace('rsna-relation-full224-gradient-header-v2','rsna-MRNet-adapter-recovery')
+batch=batch.replace(control+'/launch_gradient.py --control '+control+' --mode gpu-measure --cpu-proof-sha256 a6e6c02db933388b9c65242f31785f0cf60aa41f7b828933c0f81993748db1d5', control+'/launch_mrnet_adapter_probe.py --control '+control)
+assert 'launch_gradient.py' not in batch and 'launch_mrnet_adapter_probe.py' in batch
+config={'encoder':json.loads((root/'initiative/experiments/competitive-v1/native-detail-v1/native384-production-prepared-config.json').read_text())['encoder'],'source_git':head,'private_noncommercial_research_only':True,'external_weight_publication':False}
+outer=io.BytesIO()
+with tarfile.open(fileobj=outer,mode='w') as tar:
+ for name,data in {'source.tar':raw,'source.json':json.dumps(source,indent=2,sort_keys=True).encode(),'launch_mrnet_adapter_probe.py':(root/'scripts/newton/launch_mrnet_adapter_probe.py').read_bytes(),'gpu.sbatch':batch.encode(),'config.json':json.dumps(config,indent=2,sort_keys=True).encode()}.items():
+  item=tarfile.TarInfo(name);item.size=len(data);item.mode=0o600;tar.addfile(item,io.BytesIO(data))
+stage=r'''import json,os,subprocess,sys,tarfile
+from pathlib import Path
+os.umask(0o077);c=Path(sys.argv[1]);c.mkdir()
+with tarfile.open(fileobj=sys.stdin.buffer,mode='r|') as archive:
+ for m in archive:
+  assert m.isfile() and m.name in ('source.tar','source.json','launch_mrnet_adapter_probe.py','gpu.sbatch','config.json')
+  with (c/m.name).open('xb') as f:f.write(archive.extractfile(m).read())
+with (c/'dispatch-intent.json').open('x') as f:json.dump({'automatic_retry':False,'phase':'bounded_private_Stanford_adapter_recovery'},f)
+job=subprocess.check_output(['sbatch','--parsable',str(c/'gpu.sbatch')],text=True).strip().split(';')[0];assert job.isdecimal()
+r={'job_id':job,'control':str(c),'status':'single_private_MRNet_adapter_recovery_dispatched'}
+with (c/'dispatch-result.json').open('x') as f:json.dump(r,f,indent=2,sort_keys=True)
+print(json.dumps(r))'''
+result=json.loads(ssh(stage,control,payload=outer.getvalue()));save('dispatch-result.json',result);print(json.dumps(result))

@@ -1,3 +1,28 @@
+## October1 Stanford private adapter recovery submitted once
+
+Bounded GPU recovery867419 was submitted ONCE on evc32,1H100/2CPUs/32GiB/1hour,
+sourcef2d5ac5e (use original source.json for full revision). Exact source/config/
+header-and-allocated-device batch/funding/single dispatch receipts in
+mrnet-private-source-admission-v1/gpu-recovery-dispatch/. Private control
+/home/sa305415/rsna-knee/mrnet-adapter-recovery-20261001-v1. Last observed PENDING
+ReqNodeNotAvail, as is native867367 on evc31. Never duplicate either GPU job.
+No Stanford optimizer update or recovery pass yet. The source-specific pilot
+has16 training exams/4 source-validation engineering predictions,2epochs/4updates
+per trajectory, rank32/full120 encoder adapter projections, unchanged official
+base,256 input and all3planes/16slices. Fresh full/stop1/resume must match complete
+decoded model/base/AdamW/LR/counter/allRNG and exact prediction bytes. Keep every
+diagnostic learned state in its retained node-local directory;2GiB checkpoints,
+7GiB runtime and20GiB node-local reserve funded. Current shared reserve after all
+native/sampling/MRNet small-source liabilities remains above20GiB/5000files.
+
+This is private personal noncommercial research using verbatim Stanford sources.
+No raw data or Stanford-derived weights may be redistributed or competitively
+submitted while downstream compatibility remains unresolved. Code and sanitized
+engineering receipts can be mirrored. Inspect actual probe-start/runtime/logs/
+terminal/recovery receipts when allocated; never call queue state a training pass.
+1606 full tests/Ruff236/mypy40/archive/current89/89 checks passed before source
+freeze. No Kaggle mutation, new clinical result or protected confirmation use.
+
 ## October1 actual Stanford inputs accepted; bounded private adapter recovery prepared
 
 Actual CPU867399 COMPLETED0:0/00:30 evc32, full1129train/119valid membership

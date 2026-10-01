@@ -100,3 +100,15 @@ weights, nor competition compatibility. No such weights may be mirrored or
 submitted without resolving that downstream boundary. The source-specific head
 is never transferred into RSNA targets. No GPU pilot has been dispatched at this
 preparation milestone; later exact dispatch receipts supersede this statement.
+
+## Single GPU dispatch
+
+The bounded private pilot was submitted **once as 867419**, one H100/two CPUs,
+evc32, maximum one hour. It was last **PENDING** for node availability. Exact
+source/config/allocated-device/header guards/funding/dispatch and coordinator
+records are in `gpu-recovery-dispatch/`. The original training source is pinned
+in its `source.json`; data/model code is unchanged from the actual CPU admission.
+Do not duplicate this job, reuse its control, infer optimizer progress from a
+queue entry, or publish its Stanford-derived weights. After an actual recovery
+pass, review original gradients/timing and then fund a distinct full source warm-
+up and matched RSNA continuation; a diagnostic result is not a competitive gain.
