@@ -1,0 +1,26 @@
+import importlib.util,json,subprocess
+from pathlib import Path
+r=Path.cwd();local=r/'artifacts/native-full-cache-first-shard-v2';s=importlib.util.spec_from_file_location('transport',r/'scripts/newton/dispatch_native384_pilot.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head==subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip();stage=json.loads((local/'stage-verified.json').read_text())
+v={}
+for line in (r/'.env').read_text().splitlines():
+ k,sep,x=line.partition('=')
+ if sep:v[k.strip()]=x.strip().strip('\"\'')
+program=r'''import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+q=json.load(sys.stdin);c=Path('/home/sa305415/rsna-knee/native-full-shard000-c9-v2');stage=json.loads((c/'stage-verified.json').read_text());assert stage==q['stage'];assert hashlib.sha256((c/'launch.json').read_bytes()).hexdigest()==stage['launch_sha256'];assert not any((c/n).exists() for n in ('dispatch-intent.json','run-start.json','publication','failure.json'))
+p=json.loads((c/'launch.json').read_text());parts=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,nfiles,fsoft=[int(parts[i]) for i in (1,2,5,6)];remaining=(soft-used)*1024-p['remaining_shared_obligations_bytes'];assert remaining>=20*1024**3 and fsoft-nfiles-100>=5000
+jobs=subprocess.check_output(['squeue','-u','sa305415','--noheader','--format=%i|%j|%T|%b'],text=True);assert 'rsna-native-shard' not in jobs
+for n,x in p['files'].items():assert (c/n).stat().st_size==x['bytes'] and hashlib.sha256((c/n).read_bytes()).hexdigest()==x['sha256']
+def save(n,v):
+ with (c/n).open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+command=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--mem=16G','--time=03:00:00','--job-name=rsna-native-shard000-v2','/usr/bin/python3.12',str(c/'runner.py'),'--control',str(c)]
+save('dispatch-intent.json',{'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'source_git':q['source_git'],'launch_sha256':stage['launch_sha256'],'command':command,'cpus':1,'gpus':0,'credential_transport':'ignored_local_env_to_ssh_stdin_to_srun_stdin_only','automatic_retry':False,'projected_remaining_gib':remaining/1024**3})
+with (c/'run.out').open('xb') as out,(c/'run.err').open('xb') as err:
+ env=os.environ.copy();env.pop('HF_TOKEN',None);env.pop('HUGGING_FACE_HUB_TOKEN',None)
+ proc=subprocess.Popen(command,stdin=subprocess.PIPE,stdout=out,stderr=err,start_new_session=True,env=env)
+ proc.stdin.write(json.dumps({'token':q['token']}).encode());proc.stdin.close()
+receipt={'status':'finite_cpu_source_shard_srun_dispatched_once','source_git':q['source_git'],'pid':proc.pid,'control':str(c),'cpus':1,'gpus':0,'three_hour_limit':True,'scientific_source_git':p['scientific_source_git'],'large_outputs_node_local':True,'private_preservation_required_before_cleanup':True,'automatic_retry':False,'job_id':None};save('dispatch-result.json',receipt);print(json.dumps(receipt))
+'''
+m.save_new(local/'dispatch-intent.json',{'stage_launch_sha256':stage['launch_sha256'],'source_git':head,'automatic_retry':False})
+result=m.ssh('/tmp/rsna-r64-submit-20261001-501.sock',['/usr/bin/python3.12','-c',program],{'stage':stage,'source_git':head,'token':v['HF_TOKEN']},timeout=45);m.save_new(local/'dispatch-result.json',result);print(json.dumps(result))

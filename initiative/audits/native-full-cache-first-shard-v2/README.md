@@ -14,3 +14,9 @@ sources. One CPU, zero GPUs, paired256/384 directly from original pixels;
 private full download/hash verification precedes exact owned scratch reclamation.
 No full-cohort/native production or competitive score is claimed. No dispatch
 has occurred in this correction/staging milestone. The original v1 is retained.
+
+Corrected dispatch866373 was sent once and is RUNNING on evc21 at01:45UTC,
+with actual one-CPU/zero-GPU run-start, source/driver/launch bindings and funded
+21.944GiBshared reserve. It passed the corrected admission and has begun accepted
+node-local environment extraction; stderr was empty. Source download/build and
+private preservation have not completed. No production training is running.
