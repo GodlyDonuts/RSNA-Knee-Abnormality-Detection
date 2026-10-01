@@ -1,3 +1,23 @@
+## October1 native reference improved before observing its final result
+
+Read native384-reference-selection-v1. Actual native867367 startup binding and
+completed uniform866719 binding differ only config.side224/384, cache_side256/384
+and3 source modules adding stratified handling (inactive in BOTH uniform roles).
+All other configs/full encoder provenance/release/masks/folds/2247train/1156outer/
+environment match; both actual runtime proofs require strict determinism. Every
+recorded numerical-module hash was rechecked against originalC9/7ac Git objects;
+original fixed-final sampling evidence/bootstrap replay passed. Primary available
+reference is uniform0.8606037925461784 internal, replacing older non-strict sampled
+0.8620941 as primary; retain historical comparison. NOT a strict causal trial:
+native direct initial-state equality is uncollected and cache reconstruction may
+differ. No native score/terminal observed. After access restore verify original
+native fixed-final2810/bindings/prediction SHA then all12 paired-component result
+with undefined draws; repeat a promising gain on matched seed/fold before promotion.
+No live science, masks/folds, protected cohorts or remote mutations changed.
+Cisco still Disconnected, Newton DNS unavailable; original last states remain
+observationally stale. Do not duplicate or restart. New small milestone awaits
+shared publication lock for private HF. Goal active, no new clinical result.
+
 ## October1 23:21 UTC: private Stanford-to-RSNA initialization implemented
 
 Read mrnet-rsna-private-initialization-v1. Optional canonical trainer path accepts

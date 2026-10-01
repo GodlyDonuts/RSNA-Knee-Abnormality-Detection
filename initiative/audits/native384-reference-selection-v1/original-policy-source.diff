@@ -1,0 +1,131 @@
+diff --git a/rsna/competitive/data.py b/rsna/competitive/data.py
+index f3b76e8..d200d8b 100644
+--- a/rsna/competitive/data.py
++++ b/rsna/competitive/data.py
+@@ -56,6 +56,13 @@ def _indices(count: int, requested: int, augment: bool) -> np.ndarray:
+     )
+ 
+ 
++def evaluation_slice_sampling(policy: str) -> str:
++    """Training-only stratification evaluates with the fixed uniform slice grid."""
++    if policy not in {"uniform", "stratified", "all"}:
++        raise ValueError("Unknown slice coverage policy")
++    return "uniform" if policy == "stratified" else policy
++
++
+ class CompetitiveStudyDataset(StudyDataset):
+     def __init__(
+         self,
+@@ -72,8 +79,13 @@ class CompetitiveStudyDataset(StudyDataset):
+     ):
+         if raw_split not in {"train_series", "test_series"}:
+             raise ValueError("Unknown raw split")
+-        if slice_sampling not in {"uniform", "all"} or series_sampling not in {"selected", "all"}:
++        if slice_sampling not in {"uniform", "stratified", "all"} or series_sampling not in {
++            "selected",
++            "all",
++        }:
+             raise ValueError("Unknown slice or series coverage policy")
++        if slice_sampling == "stratified" and (augment or raw_split != "train_series"):
++            raise ValueError("Stratified slices require training data with fixed series selection")
+         super().__init__(studies, series, Path(cache), slices, side, max_series, augment, raw_split)
+         self.slice_sampling, self.series_sampling = slice_sampling, series_sampling
+         self._metadata: dict[tuple[str, str], tuple[str, dict]] = {}
+@@ -156,7 +168,9 @@ class CompetitiveStudyDataset(StudyDataset):
+             indices = (
+                 np.arange(count)
+                 if self.slice_sampling == "all"
+-                else _indices(count, self.slices, self.augment)
++                else _indices(
++                    count, self.slices, self.augment or self.slice_sampling == "stratified"
++                )
+             )
+             valid = len(indices)
+             sampled = torch.from_numpy(volume[indices].astype(np.float32))[:, None] / 65535
+diff --git a/rsna/competitive/infer.py b/rsna/competitive/infer.py
+index b7f0e7e..a5e8162 100644
+--- a/rsna/competitive/infer.py
++++ b/rsna/competitive/infer.py
+@@ -15,7 +15,11 @@ from torch.utils.data import DataLoader
+ from rsna.competitive.adapters import configure_encoder_training
+ from rsna.competitive.backbones import create_encoder, create_encoder_from_training_checkpoint
+ from rsna.competitive.checkpoint import atomic_json, file_sha256
+-from rsna.competitive.data import CompetitiveStudyDataset, collate_studies
++from rsna.competitive.data import (
++    CompetitiveStudyDataset,
++    collate_studies,
++    evaluation_slice_sampling,
++)
+ from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
+ from rsna.competitive.model import CompetitiveStudyNet
+ from rsna.competitive.snapshots import scheduled_epoch
+@@ -136,10 +140,11 @@ def run(args: argparse.Namespace) -> dict:
+         series,
+         args.cache,
+         raw_split="test_series",
+-        **{
+-            name: getattr(config, name)
+-            for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
+-        },
++        slices=config.slices,
++        side=config.side,
++        max_series=config.max_series,
++        slice_sampling=evaluation_slice_sampling(config.slice_sampling),
++        series_sampling=config.series_sampling,
+     )
+     if dataset.cache_side != binding["cache_side"]:
+         raise ValueError("Inference cache resolution differs from the trained transform")
+@@ -191,6 +196,8 @@ def run(args: argparse.Namespace) -> dict:
+         "scheduled_epoch_authorized": bool(getattr(args, "scheduled_epoch", False)),
+         "training_precision": training_precision,
+         "inference_precision": config.precision,
++        "training_slice_sampling": config.slice_sampling,
++        "inference_slice_sampling": evaluation_slice_sampling(config.slice_sampling),
+         "initial_pretrained_weights_read": (
+             getattr(args, "encoder_config", None) is None and provenance.get("pretrained") is True
+         ),
+diff --git a/rsna/competitive/train.py b/rsna/competitive/train.py
+index f8066b5..6cca729 100644
+--- a/rsna/competitive/train.py
++++ b/rsna/competitive/train.py
+@@ -142,11 +142,17 @@ class TrainConfig:
+             raise ValueError("Unknown precision or pooling policy")
+         if any(type(getattr(self, name)) is not bool for name in ("freeze_encoder", "augment")):
+             raise ValueError("Freeze and augmentation settings must be booleans")
+-        if self.slice_sampling not in {"uniform", "all"} or self.series_sampling not in {
++        if self.slice_sampling not in {
++            "uniform",
++            "stratified",
++            "all",
++        } or self.series_sampling not in {
+             "selected",
+             "all",
+         }:
+             raise ValueError("Unknown examination coverage policy")
++        if self.slice_sampling == "stratified" and self.augment:
++            raise ValueError("Stratified slice experiment requires fixed series selection")
+         if self.slice_context not in {"none", "neighbor3"} or (
+             self.slice_context != "none" and self.pooling != "attention"
+         ):
+@@ -402,14 +408,19 @@ def _run_locked(
+     if hashlib.sha256(series_bytes).hexdigest() != release_binding["series_sha256"]:
+         raise ValueError("Series sampling table differs from the accepted data release")
+     series = pd.read_csv(io.BytesIO(series_bytes))
+-    from rsna.competitive.data import collate_studies
++    from rsna.competitive.data import collate_studies, evaluation_slice_sampling
+ 
+     data_config = {
+         name: getattr(config, name)
+         for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
+     }
+     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
+-    outer_data = dataset_class(outer, series, args.cache, **data_config) if len(outer) else None
++    evaluation_config = dict(
++        data_config, slice_sampling=evaluation_slice_sampling(config.slice_sampling)
++    )
++    outer_data = (
++        dataset_class(outer, series, args.cache, **evaluation_config) if len(outer) else None
++    )
+     if training_data.source_revision != release_binding["source_revision"] or (
+         outer_data is not None
+         and (training_data.cache_side, training_data.source_revision)
