@@ -1,3 +1,25 @@
+## October 1 creative/native/coverage milestone privately verified
+
+The combined small source milestone is privately preserved at HF revision
+5ce503e928a951dd4f0c53c91e96d3617ab19bd7, prefix
+`experiments/dinov3-v1/milestones/native-coverage-research-20261001-v1`.
+All124objects were fully re-downloaded and size/SHA verified, using the shared
+Newton atomic publication lock. Journal:
+`initiative/audits/hf-native-coverage-research-20261001-v1/`.
+Source c893468 includes the owner's standing creative/unconventional research
+directive, actual stratified-slice code and CPU mechanics/exposure evidence,
+source-shard receipts and native production staging/admission controls. No
+external MRI/label cohort, new trained model or competition score is claimed.
+Do not repeat this publication. The originally prepared separate native-only
+prefix was never uploaded and is superseded by this accurately scoped milestone.
+
+The one canonical Newton ledger was re-read at06:38UTC and rank64 checkpoint
+0f1a410916b6... remains submitted once as56740377. The earlier06:08UTC live account
+outcome was unknown; perform a fresh authenticated check before any later
+submission action. Current native dispatcher read-only status remains
+waiting_for_exact_cpu_assembly; no CPU/GPU intent or production output exists.
+Use the new live SSH control socket and fresh job/quota checks, never duplicate.
+
 ## October 1 native production payload now staged and verified
 
 The seven small files (six pinned payloads and manifest) were staged once on
