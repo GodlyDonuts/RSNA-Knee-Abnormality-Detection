@@ -1,0 +1,98 @@
+"""Remove exactly two verified duplicate ZIPs; retain all unpacked payloads."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import zipfile
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
+
+BASE = Path('/home/sa305415/rsna-knee/kaggle')
+CONTROL = Path('/home/sa305415/rsna-knee/kaggle-transport-retention-20261001-v1')
+ALLOWED = {
+ '0f1a410916b6f9c6bc8bd7dc9d9cfe84a86e5dc1075bc615c2454fa0fb622615',
+ '54a1415dc9326c4b2206b52e4416380dfcdeace99ace02e09ea5792494b5e093',
+}
+
+def digest(path):
+ h = hashlib.sha256()
+ with path.open('rb') as f:
+  for block in iter(lambda: f.read(8 * 1024**2), b''): h.update(block)
+ return h.hexdigest()
+
+def save(name, value):
+ with (CONTROL/name).open('x') as f:
+  json.dump(value, f, indent=2, sort_keys=True); f.write('\n'); f.flush(); os.fsync(f.fileno())
+ fd = os.open(CONTROL, os.O_RDONLY)
+ try: os.fsync(fd)
+ finally: os.close(fd)
+
+def stat(path):
+ s=path.stat()
+ return {'device':s.st_dev,'inode':s.st_ino,'bytes':s.st_size,'nlinks':s.st_nlink,'mtime_ns':s.st_mtime_ns,'ctime_ns':s.st_ctime_ns}
+
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+request=json.load(sys.stdin)
+assert set(request)=={'plan','plan_sha256','source_sha256'}
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==request['source_sha256']
+plan=request['plan']
+assert hashlib.sha256(json.dumps(plan,sort_keys=True,separators=(',',':')).encode()).hexdigest()==request['plan_sha256']
+assert plan['retains_all_unpacked_payloads_and_final_checkpoints'] is True
+assert {r['checkpoint_sha256'] for r in plan['records']}==ALLOWED and len(plan['records'])==2
+assert not CONTROL.exists()
+CONTROL.mkdir(mode=0o700)
+save('plan.json',plan)
+claim=BASE/'coordinator-claim'
+claim.mkdir(mode=0o700)
+with (claim/'owner.json').open('x') as f:
+ json.dump({'pid':os.getpid(),'slurm_job_id':os.environ['SLURM_JOB_ID'],'host':os.uname().nodename,'purpose':'finite_duplicate_transport_retention','recovery':'manual after scheduler and intent reconciliation'},f)
+try:
+ verified=[]
+ for r in plan['records']:
+  journal=BASE/'dataset-publications'/r['checkpoint_sha256']
+  archive=journal/'upload/bundle.zip'
+  data=Path(r['retained_unpacked_data'])
+  assert data.is_relative_to(BASE/'bundles') and data.name=='dataset' and data.resolve()==data
+  assert not archive.is_symlink() and archive.resolve()==archive and archive.is_file()
+  assert stat(archive)['nlinks']==1
+  original=json.loads((journal/'intent.json').read_text())
+  proof=json.loads((journal/'verified.json').read_text())
+  assert digest(journal/'verified.json')==r['original_verified_receipt_sha256']
+  assert proof['status']=='all_payload_bytes_verified' and proof['private'] is True and proof['downloaded_all_bytes'] is True
+  assert proof['files']==r['files'] and proof['id']==r['fresh_dataset']['id'] and proof['version']==1 and proof['slug']==r['fresh_dataset']['slug']
+  assert r['fresh_dataset']['private'] is True and r['fresh_dataset']['version']==1
+  age=(datetime.now(timezone.utc)-datetime.fromisoformat(r['fresh_dataset']['checked_at'])).total_seconds()
+  assert 0<=age<=3600
+  assert original['files']==r['files'] and original['context']['archive_sha256']==r['archive_sha256']
+  assert original['context']['archive_bytes']==r['archive_bytes'] and archive.stat().st_size==r['archive_bytes'] and digest(archive)==r['archive_sha256']
+  retained=[]
+  for name,item in sorted(r['files'].items()):
+   p=PurePosixPath(name)
+   assert not p.is_absolute() and str(p)==name and '..' not in p.parts
+   q=data/name
+   assert q.is_file() and not q.is_symlink() and q.resolve().is_relative_to(data)
+   assert q.stat().st_size==item['bytes'] and digest(q)==item['sha256']
+   retained.append({'path':str(q),'stat':stat(q),'sha256':item['sha256']})
+  with zipfile.ZipFile(archive) as z:
+   assert z.namelist()==sorted(r['files'])
+   for info in z.infolist():
+    h=hashlib.sha256()
+    with z.open(info) as f:
+     for block in iter(lambda:f.read(8*1024**2),b''):h.update(block)
+    assert h.hexdigest()==r['files'][info.filename]['sha256'] and info.file_size==r['files'][info.filename]['bytes']
+  verified.append({'archive':str(archive),'stat':stat(archive),'archive_sha256':r['archive_sha256'],'retained_files':retained,'dataset':r['fresh_dataset'],'private_full_payload_receipt_sha256':r['original_verified_receipt_sha256']})
+ # Verify all copies first, then record intent; do not interleave validation/unlink.
+ for r in verified:
+  assert stat(Path(r['archive']))==r['stat']
+  for q in r['retained_files']:assert stat(Path(q['path']))==q['stat']
+ intent={'status':'all_local_zip_and_retained_payload_bytes_verified_before_eviction','job_id':os.environ['SLURM_JOB_ID'],'at_utc':datetime.now(timezone.utc).isoformat(),'plan_sha256':request['plan_sha256'],'records':verified,'competition_mutations':0,'private_cloud_objects_modified':0}
+ save('eviction-intent.json',intent)
+ for r in verified:
+  assert stat(Path(r['archive']))==r['stat']
+  Path(r['archive']).unlink()
+ receipt={**intent,'status':'two_redundant_transport_zips_removed_all_payloads_retained','removed_files':len(verified),'removed_bytes':sum(r['stat']['bytes'] for r in verified),'completed_at_utc':datetime.now(timezone.utc).isoformat()}
+ save('verified.json',receipt)
+ print(json.dumps(receipt),flush=True)
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()

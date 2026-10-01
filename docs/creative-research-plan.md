@@ -16,8 +16,9 @@ weights fixed while testing one mechanism at a time.
 
 The next actual experiment remains native384 rank32, on frozen C9 source and its
 existing uniform-slice policy. Original-source jobs 866426/866427 and assembly 866458
-must be inspected rather than restarted when UCF access returns. The native
-production payload is implemented but not staged or submitted. The research
+must be inspected rather than restarted. The native production payload is staged
+and byte verified; CPU acceptance and GPU production dispatch await the complete
+75-batch cache and its dependent assembly. The research
 ideas below do not alter those jobs or imply additional GPU allocations.
 
 ## First: change observation coverage at the same budget
@@ -36,9 +37,12 @@ cap still omits 837 training series.
 
 The [paired protocol](../initiative/experiments/competitive-v1/stratified-slices-v1/README.md)
 has control and candidate configs differing only in slice_sampling. Actual CPU
-cache decoding, interrupted training and offline inference passed. Official
-H100 acceptance, clean source pinning and distinct launch/preservation controls
-are still required. Run a fresh same-source uniform control, equal initial
+cache decoding, interrupted training and offline inference passed. The pinned
+official-weight CPU pilot passed. Its first GPU allocation failed during device
+preflight before training; a distinct evc31 pilot is queued. See the
+[exact acceptance audit](../initiative/audits/stratified-slices-pilot-launch-v1/README.md).
+H100 recovery and initialization acceptance remain unproven. Full coverage
+production is not launched. Run a fresh same-source uniform control, equal initial
 model/head states and equal update budgets. Reject the hypothesis if held-out
 ranking fails to improve under the predetermined comparison. A tiny pilot or a
 comparison to an unmatched old run cannot answer it.
@@ -143,6 +147,15 @@ novel discovery or use that preprint's APM data as an accessible cohort without
 further source investigation.
 
 ## Decisions and stopping rules
+
+The standing directive includes ideas that appear contradictory. Treat the
+contradiction as a question to resolve: broader slice exposure might discover
+small lesions, but could also dilute evidence with uninformative anatomy;
+spatial consistency might stabilize features, but could erase a focal lesion;
+adaptive detail could sharpen predictions, but might repeatedly overlook an
+unfamiliar finding. The paired controls above test these competing mechanisms.
+Keep the observation budget explicit and use examination-level supervision.
+Confidence in an analogy is not evidence that its mechanism works.
 
 Record each experiment's mechanism, expected per-target benefit, control,
 parameter/token/update budget and falsifier before launch. Report all twelve

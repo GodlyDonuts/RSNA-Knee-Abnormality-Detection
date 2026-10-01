@@ -1,3 +1,31 @@
+## October 1 experiment funding and native-cache progress
+
+The owner's creative and unconventional research priority remains standing in
+AGENTS.md and docs/creative-research-plan.md. The active guide now distinguishes
+actual native payload staging from conditional production and queued sampling
+acceptance; competing mechanisms have explicit matched controls.
+
+One-CPU/zero-GPU retention866637 completed0:0, freeing2,800,070,372bytes by removing
+exactly two redundant Kaggle upload ZIPs. All91 unpacked payload files, private
+Datasets/cloud bytes, official weights, licenses, model finals and journals stay
+intact. Whole archive hashes, all ZIP member hashes and retained payload hashes
+passed first, with fresh private Dataset version1 checks and the single Kaggle
+coordinator claim. The earlier866636 path check failed before any deletion;
+resolved authorized home-root handling was corrected in a distinct v2 control.
+Exact proofs: initiative/audits/kaggle-transport-retention-20261001-v1/.
+Never repeat either retention invocation. Fresh native admission projected
+22.846GiB/5162files after its own obligations; subtract sampling145584750bytes/
+50files and fund any new production obligation separately.
+
+Source shards21/22/23/24/26 are canonically re-admitted from original bindings
+and their existing private full-byte receipts. Summary-through-026-with-gap025
+covers26of75 batches,1184studies/6543series/223694slices. Do not infer shard25 or
+any later batch from decode progress. The two CPU source lanes866426/866427
+remain RUNNING and assembly866458 PENDING Dependency. Sampling866624 remained
+PENDING Priority at07:47UTC: no GPU initialization/recovery acceptance or new
+accuracy result. Read actual jobs/logs/quota before action; no duplicated jobs,
+transfers, publications or competition submissions.
+
 ## October 1 recovery milestone privately verified and follow-up updated
 
 Git080d578's evc22 failure/evc31 recovery milestone is private at HF
