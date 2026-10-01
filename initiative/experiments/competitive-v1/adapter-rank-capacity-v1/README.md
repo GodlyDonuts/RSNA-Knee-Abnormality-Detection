@@ -1,5 +1,15 @@
 # Solo DINOv3 rank-capacity comparison
 
+**October 1 current evidence:** rank64 production865578 completed0:0 and all
+ten checkpoints are privately fully download/hash verified. Fixed-final
+same-pool internal macro AUC is **0.834050**, versus rank32 **0.862094**.
+Requested exact rank64 E10 Kaggle submission **56740377** was submitted once;
+at04:01UTC its hidden status/error/score were still absent. See the
+[learning board and paired uncertainty audit](../../../audits/adapter-rank-learning-v1/).
+These measurements supersede the historical running/prepared claims below;
+same-head initialization and paired seed/fold checks are still needed for a
+stronger rank interpretation. Original preparation contracts remain preserved.
+
 The bounded rank-64 real-MRI recovery pilot **865556 COMPLETED 0:0** on
 September 30. Full/delta/stop/resume state and predictions match; all 120
 residual projections learned and the official base stayed frozen. The matched

@@ -1,0 +1,151 @@
+{
+  "checked_at": "2026-10-01T04:01:07.198068+00:00",
+  "competition_policy": {
+    "all_mutations_use_single_newton_coordinator_and_ledger": true,
+    "authoritative_live_daily_allowance_required": true,
+    "five_daily_slots_are_a_ceiling_not_a_requirement": true,
+    "inspect_actual_outcome_before_next_capacity_submission": true,
+    "no_adaptive_public_score_blend_threshold_or_checkpoint_search": true,
+    "pending_rank64_submission_must_not_be_repeated": true,
+    "record_internal_target_support_and_all_twelve_targets": true,
+    "record_question_and_reference_before_candidate_training_or_submission": true
+  },
+  "inference": [
+    "No evidence yet that larger ranks monotonically improve scores.",
+    "Rank32 remains the measured working reference.",
+    "A public score is one directional observation on a reused public holdout, not an untouched confirmation set.",
+    "Different training populations must not be interpreted as a rank effect."
+  ],
+  "next_backbone_comparison": {
+    "actual_offline_strict_weight_load_cuda_training_and_kaggle_acceptance_required": true,
+    "gpu_job_dispatched": false,
+    "preferred_candidate": "facebook/dinov3-vith16plus-pretrain-lvd1689m",
+    "question": "Does a larger pretrained representation improve the same MRI study-level task?",
+    "reference_backbone": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "same_rank_policy": 32,
+    "same_sampling_resolution_membership_and_endpoint_required": true,
+    "separate_from_rank_and_resolution_experiment": true,
+    "state": "read_only_metadata_access_and_meta_graph_review_only",
+    "weights_downloaded": false
+  },
+  "next_capacity_comparison": {
+    "adapter_rng_must_not_change_head_or_data_order": true,
+    "alpha": 8.0,
+    "changing_alpha_to_equalize_multiplier_is_a_separate_scaling_experiment": true,
+    "fixed_final_epoch": 10,
+    "gold_or_confirmation_access": false,
+    "matched_seeds": [
+      20260922,
+      20261001
+    ],
+    "rank32_multiplier": 1.414213562373095,
+    "rank64_multiplier": 1.0,
+    "ranks": [
+      32,
+      64
+    ],
+    "require_second_development_fold_before_broad_claim": true,
+    "same_accepted_masks_and_fold": true,
+    "same_complete_training_membership": true,
+    "same_head_initial_tensor_hash_required": true,
+    "same_pretrained_base": true,
+    "same_resolution_and_sampling": true,
+    "same_steps_and_optimizer_schedule": true,
+    "scaling_policy": "alpha/sqrt(rank)",
+    "state": "protocol_only_not_implemented_or_dispatched",
+    "teachers_or_ensembles": false,
+    "zero_adapter_initial_eval_logits_equality_required": true
+  },
+  "next_input_comparison": {
+    "deterministic_eval_coverage_required": true,
+    "geometry_order_and_missingness_must_be_preserved": true,
+    "labels_apply_to_study_not_every_slice": true,
+    "question": "Does varying stratified slice selection across training epochs reduce omitted evidence at a fixed slice budget?",
+    "reference_augment": false,
+    "reference_repeats_uniform_slices_each_epoch": true,
+    "separate_from_context_resolution_and_backbone_changes": true,
+    "series_policy_should_remain_matched": true,
+    "state": "protocol_only_no_config_or_dispatch"
+  },
+  "no_new_training_job_or_competition_mutation_for_this_audit": true,
+  "owner_intent": "Use Kaggle submissions to choose model direction and learn whether higher adapter rank improves results.",
+  "paired_bootstrap_sha256": "81fbbb1b484ae7335db8536b623d4abdfd19574674e183ae2138225a885e3ae5",
+  "raw_kaggle_receipt_sha256": "5d7739175097cc897be1128082fb1522421c2e4cbb5c93658069b4c011e0103a",
+  "rows": [
+    {
+      "experiment": "sampled rank32 fold0 epoch10",
+      "heldout_studies": 1156,
+      "hidden_state": "COMPLETE",
+      "input_side": 224,
+      "internal_macro_auc": 0.8620940794159951,
+      "public_score": 0.769,
+      "question": "Reference for adapter capacity, coverage and native detail comparisons",
+      "rank": 32,
+      "slices_per_series": 16,
+      "submission": 56697342,
+      "train_studies": 2247
+    },
+    {
+      "experiment": "sampled rank64 fold0 epoch10",
+      "heldout_studies": 1156,
+      "hidden_state": "unknown_no_status_error_or_score_returned",
+      "input_side": 224,
+      "internal_macro_auc": 0.8340496537270812,
+      "primary_reference_submission": 56697342,
+      "public_score": null,
+      "pure_causal_rank_isolation": false,
+      "question": "Does doubling adapter capacity help under the existing fixed recipe?",
+      "rank": 64,
+      "slices_per_series": 16,
+      "submission": 56740377,
+      "train_studies": 2247
+    },
+    {
+      "experiment": "sampled rank32 all-development epoch10",
+      "heldout_studies": 0,
+      "hidden_state": "COMPLETE",
+      "input_side": 224,
+      "internal_macro_auc": null,
+      "not_a_rank_only_comparison": true,
+      "public_score": 0.792,
+      "question": "How does final fitting on all usable development studies transfer to the public test?",
+      "rank": 32,
+      "slices_per_series": 16,
+      "submission": 56711823,
+      "train_studies": 3403
+    },
+    {
+      "experiment": "whole-series rank32 fold0 epoch10",
+      "heldout_studies": 1156,
+      "input_side": 224,
+      "internal_macro_auc": 0.8603399208109389,
+      "public_score": null,
+      "question": "Does encoding every eligible slice improve coverage?",
+      "rank": 32,
+      "slices_per_series": "all",
+      "state": "training_complete_private_checkpoints_verified",
+      "submission": null,
+      "train_studies": 2247
+    },
+    {
+      "causal_caveats": [
+        "strict_deterministic_runtime_differs_from_historical_reference",
+        "original_source_reconstructed256_differs_by_at_most_one_uint16"
+      ],
+      "config_sha256": "e7ab923745a22995470ff68d98b46212acd1f4d12c10b07004851027ad488788",
+      "experiment": "native384 rank32 fold0 epoch10",
+      "heldout_studies": 1156,
+      "input_side": 384,
+      "internal_macro_auc": null,
+      "public_score": null,
+      "question": "Does original-source higher-resolution input help at the existing adapter capacity?",
+      "rank": 32,
+      "slices_per_series": 16,
+      "state": "config_ready_source_cache_rebuild_in_progress_no_gpu_production_dispatched",
+      "submission": null,
+      "train_studies": 2247
+    }
+  ],
+  "schema_version": 1,
+  "status": "measured_development_and_authoritative_public_scores_separated"
+}

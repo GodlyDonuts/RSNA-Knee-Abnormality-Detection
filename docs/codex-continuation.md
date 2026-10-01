@@ -2543,3 +2543,36 @@ After the full image and review gates pass, use the updated `rsna.labels` invoca
 Freeze completed batch outputs before updating their archive snapshot. Run `python -m rsna.archive --refresh` then `python -m rsna.archive`, all tests, Ruff and mypy before pushing. The old archive's `--require-complete` concerns the historical v1 run, so use `rsna.review_progress --require-complete` for the v2 run.
 
 The HF source mirror was freshly verified private on2026-09-21. Preserve restricted access for competition reports, labels and images. Validated preparation checkpoints can be mirrored privately with explicit incomplete status; the pinned original source revision stays unchanged. The private GitHub repository remains the code/review handoff. No public cleaned release is authorized by this workflow.
+## October1 rank submissions as measured experiments
+
+The owner wants submissions to determine whether greater rank helps. The new
+`initiative/audits/adapter-rank-learning-v1/` learning board separates rank,
+resolution, coverage and training-population questions; no new job/submission.
+Authenticated04:01UTC R64entry56740377 still had no hidden status/error/score.
+R32sampled=0.769; R32all-development=0.792 changes the training population.
+Replayed R64/R32 development difference−0.028044;4,000paired leakage-component
+bootstrap draws have2,836defined macro draws,1,164undefined all12-target draws,
+conditionalpercentiles[−0.050331,−0.006980]. MCL's2positivecomponents dominate;
+ACL also declined with85positivecomponents. This does not isolate causal rank
+or cross-seed/fold uncertainty. Rank32 remains the measured reference.
+The stricter same-head/RNG/paired-seed/fold protocol is not implemented/dispatched.
+Keep alpha8/sqrt(rank); changing alpha to equalize the scalar is a separate
+scaling experiment. Original models/configs/labels/masks/folds remain untouched.
+## October1 larger-backbone and input-feed review
+
+Owner asked about backbone size and input optimality. Read-only H+/7B official
+config/metadata and first-weight HEAD access succeeded; meta graphs verified,
+no weights downloaded/training job/submission. Preferred future H+ is840.6M
+parameters versus L~300M;7B~6.716B has26.864GBFP32weights. Current L-bound loader,
+namespace migration/publishers require reviewed H+ support before any launch.
+See `initiative/audits/dinov3-larger-backbone-feasibility-v1/`; all proposals are
+explicitly unimplemented. At current quota don't stage shared H+weights without
+fresh storage acceptance. Existing native source jobs remain untouched.
+
+Current sampled recipe hasaugment=false, so it repeats the sameuniform16slices
+and selectedseries everyepoch. Labels/loss apply to the study, not every slice.
+Proposed separate input comparison varies stratified slices acrossepochs while
+holdingseries fixed; directaugment=true changesboth policies and is confounded.
+Neighborcontext isdisabled; allseries/allslices control was0.860340 vs0.862094.
+Native384rank32 isalready prepared; fullcohort/cache and production remain needed.
+Keep backbone, rank, resolution, sampling and context experiments separate.

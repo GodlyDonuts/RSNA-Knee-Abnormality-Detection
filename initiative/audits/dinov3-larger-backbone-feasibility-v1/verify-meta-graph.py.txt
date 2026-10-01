@@ -1,0 +1,16 @@
+"""Construct official larger DINOv3 graphs on meta; never fetch weights."""
+import json
+from pathlib import Path
+import torch
+from transformers import DINOv3ViTConfig, DINOv3ViTModel
+from rsna.competitive.adapters import adapter_provenance
+root=Path(__file__).resolve().parent
+for record in json.loads((root/'official-model-metadata.json').read_text())['models']:
+    config=record['config']
+    with torch.device('meta'):
+        model=DINOv3ViTModel(DINOv3ViTConfig(**config))
+    policy={'rank':32,'alpha':8.0,'dropout':0.05,'ffn_last_layers':12,'gradient_checkpointing':True}
+    provenance=adapter_provenance(policy,config)
+    modules=dict(model.named_modules())
+    assert all(type(modules[name]) is torch.nn.Linear for name in provenance['target_modules'])
+    print(json.dumps({'model':record['model'],'parameters':sum(p.numel() for p in model.parameters()),'adapter_parameters':provenance['trainable_parameters'],'adapter_modules':len(provenance['target_modules']),'layer0_mlp_modules':[n for n in modules if n.startswith('model.layer.0.mlp')],'weights_loaded':False,'gpu_run':False}))

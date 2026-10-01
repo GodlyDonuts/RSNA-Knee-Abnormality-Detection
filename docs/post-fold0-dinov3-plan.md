@@ -1,5 +1,16 @@
 # DINOv3-L plan after the first full fold
 
+**October 1 experiment direction:** use submissions to learn capacity, coverage,
+detail and training-population effects separately. The
+[rank learning audit](../initiative/audits/adapter-rank-learning-v1/)
+records all actual observations, paired component uncertainty and the next
+stronger rank protocol. Sampled R32 is0.769 public; all-development R32 is0.792
+public but changes population. R64 E10 submission56740377 is awaiting its actual
+hidden outcome at04:01UTC, with internal0.834050 versus matched R32's0.862094.
+Whole-series R32 completed at internal0.860340. Full native384 R32 production
+is prepared while the two CPU cache lanes run and the CPU assembly waits;
+no native GPU production is dispatched. The statements below are historical.
+
 **September 30 current execution:** all-development A32 completed all ten epochs
 and all ten private checkpoint byte checks. Exact final submission **56711823**
 is awaiting its actual hidden outcome; do not duplicate it. Rank-64 production
