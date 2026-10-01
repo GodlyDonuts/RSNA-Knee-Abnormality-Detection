@@ -2576,3 +2576,13 @@ holdingseries fixed; directaugment=true changesboth policies and is confounded.
 Neighborcontext isdisabled; allseries/allslices control was0.860340 vs0.862094.
 Native384rank32 isalready prepared; fullcohort/cache and production remain needed.
 Keep backbone, rank, resolution, sampling and context experiments separate.
+## October1 rank/input/backbone milestone privately verified
+
+Exact Git848c9ba rank-learning and larger-backbone/input review milestone is
+privately mirrored at HF20b419e03ea37c2d77a799d4ff3d91aec77955bf. All17objects
+fully re-downloaded/size/SHAverified under the shared atomic publication
+exclusion. Journals are in `initiative/audits/hf-rank-input-learning-20261001-v1/`;
+never repeat. Full1340tests, Ruff195files, mypy38modules, archive and complete
+v2coverage passed. No new weights/training/submission or supervision change.
+Two-hour quiet follow-up now includes measured experiment direction and
+explicitly unimplemented H+/sampling hypotheses; existing source jobs untouched.
