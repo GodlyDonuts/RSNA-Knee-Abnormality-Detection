@@ -1,3 +1,48 @@
+## October1 third stratified epoch preserved
+
+Stratified866716 completed epoch3/843 actual updates and continued into epoch4.
+Its immutable snapshot and all five private objects were fully re-downloaded/
+size/SHA verified at HF67f96ceb82e21f3d86a0a20144931cb1d06d9976, CPU publisher
+866790 COMPLETED0:0. Exact receipts in sampling-epochs-v1/stratified/epoch-003/.
+Never repeat this or earlier private epochs. Uniform866719 continued into epoch3;
+actual later state overrides this snapshot. No new clinical result or Kaggle score.
+
+## October1 actual official-weight real-MRI CPU recovery passed
+
+One-CPU/zero-GPU job866781 COMPLETED0:0 in1:27 on evc21. Exact clean source
+Git8d6404d2efeaaf82795940f7137ecf0df5b34798 was independently materialized from
+hashed Git source TAR with no alternates, and the accepted runtime unpacked on
+node-local disk/cleaned on exit. The original full-byte asset proof and exact
+training-only geometry roster admitted one real selected training series.
+
+Six actual slices/32-pixel FP32 engineering inputs produced finite adapter
+updates, with every disease cell masked and no disease-label table parsed.
+Reconstructing official DINOv3-L weights and replaying update2 exactly matched
+all decoded model/AdamW/RNG state and MRI-only logits; auxiliary inference was
+forbidden.417 frozen tensors (415 base plus two normalization buffers) stayed
+unchanged.128694270-byte boundary remains on private Newton, with size/SHA
+rechecked; no large checkpoint downloaded to the Mac. This is NOT full224 BF16
+GPU acceptance, a throughput measurement or clinical accuracy. Remaining gates
+are full real-training classification/relation scale checks, matched official
+GPU recovery and separately accepted deployment/production funding.
+
+Exact original source/funding/stage/dispatch/runtime/terminal records:
+`initiative/audits/slice-relations-real-CPU-v1/`. Never repeat866781 or existing
+intents.1510 tests/Ruff218/mypy39/archive/current89/89 coverage passed before
+dispatch. Both7ac7a97 sampling GPU runs continue unchanged; no third GPU and no
+new Kaggle mutation. Uniform epoch2 is private at HF37ea60e5e36dce6358ab32f7dca14877ed6a97cd.
+
+Native original-source admission is now46of75 batches,2098studies/11659series/
+395558slices, with gap45 at this read-only check. All13 newly admitted original
+shards retain exact source/plan/worker and six-object full-private-byte receipts;
+no data publication or transfer was repeated. See summary-through-046-real-relation-CPU.json.
+An auxiliary collector summary expected historical total_studies whereas the
+prior committed summary uses studies; original canonical receipts were already
+saved successfully. The aggregate was recovered from their hash-verified local
+records without repeating remote admission or publication. Native source jobs
+866426/866427 remain running; assembly866458 pending dependency. Full native
+cohort and384 GPU launch remain incomplete. Use fresh state/quota before action.
+
 ## October1 official-weight real-MRI CPU probe prepared
 
 Source/refusal/runtime wrapper preparation passed1510 tests/Ruff218/mypy39.

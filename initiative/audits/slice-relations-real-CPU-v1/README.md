@@ -1,6 +1,13 @@
 # Official-weight real-MRI relation CPU diagnostic
 
-Prepared source, not an executed result at this first preparation commit.
+Actual CPU job866781 COMPLETED0:0 in1:27 on evc21. Exact terminal/result,
+source/input/runtime provenance, logs and boundary hash proof are in terminal/.
+Original frozen417 tensors (415 base tensors plus two grayscale-normalization
+buffers),262 learned tensors, model/AdamW/RNG and MRI-only logits passed exact
+reconstruction/replay. Boundary128694270 bytes remains private on Newton;
+no large model/data file was downloaded to the Mac. Never repeat this job.
+This resolves the small-input FP32 real-MRI engineering gate only.
+The first preparation/source commit was Git8d6404d.
 No new GPU job or competition submission. The preceding goal turn made concrete
 progress: opt-in integration,1498-test QA, verified private mirror and two actual
 sampling epoch publications. This turn advances official-weight real-image
@@ -35,6 +42,14 @@ Local tests cover verified cache decoding, exact real-image layout, all-masked
 disease targets, foreign/changed membership, changed original bytes, unknown
 geometry, nested recovery comparisons and source-pack path/hash/link/membership
 refusal. These fixtures are synthetic engineering checks. Actual official-weight
-CPU acceptance still cannot establish full224 BF16 GPU recovery, relative
+CPU acceptance cannot establish full224 BF16 GPU recovery, relative
 classification/relation scales, H100 throughput, T4 deployment or accuracy. Those
 remain gates before any relation production campaign.
+
+Native source46of75 batches were read-only re-admitted with original source/plan
+and full six-object private verification journals,2098studies/11659series/395558
+slices; gap45 remains at that check.13 new batches were admitted without another
+large-data download or upload. An auxiliary summary collector used historical
+total_studies keys against the current flat studies schema; its already written
+canonical records were hash-verified and the summary recovered locally. This
+affected only the summary, not source data, training, original receipts or jobs.

@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-relation-official-real-CPU
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --time=01:00:00
+#SBATCH --output=/home/sa305415/rsna-knee/relation-official-real-CPU-v1/stdout.txt
+#SBATCH --error=/home/sa305415/rsna-knee/relation-official-real-CPU-v1/stderr.txt
+set -euo pipefail
+umask 077
+export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+exec /usr/bin/python3.12 -B /home/sa305415/rsna-knee/relation-official-real-CPU-v1/launch_cpu.py --control /home/sa305415/rsna-knee/relation-official-real-CPU-v1
