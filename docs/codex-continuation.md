@@ -1,3 +1,23 @@
+## October 1 native production payload now staged and verified
+
+The seven small files (six pinned payloads and manifest) were staged once on
+Newton and fully byte-verified at06:34UTC under the prepared native production
+control. Source main832bb163d25a7aa051880db750dea66dd5073135; scientific source C9
+and all original numerical/config pins unchanged. Exact receipt:
+`initiative/audits/native384-production-preparation-v1/stage-verified.json`.
+Read-only coordinator check in staged-readiness.json found assembly866458 still
+PENDING Dependency, no CPU/GPU dispatch intent, no production output and no GPU
+jobs. Status waiting_for_exact_cpu_assembly; do not reserve a GPU or dispatch
+CPU preflight early. Projected reserve after all obligations:20.2517GiB/5118files.
+Source jobs are untouched. Read actual live state again before acting.
+
+External data may remain private with source/version attribution; raw-data
+publication is not a training prerequisite. The accepted MRNet agreement's
+separate derivative restriction/public weight compatibility remains unresolved,
+and the original CSV/header issue must be checked before label admission. The
+owner accepted leaving KneeCoT unused. Continue actual RSNA native/coverage work
+without repeatedly asking the owner about those source restrictions.
+
 ## October 1 creative research directive, slice coverage and restored access
 
 The owner requested independent creative research and authorized investigating
