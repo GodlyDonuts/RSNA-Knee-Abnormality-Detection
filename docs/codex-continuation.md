@@ -1,3 +1,19 @@
+## October1 isolated relation prototype privately preserved
+
+Git9db6326 is privately mirrored at HFf421659f0da8b7d2c6ab423da9ee568698042bb4,
+all10 objects fully re-downloaded/size/SHA verified under the shared atomic lock.
+Journal `initiative/audits/hf-slice-relations-prototype-20261001-v1/`; NEVER repeat.
+Full1467 tests, Ruff212 files, mypy39 modules, archive and89/89 current v2 coverage
+passed. Initial archive check detected the still-growing QA log; terminal log was
+then refreshed and verified before push. No live scientific-source change.
+
+The prototype remains isolated/untrained on actual MRI and is not enabled in
+production. Finish exact training-only geometry coverage and source/membership
+admission, then integration/recovery and a matched pilot before a future training
+campaign. Do not treat synthetic learnability as clinical evidence or reserve a
+third GPU while the two sampling roles train. Existing epoch publishers remain
+pinned to7ac7a97; do not add prototype fields to their live configs/checkpoints.
+
 ## October1 both sampling arms training; isolated relation prototype
 
 Read-only live receipt in `initiative/audits/slice-relations-prototype-v1/` records
