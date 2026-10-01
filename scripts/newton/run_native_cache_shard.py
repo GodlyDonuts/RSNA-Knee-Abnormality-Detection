@@ -126,6 +126,16 @@ def child_command(python, checkout, target, args):
     ]
 
 
+def require_control(control, base):
+    """Allow the cluster's mapped home ancestor, but never a linked control leaf."""
+    if (
+        control.is_symlink()
+        or control.resolve() == base.resolve()
+        or not control.resolve().is_relative_to(base.resolve())
+    ):
+        raise ValueError("private_cluster_control_required")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--control", type=Path, required=True)
@@ -134,8 +144,7 @@ def main():
     job = os.environ.get("SLURM_JOB_ID", "")
     if os.environ.get("SLURM_CPUS_PER_TASK") != "1" or os.environ.get("SLURM_JOB_GPUS"):
         raise ValueError("one_cpu_zero_gpu_required")
-    if control.is_symlink() or not control.resolve().is_relative_to(BASE):
-        raise ValueError("private_cluster_control_required")
+    require_control(control, BASE)
     plan_path = control / "launch.json"
     plan = json.loads(plan_path.read_text())
     binding = owned_marker(job, digest(Path(__file__)), os.getuid())

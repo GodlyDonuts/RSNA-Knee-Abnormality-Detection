@@ -24,3 +24,13 @@ acceptance, not a model or clinical score. The initial payload is staged at
 `/home/sa305415/rsna-knee/native-full-shard000-c9-v1`; no Slurm dispatch occurred
 in this source/staging milestone. Full-cohort cache assembly and native production
 training remain future work, conditional on actual source-shard acceptance.
+
+The initial finite CPU dispatch became Slurm866372 and terminated FAILED2:0
+before run-start, environment extraction, original-source reads or HF mutation.
+Read-only replay identifies the path guard: `/home/sa305415/rsna-knee` resolves
+to `/lustre/fs1/home/sa305415/rsna-knee`, so comparing a resolved control with
+an unresolved base rejected the legitimate cluster path. Original intent and
+failure evidence are retained; the job/control are never restarted or overwritten.
+The corrected runner resolves both sides while refusing the base root, outside
+paths and symlinked control leaves. Two regression cases prove that behavior.
+A distinct v2 control is staged after exact terminal review, not dispatched yet.

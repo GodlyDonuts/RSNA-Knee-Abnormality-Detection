@@ -125,3 +125,25 @@ def test_external_entry_uses_bound_checkout_and_forwards_arguments(tmp_path):
     )
     assert json.loads(result) == ["pinned-source", ["--shard", "0"]]
     assert not list(checkout.rglob("*.pyc"))
+
+
+def test_private_control_allows_cluster_home_mount_mapping(tmp_path):
+    physical = tmp_path / "lustre" / "home" / "rsna"
+    physical.mkdir(parents=True)
+    mapped = tmp_path / "home"
+    mapped.symlink_to(physical, target_is_directory=True)
+    control = mapped / "first-shard-v2"
+    control.mkdir()
+    runner.require_control(control, mapped)
+
+
+def test_private_control_refuses_root_outside_and_linked_leaf(tmp_path):
+    base = tmp_path / "private"
+    base.mkdir()
+    outside = tmp_path / "other-project"
+    outside.mkdir()
+    linked = base / "linked-control"
+    linked.symlink_to(outside, target_is_directory=True)
+    for control in (base, outside, linked):
+        with pytest.raises(ValueError, match="private_cluster_control_required"):
+            runner.require_control(control, base)
