@@ -51,3 +51,27 @@ dispatch and completion receipts will supersede this statement as they arrive.
 Sources: [official MRNet description](https://stanfordmlgroup.github.io/competitions/mrnet/),
 [Stanford Redivis v1.0](https://stanford.redivis.com/datasets/4a2c-4cpkzrn2c),
 [Redivis file API](https://docs.redivis.com/api/rest-api/files/get).
+
+## Actual acquisition completion
+
+Original CPU-only job **867378 COMPLETED 0:0**, elapsed 10:18 on evc32.
+All **3,750 volumes / 7,740,871,424 bytes** passed their original MD5, byte count,
+SHA256 and primitive uint8 NPY envelope checks. The original acquisition/control/
+source/scratch/terminal receipts are in `acquisition/`. The full private volume
+journal SHA is `4cd2522fcd6b99bac778edf2f72be24fb7d0aca497a1f0f0e882412646515dbc`;
+its raw images and original label tables remain on the owning private node.
+Do not repeat this acquisition or move the raw volumes into shared quota.
+
+`rsna/competitive/mrnet.py` now supplies exam-level three-plane source tensors,
+observed ordinal array indices (not invented physical spacing), separate three-
+task attention and adapter-only transfer. Original label-table bytes are checked
+before admitting derived labels. Padding cannot reach the encoder or introduce
+NaN gradients. Tests verify validation separation, label tamper rejection,
+exam-loss gradients into adapters and atomic transfer rejection for a mismatched
+base. These are engineering checks, not accuracy evidence.
+
+The real-source CPU tensor probe is prepared in `probe_mrnet_inputs.py` and its
+one-CPU pinned-runtime wrapper `launch_mrnet_inputs.py`. Its purpose is to decode
+eight actual source exams, bind source labels and tensor hashes, and confirm the
+full 1129/119 split membership. No encoder, optimizer, clinical inference or
+Stanford warm-up has yet run. Require actual input receipt before fitting.

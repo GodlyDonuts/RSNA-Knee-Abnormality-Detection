@@ -1,3 +1,22 @@
+## October1 Stanford acquisition completed; separate source adapter inputs prepared
+
+Original Stanford CPU acquisition867378 COMPLETED0:0/10:18 evc32. All3750
+uint8 volumes/7740871424bytes passed original sourceMD5/size/SHA and NPY envelope
+validation. Read mrnet-private-source-admission-v1/acquisition/. Owning node-local
+root /tmp/rsna-mrnet-original-b15holoh; never repeat acquisition, copy to shared
+quota or redistribute source images/labels. Original private journal
+SHA4cd2522fcd6b99bac778edf2f72be24fb7d0aca497a1f0f0e882412646515dbc.
+
+rsna/competitive/mrnet.py provides three-plane exam tensors, source-specific
+three-task attention and base/policy-bound adapter-only transfer. Missing0000/
+1130 labels never imputed;1129train/119valid remain separated. Original source
+label-table hashes and values checked before tensor use; array ordinals are
+observed, physical distances unknown. Engineering tests pass; no accuracy or
+Stanford fitting claimed. Prepare actual eight-exam input admission using
+launch_mrnet_inputs.py/probe_mrnet_inputs.py,1CPU/0GPU owning evc32 and pinned
+private runtime with20GiB node-local reserve. No trainer/GPU checkpoint funding
+or external-derived competition-weight acceptance is implied by acquisition.
+
 ## October1 native production dispatched; Stanford original-source acquisition prepared
 
 Native assembly866458 COMPLETED0:0 with all75 original proofs,3403studies,
