@@ -1,3 +1,28 @@
+## October1 uniform epoch5 privately verified; both sampling roles into epoch6
+
+The newly completed uniform epoch5 original CPU publisher866850 COMPLETED0:0
+in1:57. All five objects fully re-downloaded/size/SHA verified at private HF
+b2116b16e354ffaaf059a53fd1ebf32bbcf961c4. Checkpoint SHA
+b26e43f4bc5d833b66f9448edf062d58381919759747364be11373e22b034fb0.
+Original local/remote dispatch, snapshot, manifest, commit and verification
+receipts are in sampling-epochs-v1/uniform/epoch-005. Never repeat this or earlier
+publications. Original coordinator tool57364 has completed0; no local publisher
+or metadata tool remains live. Both original GPU training jobs remain healthy
+into epoch6; inspect later actual state. New gradient866846 remains dependent,
+not started/accepted. Actual later results override these observations.
+
+## October1 full224 acceptance/source milestone privately verified
+
+GitHub main ee14b6e is privately mirrored at HF
+80758cf497d17662077f91a25a8d0e0634785895; all83 objects fully re-downloaded/
+size/SHA verified with the original shared atomic publication lock. Journal
+hf-full224-CPU-acceptance-dependent-GPU-and-source-progress-20261001-v1 preserves
+intent, exact commit and full-byte proof. Never repeat this mirror or its already
+private native caches and sampling checkpoints. The new scientific source remains
+4acd6fa.1544 tests/Ruff221/mypy39/archive/current89/89 evidence checks passed;
+only original stage/terminal/publication metadata followed that source freeze.
+No relation H100 result, relation trainer recovery or new clinical score exists.
+
 ## October1 stratified epoch5 privately preserved
 
 Original CPU publisher866848 COMPLETED0:0, all five epoch5 objects privately
