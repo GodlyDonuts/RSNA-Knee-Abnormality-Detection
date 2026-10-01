@@ -1,0 +1,78 @@
+/tmp/rsna-environment-866846-zzha4c4z/environment/lib/python3.12/site-packages/triton/backends/nvidia/driver.c:9:10: fatal error: Python.h: No such file or directory
+ #include <Python.h>
+          ^~~~~~~~~~
+compilation terminated.
+Traceback (most recent call last):
+  File "/tmp/rsna-relation-gradient-866846-hbgidqvu/scripts/newton/measure_relation_gradients.py", line 483, in <module>
+    main()
+  File "/tmp/rsna-relation-gradient-866846-hbgidqvu/scripts/newton/measure_relation_gradients.py", line 426, in main
+    measure(model, batches[start : start + 8], policy_config, device)
+  File "/tmp/rsna-relation-gradient-866846-hbgidqvu/scripts/newton/measure_relation_gradients.py", line 209, in measure
+    grads = torch.autograd.grad(
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/torch/autograd/__init__.py", line 594, in grad
+    result = _engine_run_backward(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/torch/autograd/graph.py", line 1072, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/torch/_native/registry.py", line 956, in eager_router
+    result = _dispatch(args, kwargs, swallow_cond_exceptions=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/torch/_native/registry.py", line 935, in _dispatch
+    return getattr(torch.ops._native, impl_name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/torch/_ops.py", line 1350, in __call__
+    return self._op(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/torch/_native/ops/bmm_outer_product/triton_impl.py", line 27, in _bmm_outer_product_impl
+    return bmm_outer_product(a, b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/torch/_native/ops/bmm_outer_product/triton_kernels.py", line 87, in bmm_outer_product
+    _bmm_outer_product_kernel[(B * triton.cdiv(M, BLOCK_M) * triton.cdiv(N, BLOCK_N),)](
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/torch/_native/instrumentation.py", line 208, in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/jit.py", line 374, in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/jit.py", line 731, in run
+    device = driver.active.get_current_device()
+             ^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 39, in active
+    self._active = self.default
+                   ^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 33, in default
+    self._default = _create_driver()
+                    ^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/driver.py", line 21, in _create_driver
+    return active_drivers[0]()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/backends/nvidia/driver.py", line 342, in __init__
+    self.utils = CudaUtils()  # TODO: make static
+                 ^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/backends/nvidia/driver.py", line 101, in __init__
+    mod = compile_module_from_file(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 196, in compile_module_from_file
+    return _compile_so_from_file(src_path, name, library_dirs, include_dirs, libraries, ccflags, load_module=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 165, in _compile_so_from_file
+    return _compile_so(src=src, src_path=src_path, name=name, library_dirs=library_dirs, include_dirs=include_dirs,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 149, in _compile_so
+    so = _build(name, src_path, tmpdir, library_dirs or [], include_dirs or [], libraries or [], ccflags or [],
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-866846-zzha4c4z/environment/lib64/python3.12/site-packages/triton/runtime/build.py", line 83, in _build
+    subprocess.check_call(cc_cmd, stdout=subprocess.DEVNULL)
+  File "/usr/lib64/python3.12/subprocess.py", line 413, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '['/usr/bin/gcc', '/tmp/rsna-environment-866846-zzha4c4z/environment/lib/python3.12/site-packages/triton/backends/nvidia/driver.c', '-O3', '-shared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmptu39lvo6/cuda_utils.cpython-312-x86_64-linux-gnu.so', '-l:libcuda.so.1', '-L/tmp/rsna-environment-866846-zzha4c4z/environment/lib/python3.12/site-packages/triton/backends/nvidia/lib', '-L/lib64', '-L/lib', '-I/tmp/rsna-environment-866846-zzha4c4z/environment/lib/python3.12/site-packages/triton/backends/nvidia/include', '-I/tmp/tmptu39lvo6', '-I/usr/include/python3.12']' returned non-zero exit status 1.
+Traceback (most recent call last):
+  File "/home/sa305415/rsna-knee/relation-full224-gradient-v1/launch_gradient.py", line 291, in <module>
+    main()
+  File "/home/sa305415/rsna-knee/relation-full224-gradient-v1/launch_gradient.py", line 274, in main
+    subprocess.run(command, check=True, cwd=code, timeout=2700)
+  File "/usr/lib64/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/tmp/rsna-environment-866846-zzha4c4z/environment/bin/python', '-B', '/tmp/rsna-relation-gradient-866846-hbgidqvu/scripts/newton/measure_relation_gradients.py', '--config-root', '/tmp/rsna-relation-gradient-866846-hbgidqvu/initiative/experiments/competitive-v1/slice-relations-v1', '--proof', '/home/sa305415/rsna-knee/stratified-production-7ac7a97-preparation-v1/cpu-prerequisites-verified.json', '--request', '/home/sa305415/rsna-knee/relation-geometry-survey-v1/request.json', '--run', '/home/sa305415/rsna-knee/relation-full224-gradient-v1/sampling-run-original.json', '--studies', '/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet', '--artifact-root', '/home/sa305415/rsna-knee/code-stopfix-1f486765', '--folds', '/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds', '--series', '/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv', '--archive', '/home/sa305415/rsna-knee/cache/cache256-v3-official-recovery-v1.tar', '--cache', '/tmp/rsna-relation-gradient-866846-hbgidqvu/diagnostic-cache', '--output', '/home/sa305415/rsna-knee/relation-full224-gradient-v1/gradient-measurement.json', '--source-manifest', '/home/sa305415/rsna-knee/relation-full224-gradient-v1/source.json', '--cpu-acceptance', '/home/sa305415/rsna-knee/relation-full224-gradient-v1/cpu-input-verified.json']' returned non-zero exit status 1.

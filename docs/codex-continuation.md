@@ -1,3 +1,33 @@
+## October1 matched sampling finished; native original source complete
+
+Original S866716 and U866719 COMPLETED0:0,10 epochs/2810 finite updates each.
+All20 checkpoints now privately fully re-downloaded/size/SHA verified once;
+new S9/S10/U9/U10 original receipts are in sampling-epochs-v1. Never repeat them.
+Read sampling-fixed-final-v1/README.md and replay comparison.json: same1156
+weak-label development studies, equal initial tensors/logits, only training
+sampling differs. Uniform0.8606037925461784, stratified0.8615144870268626,
+delta+0.0009106945. Paired4000-component bootstrap conditional95% delta interval
+[-0.0090501,0.0099533],1164undefined macro draws; sparse classes remain a limitation.
+No established improvement or Kaggle score; no best-epoch/gold/confirmation tuning.
+Keep uniform as control and prioritize staged native detail/relation acceptance.
+
+Native original lanes866426/866427 COMPLETED0:0. All75 canonical original
+private6-object proofs are re-admitted read-only through pinned assembly reader,
+3403studies/18906series/643501slices. Read completed/summary-through-074-native-
+final-sources.json. No blobs were reuploaded/redownloaded during receipt collection.
+Original CPU assembly866458 RUNNING on evc31; last restored shards0–25. Actual
+run-start/scratch/logs show oneCPU/zeroGPU scientific assembly (squeue reports
+2CPUs for its allocation). Never duplicate. Native384 GPU production not dispatched.
+Require actual terminal/full37812-member cache receipt and fresh funding first.
+
+Gradient866846 FAILED1:0 due missingPython.h during Triton helper compilation.
+Original relation wrapper omitted admittedCPATH/header ABI guard. Read actual
+sampling-fixed-final-v1/gradient-failure/ receipts. No gradient measurement or
+optimizer update; source4acd6fa and oldCPU16 proof stay immutable. Correct through
+a distinct header-guarded control with original numerical source/inputs, not an
+old dispatch retry. Actual gradient review/explicit recipe decision, CPU32 proof,
+GPU trainer wrapper and all-checkpoint funding still gate trainer recovery.
+
 ## October1 uniform epoch8 privately verified
 
 Original CPU867085 COMPLETED0:0; all5 objects privately re-downloaded/size/SHA

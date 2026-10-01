@@ -14,12 +14,20 @@ between internal AUC and Kaggle. A larger rank or more epochs will not isolate
 these explanations. Keep the accepted labels/masks/folds and the official base
 weights fixed while testing one mechanism at a time.
 
-The full matched slice-coverage comparison is now training on two H100 nodes:
-stratified866716 on evc32 and the distinct uniform recovery866719 on evc31. Both
-have actual finite optimizer progress. The original uniform866715 failed device
-preflight before any update. Native384 rank32 remains separately staged on frozen
-C9 source, awaiting original-source jobs866426/866427 and assembly866458. No third
-GPU job is admitted. Read actual receipts rather than restarting these jobs.
+The full matched slice-coverage comparison finished: stratified866716 and uniform
+recovery866719 each completed10 epochs/2810 finite updates. Fixed-final internal
+macro AUC is0.8615145 versus0.8606038 on the same1156 development studies. The
+paired component95% delta interval crosses zero, with1164/4000 undefined macro
+draws from sparse classes. This does not establish a sampling gain; retain
+uniform as the control and preserve the near-null result in sampling-fixed-final-v1.
+All20 epochs are privately preserved/full-download-hash verified. Native original
+source jobs866426/866427 completed, all75 canonical private proofs passed, and
+assembly866458 is running. Native384 rank32 remains separately staged on frozen
+C9; require actual complete cache receipt and fresh funding before GPU launch.
+The training-only relation gradient diagnostic866846 failed compiling a Triton
+helper without Python.h. A distinct admitted-header recovery is prepared; this
+runtime failure says nothing about clinical benefit. Read actual receipts rather
+than repeating old jobs.
 
 ## First: change observation coverage at the same budget
 
@@ -43,9 +51,9 @@ invariance and equal initial states/logits; its26 private objects are fully
 download/hash verified. Full-cache CPU acceptance866694 also passed. See the
 [exact acceptance audit](../initiative/audits/stratified-slices-pilot-launch-v1/README.md)
 and [actual production launch](../initiative/audits/stratified-slices-production-launch-v1/README.md).
-Both full production arms repeat initialization acceptance with equal learned
-initial states and update budgets. Reject the hypothesis if held-out
-ranking fails to improve under the predetermined comparison. A tiny pilot or a
+Both full production arms passed equal learned initial states/logits and update
+budgets. Their near-null fixed-final comparison does not support promotion of
+stratification. A repeated matched seed/fold would be required to claim a gain. A tiny pilot or a
 comparison to an unmatched old run cannot answer it.
 
 ## Second: learn relationships between observations

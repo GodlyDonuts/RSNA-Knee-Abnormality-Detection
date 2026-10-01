@@ -29,3 +29,14 @@ Both full production runs continue. Never repeat an existing intent, journal or
 private path. Use the pinned role-specific coordinator only for each newly
 completed, unattempted epoch. The optional relation integration in newer source
 is a separate future experiment and changes none of these live jobs.
+
+## Fixed-final preservation, October1
+
+All10 epochs in both arms now fully privately preserved exactly once,5 objects
+per epoch with complete re-download/size/SHA verification. New original CPU
+publishers: S9=867291/HFe29759d153886c3ec47e5e32fbb2efa002a03f68;
+S10=867292/HF5f5eb50041b815c2d8460961aede91956da8afd8;
+U9=867293/HFd6ce2f3fbbc9bf30f18e3f5fec1f2a92a786af1b;
+U10=867306/HF0e8bd2af999c3f33088937fc61a4bb241c27e80f. AllCOMPLETED0:0.
+Never repeat these intents/private paths; original receipts in each epoch folder.
+See sampling-fixed-final-v1 for the actual matched near-null result.

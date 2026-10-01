@@ -1,0 +1,91 @@
+"""One-time distinct header recovery, preserving original scientific/input bytes."""
+import base64
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+from pathlib import Path
+
+root = Path.cwd()
+audit = root / 'initiative/audits/slice-relations-gradient-header-recovery-v1'
+request = json.loads((audit/'request.json').read_text())
+script = (audit/'gpu.sbatch.txt').read_bytes()
+assert hashlib.sha256(script).hexdigest() == request['script_sha256']
+head = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert head == subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip()
+assert not subprocess.check_output(['git','status','--porcelain'],text=True)
+assert not (audit/'dispatch-intent.json').exists()
+payload = dict(request, script=base64.b64encode(script).decode(), engineering_source_git=head,
+ original_source_manifest_sha256=hashlib.sha256((root/'initiative/audits/sampling-fixed-final-v1/gradient-failure/source.json').read_bytes()).hexdigest(),
+ original_launcher_sha256=hashlib.sha256((root/'scripts/newton/launch_relation_gradient_probe.py').read_bytes()).hexdigest())
+probe = r'''
+import hashlib,json,subprocess,sys,base64,os,shutil
+from pathlib import Path
+p=json.load(sys.stdin);b=Path('/home/sa305415/rsna-knee');old=Path(p['old_control']);new=Path(p['new_control'])
+def sha(f):return hashlib.sha256(f.read_bytes()).hexdigest()
+def terminal(job):return subprocess.check_output(['sacct','-X','--noheader','-j',str(job),'--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip()
+assert not new.exists()
+assert terminal(866846)=='866846|FAILED|1:0' and terminal(866843)=='866843|COMPLETED|0:0'
+assert not (old/'gradient-measurement.json').exists()
+error=(old/'gpu-stderr.txt').read_text();assert 'Python.h: No such file or directory' in error
+assert sha(old/'source.json')==p['original_source_manifest_sha256']
+m=json.loads((old/'source.json').read_text());assert m['source_git']==p['source_git']
+assert sha(old/'source.tar')==m['source_tar_sha256']
+assert sha(old/'launch_gradient.py')==p['original_launcher_sha256']
+assert sha(old/'cpu-input-verified.json')==p['CPU_input_receipt_sha256']
+cpu=json.loads((old/'cpu-input-verified.json').read_text());assert cpu['status']=='actual_full224_training_inputs_CPU_verified' and cpu['optimizer_updates']==0 and cpu['GPU_acceptance'] is False
+assert len(cpu['input_binding']['batch_input_sha256'])==16
+assert json.loads((old/'runtime-cpu-input.json').read_text())['source_git']==m['source_git']
+for key in ['proof','request','run','series','studies']:
+ assert sha(Path(m[key+'_path']))==m[key+'_sha256']
+proof=json.loads(Path(m['proof_path']).read_text())
+for name,row in proof['assets'].items():
+ f=Path(name);s=f.stat();assert not f.is_symlink() and dict(dev=s.st_dev,ino=s.st_ino,bytes=s.st_size,mtime_ns=s.st_mtime_ns,ctime_ns=s.st_ctime_ns)==row['stat']
+headers=b/'python-headers-3.12.13-2-v3'
+assert sha(headers/'cpu-proof.json')=='95c1d9aa2a9676cbdc4fa46e3d3ffda0bb721f24221365953ce23819c01f1695'
+header=json.loads((headers/'cpu-proof.json').read_text());assert header['status']=='actual_triton_helper_compile_and_import_passed' and header['actual_installed_builder_replayed'] is True and header['requested_gpus']==0
+assert terminal(839074)=='839074|COMPLETED|0:0'
+queue=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i|%T|%j|%b|%N'],text=True).splitlines();gpu=[r for r in queue if 'gpu' in r.split('|')[3]];assert len(gpu)<2
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,n,limit=[int(q[i]) for i in [1,2,5,6]]
+charged={}
+for name in ['dinov3-l16-sampling-stratified-a32-fold0-7ac7a97-production-v1','dinov3-l16-sampling-uniform-a32-fold0-7ac7a97-evc31-v2']:
+ r=b/'runs'/name;assert json.loads((r/'result.json').read_text())['status']=='completed'
+ for f in [r/'checkpoint.pt',*list((r/'epoch-checkpoints').glob('*.pt'))]:
+  s=f.stat();assert not f.is_symlink() and s.st_size<128*1024**2;charged[s.st_dev,s.st_ino]=s.st_size
+lanes=b/'native-full-cache-two-lanes-v1';done=sum((lanes/f'shard-{i:03d}/result.json').is_file() for i in range(1,75));assert done==74
+future=5246914048+12*1024**2+max(0,22*128*1024**2+16*1024**2-sum(charged.values()))+p['small_shared_phase_bound_bytes']
+reserve=((soft-used)*1024-future)/1024**3;files=limit-n-190-400-p['small_shared_phase_bound_files'];assert reserve>=20 and files>=5000
+records={}
+for name in p['copy_small_original_files']:
+ f=old/name;assert not f.is_symlink() and f.is_file();records[name]=dict(bytes=f.stat().st_size,sha256=sha(f))
+assert sum(r['bytes'] for r in records.values())+len(base64.b64decode(p['script']))<p['small_shared_phase_bound_bytes']
+acceptance=dict(status='actual_old_failure_original_CPU16_source_assets_header_compile_and_funding_verified',engineering_source_git=p['engineering_source_git'],scientific_source_git=m['source_git'],old_failed_job=866846,old_error_sha256=sha(old/'gpu-stderr.txt'),CPU16_receipt_sha256=p['CPU_input_receipt_sha256'],header_CPU_compile_job=839074,source_files=records,projected_remaining_gib=reserve,projected_remaining_files=files,charged_sampling_physical_bytes=sum(charged.values()),all_original_native_shards_completed=True,queue=queue,cpus=2,gpus=1,optimizer_updates=0,checkpoints=0,new_control=str(new),script_sha256=p['script_sha256'],old_control_unchanged=True)
+'''
+def remote(code):
+    result=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',code])],input=json.dumps(payload),capture_output=True,text=True,timeout=60)
+    if result.returncode: raise RuntimeError(f'Phase failed {result.returncode}; reconcile read-only: '+result.stderr[-1500:])
+    return json.loads(result.stdout)
+def save(name,value):
+    with (audit/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+save('fresh-acceptance.json',remote(probe+"\nprint(json.dumps(acceptance))\n"))
+save('dispatch-intent.json',dict(status='single_distinct_header_recovery_stage_and_dispatch_intent',source_git=head,request=payload,automatic_retry=False))
+mutation=probe+r'''
+def save(name,value):
+ with (new/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+new.mkdir(mode=0o700)
+save('stage-intent.json',acceptance)
+for name,row in records.items():
+ with (old/name).open('rb') as src,(new/name).open('xb') as dst:shutil.copyfileobj(src,dst);dst.flush();os.fsync(dst.fileno())
+ assert sha(new/name)==row['sha256']
+raw=base64.b64decode(p['script']);assert hashlib.sha256(raw).hexdigest()==p['script_sha256']
+with (new/'gpu.sbatch').open('xb') as f:f.write(raw);f.flush();os.fsync(f.fileno())
+save('stage-verified.json',dict(acceptance,status='small_original_byte_identical_source_and_CPU_receipt_staged_with_distinct_header_guard'))
+queue=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i|%T|%j|%b|%N'],text=True).splitlines();assert sum('gpu' in r.split('|')[3] for r in queue)<2
+save('gpu-dispatch-intent.json',dict(acceptance,automatic_retry=False))
+r=subprocess.run(['sbatch','--parsable',str(new/'gpu.sbatch')],capture_output=True,text=True)
+v=dict(returncode=r.returncode,stdout=r.stdout.strip(),stderr=r.stderr,control=str(new),script_sha256=p['script_sha256'],engineering_source_git=p['engineering_source_git'],scientific_source_git=m['source_git'],old_failed_job=866846,cpus=2,gpus=1,optimizer_updates=0)
+save('gpu-dispatch-result.json',v);print(json.dumps(v));assert r.returncode==0 and r.stdout.strip().split(';')[0].isdecimal()
+'''
+save('dispatch-result.json',remote(mutation))
+print((audit/'dispatch-result.json').read_text())
