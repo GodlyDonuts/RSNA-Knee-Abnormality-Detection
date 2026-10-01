@@ -15,6 +15,21 @@ all private immutable epochs and compare any transfer through a clean matched
 RSNA experiment only after cross-source screening/downstream rights review.
 1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
 
+## October1 actual full Stanford pixel index complete, private records retained
+
+CorrectedCPU867493 COMPLETED0:0/2:19 on evc32, all3750 original volumes across
+1250 exams,118109 slices/30000 sampled slices and7740871424 original bytes
+decoded/hash checked without labels. Private2,683,971-byte indexSHA
+da55e017afb00b53608e825f00f3425deb041456d8ab04001b16aa86d02657b3 retained at
+/tmp/rsna-private-pixel-index-retained-drqghyi2/index.jsonl on evc32; do NOT
+publish index records. Actual original terminal/index/source receipt is in
+stanford-rsna-pixel-overlap-screen-v1/stanford-v2. No overlap conclusion yet.
+RSNA CPU867494 is RUNNING on evc31 with1000 original eligible volumes decoded,
+empty stderr; no complete native index yet. Original failed867491/867492 and
+both corrected controls remain immutable. Native867367 runs finite optimization;
+full Stanford engine867478 pending and full fitting not dispatched. Inspect actual
+states/proofs before any action. Never repeat acquisition/indexes/jobs/publication.
+
 ## October1 corrected pixel-only dispatch and native production progress
 
 Native867367 is RUNNING on its original evc31; allocated H100/header/native384

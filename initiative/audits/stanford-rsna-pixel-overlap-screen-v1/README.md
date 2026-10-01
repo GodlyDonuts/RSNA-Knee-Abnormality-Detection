@@ -57,3 +57,12 @@ on evc31 were each submitted ONCE. At20:41UTC both PENDING Priority. Exact
 source/funding/wrappers/dispatch in stanford-v2/ and rsna-v2/. Never rerun an
 existing intent/control. Only actual decoded index/terminal proof can establish
 coverage; no cross-source overlap finding or clinical result is claimed here.
+
+## Actual Stanford index completed
+
+CorrectedCPU867493 COMPLETED0:0/2:19. All3750 volumes/1250 exams and7,740,871,424
+original bytes decoded/hash checked,118109 original slices/30000 sampled slices.
+Private2,683,971-byte index stays on evc32. Its exact hash/path/source/terminal
+receipt is preserved in stanford-v2; records are NOT collected or published.
+RSNA867494 remains RUNNING with1000 decoded original native384 series. An index
+completion is not a cross-source overlap result or proof of clinical accuracy.
