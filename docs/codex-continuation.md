@@ -15,6 +15,21 @@ all private immutable epochs and compare any transfer through a clean matched
 RSNA experiment only after cross-source screening/downstream rights review.
 1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
 
+## October1 earlier-node Stanford full-engine wrapper prepared
+
+Read mrnet-restored-full-engine-v1. New outer wrapper admits actual original
+restoration867457 on evc24, preserving byte-identical F12 full numerical archive/
+config/input binding/recipe. Fresh scheduler forecasts indicate an earlier slot
+than owning evc32; not a guaranteed start. Original867478 remains pending/no
+run-start. No cancellation or new GPU dispatch at this preparation status.
+Single coordinator uses PENDING-only cancellation AFTER accepted/staged outer
+payload and fresh original state, verifies terminal/no startup, then distinct
+recovery on evc24; if original actually starts/completes, stop read-only. Require
+actual same-engine recovery before full private source fitting. Extra32MiB/96
+small objects plus all previous liabilities preserve20GiB/5000files. Leave active
+native867367/science unchanged. RSNA index867494 still actively decoding; Stanford
+index867493 complete. No new clinical score or cross-source overlap conclusion.
+
 ## October1 native startup and completed Stanford pixel index privately verified
 
 Source6edefe1 native real GPU optimization/startup, original index import failures,

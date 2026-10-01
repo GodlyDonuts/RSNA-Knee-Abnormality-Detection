@@ -1,0 +1,69 @@
+import hashlib,io,json,shlex,subprocess,sys,tarfile
+from pathlib import Path
+root=Path.cwd();phase=sys.argv[1];assert phase in ('recovery','full')
+old='/home/sa305415/rsna-knee/mrnet-full-engine-recovery-20261001-v1'
+recovery='/home/sa305415/rsna-knee/mrnet-restored-full-engine-recovery-20261001-v1'
+control=recovery if phase=='recovery' else '/home/sa305415/rsna-knee/mrnet-restored-full-source-fitting-20261001-v1'
+local=root/('artifacts/external-knee-research-20261001-v1/restored-full-engine-'+phase+'-intent');local.mkdir()
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','-o','ConnectTimeout=8','sa305415@newton.ist.ucf.edu']
+def remote(code,data=None):
+ r=subprocess.run(ssh+[shlex.join(['/usr/bin/python3.12','-B','-c',code,control,phase,old,recovery])],input=data,capture_output=True,timeout=60)
+ if r.returncode:raise RuntimeError('restored_engine_action_requires_readonly_reconciliation')
+ return json.loads(r.stdout)
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+wrapper=root/'scripts/newton/launch_mrnet_restored_source_training.py';assert subprocess.check_output(['git','show',head+':scripts/newton/launch_mrnet_restored_source_training.py'])==wrapper.read_bytes()
+preflight=remote('''import hashlib,json,subprocess,sys
+from pathlib import Path
+c,phase,old,recovery=sys.argv[1:];assert not Path(c).exists()
+p=Path('/home/sa305415/rsna-knee/mrnet-private-restoration-evc24-20261001-v1/restoration-verified.json')
+assert hashlib.sha256(p.read_bytes()).hexdigest()=='7367116f9f3775860404aed880d0e658bfa1b3633d33e5401466d8af1d1c8cdc'
+r=json.loads(p.read_text());assert r['node']=='evc24' and r['original_eight_image_label_tensor_records_equal'] is True
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();u,s,f,l=[int(q[i]) for i in (1,2,5,6)]
+gib=((s-u)*1024-5246914048-(12+272+64+32+16+16+32)*1024**2)/1024**3;remain=l-f-190-400-160-96-48-48-96
+assert gib>=20 and remain>=5000
+extra={}
+if phase=='recovery':
+ state=subprocess.check_output(['squeue','-h','-j','867478','-o','%T'],text=True).strip();assert state=='PENDING' and not (Path(old)/'run-start.json').exists()
+ assert not (Path(old)/'recovery-verified.json').exists()
+else:
+ d=json.loads((Path(recovery)/'dispatch-result.json').read_text());state=subprocess.check_output(['sacct','-X','-j',d['job_id'],'-n','-P','-o','JobID,State,ExitCode'],text=True);assert '|COMPLETED|0:0' in state
+ p=Path(recovery)/'recovery-verified.json';v=json.loads(p.read_text());assert v['status']=='actual_full_source_MRNet_engine_GPU_recovery_passed' and v['complete_checkpoint_and_prediction_bytes_equal'] is True
+ extra={'accepted_recovery_path':str(p),'accepted_recovery_sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+print(json.dumps({'shared_reserve_gib_after_all_liabilities':gib,'shared_file_reserve_after_all_liabilities':remain,'node_local_checkpoint_cap_bytes':3*1024**3,'node_local_runtime_bytes':6322691335,'node_local_reserve_gib':20,'new_shared_metadata_cap_bytes':32*1024**2,'new_shared_file_cap':96,'extra':extra}))''')
+source=json.loads((root/'initiative/audits/mrnet-full-source-preparation-v1/full-engine-dispatch/source.json').read_text())
+source|={'funding':preflight,'phase':phase,'restored_wrapper_git':head,'restored_wrapper_sha256':hashlib.sha256(wrapper.read_bytes()).hexdigest(),'restoration_path':'/home/sa305415/rsna-knee/mrnet-private-restoration-evc24-20261001-v1/restoration-verified.json','restoration_sha256':'7367116f9f3775860404aed880d0e658bfa1b3633d33e5401466d8af1d1c8cdc','restored_input_sha256':'4f3f0caab420483083304de61a84636fabdaa607defd739bb0c144dab633b1a1'}|preflight['extra']
+batch=(root/'initiative/audits/mrnet-private-source-admission-v1/gpu-recovery-dispatch/gpu.sbatch').read_text().replace('/home/sa305415/rsna-knee/mrnet-adapter-recovery-20261001-v1',control).replace('launch_mrnet_adapter_probe.py','launch_mrnet_restored_source_training.py').replace('--control '+control,'--control '+control+' --phase '+phase).replace('--nodelist=evc32','--nodelist=evc24').replace('rsna-MRNet-adapter-recovery','rsna-MRNet-restored-'+phase).replace('--time=01:00:00','--time=00:10:00' if phase=='recovery' else '--time=10:00:00')
+objects={'source.json':json.dumps(source,indent=2,sort_keys=True).encode(),'gpu.sbatch':batch.encode(),'launch_mrnet_restored_source_training.py':wrapper.read_bytes()}
+outer=io.BytesIO()
+with tarfile.open(fileobj=outer,mode='w') as tar:
+ for name,data in objects.items():
+  m=tarfile.TarInfo(name);m.size=len(data);m.mode=0o600;tar.addfile(m,io.BytesIO(data))
+with (local/'intent.json').open('x') as f:json.dump({'phase':phase,'control':control,'source':source,'automatic_retry':False,'cancel_pending_only_job':'867478' if phase=='recovery' else None},f,indent=2,sort_keys=True)
+result=remote('''import hashlib,json,os,shutil,subprocess,sys,tarfile
+from pathlib import Path
+os.umask(0o077);control,phase,old,recovery=sys.argv[1:];c=Path(control);c.mkdir()
+with tarfile.open(fileobj=sys.stdin.buffer,mode='r|') as tar:
+ for m in tar:
+  assert m.isfile() and m.name in ('source.json','gpu.sbatch','launch_mrnet_restored_source_training.py')
+  with (c/m.name).open('xb') as f:f.write(tar.extractfile(m).read())
+s=json.loads((c/'source.json').read_text());assert hashlib.sha256((c/'launch_mrnet_restored_source_training.py').read_bytes()).hexdigest()==s['restored_wrapper_sha256']
+for name in ('source.tar','config.json'):shutil.copyfile(Path(old)/name,c/name)
+assert hashlib.sha256((c/'source.tar').read_bytes()).hexdigest()==s['tar_sha256']
+assert json.loads((c/'config.json').read_text())['source_git']==s['source_git']
+(c/'dispatch-intent.json').write_text(json.dumps({'phase':phase,'automatic_retry':False,'unchanged_original_numerical_engine_source':s['source_git'],'owning_node':'evc24'}))
+if phase=='recovery':
+ state=subprocess.check_output(['squeue','-h','-j','867478','-o','%T'],text=True).strip();assert state=='PENDING' and not (Path(old)/'run-start.json').exists()
+ (c/'cancel-pending-intent.json').write_text(json.dumps({'job':'867478','filter':'PENDING','no_optimizer_updates_or_started_runtime':True,'automatic_retry':False}))
+ subprocess.run(['scancel','--state=PENDING','867478'],check=True)
+ state=subprocess.check_output(['squeue','-h','-j','867478','-o','%T'],text=True).strip();assert not state and not (Path(old)/'run-start.json').exists()
+ state=subprocess.check_output(['sacct','-X','-j','867478','-n','-P','-o','JobID,State,ExitCode,Elapsed'],text=True);assert 'CANCELLED' in state
+ (c/'cancel-pending-result.json').write_text(json.dumps({'job':'867478','terminal':state,'original_job_never_started':True,'original_output_preserved':True}))
+queue=subprocess.check_output(['squeue','-h','-u','sa305415','-o','%i|%T|%b'],text=True).splitlines();assert sum('gpu' in x.split('|')[2] for x in queue)<2
+j=subprocess.check_output(['sbatch','--parsable',str(c/'gpu.sbatch')],text=True).strip().split(';')[0];assert j.isdecimal()
+r={'job_id':j,'control':str(c),'phase':phase,'status':'single_restored_original_full_engine_dispatch','node':'evc24','source_git':s['source_git'],'wrapper_git':s['restored_wrapper_git'],'requested_gpus':1,'requested_cpus':2}
+(c/'dispatch-result.json').write_text(json.dumps(r,indent=2,sort_keys=True));print(json.dumps(r))''',outer.getvalue())
+with (local/'dispatch-result.json').open('x') as f:json.dump(result,f,indent=2,sort_keys=True)
+audit=root/('initiative/audits/mrnet-restored-full-engine-v1/'+phase+'-dispatch');audit.mkdir(parents=True)
+for name,data in objects.items():(audit/name).write_bytes(data)
+(audit/'dispatch-result.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+print(json.dumps(result))
