@@ -1,3 +1,30 @@
+## October1 uniform epoch6 privately verified
+
+Original CPU publisher866897 COMPLETED0:0, all five objects fully privately
+re-downloaded/size/SHA verified at HF2db043fb7a9dbc82e973a39fca4f2890ea4ee935.
+Checkpoint SHA1c76886240aa0ebc4758027dc2f693c121011c850f53bce4a9e40afd69de0861.
+Original snapshot, manifest, single dispatch, commit and terminal/full-byte
+receipts in sampling-epochs-v1/uniform/epoch-006. Never repeat this or either
+arm's earlier epochs. Local publication22135 and source mirror59840 completed0;
+no local mutation tool remains live. Both sampling roles are training epoch7;
+actual later state overrides this snapshot. Gradient866846 remains queued under
+its original parent dependency, not passed or started.
+
+## October1 trainer-recovery preparation/source milestone privately verified
+
+New standalone numerical-core-unchanged preparation source1156fb1 and its
+metadata freeze1e449df are privately mirrored at HF
+9156a647c04e0a175a7a0da8a9aa6fad8a98d8cd; all51 objects fully re-downloaded/
+size/SHA verified through the original shared atomic publication lock. Journal
+hf-relation-trainer-recovery-preparation-and-source-progress-20261001-v1 records
+single intent/commit/full-byte validation. Never repeat it, stratified epoch6,
+or already privately verified native cache/source/checkpoint objects.
+1575tests/Ruff223/mypy39/archive/current89/89 evidence checks passed. No actual
+trainer pilot was staged/dispatched; no new H100 result or clinical score exists.
+Next inspect the original live sampling jobs and dependent gradient866846, then
+prepare the separately funded32-study source/CPU-admission/launcher only after
+actual gradient review. All original local publication tools have finished.
+
 ## October1 trainer-pilot preparation verification complete
 
 1575 tests/2 warnings passed in113.49s, Ruff223 files/mypy39/archive and current
