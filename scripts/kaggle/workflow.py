@@ -679,7 +679,9 @@ def prepare_bundle(
         "checkpoint_format": "frozen_base_delta" if delta else "full",
         "inference_policy": {
             "series_sampling": binding["config"].get("series_sampling", "selected"),
-            "slice_sampling": binding["config"].get("slice_sampling", "uniform"),
+            "slice_sampling": "uniform"
+            if binding["config"].get("slice_sampling") == "stratified"
+            else binding["config"].get("slice_sampling", "uniform"),
             "slice_context": binding["config"].get("slice_context", "none"),
             "max_series": binding["config"].get("max_series", 6),
             "cache_side": binding.get("cache_side", 256),

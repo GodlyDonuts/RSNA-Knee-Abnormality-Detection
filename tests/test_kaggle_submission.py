@@ -416,7 +416,10 @@ def test_version_inspection_rejects_concurrent_new_kernel_version():
 
 
 @pytest.mark.parametrize("delta", [False, True])
-def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monkeypatch, delta):
+@pytest.mark.parametrize("slice_sampling", ["uniform", "stratified"])
+def test_complete_local_bundle_binding_and_no_extra_upload_files(
+    tmp_path, monkeypatch, delta, slice_sampling
+):
     repo = tmp_path / "repo"
     (repo / "rsna").mkdir(parents=True)
     (repo / "rsna/__init__.py").write_text("")
@@ -456,6 +459,7 @@ def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monke
         "config": {
             "encoder": provenance,
             "checkpoint_format": "frozen_base_delta" if delta else "full",
+            "slice_sampling": slice_sampling,
         }
     }
     monkeypatch.setattr(workflow, "validate_snapshot", lambda *a: (meta, binding, checkpoint))
@@ -512,6 +516,8 @@ def test_complete_local_bundle_binding_and_no_extra_upload_files(tmp_path, monke
         repo,
     )
     assert workflow.load_operation(output / "operation.json") == result
+    manifest = json.loads((output / "dataset/bundle-manifest.json").read_text())
+    assert manifest["inference_policy"]["slice_sampling"] == "uniform"
     bundled_encoder = json.loads((output / "dataset/encoder.json").read_text())
     assert checked == ([True] if delta else [])
     if delta:

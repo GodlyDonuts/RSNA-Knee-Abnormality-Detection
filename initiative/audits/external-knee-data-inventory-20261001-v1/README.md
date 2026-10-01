@@ -97,3 +97,41 @@ supervision if image access/use is compatible; OAI for a larger OA/domain-adapta
 experiment. SKM-TEA is a smaller localization resource. None is currently an
 approved training dependency. This keeps the ongoing native384 cache assembly
 and rank64 score reconciliation unchanged.
+
+## Fresh KneeCoT ruling after the owner's link
+
+The owner supplied the KneeCoT Hugging Face page later on October 1. Its public
+card advertises 25,000 volumes; that is an unverified author count, not admitted
+new patients. The rendered Kaggle discussion was then read directly in Chrome.
+The competition host's exclusion remained explicit, with no reversal in the two
+visible comments. [The small receipt](kneecot-ruling-recheck.json) records the
+source, host badge, brief exact ruling and read-only scope. No gated files or
+access agreement were accepted. Exclude auxiliary training and derived weights
+as well as direct training. The [creative research plan](../../../docs/creative-research-plan.md)
+describes conditional alternatives and experiments that separate more compute,
+additional anatomy exposure and compatible disease supervision.
+
+## Owner-authorized signed-in MRNet review
+
+The owner supplied the Stanford Redivis link and authorized using the signed-in
+session. Data access and both requirements were visibly complete; the existing
+research agreement was approved. Reading it did not accept or resubmit anything.
+It limits use to personal noncommercial research, restricts redistribution and
+derivative works. Compatibility with the competition's public weight release is
+unresolved; data access alone is not that permission. No personal application
+answers, account credentials or raw MRI/label data were archived.
+
+The version1.0 file indexes contain3,390 training and360 validation files,
+consistent with three views for1,130/120 examinations. Each corresponding label
+table has only1,129/119 rows. The actual train-acl variable names are `_0000`
+and `_0`, strongly suggesting a headerless first record became the header.
+This is not a confirmed repair: obtain the original CSV bytes, interpret explicit
+no-header columns and validate exact membership across all six label files.
+Do not invent a missing case or its label from the column names. The [access and
+schema receipt](mrnet-redivis-access-review.json) preserves observed facts and
+the unresolved admission gates.
+
+The owner subsequently said KneeCoT's newer permission was on Discord and agreed
+it could be left unused. No newer organizer text was supplied or found in the
+checked public sources. Leave it excluded for now rather than repeatedly asking
+the owner or quietly treating the conflicting statement as a verified ruling.

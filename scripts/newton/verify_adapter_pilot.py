@@ -18,7 +18,11 @@ from rsna.competitive.backbones import (
     create_encoder_from_training_checkpoint,
 )
 from rsna.competitive.checkpoint import atomic_json, file_sha256
-from rsna.competitive.data import CompetitiveStudyDataset, collate_studies
+from rsna.competitive.data import (
+    CompetitiveStudyDataset,
+    collate_studies,
+    evaluation_slice_sampling,
+)
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.model import CompetitiveStudyNet
 from rsna.competitive.train import TrainConfig, _model_inputs
@@ -146,7 +150,7 @@ def main() -> None:
         slices=config.slices,
         side=config.side,
         max_series=config.max_series,
-        slice_sampling=config.slice_sampling,
+        slice_sampling=evaluation_slice_sampling(config.slice_sampling),
         series_sampling=config.series_sampling,
     )
     batch = next(iter(DataLoader(dataset, batch_size=1, collate_fn=collate_studies)))
@@ -214,6 +218,7 @@ def main() -> None:
             "optimizer_steps": full["step"],
             "slice_context": config.slice_context,
             "slice_sampling": config.slice_sampling,
+            "evaluation_slice_sampling": evaluation_slice_sampling(config.slice_sampling),
             "series_sampling": config.series_sampling,
             "compact_checkpoint_sha256": compact_sha,
             "compact_checkpoint_bytes": compact_bytes,

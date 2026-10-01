@@ -1,3 +1,52 @@
+## October 1 creative research directive, slice coverage and restored access
+
+The owner requested independent creative research and authorized investigating
+external MRI sources. AGENTS.md now preserves that standing directive; read
+`docs/creative-research-plan.md` for matched hypothesis/control/falsifier plans.
+KneeCoT remains unused: a fresh rendered host discussion still excluded it, the
+owner described an update on Discord and accepted leaving it out. Do not keep
+asking for the ruling. Signed-in MRNet Redivis data access is verified, but its
+research agreement restricts derivative works/redistribution and public weight
+compatibility is unresolved. Label tables show1,129/119 records for1,130/120
+exams and first-record-like column names: obtain original CSV bytes before repair.
+No external MRI/label cohort is admitted or downloaded. Receipts are in
+`initiative/audits/external-knee-data-inventory-20261001-v1/`.
+
+The separate stratified-slices feature is implemented locally with14 new actual
+synthetic-cache, CPU training/recovery and offline inference checks; all1,427
+repository tests passed, focused deployment/sampling suite73, Ruff203 files and
+mypy38 source modules. Candidate/control configs differ only in slice_sampling;
+actual ten-epoch metadata replay estimates selected-source exposure48.06% versus
+94.26% with equal1,859,290 slice presentations. This is not trained accuracy.
+Read `initiative/experiments/competitive-v1/stratified-slices-v1/README.md`.
+Do not retrofit new code into old jobs or Kaggle bundles. Fresh same-source
+uniform control, initial-state equality, official H100 pilot acceptance,
+versioned launch/publisher and funded quota are still required before a separate
+coverage experiment. Native384 on frozen C9 remains the next actual experiment.
+
+Newton authenticated SSH reconnected at06:26UTC using control socket
+`/tmp/rsna-research-20261001-501.sock`. Actual jobs866426/866427 were RUNNING on
+evc1, one CPU/zero GPUs each, empty stderr; assembly866458 still PENDING Dependency.
+Source shards0..16 and18 (18of75) were privately preserved by the original
+workers and canonically re-admitted:813studies/4475series/155481original slices.
+Shard17 was not included in that receipt; do not infer its later terminal state.
+New raw/canonical receipts11..16/18 and summary-through-018-with-gap017.json are
+preserved under the existing completed audit. Quota was1,022,203,612kB/
+1,048,576,000soft and993,552/1,000,000files. Fund every future obligation and keep
+20GiB/5000files. No GPU production control existed at that read-only check.
+Re-read job/publication/control state before any mutation; never duplicate.
+
+Native production payloads are implemented but staging/CPU admission/GPU dispatch
+remain separate actions. The ignored finite staging helper needs the NEW live
+control socket. Its original scientific payload pins remain unchanged. The
+private small milestone was prepared before the new research changes; its
+old diff scope now includes more files. Pin the intended snapshot or use a
+new accurately described combined prefix/journal before any publication intent.
+Use the shared Newton atomic publication lock and full download/size/SHA checks.
+Rank64 submission56740377 was unknown at06:08UTC, four live slots; do not call it
+failed/scored or repeat it. Verify actual live outcome and canonical ledger
+before another distinct competition experiment.
+
 ## October 1 verified native production code; staging awaits restored UCF access
 
 GitHub main b5ad561 contains the full native384 CPU/GPU launch and private epoch

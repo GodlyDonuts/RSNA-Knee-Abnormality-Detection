@@ -1,5 +1,29 @@
 # Decisions, corrections, and unresolved work
 
+## October 1: independent creative research
+
+The owner explicitly prioritizes original hypotheses and inspiration from other
+fields, and authorizes independent work on the solo DINOv3 goal. AGENTS.md now
+preserves that directive. The [research plan](creative-research-plan.md) translates
+it into matched experiments on observation coverage, spatial relationships and
+adaptive detail. Creativity is assessed through testable mechanisms and held-out
+evidence; neither novelty nor larger datasets establishes an improvement.
+Existing masks/folds, protected evaluation, pinned live jobs and resource limits
+remain unchanged. Conditional external cohorts need source-specific admission.
+
+The owner supplied KneeCoT's dataset link. A fresh rendered organizer discussion
+on October 1 still explicitly excludes it because of the institutional agreement
+requirement. No reversal was visible among the two displayed comments. Public
+card inspection is not dataset admission; no KneeCoT files, access application,
+training use or derived weights were added. See the [fresh ruling receipt](../initiative/audits/external-knee-data-inventory-20261001-v1/kneecot-ruling-recheck.json).
+
+The owner later described a Discord update allowing KneeCoT and accepted leaving
+it unused. No updated host text was supplied; keep that conflicting claim and
+the current public ruling distinct. Do not keep asking for it. Signed-in MRNet
+access is now verified, but derivative/publication restrictions and a likely
+CSV-header import issue remain separate admission gates. Preserve the exact
+[access/schema observation](../initiative/audits/external-knee-data-inventory-20261001-v1/mrnet-redivis-access-review.json).
+
 ## Accepted local release, September 22
 
 The final report-supervision export and runtime acceptance have passed; see

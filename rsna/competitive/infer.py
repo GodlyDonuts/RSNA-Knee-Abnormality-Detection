@@ -15,7 +15,11 @@ from torch.utils.data import DataLoader
 from rsna.competitive.adapters import configure_encoder_training
 from rsna.competitive.backbones import create_encoder, create_encoder_from_training_checkpoint
 from rsna.competitive.checkpoint import atomic_json, file_sha256
-from rsna.competitive.data import CompetitiveStudyDataset, collate_studies
+from rsna.competitive.data import (
+    CompetitiveStudyDataset,
+    collate_studies,
+    evaluation_slice_sampling,
+)
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.model import CompetitiveStudyNet
 from rsna.competitive.snapshots import scheduled_epoch
@@ -136,10 +140,11 @@ def run(args: argparse.Namespace) -> dict:
         series,
         args.cache,
         raw_split="test_series",
-        **{
-            name: getattr(config, name)
-            for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
-        },
+        slices=config.slices,
+        side=config.side,
+        max_series=config.max_series,
+        slice_sampling=evaluation_slice_sampling(config.slice_sampling),
+        series_sampling=config.series_sampling,
     )
     if dataset.cache_side != binding["cache_side"]:
         raise ValueError("Inference cache resolution differs from the trained transform")
@@ -191,6 +196,8 @@ def run(args: argparse.Namespace) -> dict:
         "scheduled_epoch_authorized": bool(getattr(args, "scheduled_epoch", False)),
         "training_precision": training_precision,
         "inference_precision": config.precision,
+        "training_slice_sampling": config.slice_sampling,
+        "inference_slice_sampling": evaluation_slice_sampling(config.slice_sampling),
         "initial_pretrained_weights_read": (
             getattr(args, "encoder_config", None) is None and provenance.get("pretrained") is True
         ),

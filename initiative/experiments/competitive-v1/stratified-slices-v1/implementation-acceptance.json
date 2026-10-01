@@ -1,0 +1,49 @@
+{
+  "config_differences": {
+    "slice_sampling": {
+      "candidate": "stratified",
+      "control": "uniform"
+    }
+  },
+  "config_sha256": {
+    "candidate-config.json": "6b5f43db7a6d483bdc8937f67b6bee307588871b03f1a400d26c6af6c5618294",
+    "candidate-pilot-config.json": "e4436d47b36a7587adc53048b8c8343e8613c683a6a79dac6768e2ea824604d2",
+    "control-config.json": "b4121c19fded5a28ff8462198b39bfa4aab5f8e343f5b8c32417a625e9ef2d0f",
+    "control-pilot-config.json": "45a173ea5e5d61d2e0763efa2ead688e62297232af25cae2be8877779b0909f9"
+  },
+  "diagnostic_limits": [
+    "Synthetic cache and diagnostic encoder only; no clinical MRI accuracy claim.",
+    "No H100 acceptance, new production launch, training checkpoint publication or competition submission."
+  ],
+  "exposure_replayed_exact_original_fields": true,
+  "focused_tests": {
+    "log_sha256": "767bbd16c530c1b1eb8d010356bfba9ea6c82943e153973b52d63f5dcc20340e",
+    "passed": 73,
+    "seconds": 37.81
+  },
+  "full_tests": {
+    "log_sha256": "595ec9637d213d84c552939956e4f22c8b9e6cbde62814e9ee2c72c5877db582",
+    "passed": 1427,
+    "seconds": 117.6
+  },
+  "native384_priority_unchanged": true,
+  "new_sampling_tests": 14,
+  "recorded_at_utc": "2026-10-01T06:24:30.615826+00:00",
+  "source_sha256": {
+    "rsna/competitive/data.py": "91df1043e2329013abace57a92ec2ccb8535ba3cf1a6a72ab8c6a788d3813430",
+    "rsna/competitive/infer.py": "1ae9d9b1f4480fff6ba54ca505c9c08736c51f067578f193e209633185bbc13f",
+    "rsna/competitive/train.py": "96144fcc13505440be9a903367181ebf583f185a8de82b2d610eacd8ef3100eb",
+    "scripts/kaggle/workflow.py": "8d79a53bc6b06a3b0108bfe0ae096f463aafb42e170d028bfe0b556985cae6d0",
+    "scripts/newton/verify_adapter_pilot.py": "9c572a7d9d03ac3c0a8df775107cef0f563b079703294e8ece926b603922f731",
+    "tests/test_kaggle_shared_wheelhouse.py": "e4628772fa16d125c5655973e01f7412f551b37c18a854ef1d535dc9021b1864",
+    "tests/test_kaggle_submission.py": "385cdf55d84a8a7f072077d56ce43610ac1f4ce836317d280442d9210a8d2bb6",
+    "tests/test_stratified_slice_sampling.py": "cb6c56a4fca573b47deeda4171536b364fb9c3aa979137ee07dbf6d7bc12b668"
+  },
+  "static_checks": {
+    "mypy_source_files": 38,
+    "ruff_check": "passed",
+    "ruff_format_files": 203
+  },
+  "status": "local_implementation_and_cpu_mechanics_verified_not_gpu_launched",
+  "unchanged_live_scientific_source": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab"
+}

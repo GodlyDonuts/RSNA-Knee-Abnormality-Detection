@@ -43,3 +43,27 @@ its preserved outputs are historical evidence, not current training labels.
 - Update the handoff archive and continuation guide when milestones change. Store
   small final manifests, audits, predictions, and experiment metadata here even
   when also publishing them to Hugging Face.
+
+## Owner's research directive, October 1
+
+The owner explicitly asks for independent, creative research that pushes beyond
+repeating established recipes. Make this a standing project priority.
+
+- Seek useful mechanisms from anatomy, physics, natural systems and other fields;
+  translate each analogy into a specific model or data hypothesis. Do not claim
+  novelty without checking prior work, or assume novelty improves performance.
+- For each proposed experiment, record the failure it addresses, the predicted
+  effect, a matched control, the compute cost and evidence that would reject it.
+  Prefer experiments that distinguish explanations over undirected scaling.
+- Improve how the solo DINOv3 model observes an examination: information coverage,
+  spatial relationships, acquisition diversity and label-compatible external
+  supervision are research directions, not established improvements.
+- Pursue promising work autonomously within existing authorization. Preserve the
+  accepted data boundaries, exact provenance, source rights and resource limits.
+  Do not change live experiments merely to fit a new idea.
+- Promote ideas through measured held-out performance and reliable MRI-only
+  inference. Preserve negative results. Software tests, more data and confident
+  prose do not demonstrate clinical accuracy or a winning Kaggle score.
+
+See `docs/creative-research-plan.md` for the current hypothesis sequence and the
+conditional external-data investigation.

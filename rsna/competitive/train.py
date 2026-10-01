@@ -142,11 +142,17 @@ class TrainConfig:
             raise ValueError("Unknown precision or pooling policy")
         if any(type(getattr(self, name)) is not bool for name in ("freeze_encoder", "augment")):
             raise ValueError("Freeze and augmentation settings must be booleans")
-        if self.slice_sampling not in {"uniform", "all"} or self.series_sampling not in {
+        if self.slice_sampling not in {
+            "uniform",
+            "stratified",
+            "all",
+        } or self.series_sampling not in {
             "selected",
             "all",
         }:
             raise ValueError("Unknown examination coverage policy")
+        if self.slice_sampling == "stratified" and self.augment:
+            raise ValueError("Stratified slice experiment requires fixed series selection")
         if self.slice_context not in {"none", "neighbor3"} or (
             self.slice_context != "none" and self.pooling != "attention"
         ):
@@ -402,14 +408,19 @@ def _run_locked(
     if hashlib.sha256(series_bytes).hexdigest() != release_binding["series_sha256"]:
         raise ValueError("Series sampling table differs from the accepted data release")
     series = pd.read_csv(io.BytesIO(series_bytes))
-    from rsna.competitive.data import collate_studies
+    from rsna.competitive.data import collate_studies, evaluation_slice_sampling
 
     data_config = {
         name: getattr(config, name)
         for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
     }
     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
-    outer_data = dataset_class(outer, series, args.cache, **data_config) if len(outer) else None
+    evaluation_config = dict(
+        data_config, slice_sampling=evaluation_slice_sampling(config.slice_sampling)
+    )
+    outer_data = (
+        dataset_class(outer, series, args.cache, **evaluation_config) if len(outer) else None
+    )
     if training_data.source_revision != release_binding["source_revision"] or (
         outer_data is not None
         and (training_data.cache_side, training_data.source_revision)

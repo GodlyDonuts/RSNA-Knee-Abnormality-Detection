@@ -1,0 +1,55 @@
+"""Replay source-slice exposure from frozen metadata; no image or target reads."""
+import argparse,hashlib,json,sys
+from collections import defaultdict
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import torch
+ROOT=Path.cwd()
+assert (ROOT/'rsna/competitive/data.py').is_file()
+sys.path.insert(0,str(ROOT))
+from rsna.competitive.data import _indices
+from rsna.data import select_series
+PLAN=ROOT/'initiative/experiments/competitive-v1/native-detail-v1/full-cache-shards384-v1'
+MANIFEST=PLAN/'manifest.json'
+PLAN_SHA='44e6775c5413e42d8744ead0f7d7bb0de258893a10867123e47fbd770f84793f'
+assert hashlib.sha256(MANIFEST.read_bytes()).hexdigest()==PLAN_SHA
+manifest=json.loads(MANIFEST.read_text())
+series_file=ROOT/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'
+assert hashlib.sha256(series_file.read_bytes()).hexdigest()==manifest['input_bindings'][str(series_file.relative_to(ROOT))]['sha256']
+table=pd.read_csv(series_file).set_index('SeriesInstanceUID');assert table.index.is_unique
+members=defaultdict(list);counts={}
+for name,record in sorted(manifest['shards'].items()):
+ p=PLAN/name;data=p.read_bytes();assert len(data)==record['bytes'] and hashlib.sha256(data).hexdigest()==record['sha256']
+ for row in json.loads(data)['series']:
+  sid=row['series_uid'];assert sid not in counts;counts[sid]=row['n_slices'];raw=table.loc[sid]
+  assert raw['StudyInstanceUID']==row['study_uid'] and raw['Anatomical_Plane']==row['plane'] and raw['Fluid_Sensitive']==row['fluid_sensitive'] and raw['Fat_Suppression']==row['fat_suppression'] and raw['Selection_Tier']==row['selection_tier']
+  members[row['study_uid']].append({'SeriesInstanceUID':sid,'Anatomical_Plane':row['plane'],'Fluid_Sensitive':row['fluid_sensitive'],'Fat_Suppression':row['fat_suppression'],'Selection_Tier':row['selection_tier']})
+assert len(members)==3403 and len(counts)==18906 and sum(counts.values())==643501
+assert set(members)==set(manifest['training_uids'])|set(manifest['outer_uids'])
+training=sorted(manifest['training_uids']);assert len(training)==2247
+by_plane=defaultdict(lambda:{'selected_series':0,'source_slices_in_selected_series':0,'uniform_unique_over_10_epochs':0,'stratified_unique_over_10_epochs':0,'slice_presentations_over_10_epochs':0})
+seen_by_sid={};presentation_count=0
+with torch.random.fork_rng(devices=[]):
+ for index,uid in enumerate(training):
+  candidates=sorted(members[uid],key=lambda x:x['SeriesInstanceUID']);selected=select_series(candidates,6,False)
+  seen={x['SeriesInstanceUID']:set() for x in selected}
+  for epoch in range(10):
+   seed=int.from_bytes(hashlib.sha256(f'20260922:{epoch}:{index}'.encode()).digest()[:8],'big')%(2**63-1)
+   torch.random.default_generator.manual_seed(seed)
+   for row in selected:
+    sid=row['SeriesInstanceUID'];indices=_indices(counts[sid],16,True);seen[sid].update(indices.tolist());presentation_count+=len(indices)
+  for row in selected:
+   sid=row['SeriesInstanceUID'];record=by_plane[row['Anatomical_Plane']];record['selected_series']+=1;record['source_slices_in_selected_series']+=counts[sid];record['uniform_unique_over_10_epochs']+=len(_indices(counts[sid],16,False));record['stratified_unique_over_10_epochs']+=len(seen[sid]);record['slice_presentations_over_10_epochs']+=10*min(counts[sid],16);seen_by_sid[sid]=seen[sid]
+source_total=sum(counts[x['SeriesInstanceUID']] for uid in training for x in members[uid])
+selected_total=sum(x['source_slices_in_selected_series'] for x in by_plane.values());uniform=sum(x['uniform_unique_over_10_epochs'] for x in by_plane.values());stratified=sum(x['stratified_unique_over_10_epochs'] for x in by_plane.values());assert presentation_count==sum(x['slice_presentations_over_10_epochs'] for x in by_plane.values())
+result={'status':'metadata_only_frozen_training_cohort_slice_exposure_replayed','plan_manifest_sha256':PLAN_SHA,'series_table_sha256':hashlib.sha256(series_file.read_bytes()).hexdigest(),'seed':20260922,'epochs':10,'training_studies':2247,'series_sampling':'selected','max_series':6,'slices':16,'training_available_series':sum(len(members[u]) for u in training),'training_selected_series':len(seen_by_sid),'training_available_slices':source_total,'source_slices_in_selected_series':selected_total,'uniform_unique_over_10_epochs':uniform,'stratified_unique_over_10_epochs':stratified,'identical_slice_presentations_over_10_epochs':presentation_count,'uniform_fraction_of_selected_source_slices':uniform/selected_total,'stratified_fraction_of_selected_source_slices':stratified/selected_total,'stratified_fraction_of_all_training_source_slices':stratified/source_total,'by_plane':dict(by_plane),'source_images_read':False,'reports_or_target_values_read':False,'model_trained':False,'accuracy_claim':False,'cache_build_completed':False,'study_order':'accepted_training_uids_sorted_lexically_matches_select_development','sampling_rng':'EffectiveBatchSampler(seed:epoch:index)_and_SeededDataset_cpu_torch_generator','limitations':['Distinct slices are not independent patients.','More exposure does not establish pathology visibility or accuracy.','Series capped at six remain omitted.','Results use local CPU Torch2.14.0; Newton actual sampling and checkpoint recovery acceptance still required.']}
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output',type=Path,required=True)
+args=parser.parse_args()
+output=args.output
+result['analysis_source_sha256']={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__).resolve(),ROOT/'rsna/competitive/data.py',ROOT/'rsna/competitive/sampling.py',ROOT/'rsna/data.py']}
+result['torch_version']=str(torch.__version__)
+with output.open('x') as f:json.dump(result,f,indent=2,sort_keys=True);f.write('\n')
+print(json.dumps({k:v for k,v in result.items() if k not in ('by_plane','limitations')},indent=2))

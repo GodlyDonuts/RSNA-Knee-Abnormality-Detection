@@ -56,6 +56,13 @@ def _indices(count: int, requested: int, augment: bool) -> np.ndarray:
     )
 
 
+def evaluation_slice_sampling(policy: str) -> str:
+    """Training-only stratification evaluates with the fixed uniform slice grid."""
+    if policy not in {"uniform", "stratified", "all"}:
+        raise ValueError("Unknown slice coverage policy")
+    return "uniform" if policy == "stratified" else policy
+
+
 class CompetitiveStudyDataset(StudyDataset):
     def __init__(
         self,
@@ -72,8 +79,13 @@ class CompetitiveStudyDataset(StudyDataset):
     ):
         if raw_split not in {"train_series", "test_series"}:
             raise ValueError("Unknown raw split")
-        if slice_sampling not in {"uniform", "all"} or series_sampling not in {"selected", "all"}:
+        if slice_sampling not in {"uniform", "stratified", "all"} or series_sampling not in {
+            "selected",
+            "all",
+        }:
             raise ValueError("Unknown slice or series coverage policy")
+        if slice_sampling == "stratified" and (augment or raw_split != "train_series"):
+            raise ValueError("Stratified slices require training data with fixed series selection")
         super().__init__(studies, series, Path(cache), slices, side, max_series, augment, raw_split)
         self.slice_sampling, self.series_sampling = slice_sampling, series_sampling
         self._metadata: dict[tuple[str, str], tuple[str, dict]] = {}
@@ -156,7 +168,9 @@ class CompetitiveStudyDataset(StudyDataset):
             indices = (
                 np.arange(count)
                 if self.slice_sampling == "all"
-                else _indices(count, self.slices, self.augment)
+                else _indices(
+                    count, self.slices, self.augment or self.slice_sampling == "stratified"
+                )
             )
             valid = len(indices)
             sampled = torch.from_numpy(volume[indices].astype(np.float32))[:, None] / 65535
