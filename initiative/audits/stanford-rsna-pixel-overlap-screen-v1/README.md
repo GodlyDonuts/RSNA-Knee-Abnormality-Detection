@@ -48,3 +48,12 @@ keeping20GiB/5000files after both original and new liabilities; no GPUs.
 Native production867367 allocated evc31 and passed actual GPU/header/cache
 checks. Its first finite optimizer updates are separately preserved in the
 native384 original audit/gpu-initial-progress; no epoch or clinical result yet.
+
+## Corrected original single dispatch
+
+Corrected scientificC88dafb was frozen after1617full tests/Ruff248/mypy42/archive/
+current89/89. Actual original v2CPU jobs867493 Stanford on evc32 and867494 RSNA
+on evc31 were each submitted ONCE. At20:41UTC both PENDING Priority. Exact
+source/funding/wrappers/dispatch in stanford-v2/ and rsna-v2/. Never rerun an
+existing intent/control. Only actual decoded index/terminal proof can establish
+coverage; no cross-source overlap finding or clinical result is claimed here.

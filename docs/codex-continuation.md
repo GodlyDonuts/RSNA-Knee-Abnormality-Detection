@@ -15,6 +15,37 @@ all private immutable epochs and compare any transfer through a clean matched
 RSNA experiment only after cross-source screening/downstream rights review.
 1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
 
+## October1 corrected pixel-only dispatch and native production progress
+
+Native867367 is RUNNING on its original evc31; allocated H100/header/native384
+admission passed and at20:41UTC it had29 finite optimizer updates. First21 exact
+records/run/header/inputs preserved in native384-production-preparation-v1/
+gpu-initial-progress. ScientificC9/config/output unchanged; no epoch checkpoint
+or clinical score yet. Do not restart. Privately preserve each new completed
+native epoch exactly once with scripts/hf/dispatch_native384_epoch.py.
+
+Separate original pixel-index867491/867492 FAILED before decoding, missing
+schema module; original tracebacks/controls preserved. Corrected frozenC88dafb
+seven-member closure passed isolated fresh-process CLI/import; distinct oneCPU/
+zeroGPU index jobs867493 Stanford/evc32 and867494 eligible RSNA/evc31 each
+submitted ONCE, last PENDING Priority. Controls private-{stanford,rsna}-pixel-
+index-20261001-v2; read exact receipts/source in stanford-rsna-pixel-overlap-
+screen-v1/{stanford-v2,rsna-v2}. Never repeat, read-only reconcile uncertain
+mutations. All3750 original Stanford volumes and18906 eligible native384 series;
+private64MiB per-source indices, labels/protected cohorts/model untouched.
+Additional16MiB/48 shared files preserves20GiB/5000 after all earlier liabilities.
+Collect sanitized terminal/index hashes only; never publish private signatures,
+pixels or derived Stanford weights. Completing indices is NOT an overlap
+conclusion; coarse positives require original-image review, negative screen
+cannot prove independent patients.
+
+Actual Stanford older source adapter867419 passed four-update recovery. New
+full engine867478 still PENDING ReqNodeNotAvail; full1129-train/119final-only-
+validation/tenepoch fitting has NOT been dispatched. Use exact existing engine
+recovery/source/control then original single full coordinator after actual pass,
+fresh quotas/jobs review. No Stanford clinical/RSNA-transfer/Kaggle score.
+1617 full tests/Ruff248/mypy42/archive/current89/89 passed beforeC88 freeze.
+
 ## October1 native real optimization and CPU screen packaging correction
 
 Native867367 is RUNNING on evc31, actual header/CUDA/native384 input admission
