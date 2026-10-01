@@ -15,6 +15,27 @@ all private immutable epochs and compare any transfer through a clean matched
 RSNA experiment only after cross-source screening/downstream rights review.
 1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
 
+## October1 native startup and completed Stanford pixel index privately verified
+
+Source6edefe1 native real GPU optimization/startup, original index import failures,
+corrected single index dispatch and actual complete Stanford3750-volume pixel
+index metadata are privately mirrored at HF417905f3d6603d97a8e62ed767d4b693e8241fca;
+all50 new objects fully re-downloaded/size/SHA verified once under shared atomic
+publication lock. Read hf-native-startup-pixel-screen-20261001-v1. No source
+pixels/label values/private signature records/learned Stanford weights mirrored.
+Do not repeat this mutation. Actual native867367 at20:46UTC RUNNING,47 finite
+updates. RSNA pixel-only867494 RUNNING,1750 decoded eligible series; Stanford
+867493 COMPLETED0:0, all3750/1250exams privately indexed. Cross-source overlap
+conclusion remains absent. New full Stanford numerical-engine867478 pending;
+full1129-source tenepoch fitting NOT submitted. Do not mistake old four-update
+optimizer/recovery867419 or pixel CPU checks for clinical/source validation.
+
+Latest quota1021187700/1048576000kB,993696/1000000files; keep20GiB/5000shared
+reserve AFTER all previous plus both16MiB/48metadata CPU obligations. No original
+deletion credit. 1617full tests/Ruff250/mypy42/archive/current89/89 passed; actual
+source staysC88/F12/C9 in separate original lanes. Goal active, protected cohorts
+unused. Latest guide/original receipts supersede historical pending snapshots.
+
 ## October1 actual full Stanford pixel index complete, private records retained
 
 CorrectedCPU867493 COMPLETED0:0/2:19 on evc32, all3750 original volumes across
