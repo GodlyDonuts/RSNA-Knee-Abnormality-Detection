@@ -1,7 +1,7 @@
 ## October1 Stanford private adapter recovery submitted once
 
 Bounded GPU recovery867419 was submitted ONCE on evc32,1H100/2CPUs/32GiB/1hour,
-sourcef2d5ac5e (use original source.json for full revision). Exact source/config/
+sourcef2d5ac552c0b1061991efdb90a047d783fed158c. Exact source/config/
 header-and-allocated-device batch/funding/single dispatch receipts in
 mrnet-private-source-admission-v1/gpu-recovery-dispatch/. Private control
 /home/sa305415/rsna-knee/mrnet-adapter-recovery-20261001-v1. Last observed PENDING
