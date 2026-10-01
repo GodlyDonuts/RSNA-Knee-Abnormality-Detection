@@ -16,3 +16,9 @@ staging rechecks all source/input/helper/hash/quota and original866373terminal
 failure before another bounded attempt. Original v1/v2 controls and intents
 are preserved; neither is restarted. The finite v3 CPU dispatch is not yet sent
 in this source/staging milestone. Native full-cohort model training is unlaunched.
+
+Corrected storage-aware one-CPU/zero-GPU job866380 was dispatched once from
+Gitff01458. It is RUNNING on evc21 at01:59UTC with exact run-start, empty
+stderr, source/driver/launch bindings and funded21.943GiBshared reserve. Its
+unique v3control/output is never reused. Environment/source build/preservation
+outcomes remain unconfirmed; full-cohort/native production remain unlaunched.
