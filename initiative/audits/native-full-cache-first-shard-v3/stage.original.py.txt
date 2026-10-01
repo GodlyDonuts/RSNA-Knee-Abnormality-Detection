@@ -1,0 +1,42 @@
+import base64,hashlib,importlib.util,json,subprocess
+from pathlib import Path
+r=Path.cwd();local=r/'artifacts/native-full-cache-first-shard-v3';sock='/tmp/rsna-r64-submit-20261001-501.sock';control='/home/sa305415/rsna-knee/native-full-shard000-c9-v3';science='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+spec=importlib.util.spec_from_file_location('transport',r/'scripts/newton/dispatch_native384_pilot.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+names=subprocess.check_output(['git','ls-tree','-r','--name-only',science,'rsna'],text=True).splitlines();binding={'checkout':'/home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e','files':{n:{'sha256':hashlib.sha256(subprocess.check_output(['git','show',science+':'+n])).hexdigest()} for n in names if n.endswith('.py')}}
+(local/'science-binding.json').write_text(json.dumps(binding,indent=2,sort_keys=True)+'\n')
+paths={'runner.py':r/'scripts/newton/run_native_cache_shard.py','worker.py':r/'scripts/newton/build_native_cache_shard.py','publisher.py':r/'scripts/hf/publish_native_cache_shard.py','manifest.json':r/'artifacts/native-full-cache-shards384-v1/manifest.json','shard-000.json':r/'artifacts/native-full-cache-shards384-v1/shard-000.json','science-binding.json':local/'science-binding.json'}
+files={n:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for n,p in paths.items()}
+helpers={f'/home/sa305415/rsna-knee/code-stopfix-1f486765/scripts/newton/{n}':{'sha256':hashlib.sha256((r/'scripts/newton'/n).read_bytes()).hexdigest()} for n in ('runtime_environment.py','runtime_archive.py')}
+plan={'scientific_source_git':science,'shard':0,'files':files,'runtime_helpers':helpers,'environment_helper':next(iter(helpers)),'environment_archive':'/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar','environment_sha256':'89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','input_root':'/home/sa305415/rsna-knee/code-stopfix-1f486765','reference_archive':'/home/sa305415/rsna-knee/cache/cache256-v3-official-recovery-v1.tar','remaining_shared_obligations_bytes':2680000000+644*1024**2+140*1024**2}
+(local/'launch.json').write_text(json.dumps(plan,indent=2,sort_keys=True)+'\n');paths['launch.json']=local/'launch.json'
+program=r'''import base64,hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+request=json.load(sys.stdin);p=request['plan'];c=Path('/home/sa305415/rsna-knee/native-full-shard000-c9-v3');assert not c.exists();assert subprocess.check_output(['sacct','-X','--noheader','--parsable2','-j','866373','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='866373|FAILED|2:0';assert not (c.parent/'native-full-shard000-c9-v2'/'publication').exists();assert json.loads((c.parent/'native-full-shard000-c9-v2'/'diagnostic-readonly.json').read_text())['reason']=='private_original_object_binding_changed'
+def digest(q):return hashlib.sha256(q.read_bytes()).hexdigest()
+science=request['science'];checkout=Path(science['checkout']);assert subprocess.check_output(['git','-C',str(checkout),'rev-parse','HEAD'],text=True).strip()==p['scientific_source_git']
+assert not list((checkout/'rsna').rglob('*.pyc')) and not list((checkout/'rsna').rglob('*.so'))
+for n,x in science['files'].items():assert digest(checkout/n)==x['sha256']
+for n,x in p['runtime_helpers'].items():assert digest(Path(n))==x['sha256']
+shard=json.loads(base64.b64decode(request['files']['shard-000.json']))
+for n,x in shard['input_bindings'].items():
+ q=Path(p['input_root'])/n;assert q.stat().st_size==x['bytes'] and digest(q)==x['sha256']
+q=Path(p['reference_archive']);assert not q.is_symlink() and q.stat().st_size==82834493440
+q=Path(p['environment_archive']);assert not q.is_symlink() and q.is_file()
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);parts=quota.splitlines()[-1].split();used,soft,nfiles,fsoft=[int(parts[i]) for i in (1,2,5,6)];remaining=(soft-used)*1024-p['remaining_shared_obligations_bytes']-sum(len(base64.b64decode(x)) for x in request['files'].values());assert remaining>=20*1024**3 and fsoft-nfiles-100>=5000
+jobs=subprocess.check_output(['squeue','-u','sa305415','--noheader','--format=%i|%j|%T|%b'],text=True);assert 'rsna-native-shard' not in jobs
+c.mkdir(mode=0o700)
+for n,v in request['files'].items():
+ data=base64.b64decode(v);(c/n).write_bytes(data);os.chmod(c/n,0o600)
+ if n in p['files']:assert len(data)==p['files'][n]['bytes'] and digest(c/n)==p['files'][n]['sha256']
+receipt={'status':'original_source_shard000_payload_and_scientific_inputs_staged','checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'files':p['files'],'launch_sha256':digest(c/'launch.json'),'control':str(c),'quota':quota,'projected_remaining_gib':remaining/1024**3,'projected_remaining_files':fsoft-nfiles-100,'live_jobs':jobs,'gpu_reserved':False,'slurm_dispatch':False,'scientific_files':len(science['files']),'original_studies':len(shard['study_uids']),'series':shard['series_count'],'slices':shard['slices'],'source_bytes':shard['source_bytes']}
+(c/'stage-verified.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');print(json.dumps(receipt))
+'''
+v={}
+for line in (r/'.env').read_text().splitlines():
+ k,s,x=line.partition('=')
+ if s:v[k.strip()]=x.strip().strip('\"\'')
+from huggingface_hub import HfApi
+api=HfApi(token=v['HF_TOKEN']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True
+prefix='experiments/dinov3-v1/native-original384-v1/selection-'+json.loads(paths['shard-000.json'].read_text())['selection_sha256']+'/shard-000'
+assert not api.get_paths_info('GodlyDonuts/RSNA-Data',paths=[prefix+'/'+n for n in ('manifest.json','cache-verified.json','cache-side-256.tar','cache-side-384.tar')],repo_type='dataset',revision=info.sha)
+result=m.ssh(sock,['/usr/bin/python3.12','-c',program],{'plan':plan,'science':binding,'files':{n:base64.b64encode(p.read_bytes()).decode() for n,p in paths.items()}},timeout=120);m.save_new(local/'stage-verified.json',result);print(json.dumps({'status':result['status'],'projected_remaining_gib':result['projected_remaining_gib'],'studies':result['original_studies'],'series':result['series']}))

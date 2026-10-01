@@ -12,6 +12,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -80,6 +81,24 @@ def verify_bytes(data: bytes, record: dict) -> bytes:
     if len(data) != record["bytes"] or hashlib.sha256(data).hexdigest() != record["sha256"]:
         raise ValueError("source_or_reference_bytes_changed")
     return data
+
+
+def verify_original_metadata(info, objects: dict) -> None:
+    """Bind both accepted storage types; full byte SHA256 is checked on every read."""
+    if len(info) != len(objects) or {v.path for v in info} != objects.keys():
+        raise ValueError("private_original_object_binding_changed")
+    for item in info:
+        expected = objects[item.path]
+        if item.size != expected["bytes"]:
+            raise ValueError("private_original_object_binding_changed")
+        if expected["storage"] == "lfs":
+            valid = bool(item.lfs and item.lfs.sha256 == expected["sha256"])
+        elif expected["storage"] == "git":
+            valid = not item.lfs and bool(re.fullmatch(r"[0-9a-f]{40}", item.blob_id or ""))
+        else:
+            valid = False
+        if not valid:
+            raise ValueError("private_original_object_binding_changed")
 
 
 def load_plan(root: Path, manifest_path: Path, number: int) -> tuple[dict, pd.DataFrame]:
@@ -600,17 +619,7 @@ def main() -> None:
         info = list(
             api.get_paths_info(REPO, paths=batch, revision=SOURCE_REVISION, repo_type="dataset")
         )
-        if (
-            len(info) != len(batch)
-            or {v.path for v in info} != set(batch)
-            or any(
-                v.size != objects[v.path]["bytes"]
-                or not v.lfs
-                or v.lfs.sha256 != objects[v.path]["sha256"]
-                for v in info
-            )
-        ):
-            raise ValueError("private_original_object_binding_changed")
+        verify_original_metadata(info, {name: objects[name] for name in batch})
     os.environ["HF_TOKEN"] = token
     reader = Source(None, objects, repo_id=REPO, revision=SOURCE_REVISION)
     reader.downloads.shutdown(wait=True)

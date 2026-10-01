@@ -254,3 +254,33 @@ def test_changed_full_cohort_manifest_is_rejected_before_any_data_read(tmp_path)
     manifest.write_text("{}")
     with pytest.raises(ValueError, match="manifest_binding_changed"):
         worker.load_plan(tmp_path, manifest, 0)
+
+
+def test_original_metadata_accepts_pinned_git_and_lfs_and_still_checks_full_bytes():
+    from types import SimpleNamespace
+
+    raw = b"original git-stored source"
+    expected = {
+        "a.dcm": {"bytes": 50, "storage": "lfs", "sha256": "a" * 64},
+        "b.dcm": {"bytes": len(raw), "storage": "git", "sha256": hashlib.sha256(raw).hexdigest()},
+    }
+    info = [
+        SimpleNamespace(path="a.dcm", size=50, lfs=SimpleNamespace(sha256="a" * 64)),
+        SimpleNamespace(path="b.dcm", size=len(raw), lfs=None, blob_id="b" * 40),
+    ]
+    worker.verify_original_metadata(info, expected)
+    assert worker.verify_bytes(raw, expected["b.dcm"]) == raw
+    with pytest.raises(ValueError, match="source_or_reference_bytes_changed"):
+        worker.verify_bytes(raw[:-1] + b"x", expected["b.dcm"])
+    for changes in ({"size": 1}, {"blob_id": "unbound"}, {"lfs": SimpleNamespace(sha256="b" * 64)}):
+        changed = copy.deepcopy(info)
+        for key, value in changes.items():
+            setattr(changed[1], key, value)
+        with pytest.raises(ValueError, match="private_original_object_binding_changed"):
+            worker.verify_original_metadata(changed, expected)
+    with pytest.raises(ValueError, match="private_original_object_binding_changed"):
+        worker.verify_original_metadata(info[:1], expected)
+    wrong_storage = copy.deepcopy(expected)
+    wrong_storage["b.dcm"]["storage"] = "anything"
+    with pytest.raises(ValueError, match="private_original_object_binding_changed"):
+        worker.verify_original_metadata(info, wrong_storage)

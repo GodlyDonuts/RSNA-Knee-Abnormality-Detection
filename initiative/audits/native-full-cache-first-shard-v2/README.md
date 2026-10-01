@@ -20,3 +20,15 @@ with actual one-CPU/zero-GPU run-start, source/driver/launch bindings and funded
 21.944GiBshared reserve. It passed the corrected admission and has begun accepted
 node-local environment extraction; stderr was empty. Source download/build and
 private preservation have not completed. No production training is running.
+
+Worker866373 later FAILED2:0 before build or publication. CPU-only read-only
+reproduction866378 reached load_plan/source_members then the exact
+private_original_object_binding_changed guard. The unmodified worker required
+LFS for every source, but144accepted inventory objects are Git-stored DICOMs.
+All8,484metadata bindings were subsequently validated, including8,340LFS and
+144Gitobjects. Every Gitobject was freshly downloaded from pinned revision,
+full-size/SHA256 checked (10,825,704bytes), and its Git blob SHA1 independently
+recomputed. The metadata rejection was a storage-assumption bug; no source
+bytes, labels, masks or folds were altered. The corrected external worker
+binds storage type, metadata size and LFS hash or Git blob identity, while the
+unmodified Source and worker still verify full original byte SHA256 on read.
