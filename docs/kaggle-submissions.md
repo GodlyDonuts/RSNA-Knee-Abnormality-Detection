@@ -1,3 +1,17 @@
+## October 1 rank64 epoch10 submitted once
+
+**Kaggle submission56740377** is the exact sampled rank64 fold0 epoch10 code submission, private offline T4 notebook `godlydonuts/rsna-knee-a64-epoch10-0f1a410916b6` version1, private Dataset12299834 version1. All47 Dataset payloads passed full re-download/size/SHA checks, and the completed public MRI run passed exact source/configuration, checkpoint/bundle/CSV hashes, three-study UID order, thirteen columns, finite probabilities and zero fallback checks. The three-row public CSV was not uploaded as a competition submission. The single canonical Newton coordinator submitted once at2026-10-01 01:20UTC; the initial read-only canonical reconciliation had no public score and four live slots. Never repeat this submission, Dataset creation or notebook push. The finite local finish coordinator exited successfully; its intent is historical, not pending work. See `initiative/audits/kaggle-rank64-epoch10-v1/` and `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`.
+
+Compare the eventual score primarily with sampled rank32 fold0 epoch10 submission56697342=0.769. All-development rank32 epoch10 submission56711823=0.792 used a different training population. Inspect the actual hidden outcome before choosing another capacity experiment; public completion is not a hidden score. The owner requested these submissions to learn which experimental direction works.
+
+Native deterministic recovery866239 completed0:0, and the whole-series rank32 control fixed-final internal AUC0.8603399208109389 was independently replayed. GitHub cdfaac2 and private HF revision554c6cd94c4fdcef07209f50eaad002e83f99de5 preserve their exact evidence plus rank64 preparation; all52 mirrored files passed download/hash verification. Full1275 tests, Ruff184files, mypy38modules, archive and complete v2 review coverage passed. The full native source cache and its production model are still unbuilt/unlaunched. Pending statements below describe earlier observations.
+
+## October 1 rank64 epoch10 learning submission
+
+The owner requested rank64 epoch10 as a capacity comparison. The exact C9 sampled fold0 checkpoint SHA is `0f1a410916b6f9c6bc8bd7dc9d9cfe84a86e5dc1075bc615c2454fa0fb622615`. Private Dataset12299834 version1 is fully re-download/size/SHA verified (47 payloads). Exact private offline T4 notebook `godlydonuts/rsna-knee-a64-epoch10-0f1a410916b6` version1 was pushed once and is undergoing public MRI inference acceptance; no competition submission is inferred from a notebook push. See `initiative/audits/kaggle-rank64-epoch10-v1/` and the authoritative single Newton ledger. Never repeat the Dataset creation or notebook push. A finite local coordinator in ignored `artifacts/kaggle-rank64-epoch10-v1/finish_when_ready.py` is waiting for exact public completion before one guarded submission attempt; inspect its result/intent before any competing action.
+
+The actual scored references are sampled rank32 fold0 epoch10 submission56697342 (**0.769**) and all-development rank32 epoch10 submission56711823 (**0.792**, COMPLETE/no error). The former is the closest existing same-split rank comparison; the latter also changes the training population. Public execution validates deployment; it is not a hidden score. The owner wants submissions to inform experimental decisions, without treating a single leaderboard observation as universal evidence that larger rank is better.
+
 # Scheduled Kaggle code submissions
 
 September 30 at 15:34:39 UTC, the exact all-development E10 code notebook

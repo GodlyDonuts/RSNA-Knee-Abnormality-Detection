@@ -1,3 +1,5 @@
+**Submitted once:** Kaggle56740377 at2026-10-01 01:20UTC. Exact private offline T4 notebook version1 completed its public MRI-only run, with all source/checkpoint/bundle/CSV hashes, three-study UID order,13columns, finite probabilities and zero fallbacks verified. All47 Dataset payloads were previously fully verified. The canonical ledger recorded the code submission; the initial read-only hidden observation has no public score and four available slots. The public CSV was not itself submitted. See `canonical-submitted-entry.json`, `public-complete-verification.json` and `hidden-initial-observation.json`. Historical preparation statements below remain preserved.
+
 # Rank64 epoch10 Kaggle comparison
 
 Owner explicitly requested the sampled rank64 fold0 epoch10 model as a rank-capacity experiment. Primary training job 865578 completed 0:0; the checkpoint SHA is `0f1a410916b6f9c6bc8bd7dc9d9cfe84a86e5dc1075bc615c2454fa0fb622615`, optimizer step 2810. All ten role checkpoints were already privately fully download/hash verified; epoch10 revision is `4b81ebc1b9fd099287247cc72061be1a620d02a2`. No checkpoint publication was repeated.
