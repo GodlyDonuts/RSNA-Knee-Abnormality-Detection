@@ -1,5 +1,12 @@
 ## October 1 current experiment and external-data status
 
+External-source audit Git e932759 is privately mirrored at HF revision
+62825e081ca8bd09d983f1214a95f3cd6114c247. All five milestone objects were fully
+re-downloaded and size/SHA verified under the shared publication exclusion.
+Journals: `initiative/audits/hf-external-knee-inventory-20261001-v1/`.
+Do not repeat this publication. All 1,340 tests, Ruff, formatting, mypy, archive
+integrity, complete v2 coverage and independent annotation-count replay passed.
+
 Use the latest receipts before historical entries below. Git df4b5db preserves
 the rank/input learning milestone: private HF revision
 20b419e03ea37c2d77a799d4ff3d91aec77955bf, all 17 objects fully download/size/SHA
