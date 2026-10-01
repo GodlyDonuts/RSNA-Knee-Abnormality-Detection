@@ -1,3 +1,30 @@
+## October1 full Stanford engine and earlier-node restoration prepared
+
+Read mrnet-full-source-preparation-v1. Full1129 source-training exam/119validation
+private fitting is implemented, tenepochs/142 updates per epoch/1420total, same
+three-plane official DINOv3-L rank32 source-specific head, one-epoch warm-up and
+cosine decay. Six CPU checks demonstrate exact optimizer/RNG/order/dropout resume,
+last partial batch coverage and validation exclusion. No full-source fitting or
+actual GPU acceptance for this new engine is claimed. Its own real four-update
+fresh-process recovery is required; the older pilot cannot substitute for it.
+
+Original native867367 and Stanford867419 remain PENDING. A read-only Slurm
+--test-only evc24 forecast is about five hours earlier than owning evc32. New
+restore_mrnet_private.py and launch_mrnet_restored_probe.py are prepared for one
+private CPU-only copy from evc32 to evc24, original3750-volume SHA checks and exact
+eight original image/label tensor records. No shared/raw re-download, original
+removal or duplicate training. Before any new GPU dispatch require actual
+restoration, fresh pending-state review, old cancellation and terminal receipt.
+The originalF2d numerical archive/config stay byte identical. Native867367 stays
+untouched. 32MiB/96 additional small shared objects must preserve20GiB/5000files
+after all existing liabilities; no new full-source GPU/checkpoint funding yet.
+
+1612 full tests/Ruff241/mypy41 passed; refresh archive membership for this new
+small audit before verification/push. Credentials/private Stanford data/derived
+weights are not committed. Competition/redistribution compatibility remains
+unresolved; source-task accuracy and engineering checks do not demonstrate a
+clean RSNA or Kaggle gain. Protected gold/confirmation unused; goal stays active.
+
 ## October1 Stanford/native/gradient milestone privately fully verified
 
 Main8746306 source, native full assembly/CPU admission/production dispatch,
