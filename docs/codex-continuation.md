@@ -1,3 +1,16 @@
+## October 1 recovery milestone privately verified and follow-up updated
+
+Git080d578's evc22 failure/evc31 recovery milestone is private at HF
+09a26c7bec9bfc29335d7cd214969f0507a18884; all11objects were fully re-downloaded
+and size/SHA verified under the shared atomic publication lock. Journal:
+`initiative/audits/hf-sampling-evc31-recovery-20261001-v1/`. Never repeat.
+The existing two-hour quiet automation now records the actual rank64 scored0.778,
+21canonically re-admitted source shards, CPU866610 success, GPU866616 preflight
+failure/zero updates and distinct queued866624. No cadence change or duplicate
+automation. At the last read866624 remained PENDING Priority; no optimizer work
+or sampling performance result is yet claimed. Read actual Slurm/logs before
+acting, preserve exact code/configs and all native/source obligations.
+
 ## October 1 sampling GPU node failure and bounded evc31 recovery
 
 The first sampling GPU pilot866616 FAILED2:0 on evc22 in2:35 during the bounded
