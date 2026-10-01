@@ -1,3 +1,31 @@
+## October1 uniform epoch8 privately verified
+
+Original CPU867085 COMPLETED0:0; all5 objects privately re-downloaded/size/SHA
+verified at HFbbbc158b2e676290a0de811a5edc668acb700eec. Checkpoint
+SHAf579766c307a43c5cee115680884eef17b6ecd56fa02c69923445a9e475422bd.
+Original snapshot/source/intent/single dispatch/commit/full-byte/terminal
+receipts in sampling-epochs-v1/uniform/epoch-008. Both matched roles now have
+epochs1–8 fully private/verified; never repeat those intents or paths. Local
+CPU publication4863 finished0. No final comparison or new Kaggle score exists.
+
+## October1 CPU32/source/training milestone privately verified
+
+Main0cc6fea and the actualCPU32 admission/new standalone source, original
+native60/75 canonical proof collection and S7/U7/S8 preservation receipts were
+privately mirrored at HF8cd2dd144dd4fe27e02045811da981a5a277170a. All78 objects
+fully re-downloaded/size/SHA verified under the original shared publication lock;
+single intent/commit/validation journal hf-relation-inputs32-CPU-and-source-
+progress-20261001-v1. Do not repeat. Both existing publication7009 and CPU
+staging63770 have finished0; no local mutation process remains live.
+
+Latest actual14:50UTC S866716 training epoch9/update144/2392steps and U866719
+epoch8/update266/2233steps, finite. Gradient866846 and assembly866458 remain
+PENDING Dependency; native source lanes running. CPU32 actual866929 passed,
+not a trainer pilot. Preserve new completed distinct epochs, then fixed-final
+matched development comparison; actual gradient review/decision, exact GPU
+wrapper and all-checkpoint funding remain necessary before relation pilot.
+Source-stage admission's zero checkpoint liability does not fund a new model.
+
 ## October1 actual CPU32 input admission passed; stratified epoch8 private
 
 Original866929 COMPLETED0:0/34:52 evc21/1CPU/0GPU. CPU32 receipt
