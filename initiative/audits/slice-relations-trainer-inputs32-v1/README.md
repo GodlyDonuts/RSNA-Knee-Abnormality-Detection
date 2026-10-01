@@ -42,3 +42,48 @@ No retry over existing intent/runtime/receipt/output. Reconcile actual terminal
 and exact original proof before any later phase. The 16-outer-study tensor checks
 are not clinical evaluation; the later pilot's tiny prediction outputs cannot
 select a model, be called competitive evidence or be submitted to Kaggle.
+
+## Actual immutable CPU stage and dispatch
+
+Scientific source d978da9691995b031c5d1f44cf17094a4fb46402 was frozen on main
+after1595 tests/2warnings, Ruff226 files, mypy39, archive validation and current
+89/89 evidence coverage passed. All48 original4acd6fa source files remain byte
+identical, with exactly3 standalone additions;51 regular source members in the
+665600-byte source TAR. Original CPU16 receipt and old control remain unchanged.
+
+The original single coordinator stage_relation_inputs32_CPU_v1.py ran once.
+Fresh funding at14:09UTC preserved20.715567448176444GiB and5758 files after ALL
+existing native/sampling obligations plus the new16MiB/48-file CPU phase. This
+is zero-checkpoint funding; it does NOT fund a trainer/production model. Exact
+source/member/request/dispatch/funding receipts and the original coordinator
+text are preserved here. Slurm866929 was submitted once, oneCPU/zeroGPU/16GiB/
+one hour, and actually allocated evc21. Its distinct control is
+/home/sa305415/rsna-knee/relation-trainer-inputs32-v1.
+
+At14:13UTC it remained RUNNING with empty stdout/stderr during original-cache
+materialization. That is an allocation/staging result, not a passed input gate.
+Do not restart it, repeat original-cache hashing or mistake no early output for
+failure. Original terminal/CPU32 receipt, once available, overrides this state.
+No GPU trainer/pilot was staged or dispatched. Pending gradient866846 and the
+two matched production sampling roles stay untouched.
+
+## Actual CPU32 admission passed
+
+Original Slurm866929 completed0:0 on evc21 after34:52. Its original receipt
+SHA8d6d432d238586428f725e84d43567fb2aa7b20996869b70c9661bb5c7528362 was
+re-admitted read-only with all staged file bytes, exact oldCPU16 input/config
+binding, expanded source/release/fullfold/fixture signatures,32-study original
+cache records and16 independent outer tensor hashes. Terminal stdout records
+actual_32_study_relation_trainer_CPU_inputs_verified and0 optimizer updates;
+stderr is empty. All370 original cache members/636197918 bytes were node-local;
+zero pixels were written to shared storage. Original runtime and CPU receipt,
+source/dispatch records and independent read-only acceptance are in terminal/.
+The original env/cache/source were cleaned by the same owning Slurm wrapper.
+Never repeat this job or its source stage.
+
+This measured CPU materialization/validation time must inform the later GPU
+pilot's staging/time budget; it is not training throughput or clinical evidence.
+It does NOT accept gradients, auxiliary strength, GPU recovery or checkpoint
+funding. Gradient866846 is still the original independent measurement, and no
+new trainer GPU pilot is staged/dispatched. Actual agent scale review, fresh
+full storage obligations and the exact GPU wrapper remain prerequisites.

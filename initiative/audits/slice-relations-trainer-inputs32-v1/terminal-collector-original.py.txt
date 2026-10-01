@@ -1,0 +1,31 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+from datetime import datetime,timezone
+root=Path.cwd();audit=root/'initiative/audits/slice-relations-trainer-inputs32-v1';out=audit/'terminal'
+assert not out.exists()
+code='''import json,sys,hashlib,subprocess
+from pathlib import Path
+p=json.load(sys.stdin);c=Path('/home/sa305415/rsna-knee/relation-trainer-inputs32-v1')
+terminal=subprocess.check_output(['sacct','-X','--noheader','-j','866929','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip();assert terminal=='866929|COMPLETED|0:0',terminal
+for n,row in p['stage_files'].items():
+ f=c/n;assert not f.is_symlink() and f.stat().st_size==row['bytes'] and hashlib.sha256(f.read_bytes()).hexdigest()==row['sha256']
+source=json.loads((c/'source.json').read_text());receipt=json.loads((c/'cpu-input-verified.json').read_text());runtime=json.loads((c/'runtime.json').read_text());old=json.loads(Path(source['original_CPU_acceptance_path']).read_text())
+assert receipt['status']=='actual_32_study_relation_trainer_CPU_inputs_verified';assert receipt['optimizer_updates']==0 and receipt['GPU_acceptance'] is False and receipt['clinical_accuracy_evidence'] is False
+assert receipt['training_studies']==16 and receipt['outer_engineering_studies']==16 and len(receipt['outer_input_sha256'])==16
+assert receipt['source_git']==source['source_git']==p['source_git'];assert receipt['reference_source_git']==source['reference_source_git']=='4acd6fa57a193cf8a4b5bb813866d98d358e1e5a'
+assert receipt['training_input_binding']==old['input_binding'] and receipt['configs']==old['configs']
+assert receipt['fixture_request_sha256']==source['fixture_request_sha256'];assert receipt['recovery_source_manifest_sha256']==hashlib.sha256((c/'source.json').read_bytes()).hexdigest();assert receipt['original_CPU_acceptance_sha256']==source['original_CPU_acceptance_sha256']
+assert runtime['job_id']=='866929' and runtime['cpus']==1 and runtime['gpus']==0 and runtime['cache']['studies']==32 and runtime['cache']['shared_pixel_bytes_written']==0
+names=['cpu-input-verified.json','runtime.json','dispatch-intent.json','dispatch-result.json','stdout.txt','stderr.txt']
+assert (c/'stderr.txt').stat().st_size==0
+print(json.dumps({'terminal':terminal,'files':{n:(c/n).read_text() for n in names},'receipt_sha256':hashlib.sha256((c/'cpu-input-verified.json').read_bytes()).hexdigest()}))
+'''
+payload={'stage_files':json.loads((audit/'stage-files.json').read_text()),'source_git':json.loads((audit/'source.json').read_text())['source_git']}
+r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',code])],input=json.dumps(payload),capture_output=True,text=True,timeout=45);assert r.returncode==0,r.stderr[:1000];v=json.loads(r.stdout)
+out.mkdir();files={}
+for n,t in v['files'].items():
+ p=out/n
+ with p.open('x') as f:f.write(t)
+ files[n]={'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+with (out/'read-only-acceptance.json').open('x') as f:json.dump({'status':'original_actual_CPU32_terminal_source_receipt_readonly_verified','checked_utc':datetime.now(timezone.utc).isoformat(),'terminal':v['terminal'],'source_git':payload['source_git'],'receipt_sha256':v['receipt_sha256'],'files':files,'optimizer_updates':0,'GPU_acceptance':False,'clinical_accuracy_evidence':False},f,indent=2,sort_keys=True);f.write('\n')
+print(json.dumps({'terminal':v['terminal'],'receipt_sha256':v['receipt_sha256']}))

@@ -1,3 +1,69 @@
+## October1 actual CPU32 input admission passed; stratified epoch8 private
+
+Original866929 COMPLETED0:0/34:52 evc21/1CPU/0GPU. CPU32 receipt
+SHA8d6d432d238586428f725e84d43567fb2aa7b20996869b70c9661bb5c7528362:
+actual_32_study_relation_trainer_CPU_inputs_verified,0 updates. Exact original
+source/stage/dispatch/runtime/terminal/input/config/fullfold/release/fixture and
+16 outer tensor records independently re-admitted read-only; stderr empty.
+32studies/370 original members/636197918 bytes were copied node-local, zero shared
+pixel bytes. Cleanup stayed within owning Slurm job. Read terminal/ and README
+in slice-relations-trainer-inputs32-v1. Never repeat866929 or substitute its
+expanded source manifest for oldCPU16/gradient reference.
+
+This accepts inputs only. Gradient866846 remains pending under afterok866716;
+no actual trainer GPU pilot was staged/dispatched. Need actual gradient review
+and bound decision, fresh complete optimizer-checkpoint/publication funding and
+an accepted GPU wrapper before allocating. CPU34:52 timing is engineering I/O
+validation, not training throughput. Do not infer future pilot storage funding
+from the zero-checkpoint CPU admission. Keep both live sampling roles unchanged.
+
+Stratified epoch8 privately fully re-downloaded/size/SHA verified at
+HF544bd87dbf5d614510b64e135ad52a53fd11d06a, original CPU867079 COMPLETED0:0.
+Checkpoint SHA5ab896943392e5a76ea97cb2d75ac36d2407193690076c36cd631ad0ef3c7045.
+Original5-object/snapshot/single-dispatch/commit/terminal receipts in
+sampling-epochs-v1/stratified/epoch-008. Never repeat S1–8 or U1–7. Latest
+observation14:41UTC: S training epoch9, U training epoch8, finite. Actual final
+results/held-out comparison are still unavailable. Native canonical60/75
+original proofs remain in summary-through-060-relation-inputs32-stage.json.
+
+## October1 uniform epoch7 privately verified
+
+Original publisher866935 COMPLETED0:0, all5 private objects fully re-downloaded/
+size/SHA verified at HF456af2681cfd8cbfa8c8dd6a617b1a1a39421aa0. Checkpoint
+SHA233ca88f3e9f8b1eb362ccb0a5898f3ecbe0e54a9367f8e89ff4770fee5e022b.
+Original single dispatch/snapshot/manifest/intent/commit/full-byte/terminal
+receipts in sampling-epochs-v1/uniform/epoch-007. Never repeat either arm's
+epochs1–7. Both scientific7ac7a97 training jobs stay unchanged.
+
+## October1 CPU32 actual stage and sampling epoch7 preservation
+
+CPU-only input admission866929 was submitted ONCE from scientific source
+d978da9691995b031c5d1f44cf17094a4fb46402 and allocated evc21,1CPU/0GPU. It was
+RUNNING during materialization at14:13UTC, not accepted yet. Unique control
+/home/sa305415/rsna-knee/relation-trainer-inputs32-v1; original coordinator and
+source/member/request/funding/dispatch receipts in
+slice-relations-trainer-inputs32-v1. Resume/inspect that exact process; never
+duplicate. It preserves all old4acd6fa modules plus3 standalone files, old
+CPU16 receipt and old gradient control.1595 tests/Ruff226/mypy39/archive/current
+89/89 checks passed before source freeze. Zero-checkpoint CPU funding preserved
+20.7156GiB/5758files; it does NOT fund trainer checkpoints. Need actual CPU32
+receipt, actual gradient866846 review, new GPU wrapper and fresh complete pilot
+funding before reserving GPU. Original gradient dependency remains afterok866716.
+
+Stratified epoch7 is fully private/download/size/SHA verified at
+HF8ed4329aa4f39e3ce28c0cb30570c3371dd6b013, original CPU866930 COMPLETED0:0.
+Checkpoint SHAc211f7589337d1b9dc15f1e84bdbaccf78fe0c109b30be26bb488ea5bfa0bd42;
+all5 objects verified. Never repeat either arm's already verified epochs1–6 or
+stratified7. Both matched models were training epoch8 at14:13UTC. No clinical
+comparison is available until fixed-final predictions finish on the same1156
+development studies.
+
+Native source canonical60/75:2723studies/15172series/515853slices, indices0–58,60
+with gap59. Read summary-through-060-relation-inputs32-stage.json and the original
+6-object private receipts re-admitted read-only through pinned assembly source.
+No original source blobs were reuploaded/redownloaded during collection.
+Both source lanes remain running and assembly866458 remains pendingdependency.
+
 ## October1 independent32-study CPU input wrapper prepared
 
 Read slice-relations-trainer-inputs32-v1/README.md. New CPU-only scripts preserve

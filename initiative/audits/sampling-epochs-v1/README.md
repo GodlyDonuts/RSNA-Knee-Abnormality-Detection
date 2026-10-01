@@ -10,6 +10,13 @@
 | uniform | 3 | 67b9c55b6ebe6360ab9785f2d32506466ee8360b | 866808 COMPLETED0:0 |
 | stratified | 4 | ec08cc28c017f28b1315677794b196bc988c5d2e | 866818 COMPLETED0:0 |
 | uniform | 4 | 25101e9a6d7d49ea795c59dc2cbf6ed488daa792 | 866832 COMPLETED0:0 |
+| stratified | 5 | ab343c155868e8153ad08176d9978c48d8dc4621 | 866848 COMPLETED0:0 |
+| uniform | 5 | b2116b16e354ffaaf059a53fd1ebf32bbcf961c4 | 866850 COMPLETED0:0 |
+| stratified | 6 | d168a3ab50d1adfd0df908b1d4c4d7cb635ed294 | 866859 COMPLETED0:0 |
+| uniform | 6 | 2db043fb7a9dbc82e973a39fca4f2890ea4ee935 | 866897 COMPLETED0:0 |
+| stratified | 7 | 8ed4329aa4f39e3ce28c0cb30570c3371dd6b013 | 866930 COMPLETED0:0 |
+| uniform | 7 | 456af2681cfd8cbfa8c8dd6a617b1a1a39421aa0 | 866935 COMPLETED0:0 |
+| stratified | 8 | 544bd87dbf5d614510b64e135ad52a53fd11d06a | 867079 COMPLETED0:0 |
 
 Every five-object publication was fully re-downloaded and size/SHA verified.
 All epochs retain scientific source7ac7a97, pinned official DINOv3-L weights,
