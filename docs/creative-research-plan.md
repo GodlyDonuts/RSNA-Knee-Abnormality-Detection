@@ -193,3 +193,13 @@ scheduling. Exact production audit is in
 `initiative/audits/stratified-slices-production-launch-v1/README.md`.
 New anatomy/physics objectives remain proposals until implemented, tested and
 matched against controls. No new held-out improvement or novelty is claimed.
+## October1 relation acceptance progress
+
+The official-weight real-MRI CPU probe has now passed geometry-only adapter
+updates and exact recovery at32-pixel FP32 engineering input, with disease
+targets masked. A separate full224 BF16 gradient diagnostic is prepared and
+CPU-tested in `scripts/newton/measure_relation_gradients.py`: it measures disease
+and physical/shuffled geometry gradient strength/direction at common initial
+states on sixteen admitted training studies. It has not executed on H100 and
+cannot replace the actual two-epoch trainer/recovery or held-out comparison.
+See `initiative/audits/slice-relations-gradient-preparation-v1/README.md`.

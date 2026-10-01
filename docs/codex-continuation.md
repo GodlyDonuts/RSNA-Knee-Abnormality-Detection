@@ -1,3 +1,28 @@
+## October1 full-input gradient diagnostic prepared; two more epochs preserved
+
+The new script scripts/newton/measure_relation_gradients.py and twenty local
+tests prepare full224 BF16 training-only classification/relation gradient
+measurement. Read slice-relations-gradient-preparation-v1/README.md. It uses
+the same sixteen accepted training studies/pixels/initialization/dropout and
+eight-study normalization across zero/physical/shuffled controls; reports
+encoder norms/ratio/cosine/combined norm and refuses substituted cache envelopes.
+No actual H100 execution, trainer recovery or relation production has been
+staged/submitted by this preparation. Initial loss scale is not clinical gain.
+Remaining gates still include actual GPU measurement, finite two-epoch trainer
+pilots/recovery, fresh production funding and separate epoch/deployment machinery.
+Never alter live7ac7a97 or allocate a third GPU while both sampling roles run.
+
+Uniform866719 completed epoch3/843 updates. Original CPU publisher866808
+COMPLETED0:0 fully re-downloaded/size/SHA verified all five private objects at
+HF67b9c55b6ebe6360ab9785f2d32506466ee8360b; exact original receipts are in
+sampling-epochs-v1/uniform/epoch-003. Never repeat this or earlier publications.
+At11:48 UTC uniform was into epoch4/985 updates and stratified866716 into
+epoch5/1140 updates, both finite. Stratified epoch4's original CPU publisher866818
+COMPLETED0:0 fully re-downloaded/size/SHA verified its five private objects at
+HFec08cc28c017f28b1315677794b196bc988c5d2e; exact receipts are in
+sampling-epochs-v1/stratified/epoch-004. Never repeat either publication or their
+existing intents. Actual later state overrides this snapshot.
+
 ## October1 actual real-MRI CPU/source milestone privately verified
 
 Git d266b84 is privately mirrored/full download-size-SHA verified at HF
