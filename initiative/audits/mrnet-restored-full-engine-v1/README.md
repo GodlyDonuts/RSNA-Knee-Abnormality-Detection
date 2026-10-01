@@ -33,3 +33,16 @@ fund32MiB/96small shared objects after all original and both index liabilities,
 3GiB private checkpoint cap,7GiB runtime and20GiB node-local reserve. Fresh shared
 quota must preserve20GiB/5000files. No deletions or repeated raw/source transfers.
 Protected RSNA cohorts/labels/folds untouched. No actual move/dispatch at freeze.
+
+## Actual cancellation and allocated-device failure
+
+Original867478 was cancelled PENDING-only and verified terminal CANCELLED with
+00:00:00/no run-start. Original controls/results preserved. Distinct867510 was
+submitted once, actually allocated evc24 immediately (the scheduler forecast was
+not predictive), then FAILED2:0 after ONE second. Allocated NVML exposed zero
+GPUs and cuInit returned999 in BOTH batch and allocated srun probes. No source
+pixel, encoder, optimizer, environment extraction or runtime-start occurred.
+Original full loop remains unaccepted. Do not repeat867510 or diagnose this as
+an accuracy/data failure; exclude evc24 from this recovery. Native867367 remains
+healthy. Prepare a distinct original-owning-node evc32 recovery from unchanged
+F12 numerical archive/config/original wrapper. No new data transfer is needed.

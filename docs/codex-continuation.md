@@ -15,6 +15,18 @@ all private immutable epochs and compare any transfer through a clean matched
 RSNA experiment only after cross-source screening/downstream rights review.
 1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
 
+## October1 Stanford earlier-node assigned GPU failed before all ML work
+
+Original867478 was cancelled ONLY while pending, terminal00:00:00/no run-start
+verified. Distinct restored full-engine867510 allocated evc24 immediately then
+FAILED2:0 after1second: zero allocated NVML devices and cuInit999 in both batch
+and allocated-step probes. Exactoriginals in mrnet-restored-full-engine-v1/
+recovery-dispatch. No pixel/model/optimizer/runtime-start occurred. Do not repeat
+or bypass device isolation. Stanford full engine remains unaccepted; full source
+fitting unsubmitted. Distinct original evc32 fallback must preserve originalF12
+numerical archive/config/wrapper, fresh quota and exact terminal/no updates proof.
+Native867367 and pixel-only867494 are still healthy; leave both unchanged.
+
 ## October1 earlier-node Stanford full-engine wrapper prepared
 
 Read mrnet-restored-full-engine-v1. New outer wrapper admits actual original
