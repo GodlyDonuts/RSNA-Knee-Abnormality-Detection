@@ -14,12 +14,12 @@ between internal AUC and Kaggle. A larger rank or more epochs will not isolate
 these explanations. Keep the accepted labels/masks/folds and the official base
 weights fixed while testing one mechanism at a time.
 
-The next actual experiment remains native384 rank32, on frozen C9 source and its
-existing uniform-slice policy. Original-source jobs 866426/866427 and assembly 866458
-must be inspected rather than restarted. The native production payload is staged
-and byte verified; CPU acceptance and GPU production dispatch await the complete
-75-batch cache and its dependent assembly. The research
-ideas below do not alter those jobs or imply additional GPU allocations.
+The full matched slice-coverage comparison is now training on two H100 nodes:
+stratified866716 on evc32 and the distinct uniform recovery866719 on evc31. Both
+have actual finite optimizer progress. The original uniform866715 failed device
+preflight before any update. Native384 rank32 remains separately staged on frozen
+C9 source, awaiting original-source jobs866426/866427 and assembly866458. No third
+GPU job is admitted. Read actual receipts rather than restarting these jobs.
 
 ## First: change observation coverage at the same budget
 
@@ -38,12 +38,13 @@ cap still omits 837 training series.
 The [paired protocol](../initiative/experiments/competitive-v1/stratified-slices-v1/README.md)
 has control and candidate configs differing only in slice_sampling. Actual CPU
 cache decoding, interrupted training and offline inference passed. The pinned
-official-weight CPU pilot passed. Its first GPU allocation failed during device
-preflight before training; a distinct evc31 pilot is queued. See the
-[exact acceptance audit](../initiative/audits/stratified-slices-pilot-launch-v1/README.md).
-H100 recovery and initialization acceptance remain unproven. Full coverage
-production is not launched. Run a fresh same-source uniform control, equal initial
-model/head states and equal update budgets. Reject the hypothesis if held-out
+official-weight H100 pilot866624 passed exact decoded recovery, frozen-base
+invariance and equal initial states/logits; its26 private objects are fully
+download/hash verified. Full-cache CPU acceptance866694 also passed. See the
+[exact acceptance audit](../initiative/audits/stratified-slices-pilot-launch-v1/README.md)
+and [actual production launch](../initiative/audits/stratified-slices-production-launch-v1/README.md).
+Both full production arms repeat initialization acceptance with equal learned
+initial states and update budgets. Reject the hypothesis if held-out
 ranking fails to improve under the predetermined comparison. A tiny pilot or a
 comparison to an unmatched old run cannot answer it.
 
@@ -76,7 +77,9 @@ This objective can use admitted unlabeled knee examinations. It therefore does
 not require fabricating twelve disease labels for a source with only ACL and
 generic meniscal annotations. Train auxiliary heads only on the training cohort;
 discard them for the final MRI-only classification interface. This proposal is
-not implemented, trained or measured yet.
+now has an isolated [unsigned-distance prototype](../initiative/audits/slice-relations-prototype-v1/README.md).
+It operates on raw global slice embeddings, not patch correspondences. It is not
+integrated into production, trained on real MRI or clinically measured yet.
 
 ## Third: allocate detail where it adds information
 

@@ -1,3 +1,21 @@
+## October1 both sampling arms training; isolated relation prototype
+
+Read-only live receipt in `initiative/audits/slice-relations-prototype-v1/` records
+stratified866716 at170 actual updates and recovered uniform866719 at17, both
+RUNNING with finite losses. No completed epoch sidecar existed at that check;
+never infer one from checkpoint intervals. Original866715 stays failed with zero
+updates. Epoch publishers and scientific7ac7a97 source remain unchanged.
+
+`rsna/competitive/relations.py` is a standalone unsigned within-series distance
+supervision prototype. It uses raw image features, geometry as targets only,
+excludes unknown/padded/tail samples and preserves RNG/matched pair rosters for
+shuffled-target controls. Ten engineering tests pass including actual frozen-base
+adapter updates and held-out synthetic-pair learning. This is NOT real-MRI
+acceptance, production integration or accuracy evidence. Read the audit's matched
+protocol and remaining geometry availability/source-binding checks before any
+future pilot. No GPU dispatch, competition submission or checkpoint upload was
+made for this prototype. Two current sampling GPU roles continue untouched.
+
 ## October1 paired training milestone privately verified and monitor updated
 
 Git6fb17cd is privately mirrored at HF661b4e29b8ea837cc80e054399bea235fb705ebb,
