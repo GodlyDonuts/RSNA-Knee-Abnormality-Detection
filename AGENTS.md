@@ -52,6 +52,9 @@ repeating established recipes. Make this a standing project priority.
 - Seek useful mechanisms from anatomy, physics, natural systems and other fields;
   translate each analogy into a specific model or data hypothesis. Do not claim
   novelty without checking prior work, or assume novelty improves performance.
+- Do not dismiss an unconventional or apparently contradictory idea solely
+  because it conflicts with the usual recipe. State the competing mechanisms
+  and design an experiment that can distinguish them.
 - For each proposed experiment, record the failure it addresses, the predicted
   effect, a matched control, the compute cost and evidence that would reject it.
   Prefer experiments that distinguish explanations over undirected scaling.
