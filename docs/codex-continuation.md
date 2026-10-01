@@ -1,3 +1,11 @@
+## October 1 active rank64 submission and verified native recovery
+
+Owner requested sampled rank64 fold0 epoch10 for the next Kaggle capacity comparison. Exact preparation866327 completed0:0, after866324 failed before any bundle/network mutation on an incomplete encoder manifest. Private Dataset12299834 v1 was created exactly once; its temporary403 resolved. The canonical Dataset journal is `/home/sa305415/rsna-knee/kaggle/dataset-publications/0f1a410916b6f9c6bc8bd7dc9d9cfe84a86e5dc1075bc615c2454fa0fb622615`. Never repeat its creation. Exact bundle/projection/control are in `/home/sa305415/rsna-knee/kaggle/rank64-epoch10-v1` and `/home/sa305415/rsna-knee/kaggle/bundles/a64-epoch010-0f1a410916b6-v1`; local once-only phase receipts are in ignored `artifacts/kaggle-rank64-epoch10-v1`. The fresh socket is `/tmp/rsna-r64-submit-20261001-501.sock`. All47 Dataset payloads are fully download/hash verified. Exact private offline T4 notebook `godlydonuts/rsna-knee-a64-epoch10-0f1a410916b6` version1 was pushed once and its exact-source/configuration check passed at01:05UTC while RUNNING. Public inference output acceptance and canonical submission are the next sequential gates; do not infer submission or score from preparation. See `initiative/audits/kaggle-rank64-epoch10-v1/`.
+
+Native384 strict deterministic recovery866239 completed0:0 with all exact payload/optimizer/RNG/prediction/reference/reload checks passed, all120 residuals changed and415 base tensors unchanged. The failed866172 exact-recovery attempt and866226 external-import attempt are preserved. C9 scientific code stayed unchanged. The real-source full-cache worker/private publisher remain unlaunched. See `initiative/audits/native384-deterministic-runtime-v1/`.
+
+Whole-series rank32 control865357 completed0:0; independently replayed fixed-final internal macro AUC0.8603399208109389 versus sampled rank32's0.8620940794159951 on the same1156-study pool. All ten checkpoints in each role are already privately verified. Neither the tiny native diagnostic nor this internal control has a Kaggle score. Prior pending statements below are historical.
+
 # Corrective data preparation, 2026-09-20
 
 The owner has expanded the mission: after data readiness, research and deliver a

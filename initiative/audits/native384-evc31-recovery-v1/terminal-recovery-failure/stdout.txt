@@ -1,0 +1,119 @@
+{"allocation": {"CUDA_DEVICE_ORDER": null, "CUDA_VISIBLE_DEVICES": "0", "SLURM_CPUS_PER_TASK": "2", "SLURM_GPUS_ON_NODE": "1", "SLURM_JOB_GPUS": "0", "SLURM_STEP_GPUS": null}, "cpu_affinity": [0, 32], "cuda_driver_count_code": 0, "cuda_driver_device_count": 1, "cuda_driver_init_code": 0, "errors": [], "job_id": "866172", "mapped_libcuda_paths": ["/usr/lib64/libcuda.so.580.105.08"], "node": "evc31", "nvidia_inventory": {"returncode": 0, "stderr": "", "stdout": "0, NVIDIA H100 PCIe, GPU-503a426b-ce38-c40c-83a6-c735ab62164c, 580.105.08, 00000000:17:00.0\n"}, "scope": "allocated devices only; no visibility changes or GPU computation", "status": "passed"}
+{"status": "passed", "cuda_context": true, "gpu_count": 1}
+{"status": "exact_extracted_member_inventory_verified", "members": 370, "bytes": 1382757254, "side": 384}
+{"status": "exact_extracted_member_inventory_verified", "members": 370, "bytes": 636495115, "side": 256}
+{
+  "schema_version": 1,
+  "read_only": true,
+  "status": "passed",
+  "errors": [],
+  "code": {
+    "git_commit": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab",
+    "clean": true
+  },
+  "node": "evc31",
+  "platform": "Linux",
+  "cpu_count": 64,
+  "ram_bytes": {
+    "total": 539791683584,
+    "available": 527675629568
+  },
+  "torch": {
+    "installed": true,
+    "version": "2.14.0+cu130",
+    "cuda_build": "13.0",
+    "cuda_available": true,
+    "visible_gpu_count": 1,
+    "devices": [
+      {
+        "index": 0,
+        "name": "NVIDIA H100 PCIe",
+        "total_memory_bytes": 85017624576,
+        "compute_capability": [
+          9,
+          0
+        ]
+      }
+    ],
+    "nccl_version": [
+      2,
+      30,
+      7
+    ],
+    "bf16_supported": true
+  },
+  "package_versions": {
+    "torch": "2.14.0",
+    "transformers": "5.6.1",
+    "safetensors": "0.7.0",
+    "numpy": "2.2.1",
+    "pandas": "2.2.3",
+    "pyarrow": "25.0.1"
+  },
+  "free_storage_bytes": 848639127552,
+  "cache_artifacts": {
+    "cache_manifest": {
+      "sha256": "e283fa6eff5502488a28750d20a01a9500c7bb09c3181e69671a76d711971bc8",
+      "bytes": 217503
+    }
+  },
+  "runs": [
+    {
+      "artifact": {
+        "sha256": "4e6129090a7d5ce42ad64a595be2beb1d22ee855f132bdfbad404960e77719f8",
+        "bytes": 1582
+      },
+      "encoder": {
+        "architecture": "dinov3_l16",
+        "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+        "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+        "license": "other",
+        "config": {
+          "sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+          "bytes": 745
+        },
+        "weights": {
+          "sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179",
+          "bytes": 1212559808
+        }
+      },
+      "fold": 0,
+      "seed": 20260922,
+      "precision": "bf16"
+    }
+  ],
+  "nvidia_driver_gpu_inventory": {
+    "available": true,
+    "returncode": 0,
+    "output": "0, NVIDIA H100 PCIe, 81559 MiB, 580.105.08, 00000000:17:00.0\n"
+  },
+  "gpu_topology": {
+    "available": true,
+    "returncode": 0,
+    "output": "\t\u001b[4mGPU0\tNIC0\tCPU Affinity\tNUMA Affinity\tGPU NUMA ID\u001b[0m\nGPU0\t X \tNODE\t0,32\t0\t\tN/A\nNIC0\tNODE\t X \t\t\t\t\n\nLegend:\n\n  X    = Self\n  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)\n  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node\n  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)\n  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)\n  PIX  = Connection traversing at most a single PCIe bridge\n  NV#  = Connection traversing a bonded set of # NVLinks\n\nNIC Legend:\n\n  NIC0: mlx5_0\n\n"
+  },
+  "cpu_topology": {
+    "available": true,
+    "returncode": 0,
+    "output": "{\n   \"lscpu\": [\n      {\"field\": \"Architecture:\", \"data\": \"x86_64\"},\n      {\"field\": \"CPU op-mode(s):\", \"data\": \"32-bit, 64-bit\"},\n      {\"field\": \"Byte Order:\", \"data\": \"Little Endian\"},\n      {\"field\": \"CPU(s):\", \"data\": \"64\"},\n      {\"field\": \"On-line CPU(s) list:\", \"data\": \"0-63\"},\n      {\"field\": \"Thread(s) per core:\", \"data\": \"2\"},\n      {\"field\": \"Core(s) per socket:\", \"data\": \"16\"},\n      {\"field\": \"Socket(s):\", \"data\": \"2\"},\n      {\"field\": \"NUMA node(s):\", \"data\": \"2\"},\n      {\"field\": \"Vendor ID:\", \"data\": \"GenuineIntel\"},\n      {\"field\": \"CPU family:\", \"data\": \"6\"},\n      {\"field\": \"Model:\", \"data\": \"106\"},\n      {\"field\": \"Model name:\", \"data\": \"Intel(R) Xeon(R) Gold 6326 CPU @ 2.90GHz\"},\n      {\"field\": \"Stepping:\", \"data\": \"6\"},\n      {\"field\": \"CPU MHz:\", \"data\": \"3500.000\"},\n      {\"field\": \"CPU max MHz:\", \"data\": \"3500.0000\"},\n      {\"field\": \"CPU min MHz:\", \"data\": \"800.0000\"},\n      {\"field\": \"BogoMIPS:\", \"data\": \"5800.00\"},\n      {\"field\": \"Virtualization:\", \"data\": \"VT-x\"},\n      {\"field\": \"L1d cache:\", \"data\": \"48K\"},\n      {\"field\": \"L1i cache:\", \"data\": \"32K\"},\n      {\"field\": \"L2 cache:\", \"data\": \"1280K\"},\n      {\"field\": \"L3 cache:\", \"data\": \"24576K\"},\n      {\"field\": \"NUMA node0 CPU(s):\", \"data\": \"0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62\"},\n      {\"field\": \"NUMA node1 CPU(s):\", \"data\": \"1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63\"},\n      {\"field\": \"Flags:\", \"data\": \"fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb cat_l3 invpcid_single intel_ppin ssbd mba ibrs ibpb stibp ibrs_enhanced tpr_shadow vnmi flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb intel_pt avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local split_lock_detect wbnoinvd dtherm ida arat pln pts avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg tme avx512_vpopcntdq la57 rdpid fsrm md_clear pconfig flush_l1d arch_capabilities\"}\n   ]\n}\n"
+  },
+  "scope": "No training, downloads, scheduler mutations, environment dump or payload rewrite."
+}
+verification_modules_imported_from_pinned_source
+{"epoch": 0, "update": 1, "optimizer_steps": 1, "loss": 0.746293306350708, "gradient_norm": 4.124395847320557, "observed_cells": 44.0, "elapsed_seconds": 12.401364799123257, "encoder_gradient_norm": 0.05692531168460846, "peak_gpu_allocated_bytes": 3633236480}
+{"epoch": 0, "update": 2, "optimizer_steps": 2, "loss": 0.6047673225402832, "gradient_norm": 3.911271572113037, "observed_cells": 42.0, "elapsed_seconds": 22.34076320612803, "peak_gpu_allocated_bytes": 3757546496}
+{"epoch": 1, "update": 1, "optimizer_steps": 3, "loss": 0.4503973424434662, "gradient_norm": 2.1531341075897217, "observed_cells": 49.0, "elapsed_seconds": 32.61678236210719, "peak_gpu_allocated_bytes": 3757546496}
+{"epoch": 1, "update": 2, "optimizer_steps": 4, "loss": 0.44676488637924194, "gradient_norm": 2.8610780239105225, "observed_cells": 37.0, "elapsed_seconds": 42.54438282107003, "peak_gpu_allocated_bytes": 3757546496}
+{"epoch": 0, "update": 1, "optimizer_steps": 1, "loss": 0.7679821252822876, "gradient_norm": 4.599726676940918, "observed_cells": 44.0, "elapsed_seconds": 17.959150274051353, "encoder_gradient_norm": 0.06416532397270203, "peak_gpu_allocated_bytes": 7772786688}
+{"epoch": 0, "update": 2, "optimizer_steps": 2, "loss": 0.6172349452972412, "gradient_norm": 4.142261028289795, "observed_cells": 42.0, "elapsed_seconds": 33.99105539009906, "peak_gpu_allocated_bytes": 7897096704}
+{"epoch": 1, "update": 1, "optimizer_steps": 3, "loss": 0.4518720507621765, "gradient_norm": 2.3670051097869873, "observed_cells": 49.0, "elapsed_seconds": 50.833790423115715, "peak_gpu_allocated_bytes": 7897096704}
+{"epoch": 1, "update": 2, "optimizer_steps": 4, "loss": 0.44529426097869873, "gradient_norm": 2.939223051071167, "observed_cells": 37.0, "elapsed_seconds": 66.94364541210234, "peak_gpu_allocated_bytes": 7897096704}
+{"epoch": 0, "update": 1, "optimizer_steps": 1, "loss": 0.7679821252822876, "gradient_norm": 4.599726676940918, "observed_cells": 44.0, "elapsed_seconds": 16.049809705931693, "encoder_gradient_norm": 0.06416633725166321, "peak_gpu_allocated_bytes": 7772786688}
+{"epoch": 0, "update": 2, "optimizer_steps": 2, "loss": 0.617393970489502, "gradient_norm": 4.142062187194824, "observed_cells": 42.0, "elapsed_seconds": 30.103323497110978, "peak_gpu_allocated_bytes": 7897096704}
+{"epoch": 1, "update": 1, "optimizer_steps": 3, "loss": 0.4519750475883484, "gradient_norm": 2.3677456378936768, "observed_cells": 49.0, "elapsed_seconds": 45.01108246506192, "peak_gpu_allocated_bytes": 7897096704}
+{"epoch": 1, "update": 2, "optimizer_steps": 4, "loss": 0.44514840841293335, "gradient_norm": 2.9397964477539062, "observed_cells": 37.0, "elapsed_seconds": 59.18464763602242, "peak_gpu_allocated_bytes": 7897096704}
+{"epoch": 0, "update": 1, "optimizer_steps": 1, "loss": 0.7679821252822876, "gradient_norm": 4.599725723266602, "observed_cells": 44.0, "elapsed_seconds": 16.044697500998154, "encoder_gradient_norm": 0.06416318565607071, "peak_gpu_allocated_bytes": 7772786688}
+{"status": "exact_intentional_optimizer_boundary_stop_verified", "launcher_exit_code": 1, "trainer_exit_code": 75}
+{"epoch": 0, "update": 2, "optimizer_steps": 2, "loss": 0.6176427006721497, "gradient_norm": 4.144506454467773, "observed_cells": 42.0, "elapsed_seconds": 15.003428330877796, "peak_gpu_allocated_bytes": 7856200704}
+{"epoch": 1, "update": 1, "optimizer_steps": 3, "loss": 0.45182177424430847, "gradient_norm": 2.364877223968506, "observed_cells": 49.0, "elapsed_seconds": 29.978892494924366, "peak_gpu_allocated_bytes": 7856201728}
+{"epoch": 1, "update": 2, "optimizer_steps": 4, "loss": 0.44540804624557495, "gradient_norm": 2.9372928142547607, "observed_cells": 37.0, "elapsed_seconds": 44.061513955006376, "peak_gpu_allocated_bytes": 7856201728}
