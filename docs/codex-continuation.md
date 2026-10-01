@@ -1,3 +1,21 @@
+## October1 fixed-final/source milestone privately verified; header recovery running
+
+Main26b5a1b actual matched near-null sampling result, all20 epoch receipts,
+new original native75 source proofs and distinct header867310 dispatch/source
+milestone is privately mirrored at HF926d47c7198201cfd6a1a57fb75429b676e67070.
+All179 objects fully re-downloaded/size/SHA verified, under original shared atomic
+publication lock; journal hf-sampling-final-and-native-source-completion-20261001-v1.
+Do not repeat. All original local epoch publishers and metadata mirror finished0.
+
+Actual867310 RUNNING on evc32 at17:20UTC; assignedH100 driver/CUDA checks and
+all215 admittedPython3.12.13 header/ABI/CPATH checks passed. Emptystderr then;
+original stage/source/input/header/driver/single dispatch receipts in its
+actual-start/. Full input/runtime rematerialization and gradient measurement
+still incomplete: do not call a running job a passed diagnostic or trainer.
+Assembly866458 stays RUNNING CPUonly, latest restored native shards0–37. Never
+duplicate either job. Inspect terminal/actual receipts before subsequent work.
+1595 tests/Ruff227/mypy39/archive/current89/89 checks passed before source freeze.
+
 ## October1 distinct admitted-header diagnostic submitted once
 
 Read slice-relations-gradient-header-recovery-v1. Original866846 failed missing
