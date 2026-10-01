@@ -1,3 +1,20 @@
+## October1 Stanford actual training/full-engine milestone privately verified
+
+MainDb28cab actual original Stanford optimizer/recovery, exact private CPU
+restoration and new full-source fitting engine/single recovery dispatch are
+privately mirrored at HF13aa55b1c9413be4c4466c5c37befbe5f7048e1a. All38 new
+objects fully re-downloaded/size/SHA verified once under the shared atomic
+publication lock. Read hf-mrnet-full-engine-and-restoration-20261001-v1. No
+Stanford raw images/label values/learned weights were mirrored. Never repeat.
+
+Original867419 passed actual four-update recovery; full-engine867478 still
+pending at20:06UTC. Native867367 pending/unchanged. The full1129-exam fitting
+was not dispatched. SourceF12a319/code/config stay frozen. Require actual new
+loop recovery before full fitting; source validation119 final-only, preserve
+all private immutable epochs and compare any transfer through a clean matched
+RSNA experiment only after cross-source screening/downstream rights review.
+1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
+
 ## October1 exact full Stanford engine recovery single dispatch
 
 Actual sourceF12a319 private full-engine recovery867478 was dispatched ONCE on
