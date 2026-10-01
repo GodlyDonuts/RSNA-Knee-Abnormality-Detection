@@ -52,7 +52,7 @@ comparison to an unmatched old run cannot answer it.
 
 Different MRI planes and pulse sequences observe the same three-dimensional
 structures. Inspired by multi-sensor estimation, test an auxiliary objective
-that teaches DINOv3 patch features about physical relationships, without using a
+that teaches DINOv3 image features about physical relationships, without using a
 second teacher or changing the pretrained base weights.
 
 Start within a single series: use verified image geometry to predict relative
@@ -73,19 +73,21 @@ global consistency and shuffled-coordinate controls. Preserve contrast-specific
 features rather than forcing T1, T2 and PD appearances to be identical. Without
 verified correspondences, do not claim cross-view anatomy supervision.
 
-This objective can use admitted unlabeled knee examinations. It therefore does
-not require fabricating twelve disease labels for a source with only ACL and
-generic meniscal annotations. Train auxiliary heads only on the training cohort;
-discard them for the final MRI-only classification interface. This proposal is
-now has an isolated [unsigned-distance prototype](../initiative/audits/slice-relations-prototype-v1/README.md).
-It operates on raw global slice embeddings, not patch correspondences. It is not
-integrated into production, trained on real MRI or clinically measured yet.
+This objective can in principle use admitted unlabeled knee examinations without
+fabricating disease labels. The current training pool is unchanged; no external
+or newly admitted unlabeled study is included. The isolated prototype is now
+integrated as an opt-in raw-global-slice loss in the trainer and strict delta
+inference reconstruction. It operates on global embeddings, not registered
+patch correspondences. The auxiliary head stays dormant during classification.
+
 The [actual CPU survey](../initiative/audits/slice-relations-geometry-survey-v1/README.md)
-completed0:0: all2247 training studies/11639 selected series have usable physical
-geometry; no outer metadata or disease-label values were read. There are1,392,640
-possible fixed-grid within-series pairs, median physical separation35mm. This
-removes the geometry-availability prerequisite; integration, exact recovery,
-bounded real-MRI pilot and matched accuracy testing remain required.
+passed for all2247 training studies/11639 selected series. The
+[matched protocol](../initiative/experiments/competitive-v1/slice-relations-v1/README.md)
+prepares physical0.05, shuffled0.05 and zero-weight arms with the same head,
+initialization, pixels, pair rosters and update budgets. Local distributed,
+accumulation, exact-resume and MRI-only inference checks pass. Official-weight
+real-MRI BF16 pilot acceptance and clinical performance remain untested. Do not
+reserve a third GPU or change the two live sampling experiments to enable it.
 
 ## Third: allocate detail where it adds information
 

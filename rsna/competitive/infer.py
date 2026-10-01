@@ -22,6 +22,7 @@ from rsna.competitive.data import (
 )
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.model import CompetitiveStudyNet
+from rsna.competitive.relations import relation_model_kwargs
 from rsna.competitive.snapshots import scheduled_epoch
 from rsna.competitive.train import TrainConfig, predict
 from rsna.infer import load_inference_metadata, write_submission
@@ -156,6 +157,7 @@ def run(args: argparse.Namespace) -> dict:
         hidden_dim=config.hidden_dim,
         encode_chunk_size=config.encode_chunk_size,
         slice_context=config.slice_context,
+        **relation_model_kwargs(config.relation),
     ).to(device)
     configure_encoder_training(encoder, config.freeze_encoder)
     guard = FrozenBaseDelta(model, provenance) if checkpoint["schema_version"] == 2 else None

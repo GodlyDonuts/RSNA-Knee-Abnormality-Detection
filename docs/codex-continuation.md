@@ -1,3 +1,37 @@
+## October1 relation integration and two additional preserved epochs
+
+Opt-in raw-global-slice geometry supervision is integrated in model/trainer/
+strict delta reconstruction and MRI-only inference. All1498 tests passed,
+Ruff215 files/mypy39 modules passed. Actual two-process CPU DDP includes a rank
+with no geometry; effective-batch normalization, UID/epoch replay, zero-weight
+classification gradients, frozen-base/AdamW recovery and all three policies'
+trainer stop/resume paths passed. These are synthetic engineering checks, NOT
+an official-weight real-MRI relation pilot or clinical accuracy evidence.
+
+Read `initiative/experiments/competitive-v1/slice-relations-v1/README.md` and
+`initiative/audits/slice-relations-integration-v1/`. Six prepared local configs
+use uniform224 observations with rank32, identical initialization and an auxiliary
+head in all arms: physical0.05, shuffled0.05 and zero0. Within each full/pilot triplet, configs differ
+only in that policy. No relation GPU job staged/submitted. Require exact committed
+source, training-only scale checks, official-weight real-MRI BF16 recovery and
+runtime acceptance, fresh funding and a separate epoch publisher before launch.
+No third GPU while current sampling roles train; existing7ac7a97 jobs/publishers
+remain pinned unchanged. Gold/confirmation/labels/masks/folds remain untouched.
+
+Uniform866719 completed epoch1 and is in epoch2. Its five private objects are
+fully download/size/SHA verified at HFfcf7073ea2c1d1f29d2a2e2979758c9780f7a96c,
+CPU publisher866759 COMPLETED0:0. Stratified866716 completed epoch2 and is in
+epoch3, privately preserved at HF3c384fb5e26298c7614a253504f37b8dc0e96faf,
+five objects fully verified by866760 COMPLETED0:0. Receipts in sampling-epochs-v1;
+never repeat these or original stratified epoch1 publication. Keep preserving
+new actual completed epochs through the pinned original coordinator only.
+
+Fresh Newton quota was1019030832/1048576000kB soft and993013/1000000 files.
+Account for all future native384/sampling debt and20GiB/5000-file reserves before
+any new staging. Native source866426/866427 still running and assembly866458
+pending dependency. No native production GPU dispatch or new Kaggle mutation.
+Exact later read-only state overrides this snapshot.
+
 ## October1 geometry and first-epoch milestone privately verified
 
 Git a9e4603 is privately mirrored at HF3db0cfa78aa9030b2d9973f9c38ccb537abfc349;

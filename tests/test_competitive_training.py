@@ -258,9 +258,18 @@ def _assert_tree_equal(first, second):
 
 
 @pytest.mark.parametrize("fit_scope", ["outer_fold", "all_development"])
-@pytest.mark.parametrize("slice_context", ["none", "neighbor3"])
+@pytest.mark.parametrize(
+    "slice_context,relation_case",
+    [
+        ("none", None),
+        ("neighbor3", None),
+        ("none", "physical"),
+        ("none", "shuffled"),
+        ("none", "zero"),
+    ],
+)
 def test_training_mid_epoch_resume_matches_every_checkpoint_value(
-    tmp_path, monkeypatch, fit_scope, slice_context
+    tmp_path, monkeypatch, fit_scope, slice_context, relation_case
 ):
     from rsna.competitive import train
     from rsna.competitive.backbones import create_encoder
@@ -301,6 +310,17 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
         freeze_encoder=False,
         augment=True,
         min_free_gib=0,
+        relation=(
+            None
+            if relation_case is None
+            else dict(
+                weight=0 if relation_case == "zero" else 0.05,
+                max_pairs=3,
+                target_mode="shuffled" if relation_case == "shuffled" else "physical",
+                hidden_dim=12,
+                head_seed=19,
+            )
+        ),
     )
     args = argparse.Namespace(
         studies=tmp_path / "unused",
@@ -314,6 +334,13 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
     )
 
     def execute():
+        class GeometryStudies(SyntheticStudies):
+            def __getitem__(self, index):
+                item = super().__getitem__(index)
+                item["positions"][..., 0] = torch.arange(item["positions"].shape[1]) * 0.03
+                item["positions"][..., 1] = 1
+                return item
+
         return train._run_locked(
             args,
             config,
@@ -322,7 +349,7 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
             1,
             torch.device("cpu"),
             create_encoder,
-            SyntheticStudies,
+            SyntheticStudies if relation_case is None else GeometryStudies,
             CompetitiveStudyNet,
             lambda *args: overlay.copy(),
         )

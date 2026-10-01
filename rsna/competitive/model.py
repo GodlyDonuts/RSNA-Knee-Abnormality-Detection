@@ -6,6 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from rsna.competitive.context import NeighborSliceContext
+from rsna.competitive.relations import SliceDistanceHead, SliceRelations
 from rsna.schema import TARGETS
 
 
@@ -25,6 +26,8 @@ class CompetitiveStudyNet(nn.Module):
         hidden_dim: int = 128,
         encode_chunk_size: int = 64,
         slice_context: str = "none",
+        relation_hidden_dim: int | None = None,
+        relation_head_seed: int = 0,
     ):
         super().__init__()
         if (
@@ -89,6 +92,11 @@ class CompetitiveStudyNet(nn.Module):
         if slice_context == "neighbor3":
             with torch.random.fork_rng(devices=[]):
                 self.slice_context = NeighborSliceContext(hidden_dim)
+        self.relation_head = (
+            SliceDistanceHead(embedding_dim, relation_hidden_dim, seed=relation_head_seed)
+            if relation_hidden_dim is not None
+            else None
+        )
 
     def train(self, mode: bool = True) -> CompetitiveStudyNet:
         super().train(mode)
@@ -103,7 +111,9 @@ class CompetitiveStudyNet(nn.Module):
         series_mask: Tensor,
         slice_mask: Tensor,
         positions: Tensor,
-    ) -> Tensor:
+        *,
+        relations: SliceRelations | None = None,
+    ) -> Tensor | tuple[Tensor, Tensor]:
         if images.ndim != 6 or images.shape[3] != 1 or not images.is_floating_point():
             raise ValueError("images must be floating [B,S,K,1,H,W]")
         b, s, k = images.shape[:3]
@@ -199,7 +209,8 @@ class CompetitiveStudyNet(nn.Module):
             pooled = torch.where(series_mask[..., None], pooled, torch.zeros_like(pooled))
             pooled = pooled + series_features
             study = pooled.masked_fill(~series_mask[..., None], -torch.inf).amax(dim=1)
-            return torch.einsum("bh,th->bt", study, self.output_weight) + self.output_bias
+            logits = torch.einsum("bh,th->bt", study, self.output_weight) + self.output_bias
+            return self._relation_output(logits, encoded, slice_mask, relations)
         gated_slices = torch.tanh(self.slice_tanh(full)) * torch.sigmoid(self.slice_gate(full))
         scores = (
             torch.einsum("bskth,th->bskt", gated_slices, self.slice_score.weight)
@@ -216,4 +227,18 @@ class CompetitiveStudyNet(nn.Module):
         series_scores = torch.einsum("bsth,th->bst", gated, self.series_score)
         series_weights = _masked_softmax(series_scores, series_mask[..., None], dim=1)
         study = torch.einsum("bst,bsth->bth", series_weights, pooled)
-        return torch.einsum("bth,th->bt", study, self.output_weight) + self.output_bias
+        logits = torch.einsum("bth,th->bt", study, self.output_weight) + self.output_bias
+        return self._relation_output(logits, encoded, slice_mask, relations)
+
+    def _relation_output(self, logits, encoded, slice_mask, relations):
+        if relations is None:
+            return logits
+        if self.relation_head is None:
+            raise ValueError("Relation outputs require a configured auxiliary head")
+        raw = encoded.new_zeros((*slice_mask.shape, self.embedding_dim))
+        raw[slice_mask] = encoded
+        if len(relations.indices):
+            study, series, first, second = relations.indices.to(slice_mask.device).unbind(1)
+            if not (slice_mask[study, series, first] & slice_mask[study, series, second]).all():
+                raise ValueError("Relation references a padded image")
+        return logits, self.relation_head.study_sum(raw, relations)

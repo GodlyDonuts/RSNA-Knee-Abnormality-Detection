@@ -36,6 +36,13 @@ from rsna.competitive.checkpoint import (
 )
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.loss import effective_batch_loss, observed_counts
+from rsna.competitive.relations import (
+    effective_relation_loss,
+    relation_model_kwargs,
+    relation_study_count,
+    relations_for_batch,
+    validate_relation,
+)
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
 from rsna.model import auc_metrics
@@ -104,6 +111,7 @@ class TrainConfig:
     submission_every_epochs: int = 0
     min_free_gib: float = 20.0
     diagnostic_study_limit: int | None = None
+    relation: dict | None = None
 
     def validate(self) -> None:
         positive = (
@@ -157,6 +165,14 @@ class TrainConfig:
             self.slice_context != "none" and self.pooling != "attention"
         ):
             raise ValueError("Unknown or incompatible neighboring-slice context")
+        if self.relation is not None:
+            validate_relation(self.relation)
+            if self.seed >= 2**63:
+                raise ValueError("Relation sampling requires seed below 2**63")
+            if self.pooling != "attention" or self.slice_context != "none":
+                raise ValueError(
+                    "First relation experiment requires global attention without context"
+                )
         if self.diagnostic_study_limit is not None and (
             type(self.diagnostic_study_limit) is not int or self.diagnostic_study_limit < 1
         ):
@@ -436,6 +452,7 @@ def _run_locked(
         hidden_dim=config.hidden_dim,
         encode_chunk_size=config.encode_chunk_size,
         slice_context=config.slice_context,
+        **relation_model_kwargs(config.relation),
     ).to(device)
     delta_guard = (
         FrozenBaseDelta(model, encoder_provenance)
@@ -476,6 +493,10 @@ def _run_locked(
     )
     # Bind numerical configuration and content, never machine-specific paths.
     bound_config = asdict(config)
+    if config.relation is None:
+        # Preserve old policy serialization; code provenance still changes and
+        # exact older checkpoints must use their original pinned source.
+        bound_config.pop("relation")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {
@@ -610,21 +631,52 @@ def _run_locked(
             batches = [next(iterator) for _ in range(config.accumulation_steps)]
             masks = [batch["label_mask"].to(device) for batch in batches]
             counts = observed_counts(masks)
+            relation_batches = (
+                [
+                    relations_for_batch(batch, config.relation, seed=config.seed, epoch=epoch)
+                    for batch in batches
+                ]
+                if config.relation is not None
+                else []
+            )
+            relation_count = (
+                relation_study_count(relation_batches, device)
+                if config.relation is not None
+                else torch.zeros((), device=device)
+            )
             optimizer.zero_grad(set_to_none=True)
             loss_total = torch.zeros((), device=device)
-            if counts.any():
+            classification_total = torch.zeros((), device=device)
+            relation_total = torch.zeros((), device=device)
+            if counts.any() or (
+                config.relation is not None and config.relation["weight"] > 0 and relation_count > 0
+            ):
                 for micro, (batch, mask) in enumerate(zip(batches, masks)):
                     synchronize = micro == len(batches) - 1 or world == 1
                     with contextlib.nullcontext() if synchronize else wrapped.no_sync():
                         with torch.autocast(
                             device.type, dtype=torch.bfloat16, enabled=config.precision == "bf16"
                         ):
-                            logits = wrapped(*_model_inputs(batch, device))
-                            loss = effective_batch_loss(
+                            if config.relation is None:
+                                logits = wrapped(*_model_inputs(batch, device))
+                                auxiliary = torch.zeros((), device=device)
+                            else:
+                                logits, relation_sum = wrapped(
+                                    *_model_inputs(batch, device), relations=relation_batches[micro]
+                                )
+                                auxiliary = effective_relation_loss(relation_sum, relation_count)
+                            classification = effective_batch_loss(
                                 logits, batch["labels"].to(device), mask, counts
+                            )
+                            loss = (
+                                classification
+                                if config.relation is None
+                                else classification + config.relation["weight"] * auxiliary
                             )
                         loss.backward()
                     loss_total += loss.detach()
+                    classification_total += classification.detach()
+                    relation_total += auxiliary.detach()
                 norm = nn.utils.clip_grad_norm_(
                     model.parameters(), config.clip_grad_norm, error_if_nonfinite=True
                 )
@@ -642,6 +694,11 @@ def _run_locked(
             if world > 1:
                 dist.all_reduce(loss_total)
                 loss_total /= world
+                if config.relation is not None:
+                    dist.all_reduce(classification_total)
+                    classification_total /= world
+                    dist.all_reduce(relation_total)
+                    relation_total /= world
             updates_this_invocation += 1
             epoch_finished = update + 1 == sampler.updates
             checkpoint_epoch, checkpoint_update = (
@@ -692,6 +749,13 @@ def _run_locked(
                     if not torch.isfinite(encoder_norm) or encoder_norm <= 0:
                         raise ValueError("Adapter gradients are zero or nonfinite")
                     event["encoder_gradient_norm"] = float(encoder_norm)
+                if config.relation is not None:
+                    event.update(
+                        classification_loss=float(classification_total),
+                        relation_loss=float(relation_total),
+                        relation_studies=float(relation_count),
+                        relation_weight=config.relation["weight"],
+                    )
                 if device.type == "cuda":
                     event["peak_gpu_allocated_bytes"] = torch.cuda.max_memory_allocated(device)
                 history.append(event)

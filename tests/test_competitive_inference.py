@@ -18,6 +18,7 @@ from torch import nn
 
 from rsna.competitive import backbones, infer
 from rsna.competitive.model import CompetitiveStudyNet
+from rsna.competitive.relations import SliceDistanceHead, relation_model_kwargs
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
 from rsna.competitive.train import TrainConfig
 from rsna.schema import CACHE_VERSION, TARGETS
@@ -34,7 +35,14 @@ class SyntheticHF(nn.Module):
 
 
 def _fixture(
-    tmp_path, monkeypatch, *, checkpoint_only=False, precision="fp32", size=2, whole=False
+    tmp_path,
+    monkeypatch,
+    *,
+    checkpoint_only=False,
+    precision="fp32",
+    size=2,
+    whole=False,
+    relation=None,
 ):
     torch.manual_seed(123)
     config = TrainConfig(
@@ -49,6 +57,7 @@ def _fixture(
         slice_context="neighbor3" if whole else "none",
         slice_sampling="all" if whole else "uniform",
         series_sampling="all" if whole else "selected",
+        relation=relation,
     )
     spec_path = tmp_path / "encoder-spec.json"
     config_path = tmp_path / "encoder-config.json"
@@ -85,7 +94,13 @@ def _fixture(
         spec_path.write_text(json.dumps(spec))
         encoder, dim, provenance = backbones.create_encoder(spec)
     encoder.requires_grad_(False)
-    model = CompetitiveStudyNet(encoder, dim, hidden_dim=8, slice_context=config.slice_context)
+    model = CompetitiveStudyNet(
+        encoder,
+        dim,
+        hidden_dim=8,
+        slice_context=config.slice_context,
+        **relation_model_kwargs(config.relation),
+    )
     release = dict(
         schema_version=1,
         manifest_sha256="a" * 64,
@@ -206,6 +221,22 @@ def test_full_coverage_context_checkpoint_infers_variable_batch_and_preserves_ro
     second = pd.read_csv(args.output)
     np.testing.assert_allclose(first[list(TARGETS)], second[list(TARGETS)], rtol=0, atol=1e-6)
     assert state["binding"]["config"]["slice_context"] == "neighbor3"
+
+
+def test_relation_training_checkpoint_infers_MRI_only_without_auxiliary_forward(
+    tmp_path, monkeypatch
+):
+    policy = dict(weight=0.05, max_pairs=4, target_mode="physical", hidden_dim=12, head_seed=19)
+    args, _ = _fixture(tmp_path, monkeypatch, relation=policy)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("MRI-only classification must never execute the auxiliary head")
+
+    monkeypatch.setattr(SliceDistanceHead, "forward", forbidden)
+    infer.run(args)
+    output = pd.read_csv(args.output)
+    assert list(output) == ["StudyInstanceUID", *TARGETS]
+    assert np.isfinite(output[list(TARGETS)].to_numpy()).all()
 
 
 @pytest.mark.parametrize("checkpoint_only", [False, True])
