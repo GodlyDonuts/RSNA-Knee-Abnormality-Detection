@@ -1,0 +1,55 @@
+import hashlib,io,json,shlex,subprocess,tarfile
+from pathlib import Path
+root=Path.cwd();head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert not subprocess.check_output(['git','status','--porcelain','--','rsna','scripts/newton'],text=True)
+local=root/'artifacts/external-knee-research-20261001-v1/pixel-index-dispatch-intent';local.mkdir()
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','-o','ConnectTimeout=8','sa305415@newton.ist.ucf.edu']
+def remote(code,data=None,args=()):
+ r=subprocess.run(ssh+[shlex.join(['/usr/bin/python3.12','-B','-c',code,*args])],input=data,capture_output=True,timeout=60)
+ if r.returncode: raise RuntimeError('pixel_index_stage_requires_readonly_reconciliation')
+ return json.loads(r.stdout)
+roles={'stanford':{'node':'evc32','pixel_root':'/tmp/rsna-mrnet-original-b15holoh','inventory_path':'/tmp/rsna-mrnet-original-b15holoh/verified-files.jsonl','inventory_sha256':'4cd2522fcd6b99bac778edf2f72be24fb7d0aca497a1f0f0e882412646515dbc'},'rsna':{'node':'evc31','pixel_root':'/tmp/rsna-native384-cohort-866458-lp6rcfdw/restored/cache','inventory_path':'/home/sa305415/rsna-knee/native384-assembly-c9-v1/registry.json','inventory_sha256':'73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770'}}
+funding=remote('''import json,subprocess
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();u,s,f,l=[int(q[i]) for i in (1,2,5,6)]
+reserve=((s-u)*1024-5246914048-(12+272+64+32+16)*1024**2)/1024**3;files=l-f-190-400-160-96-48
+assert reserve>=20 and files>=5000
+print(json.dumps({'shared_reserve_gib_after_all_liabilities':reserve,'shared_file_reserve_after_all_liabilities':files,'new_shared_metadata_cap_bytes':16*1024**2,'new_shared_file_cap':48,'private_index_cap_bytes_per_role':64*1024**2,'node_local_reserve_gib':20,'requested_cpus_per_role':1,'requested_gpus':0}))''')
+names=['rsna/__init__.py','rsna/pixel_overlap.py','scripts/newton/index_source_pixels.py','scripts/newton/launch_pixel_index.py','scripts/newton/runtime_environment.py','scripts/newton/runtime_archive.py']
+files={n:{'bytes':(root/n).stat().st_size,'sha256':hashlib.sha256((root/n).read_bytes()).hexdigest()} for n in names}
+pack=io.BytesIO()
+with tarfile.open(fileobj=pack,mode='w') as tar:
+ for n in names:
+  assert subprocess.check_output(['git','show',head+':'+n])==(root/n).read_bytes();tar.add(root/n,arcname=n,recursive=False)
+raw=pack.getvalue()
+for role,spec in roles.items():
+ control='/home/sa305415/rsna-knee/private-'+role+'-pixel-index-20261001-v1'
+ absent=remote('''import json,sys
+from pathlib import Path
+assert not Path(sys.argv[1]).exists();print(json.dumps({'absent':True}))''',args=(control,))
+ source=spec|{'role':role,'source_git':head,'files':files,'tar_sha256':hashlib.sha256(raw).hexdigest(),'funding':funding,'labels_read':False,'environment_archive':'/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar','environment_sha256':'89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338'}
+ batch='\n'.join(['#!/bin/bash','#SBATCH --job-name=rsna-private-'+role+'-pixel-index','#SBATCH --account=skattel','#SBATCH --partition=normal','#SBATCH --nodes=1','#SBATCH --ntasks=1','#SBATCH --cpus-per-task=1','#SBATCH --mem=12G','#SBATCH --nodelist='+spec['node'],'#SBATCH --time=02:00:00','#SBATCH --output='+control+'/stdout.txt','#SBATCH --error='+control+'/stderr.txt','set -euo pipefail','umask 077','export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1','/usr/bin/nice -n 10 /usr/bin/ionice -c 3 /usr/bin/python3.12 -B '+control+'/launch_pixel_index.py --control '+control,''])
+ objects={'source.tar':raw,'source.json':json.dumps(source,indent=2,sort_keys=True).encode(),'cpu.sbatch':batch.encode(),'launch_pixel_index.py':(root/'scripts/newton/launch_pixel_index.py').read_bytes()}
+ outer=io.BytesIO()
+ with tarfile.open(fileobj=outer,mode='w') as tar:
+  for name,data in objects.items():
+   m=tarfile.TarInfo(name);m.size=len(data);m.mode=0o600;tar.addfile(m,io.BytesIO(data))
+ with (local/(role+'-intent.json')).open('x') as f:json.dump({'control':control,'source':source,'automatic_retry':False},f,indent=2,sort_keys=True)
+ result=remote('''import hashlib,json,os,subprocess,sys,tarfile
+from pathlib import Path
+os.umask(0o077);c=Path(sys.argv[1]);c.mkdir()
+with tarfile.open(fileobj=sys.stdin.buffer,mode='r|') as tar:
+ for m in tar:
+  assert m.isfile() and m.name in ('source.tar','source.json','cpu.sbatch','launch_pixel_index.py')
+  with (c/m.name).open('xb') as f:f.write(tar.extractfile(m).read())
+s=json.loads((c/'source.json').read_text());assert hashlib.sha256((c/'source.tar').read_bytes()).hexdigest()==s['tar_sha256']
+assert hashlib.sha256((c/'launch_pixel_index.py').read_bytes()).hexdigest()==s['files']['scripts/newton/launch_pixel_index.py']['sha256']
+(c/'dispatch-intent.json').write_text(json.dumps({'automatic_retry':False,'role':s['role'],'requested_gpus':0}))
+j=subprocess.check_output(['sbatch','--parsable',str(c/'cpu.sbatch')],text=True).strip().split(';')[0];assert j.isdecimal()
+r={'job_id':j,'control':str(c),'role':s['role'],'status':'private_original_pixel_index_single_dispatch','requested_cpus':1,'requested_gpus':0}
+(c/'dispatch-result.json').write_text(json.dumps(r,indent=2,sort_keys=True));print(json.dumps(r))''',outer.getvalue(),(control,))
+ with (local/(role+'-dispatch-result.json')).open('x') as f:json.dump(result,f,indent=2,sort_keys=True)
+ audit=root/('initiative/audits/stanford-rsna-pixel-overlap-screen-v1/'+role);audit.mkdir()
+ for name,data in objects.items():
+  if name!='source.tar':(audit/name).write_bytes(data)
+ (audit/'dispatch-result.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+ print(json.dumps(result),flush=True)

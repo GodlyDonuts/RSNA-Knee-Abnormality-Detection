@@ -15,6 +15,20 @@ all private immutable epochs and compare any transfer through a clean matched
 RSNA experiment only after cross-source screening/downstream rights review.
 1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
 
+## October1 Stanford transfer pixel-overlap CPU preparation
+
+Read stanford-rsna-pixel-overlap-screen-v1. Stanford actual original adapter
+pilot867419 already passed; full-source engine867478 and native867367 remain
+pending. Source fitting not dispatched. New index_source_pixels.py and
+launch_pixel_index.py form a separate oneCPU/zeroGPU private label-free pixel
+candidate lane, original3750 Stanford stacks and18906 eligible native384 RSNA
+series, no protected cohorts. Code is prepared/local-tested, no actual index job
+or complete overlap finding yet. Do not modify numerical experiments or infer
+independence from a coarse screen. Node-local private64MiB per source, combined
+16MiB/48 shared small files preserves funded20GiB/5000files. Only actual future
+source/dispatch/terminal receipts can establish execution. No raw/index/learned
+Stanford weights publication. Source-specific labels remain separate.
+
 ## October1 exact full Stanford engine recovery single dispatch
 
 Actual sourceF12a319 private full-engine recovery867478 was dispatched ONCE on
