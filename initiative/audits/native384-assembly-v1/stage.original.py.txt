@@ -1,0 +1,17 @@
+import base64,hashlib,json,subprocess
+from pathlib import Path
+from scripts.newton.dispatch_native384_pilot import ssh,save_new
+root=Path.cwd();local=root/'artifacts/native384-assembly-v1';control='/home/sa305415/rsna-knee/native384-assembly-c9-v1';source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+paths={'assemble.py':root/'scripts/newton/assemble_native_cache.py','runner.py':root/'scripts/newton/run_native_cache_assembly.py','production-config.json':root/'initiative/experiments/competitive-v1/native-detail-v1/production384-fold0-v1/config.json'};files={n:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for n,p in paths.items()};launch=json.loads((root/'artifacts/native-full-cache-first-shard-v3/launch.json').read_text());launch={k:v for k,v in launch.items() if k in ('environment_helper','environment_archive','environment_sha256','runtime_helpers')};launch.update({'source_git':source,'files':files,'manifest':'/home/sa305415/rsna-knee/native-cache-reference-index-v1/manifest.json','first_control':'/home/sa305415/rsna-knee/native-full-shard000-c9-v3','batch_control':'/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1','remaining_shared_obligations_bytes':3502083584+12*128*1024**2+128*1024**2,'source_parent_jobs':[866426,866427],'assembly_target_node':'evc31','scientific_source_git':'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab','gpus':0})
+program=r'''import base64,hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+r=json.load(sys.stdin);c=Path('/home/sa305415/rsna-knee/native384-assembly-c9-v1');assert not c.exists();q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,files,fsoft=[int(q[i]) for i in (1,2,5,6)];remaining=(soft-used)*1024-r['launch']['remaining_shared_obligations_bytes']-16*1024**2;assert remaining>=20*1024**3 and fsoft-files-1250>=5000
+live=subprocess.check_output(['squeue','-u','sa305415','--noheader','--format=%i|%j|%T|%b'],text=True);assert 'rsna-native384-assemble' not in live;assert all(str(j) in live for j in (866426,866427));p=Path(r['launch']['manifest']);assert hashlib.sha256(p.read_bytes()).hexdigest()=='44e6775c5413e42d8744ead0f7d7bb0de258893a10867123e47fbd770f84793f'
+c.mkdir(mode=0o700)
+for n,row in r['launch']['files'].items():
+ data=base64.b64decode(r['payloads'][n]);assert len(data)==row['bytes'] and hashlib.sha256(data).hexdigest()==row['sha256'];(c/n).write_bytes(data);os.chmod(c/n,0o600)
+def save(n,x):
+ with (c/n).open('x') as f:json.dump(x,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+save('launch.json',r['launch']);record={'status':'full_native384_cpu_assembly_source_staged','checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'source_git':r['launch']['source_git'],'launch_sha256':hashlib.sha256((c/'launch.json').read_bytes()).hexdigest(),'files':r['launch']['files'],'remaining_funded_gib':remaining/1024**3,'projected_file_reserve_after_source_and_assembly':fsoft-files-1250,'target_node':'evc31','parent_jobs':[866426,866427],'full_cohort_complete':False,'gpu_reserved':False,'automatic_retry':False};save('stage-verified.json',record);print(json.dumps(record))
+'''
+result=ssh('/tmp/rsna-r64-submit-20261001-501.sock',['/usr/bin/python3.12','-B','-c',program],{'launch':launch,'payloads':{n:base64.b64encode(p.read_bytes()).decode() for n,p in paths.items()}},timeout=45);save_new(local/'launch.json',launch);save_new(local/'stage-verified.json',result);print(json.dumps(result))
