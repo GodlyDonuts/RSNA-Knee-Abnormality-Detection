@@ -70,3 +70,18 @@ repeating established recipes. Make this a standing project priority.
 
 See `docs/creative-research-plan.md` for the current hypothesis sequence and the
 conditional external-data investigation.
+
+## October1 native training and Stanford pixel-only milestone
+
+Native867367 RUNNING on evc31,47 finite real updates at20:46UTC, actual header/
+CUDA/native384 admission passed. New full Stanford engine867478 still pending;
+source fitting1129/119/10epochs not dispatched. Older source pilot867419 passed
+actual four-update recovery only. Separate correctedCPU867493 completed all3750
+Stanford volumes/1250image exams, raw private labels untouched; RSNA CPU867494
+still running eligible native series. No overlap/clinical accuracy conclusion.
+Read stanford-rsna-pixel-overlap-screen-v1 and native gpu-initial-progress.
+Original failed CPU867491/867492 missing schema import preserved, v2isolated
+closure fixed. Never duplicate jobs or publish private source signature records,
+raw pixels or learned Stanford weights. HF417905f3d6603d97a8e62ed767d4b693e8241fca
+fully verified50 small code/metadata objects frommain6edefe1, no raw/labels/weights;
+never repeat. Current continuation and actual receipts supersede old snapshots.
