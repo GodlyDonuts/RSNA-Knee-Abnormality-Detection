@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-stratified-cpu-accept
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --time=00:20:00
+#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err
+set -euo pipefail
+umask 077
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+unset PYTHONPATH
+exec /usr/bin/python3.12 /home/sa305415/rsna-knee/stratified-pilot-7ac7a97-v1/run_phase.py cpu

@@ -1,3 +1,63 @@
+## October 1 official sampling pilot queued after CPU acceptance
+
+CPU preparation866610 completed0:0 on evc21 in4:25, fully verifying existing
+weights/config/runtime/cache archives,45declared source files, accepted release
+and folds, and actual16training/16outer cached studies. The separate uniform/
+stratified one-H100/two-CPU45minute pilot866616 was submitted ONCE after a fresh
+funded byte/file/GPU-role review; initial actual state PENDING Priority. This is
+an engineering diagnostic, not coverage production or a Kaggle submission.
+Control /home/sa305415/rsna-knee/stratified-pilot-7ac7a97-v1, frozen source7ac7a97,
+payload manifestSHA2e3be839fee13c9b1b2cda11fa67121540aa3b11c8d37ee4e8e8a98ef410b501.
+Read `initiative/audits/stratified-slices-pilot-launch-v1/README.md` and exact
+GPU/CPU receipts before action. Never duplicate/restart it. On allocation inspect
+real CUDA/header/source checks and finite optimizer updates; require terminal0:0,
+120learned residual modules/415unchanged official tensors, identical seeded
+initial learned tensors and zero-adapter logits, plus full checkpoint/optimizer/
+RNG and prediction equivalence after interruptions in BOTH epochs. Preserve
+negative evidence if it fails; diagnostic metrics/checkpoint are not eligible
+competition models. All1,434local tests and other mandatory checks passed.
+Native C9 source lanes866426/866427 and assembly866458 remain untouched; native384
+production still awaits the exact complete cache and CPU proof. At most two GPU
+nodes; additional pilot funding145584750bytes/50files retains20GiB/5000files.
+
+## October 1 bounded slice-coverage CPU admission submitted
+
+Distinct CPU-only job866610 was submitted once to prepare the uniform/stratified
+engineering pilot on scientific Git7ac7a9779d3c8bfd756a44eceb6414e9bb763b85.
+Control /home/sa305415/rsna-knee/stratified-pilot-7ac7a97-v1; oneCPU/16GB/zeroGPUs,
+last RUNNING evc21. Existing4.079GB pilot cache/runtime/official weights are
+reused with full hashes; accepted folds and32actual diagnostic study inputs are
+replayed/decoded. Source/data jobs866426/866427 and assembly866458 untouched.
+Read `initiative/audits/stratified-slices-pilot-launch-v1/README.md` and frozen
+payloads; no GPU pilot dispatch exists at this preparation milestone. Git's
+historical alternate warnings are preserved; all45declared source bytes are
+independently verified. Require actual terminal0:0 and CPU acceptance receipt,
+fresh quota including145584750extra bytes/50files and matching payloads/assets
+before one bounded one-H100/two-CPU pilot. It is mechanics-only and not a
+competition submission or full coverage production run. The initialized-model
+verifier and paired configs reject any concurrent change; candidate recovery
+must pass interruptions in both epochs and uniform offline reload.
+
+## October 1 scored rank64 result and source-cache advance
+
+The exact sampled rank64 fold0 E10 submission56740377 completed with public
+score0.778,263982bytes and no error at the authenticated06:46UTC read. Single
+Newton coordinator CPU job866601 reconciled the existing canonical ledger entry
+at06:52UTC; no new competition mutation. Exact identity receipt:
+`initiative/audits/kaggle-rank64-epoch10-v1/hidden-scored-canonical-entry.json`.
+Compared to same-fold sampled rank32 public0.769 the rounded gain is0.009;
+internal held-out macro declined0.028044. Neither direction alone establishes a
+causal rank effect or leaderboard competitiveness. Keep the matched resolution
+and coverage comparisons separate. Fresh allowance was1today/4remaining;
+no obligation to use all slots. Never resubmit this exact notebook/checkpoint.
+
+Native source shards17,19,20 were separately re-admitted from original source
+bindings and private full-byte verification receipts. The canonical summary now
+covers all shards0..20:21of75; do not infer completion of later shards. Existing
+CPU lanes866426/866427 and dependent assembly866458 remain untouched. Native384
+production remains staged and waits for actual complete accepted cache/CPU
+preflight. No GPU training job has been dispatched by this milestone.
+
 ## October 1 creative/native/coverage milestone privately verified
 
 The combined small source milestone is privately preserved at HF revision

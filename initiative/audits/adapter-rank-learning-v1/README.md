@@ -5,16 +5,20 @@ rank produces better results. `learning-board.json` records the question,
 comparison, training population and actual internal/public evidence separately.
 It creates no training job, submission or new label release.
 
-At the authenticated October 1 04:01 UTC read, rank64 entry **56740377** still
-returned no hidden status, error or score. It was submitted once; never repeat it.
-The scored references remain sampled rank32 **0.769 / 56697342** and
-all-development rank32 **0.792 / 56711823**. The latter uses 3,403 training
-studies instead of 2,247 and cannot isolate an adapter-rank effect.
+At the authenticated October 1 06:46 UTC read, rank64 entry **56740377**
+completed with public score **0.778**,263,982 output bytes and no error. The
+single Newton coordinator reconciled the exact existing entry at06:52UTC in
+one-CPU job866601. This was an account read and local ledger update; zero new
+competition submissions. Its [canonical result](../kaggle-rank64-epoch10-v1/hidden-scored-canonical-entry.json)
+preserves the exact notebook, dataset, checkpoint and original dispatch identity.
+Never repeat the scored submission. References remain sampled rank32
+**0.769 / 56697342** and all-development rank32 **0.792 / 56711823**. The latter
+uses3,403 training studies instead of2,247 and cannot isolate a rank effect.
 
 | Completed experiment | Internal fixed-final AUC | Public Kaggle score |
 | --- | ---: | ---: |
 | Rank32, 16 slices, fold0 | 0.862094 | 0.769 |
-| Rank64, 16 slices, same fold0 | 0.834050 | Awaiting actual outcome |
+| Rank64, 16 slices, same fold0 | 0.834050 | 0.778 |
 | Rank32, every eligible slice, same fold0 | 0.860340 | Not submitted |
 | Rank32, all-development final fit | No remaining internal holdout | 0.792 |
 
@@ -22,6 +26,13 @@ Internal AUC uses accepted report-derived labels and is not the Kaggle metric
 on the hidden competition studies. All twelve target weights remain intact.
 
 ## What the rank result currently says
+
+Rank64 gained **0.009** on the rounded public score while declining **0.028044**
+on the matched weak-label development metric. These opposite directions argue
+for caution: the reused public subset and internal label population are different,
+and initialization/scaling differences plus one seed/fold prevent a causal rank
+claim. This solo model is not yet leaderboard competitive. Larger rank is a
+hypothesis to test, not an automatic path to improvement.
 
 The rank64 internal macro difference is **−0.028044**. MCL has just two positive
 components and contributes approximately 92% of the total macro decline. ACL
@@ -58,7 +69,7 @@ PYTHONNOUSERSITE=1 artifacts/qa-env/bin/python -m scripts.rank_learning \
 ## The next comparisons
 
 The already submitted rank64 E10 answers the existing fixed-recipe capacity
-question. Wait for its actual result before another capacity submission.
+question. Its scored result is now known; another capacity submission needs a distinct justified experiment.
 The next prepared training comparison is original-source **384-input rank32**,
 keeping capacity, train/outer membership and slice/series policy fixed. Its full
 cache is being rebuilt by the two existing CPU lanes; no native production GPU

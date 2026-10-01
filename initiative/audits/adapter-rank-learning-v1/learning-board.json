@@ -1,18 +1,21 @@
 {
-  "checked_at": "2026-10-01T04:01:07.198068+00:00",
+  "canonical_scored_receipt": "initiative/audits/kaggle-rank64-epoch10-v1/hidden-scored-canonical-entry.json",
+  "canonical_scored_receipt_sha256": "1bb4fb1ec2b73e5cbfe959ea54768046ae7a6221ff03462a64e2e1feca2cfe21",
+  "checked_at": "2026-10-01T06:52:09.217093+00:00",
   "competition_policy": {
     "all_mutations_use_single_newton_coordinator_and_ledger": true,
     "authoritative_live_daily_allowance_required": true,
     "five_daily_slots_are_a_ceiling_not_a_requirement": true,
     "inspect_actual_outcome_before_next_capacity_submission": true,
     "no_adaptive_public_score_blend_threshold_or_checkpoint_search": true,
-    "pending_rank64_submission_must_not_be_repeated": true,
     "record_internal_target_support_and_all_twelve_targets": true,
-    "record_question_and_reference_before_candidate_training_or_submission": true
+    "record_question_and_reference_before_candidate_training_or_submission": true,
+    "scored_rank64_submission_must_not_be_repeated": true
   },
   "inference": [
-    "No evidence yet that larger ranks monotonically improve scores.",
-    "Rank32 remains the measured working reference.",
+    "Rank64 scored0.778 versus sampled rank32 0.769, a rounded public difference of+0.009; the same weak-label development comparison declined by0.028044.",
+    "This single disagreement between public and development directions does not establish a causal or monotonic rank gain.",
+    "Rank32 remains the matched reference for resolution and sampling experiments.",
     "A public score is one directional observation on a reused public holdout, not an untouched confirmation set.",
     "Different training populations must not be interpreted as a rank effect."
   ],
@@ -65,7 +68,7 @@
     "reference_repeats_uniform_slices_each_epoch": true,
     "separate_from_context_resolution_and_backbone_changes": true,
     "series_policy_should_remain_matched": true,
-    "state": "protocol_only_no_config_or_dispatch"
+    "state": "stratified_policy_and_CPU_mechanics_implemented_paired_configs_ready_no_GPU_dispatch"
   },
   "no_new_training_job_or_competition_mutation_for_this_audit": true,
   "owner_intent": "Use Kaggle submissions to choose model direction and learn whether higher adapter rank improves results.",
@@ -86,16 +89,20 @@
       "train_studies": 2247
     },
     {
+      "canonical_ledger_reconciled": true,
       "experiment": "sampled rank64 fold0 epoch10",
       "heldout_studies": 1156,
-      "hidden_state": "unknown_no_status_error_or_score_returned",
+      "hidden_error": null,
+      "hidden_state": "COMPLETE",
       "input_side": 224,
       "internal_macro_auc": 0.8340496537270812,
       "primary_reference_submission": 56697342,
-      "public_score": null,
+      "public_difference_from_rank32": 0.009,
+      "public_score": 0.778,
       "pure_causal_rank_isolation": false,
       "question": "Does doubling adapter capacity help under the existing fixed recipe?",
       "rank": 64,
+      "remote_total_bytes": 263982,
       "slices_per_series": 16,
       "submission": 56740377,
       "train_studies": 2247

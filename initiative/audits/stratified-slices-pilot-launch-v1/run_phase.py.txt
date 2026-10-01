@@ -1,0 +1,84 @@
+"""Finite CPU acceptance or one bounded GPU sampling/recovery pilot. No network calls."""
+import hashlib,json,os,shutil,subprocess,sys,tempfile,time
+from pathlib import Path
+control=Path('/home/sa305415/rsna-knee/stratified-pilot-7ac7a97-v1');phase=sys.argv[1];assert phase in ('cpu','gpu')
+job=os.environ['SLURM_JOB_ID'];assert job.isdecimal();assert bool(os.environ.get('SLURM_JOB_GPUS'))==(phase=='gpu')
+manifest=json.loads((control/'payloads.json').read_text());code_root=None;environment_root=None;cache_root=None
+
+def digest(path):
+ h=hashlib.sha256()
+ with path.open('rb') as f:
+  for x in iter(lambda:f.read(4*1024**2),b''):h.update(x)
+ return h.hexdigest()
+def save(name,row):
+ with (control/name).open('x') as f:json.dump(row,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+def state(path):
+ assert path.is_file() and not path.is_symlink();s=path.stat();return {'dev':s.st_dev,'ino':s.st_ino,'bytes':s.st_size,'mtime_ns':s.st_mtime_ns,'ctime_ns':s.st_ctime_ns}
+def run(argv,**kw):
+ return subprocess.run(argv,check=True,cwd=code_root,**kw)
+try:
+ for name,row in manifest['files'].items():
+  p=control/name;assert state(p)['bytes']==row['bytes'] and digest(p)==row['sha256']
+ source=json.loads((control/'source.json').read_text());assert source['source_git']=='7ac7a9779d3c8bfd756a44eceb6414e9bb763b85'
+ if phase=='gpu':
+  proof=json.loads((control/'cpu-prerequisites-verified.json').read_text());assert proof['status']=='all_source_assets_runtime_and_real_cache_CPU_verified'
+  terminal=subprocess.check_output(['sacct','-X','--noheader','-j',proof['job_id'],'--format=JobIDRaw,State,ExitCode','--parsable2'],text=True);assert terminal.strip()==proof['job_id']+'|COMPLETED|0:0'
+  for path,row in proof['assets'].items():assert state(Path(path))==row['stat']
+ code_root=Path(tempfile.mkdtemp(prefix='rsna-sampling-source-'+job+'-',dir='/tmp'));assert code_root.stat().st_dev!=Path.home().stat().st_dev and shutil.disk_usage(code_root).free>100*1024**3
+ marker={'uid':os.getuid(),'job_id':job,'source_git':source['source_git']};(code_root/'.owner.json').write_text(json.dumps(marker))
+ # Source checkout is sparse and shallow. The immutable existing C9 object store
+ # supplies ancestor blobs; all new source objects and declared files are pinned.
+ subprocess.run(['git','init','-q',str(code_root)],check=True)
+ subprocess.run(['git','-C',str(code_root),'unpack-objects','-q'],input=(control/'source.pack').read_bytes(),check=True)
+ (code_root/'.git/objects/info/alternates').write_text(source['readonly_alternate']+'\n');(code_root/'.git/shallow').write_text(source['source_git']+'\n')
+ subprocess.run(['git','-C',str(code_root),'config','core.sparseCheckout','true'],check=True)
+ (code_root/'.git/info/sparse-checkout').write_text('\n'.join('/'+n for n in source['files'])+'\n');subprocess.run(['git','-C',str(code_root),'checkout','-q','--detach',source['source_git']],check=True)
+ # Put owner metadata outside the sparse source scan after ownership is captured.
+ (code_root/'.owner.json').unlink()
+ assert not subprocess.check_output(['git','-C',str(code_root),'status','--porcelain'],text=True)
+ for name,row in source['files'].items():assert state(code_root/name)['bytes']==row['bytes'] and digest(code_root/name)==row['sha256']
+ root=Path('/home/sa305415/rsna-knee');encoder=json.loads((control/'candidate-config.json').read_text())['encoder']
+ assets={root/'cache/pilot100-fold0-v1.tar':'8d50e027f66e91beb6afa2b56877b8da59059f6d43e7c13aa0103059d447d715',root/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar':'89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338',Path(encoder['weights_path']):encoder['weights_sha256'],Path(encoder['config_path']):encoder['config_sha256']}
+ verified={}
+ for p,h in assets.items():
+  before=state(p)
+  if phase=='cpu':assert digest(p)==h and state(p)==before
+  else:assert proof['assets'][str(p)]=={'sha256':h,'stat':before}
+  verified[str(p)]={'sha256':h,'stat':before}
+ env=json.loads(subprocess.check_output(['/usr/bin/python3.12',str(code_root/'scripts/newton/runtime_environment.py'),'extract','--archive',str(root/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar'),'--sha256',assets[root/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar'],'--expected-files','40403','--expected-bytes','6322691335','--scratch-base','/tmp','--shared-python','/usr/bin/python3.12','--min-free-gib','20'],text=True));environment_root=Path(env['runtime_root']);python=str(environment_root/'environment/bin/python')
+ cached=json.loads(subprocess.check_output(['/usr/bin/python3.12',str(code_root/'scripts/newton/runtime_archive.py'),'extract','--archive',str(root/'cache/pilot100-fold0-v1.tar'),'--sha256',assets[root/'cache/pilot100-fold0-v1.tar'],'--expected-files','2248','--expected-bytes','4077105588','--scratch-base','/tmp','--min-free-gib','20'],text=True));cache_root=Path(cached['runtime_root']);cache=cache_root/'cache'
+ os.environ['TRITON_CACHE_DIR']=str(cache_root/'triton-cache');os.environ['PYTHONPATH']=str(code_root)
+ if phase=='cpu':
+  data=json.loads(subprocess.check_output([python,str(control/'cpu_data.py'),str(control),str(cache)],cwd=code_root,text=True))
+  save('cpu-prerequisites-verified.json',{'status':'all_source_assets_runtime_and_real_cache_CPU_verified','job_id':job,'verified_unix':time.time(),'assets':verified,'source_git':source['source_git'],'source_files':source['files'],'payload_manifest_sha256':digest(control/'payloads.json'),'data':data,'gpu_reserved':False})
+  print(json.dumps({'status':'all_source_assets_runtime_and_real_cache_CPU_verified','job_id':job,'GPU_reserved':False}),flush=True)
+ else:
+  import_phase=[python,str(code_root/'scripts/newton/enforce_deterministic_runtime.py')]
+  run([python,'-c','import torch; assert torch.cuda.device_count()==1;torch.cuda.set_device(0);assert torch.ones(8,device="cuda").sum().item()==8;torch.cuda.synchronize()'])
+  inp=root/'code-stopfix-1f486765';studies=inp/'initiative/releases/report-supervision-v1/studies.parquet';series=inp/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'
+  full=cache_root/'candidate-full';resumed=cache_root/'candidate-resumed';reference=cache_root/'uniform-full'
+  common=['--studies',str(studies),'--series',str(series),'--cache',str(cache),'--folds',str(inp/'initiative/experiments/competitive-v1/folds'),'--artifact-root',str(inp),'--device','cuda']
+  def train(out,config,extra=(),stop=False):
+   p=subprocess.run(import_phase+['--module','rsna.competitive.train',*common,'--config',str(control/config),'--output',str(out),*extra],cwd=code_root)
+   assert p.returncode==(75 if stop else 0),p.returncode
+   if stop:
+    row=json.loads((out/'invocation.json').read_text());assert row['status']=='checkpointed_for_resume' and row['exit_code']==75
+    save('intentional-stop-'+str(len(list(control.glob('intentional-stop-*.json')))+1)+'.json',{'status':'actual_optimizer_boundary_stop_verified','invocation':row})
+  train(reference,'control-config.json');train(full,'candidate-config.json')
+  train(resumed,'candidate-config.json',['--stop-after-updates','1'],True)
+  train(resumed,'candidate-config.json',['--resume',str(resumed/'checkpoint.pt'),'--stop-after-updates','2'],True)
+  train(resumed,'candidate-config.json',['--resume',str(resumed/'checkpoint.pt')])
+  run(import_phase+['--module','scripts.newton.verify_adapter_pilot','--full',str(full),'--resumed',str(resumed),'--config',str(control/'candidate-config.json'),'--studies',str(studies),'--series',str(series),'--cache',str(cache),'--output',str(control/'pilot-verified.json')])
+  run(import_phase+['--script',str(control/'verify_initialization.py'),'--control',str(control/'control-config.json'),'--candidate',str(control/'candidate-config.json'),'--studies',str(studies),'--series',str(series),'--cache',str(cache),'--outer-predictions',str(reference/'outer_predictions.csv'),'--output',str(control/'initialization-verified.json')])
+  for label,out in [('uniform',reference),('candidate',full),('resumed',resumed)]:
+   for name in ('run.json','result.json','invocation.json','outer_predictions.csv'):
+    p=out/name;assert p.stat().st_size<2*1024**2
+    with (control/(label+'-'+name)).open('xb') as dst:dst.write(p.read_bytes())
+  checkpoint=full/'checkpoint.pt';assert checkpoint.stat().st_size<128*1024**2
+  with (control/'delta-diagnostic.pt').open('xb') as dst,checkpoint.open('rb') as src:shutil.copyfileobj(src,dst)
+  save('terminal-verified.json',{'status':'sampling_GPU_pilot_initialization_and_two_epoch_exact_recovery_passed','job_id':job,'source_git':source['source_git'],'diagnostic_only':True,'competition_eligible':False,'checkpoint_sha256':digest(control/'delta-diagnostic.pt'),'checkpoint_bytes':checkpoint.stat().st_size,'accepted_data_masks_and_folds_changed':False})
+finally:
+ if cache_root is not None:subprocess.run(['/usr/bin/python3.12',str(code_root/'scripts/newton/runtime_archive.py'),'cleanup','--root',str(cache_root)],check=True)
+ if environment_root is not None:subprocess.run(['/usr/bin/python3.12',str(code_root/'scripts/newton/runtime_environment.py'),'cleanup','--root',str(environment_root)],check=True)
+ if code_root is not None:
+  assert code_root.name.startswith('rsna-sampling-source-'+job+'-') and code_root.stat().st_uid==os.getuid() and not code_root.is_symlink();shutil.rmtree(code_root)

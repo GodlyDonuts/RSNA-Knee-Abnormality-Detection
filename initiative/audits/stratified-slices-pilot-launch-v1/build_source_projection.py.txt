@@ -1,0 +1,26 @@
+import hashlib,json,os,shutil,subprocess,tempfile
+from pathlib import Path
+root=Path.cwd();head='7ac7a9779d3c8bfd756a44eceb6414e9bb763b85';out=root/'artifacts/stratified-slices-v1/pilot-preparation-v3';out.mkdir(exist_ok=False)
+names=[str(p.relative_to(root)) for p in sorted((root/'rsna').rglob('*.py'))]
+names += ['scripts/newton/'+n for n in ('runtime_archive.py','runtime_environment.py','preflight.py','supervise.py','verify_adapter_pilot.py','enforce_deterministic_runtime.py')]
+names += ['pyproject.toml']
+rows=subprocess.check_output(['git','ls-tree','-r','-t',head],text=True).splitlines();objects={head,subprocess.check_output(['git','rev-parse',head+'^{tree}'],text=True).strip()};files={}
+for row in rows:
+ meta,name=row.split('\t',1);mode,kind,oid=meta.split()
+ if kind=='tree':objects.add(oid)
+ if name in names:
+  assert kind=='blob';objects.add(oid);data=subprocess.check_output(['git','show',head+':'+name]);assert data==(root/name).read_bytes();files[name]={'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
+assert set(files)==set(names)
+objects.update(subprocess.check_output(['git','rev-list','--objects','--no-object-names',head,'^c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'],text=True).splitlines())
+pack=subprocess.check_output(['git','pack-objects','--stdout','--threads=1'],input=('\n'.join(sorted(objects))+'\n').encode())
+(out/'source.pack').write_bytes(pack)
+manifest={'source_git':head,'files':files,'pack_sha256':hashlib.sha256(pack).hexdigest(),'pack_bytes':len(pack),'scope':'exact_shallow_sparse_source_tree_with_all_trees_and_only_declared_code_blobs','node_local_only_git_checkout':True,'not_a_full_repository_backup':True,'base_git':'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab','readonly_alternate':'/home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e/.git/objects'}
+(out/'source.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+with tempfile.TemporaryDirectory(prefix='rsna-sparse-projection-') as tmp:
+ p=Path(tmp);subprocess.run(['git','init','-q',str(p)],check=True);subprocess.run(['git','-C',str(p),'unpack-objects','-q'],input=pack,check=True)
+ (p/'.git/objects/info/alternates').write_text(str(root/'.git/objects')+'\n');(p/'.git/shallow').write_text(head+'\n');subprocess.run(['git','-C',str(p),'config','core.sparseCheckout','true'],check=True)
+ (p/'.git/info/sparse-checkout').write_text('\n'.join('/'+n for n in names)+'\n');subprocess.run(['git','-C',str(p),'checkout','-q','--detach',head],check=True)
+ assert not subprocess.check_output(['git','-C',str(p),'status','--porcelain'],text=True)
+ for n,row in files.items():assert hashlib.sha256((p/n).read_bytes()).hexdigest()==row['sha256']
+ assert {str(x.relative_to(p)) for x in p.rglob('*') if x.is_file() and '.git' not in x.relative_to(p).parts}==set(files)
+print(json.dumps({'source_git':head,'pack_bytes':len(pack),'declared_files':len(files),'local_sparse_git_checkout_acceptance':'passed'}))

@@ -1,0 +1,23 @@
+"""Read-only full release/fold replay and bounded real-cache decoding acceptance."""
+import hashlib,json,sys
+from pathlib import Path
+import pandas as pd
+import torch
+from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import TrainConfig,select_development,verified_job_release
+control,cache=map(Path,sys.argv[1:]);torch.set_num_threads(1)
+root=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');studies=root/'initiative/releases/report-supervision-v1/studies.parquet';series_file=root/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'
+manifest,binding=verified_job_release(studies,root,0,1);folds=load_folds(root/'initiative/experiments/competitive-v1/folds',manifest,binding)
+a=json.loads((control/'control-config.json').read_text());b=json.loads((control/'candidate-config.json').read_text());assert {**a,'slice_sampling':'stratified'}==b and a['slice_sampling']=='uniform'
+config=TrainConfig(**b);config.validate();train,outer=select_development(manifest,folds,config.fold);assert len(train)==2247 and len(outer)==1156
+train,outer=train.head(16),outer.head(16);assert len(set(train.study_uid)|set(outer.study_uid))==32
+series=pd.read_csv(series_file);assert hashlib.sha256(series_file.read_bytes()).hexdigest()==binding['series_sha256']
+rows=[]
+for role,frame,policy in [('train-uniform',train,'uniform'),('train-stratified',train,'stratified'),('outer-uniform',outer,'uniform')]:
+ dataset=CompetitiveStudyDataset(frame,series,cache,slices=config.slices,side=config.side,max_series=config.max_series,augment=False,slice_sampling=policy,series_sampling=config.series_sampling)
+ count=0
+ for i in range(len(dataset)):
+  torch.manual_seed(config.seed+i);row=dataset[i];x=row['images'];assert torch.isfinite(x).all() and bool(x.ge(0).all()) and bool(x.le(1).all());assert row['positions'].isfinite().all();count+=int(row['slice_mask'].sum())
+ rows.append({'role':role,'studies':len(dataset),'decoded_selected_slices':count,'study_uids':frame.study_uid.tolist()})
+print(json.dumps({'status':'actual_accepted_release_folds_and_32_study_cache_decoding_passed','release_binding':binding,'roles':rows,'actual_label_changes':False,'accuracy_claim':False,'cache_side':256,'torch_version':str(torch.__version__)}))
