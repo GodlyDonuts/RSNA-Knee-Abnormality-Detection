@@ -1,0 +1,79 @@
+import hashlib,io,json,os,shlex,subprocess,tarfile
+from pathlib import Path
+from scripts.newton.launch_pixel_match import SOURCE_MEMBERS
+root=Path.cwd();control='/home/sa305415/rsna-knee/private-source-pixel-match-20261001-v1'
+local=root/'artifacts/external-knee-research-20261001-v1/private-pixel-match-intent';local.mkdir()
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','-o','ConnectTimeout=8','sa305415@newton.ist.ucf.edu']
+def remote(code,data=None):
+ r=subprocess.run(ssh+[shlex.join(['/usr/bin/python3.12','-B','-c',code,control])],input=data,capture_output=True,timeout=60)
+ if r.returncode:raise RuntimeError('private_pixel_match_requires_readonly_reconciliation')
+ return json.loads(r.stdout)
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert not subprocess.check_output(['git','status','--porcelain','--','rsna','scripts/newton'],text=True)
+pixel_sha=hashlib.sha256((root/'rsna/pixel_overlap.py').read_bytes()).hexdigest()
+source=remote('''import hashlib,json,subprocess,sys
+from pathlib import Path
+assert not Path(sys.argv[1]).exists()
+base=Path('/home/sa305415/rsna-knee');result={}
+for role,job,label,node in (('stanford','867493','left','evc32'),('rsna','867494','right','evc31')):
+ c=base/('private-'+role+'-pixel-index-20261001-v2');p=c/'index-verified.json';r=json.loads(p.read_text());s=json.loads((c/'source.json').read_text())
+ t=subprocess.check_output(['sacct','-X','-j',job,'-n','-P','-o','JobID,State,ExitCode'],text=True);assert '|COMPLETED|0:0' in t
+ assert r['job_id']==job and r['node']==node and r['clinical_labels_read'] is False and r['protected_RSNA_cohorts_read'] is False
+ assert r['status']=='original_pixel_signature_index_complete_not_overlap_conclusion'
+ result|={label+'_node':node,label+'_index_path':r['index_path'],label+'_index_sha256':r['index_sha256'],label+'_index_bytes':r['index_bytes'],label+'_receipt_path':str(p),label+'_receipt_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),label+'_pixel_code_sha256':s['files']['rsna/pixel_overlap.py']['sha256']}
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();u,soft,f,l=[int(q[i]) for i in (1,2,5,6)]
+gib=((soft-u)*1024-5246914048-(12+272+64+32+16+16+32)*1024**2)/1024**3;files=l-f-190-400-160-96-48-48-96
+assert gib>=20 and files>=5000
+result['funding']={'shared_reserve_gib_after_all_liabilities':gib,'shared_file_reserve_after_all_liabilities':files,'shared_metadata_within_original_relocation32MiB96file_cap':True,'node_local_private_candidates_cap_bytes':64*1024**2,'node_local_reserve_gib':20,'CPUs_per_end':1,'GPUs':0}
+print(json.dumps(result))''')
+assert source['left_pixel_code_sha256']==source['right_pixel_code_sha256']==pixel_sha
+files={n:{'bytes':(root/n).stat().st_size,'sha256':hashlib.sha256((root/n).read_bytes()).hexdigest()} for n in SOURCE_MEMBERS}
+pack=io.BytesIO()
+with tarfile.open(fileobj=pack,mode='w') as tar:
+ for n in SOURCE_MEMBERS:
+  assert subprocess.check_output(['git','show',head+':'+n])==(root/n).read_bytes();tar.add(root/n,arcname=n,recursive=False)
+raw=pack.getvalue();wrapper=root/'scripts/newton/launch_pixel_match.py'
+assert subprocess.check_output(['git','show',head+':scripts/newton/launch_pixel_match.py'])==wrapper.read_bytes()
+source|={'source_git':head,'files':files,'tar_sha256':hashlib.sha256(raw).hexdigest(),'wrapper_sha256':hashlib.sha256(wrapper.read_bytes()).hexdigest(),'environment_archive':'/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar','environment_sha256':'89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338'}
+objects={'source.json':json.dumps(source,indent=2,sort_keys=True).encode(),'source.tar':raw,'launch_pixel_match.py':wrapper.read_bytes()};outer=io.BytesIO()
+with tarfile.open(fileobj=outer,mode='w') as tar:
+ for name,data in objects.items():
+  m=tarfile.TarInfo(name);m.size=len(data);m.mode=0o600;tar.addfile(m,io.BytesIO(data))
+with (local/'intent.json').open('x') as f:json.dump({'control':control,'source':source,'automatic_retry':False,'pixels_or_index_records_collected_locally':False},f,indent=2,sort_keys=True)
+remote('''import json,os,sys,tarfile
+from pathlib import Path
+os.umask(0o077);c=Path(sys.argv[1]);c.mkdir()
+with tarfile.open(fileobj=sys.stdin.buffer,mode='r|') as tar:
+ for m in tar:
+  assert m.isfile() and m.name in ('source.json','source.tar','launch_pixel_match.py')
+  with (c/m.name).open('xb') as f:f.write(tar.extractfile(m).read())
+(c/'dispatch-intent.json').write_text(json.dumps({'automatic_retry':False,'one_CPU_zero_GPU_per_end':True,'metadata_stream_only':True}))
+print(json.dumps({'staged':True}))''',outer.getvalue())
+sender='''import hashlib,json,os,sys
+from pathlib import Path
+c=Path(sys.argv[1]);s=json.loads((c/'source.json').read_text());p=Path(s['right_index_path'])
+assert os.environ.get('SLURM_JOB_ID') and os.environ.get('SLURM_CPUS_PER_TASK')=='1' and not os.environ.get('SLURM_JOB_GPUS')
+assert os.uname().nodename==s['right_node'] and not p.is_symlink() and p.stat().st_size==s['right_index_bytes']
+(c/'send-start.json').write_text(json.dumps({'job_id':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'one_CPU_zero_GPU':True}))
+h=hashlib.sha256()
+with p.open('rb') as f:
+ for b in iter(lambda:f.read(4*1024**2),b''):sys.stdout.buffer.write(b);h.update(b)
+sys.stdout.buffer.flush();assert h.hexdigest()==s['right_index_sha256']
+(c/'send-complete.json').write_text(json.dumps({'job_id':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'index_sha256':h.hexdigest(),'pixels_or_labels_streamed':False}))
+'''
+base=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--time=00:40:00']
+send=base+['--nodelist=evc31','--mem=4G','--job-name=rsna-private-pixel-index-send','/usr/bin/python3.12','-B','-c',sender,control]
+recv=base+['--nodelist=evc32','--mem=12G','--job-name=rsna-private-pixel-match','/usr/bin/python3.12','-B',control+'/launch_pixel_match.py','--control',control]
+with (local/'send-stderr.txt').open('x') as senderr,(local/'receive-stdout.txt').open('x') as out,(local/'receive-stderr.txt').open('x') as err:
+ p=subprocess.Popen(ssh+[shlex.join(send)],stdout=subprocess.PIPE,stderr=senderr)
+ q=subprocess.Popen(ssh+[shlex.join(recv)],stdin=p.stdout,stdout=out,stderr=err)
+ p.stdout.close();receive_rc=q.wait(timeout=2400);send_rc=p.wait(timeout=30)
+with (local/'process-result.json').open('x') as f:json.dump({'send_returncode':send_rc,'receive_returncode':receive_rc,'automatic_retry':False},f,indent=2,sort_keys=True)
+assert send_rc==receive_rc==0,'private_match_transport_requires_readonly_reconciliation'
+result=remote('''import json
+from pathlib import Path
+c=Path(__import__('sys').argv[1]);print(json.dumps({n:(c/n).read_text() for n in ('send-start.json','send-complete.json','run-start.json','match-verified.json')}))''')
+p=root/'initiative/audits/stanford-rsna-pixel-overlap-screen-v1/private-match';p.mkdir()
+for name,data in objects.items():
+ if name!='source.tar':(p/name).write_bytes(data)
+for name,data in result.items():(p/name).write_text(data)
+print(json.dumps(json.loads(result['match-verified.json'])))

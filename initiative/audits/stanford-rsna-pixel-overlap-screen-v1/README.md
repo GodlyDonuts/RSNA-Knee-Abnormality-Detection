@@ -66,3 +66,18 @@ Private2,683,971-byte index stays on evc32. Its exact hash/path/source/terminal
 receipt is preserved in stanford-v2; records are NOT collected or published.
 RSNA867494 remains RUNNING with1000 decoded original native384 series. An index
 completion is not a cross-source overlap result or proof of clinical accuracy.
+
+## Original private matching lane prepared
+
+match_pixel_indexes.py and its separate CPU wrapper consume the original complete
+Stanford metadata locally on evc32 plus exact original eligible RSNA metadata
+streamed through RAM/stdin from evc31. Sender/receiver each use oneCPU/zeroGPU;
+no index/raw pixels copied into shared storage or the Mac. Original terminal0:0
+index hashes and identical frozen pixel-signature code are required before any
+intent. Changed/truncated/extra transport bytes fail; candidate bytes are capped
+before writing and retained privately on evc32 with20GiB reserve. Matching yields
+advisory candidates requiring original-image review, never diagnoses, patient
+identity, absence proof or automatic training/label exclusions. Labels/protected
+cohorts are not read. Small wrapper/control/receipt obligations fit the existing
+relocation32MiB/96file metadata allowance, fresh20GiB/5000files after all liabilities.
+No original match dispatch or overlap conclusion yet at this preparation freeze.

@@ -1,0 +1,57 @@
+import hashlib,io,json,shlex,subprocess,sys,tarfile
+from pathlib import Path
+root=Path.cwd();phase=sys.argv[1];assert phase in ('recovery','full')
+original='/home/sa305415/rsna-knee/mrnet-full-engine-recovery-20261001-v1'
+recovery='/home/sa305415/rsna-knee/mrnet-full-engine-recovery-20261001-v2'
+control=recovery if phase=='recovery' else '/home/sa305415/rsna-knee/mrnet-full-source-fitting-20261001-v2'
+local=root/('artifacts/external-knee-research-20261001-v1/original-full-engine-v2-'+phase+'-intent');local.mkdir()
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','-o','ConnectTimeout=8','sa305415@newton.ist.ucf.edu']
+def remote(code,data=None):
+ r=subprocess.run(ssh+[shlex.join(['/usr/bin/python3.12','-B','-c',code,control,phase,original,recovery])],input=data,capture_output=True,timeout=60)
+ if r.returncode:raise RuntimeError('original_engine_v2_requires_readonly_reconciliation')
+ return json.loads(r.stdout)
+funding=remote('''import hashlib,json,subprocess,sys
+from pathlib import Path
+c,phase,old,recovery=sys.argv[1:];assert not Path(c).exists()
+original=Path(old);bad=Path('/home/sa305415/rsna-knee/mrnet-restored-full-engine-recovery-20261001-v1')
+s=subprocess.check_output(['sacct','-X','-j','867478,867510','-n','-P','-o','JobID,State,ExitCode,Elapsed'],text=True)
+assert '867478|CANCELLED' in s and '867510|FAILED|2:0|00:00:01' in s
+assert not (original/'run-start.json').exists() and not (bad/'run-start.json').exists()
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();u,soft,f,l=[int(q[i]) for i in (1,2,5,6)]
+gib=((soft-u)*1024-5246914048-(12+272+64+32+16+16+32)*1024**2)/1024**3;files=l-f-190-400-160-96-48-48-96
+assert gib>=20 and files>=5000
+queue=subprocess.check_output(['squeue','-h','-u','sa305415','-o','%i|%T|%b'],text=True).splitlines();assert sum('gpu' in row.split('|')[2] for row in queue)<2
+extra={}
+if phase=='full':
+ r=Path(recovery);job=json.loads((r/'dispatch-result.json').read_text())['job_id'];s=subprocess.check_output(['sacct','-X','-j',job,'-n','-P','-o','JobID,State,ExitCode'],text=True);assert '|COMPLETED|0:0' in s
+ p=r/'recovery-verified.json';v=json.loads(p.read_text());assert v['status']=='actual_full_source_MRNet_engine_GPU_recovery_passed' and v['complete_checkpoint_and_prediction_bytes_equal'] is True
+ extra={'accepted_recovery_path':str(p),'accepted_recovery_sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+print(json.dumps({'shared_reserve_gib_after_all_liabilities':gib,'shared_file_reserve_after_all_liabilities':files,'node_local_checkpoint_cap_bytes':3*1024**3,'node_local_runtime_bytes':6322691335,'node_local_reserve_gib':20,'shared_metadata_accounting':'within_existing_new32MiB96file_relocation_cap','bad_node_no_new_ML_state':True,'extra':extra}))''')
+source=json.loads((root/'initiative/audits/mrnet-full-source-preparation-v1/full-engine-dispatch/source.json').read_text())|{'funding':funding,'phase':phase}|funding['extra']
+batch=(root/'initiative/audits/mrnet-private-source-admission-v1/gpu-recovery-dispatch/gpu.sbatch').read_text().replace('/home/sa305415/rsna-knee/mrnet-adapter-recovery-20261001-v1',control).replace('launch_mrnet_adapter_probe.py','launch_mrnet_source_training.py').replace('--control '+control,'--control '+control+' --phase '+phase).replace('rsna-MRNet-adapter-recovery','rsna-MRNet-source-v2-'+phase).replace('--time=01:00:00','--time=00:10:00' if phase=='recovery' else '--time=10:00:00')
+objects={'source.json':json.dumps(source,indent=2,sort_keys=True).encode(),'gpu.sbatch':batch.encode()}
+outer=io.BytesIO()
+with tarfile.open(fileobj=outer,mode='w') as tar:
+ for name,data in objects.items():
+  m=tarfile.TarInfo(name);m.size=len(data);m.mode=0o600;tar.addfile(m,io.BytesIO(data))
+with (local/'intent.json').open('x') as f:json.dump({'control':control,'source':source,'automatic_retry':False,'terminal_no_ML_bad_node_verified':True},f,indent=2,sort_keys=True)
+result=remote('''import hashlib,json,os,shutil,subprocess,sys,tarfile
+from pathlib import Path
+os.umask(0o077);control,phase,old,recovery=sys.argv[1:];c=Path(control);c.mkdir()
+with tarfile.open(fileobj=sys.stdin.buffer,mode='r|') as tar:
+ for m in tar:
+  assert m.isfile() and m.name in ('source.json','gpu.sbatch')
+  with (c/m.name).open('xb') as f:f.write(tar.extractfile(m).read())
+for name in ('source.tar','config.json','launch_mrnet_source_training.py'):shutil.copyfile(Path(old)/name,c/name)
+s=json.loads((c/'source.json').read_text());assert hashlib.sha256((c/'source.tar').read_bytes()).hexdigest()==s['tar_sha256']
+assert hashlib.sha256((c/'launch_mrnet_source_training.py').read_bytes()).hexdigest()==s['files']['scripts/newton/launch_mrnet_source_training.py']['sha256']
+assert json.loads((c/'config.json').read_text())['source_git']==s['source_git']
+(c/'dispatch-intent.json').write_text(json.dumps({'automatic_retry':False,'phase':phase,'original_F12_code_config_wrapper_all_unchanged':True,'original_data_node':'evc32','new_source_transfer':False}))
+job=subprocess.check_output(['sbatch','--parsable',str(c/'gpu.sbatch')],text=True).strip().split(';')[0];assert job.isdecimal()
+r={'job_id':job,'control':str(c),'phase':phase,'node':'evc32','status':'distinct_original_full_engine_v2_single_dispatch','source_git':s['source_git'],'requested_gpus':1,'requested_cpus':2}
+(c/'dispatch-result.json').write_text(json.dumps(r,indent=2,sort_keys=True));print(json.dumps(r))''',outer.getvalue())
+with (local/'dispatch-result.json').open('x') as f:json.dump(result,f,indent=2,sort_keys=True)
+p=root/('initiative/audits/mrnet-restored-full-engine-v1/original-v2-'+phase+'-dispatch');p.mkdir()
+for name,data in objects.items():(p/name).write_bytes(data)
+(p/'dispatch-result.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+print(json.dumps(result))

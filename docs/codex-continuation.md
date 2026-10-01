@@ -15,6 +15,49 @@ all private immutable epochs and compare any transfer through a clean matched
 RSNA experiment only after cross-source screening/downstream rights review.
 1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
 
+## October1 original full-engine867512 and private metadata matcher source frozen
+
+Original867478 was cancelledPENDING-only/no startup. Actual restored867510 failed
+assigned cuInit999/zeroNVML before all ML (one second), preserved. Distinct exact
+original-node F12 full-engine recovery867512 submittedONCE; lastPENDING Priority.
+Do NOT repeat old retired/failed jobs. Control mrnet-full-engine-recovery-
+20261001-v2, original-v2 coordinator/dispatch in mrnet-restored-full-engine-v1.
+Accept actual same-engine complete checkpoint/prediction recovery then full
+private1129/119/10epoch fitting only; no full source fitting was dispatched.
+
+Native867367 and CPU18906-series index867494 last verified RUNNING; source index
+11500+ series observed, empty stderr. A subsequent SSH DNS lookup failed. Treat
+this as observation loss, never terminal, duplicate or restart evidence. Check
+connection/actual jobs before any mutation. Exact native output/source unchanged.
+
+New private pixel matching code/wrapper passed1624full tests/Ruff256/mypy42 and
+archive/current89/89. Its single coordinator is prepared, not executed. It
+requires actual BOTH original index terminal0:0/hash/code bindings before intent;
+streams metadata only through RAM/stdin between oneCPU/zeroGPU endpoints, no
+source pixels/labels/shared or Mac index copies.64MiB private candidate cap is
+enforced before writes. Coarse matches need original-image review; cannot prove
+patient independence or absence. Existing original relocation32MiB/96 metadata
+allowance covers small matching controls under fresh20GiB/5000file reserve.
+No overlap or new clinical score claimed. Gold/confirmation unused. Goal active.
+
+## October1 original-node Stanford fallback single dispatch and private matcher prep
+
+Actual restored867510 failed assigned CUDA999/zeroNVML before all ML. Pending
+original867478 cancelled00:00:00/no startup, preserved. Distinct original evc32
+full-engine recovery867512 submitted ONCE from exactly originalF12 numerical
+archive/config/wrapper; lastPENDING Priority. Control mrnet-full-engine-recovery-
+20261001-v2, exactoriginal-v2-recovery-dispatch and original-v2-coordinator in
+mrnet-restored-full-engine-v1. Never repeat failed/retired jobs. Only actual867512
+same-engine recovery can accept distinct full1129/119/tenepoch fitting via that
+single original-v2 coordinator. Full source fitting still NOT dispatched.
+
+Native867367 and label-free index867494 remain healthy; index9250+series at last
+check, target18906. Stanford867493 fully complete. Private pixel matcher is
+prepared/local-tested but NOT dispatched: oneCPU/zeroGPU per metadata-stream end,
+exact complete-index terminal receipts and same original signature code required.
+No pixels/index records shared locally or toGit/HF; private candidates capped64MiB.
+Fresh reserve20GiB/5000files after all liabilities. No clinical/overlap conclusion.
+
 ## October1 Stanford earlier-node assigned GPU failed before all ML work
 
 Original867478 was cancelled ONLY while pending, terminal00:00:00/no run-start
