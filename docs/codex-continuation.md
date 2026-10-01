@@ -1,3 +1,7 @@
+## October1 native assembly/source milestone privately verified
+
+Exact native assembly/config/dispatch and first-five-source-shard milestone Gitb9d67db is privately mirrored at HF1362acd9e4ab99c9ae47c068a4d98d9759540f94; all31objects fully re-downloaded/size/SHA verified under the shared publication directory exclusion. Never repeat mirror; journals in `initiative/audits/hf-native384-assembly-20261001-v1/`. Rank64submission56740377 still had no hidden status/error/score at03:53UTC; no further competition submission in this milestone. Goal remains active; the complete cache, native production run and competitive solo score remain outstanding.
+
 ## October1 full native384 CPU assembly queued and five shards preserved
 
 Slurm866458 was submitted ONCE, oneCPU/zeroGPUs on future evc31, PENDING at03:45UTC for both source parents866426/866427. Source44dce81d86aa0971e41d827533a168130a982905; control `/home/sa305415/rsna-knee/native384-assembly-c9-v1`, launchSHAdacb6c10fc2c47c07819e1ae7ce5077ea8e2ca11f5564bb004a53ceb7ff36891, assemblerSHAa6fe82e5d5661613553543a25a65a5bfddc30761d7e7c0467e0c18839c4a9da6, runnerSHA6adf82e222f0492e164f1b5e603354353de88b722d8154cb0e7a551d8538ac98. Dependency afterany wakes it on terminal parents; supervisor requires both exact0:0 successes before any data transfer. No run-start/assembly acceptance yet, never duplicate. Full1330tests passed. No GPUs requested.
