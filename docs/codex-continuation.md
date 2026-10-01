@@ -1,3 +1,20 @@
+## October1 actual real-MRI CPU/source milestone privately verified
+
+Git d266b84 is privately mirrored/full download-size-SHA verified at HF
+e3e69825748185f6e6ddc3c4979cd3e3d6e6b1c0,122 objects, shared original atomic
+publication lock. Journal hf-real-MRI-relation-CPU-and-native-progress-20261001-v1.
+Never repeat this, CPU probe866781, already admitted native cache publications,
+or existing sampling epochs.1510 tests/Ruff218/mypy39/archive/current89/89
+coverage passed. The CPU boundary remains private on Newton; sampling checkpoints
+remain private on HF and were not re-uploaded by the small source mirror.
+
+CPU real-MRI recovery has PASSED. Remaining relation gates are full224 BF16
+real-training classification/relation scale checks, matched official-weight GPU
+initialization/recovery, fresh full-campaign funding and separately bound private
+epoch/deployment machinery. Prepare these while the two sampling jobs train;
+never reserve a third GPU or replace an existing live scientific source.
+No relation clinical gain or Kaggle score exists. Actual state overrides snapshots.
+
 ## October1 third stratified epoch preserved
 
 Stratified866716 completed epoch3/843 actual updates and continued into epoch4.
