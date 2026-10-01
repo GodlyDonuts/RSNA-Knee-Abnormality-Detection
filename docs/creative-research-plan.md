@@ -118,9 +118,16 @@ not a replacement for the current production payload.
 
 ## External data: more independent patients and more useful supervision
 
-The [source inventory](../initiative/audits/external-knee-data-inventory-20261001-v1/README.md)
-records candidates and actual public fastMRI+ metadata inspection. No external
-MRI image cohort is admitted, downloaded or included in training.
+The [initial source inventory](../initiative/audits/external-knee-data-inventory-20261001-v1/README.md)
+records candidates and public fastMRI+ metadata inspection. After the owner's
+request to use Stanford, all 3,750 original MRNet volumes were acquired and
+verified in an explicit private research lane. Its bounded adapter pilot passed
+four real GPU optimizer updates and exact recovery; this is not full source
+training or an accuracy result. Separate full-source engine recovery 867512
+was last seen pending on evc32. Full 1,129-exam fitting has not been dispatched.
+See the [original admission](../initiative/audits/mrnet-private-source-admission-v1/README.md),
+[full engine recovery](../initiative/audits/mrnet-restored-full-engine-v1/README.md),
+and [RSNA initialization path](../initiative/audits/mrnet-rsna-private-initialization-v1/README.md).
 
 Primary source pages rechecked on October 1:
 
@@ -131,12 +138,14 @@ Primary source pages rechecked on October 1:
 | [OAI](https://www.niams.nih.gov/grants-funding/funded-research/osteoarthritis-initiative) | 4,796 participants with repeated imaging; possible unlabeled anatomy adaptation | Longitudinal scans are not independent patients or automatically twelve compatible disease labels. Keep related visits/knees grouped. |
 | [SKM-TEA](https://aimi.stanford.edu/datasets/skm-tea-knee-mri) | 155 scans with tissue segmentations and 16 pathology boxes | Only 86 are its training split; qDESS differs from routine RSNA acquisitions. Source-specific rights and independence remain unverified. |
 
-First external experiment, after admission: MRNet training-only auxiliary heads
-with a source-specific label mapping, followed by RSNA fine-tuning. Compare with
+First private external experiment: MRNet training-only three-task heads,
+followed by encoder-adapter initialization and RSNA fine-tuning with a fresh
+twelve-task head. Source labels do not map directly into RSNA columns. Compare with
 an RSNA-only model receiving the same extra update and compute budget. Also
 compare a labels-masked external adaptation arm if resources allow, to distinguish
 anatomical exposure from label benefit. These arms are separate experiments;
-none is dispatched. Do not merge a source's tuning/hidden partition by default.
+no downstream transfer arm is dispatched. Do not merge a source's tuning/hidden
+partition by default.
 
 Admission requires accessible source terms compatible with competition and
 weight publication, a current host-rules check, exact version/membership,
@@ -146,12 +155,16 @@ mirror licenses do not supersede original source restrictions. KneeCoT remains
 excluded under the preserved host ruling. The rules page returned no readable
 body on this web check, so fresh organizer permission is not claimed.
 
-The later signed-in Stanford review confirmed MRNet data access, but its accepted
+The signed-in Stanford review confirmed MRNet data access, but its accepted
 research agreement restricts derivative works and redistribution. Public
 competition-weight compatibility remains unresolved. The imported label tables
-also contain one fewer record per split, with first-case-like column names.
-Resolve original CSV parsing and source rights before any MRNet training
-admission. See the [specific receipt](../initiative/audits/external-knee-data-inventory-20261001-v1/mrnet-redivis-access-review.json).
+contained one fewer record per split, with first-case-like column names. The
+original API-backed CSV schema was subsequently resolved: 1,129 supervised
+training and 119 validation exams, plus two image exams without imported labels.
+Keep those cases unlabeled. Private source training is admitted; public
+competition/derived-weight publication is a separate unresolved scope. Preserve
+the earlier [observation](../initiative/audits/external-knee-data-inventory-20261001-v1/mrnet-redivis-access-review.json)
+and later [original schema admission](../initiative/audits/mrnet-private-source-admission-v1/schema-admission.json).
 The owner accepted leaving KneeCoT unused after describing a Discord update;
 do not repeatedly ask for that clarification or treat it as a verified reversal.
 

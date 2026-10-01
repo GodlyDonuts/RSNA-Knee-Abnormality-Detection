@@ -1,3 +1,25 @@
+## October1 23:21 UTC: private Stanford-to-RSNA initialization implemented
+
+Read mrnet-rsna-private-initialization-v1. Optional canonical trainer path accepts
+only SHA-bound fixed-final originalF12 full1129/119 source fit and copies complete
+compatible encoder LoRA A/B tensors into a fresh RSNA head/optimizer/counters/RNG.
+Source labels never map toRSNA columns. All14 syntheticCPU boundary/recovery
+tests passed, including actual RSNA full/stop1/resume equal complete state/CSV.
+Full QA1638/Ruff258/mypy43 passed. Private node-local owner-only outputs and
+private binding required; competition inference rejects source-derived weights.
+This is local engineering, NOT actual source/transfer GPU acceptance or clinical
+benefit. Full source fitting is still unsubmitted; require actual867512 pass,
+original source final fitting, pixel-screen/review and funded matched experiment.
+
+Cisco actually reports Disconnected; Newton DNS remains unavailable. Treat
+native867367/index867494 lastRUNNING and original recovery867512 lastPENDING as
+observation loss, never terminal/restart authority. No remote mutation/retry.
+Original d71c4e8 move/failure/fallback/matcher milestone and this new code are NOT
+yet private-HF mirrored: shared Newton lock inaccessible. Preserve old50-object
+HF417905f3 verified milestone; do not repeat it or bypass shared coordination.
+Dated snapshots below retain history; original audits/current status supersede
+older pending/dispatch statements. Goal active; no new clinical accuracy score.
+
 ## October1 Stanford actual training/full-engine milestone privately verified
 
 MainDb28cab actual original Stanford optimizer/recovery, exact private CPU

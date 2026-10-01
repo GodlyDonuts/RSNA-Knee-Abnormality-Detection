@@ -36,6 +36,7 @@ from rsna.competitive.checkpoint import (
 )
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.loss import effective_batch_loss, observed_counts
+from rsna.competitive.mrnet_initialization import initialize_private_mrnet
 from rsna.competitive.relations import (
     effective_relation_loss,
     relation_model_kwargs,
@@ -459,6 +460,7 @@ def _run_locked(
         if config.checkpoint_format == "frozen_base_delta"
         else None
     )
+    external_initialization = initialize_private_mrnet(args, model, delta_guard)
     encoder_parameters = {id(parameter) for parameter in encoder.parameters()}
     groups = [
         {
@@ -518,6 +520,12 @@ def _run_locked(
         "cache_version": CACHE_VERSION,
         "source_revision": training_data.source_revision,
     }
+    if external_initialization is not None:
+        binding.update(
+            external_initialization=external_initialization,
+            private_research_only=True,
+            external_weight_publication=False,
+        )
     if world > 1:
         rank_bindings: list = [None] * world
         dist.all_gather_object(rank_bindings, _hash(binding))
@@ -922,6 +930,12 @@ def main() -> None:
     for name in ("config", "studies", "series", "cache", "folds", "artifact-root", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--resume", type=Path)
+    parser.add_argument(
+        "--mrnet-checkpoint", type=Path, help="Private final source adapter initialization"
+    )
+    parser.add_argument("--mrnet-checkpoint-sha256")
+    parser.add_argument("--mrnet-terminal", type=Path)
+    parser.add_argument("--mrnet-terminal-sha256")
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument(
         "--stop-after-updates",

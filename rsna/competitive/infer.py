@@ -40,6 +40,8 @@ def validate_inference_checkpoint(
     ):
         raise ValueError("Unsupported competitive checkpoint")
     binding = checkpoint["binding"]
+    if binding.get("external_initialization") is not None or binding.get("private_research_only"):
+        raise ValueError("Private external-source research weights are not competition candidates")
     validate_checkpoint_binding(binding["release"])
     if binding.get("targets") != list(TARGETS) or binding.get("cache_version") != CACHE_VERSION:
         raise ValueError("Checkpoint targets or preprocessing version differ")

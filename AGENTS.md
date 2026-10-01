@@ -71,6 +71,20 @@ repeating established recipes. Make this a standing project priority.
 See `docs/creative-research-plan.md` for the current hypothesis sequence and the
 conditional external-data investigation.
 
+## October1 private source initialization, current observation loss
+
+Stanford images are acquired/verified and bounded actual adapter pilot passed.
+Full-engine recovery867512 is lastPENDING, full1129/119 fitting unsubmitted. New
+optional canonical RSNA initialization accepts only its completed full source
+checkpoint/terminal SHA and transfers encoder adapters only. Fourteen synthetic
+CPU tests passed actual RSNA full/stop1/resume equality; full QA1638/Ruff258/mypy43.
+No new GPU/clinical pass. Require private owner-only node-local outputs; source-
+derived competition weights remain unadmitted. Read mrnet-rsna-private-
+initialization-v1 and current continuation. Cisco reports Disconnected; Newton
+DNS unavailable. Never restart last-seen healthy native867367/index867494 or
+duplicate867512 because observation is lost. New milestones await unreachable
+shared lock for HF mirroring. Dated snapshots below preserve history.
+
 ## October1 native training and Stanford pixel-only milestone
 
 Native867367 RUNNING on evc31,47 finite real updates at20:46UTC, actual header/
