@@ -1,3 +1,25 @@
+## October1 exact full Stanford engine recovery single dispatch
+
+Actual sourceF12a319 private full-engine recovery867478 was dispatched ONCE on
+evc32,oneH100/twoCPUs. At20:04UTC lastPENDING Priority. Exact source/config/
+funding/script/dispatch and pending wall-cap60->10minute records are in
+mrnet-full-source-preparation-v1/full-engine-dispatch/. Never repeat. It calls
+the same full-source engine with16 source train/twoepochs/fourupdates and4
+source validation engineering outputs; fresh full/stop1/resume must match
+complete learned/base/AdamW/LR/counters/allRNG and exact predictions. Old867419
+passed the older worker only and cannot accept this new loop. Actual original
+profile158seconds justified this unchanged pending job's10minute bound.
+
+Pinned launch_mrnet_source_training.py has separate recovery/full phases,
+3GiB private node-local retained checkpoints, pinned runtime and20GiB reserve;
+32MiB/96shared small objects plus all prior liabilities preserve20GiB/5000files.
+On actual acceptance use single prepared coordinator recorded in this audit
+for distinct full fitting (1129train,119final-only source validation,10epochs/
+1420updates), same frozen archive/config and actual recovery hash. Full fitting
+was NOT dispatched at this status. Stanford-derived weights remain private;
+competition compatibility is unresolved. Native867367 still pending/unchanged.
+No Stanford clinical, RSNA-transfer or Kaggle score. Keep goal active.
+
 ## October1 actual Stanford optimizer/recovery and exact private restoration passed
 
 Original867419 COMPLETED0:0/2:38 on evc32 through backfill, despite an earlier

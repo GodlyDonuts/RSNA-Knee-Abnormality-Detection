@@ -81,3 +81,20 @@ accepted allocated-device/header/runtime checks and original evc32 data/input
 proofs. Each phase has a unique control/output and cannot accept an old pilot as
 a new engine pass. Full-source snapshots/weights remain private on the owning
 node; no new RSNA transfer or competitive score exists.
+
+## Exact full-engine recovery dispatched once
+
+New sourceF12a319 full-engine recovery867478 was submitted ONCE on evc32,
+oneH100/twoCPUs. Read full-engine-dispatch/. It runs the actual full-fitting
+engine with sixteen source-training exams/two epochs/four updates, plus four
+validation engineering outputs, comparing complete fresh full/stop1/resume
+envelopes and exact prediction bytes. It is not full1129-exam fitting.
+
+The original scientific/config/code remain unchanged. While still pending, its
+wall cap was reduced from60 to10minutes in a recorded scheduler update, using the
+original measured158-second whole-job profile with over3x allowance. This avoids
+requesting an unnecessarily large backfill window; it is the same job, no restart
+or duplicate. Funded3GiB node-local retained states plus pinned runtime and20GiB
+reserve; all existing shared liabilities plus32MiB/96small objects leave20GiB/
+5000files. Only after actual exact-engine recovery acceptance may full source
+fitting be dispatched, with separately reviewed wall/runtime/checkpoint capacity.
