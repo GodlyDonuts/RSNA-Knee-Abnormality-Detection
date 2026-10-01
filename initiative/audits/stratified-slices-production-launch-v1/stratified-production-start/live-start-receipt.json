@@ -1,0 +1,29 @@
+{
+  "last_updates": [
+    {
+      "elapsed_seconds": 12.220045409165323,
+      "encoder_gradient_norm": 0.06287343800067902,
+      "epoch": 0,
+      "gradient_norm": 4.774015426635742,
+      "loss": 0.8260194659233093,
+      "observed_cells": 57.0,
+      "optimizer_steps": 1,
+      "peak_gpu_allocated_bytes": 3635988992,
+      "update": 1
+    },
+    {
+      "elapsed_seconds": 21.18674552021548,
+      "epoch": 0,
+      "gradient_norm": 4.400816440582275,
+      "loss": 0.8578996658325195,
+      "observed_cells": 53.0,
+      "optimizer_steps": 2,
+      "peak_gpu_allocated_bytes": 3760299008,
+      "update": 2
+    }
+  ],
+  "queue": "866719|PENDING|rsna-sampling-uniform-full-evc31-v2||2|gres/gpu:nvidia_h100_pcie:1|(Priority)\n866458|PENDING|rsna-native384-assemble-v1||1|N/A|(Dependency)\n866426|RUNNING|rsna-native-lane0-v1|evc1|1|N/A|evc1\n866427|RUNNING|rsna-native-lane1-v1|evc1|1|N/A|evc1\n866716|RUNNING|rsna-sampling-stratified-full|evc32|2|gres/gpu:nvidia_h100_pcie:1|evc32\n",
+  "stderr_tail": "error: /lustre/fs1/home/sa305415/rsna-knee/code-patch-attention-203f419/.git/objects: ignoring alternate object stores, nesting too deep\nerror: invalid object 100644 67c1cd1b4a631348c9832b598647796857a49dac for 'configs/competitive/weights/convnext-tiny-224.config.json'\nerror: invalid object 100644 67c1cd1b4a631348c9832b598647796857a49dac for 'configs/competitive/weights/convnext-tiny-224.config.json'\n",
+  "stdout_tail": "{\"allocation\": {\"CUDA_DEVICE_ORDER\": null, \"CUDA_VISIBLE_DEVICES\": \"0\", \"SLURM_CPUS_PER_TASK\": \"2\", \"SLURM_GPUS_ON_NODE\": \"1\", \"SLURM_JOB_GPUS\": \"1\", \"SLURM_STEP_GPUS\": null}, \"cpu_affinity\": [1, 33], \"cuda_driver_count_code\": 0, \"cuda_driver_device_count\": 1, \"cuda_driver_init_code\": 0, \"errors\": [], \"job_id\": \"866716\", \"mapped_libcuda_paths\": [\"/usr/lib64/libcuda.so.580.105.08\"], \"node\": \"evc32\", \"nvidia_inventory\": {\"returncode\": 0, \"stderr\": \"\", \"stdout\": \"0, NVIDIA H100 PCIe, GPU-09197a12-e5de-513a-751e-718e46413c5f, 580.105.08, 00000000:CA:00.0\\n\"}, \"scope\": \"allocated devices only; no visibility changes or GPU computation\", \"status\": \"passed\"}\n{\"cublas_workspace_config\": \":4096:8\", \"cudnn_benchmark\": false, \"cudnn_deterministic\": true, \"deterministic_algorithms\": true, \"status\": \"strict_deterministic_runtime_enabled\", \"torch_version\": \"2.14.0+cu130\", \"warn_only\": false}\n{\"cublas_workspace_config\": \":4096:8\", \"cudnn_benchmark\": false, \"cudnn_deterministic\": true, \"deterministic_algorithms\": true, \"status\": \"strict_deterministic_runtime_enabled\", \"torch_version\": \"2.14.0+cu130\", \"warn_only\": false}\n{\"epoch\": 0, \"update\": 1, \"optimizer_steps\": 1, \"loss\": 0.8260194659233093, \"gradient_norm\": 4.774015426635742, \"observed_cells\": 57.0, \"elapsed_seconds\": 12.220045409165323, \"encoder_gradient_norm\": 0.06287343800067902, \"peak_gpu_allocated_bytes\": 3635988992}\n{\"epoch\": 0, \"update\": 2, \"optimizer_steps\": 2, \"loss\": 0.8578996658325195, \"gradient_norm\": 4.400816440582275, \"observed_cells\": 53.0, \"elapsed_seconds\": 21.18674552021548, \"peak_gpu_allocated_bytes\": 3760299008}\n",
+  "terminal": "866715|FAILED|2:0|evc34|00:02:31\n866716|RUNNING|0:0|evc32|00:07:19\n866719|PENDING|0:0|None assigned|00:00:00\n"
+}

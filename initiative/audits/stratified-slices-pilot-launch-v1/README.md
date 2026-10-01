@@ -1,3 +1,20 @@
+## October1 completed acceptance and private diagnostic preservation
+
+Pilot866624 COMPLETED0:0 on evc31 in15:15. Its real finite optimizer work,
+actual initialization equality, two-stage recovery, frozen-base invariance and
+MRI-only delta reload passed. Decoded model/optimizer/RNG and prediction CSV
+bytes match after resume; raw Torch ZIP checkpoint hashes differ. All120
+residual modules changed and415 frozen official tensors stayed unchanged.
+The16-training/16-outer diagnostic is not a competitive accuracy estimate.
+
+Terminal checkpoint125,553,613bytes SHA
+f98716ad0ab06796573e121511d44198fe3003af9fbb3313e606e1c3e19c9782.
+CPU publisher866696 completed0:0 and preserved all26 diagnostic objects privately
+at HF906732feec5fe3b67e61b94cec6ebce7d3dd4bec, with full download/size/SHA validation.
+See `terminal/` and `private-preservation/`. Do not repeat either job/publication
+or use the tiny diagnostic as full-production initialization. Full-cohort CPU
+acceptance and fresh matched production have separate audits.
+
 # Bounded official-weight sampling acceptance, October 1
 
 The owner's standing creative directive is implemented as a falsifiable

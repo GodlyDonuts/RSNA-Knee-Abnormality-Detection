@@ -1,0 +1,91 @@
+{
+  "automatic_retry": false,
+  "policy": "uniform",
+  "request": {
+    "control": "/home/sa305415/rsna-knee/sampling-production-7ac7a97-v1",
+    "manifest": {
+      "CPU_per_GPU_node": 2,
+      "CPU_proof_sha256": "6b51abdfca83906149867d7aa2b7041180a8d11e5c855f78fa64afd60723f3b4",
+      "additional_future_files_reserve": 400,
+      "checkpoint_retention": "ten immutable epochs plus one live/atomic transient per arm",
+      "evaluation_policy": "uniform MRI-only inference; fixed epoch10 same1156outer; no epoch selection",
+      "files": {
+        "publish_sampling_epoch.py": {
+          "bytes": 21876,
+          "local_path": "scripts/hf/publish_sampling_epoch.py",
+          "sha256": "65ff791a4ba9393f17f731d7af99f4f7e50b150aacf313001d532071ad558e68"
+        },
+        "sampling_production_runtime.py": {
+          "bytes": 15531,
+          "local_path": "scripts/newton/sampling_production_runtime.py",
+          "sha256": "0dc1d707641d0b2b22483cf240fe5d9d278c24965e5311b72f12e5d00435a68a"
+        },
+        "source.json": {
+          "bytes": 7022,
+          "local_path": "initiative/audits/stratified-slices-production-launch-v1/source.json",
+          "sha256": "6ede8415384bbe37d4e32e8458fb92586b2c7abd66dfe9b0e9bcd12e12bb81be"
+        },
+        "stratified-config.json": {
+          "bytes": 1591,
+          "local_path": "initiative/audits/stratified-slices-production-launch-v1/stratified-config.json",
+          "sha256": "6b5f43db7a6d483bdc8937f67b6bee307588871b03f1a400d26c6af6c5618294"
+        },
+        "stratified.sbatch": {
+          "bytes": 9757,
+          "local_path": "initiative/audits/stratified-slices-production-launch-v1/stratified.sbatch.txt",
+          "sha256": "e6167f8e35820d18da74319723ae41aa4106f9ca6b512d134156c2f89515afcb"
+        },
+        "uniform-config.json": {
+          "bytes": 1588,
+          "local_path": "initiative/audits/stratified-slices-production-launch-v1/uniform-config.json",
+          "sha256": "b4121c19fded5a28ff8462198b39bfa4aab5f8e343f5b8c32417a625e9ef2d0f"
+        },
+        "uniform.sbatch": {
+          "bytes": 9751,
+          "local_path": "initiative/audits/stratified-slices-production-launch-v1/uniform.sbatch.txt",
+          "sha256": "da2286489d29e04bd2799e48466cf48193c856f46110b4963a63cdc4c9992879"
+        },
+        "verify_initialization.py": {
+          "bytes": 5459,
+          "local_path": "initiative/audits/stratified-slices-production-launch-v1/verify_initialization.py.txt",
+          "sha256": "93ec655cd650075acd490dc5efff9a7c5ef07aa0329de6be04f162e3ac6e63f2"
+        }
+      },
+      "future_checkpoints_maximum_bytes": 2952790016,
+      "maximum_GPU_nodes": 2,
+      "metadata_staging_and_journals_reserve_bytes": 16777216,
+      "only_model_recipe_difference": "slice_sampling",
+      "original_accepted_cache_reused": true,
+      "pilot_proof_sha256": "6c8594df5320fde080a6a2a030b92342cf1d717c1fef1842b98e6e73a3e733f9",
+      "runs": {
+        "stratified": "/home/sa305415/rsna-knee/runs/dinov3-l16-sampling-stratified-a32-fold0-7ac7a97-production-v1",
+        "uniform": "/home/sa305415/rsna-knee/runs/dinov3-l16-sampling-uniform-a32-fold0-7ac7a97-production-v1"
+      },
+      "schema_version": 1,
+      "source_git": "7ac7a9779d3c8bfd756a44eceb6414e9bb763b85",
+      "status": "prepared_matched_full_sampling_launch_not_yet_dispatched"
+    },
+    "manifest_sha256": "db1abf96e39ba0069c424c8c847ae4ff402d310dbd8a5c7a6e7568006c540eb5"
+  },
+  "state": {
+    "actual_gpu_jobs": [],
+    "completed_native_future_shards": 32,
+    "full_sampling_runs_launched": 0,
+    "projected_remaining_files": 5728,
+    "projected_remaining_gib": 21.105915546417236,
+    "roles": {
+      "stratified": {
+        "intent_exists": false,
+        "output_exists": false,
+        "result": null
+      },
+      "uniform": {
+        "intent_exists": false,
+        "output_exists": false,
+        "result": null
+      }
+    },
+    "staged": true,
+    "status": "accepted_inputs_and_funded_pair"
+  }
+}

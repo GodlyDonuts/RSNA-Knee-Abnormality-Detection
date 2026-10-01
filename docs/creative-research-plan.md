@@ -170,3 +170,15 @@ provenance. Only promote a model after actual held-out benefit and reliable
 MRI-only offline deployment. Stay within two GPU nodes/minimum CPUs, private
 storage reserves and authoritative daily submission allowance. Dataset inventory,
 software tests and publication receipts do not establish competitive accuracy.
+
+## October1 scheduling based on actual acceptance
+
+The full256 source/cache and stratified recovery pilot have now passed their
+actual CPU/H100 gates, and the paired uniform/stratified ten-epoch arms866715/
+866716 were submitted once. This directly tests broader temporal slice exposure
+while native384 source reconstruction continues on CPU; it does not change the
+frozen native scientific recipe. The existing two-node limit controls their
+scheduling. Exact production audit is in
+`initiative/audits/stratified-slices-production-launch-v1/README.md`.
+New anatomy/physics objectives remain proposals until implemented, tested and
+matched against controls. No new held-out improvement or novelty is claimed.

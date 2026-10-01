@@ -1,3 +1,69 @@
+## October1 actual sampling progress and uniform node recovery
+
+Stratified866716 is RUNNING on evc32, with allocated CUDA/header/full input and
+full-config initialization accepted. Its first two real optimizer updates are
+finite (loss0.8260/0.8579, encoder gradient observed, peak3.76GB). Preserve the
+exact `stratified-production-start/` record. No trained accuracy result yet.
+
+Original uniform866715 FAILED2:0 on evc34 before its driver probe completed;
+zero optimizer updates, no header/init/output/checkpoint. Its exact terminal
+and logs were read-only reconciled. Distinct same-source/config uniform866719
+was staged/submitted ONCE on known pilot node evc31, initially PENDING Priority.
+Control `/home/sa305415/rsna-knee/sampling-production-7ac7a97-uniform-evc31-v2`,
+unique output `/home/sa305415/rsna-knee/runs/dinov3-l16-sampling-uniform-a32-fold0-7ac7a97-evc31-v2`.
+Do not retry old866715 or duplicate866719. Exact recovery audit is
+`initiative/audits/stratified-slices-production-launch-v1/uniform-evc31-recovery-v2/`.
+Local dispatch check supports `--revision uniform-evc31-v2`; never dispatch
+stratified from that revision. Epoch publisher coordinator automatically selects
+this exact uniform control/output, keeping original stratified binding. Source
+and full configs are unchanged. At most two GPU nodes; first below section's
+original RUNNING uniform allocation has been superseded by the terminal evidence.
+
+## October1 full paired observation training launched
+
+Fresh uniform-slice control866715 and stratified candidate866716 were each
+submitted ONCE for ten epochs on one H100/two CPUs per arm. At first check,
+uniform RUNNING on evc34 and stratified PENDING Priority. Verify actual
+header/init/run records before claiming optimizer progress. Exact config/source/
+payloads, durable dispatches and private epoch tools:
+`initiative/audits/stratified-slices-production-launch-v1/README.md`.
+No other new GPU job or Kaggle mutation was made. Never duplicate these roles,
+reuse outputs or automatically restart a failed job. At most two GPU nodes.
+
+The scientific source is7ac7a9779d3c8bfd756a44eceb6414e9bb763b85. Only
+slice_sampling differs; initial learned tensors/logits, accepted fold0 membership,
+rank32/base weights/head/optimizer/224 inputs/token/update budget match. Uniform
+MRI inference and fixed epoch10 on the same1156 outer studies are the primary
+comparison. No new accuracy gain is established; do not select an outer-best
+checkpoint. Full configs repeat actual initialization acceptance on their GPU.
+
+Prerequisites actually passed:866624 H100 pilot COMPLETED0:0, exact decoded
+recovery/base invariance and private26-object HF906732feec5fe3b67e61b94cec6ebce7d3dd4bec
+fully download/hash verified;866694 full-cache CPU acceptance COMPLETED0:0,
+full82.83GB archive/48,772 members and all3403-study/18906-series metadata,
+with bounded32-study pixel decode. Original supervision/masks/folds unchanged.
+No diagnostic checkpoint initializes production. Retention866701 and866710
+kept all Python source and all43 original bundle payloads while freeing972
+compiled caches and one redundant1.216GB ZIP. Complete proofs are in the funding
+audit. Preserve20GiB/5000-file reserves and all native/source obligations.
+
+Use `scripts/hf/dispatch_sampling_epoch.py {uniform|stratified} N --ssh-control
+LIVE_SOCKET` only for each actual completed, unattempted epoch. Dedicated pinned
+publisher validates complete production source/config/init/cache/fold provenance,
+128MiB bound,281 optimizer updates per epoch and private-only five-object upload.
+It streams `.env` HF token through stdin to one CPU/no GPU, uses the shared
+atomic publication lock and fully downloads/checks all bytes. Existing intent,
+journal or private path means read-only reconciliation, never blind repeat.
+
+The native384 work remains independent:33of75 original-source batches were
+canonically admitted with original full-private-byte proofs,1508studies/
+8349series/283570slices; no gaps through32. See summary-through-032-sampling-launch.
+CPU lanes866426/866427 remain active; assembly866458 awaits exact parents/full
+cohort. Useful full256 sampling work now runs while384 input preparation finishes;
+native GPU launch must wait under the two-node limit and fresh funding acceptance.
+No full384 production dispatch yet. Do not interpret the historical queued-pilot
+or26-shard handoff sections below as current state.
+
 ## October 1 creative experiment funding milestone privately verified
 
 Exact Git1a6bc0f is privately mirrored at HF342e3239b57c39325473a23858c55be806ee1a06;

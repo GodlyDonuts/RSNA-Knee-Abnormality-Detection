@@ -1,0 +1,43 @@
+"""Remove only recompilable CPython caches that equal the retained Python source."""
+import hashlib, importlib.util, json, marshal, os, re, subprocess, sys
+from pathlib import Path
+from datetime import datetime, timezone
+
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+base=Path('/home/sa305415/rsna-knee');root=base/'hf-epoch-publisher-v1/env-cp312/lib/python3.12/site-packages';control=base/'sampling-production-funding-v1';assert not control.exists()
+assert subprocess.check_output(['sacct','-X','--noheader','-j','866696','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip()=='866696|COMPLETED|0:0'
+assert root.is_dir() and not root.is_symlink()
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def signature(p):
+ s=p.stat();return {'dev':s.st_dev,'ino':s.st_ino,'bytes':s.st_size,'nlinks':s.st_nlink,'mtime_ns':s.st_mtime_ns,'ctime_ns':s.st_ctime_ns}
+verified=[];rejected=[]
+for p in sorted(root.rglob('*.pyc')):
+ match=re.fullmatch(r'(.*)\.cpython-312(?:\.opt-([012]))?\.pyc',p.name)
+ if not match or p.parent.name!='__pycache__' or p.is_symlink() or not p.is_file():continue
+ source=p.parent.parent/(match.group(1)+'.py')
+ if not source.is_file() or source.is_symlink() or p.stat().st_nlink!=1:continue
+ assert p.resolve().is_relative_to(root.resolve()) and source.resolve().is_relative_to(root.resolve())
+ if p.stat().st_size>2*1024**2 or source.stat().st_size>2*1024**2:continue
+ payload=p.read_bytes()
+ if payload[:4]!=importlib.util.MAGIC_NUMBER:continue
+ try:
+  cached=marshal.loads(payload[16:]);compiled=compile(source.read_bytes(),cached.co_filename,'exec',optimize=int(match.group(2) or 0))
+  if cached!=compiled:
+   rejected.append({'path':str(p),'reason':'retained_source_recompilation_not_equal'});continue
+ except (ValueError,TypeError,AttributeError,SyntaxError):
+  rejected.append({'path':str(p),'reason':'unsupported_compiled_cache'});continue
+ verified.append({'cache':str(p),'cache_sha256':sha(p),'cache_stat':signature(p),'retained_source':str(source),'source_sha256':sha(source),'source_stat':signature(source),'actual_compiled_code_equals_source_recompile':True})
+assert 350<=len(verified)<=2000 and sum(r['cache_stat']['bytes'] for r in verified)<32*1024**2
+control.mkdir(mode=0o700)
+def save(n,v):
+ with (control/n).open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+for r in verified:
+ assert signature(Path(r['cache']))==r['cache_stat'] and signature(Path(r['retained_source']))==r['source_stat']
+intent={'status':'all_bytecode_equal_to_recompiled_retained_source_before_eviction','job_id':os.environ['SLURM_JOB_ID'],'at_utc':datetime.now(timezone.utc).isoformat(),'records':verified,'rejected':rejected,'Python_source_files_changed':0,'original_data_or_model_artifacts_removed':0,'future_publishers_use_python_B_or_PYTHONDONTWRITEBYTECODE':True}
+save('intent.json',intent)
+for r in verified:
+ assert signature(Path(r['cache']))==r['cache_stat'] and signature(Path(r['retained_source']))==r['source_stat'];Path(r['cache']).unlink()
+for r in verified:assert not Path(r['cache']).exists() and sha(Path(r['retained_source']))==r['source_sha256']
+receipt={**intent,'status':'rebuildable_compiled_caches_removed_original_source_retained','removed_files':len(verified),'removed_bytes':sum(r['cache_stat']['bytes'] for r in verified),'completed_at_utc':datetime.now(timezone.utc).isoformat()}
+save('verified.json',receipt)
+print(json.dumps({'status':receipt['status'],'removed_files':receipt['removed_files'],'removed_bytes':receipt['removed_bytes'],'job_id':os.environ['SLURM_JOB_ID'],'rejected_count':len(rejected)}),flush=True)

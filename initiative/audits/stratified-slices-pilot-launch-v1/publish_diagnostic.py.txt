@@ -1,0 +1,50 @@
+"""One private diagnostic publication after exact terminal H100 acceptance."""
+import hashlib, importlib.util, json, os, subprocess, sys, tempfile
+from pathlib import Path
+from datetime import datetime, timezone
+from huggingface_hub import HfApi, CommitOperationAdd, hf_hub_download
+
+assert os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+base=Path('/home/sa305415/rsna-knee');control=base/'stratified-pilot-7ac7a97-v1';journal=control/'private-preservation';assert not journal.exists()
+assert subprocess.check_output(['sacct','-X','--noheader','-j','866624','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip()=='866624|COMPLETED|0:0'
+proof=json.loads((control/'pilot-verified.json').read_text());terminal=json.loads((control/'terminal-verified.json').read_text());initial=json.loads((control/'initialization-verified.json').read_text())
+assert proof['status']=='adapter_pilot_and_exact_recovery_verified' and proof['full_payload_resume_equal'] and proof['outer_predictions_byte_equal'] and proof['checkpoint_only_real_mri_reload_equal']
+assert proof['changed_residual_modules']==120 and proof['unchanged_official_base_tensors']==415 and proof['optimizer_steps']==4
+assert proof['slice_sampling']=='stratified' and proof['evaluation_slice_sampling']=='uniform' and proof['series_sampling']=='selected' and proof['slice_context']=='none'
+assert initial['status']=='same_initial_learned_tensors_and_zero_adapter_logits_verified' and terminal['diagnostic_only'] is True and terminal['competition_eligible'] is False
+assert terminal['source_git']=='7ac7a9779d3c8bfd756a44eceb6414e9bb763b85'
+def sha(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for block in iter(lambda:f.read(4*1024**2),b''):h.update(block)
+ return h.hexdigest()
+compact=control/'delta-diagnostic.pt';assert compact.stat().st_size==terminal['checkpoint_bytes']==125553613
+assert sha(compact)==terminal['checkpoint_sha256']==proof['full_checkpoint_sha256']
+paths={n:control/n for n in ['delta-diagnostic.pt','pilot-verified.json','terminal-verified.json','initialization-verified.json','control-config.json','candidate-config.json','source.json','payloads.json','verify_initialization.py','intentional-stop-1.json','intentional-stop-2.json','pilot-evc31-v2.sbatch',*[role+'-'+kind for role in ['uniform','candidate','resumed'] for kind in ['run.json','result.json','invocation.json','outer_predictions.csv']]]}
+paths['DINOv3-LICENSE.md']=base/'encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md';assert sha(paths['DINOv3-LICENSE.md'])=='25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e'
+files={n:{'bytes':p.stat().st_size,'sha256':sha(p)} for n,p in paths.items()}
+lock=base/'native-full-cache-two-lanes-v1/common/runner.py';assert sha(lock)=='3575a18ecd7a13a2becc9348c48a9ebda95f8934069e67dd1912737e6194118c'
+s=importlib.util.spec_from_file_location('publication_lock_helper',lock);module=importlib.util.module_from_spec(s);s.loader.exec_module(module)
+token=json.load(sys.stdin)['token'];assert token.startswith('hf_')
+with module.publication_lock(lock.parent.parent/'publication.lock',timeout=90,poll=1):
+ api=HfApi(token=token);repo='GodlyDonuts/RSNA-Data';info=api.repo_info(repo,repo_type='dataset');assert info.private is True
+ prefix='experiments/dinov3-v1/diagnostics/stratified-sampling-7ac7a97-evc31-v2'
+ assert not api.get_paths_info(repo,[prefix+'/'+n for n in [*paths,'manifest.json']],repo_type='dataset',revision=info.sha)
+ journal.mkdir(mode=0o700)
+ def save(n,v):
+  with (journal/n).open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+ manifest={'schema_version':1,'status':'actual_H100_initialization_and_two_epoch_recovery_diagnostic_only','competition_submission_eligible':False,'production_initialization_eligible':False,'checkpoint_schema_version':2,'training_format':'frozen_base_delta','requires_verified_original_weights':True,'source_git':terminal['source_git'],'training_job_id':866624,'publication_cpu_job':os.environ['SLURM_JOB_ID'],'training_studies':16,'evaluation_studies':16,'optimizer_steps':4,'checkpoint_payload_resume_equal':True,'checkpoint_archive_bytes_resume_equal_claimed':False,'prediction_csv_bytes_resume_equal':True,'same_initial_learned_tensors_and_logits':True,'official_base_unchanged':True,'official_base_sha256':proof['binding']['config']['encoder']['weights_sha256'],'heldout_competitive_accuracy_claimed':False,'Kaggle_score':None,'repo_id':repo,'prefix':prefix,'files':files,'license_source':'https://github.com/facebookresearch/dinov3/blob/ffb4bb89c6558ca3244655c25a3955d01788b732/LICENSE.md'}
+ save('manifest.json',manifest);mp=journal/'manifest.json'
+ save('intent.json',{'at_utc':datetime.now(timezone.utc).isoformat(),'parent_commit':info.sha,'repo_id':repo,'prefix':prefix,'files':files,'manifest_sha256':sha(mp),'private_required':True,'automatic_retry':False})
+ try:
+  commit=api.create_commit(repo_id=repo,repo_type='dataset',parent_commit=info.sha,operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=str(p)) for n,p in paths.items()]+[CommitOperationAdd(path_in_repo=prefix+'/manifest.json',path_or_fileobj=str(mp))],commit_message='Preserve actual stratified observation H100 initialization and exact two-epoch recovery diagnostic')
+ except BaseException as exc:
+  save('uncertain.json',{'error_type':type(exc).__name__,'automatic_retry':False});raise
+ save('commit-result.json',{'revision':commit.oid,'prefix':prefix});assert api.repo_info(repo,repo_type='dataset',revision=commit.oid).private is True
+ verify={**files,'manifest.json':{'bytes':mp.stat().st_size,'sha256':sha(mp)}}
+ assert __import__('shutil').disk_usage('/tmp').free>=20*1024**3+sum(x['bytes'] for x in verify.values())
+ with tempfile.TemporaryDirectory(prefix='rsna-sampling-diagnostic-',dir='/tmp') as temporary:
+  for n,row in verify.items():
+   p=Path(hf_hub_download(repo,filename=prefix+'/'+n,repo_type='dataset',revision=commit.oid,token=token,local_dir=temporary,force_download=True));assert p.stat().st_size==row['bytes'] and sha(p)==row['sha256']
+ save('verified.json',{'status':'private_full_download_size_sha_verified','revision':commit.oid,'repo_id':repo,'prefix':prefix,'files':verify,'file_count':len(verify),'training_job_id':866624,'publication_cpu_job':os.environ['SLURM_JOB_ID'],'diagnostic_only':True})
+ print(json.dumps({'status':'private_full_download_size_sha_verified','revision':commit.oid,'file_count':len(verify),'diagnostic_only':True,'publication_cpu_job':os.environ['SLURM_JOB_ID']}),flush=True)
