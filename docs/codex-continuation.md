@@ -1,3 +1,18 @@
+## October1 distinct admitted-header diagnostic submitted once
+
+Read slice-relations-gradient-header-recovery-v1. Original866846 failed missing
+Python.h; preserve old source/control/CPU16/error. Distinct header-corrected
+867310 was submitted ONCE,evc32/1H100/2CPUs/32GiB/1hour, engineering5a22a9e,
+unchanged scientific4acd6fa/old48sourcefiles and all16 original input bindings.
+Latest17:17UTC PENDING Priority. New control relation-full224-gradient-header-v2
+has original six small source/proof files byte-identical and exact accepted215-
+header/ABI/CPATH guard plus node-local Triton scratch. Fresh oldFailed/CPU16/
+headerCPUcompile/asset/source/funding checks passed,20.90996GiB/5813files after
+all liabilities. Never repeat its exclusive stage/dispatch. When it completes,
+inspect actual gradient measurement/logits/pairs/CPU tensors before a bound
+training-only scale decision. No trainer recovery or weight acceptance yet;
+CPU32 is still input-only, and no trainer-checkpoint funding was added.
+
 ## October1 matched sampling finished; native original source complete
 
 Original S866716 and U866719 COMPLETED0:0,10 epochs/2810 finite updates each.

@@ -24,3 +24,16 @@ and exact script SHA. This preparation is NOT a dispatch or acceptance.
 A new actual gradient receipt and training-only scale review still gate the
 unchanged production-trainer recovery. Never resubmit the failed old job or
 count tiny engineering metrics as competitive evidence.
+
+## Actual distinct dispatch
+
+867310 was submitted ONCE on evc32,oneH100/twoCPUs/32GiB/onehour; at17:17UTC
+it was PENDING Priority. Exact engineering source5a22a9e and original scientific
+4acd6fa are bound. Fresh acceptance checked old866846 FAILED1:0/error, old866843
+CPU16 COMPLETED0:0, original source/input/runtime/weight stats and existing
+839074 CPU Triton compile proof. The new six small files are copied byte-identical
+without changing originals. Funded remaining20.90996GiB/5813files after all
+native/sampling obligations and the diagnostic16MiB/48files,zero checkpoints.
+Original request/source/script/funding/single intent/result records are preserved.
+This is not an actual measurement, auxiliary-weight acceptance or trainer pilot.
+Inspect the exact job/output before any action; never duplicate it.
