@@ -1,3 +1,30 @@
+## October1 actual Stanford optimizer/recovery and exact private restoration passed
+
+Original867419 COMPLETED0:0/2:38 on evc32 through backfill, despite an earlier
+seven-hour scheduler forecast. Real four-update full/resumed trajectories matched
+complete learned/base/AdamW/LR/counters/allRNG and identical source engineering
+prediction bytes. Training loss/gradients finite; no accuracy claim. Both actual
+terminal checkpoint byte hashes reverified through node-local CPU reader867473.
+Read mrnet-full-source-preparation-v1/original-pilot-terminal/. Do not repeat.
+
+CPU private original-copy867456/867457 completed0:0, all3750/7740871424 bytes
+matched SHA and eight original image/label tensor records matched exactly.
+Restoration receipt7367116f9f3775860404aed880d0e658bfa1b3633d33e5401466d8af1d1c8cdc
+in mrnet-private-restoration-evc24-20261001-v1 binds evc24 retained raw root
+/tmp/rsna-mrnet-restored-0nri0agx. Both originals preserved, zero shared pixel
+bytes or new source download. SSH response loss was reconciled read-only; never
+repeat this copy. The intended original-pilot replacement stopped read-only
+because867419 had already completed; no cancellation or new pilot dispatch.
+
+New full-source engine is prepared/local-tested, not yet GPU-accepted or fitted.
+launch_mrnet_source_training.py has separate recovery/full phases and requires
+exact original source/runtime/actual-input plus separately funded ten-epoch
+weights. Require actual new-engine GPU full/stop1/resume receipt before full1129
+fitting; validation119 final-only, no RSNA twelve-label fabrication. All derived
+Stanford weights remain private under unresolved downstream compatibility.
+Native867367 remains pending/unchanged. New live SSH control socket:
+/tmp/rsna-research-20261001-stable.sock. Credentials remain ignored0600.env/RAM.
+
 ## October1 full Stanford engine and earlier-node restoration prepared
 
 Read mrnet-full-source-preparation-v1. Full1129 source-training exam/119validation

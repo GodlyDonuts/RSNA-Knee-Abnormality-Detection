@@ -55,3 +55,29 @@ owning node. Only after that CPU restoration passes may the original still-
 pending pilot be cancelled, its actual terminal state reconciled, and a distinct
 new-node pilot dispatched once. No duplicate equivalent GPU jobs or new source
 recipe are authorized by a scheduler forecast. The native production stays intact.
+
+## Actual pilot and restoration outcomes supersede the forecasts
+
+Original867419 ran through Slurm backfill on evc32 and completed0:0 in2:38.
+It made four finite updates in each full/resumed trajectory; full/stop1/resume
+matched complete learned/base/AdamW/LR/counter/allRNG and prediction bytes.
+Actual loss and gradient records are preserved in original-pilot-terminal/.
+Terminal checkpoint bytes were reverified on the owning node with CPU-only
+reader867473. No diagnostic weights were republished and no accuracy is claimed.
+
+One private restoration also completed: sender867456 on evc32 and receiver867457
+on evc24, both COMPLETED0:0 (2:16/2:39). All3750 original volumes/7740871424bytes
+passed exact SHA checks; eight original image/label tensors were reproduced
+exactly. Receipt7367116f9f3775860404aed880d0e658bfa1b3633d33e5401466d8af1d1c8cdc
+binds retained /tmp/rsna-mrnet-restored-0nri0agx on evc24. Read restoration/.
+The SSH response was lost, but original terminal/receipt read-only reconciliation
+proved success; no transfer was repeated. Both original and restored copies remain.
+
+The proposed replacement stopped at its read-only preflight because the original
+pilot had already finished. It was never cancelled, replaced or repeated. The
+new full-source engine's immutable phase wrapper is now prepared for a distinct
+actual GPU recovery, then separately funded full private fitting. It borrows the
+accepted allocated-device/header/runtime checks and original evc32 data/input
+proofs. Each phase has a unique control/output and cannot accept an old pilot as
+a new engine pass. Full-source snapshots/weights remain private on the owning
+node; no new RSNA transfer or competitive score exists.
