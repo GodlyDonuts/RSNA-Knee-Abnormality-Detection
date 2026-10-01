@@ -19,7 +19,7 @@ from pathlib import Path
 
 SCIENCE = "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab"
 PLAN_SHA = "44e6775c5413e42d8744ead0f7d7bb0de258893a10867123e47fbd770f84793f"
-WORKER_SHA = "62a879a7c97d118163b3e9769f18f691e9a971f7ee3cf0133c5130e9ad5fb173"
+WORKER_SHA = "b8942961f5d79fb21f603692b6d40a528325efae60c627ff100f703e9fa0178d"
 BASE = Path("/home/sa305415/rsna-knee")
 
 
@@ -182,6 +182,15 @@ def main():
     for name, record in plan["runtime_helpers"].items():
         if digest(Path(name)) != record["sha256"]:
             raise ValueError("runtime_helper_changed")
+    reference_index = plan.get("reference_index")
+    if reference_index is not None:
+        path = Path(reference_index["path"])
+        if (
+            path.is_symlink()
+            or path.stat().st_size != reference_index["bytes"]
+            or digest(path) != reference_index["sha256"]
+        ):
+            raise ValueError("reference_index_changed")
     shard = json.loads((control / f"shard-{plan['shard']:03d}.json").read_text())
     for name, record in shard["input_bindings"].items():
         path = Path(plan["input_root"]) / name
@@ -290,7 +299,17 @@ def main():
                 scratch / "paired",
                 "--science-binding",
                 control / "science-binding.json",
-            ],
+            ]
+            + (
+                [
+                    "--reference-index",
+                    reference_index["path"],
+                    "--reference-index-sha256",
+                    reference_index["sha256"],
+                ]
+                if reference_index is not None
+                else []
+            ),
         )
         subprocess.run(
             command, cwd=checkout, env=env, input=json.dumps(payload), text=True, check=True

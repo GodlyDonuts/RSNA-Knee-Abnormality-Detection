@@ -1,0 +1,14 @@
+import base64,hashlib,importlib.util,json
+from pathlib import Path
+r=Path.cwd();local=r/'artifacts/native-cache-reference-index-v1';s=importlib.util.spec_from_file_location('d',r/'scripts/newton/dispatch_native384_pilot.py');d=importlib.util.module_from_spec(s);s.loader.exec_module(d)
+p=r/'artifacts/native-full-cache-shards384-v1';paths={n.name:n for n in p.glob('shard-*.json')};paths['manifest.json']=p/'manifest.json';paths['native_cache_reference_index.py']=r/'scripts/newton/native_cache_reference_index.py';files={n:{'bytes':v.stat().st_size,'sha256':hashlib.sha256(v.read_bytes()).hexdigest()} for n,v in paths.items()};assert len(files)==77
+program=r'''import base64,hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+r=json.load(sys.stdin);c=Path('/home/sa305415/rsna-knee/native-cache-reference-index-v1');assert not c.exists();quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);v=quota.splitlines()[-1].split();used,soft,files,fsoft=[int(v[i]) for i in (1,2,5,6)];total=sum(x['bytes'] for x in r['files'].values());remaining=(soft-used)*1024-3502083584-total-32*1024**2;assert remaining>=20*1024**3 and fsoft-files-len(r['files'])-30>=5000
+live=subprocess.check_output(['squeue','-u','sa305415','--noheader','--format=%i|%j|%T|%b'],text=True);assert 'rsna-reference-index' not in live;c.mkdir(mode=0o700)
+for name,row in r['files'].items():
+ data=base64.b64decode(r['payloads'][name]);assert len(data)==row['bytes'] and hashlib.sha256(data).hexdigest()==row['sha256'];(c/name).write_bytes(data);os.chmod(c/name,0o600)
+archive=Path('/home/sa305415/rsna-knee/cache/cache256-v3-official-recovery-v1.tar');s=archive.stat();assert not archive.is_symlink() and s.st_size==82834493440
+x={'status':'private_reference_index_and_all_plan_shards_staged_verified','checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'files':r['files'],'payload_bytes':total,'projected_remaining_gib':remaining/1024**3,'projected_remaining_files':fsoft-files-len(r['files'])-30,'archive_signature':{'dev':s.st_dev,'ino':s.st_ino,'bytes':s.st_size,'mtime_ns':s.st_mtime_ns,'ctime_ns':s.st_ctime_ns},'target_values_read':False,'gpu_reserved':False,'slurm_dispatch':False};(c/'stage-verified.json').write_text(json.dumps(x,indent=2,sort_keys=True)+'\n');print(json.dumps(x))
+'''
+x=d.ssh('/tmp/rsna-r64-submit-20261001-501.sock',['/usr/bin/python3.12','-c',program],{'files':files,'payloads':{n:base64.b64encode(v.read_bytes()).decode() for n,v in paths.items()}},timeout=120);d.save_new(local/'stage-verified.json',x);print(json.dumps({k:x[k] for k in ('status','payload_bytes','projected_remaining_gib','projected_remaining_files')}))

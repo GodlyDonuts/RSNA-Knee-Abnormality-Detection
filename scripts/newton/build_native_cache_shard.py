@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import importlib.util
 import io
 import json
 import os
@@ -42,6 +43,7 @@ INVENTORY = "initiative/audits/final-release-technical-inputs-v1/inventory_effec
 INVENTORY_GZ_SHA = "33065e6a60b878e5eda90ff2ffe865b5778cdcfa668adab23f2fd65bccdde240"
 INVENTORY_SHA = "68d202eb951babc9365eddd2f7a1219201cd7b0905f04afdace785ad0e079537"
 MANIFEST_SHA = "44e6775c5413e42d8744ead0f7d7bb0de258893a10867123e47fbd770f84793f"
+INDEX_HELPER_SHA = "85a4a502ab84d557a855f799412380b5ea8783c7898866460607219fb1d8e4bf"
 GIB = 1024**3
 SIDES = (256, 384)
 
@@ -192,7 +194,13 @@ def source_members(shard: dict, inventory: pd.DataFrame) -> dict[str, list[dict]
 class ReferenceArchive:
     """Index only; every selected reference object is fully hash checked on read."""
 
-    def __init__(self, archive: Path, rows: list[dict]):
+    def __init__(
+        self,
+        archive: Path,
+        rows: list[dict],
+        index: Path | None = None,
+        index_sha256: str | None = None,
+    ):
         if archive.is_symlink() or not archive.is_file():
             raise ValueError("regular_accepted_reference_archive_required")
         self.archive = archive
@@ -208,6 +216,19 @@ class ReferenceArchive:
                 "sha256": row["cache_metadata_sha256"],
             }
         self.offsets = {}
+        if (index is None) != (index_sha256 is None):
+            raise ValueError("reference_index_and_hash_required_together")
+        if index is not None:
+            helper = Path(__file__).with_name("native_cache_reference_index.py")
+            if helper.is_symlink() or digest(helper) != INDEX_HELPER_SHA:
+                raise ValueError("pinned_reference_index_helper_required")
+            spec = importlib.util.spec_from_file_location("pinned_cache_reference_index", helper)
+            if spec is None or spec.loader is None:
+                raise ValueError("reference_index_helper_unavailable")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            self.offsets = module.load_offsets(archive, index, index_sha256, self.records)
+            return
         with tarfile.open(archive, "r:") as tar:
             for member in tar:
                 if member.name in self.records:
@@ -556,6 +577,8 @@ def main() -> None:
     parser.add_argument("--reference-archive", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--science-binding", type=Path, required=True)
+    parser.add_argument("--reference-index", type=Path)
+    parser.add_argument("--reference-index-sha256")
     args = parser.parse_args()
     if (
         not os.environ.get("SLURM_JOB_ID")
@@ -631,7 +654,12 @@ def main() -> None:
             shard,
             inventory,
             reader,
-            ReferenceArchive(args.reference_archive, shard["series"]),
+            ReferenceArchive(
+                args.reference_archive,
+                shard["series"],
+                args.reference_index,
+                args.reference_index_sha256,
+            ),
             args.output,
             {
                 "job_id": os.environ["SLURM_JOB_ID"],
@@ -646,6 +674,14 @@ def main() -> None:
                 "torch_version": torch.__version__,
                 "numpy_version": np.__version__,
                 "accepted_reference_scope": "full_size_and_all_selected_member_bytes_verified",
+                **(
+                    {
+                        "reference_index_sha256": args.reference_index_sha256,
+                        "reference_index_helper_sha256": INDEX_HELPER_SHA,
+                    }
+                    if args.reference_index is not None
+                    else {}
+                ),
             },
         )
         print(
