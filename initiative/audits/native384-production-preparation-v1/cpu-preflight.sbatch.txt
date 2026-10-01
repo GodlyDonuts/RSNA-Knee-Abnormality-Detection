@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-native384-cpu-preflight
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --nodelist=evc31
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=4G
+#SBATCH --time=06:00:00
+#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err
+set -euo pipefail
+umask 077
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+unset PYTHONPATH
+cd -- /home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e
+/usr/bin/python3.12 - <<'RSNA_NATIVE_CPU_SOURCE_GUARD'
+import hashlib,json
+from pathlib import Path
+control=Path("/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1")
+manifest=json.loads((control/'production-files.json').read_text())
+for name,row in manifest['files'].items():
+ p=control/name
+ assert not p.is_symlink() and p.is_file() and p.stat().st_size==row['bytes']
+ assert hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+RSNA_NATIVE_CPU_SOURCE_GUARD
+/usr/bin/python3.12 /home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/native384_admission.py cpu --assembly /home/sa305415/rsna-knee/native384-assembly-c9-v1 --config /home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/config.json --output /home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json

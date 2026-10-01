@@ -1,0 +1,44 @@
+{
+  "assembly_job": "866458",
+  "automatic_retry": false,
+  "control": "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1",
+  "cpus": 2,
+  "files": {
+    "config.json": {
+      "bytes": 1588,
+      "local_source": "initiative/experiments/competitive-v1/native-detail-v1/production384-fold0-v1/config.json",
+      "sha256": "e7ab923745a22995470ff68d98b46212acd1f4d12c10b07004851027ad488788"
+    },
+    "cpu-preflight.sbatch": {
+      "bytes": 1335,
+      "local_source": "initiative/audits/native384-production-preparation-v1/cpu-preflight.sbatch.txt",
+      "sha256": "7f1fe5562c51c025d249900dbf8c2e37c895060a59ec14d29f42005d1be3cf97"
+    },
+    "enforce_deterministic_runtime.py": {
+      "bytes": 2931,
+      "local_source": "initiative/audits/native384-deterministic-runtime-v1/verified-v2/enforce_deterministic_runtime.py",
+      "sha256": "4141bedbe24cd87c31bbcffba4a34747c5228495c3e6f29b6b45a849196970a7"
+    },
+    "native384_admission.py": {
+      "bytes": 20959,
+      "local_source": "scripts/newton/native384_admission.py",
+      "sha256": "81060696c0fb4312d04e8f0a68b2c0eb515db743938af723a31f58e7ed962124"
+    },
+    "production.sbatch": {
+      "bytes": 15506,
+      "local_source": "initiative/audits/native384-production-preparation-v1/production.sbatch.txt",
+      "sha256": "089d4627dc43c862be798ee3b1c7f2bd1279854829cf23f346a8ff4f052cfb65"
+    },
+    "publish_native384_epoch.py": {
+      "bytes": 19477,
+      "local_source": "scripts/hf/publish_native384_epoch.py",
+      "sha256": "4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde"
+    }
+  },
+  "gpu_nodes": 1,
+  "initial_run_only": true,
+  "run": "/home/sa305415/rsna-knee/runs/dinov3-l16-adapter-a32-native384-fold0-c9fcc7e-production-v1",
+  "schema_version": 1,
+  "scientific_source_git": "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab",
+  "status": "prepared_not_staged_or_dispatched"
+}

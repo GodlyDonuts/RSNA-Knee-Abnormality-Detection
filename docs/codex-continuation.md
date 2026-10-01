@@ -1,3 +1,46 @@
+## October 1 native384 production and preservation implementation
+
+The full-cohort native384 rank32 launch and private epoch-preservation code is
+implemented in `scripts/newton/native384_admission.py`,
+`scripts/newton/dispatch_native384_production.py`,
+`scripts/hf/publish_native384_epoch.py`, and
+`scripts/hf/dispatch_native384_epoch.py`. Exact six-payload manifest, scheduler
+scripts and scope are in `initiative/audits/native384-production-preparation-v1/`.
+Scientific source remains C9, config SHA
+e7ab923745a22995470ff68d98b46212acd1f4d12c10b07004851027ad488788.
+Prepared code is not a dispatched job or trained model. Native production requires
+actual assembly866458 COMPLETED0:0, full 37,812-file CPU byte admission, successful
+CPU job termination, a fresh CPU-only evc31 inventory/asset/stat check, funded
+20GiB/5000-file reserve and then allocated GPU/runtime acceptance. It uses one
+H100/two CPUs, unchanged 2247/1156 membership, ten epochs and rank32 encoder
+adapters. No GPU is reserved while prerequisites are missing. At most two GPU
+nodes; existing intents require read-only reconciliation, never automatic retry.
+
+At05:12UTC both source lanes866426/866427 remained RUNNING on evc1 with empty
+stderr, actually building shards11/12. Assembly866458 was PENDING for Dependency.
+Shards0..10 are privately preserved with full original-worker download/size/SHA
+verification and exact canonical member re-admission:489 studies,2712 series,
+95034 original slices. New raw and canonical receipts5..10 and versioned summary
+are in `initiative/audits/native-full-cache-two-lanes-v1/completed/`.
+No source worker/publication was repeated for this receipt collection. This is
+11of75 source shards, not completed assembly or competitive training. Continue
+checking existing jobs; never duplicate them or overwrite prior raw receipts.
+
+Rank64 submission56740377 still had no status/error/public score at05:12UTC;
+four live slots remained. The canonical ledger is submitted once. Keep this
+outcome unknown and inspect it before another capacity submission. Native384
+still has no score. Baseline comparisons remain sampled rank32 Kaggle0.769 and
+internal0.8620940794159951; all-development0.792 changed training population.
+External MRI inventory is conditional only; no external image cohort is admitted.
+
+Each real native production epoch is a distinct frozen-base delta snapshot with
+its actual native-input provenance, license and manifest. Preserve exactly once
+using the native epoch coordinator and shared atomic directory publication
+exclusion; fully download/size/SHA verify every private object. Do not publish
+synthetic fixtures, diagnostics, old256 cache or different rank/population roles.
+Native production interruption requires terminal/checkpoint review before a
+separate explicit continuation; initial dispatcher does not implement retries.
+
 ## October 1 current experiment and external-data status
 
 External-source audit Git e932759 is privately mirrored at HF revision
