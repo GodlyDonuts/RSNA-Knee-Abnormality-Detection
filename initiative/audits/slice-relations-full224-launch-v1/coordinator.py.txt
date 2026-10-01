@@ -1,0 +1,100 @@
+import base64, hashlib, json, pathlib, shlex, subprocess, tarfile, datetime, os
+root=pathlib.Path.cwd(); audit=root/'initiative/audits/slice-relations-full224-launch-v1';work=root/'artifacts/stratified-slices-v1/full224-gradient-v1';work.mkdir(exist_ok=False)
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head==subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip()
+assert not subprocess.check_output(['git','status','--porcelain'],text=True)
+source_names=['rsna','scripts/newton/measure_relation_gradients.py','scripts/newton/launch_relation_gradient_probe.py','scripts/newton/audit_relation_geometry.py','scripts/newton/runtime_archive.py','scripts/newton/runtime_environment.py','configs/competitive/weights/dinov3-large.LICENSE.md',*['initiative/experiments/competitive-v1/slice-relations-v1/'+name+'-pilot-config.json' for name in ('zero','physical','shuffled')]]
+pack=work/'source.tar';subprocess.run(['git','archive','--format=tar','-o',str(pack),head,*source_names],check=True)
+files={}
+with tarfile.open(pack,'r:') as source:
+ for member in source:
+  if member.isfile():
+   payload=source.extractfile(member).read();files[member.name]={'bytes':len(payload),'sha256':hashlib.sha256(payload).hexdigest()}
+assert pack.stat().st_size < 16*1024**2
+control='/home/sa305415/rsna-knee/relation-full224-gradient-v1';base='/home/sa305415/rsna-knee'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+manifest={'source_git':head,'source_tar_sha256':sha(pack),'files':files,'proof_path':base+'/stratified-production-7ac7a97-preparation-v1/cpu-prerequisites-verified.json','proof_sha256':sha(root/'initiative/audits/stratified-slices-production-preparation-v1/cpu-prerequisites-verified.json'),'request_path':base+'/relation-geometry-survey-v1/request.json','request_sha256':sha(root/'initiative/audits/slice-relations-geometry-survey-v1/request.json'),'run_source_path':base+'/runs/dinov3-l16-sampling-stratified-a32-fold0-7ac7a97-production-v1/run.json','run_path':control+'/sampling-run-original.json','series_path':base+'/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv','cache_archive':base+'/cache/cache256-v3-official-recovery-v1.tar','environment_archive':base+'/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar','cpus':1,'gpus':0,'memory_gib':16,'diagnostic_checkpoint_bound_bytes':0,'new_metadata_bound_bytes':16*1024**2,'new_file_obligation':32,'production_relation_dispatched':False,'diagnostic_only':True}
+
+read_run="from pathlib import Path; import base64; print(base64.b64encode(Path('/home/sa305415/rsna-knee/runs/dinov3-l16-sampling-stratified-a32-fold0-7ac7a97-production-v1/run.json').read_bytes()).decode())"
+run_raw=base64.b64decode(subprocess.check_output(['ssh','-S','/tmp/rsna-research-20261001-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',read_run])],text=True,timeout=30))
+manifest.update(run_sha256=hashlib.sha256(run_raw).hexdigest(),studies_path=base+'/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet',studies_sha256=sha(root/'initiative/releases/report-supervision-v1/studies.parquet'),artifact_root=base+'/code-stopfix-1f486765',folds_path=base+'/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds',series_sha256=sha(root/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'),measurement_cpus=2,measurement_gpus=1,actual_GPU_dispatched=False)
+script=f'''#!/bin/bash
+#SBATCH --job-name=rsna-relation-full224-CPU-inputs
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --time=01:00:00
+#SBATCH --output={control}/stdout.txt
+#SBATCH --error={control}/stderr.txt
+set -euo pipefail
+umask 077
+export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+exec /usr/bin/python3.12 -B {control}/launch_gradient.py --control {control} --mode cpu-input
+'''
+raw={'sampling-run-original.json':run_raw,'source.tar':pack.read_bytes(),'source.json':(json.dumps(manifest,indent=2,sort_keys=True)+'\n').encode(),'cpu.sbatch':script.encode(),'launch_gradient.py':(root/'scripts/newton/launch_relation_gradient_probe.py').read_bytes()}
+file_records={n:{'bytes':len(v),'sha256':hashlib.sha256(v).hexdigest()} for n,v in raw.items()}
+for n,v in raw.items():
+ if n!='source.tar':(work/n).write_bytes(v)
+(audit/'source.json').write_bytes(raw['source.json']);(audit/'cpu.sbatch.txt').write_bytes(raw['cpu.sbatch']);(audit/'stage-files.json').write_text(json.dumps(file_records,indent=2,sort_keys=True)+'\n')
+probe='''import json,hashlib,subprocess,sys,base64
+from pathlib import Path
+p=json.load(sys.stdin);b=Path('/home/sa305415/rsna-knee');c=Path(p['control']);m=p['manifest']
+def sha(f):return hashlib.sha256(f.read_bytes()).hexdigest()
+assert not c.exists();assert sha(Path(m['proof_path']))==m['proof_sha256'];assert sha(Path(m['request_path']))==m['request_sha256']
+proof=json.loads(Path(m['proof_path']).read_text())
+assert subprocess.check_output(['sacct','-X','--noheader','-j','866694','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip()=='866694|COMPLETED|0:0'
+for name,row in proof['assets'].items():
+ f=Path(name);s=f.stat();assert not f.is_symlink() and {'dev':s.st_dev,'ino':s.st_ino,'bytes':s.st_size,'mtime_ns':s.st_mtime_ns,'ctime_ns':s.st_ctime_ns}==row['stat']
+request=json.loads(Path(m['request_path']).read_text());assert sha(Path(m['series_path']))==request['series_table_sha256'];assert sha(Path(m['studies_path']))==m['studies_sha256'];frozen=json.loads(base64.b64decode(p['run_snapshot']));live=json.loads(Path(m['run_source_path']).read_text());assert frozen['binding']==live['binding'];assert request['training_uids_sha256']==frozen['binding']['training_uids_sha256']
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,n,limit=[int(quota[i]) for i in (1,2,5,6)]
+lanes=b/'native-full-cache-two-lanes-v1';done=0
+for i in range(1,75):
+ f=lanes/f'shard-{i:03d}/result.json'
+ if f.is_file():
+  assert json.loads(f.read_text())['status']=='original_source_paired_shard_and_private_preservation_complete';done+=1
+native_files=(74-done)*20+190
+charged={}
+for run in [b/'runs/dinov3-l16-sampling-stratified-a32-fold0-7ac7a97-production-v1',b/'runs/dinov3-l16-sampling-uniform-a32-fold0-7ac7a97-evc31-v2']:
+ for f in (run/'epoch-checkpoints').glob('*.pt'):
+  s=f.stat();assert not f.is_symlink() and s.st_size<128*1024**2;charged[(s.st_dev,s.st_ino)]=s.st_size
+future=5246914048+12*1024**2+22*128*1024**2+16*1024**2-sum(charged.values())+m['diagnostic_checkpoint_bound_bytes']+m['new_metadata_bound_bytes']
+reserve=((soft-used)*1024-future)/1024**3;files=limit-n-native_files-400-m['new_file_obligation']
+assert reserve>=20 and files>=5000
+queue=subprocess.check_output(['squeue','-h','-u','sa305415','-o','%i|%T|%j|%b|%N'],text=True)
+print(json.dumps({'status':'exact_prerequisites_and_CPU_diagnostic_funding_verified','checked_utc':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),'projected_remaining_gib':reserve,'projected_remaining_files':files,'completed_native_shards_excluding_zero':done,'charged_sampling_snapshot_bytes':sum(charged.values()),'queue':queue,'cpus':1,'gpus':0}))
+'''
+def remote(code,payload):
+ cmd=['ssh','-S','/tmp/rsna-research-20261001-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',code])]
+ return subprocess.check_output(cmd,input=json.dumps(payload),text=True,timeout=90)
+def save(name,value):
+ with (audit/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+payload={'control':control,'manifest':manifest,'run_snapshot':base64.b64encode(run_raw).decode()}
+pre=json.loads(remote(probe,payload));save('fresh-funding.json',pre)
+save('stage-intent.json',{'status':'single_stage_intent','control':control,'source_git':head,'files':file_records,'automatic_retry':False})
+stage=probe[:probe.rindex('print(json.dumps(')]+'''
+import base64,os
+c.mkdir(mode=0o700)
+for name,encoded in p['files'].items():
+ raw=base64.b64decode(encoded);row=p['file_records'][name];assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256']
+ with (c/name).open('xb') as f:f.write(raw);f.flush();os.fsync(f.fileno())
+assert sha(c/'launch_gradient.py')==m['files']['scripts/newton/launch_relation_gradient_probe.py']['sha256']
+print(json.dumps({'status':'single_CPU_diagnostic_stage_verified','control':str(c),'source_git':m['source_git'],'files':p['file_records'],'projected_remaining_gib':reserve,'projected_remaining_files':files}))
+'''
+payload=payload|{'files':{n:base64.b64encode(v).decode() for n,v in raw.items()},'file_records':file_records};save('stage-result.json',json.loads(remote(stage,payload)))
+save('dispatch-intent.json',{'status':'single_CPU_diagnostic_sbatch_intent','control':control,'source_git':head,'cpus':1,'gpus':0,'automatic_retry':False})
+dispatch='''import json,subprocess,sys,hashlib,os
+from pathlib import Path
+p=json.load(sys.stdin);c=Path(p['control'])
+assert not (c/'dispatch-intent.json').exists() and not (c/'dispatch-result.json').exists() and not (c/'cpu-input-verified.json').exists() and not (c/'runtime-cpu-input.json').exists()
+for n,row in p['file_records'].items():
+ f=c/n;assert f.stat().st_size==row['bytes'] and hashlib.sha256(f.read_bytes()).hexdigest()==row['sha256']
+intent={'status':'single_CPU_diagnostic_sbatch_intent','source_git':p['manifest']['source_git'],'automatic_retry':False}
+with (c/'dispatch-intent.json').open('x') as f:json.dump(intent,f);f.flush();os.fsync(f.fileno())
+v=subprocess.run(['sbatch','--parsable',str(c/'cpu.sbatch')],capture_output=True,text=True)
+out={'returncode':v.returncode,'stdout':v.stdout.strip(),'stderr':v.stderr,'source_git':p['manifest']['source_git'],'cpus':1,'gpus':0,'control':str(c)}
+with (c/'dispatch-result.json').open('x') as f:json.dump(out,f);f.flush();os.fsync(f.fileno())
+print(json.dumps(out));assert v.returncode==0 and v.stdout.strip().split(';')[0].isdecimal()
+'''
+result=json.loads(remote(dispatch,payload));save('dispatch-result.json',result);print(json.dumps(result))

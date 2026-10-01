@@ -1,3 +1,52 @@
+## October1 stratified epoch5 privately preserved
+
+Original CPU publisher866848 COMPLETED0:0, all five epoch5 objects privately
+re-downloaded/size/SHA verified at HFab343c155868e8153ad08176d9978c48d8dc4621.
+Checkpoint SHA225b8f1eb22a6a57d56f4188c73ab6636658cd2a549c3dedf7b6469f4e24e764;
+exact original journal/snapshot/dispatch/terminal receipts in
+sampling-epochs-v1/stratified/epoch-005. Never repeat this or earlier publications.
+Uniform epoch5 was not yet complete at the later coordinator precheck; it refused
+read-only before an intent, publication or GPU allocation. Inspect actual state
+before attempting its first completed-snapshot preservation.
+
+## October1 actual full224 CPU admission passed; GPU diagnostic queued once
+
+Read slice-relations-full224-launch-v1/README.md. CPU866843 COMPLETED0:0 in10:11,
+source4acd6fa/48 files,16 real training studies/317,211,763 node-local cache bytes.
+Exact full224 tensor/mask/config/source acceptance is in terminal/; its SHA is
+a6e6c02db933388b9c65242f31785f0cf60aa41f7b828933c0f81993748db1d5.
+No optimizer updates or GPU/clinical acceptance came from the CPU check.
+One-H100/two-CPU bounded diagnostic866846 was submitted ONCE to evc32 with
+STRICT afterok:866716 dependency; last PENDING Dependency. It uses the SAME
+immutable4acd6fa source/control and must reproduce that CPU receipt. Do not
+repeat it or change live7ac7a97. Exact original gpu/ intent/result/coordinator
+and fresh funding leave20.7199GiB/5742 files after all obligations. Actual H100
+gradient results, subsequent matched trainer recovery and clinical results remain
+outstanding. Native canonical source receipts now cover52/75 batches,
+2363 studies/13153 series/447221 slices; gap51. Original private bytes were not
+re-uploaded or re-downloaded by this read-only collection. Assembly866458 remains
+PENDING Dependency. The two sampling roles continued finite training at12:48:
+stratified866716 into epoch6/1544 updates, uniform866719 into epoch5/1387 updates.
+Actual later state overrides this snapshot; private epoch preservation continues.
+
+## October1 full224 CPU input admission dispatched once
+
+Exact source Git4acd6fa57a193cf8a4b5bb813866d98d358e1e5a is independently packed/
+hashed and staged at /home/sa305415/rsna-knee/relation-full224-gradient-v1.
+One-CPU/zero-GPU Slurm866843 was submitted once for actual full224 input admission;
+no H100 measurement or relation production was dispatched. The original source,
+frozen sampling-run binding, fresh funding, exact coordinator and single stage/
+dispatch journals are in slice-relations-full224-launch-v1. Inspect its actual
+Slurm/log/output state read-only; never repeat the existing dispatch or overwrite
+its control. At staging, all native/sampling debt plus the new16MiB/32-file
+metadata bound left20.7212GiB/5745 files. Large copied pixels/runtime/source use
+node-local disk only. Source preparation passed1544 tests/Ruff221/mypy39/archive
+and current89/89 evidence checks. After actual CPU acceptance, prepare a distinct
+GPU launch bound to its exact receipt SHA and fresh capacity/funding, preferably
+after the live sampling role frees its H100. Preserve the two-node limit and live
+7ac7a97 settings. Gradient measurement is zero optimizer updates; subsequent
+actual trainer recovery and held-out accuracy still remain.
+
 ## October1 full224 immutable launch wrapper prepared
 
 Read slice-relations-full224-launch-v1/README.md. The new pinned wrapper prepares

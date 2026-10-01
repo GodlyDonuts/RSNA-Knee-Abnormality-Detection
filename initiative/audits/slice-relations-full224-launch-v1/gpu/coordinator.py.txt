@@ -1,0 +1,60 @@
+import ast,base64,hashlib,json,os,pathlib,shlex,subprocess
+root=pathlib.Path.cwd(); audit=root/'initiative/audits/slice-relations-full224-launch-v1/gpu';audit.mkdir(exist_ok=False)
+control='/home/sa305415/rsna-knee/relation-full224-gradient-v1'
+manifest=json.loads((audit.parent/'source.json').read_text()); records=json.loads((audit.parent/'stage-files.json').read_text())
+receipt=(audit.parent/'terminal/cpu-input-verified.json').read_bytes();digest=hashlib.sha256(receipt).hexdigest()
+original=ast.parse((root/'artifacts/stratified-slices-v1/stage_full224_gradient_CPU_v1.py').read_text())
+probe=next(ast.literal_eval(n.value) for n in original.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='probe' for t in n.targets))
+probe=probe.replace('assert not c.exists();','assert c.is_dir();')
+probe=probe[:probe.rindex('print(json.dumps(')]+'''
+assert subprocess.check_output(['sacct','-X','--noheader','-j','866843','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip()=='866843|COMPLETED|0:0'
+assert sha(c/'cpu-input-verified.json')==p['cpu_receipt_sha256']
+r=json.loads((c/'cpu-input-verified.json').read_text());assert r['status']=='actual_full224_training_inputs_CPU_verified' and r['optimizer_updates']==0 and r['GPU_acceptance'] is False
+assert len(r['input_binding']['batch_input_sha256'])==16
+for name,row in p['stage_files'].items():
+ f=c/name;assert f.stat().st_size==row['bytes'] and sha(f)==row['sha256']
+assert json.loads((c/'runtime-cpu-input.json').read_text())['source_git']==m['source_git']
+assert not (c/'gpu-dispatch-intent.json').exists() and not (c/'gpu-dispatch-result.json').exists() and not (c/'gpu.sbatch').exists() and not (c/'runtime-gpu-measure.json').exists() and not (c/'gradient-measurement.json').exists()
+parent=subprocess.check_output(['sacct','-X','--noheader','-j','866716','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True).strip();assert parent.startswith('866716|RUNNING|') or parent=='866716|COMPLETED|0:0'
+print(json.dumps({'status':'exact_CPU_acceptance_and_dependent_GPU_diagnostic_funding_verified','checked_utc':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),'projected_remaining_gib':reserve,'projected_remaining_files':files,'completed_native_shards_excluding_zero':done,'charged_sampling_snapshot_bytes':sum(charged.values()),'queue':queue,'cpu_receipt_sha256':p['cpu_receipt_sha256'],'dependency':'afterok:866716','nodelist':'evc32','cpus':2,'gpus':1,'optimizer_updates':0,'third_GPU_node_permitted':False}))
+'''
+payload={'control':control,'manifest':manifest,'stage_files':records,'cpu_receipt_sha256':digest,'run_snapshot':base64.b64encode((audit.parent/'terminal/sampling-run-original.json').read_bytes()).decode()}
+def remote(code,p):
+ return subprocess.check_output(['ssh','-S','/tmp/rsna-research-20261001-501.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',code])],input=json.dumps(p),text=True,timeout=90)
+def save(name,value):
+ with (audit/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+save('fresh-funding.json',json.loads(remote(probe,payload)))
+script=f'''#!/bin/bash
+#SBATCH --job-name=rsna-relation-full224-gradient
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:nvidia_h100_pcie:1
+#SBATCH --nodelist=evc32
+#SBATCH --dependency=afterok:866716
+#SBATCH --mem=32G
+#SBATCH --time=01:00:00
+#SBATCH --output={control}/gpu-stdout.txt
+#SBATCH --error={control}/gpu-stderr.txt
+set -euo pipefail
+umask 077
+export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2
+exec /usr/bin/python3.12 -B {control}/launch_gradient.py --control {control} --mode gpu-measure --cpu-proof-sha256 {digest}
+'''
+(audit/'gpu.sbatch.txt').write_text(script)
+payload.update(script=base64.b64encode(script.encode()).decode(),script_sha256=hashlib.sha256(script.encode()).hexdigest())
+save('dispatch-intent.json',{'status':'single_dependent_GPU_diagnostic_dispatch_intent','source_git':manifest['source_git'],'cpu_receipt_sha256':digest,'script_sha256':payload['script_sha256'],'dependency':'afterok:866716','nodelist':'evc32','cpus':2,'gpus':1,'optimizer_updates':0,'automatic_retry':False})
+code=probe[:probe.rindex('print(json.dumps(')]+'''
+import os
+script=base64.b64decode(p['script']);assert hashlib.sha256(script).hexdigest()==p['script_sha256']
+with (c/'gpu.sbatch').open('xb') as f:f.write(script);f.flush();os.fsync(f.fileno())
+intent={'status':'single_dependent_GPU_diagnostic_dispatch_intent','source_git':m['source_git'],'cpu_receipt_sha256':p['cpu_receipt_sha256'],'script_sha256':p['script_sha256'],'dependency':'afterok:866716','nodelist':'evc32','automatic_retry':False}
+with (c/'gpu-dispatch-intent.json').open('x') as f:json.dump(intent,f);f.flush();os.fsync(f.fileno())
+v=subprocess.run(['sbatch','--parsable',str(c/'gpu.sbatch')],capture_output=True,text=True)
+out={'returncode':v.returncode,'stdout':v.stdout.strip(),'stderr':v.stderr,'source_git':m['source_git'],'cpu_receipt_sha256':p['cpu_receipt_sha256'],'dependency':'afterok:866716','nodelist':'evc32','cpus':2,'gpus':1,'optimizer_updates':0,'control':str(c)}
+with (c/'gpu-dispatch-result.json').open('x') as f:json.dump(out,f);f.flush();os.fsync(f.fileno())
+print(json.dumps(out));assert v.returncode==0 and v.stdout.strip().split(';')[0].isdecimal()
+'''
+save('dispatch-result.json',json.loads(remote(code,payload)));print((audit/'dispatch-result.json').read_text())
