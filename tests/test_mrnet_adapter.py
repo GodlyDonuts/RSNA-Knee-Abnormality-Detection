@@ -15,6 +15,7 @@ from rsna.competitive.mrnet import (
     MRNetStudyDataset,
     transfer_encoder_adapters,
 )
+from scripts.newton.probe_mrnet_adapter_recovery import same
 
 
 def private_source(root):
@@ -160,3 +161,22 @@ def test_only_compatible_encoder_adapters_transfer_atomically():
             destination_provenance={**provenance, "weights_sha256": "c" * 64},
         )
     assert all(torch.equal(value, destination.state_dict()[name]) for name, value in before.items())
+
+
+def test_recovery_comparison_rejects_optimizer_rng_and_counter_drift():
+    envelope = {
+        "model": {"adapter": torch.ones(2)},
+        "optimizer": {"state": {0: {"exp_avg": torch.ones(2)}}},
+        "rng": {"torch": torch.tensor([1, 2], dtype=torch.uint8), "python": (3, (1, 2), None)},
+        "step": 4,
+        "LR": 0.0001,
+    }
+    assert same(envelope, copy.deepcopy(envelope))
+    changed = copy.deepcopy(envelope)
+    changed["optimizer"]["state"][0]["exp_avg"][0] += 1
+    assert not same(envelope, changed)
+    changed = copy.deepcopy(envelope)
+    changed["rng"]["torch"][0] = 4
+    assert not same(envelope, changed)
+    assert not same(envelope, {**envelope, "step": 3})
+    assert not same(envelope, {**envelope, "extra": 0})

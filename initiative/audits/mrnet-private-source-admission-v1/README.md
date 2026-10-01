@@ -75,3 +75,28 @@ one-CPU pinned-runtime wrapper `launch_mrnet_inputs.py`. Its purpose is to decod
 eight actual source exams, bind source labels and tensor hashes, and confirm the
 full 1129/119 split membership. No encoder, optimizer, clinical inference or
 Stanford warm-up has yet run. Require actual input receipt before fitting.
+
+## Actual tensor admission and bounded research pilot
+
+CPU job **867399 COMPLETED 0:0**, 30 seconds on evc32. It verified all 1129/119
+supervised memberships and eight actual three-plane exam tensors at 256 pixels,
+with the full 16-slice-per-plane budget. See `input-admission/`. The full original
+per-case receipt stays on private cluster storage; its SHA is
+`146197f268471e167b2e16fb5e0724b24a58b714d3882567ec0bc09d9c95caf1`.
+
+The bounded source-specific adapter recovery driver now uses the pinned official
+DINOv3-L, rank32 and a separate three-task exam head. It runs sixteen training
+exams for two epochs/four effective-eight updates, comparing uninterrupted and
+fresh-process interrupted/resumed trajectories. Four source-validation outputs
+are engineering predictions only; no diagnostic AUC selects the recipe. Require
+exact learned/base/AdamW/LR/counter/RNG equality and identical prediction bytes.
+All learned states remain on private node-local storage under a separately funded
+2-GiB checkpoint bound, with the 20-GiB disk reserve and maximum two GPU nodes.
+
+This is bounded private noncommercial research under the source's stated research
+purpose and the owner's explicit direction. Original dataset bytes are retained
+unchanged. It does not establish permission to redistribute Stanford-derived
+weights, nor competition compatibility. No such weights may be mirrored or
+submitted without resolving that downstream boundary. The source-specific head
+is never transferred into RSNA targets. No GPU pilot has been dispatched at this
+preparation milestone; later exact dispatch receipts supersede this statement.

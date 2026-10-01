@@ -1,3 +1,25 @@
+## October1 actual Stanford inputs accepted; bounded private adapter recovery prepared
+
+Actual CPU867399 COMPLETED0:0/00:30 evc32, full1129train/119valid membership
+and eight decoded three-plane exams accepted. Original private input receipt
+SHA146197f268471e167b2e16fb5e0724b24a58b714d3882567ec0bc09d9c95caf1
+is /home/sa305415/rsna-knee/mrnet-inputs-b5f37ab-v1/input-verified.json.
+Sanitized receipt summary and original source/runtime/terminal metadata are in
+mrnet-private-source-admission-v1/input-admission/. Per-case labels/images were
+not republished. Never repeat CPU gate or original acquisition.
+
+New probe_mrnet_adapter_recovery.py and launch_mrnet_adapter_probe.py are prepared:
+actual pinned official DINOv3-L rank32,16 source training exams,two epochs/four
+effective-eight updates, four source validation engineering predictions only.
+Fresh full/stop-after1/resume subprocesses must match complete model/base/AdamW/
+LR/counter/allRNG and exact MRI-only engineering predictions. No accuracy/clinical
+selection or submission. Bind actual CPU receipt, clean original code, admitted
+Python headers/H100 context and fund2GiB retained node-local checkpoints plus7GiB
+runtime/20GiB reserve before dispatch. Private noncommercial research scope only;
+Stanford data remain verbatim and derived weights must not be redistributed or
+used competitively until downstream compatibility is resolved. No production
+Stanford fitting or GPU recovery acceptance is claimed at this prepared stage.
+
 ## October1 Stanford acquisition completed; separate source adapter inputs prepared
 
 Original Stanford CPU acquisition867378 COMPLETED0:0/10:18 evc32. All3750
