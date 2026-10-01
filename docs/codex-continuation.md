@@ -1,3 +1,18 @@
+## October1 gradient preparation milestone privately verified
+
+Source Git93b63de is privately mirrored at HF
+3f470afed65a34caa7c722752bda055598a6dbd2; all25 objects were fully re-downloaded/
+size/SHA verified with the original shared atomic publication lock. Exact
+intent/commit/full-byte journal is in
+hf-full224-relation-gradient-preparation-and-sampling-epochs-20261001-v1.
+Never repeat this mirror or its already private uniform3/stratified4 checkpoints.
+1530 tests/Ruff220/mypy39/archive/current89/89 evidence checks passed. No
+relation H100 measurement/production or Kaggle submission was performed. Next
+prepare the immutable source/runtime/cache/launch wrapper and fresh admission
+for full224 BF16 gradient measurement and real matched trainer recovery, without
+changing live7ac7a97 or exceeding two GPU nodes. Actual later state overrides
+these snapshots.
+
 ## October1 full-input gradient diagnostic prepared; two more epochs preserved
 
 The new script scripts/newton/measure_relation_gradients.py and twenty local
