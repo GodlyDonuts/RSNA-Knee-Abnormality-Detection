@@ -1,3 +1,16 @@
+## October1 relation integration milestone privately verified
+
+Source Git1240cf0 is privately full-download/size/SHA verified at HF
+431cf2249775459e2468ed732948de42186e639c,40 objects, original atomic publication
+lock. Exact intent/parent/commit/full-byte journal:
+`initiative/audits/hf-relation-integration-and-sampling-epochs-20261001-v1/`.
+NEVER repeat this mirror or the two actual epoch uploads it references. It did
+not re-upload checkpoints.1498 tests/Ruff215/mypy39/archive/current89/89 evidence
+coverage passed. Relation code is locally integrated and prepared; official-weight
+real-MRI BF16 pilot, scale checks, production admission and accuracy remain
+outstanding. Do not implement the already completed integration again or change
+live7ac7a97 sampling jobs to enable it. Read the matched protocol below.
+
 ## October1 relation integration and two additional preserved epochs
 
 Opt-in raw-global-slice geometry supervision is integrated in model/trainer/
