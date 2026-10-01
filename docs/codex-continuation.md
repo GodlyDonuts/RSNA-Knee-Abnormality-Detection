@@ -15,6 +15,22 @@ all private immutable epochs and compare any transfer through a clean matched
 RSNA experiment only after cross-source screening/downstream rights review.
 1612 tests/Ruff242/mypy41/archive/current89/89 passed. Goal remains active.
 
+## October1 native real optimization and CPU screen packaging correction
+
+Native867367 is RUNNING on evc31, actual header/CUDA/native384 input admission
+passed and finite real optimizer updates are preserved in native384-production-
+preparation-v1/gpu-initial-progress. No completed epoch or clinical score yet;
+leave this original scientificC9/config/job untouched and preserve each future
+completed epoch exactly once with pinned native publisher.
+
+Stanford full-engine867478 remains pending; full1129 fitting not dispatched.
+Original private pixel-only jobs867491/867492 FAILED1:0 before decoding any
+volume because rsna/__init__.py imported the missing schema constants. Original
+failures preserved in stanford-rsna-pixel-overlap-screen-v1; v2 exact seven-member
+source closure has a fresh isolated import/CLI test. No numerical/source image
+changes, labels read or GPU use. Distinct v2 controls/extra16MiB/48shared files
+are prepared under fresh funded reserve; not dispatched at this source freeze.
+
 ## October1 Stanford transfer pixel-overlap CPU preparation
 
 Read stanford-rsna-pixel-overlap-screen-v1. Stanford actual original adapter

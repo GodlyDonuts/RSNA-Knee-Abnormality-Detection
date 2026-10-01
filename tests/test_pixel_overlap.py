@@ -1,7 +1,14 @@
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from rsna.pixel_overlap import overlap_candidates, slice_signatures, volume_signature
+from scripts.newton.launch_pixel_index import SOURCE_MEMBERS
 
 
 def image():
@@ -55,3 +62,21 @@ def test_repeated_matches_to_only_one_slice_cannot_accept_a_volume_pair():
     assert not overlap_candidates(rows("a", 1, original), rows("b", 3, original))
     repeated = [{"samples": [{"slice": i, "hashes": [f"{original:016x}"]} for i in range(8)]}]
     assert not overlap_candidates(repeated, repeated)
+
+
+def test_private_frozen_source_closure_imports_outside_repository(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    for name in SOURCE_MEMBERS:
+        destination = tmp_path / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / name, destination)
+    process = subprocess.run(
+        [sys.executable, "-B", str(tmp_path / "scripts/newton/index_source_pixels.py"), "--help"],
+        cwd=tmp_path,
+        env={**os.environ, "PYTHONPATH": str(tmp_path), "PYTHONNOUSERSITE": "1"},
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert process.returncode == 0, process.stderr
+    assert "--receipt" in process.stdout

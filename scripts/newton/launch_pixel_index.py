@@ -11,6 +11,16 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+SOURCE_MEMBERS = (
+    "rsna/__init__.py",
+    "rsna/schema.py",
+    "rsna/pixel_overlap.py",
+    "scripts/newton/index_source_pixels.py",
+    "scripts/newton/launch_pixel_index.py",
+    "scripts/newton/runtime_environment.py",
+    "scripts/newton/runtime_archive.py",
+)
+
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -47,8 +57,10 @@ def main():
             raise ValueError("Private node-local code/index required")
         with tarfile.open(control / "source.tar", "r:") as archive:
             members = archive.getmembers()
-            if {m.name for m in members} != set(source["files"]) or len(members) != len(
-                source["files"]
+            if (
+                set(source["files"]) != set(SOURCE_MEMBERS)
+                or {m.name for m in members} != set(source["files"])
+                or len(members) != len(source["files"])
             ):
                 raise ValueError("Exact pixel index source closure required")
             for member in members:

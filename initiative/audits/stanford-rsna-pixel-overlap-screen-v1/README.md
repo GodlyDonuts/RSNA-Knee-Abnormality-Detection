@@ -32,3 +32,19 @@ are preserved here. Existing intent/control requires read-only reconciliation.
 
 This is a leakage candidate screen, not a new training recipe, clinical score,
 source-rights acceptance or permission to publish Stanford-derived weights.
+
+## Actual first dispatch and dependency correction
+
+OriginalCPU jobs867491/867492 each FAILED1:0 after20–21seconds. Their exact
+tracebacks show missing rsna.schema imported by rsna/__init__.py, before any
+pixel decoding/index creation. Original controls/runtime/startup/source/failure
+receipts are preserved; no original overwrite, source data copy or blind retry.
+The separately accepted v2 source closure adds the unchanged schema constants;
+an isolated fresh-process import/CLI check exercises the exact seven-member
+package outside the checkout. Signature science and source inventories stay
+unchanged. Two distinct v2 controls need an additional16MiB/48 metadata files,
+keeping20GiB/5000files after both original and new liabilities; no GPUs.
+
+Native production867367 allocated evc31 and passed actual GPU/header/cache
+checks. Its first finite optimizer updates are separately preserved in the
+native384 original audit/gpu-initial-progress; no epoch or clinical result yet.
