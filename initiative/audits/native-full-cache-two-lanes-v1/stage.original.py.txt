@@ -1,0 +1,40 @@
+import base64, copy, hashlib, json, subprocess
+from pathlib import Path
+from scripts.newton.dispatch_native384_pilot import ssh, save_new
+
+r=Path.cwd();local=r/'artifacts/native-full-cache-two-lanes-v1';root='/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1';index='/home/sa305415/rsna-knee/native-cache-reference-index-v1';first=r/'artifacts/native-full-cache-first-shard-v3';head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+paths={'runner.py':r/'scripts/newton/run_native_cache_shard.py','lane.py':r/'scripts/newton/run_native_cache_lane.py','worker.py':r/'scripts/newton/build_native_cache_shard.py','publisher.py':r/'scripts/hf/publish_native_cache_shard.py','native_cache_reference_index.py':r/'scripts/newton/native_cache_reference_index.py','science-binding.json':first/'science-binding.json'}
+files={n:{'path':root+'/common/'+n,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for n,p in paths.items()};base=json.loads((first/'launch.json').read_text());plans=r/'artifacts/native-full-cache-shards384-v1';units={};launches={}
+for n in range(1,75):
+ launch=copy.deepcopy(base);launch['shard']=n;launch['publication_lock']=root+'/publication.lock';launch['remaining_shared_obligations_bytes']=3502083584+12*128*1024**2+128*1024**2;launch['reference_index']={'path':index+'/reference-index.json','sha256':'d5fd9573678d3883d4c3e2ce30e7b184c9690e75816b7a84b368b8c48ff4cd67','bytes':None}
+ launch['files']={k:v for k,v in files.items() if k!='lane.py'}
+ for name in ('manifest.json',f'shard-{n:03d}.json'):
+  p=plans/name;launch['files'][name]={'path':index+'/'+name,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+ launches[str(n)]=launch
+request={'root':root,'index_root':index,'source_git':head,'files':files,'payloads':{n:base64.b64encode(p.read_bytes()).decode() for n,p in paths.items()},'launches':launches,'private_revision':'7e79f51eba23237b961672e8de16bcfc96c3cce1','future_shared_files_bound':1400}
+program=r'''import base64,hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+r=json.load(sys.stdin);root=Path(r['root']);assert not root.exists();prior=Path('/home/sa305415/rsna-knee/native-full-shard000-c9-v3');assert json.loads((prior/'result.json').read_text())['status']=='original_source_paired_shard_and_private_preservation_complete';receipt=json.loads((prior/'publication/verified.json').read_text());assert receipt['status']=='private_native_shard_full_download_size_sha_verified' and receipt['revision']==r['private_revision'];terminal=subprocess.check_output(['sacct','-j','866380,866403,866408','--noheader','--parsable2','--format=JobID,State,ExitCode'],text=True);assert all(f'{j}|COMPLETED|0:0' in terminal for j in ('866380','866403','866408'))
+index=Path(r['index_root'])/'reference-index.json';index_bytes=index.read_bytes();assert hashlib.sha256(index_bytes).hexdigest()=='d5fd9573678d3883d4c3e2ce30e7b184c9690e75816b7a84b368b8c48ff4cd67';live=subprocess.check_output(['squeue','-u','sa305415','--noheader','--format=%i|%j|%T|%b'],text=True);assert 'rsna-native-lane' not in live;quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);v=quota.splitlines()[-1].split();used,soft,files,fsoft=[int(v[i]) for i in (1,2,5,6)];remaining=(soft-used)*1024-r['launches']['1']['remaining_shared_obligations_bytes']-16*1024**2;assert remaining>=20*1024**3 and fsoft-files-r['future_shared_files_bound']>=5000
+root.mkdir(mode=0o700);(root/'common').mkdir(mode=0o700)
+for name,row in r['files'].items():
+ data=base64.b64decode(r['payloads'][name]);assert len(data)==row['bytes'] and hashlib.sha256(data).hexdigest()==row['sha256'];p=Path(row['path']);p.write_bytes(data);os.chmod(p,0o600)
+def save(path,value):
+ with path.open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+units={}
+for n,launch in r['launches'].items():
+ launch['reference_index']['bytes']=len(index_bytes);c=root/f'shard-{int(n):03d}';c.mkdir(mode=0o700)
+ for name,row in launch['files'].items():
+  p=Path(row['path']);assert not p.is_symlink() and p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+ save(c/'launch.json',launch);units[n]={'control':str(c),'launch_sha256':hashlib.sha256((c/'launch.json').read_bytes()).hexdigest()}
+lock=root/'publication.lock'
+import importlib.util
+spec=importlib.util.spec_from_file_location('runner',root/'common/runner.py');runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
+probe="import sys;from pathlib import Path;sys.path.insert(0,sys.argv[3]);from runner import publication_lock;c=publication_lock(Path(sys.argv[1]),Path(sys.argv[2]),timeout=.05,poll=.01);c.__enter__();c.__exit__(None,None,None)"
+with runner.publication_lock(lock):
+ assert subprocess.run(['/usr/bin/python3.12','-B','-c',probe,str(lock),'/home/sa305415/rsna-knee',str(root/'common')],capture_output=True).returncode!=0
+assert subprocess.run(['/usr/bin/python3.12','-B','-c',probe,str(lock),'/home/sa305415/rsna-knee',str(root/'common')],capture_output=True).returncode==0
+plan={'source_git':r['source_git'],'scientific_source_git':'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab','lane_driver_sha256':r['files']['lane.py']['sha256'],'shards_by_lane':{'0':list(range(1,75,2)),'1':list(range(2,75,2))},'units':units,'completed_shard0_revision':r['private_revision'],'reference_index_sha256':hashlib.sha256(index_bytes).hexdigest(),'future_shared_files_bound':r['future_shared_files_bound'],'gpu_reserved':False,'target_values_read':False,'automatic_retry':False};save(root/'batch-plan.json',plan)
+record={'status':'all_remaining_74_source_shards_staged_under_private_quota','checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'control':str(root),'source_git':r['source_git'],'files':r['files'],'batch_plan_sha256':hashlib.sha256((root/'batch-plan.json').read_bytes()).hexdigest(),'projected_remaining_gib':remaining/1024**3,'projected_remaining_files_after_all_shards':fsoft-files-r['future_shared_files_bound'],'future_shared_files_bound':r['future_shared_files_bound'],'publication_lock_real_process_check':True,'completed_shard0_revision':r['private_revision'],'source_objects_not_yet_downloaded':True,'cpu_lanes':2,'cpus_each':1,'gpus':0,'automatic_retry':False,'slurm_dispatch':False};save(root/'stage-verified.json',record);print(json.dumps({'stage':record,'plan':plan}))
+'''
+x=ssh('/tmp/rsna-r64-submit-20261001-501.sock',['/usr/bin/python3.12','-B','-c',program],request,timeout=120);save_new(local/'stage-verified.json',x['stage']);save_new(local/'batch-plan.json',x['plan']);print(json.dumps(x['stage']))

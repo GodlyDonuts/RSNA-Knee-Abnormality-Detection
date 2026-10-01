@@ -22,3 +22,6 @@ Gitff01458. It is RUNNING on evc21 at01:59UTC with exact run-start, empty
 stderr, source/driver/launch bindings and funded21.943GiBshared reserve. Its
 unique v3control/output is never reused. Environment/source build/preservation
 outcomes remain unconfirmed; full-cohort/native production remain unlaunched.
+
+
+Terminal acceptance: Slurm866380 completed0:0. All43complete eligible studies,250series,8484original slices (5272478310source bytes) passed paired256/384 builds and real loaders. Six private objects were fully re-downloaded/size/SHA verified at HF7e79f51eba23237b961672e8de16bcfc96c3cce1; exact private journal and original-source per-series proofs are preserved here. Owned node-local scratch was reclaimed only afterward. This is shard0, not the3403-study full cohort or a training score. The original failed v1/v2 controls remain unchanged.

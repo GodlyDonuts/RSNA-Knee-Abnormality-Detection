@@ -26,3 +26,6 @@ has optional pinned-index arguments and retains the original scan behavior when
 none is supplied. The private publisher/runner pin this new exact worker for
 future launches. First source-cache/private preservation, full-cohort assembly
 and competitive native-resolution model training are still uncompleted.
+
+
+Producer866403 completed0:0, exact index SHAd5fd9573678d3883d4c3e2ce30e7b184c9690e75816b7a84b368b8c48ff4cd67. CPU866408 separately verified all500 selected first-shard members,879443380bytes, by full payload size/SHA checks using actual indexed offsets. Headers cover all75plans/3403studies/18906series/37812members; this is not a fresh whole83GBarchive hash or full-cohort source build.

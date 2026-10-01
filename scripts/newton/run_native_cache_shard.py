@@ -15,6 +15,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 SCIENCE = "c9fcc7eefb09103942be89bf4fa87410eb9ec5ab"
@@ -136,6 +139,59 @@ def require_control(control, base):
         raise ValueError("private_cluster_control_required")
 
 
+def staged_paths(control, files, base=None):
+    """Bind shared immutable inputs once rather than multiplying Lustre inodes."""
+    paths = {}
+    for name, record in files.items():
+        path = Path(record.get("path", str(control / name)))
+        if Path(name).name != name or name in (".", ".."):
+            raise ValueError("staged_launch_file_changed")
+        require_control(path.parent, BASE if base is None else base)
+        if (
+            path.is_symlink()
+            or path.stat().st_size != record["bytes"]
+            or digest(path) != record["sha256"]
+        ):
+            raise ValueError("staged_launch_file_changed")
+        paths[name] = path
+    return paths
+
+
+@contextmanager
+def publication_lock(path, base=None, timeout=5400, poll=2):
+    """Two CPU lanes may build independently but commit their private shards serially."""
+    if path is None:
+        yield
+        return
+    path = Path(path)
+    require_control(path.parent, BASE if base is None else base)
+    owner = {
+        "job_id": os.environ.get("SLURM_JOB_ID"),
+        "pid": os.getpid(),
+        "nonce": uuid.uuid4().hex,
+    }
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            path.mkdir(mode=0o700)
+            break
+        except FileExistsError:
+            if path.is_symlink() or not path.is_dir() or path.stat().st_uid != os.getuid():
+                raise ValueError("private_owned_publication_lock_required") from None
+            if time.monotonic() >= deadline:
+                raise TimeoutError("publication_lock_requires_readonly_reconciliation") from None
+            time.sleep(poll)
+    marker = path / "owner.json"
+    save_new(marker, owner)
+    try:
+        yield
+    finally:
+        if path.is_symlink() or marker.is_symlink() or json.loads(marker.read_text()) != owner:
+            raise ValueError("owned_publication_lock_changed")
+        marker.unlink()
+        path.rmdir()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--control", type=Path, required=True)
@@ -153,19 +209,10 @@ def main():
         or plan["files"]["worker.py"]["sha256"] != WORKER_SHA
     ):
         raise ValueError("pinned_worker_and_science_required")
-    for name, record in plan["files"].items():
-        path = control / name
-        if (
-            Path(name).is_absolute()
-            or ".." in Path(name).parts
-            or path.is_symlink()
-            or digest(path) != record["sha256"]
-            or path.stat().st_size != record["bytes"]
-        ):
-            raise ValueError("staged_launch_file_changed")
-    if digest(control / "manifest.json") != PLAN_SHA:
+    paths = staged_paths(control, plan["files"])
+    if digest(paths["manifest.json"]) != PLAN_SHA:
         raise ValueError("full_plan_changed")
-    science = json.loads((control / "science-binding.json").read_text())
+    science = json.loads(paths["science-binding.json"].read_text())
     checkout = Path(science["checkout"])
     if (
         subprocess.check_output(
@@ -191,7 +238,7 @@ def main():
             or digest(path) != reference_index["sha256"]
         ):
             raise ValueError("reference_index_changed")
-    shard = json.loads((control / f"shard-{plan['shard']:03d}.json").read_text())
+    shard = json.loads(paths[f"shard-{plan['shard']:03d}.json"].read_text())
     for name, record in shard["input_bindings"].items():
         path = Path(plan["input_root"]) / name
         if (
@@ -285,12 +332,12 @@ def main():
         command = child_command(
             python,
             checkout,
-            control / "worker.py",
+            paths["worker.py"],
             [
                 "--root",
                 plan["input_root"],
                 "--plan-manifest",
-                control / "manifest.json",
+                paths["manifest.json"],
                 "--shard",
                 plan["shard"],
                 "--reference-archive",
@@ -298,7 +345,7 @@ def main():
                 "--output",
                 scratch / "paired",
                 "--science-binding",
-                control / "science-binding.json",
+                paths["science-binding.json"],
             ]
             + (
                 [
@@ -318,21 +365,22 @@ def main():
         command = child_command(
             python,
             checkout,
-            control / "publisher.py",
+            paths["publisher.py"],
             [
                 "--root",
                 scratch / "paired",
                 "--plan-manifest",
-                control / "manifest.json",
+                paths["manifest.json"],
                 "--shard",
                 plan["shard"],
                 "--journal",
                 control / "publication",
             ],
         )
-        subprocess.run(
-            command, cwd=checkout, env=env, input=json.dumps(payload), text=True, check=True
-        )
+        with publication_lock(plan.get("publication_lock")):
+            subprocess.run(
+                command, cwd=checkout, env=env, input=json.dumps(payload), text=True, check=True
+            )
         verified = json.loads((control / "publication/verified.json").read_text())
         report = json.loads((scratch / "paired/cache-verified.json").read_text())
         require_private_preservation(
