@@ -1,3 +1,28 @@
+## October1 first sampling epoch preserved; actual geometry survey passed
+
+Stratified866716 completed epoch1/281 updates and continued into epoch2. Its exact
+immutable snapshot is private at HF227bdb38dd0fa5f2bd18422acd4876912ce647ab, all five
+objects fully re-downloaded/size/SHA verified by one-CPU/zero-GPU publisher866741
+COMPLETED0:0. Receipts `initiative/audits/sampling-epochs-v1/stratified/epoch-001/`.
+NEVER repeat this publication; reconcile any later intent read-only. Uniform
+recovery866719 remains a separate running role; actual state overrides snapshots.
+
+Training-only geometry survey866739 COMPLETED0:0 in8:16 on one CPU/zero GPUs.
+Exact2247 training UID hash matches actual run; all11639 selected series have
+usable physical geometry. Possible fixed-grid within-series pairs1,392,640,
+median35mm/range1.80–238.80mm. Accepted archive identity/stat unchanged before/
+after; original whole-byte CPU proof reused, no new archive copy or pixel decode.
+No outer/gold/confirmation geometry or label values inspected. Full1474 tests,
+Ruff214files and mypy39modules passed. Exact request/source/quota/dispatch/output
+records: `initiative/audits/slice-relations-geometry-survey-v1/README.md`.
+
+Next useful preparation is the raw-feature relation-loss integration with matched
+zero/shuffled controls, explicit optimizer groups and exact checkpoint/RNG/delta/
+MRI-only inference compatibility. No real-MRI relation training or gain yet.
+Do not reserve a third GPU or alter live7ac7a97 jobs; finish useful preparation
+while they train, then require bounded acceptance/funding before a new campaign.
+Use existing pinned coordinators to preserve each new completed sampling epoch.
+
 ## October1 isolated relation prototype privately preserved
 
 Git9db6326 is privately mirrored at HFf421659f0da8b7d2c6ab423da9ee568698042bb4,

@@ -80,6 +80,12 @@ discard them for the final MRI-only classification interface. This proposal is
 now has an isolated [unsigned-distance prototype](../initiative/audits/slice-relations-prototype-v1/README.md).
 It operates on raw global slice embeddings, not patch correspondences. It is not
 integrated into production, trained on real MRI or clinically measured yet.
+The [actual CPU survey](../initiative/audits/slice-relations-geometry-survey-v1/README.md)
+completed0:0: all2247 training studies/11639 selected series have usable physical
+geometry; no outer metadata or disease-label values were read. There are1,392,640
+possible fixed-grid within-series pairs, median physical separation35mm. This
+removes the geometry-availability prerequisite; integration, exact recovery,
+bounded real-MRI pilot and matched accuracy testing remain required.
 
 ## Third: allocate detail where it adds information
 

@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-relation-geometry-cpu
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=2G
+#SBATCH --time=00:15:00
+#SBATCH --output=/home/sa305415/rsna-knee/relation-geometry-survey-v1/stdout.txt
+#SBATCH --error=/home/sa305415/rsna-knee/relation-geometry-survey-v1/stderr.txt
+set -euo pipefail
+umask 077
+export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
+exec /usr/bin/python3.12 -B /home/sa305415/rsna-knee/relation-geometry-survey-v1/audit.py --request /home/sa305415/rsna-knee/relation-geometry-survey-v1/request.json --archive /home/sa305415/rsna-knee/cache/cache256-v3-official-recovery-v1.tar --proof /home/sa305415/rsna-knee/stratified-production-7ac7a97-preparation-v1/cpu-prerequisites-verified.json --run /home/sa305415/rsna-knee/runs/dinov3-l16-sampling-stratified-a32-fold0-7ac7a97-production-v1/run.json --output /home/sa305415/rsna-knee/relation-geometry-survey-v1/result.json
