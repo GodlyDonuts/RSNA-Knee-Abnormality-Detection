@@ -1,3 +1,16 @@
+## October1 paired training milestone privately verified and monitor updated
+
+Git6fb17cd is privately mirrored at HF661b4e29b8ea837cc80e054399bea235fb705ebb,
+all144 objects fully re-downloaded/size/SHA checked under the original atomic
+publication lock. Journal `initiative/audits/hf-full-sampling-launch-20261001-v1/`;
+never repeat. The existing quiet two-hour automation now records actual pilot/
+full-cache acceptance, stratified866716 optimizer progress, failed zero-update
+uniform866715 and distinct queued866719, role-specific epoch publishers,33-source
+receipt count and both native/sampling future obligations. No extra automation,
+cadence change or Kaggle mutation. Current live state overrides these snapshots.
+Full1457 tests, Ruff210 files, mypy38 modules, archive and89/89 current v2 coverage
+passed before the launch milestone push; no later scientific-code change.
+
 ## October1 actual sampling progress and uniform node recovery
 
 Stratified866716 is RUNNING on evc32, with allocated CUDA/header/full input and
