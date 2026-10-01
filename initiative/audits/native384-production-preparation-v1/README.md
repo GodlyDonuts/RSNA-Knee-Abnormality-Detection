@@ -104,3 +104,12 @@ preserved and canonically re-admitted:489 studies,2712 series,95034 slices.
 The last read-only source jobs remain RUNNING and assembly remains PENDING for
 Dependency; no native CPU-preflight or GPU-production job is dispatched. See
 `qa.json`, `source-live-inspection.json`, and `kaggle-readonly-outcome.json`.
+
+## Current staging boundary
+
+Verified code and receipts are on GitHub main b5ad561. UCF connectivity was lost
+before the staging probe; no stage intent, remote write or scheduler dispatch
+occurred. Exact payloads remain prepared locally. Private milestone publication
+is unattempted because the required shared Newton publication lock is unavailable.
+Do not infer live job termination from observation failure. Re-read actual
+state and quota after reconnection before staging or mutation.

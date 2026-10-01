@@ -1,3 +1,40 @@
+## October 1 verified native production code; staging awaits restored UCF access
+
+GitHub main b5ad561 contains the full native384 CPU/GPU launch and private epoch
+preservation implementation, six exact payloads, 71 focused cases and 1,411
+passing repository tests. Ruff202files, mypy38modules, archive integrity and
+complete89/89 v2 evidence coverage passed. It also preserves canonical source
+shard5..10 receipts:11of75 shards,489studies/2712series/95034original slices total.
+Source jobs866426/866427 were verified RUNNING at05:12UTC with empty stderr;
+assembly866458 was PENDING for Dependency. Do not infer termination or restart
+any job merely because SSH subsequently disappeared.
+
+The connection dropped before the new small-payload staging probe. Newton DNS
+no longer resolved and the existing control socket was absent; no local staging
+intent, remote staging mutation, CPU preflight or GPU production dispatch
+occurred. The staged control does not have an acceptance receipt. See
+`initiative/audits/native384-production-preparation-v1/staging-not-attempted-network.json`.
+When connected, re-read jobs/logs/quota/control first, stage the exact six files
+and manifest at `/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1`
+with byte verification and funded future reserve, then run the production
+coordinator in read-only `check` mode. Do not submit CPU preflight while assembly
+is incomplete or GPU production before actual full CPU acceptance/recheck.
+The ignored finite staging helper is
+`artifacts/native384-production-v1/stage_launch.py`; it stopped before intent.
+Its source files are pinned on main. An existing intent/control requires
+read-only reconciliation, not a blind rerun.
+
+The b5ad561 private milestone has NOT been uploaded. The shared Newton atomic
+publication lock must be available before that mutation, because source lanes
+are concurrently publishing. Prepare the distinct milestone prefix
+`experiments/dinov3-v1/milestones/native384-production-20261001-v1` and journal
+`initiative/audits/hf-native384-production-20261001-v1/`; preserve exact source,
+license and full download/size/SHA receipts. No publication intent exists yet.
+Latest authenticated Kaggle rank64 submission56740377 outcome at05:12UTC remains
+unknown, no status/error/score, four live slots; canonical ledger says submitted
+once. Do not repeat it or spend another slot before reviewing the actual result.
+Goal remains active: no native competitive training/score is claimed.
+
 ## October 1 native384 production and preservation implementation
 
 The full-cohort native384 rank32 launch and private epoch-preservation code is
