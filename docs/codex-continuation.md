@@ -1,3 +1,25 @@
+## October 1 sampling GPU node failure and bounded evc31 recovery
+
+The first sampling GPU pilot866616 FAILED2:0 on evc22 in2:35 during the bounded
+allocated CUDA/NVML probe (Slurm-step probe exit124); stdout0bytes and zero
+optimizer updates. No header/training/checkpoint output existed. Underlying node
+cause is unproven. Preserve `evc22-preflight-failure.json`; never repeat866616.
+CPU acceptance866610 stays valid0:0 with all source/asset byte proofs. A distinct
+pilot866624 was submitted once, fixed evc31, after exact terminal/asset/payload
+and funded quota checks. Initial actual state PENDING Priority; code/config/data
+are unchanged, only launcher name/node differ. LaunchSHA
+6da174a996c0108b39e164f77fbf42a68553f17732877511b512ce25939370af;
+control remains /home/sa305415/rsna-knee/stratified-pilot-7ac7a97-v1. Inspect its
+actual allocation/finite updates and terminal before action; no automatic retry.
+The previous small dispatch/score milestone at Git18e00a2 is privately preserved
+at HF89c554dfb86ecde066d9973781bd44b9b6c5b196; all44objects full download/size/SHA
+verified under the shared atomic publication lock. This preserves the initial
+dispatch state, not GPU acceptance. Journals:
+`initiative/audits/hf-rank64-score-coverage-pilot-20261001-v1/`. Do not repeat.
+Native source lanes and dependent assembly remain untouched, source receipts
+canonically cover21of75. Rank64's actual Kaggle outcome is0.778/scored, not
+unknown; no new competition submission was made. Keep creative work testable.
+
 ## October 1 official sampling pilot queued after CPU acceptance
 
 CPU preparation866610 completed0:0 on evc21 in4:25, fully verifying existing

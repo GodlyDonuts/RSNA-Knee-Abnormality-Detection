@@ -64,3 +64,21 @@ be rebuilt from the archived helper; do not mistake preparation for dispatch.
 The local suite passed1,434tests in109.99seconds, including21focused sampling/
 initialization cases, with Ruff205files, mypy38modules and archive/v2 evidence
 checks. No new MRI accuracy or Kaggle submission is claimed by these checks.
+
+## Actual first GPU failure and distinct node recovery
+
+Job866616 terminated **FAILED2:0** on evc22 in2:35. Its allocated CUDA/NVML
+probe exceeded the bounded timeout; the second Slurm-step probe exited124.
+Stdout was empty, no header verification or training/checkpoint output existed,
+and zero optimizer updates occurred. This is a failed hardware-admission attempt,
+not a trained model result; the underlying node failure is not proven. Exact
+terminal/stderr and absence evidence are in `evc22-preflight-failure.json`.
+
+After read-only terminal reconciliation, fresh asset/payload checks and funded
+quota review, distinct job **866624** was submitted once using
+`pilot-evc31-v2.sbatch.txt`. Its only launcher difference is the job name and
+fixed evc31 node, where prior deterministic DINOv3 acceptance succeeded. Scientific
+code/config/cache/runtime and CPU acceptance remain unchanged. The initial
+actual state was **PENDING Priority**. Its launch digest is
+6da174a996c0108b39e164f77fbf42a68553f17732877511b512ce25939370af.
+Do not retry/restart either job or mistake a submitted script for optimizer work.
