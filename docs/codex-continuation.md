@@ -1,3 +1,22 @@
+## October1 independent32-study CPU input wrapper prepared
+
+Read slice-relations-trainer-inputs32-v1/README.md. New CPU-only scripts preserve
+all original4acd6fa numerical/input module bytes plus the three standalone
+recovery/input/bootstrap files. They reproduce the old16-training-study CPU
+receipt, check complete accepted fold membership and admit16 disjoint development
+studies solely as an engineering fixture. No encoder, optimizer, inference or
+clinical metric runs in this CPU phase. Twenty local source/roster/archive/copy
+checks pass. No new source/control/job was staged at this preparation.
+
+CPU pixel/source admission can proceed independently of the still-pending
+training-only gradient review, saving later H100 staging latency. This refines
+the earlier sequencing note; it does NOT accept the auxiliary weight, fund pilot
+optimizer checkpoints or permit GPU reservation. Gradient866846 stays immutable
+with its existing afterok:866716 dependency. Before any actual trainer pilot,
+require both completedCPU32 and actual gradient review/decision, fresh funding
+for all diagnostic epochs, exact committed source and a separately accepted GPU
+launcher. Preserve live sampling7ac7a97 and the two-node limit.
+
 ## October1 uniform epoch6 privately verified
 
 Original CPU publisher866897 COMPLETED0:0, all five objects fully privately
