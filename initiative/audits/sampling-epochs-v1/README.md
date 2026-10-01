@@ -9,6 +9,7 @@
 | stratified | 3 | 67f96ceb82e21f3d86a0a20144931cb1d06d9976 | 866790 COMPLETED0:0 |
 | uniform | 3 | 67b9c55b6ebe6360ab9785f2d32506466ee8360b | 866808 COMPLETED0:0 |
 | stratified | 4 | ec08cc28c017f28b1315677794b196bc988c5d2e | 866818 COMPLETED0:0 |
+| uniform | 4 | 25101e9a6d7d49ea795c59dc2cbf6ed488daa792 | 866832 COMPLETED0:0 |
 
 Every five-object publication was fully re-downloaded and size/SHA verified.
 All epochs retain scientific source7ac7a97, pinned official DINOv3-L weights,

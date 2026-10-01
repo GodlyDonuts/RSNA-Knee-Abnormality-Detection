@@ -2,7 +2,7 @@ import hashlib
 import io
 import json
 import tarfile
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 
 import pandas as pd
@@ -18,7 +18,9 @@ from rsna.competitive.model import CompetitiveStudyNet
 from rsna.competitive.relations import relation_model_kwargs
 from rsna.competitive.train import TrainConfig, _model_inputs
 from scripts.newton.audit_relation_geometry import signature
+from scripts.newton.launch_relation_gradient_probe import materialize_cache, unpack_source
 from scripts.newton.measure_relation_gradients import (
+    admit_cpu_receipt,
     gradient_summary,
     matched_configs,
     measure,
@@ -207,6 +209,112 @@ def test_local_images_and_geometry_are_bound_to_original_whole_byte_acceptance(t
     else:
         with pytest.raises(ValueError):
             validate_cache(cache, archive, proof, ["training"], table)
+
+
+@pytest.mark.parametrize("fault", [None, "pixels", "code", "masks", "configuration", "status"])
+def test_GPU_requires_identical_completed_CPU_input_source_and_configuration(fault):
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "initiative/experiments/competitive-v1/slice-relations-v1"
+    )
+    configs = matched_configs(source)
+    binding = {"pixels": "original", "code": "original", "masks": "original"}
+    receipt = {
+        "status": "actual_full224_training_inputs_CPU_verified",
+        "optimizer_updates": 0,
+        "GPU_acceptance": False,
+        "input_binding": dict(binding),
+        "configs": {name: asdict(value) for name, value in configs.items()},
+    }
+    if fault in {"pixels", "code", "masks"}:
+        binding[fault] = "changed"
+    elif fault == "configuration":
+        receipt["configs"]["physical"]["encoder_lr"] *= 2
+    elif fault == "status":
+        receipt["GPU_acceptance"] = True
+    if fault is None:
+        admit_cpu_receipt(receipt, binding, configs)
+    else:
+        with pytest.raises(ValueError):
+            admit_cpu_receipt(receipt, binding, configs)
+
+
+@pytest.mark.parametrize(
+    "fault", [None, "foreign", "missing", "duplicate", "link", "archive", "table"]
+)
+def test_bootstrap_materializes_only_exact_training_sources(tmp_path, monkeypatch, fault):
+    import scripts.newton.launch_relation_gradient_probe as wrapper
+
+    monkeypatch.setattr(
+        wrapper.shutil, "disk_usage", lambda path: type("Usage", (), {"free": 100 * 1024**3})()
+    )
+    uids = [f"training-{i:02d}" for i in range(16)]
+    series = tmp_path / "series.csv"
+    rows = [dict(StudyInstanceUID=uid, SeriesInstanceUID="series") for uid in uids]
+    rows.append(dict(StudyInstanceUID="outer", SeriesInstanceUID="other"))
+    pd.DataFrame(rows).to_csv(series, index=False)
+    from scripts.newton.audit_relation_geometry import digest
+
+    request = dict(
+        training_uids=uids,
+        training_uids_sha256=digest(sorted(uids)),
+        series_table_sha256=hashlib.sha256(series.read_bytes()).hexdigest(),
+    )
+    run = dict(
+        training_studies=16, binding=dict(training_uids_sha256=request["training_uids_sha256"])
+    )
+    archive = tmp_path / "cache.tar"
+    with tarfile.open(archive, "w:") as handle:
+        for index, row in enumerate(rows):
+            for suffix in ("json", "npz"):
+                if fault == "missing" and index == 0 and suffix == "npz":
+                    continue
+                member = tarfile.TarInfo(
+                    f"cache/train_series/{row['StudyInstanceUID']}/{row['SeriesInstanceUID']}.{suffix}"
+                )
+                raw = b"opaque already-verified envelope"
+                member.size = len(raw)
+                if fault == "link" and index == 0:
+                    member.type = tarfile.SYMTYPE
+                    member.linkname = "/etc/passwd"
+                handle.addfile(member, io.BytesIO(raw))
+                if fault == "duplicate" and index == 0:
+                    handle.addfile(member, io.BytesIO(raw))
+    proof = dict(assets={str(archive): dict(stat=signature(archive))})
+    if fault == "foreign":
+        request["training_uids"][0] = "outer"
+    elif fault == "archive":
+        archive.write_bytes(archive.read_bytes() + b"changed")
+    elif fault == "table":
+        series.write_text("changed")
+    cache = tmp_path / "node-cache"
+    if fault is None:
+        result = materialize_cache(archive, cache, request, series, proof, run)
+        assert len(result["members"]) == 32 and result["training_studies"] == 16
+        assert not (cache / "train_series/outer").exists()
+        assert result["large_artifacts_written_to_shared_storage"] is False
+    else:
+        with pytest.raises(ValueError):
+            materialize_cache(archive, cache, request, series, proof, run)
+
+
+def test_bootstrap_source_extraction_checks_exact_hash_and_rejects_path_escape(tmp_path):
+    archive = tmp_path / "source.tar"
+    raw = b"actual source bytes"
+    expected = {"rsna/module.py": {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}}
+    for name in ("rsna/module.py", "../escape.py"):
+        with tarfile.open(archive, "w:") as handle:
+            member = tarfile.TarInfo(name)
+            member.size = len(raw)
+            handle.addfile(member, io.BytesIO(raw))
+        output = tmp_path / ("valid" if name == "rsna/module.py" else "invalid")
+        output.mkdir()
+        if name == "rsna/module.py":
+            unpack_source(archive, output, expected)
+            assert (output / name).read_bytes() == raw
+        else:
+            with pytest.raises(ValueError):
+                unpack_source(archive, output, expected)
 
 
 @pytest.mark.parametrize(

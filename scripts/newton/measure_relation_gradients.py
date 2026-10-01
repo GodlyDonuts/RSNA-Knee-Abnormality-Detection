@@ -239,42 +239,7 @@ def measure(model, batches, config, device):
     return result
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    for name in (
-        "config-root",
-        "proof",
-        "request",
-        "run",
-        "studies",
-        "artifact-root",
-        "folds",
-        "series",
-        "cache",
-        "archive",
-        "output",
-    ):
-        parser.add_argument("--" + name, type=Path, required=True)
-    args = parser.parse_args()
-    if args.output.exists():
-        raise FileExistsError("Diagnostic output already exists; reconcile instead of overwriting")
-    if (
-        not os.environ.get("SLURM_JOB_ID", "").isdecimal()
-        or os.environ.get("SLURM_CPUS_PER_TASK") != "2"
-        or not torch.cuda.is_available()
-        or torch.cuda.device_count() != 1
-        or not torch.cuda.is_bf16_supported()
-        or "H100" not in torch.cuda.get_device_name(0)
-        or int(os.environ.get("WORLD_SIZE", "1")) != 1
-    ):
-        raise ValueError("One real H100/two-CPU allocation with BF16 is required")
-    torch.set_num_threads(2)
-    device = torch.device("cuda:0")
-    torch.cuda.set_device(device)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-    configs = matched_configs(args.config_root)
-    config = configs["physical"]
+def admitted_batches(args, config):
     proof, request, run = (
         json.loads(path.read_text()) for path in (args.proof, args.request, args.run)
     )
@@ -323,6 +288,116 @@ def main():
     batches = [collate_studies([dataset[i]]) for i in range(len(dataset))]
     for batch in batches:
         batch["sample_valid"] = torch.ones(1, dtype=torch.bool)
+    input_binding = {
+        "training_uids_sha256": _uid_hash(train),
+        "probe_uids_sha256": _uid_hash(selected),
+        "node_local_original_cache_binding": cache_binding,
+        "source_probe_sha256": file_sha256(Path(__file__)),
+        "input_file_sha256": {
+            name: file_sha256(getattr(args, name))
+            for name in ("proof", "request", "run", "studies", "series", "source_manifest")
+        },
+        "batch_input_sha256": [
+            digest(
+                {
+                    name: _tensor_record(batch[name])
+                    for name in (
+                        "images",
+                        "positions",
+                        "features",
+                        "series_mask",
+                        "slice_mask",
+                        "labels",
+                        "label_mask",
+                    )
+                }
+            )
+            for batch in batches
+        ],
+        "torch_version": str(torch.__version__),
+    }
+    return batches, input_binding
+
+
+def admit_cpu_receipt(receipt, input_binding, configs):
+    if (
+        receipt.get("status") != "actual_full224_training_inputs_CPU_verified"
+        or receipt.get("optimizer_updates") != 0
+        or receipt.get("GPU_acceptance") is not False
+        or receipt.get("input_binding") != input_binding
+        or receipt.get("configs") != {name: asdict(value) for name, value in configs.items()}
+    ):
+        raise ValueError("GPU diagnostic inputs/source differ from actual CPU admission")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in (
+        "config-root",
+        "proof",
+        "request",
+        "run",
+        "studies",
+        "artifact-root",
+        "folds",
+        "series",
+        "cache",
+        "archive",
+        "output",
+        "source-manifest",
+    ):
+        parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--cpu-input-only", action="store_true")
+    parser.add_argument("--cpu-acceptance", type=Path)
+    args = parser.parse_args()
+    if args.output.exists():
+        raise FileExistsError("Diagnostic output already exists; reconcile instead of overwriting")
+    if args.cpu_input_only:
+        if (
+            not os.environ.get("SLURM_JOB_ID", "").isdecimal()
+            or os.environ.get("SLURM_CPUS_PER_TASK") != "1"
+            or os.environ.get("SLURM_JOB_GPUS")
+            or torch.cuda.device_count() != 0
+        ):
+            raise ValueError("CPU input admission requires one CPU and no GPU allocation")
+        torch.set_num_threads(1)
+    else:
+        if (
+            not os.environ.get("SLURM_JOB_ID", "").isdecimal()
+            or os.environ.get("SLURM_CPUS_PER_TASK") != "2"
+            or not torch.cuda.is_available()
+            or torch.cuda.device_count() != 1
+            or not torch.cuda.is_bf16_supported()
+            or "H100" not in torch.cuda.get_device_name(0)
+            or int(os.environ.get("WORLD_SIZE", "1")) != 1
+        ):
+            raise ValueError("One real H100/two-CPU allocation with BF16 is required")
+        torch.set_num_threads(2)
+        device = torch.device("cuda:0")
+        torch.cuda.set_device(device)
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+    configs = matched_configs(args.config_root)
+    config = configs["physical"]
+    batches, input_binding = admitted_batches(args, config)
+    if args.cpu_input_only:
+        output = {
+            "status": "actual_full224_training_inputs_CPU_verified",
+            "diagnostic_only": True,
+            "optimizer_updates": 0,
+            "GPU_acceptance": False,
+            "clinical_accuracy_evidence": False,
+            "input_binding": input_binding,
+            "configs": {name: asdict(value) for name, value in configs.items()},
+        }
+        with args.output.open("x") as handle:
+            json.dump(output, handle, indent=2, sort_keys=True, allow_nan=False)
+            handle.write("\n")
+        print(json.dumps({"status": output["status"], "studies": len(batches)}), flush=True)
+        return
+    if args.cpu_acceptance is None:
+        raise ValueError("Actual CPU input admission is required before GPU measurement")
+    admit_cpu_receipt(json.loads(args.cpu_acceptance.read_text()), input_binding, configs)
     random.seed(config.seed)
     np.random.seed(config.seed % 2**32)
     torch.manual_seed(config.seed)
@@ -384,14 +459,8 @@ def main():
         "clinical_accuracy_evidence": False,
         "optimizer_updates": 0,
         "recovery_acceptance": False,
-        "training_uids_sha256": _uid_hash(train),
-        "probe_uids_sha256": _uid_hash(selected),
-        "node_local_original_cache_binding": cache_binding,
-        "source_probe_sha256": file_sha256(Path(__file__)),
-        "input_file_sha256": {
-            name: file_sha256(getattr(args, name))
-            for name in ("proof", "request", "run", "studies", "series")
-        },
+        "input_binding": input_binding,
+        "CPU_acceptance_sha256": file_sha256(args.cpu_acceptance),
         "encoder_provenance": provenance,
         "frozen_tensor_count": len(guard.frozen),
         "initial_learned_state_sha256": digest(initial),

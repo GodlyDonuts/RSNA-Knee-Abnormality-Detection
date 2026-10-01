@@ -1,3 +1,21 @@
+## October1 full224 immutable launch wrapper prepared
+
+Read slice-relations-full224-launch-v1/README.md. The new pinned wrapper prepares
+one-CPU/zero-GPU real-input admission and a separate one-H100/two-CPU measurement
+phase. Exact original source/cache/runtime materialization uses node-local disk;
+GPU measurement must reproduce the completed CPU receipt's tensor/mask/source/
+config hashes. A frozen original sampling-run binding is required because the
+live run.json can later gain terminal metrics. Thirty-four targeted tests pass;
+no CPU or GPU phase has been dispatched at this preparation. Freeze source and
+check actual prerequisites plus fresh funding before staging. Do not allocate a
+third GPU or change live7ac7a97. Real relation trainer recovery and accuracy are
+still outstanding. Actual later receipts override this preparation snapshot.
+
+Uniform completed epoch4; its original CPU publisher866832 COMPLETED0:0 privately
+re-downloaded/size/SHA verified all five objects at
+HF25101e9a6d7d49ea795c59dc2cbf6ed488daa792. Original receipts are in
+sampling-epochs-v1/uniform/epoch-004. Never repeat this or earlier epochs.
+
 ## October1 gradient preparation milestone privately verified
 
 Source Git93b63de is privately mirrored at HF
