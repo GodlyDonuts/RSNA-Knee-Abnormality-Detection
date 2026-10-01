@@ -1,3 +1,7 @@
+## October 1 original-source first cache shard staged
+
+The matched native-resolution preparation now has a finite one-CPU/zero-GPU runner with private preservation before owned scratch cleanup. Fifteen meaningful runner tests passed. Scientific C9 modules, six accepted input hashes, helper hashes, original reference archive size/presence and Lustre reserve passed Newton staging; the first shard is43 complete studies/250 series/8484 slices,5.27GB of pinned original source. Control is `/home/sa305415/rsna-knee/native-full-shard000-c9-v1`; no Slurm dispatch in this staging milestone. See `initiative/audits/native-full-cache-first-shard-v1/`. Full-cohort/native production remains unlaunched. The rank64 epoch10 submission56740377 still had no status, error or score at01:37UTC; four live slots. Do not repeat it. Use the same-split sampled rank32 score0.769 as its primary comparison; all-development rank32 score0.792 changed training population.
+
 The exact rank64 submission/public-acceptance milestone Git82e4e95 is privately mirrored at HF revision99f1f8116178923db5848a7cf392f30d5be734cc; all14 objects passed full re-download/size/SHA verification. Once-only mirror journals are in `initiative/audits/hf-rank64-submitted-20261001-v1/`. Never repeat this mirror. The follow-up remains on the existing two-hour quiet schedule and checks the actual hidden score before another capacity submission.
 
 ## October 1 rank64 epoch10 submitted once
