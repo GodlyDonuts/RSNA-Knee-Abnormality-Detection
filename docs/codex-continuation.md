@@ -1,3 +1,26 @@
+## October 1 current experiment and external-data status
+
+Use the latest receipts before historical entries below. Git df4b5db preserves
+the rank/input learning milestone: private HF revision
+20b419e03ea37c2d77a799d4ff3d91aec77955bf, all 17 objects fully download/size/SHA
+verified. Rank64 submission 56740377 remains unknown with no public score at
+04:19 UTC; do not duplicate it or claim failure. Current cache parents
+866426/866427 remain RUNNING on evc1; assembly 866458 remains
+PENDING for Dependency on the fresh read-only check. No native384 competitive
+GPU production job has been dispatched. Full cache acceptance, funded quota and
+production/recovery/preservation admission remain required first.
+
+The [external knee MRI inventory](../initiative/audits/external-knee-data-inventory-20261001-v1/README.md)
+investigates MRNet, fastMRI/fastMRI+, OAI and SKM-TEA. Only four public fastMRI+
+metadata/annotation objects were downloaded and pinned. No external MRI images
+were fetched or admitted into training. Source terms, cross-dataset overlap,
+target/rubric mapping and permitted winning-weight distribution remain open.
+Keep accepted labels/masks/folds unchanged; do not turn missing annotations into
+negative RSNA targets, use forbidden KneeCoT, or count mirrored scans as new data.
+Auxiliary supervised or unlabeled adapter adaptation is a conditional experiment,
+not launched training. H+ model access/meta graph was verified previously, but
+its weights have not been downloaded and larger-backbone training is unlaunched.
+
 ## October1 native assembly/source milestone privately verified
 
 Exact native assembly/config/dispatch and first-five-source-shard milestone Gitb9d67db is privately mirrored at HF1362acd9e4ab99c9ae47c068a4d98d9759540f94; all31objects fully re-downloaded/size/SHA verified under the shared publication directory exclusion. Never repeat mirror; journals in `initiative/audits/hf-native384-assembly-20261001-v1/`. Rank64submission56740377 still had no hidden status/error/score at03:53UTC; no further competition submission in this milestone. Goal remains active; the complete cache, native production run and competitive solo score remain outstanding.
