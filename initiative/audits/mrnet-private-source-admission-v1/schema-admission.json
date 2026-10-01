@@ -1,0 +1,104 @@
+{
+  "RSNA_targets_relabelled": false,
+  "acquisition_scope": "private_noncommercial_research",
+  "doi": "https://doi.org/10.71718/rcbp-8c35",
+  "images_acquired": false,
+  "missing_labels_imputed": false,
+  "model_fitted": false,
+  "original_api_table_receipts": [
+    {
+      "bytes": 10173,
+      "expected_rows": 1129,
+      "name": "train-meniscus",
+      "qualifiedReference": "aimi.mrnet_knee_mri_s:4a2c:v1_0.train_meniscus:3x4c",
+      "sha256": "fadfff6bbb49140272bfd1bd26db7a39a32624beedeefff35377097eac67a7d3"
+    },
+    {
+      "bytes": 10173,
+      "expected_rows": 1129,
+      "name": "train-abnormal",
+      "qualifiedReference": "aimi.mrnet_knee_mri_s:4a2c:v1_0.train_abnormal:4v5w",
+      "sha256": "3acf0a4bcc1a048921803a7daaeb29b1382f0fe58fc36002dd90ed1888330a59"
+    },
+    {
+      "bytes": 397839,
+      "expected_rows": 3390,
+      "name": "train",
+      "qualifiedReference": "aimi.mrnet_knee_mri_s:4a2c:v1_0.train:5wjf",
+      "sha256": "a619a285de256e931a8b98b4e3122682b26e70e1a4247f0d2f8488273fff46a0"
+    },
+    {
+      "bytes": 845,
+      "expected_rows": 119,
+      "name": "valid-abnormal",
+      "qualifiedReference": "aimi.mrnet_knee_mri_s:4a2c:v1_0.valid_abnormal:851r",
+      "sha256": "aea89cfafd34a5c523ef8c73ae197e60da8b81adf05d86d45d15ed0cc554b175"
+    },
+    {
+      "bytes": 845,
+      "expected_rows": 119,
+      "name": "valid-meniscus",
+      "qualifiedReference": "aimi.mrnet_knee_mri_s:4a2c:v1_0.valid_meniscus:nqng",
+      "sha256": "6980e47fee9f7630491aa5933908cca025b9a7804b83c27c566086ce25dc9cc1"
+    },
+    {
+      "bytes": 845,
+      "expected_rows": 119,
+      "name": "valid-acl",
+      "qualifiedReference": "aimi.mrnet_knee_mri_s:4a2c:v1_0.valid_acl:sqwh",
+      "sha256": "4f3b16f6713324dce82236196c7f100bd50ea466250497e2b0db59a2b377c2ef"
+    },
+    {
+      "bytes": 10173,
+      "expected_rows": 1129,
+      "name": "train-acl",
+      "qualifiedReference": "aimi.mrnet_knee_mri_s:4a2c:v1_0.train_acl:v9mj",
+      "sha256": "8917c9f8f42241803a44261de8bd7fe0d30ad1e631999f49f7ca31c78afed04c"
+    },
+    {
+      "bytes": 42410,
+      "expected_rows": 360,
+      "name": "valid",
+      "qualifiedReference": "aimi.mrnet_knee_mri_s:4a2c:v1_0.valid:zcmk",
+      "sha256": "ff65aae3aca80c22228d1054be14032b9361cfb81b9ca2983ae08391044bae0b"
+    }
+  ],
+  "raw_data_redistributed": false,
+  "source": "aimi.mrnet_knee_mri_s:4a2c:v1_0",
+  "source_manifest_sha256": "0f4f05715a7e039a624bc1ea17309a207caafaf730531e9322b244328b1d9fcd",
+  "source_targets": [
+    "acl",
+    "meniscus",
+    "abnormal"
+  ],
+  "source_url": "https://stanford.redivis.com/datasets/4a2c-4cpkzrn2c",
+  "source_weight_publication_compatibility": "unresolved",
+  "splits": {
+    "train": {
+      "bytes": 6999482112,
+      "images": 3390,
+      "positive_counts": {
+        "abnormal": 912,
+        "acl": 208,
+        "meniscus": 397
+      },
+      "training_permitted": true,
+      "unlabeled_cases": [
+        "0000"
+      ]
+    },
+    "valid": {
+      "bytes": 741389312,
+      "images": 360,
+      "positive_counts": {
+        "abnormal": 95,
+        "acl": 54,
+        "meniscus": 52
+      },
+      "training_permitted": false,
+      "unlabeled_cases": [
+        "1130"
+      ]
+    }
+  }
+}

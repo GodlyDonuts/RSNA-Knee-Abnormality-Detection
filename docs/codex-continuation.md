@@ -1,3 +1,40 @@
+## October1 native production dispatched; Stanford original-source acquisition prepared
+
+Native assembly866458 COMPLETED0:0 with all75 original proofs,3403studies,
+18906series,643501slices and37812 exact members. Full original registry and terminal
+receipts are in native384-production-preparation-v1/assembly-terminal/. Original
+CPU867348 COMPLETED0:0/05:39, all member bytes verified; its full proof and dispatch
+records are in production-dispatch/. Canonical coordinator ran a distinct fresh
+CPU-only signature recheck, then submitted native384 production867367 ONCE.
+Latest observed PENDING; never duplicate. ScientificC9/config/runtime/fold unchanged,
+oneH100/twoCPUs on evc31. Verify actual GPU/header/runtime and finite optimizer
+progress before claiming training. Use pinned native epoch publisher for each
+new completed snapshot, no repeated source transfers or original deletions.
+
+Corrected gradient867310 COMPLETED0:0/12:34. Original full224 BF16 receipt
+SHA6475bf25445671517034671051aba6c3623afab557aef61713e8cb7bd2691aa9
+is archived in slice-relations-gradient-header-recovery-v1/terminal/. Actual
+training-only-scale-decision.json binds the original CPU16/config/input/control
+proofs. Weighted auxiliary encoder gradient is about2.05–2.07% of disease gradient
+at two initial training batches, finite and not clipping-dominant. This accepts
+scale for a bounded engineering pilot only; not clinical accuracy or trainer
+recovery. CPU32, an accepted GPU wrapper and complete checkpoint funding still
+gate the real trainer. No relation trainer GPU dispatch occurred.
+
+User explicitly said use Stanford. Legitimate read-only Redivis OAuth is now in
+ignored0600.env/RAM/stdin, not argv/logs; no refresh token or personal application
+answers archived. Eight original API CSVs downloaded once privately. Read
+mrnet-private-source-admission-v1: exact source1129 labeled training exams and119
+held-out validation exams, with missing0000/1130 never imputed. Source tasks are
+ACL/generic meniscus/abnormality, never fabricated RSNA twelve-target labels.
+Verbatim private node-local CPU acquisition is prepared and tested; no images or
+Stanford fitting yet. Use scripts/newton/dispatch_mrnet_ingestion.py exactly once
+after clean committed source. Existing intent/control needs read-only review.
+64MiB/160 shared-file liability and native/sampling liabilities must preserve20GiB/
+5000 shared reserve; raw7.741GB stays node-local with20GiB reserve. No raw Stanford
+publication. Private research permission is accepted; competition/weight derivative
+compatibility is unresolved. Do not repeat prior auth/table downloads.
+
 ## October1 fixed-final/source milestone privately verified; header recovery running
 
 Main26b5a1b actual matched near-null sampling result, all20 epoch receipts,
