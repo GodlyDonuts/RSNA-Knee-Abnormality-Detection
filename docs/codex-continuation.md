@@ -1,3 +1,22 @@
+## October1 official-weight real-MRI CPU probe prepared
+
+Source/refusal/runtime wrapper preparation passed1510 tests/Ruff218/mypy39.
+Read `initiative/audits/slice-relations-real-CPU-v1/README.md` and the two new
+scripts: launch_relation_cpu_probe.py and probe_real_slice_relations.py. This
+first preparation commit has NOT dispatched a CPU/GPU probe. The bounded one-CPU/
+zero-GPU test uses actual training-only cache slices and official DINOv3-L
+adapters, masked disease cells,32-pixel engineering input, exact frozen-base/
+AdamW/RNG reconstruction and MRI-only output checks. It cannot replace full224
+BF16 GPU acceptance or establish accuracy. Stage only after fresh funding with
+all native/sampling debt and20GiB/5000-file reserves; use a new immutable control
+and reconcile any stage/dispatch intent read-only before a retry.
+
+Uniform866719 completed epoch2/562 updates and continued into epoch3. Its five
+private objects are fully download/size/SHA verified at HF
+37ea60e5e36dce6358ab32f7dca14877ed6a97cd, CPU publisher866780 COMPLETED0:0.
+Never repeat it or previously verified epochs. Both sampling runs remain live
+on unchanged7ac7a97; no relation GPU job or new Kaggle mutation.
+
 ## October1 relation integration milestone privately verified
 
 Source Git1240cf0 is privately full-download/size/SHA verified at HF
