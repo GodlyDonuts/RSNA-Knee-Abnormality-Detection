@@ -1,3 +1,13 @@
+## October1 geometry and first-epoch milestone privately verified
+
+Git a9e4603 is privately mirrored at HF3db0cfa78aa9030b2d9973f9c38ccb537abfc349;
+all26 small objects fully re-downloaded/size/SHA verified under the original
+atomic publication lock. Journal `initiative/audits/hf-training-geometry-and-epoch1-20261001-v1/`;
+never repeat. It preserves the actual training-only geometry request/result,
+terminal CPU proof,1474-test QA, and verified first stratified epoch's metadata.
+The actual checkpoint is separately fully verified at HF227bdb38dd0fa5f2bd18422acd4876912ce647ab;
+this small milestone did not re-upload the checkpoint or spend a Kaggle slot.
+
 ## October1 first sampling epoch preserved; actual geometry survey passed
 
 Stratified866716 completed epoch1/281 updates and continued into epoch2. Its exact
