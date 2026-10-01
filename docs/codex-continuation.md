@@ -1,3 +1,45 @@
+## October1 trainer-pilot preparation verification complete
+
+1575 tests/2 warnings passed in113.49s, Ruff223 files/mypy39/archive and current
+89/89 evidence coverage passed. Numerical core rsna modules were not edited by
+this preparation; both live sampling jobs and immutable4acd6fa diagnostic remain
+unchanged. At13:27 UTC stratified866716 was training epoch7/1800 updates and
+uniform866719 epoch6/1643 updates, finite; gradient866846 remained PENDING
+Dependency. Do not call the new orchestrator actual H100 acceptance or accuracy.
+
+## October1 actual production-trainer recovery orchestrator prepared
+
+Read slice-relations-trainer-recovery-preparation-v1/README.md. New standalone
+scripts/newton/probe_relation_trainer_recovery.py calls the unchanged real
+production trainer in separate full/stop-after1/resume processes for all three
+zero/physical/shuffled16-study/two-epoch configs. It verifies every decoded
+model/base/AdamW/LR/counter/RNG value, all four numerical update records, exact
+source/config/roster bindings and identical MRI-only16-outer-study CSV bytes.
+Thirty-one local CPU/synthetic checks pass. It has NOT executed on H100, and no
+new pilot source/control/cache/wrapper/GPU job has been staged or dispatched.
+The old actual CPU admission and already queued gradient866846 are distinct.
+
+Before using it: inspect gradient866846's actual terminal/full receipt, review
+training-only loss/gradient scales, bind that unchanged recipe and actual receipt
+SHA in an explicit agent decision, separately admit original bytes for its
+16+16 engineering fixture on CPU, pack/hash-bind the standalone source plus exact
+original4acd6fa core modules, and fund all actual diagnostic checkpoint epochs
+and preservation under fresh quota. Do not treat old zero-checkpoint diagnostic
+funding as permission for new checkpoint storage. Do not allocate a third GPU or
+change live sampling7ac7a97. Its tiny outer outputs are engineering checks only;
+no clinical selection, model promotion or Kaggle submission. Production funding,
+private relation publisher and deployment acceptance still remain.
+
+Stratified epoch6 original publisher866859 COMPLETED0:0 privately fully
+re-downloaded/size/SHA verified all five objects at
+HFd168a3ab50d1adfd0df908b1d4c4d7cb635ed294. Exact original receipts in
+sampling-epochs-v1/stratified/epoch-006; never repeat it or prior epochs.
+Canonical native source now56/75,2537 studies/14159 series/481308 slices, gap55.
+Read summary-through-056-relation-trainer-preparation.json and original private
+receipts; no large source bytes were re-uploaded or re-downloaded in the read-only
+collection. Source lanes remain live; assembly866458 and gradient866846 remain
+PENDING Dependency. Actual later state overrides these preparation snapshots.
+
 ## October1 uniform epoch5 privately verified; both sampling roles into epoch6
 
 The newly completed uniform epoch5 original CPU publisher866850 COMPLETED0:0
