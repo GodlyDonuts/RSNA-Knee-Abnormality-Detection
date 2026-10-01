@@ -1,3 +1,19 @@
+## October1 Stanford/native/gradient milestone privately fully verified
+
+Main8746306 source, native full assembly/CPU admission/production dispatch,
+actual gradient measurement/scale review, actual Stanford3750-volume acquisition,
+actual CPU tensor acceptance and private adapter pilot single dispatch are
+privately mirrored at HF6d23cd6ceb257ff83cd448c13d8ffef1b65f4600. All61 objects
+fully re-downloaded/size/SHA verified once under shared atomic publication lock.
+Read hf-stanford-native-and-gradient-milestone-20261001-v1. No Stanford raw pixels,
+original label values or learned weights were mirrored. Never repeat this upload.
+Latest read-only observation: native867367 and Stanford867419 both PENDING for
+node availability; neither has actual optimizer progress. Stanford acquisition
+867378 and actual-input867399 are terminal COMPLETED0:0. Original quota about
+1021063908/1048576000kB and993619/1000000files; preserve20GiB/5000files after ALL
+native/sampling/MRNet liabilities.1606 tests/Ruff236/mypy40/archive/current89/89
+passed before scientific source freeze. Goal stays active; no new clinical score.
+
 ## October1 Stanford private adapter recovery submitted once
 
 Bounded GPU recovery867419 was submitted ONCE on evc32,1H100/2CPUs/32GiB/1hour,
