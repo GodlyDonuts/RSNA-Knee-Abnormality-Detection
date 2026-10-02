@@ -1,0 +1,21 @@
+import importlib.util,json,subprocess,time
+from datetime import datetime,timezone
+from pathlib import Path
+root=Path.cwd();folder=root/'artifacts/kaggle-nativeall-epoch5-v1';audit=root/'initiative/audits/kaggle-nativeall-epoch5-v1';spec=importlib.util.spec_from_file_location('workflow',root/'scripts/kaggle/workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+intent=folder/'runtimefix-finish-intent.json';assert not intent.exists();intent.write_text(json.dumps({'created_utc':datetime.now(timezone.utc).isoformat(),'roles':['runtimefix'],'maximum_seconds':2400,'automatic_mutation_retry':False,'canonical_ledger':'/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'})+'\n')
+python=str(root/'artifacts/qa-env/bin/python');done=set();deadline=time.monotonic()+2400
+while len(done)<1 and time.monotonic()<deadline:
+ r=w.Remote()
+ for role in ['runtimefix']:
+  if role in done:continue
+  op=json.loads((audit/role/'operation.json').read_text());status=w.check_kernel(r,{'operation':op},1)['status'];print(json.dumps({'role':role,'public_status':status,'checked_utc':w.utcnow()}),flush=True)
+  if status=='ERROR':raise RuntimeError(f'{role} public execution failed; no submission made')
+  if status!='COMPLETE':continue
+  assert not (folder/'runtimefix-submit-intent.json').exists(),'Uncertain submission must be reconciled read-only'
+  subprocess.run([python,'-B',str(folder/'verify_runtimefix_public.py'),role],check=True)
+  subprocess.run([python,'-B',str(folder/'run_runtimefix_phase.py'),'submit'],check=True)
+  result=json.loads((folder/'runtimefix-submit-result.json').read_text());entry=json.loads(result['stdout']);assert entry['state']=='submitted' and entry['submission_id'];(audit/role/'canonical-submitted-entry.json').write_text(json.dumps(entry,indent=2)+'\n')
+  done.add(role);print(json.dumps({'role':role,'submitted_once':entry['submission_id']}),flush=True)
+ if len(done)<1:time.sleep(45)
+assert len(done)==1,'Bounded wait ended; inspect exact public states before continuing'
+(folder/'runtimefix-finish-result.json').write_text(json.dumps({'status':'exact_all_development_native384_epoch5_code_submitted_once','roles':sorted(done),'completed_utc':w.utcnow()})+'\n')
