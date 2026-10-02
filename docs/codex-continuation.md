@@ -1,3 +1,11 @@
+Source8a01d724bcc0113008f0538493e0b9d32aa74240 and this distinct supervision/
+independent-review/native-epoch4 small milestone are privately mirrored at
+HFe23aa254adff0c9f8d2fa0f5957afa3ecfa5b0f2, all27objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Read
+hf-supervision-native384-epoch4-20261002-v1; never repeat this mirror. Private
+raw reports, public label rows and independent case-level judgments were not
+mirrored; accepted supervision remains unchanged.
+
 Latest October2 19:38UTC: original all-development868093 healthy on evc31,
 four completed epochs/1774contiguous finite updates/epoch5 training; stderr empty.
 New epoch4 privately published ONCE/full6-object download-size-SHA verified at
