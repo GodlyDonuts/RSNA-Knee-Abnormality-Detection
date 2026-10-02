@@ -6,6 +6,12 @@ via owning-node CPU868212 COMPLETED0:0. Read native384-all-development-epochs-v1
 never repeat epoch1. Fresh conservative quota leaves20.0221GiB/5034shared files
 after all retained liabilities. Original numerical source/recipe/population and
 protected exclusions unchanged. No new fit accuracy or native Kaggle score yet.
+Source6bf57ae and this distinct first-epoch small milestone are privately mirrored
+at HFebf66b1acb62d8dd23d4294f2a940cd374ba7e11, all20objects fully re-downloaded/
+size/SHA verified under the canonical shared lock. Read
+hf-native384-all-epoch1-20261002-v1; never repeat the epoch or this mirror.
+Fresh authenticated14:28UTC native56770284 still has null status/score/error;
+uniform0.770 and stratified0.784 unchanged, live3today/2slots. No submission repeated.
 
 Actual first12updates/source/roster/runtime milestone Gitf2048ed is separately
 private-HF full14-object download/size/SHA verified at HFe4f00035ea7a8521d20f73e74922d0db3d7bff94.
