@@ -1,4 +1,21 @@
-Latest October2 16:17UTC: original all-development868093 remains RUNNING on
+Latest October2 18:17UTC: original all-development868093 healthy on evc31,
+three completed epochs/1418finite updates/epoch4 training, stderr empty. New
+epoch3 privately published ONCE/full6-object download-size-SHA verified at
+HFa35e3c4158bef04e0008513a07ad4b28a58fcc25 via CPU868550 COMPLETED0:0.
+Read native384-all-development-epochs-v1/epoch003; never repeat epochs1–3.
+Fresh conservative reserve20.0219GiB/5024shared files after all liabilities.
+Authenticated native fold0 submission56770284 now COMPLETE/scored0.785,
+262288output bytes/no error; canonical ledger reconciled through original single
+coordinator, zero cloud mutations. Read kaggle-native384-epoch10-v1/
+outcome-20261002-1816-v1. Uniform2240.770/stratified2240.784/best previous
+all-development2240.792 remain unchanged; live3today/2slots. The+0.015
+native-vs-uniform public difference is useful but not isolated causal evidence.
+Current all-development384 fit has no score; finish healthy original and its
+predeclared final checkpoint. Research hypotheses/primary literature and
+Jev assessment are recorded in creative-research-plan.md; no new GPU experiment
+or source-derived competition candidate was dispatched.
+
+Earlier October2 16:17UTC: original all-development868093 remains RUNNING on
 evc31, epoch2 completed/852updates and911contiguous finite updates observed into
 epoch3, stderr empty. New epoch2 privately published ONCE via CPU868465
 COMPLETED0:0; all6objects fully re-downloaded/size/SHA verified at

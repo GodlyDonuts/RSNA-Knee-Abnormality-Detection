@@ -278,3 +278,81 @@ exists. First finish the useful eligible Kaggle comparison, then use actual
 outcomes and fresh explicit storage/compute review to choose between a matched
 resolution replication and an evidence-localization experiment. Healthy original
 sources and private Stanford-derived weights remain unchanged.
+
+## October2 research review: distinguish the score bottleneck
+
+The owner asks why solo classifiers elsewhere reach about0.93 while ours remains
+near0.79. The primary [competitor discussion](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection/discussion/735304)
+includes reported0.942 raw at288px and0.936 single-fold smallResNet. These are
+author reports, not independently audited recipes; some other "single model"
+claims in the same thread actually combine folds. High resolution and a larger
+backbone are therefore insufficient explanations for our gap. At18:16UTC actual
+native384 fold0 scored0.785 versus strict uniform2240.770, a useful+0.015 public
+result that remains below all-development2240.792 and is not an isolated causal
+resolution experiment. Keep the original internal near-null result too.
+
+Code inspection finds three plausible constraints, not established root causes:
+full-field per-volume min/max normalization and physical-aspect letterboxing do
+not standardize the anatomical field of view; current attention pooling compresses
+each independently encoded slice from1024 global features to128 dimensions before
+target-specific pooling; accepted report supervision is sparse and selected,
+including7positive MCL/5positive fracture/15negative synovitis training examples.
+The head already has per-target slice/series attention and plane/contrast features.
+Series selection already preserves all available plane coverage. Do not propose
+these existing capabilities as new work or assume expensive report extraction
+establishes comprehensive MRI ground truth. Protected evaluations remain unused.
+
+Primary research provides mechanisms rather than promises:
+
+- [KneeDINO, MICCAI2026 workshop](https://papers.miccai.org/miccai-2026-sat/EMERGE_021.html)
+  uses per-task evidence pooling and cross-plane Transformer fusion, with three
+  independent RadioDINO encoders. Its reported0.942ACL/0.871meniscus/0.955abnormality
+  are MRNet task AUCs, not RSNA twelve-target competition scores. Our prospective
+  variant shares ONE DINOv3 encoder, rather than copying those three backbones.
+- [CoPAS, Nature Communications2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11368947/)
+  combines neighboring-slice, plane and sequence evidence and anatomically crops
+  inputs. Its0.812overall AUC is on a different12-abnormality cohort; no numerical
+  comparison to our competition is valid.
+- [Official Jev announcement](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
+  describes a structured-decision architecture, parallel sampling and RLCD. The
+  checked official announcement/quickstart do not establish an MRI advantage or
+  disclose a reproducible MRI vision backbone. Type-safe outputs do not guarantee
+  correct decisions. Our existing discriminative transformer already returns
+  twelve probabilities; strictly monotonic per-target calibration cannot improve
+  ROC-AUC ranking. Jev and JEPA must not be conflated.
+
+Prioritized falsifiable experiments, PREPARED AS HYPOTHESES ONLY:
+
+1. Supervision diagnostic: test whether report missingness limits MRI learning.
+   Compare the accepted masked-BCE control against a separate confidence-weighted
+   overlay on masked TRAINING cells, using compatible independent labels or
+   leakage-component cross-fitted teacher predictions. Never overwrite accepted
+   labels/masks or use protected labels to select confidence. Prediction is better
+   ranking on poorly supervised targets, not merely higher agreement with reports.
+   Cost includes teacher cross-fitting plus two equal-budget student runs; obtain
+   actual admission/funding before dispatch. Reject promotion if fixed-final paired
+   held-out gains are absent, rare-target effects are unsupported, or teacher/source
+   leakage cannot be excluded. Disagreement itself is not evidence of label error.
+2. Spatial integration: current production has slice_context=none. First compare
+   the already implemented zero-initialized neighbor3 context with the existing
+   head, at identical encoder presentations/rank32/initial shared state/updates.
+   This costs two matched full runs plus engineering acceptance, without additional
+   DINO views. Predict improvement for findings that need neighboring structure;
+   reject if paired fixed-final evidence fails to support it. Then separately test
+   light cross-plane interaction and localized tokens with ONE shared encoder;
+   do not combine several changes before attributing a gain. Unregistered planes
+   cannot be treated as anatomically aligned. Neighbor3 code exists; no new
+   production admission, GPU recovery or full experiment is claimed here.
+3. Anatomical scale: distinguish useful detail from larger full-frame backgrounds.
+   Match total encoded pixels/views and compare full context against context plus
+   bounded coordinate-preserving regions, as in the previous localization proposal.
+   Cost is two matched encoder-budget runs plus crop/recovery acceptance. Predict
+   improvement in localized targets without losing diffuse/context-dependent
+   findings; reject promotion on no paired gain, context loss or budget mismatch.
+
+Finish healthy original all-development868093 unchanged and deploy its predeclared
+final MRI-only checkpoint when actual completion and exact T4 acceptance permit.
+The above review is recorded research, not new trained models, GPU dispatches,
+clinical diagnoses, or an accuracy claim. Prioritize identifying supervision/input
+limits over another undirected rank increase. Stanford private-source research is
+independent and must not delay eligible RSNA-only deployment.

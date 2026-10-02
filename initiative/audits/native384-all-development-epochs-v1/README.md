@@ -1,5 +1,18 @@
 # Native384 all-development epoch preservation
 
+October2 18:17UTC: original868093 remains RUNNING with1,418 contiguous finite
+updates, three completed epochs and epoch4 in progress; stderr is empty. New
+epoch3 was privately published ONCE by owning-node CPU868550 COMPLETED0:0,
+all six objects fully re-downloaded/size/SHA verified at
+HF`a35e3c4158bef04e0008513a07ad4b28a58fcc25`. Checkpoint SHA
+`4fef6efc094608ec1498d90d29284d617bc61d1408f02e620c01c93f3c6b8078`
+binds the immutable1,278-update snapshot. Original proofs are in epoch003/;
+never repeat epochs1–3. Conservative fresh reserve after retained liabilities
+is20.0219GiB/5,024shared files, with over620GiB node-local free. Accepted
+scientific source, base,3403-study population and protected exclusions unchanged.
+Earlier native fold0 submission56770284 now has an actual0.785 scored result;
+this all-development fit has no score or outer holdout metric yet.
+
 Latest October2 16:17UTC: epoch2 completed at852updates and911contiguous finite
 updates were independently observed into epoch3. Original868093 remains healthy
 with empty stderr. New owning-node CPU868465 completed0:0 and privately preserved
