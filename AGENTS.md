@@ -99,3 +99,13 @@ closure fixed. Never duplicate jobs or publish private source signature records,
 raw pixels or learned Stanford weights. HF417905f3d6603d97a8e62ed767d4b693e8241fca
 fully verified50 small code/metadata objects frommain6edefe1, no raw/labels/weights;
 never repeat. Current continuation and actual receipts supersede old snapshots.
+
+## October2 restored access and actual original recovery
+
+VPN/SSH restored. Native867367 healthy, epochs1–3 complete/1052finite updates,
+epoch4 training. Stanford same-engine867512 actual complete recovery passed;
+full source fitting867694 dispatchedONCE, lastPENDING. Pixel867494 and private
+matcher867696/867697 completed;92coarse pairs require original-image review,
+not duplicate/leakage confirmation. Current guide/original audits supersede
+prior access-loss snapshots. Preserve native epochs once/pinned coordinator,
+leave healthy original jobs unchanged. No downstream transfer or new score.

@@ -81,3 +81,18 @@ identity, absence proof or automatic training/label exclusions. Labels/protected
 cohorts are not read. Small wrapper/control/receipt obligations fit the existing
 relocation32MiB/96file metadata allowance, fresh20GiB/5000files after all liabilities.
 No original match dispatch or overlap conclusion yet at this preparation freeze.
+
+## Actual completed RSNA index and private advisory matching
+
+Original867494 COMPLETED0:0/39:56, all18906volumes/3403eligible studies,
+643501slices/151248sampled slices/140407899264 original bytes. Receipt and
+original source hashes preserved in rsna-v2-terminal; raw private index stays
+on evc31. It does not read clinical labels or protected confirmation/gold.
+
+Distinct original metadata matcher867696 and sender867697 COMPLETED0:0.
+Exact index SHA/byte/EOF transport and complete source membership passed.
+It found92coarse candidate volume pairs involving32Stanford and56RSNA exams;
+private63504-byte candidates stay on evc32. No candidate records/pixels/labels
+collected toMac/Git/HF. Similar anatomy can yield false matches; review original
+images before any exclusion/transfer assertion. No patient independence or
+absence of overlap is established. Small sanitized originals in private-match.

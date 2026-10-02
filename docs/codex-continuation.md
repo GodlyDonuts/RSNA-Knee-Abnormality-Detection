@@ -1,3 +1,39 @@
+## October 2 00:49 UTC: access restored, original training reconciled
+
+UCF VPN is actually Connected and both Newton/Stokes SSH endpoints respond.
+A fresh SSH master is active. Original native384 job867367 remains RUNNING on
+evc31,1052 finite updates and completed epochs1–3 observed, empty stderr.
+No restart or scientific recipe change. Original same-engine Stanford recovery
+867512 completed0:0/156seconds; complete learned/base/AdamW/LR/counters/all-RNG
+and exact engineering predictions equal. Exact agent acceptance is in
+mrnet-restored-full-engine-v1/original-v2-recovery-terminal. The original-v2
+single coordinator then dispatched full source fitting867694 ONCE, currently
+PENDING Priority on evc32:1129train/119final-only validation,10epochs/1420updates,
+originalF12 science unchanged. No full fitting or source accuracy pass yet.
+
+Original RSNA pixel index867494 completed0:0/39:56, all18906series/3403eligible
+studies/643501slices; no clinical labels/protected cohorts read. Original private
+CPU matcher867696 and sender867697 completed0:0, exact original index transport
+verified. It found92 coarse candidate volume pairs involving32Stanford and56RSNA
+exams. These are ADVISORY similarities, not confirmed duplicate patients or
+leakage; original-image review remains required. Candidate records stay private
+on evc32, raw/index data never collected toMac/Git/HF. No downstream private
+Stanford-to-RSNA transfer is dispatched; review candidates and accept a separately
+funded recovery plus matched extra-compute RSNA-only control before transfer.
+
+Native epochs1 and2 privately preserved once/full5-object download-size-SHA
+verified at HFa01efdcc231f93af294bdda728866774f8c1e2bd and
+62becd13d53c0281f542cb1ef2128ace66af935d; epoch3 also verified at HF920fc8819a60bbfb8cfb3a4242692e0e0d4fd7f8.
+Read native384-epochs-v1. Remaining epochs only after actual immutable snapshots,
+pinned dispatch_native384_epoch.py/shared lock and original journal review.
+At most two concurrent GPU nodes; minimumCPUs. Current fresh shared quota
+1021557212/1048576000kB and993731/1000000files; original full-source and matcher
+coordinators accepted >=20GiB/5000files AFTER all retained liabilities, no
+original deletion credit. New smaller milestones will be privately mirrored
+under the restored canonical shared lock; old verified mirrors never repeated.
+No new clinical/Kaggle result exists. Native fixed-final reference is completed
+uniform0.8606037925461784 internal; protected confirmation/gold remain unused.
+
 ## October1 native reference improved before observing its final result
 
 Read native384-reference-selection-v1. Actual native867367 startup binding and

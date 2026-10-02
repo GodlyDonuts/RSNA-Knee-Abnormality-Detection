@@ -46,3 +46,17 @@ Original full loop remains unaccepted. Do not repeat867510 or diagnose this as
 an accuracy/data failure; exclude evc24 from this recovery. Native867367 remains
 healthy. Prepare a distinct original-owning-node evc32 recovery from unchanged
 F12 numerical archive/config/original wrapper. No new data transfer is needed.
+
+## Actual original-node recovery and full-source dispatch after reconnect
+
+Original867512 COMPLETED0:0/00:02:36 on evc32. Exact originalF12 archive,
+config and wrapper hashes were rechecked; actual receiptSHA
+ee4f79976bbdf8285c0ac2aa53bc982da1054959f5b6763e12f133a75b091e50
+accepts complete decoded recovery plus byte-identical predictions. Original
+source case membership remains privately on node; published stdout is explicitly
+sanitized, with original whole-byte hash preserved. This is engineering only.
+
+Original-v2 coordinator dispatched private full fitting867694 ONCE after fresh
+quota/job/source review,1129train/119fixed-final validation/10epochs/1420updates.
+Last statePENDING Priority, no runtime or accuracy claim. Do not repeat it.
+Exact dispatch and separately preserved source proof in original-v2-full-dispatch.

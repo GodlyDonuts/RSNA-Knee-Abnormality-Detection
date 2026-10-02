@@ -123,8 +123,12 @@ records candidates and public fastMRI+ metadata inspection. After the owner's
 request to use Stanford, all 3,750 original MRNet volumes were acquired and
 verified in an explicit private research lane. Its bounded adapter pilot passed
 four real GPU optimizer updates and exact recovery; this is not full source
-training or an accuracy result. Separate full-source engine recovery 867512
-was last seen pending on evc32. Full 1,129-exam fitting has not been dispatched.
+training or an accuracy result. Separate full-source engine recovery867512 actually completed0:0 with complete
+state/prediction equality. Private full1,129-exam fitting867694 was submitted
+once after restored access and fresh quota/source review, lastPENDING on evc32.
+Actual pixel-only matching found92coarse candidate pairs requiring original-image
+review; these are not confirmed duplicates. No downstream RSNA transfer is
+dispatched and no source accuracy or transfer gain is claimed.
 See the [original admission](../initiative/audits/mrnet-private-source-admission-v1/README.md),
 [full engine recovery](../initiative/audits/mrnet-restored-full-engine-v1/README.md),
 and [RSNA initialization path](../initiative/audits/mrnet-rsna-private-initialization-v1/README.md).
