@@ -1,0 +1,33 @@
+import csv,hashlib,importlib.util,io,json,math,sys
+from pathlib import Path
+from urllib.parse import urljoin,urlparse
+import requests
+s=importlib.util.spec_from_file_location('workflow',Path('scripts/kaggle/workflow.py'));m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+role=sys.argv[1];assert role in {'uniform','stratified'};r=m.Remote();base=Path('initiative/audits/kaggle-sampling-e10-comparison-v1')/role;op=json.loads((base/'operation.json').read_text());slug=op['kernel_slug'];owner,kernel=slug.split('/');assert m.check_kernel(r,{'operation':op},1)['status']=='COMPLETE'
+receipt=r.output_json(slug,1,'kaggle-inference-receipt.json');assert receipt['checkpoint_sha256']==op['checkpoint_sha256'] and receipt['bundle_manifest_sha256']==op['manifest_sha256'] and receipt['status']=='offline_inference_complete'
+r.session.cookies.clear();response=r.session.post(m.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':owner,'kernelSlug':kernel,'versionNumber':1,'filePath':'submission.csv'},timeout=(10,60),allow_redirects=False,stream=True)
+content=None
+for _ in range(5):
+ with response:
+  if response.status_code==200:
+   content=bytearray()
+   for block in response.iter_content(65536):
+    content.extend(block);assert len(content)<=1048576
+   break
+  assert response.status_code in {301,302,303,307,308}
+  url=urljoin(response.url,response.headers.get('Location',''))
+ parsed=urlparse(url);host=parsed.hostname or '';assert parsed.scheme=='https' and (host in {'storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com'} or host.endswith('.googleusercontent.com'))
+ session=r.session if host=='api.kaggle.com' else requests;response=session.get(url,timeout=(10,60),allow_redirects=False,stream=True)
+assert content is not None
+raw=bytes(content);assert hashlib.sha256(raw).hexdigest()==receipt['submission_sha256']
+rows=list(csv.reader(io.StringIO(raw.decode('utf-8'))));header=['StudyInstanceUID','ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture'];assert rows[0]==header
+expected=list(csv.DictReader(Path('initiative/source/test.csv').open()));assert [row[0] for row in rows[1:]]==[row['StudyInstanceUID'] for row in expected]
+assert len(rows)-1==receipt['studies']==3 and all(len(row)==13 for row in rows)
+probabilities=[float(value) for row in rows[1:] for value in row[1:]];assert all(math.isfinite(p) and 0<=p<=1 for p in probabilities)
+metrics=r.output_json(slug,1,'submission.metrics.json');assert metrics['status']=='passed' and metrics['diagnostic_only'] is False and metrics['studies']==3 and metrics['checkpoint_sha256']==op['checkpoint_sha256'] and metrics['submission_sha256']==receipt['submission_sha256'];assert sum(x.get('fallback_studies',0) for x in metrics['chunks'])==0;assert all(not x.get('failed_study_ids',[]) for x in metrics['chunks']);assert metrics['test_inputs']['metadata_binding']=='test_csv_authoritative_not_checkpoint_bound';
+with (base/'public-inference-metrics.json').open('x') as f:json.dump(metrics,f,indent=2);f.write('\n')
+account=r.account();verification={'checked_at':m.utcnow(),'status':'exact_private_offline_public_mri_only_output_verified','kernel_slug':slug,'kernel_version':1,'source_sha256':op['kernel_source_sha256'],'dataset_id':json.loads((base/'dataset-verified.json').read_text())['id'],'dataset_version':1,'studies':3,'columns':header,'uid_order_matches_public_test':True,'probabilities_finite_and_in_range':True,'csv_bytes':len(raw),'csv_sha256':receipt['submission_sha256'],'checkpoint_sha256':receipt['checkpoint_sha256'],'public_example_only':True,'kaggle_score':None,'account_before_submission':account}
+for name,value in [('public-complete-receipt.json',receipt),('public-complete-verification.json',verification)]:
+ with (base/name).open('x') as f:json.dump(value,f,indent=2);f.write('\n')
+(base/'public-example-submission.csv').write_bytes(raw)
+print(json.dumps({'status':verification['status'],'studies':3,'columns':13,'csv_sha256':receipt['submission_sha256'],'live_slots':account['num_allowed_now']}))

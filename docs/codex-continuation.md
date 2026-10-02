@@ -1,3 +1,66 @@
+## October2 06:08UTC: two new sampling final models submitted
+
+Uniform rank32 epoch10 was submitted ONCE as **56766962** at05:56UTC;
+stratified rank32 epoch10 was submitted ONCE as **56767196** at06:08UTC.
+Both exact private offline T4 version1 notebooks completed their public MRI-only
+checks: original source/configuration, full private Dataset byte verification,
+checkpoint/bundle/CSV hashes,13columns/threepublicUIDs, finite probabilities
+and zero fallback/failed studies. Only code notebooks were submitted, never
+the public three-row CSV. The finite single-coordinator finish process exited
+successfully; all intents are historical, not unfinished/uncertain work.
+Current authenticated account shows two submissions today and three live slots.
+Both hidden outcomes/scores remain unreported; do not infer them from public
+completion. Never repeat either Dataset creation/notebook push/submission.
+Read kaggle-sampling-e10-comparison-v1 exact submitted entries and live receipt.
+
+Continue native384 original867367 unchanged, preserve remaining epochs9/10 once,
+and prioritize its completed fixed-final RSNA-only resolution comparison after
+terminal/internal review, fresh deployment funding and exact offline acceptance.
+Useful additional eligible checkpoints may use the remaining live allowance;
+unrelated Stanford overlap work must not delay ready competition candidates.
+Stanford-derived weights remain private/competition-unadmitted.
+
+## October2: owner reprioritizes new Kaggle comparisons
+
+The owner explicitly requests useful competition submissions now. Two completed
+RSNA-only rank32 fold0 epoch10 sampling candidates have each been prepared and
+privately uploaded once. Uniform Dataset12319575 v1 and stratified Dataset12319728
+v1 passed full47-object download/size/SHA verification. Their exact private
+offline T4 notebooks are godlydonuts/rsna-knee-uniform-epoch10-51f04f85afd5 v1
+and godlydonuts/rsna-knee-stratified-epoch10-3075699c610c v1, each pushed once.
+Public execution was RUNNING at the latest check; these are not competition
+submissions yet. The finite local finish coordinator waits for exact public
+receipt/source/CSV acceptance before one canonical-ledger code submission per
+role. Inspect artifacts/kaggle-sampling-e10-comparison-v1/finish-intent.json and
+phase intents/results before any action; never duplicate a push/submission.
+
+Fresh authenticated account query initially returned five available slots and
+zero submissions today. Latest actual solo scores: all-development rank32
+56711823=0.792, sampled rank64 56740377=0.778, old sampled rank32
+56697342=0.769. Internal uniform0.8606037925461784/stratified0.8615144870268626
+are not Kaggle scores. Exact source7ac7a97, accepted masks/folds and pinned base
+remain unchanged. The public three-row CSV is never a competition upload.
+Read initiative/audits/kaggle-sampling-e10-comparison-v1.
+
+Fresh shared funding has20.5404GiB and5211files remaining AFTER all retained
+liabilities. It reassigns the unused original2680000000-byte whole-series
+deployment reservation to two shared ZIPs capped2800MiB total and16MiB/256files
+metadata. Native epochs1–8 total1004428904bytes and both transport ZIPs total
+2677354031bytes are already charged in current quota and deducted from future
+obligations once, not deletion credits. Sampling future400-file liability is
+retired only because both jobs and all20private publications finished. Original
+whole-series science is unchanged; its later deployment needs fresh funding.
+Other retained native/small/source obligations remain reserved.
+
+Native867367 still RUNNING evc31,2315finite updates/epoch9 training at05:55UTC,
+empty stderr. Newly completed native epochs7/8 privately full5-object download/
+hash verified ONCE at HF2f2f595bdebf480a2ccc2a91952e0665ed499f89 and
+1832b74faab4d3f769ad071eb6c0efff01009678. Never repeat native1–8.
+Continue the healthy original run unchanged. Its fixed-final checkpoint is the
+next useful resolution comparison after actual terminal/internal review, fresh
+funding and exact offlineT4 acceptance. Stanford-derived competition weights
+remain unadmitted/private; do not use them to fill available slots.
+
 ## October2 04:10UTC: actual Stanford source-final result and native epochs5–6
 
 Original Stanford full-source867694 completed0:0/1:48:26 on evc32,

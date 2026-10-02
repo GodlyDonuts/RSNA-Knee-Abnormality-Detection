@@ -1,0 +1,21 @@
+import importlib.util,json,subprocess,time
+from datetime import datetime,timezone
+from pathlib import Path
+root=Path.cwd();folder=root/'artifacts/kaggle-sampling-e10-comparison-v1';audit=root/'initiative/audits/kaggle-sampling-e10-comparison-v1';spec=importlib.util.spec_from_file_location('workflow',root/'scripts/kaggle/workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+intent=folder/'finish-intent.json';assert not intent.exists();intent.write_text(json.dumps({'created_utc':datetime.now(timezone.utc).isoformat(),'roles':['uniform','stratified'],'maximum_seconds':3600,'automatic_mutation_retry':False,'canonical_ledger':'/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'})+'\n')
+python=str(root/'artifacts/qa-env/bin/python');done=set();deadline=time.monotonic()+3600
+while len(done)<2 and time.monotonic()<deadline:
+ r=w.Remote()
+ for role in ['uniform','stratified']:
+  if role in done:continue
+  op=json.loads((audit/role/'operation.json').read_text());status=w.check_kernel(r,{'operation':op},1)['status'];print(json.dumps({'role':role,'public_status':status,'checked_utc':w.utcnow()}),flush=True)
+  if status=='ERROR':raise RuntimeError(f'{role} public execution failed; no submission made')
+  if status!='COMPLETE':continue
+  assert not (folder/f'{role}-submit-intent.json').exists(),'Uncertain submission must be reconciled read-only'
+  subprocess.run([python,'-B',str(folder/'verify_public.py'),role],check=True)
+  subprocess.run([python,'-B',str(folder/'run_phase.py'),role,'submit'],check=True)
+  result=json.loads((folder/f'{role}-submit-result.json').read_text());entry=json.loads(result['stdout']);assert entry['state']=='submitted' and entry['submission_id'];(audit/role/'canonical-submitted-entry.json').write_text(json.dumps(entry,indent=2)+'\n')
+  done.add(role);print(json.dumps({'role':role,'submitted_once':entry['submission_id']}),flush=True)
+ if len(done)<2:time.sleep(45)
+assert len(done)==2,'Bounded wait ended; inspect exact public states before continuing'
+(folder/'finish-result.json').write_text(json.dumps({'status':'two_exact_code_versions_submitted_once','roles':sorted(done),'completed_utc':w.utcnow()})+'\n')

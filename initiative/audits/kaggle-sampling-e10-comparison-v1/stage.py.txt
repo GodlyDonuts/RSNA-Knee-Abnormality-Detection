@@ -1,0 +1,48 @@
+import base64,hashlib,io,json,os,sqlite3,subprocess,sys,tarfile,time
+from pathlib import Path
+r=json.load(sys.stdin);base=Path('/home/sa305415/rsna-knee');control=base/'kaggle/sampling-e10-comparison-v1'
+assert not control.exists() and not (base/'kaggle/coordinator-claim').exists()
+manifest=json.loads(base64.b64decode(r['files']['projection/projection.json']['data']))
+assert manifest['training_git_commit']==manifest['package_git_commit']=='7ac7a9779d3c8bfd756a44eceb6414e9bb763b85'
+assert hashlib.sha256(base64.b64decode(r['files']['projection/projection.json']['data'])).hexdigest()=='2c7a7edb034e36ca76a0c2102293b8747ea586123c0216a69aeeb0c3fab7d581'
+terminal=subprocess.check_output(['sacct','-X','-j','866716,866719','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True)
+assert '866716|COMPLETED|0:0' in terminal and '866719|COMPLETED|0:0' in terminal
+controls={'uniform':base/'sampling-production-7ac7a97-uniform-evc31-v2','stratified':base/'sampling-production-7ac7a97-v1'}
+for role,c in controls.items():
+ for e in range(1,11):
+  proof=json.loads((c/f'epoch-publication/{role}/epoch-{e:03d}/verified.json').read_text())
+  assert proof['epoch']==e and proof['status']=='private_epoch_fully_verified' and proof['files_verified_by_download']==5
+with sqlite3.connect('file:'+str(base/'kaggle/account-ledger.sqlite3')+'?mode=ro',uri=True) as db:
+ for c in r['candidates'].values():
+  assert not db.execute('SELECT sha FROM entries WHERE sha=?',(c['sha'],)).fetchone()
+  assert not (base/'kaggle/dataset-publications'/c['sha']).exists()
+  meta=json.loads(Path(c['snapshot']).read_text());assert meta['checkpoint_sha256']==c['sha'] and meta['epoch']==10 and meta['optimizer_steps']==2810 and meta['submission_eligible'] is True and meta['diagnostic_only'] is False
+paid={};native=base/'runs/dinov3-l16-adapter-a32-native384-fold0-c9fcc7e-production-v1';nc=base/'production-launch-native384-a32-c9-v1'
+for e in range(1,7):
+ m=json.loads((native/f'epoch-checkpoints/epoch-{e:03d}.json').read_text());proof=json.loads((nc/f'epoch-publication/epoch-{e:03d}/verified.json').read_text());f=native/'epoch-checkpoints'/m['checkpoint_file'];s=f.stat()
+ assert not f.is_symlink() and s.st_size==m['checkpoint_bytes']<128*1024**2 and proof['checkpoint_sha256']==m['checkpoint_sha256'] and proof['status']=='private_epoch_fully_verified';paid[(s.st_dev,s.st_ino)]=s.st_size
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);q=quota.splitlines()[-1].split();used,soft,n,limit=[int(q[i]) for i in (1,2,5,6)]
+old_future=5246914048+(12+272+64+32+16+16+32)*1024**2
+new_shared_upload_budget=2*1400*1024**2;new_shared_metadata_budget=16*1024**2
+future=old_future-2680000000-sum(paid.values())+new_shared_upload_budget+new_shared_metadata_budget
+remaining=((soft-used)*1024-future)/1024**3
+remaining_files=limit-n-190-160-96-48-48-96-256
+assert remaining>=20 and remaining_files>=5000
+funding={'observed_used_kB':used,'soft_kB':soft,'observed_files':n,'soft_files':limit,'old_future_bytes':old_future,'reallocated_original_whole_series_deployment_bytes':2680000000,'native_epochs1_6_already_charged_and_privately_verified_bytes':sum(paid.values()),'native_paid_unique_inodes':len(paid),'shared_ZIP_bytes_funded':new_shared_upload_budget,'new_small_metadata_bytes_funded':new_shared_metadata_budget,'all20_sampling_epochs_complete_and_privately_verified':True,'sampling_future_file400_obligation_retired_after_actual_completion_not_deletion':True,'projected_remaining_gib_after_all_liabilities':remaining,'projected_remaining_files_after_all_liabilities':remaining_files,'original_deletion_credit_bytes':0,'bundle_storage':'owner_only_evc32_node_local_4GiB_cap_plus20GiB_reserve','original_training_jobs_restarted':False}
+files={name:base64.b64decode(row['data'],validate=True) for name,row in r['files'].items()}
+for name,raw in files.items():assert len(raw)==r['files'][name]['bytes'] and hashlib.sha256(raw).hexdigest()==r['files'][name]['sha256'] and not Path(name).is_absolute() and '..' not in Path(name).parts
+if r['mode']=='check':print(json.dumps({'status':'new_sampling_submission_pair_funded','funding':funding}));raise SystemExit(0)
+assert r['mode']=='stage';control.mkdir(mode=0o700)
+for name,raw in files.items():
+ p=control/name;p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('xb') as f:f.write(raw);f.flush();os.fsync(f.fileno())
+code=control/'projection/code';code.mkdir()
+with tarfile.open(fileobj=io.BytesIO(files['projection/projection.tar'])) as archive:
+ members=archive.getmembers();assert {m.name for m in members}==set(manifest['files']) and len(members)==len(manifest['files'])
+ for m in members:
+  assert m.isfile() and not m.name.startswith('/') and '..' not in Path(m.name).parts
+  raw=archive.extractfile(m).read();x=manifest['files'][m.name];assert len(raw)==x['bytes'] and hashlib.sha256(raw).hexdigest()==x['sha256'];p=code/m.name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(raw);p.chmod(x['mode'])
+subprocess.run(['bash','-n',str(control/'prepare.sbatch')],check=True);subprocess.run(['bash','-n',str(control/'network.sh')],check=True)
+for name,value in [('funding.json',funding),('stage-receipt.json',{'status':'exact55_file_sampling_projection_and_funded_offline_preparation_staged_not_dispatched','files':{n:{k:r['files'][n][k] for k in ('bytes','sha256')} for n in files},'projection_sha256':'2c7a7edb034e36ca76a0c2102293b8747ea586123c0216a69aeeb0c3fab7d581','GPU_reserved':False,'competition_mutation':False})]:
+ with (control/name).open('x') as f:json.dump(value,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+print(json.dumps({'status':'staged_not_dispatched','funding':funding,'control':str(control)}))

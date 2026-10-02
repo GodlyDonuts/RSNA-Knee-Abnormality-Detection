@@ -36,3 +36,10 @@ epoch6 HFaf556b44fc24969348536a2445862463f60e204e viaCPU867923.
 Both publishers completed0:0. Original small intents/manifests/commit/verified
 receipts and immutable sidecars retained. Never repeat epochs1–6.
 No fixed-final native result yet; original scientific source/config untouched.
+
+October2 05:50UTC: native epochs7/8 were each published ONCE and all5objects
+per epoch fully re-downloaded/size/SHA verified. Revisions
+2f2f595bdebf480a2ccc2a91952e0665ed499f89 and
+1832b74faab4d3f769ad071eb6c0efff01009678. Original867367 remains
+RUNNING with unchanged C9 source/config/output; no fixed-final score yet.
+Do not repeat native epochs1–8.

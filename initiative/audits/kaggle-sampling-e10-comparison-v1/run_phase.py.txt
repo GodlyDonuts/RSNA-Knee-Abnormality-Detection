@@ -1,0 +1,20 @@
+import json,re,shlex,subprocess,sys
+from pathlib import Path
+role,phase=sys.argv[1:];assert role in {'uniform','stratified'} and phase in {'create-dataset','reconcile-dataset','push-kernel','submit'}
+root=Path.cwd();folder=root/'artifacts/kaggle-sampling-e10-comparison-v1';candidate=json.loads((folder/'candidates.json').read_text())[role]
+intent=folder/f'{role}-{phase}-intent.json';result_file=folder/f'{role}-{phase}-result.json';assert not intent.exists() and not result_file.exists(),'Existing phase intent requires read-only reconciliation'
+values={};assert (root/'.env').stat().st_mode&0o077==0
+for line in (root/'.env').read_text().splitlines():
+ k,sep,v=line.partition('=')
+ if sep:values[k.strip()]=v.strip().strip('\"\'')
+token=values['KAGGLE_API_TOKEN'];assert token.startswith('KGAT_')
+with intent.open('x') as f:json.dump({'role':role,'phase':phase,'checkpoint_sha256':candidate['sha'],'single_canonical_ledger':'/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3','credential_transport':'stdin_only','automatic_retry':False},f)
+args=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc32','--mem=8G','--time=00:45:00',f'--job-name=rsna-{role}-e10-{phase}','/bin/bash','/home/sa305415/rsna-knee/kaggle/sampling-e10-comparison-v1/network.sh',role,phase]
+try:
+ r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(args)],input=json.dumps({'token':token}),text=True,capture_output=True,timeout=2700)
+ result={'role':role,'phase':phase,'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr}
+except subprocess.TimeoutExpired:result={'role':role,'phase':phase,'status':'uncertain_no_retry','returncode':None}
+for k in ['stdout','stderr']:
+ if k in result:result[k]=re.sub(r'(?:hf_|KGAT_)[A-Za-z0-9]{10,}','[redacted]',result[k].replace(token,'[redacted]'))
+with result_file.open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps(result));assert result['returncode']==0
