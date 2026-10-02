@@ -1,0 +1,7 @@
+# Native384 full-data epoch5 midpoint comparison
+
+Prepare the actual immutable2130-update epoch5 from healthy original868093; preserve its3403-study/native384/rank32/C9 recipe and all protected exclusions. The final4260-update epoch10 remains predeclared. This midpoint comparison measures learning trajectory within the same recipe/population rather than repeating already scored weights. The epoch is fully privately published and hash verified; preparation alone is not a submission or score.
+
+Shared quota is tight. The new packaging option keeps the one canonical ledger, coordinator and Dataset intent/proof journals on Newton shared storage, while retaining the large upload ZIP privately on its owning allocated node. Its root binds checkpoint identity, host, uid, inode and mode; it rejects node moves, symlinks, permissive roots and shared fallback. Existing shared transport remains the default. No MRI model/trainer or live experiment code changes. Four transport regressions plus existing coordination/publication tests passed46cases; full QA and fresh original-metadata funding review are required before staging.
+
+Cloud Dataset/kernel/submission operations use the single coordinator, no automatic retry on uncertainty, private exact offline T4 notebook acceptance, fresh live allowance and one code submission. The three public example rows are never uploaded as a competition CSV. No source-derived Stanford weights or public labels are used. See plan.json.

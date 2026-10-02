@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import runpy
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -20,6 +21,40 @@ sys.dont_write_bytecode = True
 p = SimpleNamespace(
     **runpy.run_path(str(Path(__file__).with_name("publication.py")), run_name="epoch_publication")
 )
+NODE_SCRATCH = Path("/tmp")
+
+
+def upload_location(args, journal, checkpoint_sha, transport=None):
+    """Keep the journal/ledger shared; bind a private upload ZIP to its owning node."""
+    root = getattr(args, "node_local_upload_root", None)
+    previous = (transport or {}).get("node_local_upload")
+    if root is None:
+        if previous is not None:
+            raise ValueError("Node-local transport cannot fall back to shared storage")
+        return journal / "upload", None
+    root = Path(root)
+    if (
+        not root.is_absolute()
+        or root.parent.resolve() != NODE_SCRATCH.resolve()
+        or root.name != "rsna-kaggle-upload-" + checkpoint_sha[:12]
+        or root.is_symlink()
+    ):
+        raise ValueError("Upload root must be the exact private checkpoint directory in /tmp")
+    if args.action == "prepare-transport":
+        root.mkdir(mode=0o700, exist_ok=False)
+    info = root.stat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+        raise ValueError("Node-local upload directory ownership/permissions differ")
+    binding = {
+        "root": str(root),
+        "host": os.uname().nodename,
+        "uid": info.st_uid,
+        "device": info.st_dev,
+        "inode": info.st_ino,
+    }
+    if args.action != "prepare-transport" and previous != binding:
+        raise ValueError("Node-local upload moved or node/identity changed")
+    return root / "upload", binding
 
 
 def load_workflow(projection, manifest_file, expected_sha):
@@ -288,7 +323,7 @@ def run(args):
     journal.mkdir(mode=0o700, parents=True, exist_ok=True)
     with single_coordinator(base):
         if args.action == "prepare-transport":
-            upload = journal / "upload"
+            upload, node_binding = upload_location(args, journal, meta["checkpoint_sha256"])
             upload.mkdir(mode=0o700)
             archive = p.build_zip(args.operation.parent / "dataset", files, upload / "bundle.zip")
             record = {
@@ -301,6 +336,8 @@ def run(args):
                 "package_git_commit": projection["package_git_commit"],
                 "training_git_commit": projection["training_git_commit"],
             }
+            if node_binding is not None:
+                record["node_local_upload"] = node_binding
             p.exclusive_json(journal / "transport.json", record)
             return record
         transport = json.loads((journal / "transport.json").read_text())
@@ -309,6 +346,7 @@ def run(args):
             or transport["projection_sha256"] != args.projection_sha256
         ):
             raise ValueError("Transport identity changed")
+        upload, _ = upload_location(args, journal, meta["checkpoint_sha256"], transport)
         remote, token = remote_from_stdin(workflow)
         if args.action == "create-dataset":
             if args.management_python is None:
@@ -327,7 +365,7 @@ def run(args):
                 token,
                 op["dataset_slug"],
                 files,
-                journal / "upload",
+                upload,
                 journal,
                 transport,
                 create=management_create(args.management_python),
@@ -413,6 +451,7 @@ def main():
     parser.add_argument("--publication-revision", action="store_true")
     parser.add_argument("--superseded-operation-sha256")
     parser.add_argument("--management-python", type=Path)
+    parser.add_argument("--node-local-upload-root", type=Path)
     args = parser.parse_args()
     try:
         result = run(args)
