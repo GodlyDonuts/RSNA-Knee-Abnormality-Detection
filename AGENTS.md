@@ -144,3 +144,14 @@ private offlineT4 native epoch10 notebookv1 pushed ONCE, publicRUNNING.
 The finite finish coordinator handles exact acceptance then one code submission;
 inspect its intents/results and never duplicate it.
 Never repeat completed sampling submissions or native publications.
+
+## October2 09:00UTC native final code submission
+
+Exact native384 epoch10 code version1 was submitted ONCE as56770284 after
+full private Dataset and exact public MRI-only offlineT4 acceptance. Finite
+finish coordinator completed; never restart or duplicate it. Live3today/2slots;
+all three newest hidden outcomes/scores unreported. Current continuation and
+kaggle-native384-epoch10-v1 supersede earlier publicRUNNING observations.
+Native allten epochs preserved; internal gain unestablished, no native Kaggle
+score. Further training requires separately admitted inputs/config/funding,
+not a claim that a prepared idea is a job.

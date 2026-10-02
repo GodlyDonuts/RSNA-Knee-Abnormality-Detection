@@ -1,3 +1,32 @@
+## October2 09:03UTC: native384 final submitted once
+
+Native384 rank32 final code submission **56770284** was accepted ONCE at09:00UTC,
+exact private offlineT4 notebook godlydonuts/rsna-knee-native384-epoch10-24cf7a0c936e
+v1, Dataset12322320v1. All47 private payloads fully download/size/SHA verified;
+exact public MRI-only source/receipt/checkpoint/manifest/CSV/13columns/threeUIDs/
+finite probabilities/zero fallback checks passed. Only saved code submitted,
+never the public CSV. The finite finish coordinator completed successfully;
+never restart it or repeat any native Dataset/push/submission. Canonical ledger
+entry is submitted; live allowance3today/2slots. All three newest hidden
+outcomes/scores remain unreported, not failed or scored. Best actual solo0.792.
+Read kaggle-native384-epoch10-v1 submitted entry and live-after-native-submit.
+
+Native original867367 completed0:0; allten epochs privately fully verified once.
+Fixed-final internal0.8630558226 vs strictuniform2240.8606037925, delta+.00245203
+conditional95%[-.01422843,.01814998],1164undefined/4000draws: no established
+resolution gain. No protected gold/confirmation or source/masks/folds changed.
+Fresh funding after submission20.0264GiB/5085files after all obligations,
+exact74already charged native metadata inodes deducted once, no deletion.
+Further training requires fresh explicit checkpoint/publication funding; unused
+Kaggle slots alone do not justify a diagnostic or repeated weight submission.
+A native384 all-development final fit is a useful next eligible candidate to
+consider alongside matched resolution replication and evidence localization;
+it has NOT been prepared, funded or dispatched. It must keep the3403accepted
+training pool/reserved exclusions, fixed-final selection and exact numerical
+engine/native input/recovery/publication proofs. Do not reuse fold0 admission
+as proof of an all-development production launch. Stanford-derived models stay
+private and competition-unadmitted; original-image review is separate work.
+
 ## October2 08:16UTC: native384 completed, all ten checkpoints preserved
 
 Original 867367 COMPLETED0:0, tenepochs/2810contiguous finite updates. Allten
