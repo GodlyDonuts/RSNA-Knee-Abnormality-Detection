@@ -1,3 +1,9 @@
+The native384 all-development admission/recovery-dispatch source739379e small
+milestone is privately mirrored at HFd62bf70cd91124255a677f75504baee7df38f9a8; all39objects
+fully download/size/SHA verified under the canonical shared lock. Read
+hf-native384-all-admission-20261002-v1. Never repeat this mirror. Recovery868075
+remains lastPENDING(Resources), not accepted; full production is unsubmitted.
+
 ## October2: native384 all-development admission and bounded recovery
 
 The next RSNA-only final candidate is native384 rank32 trained from the pinned
