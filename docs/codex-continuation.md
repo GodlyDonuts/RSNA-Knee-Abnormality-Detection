@@ -8,6 +8,10 @@ official base, full3403/0 population and protected exclusions unchanged.
 Conservative fresh reserve20.0220GiB/5029shared files after all retained
 liabilities. At authenticated16:14UTC native56770284 still has null status/score/
 error; other new scores unchanged0.770/0.784, live3today/2slots. No Kaggle mutation.
+Sourcefab82cf and this distinct epoch2 progress/private-receipt milestone are
+privately mirrored at HF657058c10234418fc1c5bd934b078158505b46d9, all19small
+objects fully re-downloaded/size/SHA verified under the canonical shared lock.
+Read hf-native384-all-epoch2-20261002-v1; never repeat epoch1/2 or either mirror.
 
 Earlier October2 14:25UTC: original all-development production868093 completed
 epoch1/426updates and was training epoch2 with437contiguous finite updates, empty
