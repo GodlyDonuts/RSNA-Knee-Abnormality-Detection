@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 from pathlib import Path
 
 
@@ -28,11 +29,25 @@ def numerical_updates(records):
     return result
 
 
+def adapter_parameter_count(encoder, provenance):
+    learned = {name: p for name, p in encoder.named_parameters() if p.requires_grad}
+    adapter = provenance["adapter"]
+    if not learned or any(not n.endswith((".lora_A", ".lora_B")) for n in learned):
+        raise ValueError("only_declared_encoder_adapters_may_be_trainable")
+    count = sum(p.numel() for p in learned.values())
+    if count != adapter["trainable_parameters"] or len(learned) != 2 * len(
+        adapter["target_modules"]
+    ):
+        raise ValueError("actual_adapter_graph_must_equal_original_provenance")
+    return count
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     args = parser.parse_args()
     import torch
     from safetensors.torch import load_file
@@ -43,11 +58,11 @@ def main():
     from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
     from rsna.competitive.model import CompetitiveStudyNet
     from rsna.competitive.train import TrainConfig
-    from scripts.newton.verify_adapter_pilot import adapter_parameter_count, same
+    from scripts.newton.verify_adapter_pilot import same
 
     if args.output.exists() or args.output.is_symlink():
         raise FileExistsError("existing_recovery_receipt_requires_readonly_review")
-    torch.set_num_threads(2)
+    torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "1")))
     config = TrainConfig(**json.loads(args.config.read_text()))
     if (
         config.fit_scope != "all_development"
@@ -102,7 +117,7 @@ def main():
             encode_chunk_size=config.encode_chunk_size,
             slice_context=config.slice_context,
         )
-        .cuda()
+        .to(args.device)
         .eval()
     )
     guard = FrozenBaseDelta(model, provenance)
@@ -121,6 +136,7 @@ def main():
         args.output,
         {
             "status": "native384_all_development_actual_recovery_accepted",
+            "verification_device": args.device,
             "diagnostic_only": True,
             "clinical_accuracy_evaluated": False,
             "competition_submission_eligible": False,

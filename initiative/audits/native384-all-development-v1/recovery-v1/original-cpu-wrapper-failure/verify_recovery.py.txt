@@ -1,0 +1,67 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-native384-all-verify
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --nodelist=evc31
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=32G
+#SBATCH --time=00:30:00
+#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err
+set -euo pipefail
+umask 077
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+unset PYTHONPATH
+cd /home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e
+/usr/bin/python3.12 - <<'GATE_MANIFEST'
+import hashlib,json
+from pathlib import Path
+control=Path('/home/sa305415/rsna-knee/native384-all-recovery-verification-20261002-v1')
+manifest=json.loads((control/'files.json').read_text())
+for name,row in manifest['files'].items():
+ p=control/name
+ assert p.is_file() and not p.is_symlink() and p.stat().st_size==row['bytes']
+ assert hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+GATE_MANIFEST
+environment_root=
+cleanup_runtime() {
+  local previous_status="$?"
+  if [[ -n "$environment_root" ]]; then
+    /usr/bin/python3.12 /home/sa305415/rsna-knee/code-stopfix-1f486765/scripts/newton/runtime_environment.py cleanup --root "$environment_root" || previous_status=2
+  fi
+  return "$previous_status"
+}
+trap cleanup_runtime EXIT
+environment_json=$(/usr/bin/python3.12 /home/sa305415/rsna-knee/code-stopfix-1f486765/scripts/newton/runtime_environment.py extract --archive /home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar --sha256 89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338 --expected-files 40403 --expected-bytes 6322691335 --scratch-base /tmp --shared-python /usr/bin/python3.12 --min-free-gib 20)
+environment_root=$(/usr/bin/python3.12 -c 'import json,sys; print(json.load(sys.stdin)["runtime_root"])' <<< "$environment_json")
+runtime_python="$environment_root/environment/bin/python"
+"$runtime_python" - <<'ORIGINAL_TRAINING_OUTPUT_GUARD'
+import json,os,subprocess,shutil
+from pathlib import Path
+root=Path('/tmp/rsna-native384-all-recovery-20261002-v1');owner=json.loads((root/'owner.json').read_text())
+assert owner['job_id']=='868075' and owner['uid']==os.getuid() and owner['competition_eligible'] is False
+assert subprocess.check_output(['sacct','-X','-j','868075','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='868075|FAILED|1:0'
+for name in ('full','resumed','reference'):
+ p=root/name/'checkpoint.pt';assert p.is_file() and not p.is_symlink() and p.stat().st_uid==os.getuid()
+ r=json.loads((root/name/'result.json').read_text());assert r['status']=='completed' and r['optimizer_steps']==6 and r['metrics'] is None
+print('Original three completed arms retained; verifying without retraining',flush=True)
+ORIGINAL_TRAINING_OUTPUT_GUARD
+"$runtime_python" /home/sa305415/rsna-knee/native384-all-recovery-verification-20261002-v1/enforce_deterministic_runtime.py --script /home/sa305415/rsna-knee/native384-all-recovery-verification-20261002-v1/verify_recovery.py --root /tmp/rsna-native384-all-recovery-20261002-v1 --config /home/sa305415/rsna-knee/native384-all-recovery-verification-20261002-v1/pilot-config.json --output /home/sa305415/rsna-knee/native384-all-recovery-verification-20261002-v1/recovery-accepted.json --device cpu
+"$runtime_python" - <<'COLLECT_SMALL_ORIGINALS'
+from pathlib import Path
+import shutil,json,hashlib
+source=Path('/tmp/rsna-native384-all-recovery-20261002-v1');control=Path('/home/sa305415/rsna-knee/native384-all-recovery-verification-20261002-v1')
+for name in ('full','resumed','reference'):
+ for leaf in ('run.json','result.json','invocation.json'):
+  p=source/name/leaf;assert p.stat().st_size<256*1024;shutil.copyfile(p,control/(name+'-'+leaf))
+shutil.copyfile(source/'stopped-invocation.json',control/'stopped-invocation.json')
+files={}
+for p in source.rglob('*'):
+ assert not p.is_symlink()
+ if p.is_file():files[str(p.relative_to(source))]={'bytes':p.stat().st_size,'signature':[p.stat().st_dev,p.stat().st_ino,p.stat().st_size,p.stat().st_mtime_ns,p.stat().st_ctime_ns]}
+with (control/'retained-originals.json').open('x') as f:json.dump({'files':files,'retained_bytes':sum(x['bytes'] for x in files.values()),'new_training_updates':0,'original_gpu_job':'868075'},f,sort_keys=True,indent=2)
+print('Original numerical records and recovery verification preserved',flush=True)
+COLLECT_SMALL_ORIGINALS

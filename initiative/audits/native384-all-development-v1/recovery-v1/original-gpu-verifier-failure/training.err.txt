@@ -1,0 +1,47 @@
+E1002 07:03:04.733000 3060856 torch/distributed/elastic/multiprocessing/api.py:1002] failed (exitcode: 75) local_rank: 0 (pid: 3060876) of binary: /tmp/rsna-environment-868075-syhsqdl3/environment/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/rsna-environment-868075-syhsqdl3/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1142, in <module>
+    main()
+  File "/tmp/rsna-environment-868075-syhsqdl3/environment/lib64/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 380, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-868075-syhsqdl3/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1138, in main
+    run(args)
+  File "/tmp/rsna-environment-868075-syhsqdl3/environment/lib64/python3.12/site-packages/torch/distributed/run.py", line 1129, in run
+    elastic_launch(
+  File "/tmp/rsna-environment-868075-syhsqdl3/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 197, in __call__
+    return launch_agent(
+           ^^^^^^^^^^^^^
+  File "/tmp/rsna-environment-868075-syhsqdl3/environment/lib64/python3.12/site-packages/torch/distributed/launcher/api.py", line 386, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+/home/sa305415/rsna-knee/native384-all-development-20261002-v2/enforce_deterministic_runtime.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-10-02_07:03:04
+  host      : evc31.ucfarcc.org
+  rank      : 0 (local_rank: 0)
+  exitcode  : 75 (pid: 3060876) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+Traceback (most recent call last):
+  File "/home/sa305415/rsna-knee/native384-all-development-20261002-v2/enforce_deterministic_runtime.py", line 71, in <module>
+    main()
+  File "/home/sa305415/rsna-knee/native384-all-development-20261002-v2/enforce_deterministic_runtime.py", line 67, in main
+    runpy.run_path(str(args.script), run_name="__main__")
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/sa305415/rsna-knee/native384-all-development-20261002-v2/verify_recovery.py", line 148, in <module>
+    main()
+  File "/home/sa305415/rsna-knee/native384-all-development-20261002-v2/verify_recovery.py", line 46, in main
+    from scripts.newton.verify_adapter_pilot import adapter_parameter_count, same
+ImportError: cannot import name 'adapter_parameter_count' from 'scripts.newton.verify_adapter_pilot' (/lustre/fs1/home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e/scripts/newton/verify_adapter_pilot.py)

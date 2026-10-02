@@ -13,7 +13,7 @@ from scripts.newton.admit_native384_all_development import (
     validate_config,
     verify_population,
 )
-from scripts.newton.verify_native384_all_recovery import numerical_updates
+from scripts.newton.verify_native384_all_recovery import adapter_parameter_count, numerical_updates
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -104,3 +104,27 @@ def test_numerical_recovery_evidence_keeps_gradient_and_loss_excluding_only_timi
     rows[0]["loss"] = float("nan")
     with pytest.raises(ValueError):
         numerical_updates(rows)
+
+
+def test_recovery_verifier_checks_actual_adapter_graph_without_newer_source_helper():
+    import torch
+
+    class Encoder:
+        def named_parameters(self):
+            return iter(self.parameters)
+
+    encoder = Encoder()
+    encoder.parameters = [
+        ("projection.lora_A", torch.nn.Parameter(torch.zeros(2, 4))),
+        ("projection.lora_B", torch.nn.Parameter(torch.zeros(4, 2))),
+        ("projection.base", torch.nn.Parameter(torch.zeros(4, 4), requires_grad=False)),
+    ]
+    provenance = {"adapter": {"trainable_parameters": 16, "target_modules": ["projection"]}}
+    assert adapter_parameter_count(encoder, provenance) == 16
+    with pytest.raises(ValueError, match="actual_adapter_graph"):
+        adapter_parameter_count(
+            encoder, {"adapter": {"trainable_parameters": 15, "target_modules": ["projection"]}}
+        )
+    encoder.parameters.append(("unexpected", torch.nn.Parameter(torch.ones(1))))
+    with pytest.raises(ValueError, match="only_declared_encoder"):
+        adapter_parameter_count(encoder, provenance)

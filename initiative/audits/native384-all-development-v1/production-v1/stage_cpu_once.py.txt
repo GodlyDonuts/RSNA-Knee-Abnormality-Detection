@@ -1,0 +1,55 @@
+import base64,hashlib,json,os,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();a=root/'initiative/audits/native384-all-development-v1/production-v1';l=root/'artifacts/native384-all-production-v1';control='/home/sa305415/rsna-knee/production-launch-native384-all-c9-v1'
+def save(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+def remote(code,payload):
+ p=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',code])],input=json.dumps(payload),capture_output=True,text=True,timeout=60)
+ if p.returncode:raise RuntimeError(p.stderr[-5000:])
+ return json.loads(p.stdout)
+s=(root/'initiative/audits/native384-all-development-v1/recovery-v1/verification-cpu-v2/verify.sbatch.txt').read_text();s=s.replace('rsna-native384-all-verify','rsna-native384-all-live-precheck').replace('native384-all-recovery-verification-20261002-v2','production-launch-native384-all-c9-v1').replace("manifest=json.loads((control/'files.json').read_text())","manifest=json.loads((control/'production-files.json').read_text())")
+i=s.index('"$runtime_python" - <<\'ORIGINAL_TRAINING_OUTPUT_GUARD\'');s=s[:i]+f'"$runtime_python" {control}/admit_native384_all_production.py --check-only > {control}/live-precheck.json\n';(a/'precheck.sbatch.txt').write_text(s)
+sourcefiles={
+ 'production.sbatch':a/'production.sbatch.txt','precheck.sbatch':a/'precheck.sbatch.txt',
+ 'config.json':a.parent/'config.json','admit_native384_all_production.py':root/'scripts/newton/admit_native384_all_production.py',
+ 'publish_native384_all_epoch.py':root/'scripts/hf/publish_native384_all_epoch.py',
+ 'enforce_deterministic_runtime.py':root/'initiative/audits/native384-deterministic-runtime-v1/verified-v2/enforce_deterministic_runtime.py',
+ 'all-development-input-provenance.json':a.parent/'inputs-v2/inputs-accepted.json',
+ 'recovery-accepted.json':a.parent/'recovery-v1/verification-cpu-v2/recovery-accepted.json'}
+m={'scientific_source_git':'c9fcc7eefb09103942be89bf4fa87410eb9ec5ab','control':control,'run':'/tmp/rsna-native384-all-production-20261002-v1','checkpoint_cap_bytes':3*2**30,'files':{n:{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size,'local_source':str(p.relative_to(root))} for n,p in sourcefiles.items()},'all_epochs_require_private_full_download_verification':True,'publisher_sha256':hashlib.sha256(sourcefiles['publish_native384_all_epoch.py'].read_bytes()).hexdigest(),'publication_prefix':'experiments/dinov3-v1/training-epochs/adapter-a32-native384-all-development-c9fcc7e-seed20260922'};save(a/'production-files.json',m)
+probe='''import json,sys,os,subprocess,hashlib
+from pathlib import Path
+r=json.load(sys.stdin);b=Path('/home/sa305415/rsna-knee');assert not Path(r['control']).exists()
+proof=b/'native384-all-recovery-verification-20261002-v2/recovery-accepted.json';assert hashlib.sha256(proof.read_bytes()).hexdigest()=='b5e8d92e50792c217b59f7ebea959744e35e365e7a7af40dfe321db7891d57a4'
+for job in ('868089','866458','867348','867367'):
+ assert subprocess.check_output(['sacct','-X','-j',job,'--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()==job+'|COMPLETED|0:0'
+original=b/'production-launch-native384-a32-c9-v1';journals=[]
+for n in range(1,11):
+ j=original/('epoch-publication/epoch-'+str(n).zfill(3));v=json.loads((j/'verified.json').read_text());c=json.loads((j/'commit-result.json').read_text());assert v['status']=='private_epoch_fully_verified' and v['epoch']==n and v['files_verified_by_download']==5 and v['revision']==c['revision'];journals.append({'epoch':n,'receipt_sha256':hashlib.sha256((j/'verified.json').read_bytes()).hexdigest(),'revision':v['revision']})
+paid={}
+for d in (b/'native384-all-development-20261002-v1',b/'native384-all-development-20261002-v2',b/'native384-all-recovery-verification-20261002-v1',b/'native384-all-recovery-verification-20261002-v2'):
+ for p in [d,*d.rglob('*')]:
+  assert not p.is_symlink();s=p.stat();assert s.st_uid==os.getuid();paid[(s.st_dev,s.st_ino)]=s.st_size
+for job,kind in [('868073','inputs'),('868074','inputs'),('868075','recovery'),('868088','verify'),('868089','verify')]:
+ for suffix in ('out','err'):
+  p=b/('logs/rsna-native384-all-'+kind+'-'+job+'.'+suffix);s=p.stat();paid[(s.st_dev,s.st_ino)]=s.st_size
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,n,limit=[int(q[i]) for i in (1,2,5,6)]
+oldfuture=(1048576000-1026221136)*1024-int(round(20.02636663801968*2**30));future=oldfuture+2*2**20-sum(paid.values())+2*2**20;futurefiles=916+80-len(paid)+128-170
+remaining=(soft-used)*1024-future;slots=limit-n-futurefiles;assert remaining>=20*2**30 and slots>=5000,(remaining/2**30,slots)
+queue=subprocess.check_output(['squeue','-h','-u','sa305415','-o','%i|%T|%j|%b|%N'],text=True).splitlines();gpu=[v for v in queue if 'gpu' in v.split('|')[3]];assert len(gpu)<2
+print(json.dumps({'used_kB':used,'soft_kB':soft,'used_files':n,'file_soft':limit,'old_future_shared_bytes':oldfuture,'future_shared_bytes':future,'future_shared_files':futurefiles,'already_paid_old_metadata_bytes':sum(paid.values()),'already_paid_old_metadata_inodes':len(paid),'old_metadata_cap_bytes':2*2**20,'old_metadata_cap_files':80,'new_production_publication_cap_bytes':2*2**20,'new_production_publication_cap_files':128,'retired_completed_original_native_future_files':170,'retained_original_native_closeout_future_files':20,'original_all10_private_receipts':journals,'remaining_gib':remaining/2**30,'remaining_files':slots,'actual_gpu_jobs':gpu,'node_local_production_checkpoint_cap_bytes':3*2**30,'node_local_environment_cap_bytes':7*2**30,'node_local_reserve_bytes':20*2**30,'deletion_credit_bytes':0,'production_dispatched':False}))'''
+state=remote(probe,{'control':control});save(a/'funding.json',state)
+blobs={n:base64.b64encode(p.read_bytes()).decode() for n,p in sourcefiles.items()};blobs['production-files.json']=base64.b64encode((a/'production-files.json').read_bytes()).decode()
+save(l/'cpu-dispatch-intent.json',{'control':control,'manifest_sha256':hashlib.sha256((a/'production-files.json').read_bytes()).hexdigest(),'funding':state,'automatic_retry':False})
+code='''import base64,json,sys,os,subprocess
+from pathlib import Path
+r=json.load(sys.stdin);c=Path(r['control']);c.mkdir(mode=0o700)
+for name,value in r['blobs'].items():
+ assert Path(name).name==name
+ with (c/name).open('xb') as f:f.write(base64.b64decode(value))
+with (c/'cpu-dispatch-intent.json').open('x') as f:json.dump(r['intent'],f,indent=2,sort_keys=True);f.flush();os.fsync(f.fileno())
+job=subprocess.check_output(['sbatch','--parsable',str(c/'precheck.sbatch')],text=True).strip().split(';')[0];assert job.isdecimal()
+out={'status':'native384_all_development_live_cpu_precheck_dispatched_once','job_id':job,'control':str(c),'production_dispatched':False}
+with (c/'cpu-dispatch-result.json').open('x') as f:json.dump(out,f,indent=2,sort_keys=True);f.flush();os.fsync(f.fileno())
+print(json.dumps(out))'''
+out=remote(code,{'control':control,'blobs':blobs,'intent':json.loads((l/'cpu-dispatch-intent.json').read_text())});save(l/'cpu-dispatch-result.json',out);save(a/'cpu-dispatch-intent.json',json.loads((l/'cpu-dispatch-intent.json').read_text()));save(a/'cpu-dispatch-result.json',out);print(json.dumps(out))

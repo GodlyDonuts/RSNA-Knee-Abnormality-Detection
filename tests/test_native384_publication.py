@@ -300,3 +300,78 @@ def test_completed_epoch_cannot_be_preserved_with_wrong_native_input_provenance(
     path.write_text(json.dumps(native))
     with pytest.raises(ValueError):
         publisher.source_files(*inputs)
+
+
+all_publisher = load("native384_all_publisher_test", "publish_native384_all_epoch.py")
+
+
+@pytest.mark.parametrize("fault", [None, "old_fold", "old_steps", "missing_roster", "wrong_roster"])
+def test_all_development_publisher_requires_new_population_and_admission(
+    candidate, monkeypatch, fault
+):
+    from scripts.newton import admit_native384_all_production as all_admission
+
+    run, snapshot, code, license_file, record, meta = candidate
+    run.chmod(0o700)
+    (run / "owner.json").write_text(json.dumps({"uid": all_publisher.os.getuid()}))
+    monkeypatch.setattr(all_publisher, "RUN", run.resolve())
+    monkeypatch.setattr(all_publisher.os, "uname", lambda: SimpleNamespace(nodename="evc31"))
+    monkeypatch.setattr(all_publisher, "LICENSE_SHA", all_publisher.sha(license_file))
+    proof = run / "all-development-input-provenance.json"
+    proof.write_text('{"fixture": "no actual clinical training"}')
+    monkeypatch.setattr(all_publisher, "INPUT_RECEIPT_SHA", all_publisher.sha(proof))
+    record.update(training_studies=3403, outer_studies=0)
+    record["binding"].update(all_publisher.EXPECTED_BINDING_FIELDS)
+    record["binding"]["config"] = all_publisher.expected_training_config()
+    meta["optimizer_steps"] = 426
+    native = {
+        "status": "native384_all_development_production_inputs_and_cuda_accepted",
+        "scientific_source_git": all_admission.SCIENCE,
+        "config_sha256": all_admission.CONFIG_SHA,
+        "input_receipt_sha256": all_admission.INPUT_SHA,
+        "recovery_receipt_sha256": all_admission.RECOVERY_SHA,
+        "deterministic_wrapper_sha256": all_admission.WRAPPER_SHA,
+        "node": "evc31",
+        "training_studies": 3403,
+        "outer_studies": 0,
+        "members": 37812,
+        "training_uids_sha256": all_publisher.EXPECTED_BINDING_FIELDS["training_uids_sha256"],
+        "outer_uids_sha256": all_publisher.EXPECTED_BINDING_FIELDS["outer_uids_sha256"],
+        "steps_per_epoch": 426,
+        "fixed_final_optimizer_steps": 4260,
+        "original_all_byte_proof_reused": True,
+        "all_original_signatures_unchanged": True,
+        "strict_deterministic_algorithms": True,
+        "cuda_context_verified": True,
+        "torch_version": "2.14.0+cu130",
+        "gpu_count": 1,
+        "cpus": 2,
+        "protected_evaluation_used": False,
+        "training_job_id": "123",
+        "admission_source_sha256": all_publisher.ADMISSION_SHA,
+        "original_registry_sha256": "a" * 64,
+        "signatures_sha256": "b" * 64,
+    }
+    (run / "native-input-provenance.json").write_text(json.dumps(native))
+    if fault == "old_fold":
+        record["binding"]["config"]["fit_scope"] = "outer_fold"
+        record.update(training_studies=2247, outer_studies=1156)
+    elif fault == "old_steps":
+        meta["optimizer_steps"] = 281
+    elif fault == "missing_roster":
+        record["binding"]["training_uids_sha256"] = "0" * 64
+    elif fault == "wrong_roster":
+        proof.write_text('{"fixture": "changed roster"}')
+    inputs = write_candidate(candidate)
+    if fault:
+        with pytest.raises(ValueError):
+            all_publisher.source_files(*inputs)
+    else:
+        manifest, files = all_publisher.source_files(*inputs)
+        assert manifest["fit_scope"] == "all_development"
+        assert manifest["optimizer_steps"] == 426
+        assert "all-development-input-provenance.json" in files
+        assert all_publisher.ADMISSION_SHA == all_publisher.sha(
+            ROOT / "scripts/newton/admit_native384_all_production.py"
+        )
+        assert "no_internal_evaluation" in manifest["internal_evaluation_policy"]

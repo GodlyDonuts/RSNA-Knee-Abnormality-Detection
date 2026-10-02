@@ -1,3 +1,37 @@
+## October2 current: actual sampling scores and new native all-development fit
+
+Kaggle uniform224 final56766962 scored **0.770**; stratified224 final56767196
+scored **0.784**. Their hidden reruns completed without error. Both remain below
+all-development224 rank32 **0.792**. Internal sampling was near null; this one
+public +.014 difference does not establish a reproducible causal gain. Native384
+fold0 final56770284 is still unreported in the latest authenticated receipt.
+All three canonical entries were reconciled read-only under the single coordinator;
+no competition mutation was repeated. Live3today/2slots. Read sampling outcome audit.
+
+Original all-development recovery GPU868075 completed every numerical arm but
+failed importing a helper missing from frozen C9. CPU868088 then failed before
+verification on a missing strict-runtime environment variable. Both originals
+are preserved. Distinct owning-node CPU868089 actually completed0:0 and verifies
+complete model/base/AdamW/LR/counter/allRNG/update equality across uninterrupted,
+stop1/resume and full-storage reference. All415 official base tensors unchanged,
+120 residual modules learned; masked final one-study tail exercised. No training
+arm was repeated or clinical/competition metric claimed.
+
+Actual live CPU868091 completed0:0 with full3403 roster/cache/source review.
+Distinct full native384 rank32 all-development production868093 was dispatched
+ONCE: 1H100/2CPU evc31,10epochs/4260updates, warmup213. Exact C9/officialbase/
+accepted masks and protected exclusions unchanged. Unique private node-local
+output /tmp/rsna-native384-all-production-20261002-v1; control
+/home/sa305415/rsna-knee/production-launch-native384-all-c9-v1. Actual allocation, CUDA/device/header and full-population/source admission passed;
+initial optimizer progress is not yet observed. Never repeat it. The new production audit
+and pinned all-development publisher/coordinator supersede fold0 publication
+assumptions. Preserve every completed epoch privately once/full six-object
+re-download/SHA under canonical lock and owning-node CPU allocation. Three GiB
+node-local checkpoint cap; shared controls/publication2MiB/128 inodes funded,
+no deletion. Fresh accounting retires only170 completed original future file
+obligations, retaining20 closeout files and all original artifacts. Stanford
+source-derived weights remain private and independent of this RSNA-only fit.
+
 The native384 all-development admission/recovery-dispatch source739379e small
 milestone is privately mirrored at HFd62bf70cd91124255a677f75504baee7df38f9a8; all39objects
 fully download/size/SHA verified under the canonical shared lock. Read

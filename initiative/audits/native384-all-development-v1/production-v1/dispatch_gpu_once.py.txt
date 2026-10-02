@@ -1,0 +1,34 @@
+import hashlib,json,os,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();a=root/'initiative/audits/native384-all-development-v1/production-v1';l=root/'artifacts/native384-all-production-v1';m=json.loads((a/'production-files.json').read_text());control=m['control']
+def save(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+def remote(code,value):
+ p=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',code])],input=json.dumps(value),capture_output=True,text=True,timeout=60)
+ if p.returncode:raise RuntimeError(p.stderr[-4000:])
+ return json.loads(p.stdout)
+probe='''import json,sys,subprocess,hashlib,os
+from pathlib import Path
+r=json.load(sys.stdin);c=Path(r['control']);actual=subprocess.check_output(['sacct','-X','-j','868091','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode,Elapsed,NodeList'],text=True).strip();assert actual.startswith('868091|COMPLETED|0:0|')
+assert not (c/'gpu-dispatch-intent.json').exists();p=c/'live-precheck.json';pre=json.loads(p.read_text());assert pre['status']=='native384_all_development_live_cpu_precheck_passed' and pre['local_free_bytes']>(20+7+3)*2**30
+manifest=json.loads((c/'production-files.json').read_text());assert hashlib.sha256((c/'production-files.json').read_bytes()).hexdigest()==r['manifest_sha256']
+for name,row in manifest['files'].items():
+ p=c/name;assert p.is_file() and not p.is_symlink() and p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+queue=subprocess.check_output(['squeue','-h','-u','sa305415','-o','%i|%T|%j|%b|%N'],text=True).splitlines();gpu=[v for v in queue if 'gpu' in v.split('|')[3]];assert len(gpu)<2
+paid={}
+for p in [c,*c.rglob('*'),Path('/home/sa305415/rsna-knee/logs/rsna-native384-all-live-precheck-868091.out'),Path('/home/sa305415/rsna-knee/logs/rsna-native384-all-live-precheck-868091.err')]:
+ assert not p.is_symlink();s=p.stat();assert s.st_uid==os.getuid();paid[(s.st_dev,s.st_ino)]=s.st_size
+assert sum(paid.values())<2*2**20 and len(paid)<128
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,n,limit=[int(q[i]) for i in (1,2,5,6)];fund=r['funding'];future=fund['future_shared_bytes']-sum(paid.values());futurefiles=fund['future_shared_files']-len(paid);gib=((soft-used)*1024-future)/2**30;slots=limit-n-futurefiles;assert gib>=20 and slots>=5000,(gib,slots)
+print(json.dumps({'terminal':actual,'precheck':pre,'precheck_sha256':hashlib.sha256((c/'live-precheck.json').read_bytes()).hexdigest(),'used_kB':used,'soft_kB':soft,'used_files':n,'file_soft':limit,'future_shared_bytes':future,'future_shared_files':futurefiles,'already_paid_new_metadata_bytes':sum(paid.values()),'already_paid_new_metadata_inodes':len(paid),'remaining_gib':gib,'remaining_files':slots,'gpu_jobs':gpu,'deletion_credit_bytes':0}))'''
+state=remote(probe,{'control':control,'manifest_sha256':hashlib.sha256((a/'production-files.json').read_bytes()).hexdigest(),'funding':json.loads((a/'funding.json').read_text())});save(a/'live-precheck-and-funding.json',state);save(a/'live-precheck.json',state['precheck'])
+accept={'status':'native384_all_development_production_prerequisites_verified','scientific_source_git':m['scientific_source_git'],'production_manifest_sha256':hashlib.sha256((a/'production-files.json').read_bytes()).hexdigest(),'input_receipt_sha256':'dc70ab477aad8db956ea276ef656508f7cab3860586a1916f723ceab44800961','recovery_receipt_sha256':'b5e8d92e50792c217b59f7ebea959744e35e365e7a7af40dfe321db7891d57a4','actual_input_cpu_job':'868074','actual_recovery_verification_cpu_job':'868089','original_numerical_training_job':'868075','actual_live_precheck_job':'868091','projected_remaining_gib':state['remaining_gib'],'projected_remaining_files':state['remaining_files'],'maximum_gpu_nodes_after_dispatch':len(state['gpu_jobs'])+1,'cpus':2,'gpus':1,'epochs':10,'training_studies':3403,'outer_studies':0,'updates':4260,'node_local_checkpoint_cap_bytes':3*2**30,'publisher_sha256':m['publisher_sha256'],'each_epoch_private_full_download_hash_required':True,'protected_evaluation_used':False,'no_clinical_score_claimed':True,'automatic_retry':False};save(a/'agent-engineering-decision.json',accept);save(l/'gpu-dispatch-intent.json',{'control':control,'output':m['run'],'acceptance':accept,'automatic_retry':False})
+code='''import json,sys,os,subprocess
+from pathlib import Path
+r=json.load(sys.stdin);c=Path(r['control']);assert not (c/'gpu-dispatch-intent.json').exists()
+def save(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\\n');f.flush();os.fsync(f.fileno())
+save(c/'dispatch-acceptance.json',r['acceptance']);save(c/'gpu-dispatch-intent.json',{'manifest_sha256':r['acceptance']['production_manifest_sha256'],'automatic_retry':False})
+job=subprocess.check_output(['sbatch','--parsable',str(c/'production.sbatch')],text=True).strip().split(';')[0];assert job.isdecimal()
+out={'status':'native384_all_development_production_dispatched_once','job_id':job,'control':str(c),'output':'/tmp/rsna-native384-all-production-20261002-v1','epochs':10,'optimizer_updates':4260,'training_studies':3403,'outer_studies':0,'gpus':1,'cpus':2,'automatic_retry':False};save(c/'gpu-dispatch-result.json',out);print(json.dumps(out))'''
+out=remote(code,{'control':control,'acceptance':accept});save(l/'gpu-dispatch-result.json',out);save(a/'gpu-dispatch-intent.json',json.loads((l/'gpu-dispatch-intent.json').read_text()));save(a/'gpu-dispatch-result.json',out);print(json.dumps(out))
