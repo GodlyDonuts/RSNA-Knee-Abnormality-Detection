@@ -283,6 +283,104 @@ def supersede_failed_submission_kernel(workflow, remote, db, op, expected_old_sh
     workflow.save_entry(db, entry, "preserved exact failed hidden submission for corrected push")
 
 
+def dataset_publication_binding(op, operation_file, original_file):
+    """Reuse one byte-verified Dataset only for a runtime/identity-only notebook correction."""
+    expected = op.get("dataset_publication_operation_sha256")
+    if expected is None:
+        if original_file is not None:
+            raise ValueError("Unexpected original Dataset operation")
+        return p.digest(operation_file)
+    if original_file is None or p.digest(original_file) != expected:
+        raise ValueError("Original Dataset operation proof is missing or changed")
+    original = json.loads(original_file.read_text())
+    extras = {
+        "runtime_image",
+        "runtime_reference_checkpoint_sha256",
+        "dataset_publication_operation_sha256",
+    }
+    if (
+        set(op) - extras != set(original)
+        or any(
+            op[k] != original[k]
+            for k in original
+            if k not in {"kernel_slug", "kernel_metadata_sha256"}
+        )
+        or op["kernel_slug"] == original["kernel_slug"]
+    ):
+        raise ValueError("Runtime correction changed the byte-verified Dataset or inference source")
+    return expected
+
+
+def supersede_failed_public_runtime(workflow, remote, db, op, expected_old_sha):
+    """Archive exact unsubmitted public ERROR; pin the runtime of an accepted reference."""
+    db.execute("BEGIN IMMEDIATE")
+    workflow.verify_account(db, remote)
+    entry = workflow.read_entry(db, op["checkpoint_sha256"])
+    old = entry.get("operation", {})
+    if (
+        entry.get("state") != "pushed"
+        or entry.get("submission_id") is not None
+        or entry.get("operation_sha256") != expected_old_sha
+        or op.get("dataset_publication_operation_sha256") != expected_old_sha
+        or not entry.get("kernel_version")
+        or old.get("kernel_slug") == op["kernel_slug"]
+    ):
+        raise ValueError("Only the exact unsubmitted failed public runtime can be superseded")
+    if workflow.check_kernel(remote, entry, entry["kernel_version"]).get("status") != "ERROR":
+        raise ValueError("Original public notebook is not terminal ERROR")
+    reference = workflow.read_entry(db, op["runtime_reference_checkpoint_sha256"])
+    if (
+        workflow.check_kernel(remote, reference, reference["kernel_version"]).get("status")
+        != "COMPLETE"
+    ):
+        raise ValueError("Reference runtime has no completed exact public execution")
+    reference_op = reference["operation"]
+    metadata = remote.kernel("GetKernel", reference_op["kernel_slug"], reference["kernel_version"])[
+        "metadata"
+    ]
+    receipt = remote.output_json(
+        reference_op["kernel_slug"], reference["kernel_version"], "kaggle-inference-receipt.json"
+    )
+    if (
+        metadata.get("dockerImage") != op.get("runtime_image")
+        or reference_op.get("shared_wheelhouse") != op.get("shared_wheelhouse")
+        or receipt.get("status") != "offline_inference_complete"
+        or receipt.get("checkpoint_sha256") != reference["checkpoint_sha256"]
+        or receipt.get("bundle_manifest_sha256") != reference_op["manifest_sha256"]
+    ):
+        raise ValueError("Runtime pin does not bind the accepted offline reference")
+    history = entry.get("superseded_operations", [])
+    if not isinstance(history, list) or any(
+        x.get("operation_sha256") == expected_old_sha for x in history
+    ):
+        raise ValueError("Original runtime failure is already preserved or ambiguous")
+    entry["superseded_operations"] = [
+        *history,
+        {
+            "operation": old,
+            "operation_sha256": expected_old_sha,
+            "kernel_version": entry["kernel_version"],
+            "dataset": entry["dataset"],
+            "state": "failed_public_runtime_unsubmitted",
+            "remote_status": "ERROR",
+            "accepted_runtime_reference_checkpoint_sha256": reference["checkpoint_sha256"],
+            "accepted_runtime_image": op["runtime_image"],
+        },
+    ]
+    for key in (
+        "kernel_version",
+        "kernel_absence_proof",
+        "dataset",
+        "operation",
+        "operation_sha256",
+    ):
+        entry.pop(key, None)
+    entry["state"] = "queued"
+    workflow.save_entry(
+        db, entry, "preserved exact failed public runtime before distinct pinned-image push"
+    )
+
+
 def management_create(python):
     def create(token, slug, title, upload):
         request = {
@@ -319,6 +417,16 @@ def run(args):
         args.projection, args.projection_manifest, args.projection_sha256
     )
     op, meta, files = validate_operation(workflow, args)
+    if op.get("dataset_publication_operation_sha256") is not None and args.action not in {
+        "push-runtime-corrected-kernel",
+        "submit",
+    }:
+        raise ValueError(
+            "Verified Dataset reuse is limited to a runtime correction and its submission"
+        )
+    publication_sha = dataset_publication_binding(
+        op, args.operation, getattr(args, "dataset_publication_operation", None)
+    )
     journal = publication_journal(base, meta, op, args.publication_revision)
     journal.mkdir(mode=0o700, parents=True, exist_ok=True)
     with single_coordinator(base):
@@ -341,9 +449,9 @@ def run(args):
             p.exclusive_json(journal / "transport.json", record)
             return record
         transport = json.loads((journal / "transport.json").read_text())
-        if (
-            transport["operation_sha256"] != p.digest(args.operation)
-            or transport["projection_sha256"] != args.projection_sha256
+        if transport["operation_sha256"] != publication_sha or (
+            op.get("dataset_publication_operation_sha256") is None
+            and transport["projection_sha256"] != args.projection_sha256
         ):
             raise ValueError("Transport identity changed")
         upload, _ = upload_location(args, journal, meta["checkpoint_sha256"], transport)
@@ -394,7 +502,7 @@ def run(args):
         if (
             proof.get("status") != "all_payload_bytes_verified"
             or proof.get("files") != files
-            or proof.get("operation_sha256") != p.digest(args.operation)
+            or proof.get("operation_sha256") != publication_sha
             or proof.get("intent_sha256") != p.digest(journal / "intent.json")
         ):
             raise ValueError("Full byte verification is missing or mismatched")
@@ -416,6 +524,14 @@ def run(args):
                 if not args.publication_revision or not args.superseded_operation_sha256:
                     raise ValueError("Failed-submission correction needs exact prior operation")
                 supersede_failed_submission_kernel(
+                    workflow, remote, db, op, args.superseded_operation_sha256
+                )
+                return workflow.push(remote, db, args.operation)
+            if args.action == "push-runtime-corrected-kernel":
+                if not args.superseded_operation_sha256:
+                    raise ValueError("Runtime correction requires the exact prior operation")
+                workflow.kernel_request(args.operation, op)
+                supersede_failed_public_runtime(
                     workflow, remote, db, op, args.superseded_operation_sha256
                 )
                 return workflow.push(remote, db, args.operation)
@@ -442,6 +558,7 @@ def main():
             "push-kernel",
             "push-corrected-kernel",
             "push-after-failed-submission",
+            "push-runtime-corrected-kernel",
             "submit",
         ],
     )
@@ -450,6 +567,7 @@ def main():
     parser.add_argument("--projection-sha256", required=True)
     parser.add_argument("--publication-revision", action="store_true")
     parser.add_argument("--superseded-operation-sha256")
+    parser.add_argument("--dataset-publication-operation", type=Path)
     parser.add_argument("--management-python", type=Path)
     parser.add_argument("--node-local-upload-root", type=Path)
     args = parser.parse_args()

@@ -25,6 +25,7 @@ FLOOR = 20 * 1024**3
 ROOT = Path(__file__).resolve().parents[2]
 SHA = re.compile(r"[0-9a-f]{64}")
 SLUG = re.compile(r"[a-z0-9_-]+/[a-z0-9-]+")
+RUNTIME_IMAGE = re.compile(r"gcr\.io/kaggle(?:-private-byod|-images)/python@sha256:[0-9a-f]{64}")
 
 
 def canonical(value):
@@ -560,8 +561,11 @@ def prepare_bundle(
     license_sha256,
     repo=ROOT,
     shared_wheelhouse=None,
+    runtime_image=None,
 ):
     """Local only. Requires real epoch + completed Linux wheel lock; no placeholders."""
+    if runtime_image is not None and not RUNTIME_IMAGE.fullmatch(runtime_image):
+        raise ValueError("An exact Kaggle runtime image digest is required")
     if not SLUG.fullmatch(dataset_slug) or not SLUG.fullmatch(kernel_slug):
         raise ValueError("Use explicit owner/slug identifiers")
     meta, binding, checkpoint = validate_snapshot(sidecar, repo)
@@ -730,6 +734,8 @@ def prepare_bundle(
         "kernel_sources": [],
         "model_sources": [],
     }
+    if runtime_image is not None:
+        kernel_meta.update(docker_image=runtime_image, docker_image_pinning_type="original")
     new_json(kernel / "kernel-metadata.json", kernel_meta)
     operation = {
         "schema_version": 1,
@@ -747,6 +753,8 @@ def prepare_bundle(
         "kernel_path": "kernel",
         "prepared_at": utcnow(),
     }
+    if runtime_image is not None:
+        operation["runtime_image"] = runtime_image
     new_json(output / "operation.json", operation)
     return operation
 
@@ -880,7 +888,7 @@ def kernel_request(operation_path, operation):
         or meta["competition_sources"] != [COMPETITION]
     ):
         raise ValueError("Unexpected notebook identity or sources")
-    return {
+    request = {
         "slug": meta["id"],
         "newTitle": meta["title"],
         "text": (operation_path.parent / "kernel/run.py").read_text(),
@@ -894,6 +902,19 @@ def kernel_request(operation_path, operation):
         "competitionDataSources": [COMPETITION],
         "sessionTimeoutSeconds": 32400,
     }
+
+    image = meta.get("docker_image")
+    pinning = meta.get("docker_image_pinning_type")
+    if image is not None or pinning is not None or operation.get("runtime_image") is not None:
+        if (
+            not isinstance(image, str)
+            or not RUNTIME_IMAGE.fullmatch(image)
+            or pinning != "original"
+            or operation.get("runtime_image") != image
+        ):
+            raise ValueError("Kernel runtime pin differs from its bound exact image")
+        request.update(dockerImage=image, dockerImagePinningType=pinning)
+    return request
 
 
 @rollback_on_error
@@ -946,6 +967,7 @@ def check_kernel(remote, entry, version):
         or meta.get("machineShape") != "NvidiaTeslaT4"
         or meta.get("competitionDataSources") != [COMPETITION]
         or meta.get("datasetDataSources") != dataset_sources(op)
+        or (op.get("runtime_image") is not None and meta.get("dockerImage") != op["runtime_image"])
         or hashlib.sha256(source.encode()).hexdigest() != op["kernel_source_sha256"]
     ):
         raise ValueError("Remote kernel is not the exact prepared private offline source")
@@ -1136,6 +1158,7 @@ def main():
     for name in ("snapshot", "encoder-spec", "wheelhouse", "output", "license-file"):
         p.add_argument("--" + name, required=True, type=Path)
     p.add_argument("--shared-wheelhouse", type=Path)
+    p.add_argument("--runtime-image")
     p.add_argument("--dataset-slug", required=True)
     p.add_argument("--kernel-slug", required=True)
     p.add_argument("--license-source", required=True)
@@ -1167,6 +1190,7 @@ def main():
                 args.license_source,
                 args.license_sha256,
                 shared_wheelhouse=args.shared_wheelhouse,
+                runtime_image=args.runtime_image,
             )
         else:
             with ledger(args.ledger, args.account) as db:
