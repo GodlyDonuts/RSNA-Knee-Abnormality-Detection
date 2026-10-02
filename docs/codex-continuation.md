@@ -29,6 +29,12 @@ remain absent. No new transfer GPU or Kaggle submission. At most twoGPU nodes,
 minimum CPUs; actual fresh quota governs new work and no deletion credit.
 Current original receipts supersede older running/source-unstarted snapshots.
 
+Source-final/native-six small milestone Gitf6e9834 privately mirrored at
+HFb00fb8093a9d2341ef12f4ac282230685dd241e3, all32objects fully
+re-downloaded/size/SHA verified once under canonical shared lock. Read
+hf-stanford-final-native6-20261002-v1. No Stanford pixels/labels/case IDs/
+predictions/signatures/candidates/weights mirrored; never repeat.
+
 ## October2 01:58UTC: actual Stanford fitting and native epoch4 preserved
 
 Original native867367 remains RUNNING on evc31,1328finite updates,epoch5 in
