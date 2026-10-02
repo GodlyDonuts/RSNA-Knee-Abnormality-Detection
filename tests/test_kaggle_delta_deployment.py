@@ -152,6 +152,27 @@ def test_delta_packaging_rejects_a_different_original_base(tmp_path, monkeypatch
         workflow.validate_delta_base(args.checkpoint, spec, state["binding"])
 
 
+def test_legacy_delta_packaging_does_not_import_a_later_relation_architecture(
+    tmp_path, monkeypatch
+):
+    import builtins
+
+    args, state, _, _ = delta_fixture(tmp_path, monkeypatch, "neighbor3")
+    original_import = builtins.__import__
+
+    def old_source_import(name, *args, **kwargs):
+        if name == "rsna.competitive.relations":
+            raise ModuleNotFoundError("Absent from the exact legacy training source")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", old_source_import)
+    spec = json.loads(args.encoder_spec.read_text())
+    workflow.validate_delta_base(args.checkpoint, spec, state["binding"])
+    state["binding"]["config"]["relation"] = {"mode": "physical"}
+    with pytest.raises(ModuleNotFoundError, match="exact legacy"):
+        workflow.validate_delta_base(args.checkpoint, spec, state["binding"])
+
+
 def test_all_series_deployment_retains_every_healthy_series_beyond_six(tmp_path, monkeypatch):
     study = "1.2.5"
     rows = [

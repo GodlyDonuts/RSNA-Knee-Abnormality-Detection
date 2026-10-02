@@ -517,7 +517,12 @@ def validate_delta_base(checkpoint_file, encoder_spec, binding):
     from rsna.competitive.backbones import create_encoder
     from rsna.competitive.delta_checkpoint import FrozenBaseDelta
     from rsna.competitive.model import CompetitiveStudyNet
-    from rsna.competitive.relations import relation_model_kwargs
+
+    relation_kwargs = {}
+    if binding["config"].get("relation") is not None:
+        from rsna.competitive.relations import relation_model_kwargs
+
+        relation_kwargs = relation_model_kwargs(binding["config"]["relation"])
 
     previous_threads = torch.get_num_threads()
     torch.set_num_threads(1)
@@ -534,7 +539,7 @@ def validate_delta_base(checkpoint_file, encoder_spec, binding):
             hidden_dim=config["hidden_dim"],
             encode_chunk_size=config["encode_chunk_size"],
             slice_context=config.get("slice_context", "none"),
-            **relation_model_kwargs(config.get("relation")),
+            **relation_kwargs,
         )
         guard = FrozenBaseDelta(model, provenance)
         checkpoint = torch.load(checkpoint_file, map_location="cpu", weights_only=True)

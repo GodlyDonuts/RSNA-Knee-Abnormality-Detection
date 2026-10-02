@@ -1,3 +1,5 @@
+October2 22:42UTC: distinct midpoint preparation868800 failed before cloud intent due to newer packaging's unconditional relation import missing from exact legacy C9. Actual read-only checkpoint acceptance868801 passed. Packaging now imports that architecture only when bound by the original config; all C9 model modules remain byte-identical. Both originals preserved; fresh quota and a distinct third preparation/source projection are required. No competition slot spent.
+
 October2 22:35UTC: midpoint packaging preparation868797 failed before any Dataset/ledger intent because the historical deployment wrapper incorrectly enforced even epochs for cadence1. The actual immutable epoch5 and live training remain unchanged. Exact failure/absence proof is in kaggle-nativeall-epoch5-v1. Packaging guard now honors completed original cadence1 snapshots within1–10; cadence2 stays even and all provenance guards stay enforced. A distinct source projection/preparation is required; no Kaggle submission occurred.
 
 October2 22:16UTC: all-development868093 remains healthy in epoch6; epoch5
