@@ -29,8 +29,11 @@ pinned dispatch_native384_epoch.py/shared lock and original journal review.
 At most two concurrent GPU nodes; minimumCPUs. Current fresh shared quota
 1021557212/1048576000kB and993731/1000000files; original full-source and matcher
 coordinators accepted >=20GiB/5000files AFTER all retained liabilities, no
-original deletion credit. New smaller milestones will be privately mirrored
-under the restored canonical shared lock; old verified mirrors never repeated.
+original deletion credit. New source/receipt milestone Git4dcb113 is now privately mirrored at
+HF718818d9af8cdb93d3d85d9615ad20c0d0657487, all97objects fully
+re-downloaded/size/SHA verified under the canonical shared lock. This includes
+previously unmirrored d71c4e8/1ab277e/aa8a1d2 code; old verified mirrors never
+repeated. Read hf-reconnected-native-stanford-20261002-v1.
 No new clinical/Kaggle result exists. Native fixed-final reference is completed
 uniform0.8606037925461784 internal; protected confirmation/gold remain unused.
 
