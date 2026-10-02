@@ -20,6 +20,12 @@ Useful additional eligible checkpoints may use the remaining live allowance;
 unrelated Stanford overlap work must not delay ready competition candidates.
 Stanford-derived weights remain private/competition-unadmitted.
 
+The two-submission/native7–8 small milestone source Git aafcccf is privately
+mirrored at HF8ed1486da31b14711d05f0917a4c121a11299039. All89objects fully
+re-downloaded/size/SHA verified under the canonical shared lock. Read
+hf-kaggle-sampling-e10-20261002-v1; never repeat this or earlier mirrors.
+No Stanford-derived raw data/signatures/weights mirrored.
+
 ## October2: owner reprioritizes new Kaggle comparisons
 
 The owner explicitly requests useful competition submissions now. Two completed
