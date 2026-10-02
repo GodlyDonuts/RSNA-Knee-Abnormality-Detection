@@ -1,3 +1,7 @@
+# Current terminal: all ten native384 epochs preserved
+
+October 2 08:16 UTC: original 867367 COMPLETED 0:0, ten epochs/2,810 finite updates. New epochs 9 and 10 privately published once and all five objects per epoch fully re-downloaded/size/SHA verified at ce090a223195bced0b2c24b83e854c218e519237 and 18beabe1e72a9ffbc0e47ed2a8f7f07a5a3020d2. All ten epochs are complete and preserved; never repeat dispatch or publication. Fixed-final internal result and uncertainty are in ../native384-fixed-final-v1. Dated running snapshots below preserve the original observations.
+
 # Native384 actual continued optimization and epoch preservation
 
 Reconnected original job867367 is RUNNING on evc31 without restart/source change.

@@ -130,3 +130,17 @@ hash verified once. No restart/source change. Read mrnet-full-source-final-v1,
 native384-epochs-v1 and current continuation. Next accept bounded private
 original-image review before downstream GPU transfer; original92coarse pairs
 remain advisory. Source-derived weights remain private owning-node only.
+
+## October2 native384 terminal and final comparison
+
+Original867367 completed0:0/2810updates; allten native epochs privately fully
+verified once. Read native384-fixed-final-v1 and latest continuation: internal
+0.8630558226 vs strictuniform0.8606037925 is a small unestablished gain, paired
+95% includes zero. No native Kaggle score. Preparing distinct final comparison
+under exact C9 numerical provenance and fresh funding; original failed CPU
+preparation868031 had zero cloud/ledger mutation. Distinct corrected rank32
+preparation868037 passed; Dataset12322320v1 fully47-object verified and exact
+private offlineT4 native epoch10 notebookv1 pushed ONCE, publicRUNNING.
+The finite finish coordinator handles exact acceptance then one code submission;
+inspect its intents/results and never duplicate it.
+Never repeat completed sampling submissions or native publications.

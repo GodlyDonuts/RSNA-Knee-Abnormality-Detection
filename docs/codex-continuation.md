@@ -1,3 +1,34 @@
+## October2 08:16UTC: native384 completed, all ten checkpoints preserved
+
+Original 867367 COMPLETED0:0, tenepochs/2810contiguous finite updates. Allten
+immutable native384 checkpoints are privately full5-object download/size/SHA
+verified once; final HF18beabe1e72a9ffbc0e47ed2a8f7f07a5a3020d2. Never
+repeat training or publication. Fixed-final internal macroAUC0.863055822603059
+vs predeclared strictuniform2240.8606037925461784; paired delta+.00245203,
+conditional95%[-.01422843,.01814998],1164undefined/4000draws. No established
+resolution gain, no native Kaggle score. Read native384-fixed-final-v1.
+No protected gold/confirmation or accepted source/masks/folds changed.
+
+Native final Kaggle candidate is being prepared in distinct native384-epoch10-v1
+control with original C9 numerical source and accepted de92 packaging wrappers.
+First CPU preparation868031 failed before any bundle/ledger/upload mutation:
+its standalone spec incorrectly used rank64 instead of native rank32. Distinct
+corrected868037 completed0:0; full base/delta/source validation passed. Dataset
+12322320v1 was created ONCE and all47objects fully downloaded/size/SHA verified.
+Exact private offlineT4 notebook godlydonuts/rsna-knee-native384-epoch10-24cf7a0c936e
+v1 was pushed ONCE and is RUNNING its public example. The local finite finish
+coordinator waits for exact public acceptance then one canonical code submission;
+inspect all intents/results before action, never restart it or duplicate a phase. Do not
+repeat uncertain mutations. Fresh funding retires only terminal-native live/temp
+slack and unused finished sampling pair ZIP slack, preserves originals/all other
+liabilities, caps new native shared ZIP1350MiB and metadata8MiB/96files.
+At fresh admission20.0266GiB/5099files remain after all obligations.
+
+The two earlier sampling final submissions56766962/56767196 remain hidden
+outcome/score unreported at08:14UTC. Latest live allowance2today/3slots.
+Never repeat these submissions; continue exact authenticated read-only checks.
+Stanford final weights remain private/competition-unadmitted.
+
 ## October2 06:08UTC: two new sampling final models submitted
 
 Uniform rank32 epoch10 was submitted ONCE as **56766962** at05:56UTC;

@@ -23,8 +23,12 @@ uniform as the control and preserve the near-null result in sampling-fixed-final
 All20 epochs are privately preserved/full-download-hash verified. Native original
 source jobs866426/866427 completed, all75 canonical private proofs passed, and
 assembly866458 completed with all37812 exact members verified. Original
-native384 rank32 C9 job867367 is running; four epochs are privately preserved
-and verified, but fixed-final held-out performance remains unobserved. The
+native384 rank32 C9 job867367 completed0:0 with tenepochs/2810finite updates;
+all ten checkpoints are privately full-download/hash verified. Fixed-final
+internal macroAUC0.8630558226 vs predeclared strictuniform2240.8606037925
+is a small unestablished gain: paired conditional95%[-.01422843,.01814998],
+1164undefined/4000draws. No native Kaggle score exists yet. Read
+native384-fixed-final-v1 and the exact native384-epoch10 Kaggle comparison. The
 training-only relation gradient diagnostic866846 failed compiling a Triton
 helper without Python.h. Distinct admitted-header867310 subsequently passed
 initial gradient review; it accepts a bounded relation pilot scale only. Actual
@@ -237,3 +241,40 @@ and physical/shuffled geometry gradient strength/direction at common initial
 states on sixteen admitted training studies. It has not executed on H100 and
 cannot replace the actual two-epoch trainer/recovery or held-out comparison.
 See `initiative/audits/slice-relations-gradient-preparation-v1/README.md`.
+
+## October2 result-driven next experiments
+
+Two inexpensive assumptions have now been tested on the same development pool:
+more slice exposure and larger images. Neither established a macro-AUC gain.
+Higher resolution helped some targets and hurt others; rare-target support is
+particularly thin. Preserve those results rather than declaring resolution or
+sampling solved. The native384 final checkpoint is now undergoing its exact
+Kaggle public acceptance; the two sampling final code submissions are already
+accepted once and their hidden outcomes remain unreported. External results
+must precede any leaderboard claim.
+
+The next question is whether evidence is being diluted even when it is observed.
+A focal lesion may occupy a small fraction of an MRI slice; increasing every
+pixel's resolution spends compute on anatomy that may not explain the target.
+An evidence-search mechanism could keep a full-frame context view and allocate
+additional DINOv3 views to spatially localized regions, with coordinate and
+series context retained. This is a hypothesis, not a novelty or performance
+claim. It must not label individual slices as positive from a study label.
+
+Before a full experiment, admit a bounded engineering comparison with the same
+original exams and a fixed number of encoder views: global-only context, global
+plus uniform regions, and global plus learned region selection. Preserve whole-
+frame context and pad/flag regions rather than silently erasing observations.
+Use identical rank32 adapters, classifier update counts, accepted masks/folds,
+and complete initial-state/recovery proofs. Track the actual crop and encoder
+view budget, not just trainable parameters. Reject the mechanism if it violates
+label boundaries, exact recovery, finite gradients, or budget parity. A clinical
+claim requires fixed-final paired held-out evidence and replication on a
+matched seed/fold; a tiny engineering metric cannot select the recipe.
+
+This proposal has no implemented selector, GPU acceptance, funded production
+checkpoints or submitted job. Do not reserve a GPU merely because this proposal
+exists. First finish the useful eligible Kaggle comparison, then use actual
+outcomes and fresh explicit storage/compute review to choose between a matched
+resolution replication and an evidence-localization experiment. Healthy original
+sources and private Stanford-derived weights remain unchanged.
