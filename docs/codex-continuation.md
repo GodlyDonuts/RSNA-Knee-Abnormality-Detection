@@ -1,4 +1,15 @@
-Latest October2 14:25UTC: original all-development production868093 completed
+Latest October2 16:17UTC: original all-development868093 remains RUNNING on
+evc31, epoch2 completed/852updates and911contiguous finite updates observed into
+epoch3, stderr empty. New epoch2 privately published ONCE via CPU868465
+COMPLETED0:0; all6objects fully re-downloaded/size/SHA verified at
+HF3cdb043028bf89d3a87b9f7ae238cfd7dedebecf. Read
+native384-all-development-epochs-v1/epoch002; never repeat epochs1/2. Exact C9,
+official base, full3403/0 population and protected exclusions unchanged.
+Conservative fresh reserve20.0220GiB/5029shared files after all retained
+liabilities. At authenticated16:14UTC native56770284 still has null status/score/
+error; other new scores unchanged0.770/0.784, live3today/2slots. No Kaggle mutation.
+
+Earlier October2 14:25UTC: original all-development production868093 completed
 epoch1/426updates and was training epoch2 with437contiguous finite updates, empty
 stderr. Its first immutable snapshot is privately published ONCE and all6objects
 fully re-downloaded/size/SHA verified at HFba0fe87d733ced392066fad6d9a39a9209d50244
