@@ -411,7 +411,11 @@ def validate_snapshot(sidecar, repo=ROOT):
         (meta.get("status") != "scheduled_epoch_snapshot" and not baseline)
         or type(meta.get("epoch")) is not int
         or (baseline and meta["epoch"] != 1)
-        or (not baseline and meta["epoch"] not in CADENCE)
+        or (
+            not baseline
+            and meta["epoch"]
+            not in (range(1, 11) if meta.get("submission_every_epochs") == 1 else CADENCE)
+        )
         or type(meta.get("submission_every_epochs")) is not int
         or meta.get("submission_every_epochs") not in ({2} if baseline else {1, 2})
         or meta.get("submission_eligible") is not True

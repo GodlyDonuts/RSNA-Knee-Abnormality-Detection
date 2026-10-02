@@ -291,6 +291,9 @@ def test_bundle_rejects_tamper_and_traversal(tmp_path):
     [
         {"epoch": 1},
         {"epoch": 12},
+        {"epoch": 5},
+        {"epoch": 0, "submission_every_epochs": 1},
+        {"epoch": 11, "submission_every_epochs": 1},
         {"submission_eligible": False},
         {"diagnostic_only": True},
         {"optimizer_steps": 0},
@@ -316,10 +319,10 @@ def test_queue_rejects_unscheduled_untrained_diagnostic_sidecars_before_loading_
         workflow.validate_snapshot(sidecar)
 
 
-@pytest.mark.parametrize("cadence", [1, 2])
+@pytest.mark.parametrize("cadence,epoch", [(1, 2), (2, 2), (1, 5)])
 @pytest.mark.parametrize("schema", [1, 2])
 def test_snapshot_internal_provenance_is_checked_not_only_sidecar(
-    tmp_path, monkeypatch, cadence, schema
+    tmp_path, monkeypatch, cadence, epoch, schema
 ):
     import rsna.competitive.infer as inference
 
@@ -340,7 +343,7 @@ def test_snapshot_internal_provenance_is_checked_not_only_sidecar(
     # fixture isolates our additional sidecar/internal-state consistency guards.
     monkeypatch.setattr(inference, "validate_inference_checkpoint", lambda *a, **kw: binding)
     checkpoint = tmp_path / "epoch-002.pt"
-    state = dict(schema_version=schema, scheduled_epoch=True, epoch=2, next_update=0, step=3)
+    state = dict(schema_version=schema, scheduled_epoch=True, epoch=epoch, next_update=0, step=3)
     if schema == 2:
         binding["config"]["checkpoint_format"] = "frozen_base_delta"
         state["model_storage"] = {
@@ -353,7 +356,7 @@ def test_snapshot_internal_provenance_is_checked_not_only_sidecar(
     )
     meta = {
         "status": "scheduled_epoch_snapshot",
-        "epoch": 2,
+        "epoch": epoch,
         "submission_every_epochs": cadence,
         "submission_eligible": True,
         "diagnostic_only": False,
