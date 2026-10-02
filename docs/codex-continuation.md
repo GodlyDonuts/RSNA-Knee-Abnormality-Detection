@@ -1,3 +1,35 @@
+## October2 01:58UTC: actual Stanford fitting and native epoch4 preserved
+
+Original native867367 remains RUNNING on evc31,1328finite updates,epoch5 in
+progress and empty stderr. Completed epoch4 newly privately preserved once
+at HFe73384034fc4b6e6f392cf89bb80d464784f6511, all5 objects fully
+re-downloaded/size/SHA verified; never repeat epochs1–4. Exact receipts in
+native384-epochs-v1. Fixed-final native result still unobserved.
+
+Original private Stanford full fit867694 is now RUNNING on evc32, actual
+allocated-driver/header/runtime admission and unchanged F12/input/config/
+accepted recovery hashes checked. At01:58UTC it had388 contiguous finite
+real updates,epoch3 training, empty stderr. Two completed source epochs142/284
+updates privately retained and full bytes/sidecar/recipe/source/fold binding
+checked by owning-node oneCPU867760/867761. No sourcecase IDs/labels/pixels/
+weights/predictions collected. Read mrnet-full-source-progress-v1.
+Output /tmp/rsna-mrnet-full-engine-retained-70ncrj4l/full only on evc32,
+keep all immutable source epochs private under3GiB cap.119source validation
+remains final-only; no clinical or RSNA/Kaggle accuracy result exists.
+
+Private coarse matcher92pairs remain advisory/unreviewed. A bounded original
+image-review protocol is prepared in stanford-rsna-pixel-overlap-screen-v1/
+original-image-review-plan.json, not a wrapper or dispatch. Whole original
+pixel envelopes stay within owning-node/RAM private research; no actual
+review/pass/duplicate or transfer claim. Require separate source/code/CPU
+acceptance and fresh funding before review; sourcefinal/private transfer
+recovery/matched extra-compute RSNA-only control remain prerequisites.
+
+Fresh quota1021680904/1048576000kB,993772/1000000files. At most twoGPU nodes,
+minimumCPUs; existing original healthy jobs untouched. Old verified HF97-object
+718818d9 and original epoch1–3 mirrors never repeated. Protected gold and
+confirmation unused; source-derived competition/weight publication unresolved.
+
 ## October 2 00:49 UTC: access restored, original training reconciled
 
 UCF VPN is actually Connected and both Newton/Stokes SSH endpoints respond.

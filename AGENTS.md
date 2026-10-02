@@ -109,3 +109,12 @@ matcher867696/867697 completed;92coarse pairs require original-image review,
 not duplicate/leakage confirmation. Current guide/original audits supersede
 prior access-loss snapshots. Preserve native epochs once/pinned coordinator,
 leave healthy original jobs unchanged. No downstream transfer or new score.
+
+## October2 actual private source fitting and native epoch4
+
+Stanford867694 RUNNING on evc32,388finite updates/epoch3, first2 source epochs
+privately byte/sidecar verified. Native867367 RUNNING,1328updates/epoch5; new
+epoch4 privately full-download/hash verified. Do not repeat either job/epochs.
+No source/native accuracy or transfer result yet. Candidate original-image
+review protocol prepared only, no accepted wrapper/dispatch. Current guide
+and original progress audits supersede pending/source-unstarted snapshots.

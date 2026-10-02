@@ -21,3 +21,9 @@ limit a causal resolution claim; repeat a promising effect on matched seed/fold.
 Epochs1–3 all privately fully verified exactly once, fifteen objects total.
 Latest epoch3 revision: 920fc8819a60bbfb8cfb3a4242692e0e0d4fd7f8. Original publisherCPU jobs
 867695/867698/867699 all COMPLETED0:0. No Stanford weights published.
+
+At01:56UTC original native job remains healthy,1328 finite updates (epoch5
+in progress), four completed epochs. New epoch4 was privately published ONCE
+and all5 objects fully downloaded/size/SHA verified at
+HFe73384034fc4b6e6f392cf89bb80d464784f6511. Prior epochs1–3 untouched.
+No held-out/Kaggle result yet; remaining original run unchanged.

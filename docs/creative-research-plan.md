@@ -22,12 +22,14 @@ draws from sparse classes. This does not establish a sampling gain; retain
 uniform as the control and preserve the near-null result in sampling-fixed-final-v1.
 All20 epochs are privately preserved/full-download-hash verified. Native original
 source jobs866426/866427 completed, all75 canonical private proofs passed, and
-assembly866458 is running. Native384 rank32 remains separately staged on frozen
-C9; require actual complete cache receipt and fresh funding before GPU launch.
-The training-only relation gradient diagnostic866846 failed compiling a Triton
-helper without Python.h. A distinct admitted-header recovery is prepared; this
-runtime failure says nothing about clinical benefit. Read actual receipts rather
-than repeating old jobs.
+assembly866458 completed with all37812 exact members verified. Original
+native384 rank32 C9 job867367 is running; four epochs are privately preserved
+and verified, but fixed-final held-out performance remains unobserved. The
+training-only relation gradient diagnostic866846 failed compiling a Triton
+helper without Python.h. Distinct admitted-header867310 subsequently passed
+initial gradient review; it accepts a bounded relation pilot scale only. Actual
+relation-trainer GPU recovery/funding and clinical benefit are still absent.
+Read actual receipts rather than repeating old jobs.
 
 ## First: change observation coverage at the same budget
 
@@ -125,7 +127,9 @@ verified in an explicit private research lane. Its bounded adapter pilot passed
 four real GPU optimizer updates and exact recovery; this is not full source
 training or an accuracy result. Separate full-source engine recovery867512 actually completed0:0 with complete
 state/prediction equality. Private full1,129-exam fitting867694 was submitted
-once after restored access and fresh quota/source review, lastPENDING on evc32.
+once after restored access and fresh quota/source review, nowRUNNING on evc32
+with388finite updates and two immutable private source epochs verified.119
+source validation exams remain final-only, no accuracy result yet.
 Actual pixel-only matching found92coarse candidate pairs requiring original-image
 review; these are not confirmed duplicates. No downstream RSNA transfer is
 dispatched and no source accuracy or transfer gain is claimed.
