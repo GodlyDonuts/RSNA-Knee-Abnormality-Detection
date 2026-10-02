@@ -1,5 +1,15 @@
 # Native384 all-development final-fit admission
 
+Current October2 14:25UTC: original production868093 is running on evc31 and has
+completed epoch1/426updates, with437contiguous finite updates observed into epoch2.
+The first immutable checkpoint and all six provenance objects are privately
+download/size/SHA verified once at HFba0fe87d733ced392066fad6d9a39a9209d50244.
+Read production-v1 and the separate native384-all-development-epochs-v1 audit.
+Actual CPU868089 accepted the original numerical arms after the preserved GPU
+verifier-import failure; CPU868091 admitted full production inputs. The pending
+and unsubmitted statements below are historical admission snapshots, superseded
+by those actual receipts. Leave the healthy original production unchanged.
+
 The next eligible RSNA-only candidate will use native384 rank32 on all 3,403
 accepted development studies. The previous native384 fold0 result is inconclusive
 against its closest224 reference; this final fit does not turn that result into a

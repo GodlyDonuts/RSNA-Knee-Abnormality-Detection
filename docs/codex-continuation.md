@@ -1,9 +1,19 @@
+Latest October2 14:25UTC: original all-development production868093 completed
+epoch1/426updates and was training epoch2 with437contiguous finite updates, empty
+stderr. Its first immutable snapshot is privately published ONCE and all6objects
+fully re-downloaded/size/SHA verified at HFba0fe87d733ced392066fad6d9a39a9209d50244
+via owning-node CPU868212 COMPLETED0:0. Read native384-all-development-epochs-v1;
+never repeat epoch1. Fresh conservative quota leaves20.0221GiB/5034shared files
+after all retained liabilities. Original numerical source/recipe/population and
+protected exclusions unchanged. No new fit accuracy or native Kaggle score yet.
+
 Actual first12updates/source/roster/runtime milestone Gitf2048ed is separately
 private-HF full14-object download/size/SHA verified at HFe4f00035ea7a8521d20f73e74922d0db3d7bff94.
 Read hf-native384-all-progress-20261002-v1; never repeat either new mirror. Both
 original failure records and successful recovery remain preserved. Original
 868093 is healthy; use the pinned owning-node all-development epoch coordinator
-for each newly completed immutable snapshot. No new epoch has completed yet.
+for each newly completed immutable snapshot. That initial snapshot predates the
+verified first-epoch completion above.
 
 Latest private preservation: source3bc053e launch/recovery/sampling-score milestone
 is fully69-object download/size/SHA verified at HF4c76160a356499e18a77d78d488b8e9b0bda0195.
