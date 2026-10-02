@@ -25,6 +25,12 @@ review/pass/duplicate or transfer claim. Require separate source/code/CPU
 acceptance and fresh funding before review; sourcefinal/private transfer
 recovery/matched extra-compute RSNA-only control remain prerequisites.
 
+Current source milestone Git2db16dc is privately mirrored at
+HF55139f2aae66e17c4a04d329556914bfeec291ea, all25small objects
+fully re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-native4-stanford-progress-20261002-v1; no Stanford-derived pixels/
+labels/case IDs/signatures/candidates/weights mirrored. Never repeat.
+
 Fresh quota1021680904/1048576000kB,993772/1000000files. At most twoGPU nodes,
 minimumCPUs; existing original healthy jobs untouched. Old verified HF97-object
 718818d9 and original epoch1–3 mirrors never repeated. Protected gold and
