@@ -27,3 +27,12 @@ in progress), four completed epochs. New epoch4 was privately published ONCE
 and all5 objects fully downloaded/size/SHA verified at
 HFe73384034fc4b6e6f392cf89bb80d464784f6511. Prior epochs1–3 untouched.
 No held-out/Kaggle result yet; remaining original run unchanged.
+
+At04:10UTC original867367 remains RUNNING,1885 contiguous finite updates,
+epoch7 in progress, empty stderr. New epochs5/6 privately published ONCE and
+all5 objects per epoch fully re-downloaded/size/SHA verified:
+epoch5 HFd1021e947a25984b401d2f39b90a69a6a5e6e964 viaCPU867921;
+epoch6 HFaf556b44fc24969348536a2445862463f60e204e viaCPU867923.
+Both publishers completed0:0. Original small intents/manifests/commit/verified
+receipts and immutable sidecars retained. Never repeat epochs1–6.
+No fixed-final native result yet; original scientific source/config untouched.

@@ -125,14 +125,19 @@ records candidates and public fastMRI+ metadata inspection. After the owner's
 request to use Stanford, all 3,750 original MRNet volumes were acquired and
 verified in an explicit private research lane. Its bounded adapter pilot passed
 four real GPU optimizer updates and exact recovery; this is not full source
-training or an accuracy result. Separate full-source engine recovery867512 actually completed0:0 with complete
-state/prediction equality. Private full1,129-exam fitting867694 was submitted
-once after restored access and fresh quota/source review, nowRUNNING on evc32
-with388finite updates and two immutable private source epochs verified.119
-source validation exams remain final-only, no accuracy result yet.
+training or an accuracy result. Separate full-source engine recovery867512
+completed0:0 with complete state/prediction equality. The original private
+full1,129-exam fitting867694 now completed tenepochs/1,420finite updates.
+Its fixed-final119-exam source validation AUC is ACL0.8621082621,
+genericmeniscus0.7215843858 and abnormality0.9285087719, independently
+replayed from original private predictions/labels. Allten source checkpoints
+are privately hash verified on the owning node. These source-task results
+are not RSNA/Kaggle scores and do not demonstrate transfer improvement.
+Read [the source-final proof](../initiative/audits/mrnet-full-source-final-v1/README.md).
 Actual pixel-only matching found92coarse candidate pairs requiring original-image
 review; these are not confirmed duplicates. No downstream RSNA transfer is
-dispatched and no source accuracy or transfer gain is claimed.
+dispatched. Original-image review, actual funded transfer GPU recovery and a
+matched extra-compute RSNA-only control remain prerequisites.
 See the [original admission](../initiative/audits/mrnet-private-source-admission-v1/README.md),
 [full engine recovery](../initiative/audits/mrnet-restored-full-engine-v1/README.md),
 and [RSNA initialization path](../initiative/audits/mrnet-rsna-private-initialization-v1/README.md).

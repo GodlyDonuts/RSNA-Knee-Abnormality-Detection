@@ -118,3 +118,15 @@ epoch4 privately full-download/hash verified. Do not repeat either job/epochs.
 No source/native accuracy or transfer result yet. Candidate original-image
 review protocol prepared only, no accepted wrapper/dispatch. Current guide
 and original progress audits supersede pending/source-unstarted snapshots.
+
+## October2 actual source-final and native six-epoch preservation
+
+Stanford original867694 COMPLETED0:0, tenepochs/1420finite updates and allten
+private source checkpoints verified. Independent119-exam source AUC replay:
+ACL0.8621082621, genericmeniscus0.7215843858, abnormality0.9285087719.
+These are source-task results, not RSNA/Kaggle or transfer improvement.
+Native867367 RUNNING,1885updates/epoch7; epochs1–6 privately full-download/
+hash verified once. No restart/source change. Read mrnet-full-source-final-v1,
+native384-epochs-v1 and current continuation. Next accept bounded private
+original-image review before downstream GPU transfer; original92coarse pairs
+remain advisory. Source-derived weights remain private owning-node only.

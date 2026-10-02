@@ -1,3 +1,34 @@
+## October2 04:10UTC: actual Stanford source-final result and native epochs5–6
+
+Original Stanford full-source867694 completed0:0/1:48:26 on evc32,
+tenepochs/1420contiguous finite updates. Owning-node CPU867925 verified allten
+immutable source snapshots and independently replayed fixed-final119-exam
+source validation AUC: ACL0.8621082621, genericmeniscus0.7215843858,
+abnormality0.9285087719. Source validation never fits; these are NOT RSNA/
+Kaggle scores or evidence of transfer benefit. Exact F12/input/config/recovery
+and final checkpoint/terminal/predictions hashes are in mrnet-full-source-final-v1.
+All source weights/pixels/labels/case IDs/predictions stay private on evc32,
+1,250,968,446retained bytes under original3GiB cap. Existing whole-byte proofs
+must be reused, not bulk recollected. Never dispatch source867694 again.
+
+Original native867367 remains RUNNING on evc31,1885contiguous finite updates,
+epoch7 in progress and empty stderr. New immutable epochs5/6 privately published
+ONCE/full5-object re-download/size/SHA verified at
+HFd1021e947a25984b401d2f39b90a69a6a5e6e964 and
+af556b44fc24969348536a2445862463f60e204e viaCPU867921/867923.
+Never repeat native epochs1–6. Fixed-final native outcome remains unobserved;
+leave healthy C9/config/output unchanged. Primary strict-uniform224 reference
+is0.8606037925461784 internal with the recorded causal limitations.
+
+Next implement and accept the bounded private original-image-review wrapper,
+transport/tests/fresh separate CPU funding before one distinct review dispatch.
+The92coarse pairs are advisory, not confirmed duplicates or independence.
+Source-final prerequisite is now satisfied, but actual candidate review,
+funded transfer GPU recovery and matched extra-compute RSNA-only control
+remain absent. No new transfer GPU or Kaggle submission. At most twoGPU nodes,
+minimum CPUs; actual fresh quota governs new work and no deletion credit.
+Current original receipts supersede older running/source-unstarted snapshots.
+
 ## October2 01:58UTC: actual Stanford fitting and native epoch4 preserved
 
 Original native867367 remains RUNNING on evc31,1328finite updates,epoch5 in
