@@ -1,3 +1,11 @@
+Native final/evaluation/exact Kaggle submission small milestone source74249f1
+is privately mirrored and all89objects fully download/size/SHA verified at
+HF885b0a7cd121200c75ea286c0af65f2af903edf3. Read
+hf-native384-final-kaggle-20261002-v2; never repeat. Original v1 local CSV
+guard failed before external commit intent; distinct v2 verified original
+prefix absence and correct internal15/public13 schemas. No training/Kaggle
+mutation repeated. Native submission56770284 is accepted, no hidden score yet.
+
 ## October2 09:03UTC: native384 final submitted once
 
 Native384 rank32 final code submission **56770284** was accepted ONCE at09:00UTC,
