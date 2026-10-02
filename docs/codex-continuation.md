@@ -1,3 +1,10 @@
+Actual first12updates/source/roster/runtime milestone Gitf2048ed is separately
+private-HF full14-object download/size/SHA verified at HFe4f00035ea7a8521d20f73e74922d0db3d7bff94.
+Read hf-native384-all-progress-20261002-v1; never repeat either new mirror. Both
+original failure records and successful recovery remain preserved. Original
+868093 is healthy; use the pinned owning-node all-development epoch coordinator
+for each newly completed immutable snapshot. No new epoch has completed yet.
+
 Latest private preservation: source3bc053e launch/recovery/sampling-score milestone
 is fully69-object download/size/SHA verified at HF4c76160a356499e18a77d78d488b8e9b0bda0195.
 Read hf-native384-all-fitting-20261002-v1; never repeat. Its dated initial progress

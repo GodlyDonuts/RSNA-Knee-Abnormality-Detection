@@ -1,3 +1,29 @@
+## October2 actual outcomes and next final-fit candidate
+
+Authenticated Kaggle and canonical Newton ledger results: uniform224 rank32
+final **56766962=0.770**; stratified224 rank32 final **56767196=0.784**. Both
+completed without an error and have nonempty output. Best solo remains the
+all-development224 rank32 **56711823=0.792**. This single public difference does
+not establish a reproducible sampling benefit; the matched internal interval
+crossed zero. Preserve both outcomes and fixed-final comparisons.
+
+Native384 fold0 final **56770284** still has unreported hidden status/score in
+the latest authenticated check. It was already submitted once; never duplicate
+its Dataset/notebook/submission or upload the public CSV. At canonical result
+reconciliation there were3 today/2 available; fresh authoritative allowance is
+required before any future mutation. Original finite finish coordinators are done.
+Read sampling-e10-comparison-v1/outcomes-20261002-v1 and native384-epoch10-v1.
+
+A separate RSNA-only native384 rank32 all-development final fit **868093** is
+actually running on evc31 after accepted real-trainer recovery and fresh complete
+input/source/device checks. Initial12finite updates and original3403/0bindings
+are verified. It has10epochs/4260updates, preserves accepted masks and reserved
+gold/confirmation exclusions, and has no internal evaluation score. The exact
+fixed-final epoch10 must complete and be privately preserved before its separate
+Kaggle packaging/source/offlineT4 acceptance and single canonical submission.
+Do not mistake the diagnostic recovery or dispatch receipt for eligible weights.
+Stanford-derived weights remain private and unadmitted for competition deployment.
+
 ## October2 06:08UTC: two new sampling final models submitted
 
 Uniform rank32 epoch10 was submitted ONCE as **56766962** at05:56UTC;
