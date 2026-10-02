@@ -57,3 +57,5 @@ For each newly completed epoch3–10, inspect exact local/remote journal and pri
 path first, then use only `scripts/hf/dispatch_native384_all_epoch.py` with the
 live SSH control socket. Existing intent means read-only reconciliation. Keep
 the healthy original job and frozen numerical recipe unchanged.
+
+October2 19:38UTC: epoch4 privately fully six-object downloaded/size/SHA verified at revisionfea156e810a15d369359a824dd4cc746d285d7ce via owning-node CPU868612 COMPLETED0:0. Checkpoint SHA0ee86d4d57d33b038401f3dcf9cbb6677e71e09c0b54dbc92d38c4fc628a194e,1704optimizer updates. Independent collection observed1774contiguous finite updates into epoch5, empty stderr, unchanged original868093. Fresh quota retained20.0218GiB/5019files after liabilities. See epoch004; do not repeat epochs1–4. No accuracy claim.

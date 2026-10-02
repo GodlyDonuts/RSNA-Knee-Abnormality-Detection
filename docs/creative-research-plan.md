@@ -356,3 +356,15 @@ The above review is recorded research, not new trained models, GPU dispatches,
 clinical diagnoses, or an accuracy claim. Prioritize identifying supervision/input
 limits over another undirected rank increase. Stanford private-source research is
 independent and must not delay eligible RSNA-only deployment.
+
+## October2 measured supervision gap and independent source review
+
+The [training-only diagnostic](../initiative/audits/public-report-supervision-diagnostic-v1/) now supplies actual evidence for the supervision hypothesis. Among3403 eligible studies the frozen loss sees only7 positive MCL labels,25 effusions,9 Baker cysts and5 fractures; synovitis has15 negative labels. Positive effusion annotations additionally masked total422. This is a restriction of report supervision, not a claim of true MRI prevalence or a proven cause of the Kaggle gap.
+
+Public raw verdicts were compared only on2247 eligible fold0 fitting studies. Many negative/public-YES disagreements have lower source scores and can reflect legitimate severity differences. An explicitly chronic MCL case illustrates why unconditional public relabeling would violate the target. The public CSV uses uncalibrated ranks; its exact score mapper is absent from the shipped source. The Steven/JEV hybrid cards also describe gold-based selection, so their apparent agreement is not independent evidence for a clean control.
+
+An actual separate blinded source-reading reviewer completed nine targets and agrees with the first diagnostic reading on eight. Both selected effusions have direct positive report evidence; their existing masks arise from unresolved proxy-reliability obligations. One fracture acuity disagreement stays unresolved, and dimensional cysts/insufficient MCL acuity remain uncertain. No source reading automatically clears an original semantic hold.
+
+The next supervision action is a bounded, issue-specific training-only reliability review, retaining exact original contrary evidence and independent rationale. A separately accepted experimental overlay would permit a same-source, same-roster, same-compute fixed-final comparison while outer target masks remain frozen. Reject or repeat according to paired whole-component uncertainty, not leaderboard-driven threshold edits. A separate coarse finding-presence auxiliary head is another hypothesis, allowing mild/chronic evidence to teach representations without treating it as a target positive; it has not been implemented or admitted.
+
+Healthy all-development native384 job868093 continues unchanged; its newly completed fourth immutable checkpoint is privately fully downloaded/hash verified. There is no new clinical score, no public label training, and no new GPU research launch from this diagnostic.

@@ -1,0 +1,25 @@
+from pathlib import Path
+from scripts.research.audit_public_report_labels import fitting_cohort, sha
+from rsna.schema import TARGETS
+import json
+studies = Path("initiative/releases/report-supervision-v1/studies.parquet")
+folds = Path("initiative/experiments/competitive-v1/folds/fold.csv")
+cohort = fitting_cohort(studies, folds, -1)
+assert len(cohort) == 3403
+result = {
+    "schema_version": 1,
+    "scope": "actual all-development fitting population; no public target comparison",
+    "training_studies": len(cohort),
+    "source_sha256": sha(studies.read_bytes()),
+    "fold_sha256": sha(folds.read_bytes()),
+    "training_uid_sha256": sha(("\n".join(sorted(cohort.index)) + "\n").encode()),
+    "targets": {
+        target: {
+            "observed_positive": int(((cohort[target + "__mask"] == 1) & (cohort[target] == 1)).sum()),
+            "observed_negative": int(((cohort[target + "__mask"] == 1) & (cohort[target] == 0)).sum()),
+            "masked": int((cohort[target + "__mask"] == 0).sum()),
+            "masked_original_positive": int(((cohort[target + "__mask"] == 0) & (cohort[target + "__state"] == "positive")).sum()),
+        } for target in TARGETS
+    },
+}
+print(json.dumps(result, indent=2, sort_keys=True))

@@ -1,3 +1,26 @@
+Latest October2 19:38UTC: original all-development868093 healthy on evc31,
+four completed epochs/1774contiguous finite updates/epoch5 training; stderr empty.
+New epoch4 privately published ONCE/full6-object download-size-SHA verified at
+HFfea156e810a15d369359a824dd4cc746d285d7ce via CPU868612 COMPLETED0:0.
+Read native384-all-development-epochs-v1/epoch004; never repeat epochs1–4.
+Fresh conservative reserve20.0218GiB/5019shared files after all liabilities.
+No numerical recipe, masks/folds/base or original live job changed.
+New actual training-only source diagnostic compares public raw verdicts on exact
+2247fold0 fit rows, with outer/protected/ineligible values excluded before public
+target interpretation. Actual3403-study training supervision has7MCL/25effusion/
+9Baker/5fracture observed positives and15synovitis negatives;422original-positive
+effusions remain masked. These are report-derived counts, not clinical prevalence
+or causal accuracy evidence. Nine blinded independent full-source target reviews
+completed,8state agreements; two effusion positives justify issue-specific hold
+review, one fracture acuity disagreement remains unresolved. No hold discharged,
+label promoted, public source trained, or new GPU/competition job dispatched.
+Read public-report-supervision-diagnostic-v1 and updated creative-research-plan.
+Full1663tests/Ruff269/mypy43/archive/current89/89 evidence checks passed.
+The most recent actual native fold0 Kaggle score remains0.785 versus prior best
+all-development2240.792. The current all-development384 model has no score yet;
+its fixed-final deployment remains the next predeclared candidate. Existing
+publications/submissions and canonical ledger remain unchanged by the diagnostic.
+
 Latest October2 18:17UTC: original all-development868093 healthy on evc31,
 three completed epochs/1418finite updates/epoch4 training, stderr empty. New
 epoch3 privately published ONCE/full6-object download-size-SHA verified at

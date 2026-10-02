@@ -1,0 +1,520 @@
+{
+  "accepted_labels_changed": false,
+  "clinical_accuracy_claimed": false,
+  "fitting_leakage_components": 2219,
+  "fitting_studies": 2247,
+  "fitting_uid_sha256": "e71eb9ba952b9e4bc68e32b548b131c457b5c86c9381eb089012404923dc68cf",
+  "private_review_counts": {
+    "Baker's:masked_upper_score_yes": 2,
+    "Baker's:negative_agreement": 2,
+    "Baker's:positive_agreement": 2,
+    "Effusion:masked_upper_score_yes": 2,
+    "Effusion:negative_agreement": 2,
+    "Effusion:positive_agreement": 2,
+    "Fracture:masked_upper_score_yes": 2,
+    "Fracture:negative_agreement": 2,
+    "Fracture:positive_agreement": 2,
+    "MCL:masked_upper_score_yes": 2,
+    "MCL:negative_agreement": 2,
+    "MCL:negative_upper_score_yes": 1,
+    "MCL:positive_agreement": 2
+  },
+  "provenance": {
+    "archive_sha256": "6213494160e41a315efadb681ea103fd59bafe7cf9fb1a8c9f724595e2c6df0b",
+    "dataset_id": 11529209,
+    "dataset_ref": "pilkwang/rsna-knee-llm-labels",
+    "dataset_version": 1,
+    "diagnostic_script_sha256": "d44a4c76d09d8c26d4308c02c9763d0d72826b392211204d639a5e45277f96df",
+    "excluded_fold": 0,
+    "folds_sha256": "fe590e5072a0d82abeb377598aeef0021bbe77fe4529a19b9826a7d40d322050",
+    "license": "CC0: Public Domain",
+    "member": "report_labels_v2.csv",
+    "member_sha256": "6f704a7bdb2f894cc49445b19ba7c4378c3f548d3449e00361e10044bee40920",
+    "metadata_sha256": "337e646b66444eef59e903612f16bcf42d0c7a4d5f1e9892bb124e49d97d3f5b",
+    "rubric_sha256": "138c5cc33b92901d57dbf5fbe7e3a9878b73d25b0af6934908d0052cd6786014",
+    "studies_sha256": "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7"
+  },
+  "public_scores_are_calibrated_probabilities": false,
+  "schema_version": 1,
+  "scope": "fit rows only; no outer/protected target interpretation or selection",
+  "source_verdicts_are_ground_truth": false,
+  "status": "training_only_source_disagreement_diagnostic",
+  "targets": {
+    "ACL": {
+      "masked_original_state_counts": {
+        "negative": 11,
+        "not_mentioned": 118,
+        "positive": 19,
+        "uncertain": 246
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 23,
+        "report_scope_ambiguity": 2,
+        "state_disagreement": 5,
+        "state_masked": 364
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 1455,
+        "UNK:0.05": 120,
+        "YES:0.95": 672
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 33,
+        "masked:UNK:0.28": 120,
+        "masked:YES:0.68": 48,
+        "masked:YES:0.82": 124,
+        "masked:YES:0.94": 69,
+        "negative:NO:0.08": 1422,
+        "negative:YES:0.68": 215,
+        "negative:YES:0.82": 38,
+        "negative:YES:0.94": 7,
+        "positive:YES:0.82": 1,
+        "positive:YES:0.94": 170
+      },
+      "state_verdict_counts": {
+        "masked:NO": 33,
+        "masked:UNK": 120,
+        "masked:YES": 241,
+        "negative:NO": 1422,
+        "negative:YES": 260,
+        "positive:YES": 171
+      }
+    },
+    "Baker's": {
+      "masked_original_state_counts": {
+        "negative": 28,
+        "not_mentioned": 1087,
+        "positive": 54,
+        "uncertain": 322
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 77,
+        "report_scope_ambiguity": 1,
+        "state_disagreement": 15,
+        "state_masked": 1409
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 669,
+        "UNK:0.05": 990,
+        "YES:0.95": 588
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 177,
+        "masked:UNK:0.28": 990,
+        "masked:YES:0.68": 48,
+        "masked:YES:0.82": 212,
+        "masked:YES:0.94": 64,
+        "negative:NO:0.08": 492,
+        "negative:YES:0.68": 253,
+        "negative:YES:0.82": 5,
+        "positive:YES:0.94": 6
+      },
+      "state_verdict_counts": {
+        "masked:NO": 177,
+        "masked:UNK": 990,
+        "masked:YES": 324,
+        "negative:NO": 492,
+        "negative:YES": 258,
+        "positive:YES": 6
+      }
+    },
+    "Contusion": {
+      "masked_original_state_counts": {
+        "negative": 88,
+        "not_mentioned": 355,
+        "positive": 70,
+        "uncertain": 942
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 133,
+        "state_disagreement": 36,
+        "state_masked": 1297
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 1132,
+        "UNK:0.05": 422,
+        "YES:0.95": 693
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 523,
+        "masked:UNK:0.28": 372,
+        "masked:YES:0.68": 231,
+        "masked:YES:0.82": 300,
+        "masked:YES:0.94": 29,
+        "negative:NO:0.08": 609,
+        "negative:UNK:0.28": 50,
+        "negative:YES:0.68": 9,
+        "negative:YES:0.82": 2,
+        "negative:YES:0.94": 1,
+        "positive:YES:0.68": 21,
+        "positive:YES:0.82": 92,
+        "positive:YES:0.94": 8
+      },
+      "state_verdict_counts": {
+        "masked:NO": 523,
+        "masked:UNK": 372,
+        "masked:YES": 560,
+        "negative:NO": 609,
+        "negative:UNK": 50,
+        "negative:YES": 12,
+        "positive:YES": 121
+      }
+    },
+    "Effusion": {
+      "masked_original_state_counts": {
+        "negative": 17,
+        "not_mentioned": 173,
+        "positive": 272,
+        "uncertain": 512
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 280,
+        "report_scope_ambiguity": 2,
+        "state_disagreement": 18,
+        "state_masked": 685
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 672,
+        "UNK:0.05": 174,
+        "YES:0.95": 1401
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 154,
+        "masked:UNK:0.28": 174,
+        "masked:YES:0.68": 109,
+        "masked:YES:0.82": 466,
+        "masked:YES:0.94": 71,
+        "negative:NO:0.08": 518,
+        "negative:YES:0.68": 739,
+        "positive:YES:0.82": 5,
+        "positive:YES:0.94": 11
+      },
+      "state_verdict_counts": {
+        "masked:NO": 154,
+        "masked:UNK": 174,
+        "masked:YES": 646,
+        "negative:NO": 518,
+        "negative:YES": 739,
+        "positive:YES": 16
+      }
+    },
+    "Fracture": {
+      "masked_original_state_counts": {
+        "negative": 93,
+        "not_mentioned": 1304,
+        "positive": 11,
+        "uncertain": 396
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 45,
+        "report_scope_ambiguity": 2,
+        "state_disagreement": 66,
+        "state_masked": 1700
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 812,
+        "UNK:0.05": 1279,
+        "YES:0.95": 156
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 446,
+        "masked:UNK:0.28": 1206,
+        "masked:YES:0.68": 63,
+        "masked:YES:0.82": 76,
+        "masked:YES:0.94": 13,
+        "negative:NO:0.08": 366,
+        "negative:UNK:0.28": 73,
+        "negative:YES:0.82": 1,
+        "positive:YES:0.68": 1,
+        "positive:YES:0.82": 2
+      },
+      "state_verdict_counts": {
+        "masked:NO": 446,
+        "masked:UNK": 1206,
+        "masked:YES": 152,
+        "negative:NO": 366,
+        "negative:UNK": 73,
+        "negative:YES": 1,
+        "positive:YES": 3
+      }
+    },
+    "Lateral Meniscus": {
+      "masked_original_state_counts": {
+        "negative": 14,
+        "not_mentioned": 168,
+        "positive": 10,
+        "uncertain": 193
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 4,
+        "report_scope_ambiguity": 2,
+        "state_disagreement": 20,
+        "state_masked": 361
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 1453,
+        "UNK:0.05": 176,
+        "YES:0.95": 618
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 91,
+        "masked:UNK:0.28": 171,
+        "masked:YES:0.68": 62,
+        "masked:YES:0.82": 51,
+        "masked:YES:0.94": 10,
+        "negative:NO:0.08": 1362,
+        "negative:UNK:0.28": 5,
+        "negative:YES:0.68": 135,
+        "negative:YES:0.82": 63,
+        "positive:YES:0.68": 41,
+        "positive:YES:0.82": 170,
+        "positive:YES:0.94": 86
+      },
+      "state_verdict_counts": {
+        "masked:NO": 91,
+        "masked:UNK": 171,
+        "masked:YES": 123,
+        "negative:NO": 1362,
+        "negative:UNK": 5,
+        "negative:YES": 198,
+        "positive:YES": 297
+      }
+    },
+    "Lateral OA": {
+      "masked_original_state_counts": {
+        "negative": 15,
+        "not_mentioned": 546,
+        "positive": 1,
+        "uncertain": 691
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 15,
+        "state_disagreement": 15,
+        "state_masked": 1237
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 909,
+        "UNK:0.05": 744,
+        "YES:0.95": 594
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 123,
+        "masked:UNK:0.28": 648,
+        "masked:YES:0.68": 171,
+        "masked:YES:0.82": 194,
+        "masked:YES:0.94": 117,
+        "negative:NO:0.08": 786,
+        "negative:UNK:0.28": 96,
+        "negative:YES:0.68": 79,
+        "negative:YES:0.82": 14,
+        "negative:YES:0.94": 1,
+        "positive:YES:0.82": 1,
+        "positive:YES:0.94": 17
+      },
+      "state_verdict_counts": {
+        "masked:NO": 123,
+        "masked:UNK": 648,
+        "masked:YES": 482,
+        "negative:NO": 786,
+        "negative:UNK": 96,
+        "negative:YES": 94,
+        "positive:YES": 18
+      }
+    },
+    "MCL": {
+      "masked_original_state_counts": {
+        "negative": 9,
+        "not_mentioned": 167,
+        "positive": 6,
+        "uncertain": 244
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 9,
+        "report_scope_ambiguity": 2,
+        "state_disagreement": 5,
+        "state_masked": 411
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 1668,
+        "UNK:0.05": 166,
+        "YES:0.95": 413
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 62,
+        "masked:UNK:0.28": 164,
+        "masked:YES:0.68": 80,
+        "masked:YES:0.82": 101,
+        "masked:YES:0.94": 19,
+        "negative:NO:0.08": 1606,
+        "negative:UNK:0.28": 2,
+        "negative:YES:0.68": 197,
+        "negative:YES:0.82": 10,
+        "negative:YES:0.94": 1,
+        "positive:YES:0.94": 5
+      },
+      "state_verdict_counts": {
+        "masked:NO": 62,
+        "masked:UNK": 164,
+        "masked:YES": 200,
+        "negative:NO": 1606,
+        "negative:UNK": 2,
+        "negative:YES": 208,
+        "positive:YES": 5
+      }
+    },
+    "Medial Meniscus": {
+      "masked_original_state_counts": {
+        "negative": 23,
+        "not_mentioned": 53,
+        "positive": 38,
+        "uncertain": 219
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 18,
+        "report_scope_ambiguity": 2,
+        "state_disagreement": 42,
+        "state_masked": 272
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 893,
+        "UNK:0.05": 58,
+        "YES:0.95": 1296
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 54,
+        "masked:UNK:0.28": 57,
+        "masked:YES:0.68": 91,
+        "masked:YES:0.82": 88,
+        "masked:YES:0.94": 43,
+        "negative:NO:0.08": 839,
+        "negative:UNK:0.28": 1,
+        "negative:YES:0.68": 183,
+        "negative:YES:0.82": 59,
+        "positive:YES:0.68": 44,
+        "positive:YES:0.82": 499,
+        "positive:YES:0.94": 289
+      },
+      "state_verdict_counts": {
+        "masked:NO": 54,
+        "masked:UNK": 57,
+        "masked:YES": 222,
+        "negative:NO": 839,
+        "negative:UNK": 1,
+        "negative:YES": 242,
+        "positive:YES": 832
+      }
+    },
+    "Medial OA": {
+      "masked_original_state_counts": {
+        "negative": 23,
+        "not_mentioned": 422,
+        "uncertain": 845
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 23,
+        "state_disagreement": 19,
+        "state_masked": 1267
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 807,
+        "UNK:0.05": 544,
+        "YES:0.95": 896
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 73,
+        "masked:UNK:0.28": 476,
+        "masked:YES:0.68": 201,
+        "masked:YES:0.82": 314,
+        "masked:YES:0.94": 226,
+        "negative:NO:0.08": 734,
+        "negative:UNK:0.28": 68,
+        "negative:YES:0.68": 86,
+        "negative:YES:0.82": 17,
+        "negative:YES:0.94": 6,
+        "positive:YES:0.94": 46
+      },
+      "state_verdict_counts": {
+        "masked:NO": 73,
+        "masked:UNK": 476,
+        "masked:YES": 741,
+        "negative:NO": 734,
+        "negative:UNK": 68,
+        "negative:YES": 109,
+        "positive:YES": 46
+      }
+    },
+    "PF OA": {
+      "masked_original_state_counts": {
+        "negative": 20,
+        "not_mentioned": 376,
+        "uncertain": 1009
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 20,
+        "state_disagreement": 14,
+        "state_masked": 1385
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 785,
+        "UNK:0.05": 410,
+        "YES:0.95": 1052
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 119,
+        "masked:UNK:0.28": 398,
+        "masked:YES:0.68": 190,
+        "masked:YES:0.82": 312,
+        "masked:YES:0.94": 386,
+        "negative:NO:0.08": 666,
+        "negative:UNK:0.28": 12,
+        "negative:YES:0.68": 103,
+        "negative:YES:0.82": 17,
+        "negative:YES:0.94": 6,
+        "positive:YES:0.68": 1,
+        "positive:YES:0.94": 37
+      },
+      "state_verdict_counts": {
+        "masked:NO": 119,
+        "masked:UNK": 398,
+        "masked:YES": 888,
+        "negative:NO": 666,
+        "negative:UNK": 12,
+        "negative:YES": 126,
+        "positive:YES": 38
+      }
+    },
+    "Synovitis": {
+      "masked_original_state_counts": {
+        "not_mentioned": 1919,
+        "positive": 6,
+        "uncertain": 69
+      },
+      "masked_semantic_reason_counts": {
+        "incomplete_reliability_review": 6,
+        "state_masked": 1988
+      },
+      "observed_confidence_counts": {
+        "NO:0.85": 47,
+        "UNK:0.05": 1881,
+        "YES:0.95": 319
+      },
+      "observed_score_counts": {
+        "masked:NO:0.08": 37,
+        "masked:UNK:0.28": 1881,
+        "masked:YES:0.68": 39,
+        "masked:YES:0.82": 37,
+        "negative:NO:0.08": 10,
+        "positive:YES:0.68": 80,
+        "positive:YES:0.82": 159,
+        "positive:YES:0.94": 4
+      },
+      "state_verdict_counts": {
+        "masked:NO": 37,
+        "masked:UNK": 1881,
+        "masked:YES": 76,
+        "negative:NO": 10,
+        "positive:YES": 243
+      }
+    }
+  }
+}
