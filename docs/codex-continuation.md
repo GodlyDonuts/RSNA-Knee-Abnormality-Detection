@@ -1,3 +1,29 @@
+## October2: native384 all-development admission and bounded recovery
+
+The next RSNA-only final candidate is native384 rank32 trained from the pinned
+base on all3,403accepted development studies, preserving all masks/reserved
+exclusions. Read native384-all-development-v1. Distinct actualCPU868074 completed
+0:0 and verified full membership, original labels/masks, all37,812unchanged cache
+signatures and original asset/source/release bindings. PriorCPU868073 failed a
+/home vs resolved/lustre/fs1/home import-path check before model/optimizer work;
+its exact original is preserved and must never be retried.
+
+Bounded original recovery868075 was dispatched ONCE on evc31,1H100/2CPU, and is
+lastPENDING. Control /home/sa305415/rsna-knee/native384-all-development-20261002-v2;
+unique private diagnostic /tmp/rsna-native384-all-recovery-20261002-v1. It exercises
+17engineering studies/twoepochs/sixupdates, including the one-study masked tail,
+full-storage reference plus delta full/stop1/resume complete model/base/optimizer/
+LR/allRNG/numerical equality. No clinical metric or competition eligibility.
+Never duplicate it or mistake the prepared4260-update production config for a
+submitted fit. Actual recovery acceptance, separately funded production/publication
+and immutable all-development wrapper/publisher remain required before full fit.
+Latest funded20.0244GiB/5037shared-file reserve, node622+GiB free; no deletion.
+
+At latest authenticated check all three new Kaggle outcomes/scores remain
+unreported: uniform56766962,stratified56767196,native38456770284. Each was already
+submitted once; do not repeat. Live3today/2slots. Public acceptance is not a score.
+No healthy original training source, official base or protected cohort changed.
+
 Native final/evaluation/exact Kaggle submission small milestone source74249f1
 is privately mirrored and all89objects fully download/size/SHA verified at
 HF885b0a7cd121200c75ea286c0af65f2af903edf3. Read

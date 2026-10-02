@@ -1,0 +1,48 @@
+import subprocess,shlex,json,hashlib,base64,os
+from pathlib import Path
+root=Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection');audit=root/'initiative/audits/native384-all-development-v1';local=root/'artifacts/native384-all-development-v1';manifest=json.loads((audit/'files.json').read_text());control=manifest['control']
+def save(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+def remote(source,payload):
+ r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',source])],input=json.dumps(payload),capture_output=True,text=True,timeout=60)
+ if r.returncode:raise RuntimeError(r.stderr[-4000:])
+ return json.loads(r.stdout)
+probe='''import json,subprocess,sys
+from pathlib import Path
+r=json.load(sys.stdin);c=Path(r['control'])
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split()
+used,soft,files,file_soft=[int(q[i]) for i in (1,2,5,6)]
+old_remaining=(1048576000-1026221136)*1024
+old_future=old_remaining-int(round(20.02636663801968*2**30))
+future=old_future+2*2**20
+remaining=(soft-used)*1024-future
+future_files=(1000000-993999)-5085+32
+slots=file_soft-files-future_files
+queue=subprocess.check_output(['squeue','-h','-u','sa305415','-o','%i|%T|%j|%b|%N'],text=True).splitlines()
+assert remaining>=20*2**30 and slots>=5000
+assert not c.exists() and not c.is_symlink()
+print(json.dumps({'used_kB':used,'soft_kB':soft,'files':files,'file_soft':file_soft,'future_bytes_after_new_controls':future,'future_files_after_new_controls':future_files,'new_shared_byte_cap':2*2**20,'new_shared_file_cap':32,'remaining_gib':remaining/2**30,'remaining_files':slots,'queue':queue,'deletion_credit_bytes':0,'gpu_dispatch_authorized':False}))'''
+state=remote(probe,{'control':control});save(audit/'funding-input-gate.json',state)
+blobs={}
+for name,row in manifest['files'].items():
+ b=(root/row['local_source']).read_bytes();assert len(b)==row['bytes'] and hashlib.sha256(b).hexdigest()==row['sha256'];blobs[name]=base64.b64encode(b).decode()
+b=(audit/'files.json').read_bytes();blobs['files.json']=base64.b64encode(b).decode()
+assert sum(len(base64.b64decode(x)) for x in blobs.values())<2*2**20
+payload={'control':control,'blobs':blobs,'manifest_sha256':hashlib.sha256(b).hexdigest(),'funding':state}
+save(local/'cpu-dispatch-intent.json',{'control':control,'manifest_sha256':payload['manifest_sha256'],'funding':state,'automatic_retry':False})
+mutation='''import json,sys,base64,os,subprocess,hashlib
+from pathlib import Path
+r=json.load(sys.stdin);c=Path(r['control']);c.mkdir(mode=0o700)
+def save(p,v):
+ with p.open('x') as f:json.dump(v,f,sort_keys=True,indent=2);f.write('\\n');f.flush();os.fsync(f.fileno())
+for name,encoded in r['blobs'].items():
+ assert Path(name).name==name
+ with (c/name).open('xb') as f:f.write(base64.b64decode(encoded))
+assert hashlib.sha256((c/'files.json').read_bytes()).hexdigest()==r['manifest_sha256']
+save(c/'funding.json',r['funding'])
+save(c/'cpu-dispatch-intent.json',{'manifest_sha256':r['manifest_sha256'],'automatic_retry':False})
+out=subprocess.check_output(['sbatch','--parsable',str(c/'inputs.sbatch')],text=True).strip()
+job=out.split(';')[0];assert job.isdecimal()
+result={'status':'native384_all_development_cpu_gate_dispatched_once','job_id':job,'control':str(c),'manifest_sha256':r['manifest_sha256'],'gpus':0,'cpus':1,'automatic_retry':False}
+save(c/'cpu-dispatch-result.json',result);print(json.dumps(result))'''
+result=remote(mutation,payload);save(local/'cpu-dispatch-result.json',result);save(audit/'cpu-dispatch-intent.json',json.loads((local/'cpu-dispatch-intent.json').read_text()));save(audit/'cpu-dispatch-result.json',result);print(json.dumps(result))

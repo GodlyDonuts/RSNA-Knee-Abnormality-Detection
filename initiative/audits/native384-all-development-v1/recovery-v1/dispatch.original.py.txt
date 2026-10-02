@@ -1,0 +1,55 @@
+import subprocess,shlex,json,hashlib,base64,os
+from pathlib import Path
+root=Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection');audit=root/'initiative/audits/native384-all-development-v1/recovery-v1';local=root/'artifacts/native384-all-development-v2';m=json.loads((audit/'recovery-files.json').read_text());control=m['control']
+def save(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+def remote(source,payload):
+ r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',source])],input=json.dumps(payload),capture_output=True,text=True,timeout=60)
+ if r.returncode:raise RuntimeError(r.stderr[-5000:])
+ return json.loads(r.stdout)
+probe='''import os,json,subprocess,sys,hashlib
+from pathlib import Path
+r=json.load(sys.stdin);c=Path(r['control']);p=json.loads((c/'inputs-accepted.json').read_text())
+assert hashlib.sha256((c/'inputs-accepted.json').read_bytes()).hexdigest()=='dc70ab477aad8db956ea276ef656508f7cab3860586a1916f723ceab44800961'
+assert subprocess.check_output(['sacct','-X','-j',p['job_id'],'--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()==p['job_id']+'|COMPLETED|0:0'
+assert not (c/'recovery-dispatch-intent.json').exists() and not (c/'recovery-files.json').exists()
+queue=subprocess.check_output(['squeue','-h','-u','sa305415','-o','%i|%T|%j|%b|%N'],text=True).splitlines();gpu=[x for x in queue if 'gpu' in x.split('|')[3]];assert len(gpu)<2
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True).splitlines()[-1].split();used,soft,files,file_soft=[int(q[i]) for i in (1,2,5,6)]
+paid={}
+for control in [Path('/home/sa305415/rsna-knee/native384-all-development-20261002-v1'),c]:
+ for f in [control,*control.rglob('*')]:
+  assert not f.is_symlink();s=f.stat();assert s.st_uid==os.getuid();paid[(s.st_dev,s.st_ino)]=s.st_size
+for job in ('868073','868074'):
+ for suffix in ('out','err'):
+  f=Path('/home/sa305415/rsna-knee/logs')/('rsna-native384-all-inputs-'+job+'.'+suffix)
+  s=f.stat();assert not f.is_symlink() and s.st_uid==os.getuid();paid[(s.st_dev,s.st_ino)]=s.st_size
+paid_bytes=sum(paid.values());paid_files=len(paid)
+assert paid_bytes<2*2**20 and paid_files<48
+oldfuture=(1048576000-1026221136)*1024-int(round(20.02636663801968*2**30))
+future=oldfuture+2*2**20-paid_bytes;futurefiles=916+48-paid_files
+remaining=(soft-used)*1024-future;slots=file_soft-files-futurefiles
+assert remaining>=20*2**30 and slots>=5000
+print(json.dumps({'used_kB':used,'soft_kB':soft,'used_files':files,'file_soft':file_soft,'remaining_gib':remaining/2**30,'remaining_files':slots,'future_shared_bytes':future,'future_shared_files':futurefiles,'shared_metadata_cap_bytes':2*2**20,'shared_metadata_cap_files':48,'already_paid_metadata_bytes':paid_bytes,'already_paid_metadata_inodes':paid_files,'node_local_recovery_checkpoint_cap_bytes':3*2**30,'node_local_environment_cap_bytes':7*2**30,'node_local_reserve_bytes':20*2**30,'gpu_jobs':gpu,'deletion_credit_bytes':0,'production_dispatch_permitted':False}))'''
+state=remote(probe,{'control':control});save(audit/'funding-recovery.json',state)
+blobs={}
+for name,row in m['files'].items():
+ b=(root/row['local_source']).read_bytes();assert len(b)==row['bytes'] and hashlib.sha256(b).hexdigest()==row['sha256'];blobs[name]=base64.b64encode(b).decode()
+b=(audit/'recovery-files.json').read_bytes();blobs['recovery-files.json']=base64.b64encode(b).decode()
+accept={'status':'bounded_native384_all_development_recovery_wrapper_accepted','scientific_source_git':m['scientific_source_git'],'actual_cpu_job':'868074','actual_input_receipt_sha256':'dc70ab477aad8db956ea276ef656508f7cab3860586a1916f723ceab44800961','recovery_manifest_sha256':hashlib.sha256(b).hexdigest(),'training_engine_unchanged':True,'diagnostic_studies':17,'epochs':2,'updates_per_complete_arm':6,'masked_one_study_tail':True,'required_equality':['full_decoded_model','full_original_base','AdamW_LR_counters_all_RNG','all_numerical_update_records'],'protected_evaluation_used':False,'competition_eligible':False,'production_accepted':False,'funding':state}
+save(audit/'agent-engineering-decision.json',accept)
+save(local/'recovery-dispatch-intent.json',{'control':control,'manifest_sha256':accept['recovery_manifest_sha256'],'acceptance':accept,'automatic_retry':False})
+mutation='''import json,sys,os,subprocess,base64,hashlib
+from pathlib import Path
+r=json.load(sys.stdin);c=Path(r['control'])
+assert not (c/'recovery-dispatch-intent.json').exists()
+def save(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\\n');f.flush();os.fsync(f.fileno())
+for name,enc in r['blobs'].items():
+ assert Path(name).name==name
+ with (c/name).open('xb') as f:f.write(base64.b64decode(enc))
+assert hashlib.sha256((c/'recovery-files.json').read_bytes()).hexdigest()==r['acceptance']['recovery_manifest_sha256']
+save(c/'recovery-acceptance.json',r['acceptance']);save(c/'recovery-dispatch-intent.json',{'manifest_sha256':r['acceptance']['recovery_manifest_sha256'],'automatic_retry':False})
+raw=subprocess.check_output(['sbatch','--parsable',str(c/'recovery.sbatch')],text=True).strip();job=raw.split(';')[0];assert job.isdecimal()
+out={'status':'bounded_native384_all_development_recovery_dispatched_once','job_id':job,'control':str(c),'gpus':1,'cpus':2,'diagnostic_only':True,'production_dispatched':False,'automatic_retry':False}
+save(c/'recovery-dispatch-result.json',out);print(json.dumps(out))'''
+out=remote(mutation,{'control':control,'blobs':blobs,'acceptance':accept});save(local/'recovery-dispatch-result.json',out);save(audit/'dispatch-intent.json',json.loads((local/'recovery-dispatch-intent.json').read_text()));save(audit/'dispatch-result.json',out);print(json.dumps(out))
