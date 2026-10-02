@@ -1,3 +1,9 @@
+Latest private preservation: source3bc053e launch/recovery/sampling-score milestone
+is fully69-object download/size/SHA verified at HF4c76160a356499e18a77d78d488b8e9b0bda0195.
+Read hf-native384-all-fitting-20261002-v1; never repeat. Its dated initial progress
+was still unobserved; the current actual progress-v1 receipt below supersedes that
+startup snapshot while preserving the original. Original healthy868093 is untouched.
+
 ## October2 current: actual sampling scores and new native all-development fit
 
 Kaggle uniform224 final56766962 scored **0.770**; stratified224 final56767196
@@ -23,7 +29,7 @@ ONCE: 1H100/2CPU evc31,10epochs/4260updates, warmup213. Exact C9/officialbase/
 accepted masks and protected exclusions unchanged. Unique private node-local
 output /tmp/rsna-native384-all-production-20261002-v1; control
 /home/sa305415/rsna-knee/production-launch-native384-all-c9-v1. Actual allocation, CUDA/device/header and full-population/source admission passed;
-initial optimizer progress is not yet observed. Never repeat it. The new production audit
+12contiguous finite real optimizer updates are verified, with empty stderr. Never repeat it. The new production audit
 and pinned all-development publisher/coordinator supersede fold0 publication
 assumptions. Preserve every completed epoch privately once/full six-object
 re-download/SHA under canonical lock and owning-node CPU allocation. Three GiB
