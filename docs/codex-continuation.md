@@ -14,6 +14,10 @@ Current all-development384 fit has no score; finish healthy original and its
 predeclared final checkpoint. Research hypotheses/primary literature and
 Jev assessment are recorded in creative-research-plan.md; no new GPU experiment
 or source-derived competition candidate was dispatched.
+Sourcec59c059 and this distinct epoch3/scored-native/research milestone are
+privately mirrored at HF8a4516674c3a419ee09e3a66613f120d9b8249b8,
+all23small objects fully re-downloaded/size/SHA verified under canonical shared
+lock. Read hf-native384-all-epoch3-20261002-v1; never repeat this mirror.
 
 Earlier October2 16:17UTC: original all-development868093 remains RUNNING on
 evc31, epoch2 completed/852updates and911contiguous finite updates observed into
