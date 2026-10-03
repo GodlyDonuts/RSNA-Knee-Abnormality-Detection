@@ -436,3 +436,163 @@ def test_all_development_membership_preserves_masks_and_excludes_reserved_data()
     leaked.loc[3, "leakage_group"] = "0"
     with pytest.raises(ValueError, match="held-out split"):
         select_development(leaked, folds, 0, "all_development")
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_fitting_overlay_real_trainer_resume_and_bound_admission(tmp_path, monkeypatch, enabled):
+    from rsna.competitive import train
+    from rsna.competitive.backbones import create_encoder
+    from rsna.competitive.infer import validate_inference_checkpoint
+    from rsna.competitive.model import CompetitiveStudyNet
+    from rsna.competitive.supervision import roster_sha
+
+    rows = []
+    for i in range(12):
+        row = dict(
+            study_uid=f"s{i:02}",
+            leakage_group=f"g{i}",
+            split="train",
+            report_supervision_allowed=True,
+        )
+        for target in TARGETS:
+            row[target], row[target + "__mask"] = i % 2, 1
+            row[target + "__provenance"] = "synthetic_weak"
+        rows.append(row)
+    manifest = pd.DataFrame(rows)
+    manifest.loc[5, "Effusion__mask"] = 0
+    original_manifest = manifest.copy(deep=True)
+    folds = manifest[["study_uid", "leakage_group"]].copy()
+    folds["fold"] = [0] * 4 + [1] * 8
+    folds_path = tmp_path / "folds.csv"
+    folds.to_csv(folds_path, index=False)
+    series_path = tmp_path / "series.csv"
+    series_path.write_text("SeriesInstanceUID\na\n")
+    binding = dict(
+        manifest_sha256="d" * 64,
+        source_revision="synthetic",
+        series_sha256=hashlib.sha256(series_path.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setattr(train, "load_verified_release", lambda *args: (manifest.copy(), binding))
+    fitting, outer = train.select_development(manifest, folds, 0)
+    proposal = dict(
+        schema_version=1,
+        status="source_review_accepted_experiment_only",
+        target="Effusion",
+        fit_scope="outer_fold",
+        fold=0,
+        release_sha256="d" * 64,
+        folds_sha256=hashlib.sha256(folds_path.read_bytes()).hexdigest(),
+        fitting_uid_sha256=roster_sha(fitting),
+        outer_uid_sha256=roster_sha(outer),
+        cell_count=1,
+        cells=[
+            dict(
+                study_uid="s05",
+                target="Effusion",
+                disposition="conditional_training_only_reuse_recommendation",
+                first_reader_state="positive",
+                independent_reader_state="positive",
+                source_report_sha256="a" * 64,
+                current_annotation_sha256="b" * 64,
+                assessment_sha256="c" * 64,
+                original_hold_id="hold-original",
+                original_obligation_id="ob-original",
+            )
+        ],
+        reviews=dict.fromkeys(
+            ["first_reader", "independent_reader", "original_context", "root_assessment"],
+            "e" * 64,
+        ),
+    )
+    artifact = tmp_path / "proposal.json"
+    artifact.write_text(json.dumps(proposal))
+    config = TrainConfig(
+        epochs=2,
+        batch_size=2,
+        accumulation_steps=2,
+        side=16,
+        slices=2,
+        max_series=3,
+        hidden_dim=16,
+        freeze_encoder=False,
+        min_free_gib=0,
+        # Admission uses the full roster even though the engineering trainer
+        # consumes only a subset; its binding must retain the complete cohort.
+        diagnostic_study_limit=3,
+        fitting_supervision=dict(
+            kind="effusion_review_v1",
+            sha256=hashlib.sha256(artifact.read_bytes()).hexdigest(),
+            enabled=enabled,
+        ),
+    )
+    config.validate()
+    args = argparse.Namespace(
+        studies=tmp_path / "unused",
+        artifact_root=tmp_path,
+        folds=folds_path,
+        series=series_path,
+        cache=tmp_path,
+        output=tmp_path / "full",
+        resume=None,
+        stop_after_updates=None,
+        fitting_supervision=artifact,
+    )
+    initial_states, input_frames = [], []
+
+    def build_model(*args, **kwargs):
+        model = CompetitiveStudyNet(*args, **kwargs)
+        initial_states.append({k: v.clone() for k, v in model.state_dict().items()})
+        return model
+
+    class CapturedStudies(SyntheticStudies):
+        def __init__(self, studies, *args, **kwargs):
+            input_frames.append(studies.copy(deep=True))
+            super().__init__(studies, *args, **kwargs)
+
+    def execute():
+        return train._run_locked(
+            args,
+            config,
+            [False],
+            0,
+            1,
+            torch.device("cpu"),
+            create_encoder,
+            CapturedStudies,
+            build_model,
+            lambda *args: folds.copy(),
+        )
+
+    assert execute() == 0
+    full = torch.load(args.output / "checkpoint.pt", weights_only=True)
+    csv = (args.output / "outer_predictions.csv").read_bytes()
+    receipt = full["binding"]["experimental_fitting_supervision"]
+    assert receipt["applied_cells"] == int(enabled)
+    assert receipt["fitting_uid_sha256"] == roster_sha(fitting)
+    expected = fitting.head(3).copy()
+    expected.loc[expected.study_uid == "s05", "Effusion__mask"] = int(enabled)
+    pd.testing.assert_frame_equal(input_frames[0], expected)
+    pd.testing.assert_frame_equal(input_frames[1], outer.head(3))
+    pd.testing.assert_frame_equal(manifest, original_manifest)
+    with pytest.raises(ValueError, match="not admitted"):
+        validate_inference_checkpoint(full, allow_diagnostic=True)
+    args.output, args.stop_after_updates = tmp_path / "resumed", 1
+    assert execute() == 75
+    args.resume, args.stop_after_updates = args.output / "checkpoint.pt", None
+    assert execute() == 0
+    _assert_tree_equal(full, torch.load(args.output / "checkpoint.pt", weights_only=True))
+    assert csv == (args.output / "outer_predictions.csv").read_bytes()
+    for state in initial_states:
+        _assert_tree_equal(state, initial_states[0])
+    config.fitting_supervision["enabled"] = not enabled
+    with pytest.raises(ValueError, match="differs"):
+        execute()
+
+
+@pytest.mark.parametrize("extra", [{"fit_scope": "all_development"}, {"witness": {}}])
+def test_fitting_supervision_requires_isolated_outer_fold(extra):
+    with pytest.raises(ValueError):
+        TrainConfig(
+            fitting_supervision=dict(kind="effusion_review_v1", sha256="a" * 64, enabled=True),
+            **extra,
+        ).validate()

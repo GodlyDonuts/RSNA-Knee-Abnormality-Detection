@@ -1,5 +1,9 @@
 # Signed patch evidence beside global MRI context
 
+October3 supplied-program update: this implementation is retained, while the
+[reviewed fitting-supervision contrast](../effusion-review-contrast-v1/README.md)
+now takes priority for the next accepted fit. Do not conflate the interventions.
+
 October3 owner direction: pursue mechanisms rather than more undirected rank,
 resolution or epoch scaling; keep GitHub ready for external deep research.
 See [the complete research brief](../../../../docs/research-brief.md).

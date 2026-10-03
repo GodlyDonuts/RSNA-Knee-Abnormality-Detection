@@ -44,6 +44,19 @@ its preserved outputs are historical evidence, not current training labels.
   small final manifests, audits, predictions, and experiment metadata here even
   when also publishing them to Hugging Face.
 
+## October3 supplied research program: first supervision contrast
+
+Read `initiative/research/owner-program-20261003-v1/README.md` and the current
+research brief. The supplied original is archived verbatim; external claims are
+not automatically facts or experiment admission. Prioritize the now-integrated
+reviewed Effusion control/candidate over funding patch-witness fitting. Exact
+private proposal/full-roster binding and isolated outer-fold scope are required;
+original accepted masks and evaluation stay immutable. Actual input16/47 positive
+counts and synthetic checkpoint recovery do not establish MRI accuracy. Actual
+GPU acceptance/resources are still required. Missing reports are never implicit
+negatives. Physical neighbor/crop and broader concepts/ranking remain distinct
+hypotheses, with solo MRI inference and protected-data boundaries intact.
+
 ## October3 sharp research change and GitHub handoff
 
 The owner explicitly set Kaggle deployment aside and asked for bold, result-driven

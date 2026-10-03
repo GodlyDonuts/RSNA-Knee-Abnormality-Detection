@@ -46,6 +46,7 @@ from rsna.competitive.relations import (
 )
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
+from rsna.competitive.supervision import apply_fitting_supervision, validate_fitting_supervision
 from rsna.competitive.witness import validate_witness
 from rsna.model import auc_metrics
 from rsna.release import load_verified_release
@@ -115,8 +116,17 @@ class TrainConfig:
     diagnostic_study_limit: int | None = None
     relation: dict | None = None
     witness: dict | None = None
+    fitting_supervision: dict | None = None
 
     def validate(self) -> None:
+        if self.fitting_supervision is not None:
+            validate_fitting_supervision(self.fitting_supervision)
+            if (
+                self.fit_scope != "outer_fold"
+                or self.relation is not None
+                or self.witness is not None
+            ):
+                raise ValueError("Fitting-supervision contrast requires an isolated outer-fold arm")
         positive = (
             "epochs",
             "batch_size",
@@ -427,6 +437,24 @@ def _run_locked(
     manifest, release_binding = verified_job_release(args.studies, args.artifact_root, rank, world)
     folds = load_folds(args.folds, manifest, release_binding)
     train, outer = select_development(manifest, folds, config.fold, config.fit_scope)
+    supervision_path = getattr(args, "fitting_supervision", None)
+    if (
+        config.fitting_supervision is not None
+        and getattr(args, "mrnet_checkpoint", None) is not None
+    ):
+        raise ValueError("First fitting-supervision contrast cannot mix external initialization")
+    if config.fitting_supervision is not None or supervision_path is not None:
+        train, supervision_receipt = apply_fitting_supervision(
+            train,
+            outer,
+            supervision_path,
+            config.fitting_supervision,
+            release_sha256=release_binding["manifest_sha256"],
+            folds_sha256=file_sha256(args.folds),
+            fold=config.fold,
+        )
+    else:
+        supervision_receipt = None
     if config.diagnostic_study_limit is not None:
         train, outer = (
             train.head(config.diagnostic_study_limit),
@@ -513,6 +541,8 @@ def _run_locked(
         bound_config.pop("relation")
     if config.witness is None:
         bound_config.pop("witness")
+    if config.fitting_supervision is None:
+        bound_config.pop("fitting_supervision")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {
@@ -540,6 +570,8 @@ def _run_locked(
             private_research_only=True,
             external_weight_publication=False,
         )
+    if supervision_receipt is not None:
+        binding["experimental_fitting_supervision"] = supervision_receipt
     if world > 1:
         rank_bindings: list = [None] * world
         dist.all_gather_object(rank_bindings, _hash(binding))
@@ -944,6 +976,9 @@ def main() -> None:
     for name in ("config", "studies", "series", "cache", "folds", "artifact-root", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--resume", type=Path)
+    parser.add_argument(
+        "--fitting-supervision", type=Path, help="Exact private reviewed fitting-overlay artifact"
+    )
     parser.add_argument(
         "--mrnet-checkpoint", type=Path, help="Private final source adapter initialization"
     )

@@ -19,6 +19,35 @@ with the compute used. Successful engineering, checkpoint retention and Stanford
 source-task learning are useful assets, but are not RSNA accuracy gains. No
 first-place promise or assumed 0.93 capability is justified.
 
+## Owner-supplied program and new first experiment
+
+The [October3 research program and critical review](../initiative/research/owner-program-20261003-v1/README.md)
+are now archived, including the unmodified original and byte provenance. Its
+supervision/input thesis is worth testing; neither its title nor confident causal
+language establishes a winning mechanism. Primary checks support a released
+strong single-model recipe using different supervision and inputs, but do not
+isolate which difference helps. The precise inaccessible host comment and current
+leaderboard estimates remain unverified.
+
+The first contrast is now **reviewed fitting supervision**, ahead of funding the
+patch-witness architecture. The canonical trainer accepts the exact31-cell Effusion
+proposal for a strict control and a candidate; both validate full fitting/outer
+membership before diagnostic subsets, preserve original release/evaluation, and
+bind the arm/proposal into checkpoint recovery. On the actual2247/1156 tables,
+control retains16 fitting positives and candidate has47. Synthetic full/stop1/resume
+state and CSV equality passed; no real-MRI GPU fitting or accuracy result exists.
+See [implementation and protocol](../initiative/experiments/competitive-v1/effusion-review-contrast-v1/README.md).
+Experimental-supervision weights are blocked from competition inference pending
+separate admission. Sigmoid probabilities stay unchanged.
+
+Next independently test source-supported broad concepts/partial orders and physical
+crop/neighboring-slice observations. Do not convert missing findings to negatives,
+map arbitrary report levels to MRI consensus truth, or combine supervision and
+input changes in one trial. Existing patch-witness remains an alternative;
+external anatomy/weights are conditional leads. Solo-model and protected-data
+boundaries remain intact. This is a prioritized research sequence, not four
+unobserved running jobs.
+
 ## Current MRI pipeline and model
 
 - Official pinned `facebook/dinov3-vitl16-pretrain-lvd1689m`, roughly 300M base

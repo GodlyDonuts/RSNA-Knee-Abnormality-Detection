@@ -40,6 +40,13 @@ def validate_inference_checkpoint(
     ):
         raise ValueError("Unsupported competitive checkpoint")
     binding = checkpoint["binding"]
+    if (
+        binding.get("experimental_fitting_supervision") is not None
+        or binding.get("config", {}).get("fitting_supervision") is not None
+    ):
+        raise ValueError(
+            "Experimental fitting-supervision weights are not admitted for competition"
+        )
     if binding.get("external_initialization") is not None or binding.get("private_research_only"):
         raise ValueError("Private external-source research weights are not competition candidates")
     validate_checkpoint_binding(binding["release"])

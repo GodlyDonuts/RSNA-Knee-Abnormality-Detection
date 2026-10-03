@@ -1,0 +1,408 @@
+A First-Place Research Program for RSNA Knee Abnormality Detection
+Executive diagnosis: this is no longer an encoder contest
+I inspected the current repository, its training strategy, model implementation, recent experiment record, supervision audits, Kaggle submission history, and the October 3 commits. My central conclusion is unusually strong:
+
+Your biggest remaining edge is not DINOv2 versus DINOv3, a larger LoRA rank, more pixels, or a larger ensemble. It is learning the hidden image-labeling function of the competition from supervision that is systematically noisier and semantically different from that function.
+
+That distinction changes the entire campaign.
+
+The competition score is the unweighted mean of twelve per-target ROC-AUCs, so the objective is fundamentally to rank studies correctly for each target, not to reproduce report wording or calibrated report-derived probabilities. 
+ More importantly, the host has explicitly confirmed that the official labels were assigned from MRI images independently of the reports, that the image-derived labels are authoritative when they disagree, and that disagreement is expected because the competition uses multiple readers and stricter imaging thresholds than routine clinical reports. 
+
+That is exactly the failure mode visible in your repository.
+
+Your accepted release is exceptionally careful: 3,904 development studies, 441 weak-validation studies, 58 official evaluation studies, explicit per-target masks, provenance, duplicate isolation, quarantines, semantic adjudication, and strict prevention of converting unmentioned findings into negatives. Scientifically, this is excellent. Competitively, however, it has created an information bottleneck. Your October 2 diagnostic found only seven supervised MCL positives, nine Baker's cyst positives, five fracture positives, fifteen synovitis negatives, and an extremely small number of accepted positive effusions despite hundreds of report-derived candidate observations.
+
+The effusion investigation is the smoking gun. Your blinded follow-up reviewed 32 previously held positive-effusion candidates and recommended conditional reuse for 31 of the 32; the experimental fitting-only overlay increases supervised effusion positives from 16 to 47 while leaving the outer evaluation rows and every other target untouched. That does not prove those 31 are official-image positives. It proves something more important for strategy: your binary decision to either trust a report-derived cell completely or throw it away is destroying enormous amounts of useful information.
+
+At the same time, the model itself is already sophisticated. CompetitiveStudyNet has target-specific slice weighting, target-specific series weighting, positional features, series metadata, patch attention, optional neighboring-slice context, and a geometry-relation auxiliary path. Your A32 DINOv3-L adaptation inserts roughly 10.2 million rsLoRA parameters throughout the transformer rather than merely training a classifier head. The A32 experiment produced a major internal improvement on its matched fold, yet the corresponding sampled fold-0 Kaggle submission scored only 0.769. Your best recorded solo all-development public score remains 0.792, while native-384 scored 0.785.
+
+The public evidence makes that even more revealing. A released single CoAtNet model, with no ensemble and no test-time augmentation, scored 0.924. 
+ Competitors now report single-fold/single-model results around 0.93–0.94 even with small ResNets and 224–288-pixel inputs; these are anecdotal rather than audited benchmarks, but several independent competitors converge on the same observation: label treatment and training recipe matter more than simply scaling the backbone. 
+ A recent public discussion placed the then-current top public score around 0.951, with top competitors now speculating that the eventual ceiling could move materially higher. 
+
+So the gap from your best 0.792 to the released 0.924 single model is 0.132 AUC. That is too large to plausibly blame mainly on DINO version, LoRA rank, another hundred epochs, or a small ensemble.
+
+The public 0.924 model is especially useful as a diagnostic because its recipe is much simpler than your research infrastructure. It converts each examination to 64 images allocated by plane, samples consistently through each series, uses a 140 mm physical crop based on DICOM pixel spacing, and feeds three adjacent slices as a 2.5D window. 
+ Your A32 production recipe, by comparison, uses 16 sampled grayscale slices per series, six series, 224-pixel input, and no augmentation.
+
+My first-place thesis is therefore:
+
+Do not spend the next phase trying to make DINOv3 “smarter.” Make the entire system better informed about what constitutes the competition’s latent image truth.
+
+I would allocate the remaining scientific attention approximately as follows—not as probabilities of winning, but as an R&D budget:
+
+Frontier	Share of attention	Why
+Supervision reconstruction and ranking	40%	Your clearest demonstrated bottleneck
+Anatomy- and geometry-conditioned image model	30%	Best route to sample efficiency and private-LB robustness
+MRI/knee-specific representation transfer	15%	Potentially large, but should plug into the above rather than replace them
+Validation and domain-shift defense	10%	Essential because only ~30% of test data drives the public leaderboard
+Ensemble optimization	5% initially	Powerful only after the individual systems are elite
+
+The public leaderboard uses approximately 30% of the test set and final standings use the other 70%, so your fear of public-LB tailoring is entirely rational. 
+ The answer, however, is not to reject ensembles. It is to reject leaderboard-designed ensembles.
+
+The tactical reset: reproduce elite simple-model behavior before inventing anything harder
+Before pursuing the frontier model below, I would impose one brutal engineering gate on the project:
+
+A comparatively ordinary single model using your data must reach the neighborhood of the strong public single-model baselines.
+
+If it cannot, no amount of architectural novelty can be interpreted cleanly.
+
+Your existing campaign has already falsified several tempting explanations. Stratified slice sampling approximately doubled distinct slice exposure yet produced a near-null controlled result. Native 384 yielded only a small, statistically unresolved internal delta and scored 0.785 publicly. Increasing adapter capacity is therefore not where I would put the next large block of compute.
+
+The public single-model evidence also argues against the premise that extreme resolution or enormous networks are necessary. Competitors report 0.936 with a small 224-pixel ResNet, 0.938 from a single fold, and 0.942 at 288 pixels; although these are self-reported competition results and should not be treated as scientific benchmarks, they establish that there is abundant competitive headroom without giant inference systems. 
+
+Build a deliberately boring challenger
+I would build a Raptor-class sanity model inside your own audited pipeline:
+
+Input geometry: native DICOM → verified physical crop → 2.5D adjacent slices → fixed plane-aware examination stack.
+
+Use a roughly 140–150 mm physical field of view, because both the released 0.924 model and another high-scoring competitor independently report physically normalized knee crops in that range. 
+ This should not be copied blindly; run 130/150/170 mm as a single controlled variable using the same weights and supervision. The important concept is that scanner resolution should change pixels-per-knee rather than apparent knee size.
+
+Use actual neighboring MRI slices as the three channels. Your original reference repeats one grayscale slice across RGB, while your later plans correctly identified neighboring-slice context as a separate intervention. The released 0.924 model demonstrates that an adjacent-slice 2.5D representation is competition-viable. 
+
+For the encoder, I would initially use something intentionally unglamorous—CoAtNet, ConvNeXt, EfficientNet, or your existing DINOv3 with identical examination inputs. The purpose is not to find the ultimate encoder. It is to answer:
+
+Can your labels + image preprocessing + training objective reproduce the performance class that ordinary competitors are already reaching?
+
+Run exactly three supervision conditions:
+
+Arm	Target supervision	What it diagnoses
+Strict	Current accepted masks only	Existing scientific reference
+Dense-soft	Every usable report converted to soft/ordinal evidence	Whether discarded supervision is the main bottleneck
+Hybrid	Strict target BCE + dense auxiliary/ranking supervision	Whether ambiguity can be exploited without corrupting strict targets
+
+I would not change backbone, resolution, loss, and labels simultaneously.
+
+Establish a competition-equivalent baseline before continuing
+A practical readiness target is not “beat 0.792 by 0.005.” I would want the boring single model to move into roughly the 0.90+ public regime before interpreting sophisticated experiments. That threshold is deliberately well below the current frontier; it is a pipeline-health gate, not a goal.
+
+If the physically normalized 2.5D model with dense supervision remains near 0.80, investigate—in this order—target generation, target ordering, DICOM spatial handling, inference preprocessing parity, plane classification, series selection, weight loading, numeric precision, and label semantics.
+
+This matters because a recent competitor reported a spectacular 0.851→0.710 drop from an inference precision mistake despite respectable local evaluation. That is only one participant's report, but it is a useful warning that deployment discrepancies can masquerade as scientific failures. 
+
+Your repository's reproducibility infrastructure makes you unusually well positioned to rule this out. That infrastructure—hash-bound checkpoints, exact inference recreation, release manifests, duplicate components, and strict recovery testing—is not administrative overhead. It is a competitive asset. Keep it.
+
+The frontier architecture: build an anatomical digital knee, not a bigger image classifier
+Once the simple model is healthy, I would make one major architectural bet:
+
+Build a single anatomy-conditioned, multi-plane, multi-resolution “digital knee” model in which every prediction query knows where it is looking, what sequence produced the evidence, and how the evidence relates physically to the same anatomy in other series.
+
+Call it KneeAtlas for convenience.
+
+The conceptual leap is from:
+
+slice → DINO embedding → attention → study prediction
+
+to:
+
+MRI evidence → anatomical coordinate system → tissue/region tokens → target-specific diagnostic reasoning
+
+Your current model's geometry representation is extremely lightweight: normalized slice position plus five series features, then target-specific attention. The DICOM contains substantially richer physical information, and your preprocessing/audit code already validates much of it.
+
+A context pass and an evidence pass
+KneeAtlas should use two imaging scales.
+
+The context pass scans the examination cheaply. Encode 2.5D windows across every useful series—or at least enough windows that no selected series is sparsely represented. Input can be 224–288 pixels. The output is not twelve logits; it is a compact bank of tokens containing image feature, sequence identity, plane, physical slice position, spatial coordinates, and quality flags.
+
+The evidence pass spends expensive 384–448-pixel encoding only on regions that the context pass judges potentially informative. This implements the foveated idea already proposed in your research notes, but I would add a crucial constraint: selection is anatomy-conditioned and partly deterministic, not purely attention-driven. Your own document correctly identified the danger that a learned selector can continually ignore pathology it has not yet learned to recognize.
+
+For every diagnostic target, reserve some guaranteed anatomical coverage and some learned exploration. The selector should never receive permission to suppress the entire examination.
+
+This makes compute allocation more like a radiologist's workflow: broad survey, then closer inspection. It also explains why brute-force 384 failed to move the needle much. Spending four times the pixels on every background structure is not the same as spending resolution on diagnostically relevant tissue.
+
+Put every token into patient space
+Use DICOM orientation, position, spacing, and slice geometry to convert each patch/window into a physical coordinate representation. Do not force equality between sequences simply because coordinates overlap; motion, obliquity, positioning, partial coverage, and sequence-dependent anatomy make that unsafe. Your own geometry-relation research already recognizes this.
+
+Instead, let tokens carry:
+
+[ e = f_{\text{visual}}
+
+e_{\text{xyz}}
+e_{\text{sequence}}
+e_{\text{plane}}
+e_{\text{spacing}}
+e_{\text{series quality}}
+e_{\text{anatomical region}} ]
+Then use soft physical correspondence. A coronal and sagittal token that plausibly observe overlapping anatomy become eligible to interact through cross-attention; they are not forced to share embeddings.
+
+This is much closer to how modern knee-specific models are moving. OrthoDiffusion uses three orientation-specific 3D representations and explicitly studies multi-plane fusion, including cross-attention; it was pretrained on 15,948 unlabeled knee MRI scans and supports both anatomical segmentation and multi-label disease diagnosis. 
+
+Give the model an anatomy prior
+I would test two public foundation-model initialization routes immediately.
+
+OrthoFoundation-L is essentially the experiment you would have designed if someone handed you a million orthopedic images: it continues DINOv3-L-style self-supervision on 1,251,655 knee images, including 893,985 MRI slices, and releases its model weights. 
+ This is far more aligned with your task than natural-image DINOv3.
+
+OrthoDiffusion supplies orientation-specific 3D knee MRI representations trained on 15,948 scans, along with multi-plane fusion and 11-structure segmentation capability. 
+ I would not necessarily replace your classification encoder with its entire diffusion stack. A stronger experiment is to use it as an anatomy/geometry teacher: extract frozen intermediate anatomical features or segmentation-derived region assignments, then condition KneeAtlas on those.
+
+A third research direction, not necessarily competition-eligible as an external-data dependency, is KneePreM. Its September 25 preprint reports a 3D masked-autoencoder model pretrained on 19,011 OAI knee MRI series from 4,791 participants and improved label efficiency on downstream knee classification and segmentation. 
+ The scientific conclusion is valuable even if you do not use its source data directly: large-scale 3D knee-specific self-supervision is now empirically justified enough that natural-image initialization should no longer be treated as the default frontier.
+
+However, eligibility must be separated from scientific attractiveness. Competition notebooks may use freely and publicly available pretrained models, and winners must publish their final code and model weights for open distribution and validation. 
+ OAI itself has a conditional host ruling: its use does not violate the challenge rules if access is generally available without escalated institutional review/sign-off and free of charge, while the host explicitly declines to rule on OAI's own data-use terms. 
+ So for OrthoFoundation/OrthoDiffusion/KneePreM, perform a formal license/derivative-weight check before they enter a final winning dependency.
+
+I would not make MRNet central to the final solution until that question is resolved. Your repository records that the signed research agreement restricts derivative works/redistribution even though private source training was admitted for research. That is incompatible with taking an ambiguous licensing risk weeks before a competition whose winners must publicly release final weights. 
+
+Replace twelve independent heads with four diagnostic workspaces
+Do not create twelve giant specialists; your rare supervision cannot support them. But twelve almost-independent attention queries also discard useful disease structure.
+
+I would create four lightweight expert workspaces sharing one encoder and anatomical token bank:
+
+Workspace	Targets
+Ligament / trauma	ACL, MCL, contusion, fracture
+Meniscal	medial meniscus, lateral meniscus
+Cartilage / degeneration	medial OA, lateral OA, PF OA
+Synovial / fluid	effusion, synovitis, Baker's
+
+Each workspace receives all examination tokens but has a small expert Transformer or gated feed-forward block. Individual target queries then emerge from the workspace.
+
+This lets related targets learn shared evidence while preserving target-specific ranking. The important distinction is soft structural sharing, not hard clinical rules. A model may learn that two findings often coexist, but it must remain free to predict one without the other.
+
+It is also architecturally compatible with your sparse-label problem: a rare MCL target can benefit from a representation learned by ACL/contusion/trauma examples without pretending those labels are interchangeable.
+
+Preserve one genuinely different branch
+I would retain one compact 3D model as a challenger, but not build a giant full-study 3D Transformer from scratch.
+
+Use an anisotropy-aware 3D branch on one or two high-value series per plane, initialized from a knee/MRI-specific model if legally usable. OrthoDiffusion and KneePreM are strong evidence that 3D knee pretraining can be useful under limited labels. 
+
+That branch is valuable even if it loses to KneeAtlas alone. A 3D model has a materially different error mechanism from a 2.5D ViT/CoAtNet. That is precisely the kind of model you may later want in a small ensemble.
+
+Supervision frontier: turn ambiguous reports into partial information instead of discarded labels
+This is the bet I think has the highest expected competitive value.
+
+Your present data model treats a target cell roughly as:
+
+[ y \in {0,1},\qquad m \in {0,1} ]
+
+and optimization sees it only when (m=1).
+
+That is appropriate for a conservative supervised release. It is not the richest training representation.
+
+The host's clarification tells you that report text and official image labels are related but not equivalent measurements. 
+ So build an explicit latent evidence model instead of asking a report parser to imitate the official label directly.
+
+Decompose the report into clinical concepts
+For every study-target pair, preserve a structured vector such as:
+
+[ z_t = ( \text{finding present}, \text{severity}, \text{acuity}, \text{certainty}, \text{location}, \text{morphology}, \text{explicit absence}, \text{report omission} ) ]
+
+The exact fields differ by target. The important point is to preserve the information that your strict rubric currently throws away.
+
+For example, when a report describes a mild/below-threshold abnormality, do not classify it as an official positive. Instead:
+
+the strict target cell can remain masked;
+a broad finding-presence auxiliary target can be positive;
+severity can carry an ordinal constraint;
+the MRI representation can still learn what that abnormal tissue looks like.
+That is an enormous conceptual improvement over both extremes—“treat the report as truth” and “discard the observation.”
+
+Your effusion review already provides the infrastructure and proof of principle: the original strict masks stay frozen, while independently reviewed evidence enters a separate experimental overlay. Generalize that concept from one binary overlay into a multi-level evidence layer across all twelve targets.
+
+Train for ordering, not only classification
+Because the official metric is per-target ROC-AUC, it rewards correct ordering. 
+ Exploit that directly.
+
+Suppose your report evidence says:
+
+large definite finding
+> moderate definite
+> mild/below-threshold
+> explicitly absent
+
+You do not need to claim that the middle categories correspond to official labels. You can assert only a partial ordering.
+
+For target (t), train:
+
+[ L_t = L_{\text{strict-BCE}} + \lambda_r L_{\text{pairwise-rank}} + \lambda_c L_{\text{concept}} ]
+
+where strict BCE sees only the cells you already trust, while L_pairwise-rank sees report-derived pairs with defensible relative evidence.
+
+A simple pair loss is:
+
+[ L_{\text{rank}}
+\log\left(1+\exp[-(s_i-s_j)]\right) ]
+
+whenever the evidence policy says (i) should rank above (j).
+
+This has a beautiful property for your challenge: a trace or chronic finding does not need to be mislabeled as a competition positive to teach the model something.
+
+The same idea applies to uncertain negatives. If report A explicitly says “no fracture” and report B never discusses bone at all, the first can provide a stronger absence constraint without inventing a hard negative for the second.
+
+Add training-only report privilege
+Reports disappear at hidden-test inference, but that does not mean they should be reduced to twelve labels during training.
+
+Use the report as privileged information.
+
+Train a target-specific text/concept branch alongside the MRI branch, but remove it completely at inference. The text branch should process target-specific clauses, not simply one global report embedding. Its job is to shape the MRI representation, not to produce submission logits.
+
+A modern MRI precedent supports this direction. Decipher-MR combines self-supervised MRI representation learning with medical report supervision and image-report alignment; it was trained over roughly 200,000 MRI series and reports improved representations across multiple downstream tasks. 
+ That does not establish an RSNA knee gain, but it establishes that report-guided MRI representation learning is technically credible.
+
+I would use a target-specific privileged loss:
+
+[ L_{\text{priv}}
+1-\cos( h^{\text{MRI}}_t, \operatorname{sg}(h^{\text{text}}_t) ) ]
+
+only when the report contains meaningful evidence for target (t). Do not align a target embedding to a report in which that target is merely omitted.
+
+The text loss should also decay over training. Early on it teaches the image branch what concepts to look for; later the strict image-ranking objective should dominate. This reduces the risk that the final representation becomes a report-prediction model rather than an image-label model.
+
+Make the disagreement itself a learning target
+The most creative use of your existing annotation work is a report-to-image verifier.
+
+You already possess categories of disagreement:
+
+straightforward report evidence accepted for supervision;
+report evidence held because severity thresholds are uncertain;
+chronic versus acute disagreements;
+explicit findings whose competition threshold is stricter;
+omissions;
+independently reviewed corrections.
+Do not collapse those histories.
+
+Train an auxiliary head to predict an evidence state such as:
+
+likely strict-target-positive
+finding present but likely below strict threshold
+report-indeterminate
+explicit negative
+
+The official target head and verifier share the MRI representation but have distinct outputs.
+
+In other words, make the network learn:
+
+“I can see an MCL abnormality”
+
+separately from:
+
+“This looks like the kind of acute high-grade MCL abnormality that should rank high under the challenge rubric.”
+
+That is much closer to the hidden labeling process described by the competition host. 
+
+Use positive-unlabeled logic for omission-heavy targets
+For targets where reporting omissions are common, “not mentioned” should remain neither zero nor meaningless.
+
+You already mask unmentioned findings correctly. The next frontier is to let them participate in representation learning and ranking without treating them as negatives.
+
+For an omission-heavy target:
+
+confirmed report-positive → positive concept evidence;
+confirmed report-negative → negative evidence;
+not mentioned → unlabeled;
+official/strict accepted → high-confidence target evidence.
+Then sample explicit positive-versus-explicit-negative pairs aggressively while using unlabeled examples only through consistency/self-supervision or conservative teacher agreement.
+
+This is especially relevant to synovitis, where a competition participant's analysis found sparse report mentions and a substantial gain from medical-image pretraining; that result is anecdotal, but it is directionally consistent with your own finding that synovitis negative supervision is exceptionally scarce. 
+
+The full loss
+I would eventually train KneeAtlas with something like:
+
+[ \begin{aligned} L = &;L_{\text{strict}}\ &+\lambda_r L_{\text{ordinal/rank}}\ &+\lambda_c L_{\text{concept}}\ &+\lambda_p L_{\text{privileged-report}}\ &+\lambda_s L_{\text{image-consistency}}\ &+\lambda_a L_{\text{anatomy/geometry}} \end{aligned} ]
+
+A reasonable starting ratio is not six equally weighted objectives. Keep L_strict = 1.0, begin ranking around 0.25–0.5, concept supervision around 0.2–0.3, and privileged/geometry/self-supervision each below about 0.1 until gradients and validation establish that they help. Those numbers are experimental priors, not claims of optimality.
+
+Crucially, add these losses one at a time. Your repository's current discipline here is correct.
+
+The validation moat: design a system that cannot easily fool you
+The public/private split makes anti-overfitting strategy a first-class part of the model. Approximately 30% of the test set determines the public leaderboard and 70% determines the final result. 
+ The competition also warns that abnormality prevalence is not guaranteed to be the same across training, public, and final evaluation data. 
+
+You therefore need an internal selection rule that is difficult for a misleading public score to corrupt.
+
+Stop treating one CV number as the oracle
+Your existing three-fold evaluation is already much more honest than most Kaggle workflows. It preserves leakage components and reports within-fold pair-weighted AUC rather than blindly pooling scores produced by separately calibrated fold models. Keep that.
+
+But your current primary internal metric still evaluates agreement with report-derived supervision. That is not identical to the hidden image-derived target. The fact that an A32 model can improve the matched internal holdout dramatically while not delivering a commensurate Kaggle improvement is evidence of that misalignment.
+
+I would therefore replace “CV” with a validation vector.
+
+Every experiment gets four scores:
+
+Axis	Purpose
+Strict reviewed OOF	Does it still predict your best trusted report supervision?
+Dense evidence/ranking OOF	Does it learn from the full report distribution?
+Scanner/protocol holdout	Does it survive domain shift?
+Rare-component stress	Does the gain disappear if one rare positive is removed?
+
+A challenger is promoted only when it improves at least two high-powered axes, has no catastrophic target regressions, and survives the stress tests.
+
+The 58 official studies remain useful for diagnosis, but they are already historically exposed in your project and are far too small to support repeated fine-grained architecture optimization. Your existing training strategy correctly acknowledges that they are not an unbiased model-selection set.
+
+Build a target reliability map
+Not every internal target should have equal authority in deciding experiments.
+
+Your baseline three-fold DINOv3 analysis found MCL at only seven observed positives, fracture at five positives, and severe fold-to-fold synovitis instability because negatives were so scarce.
+
+Create for each target:
+
+[ R_t = f( N_+, N_-, \text{reader agreement}, \text{mask fraction}, \text{bootstrap stability}, \text{LB consistency history} ) ]
+
+Do not use (R_t) to change Kaggle submission weights—the official metric weights targets equally. Use it to decide how much faith to place in internal movement.
+
+A +0.05 MCL internal AUC from seven positives should not overrule a broad, reproducible +0.01 across five well-supported targets.
+
+Use the public leaderboard as a scientific instrument, not an optimizer
+You have five daily submissions according to your competition records, but that does not mean five experiments should be run against the public test every day.
+
+I would pre-register a submission only for a mechanism, never a hyperparameter:
+
+physically normalized 2.5D baseline;
+dense/hybrid supervision;
+knee-specific initialization;
+KneeAtlas geometry/anatomy;
+fully combined frontier model.
+A public result answers one question:
+
+“Does this broad mechanism transfer from our validation system to the competition distribution?”
+
+It should not answer:
+
+“Was 0.27 or 0.31 the best mixing weight?”
+
+That distinction is how you avoid becoming the team with a beautiful 0.97 public model and a collapsed private result.
+
+Your ensemble fear is correct, but the conclusion is slightly wrong
+There are two completely different activities called “ensembling.”
+
+Dangerous ensembling is:
+
+submitting dozens of variants;
+inferring which targets gained from leaderboard movement;
+choosing per-target weights from public scores;
+stacking correlated checkpoints until public AUC rises;
+repeatedly changing weights after every submission.
+That can absolutely overfit a 30% public set.
+
+Statistical ensembling is:
+
+freezing the recipe;
+training independent folds/seeds;
+choosing blend rules entirely from OOF predictions;
+combining models whose errors are demonstrably different;
+never touching weights based on leaderboard movement.
+The second is one of the strongest defenses against private-set variance.
+
+I would therefore honor your current principle until the single model reaches approximately 0.92–0.94 territory. Only then start blending.
+
+And I would keep the final ensemble tiny.
+
+My ideal final system is no more than three genuinely different prediction families:
+
+KneeAtlas-2.5D, your dominant single model.
+
+KneeAtlas-3D, the anatomy-aware volumetric challenger.
+
+A compact convolutional physical-crop model, because its inductive bias should remain meaningfully different from the DINO-family system.
+
+Within each family, fold averaging is bagging, not an architectural zoo.
+
+Blend in per-target rank space, because AUC depends on ordering and independently trained models can have different probability scales. Your own training strategy already identifies scale mismatch as a reason pooled OOF AUC can mislead.
+
+Choose ensemble membership by OOF residual complementarity. A challenger that is 0.003 worse alone but fixes different studies can be more valuable than another DINO checkpoint 0.002 better alone.
+
+Then use your two final competition selections to hedge: one strongest single-family solution and one conservative OOF-selected blend. That is far safer than betting both selections on two slightly different leaderboard-optimized stacks.

@@ -4,7 +4,12 @@ import json
 import pandas as pd
 import pytest
 
-from rsna.competitive.supervision import load_fitting_effusion_overlay, roster_sha
+from rsna.competitive.supervision import (
+    apply_fitting_supervision,
+    load_fitting_effusion_overlay,
+    roster_sha,
+    validate_fitting_supervision,
+)
 
 
 @pytest.fixture
@@ -139,3 +144,39 @@ def test_rejects_changed_artifact_sha(inputs):
     *_, apply = inputs
     with pytest.raises(ValueError, match="SHA"):
         apply("0" * 64)
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_control_and_candidate_require_same_complete_proposal(inputs, enabled, tmp_path):
+    train, outer, value, apply = inputs
+    _, admitted = apply()
+    artifact = tmp_path / "proposal.json"
+    artifact.write_bytes(json.dumps(value).encode())
+    result, receipt = apply_fitting_supervision(
+        train,
+        outer,
+        artifact,
+        dict(kind="effusion_review_v1", sha256=admitted["overlay_sha256"], enabled=enabled),
+        release_sha256="d" * 64,
+        folds_sha256="e" * 64,
+        fold=0,
+    )
+    assert result.at[0, "Effusion__mask"] == int(enabled)
+    assert train.at[0, "Effusion__mask"] == 0
+    assert receipt["applied_cells"] == int(enabled)
+    assert receipt["evaluation_masks_changed"] is False
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        {},
+        dict(kind="dense_soft", sha256="a" * 64, enabled=True),
+        dict(kind="effusion_review_v1", sha256="a" * 64, enabled=1),
+        dict(kind="effusion_review_v1", sha256="bad", enabled=True),
+        dict(kind="effusion_review_v1", sha256="a" * 64, enabled=True, missing_is_negative=True),
+    ],
+)
+def test_policy_rejects_arbitrary_dense_or_implicit_targets(policy):
+    with pytest.raises(ValueError):
+        validate_fitting_supervision(policy)

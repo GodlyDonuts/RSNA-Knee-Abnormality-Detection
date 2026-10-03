@@ -2,7 +2,8 @@
 
 This loader validates engineering boundaries, not the clinical correctness of
 report decisions. The accepted release and evaluation masks remain immutable.
-It is not yet connected to the production trainer or competition deployment.
+The optional trainer contrast binds this admission; competition deployment
+remains explicitly blocked pending separate acceptance.
 """
 
 from __future__ import annotations
@@ -24,6 +25,57 @@ def _sha(value: object) -> bool:
     return (
         isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdef" for c in value)
     )
+
+
+def validate_fitting_supervision(policy: object) -> None:
+    """Only the separately reviewed single-target paired experiment is supported."""
+    if (
+        not isinstance(policy, dict)
+        or set(policy) != {"kind", "sha256", "enabled"}
+        or policy.get("kind") != "effusion_review_v1"
+        or not _sha(policy.get("sha256"))
+        or type(policy.get("enabled")) is not bool
+    ):
+        raise ValueError("Invalid experimental fitting-supervision policy")
+
+
+def apply_fitting_supervision(
+    train: pd.DataFrame,
+    outer: pd.DataFrame,
+    path: Path | None,
+    policy: dict | None,
+    *,
+    release_sha256: str,
+    folds_sha256: str,
+    fold: int,
+) -> tuple[pd.DataFrame, dict | None]:
+    """Validate both arms against the full cohort before diagnostic subsetting.
+
+    The control admits the same reviewed proposal but keeps the original masks.
+    The candidate changes only its in-memory fitting copy. Neither arm alters
+    the accepted release or evaluation frame; artifact paths are not bound.
+    """
+    if policy is None:
+        if path is not None:
+            raise ValueError("Fitting-supervision artifact lacks an explicit bound policy")
+        return train, None
+    validate_fitting_supervision(policy)
+    if path is None:
+        raise ValueError("Bound fitting-supervision policy requires its exact artifact")
+    candidate, receipt = load_fitting_effusion_overlay(
+        train,
+        outer,
+        path,
+        policy["sha256"],
+        release_sha256=release_sha256,
+        folds_sha256=folds_sha256,
+        fold=fold,
+    )
+    receipt["enabled"] = policy["enabled"]
+    receipt["applied_cells"] = (
+        receipt["recovered_masked_positive_cells"] if policy["enabled"] else 0
+    )
+    return (candidate if policy["enabled"] else train), receipt
 
 
 def load_fitting_effusion_overlay(

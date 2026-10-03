@@ -1,3 +1,28 @@
+Full1728 tests/Ruff275files/mypy45modules/archive/current89/89 evidence checks passed. Both prepared three-epoch screen configs are locally validated and differ only in enabled arm; no actual MRI GPU recovery/fitting/funding.79 local documentation links verified. Full source/QA/protocol and supplied report now belong to this distinct GitHub milestone, with originals retained.
+
+October3 owner-supplied research program is archived verbatim with SHA and primary
+source review in initiative/research/owner-program-20261003-v1. Supervision now
+precedes patch-witness fitting: rsna/competitive/train.py integrates the exact31-cell
+Effusion proposal via optional fitting_supervision policy and private artifact CLI.
+Control/candidate enabledfalse/true bind the same admission and immutable complete
+2247/1156 rosters before diagnostic subsets;16/47 Effusion positives, other fitting
+columns and entire outer unchanged. Actual input proof and canonical synthetic
+full/stop1/resume complete state/CSV equality passed. Competition inference rejects
+experimental-supervision checkpoints. No new GPU fitting, accuracy or source-label
+admission. Sigmoid unchanged. Read effusion-review-contrast-v1 and research-brief.
+Next actual pinned-MRI recovery plus fresh source/checkpoint/resource admission;
+then a fixed-budget same-input/source/model contrast. Broader concepts/ranking and
+physical crop/2.5D are independent hypotheses, not combined arm changes.
+
+At05:45:55UTC actual Newton access works and squeue has no owner jobs; previous
+native-all terminal/allten private proofs remain unchanged. Actual quota1026225200/
+1048576000kB,994176/1000000files. Prior after-liability reserve is only20.01334GiB/
+5000files; no automatic new shared controls/checkpoints or deletion credit. No
+remote mutation for the new supervision mechanism. GitHub handoff main5b664a1
+was verified pushed before this distinct milestone. Current new source/report/
+input-proof milestone still awaits distinct private HF mirroring under canonical
+shared lock; never repeat earlier verified mirrors.
+
 October3 current owner priority: sharp shift to creative mechanism-driven research;
 set Kaggle deployment aside. GitHub deep research starts at docs/research-brief.md,
 which consolidates actual results/negative findings/sparse supervision/Stanford/

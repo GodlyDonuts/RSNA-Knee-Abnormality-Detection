@@ -1,5 +1,20 @@
 # Decisions, corrections, and unresolved work
 
+## October3: supplied research program, supervision first
+
+Archived the owner's supplied program verbatim with provenance and a
+[critical primary-source review](../initiative/research/owner-program-20261003-v1/README.md).
+Prioritize a concrete supervision contrast over another rank/resolution change or
+funding the patch-witness fit. Canonical trainer integration now admits the same
+exact reviewed31-cell Effusion artifact for control/candidate, binds both arms to
+checkpoint/resume and validates original full rosters before subsetting. Original
+masks/registry/outer evaluation remain unchanged. Actual input admission yields
+16/47 fitting positives; this is not proof of MRI label correctness or accuracy.
+Experimental weights are rejected by competition inference. Broader soft/concept/
+ranking and physical neighbor/crop tests remain separately admitted experiments,
+not implicit permission to relabel omissions or switch backbones. No new GPU fit
+or first-place claim. Latest continuation records completed checks and resources.
+
 ## October3: research trajectory and complete deep-research handoff
 
 The owner set Kaggle aside and requested a sharp shift toward creative mechanisms,
