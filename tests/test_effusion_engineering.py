@@ -8,6 +8,62 @@ import torch
 from scripts.newton.probe_effusion_engineering import compare_recovery
 
 
+@pytest.mark.parametrize("mutation", ["valid", "trainer", "base", "extra", "binding"])
+def test_recovery_source_preserves_original_numerical_modules(mutation):
+    from scripts.newton.probe_effusion_engineering import accept_numerical_parent, digest
+
+    original = {
+        "files": {
+            "rsna/competitive/train.py": {"sha256": "a", "bytes": 1},
+            "rsna/competitive/backbones.py": {"sha256": "b", "bytes": 1},
+            "scripts/newton/probe_effusion_engineering.py": {"sha256": "c", "bytes": 1},
+            "scripts/newton/launch_effusion_engineering.py": {"sha256": "d", "bytes": 1},
+        }
+    }
+    revised = copy.deepcopy(original)
+    revised["original_input_source_sha256"] = digest(original)
+    for name in ("probe_effusion_engineering.py", "launch_effusion_engineering.py"):
+        revised["files"]["scripts/newton/" + name]["sha256"] = "changed"
+    if mutation == "trainer":
+        revised["files"]["rsna/competitive/train.py"]["sha256"] = "changed"
+    elif mutation == "base":
+        revised["files"]["rsna/competitive/backbones.py"]["sha256"] = "changed"
+    elif mutation == "extra":
+        revised["files"]["scripts/newton/runtime_environment.py"] = {"sha256": "new", "bytes": 1}
+    elif mutation == "binding":
+        revised["original_input_source_sha256"] = "unbound"
+    if mutation == "valid":
+        accept_numerical_parent(revised, original)
+    else:
+        with pytest.raises(ValueError):
+            accept_numerical_parent(revised, original)
+
+
+def test_initialization_uses_independent_child_per_arm(tmp_path, monkeypatch):
+    import json
+
+    from scripts.newton import probe_effusion_engineering as probe
+
+    commands = []
+
+    def child(command, *, stderr, timeout):
+        commands.append(command)
+        assert stderr.name.endswith("-initialization.stderr")
+        assert timeout == 300
+        return json.dumps({"complete_model_sha256": "same", "all_RNG_sha256": "same"}).encode()
+
+    monkeypatch.setattr(probe.subprocess, "check_output", child)
+    results = [
+        probe.initialization_process(tmp_path, tmp_path, arm) for arm in ("control", "candidate")
+    ]
+    assert results[0] == results[1]
+    assert len(commands) == 2
+    assert [c[c.index("--arm") + 1] for c in commands] == ["control", "candidate"]
+    assert all(c[c.index("--phase") + 1] == "initialization" for c in commands)
+    with pytest.raises(FileExistsError):
+        probe.initialization_process(tmp_path, tmp_path, "control")
+
+
 def records():
     full = dict(
         schema_version=2,

@@ -35,7 +35,10 @@ proposal for a strict control and a candidate; both validate full fitting/outer
 membership before diagnostic subsets, preserve original release/evaluation, and
 bind the arm/proposal into checkpoint recovery. On the actual2247/1156 tables,
 control retains16 fitting positives and candidate has47. Synthetic full/stop1/resume
-state and CSV equality passed; no real-MRI GPU fitting or accuracy result exists.
+state and CSV equality passed. Actual native384 CPU inputs passed; the first
+H100 engineering job869077 failed its same-process cross-arm initialization check
+before any optimizer update. A distinct correction uses independent initialization
+processes and preserves the full numerical recipe. No new accuracy result exists.
 See [implementation and protocol](../initiative/experiments/competitive-v1/effusion-review-contrast-v1/README.md).
 Experimental-supervision weights are blocked from competition inference pending
 separate admission. Sigmoid probabilities stay unchanged.

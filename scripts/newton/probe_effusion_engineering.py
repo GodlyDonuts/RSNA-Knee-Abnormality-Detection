@@ -40,6 +40,74 @@ def digest(value):
     ).hexdigest()
 
 
+def initialized(config):
+    """Construct one arm in a fresh process, as the real trainer does."""
+    random.seed(config.seed)
+    np.random.seed(config.seed % 2**32)
+    torch.manual_seed(config.seed)
+    encoder, width, provenance = create_encoder(config.encoder)
+    configure_encoder_training(encoder, config.freeze_encoder)
+    model = CompetitiveStudyNet(
+        encoder,
+        width,
+        pooling=config.pooling,
+        hidden_dim=config.hidden_dim,
+        encode_chunk_size=config.encode_chunk_size,
+        slice_context=config.slice_context,
+    ).to("cuda")
+    rng = capture_rng(torch.device("cuda:0"))
+    return {
+        "complete_model_sha256": digest(state_record(model.state_dict())),
+        "all_RNG_sha256": digest(state_record(rng)),
+        "RNG_component_sha256": {k: digest(state_record(v)) for k, v in rng.items()},
+        "encoder_provenance": provenance,
+    }
+
+
+def initialization_process(control, output, arm):
+    """Neither arm inherits another arm's import or CUDA initialization history."""
+    command = [
+        sys.executable,
+        "-B",
+        str(Path.cwd() / "scripts/newton/probe_effusion_engineering.py"),
+        "--control",
+        str(control),
+        "--phase",
+        "initialization",
+        "--arm",
+        arm,
+        "--output",
+        str(output),
+    ]
+    with (output / (arm + "-initialization.stderr")).open("x") as err:
+        raw = subprocess.check_output(command, stderr=err, timeout=300)
+    result = json.loads(raw)
+    with (output / (arm + "-initialization.json")).open("x") as out:
+        json.dump(result, out, indent=2, sort_keys=True, allow_nan=False)
+        out.write("\n")
+    return result
+
+
+def accept_numerical_parent(source, original):
+    """Only the orchestration may change while reusing an original input gate."""
+    if source == original:
+        return
+    if source.get("original_input_source_sha256") != digest(original):
+        raise ValueError("Original CPU source binding required")
+    a = {k: v for k, v in source["files"].items() if k.startswith("rsna/")}
+    b = {k: v for k, v in original["files"].items() if k.startswith("rsna/")}
+    changed = {
+        k
+        for k in set(source["files"]) | set(original["files"])
+        if source["files"].get(k) != original["files"].get(k)
+    }
+    if a != b or changed != {
+        "scripts/newton/probe_effusion_engineering.py",
+        "scripts/newton/launch_effusion_engineering.py",
+    }:
+        raise ValueError("Only the reviewed two orchestration helpers may change")
+
+
 def state_record(value):
     if isinstance(value, torch.Tensor):
         if not torch.isfinite(value).all():
@@ -227,7 +295,7 @@ def admit_inputs(control):
     )
 
 
-def recover(control, output, admitted, root, cache, series):
+def recover(control, output, admitted, root, cache, series, source_path):
     if (
         not torch.cuda.is_available()
         or torch.cuda.device_count() != 1
@@ -240,35 +308,16 @@ def recover(control, output, admitted, root, cache, series):
         k: v for k, v in cpu.items() if k not in ("job_id", "node", "original_assets_verified")
     } != admitted:
         raise ValueError("Actual GPU inputs differ from original CPU acceptance")
-    source = json.loads((control / "source.json").read_text())
+    source = json.loads(source_path.read_text())
+    accept_numerical_parent(source, json.loads((control / "source.json").read_text()))
     expected_code = {
         n.removeprefix("rsna/"): r["sha256"]
         for n, r in source["files"].items()
         if n.startswith("rsna/") and n.endswith(".py")
     }
-    initial = {}
-    for arm in ("control", "candidate"):
-        c = TrainConfig(**admitted["configs"][arm])
-        random.seed(c.seed)
-        np.random.seed(c.seed % 2**32)
-        torch.manual_seed(c.seed)
-        encoder, width, provenance = create_encoder(c.encoder)
-        configure_encoder_training(encoder, c.freeze_encoder)
-        model = CompetitiveStudyNet(
-            encoder,
-            width,
-            pooling=c.pooling,
-            hidden_dim=c.hidden_dim,
-            encode_chunk_size=c.encode_chunk_size,
-            slice_context=c.slice_context,
-        ).to("cuda")
-        initial[arm] = {
-            "complete_model_sha256": digest(state_record(model.state_dict())),
-            "all_RNG_sha256": digest(state_record(capture_rng(torch.device("cuda:0")))),
-            "encoder_provenance": provenance,
-        }
-        del model, encoder
-        torch.cuda.empty_cache()
+    initial = {
+        arm: initialization_process(control, output, arm) for arm in ("control", "candidate")
+    }
     if initial["control"] != initial["candidate"]:
         raise ValueError("Actual official-weight initial model or RNG differs across arms")
     results = {}
@@ -357,16 +406,28 @@ def recover(control, output, admitted, root, cache, series):
         "input_acceptance_sha256": file_sha256(control / "inputs-accepted.json"),
         "results": results,
         "matched_initial_model_and_RNG": initial["control"],
+        "initialization_processes": "one_fresh_process_per_arm",
+        "recovery_source_manifest_sha256": file_sha256(source_path),
     }
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--control", type=Path, required=True)
-    parser.add_argument("--phase", choices=("inputs", "recovery"), required=True)
+    parser.add_argument("--phase", choices=("inputs", "recovery", "initialization"), required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--arm", choices=("control", "candidate"))
+    parser.add_argument("--source-manifest", type=Path)
+    parser.add_argument("--receipt-control", type=Path)
     args = parser.parse_args()
     torch.set_num_threads(int(os.environ["SLURM_CPUS_PER_TASK"]))
+    if args.phase == "initialization":
+        if args.arm is None:
+            raise ValueError("Exact initialization arm required")
+        config = TrainConfig(**json.loads((args.control / (args.arm + "-pilot.json")).read_text()))
+        config.validate()
+        print(json.dumps(initialized(config), sort_keys=True, allow_nan=False), flush=True)
+        return
     admitted, root, cache, series = admit_inputs(args.control)
     if args.phase == "inputs":
         record = dict(
@@ -377,10 +438,18 @@ def main():
         )
     else:
         args.output.mkdir(mode=0o700)
-        record = recover(args.control, args.output, admitted, root, cache, series)
+        record = recover(
+            args.control,
+            args.output,
+            admitted,
+            root,
+            cache,
+            series,
+            args.source_manifest or args.control / "source.json",
+        )
         record.update(job_id=os.environ["SLURM_JOB_ID"], node=os.uname().nodename)
     filename = "inputs-accepted.json" if args.phase == "inputs" else "recovery-accepted.json"
-    with (args.control / filename).open("x") as out:
+    with ((args.receipt_control or args.control) / filename).open("x") as out:
         json.dump(record, out, indent=2, sort_keys=True, allow_nan=False)
         out.write("\n")
     print(

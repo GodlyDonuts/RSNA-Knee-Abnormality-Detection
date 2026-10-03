@@ -82,7 +82,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--control", type=Path, required=True)
     parser.add_argument("--phase", choices=("inputs", "recovery"), required=True)
+    parser.add_argument("--source-control", type=Path)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("/tmp/rsna-effusion-supervision-engineering-20261003-v1"),
+    )
     args = parser.parse_args()
+    source_control = args.source_control or args.control
     job = os.environ.get("SLURM_JOB_ID", "")
     if not job.isdecimal() or os.uname().nodename.split(".")[0] != "evc31":
         raise ValueError("Actual owning-node allocation required")
@@ -115,8 +122,8 @@ def main():
         ).strip()
         if terminal != cpu["job_id"] + "|COMPLETED|0:0":
             raise ValueError("Actual CPU terminal acceptance required before GPU")
-    manifest = json.loads((args.control / "source.json").read_text())
-    if sha(args.control / "source.tar") != manifest["source_tar_sha256"]:
+    manifest = json.loads((source_control / "source.json").read_text())
+    if sha(source_control / "source.tar") != manifest["source_tar_sha256"]:
         raise ValueError("Scientific source archive changed")
     if shutil.disk_usage("/tmp").free < (20 + 7 + 3) * 2**30:
         raise ValueError("Node-local reserve after runtime/recovery liabilities required")
@@ -127,7 +134,7 @@ def main():
         code = Path(temporary)
         if code.stat().st_dev == args.control.stat().st_dev:
             raise ValueError("Source must remain node-local")
-        unpack_source(args.control / "source.tar", code, manifest["files"])
+        unpack_source(source_control / "source.tar", code, manifest["files"])
         os.environ.update(
             PYTHONPATH=str(code),
             PYTHONNOUSERSITE="1",
@@ -191,7 +198,11 @@ def main():
                 "--phase",
                 args.phase,
                 "--output",
-                "/tmp/rsna-effusion-supervision-engineering-20261003-v1",
+                str(args.output),
+                "--source-manifest",
+                str(source_control / "source.json"),
+                "--receipt-control",
+                str(source_control),
             ]
             subprocess.run(command, cwd=code, check=True, timeout=5400)
         finally:

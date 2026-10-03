@@ -55,3 +55,9 @@ separate local screen-preparation helper now checks original actual CPU/GPU
 receipts and preserves the declared843-update endpoint, images, source, base,
 paired arms and outer masks. Twenty synthetic positive/negative preparation
 checks passed; these cannot substitute for actual GPU acceptance or fund a fit.
+
+## Reconnected terminal review and distinct correction
+
+Access restored after owner confirmation. Original H100869077 is actually FAILED1:0 in3:10 on evc31. Allocated driver/NVML/header checks passed; it failed the sequential same-process initial-model/RNG comparison before any trainer invocation or optimizer update. The original failure is preserved in effusion-supervision-engineering-v1/recovery-failure.json. The failure message did not retain separate arm hashes, so the specific differing component/root cause remains unproven.
+
+Corrected orchestration now initializes each arm in its own fresh process, matching the real trainer execution topology, retaining complete-model/all-RNG/component hashes, and still requires exact equality. Original CPU869076 input proof is reused only when every original rsna numerical module stays byte identical and exactly the two engineering orchestration helpers change. No release/folds/masks/model/trainer recipe changed. A distinct recovery-v2 allocation needs its own actual funding/source/dispatch receipt; original869077 and its output are never reused. The prepared screen gate is still bound to the failed original job and must receive a separately reviewed exact replacement binding after actual corrected acceptance; no production fitting is admitted yet.
