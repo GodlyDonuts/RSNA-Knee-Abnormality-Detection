@@ -1,3 +1,27 @@
+October3 actual Effusion CPU869076 COMPLETED0:0/178seconds on evc31:
+complete original2247/1156 rosters and actual32-study native384 tensors admitted;
+identical arm images/geometry/order, observed fitting cells86control/87candidate
+expose one authentic reviewed positive. ReceiptSHA9db1be85207d0e4300451f96c3a3e06fa404a92b8bcbabb0851cd703ad49ead0.
+Distinct oneH100/twoCPU recovery869077 submittedONCE after actual admission and
+fresh20.00550GiB/5000file reserve; no other owner jobs were displaced. Source665c0d5
+and original GPU/header guards immutable. Both enabled arms require actual fresh
+full/stop1/resume complete state and16x12 CSV equality, not an accuracy pass.
+Inspect its original Slurm/logs/output/receipt; never repeat either dispatch.
+Control /home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1,
+private output /tmp/rsna-effusion-supervision-engineering-20261003-v1 on evc31.
+No production screen or Kaggle mutation. Read effusion-supervision-engineering-v1.
+
+October3 original Effusion supervision input gate869076 was dispatchedONCE
+on owning evc31,oneCPU/zeroGPU. Immutable source665c0d5/configs/private proposal
+are staged in effusion-supervision-engineering-20261003-v1. Actual old868093
+terminal/allten verified publications allow retiring40unused future metadata
+slots while retaining22closeout; new8MiB/40file research cap preserves20.00553GiB/
+5000sharedfiles after liabilities,zero deletion credit. Full1749tests/Ruff278/
+mypy45/current89/89 passed. CPU gate has no optimizer/accuracy; actual terminal
+acceptance and fresh fundedGPU review required before recovery dispatch.
+Do not repeat869076 or its stage/intent. Current source still awaits distinct
+private small-object mirroring under canonical lock.
+
 October3 Effusion actual-MRI engineering admission is implemented in
 initiative/audits/effusion-supervision-engineering-v1. The16-study fitting prefix
 exercises one reviewed changed cell; actualCPU input admission precedes a distinct

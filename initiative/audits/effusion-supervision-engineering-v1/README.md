@@ -39,3 +39,11 @@ A real CLI defect was caught before staging: the overlay binding hashed a fold
 argument that production passes as a directory. It now hashes the verified sibling
 fold.csv for every supported fold path. Canonical synthetic full/stop1/resume tests
 exercise both enabled arms with directory and CSV forms.
+
+Actual CPU gate869076 completed0:0 in178seconds on evc31. Its complete-roster
+and actual MRI tensor admission passed:86/87 observed engineering cells expose
+one reviewed positive with exactly identical image inputs. The original receipt
+is retained as inputs-accepted.json. Fresh resource/source review then dispatched
+distinct H100 recovery869077 once. Its terminal numerical acceptance is not yet
+observed; never call this a clinical result or a production screen. The shared
+funding retirement is now actually admitted, not merely a proposed plan.
