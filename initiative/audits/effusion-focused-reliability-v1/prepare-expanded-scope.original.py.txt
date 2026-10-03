@@ -1,0 +1,41 @@
+"""One-time local-only issue-review admission; no label inference or release writes."""
+import csv,hashlib,json,os,shutil
+from pathlib import Path
+import pandas as pd
+from rsna.schema import TARGETS
+r=Path.cwd();d=r/'artifacts/research-pulse-20261003-v1';assert shutil.disk_usage(r).free>20*1024**3+8*1024**2
+studies=r/'initiative/releases/report-supervision-v1/studies.parquet';folds=r/'initiative/experiments/competitive-v1/folds/fold.csv';source=r/'initiative/source/train.csv'; rubric=r/'protocols/report_weak_v2.md'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(studies)=='2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7';assert sha(folds)=='fe590e5072a0d82abeb377598aeef0021bbe77fe4529a19b9826a7d40d322050';assert sha(source)=='8ca2203c0e9d61c080c7a314c7cdb51c1b03a1d9eb4770819f7f34af53ef4e33'
+cols=['study_uid','leakage_group','report_supervision_allowed']+[f'{t}__mask' for t in TARGETS];a=pd.read_parquet(studies,filters=[('split','==','train')],columns=cols);f=pd.read_csv(folds,dtype={'study_uid':str,'leakage_group':str});assert not f.groupby('leakage_group').fold.nunique().gt(1).any();j=a.merge(f,on='study_uid',validate='one_to_one',suffixes=('','_fold'));assert j.leakage_group.eq(j.leakage_group_fold).all();fit=j[j.report_supervision_allowed & j[[f'{t}__mask' for t in TARGETS]].astype(bool).any(axis=1) & j.fold.ne(0)].copy().set_index('study_uid');assert len(fit)==2247
+# Interpret only Effusion fields after original fitting membership is frozen.
+e=pd.read_parquet(studies,filters=[('split','==','train')],columns=['study_uid','Effusion__state','Effusion__original_state','Effusion__semantic_reasons']);e=e.set_index('study_uid').loc[fit.index];fit=fit.join(e);membership=hashlib.sha256(('\n'.join(sorted(fit.index))+'\n').encode()).hexdigest();assert membership=='e71eb9ba952b9e4bc68e32b548b131c457b5c86c9381eb089012404923dc68cf'
+seen=json.loads((r/'artifacts/public-supervision-diagnostic-20261002-v1/blind-source-review-input.json').read_text())['records'];exclude={x['study_uid'] for x in seen};used_components=set(fit.loc[list(exclude & set(fit.index)),'leakage_group']);seed='effusion-focused-fit-scope-20261003-v1'
+pools={'masked_original_positive_incomplete':fit[fit.Effusion__mask.eq(0)&fit.Effusion__original_state.eq('positive')&fit.Effusion__semantic_reasons.map(lambda v:'incomplete_reliability_review' in v)],'accepted_positive_control':fit[fit.Effusion__mask.eq(1)&fit.Effusion__state.eq('positive')],'accepted_negative_control':fit[fit.Effusion__mask.eq(1)&fit.Effusion__state.eq('negative')]}
+selected=[]
+for role,n in [('masked_original_positive_incomplete',32),('accepted_positive_control',8),('accepted_negative_control',8)]:
+ p=pools[role];accepted=[]
+ for uid in sorted(p.index,key=lambda u:hashlib.sha256((seed+'\0'+role+'\0'+str(p.loc[u,'leakage_group'])+'\0'+u).encode()).hexdigest()):
+  c=str(p.loc[uid,'leakage_group'])
+  if uid in exclude or c in used_components:continue
+  accepted.append({'study_uid':uid,'leakage_group':c,'role':role});used_components.add(c)
+  if len(accepted)==n:break
+ assert len(accepted)==n,(role,len(accepted));selected+=accepted
+selected.sort(key=lambda x:hashlib.sha256((seed+'\0blindorder\0'+x['study_uid']).encode()).hexdigest());byuid={x['study_uid']:x for x in selected};reports={}
+with source.open(newline='') as h:
+ for row in csv.DictReader(h):
+  uid=row['StudyInstanceUID']
+  if uid in byuid:
+   assert uid not in reports;reports[uid]=row['Report']
+assert len(reports)==48
+records=[{'record_index':i,'study_uid':x['study_uid'],'target':'Effusion','Report':reports[x['study_uid']],'report_sha256':hashlib.sha256(reports[x['study_uid']].encode()).hexdigest()} for i,x in enumerate(selected)]
+def save(n,v):
+ p=d/n
+ with p.open('x') as h:json.dump(v,h,ensure_ascii=False,sort_keys=True,indent=2);h.write('\n')
+ os.chmod(p,0o600);return {'path':str(p.relative_to(r)),'bytes':p.stat().st_size,'sha256':sha(p)}
+blind=save('expanded-blind-source-input.json',{'scope':'48 complete original fold0 TRAINING-only Effusion reports; no prior states, public labels, pixels or group roles exposed. Personally reasoned frozen-rubric extraction required. Prior-reader and current accepted states remain hidden.','rubric_sha256':sha(rubric),'records':records})
+roles=save('expanded-private-scope-membership.json',{'selection_seed':seed,'membership_sha256':membership,'selected':selected,'original_pool_sizes':{k:len(v) for k,v in pools.items()},'prior_diagnostic_cases_and_components_excluded':True})
+plan={'schema_version':1,'status':'prepared_training_only_review_scope_not_read_or_admitted','selection_seed':seed,'fitting_studies':2247,'fitting_uid_sha256':membership,'studies_sha256':sha(studies),'folds_sha256':sha(folds),'authenticated_report_source_sha256':sha(source),'rubric_sha256':sha(rubric),'excluded_fold':0,'records':48,'distinct_leakage_components':48,'selected_roles':{'masked_original_positive_incomplete':32,'accepted_positive_control':8,'accepted_negative_control':8},'pool_sizes':{k:len(v) for k,v in pools.items()},'case_selection_uses_only_original_training_states_masks_obligations_and_seed':True,'public_predictions_or_leaderboard_selection_used':False,'prior_diagnostic_cases_and_components_excluded':True,'blind_input':blind,'private_role_binding':roles,'source_reports_and_case_ids_publishable':False,'shared_new_bytes':0,'shared_new_files':0,'local_cap_bytes':8*1024**2,'outer_gold_confirmation_targets_read_or_revised':False,'accepted_release_live_job_or_masks_changed':False,'clinical_accuracy_claimed':False,'review_acceptance':['Independent whole-source first and second reasoning frozen before comparing original annotation/public verdicts; exact quotes and rubric hashes required.','Separate issue-specific assessment of each exact original finite obligation and contrary evidence after blinded readings; disagreement remains masked.','Controls remain blinded and are not silently relabeled; no defaults, majority voting, vendor-confidence promotion or synthetic notes.','Any later overlay requires an explicit separately versioned training-only admission and loader/engineering/funding acceptance.'],'prospective_experiment':{'target':'Effusion','control':'unchanged accepted masks','candidate':'only newly independently accepted training-only issue dispositions in separate overlay','fixed':'same original DINOv3-L/rank32 source and shared initial learned state, roster, slices/series, seed,426? no: fold0 281updates per epoch and10epochs, optimizer and encode budget; original1156-study outer labels frozen','primary':'fixed-final per-target and macro AUC with paired whole-component bootstrap and undefined draws, no best-epoch selection','replication':'another matched seed/fold before promotion','rejection':'no supported paired benefit, unresolved source/threshold/leakage issue or unequal compute','gpu_dispatch_or_checkpoint_funding_accepted':False},'clinical_or_model_inference_performed':False}
+# Keep the fold0 update budget unambiguously281.
+plan['prospective_experiment']['fixed']=plan['prospective_experiment']['fixed'].replace('426? no: fold0','fold0')
+save('expanded-review-plan.json',plan);print(json.dumps({'status':plan['status'],'records':48,'pool_sizes':plan['pool_sizes'],'private_input_sha256':blind['sha256'],'private_role_sha256':roles['sha256']}))
