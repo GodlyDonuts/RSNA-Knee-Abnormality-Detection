@@ -1,3 +1,11 @@
+Latest read-only869300 state is PENDING(Resources), no node assigned or elapsed
+runtime. Never infer an engineering pass or accuracy. Source da5f127 and distinct
+84611c9/cf75527 preparation/correction/dispatch small milestones privately mirrored
+at HFe4077b89f350a87152310952d7e166a81c7baf10;24objects fully re-downloaded/size/SHA
+verified under original canonical lock. No raw/private clinical data or learned
+weights mirrored. Never repeat it. Access now works via original SSH master
+/tmp/rsna-research-20261001-stable.sock; owner authentication request resolved.
+
 Distinct corrected recovery869300 submitted ONCE,oneH100/twoCPU evc31; control
 effusion-supervision-engineering-20261003-v1/recovery-v2 and output
 /tmp/rsna-effusion-supervision-recovery-20261003-v2. Numerical665c0d5 source
