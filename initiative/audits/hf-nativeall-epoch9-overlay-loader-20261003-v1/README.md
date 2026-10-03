@@ -1,0 +1,7 @@
+# Epoch9 and standalone fitting-overlay milestone preservation
+
+GitHub source f726707 is privately preserved at Hugging Face revision `6dfbf82d7c7926e4fb7d74eeca4f1b0d2ee8f7cc`. All30 distinct small objects were fully re-downloaded at that exact revision and checked for bytes/SHA under the canonical shared atomic publication lock. Original intent, parent-commit binding and full verification proof are retained. Never repeat this mutation or earlier verified mirrors.
+
+The milestone preserves new epoch9 checkpoint receipts, the standalone fitting-only overlay loader/tests and actual31-cell in-memory input verification, plus the conditional fixed-final deployment funding plan. Raw reports/case decisions/membership, pixels, Stanford source data/weights and learned checkpoint bytes are absent. Epochs1–9 have separate original fully verified private checkpoint publications. Original production868093/source/base/masks/folds and registry are unchanged. The overlay is not integrated into a trainer or admitted for GPU fitting/competition; no accuracy gain is claimed. Fixed-final epoch10 is not yet complete in the bound observation, and midpoint56783855 has no reported hidden outcome at04:25UTC.
+
+Source validation passed1701tests, including16new boundary regressions; Ruff273files, mypy44modules, archive and current89/89 source/evidence coverage passed. Mechanical checks do not certify clinical truth. This journal adds only actual external preservation evidence and is not recursively mirrored.
