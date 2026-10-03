@@ -1,3 +1,26 @@
+Full1769 tests/Ruff280/mypy45/archive/current89/89 checks passed for the separate
+screen-preparation helper. Original665c0d5 numerical source and869077 were not
+modified or repeated. Latest actual DNS still unavailable; owner authentication
+question remains pending. New GitHub milestone awaits original shared Newton
+publication lock; no duplicate or unlocked HF mirror.
+
+October3 08:20UTC follow-up: Newton DNS unavailable, Stokes DNS resolves but
+SSH TCP times out5seconds, original master socket absent. Cisco actual UI states
+secure-gateway suspension expired and new connection requires re-authentication.
+Owner reconnect/MFA requested once. This is observation loss, not terminal or
+restart authority: original869077 remains last-observedPENDING Priority; no
+current GPU recovery result inferred. No job or publication duplicated, no VPN
+security/connection setting changed. Once reachable inspect original job/logs/
+receipts and fresh resources before any subsequent dispatch.
+
+Independent local work prepared scripts/newton/prepare_effusion_screen.py: actual
+original CPU/GPU/source evidence plus fixed3epoch/843update same-input configs
+are required before screen preparation. Pending jobs, changed bases/images/LRs/
+policies/outer masks/nonfinite trajectories are rejected. This is not actual
+GPU acceptance, funding, launch or accuracy. Original665c0d5 source remains
+immutable; only a separate non-numerical preparation helper was added. New
+metadata awaits canonical Newton lock for distinct private HF preservation.
+
 Verified preservation: sourceb00697e and this distinct owner research program/
 Effusion trainer integration/actual MRI CPU admission/H100 recovery dispatch/
 native-all final milestone are privately mirrored at HFfa1b24930485f496330d4def38e9ed7c4f3eb860.

@@ -47,3 +47,11 @@ is retained as inputs-accepted.json. Fresh resource/source review then dispatche
 distinct H100 recovery869077 once. Its terminal numerical acceptance is not yet
 observed; never call this a clinical result or a production screen. The shared
 funding retirement is now actually admitted, not merely a proposed plan.
+
+October3 08:20UTC access was lost again: actual Cisco gateway suspension expired
+and re-authentication is required. Original869077 current outcome is unobserved;
+its last observed state remainsPENDING Priority. No restart or duplicate. A
+separate local screen-preparation helper now checks original actual CPU/GPU
+receipts and preserves the declared843-update endpoint, images, source, base,
+paired arms and outer masks. Twenty synthetic positive/negative preparation
+checks passed; these cannot substitute for actual GPU acceptance or fund a fit.
