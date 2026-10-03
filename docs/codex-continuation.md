@@ -1,3 +1,21 @@
+869300 actual independent initializations now have EXACT equal complete
+model/allRNG/component hashes and original official encoder provenance. The
+previous initialization gate is passed; control-full trainer invocation has
+started, with empty stderr at last check. This is not complete full/stop/resume
+recovery or accuracy; source/recipe remains unchanged. See resource-routing-v1/
+initialization-accepted.json.
+
+Latest actual869300 is RUNNING on evc31 after updating the SAME pending
+job's host memory from64GiB to22528MiB/22GiB. Live node had a freeH100 but
+only23265MiB scheduler-unreserved RAM, causing a prior estimatedOctober10
+start. No resubmission/source/recipe/output change. Allocated CUDA/NVML
+startup passed; actual numerical recovery is still unobserved. Original
+failed initialization MaxRSS~8.84GiB supports bounded sizing only; complete
+corrected peak remains unmeasured and full production memory is unchanged.
+Stokes has zero advertised GPU GRES and sameLustrequota. Authenticated
+Kaggle Settings GPU+Colab displays00:00/45hrs; no new Kaggle GPU launch.
+Read effusion-supervision-engineering-v1/resource-routing-v1. No accuracy gain.
+
 Latest read-only869300 state is PENDING(Resources), no node assigned or elapsed
 runtime. Never infer an engineering pass or accuracy. Source da5f127 and distinct
 84611c9/cf75527 preparation/correction/dispatch small milestones privately mirrored
