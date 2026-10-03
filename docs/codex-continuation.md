@@ -1,3 +1,12 @@
+869300 actual control-full trainer reached3 contiguous finite optimizer
+updates; latestloss0.4334194/gradientnorm2.240412 and emptystderr at6:47elapsed.
+These are bounded engineering updates, not the full paired843-update screen
+or an accuracy gain. Fresh-arm complete initialstate/RNG equality remains
+verified. Resource-sizing milestone source28c22bc privately mirrored at
+HF36dd86758dec22fc5f8715a55c31a39f9f833ae7;all6objects fully re-downloaded/size/SHA
+verified under canonical lock. Never repeat. Remaining full/stop/resume arms
+and actual terminal must pass before any screen preparation/funding/dispatch.
+
 869300 actual independent initializations now have EXACT equal complete
 model/allRNG/component hashes and original official encoder provenance. The
 previous initialization gate is passed; control-full trainer invocation has
