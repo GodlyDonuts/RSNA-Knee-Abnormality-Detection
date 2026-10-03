@@ -1,3 +1,11 @@
+Distinct corrected recovery869300 submitted ONCE,oneH100/twoCPU evc31; control
+effusion-supervision-engineering-20261003-v1/recovery-v2 and output
+/tmp/rsna-effusion-supervision-recovery-20261003-v2. Numerical665c0d5 source
+unchanged; new orchestrationcf75527. CPU869076 reused with exact source binding.
+Fresh reserve20.00547GiB/5000files within original8MiB/40file cap; no production
+screen funding. Inspect actual state/receipt first, never repeat dispatch.
+Read effusion-supervision-engineering-v1/recovery-v2.
+
 Corrected engineering QA:1775 full tests, Ruff280 files, mypy45 modules and
 current89/89 evidence coverage passed. No scientific rsna module changed.
 

@@ -1,0 +1,68 @@
+"""Distinct corrected recovery only; uncertainty is never retried."""
+import ast,base64,hashlib,io,json,shlex,subprocess,tarfile
+from pathlib import Path
+root=Path.cwd();local=root/'artifacts/effusion-supervision-recovery-v2'
+original='/home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1'
+control=original+'/recovery-v2';output='/tmp/rsna-effusion-supervision-recovery-20261003-v2'
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton']
+def remote(code,data=b''):
+ return subprocess.run(ssh+[shlex.join(['/usr/bin/python3.12','-B','-c',code])],input=data,capture_output=True,timeout=60)
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+assert not (local/'dispatch-intent.json').exists(),'Existing intent requires read-only reconciliation'
+assert not subprocess.check_output(['git','status','--porcelain'],text=True).strip()
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+old=json.loads((root/'initiative/audits/effusion-supervision-engineering-v1/source-manifest.json').read_text())
+data=io.BytesIO();members={}
+with tarfile.open(fileobj=data,mode='w') as tar:
+ for name,row in old['files'].items():
+  raw=(root/name).read_bytes();members[name]={'bytes':len(raw),'sha256':sha(raw)}
+  if name.startswith('rsna/'):assert members[name]==row,'Scientific modules must stay byte identical'
+  info=tarfile.TarInfo(name);info.size=len(raw);info.mode=0o600;tar.addfile(info,io.BytesIO(raw))
+archive=data.getvalue()
+manifest={'source_git':head,'numerical_source_git':old['source_git'],'source_tar_sha256':sha(archive),'files':members,'original_input_source_sha256':sha(json.dumps(old,sort_keys=True,separators=(',',':')).encode())}
+from scripts.newton.probe_effusion_engineering import accept_numerical_parent
+accept_numerical_parent(manifest,old)
+script=(root/'initiative/audits/effusion-supervision-engineering-v1/recovery.sbatch.txt').read_text()
+script=script.replace('--job-name=rsna-effusion-recovery','--job-name=rsna-effusion-recovery-v2')
+script=script.replace('cd -- '+original,'cd -- '+control)
+script=script.replace("control=Path('"+original+"')","control=Path('"+control+"')")
+script=script.replace(original+'/launch_effusion_engineering.py --control '+original+' --phase recovery',control+'/launch_effusion_engineering.py --control '+original+' --phase recovery --source-control '+control+' --output '+output)
+files={'source.tar':archive,'source.json':(json.dumps(manifest,indent=2,sort_keys=True)+'\n').encode(),'launch_effusion_engineering.py':(root/'scripts/newton/launch_effusion_engineering.py').read_bytes(),'recovery.sbatch':script.encode()}
+assert len(files)==4 and sum(map(len,files.values()))<2*1024**2
+proof=(local/'funding-code.py').read_text();proof=proof[:proof.index("print(json.dumps({'used_kB'")]
+program=proof+'''
+import base64,hashlib,os,sys
+os.umask(0o077)
+assert len(rp)+12<=40 and sum(rp.values())+2*1024**2<=8*1024**2
+assert ((soft-used)*1024-future_new)/2**30>=20 and limit-files-nf_new>=5000
+assert subprocess.check_output(['sacct','-X','-j','869077','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='869077|FAILED|1:0'
+assert not subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i'],text=True).strip(),'Do not displace existing jobs'
+control=research/'recovery-v2';assert not control.exists(),'Existing distinct control; reconcile read-only'
+assert hashlib.sha256((research/'inputs-accepted.json').read_bytes()).hexdigest()=='9db1be85207d0e4300451f96c3a3e06fa404a92b8bcbabb0851cd703ad49ead0'
+envelope=json.load(sys.stdin);assert set(envelope)=={'source.tar','source.json','launch_effusion_engineering.py','recovery.sbatch'}
+raw={k:base64.b64decode(v,validate=True) for k,v in envelope.items()};assert sum(map(len,raw.values()))<2*1024**2
+source=json.loads(raw['source.json']);old=json.loads((research/'source.json').read_text())
+assert source['original_input_source_sha256']==hashlib.sha256(json.dumps(old,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+assert {k:v for k,v in source['files'].items() if k.startswith('rsna/')}=={k:v for k,v in old['files'].items() if k.startswith('rsna/')}
+assert hashlib.sha256(raw['source.tar']).hexdigest()==source['source_tar_sha256']
+control.mkdir(mode=0o700)
+for name,value in raw.items():
+ with (control/name).open('xb') as out:out.write(value)
+def save(name,value):
+ with (control/name).open('x') as out:json.dump(value,out,indent=2,sort_keys=True);out.write('\\n');out.flush();os.fsync(out.fileno())
+funding={'used_kB':used,'soft_kB':soft,'used_files':files,'file_soft':limit,'future_shared_bytes':future_new,'future_shared_files':nf_new,'remaining_gib_after_all_liabilities':((soft-used)*1024-future_new)/2**30,'remaining_files_after_all_liabilities':limit-files-nf_new,'original_research_paid_inodes_before_v2':len(rp),'new_recovery_max_inodes':12,'within_original_8MiB_40inode_cap':True,'deletion_credit':0,'CPU_original_receipt_reused':True,'scientific_modules_byte_identical':True,'node_local_runtime_GiB':7,'node_local_checkpoint_GiB':3,'node_local_reserve_GiB':20,'production_screen_funded':False}
+save('funding.json',funding);save('dispatch-intent.json',{'automatic_retry':False,'original_failed_job':'869077','source_git':source['source_git']})
+job=subprocess.check_output(['sbatch','--parsable',str(control/'recovery.sbatch')],text=True).strip();assert job.isdecimal()
+result={'job_id':job,'control':str(control),'original_failed_job':'869077','source_git':source['source_git'],'numerical_source_git':source['numerical_source_git'],'cpus':2,'gpus':1,'node':'evc31','diagnostic_only':True,'clinical_accuracy_evidence':False,'automatic_retry':False}
+save('dispatch-result.json',result)
+print(json.dumps({'dispatch':result,'funding':funding}))
+'''
+with (local/'dispatch-intent.json').open('x') as out:json.dump({'control':control,'source_git':head,'automatic_retry':False},out)
+result=remote(program,json.dumps({k:base64.b64encode(v).decode() for k,v in files.items()}).encode())
+(local/'remote.stdout').write_bytes(result.stdout);(local/'remote.stderr').write_bytes(result.stderr)
+assert result.returncode==0,'Reconcile any uncertain mutation read-only; never retry'
+record=json.loads(result.stdout)
+(local/'dispatch-result.json').write_text(json.dumps(record,indent=2,sort_keys=True)+'\n')
+(local/'source-manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+(local/'recovery.sbatch.txt').write_text(script)
+print(json.dumps(record,indent=2,sort_keys=True))
