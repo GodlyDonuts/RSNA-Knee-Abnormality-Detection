@@ -1,3 +1,12 @@
+Verified preservation: sourceb00697e and this distinct owner research program/
+Effusion trainer integration/actual MRI CPU admission/H100 recovery dispatch/
+native-all final milestone are privately mirrored at HFfa1b24930485f496330d4def38e9ed7c4f3eb860.
+All68small objects fully re-downloaded/size/SHA verified under canonical shared
+lock. Read hf-effusion-real-inputs-20261003-v1; never repeat it or old mirrors.
+No private clinical reports/case judgments/membership/overlay/pixels/Stanford
+weights/learned checkpoints mirrored. Latest869077 remainsPENDING Priority;
+CPU869076 completed. No new accuracy or production screen result.
+
 October3 actual Effusion CPU869076 COMPLETED0:0/178seconds on evc31:
 complete original2247/1156 rosters and actual32-study native384 tensors admitted;
 identical arm images/geometry/order, observed fitting cells86control/87candidate
