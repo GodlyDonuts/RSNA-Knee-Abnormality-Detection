@@ -1,0 +1,7 @@
+# Native-all epoch8 and expanded supervision review private preservation
+
+GitHub source d5100b9 is privately preserved at Hugging Face revision `976376b836e8e3edcfcc93635c5573e3f4712231`. All27 distinct small objects were fully re-downloaded at the exact revision and validated for bytes/SHA under the original canonical shared atomic lock. Original intent, parent commit, exact source manifest and complete download proof are preserved; never repeat this mutation or prior verified mirrors.
+
+The milestone includes new native-all epoch8 preservation, actual48-report first/independent focused review aggregates and the current handoff. It contains no raw reports, case judgments or membership, pixels, Stanford labels/signatures/weights, or learned checkpoint bytes. Native epochs1–8 themselves already have separate fully verified private checkpoint proofs. No original science, accepted masks/folds/base, registry holds, control labels or healthy job changed. Thirty-one review recommendations remain conditional experimental evidence; no overlay or GPU experiment is admitted and no accuracy gain is claimed. Kaggle midpoint56783855 has no reported hidden outcome in the bound02:31UTC read-only receipt.
+
+Validation before source integration:1685tests passed; Ruff271files, mypy43modules, archive and current89/89 complete source/evidence coverage passed. Historicalv1 completeness and training-readiness flags retain their original limited meanings. This journal records only the verified external preservation result and does not recursively mirror itself.
