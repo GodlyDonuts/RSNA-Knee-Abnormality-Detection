@@ -159,6 +159,7 @@ def run(args: argparse.Namespace) -> dict:
         hidden_dim=config.hidden_dim,
         encode_chunk_size=config.encode_chunk_size,
         slice_context=config.slice_context,
+        witness=config.witness,
         **relation_model_kwargs(config.relation),
     ).to(device)
     configure_encoder_training(encoder, config.freeze_encoder)

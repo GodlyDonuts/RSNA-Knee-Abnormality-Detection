@@ -3,6 +3,11 @@
 Reproducible report annotation, DICOM auditing, study-level training, and offline
 Kaggle inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
+**Deep research starts here: [complete research brief](docs/research-brief.md).**
+It consolidates the actual model/data pipeline, every main measured comparison,
+negative findings, supervision gaps, Stanford results, deployment failures and
+next mechanism tests, with links to the original evidence.
+
 **Current corrective run: [Codex continuation](docs/codex-continuation.md).**
 
 **Start with [the initiative archive](initiative/README.md) and
@@ -26,14 +31,15 @@ full export verification and actual training/resume/inference acceptance. It con
 3,904 training studies, 441 weak-validation studies, 58 official evaluation studies
 and four quarantined studies. All 569 corrections are preserved; the three semantic
 QA gates are resolved through a separately reviewed conservative mask policy.
-573 software tests pass. Rare targets remain sparsely supervised, so data quality
+The latest verified software checks are recorded in the current continuation guide. Rare targets remain sparsely supervised, so data quality
 and competitive benefit must be measured rather than inferred from effort.
 
 The accepted data/code release is Git `f41879a3`. Its [private Hugging Face release](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/tree/a177562d5f49458e287752b94f085dcb061f6495/releases/report-supervision-v1) is pinned to `a177562d5f49458e287752b94f085dcb061f6495`; all 19 direct-download objects passed full byte verification. The [publication record](initiative/provenance/report-supervision-v1-publication.json) links the separate complete-tree recovery archive and both restoration proofs.
 The [expanded mission](docs/mission-and-training-plan.md) also includes a competitive
 [training strategy](docs/training-strategy.md), experiments and compute plan for
 UCF Newton: compare DINOv2/DINOv3 fairly, then test MRI adaptation, native detail
-and a complementary 3D branch. Competitive training starts after cluster access.
+and a complementary 3D branch. Competitive training is underway; those original strategy proposals are historical.
+Current results and research priorities are in the research brief.
 
 The original mirror contains 4,407 training studies (58 with complete official
 labels), 819,078 training DICOMs, and 557 DICOMs from the three released sample test

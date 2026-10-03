@@ -259,17 +259,19 @@ def _assert_tree_equal(first, second):
 
 @pytest.mark.parametrize("fit_scope", ["outer_fold", "all_development"])
 @pytest.mark.parametrize(
-    "slice_context,relation_case",
+    "slice_context,relation_case,witness_weight",
     [
-        ("none", None),
-        ("neighbor3", None),
-        ("none", "physical"),
-        ("none", "shuffled"),
-        ("none", "zero"),
+        ("none", None, None),
+        ("neighbor3", None, None),
+        ("none", "physical", None),
+        ("none", "shuffled", None),
+        ("none", "zero", None),
+        ("none", None, 0),
+        ("none", None, 1),
     ],
 )
 def test_training_mid_epoch_resume_matches_every_checkpoint_value(
-    tmp_path, monkeypatch, fit_scope, slice_context, relation_case
+    tmp_path, monkeypatch, fit_scope, slice_context, relation_case, witness_weight
 ):
     from rsna.competitive import train
     from rsna.competitive.backbones import create_encoder
@@ -310,6 +312,11 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
         freeze_encoder=False,
         augment=True,
         min_free_gib=0,
+        witness=(
+            None
+            if witness_weight is None
+            else dict(patches=4, slices=2, seed=20261003, weight=witness_weight)
+        ),
         relation=(
             None
             if relation_case is None

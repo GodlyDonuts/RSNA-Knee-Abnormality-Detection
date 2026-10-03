@@ -1,4 +1,26 @@
-# Creative solo DINOv3 research, October 1
+# October3: sharper direction, evidence before scaling
+
+The owner asked to set Kaggle deployment aside, sharply change the research
+trajectory, and keep GitHub complete for deep research. The readable current
+synthesis is [research-brief.md](research-brief.md), including all major findings,
+negative results, uncertainty, data/architecture details and primary literature.
+Original measured receipts remain linked rather than rewritten.
+
+New first mechanism: signed patch-witness evidence beside the existing global
+classifier, using identical encoder views and a zero-weight control. The code is
+implemented and locally/synthetically tested, not real-MRI GPU accepted or fitted.
+Read [the exact protocol](../initiative/experiments/competitive-v1/patch-witness-v1/README.md).
+The31-cell Effusion supervision correction is an independent contrast. A useful
+fixed-budget screen must precede full runs; replicate promising effects before
+promotion. Anatomical corroboration, presence-versus-severity and missingness-aware
+learning remain research avenues, not claims of completed frontier work.
+
+Preserve the healthy original native-all run and every immutable checkpoint.
+No new Kaggle mutation is prioritized until the owner reprioritizes deployment.
+Two-hour follow-up remains quiet on healthy unchanged state and follows current
+project guides; all originals, masks, folds and resource limits remain preserved.
+
+# Historical creative research sequence, October1
 
 The owner requests independent research, including inspiration from natural
 systems and other fields. This is now a standing instruction in AGENTS.md.

@@ -7,6 +7,7 @@ from torch import Tensor, nn
 
 from rsna.competitive.context import NeighborSliceContext
 from rsna.competitive.relations import SliceDistanceHead, SliceRelations
+from rsna.competitive.witness import PatchWitness
 from rsna.schema import TARGETS
 
 
@@ -28,6 +29,7 @@ class CompetitiveStudyNet(nn.Module):
         slice_context: str = "none",
         relation_hidden_dim: int | None = None,
         relation_head_seed: int = 0,
+        witness: dict | None = None,
     ):
         super().__init__()
         if (
@@ -97,6 +99,15 @@ class CompetitiveStudyNet(nn.Module):
             if relation_hidden_dim is not None
             else None
         )
+        self.witness = None
+        if witness is not None:
+            if (
+                pooling != "attention"
+                or slice_context != "none"
+                or not callable(getattr(encoder, "forward_features", None))
+            ):
+                raise ValueError("Witness experiment requires spatial encoder and plain attention")
+            self.witness = PatchWitness(embedding_dim, hidden_dim, witness)
 
     def train(self, mode: bool = True) -> CompetitiveStudyNet:
         super().train(mode)
@@ -141,7 +152,7 @@ class CompetitiveStudyNet(nn.Module):
         if not ((known == 0) | (known == 1)).all() or (valid_positions[known == 0, 0] != 0).any():
             raise ValueError("Position known flags must be binary; unknown distances must be zero")
         # Invalid images (including NaN padding) never reach the encoder.
-        if self.pooling == "patch_attention":
+        if self.pooling == "patch_attention" or self.witness is not None:
             forward_features = getattr(self.encoder, "forward_features")
             spatial_chunks = [
                 forward_features(part) for part in valid_images.split(self.encode_chunk_size)
@@ -228,6 +239,8 @@ class CompetitiveStudyNet(nn.Module):
         series_weights = _masked_softmax(series_scores, series_mask[..., None], dim=1)
         study = torch.einsum("bst,bsth->bth", series_weights, pooled)
         logits = torch.einsum("bth,th->bt", study, self.output_weight) + self.output_bias
+        if self.witness is not None:
+            logits = logits + self.witness(patches, slice_mask)
         return self._relation_output(logits, encoded, slice_mask, relations)
 
     def _relation_output(self, logits, encoded, slice_mask, relations):

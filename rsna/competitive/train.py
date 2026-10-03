@@ -46,6 +46,7 @@ from rsna.competitive.relations import (
 )
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
+from rsna.competitive.witness import validate_witness
 from rsna.model import auc_metrics
 from rsna.release import load_verified_release
 from rsna.schema import CACHE_VERSION, TARGETS
@@ -113,6 +114,7 @@ class TrainConfig:
     min_free_gib: float = 20.0
     diagnostic_study_limit: int | None = None
     relation: dict | None = None
+    witness: dict | None = None
 
     def validate(self) -> None:
         positive = (
@@ -174,6 +176,15 @@ class TrainConfig:
                 raise ValueError(
                     "First relation experiment requires global attention without context"
                 )
+        if self.witness is not None:
+            validate_witness(self.witness)
+            if (
+                self.pooling != "attention"
+                or self.slice_context != "none"
+                or self.relation is not None
+                or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+            ):
+                raise ValueError("Witness comparison requires plain attention and spatial encoder")
         if self.diagnostic_study_limit is not None and (
             type(self.diagnostic_study_limit) is not int or self.diagnostic_study_limit < 1
         ):
@@ -453,6 +464,7 @@ def _run_locked(
         hidden_dim=config.hidden_dim,
         encode_chunk_size=config.encode_chunk_size,
         slice_context=config.slice_context,
+        **({"witness": config.witness} if config.witness is not None else {}),
         **relation_model_kwargs(config.relation),
     ).to(device)
     delta_guard = (
@@ -499,6 +511,8 @@ def _run_locked(
         # Preserve old policy serialization; code provenance still changes and
         # exact older checkpoints must use their original pinned source.
         bound_config.pop("relation")
+    if config.witness is None:
+        bound_config.pop("witness")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {

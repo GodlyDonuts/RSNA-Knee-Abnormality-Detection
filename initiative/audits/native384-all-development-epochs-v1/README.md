@@ -1,3 +1,35 @@
+# Current: all-development native384 run completed
+
+October3 01:31EDT/05:31UTC: original Slurm868093 completed0:0 on evc31,
+tenepochs/4,260 contiguous finite updates,empty stderr. Exact C9 source/base/
+accepted masks/folds/3,403-fitting population remain unchanged. Zero outer
+studies: there is no internal accuracy result or in-sample prediction file.
+Actual final checkpoint equals the immutable epoch10 snapshot by inode and
+verified SHA8f6da3a1b401d9056fe846eb85e52fdb596fbadcc39ce57e1bc7b8cfe553a3a7.
+
+All ten epochs were privately published once and each six-object set fully
+re-downloaded/size/SHA verified. New epoch10 CPU precheck869047/publisher869048
+completed0:0. Read [final original evidence](epoch010/terminal-verified.json).
+Do not repeat production or any epoch publication. The owner has reprioritized
+research and set Kaggle deployment aside; final weights are preserved, not newly
+submitted. Scientific results and next mechanisms are in
+[the research brief](../../../docs/research-brief.md).
+
+| Epoch | Optimizer updates | Fully verified private HF revision |
+| --- | ---: | --- |
+|1|426|`ba0fe87d733ced392066fad6d9a39a9209d50244`|
+|2|852|`3cdb043028bf89d3a87b9f7ae238cfd7dedebecf`|
+|3|1278|`a35e3c4158bef04e0008513a07ad4b28a58fcc25`|
+|4|1704|`fea156e810a15d369359a824dd4cc746d285d7ce`|
+|5|2130|`452fded9b45a75ff1ed5933e27ae872f7629bcd6`|
+|6|2556|`34ac122082ed11006bc78ed7c3380dd059a2c9b3`|
+|7|2982|`54c825b9cc6ccfd74280590a5a5cd21f3ef757b8`|
+|8|3408|`fdf730be08a991bb4ea2c307427e70f8f91b030a`|
+|9|3834|`42392c7e0fb08bbc19fde4327421f8b0b6bc93eb`|
+|10|4260|`9acefe3f84787b3bc74ed63a65b419bf39cf92b7`|
+
+## Preserved dated progress history
+
 # Native384 all-development epoch preservation
 
 October3 02:28UTC: epoch8 completed3408updates and was privately published ONCE viaCPU868984 COMPLETED0:0; all6objects fully re-downloaded/size/SHA verified at HFfdf730be08a991bb4ea2c307427e70f8f91b030a. Checkpoint SHA0ea3e5cdafdc41ac20c9919e216c3d2cd85252bc98482861f52b2def2f96df90. Read epoch008; never repeat1–8. Original868093 remains healthy on evc31 into epoch9 with3492 contiguous finite updates and empty stderr; no source/recipe change. Fresh reserve20.01353GiB/5000files after liabilities. Midpoint56783855 has unreported hidden status/score/error at02:31UTC, authoritative0today/5slots; no competition mutation or accuracy claim.

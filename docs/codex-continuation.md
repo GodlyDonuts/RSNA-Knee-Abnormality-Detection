@@ -1,3 +1,34 @@
+October3 current owner priority: sharp shift to creative mechanism-driven research;
+set Kaggle deployment aside. GitHub deep research starts at docs/research-brief.md,
+which consolidates actual results/negative findings/sparse supervision/Stanford/
+engineering failures with original evidence. README/AGENTS/creative plan/decisions
+now point to that synthesis. Two-hour automation prompt now prioritizes research,
+remains concise and quiet on healthy unchanged state. No competition mutation.
+
+Original native-all868093 COMPLETED0:0/16:55:20 on evc31: alltenepochs/4,260
+contiguous finite updates,empty stderr. All10 checkpoints privately publishedONCE/
+full6object download-size-SHA verified. New epoch10 HF9acefe3f84787b3bc74ed63a65b419bf39cf92b7,
+CPU869047/869048 COMPLETED0:0,checkpoint8f6da3a1b401d9056fe846eb85e52fdb596fbadcc39ce57e1bc7b8cfe553a3a7.
+Read native384-all-development-epochs-v1/epoch010. Finalcheckpoint equals epoch10
+by inode/verified original whole-byte proof;3,403fit/0outer, no accuracy result.
+Never repeat868093 or publications1–10. No final competition deployment. Latest
+midpoint56783855 remains unreported at05:03UTC/01:03EDT, no later outcome inferred.
+Fresh after-liability reserve20.01334GiB/5000shared files,originals retained.
+
+New optional signed patch-witness code in canonical model/trainer/inference:
+4patches/2slices/strongest genuine series alongside original global context,
+independent branch seed,zero initial local output,matched weight0/1 arms with
+same encoded images/features/initial learned state/RNG.12 local regressions plus
+4 additional actual-trainer synthetic recovery cases passed; full1717tests,
+Ruff275files/mypy45modules passed. No real-MRI GPU engineering/source stage/new
+Slurm fitting/funded production checkpoints/accuracy gain. Read patch-witness-v1.
+Next actual-MRI/H100 engineering and explicit resources before fixed3epoch matched
+screen; replicate promising gain. The31-cell Effusion loader remains separate and
+not integrated in production. Do not conflate aggregation with changed labels,
+rewrite accepted masks/folds/base,or repackage software checks as clinical benefit.
+Current source/brief/final receipts await distinct small private-HF mirroring;
+prior verified HF6dfbf82d30objects and all earlier mirrors must never repeat.
+
 Verified private preservation: GitHub sourcef726707 and the distinct actual native-all epoch9/standalone fitting-overlay/fixed-final preparation milestone are mirrored at HF6dfbf82d7c7926e4fb7d74eeca4f1b0d2ee8f7cc. All30small objects fully re-downloaded/size/SHA verified under canonical shared lock. Read hf-nativeall-epoch9-overlay-loader-20261003-v1; never repeat it or prior HF976376b827objects. No raw reports/case judgments/membership/pixels/Stanford weights mirrored. Full1701tests/Ruff273/mypy44/archive/current89/89 evidence checks passed. Original production and accepted masks/registry remain unchanged; no new GPU research or competition mutation.
 
 Full1701tests/Ruff273files/mypy44modules/archive/current89/89 evidence checks passed for the new standalone overlay input engineering; no production trainer integration or model accuracy claim.

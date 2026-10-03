@@ -44,6 +44,26 @@ its preserved outputs are historical evidence, not current training labels.
   small final manifests, audits, predictions, and experiment metadata here even
   when also publishing them to Hugging Face.
 
+## October3 sharp research change and GitHub handoff
+
+The owner explicitly set Kaggle deployment aside and asked for bold, result-driven
+mechanisms instead of more undirected scaling. Start external research with
+`docs/research-brief.md`: it consolidates completed results, failures, supervision
+counts, unresolved hypotheses and links to original evidence. Keep that readable
+brief and GitHub main current. Historical observations below are not current
+state. Preserve healthy original training and checkpoints. No claim of winning
+performance is justified by engineering or an untested architecture.
+
+New optional signed patch-witness code has synthetic/local acceptance only;
+read `initiative/experiments/competitive-v1/patch-witness-v1/README.md` before new
+GPU work. Its zero/one arms preserve shared initial states and encoded views;
+require actual MRI/H100 engineering plus fresh resources before a fixed-budget
+matched held-out contrast. The31-cell Effusion loader is separate and still not
+integrated into production. Do not conflate the two changes or rewrite accepted
+masks. Prioritize experiments that can reject a mechanism quickly and replicate
+promising gains. Keep research curiosity open; avoid another long training run
+without a specific causal question. Exact current guides override dated text.
+
 ## Owner's research directive, October 1
 
 The owner explicitly asks for independent, creative research that pushes beyond

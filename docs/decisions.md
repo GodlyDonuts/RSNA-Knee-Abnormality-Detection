@@ -1,5 +1,19 @@
 # Decisions, corrections, and unresolved work
 
+## October3: research trajectory and complete deep-research handoff
+
+The owner set Kaggle aside and requested a sharp shift toward creative mechanisms,
+then asked GitHub to contain all findings for external deep research. A single
+[research brief](research-brief.md) now separates completed comparisons, sparse
+supervision, private Stanford work, engineering failures and proposals. Existing
+negative results remain intact. New optional signed patch-witness model/trainer/
+inference code has synthetic local acceptance only. It preserves global context,
+same encoder observations and shared initial state with a zero-weight control.
+Actual MRI/H100 acceptance and an explicitly funded fixed-budget paired fit are
+still required; there is no clinical gain or new GPU dispatch. The Effusion overlay
+is a separate future contrast, not an original release rewrite. Follow the current
+continuation for live training/checkpoint state. No first-place promise.
+
 ## October 1: independent creative research
 
 The owner explicitly prioritizes original hypotheses and inspiration from other
