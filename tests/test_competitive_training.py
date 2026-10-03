@@ -439,7 +439,10 @@ def test_all_development_membership_preserves_masks_and_excludes_reserved_data()
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-def test_fitting_overlay_real_trainer_resume_and_bound_admission(tmp_path, monkeypatch, enabled):
+@pytest.mark.parametrize("folds_directory", [False, True])
+def test_fitting_overlay_real_trainer_resume_and_bound_admission(
+    tmp_path, monkeypatch, enabled, folds_directory
+):
     from rsna.competitive import train
     from rsna.competitive.backbones import create_encoder
     from rsna.competitive.infer import validate_inference_checkpoint
@@ -463,7 +466,7 @@ def test_fitting_overlay_real_trainer_resume_and_bound_admission(tmp_path, monke
     original_manifest = manifest.copy(deep=True)
     folds = manifest[["study_uid", "leakage_group"]].copy()
     folds["fold"] = [0] * 4 + [1] * 8
-    folds_path = tmp_path / "folds.csv"
+    folds_path = tmp_path / "fold.csv"
     folds.to_csv(folds_path, index=False)
     series_path = tmp_path / "series.csv"
     series_path.write_text("SeriesInstanceUID\na\n")
@@ -529,7 +532,7 @@ def test_fitting_overlay_real_trainer_resume_and_bound_admission(tmp_path, monke
     args = argparse.Namespace(
         studies=tmp_path / "unused",
         artifact_root=tmp_path,
-        folds=folds_path,
+        folds=tmp_path if folds_directory else folds_path,
         series=series_path,
         cache=tmp_path,
         output=tmp_path / "full",

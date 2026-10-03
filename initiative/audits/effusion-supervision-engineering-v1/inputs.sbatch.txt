@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-effusion-inputs
+#SBATCH --nodelist=evc31
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --time=00:20:00
+#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err
+set -euo pipefail
+umask 077
+unset PYTHONPATH
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+/usr/bin/python3.12 -B /home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1/launch_effusion_engineering.py --control /home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1 --phase inputs

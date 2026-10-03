@@ -1,0 +1,107 @@
+"""Single dispatch; uncertain outcomes require read-only reconciliation."""
+import ast
+import base64
+import hashlib
+import io
+import json
+import shlex
+import subprocess
+import sys
+import tarfile
+from pathlib import Path
+
+repo=Path.cwd()
+local=repo/'artifacts/effusion-supervision-engineering-v1'
+audit=repo/'initiative/audits/effusion-supervision-engineering-v1'
+control='/home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1'
+phase=sys.argv[1]
+assert phase in ('inputs','recovery')
+intent=local/(phase+'-dispatch-intent.json')
+assert not intent.exists(), 'Existing original dispatch intent; reconcile read-only'
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu']
+def remote(code, data=b''):
+ return subprocess.run(ssh+[shlex.join(['/usr/bin/python3.12','-B','-c',code])],input=data,capture_output=True,timeout=60)
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+helper=ast.parse((repo/'artifacts/kaggle-nativeall-epoch5-v1/funding_current.py').read_text())
+fund=next(ast.literal_eval(n.value) for n in helper.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='code' for t in n.targets))
+fund=fund[:fund.index(";assert gib>=20")]+'''
+research=Path('/home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1');rp={}
+if research.exists():
+ for q in [research]+list(research.iterdir()):
+  assert not q.is_symlink();st=q.stat();rp[st.st_dev,st.st_ino]=st.st_size
+ for role in ('inputs','recovery'):
+  result=research/(role+'-dispatch-result.json')
+  if result.exists():
+   jid=json.loads(result.read_text())['job_id']
+   for ext in ('out','err'):
+    q=b/f'logs/rsna-effusion-{role}-{jid}.{ext}'
+    if q.exists():
+     st=q.stat();rp[st.st_dev,st.st_ino]=st.st_size
+assert len(rp)<=40 and sum(rp.values())<=8*1024**2
+assert epochs==list(range(1,11)) and len(paid)==51
+assert subprocess.check_output(['sacct','-X','-j','868093','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='868093|COMPLETED|0:0'
+assert json.loads((b/'production-launch-native384-all-c9-v1/gpu-dispatch-result.json').read_text())['optimizer_updates']==4260
+future_new=future+8*1024**2-sum(rp.values());nf_new=nf-40+40-len(rp)
+reserve=((soft-used)*1024-future_new)/2**30;fr=limit-files-nf_new
+assert reserve>=20 and fr>=5000,(reserve,fr)
+funding={'used_kB':used,'soft_kB':soft,'used_files':files,'file_soft':limit,'future_shared_bytes':future_new,'future_shared_files':nf_new,'remaining_gib_after_all_liabilities':reserve,'remaining_files_after_all_liabilities':fr,'retired_unused_original_production_future_metadata_files':40,'original_future_closeout_files_retained_at_least':22,'new_total_shared_cap_bytes':8*1024**2,'new_total_shared_cap_files':40,'paid_research_bytes':sum(rp.values()),'paid_research_inodes':len(rp),'all_original_artifacts_retained':True,'deletion_credit':0,'original_all10_private_proofs_reused':True,'node_local_runtime_cap_GiB':7,'node_local_engineering_checkpoint_cap_GiB':3,'node_local_reserve_GiB':20,'production_screen_funded':False}
+'''
+if phase=='inputs':
+ assert subprocess.check_output(['git','status','--porcelain'],text=True).strip()==''
+ git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+ names=[p.relative_to(repo).as_posix() for p in sorted((repo/'rsna').rglob('*.py'))]
+ names+=['scripts/newton/'+p for p in ('launch_effusion_engineering.py','probe_effusion_engineering.py','enforce_deterministic_runtime.py','runtime_environment.py','runtime_archive.py')]
+ payload=io.BytesIO();members={}
+ with tarfile.open(fileobj=payload,mode='w') as tar:
+  for name in names:
+   raw=(repo/name).read_bytes();members[name]={'bytes':len(raw),'sha256':sha(raw)}
+   info=tarfile.TarInfo(name);info.size=len(raw);info.mode=0o600;tar.addfile(info,io.BytesIO(raw))
+ source=payload.getvalue()
+ source_manifest={'source_git':git,'files':members,'source_tar_sha256':sha(source),'source_archive_only_regular_exact_members':True}
+ data={'source.tar':source,'source.json':(json.dumps(source_manifest,indent=2,sort_keys=True)+'\n').encode(),'launch_effusion_engineering.py':(repo/'scripts/newton/launch_effusion_engineering.py').read_bytes(),'overlay.json':(repo/'artifacts/research-pulse-20261003-0414-v1/effusion-fitting-overlay-proposal.json').read_bytes()}
+ for role in ('control','candidate'):
+  data[role+'-pilot.json']=(audit/(role+'-pilot.json')).read_bytes()
+ for role in ('inputs','recovery'):
+  data[role+'.sbatch']=(audit/(role+'.sbatch.txt')).read_bytes()
+ data['control-files.json']=(json.dumps({'files':{n:{'bytes':len(v),'sha256':sha(v)} for n,v in data.items()}},indent=2,sort_keys=True)+'\n').encode()
+ assert sum(map(len,data.values()))<4*1024**2 and len(data)<16
+ (local/'source.json').write_bytes(data['source.json'])
+ envelope={n:base64.b64encode(v).decode() for n,v in data.items()}
+else:
+ envelope={}
+with intent.open('x') as out:json.dump({'phase':phase,'control':control,'automatic_retry':False},out)
+code=fund+'''
+import base64,os,sys
+os.umask(0o077)
+phase=sys.argv[1] if len(sys.argv)>1 else PHASE
+if phase=='inputs':
+ assert not research.exists(),'Existing original control; reconcile instead of retry'
+ research.mkdir(mode=0o700)
+ envelope=json.load(sys.stdin)
+ assert len(envelope)<16 and sum(len(base64.b64decode(v)) for v in envelope.values())<4*1024**2
+ for name,encoded in envelope.items():
+  assert name in {'source.tar','source.json','launch_effusion_engineering.py','overlay.json','control-pilot.json','candidate-pilot.json','inputs.sbatch','recovery.sbatch','control-files.json'}
+  with (research/name).open('xb') as out:out.write(base64.b64decode(encoded))
+else:
+ assert not (research/'recovery-dispatch-intent.json').exists()
+ receipt=research/'inputs-accepted.json';cpu=json.loads(receipt.read_text())
+ assert cpu['status']=='actual_native384_effusion_inputs_passed' and cpu['changed_engineering_cells']==1 and cpu['clinical_accuracy_evidence'] is False
+ assert subprocess.check_output(['sacct','-X','-j',cpu['job_id'],'--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()==cpu['job_id']+'|COMPLETED|0:0'
+ assert not subprocess.check_output(['squeue','-u','sa305415','-h','-O','gres:60'],text=True).strip(),'GPU work must not displace healthy original jobs'
+ ticket={'cpu_receipt_sha256':__import__('hashlib').sha256(receipt.read_bytes()).hexdigest(),'actual_original_CPU_terminal_accepted':True,'original_allocated_driver_and_header_guard_retained':True,'clinical_accuracy_evidence':False}
+ with (research/'gpu-admission.json').open('x') as out:json.dump(ticket,out,indent=2,sort_keys=True);out.write('\\n')
+with (research/(phase+'-funding.json')).open('x') as out:json.dump(funding,out,indent=2,sort_keys=True);out.write('\\n')
+with (research/(phase+'-dispatch-intent.json')).open('x') as out:json.dump({'automatic_retry':False,'phase':phase},out)
+job=subprocess.check_output(['sbatch','--parsable',str(research/(phase+'.sbatch'))],text=True).strip();assert job.isdecimal(),job
+record={'phase':phase,'job_id':job,'control':str(research),'automatic_retry':False,'cpus':1 if phase=='inputs' else 2,'gpus':0 if phase=='inputs' else 1,'diagnostic_only':True,'clinical_accuracy_evidence':False}
+with (research/(phase+'-dispatch-result.json')).open('x') as out:json.dump(record,out,indent=2,sort_keys=True);out.write('\\n')
+print(json.dumps({'dispatch':record,'funding':funding},sort_keys=True))
+'''
+code='PHASE='+repr(phase)+'\n'+code
+r=remote(code,json.dumps(envelope).encode())
+(local/(phase+'-remote.stderr')).write_bytes(r.stderr)
+(local/(phase+'-remote.stdout')).write_bytes(r.stdout)
+assert r.returncode==0,'Remote dispatch stopped; reconcile read-only before any retry'
+record=json.loads(r.stdout)
+(local/(phase+'-dispatch-result.json')).write_text(json.dumps(record,indent=2,sort_keys=True)+'\n')
+print(json.dumps(record,indent=2,sort_keys=True))

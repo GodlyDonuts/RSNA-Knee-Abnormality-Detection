@@ -1,3 +1,11 @@
+October3 Effusion actual-MRI engineering admission is implemented in
+initiative/audits/effusion-supervision-engineering-v1. The16-study fitting prefix
+exercises one reviewed changed cell; actualCPU input admission precedes a distinct
+realH100 full/stop1/resume comparison. Source/runtime and original complete cache
+proofs stay pinned; immutable original masks/outer remain. No actual new allocation
+or accuracy claim at this preparation point. A production fold-directory CLI
+binding defect is fixed and both supported path forms are regression-tested.
+
 Full1728 tests/Ruff275files/mypy45modules/archive/current89/89 evidence checks passed. Both prepared three-epoch screen configs are locally validated and differ only in enabled arm; no actual MRI GPU recovery/fitting/funding.79 local documentation links verified. Full source/QA/protocol and supplied report now belong to this distinct GitHub milestone, with originals retained.
 
 October3 owner-supplied research program is archived verbatim with SHA and primary

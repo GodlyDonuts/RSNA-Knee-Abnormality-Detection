@@ -450,7 +450,9 @@ def _run_locked(
             supervision_path,
             config.fitting_supervision,
             release_sha256=release_binding["manifest_sha256"],
-            folds_sha256=file_sha256(args.folds),
+            folds_sha256=file_sha256(
+                (args.folds if args.folds.is_dir() else args.folds.parent) / "fold.csv"
+            ),
             fold=config.fold,
         )
     else:
