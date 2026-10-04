@@ -1,3 +1,10 @@
+Ranking-support milestone sourceab16d06 is privately mirrored at
+HFbe714b4ed37a585d40fe94c53c0d80bc537e1cc2, all16 small objects fully
+re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-ranking-support-20261004-v1; never repeat. No pixels/reports/case records/
+overlay/predictions/learned weights. Full1845 tests/Ruff292/mypy45/archive/
+current89/89 passed. No live numerical or job/recipe change.
+
 October4 fitting-only ranking-support diagnostic is complete: original control
 2247 fitting studies, exact sampler seeds20260922/20261004,3epochs/843updates.
 All843 actual parent GPU observed-cell counts and8 interruption overlaps match;
