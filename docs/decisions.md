@@ -10,11 +10,14 @@ synovitis are also sparse. Read
 Reject a naive within-forward ranking add-on. First independently admit ordered
 concept evidence and an explicit comparison schedule at a matched encoding budget.
 Unknowns stay masked; software/metadata counts are not MRI accuracy or a confirmed
-Kaggle root cause. Both queued seed2 supervision jobs remain untouched.
+Kaggle root cause. Both healthy seed2 supervision jobs remain untouched.
 
 The second-seed replication was submitted once as870025/870026 after CPU870024
-admitted original asset reuse and explicit resource reconciliation. Both remain
-PENDING at the latest observation. Original unused native closeout funding20→12
+admitted original asset reuse and explicit resource reconciliation. At October4
+16:57 UTC both are actually RUNNING on evc32, control182/candidate180 contiguous
+finite updates and empty stderr. Assigned CUDA/header/runtime and full
+source/roster/recipe checks passed; no result yet. Original unused native closeout
+funding20→12
 retires eight future slots, with every paid file retained; no deletion credit.
 Current original launch/mirror receipts supersede the prior prepared-only status.
 

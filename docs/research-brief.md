@@ -24,8 +24,11 @@ The [fixed-final audit](../initiative/audits/effusion-supervision-screen-final-v
 contains original predictions, all12 endpoints, uncertainty and a reproducible
 source/roster/trajectory/result replay. A new matched seed20261004 three-epoch
 pair was submitted once as **870025/870026** after actual asset reuse and fresh
-resource admission. It is **queued, not observed training**. It tests seed
-robustness without pretending that the same sparse holdout supplies independent
+resource admission. At October4 16:57 UTC both are **training on evc32**:
+control182/candidate180 contiguous finite updates, empty stderr and actual
+assigned-device/header/runtime/source/roster admission passed. No new result yet.
+It tests seed robustness without pretending that the same sparse holdout supplies
+independent
 patient evidence. [Launch and live resource evidence](../initiative/audits/effusion-supervision-seed2-v1/README.md)
 preserve the bookkeeping reconciliation, original intents and exact wrappers.
 
@@ -83,7 +86,7 @@ fracture0.59–0.83%, Baker's2.02–2.14% and synovitis1.90–2.61%, under the o
 control labels and two exact sampler seeds. No MRI/model or protected target
 values were used. This rejects a naive ranking add-on, not ranking itself or an
 accuracy root cause. Admit reviewed concepts and a deliberate comparison schedule
-before a new GPU loss experiment; keep the pending supervision pair unchanged.
+before a new GPU loss experiment; keep the healthy supervision pair unchanged.
 
 ## Current MRI pipeline and model
 

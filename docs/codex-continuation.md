@@ -1,3 +1,17 @@
+October4 16:57UTC actual allocation/progress: original seed2 control870025 and
+candidate870026 are RUNNING on evc32, control182/candidate180 contiguous finite
+optimizer updates and empty stderr. Owning-node CPU870562 COMPLETED0:0 verified
+both assigned one-H100/two-CPU contexts, CUDA init0/count1, headers, strict runtime,
+all original launch/source hashes and complete2247/1156 bindings. Seed20261004,
+original665c0d5 numerical recipe and31 fitting Effusion cells unchanged. Read
+seed2 gpu-progress-001.json/acceptance and original observer; prior PENDING
+scheduler snapshot is historical. No completed epoch/publication intent at this
+observation; preserve each newly completed role/epoch once through the pinned
+replication coordinator. No new accuracy result. Same-fold repetition tests seed
+stability, not independent patient generalization. Actual quota unchanged:
+1026227500kB/994240files,20.0046855GiB/5000files after retained liabilities;
+node-local reserve passed. No job move/restart, bulk copy or Kaggle mutation.
+
 Ranking-support milestone sourceab16d06 is privately mirrored at
 HFbe714b4ed37a585d40fe94c53c0d80bc537e1cc2, all16 small objects fully
 re-downloaded/size/SHA verified under canonical shared lock. Read

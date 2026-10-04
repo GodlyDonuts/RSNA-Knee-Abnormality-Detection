@@ -54,8 +54,10 @@ zero and only nine observed positives support the endpoint. Macro changed
 +0.001222, also unestablished. This is internal research, not a Kaggle score.
 The next matched seed20261004 was dispatched once as control870025 and
 candidate870026 after CPU870024 admitted original asset reuse and fresh funding.
-Both are actually PENDING; never repeat dispatch or call that optimizer progress.
-Read effusion-supervision-seed2-v1 and inspect actual allocation before action.
+Both are actually RUNNING on evc32 at October4 16:57 UTC: control182/candidate180
+contiguous finite updates; actual assigned H100, header, strict runtime and full
+source/recipe/roster checks passed, stderr empty. Read seed2 gpu-progress-001 and
+its acceptance. No epoch/result yet. Never repeat dispatch or alter healthy jobs.
 Same-fold repetition tests seed stability, not independent holdout patients.
 All original masks/folds and protected evaluation remain unchanged. Historical
 observations below are superseded by current original receipts, not overwritten.
