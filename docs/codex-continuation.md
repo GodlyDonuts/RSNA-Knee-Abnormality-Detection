@@ -1,3 +1,11 @@
+Source7f48323 and this actual H100 recovery/fixed-screen admission/private
+cache-routing milestone are privately mirrored at HF9de718f4e62f4149d0bb976ed2dd0f9b5a0e287a.
+All30small objects fully re-downloaded/size/SHA verified under the canonical
+shared lock. No MRI/clinical case records/overlay/predictions/learned weights
+mirrored; never repeat. Original corrected869665 remainsRUNNING at6:19
+elapsed, no whole-copy or new accuracy result yet. Follow actual original
+receipt/journal before any next screen action; no GPU reservation prematurely.
+
 Distinct corrected private cache routing869665 submittedONCE from4ec70b5;
 actually RUNNING on evc31/evc34, zeroGPUs/oneCPU requested per endpoint.
 Actual4.1347GB/1098newfiles observed on evc34, empty transport stderr. Partial
