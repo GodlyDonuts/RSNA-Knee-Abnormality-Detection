@@ -1,3 +1,9 @@
+Second-seed launch milestone: source0379e60 privately mirrored at
+HFadf75da78b4911b490832da1730cb3eea1656882, all25 distinct small objects fully
+re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-effusion-seed2-launch-20261004-v1. No raw/overlay/case records/prediction CSVs
+or learned weights included. Never repeat this or prior verified mirrors.
+
 October4 second-seed dispatched ONCE: CPU870024 completed original asset/funding
 admission; control870025 and candidate870026 are actually PENDING, zero runtime,
 no optimizer observed. Read effusion-supervision-seed2-v1/dispatch.json,
