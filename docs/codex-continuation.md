@@ -1,3 +1,8 @@
+Neighbor feasibility source0a4cb41 privately mirrored at HF4e823debb57ef9eea2ae3dce9647991b9410c7f1,
+all17 small objects fully downloaded/size/SHA verified under canonical lock;
+read hf-neighbor-original-input-20261004-v1. Never repeat. No raw MRI/labels/
+case records/weights mirrored; no new GPU fitting or accuracy claim.
+
 October4 next-input research: CPU871757 actually completed fitting-only original
 MRI neighbor feasibility:12,476 series/2,247 fitting studies,255 pixel views from
 16 fitting studies,99.984% uniform centers with valid physical context; exact
