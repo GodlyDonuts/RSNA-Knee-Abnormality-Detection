@@ -24,9 +24,11 @@ The [fixed-final audit](../initiative/audits/effusion-supervision-screen-final-v
 contains original predictions, all12 endpoints, uncertainty and a reproducible
 source/roster/trajectory/result replay. A new matched seed20261004 three-epoch
 pair was submitted once as **870025/870026** after actual asset reuse and fresh
-resource admission. At October4 16:57 UTC both are **training on evc32**:
-control182/candidate180 contiguous finite updates, empty stderr and actual
-assigned-device/header/runtime/source/roster admission passed. No new result yet.
+resource admission. At October4 18:52 UTC both are **training epoch3 on evc32**:
+control666/candidate659 contiguous finite updates and empty stderr. Both completed
+epochs1/2 are privately preserved, all20 objects fully re-downloaded/size/SHA
+verified. Original source/recipe/full-roster/runtime bindings passed again. No new
+fixed-final result yet.
 It tests seed robustness without pretending that the same sparse holdout supplies
 independent
 patient evidence. [Launch and live resource evidence](../initiative/audits/effusion-supervision-seed2-v1/README.md)

@@ -5,9 +5,10 @@ Replicate a fixed-budget matched seed before a ten-epoch promotion; don't confus
 weak report agreement with MRI truth. All6epoch checkpoints are privately fully
 verified. Original masks/folds/protected evaluation remain unchanged. The matched
 seed20261004 pair was dispatched once as870025/870026 after fresh funding and
-original asset reuse admission. At October4 16:57 UTC both are RUNNING on evc32,
-control182/candidate180 finite contiguous updates; assigned H100/header/runtime
-and original source/roster/recipe checks passed. No fixed-final result yet.
+original asset reuse admission. At October4 18:52 UTC both are RUNNING on evc32,
+control666/candidate659 finite contiguous updates, third epoch underway. Both
+epochs1/2 privately preserved once/all20 objects full-download/size/SHA verified;
+original source/roster/recipe/runtime passed again. No fixed-final result yet.
 Read [the actual launch](../initiative/audits/effusion-supervision-seed2-v1/README.md).
 No Kaggle submission; historical research sequence follows.
 

@@ -85,3 +85,29 @@ new completed immutable role/epoch once with the admitted coordinator; never
 repeat original dispatch or publication intents. Quota still leaves20.0046855GiB
 and5,000 files after all funded future obligations; the owning node also passes
 its local reserve. This is verified training progress, not an accuracy gain.
+
+## First two epochs preserved, October4 18:52–18:56 UTC
+
+Both original jobs remain healthy, **control666 / candidate659** contiguous
+finite updates into epoch3 and empty stderr. Read-only CPU870664 completed0:0
+and reverified the exact original launch/numerical source, seed20261004, full
+2,247 fitting/1,156 outer roster and runtime bindings. Both completed epochs1/2
+were privately preserved exactly once via the pinned coordinator: **all20 objects
+fully re-downloaded/size/SHA verified**. The four publication CPUs870666/870670/
+870671/870672 completed0:0. `epochs-001-002-preservation.json` binds each actual
+snapshot/private revision/job/proof; never repeat these four uploads.
+
+Shared quota was unchanged after publication; no shared files or bytes were
+added. Node-local credentials/client/download storage stayed private. The generic
+snapshot field `submission_eligible` does not admit these experimental weights to
+competition inference; the private publication manifest explicitly marks them
+ineligible. No Kaggle mutation, original release/mask/fold change, restart or
+new bulk cache/runtime copy occurred.
+
+The fixed final third epoch and held-out results remain unobserved. Follow
+`final-analysis-collection-plan.json` only after actual terminals and final epoch3
+preservation. Collect original records and predictions without repeating training
+or inference, then independently replay the predeclared Effusion primary/all12
+secondary endpoints and4,000 paired whole-component draws. The same nine observed
+Effusion positives still limit interpretation; seed repetition is not independent
+patient generalization or permission to select a favorable endpoint/checkpoint.

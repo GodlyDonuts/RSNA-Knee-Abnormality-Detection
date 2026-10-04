@@ -1,0 +1,65 @@
+import datetime,hashlib,json,subprocess
+from pathlib import Path
+from scripts.newton import dispatch_effusion_screen as original
+root=Path.cwd();local=root/'artifacts/effusion-seed2-v1';audit=root/'initiative/audits/effusion-supervision-seed2-v1'
+intent=local/'gpu-observation-002-intent.json';assert not intent.exists()
+manifest=json.loads((audit/'source-manifest.json').read_text())
+program=r'''
+import datetime,hashlib,json,math,os,shutil
+from pathlib import Path
+expected=json.load(__import__('sys').stdin)
+c=Path('/tmp/rsna-effusion-seed20261004-evc32-v1');prior=Path('/tmp/rsna-effusion-screen-evc32-20261004-v1')
+assert os.uname().nodename.split('.')[0]=='evc32' and os.environ.get('SLURM_CPUS_PER_TASK')=='1' and not os.environ.get('SLURM_JOB_GPUS')
+assert json.loads((c/'files.json').read_text())==expected
+for name,row in expected['files'].items():
+ p=c/name;assert p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256'],name
+for name,digest in expected['reused_original_metadata_sha256'].items():
+ assert (c/name).is_symlink() and (c/name).resolve()==(prior/name).resolve()
+ assert hashlib.sha256((c/name).read_bytes()).hexdigest()==digest
+assert (c/'code').is_symlink() and (c/'code').resolve()==(prior/'code').resolve()
+source=json.loads(Path('/home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1/recovery-v2/source.json').read_text())
+for name,row in source['files'].items():
+ assert hashlib.sha256((c/'code'/name).read_bytes()).hexdigest()==row['sha256'],name
+out={'observed_at_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'observer_CPU_job':os.environ['SLURM_JOB_ID'],'observer_GPU_reserved':False,'original_launch_and_frozen_source_hashes_verified':True,'new_bulk_runtime_or_cache_copy':False,'clinical_accuracy_claimed':False,'roles':{},'node_local_free_bytes':shutil.disk_usage('/tmp').free}
+for role,job in [('control','870025'),('candidate','870026')]:
+ log=c/(role+'.out');raw=log.read_bytes();rows=[]
+ for line in raw.decode().splitlines():
+  try:rows.append(json.loads(line))
+  except ValueError:pass
+ updates=[r for r in rows if 'optimizer_steps' in r]
+ assert updates and [u['optimizer_steps'] for u in updates]==list(range(1,len(updates)+1))
+ assert all(math.isfinite(r[k]) for r in updates for k in ['loss','gradient_norm','elapsed_seconds'])
+ driver=next(r for r in rows if r.get('status')=='passed')
+ assert driver['job_id']==job and driver['cuda_driver_init_code']==0 and driver['cuda_driver_device_count']==1 and driver['allocation']['SLURM_CPUS_PER_TASK']=='2'
+ assert 'H100' in driver['nvidia_inventory']['stdout'] and len(driver['nvidia_inventory']['stdout'].splitlines())==1
+ strict=next(r for r in rows if r.get('status')=='strict_deterministic_runtime_enabled')
+ run=c/role/'run.json';record=json.loads(run.read_text());b=record['binding'];cfg=b['config']
+ assert (record['training_studies'],record['outer_studies'])==(2247,1156)
+ assert cfg['seed']==20261004 and cfg['epochs']==3 and cfg['side']==384 and cfg['batch_size']==1 and cfg['accumulation_steps']==8 and b['world_size']==1
+ assert b['experimental_fitting_supervision']['enabled']==(role=='candidate')
+ assert b['experimental_fitting_supervision']['applied_cells']==(31 if role=='candidate' else 0)
+ assert not b['experimental_fitting_supervision']['evaluation_masks_changed']
+ before=json.loads((prior/role/'run.json').read_text());pb=before['binding'];pcfg=pb['config'];pcfg['seed']=20261004
+ assert cfg==pcfg
+ for key in ['release','folds_sha256','training_uids_sha256','outer_uids_sha256','targets','code_sha256','cache_side','cache_version','source_revision']:
+  assert b[key]==pb[key],key
+ sidecars=[]
+ for p in sorted((c/role/'epoch-checkpoints').glob('epoch-*.json')):
+  sidecars.append({'name':p.name,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'receipt':json.loads(p.read_text())})
+ publication=c/'epoch-publication'/role
+ out['roles'][role]={'job_id':job,'optimizer_updates':len(updates),'first_update':updates[0],'last_update':updates[-1],'driver':driver,'strict_runtime':strict,'stderr_bytes':(c/(role+'.err')).stat().st_size,'run':record,'run_json_sha256':hashlib.sha256(run.read_bytes()).hexdigest(),'stdout_sha256':hashlib.sha256(raw).hexdigest(),'stdout_bytes_at_observation':len(raw),'completed_epoch_sidecars':sidecars,'publication_intents':[str(p.relative_to(c)) for p in publication.glob('epoch-*/intent.json')]}
+a=out['roles']['control']['run']['binding'];b=out['roles']['candidate']['run']['binding']
+for key in ['release','folds_sha256','training_uids_sha256','outer_uids_sha256','targets','code_sha256','cache_side','cache_version','source_revision']:
+ assert a[key]==b[key],key
+print(json.dumps(out,allow_nan=False))
+'''
+intent.write_text(json.dumps({'purpose':'read_only_actual_second_seed_GPU_source_runtime_optimizer_observation','program_sha256':hashlib.sha256(program.encode()).hexdigest(),'automatic_training_or_publication_retry':False},indent=2)+'\n')
+r=original.remote(program,manifest,cpu_name='rsna-effusion-seed2-readonly-progress2')
+(local/'gpu-observation-002.stdout').write_bytes(r.stdout);(local/'gpu-observation-002.stderr').write_bytes(r.stderr)
+assert r.returncode==0,r.stderr.decode()
+v=json.loads(r.stdout)
+v['Slurm']=subprocess.check_output(['ssh','-S',original.SOCKET,'-o','BatchMode=yes','newton','sacct -j 870025,870026 -X -n -P --format=JobID,State,ExitCode,Elapsed,Start,NodeList'],text=True).splitlines()
+v['shared_quota_original_stdout']=subprocess.check_output(['ssh','-S',original.SOCKET,'-o','BatchMode=yes','newton','lfs quota -u sa305415 /home'],text=True)
+for path in [local/'gpu-observation-002-result.json',audit/'gpu-progress-002.json']:
+ with path.open('x') as f:json.dump(v,f,sort_keys=True,indent=2,allow_nan=False);f.write('\n')
+print(json.dumps({'CPU_job':v['observer_CPU_job'],'Slurm':v['Slurm'],'roles':{k:{n:x[n] for n in ['optimizer_updates','last_update','stderr_bytes','completed_epoch_sidecars','publication_intents']} for k,x in v['roles'].items()},'quota':v['shared_quota_original_stdout']},sort_keys=True))

@@ -1,3 +1,22 @@
+October4 18:52UTC original seed2 control870025/candidate870026 remain healthy
+RUNNING on evc32,666/659 contiguous finite updates, third epoch underway and empty
+stderr. Owning-node read-only CPU870664 COMPLETED0:0 reverified original source/
+recipe/full2247/1156/seed20261004/runtime bindings. New control/candidate epochs1/2
+privately preserved ONCE/all20 objects fully re-downloaded/size/SHA verified via
+original pinned coordinator/canonical lock. CPU870666/870670/870671/870672 each
+COMPLETED0:0. Revisions: control1 HF20681843843fc36cb9900ed179a61666b3839edd,
+candidate1 HF963b5b2170ecc9379a6a4a563a7f71900279dde3,control2
+HFa6bb810e858a69f7306123ca6760a4f42002d39a,candidate2
+HFbafcf0a2e3cf52cc0937b9362ef6d3f0150066a3. Never repeat these four publications.
+Read seed2 gpu-progress-002,epochs-001-002-preservation and final-analysis-
+collection-plan. No epoch3 or fixed-final held-out result yet. Generic immutable
+snapshot submission_eligible field is not experimental-weight competition
+admission; no Kaggle mutation. Fresh shared quota unchanged1026227500kB/994240files,
+20.0046855GiB/5000files after obligations,zero shared publication growth. Preserve
+new epoch3 once, then inspect actual843/final1156 predictions and primaryEffusion/
+all12 paired whole-component uncertainty. Same sparse holdout is not independent
+patient replication; never pick a favorable seed/checkpoint/secondary endpoint.
+
 Actual second-seed training milestone source d74eb10 is privately mirrored at
 HF1cfcabb3938e0935dd27e170226d82d467c31c04; all12 small objects fully
 re-downloaded/size/SHA verified under the canonical shared lock. Read

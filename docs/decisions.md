@@ -14,9 +14,10 @@ Kaggle root cause. Both healthy seed2 supervision jobs remain untouched.
 
 The second-seed replication was submitted once as870025/870026 after CPU870024
 admitted original asset reuse and explicit resource reconciliation. At October4
-16:57 UTC both are actually RUNNING on evc32, control182/candidate180 contiguous
-finite updates and empty stderr. Assigned CUDA/header/runtime and full
-source/roster/recipe checks passed; no result yet. Original unused native closeout
+18:52 UTC both are actually RUNNING on evc32, control666/candidate659 contiguous
+finite updates and empty stderr. Both epochs1/2 privately preserved once/all20
+objects fully downloaded/size/SHA verified. Source/roster/recipe/runtime passed
+again; no fixed-final result yet. Original unused native closeout
 funding20→12
 retires eight future slots, with every paid file retained; no deletion credit.
 Current original launch/mirror receipts supersede the prior prepared-only status.
