@@ -325,6 +325,78 @@ def dataset_publication_binding(op, operation_file, original_file):
     return expected
 
 
+def supersede_uncertain_private_placeholder(workflow, remote, db, op, expected_old_sha):
+    """Preserve an unresolved placeholder; authorize one distinct notebook identity."""
+    db.execute("BEGIN IMMEDIATE")
+    workflow.verify_account(db, remote)
+    entry = workflow.read_entry(db, op["checkpoint_sha256"])
+    old = entry.get("operation", {})
+    if (
+        entry.get("state") != "push_uncertain"
+        or entry.get("kernel_version") is not None
+        or entry.get("submission_id") is not None
+        or entry.get("description") is not None
+        or entry.get("operation_sha256") != expected_old_sha
+        or op.get("dataset_publication_operation_sha256") != expected_old_sha
+        or old.get("kernel_slug") == op["kernel_slug"]
+        or old.get("dataset_slug") != op.get("dataset_slug")
+        or old.get("manifest_sha256") != op.get("manifest_sha256")
+        or old.get("kernel_source_sha256") != op.get("kernel_source_sha256")
+        or old.get("fitting_admission_sha256") != op.get("fitting_admission_sha256")
+    ):
+        raise ValueError("Only an exact unsubmitted uncertain identity can be preserved")
+    owner, slug = old["kernel_slug"].split("/")
+    try:
+        remote.call(
+            "kernels.KernelsApiService", "GetKernel", {"userName": owner, "kernelSlug": slug}
+        )
+    except workflow.RemoteError as error:
+        if str(error) != "Kaggle GetKernel HTTP 403":
+            raise
+    else:
+        raise ValueError("Original notebook is accessible; reconcile its exact version instead")
+    result = remote.call(
+        "kernels.KernelsApiService",
+        "ListKernels",
+        {
+            "group": "PROFILE",
+            "page": 1,
+            "pageSize": 100,
+            "language": "all",
+            "kernelType": "all",
+            "outputType": "all",
+            "search": slug,
+        },
+    )
+    placeholder = {"title": "[Private Notebook]", "lastRunTime": "2010-04-01T00:00:00Z"}
+    if result != {"kernels": [placeholder]}:
+        raise ValueError("Original private placeholder observation differs")
+    # This does not classify the original push as failed or retry its slug.
+    # Dataset/source/runtime-only identity binding is separately checked by run().
+    history = entry.get("superseded_operations", [])
+    if not isinstance(history, list) or any(
+        item.get("operation_sha256") == expected_old_sha for item in history
+    ):
+        raise ValueError("Original uncertain identity already preserved")
+    entry["superseded_operations"] = [
+        *history,
+        {
+            "operation": old,
+            "operation_sha256": expected_old_sha,
+            "state": "push_uncertain_never_retry",
+            "kernel_version": None,
+            "dataset": entry["dataset"],
+            "original_absence_proof": entry["kernel_absence_proof"],
+            "readonly_placeholder_observation": result,
+            "checked_at": workflow.utcnow(),
+        },
+    ]
+    for key in ("kernel_absence_proof", "dataset", "operation", "operation_sha256"):
+        entry.pop(key, None)
+    entry["state"] = "queued"
+    workflow.save_entry(db, entry, "preserved uncertain slug before one distinct identity attempt")
+
+
 def supersede_failed_public_runtime(workflow, remote, db, op, expected_old_sha):
     """Archive exact unsubmitted public ERROR; pin the runtime of an accepted reference."""
     db.execute("BEGIN IMMEDIATE")
@@ -557,6 +629,13 @@ def run(args):
                     workflow, remote, db, op, args.superseded_operation_sha256
                 )
                 return workflow.push(remote, db, args.operation)
+            if args.action == "push-after-uncertain-placeholder":
+                if not args.superseded_operation_sha256:
+                    raise ValueError("Distinct identity needs the exact uncertain operation")
+                supersede_uncertain_private_placeholder(
+                    workflow, remote, db, op, args.superseded_operation_sha256
+                )
+                return workflow.push(remote, db, args.operation)
             if args.action == "push-kernel":
                 return workflow.push(remote, db, args.operation)
             if args.action == "submit":
@@ -581,6 +660,7 @@ def main():
             "push-corrected-kernel",
             "push-after-failed-submission",
             "push-runtime-corrected-kernel",
+            "push-after-uncertain-placeholder",
             "submit",
         ],
     )
