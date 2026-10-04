@@ -1,3 +1,8 @@
+Private first-two-epoch milestone: source9982192 is fully15-object re-download/
+size/SHA verified at HF3078b3becfa143cdfef86d6087dcef4e0f27de57 under canonical
+shared lock. Read hf-effusion-epochs12-20261004-v1; never repeat this mirror or
+control/candidate epochs1/2. No raw data or learned weights in this small mirror.
+
 October4 07:01UTC: original continuations869815/869816 remain RUNNING normally
 on evc32, control740/candidate737 contiguous finite updates, empty stderr,
 third epoch underway. Both epochs1/2 completed and each was privately preserved
