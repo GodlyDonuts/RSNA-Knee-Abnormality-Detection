@@ -1,3 +1,22 @@
+Second-seed epochs1/2 progress source0187c9c is privately mirrored at
+HFf3adfb9f471b0c46678c4c204660d7f9b4c76f7e; all19 small objects fully
+re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-effusion-seed2-epochs12-20261004-v1; never repeat the mirror or any of the
+four completed epoch publications. No raw/case/overlay/prediction/learned-weight
+objects in this small mirror. Neighbor-channel prototype is a later separate
+change, not included in that earlier actual-training milestone.
+
+New independent input hypothesis: standalone neighbor_channels.py encodes
+bounded neighboring-slice differences in3 channels with recoverable center gray
+mean and exact λ0 gray bytes.28 synthetic CPU cases passed; no loader/trainer/
+inference integration, actual MRI/geometry/GPU admission, dispatch, accuracy or
+storage funding. Read neighbor-channels-v1 protocol and prototype acceptance.
+Proposed gray0/physical.25/distant-context.25 contrast keeps original masks/folds/
+encoder views and MedialMeniscus primary; measure extra raw-context/CPU budgets.
+Do not change frozen665c0d5 live supervision jobs or use old GPU probes to admit
+this numerical path. Require real original-MRI and complete recovery plus fresh
+funding before any new GPU. Prototype is research preparation, not a fitted model.
+
 October4 18:52UTC original seed2 control870025/candidate870026 remain healthy
 RUNNING on evc32,666/659 contiguous finite updates, third epoch underway and empty
 stderr. Owning-node read-only CPU870664 COMPLETED0:0 reverified original source/

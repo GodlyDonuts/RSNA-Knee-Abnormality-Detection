@@ -1,3 +1,12 @@
+Independent next input hypothesis is now a standalone arithmetic prototype:
+[bounded neighbor channels](../initiative/experiments/competitive-v1/neighbor-channels-v1/README.md).
+It preserves center raw grayscale mean while encoding local changes in RGB;
+28 synthetic CPU tests passed. No actual MRI/geometry, loader, GPU or fitting
+acceptance. The three-arm gray/physical/distant-context protocol tests anatomical
+adjacency versus extra-context regularization at equal encoder budget, with
+MedialMeniscus primary and unchanged labels. Keep the healthy supervision pair
+untouched; full provenance/recovery/resource gates remain before dispatch.
+
 October4 measured supervision screen: Effusion point estimate rose+.040735,
 but its paired95% includes zero and only9held-out positives are observed. All12
 macro is near-null+.001222. Read [the completed original audit](../initiative/audits/effusion-supervision-screen-final-v1/README.md).

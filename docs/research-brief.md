@@ -90,6 +90,21 @@ values were used. This rejects a naive ranking add-on, not ranking itself or an
 accuracy root cause. Admit reviewed concepts and a deliberate comparison schedule
 before a new GPU loss experiment; keep the healthy supervision pair unchanged.
 
+## New independent input hypothesis, not fitted
+
+A [standalone neighbor-channel prototype](../initiative/experiments/competitive-v1/neighbor-channels-v1/README.md)
+encodes adjacent-slice differences in the three color channels while preserving
+the central grayscale mean and fixed encoder view count.28 synthetic CPU cases
+check exact zero-arm identity, bounded values without clipping, center recovery,
+locality and malformed inputs. Actual MRI/geometry/loader/GPU acceptance and
+fitting are absent. This is not a score or new behavior in the live model.
+
+The proposed fixed comparison is gray, physical-neighbor and distant-context
+control, with Medial Meniscus primary. It asks whether anatomical adjacency helps
+beyond extra raw context or chromatic regularization. Raw data/CPU budgets must
+also be measured. Nearby-slice2.5D methods are established research; neither
+novelty nor transfer from segmentation to knee classification is claimed.
+
 ## Current MRI pipeline and model
 
 - Official pinned `facebook/dinov3-vitl16-pretrain-lvd1689m`, roughly 300M base

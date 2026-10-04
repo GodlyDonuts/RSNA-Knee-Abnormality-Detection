@@ -64,6 +64,13 @@ Same-fold repetition tests seed stability, not independent holdout patients.
 All original masks/folds and protected evaluation remain unchanged. Historical
 observations below are superseded by current original receipts, not overwritten.
 
+The next independent input idea is a standalone mean-preserving neighbor-channel
+prototype. Read neighbor-channels-v1 and its28-case synthetic arithmetic audit;
+no real MRI/geometry, canonical loader/trainer/inference or GPU acceptance exists.
+Do not treat it as deployed, funded, trained, novel or accurate. Its planned
+physical/distant/gray contrast must preserve existing data boundaries and receive
+separate actual source/input/recovery/resource admission. Live source stays frozen.
+
 Before a separate ranking experiment read ranking-supervision-exposure-v1:
 one-study forwards provide zero same-target comparison pairs, and several strict
 targets have sparse eight-study effective-batch pairs. All843 original GPU

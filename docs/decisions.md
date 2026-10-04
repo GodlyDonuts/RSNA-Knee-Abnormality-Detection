@@ -1,5 +1,19 @@
 # Decisions, corrections, and unresolved work
 
+## October4: local anatomy as bounded channel differences
+
+Prepare an independent neighboring-slice input hypothesis alongside the unchanged
+supervision pair. The standalone NumPy prototype preserves central raw grayscale
+mean (FP32 rounding tolerance), has exact zero-arm identity and range bounds
+without clipping.28 synthetic CPU cases passed; no real MRI, canonical-loader,
+GPU or accuracy acceptance. The proposed gray/physical/distant-context contrast
+predeclares Medial Meniscus primary and retains original labels, encoder budget
+and fixed final selection. Extra raw context/CPU costs and physical correspondence
+must be measured; neither whole-volume representation nor a3D model is claimed.
+Read [the protocol and prior work](../initiative/experiments/competitive-v1/neighbor-channels-v1/README.md).
+Require a new actual numerical recovery and full funding before any GPU dispatch.
+
+
 ## October4: measure comparison support before a ranking experiment
 
 Actual fitting-only sampler replay at two seeds finds zero same-target pairs
