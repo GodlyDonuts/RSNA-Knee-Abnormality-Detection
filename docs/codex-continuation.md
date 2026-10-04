@@ -1,3 +1,10 @@
+Actual second-seed training milestone source d74eb10 is privately mirrored at
+HF1cfcabb3938e0935dd27e170226d82d467c31c04; all12 small objects fully
+re-downloaded/size/SHA verified under the canonical shared lock. Read
+hf-effusion-seed2-progress-20261004-v1; never repeat. No pixels/reports/case
+records/overlays/prediction CSVs/learned weights included. All1845 tests,
+Ruff292/mypy45/archive/current89/89 passed for this unchanged numerical source.
+
 October4 16:57UTC actual allocation/progress: original seed2 control870025 and
 candidate870026 are RUNNING on evc32, control182/candidate180 contiguous finite
 optimizer updates and empty stderr. Owning-node CPU870562 COMPLETED0:0 verified
