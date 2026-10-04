@@ -1,5 +1,26 @@
 # Reviewed Effusion supervision: parallel fixed screen
 
+Current October4 07:01 UTC observation: normal-queue continuations869815/869816
+remain healthy on separate H100s on evc32, control740/candidate737 of843 updates,
+empty stderr and finite gradients. Both immutable epochs1/2 were preserved
+exactly once; all20 private objects passed full re-download/size/SHA checks.
+Read `gpu-progress-003.json`, `epochs-001-002-preservation.json` and the individual
+verified receipts. No final outer result or clinical gain is available yet.
+`final-analysis-plan.json` fixes Effusion primary, all12 secondary and the paired
+whole-component uncertainty policy before any new outer result is observed.
+
+Four original upload clients wrote eight shared HF Xet cache files. The actual
+remaining file reserve after prior liabilities is4992, rather than5000; preserve
+the exact observation in `publication-client-quota-observation.json`. No originals
+were deleted or credited. The next publisher transport prepares private node-local
+HF client state and disables optional Xet; the original checkpoint validator,
+private atomic commit and full byte verification stay unchanged. This transport
+change is prepared, not yet exercised. Reconcile metadata funding before a new
+GPU/shared-storage reservation; leave already-funded healthy training untouched.
+
+Historical launch description follows. Current continuation overrides old node
+and job observations without replacing their original dispatch/failure evidence.
+
 The owner asked for actual model training and faster result-driven research.
 The accepted numerical source remains `665c0d515410df24f1f37ed5d9f8cb7a0f0fc480`;
 actual H100 recovery 869300 already passed complete initial-state and each arm's

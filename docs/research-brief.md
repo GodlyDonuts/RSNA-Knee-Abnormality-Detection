@@ -11,9 +11,11 @@ The two matched DINOv3-L rank32 fits reached183/182 finite logged updates before
 Slurm preempted them. Both latest complete step175 checkpoints preserved the
 exact learned state, AdamW, counters and all RNG. Distinct normal-priority
 continuations **869815/869816** were submitted once on evc32 with the original
-recipe; assigned H100/CUDA/header/runtime checks passed. At October4 04:49UTC,
-both actually resumed at update176 and reached187 with contiguous finite losses
-and gradients and empty stderr. No final held-out result is available yet.
+recipe; assigned H100/CUDA/header/runtime checks passed. At October4 07:01UTC,
+the control reached740 and candidate737 of843 updates, with contiguous finite
+losses/gradients and empty stderr. Both completed epochs1/2; all four immutable
+checkpoints were privately preserved once and all20 objects fully re-downloaded/
+size/SHA verified. No final held-out result is available yet.
 Each uses2,247
 training examinations, native384 images, the same initialization/optimizer and
 three epochs/843 updates; final evaluation uses1,156 disjoint development studies.

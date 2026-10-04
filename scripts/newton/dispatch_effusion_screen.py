@@ -234,6 +234,9 @@ for n in ['scripts/newton/run_effusion_screen.py','scripts/hf/publish_effusion_s
  assert hashlib.sha256((c/n).read_bytes()).hexdigest()==m['files'][n]['sha256']
 assert (c/{role!r}/'epoch-checkpoints'/"epoch-{epoch:03d}.json").is_file()
 assert not (c/'epoch-publication'/{role!r}/"epoch-{epoch:03d}"/'intent.json').exists()
+client=c/'publication-client';client.mkdir(mode=0o700,exist_ok=True)
+os.environ['HF_HOME']=str(client/'huggingface')
+os.environ['HF_HUB_DISABLE_XET']='1'
 os.environ['PYTHONPATH']=str(c);os.environ['PYTHONNOUSERSITE']='1';os.environ['PYTHONDONTWRITEBYTECODE']='1'
 subprocess.run([r['python'],'-B',str(c/'scripts/hf/publish_effusion_screen_epoch.py'),'publish',{role!r},str({epoch})],input=sys.stdin.buffer.read(),check=True)
 """

@@ -1,3 +1,24 @@
+October4 07:01UTC: original continuations869815/869816 remain RUNNING normally
+on evc32, control740/candidate737 contiguous finite updates, empty stderr,
+third epoch underway. Both epochs1/2 completed and each was privately preserved
+ONCE with all5 objects re-downloaded/size/SHA verified; all20 objects passed.
+Read effusion-supervision-screen-v1/gpu-progress-003.json and
+epochs-001-002-preservation.json. CPU869909/910/911/912 COMPLETED0:0; never repeat
+either role's epoch1/2 publication. Epoch3 and fixed-final outer results are still
+unobserved. Final-analysis-plan.json records Effusion primary/all12 secondary,
+4000 paired whole-component draws/seed20261001 and retained undefined draws,
+before observing any new outer result. No protected evaluation or Kaggle mutation.
+
+Publication client observation: four original uploads created8 HF Xet home-cache
+files/748kB shared growth. Fresh quota1026227500kB/994240files leaves20.0046855GiB
+and4992files after retained1404996457byte/768file liabilities. Do not invent
+deletion credit or claim the5000-file admission still passes. Healthy already
+funded node-local training continues unchanged. Before any new GPU/shared-storage
+reservation reconcile the remaining metadata budget. The local publication
+coordinator now prepares node-local private HF_HOME and disables optional Xet
+before importing the unchanged original byte-verifying publisher; this transport
+change is not yet exercised. Never repeat existing epoch intents to test it.
+
 Private continuation milestone: source6257671 is fully re-download/size/SHA
 verified at HF f683c9a27e2b22b5cbc99b2a10618df40a7669a2, all17 small objects,
 under the canonical shared lock. Read hf-effusion-resume175-20261004-v1;

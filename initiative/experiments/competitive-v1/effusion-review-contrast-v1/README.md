@@ -74,9 +74,12 @@ report agreement alone.
 Trainer integration and synthetic canonical-trainer recovery are implemented.
 Actual complete-roster control/candidate input verification is recorded in
 `actual-input-verification.json`. Actual H100869300 passed complete four-update full/stop1/resume recovery for
-both arms with matched initialization. The exact fixed-screen preparation passed;
-full fixed-screen control869770/candidate869771 are actually RUNNING on separate
-H100s, with7 finite optimizer updates each at October4 02:23UTC. Snapshot/publication
-obligations are funded; see the current evc32-independent-jobs audit. No
+both arms with matched initialization. After scheduler preemption, exact saved
+step175 states were restored in continuations869815/869816. At October4 07:01UTC,
+control740/candidate737 finite updates and empty stderr were actually observed;
+both completed epochs1/2, and all four private epochs passed full five-object
+download/size/SHA verification. See current continuation/resume and preservation
+audits. The fixed-final analysis policy is recorded before any new outer result;
+do not infer competition eligibility from generic scheduled-snapshot flags. No
 clinical gain or competition score is claimed. This protocol is independent
 of the retained patch-witness and future broad-concept/ranking proposals.
