@@ -15,7 +15,7 @@ BASE = Path("/home/sa305415/rsna-knee")
 PARENT = BASE / "effusion-supervision-engineering-20261003-v1"
 RECOVERY = PARENT / "recovery-v2"
 ROUTE = BASE / "effusion-native-cache-route-20261004-v1/recovery-v2"
-CONTROL = Path("/tmp/rsna-effusion-screen-20261004-v2")
+CONTROL = Path("/tmp/rsna-effusion-screen-20261004-v3")
 SOURCE_SHA = "53ff55e329e4c697870bf68679cebee80d5369566f017e483c2818006ad3c9a3"
 GPU_SHA = "be201fc89f16ede13f379d854018f4d7dc5ca9a55a26a528081418eea87632ef"
 OVERLAY_SHA = "936e3e2af058726fe3572b7e4ad1680c44f2fd82ad6e9840e2607a1b090ff018"
@@ -42,6 +42,19 @@ def load_module(path, name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def fresh_step_environment(environment):
+    """Discard staging-job CPU masks; Slurm assigns each new step's own cores."""
+    result = environment.copy()
+    for key in (
+        "SLURM_CPU_BIND",
+        "SLURM_CPU_BIND_LIST",
+        "SLURM_CPU_BIND_TYPE",
+        "SLURM_CPU_BIND_VERBOSE",
+    ):
+        result.pop(key, None)
+    return result
 
 
 def accept_copy(record):
@@ -141,7 +154,10 @@ def boot():
     for name, row in source["files"].items():
         if sha(code / name) != row["sha256"]:
             raise ValueError("Original already-extracted numerical source changed")
-    save(CONTROL / "cache-stats-private.json", verify_cache_stats(cache))
+    cache_stats = Path(manifest["reused_cache_stats"])
+    if sha(cache_stats) != manifest["reused_cache_stats_sha256"]:
+        raise ValueError("Original private cache stat proof changed")
+    verify_cache_stats(cache, original=json.loads(cache_stats.read_text()))
     native = load_module(
         BASE / "production-launch-native384-a32-c9-v1/native384_admission.py",
         "effusion_shared_asset_stats",
@@ -185,6 +201,7 @@ def boot():
     environment["CPATH"] = subprocess.check_output(
         ["bash", str(CONTROL / "headers.sh")], text=True, env=environment
     ).strip()
+    environment = fresh_step_environment(environment)
     processes = {}
     for role in ("control", "candidate"):
         command = [
@@ -194,6 +211,7 @@ def boot():
             "--nodes=1",
             "--ntasks=1",
             "--cpus-per-task=2",
+            "--cpu-bind=cores",
             "--mem=96G",
             "--gres=gpu:nvidia_h100_pcie:1",
             "--output=" + str(CONTROL / (role + ".out")),
@@ -224,9 +242,7 @@ def arm(role):
         raise ValueError("One scheduler-isolated H100 and two CPUs per independent arm required")
     if "H100" not in torch.cuda.get_device_name(0) or not torch.cuda.is_bf16_supported():
         raise ValueError("Actual H100 BF16 device required")
-    verify_cache_stats(
-        cache, original=json.loads((CONTROL / "cache-stats-private.json").read_text())
-    )
+    verify_cache_stats(cache, original=json.loads(Path(manifest["reused_cache_stats"]).read_text()))
     code = Path(manifest["reused_code_root"])
     source = json.loads((RECOVERY / "source.json").read_text())
     for name, row in source["files"].items():

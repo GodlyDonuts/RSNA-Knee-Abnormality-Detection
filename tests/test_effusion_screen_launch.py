@@ -5,7 +5,30 @@ import copy
 import pytest
 
 from scripts.hf.publish_effusion_screen_epoch import validate_binding
-from scripts.newton.run_effusion_screen import OVERLAY_SHA, REGISTRY_SHA, accept_copy
+from scripts.newton.run_effusion_screen import (
+    OVERLAY_SHA,
+    REGISTRY_SHA,
+    accept_copy,
+    fresh_step_environment,
+)
+
+
+def test_staging_CPU_mask_cannot_override_new_steps_or_change_GPU_visibility():
+    inherited = {
+        "SLURM_CPU_BIND": "mask_cpu:0x1",
+        "SLURM_CPU_BIND_LIST": "0x1",
+        "SLURM_CPU_BIND_TYPE": "mask_cpu",
+        "SLURM_CPU_BIND_VERBOSE": "verbose",
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+        "SLURM_JOB_ID": "123",
+    }
+    assert fresh_step_environment(inherited) == {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+        "SLURM_JOB_ID": "123",
+    }
+    assert inherited["SLURM_CPU_BIND_LIST"] == "0x1"
 
 
 def receipt():

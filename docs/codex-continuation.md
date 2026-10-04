@@ -1,3 +1,16 @@
+Original869714 FAILED1:0 in1second before driver/trainer: inherited staging
+CPU binding was outside the new GPU step allocation. Distinct v3 drops only
+stale CPU-bind env and explicitly requests srun --cpu-bind=cores; GPU visibility
+untouched. Both originals preserved. Existing source/runtime/cache/stat proof
+reused;30MiB retained +2MiB new controls within original32MiB. Numerical665c0d5
+and3epoch paired recipe unchanged. Read effusion-supervision-screen-v1/recovery-v3
+and its actual intent/result; no new GPU dispatch or optimizer result claimed yet.
+
+Source0c2d3c4 parallel-screen/original-failure milestone privately mirrored at
+HFf6119f41f4d9177326271c49ab7f081661dbf215; all24small objects fully downloaded/
+size/SHA verified under canonical shared lock. No pixels/case judgments/overlay/
+learned weights. Never repeat.
+
 Distinct screen recovery869714 submittedONCE on evc34 from35aed82;
 lastPENDING Priority after another account occupied one GPU. It preserves the
 original869702 FAILED1:0 before training, uses staged bounded180second CUDA
