@@ -122,3 +122,60 @@ def test_placeholder_must_be_the_exact_readonly_observation():
     with pytest.raises(ValueError, match="placeholder observation differs"):
         c.supersede_uncertain_private_placeholder(workflow, remote, db, new, "a" * 64)
     assert not saved
+
+
+def test_identity_reuse_accepts_original_already_pinned_runtime(tmp_path):
+    import json
+
+    old = {
+        "kernel_slug": "user/old",
+        "kernel_metadata_sha256": "old",
+        "runtime_image": "pinned",
+        "runtime_reference_checkpoint_sha256": "r",
+        "manifest_sha256": "m",
+        "kernel_source_sha256": "s",
+    }
+    original = tmp_path / "old.json"
+    original.write_text(json.dumps(old))
+    new = old | {
+        "kernel_slug": "user/new",
+        "kernel_metadata_sha256": "new",
+        "dataset_publication_operation_sha256": c.p.digest(original),
+    }
+    assert c.dataset_publication_binding(new, tmp_path / "new.json", original) == c.p.digest(
+        original
+    )
+    for key in (
+        "runtime_image",
+        "runtime_reference_checkpoint_sha256",
+        "manifest_sha256",
+        "kernel_source_sha256",
+    ):
+        with pytest.raises(ValueError):
+            c.dataset_publication_binding(new | {key: "changed"}, tmp_path / "new.json", original)
+
+
+def test_run_admits_bound_identity_correction_before_claim(monkeypatch, tmp_path):
+    monkeypatch.setenv("SLURM_JOB_ID", "1")
+    monkeypatch.delenv("SLURM_JOB_GPUS", raising=False)
+    monkeypatch.setattr(c.Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(c, "load_workflow", lambda *args: (object(), {}))
+    monkeypatch.setattr(
+        c,
+        "validate_operation",
+        lambda *args: ({"dataset_publication_operation_sha256": "old"}, {}, {}),
+    )
+
+    def binding(*args):
+        raise RuntimeError("identity action reached original Dataset binding")
+
+    monkeypatch.setattr(c, "dataset_publication_binding", binding)
+    args = SimpleNamespace(
+        projection=tmp_path,
+        projection_manifest=tmp_path,
+        projection_sha256="p",
+        operation=tmp_path,
+        action="push-after-uncertain-placeholder",
+    )
+    with pytest.raises(RuntimeError, match="reached original Dataset binding"):
+        c.run(args)

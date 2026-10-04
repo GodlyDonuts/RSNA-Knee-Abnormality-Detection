@@ -1,3 +1,12 @@
+October4 20:57UTC three new code submissions accepted ONCE: native all-development
+final10 56833260, seed1 original control final3 56833454, reviewed-label partner
+final3 56833608. Fresh live allowance3today/2slots; all three actual hidden scores
+and statuses still null. Seed2 candidate notebookv1 pushed once and running;
+seed2 control original uncertain private placeholder preserved, distinct source-
+identical K2 notebook staged but preflight blocked before cloud/ledger mutation.
+Read coordinator-preflight-correction; never retry old uncertain slug or an
+existing mutation intent. Complete the remaining two through exact acceptance.
+
 October2 23:32UTC: new all-development native384 rank32 epoch5/2130update code submission56783855 acceptedONCE from exact private offlineT4 notebook godlydonuts/rsna-knee-nativeall-epoch5-py312-85bfc1ce420f v1, Dataset12333543v1. Actual public completion/source/image/CSV receipts and read-only canonical/account reconciliation are in initiative/audits/kaggle-nativeall-epoch5-v1/runtimefix and live-after-midpoint-submit.json. Hidden status/score remains unreported. Do not infer outcome from public acceptance or rerun the completed finite finish coordinator. Initial distinct notebook defaultPython3.13 publicERROR was never competition-submitted; corrected version pins exact accepted Python3.12 image and reuses all47 verified Dataset objects unchanged. Fresh account4today/1slot, limits queried before submission. Existing native fold0final0.785/uniform0.770/stratified0.784/best prior all-development2240.792 remain actual historical scores; no current all-native score yet. Fixed-final epoch10 later comparison remains predeclared. Never upload public three-row CSV.
 
 ## October2 actual outcomes and next final-fit candidate

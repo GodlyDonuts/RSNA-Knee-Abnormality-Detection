@@ -313,7 +313,7 @@ def dataset_publication_binding(op, operation_file, original_file):
         "dataset_publication_operation_sha256",
     }
     if (
-        set(op) - extras != set(original)
+        set(op) - extras != set(original) - extras
         or any(
             op[k] != original[k]
             for k in original
@@ -505,10 +505,11 @@ def run(args):
     op, meta, files = validate_operation(workflow, args)
     if op.get("dataset_publication_operation_sha256") is not None and args.action not in {
         "push-runtime-corrected-kernel",
+        "push-after-uncertain-placeholder",
         "submit",
     }:
         raise ValueError(
-            "Verified Dataset reuse is limited to a runtime correction and its submission"
+            "Verified Dataset reuse is limited to a bound notebook correction and its submission"
         )
     publication_sha = dataset_publication_binding(
         op, args.operation, getattr(args, "dataset_publication_operation", None)

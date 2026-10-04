@@ -1,3 +1,12 @@
+October4 20:57UTC three new code submissions accepted ONCE: native all-development
+final10 56833260, seed1 original control final3 56833454, reviewed-label partner
+final3 56833608. Fresh live allowance3today/2slots; all three actual hidden scores
+and statuses still null. Seed2 candidate notebookv1 pushed once and running;
+seed2 control original uncertain private placeholder preserved, distinct source-
+identical K2 notebook staged but preflight blocked before cloud/ledger mutation.
+Read coordinator-preflight-correction; never retry old uncertain slug or an
+existing mutation intent. Complete the remaining two through exact acceptance.
+
 October4 20:32UTC native384 all-development final10 was code-submitted ONCE as
 56833260 after exact public MRI-only acceptance. Dataset12369051v1/47objects
 verified; exact notebookv1 on pinned Python3.12 offlineT4 image. Hidden result
