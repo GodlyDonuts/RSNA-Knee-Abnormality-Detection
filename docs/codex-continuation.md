@@ -1,3 +1,12 @@
+The owner requests aggressive actual training. Parallel independent Effusion
+fixed-screen wrapper/coordinator and exact private epoch publisher are prepared;
+read effusion-supervision-screen-v1. Original complete private cache route869665
+is now COMPLETED0:0: all37812members/140626483351bytes individually size/SHA
+verified on evc34, original evc31 retained. Accepted numerical recovery869300
+is reused unchanged. Single GPU dispatch still requires fresh node/shared
+funding and its original intent/result; do not infer dispatch from preparation.
+No new held-out accuracy result.
+
 Source7f48323 and this actual H100 recovery/fixed-screen admission/private
 cache-routing milestone are privately mirrored at HF9de718f4e62f4149d0bb976ed2dd0f9b5a0e287a.
 All30small objects fully re-downloaded/size/SHA verified under the canonical
