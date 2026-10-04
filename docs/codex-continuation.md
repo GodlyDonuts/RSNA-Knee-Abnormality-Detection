@@ -1,3 +1,15 @@
+October4 next-input research: CPU871757 actually completed fitting-only original
+MRI neighbor feasibility:12,476 series/2,247 fitting studies,255 pixel views from
+16 fitting studies,99.984% uniform centers with valid physical context; exact
+gray-zero bytes and finite bounded composition passed. No labels, outer pixels,
+model/GPU or accuracy acceptance. Read neighbor-channels-real-input-v1. The
+distant-control unique coverage275 vs physical419 exposes an information-budget
+confound; revise/admit balanced distant coverage before fitting. Standalone
+geometry indices are tested; canonical input/checkpoint/inference integration
+and official-weight recovery/funding remain outstanding. No jobs duplicated.
+Latest23:26UTC allfive accepted submissions still null status/score,5today/0slots.
+No new hidden score exists; actual best prior solo remains0.804.
+
 Completed five-comparison source2cdbde5 is privately mirrored at HF
 de13dd8da38662c3211c42d8fd592de9a00a379b, all113 small objects fully
 re-downloaded/size/SHA verified under the canonical shared lock. Never repeat.

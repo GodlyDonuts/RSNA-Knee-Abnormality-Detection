@@ -1,0 +1,24 @@
+
+import hashlib,json,os,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and os.environ.get('SLURM_CPUS_PER_TASK')=='1'
+assert all(hashlib.sha256(s.encode()).hexdigest()==v['hashes'][f] for f,s in v['sources'].items())
+b=Path('/home/sa305415/rsna-knee');paid={}
+for sha in v['paid_checkpoint_shas']:
+ j=b/'kaggle/dataset-publications'/sha
+ for p in [j]+list(j.rglob('*')):
+  assert not p.is_symlink();s=p.stat();paid[s.st_dev,s.st_ino]=s.st_size
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[r.split() for r in q.splitlines() if r.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30;slots=limit-count-(760-len(paid));assert gib>=20 and slots>=5000 and len(paid)<=40 and sum(paid.values())<2*2**20
+rt=json.loads(Path('/tmp/rsna-kaggle-nativeall-final-20261004-v1/runtime.json').read_text());assert rt['archive_sha256']=='89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338' and rt['file_members']==40403 and Path(rt['python']).is_file()
+code="""import hashlib,json,sys,types
+v=json.load(sys.stdin)
+assert all(hashlib.sha256(s.encode()).hexdigest()==v['hashes'][f] for f,s in v['sources'].items())
+for name in ['rsna','rsna.competitive']:
+ m=types.ModuleType(name);m.__path__=[];sys.modules[name]=m
+for f in ['rsna/competitive/neighbor_channels.py','rsna/competitive/neighbor_geometry.py']:
+ name=f.removesuffix('.py').replace('/','.');m=types.ModuleType(name);m.__file__=f;sys.modules[name]=m;exec(compile(v['sources'][f],f,'exec'),m.__dict__)
+f='initiative/audits/neighbor-channels-real-input-v1/probe.py.txt'
+exec(compile(v['sources'][f],f,'exec'),{'STREAM_SOURCE_HASHES':v['hashes'],'__name__':'__main__'})
+"""
+os.environ.update(PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+r=subprocess.run([rt['python'],'-B','-c',code],input=json.dumps(v),capture_output=True,text=True);sys.stdout.write(r.stdout);sys.stderr.write(r.stderr);sys.exit(r.returncode)

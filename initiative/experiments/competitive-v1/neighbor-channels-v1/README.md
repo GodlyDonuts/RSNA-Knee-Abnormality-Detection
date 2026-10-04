@@ -69,10 +69,31 @@ neighbors from consecutive *sampled slots*, cross series, or infer physical
 continuity from array shape. A distant-context control must be deterministic,
 within the same series, and retain its actual donor indices privately.
 
-Actual original-MRI input admission, canonical loader/config/checkpoint/inference
+Canonical original-MRI input admission, loader/config/checkpoint/inference
 integration, zero-arm identity, real official-weight GPU recovery and separately
 funded fixed-budget fitting remain absent. Do not reserve a GPU or reuse an old
-pilot to accept these changes. Existing engineering tests establish arithmetic
-invariants only. Source: rsna/competitive/neighbor_channels.py; tests:
+pilot to accept these changes. The original-MRI feasibility probe now passes; the canonical input path and
+model remain unaccepted. Source: rsna/competitive/neighbor_channels.py; tests:
 tests/test_neighbor_channels.py. No generative upscaling, external data or new
 clinical report labels are used.
+
+## Standalone geometry indices
+
+`rsna/competitive/neighbor_geometry.py` now supplies independently tested donor
+indices. Physical edges retain original order, require positive spacing at most
+1.5 times the series median and in-plane origin displacement at most0.001mm.
+Missing geometry, boundaries, non-monotone positions or invalid edges replicate
+the center; malformed claimed geometry raises. Original decoder/cache proofs
+must still establish consistent per-slice orientation and intensity normalization.
+The distant control selects two farthest distinct same-volume indices, each at
+least max(2,ceil(depth/4)) from the center, with deterministic ties and center
+fallback for insufficient depth. These fixed engineering choices use no outer
+labels. They are not integrated into the canonical input path.
+
+A separate one-CPU original-MRI probe is prepared in
+`initiative/audits/neighbor-channels-real-input-v1`: all fitting-only metadata
+and sixteen predeclared original fitting volumes, zero shared file writes,
+no labels, outer pixels, model or GPU. CPU871757 completed this probe:199,274/199,306 uniform fitting centers have
+physical context and zero strength is byte-identical on255 actual views. The
+distant control exposes fewer unique donors (275 vs419), so revise its coverage
+before fitting. This is input feasibility, not model acceptance or accuracy.
