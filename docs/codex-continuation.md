@@ -1,3 +1,16 @@
+October4 second-seed dispatched ONCE: CPU870024 completed original asset/funding
+admission; control870025 and candidate870026 are actually PENDING, zero runtime,
+no optimizer observed. Read effusion-supervision-seed2-v1/dispatch.json,
+CPU-prepared.json and scheduler-observation-001.json. Never repeat dispatch.
+Both original intents and all8 exact launch payloads are preserved. Original
+evc32 code/runtime/cache reused, no bulk copy/extraction. Current evc32 GPUs are
+occupied; evc31's free GPU has only about23GiB schedulable host RAM versus actual
+seed1 arm peaks about68/25GiB. Do not blindly move96GiB jobs there. Scheduler
+start estimates use the remote local clock, are not actual allocation or ETA.
+After allocation verify assigned CUDA/header/runtime and finite updates before
+claiming training. Preserve every new immutable seed2 role/epoch once through
+the same single coordinator and distinct private prefix. No outcome yet.
+
 October4 second-seed admission prepared: new single coordinator
 scripts/newton/dispatch_effusion_replication.py keeps unchanged665c0d5 numerical
 source and the31 fitting-only Effusion contrast, seed20261004/3epochs/843updates.

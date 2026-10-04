@@ -3,9 +3,11 @@ but its paired95% includes zero and only9held-out positives are observed. All12
 macro is near-null+.001222. Read [the completed original audit](../initiative/audits/effusion-supervision-screen-final-v1/README.md).
 Replicate a fixed-budget matched seed before a ten-epoch promotion; don't confuse
 weak report agreement with MRI truth. All6epoch checkpoints are privately fully
-verified. Original masks/folds/protected evaluation remain unchanged. New matched
-seed recipe is prepared only and needs fresh resource reconciliation; no extra
-GPU job or Kaggle submission was dispatched. Historical research sequence follows.
+verified. Original masks/folds/protected evaluation remain unchanged. The matched
+seed20261004 pair was dispatched once as870025/870026 after fresh funding and
+original asset reuse admission. Both are PENDING, no optimizer/result observed.
+Read [the actual launch](../initiative/audits/effusion-supervision-seed2-v1/README.md).
+No Kaggle submission; historical research sequence follows.
 
 October3 supplied research program update: prioritize the now-integrated reviewed
 Effusion fitting-supervision contrast before funding patch-witness fitting. Read

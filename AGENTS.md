@@ -52,10 +52,13 @@ checkpoints are privately download/hash verified. Read the latest
 brief. Effusion AUC rose 0.853370 to 0.894105, but its paired interval includes
 zero and only nine observed positives support the endpoint. Macro changed
 +0.001222, also unestablished. This is internal research, not a Kaggle score.
-The next matched seed is prepared only; admission needs fresh resources and
-unique source/output/publication bindings. All original masks/folds and protected
-evaluation remain unchanged. Historical observations below are superseded by
-current original receipts, not overwritten.
+The next matched seed20261004 was dispatched once as control870025 and
+candidate870026 after CPU870024 admitted original asset reuse and fresh funding.
+Both are actually PENDING; never repeat dispatch or call that optimizer progress.
+Read effusion-supervision-seed2-v1 and inspect actual allocation before action.
+Same-fold repetition tests seed stability, not independent holdout patients.
+All original masks/folds and protected evaluation remain unchanged. Historical
+observations below are superseded by current original receipts, not overwritten.
 
 ## October3 supplied research program: first supervision contrast
 

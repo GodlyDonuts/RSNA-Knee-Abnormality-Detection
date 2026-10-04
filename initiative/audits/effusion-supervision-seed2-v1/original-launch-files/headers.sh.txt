@@ -1,0 +1,43 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+CPATH=$(/usr/bin/python3.12 - <<'RSNA_HEADER_GUARD'
+import hashlib,json,os,platform,struct,subprocess,sys,sysconfig
+from pathlib import Path
+root=Path('/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3').resolve();pins={'cpu_proof_sha256': '95c1d9aa2a9676cbdc4fa46e3d3ffda0bb721f24221365953ce23819c01f1695', 'header_tree_sha256': '08c760c1938c53debf9a2ed133609d7ed07049902b4eae54da6ee93454372241', 'staging_receipt_sha256': '85d88b7d4076564f86ddc49e2e670a855617d752f38766856276de03f10768a3', 'generated_header_provenance_sha256': '38913bdb4e683d0c00446de75e0b103469e81a7eb5f47c4fc5c5828e25af47bb', 'rpm_sha256': 'd822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3', 'generated_header_sha256': 'bf85b811c1ac1c8c5f62935da14ee3738305bb2ffd9bfb63af6ebad2a475f681', 'cpu_proof_job': 839074, 'remote_root': '/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3'}
+control=Path('/tmp/rsna-effusion-seed20261004-evc32-v1')
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def write(n,v):
+ with (control/n).open('x') as out:json.dump(v,out,indent=2,sort_keys=True);out.write('\n');out.flush();os.fsync(out.fileno())
+assert os.environ.get('SLURM_JOB_ID')
+assert sha(root/'cpu-proof.json')==pins['cpu_proof_sha256']
+assert sha(root/'staging-receipt.json')==pins['staging_receipt_sha256']
+assert sha(root/'system-header-verified.json')==pins['generated_header_provenance_sha256']
+proof=json.loads((root/'cpu-proof.json').read_text());source=json.loads((root/'system-header-verified.json').read_text())
+assert proof['status']=='actual_triton_helper_compile_and_import_passed' and proof['actual_installed_builder_replayed'] and proof['requested_gpus']==0
+assert proof['header_tree_sha256']==pins['header_tree_sha256'] and proof['rpm_sha256']==pins['rpm_sha256']
+assert not proof['system_mutations'] and not proof['backend_disable_or_replacement']
+assert sha(root.parent/'python-headers-3.12.13-2-v2/python3.12-devel-3.12.13-2.el8_10.x86_64.rpm')==pins['rpm_sha256']
+manifest=json.loads((root/'header-tree.json').read_text());rows=manifest['files']
+assert len(rows)==215 and hashlib.sha256(json.dumps(rows,sort_keys=True,separators=(',',':')).encode()).hexdigest()==manifest['canonical_tree_sha256']==pins['header_tree_sha256']
+actual=[];extract=root/'extracted'
+for p in sorted(extract.rglob('*')):
+ assert not p.is_symlink()
+ if p.is_file():actual.append({'path':str(p.relative_to(extract)),'bytes':p.stat().st_size,'sha256':sha(p)})
+assert actual==rows
+headers=extract/'usr/include/python3.12'
+assert sha(headers/'pyconfig-64.h')==pins['generated_header_sha256']
+mapped=sorted({line.split()[-1] for line in Path('/proc/self/maps').read_text().splitlines() if '/libpython3.12.so' in line and line.split()[-1].startswith('/')})
+assert mapped==['/usr/lib64/libpython3.12.so.1.0']
+p=subprocess.run(['rpm','-qf','--qf','%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}\n',str(Path(sys.executable).resolve()),mapped[0]],capture_output=True,text=True,timeout=15)
+record={'job_id':os.environ['SLURM_JOB_ID'],'node':platform.node(),'pins':pins,'mapped_libpython':mapped,'package_query':{'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr},'sysconfig':{k:sysconfig.get_config_var(k) for k in source['sysconfig']},'CPATH':str(headers),'python':platform.python_version(),'pointer_bytes':struct.calcsize('P'),'PyObject_bytes':object.__basicsize__}
+write('node-header-identity-'+os.environ['SLURM_JOB_ID']+'.json',record)
+assert p.returncode==0 and p.stdout.splitlines()==['python3.12|3.12.13|2.el8_10|x86_64','python3.12-libs|3.12.13|2.el8_10|x86_64']
+assert record['sysconfig']==source['sysconfig'] and record['python']==proof['runtime_python']=='3.12.13'
+assert record['pointer_bytes']==8 and record['PyObject_bytes']==16 and sys.hexversion==51121648
+assert str(headers)==proof['CPATH'] and ':' not in str(headers) and headers.is_absolute()
+write('node-header-verified-'+os.environ['SLURM_JOB_ID']+'.json',dict(record,status='passed',all_215_header_hashes_verified=True))
+print(str(headers))
+RSNA_HEADER_GUARD
+)
+printf "%s\n" "$CPATH"

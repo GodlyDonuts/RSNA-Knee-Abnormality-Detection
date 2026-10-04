@@ -49,3 +49,20 @@ seed provenance are retained. Original seed1 publishers/intents remain unchanged
 Prepared wrapper and configuration are not an actual training result. Record
 actual scheduler/device/header/runtime admission and finite real updates after
 allocation before claiming training progress. No seed2 fitting outcome exists.
+
+## Actual one-time launch
+
+CPU preparation **870024 completed0:0** and admitted exact retained original
+source/runtime/cache references and the fresh resource decision. The coordinator
+then submitted **control870025 / candidate870026 once**. Both are currently
+**PENDING with zero runtime**; no allocated-device or optimizer progress is
+observed. See `dispatch.json`, `CPU-prepared.json`, `funding.json`, the exact
+eight `original-launch-files/` payloads and `scheduler-observation-001.json`.
+Do not restart the coordinator or treat a scheduler prediction as training.
+
+The evc32 GPUs are occupied. evc31 has a free H100 but another allocation leaves
+only about23GiB schedulable RAM, below the original full-data arm peaks of about
+68GiB/control and25GiB/candidate. Therefore retain the admitted96GiB evc32 jobs;
+no unsafe node move, cancellation or duplicate launch was performed. Scheduler
+start estimates are in the remote local timezone and can change. Actual source,
+roster, model, finite updates and terminal evidence govern subsequent claims.

@@ -23,9 +23,11 @@ continuations remain intact; replayed interruption overlap is numerically equal.
 The [fixed-final audit](../initiative/audits/effusion-supervision-screen-final-v1/README.md)
 contains original predictions, all12 endpoints, uncertainty and a reproducible
 source/roster/trajectory/result replay. A new matched seed20261004 three-epoch
-recipe is prepared, **not dispatched**. It will test seed robustness without
-pretending that the same sparse holdout supplies independent patient evidence.
-New GPU funding needs the fresh metadata-reserve reconciliation first.
+pair was submitted once as **870025/870026** after actual asset reuse and fresh
+resource admission. It is **queued, not observed training**. It tests seed
+robustness without pretending that the same sparse holdout supplies independent
+patient evidence. [Launch and live resource evidence](../initiative/audits/effusion-supervision-seed2-v1/README.md)
+preserve the bookkeeping reconciliation, original intents and exact wrappers.
 
 ## Objective and current assessment
 
