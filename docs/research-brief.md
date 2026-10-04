@@ -1,10 +1,17 @@
-Current October4 update: the Effusion contrast passed actual H100 trainer
-recovery for both arms (869300, complete0:0), including identical uninterrupted
-and resumed predictions. The paired2247train/1156outer,3epoch screen is prepared
-but not running. There is no new accuracy result. Its full production needs64GiB
-host RAM, greater than the cache-owning node's23GiB unreserved allocation; new
-cache placement and checkpoint/publication funding are the next practical steps.
-See [actual receipt and decision](../initiative/audits/effusion-supervision-engineering-v1/recovery-v2/README.md).
+Latest actual screen869702 failed before training in its assigned-device
+initialization guard (both steps exceeded25seconds). No model updates or new
+accuracy result. Distinct bounded180second observable recovery is prepared
+without repeating the verified cache/runtime transfer or changing science.
+Actual new state belongs in the continuation and screen recovery audit.
+
+Current training update: the Effusion supervision comparison is now actually
+running as job869702 on evc34, two independent one-H100 arms in parallel,
+three epochs each on2247 training studies with1156 disjoint held-out studies.
+The full private native384 cache placement passed every member size/SHA;
+actual numerical recovery869300 is reused unchanged. Only31 reviewed fitting
+masks differ. This is a launch, not a measured accuracy improvement. See
+[the screen audit](../initiative/audits/effusion-supervision-screen-v1/README.md)
+and live continuation for exact resource/provenance/publication receipts.
 
 # Research brief: what we know, what failed, and the next mechanisms
 

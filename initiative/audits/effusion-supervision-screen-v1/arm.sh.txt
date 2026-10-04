@@ -1,0 +1,98 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+probe_allocated_driver() {
+  "$@" /usr/bin/timeout --kill-after=5s 25s /usr/bin/python3.12 - <<'RSNA_ALLOCATED_DRIVER_PROBE'
+"""Fast read-only CUDA/NVML visibility check inside the scheduler allocation."""
+import ctypes
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+record = {
+    'scope': 'allocated devices only; no visibility changes or GPU computation',
+    'job_id': os.environ.get('SLURM_JOB_ID'),
+    'node': os.uname().nodename,
+    'allocation': {key: os.environ.get(key) for key in (
+        'CUDA_VISIBLE_DEVICES', 'SLURM_JOB_GPUS', 'SLURM_GPUS_ON_NODE',
+        'SLURM_CPUS_PER_TASK', 'SLURM_STEP_GPUS', 'CUDA_DEVICE_ORDER')},
+    'cpu_affinity': sorted(os.sched_getaffinity(0)),
+}
+errors = []
+if not record['job_id'] or len((os.environ.get('CUDA_VISIBLE_DEVICES') or '').split(',')) != 1:
+    errors.append('one scheduler-visible device required')
+try:
+    result = subprocess.run(
+        ['nvidia-smi', '--query-gpu=index,name,uuid,driver_version,pci.bus_id', '--format=csv,noheader'],
+        capture_output=True, text=True, timeout=15,
+    )
+    record['nvidia_inventory'] = {'returncode': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr}
+    count = len([line for line in result.stdout.splitlines() if line.strip()])
+    if result.returncode != 0 or count != 1:
+        errors.append('NVML must expose the allocated GPU')
+except (OSError, subprocess.TimeoutExpired) as error:
+    errors.append('NVML inventory failed: '+type(error).__name__)
+try:
+    driver = ctypes.CDLL('libcuda.so.1')
+    driver.cuInit.argtypes = [ctypes.c_uint]
+    driver.cuInit.restype = ctypes.c_int
+    driver.cuDeviceGetCount.argtypes = [ctypes.POINTER(ctypes.c_int)]
+    driver.cuDeviceGetCount.restype = ctypes.c_int
+    result = driver.cuInit(0)
+    record['cuda_driver_init_code'] = result
+    if result != 0:
+        errors.append('CUDA driver initialization failed')
+    else:
+        count = ctypes.c_int()
+        code = driver.cuDeviceGetCount(ctypes.byref(count))
+        record['cuda_driver_count_code'] = code
+        record['cuda_driver_device_count'] = count.value
+        if code != 0 or count.value != 1:
+            errors.append('CUDA driver must expose the allocated GPU')
+except (OSError, AttributeError) as error:
+    errors.append('CUDA driver load failed: '+type(error).__name__)
+try:
+    record['mapped_libcuda_paths'] = sorted({
+        line.split()[-1] for line in Path('/proc/self/maps').read_text().splitlines()
+        if '/libcuda.so' in line and line.split()[-1].startswith('/')
+    })
+except OSError:
+    record['mapped_libcuda_paths'] = None
+if errors:
+    record['device_nodes'] = []
+    for path in sorted(Path('/dev').glob('nvidia[0-9]*')):
+        try:
+            st = path.stat()
+            record['device_nodes'].append({'path': str(path), 'major': os.major(st.st_rdev),
+                                          'minor': os.minor(st.st_rdev), 'mode': oct(st.st_mode & 0o777)})
+        except OSError:
+            pass
+    try:
+        record['self_cgroup'] = Path('/proc/self/cgroup').read_text()
+        record['readable_devices_lists'] = []
+        for line in record['self_cgroup'].splitlines():
+            _, controllers, relative = line.split(':', 2)
+            if 'devices' in controllers.split(',') and '..' not in Path(relative).parts:
+                path = Path('/sys/fs/cgroup/devices') / relative.lstrip('/') / 'devices.list'
+                if path.is_file():
+                    record['readable_devices_lists'].append({'path': str(path), 'contents': path.read_text()})
+    except OSError:
+        record['self_cgroup'] = None
+    record['readable_driver_gpu_metadata'] = []
+    for path in sorted(Path('/proc/driver/nvidia/gpus').glob('*/information')):
+        try:
+            rows = [line for line in path.read_text().splitlines()
+                    if line.startswith(('Model:', 'GPU UUID:', 'Bus Location:', 'Device Minor:'))]
+            record['readable_driver_gpu_metadata'].append({'path': str(path), 'fields': rows})
+        except OSError:
+            pass
+record['errors'] = errors
+record['status'] = 'passed' if not errors else 'blocked'
+print(json.dumps(record, sort_keys=True), flush=True)
+sys.exit(2 if errors else 0)
+RSNA_ALLOCATED_DRIVER_PROBE
+}
+probe_allocated_driver
+exec "$1" -B /tmp/rsna-effusion-screen-20261004-v1/scripts/newton/run_effusion_screen.py arm --role "$2"

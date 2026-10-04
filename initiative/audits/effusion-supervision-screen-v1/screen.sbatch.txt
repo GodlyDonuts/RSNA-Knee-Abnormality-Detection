@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-effusion-screen-v1
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --nodelist=evc34
+#SBATCH --ntasks=2
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:nvidia_h100_pcie:2
+#SBATCH --mem=192G
+#SBATCH --time=08:00:00
+#SBATCH --output=/tmp/rsna-effusion-screen-20261004-v1/allocation-%j.out
+#SBATCH --error=/tmp/rsna-effusion-screen-20261004-v1/allocation-%j.err
+set -euo pipefail
+umask 077
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+export OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+unset PYTHONPATH
+/usr/bin/python3.12 -B /tmp/rsna-effusion-screen-20261004-v1/scripts/newton/run_effusion_screen.py boot

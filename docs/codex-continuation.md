@@ -1,3 +1,25 @@
+Original screen869702 actually FAILED1:0 in53seconds before either trainer
+started: both assigned GPU driver probes exited124 under25second bound.
+No optimizer/accuracy failure occurred; root cause remains unproven. Distinct
+recovery-v2 retains originals, reuses exact byte-verified runtime/source/cache,
+adds staged CUDA observations and bounded180second guard. Numerical665c0d5
+recipe remains unchanged. Read effusion-supervision-screen-v1/recovery-v2;
+require its new original intent/result before any dispatch claim.
+
+Original Effusion paired screen869702 submittedONCE by the single coordinator
+from d5ae364, actual RUNNING on evc34 with two independent one-H100/two-CPU
+arms,96GiB each. Control/candidate each3epochs/843updates,2247train/1156outer;
+only31 reviewed Effusion masks differ. No optimizer progress or accuracy result
+claimed yet; inspect actual assigned-step guards and original logs. Never repeat
+dispatch. New control/journals/runtime/checkpoints are private node-local under
+/tmp/rsna-effusion-screen-20261004-v1. Fresh funding20.005399GiB/5000 shared
+files after all liabilities, zero new shared files/bytes. Runtime7GiB/checkpoints
+3GiB/control32MiB/local20GiB reserve funded. Use only the same coordinator to
+preserve newly completed role/epoch1–3 exactly once, full private five-object
+download/size/SHA. Actual complete cache placement869665 passed37812members/
+140626483351bytes; original evc31 retained. Numerical665c0d5/recovery869300
+unchanged. Read effusion-supervision-screen-v1.
+
 The owner requests aggressive actual training. Parallel independent Effusion
 fixed-screen wrapper/coordinator and exact private epoch publisher are prepared;
 read effusion-supervision-screen-v1. Original complete private cache route869665

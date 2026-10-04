@@ -15,7 +15,7 @@ BASE = Path("/home/sa305415/rsna-knee")
 PARENT = BASE / "effusion-supervision-engineering-20261003-v1"
 RECOVERY = PARENT / "recovery-v2"
 ROUTE = BASE / "effusion-native-cache-route-20261004-v1/recovery-v2"
-CONTROL = Path("/tmp/rsna-effusion-screen-20261004-v1")
+CONTROL = Path("/tmp/rsna-effusion-screen-20261004-v2")
 SOURCE_SHA = "53ff55e329e4c697870bf68679cebee80d5369566f017e483c2818006ad3c9a3"
 GPU_SHA = "be201fc89f16ede13f379d854018f4d7dc5ca9a55a26a528081418eea87632ef"
 OVERLAY_SHA = "936e3e2af058726fe3572b7e4ad1680c44f2fd82ad6e9840e2607a1b090ff018"
@@ -134,13 +134,13 @@ def boot():
         raise ValueError("Actual accepted recovery and full placement must be terminal")
     if sha(RECOVERY / "source.tar") != source["source_tar_sha256"]:
         raise ValueError("Accepted numerical source archive changed")
-    loader = load_module(RECOVERY / "launch_effusion_engineering.py", "effusion_original_loader")
     expected_loader = source["files"]["scripts/newton/launch_effusion_engineering.py"]["sha256"]
     if sha(RECOVERY / "launch_effusion_engineering.py") != expected_loader:
         raise ValueError("Accepted original source unpacker changed")
-    code = CONTROL / "code"
-    code.mkdir(mode=0o700)
-    loader.unpack_source(RECOVERY / "source.tar", code, source["files"])
+    code = Path(manifest["reused_code_root"])
+    for name, row in source["files"].items():
+        if sha(code / name) != row["sha256"]:
+            raise ValueError("Original already-extracted numerical source changed")
     save(CONTROL / "cache-stats-private.json", verify_cache_stats(cache))
     native = load_module(
         BASE / "production-launch-native384-a32-c9-v1/native384_admission.py",
@@ -154,34 +154,19 @@ def boot():
         BASE / "native384-assembly-c9-v1",
         prior=prior["scientific_assets"],
     )
-    runtime = json.loads(
-        subprocess.check_output(
-            [
-                "/usr/bin/python3.12",
-                "-B",
-                str(code / "scripts/newton/runtime_environment.py"),
-                "extract",
-                "--archive",
-                str(
-                    BASE
-                    / "kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar"
-                ),
-                "--sha256",
-                "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338",
-                "--expected-files",
-                "40403",
-                "--expected-bytes",
-                "6322691335",
-                "--scratch-base",
-                "/tmp",
-                "--shared-python",
-                "/usr/bin/python3.12",
-                "--min-free-gib",
-                "23",
-            ],
-            text=True,
-        )
-    )
+    prior_runtime = Path(manifest["reused_runtime_receipt"])
+    if sha(prior_runtime) != manifest["reused_runtime_receipt_sha256"]:
+        raise ValueError("Original byte-verified node-local runtime receipt changed")
+    runtime = json.loads(prior_runtime.read_text())
+    if (
+        runtime["archive_sha256"]
+        != "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338"
+        or runtime["file_members"] != 40403
+        or runtime["unpacked_file_bytes"] != 6322691335
+        or not str(runtime["runtime_root"]).startswith("/tmp/rsna-environment-869702-")
+        or not Path(runtime["python"]).is_file()
+    ):
+        raise ValueError("Original runtime extraction provenance differs")
     save(CONTROL / "runtime.json", runtime)
     # Runtime stays private for CPU epoch publishers; its 7GiB is explicitly funded.
     environment = os.environ.copy()
@@ -234,7 +219,7 @@ def boot():
 def arm(role):
     import torch
 
-    _, cache = verify_control()
+    manifest, cache = verify_control()
     if os.environ.get("SLURM_CPUS_PER_TASK") != "2" or torch.cuda.device_count() != 1:
         raise ValueError("One scheduler-isolated H100 and two CPUs per independent arm required")
     if "H100" not in torch.cuda.get_device_name(0) or not torch.cuda.is_bf16_supported():
@@ -242,7 +227,7 @@ def arm(role):
     verify_cache_stats(
         cache, original=json.loads((CONTROL / "cache-stats-private.json").read_text())
     )
-    code = CONTROL / "code"
+    code = Path(manifest["reused_code_root"])
     source = json.loads((RECOVERY / "source.json").read_text())
     for name, row in source["files"].items():
         if sha(code / name) != row["sha256"]:

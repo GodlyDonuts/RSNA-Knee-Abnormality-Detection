@@ -11,8 +11,8 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-LOCAL = ROOT / "artifacts/effusion-screen-v1"
-CONTROL = "/tmp/rsna-effusion-screen-20261004-v1"
+LOCAL = ROOT / "artifacts/effusion-screen-v2"
+CONTROL = "/tmp/rsna-effusion-screen-20261004-v2"
 SOCKET = "/tmp/rsna-research-20261001-stable.sock"
 BASE = "/home/sa305415/rsna-knee"
 ROUTE = BASE + "/effusion-native-cache-route-20261004-v1/recovery-v2"
@@ -39,6 +39,19 @@ def launch_files():
             "if ! probe_allocated_driver;"
         )
     ]
+    driver = driver.replace("--kill-after=5s 25s", "--kill-after=10s 180s")
+    driver = driver.replace(
+        "errors = []",
+        "print(json.dumps(dict(record, stage='allocated_context')), flush=True)\nerrors = []",
+    )
+    driver = driver.replace(
+        "count = len([line",
+        "print(json.dumps(dict(record, stage='NVML_returned')), flush=True)\n    count = len([line",
+    )
+    driver = driver.replace(
+        "result = driver.cuInit(0)",
+        "print(json.dumps({'stage':'before_cuInit'}), flush=True)\n    result = driver.cuInit(0)\n    print(json.dumps({'stage':'after_cuInit', 'code':result}), flush=True)",
+    )
     arm = "#!/bin/bash\nset -euo pipefail\numask 077\n" + driver
     arm += (
         'probe_allocated_driver\nexec "$1" -B '
@@ -51,7 +64,7 @@ def launch_files():
     )
     headers = "#!/bin/bash\nset -euo pipefail\numask 077\n" + headers + 'printf "%s\\n" "$CPATH"\n'
     script = f"""#!/bin/bash
-#SBATCH --job-name=rsna-effusion-screen-v1
+#SBATCH --job-name=rsna-effusion-screen-v2
 #SBATCH --account=skattel
 #SBATCH --partition=normal
 #SBATCH --nodes=1
@@ -162,9 +175,14 @@ import base64,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
 os.umask(0o077)
 b=Path("/home/sa305415/rsna-knee");route=b/"effusion-native-cache-route-20261004-v1/recovery-v2"
-c=Path("/tmp/rsna-effusion-screen-20261004-v1")
+c=Path("/tmp/rsna-effusion-screen-20261004-v2")
 assert os.uname().nodename.split('.')[0]=='evc34' and os.environ['SLURM_CPUS_PER_TASK']=='1'
 assert not os.environ.get('SLURM_JOB_GPUS') and not c.exists()
+prior=Path('/tmp/rsna-effusion-screen-20261004-v1')
+assert subprocess.check_output(['sacct','-X','-j','869702','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='869702|FAILED|1:0'
+assert not (prior/'control-trainer-intent.json').exists() and not (prior/'candidate-trainer-intent.json').exists()
+assert json.loads((prior/'terminal.json').read_text())['role_exit_codes']=={'control':124,'candidate':124}
+assert sum(p.stat().st_size for p in prior.rglob('*') if p.is_file())<16*2**20
 active=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%b'],text=True).splitlines()
 assert not any('gpu' in x.lower() for x in active),'Reconcile existing GPU jobs before screen dispatch'
 assert subprocess.check_output(['sacct','-X','-j','869300,869665','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).splitlines()==['869300|COMPLETED|0:0','869665|COMPLETED|0:0']
@@ -195,9 +213,9 @@ def save(name,value):
 for name,data in raw.items():
  p=c/name;p.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
  with p.open('xb') as out:out.write(data)
-manifest={'launch_git':e['source_git'],'scientific_git':'665c0d515410df24f1f37ed5d9f8cb7a0f0fc480','copy_receipt_sha256':hashlib.sha256(copy_path.read_bytes()).hexdigest(),'files':{k:{'bytes':len(v),'sha256':hashlib.sha256(v).hexdigest()} for k,v in raw.items()}}
+manifest={'launch_git':e['source_git'],'scientific_git':'665c0d515410df24f1f37ed5d9f8cb7a0f0fc480','copy_receipt_sha256':hashlib.sha256(copy_path.read_bytes()).hexdigest(),'reused_code_root':str(prior/'code'),'reused_runtime_receipt':str(prior/'runtime.json'),'reused_runtime_receipt_sha256':hashlib.sha256((prior/'runtime.json').read_bytes()).hexdigest(),'failed_original_GPU_job':'869702','allocated_driver_timeout_seconds':180,'files':{k:{'bytes':len(v),'sha256':hashlib.sha256(v).hexdigest()} for k,v in raw.items()}}
 save('files.json',manifest)
-funding={'shared_used_kB':used,'shared_soft_kB':soft,'shared_used_files':count,'shared_file_soft':limit,'future_shared_bytes':future,'future_shared_files':nf,'after_liabilities_GiB':remaining/2**30,'after_liabilities_files':files_left,'new_shared_bytes':0,'new_shared_files':0,'new_node_local_controls_MiB':32,'node_local_runtime_GiB':7,'node_local_checkpoints_GiB':3,'node_local_reserve_GiB':20,'epoch_count_per_arm':3,'private_epoch_objects_per_epoch':5,'original_assets_retained':True,'deletion_credit':0,'memory_GiB_per_arm':96,'requested_CPUs_per_arm':2,'independent_H100s':2,'GPU_nodes':1}
+funding={'shared_used_kB':used,'shared_soft_kB':soft,'shared_used_files':count,'shared_file_soft':limit,'future_shared_bytes':future,'future_shared_files':nf,'after_liabilities_GiB':remaining/2**30,'after_liabilities_files':files_left,'new_shared_bytes':0,'new_shared_files':0,'new_node_local_controls_MiB':16,'original_control_MiB_cap_retained':16,'node_local_runtime_GiB':7,'node_local_checkpoints_GiB':3,'node_local_reserve_GiB':20,'epoch_count_per_arm':3,'private_epoch_objects_per_epoch':5,'original_assets_retained':True,'deletion_credit':0,'memory_GiB_per_arm':96,'requested_CPUs_per_arm':2,'independent_H100s':2,'GPU_nodes':1}
 save('funding.json',funding);save('dispatch-intent.json',{'automatic_retry':False,'launch_git':e['source_git'],'two_independent_arms':True})
 job=subprocess.check_output(['sbatch','--parsable',str(c/'screen.sbatch')],text=True).strip();assert job.isdecimal()
 result={'job_id':job,'node':'evc34','control':str(c),'launch_git':e['source_git'],'scientific_git':manifest['scientific_git'],'GPU_nodes':1,'GPUs':2,'CPUs':4,'RAM_GiB':192,'epochs_per_arm':3,'updates_per_arm':843,'training_studies':2247,'heldout_studies':1156,'automatic_retry':False,'staging_CPU_job':os.environ['SLURM_JOB_ID'],'clinical_result_observed':False}
@@ -211,7 +229,7 @@ save('dispatch-result.json',result);print(json.dumps({'dispatch':result,'funding
         raise ValueError("Dispatch uncertain or failed; inspect original before any retry")
     record = json.loads(result.stdout)
     save(LOCAL / "dispatch-result.json", record)
-    audit = ROOT / "initiative/audits/effusion-supervision-screen-v1"
+    audit = ROOT / "initiative/audits/effusion-supervision-screen-v1/recovery-v2"
     for name in ("dispatch", "funding", "source_manifest"):
         save(audit / (name.replace("_", "-") + ".json"), record[name])
     for name in ("screen.sbatch", "arm.sh", "headers.sh"):
@@ -248,7 +266,7 @@ subprocess.run([r['python'],'-B',str(c/'scripts/hf/publish_effusion_screen_epoch
     save(output, receipt)
     save(
         ROOT
-        / f"initiative/audits/effusion-supervision-screen-v1/{role}-epoch-{epoch:03d}-verified.json",
+        / f"initiative/audits/effusion-supervision-screen-v1/recovery-v2/{role}-epoch-{epoch:03d}-verified.json",
         receipt,
     )
     print(json.dumps(receipt, sort_keys=True))
