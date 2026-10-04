@@ -1,3 +1,12 @@
+Distinct screen recovery869714 submittedONCE on evc34 from35aed82;
+lastPENDING Priority after another account occupied one GPU. It preserves the
+original869702 FAILED1:0 before training, uses staged bounded180second CUDA
+probe and reuses its original byte-verified runtime/source/cache. Exact3epoch
+paired science unchanged; no actual new optimizer/accuracy result yet. Read
+effusion-supervision-screen-v1/recovery-v2 intents/result before any action;
+never repeat either dispatch. Source/base/masks/folds and outer evaluation
+unchanged. Both independent arms need actual assigned H100 acceptance/progress.
+
 Original screen869702 actually FAILED1:0 in53seconds before either trainer
 started: both assigned GPU driver probes exited124 under25second bound.
 No optimizer/accuracy failure occurred; root cause remains unproven. Distinct
