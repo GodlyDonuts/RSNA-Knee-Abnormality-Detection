@@ -1,3 +1,29 @@
+Full1780 tests/Ruff280 files/mypy45 modules/archive/current89/89 evidence checks
+passed for corrected actual-recovery admission. No numerical rsna source changed.
+
+October4 actual corrected Effusion869300 COMPLETED0:0 in21:18 on evc31. Both
+fresh initialization model/allRNG hashes equal; both four-update real trainer
+full/stop1/resume arms recover exact complete model/base/AdamW/LR/counters/RNG,
+update trajectories and prediction bytes. ReceiptSHAbe201fc89f16ede13f379d854018f4d7dc5ca9a55a26a528081418eea87632ef.
+Read effusion-supervision-engineering-v1/recovery-v2 agent-engineering-decision.
+Original869077 failed before training and remains preserved; never repeat either
+job. Exact corrected source53ff55e3 and original CPU869076 admit the prepared
+paired3epoch/843update2247train/1156outer screen; it is NOT dispatched/funded and
+there is no new accuracy result. Full screening changes only31 Effusion fitting
+masks in the candidate, originals/outer masks unchanged.
+
+Bounded recovery MaxRSS11,774,624kB fits22GiB, but prior full native production
+MaxRSS57–67millionkB requires retained64GiB. evc31 has a free H100 but only23265MiB
+scheduler-unreserved memory; do not blindly queue production there or shrink its
+RAM by reusing the diagnostic decision. A healthy alternate node needs admitted
+private original cache placement. Fresh shared accounting includes corrected
+logs:37/40engineering inodes,20.00545GiB/5000files after liabilities. Separately
+fund screen controls/immutable snapshots/private preservation; no deletion credit
+or diagnostic-cap substitution. Owner squeue is empty. Stokes advertises no
+GPUs; unused Kaggle45h is not an already running experiment. Next resolve exact
+production resource/storage routing and run this held-out contrast, rather than
+repeating engineering or unrelated completed work.
+
 869300 actual control-full trainer reached3 contiguous finite optimizer
 updates; latestloss0.4334194/gradientnorm2.240412 and emptystderr at6:47elapsed.
 These are bounded engineering updates, not the full paired843-update screen

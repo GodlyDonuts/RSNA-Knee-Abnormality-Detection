@@ -1,3 +1,11 @@
+Current October4 update: the Effusion contrast passed actual H100 trainer
+recovery for both arms (869300, complete0:0), including identical uninterrupted
+and resumed predictions. The paired2247train/1156outer,3epoch screen is prepared
+but not running. There is no new accuracy result. Its full production needs64GiB
+host RAM, greater than the cache-owning node's23GiB unreserved allocation; new
+cache placement and checkpoint/publication funding are the next practical steps.
+See [actual receipt and decision](../initiative/audits/effusion-supervision-engineering-v1/recovery-v2/README.md).
+
 # Research brief: what we know, what failed, and the next mechanisms
 
 Updated October 3, 2026 (America/New_York). This is the entry point for external

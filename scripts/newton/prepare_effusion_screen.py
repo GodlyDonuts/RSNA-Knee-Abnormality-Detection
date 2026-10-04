@@ -7,6 +7,7 @@ result. It cannot replace the original remote source, dataset or checkpoints.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -19,6 +20,8 @@ from rsna.competitive.train import TrainConfig
 SCIENTIFIC_GIT = "665c0d5"
 WEIGHTS_SHA = "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
 ENCODER_CONFIG_SHA = "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5"
+RECOVERY_SOURCE_SHA = "53ff55e329e4c697870bf68679cebee80d5369566f017e483c2818006ad3c9a3"
+
 OVERLAY_SHA = "936e3e2af058726fe3572b7e4ad1680c44f2fd82ad6e9840e2607a1b090ff018"
 
 
@@ -28,7 +31,7 @@ def checked_sha(value):
     return value
 
 
-def accept(cpu, gpu, source, source_sha, cpu_sha, configs):
+def accept(cpu, gpu, source, source_sha, cpu_sha, configs, *, recovery_source=None):
     """Fail closed on mismatched evidence and undeclared numerical changes."""
     checked_sha(source_sha)
     checked_sha(cpu_sha)
@@ -46,7 +49,7 @@ def accept(cpu, gpu, source, source_sha, cpu_sha, configs):
         raise ValueError("Exact original complete-roster MRI CPU acceptance required")
     if (
         gpu.get("status") != "actual_native384_effusion_trainer_recovery_passed"
-        or gpu.get("job_id") != "869077"
+        or gpu.get("job_id") != "869300"
         or gpu.get("node", "").split(".")[0] != "evc31"
         or gpu.get("input_acceptance_sha256") != cpu_sha
         or gpu.get("clinical_accuracy_evidence") is not False
@@ -54,6 +57,28 @@ def accept(cpu, gpu, source, source_sha, cpu_sha, configs):
         or set(gpu.get("results", {})) != {"control", "candidate"}
     ):
         raise ValueError("Actual original H100 recovery required, never a pending job")
+    if recovery_source is None:
+        raise ValueError("Reviewed distinct corrected recovery source required")
+    parent = hashlib.sha256(
+        json.dumps(source, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    changed = {
+        k
+        for k in set(source["files"]) | set(recovery_source["files"])
+        if source["files"].get(k) != recovery_source["files"].get(k)
+    }
+    if (
+        recovery_source.get("original_input_source_sha256") != parent
+        or not recovery_source.get("source_git", "").startswith("cf75527")
+        or gpu.get("recovery_source_manifest_sha256") != RECOVERY_SOURCE_SHA
+        or gpu.get("initialization_processes") != "one_fresh_process_per_arm"
+        or changed
+        != {
+            "scripts/newton/probe_effusion_engineering.py",
+            "scripts/newton/launch_effusion_engineering.py",
+        }
+    ):
+        raise ValueError("Only exact reviewed orchestration correction is admitted")
     initial = gpu.get("matched_initial_model_and_RNG", {})
     for key in ("complete_model_sha256", "all_RNG_sha256"):
         checked_sha(initial.get(key))
@@ -116,7 +141,9 @@ def accept(cpu, gpu, source, source_sha, cpu_sha, configs):
         "scientific_source_git": source["source_git"],
         "source_manifest_sha256": source_sha,
         "CPU_receipt_sha256": cpu_sha,
-        "actual_engineering_GPU_job": "869077",
+        "actual_engineering_GPU_job": "869300",
+        "recovery_source_manifest_sha256": RECOVERY_SOURCE_SHA,
+        "failed_original_GPU_job": "869077",
         "training_studies": 2247,
         "outer_studies": 1156,
         "optimizer_updates_per_arm": 843,
@@ -133,13 +160,30 @@ def accept(cpu, gpu, source, source_sha, cpu_sha, configs):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("cpu", "gpu", "source", "control-config", "candidate-config", "output"):
+    for name in (
+        "cpu",
+        "gpu",
+        "source",
+        "recovery-source",
+        "control-config",
+        "candidate-config",
+        "output",
+    ):
         parser.add_argument("--" + name, type=Path, required=True)
     args = parser.parse_args()
-    paths = (args.cpu, args.gpu, args.source, args.control_config, args.candidate_config)
+    paths = (
+        args.cpu,
+        args.gpu,
+        args.source,
+        args.recovery_source,
+        args.control_config,
+        args.candidate_config,
+    )
     if any(p.is_symlink() or not p.is_file() or p.stat().st_size > 2**20 for p in paths):
         raise ValueError("Original bounded regular receipts/configs required")
-    cpu, gpu, source, control, candidate = (json.loads(p.read_text()) for p in paths)
+    cpu, gpu, source, recovery, control, candidate = (json.loads(p.read_text()) for p in paths)
+    if file_sha256(args.recovery_source) != RECOVERY_SOURCE_SHA:
+        raise ValueError("Exact actual corrected recovery manifest bytes required")
     result = accept(
         cpu,
         gpu,
@@ -147,6 +191,7 @@ def main():
         file_sha256(args.source),
         file_sha256(args.cpu),
         {"control": control, "candidate": candidate},
+        recovery_source=recovery,
     )
     result["GPU_receipt_sha256"] = file_sha256(args.gpu)
     with args.output.open("x") as out:

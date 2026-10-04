@@ -42,9 +42,12 @@ def fixture():
         )
         for n in configs
     }
+    recovery = json.loads((base / "recovery-v2/source-manifest.json").read_text())
     gpu = dict(
         status="actual_native384_effusion_trainer_recovery_passed",
-        job_id="869077",
+        job_id="869300",
+        recovery_source_manifest_sha256="53ff55e329e4c697870bf68679cebee80d5369566f017e483c2818006ad3c9a3",
+        initialization_processes="one_fresh_process_per_arm",
         node="evc31",
         input_acceptance_sha256="b" * 64,
         diagnostic_only=True,
@@ -61,12 +64,12 @@ def fixture():
         ),
         results=results,
     )
-    return cpu, gpu, source, configs
+    return cpu, gpu, source, configs, recovery
 
 
 def test_fixed_screen_is_only_preparation():
-    cpu, gpu, source, configs = fixture()
-    result = accept(cpu, gpu, source, "a" * 64, "b" * 64, configs)
+    cpu, gpu, source, configs, recovery = fixture()
+    result = accept(cpu, gpu, source, "a" * 64, "b" * 64, configs, recovery_source=recovery)
     assert result["optimizer_updates_per_arm"] == 843
     assert result["primary_outcome"] == "Effusion_outer_AUC"
     assert result["production_funding_or_dispatch"] is False
@@ -98,7 +101,7 @@ def test_fixed_screen_is_only_preparation():
     ],
 )
 def test_reject_unaccepted_screen(mutation):
-    cpu, gpu, source, configs = fixture()
+    cpu, gpu, source, configs, recovery = fixture()
     if mutation == "pending":
         gpu["status"] = "PENDING"
     elif mutation == "job":
@@ -139,4 +142,25 @@ def test_reject_unaccepted_screen(mutation):
     else:
         gpu["clinical_accuracy_evidence"] = True
     with pytest.raises(ValueError):
-        accept(cpu, gpu, source, "a" * 64, "b" * 64, copy.deepcopy(configs))
+        accept(
+            cpu, gpu, source, "a" * 64, "b" * 64, copy.deepcopy(configs), recovery_source=recovery
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation", ["old_failed_job", "parent", "numerical", "missing", "topology"]
+)
+def test_reject_unreviewed_recovery_replacement(mutation):
+    cpu, gpu, source, configs, recovery = fixture()
+    if mutation == "old_failed_job":
+        gpu["job_id"] = "869077"
+    elif mutation == "parent":
+        recovery["original_input_source_sha256"] = "0" * 64
+    elif mutation == "numerical":
+        recovery["files"]["rsna/competitive/train.py"]["sha256"] = "0" * 64
+    elif mutation == "missing":
+        recovery = None
+    else:
+        gpu["initialization_processes"] = "sequential_same_process"
+    with pytest.raises(ValueError):
+        accept(cpu, gpu, source, "a" * 64, "b" * 64, configs, recovery_source=recovery)
