@@ -1,3 +1,23 @@
+Distinct corrected private cache routing869665 submittedONCE from4ec70b5;
+actually RUNNING on evc31/evc34, zeroGPUs/oneCPU requested per endpoint.
+Actual4.1347GB/1098newfiles observed on evc34, empty transport stderr. Partial
+copy only: whole37812members/140626483351bytes require copy-accepted.json
+with each original size/SHA and clean SSH EOF/exit. Original evc31 cache retained;
+no pixels passed throughMac/Git/HF. Never repeat869665 or failed869663. Read
+effusion-native-cache-route-v1/recovery-v2 exact source/control/funding/progress.
+
+Fresh funding20.00542GiB/5000files after liabilities, corrected cap10inodes/
+3MiB:7 unused native-all plus3completed-engineering future slots reallocated;
+all originals retained and exact128metadata cap reconciles. Data/runtime/
+checkpoint/local20GiB reserves explicitly funded on evc34. After ACTUAL copy
+acceptance admit the64GiB/oneH100 paired3epoch/843update screen there. Prefer
+bounded node-local screen controls/journals staged via a minimal CPU worker/
+stdin, avoiding newLustrefiles; wrapper/coordinator/future private epoch proofs
+still need admission. Reuse869300 actual full recovery and unchanged665c0d5
+numerical source rather than duplicating diagnostics. No screen GPU dispatched
+or new accuracy claimed. Current all1800tests/Ruff282/mypy45/archive/current
+89/89passed. Keep research over Kaggle deployment.
+
 Original private cache route869663 FAILED1:0 in2seconds before any registry/
 pixel read or destination creation: exact2CPUs requested were allocated as4
 hardware threads, rejected by an overstrict guard. Preserve original control/
