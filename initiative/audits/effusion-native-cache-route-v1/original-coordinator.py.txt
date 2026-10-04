@@ -1,0 +1,68 @@
+"""A distinct private placement only; reconcile uncertainty, never retry."""
+import base64,hashlib,json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();local=root/'artifacts/effusion-native-cache-route-v1';audit=root/'initiative/audits/effusion-native-cache-route-v1'
+assert not (local/'dispatch-intent.json').exists()
+assert not subprocess.check_output(['git','status','--porcelain'],text=True).strip()
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+control='/home/sa305415/rsna-knee/effusion-native-cache-route-20261004-v1'
+script='''#!/bin/bash
+#SBATCH --job-name=rsna-effusion-native-route
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=2
+#SBATCH --nodelist=evc31,evc34
+#SBATCH --ntasks=2
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --gres=none
+#SBATCH --mem=2G
+#SBATCH --time=01:30:00
+#SBATCH --output=/home/sa305415/rsna-knee/logs/%x-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/logs/%x-%j.err
+set -euo pipefail
+umask 077
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+srun --nodes=1 --ntasks=1 --nodelist=evc34 --cpus-per-task=1 --gres=none /usr/bin/python3.12 -B CONTROL/route.py --phase receive --job "$SLURM_JOB_ID" --control CONTROL
+'''.replace('CONTROL',control)
+files={'route.py':(root/'scripts/newton/route_native384_cache.py').read_bytes(),'copy.sbatch':script.encode()}
+rows={k:{'bytes':len(v),'sha256':hashlib.sha256(v).hexdigest()} for k,v in files.items()}
+manifest={'source_git':head,'files':rows,'registry_sha256':'73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770','new_shared_file_cap':10,'new_shared_byte_cap':3*1024**2,'original_engineering_remaining_byte_cap':5*1024**2,'retired_unused_original_nativeall_closeout_slots':10,'original_nativeall_closeout_slots_retained_at_least':12,'original_assets_retained':True,'deletion_credit':0,'GPU_reserved':False}
+files['files.json']=(json.dumps(manifest,indent=2,sort_keys=True)+'\n').encode()
+proof=(root/'artifacts/effusion-supervision-recovery-v2/funding-after-terminal.py').read_text();proof=proof[:proof.index("print(json.dumps({'used_kB'")]
+program=proof+'''
+import base64,hashlib,os,sys
+os.umask(0o077)
+assert epochs==list(range(1,11)) and len(paid)==51
+assert subprocess.check_output(['sacct','-X','-j','868093','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='868093|COMPLETED|0:0'
+assert subprocess.check_output(['sacct','-X','-j','869300','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='869300|COMPLETED|0:0'
+assert len(rp)==37 and sum(rp.values())<5*1024**2
+assert ((soft-used)*1024-future_new)/2**30>=20 and limit-files-nf_new>=5000
+control=b/'effusion-native-cache-route-20261004-v1';assert not control.exists(),'Existing placement intent must be reconciled read-only'
+envelope=json.load(sys.stdin);raw={k:base64.b64decode(v,validate=True) for k,v in envelope.items()};assert set(raw)=={'route.py','copy.sbatch','files.json'}
+assert sum(map(len,raw.values()))<1024**2
+m=json.loads(raw['files.json'])
+for name,row in m['files'].items():assert len(raw[name])==row['bytes'] and hashlib.sha256(raw[name]).hexdigest()==row['sha256']
+control.mkdir(mode=0o700)
+for name,value in raw.items():
+ with (control/name).open('xb') as out:out.write(value)
+def save(name,value):
+ with (control/name).open('x') as out:json.dump(value,out,indent=2,sort_keys=True);out.write('\\n');out.flush();os.fsync(out.fileno())
+f={'used_kB':used,'soft_kB':soft,'used_files':files,'file_soft':limit,'future_shared_bytes_before_placement':future_new,'future_shared_files_before_placement':nf_new,'after_liabilities_GiB':((soft-used)*1024-future_new)/2**30,'after_liabilities_files':limit-files-nf_new,'new_shared_cap_files':10,'new_shared_cap_bytes':3*1024**2,'retired_unused_original_nativeall_closeout_slots':10,'original_nativeall_closeout_slots_retained_at_least':12,'engineering_cap_split_old5MiB_new3MiB':True,'original_paid_engineering_bytes':sum(rp.values()),'original_paid_engineering_inodes':len(rp),'all_other_liabilities_retained':True,'deletion_credit':0,'new_node_local_cache_bytes':140626483351,'node_local_runtime_GiB':7,'node_local_future_checkpoint_GiB':3,'node_local_reserve_GiB':20,'GPU_reserved':False,'screen_dispatched':False}
+save('funding.json',f);save('dispatch-intent.json',{'automatic_retry':False,'source_git':m['source_git'],'destination_node':'evc34','new_GPU_jobs':0})
+job=subprocess.check_output(['sbatch','--parsable',str(control/'copy.sbatch')],text=True).strip();assert job.isdecimal()
+r={'job_id':job,'source_git':m['source_git'],'control':str(control),'cpus_total':2,'gpus':0,'source_node':'evc31','destination_node':'evc34','copy_dispatched_once':True,'automatic_retry':False,'screen_dispatched':False}
+save('dispatch-result.json',r);print(json.dumps({'dispatch':r,'funding':f}))
+'''
+with (local/'dispatch-intent.json').open('x') as f:json.dump({'source_git':head,'control':control,'automatic_retry':False},f)
+p=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(['/usr/bin/python3.12','-B','-c',program])],input=json.dumps({k:base64.b64encode(v).decode() for k,v in files.items()}).encode(),capture_output=True,timeout=60)
+(local/'remote.stdout').write_bytes(p.stdout);(local/'remote.stderr').write_bytes(p.stderr)
+assert p.returncode==0,'Reconcile uncertain state read-only; never retry'
+record=json.loads(p.stdout)
+(local/'dispatch-result.json').write_text(json.dumps(record,indent=2,sort_keys=True)+'\n')
+(audit/'dispatch.json').write_text(json.dumps(record['dispatch'],indent=2,sort_keys=True)+'\n')
+(audit/'funding.json').write_text(json.dumps(record['funding'],indent=2,sort_keys=True)+'\n')
+(audit/'source-manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+(audit/'copy.sbatch.txt').write_text(script)
+print(json.dumps(record,indent=2,sort_keys=True))

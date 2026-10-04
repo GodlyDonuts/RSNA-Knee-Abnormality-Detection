@@ -1,12 +1,13 @@
 """Bounded synthetic transport cases, not a full native-MRI copy proof."""
 
+import copy
 import hashlib
 import io
 import tarfile
 
 import pytest
 
-from scripts.newton.route_native384_cache import extract_exact
+from scripts.newton.route_native384_cache import extract_exact, validate_cpu_fields
 
 
 def payload(entries):
@@ -79,3 +80,43 @@ def test_reject_unaccepted_copy(tmp_path, kind):
         stream.seek(0)
     with pytest.raises((ValueError, FileExistsError)):
         extract_exact(stream, root, expected())
+
+
+@pytest.mark.parametrize("allocated", ["2", "4"])
+def test_exact_cpu_request_accepts_scheduler_hardware_threads(allocated):
+    validate_cpu_fields(
+        dict(
+            NumCPUs=allocated,
+            NumTasks="2",
+            NumNodes="2",
+            **{
+                "CPUs/Task": "1",
+                "ReqTRES": "cpu=2,mem=4G,node=2",
+                "AllocTRES": "cpu=" + allocated + ",mem=4G,node=2",
+            },
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("NumCPUs", "8"),
+        ("NumTasks", "4"),
+        ("NumNodes", "1"),
+        ("CPUs/Task", "2"),
+        ("ReqTRES", "cpu=4,mem=4G,node=2"),
+        ("AllocTRES", "cpu=4,gres/gpu=1"),
+    ],
+)
+def test_reject_changed_cpu_or_gpu_allocation(field, value):
+    fields = dict(
+        NumCPUs="4",
+        NumTasks="2",
+        NumNodes="2",
+        **{"CPUs/Task": "1", "ReqTRES": "cpu=2,mem=4G,node=2", "AllocTRES": "cpu=4,mem=4G,node=2"},
+    )
+    fields = copy.deepcopy(fields)
+    fields[field] = value
+    with pytest.raises(ValueError):
+        validate_cpu_fields(fields)

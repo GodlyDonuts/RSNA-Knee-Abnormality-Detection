@@ -87,6 +87,20 @@ def original():
     return module, members
 
 
+def validate_cpu_fields(fields):
+    requested = dict(x.split("=", 1) for x in fields.get("ReqTRES", "").split(",") if "=" in x)
+    if (
+        "gres/gpu" in fields.get("AllocTRES", "")
+        or "gres/gpu" in fields.get("ReqTRES", "")
+        or fields.get("NumCPUs") not in {"2", "4"}
+        or requested.get("cpu") != "2"
+        or fields.get("NumTasks") != "2"
+        or fields.get("CPUs/Task") != "1"
+        or fields.get("NumNodes") != "2"
+    ):
+        raise ValueError("Two requested CPUs, bounded hardware threads and zero GPUs required")
+
+
 def allocated(job, node):
     if not job.isdecimal() or os.uname().nodename.split(".")[0] != node:
         raise ValueError("Exact allocated endpoint required")
@@ -97,8 +111,7 @@ def allocated(job, node):
     ).splitlines()
     if fields.get("JobState") != "RUNNING" or set(nodes) != {"evc31", "evc34"}:
         raise ValueError("Exact two-endpoint running CPU allocation required")
-    if "gres/gpu" in fields.get("AllocTRES", "") or fields.get("NumCPUs") != "2":
-        raise ValueError("Two minimum CPUs and zero GPUs required")
+    validate_cpu_fields(fields)
 
 
 def main():
@@ -110,7 +123,7 @@ def main():
     os.umask(0o077)
     node = "evc31" if args.phase == "source" else "evc34"
     allocated(args.job, node)
-    if args.control != BASE / "effusion-native-cache-route-20261004-v1":
+    if args.control != BASE / "effusion-native-cache-route-20261004-v1/recovery-v2":
         raise ValueError("Distinct original control required")
     manifest = json.loads((args.control / "files.json").read_text())
     for name, row in manifest["files"].items():

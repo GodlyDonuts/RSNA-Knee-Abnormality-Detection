@@ -1,3 +1,20 @@
+Original private cache route869663 FAILED1:0 in2seconds before any registry/
+pixel read or destination creation: exact2CPUs requested were allocated as4
+hardware threads, rejected by an overstrict guard. Preserve original control/
+source/job; never retry it. Corrected routing validates exact2requestedCPUs/
+2tasks/1CPUper_task/2nodes/zeroGPU plus bounded2or4hardware threads. Fresh
+QA1800tests/Ruff282/mypy45/archive/current89/89 passed, no scientific changes.
+Distinct recovery-v2 routing still needs its own source/intent/funding/dispatch.
+
+Exact native-all metadata root18+publication51 inodes supersedes the old15-root
+projection: original128cap can retain18+51+37paidengineering+10failedroute+
+10correctedroute+2futurecloseout. Corrected route reallocates7unused native-all
+closeout slots and3unusedengineering slots, not paid originals. Total8MiB
+research cap splits2MiB engineering/3MiB failedroute/3MiB correctedroute.
+Read effusion-native-cache-route-v1; fresh reserves apply before any intent.
+The completed H100869300 numerical recovery remains valid; no new accuracy or
+production screen is claimed.
+
 Prepared private native-cache routing uses oneCPU on each of evc31/evc34 and
 zeroGPUs; actual read-only probes869660/869661 confirmed37812originalmembers/
 140626483351bytes and860392321024free destination bytes. Read effusion-native-
