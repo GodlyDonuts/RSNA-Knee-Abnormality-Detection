@@ -1,3 +1,16 @@
+Latest actual observation02:30UTC: both screen869770/869771 RUNNING,
+38 contiguous finite optimizer updates each, empty stderr. The first atomic
+step25 checkpoints were independently CPU-decoded on the owning node:125555533bytes
+each, exact original run/arm binding, optimizer-boundary/counters/allrankRNG,
+258 AdamW state entries. New distinct SHA receipts remain private metadata;
+weights never left evc32. No accuracy claim. Read gpu-progress-002.json and
+rolling-checkpoint-025-verified.json before any later recovery.
+
+Source9e03228 actual healthy-node/paired seven-update milestone privately mirrored
+at HF9bfcbc3717efc9f7fded7459c26530da37a46710; all38small objects fully downloaded/
+size/SHA verified under canonical shared lock. No MRI/case records/overlay/weights.
+Never repeat; later38-update/rolling receipts are subsequent GitHub evidence.
+
 Actual training, October4 02:23UTC: fixed Effusion control869770 and candidate869771
 are RUNNING on separate allocated H100s on evc32; both have7 contiguous finite
 optimizer updates and empty stderr. Actual individual CUDA/H100/header/runtime,

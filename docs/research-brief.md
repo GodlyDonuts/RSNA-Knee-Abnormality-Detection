@@ -8,8 +8,10 @@ experiment. Current live state belongs in [the continuation guide](codex-continu
 ## Current training
 
 Two matched DINOv3-L rank32 models are now training on separate H100s on evc32:
-control **869770** and reviewed-Effusion candidate **869771**. At October4 02:23UTC,
-both had **7 real, finite optimizer updates**, with empty stderr. Each uses2,247
+control **869770** and reviewed-Effusion candidate **869771**. At October4 02:30UTC,
+both had **38 real, finite optimizer updates**, with empty stderr. Their first
+step25 recovery checkpoints were independently decoded and bound to the exact
+model/optimizer/counters/RNG on the owning node. Each uses2,247
 training examinations, native384 images, the same initialization/optimizer and
 three epochs/843 updates; final evaluation uses1,156 disjoint development studies.
 Only31 reviewed fitting Effusion masks differ. This tests a measured supervision

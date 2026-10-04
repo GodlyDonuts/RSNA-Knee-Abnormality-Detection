@@ -64,3 +64,12 @@ Reuse actual869300 numerical recovery; fresh allocated-driver/header acceptance
 and reserve review still apply. A final checkpoint can resume interrupted outer
 prediction without adding optimizer updates. Never duplicate a healthy arm or
 retry an uncertain scheduler/publication mutation.
+
+Latest02:30UTC both arms reached38 finite updates, with empty stderr. Original
+step25 checkpoint bytes were independently decoded CPU-only on the owning node;
+exact arm/run binding, optimizer-boundary/counters/allrankRNG and258 AdamW state
+entries passed. The SHA receipts bind that retained snapshot observation, not
+any later rolling replacement. No learned weights were transferred. Source9e03228
+and the preceding seven-update metadata are privately fully38-object verified
+at HF9bfcbc3717efc9f7fded7459c26530da37a46710; newer progress remains subsequent
+evidence. Private immutable epoch preservation begins after actual completion.
