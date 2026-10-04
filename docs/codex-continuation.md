@@ -1,3 +1,10 @@
+Private final-result milestone: source0bf421f is privately mirrored at
+HF1cf8c39de4bb2b9e4aa1b67fd5e3184984f784df, all55distinct small objects fully
+re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-effusion-screen-final-20261004-v1. No raw data/overlay/learned weights or
+prediction CSVs in this small mirror; original CSVs remain in authorizedGit.
+Never repeat it or any of the six completed screen epoch publications.
+
 October4 fixed-final result: control869815/candidate869816 actuallyCOMPLETED0:0,
 3epochs/843 contiguous finite updates each. Effusion0.8533697632→0.8941049843,
 delta+.0407352211, paired component conditional95%[-.0111292332,.1163940857],
