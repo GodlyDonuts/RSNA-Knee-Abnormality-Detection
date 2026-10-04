@@ -1,0 +1,74 @@
+import base64,datetime,hashlib,json,subprocess
+from pathlib import Path
+from scripts.newton.dispatch_effusion_screen import remote
+root=Path.cwd(); local=root/'artifacts/effusion-screen-final-v1'; audit=root/'initiative/audits/effusion-supervision-screen-final-v1'
+assert not (local/'collection-intent.json').exists() and not audit.exists()
+program='''import base64,hashlib,json,math,os,shutil
+from pathlib import Path
+c=Path('/tmp/rsna-effusion-screen-evc32-20261004-v1')
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+paths={}
+for name in ('files.json','source-provenance.json','CPU-prepared.json','control-screen.json','candidate-screen.json'):
+ p=c/name; assert p.is_file() and not p.is_symlink();paths['control/'+name]=p
+recovery=Path('/home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1/recovery-v2/source.json')
+source=json.loads(recovery.read_text())
+assert sha(recovery)=='53ff55e329e4c697870bf68679cebee80d5369566f017e483c2818006ad3c9a3'
+paths['control/recovery-source.json']=recovery
+run_proofs={}
+for role in ('control','candidate'):
+ run=c/role;r=json.loads((run/'run.json').read_text());result=json.loads((run/'result.json').read_text());inv=json.loads((run/'invocation.json').read_text())
+ assert r['status']==result['status']==inv['status']=='completed'
+ assert inv['exit_code']==0 and result['optimizer_steps']==843
+ assert (result['training_studies'],result['outer_studies'])==(2247,1156)
+ assert result['diagnostic_run'] is False and r['held_out_confirmation_and_gold_used'] is False
+ binding=r['binding'];assert result['binding_sha256']==inv['binding_sha256']==hashlib.sha256(json.dumps(binding,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+ assert binding['config']['epochs']==3 and binding['config']['seed']==20260922
+ policy=binding['experimental_fitting_supervision'];assert policy['enabled'] is (role=='candidate') and policy['applied_cells']==(31 if role=='candidate' else 0)
+ assert policy['evaluation_masks_changed'] is False and policy['experimental_only'] is True
+ for name,digest in binding['code_sha256'].items():assert sha(c/'code/rsna'/name)==digest
+ assert sha(run/'outer_predictions.csv')==result['predictions_sha256']
+ updates=inv['updates']; assert len(updates)==843 and [v['optimizer_steps'] for v in updates]==list(range(1,844))
+ assert all(math.isfinite(v['loss']) and math.isfinite(v['gradient_norm']) for v in updates)
+ assert (c/'resume-v1'/(role+'.err')).read_text()==''
+ snap=json.loads((run/'epoch-checkpoints/epoch-003.json').read_text())
+ assert snap['optimizer_steps']==843 and snap['epoch']==3 and snap['checkpoint_sha256']==result['checkpoint_sha256']
+ assert (run/'checkpoint.pt').stat().st_size==(run/'epoch-checkpoints/epoch-003.pt').stat().st_size==snap['checkpoint_bytes']
+ def update_rows(path):
+  result=[]
+  for line in path.read_text().splitlines():
+   try:v=json.loads(line)
+   except ValueError:continue
+   if 'optimizer_steps' in v:result.append(v)
+  return result
+ previous=update_rows(c/(role+'.out')); resumed=update_rows(c/'resume-v1'/(role+'.out'))
+ assert [v['optimizer_steps'] for v in resumed]==list(range(176,844))
+ keys=('epoch','update','optimizer_steps','loss','gradient_norm','observed_cells')
+ original={v['optimizer_steps']:v for v in previous};current={v['optimizer_steps']:v for v in resumed}
+ overlap=sorted(set(original)&set(current))
+ exact=all({k:original[n][k] for k in keys}=={k:current[n][k] for k in keys} for n in overlap)
+ run_proofs[role]={'all_843_updates_contiguous_and_finite':True,'source_files_match_original_binding':True,'original_and_resumed_overlapping_updates':overlap,'overlapping_numerical_updates_exact':exact,'no_new_checkpoint_bulk_hash_or_transfer':True,'checkpoint_bytes':snap['checkpoint_bytes'],'final_checkpoint_sha256':result['checkpoint_sha256']}
+ for name in ('run.json','result.json','invocation.json','outer_predictions.csv'):
+  paths[role+'/'+name]=run/name
+ for epoch in (1,2,3):paths[role+f'/epoch-checkpoints/epoch-{epoch:03d}.json']=run/f'epoch-checkpoints/epoch-{epoch:03d}.json'
+ paths[role+'/original-training.out']=c/(role+'.out');paths[role+'/original-training.err']=c/(role+'.err')
+ paths[role+'/resumed-training.out']=c/'resume-v1'/(role+'.out');paths[role+'/resumed-training.err']=c/'resume-v1'/(role+'.err')
+ paths[role+'/resumed-trainer-intent.json']=c/'resume-v1'/(role+'-trainer-intent.json')
+ assert not any(p.is_symlink() for p in paths.values())
+assert sum(p.stat().st_size for p in paths.values())<8*2**20
+files={n:{'bytes':p.stat().st_size,'sha256':sha(p),'base64':base64.b64encode(p.read_bytes()).decode()} for n,p in paths.items()}
+print(json.dumps({'job_id':os.environ['SLURM_JOB_ID'],'owning_node':os.uname().nodename,'CPUs_requested':os.environ['SLURM_CPUS_PER_TASK'],'GPUs':0,'node_free_bytes':shutil.disk_usage('/tmp').free,'files':files,'proofs':run_proofs}),flush=True)
+'''
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+(local/'collection-intent.json').write_text(json.dumps({'source_git':head,'scientific_source_git':'665c0d515410df24f1f37ed5d9f8cb7a0f0fc480','GPU_jobs':['869815','869816'],'CPU_only_small_original_collection':True,'automatic_retry':False},indent=2)+'\n')
+r=remote(program,{},cpu_name='rsna-effusion-fixed-final-observe')
+(local/'collection.stdout').write_bytes(r.stdout);(local/'collection.stderr').write_bytes(r.stderr)
+if r.returncode:raise ValueError('Read-only collection failed; inspect original intent/output, never repeat blindly')
+record=json.loads(r.stdout);audit.mkdir(); manifest={}
+for name,row in record.pop('files').items():
+ data=base64.b64decode(row.pop('base64'));assert len(data)==row['bytes'] and hashlib.sha256(data).hexdigest()==row['sha256']
+ p=audit/name;p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('xb') as f:f.write(data)
+ manifest[name]=row
+record.update(files=manifest,source_git=head,scientific_source_git='665c0d515410df24f1f37ed5d9f8cb7a0f0fc480',observed_at_UTC=datetime.datetime.now(datetime.timezone.utc).isoformat(),protected_evaluation_used=False)
+with (audit/'collection.json').open('x') as f:json.dump(record,f,indent=2,sort_keys=True);f.write('\n')
+print(json.dumps({'CPU_observer':record['job_id'],'proofs':record['proofs']}))

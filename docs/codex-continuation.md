@@ -1,3 +1,32 @@
+October4 fixed-final result: control869815/candidate869816 actuallyCOMPLETED0:0,
+3epochs/843 contiguous finite updates each. Effusion0.8533697632→0.8941049843,
+delta+.0407352211, paired component conditional95%[-.0111292332,.1163940857],
+9observed positive studies/components and671negatives; all4000 primary draws
+defined. All12macro0.7860903285→0.7873124081, delta+.0012220796, conditional95%
+[-.0053102854,.0084898732],2836defined/1164undefined. Promising primary point
+estimate, no established gain or Kaggle score. No protected data or original
+mask/fold change. Read effusion-supervision-screen-final-v1 original evidence/
+recompute.py; compare within this3epoch pair, not to unmatched10epoch metrics.
+
+All six screen epochs privately preservedONCE/all30 objects fully re-downloaded/
+size/SHA verified. Newepoch3 controlHF305fabefa4dc0f1612b509155673b9ee3cad54ce
+viaCPU869954 andcandidateHF243679e4cbc3b1ed2a31eabf2692e537ed93f3f8 via869957,
+bothCOMPLETED0:0. Node-local HF_HOME/nooptionalXet actually exercised with zero
+shared growth; old8home-cache files remain. Do not repeat any epoch/mirror.
+
+CPUobserver869956 failed a bookkeeping guard before collection: frozen trainer
+history is per invocation. Distinct869966 COMPLETED0:0 joins original1..175 plus
+resumed176..843, requires exact numerical overlap and unchanged completed run/
+source/roster/CSV/finalcheckpoint bindings. Original plan and failed observer are
+preserved; no fitting/inference was repeated. The same GPU state continued.
+
+Next prepared matched-seed20261004 control/candidate keeps original31 fitting
+cells and fixed3epoch budget; no new GPU dispatch. Samefold replay tests seed
+robustness, not independent patient generalization. Fresh sharedquota1026227500kB/
+994240files leaves20.0046855GiB/4992files after1404996457byte/768file liabilities.
+Resolve bounded unused metadata funding before new reservation; no deletion
+credit. Current SSH masteractive with keepalive, no new VPN login required.
+
 Private first-two-epoch milestone: source9982192 is fully15-object re-download/
 size/SHA verified at HF3078b3becfa143cdfef86d6087dcef4e0f27de57 under canonical
 shared lock. Read hf-effusion-epochs12-20261004-v1; never repeat this mirror or

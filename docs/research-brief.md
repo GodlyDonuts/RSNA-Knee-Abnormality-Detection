@@ -1,33 +1,31 @@
 # Research brief: what we know, what failed, and the next mechanisms
 
-Updated October 3, 2026 (America/New_York). This is the entry point for external
+Updated October 4, 2026 (America/New_York). This is the entry point for external
 research. Follow the linked original receipts for exact numerical/configuration
 bindings. Dated histories remain preserved; a prepared plan is not an executed
 experiment. Current live state belongs in [the continuation guide](codex-continuation.md).
 
-## Current training
+## Latest completed research result
 
-The two matched DINOv3-L rank32 fits reached183/182 finite logged updates before
-Slurm preempted them. Both latest complete step175 checkpoints preserved the
-exact learned state, AdamW, counters and all RNG. Distinct normal-priority
-continuations **869815/869816** were submitted once on evc32 with the original
-recipe; assigned H100/CUDA/header/runtime checks passed. At October4 07:01UTC,
-the control reached740 and candidate737 of843 updates, with contiguous finite
-losses/gradients and empty stderr. Both completed epochs1/2; all four immutable
-checkpoints were privately preserved once and all20 objects fully re-downloaded/
-size/SHA verified. No final held-out result is available yet.
-Each uses2,247
-training examinations, native384 images, the same initialization/optimizer and
-three epochs/843 updates; final evaluation uses1,156 disjoint development studies.
-Only31 reviewed fitting Effusion masks differ. This tests a measured supervision
-gap rather than more undirected scaling. Accuracy is not known yet.
+Both matched rank32 DINOv3-L fits completed three epochs/843 updates with the
+same native384 inputs,2,247 fitting studies and1,156 disjoint development studies.
+The candidate restored31 reviewed fitting Effusion cells, increasing observed
+fitting positives16→47; original release/evaluation masks stayed unchanged.
+**Held-out Effusion AUC:0.853370→0.894105 (+0.040735)**. Its paired whole-component
+95% interval **[-0.011129,0.116394] includes zero**, with only9 observed positives.
+Macro AUC was **0.786090→0.787312**, a near-null+0.001222 with conditional interval
+[-0.005310,0.008490] and1,164 undefined draws/4,000. This is a promising signal to
+replicate, not a confirmed gain, MRI truth or Kaggle score.
 
-Earlier evc34 attempts failed before any optimizer update. The original141GB MRI
-cache was fully verified on the healthy node and both actual allocated drivers
-passed. The same queued jobs were moved to the permitted preemptable queue to use
-idle GPUs ahead of planned higher-priority work. Rolling checkpoints preserve
-progress; exact continuation is required if Slurm preempts. See the
-[actual training audit](../initiative/audits/effusion-supervision-screen-v1/evc32-independent-jobs/README.md).
+All six immutable checkpoints are privately preserved and all30 objects were
+fully re-downloaded/size/SHA verified. Both preempted originals and exact state
+continuations remain intact; replayed interruption overlap is numerically equal.
+The [fixed-final audit](../initiative/audits/effusion-supervision-screen-final-v1/README.md)
+contains original predictions, all12 endpoints, uncertainty and a reproducible
+source/roster/trajectory/result replay. A new matched seed20261004 three-epoch
+recipe is prepared, **not dispatched**. It will test seed robustness without
+pretending that the same sparse holdout supplies independent patient evidence.
+New GPU funding needs the fresh metadata-reserve reconciliation first.
 
 ## Objective and current assessment
 
@@ -62,7 +60,7 @@ control retains16 fitting positives and candidate has47. Synthetic full/stop1/re
 state and CSV equality passed. Actual native384 CPU inputs passed; the first
 H100 engineering job869077 failed its same-process cross-arm initialization check
 before any optimizer update. A distinct correction uses independent initialization
-processes and preserves the full numerical recipe. No new accuracy result exists.
+processes and preserves the full numerical recipe. The completed three-epoch contrast is reported above; its gain is unestablished.
 See [implementation and protocol](../initiative/experiments/competitive-v1/effusion-review-contrast-v1/README.md).
 Experimental-supervision weights are blocked from competition inference pending
 separate admission. Sigmoid probabilities stay unchanged.

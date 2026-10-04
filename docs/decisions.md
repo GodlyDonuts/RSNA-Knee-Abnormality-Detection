@@ -1,5 +1,23 @@
 # Decisions, corrections, and unresolved work
 
+## October4: completed Effusion screen, uncertain gain, replication before promotion
+
+Both three-epoch paired fits completed with exact interrupted-state continuation.
+Restoring31 reviewed fitting Effusion cells raised the primary AUC0.853370→0.894105;
+paired95%[-0.011129,0.116394] includes zero and only9 observed positives support it.
+All12macro changed+0.001222 with interval spanning zero. Preserve this as a promising
+but unestablished mechanism, not a Kaggle or clinical gain. Original masks/folds and
+protected data stay untouched. All six checkpoints privately fully verified.
+
+The original observer misunderstood per-invocation history; the distinct corrected
+read-only replay reconstructs all843 updates across original/resumed logs and checks
+exact overlap. No trainer/predictions rerun or endpoint change. See
+[the original final audit](../initiative/audits/effusion-supervision-screen-final-v1/README.md).
+Prepare a matched second-seed fixed-budget replication before scaling; it cannot
+solve rare-positive evaluation uncertainty by itself. Resource reconciliation is
+still needed, with all originals preserved and zero assumed deletion credit.
+
+
 ## October3: supplied research program, supervision first
 
 Archived the owner's supplied program verbatim with provenance and a

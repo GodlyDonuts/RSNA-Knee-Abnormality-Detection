@@ -44,6 +44,19 @@ its preserved outputs are historical evidence, not current training labels.
   small final manifests, audits, predictions, and experiment metadata here even
   when also publishing them to Hugging Face.
 
+## October4 completed supervision screen
+
+The fixed three-epoch control/candidate fits completed; all six immutable
+checkpoints are privately download/hash verified. Read the latest
+`initiative/audits/effusion-supervision-screen-final-v1/README.md` and research
+brief. Effusion AUC rose 0.853370 to 0.894105, but its paired interval includes
+zero and only nine observed positives support the endpoint. Macro changed
++0.001222, also unestablished. This is internal research, not a Kaggle score.
+The next matched seed is prepared only; admission needs fresh resources and
+unique source/output/publication bindings. All original masks/folds and protected
+evaluation remain unchanged. Historical observations below are superseded by
+current original receipts, not overwritten.
+
 ## October3 supplied research program: first supervision contrast
 
 Read `initiative/research/owner-program-20261003-v1/README.md` and the current
