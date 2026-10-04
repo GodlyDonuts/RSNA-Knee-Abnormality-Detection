@@ -75,6 +75,8 @@ Trainer integration and synthetic canonical-trainer recovery are implemented.
 Actual complete-roster control/candidate input verification is recorded in
 `actual-input-verification.json`. Actual H100869300 passed complete four-update full/stop1/resume recovery for
 both arms with matched initialization. The exact fixed-screen preparation passed;
-new screen fitting and snapshot/publication funding remain unsubmitted. No
+full fixed-screen control869770/candidate869771 are actually RUNNING on separate
+H100s, with7 finite optimizer updates each at October4 02:23UTC. Snapshot/publication
+obligations are funded; see the current evc32-independent-jobs audit. No
 clinical gain or competition score is claimed. This protocol is independent
 of the retained patch-witness and future broad-concept/ranking proposals.

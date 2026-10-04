@@ -1,3 +1,26 @@
+Actual training, October4 02:23UTC: fixed Effusion control869770 and candidate869771
+are RUNNING on separate allocated H100s on evc32; both have7 contiguous finite
+optimizer updates and empty stderr. Actual individual CUDA/H100/header/runtime,
+full2247train/1156outer/source/base/cache/config bindings passed. Both first-seven
+numerical updates are identical before the sampled batches exercise the new cells;
+this is progress, not accuracy. Only31 reviewed fitting Effusion masks differ.
+Read effusion-supervision-screen-v1/evc32-independent-jobs/gpu-progress-001.json.
+
+Same original pending jobs were moved once to permitted preemptable partition/QOS
+because normal priority planned an unrelated future two-node job while evc32 was
+idle. No duplicate GPU job or scientific change. Full3epochs/843updates per arm
+and final-only outer evaluation remain fixed. Rolling checkpoint every25updates;
+immutable epoch snapshots preserve completed epochs. If preempted, inspect actual
+terminal and last complete checkpoint before a distinct source-identical explicit
+--resume continuation; never restart a fresh model or duplicate a healthy job.
+Use original commands/source/environment/arm bindings and the accepted869300
+complete optimizer/allRNG recovery proof; reserve/publication obligations remain.
+Original869702/714/718 driver/binding failures and both prior caches stay retained.
+Actual exact CPU copy869745 COMPLETED0:0/20:54, all37812members/140626483351bytes
+verified; source/runtime preparation869769 COMPLETED0:0. The same single coordinator
+preserves each newly completed role/epoch once, private full five-object downloads.
+No new held-out gain or competition score yet. Never repeat copy/dispatch intents.
+
 Healthy-node pivot: original869718 FAILED1:0, both assigned-device steps timed
 out/stalled at cuInit before either trainer. CPU binding was fixed; no actual
 optimizer update. Actual evc32 assigned-driver869722 COMPLETED0:0 in3.22seconds,

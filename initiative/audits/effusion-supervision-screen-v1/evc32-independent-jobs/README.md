@@ -27,7 +27,8 @@ same official base, source665c0d5, images, initialization seed, optimizer,
 effective eight-study batch and3epoch/843-update schedule. Only31 reviewed fitting
 Effusion masks differ. Final evaluation is on the same1156 disjoint studies.
 
-Actual GPU jobs have NOT been dispatched at this preparation milestone. Inspect
+Actual independent GPU jobs869770(control)/869771(candidate) were each submitted
+once from09dbab7 after CPU869769 admission passed. Inspect
 original intent/result before action; never retry uncertainty. Healthy original
 copy/training remains unchanged. Private role/epoch preservation uses the same
 coordinator and pinned common atomic-lock/HF upload/full-download code, with
@@ -37,3 +38,29 @@ competition promotion. No clinical/held-out improvement is established yet.
 Launch source verification: full1820 tests, Ruff287, mypy45, archive hashes and
 current89/89 evidence checks passed. Actual CPU admission still independently
 requires the complete original copy receipt before either GPU dispatch.
+
+
+## Actual training
+
+At October4 02:23UTC both jobs were RUNNING, with7 contiguous finite optimizer
+updates per arm and empty stderr. Exact full rosters/config/code/cache/base and
+isolated overlay bindings were independently checked in gpu-progress-001.json.
+Distinct physical H100 UUIDs and CPU affinities confirm independent allocations;
+CUDA initialization0/count1 and strict deterministic backend passed in both.
+
+The same PENDING jobs were moved once from normal to the account's explicitly
+allowed preemptable partition/QOS, because Slurm's normal-priority future plan
+otherwise prevented using the idle GPUs. Original intents/results are retained;
+no new jobs, source or recipe changes. PREEMPT/CANCEL can interrupt execution.
+Checkpoint every25updates, immutable every epoch; preserve all original copies.
+
+If Slurm actually preempts a job, verify terminal state, original run/source/
+config/roster/base/runtime and last atomically complete optimizer-boundary
+checkpoint before creating a distinct explicit continuation. Use the original
+trainer command from ROLE-trainer-intent.json with --resume pointing to that
+role's checkpoint.pt, the same strict runtime wrapper and original output. Do
+not call the fresh-arm runner again: it deliberately refuses an existing intent.
+Reuse actual869300 numerical recovery; fresh allocated-driver/header acceptance
+and reserve review still apply. A final checkpoint can resume interrupted outer
+prediction without adding optimizer updates. Never duplicate a healthy arm or
+retry an uncertain scheduler/publication mutation.

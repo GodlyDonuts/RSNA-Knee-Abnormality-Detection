@@ -1,31 +1,26 @@
-Current update: evc34 remains unusable in actual allocated CUDA probes, and
-no screen optimizer update has occurred there. evc32 passed one assigned H100
-CUDA check in3.22seconds; exact private cache routing869745 is running. The
-next launch uses independent one-GPU batch jobs with the unchanged paired
-Effusion science. Original failures are retained; actual new state belongs in
-the continuation and evc32-independent-jobs audit.
-
-Latest actual screen869702 failed before training in its assigned-device
-initialization guard (both steps exceeded25seconds). No model updates or new
-accuracy result. Distinct bounded180second observable recovery is prepared
-without repeating the verified cache/runtime transfer or changing science.
-Actual new state belongs in the continuation and screen recovery audit.
-
-Current training update: the Effusion supervision comparison is now actually
-running as job869702 on evc34, two independent one-H100 arms in parallel,
-three epochs each on2247 training studies with1156 disjoint held-out studies.
-The full private native384 cache placement passed every member size/SHA;
-actual numerical recovery869300 is reused unchanged. Only31 reviewed fitting
-masks differ. This is a launch, not a measured accuracy improvement. See
-[the screen audit](../initiative/audits/effusion-supervision-screen-v1/README.md)
-and live continuation for exact resource/provenance/publication receipts.
-
 # Research brief: what we know, what failed, and the next mechanisms
 
 Updated October 3, 2026 (America/New_York). This is the entry point for external
 research. Follow the linked original receipts for exact numerical/configuration
 bindings. Dated histories remain preserved; a prepared plan is not an executed
 experiment. Current live state belongs in [the continuation guide](codex-continuation.md).
+
+## Current training
+
+Two matched DINOv3-L rank32 models are now training on separate H100s on evc32:
+control **869770** and reviewed-Effusion candidate **869771**. At October4 02:23UTC,
+both had **7 real, finite optimizer updates**, with empty stderr. Each uses2,247
+training examinations, native384 images, the same initialization/optimizer and
+three epochs/843 updates; final evaluation uses1,156 disjoint development studies.
+Only31 reviewed fitting Effusion masks differ. This tests a measured supervision
+gap rather than more undirected scaling. Accuracy is not known yet.
+
+Earlier evc34 attempts failed before any optimizer update. The original141GB MRI
+cache was fully verified on the healthy node and both actual allocated drivers
+passed. The same queued jobs were moved to the permitted preemptable queue to use
+idle GPUs ahead of planned higher-priority work. Rolling checkpoints preserve
+progress; exact continuation is required if Slurm preempts. See the
+[actual training audit](../initiative/audits/effusion-supervision-screen-v1/evc32-independent-jobs/README.md).
 
 ## Objective and current assessment
 
