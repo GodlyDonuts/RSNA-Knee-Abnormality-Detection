@@ -1,3 +1,15 @@
+Prepared private native-cache routing uses oneCPU on each of evc31/evc34 and
+zeroGPUs; actual read-only probes869660/869661 confirmed37812originalmembers/
+140626483351bytes and860392321024free destination bytes. Read effusion-native-
+cache-route-v1. Direct cluster SSH transport keeps pixels off this Mac, verifies
+every new-copy byte against original registry, and preserves the original cache.
+A distinct single dispatch needs fresh funding: reassign ten unused original
+native-all closeout slots, retain at least12; split unused8MiB engineering cap
+into5MiB engineering/3MiB routing. New node-local140.6GBcache/7GiBruntime/3GiB
+checkpoints/20GiBreserve are explicit. No GPU reservation before actual placement
+acceptance; never retry uncertainty. Full1792tests/Ruff282/mypy45/archive/current
+89/89passed. No numerical trainer/recipe/source changed.
+
 Full1780 tests/Ruff280 files/mypy45 modules/archive/current89/89 evidence checks
 passed for corrected actual-recovery admission. No numerical rsna source changed.
 
