@@ -57,6 +57,18 @@ its preserved outputs are historical evidence, not current training labels.
   small final manifests, audits, predictions, and experiment metadata here even
   when also publishing them to Hugging Face.
 
+## October4 second-seed result and first new submission
+
+Native all-development final10 was accepted once as56833260 after full exact
+public acceptance. Do not repeat it. Actual source/evaluation replay for seed2
+shows primary Effusion+.013744 unestablished and overall12macro-.008070; preserve
+this negative aggregate finding and keep original-label control as default.
+Read effusion-supervision-seed2-final-v1. Four paired Kaggle candidates are
+specifically admitted to learn from actual outcomes, not as an overlay promotion.
+Never restart original finite finish/publication coordinators without inspecting
+intents/results; uncertainty reconciles read-only. Current receipts override old
+training-running observations below.
+
 ## October4 completed supervision screen
 
 The fixed three-epoch control/candidate fits completed; all six immutable

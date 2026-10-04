@@ -1,0 +1,12 @@
+import ast,json,shlex,subprocess
+from pathlib import Path
+ROOT=Path.cwd();LOCAL=ROOT/'artifacts/kaggle-effusion-comparison-v1';AUDIT=ROOT/'initiative/audits/kaggle-effusion-comparison-v1';keys=['seed1-control','seed1-candidate','seed2-control','seed2-candidate'];tree=ast.parse((LOCAL/'stage_and_phase.py').read_text());template=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='PHASE' for t in n.targets));receipt=json.loads((LOCAL/'projection/receipt.json').read_text());program=template.replace('__PROJECTION_SHA__',repr(receipt['projection_sha256']))
+for key in keys:
+ d=LOCAL/key;d.mkdir(exist_ok=True);assert not (d/'prepare-intent.json').exists();(d/'prepare-intent.json').write_text(json.dumps({'key':key,'phase':'prepare','automatic_retry':False,'projection_sha256':receipt['projection_sha256'],'single_bounded_CPU_allocation':True})+'\n')
+wrapper='import sys\nfor current_key in '+repr(keys)+':\n sys.argv=[sys.argv[0],current_key,"prepare"]\n exec('+repr(program)+')\n'
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc32','--gres=none','--mem=8G','--time=00:45:00','--job-name=rsna-effusion-four-final-prepare','/usr/bin/python3.12','-B','-c',wrapper]
+r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=2750);(LOCAL/'four-prepare-result.json').write_text(json.dumps({'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr},indent=2)+'\n');assert r.returncode==0,{'returncode':r.returncode,'stderr':r.stderr}
+values=[json.loads(line) for line in r.stdout.splitlines()];assert len(values)==4
+for key,v in zip(keys,values):
+ (LOCAL/key/'prepare-result.json').write_text(json.dumps({'returncode':0,'stdout':json.dumps(v),'stderr':r.stderr},indent=2)+'\n');(AUDIT/key/'prepare-result.json').write_text(json.dumps(v,indent=2)+'\n');(AUDIT/key/'operation.json').write_text(json.dumps(v['operation'],indent=2)+'\n')
+print(json.dumps({'status':'all_four_fixed_final_packages_prepared','CPU_job':values[0]['job_id'],'models':{k:v['operation']['kernel_slug'] for k,v in zip(keys,values)}}))

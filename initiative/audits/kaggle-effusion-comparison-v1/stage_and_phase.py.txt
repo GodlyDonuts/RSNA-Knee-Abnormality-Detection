@@ -1,0 +1,88 @@
+import base64,hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+ROOT=Path.cwd();LOCAL=ROOT/'artifacts/kaggle-effusion-comparison-v1';AUDIT=ROOT/'initiative/audits/kaggle-effusion-comparison-v1';NODE='/tmp/rsna-kaggle-effusion-final-20261004-v1'
+KEYS=['seed1-control','seed1-candidate','seed2-control','seed2-candidate']
+SHAS=[json.loads((AUDIT/k/'fitting-admission.json').read_text())['checkpoint_sha256'] for k in KEYS]
+ALL_SHAS=['8f6da3a1b401d9056fe846eb85e52fdb596fbadcc39ce57e1bc7b8cfe553a3a7']+SHAS
+STAGE=r'''
+import base64,hashlib,io,json,os,shutil,sqlite3,subprocess,sys,tarfile
+from pathlib import Path
+os.umask(0o077);r=json.load(sys.stdin);n=Path(r['node']);b=Path('/home/sa305415/rsna-knee');assert os.uname().nodename=='evc32' and not os.environ.get('SLURM_JOB_GPUS') and not n.exists();assert not (b/'kaggle/coordinator-claim').exists()
+# One five-candidate metadata family: the original2MiB/40-file reservation is shared.
+paid={}
+for sha in r['all_shas']:
+ j=b/'kaggle/dataset-publications'/sha
+ if j.exists():
+  for p in [j]+list(j.rglob('*')):
+   assert not p.is_symlink();s=p.stat();paid[s.st_dev,s.st_ino]=s.st_size
+assert len(paid)<=40 and sum(paid.values())<2*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];future=1404996457+2*2**20-sum(paid.values());nf=760-len(paid);gib=((soft-used)*1024-future)/2**30;slots=limit-count-nf;assert gib>=20 and slots>=5000,(gib,slots)
+assert shutil.disk_usage('/tmp').free>=(20+7+3+4*(2+1.35))*2**30
+roots={'seed1':Path('/tmp/rsna-effusion-screen-evc32-20261004-v1'),'seed2':Path('/tmp/rsna-effusion-seed20261004-evc32-v1')}
+terminal=subprocess.check_output(['sacct','-X','-j','869815,869816,870025,870026','-n','-P','--format=JobIDRaw,State,ExitCode'],text=True).splitlines();assert set(terminal)=={j+'|COMPLETED|0:0' for j in ['869815','869816','870025','870026']}
+rt=json.loads((roots['seed2']/'runtime.json').read_text());assert rt['archive_sha256']=='89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338' and rt['file_members']==40403 and Path(rt['python']).is_file()
+raw=base64.b64decode(r['archive'],validate=True);manifest=base64.b64decode(r['manifest'],validate=True);assert hashlib.sha256(raw).hexdigest()==r['archive_sha'] and hashlib.sha256(manifest).hexdigest()==r['manifest_sha'];m=json.loads(manifest);assert m['training_git_commit']=='665c0d515410df24f1f37ed5d9f8cb7a0f0fc480'
+with sqlite3.connect('file:'+str(b/'kaggle/account-ledger.sqlite3')+'?mode=ro',uri=True) as db:
+ for key,a in r['admissions'].items():
+  assert db.execute('select record from entries where sha=?',(a['checkpoint_sha256'],)).fetchone() is None
+  assert not (b/'kaggle/dataset-publications'/a['checkpoint_sha256']).exists()
+  seed,role=key.split('-');root=roots[seed];run=json.loads((root/role/'run.json').read_text());result=json.loads((root/role/'result.json').read_text());snap=json.loads((root/role/'epoch-checkpoints/epoch-003.json').read_text());proof=json.loads((root/'epoch-publication'/role/'epoch-003/verified.json').read_text())
+  assert run['status']==result['status']=='completed' and result['optimizer_steps']==843 and snap['optimizer_steps']==843 and snap['checkpoint_sha256']==a['checkpoint_sha256']
+  assert proof['status']=='private_epoch_fully_verified' and proof['files_verified_by_download']==5 and proof['checkpoint_sha256']==a['checkpoint_sha256']
+  binding=run['binding'];assert hashlib.sha256(json.dumps(binding,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()==a['training_binding_sha256']
+  assert m['training_code_sha256']=={'rsna/'+name:digest for name,digest in binding['code_sha256'].items()}
+n.mkdir(mode=0o700);p=n/'projection/code';p.mkdir(parents=True);(n/'projection/projection.json').write_bytes(manifest)
+with tarfile.open(fileobj=io.BytesIO(raw)) as t:
+ members=t.getmembers();assert {x.name for x in members}==set(m['files']) and all(x.isfile() and not Path(x.name).is_absolute() and '..' not in Path(x.name).parts for x in members)
+ for member in members:
+  data=t.extractfile(member).read();rec=m['files'][member.name];assert len(data)==rec['bytes'] and hashlib.sha256(data).hexdigest()==rec['sha256'];f=p/member.name;f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(data);f.chmod(rec['mode'])
+(n/'runtime.json').write_text(json.dumps(rt,indent=2)+'\n');(n/'encoder-spec.json').write_bytes((b/'kaggle/nativeall-epoch5-v1/encoder-spec-native-r32.json').read_bytes())
+for key,a in r['admissions'].items():
+ d=n/key;d.mkdir();(d/'fitting-admission.json').write_text(json.dumps(a,sort_keys=True,indent=2)+'\n')
+fund={'status':'single_five_candidate_metadata_family_admitted','new_shared_cap_bytes':2*2**20,'new_shared_cap_files':40,'all_checkpoint_shas':r['all_shas'],'prior_future_shared_bytes':1404996457,'prior_future_shared_files':760,'used_kB':used,'soft_kB':soft,'used_files':count,'file_soft':limit,'paid_family_files':len(paid),'paid_family_bytes':sum(paid.values()),'remaining_gib_after_all_liabilities':gib,'remaining_files_after_all_liabilities':slots,'new_bulk_shared_bytes':0,'new_shared_reservation_beyond_native_final_family':0,'native_final_unused40_metadata_retirement_preserved':True,'no_deletion_credit':True,'node_local_new_bundle_cap_per_model_bytes':2*2**30,'node_local_new_zip_cap_per_model_bytes':1350*2**20,'original_runtime_reused':True,'node_local_reserve_bytes':20*2**30}
+(n/'funding.json').write_text(json.dumps(fund,indent=2)+'\n');print(json.dumps({'status':'four_exact_fixed_final_private_packages_staged','job_id':os.environ['SLURM_JOB_ID'],'projection_sha256':r['manifest_sha'],'funding':fund,'runtime_reused':True}))
+'''
+PHASE=r'''
+import json,os,subprocess,sys
+from pathlib import Path
+assert os.uname().nodename=='evc32' and os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS');n=Path('/tmp/rsna-kaggle-effusion-final-20261004-v1');b=Path('/home/sa305415/rsna-knee');p=n/'projection/code';python=json.loads((n/'runtime.json').read_text())['python'];key,phase=sys.argv[1:];seed,role=key.split('-');c=n/key;admission=json.loads((c/'fitting-admission.json').read_text());sha=admission['checkpoint_sha256'];root=Path('/tmp/rsna-effusion-screen-evc32-20261004-v1' if seed=='seed1' else '/tmp/rsna-effusion-seed20261004-evc32-v1');snapshot=root/role/'epoch-checkpoints/epoch-003.json';bundle=c/'candidate';upload=Path('/tmp/rsna-kaggle-upload-'+sha[:12]);fund=json.loads((n/'funding.json').read_text());paid={}
+for checkpoint in fund['all_checkpoint_shas']:
+ j=b/'kaggle/dataset-publications'/checkpoint
+ if j.exists():
+  for x in [j]+list(j.rglob('*')):
+   assert not x.is_symlink();s=x.stat();paid[s.st_dev,s.st_ino]=s.st_size
+assert len(paid)<=40 and sum(paid.values())<2*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];future=1404996457+2*2**20-sum(paid.values());nf=760-len(paid);assert ((soft-used)*1024-future)/2**30>=20 and limit-count-nf>=5000
+os.environ.update(PYTHONPATH=str(p),PYTHONDONTWRITEBYTECODE='1',PYTHONNOUSERSITE='1',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+args=['--node-local-upload-root',str(upload),'--projection',str(p),'--projection-manifest',str(n/'projection/projection.json'),'--projection-sha256',__PROJECTION_SHA__,'--snapshot',str(snapshot),'--operation',str(bundle/'operation.json')]
+if phase=='prepare':
+ cmd=[python,str(p/'scripts/kaggle/workflow.py'),'prepare','--snapshot',str(snapshot),'--fitting-admission',str(c/'fitting-admission.json'),'--encoder-spec',str(n/'encoder-spec.json'),'--wheelhouse',str(b/'kaggle/wheelhouse-cp312-cu130-v1'),'--shared-wheelhouse',str(b/'kaggle/preparation-stage-v1/shared-wheelhouse.json'),'--license-file',str(b/'encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md'),'--license-source','https://github.com/facebookresearch/dinov3/blob/ffb4bb89c6558ca3244655c25a3955d01788b732/LICENSE.md','--license-sha256','25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e','--runtime-image','gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461','--output',str(bundle),'--dataset-slug','godlydonuts/rsna-effusion-'+key+'-'+sha[:12],'--kernel-slug','godlydonuts/rsna-effusion-'+key+'-py312-'+sha[:12]]
+ subprocess.run(cmd,check=True,stdout=subprocess.PIPE,text=True);subprocess.run([python,str(p/'scripts/kaggle/coordinator.py'),'prepare-transport',*args],check=True,stdout=subprocess.PIPE,text=True)
+ assert sum(x.stat().st_size for x in bundle.rglob('*') if x.is_file())<2*2**30
+ transport=json.loads((b/'kaggle/dataset-publications'/sha/'transport.json').read_text());assert transport['archive_bytes']<1350*2**20;print(json.dumps({'status':'exact_final_fitting_checkpoint_prepared','job_id':os.environ['SLURM_JOB_ID'],'operation':json.loads((bundle/'operation.json').read_text()),'transport':transport}))
+else:
+ assert phase in {'create-dataset','reconcile-dataset','push-kernel','submit'}
+ if phase=='create-dataset':args+=['--management-python',str(b/'kaggle/management-cp312-v1/bin/python')]
+ out=subprocess.run([python,str(p/'scripts/kaggle/coordinator.py'),phase,*args],input=sys.stdin.read(),capture_output=True,text=True);sys.stdout.write(out.stdout);sys.stderr.write(out.stderr);sys.exit(out.returncode)
+'''
+key,phase=sys.argv[1:];assert key in KEYS+['all'] and phase in {'stage','prepare','create-dataset','reconcile-dataset','push-kernel','submit'}
+folder=LOCAL/key;folder.mkdir(exist_ok=True);intent=folder/(phase+'-intent.json');result=folder/(phase+'-result.json');assert not intent.exists() and not result.exists(),'Prior intent requires read-only reconciliation'
+projection=LOCAL/'projection';receipt=json.loads((projection/'receipt.json').read_text());assert receipt['training_git_commit']=='665c0d515410df24f1f37ed5d9f8cb7a0f0fc480'
+if phase=='stage':
+ assert key=='all';payload={'node':NODE,'all_shas':ALL_SHAS,'archive':base64.b64encode((projection/'projection.tar').read_bytes()).decode(),'archive_sha':receipt['archive_sha256'],'manifest':base64.b64encode((projection/'projection.json').read_bytes()).decode(),'manifest_sha':receipt['projection_sha256'],'admissions':{k:json.loads((AUDIT/k/'fitting-admission.json').read_text()) for k in KEYS}}
+else:
+ assert key!='all';payload={}
+ if phase!='prepare':
+  env=ROOT/'.env';assert env.stat().st_mode&0o077==0;values={}
+  for line in env.read_text().splitlines():
+   k,s,v=line.partition('=')
+   if s:values[k.strip()]=v.strip().strip('\"\'')
+  payload={'token':values['KAGGLE_API_TOKEN']}
+intent.write_text(json.dumps({'key':key,'phase':phase,'automatic_retry':False,'credentials':'stdin_only','canonical_ledger':'/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3','projection_sha256':receipt['projection_sha256']})+'\n')
+program=STAGE if phase=='stage' else PHASE.replace('__PROJECTION_SHA__',repr(receipt['projection_sha256']))
+command=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc32','--gres=none','--mem=8G','--time=00:45:00','--job-name=rsna-eff-'+key+'-'+phase,'/usr/bin/python3.12','-B','-c',program]
+if phase!='stage':command.extend([key,phase])
+r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(command)],input=json.dumps(payload),capture_output=True,text=True,timeout=2750);out={'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr};result.write_text(json.dumps(out,indent=2)+'\n');assert r.returncode==0,out
+v=json.loads(r.stdout);destination=AUDIT if key=='all' else AUDIT/key;(destination/(phase+'-result.json')).write_text(json.dumps(v,indent=2)+'\n')
+if phase=='prepare':(destination/'operation.json').write_text(json.dumps(v['operation'],indent=2)+'\n')
+print(json.dumps(v))

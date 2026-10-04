@@ -1,3 +1,21 @@
+October4 20:32UTC native384 all-development final10 was code-submitted ONCE as
+56833260 after exact public MRI-only acceptance. Dataset12369051v1/47objects
+verified; exact notebookv1 on pinned Python3.12 offlineT4 image. Hidden result
+not available at dispatch; no score inferred. First supervision seed1 control/
+candidate private notebookv1 pushed once; paired seed2 preparation complete and
+private publication underway. Read kaggle-effusion-comparison-v1 and original
+finite coordinators/intents before action. Never restart finite finish code or
+repeat creates/pushes/submissions. Latest actual outcomes come from live API.
+
+Second-seed fixed-final independent replay completed: Effusion0.928051→0.941795,
+delta+.013744 with conditional95%[-.012795,.045965];9positives/671negatives.
+Overall12macro0.809696→0.801626, delta-.008070, conditional95%[-.014051,-.001754],
+2836defined/1164undefined draws. Preserve the negative aggregate finding; the
+overlay is not an established improvement. Original-label control stays default.
+Read effusion-supervision-seed2-final-v1/recompute.py and original predictions.
+No training/inference rerun or protected-data/mask change. The two seeds share
+the same sparse holdout; they are not independent patient replication.
+
 October4 owner explicitly requests useful Kaggle testing within daily allowance.
 Native all-development5 actually scored0.804 (56783855), best solo before this
 comparison. Native final10 Dataset12369051v1 is fully47-object download/hash verified;

@@ -1,3 +1,16 @@
+October4 update: the second fixed-budget seed improved Effusion point AUC
+0.928051→0.941795, but its95% includes zero. Overall12-target AUC fell
+0.809696→0.801626 (paired conditional95% delta[-.014051,-.001754],1164undefined
+draws). The first seed's aggregate improvement was near-null; there is no
+consistent overall benefit. Keep original-label control as default. See
+[second-seed original replay](../initiative/audits/effusion-supervision-seed2-final-v1/README.md).
+
+The owner's latest request restores useful Kaggle deployment. Native all-development
+epoch5 actually scored0.804; fixed-final10 is submitted once as56833260 and no hidden
+score is known yet. Four fixed-final3 supervision checkpoints are being tested as
+matched original/reviewed-label pairs across two seeds. This tests generalization
+and task tradeoffs; it does not promote the overlay or imply competition success.
+
 # Research brief: what we know, what failed, and the next mechanisms
 
 Updated October 4, 2026 (America/New_York). This is the entry point for external

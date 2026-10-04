@@ -1,0 +1,95 @@
+import hashlib, importlib.util, json, os, shlex, subprocess, sys
+from pathlib import Path
+
+ROOT = Path.cwd()
+LOCAL = ROOT / 'artifacts/kaggle-nativeall-final-20261004-v1'
+AUDIT = ROOT / 'initiative/audits/kaggle-nativeall-final-20261004-v1'
+NODE = '/tmp/rsna-kaggle-nativeall-final-20261004-v1'
+SHA = '8f6da3a1b401d9056fe846eb85e52fdb596fbadcc39ce57e1bc7b8cfe553a3a7'
+PROJECTION_SHA = 'a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437'
+IMAGE = 'gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461'
+STAGE = r'''
+import hashlib,json,os,shutil,sqlite3,subprocess,sys
+from pathlib import Path
+r=json.load(sys.stdin); assert os.uname().nodename=='evc31' and os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+b=Path('/home/sa305415/rsna-knee'); n=Path(r['node']); assert not n.exists()
+assert not (b/'kaggle/coordinator-claim').exists() and not (b/'kaggle/dataset-publications'/r['sha']).exists()
+with sqlite3.connect('file:'+str(b/'kaggle/account-ledger.sqlite3')+'?mode=ro',uri=True) as db:
+ assert db.execute('select record from entries where sha=?',(r['sha'],)).fetchone() is None
+t=subprocess.check_output(['sacct','-X','-j','868093','-n','-P','--format=JobIDRaw,State,ExitCode'],text=True).strip();assert t=='868093|COMPLETED|0:0'
+runroot=Path('/tmp/rsna-native384-all-production-20261002-v1'); run=json.loads((runroot/'run.json').read_text()); result=json.loads((runroot/'result.json').read_text()); snap=json.loads((runroot/'epoch-checkpoints/epoch-010.json').read_text())
+assert snap['checkpoint_sha256']==r['sha'] and snap['optimizer_steps']==4260 and snap['epoch']==10
+assert run['training_studies']==3403 and run['outer_studies']==0
+pub=b/'production-launch-native384-all-c9-v1/epoch-publication'; paid={}
+for epoch in range(1,11):
+ d=pub/f'epoch-{epoch:03d}';v=json.loads((d/'verified.json').read_text());assert v['status']=='private_epoch_fully_verified' and v['files_verified_by_download']==6
+ for x in [d]+list(d.iterdir()):
+  assert not x.is_symlink() and (x==d or x.name in {'manifest.json','intent.json','commit-result.json','verified.json'});s=x.stat();paid[s.st_dev,s.st_ino]=s.st_size
+s=pub.stat();paid[s.st_dev,s.st_ino]=s.st_size;assert len(paid)==51
+assert 128-15-len(paid)>=40+16
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True); row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home')][0]; used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]]
+future=1404996457+2*2**20;nf=760-40+40;reserve=((soft-used)*1024-future)/2**30;slots=limit-count-nf;assert reserve>=20 and slots>=5000,(reserve,slots)
+assert shutil.disk_usage('/tmp').free>(20+7+2+2)*2**30
+old=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection'); raw=(old/'projection.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==r['projection_sha'];manifest=json.loads(raw)
+assert manifest['training_git_commit']=='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+assert {str(x.relative_to(old/'code')) for x in (old/'code').rglob('*') if x.is_file()}==set(manifest['files'])
+for name,v in manifest['files'].items():
+ x=old/'code'/name;assert not x.is_symlink() and x.stat().st_size==v['bytes'] and hashlib.sha256(x.read_bytes()).hexdigest()==v['sha256']
+n.mkdir(mode=0o700);(n/'projection/code').mkdir(parents=True,mode=0o700)
+os.link(old/'projection.json',n/'projection/projection.json')
+for name in manifest['files']:
+ x=n/'projection/code'/name;x.parent.mkdir(parents=True,exist_ok=True);os.link(old/'code'/name,x)
+spec=b/'kaggle/nativeall-epoch5-v1/encoder-spec-native-r32.json';os.link(spec,n/'encoder-spec.json')
+fund={'used_kB':used,'soft_kB':soft,'used_files':count,'file_soft':limit,'prior_future_shared_bytes':1404996457,'prior_future_shared_files':760,'future_shared_bytes':future,'future_shared_files':nf,'retired_unused_all_native_metadata_future_files':40,'original_all_native_cap_files':128,'original_controls_paid':15,'all10_publication_paid_inodes':len(paid),'retained_original_closeout_future_files_at_least':16,'new_metadata_cap_bytes':2*2**20,'new_metadata_cap_files':40,'remaining_gib_after_all_liabilities':reserve,'remaining_files_after_all_liabilities':slots,'deletion_credit':0,'all_other_liabilities_retained':True,'node_bundle_cap_bytes':2*2**30,'node_zip_cap_bytes':1350*2**20,'node_runtime_cap_bytes':7*2**30}
+(n/'funding.json').write_text(json.dumps(fund,indent=2)+'\n')
+cmd=['/usr/bin/python3.12',str(b/'code-stopfix-1f486765/scripts/newton/runtime_environment.py'),'extract','--archive',str(b/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar'),'--sha256','89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','--expected-files','40403','--expected-bytes','6322691335','--scratch-base','/tmp','--shared-python','/usr/bin/python3.12','--min-free-gib','20']
+runtime=json.loads(subprocess.check_output(cmd,text=True));(n/'runtime.json').write_text(json.dumps(runtime,indent=2)+'\n')
+print(json.dumps({'status':'exact_original_nativeall_final_private_packaging_staged','job_id':os.environ['SLURM_JOB_ID'],'funding':fund,'snapshot':snap,'runtime':runtime,'projection_sha256':r['projection_sha']}))
+'''
+PHASE = r'''
+import json,os,subprocess,sys
+from pathlib import Path
+assert os.uname().nodename=='evc31' and os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+n=Path('/tmp/rsna-kaggle-nativeall-final-20261004-v1');b=Path('/home/sa305415/rsna-knee');p=n/'projection/code';python=json.loads((n/'runtime.json').read_text())['python'];phase=sys.argv[1]
+os.environ.update(PYTHONPATH=str(p),PYTHONDONTWRITEBYTECODE='1',PYTHONNOUSERSITE='1',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+snapshot=Path('/tmp/rsna-native384-all-production-20261002-v1/epoch-checkpoints/epoch-010.json');sha='8f6da3a1b401d9056fe846eb85e52fdb596fbadcc39ce57e1bc7b8cfe553a3a7';bundle=n/'candidate';upload=Path('/tmp/rsna-kaggle-upload-'+sha[:12]);journal=b/'kaggle/dataset-publications'/sha
+fund=json.loads((n/'funding.json').read_text());paid={}
+for family_sha in ['8f6da3a1b401d9056fe846eb85e52fdb596fbadcc39ce57e1bc7b8cfe553a3a7', 'e7069d91d7acc11139e864f6ce9af73c7087e5d375c69c67530f6913e3d6bdb2', '5dfae0c57e254ff212fd666b1dcb4a91fa788c2d985593760f7b20793c746269', '490e23ea1209323a64294b3479affc68ec07918a2ae3b95a7bd62bb8d73a7ffb', '1253e26679fa34698adcffdf0a4cf69c64c88c1e984e703bd9fd396e879c442a']:
+ family_journal=b/'kaggle/dataset-publications'/family_sha
+ if family_journal.exists():
+  for x in [family_journal]+list(family_journal.rglob('*')):
+   assert not x.is_symlink();s=x.stat();paid[s.st_dev,s.st_ino]=s.st_size
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]]
+assert len(paid)<=40 and sum(paid.values())<2*2**20
+future=fund['future_shared_bytes']-sum(paid.values());nf=fund['future_shared_files']-len(paid);assert ((soft-used)*1024-future)/2**30>=20 and limit-count-nf>=5000
+args=['--node-local-upload-root',str(upload),'--projection',str(p),'--projection-manifest',str(n/'projection/projection.json'),'--projection-sha256','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437','--snapshot',str(snapshot),'--operation',str(bundle/'operation.json')]
+if phase=='prepare':
+ cmd=[python,str(p/'scripts/kaggle/workflow.py'),'prepare','--snapshot',str(snapshot),'--encoder-spec',str(n/'encoder-spec.json'),'--wheelhouse',str(b/'kaggle/wheelhouse-cp312-cu130-v1'),'--shared-wheelhouse',str(b/'kaggle/preparation-stage-v1/shared-wheelhouse.json'),'--license-file',str(b/'encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md'),'--license-source','https://github.com/facebookresearch/dinov3/blob/ffb4bb89c6558ca3244655c25a3955d01788b732/LICENSE.md','--license-sha256','25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e','--runtime-image','gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461','--output',str(bundle),'--dataset-slug','godlydonuts/rsna-knee-nativeall-e010-'+sha[:12],'--kernel-slug','godlydonuts/rsna-knee-nativeall-epoch10-py312-'+sha[:12]]
+ subprocess.run(cmd,check=True,stdout=subprocess.PIPE,text=True)
+ subprocess.run([python,str(p/'scripts/kaggle/coordinator.py'),'prepare-transport',*args],check=True,stdout=subprocess.PIPE,text=True)
+ assert sum(x.stat().st_size for x in bundle.rglob('*') if x.is_file())<2*2**30
+ transport=json.loads((journal/'transport.json').read_text());assert transport['archive_bytes']<1350*2**20
+ print(json.dumps({'status':'original_nativeall_final_prepared','job_id':os.environ['SLURM_JOB_ID'],'operation':json.loads((bundle/'operation.json').read_text()),'transport':transport}))
+else:
+ assert phase in {'create-dataset','reconcile-dataset','push-kernel','submit'}
+ if phase=='create-dataset':args+=['--management-python',str(b/'kaggle/management-cp312-v1/bin/python')]
+ token=sys.stdin.read();out=subprocess.run([python,str(p/'scripts/kaggle/coordinator.py'),phase,*args],input=token,text=True,capture_output=True);sys.stdout.write(out.stdout);sys.stderr.write(out.stderr);sys.exit(out.returncode)
+'''
+
+phase=sys.argv[1];assert phase=='submit'
+intent=LOCAL/(phase+'-intent.json');result=LOCAL/(phase+'-result.json');assert not intent.exists() and not result.exists(),'Existing intent: reconcile read-only, never rerun'
+payload={'node':NODE,'sha':SHA,'projection_sha':PROJECTION_SHA}
+if phase not in {'stage','prepare'}:
+ values={};env=ROOT/'.env';assert env.stat().st_mode&0o077==0
+ for line in env.read_text().splitlines():
+  k,s,v=line.partition('=')
+  if s:values[k.strip()]=v.strip().strip('"\'')
+ payload={'token':values['KAGGLE_API_TOKEN']}
+intent.write_text(json.dumps({'phase':phase,'checkpoint_sha256':SHA,'automatic_retry':False,'credentials':'stdin_only','canonical_ledger':'/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'})+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:45:00','--job-name=rsna-all-e10-'+phase,'/usr/bin/python3.12','-B','-c',STAGE if phase=='stage' else PHASE]
+if phase!='stage':cmd.append(phase)
+r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=2750)
+out={'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr};result.write_text(json.dumps(out,indent=2)+'\n');assert r.returncode==0,out
+value=json.loads(r.stdout);(AUDIT/(phase+'-result.json')).write_text(json.dumps(value,indent=2)+'\n')
+if phase=='prepare':(AUDIT/'operation.json').write_text(json.dumps(value['operation'],indent=2)+'\n')
+print(json.dumps(value))
