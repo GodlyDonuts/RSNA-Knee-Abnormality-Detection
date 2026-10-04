@@ -1,3 +1,19 @@
+October4 second-seed admission prepared: new single coordinator
+scripts/newton/dispatch_effusion_replication.py keeps unchanged665c0d5 numerical
+source and the31 fitting-only Effusion contrast, seed20261004/3epochs/843updates.
+No second-seed GPU dispatch yet. Exact original code/runtime/cache are reused on
+evc32 without bulk copies/extraction. Old+new checkpoints funded within3GiB and
+controls within32MiB; original models/records retained. Read
+initiative/audits/effusion-supervision-seed2-v1 before action.
+
+The previous8-file reserve gap is explicitly reconciled: original native867367
+complete/all10 five-object private proofs verified. Its separately retained20
+future closeout slots are reduced to12, retiring8 UNUSED future slots while all
+paid files/byte liabilities and other obligations remain. Newfuture_shared_files
+760 (was768),1404996457futurebytes; actual quota1026227500kB/994240files leaves
+20.0046855GiB/5000files. No deletion or phantom paid credit. This supersedes the
+old funding gap; any later use beyond12 needs fresh admission.
+
 Private final-result milestone: source0bf421f is privately mirrored at
 HF1cf8c39de4bb2b9e4aa1b67fd5e3184984f784df, all55distinct small objects fully
 re-downloaded/size/SHA verified under canonical shared lock. Read
