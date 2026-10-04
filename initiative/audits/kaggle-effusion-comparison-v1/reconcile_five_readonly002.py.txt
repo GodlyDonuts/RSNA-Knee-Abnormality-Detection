@@ -1,0 +1,29 @@
+import json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();local=root/'artifacts/kaggle-effusion-comparison-v1';audit=root/'initiative/audits/kaggle-effusion-comparison-v1';intent=local/'canonical-six-reconcile002-intent.json';assert not intent.exists();records={'native-final':json.loads((root/'initiative/audits/kaggle-nativeall-final-20261004-v1/submit-result.json').read_text()),'native-epoch5':json.loads((root/'initiative/audits/kaggle-nativeall-epoch5-v1/runtimefix/canonical-submitted-entry.json').read_text())};records.update({k:json.loads((audit/k/'submit-result.json').read_text()) for k in ['seed1-control','seed1-candidate','seed2-control','seed2-candidate']});assert all(x['state']=='submitted' and x['submission_id'] for x in records.values());receipt=json.loads((local/'identity-coordinator-completion-projection/receipt.json').read_text());values={};env=root/'.env';assert env.stat().st_mode&0o077==0
+for line in env.read_text().splitlines():
+ k,s,v=line.partition('=')
+ if s:values[k.strip()]=v.strip().strip('\"\'')
+payload={'token':values['KAGGLE_API_TOKEN'],'projection_sha256':receipt['projection_sha256'],'entries':{k:{'sha':v['checkpoint_sha256'],'id':v['submission_id']} for k,v in records.items()}}
+program=r'''
+import importlib.util,json,os,subprocess,sys
+from pathlib import Path
+r=json.load(sys.stdin);n=Path('/tmp/rsna-kaggle-effusion-identity-coordinator-completion-20261004-v1');old=Path('/tmp/rsna-kaggle-effusion-final-20261004-v1');p=n/'projection/code';b=Path('/home/sa305415/rsna-knee');assert os.uname().nodename=='evc32' and not os.environ.get('SLURM_JOB_GPUS') and not (b/'kaggle/coordinator-claim').exists();fund=json.loads((old/'funding.json').read_text());paid={}
+for sha in fund['all_checkpoint_shas']:
+ j=b/'kaggle/dataset-publications'/sha
+ if j.exists():
+  for f in [j]+list(j.rglob('*')):s=f.stat();assert not f.is_symlink();paid[s.st_dev,s.st_ino]=s.st_size
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30;slots=limit-count-(760-len(paid));assert gib>=20 and slots>=5000 and len(paid)<=40 and sum(paid.values())<2*2**20
+python=json.loads((old/'runtime.json').read_text())['python'];os.environ.update(PYTHONPATH=str(p),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1')
+code="""import importlib.util,json,sys
+from pathlib import Path
+r=json.load(sys.stdin);n=Path('/tmp/rsna-kaggle-effusion-identity-coordinator-completion-20261004-v1');p=n/'projection/code';b=Path('/home/sa305415/rsna-knee');s=importlib.util.spec_from_file_location('c',p/'scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,m=c.load_workflow(p,n/'projection/projection.json',r['projection_sha256']);import io;sys.stdin=io.StringIO(json.dumps({'token':r['token']}));remote,_=c.remote_from_stdin(w);out={}
+with c.single_coordinator(b):
+ with w.ledger(b/'kaggle/account-ledger.sqlite3',remote.username) as db:
+  for key,ref in r['entries'].items():
+   e=w.reconcile_submission(remote,db,ref['sha']);assert e['submission_id']==ref['id'];out[key]=e
+print(json.dumps({'checked_at':w.utcnow(),'entries':out,'account':remote.account(),'no_competition_mutation':True}))
+"""
+out=subprocess.run([python,'-B','-c',code],input=json.dumps(r),capture_output=True,text=True);sys.stdout.write(out.stdout);sys.stderr.write(out.stderr);sys.exit(out.returncode)
+'''
+intent.write_text(json.dumps({'automatic_retry':False,'entries':payload['entries'],'canonical_ledger':'/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3','remote_action':'read_only_exact_submission_reconciliation','projection_sha256':receipt['projection_sha256']})+'\n');cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc32','--gres=none','--mem=8G','--time=00:10:00','--job-name=rsna-five-canonical-readonly','/usr/bin/python3.12','-B','-c',program];r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=650);(local/'canonical-six-reconcile002-result.json').write_text(json.dumps({'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr},indent=2)+'\n');assert r.returncode==0,r.stderr;v=json.loads(r.stdout);(audit/'canonical-six-reconciled.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps({'checked_at':v['checked_at'],'account':v['account'],'submissions':{k:{f:e.get(f) for f in ['submission_id','remote_outcome','public_score','remote_error_description','remote_status']} for k,e in v['entries'].items()}}))

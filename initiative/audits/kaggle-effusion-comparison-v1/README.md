@@ -1,4 +1,26 @@
-# October4 five useful Kaggle comparisons
+# October4 five accepted Kaggle comparisons
+
+All five daily slots are used: fresh authenticated allowance at21:21UTC shows
+5today/0remaining. All submissions are exact private offline T4 code notebookv1;
+all public MRI-only outputs passed. Hidden statuses/scores remain null.
+
+| Model | Accepted submission |
+| --- | --- |
+| Native384 all-development epoch10 | 56833260 |
+| Seed20260922 original-label control final3 | 56833454 |
+| Seed20260922 reviewed31-Effusion-label final3 | 56833608 |
+| Seed20261004 original-label control final3 | 56833935 |
+| Seed20261004 reviewed31-Effusion-label final3 | 56833831 |
+
+The same-run native epoch5 actually scored0.804 (56783855). Final10 tests further
+training; the two matched seed pairs test the reviewed label change. Current
+internal results do not justify overlay promotion: the second seed's overall
+macro fell-.008070 despite an unestablished Effusion gain. Keep controls default.
+Read canonical-six-reconciled, five-comparison-status and original scientific audits.
+No Dataset create, exact notebook push, or competition submission was duplicated.
+The first unresolved seed2-control notebook identity is preserved permanently;
+source-identical K2 reused the original fully verified Dataset. Never retry it.
+
 
 The owner explicitly restored deployment priority and asked us to use the daily
 allowance. Five distinct completed RSNA-only checkpoints are admitted: native384

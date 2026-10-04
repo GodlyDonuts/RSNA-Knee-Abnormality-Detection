@@ -1,3 +1,18 @@
+October4 21:21UTC all FIVE distinct code submissions accepted ONCE and reconciled
+in the single canonical Newton ledger: native all-development final10 56833260,
+seed1 original control final3 56833454 / reviewed-label partner56833608, seed2
+original control final3 56833935 / reviewed-label partner56833831. All exact
+private offline T4 v1 public MRI-only receipts passed. Actual live allowance
+5today/0slots. All five hidden statuses/scores still null; do not infer success
+or resubmit. Actual best prior solo is native all-development5 0.804 (56783855),
+now reconciled as scored. Follow actual new outcomes read-only; preserve negatives.
+The uncertain old seed2-control identity is permanently archived, distinct K2
+uses unchanged verified Dataset/source/runtime. No models/data/jobs were restarted.
+Read kaggle-effusion-comparison-v1/canonical-six-reconciled and five-comparison-status.
+Standalone status collector871309 failed before remote/ledger mutation due to a
+constructor mismatch; distinct read-only002 succeeded. This was not a model or
+Kaggle rerun failure. Old finite coordinators remain terminal; never restart them.
+
 October4 20:57UTC three new code submissions accepted ONCE: native all-development
 final10 56833260, seed1 original control final3 56833454, reviewed-label partner
 final3 56833608. Fresh live allowance3today/2slots; all three actual hidden scores

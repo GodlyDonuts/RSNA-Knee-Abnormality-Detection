@@ -1,3 +1,12 @@
+## October4 completed five-code-submission comparison
+
+All five accepted once; live5today/0slots and hidden scores null at21:21UTC.
+Read latest continuation and canonical-six-reconciled. Never repeat these pushes
+or submissions, or restart completed finite coordinators. Follow exact actual
+hidden outcomes read-only. Original uncertain seed2-control slug remains archived
+permanently; distinct K2 is submitted56833935 with source/Dataset bytes unchanged.
+Current best prior solo0.804 is actual scored, not a new-model score.
+
 ## October4 owner-authorized Kaggle comparison
 
 The owner's latest direct request restores Kaggle deployment priority. Read
