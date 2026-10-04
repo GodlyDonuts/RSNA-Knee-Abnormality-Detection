@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-effusion-native-evc32-route
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=2
+#SBATCH --nodelist=evc31,evc32
+#SBATCH --ntasks=2
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --gres=none
+#SBATCH --mem=2G
+#SBATCH --time=01:30:00
+#SBATCH --output=/tmp/rsna-effusion-native-route-evc32-20261004-v1/copy-%j.out
+#SBATCH --error=/tmp/rsna-effusion-native-route-evc32-20261004-v1/copy-%j.err
+set -euo pipefail
+umask 077
+unset SLURM_CPU_BIND SLURM_CPU_BIND_LIST SLURM_CPU_BIND_TYPE SLURM_CPU_BIND_VERBOSE
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+srun --cpu-bind=cores --nodes=1 --ntasks=1 --nodelist=evc32 --cpus-per-task=1 --gres=none /usr/bin/python3.12 -B /tmp/rsna-effusion-native-route-evc32-20261004-v1/route.py --phase receive --job "$SLURM_JOB_ID" --control /tmp/rsna-effusion-native-route-evc32-20261004-v1

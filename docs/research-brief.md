@@ -1,3 +1,10 @@
+Current update: evc34 remains unusable in actual allocated CUDA probes, and
+no screen optimizer update has occurred there. evc32 passed one assigned H100
+CUDA check in3.22seconds; exact private cache routing869745 is running. The
+next launch uses independent one-GPU batch jobs with the unchanged paired
+Effusion science. Original failures are retained; actual new state belongs in
+the continuation and evc32-independent-jobs audit.
+
 Latest actual screen869702 failed before training in its assigned-device
 initialization guard (both steps exceeded25seconds). No model updates or new
 accuracy result. Distinct bounded180second observable recovery is prepared

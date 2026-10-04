@@ -1,0 +1,63 @@
+import base64,hashlib,json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();local=root/'artifacts/effusion-alternate-node-v1';intent=local/'copy-intent.json';assert not intent.exists()
+control='/tmp/rsna-effusion-native-route-evc32-20261004-v1'
+script=f'''#!/bin/bash
+#SBATCH --job-name=rsna-effusion-native-evc32-route
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=2
+#SBATCH --nodelist=evc31,evc32
+#SBATCH --ntasks=2
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --gres=none
+#SBATCH --mem=2G
+#SBATCH --time=01:30:00
+#SBATCH --output={control}/copy-%j.out
+#SBATCH --error={control}/copy-%j.err
+set -euo pipefail
+umask 077
+unset SLURM_CPU_BIND SLURM_CPU_BIND_LIST SLURM_CPU_BIND_TYPE SLURM_CPU_BIND_VERBOSE
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+srun --cpu-bind=cores --nodes=1 --ntasks=1 --nodelist=evc32 --cpus-per-task=1 --gres=none /usr/bin/python3.12 -B {control}/route.py --phase receive --job "$SLURM_JOB_ID" --control {control}
+'''
+files={'route.py':(root/'scripts/newton/route_effusion_alternate_cache.py').read_bytes(),'copy.sbatch':script.encode()};rows={k:{'bytes':len(v),'sha256':hashlib.sha256(v).hexdigest()} for k,v in files.items()};files['files.json']=(json.dumps({'source_parent':'09e9fd23afdc36580eb1fc779784f8d056fc8fe2','files':rows,'scientific_source_unchanged':True,'original_ev31_and_evc34_cache_retained':True,'new_shared_files':0,'new_shared_bytes':0,'new_node_local_controls_MiB':32,'new_node_local_cache_bytes':140626483351,'new_node_local_runtime_GiB':7,'new_node_local_checkpoints_GiB':3,'node_local_reserve_GiB':20,'actual_assigned_driver_probe_job':'869722'},indent=2,sort_keys=True)+'\n').encode()
+stage='''import base64,hashlib,json,os,shutil,sys
+from pathlib import Path
+os.umask(0o077);e=json.load(sys.stdin);c=Path('/tmp/rsna-effusion-native-route-evc32-20261004-v1');assert not c.exists()
+assert os.uname().nodename.split('.')[0] in ['evc31','evc32'];raw={k:base64.b64decode(v,validate=True) for k,v in e.items()};assert set(raw)=={'route.py','copy.sbatch','files.json'}
+if os.uname().nodename.split('.')[0]=='evc32':assert shutil.disk_usage('/tmp').free>=140626483351+(20+7+3)*2**30+32*2**20
+m=json.loads(raw['files.json'])
+for n,r in m['files'].items():assert len(raw[n])==r['bytes'] and hashlib.sha256(raw[n]).hexdigest()==r['sha256']
+c.mkdir(mode=0o700)
+for n,v in raw.items():
+ with (c/n).open('xb') as f:f.write(v)
+print(json.dumps({'status':'private_node_controls_staged','node':os.uname().nodename,'new_shared_files':0}),flush=True)
+'''
+program='''import base64,json,os,shlex,subprocess,sys
+from pathlib import Path
+os.umask(0o077);b=Path('/home/sa305415/rsna-knee');e=json.load(sys.stdin);payload=json.dumps(e['files']).encode();stage=e['stage'];c=Path('/tmp/rsna-effusion-native-route-evc32-20261004-v1')
+assert os.uname().nodename.split('.')[0]=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+assert subprocess.check_output(['sacct','-X','-j','869722','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='869722|COMPLETED|0:0'
+assert subprocess.check_output(['sacct','-X','-j','869718','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).strip()=='869718|FAILED|1:0'
+row=[x.split() for x in subprocess.check_output(['lfs','quota','-u','sa305415','/lustre/fs1'],text=True).splitlines() if x.lstrip().startswith('/lustre/fs1')][0]
+used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];future=1404996457;nf=768
+assert (soft-used)*1024-future>=20*2**30 and limit-count-nf>=5000
+for node in ['evc31','evc32']:
+ cmd=['/usr/bin/python3.12','-B','-c',stage]
+ if node=='evc32':cmd=['ssh','-o','BatchMode=yes','evc32',shlex.join(cmd)]
+ r=subprocess.run(cmd,input=payload,capture_output=True,check=True);assert json.loads(r.stdout)['status']=='private_node_controls_staged'
+def save(n,v):
+ with (c/n).open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\\n');f.flush();os.fsync(f.fileno())
+f={'after_liabilities_GiB':((soft-used)*1024-future)/2**30,'after_liabilities_files':limit-count-nf,'new_shared_files':0,'new_shared_bytes':0,'new_node_local_cache_bytes':140626483351,'node_local_controls_MiB':32,'node_local_runtime_GiB':7,'node_local_checkpoints_GiB':3,'node_local_reserve_GiB':20,'original_caches_retained':True,'deletion_credit':0}
+save('funding.json',f);save('dispatch-intent.json',{'automatic_retry':False,'source_node':'evc31','destination_node':'evc32'})
+job=subprocess.check_output(['sbatch','--parsable',str(c/'copy.sbatch')],text=True).strip();assert job.isdecimal()
+r={'job_id':job,'control':str(c),'source_node':'evc31','destination_node':'evc32','requested_CPUs':2,'GPUs':0,'automatic_retry':False,'staging_CPU_job':os.environ['SLURM_JOB_ID']};save('dispatch-result.json',r);print(json.dumps({'dispatch':r,'funding':f}),flush=True)
+'''
+with intent.open('x') as f:json.dump({'automatic_retry':False,'destination_node':'evc32'},f)
+command=['salloc','--quiet','--account=skattel','--partition=normal','--nodelist=evc31,evc32','--nodes=2','--ntasks=2','--ntasks-per-node=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:10:00','--job-name=rsna-effusion-alt-stage','srun','--cpu-bind=cores','--nodelist=evc31','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','/usr/bin/python3.12','-B','-c',program]
+r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(command)],input=json.dumps({'stage':stage,'files':{k:base64.b64encode(v).decode() for k,v in files.items()}}).encode(),capture_output=True,timeout=600)
+(local/'copy.stdout').write_bytes(r.stdout);(local/'copy.stderr').write_bytes(r.stderr);assert r.returncode==0,'Reconcile uncertainty read-only, never retry'
+v=json.loads(r.stdout);(local/'copy-result.json').write_text(json.dumps(v,indent=2,sort_keys=True)+'\n');(local/'copy.sbatch.txt').write_text(script);(local/'source-manifest.json').write_bytes(files['files.json']);print(json.dumps(v,indent=2,sort_keys=True))

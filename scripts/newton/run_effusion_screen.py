@@ -14,8 +14,8 @@ from pathlib import Path
 BASE = Path("/home/sa305415/rsna-knee")
 PARENT = BASE / "effusion-supervision-engineering-20261003-v1"
 RECOVERY = PARENT / "recovery-v2"
-ROUTE = BASE / "effusion-native-cache-route-20261004-v1/recovery-v2"
-CONTROL = Path("/tmp/rsna-effusion-screen-20261004-v3")
+ROUTE = Path("/tmp/rsna-effusion-native-route-evc32-20261004-v1")
+CONTROL = Path("/tmp/rsna-effusion-screen-evc32-20261004-v1")
 SOURCE_SHA = "53ff55e329e4c697870bf68679cebee80d5369566f017e483c2818006ad3c9a3"
 GPU_SHA = "be201fc89f16ede13f379d854018f4d7dc5ca9a55a26a528081418eea87632ef"
 OVERLAY_SHA = "936e3e2af058726fe3572b7e4ad1680c44f2fd82ad6e9840e2607a1b090ff018"
@@ -60,9 +60,9 @@ def fresh_step_environment(environment):
 def accept_copy(record):
     required = {
         "status": "private_original_native384_copy_fully_byte_verified",
-        "job_id": "869665",
+        "job_id": "869745",
         "source_node": "evc31",
-        "destination_node": "evc34",
+        "destination_node": "evc32",
         "members": 37812,
         "bytes": 140626483351,
         "registry_sha256": REGISTRY_SHA,
@@ -75,7 +75,7 @@ def accept_copy(record):
         raise ValueError("Actual complete original cache placement is required")
     cache = Path(record["cache_root"])
     if (
-        not str(cache).startswith("/tmp/rsna-effusion-native384-route-869665-")
+        not str(cache).startswith("/tmp/rsna-effusion-native384-evc32-route-869745-")
         or cache.parts[-2:] != ("restored", "cache")
         or ".." in cache.parts
     ):
@@ -84,7 +84,7 @@ def accept_copy(record):
 
 
 def verify_control():
-    if os.uname().nodename.split(".")[0] != "evc34":
+    if os.uname().nodename.split(".")[0] != "evc32":
         raise ValueError("Admitted owning node required")
     if CONTROL.is_symlink() or CONTROL.stat().st_uid != os.getuid():
         raise ValueError("Owner-only node-local control required")
@@ -126,41 +126,43 @@ def verify_cache_stats(cache, *, original=None):
     return actual
 
 
-def boot():
+def prepare():
+    """One zero-GPU CPU admission/extraction after the complete alternate copy."""
     manifest, cache = verify_control()
-    if os.environ.get("SLURM_CPUS_PER_TASK") != "2" or not os.environ.get("SLURM_JOB_ID"):
-        raise ValueError("Actual two-task GPU allocation required")
-    source = json.loads((RECOVERY / "source.json").read_text())
+    if os.environ.get("SLURM_CPUS_PER_TASK") != "1" or os.environ.get("SLURM_JOB_GPUS"):
+        raise ValueError("One CPU, zero GPU input preparation required")
     terminal = subprocess.check_output(
         [
             "sacct",
             "-X",
             "-j",
-            "869300,869665",
+            "869300,869745,869722",
             "--noheader",
             "--parsable2",
             "--format=JobIDRaw,State,ExitCode",
         ],
         text=True,
     )
-    if set(terminal.splitlines()) != {"869300|COMPLETED|0:0", "869665|COMPLETED|0:0"}:
-        raise ValueError("Actual accepted recovery and full placement must be terminal")
+    if set(terminal.splitlines()) != {
+        "869300|COMPLETED|0:0",
+        "869745|COMPLETED|0:0",
+        "869722|COMPLETED|0:0",
+    }:
+        raise ValueError("Actual recovery, complete copy and assigned driver acceptance required")
+    source = json.loads((RECOVERY / "source.json").read_text())
     if sha(RECOVERY / "source.tar") != source["source_tar_sha256"]:
         raise ValueError("Accepted numerical source archive changed")
-    expected_loader = source["files"]["scripts/newton/launch_effusion_engineering.py"]["sha256"]
-    if sha(RECOVERY / "launch_effusion_engineering.py") != expected_loader:
-        raise ValueError("Accepted original source unpacker changed")
-    code = Path(manifest["reused_code_root"])
-    for name, row in source["files"].items():
-        if sha(code / name) != row["sha256"]:
-            raise ValueError("Original already-extracted numerical source changed")
-    cache_stats = Path(manifest["reused_cache_stats"])
-    if sha(cache_stats) != manifest["reused_cache_stats_sha256"]:
-        raise ValueError("Original private cache stat proof changed")
-    verify_cache_stats(cache, original=json.loads(cache_stats.read_text()))
+    expected = source["files"]["scripts/newton/launch_effusion_engineering.py"]["sha256"]
+    if sha(RECOVERY / "launch_effusion_engineering.py") != expected:
+        raise ValueError("Original safe source unpacker changed")
+    loader = load_module(RECOVERY / "launch_effusion_engineering.py", "effusion_original_loader")
+    code = CONTROL / "code"
+    code.mkdir(mode=0o700)
+    loader.unpack_source(RECOVERY / "source.tar", code, source["files"])
+    save(CONTROL / "cache-stats-private.json", verify_cache_stats(cache))
     native = load_module(
         BASE / "production-launch-native384-a32-c9-v1/native384_admission.py",
-        "effusion_shared_asset_stats",
+        "effusion_shared_assets",
     )
     prior = json.loads(
         (BASE / "production-launch-native384-a32-c9-v1/cpu-preflight.json").read_text()
@@ -170,68 +172,50 @@ def boot():
         BASE / "native384-assembly-c9-v1",
         prior=prior["scientific_assets"],
     )
-    prior_runtime = Path(manifest["reused_runtime_receipt"])
-    if sha(prior_runtime) != manifest["reused_runtime_receipt_sha256"]:
-        raise ValueError("Original byte-verified node-local runtime receipt changed")
-    runtime = json.loads(prior_runtime.read_text())
-    if (
-        runtime["archive_sha256"]
-        != "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338"
-        or runtime["file_members"] != 40403
-        or runtime["unpacked_file_bytes"] != 6322691335
-        or not str(runtime["runtime_root"]).startswith("/tmp/rsna-environment-869702-")
-        or not Path(runtime["python"]).is_file()
-    ):
-        raise ValueError("Original runtime extraction provenance differs")
-    save(CONTROL / "runtime.json", runtime)
-    # Runtime stays private for CPU epoch publishers; its 7GiB is explicitly funded.
-    environment = os.environ.copy()
-    environment.update(
-        PYTHONPATH=str(code),
-        PYTHONNOUSERSITE="1",
-        PYTHONDONTWRITEBYTECODE="1",
-        HF_HUB_OFFLINE="1",
-        TRANSFORMERS_OFFLINE="1",
-        OMP_NUM_THREADS="2",
-        MKL_NUM_THREADS="2",
-        OPENBLAS_NUM_THREADS="2",
-        CUBLAS_WORKSPACE_CONFIG=":4096:8",
-        TRITON_CACHE_DIR=str(Path(runtime["runtime_root"]) / "triton-cache"),
-    )
-    environment["CPATH"] = subprocess.check_output(
-        ["bash", str(CONTROL / "headers.sh")], text=True, env=environment
-    ).strip()
-    environment = fresh_step_environment(environment)
-    processes = {}
-    for role in ("control", "candidate"):
-        command = [
-            "srun",
-            "--exclusive",
-            "--exact",
-            "--nodes=1",
-            "--ntasks=1",
-            "--cpus-per-task=2",
-            "--cpu-bind=cores",
-            "--mem=96G",
-            "--gres=gpu:nvidia_h100_pcie:1",
-            "--output=" + str(CONTROL / (role + ".out")),
-            "--error=" + str(CONTROL / (role + ".err")),
-            "bash",
-            str(CONTROL / "arm.sh"),
-            runtime["python"],
-            role,
-        ]
-        save(
-            CONTROL / (role + "-start-intent.json"), {"command": command, "automatic_retry": False}
+    runtime = json.loads(
+        subprocess.check_output(
+            [
+                "/usr/bin/python3.12",
+                "-B",
+                str(code / "scripts/newton/runtime_environment.py"),
+                "extract",
+                "--archive",
+                str(
+                    BASE
+                    / "kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar"
+                ),
+                "--sha256",
+                "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338",
+                "--expected-files",
+                "40403",
+                "--expected-bytes",
+                "6322691335",
+                "--scratch-base",
+                "/tmp",
+                "--shared-python",
+                "/usr/bin/python3.12",
+                "--min-free-gib",
+                "23",
+            ],
+            text=True,
         )
-        processes[role] = subprocess.Popen(command, env=environment)
-    results = {role: process.wait() for role, process in processes.items()}
-    save(
-        CONTROL / "terminal.json",
-        {"role_exit_codes": results, "source_git": manifest["scientific_git"]},
     )
-    if any(results.values()):
-        raise ValueError("One or both original screen arms did not complete; inspect originals")
+    save(CONTROL / "runtime.json", runtime)
+    save(
+        CONTROL / "CPU-prepared.json",
+        {
+            "status": "exact_inputs_runtime_source_prepared_on_driver_accepted_node",
+            "job_id": os.environ["SLURM_JOB_ID"],
+            "node": "evc32",
+            "copy_job": "869745",
+            "driver_probe_job": "869722",
+            "source_manifest_sha256": SOURCE_SHA,
+            "source_files": len(source["files"]),
+            "cache_stats_sha256": sha(CONTROL / "cache-stats-private.json"),
+            "clinical_accuracy_evidence": False,
+            "model_or_optimizer_run": False,
+        },
+    )
 
 
 def arm(role):
@@ -242,8 +226,10 @@ def arm(role):
         raise ValueError("One scheduler-isolated H100 and two CPUs per independent arm required")
     if "H100" not in torch.cuda.get_device_name(0) or not torch.cuda.is_bf16_supported():
         raise ValueError("Actual H100 BF16 device required")
-    verify_cache_stats(cache, original=json.loads(Path(manifest["reused_cache_stats"]).read_text()))
-    code = Path(manifest["reused_code_root"])
+    verify_cache_stats(
+        cache, original=json.loads((CONTROL / "cache-stats-private.json").read_text())
+    )
+    code = CONTROL / "code"
     source = json.loads((RECOVERY / "source.json").read_text())
     for name, row in source["files"].items():
         if sha(code / name) != row["sha256"]:
@@ -283,12 +269,12 @@ def arm(role):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("phase", choices=("boot", "arm"))
+    parser.add_argument("phase", choices=("prepare", "arm"))
     parser.add_argument("--role", choices=("control", "candidate"))
     args = parser.parse_args()
     os.umask(0o077)
-    if args.phase == "boot":
-        boot()
+    if args.phase == "prepare":
+        prepare()
     elif args.role:
         arm(args.role)
     else:

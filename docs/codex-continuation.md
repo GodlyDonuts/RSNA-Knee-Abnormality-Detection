@@ -1,3 +1,16 @@
+Healthy-node pivot: original869718 FAILED1:0, both assigned-device steps timed
+out/stalled at cuInit before either trainer. CPU binding was fixed; no actual
+optimizer update. Actual evc32 assigned-driver869722 COMPLETED0:0 in3.22seconds,
+NVML oneH100/cuInit0/count1. New zeroGPU private exact-cache route869745 was
+submittedONCE on evc31/32 and now COMPLETED0:0 in20:54; all prior originals remain. Read
+effusion-supervision-screen-v1/evc32-independent-jobs. Current source retains
+original byte validators; full37812member/140626483351byte copy acceptance and
+terminal0:0 are required before CPU source/runtime preparation and two separate
+oneH100/twoCPU/96GiB batch jobs. Paired665c0d5 science unchanged. No new model
+training or accuracy result claimed yet. Shared20.005399GiB/5000file reserve,
+zero new shared controls; new healthy-node cache/runtime/checkpoint/local reserves
+funded without deletion. Never repeat old869702/714/718 or copy869745.
+
 Original869714 FAILED1:0 in1second before driver/trainer: inherited staging
 CPU binding was outside the new GPU step allocation. Distinct v3 drops only
 stale CPU-bind env and explicitly requests srun --cpu-bind=cores; GPU visibility

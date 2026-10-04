@@ -34,9 +34,9 @@ def test_staging_CPU_mask_cannot_override_new_steps_or_change_GPU_visibility():
 def receipt():
     return {
         "status": "private_original_native384_copy_fully_byte_verified",
-        "job_id": "869665",
+        "job_id": "869745",
         "source_node": "evc31",
-        "destination_node": "evc34",
+        "destination_node": "evc32",
         "members": 37812,
         "bytes": 140626483351,
         "registry_sha256": REGISTRY_SHA,
@@ -44,7 +44,7 @@ def receipt():
         "GPU_reserved": False,
         "target_values_read": False,
         "clinical_accuracy_evidence": False,
-        "cache_root": "/tmp/rsna-effusion-native384-route-869665-example/restored/cache",
+        "cache_root": "/tmp/rsna-effusion-native384-evc32-route-869745-example/restored/cache",
     }
 
 
