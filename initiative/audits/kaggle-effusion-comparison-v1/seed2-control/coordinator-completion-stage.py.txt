@@ -1,0 +1,25 @@
+import base64,json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();local=root/'artifacts/kaggle-effusion-comparison-v1';folder=local/'seed2-control';projection=local/'identity-coordinator-completion-projection';receipt=json.loads((projection/'receipt.json').read_text());intent=folder/'coordinator-completion-stage-intent.json';assert not intent.exists();payload={'archive':base64.b64encode((projection/'projection.tar').read_bytes()).decode(),'archive_sha':receipt['archive_sha256'],'manifest':base64.b64encode((projection/'projection.json').read_bytes()).decode(),'manifest_sha':receipt['projection_sha256']}
+program=r'''
+import base64,hashlib,io,json,os,shutil,sqlite3,subprocess,sys,tarfile
+from pathlib import Path
+os.umask(0o077);r=json.load(sys.stdin);b=Path('/home/sa305415/rsna-knee');old=Path('/tmp/rsna-kaggle-effusion-identity-k2-20261004-v1');n=Path('/tmp/rsna-kaggle-effusion-identity-coordinator-completion-20261004-v1');assert os.uname().nodename=='evc32' and not os.environ.get('SLURM_JOB_GPUS') and not n.exists() and not (b/'kaggle/coordinator-claim').exists()
+fund=json.loads((old/'funding.json').read_text());paid={}
+for ch in fund['all_checkpoint_shas']:
+ j=b/'kaggle/dataset-publications'/ch
+ if j.exists():
+  for f in [j]+list(j.rglob('*')):s=f.stat();assert not f.is_symlink();paid[s.st_dev,s.st_ino]=s.st_size
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30;slots=limit-count-(760-len(paid));assert gib>=20 and slots>=5000 and len(paid)<=40 and sum(paid.values())<2*2**20;assert shutil.disk_usage('/tmp').free>20*2**30+4*2**20
+op=json.loads((old/'candidate/operation.json').read_text())
+with sqlite3.connect('file:'+str(b/'kaggle/account-ledger.sqlite3')+'?mode=ro',uri=True) as db:
+ e=json.loads(db.execute('select record from entries where sha=?',(op['checkpoint_sha256'],)).fetchone()[0]);assert e['state']=='push_uncertain' and e.get('kernel_version') is None and e.get('submission_id') is None and e['operation_sha256']==op['dataset_publication_operation_sha256'] and not e.get('superseded_operations')
+raw=base64.b64decode(r['archive'],validate=True);manifest=base64.b64decode(r['manifest'],validate=True);assert hashlib.sha256(raw).hexdigest()==r['archive_sha'] and hashlib.sha256(manifest).hexdigest()==r['manifest_sha'];m=json.loads(manifest);prior=json.loads((old/'projection/projection.json').read_text());assert m['training_code_sha256']==prior['training_code_sha256'] and m['training_git_commit']==prior['training_git_commit'];assert {k:v for k,v in m['files'].items() if k!='scripts/kaggle/coordinator.py'}=={k:v for k,v in prior['files'].items() if k!='scripts/kaggle/coordinator.py'}
+n.mkdir();p=n/'projection/code';p.mkdir(parents=True);(n/'projection/projection.json').write_bytes(manifest)
+with tarfile.open(fileobj=io.BytesIO(raw)) as t:
+ members=t.getmembers();assert {x.name for x in members}==set(m['files']) and all(x.isfile() and not Path(x.name).is_absolute() and '..' not in Path(x.name).parts for x in members)
+ for x in members:
+  data=t.extractfile(x).read();rec=m['files'][x.name];assert len(data)==rec['bytes'] and hashlib.sha256(data).hexdigest()==rec['sha256'];f=p/x.name;f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(data);f.chmod(rec['mode'])
+print(json.dumps({'status':'coordinator_completion_projection_staged_no_cloud_mutation','CPU_job':os.environ['SLURM_JOB_ID'],'original_failed_preflight_ledger_unchanged':True,'candidate_operation_unchanged':True,'projection_sha256':r['manifest_sha'],'remaining_gib':gib,'remaining_files':slots}))
+'''
+intent.write_text(json.dumps({'automatic_retry':False,'original_preflight_failed_before_cloud_mutation':True,'projection_sha256':receipt['projection_sha256']})+'\n');cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc32','--gres=none','--mem=2G','--time=00:05:00','--job-name=rsna-coordinator-completion-stage','/usr/bin/python3.12','-B','-c',program];r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=350);(folder/'coordinator-completion-stage-result.json').write_text(json.dumps({'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr},indent=2)+'\n');assert r.returncode==0,r.stderr;v=json.loads(r.stdout);(root/'initiative/audits/kaggle-effusion-comparison-v1/seed2-control/coordinator-completion-stage-result.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

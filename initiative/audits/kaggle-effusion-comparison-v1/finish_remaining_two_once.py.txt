@@ -1,0 +1,24 @@
+import json,subprocess,time
+from pathlib import Path
+from scripts.kaggle import workflow as w
+root=Path.cwd();local=root/'artifacts/kaggle-effusion-comparison-v1';audit=root/'initiative/audits/kaggle-effusion-comparison-v1';py=str(root/'artifacts/qa-env/bin/python');intent=local/'finish-remaining-two-intent.json';assert not intent.exists();assert all(json.loads((audit/k/'submit-result.json').read_text())['state']=='submitted' for k in ['seed1-control','seed1-candidate']);assert json.loads((root/'initiative/audits/kaggle-nativeall-final-20261004-v1/submit-result.json').read_text())['state']=='submitted'
+intent.write_text(json.dumps({'started_at':w.utcnow(),'automatic_mutation_retry':False,'roles':['seed2-candidate','seed2-control'],'old_finite_finisher_stopped':True,'each_submit_once_after_exact_public_acceptance':True})+'\n');remote=w.Remote();completed={};end=time.monotonic()+2700
+while time.monotonic()<end and len(completed)<2:
+ for key in ['seed2-candidate','seed2-control']:
+  if key in completed:continue
+  p=audit/key;op=json.loads((p/'operation.json').read_text())
+  try:state=remote.kernel('GetKernelSessionStatus',op['kernel_slug'],1).get('status')
+  except w.RemoteError as e:print(json.dumps({'key':key,'readonly_error_type':type(e).__name__}),flush=True);continue
+  print(json.dumps({'checked_at':w.utcnow(),'key':key,'public_status':state}),flush=True)
+  if state in {'ERROR','CANCEL_ACK','CANCELLED'}:raise ValueError('Public notebook failed; inspect original '+key)
+  if state!='COMPLETE':continue
+  assert not (p/'submit-result.json').exists()
+  subprocess.run([py,'-B',str(local/'verify_public.py'),key],check=True)
+  if key=='seed2-control':cmd=[py,'-B',str(local/'identity_k2_completion_once.py'),'submit']
+  else:cmd=[py,'-B',str(local/'stage_and_phase.py'),key,'submit']
+  subprocess.run(cmd,check=True)
+  record=json.loads((p/'submit-result.json').read_text());assert record['state']=='submitted' and record['submission_id'];completed[key]=record['submission_id'];print(json.dumps({'key':key,'accepted_submission':record['submission_id']}),flush=True)
+ if len(completed)<2:time.sleep(30)
+assert len(completed)==2,'Bounded finish timed out; reconcile read-only, never restart'
+with (local/'finish-remaining-two-result.json').open('x') as f:json.dump({'completed_at':w.utcnow(),'status':'both_remaining_submitted_once','submissions':completed},f,indent=2);f.write('\n')
+print(json.dumps({'status':'both_remaining_submitted_once','submissions':completed}),flush=True)

@@ -1,5 +1,18 @@
 # Decisions, corrections, and unresolved work
 
+## October4: five fixed-final Kaggle comparisons authorized
+
+The owner restored Kaggle priority. Admit native all-development final10 and four
+completed original/reviewed-label final3 checkpoints across two matched seeds.
+All trained numerical modules/checkpoints/masks remain exact; a standalone bound
+authorization adapter admits these specific RSNA-only models. Private Dataset and
+public offline T4 acceptance precede each canonical once-only code submission.
+Native final and seed1 pair are accepted; finish seed2 pair from exact current
+receipts. Preserve uncertain old identities and read-only reconciliation. Do not
+promote the label overlay: second-seed overall macro worsened despite an uncertain
+Effusion gain. Actual hidden outcomes, including negatives, determine the next move.
+
+
 ## October4: local anatomy as bounded channel differences
 
 Prepare an independent neighboring-slice input hypothesis alongside the unchanged

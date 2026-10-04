@@ -1,0 +1,51 @@
+import hashlib,json,os,shlex,shutil,subprocess,tempfile
+from pathlib import Path
+os.environ['HF_HUB_DISABLE_PROGRESS_BARS']='1'
+from huggingface_hub import HfApi,CommitOperationAdd,hf_hub_download
+root=Path.cwd();journal=root/'initiative/audits/hf-kaggle-five-fixed-final-20261004-v1';assert not journal.exists()
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head==subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip()
+names=sorted(set(subprocess.check_output(['git','diff','--name-only','5f2a506',head],text=True).splitlines()+['configs/competitive/weights/dinov3-large.LICENSE.md'])-{'initiative/manifest.json'})
+names=[n for n in names if not n.endswith('.csv') and Path(n).name not in {'run.json','invocation.json','collection.json','original-training.out','original-training.err','gpu-progress-005.json','public-inference-metrics.json'}];assert not any(n.endswith(('.pt','.npy','.npz','.jsonl')) for n in names)
+files={n:{'bytes':(root/n).stat().st_size,'sha256':hashlib.sha256((root/n).read_bytes()).hexdigest()} for n in names};total=sum(r['bytes'] for r in files.values());assert total<2*1024**2 and shutil.disk_usage(root).free>20*1024**3+2*total
+assert not subprocess.check_output(['git','status','--porcelain','--',*names],text=True)
+values={};assert (root/'.env').stat().st_mode&0o077==0
+for line in (root/'.env').read_text().splitlines():
+ k,sep,v=line.partition('=')
+ if sep:values[k.strip()]=v.strip().strip('\"\'')
+program='''import hashlib,importlib.util,json,sys
+from pathlib import Path
+root=Path('/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1');p=root/'common/runner.py'
+assert hashlib.sha256(p.read_bytes()).hexdigest()=='3575a18ecd7a13a2becc9348c48a9ebda95f8934069e67dd1912737e6194118c'
+s=importlib.util.spec_from_file_location('runner',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+with m.publication_lock(root/'publication.lock',timeout=3600,poll=2):
+ print(json.dumps({'status':'shared_private_publication_lock_acquired'}),flush=True)
+ assert sys.stdin.readline().strip()=='release'
+print(json.dumps({'status':'shared_private_publication_lock_released'}),flush=True)
+'''
+proc=subprocess.Popen(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','sa305415@newton.ist.ucf.edu',shlex.join(['/usr/bin/python3.12','-B','-c',program])],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+try:
+ assert json.loads(proc.stdout.readline())['status']=='shared_private_publication_lock_acquired'
+ api=HfApi(token=values['HF_TOKEN']);repo='GodlyDonuts/RSNA-Data';prefix='experiments/dinov3-v1/milestones/kaggle-five-fixed-final-20261004-v1';info=api.repo_info(repo,repo_type='dataset');assert info.private is True
+ paths=[prefix+'/'+n for n in names]+[prefix+'/manifest.json'];assert not api.get_paths_info(repo,paths,repo_type='dataset',revision=info.sha)
+ journal.mkdir(mode=0o700)
+ def save(name,value):
+  with (journal/name).open('x') as f:json.dump(value,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+ live=json.loads((root/'initiative/audits/kaggle-effusion-comparison-v1/canonical-six-reconciled.json').read_text());entries=live['entries'];keys=['native-final','seed1-control','seed1-candidate','seed2-control','seed2-candidate'];assert all(entries[k]['state']=='submitted' and entries[k]['submission_id'] for k in keys);assert len({entries[k]['submission_id'] for k in keys})==5
+ manifest={'source_git':head,'files':files,'purpose':'five_once_only_fixed_final_RSNA_only_code_submissions_and_negative_seed2_supervision_evidence','accepted_submissions':{k:{f:entries[k].get(f) for f in ['submission_id','checkpoint_sha256','kernel_version','remote_status','remote_outcome','public_score']} for k in keys},'live_allowance':live['account'],'previous_best_native_epoch5_score':entries['native-epoch5']['public_score'],'second_seed_primary_effusion_delta':0.013743997350554649,'second_seed_overall_macro_delta':-0.008070080627770704,'overlay_promoted':False,'old_uncertain_notebook_preserved_never_retry':True,'Dataset_source_checkpoint_and_numerical_inference_unchanged':True,'all_exact_public_MRI_only_offline_T4_acceptances_passed':True,'private':True,'full_tests':1914,'no_raw_pixels_private_source_data_case_records_or_learned_weights_mirrored':True,'canonical_shared_atomic_lock':True}
+ mp=root/'artifacts/kaggle-effusion-comparison-v1/five-fixed-final-milestone-manifest.json';assert not mp.exists();mp.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+ save('intent.json',{'source_git':head,'parent_commit':info.sha,'prefix':prefix,'files':files,'automatic_retry':False,'private':True})
+ try:
+  commit=api.create_commit(repo_id=repo,repo_type='dataset',parent_commit=info.sha,operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=str(root/n)) for n in names]+[CommitOperationAdd(path_in_repo=prefix+'/manifest.json',path_or_fileobj=str(mp))],commit_message='Preserve five fixed-final Kaggle comparisons, exact identities and negative replication evidence',num_threads=1)
+ except BaseException as error:
+  save('uncertain.json',{'error_type':type(error).__name__,'automatic_retry':False});raise
+ save('commit.json',{'revision':commit.oid,'prefix':prefix});assert api.repo_info(repo,repo_type='dataset',revision=commit.oid).private is True
+ expected=files|{'manifest.json':{'bytes':mp.stat().st_size,'sha256':hashlib.sha256(mp.read_bytes()).hexdigest()}}
+ with tempfile.TemporaryDirectory(prefix='rsna-all-admission-milestone-') as tmp:
+  for name,row in expected.items():
+   p=Path(hf_hub_download(repo,filename=prefix+'/'+name,repo_type='dataset',revision=commit.oid,token=values['HF_TOKEN'],local_dir=tmp,force_download=True));assert p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+ save('verified.json',{'status':'private_full_download_size_sha_verified','source_git':head,'revision':commit.oid,'prefix':prefix,'files':expected,'file_count':len(expected)})
+ print(json.dumps({'status':'private_full_download_size_sha_verified','revision':commit.oid,'file_count':len(expected)}))
+finally:
+ if proc.poll() is None:
+  proc.stdin.write('release\n');proc.stdin.flush();proc.stdin.close();proc.wait(timeout=15)
+ assert proc.returncode==0
