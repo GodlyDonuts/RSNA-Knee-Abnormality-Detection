@@ -133,8 +133,22 @@ def single_coordinator(base):
 
 def validate_operation(workflow, args):
     op = workflow.load_operation(args.operation)
-    meta, _, _ = workflow.validate_snapshot(args.snapshot, args.projection)
     manifest = json.loads((args.operation.parent / "dataset/bundle-manifest.json").read_text())
+    admission = None
+    if op.get("fitting_admission_sha256") is not None:
+        admission = args.operation.parent / "dataset/fitting-admission.json"
+        if (
+            p.digest(admission) != op["fitting_admission_sha256"]
+            or manifest.get("fitting_admission_sha256") != op["fitting_admission_sha256"]
+        ):
+            raise ValueError("Reviewed fitting admission changed")
+    elif manifest.get("fitting_admission_sha256") is not None:
+        raise ValueError("Reviewed fitting admission missing from operation")
+    meta, _, _ = (
+        workflow.validate_snapshot(args.snapshot, args.projection)
+        if admission is None
+        else workflow.validate_snapshot(args.snapshot, args.projection, fitting_admission=admission)
+    )
     if (
         op["checkpoint_sha256"] != meta["checkpoint_sha256"]
         or op["epoch"] != meta["epoch"]
@@ -512,7 +526,15 @@ def run(args):
         }:
             raise ValueError("Dataset version or identity drifted")
         with workflow.ledger(base / "account-ledger.sqlite3", remote.username) as db:
-            workflow.enqueue(db, args.snapshot, repo=args.projection)
+            if op.get("fitting_admission_sha256") is not None:
+                workflow.enqueue(
+                    db,
+                    args.snapshot,
+                    repo=args.projection,
+                    fitting_admission=args.operation.parent / "dataset/fitting-admission.json",
+                )
+            else:
+                workflow.enqueue(db, args.snapshot, repo=args.projection)
             if args.action == "push-corrected-kernel":
                 if not args.publication_revision or not args.superseded_operation_sha256:
                     raise ValueError("Corrected push requires a revision and exact old operation")

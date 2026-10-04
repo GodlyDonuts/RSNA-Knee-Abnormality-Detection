@@ -1,0 +1,37 @@
+
+import hashlib,json,os,shutil,sqlite3,subprocess,sys
+from pathlib import Path
+r=json.load(sys.stdin); assert os.uname().nodename=='evc31' and os.environ.get('SLURM_JOB_ID') and not os.environ.get('SLURM_JOB_GPUS')
+b=Path('/home/sa305415/rsna-knee'); n=Path(r['node']); assert n.is_dir() and not n.is_symlink() and {x.name for x in n.iterdir()}=={'projection'}; assert '870939|FAILED|1:0' in subprocess.check_output(['sacct','-X','-j','870939','-n','-P','--format=JobIDRaw,State,ExitCode'],text=True)
+assert not (b/'kaggle/coordinator-claim').exists() and not (b/'kaggle/dataset-publications'/r['sha']).exists()
+with sqlite3.connect('file:'+str(b/'kaggle/account-ledger.sqlite3')+'?mode=ro',uri=True) as db:
+ assert db.execute('select record from entries where sha=?',(r['sha'],)).fetchone() is None
+t=subprocess.check_output(['sacct','-X','-j','868093','-n','-P','--format=JobIDRaw,State,ExitCode'],text=True).strip();assert t=='868093|COMPLETED|0:0'
+runroot=Path('/tmp/rsna-native384-all-production-20261002-v1'); run=json.loads((runroot/'run.json').read_text()); result=json.loads((runroot/'result.json').read_text()); snap=json.loads((runroot/'epoch-checkpoints/epoch-010.json').read_text())
+assert snap['checkpoint_sha256']==r['sha'] and snap['optimizer_steps']==4260 and snap['epoch']==10
+assert run['training_studies']==3403 and run['outer_studies']==0
+pub=b/'production-launch-native384-all-c9-v1/epoch-publication'; paid={}
+for epoch in range(1,11):
+ d=pub/f'epoch-{epoch:03d}';v=json.loads((d/'verified.json').read_text());assert v['status']=='private_epoch_fully_verified' and v['files_verified_by_download']==6
+ for x in [d]+list(d.iterdir()):
+  assert not x.is_symlink() and (x==d or x.name in {'manifest.json','intent.json','commit-result.json','verified.json'});s=x.stat();paid[s.st_dev,s.st_ino]=s.st_size
+s=pub.stat();paid[s.st_dev,s.st_ino]=s.st_size;assert len(paid)==51
+assert 128-15-len(paid)>=40+16
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True); row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home')][0]; used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]]
+future=1404996457+2*2**20;nf=760-40+40;reserve=((soft-used)*1024-future)/2**30;slots=limit-count-nf;assert reserve>=20 and slots>=5000,(reserve,slots)
+assert shutil.disk_usage('/tmp').free>(20+7+2+2)*2**30
+old=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection'); raw=(old/'projection.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==r['projection_sha'];manifest=json.loads(raw)
+assert manifest['training_git_commit']=='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+assert {str(x.relative_to(old/'code')) for x in (old/'code').rglob('*') if x.is_file()}==set(manifest['files'])
+for name,v in manifest['files'].items():
+ x=old/'code'/name;assert not x.is_symlink() and x.stat().st_size==v['bytes'] and hashlib.sha256(x.read_bytes()).hexdigest()==v['sha256']
+assert {x.name for x in (n/'projection').iterdir()}=={'code','projection.json'}; assert {str(x.relative_to(n/'projection/code')) for x in (n/'projection/code').rglob('*') if x.is_file()}==set(manifest['files'])
+assert (old/'projection.json').stat().st_ino==(n/'projection/projection.json').stat().st_ino
+for name in manifest['files']:
+ x=n/'projection/code'/name;assert x.stat().st_ino==(old/'code'/name).stat().st_ino
+spec=b/'kaggle/nativeall-epoch5-v1/encoder-spec-native-r32.json';(n/'encoder-spec.json').write_bytes(spec.read_bytes())
+fund={'used_kB':used,'soft_kB':soft,'used_files':count,'file_soft':limit,'prior_future_shared_bytes':1404996457,'prior_future_shared_files':760,'future_shared_bytes':future,'future_shared_files':nf,'retired_unused_all_native_metadata_future_files':40,'original_all_native_cap_files':128,'original_controls_paid':15,'all10_publication_paid_inodes':len(paid),'retained_original_closeout_future_files_at_least':16,'new_metadata_cap_bytes':2*2**20,'new_metadata_cap_files':40,'remaining_gib_after_all_liabilities':reserve,'remaining_files_after_all_liabilities':slots,'deletion_credit':0,'all_other_liabilities_retained':True,'node_bundle_cap_bytes':2*2**30,'node_zip_cap_bytes':1350*2**20,'node_runtime_cap_bytes':7*2**30}
+(n/'funding.json').write_text(json.dumps(fund,indent=2)+'\n')
+cmd=['/usr/bin/python3.12',str(b/'code-stopfix-1f486765/scripts/newton/runtime_environment.py'),'extract','--archive',str(b/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar'),'--sha256','89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','--expected-files','40403','--expected-bytes','6322691335','--scratch-base','/tmp','--shared-python','/usr/bin/python3.12','--min-free-gib','20']
+runtime=json.loads(subprocess.check_output(cmd,text=True));(n/'runtime.json').write_text(json.dumps(runtime,indent=2)+'\n')
+print(json.dumps({'status':'exact_original_nativeall_final_private_packaging_staged','job_id':os.environ['SLURM_JOB_ID'],'funding':fund,'snapshot':snap,'runtime':runtime,'projection_sha256':r['projection_sha']}))

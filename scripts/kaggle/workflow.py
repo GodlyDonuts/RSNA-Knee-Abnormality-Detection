@@ -397,7 +397,7 @@ def rollback_on_error(function):
     return wrapped
 
 
-def validate_snapshot(sidecar, repo=ROOT):
+def validate_snapshot(sidecar, repo=ROOT, fitting_admission=None):
     """Read trusted weights_only snapshot; validate internal state as well as sidecar."""
     import importlib.util
 
@@ -454,6 +454,15 @@ def validate_snapshot(sidecar, repo=ROOT):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         binding = module.validate_baseline(checkpoint)
+    elif fitting_admission is not None:
+        spec = importlib.util.spec_from_file_location(
+            "rsna_reviewed_infer", Path(__file__).with_name("reviewed_infer.py")
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        binding = module.validate_reviewed(
+            checkpoint, module.read_admission(fitting_admission), meta["checkpoint_sha256"]
+        )
     else:
         binding = validate_inference_checkpoint(checkpoint, allow_scheduled_epoch=True)
     config = binding["config"]
@@ -482,8 +491,12 @@ def validate_snapshot(sidecar, repo=ROOT):
 
 
 @rollback_on_error
-def enqueue(db, sidecar, repo=ROOT):
-    meta, _, _ = validate_snapshot(sidecar, repo)
+def enqueue(db, sidecar, repo=ROOT, fitting_admission=None):
+    meta, _, _ = (
+        validate_snapshot(sidecar, repo)
+        if fitting_admission is None
+        else validate_snapshot(sidecar, repo, fitting_admission=fitting_admission)
+    )
     db.execute("BEGIN IMMEDIATE")
     sha = meta["checkpoint_sha256"]
     row = db.execute("SELECT record FROM entries WHERE sha=?", (sha,)).fetchone()
@@ -562,13 +575,18 @@ def prepare_bundle(
     repo=ROOT,
     shared_wheelhouse=None,
     runtime_image=None,
+    fitting_admission=None,
 ):
     """Local only. Requires real epoch + completed Linux wheel lock; no placeholders."""
     if runtime_image is not None and not RUNTIME_IMAGE.fullmatch(runtime_image):
         raise ValueError("An exact Kaggle runtime image digest is required")
     if not SLUG.fullmatch(dataset_slug) or not SLUG.fullmatch(kernel_slug):
         raise ValueError("Use explicit owner/slug identifiers")
-    meta, binding, checkpoint = validate_snapshot(sidecar, repo)
+    meta, binding, checkpoint = (
+        validate_snapshot(sidecar, repo)
+        if fitting_admission is None
+        else validate_snapshot(sidecar, repo, fitting_admission=fitting_admission)
+    )
     delta = binding["config"].get("checkpoint_format") == "frozen_base_delta"
     if (
         meta["checkpoint_sha256"][:12] not in dataset_slug
@@ -626,6 +644,11 @@ def prepare_bundle(
     sources["code/chunked_infer.py"] = Path(__file__).with_name("chunked_infer.py")
     if baseline:
         sources["code/baseline_infer.py"] = Path(__file__).with_name("baseline_infer.py")
+    if fitting_admission is not None:
+        if baseline:
+            raise ValueError("Reviewed supervision cannot use the epoch-one baseline adapter")
+        sources["fitting-admission.json"] = fitting_admission
+        sources["code/reviewed_infer.py"] = Path(__file__).with_name("reviewed_infer.py")
     # Delta storage needs the exact original base; full storage is self-contained.
     local_encoder = dict(encoder)
     for kind in ("config", "weights") if delta else ("config",):
@@ -702,6 +725,8 @@ def prepare_bundle(
             "cache_side": binding.get("cache_side", 256),
         },
     }
+    if fitting_admission is not None:
+        manifest["fitting_admission_sha256"] = digest(fitting_admission)
     new_json(data / "bundle-manifest.json", manifest)
     manifest_sha = digest(data / "bundle-manifest.json")
     # Kaggle CLI supports only Dataset slugs here. Dedicated version 1 plus a
@@ -755,6 +780,8 @@ def prepare_bundle(
     }
     if runtime_image is not None:
         operation["runtime_image"] = runtime_image
+    if fitting_admission is not None:
+        operation["fitting_admission_sha256"] = digest(fitting_admission)
     new_json(output / "operation.json", operation)
     return operation
 
@@ -1159,6 +1186,7 @@ def main():
         p.add_argument("--" + name, required=True, type=Path)
     p.add_argument("--shared-wheelhouse", type=Path)
     p.add_argument("--runtime-image")
+    p.add_argument("--fitting-admission", type=Path)
     p.add_argument("--dataset-slug", required=True)
     p.add_argument("--kernel-slug", required=True)
     p.add_argument("--license-source", required=True)
@@ -1191,6 +1219,7 @@ def main():
                 args.license_sha256,
                 shared_wheelhouse=args.shared_wheelhouse,
                 runtime_image=args.runtime_image,
+                fitting_admission=args.fitting_admission,
             )
         else:
             with ledger(args.ledger, args.account) as db:

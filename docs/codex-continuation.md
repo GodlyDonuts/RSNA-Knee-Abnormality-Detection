@@ -1,3 +1,20 @@
+October4 owner explicitly requests useful Kaggle testing within daily allowance.
+Native all-development5 actually scored0.804 (56783855), best solo before this
+comparison. Native final10 Dataset12369051v1 is fully47-object download/hash verified;
+exact private offline Python3.12 T4 notebookv1 pushed once, awaiting actual public
+acceptance. Original interrupted verification download preserved; distinct read-only
+reconciliation succeeded without another upload. Read kaggle-nativeall-final-20261004-v1.
+
+Second-seed control870025/candidate870026 actuallyCOMPLETED0:0/all843 finite updates;
+final3 both privately five-object verified. Control HF274a617ec83be83a58c916da4c889e438f5b18a0,
+candidate HFad6b54ed872e34a32dfabaff695ecabdd1851156. Never repeat training/publications.
+Actual paired final metrics not yet replayed. Four supervision final3 checkpoints
+are specifically admitted by owner directive for two paired Kaggle comparisons;
+original trained code/checkpoint bytes remain unchanged. Standalone deployment
+authorization wrapper preserves all original inference math and default guards.
+Read kaggle-effusion-comparison-v1 decision/proofs. Require actual public T4/MRI
+acceptance, fresh allowance and canonical once-only coordinator before submitting.
+
 October4 19:31UTC read-only CPU870817 observed original control870025/candidate870026
 still RUNNING on evc32,830/822 contiguous finite updates out of843, empty stderr.
 Read effusion-supervision-seed2-v1/gpu-progress-003.json. Only completed epochs1/2

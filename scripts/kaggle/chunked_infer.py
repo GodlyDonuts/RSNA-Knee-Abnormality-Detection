@@ -323,6 +323,9 @@ def prepare_usable_series(
 
 def run(args: argparse.Namespace, invoke=None) -> dict:
     baseline = getattr(args, "baseline_epoch_one", False)
+    reviewed = getattr(args, "fitting_admission", None)
+    if reviewed is not None and (baseline or args.allow_diagnostic):
+        raise ValueError("Reviewed fitting cannot broaden baseline or diagnostic inference")
     if baseline and args.allow_diagnostic:
         raise ValueError("A completed training baseline cannot be diagnostic")
     if args.chunk_size < 1 or args.workers < 0:
@@ -410,7 +413,11 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             *(
                 [str(Path(__file__).with_name("baseline_infer.py"))]
                 if baseline
-                else ["-m", "rsna.competitive.infer"]
+                else (
+                    [str(Path(__file__).with_name("reviewed_infer.py"))]
+                    if reviewed is not None
+                    else ["-m", "rsna.competitive.infer"]
+                )
             ),
             "--checkpoint",
             str(args.checkpoint),
@@ -447,6 +454,8 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             )
         else:
             command.append("--scheduled-epoch")
+        if reviewed is not None:
+            command.extend(("--fitting-admission", str(reviewed)))
         if args.dicom_root is not None and not resilient:
             command.extend(("--dicom-root", str(args.dicom_root)))
         if args.allow_diagnostic:
@@ -695,6 +704,7 @@ def main() -> None:
     parser.add_argument("--baseline-epoch-one", action="store_true")
     parser.add_argument("--baseline-sidecar", type=Path)
     parser.add_argument("--baseline-proof", type=Path)
+    parser.add_argument("--fitting-admission", type=Path)
     parser.add_argument("--resilient-series", action="store_true")
     parser.add_argument("--fallback-on-unusable-study", action="store_true")
     parser.add_argument("--recover-slices", action="store_true")

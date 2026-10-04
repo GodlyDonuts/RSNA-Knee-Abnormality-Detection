@@ -1,3 +1,16 @@
+## October4 owner-authorized Kaggle comparison
+
+The owner's latest direct request restores Kaggle deployment priority. Read
+initiative/audits/kaggle-effusion-comparison-v1/decision.json. Admit only the exact
+completed native all-development final10 and four fixed-final3 supervision
+control/candidate checkpoints across two seeds. Preserve original numerical code
+and checkpoint bytes; reviewed_infer is a bound standalone authorization adapter.
+Require exact private Dataset bytes/public MRI-only offline T4/runtime acceptance
+and fresh allowance through the canonical single coordinator. Never submit public
+example CSVs, external-source weights, diagnostics or untrained prototypes.
+Previously scored native all-development5 is0.804 (56783855). Historical holds below
+are superseded for these five specific candidates only.
+
 # RSNA initiative: start here
 
 Read `initiative/README.md`, `docs/continuation.md`, and `docs/decisions.md` before

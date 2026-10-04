@@ -327,6 +327,14 @@ def run():
                 str(bundle / "baseline-proof.json"),
             ]
         )
+    if manifest.get("fitting_admission_sha256") is not None:
+        admission = bundle / "fitting-admission.json"
+        if (
+            manifest.get("baseline_epoch_one")
+            or sha256(admission) != manifest["fitting_admission_sha256"]
+        ):
+            raise ValueError("Reviewed fitting admission differs from the exact bundle")
+        command.extend(("--fitting-admission", str(admission)))
     subprocess.run(command, env=env, check=True)
     metrics = json.loads((working / "submission.metrics.json").read_text())
     if (
