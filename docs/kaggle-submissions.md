@@ -1,3 +1,10 @@
+Completed five-comparison source2cdbde5 is privately mirrored at HF
+de13dd8da38662c3211c42d8fd592de9a00a379b, all113 small objects fully
+re-downloaded/size/SHA verified under the canonical shared lock. Never repeat.
+Latest21:25UTC live read-only check still shows five accepted IDs, all hidden
+statuses/scores null and5today/0slots. Follow actual outcomes next; do not infer
+score or retry these accepted submissions. Read hf-kaggle-five-fixed-final-20261004-v1.
+
 October4 21:21UTC all FIVE distinct code submissions accepted ONCE and reconciled
 in the single canonical Newton ledger: native all-development final10 56833260,
 seed1 original control final3 56833454 / reviewed-label partner56833608, seed2
