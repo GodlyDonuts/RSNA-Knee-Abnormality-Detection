@@ -1,5 +1,23 @@
 # Decisions, corrections, and unresolved work
 
+## October4: measure comparison support before a ranking experiment
+
+Actual fitting-only sampler replay at two seeds finds zero same-target pairs
+inside the trainer's one-study forwards. Even across eight accumulated studies,
+original strict MCL comparisons occur in1.78% of updates; fracture/Baker's/
+synovitis are also sparse. Read
+[the full12-target diagnostic](../initiative/audits/ranking-supervision-exposure-v1/README.md).
+Reject a naive within-forward ranking add-on. First independently admit ordered
+concept evidence and an explicit comparison schedule at a matched encoding budget.
+Unknowns stay masked; software/metadata counts are not MRI accuracy or a confirmed
+Kaggle root cause. Both queued seed2 supervision jobs remain untouched.
+
+The second-seed replication was submitted once as870025/870026 after CPU870024
+admitted original asset reuse and explicit resource reconciliation. Both remain
+PENDING at the latest observation. Original unused native closeout funding20→12
+retires eight future slots, with every paid file retained; no deletion credit.
+Current original launch/mirror receipts supersede the prior prepared-only status.
+
 ## October4: completed Effusion screen, uncertain gain, replication before promotion
 
 Both three-epoch paired fits completed with exact interrupted-state continuation.

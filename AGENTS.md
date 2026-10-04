@@ -60,6 +60,13 @@ Same-fold repetition tests seed stability, not independent holdout patients.
 All original masks/folds and protected evaluation remain unchanged. Historical
 observations below are superseded by current original receipts, not overwritten.
 
+Before a separate ranking experiment read ranking-supervision-exposure-v1:
+one-study forwards provide zero same-target comparison pairs, and several strict
+targets have sparse eight-study effective-batch pairs. All843 original GPU
+observed-cell counters match fitting-only CPU replay. Current BCE remains valid;
+this is a future-objective execution constraint, not a demonstrated accuracy
+cause. Reviewed concepts/comparison scheduling remain unadmitted.
+
 ## October3 supplied research program: first supervision contrast
 
 Read `initiative/research/owner-program-20261003-v1/README.md` and the current

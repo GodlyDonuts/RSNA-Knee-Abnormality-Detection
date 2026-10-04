@@ -14,7 +14,11 @@ Effusion fitting-supervision contrast before funding patch-witness fitting. Read
 [the archived report and critical review](../initiative/research/owner-program-20261003-v1/README.md)
 and [the exact paired experiment](../initiative/experiments/competitive-v1/effusion-review-contrast-v1/README.md).
 Source-supported concepts/partial orders and physical crop/neighbor inputs are
-separate next hypotheses. No omission-to-negative conversion, protected tuning or
+separate next hypotheses. The actual fitting-only ranking-support diagnostic
+shows zero same-target pairs in one-study forwards and rare effective-batch pairs
+for several targets; read ranking-supervision-exposure-v1 before choosing an
+auxiliary loss or its schedule. It does not admit new concepts or prove an
+accuracy bottleneck. No omission-to-negative conversion, protected tuning or
 simultaneous encoder/input/label changes. Actual MRI GPU acceptance and new funding
 remain required; local recovery/input proofs are not accuracy gains. Historical
 plans below remain preserved.

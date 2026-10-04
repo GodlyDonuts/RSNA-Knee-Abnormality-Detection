@@ -75,6 +75,16 @@ external anatomy/weights are conditional leads. Solo-model and protected-data
 boundaries remain intact. This is a prioritized research sequence, not four
 unobserved running jobs.
 
+The [fitting-only comparison diagnostic](../initiative/audits/ranking-supervision-exposure-v1/README.md)
+found an important execution constraint for the next ranking proposal: current
+one-study forwards provide zero same-target study pairs. Collecting all eight
+effective-batch studies would still yield MCL comparisons in only1.78% of updates,
+fracture0.59–0.83%, Baker's2.02–2.14% and synovitis1.90–2.61%, under the original
+control labels and two exact sampler seeds. No MRI/model or protected target
+values were used. This rejects a naive ranking add-on, not ranking itself or an
+accuracy root cause. Admit reviewed concepts and a deliberate comparison schedule
+before a new GPU loss experiment; keep the pending supervision pair unchanged.
+
 ## Current MRI pipeline and model
 
 - Official pinned `facebook/dinov3-vitl16-pretrain-lvd1689m`, roughly 300M base
@@ -229,9 +239,12 @@ and96 exact quotations were checked.
 A standalone exact-SHA loader and the actual private31-cell proposal passed:
 fold0 fitting Effusion positives16→47, the entire1,156-study outer frame and all
 other targets unchanged. Original release masks and the registry are unchanged.
-The loader is **not yet connected to the production trainer**; no fitted overlay
-model, actual GPU recovery or accuracy gain exists. Its possible benefit needs a
-matched experiment, not an assumption that more positive labels are correct.
+The loader was subsequently integrated into the canonical trainer, passed actual
+MRI/GPU recovery, and both paired three-epoch fits completed. Their fixed-final
+result and uncertainty are reported above: a promising Effusion point estimate,
+with no established overall gain. The original standalone loader audit remains
+historical engineering evidence. A second seed is queued. No assumption that
+more positive labels are correct, nor competition admission, follows from this.
 
 [Full review evidence](../initiative/audits/effusion-focused-reliability-v1/expanded-review-v1),
 [actual loader/input evidence](../initiative/audits/effusion-fitting-overlay-loader-v1),

@@ -1,3 +1,19 @@
+October4 fitting-only ranking-support diagnostic is complete: original control
+2247 fitting studies, exact sampler seeds20260922/20261004,3epochs/843updates.
+All843 actual parent GPU observed-cell counts and8 interruption overlaps match;
+current CPU Torch2.14.0/original2.14.0+cu130 same-version CPU sampler. Read v2
+result/acceptance; original v1 aggregate output remains preserved. Current BCE is
+valid; the constraint concerns a future study-pair loss.
+One-study microbatches yield zero within-forward same-target pairs. Effective8
+cross-component pairs occur in1.78% MCL updates,0.59–0.83%fracture,2.02–2.14%
+Baker's and1.90–2.61%synovitis. Read ranking-supervision-exposure-v1. No MRI/
+model/GPU/ranking loss/new concepts/protected target values or accuracy evidence.
+Reject a naive within-forward rank loss; first admit fitting-only concepts and
+an equal-encoding-budget comparison schedule. Original control labels only;
+Effusion candidate31-cell extension is not replayed here. Live numerical source
+and pending870025/870026 remain unchanged. Research brief's stale standalone-
+loader status is corrected beside the preserved historical audit.
+
 Second-seed launch milestone: source0379e60 privately mirrored at
 HFadf75da78b4911b490832da1730cb3eea1656882, all25 distinct small objects fully
 re-downloaded/size/SHA verified under canonical shared lock. Read
