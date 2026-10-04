@@ -54,10 +54,10 @@ zero and only nine observed positives support the endpoint. Macro changed
 +0.001222, also unestablished. This is internal research, not a Kaggle score.
 The next matched seed20261004 was dispatched once as control870025 and
 candidate870026 after CPU870024 admitted original asset reuse and fresh funding.
-Both are actually RUNNING on evc32 at October4 18:52 UTC: control666/candidate659
+Both are actually RUNNING on evc32 at October4 19:31 UTC: control830/candidate822
 contiguous finite updates, third epoch underway and empty stderr. Both completed
 epochs1/2 privately preserved ONCE/all20 objects fully downloaded/size/SHA verified.
-Read seed2 gpu-progress-002 and epochs-001-002-preservation. Never repeat those four
+Read seed2 gpu-progress-003 and epochs-001-002-preservation. Never repeat those four
 publications or original dispatch. No fixed-final result yet; preserve epoch3 and
 follow final-analysis-collection-plan after actual terminals. Healthy jobs unchanged.
 Same-fold repetition tests seed stability, not independent holdout patients.

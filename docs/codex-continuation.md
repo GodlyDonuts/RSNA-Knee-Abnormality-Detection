@@ -1,3 +1,16 @@
+October4 19:31UTC read-only CPU870817 observed original control870025/candidate870026
+still RUNNING on evc32,830/822 contiguous finite updates out of843, empty stderr.
+Read effusion-supervision-seed2-v1/gpu-progress-003.json. Only completed epochs1/2
+exist at this observation; their original four private publications stay verified.
+No new epoch3 intent, terminal, held-out result or accuracy claim. Original science,
+jobs and quota unchanged; preserve new epoch3 once when actually complete.
+
+Standalone neighbor-channel prototype source2075cfe is privately mirrored at
+HF44bbb0d83380d089b7b4ba6e02f8ec037ab0783f, all17 small objects fully
+re-downloaded/size/SHA verified under the canonical shared lock. Read
+hf-neighbor-channels-prototype-20261004-v1; never repeat this mirror. CPU arithmetic
+acceptance does not admit MRI/GPU fitting or demonstrate an accuracy gain.
+
 Second-seed epochs1/2 progress source0187c9c is privately mirrored at
 HFf3adfb9f471b0c46678c4c204660d7f9b4c76f7e; all19 small objects fully
 re-downloaded/size/SHA verified under canonical shared lock. Read

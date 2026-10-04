@@ -111,3 +111,12 @@ or inference, then independently replay the predeclared Effusion primary/all12
 secondary endpoints and4,000 paired whole-component draws. The same nine observed
 Effusion positives still limit interpretation; seed repetition is not independent
 patient generalization or permission to select a favorable endpoint/checkpoint.
+
+## Near-final optimizer progress, October4 19:31 UTC
+
+Original control870025/candidate870026 remain RUNNING on evc32. Read-only
+CPU870817 observed830/822 contiguous finite optimizer updates out of843 and
+empty stderr, with the original source/recipe/roster/runtime bindings unchanged.
+`gpu-progress-003.json` retains the exact observation and original Slurm/quota
+output. Only epochs1/2 snapshots exist at this observation; no epoch3 publication
+intent was written. The fixed-final held-out outcome remains unavailable.

@@ -24,8 +24,8 @@ The [fixed-final audit](../initiative/audits/effusion-supervision-screen-final-v
 contains original predictions, all12 endpoints, uncertainty and a reproducible
 source/roster/trajectory/result replay. A new matched seed20261004 three-epoch
 pair was submitted once as **870025/870026** after actual asset reuse and fresh
-resource admission. At October4 18:52 UTC both are **training epoch3 on evc32**:
-control666/candidate659 contiguous finite updates and empty stderr. Both completed
+resource admission. At October4 19:31 UTC both are **training epoch3 on evc32**:
+control830/candidate822 of843 contiguous finite updates and empty stderr. Both completed
 epochs1/2 are privately preserved, all20 objects fully re-downloaded/size/SHA
 verified. Original source/recipe/full-roster/runtime bindings passed again. No new
 fixed-final result yet.
