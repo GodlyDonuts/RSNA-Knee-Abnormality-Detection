@@ -1,0 +1,22 @@
+import argparse,hashlib,importlib.util,json,os,sys
+from pathlib import Path
+c=Path('/tmp/rsna-effusion-screen-evc32-20261004-v1');res=c/'resume-v1'
+parser=argparse.ArgumentParser();parser.add_argument('--role',choices=['control','candidate'],required=True);role=parser.parse_args().role
+m=json.loads((c/'files.json').read_text());new=json.loads((res/'files.json').read_text())
+for n,r in new['files'].items():assert (res/n).stat().st_size==r['bytes'] and hashlib.sha256((res/n).read_bytes()).hexdigest()==r['sha256']
+p=c/'scripts/newton/run_effusion_screen.py'
+assert hashlib.sha256(p.read_bytes()).hexdigest()==m['files']['scripts/newton/run_effusion_screen.py']['sha256']
+s=importlib.util.spec_from_file_location('accepted_screen_runner',p);mod=importlib.util.module_from_spec(s);s.loader.exec_module(mod)
+_,cache=mod.verify_control();mod.verify_cache_stats(cache,original=json.loads((c/'cache-stats-private.json').read_text()))
+source=json.loads((mod.RECOVERY/'source.json').read_text())
+for n,r in source['files'].items():assert mod.sha(c/'code'/n)==r['sha256']
+proof=json.loads((res/'checkpoint-admission.json').read_text())[role];checkpoint=c/role/'checkpoint.pt'
+assert checkpoint.stat().st_size==proof['checkpoint_bytes'] and mod.sha(checkpoint)==proof['checkpoint_sha256']
+assert os.environ['SLURM_CPUS_PER_TASK']=='2'
+import torch
+assert torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0) and torch.cuda.is_bf16_supported()
+command=json.loads((c/(role+'-trainer-intent.json')).read_text())['command']
+assert command[0]==sys.executable and '--resume' not in command
+command+=['--resume',str(checkpoint)]
+mod.save(res/(role+'-trainer-intent.json'),{'command':command,'resumes_step':proof['step'],'automatic_retry':False})
+os.chdir(c/'code');os.execv(command[0],command)

@@ -7,11 +7,14 @@ experiment. Current live state belongs in [the continuation guide](codex-continu
 
 ## Current training
 
-Two matched DINOv3-L rank32 models are now training on separate H100s on evc32:
-control **869770** and reviewed-Effusion candidate **869771**. At October4 02:30UTC,
-both had **38 real, finite optimizer updates**, with empty stderr. Their first
-step25 recovery checkpoints were independently decoded and bound to the exact
-model/optimizer/counters/RNG on the owning node. Each uses2,247
+The two matched DINOv3-L rank32 fits reached183/182 finite logged updates before
+Slurm preempted them. Both latest complete step175 checkpoints preserved the
+exact learned state, AdamW, counters and all RNG. Distinct normal-priority
+continuations **869815/869816** were submitted once on evc32 with the original
+recipe; assigned H100/CUDA/header/runtime checks passed. At October4 04:49UTC,
+both actually resumed at update176 and reached187 with contiguous finite losses
+and gradients and empty stderr. No final held-out result is available yet.
+Each uses2,247
 training examinations, native384 images, the same initialization/optimizer and
 three epochs/843 updates; final evaluation uses1,156 disjoint development studies.
 Only31 reviewed fitting Effusion masks differ. This tests a measured supervision

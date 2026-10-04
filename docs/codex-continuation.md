@@ -1,3 +1,21 @@
+October4 actual preemption/resume: original control869770/candidate869771 were
+PREEMPTED by Slurm after183/182 logged finite updates, with no completed epoch
+or held-out result. Atomic checkpoints175 were independently CPU-decoded in
+869814: exact original full2247/1156/arm/source/base binding,258 AdamW state
+entries/allrankRNG/cursors. Distinct explicit continuations869815/869816 were
+submittedONCE in normal partition/QOS, oneH100/twoCPU/96GiB each on evc32;
+actual allocated driver0/count1, strict runtime and header checks passed.
+At 04:49 UTC both actually resumed at update176 and reached187 with contiguous
+finite losses/gradients and empty stderr. See resume-v1/gpu-progress-001.json.
+No model/data
+failure, fresh-model reset, library/config/data/recipe change or duplicate job.
+Read effusion-supervision-screen-v1/resume-v1 and all original intents/results;
+never repeat its coordinator. Original output and private epoch publisher stay
+unchanged; each actual completed epoch requires one full private size/SHA
+publication. Both full3epoch/843update runs still need final1156 outer predictions.
+Shared20.005399GiB/5000files after all retained liabilities; new controls<64KiB
+private inside existing32MiB budget, no new cache/runtime or deletion credit.
+
 Latest actual observation02:30UTC: both screen869770/869771 RUNNING,
 38 contiguous finite optimizer updates each, empty stderr. The first atomic
 step25 checkpoints were independently CPU-decoded on the owning node:125555533bytes

@@ -1,0 +1,136 @@
+{
+  "allocated_node": "evc32",
+  "clinical_gain_claimed": false,
+  "continued_jobs": {
+    "candidate": "869816",
+    "control": "869815"
+  },
+  "new_held_out_result": false,
+  "observed_at_UTC": "2026-10-04T04:49:00.866463+00:00",
+  "original_jobs": {
+    "candidate": "869771",
+    "control": "869770"
+  },
+  "original_resume_step": 175,
+  "roles": {
+    "candidate": {
+      "all_new_losses_and_gradients_finite": true,
+      "first_update": {
+        "elapsed_seconds": 15.29631958110258,
+        "epoch": 0,
+        "gradient_norm": 0.5785084366798401,
+        "loss": 0.24702252447605133,
+        "observed_cells": 57.0,
+        "optimizer_steps": 176,
+        "peak_gpu_allocated_bytes": 7856202752,
+        "update": 176
+      },
+      "last_update": {
+        "elapsed_seconds": 174.96088254917413,
+        "epoch": 0,
+        "gradient_norm": 0.45421838760375977,
+        "loss": 0.3178848624229431,
+        "observed_cells": 65.0,
+        "optimizer_steps": 187,
+        "peak_gpu_allocated_bytes": 7856203776,
+        "update": 187
+      },
+      "new_contiguous_updates": 12,
+      "stderr_empty": true,
+      "trainer_intent": {
+        "automatic_retry": false,
+        "command": [
+          "/tmp/rsna-environment-869769-qxelo740/environment/bin/python",
+          "-B",
+          "/tmp/rsna-effusion-screen-evc32-20261004-v1/code/scripts/newton/enforce_deterministic_runtime.py",
+          "--module",
+          "rsna.competitive.train",
+          "--config",
+          "/tmp/rsna-effusion-screen-evc32-20261004-v1/candidate-screen.json",
+          "--studies",
+          "/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet",
+          "--series",
+          "/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv",
+          "--cache",
+          "/tmp/rsna-effusion-native384-evc32-route-869745-8z1d5v45/restored/cache",
+          "--folds",
+          "/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds",
+          "--artifact-root",
+          "/home/sa305415/rsna-knee/code-stopfix-1f486765",
+          "--fitting-supervision",
+          "/home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1/overlay.json",
+          "--device",
+          "cuda",
+          "--output",
+          "/tmp/rsna-effusion-screen-evc32-20261004-v1/candidate",
+          "--resume",
+          "/tmp/rsna-effusion-screen-evc32-20261004-v1/candidate/checkpoint.pt"
+        ],
+        "resumes_step": 175
+      }
+    },
+    "control": {
+      "all_new_losses_and_gradients_finite": true,
+      "first_update": {
+        "elapsed_seconds": 14.892054186202586,
+        "epoch": 0,
+        "gradient_norm": 0.580115556716919,
+        "loss": 0.2441231906414032,
+        "observed_cells": 57.0,
+        "optimizer_steps": 176,
+        "peak_gpu_allocated_bytes": 7856202752,
+        "update": 176
+      },
+      "last_update": {
+        "elapsed_seconds": 174.6830259920098,
+        "epoch": 0,
+        "gradient_norm": 0.4236295223236084,
+        "loss": 0.27166104316711426,
+        "observed_cells": 64.0,
+        "optimizer_steps": 187,
+        "peak_gpu_allocated_bytes": 7856203776,
+        "update": 187
+      },
+      "new_contiguous_updates": 12,
+      "stderr_empty": true,
+      "trainer_intent": {
+        "automatic_retry": false,
+        "command": [
+          "/tmp/rsna-environment-869769-qxelo740/environment/bin/python",
+          "-B",
+          "/tmp/rsna-effusion-screen-evc32-20261004-v1/code/scripts/newton/enforce_deterministic_runtime.py",
+          "--module",
+          "rsna.competitive.train",
+          "--config",
+          "/tmp/rsna-effusion-screen-evc32-20261004-v1/control-screen.json",
+          "--studies",
+          "/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet",
+          "--series",
+          "/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv",
+          "--cache",
+          "/tmp/rsna-effusion-native384-evc32-route-869745-8z1d5v45/restored/cache",
+          "--folds",
+          "/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds",
+          "--artifact-root",
+          "/home/sa305415/rsna-knee/code-stopfix-1f486765",
+          "--fitting-supervision",
+          "/home/sa305415/rsna-knee/effusion-supervision-engineering-20261003-v1/overlay.json",
+          "--device",
+          "cuda",
+          "--output",
+          "/tmp/rsna-effusion-screen-evc32-20261004-v1/control",
+          "--resume",
+          "/tmp/rsna-effusion-screen-evc32-20261004-v1/control/checkpoint.pt"
+        ],
+        "resumes_step": 175
+      }
+    }
+  },
+  "same_original_output_and_full_recipe": true,
+  "scientific_source_git": "665c0d515410df24f1f37ed5d9f8cb7a0f0fc480",
+  "slurm": [
+    "869815|RUNNING|normal|normal|6:18|evc32",
+    "869816|RUNNING|normal|normal|6:18|evc32"
+  ],
+  "status": "actual_optimizer_continuation_passed"
+}

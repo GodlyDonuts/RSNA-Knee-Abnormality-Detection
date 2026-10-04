@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH --job-name=rsna-effusion-resume-candidate
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --nodelist=evc32
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:nvidia_h100_pcie:1
+#SBATCH --mem=96G
+#SBATCH --time=08:00:00
+#SBATCH --output=/tmp/rsna-effusion-screen-evc32-20261004-v1/resume-v1/candidate.out
+#SBATCH --error=/tmp/rsna-effusion-screen-evc32-20261004-v1/resume-v1/candidate.err
+set -euo pipefail
+umask 077
+unset SLURM_CPU_BIND SLURM_CPU_BIND_LIST SLURM_CPU_BIND_TYPE SLURM_CPU_BIND_VERBOSE
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+export OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+export PYTHONPATH=/tmp/rsna-effusion-screen-evc32-20261004-v1/code
+CPATH=$(bash /tmp/rsna-effusion-screen-evc32-20261004-v1/headers.sh)
+export CPATH
+RSNA_SCREEN_PYTHON=$(/usr/bin/python3.12 -B -c 'import json; print(json.load(open("/tmp/rsna-effusion-screen-evc32-20261004-v1/runtime.json"))["python"])')
+export TRITON_CACHE_DIR=$(/usr/bin/python3.12 -B -c 'import json; print(json.load(open("/tmp/rsna-effusion-screen-evc32-20261004-v1/runtime.json"))["runtime_root"] + "/triton-cache")')
+exec bash /tmp/rsna-effusion-screen-evc32-20261004-v1/resume-v1/arm.sh "$RSNA_SCREEN_PYTHON" candidate

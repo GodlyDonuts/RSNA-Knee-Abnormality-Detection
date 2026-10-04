@@ -1,0 +1,99 @@
+import base64,datetime,hashlib,json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();local=root/'artifacts/effusion-screen-resume-v1';audit=root/'initiative/audits/effusion-supervision-screen-v1/resume-v1'
+intent=local/'intent.json';assert not intent.exists(),'Existing intent must be reconciled read-only'
+assert not subprocess.check_output(['git','status','--porcelain'],text=True).strip()
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+control='/tmp/rsna-effusion-screen-evc32-20261004-v1';res=control+'/resume-v1'
+helper='''import argparse,hashlib,importlib.util,json,os,sys
+from pathlib import Path
+c=Path('/tmp/rsna-effusion-screen-evc32-20261004-v1');res=c/'resume-v1'
+parser=argparse.ArgumentParser();parser.add_argument('--role',choices=['control','candidate'],required=True);role=parser.parse_args().role
+m=json.loads((c/'files.json').read_text());new=json.loads((res/'files.json').read_text())
+for n,r in new['files'].items():assert (res/n).stat().st_size==r['bytes'] and hashlib.sha256((res/n).read_bytes()).hexdigest()==r['sha256']
+p=c/'scripts/newton/run_effusion_screen.py'
+assert hashlib.sha256(p.read_bytes()).hexdigest()==m['files']['scripts/newton/run_effusion_screen.py']['sha256']
+s=importlib.util.spec_from_file_location('accepted_screen_runner',p);mod=importlib.util.module_from_spec(s);s.loader.exec_module(mod)
+_,cache=mod.verify_control();mod.verify_cache_stats(cache,original=json.loads((c/'cache-stats-private.json').read_text()))
+source=json.loads((mod.RECOVERY/'source.json').read_text())
+for n,r in source['files'].items():assert mod.sha(c/'code'/n)==r['sha256']
+proof=json.loads((res/'checkpoint-admission.json').read_text())[role];checkpoint=c/role/'checkpoint.pt'
+assert checkpoint.stat().st_size==proof['checkpoint_bytes'] and mod.sha(checkpoint)==proof['checkpoint_sha256']
+assert os.environ['SLURM_CPUS_PER_TASK']=='2'
+import torch
+assert torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0) and torch.cuda.is_bf16_supported()
+command=json.loads((c/(role+'-trainer-intent.json')).read_text())['command']
+assert command[0]==sys.executable and '--resume' not in command
+command+=['--resume',str(checkpoint)]
+mod.save(res/(role+'-trainer-intent.json'),{'command':command,'resumes_step':proof['step'],'automatic_retry':False})
+os.chdir(c/'code');os.execv(command[0],command)
+'''
+old=root/'initiative/audits/effusion-supervision-screen-v1/evc32-independent-jobs'
+arm=(old/'arm.sh.txt').read_text();arm=arm[:arm.index('exec "$1"')]+f'exec "$1" -B {res}/resume.py --role "$2"\n'
+files={'resume.py':helper.encode(),'arm.sh':arm.encode()}
+for role in ['control','candidate']:
+ s=(old/(role+'.sbatch.txt')).read_text().replace('#SBATCH --job-name=rsna-effusion-evc32-'+role,'#SBATCH --job-name=rsna-effusion-resume-'+role)
+ s=s.replace('#SBATCH --output='+control+'/'+role+'.out','#SBATCH --output='+res+'/'+role+'.out').replace('#SBATCH --error='+control+'/'+role+'.err','#SBATCH --error='+res+'/'+role+'.err')
+ s=s.replace('exec bash '+control+'/arm.sh','exec bash '+res+'/arm.sh')
+ files[role+'.sbatch']=s.encode()
+program="""import base64,hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+os.umask(0o077);c=Path('/tmp/rsna-effusion-screen-evc32-20261004-v1');res=c/'resume-v1';assert not res.exists()
+assert os.uname().nodename.split('.')[0]=='evc32' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS')
+rows=subprocess.check_output(['sacct','-X','-j','869770,869771','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True).splitlines();assert set(rows)=={'869770|PREEMPTED|0:0','869771|PREEMPTED|0:0'}
+assert not any('gpu' in r.lower() for r in subprocess.check_output(['squeue','-u','sa305415','-h','-o','%b'],text=True).splitlines())
+m=json.loads((c/'files.json').read_text())
+for n,r in m['files'].items():assert (c/n).stat().st_size==r['bytes'] and hashlib.sha256((c/n).read_bytes()).hexdigest()==r['sha256']
+p=c/'scripts/newton/run_effusion_screen.py';s=importlib.util.spec_from_file_location('accepted_runner',p);mod=importlib.util.module_from_spec(s);s.loader.exec_module(mod)
+_,cache=mod.verify_control();mod.verify_cache_stats(cache,original=json.loads((c/'cache-stats-private.json').read_text()))
+row=[x.split() for x in subprocess.check_output(['lfs','quota','-u','sa305415','/lustre/fs1'],text=True).splitlines() if x.lstrip().startswith('/lustre/fs1')][0]
+used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];assert (soft-used)*1024-1404996457>=20*2**30 and limit-count-768>=5000
+assert shutil.disk_usage('/tmp').free>=(20+7+3)*2**30+32*2**20
+payload=json.load(sys.stdin);raw={k:base64.b64decode(v,validate=True) for k,v in payload['files'].items()};assert sum(len(v) for v in raw.values())<65536
+res.mkdir(mode=0o700)
+def save(n,v):
+ with (res/n).open('x') as f:json.dump(v,f,indent=2,sort_keys=True);f.write('\\n');f.flush();os.fsync(f.fileno())
+for n,v in raw.items():
+ with (res/n).open('xb') as f:f.write(v)
+manifest={'launch_git':payload['source_git'],'files':{k:{'bytes':len(v),'sha256':hashlib.sha256(v).hexdigest()} for k,v in raw.items()},'numerical_source_git':m['scientific_git'],'original_jobs':['869770','869771'],'original_terminal':rows,'exact_engineering_recovery_job':'869300','no_numerical_change':True,'checkpoint_admission_GPU_reserved':False}
+save('files.json',manifest)
+runtime=json.loads((c/'runtime.json').read_text())
+check='''
+import hashlib,io,json,torch
+from pathlib import Path
+c=Path('/tmp/rsna-effusion-screen-evc32-20261004-v1');out={}
+for role in ['control','candidate']:
+ p=c/role/'checkpoint.pt';raw=p.read_bytes();v=torch.load(io.BytesIO(raw),map_location='cpu',weights_only=False);run=json.loads((c/role/'run.json').read_text())
+ assert v['binding']==run['binding'] and v['optimizer_boundary'] is True and len(v['rng_by_rank'])==1
+ assert (run['training_studies'],run['outer_studies'])==(2247,1156) and run['encoder_trainable_parameters']==10223616
+ assert v['step']==175 and v['epoch']==0 and v['next_update']==175 and len(v['optimizer']['state'])==258
+ assert v['binding']['experimental_fitting_supervision']['applied_cells']==(31 if role=='candidate' else 0)
+ out[role]={'checkpoint_bytes':len(raw),'checkpoint_sha256':hashlib.sha256(raw).hexdigest(),'epoch':v['epoch'],'next_update':v['next_update'],'step':v['step'],'exact_original_binding_matched':True,'optimizer_boundary':True,'all_rank_RNG_present':True,'AdamW_state_entries':258}
+print(json.dumps(out))
+'''
+proof=json.loads(subprocess.check_output([runtime['python'],'-B','-c',check],text=True));save('checkpoint-admission.json',proof)
+funding={'shared_used_kB':used,'shared_soft_kB':soft,'used_files':count,'file_soft':limit,'future_bytes':1404996457,'future_files':768,'after_liabilities_GiB':((soft-used)*1024-1404996457)/2**30,'after_liabilities_files':limit-count-768,'new_shared_bytes':0,'new_shared_files':0,'reuses_original_runtime_cache_checkpoint_reservations':True,'new_node_control_bytes':sum(len(v) for v in raw.values()),'no_deletion_credit':True};save('funding.json',funding)
+results={}
+for role in ['control','candidate']:
+ save(role+'-dispatch-intent.json',{'automatic_retry':False,'resumes_original_job': '869770' if role=='control' else '869771','resumes_step':175})
+ env=os.environ.copy()
+ for key in list(env):
+  if key.startswith('SLURM_STEP_') or key.startswith('SLURM_CPU_BIND'):env.pop(key)
+ job=subprocess.check_output(['sbatch','--parsable',str(res/(role+'.sbatch'))],env=env,text=True).strip();assert job.isdecimal();results[role]={'job_id':job,'resumes_step':175,'automatic_retry':False}
+ save(role+'-dispatch-result.json',results[role])
+out={'dispatch':results,'checkpoint_admission':proof,'manifest':manifest,'funding':funding,'CPU_admission_job':os.environ['SLURM_JOB_ID']};save('dispatch-result.json',out);print(json.dumps(out))
+"""
+# Compose the nested checkpoint reader without mixing executable quoting levels.
+program=program.replace("check='''\nimport hashlib,io,json,torch", "check='''\nimport hashlib,io,json,torch")
+compile(helper,'resume-helper','exec');compile(program,'resume-stager','exec')
+local.mkdir(exist_ok=True)
+with intent.open('x') as f:json.dump({'source_git':head,'automatic_retry':False,'original_jobs':['869770','869771']},f)
+command=['salloc','--quiet','--account=skattel','--partition=normal','--nodelist=evc32','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=8G','--time=00:15:00','--job-name=rsna-effusion-resume-CPU','srun','--cpu-bind=cores','--unbuffered','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','/usr/bin/python3.12','-B','-c',program]
+r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(command)],input=json.dumps({'source_git':head,'files':{k:base64.b64encode(v).decode() for k,v in files.items()}}).encode(),capture_output=True,timeout=900)
+(local/'stdout.txt').write_bytes(r.stdout);(local/'stderr.txt').write_bytes(r.stderr)
+if r.returncode:print(r.stderr.decode()[-2500:]);raise RuntimeError('Reconcile original read-only; no automatic retry')
+out=json.loads(r.stdout);audit.mkdir(parents=True)
+for name,val in out.items():
+ with (audit/(name+'.json')).open('x') as f:json.dump(val,f,indent=2,sort_keys=True);f.write('\n')
+for name,v in files.items():(audit/(name+'.txt')).write_bytes(v)
+print(json.dumps(out['dispatch']))
