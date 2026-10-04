@@ -1,3 +1,8 @@
+Private continuation milestone: source6257671 is fully re-download/size/SHA
+verified at HF f683c9a27e2b22b5cbc99b2a10618df40a7669a2, all17 small objects,
+under the canonical shared lock. Read hf-effusion-resume175-20261004-v1;
+never repeat this mirror. No raw data or learned weights were mirrored.
+
 October4 actual preemption/resume: original control869770/candidate869771 were
 PREEMPTED by Slurm after183/182 logged finite updates, with no completed epoch
 or held-out result. Atomic checkpoints175 were independently CPU-decoded in
