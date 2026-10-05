@@ -1,3 +1,19 @@
+October5 completed three-arm neighbor result: original872279 COMPLETED0:0,
+three fixed843-update arms. Gray/physical/distant macroAUC=.786090/.788548/
+.797655; physical-minus-gray primary Meniscus−.000948, physical-minus-distant
+−.000785, distant-minus-gray−.000163, all paired95% spanning zero. All macro
+contrasts also span zero;1164/4000undefined macro draws retained. No neighbor
+recipe promoted, no extra epochs/strength selection. All nine immutable epochs
+privately full5-object re-download/size/SHA verified once; final distant3
+HFa7949b846ff30c7cce38e4b3a027183570183ee2 viaCPU872979. Never repeat any
+completed job/publication. Exact original terminal/source/run/result/roster/
+prediction and all12 paired comparisons are in
+neighbor-channels-full-fit-v1/three-arm-fixed-final-v1. Next engineering question
+is the already implemented signed patch-witness branch preserving local target
+evidence beside context, under the existing matched fixed-budget protocol and
+separate actual GPU/resource admission. No new GPU pilot/fit dispatched.
+Protected gold/confirmation and accepted masks/folds/base remain unchanged.
+
 October5 actual neighboring-slice screen: physical fixed-final primary Medial
 Meniscus delta−.000948 and macro+.002457 both have paired95% spanning zero.
 Finish the healthy distant specificity control. Do not promote, extend or tune

@@ -55,3 +55,11 @@ re-downloaded/size/SHA verified viaCPU872734. Read `progress-1519.json` and
 `epochs/distant-002/verified.json`; never repeat completed epochs. No additional
 clinical gain or specificity claim. Fresh quota and original funded reserves
 remain unchanged.
+
+## Original complete three-arm final
+
+All three roles and original872279 completed0:0. Read `three-arm-fixed-final-v1`:
+no primary, specificity or macro gain is established. All nine immutable epochs
+privately fully verified once. Keep grayscale; do not extend/tune this neighbor
+recipe from the same holdout. The next separately admitted local patch-evidence
+engineering question is recorded without pretending it is a GPU dispatch.
