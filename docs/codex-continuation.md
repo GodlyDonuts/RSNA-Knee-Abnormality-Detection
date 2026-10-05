@@ -1,3 +1,15 @@
+Latest verified preservation: source4cb0661 third original Daenerys review,
+fourth complete fitting-study delivery, restored observation and physical1–3
+checkpoint receipts are privately mirrored at HF591462746378f9ec70d46d3c402a2fac35218fd3.
+All26small objects fully re-downloaded/size/SHA verified under the canonical
+shared lock. Read hf-daenerys-third-fourth-physical-20261005-v1; never repeat.
+No raw reports/pixels/case IDs/private Page links/detailed clinical records or
+weights mirrored. Original872279 remains healthy and unchanged; physical has
+843finite updates, final held-out inference unreported, distant unstarted at
+latest actual observation. Three candidate reviews collected; onlycase4active.
+No accepted labels or clinical/Kaggle gain changed. Earlier16-object gray-final
+sourceafafb92 mirror is also fullyverified at1f4cd655b903ab6fcef3e5b6f58b6c72b5a75cde.
+
 Original physical-neighbor epochs1/2/3 now privately published ONCE, all15
 objects fully re-downloaded/size/SHA verified with exact source/base/license/
 config/runtime/rosters. HF revisions b903861968fc46653da67802db73f9686ea14b5c,

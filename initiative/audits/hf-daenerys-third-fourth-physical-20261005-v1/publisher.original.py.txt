@@ -1,0 +1,74 @@
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+
+from dotenv import dotenv_values
+from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_download
+
+os.umask(0o077)
+root = Path.cwd()
+journal = root / "initiative/audits/hf-daenerys-third-fourth-physical-20261005-v1"
+assert not journal.exists()
+head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+assert head == subprocess.check_output(["git", "rev-parse", "origin/main"], text=True).strip()
+names = sorted(['docs/codex-continuation.md', 'docs/research-brief.md', 'configs/competitive/weights/dinov3-large.LICENSE.md', 'initiative/audits/daenerys-multimodal-study-review-v1/README.md', 'initiative/audits/daenerys-multimodal-study-review-v1/third-review-transport-validation.json', 'initiative/audits/daenerys-multimodal-study-review-v1/fourth-delivery.json', 'initiative/audits/daenerys-multimodal-study-review-v1/fourth-delivery-validation.json', 'initiative/audits/daenerys-multimodal-study-review-v1/fourth-access-state.json', 'initiative/audits/daenerys-multimodal-study-review-v1/prepare-fourth.original.py.txt', 'initiative/audits/daenerys-review-grayfinal-mirror-access-loss-v1/README.md', 'initiative/audits/daenerys-review-grayfinal-mirror-access-loss-v1/original-source-recovery-decision.json', 'initiative/audits/daenerys-review-grayfinal-mirror-access-loss-v1/recovery-coordinator.py.txt', 'initiative/audits/hf-daenerys-review-grayfinal-20261005-v1/README.md', 'initiative/audits/hf-daenerys-review-grayfinal-20261005-v1/commit.json', 'initiative/audits/hf-daenerys-review-grayfinal-20261005-v1/intent.json', 'initiative/audits/hf-daenerys-review-grayfinal-20261005-v1/verified.json', 'initiative/audits/neighbor-channels-full-fit-v1/README.md', 'initiative/audits/neighbor-channels-full-fit-v1/reconnected-1120-progress.json', 'initiative/audits/neighbor-channels-full-fit-v1/physical-publication-accounting.json', 'initiative/audits/neighbor-channels-full-fit-v1/epochs/physical-001/README.md', 'initiative/audits/neighbor-channels-full-fit-v1/epochs/physical-001/verified.json', 'initiative/audits/neighbor-channels-full-fit-v1/epochs/physical-002/README.md', 'initiative/audits/neighbor-channels-full-fit-v1/epochs/physical-002/verified.json', 'initiative/audits/neighbor-channels-full-fit-v1/epochs/physical-003/README.md', 'initiative/audits/neighbor-channels-full-fit-v1/epochs/physical-003/verified.json'])
+assert not any("artifacts/" in n or n.endswith((".dcm", ".png", ".npz", ".csv", ".parquet")) for n in names)
+assert not subprocess.check_output(["git", "status", "--porcelain", "--", *names], text=True)
+files = {n: {"bytes": (root / n).stat().st_size, "sha256": hashlib.sha256((root / n).read_bytes()).hexdigest()} for n in names}
+total = sum(r["bytes"] for r in files.values())
+assert total < 1024**2 and shutil.disk_usage(root).free > 20*1024**3 + 2*total
+assert (root / ".env").stat().st_mode & 0o077 == 0
+token = dotenv_values(root / ".env")["HF_TOKEN"]
+program = '''import hashlib,importlib.util,json,sys
+from pathlib import Path
+root=Path('/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1');p=root/'common/runner.py'
+assert hashlib.sha256(p.read_bytes()).hexdigest()=='3575a18ecd7a13a2becc9348c48a9ebda95f8934069e67dd1912737e6194118c'
+s=importlib.util.spec_from_file_location('runner',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+with m.publication_lock(root/'publication.lock',timeout=60,poll=2):
+ print(json.dumps({'status':'shared_private_publication_lock_acquired'}),flush=True)
+ assert sys.stdin.readline().strip()=='release'
+print(json.dumps({'status':'shared_private_publication_lock_released'}),flush=True)
+'''
+proc = subprocess.Popen(["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton", shlex.join(["/usr/bin/python3.12", "-B", "-c", program])], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+try:
+    assert json.loads(proc.stdout.readline())["status"] == "shared_private_publication_lock_acquired"
+    api = HfApi(token=token)
+    repo = "GodlyDonuts/RSNA-Data"
+    prefix = "experiments/dinov3-v1/milestones/daenerys-third-fourth-physical-20261005-v1"
+    info = api.repo_info(repo, repo_type="dataset")
+    assert info.private is True
+    paths = [prefix + "/" + n for n in names] + [prefix + "/manifest.json"]
+    assert not api.get_paths_info(repo, paths, repo_type="dataset", revision=info.sha)
+    journal.mkdir(mode=0o700)
+    def save(name, value):
+        with (journal / name).open("x") as f:
+            json.dump(value, f, indent=2, sort_keys=True)
+            f.write("\n"); f.flush(); os.fsync(f.fileno())
+    manifest = {"source_git": head, "files": files, "purpose": "third_original_candidate_image_review_bound_fourth_complete_fitting_study_sent_physical_epochs_preserved_and_original_small_mirror_recovered", "private": True, "no_pixels_reports_case_records_labels_Page_refs_or_learned_weights_mirrored": True, "receiver_first_candidate_image_review_completed": True, "receiver_second_candidate_image_review_completed": True, "receiver_third_candidate_image_review_completed": True, "receiver_fourth_candidate_image_review_completed": False, "independent_clinical_adjudication_or_accepted_label_change": False, "clinical_accuracy_gain_claimed": False, "new_shared_bytes": 0, "new_shared_files": 0, "canonical_shared_atomic_lock": True}
+    mp = root / "artifacts/daenerys-study-review-v1/sanitized-third-fourth-physical-manifest.json"
+    with mp.open("x") as f:
+        json.dump(manifest, f, indent=2, sort_keys=True); f.write("\n")
+    save("intent.json", {"source_git": head, "parent_commit": info.sha, "prefix": prefix, "files": files, "automatic_retry": False, "private": True})
+    try:
+        commit = api.create_commit(repo_id=repo, repo_type="dataset", parent_commit=info.sha, operations=[CommitOperationAdd(path_in_repo=prefix+"/"+n, path_or_fileobj=str(root/n)) for n in names] + [CommitOperationAdd(path_in_repo=prefix+"/manifest.json", path_or_fileobj=str(mp))], commit_message="Preserve third original image review, fourth fitting delivery and verified physical neighbor epochs", num_threads=1)
+    except BaseException as e:
+        save("uncertain.json", {"error_type": type(e).__name__, "automatic_retry": False}); raise
+    save("commit.json", {"revision": commit.oid, "prefix": prefix})
+    assert api.repo_info(repo, repo_type="dataset", revision=commit.oid).private is True
+    expected = files | {"manifest.json": {"bytes": mp.stat().st_size, "sha256": hashlib.sha256(mp.read_bytes()).hexdigest()}}
+    with tempfile.TemporaryDirectory(prefix="rsna-daenerys-sanitized-milestone-") as tmp:
+        for n, row in expected.items():
+            p = Path(hf_hub_download(repo, filename=prefix+"/"+n, repo_type="dataset", revision=commit.oid, token=token, local_dir=tmp, force_download=True))
+            assert p.stat().st_size == row["bytes"] and hashlib.sha256(p.read_bytes()).hexdigest() == row["sha256"]
+    save("verified.json", {"status": "private_full_download_size_sha_verified", "source_git": head, "revision": commit.oid, "prefix": prefix, "files": expected, "file_count": len(expected)})
+    print(json.dumps({"status": "private_full_download_size_sha_verified", "revision": commit.oid, "file_count": len(expected)}))
+finally:
+    if proc.poll() is None:
+        proc.stdin.write("release\n"); proc.stdin.flush(); proc.stdin.close(); proc.wait(timeout=15)
+    assert proc.returncode == 0
