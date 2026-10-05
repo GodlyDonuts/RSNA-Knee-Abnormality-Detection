@@ -1,3 +1,16 @@
+October5 owner-authorized Daenerys image review: first complete fitting study sent
+ONCE to existing thread01a0f8cb-e876-739f-b149-0d446a5be0c3/hostdurable. Read
+initiative/audits/daenerys-multimodal-study-review-v1. All154original DICOM files
+and5series verified;27native-resolution private Library PNG sheets plus exact
+report/rubric/manifest delivered. Sender hosted-pixel read and all27Page-reference
+readback passed; receiver actual inspection/review remains pending. Private
+Page/receipts/queue in artifacts/daenerys-study-review-v1. Never send the same
+packet twice or restart her stopped preparer. Collect actual complete review
+before advancing one fitting case; candidate reviews do not overwrite accepted
+labels/masks. All2247fitting membership frozen, protected evaluation excluded.
+No perfect-label/clinical-accuracy claim. Training872279 actually RUNNING evc31
+during delivery and unchanged. No new shared bytes/files or checkpoint obligation.
+
 Original full-neighbor872279 now has five actual finite gray optimizer updates with empty trainer/launcher stderr. Physical/distant full roles are sequential and have not started yet. CPU872277 directly matched initial official learned tensors and post-factory RNG across arms. The source f3bcd40 launch/recovery milestone is privately mirrored at HFcdaf6afb464d3f6c8308c902e003dc39095e4200, all34objects fully downloaded/size/SHA verified under canonical lock; never repeat. First finite-progress and mirror-receipt closeout are on GitHub after this source milestone. No held-out result or score gain yet.
 
 October5 full neighbor comparison submitted ONCE as872279, actually RUNNING on evc31 at the post-dispatch read-only check with oneH100/twoCPUs. It runs gray0, physical0.25, matched-distant0.25 sequentially: each3fixed epochs/843updates on2247original fitting and1156disjoint development studies. CPU872277 COMPLETED0:0/2:17 checked all37812original member stats and directly equal official seeded initial learned tensors/post-factory RNG across all arms. Exact scientific d4c3c65 source, accepted masks/folds/base/runtime/CPATH remain unchanged. Read initiative/audits/neighbor-channels-full-fit-v1. No clinical accuracy result yet; do not repeat stage or dispatch. New separately funded16GiB node future includes6GiB checkpoints/2GiB private re-download scratch and20GiB reserve; zero new shared bytes/files. Preserve each completed epoch once using original publication-coordinator.py.txt; existing intents/journals/private paths require read-only reconciliation. No new Kaggle submissions or diagnostic models.

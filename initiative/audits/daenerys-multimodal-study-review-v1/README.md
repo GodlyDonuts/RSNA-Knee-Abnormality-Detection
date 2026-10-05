@@ -1,0 +1,66 @@
+# Daenerys complete MRI study review
+
+The owner authorized sending MRI images and the matching summary to the existing
+Daenerys conversation, one examination at a time. The first complete fitting
+study was delivered as a private native-image Page with all five series and all
+154 slices plus its exact original report and the competition's 12-target rubric.
+All source DICOM sizes, SHA-256 values and Study/Series/SOP identities matched the
+original pinned inventory. No original labels or model predictions were exposed.
+
+This is delivery acceptance, **not a completed diagnostic review or corrected
+data release**. Read [acceptance.json](acceptance.json). The receiver must actually
+inspect the pixels and return complete coverage plus evidence for each target.
+An uploaded image read returned real pixels here; that does not prove Daenerys
+has personally inspected it yet. Text-only paths, alt text and report extraction
+are not image review. No perfect-data or accuracy claim is supported.
+
+The private packet, original DICOMs, source report, original study/slice mapping,
+Page references and delivery receipts remain in ignored
+`artifacts/daenerys-study-review-v1/`. They are not published to Git or HF. The
+private Page link is in that receipt. The preserved preparation script below has
+no credential values, clinical report, case identifier or image data embedded.
+
+## Sequential continuation
+
+Read the exact existing Daenerys thread and private receipts before any message.
+The original thread is `01a0f8cb-e876-739f-b149-0d446a5be0c3` on host `durable`.
+Do not restart the stopped preparation conversation or create a substitute
+clinical reviewer: the owner specifically requested Daenerys herself.
+
+1. Reconcile the already-sent first packet and collect actual image-access proof
+   and her complete structured review. Request missing coverage or alternate
+   windows when necessary; preserve failed or uncertain review outcomes.
+2. Freeze the reply verbatim and bind it to the exact packet/report/image hashes,
+   thread/turn identity and coverage. Validate all 12 targets, exact report quotes,
+   slice references, confidence and uncertainty fields. Treat image/report
+   disagreements as evidence to investigate rather than vote away.
+3. Advance exactly one original fitting examination in the private deterministic
+   queue, excluding completed/attempted cases. Retrieve its entire original source
+   inventory once, verify bytes and identity, and display every ordered slice at
+   its original spatial resolution. Display windows are a disclosed lossy 8-bit
+   presentation; retain original pixels and offer alternative windows. Never
+   substitute the resized training cache or selected slices for all source images.
+4. Use private native Library image references with actual access confirmation
+   and Page readback, then send one packet to Daenerys. Track intents/receipts;
+   read-only reconciliation precedes any uncertain retry. Bound case storage
+   before retrieval and fund new storage independently of live training.
+5. Preserve candidate reviews separately from accepted masks/labels. A proposed
+   overlay needs an explicit scientific version and a matched held-out experiment.
+   Original evaluation labels remain fixed; gold and confirmation are unused.
+
+The membership gate uses only original fitting eligibility and masks before any
+source report/pixels are opened: 2,247 fold-0 fitting studies, roster SHA-256
+`e71eb9ba952b9e4bc68e32b548b131c457b5c86c9381eb089012404923dc68cf`.
+The first-case selection uses complete existing local-series membership and a
+fixed hash order, without outcomes or existing label values. Later cases follow
+the frozen full fitting queue, skipping this first UID once. Current original
+training job 872279 remains unchanged and was actually RUNNING during delivery.
+
+## Validation
+
+154/154 original DICOM byte/hash and identity checks passed; five complete source
+series map to 27 PNG sheets with exactly 154 distinct ordered slice placements.
+All uploaded image digests matched local PNGs and all 27 references were read back
+from the private Page. A hosted image-reference read returned actual image pixels.
+The complete source manifest was also privately uploaded with its digest checked.
+No clinical candidate has been admitted to training, and no score gain exists.
