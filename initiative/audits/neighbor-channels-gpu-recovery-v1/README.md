@@ -1,3 +1,5 @@
+Actual corrected872200 completed0:0/27:35; all arms passed complete state/trajectory/CSV recovery. Read actual-v3-terminal. This is engineering acceptance only. Earlier scheduler snapshots below are historical.
+
 # Original-input, official-weight neighbor trainer recovery
 
 Scientific library source is d4c3c65ea4c4e4127669f7920fc8a56a3b436b7a.

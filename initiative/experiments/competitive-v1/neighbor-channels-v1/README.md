@@ -3,8 +3,8 @@
 The canonical opt-in input policy encodes through-slice changes in DINO's three input
 channels while retaining the center slice's grayscale mean. It changes neither
 resolution nor encoder token/view count. It is integrated into training/checkpoint/inference and CPU-tested on original
-MRI. It is **not actual-GPU-recovery accepted, fitted or demonstrated to improve
-accuracy**.
+MRI. Actual original-weight H100 recovery872200 passed all three arms. It is **not
+fully fitted or demonstrated to improve accuracy**.
 The completed supervision experiments and their frozen sources are unchanged.
 
 The measured starting point is that adapted global slice features and gated

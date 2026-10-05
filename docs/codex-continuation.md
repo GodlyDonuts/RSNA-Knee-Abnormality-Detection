@@ -1,3 +1,5 @@
+October5 actual corrected neighbor recovery: original GPU872200 COMPLETED0:0/27:35 on evc31. All three arms passed four finite updates and complete state/trajectory/CSV recovery. Read initiative/audits/neighbor-channels-gpu-recovery-v1/actual-v3-terminal. This is engineering acceptance only; full clinical fitting is not dispatched and no new accuracy result exists. Earlier pending/failure snapshots below are historical; never repeat jobs. Latest authenticated03:26UTC five accepted Kaggle outcomes still have null status/score; best actual solo remains0.804.
+
 Header-correction small mirror for source8d6e01f is UNCERTAIN: HTTP response
 lost during create_commit;02:27UTC read-only check found0/21expected paths and
 private head unchanged at verified f285deb8. Never rerun publish_header_once.py
