@@ -1,10 +1,11 @@
 # Neighboring anatomy in one encoder view
 
-A standalone CPU prototype encodes through-slice changes in DINO's three input
+The canonical opt-in input policy encodes through-slice changes in DINO's three input
 channels while retaining the center slice's grayscale mean. It changes neither
-resolution nor encoder token/view count. It is **not integrated into training or
-inference, MRI/GPU accepted, dispatched, or demonstrated to improve accuracy**.
-The live supervision experiment and its frozen numerical source are unchanged.
+resolution nor encoder token/view count. It is integrated into training/checkpoint/inference and CPU-tested on original
+MRI. It is **not actual-GPU-recovery accepted, fitted or demonstrated to improve
+accuracy**.
+The completed supervision experiments and their frozen sources are unchanged.
 
 The measured starting point is that adapted global slice features and gated
 study attention do not explicitly encode immediately neighboring-slice anatomy.
@@ -70,11 +71,10 @@ continuity from array shape. A distant-context control must be deterministic,
 within the same series, and retain its actual donor indices privately.
 
 Canonical original-MRI input admission, loader/config/checkpoint/inference
-integration, zero-arm identity, real official-weight GPU recovery and separately
-funded fixed-budget fitting remain absent. Do not reserve a GPU or reuse an old
-pilot to accept these changes. The original-MRI feasibility probe now passes; the canonical input path and
-model remain unaccepted. Source: rsna/competitive/neighbor_channels.py; tests:
-tests/test_neighbor_channels.py. No generative upscaling, external data or new
+integration and zero-arm identity now pass the CPU checks described below.
+Real official-weight GPU recovery and separately funded fitting remain outstanding.
+Do not reuse an old pilot to accept these changes. Source arithmetic:
+rsna/competitive/neighbor_channels.py; canonical input: neighbor_input.py. No generative upscaling, external data or new
 clinical report labels are used.
 
 ## Standalone geometry indices
@@ -88,7 +88,8 @@ must still establish consistent per-slice orientation and intensity normalizatio
 The distant control selects two farthest distinct same-volume indices, each at
 least max(2,ceil(depth/4)) from the center, with deterministic ties and center
 fallback for insufficient depth. These fixed engineering choices use no outer
-labels. They are not integrated into the canonical input path.
+labels. The original endpoint-heavy control is preserved as historical evidence; the
+canonical path uses the matched rotation described below.
 
 A separate one-CPU original-MRI probe is prepared in
 `initiative/audits/neighbor-channels-real-input-v1`: all fitting-only metadata
@@ -97,3 +98,14 @@ no labels, outer pixels, model or GPU. CPU871757 completed this probe:199,274/19
 physical context and zero strength is byte-identical on255 actual views. The
 distant control exposes fewer unique donors (275 vs419), so revise its coverage
 before fitting. This is input feasibility, not model acceptance or accuracy.
+
+## Canonical integration and information-matched control
+
+CPU872158 admitted the canonical loader on1,343original selected views, including
+exact zero bytes against frozen C9. New distant donor-pair rotations preserve
+the physical donor multisets/unique information budget (419vs419on the bounded
+pixel probe); retain the older275vs419confound in the original audit. The
+canonical policy isolates uniform/no-augmentation/global-attention arms and
+binds one/three channels in encoder/checkpoint provenance. Synthetic actual
+trainer recovery and checkpoint restoration pass; actual official-weight GPU
+recovery/funding admission remains next. See neighbor-channels-integration-v1.

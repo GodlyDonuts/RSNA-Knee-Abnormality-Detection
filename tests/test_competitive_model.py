@@ -440,7 +440,10 @@ def test_official_dino_mixed_colliding_or_unexpected_namespaces_rejected(mutatio
         backbones._adapt_pretrained_state(spec, legacy)
 
 
-def test_dino_migration_provenance_and_checkpoint_only_restore(tmp_path, monkeypatch):
+@pytest.mark.parametrize("input_channels", [1, 3])
+def test_dino_migration_provenance_and_checkpoint_only_restore(
+    tmp_path, monkeypatch, input_channels
+):
     pytest.importorskip("transformers")
     config_path = (
         Path(__file__).resolve().parents[1] / "configs/competitive/weights/dinov3-large.config.json"
@@ -449,6 +452,8 @@ def test_dino_migration_provenance_and_checkpoint_only_restore(tmp_path, monkeyp
     spec = dict(backbones._DINOV3_L16_LEGACY_SOURCE, license="other")
     assert backbones._sha256(config_path) == spec["config_sha256"]
     provenance = backbones._encoder_provenance(spec, config, "ConvNextForImageClassification")
+    if input_channels == 3:
+        provenance["input_contract"] = "neighbor_delta_0_1_imagenet_rgb_v1"
     assert provenance["pretrained_state_key_mapping"] == backbones._DINOV3_LAYER_MAPPING
     assert provenance["weights_sha256"] == spec["weights_sha256"]
     constructor = backbones._construct
@@ -460,13 +465,13 @@ def test_dino_migration_provenance_and_checkpoint_only_restore(tmp_path, monkeyp
 
     monkeypatch.setattr(backbones, "_construct", reduced_constructor)
     base = reduced_constructor("dinov3_l16", config, "ConvNextForImageClassification")
-    encoder = backbones._GrayEncoder(base, 16).eval()
+    encoder = backbones._GrayEncoder(base, 16, input_channels).eval()
     state = encoder.state_dict()
     restored, dimension, saved = backbones.create_encoder_from_training_checkpoint(
         provenance, config_path, encoder_state=state
     )
     assert dimension == 1024 and saved == provenance
-    pixels = torch.rand(1, 1, 32, 32)
+    pixels = torch.rand(1, input_channels, 32, 32)
     with torch.no_grad():
         torch.testing.assert_close(encoder(pixels), restored(pixels), rtol=0, atol=0)
     for changed in (

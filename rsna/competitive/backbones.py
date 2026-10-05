@@ -183,8 +183,11 @@ class _GrayEncoder(nn.Module):
     mean: Tensor
     std: Tensor
 
-    def __init__(self, backbone: nn.Module, patch_multiple: int):
+    def __init__(self, backbone: nn.Module, patch_multiple: int, input_channels: int = 1):
         super().__init__()
+        if type(input_channels) is not int or input_channels not in {1, 3}:
+            raise ValueError("One or three bound encoder channels required")
+        self.input_channels = input_channels
         self.backbone = backbone
         self.patch_multiple = patch_multiple
         self.requires_grad_(True)
@@ -207,13 +210,18 @@ class _GrayEncoder(nn.Module):
         return self
 
     def _normalized_rgb(self, images: Tensor) -> Tensor:
-        if images.ndim != 4 or images.shape[1] != 1 or not images.is_floating_point():
-            raise ValueError("Encoder requires floating grayscale [N,1,H,W]")
+        if (
+            images.ndim != 4
+            or images.shape[1] != self.input_channels
+            or not images.is_floating_point()
+        ):
+            raise ValueError("Encoder requires its bound floating [N,C,H,W] input")
         if not torch.isfinite(images).all() or (images < 0).any() or (images > 1).any():
             raise ValueError("Encoder grayscale values must be finite in [0,1]")
         if any(n < self.patch_multiple or n % self.patch_multiple for n in images.shape[-2:]):
             raise ValueError("Image dimensions must be divisible by encoder patch/stride size")
-        return (images.expand(-1, 3, -1, -1) - self.mean) / self.std
+        rgb = images.expand(-1, 3, -1, -1) if self.input_channels == 1 else images
+        return (rgb - self.mean) / self.std
 
     def forward(self, images: Tensor) -> Tensor:
         return self.backbone(pixel_values=self._normalized_rgb(images)).pooler_output
@@ -238,10 +246,10 @@ class _GrayEncoder(nn.Module):
 
 
 class _DiagnosticEncoder(nn.Module):
-    def __init__(self, embedding_dim: int):
+    def __init__(self, embedding_dim: int, input_channels: int = 1):
         super().__init__()
         self.layers = nn.Sequential(
-            nn.Conv2d(1, 8, 3, padding=1),
+            nn.Conv2d(input_channels, 8, 3, padding=1),
             nn.GELU(),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
@@ -331,7 +339,9 @@ def _encoder_provenance(spec: Mapping[str, Any], config: dict, model_class: str)
     return result
 
 
-def create_encoder(spec: Mapping[str, Any]) -> tuple[nn.Module, int, dict[str, Any]]:
+def create_encoder(
+    spec: Mapping[str, Any], *, input_channels: int = 1
+) -> tuple[nn.Module, int, dict[str, Any]]:
     """Build a local encoder. Diagnostic usage must also be gated by the trainer.
 
     Production specs bind architecture, config/weights SHA256, source_id,
@@ -339,7 +349,11 @@ def create_encoder(spec: Mapping[str, Any]) -> tuple[nn.Module, int, dict[str, A
     state_dict_format (safetensors or pytorch). Paths are excluded from provenance.
     PyTorch files must contain a plain state dictionary, not a pickled model.
     """
+    if type(input_channels) is not int or input_channels not in {1, 3}:
+        raise ValueError("One or three encoder input channels required")
     architecture = spec.get("architecture")
+    if input_channels == 3 and architecture not in {"dinov3_l16", "diagnostic_tiny"}:
+        raise ValueError("Neighbor input requires the pinned DINOv3-L or engineering encoder")
     if architecture == "diagnostic_tiny":
         if set(spec) - {"architecture", "embedding_dim"}:
             raise ValueError("Unexpected diagnostic encoder fields")
@@ -347,14 +361,14 @@ def create_encoder(spec: Mapping[str, Any]) -> tuple[nn.Module, int, dict[str, A
         if isinstance(dim, bool) or not isinstance(dim, int) or not 1 <= dim <= 256:
             raise ValueError("Invalid diagnostic embedding dimension")
         return (
-            _DiagnosticEncoder(dim),
+            _DiagnosticEncoder(dim, input_channels),
             dim,
             {
                 "architecture": architecture,
                 "embedding_dim": dim,
                 "pretrained": False,
                 "diagnostic_only": True,
-                "input_contract": "gray_0_1_v1",
+                "input_contract": "gray_0_1_v1" if input_channels == 1 else "neighbor_delta_0_1_v1",
             },
         )
     if not isinstance(architecture, str) or architecture not in ARCHITECTURES:
@@ -410,7 +424,9 @@ def create_encoder(spec: Mapping[str, Any]) -> tuple[nn.Module, int, dict[str, A
         installed = install_adapters(model, spec["adapter"])
         if installed != provenance["adapter"]:
             raise ValueError("Installed adapters differ from encoder provenance")
-    return _GrayEncoder(model, patch), embedding_dim, provenance
+    if input_channels == 3:
+        provenance["input_contract"] = "neighbor_delta_0_1_imagenet_rgb_v1"
+    return _GrayEncoder(model, patch, input_channels), embedding_dim, provenance
 
 
 def create_encoder_from_training_checkpoint(
@@ -450,6 +466,13 @@ def create_encoder_from_training_checkpoint(
     else:
         model_class = "ConvNextForImageClassification"  # ignored by explicit DINO constructors
     expected = _encoder_provenance(provenance, config, model_class)
+    input_channels = (
+        3 if provenance.get("input_contract") == "neighbor_delta_0_1_imagenet_rgb_v1" else 1
+    )
+    if input_channels == 3:
+        if architecture != "dinov3_l16":
+            raise ValueError("Neighbor checkpoint requires pinned DINOv3-L")
+        expected["input_contract"] = "neighbor_delta_0_1_imagenet_rgb_v1"
     if (
         set(provenance) != set(expected)
         or dict(provenance) != expected
@@ -477,7 +500,7 @@ def create_encoder_from_training_checkpoint(
         if install_adapters(model, policy) != expected["adapter"]:
             raise ValueError("Checkpoint adapter architecture differs from its provenance")
     patch, dimension = _encoder_dimensions(architecture)
-    encoder = _GrayEncoder(model, patch)
+    encoder = _GrayEncoder(model, patch, input_channels)
     # Buffers describe the fixed transform, not learned weights. Strict key/shape
     # loading alone would otherwise accept a silently changed preprocessing rule.
     for key in ("mean", "std"):

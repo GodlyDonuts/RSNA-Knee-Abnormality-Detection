@@ -109,3 +109,40 @@ def test_distant_control_is_deterministic_distinct_and_nonlocal(count):
             assert p[i] != n[i] and min(abs(int(p[i]) - i), abs(int(n[i]) - i)) >= max(
                 2, (count + 3) // 4
             )
+
+
+@pytest.mark.parametrize("count", [1, 2, 3, 4, 5, 6, 7, 9, 16, 17, 31, 51, 100])
+def test_matched_context_conserves_donor_multisets_and_unique_pixel_budget(count):
+    from rsna.competitive.neighbor_geometry import matched_neighbor_indices
+
+    centers = np.linspace(0, count - 1, min(count, 16)).round().astype(np.int64)
+    p, n, dp, dn = matched_neighbor_indices(geometry(count), centers)
+    np.testing.assert_array_equal(np.sort(p), np.sort(dp))
+    np.testing.assert_array_equal(np.sort(n), np.sort(dn))
+    np.testing.assert_array_equal(
+        np.unique(np.concatenate((centers, p, n))),
+        np.unique(np.concatenate((centers, dp, dn))),
+    )
+    if (dp != centers).any():
+        assert (np.abs(dp - centers) >= max(2, (count + 3) // 4)).all()
+        assert (np.abs(dn - centers) >= max(2, (count + 3) // 4)).all()
+        assert ((p != centers) | (n != centers)).any()
+    else:
+        np.testing.assert_array_equal(p, centers)
+        np.testing.assert_array_equal(n, centers)
+
+
+@pytest.mark.parametrize("centers", [[1, 1], [2, 1], [-1, 2], [0, 100], []])
+def test_matched_context_rejects_invalid_center_indices(centers):
+    from rsna.competitive.neighbor_geometry import matched_neighbor_indices
+
+    with pytest.raises(ValueError):
+        matched_neighbor_indices(geometry(16), np.array(centers, dtype=np.int64))
+
+
+def test_matched_context_missing_geometry_is_common_fallback():
+    from rsna.competitive.neighbor_geometry import matched_neighbor_indices
+
+    centers = np.array([0, 5, 15], dtype=np.int64)
+    for indices in matched_neighbor_indices({"n_slices": 16}, centers):
+        np.testing.assert_array_equal(indices, centers)

@@ -22,6 +22,7 @@ from rsna.competitive.data import (
 )
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.model import CompetitiveStudyNet
+from rsna.competitive.neighbor_input import neighbor_input_channels
 from rsna.competitive.relations import relation_model_kwargs
 from rsna.competitive.snapshots import scheduled_epoch
 from rsna.competitive.train import TrainConfig, predict
@@ -97,6 +98,7 @@ def run(args: argparse.Namespace) -> dict:
     }
     if binding.get("code_sha256") != current_code:
         raise ValueError("Inference architecture/preprocessing code differs from training")
+    channels = neighbor_input_channels(binding["config"].get("neighbor_channels"))
     if getattr(args, "encoder_config", None) is not None:
         if checkpoint["schema_version"] == 2:
             raise ValueError(
@@ -114,7 +116,9 @@ def run(args: argparse.Namespace) -> dict:
         )
     else:
         encoder_spec = json.loads(args.encoder_spec.read_text())
-        encoder, dimension, provenance = create_encoder(encoder_spec)
+        encoder, dimension, provenance = create_encoder(
+            encoder_spec, **({"input_channels": channels} if channels == 3 else {})
+        )
     if provenance != binding["config"]["encoder"]:
         raise ValueError("Encoder source/preprocessing differs from the training checkpoint")
     config_values = dict(binding["config"])
@@ -155,6 +159,7 @@ def run(args: argparse.Namespace) -> dict:
         max_series=config.max_series,
         slice_sampling=evaluation_slice_sampling(config.slice_sampling),
         series_sampling=config.series_sampling,
+        neighbor_channels=config.neighbor_channels,
     )
     if dataset.cache_side != binding["cache_side"]:
         raise ValueError("Inference cache resolution differs from the trained transform")
@@ -168,6 +173,7 @@ def run(args: argparse.Namespace) -> dict:
         slice_context=config.slice_context,
         witness=config.witness,
         **relation_model_kwargs(config.relation),
+        input_channels=channels,
     ).to(device)
     configure_encoder_training(encoder, config.freeze_encoder)
     guard = FrozenBaseDelta(model, provenance) if checkpoint["schema_version"] == 2 else None

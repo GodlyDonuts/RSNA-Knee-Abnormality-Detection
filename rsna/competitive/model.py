@@ -30,6 +30,7 @@ class CompetitiveStudyNet(nn.Module):
         relation_hidden_dim: int | None = None,
         relation_head_seed: int = 0,
         witness: dict | None = None,
+        input_channels: int = 1,
     ):
         super().__init__()
         if (
@@ -37,6 +38,9 @@ class CompetitiveStudyNet(nn.Module):
             or min(embedding_dim, hidden_dim, encode_chunk_size) < 1
         ):
             raise ValueError("Invalid pooling or model dimensions")
+        if type(input_channels) is not int or input_channels not in {1, 3}:
+            raise ValueError("Bound model input channel count must be one or three")
+        self.input_channels = input_channels
         self.encoder = encoder
         if slice_context not in {"none", "neighbor3"} or (
             slice_context != "none" and pooling != "attention"
@@ -125,8 +129,12 @@ class CompetitiveStudyNet(nn.Module):
         *,
         relations: SliceRelations | None = None,
     ) -> Tensor | tuple[Tensor, Tensor]:
-        if images.ndim != 6 or images.shape[3] != 1 or not images.is_floating_point():
-            raise ValueError("images must be floating [B,S,K,1,H,W]")
+        if (
+            images.ndim != 6
+            or images.shape[3] != self.input_channels
+            or not images.is_floating_point()
+        ):
+            raise ValueError("images must match bound floating [B,S,K,C,H,W] input")
         b, s, k = images.shape[:3]
         if min(images.shape) < 1 or features.shape != (b, s, 5) or positions.shape != (b, s, k, 2):
             raise ValueError("Invalid feature or position shape")
@@ -147,7 +155,7 @@ class CompetitiveStudyNet(nn.Module):
         ):
             raise ValueError("Valid input entries must be finite")
         if (valid_images < 0).any() or (valid_images > 1).any():
-            raise ValueError("Valid images must be grayscale values in [0,1]")
+            raise ValueError("Valid images must be bounded raw channels in [0,1]")
         known = valid_positions[:, 1]
         if not ((known == 0) | (known == 1)).all() or (valid_positions[known == 0, 0] != 0).any():
             raise ValueError("Position known flags must be binary; unknown distances must be zero")

@@ -10,10 +10,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn.functional as F
 from torch import Tensor
 from torch.utils.data import default_collate
 
+from rsna.competitive.neighbor_input import neighbor_input_channels, sample_neighbor_images
 from rsna.data import PLANES, StudyDataset, select_series
 from rsna.schema import TARGETS
 
@@ -76,6 +76,7 @@ class CompetitiveStudyDataset(StudyDataset):
         raw_split: str = "train_series",
         slice_sampling: str = "uniform",
         series_sampling: str = "selected",
+        neighbor_channels: dict | None = None,
     ):
         if raw_split not in {"train_series", "test_series"}:
             raise ValueError("Unknown raw split")
@@ -86,6 +87,12 @@ class CompetitiveStudyDataset(StudyDataset):
             raise ValueError("Unknown slice or series coverage policy")
         if slice_sampling == "stratified" and (augment or raw_split != "train_series"):
             raise ValueError("Stratified slices require training data with fixed series selection")
+        self.input_channels = neighbor_input_channels(neighbor_channels)
+        if neighbor_channels is not None and (
+            augment or slice_sampling != "uniform" or series_sampling != "selected"
+        ):
+            raise ValueError("Neighbor input contrast requires fixed uniform selected-series views")
+        self.neighbor_channels = None if neighbor_channels is None else dict(neighbor_channels)
         super().__init__(studies, series, Path(cache), slices, side, max_series, augment, raw_split)
         self.slice_sampling, self.series_sampling = slice_sampling, series_sampling
         self._metadata: dict[tuple[str, str], tuple[str, dict]] = {}
@@ -141,7 +148,7 @@ class CompetitiveStudyDataset(StudyDataset):
             if self.slice_sampling == "all"
             else self.slices
         )
-        images = torch.zeros(slots, depth, 1, self.side, self.side)
+        images = torch.zeros(slots, depth, self.input_channels, self.side, self.side)
         features = torch.zeros(slots, 5)
         series_mask = torch.zeros(slots, dtype=torch.bool)
         slice_mask = torch.zeros(slots, depth, dtype=torch.bool)
@@ -173,16 +180,9 @@ class CompetitiveStudyDataset(StudyDataset):
                 )
             )
             valid = len(indices)
-            sampled = torch.from_numpy(volume[indices].astype(np.float32))[:, None] / 65535
-            # Bilinear antialiasing can round a source value of 1 slightly above
-            # 1 in FP32. Keep the normalized image contract exact for the model.
-            images[slot, :valid] = F.interpolate(
-                sampled,
-                (self.side, self.side),
-                mode="bilinear",
-                align_corners=False,
-                antialias=True,
-            ).clamp_(0, 1)
+            images[slot, :valid] = sample_neighbor_images(
+                volume, meta, indices, self.side, self.neighbor_channels
+            )
             positions[slot, :valid] = _positions(meta, count)[indices]
             features[slot, PLANES[entry["Anatomical_Plane"]]] = 1
             features[slot, 3] = entry["Fluid_Sensitive"]
@@ -227,9 +227,9 @@ def collate_studies(rows: list[dict]) -> dict:
     shapes = [row["images"].shape for row in rows]
     first = rows[0]["images"]
     if any(len(shape) != 5 or min(shape) < 1 or shape[2:] != shapes[0][2:] for shape in shapes):
-        raise ValueError("Studies need compatible [S,K,1,H,W] images")
-    if shapes[0][2] != 1 or not first.is_floating_point():
-        raise ValueError("Study images must be floating grayscale")
+        raise ValueError("Studies need compatible [S,K,C,H,W] images")
+    if shapes[0][2] not in {1, 3} or not first.is_floating_point():
+        raise ValueError("Study images must be floating grayscale or bound neighbor channels")
     variable = ("images", "features", "series_mask", "slice_mask", "positions")
     for row in rows:
         s, k = row["images"].shape[:2]

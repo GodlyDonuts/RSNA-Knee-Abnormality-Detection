@@ -37,6 +37,7 @@ from rsna.competitive.checkpoint import (
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.loss import effective_batch_loss, observed_counts
 from rsna.competitive.mrnet_initialization import initialize_private_mrnet
+from rsna.competitive.neighbor_input import neighbor_input_channels
 from rsna.competitive.relations import (
     effective_relation_loss,
     relation_model_kwargs,
@@ -117,8 +118,24 @@ class TrainConfig:
     relation: dict | None = None
     witness: dict | None = None
     fitting_supervision: dict | None = None
+    neighbor_channels: dict | None = None
 
     def validate(self) -> None:
+        neighbor_input_channels(self.neighbor_channels)
+        if self.neighbor_channels is not None and (
+            self.fit_scope != "outer_fold"
+            or self.augment
+            or self.pooling != "attention"
+            or self.slice_context != "none"
+            or self.slice_sampling != "uniform"
+            or self.series_sampling != "selected"
+            or self.relation is not None
+            or self.witness is not None
+            or self.fitting_supervision is not None
+            or not isinstance(self.encoder, dict)
+            or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+        ):
+            raise ValueError("Neighbor input comparison must isolate fixed uniform outer-fold arms")
         if self.fitting_supervision is not None:
             validate_fitting_supervision(self.fitting_supervision)
             if (
@@ -472,6 +489,8 @@ def _run_locked(
         name: getattr(config, name)
         for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
     }
+    if config.neighbor_channels is not None:
+        data_config["neighbor_channels"] = config.neighbor_channels
     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
     evaluation_config = dict(
         data_config, slice_sampling=evaluation_slice_sampling(config.slice_sampling)
@@ -485,7 +504,10 @@ def _run_locked(
         != (outer_data.cache_side, outer_data.source_revision)
     ):
         raise ValueError("Image cache transform/source differs from the accepted release")
-    encoder, embedding_dim, encoder_provenance = create_encoder(config.encoder)
+    channels = neighbor_input_channels(config.neighbor_channels)
+    encoder, embedding_dim, encoder_provenance = create_encoder(
+        config.encoder, **({"input_channels": channels} if channels == 3 else {})
+    )
     configure_encoder_training(encoder, config.freeze_encoder)
     model = model_class(
         encoder,
@@ -496,6 +518,7 @@ def _run_locked(
         slice_context=config.slice_context,
         **({"witness": config.witness} if config.witness is not None else {}),
         **relation_model_kwargs(config.relation),
+        **({"input_channels": channels} if channels == 3 else {}),
     ).to(device)
     delta_guard = (
         FrozenBaseDelta(model, encoder_provenance)
@@ -545,6 +568,8 @@ def _run_locked(
         bound_config.pop("witness")
     if config.fitting_supervision is None:
         bound_config.pop("fitting_supervision")
+    if config.neighbor_channels is None:
+        bound_config.pop("neighbor_channels")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {

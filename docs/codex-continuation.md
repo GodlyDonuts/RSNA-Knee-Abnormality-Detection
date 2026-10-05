@@ -1,3 +1,14 @@
+October5 canonical neighbor-input integration now implemented. CPU872158
+completed actual original-MRI input: matched physical/distant donor multisets
+and419/419unique slices;1,343canonical views with exact zero bytes against
+original C9. No labels/outer pixels/model/GPU run. Synthetic real-trainer
+full/stop/resume and color-checkpoint restoration pass; official-weight GPU
+recovery remains unexecuted. Read neighbor-channels-integration-v1. Prepared
+separate GPU orchestrator requires owning-node32-study admission and explicit
+8GiB node-only future budget, zero new shared files; do not claim it submitted.
+Latest01:28UTC five accepted Kaggle IDs still have null status/score; allowance
+reset to0today/5slots. Never repeat existing submissions just because slots open.
+
 Neighbor feasibility source0a4cb41 privately mirrored at HF4e823debb57ef9eea2ae3dce9647991b9410c7f1,
 all17 small objects fully downloaded/size/SHA verified under canonical lock;
 read hf-neighbor-original-input-20261004-v1. Never repeat. No raw MRI/labels/

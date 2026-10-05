@@ -82,3 +82,40 @@ def distant_neighbor_indices(count: int) -> tuple[NDArray[np.int64], NDArray[np.
             chosen = sorted(eligible.tolist(), key=lambda donor: (-abs(donor - index), donor))
             previous[index], following[index] = chosen[:2]
     return previous, following
+
+
+def matched_neighbor_indices(
+    metadata: dict, centers: NDArray[np.int64]
+) -> tuple[NDArray[np.int64], NDArray[np.int64], NDArray[np.int64], NDArray[np.int64]]:
+    """Permute physical donor pairs to distant centers, conserving their multiset.
+
+    Physical and distant arms expose exactly the same union of original slices
+    within this series. The control reallocates adjacent donor pairs to a distant
+    center; it does not scramble the donor pair internally. If no deterministic
+    rotation admits every distant pair, BOTH arms replicate their centers.
+    Coverage equivalence does not make their conditional information identical.
+    """
+    previous, following = physical_neighbor_indices(metadata)
+    count = len(previous)
+    if (
+        not isinstance(centers, np.ndarray)
+        or centers.dtype != np.int64
+        or centers.ndim != 1
+        or not len(centers)
+        or (centers < 0).any()
+        or (centers >= count).any()
+        or (np.diff(centers) <= 0).any()
+    ):
+        raise ValueError("Ordered distinct original int64 center indices required")
+    p, n = previous[centers], following[centers]
+    if not ((p != centers) | (n != centers)).any():
+        return centers.copy(), centers.copy(), centers.copy(), centers.copy()
+    minimum = max(2, (count + 3) // 4)
+    offsets = sorted(range(1, len(centers)), key=lambda k: (abs(2 * k - len(centers)), k))
+    for offset in offsets:
+        order = np.roll(np.arange(len(centers)), offset)
+        dp, dn = p[order], n[order]
+        if (np.abs(dp - centers) >= minimum).all() and (np.abs(dn - centers) >= minimum).all():
+            return p, n, dp, dn
+    c = centers.copy()
+    return c, c.copy(), c.copy(), c.copy()

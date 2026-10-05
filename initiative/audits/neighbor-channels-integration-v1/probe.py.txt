@@ -1,0 +1,182 @@
+"""One CPU, zero GPU; read original fitting-only metadata and 16 original volumes.
+
+Streamed in RAM with the two exact standalone modules. No remote file writes,
+new cache/runtime, model, clinical label, outer pixel, prediction or upload.
+"""
+import hashlib
+import io
+import json
+import os
+import shutil
+import time
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+
+REGISTRY = '73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770'
+PROOF = 'fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5'
+TRAIN = 'e9d38ee21a114973177b89f4602129c7dc047927b8499991d3be30fd89737f3a'
+BASE = Path('/home/sa305415/rsna-knee')
+RESTORED = Path('/tmp/rsna-native384-cohort-866458-lp6rcfdw/restored')
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def object_sha(value):
+    return sha(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode())
+
+def stat(path):
+    s = path.stat()
+    return [s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns]
+
+def read_member(name, members, signatures):
+    p = RESTORED / name
+    if p.is_symlink() or not p.is_file() or not p.resolve().is_relative_to(RESTORED):
+        raise ValueError('confined_original_regular_member_required')
+    before = stat(p)
+    if before != signatures[name] or before[2] != members[name]['bytes']:
+        raise ValueError('original_full_byte_verified_member_changed')
+    raw = p.read_bytes()
+    if stat(p) != before:
+        raise ValueError('member_changed_during_read')
+    # Metadata is small; pixels use the original whole-byte proof + unchanged stat.
+    if name.endswith('.json') and sha(raw) != members[name]['sha256']:
+        raise ValueError('original_metadata_checksum_changed')
+    return raw
+
+def main():
+    from rsna.competitive.neighbor_channels import neighbor_delta_channels
+    from rsna.competitive.neighbor_geometry import matched_neighbor_indices, physical_neighbor_indices
+    started = time.monotonic()
+    if os.uname().nodename != 'evc31' or not os.environ.get('SLURM_JOB_ID') or os.environ.get('SLURM_JOB_GPUS') or os.environ.get('SLURM_CPUS_PER_TASK') != '1':
+        raise ValueError('owning_node_one_CPU_zero_GPU_required')
+    free = shutil.disk_usage('/tmp').free
+    if free < 20 * 1024**3:
+        raise ValueError('node_local_20GiB_reserve_required')
+    raw = (BASE / 'native384-assembly-c9-v1/registry.json').read_bytes()
+    if sha(raw) != REGISTRY:
+        raise ValueError('original_registry_changed')
+    registry = json.loads(raw)
+    raw = (BASE / 'production-launch-native384-a32-c9-v1/cpu-preflight.json').read_bytes()
+    if sha(raw) != PROOF:
+        raise ValueError('original_whole_byte_proof_changed')
+    proof = json.loads(raw)
+    train = set(registry['training_uids'])
+    if len(train) != 2247 or object_sha(sorted(train)) != TRAIN or train & set(registry['outer_uids']):
+        raise ValueError('original_fitting_membership_required')
+    if proof['registry_file_sha256'] != REGISTRY or proof['all_member_bytes_verified'] is not True or object_sha(proof['signatures']) != proof['signatures_sha256']:
+        raise ValueError('original_full_byte_acceptance_required')
+    members = {k: v for shard in registry['shards'] for k, v in shard['members'].items()}
+    rows = sorted((r for shard in registry['shards'] for r in shard['series'] if r['study_uid'] in train), key=lambda r: (r['study_uid'], r['series_uid']))
+    if {r['study_uid'] for r in rows} != train:
+        raise ValueError('complete_training_metadata_membership_required')
+    # Selection fixed before opening pixels: first series of each first 16 fitting studies.
+    selected, seen = [], set()
+    for row in rows:
+        if row['study_uid'] not in seen:
+            selected.append(row['series_uid'])
+            seen.add(row['study_uid'])
+        if len(selected) == 16:
+            break
+    counts, planes, transcript = Counter(), {}, hashlib.sha256()
+    pixel_checks, gray_exact, maximum_mean_error = 0, True, 0.0
+    changed_physical, changed_distant = 0, 0
+    for row in rows:
+        name = 'cache/' + row['cache_path']
+        meta_name = name.removesuffix('.npz') + '.json'
+        raw = read_member(meta_name, members, proof['signatures'])
+        meta = json.loads(raw)
+        if any(meta[k] != row[k] for k in ('study_uid', 'series_uid', 'n_slices')) or meta['side'] != 384 or meta['cache_path'] != row['cache_path'] or meta['source_revision'] != registry['source_revision']:
+            raise ValueError('original_series_identity_geometry_binding_changed')
+        original_p, original_n = physical_neighbor_indices(meta)
+        count = meta['n_slices']
+        centers = np.linspace(0, count - 1, min(16, count)).round().astype(np.int64)
+        p, n, dp, dn = matched_neighbor_indices(meta, centers)
+        if not np.array_equal(np.sort(p),np.sort(dp)) or not np.array_equal(np.sort(n),np.sort(dn)):
+            raise ValueError('matched_donor_multiset_identity_required')
+        edges = int(np.count_nonzero(original_n != np.arange(count)))
+        c = planes.setdefault(row['plane'], Counter())
+        for target in (counts, c):
+            target['series'] += 1
+            target['slices'] += count
+            target['possible_edges'] += max(0, count - 1)
+            target['admitted_edges'] += edges
+            target['selected_centers'] += len(centers)
+            target['centers_with_physical_context'] += int(np.count_nonzero((p != centers) | (n != centers)))
+            target['series_with_context'] += int(edges > 0)
+        transcript.update(sha(raw).encode() + p.tobytes() + n.tobytes())
+        if row['series_uid'] not in selected:
+            continue
+        raw = read_member(name, members, proof['signatures'])
+        with np.load(io.BytesIO(raw), allow_pickle=False) as archive:
+            volume = archive['volume']
+        if volume.dtype != np.uint16 or volume.shape != (count, 384, 384):
+            raise ValueError('original_volume_shape_dtype_changed')
+        physical_donors = np.unique(np.concatenate((centers, p, n)))
+        distant_donors = np.unique(np.concatenate((centers, dp, dn)))
+        counts['pixel_probe_centers'] += len(centers)
+        counts['pixel_probe_unique_physical_slices'] += len(physical_donors)
+        counts['pixel_probe_unique_distant_slices'] += len(distant_donors)
+        for slot,index in enumerate(centers):
+            center = volume[index].astype(np.float32) / np.float32(65535)
+            previous = volume[p[slot]].astype(np.float32) / np.float32(65535)
+            following = volume[n[slot]].astype(np.float32) / np.float32(65535)
+            zero = neighbor_delta_channels(center, previous, following, strength=0)
+            gray_exact &= zero.tobytes() == np.stack((center, center, center)).tobytes()
+            for mode, before, after in (('physical', previous, following), ('distant', volume[dp[slot]].astype(np.float32) / np.float32(65535), volume[dn[slot]].astype(np.float32) / np.float32(65535))):
+                result = neighbor_delta_channels(center, before, after, strength=0.25)
+                if result.shape != (3, 384, 384) or not np.isfinite(result).all() or result.min() < 0 or result.max() > 1:
+                    raise ValueError('bounded_finite_composition_required')
+                error = float(np.abs(result.astype(np.float64).mean(axis=0) - center).max())
+                maximum_mean_error = max(maximum_mean_error, error)
+                changed = result.tobytes() != zero.tobytes()
+                changed_physical += int(mode == 'physical' and changed)
+                changed_distant += int(mode == 'distant' and changed)
+            pixel_checks += 1
+    if counts['pixel_probe_unique_physical_slices'] != counts['pixel_probe_unique_distant_slices']:
+        raise ValueError('exact_unique_pixel_information_budget_required')
+    if not gray_exact or maximum_mean_error > np.finfo(np.float32).eps:
+        raise ValueError('exact_gray_or_FP32_mean_invariant_failed')
+    # Exercise the actual canonical dataset, not a recreated tensor loop.
+    import pandas as pd
+    import torch
+    import types
+    from rsna.competitive.data import CompetitiveStudyDataset
+    old_file=BASE / 'code-delta-recovery-c9fcc7e/rsna/competitive/data.py'
+    old_raw=old_file.read_bytes()
+    if sha(old_raw) != OLD_DATA_SHA:
+        raise ValueError('original_C9_loader_changed')
+    original=types.ModuleType('original_c9_data')
+    exec(compile(old_raw,str(old_file),'exec'),original.__dict__)
+    fitting_ids=sorted(train)[:16]
+    frames=pd.DataFrame({'study_uid':fitting_ids})
+    table=pd.DataFrame([dict(StudyInstanceUID=r['study_uid'],SeriesInstanceUID=r['series_uid'],Anatomical_Plane=r['plane'],Fluid_Sensitive=r['fluid_sensitive'],Fat_Suppression=r['fat_suppression'],Selection_Tier=r['selection_tier']) for r in rows if r['study_uid'] in fitting_ids])
+    params=dict(slices=16,side=384,max_series=6,augment=False)
+    reference=original.CompetitiveStudyDataset(frames,table,RESTORED/'cache',**params)
+    gray=CompetitiveStudyDataset(frames,table,RESTORED/'cache',**params,neighbor_channels={'mode':'gray','strength':0})
+    physical=CompetitiveStudyDataset(frames,table,RESTORED/'cache',**params,neighbor_channels={'mode':'physical','strength':0.25})
+    distant=CompetitiveStudyDataset(frames,table,RESTORED/'cache',**params,neighbor_channels={'mode':'distant','strength':0.25})
+    canonical_views=0
+    for index in range(16):
+        old=reference[index];zero=gray[index]
+        if old['images'].numpy().tobytes()!=zero['images'].numpy().tobytes():
+            raise ValueError('actual_original_C9_gray_bytes_changed')
+        for dataset in (physical,distant):
+            value=dataset[index]
+            for key in ('features','series_mask','slice_mask','positions','labels','label_mask'):
+                if not torch.equal(value[key],old[key]):
+                    raise ValueError('non_image_input_or_mask_changed')
+            images=value['images']
+            if value['label_mask'].any() or not torch.isfinite(images).all() or images.min()<0 or images.max()>1:
+                raise ValueError('bounded_unlabelled_original_input_required')
+            error=float(torch.abs(images.double().mean(2)-old['images'][:,:,0].double()).max())
+            maximum_mean_error=max(maximum_mean_error,error)
+            if error>1e-7:
+                raise ValueError('canonical_mean_invariant_failed')
+            del value,images
+        canonical_views+=int(old['slice_mask'].sum())
+        del old,zero
+    print(json.dumps(dict(canonical_dataset_views_checked=canonical_views,original_C9_zero_bytes_equal=True,exact_physical_distant_donor_multisets=True,original_C9_loader_sha256=OLD_DATA_SHA,status='original_training_only_matched_neighbor_canonical_input_completed', job_id=os.environ['SLURM_JOB_ID'], node='evc31', registry_sha256=REGISTRY, original_whole_byte_proof_sha256=PROOF, training_uids_sha256=TRAIN, training_studies=2247, all_training_metadata_only=True, pixel_probe_studies=16, pixel_probe_series=16, pixel_centers_checked=pixel_checks, zero_strength_gray_exact=bool(gray_exact), maximum_mean_error=maximum_mean_error, changed_physical_centers=changed_physical, changed_distant_centers=changed_distant, counts=dict(counts), by_plane={k: dict(v) for k,v in planes.items()}, metadata_and_donor_indices_aggregate_sha256=transcript.hexdigest(), source_sha256=STREAM_SOURCE_HASHES, node_free_bytes=free, elapsed_seconds=time.monotonic()-started, remote_files_written=0, labels_or_outer_pixels_read=False, model_or_GPU_or_accuracy_acceptance=False), sort_keys=True, allow_nan=False), flush=True)
+
+main()
