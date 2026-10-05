@@ -1,3 +1,13 @@
+## October5 next-input canonical admission and actual queued recovery
+
+Read the latest continuation and neighbor-channels-integration-v1 /
+neighbor-channels-gpu-recovery-v1. Actual CPU872158/872172 admit original
+matched physical/distant inputs and exact zero bytes; canonical policy is
+integrated. Actual GPU872182 is pending Resources, not a recovery/accuracy pass.
+Original rejected request872180 had zero allocation/runtime and is preserved;
+never repeat either dispatch. Fresh shared reserve is tight: new work uses
+separately funded private node-local controls and zero new shared files.
+
 ## October4 completed five-code-submission comparison
 
 All five accepted once; live5today/0slots and hidden scores null at21:21UTC.

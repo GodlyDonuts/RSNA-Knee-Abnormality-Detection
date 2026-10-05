@@ -1,0 +1,21 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS');assert shutil.disk_usage('/tmp').free>=28*2**30
+b=Path('/home/sa305415/rsna-knee');paid={}
+for h in v['paid_checkpoint_shas']:
+ j=b/'kaggle/dataset-publications'/h
+ for p in [j]+list(j.rglob('*')):
+  assert not p.is_symlink();s=p.stat();paid[s.st_dev,s.st_ino]=s.st_size
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);r=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(r[i]) for i in [1,2,5,6]]
+gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30;slots=limit-count-(760-len(paid));assert gib>=20 and slots>=5000 and len(paid)<=40 and sum(paid.values())<2*2**20
+rt=json.loads(Path('/tmp/rsna-kaggle-nativeall-final-20261004-v1/runtime.json').read_text());assert rt['archive_sha256']=='89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338' and rt['file_members']==40403 and Path(rt['python']).is_file()
+assert all(hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n] for n,s in v['sources'].items())
+root=Path(v['control']);assert root.parent==Path('/tmp') and not root.exists();root.mkdir(mode=0o700)
+for n,s in v['sources'].items():
+ p=root/'code'/n;assert p.resolve().is_relative_to(root/'code');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(s)
+for mode,c in v['configs'].items():
+ with (root/(mode+'.json')).open('x') as f:f.write(c)
+source={'git':v['git'],'files':v['hashes'],'runtime':rt,'funding':{'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':8*2**30,'checkpoint_future_bytes':6*2**30,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'no_original_deletion_credit':True}}
+(root/'source.json').write_text(json.dumps(source,indent=2,sort_keys=True)+'\n')
+os.environ.update(PYTHONPATH=str(root/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+p=subprocess.run([rt['python'],'-B',str(root/'code/engineering/cpu-stage.py'),str(root)],capture_output=True,text=True);(root/'cpu.stdout').write_text(p.stdout);(root/'cpu.stderr').write_text(p.stderr);sys.stdout.write(p.stdout);sys.stderr.write(p.stderr);sys.exit(p.returncode)

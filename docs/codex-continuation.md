@@ -1,3 +1,18 @@
+October5 original CPU32 admission872172 COMPLETED0:0:2,681canonical selected
+views across16fit/16disjoint outer engineering studies, zero input byte-identical
+to frozen C9 and original non-image tensors/masks unchanged. Source d4c3c65.
+CPU872179 staged the independently accepted GPU wrapper. Original GPU request
+872180 was rejected before allocation/runtime because the requested GRES name
+did not match actual nvidia_h100_pcie. Its original rejection is preserved.
+Distinct corrected job872182 was submitted ONCE, actually PENDING Resources
+on evc31; no allocated GPU/header/optimizer progress or accuracy pass yet.
+Never repeat either intent or restart the pending job. All controls/diagnostic
+weights remain private node-local at /tmp/rsna-neighbor-recovery-20261005-v1,
+zero new shared files. Fresh funding preserves20.0026GiB/5000shared files after
+existing liabilities;8GiB node future includes6GiB checkpoint cap. Inspect actual
+full/stop1/resume outcomes for all three arms before separately funded fitting.
+Read neighbor-channels-gpu-recovery-v1. No new clinical or Kaggle result.
+
 October5 canonical neighbor-input integration now implemented. CPU872158
 completed actual original-MRI input: matched physical/distant donor multisets
 and419/419unique slices;1,343canonical views with exact zero bytes against

@@ -1,0 +1,11 @@
+umask 077
+set -e
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 HF_HUB_OFFLINE=1
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+export PYTHONPATH=/tmp/rsna-neighbor-recovery-20261005-v1/code
+export TRITON_CACHE_DIR=/tmp/rsna-neighbor-recovery-20261005-v1/triton-cache
+export TORCHINDUCTOR_CACHE_DIR=/tmp/rsna-neighbor-recovery-20261005-v1/inductor-cache
+export TORCH_EXTENSIONS_DIR=/tmp/rsna-neighbor-recovery-20261005-v1/torch-extensions
+export CUDA_CACHE_PATH=/tmp/rsna-neighbor-recovery-20261005-v1/cuda-cache
+cd /tmp/rsna-neighbor-recovery-20261005-v1/code
+exec /tmp/rsna-environment-870947-4lemnh2d/environment/bin/python -B /tmp/rsna-neighbor-recovery-20261005-v1/gpu-start.py >/tmp/rsna-neighbor-recovery-20261005-v1/gpu.stdout 2>/tmp/rsna-neighbor-recovery-20261005-v1/gpu.stderr

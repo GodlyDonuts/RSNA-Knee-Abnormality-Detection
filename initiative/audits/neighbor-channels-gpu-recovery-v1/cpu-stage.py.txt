@@ -1,0 +1,63 @@
+import hashlib, io, json, os, shutil, sys, types
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import torch
+from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import TrainConfig, select_development, _uid_hash
+from rsna.release import load_verified_release
+
+def sha(b): return hashlib.sha256(b).hexdigest()
+def sig(p):
+ s=p.stat();return [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]
+def emit(p,v):
+ with p.open('x') as f:json.dump(v,f,sort_keys=True,indent=2);f.write('\n')
+def main():
+ root=Path(sys.argv[1]);v=json.loads((root/'source.json').read_text());base=Path('/home/sa305415/rsna-knee')
+ assert os.uname().nodename=='evc31' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS')
+ assert shutil.disk_usage(root).free>=28*2**30
+ for n,h in v['files'].items():assert sha((root/'code'/n).read_bytes())==h
+ registry_raw=(base/'native384-assembly-c9-v1/registry.json').read_bytes();assert sha(registry_raw)=='73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770';reg=json.loads(registry_raw)
+ proof_raw=(base/'production-launch-native384-a32-c9-v1/cpu-preflight.json').read_bytes();assert sha(proof_raw)=='fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5';original=json.loads(proof_raw)
+ assert original['all_member_bytes_verified'] is True
+ for name,a in original['scientific_assets'].items():assert sig(Path(name))==a['signature']
+ inp=dict(studies=str(base/'code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet'),series=str(base/'code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'),cache='/tmp/rsna-native384-cohort-866458-lp6rcfdw/restored/cache',folds=str(base/'code-stopfix-1f486765/initiative/experiments/competitive-v1/folds'))
+ inp['artifact-root']=str(base/'code-stopfix-1f486765')
+ manifest,binding=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']));folds=load_folds(Path(inp['folds']),manifest,binding);train,outer=select_development(manifest,folds,0)
+ assert len(train)==2247 and len(outer)==1156 and set(train.study_uid)==set(reg['training_uids']) and set(outer.study_uid)==set(reg['outer_uids'])
+ train=train.head(16);outer=outer.head(16);assert not set(train.study_uid)&set(outer.study_uid)
+ selected=set(train.study_uid)|set(outer.study_uid);members={n:a for sh in reg['shards'] for n,a in sh['members'].items()};restored=Path(inp['cache']).parent
+ member_count=0
+ for sh in reg['shards']:
+  for row in sh['series']:
+   if row['study_uid'] not in selected:continue
+   for name in ('cache/'+row['cache_path'],'cache/'+row['cache_path'].removesuffix('.npz')+'.json'):
+    p=restored/name;assert not p.is_symlink() and p.resolve().is_relative_to(restored) and sig(p)==original['signatures'][name] and p.stat().st_size==members[name]['bytes'];member_count+=1
+ series_raw=Path(inp['series']).read_bytes();assert sha(series_raw)==binding['series_sha256'];series=pd.read_csv(io.BytesIO(series_raw))
+ old=base/'code-delta-recovery-c9fcc7e/rsna/competitive/data.py';raw=old.read_bytes();assert sha(raw)=='f67da12badb27b132a128a3af56d44fe074f53652a25b06ae7bb3d5f4c0cf738'
+ mod=types.ModuleType('original_c9');exec(compile(raw,str(old),'exec'),mod.__dict__)
+ config_shas={};configs={}
+ for mode in ('gray','physical','distant'):
+  raw=(root/(mode+'.json')).read_bytes();config_shas[mode]=sha(raw);config=json.loads(raw);TrainConfig(**config).validate();configs[mode]=config
+  assert config['epochs']==2 and config['diagnostic_study_limit']==16 and config['side']==384 and config['warmup_updates']==2
+  assert config['neighbor_channels']==dict(mode=mode,strength=0 if mode=='gray' else 0.25)
+ params=dict(slices=16,side=384,max_series=6,augment=False);view_count=0;mean_error=0.;tensor_hashes={};nonimage_hashes={}
+ for role,frame in [('training',train),('outer_engineering',outer)]:
+  ref=mod.CompetitiveStudyDataset(frame,series,Path(inp['cache']),**params)
+  arms={mode:CompetitiveStudyDataset(frame,series,Path(inp['cache']),**params,neighbor_channels=configs[mode]['neighbor_channels']) for mode in configs};h={mode:hashlib.sha256() for mode in arms};other=hashlib.sha256()
+  for i in range(16):
+   old=ref[i];gray=arms['gray'][i];assert old['images'].numpy().tobytes()==gray['images'].numpy().tobytes()
+   for key in ('features','positions','slice_mask','series_mask','labels','label_mask'):other.update(old[key].numpy().tobytes())
+   for mode,ds in arms.items():
+    row=gray if mode=='gray' else ds[i]
+    for key in ('features','positions','slice_mask','series_mask','labels','label_mask'):assert torch.equal(row[key],old[key])
+    x=row['images'];assert torch.isfinite(x).all() and x.min()>=0 and x.max()<=1
+    if mode!='gray':
+     err=float((x.double().mean(2)-old['images'][:,:,0].double()).abs().max());mean_error=max(mean_error,err);assert err<1e-7
+    h[mode].update(x.numpy().tobytes());del row,x
+   view_count+=int(old['slice_mask'].sum());del old,gray
+  tensor_hashes[role]={mode:hh.hexdigest() for mode,hh in h.items()};nonimage_hashes[role]=other.hexdigest()
+ receipt=dict(status='original_matched_neighbor_32_study_CPU_input_accepted',source_git=v['git'],source_sha256=v['files'],config_sha256=config_shas,training_16_sha256=_uid_hash(train),outer_16_sha256=_uid_hash(outer),trainer_inputs=inp,checkpoint_future_bytes=6*2**30,node_future_bytes=8*2**30,shared_future_bytes=0,shared_future_files=0,training_studies=16,outer_engineering_studies=16,original_member_stat_bindings_checked=member_count,original_whole_byte_proof_sha256=sha(proof_raw),registry_sha256=sha(registry_raw),runtime=v['runtime'],input_tensor_sha256=tensor_hashes,nonimage_tensor_sha256=nonimage_hashes,zero_original_C9_bytes_equal=True,mean_error=mean_error,selected_views=view_count,node_free_bytes=shutil.disk_usage(root).free,funding=v['funding'],job_id=os.environ['SLURM_JOB_ID'],model_or_GPU_executed=False,diagnostic_only=True)
+ emit(root/'cpu-accepted.json',receipt);print(json.dumps(receipt,sort_keys=True),flush=True)
+main()

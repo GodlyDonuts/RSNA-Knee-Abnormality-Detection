@@ -1,3 +1,13 @@
+October5 research update: canonical neighboring-slice channels are integrated.
+The distant control now preserves exactly the physical arm's donor population,
+correcting the measured275vs419unique-slice confound. Original-MRI CPU acceptance
+passes2,681selected views/32engineering studies with exact legacy gray bytes;
+no new accuracy result. The official-weight three-arm recovery is queued once
+as872182 on evc31, pending resources. Its subsequent matched held-out comparison
+will distinguish useful local anatomy from color/context regularization.
+All five October4 Kaggle comparisons still had null outcomes at01:28UTC;
+no new score is inferred. Original-label supervision control remains default.
+
 October4 update: the second fixed-budget seed improved Effusion point AUC
 0.928051→0.941795, but its95% includes zero. Overall12-target AUC fell
 0.809696→0.801626 (paired conditional95% delta[-.014051,-.001754],1164undefined
