@@ -1,3 +1,8 @@
+Daenerys first-packet protocol source1dd64fa privately mirrored/download-size-SHA
+verified at HF6dc1a928100808aa9dc1c836bf04677959b90567, all7sanitized small
+objects under canonical shared lock. Never repeat. No reports/pixels/clinical
+case records/private Page references or learned weights mirrored.
+
 October5 owner-authorized Daenerys image review: first complete fitting study sent
 ONCE to existing thread01a0f8cb-e876-739f-b149-0d446a5be0c3/hostdurable. Read
 initiative/audits/daenerys-multimodal-study-review-v1. All154original DICOM files
