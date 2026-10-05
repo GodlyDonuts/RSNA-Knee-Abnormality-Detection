@@ -1,3 +1,11 @@
+Latest resident inference source51ac26e privately preserved at
+HF4c756ab3954579efa6f48b8e841c27a9d0125622; all13 distinct small objects fully
+re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-kaggle-resident-inference-20261005-v1; never repeat. Full2030tests/Ruff317/
+mypy48/archive/current89/89 passed. Actual CPU outputs/worker reuse verified;
+actual2T4/offline full-scale9h/RAM/CPU and notebook integration still unaccepted.
+No new cloud/GPU/competition mutation or numerical/data/weight change.
+
 October5 resident inference implementation: standalone exact-source model
 loads once per device and reuses across chunks; finite two-worker roster sharding
 merges original13-column order. Actual CPU/model and two-process fixtures match
