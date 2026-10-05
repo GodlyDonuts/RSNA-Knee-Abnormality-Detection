@@ -1,3 +1,15 @@
+October5 actual patch-witness CPU873272 COMPLETED0:0:370original member
+stat bindings and unchanged canonical48 numerical modules admit original32
+gray input proof reuse; official seeded learned states/post-factory RNG equal
+across zero/one arms. Distinct oneH100/twoCPU GPU873279 submittedONCE on
+evc31, source d3cf582, control /tmp/rsna-patch-witness-recovery-20261005-v1.
+Inspect actual status/header/progress/recovery; no terminal pass or accuracy
+gain inferred. New8GiB node envelope/6GiB diagnostics/zero sharedbytesfiles
+funded with20.0026GiB/5000shared reserve. No full fit/publication budget admitted.
+Read patch-witness-gpu-recovery-v1; do not repeat jobs/intents. Original neighbor
+comparison and all nine preserved checkpoints remain unchanged. Full2001tests,
+Ruff308/mypy48/archive/current89/89 passed. Protected data/labels/base unchanged.
+
 October5 next mechanism preparation: signed patch-witness weight0/1 official
 MRI recovery wrappers/configs are reviewed locally; canonical numerical modules
 are unchanged. Read patch-witness-gpu-recovery-v1. Require actual CPU original
