@@ -1,3 +1,10 @@
+Header-correction small mirror for source8d6e01f is UNCERTAIN: HTTP response
+lost during create_commit;02:27UTC read-only check found0/21expected paths and
+private head unchanged at verified f285deb8. Never rerun publish_header_once.py
+or repeat the earlier48-object mirror. Read hf-neighbor-header-correction-20261005-v1
+and reconcile exact prefix read-only. GitHub has all new original receipts.
+Corrected GPU872200 remains pending Resources; no update/recovery/accuracy pass.
+
 October5 actual GPU recovery correction:872182 FAILED1:0 after2:21 before
 any optimizer update; the launcher omitted the original CPATH Python-header
 supplement and first gray backward could not compile Triton (Python.h missing).
