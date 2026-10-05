@@ -1,3 +1,12 @@
+October5 resident inference implementation: standalone exact-source model
+loads once per device and reuses across chunks; finite two-worker roster sharding
+merges original13-column order. Actual CPU/model and two-process fixtures match
+original FP32 sigmoid outputs and observe one load/worker across repeated chunks.
+No rsna numerical module, weights/data/masks/folds changed. Read kaggle-resident-
+inference-v1. Notebook bootstrap integration and actual2T4 end-to-end9h/RAM/CPU
+acceptance remain absent; do not submit merely from these tests. No new cloud
+mutation, GPU job or bulk transfer occurred. Protected data remain unused.
+
 October5 live Kaggle outcomes reconciled: native final10=0.802, reviewed
 seed1 candidate=0.685; seed1control/seed2control/seed2candidate FAILED for
 exceeded runtime, zero output/no score. Prior best0.804 unchanged. Owner hard

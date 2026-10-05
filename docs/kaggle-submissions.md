@@ -1,3 +1,12 @@
+October5 resident inference implementation: standalone exact-source model
+loads once per device and reuses across chunks; finite two-worker roster sharding
+merges original13-column order. Actual CPU/model and two-process fixtures match
+original FP32 sigmoid outputs and observe one load/worker across repeated chunks.
+No rsna numerical module, weights/data/masks/folds changed. Read kaggle-resident-
+inference-v1. Notebook bootstrap integration and actual2T4 end-to-end9h/RAM/CPU
+acceptance remain absent; do not submit merely from these tests. No new cloud
+mutation, GPU job or bulk transfer occurred. Protected data remain unused.
+
 Latest Kaggle runtime milestone: Git source8ab02c6 privately
 mirrored at HFb41d146149fa04125cdf052d3cbf90eac920a7fa; all13 sanitized small
 objects fully re-downloaded/size/SHA verified under canonical shared lock. Read
