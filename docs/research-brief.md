@@ -1,3 +1,24 @@
+October5 fifth original Daenerys review is collected and source/coverage validated:
+39,919 unchanged bytes, 47 actual image reads, 275 slices/nine series, all12 targets
+and48 image-evidence records. Its inline JSON representation preserves original
+numeric values despite integer/float spelling differences. Five fitting reviews
+now yield zero observed binary reversals,13 masked negative candidates and three
+observed uncertainty flags: two existing Effusion negatives and one existing
+Lateral Meniscus positive. These are candidates, not confirmed clinical corrections;
+accepted labels/masks and protected evaluation remain unchanged.
+
+The sixth complete fitting examination is prepared once:226 original slices,
+seven640-pixel series,39 native sheets,185,492,828 verified source bytes within
+the512MiB case cap and20GiB local reserve. Ten image uploads are verified. Upload11
+returned an unknown commit result; its original file exists in the private Page,
+but its opaque reference and original bytes cannot yet be recovered through the
+available supported read-only interfaces. Do not re-upload it, recreate images,
+repeat source acquisition or send an incomplete packet. Remaining28 image uploads
+are unattempted; case6 has NOT been sent. Continue from its exact private queue
+receipts when the existing reference can be reconciled. No sign-in is required:
+account/Page access works. The ten-minute queue remains active. See
+`initiative/audits/daenerys-multimodal-study-review-v1/` and private current-queue-state.
+
 October5 continuous Daenerys review queue: four actual original reviews are
 collected and source/coverage validated. Comparing those fitting studies with
 accepted labels yields zero binary reversals on observed cells, 13 candidate

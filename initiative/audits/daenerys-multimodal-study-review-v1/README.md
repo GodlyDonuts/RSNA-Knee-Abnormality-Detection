@@ -170,3 +170,29 @@ one active case, immutable private receipts, accepted labels and the existing
 two-hour research schedule. Saved scheduler configuration was read back.
 Read continuous-queue.json. If there is a delivery intent with no terminal
 receipt, reconcile the existing message read-only; never send again blindly.
+
+## Fifth review collected; sixth transport uncertainty
+
+The original fifth candidate review is preserved byte-for-byte and all47 actual
+receiver reads,275 slices/nine series,12 targets and48 evidence records passed
+source/coverage checks. Read `fifth-review-transport-validation.json`. The complete
+inline JSON object is numerically equal to the original packet; integer/float
+serialization differs, so its serialized digest is bound separately in private
+receipts. Five reviews have zero observed binary reversals,13 candidate negatives
+for masked targets and three observed uncertainty flags. The new flag questions
+an existing positive Lateral Meniscus label; it does not establish a correction.
+Read `five-review-label-comparison.json`. Accepted labels/masks remain fixed.
+
+The next complete fitting study passed all original source checks:226 slices,
+seven series and39 native640-pixel sheets. See `sixth-preparation-transport-pending.json`.
+The first10 uploads were verified; upload11 returned an unknown result. Its
+existing filename is visible in the private Page Files menu, but supported
+read-only metadata did not recover its reference or original asset bytes. Library
+search failed twice and the existing-attachment chooser found no matching item.
+The transient Page access error cleared; sign-in is not the blocker. No upload
+was retried and no image or source was recreated. The28 remaining uploads are
+unattempted and no sixth packet has been sent. Recover the existing reference,
+verify its original size/SHA, then finish the original remaining uploads and
+deliver once. Do not send an incomplete case or replace the requested reviewer.
+All detailed clinical records, source images, reports and transport references
+remain private. Training is unchanged; no clinical or Kaggle gain is claimed.
