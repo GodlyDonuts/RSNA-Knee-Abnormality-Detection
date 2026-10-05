@@ -45,3 +45,13 @@ bindings replayed independently. Distant has360 finite updates and empty stderr;
 epoch1 is privately fully verified once. Keep original872279 unchanged and
 finish the fixed distant endpoint before specificity interpretation.
 `progress-1319.json` records the actual original observation.
+
+## Distant control second epoch preserved
+
+Actual owning-nodeCPU872732 observed783 contiguous finite updates and empty
+stderr. Original872279 remains RUNNING unchanged; final inference/result absent.
+Its new immutable epoch2 was privately preserved once, all5 objects fully
+re-downloaded/size/SHA verified viaCPU872734. Read `progress-1519.json` and
+`epochs/distant-002/verified.json`; never repeat completed epochs. No additional
+clinical gain or specificity claim. Fresh quota and original funded reserves
+remain unchanged.

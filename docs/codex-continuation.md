@@ -1,3 +1,16 @@
+October5 15:19UTC actual distant control: original872279 healthy RUNNING,783
+contiguous finite updates of843, epoch3 underway, empty stderr. Its newly
+completed immutable epoch2 was privately published ONCE viaCPU872734 and all5
+objects fully re-downloaded/size/SHA verified at
+HFd8952ba14b5b7e71d3939dd854a39af06282e859. Never repeat distant1/2 or
+gray/physical1–3. No distant fixed-final result exists yet; physical primary
+and macro gain remain unestablished. Owning-nodeCPU872732 verified original
+source/config/roster/output bindings without rehashing prior completed final
+assets. SSH expired but existing authorized ignored.env/ASKPASS restored access;
+no training restarted. Shared quota unchanged1026227728kB/994265files, node
+free675000717312bytes and funded reserves preserved. Read
+neighbor-channels-full-fit-v1/progress-1519.json and epochs/distant-002.
+
 Latest physical-final/distant1 small milestone: Git source8a4c4ac privately
 mirrored at HF32b08c7a2acffc7c3f936e575fd9e7f38bdcb1e4, all16 objects fully
 re-downloaded/size/SHA verified under canonical shared lock. Read
