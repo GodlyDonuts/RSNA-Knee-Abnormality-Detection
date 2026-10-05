@@ -1,3 +1,9 @@
+October5 actual neighboring-slice screen: physical fixed-final primary Medial
+Meniscus delta−.000948 and macro+.002457 both have paired95% spanning zero.
+Finish the healthy distant specificity control. Do not promote, extend or tune
+strength on this holdout. See neighbor-channels-full-fit-v1/physical-fixed-final-v1;
+accepted masks/folds/base/protected evaluation remain unchanged.
+
 Independent next input hypothesis is now a standalone arithmetic prototype:
 [bounded neighbor channels](../initiative/experiments/competitive-v1/neighbor-channels-v1/README.md).
 It preserves center raw grayscale mean while encoding local changes in RGB;

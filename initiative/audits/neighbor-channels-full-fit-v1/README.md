@@ -35,3 +35,13 @@ through003 and reconnected-1120-progress.json. Never repeat these or gray1–3.
 Fresh shared quota remains1026227728/1048576000kB,994265/1000000files; original
 20.0026GiB/5000-file post-liability reserve and node20GiB reserve remain intact.
 No new shared storage obligation or training restart.
+
+## Physical final result and distant progress
+
+Read `physical-fixed-final-v1`: primary Medial Meniscus delta−0.000948 and
+macro+0.002457 both have paired95% spanning zero. No gain is established or
+promoted. All12 endpoints and original source/roster/checkpoint/prediction
+bindings replayed independently. Distant has360 finite updates and empty stderr;
+epoch1 is privately fully verified once. Keep original872279 unchanged and
+finish the fixed distant endpoint before specificity interpretation.
+`progress-1319.json` records the actual original observation.

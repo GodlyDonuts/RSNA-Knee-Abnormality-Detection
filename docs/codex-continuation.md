@@ -1,3 +1,25 @@
+October5 physical-neighbor fixed-final result is independently replayed: three
+ epochs/843updates, same2247fitting/1156development. Primary Medial Meniscus
+0.791632→0.790685 (−.000948), paired95%[-.006783,.004753]; macro
+0.786090→0.788548 (+.002457), conditional95%[-.021886,.028624],
+1164undefined/4000draws. No primary or macro gain established; no promotion,
+extra epochs or strength tuning from this holdout. All12 endpoints and exact
+source/roster/checkpoint/prediction proofs are in
+neighbor-channels-full-fit-v1/physical-fixed-final-v1. Healthy original872279
+continues the distant specificity control:360finite updates/epoch2/empty stderr.
+Its newly completed first epoch was privately preserved once/all5objects fully
+re-downloaded/size/SHA verified at HFeccacad9a96d7bb5fe4a8a9feef6884e8eb8af8b
+viaCPU872576; never repeat. Shared quota unchanged1026227728kB/994265files;
+node free675126558720bytes. Original masks/folds/base/protected evaluation remain
+unchanged. Complete the distant endpoint before full three-arm interpretation.
+This is internal weak-label evidence, not a Kaggle score.
+
+Queue13:09 update: sixth Daenerys study has38 verified original image uploads.
+All28 formerly unattempted originals were uploaded once after read-only Files
+inspection. Only existing image11's opaque reference remains unresolved. Do not
+repeat uploads or send an incomplete case. Private queue receipts supersede
+older upload counts; five candidate reviews collected, accepted labels unchanged.
+
 Latest preservation: source6830d9a fifth original Daenerys review/five-case
 comparison and sixth transport hold is privately mirrored at
 HF2c5882145b5f3c04e20a635fd7f94bce0dc4b859. All eight sanitized small objects
