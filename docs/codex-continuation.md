@@ -1,3 +1,11 @@
+Latest private preservation: Git source7c8aebb at
+HF91bc37f6dc9c4102724e100212fbbfb84a39022e; all46distinct sanitized objects
+fully re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-patch-witness-route-cuda-failure-20261005-v1; never repeat. Actual input and
+initialization acceptance is preserved; CUDA/model recovery remains unaccepted.
+Full2017tests/Ruff311/mypy48/archive/current89/89 passed. No raw pixels, source
+reports/private case records, weights or diagnostic predictions mirrored.
+
 Latest October5 device investigation: model recovery873667 failed before
 any MRI/optimizer at the unreported compoundCUDA gate. Device-only873729
 completed with BOTH150second subprocess timeouts, no accepted CUDA context.
