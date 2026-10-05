@@ -1,0 +1,17 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();a=root/'initiative/audits/patch-witness-gpu-recovery-v1';l=root/'artifacts/patch-witness-gpu-recovery-v1'
+git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+files=[str(p) for p in sorted(Path('rsna').rglob('*.py'))]+['scripts/newton/probe_patch_witness_trainer_recovery.py']
+sources={n:(root/n).read_text() for n in files};sources['scripts/newton/enforce_deterministic_runtime.py']=(root/'initiative/audits/native384-deterministic-runtime-v1/verified-v2/enforce_deterministic_runtime.py').read_text();sources['engineering/cpu-stage.py']=(a/'cpu-stage.py.txt').read_text()
+hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in sources.items()};configs={m:(a/(m+'-engineering-config.json')).read_text() for m in ('control','candidate')}
+receipts=[root/'initiative/audits/kaggle-nativeall-final-20261004-v1/submit-result.json']+[root/'initiative/audits/kaggle-effusion-comparison-v1'/k/'submit-result.json' for k in ['seed1-control','seed1-candidate','seed2-control','seed2-candidate']]
+v=dict(git=git,sources=sources,hashes=hashes,configs=configs,paid_checkpoint_shas=[json.loads(p.read_text())['checkpoint_sha256'] for p in receipts],control='/tmp/rsna-patch-witness-recovery-20261005-v1')
+v['GPU_wrapper']=(a/'gpu-start.py.txt').read_text();v['original_CPU_receipt_sha256']=hashlib.sha256((root/'initiative/audits/neighbor-channels-gpu-recovery-v1/actual-cpu32-receipt.json').read_bytes()).hexdigest();v['original_header_receipt_sha256']=hashlib.sha256((root/'initiative/audits/neighbor-channels-gpu-recovery-v1/header-correction-v3/actual-header-CPU-receipt.json').read_bytes()).hexdigest()
+w=(a/'cpu-wrapper.py.txt').read_text();intent=dict(source_git=git,source_sha256=hashes,wrapper_sha256=hashlib.sha256(w.encode()).hexdigest(),control=v['control'],GPU=False,shared_future_bytes=0,shared_future_files=0,node_future_bytes=8*2**30,checkpoint_future_bytes=6*2**30,automatic_retry=False)
+with (l/'cpu-stage-intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+(a/'cpu-dispatch-intent.json').write_text(json.dumps(intent,indent=2)+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=16G','--time=00:15:00','--job-name=rsna-witness32-input-init-v1','/usr/bin/python3.12','-B','-c',w]
+r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(v),capture_output=True,text=True,timeout=930)
+(l/'cpu-stage-result.json').write_text(json.dumps({'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr},indent=2)+'\n');print(r.stderr);assert r.returncode==0
+receipt=json.loads(r.stdout);(a/'actual-cpu32-receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');print(json.dumps({k:receipt[k] for k in ['status','job_id','initial_learned_state','funding']}))

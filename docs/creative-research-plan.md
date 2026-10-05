@@ -1,3 +1,10 @@
+October5 next mechanism preparation: signed patch-witness weight0/1 official
+MRI recovery wrappers/configs are reviewed locally; canonical numerical modules
+are unchanged. Read patch-witness-gpu-recovery-v1. Require actual CPU original
+32-study input reuse/stat binding plus official initial-state/RNG equality and
+fresh node/shared funding before one distinct GPU recovery. No CPU/GPU or
+clinical acceptance is claimed by prepared code; no full fitting funded yet.
+
 Latest completed three-arm milestone: Git source6c1cf08 privately
 mirrored at HF6feb4212679f48ff5200ec642f0423022ecf60f6; all20 sanitized small
 objects fully re-downloaded/size/SHA verified under the canonical shared lock.
