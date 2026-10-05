@@ -1,0 +1,41 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();a=root/'initiative/audits/neighbor-channels-full-fit-v1';local=root/'artifacts/neighbor-channels-full-fit-v1';control='/tmp/rsna-neighbor-full-fit-20261005-v1';recovery='e59e77b718c46bcccf6f0a4c230535776aa969c5dd9d41eea3fae6a0b8b036ae'
+assert json.loads((a/'local-wrapper-admission.json').read_text())['cases']==25
+files={n:(a/src).read_text() for n,src in [('launch.py','launch.py.txt'),('publish.py','publish.py.txt'),('base-config.json','base-config.json'),('gray.json','gray.json'),('physical.json','physical.json'),('distant.json','distant.json')]}
+manifest={'scientific_source_git':'d4c3c65ea4c4e4127669f7920fc8a56a3b436b7a','original_recovery_receipt_sha256':recovery,'files':{n:{'bytes':len(s.encode()),'sha256':hashlib.sha256(s.encode()).hexdigest()} for n,s in files.items()},'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'download_scratch_future_bytes':2*2**30,'automatic_retry':False}
+receipts=[root/'initiative/audits/kaggle-nativeall-final-20261004-v1/submit-result.json']+[root/'initiative/audits/kaggle-effusion-comparison-v1'/k/'submit-result.json' for k in ['seed1-control','seed1-candidate','seed2-control','seed2-candidate']];shas=[json.loads(p.read_text())['checkpoint_sha256'] for p in receipts]
+wrapper=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS')
+root=Path(v['control']);old=Path('/tmp/rsna-neighbor-recovery-20261005-v3');assert root.parent==Path('/tmp') and not root.exists();assert shutil.disk_usage('/tmp').free>=36*2**30
+assert hashlib.sha256((old/'recovery-verified.json').read_bytes()).hexdigest()==v['manifest']['original_recovery_receipt_sha256']
+terminal=subprocess.check_output(['sacct','-j','872200','-X','-n','-P','-o','JobID,State,ExitCode,Elapsed,NodeList'],text=True);assert terminal.strip().split('|')[:3]==['872200','COMPLETED','0:0']
+b=Path('/home/sa305415/rsna-knee');paid={}
+for h in v['paid_checkpoint_shas']:
+ p=b/'kaggle/dataset-publications'/h
+ for f in [p]+list(p.rglob('*')):
+  assert not f.is_symlink();s=f.stat();paid[s.st_dev,s.st_ino]=s.st_size
+assert len(paid)<=40 and sum(paid.values())<2*2**20
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in quota.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30;slots=limit-count-(760-len(paid));assert gib>=20 and slots>=5000
+root.mkdir(mode=0o700);(root/'code').symlink_to(old/'code',target_is_directory=True)
+for n,s in v['files'].items():
+ assert len(s.encode())==v['manifest']['files'][n]['bytes'] and hashlib.sha256(s.encode()).hexdigest()==v['manifest']['files'][n]['sha256']
+ with (root/n).open('x') as f:f.write(s)
+with (root/'files.json').open('x') as f:json.dump(v['manifest'],f,sort_keys=True,indent=2);f.write('\n')
+with (root/'funding.json').open('x') as f:json.dump({'status':'actual_original_recovery_terminal_and_new_full_fit_funding_accepted','job_id':os.environ['SLURM_JOB_ID'],'quota':quota,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'download_scratch_future_bytes':2*2**30,'node_free_bytes':shutil.disk_usage('/tmp').free,'old_originals_preserved':True,'no_deletion_credit':True,'original_recovery_terminal':terminal},f,sort_keys=True,indent=2);f.write('\n')
+proof=json.loads((old/'cpu-accepted.json').read_text());header=json.loads((old/'header-CPU-accepted.json').read_text());rt=proof['runtime'];os.environ.update(PYTHONPATH=str(root/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',HF_HUB_OFFLINE='1',CPATH=header['CPATH'])
+x=subprocess.run([rt['python'],'-B',str(root/'launch.py'),'stage'],capture_output=True,text=True);(root/'stage.stdout').write_text(x.stdout);(root/'stage.stderr').write_text(x.stderr)
+if x.returncode==0:
+ print(json.dumps({'CPU_acceptance':json.loads(x.stdout),'funding':json.loads((root/'funding.json').read_text())}),flush=True)
+else:
+ print(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}),flush=True)
+sys.exit(x.returncode)
+'''
+intent=manifest|{'control':control,'wrapper_sha256':hashlib.sha256(wrapper.encode()).hexdigest(),'CPU':1,'GPU':0,'owning_node':'evc31','full_GPU_not_dispatched':True}
+with (local/'stage-intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+(a/'CPU-stage-intent.json').write_text(json.dumps(intent,sort_keys=True,indent=2)+'\n');(a/'stage-wrapper.py.txt').write_text(wrapper)
+c=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=16G','--time=00:15:00','--job-name=rsna-neighbor-full-input-init-v1','/usr/bin/python3.12','-B','-c',wrapper]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(c)],input=json.dumps({'control':control,'files':files,'manifest':manifest,'paid_checkpoint_shas':shas}),capture_output=True,text=True,timeout=930)
+result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(local/'stage-result.json').write_text(json.dumps(result,indent=2)+'\n');assert x.returncode==0, json.dumps(result)
+v=json.loads(x.stdout);(a/'actual-CPU-acceptance.json').write_text(json.dumps(v['CPU_acceptance'],sort_keys=True,indent=2)+'\n');(a/'actual-funding.json').write_text(json.dumps(v['funding'],sort_keys=True,indent=2)+'\n');print(json.dumps({'job_id':v['CPU_acceptance']['job_id'],'status':v['CPU_acceptance']['status'],'initial_learned_states_equal':len({i['learned_graph_and_values_sha256'] for i in v['CPU_acceptance']['initial_learned_state'].values()})==1,'original_member_stat_bindings':v['CPU_acceptance']['original_cache_member_stat_bindings']}))

@@ -1,0 +1,29 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();a=root/'initiative/audits/neighbor-channels-full-fit-v1';local=root/'artifacts/neighbor-channels-full-fit-v1';cpu=json.loads((a/'actual-CPU-acceptance.json').read_text());control='/tmp/rsna-neighbor-full-fit-20261005-v1'
+assert cpu['status']=='actual_full_neighbor_original_inputs_and_seeded_initialization_accepted' and cpu['source_git']=='d4c3c65ea4c4e4127669f7920fc8a56a3b436b7a'
+assert cpu['initial_learned_state']['gray']==cpu['initial_learned_state']['physical']==cpu['initial_learned_state']['distant']
+assert cpu['wrapper_sha256']==hashlib.sha256((a/'launch.py.txt').read_bytes()).hexdigest() and cpu['publisher_sha256']==hashlib.sha256((a/'publish.py.txt').read_bytes()).hexdigest()
+receipts=[root/'initiative/audits/kaggle-nativeall-final-20261004-v1/submit-result.json']+[root/'initiative/audits/kaggle-effusion-comparison-v1'/k/'submit-result.json' for k in ['seed1-control','seed1-candidate','seed2-control','seed2-candidate']];shas=[json.loads(p.read_text())['checkpoint_sha256'] for p in receipts]
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton']
+check=r'''import json,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);b=Path('/home/sa305415/rsna-knee');paid={}
+for h in v['shas']:
+ p=b/'kaggle/dataset-publications'/h
+ for f in [p]+list(p.rglob('*')):
+  assert not f.is_symlink();s=f.stat();paid[s.st_dev,s.st_ino]=s.st_size
+assert len(paid)<=40 and sum(paid.values())<2*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30;slots=limit-count-(760-len(paid));assert gib>=20 and slots>=5000
+queue=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i|%T|%b|%N'],text=True);assert not queue.strip(), 'Never reserve new GPU while original input admission still running'
+t=subprocess.check_output(['sacct','-j',v['CPU_job']+',872200','-X','-n','-P','-o','JobID,State,ExitCode,Elapsed,NodeList'],text=True);rows={r.split('|')[0]:r.split('|') for r in t.splitlines() if r};assert all(rows[j][1:3]==['COMPLETED','0:0'] for j in [v['CPU_job'],'872200'])
+print(json.dumps({'status':'actual_original_recovery_full_CPU_initialization_and_fresh_funding_accepted','terminals':t,'quota':q,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'queue_before_dispatch':queue,'new_shared_bytes':0,'new_shared_files':0}))
+'''
+x=subprocess.run(ssh+[shlex.join(['/usr/bin/python3.12','-B','-c',check])],input=json.dumps({'CPU_job':cpu['job_id'],'shas':shas}),capture_output=True,text=True,timeout=30);assert x.returncode==0,x.stderr;funding=json.loads(x.stdout);(a/'fresh-before-GPU-funding.json').write_text(json.dumps(funding,sort_keys=True,indent=2)+'\n')
+header=json.loads((root/'initiative/audits/neighbor-channels-gpu-recovery-v1/header-correction-v3/actual-header-CPU-receipt.json').read_text());py=cpu['runtime']['python']
+shell='\n'.join(['umask 077','set -e','export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 HF_HUB_OFFLINE=1','export CUBLAS_WORKSPACE_CONFIG=:4096:8','export CPATH='+shlex.quote(header['CPATH']),'export PYTHONPATH='+shlex.quote(control+'/code'),'export HF_HOME='+shlex.quote(control+'/hf-cache'),'export TRITON_CACHE_DIR='+shlex.quote(control+'/triton-cache'),'export TORCHINDUCTOR_CACHE_DIR='+shlex.quote(control+'/inductor-cache'),'export TORCH_EXTENSIONS_DIR='+shlex.quote(control+'/torch-extensions'),'export CUDA_CACHE_PATH='+shlex.quote(control+'/cuda-cache'),'cd '+shlex.quote(control+'/code'),'exec '+shlex.join([py,'-B',control+'/launch.py','fit'])+' >'+shlex.quote(control+'/GPU.stdout')+' 2>'+shlex.quote(control+'/GPU.stderr')])
+intent={'status':'distinct_once_only_full_neighbor_three_arm_dispatch_intent','scientific_source_git':cpu['source_git'],'control':control,'CPU_job':cpu['job_id'],'wrapper_sha256':cpu['wrapper_sha256'],'publisher_sha256':cpu['publisher_sha256'],'actual_recovery_receipt_sha256':cpu['original_recovery_receipt_sha256'],'actual_CPU_receipt_sha256':hashlib.sha256((a/'actual-CPU-acceptance.json').read_bytes()).hexdigest(),'original_numerical_source_unchanged':True,'fixed_epochs_per_arm':3,'updates_per_arm':843,'resources':{'H100':1,'CPUs':2,'node':'evc31','time':'24hours','concurrent_GPU_nodes':1},'checkpoint_future_bytes':6*2**30,'node_future_bytes':16*2**30,'shared_future_bytes':0,'shared_future_files':0,'automatic_retry':False,'shell_sha256':hashlib.sha256(shell.encode()).hexdigest()}
+with (local/'GPU-dispatch-intent.json').open('x') as f:json.dump(intent,f,sort_keys=True,indent=2);f.write('\n')
+(a/'GPU-dispatch-intent.json').write_text(json.dumps(intent,sort_keys=True,indent=2)+'\n');(a/'job-shell.sh.txt').write_text(shell+'\n')
+cmd=['sbatch','--parsable','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=2','--nodelist=evc31','--gres=gpu:nvidia_h100_pcie:1','--mem=32G','--time=1-00:00:00','--no-requeue','--job-name=rsna-neighbor-full-fixed3-v1','--output=/dev/null','--error=/dev/null','--wrap',shell]
+x=subprocess.run(ssh+[shlex.join(cmd)],capture_output=True,text=True,timeout=30);result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(local/'GPU-dispatch-result.json').write_text(json.dumps(result,indent=2)+'\n');assert x.returncode==0,x.stderr;job=x.stdout.strip().split(';')[0];assert job.isdigit();(a/'GPU-dispatch-receipt.json').write_text(json.dumps(result|{'job_id':job},sort_keys=True,indent=2)+'\n');print(json.dumps({'job_id':job,'fixed_epochs':3,'arms':['gray','physical','distant'],'single_H100':True,'node':'evc31','training_studies':2247,'heldout_studies':1156,'no_accuracy_claim':True}))

@@ -1,0 +1,26 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS')
+root=Path(v['control']);old=Path('/tmp/rsna-neighbor-recovery-20261005-v3');assert root.parent==Path('/tmp') and not root.exists();assert shutil.disk_usage('/tmp').free>=36*2**30
+assert hashlib.sha256((old/'recovery-verified.json').read_bytes()).hexdigest()==v['manifest']['original_recovery_receipt_sha256']
+terminal=subprocess.check_output(['sacct','-j','872200','-X','-n','-P','-o','JobID,State,ExitCode,Elapsed,NodeList'],text=True);assert terminal.strip().split('|')[:3]==['872200','COMPLETED','0:0']
+b=Path('/home/sa305415/rsna-knee');paid={}
+for h in v['paid_checkpoint_shas']:
+ p=b/'kaggle/dataset-publications'/h
+ for f in [p]+list(p.rglob('*')):
+  assert not f.is_symlink();s=f.stat();paid[s.st_dev,s.st_ino]=s.st_size
+assert len(paid)<=40 and sum(paid.values())<2*2**20
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in quota.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30;slots=limit-count-(760-len(paid));assert gib>=20 and slots>=5000
+root.mkdir(mode=0o700);(root/'code').symlink_to(old/'code',target_is_directory=True)
+for n,s in v['files'].items():
+ assert len(s.encode())==v['manifest']['files'][n]['bytes'] and hashlib.sha256(s.encode()).hexdigest()==v['manifest']['files'][n]['sha256']
+ with (root/n).open('x') as f:f.write(s)
+with (root/'files.json').open('x') as f:json.dump(v['manifest'],f,sort_keys=True,indent=2);f.write('\n')
+with (root/'funding.json').open('x') as f:json.dump({'status':'actual_original_recovery_terminal_and_new_full_fit_funding_accepted','job_id':os.environ['SLURM_JOB_ID'],'quota':quota,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'download_scratch_future_bytes':2*2**30,'node_free_bytes':shutil.disk_usage('/tmp').free,'old_originals_preserved':True,'no_deletion_credit':True,'original_recovery_terminal':terminal},f,sort_keys=True,indent=2);f.write('\n')
+proof=json.loads((old/'cpu-accepted.json').read_text());header=json.loads((old/'header-CPU-accepted.json').read_text());rt=proof['runtime'];os.environ.update(PYTHONPATH=str(root/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',HF_HUB_OFFLINE='1',CPATH=header['CPATH'])
+x=subprocess.run([rt['python'],'-B',str(root/'launch.py'),'stage'],capture_output=True,text=True);(root/'stage.stdout').write_text(x.stdout);(root/'stage.stderr').write_text(x.stderr)
+if x.returncode==0:
+ print(json.dumps({'CPU_acceptance':json.loads(x.stdout),'funding':json.loads((root/'funding.json').read_text())}),flush=True)
+else:
+ print(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}),flush=True)
+sys.exit(x.returncode)

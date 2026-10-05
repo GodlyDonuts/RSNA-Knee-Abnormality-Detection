@@ -1,0 +1,158 @@
+"""One owning-node, fixed-final three-arm fit; no retry or endpoint selection."""
+import gc, hashlib, json, math, os, random, shutil, subprocess, sys
+from dataclasses import asdict
+from pathlib import Path
+
+ROOT = Path('/tmp/rsna-neighbor-full-fit-20261005-v1')
+ORIGINAL = Path('/tmp/rsna-neighbor-recovery-20261005-v3')
+BASE = Path('/home/sa305415/rsna-knee')
+RECOVERY_SHA = 'e59e77b718c46bcccf6f0a4c230535776aa969c5dd9d41eea3fae6a0b8b036ae'
+CPU_SHA = '0258257c7a4220e6f801652d887ed93472ee436f59d5f4b11bde54317f7a1192'
+REGISTRY_SHA = '73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770'
+ORIGINAL_PROOF_SHA = 'fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5'
+LIBRARY_GIT = 'd4c3c65ea4c4e4127669f7920fc8a56a3b436b7a'
+MODES = ('gray', 'physical', 'distant')
+
+def sha(p):
+    with Path(p).open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+def save(p, value):
+    with Path(p).open('x') as f:
+        json.dump(value, f, sort_keys=True, indent=2, allow_nan=False); f.write('\n'); f.flush(); os.fsync(f.fileno())
+
+def signature(p):
+    s=Path(p).stat(); return [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]
+
+def verify_config(config, mode, expected):
+    from rsna.competitive.train import TrainConfig
+    if mode not in MODES:
+        raise ValueError('Unknown fixed arm')
+    TrainConfig(**config).validate()
+    required = dict(expected, epochs=3, diagnostic_study_limit=None,
+                    neighbor_channels={'mode':mode,'strength':0 if mode=='gray' else .25})
+    if config != required:
+        raise ValueError('Full recipe differs from fixed three-arm plan')
+    return config
+
+def original():
+    if os.uname().nodename != 'evc31' or ROOT.is_symlink() or ROOT.stat().st_uid != os.getuid():
+        raise ValueError('Owner-only original node required')
+    if shutil.disk_usage('/tmp').free < 36*2**30:
+        raise ValueError('Sixteen GiB future plus twenty GiB reserve required')
+    if sha(ORIGINAL/'recovery-verified.json') != RECOVERY_SHA or sha(ORIGINAL/'cpu-accepted.json') != CPU_SHA:
+        raise ValueError('Actual original recovery/input admission changed')
+    recovery=json.loads((ORIGINAL/'recovery-verified.json').read_text())
+    if recovery['job_id']!='872200' or recovery['status']!='actual_native384_neighbor_three_arm_trainer_recovery_accepted':
+        raise ValueError('Actual recovery acceptance required')
+    if not all(r['optimizer_updates']==4 and r['exact_complete_model_base_AdamW_LR_cursors_all_RNG_and_CSV_recovery'] for r in recovery['results'].values()):
+        raise ValueError('All actual arm recoveries required')
+    source=json.loads((ORIGINAL/'source.json').read_text())
+    if source['source_git'] != LIBRARY_GIT or recovery['source_sha256'] != source['files']:
+        raise ValueError('Frozen library differs')
+    for n,h in source['files'].items():
+        if sha(ROOT/'code'/n)!=h: raise ValueError('Original scientific module changed')
+    manifest=json.loads((ROOT/'files.json').read_text())
+    for n,row in manifest['files'].items():
+        p=ROOT/n
+        if p.is_symlink() or p.stat().st_size!=row['bytes'] or sha(p)!=row['sha256']:
+            raise ValueError('Immutable full-fit wrapper/config changed')
+    proof_path=BASE/'production-launch-native384-a32-c9-v1/cpu-preflight.json'
+    if sha(proof_path)!=ORIGINAL_PROOF_SHA: raise ValueError('Original whole-byte proof changed')
+    proof=json.loads(proof_path.read_text())
+    for n,a in proof['scientific_assets'].items():
+        if signature(n)!=a['signature']: raise ValueError('Original scientific asset stats changed')
+    inp=json.loads((ORIGINAL/'cpu-accepted.json').read_text())['trainer_inputs']
+    return manifest, source, proof, inp
+
+def configs():
+    base=json.loads((ROOT/'base-config.json').read_text())
+    return {m:verify_config(json.loads((ROOT/(m+'.json')).read_text()),m,base) for m in MODES}
+
+def stage():
+    import numpy as np, torch
+    from rsna.competitive.folds import load_folds
+    from rsna.competitive.train import select_development, _uid_hash, _hash, TrainConfig
+    from rsna.release import load_verified_release
+    from rsna.competitive.backbones import create_encoder
+    from rsna.competitive.adapters import configure_encoder_training
+    from rsna.competitive.model import CompetitiveStudyNet
+    from rsna.competitive.neighbor_input import neighbor_input_channels
+    if os.environ.get('SLURM_CPUS_PER_TASK')!='1' or os.environ.get('SLURM_JOB_GPUS'):
+        raise ValueError('Original input/initialization admission is CPU-only')
+    torch.set_num_threads(1)
+    files,source,proof,inp=original(); cfg=configs()
+    registry=BASE/'native384-assembly-c9-v1/registry.json'
+    if sha(registry)!=REGISTRY_SHA: raise ValueError('Original registry changed')
+    reg=json.loads(registry.read_text()); restored=Path(inp['cache']).parent
+    members={n:a for sh in reg['shards'] for n,a in sh['members'].items()}
+    if len(members)!=37812: raise ValueError('Complete original cache required')
+    for n,row in members.items():
+        p=restored/n
+        if p.is_symlink() or not p.is_file() or p.stat().st_size!=row['bytes'] or signature(p)!=proof['signatures'][n]:
+            raise ValueError('Original byte-verified cache member changed')
+    release,binding=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']))
+    folds=load_folds(Path(inp['folds']),release,binding); train,outer=select_development(release,folds,0)
+    if len(train)!=2247 or len(outer)!=1156 or set(train.study_uid)&set(outer.study_uid):
+        raise ValueError('Disjoint original full rosters required')
+    if set(train.study_uid)!=set(reg['training_uids']) or set(outer.study_uid)!=set(reg['outer_uids']):
+        raise ValueError('Original registry membership differs')
+    initial={}; bound={}
+    for mode in MODES:
+        c=TrainConfig(**cfg[mode]); random.seed(c.seed); np.random.seed(c.seed%2**32); torch.manual_seed(c.seed)
+        channels=neighbor_input_channels(c.neighbor_channels)
+        encoder,dim,ep=create_encoder(c.encoder,**({'input_channels':3} if channels==3 else {}))
+        configure_encoder_training(encoder,c.freeze_encoder)
+        model=CompetitiveStudyNet(encoder,dim,pooling=c.pooling,hidden_dim=c.hidden_dim,encode_chunk_size=c.encode_chunk_size,slice_context=c.slice_context,**({'input_channels':3} if channels==3 else {}))
+        records={}
+        for n,p in model.named_parameters():
+            if p.requires_grad:
+                a=p.detach().contiguous().cpu().numpy(); records[n]={'shape':list(a.shape),'dtype':str(a.dtype),'sha256':hashlib.sha256(a.tobytes()).hexdigest()}
+        initial[mode]={'learned_graph_and_values_sha256':digest(records),'post_factory_torch_RNG_sha256':hashlib.sha256(torch.get_rng_state().numpy().tobytes()).hexdigest(),'learned_parameters':sum(p.numel() for p in model.parameters() if p.requires_grad)}
+        bc=asdict(c)
+        for n in ('relation','witness','fitting_supervision'): bc.pop(n)
+        bc['encoder']=ep; bound[mode]=bc
+        del model,encoder,records; gc.collect()
+    if initial['gray']!=initial['physical'] or initial['gray']!=initial['distant']:
+        raise ValueError('Actual official seeded initial learned tensors/RNG differ')
+    receipt={'status':'actual_full_neighbor_original_inputs_and_seeded_initialization_accepted','job_id':os.environ['SLURM_JOB_ID'],'source_git':LIBRARY_GIT,'source_sha256':source['files'],'training_studies':2247,'outer_studies':1156,'training_uids_sha256':_uid_hash(train),'outer_uids_sha256':_uid_hash(outer),'folds_sha256':_hash(folds.sort_values('study_uid').to_dict('records')),'release_binding_sha256':binding['binding_sha256'],'registry_sha256':REGISTRY_SHA,'original_whole_byte_proof_sha256':ORIGINAL_PROOF_SHA,'original_cache_member_stat_bindings':len(members),'original_recovery_receipt_sha256':RECOVERY_SHA,'original_CPU_receipt_sha256':CPU_SHA,'initial_learned_state':initial,'expected_bound_config':bound,'runtime':source['runtime'],'trainer_inputs':inp,'config_sha256':{m:sha(ROOT/(m+'.json')) for m in MODES},'wrapper_sha256':sha(ROOT/'launch.py'),'publisher_sha256':sha(ROOT/'publish.py'),'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'download_scratch_future_bytes':2*2**30,'node_free_bytes':shutil.disk_usage('/tmp').free,'gold_or_confirmation_used':False,'clinical_accuracy_evidence':False,'GPU_executed':False}
+    save(ROOT/'CPU-accepted.json',receipt); print(json.dumps(receipt,sort_keys=True),flush=True)
+
+def fit():
+    import torch
+    files,source,proof,inp=original(); cfg=configs()
+    cpu=json.loads((ROOT/'CPU-accepted.json').read_text())
+    if cpu['status']!='actual_full_neighbor_original_inputs_and_seeded_initialization_accepted' or cpu['source_sha256']!=source['files']:
+        raise ValueError('Actual full-roster admission required')
+    if os.environ.get('SLURM_CPUS_PER_TASK')!='2' or torch.cuda.device_count()!=1 or not torch.cuda.is_bf16_supported() or 'H100' not in torch.cuda.get_device_name(0):
+        raise ValueError('One actual assigned BF16 H100 and two CPUs required')
+    header=json.loads((ORIGINAL/'header-CPU-accepted.json').read_text())
+    if os.environ.get('CPATH')!=header['CPATH']: raise ValueError('Original accepted CPATH required')
+    if sys.executable!=source['runtime']['python']: raise ValueError('Original accepted runtime required')
+    x=torch.ones(4,device='cuda'); assert x.sum().item()==4; del x
+    save(ROOT/'GPU-header.json',{'status':'actual_full_neighbor_allocated_H100_accepted','job_id':os.environ['SLURM_JOB_ID'],'node':'evc31','device':torch.cuda.get_device_name(0),'CPU_receipt_sha256':sha(ROOT/'CPU-accepted.json'),'recovery_receipt_sha256':RECOVERY_SHA,'source_git':LIBRARY_GIT,'source_sha256':source['files'],'CPATH':os.environ['CPATH'],'runtime':source['runtime'],'fixed_epochs':3,'updates_per_arm':843,'training_studies':2247,'outer_studies':1156,'shared_future_bytes':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30})
+    for mode in MODES:
+        if sha(ROOT/(mode+'.json'))!=cpu['config_sha256'][mode]: raise ValueError('Accepted numerical config changed')
+        out=ROOT/mode
+        if out.exists(): raise ValueError('Never repeat an original full-fit output')
+        save(ROOT/(mode+'-trainer-intent.json'),{'job_id':os.environ['SLURM_JOB_ID'],'role':mode,'source_git':LIBRARY_GIT,'config_sha256':cpu['config_sha256'][mode],'automatic_retry':False,'fixed_final':3})
+        command=[sys.executable,'-B',str(ROOT/'code/scripts/newton/enforce_deterministic_runtime.py'),'--module','rsna.competitive.train','--config',str(ROOT/(mode+'.json')),'--device','cuda','--output',str(out)]
+        for k,v in inp.items(): command+=['--'+k,v]
+        with (ROOT/(mode+'.stdout')).open('x') as stdout,(ROOT/(mode+'.stderr')).open('x') as stderr:
+            code=subprocess.run(command,cwd=ROOT/'code',stdout=stdout,stderr=stderr).returncode
+        save(ROOT/(mode+'-terminal.json'),{'job_id':os.environ['SLURM_JOB_ID'],'role':mode,'returncode':code,'automatic_retry':False})
+        if code: raise ValueError('Original full-fit arm failed; preserve and inspect')
+        result=json.loads((out/'result.json').read_text()); run=json.loads((out/'run.json').read_text())
+        if result['optimizer_steps']!=843 or result['training_studies']!=2247 or result['outer_studies']!=1156 or run['binding']['config']!=cpu['expected_bound_config'][mode]:
+            raise ValueError('Original fixed-final fitting result differs')
+        if sum(p.stat().st_size for p in ROOT.rglob('*') if p.is_file() and not p.is_symlink())>16*2**30:
+            raise ValueError('Retained full-fit storage cap exceeded')
+    save(ROOT/'terminal.json',{'status':'three_original_full_neighbor_arms_completed','job_id':os.environ['SLURM_JOB_ID'],'fixed_epochs':3,'optimizer_updates_per_arm':843,'endpoint_selection':False,'clinical_paired_analysis_completed':False})
+
+if __name__=='__main__':
+    os.umask(0o077)
+    if len(sys.argv)!=2 or sys.argv[1] not in ('stage','fit'): raise ValueError('Exact independent stage or fit required')
+    stage() if sys.argv[1]=='stage' else fit()
