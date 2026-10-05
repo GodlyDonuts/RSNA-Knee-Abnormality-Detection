@@ -139,3 +139,34 @@ completed snapshots, with fixed-final held-out inference still underway. No
 training restarted. Read `fourth-access-state.json` and the exact original progress
 receipt in `neighbor-channels-full-fit-v1`. Private preservation resumes through
 the original coordinator/shared lock; never repeat verified jobs or uploads.
+
+The fourth original review is collected: all 35 actual receiver image reads,
+195 original slices, 12 targets, 40 image-evidence references and literal source
+quotes passed transport and binding checks. The unchanged 32,115-byte JSON has
+SHA 88440ca816d4279118bd778686c418ecf592177a1d60815c495d05d4e82a5a0a.
+Its candidate medial-meniscus positive matches the already-accepted positive;
+Effusion, Synovitis and Contusion remain uncertain. This is candidate evidence,
+not independent clinical adjudication. Read fourth-review-transport-validation.json.
+
+A private comparison of all four reviewed fitting studies finds zero binary
+positive/negative reversals on observed accepted labels, 13 candidate negatives
+for previously masked targets, and two existing Effusion negatives questioned
+as uncertain. Masked numerical zeros are placeholders, not accepted negatives.
+No labels or masks changed and no accuracy benefit has been demonstrated.
+Read four-review-label-comparison.json; original case-level records remain private.
+
+The fifth complete fitting study was sent once to the existing Daenerys chat:
+275 original slices, nine series and 47 native-resolution sheets, all original
+source/geometry/hosted-byte/quote/readback checks passed. Its optional manifest
+file upload returned an unknown outcome and was never repeated. The complete
+original JSON object was instead included inline and read back equal; all 47
+image references and a hosted pixel read passed. No images were dropped.
+Read fifth-delivery.json. Its actual clinical review is still pending.
+
+The owner requested continuous supply. A separate active ten-minute follow-up,
+keep-daenerys-mri-review-queue-moving, now collects a completed original review
+and verifies it before supplying the next whole fitting study. It preserves
+one active case, immutable private receipts, accepted labels and the existing
+two-hour research schedule. Saved scheduler configuration was read back.
+Read continuous-queue.json. If there is a delivery intent with no terminal
+receipt, reconcile the existing message read-only; never send again blindly.

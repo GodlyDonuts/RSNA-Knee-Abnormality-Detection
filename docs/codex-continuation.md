@@ -1,3 +1,17 @@
+October5 continuous Daenerys review queue: four actual original reviews are
+collected and source/coverage validated. Comparing those fitting studies with
+accepted labels yields zero binary reversals on observed cells, 13 candidate
+negatives for masked targets and two Effusion negatives questioned as uncertain.
+The medial-meniscus positive already matches an accepted positive. No accepted
+label/mask changed; no independent clinical correction or accuracy gain exists.
+The fifth whole study was sent once: 275 original slices/nine series/47 sheets.
+Its optional manifest upload is uncertain and unretired; do not retry. The full
+original JSON object was delivered inline and read back equal. Actual fifth
+review pending. Read daenerys-multimodal-study-review-v1 and its private queue.
+The owner-requested ten-minute queue heartbeat is active and saved-config
+verified; research stays on its existing two-hour cadence. Collect and verify
+the current review before the next send, keeping one case active and no duplicates.
+
 Latest verified preservation: source4cb0661 third original Daenerys review,
 fourth complete fitting-study delivery, restored observation and physical1–3
 checkpoint receipts are privately mirrored at HF591462746378f9ec70d46d3c402a2fac35218fd3.
