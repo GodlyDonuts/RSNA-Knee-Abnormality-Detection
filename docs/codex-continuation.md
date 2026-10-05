@@ -1,3 +1,11 @@
+Latest completed three-arm milestone: Git source6c1cf08 privately
+mirrored at HF6feb4212679f48ff5200ec642f0423022ecf60f6; all20 sanitized small
+objects fully re-downloaded/size/SHA verified under the canonical shared lock.
+Read hf-neighbor-three-arm-final-20261005-v1. All nine original checkpoints
+remain privately verified once; no recipe promoted or new fit dispatched.
+Full1986tests/Ruff306/mypy48/archive/current89/89 and exact analysis replay
+passed. Never repeat completed publications or original training.
+
 October5 completed three-arm neighbor result: original872279 COMPLETED0:0,
 three fixed843-update arms. Gray/physical/distant macroAUC=.786090/.788548/
 .797655; physical-minus-gray primary Meniscus−.000948, physical-minus-distant
