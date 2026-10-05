@@ -1,3 +1,10 @@
+Latest patch-witness admission/dispatch milestone: Git source00442ef
+privately mirrored at HF08ab0d2f6baf8070c8db5d14e718f73af53c6fba; all27small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-patch-witness-recovery-dispatch-20261005-v1; never repeat. GPU873279 still
+PENDING(Resources), not a completed recovery or accuracy pass. Original CPU
+acceptance is actual; no new clinical fit dispatched. Source/data remain fixed.
+
 October5 actual patch-witness CPU873272 COMPLETED0:0:370original member
 stat bindings and unchanged canonical48 numerical modules admit original32
 gray input proof reuse; official seeded learned states/post-factory RNG equal
