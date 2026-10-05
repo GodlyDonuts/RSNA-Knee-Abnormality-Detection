@@ -1,3 +1,18 @@
+Latest access loss after successful gray2/3 preservation: Cisco actual CLI is
+Disconnected/Ready to connect; original SSH master vanished and Newton private
+DNS fails. Owner UCF reconnect/sign-in/MFA requested once; do not repeat while
+unchanged or reuse the separate SSH password as SSO. Original healthy872279
+last observed physical29finite after gray843complete; observation loss is NOT
+terminal evidence or restart authority. Daenerys third cloud review is active
+(turn01a10b04-c4d2-76bd-b5d4-ab7b711b38dd); its private packet remains accessible.
+
+The distinct small mirror for mainafafb92 stopped BEFORE canonical lock/intent/
+create_commit. Fresh private HF read found0/16exact expected prefix paths, head
+4eb2e15fad50eabad3bd906cc2aca19e28af8f66. Source/receipts are already on GitHub;
+new small mirror still pending. Read daenerys-review-grayfinal-mirror-access-loss-v1.
+After restore inspect actual original jobs/quota/journals, reconcile exact prefix
+read-only before any mirror; never bypass lock or repeat gray1–3 publications.
+
 October5 07:29UTC follow-up: original gray control completed843contiguous
 finite updates/three epochs and terminal0:0. Allthree gray checkpoints are now
 privately fully5-object downloaded/size/SHA verified once; new2HFa728f6b20ec6085d269c2af171a4381f145bffce
