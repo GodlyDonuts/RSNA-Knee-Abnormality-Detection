@@ -1,0 +1,118 @@
+"""One bounded, source-hash-verified fitting study; no learned image processing."""
+import concurrent.futures
+import csv
+import hashlib
+import io
+import json
+import math
+import os
+from pathlib import Path
+from urllib.parse import quote
+
+import numpy as np
+import pandas as pd
+import pydicom
+import requests
+from dotenv import dotenv_values
+from PIL import Image, ImageDraw
+
+os.umask(0o077)
+ROOT = Path(__file__).resolve().parents[3]
+OUT = Path(__file__).resolve().parent
+selection = json.loads((OUT / "selection.json").read_text())
+uid = selection["first_uid"]
+inventory = json.loads((OUT / "first-source-inventory.json").read_text())
+assert len(inventory) > 0 and len({r["path"] for r in inventory}) == len(inventory)
+assert sum(r["bytes"] for r in inventory) < 256 * 1024**2
+revision = json.loads((ROOT / "initiative/source/inventory-provenance.json").read_text())["source_revision"]
+token = dotenv_values(ROOT / ".env")["HF_TOKEN"]
+original = OUT / "original"
+original.mkdir(exist_ok=True)
+intent = OUT / "retrieval-intent.json"
+if not intent.exists():
+    intent.write_text(json.dumps({"revision": revision, "files": len(inventory), "source_bytes": sum(r["bytes"] for r in inventory), "local_cap_bytes": 512 * 1024**2, "private_owner_only": True, "shared_new_bytes": 0, "shared_new_files": 0}) + "\n")
+
+def acquire(row):
+    dst = original / (row["sop_uid"] + ".dcm")
+    if dst.exists():
+        data = dst.read_bytes()
+    else:
+        url = "https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/resolve/" + revision + "/" + quote(row["path"], safe="/")
+        response = requests.get(url, headers={"Authorization": "Bearer " + token}, timeout=60)
+        if response.status_code != 200:
+            raise RuntimeError("Source download failed, HTTP " + str(response.status_code))
+        data = response.content
+        assert len(data) == row["bytes"] and hashlib.sha256(data).hexdigest() == row["sha256"]
+        with dst.open("xb") as stream:
+            stream.write(data)
+    assert len(data) == row["bytes"] and hashlib.sha256(data).hexdigest() == row["sha256"]
+    ds = pydicom.dcmread(io.BytesIO(data))
+    assert str(ds.StudyInstanceUID) == uid
+    assert str(ds.SeriesInstanceUID) == row["series_uid"]
+    assert str(ds.SOPInstanceUID) == row["sop_uid"]
+    assert int(getattr(ds, "NumberOfFrames", 1)) == 1
+    pixels = ds.pixel_array.astype(np.float64)
+    assert pixels.ndim == 2 and np.isfinite(pixels).all()
+    pixels = pixels * float(getattr(ds, "RescaleSlope", 1)) + float(getattr(ds, "RescaleIntercept", 0))
+    return row, ds, pixels
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+    decoded = list(pool.map(acquire, inventory))
+token = None
+reports = []
+with (ROOT / "initiative/source/train.csv").open(newline="") as stream:
+    for row in csv.DictReader(stream):
+        if row["StudyInstanceUID"] == uid:
+            reports.append(row["Report"])
+assert len(reports) == 1
+summary = reports[0]
+series_meta = pd.read_csv(ROOT / "initiative/source/train_series.csv", dtype=str)
+series_meta = series_meta.loc[series_meta.StudyInstanceUID.eq(uid)].set_index("SeriesInstanceUID")
+assert set(series_meta.index) == {x[0]["series_uid"] for x in decoded}
+png_dir = OUT / "sheets"
+png_dir.mkdir(exist_ok=True)
+manifest = {"schema_version": 1, "packet_id": "daenerys-fitting-study-004-v1", "study_uid": uid, "source_revision": revision, "fitting_uid_sha256": selection["fitting_uid_sha256"], "report": summary, "report_sha256": hashlib.sha256(summary.encode()).hexdigest(), "source_files": len(inventory), "series_count": len(series_meta), "all_source_bytes_verified": True, "spatial_resampling": False, "AI_enhancement": False, "display": "8-bit PNG; original spatial resolution, one fixed 0.5/99.5 percentile window per complete series after DICOM rescale. Original pixels retained privately; window clips tails. MONOCHROME1 inversion if present. Geometry-ordered; no anatomical rotation/flipping.", "series": [], "images": []}
+for si, sid in enumerate(sorted(series_meta.index), start=1):
+    items = [x for x in decoded if x[0]["series_uid"] == sid]
+    orientation = np.asarray(items[0][1].ImageOrientationPatient, dtype=float)
+    assert orientation.shape == (6,)
+    assert all(np.allclose(np.asarray(x[1].ImageOrientationPatient, dtype=float), orientation, atol=1e-3, rtol=0) for x in items)
+    normal = np.cross(orientation[:3], orientation[3:])
+    assert np.isclose(np.linalg.norm(normal), 1, atol=1e-3)
+    items.sort(key=lambda x: float(np.dot(np.asarray(x[1].ImagePositionPatient, dtype=float), normal)))
+    positions = [float(np.dot(np.asarray(x[1].ImagePositionPatient, dtype=float), normal)) for x in items]
+    assert all(b > a for a, b in zip(positions, positions[1:]))
+    shapes = {x[2].shape for x in items}
+    assert len(shapes) == 1
+    height, width = next(iter(shapes))
+    assert max(height, width) <= 768
+    stacked = np.stack([x[2] for x in items])
+    low, high = map(float, np.percentile(stacked, [0.5, 99.5]))
+    assert high > low
+    meta = {"series_index": si, "series_uid": sid, "description": str(getattr(items[0][1], "SeriesDescription", "")), "plane": str(series_meta.loc[sid, "Anatomical_Plane"]), "fluid_sensitive": str(series_meta.loc[sid, "Fluid_Sensitive"]), "fat_suppression": str(series_meta.loc[sid, "Fat_Suppression"]), "slice_count": len(items), "original_shape": [len(items), height, width], "orientation": orientation.tolist(), "pixel_spacing": [float(v) for v in items[0][1].PixelSpacing], "window_low": low, "window_high": high, "ordered_sop_uids": [x[0]["sop_uid"] for x in items], "source_sha256": [x[0]["sha256"] for x in items]}
+    manifest["series"].append(meta)
+    for start in range(0, len(items), 6):
+        batch = items[start:start+6]
+        sheet = Image.new("L", (3*width, math.ceil(len(batch)/3)*(height+24)), 0)
+        draw = ImageDraw.Draw(sheet)
+        for offset, (row, ds, pixels) in enumerate(batch):
+            display = np.round(np.clip((pixels-low)/(high-low), 0, 1)*255).astype(np.uint8)
+            if str(ds.PhotometricInterpretation) == "MONOCHROME1":
+                display = 255-display
+            else:
+                assert str(ds.PhotometricInterpretation) == "MONOCHROME2"
+            x = (offset % 3)*width
+            y = (offset // 3)*(height+24)
+            sheet.paste(Image.fromarray(display), (x, y+24))
+            draw.text((x+4, y+4), f"Series {si} | slice {start+offset+1}/{len(items)}", fill=255)
+        filename = f"series-{si:02d}-slices-{start+1:03d}-{start+len(batch):03d}.png"
+        dst = png_dir / filename
+        if dst.exists():
+            raise RuntimeError("Existing rendering must be reconciled rather than overwritten")
+        sheet.save(dst)
+        assert dst.stat().st_size < 10*1024**2
+        manifest["images"].append({"file": str(dst), "series_index": si, "slice_start": start+1, "slice_end": start+len(batch), "size": dst.stat().st_size, "sha256": hashlib.sha256(dst.read_bytes()).hexdigest(), "width": sheet.width, "height": sheet.height})
+assert sum(x["slice_end"]-x["slice_start"]+1 for x in manifest["images"]) == len(inventory)
+assert sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file()) < 512*1024**2
+(OUT / "packet.json").write_text(json.dumps(manifest, indent=2) + "\n")
+print(json.dumps({"status": "original_source_hash_verified_and_all_slices_rendered", "series": len(series_meta), "slices": len(inventory), "sheets": len(manifest["images"]), "native_shapes": [x["original_shape"] for x in manifest["series"]], "png_bytes": sum(x["size"] for x in manifest["images"])}))

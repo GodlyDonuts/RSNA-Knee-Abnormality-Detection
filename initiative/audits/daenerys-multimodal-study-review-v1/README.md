@@ -109,3 +109,33 @@ were sent once to the same Daenerys chat after the second review was collected.
 Read `third-delivery.json`. This is the only active case; collect all original
 review bytes and actual image access before a fourth send. No accepted label,
 mask, protected evaluation or live numerical training source changed.
+
+## Third original review collected and fourth complete case sent
+
+The original third review was collected byte-for-byte: 27,542 bytes, SHA-256
+`aab4cc5b2e2ece2afb4521208b819c52cedac65aae54eebdafa9b7cfbdcaafde`.
+All 37 actual receiver image reads, eight complete series/206 slices, 12 target
+records, literal report quotations and 34 image-evidence references passed.
+Effusion and Synovitis need further review before any promotion; one target
+remains uncertain. These are candidate annotations. Report access preceded image
+inspection, so this is not blinded independent clinical ground truth. See
+`third-review-transport-validation.json`.
+
+After collecting that original, the fourth complete fitting case was sent once
+to the same existing Daenerys chat: six complete series/195 slices/35 sheets at
+original 400–720-pixel spatial dimensions, exact original report and criteria.
+All source and hosted byte/identity/geometry/readback checks passed. See
+`fourth-delivery.json`; only this case is active. Original source bytes exceed the
+old 128 MiB limit; a 256 MiB source cap was admitted within the unchanged 512 MiB
+total case cap and observed 20 GiB local reserve. No fitting case or source slice
+was skipped. No cluster storage was added. Candidate reviews stay private;
+accepted masks/labels remain fixed. Three completed cases are a small annotation
+milestone, not evidence of dataset-wide clinical correctness or accuracy.
+
+Access restored later in this follow-up: Cisco actually Connected, private DNS
+resolves and the original SSH master was reauthenticated. The unchanged original
+training job is RUNNING; its physical arm has 843 finite updates and all three
+completed snapshots, with fixed-final held-out inference still underway. No
+training restarted. Read `fourth-access-state.json` and the exact original progress
+receipt in `neighbor-channels-full-fit-v1`. Private preservation resumes through
+the original coordinator/shared lock; never repeat verified jobs or uploads.

@@ -20,3 +20,18 @@ zero-neighbor code preserves the earlier numerical baseline, not a new gain or
 Kaggle score. Read `gray-fixed-final-equality.json`. Retain the original full
 control prediction/replay proof; no duplicate bulk transfer is needed. The
 physical/distant mechanism comparison awaits their fixed-final outcomes.
+
+## Restored observation and physical epochs preserved
+
+During the October5 11:20 follow-up access returned. The original872279 was
+actually RUNNING unchanged; owning-nodeCPU872525 verified all source/config/output
+bindings,843contiguous finite physical updates and empty stderr. Physical final
+held-out inference remained in progress and the distant arm had not started.
+No clinical gain is yet established.
+
+Physical epochs1–3 were privately published once via CPU872523/872526/872529; all
+15 objects were fully re-downloaded/size/SHA verified. Read epochs/physical-001
+through003 and reconnected-1120-progress.json. Never repeat these or gray1–3.
+Fresh shared quota remains1026227728/1048576000kB,994265/1000000files; original
+20.0026GiB/5000-file post-liability reserve and node20GiB reserve remain intact.
+No new shared storage obligation or training restart.

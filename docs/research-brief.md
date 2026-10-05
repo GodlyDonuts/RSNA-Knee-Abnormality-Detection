@@ -1,3 +1,45 @@
+Original physical-neighbor epochs1/2/3 now privately published ONCE, all15
+objects fully re-downloaded/size/SHA verified with exact source/base/license/
+config/runtime/rosters. HF revisions b903861968fc46653da67802db73f9686ea14b5c,
+bfe5cd137e62272b6ca96121b027d482125f1102 and3b983f77e2e52d312374d48464973e6adb49bc8e;
+CPU872523/872526/872529. Never repeat them or gray1–3. Actual fixed-final
+physical held-out inference remained in progress; distant notyetstarted.
+No gain or Kaggle result claimed. Earlier16-object gray-final small milestone
+was recovered from exact originalafafb92 bytes and privately fully verified at
+HF1f4cd655b903ab6fcef3e5b6f58b6c72b5a75cde; never repeat. New third-review/
+fourth-delivery and physical epoch receipts are separately versioned on GitHub.
+Full1986tests/Ruff304/mypy48 passed; original scientific source unchanged.
+
+October5 11:20UTC follow-up: third Daenerys original candidate review collected
+unchanged (27,542bytes, SHA aab4cc5b2e2ece2afb4521208b819c52cedac65aae54eebdafa9b7cfbdcaafde).
+All37 original receiver image reads,206 slices/eightseries,12targets, literal
+report quotations and34 image-evidence references match. Effusion/Synovitis
+need additional review before promotion; report-before-image access is disclosed.
+This is candidate annotation, not independent clinical ground truth or a gain.
+
+The fourth complete fitting examination was sent ONCE to the same Daenerys chat:
+195 original slices/sixseries/35private sheets at original400–720 spatial pixels,
+with exact matching report/criteria/manifest. All source bytes/identities/geometry,
+hosted PNG hashes/Page readback and hosted pixel access passed. The next case's
+148795718 original source bytes require a256MiB source cap, still inside the
+unchanged512MiB total case bound and observed20GiB local reserve. No case skipped
+or slices dropped; zero new shared bytes/files. Private queue now has3completed
+candidate reviews and onlycase4active. Accepted masks/labels and protected
+cohorts remain unchanged. Read daenerys-multimodal-study-review-v1.
+
+Access restored during this follow-up: Cisco actuallyConnected, NewtonDNS
+resolves, and original SSH master reauthenticated through ignored.env/ASKPASS.
+Original872279 actuallyRUNNING on evc31. Physical arm has843contiguous finite
+updates/allthree completed epoch snapshots; fixed-final held-out inference is
+still running, so no accuracy result yet. Gray remainscomplete; distant notyet
+started. Exact original source/config/output/run bindings passed owning-node
+CPU872525; empty stderr and675378860032node-free bytes. Shared quota unchanged
+1026227728/1048576000kB,994265/1000000files. No training restarted or duplicated.
+New physical epochs are being privately preserved through the original pinned
+coordinator. Earlier gray-final small mirror is recovering only its immutable
+originalafafb92 Git source, under the original canonical shared lock; inspect
+actual journals. Never repeat any already-verified epoch or mirror.
+
 October5 update: the gray-control full fit reproduced the earlier independently
 replayed control exactly: all1,156x12 prediction CSV bytes match, internal
 macroAUC0.786090. This supports zero-neighbor numerical consistency; it is not
