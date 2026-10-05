@@ -1,3 +1,14 @@
+October5 live Kaggle outcomes reconciled: native final10=0.802, reviewed
+seed1 candidate=0.685; seed1control/seed2control/seed2candidate FAILED for
+exceeded runtime, zero output/no score. Prior best0.804 unchanged. Owner hard
+limits:9h GPU/CPU,2T4x16GiB,4CPU/~29GiB hostRAM,offline,submission.csv. Read
+kaggle-runtime-budget-20261005-v1/requirements.json. Three public cases are
+insufficient deadline evidence. Before another slot require end-to-end hardware
+matched performance admission with margin; original weights/masks/sigmoid unchanged.
+The old runner is single-GPU FP32, reloads models per32 chunk and double-decodes
+healthy DICOMs. Optional single-decode optimization prepared; resident two-GPU
+pipeline and actual full-scaleT4 benchmark remain required, not completed.
+
 Latest private preservation: Git source7c8aebb at
 HF91bc37f6dc9c4102724e100212fbbfb84a39022e; all46distinct sanitized objects
 fully re-downloaded/size/SHA verified under canonical shared lock. Read

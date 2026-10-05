@@ -60,6 +60,9 @@ class FrozenSeriesSource:
     def __init__(self, payloads: dict[str, bytes]):
         self.payloads = payloads
 
+    def read(self, path: str) -> bytes:
+        return self.payloads[path]
+
     def read_series(self, paths: list[str]) -> list[bytes]:
         return [self.payloads[path] for path in paths]
 
@@ -96,6 +99,67 @@ def healthy_slices(source: Source, paths: list[str]) -> tuple[list[str], FrozenS
         else:
             payloads[path] = data
     return list(payloads), FrozenSeriesSource(payloads), failures
+
+
+def cache_with_lazy_recovery(source, paths, cache, side, revision):
+    """Decode healthy MRI once; retain exact original bytes for error recovery.
+
+    Read failures remain fatal. If the normal series decoder fails, the existing
+    per-slice filter is used on the same frozen bytes; its original fatal series
+    handling still applies. This changes execution cost, not retained MRI pixels.
+    """
+    from pydicom.errors import InvalidDicomError
+
+    frozen = FrozenSeriesSource({path: source.read(path) for path in paths})
+    try:
+        metadata = cache_series(frozen, paths, cache, side, revision)
+        return metadata, paths, []
+    except (
+        InvalidDicomError,
+        ValueError,
+        TypeError,
+        KeyError,
+        IndexError,
+        AttributeError,
+        NotImplementedError,
+        EOFError,
+        OverflowError,
+        RuntimeError,
+    ) as original:
+        decoder_origin = False
+        trace = original.__traceback__
+        while trace is not None:
+            filename = Path(trace.tb_frame.f_code.co_filename).as_posix()
+            decoder_origin |= filename.endswith("/rsna/dicom.py")
+            trace = trace.tb_next
+        recognized = (
+            isinstance(original, InvalidDicomError)
+            or decoder_origin
+            or (isinstance(original, ValueError) and str(original).startswith(DATA_ERROR_PREFIXES))
+            or (
+                isinstance(original, AttributeError)
+                and str(original).startswith(DICOM_ATTRIBUTE_ERROR_PREFIXES)
+            )
+            or (
+                isinstance(original, NotImplementedError)
+                and str(original).startswith(DICOM_NOT_IMPLEMENTED_PREFIXES)
+            )
+            or (
+                isinstance(original, RuntimeError)
+                and str(original).startswith(DICOM_DECODER_RUNTIME_PREFIX)
+            )
+        )
+        if not recognized or (
+            isinstance(original, RuntimeError)
+            and not str(original).startswith(DICOM_DECODER_RUNTIME_PREFIX)
+        ):
+            raise
+        healthy, retained, rejected = healthy_slices(frozen, paths)
+        if not rejected:
+            raise original
+        if not healthy:
+            return None, [], rejected
+        return cache_series(retained, healthy, cache, side, revision), healthy, rejected
 
 
 def data_failure(exc: subprocess.CalledProcessError) -> bool:
@@ -175,6 +239,7 @@ def prepare_usable_series(
     recover_slices: bool = False,
     validate_geometry: bool = False,
     series_sampling: str = "selected",
+    single_decode: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """Cache only useful MRI series; use an alternate when source pixels are invalid."""
     from pydicom.errors import InvalidDicomError
@@ -230,7 +295,7 @@ def prepare_usable_series(
                 failures["missing_dicoms"] += 1
                 return False
             cache_source = source
-            if recover_slices:
+            if recover_slices and not single_decode:
                 paths, cache_source, rejected = healthy_slices(source, paths)
                 if rejected:
                     recovery.append(
@@ -245,7 +310,24 @@ def prepare_usable_series(
                     failures["invalid_dicoms"] += 1
                     return False
             try:
-                metadata = cache_series(cache_source, paths, cache, cache_side, source_revision)
+                if recover_slices and single_decode:
+                    metadata, paths, rejected = cache_with_lazy_recovery(
+                        source, paths, cache, cache_side, source_revision
+                    )
+                    if rejected:
+                        recovery.append(
+                            {
+                                "study_uid": study_uid,
+                                "series_uid": sid,
+                                "retained_slices": len(paths),
+                                "rejected_slices": rejected,
+                            }
+                        )
+                    if not paths:
+                        failures["invalid_dicoms"] += 1
+                        return False
+                else:
+                    metadata = cache_series(cache_source, paths, cache, cache_side, source_revision)
             except InvalidDicomError:
                 failures["invalid_dicoms"] += 1
                 return False
@@ -573,6 +655,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
                 recover_slices=recover_slices,
                 validate_geometry=validate_geometry,
                 series_sampling=series_sampling,
+                single_decode=getattr(args, "single_decode", False),
             )
         unusable = set(preparation.get("unusable_study_ids", [])) if preparation else set()
         if unusable - ids:
@@ -699,6 +782,7 @@ def main() -> None:
     parser.add_argument("--chunk-size", type=int, default=32)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--single-decode", action="store_true")
     parser.add_argument("--precision", choices=("checkpoint", "fp32", "bf16"), default="fp32")
     parser.add_argument("--allow-diagnostic", action="store_true")
     parser.add_argument("--baseline-epoch-one", action="store_true")
