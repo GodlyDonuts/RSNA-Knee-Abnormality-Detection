@@ -1,3 +1,10 @@
+Latest preservation: source6830d9a fifth original Daenerys review/five-case
+comparison and sixth transport hold is privately mirrored at
+HF2c5882145b5f3c04e20a635fd7f94bce0dc4b859. All eight sanitized small objects
+fully re-downloaded/size/SHA verified under the canonical shared lock; never
+repeat. Read hf-daenerys-fifth-sixth-pending-20261005-v1. No raw clinical data or
+private transport references mirrored. Sixth packet remains undelivered.
+
 October5 fifth original Daenerys review is collected and source/coverage validated:
 39,919 unchanged bytes, 47 actual image reads, 275 slices/nine series, all12 targets
 and48 image-evidence records. Its inline JSON representation preserves original
