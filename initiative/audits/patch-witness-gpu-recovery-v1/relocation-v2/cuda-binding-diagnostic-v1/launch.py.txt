@@ -1,0 +1,15 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+r=Path('/tmp/rsna-patch-witness-recovery-evc48-20261005-v2');d=r/'cuda-binding-diagnostic-v1';assert not d.exists();assert os.uname().nodename=='evc48' and os.environ['SLURM_CPUS_PER_TASK']=='1' and os.environ.get('SLURM_JOB_GPUS');assert shutil.disk_usage('/tmp').free>=20*2**30;d.mkdir(mode=0o700)
+v=json.loads((r/'source.json').read_text());assert v['runtime']['python']==sys.executable and v['runtime']['archive_sha256']=='89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338'
+code=Path(sys.argv[1]).read_text();results={}
+for phase in ('batch','assigned_step'):
+ cmd=[sys.executable,'-B',sys.argv[1],phase]
+ if phase=='assigned_step':cmd=['srun','--overlap','--exact','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=gpu:nvidia_h100_pcie:1','--gpu-bind=single:1','--mem=4G',*cmd]
+ try:
+  p=subprocess.run(cmd,capture_output=True,text=True,timeout=150);rec={'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
+  if p.returncode==0:rec['observed']=json.loads(p.stdout)
+ except subprocess.TimeoutExpired:rec={'status':'bounded_GPU_binding_probe_timeout','automatic_retry':False}
+ (d/(phase+'.json')).write_text(json.dumps(rec,sort_keys=True,indent=2)+'\n');results[phase]=rec
+summary={'job_id':os.environ['SLURM_JOB_ID'],'status':'actual_allocated_CUDA_binding_comparison_completed','results':results,'runtime_archive_sha256':v['runtime']['archive_sha256'],'MRI_model_optimizer_executed':False,'diagnostic_only':True,'scientific_recipe_changed':False,'automatic_retry':False}
+(d/'terminal.json').write_text(json.dumps(summary,sort_keys=True,indent=2)+'\n');print(json.dumps(summary),flush=True)

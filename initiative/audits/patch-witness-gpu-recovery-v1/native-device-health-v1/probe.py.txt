@@ -1,0 +1,7 @@
+import ctypes,ctypes.util,json,os,subprocess,time
+row={'node':os.uname().nodename,'job_id':os.environ['SLURM_JOB_ID'],'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),'SLURM_JOB_GPUS':os.environ.get('SLURM_JOB_GPUS'),'purpose':'driver_metadata_only_no_context_memory_or_MRI_model_optimizer','stage':'before_driver_load'};print(json.dumps(row),flush=True)
+assert row['node']=='evc22' and os.environ['SLURM_CPUS_PER_TASK']=='1' and os.environ.get('SLURM_JOB_GPUS')
+p=subprocess.run(['nvidia-smi','--query-gpu=name,driver_version','--format=csv,noheader'],capture_output=True,text=True,timeout=15);print(json.dumps({'stage':'NVML_metadata','returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr}),flush=True)
+lib=ctypes.CDLL(ctypes.util.find_library('cuda') or 'libcuda.so.1');version=ctypes.c_int();v=lib.cuDriverGetVersion(ctypes.byref(version));print(json.dumps({'stage':'driver_version','returncode':v,'version':version.value}),flush=True)
+start=time.monotonic();status=lib.cuInit(0);print(json.dumps({'stage':'native_driver_initialization','returncode':status,'elapsed_seconds':time.monotonic()-start,'no_CUDA_context_or_memory_created':True,'MRI_model_optimizer_executed':False}),flush=True)
+

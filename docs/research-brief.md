@@ -1,3 +1,27 @@
+Latest October5 device investigation: model recovery873667 failed before
+any MRI/optimizer at the unreported compoundCUDA gate. Device-only873729
+completed with BOTH150second subprocess timeouts, no accepted CUDA context.
+Independent873865 FAILED before libcuda/cuInit when NVML metadata timed out
+after15seconds; actual visible/assignedGPU0 recorded. No specific root cause
+or clinical failure/gain established; do not repeat these jobs or bypass
+isolation. All new370-member private data/tensor/official-init proofs remain
+valid and retained. No active model learning is established by these receipts.
+Read relocation-v2 and native-device-health-v1. Investigate runtime/allocated
+device conditions before another model launch; preserve frozen numerical science.
+
+October5 actual evc48 route873610/873611 COMPLETED0:0:370members/1.3828GB
+whole bytes and all32 input tensors/official initial state/RNG equal originals.
+Old873279 cancelled only PENDING/zero runtime/no allocation; originals retained.
+New873667 FAILED1:0/2:27 before MRI/optimizer at unreported compoundCUDA gate.
+Do not infer a specific failed predicate, CUDA999 or model/data accuracy failure.
+Device-only873729 completed with BOTH150-second probe timeouts, no accepted
+CUDA context/model/recovery. Original numerical sources remain unchanged.
+Minimal native libcuda/NVML metadata873865 submittedONCE evc22, no model/context
+or memory allocation; inspect actual outcome before further resource admission.
+Read patch-witness-gpu-recovery-v1/relocation-v2 and native-device-health-v1.
+No duplicate jobs/transfers or new full fit. Accepted masks/base/protected data
+unchanged; exact original new data copy stays private evc48.
+
 Latest patch-witness admission/dispatch milestone: Git source00442ef
 privately mirrored at HF08ab0d2f6baf8070c8db5d14e718f73af53c6fba; all27small
 objects fully re-downloaded/size/SHA verified under canonical shared lock. Read

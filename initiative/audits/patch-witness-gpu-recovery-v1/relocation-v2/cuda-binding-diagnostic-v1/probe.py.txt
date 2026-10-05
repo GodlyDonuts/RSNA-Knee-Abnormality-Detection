@@ -1,0 +1,11 @@
+import json,os,subprocess,sys
+import torch
+row={'phase':sys.argv[1],'node':os.uname().nodename,'job_id':os.environ['SLURM_JOB_ID'],'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),'SLURM_JOB_GPUS':os.environ.get('SLURM_JOB_GPUS'),'SLURM_STEP_GPUS':os.environ.get('SLURM_STEP_GPUS'),'CUDA_DEVICE_ORDER':os.environ.get('CUDA_DEVICE_ORDER'),'python':sys.executable,'torch_file':torch.__file__,'torch_version':str(torch.__version__),'torch_cuda_version':torch.version.cuda,'MRI_read':False,'model_encoder_optimizer_executed':False,'CUDA_context_created':False}
+try:
+ row['available']=torch.cuda.is_available();row['count']=torch.cuda.device_count()
+ if row['available'] and row['count']==1:
+  row['bf16']=torch.cuda.is_bf16_supported();row['device_name']=torch.cuda.get_device_name(0)
+  if row['bf16'] and 'H100' in row['device_name']:
+   x=torch.ones(4,device='cuda');row['context_sum']=x.sum().item();row['CUDA_context_created']=True
+except BaseException as e:row['error_type']=type(e).__name__;row['error']=str(e)[:2048]
+print(json.dumps(row),flush=True)
