@@ -1,3 +1,10 @@
+Latest Kaggle runtime milestone: Git source8ab02c6 privately
+mirrored at HFb41d146149fa04125cdf052d3cbf90eac920a7fa; all13 sanitized small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-kaggle-runtime-budget-outcomes-20261005-v1; never repeat. Full2021tests,
+Ruff312/mypy48/archive/current89/89 passed. Actual two scores/three timeouts
+are reconciled; no new submission or full-scale T4 runtime proof is claimed.
+
 October5 live Kaggle outcomes reconciled: native final10=0.802, reviewed
 seed1 candidate=0.685; seed1control/seed2control/seed2candidate FAILED for
 exceeded runtime, zero output/no score. Prior best0.804 unchanged. Owner hard
