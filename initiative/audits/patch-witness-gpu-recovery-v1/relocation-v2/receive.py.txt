@@ -1,0 +1,41 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+raw=sys.stdin.buffer.readline(2*2**20+1);assert len(raw)<=2*2**20 and raw.endswith(b'\n');v=json.loads(raw);seed=v['seed'];os.umask(0o077)
+assert os.uname().nodename=='evc48' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS');assert shutil.disk_usage('/tmp').free>=36*2**30
+root=Path('/tmp/rsna-patch-witness-recovery-evc48-20261005-v2');assert not root.exists();root.mkdir(mode=0o700)
+for name,text in seed['sources'].items():
+ p=root/'code'/name;assert p.resolve().is_relative_to(root/'code') and hashlib.sha256(text.encode()).hexdigest()==seed['hashes'][name];p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text)
+sys.path.insert(0,str(root/'code'))
+from scripts.newton.patch_witness_route import parse_header
+from scripts.newton.route_native384_cache import extract_exact
+# Check the exact received header before any original MRI bytes are written.
+v=parse_header(raw)
+assert hashlib.sha256(v['original_header_raw'].encode()).hexdigest()==seed['original_header_receipt_sha256']
+for name,text in [('original-CPU.json',v['original_CPU_raw']),('original-header.json',v['original_header_raw']),('gpu-start.py',seed['GPU_wrapper'])]:
+ with (root/name).open('x') as f:f.write(text)
+for role,text in seed['configs'].items():
+ with (root/(role+'.json')).open('x') as f:f.write(text)
+# Fresh shared liabilities stay retained; the new placement is entirely /tmp.
+b=Path('/home/sa305415/rsna-knee');paid={}
+for h in seed['paid_checkpoint_shas']:
+ d=b/'kaggle/dataset-publications'/h
+ for p in [d]+list(d.rglob('*')):
+  assert not p.is_symlink();s=p.stat();paid[s.st_dev,s.st_ino]=s.st_size
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);r=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(r[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30;slots=limit-count-(760-len(paid));assert gib>=20 and slots>=5000 and len(paid)<=40 and sum(paid.values())<2*2**20
+copy=extract_exact(sys.stdin.buffer,root/'restored',v['members']);assert copy['members']==370
+signatures={}
+for name in v['members']:
+ s=(root/'restored'/name).stat();signatures[name]=[s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]
+(root/'copy-signatures.json').write_text(json.dumps(signatures,sort_keys=True,indent=2)+'\n')
+(root/'private-copy-members.json').write_text(json.dumps(v['members'],sort_keys=True,indent=2)+'\n')
+# Extract the original archive once at this new endpoint; never install/download.
+cmd=['/usr/bin/python3.12','-B',str(root/'code/scripts/newton/runtime_environment.py'),'extract','--archive',str(b/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar'),'--sha256','89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','--expected-files','40403','--expected-bytes','6322691335','--scratch-base','/tmp','--shared-python','/usr/bin/python3.12','--min-free-gib','20']
+rt=json.loads(subprocess.check_output(cmd,text=True,timeout=900));assert shutil.disk_usage('/tmp').free>=36*2**30
+copy.update(status='exact_original32_member_copy_and_EOF_verified',source_node='evc31',destination_node='evc48',source_CPU_job=v['source_CPU_job'],destination_CPU_job=os.environ['SLURM_JOB_ID'],member_manifest_sha256=hashlib.sha256((root/'private-copy-members.json').read_bytes()).hexdigest(),original_cache_retained=True,zero_shared_bytes=True)
+(root/'copy-verified.json').write_text(json.dumps(copy,sort_keys=True,indent=2)+'\n')
+fund={'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'runtime_future_bytes':7*2**30,'input_cap_bytes':2*2**30,'control_cap_bytes':2**30,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'no_original_deletion_credit':True,'node_free_bytes':shutil.disk_usage('/tmp').free}
+source={'source_git':seed['source_git'],'original_CPU_receipt_sha256':seed['original_CPU_receipt_sha256'],'original_header_receipt_sha256':seed['original_header_receipt_sha256'],'files':seed['hashes'],'runtime':rt,'funding':fund,'GPU_wrapper_sha256':hashlib.sha256(seed['GPU_wrapper'].encode()).hexdigest()};(root/'source.json').write_text(json.dumps(source,sort_keys=True,indent=2)+'\n')
+header=json.loads((root/'original-header.json').read_text());env=os.environ.copy();env.update(PYTHONPATH=str(root/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',HF_HUB_OFFLINE='1',CPATH=header['CPATH'])
+p=subprocess.run([rt['python'],'-B',str(root/'code/engineering/cpu-stage.py'),str(root)],capture_output=True,text=True,env=env);(root/'cpu.stdout').write_text(p.stdout);(root/'cpu.stderr').write_text(p.stderr)
+if p.returncode:sys.stderr.write(p.stderr);sys.exit(p.returncode)
+print(json.dumps({'CPU_acceptance':json.loads(p.stdout),'copy':copy,'funding':fund}),flush=True)

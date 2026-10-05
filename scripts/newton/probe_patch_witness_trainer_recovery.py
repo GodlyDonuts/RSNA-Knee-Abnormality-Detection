@@ -155,6 +155,16 @@ def validate_recipe(config, mode, expected):
         raise ValueError("Witness arms must isolate signed local evidence")
 
 
+def validate_placement(proof):
+    node = proof.get("owning_node", "evc31")
+    if (
+        node not in {"evc31", "evc48"}
+        or proof["node_future_bytes"] != (8 if node == "evc31" else 16) * 1024**3
+    ):
+        raise ValueError("Exact separately funded owning node required")
+    return node
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--control", type=Path, required=True)
@@ -162,8 +172,9 @@ def main():
     root = args.control
     proof = json.loads((root / "cpu-accepted.json").read_text())
     manifest = json.loads((root / "source.json").read_text())
+    expected_node = validate_placement(proof)
     if (
-        os.uname().nodename != "evc31"
+        os.uname().nodename != expected_node
         or os.environ.get("SLURM_CPUS_PER_TASK") != "2"
         or not os.environ.get("SLURM_JOB_ID")
         or not torch.cuda.is_available()
@@ -179,14 +190,13 @@ def main():
         or proof["checkpoint_future_bytes"] != 6 * 1024**3
         or proof["shared_future_bytes"] != 0
         or proof["shared_future_files"] != 0
-        or proof["node_future_bytes"] != 8 * 1024**3
         or proof["initial_learned_state"]["control"] != proof["initial_learned_state"]["candidate"]
     ):
         raise ValueError("Exact independently funded CPU input admission required")
     for name, sha in manifest["files"].items():
         if file_sha256(root / "code" / name) != sha:
             raise ValueError("Accepted source changed")
-    if shutil.disk_usage(root).free < 28 * 1024**3:
+    if shutil.disk_usage(root).free < 20 * 1024**3 + proof["node_future_bytes"]:
         raise ValueError("Twenty GiB reserve plus eight GiB total node obligation required")
     result_root = root / "recovery"
     result_root.mkdir(mode=0o700)

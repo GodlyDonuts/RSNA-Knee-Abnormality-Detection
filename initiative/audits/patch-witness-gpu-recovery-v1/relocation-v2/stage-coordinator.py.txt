@@ -1,0 +1,31 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();a=root/'initiative/audits/patch-witness-gpu-recovery-v1';d=a/'relocation-v2';l=root/'artifacts/patch-witness-gpu-recovery-v1/relocation-v2'
+assert not (l/'stage-intent.json').exists()
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head==subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip()
+files=[str(p) for p in sorted(Path('rsna').rglob('*.py'))]+['scripts/newton/probe_patch_witness_trainer_recovery.py','scripts/newton/patch_witness_route.py','scripts/newton/route_native384_cache.py','scripts/newton/runtime_environment.py','scripts/newton/runtime_archive.py']
+sources={n:Path(n).read_text() for n in files};sources['scripts/newton/enforce_deterministic_runtime.py']=Path('initiative/audits/native384-deterministic-runtime-v1/verified-v2/enforce_deterministic_runtime.py').read_text();sources['engineering/cpu-stage.py']=(d/'cpu-stage.py.txt').read_text()
+orig=a/'actual-cpu32-receipt.json';header=Path('initiative/audits/neighbor-channels-gpu-recovery-v1/header-correction-v3/actual-header-CPU-receipt.json')
+receipts=[Path('initiative/audits/kaggle-nativeall-final-20261004-v1/submit-result.json')]+[Path('initiative/audits/kaggle-effusion-comparison-v1')/k/'submit-result.json' for k in ['seed1-control','seed1-candidate','seed2-control','seed2-candidate']]
+v={'source_git':head,'sources':sources,'hashes':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in sources.items()},'configs':{m:(a/(m+'-engineering-config.json')).read_text() for m in ['control','candidate']},'GPU_wrapper':(d/'gpu-start.py.txt').read_text(),'original_CPU_receipt_sha256':hashlib.sha256(orig.read_bytes()).hexdigest(),'original_header_receipt_sha256':hashlib.sha256(header.read_bytes()).hexdigest(),'paid_checkpoint_shas':[json.loads(p.read_text())['checkpoint_sha256'] for p in receipts]}
+sender=(d/'send.py.txt').read_text();receiver=(d/'receive.py.txt').read_text();v['sender_program']=sender
+bootstrap=r'''import hashlib,json,os,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);r=Path('/tmp/rsna-patch-witness-recovery-20261005-v1/cpu-accepted.json');assert os.uname().nodename=='evc31' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS');assert hashlib.sha256(r.read_bytes()).hexdigest()==v['original_CPU_receipt_sha256'];p=json.loads(r.read_text());env=os.environ.copy();env.update(PYTHONPATH='/tmp/rsna-patch-witness-recovery-20261005-v1/code',PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',HF_HUB_OFFLINE='1')
+x=subprocess.run([p['runtime']['python'],'-B','-c',v['sender_program']],input=json.dumps(v).encode(),stdout=sys.stdout.buffer,env=env);sys.exit(x.returncode)
+'''
+base=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--time=00:20:00']
+send=base+['--nodelist=evc31','--mem=4G','--job-name=rsna-witness32-original-send-v2','/usr/bin/python3.12','-B','-c',bootstrap]
+recv=base+['--nodelist=evc48','--mem=16G','--job-name=rsna-witness32-private-input-init-v2','/usr/bin/python3.12','-B','-c',receiver]
+# The only binary stream is a pipe inside the authorized cluster login shell;
+# the Mac receives only sanitized original metadata and terminal receipts.
+pipeline=shlex.join(send)+' | '+shlex.join(recv)
+intent={'source_git':head,'original_CPU_receipt_sha256':v['original_CPU_receipt_sha256'],'source_sha256':v['hashes'],'sender_sha256':hashlib.sha256(sender.encode()).hexdigest(),'receiver_sha256':hashlib.sha256(receiver.encode()).hexdigest(),'bootstrap_sha256':hashlib.sha256(bootstrap.encode()).hexdigest(),'GPU_wrapper_sha256':hashlib.sha256(v['GPU_wrapper'].encode()).hexdigest(),'control':'/tmp/rsna-patch-witness-recovery-evc48-20261005-v2','source_node':'evc31','destination_node':'evc48','CPUs_per_endpoint':1,'GPUs':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'input_cap_bytes':2*2**30,'shared_future_bytes':0,'shared_future_files':0,'originals_retained':True,'automatic_retry':False,'Mac_pixel_stream':False}
+with (l/'stage-intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+(d/'stage-intent.json').write_text(json.dumps(intent,sort_keys=True,indent=2)+'\n')
+r=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(['/usr/bin/bash','-o','pipefail','-c',pipeline])],input=json.dumps(v),capture_output=True,text=True,timeout=1250)
+(l/'stage-result.json').write_text(json.dumps({'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr},indent=2)+'\n');assert r.returncode==0,r.stderr
+record=json.loads(r.stdout)
+for name,value in [('actual-CPU-acceptance.json',record['CPU_acceptance']),('actual-copy.json',record['copy']),('actual-funding.json',record['funding'])]:
+ (d/name).write_text(json.dumps(value,sort_keys=True,indent=2)+'\n')
+print(json.dumps({'status':record['CPU_acceptance']['status'],'CPU_job':record['CPU_acceptance']['job_id'],'copied_members':record['copy']['members'],'copied_bytes':record['copy']['bytes'],'input_tensors_and_initial_states_equal_to_original':True,'zero_shared_bytes':True,'GPU_dispatched':False}),flush=True)

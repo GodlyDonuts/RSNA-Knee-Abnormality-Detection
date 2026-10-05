@@ -1,0 +1,26 @@
+import hashlib,json,os,subprocess,sys,tarfile
+from pathlib import Path
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development,_uid_hash
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS')
+root=Path('/tmp/rsna-patch-witness-recovery-20261005-v1');raw=(root/'cpu-accepted.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==v['original_CPU_receipt_sha256'];p=json.loads(raw)
+assert p['status']=='actual_patch_witness_32_study_inputs_and_official_initialization_accepted'
+head=(Path('/tmp/rsna-neighbor-recovery-20261005-v3')/'header-CPU-accepted.json').read_bytes();assert hashlib.sha256(head).hexdigest()==v['original_header_receipt_sha256']
+b=Path('/home/sa305415/rsna-knee');rr=(b/'native384-assembly-c9-v1/registry.json').read_bytes();assert hashlib.sha256(rr).hexdigest()==p['registry_sha256'];registry=json.loads(rr);prior=json.loads((b/'production-launch-native384-a32-c9-v1/cpu-preflight.json').read_text())
+inp=p['trainer_inputs'];release,binding=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']));folds=load_folds(Path(inp['folds']),release,binding);train,outer=select_development(release,folds,0);assert _uid_hash(train.head(16))==p['training_16_sha256'] and _uid_hash(outer.head(16))==p['outer_16_sha256'];selected=set(train.head(16).study_uid)|set(outer.head(16).study_uid)
+members={};restored=Path(inp['cache']).parent
+for shard in registry['shards']:
+ for row in shard['series']:
+  if row['study_uid'] not in selected:continue
+  for name in ('cache/'+row['cache_path'],'cache/'+row['cache_path'].removesuffix('.npz')+'.json'):
+   path=restored/name;s=path.stat();assert not path.is_symlink() and [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]==prior['signatures'][name];members[name]=shard['members'][name]
+assert len(members)==370 and sum(r['bytes'] for r in members.values())<=2*2**30
+header={'source_node':'evc31','destination_node':'evc48','source_CPU_job':os.environ['SLURM_JOB_ID'],'seed':v,'members':members,'original_CPU_raw':raw.decode(),'original_header_raw':head.decode()}
+encoded=(json.dumps(header,separators=(',',':'))+'\n').encode();assert len(encoded)<=2*2**20
+sys.stdout.buffer.write(encoded);sys.stdout.buffer.flush()
+with tarfile.open(fileobj=sys.stdout.buffer,mode='w|') as archive:
+ for name,row in sorted(members.items()):
+  path=restored/name;before=path.stat();info=tarfile.TarInfo(name);info.size=row['bytes'];info.mode=0o600
+  with path.open('rb') as f:archive.addfile(info,f)
+  after=path.stat();assert (before.st_ino,before.st_size,before.st_mtime_ns,before.st_ctime_ns)==(after.st_ino,after.st_size,after.st_mtime_ns,after.st_ctime_ns)

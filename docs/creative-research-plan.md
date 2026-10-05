@@ -1,3 +1,13 @@
+October5 original patch-witness recovery873279 remains PENDING(Priority)
+on evc31 with both GPUs allocated. Separate bounded evc48 relocation is
+prepared, not executed: only370 original32-study members (cap2GiB), original
+pinned runtime and identical numerical modules/configs. Require whole-copy/EOF,
+actual32 tensor and official initial-state/RNG equality, fresh16GiB node/20GiB
+reserve and zero shared allocations before any pending-only move. Evc34 prior
+driver/NVML failure remains preserved; do not retry it. Existing873279 must
+remain untouched if it starts. Read patch-witness-gpu-recovery-v1/relocation-v2;
+no new copy, replacement GPU or accuracy result claimed by prepared wrappers.
+
 Latest patch-witness admission/dispatch milestone: Git source00442ef
 privately mirrored at HF08ab0d2f6baf8070c8db5d14e718f73af53c6fba; all27small
 objects fully re-downloaded/size/SHA verified under canonical shared lock. Read

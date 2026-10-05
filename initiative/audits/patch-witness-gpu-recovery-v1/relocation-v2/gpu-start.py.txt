@@ -1,0 +1,31 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+# Fresh CPU compile/import admission and original header path, before torch.
+root=Path('/tmp/rsna-patch-witness-recovery-evc48-20261005-v2')
+header=json.loads((root/'original-header.json').read_text())
+assert os.environ.get('CPATH')==header['CPATH'] and header['status']=='actual_original_runtime_Triton_helper_compile_import_accepted'
+import torch
+root=Path('/tmp/rsna-patch-witness-recovery-evc48-20261005-v2')
+proof=json.loads((root/'cpu-accepted.json').read_text());manifest=json.loads((root/'source.json').read_text());decision=json.loads((root/'agent-engineering-decision.json').read_text())
+assert os.uname().nodename=='evc48' and os.environ['SLURM_CPUS_PER_TASK']=='2' and os.environ.get('SLURM_JOB_ID')
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==decision['GPU_wrapper_sha256']
+assert hashlib.sha256((root/'cpu-accepted.json').read_bytes()).hexdigest()==decision['CPU_receipt_sha256']
+assert hashlib.sha256((root/'original-header.json').read_bytes()).hexdigest()==manifest['original_header_receipt_sha256']
+assert proof['source_git']==manifest['source_git']==decision['source_git']
+assert proof['status']=='actual_patch_witness_32_study_inputs_and_official_initialization_accepted' and proof['initial_learned_state']['control']==proof['initial_learned_state']['candidate']
+assert proof['source_sha256']==manifest['files'] and proof['shared_future_bytes']==0 and proof['shared_future_files']==0 and proof['node_future_bytes']==16*2**30 and proof['checkpoint_future_bytes']==6*2**30
+assert shutil.disk_usage(root).free>=36*2**30
+assert torch.cuda.is_available() and torch.cuda.device_count()==1 and torch.cuda.is_bf16_supported() and 'H100' in torch.cuda.get_device_name(0)
+x=torch.ones(4,device='cuda');assert x.sum().item()==4
+assert manifest['runtime']['python']==sys.executable and manifest['runtime']['archive_sha256']=='89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338'
+for n,h in manifest['files'].items():assert hashlib.sha256((root/'code'/n).read_bytes()).hexdigest()==h
+# Fresh original stats supplement existing whole-byte verification, without copying assets.
+p=json.loads(Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json').read_text())
+for name,a in p['scientific_assets'].items():
+ s=Path(name).stat();assert [s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]==a['signature'][1:]
+header={'status':'allocated_patch_witness_recovery_H100_input_source_funding_accepted','job_id':os.environ['SLURM_JOB_ID'],'node':'evc48','CPUs':2,'visible_devices':os.environ.get('CUDA_VISIBLE_DEVICES'),'device_count':torch.cuda.device_count(),'device':torch.cuda.get_device_name(0),'cuda_context_sum':4,'torch_version':str(torch.__version__),'cuda_version':torch.version.cuda,'CPU_receipt_sha256':decision['CPU_receipt_sha256'],'source_git':manifest['source_git'],'runtime_archive_sha256':manifest['runtime']['archive_sha256'],'shared_future_bytes':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'diagnostic_only':True}
+with (root/'gpu-header.json').open('x') as f:json.dump(header,f,sort_keys=True,indent=2);f.write('\n')
+with (root/'gpu-intent.json').open('x') as f:json.dump({'job_id':os.environ['SLURM_JOB_ID'],'automatic_retry':False,'source_git':manifest['source_git']},f);f.write('\n')
+os.chdir(root/'code');result=subprocess.run([sys.executable,'-B',str(root/'code/scripts/newton/probe_patch_witness_trainer_recovery.py'),'--control',str(root)])
+with (root/'gpu-terminal.json').open('x') as f:json.dump({'job_id':os.environ['SLURM_JOB_ID'],'returncode':result.returncode,'diagnostic_only':True},f);f.write('\n')
+sys.exit(result.returncode)

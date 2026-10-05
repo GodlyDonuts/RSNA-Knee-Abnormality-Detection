@@ -1,0 +1,71 @@
+import gc, hashlib, json, os, random, shutil, sys
+from pathlib import Path
+import numpy as np
+import torch
+from rsna.competitive.train import TrainConfig
+from rsna.competitive.backbones import create_encoder
+from rsna.competitive.adapters import configure_encoder_training
+from rsna.competitive.model import CompetitiveStudyNet
+from scripts.newton.probe_patch_witness_trainer_recovery import validate_recipe
+
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def digest(v):return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+def signature(p):
+ s=Path(p).stat();return [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]
+root=Path(sys.argv[1]);source=json.loads((root/'source.json').read_text())
+assert os.uname().nodename=='evc48' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS')
+assert shutil.disk_usage(root).free>=36*2**30
+for n,h in source['files'].items():assert sha(root/'code'/n)==h
+assert sha(root/'original-CPU.json')==source['original_CPU_receipt_sha256']
+proof=json.loads((root/'original-CPU.json').read_text());assert proof['status']=='actual_patch_witness_32_study_inputs_and_official_initialization_accepted'
+# Every canonical numerical module is unchanged: reuse the accepted gray input
+# bytes and membership rather than decode/copy/rehash the same MRI cohort.
+original={n:h for n,h in proof['source_sha256'].items() if n.startswith('rsna/')}
+actual={n:h for n,h in source['files'].items() if n.startswith('rsna/')}
+assert actual==original
+b=Path('/home/sa305415/rsna-knee');whole=json.loads((b/'production-launch-native384-a32-c9-v1/cpu-preflight.json').read_text())
+assert sha(b/'production-launch-native384-a32-c9-v1/cpu-preflight.json')==proof['original_cache_whole_byte_proof_sha256']
+for name,row in whole['scientific_assets'].items():assert signature(name)[1:]==row['signature'][1:]
+registry_path=b/'native384-assembly-c9-v1/registry.json';assert sha(registry_path)==proof['registry_sha256'];registry=json.loads(registry_path.read_text())
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development,_uid_hash
+inp=dict(proof['trainer_inputs']);inp['cache']=str(root/'restored/cache');release,binding=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']));folds=load_folds(Path(inp['folds']),release,binding);train,outer=select_development(release,folds,0)
+assert len(train)==2247 and len(outer)==1156 and set(train.study_uid)==set(registry['training_uids']) and set(outer.study_uid)==set(registry['outer_uids'])
+assert _uid_hash(train.head(16))==proof['training_16_sha256'] and _uid_hash(outer.head(16))==proof['outer_16_sha256']
+selected=set(train.head(16).study_uid)|set(outer.head(16).study_uid);restored=Path(inp['cache']).parent;count=0
+for shard in registry['shards']:
+ for row in shard['series']:
+  if row['study_uid'] not in selected:continue
+  for name in ('cache/'+row['cache_path'],'cache/'+row['cache_path'].removesuffix('.npz')+'.json'):
+   p=restored/name;assert not p.is_symlink() and signature(p)==json.loads((root/'copy-signatures.json').read_text())[name];count+=1
+initial={};configs={};config_sha={}
+oldconfig=dict(proof['expected_config']['control']);oldconfig.pop('witness')
+# Recompute only the newly routed32 tensors against their original whole-byte
+# proof; do not reread any protected cohort or rehash existing original caches.
+from rsna.competitive.data import CompetitiveStudyDataset
+import pandas as pd
+series=pd.read_csv(inp['series']);tensors={};nonimage={}
+for role,frame in [('training',train.head(16)),('outer_engineering',outer.head(16))]:
+ ds=CompetitiveStudyDataset(frame,series,Path(inp['cache']),slices=16,side=384,max_series=6,augment=False);image=hashlib.sha256();other=hashlib.sha256()
+ for i in range(16):
+  row=ds[i];image.update(row['images'].numpy().tobytes())
+  for key in ('features','positions','slice_mask','series_mask','labels','label_mask'):other.update(row[key].numpy().tobytes())
+ tensors[role]=image.hexdigest();nonimage[role]=other.hexdigest()
+assert tensors==proof['input_tensor_sha256'] and nonimage==proof['nonimage_tensor_sha256']
+for mode,weight in [('control',0),('candidate',1)]:
+ config=json.loads((root/(mode+'.json')).read_text());expected=dict(oldconfig,witness={'patches':4,'slices':2,'seed':20261003,'weight':weight});validate_recipe(config,mode,expected)
+ c=TrainConfig(**config);c.validate();random.seed(c.seed);np.random.seed(c.seed%2**32);torch.manual_seed(c.seed)
+ encoder,dim,provenance=create_encoder(c.encoder);configure_encoder_training(encoder,c.freeze_encoder)
+ model=CompetitiveStudyNet(encoder,dim,pooling=c.pooling,hidden_dim=c.hidden_dim,encode_chunk_size=c.encode_chunk_size,slice_context=c.slice_context,witness=c.witness)
+ records={}
+ for n,p in model.named_parameters():
+  if p.requires_grad:
+   a=p.detach().contiguous().cpu().numpy();records[n]={'shape':list(a.shape),'dtype':str(a.dtype),'sha256':hashlib.sha256(a.tobytes()).hexdigest()}
+ assert not model.witness.score.weight.any() and not model.witness.score.bias.any()
+ initial[mode]={'learned_graph_and_values_sha256':digest(records),'post_factory_torch_RNG_sha256':hashlib.sha256(torch.get_rng_state().numpy().tobytes()).hexdigest(),'learned_parameters':sum(p.numel() for p in model.parameters() if p.requires_grad),'encoder_provenance_sha256':digest(provenance)}
+ configs[mode]=config;config_sha[mode]=sha(root/(mode+'.json'));del model,encoder,records;gc.collect()
+assert initial['control']==initial['candidate']==proof['initial_learned_state']['control']
+record={'status':'actual_patch_witness_32_study_inputs_and_official_initialization_accepted','source_git':source['source_git'],'source_sha256':source['files'],'original_CPU_receipt_sha256':source['original_CPU_receipt_sha256'],'owning_node':'evc48','input_tensor_sha256':tensors,'nonimage_tensor_sha256':nonimage,'canonical_numerical_modules_byte_identical':True,'original_member_stats_checked':count,'original_cache_whole_byte_proof_sha256':proof['original_cache_whole_byte_proof_sha256'],'registry_sha256':proof['registry_sha256'],'training_16_sha256':proof['training_16_sha256'],'outer_16_sha256':proof['outer_16_sha256'],'trainer_inputs':inp,'initial_learned_state':initial,'expected_config':configs,'config_sha256':config_sha,'runtime':source['runtime'],'funding':source['funding'],'checkpoint_future_bytes':6*2**30,'node_future_bytes':16*2**30,'shared_future_bytes':0,'shared_future_files':0,'job_id':os.environ['SLURM_JOB_ID'],'GPU_executed':False,'gold_or_confirmation_used':False,'diagnostic_only':True,'clinical_accuracy_evidence':False}
+with (root/'cpu-accepted.json').open('x') as f:json.dump(record,f,sort_keys=True,indent=2);f.write('\n')
+print(json.dumps(record,sort_keys=True),flush=True)
