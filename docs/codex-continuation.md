@@ -1,3 +1,12 @@
+Current original first-review/second-delivery/gray1 milestone source1d56a0c is
+privately mirrored at HFc346b070240ede19937d7558ecd8500539f28d8d, all11small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-daenerys-review-gray1-20261005-v1; never repeat. No raw pixels/reports/case
+identifiers/private Page references/detailed candidate records/weights mirrored.
+The exact second Daenerys turn01a10a9a-38a7-728d-8b9a-16c755a8739d is active;
+private send-intent/receipt and current-queue-state.json preserve its single
+delivery. Do not send another case until the actual complete review is collected.
+
 October5 05:29UTC follow-up: Daenerys first actual complete 154-slice image
 review was collected unchanged (32,101 bytes, SHA cff09e5d5633d2fe0e29e5bca8dc185501ef4abfd98ece38dba3db25c5dfa00e).
 All27 original receiver image reads, 12 target records, report quotes and31image
