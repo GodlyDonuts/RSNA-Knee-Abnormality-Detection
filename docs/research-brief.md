@@ -1,3 +1,11 @@
+Latest distant2 progress milestone: Git source9165016 privately mirrored at
+HF75b05a9ccee2258f98f80f1d8bc6eb551629541c; all8 small objects fully
+re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-neighbor-distant2-progress-20261005-v1; never repeat. No raw data/private
+clinical records/Page references or learned weights in the small mirror.
+Full1986tests/Ruff305/mypy48/archive/current89/89 passed. Final distant
+comparison remains pending; original healthy training unchanged.
+
 October5 15:19UTC actual distant control: original872279 healthy RUNNING,783
 contiguous finite updates of843, epoch3 underway, empty stderr. Its newly
 completed immutable epoch2 was privately published ONCE viaCPU872734 and all5
