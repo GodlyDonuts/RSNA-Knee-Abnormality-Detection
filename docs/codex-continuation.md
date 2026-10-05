@@ -1,3 +1,9 @@
+Canonical neighbor-input source73eb8e3 and its actual CPU32/queued GPU recovery
+receipts are privately preserved at HFf285deb8daae39bbbeaa2f75c567cedef1572bb0,
+all48small objects fully downloaded/size/SHA verified under canonical shared lock.
+Read hf-neighbor-canonical-input-20261005-v1; never repeat. GPU872182 is pending
+resources, not training or accepted recovery. No new clinical/Kaggle result.
+
 October5 original CPU32 admission872172 COMPLETED0:0:2,681canonical selected
 views across16fit/16disjoint outer engineering studies, zero input byte-identical
 to frozen C9 and original non-image tensors/masks unchanged. Source d4c3c65.

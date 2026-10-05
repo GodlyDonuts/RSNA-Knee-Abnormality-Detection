@@ -109,3 +109,10 @@ canonical policy isolates uniform/no-augmentation/global-attention arms and
 binds one/three channels in encoder/checkpoint provenance. Synthetic actual
 trainer recovery and checkpoint restoration pass; actual official-weight GPU
 recovery/funding admission remains next. See neighbor-channels-integration-v1.
+
+Donor-population matching does not match perturbation norms: distant anatomy
+can produce larger channel residuals than physical neighbors. Interpret any
+physical-versus-distant difference alongside gray and measured residual
+statistics; it alone cannot prove an adjacency-specific mechanism. Direct actual
+initial learned-state equality is also not yet collected, despite identical
+official learned topology and matched seeded factory paths.
