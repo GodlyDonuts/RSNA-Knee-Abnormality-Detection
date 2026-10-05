@@ -1,3 +1,12 @@
+## October5 actual runtime omission and corrected recovery
+
+Original872182 failed before any optimizer update because the launcher omitted
+the existing CPATH Python-header supplement. CPU872199 actually reaccepted the
+installed Triton builder/import with original headers and no backend changes.
+Distinct GPU872200 was submitted once with explicit CPATH; inspect actual state.
+Use current continuation/header-correction-v3; do not repeat original jobs.
+All numerical source/input/config bindings remain unchanged.
+
 ## October5 next-input canonical admission and actual queued recovery
 
 Read the latest continuation and neighbor-channels-integration-v1 /

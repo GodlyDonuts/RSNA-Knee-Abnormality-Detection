@@ -1,3 +1,15 @@
+October5 actual GPU recovery correction:872182 FAILED1:0 after2:21 before
+any optimizer update; the launcher omitted the original CPATH Python-header
+supplement and first gray backward could not compile Triton (Python.h missing).
+Original diagnostics preserved. CPU872199 then actually compiled/imported the
+installed helper with the original pinned215headers, zeroGPU/backend changes.
+Distinct corrected GPU872200 submitted ONCE, pending Resources at latest read.
+Control /tmp/rsna-neighbor-recovery-20261005-v3 reuses unchanged d4c3c65 source,
+original32-study input proof/configs/runtime/cache and explicit CPATH. Do not
+repeat872180/872182/872200. Read neighbor-channels-gpu-recovery-v1/header-correction-v3.
+No actual all-arm recovery or accuracy pass yet; inspect exact outcomes before
+separately funded fitting. Prior RUNNING/pending872182 snapshots are historical.
+
 Canonical neighbor-input source73eb8e3 and its actual CPU32/queued GPU recovery
 receipts are privately preserved at HFf285deb8daae39bbbeaa2f75c567cedef1572bb0,
 all48small objects fully downloaded/size/SHA verified under canonical shared lock.

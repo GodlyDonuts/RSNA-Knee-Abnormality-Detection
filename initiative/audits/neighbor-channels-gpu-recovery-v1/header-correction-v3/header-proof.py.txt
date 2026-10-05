@@ -1,0 +1,11 @@
+import hashlib,json,os,re,sys
+from pathlib import Path
+r=Path('/tmp/rsna-neighbor-recovery-20261005-v3');assert os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS')
+import triton
+from triton.backends.nvidia import driver as d
+from triton.runtime.build import compile_module_from_file
+p=Path(d.__file__).with_name('driver.c');code=p.read_text().split('PyMODINIT_FUNC PyInit_cuda_utils(void)',1)[1];assert not re.search(r'\bcu[A-Z]\w*\s*\(',code)
+built=compile_module_from_file(src_path=str(p),name='cuda_utils',library_dirs=d.library_dirs(),include_dirs=d.include_dirs,libraries=d.libraries);v=built.build_signature_metadata(['*fp32','fp32']);assert isinstance(v,bytes) and len(v)==2
+out={'status':'actual_original_runtime_Triton_helper_compile_import_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'CPATH':os.environ['CPATH'],'actual_installed_builder_used':True,'backend_disabled_or_replaced':False,'GPU_functions_called':False,'driver_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'compiled_so_sha256':hashlib.sha256(Path(built.__file__).read_bytes()).hexdigest(),'signature_metadata_hex':v.hex()}
+with (r/'header-CPU-accepted.json').open('x') as f:json.dump(out,f,sort_keys=True,indent=2);f.write('\n')
+print(json.dumps(out,sort_keys=True))

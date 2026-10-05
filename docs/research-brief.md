@@ -1,3 +1,9 @@
+October5 runtime correction: the first actual neighbor recovery failed before
+an optimizer update because its launcher omitted the already-verified CPATH
+header supplement. Actual zero-GPU compiler/import acceptance now passes with
+original headers; distinct corrected job872200 is queued with the same scientific
+source/input/recipe. Preserve this engineering failure, not an accuracy finding.
+
 October5 research update: canonical neighboring-slice channels are integrated.
 The distant control now preserves exactly the physical arm's donor population,
 correcting the measured275vs419unique-slice confound. Original-MRI CPU acceptance

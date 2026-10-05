@@ -1,0 +1,14 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS');assert shutil.disk_usage('/tmp').free>=28*2**30
+old=Path('/tmp/rsna-neighbor-recovery-20261005-v1');r=Path('/tmp/rsna-neighbor-recovery-20261005-v3');assert not r.exists();assert json.loads((old/'gpu-terminal.json').read_text())['returncode']==1 and not (old/'recovery-verified.json').exists()
+assert 'Python.h: No such file or directory' in (old/'recovery/gray-full.stderr').read_text();assert not (old/'recovery/gray-full/checkpoint.pt').exists()
+raw=(old/'cpu-accepted.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==v['decision']['CPU_receipt_sha256'];p=json.loads(raw);s=json.loads((old/'source.json').read_text());assert p['source_sha256']==s['files'];assert all(hashlib.sha256((old/'code'/n).read_bytes()).hexdigest()==sha for n,sha in s['files'].items())
+r.mkdir(mode=0o700);(r/'code').symlink_to(old/'code',target_is_directory=True)
+for n in ['source.json','cpu-accepted.json','gray.json','physical.json','distant.json']:
+ with (r/n).open('xb') as f:f.write((old/n).read_bytes())
+for n,txt in [('gpu-start.py',v['GPU']),('header-guard.py',v['guard']),('header-proof.py',v['proof']),('agent-engineering-decision.json',json.dumps(v['decision'],sort_keys=True,indent=2)+'\n')]:
+ with (r/n).open('x') as f:f.write(txt)
+rt=p['runtime'];os.environ.update(PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',PYTHONPATH=str(r/'code'),OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',TRITON_CACHE_DIR=str(r/'triton-cache'))
+guard=subprocess.run([rt['python'],'-B',str(r/'header-guard.py')],capture_output=True,text=True);assert guard.returncode==0,guard.stderr;os.environ['CPATH']=guard.stdout.strip()
+x=subprocess.run([rt['python'],'-B',str(r/'header-proof.py')],capture_output=True,text=True);(r/'header-CPU.stdout').write_text(x.stdout);(r/'header-CPU.stderr').write_text(x.stderr);sys.stdout.write(x.stdout);sys.stderr.write(x.stderr);sys.exit(x.returncode)
