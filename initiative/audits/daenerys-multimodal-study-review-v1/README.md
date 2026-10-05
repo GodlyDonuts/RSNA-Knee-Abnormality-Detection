@@ -7,12 +7,18 @@ study was delivered as a private native-image Page with all five series and all
 All source DICOM sizes, SHA-256 values and Study/Series/SOP identities matched the
 original pinned inventory. No original labels or model predictions were exposed.
 
-This is delivery acceptance, **not a completed diagnostic review or corrected
-data release**. Read [acceptance.json](acceptance.json). The receiver must actually
-inspect the pixels and return complete coverage plus evidence for each target.
-An uploaded image read returned real pixels here; that does not prove Daenerys
-has personally inspected it yet. Text-only paths, alt text and report extraction
-are not image review. No perfect-data or accuracy claim is supported.
+The first candidate image review is now complete. The original Daenerys turn has
+27 actual image-reference reads, matching every supplied sheet. Its unchanged
+32,101-byte JSON was retrieved through three bounded base64 outputs and exactly
+matched the original SHA-256. All 12 target states/confidences, report quotations,
+31 image-evidence references and complete 154-slice coverage passed structural
+and source-binding checks. Read [first-review-transport-validation.json](first-review-transport-validation.json).
+
+This is **not a corrected data release or an independently verified clinical
+diagnosis**. The review proposes 11 negative targets and uncertain Synovitis;
+Medial Meniscus and Synovitis require additional review before promotion. Original
+accepted labels/masks remain unchanged. Text-only paths, alt text and report
+extraction are not image review. No perfect-data or accuracy claim is supported.
 
 The private packet, original DICOMs, source report, original study/slice mapping,
 Page references and delivery receipts remain in ignored
@@ -64,3 +70,17 @@ All uploaded image digests matched local PNGs and all 27 references were read ba
 from the private Page. A hosted image-reference read returned actual image pixels.
 The complete source manifest was also privately uploaded with its digest checked.
 No clinical candidate has been admitted to training, and no score gain exists.
+
+## Second fitting examination sent once
+
+After collecting the first original complete review, the next deterministic
+fitting examination was delivered to the same Daenerys chat once. All five
+original series and all 166 source slices passed byte, identity and ordering
+checks. Thirty private image sheets retain the native 300–384-pixel spatial
+dimensions. Every hosted size/SHA and Page reference matched, the original report
+quote read back exactly, and an actual hosted image read passed. Read
+[second-delivery.json](second-delivery.json). The second clinical candidate review
+is pending; collect its exact bytes and actual image-access coverage before
+advancing another case. The disclosed 8-bit window is lossy; alternate windows
+remain available. New local case storage is bounded at 512 MiB with zero new
+cluster shared bytes/files. Accepted labels and protected evaluation stay fixed.

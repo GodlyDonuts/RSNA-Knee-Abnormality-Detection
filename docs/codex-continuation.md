@@ -1,3 +1,24 @@
+October5 05:29UTC follow-up: Daenerys first actual complete 154-slice image
+review was collected unchanged (32,101 bytes, SHA cff09e5d5633d2fe0e29e5bca8dc185501ef4abfd98ece38dba3db25c5dfa00e).
+All27 original receiver image reads, 12 target records, report quotes and31image
+evidence references matched. Candidate11negatives/uncertainSynovitis; medial
+meniscus and synovitis need additional review before any promotion. This is not
+independent clinical ground truth; accepted labels/masks stay unchanged. The next
+fitting study was sent ONCE to the same Daenerys chat with all166slices/five
+series/30private native-resolution sheets and exact report/rubric. It is the only
+active case; collect actual complete review before another send. Read current
+daenerys-multimodal-study-review-v1 and private current-queue-state.json. No raw
+case/report/pixel/private Page references in Git/HF; no perfect-data claim.
+
+Original healthy neighbor872279 remains unchanged on evc31. The first gray
+control epoch completed281updates and was privately published once viaCPU872392
+at HF13e98c0f0b33e3348ceacb8ba72f6377d4209c53, allfive objects fully
+re-downloaded/size/SHA verified. Never repeat gray1. Actual453contiguous finite
+gray updates/epoch2 and empty stderr observed; physical/distant have not started.
+Read neighbor-channels-full-fit-v1/epochs/gray-001. No fixed-final result yet.
+Fresh shared quota1026227728/1048576000kB,994265/1000000files preserves
+20.0026GiB/5000files after original liabilities; no new shared obligations added.
+
 Daenerys first-packet protocol source1dd64fa privately mirrored/download-size-SHA
 verified at HF6dc1a928100808aa9dc1c836bf04677959b90567, all7sanitized small
 objects under canonical shared lock. Never repeat. No reports/pixels/clinical
