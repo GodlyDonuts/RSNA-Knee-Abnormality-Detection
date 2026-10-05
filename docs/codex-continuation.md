@@ -1,3 +1,11 @@
+Latest physical-final/distant1 small milestone: Git source8a4c4ac privately
+mirrored at HF32b08c7a2acffc7c3f936e575fd9e7f38bdcb1e4, all16 objects fully
+re-downloaded/size/SHA verified under canonical shared lock. Read
+hf-neighbor-physical-final-distant1-20261005-v1; never repeat. No raw pixels,
+reports/private reviews/Page references or weights in this small mirror.
+Full1986tests/Ruff305/mypy48/archive/current89/89 and independent original
+analysis replay passed. No accuracy gain promoted; original distant fit continues.
+
 October5 physical-neighbor fixed-final result is independently replayed: three
  epochs/843updates, same2247fitting/1156development. Primary Medial Meniscus
 0.791632→0.790685 (−.000948), paired95%[-.006783,.004753]; macro
