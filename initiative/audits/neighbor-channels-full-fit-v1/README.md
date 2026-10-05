@@ -3,3 +3,20 @@ Actual CPU872277 COMPLETED0:0/2:17 checked complete original input stats and dir
 Fixed-final three-arm neighbor input comparison. Actual original d4c3c65 official-weight GPU872200 recovery has passed all three numerical paths. Unchanged scientific modules are reused from the accepted node-local source. Arms: gray0, physical0.25, matched distant0.25; native384/rank32/seed20260922/three epochs/843updates each,2247original fitting and1156disjoint weak-label development studies, original masks/folds/base and optimizer unchanged. Medial Meniscus physical-minus-gray AUC is primary, physical-minus-distant is a specificity check; all12targets/macro are secondary. Paired whole-leakage-component bootstrap4000 draws/seed20261001 retains undefined draws. No protected gold/confirmation, epoch/strength selection or overlay. Distant perturbation magnitudes remain unmatched; anatomical specificity is not established by this control alone. Actual CPU staging must verify all37812original member stats and directly equal official seeded initial learned values/RNG across all three arms before any GPU dispatch. One original node/oneH100/twoCPUs runs the arms sequentially to avoid duplicate cache/environment placement.
 
 Funding: zero new shared bytes/files. Separate16GiB node future includes6GiB immutable/current checkpoint cap,2GiB private re-download scratch and8GiB controls/cache/logs/initialization margin, above20GiB node reserve. Existing old originals remain retained/count physically; no deletion credit. Every completed immutable epoch is privately preserved once under canonical shared publication lock with all5objects fully re-downloaded/size/SHA verified via admitted owning-node CPU publisher. All wrappers/configs require actual source/input/recovery/license/runtime and fresh quota admission. The exact admitted payload is now submitted once; future roles have not necessarily started.
+
+## October5 gray terminal and physical-arm startup
+
+The original gray role completed all843 contiguous finite updates and its fixed
+three epochs. All three immutable epochs are privately fully download/size/SHA
+verified once; new epoch2 and3 receipts are under `epochs/gray-002` and
+`epochs/gray-003`. Original physical-neighbor training then started with29
+contiguous finite updates and empty stderr at the07:29UTC read-only observation.
+The distant role has not started; healthy original job872279 is unchanged.
+
+Actual gray output CSV bytes equal the independently replayed original
+Effusion-screen control: all1,156x12 predictions have the same SHA-256. Its
+fixed-final internal macroAUC is0.7860903284518854. This verifies that the new
+zero-neighbor code preserves the earlier numerical baseline, not a new gain or
+Kaggle score. Read `gray-fixed-final-equality.json`. Retain the original full
+control prediction/replay proof; no duplicate bulk transfer is needed. The
+physical/distant mechanism comparison awaits their fixed-final outcomes.

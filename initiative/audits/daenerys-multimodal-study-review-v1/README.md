@@ -84,3 +84,28 @@ is pending; collect its exact bytes and actual image-access coverage before
 advancing another case. The disclosed 8-bit window is lossy; alternate windows
 remain available. New local case storage is bounded at 512 MiB with zero new
 cluster shared bytes/files. Accepted labels and protected evaluation stay fixed.
+
+## Second original review collected
+
+Daenerys personally accessed all30 hosted image sheets and reviewed all166
+slices/eight-bit native spatial displays across five complete series. Its
+unchanged36,209-byte JSON was collected from four original base64 outputs with
+exact whole-byte SHA-256. All12 target records, source quotations, series/PNG
+bindings and38 image-evidence references passed structural/coverage checks.
+Read `second-review-transport-validation.json`. The candidate proposes11
+negatives and uncertainSynovitis. ACL, Effusion and Synovitis require additional
+review before label promotion. Source-report access preceded image inspection;
+this is not blinded independent clinical ground truth. Accepted labels/masks
+remain fixed. The next fitting case may advance while these candidates stay
+separate from training.
+
+## Third complete fitting examination sent once
+
+The next deterministic examination contains eight source series and206 original
+slices, all512x512 pixels. All original bytes/identities/geometry passed; all37
+private PNG sheet digests and Page references read back exactly, with a hosted
+pixel read and exact report-quote readback. Its matching report/criteria/manifest
+were sent once to the same Daenerys chat after the second review was collected.
+Read `third-delivery.json`. This is the only active case; collect all original
+review bytes and actual image access before a fourth send. No accepted label,
+mask, protected evaluation or live numerical training source changed.

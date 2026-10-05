@@ -1,3 +1,15 @@
+October5 update: the gray-control full fit reproduced the earlier independently
+replayed control exactly: all1,156x12 prediction CSV bytes match, internal
+macroAUC0.786090. This supports zero-neighbor numerical consistency; it is not
+an accuracy improvement. Physical-neighbor training has started under the same
+original initialization, masks and fixed-three-epoch recipe; distant follows.
+Allthree gray epochs are privately full-download/hash verified once.
+
+Two complete Daenerys fitting-image candidate reviews are now preserved, with
+154+166original slices and original source evidence. The next206-slice/eight-series
+512-pixel examination is with her. Uncertainty and report-before-image anchoring
+are documented; accepted labels remain unchanged. No clinical accuracy gain yet.
+
 October5: Daenerys completed an actual full-image candidate reread of the first
 fitting examination (154 slices, five series). Its original JSON and all image
 coverage/source/evidence bindings are preserved. The second fitting examination

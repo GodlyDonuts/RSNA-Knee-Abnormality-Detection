@@ -1,3 +1,29 @@
+October5 07:29UTC follow-up: original gray control completed843contiguous
+finite updates/three epochs and terminal0:0. Allthree gray checkpoints are now
+privately fully5-object downloaded/size/SHA verified once; new2HFa728f6b20ec6085d269c2af171a4381f145bffce
+and3HF4eb2e15fad50eabad3bd906cc2aca19e28af8f66. Never repeat gray1–3.
+Actual new1,156x12 gray prediction CSV bytes equal the already independently
+replayed Effusion-screen control (SHA501b82baf2b70ab5b8015243b8d9c4fa5e98031693a5262010a027135e650bdc),
+internalmacroAUC0.7860903284518854. This is zero-neighbor numerical regression
+acceptance, not a new gain or Kaggle score. Healthy872279 then startedphysical
+role with29finite updates/empty stderr; distant remains unstarted. Read current
+neighbor-channels-full-fit-v1/gray-fixed-final-equality.json and epochs/gray002/003.
+The actual physical/distant mechanism comparison awaits their fixed finals.
+
+Daenerys second actual166-slice/30-sheet review was collected unchanged:
+36,209bytes/SHA06db2d6279eed48fb141212b3b066126fcbfafa761c962be9ef351c4fb665e84.
+All30 receiver image reads,12targets, exact report quotations,38evidence refs
+and source shapes/coverage passed. Candidate11negatives/uncertainSynovitis;
+ACL/Effusion/Synovitis need additional review before any promotion. Report read
+preceded images; this is not blinded independent clinical ground truth.
+The third fitting examination was sent ONCE to the same existing Daenerys chat
+with all206original512x512 slices/eightseries/37private sheets, exact report
+and criteria. It is the only active case; collect its actual complete review
+before a fourth send. Private receipts/state in artifacts/daenerys-study-review-v1.
+No accepted masks/labels/protected data changed; no perfect-data claim.
+Fresh quota unchanged1026227728/1048576000kB,994265/1000000files; no new
+shared bytes/files. Existing20.0026GiB/5000file reserve remains intact.
+
 Current original first-review/second-delivery/gray1 milestone source1d56a0c is
 privately mirrored at HFc346b070240ede19937d7558ecd8500539f28d8d, all11small
 objects fully re-downloaded/size/SHA verified under canonical shared lock. Read
