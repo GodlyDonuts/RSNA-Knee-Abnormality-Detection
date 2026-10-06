@@ -5,6 +5,11 @@ and where it stands. Each subdirectory has the full protocol; this index is
 the landing page. Release for all arms: `report-supervision-v1`; folds:
 `folds/fold.csv`; outer fold: 1,156-study disjoint holdout.
 
+Run configs for every packaged arm live in `run-configs/` — production
+recipe + one arm field each, validated through `TrainConfig` at emission and
+re-validated by `tests/test_arm_configs.py`; regenerate with
+`scripts/research/emit_arm_configs.py`.
+
 ## Awaiting a GPU slot (artifacts packaged, loader-verified)
 
 | arm | contrast | artifact |
