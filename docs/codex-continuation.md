@@ -1,3 +1,10 @@
+Anatomical-sharing support source38e25d12 privately mirrored at HF
+4f57170eae246d0547c6b455a08925d02ad16747; all7 small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Never repeat. Counts admit only
+a future shared-representation hypothesis, not extra rare labels, a new model
+or accuracy. Current architectures remain unchanged; source/masks/folds/protected
+cohorts preserved. Read anatomical-sharing-support-v1 and original live receipts.
+
 Actual fitting-only anatomical-sharing support is measured on original2247
 studies with live fitting/outer bindings: ACL-or-MCL176positive/1505negative;
 meniscus union996/879; contusion-or-fracture124/372. MCL remains5positives,
