@@ -1,3 +1,12 @@
+October6 actual memory CPU876731 PASSED original32 MRI/labels/masks/metadata and
+actual common official learned graph/RNG initialization. Distinct private single-
+active-T4 sequential recovery137306285/v1 pushed ONCE, source51dd870cecdd712f.
+Original875858 remains healthy and unchanged; no third active GPU, competition
+slot or new bulk Dataset. Inspect exact notebook version/original journals before
+action; never duplicate push. GPU recovery/clinical gain remain unobserved. Read
+plane-memory-integration-v1. New memory scientific source b2bb3a9c is independent
+of live3b7e437. Retain original labels/folds/base and protected evaluation.
+
 October6 optional cross-sequence target-query memory is now wired through canonical
 training/inference/delta packaging/resident reconstruction. Synthetic complete
 trainer recovery (FP32/FP16), zero-start/common RNG and mask/missing-view checks
