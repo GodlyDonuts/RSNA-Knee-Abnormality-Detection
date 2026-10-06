@@ -46,56 +46,63 @@ of the three public notebooks (`pjmathematician/rsna-knee-d4-lite`,
   this is free performance — rank transforms preserve individual AUC while
   decorrelated member errors average out.
 
-## Why the gap is structural, not an encoder-quality problem
+## Why the gap is unlikely to be closed by more of the same recipe
 
-1. **Ensemble diversity.** ~10+ decorrelated members vs. one backbone, one
-   recipe, one fold's weights. This alone is worth a large fraction of the gap
-   on a rank metric; it does not require any member to be individually better
-   than ours.
-2. **Label-source alignment.** Every public member trains on the same public
-   LLM label tables. If the hidden evaluation distribution is closer to those
-   labels than to our conservative clinical review (unproven, but plausible for
-   a rank metric), our cleaner-but-sparser labels could actually hurt. This is
-   a testable hypothesis, not an assumption — see direction 3 below.
-3. **Our internal metric cannot steer.** The 1,156-study weak-label development
+1. **Label-source alignment.** Every public member trains on the same public
+   LLM label tables (`pilkwang/rsna-knee-llm-labels`). If the hidden evaluation
+   distribution is closer to those labels than to our conservative clinical
+   review (unproven, but plausible for a rank metric), our cleaner-but-sparser
+   labels could actually hurt a single model. This is a testable hypothesis,
+   not an assumption — see direction 2 below.
+2. **Our internal metric cannot steer.** The 1,156-study weak-label development
    set has **two** positive MCL components; 1,164 of 4,000 whole-component
    bootstrap draws are undefined for macro AUC. Internal deltas of ±0.001–0.04
    are unresolvable at this sensitivity. Mechanism experiments measured only on
    this set are hypothesis generation, not evidence — the public score is the
    only arbiter that matches the competition objective.
-4. **Observed supervision is very sparse for rare targets.** In the 3,403-study
+3. **Observed supervision is very sparse for rare targets.** In the 3,403-study
    loss: MCL 7 positives, fracture 5, Baker's 9, effusion 25, lateral OA 27.
-   No architecture change manufactures positives; supervision work and
-   ensembling over members trained on denser public labels both address this.
+   No architecture change manufactures positives.
+4. **Input/recipe differences remain uncontrolled.** The OSS recipe uses
+   overlapping three-slice 2.5D windows over cached slices with per-target
+   series attention; ours encodes up to 16 independent slices per series and
+   pools globally. Our earlier frozen patch-attention variant regressed
+   (-0.016), but that was a different stage, not a controlled recipe
+   comparison.
 
-## Recommended directions, ranked by expected value per unit cost
+## Recommended directions — single model first, ensemble later
 
-1. **Add our checkpoints as members of the proven ensemble recipe.**
-   The 0.942 kernel is already on the account and scored. Adding our
-   all-development native384 rank32 (0.804 solo) and fold-0/fold-2 checkpoints
-   as rank-fused members is the cheapest real gain available: if our errors are
-   even partially decorrelated from the community members, mean AUC should move
-   above 0.942. Requires Kaggle-side work where account auth works.
-   `rsna/rank_fusion.py` (this change) provides the canonical, tested
-   per-column rank-fusion implementation matching the OSS mechanism.
-2. **Train diverse OSS-family members on the v2 reviewed labels.** The proven
-   winning recipe is DINOv2-small three-slice windows + per-target series
-   attention (+ COATNet/ResNet-RadImageNet variants). Training 2–3 members of
-   that family on our reviewed labels combines our label investment with their
-   proven architecture and adds further ensemble diversity.
-3. **Controlled label-source ablation.** Same architecture, same folds: one
-   member on public LLM labels vs. one on v2 reviewed labels, submitted as
-   paired ensemble members. This directly measures whether the label source
-   matters for the hidden score — the single most important unresolved
-   supervision question for this competition.
-4. **Distill public teachers on masked cells** (plan already in
-   [dinov3-adapter-and-supervision-plan](dinov3-adapter-and-supervision-plan.md)):
-   outer-fold-safe teacher predictions on the large masked fractions (fracture
-   2,699/3,403 masked) could densify supervision without corrupting observed
-   labels. Agreement is not truth — admit per-target only.
-5. **Keep mechanism research** (smooth witness, corroborating witnesses,
+The owner's direction (October 6): build a **highly sophisticated single
+model** first; treat ensembling only as a later step once a strong solo model
+exists. Public single models reportedly reach ~0.95, so the solo-model ceiling
+is not the binding constraint — the recipe and supervision are.
+
+1. **Controlled label-source ablation — the single most important experiment.**
+   Same architecture, same folds, same training budget: one member trained on
+   the public LLM labels vs. one on the v2 reviewed labels, each scored
+   publicly as a single model. This directly measures whether the label source
+   is the main lever for the hidden score — everything else (recipe tuning,
+   mechanism research, distillation) is downstream of that answer. If public
+   LLM labels win, our v2 review effort needs different uses (mask policy,
+   correction overlays, evaluation) rather than the primary training signal.
+2. **Build the best single model on whichever labels win.**
+   Adopt the proven input recipe — overlapping three-slice 2.5D windows,
+   per-target series attention — with a strong backbone (our adapted DINOv3-L
+   rank32 recipe or DINOv2-small as in the OSS members). This is a controlled
+   recipe comparison against our current 16-slice/global-pooling recipe on the
+   same labels and folds, not another untested variant.
+3. **Densify rare-target supervision via teacher distillation** (plan already
+   in [dinov3-adapter-and-supervision-plan](dinov3-adapter-and-supervision-plan.md)):
+   outer-fold-safe teacher predictions on the masked fractions (fracture
+   2,699/3,403 masked, MCL 7 observed positives) — admit per-target only;
+   agreement is not truth.
+4. **Keep mechanism research** (smooth witness, corroborating witnesses,
    neighbor context) as research, but promote nothing to competition on
    internal deltas alone; gate on paired public submissions.
+5. **Ensemble only after a strong solo model exists.** `rsna/rank_fusion.py`
+   (this change) already provides the canonical, tested per-column rank-fusion
+   implementation matching the OSS mechanism, so the option is ready when
+   warranted — it is not the current priority.
 
 ## Explicit non-recommendations
 
@@ -104,7 +111,7 @@ of the three public notebooks (`pjmathematician/rsna-knee-d4-lite`,
   intervals including zero).
 - Reading official gold or protected labels for tuning — remains prohibited.
 - Claiming the v2 labels are "better" for the competition before the paired
-  label-source ablation (direction 3) is measured.
+  label-source ablation (direction 1) is measured.
 
 ## Hard blockers observed in this session
 
