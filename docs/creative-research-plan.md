@@ -1,3 +1,16 @@
+October6 memory full comparison CPU876865 PASSED original full37812-member/stat,
+2247/1156 membership/source/header/configuration admission, reusing actual CPU876731
+common official initialized graph/RNG. New10GiB PRIVATE node future funded separately
+from old4MiB small gate, with existing live16GiB future+20GiB node reserve; shared
+new bytes/files0. Read plane-memory-full-fit-v1. Distinct full launcher/publisher
+and single dispatch coordinator are ready; full GPU job has NOT been dispatched.
+Require actual successful137306285/v1 T4 terminal/receipt before dispatch, then
+inside allocated H100 exact new-source recovery and fitting-only stresses before
+full3epochs/843updates per role. Primary12macro/all12 paired4000 component draws,
+no best-epoch/gold tuning. Existing875858 unchanged:488finite updates/control epoch2,
+empty stderr atprogress11; only control1 preserved yet. Never duplicate either
+original job,137306285 push or control1 publication.
+
 October6 owner renewed creative/competitor-guided work. Independent CPU876287
 actually audited ONLY2247fitting studies/12476original metadata series: all12476
 have valid within-series patient geometry. Artificial padding averages0.9248%
