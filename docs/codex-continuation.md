@@ -1,3 +1,5 @@
+Latest source286df4f privately mirrored at HF7b0a416843a1a806f3074e6d3af874b8e4b884da; all46 small objects fully download/size/SHA verified under canonical lock. Read hf-witness-smooth-FP16-20261006-v1. New FP16 GPU test137274970 v1 remains under the finite original observer; do not duplicate.
+
 October6 new FP16/smooth test137274970 v1 pushedONCE, scientific3b7e437.
 Exact source/CPU parent/base/wheels bound; actual optimizer/recovery pending.
 Uses native384/16slices/rank32, scaler128/chunk8, same original CPU32 inputs.
