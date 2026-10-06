@@ -1,3 +1,13 @@
+October6 new FP16/smooth test137274970 v1 pushedONCE, scientific3b7e437.
+Exact source/CPU parent/base/wheels bound; actual optimizer/recovery pending.
+Uses native384/16slices/rank32, scaler128/chunk8, same original CPU32 inputs.
+Original875277 held while PENDING/zero runtime to prevent a third GPU node.
+Finite finish coordinator artifacts/kaggle-witness-FP16-smooth-v1/finish_once.py
+is active (exec36696), releases SAME875277 only after actual test terminal.
+Never restart watcher/push; inspect hold/release intents on observation loss.
+No new clinical fit/score/competition slot. Full2098tests/Ruff332/mypy48 passed.
+Read kaggle-witness-FP16-smooth-v1; prior milestone source3b7e437 on main.
+
 October6 current: owning-node CPU875285 verifies BOTH original T4 final
 learned/base/AdamW/LR/counters/all-RNG, finite trajectories and CSV equality.
 Intermediate checkpoint bytes were overwritten; retain that explicit limitation.

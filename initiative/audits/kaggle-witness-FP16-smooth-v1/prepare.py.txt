@@ -1,0 +1,21 @@
+import hashlib,json,subprocess
+from pathlib import Path
+r=Path('artifacts/kaggle-witness-FP16-smooth-v1');old=Path('artifacts/kaggle-witness-T4-recovery-v1');head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head==subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip();assert not subprocess.check_output(['git','status','--porcelain','--','rsna/competitive/train.py','rsna/competitive/witness.py','scripts/kaggle/witness_amp_recovery.py','scripts/kaggle/witness_amp_launch.py'],text=True)
+overrides={n:Path(n).read_text() for n in ['rsna/competitive/train.py','rsna/competitive/witness.py']};hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in overrides.items()};worker=Path('scripts/kaggle/witness_amp_recovery.py').read_text();marker='from __future__ import annotations\n';assert worker.count(marker)==1;worker=worker.replace(marker,marker+'\nCODE_OVERRIDES = '+repr(overrides)+'\nCODE_OVERRIDE_HASHES = '+repr(hashes)+'\nSCIENCE_GIT = '+repr(head)+'\n',1);compile(worker,'immutable_FP16_worker.py','exec')
+helpers={'witness_recovery.py':worker,'witness_launch.py':Path('scripts/kaggle/witness_amp_launch.py').read_text()}
+prior=json.loads((old/'GPU-contract.json').read_text());model=json.loads(Path('initiative/audits/kaggle-nativeall-epoch5-v1/runtimefix/operation.json').read_text());entry=Path('scripts/kaggle/notebook_entry.py').read_text();assert entry.count('remaining = 14400 -')==1;entry=entry.replace('remaining = 14400 -','remaining = 3600 -')
+source='\n'.join(['EXPECTED_MANIFEST_SHA256 = '+repr(model['manifest_sha256']),'WITNESS_T4_RECOVERY_PROBE = True','WITNESS_T4_RECOVERY_SOURCES = '+repr(helpers),'WITNESS_T4_RECOVERY_HASHES = '+repr({n:hashlib.sha256(s.encode()).hexdigest() for n,s in helpers.items()}),'WITNESS_T4_CPU_ACCEPTANCE_SHA256 = '+repr(prior['CPU_receipt_sha256'])])+'\n'+entry
+compile(source,'immutable_FP16_T4_notebook.py','exec');assert len(source.encode())<128*1024
+contract=prior|{'kernel_slug':'godlydonuts/rsna-witness-fp16-smooth-20261006-v1','source_sha256':hashlib.sha256(source.encode()).hexdigest(),'helper_sha256':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in helpers.items()},'science_git':head,'original_input_science_git':prior['science_git'],'source_overrides':hashes,'precision':'fp16','encode_chunk_size':8,'amp_init_scale':128,'pooling':'normalized_logmeanexp','beta':8,'max_pipeline_seconds':3600,'existing_H100_job':875277,'existing_fullscale_gpu_kernel':'godlydonuts/rsna-resident-fullscale-1300-85bfc1ce-v1','existing_H100_job_held_before_push':False,'no_new_bulk_Datasets':True}
+for name,value in [('GPU-contract.json',json.dumps(contract,indent=2)+'\n'),('private-GPU-notebook.py',source)]:
+ with (r/name).open('x') as f:f.write(value)
+coordinator=(old/'coordinator.py').read_text().replace("R=Path('/tmp/rsna-witness-T4-recovery-20261006-v1')","R=Path('/tmp/rsna-witness-FP16-smooth-20261006-v1')").replace("'sessionTimeoutSeconds':14400","'sessionTimeoutSeconds':3600").replace('2*14400','2*3600').replace('witness-T4-recovery-accepted.json','witness-AMP-recovery-accepted.json').replace('actual_private_two_T4_patch_witness_canonical_trainer_recovery_accepted','actual_private_two_T4_FP16_smooth_witness_trainer_recovery_accepted')
+needle="        absent=remote.require_absent_kernel";guard="""        import subprocess
+        state=subprocess.check_output(['scontrol','show','job','875277'],text=True)
+        assert 'JobState=PENDING' in state and 'Reason=JobHeldUser' in state and 'RunTime=00:00:00' in state and 'ReqNodeList=evc31' in state
+        p.exclusive_json(R/'original-H100-held-proof.json',{'job_id':'875277','state':state,'reason':'Two live Kaggle GPU nodes; no third node may allocate','source_or_recipe_changed':False})
+""";coordinator=coordinator.replace(needle,guard+needle)
+(r/'coordinator.py').write_text(coordinator)
+runner=(old/'run_phase.py').read_text().replace("r=Path('artifacts/kaggle-witness-T4-recovery-v1')","r=Path('artifacts/kaggle-witness-FP16-smooth-v1')").replace('rsna-T4-trainer-recovery-','rsna-FP16-smooth-')
+(r/'run_phase.py').write_text(runner)
+print(json.dumps({'source_git':head,'source_sha256':contract['source_sha256'],'source_bytes':len(source.encode()),'kernel_slug':contract['kernel_slug'],'GPU_dispatched':False,'native384_slices16_rank32_unchanged':True}))
