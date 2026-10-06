@@ -142,7 +142,9 @@ under `knee-ssl-pretraining-v1`.
 (arXiv:2602.20752) — orientation-specific 3D diffusion branches
 self-supervised on 15,948 unlabeled knee exams; public code
 (github.com/lt-0123/OrthoDiffusion) and weights
-(huggingface.co/lanstat0123/orthodiffusion, med-ddpm backbone);
+(huggingface.co/lanstat0123/orthodiffusion, med-ddpm backbone —
+verified 2026-10-06: 3 × 553 MB branch checkpoints `sagittal/coronal/
+axial_model.pt` downloadable);
 linear-probe + finetune recipes on 8 knee abnormalities, 11-structure
 segmentation, cross-center robustness. This may be a stronger encoder
 init than anything self-pretrained — but it is 3D volumetric, so it needs
