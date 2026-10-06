@@ -1,3 +1,12 @@
+Notebook-inclusive RAM-check/owned-GPU observation sourcee85e2dec privately
+mirrored at HFf69a8173a7776fc24af6c6220e8579f89c1acf7b; all19 small objects
+fully re-downloaded/size/SHA verified under canonical shared lock. Never repeat.
+No MRI/labels/case IDs/weights mirrored. Candidate875858 healthy445updates/epoch2
+and empty stderr atprogress31; only candidate1/control1–3 preserved so far.
+Original137329288/v1 still authenticated RUNNING14:24UTC. Memory32-v2 remains
+prepared only; do not dispatch before actual fullscale terminal success/fresh
+quota/original jobs. No new paired accuracy or Kaggle score.
+
 Notebook-inclusive memory32-v2 source c8e63bd416240602 is prepared/compiled,
 NOT pushed. It preserves exact original32 FP32 values and requires all seven
 processes (notebook plus6 workers/parent/tracker) RSS and total bootstrap walltime
