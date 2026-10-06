@@ -1,3 +1,9 @@
+October6 actual32 T4 equivalence/resources passed; distinct1300 benchmark
+137253277 v1 and private CPU32 input137253436 v1 RUNNING. Read continuation/
+new audits; never duplicate. Dataset12393509 v1 full4-object verified. No new
+trainer/clinical score/full hidden deadline admitted. Best0.804 unchanged.
+Native evc24 cuInit999/NVML no devices; no blind retry/isolation bypass.
+
 October6 private two-T4 runtime notebook137247865 v1 pushedONCE, exact returned
 identity/source/private/offline/runtime reconciled RUNNING. Read current
 continuation/kaggle-resident-performance-v1. Do not re-push original requested

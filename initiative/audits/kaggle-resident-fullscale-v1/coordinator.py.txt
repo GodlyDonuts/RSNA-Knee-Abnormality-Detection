@@ -1,0 +1,112 @@
+"""One private offline benchmark notebook; no competition submission API."""
+import importlib.util
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+R = Path('/tmp/rsna-resident-fullscale-20261006-v1')
+B = Path('/home/sa305415/rsna-knee')
+P = Path('/tmp/rsna-kaggle-effusion-identity-coordinator-completion-20261004-v1/projection')
+v = json.load(sys.stdin)
+assert os.uname().nodename == 'evc32' and not os.environ.get('SLURM_JOB_GPUS')
+spec = importlib.util.spec_from_file_location('canonical_coordinator', P/'code/scripts/kaggle/coordinator.py')
+c = importlib.util.module_from_spec(spec); spec.loader.exec_module(c)
+w, projection = c.load_workflow(P/'code', P/'projection.json', v['projection_sha256'])
+p = c.p
+if v['phase'] == 'push':
+    assert not R.exists()
+    assert len(v['source'].encode()) < 256*1024
+    assert shutil.disk_usage('/tmp').free > 20*2**30 + 16*2**20
+    # Preserve the original already charged asset accounting; no new shared data.
+    fund=json.loads(Path('/tmp/rsna-kaggle-effusion-final-20261004-v1/funding.json').read_text()); paid={}
+    for sha in fund['all_checkpoint_shas']:
+        j=B/'kaggle/dataset-publications'/sha
+        if j.exists():
+            for f in [j]+list(j.rglob('*')):
+                s=f.stat(); assert not f.is_symlink(); paid[s.st_dev,s.st_ino]=s.st_size
+    q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True)
+    row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0]
+    used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]]
+    gib=((soft-used)*1024-(1404996457+2*2**20-sum(paid.values())))/2**30
+    slots=limit-count-(760-len(paid))
+    assert gib>=20 and slots>=5000 and len(paid)<=40 and sum(paid.values())<2*2**20
+    R.mkdir(mode=0o700)
+    p.exclusive_json(R/'funding.json', {'shared_remaining_GiB':gib,'shared_remaining_files':slots,'new_shared_bytes':0,'new_shared_files':0,'node_control_cap_bytes':16*2**20,'node_free_bytes':shutil.disk_usage('/tmp').free})
+    (R/'notebook.py').write_text(v['source'])
+    p.exclusive_json(R/'contract.json',v['contract'])
+contract=json.loads((R/'contract.json').read_text())
+source=(R/'notebook.py').read_text(); assert p.digest(R/'notebook.py')==contract['source_sha256']
+sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+request={'slug':contract['kernel_slug'],'newTitle':contract['kernel_slug'].split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[contract['dataset_slug'],contract['shared_wheelhouse']['dataset_slug']],'competitionDataSources':[w.COMPETITION],'sessionTimeoutSeconds':28800,'dockerImage':contract['runtime_image'],'dockerImagePinningType':'original'}
+with c.single_coordinator(B/'kaggle'):
+    assert p.metadata(remote,contract['dataset_slug'])=={'id':12333543,'version':1,'slug':contract['dataset_slug'],'private':True}
+    w.verify_shared_wheelhouse(remote,contract['shared_wheelhouse'])
+    account=remote.account()
+    with w.ledger(B/'kaggle/account-ledger.sqlite3',remote.username) as db:
+        original=w.read_entry(db,contract['checkpoint_sha256'])
+        assert original['state']=='submitted' and str(original['submission_id'])=='56783855'
+    if v['phase']=='quota':
+        print(json.dumps({'checked_at':w.utcnow(),'accelerators':remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{}),'account':account,'competition_submission':False}));sys.exit(0)
+    if v['phase']=='push':
+        quotas=remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})
+        def seconds(x):
+            assert isinstance(x,str) and x.endswith('s');return float(x[:-1])
+        g=quotas['gpuQuota'];available=min(seconds(g['totalTimeAllowed']),seconds(g['minimumTimeAllowed']))-seconds(g['timeUsed'])-seconds(g['timeReserved'])
+        assert available>=2*28800+2*14400,'Preserve conservative whole-scale plus training-diagnostic budget'
+        p.exclusive_json(R/'GPU-quota-before.json',{'checked_at':w.utcnow(),'raw':quotas,'available_within_guaranteed_allowance_seconds':available,'conservative_fullscale_plus_future_training_reservation_seconds':2*28800+2*14400,'account_settings_changed':False})
+        assert not (R/'kernel-create-intent.json').exists() and not (R/'kernel-create-response.json').exists()
+        absence=remote.require_absent_kernel(contract['kernel_slug'])
+        p.exclusive_json(R/'kernel-create-intent.json',{'request_sha256':w.object_hash(request),'source_sha256':contract['source_sha256'],'kernel_slug':contract['kernel_slug'],'absence_proof':absence,'original_submission_id':'56783855','competition_submission':False,'account_before':account})
+        result=remote.call('kernels.KernelsApiService','SaveKernel',request)
+        p.exclusive_json(R/'kernel-create-response.json',result)
+        assert result.get('versionNumber')==1 and result.get('ref')=='/code/'+contract['kernel_slug'] and not result.get('error')
+        print(json.dumps({'status':'private_offline_two_T4_performance_notebook_pushed_once','version':1,'kernel_slug':contract['kernel_slug'],'kernel_id':result.get('kernelId'),'source_sha256':contract['source_sha256'],'competition_submission':False,'account':account,'funding':json.loads((R/'funding.json').read_text())}))
+    else:
+        assert json.loads((R/'kernel-create-intent.json').read_text())['request_sha256']==w.object_hash(request)
+        saved=json.loads((R/'kernel-create-response.json').read_text()); assert saved.get('versionNumber')==1 and type(saved.get('kernelId')) is int and saved['kernelId']>0
+        actual_kernel=saved['ref'].removeprefix('/code/'); assert actual_kernel==contract['kernel_slug']
+        found=remote.kernel('GetKernel',actual_kernel,1);meta=found['metadata']
+        assert w.object_hash(found.get('blob',{}).get('source',''))==w.object_hash(source)
+        for k in ['isPrivate','enableInternet','machineShape','datasetDataSources','competitionDataSources','dockerImage']:
+            assert meta.get(k)==request[k],k
+        state=remote.kernel('GetKernelSessionStatus',actual_kernel,1)
+        if v['phase']=='progress':
+            import hashlib,re
+            from urllib.parse import urlparse,urljoin
+            import requests
+            remote.session.cookies.clear()
+            response=remote.session.get(w.API+'kernels/logs/stream/'+actual_kernel,timeout=(10,20),allow_redirects=False,stream=True)
+            raw=None
+            for _ in range(6):
+                with response:
+                    if response.status_code==200:
+                        raw=bytearray()
+                        for block in response.iter_content(65536):
+                            raw.extend(block); assert len(raw)<2*1024**2
+                        break
+                    assert response.status_code in {301,302,303,307,308}
+                    url=urljoin(response.url,response.headers.get('Location',''))
+                parsed=urlparse(url);host=parsed.hostname or ''
+                assert parsed.scheme=='https' and (host=='storage.googleapis.com' or host.endswith('.googleusercontent.com') or host.endswith('.kaggleusercontent.com'))
+                response=requests.get(url,timeout=(10,20),allow_redirects=False,stream=True)
+            assert raw is not None
+            tail=bytes(raw).decode('utf-8')[-4000:]
+            tail=re.sub(r'(?:hf_|KGAT_)[A-Za-z0-9]{10,}','[redacted]',tail)
+            tail=re.sub(r'1\.2\.826\.[0-9.]+','[private-study-UID]',tail)
+            print(json.dumps({'status':state,'checked_at':w.utcnow(),'log_sha256':hashlib.sha256(raw).hexdigest(),'log_bytes':len(raw),'sanitized_tail':tail,'competition_submission':False}))
+            sys.exit(0)
+        answer={'status':state.get('status'),'actual_remote':state,'exact_source_and_private_offline_T4_image_verified':True,'kernel_slug':actual_kernel,'requested_kernel_slug':contract['kernel_slug'],'returned_identity_reconciled_read_only':True,'version':1,'competition_submission':False,'account':account}
+        if state.get('status')=='COMPLETE':
+            result=remote.output_json(actual_kernel,1,'runtime-benchmark.json')
+            assert result['checkpoint_sha256']==contract['checkpoint_sha256']
+            assert result['fitting_UIDs_sha256']==contract['fitting_UIDs_sha256']
+            assert result['competition_submission_created'] is False and result['full_hidden_runtime_admitted'] is False
+            assert result['original_FP32_comparison']['exact_prediction_values_equal'] is True
+            assert result['checkpoint_loads_per_device']==1 and result['studies']==1300
+            p.exclusive_json(R/'actual-runtime-benchmark.json',result);answer['benchmark']=result
+        print(json.dumps(answer))

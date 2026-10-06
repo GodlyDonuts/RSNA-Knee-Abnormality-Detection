@@ -24,6 +24,7 @@ def main():
     parser = argparse.ArgumentParser()
     for name in ("bundle", "encoder-spec", "competition", "roster", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--study-count", type=int, choices=(32, 1300), default=32)
     args = parser.parse_args()
     started = time.monotonic()
     if torch.cuda.device_count() != 2 or any(
@@ -31,8 +32,8 @@ def main():
     ):
         raise ValueError("Actual two-T4 performance execution required")
     roster = json.loads(args.roster.read_text())
-    if len(roster) != 32 or len(set(roster)) != 32:
-        raise ValueError("Original fitting-only32 roster required")
+    if len(roster) != args.study_count or len(set(roster)) != args.study_count:
+        raise ValueError("Exact admitted fitting-only roster required")
     series = pd.read_csv(args.competition / "train_series.csv")
     if not set(roster) <= set(series.StudyInstanceUID):
         raise ValueError("Admitted fitting roster missing from original MRI source")
@@ -144,12 +145,12 @@ def main():
     pipeline_seconds = metrics["elapsed_seconds"] - comparison["reference_seconds"]
     record = {
         "status": "actual_private_fitting_T4_throughput_observed",
-        "studies": 32,
+        "studies": args.study_count,
         "device_names": [torch.cuda.get_device_name(i) for i in (0, 1)],
         "checkpoint_sha256": metrics["checkpoint_sha256"],
         "elapsed_seconds": time.monotonic() - started,
         "pipeline_seconds_excluding_reference": pipeline_seconds,
-        "studies_per_second": 32 / pipeline_seconds,
+        "studies_per_second": args.study_count / pipeline_seconds,
         "original_FP32_comparison": comparison,
         "GPU_peak_allocated_bytes": peaks,
         "conservative_process_tree_peak_rss_upper_bytes": upper_rss,
@@ -167,6 +168,7 @@ def main():
         "competition_submission_eligible": False,
         "competition_submission_created": False,
         "full_hidden_runtime_admitted": False,
+        "private_fitting_scale_studies": args.study_count,
         "kaggle_score": None,
     }
     if not all_finite or upper_rss > 29 * 2**30 or any(v > 16 * 2**30 for v in peaks.values()):

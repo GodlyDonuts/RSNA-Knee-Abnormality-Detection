@@ -39,6 +39,33 @@ def sha256(path):
     return digest.hexdigest()
 
 
+def attached_dataset_files(inputs, name):
+    """Find attached payloads without traversing the competition MRI tree."""
+    if Path(name).name != name:
+        raise ValueError("Attached payload name must be a basename")
+    seen = 0
+    for directory, children, files in os.walk(inputs, followlinks=False):
+        directory = Path(directory)
+        seen += 1
+        depth = len(directory.relative_to(inputs).parts)
+        if seen > 2048 or depth > 8:
+            raise ValueError("Attached Dataset discovery exceeded its metadata budget")
+        if directory.name in {"competitions", "rsna-knee-abnormality-detection"} or (
+            "train_series" in children or "test_series" in children
+        ):
+            children[:] = []
+            continue
+        children[:] = [
+            child
+            for child in children
+            if child not in {"competitions", "rsna-knee-abnormality-detection"}
+        ]
+        if name in files:
+            path = directory / name
+            if not path.is_symlink() and path.is_file():
+                yield path
+
+
 def resolve_wheels(
     bundle, manifest, inputs=Path("/kaggle/input"), destination=Path("/tmp/rsna-shared-wheels")
 ):
@@ -51,7 +78,7 @@ def resolve_wheels(
         raise ValueError("Invalid shared archive path")
     candidates = [
         p
-        for p in inputs.rglob(name)
+        for p in attached_dataset_files(inputs, name)
         if p.is_file()
         and p.stat().st_size == shared["archive_bytes"]
         and sha256(p) == shared["archive_sha256"]
@@ -201,7 +228,9 @@ def run():
     if not isinstance(expected, str) or len(expected) != 64:
         raise ValueError("Prepared notebook manifest binding is required")
     matches = [
-        p for p in Path("/kaggle/input").rglob("bundle-manifest.json") if sha256(p) == expected
+        p
+        for p in attached_dataset_files(Path("/kaggle/input"), "bundle-manifest.json")
+        if sha256(p) == expected
     ]
     if len(matches) != 1:
         raise ValueError("Exactly one byte-bound inference bundle must be attached")
@@ -278,6 +307,72 @@ def run():
     sys.path.insert(0, str(bundle / "code"))
     env = os.environ.copy()
     env["PYTHONPATH"] = str(bundle / "code")
+    if globals().get("WITNESS_INPUTS_CPU_PROBE") is True:
+        source = globals().get("WITNESS_INPUTS_SOURCE")
+        source_sha = globals().get("WITNESS_INPUTS_SOURCE_SHA256")
+        archive_sha = globals().get("WITNESS_INPUTS_ARCHIVE_SHA256")
+        admission_sha = globals().get("WITNESS_INPUTS_ADMISSION_SHA256")
+        if (
+            not isinstance(source, str)
+            or len(source.encode()) > 64 * 1024
+            or hashlib.sha256(source.encode()).hexdigest() != source_sha
+            or not isinstance(archive_sha, str)
+            or len(archive_sha) != 64
+            or not isinstance(admission_sha, str)
+            or len(admission_sha) != 64
+        ):
+            raise ValueError("Explicit standalone CPU input source/receipts required")
+        payloads = [
+            p
+            for p in attached_dataset_files(Path("/kaggle/input"), "CPU-admission.json")
+            if sha256(p) == admission_sha
+        ]
+        if len(payloads) != 1:
+            raise ValueError("Exactly one original private training input Dataset required")
+        helper = working / "witness_inputs.py"
+        with helper.open("x") as handle:
+            handle.write(source)
+        control = working / "witness-training-source"
+        bounded_process(
+            [
+                str(python),
+                str(helper),
+                "--extract-inputs",
+                "--input-directory",
+                str(payloads[0].parent),
+                "--destination",
+                str(control),
+                "--archive-sha256",
+                archive_sha,
+                "--admission-sha256",
+                admission_sha,
+            ],
+            env=env,
+            timeout=28800 - (time.monotonic() - notebook_started),
+        )
+        env.update(
+            PYTHONPATH=str(control / "code"),
+            PYTHONDONTWRITEBYTECODE="1",
+            OMP_NUM_THREADS="1",
+            MKL_NUM_THREADS="1",
+            OPENBLAS_NUM_THREADS="1",
+        )
+        bounded_process(
+            [
+                str(python),
+                str(helper),
+                "--control",
+                str(control),
+                *encoder_arguments(bundle, working, manifest),
+                "--competition",
+                str(resolve_competition(Path("/kaggle/input"), manifest["competition"])),
+                "--output",
+                str(working / "witness-inputs-admission"),
+            ],
+            env=env,
+            timeout=28800 - (time.monotonic() - notebook_started),
+        )
+        return
     if globals().get("DELTA_DIAGNOSTIC_PROBE") is True:
         competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
         subprocess.run(
@@ -327,8 +422,13 @@ def run():
                 raise ValueError("Standalone performance source differs")
             with (runtime_code / name).open("x") as handle:
                 handle.write(source)
-        if not isinstance(roster, list) or len(roster) != 32 or len(set(roster)) != 32:
-            raise ValueError("Exact admitted 32-study fitting performance roster required")
+        study_count = globals().get("RESIDENT_PERFORMANCE_STUDY_COUNT", 32)
+        if study_count not in {32, 1300} or (
+            not isinstance(roster, list)
+            or len(roster) != study_count
+            or len(set(roster)) != study_count
+        ):
+            raise ValueError("Exact admitted fitting performance roster required")
         roster_path = runtime_code / "fitting-roster.json"
         roster_path.write_text(json.dumps(roster))
         competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
@@ -344,6 +444,8 @@ def run():
             str(roster_path),
             "--output",
             str(working / "resident-performance"),
+            "--study-count",
+            str(study_count),
         ]
         bounded_process(
             command,

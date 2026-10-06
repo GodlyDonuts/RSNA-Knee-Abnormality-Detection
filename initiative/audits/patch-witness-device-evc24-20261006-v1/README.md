@@ -1,0 +1,5 @@
+# Allocated evc24 CUDA/NVML observation
+
+Original metadata-only job874292 completed0:0 in under one second, followed by CPU874294 original receipt collection. Slurm assigned GPU0 and exposed CUDA_VISIBLE_DEVICES=0. Native driver version13000 was readable, but cuInit returned999; NVML returned6 with No devices were found. These are actual independent observations, not a model/data/optimizer failure. No CUDA context or memory was created and no MRI/model ran. Do not launch training or transfer new input/runtime assets to this node from nominal availability alone. No root cause, driver repair or device-isolation bypass is claimed or authorized by this diagnostic. Prior failure867510 remains preserved.
+
+The idle H200 evc105 uses short/ucfit partitions whose AllowAccounts exclude our skattel account; highgpu also excludes it. No disallowed account/partition was requested. Original cache-owning evc31/evc48/evc32 had both GPUs allocated to other work. A read-only45-minute one-H100 forecast on evc31 estimated October7 01:56 UTC. That forecast was not a submission or reserved job. No new research training job was dispatched.

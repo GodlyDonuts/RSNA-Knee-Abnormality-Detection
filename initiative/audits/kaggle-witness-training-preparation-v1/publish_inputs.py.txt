@@ -1,0 +1,63 @@
+"""One private nonpixel input Dataset under the canonical Kaggle coordinator."""
+import hashlib
+import importlib.metadata
+import importlib.util
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode=True
+B=Path('/home/sa305415/rsna-knee')
+P=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection')
+R=Path('/tmp/rsna-witness-kaggle-preparation-20261006-v2')
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+s=importlib.util.spec_from_file_location('canonical_coordinator',P/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(P/'code',P/'projection.json','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437');p=c.p
+proof=json.loads((R/'CPU-accepted.json').read_text())
+assert proof['status']=='actual_complete_original_release_and_scientific_source_portable_CPU_replay_accepted'
+assert proof['archive_sha256']=='14a079e1444c2c86157748526ce64f49402cd164aa2669b6757ba8f39bfb4b02' and proof['archive_bytes']==289259520
+assert proof['no_pixels_or_model_weights_in_archive'] is True and proof['training_studies']==2247 and proof['outer_studies']==1156
+assert proof['source_git']=='d3cf58242455bf96e46b0c2071e8e9fe16cf4aaf'
+management=B/'kaggle/management-cp312-v1/bin/python'
+versions=json.loads(subprocess.check_output([str(management),'-B','-c',"import json,importlib.metadata;print(json.dumps({n:importlib.metadata.version(n) for n in ['kaggle','kagglesdk']}))"],text=True))
+assert versions=={'kaggle':'2.2.3','kagglesdk':'0.1.30'}
+assert shutil.disk_usage(R).free>=20*2**30+2*2**30
+# All new payload/transport/journal bytes are node-local within original2GiB admission.
+D=R/'kaggle-input-dataset';J=R/'input-publication';U=R/'input-upload'
+slug='godlydonuts/rsna-witness-training-inputs-14a079e1444c'
+if v['phase'] in ['create','create-after-readonly']:
+    assert not D.exists() and not J.exists() and not U.exists()
+    assert p.digest(R/'training-inputs.tar')==proof['archive_sha256']
+    D.mkdir(mode=0o700);U.mkdir(mode=0o700)
+    os.link(R/'training-inputs.tar',D/'training-inputs.bin')
+    # The manifest retains full original file/hash bindings privately.
+    (D/'CPU-admission.json').write_text(json.dumps(proof,sort_keys=True,indent=2)+'\n')
+    (D/'README.md').write_text('Private RSNA Knee original report-derived release and immutable scientific code for diagnostic MRI-only training acceptance. No MRI pixels or encoder/model weights included. Source: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection . Original labels/masks/folds remain unchanged. Gold membership is authenticated for exclusion; gold values/confirmation do not train or select models. Archive payload is TAR stored as BIN to prevent server repacking. Original source Git d3cf58242455bf96e46b0c2071e8e9fe16cf4aaf. DINOv3 weights/license are separately reused from the original private pinned model Dataset. No diagnostic checkpoint or public-example CSV is competition-eligible.\n')
+    files={f.name:{'bytes':f.stat().st_size,'sha256':p.digest(f)} for f in D.iterdir()}
+    manifest={'schema_version':1,'kind':'private_complete_nonpixel_training_inputs','diagnostic_only':True,'competition_submission_eligible':False,'source_git':proof['source_git'],'source_archive_sha256':proof['archive_sha256'],'source_archive_format':'tar_in_bin','no_pixels_or_weights':True,'original_masks_folds_preserved':True,'files':files}
+    (D/'bundle-manifest.json').write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\n')
+    files['bundle-manifest.json']={'bytes':(D/'bundle-manifest.json').stat().st_size,'sha256':p.digest(D/'bundle-manifest.json')}
+    transport=p.build_zip(D,files,U/'bundle.zip');p.exclusive_json(R/'input-transport.json',{'files':files,**transport})
+else:
+    transport=json.loads((R/'input-transport.json').read_text());files=transport['files']
+sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,token=c.remote_from_stdin(w)
+with c.single_coordinator(B/'kaggle'):
+    account=remote.account()
+    with w.ledger(B/'kaggle/account-ledger.sqlite3',remote.username) as db:
+        old=w.read_entry(db,'85bfc1ce420f3ea87ad9d9e1669714761876ecf71409a09035c21b42fe9fdef4');assert old['state']=='submitted' and str(old['submission_id'])=='56783855'
+    if v['phase'] in ['create','create-after-readonly']:
+        result=p.create_once(remote,token,slug,files,U,J,{'archive_sha256':transport['sha256'],'archive_bytes':transport['bytes'],'CPU_proof_sha256':p.digest(R/'CPU-accepted.json'),'source_archive_sha256':proof['archive_sha256'],'purpose':'diagnostic_training_inputs_only','new_shared_bytes':0,'new_shared_files':0,'no_pixels_or_weights':True},create=c.management_create(management))
+        print(json.dumps({'status':'private_training_input_dataset_create_returned_once','response':result,'slug':slug,'account':account,'competition_submission':False}))
+    else:
+        assert (J/'intent.json').exists()
+        before=p.metadata(remote,slug)
+        value=remote.call('datasets.DatasetApiService','GetDatasetStatus',{'ownerSlug':'godlydonuts','datasetSlug':slug.split('/')[1]})
+        if value.get('status') not in ['READY',5]:
+            print(json.dumps({'status':'original_private_dataset_ingestion_wait','remote':value,'metadata':before,'competition_submission':False}));sys.exit(0)
+        if not (J/'verified.json').exists():
+            verified=p.reconcile(remote,slug,files);p.exclusive_json(J/'verified.json',verified)
+        verified=json.loads((J/'verified.json').read_text());assert verified['private'] is True and verified['version']==1 and verified['files']==files and verified['downloaded_all_bytes'] is True
+        print(json.dumps({'status':verified['status'],'id':verified['id'],'slug':slug,'version':1,'private':True,'objects':len(files),'source_archive_sha256':proof['archive_sha256'],'CPU_admission_sha256':p.digest(D/'CPU-admission.json'),'dataset_manifest_sha256':p.digest(D/'bundle-manifest.json'),'competition_submission':False,'GPU_training_dispatched':False,'account':account}))

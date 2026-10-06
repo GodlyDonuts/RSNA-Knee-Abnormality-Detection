@@ -1,0 +1,119 @@
+"""Bind a portable complete release; no pixels, model, optimizer or label edits."""
+import gc
+import hashlib
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tarfile
+from pathlib import Path
+
+root = Path('/home/sa305415/rsna-knee/code-stopfix-1f486765').resolve()
+original = Path('/tmp/rsna-patch-witness-recovery-20261005-v1')
+output = Path('/tmp/rsna-witness-kaggle-preparation-20261006-v2')
+previous = Path('/tmp/rsna-witness-kaggle-preparation-20261006-v1')
+assert os.uname().nodename == 'evc31' and os.environ['SLURM_CPUS_PER_TASK'] == '1'
+assert not os.environ.get('SLURM_JOB_GPUS')
+assert shutil.disk_usage('/tmp').free >= 20*2**30 + 2*2**30
+output.mkdir(mode=0o700)
+source = json.loads((original/'source.json').read_text())
+proof = json.loads((original/'cpu-accepted.json').read_text())
+assert proof['status'] == 'actual_patch_witness_32_study_inputs_and_official_initialization_accepted'
+assert hashlib.sha256((original/'cpu-accepted.json').read_bytes()).hexdigest() == '1e9505f9c7ffded479ea7f4631d38f1ae49f3b431f8b866600f8924a353526ee'
+assert proof['source_sha256'] == source['files']
+assert source['source_git'] == 'd3cf58242455bf96e46b0c2071e8e9fe16cf4aaf'
+opened = set()
+
+
+def trace(event, args):
+    if event != 'open' or not isinstance(args[0], (str, bytes, os.PathLike)):
+        return
+    path = Path(os.fsdecode(args[0])).resolve()
+    if not path.is_relative_to(root):
+        return
+    mode, flags = args[1:3]
+    assert not isinstance(mode, str) or not any(c in mode for c in 'wa+')
+    assert not (flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC))
+    if path.is_file():
+        opened.add(path)
+
+
+sys.addaudithook(trace)
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development, _uid_hash
+
+studies = root/'initiative/releases/report-supervision-v1/studies.parquet'
+manifest, binding = load_verified_release(studies, root)
+fold_dir = root/'initiative/experiments/competitive-v1/folds'
+folds = load_folds(fold_dir, manifest, binding)
+train, outer = select_development(manifest, folds, 0)
+assert len(train)==2247 and len(outer)==1156
+assert _uid_hash(train.head(16)) == proof['training_16_sha256']
+assert _uid_hash(outer.head(16)) == proof['outer_16_sha256']
+opened.update([studies, studies.parent/'verified_release.json', fold_dir/'fold.csv', fold_dir/'folds.json'])
+# Freeze membership before package reads themselves emit audit events.
+paths = sorted(opened)
+assert len(paths) <= 2000
+assert all(not p.is_symlink() and p.suffix not in {'.dcm','.npz','.npy','.png','.jpg','.pt','.safetensors'} for p in paths)
+assert all('__pycache__' not in p.parts for p in paths)
+size = sum(p.stat().st_size for p in paths)
+assert size < 512*2**20
+artifact = output/'artifacts'
+records = {}
+for path in paths:
+    name = str(path.relative_to(root)); target = artifact/name
+    target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    raw = path.read_bytes()
+    retained = previous/'artifacts'/name
+    if retained.exists():
+        assert retained.read_bytes()==raw
+        os.link(retained,target)
+    else:
+        target.write_bytes(raw)
+    records['artifacts/'+name] = {'bytes':len(raw), 'sha256':hashlib.sha256(raw).hexdigest()}
+code = output/'code'
+for name, sha in source['files'].items():
+    path = original/'code'/name
+    raw=path.read_bytes(); assert hashlib.sha256(raw).hexdigest()==sha
+    target=code/name; target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    retained=previous/'code'/name
+    assert retained.read_bytes()==raw
+    os.link(retained,target)
+    records['code/'+name]={'bytes':len(raw),'sha256':sha}
+# A complete unchanged validator runs again in a NEW interpreter over copied files.
+replay = """import json,sys
+from pathlib import Path
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development,_uid_hash
+r=Path(sys.argv[1]);m,b=load_verified_release(r/'initiative/releases/report-supervision-v1/studies.parquet',r);f=load_folds(r/'initiative/experiments/competitive-v1/folds',m,b);t,o=select_development(m,f,0);print(json.dumps({'binding':b,'training_count':len(t),'outer_count':len(o),'training_16_sha256':_uid_hash(t.head(16)),'outer_16_sha256':_uid_hash(o.head(16))}))
+"""
+del manifest, train, outer, folds; gc.collect()
+env=os.environ.copy(); env.update(PYTHONPATH=str(code),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+p=subprocess.run([sys.executable,'-B','-c',replay,str(artifact)],env=env,capture_output=True,text=True,timeout=300)
+(output/'portable-replay.stdout').write_text(p.stdout);(output/'portable-replay.stderr').write_text(p.stderr)
+assert p.returncode==0, 'Complete release replay failed; retain exact logs and closure'
+accepted=json.loads(p.stdout);assert accepted['binding']==binding and accepted['training_count']==2247 and accepted['outer_count']==1156
+assert accepted['training_16_sha256']==proof['training_16_sha256'] and accepted['outer_16_sha256']==proof['outer_16_sha256']
+# Preserve complete original input proof privately, including 32 tensor bindings.
+raw=(original/'cpu-accepted.json').read_bytes();(output/'original-input-proof.json').write_bytes(raw);records['original-input-proof.json']={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+policy={}
+for mode in ['control','candidate']:
+    original_config=json.loads((original/(mode+'.json')).read_text())
+    config=dict(original_config,precision='fp32',encode_chunk_size=1)
+    # Two-T4 recovery is a NEW explicit engineering recipe, never silently BF16.
+    from rsna.competitive.train import TrainConfig
+    TrainConfig(**config).validate()
+    raw=(json.dumps(config,sort_keys=True,indent=2)+'\n').encode();(output/(mode+'.json')).write_bytes(raw);records[mode+'.json']={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+    policy[mode]={'precision':'fp32','encode_chunk_size':1,'original_H100_config_sha256':proof['config_sha256'][mode],'config_sha256':hashlib.sha256(raw).hexdigest()}
+archive=output/'training-inputs.tar'
+with tarfile.open(archive,'x') as handle:
+    for name in sorted(records):
+        raw=(output/name).read_bytes();member=tarfile.TarInfo(name);member.size=len(raw);member.mode=0o600;member.mtime=0;handle.addfile(member,io.BytesIO(raw))
+assert archive.stat().st_size < 512*2**20
+record={'status':'actual_complete_original_release_and_scientific_source_portable_CPU_replay_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'source_git':source['source_git'],'original_input_proof_sha256':records['original-input-proof.json']['sha256'],'binding':binding,'training_studies':2247,'outer_studies':1156,'engineering_training_studies':16,'engineering_outer_studies':16,'engineering_UIDs_equal_to_original_CPU_proof':True,'source_files':len(source['files']),'portable_artifact_files':len(paths),'files':records,'archive_bytes':archive.stat().st_size,'archive_sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'T4_engineering_recipe':policy,'original_H100_recipe_preserved':True,'shared_future_bytes':0,'shared_future_files':0,'node_preparation_cap_bytes':2*2**30,'no_pixels_or_model_weights_in_archive':True,'encoder_model_optimizer_or_GPU_executed':False,'clinical_accuracy_evidence':False,'Kaggle_training_dispatched':False,'gold_membership_authenticated_only':True,'gold_values_or_confirmation_used_for_training_or_selection':False}
+(output/'CPU-accepted.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')
+print(json.dumps({k:v for k,v in record.items() if k!='files'}),flush=True)

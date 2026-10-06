@@ -1,3 +1,24 @@
+October6 actual T4 evidence: original32 benchmark137247865 v1 COMPLETED.
+Original FP32 values exactly equal on3 comparisons; all32 finite/no fallback,
+one model load/device,2.36GB allocated/GPU and10.65GB conservative hostRSS.
+Pipeline658.24s excluding reference; no accuracy gain/hidden score/full-hidden
+budget admission. Distinct1300 fitting-only137253277 v1 pushedONCE, actually
+RUNNING. Read kaggle-resident-fullscale-v1/original journals; never re-push.
+
+Portable unchanged release CPU874335 passed2247/1156 replay,289MB nonpixel/
+nonweight archive. Dataset12393509 v1 createdONCE/full4 objects size/SHA verified.
+Private offline CPU input137253436 v1 pushedONCE and RUNNING; original32 MRI
+image/geometry/label/mask and official initialization acceptance still pending.
+Read kaggle-witness-training-preparation-v1. Explicit proposed T4 FP32/chunk1
+is distinct from H100 BF16/chunk16; no GPU trainer/clinical fit dispatched.
+
+Native evc24 probe874292 returned cuInit999/NVML6/no devices despite assigned
+GPU0, no context/MRI/model. H200/highgpu partitions exclude our account. Owning
+31/48/32 GPUs occupied; read-only evc31 forecast Oct7 01:56UTC was not submission.
+Preserve failures; no isolation bypass/blind retry. Best solo0.804 unchanged.
+All5 competition slots available; private tests spend none. Guaranteed GPU
+allowance is rechecked with budget retained for later training diagnostics.
+
 Latest runtime integration/dispatch source9d6282e privately mirrored at
 HF241b70a16c4bbfa869cdba12d933a0c7efefb8d1; all25small objects fully re-downloaded/
 size/SHA verified under canonical shared lock. Read hf-kaggle-resident-performance-

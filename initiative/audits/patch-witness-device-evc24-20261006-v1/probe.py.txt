@@ -1,0 +1,21 @@
+import ctypes,ctypes.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+root=Path('/tmp/rsna-native-device-evc24-20261006-v1');assert os.uname().nodename=='evc24' and os.environ['SLURM_CPUS_PER_TASK']=='1' and os.environ.get('SLURM_JOB_GPUS');assert shutil.disk_usage('/tmp').free>=20*2**30+32*2**20;root.mkdir(mode=0o700)
+record={'job_id':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),'SLURM_JOB_GPUS':os.environ.get('SLURM_JOB_GPUS'),'MRI_read':False,'encoder_model_optimizer_executed':False,'CUDA_context_or_memory_created':False,'automatic_retry':False}
+child=r"""import ctypes,ctypes.util,json,time
+r={'stage':'native_CUDA_driver_before_NVML'};lib=ctypes.CDLL(ctypes.util.find_library('cuda') or 'libcuda.so.1');version=ctypes.c_int();r['driver_version_returncode']=lib.cuDriverGetVersion(ctypes.byref(version));r['driver_version']=version.value;s=time.monotonic();r['cuInit_returncode']=lib.cuInit(0);r['cuInit_elapsed_seconds']=time.monotonic()-s
+if r['cuInit_returncode']==0:
+ count=ctypes.c_int();r['device_count_returncode']=lib.cuDeviceGetCount(ctypes.byref(count));r['device_count']=count.value
+ if count.value==1:
+  dev=ctypes.c_int();r['device_returncode']=lib.cuDeviceGet(ctypes.byref(dev),0);name=ctypes.create_string_buffer(256);r['name_returncode']=lib.cuDeviceGetName(name,256,dev);r['name']=name.value.decode()
+print(json.dumps(r),flush=True)
+"""
+for name,command in [('native_driver',[sys.executable,'-B','-c',child]),('NVML',['nvidia-smi','--query-gpu=name,driver_version','--format=csv,noheader'])]:
+ before=time.monotonic()
+ try:
+  x=subprocess.run(command,capture_output=True,text=True,timeout=15);result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}
+ except subprocess.TimeoutExpired as e:result={'timeout_seconds':15,'stdout':(e.stdout or b'').decode() if isinstance(e.stdout,bytes) else (e.stdout or ''),'stderr':(e.stderr or b'').decode() if isinstance(e.stderr,bytes) else (e.stderr or '')}
+ result['elapsed_seconds']=time.monotonic()-before;record[name]=result
+record['status']='actual_independent_allocated_device_observation_no_training_admission'
+(root/'actual.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record),flush=True)
+

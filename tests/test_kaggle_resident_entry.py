@@ -90,3 +90,42 @@ def test_historical_sampling_has_no_silent_policy_change(monkeypatch):
     assert resident_infer.evaluation_slice_sampling("all") == "all"
     with pytest.raises(ValueError, match="Historical"):
         resident_infer.evaluation_slice_sampling("stratified")
+
+
+def test_dataset_discovery_never_enters_MRI_tree(tmp_path, monkeypatch):
+    module = notebook_module()
+    modern = tmp_path / "datasets/owner/model/1"
+    modern.mkdir(parents=True)
+    (modern / "bundle-manifest.json").write_text("exact")
+    legacy = tmp_path / "legacy-wheels"
+    legacy.mkdir()
+    (legacy / "wheelhouse.bin").write_bytes(b"bound")
+    for location in [
+        tmp_path / "competitions/competition/train_series/study",
+        tmp_path / "rsna-knee-abnormality-detection/test_series/study",
+        tmp_path / "unexpected-name/train_series/study",
+    ]:
+        location.mkdir(parents=True)
+        (location / "bundle-manifest.json").write_text("wrong")
+    original = module.os.scandir
+
+    def scan(path):
+        path = Path(path)
+        assert not any(
+            p in {"competitions", "rsna-knee-abnormality-detection", "train_series", "test_series"}
+            for p in path.relative_to(tmp_path).parts
+        )
+        return original(path)
+
+    monkeypatch.setattr(module.os, "scandir", scan)
+    assert list(module.attached_dataset_files(tmp_path, "bundle-manifest.json")) == [
+        modern / "bundle-manifest.json"
+    ]
+    assert list(module.attached_dataset_files(tmp_path, "wheelhouse.bin")) == [
+        legacy / "wheelhouse.bin"
+    ]
+
+
+def test_attached_payload_discovery_rejects_escaping_name(tmp_path):
+    with pytest.raises(ValueError, match="basename"):
+        list(notebook_module().attached_dataset_files(tmp_path, "../secret"))
