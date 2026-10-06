@@ -1,3 +1,9 @@
+Originalpendingbaseline878853 scheduler TimeLimit extendedONCE36h->48h after
+zero-runtime/PENDING/exactoriginalscript/node checks and freshnormalQOS noMaxWall.
+Samejob/script/config/output; no newdispatch/restart/scientificchange. Original
+SubmitLine36h historicalreceipt preserved; actualscontrol48h nowauthoritative.
+See cls-patch-summary-full-fit-v2/scheduler-walltime-result.json.
+
 Full public-label CPUstage/funding milestoneb224b37c privatelyverifiedONCE at
 HF16b0faa2cd8b0751116dafc9611c7c48d0317a7b, all16small objects. Do notrepeat.
 Finiteobserver6e06982e islater/separate; source scientifica990unchanged.
