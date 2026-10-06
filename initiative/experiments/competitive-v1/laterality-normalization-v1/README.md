@@ -18,10 +18,13 @@ side-dependent (MCL, medial/lateral meniscus, medial/lateral OA).
 - `study-sides.parquet` (4,407 studies): L 2,006 · R 2,257 ·
   ambiguous 144 (|median x|<20 mm) · bilateral 443 (series on both sides) ·
   tag-vs-geometry conflicts 135 (prefer geometry — probable tag errors).
-  Bound fold-0 artifact `canonical-sides.fold0.json` (sha256
-  `4cf642c9988f265d88b133fe9b973d3758b4f38721cf3ed84032dac4618184fe`):
-  3,403 roster studies, **1,251 mirrored** (L→R), 417 unresolved
-  (ambiguous/bilateral/no-geometry — never flipped).
+  Bound artifacts for all three outer folds — the sides table is the same
+  3,403-study set (a study's side is fold-independent); only the roster
+  bindings differ: `canonical-sides.fold0.json` (sha256
+  `4cf642c9988f265d88b133fe9b973d3758b4f38721cf3ed84032dac4618184fe`),
+  `canonical-sides.fold1.json`, `canonical-sides.fold2.json`.
+  Census stats: **1,251 mirrored** (L→R on the fold-0 fitting roster),
+  417 unresolved (ambiguous/bilateral/no-geometry — never flipped).
 
 ## Current code state
 
