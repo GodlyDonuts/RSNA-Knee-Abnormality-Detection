@@ -10,10 +10,11 @@ the exact overlay and CPU source, requires actual T4 acceptance, and repeats
 complete H100 full/stop1/resume state/scaler/RNG/CSV recovery inside its own
 allocation before either full trainer. Output directories and intents are exclusive.
 
-This is PREPARED only: no production staging or Slurm dispatch. A distinct
-stage coordinator, fresh explicit12GiB node-local funding including6GiB snapshots
-and2GiB private verification scratch, pinned publication coordinator, and actual
-T4 result are still required. Existing16GiB witness/10GiB memory/12GiB baseline
+Original CPU879052 actually staged/admitted the full source and original
+37812-member cache stat bindings. Fresh12GiB node-local funding includes6GiB
+snapshots and2GiB private verification scratch; zero new shared bytes/files.
+Conditional dispatch/publication coordinators are prepared and syntax checked.
+No production GPU job has been submitted; actualT4 acceptance remains required. Existing16GiB witness/10GiB memory/12GiB baseline
 liabilities and20GiB node reserve must remain funded; no shared growth permitted.
 Private GPU diagnostic137385338/v1 remains independent. Healthy jobs unchanged.
 

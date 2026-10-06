@@ -1,3 +1,11 @@
+Public-label fullcomparisonCPU879052 actualstage/stat/funding PASSED: exact
+sourcea9902f3/configs/37812originalcache memberstats,12GiB newnodefuture explicitly
+funded; existing38GiB liabilities/20GiB reserve retained, zero sharedgrowth.
+Conditional single dispatch/publication coordinators prepared; noGPUproduction
+submitted. ActualT4 137385338/v1 stillRUNNING; waitactualacceptance beforedispatch.
+Use artifacts/public-label-source-v1/full-fit-v1/dispatch_once.py ONLY after exact
+terminal. NeverrepeatCPUstage or modify originalroots.
+
 Public-label fixed10 production wrapper and private epoch publisher PREPARED,
 not staged/dispatched/funded: run_public_label_comparison.py and auditpublic-label-
 source-full-fit-preparation-v1. Bothrank32/native384 arms differonly fittinglabel
