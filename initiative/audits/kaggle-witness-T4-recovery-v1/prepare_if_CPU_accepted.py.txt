@@ -1,0 +1,27 @@
+"""Prepare one exact private GPU request only after actual CPU output acceptance.
+
+This local stage never pushes or submits. It binds the immutable CPU kernel v1
+output, archive/base/wheels and original code; a separate canonical dispatcher
+must recheck private resources/allowance before one SaveKernel call.
+"""
+import hashlib
+import json
+from pathlib import Path
+
+root=Path.cwd();local=root/'artifacts/kaggle-witness-T4-recovery-v1'
+record=json.loads((root/'artifacts/kaggle-witness-inputs-CPU-v2/CPU-notebook-status-receipt.json').read_text())
+assert record['status']=='COMPLETE' and record['version']==1 and record['exact_source_private_offline_CPU_verified'] is True
+accepted=record['CPU_acceptance'];assert accepted['status']=='actual_private_Kaggle_original32_MRI_full_release_and_official_initial_state_CPU_accepted';assert accepted['input_tensors_equal_to_original'] is True and accepted['labels_masks_equal_to_original'] is True and accepted['GPU_or_optimizer_executed'] is False
+assert accepted['initial_learned_state']['control']==accepted['initial_learned_state']['candidate']
+assert accepted['precision']=='fp32' and accepted['encode_chunk_size']==1 and accepted['training_studies']==accepted['engineering_outer_studies']==16
+# The fetched original JSON bytes/SHA must be retained by the canonical observer,
+# rather than substituting a differently serialized copy of the same object.
+assert record.get('original_CPU_receipt_sha256') and len(record['original_CPU_receipt_sha256'])==64
+sources={n:(root/'scripts/kaggle'/n).read_text() for n in ['witness_launch.py','witness_recovery.py']};hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in sources.items()}
+model=json.loads((root/'initiative/audits/kaggle-nativeall-epoch5-v1/runtimefix/operation.json').read_text())
+source='\n'.join(['EXPECTED_MANIFEST_SHA256 = '+repr(model['manifest_sha256']),'WITNESS_T4_RECOVERY_PROBE = True','WITNESS_T4_RECOVERY_SOURCES = '+repr(sources),'WITNESS_T4_RECOVERY_HASHES = '+repr(hashes),'WITNESS_T4_CPU_ACCEPTANCE_SHA256 = '+repr(record['original_CPU_receipt_sha256'])])+'\n'+(root/'scripts/kaggle/notebook_entry.py').read_text()
+compile(source,'private_recovery.py','exec')
+contract={'kernel_slug':'godlydonuts/rsna-witness-T4-recovery-14a079e1444c'.lower(),'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'helper_sha256':hashes,'CPU_kernel_slug':record['kernel_slug'],'CPU_kernel_version':1,'CPU_receipt_sha256':record['original_CPU_receipt_sha256'],'input_archive_sha256':'14a079e1444c2c86157748526ce64f49402cd164aa2669b6757ba8f39bfb4b02','model_dataset_slug':model['dataset_slug'],'model_dataset_id':12333543,'shared_wheelhouse':model['shared_wheelhouse'],'runtime_image':model['runtime_image'],'official_base_only_no_trained_initialization':True,'science_git':'d3cf58242455bf96e46b0c2071e8e9fe16cf4aaf','precision':'fp32','encode_chunk_size':1,'Kaggle_scratch_reserve_GiB':3,'diagnostic_checkpoint_cap_GiB':6,'max_pipeline_seconds':14400,'role_optimizer_updates':4,'source_masks_folds_preserved':True,'diagnostic_only':True,'competition_submission':False,'actual_GPU_training_dispatched':False}
+with (local/'GPU-contract.json').open('x') as f:json.dump(contract,f,indent=2);f.write('\n')
+with (local/'private-GPU-notebook.py').open('x') as f:f.write(source)
+print(json.dumps({'status':'actual_CPU_bound_private_GPU_source_prepared_only','kernel_slug':contract['kernel_slug'],'source_sha256':contract['source_sha256'],'GPU_dispatched':False}))

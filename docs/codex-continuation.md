@@ -1,3 +1,30 @@
+October6 original T4 notebook137257689 v1 ERROR at wrapper CSV schema check:
+canonical research has15 columns (study_uid/fold/seed+12targets), not13.
+Both full roles completed4 finite updates; candidate complete state comparison
+returned before final CSV rejection. Standalone validator corrected; reuse
+original outputs for read-only acceptance, do not repeat GPU training for this.
+No clinical gain/aggregate recovery pass yet. Runtime137253277 RUNNING04:05UTC.
+Read kaggle-witness-T4-recovery-v1/actual-worker-error.json; best0.804 unchanged.
+
+October6 actual corrected CPU137255384 v1 COMPLETED: original16+16 MRI,
+geometry/labels/masks exactly match Newton; full2247/1156 release/folds and
+both official learned-state/post-factory RNG match (10,559,640 trainable/role).
+Original receipt SHA26b6efe177e5317080e42b21c5be9eecf35f564a7ba3af62bdc40f09a6d3c180.
+Source archive/Dataset12393509 unchanged; no new byte transfers or labels.
+
+Private two-T4 actual trainer recovery137257689 v1 pushedONCE, source/private/
+offline/image/immutable CPU output verified RUNNING. Read kaggle-witness-T4-
+recovery-v1 and original journals; never re-push. Full/stop1/resume both roles,
+4updates each, complete model/base/AdamW/LR/counters/RNG/history/CSV required.
+No actual optimizer/terminal/clinical/full-fit pass inferred from RUNNING.
+Explicit FP32/chunk1/3GiB Kaggle scratch differs from original H100 BF16/chunk16/
+cluster20GiB; original policies preserved. CPU original137253436 failed only
+first-cache20GiB floor, before MRI/model; corrected distinct137255384 passed.
+
+1300 runtime137253277 remains running; benchmark/test CSVs are not competition
+entries. Best solo0.804 unchanged. No further GPU node/job beyond these2Kaggle
+nodes, no source-derived Stanford weights or protected evaluation tuning.
+
 Latest source7c6651e privately preserved at HF81bf8a91f1fdc1795b40b337fbc5e1d3310ed39f,
 all42 small objects fully re-downloaded/size/SHA verified under canonical lock.
 Read hf-kaggle-T4-fullscale-training-route-20261006-v1; never repeat. Full2045tests/

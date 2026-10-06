@@ -1,0 +1,82 @@
+import importlib.util,io,json,os,sys
+from pathlib import Path
+sys.dont_write_bytecode=True
+B=Path('/home/sa305415/rsna-knee');R=Path('/tmp/rsna-witness-kaggle-preparation-20261006-v2');P=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection');v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+s=importlib.util.spec_from_file_location('canonical_coordinator',P/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(P/'code',P/'projection.json','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437');p=c.p
+if v['phase']=='push':
+    assert not (R/'CPU-v2-notebook-contract.json').exists()
+    assert len(v['source'].encode())<128*1024
+    p.exclusive_json(R/'CPU-v2-notebook-contract.json',v['contract']);(R/'CPU-v2-notebook.py').write_text(v['source'])
+contract=json.loads((R/'CPU-v2-notebook-contract.json').read_text());source=(R/'CPU-v2-notebook.py').read_text();assert p.digest(R/'CPU-v2-notebook.py')==contract['source_sha256']
+verified=json.loads((R/'input-publication/verified.json').read_text());assert verified['status']=='all_payload_bytes_verified' and verified['private'] is True and verified['version']==1 and verified['id']==contract['input_dataset']['id']==12393509
+sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+request={'slug':contract['kernel_slug'],'newTitle':contract['kernel_slug'].split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':False,'enableInternet':False,'datasetDataSources':[contract['input_dataset']['slug'],contract['model_dataset_slug'],contract['shared_wheelhouse']['dataset_slug']],'competitionDataSources':[w.COMPETITION],'sessionTimeoutSeconds':28800,'dockerImage':contract['runtime_image'],'dockerImagePinningType':'original'}
+with c.single_coordinator(B/'kaggle'):
+    assert p.metadata(remote,verified['slug'])=={k:verified[k] for k in ('id','version','slug','private')}
+    assert p.metadata(remote,contract['model_dataset_slug'])=={'id':12333543,'version':1,'slug':contract['model_dataset_slug'],'private':True}
+    w.verify_shared_wheelhouse(remote,contract['shared_wheelhouse'])
+    if v['phase']=='push':
+        absent=remote.require_absent_kernel(contract['kernel_slug']);p.exclusive_json(R/'CPU-v2-kernel-create-intent.json',{'source_sha256':contract['source_sha256'],'request_sha256':w.object_hash(request),'absence_proof':absent,'input_dataset_id':verified['id'],'GPU_enabled':False,'competition_submission':False});result=remote.call('kernels.KernelsApiService','SaveKernel',request);p.exclusive_json(R/'CPU-v2-kernel-create-response.json',result)
+        assert result.get('versionNumber')==1 and result.get('ref')=='/code/'+contract['kernel_slug'] and not result.get('error')
+        print(json.dumps({'status':'private_offline_CPU_original_MRI_input_admission_pushed_once','kernel_slug':contract['kernel_slug'],'kernel_id':result.get('kernelId'),'version':1,'GPU_enabled':False,'competition_submission':False,'source_sha256':contract['source_sha256']}))
+    else:
+        assert json.loads((R/'CPU-v2-kernel-create-intent.json').read_text())['request_sha256']==w.object_hash(request)
+        found=remote.kernel('GetKernel',contract['kernel_slug'],1);meta=found['metadata'];assert w.object_hash(found.get('blob',{}).get('source',''))==w.object_hash(source)
+        for key in ('isPrivate','enableInternet','dockerImage'):assert meta.get(key)==request[key],key
+        for key in ('datasetDataSources','competitionDataSources'):
+            assert isinstance(meta.get(key),list) and sorted(meta[key])==sorted(request[key]) and len(meta[key])==len(set(meta[key])),key
+        assert meta.get('enableGpu',False) is False
+        status=remote.kernel('GetKernelSessionStatus',contract['kernel_slug'],1)
+        result={'status':status.get('status'),'actual_remote':status,'kernel_slug':contract['kernel_slug'],'version':1,'exact_source_private_offline_CPU_verified':True,'competition_submission':False,'GPU_training_dispatched':False}
+        if status.get('status')=='ERROR':
+            import hashlib,re
+            output=remote.kernel('ListKernelSessionOutput',contract['kernel_slug'],1)
+            log=output.get('log','')
+            if not isinstance(log,str):raise ValueError('Original log schema differs')
+            if log.startswith('https://'):
+                import requests
+                from urllib.parse import urlparse
+                host=urlparse(log).hostname or ''
+                assert host=='storage.googleapis.com' or host.endswith('.googleusercontent.com') or host.endswith('.kaggleusercontent.com')
+                with requests.get(log,stream=True,timeout=(10,60),allow_redirects=False) as response:
+                    assert response.status_code==200
+                    raw=bytearray()
+                    for block in response.iter_content(65536):
+                        raw.extend(block);assert len(raw)<2*1024**2
+                    log=bytes(raw).decode('utf-8')
+            assert not log.startswith('http')
+            log=re.sub(r'(?:hf_|KGAT_)[A-Za-z0-9]{10,}','[redacted]',log)
+            log=re.sub(r'1\.2\.826\.[0-9.]+','[private-study-UID]',log)
+            result['original_log_tail']=log[-7000:]
+            result['output_file_names']=[r.get('fileName',r.get('name')) for r in output.get('files',[])]
+            result['original_log_sha256']=hashlib.sha256(log.encode()).hexdigest()
+        if status.get('status')=='COMPLETE':
+            acceptance=remote.output_json(contract['kernel_slug'],1,'witness-inputs-CPU-accepted.json');assert acceptance['input_tensors_equal_to_original'] is True and acceptance['labels_masks_equal_to_original'] is True and acceptance['GPU_or_optimizer_executed'] is False
+            if not (R/'actual-Kaggle-CPU-v2-input-accepted.json').exists():p.exclusive_json(R/'actual-Kaggle-CPU-v2-input-accepted.json',acceptance)
+            result['CPU_acceptance']=acceptance
+            output=remote.kernel('ListKernelSessionOutput',contract['kernel_slug'],1)
+            result['CPU_output_files']=output.get('files',[])
+            import requests,hashlib
+            from urllib.parse import urljoin,urlparse
+            remote.session.cookies.clear()
+            response=remote.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':contract['kernel_slug'].split('/')[1],'versionNumber':1,'filePath':'witness-inputs-CPU-accepted.json'},timeout=(10,60),allow_redirects=False,stream=True)
+            raw=None
+            for _ in range(6):
+                with response:
+                    if response.status_code==200:
+                        raw=bytearray()
+                        for block in response.iter_content(65536):
+                            raw.extend(block);assert len(raw)<1024**2
+                        break
+                    assert response.status_code in {301,302,303,307,308}
+                    url=urljoin(response.url,response.headers.get('Location',''))
+                parsed=urlparse(url);host=parsed.hostname or ''
+                assert parsed.scheme=='https' and (host=='storage.googleapis.com' or host.endswith('.googleusercontent.com') or host.endswith('.kaggleusercontent.com'))
+                response=requests.get(url,timeout=(10,60),allow_redirects=False,stream=True)
+            assert raw is not None and json.loads(raw)==acceptance
+            raw_file=R/'original-Kaggle-CPU-v2-input-accepted.json'
+            if not raw_file.exists():
+                with raw_file.open('xb') as f:f.write(raw)
+            assert raw_file.read_bytes()==raw
+            result['original_CPU_receipt_sha256']=hashlib.sha256(raw).hexdigest()
+        print(json.dumps(result))

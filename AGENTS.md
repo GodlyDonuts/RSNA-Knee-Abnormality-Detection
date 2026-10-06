@@ -1,3 +1,17 @@
+October6 original T4 notebook137257689 v1 ERROR at wrapper CSV schema check:
+canonical research has15 columns (study_uid/fold/seed+12targets), not13.
+Both full roles completed4 finite updates; candidate complete state comparison
+returned before final CSV rejection. Standalone validator corrected; reuse
+original outputs for read-only acceptance, do not repeat GPU training for this.
+No clinical gain/aggregate recovery pass yet. Runtime137253277 RUNNING04:05UTC.
+Read kaggle-witness-T4-recovery-v1/actual-worker-error.json; best0.804 unchanged.
+
+October6 corrected CPU137255384 v1 actual32 MRI/mask/official-init pass;
+two-T4 trainer recovery137257689 v1 pushedONCE/verified RUNNING. Read current
+continuation/new audits; never duplicate or infer optimizer/terminal pass.
+Explicit Kaggle3GiB scratch, FP32/chunk1; cluster20GiB/H100 recipe preserved.
+Original CPU137253436 failed before MRI at wrong20GiB floor and is retained.
+
 October6 actual32 T4 equivalence/resources passed; distinct1300 benchmark
 137253277 v1 and private CPU32 input137253436 v1 RUNNING. Read continuation/
 new audits; never duplicate. Dataset12393509 v1 full4-object verified. No new

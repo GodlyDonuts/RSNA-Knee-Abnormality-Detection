@@ -48,7 +48,7 @@ def attached_dataset_files(inputs, name):
         directory = Path(directory)
         seen += 1
         depth = len(directory.relative_to(inputs).parts)
-        if seen > 2048 or depth > 8:
+        if seen > 2048:
             raise ValueError("Attached Dataset discovery exceeded its metadata budget")
         if directory.name in {"competitions", "rsna-knee-abnormality-detection"} or (
             "train_series" in children or "test_series" in children
@@ -58,7 +58,18 @@ def attached_dataset_files(inputs, name):
         children[:] = [
             child
             for child in children
-            if child not in {"competitions", "rsna-knee-abnormality-detection"}
+            if depth < 8
+            and child
+            not in {
+                "competitions",
+                "rsna-knee-abnormality-detection",
+                "code",
+                "artifacts",
+                "cache",
+                "witness-training-source",
+                "witness-inputs-admission",
+                "resident-performance",
+            }
         ]
         if name in files:
             path = directory / name
@@ -307,6 +318,70 @@ def run():
     sys.path.insert(0, str(bundle / "code"))
     env = os.environ.copy()
     env["PYTHONPATH"] = str(bundle / "code")
+    if globals().get("WITNESS_T4_RECOVERY_PROBE") is True:
+        sources = globals().get("WITNESS_T4_RECOVERY_SOURCES")
+        hashes = globals().get("WITNESS_T4_RECOVERY_HASHES")
+        accepted_sha = globals().get("WITNESS_T4_CPU_ACCEPTANCE_SHA256")
+        if (
+            not isinstance(sources, dict)
+            or set(sources) != {"witness_launch.py", "witness_recovery.py"}
+            or not isinstance(hashes, dict)
+            or set(hashes) != set(sources)
+            or sum(len(s.encode()) for s in sources.values()) > 64 * 1024
+            or not isinstance(accepted_sha, str)
+            or len(accepted_sha) != 64
+        ):
+            raise ValueError("Exact private trainer wrapper and actual CPU receipt required")
+        accepted_files = [
+            p
+            for p in attached_dataset_files(
+                Path("/kaggle/input"), "witness-inputs-CPU-accepted.json"
+            )
+            if sha256(p) == accepted_sha
+        ]
+        if len(accepted_files) != 1:
+            raise ValueError("Attach exactly the original accepted CPU notebook output")
+        source_output = accepted_files[0].parent
+        control = source_output / "witness-training-source"
+        cache = source_output / "witness-inputs-admission/cache"
+        if not control.is_dir() or not cache.is_dir():
+            raise ValueError("Original accepted source and MRI cache output missing")
+        helper_dir = working / "witness-recovery-code"
+        helper_dir.mkdir(mode=0o700)
+        for name, source in sources.items():
+            if hashlib.sha256(source.encode()).hexdigest() != hashes[name]:
+                raise ValueError("Private recovery wrapper source differs")
+            with (helper_dir / name).open("x") as handle:
+                handle.write(source)
+        env.update(
+            PYTHONPATH=str(control / "code"),
+            PYTHONDONTWRITEBYTECODE="1",
+            OMP_NUM_THREADS="1",
+            MKL_NUM_THREADS="1",
+            OPENBLAS_NUM_THREADS="1",
+        )
+        remaining = 14400 - (time.monotonic() - notebook_started)
+        command = [
+            str(python),
+            str(helper_dir / "witness_launch.py"),
+            "--control",
+            str(control),
+            "--cache",
+            str(cache),
+            "--cpu-acceptance",
+            str(accepted_files[0]),
+            "--cpu-acceptance-sha256",
+            accepted_sha,
+            *encoder_arguments(bundle, working, manifest),
+            "--output",
+            str(working / "witness-T4-recovery"),
+            "--worker",
+            str(helper_dir / "witness_recovery.py"),
+            "--remaining-seconds",
+            str(remaining),
+        ]
+        bounded_process(command, env=env, timeout=remaining)
+        return
     if globals().get("WITNESS_INPUTS_CPU_PROBE") is True:
         source = globals().get("WITNESS_INPUTS_SOURCE")
         source_sha = globals().get("WITNESS_INPUTS_SOURCE_SHA256")

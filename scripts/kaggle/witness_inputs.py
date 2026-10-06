@@ -11,6 +11,7 @@ import gc
 import hashlib
 import json
 import random
+import shutil
 import sys
 import tarfile
 import time
@@ -42,6 +43,20 @@ def file_sha(path):
         for b in iter(lambda: f.read(4 * 2**20), b""):
             h.update(b)
     return h.hexdigest()
+
+
+def kaggle_storage_budget(path, pending_cache_bytes=2 * 2**30):
+    """Kaggle scratch has a separate budget from retained cluster storage."""
+    usage = shutil.disk_usage(path)
+    if usage.free < 3 * 2**30 + pending_cache_bytes:
+        raise OSError("Kaggle scratch cannot fund the cache while preserving3GiB")
+    return {
+        "filesystem_total_bytes": usage.total,
+        "free_before_bytes": usage.free,
+        "scratch_reserve_bytes": 3 * 2**30,
+        "cache_cap_bytes": pending_cache_bytes,
+        "cluster_shared_and_node_reserve_changed": False,
+    }
 
 
 def extract_inputs(directory, destination, expected_archive, expected_admission):
@@ -96,6 +111,7 @@ def main():
     started = time.monotonic()
     torch.set_num_threads(1)
     args.output.mkdir(mode=0o700)
+    storage = kaggle_storage_budget(args.output)
     proof = json.loads((args.control / "original-input-proof.json").read_text())
     artifact = args.control / "artifacts"
     manifest, binding = load_verified_release(
@@ -126,7 +142,11 @@ def main():
         paths = sorted(str(p.relative_to(args.competition)) for p in folder.glob("*.dcm"))
         if not paths:
             raise ValueError("An original engineering MRI series is absent")
-        cache_series(source, paths, cache, 384, binding["source_revision"], min_free_gib=20)
+        written = sum(p.stat().st_size for p in cache.rglob("*") if p.is_file())
+        next_upper = len(paths) * 384 * 384 * 2 + 2**20
+        if written + next_upper > storage["cache_cap_bytes"]:
+            raise OSError("Original MRI cache would exceed its funded2GiB cap")
+        cache_series(source, paths, cache, 384, binding["source_revision"], min_free_gib=3)
         print(json.dumps({"stage": "original_MRI_cached", "series_completed": i + 1}), flush=True)
     tensor_hashes, other_hashes = {}, {}
     for role, frame in [("training", train), ("outer_engineering", outer)]:
@@ -214,6 +234,7 @@ def main():
         "precision": "fp32",
         "encode_chunk_size": 1,
         "elapsed_seconds": time.monotonic() - started,
+        "Kaggle_scratch_storage": storage,
         "GPU_or_optimizer_executed": False,
         "clinical_accuracy_evidence": False,
         "protected_gold_or_confirmation_used_for_training_or_selection": False,

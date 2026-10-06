@@ -129,3 +129,23 @@ def test_dataset_discovery_never_enters_MRI_tree(tmp_path, monkeypatch):
 def test_attached_payload_discovery_rejects_escaping_name(tmp_path):
     with pytest.raises(ValueError, match="basename"):
         list(notebook_module().attached_dataset_files(tmp_path, "../secret"))
+
+
+def test_payload_discovery_does_not_walk_attached_notebook_source_cache(tmp_path, monkeypatch):
+    module = notebook_module()
+    output = tmp_path / "notebooks/owner/CPU-input/v1"
+    output.mkdir(parents=True)
+    receipt = output / "witness-inputs-CPU-accepted.json"
+    receipt.write_text("bound")
+    (output / "witness-training-source/artifacts/deep/a/b/c/d").mkdir(parents=True)
+    (output / "witness-inputs-admission/cache/train_series/private").mkdir(parents=True)
+    scan = module.os.scandir
+
+    def guarded(path):
+        assert not any(
+            p in {"witness-training-source", "witness-inputs-admission"} for p in Path(path).parts
+        )
+        return scan(path)
+
+    monkeypatch.setattr(module.os, "scandir", guarded)
+    assert list(module.attached_dataset_files(tmp_path, receipt.name)) == [receipt]

@@ -62,3 +62,22 @@ def test_source_archive_rejects_unbound_or_escaping_members(tmp_path, mode):
     with pytest.raises(ValueError):
         extract_inputs(directory, tmp_path / "exact", arc, adm)
     assert not (tmp_path / "outside").exists()
+
+
+def test_Kaggle_scratch_budget_does_not_require_cluster_reserve(tmp_path, monkeypatch):
+    from collections import namedtuple
+
+    from scripts.kaggle import witness_inputs
+
+    Usage = namedtuple("Usage", "total used free")
+    monkeypatch.setattr(
+        witness_inputs.shutil, "disk_usage", lambda _: Usage(20 * 2**30, 13 * 2**30, 7 * 2**30)
+    )
+    record = witness_inputs.kaggle_storage_budget(tmp_path)
+    assert record["scratch_reserve_bytes"] == 3 * 2**30
+    assert record["cluster_shared_and_node_reserve_changed"] is False
+    monkeypatch.setattr(
+        witness_inputs.shutil, "disk_usage", lambda _: Usage(20 * 2**30, 16 * 2**30, 4 * 2**30)
+    )
+    with pytest.raises(OSError, match="cannot fund"):
+        witness_inputs.kaggle_storage_budget(tmp_path)
