@@ -1,0 +1,48 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/smooth-witness-full-fit-v1');a=Path('initiative/audits/smooth-witness-full-fit-v1');root='/tmp/rsna-smooth-witness-full-fit-20261006-v1';old='/tmp/rsna-patch-witness-H100-recovery-20261006-v2'
+receipt=Path('initiative/audits/kaggle-witness-FP16-smooth-v2/actual-terminal.json');assert json.loads(receipt.read_text())['status']=='COMPLETE'
+actual=json.loads(Path('artifacts/kaggle-witness-FP16-smooth-v2/finish-result.json').read_text())['actual_observation']['actual_recovery']['results'];source=actual['candidate']['source_sha256'];assert source==actual['control']['source_sha256']
+overrides={n:subprocess.check_output(['git','show','3b7e437:'+n],text=True) for n in ['rsna/competitive/train.py','rsna/competitive/witness.py']};assert all(hashlib.sha256(v.encode()).hexdigest()==source[n] for n,v in overrides.items())
+wrapper=Path('scripts/newton/run_smooth_witness_comparison.py').read_text();(a/'launch.py.txt').write_text(wrapper)
+files={n:(a/src).read_text() for n,src in [('launch.py','launch.py.txt'),('publish.py','publish.py.txt'),('base-config.json','base-config.json'),('control.json','control.json'),('candidate.json','candidate.json')]};files['T4-recovery-accepted.json']=receipt.read_text()
+manifest={'scientific_source_git':'3b7e437431f23b1f6e89e76aacaecd42df1c3535','T4_recovery_receipt_sha256':hashlib.sha256(receipt.read_bytes()).hexdigest(),'numerical_source_sha256':source,'files':{n:{'bytes':len(v.encode()),'sha256':hashlib.sha256(v.encode()).hexdigest()} for n,v in files.items()},'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'download_scratch_future_bytes':2*2**30,'automatic_retry':False}
+program=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS');root=Path(v['root']);old=Path(v['old']);assert root.parent==Path('/tmp') and not root.exists();assert shutil.disk_usage('/tmp').free>=52*2**30+16*2**20
+terminal=subprocess.check_output(['sacct','-j','875277','-X','-n','-P','-o','JobID,State,ExitCode,Elapsed,NodeList'],text=True);assert terminal.strip().split('|')[:3]==['875277','COMPLETED','0:0']
+recovery=json.loads((old/'recovery-verified.json').read_text());assert recovery['status']=='actual_native384_patch_witness_two_arm_trainer_recovery_accepted' and all(x['exact_complete_model_base_AdamW_LR_cursors_all_RNG_and_CSV_recovery'] for x in recovery['results'].values())
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in quota.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-1406962617)/2**30;slots=limit-count-735;assert gib>=20 and slots>=5000
+original=json.loads((old/'source.json').read_text());source=dict(original,source_git=v['manifest']['scientific_source_git'],files=v['manifest']['numerical_source_sha256']);assert set(source['files'])==set(original['files'])
+root.mkdir(mode=0o700);(root/'code').mkdir()
+for name,sha in source['files'].items():
+ assert name.startswith(('rsna/','scripts/newton/','engineering/')) and '..' not in Path(name).parts
+ prior=(old/'code'/name).read_bytes();assert hashlib.sha256(prior).hexdigest()==original['files'][name]
+ raw=v['overrides'][name].encode() if name in v['overrides'] else prior;assert hashlib.sha256(raw).hexdigest()==sha
+ target=root/'code'/name;target.parent.mkdir(parents=True,exist_ok=True)
+ with target.open('xb') as f:f.write(raw)
+for name,raw in v['files'].items():
+ assert len(raw.encode())==v['manifest']['files'][name]['bytes'] and hashlib.sha256(raw.encode()).hexdigest()==v['manifest']['files'][name]['sha256']
+ with (root/name).open('x') as f:f.write(raw)
+source_raw=json.dumps(source,sort_keys=True,indent=2)+'\n'
+with (root/'source.json').open('x') as f:f.write(source_raw)
+v['manifest']['files']['source.json']={'bytes':len(source_raw.encode()),'sha256':hashlib.sha256(source_raw.encode()).hexdigest()}
+with (root/'files.json').open('x') as f:json.dump(v['manifest'],f,sort_keys=True,indent=2);f.write('\n')
+funding={'status':'actual_private_full_smooth_witness_owning_node_funding_accepted','job_id':os.environ['SLURM_JOB_ID'],'quota':quota,'existing_shared_future_bytes':1406962617,'existing_shared_future_files':735,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'download_scratch_future_bytes':2*2**30,'node_free_bytes':shutil.disk_usage('/tmp').free,'old_originals_preserved':True,'no_deletion_credit':True,'original_H100_recovery_terminal':terminal,'additional_GPU_hardware_recovery_required_before_full_fit':True}
+with (root/'funding.json').open('x') as f:json.dump(funding,f,sort_keys=True,indent=2);f.write('\n')
+header=json.loads(Path('/tmp/rsna-neighbor-recovery-20261005-v3/header-CPU-accepted.json').read_text());py=source['runtime']['python'];env=os.environ.copy();env.update(PYTHONPATH=str(root/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',HF_HUB_OFFLINE='1',CPATH=header['CPATH'])
+x=subprocess.run([py,'-B',str(root/'launch.py'),'stage'],capture_output=True,text=True,env=env);(root/'stage.stdout').write_text(x.stdout);(root/'stage.stderr').write_text(x.stderr)
+if x.returncode==0:print(json.dumps({'CPU_acceptance':json.loads(x.stdout),'funding':funding}))
+else:print(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}))
+sys.exit(x.returncode)
+'''
+intent=manifest|{'control':root,'CPU':1,'GPU':0,'wrapper_sha256':hashlib.sha256(program.encode()).hexdigest(),'full_GPU_not_dispatched':True,'old_control':old}
+with (r/'stage-intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+(a/'CPU-stage-intent.json').write_text(json.dumps(intent,sort_keys=True,indent=2)+'\n');(a/'stage-wrapper.py.txt').write_text(program)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=16G','--time=00:15:00','--job-name=rsna-smooth-witness-full-input-init','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'root':root,'old':old,'files':files,'manifest':manifest,'overrides':overrides}),capture_output=True,text=True,timeout=930)
+with (r/'stage-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stdout+x.stderr;v=json.loads(x.stdout)
+for name,value in [('actual-CPU-acceptance.json',v['CPU_acceptance']),('actual-funding.json',v['funding'])]:
+ with (a/name).open('x') as f:json.dump(value,f,sort_keys=True,indent=2);f.write('\n')
+print(json.dumps({'job_id':v['CPU_acceptance']['job_id'],'status':v['CPU_acceptance']['status'],'full_training_studies':2247,'full_disjoint_outer_studies':1156,'source_git':v['CPU_acceptance']['source_git'],'initial_learned_states_equal':v['CPU_acceptance']['initial_learned_state']['control']==v['CPU_acceptance']['initial_learned_state']['candidate'],'original_member_stat_bindings':v['CPU_acceptance']['original_cache_member_stat_bindings']}))

@@ -1,3 +1,14 @@
+October6 original H100875277 COMPLETED0:0/18:08; complete hard BF16 recovery passed.
+Distinct full smooth-witness CPU875492 COMPLETED: complete37812original cache
+stats,2247fitting/1156disjoint outer and actual same official learned graph/RNG.
+Scientific3b7e437 exactly matches accepted T4 numeric modules. Read smooth-witness-
+full-fit-v1; fixed3epochs/843updates per role, local weight0/1 only difference.
+Private node16GiB funded (6GiB checkpoints/2GiB re-download); shared growth0.
+New allocated FP16/smooth H100 recovery plus training-only stress must pass inside
+new single conditional job before any full optimizer fit. GPU dispatch not yet
+recorded here; never infer a prepared payload as a dispatched/scored model.
+Full2119tests/Ruff337/mypy49/archive/current89/89 passed; best actual solo0.804.
+
 Latest actual T4 recovery/streaming CPU dispatch milestone sourcef42edfcc2c063593ecb77813293ac9ea872ac157 privately mirrored at HF44d4daa8deb1b9b4314562d0c84acb17523cc1ae, all14 small objects fully download/size/SHA verified. No pixels/labels/caseIDs/learnedweights copied. CPU137281867 actually RUNNING; H100875277 both roles completed4 finite updates (~63–66s full-update total each), full/resume terminal still pending. Never repeat completed mirrors or original pushes/jobs.
 
 October6 distinct private CPU streaming-input notebook137281867/v1 pushed ONCE.
