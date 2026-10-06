@@ -61,8 +61,9 @@ lets those cells still shape the model *without* assigning them labels:
   consistency on masked cells (`masked_cell_consistency`), ramped
   `0 → weight` over `ramp_fraction=0.2` of total updates; same-input
   teacher view (weight-space consistency — augmentation asymmetry is a
-  follow-up `teacher_view` enhancement); teacher is NOT checkpointed and
-  re-copies from the restored student on resume.
+  follow-up `teacher_view` enhancement); teacher IS checkpointed with the
+  training state so a mid-epoch resume continues the exact EMA
+  trajectory (verified end-to-end on CPU).
 - `CompetitiveStudyNet` needs an EMA shadow — copy-on-init, `no_grad`
   update hook after `optimizer.step()`; state-dict must round-trip
   through checkpoint save/load (smooth-witness already proves complete

@@ -201,3 +201,140 @@ def test_masked_cell_config_must_be_an_isolated_arm():
         ).validate()
     with pytest.raises(ValueError, match="isolated outer-fold"):
         _config(masked_cell=arm, fit_scope="all_development").validate()
+
+
+def _assert_tree_equal(first, second):
+    assert type(first) is type(second)
+    if isinstance(first, torch.Tensor):
+        torch.testing.assert_close(first, second, rtol=0, atol=0)
+    elif isinstance(first, dict):
+        assert first.keys() == second.keys()
+        for key in first:
+            _assert_tree_equal(first[key], second[key])
+    elif isinstance(first, (tuple, list)):
+        assert len(first) == len(second)
+        for left, right in zip(first, second):
+            _assert_tree_equal(left, right)
+    else:
+        assert first == second
+
+
+def test_ema_consistency_arm_trains_checkpoints_teacher_and_resumes_exactly(
+    tmp_path, monkeypatch, capsys
+):
+    import argparse
+    import hashlib
+
+    import pandas as pd
+    from torch.utils.data import Dataset
+
+    from rsna.competitive import train
+    from rsna.competitive.backbones import create_encoder
+    from rsna.competitive.model import CompetitiveStudyNet
+    from rsna.schema import TARGETS
+
+    class SyntheticStudies(Dataset):
+        cache_side = 256
+        source_revision = "synthetic"
+
+        def __init__(self, studies, series, cache, augment=False, **kwargs):
+            self.studies = studies.reset_index(drop=True)
+
+        def __len__(self):
+            return len(self.studies)
+
+        def __getitem__(self, index):
+            row = self.studies.iloc[index]
+            return {
+                "images": torch.rand(3, 2, 1, 16, 16),
+                "features": torch.eye(3, 5),
+                "series_mask": torch.ones(3, dtype=torch.bool),
+                "slice_mask": torch.ones(3, 2, dtype=torch.bool),
+                "positions": torch.zeros(3, 2, 2),
+                "labels": torch.tensor([float(row[t]) for t in TARGETS]),
+                "label_mask": torch.tensor([float(row[t + "__mask"]) for t in TARGETS]),
+                "study_uid": row.study_uid,
+            }
+
+    rows = []
+    for i in range(14):
+        row = {"study_uid": f"study{i:02}", "leakage_group": f"group{i}", "split": "train"}
+        for j, target in enumerate(TARGETS):
+            row[target], row[target + "__mask"] = i % 2, int(j < 6 or i % 3 == 0)
+            row[target + "__provenance"] = "synthetic_weak"
+        rows.append(row)
+    manifest = pd.DataFrame(rows)
+    folds = manifest[["study_uid", "leakage_group"]].copy()
+    folds["fold"] = [0] * 5 + [1] * 9
+    series_path = tmp_path / "series.csv"
+    series_path.write_text("SeriesInstanceUID\na\n")
+    binding = {
+        "series_sha256": hashlib.sha256(series_path.read_bytes()).hexdigest(),
+        "source_revision": "synthetic",
+    }
+    monkeypatch.setattr(train, "load_verified_release", lambda *args: (manifest.copy(), binding))
+    arm = {
+        "enabled": True,
+        "kind": "ema_consistency",
+        "weight": 1.0,
+        "alpha": 0.9,
+        "ramp_fraction": 0.2,
+    }
+    config = TrainConfig(
+        masked_cell=arm,
+        diagnostic_study_limit=20,
+        epochs=2,
+        batch_size=2,
+        accumulation_steps=2,
+        slices=2,
+        side=16,
+        max_series=3,
+        hidden_dim=16,
+        freeze_encoder=False,
+        augment=True,
+        min_free_gib=0,
+    )
+    args = argparse.Namespace(
+        studies=tmp_path / "unused",
+        artifact_root=tmp_path,
+        folds=tmp_path / "unused",
+        series=series_path,
+        cache=tmp_path,
+        output=tmp_path / "full",
+        resume=None,
+        stop_after_updates=None,
+    )
+
+    def execute():
+        return train._run_locked(
+            args,
+            config,
+            [False],
+            0,
+            1,
+            torch.device("cpu"),
+            create_encoder,
+            SyntheticStudies,
+            CompetitiveStudyNet,
+            lambda *a: folds.copy(),
+        )
+
+    assert execute() == 0
+    full = torch.load(args.output / "checkpoint.pt", weights_only=True)
+    assert "teacher" in full
+    for key, value in full["teacher"].items():
+        student = full["model"].get(key)
+        if isinstance(student, torch.Tensor) and student.is_floating_point():
+            # The EMA shadow lags the trained student after updates.
+            assert not torch.equal(value, student), key
+    out = capsys.readouterr().out
+    assert '"masked_consistency"' in out
+
+    args.output = tmp_path / "resumed"
+    args.stop_after_updates = 1
+    assert execute() == 75
+    args.resume = args.output / "checkpoint.pt"
+    args.stop_after_updates = None
+    assert execute() == 0
+    resumed = torch.load(args.output / "checkpoint.pt", weights_only=True)
+    _assert_tree_equal(full, resumed)

@@ -706,10 +706,14 @@ def _run_locked(
     teacher = None
     if config.masked_cell is not None and config.masked_cell["kind"] == "ema_consistency":
         # Mean-teacher: an EMA shadow of the student, initialized from the
-        # (possibly resumed) weights. Not checkpointed; on resume it restarts
-        # from the restored student, matching a fresh-copy convention.
+        # (possibly resumed) weights. The teacher is checkpointed with the
+        # rest of the training state so a mid-epoch resume continues the
+        # exact same EMA trajectory instead of restarting from the restored
+        # student.
         teacher = copy.deepcopy(model).requires_grad_(False)
         teacher.eval()
+        if args.resume and checkpoint.get("teacher") is not None:
+            teacher.load_state_dict(checkpoint["teacher"])
     started = time.monotonic()
     updates_this_invocation = 0
     history = []
@@ -738,6 +742,7 @@ def _run_locked(
                     "next_update": current_update,
                     "step": completed_step,
                     "rng_by_rank": rng_states,
+                    **({"teacher": teacher.state_dict()} if teacher is not None else {}),
                     "scheduled_epoch": scheduled_epoch(current_epoch, current_update, bound_config),
                 },
                 min_free_gib=config.min_free_gib,
