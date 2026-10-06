@@ -768,7 +768,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
     return result
 
 
-def main() -> None:
+def argument_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("checkpoint", "series", "cache-root", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
@@ -797,6 +797,11 @@ def main() -> None:
     parser.add_argument("--cache-side", type=int)
     parser.add_argument("--max-series", type=int)
     parser.add_argument("--series-sampling", choices=("selected", "all"), default="selected")
+    return parser
+
+
+def main() -> None:
+    parser = argument_parser()
     args = parser.parse_args()
     if args.baseline_epoch_one and (args.baseline_sidecar is None or args.baseline_proof is None):
         parser.error("Epoch-1 baseline requires its byte-bound sidecar and replay proof")

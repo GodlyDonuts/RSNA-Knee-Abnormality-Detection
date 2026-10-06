@@ -1,0 +1,15 @@
+# Actual private two-T4 runtime experiment
+
+The private offline notebook [RSNA resident dual T4 MRI runtime research](https://www.kaggle.com/code/godlydonuts/rsna-resident-dual-t4-mri-runtime-research), version 1, kernel ID 137247865, was pushed once. Its exact source, private/offline two-T4 setting and pinned Python 3.12 image were reconciled read-only and it was RUNNING at 2026-10-06 00:17 UTC. It is not a competition submission. No score or successful benchmark outcome is claimed.
+
+It reuses the already fully verified private epoch-5 Dataset 12333543 version 1 and existing shared wheels. No new weights or bulk Dataset were uploaded. Thirty-two original fold-0 fitting studies were admitted from the unchanged release and folds, excluding development/gold/confirmation. Their raw identities remain in ignored/private controls, not this audit.
+
+The exact FP32 model loads once on each device; healthy DICOMs decode once, and original per-slice recovery remains available. The private benchmark compares three fitting studies against the frozen original FP32 inference using the same prepared MRI cache, measures 32-study throughput, checks both worker load counters, finite probabilities, host/GPU memory, and publishes only an aggregate receipt. Predictions remain private. Even a successful 32-study benchmark cannot establish a complete hidden-test nine-hour bound. The notebook bounds the entire resident process group, including descendants, within eight hours including bootstrap.
+
+Optional resident packaging is separate from the legacy default. Frozen C9 numerical modules, weights, masks/folds and sigmoid probabilities remain unchanged. The standalone wrapper imports against original C9 source; actual GPU equivalence remains pending. Engineering tests do not demonstrate accuracy improvement.
+
+Original CPU 874158 stopped before any cloud intent because it compared an integer ledger ID to a string. Read-only CPU 874161 verified absent kernel intent/response and retained exact source. Corrected CPU 874163 made the first and only SaveKernel call, then stopped on the returned identity mismatch. CPU 874245 collected its original receipt; subsequent read-only reconciliation verified the actual returned notebook's full source and runtime. Neither failed postcondition was retried as a cloud mutation. Original requested slug must never be pushed merely because it appears absent.
+
+The canonical Newton ledger/coordinator remains authoritative. Fresh quota before this work preserved 20.0026369756 GiB and 5,000 shared files after existing obligations. New controls are private node-local, capped at 16 MiB, with zero new shared data bytes/files. Five competition slots were available at the authenticated check; none was spent by this benchmark.
+
+Research accountability: current best solo score is 0.804; final epoch 10 scored 0.802. Adjacent-slice channels did not establish a matched held-out gain. Local patch evidence with cross-slice/acquisition corroboration remains a hypothesis, not trained or promoted by this runtime experiment. Do not claim a breakthrough or new accuracy from infrastructure work.

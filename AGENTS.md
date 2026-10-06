@@ -1,3 +1,8 @@
+October6 private two-T4 runtime notebook137247865 v1 pushedONCE, exact returned
+identity/source/private/offline/runtime reconciled RUNNING. Read current
+continuation/kaggle-resident-performance-v1. Do not re-push original requested
+slug or treat benchmark as competition submission/accuracy/full9h acceptance.
+
 October5 owner runtime correction: every Kaggle submission must finish within9h GPU/CPU on2xT4(16GiB each),4CPU/~29GiB RAM,offline,submission.csv. Three latest jobs actually timed out; two scored0.802/0.685. Canonical outcomes reconciled. Read kaggle-runtime-budget-20261005-v1. Require actual end-to-end T4/performance admission before another slot; three public examples are insufficient. Preserve checkpoint/masks/folds/sigmoid probabilities and original submissions.
 
 October5 actual CUDA execution investigation supersedes pending snapshots: old873279 cancelled onlyPENDING/no runtime; exact32-study evc48 copy/CPU initialization passed. New873667 FAILED before MRI/optimizer at compoundCUDA gate. Device probes873729 timed out in both contexts; native873865 NVML query timed out before cuInit. No root cause or model accuracy result established. Preserve originals; no blind retry or GPU isolation bypass. Read current continuation and relocation-v2/native-device-health-v1.

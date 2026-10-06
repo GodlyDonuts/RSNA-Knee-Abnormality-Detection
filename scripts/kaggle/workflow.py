@@ -576,8 +576,11 @@ def prepare_bundle(
     shared_wheelhouse=None,
     runtime_image=None,
     fitting_admission=None,
+    inference_engine="legacy",
 ):
     """Local only. Requires real epoch + completed Linux wheel lock; no placeholders."""
+    if inference_engine not in {"legacy", "resident_two_gpu_fp32"}:
+        raise ValueError("Unadmitted inference execution engine")
     if runtime_image is not None and not RUNTIME_IMAGE.fullmatch(runtime_image):
         raise ValueError("An exact Kaggle runtime image digest is required")
     if not SLUG.fullmatch(dataset_slug) or not SLUG.fullmatch(kernel_slug):
@@ -642,6 +645,16 @@ def prepare_bundle(
     for path in sorted((repo / "rsna").rglob("*.py")):
         sources["code/rsna/" + str(path.relative_to(repo / "rsna"))] = path
     sources["code/chunked_infer.py"] = Path(__file__).with_name("chunked_infer.py")
+    if inference_engine == "resident_two_gpu_fp32":
+        if baseline:
+            raise ValueError("Resident execution does not broaden epoch-one admission")
+        for name in (
+            "resident_entry.py",
+            "resident_infer.py",
+            "resident_pool.py",
+            "resident_worker.py",
+        ):
+            sources["code/" + name] = Path(__file__).with_name(name)
     if baseline:
         sources["code/baseline_infer.py"] = Path(__file__).with_name("baseline_infer.py")
     if fitting_admission is not None:
@@ -725,6 +738,17 @@ def prepare_bundle(
             "cache_side": binding.get("cache_side", 256),
         },
     }
+    if inference_engine == "resident_two_gpu_fp32":
+        manifest["inference_policy"].update(
+            engine=inference_engine,
+            max_seconds=28800,
+            device_workers=2,
+            single_decode=True,
+            precision="fp32",
+            CPU_cores=4,
+            required_GPU="T4",
+            runtime_scale_validated=False,
+        )
     if fitting_admission is not None:
         manifest["fitting_admission_sha256"] = digest(fitting_admission)
     new_json(data / "bundle-manifest.json", manifest)
@@ -1186,6 +1210,9 @@ def main():
         p.add_argument("--" + name, required=True, type=Path)
     p.add_argument("--shared-wheelhouse", type=Path)
     p.add_argument("--runtime-image")
+    p.add_argument(
+        "--inference-engine", choices=("legacy", "resident_two_gpu_fp32"), default="legacy"
+    )
     p.add_argument("--fitting-admission", type=Path)
     p.add_argument("--dataset-slug", required=True)
     p.add_argument("--kernel-slug", required=True)
@@ -1220,6 +1247,7 @@ def main():
                 shared_wheelhouse=args.shared_wheelhouse,
                 runtime_image=args.runtime_image,
                 fitting_admission=args.fitting_admission,
+                inference_engine=args.inference_engine,
             )
         else:
             with ledger(args.ledger, args.account) as db:

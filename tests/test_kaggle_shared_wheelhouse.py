@@ -192,7 +192,7 @@ def test_shared_bundle_has_two_sources_and_omits_wheel_copies(tmp_path, monkeypa
 
     monkeypatch.setattr(legacy.workflow, "prepare_bundle", prepare)
     legacy.test_complete_local_bundle_binding_and_no_extra_upload_files(
-        tmp_path, monkeypatch, delta=delta, slice_sampling="uniform"
+        tmp_path, monkeypatch, delta=delta, slice_sampling="uniform", engine="legacy"
     )
     prepared = tmp_path / "prepared"
     assert not (prepared / "dataset/wheels").exists()

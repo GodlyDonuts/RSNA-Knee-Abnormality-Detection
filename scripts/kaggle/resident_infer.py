@@ -18,19 +18,27 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
+from rsna.competitive import data as trained_data
 from rsna.competitive import infer
 from rsna.competitive.adapters import configure_encoder_training
 from rsna.competitive.backbones import create_encoder, create_encoder_from_training_checkpoint
-from rsna.competitive.data import (
-    CompetitiveStudyDataset,
-    collate_studies,
-    evaluation_slice_sampling,
-)
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.model import CompetitiveStudyNet
 from rsna.competitive.train import TrainConfig, predict
 from rsna.infer import load_inference_metadata, write_submission
 from rsna.schema import TARGETS
+
+CompetitiveStudyDataset = trained_data.CompetitiveStudyDataset
+collate_studies = trained_data.collate_studies
+
+
+def evaluation_slice_sampling(policy):
+    original = getattr(trained_data, "evaluation_slice_sampling", None)
+    if original is not None:
+        return original(policy)
+    if policy not in {"uniform", "all"}:
+        raise ValueError("Historical source does not admit this evaluation policy")
+    return policy
 
 
 def signature(path: Path) -> tuple:

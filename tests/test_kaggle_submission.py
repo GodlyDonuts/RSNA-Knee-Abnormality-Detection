@@ -418,10 +418,11 @@ def test_version_inspection_rejects_concurrent_new_kernel_version():
         remote.kernel("GetKernelSessionStatus", "owner/kernel", 7)
 
 
+@pytest.mark.parametrize("engine", ["legacy", "resident_two_gpu_fp32"])
 @pytest.mark.parametrize("delta", [False, True])
 @pytest.mark.parametrize("slice_sampling", ["uniform", "stratified"])
 def test_complete_local_bundle_binding_and_no_extra_upload_files(
-    tmp_path, monkeypatch, delta, slice_sampling
+    tmp_path, monkeypatch, delta, slice_sampling, engine
 ):
     repo = tmp_path / "repo"
     (repo / "rsna").mkdir(parents=True)
@@ -517,10 +518,18 @@ def test_complete_local_bundle_binding_and_no_extra_upload_files(
         "https://github.com/facebookresearch/dinov3/blob/" + "d" * 40 + "/LICENSE.md",
         workflow.digest(license_file),
         repo,
+        inference_engine=engine,
     )
     assert workflow.load_operation(output / "operation.json") == result
     manifest = json.loads((output / "dataset/bundle-manifest.json").read_text())
     assert manifest["inference_policy"]["slice_sampling"] == "uniform"
+    if engine == "resident_two_gpu_fp32":
+        assert manifest["inference_policy"]["engine"] == engine
+        assert manifest["inference_policy"]["runtime_scale_validated"] is False
+        for name in ("resident_entry", "resident_infer", "resident_pool", "resident_worker"):
+            assert f"code/{name}.py" in manifest["files"]
+    else:
+        assert "engine" not in manifest["inference_policy"]
     bundled_encoder = json.loads((output / "dataset/encoder.json").read_text())
     assert checked == ([True] if delta else [])
     if delta:

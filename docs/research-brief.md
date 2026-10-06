@@ -1,3 +1,13 @@
+October6 actual offline runtime experiment: private two-T4 notebook
+kernel137247865/version1 was pushed ONCE and exact source/private/offline/pinned
+runtime reconciled, RUNNING at00:17UTC. Read kaggle-resident-performance-v1.
+Actual32 fitting-only roster admitted; optional exact-FP32 resident entry now
+integrated with single healthy decode and whole-process-group eight-hour budget.
+No score/actual GPU equivalence/hidden-scale9h success is claimed. Never re-push
+the requested slug: Kaggle returned rsna-resident-dual-t4-mri-runtime-research,
+and original SaveKernel receipt binds that actual identity. Original source,
+weights/masks/folds unchanged; no competition slot/new bulk Dataset was used.
+
 October5 resident inference implementation: standalone exact-source model
 loads once per device and reuses across chunks; finite two-worker roster sharding
 merges original13-column order. Actual CPU/model and two-process fixtures match

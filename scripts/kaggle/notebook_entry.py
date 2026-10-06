@@ -5,10 +5,30 @@ import json
 import os
 import platform
 import shutil
+import signal
 import subprocess
 import sys
 import tarfile
+import time
 from pathlib import Path
+
+
+def bounded_process(command, *, env, timeout):
+    """Stop the entire resident process group when its pipeline budget expires."""
+    if timeout <= 0:
+        raise ValueError("Notebook bootstrap exhausted the execution budget")
+    child = subprocess.Popen(command, env=env, start_new_session=True)
+    try:
+        code = child.wait(timeout=timeout)
+        if code:
+            raise subprocess.CalledProcessError(code, command)
+    except BaseException:
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        child.wait()
+        raise
 
 
 def sha256(path):
@@ -176,6 +196,7 @@ def diagnostic_probe_command(
 
 
 def run():
+    notebook_started = time.monotonic()
     expected = globals().get("EXPECTED_MANIFEST_SHA256")
     if not isinstance(expected, str) or len(expected) != 64:
         raise ValueError("Prepared notebook manifest binding is required")
@@ -277,11 +298,77 @@ def run():
             working / "delta-deployment-acceptance.json",
         )
         return
+    if globals().get("RESIDENT_PERFORMANCE_PROBE") is True:
+        sources = globals().get("RESIDENT_PERFORMANCE_SOURCES")
+        hashes = globals().get("RESIDENT_PERFORMANCE_HASHES")
+        roster = globals().get("RESIDENT_PERFORMANCE_FITTING_UIDS")
+        if not isinstance(sources, dict) or set(sources) != set(hashes or {}):
+            raise ValueError("Bound standalone performance source required")
+        if (
+            set(sources)
+            != {
+                "chunked_infer.py",
+                "resident_infer.py",
+                "resident_pool.py",
+                "resident_worker.py",
+                "resident_entry.py",
+                "performance_probe.py",
+            }
+            or sum(len(v.encode()) for v in sources.values()) > 256 * 1024
+        ):
+            raise ValueError("Bounded standalone performance source required")
+        runtime_code = working / "resident-performance-code"
+        runtime_code.mkdir(mode=0o700)
+        for name, source in sources.items():
+            if (
+                Path(name).name != name
+                or hashlib.sha256(source.encode()).hexdigest() != hashes[name]
+            ):
+                raise ValueError("Standalone performance source differs")
+            with (runtime_code / name).open("x") as handle:
+                handle.write(source)
+        if not isinstance(roster, list) or len(roster) != 32 or len(set(roster)) != 32:
+            raise ValueError("Exact admitted 32-study fitting performance roster required")
+        roster_path = runtime_code / "fitting-roster.json"
+        roster_path.write_text(json.dumps(roster))
+        competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
+        command = [
+            str(python),
+            str(runtime_code / "performance_probe.py"),
+            "--bundle",
+            str(bundle),
+            *encoder_arguments(bundle, working, manifest),
+            "--competition",
+            str(competition),
+            "--roster",
+            str(roster_path),
+            "--output",
+            str(working / "resident-performance"),
+        ]
+        bounded_process(
+            command,
+            env=env,
+            timeout=28800 - (time.monotonic() - notebook_started),
+        )
+        return
     policy = manifest.get("inference_policy", {})
     competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
+    engine = policy.get("engine", "legacy")
+    if engine not in {"legacy", "resident_two_gpu_fp32"}:
+        raise ValueError("Unadmitted notebook inference engine")
+    remaining = 28800 - (time.monotonic() - notebook_started)
+    if engine == "resident_two_gpu_fp32" and remaining <= 0:
+        raise ValueError("Notebook bootstrap exhausted the eight-hour execution target")
     command = [
         str(python),
-        str(bundle / "code/chunked_infer.py"),
+        str(
+            bundle
+            / (
+                "code/resident_entry.py"
+                if engine == "resident_two_gpu_fp32"
+                else "code/chunked_infer.py"
+            )
+        ),
         "--checkpoint",
         str(bundle / "checkpoint.pt"),
         *encoder_arguments(bundle, working, manifest),
@@ -315,6 +402,16 @@ def run():
         "--series-sampling",
         policy.get("series_sampling", "selected"),
     ]
+    if engine == "resident_two_gpu_fp32":
+        command.extend(
+            (
+                "--resident-remaining-seconds",
+                str(remaining),
+                "--resident-workers",
+                "2",
+                "--single-decode",
+            )
+        )
     if (competition / "sample_submission.csv").is_file():
         command.extend(("--template", str(competition / "sample_submission.csv")))
     if manifest.get("baseline_epoch_one") is True:
@@ -335,7 +432,10 @@ def run():
         ):
             raise ValueError("Reviewed fitting admission differs from the exact bundle")
         command.extend(("--fitting-admission", str(admission)))
-    subprocess.run(command, env=env, check=True)
+    if engine == "resident_two_gpu_fp32":
+        bounded_process(command, env=env, timeout=remaining)
+    else:
+        subprocess.run(command, env=env, check=True)
     metrics = json.loads((working / "submission.metrics.json").read_text())
     if (
         metrics.get("status") != "passed"
