@@ -127,6 +127,18 @@ MRI-CORE init vs current ImageNet init, same head, same fold —
 cheapest possible read of whether domain-matched initialization is
 the lever.
 
+**MRI-CORE checkpoint verified (2026-10-06, downloaded + decoded)**:
+`MRI_CORE_vitb.pth`, 436 MB, sha256 `0ca90aeba09568f2…` — GDrive file
+`1nPkTI3H0vsujlzwY8jxjKwAbOCTJv4yW` (linked from the mazurowski-lab
+README). Contents: `{"teacher": {...}}` — a DINOv2-teacher checkpoint,
+`backbone.*` ViT-B/16 (768-dim, `patch_embed 3×16×16`, `pos_embed
+(1,197,768)` = native 224 px — feed 384 px with standard pos-embed
+interpolation) plus `dino_head.*` (drop it — feature extraction uses
+the backbone only). Wiring spec for the probe: strip `teacher.`/
+`backbone.` prefixes, load into our ViT-B encoder path (same shape
+contract as the current init), interpolate pos_embed for the cache
+side, leave `dino_head`/masked-token keys unloaded.
+
 ## Then what
 
 Same bound harness as every other experiment: SSL-pretrained encoder as
