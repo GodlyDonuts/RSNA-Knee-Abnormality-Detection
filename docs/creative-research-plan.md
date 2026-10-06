@@ -1,3 +1,17 @@
+Original875858 control epoch2 completed562updates and privately preserved ONCE
+at HF6199675139bb4121653d506437593510431566b4; all5 objects fully re-downloaded/
+size/SHA verified byCPU877022. Do not repeat control1/2. Actual565finite updates/
+epoch3 and empty stderr observed. No fixed-final result yet.
+Independent CPU877023 audited only verified epoch1 encoder deltas:ALL120 projections
+updated (96attention+24FFN),10,223,616 encoder adapter parameters, median effective
+DeltaW/base Frobenius ratio0.347%, range0.112–0.665%. Read adapter-update-audit-v2.
+This proves encoder updates occur, NOT adequate adaptation strength/accuracy.
+CPU877002 diagnostic-only raw-key lookup failure retained; canonical training
+loader was already correct, no numerical/model/data change.
+Full-memory CPU876865 and funded conditional route are ready; original137306285
+still actualRUNNING. Never dispatch full memory before its successful actual
+terminal/receipt, and never duplicate notebook/jobs/publications.
+
 October6 memory full comparison CPU876865 PASSED original full37812-member/stat,
 2247/1156 membership/source/header/configuration admission, reusing actual CPU876731
 common official initialized graph/RNG. New10GiB PRIVATE node future funded separately
