@@ -79,9 +79,10 @@ pixels: through-plane pitch (~4 mm) can't be fixed.
 ### Step 4 — Masked-cell losses
 
 `masked-cell-em005` config bound (entropy-max on masked cells, weight 0.05).
-Consistency-EMA (mean-teacher pseudo-labels on masked cells) is designed,
-not yet coded — implement as `masked_cell.kind:"ema_consistency"`. Most
-load-bearing for Synovitis/sparse targets.
+Consistency-EMA implemented as `masked_cell.kind:"ema_consistency"` —
+EMA-teacher (α=0.999) MSE on masked-cell logits, ramped 20%, teacher
+checkpointed for exact resume; `masked-cell-consistency` config emitted.
+Most load-bearing for Synovitis/sparse targets.
 
 ### Step 5 — Knee-domain SSL pretrain (one-time, day-scale)
 
@@ -92,10 +93,11 @@ most expensive. Run once when a long GPU window exists.
 
 ### Step 6 — Attention-vs-max pooling + local-dependency term
 
-Ablation grid on the pooling level (attention already implemented; max is
-the control). Optional third arm: SmMIL-style adjacent-slice smoothness
-(slices are spatially ordered — a tear occupies a contiguous run, not
-scattered singletons).
+Ablation grid on the pooling level: `pooling-max` config emitted (max is
+the control; attention is default). Third arm implemented: `slice_smooth`
+(SmMIL-style total-variation penalty on the gated per-slice attention
+scores — a tear occupies a contiguous run, not scattered singletons);
+`slice-smooth-smmil` config emitted at weight 0.1.
 
 ## Decision discipline
 
