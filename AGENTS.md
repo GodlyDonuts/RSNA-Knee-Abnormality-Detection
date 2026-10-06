@@ -1,3 +1,12 @@
+Latest public-label integration/source, PRreview, baselineactualT4 acceptance/
+878853dispatch and originalmemorycontrol1 receipt milestone source6e2eaaaa is
+privatelymirrored ONCEat HFb677f2ad952f34489eed49e07c2354493e767a8e. All40small
+objects fullyre-downloaded/size/SHAverified undercanonical sharedlock. Fitting-only
+publicUID/probability overlay mirrored privately; no rawMRI/weights/protectedgold
+labels copied. Neverrepeat. Label-source contrast remainslocalprepared/notactual
+GPU-admitted/funded/dispatched; preserve original877134/878853 and subsequent
+completedepochs once. Bestsolo0.804 unchanged; goalactive.
+
 Plain public-label contrast fromPR4 is selectively integrated; no broadPRmerge.
 Readpublic-label-source-v1. PinnedHFShio-Koube/knee3@373f4e1d ispublic; actual630153
 CSVbytes/SHAeb4c2b29 independentlydownloadverified. Fitting-only overlay2247 fully
