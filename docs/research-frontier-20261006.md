@@ -126,14 +126,17 @@ needs the H100 slot or a Kaggle GPU notebook, but is a one-time ~day-scale
 pretrain, not a per-experiment cost.
 
 **2026-10-06 sweep update:** KGNet (Zhuang et al., IEEE TMI 45(5), 2026;
-public code github.com/zixuzhuang/KGNet) adds a knee-specific alternative —
-multi-view (axial/coronal/sagittal) knee-graph + multi-task pretraining
-(reconstruct masked patches + segment unmasked ones), with reported gains
-on cartilage defects and ACL — the anatomy-biased targets where a
-reconstruction task should help most. The pretrain recipe choice is now a
-two-way probe recorded in the SSL design (DINO self-distill vs KGNet-style
-multi-task); arbiter unchanged. Pin-build: `ssl_series_manifest.parquet`
-(24,386 series / 819,635 slices) exists under `knee-ssl-pretraining-v1`.
+public code github.com/zixuzhuang/KGNet — code inspected) adds a
+knee-specific alternative — multi-view knee-graph + multi-task pretraining
+(vertex-masked reconstruction + 8-class×3-view bone segmentation) — with
+reported gains on cartilage defects and ACL. **Hard prerequisite**: the
+knee-graph vertices and seg labels come from bone segmentation masks
+(`construct_graph.py`, `data.seg`), which our corpus lacks — it would need
+a pseudo-segmenter (OAI-ZIB public segmentations or an off-the-shelf knee
+segmentation model) first. KGNet is therefore the *second*-recipe candidate
+behind the dependency-free DINO self-distill probe. Pin-build:
+`ssl_series_manifest.parquet` (24,386 series / 819,635 slices) exists
+under `knee-ssl-pretraining-v1`.
 
 ### 8. Per-diagnosis query attention over plane slots (validated externally)
 
