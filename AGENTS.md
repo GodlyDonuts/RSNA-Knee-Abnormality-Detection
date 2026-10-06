@@ -1,3 +1,31 @@
+Full CLS+patch-mean source/config/input/funding stagingCPU878657 passed on evc31.
+Original private single-active-T4 recovery137362933/v1 pushedONCE and actually
+RUNNING; exact sourceb134f3c145c1e573/CPU878616 binding and freshGPUquota admitted.
+Never repeat push. Finite original finish coordinator is LIVE in
+artifacts/cls-patch-summary-v1/full-fit/finish_when_ready.py: observes exactGPU
+terminal then one admitted36h/1H100/2CPU full10epoch job, or stops on error/expiry.
+Inspect original finish intent/result and actual process before action; never
+restart based on an intent alone. Full-fit notyet submitted, GPU recovery notyet
+accepted. Original877134 healthy realcontrol optimizer progress after H100 recovery.
+Newbaseline12GiB nodefuture funded separately; old26GiB future/20GiB floor retained,
+sharedgrowth0/fresh20.002637GiB/5000file remainder. Existingruntime reused. All20
+futureepochs have exact pinnedpublisher; no newaccuracy/Kaggle score. Read
+cls-patch-summary-GPU-recovery-v1 and cls-patch-summary-full-fit-v1.
+
+The original exactFP32 memory32 notebook137358409/v1 actually COMPLETED:
+all32x12 predictions equal the original, no fallback; all seven processes have
+conservative summed lifetime-RSS13,087,358,976bytes (~12.19GiB), total notebook
+631.9955seconds including bootstrap. This passes the measured32-study RAM check,
+not worst-case hidden-tail/cgroup memory or full hidden9h acceptance. Preserve
+actual-seven-process-terminal.json; never repeat its push. The matched full10
+CLS+patch-mean single-active-T4 recovery is prepared from actualCPU878616 with
+original32 MRI proofs, existing private mounts and unchanged rsna numerical bytes.
+No new Dataset/competition submission; GPU admission/full fitting still unsubmitted.
+Current877134 is RUNNING and has passed actualH100 engineering recovery, now
+real control training. Leave originalsource/recipe untouched. Read new
+cls-patch-summary-GPU-recovery-v1; its12GiB nodefuture is distinct from retained
+16/10GiB original reservations, zero newshared growth and no deletion credit.
+
 Actual875858 completed0:0/fullpaired fixed3 result is recomputed: controlmacro
 0.78102068 vs localcandidate0.80194390, but frozenPRIMARY medialmeniscus
 delta+.00083487 paired95%[-.00043470,.00210216]. Secondarymacro+.02092322
