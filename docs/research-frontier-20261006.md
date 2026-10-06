@@ -154,6 +154,45 @@ margin is comfortable (5.1h measured vs 9h on the 1,300-study benchmark) so
 this is contingency engineering for a larger future model, not a present
 blocker.
 
+## Second sweep (2026-10-06): MIL-family and auxiliary findings
+
+### 10. Slice-level MIL losses and local-dependency pooling
+
+SmMIL (arXiv:2410.03276) models a simple prior: **neighboring instances tend
+to share the same label** — a local-dependency module between adjacent slices
+that improves both classification and localization in medical MIL. BE-WISE
+(MICCAI-adjacent 2025 breast MRI) shows slice-level weak supervision lifts
+study AUC ~7 points over a slice-transformer baseline. For us, our slices are
+spatially ordered (patient-geometry positions are bound and verified), so
+adjacent-slice consistency is directly meaningful: a meniscal tear occupies
+a contiguous run of sagittal slices, not scattered singletons. Our current
+pooling treats slices independently within the gated attention; a
+local-smoothness term on per-slice scores (e.g. penalize |score[i+1] −
+score[i]| weighted by physical proximity, or explicit MIL losses where the
+study label supervises the max per-slice score) is an implementable
+pooling/loss variant — pairs naturally with the `attention` vs `max` ablation
+grid as a third arm.
+
+### 11. Plane-slot design audit — axial is load-bearing, already covered
+
+TripleMRNet (QIMS 2024) ran all 7 plane subsets on MRNet: for **meniscal
+tears the axial plane beat sagittal and coronal** (ACC 0.783, close behind
+the 3-plane 0.783 vs sagittal's 0.633); for ACL, sagittal leads with axial
+second. VERIFIED against our code: `select_series` already picks one series
+per plane before filling remaining slots, so every study's plane coverage is
+preserved and the per-target series attention can weight planes freely. No
+action — recorded because axial-plane series must never be deprioritized in
+future series-selection changes.
+
+### 12. CoPAS co-plane attention — partially implemented, marginal gain
+
+CoPAS (Nat Commun 2024, s41467-024-51888-4) — co-plane attention across MRI
+sequences, the largest multi-sequence knee abnormality dataset (1,748
+subjects, 12 types) — reached overall AUC 0.812. Our series features already
+encode plane + fluid/fat flags and the per-target series attention provides
+cross-sequence mixing; a dedicated co-plane attention block is a marginal
+architectural variant at best.
+
 ## Validation doctrine adopted from the field
 
 - Dual-track arbitration (pilkwang): a large derived-label holdout arbitrates
@@ -172,3 +211,11 @@ blocker.
 - Threshold/calibration tuning — AUC is rank-invariant; never moves the metric.
 - Text-branch multimodal models — reports don't exist at inference; ruled out
   by the competition contract itself.
+- Default TTA stacking — a 2026 systematic study (arXiv:2604.09697) measured
+  consistent accuracy *degradation* from standard TTA on medical benchmarks
+  via train/test augmentation distribution shift (up to −31.6pt), with
+  intensity-only augs degrading least. Not a default win; any TTA must be
+  validated per-model on our holdout before use.
+- CORN/CORAL ordinal heads for severity — needs ordinal labels (KL-style
+  grades) that our binary targets don't carry; revisit only if severity
+  labels materialize.
