@@ -1,3 +1,12 @@
+ExactFP32prefetch/correctedCSVboundary milestoneb4492670 privately mirrored at
+HFd14c554088693828deb1c5a073959ad998cf3bdd; all25small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Do not repeat. No rawMRI/labels/
+caseIDs/weights mirrored. Exactcorrected137327561/v1 actualRUNNING, no GPUruntime/
+bitagreement result yet; original137326383 failed beforeprep/model. Candidate
+875858healthy159updates/epoch1 atprogress23; newmemory877134pending. Source/masks/
+folds/weights/healthyrecipes unchanged. Keep goalactive; no scoredimprovement or
+hidden9h claim. Next inspect originaloutcomes and newepochs before action.
+
 ExactFP32 one-chunk-prefetch hypothesis implemented outsidecanonical numerics:
 2spawned/1thread CPUprep overlap2residentGPUworkers, max2x3GiBchunks+3GiBreserve,
 no rounding/fallback/reducedimages. Actualspawnedbyte/recovery/order+overlap tests
