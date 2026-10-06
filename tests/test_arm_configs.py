@@ -27,6 +27,8 @@ def test_run_configs_exist_for_every_packaged_arm():
         *{f"label-source-public.fold{f}" for f in (0, 1, 2)},
         *{f"label-source-blended.fold{f}" for f in (0, 1, 2)},
         *{f"label-source-v21.fold{f}" for f in (0, 1, 2)},
+        *{f"label-source-v21pn.fold{f}" for f in (0, 1, 2)},
+        *{f"label-source-v21hc.fold{f}" for f in (0, 1, 2)},
         *{f"graded-u05.fold{f}" for f in (0, 1, 2)},
         *{f"canonical-sides.fold{f}" for f in (0, 1, 2)},
     }

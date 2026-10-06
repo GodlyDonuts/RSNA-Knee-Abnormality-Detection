@@ -1,18 +1,3 @@
-"""v2.1 pass-3 OA adjudication classifier (Medial/Lateral/PF OA).
-
-Clause-level multilingual classifier over full radiology reports for the
-pool-3 cells (v2 `uncertain` + public < 0.9). Per-clause polarity with
-pre/post-pathology negation scope, compartment attribution where
-patellar/facet/trochlear anatomy dominates medial-lateral adjectives
-("medial patellar facet" is PF evidence, not Medial OA), severity-restricted
-negations kept positive under the any-severity rule, hedged-only and
-osteochondral/traumatic findings masked. Reads /tmp/pool3_oa.parquet
-(rebuild from review_queue.parquet + studies.parquet); writes
-/tmp/v21_pool3_oa_full.parquet. Post-run pins applied: study suffixes
-56388411/34078389 PF OA -> positive, 76106854/99606924 Medial OA -> positive.
-Run: PYTHONPATH=. python scripts/research/v21_pool3_oa_final.py
-"""
-
 import re
 
 import pandas as pd
@@ -52,7 +37,7 @@ LAT = re.compile(
     re.I,
 )
 PFP = re.compile(
-    r"patellofemoral|patelofemoral|patel|патела|trochl|trócle|tróchle|retropatellar|"
+    r"patellofemoral|patelofemoral|patel|патела|trohl|trochl|trócle|tróchle|trohlej|retropatellar|"
     r"femoropatel|fémoropatel|επιγονατ|rotul|rótula|troklear|trohlearn|Patellafacette|"
     r"Patellarückfläche|\bFP\b",
     re.I,
@@ -99,7 +84,7 @@ ALLC_ML = re.compile(
 NEGWORD = re.compile(
     r"\bno\b|\bwithout\b|\bnone\b|\babsen[ct]|\bintact\w*|\bnormal\w*|ureda?n\w*|primjeren|behouden|"
     r"preserved|preservada?o?s?|maintained|sağlam|normaldir|\bb\.o\.\b|regelrecht|unauffällig|\bhomogen\w*|"
-    r"запазен|неизтънен|нормалн|\bbez\b|\bkein\w*|\bgeen\b|\bnema\b|\bnije\b|ne nalazi|ne vidi|\bsin\b|"
+    r"запазен|неизтънен|нормалн|няма|липсва|\bbez\b|\bkein\w*|\bgeen\b|\bnema\b|\bnije\b|ne nalazi|ne vidi|\bsin\b|"
     r"\bpas\b|χωρίς|δεν παρατηρείται|απουσία|\bingen\b|\byoktur\b|\byok\b|saptanmadı|izlenmedi|"
     r"gözlenmedi|\bfri\b|free of|očuvan|σαφής|ικανοποιητικ|zachowan|nicht verdickt|no hay|"
     r"no se (?:evidencia|observa)|zonder|\bohne\b|senza\b|fără|\bnincs\b|\bбез\b|no evident|"
@@ -120,11 +105,11 @@ NEG_AFTER_FIND = re.compile(
 )
 SEV_NEG = re.compile(
     r"(?:\bno\b|kein\w*|geen\b|ohne\b|bez\b|nema\b|pas de|sans|δεν|χωρίς|nicht\b|\bsin\b|"
-    r"yok\b|nije\b|zonder|without|there (?:is|are) no|il n.y a pas|no hay)\s+"
+    r"yok\b|nije\b|zonder|without|there (?:is|are) no|il n.y a pas|no hay|без|няма)\s+"
     r"(?:[^,.;]{0,30}?)(?:focal|fokal|deep|tief|greif|höhergrad|full[ -]?thickness|significant|"
     r"signifikant|wesentlich|majeure|manifest|izražen\w*|vidljiv|evident|relevante|relevant|"
     r"high-grade|higher-grade|grade 3|grade 4|substantial|meaningful|major|dute|complet|"
-    r"complete|svid|expansive|extensive|extensif)",
+    r"subchondral|bone lesion|osseous|kostn|osteochondral|complete|svid|expansive|extensive|extensif)",
     re.I,
 )
 HEDGE = re.compile(
@@ -132,7 +117,7 @@ HEDGE = re.compile(
     r"peut pas être exclu|não pode ser excluída|možno vylúčiť|non si può escludere|"
     r"nie można wykluczyć|niet uitgesloten|nicht sicher auszuschließen|kakva?nijemi|"
     r"eventuell|eventual|möglicherweise|possible\b|moguće|muhtemel|vermutlich|éventuel|"
-    r"suspected|verdacht|sospech|osumnjičen|\bR/O\b|rule out|r\.o\.",
+    r"suspected|verdacht|sospech|osumnjičen|\bR/O\b|rule out|r\.o\.|maybe|may be|mogućnost",
     re.I,
 )
 CLAUSE_SPLIT = re.compile(
@@ -162,6 +147,13 @@ def clause_polarity(cl):
     return "pos", has_cart
 
 
+FT_STRICT = re.compile(
+    r"femorotibial|fémorotibial|femorotibijal|tibiofemoral|tibio-femoral|condyle|"
+    r"condil|kondil|epikondil|plateau|platoa|platou|tibial|tibijal|joint space|"
+    r"mesafe|mesafesi|menisk|menisc|meniskü|ménisq|µηνίσκ|collateral|ligament|"
+    r"cruciat|compartment|kompartment|компарт|mesá|diaμέ|bölme|cebe|odjeljak",
+    re.I,
+)
 FT_BONE = re.compile(
     r"femorotibial|fémorotibial|femorotibijal|tibiofemoral|tibio-femoral|condyle|"
     r"condyles|kondil|kondila|condilar|kondila|platou|plato\b|plateau|tibia\b|tibial|"
@@ -170,7 +162,7 @@ FT_BONE = re.compile(
     re.I,
 )
 PATEL_SITE = re.compile(
-    r"trochl|trócle|tróchle|patel|патела|rotul|rótula|faset|facet|Facette|"
+    r"trohl|trochl|trócle|tróchle|trohlej|patel|патела|rotul|rótula|faset|facet|Facette|"
     r"retropatellar|Patellafacette|Patellarückfläche",
     re.I,
 )
@@ -184,7 +176,7 @@ def clause_comp(cl):
     if ALLC.search(cl):
         return {"m", "l", "p"}
     # patellar/trochlear/facet anatomy: medial/lateral adjectives modify patellar facets, not FT compartments
-    if pff and PATEL_SITE.search(cl) and not FT_BONE.search(cl):
+    if pff and PATEL_SITE.search(cl) and not FT_STRICT.search(cl):
         return {"p"}
     if ALLC_ML.search(cl) and (ft or FT_BONE.search(cl)):
         return {"m", "l", "p"}
@@ -209,9 +201,10 @@ def classify(target, rep, ev):
     neg_hits = set()
     pos_ev = []
     neg_ev = []
+    carry_comps = None  # persists across sentences: degree fragments like "(hondromalacija II./III." continue the previous finding
     for x in sents:
         prev_pol = None
-        prev_comps = None
+        prev_comps = carry_comps
         for cl in CLAUSE_SPLIT.split(x):
             cl = cl.strip()
             if len(cl) < 3:
@@ -273,11 +266,16 @@ def classify(target, rep, ev):
                 continue
             comps = clause_comp(cl)
             if pol == "pos":
-                if not comps and prev_comps:
+                if (
+                    not comps
+                    and prev_comps
+                    and (len(cl) <= 55 or cl.startswith("(") or (len(cl) <= 90 and cl[0].islower()))
+                ):
                     comps = prev_comps
                 pos_hits |= comps if comps else {"j"}
                 pos_ev.append(cl)
                 prev_comps = comps if comps else prev_comps
+                carry_comps = prev_comps
             else:
                 if comps:
                     neg_hits |= comps

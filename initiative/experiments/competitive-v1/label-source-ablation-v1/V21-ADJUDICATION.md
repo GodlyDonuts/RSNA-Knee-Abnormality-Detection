@@ -156,17 +156,44 @@ osteophytes ×2, marginal patellar subchondral edema), 1 uncertain
 
 - `v21_severity_rereview.fold{0,1,2}` — positive flips only (v2.1 protocol:
   relax the severity bar, add missing positives). Per-fold positive flips:
-  3,613 / 3,562 / 3,591; fitting supervised cells 17,206 / 17,562 / 17,590.
+  3,626 / 3,580 / 3,608; fitting supervised cells 17,219 / 17,580 / 17,607.
 - `v21pn_severity_rereview.fold{0,1,2}` — positive **and** negative flips:
-  adjudicated negatives unmask as explicit 0 labels (+299 / +290 / +297 cells,
-  fitting supervised 17,494 / 17,846 / 17,876). Tests whether explicit
+  adjudicated negatives unmask as explicit 0 labels (+289 / +273 / +284 cells,
+  fitting supervised 17,497 / 17,847 / 17,880). Tests whether explicit
   negation supervision on severity targets helps or hurts — the label-source
   ablation's natural second arm.
 
-All three v2.1 passes combined: 7,911 adjudicated cells recorded in
-`v21_adjudication.csv` (7,234 positive, 677 negative); 460 cells stay masked
-(hedged-only, compartment-indeterminate, or traumatic-without-degenerative
-findings per protocol). Run configs `label-source-v21pn.fold{0,1,2}` emitted.
+All three v2.1 passes plus the `not_mentioned` tail combined: 7,907
+adjudicated cells recorded in `v21_adjudication.csv` (7,252 positive, 655
+negative); ~500 cells stay masked (hedged-only, compartment-indeterminate, or
+traumatic-without-degenerative findings per protocol). Run configs
+`label-source-v21pn.fold{0,1,2}` emitted.
+
+## Classifier revision corrections (2026-10-06)
+
+A second revision of the pool-3 OA classifier (`scripts/research/
+v21_pool3_oa_final.py`) fixed four attribution bugs found while auditing
+suspicious calls: (a) Croatian `trohleja`/trochlear spellings were invisible
+to the facet regex, leaking patellar findings into lateral; (b) `femur`/`femoral`
+as the trochlea's host bone broke the patellar-dominance check (fixed via
+`FT_STRICT`); (c) orphaned degree fragments like `(hondromalacija II./III.`
+lost their compartment across sentence-split boundaries — a continuation
+carry now inherits the prior compartment for short/parenthesized/lowercase
+fragments; (d) severity-restricted negations (`without subchondral bone
+lesion`, `no focal defects`) were being counted as full negatives.
+
+Re-running the full pool-3 with the corrected classifier changed 40
+committed cells, all reviewed: 4 positive→negative (explicit "remaining
+cartilage normal" joint-level negations with findings confined to other
+compartments — now correctly negative), 36 →masked (severity-restricted
+negations and cross-compartment attributions that should never have been
+asserted). The committed CSV was updated in place; overlay JSONs rebuilt.
+
+The `not_mentioned` + public≥0.5 tail (42 cells) was adjudicated through the
+same corrected pipeline: 32 decided cells appended (3 Baker's with direct
+Baker's-cyst evidence, 29 OA), 10 stay masked (both Effusion cells —
+fluid/recess-only findings without joint-effusion naming — 1 lateral, 2
+medial, 5 PF).
 
 
 # Gold-58 validation of adjudication quality (2026-10-06)
