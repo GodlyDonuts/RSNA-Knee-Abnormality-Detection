@@ -167,3 +167,34 @@ All three v2.1 passes combined: 7,911 adjudicated cells recorded in
 `v21_adjudication.csv` (7,234 positive, 677 negative); 460 cells stay masked
 (hedged-only, compartment-indeterminate, or traumatic-without-degenerative
 findings per protocol). Run configs `label-source-v21pn.fold{0,1,2}` emitted.
+
+
+# Gold-58 validation of adjudication quality (2026-10-06)
+
+Cross-check: the 120 adjudicated cells that happen to sit on gold-58 studies
+(gold is evaluation-only and never enters fitting, so these cells function as
+a held-out precision probe for the adjudication protocol itself).
+
+| pool | cells | TP | FP | precision |
+|------|-------|----|----|-----------|
+| pass 1 (v2-neg, pub≥0.9) | 26 | 12 | 14 | 0.46 |
+| pass 2 (v2-unc, pub≥0.9) | 71 | 53 | 18 | 0.75 |
+| pass 3 (v2-unc, pub<0.9) | 15 | 1  | 11 | 0.08 pos; 3/3 neg |
+| masked pool-3 cells      | 2  | —  | —  | 1 gold-1 PF masked, 1 gold-0 masked |
+
+Interpretation, with caveats:
+
+- Precision on positive calls is best where public confidence was high *and*
+  v2 had already seen the finding (0.75), worst at the deep-disagreement tail
+  (0.08 on n=12). The pass-1 figure (0.46) is consistent with the known
+  public hallucination signature: evidence quoted by v2's own extractor can
+  name a finding that image-gold still scores 0 — gold labels the image, the
+  report describes it, and mild findings sit in the gap between them.
+- Read against fit-time impact, not just cell counts: these are the cells
+  where the two sources most strongly disagreed — the noisiest supervision
+  the overlays add. The v21pn arm's explicit negatives (3/3 correct on gold)
+  are the highest-precision additions measured.
+- This is a noisy proxy, not a verdict: 120 cells, severity targets only,
+  gold-58's own mild-finding convention documented in GOLD-ARBITRATION.md.
+  It argues for comparing v21 vs v21pn vs baseline on the ablation rather
+  than assuming unmasking is free.
