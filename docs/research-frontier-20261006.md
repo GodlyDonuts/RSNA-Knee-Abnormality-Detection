@@ -125,6 +125,16 @@ encoder nobody else in the competition has published. CPU-infeasible locally;
 needs the H100 slot or a Kaggle GPU notebook, but is a one-time ~day-scale
 pretrain, not a per-experiment cost.
 
+**2026-10-06 sweep update:** KGNet (Zhuang et al., IEEE TMI 45(5), 2026;
+public code github.com/zixuzhuang/KGNet) adds a knee-specific alternative —
+multi-view (axial/coronal/sagittal) knee-graph + multi-task pretraining
+(reconstruct masked patches + segment unmasked ones), with reported gains
+on cartilage defects and ACL — the anatomy-biased targets where a
+reconstruction task should help most. The pretrain recipe choice is now a
+two-way probe recorded in the SSL design (DINO self-distill vs KGNet-style
+multi-task); arbiter unchanged. Pin-build: `ssl_series_manifest.parquet`
+(24,386 series / 819,635 slices) exists under `knee-ssl-pretraining-v1`.
+
 ### 8. Per-diagnosis query attention over plane slots (validated externally)
 
 Pilkwang's head: six slot embeddings (3 planes × 2 sequences) with presence
