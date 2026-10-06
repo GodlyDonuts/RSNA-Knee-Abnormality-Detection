@@ -61,6 +61,16 @@ Three structural notes:
 - **Rare positives stay rare**: MCL 13, Fracture 19, Lateral OA 24 fitting
   positives — the per-target AUCs on these are driven by a handful of
   studies regardless of label source.
+- **Synovitis is a coverage problem no source solves**: reports almost never
+  state synovitis *absence*, so the v2 table has 316 positives against only
+  13 negatives — the target effectively has no negative supervision at all.
+  The public source supervises it fully but its gold recall is 0.48 (it
+  misses half the positives the reports do mention). Neither union nor
+  blend fixes this cleanly — it is the strongest argument for the
+  masked-cell loss arm (`masked-cell-losses-v1`): supervise positives, let
+  the masked 86% be learned under a semi-supervised objective rather than
+  manufacturing negatives from silence, which would violate the
+  silence-≠-negative rule.
 
 The blended overlay (`blended-source-v1`) lifts supervised cells from ~52%
 to 71% of the fitting table by sourcing the four severity targets from the
