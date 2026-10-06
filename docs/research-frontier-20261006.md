@@ -126,6 +126,15 @@ result is worth noting honestly: gated-attention slice pooling *lost* to plain
 max-pool at their scale — so keep both pooling options in the ablation grid
 rather than assuming attention wins.
 
+**VERIFIED against our code (2026-10-06):** `CompetitiveStudyNet` already
+implements this mechanism — `slice_score` emits a per-target attention score
+over slices, `series_score` is a learned [12, hidden] query vector attended
+over series slots by `_masked_softmax`, and `output_weight` is a per-target
+output projection. `max` pooling is the implemented control arm. The
+ablation-grid choice is attention-vs-max at the pooling level, not adding
+query attention — the head structure already matches the externally
+validated design.
+
 ### 9. Inference-budget hardening (engineering, protects score)
 
 From rank-18, all transferable to our submission kernel: adaptive degradation
@@ -133,6 +142,17 @@ under a projected 9h budget (eval slices 32→16, then ensemble members 5→3),
 checkpoint submission.csv every 25 studies, decode fallback chain
 (pydicom→pylibjpeg→gdcm), neutral-0.5 on undecodable studies. None of this is
 frontier research, but each protects the score our models already earned.
+
+**VERIFIED against our code (2026-10-06):** `scripts/kaggle/chunked_infer.py`
+already implements most of this — chunked/resumable inference with per-chunk
+submission writes, neutral rows for unusable studies
+(`test_unusable_mri_studies_get_neutral_rows`), resilient healthy-series
+alternates, and decoder-plugin fallback for recognized DICOM failures. The
+one genuinely missing piece is a **wall-clock budget governor** with adaptive
+degradation (reduce slices / truncate under a projected overrun); current
+margin is comfortable (5.1h measured vs 9h on the 1,300-study benchmark) so
+this is contingency engineering for a larger future model, not a present
+blocker.
 
 ## Validation doctrine adopted from the field
 
