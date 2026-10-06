@@ -1,3 +1,12 @@
+Corrected full-fit-v2 wrapper/CPU878670 admission sourcedc340da2f privately
+mirrored ONCE at HFc4325a3be7df7d828b46587641d2fca459a326f3; all18 smallobjects
+fully re-downloaded/size/SHA verified under canonical lock. Neverrepeat. NoMRI/
+labels/caseIDs/weights mirrored. Full2267tests/Ruff378/mypy51/current89/89 passed.
+Currentactual137362933/v1 remainsRUNNING; correctedfinite observerPID33957 was
+confirmedLIVE at17:21UTC and observes sameoriginalGPU beforeonefull dispatch.
+Originalfullv1 observer stopped withnoGPU dispatch intent. Keep goalactive;
+nofulltraining/newaccuracy or newKaggle scoreyet.
+
 Original full-fit-v1 finite observer was explicitly terminated before anyGPU
 submission: final expected config incorrectly retained plane_memory=None, while
 canonical training omits it. Read original observer-stopped receipt; no old full
