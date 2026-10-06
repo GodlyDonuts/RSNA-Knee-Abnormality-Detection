@@ -1,3 +1,5 @@
+Latest streaming-route source85d5af7 privately mirrored at HFdbf28c4c8de5bdf9f510da92c6897685f0d66967, all11 small objects fully download/size/SHA verified. Full2102tests/Ruff334/mypy49 passed. Real-MRI streaming acceptance and full fitting not yet dispatched. Live FP16v2 observer60535 remains active; no terminal inference from empty live logs.
+
 October6 full-data streaming route is implemented but not MRI/GPU-admitted.
 Default cache loader unchanged; optional provider preserves original byte/hash/
 geometry tensors through bounded scratch eviction (fixture tests pass).
