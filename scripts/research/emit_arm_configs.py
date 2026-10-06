@@ -125,6 +125,7 @@ def main() -> None:
             args.output,
         )
     )
+    written.append(emit({**base, "pooling": "max"}, "pooling-max", args.output))
     print(json.dumps([str(p.relative_to(ROOT)) for p in written], indent=1))
 
 

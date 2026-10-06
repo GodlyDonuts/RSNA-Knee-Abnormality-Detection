@@ -34,6 +34,7 @@ python -m rsna.competitive.train \
 | `canonical-sides.fold{0,1,2}` | deterministic canonical-R mirror | `--canonical-sides .../canonical-sides.fold<N>.json` |
 | `masked-cell-em005` | ESA entropy-max on masked cells, λ=0.05 | none (config-bound) |
 | `masked-cell-consistency` | mean-teacher EMA consistency on masked cells (α=0.999, λ=1.0 ramped 20%) | none (config-bound) |
+| `pooling-max` | max-pooled series aggregation vs per-diagnosis attention | none (config-bound) |
 
 A sha256-mismatched artifact is rejected at load — the binding is the point.
 `fold` inside each config matches the overlay's roster binding.

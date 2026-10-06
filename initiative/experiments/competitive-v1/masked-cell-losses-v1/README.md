@@ -65,8 +65,10 @@ fit under the same seed/folds/recipe.
   validator forbids the combination today.
 - Receipt fields: `masked_entropy`, `masked_cells`, `masked_weight` in the
   per-update event log.
-- Consistency arm (EMA teacher pseudo-labels) still needs the teacher copy
-  — ~30 lines, not yet built.
+- Consistency arm (`kind: "ema_consistency"`) is implemented
+  (2026-10-06): EMA-teacher MSE-on-logits over masked cells, teacher
+  checkpointed for exact resume, `masked-cell-consistency` config emitted.
+  See `consistency-ema-v1/`.
 - Bound like the other experiments: config hash + receipt in the run record,
   same release/folds/outer fold, paired bootstrap on the derived holdout.
 
