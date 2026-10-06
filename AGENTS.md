@@ -1,3 +1,14 @@
+Original control fixed3 AUC independently replayed by zero-GPU CPU878452:
+all12 masked AUCs match original sklearn to<=1.11e-16, macro exactly
+0.7810206776350072 on original1156 weak-label development studies. Exact
+source/config/release/fold/seed/roster/CSV/private-final publication bound.
+No MRI/weights/individual labels or predictions collected; protected cohorts
+unused. Read smooth-witness-full-fit-v2/control-independent-replay. This is
+control validation only, NOT a paired gain or clinical/Kaggle score. Original
+875858 candidate healthy647updates/epoch3 atprogress35; candidate1/2 and
+control1–3 already privately verified once. Newmemory877134 queued; original
+1300 benchmark137329288/v1 still authenticated RUNNING15:23UTC.
+
 Original875858 candidate epoch2 completed562updates and was privately published
 ONCE at HF8e98b5348abe7abd616337b1efbbbdeed28c606a viaCPU878389. All5 objects
 fully re-downloaded/size/SHA verified; checkpoint
