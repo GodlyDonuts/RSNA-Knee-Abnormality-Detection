@@ -1,3 +1,27 @@
+Original875858 control completed843optimizerupdates/3epochs; immutablefinal3
+privately published ONCE at HF71d5b932e7aef051025a2f25351614a145e00512, all5 objects
+fully re-downloaded/size/SHA verified CPU877378, checkpoint393259ce7c51753d14611f4713a59a4ba79902c50756c7b0bad0eb2e2e46a39a.
+Neverrepeat control1/2/3. Heldout/evaluation and fullcandidate still pending; no
+pairedclinical gain/score inferred. Newmemory877134 remainspendingResources.
+ActualFP16 probe32passed0.00287424 tolerance butpipeline443s vswarm8infer18s:
+serialMRIprep dominates. Larger3h1300FP16request ONHOLD; useCPUparallel137319670
+actualsource/byte/timing outcome first. Two-spawned/1thread CPUprep prototype
+preserves original serialrecovery/order/cachebytes in37focusedfixture tests;
+real32MRI CPUprobeRUNNING, no GPU/labels/clinicalclaim. Originalmodeljobs/source/
+acceptedmasks/folds untouched. Read kaggle-parallel-preparation-CPU-v1.
+
+Actual FP16 GPU137315796/v1 COMPLETE: all32 againstoriginal FP32/maxerr0.00287424,
+fixedtol0.003, finite/fallback0, host10.656GB/GPU~2.054GB. Pipeline443.024s/32,
+warm8-study inference18.048s; mosttime outsideGPUmodel/serialMRIprep. Do notclaim
+speedup/hidden9h/clinical equivalence from this. Larger1300source prepared butONHOLD
+pending measured prep optimization; old FP32referenceCSV privatehash-bound/reused.
+New optional2spawned/1thread CPU preparation usesunchanged original serialproducer,
+actualfixture cachebytes/recovery/order equal;37focusedcasespass. PrivateCPU
+137319670/v1 pushedONCE sourcea3fc01bb113b0f37 original32MRI exactbyte/timing gate;
+actualRUNNING, no labels/model/GPU/optimizer/clinicalclaim. Read kaggle-parallel-
+preparation-CPU-v1. Keep875858 healthy839updates/control3 and877134pending unchanged;
+control1/2 preserved, inspect newly completed3before one pinned publication.
+
 Original1300 FP32 inference reference actualprivateCSV SHA feda5e2757ca1a56a0684fe973c3fc61b3eb74c73fa3eac7bab9bb5c53741ed4 now authenticated/source/version/model/resolution-bound read-only; no rawCSV/caseIDs/pixels/weights collected or original inference repeated. New saved-reference helper and full1300 FP16 probe script are prepared, NOT GPU dispatched. Require actual32 probe success + fresh original mount/source/accelerator/resource review. This saves repeating the5h FP32 reference. Read kaggle-fp16-fullscale-preparation-v1; no hidden9h or clinical equivalence inferred. Keep original875858 and877134 unchanged; inspect actual epochs/outcomes.
 
 Actual T4 memory recovery/full H100 dispatch/FP16-probe launch milestoneb0479002

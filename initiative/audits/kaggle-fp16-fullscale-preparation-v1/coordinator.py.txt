@@ -69,7 +69,7 @@ with c.single_coordinator(B/'kaggle'):
         import hashlib
         assert hashlib.sha256(prior_source['blob']['source'].encode()).hexdigest()=='f63c5718a7400f6776cc0c5be38733da0103fdbb0d374c3b52f57eafe2cd47c6'
         prior_result=remote.output_json(prior,1,'runtime-benchmark.json')
-        assert prior_result['status']=='actual_private_full1300_T4_FP16_throughput_and_FP32_agreement_observed' and prior_result['studies']==32 and prior_result['fallback_studies']==0 and prior_result['original_FP32_comparison']['studies']==32 and prior_result['original_FP32_comparison']['max_absolute_probability_error']<=0.003
+        assert prior_result['status']=='actual_private_full32_T4_FP16_throughput_and_FP32_agreement_observed' and prior_result['studies']==32 and prior_result['fallback_studies']==0 and prior_result['original_FP32_comparison']['studies']==32 and prior_result['original_FP32_comparison']['max_absolute_probability_error']<=0.003
         reference=contract['original_FP32_reference_kernel'];assert remote.kernel('GetKernelSessionStatus',reference,1).get('status')=='COMPLETE'
         reference_source=remote.kernel('GetKernel',reference,1)
         assert hashlib.sha256(reference_source['blob']['source'].encode()).hexdigest()=='0f8fb3b0fad2f0ee626dab2427a4dd803161ac3097c3479ca42a9bfcf75eb82b'
