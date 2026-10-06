@@ -1,3 +1,10 @@
+Original full control epoch1 from875858 completed281updates and is privately
+preserved ONCE: HF8088a58eff22f9dcbf39f889e67da7cfb18e3441, all5 objects fully re-downloaded/size/SHA
+verified by CPU876566. Checkpoint SHAb6355b0a53c0c84ece028dc9127a8525d79572494882a91a7de9ea898ac9f9a5.
+Do NOT repeat control1. Healthy job continues full control epoch2; candidate
+still follows fixed control3. No new held-out or Kaggle score. Read v2 epochs/
+control-001; preserve each newly completed production epoch only once.
+
 Latest competitor/paper-guided geometry/query-memory milestone source2647b09ee6c8178a8e19f92bfbce580359ebea44 privately mirrored at HF33b2591ef7f2209f232707e6f37ae092a657ae28; all13 small objects fully re-downloaded/size/SHA verified once under canonical lock. No raw MRI/labels/caseIDs/weights mirrored. Healthy875858 latest full control265finite updates/epoch1, empty stderr, no snapshot at that observer. First epoch snapshot must be inspected/preserved once when it actually completes; do not publish engineering checkpoints or repeat mirrors.
 
 October6 owner renewed creative/competitor-guided work. Independent CPU876287
