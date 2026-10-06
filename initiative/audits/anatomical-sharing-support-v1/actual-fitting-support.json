@@ -1,0 +1,113 @@
+{
+  "MRI_encoder_optimizer_or_GPU_executed": false,
+  "binding": {
+    "CPU_torch_version": "2.14.0",
+    "accumulation_steps": 8,
+    "batch_size": 1,
+    "epochs": 3,
+    "fitting_studies": 2247,
+    "folds_sha256": "8699248177042dc2e95b1e1947e25cbe5bc39e42c43ee4919398afc219665e07",
+    "original_completed_run_sha256": "c152021d461dfffbb214671a4cc8c0d735d49c2c29c427ac2ba4ec7f94d626cc",
+    "original_masks_and_folds_changed": false,
+    "original_torch_version": "2.14.0+cu130",
+    "outer_confirmation_gold_target_values_decoded": false,
+    "outer_roster_studies": 1156,
+    "outer_uids_sha256": "2f365bb0ce8e052f22dcab78bb2bbb7e03c0919ab28ba94ab9d3d8d6e08f0fdb",
+    "parent_seed": 20260922,
+    "release_sha256": "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7",
+    "sampler_sha256": "c39153f13075c14ae0135accf9db12525b4e17f15637519e83362c9291d274c9",
+    "training_uids_sha256": "e9d38ee21a114973177b89f4602129c7dc047927b8499991d3be30fd89737f3a",
+    "world_size": 1
+  },
+  "clinical_labels_masks_or_folds_changed": false,
+  "groups": [
+    {
+      "logical_task": "ACL_or_MCL",
+      "members": [
+        "ACL",
+        "MCL"
+      ],
+      "members_support": [
+        {
+          "negative_studies": 1682,
+          "observed_negative_with_positive_sibling_studies": 3,
+          "positive_studies": 171,
+          "positive_with_positive_sibling_studies": 0,
+          "target": "ACL"
+        },
+        {
+          "negative_studies": 1816,
+          "observed_negative_with_positive_sibling_studies": 117,
+          "positive_studies": 5,
+          "positive_with_positive_sibling_studies": 0,
+          "target": "MCL"
+        }
+      ],
+      "negative_components": 1484,
+      "negative_studies": 1505,
+      "positive_components": 176,
+      "positive_studies": 176,
+      "unknown_studies": 566
+    },
+    {
+      "logical_task": "Medial_or_Lateral_Meniscus",
+      "members": [
+        "Medial Meniscus",
+        "Lateral Meniscus"
+      ],
+      "members_support": [
+        {
+          "negative_studies": 1082,
+          "observed_negative_with_positive_sibling_studies": 121,
+          "positive_studies": 832,
+          "positive_with_positive_sibling_studies": 133,
+          "target": "Medial Meniscus"
+        },
+        {
+          "negative_studies": 1565,
+          "observed_negative_with_positive_sibling_studies": 533,
+          "positive_studies": 297,
+          "positive_with_positive_sibling_studies": 133,
+          "target": "Lateral Meniscus"
+        }
+      ],
+      "negative_components": 860,
+      "negative_studies": 879,
+      "positive_components": 988,
+      "positive_studies": 996,
+      "unknown_studies": 372
+    },
+    {
+      "logical_task": "Contusion_or_Fracture",
+      "members": [
+        "Contusion",
+        "Fracture"
+      ],
+      "members_support": [
+        {
+          "negative_studies": 671,
+          "observed_negative_with_positive_sibling_studies": 0,
+          "positive_studies": 121,
+          "positive_with_positive_sibling_studies": 0,
+          "target": "Contusion"
+        },
+        {
+          "negative_studies": 440,
+          "observed_negative_with_positive_sibling_studies": 12,
+          "positive_studies": 3,
+          "positive_with_positive_sibling_studies": 0,
+          "target": "Fracture"
+        }
+      ],
+      "negative_components": 361,
+      "negative_studies": 372,
+      "positive_components": 124,
+      "positive_studies": 124,
+      "unknown_studies": 1751
+    }
+  ],
+  "interpretation": "Observed logical unions support testing shared anatomy representations; they are not additional rare-disease positives or patient-level clinical truth.",
+  "model_mechanism_implemented_or_accuracy_gain_established": false,
+  "new_rare_disease_labels_created": false,
+  "status": "actual_original_fitting_only_logical_union_support_measured"
+}

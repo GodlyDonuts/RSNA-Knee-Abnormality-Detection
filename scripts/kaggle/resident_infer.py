@@ -134,6 +134,7 @@ class ResidentInference:
             ("slice_context", getattr(self.config, "slice_context", "none")),
             ("witness", getattr(self.config, "witness", None)),
             ("plane_memory", getattr(self.config, "plane_memory", None)),
+            ("patch_summary", getattr(self.config, "patch_summary", None)),
             ("input_channels", channels),
         ]:
             if name in supported:

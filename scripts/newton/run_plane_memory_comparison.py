@@ -91,7 +91,13 @@ def expected_binding_config(values, provenance):
     from rsna.competitive.train import TrainConfig
 
     result = asdict(TrainConfig(**values))
-    for name in ("relation", "witness", "fitting_supervision", "neighbor_channels"):
+    for name in (
+        "relation",
+        "witness",
+        "fitting_supervision",
+        "neighbor_channels",
+        "patch_summary",
+    ):
         if result[name] is None:
             result.pop(name)
     result["encoder"] = provenance

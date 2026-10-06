@@ -554,6 +554,7 @@ def validate_delta_base(checkpoint_file, encoder_spec, binding):
             encode_chunk_size=config["encode_chunk_size"],
             slice_context=config.get("slice_context", "none"),
             **({"plane_memory": config["plane_memory"]} if config.get("plane_memory") else {}),
+            **({"patch_summary": config["patch_summary"]} if config.get("patch_summary") else {}),
             **relation_kwargs,
         )
         guard = FrozenBaseDelta(model, provenance)

@@ -1,0 +1,71 @@
+def attached_dataset_files(inputs, name):
+    """Find attached payloads without traversing the competition MRI tree."""
+    if Path(name).name != name:
+        raise ValueError("Attached payload name must be a basename")
+    scoped = globals().get("ATTACHED_PAYLOAD_ROOTS")
+    if scoped is not None:
+        if not isinstance(scoped, dict) or name not in scoped:
+            raise ValueError("Known versioned payload scope required")
+        item = scoped[name]
+        if (
+            set(item) != {"kind", "slug", "version", "relative"}
+            or item["kind"] not in {"datasets", "notebooks"}
+            or item["version"] != 1
+        ):
+            raise ValueError("Exact original attached payload identity required")
+        parts = item["slug"].split("/")
+        relative = Path(item["relative"])
+        if (
+            len(parts) != 2
+            or any(not p or p in {".", ".."} for p in parts)
+            or relative.is_absolute()
+            or ".." in relative.parts
+            or relative.name != name
+        ):
+            raise ValueError("Attached payload identity/path escapes its scope")
+        owner, slug = parts
+        roots = [inputs / slug, inputs / owner / slug, inputs / item["kind"] / owner / slug]
+        seen_paths = set()
+        for root in roots:
+            for version_root in (root, root / "1", root / "v1"):
+                path = version_root / relative
+                if path.is_file() and not path.is_symlink():
+                    canonical = path.resolve()
+                    if not canonical.is_relative_to(inputs.resolve()):
+                        raise ValueError("Attached payload escapes the input filesystem")
+                    if canonical not in seen_paths:
+                        seen_paths.add(canonical)
+                        yield path
+        return
+    seen = 0
+    for directory, children, files in os.walk(inputs, followlinks=False):
+        directory = Path(directory)
+        seen += 1
+        depth = len(directory.relative_to(inputs).parts)
+        if seen > 2048:
+            raise ValueError("Attached Dataset discovery exceeded its metadata budget")
+        if directory.name in {"competitions", "rsna-knee-abnormality-detection"} or (
+            "train_series" in children or "test_series" in children
+        ):
+            children[:] = []
+            continue
+        children[:] = [
+            child
+            for child in children
+            if depth < 8
+            and child
+            not in {
+                "competitions",
+                "rsna-knee-abnormality-detection",
+                "code",
+                "artifacts",
+                "cache",
+                "witness-training-source",
+                "witness-inputs-admission",
+                "resident-performance",
+            }
+        ]
+        if name in files:
+            path = directory / name
+            if not path.is_symlink() and path.is_file():
+                yield path

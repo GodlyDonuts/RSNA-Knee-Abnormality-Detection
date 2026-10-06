@@ -272,6 +272,8 @@ def _assert_tree_equal(first, second):
         ("none", None, dict(weight=1, pooling="normalized_logmeanexp", beta=8)),
         ("none", None, {"plane_memory": {"weight": 0, "seed": 20261006, "hidden_dim": 16}}),
         ("none", None, {"plane_memory": {"weight": 1, "seed": 20261006, "hidden_dim": 16}}),
+        ("none", None, {"patch_summary": {"weight": 0}}),
+        ("none", None, {"patch_summary": {"weight": 1}}),
     ],
 )
 def test_training_mid_epoch_resume_matches_every_checkpoint_value(
@@ -326,7 +328,10 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
         witness=(
             None
             if witness_weight is None
-            or (isinstance(witness_weight, dict) and "plane_memory" in witness_weight)
+            or (
+                isinstance(witness_weight, dict)
+                and any(name in witness_weight for name in ("plane_memory", "patch_summary"))
+            )
             else dict(
                 patches=4,
                 slices=2,
@@ -342,6 +347,9 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
             witness_weight["plane_memory"]
             if isinstance(witness_weight, dict) and "plane_memory" in witness_weight
             else None
+        ),
+        patch_summary=(
+            witness_weight.get("patch_summary") if isinstance(witness_weight, dict) else None
         ),
         relation=(
             None

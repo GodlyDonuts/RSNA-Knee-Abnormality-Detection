@@ -60,6 +60,7 @@ def test_spawned_parallel_cache_and_receipts_equal_serial_in_original_order(tmp_
     expected, receipt = prepare_usable_series(frame, ids, cache=serial, **options)
     with ParallelPreparation() as runner:
         actual, observed = runner.prepare(frame, ids, cache=parallel, **options)
+        assert len(set(runner.worker_pids())) == 2
     pd.testing.assert_frame_equal(actual, expected)
     assert observed == receipt
 

@@ -35,6 +35,7 @@ from rsna.competitive.checkpoint import (
     save_checkpoint,
 )
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
+from rsna.competitive.feature_summary import validate_patch_summary
 from rsna.competitive.loss import effective_batch_loss, observed_counts
 from rsna.competitive.mrnet_initialization import initialize_private_mrnet
 from rsna.competitive.neighbor_input import neighbor_input_channels
@@ -122,8 +123,27 @@ class TrainConfig:
     plane_memory: dict | None = None
     fitting_supervision: dict | None = None
     neighbor_channels: dict | None = None
+    patch_summary: dict | None = None
 
     def validate(self) -> None:
+        if self.patch_summary is not None:
+            validate_patch_summary(self.patch_summary)
+            if (
+                self.pooling != "attention"
+                or self.slice_context != "none"
+                or any(
+                    value is not None
+                    for value in (
+                        self.witness,
+                        self.plane_memory,
+                        self.relation,
+                        self.neighbor_channels,
+                        self.fitting_supervision,
+                    )
+                )
+                or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+            ):
+                raise ValueError("CLS/patch-mean baseline must isolate its single readout change")
         neighbor_input_channels(self.neighbor_channels)
         if self.neighbor_channels is not None and (
             self.fit_scope != "outer_fold"
@@ -546,6 +566,7 @@ def _run_locked(
         slice_context=config.slice_context,
         **({"witness": config.witness} if config.witness is not None else {}),
         **({"plane_memory": config.plane_memory} if config.plane_memory is not None else {}),
+        **({"patch_summary": config.patch_summary} if config.patch_summary is not None else {}),
         **relation_model_kwargs(config.relation),
         **({"input_channels": channels} if channels == 3 else {}),
     ).to(device)
@@ -603,6 +624,8 @@ def _run_locked(
         bound_config.pop("fitting_supervision")
     if config.neighbor_channels is None:
         bound_config.pop("neighbor_channels")
+    if config.patch_summary is None:
+        bound_config.pop("patch_summary")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {

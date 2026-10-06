@@ -1,0 +1,28 @@
+import ast,hashlib,json
+from pathlib import Path
+r=Path('artifacts/kaggle-fp16-fullscale-parallel-v1');a=Path('initiative/audits/kaggle-fp16-fullscale-parallel-v1');old=Path('artifacts/kaggle-fp16-resident-probe-v2/private-notebook.py').read_text();tree=ast.parse(old);values={};last=0
+for node in tree.body:
+ if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name) and node.targets[0].id.startswith(('EXPECTED_MANIFEST','RESIDENT_PERFORMANCE')):
+  values[node.targets[0].id]=ast.literal_eval(node.value);last=max(last,node.end_lineno)
+assert len(values)==6 and values['RESIDENT_PERFORMANCE_STUDY_COUNT']==32
+roster=json.loads(Path('artifacts/kaggle-resident-fullscale-v1/private-roster.json').read_text());proof=json.loads(Path('initiative/audits/kaggle-fp16-fullscale-preparation-v1/actual-original-reference-metadata.json').read_text());assert roster['studies']==proof['studies']==1300
+sources=dict(values['RESIDENT_PERFORMANCE_SOURCES']);sources['performance_probe.py']=Path('scripts/kaggle/fp16_saved_reference_probe.py').read_text();sources['saved_performance_reference.py']=Path('scripts/kaggle/saved_performance_reference.py').read_text();sources['parallel_preparation.py']=Path('scripts/kaggle/parallel_preparation.py').read_text();sources['chunked_infer.py']=Path('scripts/kaggle/chunked_infer.py').read_text()
+hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in sources.items()};assert sum(len(s.encode()) for s in sources.values())<256*1024
+values.update(RESIDENT_PERFORMANCE_STUDY_COUNT=1300,RESIDENT_PERFORMANCE_FITTING_UIDS=roster['uids'],RESIDENT_PERFORMANCE_SOURCES=sources,RESIDENT_PERFORMANCE_HASHES=hashes)
+entry=''.join(old.splitlines(keepends=True)[last:]);entry=entry.replace('"fp16_resident_probe.py",','"fp16_resident_probe.py",\n                "saved_performance_reference.py",\n                "parallel_preparation.py",')
+needle='        bounded_process(\n            command,\n            env=env,'
+assert entry.count(needle)==1
+block='''        references=[p for p in attached_dataset_files(Path("/kaggle/input"),"benchmark-predictions.csv") if p.stat().st_size<=4*1024**2 and sha256(p)==SAVED_FP32_REFERENCE_RECEIPT["submission_sha256"]]
+        if len(references)!=1:
+            raise ValueError("Exactly the original private FP32 reference bytes must be attached")
+        reference_proof=working/"saved-FP32-reference-receipt.json"
+        reference_proof.write_text(json.dumps(SAVED_FP32_REFERENCE_RECEIPT,sort_keys=True,indent=2)+"\\n")
+        command += ["--reference-csv",str(references[0]),"--reference-receipt",str(reference_proof)]
+'''
+entry=entry.replace(needle,block+needle).replace('7200 - (time.monotonic() - notebook_started)','14400 - (time.monotonic() - notebook_started)')
+new='\n'.join(n+' = '+repr(v) for n,v in values.items())+'\nSAVED_FP32_REFERENCE_RECEIPT = '+repr(proof)+'\n'+entry;compile(new,'prepared-fullscale-FP16.py','exec');assert len(new.encode())<256*1024
+contract=json.loads(Path('artifacts/kaggle-fp16-resident-probe-v2/source-contract.json').read_text());contract.update(kernel_slug='godlydonuts/rsna-fp16-parallel-1300-85bfc1ce-v1',source_sha256=hashlib.sha256(new.encode()).hexdigest(),standalone_source_sha256=hashes,study_count=1300,fitting_UIDs_sha256=roster['roster_sha256'],roster_selection=roster['selection'],max_pipeline_seconds=14400,original_FP32_reference_kernel=proof['original_kernel_slug'],original_FP32_reference_version=1,original_FP32_reference_csv_sha256=proof['submission_sha256'],original_FP32_inference_repeated=False,required_prior_FP16_probe_kernel=137315796,required_prior_FP16_probe_success=True,GPU_dispatched=False,parallel_preparation_CPU_gate=137319670,parallel_workers=2,threads_per_preparation_worker=1,actual_prior_CPU_cache_bytes_equal_required=True)
+for n,s in [('private-notebook.py',new),('source-contract.json',json.dumps(contract,indent=2)+'\n')]:
+ with (r/n).open('x') as f:f.write(s)
+(a/'source-contract.json').write_text(json.dumps(contract,indent=2)+'\n');(a/'prepare-coordinator.py.txt').write_text(Path(__file__).read_text())
+print(json.dumps({'status':'full1300_FP16_saved_reference_source_prepared','bytes':len(new.encode()),'source_sha256':contract['source_sha256'],'no_original_FP32_inference_repeated':True,'GPU_dispatched':False}))
