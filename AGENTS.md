@@ -1,3 +1,11 @@
+October6 candidate epoch1 from original875858 completed281updates and was privately
+published ONCE/full5-object download-size-SHA verified at HF5ee4dd4b6e2c0311c73f2d93262e4e55e6ff92cc viaCPU877791. Checkpoint ef1f7948650662f6cc0dd7d67ea6c8ea6bb33117f33312d80f787206a5aae74f; never repeat control1–3/candidate1. Candidate healthy293updates/epoch2 atprogress29, memory877134pendingResources, exact1300benchmark137329288/v1RUNNING13:40UTC. No pairedaccuracygain or newKaggle score.
+The FP32pre-fetch RAM reporter omitted preparation workers/tracker. New standard-
+library Linux lifetime-RSS reporter actually passed six-process CPU877784;
+read process-memory-accounting-v1. Original32 and running1300 exactvalues/timing
+remain useful, but old RAM figures are NOT complete process-tree bounds. Require
+new actual MRI/T4 memory acceptance before deployment; no job/math/data changed.
+
 ActualexactFP32prefetch32 acceptance/larger1300launch sourceaa11c160 privately
 mirrored at HF932e897c874f8f12b557e501b29383ff911c52bb; all18small objects fully
 re-downloaded/size/SHA verified under canonical sharedlock. Neverrepeat. No rawMRI/

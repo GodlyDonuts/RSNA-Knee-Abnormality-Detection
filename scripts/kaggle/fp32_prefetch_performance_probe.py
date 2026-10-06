@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import resource
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,6 +14,7 @@ import numpy as np
 import pandas as pd
 import torch
 from prefetch_preparation import PrefetchPreparation
+from process_memory import workload_memory
 from resident_pool import ResidentPool
 from saved_performance_reference import load_reference
 
@@ -131,6 +131,10 @@ def main():
 
     try:
         metrics = chunked_infer.run(options, invoke=invoke, prepare_invoke=preparation.prepare)
+        memory = workload_memory(
+            resident_pids=[child.pid for child in pool.children],
+            preparation_pids=preparation.preparation.worker_pids(),
+        )
     finally:
         preparation.close()
         pool.close()
@@ -140,7 +144,6 @@ def main():
         raise ValueError("All original active fitting studies require exact FP32 agreement")
     predictions = pd.read_csv(options.output)
     all_finite = np.isfinite(predictions[list(TARGETS)].to_numpy()).all()
-    rss = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024)
     shards = []
     for path in args.output.glob("cache/chunk-*/attempt-*/submission.metrics.json"):
         value = json.loads(path.read_text())
@@ -156,9 +159,7 @@ def main():
     peaks = {
         str(i): max(r["GPU_peak_allocated_bytes"] for r in rows) for i, rows in by_device.items()
     }
-    upper_rss = rss + sum(
-        max(r["host_peak_rss_bytes"] for r in rows) for rows in by_device.values()
-    )
+    upper_rss = memory["process_tree_peak_rss_upper_bytes"]
     pipeline_seconds = metrics["elapsed_seconds"] - comparison["reference_seconds"]
     record = {
         "status": "actual_private_FP32_prefetch_throughput_and_exact_prediction_agreement_observed",
@@ -171,6 +172,7 @@ def main():
         "original_FP32_comparison": comparison,
         "GPU_peak_allocated_bytes": peaks,
         "conservative_process_tree_peak_rss_upper_bytes": upper_rss,
+        "process_memory_accounting": memory,
         "CPU_threads_per_worker": 1,
         "data_workers": 0,
         "checkpoint_loads_per_device": 1,
