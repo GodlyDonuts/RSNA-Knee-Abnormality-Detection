@@ -1,3 +1,12 @@
+OwnerOctober6 reauthorized privateKneeCoT research, supersedingoldleave-unused
+preference. ActualHFauth-check passeswithexistingtoken, gateauto/reve5944fd.
+Separatehospitalethical-useagreement requiredbycurrentpubliccard; scope notyet
+verified. Askonlyforagreement/accessscope, notcredentials orDiscordrulingagain.
+No gatedpatientfiles/training/application/bulkdownload occurred. Boundedsource
+MRI/annotationquality audit thenprivateanatomy/severity research afterconfirmation
+andfreshstorageadmission; no competitioneligibility assumed. Read kneecot-private-
+research-access-20261006-v1. ExistingRSNAtraining/jobs/source unchanged.
+
 Secondnode resourcefeasibility read-only: nativecache140.626GB/37812members,
 evc34localfree728.789GB and1unallocatedH100. Normal2h/48h forecastnextmorning;
 preemptable2h forecastearlierOct6 20:47clusterlocal. Not guaranteed/not jobs.
