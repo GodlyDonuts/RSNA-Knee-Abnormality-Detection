@@ -238,9 +238,9 @@ class CompetitiveStudyDataset(StudyDataset):
         supervised = labels[label_mask.bool()]
         if (
             not torch.isfinite(supervised).all()
-            or not ((supervised == 0) | (supervised == 1)).all()
+            or ((supervised < 0) | (supervised > 1)).any()
         ):
-            raise ValueError("Supervised targets must be finite binary values")
+            raise ValueError("Supervised targets must be finite probabilities in [0,1]")
         labels = torch.where(label_mask.bool(), labels, torch.zeros_like(labels))
         return dict(
             images=images,
