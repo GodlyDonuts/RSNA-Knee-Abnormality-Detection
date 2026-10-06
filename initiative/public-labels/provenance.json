@@ -1,0 +1,29 @@
+{
+  "source_dataset": "Shio-Koube/knee3",
+  "source_revision": "373f4e1daf36984fa48bf3fc8fd9883fe17cb584",
+  "retrieved": "2026-10-06",
+  "role": "public competitor label tables used by the copied OSS ensembles (incl. pilkwang/rsna-knee-llm-labels lineage)",
+  "files": {
+    "llm_labels_v4_blend.csv": {
+      "sha256": "eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4",
+      "rows": 4407,
+      "note": "soft labels in [0.005, 1.0]; primary ablation arm"
+    },
+    "frankenstein_labels.csv": {
+      "sha256": "7243c41aabade969d1881c83058aac1e919d842eb2b16a52b1c3edda93503cbd",
+      "rows": 4402,
+      "note": "soft labels, values up to 1.2745 (outside [0,1]; cannot be used directly as an overlay source without clipping)"
+    },
+    "frankenstein_labels_binary.csv": {
+      "sha256": "686ed61629e39199344963d7dc9cba36cd17df6e60c341326dcda97dc88dbc9b",
+      "rows": 4402,
+      "note": "thresholded variant of frankenstein labels"
+    },
+    "train_labels.csv": {
+      "sha256": "159fd9c670134b23f9070d7ea650c06d68d139b024a7a355f992c04a4a5ba3ce",
+      "rows": 4407,
+      "note": "alternate soft table shipped in the same dataset"
+    }
+  },
+  "verification": "sha256 sums recomputed on download 2026-10-06; target columns match rsna.schema.TARGETS order exactly"
+}
