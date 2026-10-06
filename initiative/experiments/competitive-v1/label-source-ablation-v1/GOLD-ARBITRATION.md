@@ -28,6 +28,47 @@ not arbitrate recipe selection (N=58, per-target positives as low as 1–24).
 On the 322 cells v2 decided: v2 accuracy 0.894, public accuracy (same cells)
 0.863. On all 696 cells: public accuracy 0.818.
 
+## Corpus-level supervision coverage (v2 baseline, fold-0 fitting, 3,106 studies)
+
+Gold arbitration measures per-call correctness; this table measures what the
+v2 baseline actually *trains on* — cells masked as `uncertain`/`not_mentioned`
+carry no supervision. Abstention is highest exactly where the severity bar
+lives:
+
+| Target | pos | pos% | neg | uncertain | not_mentioned | supervised% |
+|--------|----:|-----:|----:|----------:|--------------:|------------:|
+| ACL | 254 | 8.2 | 2,214 | 371 | 267 | 79.5 |
+| MCL | 13 | 0.4 | 2,397 | 376 | 320 | 77.6 |
+| Medial Meniscus | 1,133 | 36.5 | 1,469 | 313 | 191 | 83.8 |
+| Lateral Meniscus | 402 | 12.9 | 2,088 | 278 | 338 | 80.2 |
+| Medial OA | 55 | 1.8 | 1,251 | 1,123 | 677 | **42.0** |
+| Lateral OA | 24 | 0.8 | 1,334 | 932 | 816 | **43.7** |
+| PF OA | 48 | 1.5 | 1,106 | 1,366 | 586 | **37.2** |
+| Effusion | 371 | 11.9 | 1,674 | 726 | 335 | **65.8** |
+| Synovitis | 316 | 10.2 | **13** | 104 | **2,673** | **10.6** |
+| Baker's | 76 | 2.4 | 1,003 | 466 | **1,561** | **34.7** |
+| Contusion | 249 | 8.0 | 996 | 1,287 | 574 | **40.1** |
+| Fracture | 19 | 0.6 | 717 | 566 | **1,804** | **23.7** |
+
+Three structural notes:
+
+- **Synovitis is nearly unsupervised** — reports almost never state "no
+  synovitis", so silence leaves 86% of cells masked: 316 positives, only 13
+  negatives. The v2 baseline effectively trains this target on ~330 cells.
+- **Severity-qualified targets shed half their supervision**: Medial/Lateral/
+  PF OA, Baker's, Fracture, Contusion all sit at 24–44% supervised, dominated
+  by `uncertain`/`not_mentioned` — the mask is doing the severity gate.
+- **Rare positives stay rare**: MCL 13, Fracture 19, Lateral OA 24 fitting
+  positives — the per-target AUCs on these are driven by a handful of
+  studies regardless of label source.
+
+The blended overlay (`blended-source-v1`) lifts supervised cells from ~52%
+to 71% of the fitting table by sourcing the four severity targets from the
+public probabilities (mask 1 everywhere). The graded overlay
+(`graded-states-u05`) instead supervises `uncertain` at 0.5 — the two
+approaches are complementary: blend changes WHO supervises severity targets,
+graded changes HOW equivocal evidence is weighted on the rest.
+
 ## What this revises
 
 The tier-0 and OA triage docs framed v2's semantics as systematically better
