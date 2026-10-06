@@ -1,3 +1,21 @@
+October6 distinct conditional full comparison875535 submitted ONCE, source3b7e437,
+owning evc31/1H100/2CPU/32GiB/24h; inspect actual original Slurm/logs before action.
+Unique root /tmp/rsna-smooth-witness-full-fit-20261006-v1; complete CPU875492 passed.
+Inside job: actual new smooth FP16 full/stop1/resume recovery + training-only
+stress MUST pass before full control/candidate3epochs/843updates each. Do not
+mistake submission/pending for actual clinical fitting or accuracy. Never repeat.
+Use pinned artifacts/smooth-witness-full-fit-v1/publication_coordinator.py for
+completed production role/epoch1–3, original intents/private paths read-only first.
+Original875277 completed0:0 and is not rerun. No new Kaggle GPU or competition slot.
+
+Actual streaming CPU137281867 COMPLETE: original32 full MRI/model-input tensors
+exactly equal through cache traversal/repeat;543.708s, peak3796115456hostRSSbytes,
+resident260624859bytes under256MiB cap. This is input engineering, not full3403/
+GPU trainer acceptance or a clinical score. Read kaggle-streaming-inputs-CPU-v1.
+Original1300 T4 inference137253277 COMPLETE: zero fallback, finite,18303.60s
+pipeline excluding reference,11042770944 peakRSS bound,2.36GB GPU/device; no
+hidden9h admission or score. Live06:44UTC0today/5slots; no competition mutation.
+
 October6 original H100875277 COMPLETED0:0/18:08; complete hard BF16 recovery passed.
 Distinct full smooth-witness CPU875492 COMPLETED: complete37812original cache
 stats,2247fitting/1156disjoint outer and actual same official learned graph/RNG.
