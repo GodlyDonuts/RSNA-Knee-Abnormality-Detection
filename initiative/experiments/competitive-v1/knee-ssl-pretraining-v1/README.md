@@ -107,12 +107,22 @@ per-view volumes, while our extractor is 2D-slice + attention pooling.
 Two integration paths: (a) swap the encoder path to OD-style per-view
 volume features feeding our per-target study head (bigger surgery, most
 knee-domain signal), or (b) self-pretrain on our manifest but borrow OD's
-recipe (view-specific branches + denoising-feature reuse). Also worth
-pricing generic MRI foundations already noted in the frontier doc
-(MRI-CORE, PRISM-2508.07165, Triad-2502.14064, Decipher-MR-2509.21249) —
-all need availability/license checks before any probe. The single best
-move if a GPU slot opens is a short paired probe: OD-path vs DINO-own-
-corpus vs current ImageNet init, same head, same fold.
+recipe (view-specific branches + denoising-feature reuse).
+
+**Availability checks (2026-10-06)**: MRI-CORE is Apache-2.0 with ViT-B
+weights on Google Drive (github.com/mazurowski-lab/mri_foundation) —
+2D-slice, 6M slices/18 body regions, **direct drop-in for our 2D
+extractor** and the cheapest probe to run (no architecture surgery).
+Triad is MIT with 4 checkpoints on GDrive (SwinB + PlainConvUNet, MAE +
+SimMIM variants) but 3D. PRISM and Decipher-MR appear paper-only — no
+public weights found. Ranked probe list: (1) MRI-CORE ViT-B init —
+drop-in, Apache-2.0; (2) OrthoDiffusion path — most knee-domain signal,
+3D surgery; (3) own-corpus DINO self-distill — strongest domain match,
+day-scale cost; (4) Triad Swin-B — generic 3D, weaker evidence;
+(5) KGNet-style multi-task — needs segmenter first. The single best
+move if a GPU slot opens: short paired probe of MRI-CORE init vs
+current ImageNet init, same head, same fold — cheapest possible read
+of whether domain-matched initialization is the lever.
 
 ## Then what
 
