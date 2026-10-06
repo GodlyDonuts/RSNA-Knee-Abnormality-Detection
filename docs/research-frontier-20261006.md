@@ -138,7 +138,13 @@ behind the dependency-free DINO self-distill probe. Pin-build:
 `ssl_series_manifest.parquet` (24,386 series / 819,635 slices) exists
 under `knee-ssl-pretraining-v1`.
 
-**Released-weight option found (2026-10-06 sweep):** OrthoDiffusion
+**Released-weight options found (2026-10-06 sweep, availability
+verified):** MRI-CORE is Apache-2.0, ViT-B, 2D-slice — a direct drop-in
+init for our extractor (weights on GDrive via
+github.com/mazurowski-lab/mri_foundation) and the cheapest probe
+possible: same head, same fold, init-only change. Triad is MIT with
+GDrive checkpoints but 3D. PRISM and Decipher-MR appear paper-only.
+OrthoDiffusion
 (arXiv:2602.20752) — orientation-specific 3D diffusion branches
 self-supervised on 15,948 unlabeled knee exams; public code
 (github.com/lt-0123/OrthoDiffusion) and weights
