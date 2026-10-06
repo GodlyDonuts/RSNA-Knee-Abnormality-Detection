@@ -1,0 +1,25 @@
+import json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/kaggle-fp16-fullscale-preparation-v1');a=Path('initiative/audits/kaggle-fp16-fullscale-preparation-v1')
+program=r'''import importlib.util,io,json,os,sys,hashlib
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');root=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection');s=importlib.util.spec_from_file_location('canonical_coordinator',root/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(root/'code',root/'projection.json','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437');sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+slug='godlydonuts/rsna-resident-fullscale-1300-85bfc1ce-v1'
+with c.single_coordinator(Path('/home/sa305415/rsna-knee/kaggle')):
+ assert remote.kernel('GetKernelSessionStatus',slug,1).get('status')=='COMPLETE'
+ found=remote.kernel('GetKernel',slug,1);assert hashlib.sha256(found['blob']['source'].encode()).hexdigest()=='0f8fb3b0fad2f0ee626dab2427a4dd803161ac3097c3479ca42a9bfcf75eb82b'
+ value=remote.output_json(slug,1,'resident-performance/benchmark-predictions.metrics.json')
+ assert value['status']=='passed' and value['studies']==1300 and value['checkpoint_sha256']=='85bfc1ce420f3ea87ad9d9e1669714761876ecf71409a09035c21b42fe9fdef4' and value['inference_precision']=='fp32'
+ output={k:value[k] for k in ['status','studies','checkpoint_sha256','submission_sha256','training_precision','inference_precision','cache_side','cache_version']};output.update(original_kernel_slug=slug,original_kernel_version=1,original_exact_source_SHA_verified=True,source_metrics_file='resident-performance/benchmark-predictions.metrics.json',reference_csv_file='resident-performance/benchmark-predictions.csv',raw_CSV_case_records_pixels_or_weights_collected=False,metadata_downloaded_and_filtered_in_CPU_RAM=True,no_original_model_or_inference_repeated=True)
+ print(json.dumps(output))
+'''
+values={};env=Path('.env');assert env.stat().st_mode&0o077==0
+for line in env.read_text().splitlines():
+ k,sep,v=line.partition('=')
+ if sep:values[k.strip()]=v.strip().strip('\"\'')
+bootstrap='import json,os,subprocess,sys;from pathlib import Path;v=json.load(sys.stdin);p=json.loads(Path("/tmp/rsna-smooth-witness-full-fit-20261006-v2/CPU-accepted.json").read_text())["runtime"]["python"];e=os.environ.copy();e.update(PYTHONNOUSERSITE="1",PYTHONDONTWRITEBYTECODE="1",OMP_NUM_THREADS="1");x=subprocess.run([p,"-B","-c",v["program"]],input=json.dumps({"token":v["token"]}),env=e,capture_output=True,text=True);sys.stdout.write(x.stdout);sys.stderr.write(x.stderr);sys.exit(x.returncode)'
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=2G','--time=00:05:00','--job-name=FP16-original-reference-readonly','/usr/bin/python3.12','-B','-c',bootstrap]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'program':program,'token':values['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=330)
+with (r/'corrected-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stderr
+value=json.loads(x.stdout);(a/'actual-original-reference-metadata.json').write_text(json.dumps(value,indent=2,sort_keys=True)+'\n');print(json.dumps(value))

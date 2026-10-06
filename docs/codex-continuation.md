@@ -1,3 +1,5 @@
+Original1300 FP32 inference reference actualprivateCSV SHA feda5e2757ca1a56a0684fe973c3fc61b3eb74c73fa3eac7bab9bb5c53741ed4 now authenticated/source/version/model/resolution-bound read-only; no rawCSV/caseIDs/pixels/weights collected or original inference repeated. New saved-reference helper and full1300 FP16 probe script are prepared, NOT GPU dispatched. Require actual32 probe success + fresh original mount/source/accelerator/resource review. This saves repeating the5h FP32 reference. Read kaggle-fp16-fullscale-preparation-v1; no hidden9h or clinical equivalence inferred. Keep original875858 and877134 unchanged; inspect actual epochs/outcomes.
+
 Actual T4 memory recovery/full H100 dispatch/FP16-probe launch milestoneb0479002
 privately mirrored at HFc026c2de87faa568e448f0b4d0fb6b38b4c46093; all36small
 objects fully re-downloaded/size/SHA verified under canonical shared lock. Never
