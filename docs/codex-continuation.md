@@ -1,3 +1,10 @@
+Memory-accounting/candidate1 milestone sourcefa9711c2 privately mirrored at HF
+a66809065e47bbf6dadf56ae80679f293fdff2d2; all15 small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Never repeat. No raw MRI, labels,
+case IDs or weights mirrored. Full2219tests/Ruff368/mypy50/archive/current89/89
+passed. Original1300 kernel still RUNNING13:45UTC; old partial RAM accounting
+is explicitly unadmitted. Healthy875858/queued877134 unchanged; no new score.
+
 October6 candidate epoch1 from original875858 completed281updates and was privately
 published ONCE/full5-object download-size-SHA verified at HF5ee4dd4b6e2c0311c73f2d93262e4e55e6ff92cc viaCPU877791. Checkpoint ef1f7948650662f6cc0dd7d67ea6c8ea6bb33117f33312d80f787206a5aae74f; never repeat control1–3/candidate1. Candidate healthy293updates/epoch2 atprogress29, memory877134pendingResources, exact1300benchmark137329288/v1RUNNING13:40UTC. No pairedaccuracygain or newKaggle score.
 The FP32pre-fetch RAM reporter omitted preparation workers/tracker. New standard-
