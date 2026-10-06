@@ -1,3 +1,157 @@
+Original875858 control completed843optimizerupdates/3epochs; immutablefinal3
+privately published ONCE at HF71d5b932e7aef051025a2f25351614a145e00512, all5 objects
+fully re-downloaded/size/SHA verified CPU877378, checkpoint393259ce7c51753d14611f4713a59a4ba79902c50756c7b0bad0eb2e2e46a39a.
+Neverrepeat control1/2/3. Heldout/evaluation and fullcandidate still pending; no
+pairedclinical gain/score inferred. Newmemory877134 remainspendingResources.
+ActualFP16 probe32passed0.00287424 tolerance butpipeline443s vswarm8infer18s:
+serialMRIprep dominates. Larger3h1300FP16request ONHOLD; useCPUparallel137319670
+actualsource/byte/timing outcome first. Two-spawned/1thread CPUprep prototype
+preserves original serialrecovery/order/cachebytes in37focusedfixture tests;
+real32MRI CPUprobeRUNNING, no GPU/labels/clinicalclaim. Originalmodeljobs/source/
+acceptedmasks/folds untouched. Read kaggle-parallel-preparation-CPU-v1.
+
+Actual FP16 GPU137315796/v1 COMPLETE: all32 againstoriginal FP32/maxerr0.00287424,
+fixedtol0.003, finite/fallback0, host10.656GB/GPU~2.054GB. Pipeline443.024s/32,
+warm8-study inference18.048s; mosttime outsideGPUmodel/serialMRIprep. Do notclaim
+speedup/hidden9h/clinical equivalence from this. Larger1300source prepared butONHOLD
+pending measured prep optimization; old FP32referenceCSV privatehash-bound/reused.
+New optional2spawned/1thread CPU preparation usesunchanged original serialproducer,
+actualfixture cachebytes/recovery/order equal;37focusedcasespass. PrivateCPU
+137319670/v1 pushedONCE sourcea3fc01bb113b0f37 original32MRI exactbyte/timing gate;
+actualRUNNING, no labels/model/GPU/optimizer/clinicalclaim. Read kaggle-parallel-
+preparation-CPU-v1. Keep875858 healthy839updates/control3 and877134pending unchanged;
+control1/2 preserved, inspect newly completed3before one pinned publication.
+
+Original1300 FP32 inference reference actualprivateCSV SHA feda5e2757ca1a56a0684fe973c3fc61b3eb74c73fa3eac7bab9bb5c53741ed4 now authenticated/source/version/model/resolution-bound read-only; no rawCSV/caseIDs/pixels/weights collected or original inference repeated. New saved-reference helper and full1300 FP16 probe script are prepared, NOT GPU dispatched. Require actual32 probe success + fresh original mount/source/accelerator/resource review. This saves repeating the5h FP32 reference. Read kaggle-fp16-fullscale-preparation-v1; no hidden9h or clinical equivalence inferred. Keep original875858 and877134 unchanged; inspect actual epochs/outcomes.
+
+Actual T4 memory recovery/full H100 dispatch/FP16-probe launch milestoneb0479002
+privately mirrored at HFc026c2de87faa568e448f0b4d0fb6b38b4c46093; all36small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. Never
+repeat. No MRI/labels/privateUIDs/weights mirrored. Original875858 RUNNING,
+newfull877134 PENDING(Resources), exactprivateFP16probe137315796/v1 RUNNING at
+last authenticated checks. No new full-memory optimizer/held-out/clinical/Kaggle
+result inferred. Use exact original jobs/intents and source bindings.
+
+Latest875858 observation721contiguous finite updates/control epoch3, emptystderr;
+control1/2 privately verified, no final endpoint yet. New full memory877134 remains
+actualPENDING(Resources), never repeat. FP16 resident benchmark137315796/v1 actual
+RUNNING, private/offline exactsource checked; do not repeat push or treat it as
+scored/deployment accepted. BothT4s are one additional Kaggle machine alongside
+Slurm evc31; no otherGPU node is requested. Capture actual full32 FP32-agreement,
+throughput and memory outcome before broader/prod use.
+
+October6 exact private137306285/v1 T4 memory recovery actually COMPLETE: BOTH
+roles4finite updates, complete model/base/AdamW/LR/cursors/allRNG/scaler and CSV
+full/stop1/resume identical;3390.766s. No clinical gain inferred. Distinct full
+memory H100877134 submitted ONCE after acceptedT4+CPU876865/fresh budget, actual
+PENDING(Resources) on evc31. Do not duplicate. Inside newjob, actual H100 recovery
+and fitting-only stresses must pass before full3epochs/843per arm.
+Independent FP16 resident32-study GPU probe137315796/v1 pushed ONCE, slug
+rsna-fp16-resident-32-85bfc1ce-v2, sourcef63c5718a7400f67. Same original0.804
+checkpoint/source/MRI preprocessing; explicit probe-only math, defaultFP32 intact.
+All32 pairedoriginal FP32 predictions required with predeclared maxerr0.003, no
+fallback/labels/protected reads. Fresh accelerator/account quota checked; no
+competition slot or new Dataset. V1 quotaHTTP499 stopped BEFORE cloud intent,
+reconciled originalabsence read-only; preserve failure. Read kaggle-fp16-resident-
+probe-v2. Existing875858 healthy625updates/control epoch3, sourceunchanged; control
+1/2 already privately verified. No new held-out or Kaggle score.
+
+Actual encoder-update audit and smooth control-epoch2 receipts/source63275a13
+privately mirrored at HF853473b7e60e7406b881f3056e1f115d1962b675; all16small
+objects fully re-downloaded/size/SHA verified under canonical lock. Never repeat.
+No raw MRI/labels/caseIDs/learnedweights mirrored. Originalcontrol1/2 remain
+privately verified; full-memory GPU is not dispatched and137306285/v1 remains
+actualRUNNING at the last authenticated check. Next: inspect original terminal,
+then use the prepared single full-memory dispatch once on actual acceptance.
+
+Full-memory CPU/source/budget/publisher/paired-analysis milestonee3a9f68d is privately
+mirrored at HF353ca9ce5e42b4c49c3b5d3610fc5be48682f077; all21small objects
+fully re-downloaded/size/SHA verified under canonical shared lock. Do not repeat.
+No raw MRI/labels/weights mirrored, no full memory GPU dispatch/score at this
+milestone. Follow original137306285 outcome and original875858 epochs only.
+
+Original875858 control epoch2 completed562updates and privately preserved ONCE
+at HF6199675139bb4121653d506437593510431566b4; all5 objects fully re-downloaded/
+size/SHA verified byCPU877022. Do not repeat control1/2. Actual565finite updates/
+epoch3 and empty stderr observed. No fixed-final result yet.
+Independent CPU877023 audited only verified epoch1 encoder deltas:ALL120 projections
+updated (96attention+24FFN),10,223,616 encoder adapter parameters, median effective
+DeltaW/base Frobenius ratio0.347%, range0.112–0.665%. Read adapter-update-audit-v2.
+This proves encoder updates occur, NOT adequate adaptation strength/accuracy.
+CPU877002 diagnostic-only raw-key lookup failure retained; canonical training
+loader was already correct, no numerical/model/data change.
+Full-memory CPU876865 and funded conditional route are ready; original137306285
+still actualRUNNING. Never dispatch full memory before its successful actual
+terminal/receipt, and never duplicate notebook/jobs/publications.
+
+October6 memory full comparison CPU876865 PASSED original full37812-member/stat,
+2247/1156 membership/source/header/configuration admission, reusing actual CPU876731
+common official initialized graph/RNG. New10GiB PRIVATE node future funded separately
+from old4MiB small gate, with existing live16GiB future+20GiB node reserve; shared
+new bytes/files0. Read plane-memory-full-fit-v1. Distinct full launcher/publisher
+and single dispatch coordinator are ready; full GPU job has NOT been dispatched.
+Require actual successful137306285/v1 T4 terminal/receipt before dispatch, then
+inside allocated H100 exact new-source recovery and fitting-only stresses before
+full3epochs/843updates per role. Primary12macro/all12 paired4000 component draws,
+no best-epoch/gold tuning. Existing875858 unchanged:488finite updates/control epoch2,
+empty stderr atprogress11; only control1 preserved yet. Never duplicate either
+original job,137306285 push or control1 publication.
+
+Cross-sequence source/actual MRI CPU admission/private T4-start milestone75ee2f68
+privately mirrored at HFf8eb9e6779f342bcebb02277866dda07c642270b; all32 small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. No raw
+MRI, labels, case IDs or learned weights mirrored. Never repeat this milestone.
+New memory137306285/v1 actual RUNNING, recovery/accuracy outcome unobserved;
+healthy original875858 unchanged. Read plane-memory-integration-v1.
+
+October6 actual memory CPU876731 PASSED original32 MRI/labels/masks/metadata and
+actual common official learned graph/RNG initialization. Distinct private single-
+active-T4 sequential recovery137306285/v1 pushed ONCE, source51dd870cecdd712f.
+Original875858 remains healthy and unchanged; no third active GPU, competition
+slot or new bulk Dataset. Inspect exact notebook version/original journals before
+action; never duplicate push. GPU recovery/clinical gain remain unobserved. Read
+plane-memory-integration-v1. New memory scientific source b2bb3a9c is independent
+of live3b7e437. Retain original labels/folds/base and protected evaluation.
+
+October6 optional cross-sequence target-query memory is now wired through canonical
+training/inference/delta packaging/resident reconstruction. Synthetic complete
+trainer recovery (FP32/FP16), zero-start/common RNG and mask/missing-view checks
+passed; no official MRI CPU/GPU admission or accuracy yet. Read plane-memory-
+integration-v1. Next original32/official initialization CPU gate, then separately
+funded real GPU recovery and fixed-budget held-out contrast. Healthy875858 remains
+unchanged3b7e437: actual379finite updates/control epoch2, empty stderr; original
+control1 already privately verified8088a58. Do not repeat its publication/job.
+
+Original full control epoch1 from875858 completed281updates and is privately
+preserved ONCE: HF8088a58eff22f9dcbf39f889e67da7cfb18e3441, all5 objects fully re-downloaded/size/SHA
+verified by CPU876566. Checkpoint SHAb6355b0a53c0c84ece028dc9127a8525d79572494882a91a7de9ea898ac9f9a5.
+Do NOT repeat control1. Healthy job continues full control epoch2; candidate
+still follows fixed control3. No new held-out or Kaggle score. Read v2 epochs/
+control-001; preserve each newly completed production epoch only once.
+
+Latest competitor/paper-guided geometry/query-memory milestone source2647b09ee6c8178a8e19f92bfbce580359ebea44 privately mirrored at HF33b2591ef7f2209f232707e6f37ae092a657ae28; all13 small objects fully re-downloaded/size/SHA verified once under canonical lock. No raw MRI/labels/caseIDs/weights mirrored. Healthy875858 latest full control265finite updates/epoch1, empty stderr, no snapshot at that observer. First epoch snapshot must be inspected/preserved once when it actually completes; do not publish engineering checkpoints or repeat mirrors.
+
+October6 owner renewed creative/competitor-guided work. Independent CPU876287
+actually audited ONLY2247fitting studies/12476original metadata series: all12476
+have valid within-series patient geometry. Artificial padding averages0.9248%
+of patch cells;607series affected. Reject padding as main score-gap explanation.
+No pixels/labels/weights/protected inputs read and live875858 unchanged.
+
+Standalone cache_patch_geometry.py implements exact physical-aspect letterbox /
+half-pixel/IOP/PixelSpacing/IPP transforms (7tests). plane_memory_prototype.py
+implements zero-start disease-query sequence pooling + cross-sequence memory
+(4syntheticCPU tests). Prototype is NOT integrated, GPU-admitted or trained.
+No actual shared coordinate-frame proof across sequences; never assume physical
+registration. Primary PERMIT/CoPAS and captured public notebook components
+reviewed; no teacher weights/predictions imported. Read patch-geometry-research-v1.
+Full2139tests/Ruff343/mypy49 passed. Before second-GPU fitting bind actual inputs,
+initial-state/recovery and fresh budget; do not reserve a GPU for a bare plan.
+
+Healthy875858 full control actually179finite updates/epoch1 at last observer;
+3fixed epochs/843updates then same candidate, unchanged source3b7e437 and
+2247/1156rosters. No snapshot completed at that observation, no new AUC/score.
+Use v2 publication coordinator once per actual completed production epoch.
+
 October6 actual new smooth FP16 H100 recovery875858 PASSED both roles: complete
 learned/base/AdamW/LR/cursors/all-RNG/scaler and MRI-only CSV full/stop1/resume
 identical,4finite updates each/scaler128. Training-only local/context + padding/

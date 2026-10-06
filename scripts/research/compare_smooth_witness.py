@@ -31,7 +31,20 @@ def digest(value):
     ).hexdigest()
 
 
-def validate_final(role, run, result, cpu, publication):
+def validate_final(
+    role,
+    run,
+    result,
+    cpu,
+    publication,
+    *,
+    publication_status="private_original_smooth_witness_epoch_full_download_size_SHA_verified",
+):
+    if publication_status not in {
+        "private_original_smooth_witness_epoch_full_download_size_SHA_verified",
+        "private_original_plane_memory_epoch_full_download_size_SHA_verified",
+    }:
+        raise ValueError("Known fixed-final readout preservation contract required")
     if role not in ROLES or run.get("status") != "completed" or result.get("status") != "completed":
         raise ValueError("Both actual completed fixed-final roles are required")
     binding = run["binding"]
@@ -55,8 +68,7 @@ def validate_final(role, run, result, cpu, publication):
     ] != digest(binding):
         raise ValueError("Final release/model binding differs")
     if (
-        publication.get("status")
-        != "private_original_smooth_witness_epoch_full_download_size_SHA_verified"
+        publication.get("status") != publication_status
         or publication["file_count"] != 5
         or publication["epoch"] != 3
         or publication["mode"] != role
@@ -150,6 +162,9 @@ def main():
     parser.add_argument("--collection", type=Path, required=True)
     parser.add_argument("--release", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--experiment", choices=("smooth_witness", "plane_memory"), default="smooth_witness"
+    )
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError("Preserve prior results; use an unattempted output path")
@@ -159,7 +174,7 @@ def main():
     if (
         collection["Slurm"]["state"] != "COMPLETED"
         or collection["Slurm"]["exitcode"] != "0:0"
-        or collection["terminal"]["status"] != "two_original_full_smooth_witness_arms_completed"
+        or collection["terminal"]["status"] != f"two_original_full_{args.experiment}_arms_completed"
     ):
         raise ValueError("Actual original complete worker/Slurm terminal required")
     if (
@@ -178,7 +193,14 @@ def main():
         run = read(args.collection / (role + "-run.json"))
         result = read(args.collection / (role + "-result.json"))
         publication = read(args.audit / "epochs" / f"{role}-003" / "verified.json")
-        validate_final(role, run, result, cpu, publication)
+        validate_final(
+            role,
+            run,
+            result,
+            cpu,
+            publication,
+            publication_status=f"private_original_{args.experiment}_epoch_full_download_size_SHA_verified",
+        )
         progress = collection["roles"][role]
         if (
             progress["optimizer_record_count"] != 843
@@ -236,7 +258,7 @@ def main():
             ):
                 raise ValueError("Independent target metric differs")
     metrics.update(
-        status="actual_original_fixed_final_smooth_witness_comparison_recomputed",
+        status=f"actual_original_fixed_final_{args.experiment}_comparison_recomputed",
         source_git=cpu["source_git"],
         protocol_sha256=sha(args.audit / "protocol.json"),
         release_sha256=sha(args.release),
@@ -245,7 +267,12 @@ def main():
         predictions_sha256={r: v["predictions_sha256"] for r, v in result_hash.items()},
         gold_or_confirmation_used=False,
         kaggle_score=None,
+        primary_endpoint=protocol["primary_endpoint"],
     )
+    if args.experiment == "plane_memory":
+        if protocol["primary_endpoint"] != "12-target masked macro AUC candidate-minus-control":
+            raise ValueError("Predeclared all-target memory endpoint required")
+        metrics["medial_meniscus"] = metrics.pop("primary_meniscus")
     with args.output.open("x") as f:
         json.dump(metrics, f, sort_keys=True, indent=2, allow_nan=False)
         f.write("\n")
@@ -253,7 +280,8 @@ def main():
         json.dumps(
             {
                 "macro_auc": metrics["macro_auc"],
-                "primary_meniscus": metrics["primary_meniscus"],
+                "primary_endpoint": metrics["primary_endpoint"],
+                "medial_meniscus": metrics.get("primary_meniscus", metrics.get("medial_meniscus")),
                 "macro_delta_uncertainty": metrics["macro_delta_uncertainty"],
             }
         )

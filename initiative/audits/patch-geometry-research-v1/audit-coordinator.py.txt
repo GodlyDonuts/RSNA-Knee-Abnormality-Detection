@@ -1,0 +1,36 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/patch-geometry-research-v1');a=Path('initiative/audits/patch-geometry-research-v1');helper=Path('scripts/research/cache_patch_geometry.py').read_text();compile(helper,'bound_geometry.py','exec')
+program=r'''import hashlib,json,os,shutil,sys
+from pathlib import Path
+import numpy as np
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');assert shutil.disk_usage('/tmp').free>=52*2**30+16*2**20
+assert hashlib.sha256(v['helper'].encode()).hexdigest()==v['sha256'];ns={};exec(compile(v['helper'],'bound_geometry.py','exec'),ns)
+base=Path('/home/sa305415/rsna-knee');registry=base/'native384-assembly-c9-v1/registry.json';assert hashlib.sha256(registry.read_bytes()).hexdigest()=='73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770';reg=json.loads(registry.read_text());allowed=set(reg['training_uids']);assert len(allowed)==2247
+original=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v2');cpu=json.loads((original/'CPU-accepted.json').read_text());proof=json.loads((base/'production-launch-native384-a32-c9-v1/cpu-preflight.json').read_text());restored=Path(cpu['trainer_inputs']['cache']).parent
+fractions=[];known=0;series=0;study=set();patch_counts=[];bbox_partial=[]
+for shard in reg['shards']:
+ for name,row in shard['members'].items():
+  parts=Path(name).parts
+  if not name.endswith('.json') or len(parts)<4 or parts[-2] not in allowed:continue
+  p=restored/name;s=p.stat();assert [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]==proof['signatures'][name] and s.st_size==row['bytes'];m=json.loads(p.read_text());assert m['study_uid'] in allowed and m['side']==384
+  indices=np.linspace(0,m['n_slices']-1,min(16,m['n_slices'])).round().astype(np.int64)
+  g=ns['patch_geometry'](m,indices);fraction=g['content_fraction'];valid=g['valid_content_patch'];fractions.append(float((fraction==0).mean()));patch_counts.append(int(valid.sum()));bbox_partial.append(float(((fraction>0)&(fraction<1)).mean()));known+=int(g['patient_geometry_known']);series+=1;study.add(m['study_uid'])
+  if g['patient_geometry_known']:assert np.isfinite(g['patient_centers_mm']).all()
+assert len(study)==2247 and series>10000
+out={'status':'actual_training_only_original_cache_patch_geometry_and_letterbox_coverage_audited','CPU_job':os.environ['SLURM_JOB_ID'],'studies':len(study),'series':series,'known_patient_geometry_series':known,'series_with_some_entirely_artificial_patch_cells':int(sum(x>0 for x in fractions)),'mean_entirely_artificial_patch_fraction':float(np.mean(fractions)),'entirely_artificial_patch_fraction_quantiles':np.quantile(fractions,[0,.25,.5,.75,.95,1]).tolist(),'mean_partial_boundary_patch_fraction':float(np.mean(bbox_partial)),'valid_content_patch_count_quantiles':np.quantile(patch_counts,[0,.25,.5,.75,1]).tolist(),'patch_grid':[24,24],'research_helper_sha256':v['sha256'],'registry_sha256':hashlib.sha256(registry.read_bytes()).hexdigest(),'original_full_CPU_receipt_sha256':hashlib.sha256((original/'CPU-accepted.json').read_bytes()).hexdigest(),'cross_series_shared_coordinate_frames_verified':False,'pixels_labels_weights_or_protected_cohort_read':False,'model_optimizer_or_clinical_inference_run':False,'live_training_changed':False,'new_shared_bytes':0,'new_shared_files':0,'clinical_accuracy_gain_claimed':False}
+root=Path('/tmp/rsna-training-patch-geometry-20261006-v1');assert not root.exists();root.mkdir(mode=0o700)
+with (root/'aggregate.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out))
+'''
+intent={'status':'single_private_training_geometry_CPU_audit_intent','helper_sha256':hashlib.sha256(helper.encode()).hexdigest(),'wrapper_sha256':hashlib.sha256(program.encode()).hexdigest(),'training_studies':2247,'raw_pixel_or_model_transfer':False,'shared_bytes':0,'shared_files':0,'node_small_control_cap_bytes':16*2**20,'CPUs':1,'GPUs':0,'automatic_retry':False}
+with (r/'intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+(a/'intent.json').write_text(json.dumps(intent,indent=2)+'\n');(a/'audit-wrapper.py.txt').write_text(program)
+# Use original accepted node runtime, without copying its environment.
+py=json.loads(Path('initiative/audits/smooth-witness-full-fit-v2/actual-CPU-acceptance.json').read_text())['runtime']['python']
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=2G','--time=00:10:00','--job-name=rsna-training-patch-geometry','/bin/bash','-c','export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1; exec '+shlex.join([py,'-B','-c',program])]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'helper':helper,'sha256':intent['helper_sha256']}),capture_output=True,text=True,timeout=630)
+with (r/'result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stdout+x.stderr;out=json.loads(x.stdout)
+with (a/'actual-aggregate.json').open('x') as f:json.dump(out,f,sort_keys=True,indent=2);f.write('\n')
+print(json.dumps(out))

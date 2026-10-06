@@ -52,6 +52,7 @@ from rsna.competitive.loss import (
 )
 from rsna.competitive.mrnet_initialization import initialize_private_mrnet
 from rsna.competitive.neighbor_input import neighbor_input_channels
+from rsna.competitive.plane_memory import validate_plane_memory
 from rsna.competitive.relations import (
     effective_relation_loss,
     relation_model_kwargs,
@@ -132,6 +133,7 @@ class TrainConfig:
     diagnostic_study_limit: int | None = None
     relation: dict | None = None
     witness: dict | None = None
+    plane_memory: dict | None = None
     fitting_supervision: dict | None = None
     neighbor_channels: dict | None = None
     canonical_sides: dict | None = None
@@ -273,6 +275,19 @@ class TrainConfig:
                 or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
             ):
                 raise ValueError("Witness comparison requires plain attention and spatial encoder")
+        if self.plane_memory is not None:
+            validate_plane_memory(self.plane_memory)
+            if (
+                self.pooling != "attention"
+                or self.slice_context != "none"
+                or self.witness is not None
+                or self.relation is not None
+                or self.neighbor_channels is not None
+                or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+            ):
+                raise ValueError(
+                    "Initial sequence-memory contrast requires plain single-channel spatial DINO"
+                )
         if self.diagnostic_study_limit is not None and (
             type(self.diagnostic_study_limit) is not int or self.diagnostic_study_limit < 1
         ):
@@ -604,6 +619,7 @@ def _run_locked(
         encode_chunk_size=config.encode_chunk_size,
         slice_context=config.slice_context,
         **({"witness": config.witness} if config.witness is not None else {}),
+        **({"plane_memory": config.plane_memory} if config.plane_memory is not None else {}),
         **relation_model_kwargs(config.relation),
         **({"input_channels": channels} if channels == 3 else {}),
     ).to(device)
@@ -653,6 +669,8 @@ def _run_locked(
         # Preserve old policy serialization; code provenance still changes and
         # exact older checkpoints must use their original pinned source.
         bound_config.pop("relation")
+    if config.plane_memory is None:
+        bound_config.pop("plane_memory")
     if config.witness is None:
         bound_config.pop("witness")
     if config.fitting_supervision is None:

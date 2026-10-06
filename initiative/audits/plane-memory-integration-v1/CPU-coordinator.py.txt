@@ -1,0 +1,42 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/plane-memory-integration-v1');a=Path('initiative/audits/plane-memory-integration-v1')
+git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+files={p.as_posix():p.read_text() for p in Path('rsna').rglob('*.py')}
+files['scripts/newton/probe_plane_memory_inputs.py']=Path('scripts/newton/probe_plane_memory_inputs.py').read_text()
+base=json.loads(Path('initiative/audits/smooth-witness-full-fit-v2/base-config.json').read_text())
+program=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');root=Path('/tmp/rsna-plane-memory-inputs-20261006-v1');assert not root.exists();assert shutil.disk_usage('/tmp').free>=52*2**30+4*2**20
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in quota.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-1406962617)/2**30;slots=limit-count-735;assert gib>=20 and slots>=5000
+proofpath=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json');assert hashlib.sha256(proofpath.read_bytes()).hexdigest()=='fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5';proof=json.loads(proofpath.read_text())
+cpu=json.loads(Path('/tmp/rsna-smooth-witness-full-fit-20261006-v2/CPU-accepted.json').read_text());restored=Path(cpu['trainer_inputs']['cache']).parent
+registry=Path('/home/sa305415/rsna-knee/native384-assembly-c9-v1/registry.json');assert hashlib.sha256(registry.read_bytes()).hexdigest()=='73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770';reg=json.loads(registry.read_text());members={n:row for sh in reg['shards'] for n,row in sh['members'].items()};assert len(members)==37812
+for n,row in members.items():
+ p=restored/n;s=p.stat();assert not p.is_symlink() and s.st_size==row['bytes'] and [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]==proof['signatures'][n]
+assert sum(len(s.encode()) for s in v['files'].values())<4*2**20
+root.mkdir(mode=0o700);code=root/'code';code.mkdir(mode=0o700);hashes={}
+for n,s in v['files'].items():
+ p=code/n;assert not Path(n).is_absolute() and '..' not in Path(n).parts;p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('x') as f:f.write(s)
+ hashes[n]=hashlib.sha256(p.read_bytes()).hexdigest();assert hashes[n]==v['hashes'][n]
+with (root/'base-config.json').open('x') as f:json.dump(v['base'],f,indent=2);f.write('\n')
+source={'source_git':v['source_git'],'files':hashes,'original_cache_stat_bindings':37812,'funding':{'shared_future_bytes':0,'shared_future_files':0,'node_small_cap_bytes':4*2**20,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'new_GPU_checkpoint_or_runtime_funded':False,'no_deletion_credit':True},'quota':quota}
+with (root/'source.json').open('x') as f:json.dump(source,f,indent=2);f.write('\n')
+env=os.environ.copy();env.update(PYTHONPATH=str(code),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1')
+x=subprocess.run([cpu['runtime']['python'],'-B',str(code/'scripts/newton/probe_plane_memory_inputs.py'),'--base-config',str(root/'base-config.json'),'--output',str(root),'--source-git',v['source_git']],capture_output=True,text=True,env=env,cwd=code,timeout=840)
+(root/'CPU.stdout').write_text(x.stdout);(root/'CPU.stderr').write_text(x.stderr)
+if x.returncode:print(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}));sys.exit(x.returncode)
+receipt=json.loads(x.stdout);print(json.dumps({'acceptance':receipt,'source':source,'receipt_sha256':hashlib.sha256((root/'CPU-accepted.json').read_bytes()).hexdigest()}))
+'''
+intent={'status':'single_original32_MRI_official_memory_CPU_initialization_intent','source_git':git,'wrapper_sha256':hashlib.sha256(program.encode()).hexdigest(),'CPUs':1,'GPUs':0,'node_small_cap_bytes':4*2**20,'shared_future_bytes':0,'automatic_retry':False}
+with (r/'intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+(a/'CPU-intent.json').write_text(json.dumps(intent,indent=2)+'\n');(a/'CPU-wrapper.py.txt').write_text(program)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:15:00','--job-name=plane-memory-original-inputs','/usr/bin/python3.12','-B','-c',program]
+payload={'files':files,'hashes':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in files.items()},'base':base,'source_git':git}
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=930)
+with (r/'result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stdout+x.stderr
+value=json.loads(x.stdout)
+(a/'actual-CPU-accepted.json').write_text(json.dumps(value,indent=2,sort_keys=True)+'\n')
+print(json.dumps({'CPU_job':value['acceptance']['CPU_job'],'status':value['acceptance']['status'],'original_MRI_tensor_hashes_equal':True,'actual_official_initial_graph_RNG_equal':True,'clinical_accuracy_evidence':False}))

@@ -1,0 +1,23 @@
+import gc,hashlib,json,math,os,shutil,sys
+from pathlib import Path
+import numpy as np
+import torch
+from safetensors import safe_open
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');torch.set_num_threads(1);assert shutil.disk_usage('/tmp').free>=46*2**30+16*2**20
+root=Path('/tmp/rsna-adapter-update-audit-20261006-v1');assert not root.exists();root.mkdir(mode=0o700)
+ns={};assert hashlib.sha256(v['helper'].encode()).hexdigest()==v['helper_sha256'];exec(compile(v['helper'],'accepted_adapter_norm.py','exec'),ns)
+run=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v2');meta=json.loads((run/'control/epoch-checkpoints/epoch-001.json').read_text());published=v['published'];assert published['status']=='private_original_smooth_witness_epoch_full_download_size_SHA_verified' and published['mode']=='control' and published['epoch']==1 and published['checkpoint_sha256']==meta['checkpoint_sha256'];assert meta['optimizer_steps']==281 and meta['diagnostic_only'] is False
+checkpoint=run/'control/epoch-checkpoints/epoch-001.pt';assert checkpoint.stat().st_size==published['files']['checkpoint.pt']['bytes'];s=checkpoint.stat();stat_before=[s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]
+state=torch.load(checkpoint,map_location='cpu',weights_only=True);assert state['schema_version']==2 and state['binding']['config']==json.loads((run/'CPU-accepted.json').read_text())['expected_bound_config']['control']
+cp=json.loads((run/'control.json').read_text());weights=Path(cp['encoder']['weights_path']);proof=json.loads(Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json').read_text());s=weights.stat();assert [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]==proof['scientific_assets'][str(weights)]['signature']
+policy=state['model_storage']['encoder_provenance']['adapter'];assert policy['method']=='rs_lora_v1' and policy['zero_initial_residual'] is True and policy['rank']==32 and policy['ffn_last_layers']==12
+scale=policy['alpha']/math.sqrt(policy['rank']);rows=[]
+with safe_open(weights,framework='pt',device='cpu') as base:
+ for name in policy['target_modules']:
+  prefix='encoder.backbone.'+name;A=state['model'][prefix+'.lora_A'];B=state['model'][prefix+'.lora_B'];W=base.get_tensor(name+'.weight')
+  row=ns['effective_update_norm'](A,B,W,scale);rows.append(dict(row,module=name,kind='attention' if '.attention.' in name else 'FFN',nonzero_B_cells=int(torch.count_nonzero(B)),total_B_cells=B.numel()))
+  del W;gc.collect()
+values=[row['relative_effective_update_Frobenius_norm'] for row in rows];s=checkpoint.stat();assert stat_before==[s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]
+result={'status':'actual_preserved_training_epoch_adapter_effective_update_geometry_audited','CPU_job':os.environ['SLURM_JOB_ID'],'training_job':875858,'production_role':'control','epoch':1,'optimizer_updates':281,'checkpoint_sha256_from_verified_private_whole_byte_publication':meta['checkpoint_sha256'],'original_private_HF_revision':published['revision'],'official_base_weights_sha256':cp['encoder']['weights_sha256'],'official_base_stat_proof_reused':True,'duplicate_bulk_hash_or_transfer':False,'rank':policy['rank'],'rs_LoRA_scaling':scale,'projection_count':len(rows),'attention_projections':sum(row['kind']=='attention' for row in rows),'FFN_projections':sum(row['kind']=='FFN' for row in rows),'adapter_parameters':policy['trainable_parameters'],'nonzero_effective_updates':sum(row['effective_update_Frobenius_norm']>0 for row in rows),'relative_effective_update_quantiles':np.quantile(values,[0,.25,.5,.75,.95,1]).tolist(),'projections':rows,'helper_sha256':v['helper_sha256'],'MRI_labels_pixels_or_protected_cohort_read':False,'GPU_model_or_optimizer_run':False,'live_recipe_changed':False,'clinical_accuracy_evidence':False,'limitation':'Parameter-space norms do not prove corresponding feature-space change, appropriate adaptation strength or clinical improvement.'}
+with (root/'aggregate.json').open('x') as f:json.dump(result,f,indent=2,sort_keys=True);f.write('\n')
+print(json.dumps(result))

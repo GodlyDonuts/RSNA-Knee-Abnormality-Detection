@@ -43,6 +43,7 @@ def _fixture(
     size=2,
     whole=False,
     relation=None,
+    plane_memory=None,
 ):
     torch.manual_seed(123)
     config = TrainConfig(
@@ -58,6 +59,7 @@ def _fixture(
         slice_sampling="all" if whole else "uniform",
         series_sampling="all" if whole else "selected",
         relation=relation,
+        plane_memory=plane_memory,
     )
     spec_path = tmp_path / "encoder-spec.json"
     config_path = tmp_path / "encoder-config.json"
@@ -100,6 +102,7 @@ def _fixture(
         hidden_dim=8,
         slice_context=config.slice_context,
         **relation_model_kwargs(config.relation),
+        plane_memory=config.plane_memory,
     )
     release = dict(
         schema_version=1,
