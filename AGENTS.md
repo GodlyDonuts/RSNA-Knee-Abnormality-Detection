@@ -1,3 +1,9 @@
+Originalmemory877134 control epoch2 privatelypublishedONCE byCPU879062 at
+HF7b07d427a135511c0905df48cbe89215ce4fbe2b; all5objects fullre-download/size/SHA
+verified, checkpoint46d90429e5b3db70be3b5886385d708b51567f87e4f6a4871e26449e26197e03.
+Neverrepeatcontrol1/2. Actualepoch2 preservation isnotaccuracy/endpointselection.
+Originalfullfixed3 source unchanged; finitepublic-label observer stayslive.
+
 Originalpendingbaseline878853 scheduler TimeLimit extendedONCE36h->48h after
 zero-runtime/PENDING/exactoriginalscript/node checks and freshnormalQOS noMaxWall.
 Samejob/script/config/output; no newdispatch/restart/scientificchange. Original
