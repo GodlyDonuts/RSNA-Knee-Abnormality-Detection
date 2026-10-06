@@ -1,0 +1,33 @@
+import ast,hashlib,json
+from pathlib import Path
+r=Path('artifacts/kaggle-parallel-preparation-CPU-v1');a=Path('initiative/audits/kaggle-parallel-preparation-CPU-v1');old=Path('artifacts/kaggle-fp16-resident-probe-v2/private-notebook.py').read_text();tree=ast.parse(old);values={};last=0
+for node in tree.body:
+ if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name) and node.targets[0].id.startswith(('EXPECTED_MANIFEST','RESIDENT_PERFORMANCE')):
+  values[node.targets[0].id]=ast.literal_eval(node.value);last=max(last,node.end_lineno)
+helpers={name:Path('scripts/kaggle',name).read_text() for name in ['chunked_infer.py','parallel_preparation.py','parallel_preparation_probe.py']};hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in helpers.items()}
+entry=''.join(old.splitlines(keepends=True)[last:]);point='    if globals().get("RESIDENT_PERFORMANCE_PROBE") is True:';assert entry.count(point)==1
+branch='''    if globals().get("PARALLEL_PREPARATION_CPU_PROBE") is True:
+        if set(PREPARATION_SOURCES)!=set(PREPARATION_HASHES) or sum(len(s.encode()) for s in PREPARATION_SOURCES.values())>128*1024:
+            raise ValueError("Exact bounded CPU preparation sources required")
+        helper=working/"parallel-preparation-code"
+        helper.mkdir(mode=0o700)
+        for name,source in PREPARATION_SOURCES.items():
+            if Path(name).name!=name or hashlib.sha256(source.encode()).hexdigest()!=PREPARATION_HASHES[name]:
+                raise ValueError("CPU preparation source bytes differ")
+            compile(source,name,"exec")
+            with (helper/name).open("x") as handle:handle.write(source)
+        roster=helper/"fitting-roster.json"
+        roster.write_text(json.dumps(PREPARATION_FITTING_UIDS))
+        env.update(PYTHONDONTWRITEBYTECODE="1",PYTHONNOUSERSITE="1",OMP_NUM_THREADS="2",MKL_NUM_THREADS="2",OPENBLAS_NUM_THREADS="1",CUDA_VISIBLE_DEVICES="")
+        command=[str(python),"-B",str(helper/"parallel_preparation_probe.py"),"--competition",str(resolve_competition(Path("/kaggle/input"),manifest["competition"])),"--roster",str(roster),"--output",str(working/"parallel-preparation-probe")]
+        bounded_process(command,env=env,timeout=3600-(time.monotonic()-notebook_started))
+        return
+'''
+entry=entry.replace(point,branch+point)
+prefix={'EXPECTED_MANIFEST_SHA256':values['EXPECTED_MANIFEST_SHA256'],'PARALLEL_PREPARATION_CPU_PROBE':True,'PREPARATION_SOURCES':helpers,'PREPARATION_HASHES':hashes,'PREPARATION_FITTING_UIDS':values['RESIDENT_PERFORMANCE_FITTING_UIDS']}
+new='\n'.join(n+' = '+repr(v) for n,v in prefix.items())+'\n'+entry;compile(new,'parallelCPUoriginal32.py','exec');assert len(new.encode())<128*1024
+contract=json.loads(Path('artifacts/kaggle-fp16-resident-probe-v2/source-contract.json').read_text());contract.update(kernel_slug='godlydonuts/rsna-parallel-mri-prep-cpu-32-20261006-v1',source_sha256=hashlib.sha256(new.encode()).hexdigest(),standalone_source_sha256=hashes,CPU_only=True,GPUs=0,max_pipeline_seconds=3600,serial_CPU_threads=2,parallel_CPU_workers=2,threads_per_worker=1,cache_cap_bytes_each=3*2**30,scratch_reserve_bytes=3*2**30,clinical_accuracy_or_hidden_runtime_accepted=False)
+for name,s in [('private-notebook.py',new),('source-contract.json',json.dumps(contract,indent=2)+'\n')]:
+ with (r/name).open('x') as f:f.write(s)
+(a/'source-contract.json').write_text(json.dumps(contract,indent=2)+'\n');(a/'prepare-coordinator.py.txt').write_text(Path(__file__).read_text())
+print(json.dumps({'status':'original32_serial_parallel_CPU_source_prepared','source_sha256':contract['source_sha256'],'bytes':len(new.encode()),'GPUs':0,'dispatched':False}))

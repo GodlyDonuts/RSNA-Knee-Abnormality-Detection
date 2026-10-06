@@ -403,7 +403,7 @@ def prepare_usable_series(
     return selected, receipt
 
 
-def run(args: argparse.Namespace, invoke=None) -> dict:
+def run(args: argparse.Namespace, invoke=None, *, prepare_invoke=None) -> dict:
     baseline = getattr(args, "baseline_epoch_one", False)
     reviewed = getattr(args, "fitting_admission", None)
     if reviewed is not None and (baseline or args.allow_diagnostic):
@@ -643,7 +643,7 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         output = chunk / "submission.csv"
         preparation = None
         if resilient:
-            selected_series, preparation = prepare_usable_series(
+            selected_series, preparation = (prepare_invoke or prepare_usable_series)(
                 selected_series,
                 part.StudyInstanceUID.tolist(),
                 dicom_root=args.dicom_root,

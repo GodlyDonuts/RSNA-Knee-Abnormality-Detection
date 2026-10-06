@@ -1,3 +1,51 @@
+Original875858 control epoch2 completed562updates and privately preserved ONCE
+at HF6199675139bb4121653d506437593510431566b4; all5 objects fully re-downloaded/
+size/SHA verified byCPU877022. Do not repeat control1/2. Actual565finite updates/
+epoch3 and empty stderr observed. No fixed-final result yet.
+Independent CPU877023 audited only verified epoch1 encoder deltas:ALL120 projections
+updated (96attention+24FFN),10,223,616 encoder adapter parameters, median effective
+DeltaW/base Frobenius ratio0.347%, range0.112–0.665%. Read adapter-update-audit-v2.
+This proves encoder updates occur, NOT adequate adaptation strength/accuracy.
+CPU877002 diagnostic-only raw-key lookup failure retained; canonical training
+loader was already correct, no numerical/model/data change.
+Full-memory CPU876865 and funded conditional route are ready; original137306285
+still actualRUNNING. Never dispatch full memory before its successful actual
+terminal/receipt, and never duplicate notebook/jobs/publications.
+
+October6 memory full comparison CPU876865 PASSED original full37812-member/stat,
+2247/1156 membership/source/header/configuration admission, reusing actual CPU876731
+common official initialized graph/RNG. New10GiB PRIVATE node future funded separately
+from old4MiB small gate, with existing live16GiB future+20GiB node reserve; shared
+new bytes/files0. Read plane-memory-full-fit-v1. Distinct full launcher/publisher
+and single dispatch coordinator are ready; full GPU job has NOT been dispatched.
+Require actual successful137306285/v1 T4 terminal/receipt before dispatch, then
+inside allocated H100 exact new-source recovery and fitting-only stresses before
+full3epochs/843updates per role. Primary12macro/all12 paired4000 component draws,
+no best-epoch/gold tuning. Existing875858 unchanged:488finite updates/control epoch2,
+empty stderr atprogress11; only control1 preserved yet. Never duplicate either
+original job,137306285 push or control1 publication.
+
+October6 owner renewed creative/competitor-guided work. Independent CPU876287
+actually audited ONLY2247fitting studies/12476original metadata series: all12476
+have valid within-series patient geometry. Artificial padding averages0.9248%
+of patch cells;607series affected. Reject padding as main score-gap explanation.
+No pixels/labels/weights/protected inputs read and live875858 unchanged.
+
+Standalone cache_patch_geometry.py implements exact physical-aspect letterbox /
+half-pixel/IOP/PixelSpacing/IPP transforms (7tests). plane_memory_prototype.py
+implements zero-start disease-query sequence pooling + cross-sequence memory
+(4syntheticCPU tests). Prototype is NOT integrated, GPU-admitted or trained.
+No actual shared coordinate-frame proof across sequences; never assume physical
+registration. Primary PERMIT/CoPAS and captured public notebook components
+reviewed; no teacher weights/predictions imported. Read patch-geometry-research-v1.
+Full2139tests/Ruff343/mypy49 passed. Before second-GPU fitting bind actual inputs,
+initial-state/recovery and fresh budget; do not reserve a GPU for a bare plan.
+
+Healthy875858 full control actually179finite updates/epoch1 at last observer;
+3fixed epochs/843updates then same candidate, unchanged source3b7e437 and
+2247/1156rosters. No snapshot completed at that observation, no new AUC/score.
+Use v2 publication coordinator once per actual completed production epoch.
+
 October6 new FP16/smooth test137274970 v1 pushedONCE, scientific3b7e437.
 Exact source/CPU parent/base/wheels bound; actual optimizer/recovery pending.
 Uses native384/16slices/rank32, scaler128/chunk8, same original CPU32 inputs.

@@ -172,6 +172,7 @@ def run(args: argparse.Namespace) -> dict:
         encode_chunk_size=config.encode_chunk_size,
         slice_context=config.slice_context,
         witness=config.witness,
+        plane_memory=config.plane_memory,
         **relation_model_kwargs(config.relation),
         input_channels=channels,
     ).to(device)

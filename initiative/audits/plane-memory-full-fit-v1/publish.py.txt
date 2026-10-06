@@ -1,0 +1,95 @@
+"""Preserve one completed RSNA-only epoch once; token only on stdin."""
+import hashlib, importlib.util, json, os, shutil, sys, tempfile
+from pathlib import Path
+
+ROOT=Path('/tmp/rsna-plane-memory-full-fit-20261006-v1')
+REPO='GodlyDonuts/RSNA-Data'
+PREFIX='experiments/dinov3-v1/training-epochs/plane-memory-fold0-b2bb3a9-fixed3-seed20260922'
+LICENSE=Path('/home/sa305415/rsna-knee/encoder-stage/configs/competitive/weights/dinov3-large.LICENSE.md')
+LICENSE_SHA='25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e'
+LOCK_RUNNER=Path('/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/common/runner.py')
+LOCK_SHA='3575a18ecd7a13a2becc9348c48a9ebda95f8934069e67dd1912737e6194118c'
+
+def sha(p):
+    with Path(p).open('rb') as f: return hashlib.file_digest(f,'sha256').hexdigest()
+
+def digest(v):
+    return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+
+def save(p,v):
+    with Path(p).open('x') as f:
+        json.dump(v,f,sort_keys=True,indent=2,allow_nan=False); f.write('\n'); f.flush(); os.fsync(f.fileno())
+
+def source_files(mode,epoch):
+    if mode not in ('control','candidate') or type(epoch)!=int or epoch not in (1,2,3):
+        raise ValueError('One exact completed full-fit epoch required')
+    cpu=json.loads((ROOT/'CPU-accepted.json').read_text()); files=json.loads((ROOT/'files.json').read_text())
+    if sha(ROOT/'publish.py')!=cpu['publisher_sha256'] or files['files']['publish.py']['sha256']!=cpu['publisher_sha256']:
+        raise ValueError('Admitted publisher changed')
+    if cpu['status']!='actual_full_memory_original_inputs_and_initialization_reused' or cpu['shared_future_bytes']!=0:
+        raise ValueError('Actual full fitting admission required')
+    recovery=json.loads((ROOT/'actual-H100-recovery.json').read_text())
+    if recovery['status']!='actual_plane_memory_H100_trainer_recovery_accepted' or recovery['source_git']!=cpu['source_git'] or recovery['CPU_receipt_sha256']!=sha(ROOT/'CPU-accepted.json'): raise ValueError('Actual admitted H100 numerical recovery required')
+    for n,h in cpu['source_sha256'].items():
+        if sha(ROOT/'code'/n)!=h: raise ValueError('Frozen scientific source changed')
+    run=ROOT/mode; metadata=run/'epoch-checkpoints'/f'epoch-{epoch:03d}.json'; meta=json.loads(metadata.read_text())
+    checkpoint=metadata.with_suffix('.pt'); record=json.loads((run/'run.json').read_text()); binding=record['binding']
+    if metadata.is_symlink() or checkpoint.is_symlink() or meta['checkpoint_file']!=checkpoint.name or meta['status']!='scheduled_epoch_snapshot' or meta['epoch']!=epoch or meta['optimizer_steps']!=281*epoch or meta['diagnostic_only'] is not False or meta['checkpoint_bytes']!=checkpoint.stat().st_size or sha(checkpoint)!=meta['checkpoint_sha256']:
+        raise ValueError('Actual immutable completed snapshot differs')
+    if record['training_studies']!=2247 or record['outer_studies']!=1156 or record['diagnostic_run'] is not False or record['held_out_confirmation_and_gold_used'] is not False:
+        raise ValueError('Original full disjoint clinical cohort required')
+    if binding['config']!=cpu['expected_bound_config'][mode] or binding['code_sha256']!={n.removeprefix('rsna/'):h for n,h in cpu['source_sha256'].items() if n.startswith('rsna/')} or binding['world_size']!=1 or binding['device_type']!='cuda' or binding['torch_version']!='2.14.0+cu130':
+        raise ValueError('Actual source/model/recipe/runtime binding differs')
+    for n in ('training_uids_sha256','outer_uids_sha256','folds_sha256'):
+        if binding[n]!=cpu[n]: raise ValueError('Original full roster binding differs')
+    if binding['release']['binding_sha256']!=cpu['release_binding_sha256'] or digest(binding)!=meta['binding_sha256']:
+        raise ValueError('Actual release/checkpoint binding differs')
+    if binding.get('private_research_only') or binding.get('external_initialization') or binding.get('experimental_fitting_supervision'):
+        raise ValueError('Only exact original RSNA-only weights are admitted')
+    if sha(LICENSE)!=LICENSE_SHA or checkpoint.stat().st_size>=128*2**20:
+        raise ValueError('Pinned official license or funded checkpoint bound differs')
+    provenance=ROOT/'CPU-accepted.json'
+    members={'checkpoint.pt':checkpoint,'snapshot.json':metadata,'source-and-input-provenance.json':provenance,'DINOv3-LICENSE.md':LICENSE}
+    manifest={'status':'completed_original_plane_memory_full_fit_epoch','scientific_source_git':cpu['source_git'],'mode':mode,'epoch':epoch,'optimizer_updates':281*epoch,'checkpoint_sha256':meta['checkpoint_sha256'],'binding_sha256':meta['binding_sha256'],'release_binding_sha256':cpu['release_binding_sha256'],'CPU_full_input_receipt_sha256':sha(provenance),'actual_original_T4_recovery_receipt_sha256':sha(ROOT/'T4-recovery-accepted.json'),'actual_original_H100_recovery_receipt_sha256':sha(ROOT/'actual-H100-recovery.json'),'training_studies':2247,'outer_studies':1156,'fixed_final_epochs':3,'checkpoint_selection':'fixed_final_only; no_epoch_selection','official_base_and_license_required':True,'encoder':binding['config']['encoder'],'source_sha256':cpu['source_sha256'],'files':{n:{'bytes':p.stat().st_size,'sha256':sha(p)} for n,p in members.items()},'clinical_or_Kaggle_gain_claimed':False,'protected_gold_or_confirmation_used':False}
+    return manifest,members
+
+def publish(mode,epoch):
+    from huggingface_hub import HfApi,CommitOperationAdd
+    if os.uname().nodename!='evc31' or os.environ.get('SLURM_CPUS_PER_TASK')!='1' or os.environ.get('SLURM_JOB_GPUS'):
+        raise ValueError('Owning-node one-CPU zero-GPU publication required')
+    value=json.load(sys.stdin)
+    if set(value)!={'token'} or not isinstance(value['token'],str) or not value['token'].startswith('hf_'):
+        raise ValueError('Exactly one private credential on stdin required')
+    if sha(LOCK_RUNNER)!=LOCK_SHA: raise ValueError('Canonical publication lock helper changed')
+    spec=importlib.util.spec_from_file_location('original_lock',LOCK_RUNNER); helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+    with helper.publication_lock(LOCK_RUNNER.parent.parent/'publication.lock'):
+        manifest,members=source_files(mode,epoch)
+        if shutil.disk_usage('/tmp').free<46*2**30: raise ValueError('Publication scratch/reserve funding exhausted')
+        api=HfApi(token=value['token']); info=api.repo_info(REPO,repo_type='dataset')
+        if info.private is not True: raise ValueError('Original checkpoints require private dataset')
+        prefix=f'{PREFIX}/{mode}/epoch-{epoch:03d}'; journal=ROOT/'epoch-publication'/mode/f'epoch-{epoch:03d}'
+        paths=[prefix+'/'+n for n in list(members)+['manifest.json']]
+        if journal.exists() or api.get_paths_info(REPO,paths,repo_type='dataset',revision=info.sha):
+            raise ValueError('Existing publication requires read-only reconciliation; never repeat')
+        journal.mkdir(mode=0o700,parents=True)
+        mp=journal/'manifest.json';save(mp,manifest); members['manifest.json']=mp
+        expected={n:{'bytes':p.stat().st_size,'sha256':sha(p)} for n,p in members.items()}
+        save(journal/'intent.json',{'mode':mode,'epoch':epoch,'prefix':prefix,'parent_commit':info.sha,'files':expected,'automatic_retry':False,'checkpoint_sha256':manifest['checkpoint_sha256']})
+        try:
+            commit=api.create_commit(REPO,repo_type='dataset',parent_commit=info.sha,commit_message=f'Preserve original plane memory {mode} fixed3 epoch {epoch}',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=str(p)) for n,p in members.items()],num_threads=1)
+        except BaseException as error:
+            save(journal/'uncertain.json',{'error_type':type(error).__name__,'automatic_retry':False}); raise RuntimeError('Publication mutation uncertain; reconcile read-only') from None
+        save(journal/'commit.json',{'revision':commit.oid,'prefix':prefix})
+        if {p.path for p in api.get_paths_info(REPO,paths,repo_type='dataset',revision=commit.oid)}!=set(paths):
+            raise ValueError('Returned private revision incomplete')
+        with tempfile.TemporaryDirectory(prefix='verify-',dir=ROOT) as tmp:
+            for n,row in expected.items():
+                p=Path(api.hf_hub_download(REPO,filename=prefix+'/'+n,repo_type='dataset',revision=commit.oid,local_dir=tmp,force_download=True))
+                if p.stat().st_size!=row['bytes'] or sha(p)!=row['sha256']: raise ValueError('Private re-download bytes differ')
+        receipt={'status':'private_original_plane_memory_epoch_full_download_size_SHA_verified','job_id':os.environ['SLURM_JOB_ID'],'mode':mode,'epoch':epoch,'prefix':prefix,'revision':commit.oid,'files':expected,'file_count':len(expected),'checkpoint_sha256':manifest['checkpoint_sha256']}
+        save(journal/'verified.json',receipt); print(json.dumps(receipt,sort_keys=True),flush=True)
+
+if __name__=='__main__':
+    os.umask(0o077)
+    if len(sys.argv)!=3: raise ValueError('Exact fixed arm and completed epoch required')
+    publish(sys.argv[1],int(sys.argv[2]))

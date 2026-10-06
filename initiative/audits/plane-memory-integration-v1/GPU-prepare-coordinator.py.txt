@@ -1,0 +1,58 @@
+import ast,hashlib,json,subprocess
+from pathlib import Path
+r=Path('artifacts/plane-memory-integration-v1');a=Path('initiative/audits/plane-memory-integration-v1')
+old=ast.parse(Path('artifacts/kaggle-witness-FP16-smooth-v2/private-GPU-notebook.py').read_text())
+manifest=next(ast.literal_eval(n.value) for n in old.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id=='EXPECTED_MANIFEST_SHA256')
+cpu_bundle=json.loads((a/'actual-CPU-accepted.json').read_text());cpu=cpu_bundle['acceptance'];git=cpu['source_git'];assert git=='b2bb3a9c'+git[8:] and len(git)==40
+names=sorted(str(p) for p in Path('rsna').rglob('*.py'))+['scripts/newton/enforce_deterministic_runtime.py','scripts/newton/probe_patch_witness_trainer_recovery.py','scripts/kaggle/plane_memory_recovery.py']
+files={n:Path(n).read_text() for n in names};hashes={n:hashlib.sha256(v.encode()).hexdigest() for n,v in files.items()}
+assert all(hashes[n]==sha for n,sha in cpu_bundle['source']['files'].items() if n.startswith('rsna/'))
+base=json.loads(Path('initiative/audits/smooth-witness-full-fit-v2/base-config.json').read_text())
+entry=Path('scripts/kaggle/notebook_entry.py').read_text()
+branch='''    if globals().get("PLANE_MEMORY_RECOVERY_PROBE") is True:
+        sources, hashes = MEMORY_SOURCES, MEMORY_HASHES
+        if set(sources) != set(hashes) or sum(len(v.encode()) for v in sources.values()) > 1024**2:
+            raise ValueError("Exact bounded new scientific source required")
+        code = working / "plane-memory-source"
+        code.mkdir(mode=0o700)
+        for name, source in sources.items():
+            relative = Path(name)
+            if relative.is_absolute() or ".." in relative.parts or hashlib.sha256(source.encode()).hexdigest() != hashes[name]:
+                raise ValueError("New source path/hash differs")
+            compile(source, name, "exec")
+            path = code / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("x") as handle:
+                handle.write(source)
+        receipt = json.dumps(MEMORY_CPU_RECEIPT, sort_keys=True, indent=2) + "\\n"
+        if hashlib.sha256(receipt.encode()).hexdigest() != MEMORY_CPU_RECEIPT_SHA256:
+            raise ValueError("Actual original CPU receipt differs")
+        cpu_file = working / "plane-memory-CPU-accepted.json"
+        cpu_file.write_text(receipt)
+        base = working / "plane-memory-base.json"
+        base.write_text(json.dumps(MEMORY_BASE_CONFIG, sort_keys=True, indent=2) + "\\n")
+        source_manifest = working / "plane-memory-source-manifest.json"
+        source_manifest.write_text(json.dumps(hashes, sort_keys=True, indent=2) + "\\n")
+        parent = [p for p in attached_dataset_files(Path("/kaggle/input"), "witness-inputs-CPU-accepted.json") if sha256(p) == MEMORY_PARENT_RECEIPT_SHA256]
+        if len(parent) != 1:
+            raise ValueError("Exactly the original accepted private CPU parent required")
+        control = parent[0].parent / "witness-training-source"
+        cache = parent[0].parent / "witness-inputs-admission/cache"
+        if not control.is_dir() or not cache.is_dir():
+            raise ValueError("Original admitted MRI/source mounts absent")
+        env.update(PYTHONPATH=str(code), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", CUDA_VISIBLE_DEVICES="0")
+        remaining = 7200 - (time.monotonic() - notebook_started)
+        command = [str(python), "-B", str(code / "scripts/kaggle/plane_memory_recovery.py"), "--source", str(code), "--source-manifest", str(source_manifest), "--control", str(control), "--cache", str(cache), "--cpu-receipt", str(cpu_file), "--base-config", str(base), *encoder_arguments(bundle,working,manifest), "--output", str(working / "plane-memory-recovery"), "--remaining-seconds", str(remaining)]
+        bounded_process(command, env=env, timeout=remaining)
+        return
+'''
+point='    if globals().get("WITNESS_T4_RECOVERY_PROBE") is True:';assert entry.count(point)==1
+entry=entry.replace(point,branch+point)
+prefix={'EXPECTED_MANIFEST_SHA256':manifest,'PLANE_MEMORY_RECOVERY_PROBE':True,'MEMORY_SOURCES':files,'MEMORY_HASHES':hashes,'MEMORY_CPU_RECEIPT':cpu,'MEMORY_CPU_RECEIPT_SHA256':cpu_bundle['receipt_sha256'],'MEMORY_BASE_CONFIG':base,'MEMORY_PARENT_RECEIPT_SHA256':'26b6efe177e5317080e42b21c5be9eecf35f564a7ba3af62bdc40f09a6d3c180'}
+source='\n'.join(n+' = '+repr(v) for n,v in prefix.items())+'\n'+entry
+compile(source,'plane-memory-private-recovery.py','exec');assert len(source.encode())<1024**2
+contract=json.loads(Path('artifacts/kaggle-witness-FP16-smooth-v2/GPU-contract.json').read_text());contract.update(kernel_slug='godlydonuts/rsna-plane-memory-single-t4-20261006-v1',source_sha256=hashlib.sha256(source.encode()).hexdigest(),science_git=git,CPU_memory_receipt_sha256=cpu_bundle['receipt_sha256'],max_pipeline_seconds=7200,active_GPU_devices=1,sequential_two_arm=True,CPU_memory_job=cpu['CPU_job']);contract.pop('source_overrides',None);contract.pop('helper_sha256',None)
+for name,value in [('private-GPU-notebook.py',source),('GPU-contract.json',json.dumps(contract,indent=2)+'\n')]:
+ with (r/name).open('x') as f:f.write(value)
+(a/'GPU-contract.json').write_text(json.dumps(contract,indent=2)+'\n');(a/'private-entry-branch.py.txt').write_text(branch)
+print(json.dumps({'status':'single_T4_sequential_memory_recovery_prepared','source_bytes':len(source.encode()),'source_sha256':contract['source_sha256'],'source_git':git,'CPU_actual_accepted':True,'GPU_dispatched':False}))

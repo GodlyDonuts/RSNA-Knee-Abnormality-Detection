@@ -6,6 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from rsna.competitive.context import NeighborSliceContext
+from rsna.competitive.plane_memory import PlaneMemoryBranch
 from rsna.competitive.relations import SliceDistanceHead, SliceRelations
 from rsna.competitive.witness import PatchWitness
 from rsna.schema import TARGETS
@@ -30,6 +31,7 @@ class CompetitiveStudyNet(nn.Module):
         relation_hidden_dim: int | None = None,
         relation_head_seed: int = 0,
         witness: dict | None = None,
+        plane_memory: dict | None = None,
         input_channels: int = 1,
     ):
         super().__init__()
@@ -113,6 +115,21 @@ class CompetitiveStudyNet(nn.Module):
                 raise ValueError("Witness experiment requires spatial encoder and plain attention")
             self.witness = PatchWitness(embedding_dim, hidden_dim, witness)
 
+        self.plane_memory: PlaneMemoryBranch | None = None
+        if plane_memory is not None:
+            if (
+                pooling != "attention"
+                or slice_context != "none"
+                or witness is not None
+                or relation_hidden_dim is not None
+                or input_channels != 1
+                or not callable(getattr(encoder, "forward_features", None))
+            ):
+                raise ValueError(
+                    "Initial sequence-memory comparison requires one plain spatial encoder"
+                )
+            self.plane_memory = PlaneMemoryBranch(embedding_dim, plane_memory)
+
     def train(self, mode: bool = True) -> CompetitiveStudyNet:
         super().train(mode)
         if not any(p.requires_grad for p in self.encoder.parameters()):
@@ -160,7 +177,11 @@ class CompetitiveStudyNet(nn.Module):
         if not ((known == 0) | (known == 1)).all() or (valid_positions[known == 0, 0] != 0).any():
             raise ValueError("Position known flags must be binary; unknown distances must be zero")
         # Invalid images (including NaN padding) never reach the encoder.
-        if self.pooling == "patch_attention" or self.witness is not None:
+        if (
+            self.pooling == "patch_attention"
+            or self.witness is not None
+            or self.plane_memory is not None
+        ):
             forward_features = getattr(self.encoder, "forward_features")
             spatial_chunks = [
                 forward_features(part) for part in valid_images.split(self.encode_chunk_size)
@@ -249,6 +270,10 @@ class CompetitiveStudyNet(nn.Module):
         logits = torch.einsum("bth,th->bt", study, self.output_weight) + self.output_bias
         if self.witness is not None:
             logits = logits + self.witness(patches, slice_mask)
+        if self.plane_memory is not None:
+            logits = logits + self.plane_memory(
+                patches, features, series_mask, slice_mask, positions
+            )
         return self._relation_output(logits, encoded, slice_mask, relations)
 
     def _relation_output(self, logits, encoded, slice_mask, relations):

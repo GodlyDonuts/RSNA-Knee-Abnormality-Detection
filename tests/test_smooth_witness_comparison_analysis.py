@@ -128,3 +128,15 @@ def test_full_final_proof_accepts_and_partial_or_unpreserved_weights_fail():
     run["binding"]["outer_uids_sha256"] = "different"
     with pytest.raises(ValueError):
         validate_final("control", run, result, cpu, pub)
+
+
+def test_memory_requires_its_actual_fixed_final_publication_contract():
+    run, result, cpu, pub = final_fixture()
+    pub["status"] = "private_original_plane_memory_epoch_full_download_size_SHA_verified"
+    with pytest.raises(ValueError):
+        validate_final("control", run, result, cpu, pub)
+    validate_final("control", run, result, cpu, pub, publication_status=pub["status"])
+    with pytest.raises(ValueError):
+        validate_final(
+            "control", run, result, cpu, pub, publication_status="unverified_private_upload"
+        )

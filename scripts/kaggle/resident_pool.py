@@ -22,7 +22,17 @@ from rsna.schema import TARGETS
 
 
 class ResidentPool:
-    def __init__(self, *, workers=2, timeout_seconds=32400, process_factory=subprocess.Popen):
+    def __init__(
+        self,
+        *,
+        workers=2,
+        timeout_seconds=32400,
+        process_factory=subprocess.Popen,
+        performance_fp16_probe=False,
+    ):
+        if type(performance_fp16_probe) is not bool:
+            raise ValueError("Explicit performance-probe flag required")
+        self.performance_fp16_probe = performance_fp16_probe
         if workers not in (1, 2) or timeout_seconds <= 0:
             raise ValueError("Bounded one/two-device workers required")
         env = os.environ.copy()
@@ -46,7 +56,8 @@ class ResidentPool:
                         str(Path(__file__).with_name("resident_worker.py")),
                         "--device-index",
                         str(index),
-                    ],
+                    ]
+                    + (["--performance-fp16-probe"] if performance_fp16_probe else []),
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     text=True,
@@ -91,7 +102,7 @@ class ResidentPool:
         return [responses[i] for i in range(len(commands))]
 
     def invoke(self, command, *, check, capture_output=True, text=True):
-        args = parse_command(command)
+        args = parse_command(command, allow_fp16_probe=self.performance_fp16_probe)
         template = pd.read_csv(args.template)
         series = pd.read_csv(args.series)
         if not check or not capture_output or not text:
