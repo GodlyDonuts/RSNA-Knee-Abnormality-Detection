@@ -66,17 +66,25 @@ label-source ablation (public vs v2, same model/folds) arbitrates which
 semantics the official scoring actually rewards — and it now has a concrete
 mechanistic hypothesis to test rather than a generic "label quality" question.
 
-## Caveats
+## Caveats — read `GOLD-ARBITRATION.md` first
+
+**Correction after gold-58 arbitration (added same day):** the 58-study expert
+labels show gold counts *mild* effusion, mild osteophyte/cartilage findings
+and small Baker's cysts as **positive** (v2 recall collapses to 0.41–0.67 on
+Effusion/Medial OA/Baker's while public recall is 0.82–1.0). These 501 cells
+are therefore probably mostly genuine positives that v2 wrongly calls
+below-threshold-negative — the "public over-calls" framing above describes
+agreement with the v2 protocol's severity bar, and gold indicates that bar is
+set too high on severity-qualified targets. Read the per-target arbitration
+table in `GOLD-ARBITRATION.md` before reusing these buckets; the per-cell
+bucket assignments remain valid as a map of which sentences each source
+read.
 
 - Keyword triage counts are indicative, not exact — negated sentences and
   clause boundaries can produce false compartment hits; the 302/177 split is a
   prior for the v2.1 reviewer, not a measured error rate.
-- "Public over-calls OA" is per-cell disagreement with the v2 protocol, not
-  proof of official-label error: if the official labels treat mild
-  chondromalacia as OA-positive, the public extractor is right and v2 is the
-  outlier. The 58 gold labels and the paired public-vs-v2 fit are the
-  arbitrators; this document only shows what each source is actually encoding.
 - The 4 tier-0 `→positive` proposals in `TIER0-ADJUDICATION.md` (cells 23, 25,
   30) involved *named-compartment* osteophytes/cartilage defects — a different,
   stronger evidence class than the mild diffuse findings dominating this
-  bucket; the two documents are consistent.
+  bucket; the two documents are consistent, and gold arbitration supports
+  the `→positive` direction.
