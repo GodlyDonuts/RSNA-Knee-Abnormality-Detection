@@ -19,13 +19,16 @@ re-validated by `tests/test_arm_configs.py`; regenerate with
 | `graded-targets-v1` | v2 `uncertain` cells supervised at 0.5 vs masked | `graded-states-u05.fold{0,1,2}.overlay.json` |
 | `laterality-normalization-v1` | deterministic canonical-R mirror vs no flip | `canonical-sides.fold{0,1,2}.json` |
 | `masked-cell-losses-v1` (EM arm) | ESA entropy-maximization on `mask==0` cells vs ignore | `TrainConfig.masked_cell` — config-bound, no artifact |
+| `masked-cell-losses-v1` (consistency EMA arm) | EMA-teacher MSE on masked-cell logits, ramped 20% | `masked-cell-consistency` config — teacher checkpointed for exact resume |
+| `consistency-ema-v1` | mean-teacher on masked cells (implementation record) | same `masked_cell.kind:"ema_consistency"` seam |
+| `slice-smoothness-v1` | SmMIL TV-penalty on adjacent-slice attention scores | `slice-smooth-smmil` config at weight 0.1 |
+| `pooling-max` | max-pooled aggregation vs per-diagnosis attention | `pooling-max` config — control arm |
+| `knee-ssl-pretraining-v1` | DINO self-supervised pretraining on our own corpus | `ssl_series_manifest.parquet` (24,386 series / 819,635 slices) pinned; GPU-infeasible locally |
 
 ## Design / plan only
 
 | arm | status |
 |-----|--------|
-| `masked-cell-losses-v1` (consistency EMA arm) | teacher copy + ramp not built |
-| `knee-ssl-pretraining-v1` | DINO self-supervised pretraining on our own corpus — GPU-infeasible locally |
 | `slice-relations-v1` | opt-in relation integration exists; clinical read pending the full-fit pipeline |
 
 ## Completed / superseded
