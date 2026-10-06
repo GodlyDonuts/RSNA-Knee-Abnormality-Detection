@@ -1,3 +1,5 @@
+Latest actual T4 recovery/streaming CPU dispatch milestone sourcef42edfcc2c063593ecb77813293ac9ea872ac157 privately mirrored at HF44d4daa8deb1b9b4314562d0c84acb17523cc1ae, all14 small objects fully download/size/SHA verified. No pixels/labels/caseIDs/learnedweights copied. CPU137281867 actually RUNNING; H100875277 both roles completed4 finite updates (~63–66s full-update total each), full/resume terminal still pending. Never repeat completed mirrors or original pushes/jobs.
+
 October6 distinct private CPU streaming-input notebook137281867/v1 pushed ONCE.
 Source110cba6f269666a2d4ac495e931888b440dd558d44e0ae23b42bc2bcdd98d8e4,
 streaming source175aa60; original successful CPU32 parent/official raw MRI.
