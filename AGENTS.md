@@ -1,3 +1,8 @@
+Fitting-only supervisionstats/memory2/finiteobserver/walltime milestonea8c1385c
+privatelyverifiedONCE HF8cb204e24c710b3a209156921970cd773f28290e/all12smallobjects.
+Do notrepeat; noMRI/weights/protectedlabels copied. Observer stillactualalive
+PID50023, T4diagnosticlastRUNNING; no fullpubliclabelGPUjob yet.
+
 Fitting-only public-v2 descriptive audit completed: 2247parquet UIDfilter excludes
 evaluation/protected rows. Read public-label-source-fitting-statistics-v1. Strong
 severity/coverage differences: Effusion16/1273positive, publicdisagreement727/1273;
