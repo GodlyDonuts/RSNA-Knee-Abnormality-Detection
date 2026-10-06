@@ -107,3 +107,57 @@ coverage 16,812 / 17,175 / 17,165.
 
 - public < 0.9 conflict cells (~2,020) and the v2-`not_mentioned` bucket —
   still need full-report context rather than the single recorded quote.
+
+# Pass 3 — `uncertain`-state cells, public < 0.9 + `not_mentioned` (2026-10-06)
+
+Final pool: 1,869 cells with `v2_state = uncertain` and public value < 0.9 on
+the five severity targets (1,091 studies), plus 8 `not_mentioned` cells with
+public ≥ 0.9 — 1,877 cells total. Because the recorded evidence quote was
+insufficient at this disagreement level, adjudication read the **full report**
+per study through a clause-level multilingual classifier built for this pass:
+per-clause polarity (negation scope before/after pathology), compartment
+attribution (patellar/facet/trochlear anatomy dominates medial/lateral
+adjectives — "medial patellar facet" is PF, not Medial OA), severity-restricted
+negations kept positive per the any-severity rule, hedged-only findings and
+osteochondral/traumatic lesions without degenerative context stayed masked,
+and joint-level degenerative statements counted for Medial+Lateral but not PF.
+
+## Result
+
+| target | decided | positive | negative | kept uncertain |
+|--------|---------|----------|----------|----------------|
+| Effusion | 258 | 15 | 243 | 56 |
+| Baker's | 157 | 33 | 124 | 13 |
+| Medial OA | 339 | 252 | 87 | 103 |
+| Lateral OA | 431 | 327 | 104 | 118 |
+| PF OA | 232 | 131 | 101 | 170 |
+| **total** | **1,417** | **758** | **659** | **460** |
+
+The low-public agreement explains why public under-calls severity targets:
+314/484 fluid cells were `uncertain` because v2's severity bar rejected
+explicit small effusions and small Baker's cysts — but so did the public
+extractor (public < 0.9 here), leaving the cells contested. Adjudication
+resolved them as **659 explicit negatives** (true negations like "cartilage
+intact", "no effusion") vs only 758 positives — the first large negative
+harvest in the v2.1 program.
+
+`not_mentioned` cells (8): 7 positive (medial femoral osteophyte, lateral
+condyle fissure, joint-level OA named in impression ×2, tricompartmental
+osteophytes ×2, marginal patellar subchondral edema), 1 uncertain
+(joint-level OA without PF naming).
+
+## Two overlay arms
+
+- `v21_severity_rereview.fold{0,1,2}` — positive flips only (v2.1 protocol:
+  relax the severity bar, add missing positives). Per-fold positive flips:
+  3,613 / 3,562 / 3,591; fitting supervised cells 17,206 / 17,562 / 17,590.
+- `v21pn_severity_rereview.fold{0,1,2}` — positive **and** negative flips:
+  adjudicated negatives unmask as explicit 0 labels (+299 / +290 / +297 cells,
+  fitting supervised 17,494 / 17,846 / 17,876). Tests whether explicit
+  negation supervision on severity targets helps or hurts — the label-source
+  ablation's natural second arm.
+
+All three v2.1 passes combined: 7,911 adjudicated cells recorded in
+`v21_adjudication.csv` (7,234 positive, 677 negative); 460 cells stay masked
+(hedged-only, compartment-indeterminate, or traumatic-without-degenerative
+findings per protocol). Run configs `label-source-v21pn.fold{0,1,2}` emitted.

@@ -23,7 +23,15 @@ from rsna.schema import TARGETS
 STATE_VALUES = {"positive": 1.0, "negative": 0.0}
 
 
-def build(studies: Path, folds: Path, fold: int, adjudication: Path, output: Path) -> dict:
+def build(
+    studies: Path,
+    folds: Path,
+    fold: int,
+    adjudication: Path,
+    output: Path,
+    *,
+    negative_flips: bool = False,
+) -> dict:
     manifest = pd.read_parquet(studies)
     fold_frame = pd.read_csv(folds)
     adj = pd.read_csv(adjudication)
@@ -35,9 +43,10 @@ def build(studies: Path, folds: Path, fold: int, adjudication: Path, output: Pat
     if adj.duplicated(["study_uid", "target"]).any():
         raise ValueError("Duplicate adjudicated cell")
     flipped = {(r.study_uid, r.target) for r in adj.itertuples() if r.v21_call == "positive"}
+    negated = {(r.study_uid, r.target) for r in adj.itertuples() if r.v21_call == "negative"}
 
     train, outer = select_development(manifest, fold_frame, fold, "outer_fold")
-    entries, applied = [], 0
+    entries, applied, applied_neg = [], 0, 0
     for _, row in train.iterrows():
         labels, mask = {}, {}
         for target in TARGETS:
@@ -45,6 +54,10 @@ def build(studies: Path, folds: Path, fold: int, adjudication: Path, output: Pat
                 labels[target] = 1.0
                 mask[target] = 1
                 applied += 1
+            elif negative_flips and (row.study_uid, target) in negated:
+                labels[target] = 0.0
+                mask[target] = 1
+                applied_neg += 1
             else:
                 state = row[f"{target}__state"]
                 if state in STATE_VALUES:
@@ -59,7 +72,7 @@ def build(studies: Path, folds: Path, fold: int, adjudication: Path, output: Pat
         "schema_version": 1,
         "status": "label_source_experiment_only",
         "source": {
-            "name": "v21_severity_rereview",
+            "name": "v21pn_severity_rereview" if negative_flips else "v21_severity_rereview",
             "csv_sha256": file_sha256(adjudication),
             "revision": "report-supervision-v1",
         },
@@ -78,6 +91,7 @@ def build(studies: Path, folds: Path, fold: int, adjudication: Path, output: Pat
         "overlay_sha256": file_sha256(output),
         "fitting_studies": len(entries),
         "positive_flips": applied,
+        "negative_flips": applied_neg,
         "supervised_cells": sum(sum(e["mask"].values()) for e in entries),
     }
 
@@ -89,10 +103,24 @@ def main() -> None:
     parser.add_argument("--fold", type=int, required=True)
     parser.add_argument("--adjudication", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--negative-flips",
+        action="store_true",
+        help="Also unmask adjudicated-negative cells as explicit 0 labels "
+        "(v2.1pn arm: positive + negative flips).",
+    )
     args = parser.parse_args()
     print(
         json.dumps(
-            build(args.studies, args.folds, args.fold, args.adjudication, args.output), indent=1
+            build(
+                args.studies,
+                args.folds,
+                args.fold,
+                args.adjudication,
+                args.output,
+                negative_flips=args.negative_flips,
+            ),
+            indent=1,
         )
     )
 
