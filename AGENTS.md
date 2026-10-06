@@ -1,3 +1,12 @@
+Conventional CLS+patch-mean integration/full10epoch configs and candidatefinal3
+receipt sourced9202dc9 privately mirrored at HF594222c088988534ef0619f94e14e3567e903233,
+all16 small objects fully re-downloaded/size/SHA verified under canonical shared
+lock. Never repeat. No MRI/labels/case IDs/weights mirrored. New baseline still
+notMRI/GPU-admitted/funded/dispatched; current875858 evaluating after843 updates
+and all6 production checkpoints privately verified once.877134 PENDING(Resources)
+at16:27UTC. Require actual candidate result/terminal and full paired analysis;
+no gain or new score inferred. Keep standing data/base/protected constraints.
+
 Original875858 candidate completed843 updates and immutable final3 privately
 published ONCE at HF656a6187d52264b7f021909bb36adf077c88721a viaCPU878576,
 all5 objects fully re-downloaded/size/SHA verified. Checkpoint
