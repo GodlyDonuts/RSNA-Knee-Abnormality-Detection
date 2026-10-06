@@ -27,3 +27,5 @@ Prepared scheduler budget is48h, not36h: observed memory552updates/12111s
 projects34.25h for5620updates before recovery and final evaluations. This is
 a rough cross-model estimate, not a matched speed claim. NormalMaxTime is
 UNLIMITED. Existing jobs/scientific epochs/schedule remain unchanged.
+
+Following terminal review of the SSH-observation failure, exact T4 acceptance and absence of any original production intent/job were reconciled read-only. Original conditional dispatcher submitted879172 ONCE on evc31,1H100/2CPU/32GiB/48h; actualPENDING Priority/zero runtime. No observer restart, repeated dataset/kernel/training dispatch. Its allocated H100 recovery still gates both production arms.

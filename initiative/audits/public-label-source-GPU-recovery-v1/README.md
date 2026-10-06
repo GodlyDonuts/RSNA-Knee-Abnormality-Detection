@@ -24,3 +24,5 @@ Exact private offline notebook137385338/version1 was created once after the
 original lock refusal was reconciled read-only. No earlier kernel-create intent
 or response existed. SourceSHA350e0723e9fcdbfd459e1fa3b2b993e9a2c71f565d4823d648dee165d0b2e3d1.
 Real allocated-GPU acceptance remains pending; no production or accuracy claim.
+
+Actual original137385338/v1 COMPLETED. Both roles passed complete learned/base/AdamW/LR/counters/allRNG/AMP-scaler and exact CSV recovery; four finite updates per role, scaler growth4, nonzero encoder gradients. Receipt elapsed3175.6s. This is engineering acceptance only. No model accuracy claim.

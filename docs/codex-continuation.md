@@ -1,3 +1,14 @@
+Originalpublic-label T4137385338/v1 actualCOMPLETE/3175.6s; both control/public
+complete model/base/AdamW/LR/counters/RNG/scaler/CSV recovery,4finiteupdates each
+andnonzeroencodergradients. Actualreceiptpublic-label-source-GPU-recovery-v1.
+AfterSSHmasterexpired, originalfiniteobserverterminatedread-only/noGPUintent;
+reconnected viaignored0600.env/RAM/ASKPASS, reconciledexactoriginaljobs/create
+receipts/absencebeforeoneoriginalconditionaldispatch. Fullcomparison879172 was
+submittedONCE and actualPENDING Priority/zero runtime on evc31,1H100/2CPU/32GiB/48h.
+No productionupdates/accuracyyet. Neverrestartoldobserver orrepeatjob/kernel.
+ActualallocatedH100recovery mustpassinsidejobbeforebothfixed10arms. Original
+877134healthyRUNNING;878853originalpending48h. Sourcea990/configs/accepteddata unchanged.
+
 Actualread-onlyGPU137385338/v1 logprogress: control full/start207s, stop909s,
 resume1209s, thenpublic/full1794s. Originalcontrol completedthat flow and execution
 enteredpublicarm; finalaggregateacceptance stillpending, noaccuracyclaim. Env
