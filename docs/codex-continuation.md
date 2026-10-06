@@ -1,3 +1,9 @@
+October6 FP16 test137274970 v1 terminal ERROR BEFORE model/optimizer:
+72854 helper bytes exceeded old65536 cap. Finite watcher completed/released
+SAME875277.128KiB exact-hash/compile admission corrected and actual-payload
+regression added. Preserve v1; no implicit rerun/source or numerical change.
+Read kaggle-witness-FP16-smooth-v1/actual-failure-decision.json.
+
 Latest source286df4f privately mirrored at HF7b0a416843a1a806f3074e6d3af874b8e4b884da; all46 small objects fully download/size/SHA verified under canonical lock. Read hf-witness-smooth-FP16-20261006-v1. New FP16 GPU test137274970 v1 remains under the finite original observer; do not duplicate.
 
 October6 new FP16/smooth test137274970 v1 pushedONCE, scientific3b7e437.

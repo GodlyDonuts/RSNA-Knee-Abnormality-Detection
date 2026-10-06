@@ -149,3 +149,45 @@ def test_payload_discovery_does_not_walk_attached_notebook_source_cache(tmp_path
 
     monkeypatch.setattr(module.os, "scandir", guarded)
     assert list(module.attached_dataset_files(tmp_path, receipt.name)) == [receipt]
+
+
+def test_actual_FP16_overlay_payload_passes_private_training_admission():
+    import ast
+    import hashlib
+
+    root = Path(__file__).resolve().parents[1]
+    worker = (root / "scripts/kaggle/witness_amp_recovery.py").read_text()
+    overrides = {
+        n: (root / n).read_text()
+        for n in ("rsna/competitive/train.py", "rsna/competitive/witness.py")
+    }
+    declaration = (
+        "CODE_OVERRIDES = "
+        + repr(overrides)
+        + "\nCODE_OVERRIDE_HASHES = "
+        + repr({n: hashlib.sha256(s.encode()).hexdigest() for n, s in overrides.items()})
+        + "\nSCIENCE_GIT = "
+        + repr("a" * 40)
+        + "\n"
+    )
+    worker = worker.replace(
+        "from __future__ import annotations\n",
+        "from __future__ import annotations\n" + declaration,
+        1,
+    )
+    sources = {
+        "witness_recovery.py": worker,
+        "witness_launch.py": (root / "scripts/kaggle/witness_amp_launch.py").read_text(),
+    }
+    hashes = {n: hashlib.sha256(s.encode()).hexdigest() for n, s in sources.items()}
+    # Reproduce the actual failed envelope, not an unrelated small fake script.
+    assert 64 * 1024 < sum(len(s.encode()) for s in sources.values()) < 128 * 1024
+    assert ast.parse(worker)
+    module = notebook_module()
+    module.validate_private_training_sources(sources, hashes, "0" * 64)
+    changed = dict(sources, **{"witness_recovery.py": worker + "\n# tampered"})
+    with pytest.raises(ValueError, match="source differs"):
+        module.validate_private_training_sources(changed, hashes, "0" * 64)
+    oversized = dict(sources, **{"witness_recovery.py": worker + "\n#" + "x" * (128 * 1024)})
+    with pytest.raises(ValueError, match="Exact private trainer"):
+        module.validate_private_training_sources(oversized, hashes, "0" * 64)

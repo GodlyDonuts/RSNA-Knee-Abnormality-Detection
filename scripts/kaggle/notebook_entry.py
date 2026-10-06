@@ -149,6 +149,26 @@ def resolve_competition(inputs, slug):
     return competition
 
 
+def validate_private_training_sources(sources, hashes, accepted_sha):
+    """Bound standalone wrappers may carry two explicitly hashed source overlays."""
+    if (
+        not isinstance(sources, dict)
+        or set(sources) != {"witness_launch.py", "witness_recovery.py"}
+        or not all(isinstance(source, str) for source in sources.values())
+        or not isinstance(hashes, dict)
+        or set(hashes) != set(sources)
+        or sum(len(source.encode()) for source in sources.values()) > 128 * 1024
+        or not isinstance(accepted_sha, str)
+        or len(accepted_sha) != 64
+        or any(c not in "0123456789abcdef" for c in accepted_sha)
+    ):
+        raise ValueError("Exact private trainer wrapper and actual CPU receipt required")
+    for name, source in sources.items():
+        if hashlib.sha256(source.encode()).hexdigest() != hashes[name]:
+            raise ValueError("Private recovery wrapper source differs")
+        compile(source, name, "exec")
+
+
 def encoder_arguments(bundle, working, manifest):
     """Bind mounted original weights for delta inference without an online fetch."""
     spec = json.loads((bundle / "encoder.json").read_text())
@@ -322,16 +342,7 @@ def run():
         sources = globals().get("WITNESS_T4_RECOVERY_SOURCES")
         hashes = globals().get("WITNESS_T4_RECOVERY_HASHES")
         accepted_sha = globals().get("WITNESS_T4_CPU_ACCEPTANCE_SHA256")
-        if (
-            not isinstance(sources, dict)
-            or set(sources) != {"witness_launch.py", "witness_recovery.py"}
-            or not isinstance(hashes, dict)
-            or set(hashes) != set(sources)
-            or sum(len(s.encode()) for s in sources.values()) > 64 * 1024
-            or not isinstance(accepted_sha, str)
-            or len(accepted_sha) != 64
-        ):
-            raise ValueError("Exact private trainer wrapper and actual CPU receipt required")
+        validate_private_training_sources(sources, hashes, accepted_sha)
         accepted_files = [
             p
             for p in attached_dataset_files(
