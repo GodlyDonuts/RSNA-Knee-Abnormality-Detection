@@ -1,3 +1,5 @@
+Corrected header/v2 startup milestone source5e61a3300b311bec8704f5b78628c110b86c2e1d privately mirrored at HFc35b16290f0d1f525699d54457ae8d45cfe9ba5e; all26 small objects fully re-downloaded/size/SHA verified under canonical shared lock. No original images/labels/caseIDs/learnedweights mirrored. Never repeat. Original875858 last actually RUNNING on evc31 with correct GPU/header admission; follow original recovery/full-fit logs and v2 publication coordinator. Full clinical outcome remains unobserved.
+
 Latest corrected875858 actually RUNNING evc31; owning-node startup observer
 confirmed actual H100/CUDA/header/source admission and empty stderr. New smooth
 FP16 four-update recovery is in progress; full clinical fits have not begun.
