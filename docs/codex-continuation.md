@@ -1,3 +1,12 @@
+ActualexactFP32prefetch32 acceptance/larger1300launch sourceaa11c160 privately
+mirrored at HF932e897c874f8f12b557e501b29383ff911c52bb; all18small objects fully
+re-downloaded/size/SHA verified under canonical sharedlock. Neverrepeat. No rawMRI/
+labels/caseIDs/weights mirrored. Corrected137329288/v1 benchmark actualRUNNING,
+no largerthroughput/exactvalue/hidden9h result inferred. Candidate875858actual223
+finiteupdates/epoch1/emptystderr atprogress25, newmemory877134pendingResources.
+No pairedaccuracygain or newKaggle score. Keep numerical/data/job recipes intact;
+inspect actualnewcompleted epochs/results before mutation.
+
 Actual exactFP32prefetch GPU137327561/v1 COMPLETE: all32x12 values originalidentical,
 finite/fallback0,3prefetches,289.8776spipeline/no reference repeat,GPU2.361GB/
 hostreported8.157GB; no hidden9h/clinicalgain. Larger unchanged1300scope+4h private
