@@ -1,3 +1,11 @@
+Independent control-AUC replay sourceedc22183 privately mirrored at HF
+cdb9fa97fa5526f9788bebe8844a0834115fe998; all6 small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Never repeat. No raw MRI,
+labels/case IDs/predictions or weights mirrored. Candidate875858 healthy690
+finite updates/epoch3 atprogress36, candidate1/2 privately preserved once,
+final3/AUC still pending. Newmemory877134 PENDING(Resources), original1300
+benchmark137329288/v1 authenticated RUNNING15:35UTC. No new score/gain.
+
 Original control fixed3 AUC independently replayed by zero-GPU CPU878452:
 all12 masked AUCs match original sklearn to<=1.11e-16, macro exactly
 0.7810206776350072 on original1156 weak-label development studies. Exact
