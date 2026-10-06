@@ -138,6 +138,18 @@ behind the dependency-free DINO self-distill probe. Pin-build:
 `ssl_series_manifest.parquet` (24,386 series / 819,635 slices) exists
 under `knee-ssl-pretraining-v1`.
 
+**Released-weight option found (2026-10-06 sweep):** OrthoDiffusion
+(arXiv:2602.20752) — orientation-specific 3D diffusion branches
+self-supervised on 15,948 unlabeled knee exams; public code
+(github.com/lt-0123/OrthoDiffusion) and weights
+(huggingface.co/lanstat0123/orthodiffusion, med-ddpm backbone);
+linear-probe + finetune recipes on 8 knee abnormalities, 11-structure
+segmentation, cross-center robustness. This may be a stronger encoder
+init than anything self-pretrained — but it is 3D volumetric, so it needs
+either swapping the extraction path to per-view volume features or using
+it only as a recipe model. Probe order recorded in the SSL design:
+OD-path vs own-corpus DINO vs ImageNet init.
+
 ### 8. Per-diagnosis query attention over plane slots (validated externally)
 
 Pilkwang's head: six slot embeddings (3 planes × 2 sequences) with presence
