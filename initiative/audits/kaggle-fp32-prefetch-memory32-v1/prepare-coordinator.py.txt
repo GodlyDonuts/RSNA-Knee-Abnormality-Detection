@@ -1,0 +1,38 @@
+"""Freeze the memory-only correction; no API, GPU, model or data mutation."""
+import ast,hashlib,json,subprocess
+from pathlib import Path
+r=Path('artifacts/kaggle-fp32-prefetch-memory32-v1');a=Path('initiative/audits/kaggle-fp32-prefetch-memory32-v1')
+oldroot=Path('artifacts/kaggle-fp32-prefetch-32-v2')
+old=(oldroot/'private-notebook.py').read_text();original=json.loads((oldroot/'source-contract.json').read_text())
+assert hashlib.sha256(old.encode()).hexdigest()==original['source_sha256']=='e4d26343885bfadf1de559dff3d7b3ae2de15a2350bc991644c43ad872a3f20f'
+keys={'EXPECTED_MANIFEST_SHA256','RESIDENT_PERFORMANCE_PROBE','RESIDENT_PERFORMANCE_STUDY_COUNT','RESIDENT_PERFORMANCE_SOURCES','RESIDENT_PERFORMANCE_HASHES','RESIDENT_PERFORMANCE_FITTING_UIDS','SAVED_FP32_REFERENCE_RECEIPT','ATTACHED_PAYLOAD_ROOTS'}
+values={};end=0
+for n in ast.parse(old).body:
+ if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id in keys:
+  values[n.targets[0].id]=ast.literal_eval(n.value);end=max(end,n.end_lineno)
+assert set(values)==keys and values['RESIDENT_PERFORMANCE_STUDY_COUNT']==32
+before=dict(values['RESIDENT_PERFORMANCE_SOURCES']);after=dict(before)
+for target,source in [('parallel_preparation.py','parallel_preparation.py'),('performance_probe.py','fp32_prefetch_performance_probe.py'),('process_memory.py','process_memory.py')]:
+ after[target]=Path('scripts/kaggle',source).read_text()
+changed={k for k in set(before)|set(after) if before.get(k)!=after.get(k)}
+assert changed=={'parallel_preparation.py','performance_probe.py','process_memory.py'}
+for name,text in after.items():compile(text,name,'exec')
+hashes={name:hashlib.sha256(text.encode()).hexdigest() for name,text in after.items()}
+cpu_path=Path('initiative/audits/process-memory-accounting-v1/v3/actual-Linux-CPU.json')
+cpu=json.loads(cpu_path.read_text());assert cpu['status']=='actual_Linux_six_live_process_lifetime_RSS_after_buffer_release_verified' and cpu['CPU_job']=='877784' and cpu['source_sha256']==hashes['process_memory.py']
+assert cpu['measurement']['process_counts']=={'parent':1,'resident_workers':2,'preparation_workers':2,'resource_tracker':1}
+values['RESIDENT_PERFORMANCE_SOURCES']=after;values['RESIDENT_PERFORMANCE_HASHES']=hashes
+entry=''.join(old.splitlines(keepends=True)[end:]);assert entry.count('"prefetch_preparation.py",')==1
+entry=entry.replace('"prefetch_preparation.py",','"prefetch_preparation.py",\n                "process_memory.py",')
+source='\n'.join(name+' = '+repr(value) for name,value in values.items())+'\n'+entry
+compile(source,'new-exact-FP32-memory32.py','exec');assert len(source.encode())<256*1024
+contract=dict(original)
+contract.update(kernel_slug='godlydonuts/rsna-fp32-prefetch-memory32-85bfc1ce-v1',source_sha256=hashlib.sha256(source.encode()).hexdigest(),standalone_source_sha256=hashes,source_git_before_changes=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),predeclared_max_absolute_probability_error=0.0,required_actual_prior_fullscale_kernel=137329288,required_actual_prior_fullscale_source_sha256='9808de6b3e59963666730121283af5ff7e7e5e03d22283c52d43e8d75253681d',required_actual_prior_fullscale_success=True,required_Linux_memory_CPU_job=877784,required_Linux_memory_CPU_receipt_sha256=hashlib.sha256(cpu_path.read_bytes()).hexdigest(),process_memory_accounting='Linux lifetime VmHWM for all six live workload processes before shutdown',required_process_counts=cpu['measurement']['process_counts'],memory_scope='workload process RSS; not total cgroup page cache or bootstrap',runtime_deadline_seconds=7200,GPU_dispatched=False,competition_submission=False)
+for name,value in [('private-notebook.py',source),('source-contract.json',json.dumps(contract,indent=2)+'\n')]:
+ with (r/name).open('x') as f:f.write(value)
+(r/'private-roster.json').write_text(Path('artifacts/kaggle-fp32-prefetch-1300-v2/private-roster.json').read_text())
+with (a/'source-contract.json').open('x') as f:json.dump(contract,f,indent=2,sort_keys=True);f.write('\n')
+with (a/'prepare-coordinator.py.txt').open('x') as f:f.write(Path(__file__).read_text())
+receipt={'status':'private_memory_only_notebook_source_locally_bound_and_compiled','source_sha256':contract['source_sha256'],'notebook_bytes':len(source.encode()),'payload_modules':len(after),'changed_module_names':sorted(changed),'old_numerical_encoder_model_preprocessing_reference_and_base_source_exactly_unchanged':all(before[name]==after[name] for name in set(before)-changed),'actual_prior_Linux_CPU_receipt_sha256':contract['required_Linux_memory_CPU_receipt_sha256'],'required_fullscale_kernel':137329288,'fullscale_terminal_required_before_cloud_intent':True,'actual_MRI_T4_memory_admission':False,'API_GPU_or_model_dispatch':False,'MRI_labels_or_protected_targets_read':False,'new_Dataset_or_checkpoint_publication':False}
+with (a/'local-source-acceptance.json').open('x') as f:json.dump(receipt,f,indent=2,sort_keys=True);f.write('\n')
+print(json.dumps(receipt))

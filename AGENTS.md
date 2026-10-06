@@ -1,3 +1,17 @@
+Notebook-inclusive memory32-v2 source c8e63bd416240602 is prepared/compiled,
+NOT pushed. It preserves exact original32 FP32 values and requires all seven
+processes (notebook plus6 workers/parent/tracker) RSS and total bootstrap walltime
+<=1800s. Client/server both require actual137329288/v1 COMPLETE/exact1300 before
+any cloud intent; actual local guard refused live RUNNING prerequisite. Read
+kaggle-fp32-prefetch-memory32-v2. V1 local six-process-only preparation is
+superseded/unpushed. Original1300 still authenticated RUNNING14:01UTC. Streaming
+log-read timeout was observation-only; status rechecked, no restart.
+Original875858 candidate370finite updates/epoch2/empty stderr atprogress30;
+control1–3/candidate1 remain privately verified once. Actual five owned-GPU
+NVML samples61–82%/11509MiB were collected within SAME allocation; no CUDA/model
+context or newGPU job, no epoch-profile/accuracy inference. Newmemory877134 still
+pendingResources. Full2230tests/Ruff370/mypy50 passed, no new paired/Kaggle score.
+
 Memory-accounting/candidate1 milestone sourcefa9711c2 privately mirrored at HF
 a66809065e47bbf6dadf56ae80679f293fdff2d2; all15 small objects fully re-downloaded/
 size/SHA verified under canonical shared lock. Never repeat. No raw MRI, labels,
