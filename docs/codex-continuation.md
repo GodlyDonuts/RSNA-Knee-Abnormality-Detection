@@ -1,3 +1,16 @@
+Owner criticism changes priority: finish existing comparisons, then establish
+a fully trained conventional single-backbone baseline before more speculative
+heads. Optional CLS+mean-patch readout is now wired through canonical train/
+infer/delta packaging/resident reconstruction, with common zero-start graph/
+values/RNG and sameMRI/labels/LoRA. Extra131072 readout parameters, original
+10.2236M encoder adapters unchanged. Read cls-patch-summary-v1: matched10epochs/
+2810updates per role, native384/effective8/281warmup; no compound changes.
+Full2251tests/Ruff374/mypy51 plus65 inference/delta/readout regressions passed.
+This is software acceptance only: not remotely staged, MRI/GPU-admitted, funded
+or dispatched. Do not overwrite frozen3b7e437/b2bb3a9c live sources. Original
+875858 candidate healthy832updates/epoch3 atprogress40; candidate3 soon, then
+full paired analysis. Original1300 benchmark still RUNNING16:18UTC. No newscore.
+
 Independent control-AUC replay sourceedc22183 privately mirrored at HF
 cdb9fa97fa5526f9788bebe8844a0834115fe998; all6 small objects fully re-downloaded/
 size/SHA verified under canonical shared lock. Never repeat. No raw MRI,
