@@ -1,0 +1,74 @@
+"""Stage the new readout and validate official common initialization, no MRI/model training."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/cls-patch-summary-v1/cpu');a=Path('initiative/audits/cls-patch-summary-CPU-v1');assert not a.exists()
+program=r'''import ast,gc,hashlib,json,os,random,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+r=Path('/tmp/rsna-cls-patch-summary-CPU-20261006-v1');assert not r.exists()
+assert shutil.disk_usage('/tmp').free>=20*2**30+16*2**30+10*2**30+4*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-1406962617)/2**30;slots=limit-count-735;assert gib>=20 and slots>=5000
+original=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v2');full=json.load(open(original/'CPU-accepted.json'));old_source=json.load(open(original/'source.json'))
+for name in ['rsna/competitive/data.py','rsna/data.py','rsna/dicom.py','rsna/preprocess.py','rsna/competitive/sampling.py','rsna/competitive/folds.py','rsna/release.py','rsna/semantic_supervision.py','rsna/schema.py']:
+ assert v['hashes'][name]==old_source['files'][name]
+def function(text,name):
+ node=next(n for n in ast.parse(text).body if isinstance(n,ast.FunctionDef) and n.name==name);return ast.get_source_segment(text,node)
+for name in ['select_development','_model_inputs']:
+ assert function(v['files']['rsna/competitive/train.py'],name)==function((original/'code/rsna/competitive/train.py').read_text(),name)
+proofpath=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json');assert hashlib.sha256(proofpath.read_bytes()).hexdigest()=='fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5';proof=json.load(open(proofpath))
+def signature(path):
+ s=Path(path).stat();return [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]
+for path,record in proof['scientific_assets'].items():assert signature(path)==record['signature']
+registry=Path('/home/sa305415/rsna-knee/native384-assembly-c9-v1/registry.json');assert hashlib.sha256(registry.read_bytes()).hexdigest()=='73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770'
+members={n:row for s in json.load(open(registry))['shards'] for n,row in s['members'].items()};assert len(members)==37812
+cache=Path(full['trainer_inputs']['cache']).parent
+for name,record in members.items():
+ p=cache/name;assert not p.is_symlink() and signature(p)==proof['signatures'][name] and p.stat().st_size==record['bytes']
+memory=Path('/tmp/rsna-plane-memory-inputs-20261006-v1/CPU-accepted.json');accepted=json.load(open(memory));assert accepted['status']=='actual_original32_MRI_and_official_memory_initialization_CPU_accepted'
+assert accepted['training_uids_sha256']==full['training_uids_sha256'] and accepted['outer_uids_sha256']==full['outer_uids_sha256']
+assert sum(len(s.encode()) for s in v['files'].values())<4*2**20
+r.mkdir(mode=0o700);code=r/'code';code.mkdir(mode=0o700)
+for name,text in v['files'].items():
+ assert not Path(name).is_absolute() and '..' not in Path(name).parts
+ p=code/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text);assert hashlib.sha256(p.read_bytes()).hexdigest()==v['hashes'][name]
+sys.path.insert(0,str(code))
+import numpy as np,torch
+from rsna.competitive import backbones
+from rsna.competitive.adapters import configure_encoder_training
+from rsna.competitive.model import CompetitiveStudyNet
+from rsna.competitive.train import TrainConfig
+torch.set_num_threads(1)
+def digest(x):return hashlib.sha256(json.dumps(x,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+configs={name:TrainConfig(**values) for name,values in v['configs'].items()}
+for config in configs.values():
+ config.validate();assert config.epochs==10 and config.warmup_updates==281 and config.batch_size*config.accumulation_steps==8 and config.side==384
+base_check=backbones._checked_file
+def trusted_file(spec,key):
+ if key=='weights':
+  p=Path(spec['weights_path']);record=proof['scientific_assets'][str(p)];assert signature(p)==record['signature'] and spec['weights_sha256']==record['sha256'];return p
+ return base_check(spec,key)
+backbones._checked_file=trusted_file
+seed=configs['control'].seed;random.seed(seed);np.random.seed(seed%2**32);torch.manual_seed(seed)
+encoder,dim,ep=backbones.create_encoder(configs['control'].encoder);configure_encoder_training(encoder,True);encoder_rng=torch.get_rng_state().clone()
+initial={}
+for role in ['control','candidate']:
+ torch.set_rng_state(encoder_rng);c=configs[role];model=CompetitiveStudyNet(encoder,dim,pooling=c.pooling,hidden_dim=c.hidden_dim,encode_chunk_size=c.encode_chunk_size,patch_summary=c.patch_summary)
+ records={}
+ for name,p in model.named_parameters():
+  if p.requires_grad:
+   array=p.detach().contiguous().numpy();records[name]={'shape':list(array.shape),'dtype':str(array.dtype),'sha256':hashlib.sha256(array.tobytes()).hexdigest()}
+ assert not model.patch_summary.weight.any() and model.patch_summary.weight.numel()==131072
+ initial[role]={'learned_graph_values_sha256':digest(records),'post_factory_RNG_sha256':hashlib.sha256(torch.get_rng_state().numpy().tobytes()).hexdigest(),'learned_parameters':sum(p.numel() for p in model.parameters() if p.requires_grad)}
+ del model,records;gc.collect()
+assert initial['control']==initial['candidate']
+receipt={'status':'actual_official_CLS_patch_mean_common_initialization_and_original_input_proof_reuse_CPU_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_sha256':v['hashes'],'configs':v['configs'],'initial_learned_state':initial,'encoder_provenance':ep,'runtime':full['runtime'],'trainer_inputs':full['trainer_inputs'],'original_MRI_input_receipt_sha256':hashlib.sha256(memory.read_bytes()).hexdigest(),'original_input_tensor_hashes':accepted['engineering_input_tensors'],'original_other_tensor_hashes':accepted['engineering_other_tensors'],'full_training_studies':2247,'full_outer_studies':1156,'training_uids_sha256':full['training_uids_sha256'],'outer_uids_sha256':full['outer_uids_sha256'],'original_cache_stat_bindings':37812,'original_large_asset_whole_byte_proofs_and_exact_stats_reused':True,'official_encoder_loaded_once_and_shared_for_untrained_graph_comparison':True,'additional_readout_parameters':131072,'shared_future_bytes':0,'shared_future_files':0,'node_small_cap_bytes':4*2**20,'new_checkpoint_or_GPU_runtime_funded':False,'shared_reserve_GiB_after_obligations':gib,'shared_reserve_files_after_obligations':slots,'GPU_model_forward_optimizer_or_clinical_inference_executed':False,'protected_labels_read':False}
+(r/'source.json').write_text(json.dumps({'source_git':v['source_git'],'files':v['hashes']},indent=2)+'\n');(r/'CPU-accepted.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n');print(json.dumps(receipt))
+'''
+payload=json.load(open(r/'payload.json'));cpu=json.load(open('initiative/audits/smooth-witness-full-fit-v2/actual-CPU-acceptance.json'))
+intent={'source_git':payload['source_git'],'CPUs':1,'GPUs':0,'node_control_cap_bytes':4*2**20,'shared_growth_bytes_files':0,'new_checkpoints_or_GPU_runtime_funded':False,'automatic_retry':False}
+with (r/'intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:15:00','--job-name=cls-patch-summary-CPU',cpu['runtime']['python'],'-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=930)
+with (r/'result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stdout+x.stderr
+v=json.loads(x.stdout);a.mkdir();(a/'actual-CPU-accepted.json').write_text(json.dumps(v,sort_keys=True,indent=2)+'\n');(a/'dispatch-intent.json').write_text(json.dumps(intent,indent=2)+'\n');(a/'single-CPU-wrapper.py.txt').write_text(Path(__file__).read_text());print(json.dumps({'status':v['status'],'CPU_job':v['CPU_job'],'initial':v['initial_learned_state'],'MRI_or_GPU_forward_or_optimizer_executed':False}))

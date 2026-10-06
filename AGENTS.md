@@ -1,3 +1,21 @@
+Actual875858 completed0:0/fullpaired fixed3 result is recomputed: controlmacro
+0.78102068 vs localcandidate0.80194390, but frozenPRIMARY medialmeniscus
+delta+.00083487 paired95%[-.00043470,.00210216]. Secondarymacro+.02092322
+CI[-.02619225,.06969714],1164undefined draws;94%delta fromBakers3positive/
+fracture2positive. No primarygain/promotion; retain simplerdefault. Read
+smooth-witness-full-fit-v2/fixed-final-decision.md. All6epochs privateverified.
+Actual1300 FP32prefetch137329288/v1 COMPLETE: all15600 values originalexact,
+fallback0,11508.25s vs18303.60s (~37.1%less), no repeatedreference/GPUscore.
+OldRAMreport excludesprep/tracker; do notadmitRAM. Corrected7process memory32
+137358409/v1 pushedONCE sourcec8e63bd416240602, lastRUNNING16:46UTC, no competition
+submission. Use originalsinglecoordinator/status only; neverrepeatpush.
+Original877134 nowRUNNING evc31; leave frozenb2source/recipe untouched.
+CLS+patchmean officialCPU878616 accepted common10.5577M graph/values/RNG and
+actualb2 input-proof reuse/all37812stats. CPU878597 stopped beforecontrol/model
+at outdateddata-source comparator, reconciledread-only; v2 exactb2matches.
+Readcls-patch-summary-CPU-v2. Only4MiBcontrol funded, NOT checkpoints/GPU;
+nextfund/admitactualGPUrecovery and fullytrained10epoch baseline. No newscore.
+
 Conventional CLS+patch-mean integration/full10epoch configs and candidatefinal3
 receipt sourced9202dc9 privately mirrored at HF594222c088988534ef0619f94e14e3567e903233,
 all16 small objects fully re-downloaded/size/SHA verified under canonical shared
