@@ -1,3 +1,13 @@
+Original875858 candidate completed843 updates and immutable final3 privately
+published ONCE at HF656a6187d52264b7f021909bb36adf077c88721a viaCPU878576,
+all5 objects fully re-downloaded/size/SHA verified. Checkpoint
+5874792cc47c882c3d7c7d5b543bf113fb39c34edf6e73f826d957ad8ff30d8f.
+Never repeat any control1–3/candidate1–3 publication. Heldout/candidate result
+and actual Slurm0:0/full paired analysis still pending; no gain/score inferred.
+Conventional CLS+patch-mean code/full10epoch configurations are committed on
+sourcea49d51f7, actualMRI/GPU admission/funding/dispatch still absent. Preserve
+live3b7e437/b2bb3a9c sources; prioritize a strong fully trained baseline next.
+
 Owner criticism changes priority: finish existing comparisons, then establish
 a fully trained conventional single-backbone baseline before more speculative
 heads. Optional CLS+mean-patch readout is now wired through canonical train/
