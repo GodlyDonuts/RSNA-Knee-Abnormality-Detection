@@ -128,7 +128,8 @@ class CompetitiveStudyNet(nn.Module):
         positions: Tensor,
         *,
         relations: SliceRelations | None = None,
-    ) -> Tensor | tuple[Tensor, Tensor]:
+        return_slice_scores: bool = False,
+    ) -> Tensor | tuple:
         if (
             images.ndim != 6
             or images.shape[3] != self.input_channels
@@ -229,7 +230,10 @@ class CompetitiveStudyNet(nn.Module):
             pooled = pooled + series_features
             study = pooled.masked_fill(~series_mask[..., None], -torch.inf).amax(dim=1)
             logits = torch.einsum("bh,th->bt", study, self.output_weight) + self.output_bias
-            return self._relation_output(logits, encoded, slice_mask, relations)
+            result = self._relation_output(logits, encoded, slice_mask, relations)
+            if return_slice_scores:
+                raise ValueError("Slice scores exist only under attention pooling")
+            return result
         gated_slices = torch.tanh(self.slice_tanh(full)) * torch.sigmoid(self.slice_gate(full))
         scores = (
             torch.einsum("bskth,th->bskt", gated_slices, self.slice_score.weight)
@@ -249,7 +253,12 @@ class CompetitiveStudyNet(nn.Module):
         logits = torch.einsum("bth,th->bt", study, self.output_weight) + self.output_bias
         if self.witness is not None:
             logits = logits + self.witness(patches, slice_mask)
-        return self._relation_output(logits, encoded, slice_mask, relations)
+        result = self._relation_output(logits, encoded, slice_mask, relations)
+        if return_slice_scores:
+            if isinstance(result, tuple):
+                return (*result, scores)
+            return result, scores
+        return result
 
     def _relation_output(self, logits, encoded, slice_mask, relations):
         if relations is None:

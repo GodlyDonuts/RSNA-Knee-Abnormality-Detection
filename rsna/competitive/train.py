@@ -41,11 +41,14 @@ from rsna.competitive.checkpoint import (
 )
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.loss import (
+    adjacent_slice_pairs,
     effective_batch_loss,
     masked_cell_consistency,
     masked_cell_entropy,
     observed_counts,
+    slice_score_tv,
     validate_masked_cell,
+    validate_slice_smooth,
 )
 from rsna.competitive.mrnet_initialization import initialize_private_mrnet
 from rsna.competitive.neighbor_input import neighbor_input_channels
@@ -133,6 +136,7 @@ class TrainConfig:
     neighbor_channels: dict | None = None
     canonical_sides: dict | None = None
     masked_cell: dict | None = None
+    slice_smooth: dict | None = None
 
     def validate(self) -> None:
         if self.masked_cell is not None:
@@ -146,6 +150,20 @@ class TrainConfig:
                 or self.canonical_sides is not None
             ):
                 raise ValueError("Masked-cell contrast requires an isolated outer-fold arm")
+        if self.slice_smooth is not None:
+            validate_slice_smooth(self.slice_smooth)
+            if (
+                self.fit_scope != "outer_fold"
+                or self.relation is not None
+                or self.witness is not None
+                or self.fitting_supervision is not None
+                or self.neighbor_channels is not None
+                or self.canonical_sides is not None
+                or self.masked_cell is not None
+                or self.pooling != "attention"
+                or self.slice_context != "none"
+            ):
+                raise ValueError("Slice-smooth contrast requires an isolated outer-fold arm")
         neighbor_input_channels(self.neighbor_channels)
         if self.neighbor_channels is not None and (
             self.fit_scope != "outer_fold"
@@ -813,6 +831,12 @@ def _run_locked(
                 if masked_enabled
                 else None
             )
+            smooth_enabled = config.slice_smooth is not None and config.slice_smooth["enabled"]
+            pair_count = (
+                adjacent_slice_pairs([batch["slice_mask"].to(device) for batch in batches])
+                if smooth_enabled
+                else None
+            )
             relation_batches = (
                 [
                     relations_for_batch(batch, config.relation, seed=config.seed, epoch=epoch)
@@ -831,6 +855,7 @@ def _run_locked(
             classification_total = torch.zeros((), device=device)
             relation_total = torch.zeros((), device=device)
             masked_total = torch.zeros((), device=device)
+            smooth_total = torch.zeros((), device=device)
             if (
                 counts.any()
                 or (
@@ -839,6 +864,7 @@ def _run_locked(
                     and relation_count > 0
                 )
                 or (masked_counts is not None and masked_counts.any())
+                or (pair_count is not None and pair_count > 0)
             ):
                 for micro, (batch, mask) in enumerate(zip(batches, masks)):
                     synchronize = micro == len(batches) - 1 or world == 1
@@ -849,7 +875,14 @@ def _run_locked(
                             enabled=config.precision != "fp32",
                         ):
                             if config.relation is None:
-                                logits = wrapped(*_model_inputs(batch, device))
+                                if smooth_enabled:
+                                    logits, slice_scores = wrapped(
+                                        *_model_inputs(batch, device),
+                                        return_slice_scores=True,
+                                    )
+                                else:
+                                    logits = wrapped(*_model_inputs(batch, device))
+                                    slice_scores = None
                                 auxiliary = torch.zeros((), device=device)
                             else:
                                 logits, relation_sum = wrapped(
@@ -899,6 +932,19 @@ def _run_locked(
                                         ramp_value * config.masked_cell["weight"] * consistency
                                     )
                                     masked_total += consistency.detach()
+                            if smooth_enabled:
+                                assert slice_scores is not None and pair_count is not None
+                                # SmMIL smoothness: physically adjacent slices
+                                # should carry similar attention scores — a
+                                # lesion occupies a contiguous run, not
+                                # scattered singletons.
+                                tv = slice_score_tv(
+                                    slice_scores,
+                                    batch["slice_mask"].to(device),
+                                    pair_count,
+                                )
+                                loss = loss + config.slice_smooth["weight"] * tv
+                                smooth_total += tv.detach()
                         if scaler is None:
                             loss.backward()
                         else:
@@ -1014,6 +1060,13 @@ def _run_locked(
                         event["masked_entropy"] = float(masked_total)
                     else:
                         event["masked_consistency"] = float(masked_total)
+                if smooth_enabled:
+                    assert pair_count is not None
+                    event.update(
+                        slice_pairs=float(pair_count),
+                        slice_smooth=float(smooth_total),
+                        slice_smooth_weight=config.slice_smooth["weight"],
+                    )
                 if device.type == "cuda":
                     event["peak_gpu_allocated_bytes"] = torch.cuda.max_memory_allocated(device)
                 history.append(event)

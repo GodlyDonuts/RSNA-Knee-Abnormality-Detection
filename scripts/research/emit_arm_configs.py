@@ -126,6 +126,20 @@ def main() -> None:
         )
     )
     written.append(emit({**base, "pooling": "max"}, "pooling-max", args.output))
+    written.append(
+        emit(
+            {
+                **base,
+                "slice_smooth": {
+                    "enabled": True,
+                    "kind": "attention_score_tv",
+                    "weight": 0.1,
+                },
+            },
+            "slice-smooth-smmil",
+            args.output,
+        )
+    )
     print(json.dumps([str(p.relative_to(ROOT)) for p in written], indent=1))
 
 

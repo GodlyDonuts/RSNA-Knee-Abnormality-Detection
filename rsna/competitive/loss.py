@@ -117,6 +117,49 @@ def masked_cell_consistency(
     return world * (sums[included] / masked_counts[included].to(sums.dtype)).mean()
 
 
+def adjacent_slice_pairs(slice_masks: list[Tensor]) -> Tensor:
+    """Collect once per optimizer update: total consecutive valid-slice pairs.
+
+    Slices are stored in strictly increasing physical order along each series
+    axis, so the k-index adjacency of two valid slices is physical adjacency.
+    """
+    if not slice_masks:
+        raise ValueError("An effective batch must contain a microbatch")
+    pairs = torch.zeros((), dtype=torch.float64, device=slice_masks[0].device)
+    for mask in slice_masks:
+        if mask.ndim != 3 or mask.dtype != torch.bool:
+            raise ValueError("Slice masks must be boolean [study,series,slice]")
+        pairs = pairs + (mask[:, :, 1:] & mask[:, :, :-1]).sum()
+    if dist.is_initialized():
+        dist.all_reduce(pairs)
+    return pairs
+
+
+def slice_score_tv(slice_scores: Tensor, slice_mask: Tensor, pair_count: Tensor) -> Tensor:
+    """One microbatch's contribution to the global per-target mean squared
+    difference between the gated attention scores of physically adjacent
+    slices (SmMIL-style smoothness), mirroring effective_batch_loss
+    normalization: per-target sums are divided by the effective-batch
+    adjacent-pair count collected once per optimizer update."""
+    if (
+        slice_scores.ndim != 4
+        or slice_mask.shape != slice_scores.shape[:3]
+        or slice_mask.dtype != torch.bool
+    ):
+        raise ValueError("Expected aligned [study,series,slice,target] scores and bool mask")
+    if pair_count.ndim != 0 or not torch.isfinite(pair_count) or (pair_count < 0).any():
+        raise ValueError("Invalid effective-batch adjacent-pair count")
+    if not torch.isfinite(slice_scores.float()).all():
+        raise ValueError("Non-finite slice scores")
+    pairs = (slice_mask[:, :, 1:] & slice_mask[:, :, :-1]).to(slice_scores.dtype)
+    diffs = (slice_scores[:, :, 1:, :].float() - slice_scores[:, :, :-1, :].float()).pow(2)
+    sums = (diffs * pairs[..., None]).sum(dim=(0, 1, 2))
+    if pair_count.item() <= 0:
+        return slice_scores.sum() * 0
+    world = dist.get_world_size() if dist.is_initialized() else 1
+    return world * (sums / pair_count.to(sums.dtype)).mean()
+
+
 def validate_masked_cell(policy: object) -> None:
     """Masked-cell objective contract: a config-bound arm, not an artifact."""
     if not isinstance(policy, dict):
@@ -143,3 +186,16 @@ def validate_masked_cell(policy: object) -> None:
     weight = policy["weight"]
     if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not (0 < weight <= 1):
         raise ValueError("Masked-cell weight must be in (0, 1]")
+
+
+def validate_slice_smooth(policy: object) -> None:
+    """Slice-smoothness objective contract: a config-bound arm, not an artifact."""
+    if not isinstance(policy, dict) or sorted(policy) != ["enabled", "kind", "weight"]:
+        raise ValueError("Slice-smooth policy fields are enabled, kind and weight")
+    if type(policy["enabled"]) is not bool:
+        raise ValueError("Slice-smooth enabled flag must be a boolean")
+    if policy["kind"] != "attention_score_tv":
+        raise ValueError("Unknown slice-smooth objective kind")
+    weight = policy["weight"]
+    if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not (0 < weight <= 1):
+        raise ValueError("Slice-smooth weight must be in (0, 1]")
