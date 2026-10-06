@@ -1,3 +1,11 @@
+Actual T4 memory recovery/full H100 dispatch/FP16-probe launch milestoneb0479002
+privately mirrored at HFc026c2de87faa568e448f0b4d0fb6b38b4c46093; all36small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. Never
+repeat. No MRI/labels/privateUIDs/weights mirrored. Original875858 RUNNING,
+newfull877134 PENDING(Resources), exactprivateFP16probe137315796/v1 RUNNING at
+last authenticated checks. No new full-memory optimizer/held-out/clinical/Kaggle
+result inferred. Use exact original jobs/intents and source bindings.
+
 Latest875858 observation721contiguous finite updates/control epoch3, emptystderr;
 control1/2 privately verified, no final endpoint yet. New full memory877134 remains
 actualPENDING(Resources), never repeat. FP16 resident benchmark137315796/v1 actual
