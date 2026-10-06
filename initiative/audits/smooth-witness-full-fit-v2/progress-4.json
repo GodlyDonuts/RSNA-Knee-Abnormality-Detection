@@ -1,0 +1,325 @@
+{
+  "CPU_observer_job": "876202",
+  "GPU_job": "875858",
+  "GPU_stderr_tail": "",
+  "actual_new_H100_recovery": {
+    "CPU_receipt_sha256": "9ad690361fe22a7f88fd82c2b6e4c183ebe17f289f8a5f44718e1bb1de7e3d74",
+    "clinical_accuracy_evidence": false,
+    "diagnostic_only": true,
+    "job_id": "875858",
+    "roles": {
+      "candidate": {
+        "amp_scaler": {
+          "_growth_tracker": 4,
+          "backoff_factor": 0.5,
+          "growth_factor": 2.0,
+          "growth_interval": 2000,
+          "scale": 128.0
+        },
+        "checkpoint_sha256": "c7739fc99234f1c020951932489792f8be3a47646d6c658bd1e218d7ea366021",
+        "complete_state_sha256": "f1f9eb1db2382f59418a357a5cd5451c09f9bb0175fa84ecae02c31f95ef2ec8",
+        "exact_complete_state_and_CSV_recovery": true,
+        "finite_updates": [
+          {
+            "encoder_gradient_norm": 0.06341409683227539,
+            "epoch": 0,
+            "gradient_norm": 4.6346282958984375,
+            "loss": 0.76494961977005,
+            "observed_cells": 44.0,
+            "optimizer_steps": 1,
+            "update": 1
+          },
+          {
+            "epoch": 0,
+            "gradient_norm": 4.932061672210693,
+            "loss": 0.721157431602478,
+            "observed_cells": 42.0,
+            "optimizer_steps": 2,
+            "update": 2
+          },
+          {
+            "epoch": 1,
+            "gradient_norm": 2.5517587661743164,
+            "loss": 0.4698246121406555,
+            "observed_cells": 49.0,
+            "optimizer_steps": 3,
+            "update": 1
+          },
+          {
+            "epoch": 1,
+            "gradient_norm": 2.4475297927856445,
+            "loss": 0.3748747706413269,
+            "observed_cells": 37.0,
+            "optimizer_steps": 4,
+            "update": 2
+          }
+        ],
+        "prediction_sha256": "90932195302be38ca99cbff766bc6b95c8ce428189653bafff430e6d5994678b"
+      },
+      "control": {
+        "amp_scaler": {
+          "_growth_tracker": 4,
+          "backoff_factor": 0.5,
+          "growth_factor": 2.0,
+          "growth_interval": 2000,
+          "scale": 128.0
+        },
+        "checkpoint_sha256": "1b912622ae7218c191406cceeb7dbc68d8f01155f1e8da79f31046bc1feab617",
+        "complete_state_sha256": "3ca0d19d1ac3763370efe9e6bcde45ec2ebaeaf19315a22127febaf54b2a89a7",
+        "exact_complete_state_and_CSV_recovery": true,
+        "finite_updates": [
+          {
+            "encoder_gradient_norm": 0.06409455835819244,
+            "epoch": 0,
+            "gradient_norm": 4.585423946380615,
+            "loss": 0.76494961977005,
+            "observed_cells": 44.0,
+            "optimizer_steps": 1,
+            "update": 1
+          },
+          {
+            "epoch": 0,
+            "gradient_norm": 4.893946170806885,
+            "loss": 0.7234340906143188,
+            "observed_cells": 42.0,
+            "optimizer_steps": 2,
+            "update": 2
+          },
+          {
+            "epoch": 1,
+            "gradient_norm": 2.532602071762085,
+            "loss": 0.47374510765075684,
+            "observed_cells": 49.0,
+            "optimizer_steps": 3,
+            "update": 1
+          },
+          {
+            "epoch": 1,
+            "gradient_norm": 2.439680576324463,
+            "loss": 0.3820451498031616,
+            "observed_cells": 37.0,
+            "optimizer_steps": 4,
+            "update": 2
+          }
+        ],
+        "prediction_sha256": "e8c776865d4df85b9046d7727c8c03012c1e67cef249a4f9653ab914b5af7a75"
+      }
+    },
+    "source_git": "3b7e437431f23b1f6e89e76aacaecd42df1c3535",
+    "status": "actual_new_smooth_FP16_H100_complete_trainer_recovery_accepted"
+  },
+  "actual_training_only_review": {
+    "anatomical_or_shortcut_validity_established": false,
+    "checkpoint_sha256": "c7739fc99234f1c020951932489792f8be3a47646d6c658bd1e218d7ea366021",
+    "clinical_accuracy_evidence": false,
+    "diagnostic_AUC_used_for_recipe_selection": false,
+    "job_id": "875858",
+    "limitation": "Finite/local mask checks do not adjudicate lesion location; background/series sensitivity remains an experimental risk assessed at the frozen held-out endpoint.",
+    "rows": [
+      {
+        "NaN_padding_prediction_exactly_equal": true,
+        "black_background_max_probability_change": 0.5366969108581543,
+        "engineering_training_index": 0,
+        "genuine_local_scores": {
+          "genuine_patch_cells": 552960,
+          "genuine_slices": 80,
+          "maximum": 0.035186767578125,
+          "mean": -0.023383712396025658,
+          "minimum": -0.035400390625,
+          "patch_grid": [
+            24,
+            24
+          ],
+          "std": 0.017784850671887398
+        },
+        "max_abs_context_logit": 3.088627338409424,
+        "max_abs_local_logit": 0.03204345703125,
+        "missing_one_series_max_probability_change": 0.04173856973648071
+      },
+      {
+        "NaN_padding_prediction_exactly_equal": true,
+        "black_background_max_probability_change": 0.5318994522094727,
+        "engineering_training_index": 1,
+        "genuine_local_scores": {
+          "genuine_patch_cells": 663552,
+          "genuine_slices": 96,
+          "maximum": 0.03546142578125,
+          "mean": -0.02362729236483574,
+          "minimum": -0.035675048828125,
+          "patch_grid": [
+            24,
+            24
+          ],
+          "std": 0.018086981028318405
+        },
+        "max_abs_context_logit": 2.951908588409424,
+        "max_abs_local_logit": 0.032501220703125,
+        "missing_one_series_max_probability_change": 0.03870362043380737
+      },
+      {
+        "NaN_padding_prediction_exactly_equal": true,
+        "black_background_max_probability_change": 0.5733464956283569,
+        "engineering_training_index": 2,
+        "genuine_local_scores": {
+          "genuine_patch_cells": 552960,
+          "genuine_slices": 80,
+          "maximum": 0.034820556640625,
+          "mean": -0.02333584800362587,
+          "minimum": -0.0350341796875,
+          "patch_grid": [
+            24,
+            24
+          ],
+          "std": 0.017891952767968178
+        },
+        "max_abs_context_logit": 2.893314838409424,
+        "max_abs_local_logit": 0.03216552734375,
+        "missing_one_series_max_probability_change": 0.03304174542427063
+      }
+    ],
+    "status": "actual_training_only_local_contributions_and_finite_mask_background_stresses_reviewed",
+    "training_roster_sha256": "526e3489d88e3567f05155960777282c743a6ad13048f26ee23c636322ae1353"
+  },
+  "clinical_accuracy_gain_claimed": false,
+  "full_fit_intents": [
+    "control-trainer-intent.json"
+  ],
+  "roles": {
+    "candidate": {
+      "completed_production_snapshots": [],
+      "engineering-full": {
+        "all_observed_updates_finite": true,
+        "latest": [
+          {
+            "elapsed_seconds": 76.7462524890434,
+            "epoch": 1,
+            "gradient_norm": 2.4475297927856445,
+            "loss": 0.3748747706413269,
+            "observed_cells": 37.0,
+            "optimizer_steps": 4,
+            "peak_gpu_allocated_bytes": 8191404544,
+            "update": 2
+          }
+        ],
+        "records": 4,
+        "stderr_bytes": 0
+      },
+      "engineering-resume": {
+        "all_observed_updates_finite": true,
+        "latest": [
+          {
+            "elapsed_seconds": 57.60800960985944,
+            "epoch": 1,
+            "gradient_norm": 2.4475297927856445,
+            "loss": 0.3748747706413269,
+            "observed_cells": 37.0,
+            "optimizer_steps": 4,
+            "peak_gpu_allocated_bytes": 8150509568,
+            "update": 2
+          }
+        ],
+        "records": 3,
+        "stderr_bytes": 0
+      },
+      "engineering-stop": {
+        "all_observed_updates_finite": true,
+        "latest": [
+          {
+            "elapsed_seconds": 23.862344135995954,
+            "encoder_gradient_norm": 0.06341409683227539,
+            "epoch": 0,
+            "gradient_norm": 4.6346282958984375,
+            "loss": 0.76494961977005,
+            "observed_cells": 44.0,
+            "optimizer_steps": 1,
+            "peak_gpu_allocated_bytes": 8066029568,
+            "update": 1
+          }
+        ],
+        "records": 1,
+        "stderr_bytes": 0
+      },
+      "full-fit": {
+        "all_observed_updates_finite": true,
+        "latest": [],
+        "records": 0,
+        "stderr_bytes": null
+      },
+      "publication_journals": []
+    },
+    "control": {
+      "completed_production_snapshots": [],
+      "engineering-full": {
+        "all_observed_updates_finite": true,
+        "latest": [
+          {
+            "elapsed_seconds": 79.012734771939,
+            "epoch": 1,
+            "gradient_norm": 2.439680576324463,
+            "loss": 0.3820451498031616,
+            "observed_cells": 37.0,
+            "optimizer_steps": 4,
+            "peak_gpu_allocated_bytes": 8191404544,
+            "update": 2
+          }
+        ],
+        "records": 4,
+        "stderr_bytes": 0
+      },
+      "engineering-resume": {
+        "all_observed_updates_finite": true,
+        "latest": [
+          {
+            "elapsed_seconds": 58.729440074879676,
+            "epoch": 1,
+            "gradient_norm": 2.439680576324463,
+            "loss": 0.3820451498031616,
+            "observed_cells": 37.0,
+            "optimizer_steps": 4,
+            "peak_gpu_allocated_bytes": 8150509568,
+            "update": 2
+          }
+        ],
+        "records": 3,
+        "stderr_bytes": 0
+      },
+      "engineering-stop": {
+        "all_observed_updates_finite": true,
+        "latest": [
+          {
+            "elapsed_seconds": 21.485500594135374,
+            "encoder_gradient_norm": 0.06409455835819244,
+            "epoch": 0,
+            "gradient_norm": 4.585423946380615,
+            "loss": 0.76494961977005,
+            "observed_cells": 44.0,
+            "optimizer_steps": 1,
+            "peak_gpu_allocated_bytes": 8066029568,
+            "update": 1
+          }
+        ],
+        "records": 1,
+        "stderr_bytes": 0
+      },
+      "full-fit": {
+        "all_observed_updates_finite": true,
+        "latest": [
+          {
+            "elapsed_seconds": 434.96918034297414,
+            "epoch": 0,
+            "gradient_norm": 2.675678253173828,
+            "loss": 0.41443803906440735,
+            "observed_cells": 43.0,
+            "optimizer_steps": 24,
+            "peak_gpu_allocated_bytes": 8191404544,
+            "update": 24
+          }
+        ],
+        "records": 24,
+        "stderr_bytes": 0
+      },
+      "publication_journals": []
+    }
+  },
+  "terminal": null
+}

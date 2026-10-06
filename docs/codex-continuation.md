@@ -1,3 +1,20 @@
+October6 actual new smooth FP16 H100 recovery875858 PASSED both roles: complete
+learned/base/AdamW/LR/cursors/all-RNG/scaler and MRI-only CSV full/stop1/resume
+identical,4finite updates each/scaler128. Training-only local/context + padding/
+background/missing-series review completed; no anatomy/accuracy claim.
+Original conditional job moved into FULL control fit:24finite real updates on
+2247original fitting studies, empty stderr; candidate full fit follows unchanged.
+Same1156disjoint development endpoint, fixed3epochs/843updates per role. Leave
+healthy875858 untouched; inspect actual snapshots and v2 publication journals.
+Read actual-H100-recovery.json, actual-training-only-review.json and progress-4.
+
+Fixed-final collector + scripts/research/compare_smooth_witness.py implemented.
+Eight focused/2128full tests pass; actual previous1156-study/all12-target paired
+4000-draw replay exactly matches (2836defined/1164undefined macro). New clinical
+outcomes unavailable; analysis refuses partial/diagnostic/unpreserved weights.
+SSH master expiry was observation loss only; restored via ignored.env/ASKPASS,
+same original875858 confirmed RUNNING. No duplicate job or competition mutation.
+
 Corrected header/v2 startup milestone source5e61a3300b311bec8704f5b78628c110b86c2e1d privately mirrored at HFc35b16290f0d1f525699d54457ae8d45cfe9ba5e; all26 small objects fully re-downloaded/size/SHA verified under canonical shared lock. No original images/labels/caseIDs/learnedweights mirrored. Never repeat. Original875858 last actually RUNNING on evc31 with correct GPU/header admission; follow original recovery/full-fit logs and v2 publication coordinator. Full clinical outcome remains unobserved.
 
 Latest corrected875858 actually RUNNING evc31; owning-node startup observer
