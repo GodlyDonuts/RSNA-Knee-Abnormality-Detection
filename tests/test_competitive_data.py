@@ -71,6 +71,16 @@ def fixture(tmp_path: Path, counts=(3, 1), geometry=True):
     return studies, pd.DataFrame(series), paths
 
 
+def test_soft_labels_require_explicit_fitting_admission(tmp_path):
+    studies, series, _ = fixture(tmp_path)
+    studies[TARGETS[0]] = studies[TARGETS[0]].astype(float)
+    studies.loc[0, TARGETS[0]] = 0.73
+    with pytest.raises(ValueError, match="binary"):
+        CompetitiveStudyDataset(studies, series, tmp_path, side=16)[0]
+    admitted = CompetitiveStudyDataset(studies, series, tmp_path, side=16, soft_targets=True)[0]
+    assert admitted["labels"][0].item() == pytest.approx(0.73)
+
+
 def test_short_series_padding_true_positions_and_masked_labels(tmp_path):
     studies, series, _ = fixture(tmp_path)
     dataset = CompetitiveStudyDataset(studies, series, tmp_path, slices=5, side=16, max_series=3)

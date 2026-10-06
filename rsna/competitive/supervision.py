@@ -28,11 +28,11 @@ def _sha(value: object) -> bool:
 
 
 def validate_fitting_supervision(policy: object) -> None:
-    """Only the separately reviewed single-target paired experiment is supported."""
+    """Only explicitly pinned, separately admitted experiments are supported."""
     if (
         not isinstance(policy, dict)
         or set(policy) != {"kind", "sha256", "enabled"}
-        or policy.get("kind") != "effusion_review_v1"
+        or policy.get("kind") not in {"effusion_review_v1", "label_source_v1"}
         or not _sha(policy.get("sha256"))
         or type(policy.get("enabled")) is not bool
     ):
@@ -62,6 +62,21 @@ def apply_fitting_supervision(
     validate_fitting_supervision(policy)
     if path is None:
         raise ValueError("Bound fitting-supervision policy requires its exact artifact")
+    if policy["kind"] == "label_source_v1":
+        from rsna.competitive.label_source import load_fitting_label_source
+
+        candidate, receipt = load_fitting_label_source(
+            train,
+            outer,
+            path,
+            policy["sha256"],
+            release_sha256=release_sha256,
+            folds_sha256=folds_sha256,
+            fold=fold,
+        )
+        receipt["enabled"] = policy["enabled"]
+        receipt["applied_cells"] = receipt["swapped_cells"] if policy["enabled"] else 0
+        return (candidate if policy["enabled"] else train), receipt
     candidate, receipt = load_fitting_effusion_overlay(
         train,
         outer,

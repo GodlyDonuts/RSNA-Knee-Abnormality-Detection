@@ -167,6 +167,12 @@ class TrainConfig:
                 or self.witness is not None
             ):
                 raise ValueError("Fitting-supervision contrast requires an isolated outer-fold arm")
+            if self.fitting_supervision["kind"] == "label_source_v1" and (
+                self.plane_memory is not None
+                or self.pooling != "attention"
+                or self.slice_context != "none"
+            ):
+                raise ValueError("Label-source contrast requires the plain attention readout")
         positive = (
             "epochs",
             "batch_size",
@@ -539,7 +545,15 @@ def _run_locked(
     }
     if config.neighbor_channels is not None:
         data_config["neighbor_channels"] = config.neighbor_channels
-    training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
+    training_config = dict(data_config)
+    if (
+        config.fitting_supervision is not None
+        and config.fitting_supervision["kind"] == "label_source_v1"
+    ):
+        training_config["soft_targets"] = True
+    training_data = dataset_class(
+        train, series, args.cache, augment=config.augment, **training_config
+    )
     evaluation_config = dict(
         data_config, slice_sampling=evaluation_slice_sampling(config.slice_sampling)
     )

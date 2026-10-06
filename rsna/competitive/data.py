@@ -79,7 +79,11 @@ class CompetitiveStudyDataset(StudyDataset):
         series_sampling: str = "selected",
         neighbor_channels: dict | None = None,
         volume_provider: Callable[[dict], bytes] | None = None,
+        soft_targets: bool = False,
     ):
+        if type(soft_targets) is not bool:
+            raise ValueError("Soft fitting targets require an explicit boolean")
+        self.soft_targets = soft_targets
         if raw_split not in {"train_series", "test_series"}:
             raise ValueError("Unknown raw split")
         if slice_sampling not in {"uniform", "stratified", "all"} or series_sampling not in {
@@ -217,11 +221,16 @@ class CompetitiveStudyDataset(StudyDataset):
         ):
             raise ValueError("Label masks must be finite binary values")
         supervised = labels[label_mask.bool()]
-        if (
-            not torch.isfinite(supervised).all()
-            or not ((supervised == 0) | (supervised == 1)).all()
+        if not torch.isfinite(supervised).all() or (
+            ((supervised < 0) | (supervised > 1)).any()
+            if self.soft_targets
+            else not ((supervised == 0) | (supervised == 1)).all()
         ):
-            raise ValueError("Supervised targets must be finite binary values")
+            raise ValueError(
+                "Supervised targets must be finite probabilities in [0,1]"
+                if self.soft_targets
+                else "Supervised targets must be finite binary values"
+            )
         labels = torch.where(label_mask.bool(), labels, torch.zeros_like(labels))
         return dict(
             images=images,

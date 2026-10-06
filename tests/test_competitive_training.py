@@ -479,8 +479,9 @@ def test_all_development_membership_preserves_masks_and_excludes_reserved_data()
 
 @pytest.mark.parametrize("enabled", [False, True])
 @pytest.mark.parametrize("folds_directory", [False, True])
+@pytest.mark.parametrize("kind", ["effusion_review_v1", "label_source_v1"])
 def test_fitting_overlay_real_trainer_resume_and_bound_admission(
-    tmp_path, monkeypatch, enabled, folds_directory
+    tmp_path, monkeypatch, enabled, folds_directory, kind
 ):
     from rsna.competitive import train
     from rsna.competitive.backbones import create_encoder
@@ -547,6 +548,25 @@ def test_fitting_overlay_real_trainer_resume_and_bound_admission(
         ),
     )
     artifact = tmp_path / "proposal.json"
+    if kind == "label_source_v1":
+        proposal = {
+            k: v
+            for k, v in proposal.items()
+            if k not in {"target", "cell_count", "cells", "reviews"}
+        }
+        proposal.update(
+            status="label_source_experiment_only",
+            source={"csv_sha256": "c" * 64},
+            study_count=len(fitting),
+            studies=[
+                {
+                    "study_uid": row.study_uid,
+                    "labels": {t: 0.73 if t == "ACL" else float(row[t]) for t in TARGETS},
+                    "mask": {t: 1 for t in TARGETS},
+                }
+                for _, row in fitting.iterrows()
+            ],
+        )
     artifact.write_text(json.dumps(proposal))
     config = TrainConfig(
         epochs=2,
@@ -562,7 +582,7 @@ def test_fitting_overlay_real_trainer_resume_and_bound_admission(
         # consumes only a subset; its binding must retain the complete cohort.
         diagnostic_study_limit=3,
         fitting_supervision=dict(
-            kind="effusion_review_v1",
+            kind=kind,
             sha256=hashlib.sha256(artifact.read_bytes()).hexdigest(),
             enabled=enabled,
         ),
@@ -609,10 +629,15 @@ def test_fitting_overlay_real_trainer_resume_and_bound_admission(
     full = torch.load(args.output / "checkpoint.pt", weights_only=True)
     csv = (args.output / "outer_predictions.csv").read_bytes()
     receipt = full["binding"]["experimental_fitting_supervision"]
-    assert receipt["applied_cells"] == int(enabled)
+    assert receipt["applied_cells"] == (
+        9 if kind == "label_source_v1" and enabled else int(enabled)
+    )
     assert receipt["fitting_uid_sha256"] == roster_sha(fitting)
     expected = fitting.head(3).copy()
     expected.loc[expected.study_uid == "s05", "Effusion__mask"] = int(enabled)
+    if kind == "label_source_v1" and enabled:
+        expected[list(TARGETS)] = expected[list(TARGETS)].astype(float)
+        expected["ACL"] = 0.73
     pd.testing.assert_frame_equal(input_frames[0], expected)
     pd.testing.assert_frame_equal(input_frames[1], outer.head(3))
     pd.testing.assert_frame_equal(manifest, original_manifest)

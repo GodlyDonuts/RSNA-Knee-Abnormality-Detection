@@ -1,3 +1,21 @@
+Plain public-label contrast fromPR4 is selectively integrated; no broadPRmerge.
+Readpublic-label-source-v1. PinnedHFShio-Koube/knee3@373f4e1d ispublic; actual630153
+CSVbytes/SHAeb4c2b29 independentlydownloadverified. Fitting-only overlay2247 fully
+covered, SHA c8fd2e86, same1156 eval/masks/folds/release; no gold-tier/blend import.
+Bothfixed10epoch2810configs usecurrentrank32/native384/effective8/FP16scale128/
+chunk8/warmup281/cosine, onlyfitting-supervision enabled differs. Default data
+binarychecks remainstrict; explicitsoft fittingtargets don'taffectevaluation.
+Actualsyntheticfull/stop1/resume botharms complete state/CSV exact; full2292passed
+plusnewconfig regression. No newGPU production/source accuracy acceptance yet.
+
+Originalplane-memory877134 control completedepoch1 and enteredepoch2; immutable
+control1 privatelypublishedONCEat HFf9dc97d066f7df3559167b9bd6594169c64b5c89 via
+CPU878880, all5 objects downloaded/size/SHAverified. Checkpoint282e54f100dcf67b
+843714ecbddf1f9f9019d948e5cb6e03b494a571da610d26. Neverrepeatcontrol1. Preserve
+futureoriginalepochs usingpinnedpublication_coordinator.py. Baseline878853 remains
+originalpending/resourcesorpriority; neverduplicates. Current sourcechanges do
+notmodifyfrozenlive/queuedscientificclosures. Goalactive, bestsolo0.804 unchanged.
+
 October6 researchPR3/4 reviewed at exactheads; no merge. Readresearch-pr-review-
 20261006-v1. Prioritize plainpublic-versus-accepted-v2 fitting-label ablation on
 currentrank32/native384/full10recipe. Verifiedblockers: all26PRconfigs freeze
