@@ -1,0 +1,59 @@
+{
+  "status": "actual_zero_score_pooling_gradient_probe",
+  "score_shape": [
+    1,
+    6,
+    16,
+    576,
+    12
+  ],
+  "cases": {
+    "original_hard_top4_patch_top2_slice": {
+      "output_exactly_zero": true,
+      "finite_gradients": true,
+      "genuine_score_cells": 663552,
+      "nonzero_gradient_cells": 576,
+      "score_gradient_coverage_fraction": 0.0008680555620230734,
+      "gradient_sum_per_target": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "standalone_normalized_smooth_beta8": {
+      "output_exactly_zero": true,
+      "finite_gradients": true,
+      "genuine_score_cells": 663552,
+      "nonzero_gradient_cells": 663552,
+      "score_gradient_coverage_fraction": 1.0,
+      "gradient_sum_per_target": [
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552
+      ]
+    }
+  },
+  "scope": "Score-pooling derivative at the exact zero-initialized branch. No MRI pixels, model fitting, labels, held-out metrics or clinical conclusion.",
+  "clinical_accuracy_evidence": false,
+  "live_scientific_source_modified": false,
+  "alternative_model_route_integrated": true,
+  "actual_GPU_or_clinical_acceptance": false
+}

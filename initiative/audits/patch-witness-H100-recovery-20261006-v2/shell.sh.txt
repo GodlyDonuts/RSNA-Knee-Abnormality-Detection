@@ -1,0 +1,12 @@
+umask 077
+set -e
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 HF_HUB_OFFLINE=1
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+export CPATH=/lustre/fs1/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3/extracted/usr/include/python3.12
+export PYTHONPATH=/tmp/rsna-patch-witness-H100-recovery-20261006-v2/code
+export TRITON_CACHE_DIR=/tmp/rsna-patch-witness-H100-recovery-20261006-v2/triton-cache
+export TORCHINDUCTOR_CACHE_DIR=/tmp/rsna-patch-witness-H100-recovery-20261006-v2/inductor-cache
+export TORCH_EXTENSIONS_DIR=/tmp/rsna-patch-witness-H100-recovery-20261006-v2/torch-extensions
+export CUDA_CACHE_PATH=/tmp/rsna-patch-witness-H100-recovery-20261006-v2/cuda-cache
+cd /tmp/rsna-patch-witness-H100-recovery-20261006-v2/code
+exec /tmp/rsna-environment-870947-4lemnh2d/environment/bin/python -B /tmp/rsna-patch-witness-H100-recovery-20261006-v2/gpu-start.py >/tmp/rsna-patch-witness-H100-recovery-20261006-v2/gpu.stdout 2>/tmp/rsna-patch-witness-H100-recovery-20261006-v2/gpu.stderr

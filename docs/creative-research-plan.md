@@ -1,3 +1,16 @@
+October6 current: owning-node CPU875285 verifies BOTH original T4 final
+learned/base/AdamW/LR/counters/all-RNG, finite trajectories and CSV equality.
+Intermediate checkpoint bytes were overwritten; retain that explicit limitation.
+H100875277 submitted once/fresh root, actually PENDING Priority; original D3
+BF16/hard numerical source unchanged. Never duplicate. CPU137269337 ERROR:
+Kaggle omitted its requested failed-parent attachment; node observer succeeded.
+New canonical smooth-beta8 branch + checkpointed FP16 scaler are implemented;
+synthetic actual-trainer recovery passed, actual new T4 path not yet accepted.
+Hard zero-score selector covers0.0868% gradient cells; smooth covers100% at
+exact-zero start. This concerns the NEW local branch, not prior score cause.
+Read witness-initial-gradient-v1/witness-FP16-training-v1/new original audits.
+Full2247/1156 matched fitting remains next; best actual solo0.804 unchanged.
+
 Latest private preservation: Git source7c8aebb at
 HF91bc37f6dc9c4102724e100212fbbfb84a39022e; all46distinct sanitized objects
 fully re-downloaded/size/SHA verified under canonical shared lock. Read

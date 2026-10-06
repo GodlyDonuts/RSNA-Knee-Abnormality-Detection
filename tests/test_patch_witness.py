@@ -15,7 +15,7 @@ def batch():
     return images, torch.rand(2, 2, 5), mask.any(2), mask, torch.zeros(2, 2, 3, 2)
 
 
-def net(weight):
+def net(weight, pooling=None):
     torch.manual_seed(7)
     encoder, dim, _ = create_encoder({"architecture": "diagnostic_tiny", "embedding_dim": 16})
     return CompetitiveStudyNet(
@@ -23,14 +23,21 @@ def net(weight):
         dim,
         hidden_dim=12,
         encode_chunk_size=2,
-        witness={"patches": 2, "slices": 2, "seed": 11, "weight": weight},
+        witness=dict(
+            patches=2,
+            slices=2,
+            seed=11,
+            weight=weight,
+            **({} if pooling is None else {"pooling": pooling, "beta": 8}),
+        ),
     )
 
 
-def test_shared_initial_state_rng_and_logits_equal_across_witness_arms():
-    control = net(0)
+@pytest.mark.parametrize("pooling", [None, "normalized_logmeanexp"])
+def test_shared_initial_state_rng_and_logits_equal_across_witness_arms(pooling):
+    control = net(0, pooling)
     control_rng = torch.get_rng_state().clone()
-    candidate = net(1)
+    candidate = net(1, pooling)
     assert torch.equal(control_rng, torch.get_rng_state())
     assert control.state_dict().keys() == candidate.state_dict().keys()
     for key, value in control.state_dict().items():
@@ -39,8 +46,9 @@ def test_shared_initial_state_rng_and_logits_equal_across_witness_arms():
     torch.testing.assert_close(control(*inputs), candidate(*inputs), rtol=0, atol=0)
 
 
-def test_padding_cannot_create_witness_and_all_parameters_receive_finite_gradients():
-    model = net(1)
+@pytest.mark.parametrize("pooling", [None, "normalized_logmeanexp"])
+def test_padding_cannot_create_witness_and_all_parameters_receive_finite_gradients(pooling):
+    model = net(1, pooling)
     inputs = list(batch())
     inputs[0].requires_grad_()
     # A learned head is needed to exercise projection and nonselected-image gradients.
@@ -57,7 +65,7 @@ def test_padding_cannot_create_witness_and_all_parameters_receive_finite_gradien
     for name, value in model.named_parameters():
         if value.requires_grad:
             assert value.grad is not None and torch.isfinite(value.grad).all(), name
-    restored = net(1)
+    restored = net(1, pooling)
     restored.load_state_dict(model.state_dict(), strict=True)
     torch.testing.assert_close(restored(*inputs), expected, rtol=0, atol=0)
 
@@ -76,8 +84,9 @@ def test_focal_evidence_is_not_diluted_by_unselected_background_or_padding():
     torch.testing.assert_close(pool_witness_evidence(enlarged, enlarged_mask, 2, 2), expected)
 
 
-def test_bf16_backward_with_variable_real_slice_counts():
-    model = net(1)
+@pytest.mark.parametrize("pooling", [None, "normalized_logmeanexp"])
+def test_bf16_backward_with_variable_real_slice_counts(pooling):
+    model = net(1, pooling)
     inputs = batch()
     with torch.autocast("cpu", dtype=torch.bfloat16):
         logits = model(*inputs)

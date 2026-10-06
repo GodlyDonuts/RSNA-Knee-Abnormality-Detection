@@ -11,8 +11,15 @@ from rsna.schema import TARGETS
 
 
 def validate_witness(policy: dict) -> None:
-    if not isinstance(policy, dict) or set(policy) != {"patches", "slices", "seed", "weight"}:
-        raise ValueError("Witness policy requires exact patches/slices/seed/weight fields")
+    fields = {"patches", "slices", "seed", "weight"}
+    if not isinstance(policy, dict) or set(policy) not in (fields, fields | {"pooling", "beta"}):
+        raise ValueError("Witness policy requires exact hard or normalized pooling fields")
+    if "pooling" in policy and (
+        policy["pooling"] != "normalized_logmeanexp"
+        or type(policy["beta"]) not in (int, float)
+        or policy["beta"] != 8
+    ):
+        raise ValueError("Initial smooth witness contrast fixes normalized pooling beta8")
     for name in ("patches", "slices", "seed"):
         if type(policy[name]) is not int or policy[name] < (0 if name == "seed" else 1):
             raise ValueError("Invalid witness integer policy")
@@ -50,6 +57,37 @@ def pool_witness_evidence(scores: Tensor, slice_mask: Tensor, patches: int, slic
     return per_series.masked_fill(~slice_mask.any(dim=2)[..., None], -torch.inf).amax(dim=1)
 
 
+def pool_normalized_witness_evidence(scores: Tensor, mask: Tensor, beta: float = 8.0) -> Tensor:
+    """Normalized log-mean-exp over genuine patches, slices and series."""
+    if scores.ndim != 5 or scores.shape[:3] != mask.shape or mask.dtype != torch.bool:
+        raise ValueError("Exact score [B,S,K,P,T] and genuine boolean slice masks required")
+    if not mask.any(dim=(1, 2)).all() or scores.shape[3] < 1:
+        raise ValueError("Every study requires genuine slices and patches")
+    if (
+        not isinstance(beta, (float, int))
+        or isinstance(beta, bool)
+        or not math.isfinite(beta)
+        or beta <= 0
+    ):
+        raise ValueError("Finite positive sharpness required")
+    if not torch.isfinite(scores[mask]).all():
+        raise ValueError("Genuine scores must be finite")
+    values = scores.float().masked_fill(~mask[..., None, None], 0)
+    per_slice = (torch.logsumexp(values * beta, dim=3) - math.log(scores.shape[3])) / beta
+    per_slice = per_slice.masked_fill(~mask[..., None], -torch.inf)
+    count = mask.sum(dim=2)
+    per_series = (
+        torch.logsumexp(per_slice * beta, dim=2) - count.clamp_min(1).float().log()[..., None]
+    ) / beta
+    valid_series = mask.any(dim=2)
+    per_series = per_series.masked_fill(~valid_series[..., None], -torch.inf)
+    pooled = (
+        torch.logsumexp(per_series * beta, dim=1) - valid_series.sum(dim=1).float().log()[:, None]
+    ) / beta
+    # Stable FP32 reductions do not change the branch/addition output precision.
+    return pooled.to(scores.dtype)
+
+
 class PatchWitness(nn.Module):
     def __init__(self, embedding_dim: int, hidden_dim: int, policy: dict):
         super().__init__()
@@ -71,6 +109,11 @@ class PatchWitness(nn.Module):
         local = self.score(self.projection(patches)).flatten(1, 2)
         dense = local.new_zeros((*slice_mask.shape, local.shape[1], len(TARGETS)))
         dense[slice_mask] = local
+        if self.policy.get("pooling") == "normalized_logmeanexp":
+            return (
+                pool_normalized_witness_evidence(dense, slice_mask, self.policy["beta"])
+                * self.policy["weight"]
+            )
         return (
             pool_witness_evidence(dense, slice_mask, self.policy["patches"], self.policy["slices"])
             * self.policy["weight"]

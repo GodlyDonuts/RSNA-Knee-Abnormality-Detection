@@ -184,7 +184,7 @@ def test_failed_checkpoint_reserve_preserves_previous_file(tmp_path):
     [
         {},
         {"diagnostic_study_limit": 2, "batch_size": True},
-        {"diagnostic_study_limit": 2, "precision": "fp16"},
+        {"diagnostic_study_limit": 2, "precision": "fp64"},
         {"diagnostic_study_limit": 2, "head_lr": float("nan")},
         {"diagnostic_study_limit": 2, "fit_scope": "include_gold"},
         {"diagnostic_study_limit": 2, "slice_sampling": "silent_truncate"},
@@ -258,6 +258,7 @@ def _assert_tree_equal(first, second):
 
 
 @pytest.mark.parametrize("fit_scope", ["outer_fold", "all_development"])
+@pytest.mark.parametrize("training_precision", ["fp32", "fp16"])
 @pytest.mark.parametrize(
     "slice_context,relation_case,witness_weight",
     [
@@ -268,10 +269,17 @@ def _assert_tree_equal(first, second):
         ("none", "zero", None),
         ("none", None, 0),
         ("none", None, 1),
+        ("none", None, dict(weight=1, pooling="normalized_logmeanexp", beta=8)),
     ],
 )
 def test_training_mid_epoch_resume_matches_every_checkpoint_value(
-    tmp_path, monkeypatch, fit_scope, slice_context, relation_case, witness_weight
+    tmp_path,
+    monkeypatch,
+    fit_scope,
+    slice_context,
+    relation_case,
+    witness_weight,
+    training_precision,
 ):
     from rsna.competitive import train
     from rsna.competitive.backbones import create_encoder
@@ -297,6 +305,7 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
         train, "load_verified_release", lambda *args: (manifest.copy(), release_binding)
     )
     config = TrainConfig(
+        precision=training_precision,
         slice_context=slice_context,
         slice_sampling="all" if slice_context == "neighbor3" else "uniform",
         series_sampling="all" if slice_context == "neighbor3" else "selected",
@@ -315,7 +324,16 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
         witness=(
             None
             if witness_weight is None
-            else dict(patches=4, slices=2, seed=20261003, weight=witness_weight)
+            else dict(
+                patches=4,
+                slices=2,
+                seed=20261003,
+                **(
+                    witness_weight
+                    if isinstance(witness_weight, dict)
+                    else {"weight": witness_weight}
+                ),
+            )
         ),
         relation=(
             None
@@ -363,6 +381,11 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
 
     assert execute() == 0
     full = torch.load(args.output / "checkpoint.pt", weights_only=True)
+    assert ("amp_scaler" in full) == (training_precision == "fp16")
+    if training_precision == "fp16":
+        assert full["amp_scaler"]["scale"] >= 1
+        assert full["amp_scaler"]["_growth_tracker"] == full["step"]
+
     prediction_file = args.output / "outer_predictions.csv"
     expected_predictions = prediction_file.read_bytes() if prediction_file.exists() else None
     if fit_scope == "all_development":

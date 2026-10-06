@@ -1,0 +1,57 @@
+import importlib.util,io,json,os,shutil,sys
+from pathlib import Path
+sys.dont_write_bytecode=True
+B=Path('/home/sa305415/rsna-knee');P=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection');OLD=Path('/tmp/rsna-witness-kaggle-preparation-20261006-v2');R=Path('/tmp/rsna-witness-original-state-CPU-20261006-v1');v=json.load(sys.stdin)
+assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+s=importlib.util.spec_from_file_location('canonical_coordinator',P/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(P/'code',P/'projection.json','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437');p=c.p
+if v['phase']=='push':
+    assert not R.exists() and len(v['source'].encode())<128*1024
+    assert shutil.disk_usage('/tmp').free>=20*2**30+16*2**20
+    R.mkdir(mode=0o700);p.exclusive_json(R/'contract.json',v['contract']);(R/'notebook.py').write_text(v['source'])
+contract=json.loads((R/'contract.json').read_text());source=(R/'notebook.py').read_text();assert p.digest(R/'notebook.py')==contract['source_sha256']
+raw=OLD/'original-Kaggle-CPU-v2-input-accepted.json';assert p.digest(raw)==contract['CPU_receipt_sha256'];accepted=json.loads(raw.read_text());assert accepted['input_tensors_equal_to_original'] is True and accepted['labels_masks_equal_to_original'] is True and accepted['initial_learned_state']['control']==accepted['initial_learned_state']['candidate'] and accepted['GPU_or_optimizer_executed'] is False
+sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+request={'slug':contract['kernel_slug'],'newTitle':contract['kernel_slug'].split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':False,'enableInternet':False,'datasetDataSources':[contract['model_dataset_slug'],contract['shared_wheelhouse']['dataset_slug']],'kernelDataSources':[contract['CPU_kernel_slug'],contract['original_GPU_kernel_slug']],'competitionDataSources':[],'sessionTimeoutSeconds':3600,'dockerImage':contract['runtime_image'],'dockerImagePinningType':'original'}
+with c.single_coordinator(B/'kaggle'):
+    assert p.metadata(remote,contract['model_dataset_slug'])=={'id':12333543,'version':1,'slug':contract['model_dataset_slug'],'private':True}
+    w.verify_shared_wheelhouse(remote,contract['shared_wheelhouse'])
+    original=remote.kernel('GetKernel',contract['CPU_kernel_slug'],1);meta=original['metadata'];assert meta.get('isPrivate') is True and meta.get('enableGpu',False) is False and meta.get('enableInternet') is False
+    assert remote.kernel('GetKernelSessionStatus',contract['CPU_kernel_slug'],1).get('status')=='COMPLETE'
+    parent=remote.kernel('GetKernel',contract['original_GPU_kernel_slug'],1);assert __import__('hashlib').sha256(parent['blob']['source'].encode()).hexdigest()==contract['original_GPU_kernel_source_sha256'];assert parent['metadata']['isPrivate'] is True and parent['metadata']['enableInternet'] is False;assert remote.kernel('GetKernelSessionStatus',contract['original_GPU_kernel_slug'],1)['status']=='ERROR'
+    with w.ledger(B/'kaggle/account-ledger.sqlite3',remote.username) as db:
+        old=w.read_entry(db,'85bfc1ce420f3ea87ad9d9e1669714761876ecf71409a09035c21b42fe9fdef4');assert old['state']=='submitted' and str(old['submission_id'])=='56783855'
+    if v['phase']=='push':
+        absent=remote.require_absent_kernel(contract['kernel_slug']);p.exclusive_json(R/'kernel-create-intent.json',{'source_sha256':contract['source_sha256'],'request_sha256':w.object_hash(request),'CPU_receipt_sha256':contract['CPU_receipt_sha256'],'CPU_kernel_slug':contract['CPU_kernel_slug'],'CPU_kernel_version':1,'absence_proof':absent,'diagnostic_only':True,'competition_submission':False})
+        result=remote.call('kernels.KernelsApiService','SaveKernel',request);p.exclusive_json(R/'kernel-create-response.json',result);assert result.get('versionNumber')==1 and result.get('ref')=='/code/'+contract['kernel_slug'] and not result.get('error')
+        print(json.dumps({'status':'private_CPU_original_checkpoint_observer_pushed_once','kernel_id':result.get('kernelId'),'kernel_slug':contract['kernel_slug'],'version':1,'CPU_receipt_sha256':contract['CPU_receipt_sha256'],'source_sha256':contract['source_sha256'],'diagnostic_only':True,'clinical_accuracy_evidence':False,'competition_submission':False}))
+    else:
+        assert json.loads((R/'kernel-create-intent.json').read_text())['request_sha256']==w.object_hash(request)
+        original=remote.kernel('GetKernel',contract['kernel_slug'],1);meta=original['metadata'];assert w.object_hash(original.get('blob',{}).get('source',''))==w.object_hash(source)
+        for name in ['isPrivate','enableInternet','dockerImage']:assert meta.get(name)==request[name],name
+        for name in ['datasetDataSources','kernelDataSources','competitionDataSources']:assert sorted(meta.get(name,[]))==sorted(request[name]),name
+        status=remote.kernel('GetKernelSessionStatus',contract['kernel_slug'],1);out={'status':status.get('status'),'actual_remote':status,'kernel_slug':contract['kernel_slug'],'version':1,'exact_source_private_offline_CPU_verified':True,'competition_submission':False,'clinical_accuracy_evidence':False}
+        if v['phase']=='progress':
+            import requests,time,re,hashlib
+            remote.session.cookies.clear()
+            response=remote.session.post(w.API+'kernels.KernelsApiService/GetKernelSessionLogsStream',json={'userName':'godlydonuts','kernelSlug':contract['kernel_slug'].split('/')[1],'waitForLogsUrlSeconds':1},timeout=(10,5),allow_redirects=False,stream=True)
+            assert response.status_code==200
+            raw=bytearray();started=__import__('time').monotonic()
+            with response:
+                try:
+                    for block in response.iter_content(1024):
+                        raw.extend(block)
+                        if len(raw)>128*1024 or __import__('time').monotonic()-started>10:break
+                except requests.RequestException:
+                    pass
+            text=raw.decode('utf-8',errors='replace')
+            text=re.sub(r'(?:hf_|KGAT_)[A-Za-z0-9]{10,}','[redacted]',text)
+            text=re.sub(r'1\.2\.826\.[0-9.]+','[private-study-UID]',text)
+            out['partial_log_tail']=text[-6000:];out['partial_log_bytes']=len(raw);out['partial_log_sha256']=hashlib.sha256(raw).hexdigest();out['log_response_type']=response.headers.get('Content-Type')
+            print(json.dumps(out));sys.exit(0)
+        if status.get('status')=='COMPLETE':
+            result=remote.output_json(contract['kernel_slug'],1,'witness-original-state-CPU-accepted.json');assert result['status']=='actual_original_T4_terminal_states_trajectories_and_CSV_verified_on_CPU' and result['CPU_receipt_sha256']==contract['CPU_receipt_sha256'] and result['clinical_accuracy_evidence'] is False
+            if not (R/'actual-recovery-accepted.json').exists():p.exclusive_json(R/'actual-recovery-accepted.json',result)
+            out['actual_recovery']=result
+        if status.get('status')=='ERROR':
+            logs=remote.kernel('ListKernelSessionOutput',contract['kernel_slug'],1).get('log','');assert isinstance(logs,str) and not logs.startswith('http');out['original_log_tail']=logs[-7000:]
+        print(json.dumps(out))

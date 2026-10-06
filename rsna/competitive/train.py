@@ -100,6 +100,7 @@ class TrainConfig:
     weight_decay: float = 0.0001
     freeze_encoder: bool = True
     precision: str = "fp32"
+    amp_init_scale: float = 128.0
     pooling: str = "attention"
     slice_context: str = "none"
     slice_sampling: str = "uniform"
@@ -172,12 +173,20 @@ class TrainConfig:
                 raise ValueError(f"Invalid numeric configuration: {name}")
         if self.side < 16 or self.max_series < 3:
             raise ValueError("Need side >=16 and at least three series slots")
-        if self.precision not in {"fp32", "bf16"} or self.pooling not in {
+        if self.precision not in {"fp32", "bf16", "fp16"} or self.pooling not in {
             "attention",
             "max",
             "patch_attention",
         }:
             raise ValueError("Unknown precision or pooling policy")
+        if (
+            type(self.amp_init_scale) not in (int, float)
+            or not math.isfinite(self.amp_init_scale)
+            or not 1 <= self.amp_init_scale <= 65536
+            or not math.log2(self.amp_init_scale).is_integer()
+            or (self.precision != "fp16" and self.amp_init_scale != 128)
+        ):
+            raise ValueError("FP16 loss scale must be an explicit positive power of two")
         if any(type(getattr(self, name)) is not bool for name in ("freeze_encoder", "augment")):
             raise ValueError("Freeze and augmentation settings must be booleans")
         if self.slice_sampling not in {
@@ -362,7 +371,11 @@ def predict(
                 dist.all_reduce(stopping, op=dist.ReduceOp.MAX)
             if stopping.item():
                 raise PredictionInterrupted()
-        with torch.autocast(device.type, dtype=torch.bfloat16, enabled=config.precision == "bf16"):
+        with torch.autocast(
+            device.type,
+            dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,
+            enabled=config.precision != "fp32",
+        ):
             logits = model(*_model_inputs(batch, device))
         valid = batch.get("sample_valid", torch.ones(len(batch["study_uid"]), dtype=torch.bool))
         scores.append(logits.float().sigmoid().cpu().numpy()[valid.numpy()])
@@ -560,6 +573,8 @@ def _run_locked(
     )
     # Bind numerical configuration and content, never machine-specific paths.
     bound_config = asdict(config)
+    if config.precision != "fp16":
+        bound_config.pop("amp_init_scale")
     if config.relation is None:
         # Preserve old policy serialization; code provenance still changes and
         # exact older checkpoints must use their original pinned source.
@@ -605,10 +620,17 @@ def _run_locked(
         if len(set(rank_bindings)) != 1:
             raise ValueError("Distributed ranks disagree on source, settings, weights or code")
     epoch, next_update, step = 0, 0, 0
+    scaler = (
+        torch.amp.GradScaler(device.type, init_scale=config.amp_init_scale)
+        if config.precision == "fp16"
+        else None
+    )
     if args.resume:
         checkpoint = load_checkpoint(args.resume, binding)
         restore_checkpoint_model(model, checkpoint, delta_guard)
         optimizer.load_state_dict(checkpoint["optimizer"])
+        if scaler is not None:
+            scaler.load_state_dict(checkpoint["amp_scaler"])
         epoch, next_update, step = (
             checkpoint["epoch"],
             checkpoint["next_update"],
@@ -644,6 +666,7 @@ def _run_locked(
                     "binding": binding,
                     "optimizer_boundary": True,
                     "optimizer": optimizer.state_dict(),
+                    **({"amp_scaler": scaler.state_dict()} if scaler is not None else {}),
                     "epoch": current_epoch,
                     "next_update": current_update,
                     "step": completed_step,
@@ -736,7 +759,9 @@ def _run_locked(
                     synchronize = micro == len(batches) - 1 or world == 1
                     with contextlib.nullcontext() if synchronize else wrapped.no_sync():
                         with torch.autocast(
-                            device.type, dtype=torch.bfloat16, enabled=config.precision == "bf16"
+                            device.type,
+                            dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,
+                            enabled=config.precision != "fp32",
                         ):
                             if config.relation is None:
                                 logits = wrapped(*_model_inputs(batch, device))
@@ -754,10 +779,15 @@ def _run_locked(
                                 if config.relation is None
                                 else classification + config.relation["weight"] * auxiliary
                             )
-                        loss.backward()
+                        if scaler is None:
+                            loss.backward()
+                        else:
+                            scaler.scale(loss).backward()
                     loss_total += loss.detach()
                     classification_total += classification.detach()
                     relation_total += auxiliary.detach()
+                if scaler is not None:
+                    scaler.unscale_(optimizer)
                 norm = nn.utils.clip_grad_norm_(
                     model.parameters(), config.clip_grad_norm, error_if_nonfinite=True
                 )
@@ -768,7 +798,13 @@ def _run_locked(
                     optimizer.param_groups, [config.head_lr, config.encoder_lr]
                 ):
                     group["lr"] = base_lr * multiplier
-                optimizer.step()
+                if scaler is None:
+                    optimizer.step()
+                else:
+                    # Nonfinite unscaled gradients fail at clipping above;
+                    # skipped AMP steps never masquerade as optimizer progress.
+                    scaler.step(optimizer)
+                    scaler.update()
                 step += 1
             else:
                 norm = torch.tensor(0.0)

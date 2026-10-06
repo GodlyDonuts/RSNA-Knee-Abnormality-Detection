@@ -1,0 +1,52 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/witness-original-output-node-observer-20261006-v2');old=Path('artifacts/kaggle-witness-T4-recovery-v1');base=(old/'coordinator.py').read_text();base=base[:base.index('with c.single_coordinator')]
+program=base+'''
+import inspect,textwrap,tarfile,requests,hashlib,subprocess
+root=Path('/tmp/rsna-witness-original-output-observer-20261006-v2');assert not root.exists();assert shutil.disk_usage('/tmp').free>=40*2**30;root.mkdir(mode=0o700)
+control=root/'control';control.mkdir();helpers=root/'helpers';helpers.mkdir();outputs=root/'outputs';outputs.mkdir()
+for name,source in v['helpers'].items():
+ assert hashlib.sha256(source.encode()).hexdigest()==v['helper_hashes'][name];(helpers/name).write_text(source)
+with tarfile.open(OLD/'training-inputs.tar') as tar:
+ names={m.name:m for m in tar.getmembers()}
+ proofname=next(n for n in names if n.endswith('original-input-proof.json'));proof=json.load(tar.extractfile(names[proofname]));(control/'original-input-proof.json').write_text(json.dumps(proof))
+ for name,sha in proof['source_sha256'].items():
+  member=next(n for n in names if n.endswith('/code/'+name) or n=='code/'+name)
+  raw=tar.extractfile(names[member]).read();assert hashlib.sha256(raw).hexdigest()==sha
+  target=control/'code'/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
+with c.single_coordinator(B/'kaggle'):
+ k=remote.kernel('GetKernel',contract['kernel_slug'],1);assert hashlib.sha256(k['blob']['source'].encode()).hexdigest()==contract['source_sha256'];assert k['metadata']['isPrivate'] is True and k['metadata']['enableInternet'] is False;assert remote.kernel('GetKernelSessionStatus',contract['kernel_slug'],1)['status']=='ERROR'
+ original=inspect.getsource(type(remote).output_json);method=textwrap.dedent(original).replace('def output_json(', 'def output_bytes(').replace('len(content) > 1024 * 1024','len(content) > 256 * 1024 * 1024').replace('return json.loads(content)','return bytes(content)')
+ ns=dict(remote.output_json.__func__.__globals__);exec(method,ns)
+ objects={};checkpoint_total=0
+ for role in ['control','candidate']:
+  parent=outputs/role;parent.mkdir()
+  for phase in ['full','replay']:
+   target=parent/phase;target.mkdir()
+   for filename in ['checkpoint.pt','invocation.json','outer_predictions.csv']:
+    path='witness-T4-recovery/'+role+'/'+phase+'/'+filename
+    data=ns['output_bytes'](remote,contract['kernel_slug'],1,path)
+    if filename=='checkpoint.pt':checkpoint_total+=len(data);assert checkpoint_total<=1024**3
+    else:assert len(data)<1024**2
+    (target/filename).write_bytes(data);objects[path]={'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()};del data
+  for phase in ['stop','resume']:
+   name='witness-T4-recovery/'+role+'/'+phase+'.stdout';saved=R/('original-'+name.replace('/','__'));text=json.loads(saved.read_text())['text'];(parent/(phase+'.stdout')).write_text(text)
+ p.exclusive_json(root/'original-download-proof.json',{'kernel_slug':contract['kernel_slug'],'version':1,'source_sha256':contract['source_sha256'],'objects':objects,'checkpoint_total_bytes':checkpoint_total,'GPU_training_repeated':False})
+assert sum(p.stat().st_size for p in root.rglob('*') if p.is_file())<2*2**30
+runtime=json.loads(Path('/tmp/rsna-patch-witness-recovery-20261005-v1/source.json').read_text())['runtime']['python'];env=os.environ.copy();env.update(PYTHONPATH=str(control/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+x=subprocess.run([runtime,'-B',str(helpers/'witness_observe.py'),'--control',str(control),'--outputs',str(outputs),'--cpu-receipt',str(OLD/'original-Kaggle-CPU-v2-input-accepted.json'),'--receipt-sha',contract['CPU_receipt_sha256'],'--destination',str(root/'actual-original-state-accepted.json')],env=env,capture_output=True,text=True,timeout=1200)
+p.exclusive_json(root/'observer-terminal.json',{'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr})
+if x.returncode:print(json.dumps({'status':'original_private_CPU_observer_failed','returncode':x.returncode,'private_control':str(root),'error_tail':x.stderr[-3000:]}));sys.exit(x.returncode)
+result=json.loads((root/'actual-original-state-accepted.json').read_text());result['observer_job_id']=os.environ['SLURM_JOB_ID'];result['original_checkpoint_download_objects']=objects;result['no_new_shared_bytes_files']=True;print(json.dumps(result))
+'''
+helpers={n:Path('scripts/kaggle',n).read_text() for n in ['witness_observe.py','witness_recovery.py']};contract=json.loads((old/'GPU-contract.json').read_text())
+with (r/'intent.json').open('x') as f:json.dump({'purpose':'read_only_final_state_replay_from_actual_original_T4_error_outputs','kernel_slug':contract['kernel_slug'],'version':1,'private_control':'/tmp/rsna-witness-original-output-observer-20261006-v2','helper_sha256':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in helpers.items()},'node_cap_bytes':2*2**30,'node_free_required':40*2**30,'shared_bytes':0,'shared_files':0,'automatic_retry':False,'GPU':0,'CPUs':1},f,indent=2)
+values={}
+for line in Path('.env').read_text().splitlines():
+ k,s,v=line.partition('=')
+ if s:values[k.strip()]=v.strip().strip('\"\'')
+bootstrap='import json,os,subprocess,sys;from pathlib import Path;v=json.load(sys.stdin);py=json.loads(Path("/tmp/rsna-patch-witness-recovery-20261005-v1/source.json").read_text())["runtime"]["python"];e=os.environ.copy();e.update(PYTHONNOUSERSITE="1",PYTHONDONTWRITEBYTECODE="1",OMP_NUM_THREADS="1");x=subprocess.run([py,"-B","-c",v["program"]],input=json.dumps(v["input"]),env=e,capture_output=True,text=True);sys.stdout.write(x.stdout);sys.stderr.write(x.stderr);sys.exit(x.returncode)'
+args=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:30:00','--job-name=rsna-original-T4-state-readonly','/usr/bin/python3.12','-B','-c',bootstrap]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps({'program':program,'input':{'phase':'original-state-observe','token':values['KAGGLE_API_TOKEN'],'helpers':helpers,'helper_hashes':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in helpers.items()}}}),capture_output=True,text=True,timeout=1850)
+(r/'result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr
+record=json.loads(x.stdout);(r/'actual.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record))
