@@ -1,3 +1,10 @@
+Fitting-only public-v2 descriptive audit completed: 2247parquet UIDfilter excludes
+evaluation/protected rows. Read public-label-source-fitting-statistics-v1. Strong
+severity/coverage differences: Effusion16/1273positive, publicdisagreement727/1273;
+MCL5/1821positive, disagreement187; Baker6/756positive, disagreement252. Menisci
+7/1914 and3/1862disagreements. Not clinicaltruth/sourcepromotion/configchanges.
+Full fixedlabelcontrast unchanged, finiteobserver live, GPUacceptancepending.
+
 Originalmemory877134 control epoch2 privatelypublishedONCE byCPU879062 at
 HF7b07d427a135511c0905df48cbe89215ce4fbe2b; all5objects fullre-download/size/SHA
 verified, checkpoint46d90429e5b3db70be3b5886385d708b51567f87e4f6a4871e26449e26197e03.
