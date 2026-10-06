@@ -11,7 +11,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-ROOT = Path("/tmp/rsna-smooth-witness-full-fit-20261006-v1")
+ROOT = Path("/tmp/rsna-smooth-witness-full-fit-20261006-v2")
 ORIGINAL = Path("/tmp/rsna-patch-witness-H100-recovery-20261006-v2")
 BASE = Path("/home/sa305415/rsna-knee")
 CPU_SHA = "1e9505f9c7ffded479ea7f4631d38f1ae49f3b431f8b866600f8924a353526ee"
@@ -19,6 +19,7 @@ REGISTRY_SHA = "73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770
 ORIGINAL_PROOF_SHA = "fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5"
 LIBRARY_GIT = "3b7e437431f23b1f6e89e76aacaecd42df1c3535"
 MODES = ("control", "candidate")
+HEADER_PROOF = Path("/tmp/rsna-neighbor-recovery-20261005-v3/header-CPU-accepted.json")
 
 
 def sha(p):
@@ -77,6 +78,19 @@ def verify_config(config, mode, expected):
     return config
 
 
+def accepted_runtime_header(source):
+    if sha(HEADER_PROOF) != source["original_header_receipt_sha256"]:
+        raise ValueError("Original independently accepted header receipt changed")
+    header = json.loads(HEADER_PROOF.read_text())
+    if (
+        header.get("status") != "actual_original_runtime_Triton_helper_compile_import_accepted"
+        or not isinstance(header.get("CPATH"), str)
+        or not header["CPATH"]
+    ):
+        raise ValueError("Actual pinned runtime header/CPATH acceptance required")
+    return header
+
+
 def original():
     if os.uname().nodename != "evc31" or ROOT.is_symlink() or ROOT.stat().st_uid != os.getuid():
         raise ValueError("Owner-only original node required")
@@ -106,6 +120,7 @@ def original():
         ):
             raise ValueError("Actual complete finite state/scaler/CSV acceptance required")
     source = json.loads((ROOT / "source.json").read_text())
+    accepted_runtime_header(source)
     if (
         source["source_git"] != LIBRARY_GIT
         or source["files"] != manifest["numerical_source_sha256"]
@@ -284,7 +299,7 @@ def fit():
         or "H100" not in torch.cuda.get_device_name(0)
     ):
         raise ValueError("One actual assigned BF16 H100 and two CPUs required")
-    header = json.loads((ORIGINAL / "header-CPU-accepted.json").read_text())
+    header = accepted_runtime_header(source)
     if os.environ.get("CPATH") != header["CPATH"]:
         raise ValueError("Original accepted CPATH required")
     if sys.executable != source["runtime"]["python"]:

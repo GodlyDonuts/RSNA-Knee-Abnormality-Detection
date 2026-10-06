@@ -66,3 +66,34 @@ def test_beta_and_encoder_graph_are_fixed():
     altered["encoder"]["adapter"]["rank"] = 64
     with pytest.raises(ValueError):
         verify_config(altered, "candidate", base)
+
+
+def test_header_receipt_dependency_is_actual_and_bound(tmp_path, monkeypatch):
+    import hashlib
+
+    import scripts.newton.run_smooth_witness_comparison as wrapper
+
+    header = tmp_path / "original-header.json"
+    header.write_text(
+        json.dumps(
+            {
+                "status": "actual_original_runtime_Triton_helper_compile_import_accepted",
+                "CPATH": "/pinned/headers",
+            }
+        )
+    )
+    monkeypatch.setattr(wrapper, "HEADER_PROOF", header)
+    source = {"original_header_receipt_sha256": hashlib.sha256(header.read_bytes()).hexdigest()}
+    assert wrapper.accepted_runtime_header(source)["CPATH"] == "/pinned/headers"
+    with pytest.raises(ValueError):
+        wrapper.accepted_runtime_header({"original_header_receipt_sha256": "0" * 64})
+    header.write_text(json.dumps({"status": "not-accepted", "CPATH": "/pinned/headers"}))
+    with pytest.raises(ValueError):
+        wrapper.accepted_runtime_header(
+            {"original_header_receipt_sha256": hashlib.sha256(header.read_bytes()).hexdigest()}
+        )
+    monkeypatch.setattr(
+        wrapper, "HEADER_PROOF", tmp_path / "nonexistent-old-control" / "header.json"
+    )
+    with pytest.raises(FileNotFoundError):
+        wrapper.accepted_runtime_header(source)

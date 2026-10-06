@@ -1,0 +1,37 @@
+import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);old=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v1');root=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v2');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not root.exists();assert shutil.disk_usage('/tmp').free>=52*2**30
+term=subprocess.check_output(['sacct','-j','875535','-X','-n','-P','-o','JobID,State,ExitCode,Elapsed,NodeList'],text=True);assert term.strip().split('|')[:3]==['875535','FAILED','1:0'];assert not (old/'GPU-header.json').exists() and not (old/'actual-H100-recovery.json').exists() and not list(old.glob('*-trainer-intent.json')) and not any((old/n).exists() for n in ['control','candidate','control-engineering-full','candidate-engineering-full'])
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in quota.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-1406962617)/2**30;slots=limit-count-735;assert gib>=20 and slots>=5000
+root.mkdir(mode=0o700);(root/'code').symlink_to(old/'code',target_is_directory=True)
+original=json.loads((old/'CPU-accepted.json').read_text());manifest=json.loads((old/'files.json').read_text())
+for n,row in manifest['files'].items():
+ raw=(old/n).read_bytes();assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256']
+ if n not in ['launch.py','publish.py']:
+  with (root/n).open('xb') as f:f.write(raw)
+for n,s in v['files'].items():
+ with (root/n).open('x') as f:f.write(s)
+ manifest['files'][n]={'bytes':len(s.encode()),'sha256':hashlib.sha256(s.encode()).hexdigest()}
+with (root/'files.json').open('x') as f:json.dump(manifest,f,indent=2,sort_keys=True);f.write('\n')
+source=json.loads((root/'source.json').read_text());env=os.environ.copy();env.update(PYTHONPATH=str(root/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1')
+# No repeated model initialization/whole-byte pixel/weight hashing: the numerical
+# modules, configs and original whole-data/stat/initial-state proof are unchanged.
+check=r"""import hashlib,importlib.util,json,os,sys
+from pathlib import Path
+root=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v2');old=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v1');cpu=json.loads((old/'CPU-accepted.json').read_text());spec=importlib.util.spec_from_file_location('accepted_full_wrapper',root/'launch.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);manifest,source,proof,inp=m.original();cfg=m.configs()
+assert source['files']==cpu['source_sha256']
+for role in ('control','candidate'):assert m.sha(root/(role+'.json'))==cpu['config_sha256'][role]
+registry=json.loads((m.BASE/'native384-assembly-c9-v1/registry.json').read_text());assert m.sha(m.BASE/'native384-assembly-c9-v1/registry.json')==m.REGISTRY_SHA
+members={n:v for shard in registry['shards'] for n,v in shard['members'].items()};assert len(members)==37812
+restored=Path(inp['cache']).parent
+for n,v in members.items():
+ p=restored/n;assert not p.is_symlink() and p.stat().st_size==v['bytes'] and m.signature(p)==proof['signatures'][n]
+header=m.accepted_runtime_header(source)
+new=dict(cpu,job_id=os.environ['SLURM_JOB_ID'],wrapper_sha256=m.sha(root/'launch.py'),publisher_sha256=m.sha(root/'publish.py'),original_initialization_CPU_job='875492',initialization_reused_from_exact_original_CPU_receipt_sha256=m.sha(old/'CPU-accepted.json'),original_header_receipt_sha256=m.sha(m.HEADER_PROOF),original_header_path=str(m.HEADER_PROOF),original_header_verified_before_GPU=True,numerical_modules_configs_masks_folds_initialization_unchanged=True)
+m.save(root/'CPU-accepted.json',new);print(json.dumps(new))
+"""
+x=subprocess.run([source['runtime']['python'],'-B','-c',check],capture_output=True,text=True,env=env);(root/'stage.stdout').write_text(x.stdout);(root/'stage.stderr').write_text(x.stderr)
+if x.returncode:print(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}));sys.exit(x.returncode)
+funding={'status':'actual_unused_v1_node_future_reassigned_after_terminal_no_optimizer_outputs','old_terminal':term,'quota':quota,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'old_control_originals_retained':True,'no_deletion_credit':True,'shared_future_bytes':0,'shared_future_files':0,'node_future_bytes':16*2**30,'checkpoint_future_bytes':6*2**30,'download_scratch_future_bytes':2*2**30}
+with (root/'funding.json').open('x') as f:json.dump(funding,f,indent=2);f.write('\n')
+print(json.dumps({'CPU_acceptance':json.loads(x.stdout),'funding':funding}))

@@ -1,3 +1,22 @@
+October6 original conditional875535 FAILED1:0/11s BEFORE model/optimizer:
+launcher looked for accepted header receipt in wrong D3 control directory.
+Original failure/control/source retained; no actual clinical fit occurred.
+Corrected common CPU/GPU preflight binds actual original neighbor header
+path/SHA/status/CPATH.18 focused +2120full tests pass; scientific3b7e437 unchanged.
+CPU875827 reverified37812 original cache stats and reused actual CPU875492
+same learned/RNG/full2247/1156 proofs without duplicate bulk checks/transfers.
+Distinct corrected conditional875858 submitted ONCE, last PENDING(Resources),
+1H100/2CPU/32GiB/24h evc31, /tmp/rsna-smooth-witness-full-fit-20261006-v2.
+New smooth-FP16 complete H100 recovery/stress must pass before full3epochs/843
+updates per control/candidate. Use v2 pinned publication_coordinator.py, not v1.
+Inspect original live states/logs before action; never duplicate or restart.
+Read smooth-witness-full-fit-v2; no new clinical result/score, bestsolo0.804.
+
+Latest prior full-dispatch/streaming/runtime milestone source9509edd8 privately
+mirrored at HF ebdd75c756c74612a608a854449f71472c1db177, all29 objects fully
+re-downloaded/size/SHA verified. Dated pending snapshot now superseded by the
+original failure and distinct correction above. Never repeat the old mirror.
+
 October6 distinct conditional full comparison875535 submitted ONCE, source3b7e437,
 owning evc31/1H100/2CPU/32GiB/24h; inspect actual original Slurm/logs before action.
 Unique root /tmp/rsna-smooth-witness-full-fit-20261006-v1; complete CPU875492 passed.
