@@ -1,3 +1,38 @@
+Actualfull1300 FP16parallelv2 137322166/v1 ERRORafterinference at522.876s duefixed
+0.003FP32agreement bound, NOTbootstrap: first32pass; chunk4(two cells/40studies)
+ACLmax0.00496838/latmeniscus0.00667844. Originalreference wholeCSVhash verified,
+CPU-RAMstats only/no rawcase data; do notrelax bound/retrypureFP16. Keep default
+exactFP32 inference and proven byte-exactCPUprep2.3194x; pursueexact/pipelinedprep
+ratherthan invent numericalequivalence. Readactual-inference-decision. Clinical
+AUCeffect/hidden9h unproven. Originalfailedv1 discovery+correctedv2 retained.
+Control3fixed endpoint0.7810206776internal12macro; candidatecontinuesoriginaljob
+(39finite updates atprogress19), no pairedgain. Newmemory877134stillpending; never
+duplicate jobs or alter accepteddata/source. No new competition score/submission.
+
+Original875858 control fixed3 internal12macro0.7810206776 on1156 weak-label outer,
+MCL0.4397/latmeniscus0.6845, exactsource/roster/finalcheckpoint/predictions binding
+verified; no paired gain/Kaggle/promotion. ExistingMCL5fitpositives/2outer in2components
+makes its pointestimate unstable; lateralmeniscus297fitpositives, scarcityalone
+cannot explainit. Candidate unchanged/follows originalcontrol; readcontrol-support-note.
+Full1300 privatebenchmark137321290/v1 ERRORat1.384s beforemodel/MRI/infer: recursive
+attached-output discovery exceeded2048dirs. Corrected exact versioned payload-root
+lookup (2100dirregression) preserves allmath/data/tolerance; distinct137322166/v1
+pushedONCE sourceb744f7c287b73578, actualRUNNING. Neverrepeat original/corrected.
+Readkaggle-fp16-fullscale-parallel-v2. Both successful32GPU/CPU gates preserved;
+newmemory877134pending, original875858healthy. No masks/folds/weights/recipe altered.
+
+ActualCPUprep137319670/v1 COMPLETE: original32MRI/all338cachefiles169series/selection+
+recovery byte-exact serial vs2spawned/1thread;259.835862s→112.026435s,2.3194x,
+host~10.01GB/1.2186GBpercache; no labels/model/GPU/clinicalclaim. Combined full1300
+FP16+parallelprep privateGPU137321290/v1 pushedONCE after exactactualCPU+32GPU
+receipts and freshquota/source/ledger review, source2a014a7bebc49d0f. Sameoriginal
+0.804model/geometry/fullroster, original5hFP32CSV hash-bound privateparent reused,
+no repeated reference inference. Every1300x12cell must meet fixedtol0.003/fallback0;
+4hbenchmark cap. Defaultserial/FP32 entry unchanged; hidden9h/clinicalequivalence
+unadmitted. Neverrepeat thispush. Sourceprepared3hserialfullscope was neverrun.
+Read kaggle-fp16-fullscale-parallel-v1. Keep875858/877134 unchanged, preserve new
+epochs once and wait fullpaired endpoint; controlfixed3 alreadyprivately verified.
+
 Fixed-finalcontrol3 preservation/actualFP16timing/preparation source79afd14f
 privately mirrored at HF2d9666d1261a9db8fa9f4797988d9ef2ad921814; all35small
 objects fully re-downloaded/size/SHA verified under canonical shared lock. Never

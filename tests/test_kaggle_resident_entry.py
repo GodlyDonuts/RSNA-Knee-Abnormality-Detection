@@ -191,3 +191,62 @@ def test_actual_FP16_overlay_payload_passes_private_training_admission():
     oversized = dict(sources, **{"witness_recovery.py": worker + "\n#" + "x" * (128 * 1024)})
     with pytest.raises(ValueError, match="Exact private trainer"):
         module.validate_private_training_sources(oversized, hashes, "0" * 64)
+
+
+def test_scoped_discovery_skips_large_parent_output_tree_and_reads_exact_reference(
+    tmp_path, monkeypatch
+):
+    module = notebook_module()
+    model = tmp_path / "datasets/owner/model/1"
+    model.mkdir(parents=True)
+    manifest = model / "bundle-manifest.json"
+    manifest.write_text("model")
+    parent = tmp_path / "notebooks/owner/reference/v1"
+    (parent / "resident-performance").mkdir(parents=True)
+    reference = parent / "resident-performance/benchmark-predictions.csv"
+    reference.write_text("private")
+    huge = parent / "environment"
+    huge.mkdir()
+    for i in range(2100):
+        (huge / f"package{i}").mkdir()
+    module.ATTACHED_PAYLOAD_ROOTS = {
+        "bundle-manifest.json": {
+            "kind": "datasets",
+            "slug": "owner/model",
+            "version": 1,
+            "relative": "bundle-manifest.json",
+        },
+        "benchmark-predictions.csv": {
+            "kind": "notebooks",
+            "slug": "owner/reference",
+            "version": 1,
+            "relative": "resident-performance/benchmark-predictions.csv",
+        },
+    }
+    monkeypatch.setattr(
+        module.os,
+        "walk",
+        lambda *a, **k: pytest.fail(
+            "Scoped payload lookup must never enumerate attached notebook output"
+        ),
+    )
+    assert list(module.attached_dataset_files(tmp_path, "bundle-manifest.json")) == [manifest]
+    assert list(module.attached_dataset_files(tmp_path, "benchmark-predictions.csv")) == [reference]
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [("relative", "../benchmark-predictions.csv"), ("slug", "owner/../bad"), ("version", 2)],
+)
+def test_scoped_payload_escape_or_unadmitted_version_rejected(tmp_path, key, value):
+    module = notebook_module()
+    item = {
+        "kind": "notebooks",
+        "slug": "owner/reference",
+        "version": 1,
+        "relative": "resident-performance/benchmark-predictions.csv",
+    }
+    item[key] = value
+    module.ATTACHED_PAYLOAD_ROOTS = {"benchmark-predictions.csv": item}
+    with pytest.raises(ValueError):
+        list(module.attached_dataset_files(tmp_path, "benchmark-predictions.csv"))

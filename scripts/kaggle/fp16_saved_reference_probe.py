@@ -14,6 +14,7 @@ import chunked_infer
 import numpy as np
 import pandas as pd
 import torch
+from parallel_preparation import ParallelPreparation
 from resident_pool import ResidentPool
 from saved_performance_reference import compare_predictions, load_reference
 
@@ -96,7 +97,8 @@ def main():
         max_series=6,
         series_sampling="selected",
     )
-    pool = ResidentPool(workers=2, timeout_seconds=10800, performance_fp16_probe=True)
+    pool = ResidentPool(workers=2, timeout_seconds=14400, performance_fp16_probe=True)
+    preparation = ParallelPreparation()
     comparison = {
         "studies": 0,
         "reference_seconds": 0,
@@ -126,8 +128,9 @@ def main():
         return result
 
     try:
-        metrics = chunked_infer.run(options, invoke=invoke)
+        metrics = chunked_infer.run(options, invoke=invoke, prepare_invoke=preparation.prepare)
     finally:
+        preparation.close()
         pool.close()
     if sum(c.get("fallback_studies", 0) for c in metrics["chunks"]):
         raise ValueError("Performance roster has unusable studies; cannot admit clean throughput")
