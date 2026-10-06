@@ -27,6 +27,9 @@ python -m rsna.competitive.train \
 | `base-v2-control` | v2 baseline control | none |
 | `label-source-public.fold{0,1,2}` | public `llm_labels_v4_blend` labels | `--fitting-supervision .../llm_labels_v4_blend.fold<N>.overlay.json` |
 | `label-source-blended.fold{0,1,2}` | v2 on 8 targets + public soft on 4 severity targets | `--fitting-supervision .../blended_v2plus_public.fold<N>.overlay.json` |
+| `label-source-v21.fold{0,1,2}` | v2 + all v2.1 positive flips (~3,600/fold) | `--fitting-supervision .../v21_severity_rereview.fold<N>.overlay.json` |
+| `label-source-v21pn.fold{0,1,2}` | v21 + explicit-negative flips (~290/fold) | `--fitting-supervision .../v21pn_severity_rereview.fold<N>.overlay.json` |
+| `label-source-v21hc.fold{0,1,2}` | v2 + pass-2-only flips (gold-prec 0.75 tier, ~2,200/fold) | `--fitting-supervision .../v21hc_severity_rereview.fold<N>.overlay.json` |
 | `graded-u05.fold{0,1,2}` | `uncertain` cells supervised at 0.5 | `--fitting-supervision .../graded-states-u05.fold<N>.overlay.json` |
 | `canonical-sides.fold{0,1,2}` | deterministic canonical-R mirror | `--canonical-sides .../canonical-sides.fold<N>.json` |
 | `masked-cell-em005` | ESA entropy-max on masked cells, λ=0.05 | none (config-bound) |
