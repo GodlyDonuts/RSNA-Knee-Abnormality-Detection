@@ -57,6 +57,30 @@ set — an initialization nobody else in the competition has.
   checkpoint (100–300 epochs equivalent is overkill; the OAI-DINO regime is
   reachable in a day-scale run). One-time cost, not per-experiment.
 
+### Alternative recipe: KGNet multi-task pretraining (2026-10-06 sweep)
+
+Zhuang et al., "Enhancing Knee Disease Diagnosis via Multi-View Graph
+Representation With Multi-Task Pre-Training" (IEEE TMI 45(5):2493-2504,
+2026; public code github.com/zixuzhuang/KGNet). Two transferable ideas on
+top of vanilla DINO:
+
+1. **Multi-task pretrain**: reconstruct masked knee local patches AND
+   segment unmasked ones, i.e. masked-image modeling + a dense anatomical
+   task — richer than pure self-distillation for anatomy-biased targets
+   (cartilage, ACL — exactly the classes KGNet reports gains on).
+2. **Multi-view graph**: radiologists localize in one plane and confirm in
+   others; KGNet's gains come partly from structuring axial/coronal/
+   sagittal series as a per-study graph. Our per-study manifest already
+   has the plane grouping to feed such a structure — item 12 of the
+   frontier doc (CoPAS-style cross-sequence attention) is the inference-time
+   sibling and was judged marginal; the pretrain-time formulation is the
+   stronger claim.
+
+Decision stays the same: whichever recipe wins a short paired probe on the
+same manifest becomes `encoder.init`; the arbiter is unchanged (paired
+outer-fold AUC vs ImageNet init). No implementation until a funded GPU
+slot exists — recorded here so the recipe choice is made deliberately.
+
 ## Then what
 
 Same bound harness as every other experiment: SSL-pretrained encoder as
