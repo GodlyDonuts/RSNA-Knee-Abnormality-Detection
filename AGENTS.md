@@ -1,3 +1,10 @@
+Cross-sequence source/actual MRI CPU admission/private T4-start milestone75ee2f68
+privately mirrored at HFf8eb9e6779f342bcebb02277866dda07c642270b; all32 small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. No raw
+MRI, labels, case IDs or learned weights mirrored. Never repeat this milestone.
+New memory137306285/v1 actual RUNNING, recovery/accuracy outcome unobserved;
+healthy original875858 unchanged. Read plane-memory-integration-v1.
+
 October6 actual memory CPU876731 PASSED original32 MRI/labels/masks/metadata and
 actual common official learned graph/RNG initialization. Distinct private single-
 active-T4 sequential recovery137306285/v1 pushed ONCE, source51dd870cecdd712f.
