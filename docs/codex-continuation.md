@@ -1,3 +1,16 @@
+Actual fitting-only anatomical-sharing support is measured on original2247
+studies with live fitting/outer bindings: ACL-or-MCL176positive/1505negative;
+meniscus union996/879; contusion-or-fracture124/372. MCL remains5positives,
+fracture3; no rare labels invented or masks changed.117 ACL+/MCL−,533MM+/LM−
+and12contusion+/fracture− are required future specificity controls; copying
+sibling/group scores is unjustified. Read anatomical-sharing-support-v1. Shared
+anatomy queries with disease residuals remain a hypothesis, NOT integrated or
+GPU-admitted. Finish original architecture contrasts before choosing its base.
+Full2235tests/Ruff372/mypy50 passed. Original1300 still authenticated RUNNING
+14:41UTC; candidate875858 healthy506updates/epoch2 atprogress33, empty stderr.
+Only candidate1/control1–3 preserved so far. Newmemory877134 remains queued;
+no new accuracy/Kaggle result or new GPU job.
+
 Notebook-inclusive RAM-check/owned-GPU observation sourcee85e2dec privately
 mirrored at HFf69a8173a7776fc24af6c6220e8579f89c1acf7b; all19 small objects
 fully re-downloaded/size/SHA verified under canonical shared lock. Never repeat.
