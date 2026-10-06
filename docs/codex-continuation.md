@@ -1,3 +1,9 @@
+Latest corrected875858 actually RUNNING evc31; owning-node startup observer
+confirmed actual H100/CUDA/header/source admission and empty stderr. New smooth
+FP16 four-update recovery is in progress; full clinical fits have not begun.
+Never repeat this job. Follow original v2 logs/receipts before publication or
+any recovery action. Original875535 remains failed before model/optimizer.
+
 October6 original conditional875535 FAILED1:0/11s BEFORE model/optimizer:
 launcher looked for accepted header receipt in wrong D3 control directory.
 Original failure/control/source retained; no actual clinical fit occurred.
