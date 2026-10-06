@@ -222,6 +222,37 @@ def supersede_unsubmitted_kernel(workflow, remote, db, op, expected_old_sha):
     workflow.save_entry(db, entry, "preserved exact unsubmitted notebook for corrected push")
 
 
+def inference_only_dataset_reuse(original, corrected, expected_old_sha):
+    """Allow new inference orchestration around the exact previously verified Dataset."""
+    expected = {
+        "original_operation_sha256": expected_old_sha,
+        "engine": "two_device_exact_FP32_prefetch_v1",
+        "precision": "fp32",
+        "original_dataset_bytes_preserved": True,
+        "original_model_source_and_weights_preserved": True,
+    }
+    if corrected.get("inference_runtime_correction") != expected:
+        raise ValueError("Explicit exact-FP32 Dataset reuse binding required")
+    changed = {
+        "kernel_slug",
+        "kernel_source_sha256",
+        "kernel_metadata_sha256",
+        "prepared_at",
+        "dataset_publication_operation_sha256",
+        "inference_runtime_correction",
+        "reused_dataset_verification_sha256",
+        "reused_dataset_id",
+    }
+    if (
+        corrected.get("dataset_publication_operation_sha256") != expected_old_sha
+        or set(corrected) - changed != set(original) - changed
+        or any(corrected[k] != original[k] for k in original if k not in changed)
+        or corrected["kernel_slug"] == original["kernel_slug"]
+        or corrected["kernel_source_sha256"] == original["kernel_source_sha256"]
+    ):
+        raise ValueError("Inference correction changed the original Dataset/model binding")
+
+
 def supersede_failed_submission_kernel(workflow, remote, db, op, expected_old_sha):
     """Archive one scored-as-failed code attempt before a distinct correction."""
     db.execute("BEGIN IMMEDIATE")
@@ -234,9 +265,12 @@ def supersede_failed_submission_kernel(workflow, remote, db, op, expected_old_sh
         or not entry.get("submission_id")
         or not entry.get("kernel_version")
         or old.get("kernel_slug") == op["kernel_slug"]
-        or old.get("dataset_slug") == op["dataset_slug"]
     ):
         raise ValueError("Only an exact, distinct failed code submission can be corrected")
+    if old.get("dataset_slug") == op["dataset_slug"]:
+        inference_only_dataset_reuse(old, op, expected_old_sha)
+        if op.get("reused_dataset_id") != entry["dataset"].get("id"):
+            raise ValueError("Original verified Dataset identity must remain unchanged")
     found = [
         row
         for row in remote.submissions()
@@ -271,6 +305,8 @@ def supersede_failed_submission_kernel(workflow, remote, db, op, expected_old_sh
             "remote_status": found[0]["status"],
             "remote_total_bytes": found[0]["totalBytes"],
             "remote_outcome": "failed",
+            "remote_error_description": found[0].get("errorDescription"),
+            "public_score": found[0].get("publicScore"),
         },
     ]
     for key in (
@@ -307,6 +343,9 @@ def dataset_publication_binding(op, operation_file, original_file):
     if original_file is None or p.digest(original_file) != expected:
         raise ValueError("Original Dataset operation proof is missing or changed")
     original = json.loads(original_file.read_text())
+    if op.get("inference_runtime_correction") is not None:
+        inference_only_dataset_reuse(original, op, expected)
+        return expected
     extras = {
         "runtime_image",
         "runtime_reference_checkpoint_sha256",
@@ -507,6 +546,7 @@ def run(args):
         "push-runtime-corrected-kernel",
         "push-after-uncertain-placeholder",
         "submit",
+        "push-after-failed-submission",
     }:
         raise ValueError(
             "Verified Dataset reuse is limited to a bound notebook correction and its submission"

@@ -1,0 +1,19 @@
+import ast,hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/kaggle-prefetch-control-recovery-v1');assert not (r/'admit-staged-intent.json').exists();failure=json.loads((r/'stage-result.json').read_text());assert failure['returncode']!=0 and 'ModuleNotFoundError: No module named' in failure['stderr'] and 'requests' in failure['stderr']
+tree=ast.parse((r/'stage_once.py').read_text());original=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='program' for t in n.targets));start=original.index("s=importlib.util.spec_from_file_location");body=original[start:]
+root='/tmp/rsna-kaggle-prefetch-control-recovery-20261006-v1';names=['scripts/kaggle/coordinator.py','scripts/kaggle/publication.py','scripts/kaggle/workflow.py','rsna/__init__.py','rsna/schema.py'];hashes={'code/'+n:hashlib.sha256(Path(n).read_bytes()).hexdigest() for n in names};hashes.update({'candidate/'+str(p.relative_to(r/'candidate')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (r/'candidate').rglob('*') if p.is_file()})
+body='''import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);r=Path(v['root']);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and r.is_dir() and not (r/'CPU-accepted.json').exists()
+for name,h in v['hashes'].items():assert hashlib.sha256((r/name).read_bytes()).hexdigest()==h
+assert shutil.disk_usage('/tmp').free>(20+26+12)*2**30+2*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];gib=((int(row[2])-int(row[1]))*1024-1406962617)/2**30;slots=int(row[6])-int(row[5])-735;assert gib>=20 and slots>=5000
+v['hashes']['projection.json']=hashlib.sha256((r/'projection.json').read_bytes()).hexdigest()
+'''+body
+cpu=json.loads(Path('initiative/audits/cls-patch-summary-full-fit-v2/actual-CPU-acceptance.json').read_text());py=cpu['runtime']['python']
+with (r/'admit-staged-intent.json').open('x') as f:json.dump({'original_failed_CPU_job':878846,'same_staged_source_root':root,'actual_original_runtime':py,'wrapper_sha256':hashlib.sha256(body.encode()).hexdigest(),'GPUs':0,'no_restage_or_large_bytes_copied':True,'automatic_retry':False},f,indent=2);f.write('\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=2G','--time=00:05:00','--job-name=rsna-prefetch-staged-runtime-admit',py,'-B','-c',body]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'root':root,'hashes':hashes}),capture_output=True,text=True,timeout=350)
+with (r/'admit-staged-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stderr;v=json.loads(x.stdout);a=Path('initiative/audits/kaggle-prefetch-control-recovery-v1');(a/'actual-CPU-acceptance.json').write_text(json.dumps(v,indent=2,sort_keys=True)+'\n');(a/'admit-staged-coordinator.py.txt').write_text(Path(__file__).read_text());(a/'original-CPU-runtime-import-failure.json').write_text(json.dumps({'job_id':878846,'returncode':failure['returncode'],'stderr':failure['stderr'],'GPU_or_model_or_pixel_or_competition_mutation':False,'same_original_sources_admitted_with_existing_pinned_runtime':True},indent=2)+'\n');print(json.dumps({'status':v['status'],'CPU_job':v['CPU_job'],'same_original_staged_files':True,'new_Dataset_or_GPU_or_competition_mutation':False}))

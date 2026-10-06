@@ -1,3 +1,34 @@
+October6 researchPR3/4 reviewed at exactheads; no merge. Readresearch-pr-review-
+20261006-v1. Prioritize plainpublic-versus-accepted-v2 fitting-label ablation on
+currentrank32/native384/full10recipe. Verifiedblockers: all26PRconfigs freeze
+encoder/noadapter; entropyterm subtractsBCE(p,.5) and drivesconfidence opposite
+intent; blendchanges418cells on8claimedretainedv2targets; horizontalall-plane
+flip isnotphysicalLR; SSLcorpusunfilteredforprotected/outer; goldinformed source/
+tier choices cannotclaimindependentgold evaluation. ReviewedonlyPRgoldaggregates,
+no protectedlabelrows; currentpredeclaredlive recipes unchanged. StandaloneEMA
+updatesfrozenbase/serializesdensebase also needs correction/funding. Keepfuture
+ensembleutility deferred. PRcontainsusefulfold-bound label-loader/data provenance.
+
+Original137362933/v1 actualT4 completefull/stop1/resume bothroles accepted; all
+model/base/AdamW/LR/counters/RNG/scaler/CSV exact. Finitecoordinatorcompleted and
+submitted originalfull10 baselineONCE878853, actualPENDING(Resources)/zero runtime
+on evc31. Neverrestartfinishworker/repeatjob; actualH100recovery remains required
+insideallocation beforeproduction. Controlroot full-fit-20261006-v2 unchanged.
+Original877134 healthy175finiteupdates/empty stderr at18:10UTC. No newscore.
+
+October6 actualcanonical Kaggle outcomes/allowance rechecked: seed1-control
+56833454 and bothseed2 FAILED runtime/zero bytes/no score; partner56833608 actual
+0.685. Fresh17:30UTC allowance5. A distinctseed1-control exactFP32prefetch candidate
+is prepared fromsame490e23ea1209 weights and originalDataset12369320/v1; nonew
+Dataset/weights transfer. Read kaggle-prefetch-control-recovery-v1. Newproduction
+entry uses benchmarked helpers/test.csv/eightstudy chunks, completeprocess RSS,
+boundedcleanup; metadata-only operation requires original56object whole-byteproof.
+Canonical correction preserves oldfailedID/error and refuses scored/ambiguous
+outcomes or changedDataset/modelbinding. No cloudpush/slot yet; wait original
+137362933 trainingGPU terminal then require exactpublic2T4/source/version/output
+acceptance/freshliveallowance beforeone code submission. H100training/finite
+baseline-launch observer remainhealthy; no scientific recipe changes/newscore.
+
 Corrected full-fit-v2 wrapper/CPU878670 admission sourcedc340da2f privately
 mirrored ONCE at HFc4325a3be7df7d828b46587641d2fca459a326f3; all18 smallobjects
 fully re-downloaded/size/SHA verified under canonical lock. Neverrepeat. NoMRI/

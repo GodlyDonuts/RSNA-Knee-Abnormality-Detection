@@ -131,6 +131,37 @@ def test_attached_payload_discovery_rejects_escaping_name(tmp_path):
         list(notebook_module().attached_dataset_files(tmp_path, "../secret"))
 
 
+def test_prefetch_helpers_cannot_replace_trained_source(tmp_path):
+    import hashlib
+
+    module = notebook_module()
+    bundle, working = tmp_path / "bundle", tmp_path / "working"
+    (bundle / "code/rsna").mkdir(parents=True)
+    working.mkdir()
+    scripts = Path(resident_entry.__file__).parent
+    names = (
+        "prefetch_entry.py",
+        "prefetch_preparation.py",
+        "parallel_preparation.py",
+        "process_memory.py",
+        "resident_infer.py",
+        "resident_pool.py",
+        "resident_worker.py",
+        "chunked_infer.py",
+    )
+    sources = {n: (scripts / n).read_text() for n in names}
+    hashes = {n: hashlib.sha256(value.encode()).hexdigest() for n, value in sources.items()}
+    bad = dict(sources, **{"rsna/competitive/model.py": "replacement"})
+    with pytest.raises(ValueError, match="Exact bounded"):
+        module.stage_prefetch_sources(bundle, working, bad, hashes)
+    tampered = dict(sources, **{"resident_infer.py": "changed"})
+    with pytest.raises(ValueError, match="helper bytes"):
+        module.stage_prefetch_sources(bundle, working, tampered, hashes)
+    root = module.stage_prefetch_sources(bundle, working, sources, hashes)
+    assert {p.name for p in root.iterdir()} == set(names)
+    assert not list((bundle / "code/rsna").iterdir())
+
+
 def test_payload_discovery_does_not_walk_attached_notebook_source_cache(tmp_path, monkeypatch):
     module = notebook_module()
     output = tmp_path / "notebooks/owner/CPU-input/v1"

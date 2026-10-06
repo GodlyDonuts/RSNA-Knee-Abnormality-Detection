@@ -829,6 +829,37 @@ def load_operation(path):
         raise ValueError("Shared runtime differs from bound notebook manifest")
     if operation.get("shared_wheelhouse") is not None:
         validate_shared_wheelhouse(operation["shared_wheelhouse"])
+    if operation.get("inference_runtime_correction") is not None:
+        # Only metadata is needed locally: the immutable versioned Dataset is
+        # mounted and rehashed by the new notebook. Reuse its actual whole-byte
+        # publication receipt instead of copying or rehashing its large payload.
+        proof_path = base / "original-dataset-verification.json"
+        original_path = base / "original-operation.json"
+        if digest(proof_path) != operation.get("reused_dataset_verification_sha256") or digest(
+            original_path
+        ) != operation.get("dataset_publication_operation_sha256"):
+            raise ValueError("Original Dataset verification or operation proof changed")
+        proof = json.loads(proof_path.read_text())
+        required = dict(manifest["files"])
+        required["bundle-manifest.json"] = {
+            "bytes": (data / "bundle-manifest.json").stat().st_size,
+            "sha256": operation["manifest_sha256"],
+        }
+        if (
+            proof.get("status") != "all_payload_bytes_verified"
+            or proof.get("downloaded_all_bytes") is not True
+            or proof.get("private") is not True
+            or proof.get("version") != 1
+            or proof.get("slug") != operation["dataset_slug"]
+            or proof.get("id") != operation.get("reused_dataset_id")
+            or proof.get("operation_sha256") != operation["dataset_publication_operation_sha256"]
+            or proof.get("files") != required
+            or manifest.get("checkpoint_sha256") != operation["checkpoint_sha256"]
+            or {str(p.relative_to(data)) for p in data.rglob("*") if p.is_file()}
+            != {"bundle-manifest.json", "dataset-metadata.json"}
+        ):
+            raise ValueError("Exact original immutable Dataset byte proof required")
+        return operation
     expected = set(manifest["files"]) | {"bundle-manifest.json", "dataset-metadata.json"}
     actual = {str(p.relative_to(data)) for p in data.rglob("*") if p.is_file() or p.is_symlink()}
     if actual != expected:
@@ -923,6 +954,10 @@ def verify_remote_dataset(remote, operation):
     data = remote.dataset(operation["dataset_slug"])
     if data.get("isPrivate") is not True or data.get("currentVersionNumber") != 1:
         raise ValueError("Dataset must be private and remain at dedicated version 1")
+    if operation.get("inference_runtime_correction") is not None and data.get(
+        "id"
+    ) != operation.get("reused_dataset_id"):
+        raise ValueError("Reused Dataset identity changed")
     result = {"id": data.get("id"), "version": 1, "is_private": True}
     if operation.get("shared_wheelhouse") is not None:
         result["shared_wheelhouse"] = verify_shared_wheelhouse(

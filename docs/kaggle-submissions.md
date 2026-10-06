@@ -1,3 +1,16 @@
+October6 actualcanonical Kaggle outcomes/allowance rechecked: seed1-control
+56833454 and bothseed2 FAILED runtime/zero bytes/no score; partner56833608 actual
+0.685. Fresh17:30UTC allowance5. A distinctseed1-control exactFP32prefetch candidate
+is prepared fromsame490e23ea1209 weights and originalDataset12369320/v1; nonew
+Dataset/weights transfer. Read kaggle-prefetch-control-recovery-v1. Newproduction
+entry uses benchmarked helpers/test.csv/eightstudy chunks, completeprocess RSS,
+boundedcleanup; metadata-only operation requires original56object whole-byteproof.
+Canonical correction preserves oldfailedID/error and refuses scored/ambiguous
+outcomes or changedDataset/modelbinding. No cloudpush/slot yet; wait original
+137362933 trainingGPU terminal then require exactpublic2T4/source/version/output
+acceptance/freshliveallowance beforeone code submission. H100training/finite
+baseline-launch observer remainhealthy; no scientific recipe changes/newscore.
+
 October6 corrected FP16/smooth137276309 v1 pushedONCE, entry SourceSHA
  aa792ec45cdd4a15ed6793cf06c7b4228eef424f96f2a0d4c8a725ec37b3d748.
 Numerical3b7e437/inputs/base/recipe unchanged; only128KiB wrapper cap corrected.
