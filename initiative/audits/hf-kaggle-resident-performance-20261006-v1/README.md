@@ -1,0 +1,3 @@
+# Private resident-runtime milestone preservation
+
+Git source 9d6282e, including exact standalone integration, 32-study fitting-only admission, one private two-T4 notebook dispatch and read-only returned-identity reconciliation, is privately mirrored at HF revision 241b70a16c4bbfa869cdba12d933a0c7efefb8d1. All 25 small objects were fully re-downloaded and size/SHA verified under the canonical shared atomic lock. No raw MRI, fitting UID list, reports, learned weights or diagnostic predictions were mirrored. This is source/dispatch preservation; no hardware performance success, hidden-scale runtime bound or accuracy gain is claimed. Never repeat this milestone publication.

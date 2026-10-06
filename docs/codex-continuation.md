@@ -1,3 +1,9 @@
+Latest runtime integration/dispatch source9d6282e privately mirrored at
+HF241b70a16c4bbfa869cdba12d933a0c7efefb8d1; all25small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Read hf-kaggle-resident-performance-
+20261006-v1; never repeat. Full2038tests/Ruff320/mypy48/current89/89 passed.
+Original private two-T4 benchmark outcome remains pending; no accuracy gain.
+
 October6 actual offline runtime experiment: private two-T4 notebook
 kernel137247865/version1 was pushed ONCE and exact source/private/offline/pinned
 runtime reconciled, RUNNING at00:17UTC. Read kaggle-resident-performance-v1.
