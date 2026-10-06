@@ -173,6 +173,7 @@ def run(args: argparse.Namespace) -> dict:
         slice_context=config.slice_context,
         witness=config.witness,
         plane_memory=config.plane_memory,
+        patch_summary=config.patch_summary,
         **relation_model_kwargs(config.relation),
         input_channels=channels,
     ).to(device)

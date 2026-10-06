@@ -40,6 +40,7 @@ from rsna.competitive.checkpoint import (
     save_checkpoint,
 )
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
+from rsna.competitive.feature_summary import validate_patch_summary
 from rsna.competitive.loss import (
     adjacent_slice_pairs,
     effective_batch_loss,
@@ -139,6 +140,7 @@ class TrainConfig:
     canonical_sides: dict | None = None
     masked_cell: dict | None = None
     slice_smooth: dict | None = None
+    patch_summary: dict | None = None
 
     def validate(self) -> None:
         if self.masked_cell is not None:
@@ -150,6 +152,7 @@ class TrainConfig:
                 or self.fitting_supervision is not None
                 or self.neighbor_channels is not None
                 or self.canonical_sides is not None
+                or self.patch_summary is not None
             ):
                 raise ValueError("Masked-cell contrast requires an isolated outer-fold arm")
         if self.slice_smooth is not None:
@@ -162,10 +165,32 @@ class TrainConfig:
                 or self.neighbor_channels is not None
                 or self.canonical_sides is not None
                 or self.masked_cell is not None
+                or self.patch_summary is not None
                 or self.pooling != "attention"
                 or self.slice_context != "none"
             ):
                 raise ValueError("Slice-smooth contrast requires an isolated outer-fold arm")
+        if self.patch_summary is not None:
+            validate_patch_summary(self.patch_summary)
+            if (
+                self.pooling != "attention"
+                or self.slice_context != "none"
+                or any(
+                    value is not None
+                    for value in (
+                        self.witness,
+                        self.plane_memory,
+                        self.relation,
+                        self.neighbor_channels,
+                        self.fitting_supervision,
+                        self.canonical_sides,
+                        self.masked_cell,
+                        self.slice_smooth,
+                    )
+                )
+                or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+            ):
+                raise ValueError("CLS/patch-mean baseline must isolate its single readout change")
         neighbor_input_channels(self.neighbor_channels)
         if self.neighbor_channels is not None and (
             self.fit_scope != "outer_fold"
@@ -620,6 +645,7 @@ def _run_locked(
         slice_context=config.slice_context,
         **({"witness": config.witness} if config.witness is not None else {}),
         **({"plane_memory": config.plane_memory} if config.plane_memory is not None else {}),
+        **({"patch_summary": config.patch_summary} if config.patch_summary is not None else {}),
         **relation_model_kwargs(config.relation),
         **({"input_channels": channels} if channels == 3 else {}),
     ).to(device)
@@ -679,6 +705,8 @@ def _run_locked(
         bound_config.pop("neighbor_channels")
     if config.canonical_sides is None:
         bound_config.pop("canonical_sides")
+    if config.patch_summary is None:
+        bound_config.pop("patch_summary")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {

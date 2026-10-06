@@ -94,6 +94,15 @@ class ParallelPreparation:
     def close(self):
         self.executor.shutdown(wait=True, cancel_futures=True)
 
+    def worker_pids(self):
+        """Read only while this pinned Python executor's two workers are alive."""
+        processes = getattr(self.executor, "_processes", None)
+        if not isinstance(processes, dict) or len(processes) != 2:
+            raise ValueError("Both persistent preparation worker identities required")
+        if any(not process.is_alive() for process in processes.values()):
+            raise ValueError("Preparation worker exited before memory accounting")
+        return list(processes)
+
     def __enter__(self):
         return self
 

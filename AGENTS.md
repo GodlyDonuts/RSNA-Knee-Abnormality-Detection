@@ -1,3 +1,196 @@
+Owner criticism changes priority: finish existing comparisons, then establish
+a fully trained conventional single-backbone baseline before more speculative
+heads. Optional CLS+mean-patch readout is now wired through canonical train/
+infer/delta packaging/resident reconstruction, with common zero-start graph/
+values/RNG and sameMRI/labels/LoRA. Extra131072 readout parameters, original
+10.2236M encoder adapters unchanged. Read cls-patch-summary-v1: matched10epochs/
+2810updates per role, native384/effective8/281warmup; no compound changes.
+Full2251tests/Ruff374/mypy51 plus65 inference/delta/readout regressions passed.
+This is software acceptance only: not remotely staged, MRI/GPU-admitted, funded
+or dispatched. Do not overwrite frozen3b7e437/b2bb3a9c live sources. Original
+875858 candidate healthy832updates/epoch3 atprogress40; candidate3 soon, then
+full paired analysis. Original1300 benchmark still RUNNING16:18UTC. No newscore.
+
+Independent control-AUC replay sourceedc22183 privately mirrored at HF
+cdb9fa97fa5526f9788bebe8844a0834115fe998; all6 small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Never repeat. No raw MRI,
+labels/case IDs/predictions or weights mirrored. Candidate875858 healthy690
+finite updates/epoch3 atprogress36, candidate1/2 privately preserved once,
+final3/AUC still pending. Newmemory877134 PENDING(Resources), original1300
+benchmark137329288/v1 authenticated RUNNING15:35UTC. No new score/gain.
+
+Original control fixed3 AUC independently replayed by zero-GPU CPU878452:
+all12 masked AUCs match original sklearn to<=1.11e-16, macro exactly
+0.7810206776350072 on original1156 weak-label development studies. Exact
+source/config/release/fold/seed/roster/CSV/private-final publication bound.
+No MRI/weights/individual labels or predictions collected; protected cohorts
+unused. Read smooth-witness-full-fit-v2/control-independent-replay. This is
+control validation only, NOT a paired gain or clinical/Kaggle score. Original
+875858 candidate healthy647updates/epoch3 atprogress35; candidate1/2 and
+control1–3 already privately verified once. Newmemory877134 queued; original
+1300 benchmark137329288/v1 still authenticated RUNNING15:23UTC.
+
+Original875858 candidate epoch2 completed562updates and was privately published
+ONCE at HF8e98b5348abe7abd616337b1efbbbdeed28c606a viaCPU878389. All5 objects
+fully re-downloaded/size/SHA verified; checkpoint
+d847b5043fbb49fc9d5971c53b49fd2eb50b918af69e4ec99787ed62efefb49d.
+Never repeat control1–3/candidate1–2. Preserve candidate3 next when complete,
+then require original875858 actual0:0/full paired final843 source/roster/result/
+prediction bindings and independent paired analysis before promotion. No new
+accuracy or Kaggle score. Fullscale137329288/v1 still authenticated RUNNING
+14:58UTC; prepared notebook-inclusive RAM-check remains gated/unpushed.
+
+Anatomical-sharing support source38e25d12 privately mirrored at HF
+4f57170eae246d0547c6b455a08925d02ad16747; all7 small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Never repeat. Counts admit only
+a future shared-representation hypothesis, not extra rare labels, a new model
+or accuracy. Current architectures remain unchanged; source/masks/folds/protected
+cohorts preserved. Read anatomical-sharing-support-v1 and original live receipts.
+
+Actual fitting-only anatomical-sharing support is measured on original2247
+studies with live fitting/outer bindings: ACL-or-MCL176positive/1505negative;
+meniscus union996/879; contusion-or-fracture124/372. MCL remains5positives,
+fracture3; no rare labels invented or masks changed.117 ACL+/MCL−,533MM+/LM−
+and12contusion+/fracture− are required future specificity controls; copying
+sibling/group scores is unjustified. Read anatomical-sharing-support-v1. Shared
+anatomy queries with disease residuals remain a hypothesis, NOT integrated or
+GPU-admitted. Finish original architecture contrasts before choosing its base.
+Full2235tests/Ruff372/mypy50 passed. Original1300 still authenticated RUNNING
+14:41UTC; candidate875858 healthy506updates/epoch2 atprogress33, empty stderr.
+Only candidate1/control1–3 preserved so far. Newmemory877134 remains queued;
+no new accuracy/Kaggle result or new GPU job.
+
+Notebook-inclusive RAM-check/owned-GPU observation sourcee85e2dec privately
+mirrored at HFf69a8173a7776fc24af6c6220e8579f89c1acf7b; all19 small objects
+fully re-downloaded/size/SHA verified under canonical shared lock. Never repeat.
+No MRI/labels/case IDs/weights mirrored. Candidate875858 healthy445updates/epoch2
+and empty stderr atprogress31; only candidate1/control1–3 preserved so far.
+Original137329288/v1 still authenticated RUNNING14:24UTC. Memory32-v2 remains
+prepared only; do not dispatch before actual fullscale terminal success/fresh
+quota/original jobs. No new paired accuracy or Kaggle score.
+
+Notebook-inclusive memory32-v2 source c8e63bd416240602 is prepared/compiled,
+NOT pushed. It preserves exact original32 FP32 values and requires all seven
+processes (notebook plus6 workers/parent/tracker) RSS and total bootstrap walltime
+<=1800s. Client/server both require actual137329288/v1 COMPLETE/exact1300 before
+any cloud intent; actual local guard refused live RUNNING prerequisite. Read
+kaggle-fp32-prefetch-memory32-v2. V1 local six-process-only preparation is
+superseded/unpushed. Original1300 still authenticated RUNNING14:01UTC. Streaming
+log-read timeout was observation-only; status rechecked, no restart.
+Original875858 candidate370finite updates/epoch2/empty stderr atprogress30;
+control1–3/candidate1 remain privately verified once. Actual five owned-GPU
+NVML samples61–82%/11509MiB were collected within SAME allocation; no CUDA/model
+context or newGPU job, no epoch-profile/accuracy inference. Newmemory877134 still
+pendingResources. Full2230tests/Ruff370/mypy50 passed, no new paired/Kaggle score.
+
+Memory-accounting/candidate1 milestone sourcefa9711c2 privately mirrored at HF
+a66809065e47bbf6dadf56ae80679f293fdff2d2; all15 small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Never repeat. No raw MRI, labels,
+case IDs or weights mirrored. Full2219tests/Ruff368/mypy50/archive/current89/89
+passed. Original1300 kernel still RUNNING13:45UTC; old partial RAM accounting
+is explicitly unadmitted. Healthy875858/queued877134 unchanged; no new score.
+
+October6 candidate epoch1 from original875858 completed281updates and was privately
+published ONCE/full5-object download-size-SHA verified at HF5ee4dd4b6e2c0311c73f2d93262e4e55e6ff92cc viaCPU877791. Checkpoint ef1f7948650662f6cc0dd7d67ea6c8ea6bb33117f33312d80f787206a5aae74f; never repeat control1–3/candidate1. Candidate healthy293updates/epoch2 atprogress29, memory877134pendingResources, exact1300benchmark137329288/v1RUNNING13:40UTC. No pairedaccuracygain or newKaggle score.
+The FP32pre-fetch RAM reporter omitted preparation workers/tracker. New standard-
+library Linux lifetime-RSS reporter actually passed six-process CPU877784;
+read process-memory-accounting-v1. Original32 and running1300 exactvalues/timing
+remain useful, but old RAM figures are NOT complete process-tree bounds. Require
+new actual MRI/T4 memory acceptance before deployment; no job/math/data changed.
+
+ActualexactFP32prefetch32 acceptance/larger1300launch sourceaa11c160 privately
+mirrored at HF932e897c874f8f12b557e501b29383ff911c52bb; all18small objects fully
+re-downloaded/size/SHA verified under canonical sharedlock. Neverrepeat. No rawMRI/
+labels/caseIDs/weights mirrored. Corrected137329288/v1 benchmark actualRUNNING,
+no largerthroughput/exactvalue/hidden9h result inferred. Candidate875858actual223
+finiteupdates/epoch1/emptystderr atprogress25, newmemory877134pendingResources.
+No pairedaccuracygain or newKaggle score. Keep numerical/data/job recipes intact;
+inspect actualnewcompleted epochs/results before mutation.
+
+Actual exactFP32prefetch GPU137327561/v1 COMPLETE: all32x12 values originalidentical,
+finite/fallback0,3prefetches,289.8776spipeline/no reference repeat,GPU2.361GB/
+hostreported8.157GB; no hidden9h/clinicalgain. Larger unchanged1300scope+4h private
+benchmark137329288/v1 pushedONCE, slugrsna-fp32-prefetch-1300-85bfc1ce-v2 source
+9808de6b3e599636. Onlyscope/deadlinechanged; all1300 exactvalues/fallback0/limits
+required. Originalpreflight877630 expected1300fromCPU32, STOPPEDbeforecloudintent/
+response; absence+boundaryreconciled,8CPU32/priorGPU32/reference1300/final1300
+actualrecord assertionreplays passed. Preserve failure; neverrepeat newpush.
+Readkaggle-fp32-prefetch-1300-v2. Candidate875858healthy196updates atprogress24,
+newmemory877134pendingResources, acceptedsource/recipes/data unchanged. No new
+competition slot/score, no newDataset or rawMRI/caseRecord transfer.
+
+ExactFP32prefetch/correctedCSVboundary milestoneb4492670 privately mirrored at
+HFd14c554088693828deb1c5a073959ad998cf3bdd; all25small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Do not repeat. No rawMRI/labels/
+caseIDs/weights mirrored. Exactcorrected137327561/v1 actualRUNNING, no GPUruntime/
+bitagreement result yet; original137326383 failed beforeprep/model. Candidate
+875858healthy159updates/epoch1 atprogress23; newmemory877134pending. Source/masks/
+folds/weights/healthyrecipes unchanged. Keep goalactive; no scoredimprovement or
+hidden9h claim. Next inspect originaloutcomes and newepochs before action.
+
+ExactFP32 one-chunk-prefetch hypothesis implemented outsidecanonical numerics:
+2spawned/1thread CPUprep overlap2residentGPUworkers, max2x3GiBchunks+3GiBreserve,
+no rounding/fallback/reducedimages. Actualspawnedbyte/recovery/order+overlap tests
+pass; CSVroundtrip-boundaryregression added. Originalprivate137326383/v1 ERROR
+beforeprep/model at284s dueindices: constructorfulltable vsconsumerresetCSV.
+Distinct corrected137327561/v1 pushedONCE sourcee4d26343885bfadf; same actualsourceCSV
+read byboth; requireexact32x12originalFP32values/finite/fallback0/runtimecaps.
+Actualoutcome pending; neverduplicatepush/fitter job. Readkaggle-fp32-prefetch-32-v2.
+Existing875858candidate159finiteupdates/epoch1, emptystderr; controlfixed3internal
+0.781alreadybound/preserved, pairedgainpending. Newmemory877134pendingResources;
+relevanthealthyH100nodesbothallocated/free44haspriorCUDAfailure, no unsafe retry.
+No labels/masks/folds/weights/healthyrecipe changed and no newKaggle score.
+
+Actualcontrol0.781internal endpoint/provenCPUprep2.3194x/failedFP16fixed-bound and
+scopedbootcorrection source7ed0a816 privately mirrored at HF4b5cbd96950b744384c6c495b187cb195dac44c8; all31small objects fully re-downloaded/size/SHA verified under canonical
+sharedlock. Never repeat. No MRI/labels/rawcaseIDs/weights mirrored. Candidate
+original875858 actual78finite updates/epoch1 atprogress20, emptystderr; newmemory
+877134PENDING(Resources), no pairedgain/Kaggleclaim. Keep source/jobs unchanged;
+next exactFP32 + bounded/pipelinedCPUprep is a separate unadmitted execution
+hypothesis, not permission to relax0.003 or reuse failedversions.
+
+Actualfull1300 FP16parallelv2 137322166/v1 ERRORafterinference at522.876s duefixed
+0.003FP32agreement bound, NOTbootstrap: first32pass; chunk4(two cells/40studies)
+ACLmax0.00496838/latmeniscus0.00667844. Originalreference wholeCSVhash verified,
+CPU-RAMstats only/no rawcase data; do notrelax bound/retrypureFP16. Keep default
+exactFP32 inference and proven byte-exactCPUprep2.3194x; pursueexact/pipelinedprep
+ratherthan invent numericalequivalence. Readactual-inference-decision. Clinical
+AUCeffect/hidden9h unproven. Originalfailedv1 discovery+correctedv2 retained.
+Control3fixed endpoint0.7810206776internal12macro; candidatecontinuesoriginaljob
+(39finite updates atprogress19), no pairedgain. Newmemory877134stillpending; never
+duplicate jobs or alter accepteddata/source. No new competition score/submission.
+
+Original875858 control fixed3 internal12macro0.7810206776 on1156 weak-label outer,
+MCL0.4397/latmeniscus0.6845, exactsource/roster/finalcheckpoint/predictions binding
+verified; no paired gain/Kaggle/promotion. ExistingMCL5fitpositives/2outer in2components
+makes its pointestimate unstable; lateralmeniscus297fitpositives, scarcityalone
+cannot explainit. Candidate unchanged/follows originalcontrol; readcontrol-support-note.
+Full1300 privatebenchmark137321290/v1 ERRORat1.384s beforemodel/MRI/infer: recursive
+attached-output discovery exceeded2048dirs. Corrected exact versioned payload-root
+lookup (2100dirregression) preserves allmath/data/tolerance; distinct137322166/v1
+pushedONCE sourceb744f7c287b73578, actualRUNNING. Neverrepeat original/corrected.
+Readkaggle-fp16-fullscale-parallel-v2. Both successful32GPU/CPU gates preserved;
+newmemory877134pending, original875858healthy. No masks/folds/weights/recipe altered.
+
+ActualCPUprep137319670/v1 COMPLETE: original32MRI/all338cachefiles169series/selection+
+recovery byte-exact serial vs2spawned/1thread;259.835862s→112.026435s,2.3194x,
+host~10.01GB/1.2186GBpercache; no labels/model/GPU/clinicalclaim. Combined full1300
+FP16+parallelprep privateGPU137321290/v1 pushedONCE after exactactualCPU+32GPU
+receipts and freshquota/source/ledger review, source2a014a7bebc49d0f. Sameoriginal
+0.804model/geometry/fullroster, original5hFP32CSV hash-bound privateparent reused,
+no repeated reference inference. Every1300x12cell must meet fixedtol0.003/fallback0;
+4hbenchmark cap. Defaultserial/FP32 entry unchanged; hidden9h/clinicalequivalence
+unadmitted. Neverrepeat thispush. Sourceprepared3hserialfullscope was neverrun.
+Read kaggle-fp16-fullscale-parallel-v1. Keep875858/877134 unchanged, preserve new
+epochs once and wait fullpaired endpoint; controlfixed3 alreadyprivately verified.
+
+Fixed-finalcontrol3 preservation/actualFP16timing/preparation source79afd14f
+privately mirrored at HF2d9666d1261a9db8fa9f4797988d9ef2ad921814; all35small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. Never
+repeat. No rawMRI/labels/privatecaseIDs/weights mirrored. Control1/2/3 privately
+verified, fullpaired result pending. CPUprep137319670/v1 actualRUNNING; newmemory
+877134 remains pendingResources. Keep originals and exact intents unchanged.
+
 Original875858 control completed843optimizerupdates/3epochs; immutablefinal3
 privately published ONCE at HF71d5b932e7aef051025a2f25351614a145e00512, all5 objects
 fully re-downloaded/size/SHA verified CPU877378, checkpoint393259ce7c51753d14611f4713a59a4ba79902c50756c7b0bad0eb2e2e46a39a.

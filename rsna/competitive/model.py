@@ -6,6 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from rsna.competitive.context import NeighborSliceContext
+from rsna.competitive.feature_summary import PatchMeanProjection
 from rsna.competitive.plane_memory import PlaneMemoryBranch
 from rsna.competitive.relations import SliceDistanceHead, SliceRelations
 from rsna.competitive.witness import PatchWitness
@@ -33,6 +34,7 @@ class CompetitiveStudyNet(nn.Module):
         witness: dict | None = None,
         plane_memory: dict | None = None,
         input_channels: int = 1,
+        patch_summary: dict | None = None,
     ):
         super().__init__()
         if (
@@ -130,6 +132,20 @@ class CompetitiveStudyNet(nn.Module):
                 )
             self.plane_memory = PlaneMemoryBranch(embedding_dim, plane_memory)
 
+        self.patch_summary: PatchMeanProjection | None = None
+        if patch_summary is not None:
+            if (
+                pooling != "attention"
+                or slice_context != "none"
+                or witness is not None
+                or plane_memory is not None
+                or relation_hidden_dim is not None
+                or input_channels != 1
+                or not callable(getattr(encoder, "forward_features", None))
+            ):
+                raise ValueError("First CLS/patch-mean comparison requires plain spatial DINO")
+            self.patch_summary = PatchMeanProjection(embedding_dim, hidden_dim, patch_summary)
+
     def train(self, mode: bool = True) -> CompetitiveStudyNet:
         super().train(mode)
         if not any(p.requires_grad for p in self.encoder.parameters()):
@@ -182,6 +198,7 @@ class CompetitiveStudyNet(nn.Module):
             self.pooling == "patch_attention"
             or self.witness is not None
             or self.plane_memory is not None
+            or self.patch_summary is not None
         ):
             forward_features = getattr(self.encoder, "forward_features")
             spatial_chunks = [
@@ -204,7 +221,11 @@ class CompetitiveStudyNet(nn.Module):
             or not torch.isfinite(encoded).all()
         ):
             raise ValueError("Encoder must return finite [valid_slices,embedding_dim]")
-        projected = self.projection(encoded)
+        if self.patch_summary is None:
+            projected = self.projection(encoded)
+        else:
+            combined = self.projection[0](encoded) + self.patch_summary(patches)
+            projected = self.projection[2](self.projection[1](combined))
         slice_position = self.position_embedding(valid_positions.to(projected.dtype))
         if self.pooling == "patch_attention":
             assert (

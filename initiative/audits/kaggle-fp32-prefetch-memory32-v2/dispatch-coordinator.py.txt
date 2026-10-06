@@ -1,0 +1,19 @@
+import hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+root=Path.cwd();local=root/'artifacts/kaggle-fp32-prefetch-memory32-v2';phase=sys.argv[1];assert phase in ['push','status'];roster=json.loads((local/'private-roster.json').read_text());op=json.loads((root/'initiative/audits/kaggle-nativeall-epoch5-v1/runtimefix/operation.json').read_text());proof=json.loads((root/'initiative/audits/kaggle-nativeall-epoch5-v1/runtimefix/dataset-verified.json').read_text());assert proof['id']==12333543 and proof['private'] is True and proof['status']=='all_payload_bytes_verified';assert roster['fitting_count']==2247 and roster['outer_count']==1156 and roster['studies']==1300 and roster['protected_gold_confirmation_or_outer_used'] is False
+contract=json.loads((local/'source-contract.json').read_text());source=(local/'private-notebook.py').read_text();assert hashlib.sha256(source.encode()).hexdigest()==contract['source_sha256']
+values={};env=root/'.env';assert env.stat().st_mode&0o077==0
+for line in env.read_text().splitlines():
+ k,s,v=line.partition('=')
+ if s:values[k.strip()]=v.strip().strip('\"\'')
+receipt=json.loads((root/'artifacts/kaggle-effusion-comparison-v1/identity-coordinator-completion-projection/receipt.json').read_text());payload={'phase':phase,'token':values['KAGGLE_API_TOKEN'],'projection_sha256':receipt['projection_sha256'],'contract':contract,'source':source};program=(local/'coordinator.py').read_text()
+bootstrap="import json,os,subprocess,sys;from pathlib import Path;v=json.load(sys.stdin);p=json.loads(Path('/tmp/rsna-kaggle-effusion-final-20261004-v1/runtime.json').read_text())['python'];env=os.environ.copy();env.update(PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1');x=subprocess.run([p,'-B','-c',v['program']],input=json.dumps(v['payload']),env=env,capture_output=True,text=True);sys.stdout.write(x.stdout);sys.stderr.write(x.stderr);sys.exit(x.returncode)"
+if phase=='push':
+ current=json.loads((root/'artifacts/kaggle-fp32-prefetch-1300-v2/status-receipt.json').read_text());assert current['status']=='COMPLETE' and current['benchmark']['studies']==1300 and current['benchmark']['original_FP32_comparison']['exact_prediction_values_equal'] is True,'Do not duplicate or overlap the live original benchmark'
+ prior=json.loads((root/'artifacts/kaggle-fp32-prefetch-32-v2/status-receipt.json').read_text());assert prior['status']=='COMPLETE' and prior['benchmark']['original_FP32_comparison']['exact_prediction_values_equal'] is True
+ cpu=json.loads((root/'artifacts/kaggle-parallel-preparation-CPU-v1/status-receipt.json').read_text());assert cpu['status']=='COMPLETE' and cpu['benchmark']['status']=='actual_original32_serial_parallel_preparation_bytes_exactly_equal'
+ with (local/('dispatch-intent.json' if phase=='push' else 'corrected-dispatch-intent.json')).open('x') as f:json.dump({'phase':phase,'source_contract':contract,'coordinator_sha256':hashlib.sha256(program.encode()).hexdigest(),'resources':'oneCPU zeroGPU evc32 canonical coordinator','remote_control':'/tmp/rsna-fp32-prefetch-memory32-20261006-v2','automatic_retry':False},f,indent=2);f.write('\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc32','--gres=none','--mem=8G','--time=00:10:00','--job-name=rsna-resident-private-'+phase,'/usr/bin/python3.12','-B','-c',bootstrap]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'program':program,'payload':payload}),capture_output=True,text=True,timeout=650)
+name=phase+'-result-'+str(len(list(local.glob(phase+'-result-*.json'))))+'.json';(local/name).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr
+r=json.loads(x.stdout);(local/(phase+'-receipt.json')).write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r))

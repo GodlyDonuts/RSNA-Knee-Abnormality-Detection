@@ -1,0 +1,83 @@
+def digest(value):
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    ).hexdigest()
+
+
+def validate_final(
+    role,
+    run,
+    result,
+    cpu,
+    publication,
+    *,
+    publication_status="private_original_smooth_witness_epoch_full_download_size_SHA_verified",
+):
+    if publication_status not in {
+        "private_original_smooth_witness_epoch_full_download_size_SHA_verified",
+        "private_original_plane_memory_epoch_full_download_size_SHA_verified",
+    }:
+        raise ValueError("Known fixed-final readout preservation contract required")
+    if role not in ROLES or run.get("status") != "completed" or result.get("status") != "completed":
+        raise ValueError("Both actual completed fixed-final roles are required")
+    binding = run["binding"]
+    if (result["optimizer_steps"], result["training_studies"], result["outer_studies"]) != (
+        843,
+        2247,
+        1156,
+    ):
+        raise ValueError("Exact full fixed3-epoch/843-update cohort required")
+    if run["diagnostic_run"] or run["held_out_confirmation_and_gold_used"]:
+        raise ValueError("Engineering or protected-evaluation models are not eligible")
+    if binding["config"] != cpu["expected_bound_config"][role] or binding["code_sha256"] != {
+        n.removeprefix("rsna/"): h for n, h in cpu["source_sha256"].items() if n.startswith("rsna/")
+    }:
+        raise ValueError("Actual accepted model/source/configuration differs")
+    for key in ("training_uids_sha256", "outer_uids_sha256", "folds_sha256"):
+        if binding[key] != cpu[key]:
+            raise ValueError("Actual frozen membership differs")
+    if binding["release"]["binding_sha256"] != cpu["release_binding_sha256"] or result[
+        "binding_sha256"
+    ] != digest(binding):
+        raise ValueError("Final release/model binding differs")
+    if (
+        publication.get("status") != publication_status
+        or publication["file_count"] != 5
+        or publication["epoch"] != 3
+        or publication["mode"] != role
+        or publication["checkpoint_sha256"] != result["checkpoint_sha256"]
+    ):
+        raise ValueError("Actual fixed-final private whole-byte preservation required")
+
+
+def auc_plan(truth, scores):
+    """Cache score ties/order; later weights represent whole-component draws."""
+    truth, scores = np.asarray(truth), np.asarray(scores, dtype=float)
+    if (
+        truth.ndim != 1
+        or scores.shape != truth.shape
+        or not len(truth)
+        or not np.isin(truth, (0, 1)).all()
+        or not np.isfinite(scores).all()
+    ):
+        raise ValueError("AUC requires aligned finite binary observations")
+    order = np.argsort(scores, kind="stable")
+    starts = np.r_[0, np.flatnonzero(np.diff(scores[order])) + 1]
+    return truth.astype(float)[order], order, starts
+
+
+def weighted_auc(plan, weights):
+    truth, order, starts = plan
+    weights = np.asarray(weights, dtype=float)
+    if weights.shape != truth.shape or not np.isfinite(weights).all() or (weights < 0).any():
+        raise ValueError("AUC weights must be aligned, finite and nonnegative")
+    ordered = weights[order]
+    positives = np.add.reduceat(ordered * truth, starts)
+    negatives = np.add.reduceat(ordered * (1 - truth), starts)
+    total_positive, total_negative = positives.sum(), negatives.sum()
+    if not total_positive or not total_negative:
+        return None
+    negatives_below = np.cumsum(negatives) - negatives
+    return float(
+        np.sum(positives * (negatives_below + 0.5 * negatives)) / (total_positive * total_negative)
+    )

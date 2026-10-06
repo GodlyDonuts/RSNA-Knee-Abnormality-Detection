@@ -1,0 +1,44 @@
+"""Read-only exact control endpoint validation; labels remain on the owning node."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/smooth-witness-control-replay-v1');a=Path('initiative/audits/smooth-witness-full-fit-v2/control-independent-replay');assert not a.exists()
+helpers=(r/'helpers.py.txt').read_text();cpu=json.load(open('initiative/audits/smooth-witness-full-fit-v2/actual-CPU-acceptance.json'))
+program=r'''import hashlib,io,json,math,os
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import pyarrow.dataset as ds
+v=json.load(__import__('sys').stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+assert hashlib.sha256(v['helpers'].encode()).hexdigest()==v['helper_sha256']
+ROLES=('control','candidate');exec(compile(v['helpers'],'accepted-existing-point-verifiers','exec'),globals())
+root=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v2');cpu=json.load(open(root/'CPU-accepted.json'));run=json.load(open(root/'control/run.json'));result=json.load(open(root/'control/result.json'));pub=json.load(open(root/'epoch-publication/control/epoch-003/verified.json'))
+validate_final('control',run,result,cpu,pub)
+raw=(root/'control/outer_predictions.csv').read_bytes();assert len(raw)<512*1024 and hashlib.sha256(raw).hexdigest()==result['predictions_sha256']=='68aa0267060954ecff3d15dd41ed451522ae929eed30778f0eabb84ddd01740b'
+targets=run['binding']['targets'];assert len(targets)==12
+pred=pd.read_csv(io.BytesIO(raw),dtype={'study_uid':str});assert list(pred.columns)==['study_uid','fold','seed',*targets] and len(pred)==1156 and pred.study_uid.is_unique
+assert digest(sorted(pred.study_uid.tolist()))==cpu['outer_uids_sha256']
+assert pred['fold'].eq(cpu['expected_bound_config']['control']['fold']).all() and pred['seed'].eq(cpu['expected_bound_config']['control']['seed']).all()
+spec=cpu['trainer_inputs'];studies=Path(spec['studies']);assert hashlib.sha256(studies.read_bytes()).hexdigest()==run['binding']['release']['manifest_sha256']
+folds=pd.read_csv(Path(spec['folds'])/'fold.csv');assert digest(folds.sort_values('study_uid').to_dict('records'))==cpu['folds_sha256']
+assert folds.set_index('study_uid').loc[pred.study_uid,'fold'].eq(0).all()
+columns=['study_uid','split','leakage_group',*targets,*[t+'__mask' for t in targets]]
+labels=ds.dataset(studies,format='parquet').to_table(columns=columns,filter=(ds.field('split')=='train')&ds.field('study_uid').isin(pred.study_uid.tolist())).to_pandas().set_index('study_uid')
+assert len(labels)==1156 and labels.index.is_unique and set(labels.index)==set(pred.study_uid)
+labels=labels.loc[pred.study_uid];rows=[]
+scores=pred[targets].to_numpy(dtype=float);assert np.isfinite(scores).all() and (scores>=0).all() and (scores<=1).all()
+for i,target in enumerate(targets):
+ mask=labels[target+'__mask'].to_numpy();assert np.isin(mask,[0,1]).all();observed=mask==1
+ truth=labels.loc[observed,target].to_numpy(dtype=float);plan=auc_plan(truth,scores[observed,i]);auc=weighted_auc(plan,np.ones(len(truth)));expected=result['metrics']['per_target_auc'][target]
+ assert auc is not None and abs(auc-expected)<=1e-12 and int(observed.sum())==result['metrics']['observed_studies'][target]
+ rows.append({'target':target,'independent_auc':auc,'original_auc':expected,'absolute_difference':abs(auc-expected),'observed_studies':int(observed.sum()),'positive_studies':int(truth.sum()),'negative_studies':int(len(truth)-truth.sum())})
+macro=float(np.mean([row['independent_auc'] for row in rows]));assert abs(macro-result['metrics']['macro_auc'])<=1e-12
+print(json.dumps({'status':'actual_control_fixed_final_masked_AUC_independently_replayed_from_original_CSV_and_outer_labels','CPU_job':os.environ['SLURM_JOB_ID'],'GPU_training_job':'875858','source_git':cpu['source_git'],'helper_sha256':v['helper_sha256'],'binding_sha256':result['binding_sha256'],'checkpoint_sha256':result['checkpoint_sha256'],'predictions_sha256':result['predictions_sha256'],'private_final_revision':pub['revision'],'fixed_epochs':3,'optimizer_steps':843,'outer_studies':1156,'macro_auc':macro,'targets':rows,'method':'existing separately tested stable-sort/tie-aware weighted rank statistic; original trainer sklearn output verified within1e-12','rows_release_fold_seed_source_and_private_publication_bound':True,'candidate_result_or_paired_gain_observed':False,'outer_target_values_read_for_this_frozen_evaluation_only':True,'protected_gold_confirmation_labels_read':False,'raw_labels_predictions_MRI_or_weights_collected':False,'new_GPU_model_optimizer_or_dataset_mutation':False,'kaggle_score':None}))
+'''
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=2G','--time=00:03:00','--job-name=rsna-control-AUC-replay',cpu['runtime']['python'],'-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'helpers':helpers,'helper_sha256':hashlib.sha256(helpers.encode()).hexdigest()}),capture_output=True,text=True,timeout=220)
+with (r/'original-dispatch-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stderr
+v=json.loads(x.stdout);a.mkdir()
+with (a/'actual-replay.json').open('x') as f:json.dump(v,f,sort_keys=True,indent=2);f.write('\n')
+(a/'read-only-observer.py.txt').write_text(Path(__file__).read_text());(a/'existing-helpers.py.txt').write_text(helpers)
+print(json.dumps(v))
