@@ -116,13 +116,16 @@ extractor** and the cheapest probe to run (no architecture surgery).
 Triad is MIT with 4 checkpoints on GDrive (SwinB + PlainConvUNet, MAE +
 SimMIM variants) but 3D. PRISM and Decipher-MR appear paper-only — no
 public weights found. Ranked probe list: (1) MRI-CORE ViT-B init —
-drop-in, Apache-2.0; (2) OrthoDiffusion path — most knee-domain signal,
-3D surgery; (3) own-corpus DINO self-distill — strongest domain match,
-day-scale cost; (4) Triad Swin-B — generic 3D, weaker evidence;
-(5) KGNet-style multi-task — needs segmenter first. The single best
-move if a GPU slot opens: short paired probe of MRI-CORE init vs
-current ImageNet init, same head, same fold — cheapest possible read
-of whether domain-matched initialization is the lever.
+drop-in, Apache-2.0 — caveat: knee coverage in Duke-110K's 18 body
+locations is unverified (the paper's own similarity-transfer analysis
+is the check to run before committing); (2) OrthoDiffusion path — most
+knee-domain signal, 3D surgery; (3) own-corpus DINO self-distill —
+strongest domain match, day-scale cost; (4) Triad Swin-B — generic 3D,
+weaker evidence; (5) KGNet-style multi-task — needs segmenter first.
+The single best move if a GPU slot opens: short paired probe of
+MRI-CORE init vs current ImageNet init, same head, same fold —
+cheapest possible read of whether domain-matched initialization is
+the lever.
 
 ## Then what
 
