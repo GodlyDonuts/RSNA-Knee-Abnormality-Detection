@@ -1,3 +1,11 @@
+Actual encoder-update audit and smooth control-epoch2 receipts/source63275a13
+privately mirrored at HF853473b7e60e7406b881f3056e1f115d1962b675; all16small
+objects fully re-downloaded/size/SHA verified under canonical lock. Never repeat.
+No raw MRI/labels/caseIDs/learnedweights mirrored. Originalcontrol1/2 remain
+privately verified; full-memory GPU is not dispatched and137306285/v1 remains
+actualRUNNING at the last authenticated check. Next: inspect original terminal,
+then use the prepared single full-memory dispatch once on actual acceptance.
+
 Full-memory CPU/source/budget/publisher/paired-analysis milestonee3a9f68d is privately
 mirrored at HF353ca9ce5e42b4c49c3b5d3610fc5be48682f077; all21small objects
 fully re-downloaded/size/SHA verified under canonical shared lock. Do not repeat.
