@@ -102,7 +102,12 @@ unlabeled cells, generalized assume-negative, consistency pseudo-labeling
 (weak-aug teacher → strong-aug student). A controlled variant: identical fit,
 three masked-cell treatments — ignore (current), EM regularizer, consistency
 pseudo-label. Most relevant for the sparse targets (MCL 7, fracture 5,
-Baker's 9 observed positives).
+Baker's 9 observed positives). **EM arm BUILT (2026-10-06, PR #4)**:
+`TrainConfig.masked_cell` + `masked_cell_entropy` loss with effective-batch
+normalization and isolated-arm validation; the corpus coverage table made it
+load-bearing — Synovitis has 316 positives against 13 negatives (89% masked),
+so the masked budget IS that target's supervision. Consistency EMA arm
+remains design.
 
 ### 7. Knee-domain self-supervised pretraining on our own corpus
 
