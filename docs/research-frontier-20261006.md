@@ -148,11 +148,13 @@ already implements most of this — chunked/resumable inference with per-chunk
 submission writes, neutral rows for unusable studies
 (`test_unusable_mri_studies_get_neutral_rows`), resilient healthy-series
 alternates, and decoder-plugin fallback for recognized DICOM failures. The
-one genuinely missing piece is a **wall-clock budget governor** with adaptive
-degradation (reduce slices / truncate under a projected overrun); current
-margin is comfortable (5.1h measured vs 9h on the 1,300-study benchmark) so
-this is contingency engineering for a larger future model, not a present
-blocker.
+one genuinely missing piece was a **wall-clock budget governor** — BUILT
+(2026-10-06, PR #4): `--budget-seconds` projects per-chunk overrun from the
+observed per-study rate and `--budget-neutralize` fills the remaining tail
+with neutral 0.5 rows so a near-overrun still emits a complete submission
+instead of dying at hour 9. Model-input degrade (fewer slices) is not
+possible mid-run: cache geometry is checkpoint-bound. Margin remains
+comfortable (5.1h measured vs 9h), so this stays contingency engineering.
 
 ## Second sweep (2026-10-06): MIL-family and auxiliary findings
 
