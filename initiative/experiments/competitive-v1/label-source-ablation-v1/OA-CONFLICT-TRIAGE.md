@@ -19,7 +19,7 @@ sentence with both is a "compartment hit". Buckets:
 |--------|-------|---------|
 | compartment hit | 302 | report names compartment-level OA evidence |
 | generic OA only | 22 | whole-joint OA claim, no compartment |
-| no OA signal | 177 | no OA-evidence sentence for that compartment |
+| no OA signal | 177 | no keyword match — but **sampled verification shows this bucket is regex miss-rate, not absent evidence**: all 5 sampled cells carry mild findings in the v2 evidence quote (grade-I–II chondromalacia, small osteophytes, cartilage thinning) in languages/forms the keyword set missed (Croatian, Greek). Effectively the whole 501-cell class is "v2 negative on real-but-mild findings". |
 
 ## Sample verification (14 cells read end-to-end)
 
