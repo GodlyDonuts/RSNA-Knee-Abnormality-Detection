@@ -61,25 +61,34 @@ set — an initialization nobody else in the competition has.
 
 Zhuang et al., "Enhancing Knee Disease Diagnosis via Multi-View Graph
 Representation With Multi-Task Pre-Training" (IEEE TMI 45(5):2493-2504,
-2026; public code github.com/zixuzhuang/KGNet). Two transferable ideas on
-top of vanilla DINO:
+2026; public code github.com/zixuzhuang/KGNet — inspected 2026-10-06).
+Two transferable ideas on top of vanilla DINO, **with a hard prerequisite**:
 
-1. **Multi-task pretrain**: reconstruct masked knee local patches AND
-   segment unmasked ones, i.e. masked-image modeling + a dense anatomical
-   task — richer than pure self-distillation for anatomy-biased targets
-   (cartilage, ACL — exactly the classes KGNet reports gains on).
+1. **Multi-task pretrain**: `pretrain` vertex-masks knee-graph vertices
+   (fully-masked → reconstruct, kept → predict class, mixed); the seg head
+   predicts **8-class × 3-view bone segmentations** (`KneeLoss.seg_` is
+   cross-entropy on `data.seg`) — richer than pure self-distillation for
+   anatomy-biased targets (cartilage, ACL — exactly the classes KGNet
+   reports gains on).
 2. **Multi-view graph**: radiologists localize in one plane and confirm in
-   others; KGNet's gains come partly from structuring axial/coronal/
-   sagittal series as a per-study graph. Our per-study manifest already
-   has the plane grouping to feed such a structure — item 12 of the
-   frontier doc (CoPAS-style cross-sequence attention) is the inference-time
-   sibling and was judged marginal; the pretrain-time formulation is the
-   stronger claim.
+   others; KGNet structures axial/coronal/sagittal series as a per-study
+   graph. Our manifest already has the plane grouping — but the graph's
+   vertices come from `construct_graph.py`, which extracts bone vertices
+   FROM segmentation masks (`bone_index`, `seg/` folders, adjustFOV).
+
+**Prerequisite cost (code-verified)**: the KGNet recipe needs per-study
+bone segmentation maps that our corpus does not have. Options: train a
+pseudo-segmenter on OAI-ZIB (public knee MRI segmentations) or an
+existing knee segmentation model, then run KGNet-style masking on its
+outputs. That makes it a *second*-recipe candidate behind the cheap DINO
+self-distill probe — record the dependency now so the GPU session prices
+it honestly instead of discovering it mid-run.
 
 Decision stays the same: whichever recipe wins a short paired probe on the
 same manifest becomes `encoder.init`; the arbiter is unchanged (paired
-outer-fold AUC vs ImageNet init). No implementation until a funded GPU
-slot exists — recorded here so the recipe choice is made deliberately.
+outer-fold AUC vs ImageNet init). DINO self-distill needs nothing beyond
+the manifest; KGNet-style needs a segmenter first. No implementation until
+a funded GPU slot exists.
 
 ## Then what
 
