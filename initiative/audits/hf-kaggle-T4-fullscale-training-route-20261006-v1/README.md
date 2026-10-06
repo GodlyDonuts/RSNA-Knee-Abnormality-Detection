@@ -1,0 +1,3 @@
+# Private actual-T4 and training-route preservation
+
+Source7c6651e is privately mirrored at HF revision 81bf8a91f1fdc1795b40b337fbc5e1d3310ed39f. All42 small objects were fully re-downloaded/size/SHA verified under the canonical shared atomic lock. This preserves the actual32-study T4 probability/resource result, distinct1300-scale benchmark dispatch, portable unchanged full-release proof/private input Dataset receipt, private CPU MRI-admission dispatch and actual evc24 device failure. No raw MRI, reports/labels, fitting UID lists, detailed tensor/candidate records or learned weights were mirrored. No accuracy gain or GPU training acceptance is claimed. Never repeat this publication.

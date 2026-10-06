@@ -1,3 +1,9 @@
+Latest source7c6651e privately preserved at HF81bf8a91f1fdc1795b40b337fbc5e1d3310ed39f,
+all42 small objects fully re-downloaded/size/SHA verified under canonical lock.
+Read hf-kaggle-T4-fullscale-training-route-20261006-v1; never repeat. Full2045tests/
+Ruff322/mypy48/current89/89 passed. Actual32 T4 proof complete; broader1300 and
+CPU32 original-MRI input acceptance remain live/pending. No new clinical gain.
+
 October6 actual T4 evidence: original32 benchmark137247865 v1 COMPLETED.
 Original FP32 values exactly equal on3 comparisons; all32 finite/no fallback,
 one model load/device,2.36GB allocated/GPU and10.65GB conservative hostRSS.
