@@ -1,3 +1,8 @@
+Original-MRI public-label CPU/GPU-start source39e7247b privately preservedONCE
+at HFdb387e30007d5730fac24a4702280955391d4f8b; all22small objects fullre-download/
+size/SHAverified undercanonical lock. Do notrepeat. GPU137385338/v1 actualRUNNING
+with offlineinstallation progress; real recovery not yet accepted.
+
 October6 20:11UTC public-label original-MRI GPU diagnostic pushedONCE137385338/v1,
 private/offline/source350e0723; no competition slot. OriginalCPU879039 lock refusal
 was reconciled viaCPU879040: no create intent/response; exact prepared source reused.
