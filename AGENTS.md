@@ -1,3 +1,10 @@
+Secondnode resourcefeasibility read-only: nativecache140.626GB/37812members,
+evc34localfree728.789GB and1unallocatedH100. Normal2h/48h forecastnextmorning;
+preemptable2h forecastearlierOct6 20:47clusterlocal. Not guaranteed/not jobs.
+No transfer/GPUreservation/originaljobchange. Read second-node-training-feasibility-
+20261006-v1; possiblefullfixed10 checkpoint-continuous route needsimmutable
+transport/byte/tensor/runtime/storage/H100admission, not tiny accuracy pilot.
+
 Actualpublic-labelGPUacceptance/full879172launch milestone2d2688f8 privately
 verifiedONCE HF7ec345a9e1778570e16731b9fed1802a2e7cbb9c/all10smallobjects.
 Neverrepeat. Job879172actualPENDING Priority; oldobserverterminalaccessloss
