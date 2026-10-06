@@ -1,3 +1,8 @@
+Actualpublic-labelGPUacceptance/full879172launch milestone2d2688f8 privately
+verifiedONCE HF7ec345a9e1778570e16731b9fed1802a2e7cbb9c/all10smallobjects.
+Neverrepeat. Job879172actualPENDING Priority; oldobserverterminalaccessloss
+reviewed/no restart. T4v1complete, ownassignedH100recovery requiredbeforefullfit.
+
 Originalpublic-label T4137385338/v1 actualCOMPLETE/3175.6s; both control/public
 complete model/base/AdamW/LR/counters/RNG/scaler/CSV recovery,4finiteupdates each
 andnonzeroencodergradients. Actualreceiptpublic-label-source-GPU-recovery-v1.
