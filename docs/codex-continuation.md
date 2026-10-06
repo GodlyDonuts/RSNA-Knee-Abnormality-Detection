@@ -1,3 +1,10 @@
+Public-label fixed10 production wrapper and private epoch publisher PREPARED,
+not staged/dispatched/funded: run_public_label_comparison.py and auditpublic-label-
+source-full-fit-preparation-v1. Bothrank32/native384 arms differonly fittinglabel
+source; fixed2810steps/2247fit/1156dev. ActualT4 thenownH100 recovery required;
+exact supervisionreceipt checks inrecovery/final/publisher. New12GiB nodefunding
+andstaging/coordinator remainrequired; existing38GiB liabilities retained.
+
 Original-MRI public-label CPU/GPU-start source39e7247b privately preservedONCE
 at HFdb387e30007d5730fac24a4702280955391d4f8b; all22small objects fullre-download/
 size/SHAverified undercanonical lock. Do notrepeat. GPU137385338/v1 actualRUNNING
