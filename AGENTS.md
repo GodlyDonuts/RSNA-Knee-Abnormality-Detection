@@ -1,3 +1,156 @@
+Latest public-label integration/source, PRreview, baselineactualT4 acceptance/
+878853dispatch and originalmemorycontrol1 receipt milestone source6e2eaaaa is
+privatelymirrored ONCEat HFb677f2ad952f34489eed49e07c2354493e767a8e. All40small
+objects fullyre-downloaded/size/SHAverified undercanonical sharedlock. Fitting-only
+publicUID/probability overlay mirrored privately; no rawMRI/weights/protectedgold
+labels copied. Neverrepeat. Label-source contrast remainslocalprepared/notactual
+GPU-admitted/funded/dispatched; preserve original877134/878853 and subsequent
+completedepochs once. Bestsolo0.804 unchanged; goalactive.
+
+Plain public-label contrast fromPR4 is selectively integrated; no broadPRmerge.
+Readpublic-label-source-v1. PinnedHFShio-Koube/knee3@373f4e1d ispublic; actual630153
+CSVbytes/SHAeb4c2b29 independentlydownloadverified. Fitting-only overlay2247 fully
+covered, SHA c8fd2e86, same1156 eval/masks/folds/release; no gold-tier/blend import.
+Bothfixed10epoch2810configs usecurrentrank32/native384/effective8/FP16scale128/
+chunk8/warmup281/cosine, onlyfitting-supervision enabled differs. Default data
+binarychecks remainstrict; explicitsoft fittingtargets don'taffectevaluation.
+Actualsyntheticfull/stop1/resume botharms complete state/CSV exact; full2292passed
+plusnewconfig regression. No newGPU production/source accuracy acceptance yet.
+
+Originalplane-memory877134 control completedepoch1 and enteredepoch2; immutable
+control1 privatelypublishedONCEat HFf9dc97d066f7df3559167b9bd6594169c64b5c89 via
+CPU878880, all5 objects downloaded/size/SHAverified. Checkpoint282e54f100dcf67b
+843714ecbddf1f9f9019d948e5cb6e03b494a571da610d26. Neverrepeatcontrol1. Preserve
+futureoriginalepochs usingpinnedpublication_coordinator.py. Baseline878853 remains
+originalpending/resourcesorpriority; neverduplicates. Current sourcechanges do
+notmodifyfrozenlive/queuedscientificclosures. Goalactive, bestsolo0.804 unchanged.
+
+October6 researchPR3/4 reviewed at exactheads; no merge. Readresearch-pr-review-
+20261006-v1. Prioritize plainpublic-versus-accepted-v2 fitting-label ablation on
+currentrank32/native384/full10recipe. Verifiedblockers: all26PRconfigs freeze
+encoder/noadapter; entropyterm subtractsBCE(p,.5) and drivesconfidence opposite
+intent; blendchanges418cells on8claimedretainedv2targets; horizontalall-plane
+flip isnotphysicalLR; SSLcorpusunfilteredforprotected/outer; goldinformed source/
+tier choices cannotclaimindependentgold evaluation. ReviewedonlyPRgoldaggregates,
+no protectedlabelrows; currentpredeclaredlive recipes unchanged. StandaloneEMA
+updatesfrozenbase/serializesdensebase also needs correction/funding. Keepfuture
+ensembleutility deferred. PRcontainsusefulfold-bound label-loader/data provenance.
+
+Original137362933/v1 actualT4 completefull/stop1/resume bothroles accepted; all
+model/base/AdamW/LR/counters/RNG/scaler/CSV exact. Finitecoordinatorcompleted and
+submitted originalfull10 baselineONCE878853, actualPENDING(Resources)/zero runtime
+on evc31. Neverrestartfinishworker/repeatjob; actualH100recovery remains required
+insideallocation beforeproduction. Controlroot full-fit-20261006-v2 unchanged.
+Original877134 healthy175finiteupdates/empty stderr at18:10UTC. No newscore.
+
+October6 actualcanonical Kaggle outcomes/allowance rechecked: seed1-control
+56833454 and bothseed2 FAILED runtime/zero bytes/no score; partner56833608 actual
+0.685. Fresh17:30UTC allowance5. A distinctseed1-control exactFP32prefetch candidate
+is prepared fromsame490e23ea1209 weights and originalDataset12369320/v1; nonew
+Dataset/weights transfer. Read kaggle-prefetch-control-recovery-v1. Newproduction
+entry uses benchmarked helpers/test.csv/eightstudy chunks, completeprocess RSS,
+boundedcleanup; metadata-only operation requires original56object whole-byteproof.
+Canonical correction preserves oldfailedID/error and refuses scored/ambiguous
+outcomes or changedDataset/modelbinding. No cloudpush/slot yet; wait original
+137362933 trainingGPU terminal then require exactpublic2T4/source/version/output
+acceptance/freshliveallowance beforeone code submission. H100training/finite
+baseline-launch observer remainhealthy; no scientific recipe changes/newscore.
+
+Corrected full-fit-v2 wrapper/CPU878670 admission sourcedc340da2f privately
+mirrored ONCE at HFc4325a3be7df7d828b46587641d2fca459a326f3; all18 smallobjects
+fully re-downloaded/size/SHA verified under canonical lock. Neverrepeat. NoMRI/
+labels/caseIDs/weights mirrored. Full2267tests/Ruff378/mypy51/current89/89 passed.
+Currentactual137362933/v1 remainsRUNNING; correctedfinite observerPID33957 was
+confirmedLIVE at17:21UTC and observes sameoriginalGPU beforeonefull dispatch.
+Originalfullv1 observer stopped withnoGPU dispatch intent. Keep goalactive;
+nofulltraining/newaccuracy or newKaggle scoreyet.
+
+Original full-fit-v1 finite observer was explicitly terminated before anyGPU
+submission: final expected config incorrectly retained plane_memory=None, while
+canonical training omits it. Read original observer-stopped receipt; no old full
+GPU dispatch exists. A10-case recipe/serialization regression now includes this
+omission. Distinct full-fit-v2 CPU878670 actualsource/input/funding admission passed
+on evc31, unchanged scientific0183ef36 numerics/configs/12GiB reservation.
+The original privateKaggle recovery137362933/v1 staysunchanged/RUNNING; neverrepush.
+New finite originalobserver is artifacts/cls-patch-summary-v1/full-fit-v2/
+finish_when_ready.py, actualLIVE; it submitsone full10epoch H100 job only after
+exactT4 terminalacceptance/freshquota. Neverrestart the cancelledv1 observer.
+Oldv1 source/receipt remainimmutable; correction changedonly expected omitted
+configserialization/controlroot, no model/data/optimizer/clinical training.
+No fullGPUjob or newscoreyet. Read cls-patch-summary-full-fit-v2.
+
+Actual recovery launch/full10 CPU-funding/negative paired result/exact runtime
+milestone sourced578f0cd privately mirrored ONCE at HF
+cd19271e0de9ac4c1f5ef55ea9002ff572dd0b8b; all35 small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Neverrepeat. NoMRI/labels/caseIDs/
+weights mirrored. Current137362933/v1 actualRUNNING; finite originalfinishworker
+continues observing before singlefullGPU dispatch. No actualGPUacceptance/newscore.
+
+Full CLS+patch-mean source/config/input/funding stagingCPU878657 passed on evc31.
+Original private single-active-T4 recovery137362933/v1 pushedONCE and actually
+RUNNING; exact sourceb134f3c145c1e573/CPU878616 binding and freshGPUquota admitted.
+Never repeat push. Finite original finish coordinator is LIVE in
+artifacts/cls-patch-summary-v1/full-fit/finish_when_ready.py: observes exactGPU
+terminal then one admitted36h/1H100/2CPU full10epoch job, or stops on error/expiry.
+Inspect original finish intent/result and actual process before action; never
+restart based on an intent alone. Full-fit notyet submitted, GPU recovery notyet
+accepted. Original877134 healthy realcontrol optimizer progress after H100 recovery.
+Newbaseline12GiB nodefuture funded separately; old26GiB future/20GiB floor retained,
+sharedgrowth0/fresh20.002637GiB/5000file remainder. Existingruntime reused. All20
+futureepochs have exact pinnedpublisher; no newaccuracy/Kaggle score. Read
+cls-patch-summary-GPU-recovery-v1 and cls-patch-summary-full-fit-v1.
+
+The original exactFP32 memory32 notebook137358409/v1 actually COMPLETED:
+all32x12 predictions equal the original, no fallback; all seven processes have
+conservative summed lifetime-RSS13,087,358,976bytes (~12.19GiB), total notebook
+631.9955seconds including bootstrap. This passes the measured32-study RAM check,
+not worst-case hidden-tail/cgroup memory or full hidden9h acceptance. Preserve
+actual-seven-process-terminal.json; never repeat its push. The matched full10
+CLS+patch-mean single-active-T4 recovery is prepared from actualCPU878616 with
+original32 MRI proofs, existing private mounts and unchanged rsna numerical bytes.
+No new Dataset/competition submission; GPU admission/full fitting still unsubmitted.
+Current877134 is RUNNING and has passed actualH100 engineering recovery, now
+real control training. Leave originalsource/recipe untouched. Read new
+cls-patch-summary-GPU-recovery-v1; its12GiB nodefuture is distinct from retained
+16/10GiB original reservations, zero newshared growth and no deletion credit.
+
+Actual875858 completed0:0/fullpaired fixed3 result is recomputed: controlmacro
+0.78102068 vs localcandidate0.80194390, but frozenPRIMARY medialmeniscus
+delta+.00083487 paired95%[-.00043470,.00210216]. Secondarymacro+.02092322
+CI[-.02619225,.06969714],1164undefined draws;94%delta fromBakers3positive/
+fracture2positive. No primarygain/promotion; retain simplerdefault. Read
+smooth-witness-full-fit-v2/fixed-final-decision.md. All6epochs privateverified.
+Actual1300 FP32prefetch137329288/v1 COMPLETE: all15600 values originalexact,
+fallback0,11508.25s vs18303.60s (~37.1%less), no repeatedreference/GPUscore.
+OldRAMreport excludesprep/tracker; do notadmitRAM. Corrected7process memory32
+137358409/v1 pushedONCE sourcec8e63bd416240602, lastRUNNING16:46UTC, no competition
+submission. Use originalsinglecoordinator/status only; neverrepeatpush.
+Original877134 nowRUNNING evc31; leave frozenb2source/recipe untouched.
+CLS+patchmean officialCPU878616 accepted common10.5577M graph/values/RNG and
+actualb2 input-proof reuse/all37812stats. CPU878597 stopped beforecontrol/model
+at outdateddata-source comparator, reconciledread-only; v2 exactb2matches.
+Readcls-patch-summary-CPU-v2. Only4MiBcontrol funded, NOT checkpoints/GPU;
+nextfund/admitactualGPUrecovery and fullytrained10epoch baseline. No newscore.
+
+Conventional CLS+patch-mean integration/full10epoch configs and candidatefinal3
+receipt sourced9202dc9 privately mirrored at HF594222c088988534ef0619f94e14e3567e903233,
+all16 small objects fully re-downloaded/size/SHA verified under canonical shared
+lock. Never repeat. No MRI/labels/case IDs/weights mirrored. New baseline still
+notMRI/GPU-admitted/funded/dispatched; current875858 evaluating after843 updates
+and all6 production checkpoints privately verified once.877134 PENDING(Resources)
+at16:27UTC. Require actual candidate result/terminal and full paired analysis;
+no gain or new score inferred. Keep standing data/base/protected constraints.
+
+Original875858 candidate completed843 updates and immutable final3 privately
+published ONCE at HF656a6187d52264b7f021909bb36adf077c88721a viaCPU878576,
+all5 objects fully re-downloaded/size/SHA verified. Checkpoint
+5874792cc47c882c3d7c7d5b543bf113fb39c34edf6e73f826d957ad8ff30d8f.
+Never repeat any control1–3/candidate1–3 publication. Heldout/candidate result
+and actual Slurm0:0/full paired analysis still pending; no gain/score inferred.
+Conventional CLS+patch-mean code/full10epoch configurations are committed on
+sourcea49d51f7, actualMRI/GPU admission/funding/dispatch still absent. Preserve
+live3b7e437/b2bb3a9c sources; prioritize a strong fully trained baseline next.
+
 Owner criticism changes priority: finish existing comparisons, then establish
 a fully trained conventional single-backbone baseline before more speculative
 heads. Optional CLS+mean-patch readout is now wired through canonical train/

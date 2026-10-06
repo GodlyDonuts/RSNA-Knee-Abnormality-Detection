@@ -235,6 +235,40 @@ def encoder_arguments(bundle, working, manifest):
     return ["--encoder-spec", str(runtime_spec)]
 
 
+def stage_prefetch_sources(bundle, working, sources, hashes):
+    """Add orchestration helpers without replacing any immutable trained rsna source."""
+    names = {
+        "prefetch_entry.py",
+        "prefetch_preparation.py",
+        "parallel_preparation.py",
+        "process_memory.py",
+        "resident_infer.py",
+        "resident_pool.py",
+        "resident_worker.py",
+        "chunked_infer.py",
+    }
+    if (
+        not isinstance(sources, dict)
+        or not isinstance(hashes, dict)
+        or set(sources) != names
+        or set(hashes) != names
+        or not all(isinstance(value, str) for value in sources.values())
+        or sum(len(value.encode()) for value in sources.values()) > 256 * 1024
+        or not (bundle / "code/rsna").is_dir()
+    ):
+        raise ValueError("Exact bounded prefetch helpers and original trained source required")
+    for name, source in sources.items():
+        if hashlib.sha256(source.encode()).hexdigest() != hashes[name]:
+            raise ValueError("Prefetch helper bytes changed")
+        compile(source, name, "exec")
+    root = working / "prefetch-runtime-source"
+    root.mkdir(mode=0o700)
+    for name, source in sources.items():
+        with (root / name).open("x") as handle:
+            handle.write(source)
+    return root
+
+
 def diagnostic_probe_command(
     bundle, working, manifest, competition, python, *, probe_source=None, probe_source_sha256=None
 ):
@@ -577,19 +611,46 @@ def run():
     policy = manifest.get("inference_policy", {})
     competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
     engine = policy.get("engine", "legacy")
-    if engine not in {"legacy", "resident_two_gpu_fp32"}:
+    runtime_code = bundle / "code"
+    if globals().get("INFERENCE_FP32_PREFETCH") is True:
+        if (
+            policy.get("cache_side") != 384
+            or policy.get("max_series", 6) != 6
+            or policy.get("series_sampling", "selected") != "selected"
+            or manifest.get("diagnostic_only") is not False
+        ):
+            raise ValueError(
+                "Only the admitted native384 six-series production policy is supported"
+            )
+        runtime_code = stage_prefetch_sources(
+            bundle,
+            working,
+            globals().get("INFERENCE_PREFETCH_SOURCES"),
+            globals().get("INFERENCE_PREFETCH_HASHES"),
+        )
+        env.update(
+            PYTHONPATH=str(runtime_code) + os.pathsep + str(bundle / "code"),
+            OMP_NUM_THREADS="1",
+            MKL_NUM_THREADS="1",
+            OPENBLAS_NUM_THREADS="1",
+        )
+        engine = "resident_two_gpu_fp32_prefetch"
+    resident = engine in {"resident_two_gpu_fp32", "resident_two_gpu_fp32_prefetch"}
+    if engine not in {"legacy", "resident_two_gpu_fp32", "resident_two_gpu_fp32_prefetch"}:
         raise ValueError("Unadmitted notebook inference engine")
     remaining = 28800 - (time.monotonic() - notebook_started)
-    if engine == "resident_two_gpu_fp32" and remaining <= 0:
+    if resident and remaining <= 0:
         raise ValueError("Notebook bootstrap exhausted the eight-hour execution target")
     command = [
         str(python),
         str(
-            bundle
+            runtime_code
             / (
-                "code/resident_entry.py"
+                "prefetch_entry.py"
+                if engine == "resident_two_gpu_fp32_prefetch"
+                else "resident_entry.py"
                 if engine == "resident_two_gpu_fp32"
-                else "code/chunked_infer.py"
+                else "chunked_infer.py"
             )
         ),
         "--checkpoint",
@@ -612,7 +673,7 @@ def run():
         "--precision",
         "fp32",
         "--chunk-size",
-        "32",
+        "8" if engine == "resident_two_gpu_fp32_prefetch" else "32",
         "--resilient-series",
         "--fallback-on-unusable-study",
         "--recover-slices",
@@ -625,16 +686,16 @@ def run():
         "--series-sampling",
         policy.get("series_sampling", "selected"),
     ]
-    if engine == "resident_two_gpu_fp32":
+    if resident:
         command.extend(
             (
                 "--resident-remaining-seconds",
                 str(remaining),
-                "--resident-workers",
-                "2",
                 "--single-decode",
             )
         )
+        if engine == "resident_two_gpu_fp32":
+            command.extend(("--resident-workers", "2"))
     if (competition / "sample_submission.csv").is_file():
         command.extend(("--template", str(competition / "sample_submission.csv")))
     if manifest.get("baseline_epoch_one") is True:
@@ -655,7 +716,7 @@ def run():
         ):
             raise ValueError("Reviewed fitting admission differs from the exact bundle")
         command.extend(("--fitting-admission", str(admission)))
-    if engine == "resident_two_gpu_fp32":
+    if resident:
         bounded_process(command, env=env, timeout=remaining)
     else:
         subprocess.run(command, env=env, check=True)

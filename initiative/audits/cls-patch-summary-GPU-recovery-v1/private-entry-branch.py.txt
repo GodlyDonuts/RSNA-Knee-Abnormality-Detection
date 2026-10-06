@@ -1,0 +1,36 @@
+    if globals().get("CLS_PATCH_SUMMARY_RECOVERY_PROBE") is True:
+        sources, hashes = MEMORY_SOURCES, MEMORY_HASHES
+        if set(sources) != set(hashes) or sum(len(v.encode()) for v in sources.values()) > 1024**2:
+            raise ValueError("Exact bounded new scientific source required")
+        code = working / "cls-patch-summary-source"
+        code.mkdir(mode=0o700)
+        for name, source in sources.items():
+            relative = Path(name)
+            if relative.is_absolute() or ".." in relative.parts or hashlib.sha256(source.encode()).hexdigest() != hashes[name]:
+                raise ValueError("New source path/hash differs")
+            compile(source, name, "exec")
+            path = code / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("x") as handle:
+                handle.write(source)
+        receipt = json.dumps(MEMORY_CPU_RECEIPT, sort_keys=True, indent=2) + "\n"
+        if hashlib.sha256(receipt.encode()).hexdigest() != MEMORY_CPU_RECEIPT_SHA256:
+            raise ValueError("Actual original CPU receipt differs")
+        cpu_file = working / "cls-patch-summary-CPU-accepted.json"
+        cpu_file.write_text(receipt)
+        base = working / "cls-patch-summary-base.json"
+        base.write_text(json.dumps(MEMORY_BASE_CONFIG, sort_keys=True, indent=2) + "\n")
+        source_manifest = working / "cls-patch-summary-source-manifest.json"
+        source_manifest.write_text(json.dumps(hashes, sort_keys=True, indent=2) + "\n")
+        parent = [p for p in attached_dataset_files(Path("/kaggle/input"), "witness-inputs-CPU-accepted.json") if sha256(p) == MEMORY_PARENT_RECEIPT_SHA256]
+        if len(parent) != 1:
+            raise ValueError("Exactly the original accepted private CPU parent required")
+        control = parent[0].parent / "witness-training-source"
+        cache = parent[0].parent / "witness-inputs-admission/cache"
+        if not control.is_dir() or not cache.is_dir():
+            raise ValueError("Original admitted MRI/source mounts absent")
+        env.update(PYTHONPATH=str(code), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", CUDA_VISIBLE_DEVICES="0")
+        remaining = 7200 - (time.monotonic() - notebook_started)
+        command = [str(python), "-B", str(code / "scripts/kaggle/cls_patch_summary_recovery.py"), "--source", str(code), "--source-manifest", str(source_manifest), "--control", str(control), "--cache", str(cache), "--cpu-receipt", str(cpu_file), "--base-config", str(base), *encoder_arguments(bundle,working,manifest), "--output", str(working / "cls-patch-summary-recovery"), "--remaining-seconds", str(remaining)]
+        bounded_process(command, env=env, timeout=remaining)
+        return

@@ -1,0 +1,48 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/cls-patch-summary-v1/full-fit');a=Path('initiative/audits/cls-patch-summary-full-fit-v1')
+files={'launch.py':Path('scripts/newton/run_cls_patch_summary_comparison.py').read_text(),'publish.py':(a/'publish.py.txt').read_text(),'protocol.json':(a/'protocol.json').read_text()}
+helpers={n:Path(n).read_text() for n in ['scripts/newton/enforce_deterministic_runtime.py','scripts/newton/probe_patch_witness_trainer_recovery.py']}
+program=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);root=Path('/tmp/rsna-cls-patch-summary-full-fit-20261006-v1');memory=Path('/tmp/rsna-cls-patch-summary-CPU-20261006-v2');old=Path('/tmp/rsna-smooth-witness-full-fit-20261006-v2');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not root.exists();assert shutil.disk_usage('/tmp').free>=58*2**30+16*2**20
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in quota.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,limit=[int(row[i]) for i in [1,2,5,6]];gib=((soft-used)*1024-1406962617)/2**30;slots=limit-count-735;assert gib>=20 and slots>=5000
+cpu=json.loads((memory/'CPU-accepted.json').read_text());src=json.loads((memory/'source.json').read_text());previous=json.loads((old/'CPU-accepted.json').read_text());assert cpu['source_git']=='0183ef363be0f5f2eea0d6c468a01de39e2e465b' and cpu['initial_learned_state']['control']==cpu['initial_learned_state']['candidate'];assert src['source_git']==cpu['source_git']
+root.mkdir(mode=0o700);(root/'code').mkdir(mode=0o700)
+for n,h in src['files'].items():
+ p=memory/'code'/n;raw=p.read_bytes();assert hashlib.sha256(raw).hexdigest()==h;new=root/'code'/n;new.parent.mkdir(parents=True,exist_ok=True)
+ with new.open('xb') as f:f.write(raw)
+for n,s in v['helpers'].items():
+ p=root/'code'/n;p.parent.mkdir(parents=True,exist_ok=True)
+ with p.open('x') as f:f.write(s)
+ src['files'][n]=hashlib.sha256(s.encode()).hexdigest()
+header_source=json.loads((old/'source.json').read_text());source={'source_git':cpu['source_git'],'files':src['files'],'runtime':previous['runtime'],'original_header_receipt_sha256':header_source['original_header_receipt_sha256']}
+written={}
+for n,s in v['files'].items():
+ with (root/n).open('x') as f:f.write(s)
+ written[n]={'bytes':len(s.encode()),'sha256':hashlib.sha256(s.encode()).hexdigest()}
+for n in ['control.json','candidate.json']:
+ raw=(json.dumps(cpu['configs'][n.removesuffix('.json')],sort_keys=True,indent=2)+'\n').encode()
+ with (root/n).open('xb') as f:f.write(raw)
+ written[n]={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+with (root/'source.json').open('x') as f:json.dump(source,f,sort_keys=True,indent=2);f.write('\n')
+raw=(root/'source.json').read_bytes();written['source.json']={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+with (root/'files.json').open('x') as f:json.dump({'files':written,'original_patch_CPU_sha256':hashlib.sha256((memory/'CPU-accepted.json').read_bytes()).hexdigest()},f,sort_keys=True,indent=2);f.write('\n')
+env=os.environ.copy();env.update(PYTHONPATH=str(root/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1')
+x=subprocess.run([previous['runtime']['python'],'-B',str(root/'launch.py'),'stage'],cwd=root/'code',capture_output=True,text=True,env=env,timeout=240);(root/'stage.stdout').write_text(x.stdout);(root/'stage.stderr').write_text(x.stderr)
+if x.returncode:print(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}));sys.exit(x.returncode)
+receipt=json.loads(x.stdout);funding={'status':'new_private_node_future_explicitly_funded_with_originals_retained','quota':quota,'shared_reserve_gib_after_existing_obligations':gib,'shared_reserve_files_after_existing_obligations':slots,'new_shared_bytes':0,'new_shared_files':0,'node_future_bytes':12*2**30,'existing_live_future_bytes':26*2**30,'node_reserve_bytes':20*2**30,'checkpoint_future_bytes':6*2**30,'private_verification_scratch_bytes':2*2**30,'new_GPU_job_requested':False,'T4_actual_recovery_required_before_GPU_dispatch':True,'original_patch_CPU_job':cpu['CPU_job'],'no_deletion_credit':True}
+with (root/'funding.json').open('x') as f:json.dump(funding,f,indent=2);f.write('\n')
+print(json.dumps({'CPU_acceptance':receipt,'funding':funding}))
+'''
+intent={'status':'single_full_memory_source_configuration_CPU_stat_and_budget_stage_intent','source_git':'0183ef363be0f5f2eea0d6c468a01de39e2e465b','wrapper_sha256':hashlib.sha256(program.encode()).hexdigest(),'runner_sha256':hashlib.sha256(files['launch.py'].encode()).hexdigest(),'publisher_sha256':hashlib.sha256(files['publish.py'].encode()).hexdigest(),'CPU_only':True,'GPUs':0,'automatic_retry':False,'new_node_future_bytes':12*2**30,'new_shared_bytes':0}
+with (r/'intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+(a/'CPU-intent.json').write_text(json.dumps(intent,indent=2)+'\n');(a/'CPU-stage-wrapper.py.txt').write_text(program);(a/'CPU-stage-coordinator.py.txt').write_text(Path(__file__).read_text());(a/'launch.py.txt').write_text(files['launch.py'])
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=4G','--time=00:05:00','--job-name=plane-memory-full-stat-admission','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'files':files,'helpers':helpers}),capture_output=True,text=True,timeout=330)
+with (r/'result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stdout+x.stderr
+out=json.loads(x.stdout)
+for name,key in [('actual-CPU-acceptance.json','CPU_acceptance'),('actual-funding.json','funding')]:
+ (a/name).write_text(json.dumps(out[key],sort_keys=True,indent=2)+'\n')
+print(json.dumps({'status':out['CPU_acceptance']['status'],'CPU_job':out['CPU_acceptance']['job_id'],'new_GPU_dispatch':False,'new_node_future_GiB':12,'shared_new_bytes':0,'actual_T4_outcome_still_required':True}))

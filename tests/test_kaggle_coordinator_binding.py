@@ -258,6 +258,46 @@ def test_failed_hidden_submission_can_be_archived_for_distinct_corrected_push():
         c.supersede_failed_submission_kernel(workflow, remote, db, operation, "a" * 64)
 
 
+def correction(original, digest):
+    return dict(
+        original,
+        kernel_slug="owner/new-prefetch",
+        kernel_source_sha256="b" * 64,
+        dataset_publication_operation_sha256=digest,
+        inference_runtime_correction={
+            "original_operation_sha256": digest,
+            "engine": "two_device_exact_FP32_prefetch_v1",
+            "precision": "fp32",
+            "original_dataset_bytes_preserved": True,
+            "original_model_source_and_weights_preserved": True,
+        },
+    )
+
+
+def test_exact_dataset_runtime_correction_binds_original_file(tmp_path):
+    original = {
+        "dataset_slug": "owner/original",
+        "manifest_sha256": "c" * 64,
+        "checkpoint_sha256": "d" * 64,
+        "kernel_slug": "owner/old",
+        "kernel_source_sha256": "a" * 64,
+    }
+    path = tmp_path / "original.json"
+    path.write_text(json.dumps(original))
+    digest = p.digest(path)
+    corrected = correction(original, digest)
+    c.inference_only_dataset_reuse(original, corrected, digest)
+    assert c.dataset_publication_binding(corrected, tmp_path / "new.json", path) == digest
+    for field in ("checkpoint_sha256", "manifest_sha256", "dataset_slug"):
+        altered = dict(corrected, **{field: "changed"})
+        with pytest.raises(ValueError, match="Dataset/model"):
+            c.inference_only_dataset_reuse(original, altered, digest)
+    altered = correction(original, digest)
+    altered["inference_runtime_correction"]["precision"] = "fp16"
+    with pytest.raises(ValueError, match="exact-FP32"):
+        c.inference_only_dataset_reuse(original, altered, digest)
+
+
 @pytest.fixture
 def clean_cli_projection(tmp_path):
     import os

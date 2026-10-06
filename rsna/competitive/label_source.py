@@ -91,6 +91,7 @@ def load_fitting_label_source(
     if not train.index.is_unique:
         raise ValueError("Label-source overlay needs unique frame indices")
     result = train.copy(deep=True)
+    result[list(TARGETS)] = result[list(TARGETS)].astype("float64")
     seen: set[str] = set()
     changed_cells = 0
     for study in studies:

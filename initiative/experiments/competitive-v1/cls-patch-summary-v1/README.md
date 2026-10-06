@@ -1,3 +1,10 @@
+Current October6 status: actual official initializationCPU878616 and full-source/
+input/funding stageCPU878657 passed. Exact private Kaggle recovery137362933/v1
+is RUNNING; a finite once-only coordinator will dispatch the full comparison after
+actual acceptance and fresh resources. FullGPU training is notyet submitted.
+Read cls-patch-summary-GPU-recovery-v1 and cls-patch-summary-full-fit-v1 audits;
+the original implementation-status paragraphs below preserve earlier preparation.
+
 # Establish a full-length CLS plus patch-mean baseline
 
 This conventional feature readout is motivated by the captured public DINO

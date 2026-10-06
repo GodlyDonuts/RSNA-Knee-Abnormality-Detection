@@ -1,0 +1,29 @@
+"""Finite original diagnostic observer, then at most one admitted full-fit dispatch."""
+import json, subprocess, time
+from pathlib import Path
+r=Path('artifacts/cls-patch-summary-v1/full-fit-v2');g=Path('artifacts/cls-patch-summary-v1/gpu-recovery')
+with (r/'finish-intent.json').open('x') as f:
+ json.dump({'kernel_id':137362933,'version':1,'full_dispatch_limit':1,'maximum_observer_seconds':7200,'read_only_poll_seconds':60,'automatic_mutation_retry':False},f,indent=2);f.write('\n')
+start=time.monotonic();attempt=0
+while time.monotonic()-start<7200:
+ attempt+=1
+ x=subprocess.run(['python3',str(g/'run_phase.py'),'status'],capture_output=True,text=True,timeout=670)
+ with (r/f'finish-observation-{attempt:03d}.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+ if x.returncode:
+  # Observation failures never authorize another cloud mutation.
+  time.sleep(60);continue
+ status=json.loads(x.stdout)
+ if status['status']=='COMPLETE':
+  assert status['actual_recovery']['status']=='actual_single_T4_sequential_CLS_patch_summary_recovery_accepted'
+  y=subprocess.run(['python3',str(r/'dispatch_once.py')],capture_output=True,text=True,timeout=400)
+  result={'returncode':y.returncode,'stdout':y.stdout,'stderr':y.stderr,'automatic_mutation_retry':False}
+  with (r/'finish-result.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+  print(json.dumps(result),flush=True);raise SystemExit(y.returncode)
+ if status['status'] in ('ERROR','CANCELLED','FAILED'):
+  result={'status':'original_diagnostic_terminal_without_acceptance','original':status,'full_training_dispatched':False}
+  with (r/'finish-result.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+  print(json.dumps(result),flush=True);raise SystemExit(1)
+ time.sleep(60)
+result={'status':'finite_observer_expired_without_acceptance','full_training_dispatched':False,'restart_authorized':False}
+with (r/'finish-result.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+print(json.dumps(result),flush=True)
