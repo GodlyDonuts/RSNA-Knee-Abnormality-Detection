@@ -1,3 +1,15 @@
+Actual exactFP32prefetch GPU137327561/v1 COMPLETE: all32x12 values originalidentical,
+finite/fallback0,3prefetches,289.8776spipeline/no reference repeat,GPU2.361GB/
+hostreported8.157GB; no hidden9h/clinicalgain. Larger unchanged1300scope+4h private
+benchmark137329288/v1 pushedONCE, slugrsna-fp32-prefetch-1300-85bfc1ce-v2 source
+9808de6b3e599636. Onlyscope/deadlinechanged; all1300 exactvalues/fallback0/limits
+required. Originalpreflight877630 expected1300fromCPU32, STOPPEDbeforecloudintent/
+response; absence+boundaryreconciled,8CPU32/priorGPU32/reference1300/final1300
+actualrecord assertionreplays passed. Preserve failure; neverrepeat newpush.
+Readkaggle-fp32-prefetch-1300-v2. Candidate875858healthy196updates atprogress24,
+newmemory877134pendingResources, acceptedsource/recipes/data unchanged. No new
+competition slot/score, no newDataset or rawMRI/caseRecord transfer.
+
 ExactFP32prefetch/correctedCSVboundary milestoneb4492670 privately mirrored at
 HFd14c554088693828deb1c5a073959ad998cf3bdd; all25small objects fully re-downloaded/
 size/SHA verified under canonical shared lock. Do not repeat. No rawMRI/labels/

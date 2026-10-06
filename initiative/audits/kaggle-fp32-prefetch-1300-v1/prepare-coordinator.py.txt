@@ -1,0 +1,11 @@
+import ast,hashlib,json
+from pathlib import Path
+r=Path('artifacts/kaggle-fp32-prefetch-1300-v1');a=Path('initiative/audits/kaggle-fp32-prefetch-1300-v1');old=Path('artifacts/kaggle-fp32-prefetch-32-v2/private-notebook.py').read_text();tree=ast.parse(old);node=next(n for n in tree.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id=='RESIDENT_PERFORMANCE_STUDY_COUNT')
+assert ast.literal_eval(node.value)==32
+lines=old.splitlines(keepends=True);lines[node.lineno-1]='RESIDENT_PERFORMANCE_STUDY_COUNT = 1300\n';source=''.join(lines).replace('7200 - (time.monotonic() - notebook_started)','14400 - (time.monotonic() - notebook_started)');compile(source,'FP32-prefetch-full1300.py','exec')
+contract=json.loads(Path('artifacts/kaggle-fp32-prefetch-32-v2/source-contract.json').read_text());roster=json.loads(Path('artifacts/kaggle-resident-fullscale-v1/private-roster.json').read_text())
+contract.update(kernel_slug='godlydonuts/rsna-fp32-prefetch-1300-85bfc1ce-v1',source_sha256=hashlib.sha256(source.encode()).hexdigest(),study_count=1300,fitting_UIDs_sha256=roster['roster_sha256'],numerical_agreement='exact all1300x12 original prediction values',max_pipeline_seconds=14400,required_actual_prior_FP32_kernel=137327561,required_actual_prior_FP32_success=True)
+for n,s in [('private-notebook.py',source),('source-contract.json',json.dumps(contract,indent=2)+'\n')]:
+ with (r/n).open('x') as f:f.write(s)
+(a/'source-contract.json').write_text(json.dumps(contract,indent=2)+'\n');(a/'prepare-coordinator.py.txt').write_text(Path(__file__).read_text())
+print(json.dumps({'status':'unchanged_FP32prefetch_full1300_source_prepared','source_sha256':contract['source_sha256'],'only_scope_and_deadline_changed':True,'GPU_dispatched':False}))
