@@ -1,3 +1,12 @@
+October6 full-data streaming route is implemented but not MRI/GPU-admitted.
+Default cache loader unchanged; optional provider preserves original byte/hash/
+geometry tensors through bounded scratch eviction (fixture tests pass).
+CPU875406 verified COMPLETE original metadata18906series/643501slices/3403
+studies;252139520-byte archive SHA f7eea5abb2048cd59f89c8b8b8db844226be55eb38ad7e047ea868186e8731bf stays private evc31.
+No pixels/labels/weights read, no new shared or cloud Dataset; read
+streaming-native384-training-v1. Frozen FP16 v2 test137276309 untouched/live;
+watcher60535 holds875277 until actual terminal. No clinical gain claimed.
+
 October6 corrected FP16/smooth137276309 v1 pushedONCE, entry SourceSHA
  aa792ec45cdd4a15ed6793cf06c7b4228eef424f96f2a0d4c8a725ec37b3d748.
 Numerical3b7e437/inputs/base/recipe unchanged; only128KiB wrapper cap corrected.

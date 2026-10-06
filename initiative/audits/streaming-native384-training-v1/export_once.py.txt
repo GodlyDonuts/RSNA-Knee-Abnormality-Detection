@@ -1,0 +1,36 @@
+import json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/native384-training-metadata-20261006-v1')
+program='''import hashlib,json,os,shutil,tarfile,subprocess
+from pathlib import Path
+assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_STEP_GPUS') and not os.environ.get('SLURM_JOB_GPUS')
+root=Path('/tmp/rsna-native384-training-metadata-20261006-v1');assert not root.exists();assert shutil.disk_usage('/tmp').free>=39*2**30
+b=Path('/home/sa305415/rsna-knee');p=b/'production-launch-native384-a32-c9-v1/cpu-preflight.json';proof=json.loads(p.read_text());reg=b/'native384-assembly-c9-v1/registry.json';registry=json.loads(reg.read_text());assert hashlib.sha256(reg.read_bytes()).hexdigest()=='73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770'
+cache=Path('/tmp/rsna-native384-cohort-866458-lp6rcfdw/restored/cache');own=cache.parent
+root.mkdir(mode=0o700);files={};total=0;series=0;slices=0;studies=set();source_revision=None
+with tarfile.open(root/'metadata-only.tar','w',format=tarfile.PAX_FORMAT) as tar:
+ for shard in registry['shards']:
+  for row in shard['series']:
+   name='cache/'+row['cache_path'].removesuffix('.npz')+'.json';path=own/name
+   stat=path.stat();assert [stat.st_dev,stat.st_ino,stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns]==proof['signatures'][name]
+   data=path.read_bytes();meta=json.loads(data);assert meta['side']==384 and meta['cache_path']==row['cache_path']
+   if source_revision is None:source_revision=meta['source_revision']
+   assert meta['source_revision']==source_revision
+   assert len(meta['sop_uids'])==len(meta['slice_sha256'])==meta['n_slices']
+   total+=len(data);assert total<=256*2**20
+   files[row['cache_path'].removesuffix('.npz')+'.json']={'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
+   tar.add(path,arcname=row['cache_path'].removesuffix('.npz')+'.json',recursive=False)
+   series+=1;slices+=meta['n_slices'];studies.add(meta['study_uid'])
+assert series==18906 and slices==643501 and len(studies)==3403
+archive=root/'metadata-only.tar';assert archive.stat().st_size<=256*2**20
+h=hashlib.sha256()
+with archive.open('rb') as f:
+ for chunk in iter(lambda:f.read(4*2**20),b''):h.update(chunk)
+record={'status':'original_native384_complete_metadata_archive_verified','job_id':os.environ['SLURM_JOB_ID'],'archive_bytes':archive.stat().st_size,'archive_sha256':h.hexdigest(),'metadata_unpacked_bytes':total,'members':files,'series':series,'slices':slices,'studies':len(studies),'source_revision':source_revision,'original_registry_sha256':'73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770','source_mutated':False,'pixels_labels_or_weights_read':False,'new_shared_bytes_files':0}
+(root/'private-archive-accepted.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\\n')
+record.pop('members');record['private_root']=str(root);print(json.dumps(record))
+'''
+with (r/'intent.json').open('x') as f:json.dump({'purpose':'complete_original_MRI_metadata_for_exact_bounded_streaming_training','GPU':0,'CPUs':1,'node':'evc31','node_cap_bytes':256*2**20,'free_required':39*2**30,'no_pixels_labels_weights_read':True,'shared_bytes_files':0,'automatic_retry':False},f,indent=2)
+args=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=2G','--time=00:10:00','--job-name=rsna-native-training-metadata','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],capture_output=True,text=True,timeout=650);(r/'result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr
+record=json.loads(x.stdout);(r/'actual.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record))

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -77,6 +78,7 @@ class CompetitiveStudyDataset(StudyDataset):
         slice_sampling: str = "uniform",
         series_sampling: str = "selected",
         neighbor_channels: dict | None = None,
+        volume_provider: Callable[[dict], bytes] | None = None,
     ):
         if raw_split not in {"train_series", "test_series"}:
             raise ValueError("Unknown raw split")
@@ -93,7 +95,18 @@ class CompetitiveStudyDataset(StudyDataset):
         ):
             raise ValueError("Neighbor input contrast requires fixed uniform selected-series views")
         self.neighbor_channels = None if neighbor_channels is None else dict(neighbor_channels)
-        super().__init__(studies, series, Path(cache), slices, side, max_series, augment, raw_split)
+        super().__init__(
+            studies,
+            series,
+            Path(cache),
+            slices,
+            side,
+            max_series,
+            augment,
+            raw_split,
+            metadata_only=volume_provider is not None,
+        )
+        self.volume_provider = volume_provider
         self.slice_sampling, self.series_sampling = slice_sampling, series_sampling
         self._metadata: dict[tuple[str, str], tuple[str, dict]] = {}
         for uid in self.studies.study_uid:
@@ -162,7 +175,9 @@ class CompetitiveStudyDataset(StudyDataset):
                 != expected_meta_hash
             ):
                 raise ValueError("Cache metadata changed after dataset construction")
-            payload = path.read_bytes()
+            payload = (
+                path.read_bytes() if self.volume_provider is None else self.volume_provider(meta)
+            )
             if len(payload) != meta.get("cache_bytes") or hashlib.sha256(
                 payload
             ).hexdigest() != meta.get("cache_sha256"):

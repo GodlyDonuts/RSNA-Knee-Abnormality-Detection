@@ -50,6 +50,7 @@ class StudyDataset(Dataset):
         max_series: int = 8,
         augment: bool = False,
         raw_split: str = "train_series",
+        metadata_only: bool = False,
     ):
         if slices < 1 or side < 16 or max_series < 3:
             raise ValueError("Need positive slices, side >=16, max_series >=3")
@@ -81,7 +82,9 @@ class StudyDataset(Dataset):
                 if row["Anatomical_Plane"] not in PLANES:
                     raise ValueError(f"Unknown plane: {row['Anatomical_Plane']}")
                 path = cache / raw_split / uid / f"{row['SeriesInstanceUID']}.npz"
-                if not path.exists() or not path.with_suffix(".json").exists():
+                if not path.with_suffix(".json").exists() or (
+                    not metadata_only and not path.exists()
+                ):
                     raise ValueError(f"Missing preprocessed series: {path}")
                 metadata = json.loads(path.with_suffix(".json").read_text())
                 if metadata["cache_version"] != CACHE_VERSION:
