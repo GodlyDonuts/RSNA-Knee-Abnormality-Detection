@@ -41,19 +41,36 @@ are representative.
 - Geometry fallback is viable corpus-wide: every parsed series carries
   `ImagePositionPatient`, and `PatientPosition` is FFS in ~95% (rest mostly
   blank). For FFS, the sign of the lateral component of `ImagePositionPatient`
-  relative to the patient midline determines side; the midline offset can be
-  estimated per-study from the position spread. 17.6% of slices sit within
+  relative to the patient midline determines side. 17.6% of series sit within
   ±20 mm of the nominal midline, so the fallback should use the **series-median**
-  position, not per-slice sign.
+  position, not per-slice sign (validated below).
 - 21 studies carry contradictory L/R tags — a measurable noise floor (~1.1%)
   for any tag-based side derivation; the geometric estimate can adjudicate them.
-- Recommendation (feeds frontier opportunity #2): derive study side as
-  `mode(series L/R tags)` when available, else `sign(median IPP lateral offset)`
-  under the FFS assumption; flag the 21 contradictory studies and the
-  side-ambiguous cases (median |offset| small) for review. Then implement
-  canonical-side flipping in the data pipeline (right↔left mirror) — currently
-  `rsna/data.py` only applies *random* 50% flips as augmentation, which trains
-  the model to ignore side information entirely rather than normalize it.
+
+**Geometric fallback VALIDATED against tagged studies** (`study-sides.parquet`):
+the median lateral IPP offset of a study's sagittal series agrees with its
+DICOM tag in **97.5%** of consistently-tagged studies, rising to **98.7%** at
+|x|≥20 mm and **99.1%** at |x|≥30 mm. Sagittal series are the reliable probe —
+their slab is prescribed on a single knee (per-series agreement: sagittal
+96.9%, coronal 78.5%, axial 83.4%). Essentially every parsed study (3,772/3,777)
+has ≥1 sagittal series, so the fallback covers the corpus once tag gaps and
+parse retries land.
+
+Derived table `study-sides.parquet` (3,772 studies): L 1,729 · R 1,914 ·
+ambiguous 129 (|median x|<20 mm) · high-confidence 3,505 (|x|≥30 mm) ·
+bilateral scans 386 (series on both sides — need per-series handling, not a
+study-level flip) · tag-vs-geometry conflicts 114 (prefer geometry; probable
+tag errors).
+
+- Recommendation (feeds frontier opportunity #2): assign each study's
+  canonical side from `sign(median sagittal IPP x)` (validated 97.5–99.1%),
+  using DICOM tags only as corroboration and flagging the 114 conflicts +
+  129 ambiguous + 386 bilateral studies. Then implement canonical-side
+  flipping in the data pipeline (mirror the non-canonical side so medial
+  anatomy always appears on the same image side; labels stay anatomical —
+  "medial" is still medial — but *random* flip augmentation in `rsna/data.py`
+  must be disabled for normalized studies, since it would re-randomize the
+  medial/lateral image position the normalization just fixed).
 
 ## Finding 2 — 224 px input violates Nyquist for ~1 mm structures on 99.6% of series
 
