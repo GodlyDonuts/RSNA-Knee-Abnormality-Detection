@@ -121,6 +121,7 @@ class ResidentInference:
         self.config = TrainConfig(**values)
         self.config.validate()
         self.training_precision = self.config.precision
+        self.inference_precision = "fp32"
         self.config = replace(self.config, precision="fp32")
         self.config.validate()
         kwargs = dict(
@@ -223,7 +224,7 @@ class ResidentInference:
             generator=torch.Generator().manual_seed(self.config.seed),
         )
         with torch.inference_mode():
-            frame, _ = predict(self.model, loader, self.device, self.config)
+            frame, _ = self.predict(loader)
         frame = frame.rename(columns={"study_uid": "StudyInstanceUID"})[
             ["StudyInstanceUID", *TARGETS]
         ]
@@ -250,7 +251,7 @@ class ResidentInference:
             "checkpoint_epoch": self.saved_epoch,
             "scheduled_epoch_authorized": getattr(args, "scheduled_epoch", False),
             "training_precision": self.training_precision,
-            "inference_precision": "fp32",
+            "inference_precision": self.inference_precision,
             "initial_pretrained_weights_read": args.encoder_spec is not None,
             "resident_model_load_count": 1,
             "resident_requests": self.requests,
@@ -268,3 +269,6 @@ class ResidentInference:
             json.dumps(result, sort_keys=True, indent=2) + "\n"
         )
         return result
+
+    def predict(self, loader):
+        return predict(self.model, loader, self.device, self.config)

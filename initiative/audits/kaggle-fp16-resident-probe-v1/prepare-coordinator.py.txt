@@ -1,0 +1,22 @@
+import ast,hashlib,json
+from pathlib import Path
+r=Path('artifacts/kaggle-fp16-resident-probe-v1');a=Path('initiative/audits/kaggle-fp16-resident-probe-v1');old=Path('artifacts/kaggle-resident-fullscale-v1')
+source=(old/'private-notebook.py').read_text();tree=ast.parse(source);values={}
+for n in tree.body:
+ if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ['EXPECTED_MANIFEST_SHA256','RESIDENT_PERFORMANCE_PROBE','RESIDENT_PERFORMANCE_SOURCES','RESIDENT_PERFORMANCE_HASHES','RESIDENT_PERFORMANCE_FITTING_UIDS','RESIDENT_PERFORMANCE_STUDY_COUNT']:
+  values[n.targets[0].id]=ast.literal_eval(n.value)
+assert len(values)==6 and values['RESIDENT_PERFORMANCE_STUDY_COUNT']==1300
+mapping={'chunked_infer.py':'scripts/kaggle/chunked_infer.py','resident_entry.py':'scripts/kaggle/fp16_resident_entry.py','resident_infer.py':'scripts/kaggle/resident_infer.py','resident_pool.py':'scripts/kaggle/resident_pool.py','resident_worker.py':'scripts/kaggle/resident_worker.py','performance_probe.py':'scripts/kaggle/fp16_performance_probe.py','fp16_resident_probe.py':'scripts/kaggle/fp16_resident_probe.py'}
+helpers={n:Path(p).read_text() for n,p in mapping.items()};hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in helpers.items()};assert sum(len(s.encode()) for s in helpers.values())<256*1024
+values.update(RESIDENT_PERFORMANCE_SOURCES=helpers,RESIDENT_PERFORMANCE_HASHES=hashes,RESIDENT_PERFORMANCE_FITTING_UIDS=values['RESIDENT_PERFORMANCE_FITTING_UIDS'][:32],RESIDENT_PERFORMANCE_STUDY_COUNT=32)
+# Preserve the old runtime/bundle bootstrap; only admit the named additional standalone helper.
+lines=source.splitlines(keepends=True);last=max(n.end_lineno for n in tree.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id in values);entry=''.join(lines[last:])
+assert '"resident_worker.py",' in entry
+entry=entry.replace('"resident_worker.py",','"resident_worker.py",\n                "fp16_resident_probe.py",')
+entry=entry.replace('28800 - (time.monotonic() - notebook_started)','7200 - (time.monotonic() - notebook_started)')
+new='\n'.join(n+' = '+repr(v) for n,v in values.items())+'\n'+entry;compile(new,'private-fp16-performance.py','exec');assert len(new.encode())<256*1024
+contract=json.loads((old/'source-contract.json').read_text());contract.update(kernel_slug='godlydonuts/rsna-fp16-resident-32-85bfc1ce-v1',source_sha256=hashlib.sha256(new.encode()).hexdigest(),standalone_source_sha256=hashes,fitting_UIDs_sha256=hashlib.sha256(json.dumps(sorted(values['RESIDENT_PERFORMANCE_FITTING_UIDS']),separators=(',',':')).encode()).hexdigest(),roster_selection='same_original_sorted_fitting_first32; no_cost_prediction_or_label_selection',study_count=32,precision='fp16',FP32_reference_scope='all32 studies through original FP32 inference, same prepared MRI tensors',predeclared_max_absolute_probability_error=0.003,source_masks_folds_weights_preprocessing_unchanged=True,max_pipeline_seconds=7200,full_hidden_runtime_admitted=False)
+for name,s in [('private-notebook.py',new),('source-contract.json',json.dumps(contract,indent=2)+'\n')]:
+ with (r/name).open('x') as f:f.write(s)
+(a/'source-contract.json').write_text(json.dumps(contract,indent=2)+'\n');(a/'prepare-coordinator.py.txt').write_text(Path(__file__).read_text())
+print(json.dumps({'source_sha256':contract['source_sha256'],'bytes':len(new.encode()),'fitting_studies':32,'weights_and_preprocessing_unchanged':True,'GPU_dispatched':False}))

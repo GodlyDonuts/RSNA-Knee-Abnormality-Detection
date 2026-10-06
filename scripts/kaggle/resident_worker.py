@@ -15,7 +15,7 @@ else:
     from resident_infer import ResidentInference
 
 
-def parse_command(command):
+def parse_command(command, *, allow_fp16_probe=False):
     parser = argparse.ArgumentParser(add_help=False)
     for name in ("checkpoint", "series", "template", "cache", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
@@ -23,7 +23,9 @@ def parse_command(command):
     group.add_argument("--encoder-config", type=Path)
     group.add_argument("--encoder-spec", type=Path)
     parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
-    parser.add_argument("--precision", choices=("fp32",), required=True)
+    parser.add_argument(
+        "--precision", choices=("fp32", "fp16") if allow_fp16_probe else ("fp32",), required=True
+    )
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--source-revision", default="kaggle-runtime-test")
@@ -38,6 +40,7 @@ def parse_command(command):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--device-index", type=int, required=True)
+    parser.add_argument("--performance-fp16-probe", action="store_true")
     options = parser.parse_args()
     runner = None
     for line in sys.stdin:
@@ -49,10 +52,21 @@ def main():
                 return
             if set(request) != {"command", "request_id"}:
                 raise ValueError("Invalid resident request")
-            args = parse_command(request["command"])
+            args = parse_command(
+                request["command"], allow_fp16_probe=options.performance_fp16_probe
+            )
             with contextlib.redirect_stdout(sys.stderr):
                 if runner is None:
-                    runner = ResidentInference(args, device_index=options.device_index)
+                    if options.performance_fp16_probe:
+                        if __package__:
+                            from .fp16_resident_probe import FP16ResidentProbe
+                        else:
+                            from fp16_resident_probe import FP16ResidentProbe
+                        runner = FP16ResidentProbe(
+                            args, device_index=options.device_index, admit_performance_probe=True
+                        )
+                    else:
+                        runner = ResidentInference(args, device_index=options.device_index)
                 result = runner.run(args)
             response = {"request_id": request["request_id"], "status": "passed", "result": result}
         except Exception:

@@ -1,3 +1,27 @@
+Latest875858 observation721contiguous finite updates/control epoch3, emptystderr;
+control1/2 privately verified, no final endpoint yet. New full memory877134 remains
+actualPENDING(Resources), never repeat. FP16 resident benchmark137315796/v1 actual
+RUNNING, private/offline exactsource checked; do not repeat push or treat it as
+scored/deployment accepted. BothT4s are one additional Kaggle machine alongside
+Slurm evc31; no otherGPU node is requested. Capture actual full32 FP32-agreement,
+throughput and memory outcome before broader/prod use.
+
+October6 exact private137306285/v1 T4 memory recovery actually COMPLETE: BOTH
+roles4finite updates, complete model/base/AdamW/LR/cursors/allRNG/scaler and CSV
+full/stop1/resume identical;3390.766s. No clinical gain inferred. Distinct full
+memory H100877134 submitted ONCE after acceptedT4+CPU876865/fresh budget, actual
+PENDING(Resources) on evc31. Do not duplicate. Inside newjob, actual H100 recovery
+and fitting-only stresses must pass before full3epochs/843per arm.
+Independent FP16 resident32-study GPU probe137315796/v1 pushed ONCE, slug
+rsna-fp16-resident-32-85bfc1ce-v2, sourcef63c5718a7400f67. Same original0.804
+checkpoint/source/MRI preprocessing; explicit probe-only math, defaultFP32 intact.
+All32 pairedoriginal FP32 predictions required with predeclared maxerr0.003, no
+fallback/labels/protected reads. Fresh accelerator/account quota checked; no
+competition slot or new Dataset. V1 quotaHTTP499 stopped BEFORE cloud intent,
+reconciled originalabsence read-only; preserve failure. Read kaggle-fp16-resident-
+probe-v2. Existing875858 healthy625updates/control epoch3, sourceunchanged; control
+1/2 already privately verified. No new held-out or Kaggle score.
+
 Actual encoder-update audit and smooth control-epoch2 receipts/source63275a13
 privately mirrored at HF853473b7e60e7406b881f3056e1f115d1962b675; all16small
 objects fully re-downloaded/size/SHA verified under canonical lock. Never repeat.
