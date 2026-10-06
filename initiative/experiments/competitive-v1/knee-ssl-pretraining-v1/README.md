@@ -1,6 +1,15 @@
 # Knee-domain self-supervised pretraining — design and cost plan
 
-**Status**: plan only; needs a GPU slot (CPU-infeasible locally). Frontier item
+**Status**: plan + pinned input manifest. `ssl_series_manifest.parquet`
+(built 2026-10-06, `scripts/research/build_ssl_series_manifest.py`):
+24,386 series / 819,635 slices / 4,410 studies — the full inventory
+(train_series 24,371 series / 819,078 slices / 4,407 studies + 3 sample
+test studies). Columns: split, study/series uid, n_slices, plane,
+fluid_sensitive, laterality tag, pixel spacing, matrix, slice thickness,
+protocol string, header_available (3,512 series lack headers — census
+download_failed; usable for SSL but outside header-bound policies).
+No labels or reports are read by the builder. A GPU slot is still required
+for the actual pretrain. Frontier item
 7 (`docs/research-frontier-20261006.md`) — the largest genuine frontier swing
 available to us.
 
