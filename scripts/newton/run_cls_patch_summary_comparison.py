@@ -11,7 +11,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-ROOT = Path("/tmp/rsna-cls-patch-summary-full-fit-20261006-v1")
+ROOT = Path("/tmp/rsna-cls-patch-summary-full-fit-20261006-v2")
 INPUT = Path("/tmp/rsna-cls-patch-summary-CPU-20261006-v2")
 PREVIOUS = Path("/tmp/rsna-smooth-witness-full-fit-20261006-v2")
 BASE = Path("/home/sa305415/rsna-knee")
@@ -96,6 +96,7 @@ def expected_binding_config(values, provenance):
         "fitting_supervision",
         "neighbor_channels",
         "patch_summary",
+        "plane_memory",
     ):
         if result[name] is None:
             result.pop(name)

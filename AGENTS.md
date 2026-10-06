@@ -1,3 +1,17 @@
+Original full-fit-v1 finite observer was explicitly terminated before anyGPU
+submission: final expected config incorrectly retained plane_memory=None, while
+canonical training omits it. Read original observer-stopped receipt; no old full
+GPU dispatch exists. A10-case recipe/serialization regression now includes this
+omission. Distinct full-fit-v2 CPU878670 actualsource/input/funding admission passed
+on evc31, unchanged scientific0183ef36 numerics/configs/12GiB reservation.
+The original privateKaggle recovery137362933/v1 staysunchanged/RUNNING; neverrepush.
+New finite originalobserver is artifacts/cls-patch-summary-v1/full-fit-v2/
+finish_when_ready.py, actualLIVE; it submitsone full10epoch H100 job only after
+exactT4 terminalacceptance/freshquota. Neverrestart the cancelledv1 observer.
+Oldv1 source/receipt remainimmutable; correction changedonly expected omitted
+configserialization/controlroot, no model/data/optimizer/clinical training.
+No fullGPUjob or newscoreyet. Read cls-patch-summary-full-fit-v2.
+
 Actual recovery launch/full10 CPU-funding/negative paired result/exact runtime
 milestone sourced578f0cd privately mirrored ONCE at HF
 cd19271e0de9ac4c1f5ef55ea9002ff572dd0b8b; all35 small objects fully re-downloaded/

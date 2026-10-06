@@ -61,4 +61,10 @@ def test_bound_full_config_follows_canonical_optional_serialization():
     result = expected_binding_config(values, provenance)
     assert result["encoder"] == provenance and result["patch_summary"] == values["patch_summary"]
     assert result["amp_init_scale"] == 128
-    assert not set(result) & {"witness", "relation", "fitting_supervision", "neighbor_channels"}
+    assert not set(result) & {
+        "witness",
+        "relation",
+        "fitting_supervision",
+        "neighbor_channels",
+        "plane_memory",
+    }
