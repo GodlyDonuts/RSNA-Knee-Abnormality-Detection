@@ -26,6 +26,7 @@ def test_run_configs_exist_for_every_packaged_arm():
         "masked-cell-em005",
         *{f"label-source-public.fold{f}" for f in (0, 1, 2)},
         *{f"label-source-blended.fold{f}" for f in (0, 1, 2)},
+        *{f"label-source-v21.fold{f}" for f in (0, 1, 2)},
         *{f"graded-u05.fold{f}" for f in (0, 1, 2)},
         *{f"canonical-sides.fold{f}" for f in (0, 1, 2)},
     }
@@ -52,6 +53,10 @@ def test_artifact_arms_bind_real_overlay_shas():
         (
             "label-source-ablation-v1/blended_v2plus_public",
             "label-source-blended",
+        ),
+        (
+            "label-source-ablation-v1/v21_severity_rereview",
+            "label-source-v21",
         ),
         ("graded-targets-v1/graded-states-u05", "graded-u05"),
     ]

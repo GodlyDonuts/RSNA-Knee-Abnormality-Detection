@@ -62,6 +62,8 @@ def main() -> None:
         / "label-source-ablation-v1/llm_labels_v4_blend.fold{fold}.overlay.json",
         "label-source-blended": overlay_root
         / "label-source-ablation-v1/blended_v2plus_public.fold{fold}.overlay.json",
+        "label-source-v21": overlay_root
+        / "label-source-ablation-v1/v21_severity_rereview.fold{fold}.overlay.json",
         "graded-u05": overlay_root / "graded-targets-v1/graded-states-u05.fold{fold}.overlay.json",
     }
     for fold in (0, 1, 2):
