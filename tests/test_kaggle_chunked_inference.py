@@ -943,3 +943,63 @@ def test_unexpected_attribute_error_still_stops_inference(tmp_path, monkeypatch)
             source_revision="test",
             allow_unusable_studies=True,
         )
+
+
+def test_budget_projection_fails_before_starting_next_chunk(tmp_path, monkeypatch):
+    args = fixture(tmp_path)
+    args.budget_seconds = 20.0
+    clock = iter([0.0, 30.0])
+    monkeypatch.setattr(chunked.time, "monotonic", lambda: next(clock, 30.0))
+    with pytest.raises(RuntimeError, match="budget of 20"):
+        chunked.run(args, invoke=fake_infer)
+    assert not args.output.exists()
+
+
+def test_budget_neutralization_fills_remaining_tail_with_neutral_rows(tmp_path, monkeypatch):
+    args = fixture(tmp_path)
+    args.budget_seconds = 20.0
+    args.budget_neutralize = True
+    calls = []
+    clock = [0.0]
+
+    def advance(command: list[str], *, check: bool) -> None:
+        calls.append(command)
+        fake_infer(command, check=check)
+        clock[0] = 30.0
+
+    monkeypatch.setattr(chunked.time, "monotonic", lambda: clock[0])
+    result = chunked.run(args, invoke=advance)
+    output = pd.read_csv(args.output)
+    template = pd.read_csv(args.template)
+    assert output.StudyInstanceUID.tolist() == template.StudyInstanceUID.tolist()
+    inferred = output.head(2)
+    neutral = output.tail(3)
+    assert inferred[TARGETS[0]].tolist() == [0.5, 0.1]
+    assert (neutral[list(TARGETS)] == 0.5).all().all()
+    assert len(calls) == 1
+    assert result["budget_seconds"] == 20.0
+    assert result["budget_neutralized_studies"] == 3
+    assert set(result["budget_neutralized_study_ids"]) == set(template.StudyInstanceUID.tail(3))
+    assert result["chunks"][-1]["budget_neutralized"] is True
+
+
+def test_budget_neutralize_requires_a_budget(tmp_path):
+    args = fixture(tmp_path)
+    args.budget_neutralize = True
+    with pytest.raises(ValueError, match="budget-seconds"):
+        chunked.run(args, invoke=fake_infer)
+
+
+def test_budget_must_be_positive(tmp_path):
+    args = fixture(tmp_path)
+    args.budget_seconds = 0.0
+    with pytest.raises(ValueError, match="positive"):
+        chunked.run(args, invoke=fake_infer)
+
+
+def test_run_without_budget_is_unchanged(tmp_path):
+    args = fixture(tmp_path)
+    args.budget_seconds = None
+    result = chunked.run(args, invoke=fake_infer)
+    assert result["budget_neutralized_studies"] == 0
+    assert result["studies"] == 5

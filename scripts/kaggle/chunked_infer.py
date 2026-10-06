@@ -474,6 +474,15 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
     args.cache_root.mkdir(parents=True, mode=0o700)
     invoke = invoke or subprocess.run
     started = time.monotonic()
+    budget = getattr(args, "budget_seconds", None)
+    neutralize = getattr(args, "budget_neutralize", False)
+    if budget is not None and (
+        isinstance(budget, bool) or not isinstance(budget, (int, float)) or budget <= 0
+    ):
+        raise ValueError("Inference budget must be a positive number of seconds")
+    if neutralize and budget is None:
+        raise ValueError("Budget neutralization requires --budget-seconds")
+    neutralized_ids: list[str] = []
     predictions = []
     receipts = []
     common = None
@@ -635,6 +644,31 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
 
     for start in range(0, len(template), args.chunk_size):
         part = template.iloc[start : start + args.chunk_size].copy()
+        done = start
+        if done > 0 and budget is not None:
+            elapsed = time.monotonic() - started
+            rate = elapsed / done
+            projected = elapsed + rate * (len(template) - done)
+            if projected > budget or elapsed > budget:
+                neutralized_ids = template.StudyInstanceUID.iloc[done:].tolist()
+                if not neutralize:
+                    raise RuntimeError(
+                        f"Inference budget of {budget} seconds projected to be "
+                        f"exceeded ({projected:.0f}s); {len(neutralized_ids)} studies remain"
+                    )
+                print(
+                    json.dumps(
+                        {
+                            "phase": "budget_neutralization",
+                            "elapsed_seconds": elapsed,
+                            "projected_seconds": projected,
+                            "budget_seconds": budget,
+                            "neutralized_studies": len(neutralized_ids),
+                        }
+                    ),
+                    flush=True,
+                )
+                break
         ids = set(part.StudyInstanceUID)
         selected_series = series[series.StudyInstanceUID.isin(ids)]
         chunk = args.cache_root / f"chunk-{start // args.chunk_size:04d}"
@@ -727,6 +761,25 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
             if cache.is_symlink():
                 raise ValueError("Chunk cache became a symlink")
             shutil.rmtree(cache)
+    if neutralized_ids:
+        neutral = template.loc[template.StudyInstanceUID.isin(neutralized_ids)].copy()
+        for target in TARGETS:
+            neutral[target] = 0.5
+        if len(neutral) != len(neutralized_ids) or neutral.StudyInstanceUID.duplicated().any():
+            raise ValueError("Budget-neutralized study identities differ")
+        predictions.append(neutral)
+        receipts.append(
+            {
+                "first_row": len(template) - len(neutralized_ids),
+                "studies": len(neutral),
+                "inferred_studies": 0,
+                "fallback_studies": len(neutral),
+                "budget_neutralized": True,
+                "submission_sha256": None,
+                "cache_bytes_before_cleanup": 0,
+                "elapsed_seconds": 0.0,
+            }
+        )
     if common is None:
         raise ValueError("No predictions from MRI-backed studies")
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -760,6 +813,9 @@ def run(args: argparse.Namespace, invoke=None) -> dict:
         "chunks": receipts,
         "elapsed_seconds": time.monotonic() - started,
         "hidden_test_runtime_validated": False,
+        "budget_seconds": budget,
+        "budget_neutralized_studies": len(neutralized_ids),
+        "budget_neutralized_study_ids": neutralized_ids,
         **common,
     }
     args.output.with_suffix(".metrics.json").write_text(
@@ -794,6 +850,8 @@ def argument_parser():
     parser.add_argument("--recover-slices", action="store_true")
     parser.add_argument("--validate-model-geometry", action="store_true")
     parser.add_argument("--isolate-study-errors", action="store_true")
+    parser.add_argument("--budget-seconds", type=float)
+    parser.add_argument("--budget-neutralize", action="store_true")
     parser.add_argument("--cache-side", type=int)
     parser.add_argument("--max-series", type=int)
     parser.add_argument("--series-sampling", choices=("selected", "all"), default="selected")
