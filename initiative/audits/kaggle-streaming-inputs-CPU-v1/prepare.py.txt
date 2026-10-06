@@ -1,0 +1,38 @@
+import hashlib,json,subprocess
+from pathlib import Path
+r=Path('artifacts/kaggle-streaming-inputs-CPU-v1');base=Path('artifacts/kaggle-witness-original-state-CPU-v1');prior=json.loads((base/'contract.json').read_text());source_git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+overrides={n:Path(n).read_text() for n in ['rsna/data.py','rsna/competitive/data.py','rsna/competitive/streaming_cache.py']};hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in overrides.items()};helper=Path('scripts/kaggle/streaming_inputs_probe.py').read_text();marker='from __future__ import annotations\n';helper=helper.replace(marker,marker+'\nCODE_OVERRIDES = '+repr(overrides)+'\nCODE_OVERRIDE_HASHES = '+repr(hashes)+'\n',1);compile(helper,'bound_streaming_inputs.py','exec')
+entry=Path('scripts/kaggle/notebook_entry.py').read_text();marker='    if globals().get("WITNESS_T4_RECOVERY_PROBE") is True:'
+branch='''    if globals().get("STREAMING_MRI_CPU_PROBE") is True:
+        receipts=[p for p in attached_dataset_files(Path("/kaggle/input"),"witness-inputs-CPU-accepted.json") if sha256(p)==CPU_RECEIPT_SHA256]
+        if len(receipts)!=1:
+            raise ValueError("Original accepted CPU32 input output required")
+        parent=receipts[0].parent
+        helper=working/"streaming-input-probe.py"
+        if hashlib.sha256(STREAMING_PROBE_SOURCE.encode()).hexdigest()!=STREAMING_PROBE_SHA256:
+            raise ValueError("Immutable streaming probe differs")
+        with helper.open("x") as f:f.write(STREAMING_PROBE_SOURCE)
+        env.update(PYTHONPATH=str(parent/"witness-training-source/code"),PYTHONDONTWRITEBYTECODE="1",OMP_NUM_THREADS="1",MKL_NUM_THREADS="1",OPENBLAS_NUM_THREADS="1")
+        competition=resolve_competition(Path("/kaggle/input"),manifest["competition"])
+        command=[str(python),str(helper),"--control",str(parent/"witness-training-source"),"--reference",str(parent/"witness-inputs-admission/cache"),"--competition",str(competition),"--output",str(working/"streaming-input-probe")]
+        bounded_process(command,env=env,timeout=3600-(time.monotonic()-notebook_started))
+        return
+''';assert entry.count(marker)==1;entry=entry.replace(marker,branch+marker)
+model=json.loads(Path('initiative/audits/kaggle-nativeall-epoch5-v1/runtimefix/operation.json').read_text())
+text='\n'.join(['EXPECTED_MANIFEST_SHA256 = '+repr(model['manifest_sha256']),'STREAMING_MRI_CPU_PROBE = True','CPU_RECEIPT_SHA256 = '+repr(prior['CPU_receipt_sha256']),'STREAMING_PROBE_SOURCE = '+repr(helper),'STREAMING_PROBE_SHA256 = '+repr(hashlib.sha256(helper.encode()).hexdigest())])+'\n'+entry;compile(text,'private_streaming_CPU.py','exec')
+contract=prior|{'kernel_slug':'godlydonuts/rsna-streaming-inputs-cpu-20261006-v1','source_sha256':hashlib.sha256(text.encode()).hexdigest(),'streaming_overlay_sha256':hashes,'streaming_source_git':source_git,'max_pipeline_seconds':3600,'GPU_or_optimizer_executed':False};contract.pop('original_GPU_kernel_slug');contract.pop('original_GPU_kernel_source_sha256')
+for key in ['helper_sha256','precision','encode_chunk_size','diagnostic_checkpoint_cap_GiB','role_optimizer_updates','actual_GPU_training_dispatched']:
+ contract.pop(key,None)
+contract.update(CPU_only=True,clinical_accuracy_evidence=False,original_engineering_studies=32,owned_scratch_cache_cap_bytes=256*2**20)
+for name,value in [('notebook.py',text),('contract.json',json.dumps(contract,indent=2)+'\n')]:
+ with (r/name).open('x') as f:f.write(value)
+co=(base/'coordinator.py').read_text().replace("R=Path('/tmp/rsna-witness-original-state-CPU-20261006-v1')","R=Path('/tmp/rsna-streaming-inputs-CPU-20261006-v1')")
+co=co.replace("'kernelDataSources':[contract['CPU_kernel_slug'],contract['original_GPU_kernel_slug']]","'kernelDataSources':[contract['CPU_kernel_slug']]").replace("'competitionDataSources':[]","'competitionDataSources':[w.COMPETITION]")
+lines=[l for l in co.splitlines() if not l.strip().startswith("parent=remote.kernel('GetKernel',contract['original_GPU_kernel_slug']")];co='\n'.join(lines)+'\n';co=co.replace('witness-original-state-CPU-accepted.json','streaming-input-probe/streaming-input-accepted.json').replace('actual_original_T4_terminal_states_trajectories_and_CSV_verified_on_CPU','actual_original32_MRI_streaming_tensors_exactly_equal')
+# The new receipt binds exact streaming tensors, not model/recovery CPU fields.
+co=co.replace("and result['CPU_receipt_sha256']==contract['CPU_receipt_sha256']", "and result['CPU_receipt_sha256']==contract['CPU_receipt_sha256'] and result['source_overlay_sha256']==contract['streaming_overlay_sha256']")
+co=co.replace('private_CPU_original_checkpoint_observer_pushed_once','private_CPU_streaming_input_probe_pushed_once').replace("for name in ['isPrivate','enableInternet','dockerImage']", "for name in ['isPrivate','enableGpu','enableInternet','dockerImage']").replace("shutil.disk_usage('/tmp').free>=20*2**30+16*2**20", "shutil.disk_usage('/tmp').free>=36*2**30+16*2**20")
+(r/'coordinator.py').write_text(co)
+runner=(base/'run_phase.py').read_text().replace('artifacts/kaggle-witness-original-state-CPU-v1','artifacts/kaggle-streaming-inputs-CPU-v1').replace('rsna-original-state-CPU-','rsna-streaming-inputs-CPU-');runner=runner.replace('GPU-dispatch-intent.json','CPU-dispatch-intent.json').replace("'GPU_notebook_requests':1", "'GPU_notebook_requests':0,'CPU_notebook_requests':1,'node_local_control_cap_bytes':16*2**20")
+(r/'run_phase.py').write_text(runner)
+print(json.dumps({'status':'private_CPU_streaming_input_probe_prepared','source_sha256':contract['source_sha256'],'source_git':source_git,'no_new_GPU_or_Dataset':True}))

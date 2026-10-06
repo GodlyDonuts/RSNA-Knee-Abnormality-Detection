@@ -1,3 +1,10 @@
+October6 distinct private CPU streaming-input notebook137281867/v1 pushed ONCE.
+Source110cba6f269666a2d4ac495e931888b440dd558d44e0ae23b42bc2bcdd98d8e4,
+streaming source175aa60; original successful CPU32 parent/official raw MRI.
+Full32 actual tensor/eviction/RAM verification pending; do not duplicate push.
+No GPU, clinical fit, score or competition slot; read kaggle-streaming-inputs-CPU-v1.
+Original H100875277 healthy: control4finite updates65.75s, complete recovery pending.
+
 October6 actual corrected FP16/smooth T4 notebook137276309/v1 COMPLETE.
 Both roles pass four finite updates and exact complete state/scaler/CSV resume.
 Mean full update117–118s, peak8.19GB per GPU; paired diagnostic1822.34s.
