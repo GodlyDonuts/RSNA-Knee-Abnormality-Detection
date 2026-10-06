@@ -79,6 +79,7 @@ class CompetitiveStudyDataset(StudyDataset):
         series_sampling: str = "selected",
         neighbor_channels: dict | None = None,
         volume_provider: Callable[[dict], bytes] | None = None,
+        sides: pd.DataFrame | None = None,
     ):
         if raw_split not in {"train_series", "test_series"}:
             raise ValueError("Unknown raw split")
@@ -108,6 +109,21 @@ class CompetitiveStudyDataset(StudyDataset):
         )
         self.volume_provider = volume_provider
         self.slice_sampling, self.series_sampling = slice_sampling, series_sampling
+        self._canonical_flip: dict[str, bool] = {}
+        if sides is not None:
+            if list(sides.columns) != ["study_uid", "flip"]:
+                raise ValueError("Canonical-side table must be study_uid/flip only")
+            if sides.study_uid.duplicated().any() or len(sides.study_uid) == 0:
+                raise ValueError("Canonical-side studies must be unique and nonempty")
+            if not pd.api.types.is_bool_dtype(sides["flip"]):
+                raise ValueError("Canonical-side flip values must be boolean")
+            requested = set(sides.study_uid)
+            roster = set(self.studies.study_uid)
+            if roster - requested:
+                raise ValueError("Canonical-side table does not cover the study roster")
+            self._canonical_flip = {
+                uid: bool(flip) for uid, flip in zip(sides.study_uid, sides["flip"])
+            }
         self._metadata: dict[tuple[str, str], tuple[str, dict]] = {}
         for uid in self.studies.study_uid:
             for entry in self.series[uid]:
@@ -195,9 +211,12 @@ class CompetitiveStudyDataset(StudyDataset):
                 )
             )
             valid = len(indices)
-            images[slot, :valid] = sample_neighbor_images(
+            sampled = sample_neighbor_images(
                 volume, meta, indices, self.side, self.neighbor_channels
             )
+            if self._canonical_flip.get(uid):
+                sampled = sampled.flip(-1)
+            images[slot, :valid] = sampled
             positions[slot, :valid] = _positions(meta, count)[indices]
             features[slot, PLANES[entry["Anatomical_Plane"]]] = 1
             features[slot, 3] = entry["Fluid_Sensitive"]

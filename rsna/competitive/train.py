@@ -25,6 +25,10 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 
 from rsna.competitive.adapters import configure_encoder_training, validate_adapter
+from rsna.competitive.canonical_side import (
+    load_canonical_side_table,
+    validate_canonical_side_policy,
+)
 from rsna.competitive.checkpoint import (
     atomic_json,
     capture_rng,
@@ -120,6 +124,7 @@ class TrainConfig:
     witness: dict | None = None
     fitting_supervision: dict | None = None
     neighbor_channels: dict | None = None
+    canonical_sides: dict | None = None
 
     def validate(self) -> None:
         neighbor_input_channels(self.neighbor_channels)
@@ -145,6 +150,16 @@ class TrainConfig:
                 or self.witness is not None
             ):
                 raise ValueError("Fitting-supervision contrast requires an isolated outer-fold arm")
+        if self.canonical_sides is not None:
+            validate_canonical_side_policy(self.canonical_sides)
+            if (
+                self.fit_scope != "outer_fold"
+                or self.relation is not None
+                or self.witness is not None
+                or self.fitting_supervision is not None
+                or self.neighbor_channels is not None
+            ):
+                raise ValueError("Canonical-side contrast requires an isolated outer-fold arm")
         positive = (
             "epochs",
             "batch_size",
@@ -487,6 +502,26 @@ def _run_locked(
         )
     else:
         supervision_receipt = None
+    canonical_sides_path = getattr(args, "canonical_sides", None)
+    if config.canonical_sides is not None or canonical_sides_path is not None:
+        if config.canonical_sides is None or canonical_sides_path is None:
+            raise ValueError("Canonical-side contrast needs both policy and artifact path")
+        side_frame, side_receipt = load_canonical_side_table(
+            train,
+            outer,
+            canonical_sides_path,
+            config.canonical_sides["sha256"],
+            release_sha256=release_binding["manifest_sha256"],
+            folds_sha256=file_sha256(
+                (args.folds if args.folds.is_dir() else args.folds.parent) / "fold.csv"
+            ),
+            fold=config.fold,
+        )
+        side_receipt["enabled"] = config.canonical_sides["enabled"]
+        data_side_frame = side_frame if config.canonical_sides["enabled"] else None
+    else:
+        side_receipt = None
+        data_side_frame = None
     if config.diagnostic_study_limit is not None:
         train, outer = (
             train.head(config.diagnostic_study_limit),
@@ -504,6 +539,8 @@ def _run_locked(
     }
     if config.neighbor_channels is not None:
         data_config["neighbor_channels"] = config.neighbor_channels
+    if data_side_frame is not None:
+        data_config["sides"] = data_side_frame
     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
     evaluation_config = dict(
         data_config, slice_sampling=evaluation_slice_sampling(config.slice_sampling)
@@ -585,6 +622,8 @@ def _run_locked(
         bound_config.pop("fitting_supervision")
     if config.neighbor_channels is None:
         bound_config.pop("neighbor_channels")
+    if config.canonical_sides is None:
+        bound_config.pop("canonical_sides")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {
@@ -614,6 +653,8 @@ def _run_locked(
         )
     if supervision_receipt is not None:
         binding["experimental_fitting_supervision"] = supervision_receipt
+    if side_receipt is not None:
+        binding["experimental_canonical_sides"] = side_receipt
     if world > 1:
         rank_bindings: list = [None] * world
         dist.all_gather_object(rank_bindings, _hash(binding))
@@ -1042,6 +1083,7 @@ def main() -> None:
     parser.add_argument(
         "--fitting-supervision", type=Path, help="Exact private reviewed fitting-overlay artifact"
     )
+    parser.add_argument("--canonical-sides", type=Path, help="Exact canonical-side table artifact")
     parser.add_argument(
         "--mrnet-checkpoint", type=Path, help="Private final source adapter initialization"
     )

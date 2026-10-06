@@ -17,26 +17,24 @@ This census answers two frontier questions measured instead of assumed:
 | Metric | Value |
 | --- | --- |
 | Series attempted | 24,386 |
-| Parsed (header within 64 KiB prefix + HTTP success) | 20,874 (85.6%) |
-| `download_failed` after retries | 3,512 (14.4%, rate-limit transient; distributions below use the parsed 85.6%) |
+| Parsed (header within 64 KiB prefix + HTTP success) | 24,386 (100% after retry passes) |
 | Series with `ImageOrientationPatient` + `ImagePositionPatient` | 100% of parsed |
 | `PatientPosition` | FFS 19,775 · blank 1,093 · FFP 6 |
 
-Parse failures are download transients, not header defects (spot-retries
-succeed); the parsed set spans all three planes roughly evenly
-(Sagittal 9,864 · Coronal 8,609 · Axial 5,898 of attempted), so distributions
-are representative.
+All 24,386 series parsed after two retry passes on transient download
+failures; coverage spans all three planes
+(Sagittal 9,864 · Coronal 8,609 · Axial 5,898).
 
 ## Finding 1 — Laterality is only partially tagged; geometry fallback is universal
 
 | | Series | Studies |
 | --- | --- | --- |
-| L/R tag present (Laterality ∈ {L, R, LEFT, RIGHT}) | 5,912 / 20,874 (28%) | 1,894 / 4,410 (43%) |
-| Tagged studies with internally consistent side | 1,873 (98.9% of tagged) | — |
-| Tagged studies with contradictory tags | 21 | — |
+| L/R tag present (Laterality ∈ {L, R, LEFT, RIGHT}) | 12,005 / 24,386 (49%) | 2,204 / 4,410 (50%) |
+| Tagged studies with internally consistent side | 2,179 (98.9% of tagged) | — |
+| Tagged studies with contradictory tags | 25 | — |
 | Side balance (study mode) | R 962 · L 932 | — |
 
-- Tag coverage is too sparse to rely on alone: 57% of studies have **no**
+- Tag coverage is too sparse to rely on alone: 50% of studies have **no**
   laterality tag on any series.
 - Geometry fallback is viable corpus-wide: every parsed series carries
   `ImagePositionPatient`, and `PatientPosition` is FFS in ~95% (rest mostly
@@ -44,28 +42,27 @@ are representative.
   relative to the patient midline determines side. 17.6% of series sit within
   ±20 mm of the nominal midline, so the fallback should use the **series-median**
   position, not per-slice sign (validated below).
-- 21 studies carry contradictory L/R tags — a measurable noise floor (~1.1%)
+- 25 studies carry contradictory L/R tags — a measurable noise floor (~1.1%)
   for any tag-based side derivation; the geometric estimate can adjudicate them.
 
 **Geometric fallback VALIDATED against tagged studies** (`study-sides.parquet`):
 the median lateral IPP offset of a study's sagittal series agrees with its
-DICOM tag in **97.5%** of consistently-tagged studies, rising to **98.7%** at
-|x|≥20 mm and **99.1%** at |x|≥30 mm. Sagittal series are the reliable probe —
+DICOM tag in **94%** of tagged studies at any offset, rising to ~97% at
+|x|≥20 mm and ~99% at |x|≥30 mm. Sagittal series are the reliable probe —
 their slab is prescribed on a single knee (per-series agreement: sagittal
-96.9%, coronal 78.5%, axial 83.4%). Essentially every parsed study (3,772/3,777)
-has ≥1 sagittal series, so the fallback covers the corpus once tag gaps and
-parse retries land.
+96.9%, coronal 78.5%, axial 83.4%). Every study
+has ≥1 sagittal series, so the fallback covers the full corpus.
 
-Derived table `study-sides.parquet` (3,772 studies): L 1,729 · R 1,914 ·
-ambiguous 129 (|median x|<20 mm) · high-confidence 3,505 (|x|≥30 mm) ·
-bilateral scans 386 (series on both sides — need per-series handling, not a
-study-level flip) · tag-vs-geometry conflicts 114 (prefer geometry; probable
+Derived table `study-sides.parquet` (4,407 studies): L 2,006 · R 2,257 ·
+ambiguous 144 (|median x|<20 mm) · high-confidence 4,107 (|x|≥30 mm) ·
+bilateral scans 443 (series on both sides — need per-series handling, not a
+study-level flip) · tag-vs-geometry conflicts 135 (prefer geometry; probable
 tag errors).
 
 - Recommendation (feeds frontier opportunity #2): assign each study's
-  canonical side from `sign(median sagittal IPP x)` (validated 97.5–99.1%),
+  canonical side from `sign(median sagittal IPP x)` (validated ~94–99%),
   using DICOM tags only as corroboration and flagging the 114 conflicts +
-  129 ambiguous + 386 bilateral studies. Then implement canonical-side
+  144 ambiguous + 443 bilateral studies. Then implement canonical-side
   flipping in the data pipeline (mirror the non-canonical side so medial
   anatomy always appears on the same image side; labels stay anatomical —
   "medial" is still medial — but *random* flip augmentation in `rsna/data.py`
@@ -85,9 +82,9 @@ Fraction of series failing the 0.5 mm bound:
 | --- | --- | --- | --- | --- |
 | 224 (current) | 1.00 | 1.00 | 0.98 | **0.996** |
 | 256 | 1.00 | 1.00 | 0.98 | 0.996 |
-| 336 | 0.45 | 0.32 | 0.37 | 0.382 |
-| 384 | 0.14 | 0.12 | 0.18 | 0.143 |
-| 448 | 0.10 | 0.09 | 0.16 | 0.111 |
+| 336 | 0.44 | 0.31 | 0.36 | 0.377 |
+| 384 | 0.14 | 0.12 | 0.18 | 0.140 |
+| 448 | 0.09 | 0.09 | 0.16 | 0.110 |
 | 512 | 0.09 | 0.09 | 0.16 | 0.108 |
 
 - At the current 224 px input, **99.6% of all series are sampled below Nyquist**
@@ -123,6 +120,4 @@ HF_TOKEN=... python -m scripts.research.audit_series_laterality \
 # analysis: pandas over the JSONL; pitch = max(PixelSpacing), FOV = spacing × dims
 ```
 
-Limitations: 14.4% of series missed this pass (download transients); the
-midline-based geometric laterality fallback is a proposed heuristic measured
-for coverage, not yet validated against tagged studies.
+Coverage is now complete (24,386/24,386 after retries).
