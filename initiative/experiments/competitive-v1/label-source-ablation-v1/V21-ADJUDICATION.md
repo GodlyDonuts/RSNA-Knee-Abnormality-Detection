@@ -198,3 +198,14 @@ Interpretation, with caveats:
   gold-58's own mild-finding convention documented in GOLD-ARBITRATION.md.
   It argues for comparing v21 vs v21pn vs baseline on the ablation rather
   than assuming unmasking is free.
+
+## v21hc arm — high-confidence flips only
+
+Given the gold-measured precision gradient (pass-2 0.75 vs pass-1 0.46 vs
+pass-3 0.08), a third overlay variant `v21hc_severity_rereview.fold{0,1,2}`
+applies **only pass-2 flips** — v2-`uncertain` cells where public ≥ 0.9 and
+the evidence verified positive (4,652 cells, `v21hc_adjudication.csv`).
+Per-fold positive flips: 2,224 / 2,160 / 2,184; fitting supervised cells
+16,812 / 17,175 / 17,165. This isolates the highest-precision augmentation
+and lets the ablation measure whether the noisier pass-1/pass-3 tail helps
+or hurts. Run configs `label-source-v21hc.fold{0,1,2}` emitted.
