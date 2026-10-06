@@ -64,3 +64,46 @@ evaluation masks are untouched.
 - `uncertain`-state cells on the severity targets (~3,400 cells corpus-wide).
 - public < 0.9 conflict cells and the v2-`not_mentioned` bucket — these need
   full-report context, not just the recorded evidence quote.
+
+---
+
+# Pass 2 — `uncertain`-state cells, public ≥ 0.9 (2026-10-06)
+
+Second pool: every cell with `v2_state = uncertain` and public value ≥ 0.9 on
+the five severity targets — 4,663 cells corpus-wide. Same adjudication rule as
+pass 1 (does the v2-recorded evidence quote name the finding at any severity),
+but here v2 saw the evidence and could not decide rather than actively
+rejecting it.
+
+## Result
+
+| target | pool | positive | negative | kept uncertain |
+|--------|------|----------|----------|----------------|
+| Effusion | 699 | 699 | 0 | 0 |
+| Baker's | 499 | 499 | 0 | 0 |
+| Medial OA | 1,149 | 1,141 | 3 | 5 |
+| Lateral OA | 775 | 770 | 0 | 5 |
+| PF OA | 1,541 | 1,540 | 0 | 1 |
+| **total** | **4,663** | **4,649** | **3** | **11** |
+
+Kept-negative (3, Medial OA): "Im medialen Kompartiment nach weitestgehend
+erhaltener Knorpelbelag", "The articular cartilage of the medial joint
+compartment is reasonably well-maintained", and a radial meniscus tear with
+explicit "no focal chondrosis or chondral injury".
+
+Kept-uncertain (11): bilateral-note-only or header-only evidence strings,
+post-traumatic cartilage defects ("Anstelle der Fraktur kleiner chondraler
+Defekt", "chondral fracture"), chondromalacia naming only the lateral patellar
+facet (PF-compartment evidence under Lateral OA), and one vague "mild changes
+in the lateral compartment" — none name compartment-level degenerative
+cartilage evidence unambiguously, so they stay masked.
+
+Combined totals across both passes: 6,476 positive flips, 18 kept negative.
+The v2.1 overlays now cover both passes (rebuilt 2026-10-06): positive flips
+per fitting roster fold0 3,219 / fold1 3,175 / fold2 3,166; fitting supervised
+coverage 16,812 / 17,175 / 17,165.
+
+## Remaining
+
+- public < 0.9 conflict cells (~2,020) and the v2-`not_mentioned` bucket —
+  still need full-report context rather than the single recorded quote.
