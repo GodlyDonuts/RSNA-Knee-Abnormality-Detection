@@ -109,6 +109,22 @@ def main() -> None:
             args.output,
         )
     )
+    written.append(
+        emit(
+            {
+                **base,
+                "masked_cell": {
+                    "enabled": True,
+                    "kind": "ema_consistency",
+                    "weight": 1.0,
+                    "alpha": 0.999,
+                    "ramp_fraction": 0.2,
+                },
+            },
+            "masked-cell-consistency",
+            args.output,
+        )
+    )
     print(json.dumps([str(p.relative_to(ROOT)) for p in written], indent=1))
 
 

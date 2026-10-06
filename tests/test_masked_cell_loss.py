@@ -7,6 +7,7 @@ import torch
 from torch.nn import functional as F
 
 from rsna.competitive.loss import (
+    masked_cell_consistency,
     masked_cell_entropy,
     observed_counts,
     validate_masked_cell,
@@ -77,9 +78,61 @@ def test_masked_entropy_rejects_invalid_shapes():
         masked_cell_entropy(bad, mask, counts)
 
 
+def test_masked_consistency_equals_mean_mse_on_masked_cells():
+    logits, mask = _batch()
+    teacher = torch.randn_like(logits)
+    counts = observed_counts([(mask == 0).float()])
+    term = masked_cell_consistency(logits, teacher, mask, counts)
+    unobserved = (mask == 0).float()
+    sums = ((logits.float() - teacher.float()).pow(2) * unobserved).sum(dim=0)
+    included = counts > 0
+    expected = (sums[included] / counts[included].to(sums.dtype)).mean()
+    torch.testing.assert_close(term, expected)
+
+
+def test_masked_consistency_is_zero_when_everything_is_supervised():
+    logits, mask = _batch()
+    mask = torch.ones_like(mask)
+    counts = observed_counts([(mask == 0).float()])
+    term = masked_cell_consistency(logits, torch.randn_like(logits), mask, counts)
+    assert float(term) == 0.0
+
+
+def test_masked_consistency_gradient_reaches_only_masked_student_logits():
+    logits, mask = _batch()
+    logits.requires_grad_(True)
+    teacher = torch.randn_like(logits)
+    counts = observed_counts([(mask == 0).float()])
+    masked_cell_consistency(logits, teacher, mask, counts).backward()
+    assert logits.grad is not None
+    assert logits.grad[mask == 1].abs().max() == 0
+    assert (logits.grad[mask == 0].abs() > 0).any()
+
+
+def test_masked_consistency_rejects_invalid_inputs():
+    logits, mask = _batch()
+    counts = observed_counts([(mask == 0).float()])
+    teacher = torch.randn_like(logits)
+    with pytest.raises(ValueError, match="aligned"):
+        masked_cell_consistency(logits, teacher[:, :4], mask, counts)
+    with pytest.raises(ValueError, match="Non-finite"):
+        bad = teacher.clone()
+        bad[0, 0] = float("nan")
+        masked_cell_consistency(logits, bad, mask, counts)
+
+
 def test_validate_masked_cell_accepts_valid_policy():
     validate_masked_cell({"enabled": True, "kind": "entropy_max", "weight": 0.1})
     validate_masked_cell({"enabled": False, "kind": "entropy_max", "weight": 1})
+    validate_masked_cell(
+        {
+            "enabled": True,
+            "kind": "ema_consistency",
+            "weight": 1.0,
+            "alpha": 0.999,
+            "ramp_fraction": 0.2,
+        }
+    )
 
 
 @pytest.mark.parametrize(
@@ -93,6 +146,29 @@ def test_validate_masked_cell_accepts_valid_policy():
         {"enabled": True, "kind": "entropy_max", "weight": 0},
         {"enabled": True, "kind": "entropy_max", "weight": 1.5},
         {"enabled": True, "kind": "entropy_max", "weight": "0.5"},
+        {"enabled": True, "kind": "ema_consistency", "weight": 0.5},
+        {
+            "enabled": True,
+            "kind": "ema_consistency",
+            "weight": 0.5,
+            "alpha": 0.999,
+            "ramp_fraction": 0.2,
+            "extra": 1,
+        },
+        {
+            "enabled": True,
+            "kind": "ema_consistency",
+            "weight": 0.5,
+            "alpha": 1.0,
+            "ramp_fraction": 0.2,
+        },
+        {
+            "enabled": True,
+            "kind": "ema_consistency",
+            "weight": 0.5,
+            "alpha": 0.999,
+            "ramp_fraction": 0,
+        },
     ],
 )
 def test_validate_masked_cell_rejects_invalid_policies(policy):

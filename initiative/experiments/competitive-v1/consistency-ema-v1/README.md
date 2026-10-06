@@ -1,8 +1,9 @@
-# Consistency-EMA (mean-teacher) arm — experiment design
+# Consistency-EMA (mean-teacher) arm — experiment design + implementation
 
-Status: design only — no code, no run config yet. Blocked on a GPU slot
-alongside every other arm; written so a future session can implement it
-without re-deriving the reasoning.
+Status: **IMPLEMENTED (2026-10-06)** — `masked_cell.kind:"ema_consistency"`
+is live in `rsna/competitive/train.py` + `rsna/competitive/loss.py`, and the
+`masked-cell-consistency` run config is emitted. Blocked on a GPU slot like
+every other arm; the design rationale below explains the parameters.
 
 ## What it is
 
@@ -54,6 +55,14 @@ lets those cells still shape the model *without* assigning them labels:
   (`masked_cell_entropy` in `rsna/competitive/loss.py`, ESA arm);
   consistency-EMA adds `kind: "ema_consistency"` with fields
   `alpha`, `weight`, `ramp_fraction`, `teacher_view`.
+  As implemented: teacher is a `deepcopy` of the student initialized after
+  checkpoint restore, `requires_grad_(False)`, `eval()`; EMA on parameters
+  (`alpha=0.999`) + buffer copy after every optimizer step; MSE-on-logits
+  consistency on masked cells (`masked_cell_consistency`), ramped
+  `0 → weight` over `ramp_fraction=0.2` of total updates; same-input
+  teacher view (weight-space consistency — augmentation asymmetry is a
+  follow-up `teacher_view` enhancement); teacher is NOT checkpointed and
+  re-copies from the restored student on resume.
 - `CompetitiveStudyNet` needs an EMA shadow — copy-on-init, `no_grad`
   update hook after `optimizer.step()`; state-dict must round-trip
   through checkpoint save/load (smooth-witness already proves complete

@@ -24,6 +24,7 @@ def test_run_configs_exist_for_every_packaged_arm():
     expected = {
         "base-v2-control",
         "masked-cell-em005",
+        "masked-cell-consistency",
         *{f"label-source-public.fold{f}" for f in (0, 1, 2)},
         *{f"label-source-blended.fold{f}" for f in (0, 1, 2)},
         *{f"label-source-v21.fold{f}" for f in (0, 1, 2)},

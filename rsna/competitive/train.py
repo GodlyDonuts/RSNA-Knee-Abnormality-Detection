@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import hashlib
 import io
 import json
@@ -41,6 +42,7 @@ from rsna.competitive.checkpoint import (
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
 from rsna.competitive.loss import (
     effective_batch_loss,
+    masked_cell_consistency,
     masked_cell_entropy,
     observed_counts,
     validate_masked_cell,
@@ -701,6 +703,13 @@ def _run_locked(
         ):
             raise ValueError("Checkpoint progress counters are invalid")
         restore_rng(checkpoint["rng_by_rank"][rank], device)
+    teacher = None
+    if config.masked_cell is not None and config.masked_cell["kind"] == "ema_consistency":
+        # Mean-teacher: an EMA shadow of the student, initialized from the
+        # (possibly resumed) weights. Not checkpointed; on resume it restarts
+        # from the restored student, matching a fresh-copy convention.
+        teacher = copy.deepcopy(model).requires_grad_(False)
+        teacher.eval()
     started = time.monotonic()
     updates_this_invocation = 0
     history = []
@@ -851,13 +860,40 @@ def _run_locked(
                                 else classification + config.relation["weight"] * auxiliary
                             )
                             if masked_enabled:
-                                # Entropy maximization (ESA arm): subtracting
-                                # the masked-cell entropy rewards uncertain
-                                # predictions where the labels observe nothing.
                                 assert masked_counts is not None
-                                masked_entropy = masked_cell_entropy(logits, mask, masked_counts)
-                                loss = loss - config.masked_cell["weight"] * masked_entropy
-                                masked_total += masked_entropy.detach()
+                                if config.masked_cell["kind"] == "entropy_max":
+                                    # Entropy maximization (ESA arm): subtracting
+                                    # the masked-cell entropy rewards uncertain
+                                    # predictions where the labels observe nothing.
+                                    masked_entropy = masked_cell_entropy(
+                                        logits, mask, masked_counts
+                                    )
+                                    loss = loss - config.masked_cell["weight"] * masked_entropy
+                                    masked_total += masked_entropy.detach()
+                                else:
+                                    # Mean-teacher consistency: pull masked-cell
+                                    # logits toward the EMA shadow's prediction,
+                                    # ramped from zero over the warmup fraction.
+                                    assert teacher is not None
+                                    with torch.no_grad():
+                                        teacher_logits = teacher(*_model_inputs(batch, device))
+                                    consistency = masked_cell_consistency(
+                                        logits, teacher_logits, mask, masked_counts
+                                    )
+                                    ramp_value = min(
+                                        1.0,
+                                        step
+                                        / max(
+                                            1,
+                                            math.ceil(
+                                                config.masked_cell["ramp_fraction"] * total_updates
+                                            ),
+                                        ),
+                                    )
+                                    loss = loss + (
+                                        ramp_value * config.masked_cell["weight"] * consistency
+                                    )
+                                    masked_total += consistency.detach()
                         if scaler is None:
                             loss.backward()
                         else:
@@ -884,6 +920,14 @@ def _run_locked(
                     # skipped AMP steps never masquerade as optimizer progress.
                     scaler.step(optimizer)
                     scaler.update()
+                if teacher is not None:
+                    with torch.no_grad():
+                        for t_param, s_param in zip(teacher.parameters(), model.parameters()):
+                            t_param.mul_(config.masked_cell["alpha"]).add_(
+                                s_param.detach(), alpha=1 - config.masked_cell["alpha"]
+                            )
+                        for t_buf, s_buf in zip(teacher.buffers(), model.buffers()):
+                            t_buf.copy_(s_buf)
                 step += 1
             else:
                 norm = torch.tensor(0.0)
@@ -958,10 +1002,13 @@ def _run_locked(
                 if masked_enabled:
                     assert masked_counts is not None
                     event.update(
-                        masked_entropy=float(masked_total),
                         masked_cells=float(masked_counts.sum()),
                         masked_weight=config.masked_cell["weight"],
                     )
+                    if config.masked_cell["kind"] == "entropy_max":
+                        event["masked_entropy"] = float(masked_total)
+                    else:
+                        event["masked_consistency"] = float(masked_total)
                 if device.type == "cuda":
                     event["peak_gpu_allocated_bytes"] = torch.cuda.max_memory_allocated(device)
                 history.append(event)

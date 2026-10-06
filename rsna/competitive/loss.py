@@ -86,15 +86,59 @@ def masked_cell_entropy(logits: Tensor, mask: Tensor, masked_counts: Tensor) -> 
     return world * (sums[included] / masked_counts[included].to(sums.dtype)).mean()
 
 
+def masked_cell_consistency(
+    student_logits: Tensor, teacher_logits: Tensor, mask: Tensor, masked_counts: Tensor
+) -> Tensor:
+    """One microbatch's contribution to the global per-target mean squared
+    error between student and EMA-teacher logits over unobserved cells
+    (mask == 0), normalized like masked_cell_entropy."""
+    if (
+        student_logits.shape != teacher_logits.shape
+        or student_logits.shape != mask.shape
+        or student_logits.ndim != 2
+    ):
+        raise ValueError("Expected aligned [study,target] student/teacher logits and masks")
+    if (
+        masked_counts.shape != student_logits.shape[1:]
+        or not torch.isfinite(masked_counts).all()
+        or (masked_counts < 0).any()
+    ):
+        raise ValueError("Invalid effective-batch masked counts")
+    if not torch.isfinite(mask).all() or (mask < 0).any():
+        raise ValueError("Invalid supervision weights")
+    if not torch.isfinite(student_logits).all() or not torch.isfinite(teacher_logits).all():
+        raise ValueError("Non-finite logits")
+    unobserved = (mask == 0).to(mask.dtype)
+    sums = ((student_logits.float() - teacher_logits.float()).pow(2) * unobserved).sum(dim=0)
+    included = masked_counts > 0
+    if not included.any():
+        return student_logits.sum() * 0
+    world = dist.get_world_size() if dist.is_initialized() else 1
+    return world * (sums[included] / masked_counts[included].to(sums.dtype)).mean()
+
+
 def validate_masked_cell(policy: object) -> None:
     """Masked-cell objective contract: a config-bound arm, not an artifact."""
     if not isinstance(policy, dict):
         raise ValueError("Masked-cell policy must be an object")
-    if sorted(policy) != ["enabled", "kind", "weight"]:
-        raise ValueError("Masked-cell policy fields are enabled, kind and weight")
-    if type(policy["enabled"]) is not bool:
+    if type(policy.get("enabled")) is not bool:
         raise ValueError("Masked-cell enabled flag must be a boolean")
-    if policy["kind"] != "entropy_max":
+    kind = policy.get("kind")
+    if kind == "entropy_max":
+        if sorted(policy) != ["enabled", "kind", "weight"]:
+            raise ValueError("Masked-cell policy fields are enabled, kind and weight")
+    elif kind == "ema_consistency":
+        if sorted(policy) != ["alpha", "enabled", "kind", "ramp_fraction", "weight"]:
+            raise ValueError(
+                "Masked-cell ema_consistency fields are alpha, enabled, kind, ramp_fraction and weight"
+            )
+        alpha = policy["alpha"]
+        if isinstance(alpha, bool) or not isinstance(alpha, (int, float)) or not (0 < alpha < 1):
+            raise ValueError("Masked-cell alpha must be in (0, 1)")
+        ramp = policy["ramp_fraction"]
+        if isinstance(ramp, bool) or not isinstance(ramp, (int, float)) or not (0 < ramp <= 1):
+            raise ValueError("Masked-cell ramp_fraction must be in (0, 1]")
+    else:
         raise ValueError("Unknown masked-cell objective kind")
     weight = policy["weight"]
     if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not (0 < weight <= 1):
