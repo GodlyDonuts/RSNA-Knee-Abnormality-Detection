@@ -39,7 +39,12 @@ from rsna.competitive.checkpoint import (
     save_checkpoint,
 )
 from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
-from rsna.competitive.loss import effective_batch_loss, observed_counts
+from rsna.competitive.loss import (
+    effective_batch_loss,
+    masked_cell_entropy,
+    observed_counts,
+    validate_masked_cell,
+)
 from rsna.competitive.mrnet_initialization import initialize_private_mrnet
 from rsna.competitive.neighbor_input import neighbor_input_channels
 from rsna.competitive.relations import (
@@ -125,8 +130,20 @@ class TrainConfig:
     fitting_supervision: dict | None = None
     neighbor_channels: dict | None = None
     canonical_sides: dict | None = None
+    masked_cell: dict | None = None
 
     def validate(self) -> None:
+        if self.masked_cell is not None:
+            validate_masked_cell(self.masked_cell)
+            if (
+                self.fit_scope != "outer_fold"
+                or self.relation is not None
+                or self.witness is not None
+                or self.fitting_supervision is not None
+                or self.neighbor_channels is not None
+                or self.canonical_sides is not None
+            ):
+                raise ValueError("Masked-cell contrast requires an isolated outer-fold arm")
         neighbor_input_channels(self.neighbor_channels)
         if self.neighbor_channels is not None and (
             self.fit_scope != "outer_fold"
@@ -776,6 +793,12 @@ def _run_locked(
             batches = [next(iterator) for _ in range(config.accumulation_steps)]
             masks = [batch["label_mask"].to(device) for batch in batches]
             counts = observed_counts(masks)
+            masked_enabled = config.masked_cell is not None and config.masked_cell["enabled"]
+            masked_counts = (
+                observed_counts([(mask == 0).to(mask.dtype) for mask in masks])
+                if masked_enabled
+                else None
+            )
             relation_batches = (
                 [
                     relations_for_batch(batch, config.relation, seed=config.seed, epoch=epoch)
@@ -793,8 +816,15 @@ def _run_locked(
             loss_total = torch.zeros((), device=device)
             classification_total = torch.zeros((), device=device)
             relation_total = torch.zeros((), device=device)
-            if counts.any() or (
-                config.relation is not None and config.relation["weight"] > 0 and relation_count > 0
+            masked_total = torch.zeros((), device=device)
+            if (
+                counts.any()
+                or (
+                    config.relation is not None
+                    and config.relation["weight"] > 0
+                    and relation_count > 0
+                )
+                or (masked_counts is not None and masked_counts.any())
             ):
                 for micro, (batch, mask) in enumerate(zip(batches, masks)):
                     synchronize = micro == len(batches) - 1 or world == 1
@@ -820,6 +850,14 @@ def _run_locked(
                                 if config.relation is None
                                 else classification + config.relation["weight"] * auxiliary
                             )
+                            if masked_enabled:
+                                # Entropy maximization (ESA arm): subtracting
+                                # the masked-cell entropy rewards uncertain
+                                # predictions where the labels observe nothing.
+                                assert masked_counts is not None
+                                masked_entropy = masked_cell_entropy(logits, mask, masked_counts)
+                                loss = loss - config.masked_cell["weight"] * masked_entropy
+                                masked_total += masked_entropy.detach()
                         if scaler is None:
                             loss.backward()
                         else:
@@ -857,6 +895,9 @@ def _run_locked(
                     classification_total /= world
                     dist.all_reduce(relation_total)
                     relation_total /= world
+                if masked_enabled:
+                    dist.all_reduce(masked_total)
+                    masked_total /= world
             updates_this_invocation += 1
             epoch_finished = update + 1 == sampler.updates
             checkpoint_epoch, checkpoint_update = (
@@ -913,6 +954,13 @@ def _run_locked(
                         relation_loss=float(relation_total),
                         relation_studies=float(relation_count),
                         relation_weight=config.relation["weight"],
+                    )
+                if masked_enabled:
+                    assert masked_counts is not None
+                    event.update(
+                        masked_entropy=float(masked_total),
+                        masked_cells=float(masked_counts.sum()),
+                        masked_weight=config.masked_cell["weight"],
                     )
                 if device.type == "cuda":
                     event["peak_gpu_allocated_bytes"] = torch.cuda.max_memory_allocated(device)

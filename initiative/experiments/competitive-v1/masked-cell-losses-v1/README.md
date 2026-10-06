@@ -1,7 +1,7 @@
 # Masked-cell loss treatments — design for the sparse-target problem
 
-**Status**: design only; no implementation yet. Frontier item 6
-(`docs/research-frontier-20261006.md`).
+**Status**: EM arm implemented (2026-10-06); consistency arm still design.
+Frontier item 6 (`docs/research-frontier-20261006.md`).
 
 ## Why this experiment
 
@@ -47,12 +47,26 @@ fit under the same seed/folds/recipe.
   and consistency only shape the *distribution* over masked predictions; no
   masked cell ever receives a hard 0 target.
 
-## Implementation surface
+## Implementation surface (as built)
 
-- Loss code lives in the trainer's objective — one flag `masked_cell_loss:
-  ignore|em|consistency` plus λ/ρ config fields. No data or artifact changes.
-- Consistency arm needs the teacher: an EMA copy of the model — standard,
-  ~30 lines.
+- `TrainConfig.masked_cell = {"enabled": bool, "kind": "entropy_max", "weight":
+  float in (0,1]}` — config-bound (no artifact). `kind` is extensible; only
+  `entropy_max` is implemented. `enabled: false` binds the arm while running
+  the ignore control, same overlay convention as other arms.
+- `masked_cell_entropy(logits, mask, masked_counts)` in `loss.py` mirrors
+  `effective_batch_loss` accounting: per-target sums over `mask == 0` cells
+  divided by effective-batch masked counts collected once per optimizer
+  update (DDP all-reduced); the trainer subtracts `weight × entropy`
+  (subtraction maximizes entropy — penalizes confident predictions where
+  labels observe nothing).
+- Isolated like every first contrast: outer-fold scope, no
+  relation/witness/fitting_supervision/neighbor_channels/canonical_sides.
+  Arm composes with the graded overlay only after winning alone — the
+  validator forbids the combination today.
+- Receipt fields: `masked_entropy`, `masked_cells`, `masked_weight` in the
+  per-update event log.
+- Consistency arm (EMA teacher pseudo-labels) still needs the teacher copy
+  — ~30 lines, not yet built.
 - Bound like the other experiments: config hash + receipt in the run record,
   same release/folds/outer fold, paired bootstrap on the derived holdout.
 
