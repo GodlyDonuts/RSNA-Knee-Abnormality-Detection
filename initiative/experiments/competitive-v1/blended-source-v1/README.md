@@ -16,10 +16,16 @@ A `label_source_v1` overlay assembled cell-by-cell from two bound sources:
   targets where its recall measured better — Medial OA, Lateral OA, Effusion,
   Baker's — passed through as soft [0,1] supervision, mask 1.
 
-Artifact: `blended_v2plus_public.fold0.overlay.json`, sha256
-`6a93fe7860ece65cc1beb0d690620198b331bca89039f0be34e01605f49c193d` — 2,247
-fitting studies, 19,186/26,964 supervised cells, 9,405 cells differing from
-the v2 baseline, verified end-to-end through `load_fitting_label_source`.
+Artifacts (all three outer folds, sha-bound and loader-verified):
+
+- `blended_v2plus_public.fold0.overlay.json` — sha256
+  `6a93fe7860ece65cc1beb0d690620198b331bca89039f0be34e01605f49c193d`,
+  2,247 fitting studies, 19,186/26,964 supervised cells, 9,405 cells
+  differing from the v2 baseline.
+- `blended_v2plus_public.fold1.overlay.json` — sha256 `71cc8f91…`,
+  2,278 fitting studies.
+- `blended_v2plus_public.fold2.overlay.json` — sha256 `64ee2cc5…`,
+  2,281 fitting studies.
 
 ## Why
 

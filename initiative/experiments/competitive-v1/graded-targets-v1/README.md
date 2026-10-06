@@ -31,17 +31,19 @@ The graded overlay changes exactly one row:
 the label-source ablation: sha256 + release/folds/roster binding, fitting-scope
 only, evaluation frames untouched.
 
-## Fold-0 artifact
+## Artifacts (all three outer folds)
 
-`graded-states-u05.fold0.overlay.json`, sha256
-`77b3533880bfe22d520c09631d15012a12d97485c4d9fe615355840a26cb887a`.
-
-- 2,247 fitting studies bound (`fitting_uid_sha256`
-  `e9d38ee21a114973177b89f4602129c7dc047927b8499991d3be30fd89737f3a`).
-- **5,688 uncertain cells** move from masked to supervised at 0.5 — ~21% of the
-  26,964-cell fitting table; this is not a marginal perturbation.
-- Verified through `load_fitting_label_source` against the real release:
-  6,516 cells bound and swapped, zero evaluation-mask changes.
+- `graded-states-u05.fold0.overlay.json`, sha256
+  `77b3533880bfe22d520c09631d15012a12d97485c4d9fe615355840a26cb887a` —
+  2,247 fitting studies (`fitting_uid_sha256`
+  `e9d38ee21a114973177b89f4602129c7dc047927b8499991d3be30fd89737f3a`),
+  **5,688 uncertain cells** supervised at 0.5 (~21% of the fitting table);
+  verified through `load_fitting_label_source` (6,516 cells bound and
+  swapped, zero evaluation-mask changes).
+- `graded-states-u05.fold1.overlay.json`, sha256 `14a50020…` — 2,278 fitting
+  studies, 5,555 uncertain cells supervised.
+- `graded-states-u05.fold2.overlay.json`, sha256 `17952028…` — 2,281 fitting
+  studies, 5,643 uncertain cells supervised.
 
 ## Paired protocol
 
