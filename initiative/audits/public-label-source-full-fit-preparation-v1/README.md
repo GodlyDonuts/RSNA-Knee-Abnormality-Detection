@@ -22,3 +22,8 @@ Pinned publisher template is prepared and syntax checked. It requires exact
 full source/cohort/config plus fitting-supervision receipt equality, immutable
 snapshot SHA/size, license, actual H100 acceptance and private five-object
 re-download verification. It has not run or published a production checkpoint.
+
+Prepared scheduler budget is48h, not36h: observed memory552updates/12111s
+projects34.25h for5620updates before recovery and final evaluations. This is
+a rough cross-model estimate, not a matched speed claim. NormalMaxTime is
+UNLIMITED. Existing jobs/scientific epochs/schedule remain unchanged.
