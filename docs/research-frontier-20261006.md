@@ -106,8 +106,11 @@ Baker's 9 observed positives). **EM arm BUILT (2026-10-06, PR #4)**:
 `TrainConfig.masked_cell` + `masked_cell_entropy` loss with effective-batch
 normalization and isolated-arm validation; the corpus coverage table made it
 load-bearing — Synovitis has 316 positives against 13 negatives (89% masked),
-so the masked budget IS that target's supervision. Consistency EMA arm
-remains design.
+so the masked budget IS that target's supervision. **Consistency EMA arm
+BUILT (2026-10-06, PR #4)**: `masked_cell.kind:"ema_consistency"` —
+EMA-teacher (α=0.999, checkpointed for exact resume) MSE on masked-cell
+logits ramped over 20% of updates; `masked-cell-consistency` config
+emitted. Both masked-cell treatments now await the same GPU slot.
 
 ### 7. Knee-domain self-supervised pretraining on our own corpus
 
@@ -178,7 +181,11 @@ local-smoothness term on per-slice scores (e.g. penalize |score[i+1] −
 score[i]| weighted by physical proximity, or explicit MIL losses where the
 study label supervises the max per-slice score) is an implementable
 pooling/loss variant — pairs naturally with the `attention` vs `max` ablation
-grid as a third arm.
+grid as a third arm. **BUILT (2026-10-06, PR #4)**: `slice_smooth` config
+{enabled, kind:"attention_score_tv", weight} penalizes the squared score
+difference between physically adjacent slices (k-index adjacency is
+physical — cache geometry verified); `slice-smooth-smmil` config emitted
+at weight 0.1, exact-resume verified.
 
 ### 11. Plane-slot design audit — axial is load-bearing, already covered
 
