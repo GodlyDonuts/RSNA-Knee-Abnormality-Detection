@@ -84,12 +84,16 @@ EMA-teacher (α=0.999) MSE on masked-cell logits, ramped 20%, teacher
 checkpointed for exact resume; `masked-cell-consistency` config emitted.
 Most load-bearing for Synovitis/sparse targets.
 
-### Step 5 — Knee-domain SSL pretrain (one-time, day-scale)
+### Step 5 — Knee-domain SSL / domain-matched init
 
 ~820k unlabeled knee slices, scanner/protocol matched to test. OAI-DINO and
 MRI-CORE both show domain-matched DINO pretraining beats generic supervised
-pretraining in low-label regimes. Highest ceiling item on the list; also the
-most expensive. Run once when a long GPU window exists.
+pretraining in low-label regimes. Cheapest first probe (2026-10-06 sweep):
+**MRI-CORE ViT-B init — Apache-2.0, 2D-slice, direct drop-in** (knee
+coverage in Duke-110K unverified). Then OrthoDiffusion (knee-specific 3D
+diffusion, public weights) if the init probe wins; own-corpus DINO as the
+day-scale escalation. Full ranked list in
+`initiative/experiments/competitive-v1/knee-ssl-pretraining-v1/README.md`.
 
 ### Step 6 — Attention-vs-max pooling + local-dependency term
 
