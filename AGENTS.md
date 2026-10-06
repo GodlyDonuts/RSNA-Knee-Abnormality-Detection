@@ -1,3 +1,7 @@
+Full public-label CPUstage/funding milestoneb224b37c privatelyverifiedONCE at
+HF16b0faa2cd8b0751116dafc9611c7c48d0317a7b, all16small objects. Do notrepeat.
+Finiteobserver6e06982e islater/separate; source scientifica990unchanged.
+
 Finite public-label fullcomparisonobserver startedONCE, execsession59041,
 artifacts/public-label-source-v1/full-fit-v1/finish_when_ready.py. Max2h/read-only
 120s polls; exactT4actualacceptance thenone fullsinglecoordinator dispatch only.
