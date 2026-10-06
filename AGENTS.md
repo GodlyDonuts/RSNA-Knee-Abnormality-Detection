@@ -1,3 +1,12 @@
+October6 optional cross-sequence target-query memory is now wired through canonical
+training/inference/delta packaging/resident reconstruction. Synthetic complete
+trainer recovery (FP32/FP16), zero-start/common RNG and mask/missing-view checks
+passed; no official MRI CPU/GPU admission or accuracy yet. Read plane-memory-
+integration-v1. Next original32/official initialization CPU gate, then separately
+funded real GPU recovery and fixed-budget held-out contrast. Healthy875858 remains
+unchanged3b7e437: actual379finite updates/control epoch2, empty stderr; original
+control1 already privately verified8088a58. Do not repeat its publication/job.
+
 Original full control epoch1 from875858 completed281updates and is privately
 preserved ONCE: HF8088a58eff22f9dcbf39f889e67da7cfb18e3441, all5 objects fully re-downloaded/size/SHA
 verified by CPU876566. Checkpoint SHAb6355b0a53c0c84ece028dc9127a8525d79572494882a91a7de9ea898ac9f9a5.

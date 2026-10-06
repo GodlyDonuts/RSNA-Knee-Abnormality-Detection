@@ -71,6 +71,24 @@ def test_changed_model_or_runtime_is_rejected_before_output(tmp_path, monkeypatc
     assert not args.output.exists()
 
 
+def test_memory_checkpoint_reconstructs_same_predictions_in_resident_worker(tmp_path, monkeypatch):
+    args, _ = _fixture(
+        tmp_path,
+        monkeypatch,
+        plane_memory={"weight": 1, "seed": 20261006, "hidden_dim": 16},
+    )
+    args.precision = "fp32"
+    infer.run(args)
+    expected = pd.read_csv(args.output)
+    args.output = tmp_path / "resident-memory.csv"
+    runner = m.ResidentInference(args)
+    assert runner.model.plane_memory is not None
+    runner.run(args)
+    np.testing.assert_array_equal(
+        pd.read_csv(args.output)[list(TARGETS)].to_numpy(), expected[list(TARGETS)].to_numpy()
+    )
+
+
 @pytest.mark.parametrize("field,value", [("precision", "bf16"), ("batch_size", 2), ("workers", 1)])
 def test_unaccepted_compute_recipe_rejected_before_loading(tmp_path, monkeypatch, field, value):
     args, _ = _fixture(tmp_path, monkeypatch)

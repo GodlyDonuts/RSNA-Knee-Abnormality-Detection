@@ -132,6 +132,7 @@ class ResidentInference:
         for name, value in [
             ("slice_context", getattr(self.config, "slice_context", "none")),
             ("witness", getattr(self.config, "witness", None)),
+            ("plane_memory", getattr(self.config, "plane_memory", None)),
             ("input_channels", channels),
         ]:
             if name in supported:
