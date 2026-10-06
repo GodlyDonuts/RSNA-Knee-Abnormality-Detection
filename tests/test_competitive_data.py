@@ -317,7 +317,7 @@ def test_supervised_invalid_label_cannot_enter_loss(tmp_path):
 def test_graded_supervised_label_accepted(tmp_path):
     studies, series, _ = fixture(tmp_path)
     studies.loc[0, TARGETS[0]] = 0.5
-    row = CompetitiveStudyDataset(studies, series, tmp_path, side=16)[0]
+    row = CompetitiveStudyDataset(studies, series, tmp_path, side=16, soft_targets=True)[0]
     assert row["labels"][0].item() == 0.5
     assert row["label_mask"][0].item() == 1.0
 
