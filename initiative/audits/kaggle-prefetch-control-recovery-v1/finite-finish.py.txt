@@ -1,0 +1,23 @@
+"""Finite observer of one exact version, then at most one verified code submission."""
+import json,subprocess,time
+from pathlib import Path
+r=Path('artifacts/kaggle-prefetch-control-recovery-v1');assert (r/'push-receipt.json').exists()
+with (r/'finish-intent.json').open('x') as f:json.dump({'kernel_slug':'godlydonuts/rsna-s1-control-prefetch-490e23ea1209-v1','version':1,'maximum_observer_seconds':7200,'maximum_competition_submissions':1,'poll_seconds':60,'automatic_mutation_retry':False},f,indent=2);f.write('\n')
+started=time.monotonic();i=0
+while time.monotonic()-started<7200:
+ i+=1;x=subprocess.run(['python3',str(r/'run_phase.py'),'status'],capture_output=True,text=True,timeout=670)
+ with (r/f'finish-observation-{i:03d}.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+ if x.returncode:time.sleep(60);continue
+ state=json.loads(x.stdout)
+ if state['status']=='COMPLETE':
+  y=subprocess.run(['python3',str(r/'run_phase.py'),'submit'],capture_output=True,text=True,timeout=670);result={'returncode':y.returncode,'stdout':y.stdout,'stderr':y.stderr,'automatic_mutation_retry':False}
+  with (r/'finish-result.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+  print(json.dumps(result),flush=True);raise SystemExit(y.returncode)
+ if state['status'] in ['ERROR','FAILED','CANCELLED']:
+  result={'status':'original_public_notebook_failed_no_competition_submission','state':state}
+  with (r/'finish-result.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+  print(json.dumps(result),flush=True);raise SystemExit(1)
+ time.sleep(60)
+result={'status':'finite_observer_expired_no_competition_submission','restart_authorized':False}
+with (r/'finish-result.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+print(json.dumps(result),flush=True)

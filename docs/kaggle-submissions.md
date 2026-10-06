@@ -1,3 +1,20 @@
+Corrected originalseed1-control code submittedONCE56889124 atactualprivate
+notebook godlydonuts/rsna-seed1-original-labels-exact-fp32-prefetch v1. Readkaggle-
+prefetch-control-recovery-v1 actualreceipts. Kagglederivedslugfromtitle insteadof
+requestedrsna-s1-control-prefetch-490e23ea1209-v1. Exact110281byteSourceSHA62f6dd66/
+Dataset12369320v1/private/offline2T4/image verifiedread-only; canonicalidentity
+repointedwithoutnewSaveKernel. Originalrequestedoperation/failed56833454 remain
+preserved. Public3studies/13columns/no fallback/FP32tensorvalues originalexact,
+7processRSS12,291,149,824B, pipeline76.3814s. Actualhidden19:18UTC pending_or_unknown,
+score/errornull; live1today/4slots. Do notinferhiddensuccess orsubmitnextuntilactual
+outcome. Oldfiniteobserver41887 stoppedforidentityreconciliation; no restart.
+Sourcephase_program nowunderstandsidentity-reconciled operation b4e7d810.
+
+Futureworkflow nowchecks title-derivedslug BEFOREpush and actualreturnedref AFTER
+SaveKernel; differingref is push_uncertain withresponseidentity preserved. Actual
+currentrun wasreconciledonly; no duplicateDatasets/GPUjob/submission/push. Baseline
+878853 originalpendingandmemory877134 healthy; preserveepochsonce. No newscore.
+
 October6 actualcanonical Kaggle outcomes/allowance rechecked: seed1-control
 56833454 and bothseed2 FAILED runtime/zero bytes/no score; partner56833608 actual
 0.685. Fresh17:30UTC allowance5. A distinctseed1-control exactFP32prefetch candidate

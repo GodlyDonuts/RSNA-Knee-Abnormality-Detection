@@ -972,6 +972,7 @@ def kernel_request(operation_path, operation):
         raise ValueError("Only private offline kernels are permitted")
     if (
         meta["id"] != operation["kernel_slug"]
+        or meta["title"].casefold() != operation["kernel_slug"].split("/")[1].replace("-", " ")
         or meta["dataset_sources"] != dataset_sources(operation)
         or meta["competition_sources"] != [COMPETITION]
     ):
@@ -1032,8 +1033,18 @@ def push(remote, db, operation_path):
     db.execute("BEGIN IMMEDIATE")
     try:
         result = remote.call("kernels.KernelsApiService", "SaveKernel", request)
+        entry["kernel_create_response"] = {
+            "kernel_id": result.get("kernelId"),
+            "ref": result.get("ref"),
+            "version": result.get("versionNumber"),
+        }
         version = result.get("versionNumber")
-        if type(version) is not int or version < 1 or result.get("error"):
+        if (
+            type(version) is not int
+            or version < 1
+            or result.get("error")
+            or result.get("ref") != "/code/" + operation["kernel_slug"]
+        ):
             raise RemoteError("Kernel push needs read-only reconciliation")
         entry.update(state="pushed", kernel_version=version)
         save_entry(db, entry, "kernel version returned")
