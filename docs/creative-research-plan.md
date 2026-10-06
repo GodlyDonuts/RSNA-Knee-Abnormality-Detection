@@ -1,3 +1,24 @@
+October6 owner renewed creative/competitor-guided work. Independent CPU876287
+actually audited ONLY2247fitting studies/12476original metadata series: all12476
+have valid within-series patient geometry. Artificial padding averages0.9248%
+of patch cells;607series affected. Reject padding as main score-gap explanation.
+No pixels/labels/weights/protected inputs read and live875858 unchanged.
+
+Standalone cache_patch_geometry.py implements exact physical-aspect letterbox /
+half-pixel/IOP/PixelSpacing/IPP transforms (7tests). plane_memory_prototype.py
+implements zero-start disease-query sequence pooling + cross-sequence memory
+(4syntheticCPU tests). Prototype is NOT integrated, GPU-admitted or trained.
+No actual shared coordinate-frame proof across sequences; never assume physical
+registration. Primary PERMIT/CoPAS and captured public notebook components
+reviewed; no teacher weights/predictions imported. Read patch-geometry-research-v1.
+Full2139tests/Ruff343/mypy49 passed. Before second-GPU fitting bind actual inputs,
+initial-state/recovery and fresh budget; do not reserve a GPU for a bare plan.
+
+Healthy875858 full control actually179finite updates/epoch1 at last observer;
+3fixed epochs/843updates then same candidate, unchanged source3b7e437 and
+2247/1156rosters. No snapshot completed at that observation, no new AUC/score.
+Use v2 publication coordinator once per actual completed production epoch.
+
 October6 new FP16/smooth test137274970 v1 pushedONCE, scientific3b7e437.
 Exact source/CPU parent/base/wheels bound; actual optimizer/recovery pending.
 Uses native384/16slices/rank32, scaler128/chunk8, same original CPU32 inputs.
