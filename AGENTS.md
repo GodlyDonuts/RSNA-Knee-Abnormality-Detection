@@ -1,3 +1,12 @@
+October6 actual corrected FP16/smooth T4 notebook137276309/v1 COMPLETE.
+Both roles pass four finite updates and exact complete state/scaler/CSV resume.
+Mean full update117–118s, peak8.19GB per GPU; paired diagnostic1822.34s.
+Read kaggle-witness-FP16-smooth-v2/actual-terminal.json; engineering only.
+Finite watcher completed/released SAME875277 once, actually RUNNING evc31.
+This is original D3 BF16/hard recovery, not full clinical fitting/new score.
+Streaming loader fixture-equivalent; real32 MRI CPU admission prepared next.
+No full2247/1156 comparison dispatched; best actual solo0.804 unchanged.
+
 October6 full-data streaming route is implemented but not MRI/GPU-admitted.
 Default cache loader unchanged; optional provider preserves original byte/hash/
 geometry tensors through bounded scratch eviction (fixture tests pass).

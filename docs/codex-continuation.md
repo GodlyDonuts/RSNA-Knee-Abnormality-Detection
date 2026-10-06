@@ -1,3 +1,12 @@
+October6 actual corrected FP16/smooth T4 notebook137276309/v1 COMPLETE.
+Both roles pass four finite updates and exact complete state/scaler/CSV resume.
+Mean full update117–118s, peak8.19GB per GPU; paired diagnostic1822.34s.
+Read kaggle-witness-FP16-smooth-v2/actual-terminal.json; engineering only.
+Finite watcher completed/released SAME875277 once, actually RUNNING evc31.
+This is original D3 BF16/hard recovery, not full clinical fitting/new score.
+Streaming loader fixture-equivalent; real32 MRI CPU admission prepared next.
+No full2247/1156 comparison dispatched; best actual solo0.804 unchanged.
+
 Latest streaming-route source85d5af7 privately mirrored at HFdbf28c4c8de5bdf9f510da92c6897685f0d66967, all11 small objects fully download/size/SHA verified. Full2102tests/Ruff334/mypy49 passed. Real-MRI streaming acceptance and full fitting not yet dispatched. Live FP16v2 observer60535 remains active; no terminal inference from empty live logs.
 
 October6 full-data streaming route is implemented but not MRI/GPU-admitted.
