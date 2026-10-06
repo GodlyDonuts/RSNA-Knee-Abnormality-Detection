@@ -1,3 +1,10 @@
+Fixed-finalcontrol3 preservation/actualFP16timing/preparation source79afd14f
+privately mirrored at HF2d9666d1261a9db8fa9f4797988d9ef2ad921814; all35small
+objects fully re-downloaded/size/SHA verified under canonical shared lock. Never
+repeat. No rawMRI/labels/privatecaseIDs/weights mirrored. Control1/2/3 privately
+verified, fullpaired result pending. CPUprep137319670/v1 actualRUNNING; newmemory
+877134 remains pendingResources. Keep originals and exact intents unchanged.
+
 Original875858 control completed843optimizerupdates/3epochs; immutablefinal3
 privately published ONCE at HF71d5b932e7aef051025a2f25351614a145e00512, all5 objects
 fully re-downloaded/size/SHA verified CPU877378, checkpoint393259ce7c51753d14611f4713a59a4ba79902c50756c7b0bad0eb2e2e46a39a.
