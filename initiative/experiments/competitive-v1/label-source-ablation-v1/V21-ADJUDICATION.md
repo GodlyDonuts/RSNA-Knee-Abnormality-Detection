@@ -120,7 +120,13 @@ attribution (patellar/facet/trochlear anatomy dominates medial/lateral
 adjectives — "medial patellar facet" is PF, not Medial OA), severity-restricted
 negations kept positive per the any-severity rule, hedged-only findings and
 osteochondral/traumatic lesions without degenerative context stayed masked,
-and joint-level degenerative statements counted for Medial+Lateral but not PF.
+joint-level degenerative statements counted for Medial+Lateral but not PF,
+and patellar-dominant clauses ("medial/lateral patellar facet") attributed
+to PF only. Manual pins after review: 56388411 + 34078389 PF OA → positive,
+76106854 + 99606924 Medial OA → positive; 52286069 Lateral stays masked
+(explicitly medial-dominant). Adjudicating code persisted at
+`scripts/research/v21_pool3_oa_final.py` and
+`scripts/research/v21_pool3_fluid.py`.
 
 ## Result
 
