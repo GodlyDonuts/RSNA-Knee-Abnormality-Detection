@@ -1,3 +1,16 @@
+ExactFP32 one-chunk-prefetch hypothesis implemented outsidecanonical numerics:
+2spawned/1thread CPUprep overlap2residentGPUworkers, max2x3GiBchunks+3GiBreserve,
+no rounding/fallback/reducedimages. Actualspawnedbyte/recovery/order+overlap tests
+pass; CSVroundtrip-boundaryregression added. Originalprivate137326383/v1 ERROR
+beforeprep/model at284s dueindices: constructorfulltable vsconsumerresetCSV.
+Distinct corrected137327561/v1 pushedONCE sourcee4d26343885bfadf; same actualsourceCSV
+read byboth; requireexact32x12originalFP32values/finite/fallback0/runtimecaps.
+Actualoutcome pending; neverduplicatepush/fitter job. Readkaggle-fp32-prefetch-32-v2.
+Existing875858candidate159finiteupdates/epoch1, emptystderr; controlfixed3internal
+0.781alreadybound/preserved, pairedgainpending. Newmemory877134pendingResources;
+relevanthealthyH100nodesbothallocated/free44haspriorCUDAfailure, no unsafe retry.
+No labels/masks/folds/weights/healthyrecipe changed and no newKaggle score.
+
 Actualcontrol0.781internal endpoint/provenCPUprep2.3194x/failedFP16fixed-bound and
 scopedbootcorrection source7ed0a816 privately mirrored at HF4b5cbd96950b744384c6c495b187cb195dac44c8; all31small objects fully re-downloaded/size/SHA verified under canonical
 sharedlock. Never repeat. No MRI/labels/rawcaseIDs/weights mirrored. Candidate
