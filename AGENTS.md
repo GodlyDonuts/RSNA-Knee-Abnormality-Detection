@@ -1,3 +1,11 @@
+Actualcontrol0.781internal endpoint/provenCPUprep2.3194x/failedFP16fixed-bound and
+scopedbootcorrection source7ed0a816 privately mirrored at HF4b5cbd96950b744384c6c495b187cb195dac44c8; all31small objects fully re-downloaded/size/SHA verified under canonical
+sharedlock. Never repeat. No MRI/labels/rawcaseIDs/weights mirrored. Candidate
+original875858 actual78finite updates/epoch1 atprogress20, emptystderr; newmemory
+877134PENDING(Resources), no pairedgain/Kaggleclaim. Keep source/jobs unchanged;
+next exactFP32 + bounded/pipelinedCPUprep is a separate unadmitted execution
+hypothesis, not permission to relax0.003 or reuse failedversions.
+
 Actualfull1300 FP16parallelv2 137322166/v1 ERRORafterinference at522.876s duefixed
 0.003FP32agreement bound, NOTbootstrap: first32pass; chunk4(two cells/40studies)
 ACLmax0.00496838/latmeniscus0.00667844. Originalreference wholeCSVhash verified,
