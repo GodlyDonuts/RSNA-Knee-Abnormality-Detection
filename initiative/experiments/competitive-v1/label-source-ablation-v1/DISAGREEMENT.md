@@ -43,6 +43,28 @@ Public median value by v2 state, per target (full table in the JSON report):
 - `public_positive_v2_silent`: **8** — public >0.9 where v2 found no mention.
   Near zero; consistent with the public extractor's low silence prior.
 
+## Prioritized v2.1 review queue (`review_queue.parquet`)
+
+The same 14,206 cells ordered for delta review. Dedup by `report_group` cuts
+effective volume ~3.7× — 3,870 unique reports cover all flagged cells, and a
+reviewed group resolves every cell it contains.
+
+| tier | cells | content | action |
+|---|---|---|---|
+| 0 | 35 | `public_under_calls_positive` + `public_positive_v2_silent` | review **all** — possible v2 errors either direction |
+| 1 | 1,727 | `public_over_calls_negative`, public >0.9 | decisive conflicts; high info per review |
+| 2 | 3,241 | `uncertain_resolvable_by_public`, public >0.95 | likely true positives v2 left masked |
+| 3 | 2,321 | `uncertain_resolvable_by_public`, public <0.05 | likely true negatives v2 left masked |
+| 4 | 1,355 | remaining `public_over_calls_negative` | mild-finding threshold disputes |
+| 5 | 2,605 | remaining `uncertain_resolvable_by_public` | decisive-but-not-extreme masked cells |
+| 6 | 2,922 | `uncertain_hedged_both` | leave masked — lowest value |
+
+Within a tier, cells sort by `|public − 0.5|` descending. A v2.1 pass can
+stop at any tier boundary and still be a strict improvement over the v2
+table; tiers 0–3 alone cover the most contested ~51% of flagged cells.
+
+sha256 `e55c7218e84d1270664466941657a54963d00388022fc24b1dffe35b691751bc`.
+
 ## How this feeds the program
 
 1. The ablation (paired fold-0 fit) tests the *aggregate* effect of the two
