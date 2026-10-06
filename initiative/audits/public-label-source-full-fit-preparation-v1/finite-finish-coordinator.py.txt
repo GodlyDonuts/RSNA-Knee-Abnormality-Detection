@@ -1,0 +1,42 @@
+"""Finite original GPU observer; dispatch once only after actual T4 acceptance."""
+import hashlib
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+root = Path.cwd()
+local = root / 'artifacts/public-label-source-v1/full-fit-v1'
+gpu = root / 'artifacts/public-label-source-v1/gpu-recovery'
+intent = local / 'finish-intent.json'
+with intent.open('x') as stream:
+    json.dump({'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'kernel_id': 137385338, 'kernel_version': 1, 'maximum_wall_seconds': 7200, 'read_only_poll_interval_seconds': 120, 'production_dispatches_maximum': 1, 'automatic_mutation_retry': False}, stream, indent=2)
+    stream.write('\n')
+started = time.monotonic()
+while time.monotonic() - started < 7200:
+    if (local / 'GPU-dispatch-intent.json').exists():
+        raise RuntimeError('Existing production intent requires read-only reconciliation')
+    result = subprocess.run([sys.executable, str(gpu / 'run_phase.py'), 'status'], cwd=root, capture_output=True, text=True, timeout=700)
+    (local / 'finish-last-observation.json').write_text(json.dumps({'returncode': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr}, indent=2) + '\n')
+    if result.returncode:
+        raise RuntimeError('Read-only observation failed; preserve originals, no mutation attempted')
+    state = json.loads(result.stdout)
+    if state['status'] == 'COMPLETE':
+        assert state['kernel_slug'] == 'godlydonuts/rsna-public-label-source-recovery-20261006-v1' and state['version'] == 1
+        actual = state['actual_recovery']
+        assert actual['status'] == 'actual_single_T4_sequential_public_label_source_recovery_accepted'
+        assert actual['clinical_accuracy_evidence'] is False and actual['competition_submission'] is False
+        result = subprocess.run([sys.executable, str(local / 'dispatch_once.py')], cwd=root, capture_output=True, text=True, timeout=400)
+        with (local / 'finish-result.json').open('x') as stream:
+            json.dump({'returncode': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr, 'automatic_retry': False}, stream, indent=2)
+            stream.write('\n')
+        if result.returncode:
+            raise RuntimeError('Dispatch refusal/failure/uncertainty; reconcile original intents before any mutation')
+        print(result.stdout, flush=True)
+        break
+    if state['status'] in {'ERROR', 'CANCELLED'}:
+        raise RuntimeError('Original GPU test failed; no full training dispatched')
+    time.sleep(120)
+else:
+    raise RuntimeError('Finite observer deadline expired; no restart or resubmission authority')

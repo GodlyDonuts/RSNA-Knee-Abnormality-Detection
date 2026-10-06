@@ -1,3 +1,9 @@
+Finite public-label fullcomparisonobserver startedONCE, execsession59041,
+artifacts/public-label-source-v1/full-fit-v1/finish_when_ready.py. Max2h/read-only
+120s polls; exactT4actualacceptance thenone fullsinglecoordinator dispatch only.
+Existingfinish-intent prohibitsrestart; inspectactualhandle/result/intents first.
+No fullGPUjob submitted yet. OriginalT4137385338/v1 lastRUNNING.
+
 Public-label fullcomparisonCPU879052 actualstage/stat/funding PASSED: exact
 sourcea9902f3/configs/37812originalcache memberstats,12GiB newnodefuture explicitly
 funded; existing38GiB liabilities/20GiB reserve retained, zero sharedgrowth.
