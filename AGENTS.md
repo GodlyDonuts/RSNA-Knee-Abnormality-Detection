@@ -1,3 +1,13 @@
+Original875858 candidate epoch2 completed562updates and was privately published
+ONCE at HF8e98b5348abe7abd616337b1efbbbdeed28c606a viaCPU878389. All5 objects
+fully re-downloaded/size/SHA verified; checkpoint
+d847b5043fbb49fc9d5971c53b49fd2eb50b918af69e4ec99787ed62efefb49d.
+Never repeat control1–3/candidate1–2. Preserve candidate3 next when complete,
+then require original875858 actual0:0/full paired final843 source/roster/result/
+prediction bindings and independent paired analysis before promotion. No new
+accuracy or Kaggle score. Fullscale137329288/v1 still authenticated RUNNING
+14:58UTC; prepared notebook-inclusive RAM-check remains gated/unpushed.
+
 Anatomical-sharing support source38e25d12 privately mirrored at HF
 4f57170eae246d0547c6b455a08925d02ad16747; all7 small objects fully re-downloaded/
 size/SHA verified under canonical shared lock. Never repeat. Counts admit only
