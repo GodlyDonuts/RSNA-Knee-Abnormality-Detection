@@ -1,0 +1,12 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);r=Path('/tmp/rsna-public-label-inputs-20261006-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not r.exists();assert shutil.disk_usage('/tmp').free>(20+26+12)*2**30+4*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];gib=((int(row[2])-int(row[1]))*1024-1406962617)/2**30;slots=int(row[6])-int(row[5])-735;assert gib>=20 and slots>=5000
+r.mkdir(mode=0o700)
+for name,s in v['files'].items():
+ assert not Path(name).is_absolute() and '..' not in Path(name).parts and hashlib.sha256(s.encode()).hexdigest()==v['hashes'][name]
+ p=r/name;p.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
+ with p.open('x') as f:f.write(s)
+(r/'source.json').write_text(json.dumps({'source_git':v['source_git'],'files':v['hashes']},indent=2)+'\n')
+py=json.loads(Path('/tmp/rsna-cls-patch-summary-CPU-20261006-v2/CPU-accepted.json').read_text())['runtime']['python'];env=os.environ.copy();env.update(PYTHONPATH=str(r/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+x=subprocess.run([py,'-B',str(r/'code/scripts/newton/probe_public_label_inputs.py'),'--root',str(r)],capture_output=True,text=True,env=env,timeout=850);(r/'input.stdout').write_text(x.stdout);(r/'input.stderr').write_text(x.stderr);sys.stdout.write(x.stdout);sys.stderr.write(x.stderr);sys.exit(x.returncode)
