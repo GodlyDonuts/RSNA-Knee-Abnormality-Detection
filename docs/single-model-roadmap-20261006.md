@@ -120,3 +120,25 @@ order of expected size. If the ablation confirms the per-target split, a
 single model trained on the blended/v21hc basis at 336–448 px with
 canonical sides is the realistic 0.95 candidate. Ensemble fusion on top of
 that is the later move, exactly as the owner directed.
+
+## Sprint terminus (2026-10-06, autonomous research window)
+
+Every CPU-feasible item on this ladder is now built and bound on PR #4:
+
+- 26 verified run configs covering all 13 arms (7 label-source + canonical-sides
+  + graded-u05 + masked-cell-em005 + masked-cell-consistency + pooling-max +
+  slice-smooth-smmil + base control)
+- v2.1 adjudication complete (7,907 cells; per-target arbitration + all three
+  passes + not_mentioned tail documented in `V21-ADJUDICATION.md`)
+- EMA-consistency, SmMIL slice-smoothness, and canonical-side mirroring are
+  implemented with end-to-end CPU tests including exact-resume
+- `ssl_series_manifest.parquet` pins the pretraining corpus; the recipe choice
+  is now a two-way probe (DINO self-distill vs KGNet multi-task, IEEE TMI 2026)
+- The inference wall-clock budget governor exists on main
+  (`--budget-seconds` / `--budget-neutralize` in `chunked_infer.py`)
+
+The next session's only productive path is a GPU slot: run step 1 (the
+label-source ablation) first — every later step's basis depends on its
+per-target verdict. Step 3 needs the 384/448px cache the cluster job builds.
+Step 5 needs a day-scale window. There is no remaining CPU-side work that
+isn't scaffolding on top of results we don't yet have.
