@@ -48,18 +48,30 @@ medial/lateral OA); without normalization, the model must learn medial-vs-
 lateral from an axis it cannot observe consistently. Check whether our cache
 applies it; if not, this is the cheapest large single-model gain available.
 Determinable per-study from DICOM Laterality / ImageLaterality tags plus
-orientation; needs an audit of tag completeness with a fallback (e.g. fibula
-position classifier) for missing tags.
+orientation. **Census done** (`series-headers-census-v1`): only 43% of studies
+carry an L/R tag on any series, so tag-only normalization leaves 57%
+unnormalized — but every series carries `ImagePositionPatient` and ~95% are
+FFS, so a geometric fallback (sign of median lateral IPP offset) can cover the
+rest; 21 studies (1.1% of tagged) carry contradictory tags to flag. Our
+pipeline currently applies random 50% flips as augmentation (`rsna/data.py`),
+teaching the model to ignore side entirely rather than normalize it.
 
-### 3. Resolution ladder vs the Nyquist bound
+### 3. Resolution ladder vs the Nyquist bound — now MEASURED corpus-wide
 
 Pilkwang's argument: a meniscal tear is 1–3 mm; at the typical ~160 mm FOV a
 224 px resize gives ~0.71 mm pitch — **below** the ~0.5 mm Nyquist requirement
-at d=1 mm. No capacity downstream recovers signal destroyed at resize. This
-explains both the 224px capacity plateau in the public ablation and why
-0.95-level scores plausibly use higher input resolution. Proposed: fixed recipe,
-resolution ladder 224 → 336 → 448 on one fold; memory cost is quadratic in
-pixels but slice coverage is linear, so trade slices before pixels.
+at d=1 mm. Our series-header census (20,874 series, audit
+`series-headers-census-v1` on the ablation branch) confirms it at scale:
+native pitch is median 0.312 mm/px and median FOV 160 mm, so **99.6% of series
+fail the Nyquist bound at the current 224 px input** (Sagittal 100%, Coronal
+100%, Axial 98%). Failure rate drops to 38% at 336 px, 14% at 384 px, and
+plateaus at ~10% for ≥448 px — the residual is acquisition-limited (native
+pitch >0.5 mm, unrecoverable). Resolution ceiling ≈ 448 px. Consistent with
+our own ladder: uniform224 fold0 0.770 → native384 fold0 0.785. Proposed:
+fixed recipe, resolution ladder 336 → 448 on one fold; memory cost is
+quadratic in pixels but slice coverage is linear, so trade slices before
+pixels. Through-plane pitch (~4 mm slice thickness) can't be fixed by 3D —
+in-plane resolution is the binding constraint.
 
 ### 4. Graded/ordinal soft targets from v2 states
 
