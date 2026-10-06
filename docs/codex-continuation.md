@@ -1,3 +1,9 @@
+Actualread-onlyGPU137385338/v1 logprogress: control full/start207s, stop909s,
+resume1209s, thenpublic/full1794s. Originalcontrol completedthat flow and execution
+enteredpublicarm; finalaggregateacceptance stillpending, noaccuracyclaim. Env
+installationcompleted181s; wraptwarnings didnotstop subsequentexecution. Keep
+finiteobserver59041/PID50023; no duplicatepush/productiondispatch.
+
 Fitting-only supervisionstats/memory2/finiteobserver/walltime milestonea8c1385c
 privatelyverifiedONCE HF8cb204e24c710b3a209156921970cd773f28290e/all12smallobjects.
 Do notrepeat; noMRI/weights/protectedlabels copied. Observer stillactualalive
