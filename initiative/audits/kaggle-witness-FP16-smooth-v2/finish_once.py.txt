@@ -1,0 +1,28 @@
+import json,shlex,subprocess,time
+from pathlib import Path
+r=Path('artifacts/kaggle-witness-FP16-smooth-v2')
+with (r/'finish-intent.json').open('x') as f:json.dump({'kernel_slug':'godlydonuts/rsna-witness-fp16-smooth-20261006-v2','version':1,'existing_H100_job':'875277','release_only_on_actual_terminal':True,'automatic_GPU_retry':False,'bounded_observation_wall_seconds':5400},f,indent=2)
+started=time.monotonic();last=None
+while time.monotonic()-started<5400:
+ x=subprocess.run(['artifacts/qa-env/bin/python',str(r/'run_phase.py'),'status'],capture_output=True,text=True,timeout=650)
+ if x.returncode:
+  (r/'finish-observation-error.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr,'existing_H100_remains_held':True},indent=2)+'\n')
+  print(json.dumps({'status':'observation_error_original_GPU_not_restarted','H100_job':'875277','H100_remains_held':True}),flush=True);break
+ out=json.loads(x.stdout);status=out['status']
+ if status!=last:print(json.dumps({'kernel_status':status,'version':1,'actual_source_private_offline_T4_verified':out['exact_source_and_private_offline_two_T4_verified']}),flush=True);last=status
+ if status in ['COMPLETE','ERROR']:
+  release='''import json,subprocess
+s=subprocess.check_output(['scontrol','show','job','875277'],text=True);assert 'JobState=PENDING' in s and 'Reason=JobHeldUser' in s and 'RunTime=00:00:00' in s
+subprocess.run(['scontrol','release','875277'],check=True)
+a=subprocess.check_output(['scontrol','show','job','875277'],text=True);assert 'Reason=JobHeldUser' not in a
+print(json.dumps({'job_id':'875277','released_after_actual_FP16_terminal':True,'state':a,'source_config_output_identity_changed':False}))
+'''
+  with (r/'H100-release-intent.json').open('x') as f:json.dump({'job_id':'875277','actual_GPU_status':status,'version':1,'source_verified':True},f,indent=2)
+  result=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(['/usr/bin/python3.12','-B','-c',release])],capture_output=True,text=True,timeout=20)
+  (r/'H100-release-result.json').write_text(json.dumps({'returncode':result.returncode,'stdout':result.stdout,'stderr':result.stderr},indent=2)+'\n');assert result.returncode==0,result.stderr
+  (r/'finish-result.json').write_text(json.dumps({'status':'actual_terminal_and_original_H100_released','GPU_status':status,'actual_observation':out,'H100_release':json.loads(result.stdout),'new_competition_submission':False},indent=2)+'\n')
+  print(json.dumps({'status':'actual_terminal_and_original_H100_released','GPU_status':status,'actual_recovery':out.get('actual_recovery'),'H100_job':'875277'}),flush=True);break
+ time.sleep(45)
+else:
+ (r/'finish-timeout.json').write_text(json.dumps({'status':'observation_deadline_not_terminal','H100_remains_held':True,'retry_GPU':False},indent=2)+'\n')
+ print(json.dumps({'status':'observation_deadline_not_terminal','H100_remains_held':True}),flush=True)

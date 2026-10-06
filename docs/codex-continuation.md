@@ -1,3 +1,12 @@
+October6 corrected FP16/smooth137276309 v1 pushedONCE, entry SourceSHA
+ aa792ec45cdd4a15ed6793cf06c7b4228eef424f96f2a0d4c8a725ec37b3d748.
+Numerical3b7e437/inputs/base/recipe unchanged; only128KiB wrapper cap corrected.
+V1_137274970 failed before model, retained; its watcher finished/released875277.
+New v2 finish_once.py active, holds SAME pending875277 during two Kaggle GPU
+nodes and releases on actual terminal. Never restart either watcher/push.
+Full2099tests passed; actual new optimizer/recovery pending, no clinical gain.
+Read kaggle-witness-FP16-smooth-v2/current original journals. Best0.804.
+
 October6 FP16 test137274970 v1 terminal ERROR BEFORE model/optimizer:
 72854 helper bytes exceeded old65536 cap. Finite watcher completed/released
 SAME875277.128KiB exact-hash/compile admission corrected and actual-payload

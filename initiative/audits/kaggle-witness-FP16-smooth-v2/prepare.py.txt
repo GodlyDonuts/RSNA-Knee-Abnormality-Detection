@@ -1,0 +1,15 @@
+import ast,hashlib,json
+from pathlib import Path
+old=Path('artifacts/kaggle-witness-FP16-smooth-v1');r=Path('artifacts/kaggle-witness-FP16-smooth-v2');tree=ast.parse((old/'private-GPU-notebook.py').read_text());prefix=[]
+for node in tree.body:
+ if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name) and node.targets[0].id in ['EXPECTED_MANIFEST_SHA256','WITNESS_T4_RECOVERY_PROBE','WITNESS_T4_RECOVERY_SOURCES','WITNESS_T4_RECOVERY_HASHES','WITNESS_T4_CPU_ACCEPTANCE_SHA256']:
+  prefix.append(node.targets[0].id+' = '+repr(ast.literal_eval(node.value)))
+assert len(prefix)==5
+entry=Path('scripts/kaggle/notebook_entry.py').read_text().replace('remaining = 14400 -','remaining = 3600 -');source='\n'.join(prefix)+'\n'+entry;compile(source,'corrected_FP16_v2.py','exec');assert len(source.encode())<128*1024
+contract=json.loads((old/'GPU-contract.json').read_text());contract.update(kernel_slug='godlydonuts/rsna-witness-fp16-smooth-20261006-v2',source_sha256=hashlib.sha256(source.encode()).hexdigest(),original_failed_kernel=137274970,numerical_source_helper_weights_inputs_unchanged=True,private_helper_cap_bytes=128*1024)
+for n,t in [('private-GPU-notebook.py',source),('GPU-contract.json',json.dumps(contract,indent=2)+'\n')]:
+ with (r/n).open('x') as f:f.write(t)
+coordinator=(old/'coordinator.py').read_text().replace("R=Path('/tmp/rsna-witness-FP16-smooth-20261006-v1')","R=Path('/tmp/rsna-witness-FP16-smooth-20261006-v2')");(r/'coordinator.py').write_text(coordinator)
+for n in ['run_phase.py','hold_original_once.py','finish_once.py']:
+ s=(old/n).read_text().replace('artifacts/kaggle-witness-FP16-smooth-v1','artifacts/kaggle-witness-FP16-smooth-v2').replace('godlydonuts/rsna-witness-fp16-smooth-20261006-v1','godlydonuts/rsna-witness-fp16-smooth-20261006-v2');(r/n).write_text(s)
+print(json.dumps({'status':'distinct_corrected_entry_prepared','source_sha256':contract['source_sha256'],'helper_numerical_source_unchanged':True,'GPU_dispatched':False}))
