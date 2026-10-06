@@ -1,3 +1,5 @@
+Latest entry-correction/v2 milestone source d2234aa privately mirrored at HF3ba952dc9437a5806b6acb34cccec1d402993f46, all29 objects fully download/size/SHA verified. V2 finite watcher is live in exec session60535; status RUNNING source/private/offline verified. SSE log reads timed out only; no terminal inference or restart.875277 stays held until actual v2 terminal.
+
 October6 corrected FP16/smooth137276309 v1 pushedONCE, entry SourceSHA
  aa792ec45cdd4a15ed6793cf06c7b4228eef424f96f2a0d4c8a725ec37b3d748.
 Numerical3b7e437/inputs/base/recipe unchanged; only128KiB wrapper cap corrected.
