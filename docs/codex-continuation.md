@@ -1,3 +1,10 @@
+Actual recovery launch/full10 CPU-funding/negative paired result/exact runtime
+milestone sourced578f0cd privately mirrored ONCE at HF
+cd19271e0de9ac4c1f5ef55ea9002ff572dd0b8b; all35 small objects fully re-downloaded/
+size/SHA verified under canonical shared lock. Neverrepeat. NoMRI/labels/caseIDs/
+weights mirrored. Current137362933/v1 actualRUNNING; finite originalfinishworker
+continues observing before singlefullGPU dispatch. No actualGPUacceptance/newscore.
+
 Full CLS+patch-mean source/config/input/funding stagingCPU878657 passed on evc31.
 Original private single-active-T4 recovery137362933/v1 pushedONCE and actually
 RUNNING; exact sourceb134f3c145c1e573/CPU878616 binding and freshGPUquota admitted.
