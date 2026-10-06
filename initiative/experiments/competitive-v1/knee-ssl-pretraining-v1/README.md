@@ -90,6 +90,30 @@ outer-fold AUC vs ImageNet init). DINO self-distill needs nothing beyond
 the manifest; KGNet-style needs a segmenter first. No implementation until
 a funded GPU slot exists.
 
+### Before ANY self-pretrain: evaluate released knee foundation weights
+
+2026-10-06 sweep found a stronger starting point than self-pretraining may
+provide: **OrthoDiffusion** (Xu et al., arXiv:2602.20752, 2026) — three
+orientation-specific 3D diffusion branches (sag/cor/axi) self-supervised
+on **15,948 unlabeled knee MRI examinations** (~1.44M images from a
+30,653-study multi-joint corpus), linear-probe and finetune recipes for
+8 knee abnormalities, 11-structure segmentation, cross-center/cross-field-
+strength robustness, label-efficient (high precision at 10% labels).
+Public code `github.com/lt-0123/OrthoDiffusion`; public weights
+`huggingface.co/lanstat0123/orthodiffusion` (med-ddpm backbone).
+
+Fit assessment for us: OD is **3D volumetric** — its branches consume
+per-view volumes, while our extractor is 2D-slice + attention pooling.
+Two integration paths: (a) swap the encoder path to OD-style per-view
+volume features feeding our per-target study head (bigger surgery, most
+knee-domain signal), or (b) self-pretrain on our manifest but borrow OD's
+recipe (view-specific branches + denoising-feature reuse). Also worth
+pricing generic MRI foundations already noted in the frontier doc
+(MRI-CORE, PRISM-2508.07165, Triad-2502.14064, Decipher-MR-2509.21249) —
+all need availability/license checks before any probe. The single best
+move if a GPU slot opens is a short paired probe: OD-path vs DINO-own-
+corpus vs current ImageNet init, same head, same fold.
+
 ## Then what
 
 Same bound harness as every other experiment: SSL-pretrained encoder as
