@@ -1,3 +1,8 @@
+Publiclabelcontrol4 nowprivatelyverifiedONCE HFb08071dd8a591da24703ae41b3740b0f82b8174c/
+CPU880660/all5objects fullre-download/size/SHA; do notrepeatcontrol1–4. Original
+control enteredepoch5; baselineoriginal control epoch9. Bothhealthy, unchanged
+science, no newscore.
+
 ## October7 standalone robust-contrast candidate and actual MRI input check
 
 scripts/research/robust_cache_contrast.py isimplemented/10focused tests; NOTlive
