@@ -1,3 +1,17 @@
+## October7 concrete robust-contrast input candidate
+
+The isolated contrast idea now has a standalone implementation and10 focused
+tests, with actual control parity/candidate tensor checks on16 original fitting
+MRI studies/84 series. Control matches the canonical one-channel cached renderer
+exactly; candidate is finite, keeps the same field/slices/shapes and leaves cache
+bytes unchanged. Maximum pixel change.79045 requires matched learning rather than
+silently changing inference. Candidate0/1 endpoint fraction7.67% includes existing
+background, not newly erased clinical findings. Full2331tests/Ruff394/mypy52 passed.
+It is not live-trainer integrated, GPU-admitted or trained, and establishes no
+accuracy gain. Original two healthy ten-epoch comparisons remain frozen; baseline
+control1–8/public-label control1–4 are privately preserved. See
+[actual MRI input proof](../initiative/audits/robust-contrast-real-inputs-20261007-v1/).
+
 ## October7 bounded actual MRI contrast and field-of-view measurements
 
 In16 fixed fitting studies/84 selected original series, the median valid-content

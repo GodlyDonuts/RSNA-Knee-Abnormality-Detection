@@ -1,3 +1,7 @@
+Standalonecontrast/actualMRIinput/twoepoch milestone26f899e3 privately verified
+ONCE HF4b97f7083b2dacce5abb4d520a3c99dc5adfc08a/all15smallobjects; no pixels/weights/clinical
+records/protectedgold copied. Neverrepeat. No newGPU/trainer/inference integration.
+
 Publiclabelcontrol4 nowprivatelyverifiedONCE HFb08071dd8a591da24703ae41b3740b0f82b8174c/
 CPU880660/all5objects fullre-download/size/SHA; do notrepeatcontrol1–4. Original
 control enteredepoch5; baselineoriginal control epoch9. Bothhealthy, unchanged
