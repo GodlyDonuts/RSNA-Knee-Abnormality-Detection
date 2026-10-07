@@ -1,3 +1,11 @@
+October6 23:57UTC observationloss: CiscoGUI actuallyConnected secure.vpn.ucf.edu
+but NewtonprivateDNS unresolved and verifiedpriorIP10.190.194.201 TCP22 timesout;
+StokesDNS resolves/TCP22 also timesout. Routeusesutun4. NoVPN/securitysettings
+changed, no clusterjobs restarted/inferredterminal. Current877134/878853/879172
+state unobserved; reconcile originals/epochs/journals/quota beforemutation after
+accessreturns. CanonicalHFpublicationlock unavailable; do notbypass. Owner
+network-routing assistance required; no repeatedcredential orKneeCoT questions.
+
 OwnerOctober6 reauthorized privateKneeCoT research, supersedingoldleave-unused
 preference. ActualHFauth-check passeswithexistingtoken, gateauto/reve5944fd.
 Separatehospitalethical-useagreement requiredbycurrentpubliccard; scope notyet
