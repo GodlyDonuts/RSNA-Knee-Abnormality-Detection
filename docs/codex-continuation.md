@@ -1,3 +1,10 @@
+Fixedcontrol/internalresult/ownweakdevpredictions/fullcontrastgate/public6 milestone
+bac5a329 privately verifiedONCE HF5963a104cb28b05e902c86588bb11148093fb783/all15smallobjects.
+Allbytes re-downloaded/size/SHA verified/canonical lock; neverrepeat. Ownweakdev
+UIDs/scores included, noMRI/weights/protectedgold/clinicaltargetvalues copied.
+No candidatefinalgain orKaggle score implied. Originalcandidate270finiteupdates
+observed/epoch1 nearcompletion; existingjob untouched.
+
 ## October7 actual ten-epoch control outcome and full contrast-data gate
 
 Original878853 CONTROL completed2810updates/tenepochs; source0183/config/roster/
