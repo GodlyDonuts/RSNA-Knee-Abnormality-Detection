@@ -1,3 +1,9 @@
+PrivateKneeCoT intakecode/sanitizedmetadata plus3RSNAepoch receipts milestone
+eb32acf5 fullyprivateverifiedONCE HF0934f3cd58a65a0de8949d10a79f24b97454e040
+/all19smallobjects. Neverrepeat. No rawclinicalrecord/volume/individualheader/
+index/sourceweight exported. Datasetresearch remainsprivate; noKneeCoT model
+trained/compeligibleclaimed. Owneraccessagreementconfirmation accepted.
+
 New immutableproductionepochs privatelypublishedONCE/full5objectre-download:
 memorycontrol3 HF6a94b68e1a50c1f87349b2e89c3d3358b3efa8d2/CPU879357; memory
 candidate1 HFb992fa236e2bceb9a6299f08afa19a3102576ff0/CPU879359; CLS+patch
