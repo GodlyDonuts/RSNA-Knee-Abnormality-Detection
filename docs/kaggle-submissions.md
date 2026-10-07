@@ -1,3 +1,5 @@
+Ownerrequested bestinternal fixed-final10 reference submittedONCE56923572 at2026-10-07 22:59UTC. Exactprivate offline2T4 notebook godlydonuts/rsna-bestinternal-offline-e10-2465648917b5 v1/Dataset12433771v1/fullpayload download/SHA verified. Checkpoint2465648917b5/source0183/internal0.87867059654 on1156weakdev, NOTKaggle. Public3MRI/testUID/13column/finiteprobability/CSVhash/memory accepted. Hidden outcome pending/unreported; inspectactual. OriginalHTTP409slug permanentlypreservedneverretry; sameDataset/source reused inone distinctreturnedidentity. Observerwrapperfailures happenedbeforeCreateCodeSubmission; no repeatednotebook/submission. Finitefinish session88506 TERMINALfailedwrapper/neverrestart; finalsuccessfulcanonicalreceipt authoritative. Read kaggle-best-internal-e10-2465648917b5-v1.
+
 Actualcorrected56889124 submission/public acceptance/identityreconciliation
 andfutureSaveKernelreturnedref/title guards milestone source6b53faa7 privately
 mirrored ONCEat HFa1d0846353e7796bbaec5d53fc991f0490dbc4be. All14small objects
