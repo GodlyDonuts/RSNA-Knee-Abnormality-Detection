@@ -1,3 +1,15 @@
+## October7 public component forward parity and original training progress
+
+Actual CPU879782 reproduced original Pilkwang DINOv2 member fingerprint after
+strict complete weights_only state load: maxerror3.0994e-6 versus original.002
+threshold,336/sixslots/threechannels/missingmask. Read public-dinov2-fingerprint-
+20261007-v1. NoMRI/labels/gold/GPU/clinicalscore; realpixel/slot parity next.
+Never repeat original download/probe. Baseline control epoch4 privately verified
+ONCE HFf33936549000b4b8f2c079d0b582fd5df8d666f8/CPU879780/all5objects.
+Actual879172 passed ownH100 full/stop1/resume forbothroles and enteredfullcontrol
+training237finite updates/emptystderr; prior recoverypending statements superseded.
+Original878853control1391finite/epoch5inprogress. Bothhealthy, science unchanged.
+
 ## October7 actual public solution model collection
 
 Owner requested public notebooks/models and supporting information. Read
