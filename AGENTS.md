@@ -1,3 +1,24 @@
+New immutableproductionepochs privatelypublishedONCE/full5objectre-download:
+memorycontrol3 HF6a94b68e1a50c1f87349b2e89c3d3358b3efa8d2/CPU879357; memory
+candidate1 HFb992fa236e2bceb9a6299f08afa19a3102576ff0/CPU879359; CLS+patch
+control1 HF90ba3b51fdc941aef21610b0a99ab9457aadc90d/CPU879362. Neverrepeat.
+Original877134controlfinished843steps/candidate316finite, baseline878853control
+315finite; bothempty stderr/allocatedH100recoveryverified. No newclinicalscore
+comparison yet; preservefutureepochsusingoriginalpinnedcoordinators.
+
+OwnerconfirmedallKneeCoT accessrequirements completed; acceptedresearch/storage
+scope viahumanattestation plusHFapprovedaccess. Do notaskagreement/credentials
+again. ActualCPU879354 intake:2complete trainexams/3MRIvolumes/2reports/107420372B
+alloriginalLFS/Git bytes/header verified; rawclinicalfiles privateevc31/tmp only,
+3GiB freshnodeenvelope after50GiB existingliabilities/20GiB reserve; sharedgrowth0.
+ActualformatCPU879360: grayscale,affinecodespresent,spatialunitsundeclared; MRI
+reports present butdocumented top-level labels/QA/CoT absentin2files only. Need
+private schema/anatomy/severity auditbeforetraining; noaccuracy/alignment claim.
+Neverrepeatintake. No rawdata/clinicaltext toMac/Git/HF orcompetition weights.
+SSHaccessrestored viaexistingcredentials; original877134/878853 actualRUNNING
+withallocatedH100recovery/finiteprogress,879172originalPENDING.
+Full2321QA/Ruff392/mypy52/archive/v289/89 passed.
+
 OwnerOctober6 reauthorized privateKneeCoT research, supersedingoldleave-unused
 preference. ActualHFauth-check passeswithexistingtoken, gateauto/reve5944fd.
 Separatehospitalethical-useagreement requiredbycurrentpubliccard; scope notyet

@@ -1,0 +1,17 @@
+import hashlib,json,math,os,struct
+from pathlib import Path
+r=Path('/tmp/rsna-kneecot-private-intake-20261006-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');receipt=json.loads((r/'sanitized-receipt.json').read_text());raw=(r/'private-verified.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==receipt['private_receipt_sha256'];proof=json.loads(raw)
+out={'status':'private_KneeCoT_source_format_audit','CPU_job':os.environ['SLURM_JOB_ID'],'MRI_volumes':0,'RGB_or_channel_stacked_volumes':0,'affine_codes_present_volumes':0,'spatial_units_declared_volumes':0,'report_objects':0,'structured_labels_present':0,'qa_pairs_present':0,'reasoning_present':0,'MR_description_present':0,'diagnostic_impression_present':0,'header_shape_histogram':{},'clinical_records_exported':False,'clinical_correctness_or_population_representativeness_proven':False,'models_trained':False}
+i=0
+for row in proof['files']:
+ p=r/row['path'];assert p.is_file() and not p.is_symlink() and p.stat().st_size==row['bytes']
+ if p.suffix=='.nii':
+  with p.open('rb') as f:h=f.read(352)
+  e='<' if struct.unpack('<i',h[:4])[0]==348 else '>';d=struct.unpack_from(e+'8h',h,40);dt=struct.unpack_from(e+'h',h,70)[0];shape=list(d[1:d[0]+1]);assert shape==proof['headers'][i]['shape'] and dt==proof['headers'][i]['datatype_code'];i+=1;out['MRI_volumes']+=1
+  out['RGB_or_channel_stacked_volumes']+=int(dt==128 or (len(shape)==4 and shape[3] in (3,4)))
+  q,s=struct.unpack_from(e+'2h',h,252);out['affine_codes_present_volumes']+=int(q>0 or s>0);out['spatial_units_declared_volumes']+=int(h[123]&7 in (1,2,3));key='x'.join(map(str,shape));out['header_shape_histogram'][key]=out['header_shape_histogram'].get(key,0)+1
+ else:
+  obj=json.loads(p.read_text());assert isinstance(obj,dict);out['report_objects']+=1
+  for field,key in [('labels','structured_labels_present'),('qa_pairs','qa_pairs_present'),('MR表现','MR_description_present'),('诊断意见','diagnostic_impression_present')]:out[key]+=int(field in obj)
+  out['reasoning_present']+=int(any(k in obj for k in ('cot1','cot2','cot3')))
+assert i==len(proof['headers']);(r/'format-audit.json').open('x').write(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

@@ -1,0 +1,15 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and os.environ.get('SLURM_CPUS_PER_TASK')=='1';assert hashlib.sha256(v['program'].encode()).hexdigest()==v['program_sha256']
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in quota.splitlines() if x.lstrip().startswith('/home ')][0];assert ((int(row[2])-int(row[1]))*1024-1406962617)>=20*2**30 and int(row[6])-int(row[5])-735>=5000
+assert shutil.disk_usage('/tmp').free>=(20+50+3)*2**30
+py='/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python'
+child="import json,sys;v=json.load(sys.stdin);sys.stdin=__import__('io').StringIO(json.dumps(v['input']));exec(compile(v['program'],'private_intake.py','exec'),{'__name__':'__main__'})"
+env=os.environ.copy();env.update(PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1')
+x=subprocess.run([py,'-B','-c',child],input=json.dumps({'program':v['program'],'input':{'manifest':v['manifest'],'token':v['token']}}),capture_output=True,text=True,env=env,timeout=1200)
+if x.returncode:
+ root=Path('/tmp/rsna-kneecot-private-intake-20261006-v1')
+ if root.exists():(root/'private-error.log').open('x').write(x.stderr)
+ print(json.dumps({'status':'private_intake_failed_preserve_originals','CPU_job':os.environ['SLURM_JOB_ID'],'automatic_retry':False,'private_error_retained_on_owning_node':root.exists()}));sys.exit(x.returncode)
+receipt=json.loads(x.stdout);receipt['fresh_funding']={'node_future_bytes':3*2**30,'existing_node_future_bytes':50*2**30,'node_floor_bytes':20*2**30,'new_shared_bytes':0,'new_shared_files':0,'no_deletion_credit':True}
+print(json.dumps(receipt))
