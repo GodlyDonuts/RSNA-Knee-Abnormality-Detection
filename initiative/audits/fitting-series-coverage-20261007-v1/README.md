@@ -6,7 +6,8 @@ The exact original2247 fitting roster was independently recreated and matched th
 
 Measured results:
 
-- **214/2247 studies (9.52%)** lose at least one available reference category:103 omit an available sagittal non-fluid series;131 omit an available coronal non-fluid series;20 omit both.
+- **214/2247 studies (9.52%)** omit at least one available reference category:103 omit an available sagittal non-fluid series;131 omit an available coronal non-fluid series;20 omit both.
+- A follow-up original reader stratified those omissions by the existing reviewed quality tier: **all103 sagittal and131 coronal omissions have an available tier0 series**. They are not explained solely by deliberate tier1 deprioritization. [actual-tier-stratification.json](actual-tier-stratification.json) preserves the identical roster/source bindings and counts.
 - **924/2247 (41.12%)** selected bags contain repeated plane/fluid/fat-suppression categories. These are distinct series, not duplicated files; repeated-category views can still be useful.
 - All available sagittal/coronal/axial fluid-sensitive fat-suppressed categories are retained under the current metadata. The audit does not show missing coverage for those three categories.
 - No eligible fitting sagittal series is marked fluid-sensitive **without** fat suppression in the accepted metadata. This does **not** prove the physical acquisitions lack such sequences. Resolve descriptor/metadata semantics before assuming equivalence with the public non-fat-suppressed sagittal slot.

@@ -1,3 +1,8 @@
+Coverage follow-up actualtier stratification: all103sagittal/131coronal omissions
+have an availabletier0series; not only intendedtier1 deprioritization. Samefit
+roster/series/selector hashes, no pixels/labels/model/policychanges. Read actual-
+tier-stratification. Plannedcategory reservation remainsuntrained/no causal gain.
+
 ## October7 measured fitting-series coverage and new epoch preservation
 
 Actual fitting-only metadata audit on exact2247training/12476eligible series:
