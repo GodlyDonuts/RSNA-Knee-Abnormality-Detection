@@ -1,3 +1,11 @@
+Baseline878853 control epoch5 privately preservedONCE/full5object re-download
+HF1798b8727768c7451648cbf6b8a39690ca7af577/CPU879789; do not repeatcontrol1–5.
+Original control enteringepoch6; publiclabel879172healthyfullcontrol. No new score.
+
+Public collection/strict CPU forward parity/epoch4/H100 progress milestone4d328c1b
+privately verifiedONCE HFf32f879da8cc2bda68afddcea79e0461a9ee3395/all18smallobjects.
+NoMRI/weights/gold/source clinicalrecords mirrored; never repeat.
+
 ## October7 public component forward parity and original training progress
 
 Actual CPU879782 reproduced original Pilkwang DINOv2 member fingerprint after
