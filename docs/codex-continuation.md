@@ -1,3 +1,7 @@
+Bounded MRI contrast/FOV/twoepoch milestone12a76c32 privately verifiedONCE
+HF6f70b0197b44881da58605ea5964bfad55d832be/all11smallobjects. No pixels/weights/caseIDs/
+clinicaltargets/protectedgold mirrored; neverrepeat.
+
 ## October7 actual bounded MRI contrast/field measurements
 
 Read fitting-intensity-range-20261007-v1: first16fixed original fitting studies/

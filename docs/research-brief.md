@@ -1,3 +1,18 @@
+## October7 bounded actual MRI contrast and field-of-view measurements
+
+In16 fixed fitting studies/84 selected original series, the median valid-content
+1st–99th percentile span is0.48049 of our full min/max-normalized range;47/84 series
+span less than half, only2/84 less than a quarter. Median maximum physical field
+of view is165.50mm versus the public renderer's130mm crop. This quantifies two
+input differences; it does not establish severe universal contrast collapse,
+raw public pixel parity or clinical gain. The small sorted sample is engineering
+observation, not representative validation. No labels/pixels/case IDs exported,
+model fitted or live preprocessing changed. An isolated robust-contrast test is
+prioritized before separately testing physical cropping. Original evidence:
+[fitting-intensity-range](../initiative/audits/fitting-intensity-range-20261007-v1/).
+Both original ten-epoch comparisons remain healthy; baseline epochs1–7 and
+public-label control1–3 are now privately preserved and fully byte-verified.
+
 ## October7 measured acquisition-category coverage
 
 A fitting-only audit of the exact2247 active training studies found that the
