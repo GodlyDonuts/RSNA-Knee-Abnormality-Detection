@@ -1,0 +1,32 @@
+import datetime,hashlib,json,os,shutil,urllib.parse,zipfile
+from pathlib import Path
+import requests
+ROOT=Path('/tmp/rsna-public-solution-models-20261007-v1')
+PLAN=json.loads(__PLAN__)
+ROOT.mkdir(mode=0o700,exist_ok=True);os.chmod(ROOT,0o700)
+intent=ROOT/'download-intent.json'
+with intent.open('x') as f:json.dump({'started_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'plan':PLAN},f,indent=2)
+assert shutil.disk_usage(ROOT).free > PLAN['node_future_reserve_bytes']+PLAN['node_floor_bytes']+PLAN['archive_cap_bytes']
+records=[];charged=0
+for p in PLAN['packages']:
+ ref=p['ref'];path=ROOT/(ref.replace('/','--')+f"--v{p['version']}.zip")
+ url='https://www.kaggle.com/api/v1/datasets/download/'+ref
+ resp=requests.get(url,params={'datasetVersionNumber':p['version']},stream=True,timeout=(30,120));resp.raise_for_status()
+ h=hashlib.sha256();size=0
+ with path.open('xb') as f:
+  for b in resp.iter_content(1024*1024):
+   size+=len(b);charged+=len(b);assert charged<=PLAN['archive_cap_bytes'];h.update(b);f.write(b)
+ members=[]
+ with zipfile.ZipFile(path) as z:
+  assert sum(v.file_size for v in z.infolist())<=p['bytes']+1024*1024
+  for v in z.infolist():
+   if v.is_dir():continue
+   hh=hashlib.sha256()
+   with z.open(v) as f:
+    while b:=f.read(1024*1024):hh.update(b)
+   members.append({'name':v.filename,'bytes':v.file_size,'sha256':hh.hexdigest()})
+ rec={**p,'archive_bytes':size,'archive_sha256':h.hexdigest(),'members':members,'original_path':str(path)};records.append(rec)
+ (ROOT/(ref.replace('/','--')+'.receipt.json')).write_text(json.dumps(rec,indent=2))
+ print(json.dumps({'complete':ref,'archive_bytes':size,'members':len(members)}),flush=True)
+receipt={'completed_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'packages':records,'archive_total_bytes':charged,'third_party_code_executed':False,'weights_loaded':False,'free_node_bytes':shutil.disk_usage(ROOT).free}
+(ROOT/'download-complete.json').write_text(json.dumps(receipt,indent=2));print('COMPLETE',flush=True)

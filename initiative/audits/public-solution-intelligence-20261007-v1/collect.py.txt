@@ -1,0 +1,38 @@
+import concurrent.futures, datetime, hashlib, json
+from pathlib import Path
+import requests
+ROOT=Path(__file__).resolve().parent
+seeds=['pjmathematician/rsna-knee-d4-lite','maverickss26/rsna-knee-restructured-version-3','amanatar/rsna-knee-abnormality-detection','pilkwang/rsna-knee-baseline-v1','prvsiyan/rsna-knee-read-the-report-then-the-knee','ryokucha/rsna-knee-d4-blend-0946-ours10','nikhil00718/rsna-knee-0-95-dinov2-v2','starkhushi/rsna-knee-0-940-source-checklist-4-diffs']
+records=[];errors=[];seen=set();datasets=set();models=set()
+def pull(ref):
+ try:
+  r=requests.get('https://www.kaggle.com/api/v1/kernels/pull/'+ref,timeout=60);r.raise_for_status();x=r.json();m=x['metadata'];b=x['blob'];raw=b.get('source') if isinstance(b,dict) else b
+  if not isinstance(raw,str): raise ValueError('Source shape '+str(type(raw)))
+  key=ref.replace('/','--');(ROOT/(key+'.api.json')).write_text(json.dumps(x,indent=2));(ROOT/(key+'.source.txt')).write_text(raw)
+  try:
+   nb=json.loads(raw);code='\n\n'.join(''.join(c.get('source',[])) for c in nb.get('cells',[]))
+  except ValueError:code=raw
+  (ROOT/(key+'.extracted.py')).write_text(code)
+  return {'ref':ref,'version':m.get('currentVersionNumber'),'source_sha256':hashlib.sha256(raw.encode()).hexdigest(),'source_bytes':len(raw.encode()),'metadata':m}
+ except Exception as e:return {'ref':ref,'error':type(e).__name__+': '+str(e)[:160]}
+queue=seeds
+for depth in range(3):
+ batch=sorted({r for r in queue if r and r not in seen});seen.update(batch)
+ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:results=list(pool.map(pull,batch))
+ queue=[]
+ for v in results:
+  if 'error' in v:errors.append(v);continue
+  records.append(v);m=v['metadata'];datasets.update(m.get('datasetDataSources',[]));models.update(m.get('modelDataSources',[]));queue.extend(m.get('kernelDataSources',[]))
+ if len(seen)>35:break
+inventory=[]
+for ref in sorted(datasets):
+ files=[];token=None
+ try:
+  for page in range(30):
+   r=requests.get('https://www.kaggle.com/api/v1/datasets/list/'+ref,params={'pageToken':token} if token else {},timeout=45);r.raise_for_status();x=r.json();files.extend(x.get('datasetFiles',[]));token=x.get('nextPageToken');
+   if not token:break
+  v={'ref':ref,'files':files,'total_bytes':sum(f.get('totalBytes',0) for f in files),'listing_complete':not bool(token)}
+  (ROOT/(ref.replace('/','--')+'.files.json')).write_text(json.dumps(v,indent=2));inventory.append(v)
+ except Exception as e:errors.append({'ref':ref,'error':type(e).__name__})
+out={'retrieved_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'notebooks':records,'datasets':inventory,'model_references':sorted(models),'errors':errors,'third_party_code_executed':False}
+(ROOT/'inventory.json').write_text(json.dumps(out,indent=2));print(json.dumps({'notebooks':[(v['ref'],v['version']) for v in records],'datasets':[(v['ref'],len(v['files']),v['total_bytes'],v['listing_complete']) for v in inventory],'models':sorted(models),'errors':errors},indent=2))

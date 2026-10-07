@@ -1,3 +1,19 @@
+## October7 actual public solution model collection
+
+Owner requested public notebooks/models and supporting information. Read
+initiative/audits/public-solution-intelligence-20261007-v1:14notebook versions,
+20public Dataset packages plus2DINOv2 base archives/12,676,390,215bytes actually
+downloaded on private evc31, all archive/memberSHA verified.91weight occurrences
+are58unique whole-byte hashes, not91independent models.40checkpoint graphs safely
+decoded;11refused weights_only/no unsafe fallback.112public bundledsource/docs
+captured ignored. Original CPU879739/879741/879742 complete; never repeat transfers.
+Public model manifest:20DINOv2-small members,336/130mm/six anatomycontrast slots/
+three-slice channels/last6blocks; oneactual stored epoch25/30-epoch recipe with
+encoderLR8e-6vs our1e-4.5DINOv3-small members plus ensemble families are also
+retained. Titles/claimed scores not exact single-model outcome verification.
+Nextfaithful component/input/label comparison, not automatic protected-gold tuning
+or teacher relabeling. Live878853/879172 and accepted masks/folds unchanged.
+
 Memory fixedfinal/actualcorrected0.680control score/epoch receipt milestone
 37f6f15e privatelyverifiedONCE HF799013563a09721d25c158a8cabf52bb3ec96954/all18
 smallobjects includingownweak-development predictions; noMRI/weights/gold/
