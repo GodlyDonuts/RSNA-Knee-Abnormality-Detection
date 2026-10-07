@@ -1,3 +1,24 @@
+## October7 measured fitting-series coverage and new epoch preservation
+
+Actual fitting-only metadata audit on exact2247training/12476eligible series:
+214studies(9.52%) omit available sagittal/coronal nonfluid category undercurrent
+sixseries selector;924(41.12%) repeat plane/fluid/fatsat categories. All available
+threefluidFS categories retained. ZeroSAGfluidNOFS undercurrentmetadata; doesnot
+prove absent physicalacquisitions. T1field unavailable/nonfluidexplicitproxy.
+Read fitting-series-coverage-20261007-v1. NoMRI/clinicaltargets/protectedrows/model/
+optimizer/livepolicychanges. Nextmetadata descriptor mapping then matchedcategory
+reservation inputtest; no newGPUdispatch. Original2s observer880035 digestguard
+failure preserved; distinctcorrected reader passedbothbyte andparsedfoldbindings.
+
+Baselinecontrol6 privatelyverifiedONCE HF3cb83746bbfe796039481d135e2c58d8c6eaa402/
+CPU880025. OriginalSSHmasterexpiry/255 failedtransport provednot submitted via
+freshSlurm/privatepaths/remotejournal; preservedoriginal thenone actualpublication.
+Neverrepeatcontrol1–6. Publiclabelcontrol1 HFddbfd4b1a558e21376a61df0d4740208f2d6f21f/
+CPU880029 andcontrol2 HF8db7eaf33386f468815fba09ce9067609f538977/CPU880031 allfive
+objects eachfullre-download/size/SHA verifiedonce. Neverrepeat. Original878853/
+879172healthy; unchanged science, no new accuracy score. Accessrestoredusingexisting
+ignoredpassword throughRAM/ASKPASS; noVPN/securitychanges or duplicatejobs.
+
 Baseline878853 control epoch5 privately preservedONCE/full5object re-download
 HF1798b8727768c7451648cbf6b8a39690ca7af577/CPU879789; do not repeatcontrol1–5.
 Original control enteringepoch6; publiclabel879172healthyfullcontrol. No new score.
