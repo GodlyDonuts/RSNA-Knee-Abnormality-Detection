@@ -1,3 +1,21 @@
+## October7 measured acquisition-category coverage
+
+A fitting-only audit of the exact2247 active training studies found that the
+six-series selector omits an available sagittal/coronal non-fluid category in
+214studies(9.52%). All103 sagittal and131 coronal omissions have a tier0 option,
+so this is not explained solely by the existing tier1 quality preference.
+924studies repeat plane/fluid/fat-suppression categories, which can still contain
+useful distinct images. All available three fluid-sensitive fat-suppressed plane
+categories are retained. Current metadata has no sagittal fluid/non-fat-suppressed
+category and no T1-specific field: audit descriptor semantics before treating the
+public slots as equivalent. No causal score improvement is established.
+
+Next candidate: complementary category reservation within the same six-series/
+16-slice/384-pixel budget, tested against the frozen selector on unchanged masks
+and held-out boundaries. No new selector or GPU trainer was dispatched; the two
+healthy ten-epoch comparisons continue. See
+[original fitting-only evidence](../initiative/audits/fitting-series-coverage-20261007-v1/).
+
 October6 full-data streaming route is implemented but not MRI/GPU-admitted.
 Default cache loader unchanged; optional provider preserves original byte/hash/
 geometry tensors through bounded scratch eviction (fixture tests pass).

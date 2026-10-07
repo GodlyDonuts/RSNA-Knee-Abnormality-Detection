@@ -1,3 +1,7 @@
+Coverage/tier/threeepoch receipts milestone42430beb privately verifiedONCE
+HF08553644f4e58dce046117aa7e701928d73452fa/all20smallobjects. NoMRI/weights/clinicaltargets/
+protectedgold copied; never repeat.
+
 Coverage follow-up actualtier stratification: all103sagittal/131coronal omissions
 have an availabletier0series; not only intendedtier1 deprioritization. Samefit
 roster/series/selector hashes, no pixels/labels/model/policychanges. Read actual-
