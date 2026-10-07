@@ -1,3 +1,5 @@
+October7 22:11UTC original878853candidate1368finite/epoch5 and879172control2756finite/epoch10, emptyGPUstderr. Newcandidate4/publiccontrol9 privatelypreservedONCE/full5object re-download/size/SHA; exactCPU/revisions in research-progress-20261007-2211-v1/verified-epochs.json. Neverrepeat. No newfixed-final/Kaggle result. Originaljobsunchanged.
+
 Reconnection/four-epoch sourcef3044177 small milestone privatelymirroredONCE HF65b055acab0b46e952bb6b10980dad9891a49693/all11objects fullre-download/size/SHA canonicalsharedlock. Neverrepeat. No pixels/weights/clinicalvalues/protectedgold exported.
 
 Access actuallyrestored afterownerconfirmation; original878853candidate1072finite/epoch4 and879172control2458finite/epoch9, emptyGPUstderr. Newcandidate2–3/publiccontrol7–8 privatelypreservedONCE/full5object re-download/size/SHA; exactCPU/revisions in research-access-20261007-2006-v1/restored-and-preserved.json. Neverrepeat. No newfixed-final/Kaggle result. Originaljobsunchanged.
