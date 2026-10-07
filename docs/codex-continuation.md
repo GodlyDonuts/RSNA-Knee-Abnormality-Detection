@@ -1,3 +1,20 @@
+## October7 actual bounded MRI contrast/field measurements
+
+Read fitting-intensity-range-20261007-v1: first16fixed original fitting studies/
+84selected series/16uniform slices, actualprivate cachepixels. Median content
+p1–p99 span.48049 offull minmax range;47/84below.5,2/84below.25. Medianmaxphysical
+FOV165.50mm(IQR160–180) versuspublic130mmcrop. Smallsorted engineeringsample,
+notclinical/representative validation or rawpublicpixelparity. No pixels/case IDs/
+labels/model/predictions exported; no cache/training changes. Nextisolatedrobust
+contrast comparison beforeseparate physicalcrop; no newGPUdispatch/prototype.
+
+Original878853healthy2123finiteupdates/control epoch8;879172healthy836/control
+endepoch3, emptystderr. Newbaselinecontrol7 privatelyverifiedONCE HFce55de29723d610fc6756ee299292012ad805379/CPU880332 andpubliclabelcontrol3
+HF7a02302be7cb95684c3bd4211e504bf8da28392a/CPU880339, all5objects per epoch full
+re-download/size/SHA. Neverrepeatbaseline1–7/publiccontrol1–3. SSHmaster expiry
+reconnected viaexisting RAM/ASKPASS credential beforemutation; no duplicatejobs.
+No newscore; allscientific sources/masks/folds unchanged.
+
 Coverage/tier/threeepoch receipts milestone42430beb privately verifiedONCE
 HF08553644f4e58dce046117aa7e701928d73452fa/all20smallobjects. NoMRI/weights/clinicaltargets/
 protectedgold copied; never repeat.
