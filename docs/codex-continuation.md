@@ -1,3 +1,22 @@
+## October7 current control equivalence and future compute decision
+
+Actualfirst1410 sharednumeric optimizer records identical forCLSzero-patch/
+disabled-publiclabel controls. CPU881035 epoch5: all258common learned tensors
+exactlyequal, frozen proofs/encoder provenanceequal; soleextra131072-param patch
+projection iszero. Completeoptimizer/RNG/finalpred equality NOTestablished; no
+currentjob/recipechange. Read current-control-equivalence-20261007-v1. Future
+compatibleexperiments shouldpredeclare shared verifiedcontrol insteadofindependently
+repeating it; admitonlyexactdata/state/runtime/schedule/endpoint bindings. Thisis
+compute-efficiency evidence, not accuracygain/cancel authority.
+
+Baselinecontrol10 privatelyverifiedONCE HF0637080cdd64bcf3b9beed10ee9e813fad2d9b70/
+CPU881032/all5objects; fullcontrol2810 updates completed, heldoutprediction/terminal
+stillunobserved, candidate notyetobserved. Neverrepeatbaselinecontrol1–10.
+Publiccontrol5 privatelyverifiedONCE HFa03989454a36505574c2cfa2cd6a36cd8331ff49/
+CPU881023/all5objects; neverrepeatpubliccontrol1–5. Fullcohortgate881007 remains
+originalRUNNING: last1225/2247processed,6362verifiedseries,zero rejections.
+No fullcohortadmission or pairedaccuracy outcome yet; no duplicate jobs.
+
 ## October7 full fitting-cohort robust-contrast input gate actually running
 
 OriginalCPU881007/oneCPU zeroGPU4GiB2h evc31 runs full2247 fitting/expected11639
