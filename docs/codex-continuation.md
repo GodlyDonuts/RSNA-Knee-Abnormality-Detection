@@ -1,3 +1,5 @@
+Reconnection/four-epoch sourcef3044177 small milestone privatelymirroredONCE HF65b055acab0b46e952bb6b10980dad9891a49693/all11objects fullre-download/size/SHA canonicalsharedlock. Neverrepeat. No pixels/weights/clinicalvalues/protectedgold exported.
+
 Access actuallyrestored afterownerconfirmation; original878853candidate1072finite/epoch4 and879172control2458finite/epoch9, emptyGPUstderr. Newcandidate2–3/publiccontrol7–8 privatelypreservedONCE/full5object re-download/size/SHA; exactCPU/revisions in research-access-20261007-2006-v1/restored-and-preserved.json. Neverrepeat. No newfixed-final/Kaggle result. Originaljobsunchanged.
 
 October7 20:06UTC observationloss: Newton DNS unavailable/Stokes TCP22 timedout/priorSSHmaster absent. Read research-access-20261007-2006-v1. No terminaljob evidence, no restart/duplicate/publication. Lastaccepted878853candidateepoch2 and879172controlepoch7 healthy. Inspectactualoriginals afteraccessreturns.
