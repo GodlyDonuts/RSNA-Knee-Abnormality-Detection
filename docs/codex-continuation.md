@@ -1,3 +1,24 @@
+## October7 standalone robust-contrast candidate and actual MRI input check
+
+scripts/research/robust_cache_contrast.py isimplemented/10focused tests; NOTlive
+trainer/inference integrated. Control exactuint16 scaling; candidate onep1/p99
+range overselected validcontent, zeroartificialpadding. Actual16fitting/84series
+CPU v2control exactlymatches canonicalonegraychannel renderer bytes; candidate
+samefinite shapes/range/sourcepixels unchanged. Endpointfraction.076659 includes
+existing background, notnewly erasedclinicalfindings; maxpixelchange.790448 is
+substantial, needsmatchedlearning notsilent inferencepatch. Read robust-contrast-
+real-inputs-20261007-v1. Originalobserver wronglyexpected3cachechannels andrefused;
+distinctv2correctedonlyobserver expectation, sourcefunctionunchanged. No labels/
+protected rows/clinicalinference/GPU/model/optimizer. Full2331tests/Ruff394/mypy52/
+v2coverage89/89passed. Needdistinct trainer policy/recovery/checkpointfundingbefore
+newGPUexperiment; bothoriginal live numerical sources remainfrozen.
+
+Baselinecontrol8 privatelyverifiedONCE HFc75138ad96656f92e819dfaa595da36cfb6edb9b/
+CPU880639; neverrepeatbaseline1–8. Publiclabelcontrol1–3 previouslyverified,
+epoch4 nearcompletion. Original878853healthy2450finite/control epoch9 and879172
+healthy1107finite/control epoch4 atinitialcheck; bothemptystderr. SSHexpiry restored
+usingexistingcredentialRAM/ASKPASS, noVPN/securitychange or duplicatejobs.
+
 Bounded MRI contrast/FOV/twoepoch milestone12a76c32 privately verifiedONCE
 HF6f70b0197b44881da58605ea5964bfad55d832be/all11smallobjects. No pixels/weights/caseIDs/
 clinicaltargets/protectedgold mirrored; neverrepeat.
