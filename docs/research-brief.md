@@ -1,3 +1,16 @@
+## October7 compute efficiency: matching common controls
+
+The independent CLS-zero-patch and disabled-public-label controls have identical
+six-field numeric logs across their first1410 shared updates. Their epoch5
+checkpoints have258 exactly equal common learned tensors and equal frozen/base
+proofs; the baseline has one extra all-zero131072-parameter projection. Complete
+optimizer/RNG/final prediction equivalence is not yet established. This exposes
+repeated control work; future compatible hypotheses should predeclare a shared
+verified control rather than refitting it independently. Current healthy jobs
+remain unchanged. See [original evidence](../initiative/audits/current-control-equivalence-20261007-v1/).
+The complete2247-study robust-contrast input gate881007 is running on CPU;
+initial zero rejections are not terminal acceptance or accuracy evidence.
+
 ## October7 concrete robust-contrast input candidate
 
 The isolated contrast idea now has a standalone implementation and10 focused

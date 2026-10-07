@@ -1,3 +1,10 @@
+Fullcohortgate/epoch9 milestonebe54b03a privateHFb4bdbdb2f755c1b5884a9f9883aff6dc992f1244/all8objects,
+commoncontrol-state/finalbaseline/public5 milestone776fcf1c privateHF55dddde293820f2d592d5275f40f7502308e0588/all11objects,
+bothfull re-download/size/SHA verifiedONCE; never repeat. No MRI/weights/clinical
+records/protectedgold copied. Gate881007 stillrunning1700/2247processed,8813series,
+zero rejections atlatestcheck; completegate receipt notyetaccepted. OriginalGPU
+controls healthy; no new paired accuracy result or inference submission.
+
 ## October7 current control equivalence and future compute decision
 
 Actualfirst1410 sharednumeric optimizer records identical forCLSzero-patch/
