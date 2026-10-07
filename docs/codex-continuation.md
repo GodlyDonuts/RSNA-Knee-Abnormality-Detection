@@ -1,3 +1,5 @@
+Candidateepoch1 small receipts/source125fa31e privately mirroredONCE HFa47336c0391e06763834c982acfbc2b28edaf21f/all4objects fully re-downloaded/size/SHA undercanonicalsharedlock. Neverrepeat. Publiccontrol7 preflight refused incomplete snapshot withoutdispatchintent; no uploadattempt/retry.
+
 October7 17:58UTC original jobs healthy: patch-summary candidate553finite updates/epoch2, public-labelcontrol1950/epoch7; emptyGPUstderr. Candidateepoch1 privately preservedONCE/full5object download/size/SHA HF7a8c5734bba86cf8b1ccb19d7b4094c051d67042 viaCPU881771. Neverrepeat. Candidate fixed-final gain remainsunknown; no newKaggle result. Originals878853/879172 unchanged.
 
 Fixedcontrol/internalresult/ownweakdevpredictions/fullcontrastgate/public6 milestone
