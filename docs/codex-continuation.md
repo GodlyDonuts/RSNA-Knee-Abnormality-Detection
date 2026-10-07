@@ -1,3 +1,20 @@
+## October7 full fitting-cohort robust-contrast input gate actually running
+
+OriginalCPU881007/oneCPU zeroGPU4GiB2h evc31 runs full2247 fitting/expected11639
+selected series, frozenselector/uniform16/native384. Actual50studies/262series/
+zero range rejection observed; fullterminal/acceptance pending. Read robust-
+contrast-cohort-gate-20261007-v1. Localfinite runner toolsession6321 active; never
+restart/resubmit/redecode basedon observationloss. Requireoriginal0:0/final2247/
+verified+rejected11639 and reviewrejectcounts beforedata admission. NoGPU/clinical
+result/trainer integration. Sourcecachebytesunchanged; no pixels/case IDs/clinical
+values/protectedrows exported. New16MiB smallcontrols,53GiB existingfuture20GiB
+nodefloor retained/sharedgrowth0. GPUtrainer recovery/funding stillrequired.
+
+Baselinecontrol9 privatelyverifiedONCE HFcb19a807cd900066583f33216e3bfc739ba6206c/
+CPU881005/all5objects. Neverrepeatbaseline1–9/publiclabelcontrol1–4. Actual878853
+healthy2783finite/control epoch10;8791721384finite/control epoch5, emptyGPUstderr.
+No final pairedresult ornewscore. Originalnodes/jobs/science untouched.
+
 Standalonecontrast/actualMRIinput/twoepoch milestone26f899e3 privately verified
 ONCE HF4b97f7083b2dacce5abb4d520a3c99dc5adfc08a/all15smallobjects; no pixels/weights/clinical
 records/protectedgold copied. Neverrepeat. No newGPU/trainer/inference integration.
