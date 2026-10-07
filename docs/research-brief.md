@@ -1,3 +1,16 @@
+## October7 new completed fixed-final control
+
+Current rank32/native384 zero-patch-summary control completedtenepochs/2810finite
+updates on2247 fitting studies. Its fixed-final internal macroAUC is0.87867059654
+on1156 disjoint weak-label development studies; all12 target scores independently
+replayed from the exact CSV and accepted rows. This is not Kaggle performance or
+a paired architectural gain: the original mean-patch candidate is still training.
+Sparse target supports and recipe/seed differences limit comparisons. See
+[fixed-final evidence](../initiative/audits/cls-patch-summary-full-fit-v2/control-fixed-final/).
+The robust-contrast full fitting-cohort gate also completed2247studies/11639series
+with zero rejections and exact control parity; data coverage only, not a trained
+model or GPU recovery. Best actual solo Kaggle remains0.804.
+
 ## October7 compute efficiency: matching common controls
 
 The independent CLS-zero-patch and disabled-public-label controls have identical

@@ -1,0 +1,15 @@
+import hashlib,json
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import pyarrow.parquet as pq
+from sklearn.metrics import roc_auc_score
+from rsna.schema import TARGETS
+r=Path.cwd();d=r/'artifacts/cls-patch-summary-v1/full-fit-v2/control-fixed-final';run=json.loads((d/'control-run.json').read_text());result=json.loads((d/'control-result.json').read_text());pred=pd.read_csv(d/'control-outer_predictions.csv');assert len(pred)==1156 and not pred.study_uid.duplicated().any();assert hashlib.sha256(json.dumps(sorted(pred.study_uid.tolist()),sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()==run['binding']['outer_uids_sha256'];assert not run['held_out_confirmation_and_gold_used']
+cols=['study_uid']+list(TARGETS)+[t+'__mask' for t in TARGETS];release=pq.read_table(r/'initiative/releases/report-supervision-v1/studies.parquet',columns=cols,filters=[('study_uid','in',pred.study_uid.tolist()),('split','=','train')]).to_pandas();assert len(release)==1156
+labels=release.set_index('study_uid').loc[pred.study_uid];values=pred[list(TARGETS)].to_numpy();assert np.isfinite(values).all() and (values>=0).all() and (values<=1).all();per={};support={}
+for target in TARGETS:
+ m=labels[target+'__mask'].to_numpy().astype(bool);y=labels.loc[m,target].to_numpy();assert np.isin(y,[0,1]).all() and len(np.unique(y))==2;p=pred.loc[m,target].to_numpy();score=float(roc_auc_score(y,p));assert abs(score-result['metrics']['per_target_auc'][target])<1e-12;per[target]=score;support[target]={'observed':len(y),'positive':int(y.sum()),'negative':int((y==0).sum())}
+macro=float(np.mean(list(per.values())));assert abs(macro-result['metrics']['macro_auc'])<1e-12
+out={'status':'actual_fixed_final_internal_control_metrics_independently_replayed','source_git':'0183ef363be0f5f2eea0d6c468a01de39e2e465b','training_studies':2247,'development_studies':1156,'fixed_epochs':10,'optimizer_steps':2810,'macro_auc':macro,'per_target_auc':per,'target_support':support,'predictions_sha256':hashlib.sha256((d/'control-outer_predictions.csv').read_bytes()).hexdigest(),'all_12_targets_replayed':True,'protected_gold_or_confirmation_rows_decoded':False,'candidate_final_result_available':False,'Kaggle_score':False,'limitations':['weak report-derived development labels; sparse positives/negatives for several targets','not a paired candidate result or proof of a causal gain','not a Kaggle score or score prediction']}
+(d/'metric-replay.json').open('x').write(json.dumps(out,indent=2)+'\n');print(json.dumps({'macro_auc':macro,'development_studies':1156,'all_12_targets_replayed':True}))

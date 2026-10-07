@@ -1,0 +1,17 @@
+import hashlib,json,math,os
+from pathlib import Path
+r=Path('/tmp/rsna-cls-patch-summary-full-fit-20261006-v2');run=r/'control';record=json.loads((run/'run.json').read_text());result=json.loads((run/'result.json').read_text());cpu=json.loads((r/'CPU-accepted.json').read_text());term=json.loads((r/'control-terminal.json').read_text());assert record['status']==result['status']=='completed' and result['optimizer_steps']==2810 and result['training_studies']==2247 and result['outer_studies']==1156 and not result['diagnostic_run'];assert term['returncode']==0 and (r/'control.stderr').stat().st_size==0
+assert record['binding']['config']==cpu['expected_bound_config']['control'];assert hashlib.sha256(json.dumps(record['binding'],sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()==result['binding_sha256']
+rows=[]
+for line in (r/'control.stdout').read_text().splitlines():
+ try:x=json.loads(line)
+ except ValueError:continue
+ if isinstance(x,dict) and all(k in x for k in ['optimizer_steps','loss','gradient_norm']):rows.append(x)
+assert len(rows)==2810 and [x['optimizer_steps'] for x in rows]==list(range(1,2811)) and all(math.isfinite(x['loss']) and math.isfinite(x['gradient_norm']) for x in rows)
+pub=json.loads((r/'epoch-publication/control/epoch-010/verified.json').read_text());assert pub['checkpoint_sha256']==result['checkpoint_sha256'] and pub['file_count']==5
+files={}
+for name,p in [('control-run.json',run/'run.json'),('control-result.json',run/'result.json'),('control-outer_predictions.csv',run/'outer_predictions.csv')]:
+ b=p.read_bytes();assert len(b)<512*1024;files[name]={'text':b.decode(),'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
+assert files['control-outer_predictions.csv']['sha256']==result['predictions_sha256']
+collection={'status':'actual_original_control_fixed_final_outputs_bound','CPU_job':os.environ['SLURM_JOB_ID'],'GPU_job':'878853','source_git':cpu['source_git'],'role_terminal':term,'contiguous_finite_optimizer_updates':2810,'private_final_checkpoint_revision':pub['revision'],'checkpoint_sha256':pub['checkpoint_sha256'],'files':{k:{p:v[p] for p in ['bytes','sha256']} for k,v in files.items()},'candidate_final_outcome_known':False,'Kaggle_score':False,'protected_gold_used':False}
+print(json.dumps({'collection':collection,'files':files}))

@@ -1,3 +1,23 @@
+## October7 actual ten-epoch control outcome and full contrast-data gate
+
+Original878853 CONTROL completed2810updates/tenepochs; source0183/config/roster/
+checkpoint/result/prediction hashes and terminal0 bound. Independentlyreplayed
+all12target AUC on1156disjoint weak-label devstudies: macro0.87867059654. Read
+cls-patch-summary-full-fit-v2/control-fixed-final. NotKaggle/clinicalaccuracy or
+pairedreadout gain; candidate stilloriginalRUNNING235updates/epoch1 atcheck.
+Rare-target supports matter; no epochselection orcausalcomparison tooldrecipes.
+All10control epochs alreadyprivateverified; never repeat. BestsoloKaggle0.804.
+
+Originalfullcohortcontrast gate881007 COMPLETED0:0/22:26,2247studies11639series/
+zero robust-range rejections, exactcontrol/candidate tensor checks. AcceptedONLY
+standalonedata coverage; no trainer/GPU/recovery/fitting/score admission. Original
+session6321completed; neverrepeatdecoding/job. Policy integration andactual GPU
+trainer recovery/funding stillrequired. No raw pixels/clinicalvalues/gold exported.
+
+Publiclabelcontrol6 privatelyverifiedONCE HF27bc3ff14034f6e2fdc4f4056256877d9051fa72/
+CPU881569/all5objects. Neverrepeatpubliccontrol1–6. Original879172healthycontrol
+endepoch6; currentjobs/scientific sources/masks/folds remainunchanged.
+
 Fullcohortgate/epoch9 milestonebe54b03a privateHFb4bdbdb2f755c1b5884a9f9883aff6dc992f1244/all8objects,
 commoncontrol-state/finalbaseline/public5 milestone776fcf1c privateHF55dddde293820f2d592d5275f40f7502308e0588/all11objects,
 bothfull re-download/size/SHA verifiedONCE; never repeat. No MRI/weights/clinical

@@ -1,3 +1,14 @@
+## October7 actual terminal acceptance
+
+OriginalCPU881007 actually COMPLETED0:0 in22:26. The full original2247 fitting
+studies/11639 selected series passed: control matches original canonical tensor
+bytes, candidate finite/same shapes/range, original selected arrays unchanged,
+zero constant-content rejections. Exact source/roster/tensor-stream hashes are in
+[actual-terminal-receipt.json](actual-terminal-receipt.json); [data-admission.json](data-admission.json)
+accepts data coverage/tensor checks only. No trainer/GPU/optimizer/clinical or
+Kaggle acceptance follows. Original local finite runner6321 completed; never
+restart it or repeat the full decoding. The pending text below is historical.
+
 # Original full fitting-cohort contrast input gate — running
 
 The standalone robust-contrast candidate already passed ten tests and actual16-study/84-series control tensor parity. The next prerequisite is now **actually running** on the complete original2247-study fitting cohort: CPU881007, oneCPU/zeroGPU,4GiB RAM, two-hour limit, evc31. No trainer GPU was reserved or healthy GPU job changed. This is data/engineering acceptance, not accuracy.
