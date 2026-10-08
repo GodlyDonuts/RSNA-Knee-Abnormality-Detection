@@ -1,0 +1,44 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/cache-contrast-production-20261008-v1');assert not (r/'stage-v2-intent.json').exists()
+program=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+from dataclasses import asdict
+v=json.load(sys.stdin);R=Path('/tmp/rsna-cache-contrast-production-20261008-v1');C=Path('/tmp/rsna-cache-contrast-32-inputs-20261008-v1');H=Path('/tmp/rsna-cache-contrast-H100-recovery-20261008-v1');P=Path('/tmp/rsna-public-label-full-fit-20261006-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists()
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];used,soft,count,lim=[int(row[i]) for i in (1,2,5,6)]
+# Explicitly move the remaining unused deployment metadata envelope to node-local only.
+future_bytes=1406921657-(2097152-40960);future_files=730-(64-5)
+assert (soft-used)*1024-future_bytes>=20*2**30 and lim-count-future_files>=5000
+assert shutil.disk_usage('/tmp').free>(53+5+6+8+20)*2**30+32*2**20
+cpu=json.loads((C/'CPU-accepted.json').read_text());manifest=json.loads((H/'source-manifest.json').read_text());assert {n:h for n,h in manifest.items() if n.startswith('rsna/')}=={n:h for n,h in cpu['source_sha256'].items() if n.startswith('rsna/')}
+for n,h in manifest.items():assert sha(H/'code'/n)==h
+recovery=H/'recovery-fallback-v2/recovery-accepted.json';rec=json.loads(recovery.read_text());assert sha(recovery)==v['recovery_sha256'];assert rec['CPU_receipt_sha256']==sha(C/'CPU-accepted.json') and all(x['exact_complete_state_scaler_RNG_and_CSV_recovery'] for x in rec['roles'].values())
+oldcpu=json.loads((P/'CPU-accepted.json').read_text());oldrun=json.loads((P/'control/run.json').read_text());oldresult=json.loads((P/'control/result.json').read_text());assert oldrun['status']==oldresult['status']=='completed' and oldresult['optimizer_steps']==2810
+assert cpu['initial_learned_state']['control']==cpu['initial_learned_state']['candidate']==oldcpu['initial_learned_state']['control']
+sys.path.insert(0,str(H/'code'));from rsna.competitive.train import TrainConfig
+base=json.loads((C/'base-config.json').read_text());spec=json.loads((C/'encoder-spec.json').read_text());assert base['encoder']==spec
+values=dict(base,fitting_supervision=None,cache_contrast={'mode':'p01_p99'},epochs=10,diagnostic_study_limit=None,warmup_updates=281,submission_every_epochs=1,min_free_gib=92)
+config=TrainConfig(**values);config.validate();expected=asdict(config)
+for n in ('relation','witness','fitting_supervision','neighbor_channels','patch_summary','plane_memory'):
+ if expected[n] is None:expected.pop(n)
+expected['encoder']=cpu['encoder_provenance']
+reference=dict(oldrun['binding']['config']);reference.pop('fitting_supervision');reference['cache_contrast']={'mode':'p01_p99'};reference['min_free_gib']=92;assert expected==reference
+inputs=cpu['trainer_inputs'];assert Path(inputs['cache']).is_dir()
+# Reuse the already admitted whole-input receipts; check pinned input identities again.
+for k in ('training_uids_sha256','outer_uids_sha256','folds_sha256'):assert oldrun['binding'][k]==oldcpu[k]
+assert sha(Path(inputs['folds'])/'fold.csv')==oldcpu['fitting_supervision_receipt']['control']['folds_sha256']
+R.mkdir(mode=0o700)
+for n,text in v['files'].items():(R/n).write_text(text)
+(R/'config.json').write_text(json.dumps(values,sort_keys=True,indent=2)+'\n')
+receipt={'status':'original_contrast_fixed10_reference_recovery_source_and_funding_CPU_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':cpu['source_git'],'source_sha256':manifest,'CPU32_sha256':sha(C/'CPU-accepted.json'),'recovery_sha256':sha(recovery),'publisher_sha256':sha(R/'publish.py'),'launcher_sha256':sha(R/'launch.py'),'config_sha256':sha(R/'config.json'),'expected_bound_config':expected,'reference_checkpoint_sha256':oldresult['checkpoint_sha256'],'reference_predictions_sha256':oldresult['predictions_sha256'],'reference_result_sha256':sha(P/'control/result.json'),'reference_initial_graph_RNG_equal':True,'source_change_isolated_cache_contrast':True,'release_binding_sha256':oldcpu['release_binding_sha256'],'shared_future_bytes':0,'new_shared_files':0,'funding':{'quota':q,'remaining_shared_future_bytes':future_bytes,'remaining_shared_future_files':future_files,'unused_deployment_metadata_reassigned_to_node_local_bytes':2056192,'unused_deployment_metadata_reassigned_to_node_local_files':59,'later_Kaggle_mutation_requires_new_funding':True,'new_node_future_bytes':8*2**30,'old_node_future_53plus5plus6GiB_retained':True,'node_floor_bytes':20*2**30,'all_ten_epoch_checkpoints_and_forced_download_scratch_funded':True,'deletion_credit':False},'GPU_dispatched':False,'protected_gold_confirmation_used':False}
+for k in ('training_uids_sha256','outer_uids_sha256','folds_sha256'):receipt[k]=oldcpu[k]
+(R/'files.json').write_text(json.dumps({'files':{'publish.py':{'sha256':receipt['publisher_sha256']}}}))
+(R/'CPU-accepted.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n');print(json.dumps(receipt))
+'''
+files={n:(r/n).read_text() for n in ('launch.py','publish.py')};receipt=json.loads(Path('initiative/audits/cache-contrast-known-good-fallback-v2/actual-recovery-accepted.json').read_text())
+(r/'stage-v2-intent.json').write_text(json.dumps({'automatic_retry':False,'new_control':'/tmp/rsna-cache-contrast-production-20261008-v1','GPU':0,'CPU':1},indent=2))
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=2G','--time=00:05:00','--job-name=rsna-contrast-production-admission','/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'files':files,'recovery_sha256':receipt['receipt_sha256']}),capture_output=True,text=True,timeout=400)
+(r/'stage-v2-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2));assert x.returncode==0,x.stderr
+out=json.loads(x.stdout);(r/'CPU-accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({'status':out['status'],'CPU_job':out['CPU_job'],'funding':out['funding']}))
