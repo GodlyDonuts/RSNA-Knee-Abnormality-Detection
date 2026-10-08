@@ -1,0 +1,49 @@
+import hashlib,json,math,os,shutil,sys
+from pathlib import Path
+import numpy as np,torch
+R=Path('/tmp/rsna-shared-control-final-20261008-v1');assert not R.exists() and shutil.disk_usage('/tmp').free>(53+5+20)*2**30+16*2**20;R.mkdir(mode=0o700);torch.set_num_threads(1)
+roots=[Path('/tmp/rsna-cls-patch-summary-full-fit-20261006-v2'),Path('/tmp/rsna-public-label-full-fit-20261006-v1')];states=[];stats=[];proofs=[]
+for root in roots:
+ p=root/'control/epoch-checkpoints/epoch-010.pt';meta=json.loads(p.with_suffix('.json').read_text());proof=json.loads((root/'epoch-publication/control/epoch-010/verified.json').read_text());assert meta['checkpoint_sha256']==proof['checkpoint_sha256'] and p.stat().st_size==meta['checkpoint_bytes']==proof['files']['checkpoint.pt']['bytes'];assert proof['file_count']==5
+ st=p.stat();stats.append((p,(st.st_dev,st.st_ino,st.st_size,st.st_mtime_ns,st.st_ctime_ns)));states.append(torch.load(p,map_location='cpu',weights_only=False));proofs.append(proof)
+# Only original own byte-verified checkpoints are decoded; no external pickle.
+def equal(a,b):
+ if type(a) is not type(b):return False
+ if isinstance(a,torch.Tensor):return a.dtype==b.dtype and a.shape==b.shape and torch.equal(a,b)
+ if isinstance(a,np.ndarray):return a.dtype==b.dtype and np.array_equal(a,b)
+ if isinstance(a,dict):return a.keys()==b.keys() and all(equal(a[k],b[k]) for k in a)
+ if isinstance(a,(tuple,list)):return len(a)==len(b) and all(equal(x,y) for x,y in zip(a,b))
+ return a==b
+a,b=states;common=sorted(set(a['model'])&set(b['model']));assert len(common)==258;extras=sorted(set(a['model'])-set(b['model']));assert extras==['patch_summary.weight'] and not (set(b['model'])-set(a['model']));assert not torch.count_nonzero(a['model'][extras[0]])
+# Same original head constructor supplies optimizer parameter-name order. No encoder,
+# weights or inference are instantiated; dummy is solely a namespace for head names.
+for n in ('model.py','feature_summary.py','adapters.py'):
+ fs=[root/'code/rsna/competitive'/n for root in roots];assert hashlib.sha256(fs[0].read_bytes()).digest()==hashlib.sha256(fs[1].read_bytes()).digest()
+sys.path.insert(0,str(roots[0]/'code'));from rsna.competitive.model import CompetitiveStudyNet
+class Dummy(torch.nn.Module):
+ def forward_features(self,*args):raise RuntimeError('Never execute')
+head_orders=[]
+for policy in ({'weight':0},None):
+ model=CompetitiveStudyNet(Dummy(),1024,hidden_dim=128,encode_chunk_size=8,patch_summary=policy);head_orders.append([n for n,p in model.named_parameters() if p.requires_grad]);del model
+optims=[]
+for state,order in zip(states,head_orders):
+ groups=state['optimizer']['param_groups'];assert len(groups)==2 and len(groups[0]['params'])==len(order) and len(groups[1]['params'])==240
+ optims.append({'head':dict(zip(order,groups[0]['params'])),'encoder':groups[1]['params'],'state':state['optimizer']['state'],'groups':[{k:v for k,v in g.items() if k!='params'} for g in groups]})
+optimizer_same=equal(optims[0]['groups'],optims[1]['groups'])
+for name in head_orders[1]:optimizer_same &= equal(optims[0]['state'].get(optims[0]['head'][name]),optims[1]['state'].get(optims[1]['head'][name]))
+# The identical encoder graph/provenance orders these same240 trainable tensors.
+for x,y in zip(optims[0]['encoder'],optims[1]['encoder']):optimizer_same &= equal(optims[0]['state'].get(x),optims[1]['state'].get(y))
+extra_optimizer=optims[0]['state'].get(optims[0]['head']['patch_summary.weight']);extra_optimizer_zero=extra_optimizer is None or all(not torch.count_nonzero(t) for k,t in extra_optimizer.items() if k!='step')
+fields=('epoch','update','optimizer_steps','loss','gradient_norm','observed_cells');logs=[]
+for root in roots:
+ rows=[]
+ for line in (root/'control.stdout').read_text().splitlines():
+  try:x=json.loads(line)
+  except ValueError:continue
+  if isinstance(x,dict) and all(k in x for k in fields):rows.append({k:x[k] for k in fields})
+ assert len(rows)==2810 and [x['optimizer_steps'] for x in rows]==list(range(1,2811)) and all(math.isfinite(x['loss']) and math.isfinite(x['gradient_norm']) for x in rows);logs.append(rows)
+csvs=[(root/'control/outer_predictions.csv').read_bytes() for root in roots]
+for root,data in zip(roots,csvs):assert hashlib.sha256(data).hexdigest()==json.loads((root/'control/result.json').read_text())['predictions_sha256']
+for p,before in stats:
+ st=p.stat();assert before==(st.st_dev,st.st_ino,st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+out={'status':'actual_original_fixed_final_common_control_comparison','CPU_job':os.environ['SLURM_JOB_ID'],'epochs':10,'contiguous_updates_each':2810,'common_learned_tensors':len(common),'common_learned_tensors_equal':all(equal(a['model'][k],b['model'][k]) for k in common),'frozen_base_proofs_equal':equal(a['model_storage']['frozen_tensors'],b['model_storage']['frozen_tensors']),'encoder_provenance_equal':equal(a['model_storage']['encoder_provenance'],b['model_storage']['encoder_provenance']),'common_named_head_and_ordered_identical_encoder_AdamW_state_equal':bool(optimizer_same),'extra_zero_projection_optimizer_absent_or_zero':bool(extra_optimizer_zero),'all_rng_equal':equal(a['rng_by_rank'],b['rng_by_rank']),'amp_scaler_equal':equal(a['amp_scaler'],b['amp_scaler']),'counters_equal':all(a[k]==b[k] for k in ('epoch','next_update','step')),'all2810_six_field_numeric_update_records_equal':logs[0]==logs[1],'original_final_prediction_CSV_bytes_equal':csvs[0]==csvs[1],'original_final_prediction_SHA256':[hashlib.sha256(x).hexdigest() for x in csvs],'original_private_checkpoint_SHA256':[x['checkpoint_sha256'] for x in proofs],'extra_model_tensor':'patch_summary.weight,131072allzero','whole_graph_bindings_or_serializations_equal':False,'new_source_initialization_or_contrast_GPU_admitted':False,'clinical_accuracy_gain':False,'originals_rehashed_transferred_or_changed':False,'MRI_labels_protected_records_or_GPU_used':False,'new_shared_bytes_files':0};(R/'receipt.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))
