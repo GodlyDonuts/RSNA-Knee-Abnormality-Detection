@@ -99,7 +99,7 @@ def run(args):
     for name, value in source_manifest.items():
         if sha(source / name) != value:
             raise ValueError("New immutable numerical source differs")
-    artifact = args.control / "artifacts"
+    artifact = args.artifact_root if args.artifact_root is not None else args.control / "artifacts"
     results = {}
     for role in ("control", "candidate"):
         values = engineering_config(base, role, spec)
@@ -285,5 +285,6 @@ if __name__ == "__main__":
         "output",
     ):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--artifact-root", type=Path)
     parser.add_argument("--remaining-seconds", type=float, required=True)
     run(parser.parse_args())
