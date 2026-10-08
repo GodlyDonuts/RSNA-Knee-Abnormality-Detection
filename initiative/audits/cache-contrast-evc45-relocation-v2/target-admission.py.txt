@@ -1,0 +1,18 @@
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+R=Path('/tmp/rsna-cache-contrast-recovery-evc45-v2');assert os.uname().nodename=='evc45' and not os.environ.get('SLURM_JOB_GPUS') and not (R/'target-CPU-accepted.json').exists();assert shutil.disk_usage('/tmp').free>20*2**30+6*2**30+16*2**20
+sys.path.insert(0,str(R/'code'));import pandas as pd,pyarrow.parquet as pq,torch
+from rsna.schema import TARGETS
+from rsna.competitive.data import CompetitiveStudyDataset
+from scripts.newton.cache_contrast_recovery import engineering_config,validate_cpu_receipt
+torch.set_num_threads(1);cpu=json.loads((R/'inputs/CPU-accepted.json').read_text());proof=json.loads((R/'inputs/original-input-proof.json').read_text());validate_cpu_receipt(cpu,proof);inp=cpu['trainer_inputs'];fold=pd.read_csv(Path(inp['folds'])/'fold.csv');meta=pq.read_table(inp['studies'],columns=['study_uid','split',*[t+'__mask' for t in TARGETS]],filters=[('study_uid','in',sorted(fold.study_uid)),('split','=','train')]).to_pandas();meta=meta.loc[meta[[t+'__mask' for t in TARGETS]].sum(axis=1).gt(0)].merge(fold[['study_uid','fold']],on='study_uid',validate='one_to_one');ids={k:sorted(meta.loc[m,'study_uid'])[:16] for k,m in [('training',meta.fold.ne(0)),('outer',meta.fold.eq(0))]};uids=ids['training']+ids['outer'];rows=pq.read_table(inp['studies'],columns=['study_uid',*TARGETS,*[t+'__mask' for t in TARGETS]],filters=[('study_uid','in',uids),('split','=','train')]).to_pandas();parts=[]
+for f in pd.read_csv(inp['series'],chunksize=1024):parts.append(f.loc[f.StudyInstanceUID.isin(uids)])
+series=pd.concat(parts,ignore_index=True)
+for role,policy in [('control',None),('candidate',{'mode':'p01_p99'})]:
+ for scope in ('training','outer'):
+  selected=rows.set_index('study_uid').loc[ids[scope]].reset_index();d=CompetitiveStudyDataset(selected,series.loc[series.StudyInstanceUID.isin(ids[scope])],R/'cache',slices=16,side=384,max_series=6,cache_contrast=policy);ih=hashlib.sha256();nh=hashlib.sha256()
+  for i in range(16):
+   x=d[i];ih.update(x['images'].numpy().tobytes())
+   for k in sorted(set(x)-{'images'}):nh.update(k.encode());nh.update(x[k].numpy().tobytes() if isinstance(x[k],torch.Tensor) else x[k].encode())
+  assert ih.hexdigest()==cpu['image_tensor_sha256'][role][scope] and nh.hexdigest()==cpu['other_tensor_sha256'][role][scope]
+manifest={str(p.relative_to(R/'code')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (R/'code').rglob('*.py')};assert {k:v for k,v in manifest.items() if k.startswith('rsna/')}=={k:v for k,v in cpu['source_sha256'].items() if k.startswith('rsna/')};(R/'source-manifest.json').write_text(json.dumps(manifest));out={'status':'actual_evc45_restored_original32_control_candidate_train_outer_tensor_and_source_parity_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_node':'evc31','target_node':'evc45','training_studies':16,'outer_engineering_studies':16,'all_original_image_nonimage_tensor_hashes_equal':True,'pinned_runtime_restored':True,'new_shared_bytes_files':0,'target_diagnostic_future_bytes':6*2**30,'target_free_floor_bytes':20*2**30,'GPU_or_accuracy_admitted':False};(R/'target-CPU-accepted.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))

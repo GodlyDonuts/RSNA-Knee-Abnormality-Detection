@@ -1,0 +1,7 @@
+# Bounded earlier-node move and actual device failure
+
+Original883415 was restricted to evc31, whose two GPUs and almost all schedulable RAM were allocated. Idle evc45 had780GB free scratch. The original32 diagnostic-study cache/source was transferred once fully through an inside-cluster sender/receiver pipeline; no pixel/case records reached Mac/Git/HF. An earlier iterator wrapper failed before writing any member; CPU883523 proved its retained target empty. A corrected distinct target copied430 exact members/1,383,408,728bytes and restored the pinned runtime once viaCPU883525. CPU883526 reproduced every admitted control/candidate train/outer tensor hash. Original data and numerical modules remain unchanged.
+
+Only after target admission was883415 held and cancelled whilePENDING/zero runtime. Distinct883527 allocated evc45 but failed in5seconds during CUDA context initialization, before MRI/model/optimizer work. The genericCUDA unknown error is evidence of a device/runtime admission failure, not a model/data accuracy failure; its cause is unproven. No isolation bypass or repeat on this node occurred. All original controls/data/runtime and negatives are retained.
+
+A distinct one-time fallback883530 returns to the actually healthy owning evc31 with an unattempted recovery output path. It draws the original unspent6GiB diagnostic budget, not new production funding; current dense-label879172 is unchanged. Target evc45 copy/runtime/diagnostic reserve remain retained conservatively. Inspect original states before further action, never duplicate dispatches.
