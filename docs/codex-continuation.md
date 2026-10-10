@@ -1,3 +1,5 @@
+Fixedmaskepoch1/progress/terminalcollector smallmilestone source8fc63922 privatelymirroredONCE HFbc29e68147423dfdc2738cad0d6a18a0449e9172/all6objects forceddownload/size/SHA canonicalsharedlock. Neverrepeat. Healthy897333 epoch2/last471finite, firstepochfull5objectprivateverified. No clinicalscore orjobchange.
+
 Oct10 08:13 actual897333healthyRUNNING/step471/epoch2/finiteprogress/emptyGPUstderr. Firstfixedmaskimmutableepoch1 privatelypublishedONCE HF4fbf567bbe4f7a1d2e610bc0ff79037a4d44f4b0 viaCPU897497/all5objects forced re-download/size/SHAverified. Neverrepeat1. Futureepochs onlysinglecoordinator candidate N aftersnapshot/intentreview. Fixed-finalterminal/source/config/supervision/finite2810 collector preparedONLY/notexecuted. No accuracyresult/jobchange.
 
 Actualfixedmask fullstate/AdamW/RNG/scaler/CSV recovery acceptance and realfulltrainingstart sourcef52ab1f0 privatelymirroredONCE HFba110bd9e9bcbe7e6749da8abf04e7c8661433ce/all4objects forceddownload/size/SHA canonicalsharedlock. Neverrepeat. Existing897333 healthyRUNNING/laststep38, no completedepoch oraccuracyresult yet; leaveunchanged/preserveeachfuturecompletedepochONCE. No labels/MRI/weights exported.
