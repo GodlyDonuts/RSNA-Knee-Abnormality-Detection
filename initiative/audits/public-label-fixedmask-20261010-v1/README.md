@@ -1,0 +1,5 @@
+# Public values under original fitting masks
+
+Actual CPU897224 created one private candidate overlay at /tmp/rsna-public-label-fixedmask-20261010-v1/overlay.json on evc31. Exactly2247 fitting studies,13760 observed cells and the original fitting masks are retained;13750 observed values change to the pinned source probabilities. All masked values are normalized to0 under the existing loader contract, with masks still0. Accepted release/evaluation masks remain untouched. Only fitting rows were read; no protected/outer target values or individual records were exported.
+
+This is preparation for a coverage-controlled supervision ablation, not model training or accuracy. Private64MiB control funding is explicit, old53+5+6+8GiB liabilities and20GiB node reserve remain, shared growth0. No checkpoint/production/GPU funding is admitted. Before a fit require canonical overlay/recipe/input admission, source/reference/init/runtime bindings, a separately funded immutable wrapper and actual recovery acceptance. Preserve the original full-public overlay and both completed reference arms; no repeat source acquisition.

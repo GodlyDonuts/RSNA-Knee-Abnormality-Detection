@@ -211,6 +211,8 @@ class ResidentInference:
         )
         if getattr(self.config, "neighbor_channels", None) is not None:
             data["neighbor_channels"] = self.config.neighbor_channels
+        if getattr(self.config, "cache_contrast", None) is not None:
+            data["cache_contrast"] = self.config.cache_contrast
         dataset = CompetitiveStudyDataset(studies, series, args.cache, **data)
         if dataset.source_revision != args.source_revision:
             raise ValueError("Resident cache source differs from admitted request")

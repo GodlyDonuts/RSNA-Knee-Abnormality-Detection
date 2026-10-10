@@ -1,0 +1,14 @@
+import json,os,subprocess,time
+from pathlib import Path
+import torch
+assert os.uname().nodename=='evc48' and os.environ.get('SLURM_JOB_GPUS');v={'status':'distinct_allocated_visibility_diagnostic_after_terminal_gate_failure','GPU_job':os.environ['SLURM_JOB_ID'],'node':'evc48','torch_version':torch.__version__,'cuda_build':torch.version.cuda,'scheduler_device_environment':{k:os.environ.get(k) for k in ('CUDA_VISIBLE_DEVICES','SLURM_JOB_GPUS','SLURM_STEP_GPUS','SLURM_GPUS_ON_NODE','NVIDIA_VISIBLE_DEVICES')},'no_device_isolation_override':True,'no_MRI_model_optimizer_or_training_executed':True,'node_or_trainer_admitted':False}
+try:v['torch_visible_device_count']=torch.cuda.device_count()
+except Exception as e:v['torch_count_error']={'type':type(e).__name__,'message':str(e)}
+try:v['driver_module_version']=Path('/proc/driver/nvidia/version').read_text()[:1000]
+except OSError as e:v['driver_version_error']=str(e)
+allocated=os.environ['SLURM_JOB_GPUS']
+if ',' not in allocated:
+ try:
+  x=subprocess.run(['nvidia-smi','-i',allocated,'--query-gpu=index,name,driver_version,compute_mode','--format=csv,noheader'],capture_output=True,text=True,timeout=10);v['assigned_NVML']={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}
+ except subprocess.TimeoutExpired:v['assigned_NVML']={'timeout_seconds':10}
+print(json.dumps(v))

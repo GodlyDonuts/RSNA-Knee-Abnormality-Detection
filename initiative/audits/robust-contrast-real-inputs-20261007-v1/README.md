@@ -1,0 +1,15 @@
+# Standalone robust-contrast candidate with actual MRI tensor checks
+
+The measured min/max-versus-percentile difference is now represented by a concrete standalone implementation in `scripts/research/robust_cache_contrast.py`. It is **not imported by the live trainer or inference**. Control exactly reproduces existing uint16 scaling; candidate estimates one1st/99th-percentile range over the complete selected stack's valid content, preserves inter-slice differences, and leaves artificial letterbox padding zero. No crop, anatomical series policy, slice positions, learned interpolation or source image bytes are changed.
+
+Ten focused tests passed: actual Torch control arithmetic, input immutability, padding exclusion, shared cross-slice range, finite clipping, constant-range refusal and invalid shape/dtype/policy refusal. These tests do not establish medical correctness or accuracy.
+
+Actual original-owning-node CPU checks additionally exercised **16 fixed fitting studies/84 selected original MRI series**. Control tensor bytes exactly match the frozen canonical `sample_neighbor_images(..., policy=None)` renderer at native384; candidate has identical tensor shapes, is finite within0–1 and leaves original selected arrays unchanged. Exact source/roster and aggregate tensor-stream hashes are in [actual-receipt.json](actual-receipt.json). The cached renderer produces one gray channel; any encoder handling of color channels is outside this input check.
+
+Candidate endpoint fraction is0.076659 of valid content, including already-black/background pixels; it is **not** a count of newly erased clinical findings. Maximum absolute candidate/control pixel change is0.790448, so this is a substantial distribution change requiring matched learning/evaluation, not an innocuous inference-time correction. No trained checkpoint is eligible to silently receive this new normalization.
+
+The first original read-only observer incorrectly expected three cache channels and stopped at exact parity assertion; the distinct corrected observer used the canonical one-channel input and passed. This did not alter or fail a live trainer. Original failure remains preserved. No MRI, study IDs, clinical target values, protected rows, predictions or weights were exported. Only aggregate/control bindings are published.
+
+Before GPU fitting: integrate an explicitly bound optional input policy into a distinct frozen trainer source, verify all original control tensors/complete model state and actual full-stop-resume behavior, fund immutable checkpoint/publication obligations, and use a matched fixed-endpoint comparison. Existing healthy CLS/public-label jobs remain unchanged. No new GPU job, normalization fit, clinical score or competition submission exists for this candidate.
+
+Original private reader is `/tmp/rsna-robust-contrast-real-inputs-20261007-v2` on evc31. Small controls stay within16MiB, zero shared artifact growth, existing53GiB node future obligations and20GiB free floor. No original cache was copied or rewritten.

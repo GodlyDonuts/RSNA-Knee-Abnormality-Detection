@@ -1,0 +1,43 @@
+import base64,gc,hashlib,io,json,os,shutil,sys,tarfile
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-cache-contrast-32-inputs-20261008-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists();assert shutil.disk_usage('/tmp').free>(53+5+20)*2**30+16*2**20;R.mkdir(mode=0o700);code=R/'code';code.mkdir();raw=base64.b64decode(v['archive']);assert hashlib.sha256(raw).hexdigest()==v['archive_sha256']
+with tarfile.open(fileobj=io.BytesIO(raw)) as a:
+ for m in a.getmembers():
+  assert not m.name.startswith('/') and '..' not in Path(m.name).parts
+  if m.isdir():continue
+  assert m.isfile();p=code/m.name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(a.extractfile(m).read())
+sys.path.insert(0,str(code));import numpy as np,pandas as pd,pyarrow.parquet as pq,torch
+from rsna.schema import TARGETS
+from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.competitive.backbones import create_encoder
+from rsna.competitive.adapters import configure_encoder_training
+from rsna.competitive.model import CompetitiveStudyNet
+torch.set_num_threads(1);old=v['original_CPU'];inputs=old['trainer_inputs'];fold=pd.read_csv(Path(inputs['folds'])/'fold.csv');assert hashlib.sha256((Path(inputs['folds'])/'fold.csv').read_bytes()).hexdigest()==old['supervision']['control']['folds_sha256']
+# Only weak train rows/fields are scanned. Gold and confirmation are never decoded.
+allowed=sorted(fold.study_uid);meta=pq.read_table(inputs['studies'],columns=['study_uid','split',*[t+'__mask' for t in TARGETS]],filters=[('study_uid','in',allowed),('split','=','train')]).to_pandas();observed=meta[[t+'__mask' for t in TARGETS]].sum(axis=1).gt(0);meta=meta.loc[observed].merge(fold[['study_uid','fold']],on='study_uid',validate='one_to_one')
+digest=lambda x:hashlib.sha256(json.dumps(x,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest();cases={}
+for name,select in [('training',meta.fold.ne(0)),('outer',meta.fold.eq(0))]:
+ full=sorted(meta.loc[select,'study_uid']);expected=old['supervision']['control']['fitting_uid_sha256' if name=='training' else 'outer_uid_sha256'];assert digest(full)==expected;cases[name]=full[:16]
+assert not set(cases['training'])&set(cases['outer']);uids=cases['training']+cases['outer'];studies=pq.read_table(inputs['studies'],columns=['study_uid',*TARGETS,*[t+'__mask' for t in TARGETS]],filters=[('study_uid','in',uids),('split','=','train')]).to_pandas();parts=[]
+for frame in pd.read_csv(inputs['series'],chunksize=1024):parts.append(frame.loc[frame.StudyInstanceUID.isin(uids)])
+series=pd.concat(parts,ignore_index=True);images={};other={};series_count=0
+for role,policy in [('control',None),('candidate',{'mode':'p01_p99'})]:
+ images[role]={};other[role]={}
+ for scope in ('training','outer'):
+  frame=studies.set_index('study_uid').loc[cases[scope]].reset_index();subset=series.loc[series.StudyInstanceUID.isin(cases[scope])];d=CompetitiveStudyDataset(frame,subset,Path(inputs['cache']),slices=16,side=384,max_series=6,cache_contrast=policy);ih=hashlib.sha256();nh=hashlib.sha256()
+  for i in range(16):
+   row=d[i];assert torch.isfinite(row['images']).all() and row['images'].min()>=0 and row['images'].max()<=1;ih.update(row['images'].numpy().tobytes())
+   for k in sorted(set(row)-{'images'}):
+    val=row[k];nh.update(k.encode());nh.update(val.numpy().tobytes() if isinstance(val,torch.Tensor) else val.encode())
+   if role=='control':series_count+=int(row['series_mask'].sum())
+  images[role][scope]=ih.hexdigest();other[role][scope]=nh.hexdigest();del d
+assert other['control']==other['candidate'];initial={};ep=None
+base=old['configs']['control'];spec=base['encoder']
+for role in ('control','candidate'):
+ torch.manual_seed(base['seed']);encoder,dim,ep=create_encoder(spec);configure_encoder_training(encoder,base['freeze_encoder']);model=CompetitiveStudyNet(encoder,dim,hidden_dim=base['hidden_dim'],encode_chunk_size=8);records={}
+ for name,p in model.named_parameters():
+  if p.requires_grad:
+   a=p.detach().contiguous().numpy();records[name]={'shape':list(a.shape),'dtype':str(a.dtype),'sha256':hashlib.sha256(a.tobytes()).hexdigest()}
+ initial[role]={'learned_graph_values_sha256':digest(records),'post_factory_RNG_sha256':hashlib.sha256(torch.get_rng_state().numpy().tobytes()).hexdigest(),'learned_parameters':sum(p.numel() for p in model.parameters() if p.requires_grad)};assert initial[role]==old['initial_learned_state']['control'] and ep==old['encoder_provenance'];del model,encoder,records;gc.collect()
+proof={'contrast_image_tensor_sha256':images,'contrast_nonimage_tensor_sha256':other,'training_16_sha256':digest(cases['training']),'outer_16_sha256':digest(cases['outer'])};source={str(p.relative_to(code)):hashlib.sha256(p.read_bytes()).hexdigest() for p in code.rglob('*.py')}
+out={'status':'actual_cache_contrast_32_MRI_inputs_and_common_official_initialization_CPU_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_sha256':source,'training_engineering_studies':16,'outer_engineering_studies':16,'series':series_count,'protected_labels_used_for_recipe_or_metrics':False,'initial_learned_state':initial,'encoder_provenance':ep,'image_tensor_sha256':images,'other_tensor_sha256':other,'trainer_inputs':inputs,'original32_common_parameter_and_factory_RNG_values_reproduced':True,'GPU_or_optimizer_or_clinical_inference_executed':False,'new_GPU_or_production_fitting_funded':False,'new_shared_bytes_files':0};(R/'CPU-accepted.json').write_text(json.dumps(out,indent=2));(R/'original-input-proof.json').write_text(json.dumps(proof,indent=2));(R/'base-config.json').write_text(json.dumps(base));(R/'encoder-spec.json').write_text(json.dumps(spec));(R/'source-manifest.json').write_text(json.dumps(source));print(json.dumps(out))

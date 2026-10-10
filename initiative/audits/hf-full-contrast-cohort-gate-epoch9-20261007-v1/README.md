@@ -1,0 +1,1 @@
+Sourcebe54b03a distinct research/source and original checkpoint receipt milestone privately mirrored ONCE HFb4bdbdb2f755c1b5884a9f9883aff6dc992f1244. All8small objects fully re-downloaded/size/SHA verified under canonical shared lock. No MRI, weights, patient IDs, clinical targets or protected gold mirrored. Never repeat. No clinical gain or current job change claimed.

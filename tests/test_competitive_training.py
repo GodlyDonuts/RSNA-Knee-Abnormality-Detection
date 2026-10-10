@@ -222,6 +222,7 @@ class SyntheticStudies(Dataset):
     def __init__(self, studies, series, cache, augment=False, **kwargs):
         self.studies = studies.reset_index(drop=True)
         self.variable = kwargs.get("slice_sampling") == "all"
+        self.cache_contrast = kwargs.get("cache_contrast")
 
     def __len__(self):
         return len(self.studies)
@@ -229,8 +230,24 @@ class SyntheticStudies(Dataset):
     def __getitem__(self, index):
         row = self.studies.iloc[index]
         s, k = (3 + index % 2, 2 + index % 3) if self.variable else (3, 2)
+        images = torch.rand(s, k, 1, 16, 16)
+        if self.cache_contrast is not None:
+            from rsna.competitive.cache_contrast import sample_cache_contrast
+
+            images = torch.stack(
+                [
+                    sample_cache_contrast(
+                        (volume[:, 0].numpy() * 65535).astype(np.uint16),
+                        {"resized_shape": [16, 16]},
+                        np.arange(k),
+                        16,
+                        self.cache_contrast,
+                    )
+                    for volume in images
+                ]
+            )
         return {
-            "images": torch.rand(s, k, 1, 16, 16),
+            "images": images,
             "features": torch.eye(s, 5),
             "series_mask": torch.ones(s, dtype=torch.bool),
             "slice_mask": torch.ones(s, k, dtype=torch.bool),
@@ -274,6 +291,7 @@ def _assert_tree_equal(first, second):
         ("none", None, {"plane_memory": {"weight": 1, "seed": 20261006, "hidden_dim": 16}}),
         ("none", None, {"patch_summary": {"weight": 0}}),
         ("none", None, {"patch_summary": {"weight": 1}}),
+        ("none", None, {"cache_contrast": {"mode": "p01_p99"}}),
     ],
 )
 def test_training_mid_epoch_resume_matches_every_checkpoint_value(
@@ -288,6 +306,13 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
     from rsna.competitive import train
     from rsna.competitive.backbones import create_encoder
     from rsna.competitive.model import CompetitiveStudyNet
+
+    if (
+        fit_scope != "outer_fold"
+        and isinstance(witness_weight, dict)
+        and "cache_contrast" in witness_weight
+    ):
+        pytest.skip("Input-policy research is explicitly outer-fold only")
 
     rows = []
     for i in range(14):
@@ -323,14 +348,20 @@ def test_training_mid_epoch_resume_matches_every_checkpoint_value(
         max_series=3,
         hidden_dim=16,
         freeze_encoder=False,
-        augment=True,
+        augment=not (isinstance(witness_weight, dict) and "cache_contrast" in witness_weight),
         min_free_gib=0,
+        cache_contrast=(
+            witness_weight.get("cache_contrast") if isinstance(witness_weight, dict) else None
+        ),
         witness=(
             None
             if witness_weight is None
             or (
                 isinstance(witness_weight, dict)
-                and any(name in witness_weight for name in ("plane_memory", "patch_summary"))
+                and any(
+                    name in witness_weight
+                    for name in ("plane_memory", "patch_summary", "cache_contrast")
+                )
             )
             else dict(
                 patches=4,

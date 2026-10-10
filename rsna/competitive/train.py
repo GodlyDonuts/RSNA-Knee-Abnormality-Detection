@@ -25,6 +25,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 
 from rsna.competitive.adapters import configure_encoder_training, validate_adapter
+from rsna.competitive.cache_contrast import validate_cache_contrast
 from rsna.competitive.checkpoint import (
     atomic_json,
     capture_rng,
@@ -124,8 +125,31 @@ class TrainConfig:
     fitting_supervision: dict | None = None
     neighbor_channels: dict | None = None
     patch_summary: dict | None = None
+    cache_contrast: dict | None = None
 
     def validate(self) -> None:
+        validate_cache_contrast(self.cache_contrast)
+        if self.cache_contrast is not None and (
+            self.fit_scope != "outer_fold"
+            or self.augment
+            or self.pooling != "attention"
+            or self.slice_context != "none"
+            or self.slice_sampling != "uniform"
+            or self.series_sampling != "selected"
+            or any(
+                value is not None
+                for value in (
+                    self.neighbor_channels,
+                    self.relation,
+                    self.witness,
+                    self.plane_memory,
+                    self.patch_summary,
+                    self.fitting_supervision,
+                )
+            )
+            or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+        ):
+            raise ValueError("Cache contrast must isolate its input change")
         if self.patch_summary is not None:
             validate_patch_summary(self.patch_summary)
             if (
@@ -543,6 +567,8 @@ def _run_locked(
         name: getattr(config, name)
         for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
     }
+    if config.cache_contrast is not None:
+        data_config["cache_contrast"] = config.cache_contrast
     if config.neighbor_channels is not None:
         data_config["neighbor_channels"] = config.neighbor_channels
     training_config = dict(data_config)
@@ -640,6 +666,8 @@ def _run_locked(
         bound_config.pop("neighbor_channels")
     if config.patch_summary is None:
         bound_config.pop("patch_summary")
+    if config.cache_contrast is None:
+        bound_config.pop("cache_contrast")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {

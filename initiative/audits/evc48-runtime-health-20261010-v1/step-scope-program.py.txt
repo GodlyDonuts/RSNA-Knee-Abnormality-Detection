@@ -1,0 +1,13 @@
+import json,os,time,subprocess
+from pathlib import Path
+import torch
+v={'status':'actual_scheduler_step_scope_context_probe','GPU_job':os.environ.get('SLURM_JOB_ID'),'node':os.uname().nodename,'scheduler_environment':{k:os.environ.get(k) for k in ('CUDA_VISIBLE_DEVICES','SLURM_JOB_GPUS','SLURM_STEP_GPUS','SLURM_GPUS_ON_NODE')},'torch_version':torch.__version__,'cuda_version':torch.version.cuda,'no_isolation_override':True,'MRI_models_optimizer_training_executed':False,'GPU_context_accepted':False}
+assert v['node']=='evc48';allocated=os.environ.get('SLURM_JOB_GPUS') or os.environ.get('SLURM_STEP_GPUS');v['allocation_marker_present']=bool(allocated);torch.set_num_threads(1)
+try:
+ v['visible_device_count']=torch.cuda.device_count()
+ if allocated and v['visible_device_count']==1:
+  torch.cuda.set_device(0);v['device_name']=torch.cuda.get_device_name(0);x=torch.ones(4,device='cuda',requires_grad=True);x.square().sum().backward();torch.cuda.synchronize();v['GPU_context_accepted']=bool('H100' in v['device_name'] and torch.equal(x.grad,torch.full_like(x,2)))
+except Exception as e:v['context_error']={'type':type(e).__name__,'message':str(e)}
+try:v['driver_version']=Path('/proc/driver/nvidia/version').read_text()[:1000]
+except OSError as e:v['driver_version_error']=str(e)
+print(json.dumps(v))

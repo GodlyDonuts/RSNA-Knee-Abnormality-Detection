@@ -1,0 +1,5 @@
+# Actual canonical MRI input admission
+
+CPU882441 completed the integrated source267fcb65 input check on16 original fitting studies/84 native384 MRI series. The canonical default and explicit minmax datasets were identical for every returned tensor and study identity. Candidate images matched the exact original standalone gate tensor stream; candidate labels, masks, positions, features, series/slice masks and zero padded slots matched the reference. No protected rows were decoded; no pixels or clinical values were exported.
+
+This is the new canonical loader acceptance, not a repeat of the completed2247-study gate or any trained model. Original cache files and live jobs were untouched. Node-only source/receipt cap16MiB fits the fresh observed floor while retaining53GiB original plus5GiB Kaggle future and20GiB reserve. No shared storage growth, encoder, optimizer, GPU, fitting or clinical metric was admitted. Actual bound GPU recovery, checkpoint funding and shared-reference equivalence are next prerequisites.

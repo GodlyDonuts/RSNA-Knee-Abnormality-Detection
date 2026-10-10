@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 HF_HUB_OFFLINE=1
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+export CPATH=/lustre/fs1/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3/extracted/usr/include/python3.12
+export PYTHONPATH=/tmp/rsna-cache-contrast-recovery-evc45-v2/code
+[[ "$(hostname)" == evc45 && -n "${SLURM_JOB_GPUS:-}" ]] || exit 2
+/tmp/rsna-environment-883525-u7nmr_i9/environment/bin/python -B -c 'import torch;assert torch.cuda.device_count()==1 and "H100" in torch.cuda.get_device_name(0);torch.cuda.set_device(0);x=torch.ones(4,device="cuda",requires_grad=True);x.square().sum().backward();assert torch.isfinite(x.grad).all();print("assigned H100 context accepted",flush=True)'
+cd /tmp/rsna-cache-contrast-recovery-evc45-v2/code
+exec /tmp/rsna-environment-883525-u7nmr_i9/environment/bin/python -B scripts/newton/cache_contrast_recovery.py --control /tmp/rsna-cache-contrast-recovery-evc45-v2/inputs --cache /tmp/rsna-cache-contrast-recovery-evc45-v2/cache --cpu-receipt /tmp/rsna-cache-contrast-recovery-evc45-v2/inputs/CPU-accepted.json --base-config /tmp/rsna-cache-contrast-recovery-evc45-v2/inputs/base-config.json --encoder-spec /tmp/rsna-cache-contrast-recovery-evc45-v2/inputs/encoder-spec.json --source /tmp/rsna-cache-contrast-recovery-evc45-v2/code --source-manifest /tmp/rsna-cache-contrast-recovery-evc45-v2/source-manifest.json --artifact-root /home/sa305415/rsna-knee/code-stopfix-1f486765 --output /tmp/rsna-cache-contrast-recovery-evc45-v2/recovery --remaining-seconds 3300

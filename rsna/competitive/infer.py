@@ -160,6 +160,7 @@ def run(args: argparse.Namespace) -> dict:
         slice_sampling=evaluation_slice_sampling(config.slice_sampling),
         series_sampling=config.series_sampling,
         neighbor_channels=config.neighbor_channels,
+        cache_contrast=config.cache_contrast,
     )
     if dataset.cache_side != binding["cache_side"]:
         raise ValueError("Inference cache resolution differs from the trained transform")

@@ -1,3 +1,76 @@
+## October7 new completed fixed-final control
+
+Current rank32/native384 zero-patch-summary control completedtenepochs/2810finite
+updates on2247 fitting studies. Its fixed-final internal macroAUC is0.87867059654
+on1156 disjoint weak-label development studies; all12 target scores independently
+replayed from the exact CSV and accepted rows. This is not Kaggle performance or
+a paired architectural gain: the original mean-patch candidate is still training.
+Sparse target supports and recipe/seed differences limit comparisons. See
+[fixed-final evidence](../initiative/audits/cls-patch-summary-full-fit-v2/control-fixed-final/).
+The robust-contrast full fitting-cohort gate also completed2247studies/11639series
+with zero rejections and exact control parity; data coverage only, not a trained
+model or GPU recovery. Best actual solo Kaggle remains0.804.
+
+## October7 compute efficiency: matching common controls
+
+The independent CLS-zero-patch and disabled-public-label controls have identical
+six-field numeric logs across their first1410 shared updates. Their epoch5
+checkpoints have258 exactly equal common learned tensors and equal frozen/base
+proofs; the baseline has one extra all-zero131072-parameter projection. Complete
+optimizer/RNG/final prediction equivalence is not yet established. This exposes
+repeated control work; future compatible hypotheses should predeclare a shared
+verified control rather than refitting it independently. Current healthy jobs
+remain unchanged. See [original evidence](../initiative/audits/current-control-equivalence-20261007-v1/).
+The complete2247-study robust-contrast input gate881007 is running on CPU;
+initial zero rejections are not terminal acceptance or accuracy evidence.
+
+## October7 concrete robust-contrast input candidate
+
+The isolated contrast idea now has a standalone implementation and10 focused
+tests, with actual control parity/candidate tensor checks on16 original fitting
+MRI studies/84 series. Control matches the canonical one-channel cached renderer
+exactly; candidate is finite, keeps the same field/slices/shapes and leaves cache
+bytes unchanged. Maximum pixel change.79045 requires matched learning rather than
+silently changing inference. Candidate0/1 endpoint fraction7.67% includes existing
+background, not newly erased clinical findings. Full2331tests/Ruff394/mypy52 passed.
+It is not live-trainer integrated, GPU-admitted or trained, and establishes no
+accuracy gain. Original two healthy ten-epoch comparisons remain frozen; baseline
+control1–8/public-label control1–4 are privately preserved. See
+[actual MRI input proof](../initiative/audits/robust-contrast-real-inputs-20261007-v1/).
+
+## October7 bounded actual MRI contrast and field-of-view measurements
+
+In16 fixed fitting studies/84 selected original series, the median valid-content
+1st–99th percentile span is0.48049 of our full min/max-normalized range;47/84 series
+span less than half, only2/84 less than a quarter. Median maximum physical field
+of view is165.50mm versus the public renderer's130mm crop. This quantifies two
+input differences; it does not establish severe universal contrast collapse,
+raw public pixel parity or clinical gain. The small sorted sample is engineering
+observation, not representative validation. No labels/pixels/case IDs exported,
+model fitted or live preprocessing changed. An isolated robust-contrast test is
+prioritized before separately testing physical cropping. Original evidence:
+[fitting-intensity-range](../initiative/audits/fitting-intensity-range-20261007-v1/).
+Both original ten-epoch comparisons remain healthy; baseline epochs1–7 and
+public-label control1–3 are now privately preserved and fully byte-verified.
+
+## October7 measured acquisition-category coverage
+
+A fitting-only audit of the exact2247 active training studies found that the
+six-series selector omits an available sagittal/coronal non-fluid category in
+214studies(9.52%). All103 sagittal and131 coronal omissions have a tier0 option,
+so this is not explained solely by the existing tier1 quality preference.
+924studies repeat plane/fluid/fat-suppression categories, which can still contain
+useful distinct images. All available three fluid-sensitive fat-suppressed plane
+categories are retained. Current metadata has no sagittal fluid/non-fat-suppressed
+category and no T1-specific field: audit descriptor semantics before treating the
+public slots as equivalent. No causal score improvement is established.
+
+Next candidate: complementary category reservation within the same six-series/
+16-slice/384-pixel budget, tested against the frozen selector on unchanged masks
+and held-out boundaries. No new selector or GPU trainer was dispatched; the two
+healthy ten-epoch comparisons continue. See
+[original fitting-only evidence](../initiative/audits/fitting-series-coverage-20261007-v1/).
+
 October6 full-data streaming route is implemented but not MRI/GPU-admitted.
 Default cache loader unchanged; optional provider preserves original byte/hash/
 geometry tensors through bounded scratch eviction (fixture tests pass).

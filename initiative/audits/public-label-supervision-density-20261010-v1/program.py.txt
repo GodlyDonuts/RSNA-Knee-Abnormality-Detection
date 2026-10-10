@@ -1,0 +1,11 @@
+import hashlib,json,os
+from pathlib import Path
+import pyarrow.dataset as ds
+R=Path('/tmp/rsna-public-label-full-fit-20261006-v1');cpu=json.loads((R/'CPU-accepted.json').read_text());raw=(R/'overlay.json').read_bytes();overlay=json.loads(raw);assert hashlib.sha256(raw).hexdigest()==cpu['fitting_supervision_receipt']['public']['overlay_sha256'];uids=sorted(x['study_uid'] for x in overlay['studies']);assert len(uids)==len(set(uids))==2247;assert hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()==cpu['training_uids_sha256']
+source=cpu['trainer_inputs']['studies'];targets=list(overlay['studies'][0]['labels']);f=ds.dataset(source,format='parquet').to_table(columns=['study_uid','split',*targets,*[t+'__mask' for t in targets]],filter=ds.field('study_uid').isin(uids)).to_pandas().set_index('study_uid');assert len(f)==2247 and f.split.eq('train').all();rows=[]
+for t in targets:
+ count={'target':t,'fitting_studies':2247,'original_observed_cells':0,'public_observed_cells':0,'newly_observed_cells':0,'original_observed_now_masked':0,'both_observed_value_changes':0,'public_observed_soft_interior_labels':0}
+ for x in overlay['studies']:
+  uid=x['study_uid'];om=int(f.at[uid,t+'__mask']);nm=int(x['mask'][t]);val=float(x['labels'][t]);count['original_observed_cells']+=om;count['public_observed_cells']+=nm;count['newly_observed_cells']+=int(om==0 and nm==1);count['original_observed_now_masked']+=int(om==1 and nm==0);count['both_observed_value_changes']+=int(om==nm==1 and float(f.at[uid,t])!=val);count['public_observed_soft_interior_labels']+=int(nm==1 and 0<val<1)
+ rows.append(count)
+print(json.dumps({'status':'actual_fitting_only_supervision_density_decomposition','CPU_job':os.environ['SLURM_JOB_ID'],'overlay_sha256':hashlib.sha256(raw).hexdigest(),'fitting_uid_sha256':cpu['training_uids_sha256'],'protected_or_outer_labels_read':False,'raw_labels_UIDs_reports_or_pixels_exported':False,'counts':rows,'totals':{k:sum(x[k] for x in rows) for k in rows[0] if k not in ('target','fitting_studies')}}))
