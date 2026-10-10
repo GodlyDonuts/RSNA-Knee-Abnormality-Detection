@@ -1,5 +1,7 @@
 """Rebuild bundles: montage JPEGs + enriched studies.json (report + priors)."""
-import json, sys, zipfile
+
+import json
+import zipfile
 from pathlib import Path
 
 ROOT = Path("/home/ubuntu/rsna-review")
@@ -24,5 +26,5 @@ for b in batches:
             for jpg in sorted(d.glob("*.jpg")):
                 z.write(jpg, f"{study}/{jpg.name}")
         z.writestr("studies.json", json.dumps(studies_meta))
-    print(out.name, f"{out.stat().st_size/1e6:.1f}MB", flush=True)
+    print(out.name, f"{out.stat().st_size / 1e6:.1f}MB", flush=True)
 print("done")

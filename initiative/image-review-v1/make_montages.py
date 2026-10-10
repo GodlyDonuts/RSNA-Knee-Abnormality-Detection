@@ -2,9 +2,12 @@
 
 Output: montages/<study>/<SLOT>.jpg plus index.json with side + slots.
 """
-import json, sys
+
+import json
+import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageDraw
@@ -13,15 +16,13 @@ SRC = Path("/home/ubuntu/rsna-review/npz")
 DST = Path("/home/ubuntu/rsna-review/montages")
 PAD = 6
 COLS = 4
-SLOTS = ["SAG_FLUID_FS", "COR_FLUID_FS", "AX_FLUID_FS",
-         "SAG_FLUID_NOFS", "COR_T1", "SAG_T1"]
+SLOTS = ["SAG_FLUID_FS", "COR_FLUID_FS", "AX_FLUID_FS", "SAG_FLUID_NOFS", "COR_T1", "SAG_T1"]
 
 
 def montage(arr: np.ndarray, label: str, out: Path):
     n, h, w = arr.shape
     rows = (n + COLS - 1) // COLS
-    canvas = Image.new("L", (COLS * w + (COLS + 1) * PAD,
-                            rows * (h + 18) + PAD), 0)
+    canvas = Image.new("L", (COLS * w + (COLS + 1) * PAD, rows * (h + 18) + PAD), 0)
     draw = ImageDraw.Draw(canvas)
     for i in range(n):
         r, c = divmod(i, COLS)
@@ -46,16 +47,18 @@ def render_one(args):
         assert a.shape[0] == 6
         for i, slot in enumerate(SLOTS):
             montage(a[i], slot, out_dir / f"{slot}.jpg")
-        idx.write_text(json.dumps({"study_uid": study, "slots": SLOTS,
-                                   "side": side if isinstance(side, str) else ""}))
+        idx.write_text(
+            json.dumps(
+                {"study_uid": study, "slots": SLOTS, "side": side if isinstance(side, str) else ""}
+            )
+        )
         return study, "ok"
     except Exception as e:
         return study, f"error:{e}"
 
 
 if __name__ == "__main__":
-    m = pd.concat([pd.read_csv("npz/p1/manifest.csv"),
-                   pd.read_csv("npz/p2/manifest.csv")])
+    m = pd.concat([pd.read_csv("npz/p1/manifest.csv"), pd.read_csv("npz/p2/manifest.csv")])
     side_of = dict(zip(m.StudyInstanceUID, m.side))
     files = sorted(SRC.rglob("*.npy"))
     args = [(str(p), side_of.get(p.stem, "")) for p in files]

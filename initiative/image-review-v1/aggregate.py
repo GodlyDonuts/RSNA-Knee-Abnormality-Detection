@@ -1,18 +1,33 @@
 """Aggregate image-review JSONL results, compare vs current labels + gold."""
-import json, sys
+
+import json
+import sys
 from pathlib import Path
+
 import pandas as pd
 
 ROOT = Path("/home/ubuntu/rsna-review")
 REPO = Path("/home/ubuntu/repos/RSNA-Knee-Abnormality-Detection")
-TARGETS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA",
-           "Lateral OA", "PF OA", "Effusion", "Synovitis", "Baker's",
-           "Contusion", "Fracture"]
+TARGETS = [
+    "ACL",
+    "MCL",
+    "Medial Meniscus",
+    "Lateral Meniscus",
+    "Medial OA",
+    "Lateral OA",
+    "PF OA",
+    "Effusion",
+    "Synovitis",
+    "Baker's",
+    "Contusion",
+    "Fracture",
+]
 STATES = ["positive", "negative", "uncertain", "insufficient_evidence"]
 
 # current released labels (v2.1 family merged labels live in study_labels.csv)
-cur = pd.read_csv(REPO / "initiative/releases/report-supervision-v1/study_labels.csv",
-                  low_memory=False)
+cur = pd.read_csv(
+    REPO / "initiative/releases/report-supervision-v1/study_labels.csv", low_memory=False
+)
 cur = cur.set_index("study_uid")
 splits = json.loads((ROOT / "manifest/splits.json").read_text())
 
@@ -44,18 +59,19 @@ def main(res_dir):
     print(f"{len(rows)} study reviews")
     seen = set()
     out = []
-    gold_stats = {"n": 0}
-    gold_target_stats = {t: {"tp": 0, "fp": 0, "tn": 0, "fn": 0, "unc": 0}
-                         for t in TARGETS}
+    gold_target_stats = {t: {"tp": 0, "fp": 0, "tn": 0, "fn": 0, "unc": 0} for t in TARGETS}
     changes = []
     for r in rows:
         uid = r["study_uid"]
         if uid in seen:
             print(f"dup review {uid}", file=sys.stderr)
         seen.add(uid)
-        rec = {"study_uid": uid, "split": splits.get(uid, "?"),
-               "needs_full_res": bool(r.get("needs_full_res")),
-               "notes": r.get("notes", "")}
+        rec = {
+            "study_uid": uid,
+            "split": splits.get(uid, "?"),
+            "needs_full_res": bool(r.get("needs_full_res")),
+            "notes": r.get("notes", ""),
+        }
         st = r["states"]
         ev = r.get("evidence", [""] * 12)
         for i, t in enumerate(TARGETS):
@@ -89,7 +105,8 @@ def main(res_dir):
         Path(ROOT / "results/missing_studies.json").write_text(json.dumps(sorted(missing)))
     print(f"flips vs current labels: {len(changes)}")
     pd.DataFrame(changes, columns=["study_uid", "target", "current", "img_state"]).to_csv(
-        ROOT / "results/flips_vs_current.csv", index=False)
+        ROOT / "results/flips_vs_current.csv", index=False
+    )
     print("\nGold-58 reviewer performance (image review vs official gold):")
     print(f"{'target':<18} tp   fp   tn   fn   unc  sens  spec")
     sens_l, spec_l = [], []
@@ -101,9 +118,13 @@ def main(res_dir):
             sens_l.append(sens)
         if g["tn"] + g["fp"]:
             spec_l.append(spec)
-        print(f"{t:<18} {g['tp']:<4} {g['fp']:<4} {g['tn']:<4} {g['fn']:<4} {g['unc']:<4} "
-              f"{sens:.2f}  {spec:.2f}")
-    print(f"macro sens {sum(sens_l)/max(1,len(sens_l)):.3f}  macro spec {sum(spec_l)/max(1,len(spec_l)):.3f}")
+        print(
+            f"{t:<18} {g['tp']:<4} {g['fp']:<4} {g['tn']:<4} {g['fn']:<4} {g['unc']:<4} "
+            f"{sens:.2f}  {spec:.2f}"
+        )
+    print(
+        f"macro sens {sum(sens_l) / max(1, len(sens_l)):.3f}  macro spec {sum(spec_l) / max(1, len(spec_l)):.3f}"
+    )
 
 
 if __name__ == "__main__":

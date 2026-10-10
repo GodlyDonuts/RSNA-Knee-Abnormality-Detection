@@ -1,0 +1,7 @@
+# Concurrent remote review import
+
+A push rejection revealed new main-branch work by another agent:147 batches of image-review outputs and a candidate table covering4407 studies. Integrated remote history through a normal merge without overwriting either workstream. Original helper bytes/commit are preserved; only lint/formatting and an unused local were cleaned up. No aggregation, bundle creation, label transformation or training on these outputs was executed.
+
+The source calls its labels image-verified, but its documented view is up to six336px/130mm central12-slice montages, not the complete original native examination. It reports3029 studies needing full resolution and identity/report mapping problems. Treat these as candidate evidence and claims requiring original source binding checks; do not call them perfect labels, dataset corrections or clinical ground truth.
+
+Its external summary/code also disclose official-gold evaluation and gold rows retained in the candidate CSV. The running experiments still have not used those targets; do not execute its aggregate over protected cohorts or ingest the candidate table wholesale. The received aggregate is not a tuning signal. Future consideration must be fitting-only, preserve uncertainty and accepted release/fold boundaries, and bind the actual source images/reports. Existing healthy897333 stays unchanged. Epoch2 is separately privately verified; new review results do not replace accepted labels.
