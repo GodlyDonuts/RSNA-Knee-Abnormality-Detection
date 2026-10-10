@@ -1,0 +1,7 @@
+# Isolated selected-stack p1/p99 contrast: negative result
+
+Original894060 completed0:0 in17:09:32,2810 contiguous finite updates on2247 fitting and1156 disjoint weak-development studies. Actual assigned H100 context, frozen source/config/roster/result/prediction bindings and empty GPU/trainer stderr passed. All ten immutable snapshots exist; private publication is proceeding through the single coordinator, not presumed complete.
+
+Independent fixed-final replay: original minmax reference0.8786705965 versus p1/p99 candidate0.8537006030, delta−0.0249699936. Conditional whole-component paired95%[−0.0488046470,−0.0013862788];2836 defined and1164 undefined draws out of4000 retained across all12 targets. Medial Meniscus also regressed0.8737466522→0.8591898226, delta−0.0145568296, paired95%[−0.0229070323,−0.0065959416]. This is internal weak-label evidence, not Kaggle or clinical accuracy.
+
+Reject this isolated full-field cached p1/p99 policy at the tested recipe. It does not establish that public pipelines using raw-image contrast with physical crops/neighbor channels are inferior: those are different mechanisms. Keep original normalization; no candidate deployment or extra rank scaling is justified. Protected gold/confirmation and best-epoch selection remain unused. Next useful research is predeclared label-source replication and a separately admitted spatial/sequence mechanism motivated by the public-source gap.

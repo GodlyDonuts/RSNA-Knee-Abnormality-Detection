@@ -1,0 +1,25 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/cache-contrast-production-20261008-v1/fixed-final');assert not (r/'collection.json').exists()
+program=r'''import hashlib,json,os,math,subprocess
+from pathlib import Path
+R=Path('/tmp/rsna-cache-contrast-production-20261008-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');term=json.loads((R/'terminal.json').read_text());assert term['status']=='original_single_contrast_fixed10_completed';assert term['job']=='894060';assert subprocess.check_output(['sacct','-j','894060','-X','-n','-P','-o','State,ExitCode'],text=True).strip().split('|')[:2]==['COMPLETED','0:0']
+cpu=json.loads((R/'CPU-accepted.json').read_text());run=R/'candidate';record=json.loads((run/'run.json').read_text());result=json.loads((run/'result.json').read_text());assert record['status']==result['status']=='completed' and result['optimizer_steps']==2810;assert record['binding']['config']==cpu['expected_bound_config'];assert not record['diagnostic_run'] and not record['held_out_confirmation_and_gold_used'];assert record['training_studies']==2247 and record['outer_studies']==1156
+assert (R/'gpu.stderr').stat().st_size==(R/'candidate.stderr').stat().st_size==0
+rows=[]
+for line in (R/'candidate.stdout').read_text().splitlines():
+ try:v=json.loads(line)
+ except json.JSONDecodeError:continue
+ if isinstance(v,dict) and 'optimizer_steps' in v:rows.append(v)
+assert len(rows)==2810 and [x['optimizer_steps'] for x in rows]==list(range(1,2811)) and all(math.isfinite(x['loss']) and math.isfinite(x['gradient_norm']) for x in rows)
+files={}
+for n in ('run.json','result.json','outer_predictions.csv'):
+ raw=(run/n).read_bytes();assert len(raw)<512*1024;files[n]={'text':raw.decode(),'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+assert files['outer_predictions.csv']['sha256']==result['predictions_sha256']
+print(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'terminal':term,'files':files,'cpu':cpu,'finite_contiguous_updates':2810}))
+'''
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=1G','--time=00:03:00','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=240);(r/'observer-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2));assert x.returncode==0,x.stderr;v=json.loads(x.stdout)
+for n,row in v['files'].items():
+ raw=row['text'].encode();assert hashlib.sha256(raw).hexdigest()==row['sha256'];(r/('candidate-'+n)).write_bytes(raw)
+v['files']={n:{k:row[k] for k in ('bytes','sha256')} for n,row in v['files'].items()};(r/'collection.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps({'status':'actual_fixed_final_contrast_small_outputs_verified','CPU_job':v['CPU_job']}))
