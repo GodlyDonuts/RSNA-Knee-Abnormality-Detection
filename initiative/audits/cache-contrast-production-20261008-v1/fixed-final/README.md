@@ -1,6 +1,6 @@
 # Isolated selected-stack p1/p99 contrast: negative result
 
-Original894060 completed0:0 in17:09:32,2810 contiguous finite updates on2247 fitting and1156 disjoint weak-development studies. Actual assigned H100 context, frozen source/config/roster/result/prediction bindings and empty GPU/trainer stderr passed. All ten immutable snapshots exist; private publication is proceeding through the single coordinator, not presumed complete.
+Original894060 completed0:0 in17:09:32,2810 contiguous finite updates on2247 fitting and1156 disjoint weak-development studies. Actual assigned H100 context, frozen source/config/roster/result/prediction bindings and empty GPU/trainer stderr passed. All ten immutable snapshots have now each been privately published once; all50 objects were fully re-downloaded/size/SHA verified. Original preservation stopped before epoch6 intent on SSH loss, then continued only actual remote/local unattempted epochs6–10 after read-only reconciliation; both finite finishers are terminal and must never restart.
 
 Independent fixed-final replay: original minmax reference0.8786705965 versus p1/p99 candidate0.8537006030, delta−0.0249699936. Conditional whole-component paired95%[−0.0488046470,−0.0013862788];2836 defined and1164 undefined draws out of4000 retained across all12 targets. Medial Meniscus also regressed0.8737466522→0.8591898226, delta−0.0145568296, paired95%[−0.0229070323,−0.0065959416]. This is internal weak-label evidence, not Kaggle or clinical accuracy.
 
