@@ -1,3 +1,5 @@
+Epoch3smallreceipt/sourceece646ce privatelymirroredONCE HF4d1a72aabad212b2727505882e5d44b00a8e4604/all5objects forceddownload/size/SHA undercanonicalsharedlock. Neverrepeat. Actual897333 healthyepoch4/1001finiteupdates; no fixed-final scoreyet. FullQA2351pass/2skip/Ruff402/mypy53/archive/currentv2_89complete.
+
 Oct10 12:15 actual897333 healthyRUNNING/step1001/epoch4/finiteprogress/emptyGPUstderr. Fixedmaskepoch3 privatelypublishedONCE HFc04f708e7f725d62429150c25c96705782292424 viaCPU897574/all5objects forceddownload/size/SHAverified. Neverrepeat1–3; originaltraining/masks unchanged, no fixed-final accuracyresult yet.
 
 Epoch2smallreceipt/source77698d9a privatelymirroredONCE HFfdefffb500c37767aa4380d2f32afb6872df1e1f/all5objects; remoteimage-review intake boundary+originalhelperprovenance privatelymirroredONCE HF720c7052b245261f977368488b67cfe4024e1bb8/all9objects. Bothforceddownload/size/SHA/canonicalsharedlock. Neverrepeat. NO remoteclinicaltables/JSONL/protectedrows/images mirrored; intake remainsunadmitted/currenttrainingunchanged. FullQA2351pass/2skips/Ruff402/mypy53/archive/currentv2_89complete; importedhelpernon-importASTsameexceptunusedlocal.
