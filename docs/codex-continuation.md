@@ -1,3 +1,5 @@
+Epoch4smallreceipt/sourcedf7364f8 privatelymirroredONCE HF9a85337492a76fb1f4edad63ad84f3c457740dda/all5objects forceddownload/size/SHA undercanonicalsharedlock. Neverrepeat. Actual897333 healthyepoch5/1253finiteupdates; no fixed-final scoreyet. FullQA2351pass/2skip/Ruff402/mypy53/archive/currentv2_89complete.
+
 Oct10 14:14 actual897333 healthyRUNNING/step1253/epoch5/finiteprogress/emptyGPUstderr. Fixedmaskepoch4 privatelypublishedONCE HF18d336e3bc8a32e72d7354c1baebffe5acb491c9 viaCPU897589/all5objects forceddownload/size/SHAverified. Neverrepeat1–4; originaltraining/masks unchanged, no fixed-final accuracyresult yet.
 
 Epoch3smallreceipt/sourceece646ce privatelymirroredONCE HF4d1a72aabad212b2727505882e5d44b00a8e4604/all5objects forceddownload/size/SHA undercanonicalsharedlock. Neverrepeat. Actual897333 healthyepoch4/1001finiteupdates; no fixed-final scoreyet. FullQA2351pass/2skip/Ruff402/mypy53/archive/currentv2_89complete.
