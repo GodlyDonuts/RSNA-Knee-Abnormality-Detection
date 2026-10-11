@@ -1,0 +1,27 @@
+import hashlib,inspect,json,shlex,subprocess
+from pathlib import Path
+import importlib.util,sys
+rank_spec=importlib.util.spec_from_file_location("scripts.rank_learning",Path("scripts/rank_learning.py"));rank=importlib.util.module_from_spec(rank_spec);sys.modules[rank_spec.name]=rank;rank_spec.loader.exec_module(rank)
+paired_spec=importlib.util.spec_from_file_location("fixed_paired_analysis",Path("scripts/research/compare_smooth_witness.py"));paired=importlib.util.module_from_spec(paired_spec);paired_spec.loader.exec_module(paired);paired_metrics=paired.paired_metrics
+r=Path('artifacts/public-label-fixedmask-20261010-v1/fixed-final');assert not (r/'paired-analysis.json').exists();collection=json.loads((r/'collection.json').read_text());cpu=json.loads(Path('initiative/audits/public-label-source-full-fit-preparation-v1/actual-CPU-acceptance.json').read_text());newcpu=collection['cpu'];data={role:{name:(Path('artifacts/public-label-source-v1/full-fit-v1/paired-fixed-final')/f'control-{name}' if role=='control' else r/f'candidate-{name}').read_text() for name in ('run.json','result.json','outer_predictions.csv')} for role in ('control','candidate')};program='''import hashlib,io,json,os,sys,types
+import numpy as np,pandas as pd,pyarrow.dataset as ds
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');ns={'__name__':'bound_rank_helpers','__file__':'/tmp/rsna-public-label-full-fit-20261006-v1/code/scripts/rank_learning.py'};exec(v['rank_source'],ns);from rsna.schema import TARGETS
+ns.update(np=np,pd=pd,TARGETS=TARGETS,ROLES=("control","candidate"));exec(v['paired_source'],ns);cpu=v['cpu'];newcpu=v['newcpu'];models={};results={}
+digest=lambda x:hashlib.sha256(json.dumps(x,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+for role,files in v['data'].items():
+ run=json.loads(files['run.json']);result=json.loads(files['result.json']);b=run['binding'];assert run['status']==result['status']=='completed' and result['optimizer_steps']==2810 and not run['diagnostic_run'] and not run['held_out_confirmation_and_gold_used'];assert b['config']==(cpu['expected_bound_config']['control'] if role=='control' else newcpu['expected_bound_config']);assert b.get('experimental_fitting_supervision')==(cpu['fitting_supervision_receipt']['control'] if role=='control' else newcpu['fitting_supervision_receipt']);assert b['code_sha256']=={n.removeprefix('rsna/'):h for n,h in (cpu if role=='control' else newcpu)['source_sha256'].items() if n.startswith('rsna/')};assert result['binding_sha256']==digest(b) and b['release']['binding_sha256']==cpu['release_binding_sha256']
+ for key in ('training_uids_sha256','outer_uids_sha256','folds_sha256'):assert b[key]==cpu[key]
+ raw=files['outer_predictions.csv'].encode();assert hashlib.sha256(raw).hexdigest()==result['predictions_sha256'];f=pd.read_csv(io.StringIO(raw.decode()));assert len(f)==1156 and list(f.columns)==['study_uid','fold','seed',*TARGETS] and not f.study_uid.duplicated().any() and f.fold.eq(0).all() and f.seed.eq(20260922).all();models[role]=f.set_index('study_uid');results[role]=result
+uids=sorted(models['control'].index);assert set(uids)==set(models['candidate'].index) and digest(uids)==cpu['outer_uids_sha256'];labels=ds.dataset(cpu['trainer_inputs']['studies'],format='parquet').to_table(columns=['study_uid','leakage_group','split',*TARGETS,*[t+'__mask' for t in TARGETS]],filter=ds.field('study_uid').isin(uids)).to_pandas().set_index('study_uid').loc[uids];assert len(labels)==1156 and labels.split.eq('train').all()
+metrics=ns['paired_metrics'](labels,{'control':models['control'],'candidate':models['candidate']})
+for actual_role in results:
+ role=actual_role
+ assert abs(metrics['macro_auc'][role]-results[actual_role]['metrics']['macro_auc'])<1e-9
+ for row in metrics['targets']:assert abs(row['auc'][role]-results[actual_role]['metrics']['per_target_auc'][row['target']])<1e-9
+out={'status':'actual_fixed_final_10epoch_fixedmask_paired_replay','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':newcpu['source_git'],'reference_source_git':cpu['source_git'],'endpoint':'all12_macro_AUC_fixed_final','clinical_or_Kaggle_gain_claimed':False,'protected_gold_confirmation_or_best_epoch_selection_used':False,'labels_or_pixels_exported':False,'metrics':metrics};print(json.dumps(out))
+'''
+# The original thin source carries rsna; rank/paired functions are exact reviewed local bytes.
+bootstrap="import os,sys;sys.path.insert(0,'/tmp/rsna-public-label-full-fit-20261006-v1/code');"+program
+payload={'data':data,'cpu':cpu,'newcpu':newcpu,'paired_source':inspect.getsource(paired_metrics),'rank_source':Path('scripts/rank_learning.py').read_text()}
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=4G','--time=00:10:00','--job-name=rsna-patch-summary-paired-final','/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B','-c',bootstrap]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=650);(r/'paired-analysis-observer-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2));assert x.returncode==0,x.stderr;out=json.loads(x.stdout);(r/'paired-analysis.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({'status':out['status'],'metrics':out['metrics']}))
