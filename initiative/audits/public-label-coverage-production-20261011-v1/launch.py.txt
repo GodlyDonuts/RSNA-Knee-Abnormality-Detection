@@ -1,0 +1,31 @@
+"""Conditional actual recovery then one fixed10 mask-controlled supervision fit."""
+import gc,hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+R=Path('/tmp/rsna-public-label-coverage-production-20261011-v1')
+S=Path('/tmp/rsna-public-label-full-fit-20261006-v1/code')
+O=Path('/tmp/rsna-public-label-coverage-20261011-v1/overlay.json')
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765')
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def save(p,v):
+ with Path(p).open('x') as f:json.dump(v,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+def main():
+ import torch
+ from scripts.newton.probe_patch_witness_trainer_recovery import compare_recovery,numerical_updates
+ a=json.loads((R/'CPU-accepted.json').read_text());assert os.uname().nodename=='evc31' and os.environ.get('SLURM_JOB_GPUS');assert sha(R/'launch.py')==a['launcher_sha256'] and sha(R/'config.json')==a['config_sha256'];assert sha(O)==a['overlay_sha256'];assert shutil.disk_usage('/tmp').free>112*2**30+64*2**20
+ for n,h in a['source_sha256'].items():assert sha(S/n)==h
+ assert torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0);torch.cuda.set_device(0);x=torch.ones(4,device='cuda',requires_grad=True);x.square().sum().backward();assert torch.isfinite(x.grad).all();save(R/'runtime-start.json',{'job':os.environ['SLURM_JOB_ID'],'assigned_H100_accepted':True,'CPU_admission_sha256':sha(R/'CPU-accepted.json')})
+ config=json.loads((R/'config.json').read_text());tiny=dict(config,epochs=2,diagnostic_study_limit=16,warmup_updates=2,submission_every_epochs=0);save(R/'engineering.json',tiny)
+ def command(c):return [sys.executable,'-B',str(S/'scripts/newton/enforce_deterministic_runtime.py'),'--module','rsna.competitive.train','--config',str(c),'--device','cuda','--fitting-supervision',str(O),'--studies',str(A/'initiative/releases/report-supervision-v1/studies.parquet'),'--artifact-root',str(A),'--folds',str(A/'initiative/experiments/competitive-v1/folds'),'--series',str(A/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'),'--cache','/tmp/rsna-native384-cohort-866458-lp6rcfdw/restored/cache']
+ def execute(args,name,expected):
+  with (R/(name+'.stdout')).open('x') as out,(R/(name+'.stderr')).open('x') as err:q=subprocess.run(args,cwd=S,stdout=out,stderr=err)
+  save(R/(name+'-terminal.json'),{'returncode':q.returncode});assert q.returncode==expected
+ full=R/'engineering-full';replay=R/'engineering-replay';cmd=command(R/'engineering.json');execute(cmd+['--output',str(full)],'engineering-full',0);execute(cmd+['--output',str(replay),'--stop-after-updates','1'],'engineering-stop',75)
+ partial=torch.load(replay/'checkpoint.pt',map_location='cpu',weights_only=True);first=json.loads((replay/'invocation.json').read_text());execute(cmd+['--output',str(replay),'--resume',str(replay/'checkpoint.pt')],'engineering-resume',0)
+ whole=torch.load(full/'checkpoint.pt',map_location='cpu',weights_only=True);resumed=torch.load(replay/'checkpoint.pt',map_location='cpu',weights_only=True);history=json.loads((full/'invocation.json').read_text());last=json.loads((replay/'invocation.json').read_text());state=compare_recovery(whole,resumed,partial,history,first,last,(full/'outer_predictions.csv').read_bytes(),(replay/'outer_predictions.csv').read_bytes())
+ assert whole['binding']['experimental_fitting_supervision']==a['fitting_supervision_receipt'];assert whole['amp_scaler']['_growth_tracker']==4;proof=json.loads(Path('/tmp/rsna-cache-contrast-32-inputs-20261008-v1/original-input-proof.json').read_text());assert whole['binding']['training_uids_sha256']==proof['training_16_sha256'] and whole['binding']['outer_uids_sha256']==proof['outer_16_sha256']
+ assert whole['binding']['code_sha256']=={n.removeprefix('rsna/'):h for n,h in a['source_sha256'].items() if n.startswith('rsna/')};save(R/'recovery-accepted.json',{'status':'actual_coverage_complete_state_scaler_RNG_CSV_recovery_accepted','job':os.environ['SLURM_JOB_ID'],'complete_state_sha256':state,'finite_updates':numerical_updates(history),'diagnostic_only':True,'accuracy_claimed':False,'CPU_admission_sha256':sha(R/'CPU-accepted.json')});del whole,resumed,partial;gc.collect();torch.cuda.empty_cache()
+ assert shutil.disk_usage('/tmp').free>112*2**30+64*2**20;execute(command(R/'config.json')+['--output',str(R/'candidate')],'candidate',0)
+ run=json.loads((R/'candidate/run.json').read_text());result=json.loads((R/'candidate/result.json').read_text());assert run['status']==result['status']=='completed' and result['optimizer_steps']==2810 and run['training_studies']==2247 and run['outer_studies']==1156;assert not run['diagnostic_run'] and not run['held_out_confirmation_and_gold_used'];b=run['binding'];assert b['config']==a['expected_bound_config'] and b['experimental_fitting_supervision']==a['fitting_supervision_receipt']
+ for k in ('training_uids_sha256','outer_uids_sha256','folds_sha256'):assert b[k]==a[k]
+ assert b['release']['binding_sha256']==a['release_binding_sha256'];assert (R/'candidate.stderr').stat().st_size==0;assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<10*2**30;save(R/'terminal.json',{'status':'original_coverage_candidate_fixed10_completed','job':os.environ['SLURM_JOB_ID'],'optimizer_steps':2810,'accuracy_gain_claimed':False})
+if __name__=='__main__':main()
