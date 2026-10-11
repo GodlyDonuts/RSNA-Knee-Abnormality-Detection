@@ -1,3 +1,5 @@
+Oct11 10:27 originalcoverage898474 healthyRUNNING/772finite/epoch3/emptyGPUstderr. Epoch2privatelypublishedONCE HF03ef7206eb05a07893f90640bfe1d091e8afb4a6 viaCPU898662/all5objects forceddownload/size/SHAverified. Neverrepeat1–2; originalrecipe unchanged/noaccuracyresult. Futurecompletedepochs only coveragecoordinator aftersnapshot/intentreview.
+
 Coverageepoch1/progress/preparedterminalcollector sourcec7ee6acf privatelymirroredONCE HF7b9553932e662c3fb4dd5de6dbc334af128843b8/all6objects forceddownload/size/SHA canonicalsharedlock. Neverrepeat. Healthy898474epoch2/506finite; firstepochfull5objectprivateverified, noaccuracyclaim. FullQA2351pass/2skip/Ruff402/mypy53/archive/currentv2_89complete.
 
 Oct11 08:26 originalcoverage898474 healthyRUNNING/506finite/epoch2/emptyGPUstderr. Epoch1privatelypublishedONCE HFebbf6b1742e30516733ec298d66ce61ef943e9c1 viaCPU898603/all5objects forceddownload/size/SHAverified. Neverrepeat1; originalsource/labels/masks/policy unchanged/noaccuracyresult. Futurecompletedepochs only coveragecoordinator aftersnapshot/intentreview.
