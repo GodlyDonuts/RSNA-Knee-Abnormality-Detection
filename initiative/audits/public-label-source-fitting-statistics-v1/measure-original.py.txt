@@ -1,0 +1,50 @@
+"""Fitting-only descriptive label comparison; no evaluation labels or model tuning."""
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from rsna.schema import TARGETS
+
+root=Path.cwd()
+overlay_path=root/'initiative/experiments/competitive-v1/public-label-source-v1/fold0-overlay.json'
+raw=overlay_path.read_bytes()
+assert hashlib.sha256(raw).hexdigest()=='c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51'
+overlay=json.loads(raw)
+uids=[r['study_uid'] for r in overlay['studies']]
+assert len(uids)==len(set(uids))==2247
+release=root/'initiative/releases/report-supervision-v1/studies.parquet'
+columns=['study_uid','split',*TARGETS,*[t+'__mask' for t in TARGETS]]
+frame=pd.read_parquet(release,columns=columns,filters=[('study_uid','in',uids)]).set_index('study_uid').loc[uids]
+assert len(frame)==2247 and frame.split.eq('train').all()
+rows={r['study_uid']:r for r in overlay['studies']}
+output={}
+for t in TARGETS:
+    old=frame[t].to_numpy(dtype=float)
+    mask=frame[t+'__mask'].to_numpy(dtype=bool)
+    public=np.asarray([rows[u]['labels'][t] for u in uids],dtype=float)
+    pm=np.asarray([rows[u]['mask'][t] for u in uids],dtype=bool)
+    both=mask & pm
+    assert np.isfinite(public[pm]).all() and ((public[pm]>=0)&(public[pm]<=1)).all()
+    known_pos=both & (old==1)
+    known_neg=both & (old==0)
+    added=~mask & pm
+    output[t]={
+        'accepted_observed':int(mask.sum()),'accepted_positive':int((mask & (old==1)).sum()),
+        'public_observed':int(pm.sum()),'added_observed':int(added.sum()),'removed_observed':int((mask & ~pm).sum()),
+        'public_expected_positive_mass':float(public[pm].sum()),
+        'public_mean_on_accepted_positive':float(public[known_pos].mean()) if known_pos.any() else None,
+        'public_mean_on_accepted_negative':float(public[known_neg].mean()) if known_neg.any() else None,
+        'public_mean_on_previously_masked':float(public[added].mean()) if added.any() else None,
+        'threshold_0_5_disagreements_on_joint_observed':int(((public[both]>=0.5)!=(old[both]==1)).sum()),
+        'joint_observed':int(both.sum()),
+        'public_soft_fraction_observed':float(((public[pm]>0)&(public[pm]<1)).mean()),
+        'public_intermediate_0_25_to_0_75':int((pm & (public>0.25) & (public<0.75)).sum()),
+    }
+result={'status':'fitting_only_descriptive_label_source_statistics','fitting_studies':2247,'overlay_sha256':hashlib.sha256(raw).hexdigest(),'release_file_sha256':hashlib.sha256(release.read_bytes()).hexdigest(),'protected_or_evaluation_label_rows_read':False,'label_agreement_is_not_accuracy':True,'threshold_0_5_is_descriptive_not_a_selected_training_policy':True,'science_configs_changed':False,'targets':output}
+a=root/'initiative/audits/public-label-source-fitting-statistics-v1';a.mkdir()
+(a/'statistics.json').write_text(json.dumps(result,indent=2)+'\n')
+(a/'measure-original.py.txt').write_text(Path(__file__).read_text())
+print(json.dumps(output,indent=2))

@@ -1,3 +1,194 @@
+Memory fixedfinal/actualcorrected0.680control score/epoch receipt milestone
+37f6f15e privatelyverifiedONCE HF799013563a09721d25c158a8cabf52bb3ec96954/all18
+smallobjects includingownweak-development predictions; noMRI/weights/gold/
+KneeCoTrecords. Neverrepeat. Publiclabel879172 nowactualRUNNING on evc31,
+assignedH100device/header accepted/emptyGPUstderr; ownfullH100recovery still
+inprogress beforefullproduction. Baseline878853 healthyRUNNING. Memory877134
+actualCOMPLETED; no primarygainestablished, do notrestart/duplicate it.
+
+Actualmemory877134 COMPLETED0:0/11:19:31; both843updates/1156weakdevelopment
+fixed3 outputs/wholebytes/config/source/finalprivateepochs independentlybound.
+Primarymacro0.7821848->0.7864651(+.0042803), conditional95%[-.0120927,.0224585],
+2836defined/1164undefineddraws; noestablishedprimarygain, simplerdefaultretained.
+MMsecondary+.0030026CI[.0009665,.0050479] notprimary/clinicalpromotion; matched
+replicationneeded. Read plane-memory-full-fit-v1/fixed-final.
+Actualcorrected56889124 originalseed1/control3epoch nowSCORED0.680/noerror/
+259209bytes; canonicalledger reconciled. Bestsolo0.804 remains. Neverresubmit.
+Newfinalmemorycandidate3 privateHFdfa3bd83befbef6c5fbbbe8ac7f284dbe4a6310e/
+CPU879584 and CLScontrol3 HF00a7e2319513f45864a44561c7be28c7f5b2e10a/CPU879586
+all5objects eachfullre-download/hashverified. Neverrepeat. Baseline878853 still
+healthytraining;public879172actualstate mustberechecked aftermemoryGPUfreed.
+
+October7 01:58UTC actualhealthy progress: memory877134 candidate570updates/
+epoch3inprogress; baseline878853 control615updates/epoch3inprogress; bothempty
+stderr. Publiclabel879172originalPENDING. New immutableepochs privatelyverified
+ONCE: memorycandidate2 HFa9b0955c4cc1bacb793477199325362333b27be3/CPU879498;
+CLSbaselinecontrol2 HF7afd09e3c355cce9687a0ca5131317ed55154adf/CPU879500, all5
+objects eachfullre-download/size/SHA. Neverrepeat. No fixedfinalpairedresult yet.
+
+PrivateKneeCoT intakecode/sanitizedmetadata plus3RSNAepoch receipts milestone
+eb32acf5 fullyprivateverifiedONCE HF0934f3cd58a65a0de8949d10a79f24b97454e040
+/all19smallobjects. Neverrepeat. No rawclinicalrecord/volume/individualheader/
+index/sourceweight exported. Datasetresearch remainsprivate; noKneeCoT model
+trained/compeligibleclaimed. Owneraccessagreementconfirmation accepted.
+
+New immutableproductionepochs privatelypublishedONCE/full5objectre-download:
+memorycontrol3 HF6a94b68e1a50c1f87349b2e89c3d3358b3efa8d2/CPU879357; memory
+candidate1 HFb992fa236e2bceb9a6299f08afa19a3102576ff0/CPU879359; CLS+patch
+control1 HF90ba3b51fdc941aef21610b0a99ab9457aadc90d/CPU879362. Neverrepeat.
+Original877134controlfinished843steps/candidate316finite, baseline878853control
+315finite; bothempty stderr/allocatedH100recoveryverified. No newclinicalscore
+comparison yet; preservefutureepochsusingoriginalpinnedcoordinators.
+
+OwnerconfirmedallKneeCoT accessrequirements completed; acceptedresearch/storage
+scope viahumanattestation plusHFapprovedaccess. Do notaskagreement/credentials
+again. ActualCPU879354 intake:2complete trainexams/3MRIvolumes/2reports/107420372B
+alloriginalLFS/Git bytes/header verified; rawclinicalfiles privateevc31/tmp only,
+3GiB freshnodeenvelope after50GiB existingliabilities/20GiB reserve; sharedgrowth0.
+ActualformatCPU879360: grayscale,affinecodespresent,spatialunitsundeclared; MRI
+reports present butdocumented top-level labels/QA/CoT absentin2files only. Need
+private schema/anatomy/severity auditbeforetraining; noaccuracy/alignment claim.
+Neverrepeatintake. No rawdata/clinicaltext toMac/Git/HF orcompetition weights.
+SSHaccessrestored viaexistingcredentials; original877134/878853 actualRUNNING
+withallocatedH100recovery/finiteprogress,879172originalPENDING.
+Full2321QA/Ruff392/mypy52/archive/v289/89 passed.
+
+OwnerOctober6 reauthorized privateKneeCoT research, supersedingoldleave-unused
+preference. ActualHFauth-check passeswithexistingtoken, gateauto/reve5944fd.
+Separatehospitalethical-useagreement requiredbycurrentpubliccard; scope notyet
+verified. Askonlyforagreement/accessscope, notcredentials orDiscordrulingagain.
+No gatedpatientfiles/training/application/bulkdownload occurred. Boundedsource
+MRI/annotationquality audit thenprivateanatomy/severity research afterconfirmation
+andfreshstorageadmission; no competitioneligibility assumed. Read kneecot-private-
+research-access-20261006-v1. ExistingRSNAtraining/jobs/source unchanged.
+
+Secondnode resourcefeasibility read-only: nativecache140.626GB/37812members,
+evc34localfree728.789GB and1unallocatedH100. Normal2h/48h forecastnextmorning;
+preemptable2h forecastearlierOct6 20:47clusterlocal. Not guaranteed/not jobs.
+No transfer/GPUreservation/originaljobchange. Read second-node-training-feasibility-
+20261006-v1; possiblefullfixed10 checkpoint-continuous route needsimmutable
+transport/byte/tensor/runtime/storage/H100admission, not tiny accuracy pilot.
+
+Actualpublic-labelGPUacceptance/full879172launch milestone2d2688f8 privately
+verifiedONCE HF7ec345a9e1778570e16731b9fed1802a2e7cbb9c/all10smallobjects.
+Neverrepeat. Job879172actualPENDING Priority; oldobserverterminalaccessloss
+reviewed/no restart. T4v1complete, ownassignedH100recovery requiredbeforefullfit.
+
+Originalpublic-label T4137385338/v1 actualCOMPLETE/3175.6s; both control/public
+complete model/base/AdamW/LR/counters/RNG/scaler/CSV recovery,4finiteupdates each
+andnonzeroencodergradients. Actualreceiptpublic-label-source-GPU-recovery-v1.
+AfterSSHmasterexpired, originalfiniteobserverterminatedread-only/noGPUintent;
+reconnected viaignored0600.env/RAM/ASKPASS, reconciledexactoriginaljobs/create
+receipts/absencebeforeoneoriginalconditionaldispatch. Fullcomparison879172 was
+submittedONCE and actualPENDING Priority/zero runtime on evc31,1H100/2CPU/32GiB/48h.
+No productionupdates/accuracyyet. Neverrestartoldobserver orrepeatjob/kernel.
+ActualallocatedH100recovery mustpassinsidejobbeforebothfixed10arms. Original
+877134healthyRUNNING;878853originalpending48h. Sourcea990/configs/accepteddata unchanged.
+
+Actualread-onlyGPU137385338/v1 logprogress: control full/start207s, stop909s,
+resume1209s, thenpublic/full1794s. Originalcontrol completedthat flow and execution
+enteredpublicarm; finalaggregateacceptance stillpending, noaccuracyclaim. Env
+installationcompleted181s; wraptwarnings didnotstop subsequentexecution. Keep
+finiteobserver59041/PID50023; no duplicatepush/productiondispatch.
+
+Fitting-only supervisionstats/memory2/finiteobserver/walltime milestonea8c1385c
+privatelyverifiedONCE HF8cb204e24c710b3a209156921970cd773f28290e/all12smallobjects.
+Do notrepeat; noMRI/weights/protectedlabels copied. Observer stillactualalive
+PID50023, T4diagnosticlastRUNNING; no fullpubliclabelGPUjob yet.
+
+Fitting-only public-v2 descriptive audit completed: 2247parquet UIDfilter excludes
+evaluation/protected rows. Read public-label-source-fitting-statistics-v1. Strong
+severity/coverage differences: Effusion16/1273positive, publicdisagreement727/1273;
+MCL5/1821positive, disagreement187; Baker6/756positive, disagreement252. Menisci
+7/1914 and3/1862disagreements. Not clinicaltruth/sourcepromotion/configchanges.
+Full fixedlabelcontrast unchanged, finiteobserver live, GPUacceptancepending.
+
+Originalmemory877134 control epoch2 privatelypublishedONCE byCPU879062 at
+HF7b07d427a135511c0905df48cbe89215ce4fbe2b; all5objects fullre-download/size/SHA
+verified, checkpoint46d90429e5b3db70be3b5886385d708b51567f87e4f6a4871e26449e26197e03.
+Neverrepeatcontrol1/2. Actualepoch2 preservation isnotaccuracy/endpointselection.
+Originalfullfixed3 source unchanged; finitepublic-label observer stayslive.
+
+Originalpendingbaseline878853 scheduler TimeLimit extendedONCE36h->48h after
+zero-runtime/PENDING/exactoriginalscript/node checks and freshnormalQOS noMaxWall.
+Samejob/script/config/output; no newdispatch/restart/scientificchange. Original
+SubmitLine36h historicalreceipt preserved; actualscontrol48h nowauthoritative.
+See cls-patch-summary-full-fit-v2/scheduler-walltime-result.json.
+
+Full public-label CPUstage/funding milestoneb224b37c privatelyverifiedONCE at
+HF16b0faa2cd8b0751116dafc9611c7c48d0317a7b, all16small objects. Do notrepeat.
+Finiteobserver6e06982e islater/separate; source scientifica990unchanged.
+
+Finite public-label fullcomparisonobserver startedONCE, execsession59041,
+artifacts/public-label-source-v1/full-fit-v1/finish_when_ready.py. Max2h/read-only
+120s polls; exactT4actualacceptance thenone fullsinglecoordinator dispatch only.
+Existingfinish-intent prohibitsrestart; inspectactualhandle/result/intents first.
+No fullGPUjob submitted yet. OriginalT4137385338/v1 lastRUNNING.
+
+Public-label fullcomparisonCPU879052 actualstage/stat/funding PASSED: exact
+sourcea9902f3/configs/37812originalcache memberstats,12GiB newnodefuture explicitly
+funded; existing38GiB liabilities/20GiB reserve retained, zero sharedgrowth.
+Conditional single dispatch/publication coordinators prepared; noGPUproduction
+submitted. ActualT4 137385338/v1 stillRUNNING; waitactualacceptance beforedispatch.
+Use artifacts/public-label-source-v1/full-fit-v1/dispatch_once.py ONLY after exact
+terminal. NeverrepeatCPUstage or modify originalroots.
+
+Public-label fixed10 production wrapper and private epoch publisher PREPARED,
+not staged/dispatched/funded: run_public_label_comparison.py and auditpublic-label-
+source-full-fit-preparation-v1. Bothrank32/native384 arms differonly fittinglabel
+source; fixed2810steps/2247fit/1156dev. ActualT4 thenownH100 recovery required;
+exact supervisionreceipt checks inrecovery/final/publisher. New12GiB nodefunding
+andstaging/coordinator remainrequired; existing38GiB liabilities retained.
+
+Original-MRI public-label CPU/GPU-start source39e7247b privately preservedONCE
+at HFdb387e30007d5730fac24a4702280955391d4f8b; all22small objects fullre-download/
+size/SHAverified undercanonical lock. Do notrepeat. GPU137385338/v1 actualRUNNING
+with offlineinstallation progress; real recovery not yet accepted.
+
+October6 20:11UTC public-label original-MRI GPU diagnostic pushedONCE137385338/v1,
+private/offline/source350e0723; no competition slot. OriginalCPU879039 lock refusal
+was reconciled viaCPU879040: no create intent/response; exact prepared source reused.
+ActualT4 recovery pending, production funding absent. Hidden56889124 stillnull at
+20:09UTC; memory877134 healthy513updates, baseline878853 pending.
+
+Originalpublic-label CPU878913 actualpassed: 16fitting+16outer MRI image/control/
+evaluationtensorhashes exactlymatchoriginals; publiclabeltensors matchpinnedfit
+source; 2247/1156 completefold/release boundary. Officialbase loadedONCE/stat-proof
+reuse; bothplainrank32 arms graphvalues27ce4da8/RNG7ed75c71/10,426,636trainable
+identical. No optimizer/GPU/clinical inference. Read public-label-source-inputs-v1.
+Privateone-active-T4 full/stop1/resume two-role source prepared, 809927bytes includes
+compressedfit-only overlay111464base64bytes; no newDataset/pixels/base transfer.
+RealGPUacceptance/freshbudget required, productionfunding stillabsent. Original
+877134/878853 unaffected. Submitted56889124 hidden19:25pending_or_unknown/no score.
+
+Actualcorrected56889124 submission/public acceptance/identityreconciliation
+andfutureSaveKernelreturnedref/title guards milestone source6b53faa7 privately
+mirrored ONCEat HFa1d0846353e7796bbaec5d53fc991f0490dbc4be. All14small objects
+fully re-downloaded/size/SHAverified undercanonical lock. Neverrepeat. NoMRI/
+weights/protectedgold copied. Actual19:18 hiddenpending_or_unknown/scoreerrornull;
+onlyone competitionentrytoday/four live slots. Do notsendanother untilactual
+outcome. Correctednotebook exactactualslug godlydonuts/rsna-seed1-original-labels-
+exact-fp32-prefetch v1; originalrequestedslug andfailed56833454 preserved.
+Full2293tests plusnewreturned-identity regression passed; Ruff385/mypy52/v289/89.
+Original877134 healthy/epoch2; original878853 pendingResources. Goalactive.
+
+Corrected originalseed1-control code submittedONCE56889124 atactualprivate
+notebook godlydonuts/rsna-seed1-original-labels-exact-fp32-prefetch v1. Readkaggle-
+prefetch-control-recovery-v1 actualreceipts. Kagglederivedslugfromtitle insteadof
+requestedrsna-s1-control-prefetch-490e23ea1209-v1. Exact110281byteSourceSHA62f6dd66/
+Dataset12369320v1/private/offline2T4/image verifiedread-only; canonicalidentity
+repointedwithoutnewSaveKernel. Originalrequestedoperation/failed56833454 remain
+preserved. Public3studies/13columns/no fallback/FP32tensorvalues originalexact,
+7processRSS12,291,149,824B, pipeline76.3814s. Actualhidden19:18UTC pending_or_unknown,
+score/errornull; live1today/4slots. Do notinferhiddensuccess orsubmitnextuntilactual
+outcome. Oldfiniteobserver41887 stoppedforidentityreconciliation; no restart.
+Sourcephase_program nowunderstandsidentity-reconciled operation b4e7d810.
+
+Futureworkflow nowchecks title-derivedslug BEFOREpush and actualreturnedref AFTER
+SaveKernel; differingref is push_uncertain withresponseidentity preserved. Actual
+currentrun wasreconciledonly; no duplicateDatasets/GPUjob/submission/push. Baseline
+878853 originalpendingandmemory877134 healthy; preserveepochsonce. No newscore.
+
 Latest public-label integration/source, PRreview, baselineactualT4 acceptance/
 878853dispatch and originalmemorycontrol1 receipt milestone source6e2eaaaa is
 privatelymirrored ONCEat HFb677f2ad952f34489eed49e07c2354493e767a8e. All40small

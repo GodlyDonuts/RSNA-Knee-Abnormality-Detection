@@ -1,0 +1,31 @@
+"""One bounded private intake; token only in RAM/SSH/Slurm stdin."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+from dotenv import dotenv_values
+r=Path('artifacts/kneecot-private-intake-v1');a=Path('initiative/audits/kneecot-private-research-access-20261006-v1')
+source=Path('scripts/newton/inspect_kneecot_private.py').read_text();manifest=json.loads((r/'private-source-manifest.json').read_text());env=Path('.env');assert env.stat().st_mode&0o077==0
+program='''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and os.environ.get('SLURM_CPUS_PER_TASK')=='1';assert hashlib.sha256(v['program'].encode()).hexdigest()==v['program_sha256']
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in quota.splitlines() if x.lstrip().startswith('/home ')][0];assert ((int(row[2])-int(row[1]))*1024-1406962617)>=20*2**30 and int(row[6])-int(row[5])-735>=5000
+assert shutil.disk_usage('/tmp').free>=(20+50+3)*2**30
+py='/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python'
+child="import json,sys;v=json.load(sys.stdin);sys.stdin=__import__('io').StringIO(json.dumps(v['input']));exec(compile(v['program'],'private_intake.py','exec'),{'__name__':'__main__'})"
+env=os.environ.copy();env.update(PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1')
+x=subprocess.run([py,'-B','-c',child],input=json.dumps({'program':v['program'],'input':{'manifest':v['manifest'],'token':v['token']}}),capture_output=True,text=True,env=env,timeout=1200)
+if x.returncode:
+ root=Path('/tmp/rsna-kneecot-private-intake-20261006-v1')
+ if root.exists():(root/'private-error.log').open('x').write(x.stderr)
+ print(json.dumps({'status':'private_intake_failed_preserve_originals','CPU_job':os.environ['SLURM_JOB_ID'],'automatic_retry':False,'private_error_retained_on_owning_node':root.exists()}));sys.exit(x.returncode)
+receipt=json.loads(x.stdout);receipt['fresh_funding']={'node_future_bytes':3*2**30,'existing_node_future_bytes':50*2**30,'node_floor_bytes':20*2**30,'new_shared_bytes':0,'new_shared_files':0,'no_deletion_credit':True}
+print(json.dumps(receipt))
+'''
+intent={'status':'single_bounded_private_KneeCoT_CPU_intake_intent','revision':manifest['revision'],'exams':2,'MRI_volumes':3,'canonical_files':5,'planned_source_bytes':manifest['source_bytes'],'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'wrapper_sha256':hashlib.sha256(program.encode()).hexdigest(),'CPUs':1,'GPUs':0,'owner_agreement_confirmed':True,'node_retained_envelope_bytes':3*2**30,'new_shared_bytes_files':0,'automatic_retry':False,'clinical_records_to_Mac_Git_HF':False}
+with (r/'intake-intent.json').open('x') as f:json.dump(intent,f,indent=2);f.write('\n')
+(a/'intake-intent.json').write_text(json.dumps(intent,indent=2)+'\n');(a/'CPU-dispatch-coordinator.py.txt').write_text(Path(__file__).read_text());(a/'CPU-wrapper.py.txt').write_text(program)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=4G','--time=00:25:00','--job-name=kneecot-private-bounded-intake','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'program':source,'program_sha256':intent['source_sha256'],'manifest':manifest,'token':dotenv_values(env)['HF_TOKEN']}),capture_output=True,text=True,timeout=1560)
+with (r/'intake-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,'Intake failed/uncertain; inspect original private files and intent before any mutation'
+receipt=json.loads(x.stdout);assert receipt['status']=='private_KneeCoT_two_exam_original_bytes_and_NIfTI_headers_verified' and receipt['verified_source_bytes']==manifest['source_bytes']
+(a/'actual-CPU-intake-verified.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');print(json.dumps(receipt))

@@ -1,3 +1,37 @@
+ACTUAL Kaggle56923572 COMPLETE/scored0.783/noerror/263047bytes at2026-10-08T02:41:20.311973+00:00. Internal0.8786706 reference didnotbeat bestsolo0.804; differentfit scopes preventcausalcomparison. Exactsubmittedmodel/source/version unchanged, neverresubmit. Read scored-hidden-outcome.json. Read-onlyauthenticatedlocalcheckbecauseNewtonDNSunavailable/StokesTCP22timeout/CiscoCLIactuallyDisconnected. Canonicalledgerterminalreconciliation andprivateHFsmallmirror await restoredaccess/sharedlock; no newmutation/duplicate/restart. Trainingobservationloss isNOT terminaljob evidence.
+
+Submission56923572/exactsource/Datasetbyteproof/publicMRI/observeridentityrecovery smallmilestone sourcecdd991f7 privatelymirroredONCE HF3fbdc4ebef3bf1ba21239511998524a2c168affb/all25objects fullre-download/size/SHA canonicalsharedlock. Neverrepeat. No rawMRI/weights/protectedgold exported; latesthiddenstatus/score null/pending_or_unknown, 4live slots.
+
+Ownerrequested bestinternal fixed-final10 reference submittedONCE56923572 at2026-10-07 22:59UTC. Exactprivate offline2T4 notebook godlydonuts/rsna-bestinternal-offline-e10-2465648917b5 v1/Dataset12433771v1/fullpayload download/SHA verified. Checkpoint2465648917b5/source0183/internal0.87867059654 on1156weakdev, NOTKaggle. Public3MRI/testUID/13column/finiteprobability/CSVhash/memory accepted. Hidden outcome pending/unreported; inspectactual. OriginalHTTP409slug permanentlypreservedneverretry; sameDataset/source reused inone distinctreturnedidentity. Observerwrapperfailures happenedbeforeCreateCodeSubmission; no repeatednotebook/submission. Finitefinish session88506 TERMINALfailedwrapper/neverrestart; finalsuccessfulcanonicalreceipt authoritative. Read kaggle-best-internal-e10-2465648917b5-v1.
+
+Actualcorrected56889124 submission/public acceptance/identityreconciliation
+andfutureSaveKernelreturnedref/title guards milestone source6b53faa7 privately
+mirrored ONCEat HFa1d0846353e7796bbaec5d53fc991f0490dbc4be. All14small objects
+fully re-downloaded/size/SHAverified undercanonical lock. Neverrepeat. NoMRI/
+weights/protectedgold copied. Actual19:18 hiddenpending_or_unknown/scoreerrornull;
+onlyone competitionentrytoday/four live slots. Do notsendanother untilactual
+outcome. Correctednotebook exactactualslug godlydonuts/rsna-seed1-original-labels-
+exact-fp32-prefetch v1; originalrequestedslug andfailed56833454 preserved.
+Full2293tests plusnewreturned-identity regression passed; Ruff385/mypy52/v289/89.
+Original877134 healthy/epoch2; original878853 pendingResources. Goalactive.
+
+Corrected originalseed1-control code submittedONCE56889124 atactualprivate
+notebook godlydonuts/rsna-seed1-original-labels-exact-fp32-prefetch v1. Readkaggle-
+prefetch-control-recovery-v1 actualreceipts. Kagglederivedslugfromtitle insteadof
+requestedrsna-s1-control-prefetch-490e23ea1209-v1. Exact110281byteSourceSHA62f6dd66/
+Dataset12369320v1/private/offline2T4/image verifiedread-only; canonicalidentity
+repointedwithoutnewSaveKernel. Originalrequestedoperation/failed56833454 remain
+preserved. Public3studies/13columns/no fallback/FP32tensorvalues originalexact,
+7processRSS12,291,149,824B, pipeline76.3814s. Actualhidden19:18UTC pending_or_unknown,
+score/errornull; live1today/4slots. Do notinferhiddensuccess orsubmitnextuntilactual
+outcome. Oldfiniteobserver41887 stoppedforidentityreconciliation; no restart.
+Sourcephase_program nowunderstandsidentity-reconciled operation b4e7d810.
+
+Futureworkflow nowchecks title-derivedslug BEFOREpush and actualreturnedref AFTER
+SaveKernel; differingref is push_uncertain withresponseidentity preserved. Actual
+currentrun wasreconciledonly; no duplicateDatasets/GPUjob/submission/push. Baseline
+878853 originalpendingandmemory877134 healthy; preserveepochsonce. No newscore.
+
 October6 actualcanonical Kaggle outcomes/allowance rechecked: seed1-control
 56833454 and bothseed2 FAILED runtime/zero bytes/no score; partner56833608 actual
 0.685. Fresh17:30UTC allowance5. A distinctseed1-control exactFP32prefetch candidate

@@ -14,6 +14,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import default_collate
 
+from rsna.competitive.cache_contrast import sample_cache_contrast, validate_cache_contrast
 from rsna.competitive.neighbor_input import neighbor_input_channels, sample_neighbor_images
 from rsna.data import PLANES, StudyDataset, select_series
 from rsna.schema import TARGETS
@@ -81,7 +82,17 @@ class CompetitiveStudyDataset(StudyDataset):
         volume_provider: Callable[[dict], bytes] | None = None,
         sides: pd.DataFrame | None = None,
         soft_targets: bool = False,
+        cache_contrast: dict | None = None,
     ):
+        validate_cache_contrast(cache_contrast)
+        if cache_contrast is not None and (
+            augment
+            or slice_sampling != "uniform"
+            or series_sampling != "selected"
+            or neighbor_channels is not None
+        ):
+            raise ValueError("Cache contrast requires isolated uniform selected grayscale inputs")
+        self.cache_contrast = None if cache_contrast is None else dict(cache_contrast)
         if type(soft_targets) is not bool:
             raise ValueError("Soft fitting targets require an explicit boolean")
         self.soft_targets = soft_targets
@@ -215,8 +226,10 @@ class CompetitiveStudyDataset(StudyDataset):
                 )
             )
             valid = len(indices)
-            sampled = sample_neighbor_images(
-                volume, meta, indices, self.side, self.neighbor_channels
+            sampled = (
+                sample_neighbor_images(volume, meta, indices, self.side, self.neighbor_channels)
+                if self.cache_contrast is None
+                else sample_cache_contrast(volume, meta, indices, self.side, self.cache_contrast)
             )
             if self._canonical_flip.get(uid):
                 sampled = sampled.flip(-1)

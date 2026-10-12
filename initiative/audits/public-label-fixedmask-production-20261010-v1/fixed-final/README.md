@@ -1,0 +1,5 @@
+Fixed-final coverage-controlled experiment completed 0:0 with 2,810 finite contiguous updates on 2,247 fitting studies. All ten immutable epochs privately preserved and fully re-downloaded/size/SHA verified.
+
+On the same 1,156 weak-development studies, original supervision scored 0.8786705965; public values under the original masks scored 0.8536812809. Delta -0.0249893156, conditional paired 95% [-0.0439907607, -0.0054025504], 2,836 defined and 1,164 undefined whole-component draws retained. Medial Meniscus regressed -0.0224577335, paired interval [-0.0349129324, -0.0109315061]. Reject this candidate.
+
+Previously completed full-public supervision scored 0.8997840648; fixedmask is lower by 0.0461027839, interval [-0.0699827667, -0.0233718012]. This supports a material role for expanded coverage at this recipe, not a general claim that public labels are correct or that coverage alone is causal. All twelve target results and original bindings are preserved. No protected-cohort tuning, best-epoch selection, clinical or Kaggle result.

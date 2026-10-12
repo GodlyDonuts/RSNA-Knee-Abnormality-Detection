@@ -26,6 +26,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 
 from rsna.competitive.adapters import configure_encoder_training, validate_adapter
+from rsna.competitive.cache_contrast import validate_cache_contrast
 from rsna.competitive.canonical_side import (
     load_canonical_side_table,
     validate_canonical_side_policy,
@@ -141,6 +142,7 @@ class TrainConfig:
     masked_cell: dict | None = None
     slice_smooth: dict | None = None
     patch_summary: dict | None = None
+    cache_contrast: dict | None = None
 
     def validate(self) -> None:
         if self.masked_cell is not None:
@@ -153,6 +155,7 @@ class TrainConfig:
                 or self.neighbor_channels is not None
                 or self.canonical_sides is not None
                 or self.patch_summary is not None
+                or self.cache_contrast is not None
             ):
                 raise ValueError("Masked-cell contrast requires an isolated outer-fold arm")
         if self.slice_smooth is not None:
@@ -166,10 +169,36 @@ class TrainConfig:
                 or self.canonical_sides is not None
                 or self.masked_cell is not None
                 or self.patch_summary is not None
+                or self.cache_contrast is not None
                 or self.pooling != "attention"
                 or self.slice_context != "none"
             ):
                 raise ValueError("Slice-smooth contrast requires an isolated outer-fold arm")
+        validate_cache_contrast(self.cache_contrast)
+        if self.cache_contrast is not None and (
+            self.fit_scope != "outer_fold"
+            or self.augment
+            or self.pooling != "attention"
+            or self.slice_context != "none"
+            or self.slice_sampling != "uniform"
+            or self.series_sampling != "selected"
+            or any(
+                value is not None
+                for value in (
+                    self.neighbor_channels,
+                    self.relation,
+                    self.witness,
+                    self.plane_memory,
+                    self.patch_summary,
+                    self.fitting_supervision,
+                    self.canonical_sides,
+                    self.masked_cell,
+                    self.slice_smooth,
+                )
+            )
+            or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+        ):
+            raise ValueError("Cache contrast must isolate its input change")
         if self.patch_summary is not None:
             validate_patch_summary(self.patch_summary)
             if (
@@ -186,6 +215,7 @@ class TrainConfig:
                         self.canonical_sides,
                         self.masked_cell,
                         self.slice_smooth,
+                        self.cache_contrast,
                     )
                 )
                 or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
@@ -228,6 +258,7 @@ class TrainConfig:
                 or self.witness is not None
                 or self.fitting_supervision is not None
                 or self.neighbor_channels is not None
+                or self.cache_contrast is not None
             ):
                 raise ValueError("Canonical-side contrast requires an isolated outer-fold arm")
         positive = (
@@ -620,6 +651,8 @@ def _run_locked(
         name: getattr(config, name)
         for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
     }
+    if config.cache_contrast is not None:
+        data_config["cache_contrast"] = config.cache_contrast
     if config.neighbor_channels is not None:
         data_config["neighbor_channels"] = config.neighbor_channels
     if data_side_frame is not None:
@@ -721,6 +754,8 @@ def _run_locked(
         bound_config.pop("canonical_sides")
     if config.patch_summary is None:
         bound_config.pop("patch_summary")
+    if config.cache_contrast is None:
+        bound_config.pop("cache_contrast")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {

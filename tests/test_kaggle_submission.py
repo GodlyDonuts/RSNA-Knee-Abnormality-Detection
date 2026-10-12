@@ -564,7 +564,7 @@ def test_push_inflight_cannot_be_reconciled_and_submitted_concurrently(tmp_path,
                 assert workflow.read_entry(second, "a" * 64)["state"] == "push_intent"
                 with pytest.raises(sqlite3.OperationalError, match="locked"):
                     workflow.reconcile_push(remote, second, "a" * 64, 7)
-                return {"versionNumber": 7}
+                return {"versionNumber": 7, "ref": "/code/" + operation["kernel_slug"]}
 
             remote.call = inflight
             workflow.push(remote, first, operation_path)
@@ -595,6 +595,26 @@ def test_wheel_metadata_ignores_nested_vendored_distributions(tmp_path):
         builder.wheel_metadata(wheel)
 
 
+def test_returned_different_notebook_identity_stays_uncertain(tmp_path, monkeypatch):
+    operation_path = tmp_path / "operation.json"
+    operation_path.write_text("{}")
+    operation = entry()["operation"]
+    monkeypatch.setattr(workflow, "load_operation", lambda *a: operation)
+    monkeypatch.setattr(workflow, "kernel_request", lambda *a: {})
+    remote = FakeRemote()
+    remote.call = lambda *a: {"versionNumber": 1, "ref": "/code/owner/different-title"}
+    with workflow.ledger(tmp_path / "ledger", "owner") as db:
+        queued = entry()
+        queued["state"] = "queued"
+        workflow.save_entry(db, queued, "test")
+        with pytest.raises(workflow.RemoteError, match="reconciliation"):
+            workflow.push(remote, db, operation_path)
+        result = workflow.read_entry(db, "a" * 64)
+        assert result["state"] == "push_uncertain"
+        assert result["kernel_create_response"]["ref"] == "/code/owner/different-title"
+        assert not remote.writes
+
+
 def test_kernel_request_pins_verified_t4_machine_shape(tmp_path):
     directory = tmp_path / "kernel"
     directory.mkdir()
@@ -615,6 +635,15 @@ def test_kernel_request_pins_verified_t4_machine_shape(tmp_path):
         tmp_path / "operation.json", {"kernel_slug": "owner/kernel", "dataset_slug": "owner/data"}
     )
     assert result["machineShape"] == "NvidiaTeslaT4" and result["enableGpu"] is True
+    path = directory / "kernel-metadata.json"
+    metadata = json.loads(path.read_text())
+    metadata["title"] = "a different generated slug"
+    path.write_text(json.dumps(metadata))
+    with pytest.raises(ValueError, match="identity"):
+        workflow.kernel_request(
+            tmp_path / "operation.json",
+            {"kernel_slug": "owner/kernel", "dataset_slug": "owner/data"},
+        )
 
 
 @pytest.mark.parametrize("outcome", ["exists", "forbidden", "missing"])

@@ -1,0 +1,44 @@
+"""Collect only completed fixed-final small outputs; no weights or protected labels."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/plane-memory-full-fit-v1');destination=r/'fixed-final';assert not destination.exists()
+program=r'''import hashlib,json,math,os,subprocess
+from pathlib import Path
+root=Path('/tmp/rsna-plane-memory-full-fit-20261006-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+worker=json.loads((root/'terminal.json').read_text());assert worker['status']=='two_original_full_plane_memory_arms_completed' and worker['job_id']=='877134'
+raw=subprocess.check_output(['sacct','-j','877134','-X','-n','-P','-o','JobID,State,ExitCode,Elapsed,NodeList'],text=True);row=raw.strip().split('|');assert row[:3]==['877134','COMPLETED','0:0']
+cpu=json.loads((root/'CPU-accepted.json').read_text());assert cpu['initial_learned_state']['control']==cpu['initial_learned_state']['candidate'];assert (root/'gpu.stderr').stat().st_size==0
+files={};progress={};published={}
+for role in ['control','candidate']:
+ run=root/role;record=json.loads((run/'run.json').read_text());result=json.loads((run/'result.json').read_text());assert record['status']==result['status']=='completed' and result['optimizer_steps']==843 and record['binding']['config']==cpu['expected_bound_config'][role]
+ rows=[]
+ for line in (root/(role+'.stdout')).read_text().splitlines():
+  try:v=json.loads(line)
+  except json.JSONDecodeError:continue
+  if isinstance(v,dict) and 'optimizer_steps' in v:rows.append(v)
+ assert len(rows)==843 and [x['optimizer_steps'] for x in rows]==list(range(1,844)) and all(math.isfinite(x['loss']) and math.isfinite(x['gradient_norm']) for x in rows)
+ terminal=json.loads((root/(role+'-terminal.json')).read_text());assert terminal['returncode']==0 and (root/(role+'.stderr')).stat().st_size==0
+ pub=json.loads((root/'epoch-publication'/role/'epoch-003/verified.json').read_text());assert pub['status']=='private_original_plane_memory_epoch_full_download_size_SHA_verified' and pub['checkpoint_sha256']==result['checkpoint_sha256'] and pub['file_count']==5
+ published[role]=pub;progress[role]={'optimizer_record_count':843,'contiguous_optimizer_steps':True,'all_progress_finite':True,'role_terminal':terminal,'stderr_bytes':0}
+ for name,source in [(role+'-run.json',run/'run.json'),(role+'-result.json',run/'result.json'),(role+'-outer_predictions.csv',run/'outer_predictions.csv')]:
+  raw=source.read_bytes();assert len(raw)<512*1024
+  files[name]={'text':raw.decode(),'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+ assert files[role+'-outer_predictions.csv']['sha256']==result['predictions_sha256']
+assert sum(x['bytes'] for x in files.values())<2*2**20
+collection={'status':'actual_original_fixed_final_whole_small_outputs_and_publication_bindings_verified','CPU_job':os.environ['SLURM_JOB_ID'],'Slurm':{'state':row[1],'exitcode':row[2],'elapsed':row[3],'node':row[4]},'terminal':worker,'source_git':cpu['source_git'],'roles':progress,'files':{n:{k:v[k] for k in ['bytes','sha256']} for n,v in files.items()},'labels_pixels_or_model_weights_collected':False}
+print(json.dumps({'collection':collection,'files':files,'publications':published}))
+'''
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=1G','--time=00:03:00','--job-name=plane-memory-fixed-final-collect','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=220)
+assert x.returncode==0,'No collection mutation: full roles must be actually complete and privately verified; retain original state.'
+v=json.loads(x.stdout);destination.mkdir(mode=0o700)
+for name,row in v['files'].items():
+ raw=row['text'].encode();assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256']
+ with (destination/name).open('xb') as f:f.write(raw)
+with (destination/'collection.json').open('x') as f:json.dump(v['collection'],f,indent=2,sort_keys=True);f.write('\n')
+for role,pub in v['publications'].items():
+ p=Path('initiative/audits/plane-memory-full-fit-v1/epochs')/(role+'-003');p.mkdir(parents=True,exist_ok=True)
+ if not (p/'verified.json').exists():
+  with (p/'verified.json').open('x') as f:json.dump(pub,f,indent=2,sort_keys=True);f.write('\n')
+ else:assert json.loads((p/'verified.json').read_text())==pub
+print(json.dumps({'status':v['collection']['status'],'collected_files':len(v['files']),'source_git':v['collection']['source_git']}))

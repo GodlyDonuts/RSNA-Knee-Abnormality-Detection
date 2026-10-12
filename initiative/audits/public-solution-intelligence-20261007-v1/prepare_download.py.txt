@@ -1,0 +1,8 @@
+import json,requests
+from pathlib import Path
+r=Path(__file__).parent;x=json.loads((r/'inventory.json').read_text());meta=[]
+for d in x['datasets']:
+ z=requests.get('https://www.kaggle.com/api/v1/datasets/view/'+d['ref'],timeout=45);z.raise_for_status();m=z.json();(r/(d['ref'].replace('/','--')+'.metadata.json')).write_text(json.dumps(m,indent=2));meta.append({'ref':d['ref'],'version':m['currentVersionNumber'],'license':m.get('licenseName'),'bytes':m['totalBytes'],'public':not m['isPrivate']})
+selected=[m for m in meta if not any(v in m['ref'] for v in ['raptor-knee','notebooks-figures','detection-tool','opencv-python'])]
+assert all(m['public'] for m in selected)
+(r/'download-plan.json').write_text(json.dumps({'packages':selected,'declared_bytes':sum(m['bytes'] for m in selected),'archive_cap_bytes':16*1024**3,'node_future_reserve_bytes':53*1024**3,'node_floor_bytes':20*1024**3},indent=2));print(json.dumps({'packages':len(selected),'declared_GiB':sum(m['bytes'] for m in selected)/1024**3},indent=2))

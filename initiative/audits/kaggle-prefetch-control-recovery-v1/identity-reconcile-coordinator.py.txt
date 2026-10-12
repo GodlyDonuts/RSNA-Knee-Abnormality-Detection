@@ -1,0 +1,26 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+r=Path('artifacts/kaggle-prefetch-control-recovery-v1');found=json.loads((r/'actual-identity-readonly.json').read_text())['matching_candidates'];assert len(found)==1 and found[0]['source_matches'];actual=found[0]['ref'];old=json.loads((r/'candidate/operation.json').read_text());meta=json.loads((r/'candidate/kernel/kernel-metadata.json').read_text());meta['id']=actual;mt=json.dumps(meta,sort_keys=True,indent=2)+'\n';op=dict(old,kernel_slug=actual,kernel_metadata_sha256=hashlib.sha256(mt.encode()).hexdigest());folder=r/'identity-reconciled/candidate';folder.mkdir(parents=True);files={str(p.relative_to(r/'candidate')):p.read_text() for p in (r/'candidate').rglob('*') if p.is_file()};files['kernel/kernel-metadata.json']=mt;files['operation.json']=json.dumps(op,sort_keys=True,indent=2)+'\n'
+for n,s in files.items():p=folder/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(s)
+program=(r/'phase_program.py').read_text();a=program.index('with c.single_coordinator');program=program[:a]+'''with c.single_coordinator(B/'kaggle'):
+ actual=v['actual'];cloud=remote.kernel('GetKernel',actual,1);m=cloud['metadata'];assert hashlib.sha256(cloud['blob']['source'].encode()).hexdigest()==op['kernel_source_sha256'] and m['isPrivate'] is True and m['enableInternet'] is False and m['machineShape']=='NvidiaTeslaT4' and m['dockerImage']==op['runtime_image'];assert sorted(m['datasetDataSources'])==sorted(w.dataset_sources(op))
+ with w.ledger(B/'kaggle/account-ledger.sqlite3',remote.username) as db:
+  e=w.read_entry(db,sha);assert e['state']=='pushed' and e['kernel_version']==1 and e['operation_sha256']==accept['new_operation_sha256'] and e['operation']==op
+  root=R/'identity-reconciled/candidate';assert not root.exists();root.mkdir(parents=True,mode=0o700)
+  for name,text in v['files'].items():
+   assert not Path(name).is_absolute() and '..' not in Path(name).parts;p=root/name;p.parent.mkdir(parents=True,exist_ok=True)
+   with p.open('x') as f:f.write(text)
+  new=w.load_operation(root/'operation.json');assert {k:x for k,x in new.items() if k not in ['kernel_slug','kernel_metadata_sha256']}=={k:x for k,x in op.items() if k not in ['kernel_slug','kernel_metadata_sha256']}
+  history={'checked_at':w.utcnow(),'original_operation_sha256':e['operation_sha256'],'requested_kernel_slug':op['kernel_slug'],'actual_kernel_slug':actual,'new_operation_sha256':w.digest(root/'operation.json'),'source_sha256':op['kernel_source_sha256'],'kernel_version':1,'remote_mutation':False,'exact_source_private_offline_runtime_DataSources_verified':True}
+  db.execute('BEGIN IMMEDIATE');e['identity_reconciliations']=[*e.get('identity_reconciliations',[]),history];e['operation']=new;e['operation_sha256']=history['new_operation_sha256'];w.save_entry(db,e,'read-only exact saved identity reconciliation; no repeated SaveKernel');save('identity-reconciled.json',history)
+ print(json.dumps(history))
+'''
+values={}
+for l in Path('.env').read_text().splitlines():
+ k,s,v=l.partition('=')
+ if s:values[k.strip()]=v.strip().strip('\"\'')
+bootstrap='import json,os,subprocess,sys;from pathlib import Path;v=json.load(sys.stdin);p=json.loads(Path("/tmp/rsna-patch-witness-recovery-20261005-v1/source.json").read_text())["runtime"]["python"];e=os.environ.copy();e.update(PYTHONPATH="/tmp/rsna-kaggle-prefetch-control-recovery-20261006-v1/code",PYTHONNOUSERSITE="1",PYTHONDONTWRITEBYTECODE="1");x=subprocess.run([p,"-B","-c",v["program"]],input=json.dumps(v["input"]),env=e,capture_output=True,text=True);sys.stdout.write(x.stdout);sys.stderr.write(x.stderr);sys.exit(x.returncode)'
+with (r/'identity-reconcile-intent.json').open('x') as f:json.dump({'actual':actual,'original_operation_sha256':hashlib.sha256((r/'candidate/operation.json').read_bytes()).hexdigest(),'remote_notebook_or_submission_mutation':False,'automatic_retry':False},f,indent=2);f.write('\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=4G','--time=00:10:00','--job-name=rsna-prefetch-identity-reconcile','/usr/bin/python3.12','-B','-c',bootstrap];x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'program':program,'input':{'token':values['KAGGLE_API_TOKEN'],'actual':actual,'files':files}}),capture_output=True,text=True,timeout=650)
+with (r/'identity-reconcile-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2);f.write('\n')
+assert x.returncode==0,x.stderr;v=json.loads(x.stdout);(r/'identity-reconciled.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

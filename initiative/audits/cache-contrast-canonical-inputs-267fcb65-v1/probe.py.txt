@@ -1,0 +1,31 @@
+import base64,hashlib,io,json,os,shutil,sys,tarfile
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-cache-contrast-canonical-inputs-267fcb65-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists();assert shutil.disk_usage('/tmp').free>(53+5+20)*2**30+16*2**20;R.mkdir(mode=0o700);code=R/'code';code.mkdir();raw=base64.b64decode(v['archive']);assert hashlib.sha256(raw).hexdigest()==v['archive_sha256']
+with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
+ for m in archive.getmembers():
+  assert not m.name.startswith('/') and '..' not in Path(m.name).parts
+  if m.isdir():continue
+  assert m.isfile();p=code/m.name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(archive.extractfile(m).read())
+sys.path.insert(0,str(code))
+import numpy as np,pandas as pd,pyarrow.parquet as pq,torch
+from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.schema import TARGETS
+torch.set_num_threads(1);req=v['original_CPU'];inputs=req['trainer_inputs'];foldfile=Path(inputs['folds'])/'fold.csv';assert hashlib.sha256(foldfile.read_bytes()).hexdigest()=='fe590e5072a0d82abeb377598aeef0021bbe77fe4529a19b9826a7d40d322050';fold=pd.read_csv(foldfile);allowed=sorted(fold.loc[fold.fold.ne(0),'study_uid']);columns=['study_uid','split']+[t+'__mask' for t in TARGETS];manifest=pq.read_table(inputs['studies'],columns=columns,filters=[('study_uid','in',allowed),('split','=','train')]).to_pandas();fit=manifest.loc[manifest[[t+'__mask' for t in TARGETS]].sum(axis=1).gt(0),'study_uid'].sort_values().tolist();roster=hashlib.sha256(json.dumps(fit,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest();assert len(fit)==2247 and roster==req['training_uids_sha256'];cases=fit[:16]
+# Clinical targets are decoded only for these fitting studies, never protected cohorts.
+studies=pq.read_table(inputs['studies'],columns=['study_uid',*TARGETS,*[t+'__mask' for t in TARGETS]],filters=[('study_uid','in',cases),('split','=','train')]).to_pandas().sort_values('study_uid');parts=[]
+for f in pd.read_csv(inputs['series'],chunksize=1024):parts.append(f.loc[f.StudyInstanceUID.isin(cases)])
+series=pd.concat(parts,ignore_index=True);kwargs=dict(slices=16,side=384,max_series=6,augment=False);cache=Path(inputs['cache']);datasets=[CompetitiveStudyDataset(studies,series,cache,**kwargs),CompetitiveStudyDataset(studies,series,cache,cache_contrast={'mode':'minmax'},**kwargs),CompetitiveStudyDataset(studies,series,cache,cache_contrast={'mode':'p01_p99'},**kwargs)];streams=[hashlib.sha256(),hashlib.sha256()];series_count=0
+for i in range(16):
+ default,control,candidate=[d[i] for d in datasets]
+ for k,val in default.items():
+  if isinstance(val,torch.Tensor):
+   torch.testing.assert_close(val,control[k],rtol=0,atol=0,equal_nan=True)
+   if k!='images':torch.testing.assert_close(val,candidate[k],rtol=0,atol=0,equal_nan=True)
+  else:assert val==control[k]==candidate[k]
+ assert candidate['images'].shape==default['images'].shape and torch.isfinite(candidate['images']).all() and candidate['images'].min()>=0 and candidate['images'].max()<=1
+ for slot in range(6):
+  if not default['series_mask'][slot]:assert not candidate['images'][slot].any();continue
+  count=int(default['slice_mask'][slot].sum());series_count+=1
+  for h,row in zip(streams,(control,candidate)):h.update(row['images'][slot,:count].numpy().tobytes())
+assert series_count==84;assert [h.hexdigest() for h in streams]==[v['old_receipt']['control_tensor_stream_sha256'],v['old_receipt']['candidate_tensor_stream_sha256']]
+out={'status':'actual_canonical_MRI_dataset_default_minmax_exact_and_candidate_matches_original_gate','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'archive_sha256':v['archive_sha256'],'fitting_roster_sha256':roster,'studies':16,'series':84,'control_tensor_stream_sha256':streams[0].hexdigest(),'candidate_tensor_stream_sha256':streams[1].hexdigest(),'default_vs_minmax_all_tensors_exact':True,'candidate_nonimage_fields_exact':True,'candidate_image_tensors_equal_original_standalone_gate':True,'clinical_values_or_pixels_exported':False,'protected_rows_decoded':False,'GPU_or_model_optimizer_executed':False,'canonical_inputs_accepted_only':True,'fitting_or_accuracy_accepted':False,'new_shared_bytes_files':0,'node_small_source_receipt_cap_bytes':16*2**20,'existing_node_future_53GiB_and_Kaggle5GiB_plus20GiB_floor_retained':True};(R/'receipt.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))

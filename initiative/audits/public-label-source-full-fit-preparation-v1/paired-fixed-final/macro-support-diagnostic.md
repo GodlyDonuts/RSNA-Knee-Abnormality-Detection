@@ -1,0 +1,5 @@
+# Why the positive label-source result needs replication
+
+This is a posthoc descriptive decomposition of the unchanged predeclared twelve-target endpoint, not another selection metric. MCL (two observed positives), Baker’s (three) and Fracture (two) account for about73% of the net macro-AUC gain. Across the other nine targets the mean change is about+0.0076, while Medial Meniscus declines by0.0147 on412 positives. Rare-target improvement may be real, but this holdout cannot establish broad annotation superiority from so few observed examples. Target study counts are not unique-patient counts across targets.
+
+Retain the original all12 paired result and all undefined bootstrap draws. Repeat the same label-source comparison on a different matched seed/fold, inspect target-level replication, and do not construct per-target mixtures or edit labels from this decomposition. A predeclared repeat is more informative than more rank scaling. The independent contrast experiment894060 has already been submitted once; its current remote state is unobserved after VPN loss.

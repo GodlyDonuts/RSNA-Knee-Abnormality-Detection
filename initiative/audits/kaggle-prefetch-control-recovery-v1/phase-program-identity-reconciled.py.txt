@@ -1,0 +1,66 @@
+"""One canonical coordinator; fixed failed-control identity and immutable Dataset reuse."""
+import csv,hashlib,importlib.util,io,json,math,os,subprocess,sys
+from pathlib import Path
+from urllib.parse import urljoin,urlparse
+import requests
+
+v=json.load(sys.stdin);R=Path('/tmp/rsna-kaggle-prefetch-control-recovery-20261006-v1');B=Path('/home/sa305415/rsna-knee');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+accept=json.loads((R/'CPU-accepted.json').read_text());assert accept['status']=='actual_CPU_metadata_only_original_Dataset_proof_runtime_candidate_admitted'
+s=importlib.util.spec_from_file_location('accepted_coordinator',R/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(R/'code',R/'projection.json',accept['projection_sha256']);identity=json.loads((R/'identity-reconciled.json').read_text()) if (R/'identity-reconciled.json').exists() else None;operation_path=R/('identity-reconciled/candidate/operation.json' if identity else 'candidate/operation.json');expected_operation_sha=identity['new_operation_sha256'] if identity else accept['new_operation_sha256'];op=w.load_operation(operation_path);assert w.digest(operation_path)==expected_operation_sha and op['kernel_source_sha256']==accept['kernel_source_sha256'];assert identity is None or identity['original_operation_sha256']==accept['new_operation_sha256'];sha=op['checkpoint_sha256'];sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+
+def save(name,value):
+ with (R/name).open('x') as f:json.dump(value,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+
+def csv_output(slug,version):
+ owner,kernel=slug.split('/');remote.session.cookies.clear();response=remote.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':owner,'kernelSlug':kernel,'versionNumber':version,'filePath':'submission.csv'},timeout=(10,60),allow_redirects=False,stream=True)
+ for _ in range(5):
+  with response:
+   if response.status_code==200:
+    raw=bytearray()
+    for block in response.iter_content(65536):
+     raw.extend(block);assert len(raw)<=1048576
+    return bytes(raw)
+   assert response.status_code in {301,302,303,307,308}
+   url=urljoin(response.url,response.headers.get('Location',''))
+  parsed=urlparse(url);host=parsed.hostname or '';assert parsed.scheme=='https' and (host in {'storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com'} or host.endswith('.googleusercontent.com'))
+  session=remote.session if host=='api.kaggle.com' else requests;response=session.get(url,timeout=(10,60),allow_redirects=False,stream=True)
+ raise ValueError('Output redirect budget exhausted')
+
+with c.single_coordinator(B/'kaggle'):
+ assert w.verify_remote_dataset(remote,op)['id']==12369320
+ account=remote.account()
+ with w.ledger(B/'kaggle/account-ledger.sqlite3',remote.username) as db:
+  entry=w.read_entry(db,sha)
+  if v['phase']=='preflight':
+   assert entry['state']=='submitted' and entry['submission_id']==56833454;found=[x for x in remote.submissions() if x.get('ref')==56833454];assert len(found)==1 and w.submission_outcome(found[0])=='failed' and found[0].get('publicScore') is None
+   print(json.dumps({'status':'original_failed_control_and_verified_Dataset_reuse_readonly_preflight_passed','account':account,'old_submission_id':56833454,'CPU_job':os.environ['SLURM_JOB_ID']}));sys.exit(0)
+  if v['phase']=='push':
+   assert not (R/'push-intent.json').exists() and entry['submission_id']==56833454
+   assert remote.kernel('GetKernelSessionStatus','godlydonuts/rsna-cls-patch-summary-recovery-20261006-v1',1).get('status')=='COMPLETE'
+   assert remote.kernel('GetKernelSessionStatus','godlydonuts/rsna-fp32-prefetch-1300-85bfc1ce-v2',1).get('status')=='COMPLETE'
+   assert remote.kernel('GetKernelSessionStatus','godlydonuts/rsna-fp32-prefetch-memory32-85bfc1ce-v2',1).get('status')=='COMPLETE'
+   queue=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i|%T|%b|%N'],text=True);running=[x for x in queue.splitlines() if '|RUNNING|' in x and 'gpu:' in x];assert all(x.split('|')[-1]=='evc31' for x in running) and len(running)<=2
+   assert w.allowance(db,account)>=1
+   quota=remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));available=min(seconds(quota['minimumTimeAllowed']),seconds(quota['totalTimeAllowed']))-seconds(quota['timeUsed'])-seconds(quota['timeReserved']);assert available>=32400+7200
+   absence=remote.require_absent_kernel(op['kernel_slug'])
+   assert v['publication']['verified'] is True and v['publication']['kernel_source_sha256']==op['kernel_source_sha256'] and v['publication']['operation_sha256']==accept['new_operation_sha256']
+   save('push-intent.json',{'checked_at':w.utcnow(),'account':account,'GPU_quota':quota,'guaranteed_available_seconds':available,'public_session_limit_seconds':32400,'diagnostic_reserve_seconds':7200,'queue':queue,'old_failed_submission_id':56833454,'old_operation_sha256':op['dataset_publication_operation_sha256'],'source_sha256':op['kernel_source_sha256'],'operation_sha256':accept['new_operation_sha256'],'publication':v['publication'],'absence':absence,'new_Dataset_or_weights_transfer':False,'automatic_retry':False})
+   c.supersede_failed_submission_kernel(w,remote,db,op,op['dataset_publication_operation_sha256'])
+   result=w.push(remote,db,R/'candidate/operation.json');save('push-result.json',result)
+   print(json.dumps({'status':'exact_corrected_control_notebook_pushed_once','kernel_slug':op['kernel_slug'],'version':result['kernel_version'],'checkpoint_sha256':sha,'account':account,'new_Dataset_or_competition_submission':False}));sys.exit(0)
+  assert entry['operation_sha256']==expected_operation_sha and entry['operation']['kernel_slug']==op['kernel_slug']
+  if v['phase']=='reconcile':
+   result=w.reconcile_submission(remote,db,sha);print(json.dumps({'status':'actual_hidden_outcome_reconciled','submission_id':result['submission_id'],'remote_outcome':result.get('remote_outcome'),'public_score':result.get('public_score'),'error':result.get('remote_error_description'),'account':account}));sys.exit(0)
+  status=w.status(remote,db,sha)
+  if v['phase']=='status':print(json.dumps({'status':status['kernel_status']['status'],'exact':status,'account':account}));sys.exit(0)
+  assert v['phase']=='submit' and status['kernel_status']['status']=='COMPLETE' and entry['state']=='pushed'
+  receipt=remote.output_json(op['kernel_slug'],1,'kaggle-inference-receipt.json');metrics=remote.output_json(op['kernel_slug'],1,'submission.metrics.json');raw=csv_output(op['kernel_slug'],1);assert hashlib.sha256(raw).hexdigest()==receipt['submission_sha256']==metrics['submission_sha256'];rows=list(csv.reader(io.StringIO(raw.decode())))
+  from rsna.schema import TARGETS
+  assert rows[0]==['StudyInstanceUID',*TARGETS] and len(rows)==4 and all(len(row)==13 for row in rows)
+  reference=v['public_reference'];assert [r[0] for r in rows[1:]]==[r[0] for r in reference[1:]]
+  import numpy as np
+  left=np.asarray([r[1:] for r in rows[1:]],dtype=np.float32);right=np.asarray([r[1:] for r in reference[1:]],dtype=np.float32);assert np.array_equal(left,right) and np.isfinite(left).all() and ((left>=0)&(left<=1)).all()
+  assert metrics['resident_engine']=='two_device_exact_FP32_prefetch_v1' and sum(x.get('fallback_studies',0) for x in metrics['chunks'])==0
+  assert metrics['production_memory']['summed_lifetime_RSS_bytes']<=29*2**30 and receipt['checkpoint_sha256']==sha and receipt['bundle_manifest_sha256']==op['manifest_sha256']
+  if not (R/'public-accepted.json').exists():save('public-accepted.json',{'checked_at':w.utcnow(),'kernel_slug':op['kernel_slug'],'version':1,'checkpoint_sha256':sha,'receipt':receipt,'metrics':metrics,'original_legacy_FP32_tensor_values_exact':True,'public_examples':3,'competition_score_claimed':False})
+  result=w.submit(remote,db,sha);save('submit-result.json',result);print(json.dumps({'status':'corrected_control_code_submitted_once','submission_id':result['submission_id'],'kernel_slug':op['kernel_slug'],'version':1,'checkpoint_sha256':sha,'actual_hidden_score':None}));

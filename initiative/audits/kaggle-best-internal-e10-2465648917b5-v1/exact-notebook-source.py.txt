@@ -1,0 +1,757 @@
+EXPECTED_MANIFEST_SHA256 = '626ba628d675bb6ba63955109e05e8edbb0bc604503d55d6938b6db0f6ef0f2c'
+INFERENCE_FP32_PREFETCH = True
+INFERENCE_PREFETCH_SOURCES = {'prefetch_entry.py': '"""Production entry for the measured exact-FP32 two-GPU prefetch pipeline."""\n\nfrom __future__ import annotations\n\nimport json\nimport os\nimport time\nfrom pathlib import Path\n\nimport pandas as pd\n\nif __package__:\n    from . import chunked_infer\n    from .prefetch_preparation import PrefetchPreparation\n    from .process_memory import LinuxProcess, linux_peak_rss\n    from .resident_pool import ResidentPool\nelse:\n    import chunked_infer\n    from prefetch_preparation import PrefetchPreparation\n    from process_memory import LinuxProcess, linux_peak_rss\n    from resident_pool import ResidentPool\n\n\ndef live_memory(pool, preparation):\n    """Cover notebook, pipeline, model workers and any preparation/tracker processes."""\n    current = LinuxProcess(os.getpid(), Path("/proc"))\n    children = current.children(recursive=True)\n    residents = {p.pid for p in pool.children}\n    preparers = set(preparation.preparation.worker_pids())\n    if len(residents) != 2 or len(preparers) not in (0, 2) or residents & preparers:\n        raise ValueError("Unexpected production worker topology")\n    pids = {child.pid for child in children}\n    if not residents | preparers <= pids:\n        raise ValueError("Workers disappeared before lifetime memory accounting")\n    trackers = []\n    for child in children:\n        if child.pid not in residents | preparers:\n            if "multiprocessing.resource_tracker" not in " ".join(child.cmdline()):\n                raise ValueError("Unclassified production descendant")\n            trackers.append(child.pid)\n    if len(trackers) > 1:\n        raise ValueError("Unexpected resource trackers")\n    peaks = {pid: linux_peak_rss(pid) for pid in [current.pid, *sorted(pids), os.getppid()]}\n    total = sum(peaks.values())\n    if total > 29 * 2**30:\n        raise ValueError("Notebook and complete workload exceed the RAM envelope")\n    return {"process_count": len(peaks), "summed_lifetime_RSS_bytes": total}\n\n\ndef run(\n    args,\n    *,\n    remaining_seconds=28800,\n    pool_factory=ResidentPool,\n    preparation_factory=PrefetchPreparation,\n    memory_reader=live_memory,\n):\n    if (\n        args.precision != "fp32"\n        or args.workers != 0\n        or args.device != "cuda"\n        or args.chunk_size != 8\n        or args.baseline_epoch_one\n        or args.allow_diagnostic\n        or not args.resilient_series\n        or not args.recover_slices\n        or not args.isolate_study_errors\n        or args.test_studies is None\n        or not 0 < remaining_seconds <= 28800\n    ):\n        raise ValueError("Exact FP32/eight-study production pipeline and test.csv roster required")\n    started = time.monotonic()\n    # Match the original chunk consumer\'s CSV parsing and index boundary exactly.\n    frame = pd.read_csv(args.series)\n    identifiers = pd.read_csv(args.test_studies).StudyInstanceUID.tolist()\n    args.single_decode = True\n    pool = pool_factory(workers=2, timeout_seconds=remaining_seconds)\n    preparation = None\n    try:\n        preparation = preparation_factory(\n            frame,\n            identifiers,\n            args.cache_root.with_name(args.cache_root.name + "-prefetch-spool"),\n            chunk_size=8,\n        )\n        result = chunked_infer.run(args, invoke=pool.invoke, prepare_invoke=preparation.prepare)\n        memory = memory_reader(pool, preparation)\n        completed = preparation.completed\n    finally:\n        # A failed future must not strand the model processes.\n        try:\n            if preparation is not None:\n                preparation.close()\n        finally:\n            pool.close()\n    result.update(\n        resident_engine="two_device_exact_FP32_prefetch_v1",\n        resident_engine_elapsed_seconds=time.monotonic() - started,\n        resident_total_budget_seconds=remaining_seconds,\n        CPU_preparation_workers=2,\n        CPU_threads_per_preparation_worker=1,\n        maximum_materialized_chunks=2,\n        completed_prefetch_chunks=completed,\n        production_memory=memory,\n        hidden_test_runtime_validated=False,\n    )\n    args.output.with_suffix(".metrics.json").write_text(\n        json.dumps(result, sort_keys=True, indent=2) + "\\n"\n    )\n    return result\n\n\ndef main():\n    parser = chunked_infer.argument_parser()\n    parser.add_argument("--resident-remaining-seconds", type=float, default=28800)\n    args = parser.parse_args()\n    print(json.dumps(run(args, remaining_seconds=args.resident_remaining_seconds)), flush=True)\n\n\nif __name__ == "__main__":\n    main()\n', 'prefetch_preparation.py': '"""One-chunk-ahead CPU preparation; original inference order/bytes and failures stay fixed."""\n\nfrom __future__ import annotations\n\nimport shutil\nfrom concurrent.futures import ThreadPoolExecutor\nfrom pathlib import Path\n\nimport pandas as pd\n\nif __package__:\n    from .parallel_preparation import ParallelPreparation\nelse:\n    from parallel_preparation import ParallelPreparation\n\n\nclass PrefetchPreparation:\n    def __init__(\n        self, frame, identifiers, spool, *, chunk_size=8, preparation_factory=ParallelPreparation\n    ):\n        if (\n            not identifiers\n            or len(set(identifiers)) != len(identifiers)\n            or type(chunk_size) is not int\n            or chunk_size < 1\n        ):\n            raise ValueError("Original distinct complete roster and fixed chunk size required")\n        self.frame = frame.copy()\n        self.identifiers = list(identifiers)\n        self.spool = Path(spool)\n        if self.spool.exists():\n            raise ValueError("Prefetch scratch must be a new private path")\n        self.spool.mkdir(mode=0o700)\n        self.chunks = [\n            self.identifiers[i : i + chunk_size] for i in range(0, len(identifiers), chunk_size)\n        ]\n        self.preparation = preparation_factory()\n        self.thread = ThreadPoolExecutor(max_workers=1)\n        self.next = 0\n        self.future = None\n        self.options = None\n        self.completed = 0\n\n    def _frame(self, identifiers):\n        return self.frame.loc[self.frame.StudyInstanceUID.isin(identifiers)].copy()\n\n    @staticmethod\n    def _cache_bytes(path):\n        return sum(p.stat().st_size for p in path.rglob("*") if p.is_file())\n\n    def _stage(self, index, options):\n        # The current materialized chunk is already charged to free space.\n        if shutil.disk_usage(self.spool).free < 6 * 2**30:\n            raise OSError("Future3GiB chunk plus3GiB scratch reserve required")\n        root = self.spool / f"prefetch-{index:04d}"\n        root.mkdir(mode=0o700)\n        cache = root / "cache"\n        ids = self.chunks[index]\n        frame = self._frame(ids)\n        upper = sum(\n            len(\n                list(\n                    (\n                        Path(options["dicom_root"])\n                        / "test_series"\n                        / row.StudyInstanceUID\n                        / row.SeriesInstanceUID\n                    ).glob("*.dcm")\n                )\n            )\n            * (options["cache_side"] ** 2 * 2 + 4096)\n            + 65536\n            for row in frame.itertuples(index=False)\n        )\n        if upper > 3 * 2**30:\n            raise ValueError("Prefetch chunk upper byte bound exceeds funded3GiB cap")\n        selected, receipt = self.preparation.prepare(frame, ids, cache=cache, **options)\n        if self._cache_bytes(cache) > 3 * 2**30:\n            raise ValueError("Actual prefetched cache exceeds3GiB cap")\n        return selected, receipt, cache\n\n    def prepare(self, frame, identifiers, **options):\n        if self.next >= len(self.chunks) or identifiers != self.chunks[self.next]:\n            raise ValueError("Original inference chunk order cannot change")\n        pd.testing.assert_frame_equal(frame, self._frame(identifiers))\n        if "cache" not in options:\n            raise ValueError("Original destination cache required")\n        destination = Path(options["cache"])\n        policy = {k: v for k, v in options.items() if k != "cache"}\n        if self.options is None:\n            self.options = policy\n        elif policy != self.options:\n            raise ValueError("MRI preparation policy cannot change during prefetch")\n        if self.future is None:\n            if shutil.disk_usage(self.spool).free < 9 * 2**30:\n                raise OSError("Two3GiB chunks plus3GiB scratch reserve required")\n            selected, receipt = self.preparation.prepare(frame, identifiers, **options)\n            if self._cache_bytes(destination) > 3 * 2**30:\n                raise ValueError("Original current chunk exceeds funded3GiB cap")\n        else:\n            selected, receipt, cache = self.future.result()\n            if destination.exists():\n                raise ValueError("Original chunk cache destination must be unused")\n            destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)\n            cache.rename(destination)\n            cache.parent.rmdir()\n            self.completed += 1\n        self.next += 1\n        self.future = None\n        if self.next < len(self.chunks):\n            self.future = self.thread.submit(self._stage, self.next, dict(self.options))\n        return selected, receipt\n\n    def close(self):\n        # No automatic retry or removal of a failed/pending cache; retain evidence.\n        self.thread.shutdown(wait=True, cancel_futures=True)\n        self.preparation.close()\n\n    def __enter__(self):\n        return self\n\n    def __exit__(self, *args):\n        self.close()\n', 'parallel_preparation.py': '"""Bounded study-level CPU preparation using the unchanged serial MRI recovery code."""\n\nfrom __future__ import annotations\n\nimport multiprocessing\nfrom concurrent.futures import ProcessPoolExecutor\n\nimport pandas as pd\n\nif __package__:\n    from .chunked_infer import prepare_usable_series\nelse:\n    from chunked_infer import prepare_usable_series\n\n\ndef initialize_cpu():\n    import os\n\n    for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):\n        os.environ[key] = "1"\n    import torch\n\n    torch.set_num_threads(1)\n\n\ndef prepare_partition(frame, identifiers, options):\n    return prepare_usable_series(frame, identifiers, **options)\n\n\nclass ParallelPreparation:\n    def __init__(self, *, workers=2, executor_factory=ProcessPoolExecutor):\n        if type(workers) is not int or workers != 2:\n            raise ValueError("Exactly two one-thread CPU preparation workers required")\n        self.executor = executor_factory(\n            max_workers=2,\n            mp_context=multiprocessing.get_context("spawn"),\n            initializer=initialize_cpu,\n        )\n        self.requests = 0\n\n    def prepare(self, frame, study_ids, **options):\n        if len(set(study_ids)) != len(study_ids) or not study_ids:\n            raise ValueError("Nonempty distinct original study chunk required")\n        # Ambiguous metadata follows the exact original serial path; it is never\n        # repaired or split in a way that could change original recovery policy.\n        if (\n            not frame.index.is_unique\n            or not set(frame.StudyInstanceUID) <= set(study_ids)\n            or (frame.groupby("SeriesInstanceUID").StudyInstanceUID.nunique() > 1).any()\n            or len(study_ids) < 2\n        ):\n            return prepare_usable_series(frame, study_ids, **options)\n        self.requests += 1\n        groups = [study_ids[i::2] for i in range(2)]\n        futures = [\n            self.executor.submit(\n                prepare_partition, frame.loc[frame.StudyInstanceUID.isin(ids)].copy(), ids, options\n            )\n            for ids in groups\n        ]\n        results = [future.result() for future in futures]\n        combined = pd.concat([selected for selected, _ in results])\n        selected = combined.loc[frame.index[frame.index.isin(combined.index)]].copy()\n        receipts = [receipt for _, receipt in results]\n        expected = set(receipts[0])\n        if any(set(row) != expected for row in receipts):\n            raise ValueError("Original preparation receipt policies differ")\n        failures = set(receipts[0]["skipped_series"])\n        if any(set(row["skipped_series"]) != failures for row in receipts):\n            raise ValueError("Original recovery counters differ")\n        receipt = {\n            "selected_series": len(selected),\n            "skipped_series": {\n                key: sum(row["skipped_series"][key] for row in receipts) for key in failures\n            },\n        }\n        if "series_sampling" in expected:\n            if any(row["series_sampling"] != "all" for row in receipts):\n                raise ValueError("Unknown series policy")\n            receipt["series_sampling"] = "all"\n        if "unusable_study_ids" in expected:\n            unavailable = {uid for row in receipts for uid in row["unusable_study_ids"]}\n            receipt["unusable_study_ids"] = [uid for uid in study_ids if uid in unavailable]\n        if "source_recovery" in expected:\n            order = {uid: index for index, uid in enumerate(study_ids)}\n            receipt["source_recovery"] = sorted(\n                [item for row in receipts for item in row["source_recovery"]],\n                key=lambda item: order[item["study_uid"]],\n            )\n        if expected != set(receipt):\n            raise ValueError("Parallel aggregation lacks an original receipt field")\n        return selected, receipt\n\n    def close(self):\n        self.executor.shutdown(wait=True, cancel_futures=True)\n\n    def worker_pids(self):\n        """Read only while this pinned Python executor\'s two workers are alive."""\n        processes = getattr(self.executor, "_processes", None)\n        if not isinstance(processes, dict) or len(processes) != 2:\n            raise ValueError("Both persistent preparation worker identities required")\n        if any(not process.is_alive() for process in processes.values()):\n            raise ValueError("Preparation worker exited before memory accounting")\n        return list(processes)\n\n    def __enter__(self):\n        return self\n\n    def __exit__(self, *args):\n        self.close()\n', 'process_memory.py': '"""Account Linux lifetime RSS peaks while every workload worker is still alive."""\n\nfrom __future__ import annotations\n\nimport os\nfrom pathlib import Path\n\n\ndef linux_peak_rss(pid: int, *, proc_root: Path = Path("/proc")) -> int:\n    """Read the kernel high-water mark, not a late sample of current RSS."""\n    rows = {}\n    for line in (proc_root / str(pid) / "status").read_text().splitlines():\n        key, separator, value = line.partition(":")\n        if separator:\n            rows[key] = value.strip()\n    peak = rows.get("VmHWM", "").split()\n    if rows.get("Pid") != str(pid) or len(peak) != 2 or peak[1] != "kB":\n        raise ValueError("Missing original process identity or Linux lifetime RSS peak")\n    value = int(peak[0]) * 1024\n    if value <= 0:\n        raise ValueError("Invalid process peak RSS")\n    return value\n\n\nclass LinuxProcess:\n    """Use the mounted kernel process namespace without an extra dependency."""\n\n    def __init__(self, pid, proc_root):\n        self.pid, self.proc_root = pid, proc_root\n\n    def cmdline(self):\n        return (self.proc_root / str(self.pid) / "cmdline").read_bytes().decode().split("\\0")\n\n    def children(self, *, recursive):\n        if recursive is not True:\n            raise ValueError("Complete descendant accounting required")\n        discovered, pending = set(), [self.pid]\n        while pending:\n            parent = pending.pop()\n            tasks = list((self.proc_root / str(parent) / "task").iterdir())\n            if not tasks:\n                raise ValueError("Process tasks disappeared before accounting")\n            for task in tasks:\n                for token in (task / "children").read_text().split():\n                    pid = int(token)\n                    if pid <= 0 or pid == self.pid:\n                        raise ValueError("Invalid descendant process identity")\n                    if pid not in discovered:\n                        discovered.add(pid)\n                        pending.append(pid)\n                        if len(discovered) > 16:\n                            raise ValueError("Unexpectedly large workload process tree")\n        return [LinuxProcess(pid, self.proc_root) for pid in sorted(discovered)]\n\n\ndef workload_memory(*, resident_pids, preparation_pids, process=None, proc_root=Path("/proc")):\n    """Sum lifetime peaks of parent, both model/preparation workers and tracker.\n\n    Workers must remain alive until this snapshot. Summing independent peaks\n    overestimates their simultaneous RSS, but covers preparation/model overlap.\n    Reject missing or unclassified descendants rather than accepting a partial\n    model-only figure. This measures process RSS, not total cgroup/page-cache use.\n    """\n    process = LinuxProcess(os.getpid(), proc_root) if process is None else process\n    residents, preparations = set(resident_pids), set(preparation_pids)\n    if len(residents) != 2 or len(preparations) != 2 or residents & preparations:\n        raise ValueError("Two distinct resident and two distinct preparation workers required")\n    children = process.children(recursive=True)\n    pids = {child.pid for child in children}\n    if len(pids) != len(children) or not residents | preparations <= pids:\n        raise ValueError("Workload worker absent at memory snapshot")\n    extra = pids - residents - preparations\n    if len(extra) != 1:\n        raise ValueError("Exactly one live multiprocessing resource tracker required")\n    tracker = next(child for child in children if child.pid in extra)\n    if not any("multiprocessing.resource_tracker" in argument for argument in tracker.cmdline()):\n        raise ValueError("Unclassified process would make the RSS accounting incomplete")\n    groups = {\n        "parent": {process.pid},\n        "resident_workers": residents,\n        "preparation_workers": preparations,\n        "resource_tracker": extra,\n    }\n    peaks = {\n        role: sum(linux_peak_rss(pid, proc_root=proc_root) for pid in ids)\n        for role, ids in groups.items()\n    }\n    return {\n        "status": "all_live_workload_process_lifetime_RSS_peaks_accounted",\n        "process_counts": {role: len(ids) for role, ids in groups.items()},\n        "component_peak_rss_upper_bytes": peaks,\n        "process_tree_peak_rss_upper_bytes": sum(peaks.values()),\n        "snapshot_before_worker_shutdown": True,\n        "total_cgroup_memory_or_page_cache_measured": False,\n    }\n', 'resident_infer.py': '"""Load one immutable trained model per device and reuse it across MRI chunks.\n\nStandalone execution optimization: original rsna numerical modules, checkpoint,\npreprocessing, source checks and sigmoid predictions stay unchanged. FP32 only;\nthis does not establish a nine-hour T4 deployment acceptance.\n"""\n\nfrom __future__ import annotations\n\nimport inspect\nimport json\nimport resource\nimport sys\nimport time\nfrom dataclasses import replace\nfrom pathlib import Path\n\nimport torch\nfrom torch.utils.data import DataLoader\n\nfrom rsna.competitive import data as trained_data\nfrom rsna.competitive import infer\nfrom rsna.competitive.adapters import configure_encoder_training\nfrom rsna.competitive.backbones import create_encoder, create_encoder_from_training_checkpoint\nfrom rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model\nfrom rsna.competitive.model import CompetitiveStudyNet\nfrom rsna.competitive.train import TrainConfig, predict\nfrom rsna.infer import load_inference_metadata, write_submission\nfrom rsna.schema import TARGETS\n\nCompetitiveStudyDataset = trained_data.CompetitiveStudyDataset\ncollate_studies = trained_data.collate_studies\n\n\ndef evaluation_slice_sampling(policy):\n    original = getattr(trained_data, "evaluation_slice_sampling", None)\n    if original is not None:\n        return original(policy)\n    if policy not in {"uniform", "all"}:\n        raise ValueError("Historical source does not admit this evaluation policy")\n    return policy\n\n\ndef signature(path: Path) -> tuple:\n    value = path.stat()\n    if path.is_symlink() or not path.is_file():\n        raise ValueError("Resident input must remain a regular immutable file")\n    return value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns\n\n\nclass ResidentInference:\n    def __init__(self, args, *, device_index: int = 0):\n        started = time.monotonic()\n        if args.precision != "fp32" or args.workers != 0 or args.batch_size != 1:\n            raise ValueError("Initial resident admission fixes FP32/one-study/zero-worker views")\n        if args.dicom_root is not None or getattr(args, "baseline_epoch_one", False):\n            raise ValueError(\n                "Resident execution needs prepared MRI and an admitted final checkpoint"\n            )\n        self.device = torch.device(f"cuda:{device_index}" if args.device == "cuda" else args.device)\n        if self.device.type not in {"cuda", "cpu"}:\n            raise ValueError("Unsupported resident device")\n        if self.device.type == "cuda":\n            if not torch.cuda.is_available() or device_index >= torch.cuda.device_count():\n                raise ValueError("An assigned CUDA device is required")\n            torch.cuda.set_device(self.device)\n        torch.set_num_threads(1)\n        self.checkpoint_sha = infer.file_sha256(args.checkpoint)\n        self.saved = torch.load(args.checkpoint, map_location="cpu", weights_only=True)\n        reviewed = getattr(args, "fitting_admission", None)\n        if reviewed is None:\n            binding = infer.validate_inference_checkpoint(\n                self.saved,\n                allow_diagnostic=args.allow_diagnostic,\n                allow_scheduled_epoch=getattr(args, "scheduled_epoch", False),\n            )\n        else:\n            if args.allow_diagnostic:\n                raise ValueError("Reviewed admission cannot authorize diagnostic weights")\n            if __package__:\n                from .reviewed_infer import read_admission, validate_reviewed\n            else:\n                from reviewed_infer import read_admission, validate_reviewed\n\n            binding = validate_reviewed(self.saved, read_admission(reviewed), self.checkpoint_sha)\n        package = Path(infer.__file__).resolve().parents[1]\n        hashes = {\n            str(p.relative_to(package)): infer.file_sha256(p) for p in sorted(package.rglob("*.py"))\n        }\n        if binding["code_sha256"] != hashes:\n            raise ValueError("Resident numerical source differs from the trained checkpoint")\n        self.package, self.source_hashes = package, hashes\n        channels = (\n            3\n            if (binding["config"].get("neighbor_channels") or {}).get("mode")\n            in {"physical", "distant"}\n            else 1\n        )\n        if args.encoder_config is not None:\n            if self.saved["schema_version"] != 1:\n                raise ValueError("Delta residency requires the pinned original encoder spec")\n            spec = dict(binding["config"]["encoder"])\n            encoder, dim, provenance = create_encoder_from_training_checkpoint(\n                spec,\n                args.encoder_config,\n                encoder_state={\n                    k.removeprefix("encoder."): v\n                    for k, v in self.saved["model"].items()\n                    if k.startswith("encoder.")\n                },\n            )\n        else:\n            spec = json.loads(args.encoder_spec.read_text())\n            encoder, dim, provenance = create_encoder(\n                spec, **({"input_channels": 3} if channels == 3 else {})\n            )\n        if provenance != binding["config"]["encoder"]:\n            raise ValueError("Resident base/provenance differs from training")\n        values = dict(binding["config"])\n        values["encoder"] = spec\n        self.config = TrainConfig(**values)\n        self.config.validate()\n        self.training_precision = self.config.precision\n        self.inference_precision = "fp32"\n        self.config = replace(self.config, precision="fp32")\n        self.config.validate()\n        kwargs = dict(\n            pooling=self.config.pooling,\n            hidden_dim=self.config.hidden_dim,\n            encode_chunk_size=self.config.encode_chunk_size,\n        )\n        supported = inspect.signature(CompetitiveStudyNet).parameters\n        for name, value in [\n            ("slice_context", getattr(self.config, "slice_context", "none")),\n            ("witness", getattr(self.config, "witness", None)),\n            ("plane_memory", getattr(self.config, "plane_memory", None)),\n            ("patch_summary", getattr(self.config, "patch_summary", None)),\n            ("input_channels", channels),\n        ]:\n            if name in supported:\n                kwargs[name] = value\n            elif value not in (None, "none", 1):\n                raise ValueError("Frozen model cannot accept this policy")\n        if getattr(self.config, "relation", None) is not None:\n            raise ValueError("Relation checkpoints require separate resident admission")\n        self.model = CompetitiveStudyNet(encoder, dim, **kwargs).to(self.device)\n        configure_encoder_training(encoder, self.config.freeze_encoder)\n        guard = (\n            FrozenBaseDelta(self.model, provenance) if self.saved["schema_version"] == 2 else None\n        )\n        restore_checkpoint_model(self.model, self.saved, guard)\n        self.model.eval()\n        self.binding, self.provenance = binding, provenance\n        paths = [args.checkpoint, args.encoder_config or args.encoder_spec]\n        if args.encoder_spec is not None:\n            paths += [Path(spec[k]) for k in ("weights_path", "config_path") if k in spec]\n        if reviewed is not None:\n            paths.append(reviewed)\n        self.immutable = {str(p): signature(p) for p in paths}\n        self.identity = self.options(args)\n        self.saved_epoch = self.saved["epoch"]\n        self.model_load_count = 1\n        self.requests = 0\n        self.startup_seconds = time.monotonic() - started\n        # Inference never needs the AdamW state, RNG envelope or CPU learned copy.\n        del self.saved\n\n    @staticmethod\n    def options(args):\n        return {\n            k: str(getattr(args, k, None))\n            for k in (\n                "checkpoint",\n                "encoder_config",\n                "encoder_spec",\n                "device",\n                "precision",\n                "allow_diagnostic",\n                "scheduled_epoch",\n                "fitting_admission",\n                "batch_size",\n                "workers",\n            )\n        }\n\n    def run(self, args):\n        started = time.monotonic()\n        if self.options(args) != self.identity or args.dicom_root is not None:\n            raise ValueError("Resident model/runtime admission cannot change between chunks")\n        if any(signature(Path(p)) != expected for p, expected in self.immutable.items()):\n            raise ValueError("Immutable resident checkpoint/base/admission changed")\n        if {\n            str(p.relative_to(self.package)): infer.file_sha256(p)\n            for p in sorted(self.package.rglob("*.py"))\n        } != self.source_hashes:\n            raise ValueError("Resident numerical source changed after admission")\n        if args.output.exists():\n            raise ValueError("Resident output must be new")\n        series, studies, template, inputs = load_inference_metadata(\n            {}, args.series, None, args.template, "test"\n        )\n        if args.allow_diagnostic and len(studies) > 3:\n            raise ValueError("Diagnostic weights remain limited to three public examples")\n        data = dict(\n            raw_split="test_series",\n            slices=self.config.slices,\n            side=self.config.side,\n            max_series=self.config.max_series,\n            slice_sampling=evaluation_slice_sampling(self.config.slice_sampling),\n            series_sampling=self.config.series_sampling,\n        )\n        if getattr(self.config, "neighbor_channels", None) is not None:\n            data["neighbor_channels"] = self.config.neighbor_channels\n        dataset = CompetitiveStudyDataset(studies, series, args.cache, **data)\n        if dataset.source_revision != args.source_revision:\n            raise ValueError("Resident cache source differs from admitted request")\n        if dataset.cache_side != self.binding["cache_side"]:\n            raise ValueError("Resident cache resolution differs")\n        preprocessing = time.monotonic() - started\n        loader = DataLoader(\n            dataset,\n            batch_size=1,\n            num_workers=0,\n            collate_fn=collate_studies,\n            generator=torch.Generator().manual_seed(self.config.seed),\n        )\n        with torch.inference_mode():\n            frame, _ = self.predict(loader)\n        frame = frame.rename(columns={"study_uid": "StudyInstanceUID"})[\n            ["StudyInstanceUID", *TARGETS]\n        ]\n        args.output.parent.mkdir(parents=True, exist_ok=True)\n        write_submission(frame, template, args.output)\n        self.requests += 1\n        result = {\n            "schema_version": 1,\n            "status": "passed",\n            "diagnostic_only": self.config.diagnostic_study_limit is not None,\n            "studies": len(studies),\n            "device_type": self.device.type,\n            "elapsed_seconds": time.monotonic() - started,\n            "preprocessing_seconds": preprocessing,\n            "checkpoint_sha256": self.checkpoint_sha,\n            "submission_sha256": infer.file_sha256(args.output),\n            "training_release_binding": self.binding["release"],\n            "test_inputs": inputs,\n            "cache_version": self.binding["cache_version"],\n            "cache_side": dataset.cache_side,\n            "cache_source_revision": dataset.source_revision,\n            "encoder": self.provenance,\n            "hidden_test_runtime_validated": False,\n            "checkpoint_epoch": self.saved_epoch,\n            "scheduled_epoch_authorized": getattr(args, "scheduled_epoch", False),\n            "training_precision": self.training_precision,\n            "inference_precision": self.inference_precision,\n            "initial_pretrained_weights_read": args.encoder_spec is not None,\n            "resident_model_load_count": 1,\n            "resident_requests": self.requests,\n            "resident_startup_seconds": self.startup_seconds,\n            "resident_device_index": self.device.index,\n            "host_peak_rss_bytes": int(\n                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss\n                * (1 if sys.platform == "darwin" else 1024)\n            ),\n            "GPU_peak_allocated_bytes": torch.cuda.max_memory_allocated(self.device)\n            if self.device.type == "cuda"\n            else None,\n        }\n        args.output.with_suffix(".metrics.json").write_text(\n            json.dumps(result, sort_keys=True, indent=2) + "\\n"\n        )\n        return result\n\n    def predict(self, loader):\n        return predict(self.model, loader, self.device, self.config)\n', 'resident_pool.py': '"""Two device workers reuse models while preserving original chunk receipts."""\n\nfrom __future__ import annotations\n\nimport json\nimport os\nimport selectors\nimport subprocess\nimport sys\nimport time\nfrom pathlib import Path\n\nimport pandas as pd\n\nif __package__:\n    from .resident_worker import parse_command\nelse:\n    from resident_worker import parse_command\n\nfrom rsna.infer import write_submission\nfrom rsna.schema import TARGETS\n\n\nclass ResidentPool:\n    def __init__(\n        self,\n        *,\n        workers=2,\n        timeout_seconds=32400,\n        process_factory=subprocess.Popen,\n        performance_fp16_probe=False,\n    ):\n        if type(performance_fp16_probe) is not bool:\n            raise ValueError("Explicit performance-probe flag required")\n        self.performance_fp16_probe = performance_fp16_probe\n        if workers not in (1, 2) or timeout_seconds <= 0:\n            raise ValueError("Bounded one/two-device workers required")\n        env = os.environ.copy()\n        env.update(\n            OMP_NUM_THREADS="1",\n            MKL_NUM_THREADS="1",\n            OPENBLAS_NUM_THREADS="1",\n            PYTHONNOUSERSITE="1",\n            PYTHONDONTWRITEBYTECODE="1",\n        )\n        self.children = []\n        self.requests = 0\n        self.deadline = time.monotonic() + timeout_seconds\n        self.selector = selectors.DefaultSelector()\n        try:\n            for index in range(workers):\n                p = process_factory(\n                    [\n                        sys.executable,\n                        "-B",\n                        str(Path(__file__).with_name("resident_worker.py")),\n                        "--device-index",\n                        str(index),\n                    ]\n                    + (["--performance-fp16-probe"] if performance_fp16_probe else []),\n                    stdin=subprocess.PIPE,\n                    stdout=subprocess.PIPE,\n                    text=True,\n                    bufsize=1,\n                    env=env,\n                )\n                self.children.append(p)\n                self.selector.register(p.stdout, selectors.EVENT_READ, index)\n        except BaseException:\n            self.close()\n            raise\n\n    def exchange(self, commands):\n        self.requests += 1\n        pending = {}\n        responses = {}\n        for index, command in enumerate(commands):\n            request = f"{self.requests}:{index}"\n            child = self.children[index]\n            child.stdin.write(json.dumps({"command": command, "request_id": request}) + "\\n")\n            child.stdin.flush()\n            pending[index] = request\n        while pending:\n            remaining = self.deadline - time.monotonic()\n            if remaining <= 0:\n                raise TimeoutError("Resident total wall-time budget exhausted")\n            for key, _ in self.selector.select(min(remaining, 30)):\n                index = key.data\n                if index not in pending:\n                    continue\n                line = key.fileobj.readline()\n                if not line:\n                    raise RuntimeError("Resident worker exited; no automatic restart")\n                result = json.loads(line)\n                if result.get("request_id") != pending[index]:\n                    raise ValueError("Resident response identity mismatch")\n                responses[index] = result\n                self.selector.unregister(key.fileobj)\n                del pending[index]\n        for index in range(len(commands)):\n            self.selector.register(self.children[index].stdout, selectors.EVENT_READ, index)\n        return [responses[i] for i in range(len(commands))]\n\n    def invoke(self, command, *, check, capture_output=True, text=True):\n        args = parse_command(command, allow_fp16_probe=self.performance_fp16_probe)\n        template = pd.read_csv(args.template)\n        series = pd.read_csv(args.series)\n        if not check or not capture_output or not text:\n            raise ValueError("Resident call needs exact error capture")\n        root = args.output.parent / "resident-shards"\n        root.mkdir(mode=0o700)\n        commands = []\n        outputs = []\n        count = min(len(self.children), len(template))\n        started = time.monotonic()\n        if count < 1:\n            raise ValueError("Empty resident study request")\n        for index in range(count):\n            shard = root / f"worker-{index}"\n            shard.mkdir(mode=0o700)\n            part = template.iloc[index::count].copy()\n            t = shard / "template.csv"\n            s = shard / "series.csv"\n            out = shard / "submission.csv"\n            part.to_csv(t, index=False)\n            series.loc[series.StudyInstanceUID.isin(part.StudyInstanceUID)].to_csv(s, index=False)\n            selected = list(command)\n            for name, path in [("--template", t), ("--series", s), ("--output", out)]:\n                selected[selected.index(name) + 1] = str(path)\n            commands.append(selected)\n            outputs.append(out)\n        replies = self.exchange(commands)\n        for reply in replies:\n            if reply.get("status") != "passed":\n                raise subprocess.CalledProcessError(\n                    1, command, output="", stderr=reply.get("stderr", "Resident worker failed")\n                )\n        frames = []\n        records = [r["result"] for r in replies]\n        common = {\n            k: records[0][k]\n            for k in (\n                "training_release_binding",\n                "cache_version",\n                "cache_side",\n                "encoder",\n                "training_precision",\n                "inference_precision",\n                "device_type",\n                "checkpoint_epoch",\n                "checkpoint_sha256",\n                "diagnostic_only",\n                "scheduled_epoch_authorized",\n                "initial_pretrained_weights_read",\n                "cache_source_revision",\n            )\n        }\n        for index, (out, record) in enumerate(zip(outputs, records)):\n            if {k: record[k] for k in common} != common or record["resident_model_load_count"] != 1:\n                raise ValueError("Resident shard source/model/runtime differs")\n            frame = pd.read_csv(out)\n            if (\n                list(frame.columns) != ["StudyInstanceUID", *TARGETS]\n                or frame.StudyInstanceUID.tolist()\n                != template.iloc[index::count].StudyInstanceUID.tolist()\n            ):\n                raise ValueError("Resident shard identities or column order differ")\n            frames.append(frame)\n        merged = pd.concat(frames, ignore_index=True)\n        if merged.StudyInstanceUID.duplicated().any() or set(merged.StudyInstanceUID) != set(\n            template.StudyInstanceUID\n        ):\n            raise ValueError("Resident union does not match original roster")\n        merged = merged.set_index("StudyInstanceUID").loc[template.StudyInstanceUID].reset_index()\n        write_submission(merged, template, args.output)\n        from rsna.competitive.checkpoint import file_sha256\n\n        metrics = {\n            **common,\n            "status": "passed",\n            "studies": len(template),\n            "elapsed_seconds": time.monotonic() - started,\n            "submission_sha256": file_sha256(args.output),\n            "test_inputs": {\n                "series_sha256": file_sha256(args.series),\n                "template_sha256": file_sha256(args.template),\n                "metadata_binding": "separate_test_inputs_not_checkpoint_bound",\n            },\n            "resident_device_workers": count,\n            "resident_shards": records,\n            "hidden_test_runtime_validated": False,\n        }\n        args.output.with_suffix(".metrics.json").write_text(\n            json.dumps(metrics, sort_keys=True, indent=2) + "\\n"\n        )\n        return subprocess.CompletedProcess(command, 0, stdout=json.dumps(metrics), stderr="")\n\n    def close(self):\n        for p in self.children:\n            if p.poll() is None:\n                try:\n                    p.stdin.write(\'{"action":"close"}\\n\')\n                    p.stdin.flush()\n                    p.wait(timeout=10)\n                except (OSError, subprocess.TimeoutExpired):\n                    p.terminate()\n                    p.wait(timeout=10)\n            if p.stdin:\n                p.stdin.close()\n            if p.stdout:\n                p.stdout.close()\n        self.selector.close()\n', 'resident_worker.py': '"""Finite persistent worker protocol; no network, training or precision change."""\n\nfrom __future__ import annotations\n\nimport argparse\nimport contextlib\nimport json\nimport sys\nimport traceback\nfrom pathlib import Path\n\nif __package__:\n    from .resident_infer import ResidentInference\nelse:\n    from resident_infer import ResidentInference\n\n\ndef parse_command(command, *, allow_fp16_probe=False):\n    parser = argparse.ArgumentParser(add_help=False)\n    for name in ("checkpoint", "series", "template", "cache", "output"):\n        parser.add_argument("--" + name, type=Path, required=True)\n    group = parser.add_mutually_exclusive_group(required=True)\n    group.add_argument("--encoder-config", type=Path)\n    group.add_argument("--encoder-spec", type=Path)\n    parser.add_argument("--device", choices=("cpu", "cuda"), required=True)\n    parser.add_argument(\n        "--precision", choices=("fp32", "fp16") if allow_fp16_probe else ("fp32",), required=True\n    )\n    parser.add_argument("--workers", type=int, default=0)\n    parser.add_argument("--batch-size", type=int, default=1)\n    parser.add_argument("--source-revision", default="kaggle-runtime-test")\n    parser.add_argument("--scheduled-epoch", action="store_true")\n    parser.add_argument("--allow-diagnostic", action="store_true")\n    parser.add_argument("--fitting-admission", type=Path)\n    args = parser.parse_args(command[command.index("--checkpoint") :])\n    args.dicom_root = None\n    return args\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument("--device-index", type=int, required=True)\n    parser.add_argument("--performance-fp16-probe", action="store_true")\n    options = parser.parse_args()\n    runner = None\n    for line in sys.stdin:\n        try:\n            if len(line.encode()) > 1024**2:\n                raise ValueError("Oversized resident command")\n            request = json.loads(line)\n            if request == {"action": "close"}:\n                return\n            if set(request) != {"command", "request_id"}:\n                raise ValueError("Invalid resident request")\n            args = parse_command(\n                request["command"], allow_fp16_probe=options.performance_fp16_probe\n            )\n            with contextlib.redirect_stdout(sys.stderr):\n                if runner is None:\n                    if options.performance_fp16_probe:\n                        if __package__:\n                            from .fp16_resident_probe import FP16ResidentProbe\n                        else:\n                            from fp16_resident_probe import FP16ResidentProbe\n                        runner = FP16ResidentProbe(\n                            args, device_index=options.device_index, admit_performance_probe=True\n                        )\n                    else:\n                        runner = ResidentInference(args, device_index=options.device_index)\n                result = runner.run(args)\n            response = {"request_id": request["request_id"], "status": "passed", "result": result}\n        except Exception:\n            response = {\n                "request_id": locals().get("request", {}).get("request_id"),\n                "status": "failed",\n                "stderr": traceback.format_exc(),\n            }\n        print(json.dumps(response), flush=True)\n\n\nif __name__ == "__main__":\n    main()\n', 'chunked_infer.py': '"""Bound temporary test-cache size while using the exact trained inference code."""\n\nfrom __future__ import annotations\n\nimport argparse\nimport hashlib\nimport json\nimport shutil\nimport subprocess\nimport sys\nimport time\nfrom pathlib import Path\n\nimport pandas as pd\n\nfrom rsna.data import PLANES, select_series\nfrom rsna.infer import write_submission\nfrom rsna.preprocess import Source, cache_series\nfrom rsna.schema import TARGETS\n\n# Only image/geometry failures may exclude a series. Cache integrity, disk,\n# environment, and model failures still stop inference.\nDATA_ERROR_PREFIXES = (\n    "DICOM UID mismatch:",\n    "The number of bytes of pixel data is less than expected",\n    "Only single-frame grayscale slices are supported",\n    "Unsupported photometric interpretation:",\n    "Invalid DICOM rescale parameters",\n    "Non-finite pixel values",\n    "Non-finite DICOM geometry",\n    "Malformed DICOM position/orientation",\n    "Invalid DICOM pixel spacing",\n    "Invalid image orientation vectors",\n    "Neither geometry nor unique InstanceNumber can order series",\n    "Mixed pixel matrix dimensions within series",\n    "Mixed photometric interpretation within series",\n    "Constant-intensity series",\n    "Mixed pixel spacing within series",\n)\nDICOM_ATTRIBUTE_ERROR_PREFIXES = (\n    "\'FileDataset\' object has no attribute \'",\n    "The dataset has no \'Pixel Data\'",\n    "Missing required element:",\n    "Unable to decode the pixel data as the dataset\'s \'file_meta\' has no "\n    "(0002,0010) \'Transfer Syntax UID\' element",\n)\nDICOM_NOT_IMPLEMENTED_PREFIXES = (\n    "Unable to decode the pixel data as a (0002,0010) \'Transfer Syntax UID\' value of ",\n    "No pixel data decoders have been implemented for ",\n    "The data type \'",\n)\nDICOM_DECODER_RUNTIME_PREFIX = (\n    "Unable to decode as exceptions were raised by all available plugins:"\n)\n\n\nclass FrozenSeriesSource:\n    """Use the exact source bytes inspected at the per-slice decoding boundary."""\n\n    def __init__(self, payloads: dict[str, bytes]):\n        self.payloads = payloads\n\n    def read(self, path: str) -> bytes:\n        return self.payloads[path]\n\n    def read_series(self, paths: list[str]) -> list[bytes]:\n        return [self.payloads[path] for path in paths]\n\n\ndef healthy_slices(source: Source, paths: list[str]) -> tuple[list[str], FrozenSeriesSource, list]:\n    """Exclude undecodable source slices without inventing replacement MRI pixels."""\n    from pydicom.errors import InvalidDicomError\n\n    from rsna.dicom import decode_slice\n\n    payloads = {}\n    failures = []\n    for path in paths:\n        data = source.read(path)  # Filesystem and transport errors must remain fatal.\n        _, study, series, filename = Path(path).parts\n        try:\n            decode_slice(data, study, series, Path(filename).stem)\n        except (\n            InvalidDicomError,\n            ValueError,\n            TypeError,\n            KeyError,\n            IndexError,\n            AttributeError,\n            NotImplementedError,\n            EOFError,\n            OverflowError,\n        ) as exc:\n            failures.append({"path": path, "error_type": type(exc).__name__, "detail": str(exc)})\n        except RuntimeError as exc:\n            if not str(exc).startswith(DICOM_DECODER_RUNTIME_PREFIX):\n                raise\n            failures.append({"path": path, "error_type": type(exc).__name__, "detail": str(exc)})\n        else:\n            payloads[path] = data\n    return list(payloads), FrozenSeriesSource(payloads), failures\n\n\ndef cache_with_lazy_recovery(source, paths, cache, side, revision):\n    """Decode healthy MRI once; retain exact original bytes for error recovery.\n\n    Read failures remain fatal. If the normal series decoder fails, the existing\n    per-slice filter is used on the same frozen bytes; its original fatal series\n    handling still applies. This changes execution cost, not retained MRI pixels.\n    """\n    from pydicom.errors import InvalidDicomError\n\n    frozen = FrozenSeriesSource({path: source.read(path) for path in paths})\n    try:\n        metadata = cache_series(frozen, paths, cache, side, revision)\n        return metadata, paths, []\n    except (\n        InvalidDicomError,\n        ValueError,\n        TypeError,\n        KeyError,\n        IndexError,\n        AttributeError,\n        NotImplementedError,\n        EOFError,\n        OverflowError,\n        RuntimeError,\n    ) as original:\n        decoder_origin = False\n        trace = original.__traceback__\n        while trace is not None:\n            filename = Path(trace.tb_frame.f_code.co_filename).as_posix()\n            decoder_origin |= filename.endswith("/rsna/dicom.py")\n            trace = trace.tb_next\n        recognized = (\n            isinstance(original, InvalidDicomError)\n            or decoder_origin\n            or (isinstance(original, ValueError) and str(original).startswith(DATA_ERROR_PREFIXES))\n            or (\n                isinstance(original, AttributeError)\n                and str(original).startswith(DICOM_ATTRIBUTE_ERROR_PREFIXES)\n            )\n            or (\n                isinstance(original, NotImplementedError)\n                and str(original).startswith(DICOM_NOT_IMPLEMENTED_PREFIXES)\n            )\n            or (\n                isinstance(original, RuntimeError)\n                and str(original).startswith(DICOM_DECODER_RUNTIME_PREFIX)\n            )\n        )\n        if not recognized or (\n            isinstance(original, RuntimeError)\n            and not str(original).startswith(DICOM_DECODER_RUNTIME_PREFIX)\n        ):\n            raise\n        healthy, retained, rejected = healthy_slices(frozen, paths)\n        if not rejected:\n            raise original\n        if not healthy:\n            return None, [], rejected\n        return cache_series(retained, healthy, cache, side, revision), healthy, rejected\n\n\ndef data_failure(exc: subprocess.CalledProcessError) -> bool:\n    """Only isolate Python failures originating in MRI input handling."""\n    if exc.returncode != 1:\n        return False\n    trace = exc.stderr or ""\n    if not any(\n        name in trace\n        for name in ("/rsna/competitive/data.py", "/rsna/dicom.py", "/rsna/preprocess.py")\n    ):\n        return False\n    # Do not neutralize CUDA, memory, disk, environment, or model failures.\n    last = trace.strip().splitlines()[-1] if trace.strip() else ""\n    return last.startswith(\n        (\n            "ValueError:",\n            "TypeError:",\n            "KeyError:",\n            "IndexError:",\n            "AttributeError:",\n            "InvalidDicomError:",\n            "NotImplementedError:",\n            "EOFError:",\n            "OverflowError:",\n        )\n    ) and not any(\n        message in trace\n        for message in (\n            "checksum",\n            "fingerprint",\n            "Stale/corrupted",\n            "Incomplete cache pair",\n            "binding mismatch",\n            "changed after dataset",\n            "CUDA",\n            "out of memory",\n        )\n    )\n\n\ndef sha256(path: Path) -> str:\n    digest = hashlib.sha256()\n    with path.open("rb") as handle:\n        for block in iter(lambda: handle.read(1024 * 1024), b""):\n            digest.update(block)\n    return digest.hexdigest()\n\n\ndef verify_cache_contract(\n    checkpoint: Path, *, max_series: int, cache_side: int, series_sampling: str = "selected"\n) -> None:\n    """Read the saved training contract without changing its bound model code."""\n    import torch\n\n    saved = torch.load(checkpoint, map_location="cpu", weights_only=True)\n    binding = saved["binding"]\n    if (\n        binding["config"].get("max_series") != max_series\n        or binding.get("cache_side") != cache_side\n        or binding["config"].get("series_sampling", "selected") != series_sampling\n    ):\n        raise ValueError("Series limit/cache resolution differs from the trained checkpoint")\n    del saved\n\n\ndef prepare_usable_series(\n    frame: pd.DataFrame,\n    study_ids: list[str],\n    *,\n    dicom_root: Path,\n    cache: Path,\n    cache_side: int,\n    max_series: int,\n    source_revision: str,\n    allow_unusable_studies: bool = False,\n    recover_slices: bool = False,\n    validate_geometry: bool = False,\n    series_sampling: str = "selected",\n    single_decode: bool = False,\n) -> tuple[pd.DataFrame, dict]:\n    """Cache only useful MRI series; use an alternate when source pixels are invalid."""\n    from pydicom.errors import InvalidDicomError\n\n    source = Source(dicom_root)\n    if series_sampling not in {"selected", "all"}:\n        raise ValueError("Unknown MRI series coverage policy")\n    usable_ids: set[str] = set()\n    unusable_study_ids: list[str] = []\n    required = {\n        "StudyInstanceUID",\n        "SeriesInstanceUID",\n        "Anatomical_Plane",\n        "Fluid_Sensitive",\n        "Fat_Suppression",\n    }\n    if not required <= set(frame):\n        raise ValueError("Test series metadata lacks required MRI features")\n    normalized = frame.copy()\n    normalized["Anatomical_Plane"] = (\n        normalized["Anatomical_Plane"].astype("string").str.strip().str.title()\n    )\n    for name in ("Fluid_Sensitive", "Fat_Suppression"):\n        normalized[name] = pd.to_numeric(normalized[name], errors="coerce")\n    valid_metadata = (\n        normalized["Anatomical_Plane"].isin(PLANES)\n        & normalized["Fluid_Sensitive"].isin((0, 1))\n        & normalized["Fat_Suppression"].isin((0, 1))\n    )\n    valid_frame = normalized.loc[valid_metadata].copy()\n    for name in ("Fluid_Sensitive", "Fat_Suppression"):\n        valid_frame[name] = valid_frame[name].astype(int)\n    failures = {\n        "missing_dicoms": 0,\n        "invalid_dicoms": 0,\n        "invalid_series": 0,\n        "invalid_metadata": int((~valid_metadata).sum()),\n    }\n    recovery = []\n    for study_uid in study_ids:\n        rows = valid_frame.loc[valid_frame.StudyInstanceUID == study_uid].to_dict("records")\n        ordered = select_series(rows, len(rows), False)\n        limit = len(ordered) if series_sampling == "all" else max_series\n        attempted: set[str] = set()\n        accepted: list[dict] = []\n\n        def attempt(row: dict) -> bool:\n            sid = row["SeriesInstanceUID"]\n            attempted.add(sid)\n            folder = dicom_root / "test_series" / study_uid / sid\n            paths = sorted(str(path.relative_to(dicom_root)) for path in folder.glob("*.dcm"))\n            if not paths:\n                failures["missing_dicoms"] += 1\n                return False\n            cache_source = source\n            if recover_slices and not single_decode:\n                paths, cache_source, rejected = healthy_slices(source, paths)\n                if rejected:\n                    recovery.append(\n                        {\n                            "study_uid": study_uid,\n                            "series_uid": sid,\n                            "retained_slices": len(paths),\n                            "rejected_slices": rejected,\n                        }\n                    )\n                if not paths:\n                    failures["invalid_dicoms"] += 1\n                    return False\n            try:\n                if recover_slices and single_decode:\n                    metadata, paths, rejected = cache_with_lazy_recovery(\n                        source, paths, cache, cache_side, source_revision\n                    )\n                    if rejected:\n                        recovery.append(\n                            {\n                                "study_uid": study_uid,\n                                "series_uid": sid,\n                                "retained_slices": len(paths),\n                                "rejected_slices": rejected,\n                            }\n                        )\n                    if not paths:\n                        failures["invalid_dicoms"] += 1\n                        return False\n                else:\n                    metadata = cache_series(cache_source, paths, cache, cache_side, source_revision)\n            except InvalidDicomError:\n                failures["invalid_dicoms"] += 1\n                return False\n            except AttributeError as exc:\n                if not str(exc).startswith(DICOM_ATTRIBUTE_ERROR_PREFIXES):\n                    raise\n                failures["invalid_dicoms"] += 1\n                return False\n            except NotImplementedError as exc:\n                if not str(exc).startswith(DICOM_NOT_IMPLEMENTED_PREFIXES):\n                    raise\n                failures["invalid_dicoms"] += 1\n                return False\n            except RuntimeError as exc:\n                if not str(exc).startswith(DICOM_DECODER_RUNTIME_PREFIX):\n                    raise\n                failures["invalid_dicoms"] += 1\n                return False\n            except ValueError as exc:\n                if not str(exc).startswith(DATA_ERROR_PREFIXES):\n                    raise\n                failures["invalid_series"] += 1\n                return False\n            if validate_geometry:\n                from rsna.competitive.data import _positions\n\n                try:\n                    _positions(metadata, metadata["n_slices"])\n                except ValueError as exc:\n                    failures["invalid_series"] += 1\n                    recovery.append(\n                        {\n                            "study_uid": study_uid,\n                            "series_uid": sid,\n                            "rejected_model_geometry": str(exc),\n                        }\n                    )\n                    return False\n            usable_ids.add(sid)\n            accepted.append(row)\n            return True\n\n        # Match the trained sampler\'s plane-first selection. If its preferred\n        # series is corrupt, seek another of that plane before filling slots.\n        for plane in PLANES:\n            for row in ordered:\n                if row["Anatomical_Plane"] != plane or row["SeriesInstanceUID"] in attempted:\n                    continue\n                if attempt(row):\n                    break\n        for row in ordered:\n            if len(accepted) >= limit:\n                break\n            if row["SeriesInstanceUID"] not in attempted:\n                attempt(row)\n        if not accepted:\n            if not allow_unusable_studies:\n                raise ValueError("No decodable MRI series for a test study")\n            unusable_study_ids.append(study_uid)\n            continue\n        if len(accepted) > limit:\n            raise ValueError("Prepared more series than the trained model accepts")\n    selected = valid_frame.loc[valid_frame.SeriesInstanceUID.isin(usable_ids)].copy()\n    if set(selected.StudyInstanceUID) != set(study_ids) - set(unusable_study_ids):\n        raise ValueError("Prepared MRI series do not cover the test study chunk")\n    receipt = {"selected_series": len(selected), "skipped_series": failures}\n    if series_sampling == "all":\n        receipt["series_sampling"] = "all"\n    if allow_unusable_studies:\n        receipt["unusable_study_ids"] = unusable_study_ids\n    if recover_slices or validate_geometry:\n        receipt["source_recovery"] = recovery\n    return selected, receipt\n\n\ndef run(args: argparse.Namespace, invoke=None, *, prepare_invoke=None) -> dict:\n    baseline = getattr(args, "baseline_epoch_one", False)\n    reviewed = getattr(args, "fitting_admission", None)\n    if reviewed is not None and (baseline or args.allow_diagnostic):\n        raise ValueError("Reviewed fitting cannot broaden baseline or diagnostic inference")\n    if baseline and args.allow_diagnostic:\n        raise ValueError("A completed training baseline cannot be diagnostic")\n    if args.chunk_size < 1 or args.workers < 0:\n        raise ValueError("Chunk size and worker count must be valid")\n    if args.cache_root.exists() or args.cache_root.is_symlink():\n        raise ValueError("Chunk scratch must be new")\n    if args.output.exists():\n        raise ValueError("Refusing to replace an existing submission")\n    test_studies = getattr(args, "test_studies", None)\n    sample = pd.read_csv(args.template) if args.template is not None else None\n    if sample is not None and list(sample.columns) != ["StudyInstanceUID", *TARGETS]:\n        raise ValueError("Official sample submission column order differs")\n    if test_studies is not None:\n        roster = pd.read_csv(test_studies)\n        if "StudyInstanceUID" not in roster.columns:\n            raise ValueError("Official test.csv lacks study identities")\n        template = pd.DataFrame({"StudyInstanceUID": roster.StudyInstanceUID})\n        for target in TARGETS:\n            template[target] = 0.5\n    elif sample is not None:\n        template = sample\n    else:\n        raise ValueError("A test.csv roster or submission template is required")\n    series = pd.read_csv(args.series)\n    if list(template.columns) != ["StudyInstanceUID", *TARGETS]:\n        raise ValueError("Official template column order differs")\n    if template.empty or template.StudyInstanceUID.isna().any():\n        raise ValueError("Official test template is empty or has missing identities")\n    if template.StudyInstanceUID.duplicated().any():\n        raise ValueError("Duplicate test studies")\n    if not {"StudyInstanceUID", "SeriesInstanceUID"} <= set(series):\n        raise ValueError("Test series metadata lacks required identities")\n    if series.SeriesInstanceUID.isna().any() or series.SeriesInstanceUID.duplicated().any():\n        raise ValueError("Missing or duplicate test series identities")\n    fallback_unusable = getattr(args, "fallback_on_unusable_study", False)\n    if set(template.StudyInstanceUID) - set(series.StudyInstanceUID) and not fallback_unusable:\n        raise ValueError("A test study has no series")\n\n    isolate = getattr(args, "isolate_study_errors", False)\n    recover_slices = getattr(args, "recover_slices", False)\n    validate_geometry = getattr(args, "validate_model_geometry", False)\n    if isolate and not fallback_unusable:\n        raise ValueError("Study error isolation requires explicit unusable-study fallback")\n    checkpoint_sha = sha256(args.checkpoint)\n    resilient = getattr(args, "resilient_series", False)\n    series_sampling = getattr(args, "series_sampling", "selected")\n    if (fallback_unusable or recover_slices or validate_geometry) and not resilient:\n        raise ValueError("Unusable-study fallback requires resilient MRI preparation")\n    if resilient:\n        if (\n            args.dicom_root is None\n            or type(args.cache_side) is not int\n            or type(args.max_series) is not int\n            or args.cache_side < 16\n            or args.max_series < 3\n        ):\n            raise ValueError("Resilient MRI preparation needs source, cache side and series limit")\n        verify_cache_contract(\n            args.checkpoint,\n            max_series=args.max_series,\n            cache_side=args.cache_side,\n            series_sampling=series_sampling,\n        )\n    args.cache_root.mkdir(parents=True, mode=0o700)\n    invoke = invoke or subprocess.run\n    started = time.monotonic()\n    predictions = []\n    receipts = []\n    common = None\n\n    def infer_subset(subset, prepared, cache, chunk):\n        nonlocal common\n        attempt = chunk / f"attempt-{len(attempt_receipts):04d}" if isolate else chunk\n        if isolate:\n            attempt.mkdir(mode=0o700)\n        template_path = attempt / "sample_submission.csv"\n        series_path = attempt / "test_series.csv"\n        output = attempt / "submission.csv"\n        subset.to_csv(template_path, index=False)\n        prepared.loc[prepared.StudyInstanceUID.isin(subset.StudyInstanceUID)].to_csv(\n            series_path, index=False\n        )\n        command = [\n            sys.executable,\n            *(\n                [str(Path(__file__).with_name("baseline_infer.py"))]\n                if baseline\n                else (\n                    [str(Path(__file__).with_name("reviewed_infer.py"))]\n                    if reviewed is not None\n                    else ["-m", "rsna.competitive.infer"]\n                )\n            ),\n            "--checkpoint",\n            str(args.checkpoint),\n            *(\n                ["--encoder-spec", str(args.encoder_spec)]\n                if getattr(args, "encoder_spec", None) is not None\n                else ["--encoder-config", str(args.encoder_config)]\n            ),\n            "--series",\n            str(series_path),\n            "--template",\n            str(template_path),\n            "--cache",\n            str(cache),\n            "--output",\n            str(output),\n            "--workers",\n            str(args.workers),\n            "--device",\n            args.device,\n            "--precision",\n            args.precision,\n            "--source-revision",\n            args.source_revision,\n        ]\n        if baseline:\n            command.extend(\n                (\n                    "--baseline-sidecar",\n                    str(args.baseline_sidecar),\n                    "--baseline-proof",\n                    str(args.baseline_proof),\n                )\n            )\n        else:\n            command.append("--scheduled-epoch")\n        if reviewed is not None:\n            command.extend(("--fitting-admission", str(reviewed)))\n        if args.dicom_root is not None and not resilient:\n            command.extend(("--dicom-root", str(args.dicom_root)))\n        if args.allow_diagnostic:\n            command.append("--allow-diagnostic")\n        attempt_started = time.monotonic()\n        try:\n            if isolate:\n                completed = invoke(command, check=True, capture_output=True, text=True)\n                (attempt / "stdout.log").write_text(completed.stdout or "")\n                (attempt / "stderr.log").write_text(completed.stderr or "")\n            else:\n                invoke(command, check=True)\n        except subprocess.CalledProcessError as exc:\n            if not isolate or not data_failure(exc):\n                if exc.stderr:\n                    print(exc.stderr, file=sys.stderr, flush=True)\n                raise\n            (attempt / "stdout.log").write_text(exc.stdout or "")\n            (attempt / "stderr.log").write_text(exc.stderr or "")\n            event = {\n                "study_ids": subset.StudyInstanceUID.tolist(),\n                "attempt": attempt.relative_to(args.cache_root).as_posix(),\n                "error": (exc.stderr or "").strip().splitlines()[-1],\n                "elapsed_seconds": time.monotonic() - attempt_started,\n            }\n            attempt_receipts.append(event)\n            print(json.dumps({"phase": "isolate_mri_input_failure", **event}), flush=True)\n            if len(subset) == 1:\n                failed_ids.extend(subset.StudyInstanceUID.tolist())\n                neutral = subset.copy()\n                for target in TARGETS:\n                    neutral[target] = 0.5\n                return neutral\n            midpoint = len(subset) // 2\n            return pd.concat(\n                [\n                    infer_subset(subset.iloc[:midpoint].copy(), prepared, cache, chunk),\n                    infer_subset(subset.iloc[midpoint:].copy(), prepared, cache, chunk),\n                ],\n                ignore_index=True,\n            )\n        metrics = json.loads(output.with_suffix(".metrics.json").read_text())\n        expected_inputs = {\n            "series_sha256": sha256(series_path),\n            "template_sha256": sha256(template_path),\n            "metadata_binding": "separate_test_inputs_not_checkpoint_bound",\n        }\n        if (\n            metrics.get("status") != "passed"\n            or metrics.get("checkpoint_sha256") != checkpoint_sha\n            or metrics.get("studies") != len(subset)\n            or metrics.get("diagnostic_only") is not args.allow_diagnostic\n            or metrics.get("submission_sha256") != sha256(output)\n            or metrics.get("test_inputs") != expected_inputs\n            or metrics.get("scheduled_epoch_authorized") is not (not baseline)\n            or (baseline and metrics.get("checkpoint_epoch") != 1)\n            or metrics.get("initial_pretrained_weights_read")\n            is not (getattr(args, "encoder_spec", None) is not None)\n            or metrics.get("cache_source_revision") != args.source_revision\n            or metrics.get("inference_precision") != args.precision\n            or metrics.get("device_type") != args.device\n        ):\n            raise ValueError("Chunk inference receipt differs from its bound inputs")\n        comparable = {\n            key: metrics[key]\n            for key in (\n                "training_release_binding",\n                "cache_version",\n                "cache_side",\n                "encoder",\n                "training_precision",\n                "inference_precision",\n                "device_type",\n                "checkpoint_epoch",\n            )\n        }\n        if common is None:\n            common = comparable\n        elif comparable != common:\n            raise ValueError("Chunk model or runtime provenance differs")\n        frame = pd.read_csv(output)\n        if list(frame.columns) != ["StudyInstanceUID", *TARGETS]:\n            raise ValueError("Chunk output column order differs")\n        if frame.StudyInstanceUID.tolist() != subset.StudyInstanceUID.tolist():\n            raise ValueError("Chunk output identities or order differ")\n        attempt_receipts.append(\n            {\n                "study_ids": subset.StudyInstanceUID.tolist(),\n                "attempt": attempt.relative_to(args.cache_root).as_posix(),\n                "submission_sha256": metrics["submission_sha256"],\n                "elapsed_seconds": metrics["elapsed_seconds"],\n            }\n        )\n        return frame\n\n    for start in range(0, len(template), args.chunk_size):\n        part = template.iloc[start : start + args.chunk_size].copy()\n        ids = set(part.StudyInstanceUID)\n        selected_series = series[series.StudyInstanceUID.isin(ids)]\n        chunk = args.cache_root / f"chunk-{start // args.chunk_size:04d}"\n        chunk.mkdir(mode=0o700)\n        cache = chunk / "cache"\n        output = chunk / "submission.csv"\n        preparation = None\n        if resilient:\n            selected_series, preparation = (prepare_invoke or prepare_usable_series)(\n                selected_series,\n                part.StudyInstanceUID.tolist(),\n                dicom_root=args.dicom_root,\n                cache=cache,\n                cache_side=args.cache_side,\n                max_series=args.max_series,\n                source_revision=args.source_revision,\n                allow_unusable_studies=fallback_unusable,\n                recover_slices=recover_slices,\n                validate_geometry=validate_geometry,\n                series_sampling=series_sampling,\n                single_decode=getattr(args, "single_decode", False),\n            )\n        unusable = set(preparation.get("unusable_study_ids", [])) if preparation else set()\n        if unusable - ids:\n            raise ValueError("Unusable-study receipt contains an unrelated identity")\n        part_for_model = part.loc[~part.StudyInstanceUID.isin(unusable)].copy()\n        if part_for_model.empty:\n            frame = part.copy()\n            for target in TARGETS:\n                frame[target] = 0.5\n            predictions.append(frame)\n            receipts.append(\n                {\n                    "first_row": start,\n                    "studies": len(part),\n                    "inferred_studies": 0,\n                    "fallback_studies": len(part),\n                    "submission_sha256": None,\n                    "cache_bytes_before_cleanup": 0,\n                    "elapsed_seconds": 0.0,\n                    "series_preparation": preparation,\n                }\n            )\n            if cache.exists():\n                if cache.is_symlink():\n                    raise ValueError("Chunk cache became a symlink")\n                shutil.rmtree(cache)\n            continue\n        failed_ids = []\n        attempt_receipts = []\n        frame = infer_subset(part_for_model, selected_series, cache, chunk)\n        if isolate:\n            frame.to_csv(output, index=False)\n        if failed_ids:\n            unusable.update(failed_ids)\n        if unusable:\n            neutral = part.loc[part.StudyInstanceUID.isin(unusable - set(failed_ids))].copy()\n            for target in TARGETS:\n                neutral[target] = 0.5\n            frame = pd.concat([frame, neutral], ignore_index=True)\n            if frame.StudyInstanceUID.duplicated().any() or set(frame.StudyInstanceUID) != ids:\n                raise ValueError("Merged MRI and fallback identities differ")\n            frame = frame.set_index("StudyInstanceUID").loc[part.StudyInstanceUID].reset_index()\n        predictions.append(frame)\n        cache_bytes = sum(path.stat().st_size for path in cache.rglob("*") if path.is_file())\n        receipts.append(\n            {\n                "first_row": start,\n                "studies": len(part),\n                **(\n                    {\n                        "inferred_studies": len(part_for_model) - len(failed_ids),\n                        "fallback_studies": len(unusable),\n                    }\n                    if fallback_unusable\n                    else {}\n                ),\n                "submission_sha256": sha256(output),\n                "cache_bytes_before_cleanup": cache_bytes,\n                "elapsed_seconds": sum(row["elapsed_seconds"] for row in attempt_receipts),\n                **(\n                    {"inference_attempts": attempt_receipts, "failed_study_ids": failed_ids}\n                    if isolate\n                    else {}\n                ),\n                **({"series_preparation": preparation} if preparation is not None else {}),\n            }\n        )\n        if cache.exists():\n            if cache.is_symlink():\n                raise ValueError("Chunk cache became a symlink")\n            shutil.rmtree(cache)\n    if common is None:\n        raise ValueError("No predictions from MRI-backed studies")\n    args.output.parent.mkdir(parents=True, exist_ok=True)\n    temporary_output = args.output.with_suffix(".partial.csv")\n    write_submission(pd.concat(predictions, ignore_index=True), template, temporary_output)\n    temporary_output.replace(args.output)\n    result = {\n        "schema_version": 1,\n        "status": "passed",\n        "diagnostic_only": args.allow_diagnostic,\n        "studies": len(template),\n        "checkpoint_sha256": checkpoint_sha,\n        "submission_sha256": sha256(args.output),\n        "test_inputs": (\n            {\n                "series_sha256": sha256(args.series),\n                "test_studies_sha256": sha256(test_studies),\n                "sample_template_sha256": sha256(args.template) if args.template else None,\n                "metadata_binding": "test_csv_authoritative_not_checkpoint_bound",\n            }\n            if test_studies is not None\n            else {\n                "series_sha256": sha256(args.series),\n                "template_sha256": sha256(args.template),\n                "metadata_binding": "separate_test_inputs_not_checkpoint_bound",\n            }\n        ),\n        "chunk_size": args.chunk_size,\n        "chunk_count": len(receipts),\n        "peak_chunk_cache_bytes": max(row["cache_bytes_before_cleanup"] for row in receipts),\n        "chunks": receipts,\n        "elapsed_seconds": time.monotonic() - started,\n        "hidden_test_runtime_validated": False,\n        **common,\n    }\n    args.output.with_suffix(".metrics.json").write_text(\n        json.dumps(result, sort_keys=True, indent=2) + "\\n"\n    )\n    return result\n\n\ndef argument_parser():\n    parser = argparse.ArgumentParser(description=__doc__)\n    for name in ("checkpoint", "series", "cache-root", "output"):\n        parser.add_argument(f"--{name}", type=Path, required=True)\n    encoder = parser.add_mutually_exclusive_group(required=True)\n    encoder.add_argument("--encoder-config", type=Path)\n    encoder.add_argument("--encoder-spec", type=Path)\n    parser.add_argument("--test-studies", type=Path)\n    parser.add_argument("--template", type=Path)\n    parser.add_argument("--dicom-root", type=Path)\n    parser.add_argument("--source-revision", default="kaggle-runtime-test")\n    parser.add_argument("--chunk-size", type=int, default=32)\n    parser.add_argument("--workers", type=int, default=0)\n    parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")\n    parser.add_argument("--single-decode", action="store_true")\n    parser.add_argument("--precision", choices=("checkpoint", "fp32", "bf16"), default="fp32")\n    parser.add_argument("--allow-diagnostic", action="store_true")\n    parser.add_argument("--baseline-epoch-one", action="store_true")\n    parser.add_argument("--baseline-sidecar", type=Path)\n    parser.add_argument("--baseline-proof", type=Path)\n    parser.add_argument("--fitting-admission", type=Path)\n    parser.add_argument("--resilient-series", action="store_true")\n    parser.add_argument("--fallback-on-unusable-study", action="store_true")\n    parser.add_argument("--recover-slices", action="store_true")\n    parser.add_argument("--validate-model-geometry", action="store_true")\n    parser.add_argument("--isolate-study-errors", action="store_true")\n    parser.add_argument("--cache-side", type=int)\n    parser.add_argument("--max-series", type=int)\n    parser.add_argument("--series-sampling", choices=("selected", "all"), default="selected")\n    return parser\n\n\ndef main() -> None:\n    parser = argument_parser()\n    args = parser.parse_args()\n    if args.baseline_epoch_one and (args.baseline_sidecar is None or args.baseline_proof is None):\n        parser.error("Epoch-1 baseline requires its byte-bound sidecar and replay proof")\n    if not args.baseline_epoch_one and (args.baseline_sidecar or args.baseline_proof):\n        parser.error("Baseline evidence supplied without baseline mode")\n    print(json.dumps(run(args), sort_keys=True), flush=True)\n\n\nif __name__ == "__main__":\n    main()\n'}
+INFERENCE_PREFETCH_HASHES = {'prefetch_entry.py': '7934bfbfae7cf0ad4740356fe22441f2384ff51e22a077eb510867fcc1cfb886', 'prefetch_preparation.py': '88048e88adaedad463ffddde658cf626c3967fc415935489cbe8253fe81332bf', 'parallel_preparation.py': 'b07ca4c09b20cd29c7e12f56c75e8574795ee009ce6d9e68da999030c242261a', 'process_memory.py': 'fc9fd2d41c1486ec71fe74d66d1b692ab2e760f1e000b0fb62a7343c4a7b9c8e', 'resident_infer.py': 'ba9387e68634fdd201f5eee451dbac5fadd58e30a6dae8ff79caaf1f542ec3d7', 'resident_pool.py': 'c3252c2a578cd317d09238e75f13185e0ece0d6782d4f49d4201d1814b7eb06d', 'resident_worker.py': 'e16a12c464598b188b70534a515681af369a1d5244cb8a87f4dd14ec67ef930b', 'chunked_infer.py': 'ff6d360bad00ab3e7aea8f38bb8ccc95ba760b644184ebfd3299d4eb7278f0c3'}
+ATTACHED_PAYLOAD_ROOTS = {'bundle-manifest.json': {'kind': 'datasets', 'slug': 'godlydonuts/rsna-bestinternal-e010-2465648917b5', 'version': 1, 'relative': 'bundle-manifest.json'}, 'wheelhouse-cp312-cu130.bin': {'kind': 'datasets', 'slug': 'godlydonuts/rsna-wheels-cp312-e326c50a4a6a', 'version': 1, 'relative': 'wheelhouse-cp312-cu130.bin'}}
+"""Single-file offline Kaggle entry; workflow prepends EXPECTED_MANIFEST_SHA256."""
+
+import hashlib
+import json
+import os
+import platform
+import shutil
+import signal
+import subprocess
+import sys
+import tarfile
+import time
+from pathlib import Path
+
+
+def bounded_process(command, *, env, timeout):
+    """Stop the entire resident process group when its pipeline budget expires."""
+    if timeout <= 0:
+        raise ValueError("Notebook bootstrap exhausted the execution budget")
+    child = subprocess.Popen(command, env=env, start_new_session=True)
+    try:
+        code = child.wait(timeout=timeout)
+        if code:
+            raise subprocess.CalledProcessError(code, command)
+    except BaseException:
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        child.wait()
+        raise
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(4 * 1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def attached_dataset_files(inputs, name):
+    """Find attached payloads without traversing the competition MRI tree."""
+    if Path(name).name != name:
+        raise ValueError("Attached payload name must be a basename")
+    scoped = globals().get("ATTACHED_PAYLOAD_ROOTS")
+    if scoped is not None:
+        if not isinstance(scoped, dict) or name not in scoped:
+            raise ValueError("Known versioned payload scope required")
+        item = scoped[name]
+        if (
+            set(item) != {"kind", "slug", "version", "relative"}
+            or item["kind"] not in {"datasets", "notebooks"}
+            or item["version"] != 1
+        ):
+            raise ValueError("Exact original attached payload identity required")
+        parts = item["slug"].split("/")
+        relative = Path(item["relative"])
+        if (
+            len(parts) != 2
+            or any(not p or p in {".", ".."} for p in parts)
+            or relative.is_absolute()
+            or ".." in relative.parts
+            or relative.name != name
+        ):
+            raise ValueError("Attached payload identity/path escapes its scope")
+        owner, slug = parts
+        roots = [inputs / slug, inputs / owner / slug, inputs / item["kind"] / owner / slug]
+        seen_paths = set()
+        for root in roots:
+            for version_root in (root, root / "1", root / "v1"):
+                path = version_root / relative
+                if path.is_file() and not path.is_symlink():
+                    canonical = path.resolve()
+                    if not canonical.is_relative_to(inputs.resolve()):
+                        raise ValueError("Attached payload escapes the input filesystem")
+                    if canonical not in seen_paths:
+                        seen_paths.add(canonical)
+                        yield path
+        return
+    seen = 0
+    for directory, children, files in os.walk(inputs, followlinks=False):
+        directory = Path(directory)
+        seen += 1
+        depth = len(directory.relative_to(inputs).parts)
+        if seen > 2048:
+            raise ValueError("Attached Dataset discovery exceeded its metadata budget")
+        if directory.name in {"competitions", "rsna-knee-abnormality-detection"} or (
+            "train_series" in children or "test_series" in children
+        ):
+            children[:] = []
+            continue
+        children[:] = [
+            child
+            for child in children
+            if depth < 8
+            and child
+            not in {
+                "competitions",
+                "rsna-knee-abnormality-detection",
+                "code",
+                "artifacts",
+                "cache",
+                "witness-training-source",
+                "witness-inputs-admission",
+                "resident-performance",
+            }
+        ]
+        if name in files:
+            path = directory / name
+            if not path.is_symlink() and path.is_file():
+                yield path
+
+
+def resolve_wheels(
+    bundle, manifest, inputs=Path("/kaggle/input"), destination=Path("/tmp/rsna-shared-wheels")
+):
+    expected = json.loads((bundle / "wheelhouse.json").read_text())
+    shared = manifest.get("shared_wheelhouse")
+    if shared is None:
+        return bundle / "wheels", expected
+    name = shared["archive_file"]
+    if Path(name).name != name:
+        raise ValueError("Invalid shared archive path")
+    candidates = [
+        p
+        for p in attached_dataset_files(inputs, name)
+        if p.is_file()
+        and p.stat().st_size == shared["archive_bytes"]
+        and sha256(p) == shared["archive_sha256"]
+    ]
+    if len(candidates) != 1:
+        raise ValueError("Exactly one full-byte-bound shared wheel archive required")
+    destination.mkdir(exist_ok=False)
+    with tarfile.open(candidates[0]) as handle:
+        members = handle.getmembers()
+        if len(members) > 1000:
+            raise ValueError("Unexpected shared archive size")
+        for member in members:
+            path = Path(member.name)
+            if (
+                path.is_absolute()
+                or ".." in path.parts
+                or not path.parts
+                or path.parts[0] != "wheelhouse"
+                or not (member.isfile() or member.isdir())
+            ):
+                raise ValueError("Unexpected shared archive member")
+        for member in members:
+            target = destination / member.name
+            if member.isdir():
+                target.mkdir(mode=0o700, parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                with handle.extractfile(member) as source, target.open("xb") as output:
+                    shutil.copyfileobj(source, output, length=4 * 1024 * 1024)
+    wheels = destination / "wheelhouse"
+    if sha256(wheels / "wheelhouse.json") != shared["manifest_sha256"]:
+        raise ValueError("Shared wheel manifest bytes differ")
+    found = json.loads((wheels / "wheelhouse.json").read_text())
+    if found != expected:
+        raise ValueError("Shared runtime differs from checkpoint package dependency contract")
+    actual = {str(p.relative_to(wheels)) for p in wheels.rglob("*") if p.is_file()}
+    if actual != set(found["files"]) | {"wheelhouse.json"}:
+        raise ValueError("Shared archive contains missing or extraneous files")
+    for name, row in found["files"].items():
+        if Path(name).name != name:
+            raise ValueError("Invalid wheel payload path")
+        path = wheels / name
+        if sha256(path) != row["sha256"] or path.stat().st_size != row["bytes"]:
+            raise ValueError("Shared wheel payload bytes differ")
+    return wheels, found
+
+
+def resolve_competition(inputs, slug):
+    candidates = [inputs / slug, inputs / "competitions" / slug]
+    present = [path for path in candidates if (path / "test.csv").is_file()]
+    if len(present) != 1:
+        raise ValueError("Cannot identify exactly one official competition input mount")
+    competition = present[0]
+    for name in ("test_series.csv", "test_series"):
+        if not (competition / name).exists():
+            raise ValueError("Official runtime competition input is missing")
+    return competition
+
+
+def validate_private_training_sources(sources, hashes, accepted_sha):
+    """Bound standalone wrappers may carry two explicitly hashed source overlays."""
+    if (
+        not isinstance(sources, dict)
+        or set(sources) != {"witness_launch.py", "witness_recovery.py"}
+        or not all(isinstance(source, str) for source in sources.values())
+        or not isinstance(hashes, dict)
+        or set(hashes) != set(sources)
+        or sum(len(source.encode()) for source in sources.values()) > 128 * 1024
+        or not isinstance(accepted_sha, str)
+        or len(accepted_sha) != 64
+        or any(c not in "0123456789abcdef" for c in accepted_sha)
+    ):
+        raise ValueError("Exact private trainer wrapper and actual CPU receipt required")
+    for name, source in sources.items():
+        if hashlib.sha256(source.encode()).hexdigest() != hashes[name]:
+            raise ValueError("Private recovery wrapper source differs")
+        compile(source, name, "exec")
+
+
+def encoder_arguments(bundle, working, manifest):
+    """Bind mounted original weights for delta inference without an online fetch."""
+    spec = json.loads((bundle / "encoder.json").read_text())
+    storage = manifest.get("checkpoint_format", "full")
+    if storage not in {"full", "frozen_base_delta"}:
+        raise ValueError("Unknown inference checkpoint storage")
+    for kind in ("config", "weights") if storage == "frozen_base_delta" else ("config",):
+        relative = Path(spec[f"{kind}_path"])
+        path = bundle / relative
+        record = manifest["files"].get(relative.as_posix(), {})
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or path.is_symlink()
+            or not path.resolve().is_relative_to(bundle.resolve())
+            or not path.is_file()
+            or record.get("sha256") != spec.get(f"{kind}_sha256")
+            or sha256(path) != record.get("sha256")
+            or path.stat().st_size != record.get("bytes")
+        ):
+            raise ValueError("Bundled encoder bytes/path differ from the pinned source")
+        spec[f"{kind}_path"] = str(path.resolve())
+    if storage == "full":
+        return ["--encoder-config", spec["config_path"]]
+    runtime_spec = working / "encoder-runtime.json"
+    with runtime_spec.open("x") as handle:
+        json.dump(spec, handle, sort_keys=True, indent=2)
+        handle.write("\n")
+    return ["--encoder-spec", str(runtime_spec)]
+
+
+def stage_prefetch_sources(bundle, working, sources, hashes):
+    """Add orchestration helpers without replacing any immutable trained rsna source."""
+    names = {
+        "prefetch_entry.py",
+        "prefetch_preparation.py",
+        "parallel_preparation.py",
+        "process_memory.py",
+        "resident_infer.py",
+        "resident_pool.py",
+        "resident_worker.py",
+        "chunked_infer.py",
+    }
+    if (
+        not isinstance(sources, dict)
+        or not isinstance(hashes, dict)
+        or set(sources) != names
+        or set(hashes) != names
+        or not all(isinstance(value, str) for value in sources.values())
+        or sum(len(value.encode()) for value in sources.values()) > 256 * 1024
+        or not (bundle / "code/rsna").is_dir()
+    ):
+        raise ValueError("Exact bounded prefetch helpers and original trained source required")
+    for name, source in sources.items():
+        if hashlib.sha256(source.encode()).hexdigest() != hashes[name]:
+            raise ValueError("Prefetch helper bytes changed")
+        compile(source, name, "exec")
+    root = working / "prefetch-runtime-source"
+    root.mkdir(mode=0o700)
+    for name, source in sources.items():
+        with (root / name).open("x") as handle:
+            handle.write(source)
+    return root
+
+
+def diagnostic_probe_command(
+    bundle, working, manifest, competition, python, *, probe_source=None, probe_source_sha256=None
+):
+    """Separate engineering execution from the competition output path."""
+    if (
+        manifest.get("diagnostic_only") is not True
+        or manifest.get("competition_submission_eligible") is not False
+        or manifest.get("checkpoint_format") != "frozen_base_delta"
+    ):
+        raise ValueError("Only an explicitly ineligible delta diagnostic can use this entry")
+    probe_path = bundle / "code/delta_probe.py"
+    if probe_source is not None or probe_source_sha256 is not None:
+        # A corrected private engineering wrapper can reuse immutable, fully
+        # verified base/delta inputs. Its exact source is part of the saved
+        # notebook, separately hashed, and never replaces mounted Dataset bytes.
+        if (
+            not isinstance(probe_source, str)
+            or len(probe_source.encode()) > 128 * 1024
+            or hashlib.sha256(probe_source.encode()).hexdigest() != probe_source_sha256
+        ):
+            raise ValueError("Diagnostic replacement source is not byte-bound")
+        chunked = bundle / "code/chunked_infer.py"
+        record = manifest["files"].get("code/chunked_infer.py", {})
+        if (
+            chunked.is_symlink()
+            or not chunked.is_file()
+            or not chunked.resolve().is_relative_to(bundle.resolve())
+            or sha256(chunked) != record.get("sha256")
+            or chunked.stat().st_size != record.get("bytes")
+        ):
+            raise ValueError("Diagnostic shared inference source differs")
+        runtime_code = working / "delta-probe-runtime-code"
+        runtime_code.mkdir(mode=0o700)
+        probe_path = runtime_code / "delta_probe.py"
+        with probe_path.open("x") as handle:
+            handle.write(probe_source)
+        shutil.copyfile(chunked, runtime_code / "chunked_infer.py")
+    encoder = encoder_arguments(bundle, working, manifest)
+    if encoder[0] != "--encoder-spec":
+        raise ValueError("Diagnostic must load the pinned original base")
+    return [
+        str(python),
+        str(probe_path),
+        "--bundle",
+        str(bundle),
+        *encoder,
+        "--competition",
+        str(competition),
+        "--output",
+        str(working / "delta-diagnostic"),
+    ]
+
+
+def run():
+    notebook_started = time.monotonic()
+    expected = globals().get("EXPECTED_MANIFEST_SHA256")
+    if not isinstance(expected, str) or len(expected) != 64:
+        raise ValueError("Prepared notebook manifest binding is required")
+    matches = [
+        p
+        for p in attached_dataset_files(Path("/kaggle/input"), "bundle-manifest.json")
+        if sha256(p) == expected
+    ]
+    if len(matches) != 1:
+        raise ValueError("Exactly one byte-bound inference bundle must be attached")
+    manifest = json.loads(matches[0].read_text())
+    bundle = matches[0].parent
+    if platform.system() != "Linux" or platform.machine() != "x86_64":
+        raise ValueError("Pinned Linux x86_64 runtime required")
+    if ".".join(platform.python_version_tuple()[:2]) != manifest["python"]:
+        raise ValueError("Kaggle Python ABI differs from the accepted offline wheelhouse")
+    for name, record in manifest["files"].items():
+        relative = Path(name)
+        path = bundle / relative
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or not path.resolve().is_relative_to(bundle.resolve())
+        ):
+            raise ValueError("Invalid bundle path")
+        if (
+            not path.is_file()
+            or sha256(path) != record["sha256"]
+            or path.stat().st_size != record["bytes"]
+        ):
+            raise ValueError("Bundle bytes differ from the prepared checkpoint/environment")
+    os.environ.update(
+        {
+            "HF_HUB_OFFLINE": "1",
+            "TRANSFORMERS_OFFLINE": "1",
+            "HF_HUB_DISABLE_XET": "1",
+            "TOKENIZERS_PARALLELISM": "false",
+            "OMP_NUM_THREADS": "2",
+            "MKL_NUM_THREADS": "2",
+        }
+    )
+    wheels, dependencies = resolve_wheels(bundle, manifest)
+    runtime = Path("/tmp/rsna-knee-offline-environment")
+    if runtime.exists():
+        raise ValueError("Offline runtime must be newly created")
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(runtime)], check=True)
+    python = runtime / "bin/python"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "--python",
+            str(python),
+            "install",
+            "--no-index",
+            "--require-hashes",
+            "--find-links",
+            str(wheels),
+            "-r",
+            str(wheels / "requirements.lock"),
+        ],
+        check=True,
+    )
+    subprocess.run([str(python), "-m", "pip", "check"], check=True)
+    installed = json.loads(
+        subprocess.check_output(
+            [
+                str(python),
+                "-c",
+                "import importlib.metadata,json,sys; "
+                "print(json.dumps({n:importlib.metadata.version(n) for n in json.loads(sys.argv[1])}))",
+                json.dumps(list(dependencies["resolved_versions"])),
+            ],
+            text=True,
+        )
+    )
+    if installed != dependencies["resolved_versions"]:
+        raise ValueError("Installed package differs from the accepted dependency lock")
+    working = Path("/kaggle/working")
+    sys.path.insert(0, str(bundle / "code"))
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(bundle / "code")
+    if globals().get("WITNESS_T4_RECOVERY_PROBE") is True:
+        sources = globals().get("WITNESS_T4_RECOVERY_SOURCES")
+        hashes = globals().get("WITNESS_T4_RECOVERY_HASHES")
+        accepted_sha = globals().get("WITNESS_T4_CPU_ACCEPTANCE_SHA256")
+        validate_private_training_sources(sources, hashes, accepted_sha)
+        accepted_files = [
+            p
+            for p in attached_dataset_files(
+                Path("/kaggle/input"), "witness-inputs-CPU-accepted.json"
+            )
+            if sha256(p) == accepted_sha
+        ]
+        if len(accepted_files) != 1:
+            raise ValueError("Attach exactly the original accepted CPU notebook output")
+        source_output = accepted_files[0].parent
+        control = source_output / "witness-training-source"
+        cache = source_output / "witness-inputs-admission/cache"
+        if not control.is_dir() or not cache.is_dir():
+            raise ValueError("Original accepted source and MRI cache output missing")
+        helper_dir = working / "witness-recovery-code"
+        helper_dir.mkdir(mode=0o700)
+        for name, source in sources.items():
+            if hashlib.sha256(source.encode()).hexdigest() != hashes[name]:
+                raise ValueError("Private recovery wrapper source differs")
+            with (helper_dir / name).open("x") as handle:
+                handle.write(source)
+        env.update(
+            PYTHONPATH=str(control / "code"),
+            PYTHONDONTWRITEBYTECODE="1",
+            OMP_NUM_THREADS="1",
+            MKL_NUM_THREADS="1",
+            OPENBLAS_NUM_THREADS="1",
+        )
+        remaining = 14400 - (time.monotonic() - notebook_started)
+        command = [
+            str(python),
+            str(helper_dir / "witness_launch.py"),
+            "--control",
+            str(control),
+            "--cache",
+            str(cache),
+            "--cpu-acceptance",
+            str(accepted_files[0]),
+            "--cpu-acceptance-sha256",
+            accepted_sha,
+            *encoder_arguments(bundle, working, manifest),
+            "--output",
+            str(working / "witness-T4-recovery"),
+            "--worker",
+            str(helper_dir / "witness_recovery.py"),
+            "--remaining-seconds",
+            str(remaining),
+        ]
+        bounded_process(command, env=env, timeout=remaining)
+        return
+    if globals().get("WITNESS_INPUTS_CPU_PROBE") is True:
+        source = globals().get("WITNESS_INPUTS_SOURCE")
+        source_sha = globals().get("WITNESS_INPUTS_SOURCE_SHA256")
+        archive_sha = globals().get("WITNESS_INPUTS_ARCHIVE_SHA256")
+        admission_sha = globals().get("WITNESS_INPUTS_ADMISSION_SHA256")
+        if (
+            not isinstance(source, str)
+            or len(source.encode()) > 64 * 1024
+            or hashlib.sha256(source.encode()).hexdigest() != source_sha
+            or not isinstance(archive_sha, str)
+            or len(archive_sha) != 64
+            or not isinstance(admission_sha, str)
+            or len(admission_sha) != 64
+        ):
+            raise ValueError("Explicit standalone CPU input source/receipts required")
+        payloads = [
+            p
+            for p in attached_dataset_files(Path("/kaggle/input"), "CPU-admission.json")
+            if sha256(p) == admission_sha
+        ]
+        if len(payloads) != 1:
+            raise ValueError("Exactly one original private training input Dataset required")
+        helper = working / "witness_inputs.py"
+        with helper.open("x") as handle:
+            handle.write(source)
+        control = working / "witness-training-source"
+        bounded_process(
+            [
+                str(python),
+                str(helper),
+                "--extract-inputs",
+                "--input-directory",
+                str(payloads[0].parent),
+                "--destination",
+                str(control),
+                "--archive-sha256",
+                archive_sha,
+                "--admission-sha256",
+                admission_sha,
+            ],
+            env=env,
+            timeout=28800 - (time.monotonic() - notebook_started),
+        )
+        env.update(
+            PYTHONPATH=str(control / "code"),
+            PYTHONDONTWRITEBYTECODE="1",
+            OMP_NUM_THREADS="1",
+            MKL_NUM_THREADS="1",
+            OPENBLAS_NUM_THREADS="1",
+        )
+        bounded_process(
+            [
+                str(python),
+                str(helper),
+                "--control",
+                str(control),
+                *encoder_arguments(bundle, working, manifest),
+                "--competition",
+                str(resolve_competition(Path("/kaggle/input"), manifest["competition"])),
+                "--output",
+                str(working / "witness-inputs-admission"),
+            ],
+            env=env,
+            timeout=28800 - (time.monotonic() - notebook_started),
+        )
+        return
+    if globals().get("DELTA_DIAGNOSTIC_PROBE") is True:
+        competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
+        subprocess.run(
+            diagnostic_probe_command(
+                bundle,
+                working,
+                manifest,
+                competition,
+                python,
+                probe_source=globals().get("DELTA_DIAGNOSTIC_PROBE_SOURCE"),
+                probe_source_sha256=globals().get("DELTA_DIAGNOSTIC_PROBE_SOURCE_SHA256"),
+            ),
+            env=env,
+            check=True,
+        )
+        shutil.copyfile(
+            working / "delta-diagnostic/delta-deployment-acceptance.json",
+            working / "delta-deployment-acceptance.json",
+        )
+        return
+    if globals().get("RESIDENT_PERFORMANCE_PROBE") is True:
+        sources = globals().get("RESIDENT_PERFORMANCE_SOURCES")
+        hashes = globals().get("RESIDENT_PERFORMANCE_HASHES")
+        roster = globals().get("RESIDENT_PERFORMANCE_FITTING_UIDS")
+        if not isinstance(sources, dict) or set(sources) != set(hashes or {}):
+            raise ValueError("Bound standalone performance source required")
+        if (
+            set(sources)
+            != {
+                "chunked_infer.py",
+                "resident_infer.py",
+                "resident_pool.py",
+                "resident_worker.py",
+                "resident_entry.py",
+                "performance_probe.py",
+            }
+            or sum(len(v.encode()) for v in sources.values()) > 256 * 1024
+        ):
+            raise ValueError("Bounded standalone performance source required")
+        runtime_code = working / "resident-performance-code"
+        runtime_code.mkdir(mode=0o700)
+        for name, source in sources.items():
+            if (
+                Path(name).name != name
+                or hashlib.sha256(source.encode()).hexdigest() != hashes[name]
+            ):
+                raise ValueError("Standalone performance source differs")
+            with (runtime_code / name).open("x") as handle:
+                handle.write(source)
+        study_count = globals().get("RESIDENT_PERFORMANCE_STUDY_COUNT", 32)
+        if study_count not in {32, 1300} or (
+            not isinstance(roster, list)
+            or len(roster) != study_count
+            or len(set(roster)) != study_count
+        ):
+            raise ValueError("Exact admitted fitting performance roster required")
+        roster_path = runtime_code / "fitting-roster.json"
+        roster_path.write_text(json.dumps(roster))
+        competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
+        command = [
+            str(python),
+            str(runtime_code / "performance_probe.py"),
+            "--bundle",
+            str(bundle),
+            *encoder_arguments(bundle, working, manifest),
+            "--competition",
+            str(competition),
+            "--roster",
+            str(roster_path),
+            "--output",
+            str(working / "resident-performance"),
+            "--study-count",
+            str(study_count),
+        ]
+        bounded_process(
+            command,
+            env=env,
+            timeout=28800 - (time.monotonic() - notebook_started),
+        )
+        return
+    policy = manifest.get("inference_policy", {})
+    competition = resolve_competition(Path("/kaggle/input"), manifest["competition"])
+    engine = policy.get("engine", "legacy")
+    runtime_code = bundle / "code"
+    if globals().get("INFERENCE_FP32_PREFETCH") is True:
+        if (
+            policy.get("cache_side") != 384
+            or policy.get("max_series", 6) != 6
+            or policy.get("series_sampling", "selected") != "selected"
+            or manifest.get("diagnostic_only") is not False
+        ):
+            raise ValueError(
+                "Only the admitted native384 six-series production policy is supported"
+            )
+        runtime_code = stage_prefetch_sources(
+            bundle,
+            working,
+            globals().get("INFERENCE_PREFETCH_SOURCES"),
+            globals().get("INFERENCE_PREFETCH_HASHES"),
+        )
+        env.update(
+            PYTHONPATH=str(runtime_code) + os.pathsep + str(bundle / "code"),
+            OMP_NUM_THREADS="1",
+            MKL_NUM_THREADS="1",
+            OPENBLAS_NUM_THREADS="1",
+        )
+        engine = "resident_two_gpu_fp32_prefetch"
+    resident = engine in {"resident_two_gpu_fp32", "resident_two_gpu_fp32_prefetch"}
+    if engine not in {"legacy", "resident_two_gpu_fp32", "resident_two_gpu_fp32_prefetch"}:
+        raise ValueError("Unadmitted notebook inference engine")
+    remaining = 28800 - (time.monotonic() - notebook_started)
+    if resident and remaining <= 0:
+        raise ValueError("Notebook bootstrap exhausted the eight-hour execution target")
+    command = [
+        str(python),
+        str(
+            runtime_code
+            / (
+                "prefetch_entry.py"
+                if engine == "resident_two_gpu_fp32_prefetch"
+                else "resident_entry.py"
+                if engine == "resident_two_gpu_fp32"
+                else "chunked_infer.py"
+            )
+        ),
+        "--checkpoint",
+        str(bundle / "checkpoint.pt"),
+        *encoder_arguments(bundle, working, manifest),
+        "--series",
+        str(competition / "test_series.csv"),
+        "--test-studies",
+        str(competition / "test.csv"),
+        "--dicom-root",
+        str(competition),
+        "--cache-root",
+        "/tmp/rsna-knee-test-cache",
+        "--output",
+        str(working / "submission.csv"),
+        "--workers",
+        "0",
+        "--device",
+        "cuda",
+        "--precision",
+        "fp32",
+        "--chunk-size",
+        "8" if engine == "resident_two_gpu_fp32_prefetch" else "32",
+        "--resilient-series",
+        "--fallback-on-unusable-study",
+        "--recover-slices",
+        "--validate-model-geometry",
+        "--isolate-study-errors",
+        "--cache-side",
+        str(policy.get("cache_side", 256)),
+        "--max-series",
+        str(policy.get("max_series", 6)),
+        "--series-sampling",
+        policy.get("series_sampling", "selected"),
+    ]
+    if resident:
+        command.extend(
+            (
+                "--resident-remaining-seconds",
+                str(remaining),
+                "--single-decode",
+            )
+        )
+        if engine == "resident_two_gpu_fp32":
+            command.extend(("--resident-workers", "2"))
+    if (competition / "sample_submission.csv").is_file():
+        command.extend(("--template", str(competition / "sample_submission.csv")))
+    if manifest.get("baseline_epoch_one") is True:
+        command.extend(
+            [
+                "--baseline-epoch-one",
+                "--baseline-sidecar",
+                str(bundle / "snapshot.json"),
+                "--baseline-proof",
+                str(bundle / "baseline-proof.json"),
+            ]
+        )
+    if manifest.get("fitting_admission_sha256") is not None:
+        admission = bundle / "fitting-admission.json"
+        if (
+            manifest.get("baseline_epoch_one")
+            or sha256(admission) != manifest["fitting_admission_sha256"]
+        ):
+            raise ValueError("Reviewed fitting admission differs from the exact bundle")
+        command.extend(("--fitting-admission", str(admission)))
+    if resident:
+        bounded_process(command, env=env, timeout=remaining)
+    else:
+        subprocess.run(command, env=env, check=True)
+    metrics = json.loads((working / "submission.metrics.json").read_text())
+    if (
+        metrics.get("status") != "passed"
+        or metrics.get("diagnostic_only") is not False
+        or metrics.get("checkpoint_sha256") != manifest["checkpoint_sha256"]
+        or metrics.get("submission_sha256") != sha256(working / "submission.csv")
+        or metrics.get("chunk_count", 0) < 1
+        or metrics.get("checkpoint_epoch") != manifest["epoch"]
+    ):
+        raise ValueError("Inference output is diagnostic or used a different checkpoint")
+    # Public notebook execution normally has three examples. This validates only
+    # execution: the submitted code is rerun by Kaggle on the hidden test set.
+    receipt = {
+        "schema_version": 1,
+        "status": "offline_inference_complete",
+        "bundle_manifest_sha256": expected,
+        "checkpoint_sha256": manifest["checkpoint_sha256"],
+        "studies": metrics["studies"],
+        "submission_sha256": sha256(working / "submission.csv"),
+        "public_example_only": metrics["studies"] <= 3,
+        "hidden_score_claimed": False,
+        "checkpoint_format": manifest.get("checkpoint_format", "full"),
+    }
+    (working / "kaggle-inference-receipt.json").write_text(
+        json.dumps(receipt, sort_keys=True, indent=2)
+    )
+
+
+if __name__ == "__main__":
+    run()

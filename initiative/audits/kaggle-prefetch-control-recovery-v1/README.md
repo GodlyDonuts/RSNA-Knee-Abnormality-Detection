@@ -39,3 +39,10 @@ exceed two simultaneous GPU nodes. The next public run waits for the former's
 terminal. A useful result completes the original control-versus-reviewed-label
 comparison; it does not establish performance against the best all-development
 model because training population/budget differ.
+
+Actual authenticated hidden outcome56889124 is COMPLETE/scored0.680 with
+no error and259209outputbytes, reconciled in canonical Newton ledger once.
+This is originalseed1 original-labels3epoch control, not current best model.
+The exactFP32 prefetch deployment succeeds; score remains below best0.804.
+Partnerseed1 witness56833608 scored0.685, a+0.005 public difference without
+hidden labels/uncertainty; no robust gain inferred. Do not resubmit these weights.

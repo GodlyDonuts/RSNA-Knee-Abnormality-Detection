@@ -1,0 +1,48 @@
+import datetime,hashlib,io,json,os,shutil,tarfile,zipfile
+from pathlib import Path
+import requests,torch
+root=Path('/tmp/rsna-public-solution-model-inspection-20261007-v1');root.mkdir(mode=0o700);os.chmod(root,0o700)
+assert shutil.disk_usage(root).free> (53+20+2)*1024**3
+base=[]
+for variant in ['small','base']:
+ p=root/('dinov2-'+variant+'-v1.tar.gz');resp=requests.get('https://www.kaggle.com/api/v1/models/metaresearch/dinov2/pytorch/'+variant+'/1/download',stream=True,timeout=(30,120));resp.raise_for_status();h=hashlib.sha256();n=0
+ with p.open('xb') as f:
+  for b in resp.iter_content(1024*1024):n+=len(b);assert n<1024**3;h.update(b);f.write(b)
+ members=[]
+ with tarfile.open(p,'r:gz') as t:
+  for v in t:
+   if not v.isfile():continue
+   f=t.extractfile(v);hh=hashlib.sha256()
+   while b:=f.read(1024*1024):hh.update(b)
+   members.append({'name':v.name,'bytes':v.size,'sha256':hh.hexdigest()})
+ base.append({'model':'metaresearch/dinov2/PyTorch/'+variant+'/1','bytes':n,'sha256':h.hexdigest(),'members':members});print('base complete '+variant,flush=True)
+rows=[];docs=[]
+for archive in sorted(Path('/tmp/rsna-public-solution-models-20261007-v1').glob('*.zip')):
+ with zipfile.ZipFile(archive) as z:
+  for v in z.infolist():
+   if v.is_dir():continue
+   if v.filename.endswith(('.md','.txt')) and v.file_size<200000:
+    dest=root/(archive.stem+'--'+v.filename.replace('/','--'));dest.write_bytes(z.read(v));docs.append({'archive':archive.name,'file':v.filename,'path':str(dest)})
+   if v.filename.endswith('.json') and 'manifest' in v.filename.lower() and v.file_size<200000:
+    x=json.loads(z.read(v));dest=root/(archive.stem+'--'+v.filename.replace('/','--'));dest.write_text(json.dumps(x,indent=2));docs.append({'archive':archive.name,'file':v.filename,'path':str(dest)})
+   if not v.filename.endswith(('.pt','.pth','.bin')):continue
+   row={'archive':archive.name,'member':v.filename,'bytes':v.file_size}
+   try:
+    x=torch.load(io.BytesIO(z.read(v)),map_location='cpu',weights_only=True)
+    row['root_type']=type(x).__name__;row['root_keys']=list(x)[:80] if isinstance(x,dict) else []
+    def tensors(o,prefix=''):
+     if isinstance(o,torch.Tensor):return [(prefix,list(o.shape),str(o.dtype))]
+     if isinstance(o,dict):return [r for k,vv in o.items() for r in tensors(vv,prefix+'.'+str(k))]
+     if isinstance(o,(list,tuple)):return [r for k,vv in enumerate(o) for r in tensors(vv,prefix+'.'+str(k))]
+     return []
+    ts=tensors(x);row['tensor_count']=len(ts);row['tensor_shapes']=ts
+    row['scalar_config']={}
+    if isinstance(x,dict):
+     for key in ['cfg','config','args','fold','epoch','backbone','img','pool','unfreeze_last','prefix_sha256']:
+      val=x.get(key)
+      if isinstance(val,(str,int,float,bool)):row['scalar_config'][key]=val
+      elif isinstance(val,dict):row['scalar_config'][key]={k:v for k,v in val.items() if isinstance(v,(str,int,float,bool,type(None))) and not any(s in k.lower() for s in ['gold','uid','patient'])}
+    del x
+   except Exception as e:row['safe_load_refused']=type(e).__name__
+   rows.append(row);print(json.dumps({'inspected':v.filename,'tensor_count':row.get('tensor_count'),'refused':row.get('safe_load_refused')}),flush=True)
+(root/'inspection-complete.json').write_text(json.dumps({'time':datetime.datetime.now(datetime.timezone.utc).isoformat(),'base_models':base,'checkpoints':rows,'documents':docs,'arbitrary_pickle_or_source_execution':False},indent=2));print('INSPECTION COMPLETE',flush=True)

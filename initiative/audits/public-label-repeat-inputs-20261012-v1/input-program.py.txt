@@ -1,0 +1,18 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+P=Path('/tmp/rsna-public-label-inputs-20261006-v1');R=Path('/tmp/rsna-public-label-repeat-inputs-20261012-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists();assert shutil.disk_usage('/tmp').free>112*2**30+80*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0];assert (int(row[2])-int(row[1]))*1024-1404865465>=20*2**30 and int(row[6])-int(row[5])-671>=5000
+src=json.loads((P/'source.json').read_text());assert src['source_git']=='a9902f3db0cf56995c074cddef1f0c2370e3ce47';configs={n:json.loads((P/(n+'.json')).read_text()) for n in ('control','public')}
+for v in configs.values():assert v['seed']==20260922;v['seed']=20261012
+raw=(P/'overlay.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==configs['public']['fitting_supervision']['sha256'];members={}
+for n,h in src['files'].items():
+ if not n.startswith('code/'):continue
+ p=P/n;data=p.read_bytes();assert hashlib.sha256(data).hexdigest()==h;members[n]=data
+assert sum(map(len,members.values()))+len(raw)<8*2**20
+R.mkdir(mode=0o700)
+for n,data in members.items():
+ p=R/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data)
+(R/'overlay.json').write_bytes(raw)
+for n,v in configs.items():(R/(n+'.json')).write_text(json.dumps(v,sort_keys=True,indent=2)+'\n')
+(R/'source.json').write_text(json.dumps({'source_git':src['source_git'],'files':{n:hashlib.sha256(v).hexdigest() for n,v in members.items()},'repeat_seed':20261012,'numerical_modules_changed':False},sort_keys=True,indent=2)+'\n')
+py='/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python';env=dict(os.environ,PYTHONPATH=str(R/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1');x=subprocess.run([py,'-B',str(R/'code/scripts/newton/probe_public_label_inputs.py'),'--root',str(R)],env=env,capture_output=True,text=True,timeout=850);(R/'input.stdout').write_text(x.stdout);(R/'input.stderr').write_text(x.stderr);assert x.returncode==0,x.stderr;v=json.loads(x.stdout);assert v['configs']['control']['seed']==v['configs']['public']['seed']==20261012 and v['initial_learned_state']['control']==v['initial_learned_state']['public'];assert v['initial_learned_state']['control']!=json.loads((P/'CPU-accepted.json').read_text())['initial_learned_state']['control'];print(json.dumps({'original_CPU_receipt':v,'quota':q,'small_control_cap_bytes':16*2**20,'prior112GiB_plus64MiB_and20GiBfloor_retained':True,'new_shared_bytes_files':0,'GPU_or_production_checkpoint_funding':False}))

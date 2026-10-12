@@ -1,0 +1,20 @@
+import base64,json,subprocess
+from pathlib import Path
+r=Path(__file__).parent
+code='''import base64,json,zipfile
+from pathlib import Path
+out=[]
+for folder in ['/tmp/rsna-public-solution-models-20261007-v1','/tmp/rsna-public-solution-models-raptor-20261007-v1']:
+ for p in Path(folder).glob('*.zip'):
+  with zipfile.ZipFile(p) as z:
+   for v in z.infolist():
+    safe=v.filename.endswith(('.md','.py')) or v.filename.split('/')[-1] in ['manifest.json','bundle_manifest.json','SOURCE_AND_LICENSES.md','config.json','preprocessor_config.json']
+    if not safe or v.file_size>300000 or any(s in v.filename.lower() for s in ['gold58','oof','calibration']):continue
+    out.append({'archive':p.name,'name':v.filename,'bytes':v.file_size,'base64':base64.b64encode(z.read(v)).decode()})
+assert sum(v['bytes'] for v in out)<5*1024**2
+print(json.dumps(out))
+'''
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton','ssh -o BatchMode=yes evc31 /tmp/rsna-environment-870947-4lemnh2d/environment/bin/python -'],input=code,text=True,capture_output=True,check=True)
+records=json.loads(x.stdout);dest=r/'package-documents';dest.mkdir(exist_ok=True)
+for v in records:(dest/(v['archive']+'--'+v['name'].replace('/','--'))).write_bytes(base64.b64decode(v.pop('base64')))
+(r/'package-document-index.json').write_text(json.dumps(records,indent=2));print('Captured',len(records),'public source/documents; no code executed')

@@ -1,0 +1,12 @@
+import hashlib,json,os,shutil,subprocess,sys,tarfile
+from pathlib import Path
+assert os.uname().nodename=='evc45' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-cache-contrast-recovery-evc45-v2');assert not R.exists() and shutil.disk_usage('/tmp').free>(7+4+6+20)*2**30+16*2**20;R.mkdir(mode=0o700);seen=set();total=0
+with tarfile.open(fileobj=sys.stdin.buffer,mode='r|') as a:
+ first=a.next();assert first.name=='manifest.json' and first.size<512*1024;raw=a.extractfile(first).read();manifest=json.loads(raw);files=manifest['files'];assert len(files)<1024 and sum(v['bytes'] for v in files.values())<4*2**30+16*2**20
+ for m in iter(a.next,None):
+  assert m.isfile() and m.name in files and m.name not in seen and '..' not in Path(m.name).parts and not m.name.startswith('/') and m.size==files[m.name]['bytes'];seen.add(m.name);p=R/m.name;p.parent.mkdir(parents=True,exist_ok=True);h=hashlib.sha256();size=0
+  with a.extractfile(m) as src,p.open('xb') as out:
+   while b:=src.read(1024**2):out.write(b);h.update(b);size+=len(b)
+  assert size==files[m.name]['bytes'] and h.hexdigest()==files[m.name]['sha256'];total+=size
+assert seen==set(files);(R/'transport-manifest.json').write_bytes(raw)
+root=Path('/home/sa305415/rsna-knee');cmd=['/usr/bin/python3.12',str(root/'code-stopfix-1f486765/scripts/newton/runtime_environment.py'),'extract','--archive',str(root/'kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar'),'--sha256','89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','--expected-files','40403','--expected-bytes','6322691335','--scratch-base','/tmp','--shared-python','/usr/bin/python3.12','--min-free-gib','30'];x=subprocess.run(cmd,capture_output=True,text=True,timeout=500);assert x.returncode==0,x.stderr;runtime=json.loads(x.stdout);(R/'runtime.json').write_text(json.dumps(runtime));out={'status':'one_private_cluster_only_32_study_original_byte_copy_and_pinned_runtime_restored','CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc45','MRI_studies':32,'exact_members':len(seen),'transport_bytes':total,'transport_manifest_sha256':hashlib.sha256(raw).hexdigest(),'runtime':runtime,'raw_pixels_case_records_or_weights_to_Mac_Git_HF':False,'target_GPU_or_input_tensor_admission':False};(R/'transport-accepted.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))

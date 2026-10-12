@@ -1,0 +1,23 @@
+import hashlib,io,json,os,sys,tarfile
+from pathlib import Path
+import pandas as pd,pyarrow.parquet as pq
+assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');C=Path('/tmp/rsna-cache-contrast-32-inputs-20261008-v1');R=Path('/tmp/rsna-cache-contrast-H100-recovery-20261008-v1');cpu=json.loads((C/'CPU-accepted.json').read_text());proof=json.loads((C/'original-input-proof.json').read_text());inp=cpu['trainer_inputs'];fold=pd.read_csv(Path(inp['folds'])/'fold.csv');m=pq.read_table(inp['studies'],columns=['study_uid','split',*[t+'__mask' for t in __import__('rsna.schema',fromlist=['TARGETS']).TARGETS]],filters=[('study_uid','in',sorted(fold.study_uid)),('split','=','train')]).to_pandas();m=m.loc[m.filter(like='__mask').sum(axis=1).gt(0)].merge(fold[['study_uid','fold']],on='study_uid',validate='one_to_one');cases=[]
+for name,test in [('training',m.fold.ne(0)),('outer',m.fold.eq(0))]:
+ ids=sorted(m.loc[test,'study_uid'])[:16];assert hashlib.sha256(json.dumps(ids,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()==proof[name+'_16_sha256'];cases.extend(ids)
+rows=[]
+for frame in pd.read_csv(inp['series'],chunksize=1024):rows.extend(frame.loc[frame.StudyInstanceUID.isin(cases)].to_dict('records'))
+files={};cache=Path(inp['cache'])
+for row in rows:
+ rel=Path('train_series')/row['StudyInstanceUID']/(row['SeriesInstanceUID']+'.npz');p=cache/rel;meta=p.with_suffix('.json');v=json.loads(meta.read_text());assert p.stat().st_size==v['cache_bytes']
+ files['cache/'+str(rel)]={'path':p,'bytes':v['cache_bytes'],'sha256':v['cache_sha256']};b=meta.read_bytes();files['cache/'+str(rel.with_suffix('.json'))]={'path':meta,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
+for p in (R/'code').rglob('*'):
+ if p.is_file():files['code/'+str(p.relative_to(R/'code'))]={'path':p,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+for name in ('CPU-accepted.json','original-input-proof.json','base-config.json','encoder-spec.json'):p=C/name;files['inputs/'+name]={'path':p,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+assert sum(v['bytes'] for k,v in files.items() if k.startswith('cache/'))<4*2**30 and len(files)<1024
+records={k:{n:v[n] for n in ('bytes','sha256')} for k,v in files.items()};manifest=json.dumps({'files':records,'MRI_studies':32,'source':cpu['source_git'],'raw_or_case_records_to_Mac':False},sort_keys=True).encode()
+with tarfile.open(fileobj=sys.stdout.buffer,mode='w|') as out:
+ t=tarfile.TarInfo('manifest.json');t.size=len(manifest);t.mode=0o600;out.addfile(t,io.BytesIO(manifest))
+ for name,v in files.items():
+  p=v['path'];before=p.stat();t=tarfile.TarInfo(name);t.size=v['bytes'];t.mode=0o600
+  with p.open('rb') as f:out.addfile(t,f)
+  after=p.stat();assert (before.st_dev,before.st_ino,before.st_size,before.st_mtime_ns)==(after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns)

@@ -1,0 +1,22 @@
+## October7 actual terminal acceptance
+
+OriginalCPU881007 actually COMPLETED0:0 in22:26. The full original2247 fitting
+studies/11639 selected series passed: control matches original canonical tensor
+bytes, candidate finite/same shapes/range, original selected arrays unchanged,
+zero constant-content rejections. Exact source/roster/tensor-stream hashes are in
+[actual-terminal-receipt.json](actual-terminal-receipt.json); [data-admission.json](data-admission.json)
+accepts data coverage/tensor checks only. No trainer/GPU/optimizer/clinical or
+Kaggle acceptance follows. Original local finite runner6321 completed; never
+restart it or repeat the full decoding. The pending text below is historical.
+
+# Original full fitting-cohort contrast input gate — running
+
+The standalone robust-contrast candidate already passed ten tests and actual16-study/84-series control tensor parity. The next prerequisite is now **actually running** on the complete original2247-study fitting cohort: CPU881007, oneCPU/zeroGPU,4GiB RAM, two-hour limit, evc31. No trainer GPU was reserved or healthy GPU job changed. This is data/engineering acceptance, not accuracy.
+
+The immutable reader preserves the original sorted fitting roster hash and frozen series selector,16-slice uniform grid, native384 field and existing cache bytes. It compares control bytes against the canonical original one-channel renderer and checks candidate shape, finite0–1 range, original selected arrays and aggregate tensor hashes. It records robust-range rejections instead of silently replacing a constant selected stack. Expected full selected-series count is11639, derived from the original fitting metadata audit. Final acceptance requires terminal0:0, all2247 processed, successful-series plus rejections equal11639, and explicit review of rejection counts. Do not call it passed based on initial progress.
+
+Actual first observation:50 studies/262 series processed, zero range rejections. Full outcome is pending. Original source/intent hashes and live job binding are in [actual-running.json](actual-running.json). Original private progress/final receipt is `/tmp/rsna-robust-contrast-cohort-gate-20261007-v1` on evc31. Local finite SSH runner tool session6321 is active; do not restart it, resubmit the job or repeat cache decoding if observation is lost. Reconcile original Slurm/private final receipt read-only.
+
+No clinical target values or protected label rows are decoded, no raw images/case IDs/weights/predictions are exported, and no original cache is copied or rewritten. Pixels are read locally in bounded single-series memory. Controls/aggregate receipts are capped16MiB, zero shared artifact growth; existing53GiB node future liabilities and20GiB free floor retained. The larger read is justified by full candidate coverage, not another hash pass over the previously verified bulk cache.
+
+Even a successful gate will not admit GPU fitting, demonstrate recovery, establish a clinical gain or allow the new normalization on old checkpoints. Before fitting require a distinct bound optional trainer policy, unchanged-control/full-state recovery, actual GPU admission and funded immutable checkpoint obligations. Preserve both running original comparisons unchanged.
