@@ -3,8 +3,13 @@
 Research-only and opt-in. The module deliberately lives outside ``rsna/`` so the
 ``code_sha256`` binding of every existing training/inference checkpoint is
 unchanged, and ``create_encoder``/``TrainConfig`` keep rejecting this
-architecture. It is never relabelled as DINOv3. Sources, verified facts and
-explicit unknowns: docs/mri-core-backbone-prototype-20261012.md.
+architecture. It is never relabelled as DINOv3.
+
+The forward is an intentionally reconstructed DINOv2 CLS-token alternative, not
+the upstream deployed path (upstream converts the teacher backbone into a SAM
+image encoder without the CLS position). Upstream forward/input parity is not
+established. Sources, verified facts and explicit unknowns:
+docs/mri-core-backbone-prototype-20261012.md.
 """
 
 from __future__ import annotations
@@ -25,6 +30,20 @@ from rsna.competitive.adapters import ResidualLinear, validate_adapter
 ARCHITECTURE = "mri_core_vitb16"
 MODEL_FAMILY = "dinov2_vit"
 SOURCE_REPOSITORY = "https://github.com/mazurowski-lab/mri_foundation"
+# Owner read-only verification (issue #9); file bytes not yet fetched/hashed here.
+PINNED_SOURCE_REVISION = "0f4f452614013873f8bb58a1fd613dbe36b58aba"
+UPSTREAM_REFERENCE_PATHS = {
+    "readme": "README.md",
+    "license": "LICENSE",
+    "weight_conversion": "models/sam/build_sam.py",
+    "deployed_image_encoder": "models/sam/modeling/image_encoder.py",
+}
+UPSTREAM_FORWARD = "dinov2_teacher_backbone_to_sam_image_encoder_no_cls_position_bilinear"
+FORWARD_VARIANT = "reconstructed_dinov2_cls_token_alternative_v1"
+# Only keys, shapes, dtypes and finiteness are validated at load. Behavioural
+# assumptions (LayerNorm eps, GELU form, attention scale, interpolation method,
+# CLS handling, normalization) are not detectable from the checkpoint.
+LAYOUT_VALIDATION_SCOPE = "keys_shapes_dtypes_finiteness_only"
 SOURCE_PAPER = "arXiv:2506.12186"
 LICENSE = "Apache-2.0"
 CHECKPOINT_FILENAME = "MRI_CORE_vitb.pth"
@@ -39,8 +58,9 @@ POOLING = "final_layernorm_cls"
 DISCARDED_TEACHER_PREFIXES = ("dino_head.", "ibot_head.")
 DISCARDED_BACKBONE_KEYS = ("mask_token",)
 INPUT_NORMALIZATIONS = {
-    # The upstream preprocessing constants are not yet primary-source verified;
-    # provenance always records that status.
+    # Not the established upstream contract: the pinned README reportedly calls
+    # model.image_encoder directly on [0,1] slices; the actual runtime path is
+    # not yet code-traced. Provenance always records that status.
     "imagenet_mean_std": ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
 }
 CONFIG_FIELDS = (
@@ -158,7 +178,11 @@ def interpolate_position_embedding(pos_embed: Tensor, native_grid: int, target_g
 def map_checkpoint(
     raw: Any, config: Mapping[str, Any], target_grid: int
 ) -> tuple[dict[str, Tensor], list[str]]:
-    """Fail-closed MRI-CORE teacher checkpoint -> prototype module state."""
+    """Fail-closed MRI-CORE teacher checkpoint -> prototype module state.
+
+    Rejects layout differences only; a wrong behavioural assumption with the same
+    keys and shapes loads without error.
+    """
     if not isinstance(raw, Mapping) or set(raw) != {"teacher"}:
         raise ValueError("MRI-CORE checkpoint must contain exactly the teacher state")
     teacher = raw["teacher"]
@@ -261,7 +285,10 @@ class _PatchEmbed(nn.Module):
 
 
 class MRICoreViT(nn.Module):
-    """DINOv2 ViT forward with a load-time-interpolated, fixed token grid."""
+    """Reconstructed DINOv2 CLS-token forward with a load-time-interpolated grid.
+
+    Not the upstream SAM image-encoder forward; equivalence is not established.
+    """
 
     def __init__(self, config: Mapping[str, Any], target_grid: int):
         super().__init__()
@@ -399,6 +426,8 @@ def create_mri_core_encoder(
         raise ValueError("MRI-CORE weights digest is not the recorded checkpoint identity")
     if not _is_hex(spec["source_revision"], 40):
         raise ValueError("MRI-CORE source repository revision must be an exact commit")
+    if spec["source_revision"] != PINNED_SOURCE_REVISION:
+        raise ValueError("MRI-CORE source revision differs from the pinned upstream commit")
     if spec["input_normalization"] not in INPUT_NORMALIZATIONS:
         raise ValueError("Unknown MRI-CORE input normalization")
     config = validate_architecture_config(spec["architecture_config"])
@@ -430,6 +459,12 @@ def create_mri_core_encoder(
         "weights_sha256": spec["weights_sha256"],
         "architecture_config": config,
         "config_sha256": canonical_sha256(config),
+        "upstream_reference_paths": dict(UPSTREAM_REFERENCE_PATHS),
+        "upstream_forward": UPSTREAM_FORWARD,
+        "forward_variant": FORWARD_VARIANT,
+        "upstream_forward_equivalence": "not_established",
+        "upstream_reference_parity_accepted": False,
+        "layout_validation_scope": LAYOUT_VALIDATION_SCOPE,
         "checkpoint_layout": CHECKPOINT_LAYOUT,
         "key_mapping": KEY_MAPPING,
         "discarded_checkpoint_keys": discarded,
@@ -443,6 +478,7 @@ def create_mri_core_encoder(
         "input_contract": INPUT_CONTRACT,
         "input_normalization": spec["input_normalization"],
         "input_normalization_source_verified": False,
+        "input_normalization_upstream_contract": "unknown",
         "pooling": POOLING,
         "pretrained": True,
         "knee_coverage": "unknown",

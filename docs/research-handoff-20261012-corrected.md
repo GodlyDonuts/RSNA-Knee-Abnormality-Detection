@@ -52,5 +52,9 @@ frozen no-adapter configs, gold-informed arms) remain blockers; see
 1. Matched repeat: full-public vs original supervision.
 2. Primary-source verification of MRI-CORE, then (if admitted) the matched backbone
    experiment in the prototype doc, on whichever supervision the repeat supports.
+   Status (issue #9): commit `0f4f4526` and the abstract are owner-verified; the
+   prototype is a reconstructed CLS alternative, not the upstream SAM image-encoder
+   forward; upstream input/forward parity is not accepted and the full checkpoint
+   digest is unknown. See prototype doc sections 1a-1c.
 3. Remaining PR #4 arms only after their listed corrections.
 4. Ensembles stay deferred.

@@ -6,24 +6,36 @@ establish loader/adapter/resume contracts only; they say nothing about accuracy.
 
 Code: `scripts/research/mri_core_prototype.py`; tests: `tests/test_mri_core_prototype.py`.
 
+**Issue #9 update (2026-10-12).** The prototype forward is an intentionally
+reconstructed DINOv2 CLS-token alternative. It is **not** the upstream deployed forward
+and upstream forward/input parity is **not accepted** (section 1b). Original evidence
+below is preserved; corrected statements are marked "corrected (issue #9)".
+
 ## 1. Source identity: verified, previously-verified, unknown
 
 Primary-source access (github.com, arxiv.org) was blocked by this session's network
 allowlist; read-only access was requested and not granted before this PR. Nothing below
 is newly verified from primary sources this session.
 
+Issue #9 session: read-only access to github.com, codeload.github.com,
+raw.githubusercontent.com, api.github.com and arxiv.org was requested again and was still
+not granted (TLS connection refused by the allowlist) when this update was pushed. Rows
+marked "owner-verified" come from the owner's read-only check reported in issue #9; this
+session did not fetch or hash those files.
+
 | Item | Status | Value / evidence |
 |---|---|---|
 | Repository | prior evidence only | `https://github.com/mazurowski-lab/mri_foundation` (PR #4, commit `029d668d`, `initiative/experiments/competitive-v1/knee-ssl-pretraining-v1/README.md`) |
-| Paper | prior evidence only | arXiv:2506.12186 (same README) |
-| License | prior evidence only | Apache-2.0 (same README). Re-verify the LICENSE file at an exact commit before any use. |
+| Pinned upstream commit | owner-verified (issue #9) | `0f4f452614013873f8bb58a1fd613dbe36b58aba`, <https://github.com/mazurowski-lab/mri_foundation/tree/0f4f452614013873f8bb58a1fd613dbe36b58aba>. Loader now requires exactly this `source_revision`. File bytes/hashes not recorded. |
+| Paper | owner-verified (issue #9) | arXiv:2506.12186 abstract (<https://arxiv.org/abs/2506.12186>): >6M slices, >110K volumes, 18 body locations. Paper data/methods sections not read. |
+| License | owner-verified README statement (issue #9) | Pinned README states Apache-2.0. LICENSE file text not read by this session. |
 | Checkpoint file | decoded 2026-10-06 (PR #4) | `MRI_CORE_vitb.pth`, 436 MB, Google Drive id `1nPkTI3H0vsujlzwY8jxjKwAbOCTJv4yW` linked from the repo README |
 | Checkpoint SHA-256 | prefix only | `0ca90aeba09568f2…`; the full 64-hex digest was not recorded in Git. The loader requires the full digest explicitly, checks the prefix and rehashes the file. |
 | Layout | decoded 2026-10-06 | `{"teacher": {...}}`; `backbone.*` ViT-B/16, width 768, `patch_embed.proj.weight (768,3,16,16)`, `pos_embed (1,197,768)` = 14x14 grid + CLS (native 224 px), plus `dino_head.*` |
 | Family | decoded 2026-10-06 | DINOv2 teacher. **Not DINOv3**: no registers, no RoPE, fused `attn.qkv`, `blocks.N.*` names. The prototype records `model_family: dinov2_vit` and refuses `dinov2_*`/`dinov3_*` labels. |
-| Exact upstream commit | **unknown** | Loader requires a 40-hex `source_revision`; none is pinned here. |
-| Layerscale / `mask_token` / unchunked blocks / MLP (not SwiGLU) / LN eps 1e-6 | **assumed** (DINOv2 ViT-B defaults) | The checkpoint loader fails closed if any key or shape differs, so a wrong assumption cannot load silently. |
-| Input normalization and channel contract | **unknown** | Prototype offers only `imagenet_mean_std` with 1->3 gray replication and always records `input_normalization_source_verified: false`. |
+| Exact upstream commit | superseded | Was unknown; now pinned above (owner-verified). |
+| Layerscale / `mask_token` / unchunked blocks / MLP (not SwiGLU) / LN eps 1e-6 | **assumed** (DINOv2 ViT-B defaults) | Original text: "The checkpoint loader fails closed if any key or shape differs, so a wrong assumption cannot load silently." **Corrected (issue #9):** that holds only for assumptions visible as keys/shapes (layerscale, mask token, chunking, fused QKV, SwiGLU widths, registers). LN eps, GELU form, attention scale, QKV split order, interpolation method, CLS handling and normalization are behavioural and load silently when wrong; `test_layout_checks_do_not_detect_behavioural_assumptions` demonstrates this for bilinear-vs-bicubic and eps. |
+| Input normalization and channel contract | **unknown** | Prototype offers only `imagenet_mean_std` with 1->3 gray replication and always records `input_normalization_source_verified: false` and `input_normalization_upstream_contract: unknown`. The pinned README reportedly calls `model.image_encoder` directly on [0,1] slices (owner-verified), so ImageNet mean/std is **not** established as the source contract; see 1b. |
 | Declared pretraining population | prior evidence only | ~6M 2D slices, 18 body regions, Duke-110K corpus (PR #4 README / PR #6 handoff) |
 | Knee coverage in pretraining | **unknown** | Not verified |
 | Overlap with RSNA competition/OAI/our studies | **unknown** | Not verified; cannot be excluded |
@@ -32,6 +44,62 @@ Before any GPU use: fetch the repo at an exact commit, record LICENSE text, READ
 link, preprocessing code (mean/std, intensity scaling, channels, resolution) and the
 paper's data section; record the full checkpoint SHA-256 from the existing acquisition
 (do not re-download if the 2026-10-06 copy is still bound).
+
+### 1a. Checkpoint acquisition receipt (issue #9 search)
+
+Searched without re-downloading: every branch of this repo (`git grep` for
+`0ca90aeba`, `MRI_CORE_vitb`, the Drive id), the PR #4 SSL design `provenance.json`
+(covers the SSL series manifest only), this VM's filesystem, and the originating PR #4
+Devin session (event search returned HTTP 403 to this automation). The only record is
+the PR #4 README text at commit `029d668d` ("436 MB, sha256 `0ca90aeba09568f2…`",
+Drive id `1nPkTI3H0vsujlzwY8jxjKwAbOCTJv4yW`). No download receipt, byte count, full
+digest or storage location is recorded. **Full SHA-256, exact byte size and current
+location of the 2026-10-06 copy: unknown.** No digest is invented; the loader still
+requires the full 64-hex value supplied from a real receipt.
+
+### 1b. Upstream path vs reconstructed CLS alternative
+
+Two distinct forwards; do not conflate them.
+
+| | Upstream original path (owner-reported, issue #9; not code-read here) | This prototype (`forward_variant: reconstructed_dinov2_cls_token_alternative_v1`) |
+|---|---|---|
+| Weight conversion | `models/sam/build_sam.py` converts DINOv2 teacher backbone weights into a SAM image encoder | `strip_teacher_backbone_split_fused_qkv_v1` into a DINOv2-style ViT |
+| Deployed module | `models/sam/modeling/image_encoder.py` | `MRICoreViT` (`scripts/research/mri_core_prototype.py`) |
+| CLS position token | removed | kept; CLS token prepended |
+| Patch-position resize | bilinear | bicubic, `align_corners=False`, no antialias, at load time |
+| Output used | SAM image-encoder output (exact shape/neck behaviour not code-read) | final-LayerNorm CLS, 768-d |
+| Input | README: `model.image_encoder` called on [0,1] slices | [0,1] gray, replicated to 3 channels, then ImageNet mean/std |
+| Normalization | **unknown** until the actual inference/training path is traced (dataset transforms and any preprocessing inside/around the encoder) | ImageNet mean/std (unverified choice) |
+
+Background, not evidence: in the original `segment_anything` package pixel normalization
+lives in `Sam.preprocess`, outside `image_encoder`; whether the mri_foundation fork keeps
+this and whether its training path applies it is exactly what must be code-traced.
+
+Consequences:
+
+- The prototype is a legitimate *alternative* use of the same checkpoint tensors, but
+  results from it must not be described as the MRI-CORE upstream forward or as
+  reproducing upstream features.
+- `reference_forward` in the tests shares every prototype assumption (CLS kept, bicubic,
+  eps 1e-6, exact GELU, ImageNet normalization). It is regression coverage, not
+  independent original-model parity.
+- Provenance now records `upstream_forward`, `forward_variant`,
+  `upstream_forward_equivalence: not_established`,
+  `upstream_reference_parity_accepted: false` and
+  `layout_validation_scope: keys_shapes_dtypes_finiteness_only`.
+
+### 1c. Upstream-reference parity gate: NOT ACCEPTED
+
+Required: a small CPU test that imports the pinned upstream `build_sam.py` /
+`image_encoder.py` (no weights), feeds the same synthetic tiny teacher state through
+upstream conversion and through this loader, and compares (i) converted position
+embeddings, (ii) per-block activations for the shared ViT trunk and (iii) the final
+encoder output under the README input contract. It could not be written or run because
+the upstream source is unreachable from this session; writing it against an assumed API
+would not be independent. The gate stays explicitly unaccepted until a session with
+read-only github.com access records the pinned file bytes (SHA-256 per file) and runs it.
+Any accepted upstream-faithful variant must be a separate `forward_variant`, not a silent
+change to this one.
 
 ## 2. Prototype contract
 
@@ -55,6 +123,9 @@ paper's data section; record the full checkpoint SHA-256 from the existing acqui
   Done once at load from the native grid to `image_side/16`; the forward rejects any
   other input side. Upstream DINOv2 interpolates at runtime with a 0.1 offset and
   `scale_factor`; this load-time size-based resize is not claimed bit-identical to it.
+  Corrected (issue #9): the relevant upstream reference is MRI-CORE's own conversion,
+  which (owner-reported) drops the CLS position and resizes bilinearly; this bicubic
+  CLS-kept resize is an intentional alternative, not equivalent to it (section 1b).
 - **Output.** Final-LayerNorm CLS, width 768 (DINOv3-L path: 1024). Spatial patch
   features, neighbor-3 channels, and MRNet initialization are unsupported (fail closed).
 - **Adapter graph.** `rs_lora_v1` `ResidualLinear` (reused unchanged) on
@@ -62,7 +133,9 @@ paper's data section; record the full checkpoint SHA-256 from the existing acqui
   last `ffn_last_layers`. Installed names and parameter count are cross-checked;
   `lora_B` is zero so the initial output equals the unadapted encoder exactly.
 
-Tests (28, CPU, ~3 s): fused-reference equivalence at native/down/up-sampled grids;
+Tests (30, CPU, ~3 s; the fused reference shares the prototype's assumptions, see 1b):
+pinned-revision binding; a demonstration that same-shape behavioural changes (bilinear
+positions, LayerNorm eps) load silently and change outputs; fused-reference equivalence at native/down/up-sampled grids;
 interpolation invariants; 8 checkpoint-layout and 10 spec fail-closed cases; production
 digest-prefix binding; zero-residual identity; only `lora_A/B` trainable; frozen base
 byte-identical after AdamW updates; `lora_B` moves; unfreezing rejected; gradient

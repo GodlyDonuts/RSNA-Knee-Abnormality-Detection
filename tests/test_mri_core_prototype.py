@@ -64,7 +64,7 @@ def tiny(monkeypatch, tmp_path):
             "architecture": mri.ARCHITECTURE,
             "weights_path": str(path),
             "weights_sha256": digest,
-            "source_revision": "c" * 40,
+            "source_revision": mri.PINNED_SOURCE_REVISION,
             "architecture_config": dict(TINY),
             "image_side": side,
             "input_normalization": "imagenet_mean_std",
@@ -76,7 +76,11 @@ def tiny(monkeypatch, tmp_path):
 
 
 def reference_forward(raw, images, target_grid):
-    """Original fused-QKV DINOv2 equations, written independently of the module."""
+    """Fused-QKV DINOv2 CLS equations, written independently of the module.
+
+    Shares the prototype's assumptions (CLS kept, bicubic, eps, normalization):
+    regression coverage only, not parity with the upstream SAM image encoder.
+    """
     s = {k[9:]: v for k, v in raw["teacher"].items() if k.startswith("backbone.")}
     mean = torch.tensor([0.485, 0.456, 0.406])[None, :, None, None]
     std = torch.tensor([0.229, 0.224, 0.225])[None, :, None, None]
@@ -126,6 +130,12 @@ def test_key_mapping_and_interpolation_match_fused_reference(tiny, side):
         "backbone.mask_token",
     ]
     assert provenance["input_normalization_source_verified"] is False
+    assert provenance["input_normalization_upstream_contract"] == "unknown"
+    assert provenance["source_revision"] == mri.PINNED_SOURCE_REVISION
+    assert provenance["forward_variant"] == mri.FORWARD_VARIANT
+    assert provenance["upstream_forward_equivalence"] == "not_established"
+    assert provenance["upstream_reference_parity_accepted"] is False
+    assert provenance["layout_validation_scope"] == mri.LAYOUT_VALIDATION_SCOPE
     assert provenance["knee_coverage"] == provenance["competition_data_overlap"] == "unknown"
     assert provenance["config_sha256"] == mri.canonical_sha256(TINY)
     assert "mask_token" not in dict(encoder.backbone.named_parameters())
@@ -142,6 +152,29 @@ def test_position_interpolation_preserves_cls_and_native_grid():
     )
     with pytest.raises(ValueError, match="native grid"):
         mri.interpolate_position_embedding(torch.randn(1, 197, 6), 2, 3)
+
+
+def _bilinear_positions(pos_embed, native_grid, target_grid):
+    width = pos_embed.shape[-1]
+    grid = pos_embed[:, 1:].reshape(1, native_grid, native_grid, width).permute(0, 3, 1, 2)
+    grid = F.interpolate(grid, size=(target_grid,) * 2, mode="bilinear", align_corners=False)
+    return torch.cat([pos_embed[:, :1], grid.permute(0, 2, 3, 1).reshape(1, -1, width)], 1)
+
+
+def test_layout_checks_do_not_detect_behavioural_assumptions(tiny, monkeypatch):
+    """Same keys/shapes, different behaviour: loads silently, outputs change."""
+    images = torch.rand(2, 1, 48, 48, generator=torch.Generator().manual_seed(4))
+    with torch.no_grad():
+        baseline = mri.create_mri_core_encoder(tiny(48))[0](images)
+        with monkeypatch.context() as patched:
+            patched.setattr(mri, "interpolate_position_embedding", _bilinear_positions)
+            bilinear = mri.create_mri_core_encoder(tiny(48))[0](images)
+        other_eps = {**TINY, "layer_norm_eps": 1e-2}
+        monkeypatch.setattr(mri, "PRODUCTION_CONFIG", other_eps)
+        eps = mri.create_mri_core_encoder(tiny(48, architecture_config=other_eps))[0](images)
+    for changed in (bilinear, eps):
+        assert changed.shape == baseline.shape and torch.isfinite(changed).all()
+        assert not torch.equal(changed, baseline)
 
 
 def _mutations():
@@ -191,6 +224,7 @@ def test_checkpoint_layout_fails_closed(tiny, tmp_path, mutate):
         {"architecture": "dinov2_b14_reg"},
         {"weights_sha256": "0" * 64},
         {"source_revision": "main"},
+        {"source_revision": "c" * 40},
         {"input_normalization": "unit_interval"},
         {"image_side": 24},
         {"architecture_config": {**TINY, "embed_dim": 64}},
