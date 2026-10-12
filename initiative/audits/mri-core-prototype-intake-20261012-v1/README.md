@@ -1,0 +1,5 @@
+PR8 is admitted as isolated research scaffolding and corrected experiment documentation, not a production backbone. Default rsna modules/inference hashes and original pending job899766 remain unchanged. Original source receipt records four small files fetched at exact upstream commit; no model weights/data downloaded.
+
+The documented direct image_encoder path accepts [0,1] input without internal intensity normalization and returns a dense SAM neck feature map. The outer SAM.forward path additionally preprocesses inputs with 0-255-scale mean/std. The prototype deliberately reconstructs a CLS-token DINOv2 alternative with bicubic positions and ImageNet normalization; upstream parity remains unaccepted. Source shape tests cannot resolve these behavioral differences. Do not dispatch a real model until checkpoint identity/input contract and the intentional forward choice are bound.
+
+Original training still pending(Resources); scheduler start estimates are not promises. MRI-CORE software tests are engineering evidence only, not an accuracy gain.
