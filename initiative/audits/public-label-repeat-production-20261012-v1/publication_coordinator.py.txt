@@ -1,0 +1,32 @@
+"""Single coordinator for one completed immutable full-neighbor epoch."""
+import hashlib,json,os,re,shlex,subprocess,sys
+from pathlib import Path
+from huggingface_hub import HfApi
+root=Path.cwd();a=root/'initiative/audits/public-label-repeat-production-20261012-v1';local=root/'artifacts/public-label-repeat-20261012-v1';mode=sys.argv[1];epoch=int(sys.argv[2]);assert mode in ('control','public') and type(epoch)==int and epoch in range(1,11)
+control='/tmp/rsna-public-label-repeat-fit-20261012-v1';cpu=json.loads((a/'actual-CPU-acceptance.json').read_text());py=cpu['runtime']['python'];expected=cpu['publisher_sha256'];assert hashlib.sha256((a/'publish.py.txt').read_bytes()).hexdigest()==expected
+j=local/'publication'/mode/f'epoch-{epoch:03d}';assert not j.exists(), 'Existing dispatch requires read-only reconciliation'
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton']
+check=r'''import hashlib,importlib.util,json,sys
+from pathlib import Path
+mode,epoch,expected=sys.argv[1],int(sys.argv[2]),sys.argv[3];r=Path('/tmp/rsna-public-label-repeat-fit-20261012-v1');p=r/'publish.py';assert hashlib.sha256(p.read_bytes()).hexdigest()==expected
+assert not (r/'epoch-publication'/mode/f'epoch-{epoch:03d}').exists()
+s=importlib.util.spec_from_file_location('accepted_publisher',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);manifest,members=m.source_files(mode,epoch)
+print(json.dumps({'mode':mode,'epoch':epoch,'checkpoint_sha256':manifest['checkpoint_sha256'],'binding_sha256':manifest['binding_sha256'],'publisher_sha256':expected}))
+'''
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=2G','--time=00:03:00','--job-name=smooth-witness-epoch-readonly',py,'-B','-c',check,mode,str(epoch),expected]
+x=subprocess.run(ssh+[shlex.join(cmd)],capture_output=True,text=True,timeout=220);assert x.returncode==0, 'Incomplete/already-attempted epoch; no publication dispatch intent created';snapshot=json.loads(x.stdout)
+env=root/'.env';assert env.stat().st_mode&0o077==0;values={}
+for line in env.read_text().splitlines():
+ k,sep,v=line.partition('=')
+ if sep:values[k.strip()]=v.strip().strip('\"\'')
+token=values['HF_TOKEN'];assert token.startswith('hf_');api=HfApi(token=token);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True
+prefix=f'experiments/dinov3-v1/training-epochs/public-label-source-fold0-a9902f3-fixed10-seed20261012/{mode}/epoch-{epoch:03d}';paths=[prefix+'/'+n for n in ['checkpoint.pt','snapshot.json','source-and-input-provenance.json','DINOv3-LICENSE.md','manifest.json']];assert not api.get_paths_info('GodlyDonuts/RSNA-Data',paths,repo_type='dataset',revision=info.sha)
+j.mkdir(mode=0o700,parents=True)
+with (j/'dispatch-intent.json').open('x') as f:json.dump({'status':'single_original_epoch_CPU_publication_dispatch_intent','mode':mode,'epoch':epoch,'snapshot':snapshot,'prefix':prefix,'publisher_sha256':expected,'CPUs':1,'GPUs':0,'automatic_retry':False,'credential_transport':'ignored0600local_env_RAM_SSH_stdin_Slurm_stdin_only'},f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+shell='umask 077; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_DISABLE_PROGRESS_BARS=1 HF_HOME='+shlex.quote(control+'/publication-hf-cache')+'; exec '+shlex.join([py,'-B',control+'/publish.py',mode,str(epoch)])
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=4G','--time=01:00:00','--job-name=rsna-smooth-witness-private-epoch','/bin/bash','-c',shell]
+x=subprocess.run(ssh+[shlex.join(cmd)],input=json.dumps({'token':token}),capture_output=True,text=True,timeout=3650);clean=lambda s:re.sub(r'hf_[A-Za-z0-9]{10,}','[redacted]',s)
+with (j/'dispatch-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':clean(x.stdout),'stderr':clean(x.stderr),'automatic_retry':False},f,sort_keys=True,indent=2);f.write('\n')
+assert x.returncode==0, 'Publication uncertain or failed; reconcile read-only before any further mutation';receipt=json.loads(x.stdout);assert receipt['status']=='private_original_public_label_source_epoch_full_download_size_SHA_verified' and receipt['file_count']==5 and receipt['checkpoint_sha256']==snapshot['checkpoint_sha256']
+with (j/'verified.json').open('x') as f:json.dump(receipt,f,sort_keys=True,indent=2);f.write('\n')
+print(json.dumps(receipt,sort_keys=True))

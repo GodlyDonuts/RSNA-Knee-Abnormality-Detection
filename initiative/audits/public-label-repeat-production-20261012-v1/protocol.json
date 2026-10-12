@@ -1,0 +1,26 @@
+{
+  "experiment": "repeat_full_public_vs_original_supervision",
+  "seed": 20261012,
+  "reference_seed": 20260922,
+  "arms": [
+    "control",
+    "public"
+  ],
+  "source_git": "a9902f3db0cf56995c074cddef1f0c2370e3ce47",
+  "same_fold": 0,
+  "fitting_studies": 2247,
+  "development_studies": 1156,
+  "fixed_epochs": 10,
+  "updates_per_role": 2810,
+  "primary_endpoint": "all12 fixed-final paired macro AUC; exact4000 whole-component draws/seed20261001, undefined retained",
+  "recipe": "same native384 uniform16/max6 rank32 attention FP16 effective8 warmup281 cosine LR1e-4/3e-4",
+  "policy": "original pinned full-public overlay unchanged; no gold-informed blends or target mixtures",
+  "rejection": "No established macro gain or important target regression prevents promotion. Report all targets and cross-seed limitations.",
+  "protected_cohort_or_best_epoch_selection_used": false,
+  "actual_CPU_input_common_init_passed": true,
+  "actual_new_GPU_recovery_required": true,
+  "production_funding_or_GPU_dispatch": false,
+  "new_node_budget_GiB": 12,
+  "prior92GiB_plus80MiB_and20GiBfloor_retained": true,
+  "reuse_T4": "Exact unchanged numerical engine T4 fixture from seed20260922; not a new-seed GPU result. Both new-seed arms require actual complete H100 recovery before fitting."
+}
