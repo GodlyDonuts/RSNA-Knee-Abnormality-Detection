@@ -102,7 +102,12 @@ def lora_provenance(policy: Mapping[str, Any], config: Mapping[str, Any]) -> dic
     rank, alpha = policy["rank"], policy["alpha"]
     if type(rank) is not int or not 1 <= rank <= 256:
         raise ValueError("Invalid adapter rank")
-    if isinstance(alpha, bool) or not isinstance(alpha, (int, float)) or not alpha > 0:
+    if (
+        isinstance(alpha, bool)
+        or not isinstance(alpha, (int, float))
+        or not math.isfinite(alpha)
+        or not alpha > 0
+    ):
         raise ValueError("Invalid adapter alpha")
     names = suffix_targets(config, policy["frozen_prefix_layers"])
     width, inner = config["hidden_size"], config["intermediate_size"]
@@ -155,7 +160,9 @@ def _replace(backbone: nn.Module, names: list[str], build) -> None:
     backbone.requires_grad_(False)
     for name in names:
         parent, attribute = name.rsplit(".", 1)
-        setattr(modules[parent], attribute, build(modules[name]))
+        replacement = build(modules[name])
+        replacement.train(modules[name].training)
+        setattr(modules[parent], attribute, replacement)
 
 
 def install_dense_suffix_deltas(backbone: nn.Module, policy: Mapping[str, Any]) -> dict[str, Any]:
@@ -190,21 +197,28 @@ def _check_graph(backbone: nn.Module, provenance: Mapping[str, Any], suffixes: t
     if sum(p.numel() for p in trainable.values()) != provenance["trainable_parameters"]:
         raise ValueError("Adapter parameter count differs from its declared architecture")
     frozen = [p for p in backbone.parameters() if not p.requires_grad]
-    frozen_storage = {p.untyped_storage().data_ptr() for p in frozen}
-    if any(p.untyped_storage().data_ptr() in frozen_storage for p in trainable.values()):
+    frozen_storage = {p.untyped_storage().data_ptr() for p in frozen if p.device.type != "meta"}
+    if any(
+        p.device.type != "meta" and p.untyped_storage().data_ptr() in frozen_storage
+        for p in trainable.values()
+    ):
         raise ValueError("A learned delta aliases an immutable official tensor")
 
 
 def official_state_fingerprint(backbone: nn.Module) -> str:
     """SHA256 over every non-learned backbone state tensor (name, dtype, shape, bytes)."""
-    learned = {n for n, p in backbone.named_parameters() if p.requires_grad}
+    learned = {
+        n
+        for n, _ in backbone.named_parameters()
+        if n.endswith((".dense_delta", ".lora_A", ".lora_B"))
+    }
     digest = hashlib.sha256()
     for name, tensor in sorted(backbone.state_dict(keep_vars=True).items()):
         if name in learned:
             continue
         value = tensor.detach().cpu().contiguous()
         digest.update(f"{name}|{value.dtype}|{tuple(value.shape)}\n".encode())
-        digest.update(value.view(torch.uint8).numpy().tobytes())
+        digest.update(value.reshape(-1).view(torch.uint8).numpy().tobytes())
     return digest.hexdigest()
 
 

@@ -23,7 +23,7 @@ RECORD_KEYS = {"identity", "slice_mask", "hidden", "rope_cos", "rope_sin", "dige
 def tensor_sha256(tensor: Tensor) -> str:
     value = tensor.detach().cpu().contiguous()
     digest = hashlib.sha256(f"{value.dtype}|{tuple(value.shape)}\n".encode())
-    digest.update(value.view(torch.uint8).numpy().tobytes())
+    digest.update(value.reshape(-1).view(torch.uint8).numpy().tobytes())
     return digest.hexdigest()
 
 
@@ -93,6 +93,9 @@ def validate_record(
         raise ValueError("Cache record fields differ from the frozen-prefix contract")
     if record["identity"] != prefix_identity(backbone, frozen_prefix_layers, source_contract):
         raise ValueError("Cache config/official-tensor/source/prefix identity mismatch")
+    expected_digests = RECORD_KEYS - {"identity", "digests"}
+    if set(record["digests"]) != expected_digests:
+        raise ValueError("Cached tensor digest set differs")
     for key, digest in record["digests"].items():
         if tensor_sha256(record[key]) != digest:
             raise ValueError(f"Cached {key} identity mismatch")
@@ -106,7 +109,7 @@ def validate_record(
     side = int(round(grid**0.5))
     if side * side != grid:
         raise ValueError("Cached token layout differs from a square patch grid")
-    probe = torch.zeros(1, 3, side * patch, side * patch, dtype=hidden.dtype)
+    probe = torch.zeros(1, 3, side * patch, side * patch, dtype=hidden.dtype, device=hidden.device)
     cos, sin = dd.rope_context(backbone, probe)
     if not (torch.equal(cos, record["rope_cos"]) and torch.equal(sin, record["rope_sin"])):
         raise ValueError("Cached RoPE identity mismatch")

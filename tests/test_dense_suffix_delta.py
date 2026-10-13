@@ -247,3 +247,34 @@ def test_pinned_storage_arithmetic():
     per_image = pc.storage_bytes(config, 336, 336, 1)
     assert per_image == 446 * 1024 * 4 == 1_826_816
     assert pc.storage_bytes(config, 336, 336, 60) == 109_608_960
+
+
+def test_exact_cached_training_after_multiple_suffix_updates():
+    model = small_model()
+    windows, mask = _cache_inputs()
+    record = pc.build_record(model, windows, mask, 2, SOURCE)
+    dd.install_dense_suffix_deltas(model, dict(DENSE, dropout=0.0))
+    model.eval()
+    head = torch.nn.Linear(32, 2)
+    opt = torch.optim.AdamW(
+        [p for p in model.parameters() if p.requires_grad] + list(head.parameters()), lr=0.002
+    )
+    anchor = dd.official_state_fingerprint(model)
+    for _ in range(3):
+        opt.zero_grad()
+        cached = pc.run_cached_suffix(record, model, 2, SOURCE)
+        full = model(pixel_values=windows[mask]).pooler_output
+        assert torch.equal(cached, full)
+        head(cached).square().mean().backward()
+        opt.step()
+        assert dd.official_state_fingerprint(model) == anchor
+    assert any(p.abs().sum() > 0 for p in model.parameters() if p.requires_grad)
+
+
+def test_missing_cached_digest_refused():
+    model = small_model()
+    windows, mask = _cache_inputs()
+    record = pc.build_record(model, windows, mask, 2, SOURCE)
+    del record["digests"]["hidden"]
+    with pytest.raises(ValueError, match="digest set"):
+        pc.validate_record(record, model, 2, SOURCE)

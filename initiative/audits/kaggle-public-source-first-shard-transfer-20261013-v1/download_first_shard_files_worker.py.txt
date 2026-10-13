@@ -1,0 +1,49 @@
+import json,sys,os,hashlib,importlib.util,shutil,time,io
+from pathlib import Path,PurePosixPath
+from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor
+import requests
+v=json.load(sys.stdin);P=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection');R=Path('/tmp/rsna-kaggle-public-source-shards-20261013-v1/shard-000');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_STEP_GPUS')
+assert [p.name for p in R.iterdir()]==['download-intent.json'] and not(R/'files-download-intent.json').exists(),'No prior pixel bytes may be repeated'
+free=shutil.disk_usage('/tmp').free;assert free>(140+3+72+32+20)*2**30
+s=importlib.util.spec_from_file_location('c',P/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(P/'code',P/'projection.json','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437');sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+slug='godlydonuts/rsna-public-source-shard000-20261013-v1';kernel=remote.kernel('GetKernel',slug,1);assert hashlib.sha256(kernel['blob']['source'].encode()).hexdigest()=='744bc3b0fac239572abad94f2c5315d87de5071c6ad373202b0526690b1adb33' and kernel['metadata']['isPrivate'] and not kernel['metadata'].get('enableGpu') and not kernel['metadata']['enableInternet'];assert remote.kernel('GetKernelSessionStatus',slug,1)['status']=='COMPLETE'
+summary=remote.output_json(slug,1,'private/shard000/summary.json');cohort=remote.output_json(slug,1,'private/shard000/cohort-manifest.json');manifest=remote.output_json(slug,1,'private/shard000/shard/shard-manifest.json')
+sys.path.insert(0,'/tmp/rsna-render-capsule-package-20261013-v1/extracted/code');from rsna.competitive import kaggle_source_render as ksr;from rsna.competitive import public_cache_producer as producer
+assert ksr.canonical_sha256(cohort)=='3f265ddfb5b35857e75745b3476cf7761d6d41a93f3651839272c763ed5e7776';assert len(manifest['members'])==175 and manifest['shard_index']==0 and hashlib.sha256(producer._json_bytes(manifest)).hexdigest()==summary['shard_manifest_sha256']
+base='private/shard000/';expected={base+'summary.json':{'sha256':hashlib.sha256(producer._json_bytes(summary)).hexdigest(),'bytes':len(producer._json_bytes(summary))},base+'cohort-manifest.json':{'sha256':hashlib.sha256(producer._json_bytes(cohort)).hexdigest(),'bytes':len(producer._json_bytes(cohort))},base+'shard/shard-manifest.json':{'sha256':summary['shard_manifest_sha256'],'bytes':len(producer._json_bytes(manifest))}}
+for m in manifest['members']:
+ uid=m['study_uid'];expected[base+'shard/'+m['encoded']['path']]={'bytes':m['encoded']['bytes'],'sha256':m['encoded']['sha256']}
+ for folder,key in [('receipts','receipt_sha256'),('source-order','order_sha256')]:expected[base+'shard/'+folder+'/'+uid+'.json']={'sha256':m[key],'max_bytes':1*2**20}
+urls={};token=None;seen=set()
+for _ in range(100):
+ body={'userName':'godlydonuts','kernelSlug':slug.split('/')[1],'pageSize':100}
+ if token:body['pageToken']=token
+ page=remote.kernel('ListKernelSessionOutput',slug,1) if False else remote.call('kernels.KernelsApiService','ListKernelSessionOutput',body)
+ for f in page.get('files',[]):
+  name=f['fileName'];p=PurePosixPath(name);assert not p.is_absolute() and '..' not in p.parts
+  if name in expected:assert name not in urls;urls[name]=f['url']
+ token=page.get('nextPageToken')
+ if not token:break
+ assert token not in seen;seen.add(token)
+else:raise ValueError('Pagination bound exceeded')
+assert set(urls)==set(expected),'Complete original output membership required before download'
+(R/'files-download-intent.json').write_text(json.dumps({'status':'corrected_original_file_transport_after_zero_byte_zip_endpoint_refusal','version':1,'files':len(expected),'total_expected_encoded_bytes':summary['encoded_bytes']['gzip'],'sha256':summary['shard_manifest_sha256'],'parallel_network_streams':4,'automatic_retry':False,'fresh_free_bytes':free,'retained_future_bytes':(140+3+72)*2**30,'additional_archive_cap_bytes':32*2**30,'shared_growth':0},indent=2)+'\n')
+started=time.monotonic()
+def download(item):
+ name,url=item;parsed=urlparse(url);host=parsed.hostname or '';assert parsed.scheme=='https' and not parsed.username and not parsed.password and parsed.port in (None,443) and (host in ('storage.googleapis.com','www.kaggleusercontent.com') or host.endswith(('.googleusercontent.com','.kaggleusercontent.com'))),'No credentialed or unknown storage host'
+ e=expected[name];cap=e.get('bytes',e.get('max_bytes'));dest=R/'extracted'/name;dest.parent.mkdir(mode=0o700,parents=True,exist_ok=True);h=hashlib.sha256();count=0
+ with requests.get(url,timeout=(15,180),allow_redirects=False,stream=True) as response:
+  assert response.status_code==200
+  with dest.open('xb') as f:
+   for b in response.iter_content(2**20):
+    count+=len(b);assert count<=cap and time.monotonic()-started<1200;h.update(b);f.write(b)
+ assert h.hexdigest()==e['sha256'] and ('bytes' not in e or count==e['bytes'])
+ return count
+with ThreadPoolExecutor(max_workers=4) as pool:total=sum(pool.map(download,urls.items()))
+shard=R/'extracted/private/shard000/shard';actual=ksr.verify_shard(shard,cohort,summary['shard_manifest_sha256']);decoded=encoded=0
+for m in actual['members']:
+ blob=(shard/m['encoded']['path']).read_bytes();assert len(blob)==m['encoded']['bytes'] and hashlib.sha256(blob).hexdigest()==m['encoded']['sha256'];payload=ksr.decode_member(blob,size=m['member']['bytes'],sha256=m['member']['sha256']);producer._load_arrays(payload);encoded+=len(blob);decoded+=len(payload)
+assert encoded==summary['encoded_bytes']['gzip'] and decoded==summary['encoded_bytes']['exact'];remote.kernel('GetKernel',slug,1)
+proof={'status':'original_private_Kaggle_shard_fully_downloaded_and_member_bytes_verified','kernel_slug':slug,'version':1,'shard_index':0,'studies':175,'files':len(expected),'total_downloaded_bytes':total,'encoded_bytes':encoded,'decoded_exact_bytes':decoded,'shard_manifest_sha256':summary['shard_manifest_sha256'],'cohort_manifest_sha256':summary['cohort_manifest_sha256'],'every_encoded_and_decoded_member_size_SHA_verified':True,'every_source_receipt_and_order_SHA_verified':True,'source_arrays_validated':True,'private_owning_node':'evc31','raw_or_derived_MRI_exported_to_Mac_Git_HF':False,'complete_cohort_or_training_admitted':False,'earlier_zip_attempt_downloaded_zero_bytes':True,'wall_seconds':time.monotonic()-started}
+(R/'verified.json').write_text(json.dumps(proof,sort_keys=True,indent=2)+'\n');print(json.dumps(proof))

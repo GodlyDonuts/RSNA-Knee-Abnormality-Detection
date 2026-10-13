@@ -1,0 +1,29 @@
+{
+  "PR41_head": "e25c475a1afcf987be04165d21e7c3522b98e44c",
+  "PR42_head": "15830ee445016b03e7d8a507511a8af0816ccadf",
+  "root_corrections": [
+    "Anchor fingerprint excludes only named adapters, not every requires_grad parameter",
+    "New residual modules preserve original train/eval state",
+    "Meta tensor graph validation does not treat zero meta pointers as real storage aliasing",
+    "Finite alpha required; scalar hashing works",
+    "Cache requires complete digest set and same-device RoPE reconstruction",
+    "Repeated actual suffix optimizer updates preserve exact cached/full output equality",
+    "Real twenty-member prefix bound to authoritative original digest"
+  ],
+  "focused_tests": {
+    "dense_suffix": "23 passed",
+    "committee": "15 passed"
+  },
+  "actual_official_weight_GPU_or_MRI_shared_forward": "not yet accepted",
+  "dense_parameters": 150994944,
+  "suffix_R32_parameters": 7077888,
+  "production_numerical_sources_changed": false,
+  "accuracy_gain_claimed": false,
+  "current_live_RoPE": "train-mode stochastic pos_embed_rescale; cached eval RoPE is separate recipe",
+  "full_QA": {
+    "pytest": "2902 passed, 4 skipped",
+    "Ruff": "462 files passed",
+    "mypy": "60 source files passed",
+    "archive_and_current_v2": "passed, 89/89"
+  }
+}
