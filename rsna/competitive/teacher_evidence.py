@@ -15,6 +15,7 @@ import math
 import os
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -27,9 +28,9 @@ from rsna.schema import TARGETS
 
 KIND = "public_teacher_evidence_v1"
 TEACHER = "pilkwang/rsna-knee-baseline-v1/v15/m_e5427d6c21.pt"
-FITTING_STUDIES = ACCEPTED_SOURCE_TABLE["fitting_studies"]
-FITTING_ROSTER_SHA256 = ACCEPTED_SOURCE_TABLE["fitting_roster_sha256"]
-EVALUATION_ROSTER_SHA256 = ACCEPTED_SOURCE_TABLE["development_roster_sha256"]
+FITTING_STUDIES = cast(int, ACCEPTED_SOURCE_TABLE["fitting_studies"])
+FITTING_ROSTER_SHA256 = str(ACCEPTED_SOURCE_TABLE["fitting_roster_sha256"])
+EVALUATION_ROSTER_SHA256 = str(ACCEPTED_SOURCE_TABLE["development_roster_sha256"])
 ACCEPTANCE_STUDIES = 8
 WINDOWS, SLOTS = 10, 6
 MAX_EVIDENCE_BYTES = 8 << 20
@@ -156,7 +157,8 @@ def _check_arrays(arrays: dict[str, np.ndarray], uids: list[str]) -> None:
 
 def _serialize(arrays: dict[str, np.ndarray]) -> bytes:
     buffer = io.BytesIO()
-    np.savez(buffer, **{name: arrays[name] for name in ARRAYS})
+    savez: Any = np.savez
+    savez(buffer, **{name: arrays[name] for name in ARRAYS})
     return buffer.getvalue()
 
 

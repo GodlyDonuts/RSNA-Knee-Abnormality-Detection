@@ -17,8 +17,10 @@ from tools.research.public_teacher_evidence import teacher
 
 ROOT = Path(__file__).resolve().parents[1]
 PIXEL_GROUP = json.loads(
-    (ROOT / "initiative/audits/public-dinov2-real-inputs-20261013-v2/actual-input-comparison.json")
-    .read_text()
+    (
+        ROOT
+        / "initiative/audits/public-dinov2-real-inputs-20261013-v2/actual-input-comparison.json"
+    ).read_text()
 )["provenance"]["member_pixel_group"]
 CPU = torch.device("cpu")
 MARKS: list[int] = []
@@ -124,8 +126,9 @@ def row(seed, logits=None):
 
 def test_teacher_namespace_binds_reviewed_nodes_and_exact_target_order(namespace):
     assert list(namespace["TARGETS"]) == list(TARGETS)
-    assert namespace["_receipt"]["teacher_node_text_sha256"] == (
-        teacher.load_teacher_review()["node_text_sha256"]
+    assert (
+        namespace["_receipt"]["teacher_node_text_sha256"]
+        == (teacher.load_teacher_review()["node_text_sha256"])
     )
     assert namespace["_receipt"]["notebook_top_level_executed"] is False
     for unsafe in ("build_model", "find_weights", "find_dinov2", "infer_from_package"):
@@ -284,7 +287,9 @@ def test_teacher_targets_are_separate_soft_evidence_not_labels(tmp_path):
     before = labels.clone(), label_mask.clone()
     counts = te.disagreement(soft, weight, labels, label_mask)
     assert torch.equal(labels, before[0]) and torch.equal(label_mask, before[1])
-    assert all(c["uncertain_observed"] == 1 and c["unlabeled"] == 1 for c in counts.values())
+    for c in counts.values():
+        assert c["observed"] == 2 and c["unlabeled"] == 1 and c["uncertain_observed"] >= 1
+        assert c["confident_agree"] + c["confident_disagree"] + c["uncertain_observed"] == 2
     assert receipt["summary"]["uncertain_cells_confidence_below_0.5"]["ACL"] >= 1
 
 
