@@ -41,6 +41,7 @@ from rsna.competitive.loss import effective_batch_loss, observed_counts
 from rsna.competitive.mrnet_initialization import initialize_private_mrnet
 from rsna.competitive.neighbor_input import neighbor_input_channels
 from rsna.competitive.plane_memory import validate_plane_memory
+from rsna.competitive.public_input import validate_public_input, verify_public_cohort
 from rsna.competitive.relations import (
     effective_relation_loss,
     relation_model_kwargs,
@@ -126,8 +127,38 @@ class TrainConfig:
     neighbor_channels: dict | None = None
     patch_summary: dict | None = None
     cache_contrast: dict | None = None
+    public_input: dict | None = None
 
     def validate(self) -> None:
+        if self.public_input is not None:
+            validate_public_input(self.public_input)
+            if (
+                self.fit_scope != "outer_fold"
+                or self.augment
+                or self.pooling != "attention"
+                or self.slice_context != "none"
+                or self.slice_sampling != "uniform"
+                or self.series_sampling != "selected"
+                or (self.slices, self.side, self.max_series) != (10, 336, 6)
+                or any(
+                    value is not None
+                    for value in (
+                        self.neighbor_channels,
+                        self.cache_contrast,
+                        self.relation,
+                        self.witness,
+                        self.plane_memory,
+                        self.patch_summary,
+                    )
+                )
+                or (
+                    self.fitting_supervision is not None
+                    and self.fitting_supervision.get("kind") != "label_source_v1"
+                )
+                or not isinstance(self.encoder, dict)
+                or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+            ):
+                raise ValueError("Public triplet input comparison must isolate its input bundle")
         validate_cache_contrast(self.cache_contrast)
         if self.cache_contrast is not None and (
             self.fit_scope != "outer_fold"
@@ -546,6 +577,8 @@ def _run_locked(
         and getattr(args, "mrnet_checkpoint", None) is not None
     ):
         raise ValueError("First fitting-supervision contrast cannot mix external initialization")
+    if config.public_input is not None and getattr(args, "mrnet_checkpoint", None) is not None:
+        raise ValueError("Public triplet input comparison cannot mix external initialization")
     if config.fitting_supervision is not None or supervision_path is not None:
         train, supervision_receipt = apply_fitting_supervision(
             train,
@@ -560,6 +593,13 @@ def _run_locked(
         )
     else:
         supervision_receipt = None
+    public_receipt = (
+        None
+        if config.public_input is None
+        else verify_public_cohort(
+            args.cache, config.public_input, train, outer, release_binding["source_revision"]
+        )
+    )
     if config.diagnostic_study_limit is not None:
         train, outer = (
             train.head(config.diagnostic_study_limit),
@@ -579,6 +619,14 @@ def _run_locked(
         data_config["cache_contrast"] = config.cache_contrast
     if config.neighbor_channels is not None:
         data_config["neighbor_channels"] = config.neighbor_channels
+    if config.public_input is not None:
+        # The bound policy owns its source path; native/float caches are never substituted.
+        from rsna.competitive.public_input import PublicTripletStudyDataset
+
+        dataset_class = PublicTripletStudyDataset
+        data_config.update(
+            public_input=config.public_input, source_revision=release_binding["source_revision"]
+        )
     training_config = dict(data_config)
     if config.fitting_supervision is not None and config.fitting_supervision["kind"] in {
         "label_source_v1",
@@ -600,9 +648,17 @@ def _run_locked(
         != (outer_data.cache_side, outer_data.source_revision)
     ):
         raise ValueError("Image cache transform/source differs from the accepted release")
-    channels = neighbor_input_channels(config.neighbor_channels)
+    if public_receipt is not None and {
+        data.index_sha256 for data in (training_data, outer_data) if data is not None
+    } != {public_receipt["index_sha256"]}:
+        raise ValueError("Public triplet cache index changed during dataset construction")
+    channels = (
+        3 if config.public_input is not None else neighbor_input_channels(config.neighbor_channels)
+    )
     encoder, embedding_dim, encoder_provenance = create_encoder(
-        config.encoder, **({"input_channels": channels} if channels == 3 else {})
+        config.encoder,
+        **({"input_channels": channels} if channels == 3 else {}),
+        **({"input_contract": "public_ordered_triplet"} if config.public_input is not None else {}),
     )
     configure_encoder_training(encoder, config.freeze_encoder)
     model = model_class(
@@ -676,6 +732,8 @@ def _run_locked(
         bound_config.pop("patch_summary")
     if config.cache_contrast is None:
         bound_config.pop("cache_contrast")
+    if config.public_input is None:
+        bound_config.pop("public_input")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {
@@ -705,6 +763,8 @@ def _run_locked(
         )
     if supervision_receipt is not None:
         binding["experimental_fitting_supervision"] = supervision_receipt
+    if public_receipt is not None:
+        binding.update(public_input_cache=public_receipt, private_research_only=True)
     if world > 1:
         rank_bindings: list = [None] * world
         dist.all_gather_object(rank_bindings, _hash(binding))

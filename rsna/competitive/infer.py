@@ -48,6 +48,10 @@ def validate_inference_checkpoint(
         raise ValueError(
             "Experimental fitting-supervision weights are not admitted for competition"
         )
+    if binding.get("config", {}).get("public_input") is not None:
+        raise ValueError(
+            "Public ordered-triplet research weights have no admitted deployment input"
+        )
     if binding.get("external_initialization") is not None or binding.get("private_research_only"):
         raise ValueError("Private external-source research weights are not competition candidates")
     validate_checkpoint_binding(binding["release"])
@@ -117,7 +121,8 @@ def run(args: argparse.Namespace) -> dict:
     else:
         encoder_spec = json.loads(args.encoder_spec.read_text())
         encoder, dimension, provenance = create_encoder(
-            encoder_spec, **({"input_channels": channels} if channels == 3 else {})
+            encoder_spec,
+            **({"input_channels": 3} if channels == 3 else {}),  # type: ignore[arg-type]
         )
     if provenance != binding["config"]["encoder"]:
         raise ValueError("Encoder source/preprocessing differs from the training checkpoint")

@@ -339,8 +339,19 @@ def _encoder_provenance(spec: Mapping[str, Any], config: dict, model_class: str)
     return result
 
 
+_THREE_CHANNEL_CONTRACTS = {
+    # Default 3-channel provenance remains the neighbor-delta contract.
+    "neighbor_delta": ("neighbor_delta_0_1_v1", "neighbor_delta_0_1_imagenet_rgb_v1"),
+    # Three ordered source-rendered public slices, each uint8/255, one ImageNet pass.
+    "public_ordered_triplet": (
+        "public_ordered_triplet_0_1_v1",
+        "public_ordered_triplet_0_1_imagenet_rgb_v1",
+    ),
+}
+
+
 def create_encoder(
-    spec: Mapping[str, Any], *, input_channels: int = 1
+    spec: Mapping[str, Any], *, input_channels: int = 1, input_contract: str = "neighbor_delta"
 ) -> tuple[nn.Module, int, dict[str, Any]]:
     """Build a local encoder. Diagnostic usage must also be gated by the trainer.
 
@@ -351,6 +362,11 @@ def create_encoder(
     """
     if type(input_channels) is not int or input_channels not in {1, 3}:
         raise ValueError("One or three encoder input channels required")
+    if input_contract not in _THREE_CHANNEL_CONTRACTS or (
+        input_contract != "neighbor_delta" and input_channels != 3
+    ):
+        raise ValueError("Unknown or incompatible encoder input contract")
+    diagnostic_contract, pretrained_contract = _THREE_CHANNEL_CONTRACTS[input_contract]
     architecture = spec.get("architecture")
     if input_channels == 3 and architecture not in {"dinov3_l16", "diagnostic_tiny"}:
         raise ValueError("Neighbor input requires the pinned DINOv3-L or engineering encoder")
@@ -368,7 +384,7 @@ def create_encoder(
                 "embedding_dim": dim,
                 "pretrained": False,
                 "diagnostic_only": True,
-                "input_contract": "gray_0_1_v1" if input_channels == 1 else "neighbor_delta_0_1_v1",
+                "input_contract": "gray_0_1_v1" if input_channels == 1 else diagnostic_contract,
             },
         )
     if not isinstance(architecture, str) or architecture not in ARCHITECTURES:
@@ -425,7 +441,7 @@ def create_encoder(
         if installed != provenance["adapter"]:
             raise ValueError("Installed adapters differ from encoder provenance")
     if input_channels == 3:
-        provenance["input_contract"] = "neighbor_delta_0_1_imagenet_rgb_v1"
+        provenance["input_contract"] = pretrained_contract
     return _GrayEncoder(model, patch, input_channels), embedding_dim, provenance
 
 
@@ -466,13 +482,12 @@ def create_encoder_from_training_checkpoint(
     else:
         model_class = "ConvNextForImageClassification"  # ignored by explicit DINO constructors
     expected = _encoder_provenance(provenance, config, model_class)
-    input_channels = (
-        3 if provenance.get("input_contract") == "neighbor_delta_0_1_imagenet_rgb_v1" else 1
-    )
+    three_channel = {pretrained for _, pretrained in _THREE_CHANNEL_CONTRACTS.values()}
+    input_channels = 3 if provenance.get("input_contract") in three_channel else 1
     if input_channels == 3:
         if architecture != "dinov3_l16":
             raise ValueError("Neighbor checkpoint requires pinned DINOv3-L")
-        expected["input_contract"] = "neighbor_delta_0_1_imagenet_rgb_v1"
+        expected["input_contract"] = provenance["input_contract"]
     if (
         set(provenance) != set(expected)
         or dict(provenance) != expected
