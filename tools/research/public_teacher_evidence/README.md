@@ -69,3 +69,45 @@ Precommitted in [design.json](design.json): ordinary public-input DINOv3 versus 
 input/base/seed/schedule plus `w=0.5` confidence-weighted teacher auxiliary BCE
 (`teacher_evidence.combined_loss`; `w=0` is exactly the baseline). Trainer wiring is
 deliberately not part of this change and needs separate review after acceptance.
+
+## Twenty-member committee with an exact shared prefix (issue #39)
+
+Root's inspection (`initiative/audits/public-teacher-committee-prefix-20261013-v1`,
+not part of this change) reports byte-identical embeddings and blocks 0-5 across all
+twenty retained v15 members (113 tensors, 11,404,416 elements, digest `f127a88b…`) and
+one pixel group `bbd75640`. [committee.py](committee.py) uses this for computation only:
+
+- `verify_prefix` re-proves it on the loaded members: same graph class and backbone
+  config, frozen eval graphs without hooks, and bitwise-equal (dtype/shape/device/bytes)
+  prefix parameters, buffers and the `Model` `mean`/`std` normalization buffers; sizes
+  must equal 113/11,404,416. Any difference refuses; members are never partially shared.
+- Each member keeps its full graph from `teacher.build_teacher` (original fingerprint
+  check). A shared view is the member's own original `Model` with only `backbone`
+  swapped for prefix (shared) + blocks 6-11 + layernorm (member). Original
+  `Model.forward`, pooling, `SlotHead`, masks, `window_starts`, `predict_member` and
+  `teacher.collect_study` run unchanged; no source math or normalization was altered.
+- `SharedPrefix` reuses an output only for a bitwise-identical normalized input with the
+  same shape/stride/dtype/device/autocast/grad/inference state; bounded to one study's
+  ten windows and cleared before and after every study. Any prefix tensor change
+  (version counter, or bytes vs the verified snapshot, checked per study) refuses.
+- `Committee.collect_study(check_full=True)` compares every member's shared window
+  logits/probabilities with its full graph bitwise and refuses on any difference;
+  `mode="full"` is the ordinary fallback. `verify_fingerprints` requires shared and full
+  fingerprints to be equal bitwise and the original check to pass.
+
+Root acceptance (owning node, not done here): run `verify_fingerprints` and
+`collect_study(check_full=True)` on the eight accepted render studies under the exact
+production device/precision. If bitwise equality fails, report it and collect with
+`forward=full_graph`; do not relax tolerances. Synthetic CPU tests
+(`tests/test_public_teacher_committee.py`) are mechanism checks only. The real
+`Dinov2Model` test runs only where `transformers` is installed.
+
+Evidence: [`rsna/competitive/committee_evidence.py`](../../../rsna/competitive/committee_evidence.py)
+stores per-member window logits/probabilities, the uniform mean and between-model std,
+fitting-only and apart from labels/masks/folds, under the same immutable
+write-once/reconcile rules. Its proposed **64 MiB** cap (the full 2,247-study roster does
+not fit 8 MiB) is not funded: writes refuse without root's funding receipt SHA.
+Committee confidence uses between-model disagreement, not across-window spread. Members
+share ancestry and are not independent votes; teacher training roster stays unknown.
+Collector wiring for root's receipt/manifest is deferred until that receipt is
+committed. Protocol: [committee_design.json](committee_design.json).
