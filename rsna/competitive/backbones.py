@@ -14,7 +14,19 @@ from typing import Any, cast
 import torch
 from torch import Tensor, nn
 
-from rsna.competitive.adapters import ResidualLinear, adapter_provenance, install_adapters
+from rsna.competitive.adapters import (
+    adapter_provenance,
+    install_adapters,
+    learned_residual_parameters,
+)
+from rsna.competitive.suffix_adapters import (
+    check_trainable_partition,
+    install_suffix_adapter,
+    installed_policy,
+    keep_frozen_prefix_eval,
+    suffix_adapter_provenance,
+    suffix_forward,
+)
 
 TRANSFORMERS_VERSION = "5.6.1"
 ARCHITECTURES = {"dinov2_b14_reg", "dinov3_b16", "dinov3_l16", "convnext_tiny"}
@@ -196,18 +208,35 @@ class _GrayEncoder(nn.Module):
 
     def requires_grad_(self, requires_grad: bool = True) -> _GrayEncoder:
         super().requires_grad_(requires_grad)
-        adapted = [m for m in self.backbone.modules() if isinstance(m, ResidualLinear)]
-        if requires_grad and adapted:
+        # Residual adapters (rs-LoRA A/B or dense suffix deltas) never unfreeze
+        # the official tensors they alias, even for requires_grad_(True).
+        learned = learned_residual_parameters(self.backbone)
+        if requires_grad and learned:
             self.backbone.requires_grad_(False)
-            for module in adapted:
-                module.lora_A.requires_grad_(True)
-                module.lora_B.requires_grad_(True)
+            for parameter in learned:
+                parameter.requires_grad_(True)
         # The unmasked global-embedding task never consumes the pretrained mask
         # token. Keep it outside DDP/optimizer even when the backbone is unfrozen.
         for name, parameter in self.backbone.named_parameters():
             if name == "embeddings.mask_token":
                 parameter.requires_grad_(False)
+        if installed_policy(self.backbone) is not None:
+            check_trainable_partition(self.backbone)
         return self
+
+    def train(self, mode: bool = True) -> _GrayEncoder:
+        super().train(mode)
+        # The suffix recipe's frozen prefix and RoPE are always deterministic.
+        if installed_policy(self.backbone) is not None:
+            keep_frozen_prefix_eval(self.backbone)
+        return self
+
+    def _backbone_output(self, images: Tensor) -> tuple[Tensor, Tensor]:
+        pixels = self._normalized_rgb(images)
+        if installed_policy(self.backbone) is not None:
+            return suffix_forward(self.backbone, pixels)
+        output = self.backbone(pixel_values=pixels)
+        return output.last_hidden_state, output.pooler_output
 
     def _normalized_rgb(self, images: Tensor) -> Tensor:
         if (
@@ -224,6 +253,8 @@ class _GrayEncoder(nn.Module):
         return (rgb - self.mean) / self.std
 
     def forward(self, images: Tensor) -> Tensor:
+        if installed_policy(self.backbone) is not None:
+            return self._backbone_output(images)[1]
         return self.backbone(pixel_values=self._normalized_rgb(images)).pooler_output
 
     def forward_features(self, images: Tensor) -> tuple[Tensor, Tensor]:
@@ -231,11 +262,9 @@ class _GrayEncoder(nn.Module):
         config = getattr(self.backbone, "config", None)
         if config is None or getattr(config, "model_type", None) != "dinov3_vit":
             raise ValueError("Spatial patch features require the pinned DINOv3 ViT")
-        output = self.backbone(pixel_values=self._normalized_rgb(images))
+        tokens, pooled = self._backbone_output(images)
         height, width = (n // self.patch_multiple for n in images.shape[-2:])
         prefix = 1 + config.num_register_tokens
-        tokens = output.last_hidden_state
-        pooled = output.pooler_output
         if tokens.shape != (
             len(images),
             prefix + height * width,
@@ -336,6 +365,12 @@ def _encoder_provenance(spec: Mapping[str, Any], config: dict, model_class: str)
             for key in ("rank", "alpha", "dropout", "ffn_last_layers", "gradient_checkpointing")
         }
         result["adapter"] = adapter_provenance(policy, config)
+    if "suffix_adapter" in spec:
+        if architecture != "dinov3_l16" or "adapter" in spec:
+            raise ValueError("Suffix adapters require the pinned DINOv3-L without all-block LoRA")
+        if not isinstance(spec["suffix_adapter"], Mapping):
+            raise ValueError("Suffix adapter policy must be an object")
+        result["suffix_adapter"] = suffix_adapter_provenance(spec["suffix_adapter"], config)
     return result
 
 
@@ -401,7 +436,11 @@ def create_encoder(
         "license",
         "state_dict_format",
     }
-    if not required <= set(spec) or set(spec) - required - {"model_class", "adapter"}:
+    if not required <= set(spec) or set(spec) - required - {
+        "model_class",
+        "adapter",
+        "suffix_adapter",
+    }:
         raise ValueError("Missing or unknown encoder manifest fields")
     _validate_pretrained_metadata(spec)
     config_path = _checked_file(spec, "config")
@@ -440,6 +479,10 @@ def create_encoder(
         installed = install_adapters(model, spec["adapter"])
         if installed != provenance["adapter"]:
             raise ValueError("Installed adapters differ from encoder provenance")
+    if "suffix_adapter" in spec:
+        # Installed only after the strict official load; base tensors stay aliased.
+        if install_suffix_adapter(model, spec["suffix_adapter"]) != provenance["suffix_adapter"]:
+            raise ValueError("Installed suffix adapters differ from encoder provenance")
     if input_channels == 3:
         provenance["input_contract"] = pretrained_contract
     return _GrayEncoder(model, patch, input_channels), embedding_dim, provenance
@@ -514,6 +557,9 @@ def create_encoder_from_training_checkpoint(
         }
         if install_adapters(model, policy) != expected["adapter"]:
             raise ValueError("Checkpoint adapter architecture differs from its provenance")
+    if "suffix_adapter" in expected:
+        if install_suffix_adapter(model, expected["suffix_adapter"]) != expected["suffix_adapter"]:
+            raise ValueError("Checkpoint suffix adapter differs from its provenance")
     patch, dimension = _encoder_dimensions(architecture)
     encoder = _GrayEncoder(model, patch, input_channels)
     # Buffers describe the fixed transform, not learned weights. Strict key/shape

@@ -6,6 +6,7 @@ import math
 from collections.abc import Mapping
 from typing import Any, cast
 
+import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
@@ -81,6 +82,44 @@ class ResidualLinear(nn.Linear):
         return F.linear(inputs, self.weight, self.bias) + residual * self.scaling
 
 
+class DenseDeltaLinear(nn.Linear):
+    """Alias the official weight/bias (state keys unchanged) and add ``dense_delta``.
+
+    ``y = W0 x + b0 + D dropout(x)`` with a zero-initialized full-rank ``D``.
+    """
+
+    def __init__(self, base: nn.Linear, dropout: float):
+        nn.Module.__init__(self)
+        self.in_features, self.out_features = base.in_features, base.out_features
+        self.weight = base.weight
+        self.bias = base.bias
+        self.weight.requires_grad_(False)
+        if self.bias is not None:
+            self.bias.requires_grad_(False)
+        self.dense_delta = nn.Parameter(
+            torch.zeros_like(base.weight, memory_format=torch.contiguous_format)
+        )
+        self.adapter_dropout = nn.Dropout(dropout)
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        residual = F.linear(self.adapter_dropout(inputs), self.dense_delta)
+        return F.linear(inputs, self.weight, self.bias) + residual
+
+
+LEARNED_RESIDUAL_SUFFIXES = (".lora_A", ".lora_B", ".dense_delta")
+
+
+def learned_residual_parameters(module: nn.Module) -> list[nn.Parameter]:
+    """Only the separately named residual tensors; official tensors are never included."""
+    learned: list[nn.Parameter] = []
+    for child in module.modules():
+        if isinstance(child, ResidualLinear):
+            learned.extend((child.lora_A, child.lora_B))
+        elif isinstance(child, DenseDeltaLinear):
+            learned.append(child.dense_delta)
+    return learned
+
+
 def install_adapters(backbone: nn.Module, policy: Mapping[str, Any]) -> dict[str, Any]:
     config = getattr(backbone, "config", None)
     if config is None or config.model_type != "dinov3_vit":
@@ -111,16 +150,15 @@ def install_adapters(backbone: nn.Module, policy: Mapping[str, Any]) -> dict[str
 
 
 def configure_encoder_training(encoder: nn.Module, freeze_base: bool) -> None:
-    adapted = [module for module in encoder.modules() if isinstance(module, ResidualLinear)]
-    if adapted and not freeze_base:
+    learned = learned_residual_parameters(encoder)
+    if learned and not freeze_base:
         raise ValueError("Adapter training requires the original encoder parameters frozen")
     encoder.requires_grad_(not freeze_base)
-    for module in adapted:
-        module.lora_A.requires_grad_(True)
-        module.lora_B.requires_grad_(True)
-    if adapted and any(
+    for parameter in learned:
+        parameter.requires_grad_(True)
+    if learned and any(
         p.requires_grad
         for name, p in encoder.named_parameters()
-        if not name.endswith((".lora_A", ".lora_B"))
+        if not name.endswith(LEARNED_RESIDUAL_SUFFIXES)
     ):
         raise ValueError("A base encoder parameter unexpectedly entered adapter training")

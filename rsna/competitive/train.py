@@ -51,6 +51,8 @@ from rsna.competitive.relations import (
 )
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
+from rsna.competitive.suffix_adapters import DERIVED_KEYS as SUFFIX_DERIVED_KEYS
+from rsna.competitive.suffix_adapters import validate_suffix_adapter
 from rsna.competitive.supervision import apply_fitting_supervision, validate_fitting_supervision
 from rsna.competitive.witness import validate_witness
 from rsna.model import auc_metrics
@@ -337,7 +339,7 @@ class TrainConfig:
             raise ValueError("Unknown training pool policy")
         if self.checkpoint_format not in {"full", "frozen_base_delta"} or (
             self.checkpoint_format == "frozen_base_delta"
-            and (not self.freeze_encoder or "adapter" not in self.encoder)
+            and (not self.freeze_encoder or not ({"adapter", "suffix_adapter"} & set(self.encoder)))
         ):
             raise ValueError("Delta checkpoints require a frozen pretrained base and adapters")
         if "adapter" in self.encoder:
@@ -358,6 +360,22 @@ class TrainConfig:
             if not policy_keys <= set(policy) or set(policy) - policy_keys - derived_keys:
                 raise ValueError("Missing or unknown adapter policy fields")
             validate_adapter({key: policy[key] for key in policy_keys}, 24)
+        if "suffix_adapter" in self.encoder:
+            policy = self.encoder["suffix_adapter"]
+            if (
+                self.encoder.get("architecture") != "dinov3_l16"
+                or "adapter" in self.encoder
+                or not self.freeze_encoder
+                or self.checkpoint_format != "frozen_base_delta"
+                or not isinstance(policy, dict)
+            ):
+                raise ValueError(
+                    "Suffix adapters require frozen pinned DINOv3-L delta checkpoints only"
+                )
+            validate_suffix_adapter(
+                {key: value for key, value in policy.items() if key not in SUFFIX_DERIVED_KEYS},
+                24,
+            )
         if self.pooling == "patch_attention" and self.encoder.get("architecture") not in {
             "dinov3_l16",
             "diagnostic_tiny",
@@ -1001,7 +1019,7 @@ def _run_locked(
                     "observed_cells": float(counts.sum()),
                     "elapsed_seconds": time.monotonic() - started,
                 }
-                if "adapter" in config.encoder and step == 1:
+                if ({"adapter", "suffix_adapter"} & set(config.encoder)) and step == 1:
                     gradients = [p.grad for p in encoder.parameters() if p.requires_grad]
                     if any(gradient is None for gradient in gradients):
                         raise ValueError("An intended adapter parameter has no gradient")
