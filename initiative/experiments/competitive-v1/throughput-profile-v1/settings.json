@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "training_throughput_settings_v1",
+  "recipe_configs": [
+    "initiative/experiments/competitive-v1/public-label-source-v1/control-config.json",
+    "initiative/experiments/competitive-v1/public-label-source-v1/public-config.json"
+  ],
+  "reference_setting": "mb1-acc8-chunk8-w0",
+  "status": "proposal_only_not_dispatched",
+  "settings": {
+    "mb1-acc8-chunk8-w0": {
+      "overrides": {
+        "batch_size": 1,
+        "accumulation_steps": 8,
+        "encode_chunk_size": 8,
+        "workers": 0
+      },
+      "purpose": "Current canonical shape; reference for every comparison."
+    },
+    "mb1-acc8-chunk8-w1": {
+      "overrides": {
+        "batch_size": 1,
+        "accumulation_steps": 8,
+        "encode_chunk_size": 8,
+        "workers": 1
+      },
+      "purpose": "Minimal CPU prefetch: one loader worker overlaps read/decode with GPU work."
+    },
+    "mb1-acc8-chunk8-w2": {
+      "overrides": {
+        "batch_size": 1,
+        "accumulation_steps": 8,
+        "encode_chunk_size": 8,
+        "workers": 2
+      },
+      "purpose": "Minimal CPU prefetch: two loader workers."
+    },
+    "mb1-acc8-chunk32-w0": {
+      "overrides": {
+        "batch_size": 1,
+        "accumulation_steps": 8,
+        "encode_chunk_size": 32,
+        "workers": 0
+      },
+      "purpose": "Isolates encoder chunk size from microbatch size."
+    },
+    "mb4-acc2-chunk32-w0": {
+      "overrides": {
+        "batch_size": 4,
+        "accumulation_steps": 2,
+        "encode_chunk_size": 32,
+        "workers": 0
+      },
+      "purpose": "Issue candidate: four studies per microbatch, two accumulation steps."
+    },
+    "mb4-acc2-chunk32-w1": {
+      "overrides": {
+        "batch_size": 4,
+        "accumulation_steps": 2,
+        "encode_chunk_size": 32,
+        "workers": 1
+      },
+      "purpose": "Issue candidate plus one prefetch worker."
+    }
+  }
+}
