@@ -36,13 +36,19 @@ def load_fitting_label_source(
     release_sha256: str,
     folds_sha256: str,
     fold: int,
+    final_fit: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """Replace every fitting label and mask with the bound external source.
 
-    The caller selects the verified release and completes the outer fold first;
-    hashes bind that selection before any label is swapped. Overlay studies must
-    cover the fitting set exactly. Evaluation frames are never touched.
+    The caller first selects the verified release and the policy-bound roster.
+    Default outer-fold experiments preserve their evaluation frame. Explicit
+    final fits require all development membership and no evaluation roster.
+    Overlay studies must cover the fitting set exactly.
     """
+    scope = "all_development" if final_fit else "outer_fold"
+    status = "label_source_final_fit_only" if final_fit else "label_source_experiment_only"
+    if type(final_fit) is not bool:
+        raise ValueError("Final-fit admission must be explicit")
     if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_OVERLAY_BYTES:
         raise ValueError("Invalid label-source overlay artifact")
     raw = path.read_bytes()
@@ -52,8 +58,8 @@ def load_fitting_label_source(
     if not isinstance(value, dict) or value.get("schema_version") != 1:
         raise ValueError("Unsupported label-source overlay schema")
     if (
-        value.get("status") != "label_source_experiment_only"
-        or value.get("fit_scope") != "outer_fold"
+        value.get("status") != status
+        or value.get("fit_scope") != scope
         or type(value.get("fold")) is not int
         or value["fold"] != fold
         or value.get("release_sha256") != release_sha256
@@ -65,15 +71,18 @@ def load_fitting_label_source(
     source = value.get("source")
     if not isinstance(source, dict) or not _sha(source.get("csv_sha256")):
         raise ValueError("Label-source overlay lacks its pinned source identity")
-    if train.empty or outer.empty or train.study_uid.duplicated().any():
+    if train.empty or (outer.empty and not final_fit) or train.study_uid.duplicated().any():
         raise ValueError("Label-source overlay requires complete distinct rosters")
+    if final_fit and not outer.empty:
+        raise ValueError("Final fit cannot retain an evaluation roster")
     if outer.study_uid.duplicated().any() or set(train.study_uid) & set(outer.study_uid):
         raise ValueError("Fitting and outer studies overlap")
     if set(train.leakage_group) & set(outer.leakage_group):
         raise ValueError("Fitting and outer leakage components overlap")
     if (
         not train.split.eq("train").all()
-        or train.fold.eq(fold).any()
+        or (not final_fit and train.fold.eq(fold).any())
+        or (final_fit and not train.report_supervision_allowed.eq(True).all())  # noqa: E712
         or not outer.fold.eq(fold).all()
         or value.get("fitting_uid_sha256") != roster_sha(train)
         or value.get("outer_uid_sha256") != roster_sha(outer)
@@ -144,4 +153,6 @@ def load_fitting_label_source(
         "experimental_only": True,
         "evaluation_masks_changed": False,
     }
+    if final_fit:
+        binding.update(fit_scope=scope, final_fit_only=True, internal_validation_available=False)
     return result, binding

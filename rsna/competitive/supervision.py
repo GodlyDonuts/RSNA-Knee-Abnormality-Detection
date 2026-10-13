@@ -32,7 +32,8 @@ def validate_fitting_supervision(policy: object) -> None:
     if (
         not isinstance(policy, dict)
         or set(policy) != {"kind", "sha256", "enabled"}
-        or policy.get("kind") not in {"effusion_review_v1", "label_source_v1"}
+        or policy.get("kind")
+        not in {"effusion_review_v1", "label_source_v1", "label_source_final_v1"}
         or not _sha(policy.get("sha256"))
         or type(policy.get("enabled")) is not bool
     ):
@@ -62,7 +63,7 @@ def apply_fitting_supervision(
     validate_fitting_supervision(policy)
     if path is None:
         raise ValueError("Bound fitting-supervision policy requires its exact artifact")
-    if policy["kind"] == "label_source_v1":
+    if policy["kind"] in {"label_source_v1", "label_source_final_v1"}:
         from rsna.competitive.label_source import load_fitting_label_source
 
         candidate, receipt = load_fitting_label_source(
@@ -73,6 +74,7 @@ def apply_fitting_supervision(
             release_sha256=release_sha256,
             folds_sha256=folds_sha256,
             fold=fold,
+            final_fit=policy["kind"] == "label_source_final_v1",
         )
         receipt["enabled"] = policy["enabled"]
         receipt["applied_cells"] = receipt["swapped_cells"] if policy["enabled"] else 0
