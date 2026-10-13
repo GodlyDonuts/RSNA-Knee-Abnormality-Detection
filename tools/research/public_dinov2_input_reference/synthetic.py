@@ -30,6 +30,8 @@ class SeriesSpec:
     laterality: str = "R"
     duplicate_positions: int = 0
     constant: bool = False
+    laterality_tag: bool = True
+    seed: int | None = None
 
 
 def orientation(plane: str, degrees: float) -> np.ndarray:
@@ -63,7 +65,7 @@ def write_series(
     series = f"{study}.{index}"
     folder = root / study / series
     folder.mkdir(parents=True, exist_ok=True)
-    pixels = series_pixels(spec, seed=index)
+    pixels = series_pixels(spec, seed=index if spec.seed is None else spec.seed)
     basis = orientation(spec.plane, spec.oblique_degrees)
     normal = np.cross(basis[:3], basis[3:])
     side = -1.0 if spec.laterality == "R" else 1.0
@@ -81,7 +83,8 @@ def write_series(
         ds.StudyInstanceUID, ds.SeriesInstanceUID, ds.SOPInstanceUID = study, series, sop
         ds.SOPClassUID, ds.Modality = MRImageStorage, "MR"
         ds.SeriesDescription = f"{PLANES[spec.plane][1]} {spec.description}"
-        ds.ImageLaterality = ds.Laterality = spec.laterality
+        if spec.laterality_tag:
+            ds.ImageLaterality = ds.Laterality = spec.laterality
         ds.Rows, ds.Columns = spec.rows, spec.columns
         ds.SamplesPerPixel, ds.PhotometricInterpretation = 1, "MONOCHROME2"
         ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 16, 16, 15, 0
@@ -121,11 +124,29 @@ CASES: dict[str, list[SeriesSpec]] = {
         SeriesSpec("Axial", "T2 FS", slices=3),
     ],
     "large_field": [SeriesSpec("Coronal", "PD FS", rows=96, columns=128, spacing=(1.8, 1.8))],
+    "t1_fallback_untagged": [
+        SeriesSpec("Sagittal", "PD", laterality_tag=False, laterality="L"),
+        SeriesSpec("Coronal", "PD", slices=16, laterality_tag=False, laterality="L"),
+        SeriesSpec("Coronal", "PD", slices=12, laterality_tag=False, laterality="L"),
+    ],
+}
+
+MIRROR = {
+    "left": [SeriesSpec("Coronal", "PD FS", laterality="L", seed=7),
+             SeriesSpec("Sagittal", "PD FS", laterality="L", seed=8)],
+    "right": [SeriesSpec("Coronal", "PD FS", laterality="R", seed=7),
+              SeriesSpec("Sagittal", "PD FS", laterality="R", seed=8)],
 }
 
 
-def write_case(root: Path, name: str) -> Path:
-    study = "1.2.826.0.1." + str(sorted(CASES).index(name) + 1)
-    for index, spec in enumerate(CASES[name], 1):
+def plane_map(study: Path, specs: list[SeriesSpec]) -> dict[str, str]:
+    """Series-CSV-style `Anatomical_Plane` metadata for one written study."""
+    return {f"{study.name}.{i}": spec.plane for i, spec in enumerate(specs, 1)}
+
+
+def write_case(root: Path, name: str, cases: dict | None = None) -> Path:
+    cases = CASES if cases is None else cases
+    study = "1.2.826.0.1." + str(sorted(cases).index(name) + 1 + 100 * (cases is not CASES))
+    for index, spec in enumerate(cases[name], 1):
         write_series(root, study, index, spec)
     return root / study

@@ -3,12 +3,111 @@
   "source_version": 15,
   "source_sha256": "b32a9155fcc73c519e75e78c08e07d30393efc591c2798a3e40ca92f39832bb8",
   "extracted_sha256": "8fb028d3de3d29b3a6cc2463732013b8efbe290e56b5e0dd0bb7f10cadd758f1",
-  "status": "pending_source_handoff",
-  "status_reason": "Exact source bytes were not available to the authoring session (no retained copy in Git/HF; Kaggle endpoint not reachable). No renderer node was named or reconstructed.",
-  "nodes": [],
-  "node_text_sha256": null,
-  "preamble_modules": [],
-  "entrypoint": null,
-  "entrypoint_call": null,
-  "reviewer": null
+  "source_handoff": "initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json (main e480af4b)",
+  "status": "reviewed",
+  "status_reason": "Renderer, series-selection, laterality, ordering, windowing, cache layout and TTA-window nodes read against the exact source. Label extraction, label tables, annotated/gold branches, training, submission and weight-package search/loading were not selected.",
+  "nodes": [
+    "TARGETS",
+    "CROP_MM",
+    "CACHE_IMG",
+    "GROUP",
+    "ORDER_THREADS",
+    "ORDER_BUDGET_S",
+    "PIX_THREADS",
+    "LAT_MIN_OFFSET_MM",
+    "SLICE_BAND",
+    "RULES_NATIVE",
+    "RULES_LEGACY",
+    "RULES",
+    "LEGACY_LAT_OFFSET_MM",
+    "TIME_BUDGET",
+    "EVAL_BATCH",
+    "SLOTS_RECOVERED",
+    "SLOTS_PUBLIC",
+    "FATSAT_OPTS",
+    "_SEP",
+    "_FATSAT_RX",
+    "_T1_RX",
+    "_T2_RX",
+    "_PD_RX",
+    "IMG",
+    "HDR_TAGS",
+    "_hdr_vec",
+    "side_from_geometry",
+    "side_from_corner_x",
+    "lat_of",
+    "probe",
+    "annotate",
+    "pick_slots",
+    "ORDER_TAGS",
+    "DECODE_FAILED",
+    "_natural_key",
+    "_order_dominant_axis",
+    "order_slices",
+    "read_slot",
+    "normalise_laterality",
+    "build_cache",
+    "WeightsError",
+    "TTA_OVERLAP",
+    "TTA_POOL",
+    "window_starts",
+    "predict_member",
+    "adopt_config_globals"
+  ],
+  "node_text_sha256": "fb297f5073fe0288d9ea06a94d2ddee768d1f123e421710782292661fb962b00",
+  "preamble_modules": [
+    "np=numpy",
+    "pydicom",
+    "torch",
+    "nn=torch.nn",
+    "F=torch.nn.functional",
+    "os",
+    "re"
+  ],
+  "adapter_names": [
+    "log",
+    "T0",
+    "time",
+    "gc",
+    "ThreadPoolExecutor",
+    "ORDER_CACHE",
+    "Path",
+    "pd"
+  ],
+  "reviewed_exceptions": {
+    "annotate": {
+      "names": [
+        "pd"
+      ],
+      "reason": "pd.to_numeric on probed RepetitionTime/EchoTime/PixelSpacing header strings only; pd is bound to provenance.MetadataPandas, which exposes to_numeric alone."
+    },
+    "build_cache": {
+      "imports": [
+        "json"
+      ],
+      "attributes": [
+        "loads"
+      ],
+      "reason": "Only inside the ORDER_CACHE branches. ORDER_CACHE is bound to None (the scored-platform value), Path is a refusing placeholder and the runtime import guard still refuses json."
+    },
+    "WeightsError": {
+      "strings": [
+        "ddbf69474775af49100dbe3441c2406b31227a7c84fd3cbeaef4cf8e3e6d02cd"
+      ],
+      "reason": "Docstring names LabelSourceError; no label access."
+    },
+    "adopt_config_globals": {
+      "strings": [
+        "64387f23fa5a7062070704b811cd20a658a8a97eaa8461de4c98bc015d707287"
+      ],
+      "reason": "Error message; 'cannot' matches the 'annot' token."
+    }
+  },
+  "not_selected": {
+    "SLOTS/N_SLOT": "set by reference.configure from the member's recorded slot names (original SLOT_SCHEME env choice)",
+    "N_GROUP/CACHE_SLICES": "original plan_cache reads train.csv/test.csv; set by original adopt_config_globals from the member pixel group",
+    "walk": "reads ROOT/<split>; replaced by reference.header_frame over explicit study dirs with the same probe/scandir order",
+    "infer_from_package/write_submission/main": "weights package search, torch.load(weights_only=False), label and submission paths"
+  },
+  "reviewer": "Devin session 88b17b80f4464a7f870ce8ffb7f2df9d (issue #12)"
 }

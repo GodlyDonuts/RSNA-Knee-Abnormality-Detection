@@ -15,6 +15,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+import pandas as pd
+
 SOURCE_REF = "pilkwang/rsna-knee-baseline-v1"
 SOURCE_VERSION = 15
 SOURCE_BYTES = 155668
@@ -121,26 +123,37 @@ def _defined(node: ast.stmt) -> set[str]:
     return set()
 
 
-def check_node(node: ast.stmt) -> None:
-    """Refuse any reviewed node that could read labels, files, network or pickles."""
+def check_node(node: ast.stmt, allow: dict | None = None) -> None:
+    """Refuse any reviewed node that could read labels, files, network or pickles.
+
+    `allow` is the node's explicitly reviewed exception record from review.json: exact
+    names, imports, attributes or whole string constants that were read and justified.
+    Exceptions are static only; `_guarded_import` still refuses the modules at runtime.
+    """
+    allow = allow or {}
+    names_ok, imports_ok = set(allow.get("names", [])), set(allow.get("imports", []))
+    attrs_ok, strings_ok = set(allow.get("attributes", [])), set(allow.get("strings", []))
     for child in ast.walk(node):
         if isinstance(child, (ast.Import, ast.ImportFrom)):
             names = [a.name for a in child.names] if isinstance(child, ast.Import) else []
             names.append(getattr(child, "module", None) or "")
             for name in filter(None, names):
-                if name.split(".")[0] not in ALLOWED_MODULES:
+                if name.split(".")[0] not in ALLOWED_MODULES and name not in imports_ok:
                     raise ValueError(f"Reviewed node imports disallowed module {name}")
-        elif isinstance(child, ast.Name) and child.id in FORBIDDEN_NAMES:
+        elif isinstance(child, ast.Name) and child.id in FORBIDDEN_NAMES - names_ok:
             raise ValueError(f"Reviewed node references forbidden name {child.id}")
-        elif isinstance(child, ast.Attribute) and child.attr in FORBIDDEN_ATTRIBUTES:
+        elif isinstance(child, ast.Attribute) and child.attr in FORBIDDEN_ATTRIBUTES - attrs_ok:
             raise ValueError(f"Reviewed node references forbidden attribute {child.attr}")
         elif isinstance(child, ast.Constant) and isinstance(child.value, str):
             lowered = child.value.lower()
-            if any(token in lowered for token in FORBIDDEN_STRINGS):
+            flagged = any(token in lowered for token in FORBIDDEN_STRINGS)
+            if flagged and sha256(child.value.encode()) not in strings_ok:
                 raise ValueError("Reviewed node contains a label/annotation/network string")
 
 
-def extract_nodes(source: str, names: list[str]) -> tuple[str, str]:
+def extract_nodes(
+    source: str, names: list[str], exceptions: dict | None = None
+) -> tuple[str, str]:
     """Return exact reviewed node text (source order, last definition wins) and its digest."""
     wanted = set(names)
     if len(wanted) != len(names) or not wanted:
@@ -154,8 +167,11 @@ def extract_nodes(source: str, names: list[str]) -> tuple[str, str]:
             chosen[name], order[name] = node, index
     if set(chosen) != wanted:
         raise ValueError(f"Reviewed nodes absent from source: {sorted(wanted - set(chosen))}")
-    for node in chosen.values():
-        check_node(node)
+    exceptions = exceptions or {}
+    if set(exceptions) - wanted:
+        raise ValueError("Reviewed exceptions name nodes outside the reviewed list")
+    for name, node in chosen.items():
+        check_node(node, exceptions.get(name))
     text = "\n\n".join(ast.unparse(chosen[n]) for n in sorted(chosen, key=order.__getitem__))
     return text, sha256(text.encode())
 
@@ -166,7 +182,29 @@ def _guarded_import(name: str, *args: Any, **kwargs: Any) -> Any:
     return builtins.__import__(name, *args, **kwargs)
 
 
-def compile_nodes(text: str, preamble: dict[str, Any] | None = None) -> dict[str, Any]:
+class MetadataPandas:
+    """Reviewed stand-in for `pd` inside `annotate`: header-value coercion only.
+
+    The original `annotate` uses `pd.to_numeric` on probed DICOM header strings. No other
+    pandas entry point (readers, writers, label tables) is reachable through this name.
+    """
+
+    to_numeric = staticmethod(pd.to_numeric)
+
+
+class Refused:
+    """Placeholder for an original name whose only reviewed use is an unreached branch."""
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError(f"Reviewed reference refuses {self.name}")
+
+
+def compile_nodes(
+    text: str, preamble: dict[str, Any] | None = None, exceptions: dict | None = None
+) -> dict[str, Any]:
     """Compile already-checked node text into an isolated namespace without other cells."""
     safe = {k: getattr(builtins, k) for k in dir(builtins) if k not in FORBIDDEN_NAMES}
     safe["__import__"] = _guarded_import
@@ -174,7 +212,7 @@ def compile_nodes(text: str, preamble: dict[str, Any] | None = None) -> dict[str
     namespace.update(preamble or {})
     tree = ast.parse(text)
     for node in tree.body:
-        check_node(node)
+        check_node(node, (exceptions or {}).get(next(iter(_defined(node)), "")))
     exec(compile(tree, f"<{SOURCE_REF} v{SOURCE_VERSION} reviewed>", "exec"), namespace)
     return namespace
 
@@ -186,23 +224,37 @@ def load_review(path: Path = REVIEW_PATH) -> dict:
     return review
 
 
-def load_reference(raw: bytes, review: dict | None = None) -> tuple[dict[str, Any], dict]:
-    """Exact source plus completed review -> reviewed renderer namespace and receipt."""
+def load_reference(
+    raw: bytes, review: dict | None = None, adapters: dict[str, Any] | None = None
+) -> tuple[dict[str, Any], dict]:
+    """Exact source plus completed review -> reviewed renderer namespace and receipt.
+
+    `adapters` binds the review's `adapter_names` (non-original helpers such as the log
+    sink) and must supply exactly those names.
+    """
     review = load_review() if review is None else review
-    code = verified_code(raw)
+    verified_code(raw)
+    notebook = verify_source(raw)
     if review.get("status") != "reviewed" or not review.get("nodes"):
         raise SourceReviewPending(
             "Renderer nodes are not reviewed against the exact source; provide the bounded "
             "source handoff and complete review.json before any comparison"
         )
-    text, digest = extract_nodes(code, list(review["nodes"]))
+    exceptions = review.get("reviewed_exceptions", {})
+    # Nodes come from the parsed code cells of the verified notebook; the cell join also
+    # contains markdown and is bound only by digest.
+    text, digest = extract_nodes(notebook, list(review["nodes"]), exceptions)
     if digest != review.get("node_text_sha256"):
         raise SourceMismatch("Reviewed node text digest changed")
     preamble = {}
     for module in review.get("preamble_modules", []):
         alias, name = module.split("=") if "=" in module else (module, module)
         preamble[alias] = _guarded_import(name, fromlist=["_"] if "." in name else [])
-    namespace = compile_nodes(text, preamble)
+    adapters = dict(adapters or {})
+    if set(adapters) != set(review.get("adapter_names", [])):
+        raise ValueError("Adapters must match the reviewed adapter_names exactly")
+    preamble.update(adapters)
+    namespace = compile_nodes(text, preamble, exceptions)
     receipt = {
         "source_ref": SOURCE_REF,
         "source_version": SOURCE_VERSION,
@@ -210,6 +262,8 @@ def load_reference(raw: bytes, review: dict | None = None) -> tuple[dict[str, An
         "extracted_sha256": EXTRACTED_SHA256,
         "nodes": list(review["nodes"]),
         "node_text_sha256": digest,
+        "reviewed_exceptions": sorted(exceptions),
+        "adapter_names": sorted(adapters),
         "notebook_top_level_executed": False,
     }
     return namespace, receipt
