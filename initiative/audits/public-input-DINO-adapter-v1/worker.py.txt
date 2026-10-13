@@ -1,0 +1,31 @@
+"""Eight retained fitting originals -> DINOv3 input tensors; CPU only."""
+import hashlib,json,os,sys
+from pathlib import Path
+import pandas as pd
+import torch
+R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');C=Path(sys.argv[1]);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS');torch.set_num_threads(1)
+sys.path.insert(0,str(R/'private-opencv'))
+from tools.research.public_dinov2_input_reference import reference
+from tools.research.public_dinov2_input_reference.dino_adapter import render_inputs
+from scripts.newton.compare_public_dinov2_inputs import member_pixel_group
+from rsna.competitive.data import collate_studies
+private=json.loads((R/'private-original-roster-and-files.json').read_text());plan=json.loads((R/'plan-admitted.json').read_text());assert hashlib.sha256((R/'private-original-roster-and-files.json').read_bytes()).hexdigest()==plan['private_inventory_sha256']
+ns,_=reference.load((C/'code/initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json').read_bytes());member=member_pixel_group((R/'private-member-manifest.json').read_bytes());reference.configure(ns,member['pixel_group'])
+original=json.loads(Path('/tmp/rsna-public-label-inputs-20261006-v1/CPU-accepted.json').read_text());series=pd.read_csv(original['trainer_inputs']['series']);plane_map=dict(zip(series.SeriesInstanceUID.astype(str),series.Anatomical_Plane));overlay=Path('/tmp/rsna-public-label-inputs-20261006-v1/overlay.json').read_bytes();assert hashlib.sha256(overlay).hexdigest()=='c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51';public_overlay=json.loads(overlay);labels_by_uid={r['study_uid']:r for r in public_overlay['studies']}
+h=hashlib.sha256();pixel_match=0;valid_positions=0;windows=0
+for uid in private['roster']:
+ label=labels_by_uid[uid]
+ from rsna.schema import TARGETS
+ y=torch.tensor([label['labels'][t] for t in TARGETS],dtype=torch.float32);mask=torch.tensor([label['mask'][t] for t in TARGETS],dtype=torch.float32)
+ directory=R/'original/train_series'/uid
+ public=reference.render_study(ns,directory,plane_map)
+ row=render_inputs(ns,directory,plane_map,y,mask)
+ expected=reference.windows(ns,public['images']).permute(1,0,2,3,4).float()/255
+ assert torch.equal(row['images'],expected) and torch.equal(row['series_mask'],public['slot_mask']);pixel_match+=1
+ batch=collate_studies([row]);assert batch['images'].shape==(1,6,10,3,336,336)
+ assert torch.equal(batch['labels'][0],torch.where(mask.bool(),y,torch.zeros_like(y)))
+ for key in ('images','features','positions','series_mask','slice_mask','labels','label_mask'):h.update(row[key].numpy().tobytes())
+ valid_positions+=int(row['positions'][...,1].sum());windows+=int(row['slice_mask'].sum())
+receipt={'status':'actual_original_MRI_public_to_DINOv3_tensor_adapter_accepted_CPU_only','CPU_job':os.environ['SLURM_JOB_ID'],'fitting_studies':8,'original_pixel_triplet_matches':pixel_match,'tensor_sha256':h.hexdigest(),'valid_physical_window_positions':valid_positions,'acquired_encoder_windows':windows,'view_shape':[6,10,3,336,336],'raw_pixel_normalization':'uint8_div255_only_encoder_normalizes_later','original_images_retrieved_again':False,'model_forward_or_optimizer':False,'production_trainer_integration':False,'clinical_accuracy_gain':False}
+with (C/'actual-CPU-adapter.json').open('x') as f:json.dump(receipt,f,indent=2)
+print(json.dumps(receipt))

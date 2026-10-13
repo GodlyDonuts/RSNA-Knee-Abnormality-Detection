@@ -1,0 +1,16 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);C=Path('/tmp/rsna-public-input-adapter-real-20261013-v1');R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not C.exists();assert (R/'actual-input-comparison.json').is_file() and shutil.disk_usage('/tmp').free>140*2**30+640*2**20
+C.mkdir(mode=0o700)
+for n,s in v['files'].items():
+ p=Path(n);assert not p.is_absolute() and '..' not in p.parts and hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n];out=C/p;out.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ with out.open('x') as f:f.write(s)
+with (C/'source.json').open('x') as f:json.dump({'source_git':v['source_git'],'files':v['hashes'],'new_private_small_cap_bytes':16*2**20,'new_shared_growth':0,'source_images_reacquired':False},f,indent=2)
+assert sum(p.stat().st_size for p in C.rglob('*') if p.is_file())<16*2**20
+e=dict(os.environ,PYTHONPATH=str(C/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+x=subprocess.run(['/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B',str(C/'worker.py'),str(C)],env=e,capture_output=True,text=True,timeout=800)
+with (C/'worker.stdout').open('x') as f:f.write(x.stdout)
+with (C/'worker.stderr').open('x') as f:f.write(x.stderr)
+if x.returncode:
+ print(json.dumps({'status':'private_adapter_input_failure','returncode':x.returncode,'CPU_job':os.environ['SLURM_JOB_ID'],'private_logs_retained':True}));sys.exit(x.returncode)
+print(x.stdout)

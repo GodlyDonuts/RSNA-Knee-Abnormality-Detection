@@ -1,0 +1,28 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/public-input-adapter-real-20261013-v1');assert not (L/'intent.json').exists();head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head==subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip()
+files={}
+for n in subprocess.check_output(['git','ls-files','rsna','tools/research/public_dinov2_input_reference'],text=True).splitlines():
+ if n.endswith(('.py','.json')):files['code/'+n]=Path(n).read_text()
+for n in ['scripts/newton/compare_public_dinov2_inputs.py','initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json']:files['code/'+n]=Path(n).read_text()
+files['worker.py']=(L/'worker.py').read_text();hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in files.items()}
+program=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);C=Path('/tmp/rsna-public-input-adapter-real-20261013-v1');R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not C.exists();assert (R/'actual-input-comparison.json').is_file() and shutil.disk_usage('/tmp').free>140*2**30+640*2**20
+C.mkdir(mode=0o700)
+for n,s in v['files'].items():
+ p=Path(n);assert not p.is_absolute() and '..' not in p.parts and hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n];out=C/p;out.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ with out.open('x') as f:f.write(s)
+with (C/'source.json').open('x') as f:json.dump({'source_git':v['source_git'],'files':v['hashes'],'new_private_small_cap_bytes':16*2**20,'new_shared_growth':0,'source_images_reacquired':False},f,indent=2)
+assert sum(p.stat().st_size for p in C.rglob('*') if p.is_file())<16*2**20
+e=dict(os.environ,PYTHONPATH=str(C/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+x=subprocess.run(['/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B',str(C/'worker.py'),str(C)],env=e,capture_output=True,text=True,timeout=800)
+with (C/'worker.stdout').open('x') as f:f.write(x.stdout)
+with (C/'worker.stderr').open('x') as f:f.write(x.stderr)
+if x.returncode:
+ print(json.dumps({'status':'private_adapter_input_failure','returncode':x.returncode,'CPU_job':os.environ['SLURM_JOB_ID'],'private_logs_retained':True}));sys.exit(x.returncode)
+print(x.stdout)
+'''
+(L/'program.py.txt').write_text(program);(L/'intent.json').write_text(json.dumps({'source_git':head,'files':hashes,'CPU':1,'GPU':0,'new_private_small_cap_bytes':16*2**20,'new_shared_growth':0,'images_reacquired':False,'automatic_retry':False},indent=2)+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:15:00','--job-name=rsna-public-triplet-DINO-inputs','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'source_git':head,'files':files,'hashes':hashes}),capture_output=True,text=True,timeout=950);(L/'result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect exact original private adapter stage, never repeat dispatch';v=json.loads(x.stdout);(L/'actual-CPU-adapter.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

@@ -12,7 +12,6 @@ import builtins
 import hashlib
 import json
 from pathlib import Path
-from types import MappingProxyType
 from typing import Any
 
 import pandas as pd
@@ -217,7 +216,10 @@ def compile_nodes(
     """Compile already-checked node text into an isolated namespace without other cells."""
     safe = {k: getattr(builtins, k) for k in dir(builtins) if k not in FORBIDDEN_NAMES}
     safe["__import__"] = _guarded_import
-    namespace: dict[str, Any] = {"__builtins__": MappingProxyType(safe), "__name__": "pilkwang_v15"}
+    # CPython/NumPy lazy imports require an actual builtin dictionary (or a
+    # module), not a generic mapping proxy. This is a private restricted copy;
+    # the guarded importer and reviewed-node/source checks remain unchanged.
+    namespace: dict[str, Any] = {"__builtins__": safe, "__name__": "pilkwang_v15"}
     namespace.update(preamble or {})
     tree = ast.parse(text)
     for node in tree.body:

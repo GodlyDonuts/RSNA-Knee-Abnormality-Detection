@@ -1,0 +1,23 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/public-input-adapter-real-20261013-v1');assert not (L/'namespace-repair-intent.json').exists();source=Path('tools/research/public_dinov2_input_reference/provenance.py').read_text();h=hashlib.sha256(source.encode()).hexdigest()
+p=r'''import hashlib,json,os,shutil,sys,runpy,importlib.util
+from pathlib import Path
+v=json.load(sys.stdin);C=Path('/tmp/rsna-public-input-adapter-real-20261013-v1');assert not (C/'namespace-repair-intent.json').exists() and not (C/'actual-CPU-adapter.json').exists();assert hashlib.sha256(v['source'].encode()).hexdigest()==v['sha256'];assert shutil.disk_usage('/tmp').free>140*2**30+640*2**20
+D=C/'fixed-reference-namespace';D.mkdir(mode=0o700)
+with (D/'provenance.py').open('x') as f:f.write(v['source'])
+shutil.copyfile(C/'code/tools/research/public_dinov2_input_reference/review.json',D/'review.json')
+with (C/'namespace-repair-intent.json').open('x') as f:json.dump({'CPU_job':os.environ['SLURM_JOB_ID'],'reason':'NumPy lazy import requires real builtin dictionary, mappingproxy AttributeError','provenance_sha256':v['sha256'],'source_pixels_or_geometry_changed':False,'raw_data_acquired':False,'automatic_retry':False},f)
+sys.path.insert(0,str(C/'code'));sys.path.insert(0,'/tmp/rsna-public-dinov2-real-inputs-20261013-v2/private-opencv')
+spec=importlib.util.spec_from_file_location('fixed_reference_namespace',D/'provenance.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+from tools.research.public_dinov2_input_reference import reference
+reference.provenance=m
+sys.argv=[str(C/'worker.py'),str(C)]
+try:runpy.run_path(str(C/'worker.py'),run_name='__main__')
+except Exception as error:
+ import traceback
+ frame=traceback.extract_tb(error.__traceback__)[-1];print(json.dumps({'status':'private_adapter_namespace_repair_failed','error_type':type(error).__name__,'module':Path(frame.filename).name,'line':frame.lineno,'private_details_exported':False}));sys.exit(1)
+'''
+(L/'namespace-repair-program.py.txt').write_text(p);(L/'namespace-repair-intent.json').write_text(json.dumps({'source_sha256':h,'original_job':906163,'raw_retrieval':False,'automatic_retry':False})+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:15:00','--job-name=rsna-public-triplet-namespace-repair','/usr/bin/python3.12','-B','-c',p]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'source':source,'sha256':h}),capture_output=True,text=True,timeout=950);(L/'namespace-repair-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect exact original repair; no repeated image acquisition';v=json.loads(x.stdout);(L/'actual-CPU-adapter.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

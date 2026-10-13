@@ -463,3 +463,13 @@ def test_actual_input_report_identifies_partial_population():
 def test_comparison_population_export_is_exact_and_nonempty(population):
     with pytest.raises(ValueError, match="population"):
         compare.sanitize({"comparison_population": population})
+
+
+def test_reference_builtins_are_a_private_guarded_cpython_dictionary(source):
+    ns, _ = reference.load(source)
+    assert type(ns["__builtins__"]) is dict
+    assert "open" not in ns["__builtins__"] and "eval" not in ns["__builtins__"]
+    with pytest.raises(ImportError):
+        ns["__builtins__"]["__import__"]("requests")
+    array = ns["np"].ones((2, 3), dtype=ns["np"].float32)
+    assert float(array.sum()) == 6
