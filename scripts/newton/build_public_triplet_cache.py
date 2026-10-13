@@ -217,7 +217,7 @@ def bind_sources(
         receipt,
         **{k: v for k, v in binder_options.items() if k in {"plan_file_sha256", "plan_sha256"}},
     )
-    corrected_series = {str(change["series_uid"]) for change in changes.values()}
+    corrected_series = {str(change["before"]["series_uid"]) for change in changes.values()}
     hashes = {
         "inventory_fingerprint_sha256": inventory_fingerprint(inventory),
         "correction_plan_file_sha256": hashlib.sha256(plan_bytes).hexdigest(),
@@ -337,7 +337,6 @@ def transport_study(
         raise ValueError("Study source exceeds the funded transport bound")
     if shutil.disk_usage(scratch).free - total < funding["min_free_bytes"]:
         raise ValueError("Study transport would breach the free-disk reserve")
-    source_digest = producer.study_source_sha256(uid, records)
     accepted: dict[str, dict[str, dict]] = {}
     for record in records:
         parts = PurePosixPath(record["path"]).parts
@@ -348,6 +347,7 @@ def transport_study(
         ):
             raise ValueError("Source record path differs from the original layout")
         accepted.setdefault(parts[2], {})[parts[3]] = record
+    source_digest = producer.study_source_sha256(uid, records)
     source_study = Path(source_study)
     _real_directory(source_study)
     if source_study.name != uid:
@@ -471,6 +471,21 @@ def stage_study(
     return receipt, order
 
 
+def require_clean(status: dict) -> dict:
+    """Staging proceeds only over pending/complete members and no foreign cache entries."""
+    if (
+        status["finalized"]
+        or status["unexpected"]
+        or set(status["states"])
+        - {
+            "pending",
+            "complete",
+        }
+    ):
+        raise ValueError("Cache holds interrupted, foreign or finalized state; reconcile only")
+    return status
+
+
 def aggregate(cache: Path, status: dict, out: Path | None = None) -> dict:
     """Counts and digests only: no study/series UID, path, pixel or clinical value."""
     root = cache / pi.CACHE_DIRECTORY
@@ -496,7 +511,8 @@ def aggregate(cache: Path, status: dict, out: Path | None = None) -> dict:
         "laterality": dict(sorted(laterality.items())),
     }
     if out is not None and (Path(out) / ORDER_DIRECTORY).is_dir():
-        digest, origins, ties, excluded = hashlib.sha256(), Counter(), 0, 0
+        digest, ties, excluded = hashlib.sha256(), 0, 0
+        origins: Counter = Counter()
         for path in sorted((Path(out) / ORDER_DIRECTORY).glob("*.json")):
             payload = path.read_bytes()
             digest.update(hashlib.sha256(payload).digest())
@@ -622,9 +638,7 @@ def run(args: argparse.Namespace) -> dict:
             caps={k: funding[k] for k in ("max_total_bytes", "min_free_bytes")},
             binding=binding,
         )
-    status = producer.reconcile(cache, verify_bytes=False)
-    if status["unexpected"] or set(status["states"]) - {"pending", "complete"}:
-        raise ValueError("Cache holds interrupted or foreign entries; reconcile before staging")
+    status = require_clean(producer.reconcile(cache, verify_bytes=False))
     discarded = discard_unfinished_transport(scratch)
 
     def source_of(uid: str) -> tuple[Path, str] | None:
