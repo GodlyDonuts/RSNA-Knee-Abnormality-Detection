@@ -1,0 +1,16 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/public-dinov2-real-inputs-20261013-v2');assert not (L/'comparison-only-dispatch-intent.json').exists();s=(L/'compare_only.py').read_text();h=hashlib.sha256(s.encode()).hexdigest()
+p=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');assert not (R/'comparison-only.py').exists() and not (R/'comparison-only-intent.json').exists();assert shutil.disk_usage('/tmp').free>140*2**30+624*2**20;assert hashlib.sha256(v['source'].encode()).hexdigest()==v['sha256']
+with (R/'comparison-only.py').open('x') as f:f.write(v['source'])
+e=dict(os.environ,PYTHONPATH=str(R/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+x=subprocess.run(['/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B',str(R/'comparison-only.py'),str(R)],env=e,capture_output=True,text=True,timeout=800)
+with (R/'comparison-only.stdout').open('x') as f:f.write(x.stdout)
+with (R/'comparison-only.stderr').open('x') as f:f.write(x.stderr)
+print(x.stdout);sys.exit(x.returncode)
+'''
+(L/'comparison-only-dispatch-intent.json').write_text(json.dumps({'original_acquisition_job':905864,'source_sha256':h,'no_source_retrieval':True,'automatic_retry':False})+'\n');(L/'comparison-only-program.py.txt').write_text(p)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:15:00','--job-name=rsna-public-original-compare-only','/usr/bin/python3.12','-B','-c',p]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'source':s,'sha256':h}),capture_output=True,text=True,timeout=950);(L/'comparison-only-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect original comparison receipt/log read-only; never reacquire original data';v=json.loads(x.stdout);(L/'actual-comparison.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

@@ -448,3 +448,18 @@ def test_empty_invalid_or_unbounded_actual_comparison_is_refused(requested, comp
 def test_actual_input_report_identifies_partial_population():
     assert runner.comparison_population(32, 8) == {"requested": 32, "completed": 8, "partial": True}
     assert runner.comparison_population(32, 32)["partial"] is False
+    report = {"comparison_population": runner.comparison_population(8, 8)}
+    assert compare.sanitize(report) == report
+
+
+@pytest.mark.parametrize(
+    "population",
+    [
+        {"requested": 8, "completed": 0, "partial": True},
+        {"requested": 8, "completed": 8, "partial": False, "study_uid": "not-exported"},
+        {"requested": 8, "completed": 8, "partial": True},
+    ],
+)
+def test_comparison_population_export_is_exact_and_nonempty(population):
+    with pytest.raises(ValueError, match="population"):
+        compare.sanitize({"comparison_population": population})

@@ -1,0 +1,45 @@
+import hashlib,json,os,shutil,sys,zipfile,traceback
+from pathlib import Path
+import pydicom
+
+def main():
+ R=Path(sys.argv[1]);raw=R/'original';plan=json.loads((R/'plan-admitted.json').read_text())
+ assert not (R/'comparison-only-intent.json').exists() and not (R/'actual-input-comparison.json').exists()
+ assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+ ps=list(raw.rglob('*.dcm'));assert len(ps)==plan['raw_source_files'] and sum(p.stat().st_size for p in ps)==plan['raw_source_bytes']
+ assert (R/'checkpoint.pt').is_file() and not (R/'private-opencv').exists()
+ with (R/'comparison-only-intent.json').open('x') as f:json.dump({'original_acquisition_CPU_job':905864,'files_already_verified':len(ps),'bytes_already_verified':plan['raw_source_bytes'],'no_source_download':True,'automatic_retry':False},f)
+ # Extract only the verified abi3 headless wheel into this private comparison root.
+ # No shared training environment is installed into or changed.
+ wheel_member='opencv-python-headless-4120088-x86/opencv_python_headless-4.12.0.88-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl'
+ with zipfile.ZipFile('/tmp/rsna-public-solution-models-raptor-20261007-v1/tonylica--rsna-knee-bend-dinov3-0917-repro-assets--v5.zip') as archive:
+  wheel=archive.read(wheel_member)
+  assert hashlib.sha256(wheel).hexdigest()=='236c8df54a90f4d02076e6f9c1cc763d794542e886c576a6fee46ec8ff75a7a9'
+ import io
+ extra=R/'private-opencv';extra.mkdir(mode=0o700)
+ with zipfile.ZipFile(io.BytesIO(wheel)) as archive:
+  for member in archive.infolist():
+   relative=Path(member.filename);assert not relative.is_absolute() and '..' not in relative.parts
+   if member.is_dir():continue
+   target=extra/relative;target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+   with target.open('xb') as f:f.write(archive.read(member))
+ del wheel
+ sys.path.insert(0,str(extra))
+ import cv2
+ assert cv2.__version__=='4.12.0'
+ assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file() and not p.is_relative_to(raw))<512*2**20
+ from scripts.newton.compare_public_dinov2_inputs import run
+ from argparse import Namespace
+ inp=json.loads(Path('/tmp/rsna-public-label-inputs-20261006-v1/CPU-accepted.json').read_text())['trainer_inputs']
+ args=Namespace(source=str(R/'code/initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json'),member_manifest=str(R/'private-member-manifest.json'),checkpoint=str(R/'checkpoint.pt'),studies=inp['studies'],artifact_root=inp['artifact-root'],folds=inp['folds'],series=inp['series'],cache=inp['cache'],dicom_root=str(raw),roster_size=8,out=None)
+ report=run(args)
+ report.update(original_source_files_verified=plan['raw_source_files'],original_source_bytes_verified=plan['raw_source_bytes'],CPU_job=os.environ['SLURM_JOB_ID'],source_revision=plan['raw_source_revision'],clinical_accuracy_claimed=False,model_or_optimizer_executed=False)
+ with (R/'actual-input-comparison.json').open('x') as f:json.dump(report,f,indent=2,allow_nan=False)
+ print(json.dumps(report,allow_nan=False))
+
+if __name__=='__main__':
+ try:main()
+ except Exception as error:
+  frames=traceback.extract_tb(error.__traceback__)
+  print(json.dumps({'status':'private_original_comparison_failed','error_type':type(error).__name__,'failure_module':Path(frames[-1].filename).name,'failure_line':frames[-1].lineno,'raw_details_exported':False}))
+  sys.exit(1)

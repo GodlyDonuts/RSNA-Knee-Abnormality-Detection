@@ -1,0 +1,22 @@
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');assert not (R/'corrected-comparison-intent.json').exists() and not (R/'actual-input-comparison.json').exists();assert shutil.disk_usage('/tmp').free>140*2**30+624*2**20
+plan=json.loads((R/'plan-admitted.json').read_text());ps=list((R/'original').rglob('*.dcm'));assert len(ps)==1528 and sum(p.stat().st_size for p in ps)==plan['raw_source_bytes'];assert (R/'private-opencv').is_dir() and (R/'checkpoint.pt').is_file();assert hashlib.sha256(v['helper'].encode()).hexdigest()==v['sha256']
+patch=R/'corrected-sanitizer.py'
+with patch.open('x') as f:f.write(v['helper'])
+with (R/'corrected-comparison-intent.json').open('x') as f:json.dump({'CPU_job':os.environ['SLURM_JOB_ID'],'reason':'population count not in original sanitizer whitelist','helper_sha256':v['sha256'],'new_source_download':False,'automatic_retry':False},f)
+sys.path.insert(0,str(R/'code'));sys.path.insert(0,str(R/'private-opencv'))
+import importlib.util
+spec=importlib.util.spec_from_file_location('corrected_report_sanitizer',patch);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+from scripts.newton import compare_public_dinov2_inputs as c
+c.compare=m
+from argparse import Namespace
+inp=json.loads(Path('/tmp/rsna-public-label-inputs-20261006-v1/CPU-accepted.json').read_text())['trainer_inputs']
+a=Namespace(source=str(R/'code/initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json'),member_manifest=str(R/'private-member-manifest.json'),checkpoint=str(R/'checkpoint.pt'),studies=inp['studies'],artifact_root=inp['artifact-root'],folds=inp['folds'],series=inp['series'],cache=inp['cache'],dicom_root=str(R/'original'),roster_size=8,out=None)
+try:
+ report=c.run(a);report.update(CPU_job=os.environ['SLURM_JOB_ID'],original_source_files_verified=1528,original_source_bytes_verified=plan['raw_source_bytes'],source_revision=plan['raw_source_revision'],clinical_accuracy_claimed=False,model_or_optimizer_executed=False)
+ with (R/'actual-input-comparison.json').open('x') as f:json.dump(report,f,indent=2,allow_nan=False)
+ print(json.dumps(report,allow_nan=False))
+except Exception as error:
+ import traceback
+ t=traceback.extract_tb(error.__traceback__)[-1];print(json.dumps({'status':'private_corrected_comparison_failed','error_type':type(error).__name__,'module':Path(t.filename).name,'line':t.lineno,'private_details_exported':False}));sys.exit(1)

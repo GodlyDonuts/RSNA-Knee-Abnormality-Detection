@@ -69,6 +69,7 @@ SANITIZED_KEYS = frozenset(
         "order",
         "tensor",
         "comparison_counts",
+        "comparison_population",
         "refusals",
     }
 )
@@ -79,6 +80,16 @@ def sanitize(report: dict) -> dict:
     unknown = set(report) - SANITIZED_KEYS
     if unknown:
         raise ValueError(f"Unsanitized report keys: {sorted(unknown)}")
+    population = report.get("comparison_population")
+    if population is not None and (
+        not isinstance(population, dict)
+        or set(population) != {"requested", "completed", "partial"}
+        or type(population["requested"]) is not int
+        or type(population["completed"]) is not int
+        or not 0 < population["completed"] <= population["requested"] <= 64
+        or population["partial"] is not (population["completed"] < population["requested"])
+    ):
+        raise ValueError("Invalid aggregate comparison population")
 
     def check(value: object) -> None:
         if isinstance(value, dict):
