@@ -13,7 +13,9 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import types
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 
 import numpy as np
@@ -32,6 +34,7 @@ ADAPTER_PATH = (
 )
 PIXEL_GROUP_SHA256 = "bbd7564015afc8a823fd122cd7150f5cf9025f3cdadf3396f0170406855eaa59"
 CACHE_DIRECTORY = "public-ordered-triplet-v1"
+PRODUCER_REQUEST, PRODUCER_JOURNAL = "producer-request.json", "producer-journal.jsonl"
 SIDE, SLOTS, SLICES, VIEWS = 336, 6, 12, 10
 MEMBER_ARRAYS = {
     "images": (np.uint8, (SLOTS, SLICES, SIDE, SIDE)),
@@ -182,61 +185,128 @@ def verify_public_cohort(
     }
 
 
-def write_public_triplet_cache(
+def _safe_uid(uid: object) -> bool:
+    return (
+        isinstance(uid, str)
+        and bool(uid)
+        and uid not in {".", ".."}
+        and not any(char in uid for char in ("/", "\\", "\x00"))
+    )
+
+
+def _validate_row(arrays: object) -> None:
+    """The adapter's source contract, checked before any member byte is written."""
+    if (
+        not isinstance(arrays, dict)
+        or set(arrays) != set(MEMBER_ARRAYS)
+        or any(
+            not isinstance(arrays[name], np.ndarray)
+            or arrays[name].dtype != dtype
+            or arrays[name].shape != shape
+            for name, (dtype, shape) in MEMBER_ARRAYS.items()
+        )
+    ):
+        raise ValueError("Public triplet row arrays differ from the source contract")
+    mask, features, positions = arrays["slot_mask"], arrays["features"], arrays["positions"]
+    validity = positions[..., 1]
+    if (
+        not mask.any()
+        or not np.isfinite(features).all()
+        or not np.isfinite(positions).all()
+        or not ((validity == 0) | (validity == 1)).all()
+        or np.count_nonzero(positions[..., 0][validity == 0])
+        or np.count_nonzero(arrays["images"][~mask])
+        or np.count_nonzero(features[~mask])
+        or np.count_nonzero(positions[~mask])
+    ):
+        raise ValueError("Public triplet row violates the source mask/geometry contract")
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _durable_write(path: Path, payload: bytes) -> None:
+    temporary = path.with_name(path.name + ".partial")
+    with open(temporary, "wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+
+
+def _resume_members(partial: Path, request: bytes, order: list[str]) -> dict[str, dict]:
+    """Re-verify every committed member; discard bytes never committed to the journal."""
+    if (partial / PRODUCER_REQUEST).read_bytes() != request:
+        raise ValueError("Public triplet producer request differs from the interrupted run")
+    raw = (partial / PRODUCER_JOURNAL).read_bytes()
+    lines = raw.split(b"\n")
+    committed, torn = lines[:-1], lines[-1]
+    members: dict[str, dict] = {}
+    for uid, line in zip(order, committed, strict=False):
+        entry = json.loads(line)
+        if (
+            not isinstance(entry, dict)
+            or entry.get("uid") != uid
+            or set(entry) != {"uid", "path", "bytes", "sha256"}
+            or entry["path"] != f"members/{uid}.npz"
+        ):
+            raise ValueError("Public triplet producer journal differs from the roster order")
+        payload = (partial / CACHE_DIRECTORY / entry["path"]).read_bytes()
+        if len(payload) != entry["bytes"] or hashlib.sha256(payload).hexdigest() != entry["sha256"]:
+            raise ValueError("Committed public triplet member bytes differ from the journal")
+        members[uid] = {key: entry[key] for key in ("path", "bytes", "sha256")}
+    if len(committed) > len(order):
+        raise ValueError("Public triplet producer journal exceeds the declared roster")
+    if torn:
+        (partial / PRODUCER_JOURNAL).write_bytes(raw[: len(raw) - len(torn)])
+    root = partial / CACHE_DIRECTORY / "members"
+    for path in root.iterdir():
+        if path.name not in {PurePosixPath(m["path"]).name for m in members.values()}:
+            path.unlink()
+    return members
+
+
+def stream_public_triplet_cache(
     cache: Path,
-    rows: dict[str, dict[str, np.ndarray]],
+    render: Callable[[str], dict[str, np.ndarray]],
     *,
     pixel_group: dict,
     source_revision: str,
     fitting_uids,
     evaluation_uids,
+    resume: bool = False,
 ) -> str:
-    """Store original renderer rows once as uint8; returns the index SHA256."""
+    """Render, verify and commit one original row at a time; returns the index SHA256.
+
+    Members are written durably in sorted roster order and journaled under a private
+    partial directory; ``resume=True`` re-verifies every committed member against the
+    identical request and continues. The complete tree is published by one rename, so
+    a readable cache index never describes a partial cohort.
+    """
     _validate_pixel_group(pixel_group)
     fitting_uids, evaluation_uids = list(fitting_uids), list(evaluation_uids)
-    all_uids = [*rows, *fitting_uids, *evaluation_uids]
-    if any(
-        not isinstance(uid, str)
-        or not uid
-        or uid in {".", ".."}
-        or any(char in uid for char in ("/", "\\", "\x00"))
-        for uid in all_uids
-    ):
+    if not all(_safe_uid(uid) for uid in [*fitting_uids, *evaluation_uids]):
         raise ValueError("Public triplet study IDs must be safe individual filenames")
     if (
         len(set(fitting_uids)) != len(fitting_uids)
         or len(set(evaluation_uids)) != len(evaluation_uids)
         or set(fitting_uids) & set(evaluation_uids)
-        or set(rows) != set(fitting_uids) | set(evaluation_uids)
+        or not fitting_uids
     ):
         raise ValueError("Public triplet rows must cover disjoint unique rosters exactly")
-    root = Path(cache) / CACHE_DIRECTORY
-    root.mkdir(parents=True, exist_ok=False)
-    (root / "members").mkdir()
-    members = {}
-    for uid in sorted(rows):
-        arrays = rows[uid]
-        if set(arrays) != set(MEMBER_ARRAYS) or any(
-            arrays[name].dtype != dtype or arrays[name].shape != shape
-            for name, (dtype, shape) in MEMBER_ARRAYS.items()
-        ):
-            raise ValueError("Public triplet row arrays differ from the source contract")
-        buffer = io.BytesIO()
-        np.savez(
-            buffer,
-            images=arrays["images"],
-            slot_mask=arrays["slot_mask"],
-            features=arrays["features"],
-            positions=arrays["positions"],
-        )
-        payload = buffer.getvalue()
-        (root / "members" / f"{uid}.npz").write_bytes(payload)
-        members[uid] = {
-            "path": f"members/{uid}.npz",
-            "bytes": len(payload),
-            "sha256": hashlib.sha256(payload).hexdigest(),
-        }
-    index = {
+    if not isinstance(source_revision, str) or not source_revision:
+        raise ValueError("Public triplet cache requires the release source revision")
+    cache = Path(cache)
+    final, partial = cache / CACHE_DIRECTORY, cache / f".{CACHE_DIRECTORY}.partial"
+    if final.exists():
+        raise ValueError("Public triplet cache already exists; it is never overwritten")
+    order = sorted([*fitting_uids, *evaluation_uids])
+    header = {
         "schema_version": 1,
         "kind": KIND,
         "renderer": RENDERER,
@@ -246,12 +316,86 @@ def write_public_triplet_cache(
         "source_revision": source_revision,
         "fitting_uids_sha256": roster_sha256(fitting_uids),
         "evaluation_uids_sha256": roster_sha256(evaluation_uids),
-        "cohort_sha256": roster_sha256(members),
-        "members": members,
+        "cohort_sha256": roster_sha256(order),
     }
+    request = json.dumps(header, sort_keys=True, indent=1).encode()
+    if resume:
+        if not partial.is_dir():
+            raise ValueError("No interrupted public triplet producer run to resume")
+        members = _resume_members(partial, request, order)
+    else:
+        if partial.exists():
+            raise ValueError("Interrupted public triplet producer run exists; resume it")
+        cache.mkdir(parents=True, exist_ok=True)
+        (partial / CACHE_DIRECTORY / "members").mkdir(parents=True)
+        _durable_write(partial / PRODUCER_REQUEST, request)
+        _durable_write(partial / PRODUCER_JOURNAL, b"")
+        _fsync_directory(partial)
+        members = {}
+    root = partial / CACHE_DIRECTORY
+    with open(partial / PRODUCER_JOURNAL, "ab") as journal:
+        for uid in order[len(members) :]:
+            arrays = render(uid)
+            _validate_row(arrays)
+            buffer = io.BytesIO()
+            np.savez(
+                buffer,
+                images=arrays["images"],
+                slot_mask=arrays["slot_mask"],
+                features=arrays["features"],
+                positions=arrays["positions"],
+            )
+            payload = buffer.getvalue()
+            _durable_write(root / "members" / f"{uid}.npz", payload)
+            members[uid] = {
+                "path": f"members/{uid}.npz",
+                "bytes": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+            }
+            journal.write(json.dumps({"uid": uid, **members[uid]}, sort_keys=True).encode())
+            journal.write(b"\n")
+            journal.flush()
+            os.fsync(journal.fileno())
+    index = {**header, "members": members}
     payload = json.dumps(index, sort_keys=True, indent=1).encode()
-    (root / "index.json").write_bytes(payload)
+    _durable_write(root / "index.json", payload)
+    _fsync_directory(root / "members")
+    _fsync_directory(root)
+    if final.exists():
+        raise ValueError("Public triplet cache appeared during production; refusing overwrite")
+    os.rename(root, final)
+    _fsync_directory(cache)
+    for name in (PRODUCER_REQUEST, PRODUCER_JOURNAL):
+        (partial / name).unlink()
+    partial.rmdir()
+    _fsync_directory(cache)
     return hashlib.sha256(payload).hexdigest()
+
+
+def write_public_triplet_cache(
+    cache: Path,
+    rows: dict[str, dict[str, np.ndarray]],
+    *,
+    pixel_group: dict,
+    source_revision: str,
+    fitting_uids,
+    evaluation_uids,
+) -> str:
+    """In-memory rows through the same streaming producer; returns the index SHA256."""
+    _validate_pixel_group(pixel_group)
+    fitting_uids, evaluation_uids = list(fitting_uids), list(evaluation_uids)
+    if not all(_safe_uid(uid) for uid in [*rows, *fitting_uids, *evaluation_uids]):
+        raise ValueError("Public triplet study IDs must be safe individual filenames")
+    if set(rows) != set(fitting_uids) | set(evaluation_uids):
+        raise ValueError("Public triplet rows must cover disjoint unique rosters exactly")
+    return stream_public_triplet_cache(
+        cache,
+        rows.__getitem__,
+        pixel_group=pixel_group,
+        source_revision=source_revision,
+        fitting_uids=fitting_uids,
+        evaluation_uids=evaluation_uids,
+    )
 
 
 class PublicTripletStudyDataset(torch.utils.data.Dataset):
