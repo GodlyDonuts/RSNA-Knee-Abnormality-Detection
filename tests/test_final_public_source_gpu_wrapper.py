@@ -94,6 +94,7 @@ def test_recovery_placement_preserves_original_and_requires_explicit_relocation(
 
     validate_placement({}, "evc31")
     validate_placement({"owning_node": "evc26"}, "evc26")
+    validate_placement({"owning_node": "evc41"}, "evc41")
     for manifest, node in [
         ({}, "evc26"),
         ({"owning_node": "evc26"}, "evc31"),

@@ -29,7 +29,7 @@ def save(path, value):
 
 def validate_placement(manifest, actual_node):
     expected = manifest.get("owning_node", "evc31")
-    if expected not in {"evc31", "evc26"} or actual_node != expected:
+    if expected not in {"evc31", "evc26", "evc41"} or actual_node != expected:
         raise ValueError("Exact independently admitted recovery node required")
 
 
