@@ -16,6 +16,8 @@ import re
 import time
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +30,35 @@ ROOT = Path(__file__).resolve().parents[3]
 SOURCE_PATH = (
     ROOT / "initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json"
 )
+
+_SERIES_ORDER: ContextVar[tuple[str, tuple[str, ...]] | None] = ContextVar(
+    "public_reference_series_order", default=None
+)
+
+
+@contextmanager
+def preserve_series_order(study_uid: str, series_order: Sequence[str]):
+    """Replay the original metadata row order after transport changes directory enumeration.
+
+    Original renderer nodes and tie rules remain unchanged. The recorded source
+    order must cover exactly the real directories; it cannot select or hide series.
+    Context-local state is restored even if rendering fails.
+    """
+    order = tuple(series_order)
+    if (
+        not isinstance(study_uid, str)
+        or not study_uid
+        or not order
+        or any(not isinstance(n, str) or not n or "/" in n or n in {".", ".."} for n in order)
+        or len(set(order)) != len(order)
+    ):
+        raise ValueError("Unique complete original series order required")
+    token = _SERIES_ORDER.set((study_uid, order))
+    try:
+        yield
+    finally:
+        _SERIES_ORDER.reset(token)
+
 
 # Manifest fields shared by the downloaded Pilkwang members (public-solution-intelligence
 # README); the fingerprint receipt independently binds img/group. `rules` and `slots` are
@@ -87,7 +118,15 @@ def header_frame(namespace: dict, study_dirs: Sequence[Path], split: str) -> pd.
     """
     items = []
     for study in study_dirs:
-        for series in os.scandir(study):
+        entries = list(os.scandir(study))
+        recorded = _SERIES_ORDER.get()
+        if recorded is not None:
+            uid, order = recorded
+            actual = {entry.name: entry for entry in entries if entry.is_dir()}
+            if Path(study).name != uid or set(actual) != set(order):
+                raise ValueError("Recorded series order differs from the complete source study")
+            entries = [actual[name] for name in order]
+        for series in entries:
             if series.is_dir():
                 items.append((split, Path(study).name, series.name, series.path))
     if not items:

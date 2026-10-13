@@ -473,3 +473,41 @@ def test_reference_builtins_are_a_private_guarded_cpython_dictionary(source):
         ns["__builtins__"]["__import__"]("requests")
     array = ns["np"].ones((2, 3), dtype=ns["np"].float32)
     assert float(array.sum()) == 6
+
+
+def test_recorded_series_order_is_complete_scoped_and_restored(tmp_path):
+    study = tmp_path / "1.2.3"
+    study.mkdir()
+    for name in ("1.2.3.1", "1.2.3.2"):
+        (study / name).mkdir()
+    namespace = {"probe": lambda item: {"SeriesInstanceUID": item[2]}}
+    before = reference.header_frame(namespace, [study], "train_series")
+    order = before.SeriesInstanceUID.tolist()[::-1]
+    with reference.preserve_series_order(study.name, order):
+        assert (
+            reference.header_frame(namespace, [study], "train_series").SeriesInstanceUID.tolist()
+            == order
+        )
+        with reference.preserve_series_order(study.name, order[::-1]):
+            assert (
+                reference.header_frame(
+                    namespace, [study], "train_series"
+                ).SeriesInstanceUID.tolist()
+                == order[::-1]
+            )
+        assert (
+            reference.header_frame(namespace, [study], "train_series").SeriesInstanceUID.tolist()
+            == order
+        )
+    assert reference.header_frame(namespace, [study], "train_series").equals(before)
+    with pytest.raises(RuntimeError):
+        with reference.preserve_series_order(study.name, order):
+            raise RuntimeError("render failed")
+    assert reference.header_frame(namespace, [study], "train_series").equals(before)
+    for bad in ([order[0]], [*order, "foreign"], [order[0], order[0]]):
+        with pytest.raises(ValueError):
+            with reference.preserve_series_order(study.name, bad):
+                reference.header_frame(namespace, [study], "train_series")
+    with pytest.raises(ValueError):
+        with reference.preserve_series_order("another-study", order):
+            reference.header_frame(namespace, [study], "train_series")

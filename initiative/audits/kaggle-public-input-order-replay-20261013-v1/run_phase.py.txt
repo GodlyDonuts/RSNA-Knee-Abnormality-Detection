@@ -1,0 +1,14 @@
+import hashlib,json,os,re,shlex,subprocess,sys
+from pathlib import Path
+L=Path('artifacts/kaggle-public-input-order-replay-20261013-v1');phase=sys.argv[1];assert phase in ('push','status');env=Path('.env');assert env.stat().st_mode&0o077==0
+values={}
+for line in env.read_text().splitlines():
+ k,s,v=line.partition('=')
+ if s:values[k.strip()]=v.strip().strip('"\'')
+program=(L/'coordinator.py').read_text();worker=(L/'worker.py').read_text()
+if phase=='push':
+ with (L/'push-intent.json').open('x') as f:json.dump({'phase':phase,'coordinator_sha256':hashlib.sha256(program.encode()).hexdigest(),'worker_sha256':hashlib.sha256(worker.encode()).hexdigest(),'GPU':False,'competition_submission':False,'automatic_retry':False},f,indent=2)
+cmd=['srun','--jobid=899766','--overlap','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=512M','--time=00:10:00','/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'phase':phase,'public_code':json.loads((L/'public-code-payload.json').read_text()),'worker':worker,'token':values['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=650)
+clean=lambda t:re.sub(r'(?:hf_|KGAT_)[A-Za-z0-9]{10,}','[redacted]',t)
+name=phase+'-result-'+str(len(list(L.glob(phase+'-result-*.json'))))+'.json';(L/name).write_text(json.dumps({'returncode':x.returncode,'stdout':clean(x.stdout),'stderr':clean(x.stderr)},indent=2)+'\n');assert x.returncode==0,'Reconcile original state read-only before followup';out=json.loads(x.stdout);(L/(phase+'-receipt.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

@@ -188,32 +188,33 @@ def run(args: argparse.Namespace) -> dict:
                 origin="kaggle_mount",
             )
             order["source_revision"] = pst.CORRECTED_SOURCE_REVISION
-            payload, receipt, inputs = producer.render_member(
-                uid,
-                scratch,
-                records[uid],
-                plane_map,
-                renderer=renderer,
-                source_sha256=source_studies[uid],
-                source_revision=pst.CORRECTED_SOURCE_REVISION,
-                role="fitting" if uid in set(fitting_uids) else "evaluation",
-            )
-            if args.mode == "probe":
-                public = ref.render_study(namespace, scratch / producer.SPLIT / uid, plane_map)
-                windows = ref.windows(namespace, public["images"])
-                expected = windows.permute(1, 0, 2, 3, 4).float() / 255
-                import torch
-
-                if torch.equal(inputs["images"], expected) and torch.equal(
-                    inputs["series_mask"], public["slot_mask"]
-                ):
-                    triplet_matches += 1
-                row = labels[uid]
-                parity[uid] = ksr.parity_study_bytes(
-                    inputs,
-                    [row["labels"][t] for t in TARGETS],
-                    [row["mask"][t] for t in TARGETS],
+            with ref.preserve_series_order(uid, order["series_order"]):
+                payload, receipt, inputs = producer.render_member(
+                    uid,
+                    scratch,
+                    records[uid],
+                    plane_map,
+                    renderer=renderer,
+                    source_sha256=source_studies[uid],
+                    source_revision=pst.CORRECTED_SOURCE_REVISION,
+                    role="fitting" if uid in set(fitting_uids) else "evaluation",
                 )
+                if args.mode == "probe":
+                    public = ref.render_study(namespace, scratch / producer.SPLIT / uid, plane_map)
+                    windows = ref.windows(namespace, public["images"])
+                    expected = windows.permute(1, 0, 2, 3, 4).float() / 255
+                    import torch
+
+                    if torch.equal(inputs["images"], expected) and torch.equal(
+                        inputs["series_mask"], public["slot_mask"]
+                    ):
+                        triplet_matches += 1
+                    row = labels[uid]
+                    parity[uid] = ksr.parity_study_bytes(
+                        inputs,
+                        [row["labels"][t] for t in TARGETS],
+                        [row["mask"][t] for t in TARGETS],
+                    )
         finally:
             transported = scratch / producer.SPLIT
             if transported.exists():

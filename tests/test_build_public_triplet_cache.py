@@ -387,7 +387,7 @@ def test_transport_refuses_symlinks_and_traversal(tied):
         )
 
 
-def test_transport_refuses_changed_series_order(tied, monkeypatch):
+def test_transport_records_changed_series_order_for_explicit_replay(tied, monkeypatch):
     real = os.scandir
 
     def reversed_copy(path):
@@ -395,10 +395,12 @@ def test_transport_refuses_changed_series_order(tied, monkeypatch):
         return iter(entries[::-1] if str(tied.scratch) in str(path) else entries)
 
     monkeypatch.setattr(wrapper.os, "scandir", reversed_copy)
-    with pytest.raises(ValueError, match="series order differs"):
-        wrapper.transport_study(
-            tied.study, tied.scratch, tied.study.name, tied.records, LIMITS, origin="corrected"
-        )
+    _, order = wrapper.transport_study(
+        tied.study, tied.scratch, tied.study.name, tied.records, LIMITS, origin="corrected"
+    )
+    assert not order["transport_order_equal"]
+    assert order["copied_series_order"] == order["series_order"][::-1]
+    assert order["renderer_replays_original_series_order"]
 
 
 def test_original_pick_slots_breaks_ties_by_first_scandir_row(tied, renderer):
@@ -478,7 +480,7 @@ def cohort_intent(cache, records):
     )
 
 
-def test_stage_from_retained_packet_read_only_with_bound_order(tied, renderer):
+def test_stage_from_retained_packet_read_only_with_bound_order(tied, renderer, monkeypatch):
     held_study, held, held_map = write_study(tied.source, "absent_slots")
     uid = tied.study.name
     packet = make_packet(tied.tmp, uid, tied.all)
@@ -490,6 +492,27 @@ def test_stage_from_retained_packet_read_only_with_bound_order(tied, renderer):
     cache.mkdir(parents=True)
     intent_sha = cohort_intent(cache, records)
     plane_map = tied.plane_map | held_map
+    real_scandir = os.scandir
+
+    class Scan:
+        def __init__(self, entries):
+            self.entries = entries
+
+        def __iter__(self):
+            return iter(self.entries)
+
+        def __enter__(self):
+            return iter(self.entries)
+
+        def __exit__(self, *_):
+            return False
+
+    def reversed_transport(path):
+        with real_scandir(path) as scan:
+            entries = list(scan)
+        return Scan(entries[::-1] if str(tied.scratch) in str(path) else entries)
+
+    monkeypatch.setattr(wrapper.os, "scandir", reversed_transport)
     receipt, order = wrapper.stage_study(
         cache,
         out,

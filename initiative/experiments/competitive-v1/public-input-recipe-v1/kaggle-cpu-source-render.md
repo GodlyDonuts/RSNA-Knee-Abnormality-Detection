@@ -121,3 +121,22 @@ admitted storage budget and must also honor existing live-job storage reservatio
 Synthetic tests (`tests/test_kaggle_source_render.py`) exercise engineering only: merge
 equals direct staging, refusals, encoding and budget. They do not show Kaggle access,
 source parity, runtime fit or accuracy. Each of those needs the actual root-run probe.
+
+
+## Actual October 13 transport-order recovery
+
+Private CPU order replay138544280/v1 verified1528 original DICOM objects and
+reproduced all eight original tensors bit-for-bit (e602f1a9...), including integer
+pixels and exact geometry. The cause was directory enumeration: all eight studies
+had different directory order, and one of34occupied slots selected a different
+series when equal-length candidates tied. Pinning the original Python/Torch runtime
+alone reproduced the mismatch; it did not fix it.
+
+Transport now records original and copied series orders. The context-local
+`reference.preserve_series_order` replays the original metadata-frame order after
+copying, validating complete directory membership and restoring context on exit.
+Original source nodes, slot predicates, tie rule, adapter bytes and pixel math are
+unchanged. The cohort producer and Kaggle shard entry use that same recorded order.
+The original CPU probe was engineering evidence only: no model, optimizer, gold
+selection or accuracy gain. Capsule packaging is delegated under issue33; the full
+cohort cache and paired training are still not complete.
