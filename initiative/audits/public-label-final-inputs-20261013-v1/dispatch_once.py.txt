@@ -1,0 +1,25 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/public-label-final-inputs-20261013-v1');assert not (L/'intent.json').exists();head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head==subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip()
+files={}
+for name in subprocess.check_output(['git','ls-files','rsna'],text=True).splitlines():
+ if name.endswith('.py'):files['code/'+name]=Path(name).read_text()
+files['code/scripts/research/build_label_source_overlay.py']=Path('scripts/research/build_label_source_overlay.py').read_text();files['worker.py']=(L/'worker.py').read_text();files['source.csv']=Path('artifacts/public-label-source-v1/llm_labels_v4_blend.csv').read_text()
+hashes={n:hashlib.sha256(v.encode()).hexdigest() for n,v in files.items()};assert hashes['source.csv']=='eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4';assert sum(len(v.encode()) for v in files.values())<8*2**20
+program=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-public-label-final-inputs-20261013-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists();assert shutil.disk_usage('/tmp').free>129*2**30+96*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);R.mkdir(mode=0o700)
+for n,s in v['files'].items():
+ p=Path(n);assert not p.is_absolute() and '..' not in p.parts and hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n];p=R/p;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ with p.open('x') as f:f.write(s)
+with (R/'source.json').open('x') as f:json.dump({'source_git':v['source_git'],'files':v['hashes'],'small_cap_bytes':16*2**20,'shared_new_growth':0},f,indent=2)
+e=dict(os.environ,PYTHONPATH=str(R/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1');x=subprocess.run(['/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B',str(R/'worker.py'),str(R)],capture_output=True,text=True,env=e,timeout=800)
+with (R/'worker.stdout').open('x') as f:f.write(x.stdout)
+with (R/'worker.stderr').open('x') as f:f.write(x.stderr)
+assert x.returncode==0,x.stderr;out=json.loads(x.stdout);out['observed_shared_quota']=q;print(json.dumps(out))
+'''
+(L/'program.py.txt').write_text(program);(L/'intent.json').write_text(json.dumps({'source_git':head,'source_hashes':hashes,'CPU':1,'GPU':0,'small_node_cap_bytes':16*2**20,'shared_growth':0,'prior129GiB_plus80MiB_and20GiB_included_floor_preserved':True,'automatic_retry':False},indent=2)+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:15:00','--job-name=rsna-final-public-source-inputs','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'source_git':head,'files':files,'hashes':hashes}),capture_output=True,text=True,timeout=900)
+(L/'result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect original root read-only; do not retry dispatch';out=json.loads(x.stdout);(L/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({k:out[k] for k in ['status','CPU_job','training_studies','outer_studies','masked_out_source_studies','fixed_final_optimizer_updates']}))

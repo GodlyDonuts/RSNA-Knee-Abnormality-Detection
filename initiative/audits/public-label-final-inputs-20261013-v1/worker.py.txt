@@ -1,0 +1,32 @@
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import TrainConfig,select_development
+from rsna.competitive.supervision import apply_fitting_supervision,roster_sha
+from rsna.competitive.data import CompetitiveStudyDataset
+from scripts.research.build_label_source_overlay import build
+R=Path(sys.argv[1]);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+old=json.loads(Path('/tmp/rsna-public-label-inputs-20261006-v1/CPU-accepted.json').read_text());inp=old['trainer_inputs']
+frame,binding=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']));folds=load_folds(Path(inp['folds']),frame,binding)
+train,outer=select_development(frame,folds,0,'all_development');assert len(train)==3403 and outer.empty
+assert train.report_supervision_allowed.eq(True).all()
+source=R/'source.csv';assert sha(source)=='eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4'
+proof=build(Path(inp['studies']),Path(inp['folds'])/'fold.csv',0,source,R/'overlay.json','Shio-Koube/knee3','373f4e1daf36984fa48bf3fc8fd9883fe17cb584','all_development')
+values=json.loads(Path('/tmp/rsna-public-label-inputs-20261006-v1/public.json').read_text());assert values['epochs']==10 and values['seed']==20260922 and values['side']==384 and values['precision']=='fp16' and values['encoder']['adapter']['rank']==32
+values.update(fit_scope='all_development',warmup_updates=426,fitting_supervision={'kind':'label_source_final_v1','sha256':proof['overlay_sha256'],'enabled':True})
+TrainConfig(**values).validate();candidate,receipt=apply_fitting_supervision(train,outer,R/'overlay.json',values['fitting_supervision'],release_sha256=binding['manifest_sha256'],folds_sha256=sha(Path(inp['folds'])/'fold.csv'),fold=0)
+assert candidate.study_uid.equals(train.study_uid) and receipt['fitting_studies']==3403 and receipt['final_fit_only']
+series=pd.read_csv(inp['series']);sample=candidate.head(16);dataset=CompetitiveStudyDataset(sample,series,Path(inp['cache']),slices=16,side=384,max_series=6,soft_targets=True)
+ih=hashlib.sha256();lh=hashlib.sha256()
+for i in range(len(dataset)):
+ item=dataset[i];assert np.isfinite(item['images'].numpy()).all();assert np.isfinite(item['labels'].numpy()).all()
+ ih.update(item['images'].numpy().tobytes());lh.update(item['labels'].numpy().tobytes());lh.update(item['label_mask'].numpy().tobytes())
+with (R/'final-config.json').open('x') as f:json.dump(values,f,sort_keys=True,indent=2)
+source_binding=json.loads((R/'source.json').read_text());actual_bytes=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert actual_bytes<16*2**20 and shutil.disk_usage('/tmp').free>129*2**30+96*2**20
+out={'status':'actual_final_public_source_CPU_roster_and_16MRI_inputs_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':source_binding['source_git'],'source_modules':source_binding['files'],'release_sha256':binding['manifest_sha256'],'folds_sha256':sha(Path(inp['folds'])/'fold.csv'),'source_csv_sha256':sha(source),'overlay_sha256':sha(R/'overlay.json'),'config_sha256':sha(R/'final-config.json'),'training_studies':len(candidate),'outer_studies':0,'fitting_uid_sha256':roster_sha(candidate),'masked_out_source_studies':proof['masked_out_studies'],'engineering_input_studies':16,'image_tensor_sha256':ih.hexdigest(),'label_tensor_sha256':lh.hexdigest(),'optimizer_updates_per_epoch':426,'fixed_final_optimizer_updates':4260,'actual_small_bytes':actual_bytes,'new_shared_bytes_files':0,'GPU_recovery_or_production_funding':False,'clinical_accuracy_claimed':False,'base_or_model_forward_executed':False}
+with (R/'CPU-accepted.json').open('x') as f:json.dump(out,f,sort_keys=True,indent=2)
+print(json.dumps(out))
