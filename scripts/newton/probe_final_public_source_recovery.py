@@ -27,6 +27,12 @@ def save(path, value):
         os.fsync(stream.fileno())
 
 
+def validate_placement(manifest, actual_node):
+    expected = manifest.get("owning_node", "evc31")
+    if expected not in {"evc31", "evc26"} or actual_node != expected:
+        raise ValueError("Exact independently admitted recovery node required")
+
+
 def engineering_config(values):
     """The final recipe is immutable; only the bounded recovery budget changes."""
     TrainConfig(**values).validate()
@@ -100,9 +106,9 @@ def run(root):
     manifest = json.loads((root / "source.json").read_text())
     accepted = json.loads((root / "input-accepted.json").read_text())
     funding = json.loads((root / "funding.json").read_text())
+    validate_placement(manifest, os.uname().nodename)
     if (
-        os.uname().nodename != "evc31"
-        or not os.environ.get("SLURM_JOB_ID")
+        not os.environ.get("SLURM_JOB_ID")
         or os.environ.get("SLURM_CPUS_PER_TASK") != "2"
         or accepted["status"] != "actual_final_public_source_CPU_roster_and_16MRI_inputs_verified"
         or (

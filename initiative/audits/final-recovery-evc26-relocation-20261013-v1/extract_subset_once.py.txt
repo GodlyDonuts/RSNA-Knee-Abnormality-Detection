@@ -1,0 +1,25 @@
+import json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/final-recovery-evc26-relocation-20261013-v1');assert not (L/'extract-intent.json').exists()
+p=r'''import hashlib,json,os,shutil,tarfile
+from pathlib import Path,PurePosixPath
+C=Path('/tmp/rsna-final-recovery-evc26-20261013-v1');assert os.uname().nodename=='evc26' and not (C/'cache').exists();receipt=json.loads((C/'subset-transferred.json').read_text());assert receipt['sha256']=='4aa90dd51769feb55a5605d71727b149d9bf001c00c3d3f2082ae5942dd825e1' and receipt['bytes']==563333120
+assert shutil.disk_usage('/tmp').free>190*2**30+128*2**20
+cache=C/'cache';cache.mkdir(mode=0o700);count=size=0;seen=set()
+with tarfile.open(C/'cache-subset.tar','r:') as archive:
+ for m in archive:
+  n=PurePosixPath(m.name);assert m.isfile() and n.parts[0]=='train_series' and '..' not in n.parts and not n.is_absolute() and n.suffix in {'.npz','.json'} and m.name not in seen;seen.add(m.name);count+=1;size+=m.size;assert count<=170 and size<=563016660
+  dest=cache/m.name;dest.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+  with archive.extractfile(m) as f,dest.open('xb') as out:shutil.copyfileobj(f,out,1024*1024)
+assert count==170 and size==563016660
+for p in cache.rglob('*.json'):
+ v=json.loads(p.read_text());raw=p.with_suffix('.npz');assert raw.is_file() and raw.stat().st_size==v['cache_bytes'];h=hashlib.sha256()
+ with raw.open('rb') as f:
+  for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
+ assert h.hexdigest()==v['cache_sha256']
+out={'status':'distinct_evc26_engineering_subset_restored_and_all_cache_bytes_verified','CPU_job':os.environ['SLURM_JOB_ID'],'cache':str(cache),'members':count,'bytes':size,'series':len(list(cache.rglob('*.npz'))),'source_archive_sha256':receipt['sha256'],'GPU_run':False}
+with (C/'subset-restored.json').open('x') as f:json.dump(out,f,indent=2)
+print(json.dumps(out))
+'''
+(L/'extract-program.py.txt').write_text(p);(L/'extract-intent.json').write_text(json.dumps({'expected_members':170,'expected_bytes':563016660,'node':'evc26','automatic_retry':False})+'\n');cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc26','--gres=none','--mem=1G','--time=00:10:00','--job-name=rsna-final-subset-private-restore','/usr/bin/python3.12','-B','-c',p]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=650);(L/'extract-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect original target extraction root; never repeat';v=json.loads(x.stdout);(L/'subset-restored.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

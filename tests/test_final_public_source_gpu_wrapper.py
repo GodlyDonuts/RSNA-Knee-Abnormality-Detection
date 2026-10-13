@@ -87,3 +87,17 @@ def test_final_state_cannot_fabricate_other_scope_or_scaler(change):
         state["amp_scaler"]["_growth_tracker"] = 3
     with pytest.raises(ValueError, match="scope/source/scaler"):
         validate_final_checkpoint(state, resumed, {}, {}, {}, {})
+
+
+def test_recovery_placement_preserves_original_and_requires_explicit_relocation():
+    from scripts.newton.probe_final_public_source_recovery import validate_placement
+
+    validate_placement({}, "evc31")
+    validate_placement({"owning_node": "evc26"}, "evc26")
+    for manifest, node in [
+        ({}, "evc26"),
+        ({"owning_node": "evc26"}, "evc31"),
+        ({"owning_node": "evc38"}, "evc38"),
+    ]:
+        with pytest.raises(ValueError):
+            validate_placement(manifest, node)

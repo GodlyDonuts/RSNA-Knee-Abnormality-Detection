@@ -1,0 +1,21 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/final-recovery-evc26-relocation-20261013-v1');assert not (L/'runtime-intent.json').exists()
+files={n:Path('scripts/newton',n).read_text() for n in ['runtime_environment.py','runtime_archive.py']};hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in files.items()}
+p=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);C=Path('/tmp/rsna-final-recovery-evc26-20261013-v1');assert os.uname().nodename=='evc26' and not C.exists() and not os.environ.get('SLURM_JOB_GPUS');required=198*2**30+128*2**20;free=shutil.disk_usage('/tmp').free;assert free>=required
+C.mkdir(mode=0o700)
+for n,s in v['files'].items():
+ assert hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n]
+ with (C/n).open('x') as f:f.write(s)
+with (C/'runtime-intent.json').open('x') as f:json.dump({'archive':'/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar','archive_sha256':'89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','automatic_retry':False},f)
+x=subprocess.run(['/usr/bin/python3.12','-B',str(C/'runtime_environment.py'),'extract','--archive','/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar','--sha256','89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338','--expected-files','40403','--expected-bytes','6322691335','--scratch-base','/tmp','--shared-python','/usr/bin/python3.12','--min-free-gib','190'],capture_output=True,text=True,timeout=850)
+with (C/'runtime-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f)
+assert x.returncode==0,x.stderr;out=json.loads(x.stdout)
+with (C/'runtime-restored.json').open('x') as f:json.dump(out,f,indent=2)
+print(json.dumps({'status':'distinct_evc26_original_runtime_restored_once','CPU_job':os.environ['SLURM_JOB_ID'],'control':str(C),'runtime':out,'funding':{'new_recovery_bytes':2**30,'new_final_fit_and_publication_bytes':6*2**30,'new_runtime_bytes':8*2**30,'new_subset_and_transport_bytes':3*2**30,'future_complete_cache_bytes':160*2**30,'reserve_bytes':20*2**30,'new_shared_growth':0,'required_free_bytes':required,'observed_free_bytes':free},'old_GPU_job_cancelled':False,'new_GPU_dispatched':False}))
+'''
+(L/'runtime-program.py.txt').write_text(p);(L/'runtime-intent.json').write_text(json.dumps({'node':'evc26','archive_reused':True,'new_runtime_bytes':8*2**30,'new_shared_growth':0,'automatic_retry':False})+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc26','--gres=none','--mem=4G','--time=00:15:00','--job-name=rsna-final-runtime-relocation','/usr/bin/python3.12','-B','-c',p]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'files':files,'hashes':hashes}),capture_output=True,text=True,timeout=950);(L/'runtime-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect original evc26 runtime stage read-only; no repeated restore';v=json.loads(x.stdout);(L/'runtime-restored.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

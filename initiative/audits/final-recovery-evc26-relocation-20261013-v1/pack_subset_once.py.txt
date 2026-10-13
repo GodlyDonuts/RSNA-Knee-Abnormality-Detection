@@ -1,0 +1,32 @@
+import json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/final-recovery-evc26-relocation-20261013-v1');assert not (L/'source-pack-intent.json').exists()
+p=r'''import hashlib,json,os,shutil,sys,tarfile
+from pathlib import Path
+R=Path('/tmp/rsna-final-recovery-relocation-20261013-v1-source');assert os.uname().nodename=='evc31' and not R.exists() and not os.environ.get('SLURM_JOB_GPUS');assert shutil.disk_usage('/tmp').free>143*2**30+640*2**20
+P=Path('/tmp/rsna-public-label-final-inputs-20261013-v1');sys.path.insert(0,str(P/'code'))
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development
+import pandas as pd
+old=json.loads(Path('/tmp/rsna-public-label-inputs-20261006-v1/CPU-accepted.json').read_text());inp=old['trainer_inputs'];frame,b=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']));folds=load_folds(Path(inp['folds']),frame,b);train,outer=select_development(frame,folds,0,'all_development');assert len(train)==3403 and outer.empty
+uids=set(train.head(16).study_uid);series=pd.read_csv(inp['series']);members={};cache=Path(inp['cache'])
+for row in series[series.StudyInstanceUID.isin(uids)].itertuples():
+ for suffix in ('.npz','.json'):
+  relative=Path('train_series')/str(row.StudyInstanceUID)/(str(row.SeriesInstanceUID)+suffix);path=cache/relative;assert path.is_file() and not path.is_symlink();s=path.stat();members[relative.as_posix()]={'bytes':s.st_size,'signature':[s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]}
+assert len(members)>32 and sum(x['bytes'] for x in members.values())<2*2**30
+R.mkdir(mode=0o700)
+with (R/'private-members.json').open('x') as f:json.dump(members,f,indent=2)
+with tarfile.open(R/'cache-subset.tar','w') as archive:
+ for name,record in sorted(members.items()):
+  path=cache/name;s=path.stat();assert [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]==record['signature'];archive.add(path,arcname=name,recursive=False)
+archive=R/'cache-subset.tar';h=hashlib.sha256()
+with archive.open('rb') as f:
+ for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
+out={'status':'distinct_final_fit_first16_engineering_cache_subset_packed_once','CPU_job':os.environ['SLURM_JOB_ID'],'source_root':str(R),'archive_bytes':archive.stat().st_size,'archive_sha256':h.hexdigest(),'members':len(members),'payload_bytes':sum(x['bytes'] for x in members.values()),'training_studies':16,'full_cache_copied':False,'source_cache_unchanged':True,'new_shared_bytes_files':0,'new_private_source_cap_bytes':3*2**30}
+with (R/'packed.json').open('x') as f:json.dump(out,f,indent=2)
+print(json.dumps(out))
+'''
+(L/'source-pack-program.py.txt').write_text(p);(L/'source-pack-intent.json').write_text(json.dumps({'private_source_cap_bytes':3*2**30,'new_shared_growth':0,'target_node':'evc26','GPU_job_cancelled_or_submitted':False,'automatic_retry':False})+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:10:00','--job-name=rsna-final-engineering-subset-pack','/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B','-c',p]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=650);(L/'source-pack-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Read-only reconcile original pack root; never repack';v=json.loads(x.stdout);(L/'source-packed.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

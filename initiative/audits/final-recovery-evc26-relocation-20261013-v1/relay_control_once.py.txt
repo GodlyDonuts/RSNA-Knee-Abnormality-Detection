@@ -1,0 +1,37 @@
+import json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/final-recovery-evc26-relocation-20261013-v1');assert not (L/'control-transfer-intent.json').exists()
+a=r'''import hashlib,json,os,sys,tarfile
+from pathlib import Path
+R=Path('/tmp/rsna-public-label-final-recovery-20261013-v1');P=Path('/tmp/rsna-final-recovery-relocation-20261013-v1-source');assert os.uname().nodename=='evc31' and not (P/'control-source.tar').exists()
+with tarfile.open(P/'control-source.tar','w') as z:
+ for p in sorted((R/'code').rglob('*')):
+  if p.is_file():assert not p.is_symlink();z.add(p,arcname=p.relative_to(R).as_posix(),recursive=False)
+ for n in ['input-accepted.json','final-config.json','overlay.json','trainer-inputs.json','source.json']:
+  assert (R/n).is_file();z.add(R/n,arcname=n,recursive=False)
+path=P/'control-source.tar';assert path.stat().st_size<16*2**20
+with path.open('rb') as f:
+ import shutil
+ shutil.copyfileobj(f,sys.stdout.buffer,1024*1024)
+'''
+b=r'''import hashlib,json,os,shutil,sys,tarfile
+from pathlib import Path,PurePosixPath
+C=Path('/tmp/rsna-final-recovery-evc26-20261013-v1');assert os.uname().nodename=='evc26' and not (C/'control-source.tar').exists();h=hashlib.sha256();size=0
+with (C/'control-source.tar').open('xb') as f:
+ while chunk:=sys.stdin.buffer.read(1024*1024):
+  size+=len(chunk);assert size<16*2**20;h.update(chunk);f.write(chunk)
+count=0
+with tarfile.open(C/'control-source.tar','r:') as z:
+ for m in z:
+  n=PurePosixPath(m.name);assert m.isfile() and not n.is_absolute() and '..' not in n.parts and m.name not in ['funding.json','runtime-restored.json'];target=C/m.name;assert not target.exists();target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+  with z.extractfile(m) as src,target.open('xb') as dst:shutil.copyfileobj(src,dst,1024*1024)
+  count+=1
+original=json.loads((C/'source.json').read_text())
+for name,digest in original['files'].items():assert hashlib.sha256((C/name).read_bytes()).hexdigest()==digest
+receipt={'status':'original_final_recovery_controls_relayed_and_source_bytes_verified','target_CPU_job':os.environ['SLURM_JOB_ID'],'archive_bytes':size,'archive_sha256':h.hexdigest(),'members':count,'source_scientific_git':original['scientific_source_git'],'no_Mac_or_shared_bulk_storage':True}
+with (C/'controls-transferred.json').open('x') as f:json.dump(receipt,f,indent=2)
+print(json.dumps(receipt))
+'''
+base=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:05:00'];src=base+['--nodelist=evc31','/usr/bin/python3.12','-B','-c',a];dst=base+['--nodelist=evc26','/usr/bin/python3.12','-B','-c',b];shell='set -o pipefail; '+shlex.join(src)+' | '+shlex.join(dst)
+(L/'control-transfer-intent.json').write_text(json.dumps({'source':'evc31','target':'evc26','private_node_only':True,'automatic_retry':False})+'\n');(L/'control-target.py.txt').write_text(b)
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(['/bin/bash','-c',shell])],capture_output=True,text=True,timeout=350);(L/'control-transfer-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Read-only inspect exact relay files; never repeat stream';v=json.loads(x.stdout);(L/'controls-transferred.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

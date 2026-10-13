@@ -1,0 +1,21 @@
+import json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/final-recovery-evc26-relocation-20261013-v1');assert not (L/'transfer-intent.json').exists();record=json.loads((L/'source-packed.json').read_text())
+source="import shutil,sys;from pathlib import Path;p=Path('/tmp/rsna-final-recovery-relocation-20261013-v1-source/cache-subset.tar');assert p.stat().st_size==563333120;f=p.open('rb');shutil.copyfileobj(f,sys.stdout.buffer,1024*1024)"
+target=r'''import hashlib,json,os,shutil,sys
+from pathlib import Path
+C=Path('/tmp/rsna-final-recovery-evc26-20261013-v1');assert os.uname().nodename=='evc26' and C.is_dir() and not (C/'subset-transfer-intent.json').exists();assert shutil.disk_usage('/tmp').free>190*2**30+128*2**20
+with (C/'subset-transfer-intent.json').open('x') as f:json.dump({'expected_bytes':563333120,'expected_sha256':'4aa90dd51769feb55a5605d71727b149d9bf001c00c3d3f2082ae5942dd825e1','source_node':'evc31','target_node':'evc26','automatic_retry':False,'relay_does_not_write_shared_or_Mac_pixels':True},f)
+h=hashlib.sha256();size=0
+with (C/'cache-subset.tar').open('xb') as f:
+ while b:=sys.stdin.buffer.read(1024*1024):
+  size+=len(b);assert size<=563333120;h.update(b);f.write(b)
+assert size==563333120 and h.hexdigest()=='4aa90dd51769feb55a5605d71727b149d9bf001c00c3d3f2082ae5942dd825e1'
+receipt={'status':'distinct_private_engineering_subset_relay_full_bytes_verified','target_CPU_job':os.environ['SLURM_JOB_ID'],'bytes':size,'sha256':h.hexdigest(),'no_shared_or_Mac_bulk_storage':True}
+with (C/'subset-transferred.json').open('x') as f:json.dump(receipt,f,indent=2)
+print(json.dumps(receipt))
+'''
+base=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:10:00']
+a=base+['--nodelist=evc31','--job-name=rsna-final-subset-private-source','/usr/bin/python3.12','-B','-c',source];b=base+['--nodelist=evc26','--job-name=rsna-final-subset-private-target','/usr/bin/python3.12','-B','-c',target]
+shell='set -o pipefail; '+shlex.join(a)+' | '+shlex.join(b);(L/'transfer-intent.json').write_text(json.dumps({'source_packed':record,'target':'evc26','private_only':True,'automatic_retry':False})+'\n');(L/'transfer-target.py.txt').write_text(target)
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(['/bin/bash','-c',shell])],capture_output=True,text=True,timeout=650);(L/'transfer-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect original source/target transfer receipts, never repeat stream';v=json.loads(x.stdout);(L/'subset-transferred.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))
