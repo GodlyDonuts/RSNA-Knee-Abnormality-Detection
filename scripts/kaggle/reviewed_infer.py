@@ -38,6 +38,8 @@ def read_admission(path: Path) -> dict:
 
 
 def validate_reviewed(checkpoint: dict, admission: dict, checkpoint_sha: str) -> dict:
+    if admission.get("role") == "public_source_final10":
+        return validate_public_source_final(checkpoint, admission, checkpoint_sha)
     binding = checkpoint["binding"]
     config = binding["config"]
     role = admission.get("role")
@@ -83,6 +85,44 @@ def validate_reviewed(checkpoint: dict, admission: dict, checkpoint_sha: str) ->
         raise ValueError("Reviewed fitting checkpoint differs from its exact final admission")
     # The original validator must still check every non-authorization invariant.
     # This metadata-only view is never saved or used for model reconstruction.
+    view = dict(checkpoint)
+    view["binding"] = dict(binding)
+    view["binding"].pop("experimental_fitting_supervision")
+    view["binding"]["config"] = dict(config)
+    view["binding"]["config"].pop("fitting_supervision")
+    infer.validate_inference_checkpoint(view, allow_scheduled_epoch=True)
+    return binding
+
+
+def validate_public_source_final(checkpoint: dict, admission: dict, checkpoint_sha: str) -> dict:
+    """Authorize only the owner's exact completed public-source final10 comparison."""
+    expected_sha = "ebeb3c39428612dc85e60fb6e5d3c0e4fde0acc6987cbe9a1b3f088aa273cfca"
+    binding = checkpoint["binding"]
+    config = binding["config"]
+    if (
+        checkpoint_sha != expected_sha
+        or admission.get("checkpoint_sha256") != expected_sha
+        or object_sha(binding) != "252129384647bacc1838eb0ac643578c92d8cf93de27eb74c3ccceee4495d2aa"
+        or admission.get("training_binding_sha256") != object_sha(binding)
+        or admission.get("training_code_sha256") != object_sha(binding["code_sha256"])
+        or admission.get("schema_version") != 1
+        or admission.get("status") != "owner_authorized_fixed_final_kaggle_comparison"
+        or admission.get("role") != "public_source_final10"
+        or admission.get("scientific_source_git") != "a9902f3db0cf56995c074cddef1f0c2370e3ce47"
+        or admission.get("optimizer_steps") != 2810
+        or admission.get("seed") != 20260922
+        or admission.get("training_studies") != 2247
+        or admission.get("outer_studies") != 1156
+        or admission.get("MRI_only_inference") is not True
+        or admission.get("original_checkpoint_and_numerical_source_unchanged") is not True
+        or checkpoint.get("epoch") != 10
+        or checkpoint.get("step") != 2810
+        or checkpoint.get("next_update") != 0
+        or config.get("epochs") != 10
+        or binding.get("external_initialization") is not None
+        or binding.get("private_research_only")
+    ):
+        raise ValueError("Public-source checkpoint differs from exact final admission")
     view = dict(checkpoint)
     view["binding"] = dict(binding)
     view["binding"].pop("experimental_fitting_supervision")
