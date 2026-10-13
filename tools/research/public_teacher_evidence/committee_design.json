@@ -1,0 +1,44 @@
+{
+  "kind": "public_teacher_committee_distillation_design_v1",
+  "status": "precommitted_not_run",
+  "extends": "design.json (issue #35 single-teacher protocol); same collector, roster, claims and trainer boundary",
+  "question": "Does bounded committee-mean auxiliary supervision from the twenty retained Pilkwang v15 members change a solo public-input DINOv3 student relative to the identical ordinary student and to the identical single-teacher arm?",
+  "committee": "pilkwang/rsna-knee-baseline-v1/v15, all twenty retained manifest members in manifest order; frozen, logits-only",
+  "committee_members_independent": false,
+  "inspection_receipt": "initiative/audits/public-teacher-committee-prefix-20261013-v1 (root; bound by SHA in the evidence binding, not present in this change)",
+  "shared_prefix": {
+    "layers": 6,
+    "tensors": 113,
+    "elements": 11404416,
+    "inspected_digest": "f127a88be3d764d063b630173017219002a17d3a1ae26ae915c6c7248fd7d78f",
+    "forward": "tools/research/public_teacher_evidence/committee.py: embeddings + blocks 0-5 once per bitwise-identical normalized input, then each member's blocks 6-11, layernorm, original pooling and SlotHead via its own original Model.forward/predict_member",
+    "acceptance_before_root_accepts": [
+      "each member's original fingerprint passes on its full graph (teacher.build_teacher)",
+      "Committee.verify_fingerprints: shared-view fingerprint bitwise equal to full graph for all twenty",
+      "Committee.collect_study(check_full=True) on all eight accepted render studies: every member's window logits and probabilities bitwise equal full vs shared, same device/precision/backend",
+      "any inequality: report the limitation and collect with forward=full_graph; never relax"
+    ]
+  },
+  "evidence": {
+    "module": "rsna/competitive/committee_evidence.py",
+    "arrays": ["study_uid", "member_window_logits [n,20,10,12]", "member_probabilities [n,20,12]", "committee_probabilities (uniform mean)", "between_model_std (population std across members)", "slot_mask", "input_sha256"],
+    "cap_bytes": 67108864,
+    "cap_status": "proposed; root funding receipt SHA required before any write",
+    "fitting_only": true,
+    "separate_from_labels_masks_folds": true
+  },
+  "base_config": "initiative/experiments/competitive-v1/public-input-recipe-v1/public-triplet-config.json",
+  "arms": {
+    "ordinary": {"teacher_auxiliary_weight": 0.0},
+    "single_teacher": {"teacher_auxiliary_weight": 0.5, "targets": "teacher_evidence.teacher_targets"},
+    "committee": {"teacher_auxiliary_weight": 0.5, "targets": "committee_evidence.committee_targets"}
+  },
+  "identical_between_arms": ["public_input", "fitting_supervision", "encoder base/adapter", "seed 20260922", "fold 0", "epochs/updates/schedule", "batch/accumulation/precision", "accepted labels, masks and folds", "evaluation code"],
+  "auxiliary": "combined = label_loss + w * effective_batch_loss(student_logits, committee_mean, confidence, confidence_counts); confidence = clamp(|2*mean-1| - 2*between_model_std, 0, 1); fitting studies only; absent studies weight 0",
+  "not_used_as_confidence": "across-window spread (anatomical, not epistemic); eight original studies showed zero predeclared sparse-high-window cases, so focal suppression stays unproven and is not part of this design (issue #37 owns it)",
+  "evaluation": "Existing 1156-study outer evaluation with accepted labels only; committee never scores, selects or filters evaluation studies; no teacher or committee at student inference",
+  "primary_endpoint": "paired macro AUC difference committee vs ordinary with the repository's existing paired bootstrap; committee vs single_teacher secondary; per-target results reported, including negative and undefined",
+  "not_claimable": ["clean held-out teacher/student comparison (teacher training roster unknown)", "competition eligibility", "clinical truth", "teacher or committee accuracy", "member independence", "any result from synthetic tests"],
+  "preconditions_before_any_fit": ["root committee prefix inspection receipt committed", "root eight-study shared-vs-full bitwise acceptance", "root funding of the 64 MiB evidence cap", "full fitting committee collection reconciled", "teacher licensing/eligibility reviewed", "fresh GPU/storage funding by root", "trainer integration reviewed in a separate change"],
+  "release": "private only; no submission of any diagnostic model"
+}
