@@ -45,7 +45,13 @@ def test_full_stream_checks_original_bytes_and_never_overwrites(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "edit", [lambda b: b[:-2], lambda b: b + b"extra", lambda b: b[:59] + b"X" + b[60:]]
+    "edit",
+    [
+        lambda b: b[:-2],
+        lambda b: b + b"extra",
+        lambda b: b[:59] + b"X" + b[60:],
+        lambda b: b[:60] + b"X" + b[61:],
+    ],
 )
 def test_bad_stream_refused_without_verification(tmp_path, edit):
     source, target, members, proof = fixture(tmp_path)
