@@ -17,3 +17,31 @@ Current status: synthetic CPU engineering only (pixel/channel/mask/geometry fide
 Root integration review additionally pins the exact admitted pixel-group hash (including all six slots and renderer rules) and rejects unsafe study filenames, duplicate or overlapping fitting/evaluation rosters before any cache writes. Eight additional regression cases passed with the full50-case focused suite. This remains engineering evidence, not accuracy.
 
 Kaggle CPU placement (prepared, not run): `kaggle-cpu-source-render.md` renders the same source-bound members at the attached competition mount and merges immutable shards on the owning node; a root-run 8-study fitting probe is required before any claim.
+
+## Admission and recovery controls (prepared, not executed)
+
+`scripts/newton/probe_public_input_recipe_inputs.py` is the bounded owning-node CPU gate.
+It rebinds the original release/folds/label-source overlay (CPU899733 admission), the
+native cache and the root-verified complete public cache, then proves 16 fitting plus 16
+leakage-disjoint development engineering tensors for both arms, frame labels/masks, exact
+source uint8 windows divided by 255 once, encoder-only ImageNet normalization once, and
+identical official learned initialization/Python/NumPy/torch RNG between the one-channel
+native and three-channel public wrappers. The original whole-byte official base proof is
+reused with fresh stat signatures; no MRI, cache or base bytes are copied.
+
+`scripts/newton/probe_public_input_recipe_recovery.py` is the one-H100/two-CPU wrapper. It
+accepts only that CPU receipt and runs the unchanged `rsna.competitive.train` through
+`enforce_deterministic_runtime.py` in fresh full, stop-after-one-update and resume processes
+for both arms (2 epochs, four updates, effective batch 8), reusing `compare_recovery` and
+additionally binding frozen base, AdamW LR/counters, complete CPU/CUDA/Python/NumPy RNG,
+FP16 scaler and exact finite 16x12 prediction bytes.
+
+Both expect a staged root containing `code/`, `source.json` (`source_git` plus SHA256 of
+every staged file, all of `rsna/**/*.py` and both pinned configs; 8 MiB cap) and root's
+`funding.json` (1 MiB CPU receipt, 6 GiB recovery output, zero shared growth, at least
+20 GiB reserve, existing liabilities and the SHA256 of root's terminal
+`merged-cache-verified.json`). That receipt must carry `cache`, `studies` (3403),
+`index_sha256` and `cohort_sha256` equal to the bound public cache index. Receipts are
+written exclusively once. Neither script merges, renders, downloads, transfers, uploads,
+submits or uses protected gold/confirmation data, and their outputs are engineering
+evidence only, never accuracy.
