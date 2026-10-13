@@ -1,0 +1,24 @@
+import importlib.util,json,os,math,shutil,hashlib
+from pathlib import Path
+C=Path('/tmp/rsna-final-public-source-fit-evc40-20261013-v1')
+assert os.uname().nodename=='evc40' and not os.environ.get('SLURM_STEP_GPUS')
+assert not (C/'production-admission.json').exists(),'Reconcile existing admission'
+s=importlib.util.spec_from_file_location('final_publisher',C/'publish.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+assert m.sha(C/'publish.py')=='0f929dc1131c61f471c2e28c6a99367ecdc9fe31c45b52a413710643a054c7da'
+record=m.validate_run(C/'production',C);binding=record['binding'];cpu=json.loads((C/'CPU-accepted.json').read_text());raw=json.loads((C/'final-config.json').read_text())
+expected={n.removeprefix('code/rsna/'):v for n,v in cpu['source_modules'].items() if n.startswith('code/rsna/')}
+m.validate_binding(binding,raw,expected)
+start=json.loads((C/'production-run-start.json').read_text());assert start['job_id']=='908454' and start['training_studies']==3403 and 'H100' in start['GPU']
+updates=[]
+for line in (C/'production.stdout').read_text().splitlines():
+ try:r=json.loads(line)
+ except json.JSONDecodeError:continue
+ if 'optimizer_steps' in r and 'loss' in r:updates.append(r)
+assert len(updates)>=8 and [r['optimizer_steps'] for r in updates]==list(range(1,len(updates)+1))
+assert all(math.isfinite(float(r[k])) for r in updates for k in ('loss','gradient_norm'))
+assert (C/'production.stderr').stat().st_size==0
+free=shutil.disk_usage('/tmp').free;assert free>m.FLOOR+m.LOCAL_CAP+160*2**30
+admission={'status':m.ADMISSION_STATUS,'node':m.NODE,'source_git':m.SOURCE_GIT,'private_prefix':m.PREFIX,'shared_future_bytes':0,'CPU_receipt_sha256':m.CPU_RECEIPT_SHA,'T4_recovery_receipt_sha256':m.T4_RECEIPT_SHA,'final_config_sha256':m.CONFIG_SHA,'overlay_sha256':m.OVERLAY_SHA,'initial_run_binding_sha256':m.digest(binding),'publisher_sha256':m.sha(C/'publish.py'),'actual_job_id':908454,'actual_finite_optimizer_updates_observed':len(updates),'actual_H100':start['GPU'],'fresh_node_free_bytes':free,'retained_future_bytes':160*2**30,'private_publication_cap_bytes':m.LOCAL_CAP,'required_floor_bytes':m.FLOOR,'fixed_final_checkpoint_selection':True,'accuracy_claimed':False,'healthy_trainer_changed':False}
+m.assert_sanitized(admission);m.save(C/'production-admission.json',admission)
+m.admitted_inputs(C)
+print(json.dumps(admission))

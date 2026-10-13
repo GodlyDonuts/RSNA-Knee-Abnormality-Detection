@@ -1,0 +1,49 @@
+{
+  "source_ref": "pilkwang/rsna-knee-baseline-v1",
+  "source_version": 15,
+  "source_sha256": "b32a9155fcc73c519e75e78c08e07d30393efc591c2798a3e40ca92f39832bb8",
+  "renderer_node_text_sha256": "6805a20dda177a1bb1ebeac82124acad2fd0732182b0576464f020e6eab9b599",
+  "status": "reviewed",
+  "status_reason": "Teacher graph nodes read against the exact source: SlotHead/Model forward, pooling parts, slot prior table and the original synthetic fingerprint check. Compiled on top of the reviewed renderer namespace (which already supplies TARGETS, GROUP, EVAL_BATCH, WeightsError, TTA_*, window_starts and predict_member). build_model (AutoModel.from_pretrained), find_weights/find_dinov2 (file search), infer_from_package (torch.load weights_only=False, ensemble/submission) and all training/label cells are NOT selected.",
+  "nodes": [
+    "POOL_PARTS",
+    "SLOT_PRIOR_TABLE",
+    "SLOT_PRIOR_STRENGTH",
+    "SEED",
+    "SlotHead",
+    "Model",
+    "FINGERPRINT_TOL",
+    "fingerprint",
+    "check_fingerprint"
+  ],
+  "node_text_sha256": "4288d80afb58289511b14037ddf29e97dd04459955d6b8bca739303f50a9648c",
+  "node_text_format": "original_source_segments_utf8",
+  "reviewed_exceptions": {
+    "SlotHead": {
+      "strings": [
+        "7a704fda0c2b212022a83fd3fcd2f849dddc88897a8d287833090de98f51b010"
+      ],
+      "reason": "Docstring only: describes per-diagnosis slot attention and study-level labels; no label access."
+    },
+    "fingerprint": {
+      "strings": [
+        "7e381cb8a8019cbf5843f7e76a8e22e4c7c88bb1f251d29ec9d71f4fe9f66cd0"
+      ],
+      "reason": "Docstring only ('cannot' matches the annot token); synthetic uint8 bag, no file or label access."
+    }
+  },
+  "exposed_evidence": {
+    "window_logits": "Model.forward output for each original predict_member TTA window, observed by a read-only forward hook; predict_member's own probabilities must equal the mean sigmoid of these logits bitwise.",
+    "probabilities": "Original predict_member output (TTA_POOL='prob')."
+  },
+  "not_exposed": {
+    "slot_attention": "SlotHead.forward computes `att` as a local variable and returns only logits; no original API returns it, so it is not collected.",
+    "patch_attention": "Model.forward reads last_hidden_state only; backbone attentions are never requested by the original source.",
+    "per_slot_logits": "The original head pools slots inside SlotHead; no per-slot logit exists in the source."
+  },
+  "replaced_original_calls": {
+    "build_model": "Explicit Dinov2Model(Dinov2Config(**hash-bound config)); no from_pretrained/Hub/remote code; the backbone weights come only from the checkpoint's strict complete state.",
+    "torch.load": "weights_only=True on hash-verified in-memory bytes instead of the original weights_only=False."
+  },
+  "reviewer": "Devin session c215122720984e349197990bab052fde (issue #35)"
+}
