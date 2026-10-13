@@ -1,0 +1,72 @@
+import argparse,hashlib,importlib.util,io,json,os,sys
+from pathlib import Path
+import csv,math,requests
+from urllib.parse import urljoin,urlparse
+def csv_output(slug,version):
+ owner,kernel=slug.split('/');remote.session.cookies.clear();response=remote.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':owner,'kernelSlug':kernel,'versionNumber':version,'filePath':'submission.csv'},timeout=(10,60),allow_redirects=False,stream=True)
+ for _ in range(5):
+  with response:
+   if response.status_code==200:
+    raw=bytearray()
+    for block in response.iter_content(65536):
+     raw.extend(block);assert len(raw)<=1048576
+    return bytes(raw)
+   assert response.status_code in {301,302,303,307,308}
+   url=urljoin(response.url,response.headers.get('Location',''))
+  parsed=urlparse(url);host=parsed.hostname or '';assert parsed.scheme=='https' and (host in {'storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com'} or host.endswith('.googleusercontent.com'))
+  session=remote.session if host=='api.kaggle.com' else requests;response=session.get(url,timeout=(10,60),allow_redirects=False,stream=True)
+ raise ValueError('Output redirect budget exhausted')
+
+
+v=json.load(sys.stdin);R=Path('/tmp/rsna-kaggle-publicsource-e10-ebeb3c394286-v1');P=R/'projection';ready=json.loads((R/'prepared.json').read_text());sys.path.insert(0,str(P/'code'));assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+s=importlib.util.spec_from_file_location('c',P/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c)
+w,_=c.load_workflow(P/'code',P/'projection.json',ready['projection_sha']);op=w.load_operation(R/'candidate/operation.json');phase=v['phase']
+if phase=='reconcile-outcome':
+ sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+ with c.single_coordinator(Path('/home/sa305415/rsna-knee/kaggle')):
+  with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),remote.username) as db:
+   e=w.reconcile_submission(remote,db,op['checkpoint_sha256']);print(json.dumps({'submission_id':e['submission_id'],'remote_outcome':e['remote_outcome'],'score':e.get('public_score'),'account':remote.account(),'canonical_ledger_reconciled':True,'competition_mutation':False}))
+ sys.exit(0)
+if phase=='reconcilepush':
+ sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+ with c.single_coordinator(Path('/home/sa305415/rsna-knee/kaggle')):
+  with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),remote.username) as db:
+   entry=w.read_entry(db,op['checkpoint_sha256']);out={'entry':entry,'account':remote.account()}
+   out['profile_target']=remote.call('kernels.KernelsApiService','ListKernels',{'group':'PROFILE','page':1,'pageSize':100,'language':'all','kernelType':'all','outputType':'all','search':op['kernel_slug'].split('/')[1]})
+   try:out['kernel']=remote.kernel('GetKernel',op['kernel_slug'],1)
+   except Exception as e:out['read_error']=str(e)
+   print(json.dumps(out))
+ sys.exit(0)
+if phase=='inspectdataset':
+ sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w);rows=[]
+ for page in range(1,101):
+  xs=remote.call('datasets.DatasetApiService','ListDatasets',{'group':'DATASET_SELECTION_GROUP_MY','page':page}).get('datasets',[])
+  if not xs:break
+  rows.extend([{k:x.get(k) for k in ('ref','id','title','lastUpdated','currentVersionNumber')} for x in xs])
+ print(json.dumps({'datasets':rows}));sys.exit(0)
+if phase in ('status','collect'):
+ sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+ with c.single_coordinator(Path('/home/sa305415/rsna-knee/kaggle')):
+  with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),remote.username) as db:
+   out=w.status(remote,db,op['checkpoint_sha256']);out['account']=remote.account()
+   if phase=='collect':
+    out['receipt']=remote.output_json(op['kernel_slug'],out['kernel_version'],'kaggle-inference-receipt.json');out['metrics']=remote.output_json(op['kernel_slug'],out['kernel_version'],'submission.metrics.json')
+   print(json.dumps(out))
+ sys.exit(0)
+if phase=='push-kernel':
+ sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w);account=remote.account();assert account['num_allowed_now']>=1
+ q=remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];sec=lambda t:float(t.removesuffix('s'));assert min(sec(q['totalTimeAllowed']),sec(q['minimumTimeAllowed']))-sec(q['timeUsed'])-sec(q['timeReserved'])>=32400+7200
+ remote.require_absent_kernel(op['kernel_slug'])
+# c.run owns the one canonical lock for every mutation. No duplicate retries.
+args=argparse.Namespace(action=phase,projection=P/'code',projection_manifest=P/'projection.json',projection_sha256=ready['projection_sha'],operation=R/'candidate/operation.json',snapshot=Path('/tmp/rsna-public-label-full-fit-20261006-v1/public/epoch-checkpoints/epoch-010.json'),publication_revision=False,superseded_operation_sha256=None,dataset_publication_operation=(R/'candidate/original-operation.json' if op.get('dataset_publication_operation_sha256') else None),management_python=Path('/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python'),node_local_upload_root=Path('/tmp/rsna-kaggle-upload-ebeb3c394286'))
+if phase=='submit-final-accepted':
+ accepted=json.loads((R/'public-accepted.json').read_text());assert accepted['receipt']['checkpoint_sha256']==op['checkpoint_sha256'] and accepted['receipt']['bundle_manifest_sha256']==op['manifest_sha256'] and accepted['columns']==13 and accepted['studies']==3
+ args.action='submit'
+if phase=='submit':
+ sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+ with c.single_coordinator(Path('/home/sa305415/rsna-knee/kaggle')):
+  with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),remote.username) as db:
+   e=w.read_entry(db,op['checkpoint_sha256']);assert e['state']=='pushed';assert w.status(remote,db,op['checkpoint_sha256'])['kernel_status']['status']=='COMPLETE'
+   receipt=remote.output_json(op['kernel_slug'],e['kernel_version'],'kaggle-inference-receipt.json');metrics=remote.output_json(op['kernel_slug'],e['kernel_version'],'submission.metrics.json');assert receipt['status']=='offline_inference_complete' and receipt['checkpoint_sha256']==op['checkpoint_sha256'] and receipt['bundle_manifest_sha256']==op['manifest_sha256'];assert metrics['status']=='passed' and metrics['studies']==3 and metrics['resident_engine']=='two_device_exact_FP32_prefetch_v1';assert sum(x.get('fallback_studies',0) for x in metrics['chunks'])==0 and metrics['production_memory']['summed_lifetime_RSS_bytes']<=29*2**30
+   raw=csv_output(op['kernel_slug'],e['kernel_version']);assert hashlib.sha256(raw).hexdigest()==receipt['submission_sha256']==metrics['submission_sha256'];rows=list(csv.reader(io.StringIO(raw.decode())));from rsna.schema import TARGETS;assert rows[0]==['StudyInstanceUID',*TARGETS] and [x[0] for x in rows[1:]]==v['expected_uids'] and all(len(x)==13 for x in rows);assert all(math.isfinite(float(x)) and 0<=float(x)<=1 for row in rows[1:] for x in row[1:]);out={'status':'exact_private_offline_public_MRI_only_prefetch_verified','receipt':receipt,'metrics':metrics,'csv_sha256':hashlib.sha256(raw).hexdigest(),'columns':13,'studies':3,'public_example_only':True};assert not (R/'public-accepted.json').exists();(R/'public-accepted.json').write_text(json.dumps(out,indent=2))
+sys.stdin=io.StringIO(json.dumps({'token':v['token']}));result=c.run(args);print(json.dumps(result))
