@@ -1,0 +1,11 @@
+import json,os,hashlib,types,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_STEP_GPUS');assert hashlib.sha256(v['source'].encode()).hexdigest()==v['sha']
+m=types.ModuleType('bound_relay');exec(compile(v['source'],'bound_relay.py','exec'),m.__dict__)
+registry=Path('/home/sa305415/rsna-knee/native384-assembly-c9-v1/registry.json');digest='73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770';members=m.members_from_registry(registry,digest,37812)
+proof_path=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json');assert m.sha(proof_path)=='fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5';proof=json.loads(proof_path.read_bytes());assert set(proof['signatures'])==set(members)
+root=Path('/tmp/rsna-native384-cohort-866458-lp6rcfdw/restored')
+for name,row in members.items():
+ path=root/name;assert not path.is_symlink() and m.signature(path)==proof['signatures'][name] and path.stat().st_size==row['bytes']
+C=Path('/tmp/rsna-final-full-cache-source-20261013-v1');assert not C.exists();C.mkdir(mode=0o700);(C/'native_cache_relay.py').write_text(v['source'])
+print(json.dumps({'status':'original_native_complete_member_signatures_and_relay_source_bound','members':len(members),'bytes':sum(row['bytes'] for row in members.values()),'registry_sha256':digest,'original_CPU_proof_sha256':m.sha(proof_path),'relay_sha256':v['sha'],'source_node':'evc31','source_cache_modified':False,'pixel_bytes_transferred':False}))
