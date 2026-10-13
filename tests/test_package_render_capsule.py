@@ -340,7 +340,9 @@ def test_real_closure_pack_verify_and_replay_from_capsule_only(tmp_path, monkeyp
     member = tmp_path / "inputs" / "member-manifest.json"
     member.parent.mkdir()
     member.write_bytes(b'{"synthetic": true}\n')
-    monkeypatch.setattr(cap, "admitted_member_manifest_sha256", lambda root: sha(member.read_bytes()))
+    monkeypatch.setattr(
+        cap, "admitted_member_manifest_sha256", lambda root: sha(member.read_bytes())
+    )
     manifest = cap.plan(ROOT, ROOT, closure, "HEAD", member)
     manifest["verifier_sha256"] = sha(SCRIPT.read_bytes())
     assert manifest["bindings"]["accepted_series_sha256"] == closure["release_series_sha256"]

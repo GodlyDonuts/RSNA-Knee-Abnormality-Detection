@@ -1,0 +1,41 @@
+import base64,hashlib,importlib.util,io,json,os,shutil,sys,zlib
+from pathlib import Path
+v=json.load(sys.stdin);B=Path('/home/sa305415/rsna-knee');P=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection');R=Path('/tmp/rsna-kaggle-public-input-order-replay-20261013-v1');O=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2')
+assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_STEP_GPUS')
+s=importlib.util.spec_from_file_location('canonical_coordinator',P/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(P/'code',P/'projection.json','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437');p=c.p
+sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+slug='godlydonuts/rsna-public-input-order-replay-20261013-v1'
+with c.single_coordinator(B/'kaggle'):
+    if v['phase']=='push':
+        assert not R.exists();assert shutil.disk_usage('/tmp').free>140*2**30+16*2**20
+        private_bytes=(O/'private-original-roster-and-files.json').read_bytes();plan=json.loads((O/'plan-admitted.json').read_text());assert hashlib.sha256(private_bytes).hexdigest()==plan['private_inventory_sha256'];private=json.loads(private_bytes)
+        overlay_bytes=Path('/tmp/rsna-public-label-inputs-20261006-v1/overlay.json').read_bytes();assert hashlib.sha256(overlay_bytes).hexdigest()=='c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51'
+        labels={row['study_uid']:row for row in json.loads(overlay_bytes)['studies']};admitted=json.loads(Path('/tmp/rsna-public-label-inputs-20261006-v1/CPU-accepted.json').read_text());series=Path(admitted['trainer_inputs']['series'])
+        import pandas as pd
+        sf=pd.read_csv(series,dtype=str);planes=dict(zip(sf.SeriesInstanceUID,sf.Anatomical_Plane));accepted_plane_map={r['series_uid']:planes[r['series_uid']] for r in private['files']}
+        source_order={uid:[[entry.name,[f.name for f in os.scandir(entry.path) if f.is_file()]] for entry in os.scandir(O/'original/train_series'/uid) if entry.is_dir()] for uid in private['roster']}
+        private['reference']=json.loads(Path('/tmp/rsna-public-input-component-quantification-20261013-v1/private-reference.json').read_text())
+        private|={'accepted_plane_map':accepted_plane_map,'pixel_group':json.loads(plan['member_pixel_group']),'source_order':source_order,'labels':{uid:labels[uid] for uid in private['roster']},'series_sha256':hashlib.sha256(series.read_bytes()).hexdigest()}
+        payload=v['public_code'];assert all(hashlib.sha256(text.encode()).hexdigest()==payload['hashes'][name] for name,text in payload['files'].items())
+        payload['files']['worker.py']=v['worker'];payload['files']['private.json']=json.dumps(private)
+        packed=base64.b64encode(zlib.compress(json.dumps(payload['files']).encode(),9)).decode()
+        source="import base64,zlib,json,sys\nfrom pathlib import Path\nroot=Path('/tmp/rsna-source-parity');root.mkdir(mode=0o700)\nfiles=json.loads(zlib.decompress(base64.b64decode("+repr(packed)+")))\nfor name,text in files.items():\n p=root/name;assert not Path(name).is_absolute() and '..' not in Path(name).parts;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True)\n with p.open('x') as f:f.write(text)\nsys.path.insert(0,str(root))\nexec(compile(files['worker.py'],'original-source-parity-worker.py','exec'))\n"
+        assert len(source.encode())<2**20;compile(source,'parity-notebook.py','exec')
+        contract={'slug':slug,'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'code_hashes':v['public_code']['hashes'],'worker_sha256':hashlib.sha256(v['worker'].encode()).hexdigest(),'fitting_studies':8,'original_files':len(private['files']),'source_records_private':True,'GPU':False,'competition_submission':False,'bounded_session_seconds':3600,'new_shared_persistent_bytes':0,'private_node_control_cap_bytes':16*2**20}
+        request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':False,'enableInternet':False,'datasetDataSources':[],'kernelDataSources':[],'competitionDataSources':['rsna-knee-abnormality-detection'],'sessionTimeoutSeconds':3600}
+        absence=remote.require_absent_kernel(slug);R.mkdir(mode=0o700)
+        with (R/'source.py').open('x') as f:f.write(source)
+        p.exclusive_json(R/'intent.json',{'contract':contract,'request_sha256':w.object_hash(request),'absence':absence,'automatic_retry':False})
+        result=remote.call('kernels.KernelsApiService','SaveKernel',request);p.exclusive_json(R/'create-response.json',result)
+        assert result.get('versionNumber')==1 and result.get('ref')=='/code/'+slug and not result.get('error')
+        print(json.dumps({'status':'private_offline_CPU_original_source_parity_pushed_once','kernel_id':result.get('kernelId'),'contract':contract,'version':1}))
+    else:
+        assert v['phase']=='status';source=(R/'source.py').read_text();intent=json.loads((R/'intent.json').read_text());assert hashlib.sha256(source.encode()).hexdigest()==intent['contract']['source_sha256']
+        kernel=remote.kernel('GetKernel',slug,1);assert w.object_hash(kernel['blob']['source'])==w.object_hash(source);m=kernel['metadata'];assert m.get('isPrivate') is True and not m.get('enableGpu') and m.get('enableInternet') is False
+        state=remote.kernel('GetKernelSessionStatus',slug,1);out={'status':state.get('status'),'slug':slug,'version':1,'exact_private_offline_CPU_source_verified':True}
+        if state.get('status')=='ERROR':
+            import re
+            log=remote.kernel('ListKernelSessionOutput',slug,1).get('log','');assert isinstance(log,str) and not log.startswith('http')
+            out['original_log_tail']=re.sub(r'1\.2\.826\.[0-9.]+','[private-study-UID]',log[-8000:])
+        if state.get('status')=='COMPLETE':out['actual_receipt']=remote.output_json(slug,1,'public-input-parity.json')
+        print(json.dumps(out))

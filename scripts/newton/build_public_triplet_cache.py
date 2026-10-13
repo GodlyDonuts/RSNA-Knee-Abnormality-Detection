@@ -391,8 +391,8 @@ def transport_study(
         if (status.st_size, status.st_mtime_ns, status.st_ino) != before:
             raise ValueError("Original source changed during transport")
     copied = [e.name for e in os.scandir(destination) if e.is_dir(follow_symlinks=False)]
-    if copied != order:
-        raise ValueError("Transport series order differs from the original scandir order")
+    if sorted(copied) != sorted(order):
+        raise ValueError("Transport series membership differs from the original source")
     slices = [len(accepted[s]) for s in order]
     ties = [[s for s, n in zip(order, slices) if n == count] for count in sorted(set(slices))]
     receipt = {
@@ -409,7 +409,9 @@ def transport_study(
         "n_slices": slices,
         "n_slices_tie_groups": [group for group in ties if len(group) > 1],
         "excluded_series_present": excluded,
-        "transport_order_equal": True,
+        "copied_series_order": copied,
+        "transport_order_equal": copied == order,
+        "renderer_replays_original_series_order": True,
     }
     return destination, receipt
 
@@ -464,7 +466,12 @@ def stage_study(
     try:
         _, order = transport_study(source_study, scratch, uid, records, funding, origin=origin)
         order = bind_order_receipt(out, uid, order, intent_sha)
-        receipt = producer.stage_member(cache, uid, scratch, records, plane_map, renderer=renderer)
+        from tools.research.public_dinov2_input_reference import reference
+
+        with reference.preserve_series_order(uid, order["series_order"]):
+            receipt = producer.stage_member(
+                cache, uid, scratch, records, plane_map, renderer=renderer
+            )
     finally:
         transported = scratch / producer.SPLIT
         if transported.exists():

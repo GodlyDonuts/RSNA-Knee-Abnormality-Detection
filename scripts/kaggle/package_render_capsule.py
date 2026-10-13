@@ -114,9 +114,7 @@ def file_digests(path: Path) -> tuple[int, str, str]:
 
 
 def git(root: Path, *args: str) -> bytes:
-    return subprocess.run(
-        ["git", "-C", str(root), *args], check=True, capture_output=True
-    ).stdout
+    return subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True).stdout
 
 
 def git_commit(root: Path, revision: str = "HEAD") -> str:
@@ -349,8 +347,9 @@ def plan(
 
     overlay = json.loads((code_root / OVERLAY).read_bytes())
     release = json.loads(
-        (artifact_root / PurePosixPath(relative["studies"]).parent / "verified_release.json")
-        .read_bytes()
+        (
+            artifact_root / PurePosixPath(relative["studies"]).parent / "verified_release.json"
+        ).read_bytes()
     )
     folds = relative["folds"]
     bindings = {
@@ -626,14 +625,14 @@ def main(argv: list[str] | None = None) -> None:
             sp.add_argument("--" + name, type=int, required=True)
     args = parser.parse_args(argv)
     if args.mode == "trace":
-        closure = trace(
-            ROOT, args.artifact_root, args.studies, args.folds, args.accepted_series
-        )
+        closure = trace(ROOT, args.artifact_root, args.studies, args.folds, args.accepted_series)
         payload = json_bytes(closure)
         write_exclusive(args.out, payload)
         result = {k: v for k, v in closure.items() if k != "files"}
-        result |= {"files": len(closure["files"]), "closure_sha256": hashlib.sha256(payload)
-                   .hexdigest()}
+        result |= {
+            "files": len(closure["files"]),
+            "closure_sha256": hashlib.sha256(payload).hexdigest(),
+        }
     elif args.mode in ("pack", "reconcile"):
         closure = load_closure(args.closure, args.closure_sha256)
         manifest = plan(
