@@ -57,6 +57,77 @@ def upload_location(args, journal, checkpoint_sha, transport=None):
     return root / "upload", binding
 
 
+def node_journal(args, base, meta, op):
+    """Opt-in node-local journal for NEW component operations only.
+
+    The account ledger and coordinator claim stay shared. Two small shared
+    markers are the durable cross-node record: an exclusive intent (written
+    before the single create RPC) and the full-byte verification. Existing
+    shared journals are never moved, and a marked operation cannot fall back.
+    """
+    root = getattr(args, "node_local_journal_root", None)
+    shared = base / "dataset-publications"
+    key = meta["checkpoint_sha256"] + "-" + op["manifest_sha256"][:12]
+    intent = shared / (key + ".node-intent.json")
+    verified = shared / (key + ".node-verified.json")
+    if root is None:
+        if intent.exists() or verified.exists():
+            raise ValueError("Node-local journal cannot fall back to shared storage")
+        return None
+    root = Path(root)
+    if (
+        op.get("common_bundle") is None
+        or getattr(args, "publication_revision", False)
+        or (shared / meta["checkpoint_sha256"]).exists()
+        or (shared / key).exists()
+    ):
+        raise ValueError("Node-local journals are limited to new component operations")
+    if (
+        not root.is_absolute()
+        or root.parent.resolve() != NODE_SCRATCH.resolve()
+        or root.name != "rsna-kaggle-journal-" + key[:12] + key[64:]
+        or root.is_symlink()
+    ):
+        raise ValueError("Journal root must be the exact private operation directory in /tmp")
+    if args.action == "prepare-transport":
+        if intent.exists() or verified.exists():
+            raise ValueError("Operation already has a durable shared intent")
+        shared.mkdir(mode=0o700, parents=True, exist_ok=True)
+        root.mkdir(mode=0o700, exist_ok=False)
+    elif not root.exists():
+        if args.action == "create-dataset" or not intent.exists():
+            raise ValueError("Node-local journal is missing; only marker reconciliation remains")
+        return SimpleNamespace(root=None, binding=None, intent=intent, verified=verified)
+    info = root.stat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+        raise ValueError("Node-local journal ownership/permissions differ")
+    binding = {
+        "root": str(root),
+        "host": os.uname().nodename,
+        "uid": info.st_uid,
+        "device": info.st_dev,
+        "inode": info.st_ino,
+    }
+    return SimpleNamespace(root=root, binding=binding, intent=intent, verified=verified)
+
+
+def pending_dataset_mutation(base, journal, own_marker=None):
+    """Any unverified shared journal intent or node-local intent marker blocks creates."""
+    for other in (base / "dataset-publications").iterdir():
+        if other.name.endswith(".node-intent.json"):
+            done = other.with_name(other.name[: -len(".node-intent.json")] + ".node-verified.json")
+            if other != own_marker and not done.exists():
+                return True
+        elif (
+            other != journal
+            and other.is_dir()
+            and (other / "intent.json").exists()
+            and not (other / "verified.json").exists()
+        ):
+            return True
+    return False
+
+
 def load_workflow(projection, manifest_file, expected_sha):
     if p.digest(manifest_file) != expected_sha:
         raise ValueError("Projection manifest differs from root-reviewed hash")
@@ -554,8 +625,12 @@ def run(args):
     publication_sha = dataset_publication_binding(
         op, args.operation, getattr(args, "dataset_publication_operation", None)
     )
-    journal = publication_journal(base, meta, op, args.publication_revision)
-    journal.mkdir(mode=0o700, parents=True, exist_ok=True)
+    local = node_journal(args, base, meta, op)
+    if local is None:
+        journal = publication_journal(base, meta, op, args.publication_revision)
+        journal.mkdir(mode=0o700, parents=True, exist_ok=True)
+    else:
+        journal = local.root
     with single_coordinator(base):
         if args.action == "prepare-transport":
             upload, node_binding = upload_location(args, journal, meta["checkpoint_sha256"])
@@ -573,28 +648,55 @@ def run(args):
             }
             if node_binding is not None:
                 record["node_local_upload"] = node_binding
+            if local is not None:
+                record["node_local_journal"] = local.binding
             p.exclusive_json(journal / "transport.json", record)
             return record
-        transport = json.loads((journal / "transport.json").read_text())
+        marker = None
+        if local is not None and local.intent.exists():
+            marker = json.loads(local.intent.read_text())
+        if journal is None:
+            transport = marker["transport"]
+        else:
+            transport = json.loads((journal / "transport.json").read_text())
+            if local is not None and (
+                transport.get("node_local_journal") != local.binding
+                or (marker is not None and marker["transport"] != transport)
+            ):
+                raise ValueError("Node-local journal moved or node/identity changed")
         if transport["operation_sha256"] != publication_sha or (
             op.get("dataset_publication_operation_sha256") is None
             and transport["projection_sha256"] != args.projection_sha256
         ):
             raise ValueError("Transport identity changed")
-        upload, _ = upload_location(args, journal, meta["checkpoint_sha256"], transport)
+        if journal is not None:
+            upload, _ = upload_location(args, journal, meta["checkpoint_sha256"], transport)
         remote, token = remote_from_stdin(workflow)
         if args.action == "create-dataset":
             if args.management_python is None:
                 raise ValueError("Separate pinned SDK management interpreter is required")
             # No new mutations while any other dataset create remains unverified.
-            for other in (base / "dataset-publications").iterdir():
-                if (
-                    other != journal
-                    and (other / "intent.json").exists()
-                    and not (other / "verified.json").exists()
-                ):
-                    raise ValueError("Another dataset mutation awaits read-only reconciliation")
+            if pending_dataset_mutation(base, journal, local and local.intent):
+                raise ValueError("Another dataset mutation awaits read-only reconciliation")
             workflow.verify_shared_wheelhouse(remote, op["shared_wheelhouse"])
+            if op.get("common_bundle") is not None:
+                workflow.verify_common_bundle(remote, op["common_bundle"])
+            if local is not None:
+                # Exclusive shared intent precedes the one create; never retried.
+                p.exclusive_json(
+                    local.intent,
+                    {
+                        "schema_version": 1,
+                        "kind": "node_local_dataset_create_intent",
+                        "slug": op["dataset_slug"],
+                        "files": files,
+                        "transport": transport,
+                        "node_local_journal": local.binding,
+                        "operation_sha256": p.digest(args.operation),
+                        "retry_prohibited": True,
+                        "competition_submission": False,
+                    },
+                )
             return p.create_once(
                 remote,
                 token,
@@ -605,32 +707,45 @@ def run(args):
                 transport,
                 create=management_create(args.management_python),
             )
-        intent = json.loads((journal / "intent.json").read_text())
-        if (
-            intent["files"] != files
-            or intent["context"] != transport
-            or intent["slug"] != op["dataset_slug"]
-        ):
-            raise ValueError("Durable mutation intent differs")
+        if local is not None:
+            if (
+                marker is None
+                or marker["files"] != files
+                or marker["slug"] != op["dataset_slug"]
+                or marker["operation_sha256"] != p.digest(args.operation)
+            ):
+                raise ValueError("Durable shared node-local intent differs")
+            intent_file = local.intent
+        else:
+            intent_file = journal / "intent.json"
+        if journal is not None:
+            intent = json.loads((journal / "intent.json").read_text())
+            if (
+                intent["files"] != files
+                or intent["context"] != transport
+                or intent["slug"] != op["dataset_slug"]
+            ):
+                raise ValueError("Durable mutation intent differs")
+        verified_file = journal / "verified.json" if local is None else local.verified
         if args.action == "reconcile-dataset":
             result = p.reconcile(remote, op["dataset_slug"], files)
             result.update(
                 operation_sha256=p.digest(args.operation),
-                intent_sha256=p.digest(journal / "intent.json"),
+                intent_sha256=p.digest(intent_file),
             )
-            existing = journal / "verified.json"
+            existing = verified_file
             if existing.exists():
                 if json.loads(existing.read_text()) != result:
                     raise ValueError("Previously frozen verification differs")
             else:
                 p.exclusive_json(existing, result)
             return result
-        proof = json.loads((journal / "verified.json").read_text())
+        proof = json.loads(verified_file.read_text())
         if (
             proof.get("status") != "all_payload_bytes_verified"
             or proof.get("files") != files
             or proof.get("operation_sha256") != publication_sha
-            or proof.get("intent_sha256") != p.digest(journal / "intent.json")
+            or proof.get("intent_sha256") != p.digest(intent_file)
         ):
             raise ValueError("Full byte verification is missing or mismatched")
         # Recheck current Dataset identity; the notebook rehashes every mounted file.
@@ -713,6 +828,7 @@ def main():
     parser.add_argument("--dataset-publication-operation", type=Path)
     parser.add_argument("--management-python", type=Path)
     parser.add_argument("--node-local-upload-root", type=Path)
+    parser.add_argument("--node-local-journal-root", type=Path)
     args = parser.parse_args()
     try:
         result = run(args)

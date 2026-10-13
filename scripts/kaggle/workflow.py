@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -26,6 +27,18 @@ ROOT = Path(__file__).resolve().parents[2]
 SHA = re.compile(r"[0-9a-f]{64}")
 SLUG = re.compile(r"[a-z0-9_-]+/[a-z0-9-]+")
 RUNTIME_IMAGE = re.compile(r"gcr\.io/kaggle(?:-private-byod|-images)/python@sha256:[0-9a-f]{64}")
+
+
+def _load_components():
+    spec = importlib.util.spec_from_file_location(
+        "rsna_kaggle_components", Path(__file__).with_name("components.py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+components = _load_components()
 
 
 def canonical(value):
@@ -579,8 +592,15 @@ def prepare_bundle(
     runtime_image=None,
     fitting_admission=None,
     inference_engine="legacy",
+    common_bundle=None,
 ):
-    """Local only. Requires real epoch + completed Linux wheel lock; no placeholders."""
+    """Local only. Requires real epoch + completed Linux wheel lock; no placeholders.
+
+    ``common_bundle`` optionally names a directory holding an exact
+    ``common-manifest.json`` and its full-download ``common-verification.json``.
+    Then only checkpoint-specific members are copied; every common member is
+    re-derived from current sources and must match the verified common bytes.
+    """
     if inference_engine not in {"legacy", "resident_two_gpu_fp32"}:
         raise ValueError("Unadmitted inference execution engine")
     if runtime_image is not None and not RUNTIME_IMAGE.fullmatch(runtime_image):
@@ -598,6 +618,28 @@ def prepare_bundle(
         or meta["checkpoint_sha256"][:12] not in kernel_slug
     ):
         raise ValueError("Dedicated Dataset/kernel slugs must include the checkpoint SHA prefix")
+    common_record = common_manifest = None
+    if common_bundle is not None:
+        common_bundle = Path(common_bundle)
+        proof = json.loads((common_bundle / "common-verification.json").read_text())
+        common_record, common_manifest = components.binding(
+            common_bundle / components.COMMON_MANIFEST,
+            common_bundle / "common-verification.json",
+            proof.get("slug", ""),
+        )
+        common_slug = common_record["dataset_slug"]
+        # Two observed same-identity SaveKernel 409s resolved only with a
+        # distinct notebook identity: operational evidence, not a root cause.
+        if (
+            kernel_slug == dataset_slug
+            or common_slug in {dataset_slug, kernel_slug}
+            or common_slug.split("/")[0] != dataset_slug.split("/")[0]
+            or kernel_slug.split("/")[1].replace("-", " ").casefold()
+            == dataset_slug.split("/")[1].replace("-", " ").casefold()
+            or shared_wheelhouse is None
+            or common_slug == json.loads(Path(shared_wheelhouse).read_text()).get("dataset_slug")
+        ):
+            raise ValueError("Component notebook, Dataset and common identities must be distinct")
     encoder = json.loads(encoder_spec.read_text())
     if not re.fullmatch(
         r"https://github\.com/facebookresearch/dinov3/blob/[0-9a-f]{40}/LICENSE\.md", license_source
@@ -691,14 +733,25 @@ def prepare_bundle(
     if shared is None:
         for name in wheel_manifest["files"]:
             sources["wheels/" + name] = relative_file(wheelhouse, name)
+    copied = sources
+    if common_record is not None:
+        if (
+            common_manifest["shared_wheelhouse"] != shared
+            or common_manifest["license_source"] != license_source
+            or common_manifest["license_sha256"] != license_sha256
+            or common_record["checkpoint_format"] != ("frozen_base_delta" if delta else "full")
+            or common_manifest["competition"] != COMPETITION
+        ):
+            raise ValueError("Common bundle licence/base/runtime differs from this candidate")
+        copied = {n: s for n, s in sources.items() if components.role(n) == "candidate"}
     if shutil.disk_usage(output.parent).free < FLOOR + sum(
-        p.stat().st_size for p in sources.values()
+        p.stat().st_size for p in copied.values()
     ):
         raise ValueError("Bundle would violate the 20 GiB free-space floor")
     output.mkdir(exist_ok=False)
     data = output / "dataset"
     data.mkdir()
-    for name, source in sources.items():
+    for name, source in copied.items():
         target = data / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
@@ -709,6 +762,20 @@ def prepare_bundle(
         for p in sorted(data.rglob("*"))
         if p.is_file()
     }
+    if common_record is not None:
+        derived = {
+            n: {"sha256": digest(s), "bytes": s.stat().st_size}
+            for n, s in sources.items()
+            if n not in copied
+        }
+        for name in ("encoder.json", "wheelhouse.json"):
+            derived[name] = files.pop(name)
+            (data / name).unlink()
+        if derived != common_manifest["files"]:
+            raise ValueError(
+                "Candidate encoder/code/licence differs from the verified common bundle"
+            )
+        components.merge(files, common_manifest, common_record)
     manifest = {
         "schema_version": 1,
         "competition": COMPETITION,
@@ -753,6 +820,8 @@ def prepare_bundle(
         )
     if fitting_admission is not None:
         manifest["fitting_admission_sha256"] = digest(fitting_admission)
+    if common_record is not None:
+        manifest["common_bundle"] = common_record
     new_json(data / "bundle-manifest.json", manifest)
     manifest_sha = digest(data / "bundle-manifest.json")
     # Kaggle CLI supports only Dataset slugs here. Dedicated version 1 plus a
@@ -780,7 +849,9 @@ def prepare_bundle(
         "is_private": True,
         "enable_gpu": True,
         "enable_internet": False,
-        "dataset_sources": [dataset_slug] + ([shared["dataset_slug"]] if shared else []),
+        "dataset_sources": [dataset_slug]
+        + ([common_record["dataset_slug"]] if common_record else [])
+        + ([shared["dataset_slug"]] if shared else []),
         "competition_sources": [COMPETITION],
         "kernel_sources": [],
         "model_sources": [],
@@ -808,6 +879,10 @@ def prepare_bundle(
         operation["runtime_image"] = runtime_image
     if fitting_admission is not None:
         operation["fitting_admission_sha256"] = digest(fitting_admission)
+    if common_record is not None:
+        operation["common_bundle"] = common_record
+        for name in (components.COMMON_MANIFEST, "common-verification.json"):
+            shutil.copyfile(common_bundle / name, output / name)
     new_json(output / "operation.json", operation)
     return operation
 
@@ -829,6 +904,21 @@ def load_operation(path):
         raise ValueError("Shared runtime differs from bound notebook manifest")
     if operation.get("shared_wheelhouse") is not None:
         validate_shared_wheelhouse(operation["shared_wheelhouse"])
+    if manifest.get("common_bundle") != operation.get("common_bundle"):
+        raise ValueError("Common bundle differs from bound notebook manifest")
+    if operation.get("common_bundle") is not None:
+        if operation.get("inference_runtime_correction") is not None or not operation.get(
+            "shared_wheelhouse"
+        ):
+            raise ValueError("Component payloads need a shared runtime and no reuse correction")
+        common = components.check_binding(
+            operation["common_bundle"],
+            base / components.COMMON_MANIFEST,
+            base / "common-verification.json",
+        )
+        components.merge(manifest["files"], common, operation["common_bundle"])
+        if common["shared_wheelhouse"] != operation["shared_wheelhouse"]:
+            raise ValueError("Common bundle runtime differs from the operation")
     if operation.get("inference_runtime_correction") is not None:
         # Only metadata is needed locally: the immutable versioned Dataset is
         # mounted and rehashed by the new notebook. Reuse its actual whole-byte
@@ -896,6 +986,8 @@ def validate_shared_wheelhouse(shared):
 
 def dataset_sources(operation):
     result = [operation["dataset_slug"]]
+    if operation.get("common_bundle") is not None:
+        result.append(components.validate_binding(operation["common_bundle"])["dataset_slug"])
     if operation.get("shared_wheelhouse") is not None:
         validate_shared_wheelhouse(operation["shared_wheelhouse"])
         result.append(operation["shared_wheelhouse"]["dataset_slug"])
@@ -950,6 +1042,21 @@ def verify_shared_wheelhouse(remote, shared):
     }
 
 
+def verify_common_bundle(remote, record):
+    """Read-only identity check; the notebook re-hashes every mounted common byte."""
+    components.validate_binding(record)
+    if record["dataset_slug"].split("/")[0] != remote.username:
+        raise ValueError("Common bundle belongs to another account")
+    data = remote.dataset(record["dataset_slug"])
+    if (
+        data.get("isPrivate") is not True
+        or data.get("currentVersionNumber") != 1
+        or data.get("id") != record["dataset_id"]
+    ):
+        raise ValueError("Common bundle Dataset identity/privacy/version drift")
+    return {"id": record["dataset_id"], "version": 1, "is_private": True}
+
+
 def verify_remote_dataset(remote, operation):
     data = remote.dataset(operation["dataset_slug"])
     if data.get("isPrivate") is not True or data.get("currentVersionNumber") != 1:
@@ -959,6 +1066,8 @@ def verify_remote_dataset(remote, operation):
     ) != operation.get("reused_dataset_id"):
         raise ValueError("Reused Dataset identity changed")
     result = {"id": data.get("id"), "version": 1, "is_private": True}
+    if operation.get("common_bundle") is not None:
+        result["common_bundle"] = verify_common_bundle(remote, operation["common_bundle"])
     if operation.get("shared_wheelhouse") is not None:
         result["shared_wheelhouse"] = verify_shared_wheelhouse(
             remote, operation["shared_wheelhouse"]
