@@ -1065,7 +1065,7 @@ def check_kernel(remote, entry, version):
         or meta.get("enableInternet") is not False
         or meta.get("machineShape") != "NvidiaTeslaT4"
         or meta.get("competitionDataSources") != [COMPETITION]
-        or meta.get("datasetDataSources") != dataset_sources(op)
+        or sorted(meta.get("datasetDataSources", [])) != sorted(dataset_sources(op))
         or (op.get("runtime_image") is not None and meta.get("dockerImage") != op["runtime_image"])
         or hashlib.sha256(source.encode()).hexdigest() != op["kernel_source_sha256"]
     ):
