@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 from collections import OrderedDict
 from collections.abc import Sequence
 from types import SimpleNamespace
@@ -73,6 +74,19 @@ def prefix_digest(model: nn.Module, layers: int = PREFIX_LAYERS) -> dict:
         "sha256": digest.hexdigest(),
         "method": PREFIX_DIGEST_METHOD,
     }
+
+
+def inspected_prefix_digest(model: nn.Module) -> str:
+    """Exact canonicalization of the authoritative owning-node inspection receipt."""
+    digest = hashlib.sha256()
+    state = model.state_dict()
+    for name in prefix_names(model):
+        value = state[name].detach().cpu().contiguous()
+        digest.update(
+            json.dumps([name, str(value.dtype), list(value.shape)], separators=(",", ":")).encode()
+        )
+        digest.update(_bytes(value).numpy().tobytes())
+    return digest.hexdigest()
 
 
 def _stamp(model: nn.Module, names: Sequence[str]) -> tuple:
@@ -225,6 +239,11 @@ def verify_prefix(
     summary = prefix_digest(lead)
     if (summary["tensors"], summary["elements"]) != expected:
         raise TeacherMismatch("Prefix size differs from the inspected six-block prefix")
+    if expected == (PREFIX_TENSORS, PREFIX_ELEMENTS):
+        actual_inspected = inspected_prefix_digest(lead)
+        if actual_inspected != INSPECTED_PREFIX_DIGEST:
+            raise TeacherMismatch("Shared prefix differs from the original inspection digest")
+        summary["original_inspection_sha256"] = actual_inspected
     return names, summary
 
 

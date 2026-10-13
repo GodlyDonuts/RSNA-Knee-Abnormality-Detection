@@ -441,3 +441,11 @@ def test_full_fitting_roster_fits_proposed_cap_not_single_teacher_cap():
     rows = [committee_row(i) for i in range(te.FITTING_STUDIES)]
     size = len(ce._serialize(ce._arrays(uids, rows)))
     assert te.MAX_EVIDENCE_BYTES < size < ce.MAX_EVIDENCE_BYTES
+
+
+def test_root_inspection_digest_binds_actual_tensor_bytes(namespace):
+    group = members(namespace)
+    original = committee.inspected_prefix_digest(group[0])
+    assert all(committee.inspected_prefix_digest(m) == original for m in group)
+    group[0].backbone.embeddings.cls.data.add_(0.001)
+    assert committee.inspected_prefix_digest(group[0]) != original

@@ -1,0 +1,26 @@
+"""Collect only original completed, not previously attempted private CPU shards."""
+import json,hashlib,re,shlex,subprocess,sys
+from pathlib import Path
+B=Path('artifacts/kaggle-public-source-shard000-20261013-v1');assert not (B/'completed-shard-collection-intent.json').exists()
+indices=[int(v) for v in sys.argv[1:]];assert indices and len(set(indices))==len(indices) and all(i in range(1,20) for i in indices)
+base=(B/'download_first_shard_files_worker.py.txt').read_text();env=Path('.env');assert env.stat().st_mode&0o077==0;vals={}
+for line in env.read_text().splitlines():
+ k,s,v=line.partition('=')
+ if s:vals[k.strip()]=v.strip().strip('"\'')
+with (B/'completed-shard-collection-intent.json').open('x') as f:json.dump({'shard_indices':indices,'shard000_already_verified_never_repeated':True,'worker_source_sha256':hashlib.sha256(base.encode()).hexdigest(),'automatic_retry':False,'new_shared_bytes':0,'MRI_transfer_only_to_private_Newton_node':True},f,indent=2)
+for i in indices:
+ label=f'{i:03d}';L=Path(f'artifacts/kaggle-public-source-shard{label}-20261013-v1');assert not (L/'files-download-intent.json').exists()
+ receipt=json.loads((L/'status-receipt.json').read_text());assert receipt['status']=='COMPLETE';sourcehash=json.loads((L/'push-receipt.json').read_text())['source_sha256']
+ worker=base.replace("assert [p.name for p in R.iterdir()]==['download-intent.json'] and not(R/'files-download-intent.json').exists(),'No prior pixel bytes may be repeated'", "assert not R.exists(),'Existing original download: reconcile rather than repeat';R.mkdir(mode=0o700,parents=True)")
+ worker=worker.replace('shard-000',f'shard-{label}').replace('shard000',f'shard{label}').replace('shard000-20261013-v1',f'shard{label}-20261013-v1')
+ worker=worker.replace('744bc3b0fac239572abad94f2c5315d87de5071c6ad373202b0526690b1adb33',sourcehash)
+ worker=worker.replace("manifest['shard_index']==0",f"manifest['shard_index']=={i}").replace("'shard_index':0",f"'shard_index':{i}").replace("len(manifest['members'])==175",f"len(manifest['members'])=={175 if i<19 else 78}").replace("'studies':175",f"'studies':{175 if i<19 else 78}")
+ worker=worker.replace("'earlier_zip_attempt_downloaded_zero_bytes':True", "'earlier_download_attempt':False")
+ worker=worker.replace('corrected_original_file_transport_after_zero_byte_zip_endpoint_refusal','original_complete_shard_once_only_file_transport')
+ compile(worker,'collection_worker','exec');(L/'files-download-worker.py.txt').write_text(worker)
+ with (L/'files-download-intent.json').open('x') as f:json.dump({'shard_index':i,'worker_sha256':hashlib.sha256(worker.encode()).hexdigest(),'encoded_bytes':receipt['actual_receipt']['encoded_bytes']['gzip'],'automatic_retry':False,'first_completed_source_bytes_verified':True},f,indent=2)
+ cmd=['srun','--jobid=899766','--overlap','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:25:00','/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B','-c',worker]
+ x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'token':vals['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=1550)
+ (L/'files-download-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Reconcile original partial bytes; no repeated download'
+ r=json.loads(x.stdout);assert r['shard_index']==i and r['every_encoded_and_decoded_member_size_SHA_verified'];(L/'download-verified.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r),flush=True)
+with (B/'completed-shard-collection-result.json').open('x') as f:json.dump({'status':'all_requested_distinct_completed_shards_verified','shard_indices':indices,'complete_cohort_merged':False},f,indent=2)

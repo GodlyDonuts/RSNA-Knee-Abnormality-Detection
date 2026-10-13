@@ -1,0 +1,47 @@
+"""Finite once-only CPU cohort queue: <=5 active shards, never retry uncertain pushes."""
+import json,hashlib,subprocess,time,os
+from pathlib import Path
+B=Path('artifacts/kaggle-public-source-shard000-20261013-v1');intent=B/'cohort-finish-intent.json';assert not intent.exists(),'Existing finite coordinator: inspect its actual process/results instead of restarting'
+first=json.loads((B/'status-receipt.json').read_text());assert first['status']=='COMPLETE' and first['actual_receipt']['studies']==175
+assert first['actual_receipt']['cohort_manifest_sha256']=='3f265ddfb5b35857e75745b3476cf7761d6d41a93f3651839272c763ed5e7776'
+with intent.open('x') as f:json.dump({'PID':os.getpid(),'max_active_CPU_shards':5,'max_wall_seconds':21600,'source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'automatic_mutation_retry':False,'GPU':False,'competition_submission':False,'first_actual_175_study_shard_completed':True},f,indent=2)
+start=time.monotonic();done={0};active=set()
+def run(i,phase):
+ l=Path(f'artifacts/kaggle-public-source-shard{i:03d}-20261013-v1');x=subprocess.run(['artifacts/qa-env/bin/python',str(l/'run_phase.py'),phase],capture_output=True,text=True,timeout=700)
+ if x.returncode:
+  with (B/f'cohort-stopped-shard{i:03d}-{phase}.json').open('x') as f:json.dump({'phase':phase,'shard_index':i,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr,'automatic_retry':False},f,indent=2)
+  raise RuntimeError('Original phase failed or observation uncertain; reconcile read-only')
+ return json.loads(x.stdout)
+try:
+ while time.monotonic()-start<21600:
+  for i in range(1,20):
+   if i in done:continue
+   l=Path(f'artifacts/kaggle-public-source-shard{i:03d}-20261013-v1')
+   if (l/'push-intent.json').exists():
+    assert (l/'push-receipt.json').exists(),'Original push uncertain; no retry'
+    state=run(i,'status')
+    if state['status']=='COMPLETE':
+     r=state['actual_receipt'];assert r['studies']==(175 if i<19 else 78) and r['shard_index']==i and r['encoded_bytes']['gzip']<=4*2**30 and r['wall_seconds']<=7200
+     done.add(i);active.discard(i)
+    elif state['status'] in ('RUNNING','QUEUED','PENDING'):
+     active.add(i)
+    else:raise RuntimeError('Actual CPU shard failure or unknown state; preserve it and stop')
+  progress={'PID':os.getpid(),'completed_shards':sorted(done),'active_shards':sorted(active),'elapsed_seconds':time.monotonic()-start,'automatic_mutation_retry':False}
+  tmp=B/'cohort-progress.next.json';tmp.write_text(json.dumps(progress,indent=2)+'\n');tmp.replace(B/'cohort-progress.json')
+  if len(done)==20:
+   with (B/'cohort-finish-completed.json').open('x') as f:json.dump(progress|{'status':'all20_original_CPU_shards_completed','decoded_cache_restored_or_GPU_training':False},f,indent=2)
+   print(json.dumps(progress|{'status':'all20_original_CPU_shards_completed'}),flush=True);break
+  for i in range(1,20):
+   if len(active)>=5:break
+   l=Path(f'artifacts/kaggle-public-source-shard{i:03d}-20261013-v1')
+   if i in done or i in active:continue
+   assert not(l/'push-intent.json').exists(),'No uncertain mutation retry'
+   r=run(i,'push');assert r['version']==1 and r['competition_submission'] is False and r['GPU'] is False
+   active.add(i)
+   print(json.dumps({'status':'distinct_original_CPU_shard_pushed_once','shard_index':i,'kernel_id':r['kernel_id']}),flush=True)
+  time.sleep(90)
+ else:
+  with (B/'cohort-finish-expired.json').open('x') as f:json.dump(progress|{'status':'finite_observer_expired_not_job_failure','restart_authorized':False},f,indent=2)
+except Exception as e:
+ with (B/'cohort-finish-stopped.json').open('x') as f:json.dump({'error_type':type(e).__name__,'elapsed_seconds':time.monotonic()-start,'completed_shards':sorted(done),'active_shards':sorted(active),'automatic_mutation_retry':False,'restart_authorized':False},f,indent=2)
+ raise

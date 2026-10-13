@@ -1,0 +1,5 @@
+# Original-teacher H100 acceptance on existing allocation
+
+The same frozen original teacher completed its distinct GPU eight-MRI acceptance in28.91s on existing H100 allocation899766; no third GPU node was allocated and neither healthy production source/recipe changed. The original source fingerprint and all80 original window outputs passed; an independent same-backend replay was bit exact. Original CPU/GPU MRI byte inputs match. CPU FP32 versus original GPU-autocast predictions differ by at most0.000780702, so cross-precision bit equality is not claimed.
+
+Private GPU evidence9662bytes/SHA0432ed159b761bb78c16e39d65c441cf5d4c5e13b9ca2bb3b179f2ed50e9eb1b stays on evc31. This is the required actual GPU identity for future matching fullteacher collection, not a teacher/student accuracy result or clean source-training-roster proof. Keep GPU device/CUDA/cuDNN envelope separately bound; do not substitute the CPU receipt for GPU admission. No teacher-derived student fit or competition submission occurred.

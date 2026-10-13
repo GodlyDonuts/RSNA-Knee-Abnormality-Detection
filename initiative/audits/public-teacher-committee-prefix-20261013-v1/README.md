@@ -1,0 +1,5 @@
+# Twenty original public teachers have one identical frozen prefix
+
+All twenty retained Pilkwang v1 checkpoint members were read with weights-only loading, without new downloads. Every member uses the same public 336px/12-slice/three-channel pixel group. Embeddings plus the first six transformer blocks contain 113 tensors / 11,404,416 elements and are byte identical across all twenty members (digest in the receipt). Each original complete state was subsequently strictly loaded and reproduced its original source fingerprint on the already allocated H100: maximum error 6.198883056640625e-6, below the original 0.002 tolerance. All twenty checks completed in 46.8 seconds with no third GPU node.
+
+This supports investigating shared-prefix execution for a stronger teacher committee at lower computation cost. It does not prove shared-prefix forward equivalence, MRI ensemble accuracy, source training-cohort independence, student benefit or competition eligibility. Actual original full-graph eight-MRI teacher output acceptance is separate. Do not repeat these twenty state hashes or fingerprints; reuse their receipts and original file stats unless concerns arise.
