@@ -18,6 +18,9 @@ observed-count normalization, sampling order, AdamW groups, warmup/cosine LR,
 FP16 with scale 128 and the rank-32/native-384 encoder are inherited unchanged.
 A promoted setting must be applied with the same overrides to both
 `public-label-source-v1` arms (tested).
+The profiler itself runs the control arm only (enabled fitting supervision is
+refused): both arms have identical tensor shapes and arithmetic, differing only in
+soft fitting-label values.
 
 ## Numerical audit
 
