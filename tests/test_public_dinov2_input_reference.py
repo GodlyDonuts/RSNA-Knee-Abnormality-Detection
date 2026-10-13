@@ -309,7 +309,8 @@ def test_anisotropic_large_field_matches_documented_crop_window_resize(tmp_path,
     vol = np.clip((vol - p1) / max(p99 - p1, 1e-6), 0, 1)
     expected = F.interpolate(torch.from_numpy(vol)[None], size=(336, 336), mode="bilinear")
     expected = (expected[0] * 255).round().clamp(0, 255).to(torch.uint8)
-    assert torch.equal(out["images"][1], expected)
+    assert out["laterality"] == "R"  # coronal right knee: width flip after resize
+    assert torch.equal(out["images"][1], torch.flip(expected, dims=[-1]))
     assert reference.public_field_mm(namespace, 1.8, 96, 128) == pytest.approx(129.6)
     assert reference.public_field_mm(namespace, 0.3, 64, 48) == pytest.approx(19.2)
 
