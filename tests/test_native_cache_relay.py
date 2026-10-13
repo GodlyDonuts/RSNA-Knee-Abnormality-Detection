@@ -100,3 +100,27 @@ def test_registry_refuses_unsafe_paths_and_wrong_original_hash(tmp_path):
         relay.members_from_registry(p, relay.sha(p), 1)
     with pytest.raises(ValueError, match="registry bytes"):
         relay.members_from_registry(p, "b" * 64, 1)
+
+
+def test_incomplete_prefix_reconciliation_reuses_only_whole_verified_files(tmp_path):
+    source, target, members, proof = fixture(tmp_path)
+    names = list(members)
+    for name in names:
+        path = target / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((source / name).read_bytes() if name == names[0] else b"partial")
+    before = {name: (target / name).read_bytes() for name in names}
+    result = relay.reconcile_prefix(target, members)
+    assert result["verified_prefix_members"] == 1 and result["unverified_last_member"] == names[1]
+    assert result["missing_members"] == 1 and result["read_only"]
+    assert before == {name: (target / name).read_bytes() for name in names}
+
+
+def test_prefix_reconciliation_refuses_corruption_in_earlier_member(tmp_path):
+    source, target, members, proof = fixture(tmp_path)
+    for name in members:
+        path = target / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"corrupt")
+    with pytest.raises(ValueError, match="Earlier copied"):
+        relay.reconcile_prefix(target, members)

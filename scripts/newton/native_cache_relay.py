@@ -15,7 +15,11 @@ END = b"RSNAEOF1\n"
 
 
 def sha(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def signature(path):
@@ -132,6 +136,45 @@ def target_stream(reader, root, members, registry_sha, *, byte_cap, remaining_fu
         "bytes": copied,
         "registry_sha256": registry_sha,
         "all_original_member_size_SHA_verified_during_transfer": True,
+    }
+
+
+def reconcile_prefix(root, members):
+    """Read-only incomplete-transfer reconciliation, only after original endpoints stop.
+
+    Return verified prefix count/bytes and at most one unverified last file. Never
+    delete, overwrite or retransfer any original or complete copied member.
+    """
+    names = list(members)
+    actual = sorted(str(p.relative_to(root)) for p in (root / "cache").rglob("*") if p.is_file())
+    if actual != names[: len(actual)]:
+        raise ValueError("Incomplete cache is not an exact original stream prefix")
+    complete, size, partial = 0, 0, None
+    signatures = {}
+    for index, name in enumerate(actual):
+        path = root / name
+        if path.is_symlink() or any(p.is_symlink() for p in path.parents):
+            raise ValueError("Linked incomplete cache forbidden")
+        before = signature(path)
+        row = members[name]
+        valid = before[2] == row["bytes"] and sha(path) == row["sha256"]
+        if signature(path) != before:
+            raise ValueError("Original transfer is still changing the cache")
+        if not valid:
+            if index != len(actual) - 1 or before[2] > row["bytes"]:
+                raise ValueError("Earlier copied cache member is corrupt")
+            partial = name
+            break
+        complete += 1
+        size += row["bytes"]
+        signatures[name] = before
+    return {
+        "verified_prefix_members": complete,
+        "verified_prefix_bytes": size,
+        "missing_members": len(members) - complete,
+        "unverified_last_member": partial,
+        "verified_signatures": signatures,
+        "read_only": True,
     }
 
 
