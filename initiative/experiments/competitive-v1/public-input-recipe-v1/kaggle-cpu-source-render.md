@@ -26,8 +26,8 @@ gold/confirmation data and scientific sources are untouched.
 - Rosters come from `load_verified_release` plus `load_folds` plus `select_development`
   (fold 0). Both must equal the overlay's fitting/outer hashes (2247/1156).
 - `bind_sources` runs over the full 9-part baseline inventory, the exact correction
-  plan/receipt and the **mounted** `train_series.csv`, whose SHA must equal the release
-  `series_sha256`. It returns the 18,906 accepted series, and the 25 unaccepted series are
+  plan/receipt and the separately attached **accepted release series CSV**, whose SHA must equal the release
+  `series_sha256`. The mounted original `train_series.csv` is independently hash-bound; it is not substituted for reviewed plane metadata. It returns the 18,906 accepted series, and the 25 unaccepted series are
   never opened.
 - Both officially corrected objects are hashed at the mount and must equal the plan's
   `after` bytes and SHA (`verify_corrections`).
@@ -76,7 +76,8 @@ python scripts/kaggle/render_public_source.py --mode probe \
   --input-root /kaggle/input --private-out /kaggle/working/private/probe \
   --scratch /tmp/rsna-source-transport --budget <budget.json> --budget-sha256 <sha> \
   --source <pilkwang-v15.ipynb> --member-manifest <manifest.json> \
-  --studies <studies.parquet> --artifact-root <release-root> --folds <folds.parquet>
+  --studies <studies.parquet> --artifact-root <release-root> --folds <folds.parquet> \
+  --accepted-series <accepted-release-series.csv>
 ```
 
 Probe acceptance requires all of: exit 0, `accepted_parity: true`, 8/8 triplet matches,

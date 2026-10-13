@@ -103,7 +103,11 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("Fitting/development rosters differ from the accepted hashes")
     fitting_uids = list(map(str, fitting.study_uid))
     evaluation_uids = list(map(str, outer.study_uid))
-    series_csv = mount / "train_series.csv"
+    # The release's reviewed series metadata includes additional columns and
+    # accepted plane corrections. The mounted CSV is an original source asset,
+    # not a byte-identical substitute for that immutable training input.
+    series_csv = Path(args.accepted_series)
+    mounted_series_sha256 = hashlib.sha256((mount / "train_series.csv").read_bytes()).hexdigest()
     objects, table, input_hashes, _ = w.bind_sources(
         w.read_inventory(w.INVENTORY_DIR),
         series_csv,
@@ -131,6 +135,7 @@ def run(args: argparse.Namespace) -> dict:
         "renderer": renderer.binding,
         "folds_sha256": overlay["folds_sha256"],
         **input_hashes,
+        "mounted_series_csv_sha256": mounted_series_sha256,
         "source_table": table,
         **corrections,
     }
@@ -290,7 +295,14 @@ def main() -> None:
     parser.add_argument("--scratch", required=True)
     parser.add_argument("--budget", required=True)
     parser.add_argument("--budget-sha256", required=True)
-    for name in ("source", "member-manifest", "studies", "artifact-root", "folds"):
+    for name in (
+        "source",
+        "member-manifest",
+        "studies",
+        "artifact-root",
+        "folds",
+        "accepted-series",
+    ):
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--cohort-manifest")
     parser.add_argument("--cohort-manifest-sha256")

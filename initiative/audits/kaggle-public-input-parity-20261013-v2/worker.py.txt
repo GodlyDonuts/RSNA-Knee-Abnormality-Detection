@@ -1,0 +1,43 @@
+import hashlib,json,os,shutil,sys,time
+from pathlib import Path
+import pandas as pd
+import torch
+
+started=time.monotonic();torch.set_num_threads(1)
+assert not torch.cuda.is_available() and torch.cuda.device_count()==0
+P=json.loads(Path('/tmp/rsna-source-parity/private.json').read_text())
+from tools.research.public_dinov2_input_reference import reference
+from tools.research.public_dinov2_input_reference.dino_adapter import render_inputs
+from rsna.schema import TARGETS
+roots=[p for p in [Path('/kaggle/input/rsna-knee-abnormality-detection'),Path('/kaggle/input/competitions/rsna-knee-abnormality-detection')] if (p/'train_series').is_dir()]
+roots=list({p.resolve():p for p in roots}.values());assert len(roots)==1
+mount=roots[0];scratch=Path('/tmp/rsna-source-parity/original');scratch.mkdir(mode=0o700)
+ns,_=reference.load();reference.configure(ns,P['pixel_group'])
+series=pd.read_csv(mount/'train_series.csv',dtype=str)
+mounted_series_sha=hashlib.sha256((mount/'train_series.csv').read_bytes()).hexdigest()
+mounted_planes=dict(zip(series.SeriesInstanceUID,series.Anatomical_Plane));plane_map=P['accepted_plane_map']
+assert all(v in ('Sagittal','Coronal','Axial') for v in plane_map.values())
+plane_differences=sum(mounted_planes.get(k)!=v for k,v in plane_map.items())
+assert all(k in mounted_planes for k in plane_map)
+digest=hashlib.sha256();matches=windows=valid=verified_files=verified_bytes=0
+for uid in P['roster']:
+    rows={r['path']:r for r in P['files'] if r['study_uid']==uid}
+    study=scratch/'train_series'/uid;study.mkdir(mode=0o700,parents=True)
+    for series_uid,files in P['source_order'][uid]:
+        target=study/series_uid;target.mkdir(mode=0o700)
+        for name in files:
+            relative='train_series/'+uid+'/'+series_uid+'/'+name;r=rows[relative]
+            source=mount/relative;assert source.is_file() and not source.is_symlink()
+            raw=source.read_bytes();assert len(raw)==r['bytes'] and hashlib.sha256(raw).hexdigest()==r['sha256']
+            with (target/name).open('xb') as f:f.write(raw)
+            verified_files+=1;verified_bytes+=len(raw)
+    label=P['labels'][uid];y=torch.tensor([label['labels'][t] for t in TARGETS],dtype=torch.float32);mask=torch.tensor([label['mask'][t] for t in TARGETS],dtype=torch.float32)
+    original=reference.render_study(ns,study,plane_map)
+    row=render_inputs(ns,study,plane_map,y,mask)
+    expected=reference.windows(ns,original['images']).permute(1,0,2,3,4).float()/255
+    assert torch.equal(row['images'],expected) and torch.equal(row['series_mask'],original['slot_mask']);matches+=1
+    for key in ('images','features','positions','series_mask','slice_mask','labels','label_mask'):digest.update(row[key].numpy().tobytes())
+    valid+=int(row['positions'][...,1].sum());windows+=int(row['slice_mask'].sum())
+    shutil.rmtree(study)
+out={'status':'actual_Kaggle_CPU_original_source_public_input_parity_observed','fitting_studies':len(P['roster']),'original_pixel_triplet_matches':matches,'tensor_sha256':digest.hexdigest(),'expected_tensor_sha256':'e602f1a976fe341a48794d5cec8919522ee6bdad473770661fb9c1d69db3c6d8','accepted_parity':digest.hexdigest()=='e602f1a976fe341a48794d5cec8919522ee6bdad473770661fb9c1d69db3c6d8','original_files_verified':verified_files,'original_bytes_verified':verified_bytes,'acquired_encoder_windows':windows,'valid_physical_positions':valid,'elapsed_seconds':time.monotonic()-started,'python':sys.version.split()[0],'torch':torch.__version__,'mounted_series_sha256':mounted_series_sha,'accepted_release_series_sha256':P['series_sha256'],'accepted_plane_series':len(plane_map),'mounted_vs_accepted_plane_differences':plane_differences,'plane_metadata_source':'same_original_accepted_release_as_cluster_adapter_receipt','GPU_or_optimizer':False,'accuracy_gain':False,'private_study_records_exported':False}
+Path('/kaggle/working/public-input-parity.json').write_text(json.dumps(out,sort_keys=True,indent=2)+chr(10));print(json.dumps(out))
