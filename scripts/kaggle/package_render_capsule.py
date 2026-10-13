@@ -237,6 +237,8 @@ def trace(code_root: Path, artifact_root: Path, studies: Path, folds: Path, seri
         all(str(given[k]) == expected[k] for k in RECEIPT_KEYS),
         "Trace paths must equal the original input receipt's trainer inputs exactly",
     )
+    if str(code_root) not in sys.path:
+        sys.path.insert(0, str(code_root))
     from rsna.competitive.folds import load_folds
     from rsna.release import load_verified_release
 
