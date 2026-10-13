@@ -1,0 +1,31 @@
+import base64,gzip,hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-final-public-source-Kaggle-recovery-20261013-v2');F=Path('/tmp/rsna-public-label-final-inputs-20261013-v1')
+assert os.uname().nodename=='evc31' and os.environ.get('SLURM_JOB_ID')=='899766' and not os.environ.get('SLURM_STEP_GPUS') and not R.exists()
+os.environ['CUDA_VISIBLE_DEVICES']=''
+assert os.environ.get('SLURM_STEP_ID') is not None
+assert shutil.disk_usage('/tmp').free>143*2**30+656*2**20
+sha=lambda b:hashlib.sha256(b).hexdigest()
+cpu=json.loads((F/'CPU-accepted.json').read_text());base=json.loads((F/'final-config.json').read_text());overlay=(F/'overlay.json').read_bytes()
+assert sha((F/'final-config.json').read_bytes())==cpu['config_sha256'] and sha(overlay)==cpu['overlay_sha256']
+assert cpu['source_git']=='1bcd6c0e2e2a47d6894d5c545d6950e0c6f0d5b9' and (cpu['training_studies'],cpu['outer_studies'])==(3403,0)
+for name,h in cpu['source_modules'].items():
+ if name.startswith('code/rsna/'):
+  n=name.removeprefix('code/');assert v['hashes'][n]==h
+assert set(v['sources'])==set(v['hashes'])
+for name,s in v['sources'].items():assert sha(s.encode())==v['hashes'][name];compile(s,name,'exec')
+assert len(overlay)<2*1024**2
+normalized=json.dumps(cpu,sort_keys=True,indent=2)+'\n';cpu_sha=sha(normalized.encode())
+values={'EXPECTED_MANIFEST_SHA256':v['EXPECTED_MANIFEST_SHA256'],'FINAL_PUBLIC_SOURCE_RECOVERY_PROBE':True,'MEMORY_SOURCES':v['sources'],'MEMORY_HASHES':v['hashes'],'MEMORY_CPU_RECEIPT':cpu,'MEMORY_CPU_RECEIPT_SHA256':cpu_sha,'MEMORY_BASE_CONFIG':base,'MEMORY_PARENT_RECEIPT_SHA256':'26b6efe177e5317080e42b21c5be9eecf35f564a7ba3af62bdc40f09a6d3c180','PUBLIC_LABEL_OVERLAY_GZIP_BASE64':base64.b64encode(gzip.compress(overlay,mtime=0)).decode()}
+notebook='\n'.join(k+' = '+repr(value) for k,value in values.items())+'\n'+v['entry'];compile(notebook,'final-recovery-notebook.py','exec');assert len(notebook.encode())<1024**2
+contract=dict(v['old_contract'],kernel_slug='godlydonuts/rsna-final-publicsource-recovery-20261013-v2',source_sha256=sha(notebook.encode()),science_git=cpu['source_git'],wrapper_package_git=v['wrapper_git'],CPU_patch_receipt_sha256=cpu_sha,CPU_original_receipt_sha256=sha((F/'CPU-accepted.json').read_bytes()),CPU_patch_job='905196',label_source_overlay_sha256=cpu['overlay_sha256'],final_config_sha256=cpu['config_sha256'],label_source_roles=['final'],sequential_two_arm=False,sequential_one_arm=True,old_pending_H100_recovery=906608,no_new_bulk_Datasets=True,engineering_only=True)
+contract['existing_H100_job']=899766
+contract['original_failed_T4_kernel']=138509926
+contract['original_failed_T4_version']=1
+contract['corrected_failure']='exact_nested_fixture_artifacts_path'
+R.mkdir(mode=0o700)
+for n,value in [('contract.json',json.dumps(contract,sort_keys=True,indent=2)+'\n'),('notebook.py',notebook)]:
+ with (R/n).open('x') as f:f.write(value)
+proof={'status':'exact_private_final_source_T4_notebook_prepared_only','source_sha256':contract['source_sha256'],'source_bytes':len(notebook.encode()),'contract':contract,'original_CPU_receipt_preserved':True,'normalized_CPU_receipt_semantically_identical':True,'original_input_source_archive_reused':True,'new_shared_growth':0,'new_node_control_cap_bytes':16*2**20,'new_GPU_dispatched':False,'old_H100_cancelled':False}
+with (R/'prepared.json').open('x') as f:json.dump(proof,f,indent=2)
+print(json.dumps(proof))
