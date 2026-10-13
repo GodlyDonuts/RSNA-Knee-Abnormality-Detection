@@ -334,7 +334,7 @@ def test_real_closure_pack_verify_and_replay_from_capsule_only(tmp_path, monkeyp
         ROOT, ROOT, Path(local["studies"]), Path(local["folds"]), Path(local["series"])
     )
     paths = [row["path"] for row in closure["files"]]
-    assert paths == sorted(paths) and not any(p.endswith(".py") for p in paths)
+    assert paths == sorted(paths) and not any("__pycache__" in p for p in paths)
     assert relative["series"] in paths and "initiative/source/train_series.csv" in paths
     assert not any(p.startswith(("artifacts/", "initiative/source/inventory/")) for p in paths)
     member = tmp_path / "inputs" / "member-manifest.json"

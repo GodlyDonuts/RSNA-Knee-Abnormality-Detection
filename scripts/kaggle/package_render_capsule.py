@@ -256,8 +256,7 @@ def trace(code_root: Path, artifact_root: Path, studies: Path, folds: Path, seri
     for path in reads:
         if path.is_relative_to(root):
             relative = path.relative_to(root)
-            code_file = path.suffix in {".py", ".pyc"} or "__pycache__" in relative.parts
-            if not code_file and path.is_file():
+            if "__pycache__" not in relative.parts and path.is_file():
                 names.add(relative.as_posix())
         elif path.is_relative_to(code) and path.suffix not in {".py", ".pyc"}:
             raise CapsuleError("Validators read repository data outside the artifact root")
