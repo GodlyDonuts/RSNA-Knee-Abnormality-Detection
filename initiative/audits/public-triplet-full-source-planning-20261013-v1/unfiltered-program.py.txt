@@ -1,0 +1,35 @@
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-public-label-inputs-20261006-v1')
+sys.path.insert(0,str(P/'code'))
+import pandas as pd
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development
+inp=json.loads((P/'CPU-accepted.json').read_text())['trainer_inputs']
+frame,binding=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']))
+folds=load_folds(Path(inp['folds']),frame,binding)
+fit,outer=select_development(frame,folds,0)
+fitting=set(fit.study_uid.astype(str));evaluation=set(outer.study_uid.astype(str));assert (len(fitting),len(evaluation))==(2247,1156) and not fitting&evaluation
+cohort=fitting|evaluation
+parts=sorted((Path(inp['artifact-root'])/'initiative/source/inventory').glob('*.parquet'));assert len(parts)==9
+count=total=0;found=set();seen=set();series=set()
+for part in parts:
+ t=pd.read_parquet(part);t=t[t.study_uid.astype(str).isin(cohort)]
+ for row in t.itertuples(index=False):
+  path=Path(row.path)
+  assert row.split=='train_series' and not path.is_absolute() and '..' not in path.parts and path.suffix=='.dcm' and row.path not in seen and int(row.bytes)>0
+  assert len(row.sha256)==64
+  seen.add(row.path);found.add(str(row.study_uid));series.add(str(row.series_uid));count+=1;total+=int(row.bytes)
+assert found==cohort
+R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2')
+prior=json.loads((R/'private-original-roster-and-files.json').read_text());proof=json.loads((R/'plan-admitted.json').read_text())
+assert hashlib.sha256((R/'private-original-roster-and-files.json').read_bytes()).hexdigest()==proof['private_inventory_sha256']
+reused=sum(int(row['bytes']) for row in prior['files'] if row['path'] in seen);assert len(prior['files'])==1528 and reused==1384633928
+raw_future=total-reused;cache_cap=32*2**30;new_fit_cap=6*2**30;new_metadata=128*2**20
+prior_required=143*2**30+640*2**20
+required=prior_required+raw_future+cache_cap+new_fit_cap+new_metadata
+free=shutil.disk_usage('/tmp').free
+sha=lambda values:hashlib.sha256(json.dumps(sorted(values),separators=(',',':')).encode()).hexdigest()
+print(json.dumps({'status':'read_only_full_public_input_source_and_storage_feasibility','CPU_job':os.environ['SLURM_JOB_ID'],'source_revision':binding['source_revision'],'fitting_studies':len(fitting),'development_studies':len(evaluation),'cohort_studies':len(cohort),'raw_source_files':count,'raw_source_bytes':total,'raw_source_series':len(series),'fitting_roster_sha256':sha(fitting),'development_roster_sha256':sha(evaluation),'reused_retained_source_files':1528,'reused_retained_source_bytes':reused,'new_raw_future_bytes':raw_future,'new_cache_cap_bytes':cache_cap,'new_training_checkpoints_cap_bytes':new_fit_cap,'new_metadata_cap_bytes':new_metadata,'prior_obligations_including_20GiB_reserve_bytes':prior_required,'required_node_free_bytes':required,'actual_node_free_bytes':free,'remaining_after_all_obligations_bytes':free-required,'fits_current_node_reserve':free>required,'new_shared_growth_bytes':0,'pixel_read_or_acquisition':False,'GPU_used':False,'dispatch_admitted':False}))

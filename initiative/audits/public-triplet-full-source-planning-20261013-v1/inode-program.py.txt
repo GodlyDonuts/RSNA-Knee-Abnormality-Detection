@@ -1,0 +1,3 @@
+import os,json
+assert os.uname().nodename=='evc41' and not os.environ.get('SLURM_JOB_GPUS')
+v=os.statvfs('/tmp');print(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc41','available_inodes':v.f_favail,'conservative_future_inode_bound':1000000,'fits_inode_reserve':v.f_favail>1000000,'raw_acquisition':False}))

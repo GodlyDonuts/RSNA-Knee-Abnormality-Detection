@@ -1,0 +1,7 @@
+import json,os,shutil
+from pathlib import Path
+assert os.uname().nodename=='evc41' and not os.environ.get('SLURM_JOB_GPUS')
+C=Path('/tmp/rsna-final-recovery-evc41-20261013-v1');f=json.loads((C/'funding.json').read_text());assert f['required_free_bytes']==190*2**30+128*2**20
+new_raw=448656231530;cache=32*2**30;checkpoints=6*2**30;metadata=2**30;required=f['required_free_bytes']+new_raw+cache+checkpoints+metadata
+free=shutil.disk_usage('/tmp').free
+print(json.dumps({'status':'read_only_distinct_public_input_storage_feasibility','CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc41','prior_original_recovery_and_full_native_future_required_bytes':f['required_free_bytes'],'new_raw_source_upper_bound_bytes':new_raw,'new_public_cache_cap_bytes':cache,'new_matched_training_checkpoints_cap_bytes':checkpoints,'new_metadata_cap_bytes':metadata,'required_free_bytes_after_all_obligations':required,'actual_node_free_bytes':free,'remaining_after_all_obligations_bytes':free-required,'fits_current_node_reserve':free>required,'new_shared_growth_bytes':0,'originals_deleted_or_transferred':False,'acquisition_or_GPU_dispatch_admitted':False}))
