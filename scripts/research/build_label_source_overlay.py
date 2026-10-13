@@ -1,4 +1,4 @@
-"""Build a bound label-source overlay for one outer fold.
+"""Build a bound label-source overlay for an outer fold or explicit final fit.
 
 Emits a label_source_v1 artifact covering every fitting study so the trainer's
 fitting-supervision mechanism can swap the complete label table while the
@@ -36,6 +36,7 @@ def build(
     output: Path,
     source_name: str,
     source_revision: str,
+    fit_scope: str = "outer_fold",
 ) -> dict:
     manifest = pd.read_parquet(studies)
     fold_frame = pd.read_csv(folds)
@@ -46,7 +47,7 @@ def build(
     if labels[ID_COLUMN].duplicated().any():
         raise ValueError("Duplicate studies in label source")
     values = labels[labels[ID_COLUMN].isin(manifest.study_uid)].set_index(ID_COLUMN)
-    train, outer = select_development(manifest, fold_frame, fold, "outer_fold")
+    train, outer = select_development(manifest, fold_frame, fold, fit_scope)
     entries = []
     for uid in train.study_uid:
         if uid in values.index:
@@ -61,7 +62,11 @@ def build(
         entries.append({"study_uid": uid, "labels": study_labels, "mask": study_mask})
     artifact = {
         "schema_version": 1,
-        "status": "label_source_experiment_only",
+        "status": (
+            "label_source_final_fit_only"
+            if fit_scope == "all_development"
+            else "label_source_experiment_only"
+        ),
         "source": {
             "name": source_name,
             "csv_sha256": source_csv_sha,
@@ -69,14 +74,19 @@ def build(
         },
         "release_sha256": file_sha256(studies),
         "folds_sha256": file_sha256(folds),
-        "fit_scope": "outer_fold",
+        "fit_scope": fit_scope,
         "fold": fold,
         "fitting_uid_sha256": roster_sha(train.study_uid.tolist()),
         "outer_uid_sha256": roster_sha(outer.study_uid.tolist()),
         "study_count": len(entries),
         "studies": entries,
     }
-    output.write_text(json.dumps(artifact, ensure_ascii=False, separators=(",", ":")) + "\n")
+    raw = json.dumps(artifact, ensure_ascii=False, separators=(",", ":")) + "\n"
+    if fit_scope == "all_development":
+        with output.open("x") as handle:
+            handle.write(raw)
+    else:
+        output.write_text(raw)
     return {
         "output": str(output),
         "overlay_sha256": file_sha256(output),
@@ -90,6 +100,9 @@ def main() -> None:
     parser.add_argument("--studies", type=Path, required=True)
     parser.add_argument("--folds", type=Path, required=True)
     parser.add_argument("--fold", type=int, required=True)
+    parser.add_argument(
+        "--fit-scope", choices=("outer_fold", "all_development"), default="outer_fold"
+    )
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--source-name", required=True)
     parser.add_argument("--source-revision", required=True)

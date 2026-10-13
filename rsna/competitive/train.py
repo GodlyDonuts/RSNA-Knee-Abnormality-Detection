@@ -186,12 +186,20 @@ class TrainConfig:
         if self.fitting_supervision is not None:
             validate_fitting_supervision(self.fitting_supervision)
             if (
-                self.fit_scope != "outer_fold"
+                self.fit_scope
+                != (
+                    "all_development"
+                    if self.fitting_supervision["kind"] == "label_source_final_v1"
+                    else "outer_fold"
+                )
                 or self.relation is not None
                 or self.witness is not None
             ):
-                raise ValueError("Fitting-supervision contrast requires an isolated outer-fold arm")
-            if self.fitting_supervision["kind"] == "label_source_v1" and (
+                raise ValueError("Fitting supervision requires its isolated policy-bound scope")
+            if self.fitting_supervision["kind"] in {
+                "label_source_v1",
+                "label_source_final_v1",
+            } and (
                 self.plane_memory is not None
                 or self.pooling != "attention"
                 or self.slice_context != "none"
@@ -572,10 +580,10 @@ def _run_locked(
     if config.neighbor_channels is not None:
         data_config["neighbor_channels"] = config.neighbor_channels
     training_config = dict(data_config)
-    if (
-        config.fitting_supervision is not None
-        and config.fitting_supervision["kind"] == "label_source_v1"
-    ):
+    if config.fitting_supervision is not None and config.fitting_supervision["kind"] in {
+        "label_source_v1",
+        "label_source_final_v1",
+    }:
         training_config["soft_targets"] = True
     training_data = dataset_class(
         train, series, args.cache, augment=config.augment, **training_config

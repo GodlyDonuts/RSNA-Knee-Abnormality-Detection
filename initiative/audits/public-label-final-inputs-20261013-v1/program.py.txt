@@ -1,0 +1,12 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-public-label-final-inputs-20261013-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists();assert shutil.disk_usage('/tmp').free>129*2**30+96*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);R.mkdir(mode=0o700)
+for n,s in v['files'].items():
+ p=Path(n);assert not p.is_absolute() and '..' not in p.parts and hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n];p=R/p;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ with p.open('x') as f:f.write(s)
+with (R/'source.json').open('x') as f:json.dump({'source_git':v['source_git'],'files':v['hashes'],'small_cap_bytes':16*2**20,'shared_new_growth':0},f,indent=2)
+e=dict(os.environ,PYTHONPATH=str(R/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1');x=subprocess.run(['/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B',str(R/'worker.py'),str(R)],capture_output=True,text=True,env=e,timeout=800)
+with (R/'worker.stdout').open('x') as f:f.write(x.stdout)
+with (R/'worker.stderr').open('x') as f:f.write(x.stderr)
+assert x.returncode==0,x.stderr;out=json.loads(x.stdout);out['observed_shared_quota']=q;print(json.dumps(out))

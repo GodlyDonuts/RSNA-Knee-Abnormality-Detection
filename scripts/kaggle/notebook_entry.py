@@ -172,6 +172,131 @@ def resolve_wheels(
     return wheels, found
 
 
+COMMON_BINDING_KEYS = {
+    "schema_version",
+    "dataset_slug",
+    "dataset_id",
+    "dataset_version",
+    "manifest_sha256",
+    "manifest_bytes",
+    "files_sha256",
+    "member_count",
+    "total_bytes",
+    "verification_sha256",
+    "checkpoint_format",
+    "license_source",
+    "license_sha256",
+    "encoder_spec_sha256",
+    "code_sha256",
+    "wheelhouse_manifest_sha256",
+}
+CHECKPOINT_ONLY_MEMBERS = {
+    "checkpoint.pt",
+    "snapshot.json",
+    "fitting-admission.json",
+    "baseline-proof.json",
+}
+
+
+def object_sha256(value):
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    ).hexdigest()
+
+
+def copy_exact(root, name, record, destination):
+    relative = Path(name)
+    source = root / relative
+    if (
+        relative.is_absolute()
+        or ".." in relative.parts
+        or not relative.parts
+        or source.is_symlink()
+        or not source.is_file()
+        or not source.resolve().is_relative_to(root.resolve())
+    ):
+        raise ValueError("Component member path escapes its mounted Dataset")
+    target = destination / relative
+    target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    digest, count = hashlib.sha256(), 0
+    with source.open("rb") as handle, target.open("xb") as output:
+        for block in iter(lambda: handle.read(4 * 1024 * 1024), b""):
+            digest.update(block)
+            count += len(block)
+            output.write(block)
+    if digest.hexdigest() != record["sha256"] or count != record["bytes"]:
+        raise ValueError("Component member bytes differ from the bound manifest")
+
+
+def compose_common_bundle(
+    bundle, manifest, inputs=Path("/kaggle/input"), destination=Path("/tmp/rsna-composed-bundle")
+):
+    """Standalone manifests pass through; component payloads need one exact common bundle."""
+    record = manifest.get("common_bundle")
+    if record is None:
+        return bundle, manifest
+    if (
+        not isinstance(record, dict)
+        or set(record) != COMMON_BINDING_KEYS
+        or record["schema_version"] != 1
+        or record["dataset_version"] != 1
+        or record["checkpoint_format"] != manifest.get("checkpoint_format", "full")
+        or record["license_sha256"] != manifest.get("license_sha256")
+        or record["license_source"] != manifest.get("license_source")
+    ):
+        raise ValueError("Exact versioned common bundle binding required")
+    found = [
+        p
+        for p in attached_dataset_files(inputs, "common-manifest.json")
+        if p.stat().st_size == record["manifest_bytes"] and sha256(p) == record["manifest_sha256"]
+    ]
+    if len(found) != 1:
+        raise ValueError("Exactly one byte-bound common bundle must be attached")
+    root = found[0].parent
+    common = json.loads(found[0].read_text())
+    files = common.get("files")
+    candidate = manifest["files"]
+    if (
+        common.get("schema_version") != 1
+        or common.get("kind") != "rsna_common_encoder_code_bundle"
+        or common.get("diagnostic_only") is not False
+        or common.get("competition") != manifest.get("competition")
+        or common.get("checkpoint_format") != record["checkpoint_format"]
+        or common.get("shared_wheelhouse") != manifest.get("shared_wheelhouse")
+        or not isinstance(files, dict)
+        or object_sha256(files) != record["files_sha256"]
+        or len(files) != record["member_count"]
+        or files.get("DINOv3-LICENSE.md", {}).get("sha256") != record["license_sha256"]
+        or files.get("encoder.json", {}).get("sha256") != record["encoder_spec_sha256"]
+        or files.get("wheelhouse.json", {}).get("sha256") != record["wheelhouse_manifest_sha256"]
+    ):
+        raise ValueError("Mounted common bundle differs from its bound version")
+    if not set(candidate) <= CHECKPOINT_ONLY_MEMBERS or "checkpoint.pt" not in candidate:
+        raise ValueError("Checkpoint-only payload carries an unexpected member")
+    common_names = {name.casefold() for name in files}
+    if any(
+        name.casefold() in common_names or name.casefold() == "common-manifest.json"
+        for name in candidate
+    ):
+        raise ValueError("Conflicting checkpoint/common member path")
+    actual = {str(p.relative_to(root)) for p in root.rglob("*") if p.is_file() or p.is_symlink()}
+    if actual != set(files) | {"common-manifest.json"}:
+        raise ValueError("Common bundle contains missing or extraneous members")
+    destination.mkdir(mode=0o700, exist_ok=False)
+    for name, row in sorted(files.items()):
+        copy_exact(root, name, row, destination)
+    for name, row in sorted(candidate.items()):
+        copy_exact(bundle, name, row, destination)
+    manifest_file = bundle / "bundle-manifest.json"
+    copy_exact(
+        bundle,
+        "bundle-manifest.json",
+        {"sha256": sha256(manifest_file), "bytes": manifest_file.stat().st_size},
+        destination,
+    )
+    return destination, {**manifest, "files": dict(sorted({**files, **candidate}.items()))}
+
+
 def resolve_competition(inputs, slug):
     candidates = [inputs / slug, inputs / "competitions" / slug]
     present = [path for path in candidates if (path / "test.csv").is_file()]
@@ -355,6 +480,7 @@ def run():
             or path.stat().st_size != record["bytes"]
         ):
             raise ValueError("Bundle bytes differ from the prepared checkpoint/environment")
+    bundle, manifest = compose_common_bundle(bundle, manifest)
     os.environ.update(
         {
             "HF_HUB_OFFLINE": "1",

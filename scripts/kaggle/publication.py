@@ -63,9 +63,13 @@ def confined(name):
     return p
 
 
-def expected_files(data, manifest):
+def expected_files(data, manifest, manifest_name="bundle-manifest.json"):
+    if manifest_name not in {"bundle-manifest.json", "common-manifest.json"}:
+        raise ValueError("Unknown payload manifest name")
     files = dict(manifest["files"])
-    if not files or "bundle-manifest.json" in files or "dataset-metadata.json" in files:
+    if not files or {"bundle-manifest.json", "common-manifest.json", "dataset-metadata.json"} & set(
+        files
+    ):
         raise ValueError("Manifest payload membership is invalid")
     for name, item in files.items():
         p = confined(name)
@@ -82,7 +86,7 @@ def expected_files(data, manifest):
             or digest(full) != item["sha256"]
         ):
             raise ValueError("Unsupported, changed or unsafe payload")
-    m = data / "bundle-manifest.json"
+    m = data / manifest_name
     files[m.name] = {"sha256": digest(m), "bytes": m.stat().st_size}
     actual = {str(x.relative_to(data)) for x in data.rglob("*") if x.is_file() or x.is_symlink()}
     if actual != set(files) | {"dataset-metadata.json"}:
@@ -212,13 +216,11 @@ def list_files(remote, slug):
     raise ValueError("File list exceeded finite pagination")
 
 
-def map_members(actual, expected):
-    candidates = [
-        n for n in actual if n == "bundle-manifest.json" or n.endswith("/bundle-manifest.json")
-    ]
-    if len(candidates) != 1:
+def map_members(actual, expected, manifest_name="bundle-manifest.json"):
+    candidates = [n for n in actual if n == manifest_name or n.endswith("/" + manifest_name)]
+    if len(candidates) != 1 or manifest_name not in expected:
         raise ValueError("A unique mounted bundle manifest is required")
-    prefix = candidates[0][: -len("bundle-manifest.json")]
+    prefix = candidates[0][: -len(manifest_name)]
     if any(not name.startswith(prefix) for name in actual):
         raise ValueError("Mixed remote archive wrappers")
     mapping = {name[len(prefix) :]: name for name in actual}
@@ -285,7 +287,7 @@ def stream_file(remote, slug, name, expected, max_seconds=900):
         response.close()
 
 
-def reconcile(remote, slug, files, stream=stream_file):
+def reconcile(remote, slug, files, stream=stream_file, manifest_name="bundle-manifest.json"):
     before = metadata(remote, slug)
     owner, name = slug.split("/")
     ready = remote.call(
@@ -293,7 +295,7 @@ def reconcile(remote, slug, files, stream=stream_file):
     )
     if ready.get("status") not in ("READY", 5):
         raise ValueError("Dataset ingestion is not ready")
-    mapping = map_members(list_files(remote, slug), files)
+    mapping = map_members(list_files(remote, slug), files, manifest_name)
     verified = {
         logical: stream(remote, slug, path, files[logical])
         for logical, path in sorted(mapping.items())
