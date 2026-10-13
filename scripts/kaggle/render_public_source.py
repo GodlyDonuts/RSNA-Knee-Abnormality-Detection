@@ -88,7 +88,9 @@ def run(args: argparse.Namespace) -> dict:
     policy = json.loads(config_bytes)["public_input"]
     pi.validate_public_input(policy)
     manifest = Path(args.member_manifest).read_bytes()
-    renderer = producer.Renderer(policy, w.member_pixel_group(manifest), Path(args.source).read_bytes())
+    renderer = producer.Renderer(
+        policy, w.member_pixel_group(manifest), Path(args.source).read_bytes()
+    )
     frame, release = load_verified_release(Path(args.studies), Path(args.artifact_root))
     folds = load_folds(Path(args.folds), frame, release)
     fitting, outer = select_development(frame, folds, 0)
@@ -173,7 +175,12 @@ def run(args: argparse.Namespace) -> dict:
             raise TimeoutError("Funded wall time exhausted")
         try:
             _, order = w.transport_study(
-                mount / producer.SPLIT / uid, scratch, uid, records[uid], funding, origin="kaggle_mount"
+                mount / producer.SPLIT / uid,
+                scratch,
+                uid,
+                records[uid],
+                funding,
+                origin="kaggle_mount",
             )
             order["source_revision"] = pst.CORRECTED_SOURCE_REVISION
             payload, receipt, inputs = producer.render_member(
@@ -188,7 +195,8 @@ def run(args: argparse.Namespace) -> dict:
             )
             if args.mode == "probe":
                 public = ref.render_study(namespace, scratch / producer.SPLIT / uid, plane_map)
-                expected = ref.windows(namespace, public["images"]).permute(1, 0, 2, 3, 4).float() / 255
+                windows = ref.windows(namespace, public["images"])
+                expected = windows.permute(1, 0, 2, 3, 4).float() / 255
                 import torch
 
                 if torch.equal(inputs["images"], expected) and torch.equal(
@@ -239,7 +247,9 @@ def run(args: argparse.Namespace) -> dict:
         "code_sha256": code,
         "runtime": runtime,
         "runtime_sha256": ksr.canonical_sha256(runtime),
-        "source_table": {k: table[k] for k in sorted(table) if not isinstance(table[k], (list, dict))},
+        "source_table": {
+            k: table[k] for k in sorted(table) if not isinstance(table[k], (list, dict))
+        },
         **corrections,
         "encoded_bytes": totals,
         "mean_gzip_bytes_per_study": totals_mean,
@@ -255,7 +265,9 @@ def run(args: argparse.Namespace) -> dict:
             "ranked": uids,
             "sorted": sorted(uids),
         }
-        digests = {name: ksr.parity_digest(parity[u] for u in order) for name, order in orders.items()}
+        digests = {
+            name: ksr.parity_digest(parity[u] for u in order) for name, order in orders.items()
+        }
         matched = [n for n, d in digests.items() if d == ksr.ACCEPTED_PARITY_TENSOR_SHA256]
         summary |= {
             "original_pixel_triplet_matches": triplet_matches,
@@ -285,7 +297,9 @@ def main() -> None:
     parser.add_argument("--shard-index", type=int)
     args = parser.parse_args()
     if args.mode == "shard" and (
-        args.cohort_manifest is None or args.cohort_manifest_sha256 is None or args.shard_index is None
+        args.cohort_manifest is None
+        or args.cohort_manifest_sha256 is None
+        or args.shard_index is None
     ):
         parser.error("--mode shard requires the cohort manifest, its hash and a shard index")
     print(json.dumps(run(args), sort_keys=True))

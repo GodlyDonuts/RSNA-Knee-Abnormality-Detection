@@ -475,7 +475,7 @@ def stage_member(
     *,
     renderer: Renderer,
 ) -> dict:
-    """Render, validate and exclusively stage one member; completed members are never re-rendered."""
+    """Render, validate and exclusively stage one member; completed members never re-render."""
     intent, intent_sha = load_intent(cache)
     root = _root(cache)
     if uid not in intent["source_studies"]:
@@ -609,7 +609,9 @@ def render_member(
 def inputs_equal(left: Mapping, right: Mapping) -> bool:
     """Exact equality of two adapter outputs (tensors bit-equal, strings equal)."""
     return set(left) == set(right) and all(
-        left[key] == right[key] if isinstance(right[key], str) else torch.equal(left[key], right[key])
+        left[key] == right[key]
+        if isinstance(right[key], str)
+        else torch.equal(left[key], right[key])
         for key in right
     )
 

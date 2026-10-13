@@ -21,6 +21,7 @@ import zlib
 from collections import Counter
 from collections.abc import Iterable, Mapping
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 import numpy as np
 
@@ -78,13 +79,15 @@ def check_cpu_runtime(environ: Mapping[str, str] | None = None) -> dict:
     import importlib
     import platform
 
-    modules = {}
+    modules: dict[str, dict] = {}
     for name in RUNTIME_MODULES:
         module = importlib.import_module(name)
         path = Path(str(getattr(module, "__file__", "")))
         modules[name] = {
             "version": str(getattr(module, "__version__", "")),
-            "file_sha256": hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None,
+            "file_sha256": (
+                hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+            ),
         }
     return {
         "placement": PLACEMENT,
@@ -103,13 +106,13 @@ def resources(paths: Iterable[Path]) -> dict:
     import resource
     import shutil
 
-    meminfo = {}
+    meminfo: dict[str, int] = {}
     if Path("/proc/meminfo").exists():
         for line in Path("/proc/meminfo").read_text().splitlines():
             key, _, value = line.partition(":")
             if key in {"MemTotal", "MemAvailable"}:
                 meminfo[key] = int(value.split()[0]) * 1024
-    limit = None
+    limit: int | None = None
     for name in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
         if Path(name).exists():
             text = Path(name).read_text().strip()
@@ -243,7 +246,11 @@ def measured_encodings(payload: bytes) -> dict:
     restored = producer._load_arrays(compressed)
     if not all(np.array_equal(restored[n], arrays[n]) for n in pi.MEMBER_ARRAYS):
         raise PlacementError("Compressed NPZ is not lossless for this member")
-    return {"exact": len(payload), "gzip": len(encode_member(payload)), "npz_deflate": len(compressed)}
+    return {
+        "exact": len(payload),
+        "gzip": len(encode_member(payload)),
+        "npz_deflate": len(compressed),
+    }
 
 
 def assign_shards(cohort: Iterable[str], studies_per_shard: int) -> list[list[str]]:
@@ -324,7 +331,7 @@ def write_shard_member(
         raise PlacementError("Source-order receipt belongs to another study")
     blob = encode_member(payload)
     decode_member(blob, size=len(payload), sha256=receipt["member"]["sha256"])
-    record = {
+    record: dict[str, Any] = {
         "study_uid": uid,
         "encoded": {"path": f"{MEMBERS}/{uid}.npz.gz", "bytes": len(blob)},
         "member": dict(receipt["member"]),
@@ -340,7 +347,9 @@ def write_shard_member(
     producer._write_exclusive(
         Path(shard) / RECEIPTS / f"{uid}.json", producer._json_bytes(dict(receipt))
     )
-    producer._write_exclusive(Path(shard) / ORDERS / f"{uid}.json", producer._json_bytes(dict(order)))
+    producer._write_exclusive(
+        Path(shard) / ORDERS / f"{uid}.json", producer._json_bytes(dict(order))
+    )
     return record
 
 
@@ -436,12 +445,15 @@ def merge_shards(
     ):
         raise PlacementError("Owning cache intent differs from the complete-cohort manifest")
     status = producer.reconcile(cache, verify_bytes=False)
+    if status["finalized"]:
+        raise PlacementError("Owning cache is finalized and immutable")
     if status["unexpected"] or set(status["states"]) - {"pending", "complete"}:
         raise PlacementError("Reconcile interrupted or foreign cache state before merging")
     complete = set(status["states"].get("complete", []))
     seen: set[str] = set()
     indices: set[int] = set()
     outcome: Counter = Counter()
+    planned = []
     for path, sha in sorted(shards.items(), key=lambda item: str(item[0])):
         manifest = verify_shard(Path(path), cohort, sha)
         uids = [m["study_uid"] for m in manifest["members"]]
@@ -449,42 +461,24 @@ def merge_shards(
             raise PlacementError("Shards overlap")
         indices.add(manifest["shard_index"])
         seen |= set(uids)
-        for record in manifest["members"]:
-            uid = record["study_uid"]
-            receipt_bytes = _regular(Path(path) / RECEIPTS / f"{uid}.json")
-            receipt = json.loads(receipt_bytes)
-            if (
-                hashlib.sha256(receipt_bytes).hexdigest() != record["receipt_sha256"]
-                or hashlib.sha256(_regular(Path(path) / ORDERS / f"{uid}.json")).hexdigest()
-                != record["order_sha256"]
-                or receipt["member"] != record["member"]
-                or record["records_sha256"] != intent["source_studies"].get(uid)
-            ):
-                raise PlacementError("Shard member records differ from their manifest")
-            blob = _regular(Path(path) / record["encoded"]["path"])
-            if (
-                len(blob) != record["encoded"]["bytes"]
-                or hashlib.sha256(blob).hexdigest() != record["encoded"]["sha256"]
-            ):
-                raise PlacementError("Encoded member bytes differ from the shard manifest")
-            payload = decode_member(
-                blob, size=record["member"]["bytes"], sha256=record["member"]["sha256"]
+        planned += [(Path(path), record) for record in manifest["members"]]
+    for path, record in planned:
+        _shard_member(path, record, intent, renderer)
+    for path, record in planned:
+        uid = record["study_uid"]
+        payload, receipt = _shard_member(path, record, intent, renderer)
+        if renderer is not None:
+            outcome["replayed"] += 1
+        if uid in complete:
+            existing = json.loads(
+                (Path(cache) / pi.CACHE_DIRECTORY / producer.RECEIPTS / f"{uid}.json").read_bytes()
             )
-            if renderer is not None:
-                replay = renderer.roundtrip(producer._load_arrays(payload), uid)
-                if inputs_sha256(replay) != record["inputs_sha256"]:
-                    raise PlacementError("Owning-runtime adapter replay differs from the shard")
-                outcome["replayed"] += 1
-            if uid in complete:
-                existing = json.loads(
-                    (Path(cache) / pi.CACHE_DIRECTORY / producer.RECEIPTS / f"{uid}.json").read_bytes()
-                )
-                if existing["member"] != record["member"]:
-                    raise PlacementError("Complete member differs from the shard member")
-                outcome["already_complete"] += 1
-                continue
-            producer.import_member(cache, uid, payload, receipt)
-            outcome["imported"] += 1
+            if existing["member"] != record["member"]:
+                raise PlacementError("Complete member differs from the shard member")
+            outcome["already_complete"] += 1
+            continue
+        producer.import_member(cache, uid, payload, receipt)
+        outcome["imported"] += 1
     status = producer.reconcile(cache)
     return {
         "shards": len(indices),
@@ -494,6 +488,35 @@ def merge_shards(
         "cohort_complete": set(status["states"]) == {"complete"},
         "labels_stored": False,
     }
+
+
+def _shard_member(
+    path: Path, record: Mapping, intent: Mapping, renderer: producer.Renderer | None
+) -> tuple[bytes, dict]:
+    """One shard member's exact bytes and receipt, after every bound hash is checked."""
+    uid = record["study_uid"]
+    receipt_bytes = _regular(path / RECEIPTS / f"{uid}.json")
+    receipt = json.loads(receipt_bytes)
+    if (
+        hashlib.sha256(receipt_bytes).hexdigest() != record["receipt_sha256"]
+        or hashlib.sha256(_regular(path / ORDERS / f"{uid}.json")).hexdigest()
+        != record["order_sha256"]
+        or receipt.get("member") != record["member"]
+        or record["records_sha256"] != intent["source_studies"].get(uid)
+    ):
+        raise PlacementError("Shard member records differ from their manifest")
+    blob = _regular(path / record["encoded"]["path"])
+    if (
+        len(blob) != record["encoded"]["bytes"]
+        or hashlib.sha256(blob).hexdigest() != record["encoded"]["sha256"]
+    ):
+        raise PlacementError("Encoded member bytes differ from the shard manifest")
+    payload = decode_member(blob, size=record["member"]["bytes"], sha256=record["member"]["sha256"])
+    if renderer is not None:
+        replay = renderer.roundtrip(producer._load_arrays(payload), uid)
+        if inputs_sha256(replay) != record["inputs_sha256"]:
+            raise PlacementError("Owning-runtime adapter replay differs from the shard")
+    return payload, receipt
 
 
 def plan_shards(

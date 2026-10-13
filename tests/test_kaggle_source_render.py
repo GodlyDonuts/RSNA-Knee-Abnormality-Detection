@@ -1,4 +1,4 @@
-"""Kaggle CPU source-render placement; synthetic DICOM/arrays, engineering only (no parity claim)."""
+"""Kaggle CPU source-render placement; synthetic DICOM/arrays, engineering only (no parity)."""
 
 import copy
 import gzip
@@ -135,7 +135,9 @@ def test_shard_merge_equals_direct_producer_staging_and_finalizes(setup, rendere
     direct = s["tmp"] / "direct"
     make_intent(s, direct)
     for uid in s["studies"]:
-        pc.stage_member(direct, uid, s["source"], s["records"][uid], s["plane_map"], renderer=renderer)
+        pc.stage_member(
+            direct, uid, s["source"], s["records"][uid], s["plane_map"], renderer=renderer
+        )
     cohort = cohort_of(s)
     shards = build_shards(s, renderer, cohort, s["tmp"] / "kaggle")
     merged = s["tmp"] / "merged"
@@ -149,7 +151,7 @@ def test_shard_merge_equals_direct_producer_staging_and_finalizes(setup, rendere
     again = ksr.merge_shards(merged, shards, cohort)
     assert again["outcome"] == {"already_complete": 2}
     pc.finalize(merged, policy=POLICY)
-    with pytest.raises(pc.ProducerError):
+    with pytest.raises(ksr.PlacementError):
         ksr.merge_shards(merged, shards, cohort)
 
 
@@ -261,7 +263,7 @@ def test_parity_hash_matches_accepted_worker_layout():
     y, m = torch.from_numpy(labels), torch.from_numpy(mask)
     row = inputs | {"labels": torch.where(m.bool(), y, torch.zeros_like(y)), "label_mask": m}
     expected = hashlib.sha256()
-    for key in ("images", "features", "positions", "series_mask", "slice_mask", "labels", "label_mask"):
+    for key in (*ksr.PARITY_KEYS, "labels", "label_mask"):
         expected.update(row[key].numpy().tobytes())
     assert ksr.parity_digest([ksr.parity_study_bytes(inputs, labels, mask)]) == expected.hexdigest()
 
@@ -288,7 +290,8 @@ def test_mount_and_corrections_bound_to_real_after_bytes(tmp_path):
     data = b"corrected"
     relative = "train_series/s/x/y.dcm"
     (mount / relative).write_bytes(data)
-    change = {"after": {"path": relative, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}}
+    after = {"path": relative, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+    change = {"after": after}
     assert ksr.verify_corrections(mount, {relative: change})["corrected_objects_verified"] == 1
     (mount / relative).write_bytes(data + b"!")
     with pytest.raises(ksr.PlacementError):
@@ -344,7 +347,8 @@ def test_budget_binds_code_runtime_and_cpu_only(tmp_path):
     def load(value):
         path = tmp_path / "budget.json"
         path.write_text(json.dumps(value))
-        return ksr.load_budget(path, hashlib.sha256(path.read_bytes()).hexdigest(), "c" * 64, runtime)
+        sha = hashlib.sha256(path.read_bytes()).hexdigest()
+        return ksr.load_budget(path, sha, "c" * 64, runtime)
 
     assert load(budget)["max_studies"] == 8
     assert load(budget | {"runtime_sha256": ksr.canonical_sha256(runtime)})
