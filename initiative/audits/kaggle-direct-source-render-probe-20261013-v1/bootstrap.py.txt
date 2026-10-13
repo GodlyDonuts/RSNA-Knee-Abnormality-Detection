@@ -1,0 +1,15 @@
+import hashlib,importlib.util,json,shutil,subprocess,sys
+from pathlib import Path
+P=Path('/tmp/rsna-capsule-verifier');P.mkdir(mode=0o700);script=P/'package_render_capsule.py';script.write_text(VERIFIER_SOURCE)
+assert hashlib.sha256(script.read_bytes()).hexdigest()=='8600449fc201a599798a41f02479cd0e99a04fb7a549c7b8ed7e6b9c62a4cced'
+spec=importlib.util.spec_from_file_location('cap',script);cap=importlib.util.module_from_spec(spec);spec.loader.exec_module(cap)
+slug='rsna-public-render-inputs-b0899dea5a38';root=Path('/kaggle/input');bases=[root/slug,root/'godlydonuts'/slug,root/'datasets/godlydonuts'/slug];found={d.resolve():d for b in bases for d in (b,b/'1',b/'v1') if (d/'capsule-manifest.json').is_file() and (d/'capsule.bin').is_file()};assert len(found)==1
+D=list(found.values())[0];sealed=cap.load_sealed(D/'capsule-manifest.json','bfcaf2bd260fb7ca084f890814e1aef57307d375296d1d056290efe52540f8cc');report=cap.verify(D/'capsule.bin',sealed,Path('/tmp/rsna-render-capsule'),cap.bounds(512*2**20,4096,2*2**30),script);args=report['render_arguments'];code=Path('/tmp/rsna-render-capsule/code');sys.path.insert(0,str(code))
+overlay=Path('/tmp/rsna-direct-source-render.py');overlay.write_text(RENDER_SOURCE);assert hashlib.sha256(overlay.read_bytes()).hexdigest()==RENDER_SHA256
+original=code/'scripts/kaggle/render_public_source.py';assert hashlib.sha256(original.read_bytes()).hexdigest()==ORIGINAL_RENDER_SHA256;original.chmod(0o600);original.write_text(RENDER_SOURCE);original.chmod(0o400)
+s=importlib.util.spec_from_file_location('render',code/'scripts/kaggle/render_public_source.py');render=importlib.util.module_from_spec(s);s.loader.exec_module(render)
+budget={'schema_version':1,'placement':'kaggle_cpu_notebook','competition':'rsna-knee-abnormality-detection','cpu_only':True,'gpus':0,'internet':False,'max_studies':8,'max_study_source_bytes':1*2**30,'min_free_bytes':2*2**30,'max_output_bytes':4*2**30,'max_wall_seconds':7200,'code_sha256':render.code_sha256(),'runtime_sha256':None};path=Path('/tmp/rsna-render-probe-budget.json');path.write_text(json.dumps(budget,sort_keys=True));sha=hashlib.sha256(path.read_bytes()).hexdigest()
+command=[sys.executable,'-B',str(code/'scripts/kaggle/render_public_source.py'),'--mode','probe','--input-root','/kaggle/input','--private-out','/kaggle/working/private/direct-probe','--scratch','/tmp/rsna-source-transport','--budget',str(path),'--budget-sha256',sha]
+for key,value in args.items():
+ if key!='script':command.extend([key,value])
+subprocess.run(command,cwd=code,check=True,timeout=7500)

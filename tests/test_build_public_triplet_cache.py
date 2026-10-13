@@ -5,10 +5,12 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import pandas as pd
 import pydicom
 import pytest
@@ -709,3 +711,22 @@ def test_reconcile_mode_never_creates_transport_directory(tmp_path, monkeypatch)
     )
     result = wrapper.run(args)
     assert result["mode"] == "reconcile" and not (out / "transport").exists()
+
+
+def test_direct_source_and_transported_tied_series_match_bitwise(tied, renderer):
+    # Exclude the deliberately foreign fixture series exactly as production does.
+    accepted = {r["series_uid"] for r in tied.records}
+    original = tied.tmp / "accepted-source" / pc.SPLIT / tied.study.name
+    original.mkdir(parents=True)
+    for entry in tied.study.iterdir():
+        if entry.name in accepted:
+            shutil.copytree(entry, original / entry.name)
+    copied, order = wrapper.transport_study(
+        original, tied.scratch, tied.study.name, tied.records, LIMITS, origin="corrected"
+    )
+    with reference.preserve_series_order(tied.study.name, order["series_order"]):
+        direct, _ = renderer.render(original, tied.plane_map)
+        transported, _ = renderer.render(copied, tied.plane_map)
+    assert set(direct) == set(transported)
+    for name in direct:
+        assert np.array_equal(direct[name], transported[name])

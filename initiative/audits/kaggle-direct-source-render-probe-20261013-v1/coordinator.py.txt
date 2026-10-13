@@ -1,0 +1,30 @@
+import importlib.util,io,json,os,sys,hashlib,subprocess
+from pathlib import Path
+v=json.load(sys.stdin);B=Path('/home/sa305415/rsna-knee');P=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection');R=Path('/tmp/rsna-direct-source-render-probe-20261013-v1')
+assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_STEP_GPUS')
+s=importlib.util.spec_from_file_location('canonical_coordinator',P/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(P/'code',P/'projection.json','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437');p=c.p
+sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+contract=v['contract'];source=v['source'];assert hashlib.sha256(source.encode()).hexdigest()==contract['source_sha256'];compile(source,'official-source-probe.py','exec')
+request={'slug':contract['slug'],'newTitle':contract['slug'].split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':False,'enableInternet':False,'datasetDataSources':['godlydonuts/rsna-public-render-inputs-b0899dea5a38'],'kernelDataSources':[],'competitionDataSources':['rsna-knee-abnormality-detection'],'sessionTimeoutSeconds':9000}
+with c.single_coordinator(B/'kaggle'):
+ with w.ledger(B/'kaggle/account-ledger.sqlite3',remote.username) as db:
+  e=w.read_entry(db,'ebeb3c39428612dc85e60fb6e5d3c0e4fde0acc6987cbe9a1b3f088aa273cfca');assert e['state']=='submitted'
+ if v['phase']=='push':
+  assert not R.exists();assert p.metadata(remote,'godlydonuts/rsna-public-render-inputs-b0899dea5a38')=={'id':12567458,'version':1,'slug':'godlydonuts/rsna-public-render-inputs-b0899dea5a38','private':True};absence=remote.require_absent_kernel(contract['slug']);R.mkdir(mode=0o700)
+  with (R/'source.py').open('x') as f:f.write(source)
+  p.exclusive_json(R/'intent.json',{'contract':contract,'request_sha256':w.object_hash(request),'absence':absence,'one_SaveKernel':True,'automatic_retry':False,'competition_submission':False})
+  result=remote.call('kernels.KernelsApiService','SaveKernel',request);p.exclusive_json(R/'create-response.json',result)
+  assert result.get('versionNumber')==1 and result.get('ref')=='/code/'+contract['slug'] and not result.get('error')
+  print(json.dumps({'status':'private_offline_CPU_official_source_mount_probe_pushed_once','kernel_id':result.get('kernelId'),'kernel_slug':contract['slug'],'version':1,'source_sha256':contract['source_sha256'],'GPU':False,'competition_submission':False}))
+ else:
+  assert v['phase']=='status';assert p.digest(R/'source.py')==contract['source_sha256']
+  kernel=remote.kernel('GetKernel',contract['slug'],1);assert w.object_hash(kernel['blob']['source'])==w.object_hash(source);m=kernel['metadata'];assert m.get('isPrivate') is True and m.get('enableGpu',False) is False and m.get('enableInternet') is False
+  assert m.get('competitionDataSources')==request['competitionDataSources'];assert m.get('datasetDataSources')==request['datasetDataSources']
+  state=remote.kernel('GetKernelSessionStatus',contract['slug'],1);out={'status':state.get('status'),'kernel_slug':contract['slug'],'version':1,'exact_source_private_offline_CPU_verified':True,'GPU':False,'competition_submission':False}
+  if state.get('status')=='COMPLETE':
+   receipt=remote.output_json(contract['slug'],1,'private/direct-probe/summary.json');assert receipt['mode']=='probe' and receipt['studies']==8 and receipt['labels_stored'] is False
+   out['actual_receipt']=receipt
+  if state.get('status')=='ERROR':
+   import re
+   log=remote.kernel('ListKernelSessionOutput',contract['slug'],1).get('log','');assert isinstance(log,str) and not log.startswith('http');out['original_log_tail']=re.sub(r'1\.2\.826\.[0-9.]+','[privateUID]',log[-8000:])
+  print(json.dumps(out))

@@ -172,7 +172,7 @@ def run(args: argparse.Namespace) -> dict:
     from tools.research.public_dinov2_input_reference import reference as ref
 
     shard = out / "shard"
-    records_out, parity, sizes, seconds = [], {}, [], []
+    records_out, parity, source_parity, sizes, seconds = [], {}, {}, [], []
     triplet_matches = 0
     for uid in uids:
         tick = time.monotonic()
@@ -188,6 +188,28 @@ def run(args: argparse.Namespace) -> dict:
                 origin="kaggle_mount",
             )
             order["source_revision"] = pst.CORRECTED_SOURCE_REVISION
+            if args.mode == "probe":
+                # Compare to the original source BEFORE transport, using the
+                # same recorded metadata row order. A historical hash from a
+                # different filesystem's enumeration is supplementary evidence.
+                import torch
+
+                from tools.research.public_dinov2_input_reference.dino_adapter import render_inputs
+
+                source_dir = mount / producer.SPLIT / uid
+                actual_series = {entry.name for entry in source_dir.iterdir() if entry.is_dir()}
+                if actual_series != set(order["series_order"]):
+                    raise ValueError(
+                        "Direct reference probe requires only the accepted source series"
+                    )
+                row = labels[uid]
+                y = torch.tensor([row["labels"][t] for t in TARGETS], dtype=torch.float32)
+                mask = torch.tensor([row["mask"][t] for t in TARGETS], dtype=torch.float32)
+                with ref.preserve_series_order(uid, order["series_order"]):
+                    direct = render_inputs(
+                        namespace, mount / producer.SPLIT / uid, plane_map, y, mask
+                    )
+                source_parity[uid] = ksr.parity_study_bytes(direct, y.numpy(), mask.numpy())
             with ref.preserve_series_order(uid, order["series_order"]):
                 payload, receipt, inputs = producer.render_member(
                     uid,
@@ -274,12 +296,21 @@ def run(args: argparse.Namespace) -> dict:
         digests = {
             name: ksr.parity_digest(parity[u] for u in order) for name, order in orders.items()
         }
+        direct_digests = {
+            name: ksr.parity_digest(source_parity[u] for u in order)
+            for name, order in orders.items()
+        }
+        source_equal = all(parity[u] == source_parity[u] for u in uids)
         matched = [n for n, d in digests.items() if d == ksr.ACCEPTED_PARITY_TENSOR_SHA256]
         summary |= {
             "original_pixel_triplet_matches": triplet_matches,
             "tensor_sha256": digests,
             "accepted_tensor_sha256": ksr.ACCEPTED_PARITY_TENSOR_SHA256,
-            "accepted_parity": bool(matched) and triplet_matches == len(uids),
+            "direct_source_tensor_sha256": direct_digests,
+            "direct_source_studies_matched": sum(parity[u] == source_parity[u] for u in uids),
+            "parity_reference": "original_source_before_transport_same_recorded_series_order",
+            "historical_reference_matched": bool(matched),
+            "accepted_parity": source_equal and triplet_matches == len(uids),
             "accepted_parity_order": matched[0] if matched else None,
             "proposed_shards": plan,
         }

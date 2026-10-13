@@ -140,3 +140,16 @@ unchanged. The cohort producer and Kaggle shard entry use that same recorded ord
 The original CPU probe was engineering evidence only: no model, optimizer, gold
 selection or accuracy gain. Capsule packaging is delegated under issue33; the full
 cohort cache and paired training are still not complete.
+
+
+## Direct-source transport acceptance
+
+The probe now compares every tensor component to the unchanged original renderer
+on the SAME mounted original study with the SAME recorded series order, before
+transport. This must match per study, not just on average. The acquired historical
+e602 hash remains separately reported and cannot be used as a universal source-
+order hash: filesystem enumeration selects different equal-length series.
+Original source predicates, tie rule and pixel operators remain unchanged.
+Full-cohort emission requires actual direct-source parity plus exact object-table,
+roster, code/runtime and output-size bindings. Historical-reference disagreement
+alone is neither an accuracy result nor permission to weaken source-byte checks.
