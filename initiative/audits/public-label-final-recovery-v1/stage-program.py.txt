@@ -1,0 +1,27 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-public-label-final-recovery-20261013-v1');P=Path('/tmp/rsna-public-label-final-inputs-20261013-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists()
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();accepted=json.loads((P/'CPU-accepted.json').read_text());assert accepted==v['expected_cpu'];assert accepted['status']=='actual_final_public_source_CPU_roster_and_16MRI_inputs_verified' and accepted['source_git']=='1bcd6c0e2e2a47d6894d5c545d6950e0c6f0d5b9' and (accepted['training_studies'],accepted['outer_studies'],accepted['masked_out_source_studies'])==(3403,0,0)
+required=136*2**30+112*2**20;free=shutil.disk_usage('/tmp').free;assert free>=required
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True)
+rows=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i %j %T %N'],text=True);assert not any('final-public-source-recovery' in x for x in rows.splitlines());nodes={x.split()[-1] for x in rows.splitlines() if 'RUNNING' in x and 'rsna-plane-public_label_source' in x};assert len(nodes)<=1
+R.mkdir(mode=0o700);members={}
+for n,h in accepted['source_modules'].items():
+ if not n.startswith('code/'):continue
+ p=P/n;assert sha(p)==h;out=R/n;out.parent.mkdir(mode=0o700,parents=True,exist_ok=True);shutil.copyfile(p,out);members[n]=h
+for n,s in v['files'].items():
+ assert hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n];out=R/'code'/n;out.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ with out.open('x') as f:f.write(s)
+ members['code/'+n]=v['hashes'][n]
+for n in ['CPU-accepted.json','final-config.json','overlay.json']:
+ dest='input-accepted.json' if n=='CPU-accepted.json' else n;shutil.copyfile(P/n,R/dest)
+assert sha(R/'final-config.json')==accepted['config_sha256'] and sha(R/'overlay.json')==accepted['overlay_sha256']
+old=json.loads(Path('/tmp/rsna-public-label-inputs-20261006-v1/CPU-accepted.json').read_text());inputs=old['trainer_inputs']
+with (R/'trainer-inputs.json').open('x') as f:json.dump(inputs,f,indent=2)
+header=Path('/tmp/rsna-neighbor-recovery-20261005-v3/header-CPU-accepted.json');assert header.is_file();hv=json.loads(header.read_text());assert hv['CPATH'].endswith('python3.12')
+fund={'status':'agent_accepted_final_public_source_recovery_and_final_fit_node_budget','new_recovery_bytes':2**30,'new_final_fit_and_publication_bytes':6*2**30,'new_shared_bytes_files':0,'existing_future_bytes_conservatively_retained':109*2**30+96*2**20,'new_small_controls_bytes':16*2**20,'reserve_bytes':20*2**30,'required_free_bytes':required,'observed_free_bytes':free,'no_deletion_credit':True,'shared_quota_observed':q,'GPU_dispatch':False,'healthy_original_jobs':rows}
+with (R/'funding.json').open('x') as f:json.dump(fund,f,indent=2)
+manifest={'package_git':v['package_git'],'scientific_source_git':accepted['source_git'],'files':members,'input_receipt_sha256':sha(R/'input-accepted.json'),'header_sha256':sha(header),'wrapper_sha256':v['hashes']['scripts/newton/probe_final_public_source_recovery.py']}
+with (R/'source.json').open('x') as f:json.dump(manifest,f,indent=2)
+assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<16*2**20
+print(json.dumps({'status':'original_final_source_GPU_recovery_staged_and_budget_accepted','root':str(R),'CPU_job':os.environ['SLURM_JOB_ID'],'source':manifest,'funding':fund,'CPATH':hv['CPATH'],'runtime_python':'/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','GPU_dispatched':False}))
