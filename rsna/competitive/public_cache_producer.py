@@ -475,7 +475,7 @@ def stage_member(
     *,
     renderer: Renderer,
 ) -> dict:
-    """Render, validate and exclusively stage one member; completed members are never re-rendered."""
+    """Render, validate and exclusively stage one member; completed members never re-render."""
     intent, intent_sha = load_intent(cache)
     root = _root(cache)
     if uid not in intent["source_studies"]:
@@ -505,15 +505,62 @@ def stage_member(
         raise ProducerError(f"Interrupted member state {state}; reconcile before any write")
     if study_source_sha256(uid, records) != intent["source_studies"][uid]:
         raise ProducerError("Inventory rows differ from the bound original-source digest")
+    _require_funded(root, intent)
+    payload, receipt, _ = render_member(
+        uid,
+        source_root,
+        records,
+        plane_map,
+        renderer=renderer,
+        source_sha256=intent["source_studies"][uid],
+        source_revision=intent["source_revision"],
+        role="fitting" if uid in set(intent["fitting_uids"]) else "evaluation",
+    )
+    return _commit(root, intent, uid, payload, receipt | {"intent_sha256": intent_sha})
+
+
+def _require_funded(root: Path, intent: dict) -> None:
     caps = intent["caps"]
+    if _committed_bytes(root) + intent["member_bytes"] > caps["max_total_bytes"]:
+        raise ProducerError("Member would exceed the funded cache bytes")
+    if shutil.disk_usage(root).free - intent["member_bytes"] < caps["min_free_bytes"]:
+        raise ProducerError("Member would breach the free-disk reserve")
 
-    def require_funded() -> None:
-        if _committed_bytes(root) + intent["member_bytes"] > caps["max_total_bytes"]:
-            raise ProducerError("Member would exceed the funded cache bytes")
-        if shutil.disk_usage(root).free - intent["member_bytes"] < caps["min_free_bytes"]:
-            raise ProducerError("Member would breach the free-disk reserve")
 
-    require_funded()
+def _commit(root: Path, intent: dict, uid: str, payload: bytes, receipt: dict) -> dict:
+    member, receipt_path, partial = _paths(root, uid)
+    _require_funded(root, intent)
+    _write_exclusive(partial, payload)
+    _write_exclusive(receipt_path, _json_bytes(receipt))
+    os.link(partial, member)
+    _fsync_directory(member.parent)
+    partial.unlink()
+    _fsync_directory(partial.parent)
+    return receipt | {"reused": False}
+
+
+def render_member(
+    uid: str,
+    source_root: Path,
+    records: list[dict],
+    plane_map: dict,
+    *,
+    renderer: Renderer,
+    source_sha256: str,
+    source_revision: str,
+    role: str,
+) -> tuple[bytes, dict, dict]:
+    """Verify exact source, render once, prove bit-exact storage and adapter replay; no writes.
+
+    Returns the exact member bytes, its receipt (without an intent binding) and the
+    renderer-to-adapter inputs. Used by ``stage_member`` and by placements that stage
+    elsewhere and import through ``import_member``.
+    """
+    _safe_uid(uid)
+    if study_source_sha256(uid, records) != source_sha256:
+        raise ProducerError("Inventory rows differ from the bound original-source digest")
+    if role not in {"fitting", "evaluation"}:
+        raise ProducerError("Member role must be fitting or evaluation")
     study_dir = Path(source_root) / SPLIT / uid
     if Path(source_root).is_symlink() or not Path(source_root).is_dir():
         raise ProducerError("Original source root required")
@@ -521,24 +568,18 @@ def stage_member(
     arrays, facts = renderer.render(study_dir, plane_map)
     _restat(study_dir, stats)
     payload = _serialize(arrays)
-    if len(payload) != intent["member_bytes"]:
+    if len(payload) != member_bytes():
         raise ProducerError("Serialized member bytes differ from the exact contract")
     stored = _load_arrays(payload)
     if not all(np.array_equal(stored[name], arrays[name]) for name in pi.MEMBER_ARRAYS):
         raise ProducerError("Stored member does not round-trip bit-exactly")
     replay, original = renderer.roundtrip(stored, uid), facts["inputs"]
-    if set(replay) != set(original) or not all(
-        replay[key] == original[key]
-        if isinstance(original[key], str)
-        else torch.equal(replay[key], original[key])
-        for key in original
-    ):
+    if not inputs_equal(replay, original):
         raise ProducerError("Stored member differs from the renderer-to-adapter output")
     receipt = {
         "schema_version": SCHEMA_VERSION,
         "study_uid": uid,
-        "role": "fitting" if uid in set(intent["fitting_uids"]) else "evaluation",
-        "intent_sha256": intent_sha,
+        "role": role,
         "member": {
             "path": f"{MEMBERS}/{uid}.npz",
             "bytes": len(payload),
@@ -555,21 +596,67 @@ def stage_member(
         "laterality": facts["laterality"],
         "source": {
             "split": SPLIT,
-            "source_revision": intent["source_revision"],
-            "records_sha256": intent["source_studies"][uid],
+            "source_revision": source_revision,
+            "records_sha256": source_sha256,
             "files": len(records),
             "bytes": sum(r["bytes"] for r in records),
         },
         "labels_stored": False,
     }
-    require_funded()
-    _write_exclusive(partial, payload)
-    _write_exclusive(receipt_path, _json_bytes(receipt))
-    os.link(partial, member)
-    _fsync_directory(member.parent)
-    partial.unlink()
-    _fsync_directory(partial.parent)
-    return receipt | {"reused": False}
+    return payload, receipt, original
+
+
+def inputs_equal(left: Mapping, right: Mapping) -> bool:
+    """Exact equality of two adapter outputs (tensors bit-equal, strings equal)."""
+    return set(left) == set(right) and all(
+        left[key] == right[key]
+        if isinstance(right[key], str)
+        else torch.equal(left[key], right[key])
+        for key in right
+    )
+
+
+def import_member(cache: Path, uid: str, payload: bytes, receipt: Mapping) -> dict:
+    """Commit one member rendered by ``render_member`` elsewhere, under this cache's intent.
+
+    The bytes must equal the receipted exact member, the source digest/revision/role must
+    equal this intent's and the arrays must satisfy the contract; only pending members are
+    written, through the same exclusive partial/receipt/link sequence as ``stage_member``.
+    """
+    intent, intent_sha = load_intent(cache)
+    root = _root(cache)
+    _safe_uid(uid)
+    if uid not in intent["source_studies"]:
+        raise ProducerError("Study is outside the declared cohort")
+    if (root / INDEX).exists() or (root / INDEX).is_symlink():
+        raise ProducerError("Cache is finalized and immutable")
+    if _state(root, uid) != "pending":
+        raise ProducerError("Only pending members may be imported")
+    role = "fitting" if uid in set(intent["fitting_uids"]) else "evaluation"
+    source = receipt.get("source", {})
+    member = receipt.get("member", {})
+    if (
+        receipt.get("schema_version") != SCHEMA_VERSION
+        or receipt.get("study_uid") != uid
+        or receipt.get("role") != role
+        or receipt.get("labels_stored") is not False
+        or "intent_sha256" in receipt
+        or source.get("split") != SPLIT
+        or source.get("source_revision") != intent["source_revision"]
+        or source.get("records_sha256") != intent["source_studies"][uid]
+        or member.get("path") != f"{MEMBERS}/{uid}.npz"
+        or member.get("bytes") != intent["member_bytes"]
+        or len(payload) != intent["member_bytes"]
+        or hashlib.sha256(payload).hexdigest() != member.get("sha256")
+    ):
+        raise ProducerError("Imported member differs from this intent or its receipt")
+    arrays = _load_arrays(payload)
+    if receipt.get("arrays") != {
+        name: {"dtype": str(arrays[name].dtype), "shape": list(arrays[name].shape)}
+        for name in pi.MEMBER_ARRAYS
+    } or receipt.get("occupied_slots") != int(arrays["slot_mask"].sum()):
+        raise ProducerError("Imported member arrays differ from their receipt")
+    return _commit(root, intent, uid, payload, dict(receipt) | {"intent_sha256": intent_sha})
 
 
 def release_stale_partial(cache: Path, uid: str) -> None:
