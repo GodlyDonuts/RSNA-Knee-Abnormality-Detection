@@ -1,5 +1,7 @@
 # Complete initiative record
 
+Latest verified solo Kaggle result (October 13): **0.854**, entry **57128606**, using the RSNA-only full-public-supervision native384 rank32 model at its fixed final epoch 10. Earlier solo best was 0.804; fitting scope and recipe differ, so this is a leaderboard improvement rather than a controlled causal comparison. See [the exact result receipt](audits/kaggle-publicsource-e10-ebeb3c394286-v1/actual-scored-outcome.json). The matched second-seed repeat continues; no repeat result is available yet.
+
 This folder contains actual data and evidence, not only links to a previous
 session. A new agent can recover the report-review work and source inventory
 from a clone of this repository.
