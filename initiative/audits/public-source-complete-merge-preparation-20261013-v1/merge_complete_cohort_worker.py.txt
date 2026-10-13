@@ -1,0 +1,32 @@
+"""Exact owning-node cache admission; refuses incomplete or attempted cohorts."""
+import json,sys,os,hashlib,shutil,importlib.util
+from pathlib import Path
+ROOT=Path('/tmp/rsna-kaggle-public-source-shards-20261013-v1');C=Path('/tmp/rsna-render-capsule-package-20261013-v1');E=C/'extracted';cache=ROOT/'merged-cache'
+assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_STEP_GPUS');assert not cache.exists() and not(ROOT/'merge-intent.json').exists()
+assert shutil.disk_usage('/tmp').free>(140+3+72+32+20)*2**30+68*2**20
+shards={};receipts=[]
+for i in range(20):
+ r=ROOT/f'shard-{i:03d}';proof=json.loads((r/'verified.json').read_text());assert proof['shard_index']==i and proof['studies']==(175 if i<19 else 78) and proof['every_encoded_and_decoded_member_size_SHA_verified'];shards[r/f'extracted/private/shard{i:03d}/shard']=proof['shard_manifest_sha256'];receipts.append(proof)
+cohort=json.loads((ROOT/'shard-000/extracted/private/shard000/cohort-manifest.json').read_text())
+sys.path.insert(0,str(E/'code'))
+from rsna.competitive import public_cache_producer as producer,public_input as pi,kaggle_source_render as ksr
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development
+from rsna.release import load_verified_release
+s=importlib.util.spec_from_file_location('source_wrapper',E/'code/scripts/newton/build_public_triplet_cache.py');w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+sealed=json.loads((C/'capsule/capsule-manifest-verifier-bound.json').read_text());args={k:E/v for k,v in sealed['render_arguments'].items()}
+config=json.loads(w.CONFIG.read_text());policy=config['public_input'];manifest=args['--member-manifest'].read_bytes();renderer=producer.Renderer(policy,w.member_pixel_group(manifest),args['--source'].read_bytes())
+frame,release=load_verified_release(args['--studies'],args['--artifact-root']);folds=load_folds(args['--folds'],frame,release);fit,outer=select_development(frame,folds,0);fit_uids=list(fit.study_uid.astype(str));outer_uids=list(outer.study_uid.astype(str))
+objects,table,input_hashes,_=w.bind_sources(w.read_inventory(w.INVENTORY_DIR),args['--accepted-series'],release,fit_uids,outer_uids,w.CORRECTION_PLAN,w.CORRECTION_RECEIPT);records=w.producer_records(objects);source_studies={u:producer.study_source_sha256(u,records[u]) for u in sorted(records)}
+assert ksr.canonical_sha256(cohort)=='3f265ddfb5b35857e75745b3476cf7761d6d41a93f3651839272c763ed5e7776'
+assert pi.roster_sha256(fit_uids)==cohort['fitting_uids_sha256'] and pi.roster_sha256(outer_uids)==cohort['evaluation_uids_sha256'] and ksr.canonical_sha256(source_studies)==cohort['source_studies_sha256'] and table==cohort['binding']['source_table']
+for k,v in input_hashes.items():assert cohort['binding'][k]==v
+assert renderer.binding==cohort['binding']['renderer'] and hashlib.sha256(w.CONFIG.read_bytes()).hexdigest()==cohort['binding']['config_sha256']
+assert sum(r['studies'] for r in receipts)==3403 and len(shards)==20
+(ROOT/'merge-intent.json').write_text(json.dumps({'shards':20,'studies':3403,'cohort_manifest_sha256':ksr.canonical_sha256(cohort),'new_shared_bytes':0,'exact_member_bytes':3403*producer.member_bytes(),'adapter_replay_required_for_every_member':True,'automatic_retry':False},sort_keys=True,indent=2)+'\n')
+cache.mkdir(mode=0o700)
+intent_sha=producer.create_intent(cache,policy=policy,pixel_group=w.member_pixel_group(manifest),source_revision=cohort['source_revision'],fitting_uids=fit_uids,evaluation_uids=outer_uids,source_studies=source_studies,caps={'max_total_bytes':32*2**30,'min_free_bytes':(140+3+32+32+6+2+20)*2**30+68*2**20},binding={'exact_Kaggle_cohort':cohort,'source_input_hashes':input_hashes})
+merged=ksr.merge_shards(cache,shards,cohort,renderer=renderer);assert merged['cohort_complete'] and merged['shard_members']==3403 and merged['outcome']['imported']==3403
+index_sha=producer.finalize(cache,policy=policy);index,loaded_sha=pi.load_public_index(cache,policy,cohort['source_revision']);assert loaded_sha==index_sha
+proof={'status':'actual_complete_public_source_cache_restored_finalized_and_runtime_replayed','studies':3403,'fitting_studies':2247,'development_studies':1156,'intent_sha256':intent_sha,'index_sha256':index_sha,'cohort_manifest_sha256':ksr.canonical_sha256(cohort),'complete_shards':20,'exact_member_bytes':3403*producer.member_bytes(),'all_adapter_tensor_replays_equal_original_Kaggle':True,'source_table':table,'labels_in_cache':False,'new_shared_bytes':0,'GPU_model_optimizer_or_accuracy_executed':False,'originals_deleted':False}
+(ROOT/'merged-cache-verified.json').write_text(json.dumps(proof,sort_keys=True,indent=2)+'\n');print(json.dumps(proof))

@@ -1,0 +1,3 @@
+# Complete source cache merge prepared
+
+Single coordinator refuses dispatch until all twenty original completed shards have full member/source/order SHA proofs. OneCPU/zeroGPU owning-node merge rebinds exact accepted release/folds/source object table and roster, then requires original Kaggle-to-node adapter tensor equality for every3403 member before finalizing. Existing merge intent/cache forbids repeat. Fresh reserves preserve original liabilities plus new68MiB committee controls/evidence. Prepared only, not dispatched; eighteen originals3053studies now privately verified, sixteen/eighteen pending actual terminal. No pixels/model/clinical result published.
