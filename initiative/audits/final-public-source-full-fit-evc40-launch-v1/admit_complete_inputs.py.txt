@@ -1,0 +1,41 @@
+"""Actual owning-node CPU final-scope cache/input admission; no encoder forward."""
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+C=Path('/tmp/rsna-final-public-source-fit-evc40-20261013-v1')
+assert os.uname().nodename=='evc40' and not os.environ.get('SLURM_JOB_GPUS') and not(C/'complete-input-admitted.json').exists()
+sys.path.insert(0,str(C/'code'))
+import pandas as pd,torch
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import TrainConfig,select_development
+from rsna.competitive.supervision import apply_fitting_supervision,roster_sha
+from rsna.competitive.data import CompetitiveStudyDataset
+torch.set_num_threads(1)
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+cpu=json.loads((C/'input-accepted.json').read_text());manifest=json.loads((C/'source.json').read_text());receipt=json.loads((C/'full-cache-transfer-verified.json').read_text())
+assert receipt['members']==37812 and receipt['bytes']==140626483351 and receipt['all_original_member_size_SHA_verified_during_transfer'] is True
+for n,h in manifest['files'].items():assert sha(C/n)==h
+values=json.loads((C/'final-config.json').read_text());TrainConfig(**values).validate();assert sha(C/'final-config.json')==cpu['config_sha256'] and sha(C/'overlay.json')==cpu['overlay_sha256']
+assert (values['fit_scope'],values['epochs'],values['warmup_updates'],values['diagnostic_study_limit'])==('all_development',10,426,None)
+registry=Path('/home/sa305415/rsna-knee/native384-assembly-c9-v1/registry.json');assert sha(registry)=='73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770'
+members={n:r for shard in json.loads(registry.read_text())['shards'] for n,r in shard['members'].items()}
+assert set(members)=={str(p.relative_to(C)) for p in (C/'cache').rglob('*') if p.is_file()}
+signatures={}
+for n,row in members.items():
+ p=C/n;assert not p.is_symlink() and p.stat().st_size==row['bytes'];s=p.stat();signatures[n]=[s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]
+with (C/'complete-cache-signatures.json').open('x') as f:json.dump(signatures,f,sort_keys=True)
+inp=json.loads((C/'trainer-inputs.json').read_text());inp['cache']=str(C/'cache')
+frame,binding=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']));folds=load_folds(Path(inp['folds']),frame,binding);fit,outer=select_development(frame,folds,0,'all_development')
+assert len(fit)==3403 and outer.empty and roster_sha(fit)==cpu['fitting_uid_sha256']
+fit,supervision=apply_fitting_supervision(fit,outer,C/'overlay.json',values['fitting_supervision'],release_sha256=binding['manifest_sha256'],folds_sha256=sha(Path(inp['folds'])/'fold.csv'),fold=0)
+data=CompetitiveStudyDataset(fit.head(16),pd.read_csv(inp['series']),C/'cache',slices=16,side=384,max_series=6,soft_targets=True)
+ih=hashlib.sha256();lh=hashlib.sha256()
+for i in range(16):
+ r=data[i];assert torch.isfinite(r['images']).all();ih.update(r['images'].numpy().tobytes());lh.update(r['labels'].numpy().tobytes());lh.update(r['label_mask'].numpy().tobytes())
+assert ih.hexdigest()==cpu['image_tensor_sha256'] and lh.hexdigest()==cpu['label_tensor_sha256']
+recovery=json.loads((C/'T4-recovery-accepted.json').read_text());assert recovery['actual_recovery']['exact_complete_state_scaler_RNG_recovery'] is True and recovery['actual_recovery']['science_git']==cpu['source_git']
+assert shutil.disk_usage('/tmp').free>=190*2**30+128*2**20-140626483351
+out={'status':'actual_final_source_complete_cache_3403_roster_and_original16_tensors_CPU_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc40','source_git':cpu['source_git'],'cache_members':37812,'cache_bytes':140626483351,'cache_transfer_receipt_sha256':sha(C/'full-cache-transfer-verified.json'),'cache_signatures_sha256':sha(C/'complete-cache-signatures.json'),'raw_config_sha256':sha(C/'final-config.json'),'overlay_sha256':sha(C/'overlay.json'),'original_CPU_receipt_sha256':sha(C/'input-accepted.json'),'T4_recovery_receipt_sha256':sha(C/'T4-recovery-accepted.json'),'training_studies':3403,'outer_studies':0,'fitting_uid_sha256':cpu['fitting_uid_sha256'],'image_tensor_sha256':ih.hexdigest(),'label_tensor_sha256':lh.hexdigest(),'release_binding_sha256':binding['binding_sha256'],'supervision_receipt':supervision,'optimizer_updates_per_epoch':426,'fixed_final_updates':4260,'production_GPU_dispatched':False,'model_or_optimizer_forward_run':False,'original_sources_modified':False}
+with (C/'complete-input-admitted.json').open('x') as f:json.dump(out,f,sort_keys=True,indent=2)
+# Supervision contains only scope/hash/count provenance. Do not emit case records.
+print(json.dumps(out))
