@@ -1,0 +1,3 @@
+# Actual twenty-model shared-prefix acceptance
+
+Original eight fitting studies, all twenty privately retained public models, ten windows and twelve targets: shared-prefix execution equals each original full model bit for bit for fingerprints, window logits and probabilities. Actual H100 step inside original job899766; no third GPU node or live trainer source change. Source is bound to original base Git plus exact candidate-member hashes, subsequently integrated at600d332d. No accuracy, teacher cohort independence or leaderboard reproduction claimed. Individual outputs remain private. Do not repeat this acceptance.

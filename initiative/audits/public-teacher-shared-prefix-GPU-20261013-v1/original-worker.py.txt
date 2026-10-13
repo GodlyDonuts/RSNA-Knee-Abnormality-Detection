@@ -1,0 +1,25 @@
+import json,os,sys,hashlib,zipfile,time,gc
+from pathlib import Path
+import torch
+R=Path('/tmp/rsna-committee-shared-acceptance-20261013-v1');OLD=Path('/tmp/rsna-public-teacher-evidence-20261013-v1');RAW=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2')
+assert os.uname().nodename=='evc31' and os.environ.get('SLURM_STEP_GPUS');assert not(R/'terminal.json').exists()
+sys.path.insert(0,str(R/'code'));sys.path.insert(0,str(RAW/'private-opencv'))
+from tools.research.public_teacher_evidence import teacher,committee
+from scripts.newton.collect_public_teacher_evidence import render_rows,read_roster
+from scripts.newton.compare_public_dinov2_inputs import member_pixel_group,select_roster
+from argparse import Namespace
+import pandas as pd
+source=(OLD/'code/initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json').read_bytes();member=member_pixel_group((RAW/'private-member-manifest.json').read_bytes());ns,binding=teacher.load_namespace(source,member['pixel_group']);cfg=json.loads((OLD/'backbone-config.json').read_text());inspection=json.loads((OLD/'original-committee-prefix-inspection.json').read_text());expected={v['file']:v for v in inspection['members']}
+torch.set_num_threads(1);device=torch.device('cuda');assert torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0) and torch.cuda.mem_get_info()[0]>8*2**30
+models=[];refs=[];ids=[];started=time.monotonic()
+with zipfile.ZipFile('/tmp/rsna-public-solution-models-20261007-v1/pilkwang--rsna-knee-weights--v1.zip') as z:
+ manifest=json.loads(z.read('manifest.json'))
+ for rec in manifest['members']:
+  data=z.read(rec['file']);ck=teacher.load_checkpoint(data,expected[rec['file']]['checkpoint_sha256']);bb=teacher.dinov2_backbone(cfg);m=ns['Model'](bb,cfg['hidden_size'],pool=rec['config']['pool'],prior=rec['config']['prior']);m.load_state_dict(ck['model'],strict=True);m.to(device).eval();m.requires_grad_(False);models.append(m);refs.append(ck['fingerprint'].detach().cpu() if isinstance(ck['fingerprint'],torch.Tensor) else torch.as_tensor(ck['fingerprint']));ids.append(rec['file']);del data,ck;gc.collect()
+built=committee.Committee(ns,models,ids);fp_errors=built.verify_fingerprints(device,refs)
+a=json.loads((OLD/'stage-accepted.json').read_text());uids=select_roster(pd.Series(read_roster(OLD/'fitting-uids.json')),8);args=Namespace(series=a['series_path'],series_order=str(OLD/'series-order.json'),dicom_root=str(RAW/'original'))
+rows=0
+for images,mask in render_rows(ns,args,uids):
+ out=built.collect_study(images,mask,device,mode='shared',check_full=True);assert out['member_probabilities'].shape==(20,12) and out['member_window_logits'].shape==(20,10,12);rows+=1
+proof={'status':'actual_twenty_teacher_shared_prefix_eight_MRI_bitwise_accepted','original_source_sha256':binding['source_sha256'],'teacher_node_text_sha256':binding['teacher_node_text_sha256'],'studies':rows,'members':20,'targets':12,'windows':10,'original_fingerprint_max_error':max(fp_errors),'all_full_vs_shared_fingerprint_window_logits_and_probabilities_bit_exact':True,'prefix':built.prefix_summary,'prefix_computations':built.prefix.computed,'prefix_reuses':built.prefix.reused,'GPU':torch.cuda.get_device_name(0),'new_GPU_node':False,'parent_job':899766,'wall_seconds':time.monotonic()-started,'teacher_training_roster':'unknown','labels_reports_or_evaluation_pixels_read':False,'source_or_student_accuracy_claimed':False,'private_individual_outputs_published':False}
+(R/'terminal.json').write_text(json.dumps(proof,sort_keys=True,indent=2)+'\n');print(json.dumps(proof))
