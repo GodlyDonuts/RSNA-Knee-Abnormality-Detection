@@ -1,0 +1,6 @@
+import json,os,subprocess
+from pathlib import Path
+C=Path('/tmp/rsna-final-recovery-evc41-20261013-v1');assert os.uname().nodename=='evc41' and not os.environ.get('SLURM_JOB_GPUS')
+job='906608';row=subprocess.check_output(['squeue','-h','-j',job,'-o','%T|%M|%N'],text=True).strip();assert row.startswith('PENDING|0:00|')
+absent=['gpu.stdout','gpu.stderr','recovery-config.json','full','replay'];assert not any((C/n).exists() for n in absent)
+print(json.dumps({'status':'original906608_pending_zero_runtime_and_no_recovery_artifacts','CPU_job':os.environ['SLURM_JOB_ID'],'original_job':906608,'queue':row,'absent_original_paths':absent,'allocated_model_optimizer_or_updates':False,'old_job_cancelled':False}))

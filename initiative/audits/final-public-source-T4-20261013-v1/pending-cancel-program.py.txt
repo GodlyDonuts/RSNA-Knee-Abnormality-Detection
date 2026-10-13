@@ -1,0 +1,6 @@
+import json,subprocess
+job='906608';row=subprocess.check_output(['squeue','-h','-j',job,'-o','%T|%M|%N'],text=True).strip();assert row.startswith('PENDING|0:00|'), 'Original allocated or uncertain; leave unchanged'
+subprocess.run(['scancel','--state=PENDING',job],check=True)
+remaining=subprocess.check_output(['squeue','-h','-j',job,'-o','%T|%M|%N'],text=True).strip();assert not remaining, 'Cancellation raced allocation; no replacement authority'
+rows=subprocess.check_output(['sacct','-j',job,'--format=JobID,State,ElapsedRaw,NodeList','-n','-P'],text=True).splitlines();main=[x.split('|') for x in rows if x.startswith(job+'|')];assert len(main)==1 and main[0][1].startswith('CANCELLED') and main[0][2]=='0' and main[0][3] in ('None assigned','None','')
+print(json.dumps({'job_id':906608,'prior_state':row,'state':main[0][1],'elapsed_seconds':0,'node':main[0][3],'pending_only_cancel':True,'new_GPU_submitted':False}))

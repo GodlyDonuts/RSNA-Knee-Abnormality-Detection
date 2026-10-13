@@ -1,0 +1,57 @@
+import importlib.util,io,json,os,shutil,subprocess,sys
+from pathlib import Path
+sys.dont_write_bytecode=True
+v=json.load(sys.stdin);B=Path('/home/sa305415/rsna-knee');P=Path('/tmp/rsna-kaggle-nativeall-epoch5-py312-v1/projection');R=Path('/tmp/rsna-final-public-source-Kaggle-recovery-20261013-v1');F=Path('/tmp/rsna-public-label-final-inputs-20261013-v1')
+assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS')
+s=importlib.util.spec_from_file_location('canonical_coordinator',P/'code/scripts/kaggle/coordinator.py');c=importlib.util.module_from_spec(s);s.loader.exec_module(c);w,_=c.load_workflow(P/'code',P/'projection.json','a5e80083df543c3b9b7063dbfaa4741277dbe578e5d0a4fc679bb3350685a437');p=c.p
+contract=json.loads((R/'contract.json').read_text());assert contract==v['contract'];source=(R/'notebook.py').read_text();assert p.digest(R/'notebook.py')==contract['source_sha256'] and len(source.encode())<1024**2
+assert p.digest(F/'CPU-accepted.json')==contract['CPU_original_receipt_sha256']
+cpu=json.loads((F/'CPU-accepted.json').read_text());assert cpu['source_git']==contract['science_git'] and cpu['CPU_job']=='905196' and cpu['config_sha256']==contract['final_config_sha256'] and cpu['overlay_sha256']==contract['label_source_overlay_sha256']
+sys.stdin=io.StringIO(json.dumps({'token':v['token']}));remote,_=c.remote_from_stdin(w)
+request={'slug':contract['kernel_slug'],'newTitle':contract['kernel_slug'].split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[contract['model_dataset_slug'],contract['shared_wheelhouse']['dataset_slug']],'kernelDataSources':[contract['CPU_kernel_slug']],'competitionDataSources':[],'sessionTimeoutSeconds':7200,'dockerImage':contract['runtime_image'],'dockerImagePinningType':'original'}
+with c.single_coordinator(B/'kaggle'):
+ assert remote.dataset_version(contract['model_dataset_slug'])=={'id':12333543,'version':1,'slug':contract['model_dataset_slug'],'private':True}
+ w.verify_shared_wheelhouse(remote,contract['shared_wheelhouse'])
+ parent=remote.kernel('GetKernel',contract['CPU_kernel_slug'],1);meta=parent['metadata'];assert meta.get('isPrivate') is True and meta.get('enableGpu',False) is False and meta.get('enableInternet') is False
+ assert remote.kernel('GetKernelSessionStatus',contract['CPU_kernel_slug'],1).get('status')=='COMPLETE'
+ with w.ledger(B/'kaggle/account-ledger.sqlite3',remote.username) as db:
+  entry=w.read_entry(db,'ebeb3c39428612dc85e60fb6e5d3c0e4fde0acc6987cbe9a1b3f088aa273cfca');assert entry['state']=='submitted' and str(entry['submission_id'])=='57128606'
+ if v['phase'] in ('preflight','push'):
+  found=[x for x in remote.submissions() if str(x.get('ref'))=='57128606'];assert len(found)==1 and found[0].get('status')=='COMPLETE' and found[0].get('publicScore') is not None and not found[0].get('errorDescription')
+  # The completed e10 deployment no longer owes its original2MiB/20file
+  # future journal envelope. Existing bytes/files remain charged to quota.
+  q=subprocess.check_output(['lfs','quota','-u','sa305415','/home'],text=True);row=[x.split() for x in q.splitlines() if x.lstrip().startswith('/home ')][0]
+  remaining_bytes=(int(row[2])-int(row[1]))*1024-1404865465-65536
+  remaining_files=int(row[6])-int(row[5])-671-8
+  assert remaining_bytes>=20*2**30 and remaining_files>=5000
+  assert shutil.disk_usage('/tmp').free>143*2**30+656*2**20
+  quota=remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})
+  seconds=lambda x:float(x[:-1]) if isinstance(x,str) and x.endswith('s') else (_ for _ in ()).throw(ValueError('Duration required'))
+  g=quota['gpuQuota'];available=min(seconds(g['totalTimeAllowed']),seconds(g['minimumTimeAllowed']))-seconds(g['timeUsed'])-seconds(g['timeReserved']);assert available>=14400 and seconds(g['timeReserved'])==0
+  queue=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i|%T|%b|%N'],text=True)
+  running=[x for x in queue.splitlines() if 'gpu:' in x and '|RUNNING|' in x];assert len(running)==1 and running[0].startswith('899766|RUNNING|') and running[0].endswith('|evc31')
+  absence=remote.require_absent_kernel(contract['kernel_slug'])
+  proof={'status':'fresh_final_T4_original_source_resource_and_absence_preflight','checked_at':w.utcnow(),'source_sha256':contract['source_sha256'],'account_GPU_quota':g,'conservative_guaranteed_seconds':available,'source_fixture_version':1,'source_fixture_private_offline_CPU_complete':True,'completed_e10_submission':57128606,'completed_e10_score':found[0]['publicScore'],'fulfilled_deployment_future_budget_retired_only':{'bytes':2097152,'files':20},'retained_prior_shared_future_bytes':1404865465,'retained_prior_shared_future_files':671,'new_temporary_claim_ledger_budget':{'bytes':65536,'files':8},'shared_bytes_after_all_future_obligations':remaining_bytes,'shared_files_after_all_future_obligations':remaining_files,'queue':queue,'absence':absence,'competition_submission':False,'new_bulk_Dataset':False}
+  if v['phase']=='preflight':print(json.dumps(proof));sys.exit(0)
+  assert not (R/'kernel-create-intent.json').exists() and not (R/'kernel-create-response.json').exists()
+  cancelled=v['cancelled'];assert cancelled['job_id']==906608 and cancelled['pending_only_cancel'] is True and cancelled['elapsed_seconds']==0
+  terminal=subprocess.check_output(['sacct','-n','-X','-j','906608','-o','JobIDRaw,State,ElapsedRaw,NodeList','-P'],text=True)
+  rows=[x.split('|') for x in terminal.splitlines() if x.startswith('906608|')];assert len(rows)==1 and rows[0][1].startswith('CANCELLED') and rows[0][2]=='0' and rows[0][3] in ('None assigned','None','')
+  assert '906608|' not in queue
+  p.exclusive_json(R/'pending-only-H100-cancelled.json',cancelled);p.exclusive_json(R/'resource-and-absence.json',proof)
+  p.exclusive_json(R/'kernel-create-intent.json',{'source_sha256':contract['source_sha256'],'request_sha256':w.object_hash(request),'contract':contract,'single_SaveKernel':True,'automatic_retry':False,'diagnostic_only':True,'competition_submission':False})
+  result=remote.call('kernels.KernelsApiService','SaveKernel',request);p.exclusive_json(R/'kernel-create-response.json',result)
+  assert result.get('versionNumber')==1 and result.get('ref')=='/code/'+contract['kernel_slug'] and not result.get('error')
+  print(json.dumps({'status':'private_single_T4_final_source_recovery_pushed_once','kernel_id':result.get('kernelId'),'kernel_slug':contract['kernel_slug'],'version':1,'source_sha256':contract['source_sha256'],'science_git':contract['science_git'],'old_H100_cancelled_pending_only':True,'resource_proof':proof,'diagnostic_only':True,'competition_submission':False}))
+ else:
+  assert v['phase']=='status'
+  original=remote.kernel('GetKernel',contract['kernel_slug'],1);m=original['metadata'];assert w.object_hash(original.get('blob',{}).get('source',''))==w.object_hash(source)
+  for name in ['isPrivate','enableInternet','machineShape','dockerImage']:assert m.get(name)==request[name]
+  for name in ['datasetDataSources','kernelDataSources','competitionDataSources']:assert sorted(m.get(name,[]))==sorted(request[name])
+  state=remote.kernel('GetKernelSessionStatus',contract['kernel_slug'],1)
+  out={'status':state.get('status'),'actual_remote':state,'exact_source_private_offline_T4_verified':True,'kernel_slug':contract['kernel_slug'],'version':1,'clinical_accuracy_evidence':False,'competition_submission':False}
+  if state.get('status')=='COMPLETE':
+   receipt=remote.output_json(contract['kernel_slug'],1,'final-public-source-recovery-accepted.json');assert receipt['status']=='actual_single_T4_final_public_source_recovery_accepted' and receipt['CPU_receipt_sha256']==contract['CPU_patch_receipt_sha256'] and receipt['science_git']==contract['science_git']
+   assert receipt['exact_complete_state_scaler_RNG_recovery'] is True and receipt['amp_scaler']['_growth_tracker']==4
+   out['actual_recovery']=receipt
+  print(json.dumps(out))
